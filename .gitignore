@@ -1,0 +1,15 @@
+# Local translation runtime and downloaded model data.
+.tools/
+.argosconfig/
+
+# OS and editor noise.
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Build output reserved for the future engine implementation.
+build/
+out/
+bin/
+obj/
