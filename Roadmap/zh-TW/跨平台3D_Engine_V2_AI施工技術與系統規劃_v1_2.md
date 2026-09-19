@@ -1,7 +1,7 @@
 # 跨平台 3D Engine — V2 AI 施工技術與系統規劃
 
-**文件版本：AI Technical Draft v1.1**  
-**對應來源：跨平台3D_Engine_V2_完整規劃書_v1_1.md**  
+**文件版本：AI Technical Draft v1.2**  
+**對應來源：跨平台3D_Engine_V2_完整規劃書_v1_2.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
 
@@ -1392,6 +1392,8 @@ Stable Spatial Key
 
 重建不應無必要全部換 ID。
 
+Character Occupied Cell（見 V1 Character streaming boundary）延伸適用：Physics Collision Pinned 判定以「Character Footprint 覆蓋的最小 Adaptive Cell」為準，partition 形狀改變不影響判定邏輯。
+
 ---
 
 # V2 Origin Rebasing
@@ -1434,6 +1436,8 @@ Delta 只保存 persistent gameplay state。
 ```text
 dump entire runtime memory
 ```
+
+Delta 擷取與 Collision Unload 為兩件事：Cell 仍在任一 Character 的 Occupied Cell Set 內時，Persistent Delta 可正常擷取，但 Physics Collision 需保持 Pinned，Runtime Unload 需等待 Character 離開。
 
 ---
 
@@ -2209,6 +2213,7 @@ GPU culling vs CPU reference
 RenderGraph async queue validator
 Partition deterministic
 Origin rebase
+Character streaming boundary under adaptive/3D partition
 Network fuzz
 Protocol mismatch
 Replication schema

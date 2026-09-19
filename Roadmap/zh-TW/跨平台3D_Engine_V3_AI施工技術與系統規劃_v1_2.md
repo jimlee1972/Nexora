@@ -1,7 +1,7 @@
 # 跨平台 3D Engine — V3 AI 施工技術與系統規劃
 
-**文件版本：AI Technical Draft v1.1**  
-**對應來源：跨平台3D_Engine_V3_完整規劃書_v1_1.md**  
+**文件版本：AI Technical Draft v1.2**  
+**對應來源：跨平台3D_Engine_V3_完整規劃書_v1_2.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
 
@@ -1355,6 +1355,8 @@ TargetExpectedEpoch
 StateRevision
 ```
 
+CommitAuthority 前必須確認 Target Region 的角色 Occupied Cell Set（見 V1 Terrain Streaming Boundary Contract）已達 `StreamingPending` 相容狀態；未 Ready 則延後 Ownership Switch，角色在 Source 端維持 Authority/Collision，避免雙邊同時無 Collision。
+
 ---
 
 # V3 Border Ghost
@@ -2130,6 +2132,7 @@ Lockstep desync injection
 Stale epoch reject
 Split-brain fault injection
 Handoff timeout / retry
+Handoff target collision readiness
 Checkpoint journal recovery
 Node kill
 GPU readback stall detector
