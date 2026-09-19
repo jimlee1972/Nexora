@@ -1,7 +1,7 @@
 # 跨平台 3D Engine — V2 AI 施工技術與系統規劃
 
 **文件版本：AI Technical Draft v1.2**  
-**對應來源：跨平台3D_Engine_V2_完整規劃書_v1_2.md**  
+**對應來源：跨平台3D_Engine_V2_完整規劃書_v1_3.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
 
@@ -2319,3 +2319,4 @@ Done
 ```
 
 必須提供可驗證證據。
+

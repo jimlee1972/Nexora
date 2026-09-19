@@ -1,7 +1,7 @@
 # 跨平台 3D Engine — V3 AI 施工技術與系統規劃
 
-**文件版本：AI Technical Draft v1.2**  
-**對應來源：跨平台3D_Engine_V3_完整規劃書_v1_2.md**  
+**文件版本：AI Technical Draft v1.3**  
+**對應來源：跨平台3D_Engine_V3_完整規劃書_v1_3.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
 
@@ -1206,6 +1206,8 @@ Publish corrected state
 ```
 
 Presentation smoothing 不進 deterministic state。
+
+Deterministic Domain 預設 Bounded / Pre-loaded（Tick 0 前全部 Resident，不參與 Streaming Unload）。若需涵蓋 V2 Streamed 大世界，須走 ADR 並實作 Deterministic Residency Log（逐 Tick 記錄 Cell Residency），`Restore T` 需先還原對應 Tick 的 Residency 才能 Replay，否則 Replay 期間 Cell Collision 與原始 Tick 不一致會破壞 determinism。
 
 ---
 

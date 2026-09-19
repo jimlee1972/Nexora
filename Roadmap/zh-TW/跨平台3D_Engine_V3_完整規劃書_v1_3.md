@@ -1,6 +1,6 @@
 # 跨平台 3D Engine — V3 完整規劃書
 
-**文件版本：Master Draft v1.2**  
+**文件版本：Master Draft v1.3**  
 **Engine 世代：V3.x — Distributed / Simulation / Next-Gen**
 
 > V3 建立在完整 V1 + V2 上。V3 不把所有新能力變成 Mandatory；它增加的是「可選擇的能力上限」。
@@ -793,6 +793,23 @@ Visual smoothing
 ```
 
 與 deterministic state 分離。
+
+Deterministic Domain 與 World Partition Streaming 的邊界必須明確宣告，否則 Rollback 容易被破壞：
+
+```text
+Deterministic Domain Streaming Policy
+├─ Bounded / Pre-loaded（V3 V1 預設）
+│  → Deterministic Domain 涵蓋的空間範圍於 Tick 0 前全部 Resident
+│  → 不參與後續 Cell Unload/Evict
+│  → Rollback 不需額外處理 Cell Residency 歷史
+│
+└─ Streamed（Future / Opt-in，需 ADR）
+   → 需要 Deterministic Residency Log：逐 Tick 記錄 Cell Residency 快照
+   → Rollback 的 `Restore T` 必須先還原對應 Tick 的 Residency 狀態，才能 Replay Inputs
+   → 否則 Replay 時的 Cell Collision 可能與 Tick T 發生當下不一致，破壞 determinism
+```
+
+V3 V1 範圍限制：Deterministic Domain 預設採 Bounded / Pre-loaded 策略。若專案需要 Deterministic Domain 覆蓋 Streamed 大世界（V2 Large World / Adaptive Partition），必須走 ADR 流程並實作 Deterministic Residency Log；不得隱式假設 Rollback 天然相容 Streaming。
 
 ---
 
@@ -4480,6 +4497,10 @@ AI Training
 ---
 
 # Appendix — Complete inherited V2 Master Baseline
+
+> **⚠ Appendix 同步聲明**：本附錄為 V2 完整規劃書在特定時間點的完整複製快照，不會隨來源文件更新自動同步。來源文件每次修訂後，需人工比對差異並將變更套用到本附錄，否則本附錄可能攜帶已在來源文件修正、但本附錄尚未同步的過期內容。本附錄內部又巢狀包含一份「Complete inherited V1 Master Baseline」，同樣的同步風險會疊加兩層，需一併檢查。建議每次來源文件發布新版本時，將本附錄整份替換為最新內容，而不是逐條修補。
+>
+> 目前已同步至來源文件 Master Draft v1.2（含 Character Streaming Boundary 延伸至 Adaptive/3D Partition 的內容）。
 
 # 跨平台 3D Engine — V2 完整規劃書
 
@@ -11043,6 +11064,10 @@ V2 完成後才進 V3。
 ---
 
 # Appendix — Complete inherited V1 Master Baseline
+
+> **⚠ Appendix 同步聲明**：本附錄為 V1 完整規劃書在特定時間點的完整複製快照，不會隨來源文件更新自動同步，需人工比對並套用來源文件的後續修訂。
+>
+> 目前已同步至來源文件 Master Draft v1.2（含 Character Framework 的 Terrain Streaming Boundary Contract）。
 
 # 跨平台 3D Engine — V1 完整規劃書
 **文件版本：Master Draft v1.0**

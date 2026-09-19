@@ -1,6 +1,6 @@
 # 跨平台 3D Engine — V2 完整規劃書
 
-**文件版本：Master Draft v1.2**
+**文件版本：Master Draft v1.3**
 **Engine 世代：V2.x — Scale-Up / Production**
 
 > 本文件為 **V2 Master Plan**，所有 V1 Contract 預設繼承；只有本文件明確標示「V2 supersede」的項目可以改變 V1 行為。
@@ -6987,6 +6987,10 @@ V2 完成後才進 V3。
 ---
 
 # Appendix — Complete inherited V1 Master Baseline
+
+> **⚠ Appendix 同步聲明**：本附錄為 V1 完整規劃書在特定時間點的完整複製快照，不會隨來源文件更新自動同步。來源文件每次修訂後，需人工比對差異並將變更套用到本附錄，否則本附錄可能攜帶已在來源文件修正、但本附錄尚未同步的過期內容。建議每次來源文件發布新版本時，將本附錄整份替換為最新內容，而不是逐條修補。
+>
+> 目前已同步至來源文件 Master Draft v1.2（含 Character Framework 的 Terrain Streaming Boundary Contract）。
 
 # 跨平台 3D Engine — V1 完整規劃書
 **文件版本：Master Draft v1.0**
