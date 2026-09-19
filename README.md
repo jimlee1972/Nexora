@@ -7,7 +7,7 @@
 
 Nexora is an open-source cross-platform 3D engine initiative focused on a high-performance C++20 core, Zig gameplay, a language-neutral stable C ABI, modern rendering, scalable world systems, and AI-assisted engineering.
 
-This repository currently starts with the architecture and implementation-planning baseline. The roadmap documents are preserved in their original Traditional Chinese under `Roadmap/zh-TW/` so contributors can review the same design from the source language.
+This repository currently starts with the architecture and implementation-planning baseline. The roadmap documents are available in English under `Roadmap/en/`, with their original Traditional Chinese editions preserved under `Roadmap/zh-TW/`.
 
 ### Direction
 
@@ -42,7 +42,7 @@ Nexora is released under the [MIT License](LICENSE).
 
 Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核心、Zig Gameplay、語言中立的穩定 C ABI、現代化渲染、可擴展世界系統，以及 AI 輔助工程流程。
 
-目前 repository 先以架構與施工規劃為公開基線。中文原文位於 `Roadmap/zh-TW/`，讓貢獻者可以直接檢視原始設計內容。
+目前 repository 先以架構與施工規劃為公開基線。英文版位於 `Roadmap/en/`，並保留 `Roadmap/zh-TW/` 下的繁體中文原文，方便貢獻者交叉參照。
 
 ### 發展方向
 
