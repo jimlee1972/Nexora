@@ -8,8 +8,8 @@ This directory contains the six planning documents supplied for the Nexora open-
 
 | Document | Source file |
 | --- | --- |
-| V1 Complete Plan | [跨平台3D_Engine_V1_完整規劃書_v1_1.md](zh-TW/跨平台3D_Engine_V1_完整規劃書_v1_1.md) |
-| V1 AI Implementation Technology and System Plan | [跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_1.md](zh-TW/跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_1.md) |
+| V1 Complete Plan | [跨平台3D_Engine_V1_完整規劃書_v1_2.md](zh-TW/跨平台3D_Engine_V1_完整規劃書_v1_2.md) |
+| V1 AI Implementation Technology and System Plan | [跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_2.md](zh-TW/跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_2.md) |
 | V2 Complete Plan | [跨平台3D_Engine_V2_完整規劃書_v1_1.md](zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_1.md) |
 | V2 AI Implementation Technology and System Plan | [跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_1.md](zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_1.md) |
 | V3 Complete Plan | [跨平台3D_Engine_V3_完整規劃書_v1_1.md](zh-TW/跨平台3D_Engine_V3_完整規劃書_v1_1.md) |
@@ -32,4 +32,5 @@ This directory contains the six planning documents supplied for the Nexora open-
 The documents are planning artifacts. They do not themselves authorize commands, credentials, publishing, or changes to external systems.
 
 這些文件是規劃資料，不會自行授權命令、憑證、發布或外部系統變更。
+
 

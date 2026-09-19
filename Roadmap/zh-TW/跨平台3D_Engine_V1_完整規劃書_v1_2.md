@@ -1,5 +1,5 @@
 # 跨平台 3D Engine — V1 完整規劃書
-**文件版本：Master Draft v1.1**
+**文件版本：Master Draft v1.2**
 **Engine 世代：V1.x — Production Foundation**
 **目標平台：Windows / macOS / Android / iOS**
 
@@ -15792,6 +15792,65 @@ Resolved Motion
 
 旋轉平台需使用 contact-point velocity，不得只加 world translation。
 
+#### Terrain Streaming Boundary Contract
+
+Character Controller 是 persistent kinematic 物件，不同於 Particle / Projectile 可接受短暫消失或延遲生成；跨越 Terrain / World Partition Streaming Cell 邊界時，不能只沿用既有「static body 隨 Chunk load/unload」規則，必須有獨立契約。
+
+正式原則：
+
+```text
+Character Physical Footprint
+= Capsule Bounds + Safety Margin
+  (Ground Probe Distance, Max Step, Max Fall Distance)
+↓
+Occupied Cell Set
+```
+
+Occupied Cell Set 內的 Physics Collision Representation（HeightFieldShape / Static Body）視為 Pinned，獨立於該 Cell 的 Render / Vegetation Residency 之外——即使畫面 LOD 已因距離判定降級或卸載，角色腳下的 Collision 仍不得被回收。Physics Collision Residency 與 Render Residency 分開追蹤，沿用既有 Streaming Residency 的 Double Budget 精神，兩者不得連動。
+
+Cell Unload 規則正式修正為：
+
+```text
+Static Physics Body Unload 條件
+= Cell 不在任何 Character 的 Occupied Cell Set
+AND
+  Cell 不在任何 Character 的 Adjacent Prefetch Set
+```
+
+角色仍在 Occupied Cell Set 內時，該 Cell 的 HeightFieldShape 禁止進入 `PendingUnload` / `Evicting`。
+
+Cell Load 規則（角色移動快於 Streaming 完成，例如 Teleport 或高速位移進入未載入區域）：
+
+```text
+Character 進入尚未 Ready 的 Cell
+↓
+CharacterGroundState = StreamingPending
+↓
+暫停一般 Ground Snap / Step / Slide 判定
+↓
+使用 Last-Known Ground（若有）或 Hold Position（若無）
+↓
+禁止因「當下無 Collision」直接 Free Fall
+```
+
+`CharacterGroundState` 正式新增第六種狀態：
+
+```text
+CharacterGroundState
+├─ InAir
+├─ OnGround
+├─ OnSteepGround
+├─ Sliding
+├─ Unsupported
+└─ StreamingPending      ← 新增：Ground Cell 尚未 Ready
+```
+
+Character Movement 正式列為 High-priority Streaming Source，銜接既有 Streaming Priority Preemption / IO Concurrency Contract：Occupied Cell 與 Adjacent Prefetch Cell 的請求優先權高於一般 Camera Frustum Streaming Demand。
+
+Teleport Contract 同步規定：Teleport 目的地 Cell 若未 Ready，必須先觸發同步 / 高優先 Load，並在 Load 完成前保持 `StreamingPending`，不得直接把角色放到一個沒有 Collision 的世界座標。
+
+V1 範圍限制：本契約僅涵蓋 Persistent Kinematic Character（Player / NPC，走 CharacterController 路徑）；GPU Physics / Ragdoll / Debris 等非 gameplay-authoritative 物件不適用。
+
 #### Jump Policy
 
 Jump 的 gameplay policy 屬於 CharacterMotor。
@@ -16263,6 +16322,8 @@ CI 至少包含：
 - Character Batch ABI。
 - Character LOD 不得降級 gameplay-critical character。
 - Jolt backend-specific type 不得洩漏至 Gameplay / Stable C ABI。
+- Character 站在 Streaming Cell 邊界時觸發 Chunk unload，Collision 不得被移除（Occupied Cell Pinned 驗證）。
+- Teleport / 高速位移進入尚未 Ready 的 Cell，必須進入 `StreamingPending` 而非直接 Free Fall 或穿模。
 
 #### Character Framework V1 Definition of Done
 
@@ -16300,6 +16361,8 @@ Teleport
 Fixed Tick
 +
 Render Interpolation
++
+Terrain Streaming Boundary Contract
 +
 Batch-first Zig ABI
 ```
@@ -16373,7 +16436,7 @@ Jolt HeightFieldShape
 = Physics Derived Representation
 ```
 
-禁止維護另一份獨立可編輯的 Physics Heightmap。Terrain Heightmap 修改後，只重建或更新受影響 Chunk 的 Physics HeightField representation。Physics collision chunk 與 Terrain streaming chunk 對齊；Chunk unload 時移除對應 static physics body，load 時建立對應 HeightFieldShape。V1 預設 Terrain Collision 為 static。
+禁止維護另一份獨立可編輯的 Physics Heightmap。Terrain Heightmap 修改後，只重建或更新受影響 Chunk 的 Physics HeightField representation。Physics collision chunk 與 Terrain streaming chunk 對齊；Chunk unload 時移除對應 static physics body，load 時建立對應 HeightFieldShape。V1 預設 Terrain Collision 為 static。Kinematic Character 佔用中的 Chunk 為例外，其 unload/load 時序另受 Character Framework 的 Terrain Streaming Boundary Contract 規範（見上），不套用一般 static body 規則。
 
 ## 四十、Audio
 
@@ -26849,6 +26912,7 @@ Culling
 ✓ Terrain / Vegetation 不建立大量 Scene Entity
 ✓ Room / Portal 可驅動 prefetch
 ✓ Streaming RAM / VRAM budget 可觀察
+✓ Character 跨 Streaming Cell 邊界不失去 Collision（Occupied Cell Pinned）
 ```
 
 ---

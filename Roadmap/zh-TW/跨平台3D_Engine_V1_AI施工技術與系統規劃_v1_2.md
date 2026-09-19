@@ -1,7 +1,7 @@
 # 跨平台 3D Engine — V1 AI 施工技術與系統規劃
 
-**文件版本：AI Technical Draft v1.1**  
-**對應來源：跨平台3D_Engine_V1_完整規劃書_v1_1.md**  
+**文件版本：AI Technical Draft v1.2**  
+**對應來源：跨平台3D_Engine_V1_完整規劃書_v1_2.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
 
@@ -2235,6 +2235,24 @@ RootMotionDelta
 
 Character 不預設 Dynamic RigidBody。
 
+Streaming Boundary（見 Master Plan Terrain Streaming Boundary Contract）：
+
+```text
+Occupied Cell
+= Capsule + Safety Margin
+↓
+Physics Collision → Pinned
+不受 Render / HLOD Residency 卸載影響
+```
+
+Cell 未 Ready 或角色高速位移/Teleport 進入未載入區域：
+
+```text
+GroundState = StreamingPending
+```
+
+暫停 Ground Snap/Step/Slide，禁止因缺 Collision 直接 Free Fall 或穿模。
+
 ---
 
 # V1 Navigation
@@ -2528,6 +2546,16 @@ Active
 Retiring
 ```
 
+Character-Occupied Cell（Cell 內或 Adjacent Prefetch 範圍內存在 Kinematic Character）：
+
+```text
+Physics Collision Residency
+→ Pinned，獨立於 Render/HLOD Residency 追蹤
+→ 不得進入 Retiring
+```
+
+直到該 Cell 離開所有 Character 的 Occupied / Adjacent Prefetch Set 才可正常 Retiring。
+
 HLOD：
 
 ```text
@@ -2708,6 +2736,7 @@ Plugin ABI
 Zig ABI
 UI Routing
 Physics Character
+Character Streaming Boundary
 Audio Residency
 Media Decode
 Streaming Cell
