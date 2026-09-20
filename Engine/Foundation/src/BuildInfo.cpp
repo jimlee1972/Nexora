@@ -19,6 +19,8 @@ constexpr auto kLinkMode = "Modular";
 } // namespace
 
 BuildInfo GetBuildInfo() noexcept {
-  return {NEXORA_ENGINE_VERSION, NEXORA_BUILD_ID, kEngineAbiVersion, kConfiguration, kLinkMode};
+  return {NEXORA_ENGINE_VERSION, kEngineAbiVersion, kConfiguration, kLinkMode};
 }
+
+const char *GetBuildId() noexcept { return NEXORA_BUILD_ID; }
 } // namespace nexora::foundation

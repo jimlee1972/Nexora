@@ -10,7 +10,8 @@ int main() {
     return 2;
   if (info.build_configuration == nullptr || info.link_mode == nullptr)
     return 3;
-  if (info.build_id == nullptr || std::strlen(info.build_id) == 0)
+  const char *build_id = nexora::foundation::GetBuildId();
+  if (build_id == nullptr || std::strlen(build_id) == 0)
     return 4;
   return 0;
 }
