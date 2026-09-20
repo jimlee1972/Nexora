@@ -21,6 +21,17 @@ function(nexora_configure_build)
     set(NEXORA_MODULE_LIBRARY_TYPE STATIC PARENT_SCOPE)
   endif()
 
+  if(WIN32)
+    # Each module and test executable otherwise lands in its own per-target
+    # build directory (Engine/Foundation/, Tests/Core/, ...). Windows has no
+    # rpath: a .exe finds a dependency DLL only via its own directory or
+    # PATH, so with NEXORA_LINK_MODE=Modular, ctest can't load
+    # NexoraFoundation.dll etc. unless every DLL and EXE share one
+    # directory. Linux/macOS get an automatic build-tree RPATH from CMake
+    # and keep their existing per-module layout.
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" PARENT_SCOPE)
+  endif()
+
   add_compile_definitions(
     $<$<CONFIG:Debug>:NEXORA_BUILD_DEBUG=1>
     $<$<CONFIG:Development>:NEXORA_BUILD_DEVELOPMENT=1>
