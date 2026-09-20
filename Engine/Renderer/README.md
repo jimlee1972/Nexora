@@ -5,11 +5,17 @@ This slice establishes the backend-neutral contracts and a validation backend. I
 ## V1-M2 contract
 
 - `Shaders/Triangle.slang` is the canonical shader source.
-- `Triangle.reflection.json` is a versioned pipeline-layout fixture for DXIL, SPIR-V, and MSL contract validation.
+- `Triangle.reflection.json` is the reviewable, versioned canonical pipeline-layout fixture for
+  DXIL, SPIR-V, and MSL contract validation. With `NEXORA_ENABLE_SLANG=ON`, CMake regenerates
+  target reflection and checks it against this fixture and the C++ RHI layout hash.
 - Public RHI types contain only descriptors, enums, and generational handles. DX12, Vulkan, and Metal native objects must remain in future private backend modules.
 - Canonical reflection includes stable resource identity, binding, type, stage visibility, constant byte size, and a deterministic layout hash.
 
-The current container has no `slangc` or platform graphics SDK, so real DXIL/SPIR-V/MSL compilation and hardware triangle execution remain required M2 gates rather than being replaced with mock success.
+Slang cross-compilation is an optional build-time gate because not every environment has `slangc`.
+When enabled, `build.shader_crosscompile` verifies non-empty DXIL, SPIR-V, and MSL outputs,
+canonical reflection equality, the C++ layout hash, and the absence of backend-native types in
+public RHI headers. This validates compilation output only; hardware triangle execution still
+belongs to the future backend/device milestones and is not claimed here.
 
 ## V1-M3 contract
 

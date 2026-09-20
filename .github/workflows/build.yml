@@ -5,6 +5,8 @@ on:
 
 jobs:
   desktop:
+    env:
+      SLANG_VERSION: 2026.18
     strategy:
       fail-fast: false
       matrix:
@@ -22,9 +24,72 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.14.0
-      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON
+      - name: Install Slang (Linux and macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${RUNNER_OS}:$(uname -m)" in
+            Linux:x86_64) package="slang-${SLANG_VERSION}-linux-x86_64.tar.gz" ;;
+            macOS:arm64) package="slang-${SLANG_VERSION}-macos-aarch64.tar.gz" ;;
+            macOS:x86_64) package="slang-${SLANG_VERSION}-macos-x86_64.tar.gz" ;;
+            *) echo "Unsupported Slang runner: ${RUNNER_OS} $(uname -m)" >&2; exit 1 ;;
+          esac
+          archive="${RUNNER_TEMP}/${package}"
+          install_root="${RUNNER_TEMP}/slang"
+          curl --fail --location --retry 3 --output "${archive}" \
+            "https://github.com/shader-slang/slang/releases/download/v${SLANG_VERSION}/${package}"
+          mkdir -p "${install_root}"
+          tar -xzf "${archive}" -C "${install_root}"
+          slangc="$(find "${install_root}" -type f -name slangc -print -quit)"
+          if [[ -z "${slangc}" ]]; then
+            echo "slangc was not found in ${archive}" >&2
+            exit 1
+          fi
+          echo "$(dirname "${slangc}")" >> "${GITHUB_PATH}"
+          "${slangc}" -v
+      - name: Install Slang (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $package = "slang-$env:SLANG_VERSION-windows-x86_64.zip"
+          $archive = Join-Path $env:RUNNER_TEMP $package
+          $installRoot = Join-Path $env:RUNNER_TEMP "slang"
+          curl.exe --fail --location --retry 3 `
+            --output $archive `
+            "https://github.com/shader-slang/slang/releases/download/v$env:SLANG_VERSION/$package"
+          Expand-Archive -LiteralPath $archive -DestinationPath $installRoot -Force
+          $slangc = Get-ChildItem -LiteralPath $installRoot -Filter slangc.exe -File -Recurse |
+            Select-Object -First 1
+          if ($null -eq $slangc) {
+            throw "slangc.exe was not found in $archive"
+          }
+          Add-Content -Path $env:GITHUB_PATH -Value $slangc.DirectoryName
+          & $slangc.FullName -v
+      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
+
+  zig-mobile-cross-build:
+    name: Zig object smoke (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - aarch64-linux-android
+          - aarch64-ios
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
+      - name: Build Zig GameModule object
+        run: >-
+          zig build-obj Gameplay/Zig/src/game_module.zig
+          -target ${{ matrix.target }}
+          -O Debug
+          -femit-bin=${{ runner.temp }}/nexora-${{ matrix.target }}.o
 
   build-contract:
     runs-on: ubuntu-latest
