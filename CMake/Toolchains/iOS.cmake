@@ -1,0 +1,6 @@
+if(NOT APPLE)
+  message(FATAL_ERROR "The iOS toolchain requires an Apple host and Xcode")
+endif()
+set(CMAKE_SYSTEM_NAME iOS)
+set(CMAKE_OSX_SYSROOT iphoneos CACHE STRING "iOS SDK" FORCE)
+set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED NO)

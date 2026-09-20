@@ -1,0 +1,6 @@
+{
+  "cmake.useCMakePresets": "always",
+  "cmake.configureOnOpen": false,
+  "clangd.arguments": ["--compile-commands-dir=${workspaceFolder}/build/linux-development"],
+  "editor.formatOnSave": true
+}
