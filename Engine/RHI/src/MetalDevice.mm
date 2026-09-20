@@ -82,7 +82,7 @@ public:
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
   void EndRendering() override;
 
-  [[nodiscard]] bool IsClosed() const noexcept { return closed_; }
+  [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
   [[nodiscard]] bool IsSubmitted() const noexcept { return submitted_; }
   [[nodiscard]] bool BelongsTo(const MetalDevice &device) const noexcept {
     return &device_ == &device;
@@ -311,6 +311,7 @@ void MetalDevice::Submit(CommandList &commands) {
     Require(validated->BelongsTo(*this), "command list belongs to another device");
     Require(validated->IsClosed(), "cannot submit an open command list");
     Require(!validated->IsSubmitted(), "command list was already submitted");
+    validated->Close();
     [validated->command_buffer_ commit];
     validated->MarkSubmitted();
     ++diagnostics_.submitted_command_lists;
@@ -433,3 +434,9 @@ void MetalCommandList::Close() {
   closed_ = true;
 }
 
+} // namespace
+
+std::unique_ptr<Device> CreateMetalDevice() {
+  return std::make_unique<MetalDevice>();
+}
+} // namespace nexora::rhi
