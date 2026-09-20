@@ -94,6 +94,29 @@ jobs:
           -O Debug
           -femit-bin=${{ runner.temp }}/nexora-${{ matrix.target }}.o
 
+  mimalloc-smoke:
+    name: mimalloc backend (${{ matrix.preset }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            preset: linux-development
+          - os: windows-latest
+            preset: windows-development
+          - os: macos-latest
+            preset: macos-development
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - name: Set up MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_MIMALLOC=ON
+      - run: cmake --build --preset ${{ matrix.preset }}
+      - run: ctest --preset ${{ matrix.preset }}
+
   mobile-configure-smoke:
     name: CMake configure smoke (${{ matrix.preset }})
     strategy:
