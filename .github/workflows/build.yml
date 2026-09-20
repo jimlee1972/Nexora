@@ -91,6 +91,31 @@ jobs:
           -O Debug
           -femit-bin=${{ runner.temp }}/nexora-${{ matrix.target }}.o
 
+  mobile-configure-smoke:
+    name: CMake configure smoke (${{ matrix.preset }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - preset: android-development
+            os: ubuntu-latest
+          - preset: ios-development
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - name: Install Android NDK
+        if: matrix.preset == 'android-development'
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+      - name: Configure ${{ matrix.preset }}
+        env:
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: cmake --preset ${{ matrix.preset }}
+
   build-contract:
     runs-on: ubuntu-latest
     steps:
