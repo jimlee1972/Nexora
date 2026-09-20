@@ -1,6 +1,9 @@
 include(NexoraTarget)
 add_executable(NexoraRendererTests RendererTests.cpp)
 target_link_libraries(NexoraRendererTests PRIVATE Nexora::Renderer)
+if(WIN32)
+  target_compile_definitions(NexoraRendererTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
 nexora_apply_defaults(NexoraRendererTests)
 add_test(NAME renderer.contracts COMMAND NexoraRendererTests)
 
@@ -25,4 +28,15 @@ if(NEXORA_ENABLE_SLANG)
     NAME build.shader_crosscompile
     COMMAND "${CMAKE_COMMAND}" ${shader_crosscompile_args}
             -P "${PROJECT_SOURCE_DIR}/Tools/Build/ValidateShaderCrossCompile.cmake")
+  if(NEXORA_ENABLE_NATIVE_BACKENDS)
+    set_property(TEST renderer.contracts APPEND PROPERTY ENVIRONMENT
+      "NEXORA_SLANG_SPIRV_PATH=${NEXORA_SLANG_SPIRV_OUTPUT}"
+      "NEXORA_SLANG_METAL_PATH=${NEXORA_SLANG_METAL_OUTPUT}"
+      "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+    if(WIN32)
+      set_property(TEST renderer.contracts APPEND PROPERTY ENVIRONMENT
+        "NEXORA_SLANG_DXIL_VERTEX_PATH=${NEXORA_SLANG_DXIL_VERTEX_OUTPUT}"
+        "NEXORA_SLANG_DXIL_FRAGMENT_PATH=${NEXORA_SLANG_DXIL_FRAGMENT_OUTPUT}")
+    endif()
+  endif()
 endif()

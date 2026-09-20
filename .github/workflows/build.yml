@@ -69,6 +69,11 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_PATH -Value $slangc.DirectoryName
           & $slangc.FullName -v
+      - name: Install Vulkan runtime (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libvulkan1 mesa-vulkan-drivers
       - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}

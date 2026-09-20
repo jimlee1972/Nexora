@@ -5,6 +5,7 @@ project(Nexora VERSION 0.1.0 LANGUAGES CXX)
 option(NEXORA_ENABLE_ZIG_GAMEPLAY "Build the Zig gameplay ABI sample" OFF)
 option(NEXORA_ENABLE_SLANG "Compile and validate the canonical Slang shader" OFF)
 option(NEXORA_ENABLE_MIMALLOC "Fetch mimalloc and use it as the TrackingAllocator backend" OFF)
+option(NEXORA_ENABLE_NATIVE_BACKENDS "Build the platform RHI backends" ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
@@ -23,6 +24,22 @@ nexora_configure_build()
 nexora_declare_features()
 nexora_validate_module_graph("${CMAKE_CURRENT_SOURCE_DIR}/Config/Modules/modules.json")
 nexora_configure_slang()
+
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND (WIN32 OR (UNIX AND NOT APPLE)))
+  include(FetchContent)
+  set(VULKAN_HEADERS_ENABLE_MODULE OFF CACHE BOOL "" FORCE)
+  set(VULKAN_HEADERS_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+  set(VULKAN_HEADERS_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+  FetchContent_Declare(
+    nexora_vulkan_headers
+    GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
+    GIT_TAG v1.3.296
+    GIT_SHALLOW TRUE)
+  FetchContent_MakeAvailable(nexora_vulkan_headers)
+  set(NEXORA_VULKAN_INCLUDE_DIR
+      "${nexora_vulkan_headers_SOURCE_DIR}/include"
+      CACHE INTERNAL "Vulkan header include directory")
+endif()
 
 add_subdirectory(Engine/Foundation)
 add_subdirectory(Engine/Core)

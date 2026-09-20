@@ -13,6 +13,13 @@
   Native DX12, Vulkan, and Metal types are not part of the public contract.
 - `NEXORA_ENABLE_SLANG` is disabled by default so environments without `slangc` retain the
   existing contract-only build path.
+- V1-M3 adds private native implementations for the platform backends: DX12 on Windows, Vulkan
+  on Windows/Linux, and Metal on Apple. Each backend owns device creation, texture allocation,
+  resource-state transitions, triangle PSO creation, command recording, submission fencing, and
+  the offscreen `Present` contract without leaking native types into public headers.
+- `renderer.contracts` uses the native backend on the host platform when Slang is enabled. Set
+  `NEXORA_SLANG_SPIRV_PATH` or `NEXORA_SLANG_METAL_PATH` manually when running the executable
+  outside CTest; CMake sets these paths automatically for the CI test.
 - `Tools/Build/NormalizeShaderReflection.py`'s constant-buffer size lookup has now been run
   against a real `slangc` (2026.18) SPIR-V and Metal reflection JSON, not just written against
   the documented schema: the initial key-name guesses (`uniformSize`/`byteSize`/`size` directly
@@ -32,13 +39,13 @@ where `dxcompiler` is reliably available; `NEXORA_SLANG_DXIL_OUTPUT` and the cro
 produced, and the canonical reflection's `backends` list only ever names backends actually
 validated on that host (never a hardcoded `["dxil", "spirv", "msl"]` regardless of what ran).
 
-## Deferred work
+## V1-M3 scope
 
-- DX12, Vulkan, and Metal `Device` / `CommandList` implementations remain a V1-M3 task.
-- This slice validates shader compilation artifacts and reflection layout only; it does not claim
-  that a real graphics device executes the triangle.
-- SDK-backed runtime execution, pipeline creation, synchronization, and presentation remain
-  platform-specific follow-up work.
-- The DXIL leg of `build.shader_crosscompile` itself is still unverified on an actual Windows
-  runner in this environment (no Windows toolchain available here); only the SPIR-V/Metal path
-  was exercised end-to-end.
+- The milestone gate is the same basic offscreen workload on DX12, Vulkan, and Metal. `Present`
+  validates the final resource state; it is not a window-system swapchain present.
+- The RHI intentionally keeps the public API small: the native implementations currently cover
+  the texture/pipeline/graphics-command subset exercised by the V1-M3 gate. Compute/copy queues,
+  multi-queue timelines, descriptor indexing, persistent PSO disk caches, transient heap aliasing,
+  and window-system swapchains are later expansion points rather than silently emulated here.
+- The DXIL leg of `build.shader_crosscompile` is exercised by the Windows CI matrix; local builds
+  can keep `NEXORA_ENABLE_SLANG=OFF` when `slangc` is not installed.

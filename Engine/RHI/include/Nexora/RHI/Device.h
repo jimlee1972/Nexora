@@ -41,4 +41,6 @@ public:
 };
 
 [[nodiscard]] NEXORA_RHI_API std::unique_ptr<Device> CreateValidationDevice();
+[[nodiscard]] NEXORA_RHI_API std::unique_ptr<Device> CreateDevice(Backend backend);
+[[nodiscard]] NEXORA_RHI_API bool IsBackendAvailable(Backend backend) noexcept;
 } // namespace nexora::rhi
