@@ -55,9 +55,18 @@ function(nexora_configure_build)
         OUTPUT_STRIP_TRAILING_WHITESPACE
         RESULT_VARIABLE NEXORA_GIT_HEAD_FILE_RESULT
         ERROR_QUIET)
-      if(NEXORA_GIT_HEAD_FILE_RESULT EQUAL 0 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${NEXORA_GIT_HEAD_FILE}")
-        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-          "${CMAKE_CURRENT_SOURCE_DIR}/${NEXORA_GIT_HEAD_FILE}")
+      if(NEXORA_GIT_HEAD_FILE_RESULT EQUAL 0)
+        # git rev-parse --git-path returns an absolute path from a linked
+        # worktree (its HEAD lives under the main repo's .git/worktrees/),
+        # and a path relative to the source dir otherwise.
+        if(IS_ABSOLUTE "${NEXORA_GIT_HEAD_FILE}")
+          set(NEXORA_GIT_HEAD_PATH "${NEXORA_GIT_HEAD_FILE}")
+        else()
+          set(NEXORA_GIT_HEAD_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${NEXORA_GIT_HEAD_FILE}")
+        endif()
+        if(EXISTS "${NEXORA_GIT_HEAD_PATH}")
+          set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${NEXORA_GIT_HEAD_PATH}")
+        endif()
       endif()
 
       execute_process(
@@ -75,9 +84,15 @@ function(nexora_configure_build)
           OUTPUT_STRIP_TRAILING_WHITESPACE
           RESULT_VARIABLE NEXORA_GIT_REF_FILE_RESULT
           ERROR_QUIET)
-        if(NEXORA_GIT_REF_FILE_RESULT EQUAL 0 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${NEXORA_GIT_REF_FILE}")
-          set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-            "${CMAKE_CURRENT_SOURCE_DIR}/${NEXORA_GIT_REF_FILE}")
+        if(NEXORA_GIT_REF_FILE_RESULT EQUAL 0)
+          if(IS_ABSOLUTE "${NEXORA_GIT_REF_FILE}")
+            set(NEXORA_GIT_REF_PATH "${NEXORA_GIT_REF_FILE}")
+          else()
+            set(NEXORA_GIT_REF_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${NEXORA_GIT_REF_FILE}")
+          endif()
+          if(EXISTS "${NEXORA_GIT_REF_PATH}")
+            set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${NEXORA_GIT_REF_PATH}")
+          endif()
         endif()
       endif()
     endif()
