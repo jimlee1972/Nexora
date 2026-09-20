@@ -1,8 +1,11 @@
 #include "Nexora/Runtime/Runtime.h"
+#include "Nexora/Renderer/FramePipeline.h"
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 #include <queue>
+#include <sstream>
 #include <stdexcept>
 
 namespace nexora::runtime {
@@ -10,6 +13,61 @@ namespace nexora::runtime {
 Id World::LoadScene(std::string name, bool persistent) {
   const auto id = next_id_++;
   scenes_.push_back({id, std::move(name), SceneState::LoadedInactive, persistent, {}});
+  return id;
+}
+
+std::optional<std::string> World::SaveScene(Id id) const {
+  const auto *scene = FindScene(id);
+  if (scene == nullptr || scene->state == SceneState::Unloading ||
+      scene->state == SceneState::Unloaded)
+    return std::nullopt;
+  std::ostringstream output;
+  output << "NEXORA_SCENE 1 " << std::quoted(scene->name) << ' ' << scene->persistent << ' '
+         << scene->entities.size() << '\n';
+  output << std::setprecision(17);
+  for (const auto &entity : scene->entities)
+    output << entity.id << ' ' << entity.transform.x << ' ' << entity.transform.y << ' '
+           << entity.transform.z << ' ' << entity.camera << ' ' << entity.light << ' '
+           << entity.mesh_renderer << ' ' << entity.camera_data.vertical_field_of_view << ' '
+           << entity.camera_data.near_plane << ' ' << entity.camera_data.far_plane << ' '
+           << entity.light_data.intensity << ' ' << entity.mesh_data.mesh << ' '
+           << entity.mesh_data.material.shader << '\n';
+  return output.str();
+}
+
+std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
+  std::istringstream input{std::string(snapshot)};
+  std::string magic, name;
+  unsigned version{};
+  bool persistent{};
+  std::size_t count{};
+  if (!(input >> magic >> version >> std::quoted(name) >> persistent >> count) ||
+      magic != "NEXORA_SCENE" || version != 1 || name.empty())
+    return std::nullopt;
+  Scene loaded{next_id_, std::move(name), SceneState::LoadedInactive, persistent, {}};
+  loaded.entities.reserve(count);
+  std::unordered_set<Id> ids;
+  auto next_id = next_id_ + 1;
+  for (std::size_t index = 0; index < count; ++index) {
+    Entity entity;
+    if (!(input >> entity.id >> entity.transform.x >> entity.transform.y >> entity.transform.z >>
+          entity.camera >> entity.light >> entity.mesh_renderer >>
+          entity.camera_data.vertical_field_of_view >> entity.camera_data.near_plane >>
+          entity.camera_data.far_plane >> entity.light_data.intensity >> entity.mesh_data.mesh >>
+          entity.mesh_data.material.shader) ||
+        entity.id == 0 || FindEntity(entity.id) != nullptr || !ids.insert(entity.id).second ||
+        !std::isfinite(entity.transform.x) || !std::isfinite(entity.transform.y) ||
+        !std::isfinite(entity.transform.z))
+      return std::nullopt;
+    next_id = std::max(next_id, entity.id + 1);
+    loaded.entities.push_back(entity);
+  }
+  input >> std::ws;
+  if (!input.eof())
+    return std::nullopt;
+  const auto id = loaded.id;
+  scenes_.push_back(std::move(loaded));
+  next_id_ = next_id;
   return id;
 }
 
@@ -53,10 +111,118 @@ const Scene *World::FindScene(Id id) const {
   return found == scenes_.end() ? nullptr : &*found;
 }
 
+const Entity *World::FindEntity(Id id) const {
+  for (const auto &scene : scenes_)
+    if (scene.state != SceneState::Unloaded)
+      if (const auto found = std::ranges::find(scene.entities, id, &Entity::id);
+          found != scene.entities.end())
+        return &*found;
+  return nullptr;
+}
+
 std::size_t World::ActiveSceneCount() const {
   return static_cast<std::size_t>(
       std::count_if(scenes_.begin(), scenes_.end(),
                     [](const auto &scene) { return scene.state == SceneState::Active; }));
+}
+
+World World::CloneForPlay() const {
+  World clone{WorldKind::Play};
+  clone.next_id_ = next_id_;
+  clone.scenes_ = scenes_;
+  return clone;
+}
+
+void WorldCommandBuffer::SetTransform(Id entity, Transform transform) {
+  commands_.push_back({entity, transform});
+}
+void WorldCommandBuffer::DestroyEntity(Id entity) { commands_.push_back({entity, std::nullopt}); }
+
+bool WorldCommandBuffer::Apply(World &world) {
+  for (const auto &command : commands_)
+    if (world.FindEntity(command.entity) == nullptr)
+      return false;
+  for (const auto &command : commands_)
+    for (auto &scene : world.scenes_)
+      if (const auto found = std::ranges::find(scene.entities, command.entity, &Entity::id);
+          found != scene.entities.end()) {
+        if (command.transform)
+          found->transform = *command.transform;
+        else
+          scene.entities.erase(found);
+        break;
+      }
+  commands_.clear();
+  return true;
+}
+
+bool SystemScheduler::Add(std::string name, std::vector<std::string> after, System system) {
+  if (name.empty() || !system ||
+      std::ranges::any_of(systems_, [&name](const auto &entry) { return entry.name == name; }))
+    return false;
+  systems_.push_back({std::move(name), std::move(after), std::move(system)});
+  return true;
+}
+
+bool SystemScheduler::Execute(World &world) const {
+  std::unordered_set<std::string> completed;
+  WorldCommandBuffer commands;
+  while (completed.size() != systems_.size()) {
+    bool progressed = false;
+    for (const auto &entry : systems_) {
+      if (completed.contains(entry.name) ||
+          !std::ranges::all_of(entry.after, [&completed](const auto &dependency) {
+            return completed.contains(dependency);
+          }))
+        continue;
+      entry.system(world, commands);
+      completed.insert(entry.name);
+      progressed = true;
+    }
+    if (!progressed)
+      return false;
+  }
+  return commands.Apply(world);
+}
+
+std::optional<SceneFrameResult> RenderSceneFrame(const World &world, rhi::Device &device,
+                                                 rhi::TextureHandle target,
+                                                 const rhi::TextureDescriptor &target_descriptor,
+                                                 rhi::PipelineHandle pipeline) {
+#if !NEXORA_SCENE_RENDERING_ENABLED
+  static_cast<void>(world);
+  static_cast<void>(device);
+  static_cast<void>(target);
+  static_cast<void>(target_descriptor);
+  static_cast<void>(pipeline);
+  return std::nullopt;
+#else
+  bool camera = false, light = false;
+  std::size_t meshes = 0;
+  for (const auto &scene : world.scenes_) {
+    if (scene.state != SceneState::Active)
+      continue;
+    for (const auto &entity : scene.entities) {
+      camera = camera || entity.camera;
+      light = light || entity.light;
+      meshes += static_cast<std::size_t>(entity.mesh_renderer && entity.mesh_data.mesh != 0 &&
+                                         entity.mesh_data.material.shader != 0);
+    }
+  }
+  if (!camera || !light || meshes == 0)
+    return std::nullopt;
+  const auto result =
+      renderer::ExecuteSceneFrame(device, target, target_descriptor, pipeline, meshes);
+  return SceneFrameResult{meshes, result.passes, result.barriers};
+#endif
+}
+
+bool SceneRenderingEnabled() noexcept {
+#if NEXORA_SCENE_RENDERING_ENABLED
+  return true;
+#else
+  return false;
+#endif
 }
 
 bool AssetRegistry::IsAcyclic(const std::vector<AssetRecord> &assets) const {

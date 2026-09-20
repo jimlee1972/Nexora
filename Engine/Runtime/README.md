@@ -21,6 +21,32 @@ fallback, unreachable navigation, animation looping, audio voice limits, media b
 seek invalidation. Platform SDK adapters and production authoring tools remain future work and
 must preserve these interfaces rather than bypassing their lifecycle checks.
 
+## V1-M4 scene vertical slice
+
+`World` owns scenes and their entities. Entity identifiers remain stable across scene
+serialization, and snapshots use the versioned `NEXORA_SCENE 1` text schema. Loading validates the
+complete snapshot before publishing it; malformed versions, duplicate IDs, non-finite transforms,
+and IDs already owned by the destination world are rejected without partially adding a scene.
+Double-precision world transforms provide the large-coordinate foundation.
+
+Scenes enter `LoadedInactive`, may transition to `Active`, and unload through `Unloading` before
+their entity storage is released by `EndFrame`. Persistent scenes reject unload requests. An editor
+world can be copied into an isolated play world without changing stable IDs or active scene state.
+
+`SystemScheduler` executes named systems only after their declared dependencies. Systems enqueue
+structural writes in a `WorldCommandBuffer`; validation and application occur after all systems,
+so iteration never invalidates entity storage. The scheduler is synchronous and belongs to its
+calling thread. `World`, returned entity references, and command buffers are not thread-safe;
+entity references remain valid only until that scene's entity vector is structurally changed.
+
+`RenderSceneFrame` performs read-only extraction across all active additive scenes. A frame is
+rejected unless it finds a camera, a light, and at least one mesh with a material/shader; otherwise
+it submits Shadow, Forward+ light-culling/draw, PostProcess, and Present RenderGraph passes.
+`NEXORA_ENABLE_SCENE_RENDERING=OFF` compiles the
+same data/scene lifecycle and serialization contracts while stripping presentation submission.
+The `runtime.v1_m4_vertical_slice` test covers the complete data-to-render path, malformed input,
+dependency cycles, safe unload, deterministic save/load, and a 10,000-entity time/size baseline.
+
 ## Zig gameplay bridge
 
 `GameplayModuleHost` executes the versioned `NexoraGameModuleV2` C ABI while the original V1 layouts

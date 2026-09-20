@@ -48,4 +48,74 @@ FrameResult ExecuteTriangleFrame(rhi::Device &device, rhi::TextureHandle swapcha
   const auto statistics = graph.GetStatistics();
   return {statistics.pass_count, statistics.barrier_count};
 }
+
+FrameResult ExecuteSceneFrame(rhi::Device &device, rhi::TextureHandle swapchain_texture,
+                              const rhi::TextureDescriptor &swapchain_descriptor,
+                              rhi::PipelineHandle pipeline, std::size_t visible_meshes) {
+  RenderGraph graph;
+  auto transient_descriptor = swapchain_descriptor;
+  transient_descriptor.initial_state = rhi::ResourceState::Undefined;
+  transient_descriptor.debug_name = "Scene shadow";
+  const auto shadow = graph.CreateTransientTexture(transient_descriptor);
+  transient_descriptor.debug_name = "Scene color";
+  const auto scene_color = graph.CreateTransientTexture(transient_descriptor);
+  const auto swapchain = graph.ImportTexture(swapchain_texture, swapchain_descriptor);
+  const auto shadow_pass =
+      graph.AddPass({"Shadow",
+                     rhi::QueueType::Graphics,
+                     {},
+                     {{shadow, rhi::ResourceState::RenderTarget}},
+                     [shadow, pipeline, visible_meshes, width = transient_descriptor.width,
+                      height = transient_descriptor.height](
+                         rhi::CommandList &commands, std::span<const rhi::TextureHandle> textures) {
+                       commands.BeginRendering({textures[shadow.id], width, height});
+                       commands.BindPipeline(pipeline);
+                       commands.Draw(3, static_cast<std::uint32_t>(visible_meshes));
+                       commands.EndRendering();
+                     }});
+  const auto light_culling =
+      graph.AddPass({"Forward+ Light Culling",
+                     rhi::QueueType::Graphics,
+                     {},
+                     {},
+                     [](rhi::CommandList &, std::span<const rhi::TextureHandle>) {}});
+  const auto forward =
+      graph.AddPass({"Forward+",
+                     rhi::QueueType::Graphics,
+                     {{shadow, rhi::ResourceState::ShaderRead}},
+                     {{scene_color, rhi::ResourceState::RenderTarget}},
+                     [scene_color, pipeline, visible_meshes, width = transient_descriptor.width,
+                      height = transient_descriptor.height](
+                         rhi::CommandList &commands, std::span<const rhi::TextureHandle> textures) {
+                       commands.BeginRendering({textures[scene_color.id], width, height});
+                       commands.BindPipeline(pipeline);
+                       commands.Draw(3, static_cast<std::uint32_t>(visible_meshes));
+                       commands.EndRendering();
+                     }});
+  (void)graph.AddPass(
+      {"PostProcess",
+       rhi::QueueType::Graphics,
+       {{scene_color, rhi::ResourceState::ShaderRead}},
+       {{swapchain, rhi::ResourceState::RenderTarget}},
+       [swapchain, pipeline, width = swapchain_descriptor.width,
+        height = swapchain_descriptor.height](rhi::CommandList &commands,
+                                              std::span<const rhi::TextureHandle> textures) {
+         commands.BeginRendering({textures[swapchain.id], width, height});
+         commands.BindPipeline(pipeline);
+         commands.Draw(3);
+         commands.EndRendering();
+       }});
+  (void)graph.AddPass({"Present",
+                       rhi::QueueType::Graphics,
+                       {},
+                       {{swapchain, rhi::ResourceState::Present}},
+                       [](rhi::CommandList &, std::span<const rhi::TextureHandle>) {}});
+  graph.AddDependency(shadow_pass, forward);
+  graph.AddDependency(light_culling, forward);
+  graph.Compile();
+  graph.Execute(device);
+  device.Present(swapchain_texture);
+  const auto statistics = graph.GetStatistics();
+  return {statistics.pass_count, statistics.barrier_count};
+}
 } // namespace nexora::renderer

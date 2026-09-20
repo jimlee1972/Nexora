@@ -114,10 +114,12 @@ remain outside this milestone. Current scope and ownership are documented in
 [`Engine/RHI/README.md`](Engine/RHI/README.md).
 and [`Engine/Renderer/README.md`](Engine/Renderer/README.md).
 
-## V1-M4 through V1-M12 runtime contracts
+## V1-M4 scene vertical slice and later runtime contracts
 
-The remaining V1 dependency chain now has a platform-neutral executable baseline in
-`NexoraRuntime`: additive scene lifecycle, versioned assets, plugin ABI checks, input routing,
+V1-M4 now has an executable data-to-render vertical slice with versioned deterministic scene
+snapshots, isolated editor/play worlds, dependency-ordered systems, deferred structural commands,
+additive/persistent scene lifecycle, component extraction, and RenderGraph presentation. The later
+V1 dependency chain has a platform-neutral executable baseline in `NexoraRuntime`: versioned assets, plugin ABI checks, input routing,
 character-motion boundaries, presentation residency, large-world cell policy, mobile lifecycle,
 and shipping-profile stripping. These are contract foundations rather than claims that third-party
 SDK backends or production tools are complete. See [`Engine/Runtime/README.md`](Engine/Runtime/README.md)
