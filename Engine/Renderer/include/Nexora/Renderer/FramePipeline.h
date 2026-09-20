@@ -11,4 +11,8 @@ struct FrameResult final {
 [[nodiscard]] NEXORA_RENDERER_API FrameResult ExecuteTriangleFrame(
     rhi::Device &device, rhi::TextureHandle swapchain_texture,
     const rhi::TextureDescriptor &swapchain_descriptor, rhi::PipelineHandle pipeline);
+[[nodiscard]] NEXORA_RENDERER_API FrameResult
+ExecuteSceneFrame(rhi::Device &device, rhi::TextureHandle swapchain_texture,
+                  const rhi::TextureDescriptor &swapchain_descriptor, rhi::PipelineHandle pipeline,
+                  std::size_t visible_meshes);
 } // namespace nexora::renderer

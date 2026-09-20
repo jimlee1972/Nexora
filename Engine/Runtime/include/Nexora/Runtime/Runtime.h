@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Nexora/RHI/Device.h"
 #include "Nexora/Runtime/Api.h"
 
 #include <cstddef>
@@ -21,6 +22,22 @@ using Id = std::uint64_t;
 enum class SceneState { LoadedInactive, Active, Unloading, Unloaded };
 struct Transform final {
   double x{}, y{}, z{};
+  friend bool operator==(const Transform &, const Transform &) = default;
+};
+struct CameraComponent final {
+  double vertical_field_of_view{60.0};
+  double near_plane{0.1};
+  double far_plane{1000.0};
+};
+struct LightComponent final {
+  float intensity{1.0F};
+};
+struct MaterialComponent final {
+  Id shader{};
+};
+struct MeshComponent final {
+  Id mesh{};
+  MaterialComponent material{};
 };
 struct Entity final {
   Id id{};
@@ -28,6 +45,9 @@ struct Entity final {
   bool camera{};
   bool light{};
   bool mesh_renderer{};
+  CameraComponent camera_data{};
+  LightComponent light_data{};
+  MeshComponent mesh_data{};
 };
 struct Scene final {
   Id id{};
@@ -37,20 +57,75 @@ struct Scene final {
   std::vector<Entity> entities;
 };
 
+enum class WorldKind { Editor, Play };
+struct SceneFrameResult;
+
 class NEXORA_RUNTIME_API World final {
 public:
+  explicit World(WorldKind kind = WorldKind::Editor) noexcept : kind_(kind) {}
   Id LoadScene(std::string name, bool persistent = false);
+  [[nodiscard]] std::optional<Id> LoadSceneSnapshot(std::string_view snapshot);
+  [[nodiscard]] std::optional<std::string> SaveScene(Id scene) const;
   bool Activate(Id scene);
   bool RequestUnload(Id scene);
   void EndFrame();
   Entity &CreateEntity(Id scene);
   [[nodiscard]] const Scene *FindScene(Id scene) const;
+  [[nodiscard]] const Entity *FindEntity(Id entity) const;
   [[nodiscard]] std::size_t ActiveSceneCount() const;
+  [[nodiscard]] World CloneForPlay() const;
+  [[nodiscard]] WorldKind Kind() const noexcept { return kind_; }
 
 private:
+  friend class WorldCommandBuffer;
+  friend std::optional<SceneFrameResult> RenderSceneFrame(const World &, rhi::Device &,
+                                                          rhi::TextureHandle,
+                                                          const rhi::TextureDescriptor &,
+                                                          rhi::PipelineHandle);
   Id next_id_{1};
   std::vector<Scene> scenes_;
+  WorldKind kind_;
 };
+
+class NEXORA_RUNTIME_API WorldCommandBuffer final {
+public:
+  void SetTransform(Id entity, Transform transform);
+  void DestroyEntity(Id entity);
+  [[nodiscard]] bool Apply(World &world);
+  [[nodiscard]] std::size_t Size() const noexcept { return commands_.size(); }
+
+private:
+  struct Command final {
+    Id entity{};
+    std::optional<Transform> transform;
+  };
+  std::vector<Command> commands_;
+};
+
+class NEXORA_RUNTIME_API SystemScheduler final {
+public:
+  using System = std::function<void(World &, WorldCommandBuffer &)>;
+  bool Add(std::string name, std::vector<std::string> after, System system);
+  [[nodiscard]] bool Execute(World &world) const;
+
+private:
+  struct Entry final {
+    std::string name;
+    std::vector<std::string> after;
+    System system;
+  };
+  std::vector<Entry> systems_;
+};
+
+struct SceneFrameResult final {
+  std::size_t visible_meshes{};
+  std::size_t passes{};
+  std::size_t barriers{};
+};
+[[nodiscard]] NEXORA_RUNTIME_API bool SceneRenderingEnabled() noexcept;
+[[nodiscard]] NEXORA_RUNTIME_API std::optional<SceneFrameResult>
+RenderSceneFrame(const World &world, rhi::Device &device, rhi::TextureHandle target,
+                 const rhi::TextureDescriptor &target_descriptor, rhi::PipelineHandle pipeline);
 
 struct AssetRecord final {
   Id id{};

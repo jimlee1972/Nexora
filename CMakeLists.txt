@@ -6,6 +6,7 @@ option(NEXORA_ENABLE_ZIG_GAMEPLAY "Build the Zig gameplay ABI sample" OFF)
 option(NEXORA_ENABLE_SLANG "Compile and validate the canonical Slang shader" OFF)
 option(NEXORA_ENABLE_MIMALLOC "Fetch mimalloc and use it as the TrackingAllocator backend" OFF)
 option(NEXORA_ENABLE_NATIVE_BACKENDS "Build the platform RHI backends" ON)
+option(NEXORA_ENABLE_SCENE_RENDERING "Build the V1-M4 scene presentation path" ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
