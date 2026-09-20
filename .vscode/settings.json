@@ -1,6 +1,10 @@
 {
   "cmake.useCMakePresets": "always",
-  "cmake.configureOnOpen": false,
-  "clangd.arguments": ["--compile-commands-dir=${workspaceFolder}/build/linux-development"],
+  "cmake.defaultConfigurePreset": "windows-development",
+  "cmake.defaultBuildPreset": "windows-development",
+  "cmake.configureOnOpen": true,
+  "cmake.cmakePath": "D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe",
+  "cmake.ctestPath": "D:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
   "editor.formatOnSave": true
 }
