@@ -1,0 +1,5 @@
+include(NexoraTarget)
+add_executable(NexoraRuntimeTests RuntimeTests.cpp)
+target_link_libraries(NexoraRuntimeTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraRuntimeTests)
+add_test(NAME runtime.v1_m4_m12_contracts COMMAND NexoraRuntimeTests)

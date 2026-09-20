@@ -1,4 +1,4 @@
 include(NexoraTarget)
 add_executable(NexoraHost main.cpp)
-target_link_libraries(NexoraHost PRIVATE Nexora::Renderer)
+target_link_libraries(NexoraHost PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraHost)

@@ -24,9 +24,15 @@
       ]
     },
     {
-      "name": "Host",
+      "name": "Runtime",
       "dependencies": [
         "Renderer"
+      ]
+    },
+    {
+      "name": "Host",
+      "dependencies": [
+        "Runtime"
       ]
     },
     {
