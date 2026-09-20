@@ -1,5 +1,6 @@
 #include "Nexora/Core/Engine.h"
 #include "Nexora/Core/Handle.h"
+#include "Nexora/Core/Platform.h"
 #include "Nexora/Core/TaskGraph.h"
 #include "Nexora/Core/Timer.h"
 
@@ -12,7 +13,12 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
+
+#if defined(__linux__)
+#include <pthread.h>
+#endif
 
 namespace {
 void Require(bool condition, const char *message) {
@@ -74,6 +80,17 @@ int RunTests() {
       {[](const CancellationToken &) {}, JobPriority::Normal, cancellation.Token(), "cancelled"});
   jobs.Wait(cancelled);
   Require(cancelled.Status() == JobStatus::Cancelled, "cancelled job must not execute");
+
+  Require(platform::HardwareConcurrency() >= 1, "hardware concurrency must never report zero");
+  platform::SetCurrentThreadName("Nexora.CoreTests");
+#if defined(__linux__)
+  {
+    char observed_name[16] = {};
+    Require(pthread_getname_np(pthread_self(), observed_name, sizeof(observed_name)) == 0 &&
+                std::string_view{observed_name} == "Nexora.CoreTest",
+            "thread name must round-trip on Linux");
+  }
+#endif
 
   TaskGraph graph;
   std::atomic_int graph_value{0};

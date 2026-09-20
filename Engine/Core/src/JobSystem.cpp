@@ -7,8 +7,11 @@
 #include <exception>
 #include <mutex>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <vector>
+
+#include "Nexora/Core/Platform.h"
 
 namespace nexora::core {
 
@@ -35,7 +38,7 @@ struct JobSystem::Implementation final {
   };
 
   explicit Implementation(std::size_t count)
-      : requested_workers(count == 0 ? std::max(1U, std::thread::hardware_concurrency()) : count) {}
+      : requested_workers(count == 0 ? platform::HardwareConcurrency() : count) {}
 
   void Complete(const std::shared_ptr<JobHandle::State> &state, JobStatus status,
                 std::exception_ptr failure = {}) {
@@ -48,7 +51,8 @@ struct JobSystem::Implementation final {
     available.notify_all();
   }
 
-  void Worker() {
+  void Worker(std::size_t index) {
+    platform::SetCurrentThreadName("Nexora.Worker" + std::to_string(index));
     while (true) {
       Work work;
       {
@@ -118,7 +122,7 @@ void JobSystem::Start() {
   implementation_->stopping = false;
   implementation_->running = true;
   for (std::size_t index = 0; index < implementation_->requested_workers; ++index) {
-    implementation_->workers.emplace_back([this] { implementation_->Worker(); });
+    implementation_->workers.emplace_back([this, index] { implementation_->Worker(index); });
   }
 }
 
