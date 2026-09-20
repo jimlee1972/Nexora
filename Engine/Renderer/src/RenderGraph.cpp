@@ -23,6 +23,8 @@ GraphTexture RenderGraph::ImportTexture(rhi::TextureHandle texture,
   return {static_cast<std::uint32_t>(textures_.size() - 1)};
 }
 GraphTexture RenderGraph::CreateTransientTexture(const rhi::TextureDescriptor &descriptor) {
+  if (descriptor.width == 0 || descriptor.height == 0)
+    throw std::invalid_argument("invalid transient texture extent");
   textures_.push_back({descriptor, {}, true, 0, 0});
   compiled_ = false;
   return {static_cast<std::uint32_t>(textures_.size() - 1)};
@@ -36,6 +38,15 @@ std::size_t RenderGraph::AddPass(PassDescriptor descriptor) {
   };
   std::ranges::for_each(descriptor.reads, validate);
   std::ranges::for_each(descriptor.writes, validate);
+  std::unordered_set<std::uint32_t> uses;
+  for (const auto &read : descriptor.reads) {
+    if (!uses.insert(read.texture.id).second)
+      throw std::invalid_argument("pass declares a texture more than once");
+  }
+  for (const auto &write : descriptor.writes) {
+    if (!uses.insert(write.texture.id).second)
+      throw std::invalid_argument("pass cannot read and write the same texture");
+  }
   passes_.push_back(std::move(descriptor));
   explicit_edges_.emplace_back();
   compiled_ = false;
@@ -126,11 +137,6 @@ void RenderGraph::Execute(rhi::Device &device) {
     throw std::logic_error("render graph must be compiled before execution");
   std::vector<rhi::TextureHandle> handles(textures_.size());
   std::vector<rhi::ResourceState> states(textures_.size());
-  for (std::size_t index = 0; index < textures_.size(); ++index) {
-    handles[index] = textures_[index].transient ? device.CreateTexture(textures_[index].descriptor)
-                                                : textures_[index].imported;
-    states[index] = textures_[index].descriptor.initial_state;
-  }
   statistics_.barrier_count = 0;
   const auto release_transients = [&] {
     for (std::size_t index = 0; index < textures_.size(); ++index) {
@@ -139,6 +145,16 @@ void RenderGraph::Execute(rhi::Device &device) {
     }
   };
   try {
+    for (std::size_t index = 0; index < textures_.size(); ++index) {
+      // An unused transient has no lifetime and must not consume a GPU allocation.
+      if (textures_[index].transient &&
+          textures_[index].first_use != std::numeric_limits<std::size_t>::max()) {
+        handles[index] = device.CreateTexture(textures_[index].descriptor);
+      } else if (!textures_[index].transient) {
+        handles[index] = textures_[index].imported;
+      }
+      states[index] = textures_[index].descriptor.initial_state;
+    }
     for (const auto pass_index : execution_order_) {
       const auto &pass = passes_[pass_index];
       auto commands = device.CreateCommandList(pass.queue);

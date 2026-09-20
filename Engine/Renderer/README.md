@@ -21,6 +21,12 @@ belongs to the future backend/device milestones and is not claimed here.
 
 `RenderGraph` derives RAW/WAR/WAW dependencies, rejects cycles, topologically orders passes, computes transient lifetimes, and emits state transitions. `PipelineCache` coalesces identical asynchronous requests. The validation device rejects stale resources, invalid transitions, rendering-scope violations, missing pipelines, and presenting a non-Present resource.
 
+Passes must declare each texture exactly once: a texture cannot be both read and written by the
+same pass. Unused transients are lifetime-elided and never allocated. Command lists are single-use;
+submission while a rendering scope is open, submission to another device, a second submission, or
+recording after submission is rejected. Pipeline identity is the complete layout/shader/format key
+(debug labels are deliberately excluded), so hash collisions cannot alias cache entries.
+
 The executable test runs `Offscreen -> Main -> Present` through this contract and verifies pass, barrier, draw, submit, and present counts. Real DX12/Vulkan/Metal devices, descriptor allocators, fences, multi-queue synchronization, transient aliasing, and on-screen presentation remain subsequent backend work.
 
 ## Ownership and lifetime

@@ -57,6 +57,16 @@ int RunTests() {
                 diagnostics.barriers == 4 && diagnostics.presents == 1 &&
                 diagnostics.validation_errors == 0,
             "validation backend diagnostics are unexpected");
+
+    auto submitted = device->CreateCommandList(rhi::QueueType::Graphics);
+    device->Submit(*submitted);
+    bool rejected_resubmit = false;
+    try {
+      device->Submit(*submitted);
+    } catch (const std::logic_error &) {
+      rejected_resubmit = true;
+    }
+    Require(rejected_resubmit, "command lists must be single-use");
     device->DestroyTexture(swapchain);
   }
   jobs.Stop();
@@ -73,6 +83,21 @@ int RunTests() {
     rejected_cycle = true;
   }
   Require(rejected_cycle, "render graph cycle must be rejected");
+
+  renderer::RenderGraph invalid_pass;
+  const auto texture = invalid_pass.CreateTransientTexture(
+      {1, 1, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::Undefined, "Conflict"});
+  bool rejected_conflicting_use = false;
+  try {
+    (void)invalid_pass.AddPass({"Conflict",
+                                rhi::QueueType::Graphics,
+                                {{texture, rhi::ResourceState::ShaderRead}},
+                                {{texture, rhi::ResourceState::RenderTarget}},
+                                [](rhi::CommandList &, auto) {}});
+  } catch (const std::invalid_argument &) {
+    rejected_conflicting_use = true;
+  }
+  Require(rejected_conflicting_use, "a pass must not ambiguously read and write one texture");
   return 0;
 }
 } // namespace
