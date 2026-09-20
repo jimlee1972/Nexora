@@ -20,3 +20,15 @@ The contract test `runtime.v1_m4_m12_contracts` exercises every row, including l
 fallback, unreachable navigation, animation looping, audio voice limits, media back-pressure and
 seek invalidation. Platform SDK adapters and production authoring tools remain future work and
 must preserve these interfaces rather than bypassing their lifecycle checks.
+
+## Zig gameplay bridge
+
+`GameplayModuleHost` executes the versioned `NexoraGameModuleV1` C ABI. It validates the host and
+module structure sizes, ABI version, and required callbacks before initialization. Update, reload,
+and unload operations are serialized; a replacement module is initialized before the active module
+is shut down, and a rejected replacement leaves the active module running.
+
+Configure with `-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON` to compile the minimal Zig GameModule and run the
+`gameplay.zig_abi_smoke` test. Zig 0.14.0 is the pinned CI toolchain. This is the first executable
+toolchain gate; state migration, component/event bindings, dynamic-library loading, mobile
+cross-compilation, and device execution remain required follow-up gates.

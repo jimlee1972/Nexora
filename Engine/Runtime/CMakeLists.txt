@@ -1,5 +1,7 @@
 include(NexoraTarget)
-add_library(NexoraRuntime ${NEXORA_MODULE_LIBRARY_TYPE} src/Runtime.cpp)
+add_library(NexoraRuntime ${NEXORA_MODULE_LIBRARY_TYPE}
+  src/GameplayModuleHost.cpp
+  src/Runtime.cpp)
 add_library(Nexora::Runtime ALIAS NexoraRuntime)
 target_include_directories(NexoraRuntime PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_link_libraries(NexoraRuntime PUBLIC Nexora::Renderer)

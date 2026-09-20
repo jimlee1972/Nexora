@@ -3,3 +3,8 @@ add_executable(NexoraRuntimeTests RuntimeTests.cpp)
 target_link_libraries(NexoraRuntimeTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraRuntimeTests)
 add_test(NAME runtime.v1_m4_m12_contracts COMMAND NexoraRuntimeTests)
+
+add_executable(NexoraGameplayModuleHostTests GameplayModuleHostTests.cpp)
+target_link_libraries(NexoraGameplayModuleHostTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraGameplayModuleHostTests)
+add_test(NAME runtime.gameplay_module_host COMMAND NexoraGameplayModuleHostTests)
