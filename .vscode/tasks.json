@@ -2,29 +2,17 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "CMake: Configure (Windows Development)",
-      "type": "process",
-      "command": "${config:cmake.cmakePath}",
-      "args": ["--preset", "windows-development"],
-      "problemMatcher": []
-    },
-    {
-      "label": "CMake: Build (Windows Development)",
-      "type": "process",
-      "command": "${config:cmake.cmakePath}",
-      "args": ["--build", "--preset", "windows-development"],
-      "dependsOn": "CMake: Configure (Windows Development)",
-      "dependsOrder": "sequence",
+      "type": "cmake",
+      "label": "CMake: build",
+      "command": "build",
+      "targets": ["all"],
       "group": { "kind": "build", "isDefault": true },
-      "problemMatcher": ["$msCompile"]
+      "problemMatcher": ["$gcc", "$msCompile"]
     },
     {
-      "label": "CMake: Test (Windows Development)",
-      "type": "process",
-      "command": "${config:cmake.ctestPath}",
-      "args": ["--preset", "windows-development"],
-      "dependsOn": "CMake: Build (Windows Development)",
-      "dependsOrder": "sequence",
+      "type": "cmake",
+      "label": "CMake: test",
+      "command": "ctest",
       "group": "test",
       "problemMatcher": []
     }
