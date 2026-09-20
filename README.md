@@ -90,3 +90,8 @@ Use `windows-development` or `macos-development` on those hosts. Android require
 ## V1-M1 core runtime
 
 The first V1-M1 slice adds the process-level `NexoraCore` module: repeatable engine lifecycle, tagged allocation statistics and a frame arena, dependency-aware jobs with completion/cancellation, structured asynchronous logging with a bounded crash ring, bounded fixed ticks, timers, resource-conflict TaskGraph scheduling, typed immediate/deferred events, generational handles, and synchronous/asynchronous VFS reads. The owning-module, lifetime, threading, error, and deferred-work contracts are documented in [`Engine/Core/README.md`](Engine/Core/README.md).
+
+
+## V1-M2 / V1-M3 rendering progress
+
+The rendering foundation now includes a backend-neutral RHI, canonical Slang/reflection fixtures, a strict validation device, asynchronous pipeline caching, and an executable `Offscreen -> Main -> Present` RenderGraph workload. Hardware DX12, Vulkan, and Metal gates are intentionally not reported as complete until their SDK-backed implementations run; current scope and ownership are documented in [`Engine/Renderer/README.md`](Engine/Renderer/README.md).

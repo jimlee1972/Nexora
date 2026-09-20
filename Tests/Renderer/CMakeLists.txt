@@ -1,0 +1,5 @@
+include(NexoraTarget)
+add_executable(NexoraRendererTests RendererTests.cpp)
+target_link_libraries(NexoraRendererTests PRIVATE Nexora::Renderer)
+nexora_apply_defaults(NexoraRendererTests)
+add_test(NAME renderer.contracts COMMAND NexoraRendererTests)

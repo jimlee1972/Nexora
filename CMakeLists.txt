@@ -15,16 +15,23 @@ nexora_validate_module_graph("${CMAKE_CURRENT_SOURCE_DIR}/Config/Modules/modules
 
 add_subdirectory(Engine/Foundation)
 add_subdirectory(Engine/Core)
+add_subdirectory(Engine/RHI)
+add_subdirectory(Engine/Renderer)
 add_subdirectory(Apps/Host)
 
 include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(Tests/Foundation)
   add_subdirectory(Tests/Core)
+  add_subdirectory(Tests/Renderer)
   add_test(
     NAME build.module_graph
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR}
             -P "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Build/ValidateModuleGraph.cmake")
+  add_test(
+    NAME build.shader_contract
+    COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR}
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Build/ValidateShaderContract.cmake")
   add_test(
     NAME build.plugin_manifests
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR}

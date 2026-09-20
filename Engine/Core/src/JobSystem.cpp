@@ -56,20 +56,28 @@ struct JobSystem::Implementation final {
         available.wait(lock, [this] { return stopping || !queue.empty(); });
         if (stopping && queue.empty())
           return;
-        auto selected =
-            std::max_element(queue.begin(), queue.end(), [](const Work &left, const Work &right) {
-              return left.descriptor.priority < right.descriptor.priority;
-            });
+        const auto is_ready = [](const Work &candidate) {
+          return std::ranges::all_of(candidate.dependencies, [](const JobHandle &dependency) {
+            std::lock_guard dependency_lock{dependency.state_->mutex};
+            const auto status = dependency.state_->status;
+            return status == JobStatus::Completed || status == JobStatus::Cancelled ||
+                   status == JobStatus::Failed;
+          });
+        };
+        auto selected = queue.end();
+        for (auto candidate = queue.begin(); candidate != queue.end(); ++candidate) {
+          if (is_ready(*candidate) &&
+              (selected == queue.end() ||
+               selected->descriptor.priority < candidate->descriptor.priority)) {
+            selected = candidate;
+          }
+        }
+        if (selected == queue.end()) {
+          available.wait_for(lock, std::chrono::milliseconds{1});
+          continue;
+        }
         work = std::move(*selected);
         queue.erase(selected);
-      }
-      for (const auto &dependency : work.dependencies) {
-        std::unique_lock lock{dependency.state_->mutex};
-        dependency.state_->completed.wait(lock, [&dependency] {
-          const auto status = dependency.state_->status;
-          return status == JobStatus::Completed || status == JobStatus::Cancelled ||
-                 status == JobStatus::Failed;
-        });
       }
       if (work.descriptor.cancellation.IsCancellationRequested()) {
         Complete(work.state, JobStatus::Cancelled);
