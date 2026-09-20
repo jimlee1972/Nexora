@@ -20,6 +20,7 @@ inline constexpr std::uint32_t kEngineAbiVersion = 1;
 
 struct BuildInfo final {
   const char *engine_version;
+  const char *build_id;
   std::uint32_t abi_version;
   const char *build_configuration;
   const char *link_mode;

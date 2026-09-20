@@ -31,4 +31,20 @@ function(nexora_configure_build)
   else()
     add_compile_options(-Wall -Wextra -Wpedantic -Werror)
   endif()
+
+  set(NEXORA_BUILD_ID "unknown")
+  find_package(Git QUIET)
+  if(GIT_FOUND)
+    execute_process(
+      COMMAND "${GIT_EXECUTABLE}" rev-parse --short=12 HEAD
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      OUTPUT_VARIABLE NEXORA_GIT_COMMIT
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      RESULT_VARIABLE NEXORA_GIT_RESULT
+      ERROR_QUIET)
+    if(NEXORA_GIT_RESULT EQUAL 0 AND NOT NEXORA_GIT_COMMIT STREQUAL "")
+      set(NEXORA_BUILD_ID "${NEXORA_GIT_COMMIT}")
+    endif()
+  endif()
+  set(NEXORA_BUILD_ID "${NEXORA_BUILD_ID}" PARENT_SCOPE)
 endfunction()

@@ -84,7 +84,7 @@ ctest --preset linux-development
 ./build/linux-development/Apps/Host/NexoraHost
 ```
 
-Use `windows-development` or `macos-development` on those hosts. Android requires `ANDROID_NDK_ROOT`; iOS requires macOS and Xcode. `CMakeUserPresets.json` is intentionally ignored for machine-local SDK overrides. The supported configurations are `Debug`, `Development`, and `Shipping`; `NEXORA_LINK_MODE` selects `Modular` or `Monolithic` linkage. Optional modules must be controlled by feature options, and module dependencies are declared in `Config/Modules/modules.json` so cycles fail during configure.
+Use `windows-development` or `macos-development` on those hosts. Android requires `ANDROID_NDK_ROOT`; iOS requires macOS and Xcode. CI runs a `cmake --preset` configure smoke for both `android-development` and `ios-development` on every push; the actual RHI/Zig build for those platforms remains a V1-M2 gate. `CMakeUserPresets.json` is intentionally ignored for machine-local SDK overrides. The supported configurations are `Debug`, `Development`, and `Shipping`; `NEXORA_LINK_MODE` selects `Modular` or `Monolithic` linkage. Optional modules must be controlled by feature options, and module dependencies are declared in `Config/Modules/modules.json` so cycles fail during configure. `nexora::foundation::GetBuildInfo()` reports the engine version, a git-derived build ID, the ABI version, build configuration, and link mode.
 
 
 ## V1-M1 core runtime
