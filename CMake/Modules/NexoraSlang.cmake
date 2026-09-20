@@ -38,8 +38,11 @@ function(nexora_configure_slang)
   # and validated on Windows, where dxcompiler is reliably available.
   if(WIN32)
     set(dxil_output "${shader_output_dir}/Triangle.dxil")
+    set(dxil_vertex_output "${shader_output_dir}/Triangle.vertex.dxil")
+    set(dxil_fragment_output "${shader_output_dir}/Triangle.fragment.dxil")
     set(dxil_reflection "${shader_output_dir}/Triangle.dxil.reflection.json")
-    list(APPEND cross_compile_outputs "${dxil_output}" "${dxil_reflection}")
+    list(APPEND cross_compile_outputs "${dxil_output}" "${dxil_vertex_output}"
+         "${dxil_fragment_output}" "${dxil_reflection}")
     list(APPEND normalizer_args --dxil-reflection "${dxil_reflection}")
     list(APPEND commands
       COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
@@ -50,6 +53,19 @@ function(nexora_configure_slang)
               -entry fragmentMain
               -reflection-json "${dxil_reflection}"
               -o "${dxil_output}"
+              "${shader_source}")
+    list(APPEND commands
+      COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
+              -target dxil
+              -profile sm_6_6
+              -entry vertexMain
+              -o "${dxil_vertex_output}"
+              "${shader_source}"
+      COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
+              -target dxil
+              -profile sm_6_6
+              -entry fragmentMain
+              -o "${dxil_fragment_output}"
               "${shader_source}")
   endif()
 
@@ -83,6 +99,8 @@ function(nexora_configure_slang)
 
   set(NEXORA_SLANG_ARTIFACT_TARGET NexoraSlangArtifacts PARENT_SCOPE)
   set(NEXORA_SLANG_DXIL_OUTPUT "${dxil_output}" PARENT_SCOPE)
+  set(NEXORA_SLANG_DXIL_VERTEX_OUTPUT "${dxil_vertex_output}" PARENT_SCOPE)
+  set(NEXORA_SLANG_DXIL_FRAGMENT_OUTPUT "${dxil_fragment_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_SPIRV_OUTPUT "${spirv_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_METAL_OUTPUT "${metal_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_CANONICAL_REFLECTION "${canonical_reflection}" PARENT_SCOPE)

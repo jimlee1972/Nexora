@@ -3,6 +3,8 @@
 #include "Nexora/Renderer/PipelineCache.h"
 #include "Nexora/Renderer/RenderGraph.h"
 
+#include <array>
+#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 
@@ -11,6 +13,55 @@ void Require(bool condition, const char *message) {
   if (!condition)
     throw std::runtime_error(message);
 }
+
+bool IsRequiredNativeBackend(nexora::rhi::Backend backend) {
+  const auto *required = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS");
+  if (!required || *required != '1')
+    return false;
+#if defined(_WIN32)
+  return backend == nexora::rhi::Backend::Direct3D12;
+#elif defined(__APPLE__)
+  return backend == nexora::rhi::Backend::Metal;
+#else
+  return backend == nexora::rhi::Backend::Vulkan;
+#endif
+}
+
+void VerifyNativeBackend(nexora::rhi::Backend backend) {
+  if (!nexora::rhi::IsBackendAvailable(backend)) {
+    Require(!IsRequiredNativeBackend(backend), "required native backend is unavailable");
+    return;
+  }
+
+  using namespace nexora;
+  auto device = rhi::CreateDevice(backend);
+  Require(device->GetBackend() == backend, "native backend factory returned the wrong backend");
+  core::JobSystem jobs{2};
+  jobs.Start();
+  {
+    renderer::PipelineCache cache{*device, jobs};
+    const auto layout = rhi::TrianglePipelineLayout();
+    const auto future =
+        cache.Request({layout.layout_hash, 0x1234, rhi::TextureFormat::Rgba8Unorm, "Triangle"});
+    future.Wait();
+    const auto pipeline = future.Get();
+    const rhi::TextureDescriptor swapchain_descriptor{
+        640, 360, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::Present, "Native target"};
+    const auto swapchain = device->CreateTexture(swapchain_descriptor);
+    const auto frame =
+        renderer::ExecuteTriangleFrame(*device, swapchain, swapchain_descriptor, pipeline);
+    Require(frame.passes == 3 && frame.barriers == 4,
+            "native backend generated unexpected render graph work");
+    const auto diagnostics = device->Diagnostics();
+    Require(diagnostics.submitted_command_lists == 3 && diagnostics.draw_calls == 2 &&
+                diagnostics.barriers == 4 && diagnostics.presents == 1 &&
+                diagnostics.validation_errors == 0,
+            "native backend diagnostics are unexpected");
+    device->DestroyTexture(swapchain);
+  }
+  jobs.Stop();
+}
+
 int RunTests() {
   using namespace nexora;
   const auto dxil = rhi::TrianglePipelineLayout();
@@ -98,6 +149,11 @@ int RunTests() {
     rejected_conflicting_use = true;
   }
   Require(rejected_conflicting_use, "a pass must not ambiguously read and write one texture");
+
+  for (const auto backend :
+       std::array{rhi::Backend::Direct3D12, rhi::Backend::Vulkan, rhi::Backend::Metal}) {
+    VerifyNativeBackend(backend);
+  }
   return 0;
 }
 } // namespace
