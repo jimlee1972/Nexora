@@ -4,6 +4,7 @@ project(Nexora VERSION 0.1.0 LANGUAGES CXX)
 
 option(NEXORA_ENABLE_ZIG_GAMEPLAY "Build the Zig gameplay ABI sample" OFF)
 option(NEXORA_ENABLE_SLANG "Compile and validate the canonical Slang shader" OFF)
+option(NEXORA_ENABLE_MIMALLOC "Fetch mimalloc and use it as the TrackingAllocator backend" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
@@ -12,6 +13,11 @@ include(NexoraBuildConfig)
 include(NexoraFeatures)
 include(NexoraModuleGraph)
 include(NexoraSlang)
+include(NexoraMimalloc)
+
+# Fetch mimalloc before nexora_configure_build() applies our warnings-as-errors
+# flags directory-wide; mimalloc's own C sources aren't -Wpedantic clean.
+nexora_configure_mimalloc()
 
 nexora_configure_build()
 nexora_declare_features()

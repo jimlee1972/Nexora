@@ -15,7 +15,7 @@
 
 ## Memory and errors
 
-The tracking allocator uses aligned process allocation while recording live/peak bytes and per-tag totals. It is the replaceable backend seam for the pinned mimalloc integration; allocator objects and exceptions never cross a C ABI. Frame arena exhaustion reports `std::bad_alloc`. Invalid lifecycle, paths, time values, and job descriptors fail explicitly.
+The tracking allocator's aligned-allocate/deallocate calls are the replaceable backend seam: by default they go through `::operator new`/`::operator delete`, and with `-DNEXORA_ENABLE_MIMALLOC=ON` they go through `mi_malloc_aligned`/`mi_free` instead (mimalloc is fetched via CMake `FetchContent`, off by default, built as a static library and never exposed in a public Core header). Either way, live/peak bytes and per-tag totals are tracked the same; allocator objects and exceptions never cross a C ABI. Frame arena exhaustion reports `std::bad_alloc`. Invalid lifecycle, paths, time values, and job descriptors fail explicitly.
 
 ## Platform
 
@@ -23,4 +23,4 @@ The tracking allocator uses aligned process allocation while recording live/peak
 
 ## Deferred work
 
-This slice establishes the M1 contracts and smoke gates. A work-stealing scheduler, mimalloc package integration, recurring system-graph caching, and C ABI wrappers remain follow-up M1 work rather than being represented by placeholder APIs.
+This slice establishes the M1 contracts and smoke gates. A work-stealing scheduler, recurring system-graph caching, and C ABI wrappers remain follow-up M1 work rather than being represented by placeholder APIs. The opt-in mimalloc backend has only been exercised on Linux in this environment; Windows/macOS/Android/iOS builds with `NEXORA_ENABLE_MIMALLOC=ON` are unverified here.

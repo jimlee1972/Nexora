@@ -4,13 +4,38 @@
 #include <new>
 #include <stdexcept>
 
+#if defined(NEXORA_USE_MIMALLOC)
+#include <mimalloc.h>
+#endif
+
 namespace nexora::core {
+namespace {
+void *AlignedAllocate(std::size_t size, std::size_t alignment) {
+#if defined(NEXORA_USE_MIMALLOC)
+  void *memory = mi_malloc_aligned(size, alignment);
+  if (memory == nullptr)
+    throw std::bad_alloc{};
+  return memory;
+#else
+  return ::operator new(size, std::align_val_t{alignment});
+#endif
+}
+
+void AlignedDeallocate(void *memory, std::size_t alignment) noexcept {
+#if defined(NEXORA_USE_MIMALLOC)
+  (void)alignment;
+  mi_free(memory);
+#else
+  ::operator delete(memory, std::align_val_t{alignment});
+#endif
+}
+} // namespace
 
 void *TrackingAllocator::Allocate(std::size_t size, std::size_t alignment, MemoryTag tag) {
   if (size == 0 || alignment == 0 || (alignment & (alignment - 1)) != 0) {
     throw std::invalid_argument("allocation size and alignment must be valid");
   }
-  void *memory = ::operator new(size, std::align_val_t{alignment});
+  void *memory = AlignedAllocate(size, alignment);
   std::lock_guard lock{mutex_};
   allocations_.emplace(memory, Allocation{size, tag, alignment});
   statistics_.live_bytes += size;
@@ -35,7 +60,7 @@ void TrackingAllocator::Deallocate(void *memory) noexcept {
     bytes_by_tag_[found->second.tag] -= found->second.size;
     allocations_.erase(found);
   }
-  ::operator delete(memory, std::align_val_t{alignment});
+  AlignedDeallocate(memory, alignment);
 }
 
 MemoryStatistics TrackingAllocator::Statistics() const noexcept {
