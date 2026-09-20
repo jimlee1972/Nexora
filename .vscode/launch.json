@@ -2,14 +2,23 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Nexora Host (Development)",
+      "name": "Nexora Host (Windows)",
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${command:cmake.launchTargetPath}",
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "CMake: Build (Windows Development)",
+      "preLaunchTask": "CMake: build",
       "stopAtEntry": false,
       "console": "integratedTerminal"
+    },
+    {
+      "name": "Nexora Host (macOS/Linux)",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "CMake: build",
+      "args": []
     }
   ]
 }
