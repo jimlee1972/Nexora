@@ -1,7 +1,7 @@
 # Nexora
 
 跨平台 3D 引擎。C++20 engine core、語言中立的穩定 C ABI、統一 RHI（DX12 / Vulkan / Metal）、
-Node + Component 編輯流程搭配 data-oriented runtime 儲存。Zig 規劃為 gameplay 語言，目前尚未進 build。
+Node + Component 編輯流程搭配 data-oriented runtime 儲存。Zig 是 gameplay 語言，目前已有可選的 ABI smoke build。
 
 ## 回應語言
 

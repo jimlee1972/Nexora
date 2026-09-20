@@ -23,12 +23,19 @@ must preserve these interfaces rather than bypassing their lifecycle checks.
 
 ## Zig gameplay bridge
 
-`GameplayModuleHost` executes the versioned `NexoraGameModuleV1` C ABI. It validates the host and
+`GameplayModuleHost` executes the versioned `NexoraGameModuleV2` C ABI while the original V1 layouts
+remain declared for source compatibility. It validates the host and
 module structure sizes, ABI version, and required callbacks before initialization. Update, reload,
 and unload operations are serialized; a replacement module is initialized before the active module
 is shut down, and a rejected replacement leaves the active module running.
 
+The host table exposes size-checked component reads/writes, event subscription, and tick control.
+Modules may additionally provide state save/load callbacks. Reload serializes the active state,
+initializes and restores the candidate, and only then retires the active module; migration failure
+keeps the active module alive. `GetReloadStats()` exposes successful reload count, migrated bytes,
+and wall-clock reload duration for profiler integration.
+
 Configure with `-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON` to compile the minimal Zig GameModule and run the
 `gameplay.zig_abi_smoke` test. Zig 0.14.0 is the pinned CI toolchain. This is the first executable
-toolchain gate; state migration, component/event bindings, dynamic-library loading, mobile
-cross-compilation, and device execution remain required follow-up gates.
+toolchain gate. Dynamic-library/editor orchestration, mobile cross-compilation, and device execution
+remain required follow-up gates.

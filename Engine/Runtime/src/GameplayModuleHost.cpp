@@ -1,21 +1,23 @@
 #include "Nexora/Runtime/GameplayModuleHost.h"
 
+#include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <vector>
 
 namespace nexora::runtime {
 namespace {
 
-constexpr std::size_t kRequiredHostSize = sizeof(NexoraGameplayHostV1);
-constexpr std::size_t kRequiredModuleSize = sizeof(NexoraGameModuleV1);
+constexpr std::size_t kRequiredHostSize = sizeof(NexoraGameplayHostV2);
+constexpr std::size_t kRequiredModuleSize = sizeof(NexoraGameModuleV2);
 
 } // namespace
 
-GameplayModuleHost::GameplayModuleHost(NexoraGameplayHostV1 host) noexcept : host_(host) {}
+GameplayModuleHost::GameplayModuleHost(NexoraGameplayHostV2 host) noexcept : host_(host) {}
 
 GameplayModuleHost::~GameplayModuleHost() { Unload(); }
 
-bool GameplayModuleHost::Create(NexoraGameModuleLoadFn load, NexoraGameModuleV1 &module) const {
+bool GameplayModuleHost::Create(NexoraGameModuleLoadFn load, NexoraGameModuleV2 &module) const {
   if (load == nullptr || host_.struct_size < kRequiredHostSize ||
       host_.abi_version != NEXORA_GAMEPLAY_ABI_VERSION)
     return false;
@@ -39,7 +41,7 @@ bool GameplayModuleHost::Load(NexoraGameModuleLoadFn load) {
   std::scoped_lock lock(mutex_);
   if (loaded_)
     return false;
-  NexoraGameModuleV1 candidate{};
+  NexoraGameModuleV2 candidate{};
   if (!Create(load, candidate))
     return false;
   module_ = candidate;
@@ -48,17 +50,40 @@ bool GameplayModuleHost::Load(NexoraGameModuleLoadFn load) {
 }
 
 bool GameplayModuleHost::Reload(NexoraGameModuleLoadFn load) {
+  const auto started = std::chrono::steady_clock::now();
   std::scoped_lock lock(mutex_);
   if (!loaded_)
     return false;
 
-  NexoraGameModuleV1 candidate{};
+  std::vector<std::byte> saved_state;
+  if (module_.save_state != nullptr) {
+    const auto required = module_.save_state(module_.module_state, nullptr, 0);
+    if (required != 0) {
+      saved_state.resize(required);
+      if (module_.save_state(module_.module_state, saved_state.data(), required) != required)
+        return false;
+    }
+  }
+
+  NexoraGameModuleV2 candidate{};
   if (!Create(load, candidate))
     return false;
+
+  if (!saved_state.empty()) {
+    if (candidate.load_state == nullptr ||
+        candidate.load_state(candidate.module_state, saved_state.data(),
+                             static_cast<std::uint32_t>(saved_state.size())) != 0) {
+      candidate.shutdown(candidate.module_state);
+      return false;
+    }
+  }
 
   ShutdownLocked();
   module_ = candidate;
   loaded_ = true;
+  ++reload_stats_.successful_reloads;
+  reload_stats_.migrated_bytes = static_cast<std::uint32_t>(saved_state.size());
+  reload_stats_.last_reload_duration = std::chrono::steady_clock::now() - started;
   return true;
 }
 
@@ -87,6 +112,11 @@ void GameplayModuleHost::Unload() noexcept {
 bool GameplayModuleHost::IsLoaded() const noexcept {
   std::scoped_lock lock(mutex_);
   return loaded_;
+}
+
+GameplayModuleHost::ReloadStats GameplayModuleHost::GetReloadStats() const noexcept {
+  std::scoped_lock lock(mutex_);
+  return reload_stats_;
 }
 
 } // namespace nexora::runtime

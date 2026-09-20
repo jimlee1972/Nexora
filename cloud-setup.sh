@@ -59,23 +59,24 @@ if [ "$need_cmake" -eq 1 ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Zig（Roadmap 上是 gameplay 語言，目前還沒進 CMake build）
-#    現在還用不到，等 Zig 模組真的進 build 時把這段取消註解。
+# 2. Zig（gameplay ABI smoke build 與 CI 使用的版本）
 # ---------------------------------------------------------------------------
-# ZIG_VERSION="0.14.0"
-# curl -fsSL -o /tmp/zig.tar.xz \
-#   "https://ziglang.org/download/${ZIG_VERSION}/zig-linux-$(uname -m)-${ZIG_VERSION}.tar.xz"
-# $SUDO mkdir -p /opt/zig
-# $SUDO tar -xJf /tmp/zig.tar.xz -C /opt/zig --strip-components=1
-# $SUDO ln -sf /opt/zig/zig /usr/local/bin/zig
-# rm -f /tmp/zig.tar.xz
+ZIG_VERSION="0.14.0"
+if ! command -v zig >/dev/null 2>&1 || [ "$(zig version)" != "$ZIG_VERSION" ]; then
+  curl -fsSL -o /tmp/zig.tar.xz \
+    "https://ziglang.org/download/${ZIG_VERSION}/zig-linux-$(uname -m)-${ZIG_VERSION}.tar.xz"
+  $SUDO mkdir -p /opt/zig
+  $SUDO tar -xJf /tmp/zig.tar.xz -C /opt/zig --strip-components=1
+  $SUDO ln -sf /opt/zig/zig /usr/local/bin/zig
+  rm -f /tmp/zig.tar.xz
+fi
 
 # ---------------------------------------------------------------------------
 # 3. 預熱一次 configure，讓第一個 session 不用從零開始
 #    build/ 已在 .gitignore 內，不會污染 diff。
 # ---------------------------------------------------------------------------
 if [ -f CMakePresets.json ]; then
-  cmake --preset linux-development || {
+  cmake --preset linux-development -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON || {
     echo "預熱 configure 失敗 — 不擋 setup，session 內再處理"
   }
 fi
@@ -87,5 +88,5 @@ echo "=== toolchain ==="
 cmake --version | head -n1
 ninja --version
 clang --version | head -n1
-command -v zig >/dev/null 2>&1 && zig version || echo "zig: 未安裝（目前不需要）"
+zig version
 echo "=== setup complete ==="
