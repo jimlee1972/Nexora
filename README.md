@@ -95,3 +95,12 @@ The first V1-M1 slice adds the process-level `NexoraCore` module: repeatable eng
 ## V1-M2 / V1-M3 rendering progress
 
 The rendering foundation now includes a backend-neutral RHI, canonical Slang/reflection fixtures, a strict validation device, asynchronous pipeline caching, and an executable `Offscreen -> Main -> Present` RenderGraph workload. Hardware DX12, Vulkan, and Metal gates are intentionally not reported as complete until their SDK-backed implementations run; current scope and ownership are documented in [`Engine/Renderer/README.md`](Engine/Renderer/README.md).
+
+## V1-M4 through V1-M12 runtime contracts
+
+The remaining V1 dependency chain now has a platform-neutral executable baseline in
+`NexoraRuntime`: additive scene lifecycle, versioned assets, plugin ABI checks, input routing,
+character-motion boundaries, presentation residency, large-world cell policy, mobile lifecycle,
+and shipping-profile stripping. These are contract foundations rather than claims that third-party
+SDK backends or production tools are complete. See [`Engine/Runtime/README.md`](Engine/Runtime/README.md)
+for the milestone matrix and explicit scope.
