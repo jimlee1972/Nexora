@@ -16,6 +16,11 @@
 
 ## Deferred work
 
+- `Tools/Build/NormalizeShaderReflection.py` locates the constant-buffer size in each backend's
+  slangc `-reflection-json` output by searching for a documented-but-unconfirmed set of key names
+  (see the module docstring). It has not yet been run against a real `slangc` install; it fails
+  loudly rather than reporting a false pass if the key names do not match, but the first CI run
+  with a real Slang toolchain should be treated as the actual validation of this parsing logic.
 - DX12, Vulkan, and Metal `Device` / `CommandList` implementations remain a V1-M3 task.
 - This slice validates shader compilation artifacts and reflection layout only; it does not claim
   that a real graphics device executes the triangle.
