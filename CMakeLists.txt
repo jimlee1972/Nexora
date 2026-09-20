@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 project(Nexora VERSION 0.1.0 LANGUAGES CXX)
 
 option(NEXORA_ENABLE_ZIG_GAMEPLAY "Build the Zig gameplay ABI sample" OFF)
+option(NEXORA_ENABLE_SLANG "Compile and validate the canonical Slang shader" OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
@@ -10,10 +11,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
 include(NexoraBuildConfig)
 include(NexoraFeatures)
 include(NexoraModuleGraph)
+include(NexoraSlang)
 
 nexora_configure_build()
 nexora_declare_features()
 nexora_validate_module_graph("${CMAKE_CURRENT_SOURCE_DIR}/Config/Modules/modules.json")
+nexora_configure_slang()
 
 add_subdirectory(Engine/Foundation)
 add_subdirectory(Engine/Core)

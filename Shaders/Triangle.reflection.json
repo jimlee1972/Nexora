@@ -5,5 +5,6 @@
   "bindings": [
     { "resource_id": 1, "binding": 0, "type": "constant_buffer", "stages": ["vertex"], "byte_size": 64 }
   ],
-  "backends": ["dxil", "spirv", "msl"]
+  "backends": ["dxil", "spirv", "msl"],
+  "layout_hash": 7474137660631328175
 }
