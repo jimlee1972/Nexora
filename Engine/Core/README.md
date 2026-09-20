@@ -17,6 +17,10 @@
 
 The tracking allocator uses aligned process allocation while recording live/peak bytes and per-tag totals. It is the replaceable backend seam for the pinned mimalloc integration; allocator objects and exceptions never cross a C ABI. Frame arena exhaustion reports `std::bad_alloc`. Invalid lifecycle, paths, time values, and job descriptors fail explicitly.
 
+## Platform
+
+`Nexora::Core::platform` wraps the OS-specific primitives the rest of Core needs: hardware concurrency for sizing the job pool, and best-effort OS thread naming for profilers/debuggers. `JobSystem` names each worker `Nexora.WorkerN` through it. Naming is diagnostic only — a platform that can't honor it never fails the caller.
+
 ## Deferred work
 
-This slice establishes the M1 contracts and smoke gates. A work-stealing scheduler, mimalloc package integration, recurring system-graph caching, platform adapters, and C ABI wrappers remain follow-up M1 work rather than being represented by placeholder APIs.
+This slice establishes the M1 contracts and smoke gates. A work-stealing scheduler, mimalloc package integration, recurring system-graph caching, and C ABI wrappers remain follow-up M1 work rather than being represented by placeholder APIs.

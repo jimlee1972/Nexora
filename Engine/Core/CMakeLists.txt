@@ -4,6 +4,7 @@ add_library(NexoraCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/JobSystem.cpp
   src/Log.cpp
   src/Memory.cpp
+  src/Platform.cpp
   src/TaskGraph.cpp
   src/Time.cpp
   src/Timer.cpp
