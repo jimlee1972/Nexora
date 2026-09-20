@@ -12,7 +12,12 @@ endif()
 set(NEXORA_ZIG_BUILD_OBJ_ARGS
   build-obj
   "${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig"
-  -O Debug -femit-bin=${NEXORA_ZIG_SAMPLE_OBJECT})
+  -O Debug -femit-bin=${NEXORA_ZIG_SAMPLE_OBJECT}
+  # A plain `zig build-obj` doesn't link in Zig's own compiler-rt, so the
+  # stack-check instrumentation it emits by default is left calling an
+  # undefined `__zig_probe_stack` (Linux) / `___chkstk_ms` (Windows).
+  # See https://github.com/ziglang/zig/issues/6817.
+  -fno-stack-check)
 if(NOT WIN32)
   # Without this, zig build-obj emits non-PIC code on Linux/macOS, which
   # cannot be linked into NexoraZigGameplayTests -- a normal PIE executable
@@ -36,5 +41,12 @@ add_executable(NexoraZigGameplayTests
   ZigGameplayTests.cpp
   "${NEXORA_ZIG_SAMPLE_OBJECT}")
 target_link_libraries(NexoraZigGameplayTests PRIVATE Nexora::Runtime)
+if(WIN32)
+  # Zig's std library calls raw NT syscalls directly (file I/O, debug-info
+  # lookup for its panic handler, etc.); zig's own linker driver links
+  # ntdll.lib for this automatically, but link.exe invoked from CMake does
+  # not. See https://github.com/ziglang/zig/issues/18893.
+  target_link_libraries(NexoraZigGameplayTests PRIVATE ntdll)
+endif()
 nexora_apply_defaults(NexoraZigGameplayTests)
 add_test(NAME gameplay.zig_abi_smoke COMMAND NexoraZigGameplayTests)
