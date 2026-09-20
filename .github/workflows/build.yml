@@ -1,0 +1,41 @@
+name: Build
+on:
+  push:
+  pull_request:
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            preset: linux-development
+          - os: windows-latest
+            preset: windows-development
+          - os: macos-latest
+            preset: macos-development
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - run: cmake --preset ${{ matrix.preset }}
+      - run: cmake --build --preset ${{ matrix.preset }}
+      - run: ctest --preset ${{ matrix.preset }}
+
+  build-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - run: cmake --preset linux-shipping
+      - run: cmake --build --preset linux-shipping
+      - run: cmake -S . -B build/feature-off -G Ninja -DCMAKE_BUILD_TYPE=Development -DNEXORA_FEATURE_EXAMPLE_PLUGIN=OFF
+      - run: cmake --build build/feature-off
+      - run: test ! -e build/feature-off/Plugins/Example/libNexoraExamplePlugin.so
+      - run: cmake -DROOT=$PWD -P Tools/Build/ValidateModuleGraph.cmake
+      - run: cmake -DROOT=$PWD -P Tools/Build/ValidatePluginManifests.cmake
+      - run: cmake -DROOT=$PWD -P Tools/Build/ValidateShaderContract.cmake
+      - run: cmake -S . -B build/asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
+      - run: cmake --build build/asan
+      - run: ctest --test-dir build/asan --output-on-failure

@@ -1,0 +1,10 @@
+include(NexoraTarget)
+add_executable(NexoraFoundationTests BuildInfoTests.cpp)
+target_link_libraries(NexoraFoundationTests PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraFoundationTests)
+add_test(NAME foundation.build_info COMMAND NexoraFoundationTests)
+
+add_executable(NexoraGameplayAbiTests GameplayAbiTests.cpp)
+target_link_libraries(NexoraGameplayAbiTests PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraGameplayAbiTests)
+add_test(NAME foundation.gameplay_abi COMMAND NexoraGameplayAbiTests)

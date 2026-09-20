@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source": "Triangle.slang",
+  "entry_points": { "vertex": "vertexMain", "fragment": "fragmentMain" },
+  "bindings": [
+    { "resource_id": 1, "binding": 0, "type": "constant_buffer", "stages": ["vertex"], "byte_size": 64 }
+  ],
+  "backends": ["dxil", "spirv", "msl"]
+}

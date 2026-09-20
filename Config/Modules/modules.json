@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "modules": [
+    {
+      "name": "Foundation",
+      "dependencies": []
+    },
+    {
+      "name": "Core",
+      "dependencies": [
+        "Foundation"
+      ]
+    },
+    {
+      "name": "RHI",
+      "dependencies": [
+        "Core"
+      ]
+    },
+    {
+      "name": "Renderer",
+      "dependencies": [
+        "RHI"
+      ]
+    },
+    {
+      "name": "Host",
+      "dependencies": [
+        "Renderer"
+      ]
+    },
+    {
+      "name": "ExamplePlugin",
+      "feature": "NEXORA_FEATURE_EXAMPLE_PLUGIN",
+      "dependencies": [
+        "Foundation"
+      ]
+    }
+  ]
+}

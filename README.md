@@ -72,3 +72,26 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 ### 授權
 
 Nexora 採用 [MIT License](LICENSE) 發布。
+
+## V1-M0 build quick start
+
+The V1-M0 repository/build/CI skeleton is now available. A clean Linux clone can run the complete local gate without an IDE:
+
+```sh
+cmake --preset linux-development
+cmake --build --preset linux-development
+ctest --preset linux-development
+./build/linux-development/Apps/Host/NexoraHost
+```
+
+Use `windows-development` or `macos-development` on those hosts. Android requires `ANDROID_NDK_ROOT`; iOS requires macOS and Xcode. `CMakeUserPresets.json` is intentionally ignored for machine-local SDK overrides. The supported configurations are `Debug`, `Development`, and `Shipping`; `NEXORA_LINK_MODE` selects `Modular` or `Monolithic` linkage. Optional modules must be controlled by feature options, and module dependencies are declared in `Config/Modules/modules.json` so cycles fail during configure.
+
+
+## V1-M1 core runtime
+
+The first V1-M1 slice adds the process-level `NexoraCore` module: repeatable engine lifecycle, tagged allocation statistics and a frame arena, dependency-aware jobs with completion/cancellation, structured asynchronous logging with a bounded crash ring, bounded fixed ticks, timers, resource-conflict TaskGraph scheduling, typed immediate/deferred events, generational handles, and synchronous/asynchronous VFS reads. The owning-module, lifetime, threading, error, and deferred-work contracts are documented in [`Engine/Core/README.md`](Engine/Core/README.md).
+
+
+## V1-M2 / V1-M3 rendering progress
+
+The rendering foundation now includes a backend-neutral RHI, canonical Slang/reflection fixtures, a strict validation device, asynchronous pipeline caching, and an executable `Offscreen -> Main -> Present` RenderGraph workload. Hardware DX12, Vulkan, and Metal gates are intentionally not reported as complete until their SDK-backed implementations run; current scope and ownership are documented in [`Engine/Renderer/README.md`](Engine/Renderer/README.md).
