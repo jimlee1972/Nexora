@@ -20,11 +20,17 @@ public:
   [[nodiscard]] std::uint64_t Barriers() const noexcept { return barriers_; }
   [[nodiscard]] std::uint64_t DrawCalls() const noexcept { return draws_; }
   [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
+  [[nodiscard]] bool IsSubmitted() const noexcept { return submitted_; }
+  [[nodiscard]] bool BelongsTo(const ValidationDevice &device) const noexcept {
+    return &device_ == &device;
+  }
+  void MarkSubmitted() noexcept { submitted_ = true; }
 
 private:
   ValidationDevice &device_;
   bool rendering_{false};
   bool pipeline_bound_{false};
+  bool submitted_{false};
   std::uint64_t barriers_{};
   std::uint64_t draws_{};
 };
@@ -61,9 +67,12 @@ public:
   }
   void Submit(CommandList &commands) override {
     auto *validated = dynamic_cast<ValidationCommandList *>(&commands);
-    if (validated == nullptr || !validated->IsClosed())
-      throw std::logic_error("invalid command submission");
     std::lock_guard lock{mutex_};
+    Require(validated != nullptr, "command list belongs to another device");
+    Require(validated->BelongsTo(*this), "command list belongs to another device");
+    Require(validated->IsClosed(), "cannot submit an open command list");
+    Require(!validated->IsSubmitted(), "command list was already submitted");
+    validated->MarkSubmitted();
     ++diagnostics_.submitted_command_lists;
     diagnostics_.barriers += validated->Barriers();
     diagnostics_.draw_calls += validated->DrawCalls();
@@ -117,32 +126,34 @@ private:
 };
 
 void ValidationCommandList::Transition(const Barrier &barrier) {
+  if (submitted_)
+    throw std::logic_error("cannot record a submitted command list");
   if (rendering_)
     throw std::logic_error("barriers cannot occur inside rendering");
   device_.Transition(barrier);
   ++barriers_;
 }
 void ValidationCommandList::BeginRendering(const RenderingInfo &info) {
-  if (rendering_ || info.width == 0 || info.height == 0)
+  if (submitted_ || rendering_ || info.width == 0 || info.height == 0)
     throw std::logic_error("invalid BeginRendering");
   device_.ValidateTarget(info.color_target);
   rendering_ = true;
   pipeline_bound_ = false;
 }
 void ValidationCommandList::BindPipeline(PipelineHandle pipeline) {
-  if (!rendering_)
+  if (submitted_ || !rendering_)
     throw std::logic_error("pipeline binding requires rendering");
   device_.ValidatePipeline(pipeline);
   pipeline_bound_ = true;
 }
 void ValidationCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
-  if (!rendering_ || !pipeline_bound_ || vertex_count == 0 || instance_count == 0) {
+  if (submitted_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 || instance_count == 0) {
     throw std::logic_error("invalid draw");
   }
   ++draws_;
 }
 void ValidationCommandList::EndRendering() {
-  if (!rendering_)
+  if (submitted_ || !rendering_)
     throw std::logic_error("EndRendering without BeginRendering");
   rendering_ = false;
 }

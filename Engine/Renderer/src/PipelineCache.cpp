@@ -37,6 +37,21 @@ rhi::PipelineHandle PipelineFuture::Get() const {
 }
 
 struct PipelineCache::Implementation final {
+  struct Key final {
+    std::uint64_t layout_hash{};
+    std::uint64_t shader_hash{};
+    rhi::TextureFormat color_format{};
+    friend bool operator==(const Key &, const Key &) = default;
+  };
+  struct KeyHash final {
+    std::size_t operator()(const Key &key) const noexcept {
+      auto hash = static_cast<std::size_t>(key.layout_hash);
+      hash ^= static_cast<std::size_t>(key.shader_hash) + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
+      hash ^=
+          static_cast<std::size_t>(key.color_format) + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
+      return hash;
+    }
+  };
   struct Entry final {
     std::shared_ptr<PipelineFuture::State> state;
     core::JobHandle job;
@@ -45,17 +60,8 @@ struct PipelineCache::Implementation final {
   rhi::Device &device;
   core::JobSystem &jobs;
   mutable std::mutex mutex;
-  std::unordered_map<std::uint64_t, Entry> entries;
+  std::unordered_map<Key, Entry, KeyHash> entries;
 };
-namespace {
-std::uint64_t PipelineKey(const rhi::PipelineDescriptor &descriptor) {
-  auto key = descriptor.layout_hash;
-  key ^= descriptor.shader_hash + 0x9e3779b97f4a7c15ULL + (key << 6U) + (key >> 2U);
-  key ^= static_cast<std::uint64_t>(descriptor.color_format) * 1099511628211ULL;
-  return key;
-}
-} // namespace
-
 PipelineCache::PipelineCache(rhi::Device &device, core::JobSystem &jobs)
     : implementation_(std::make_unique<Implementation>(device, jobs)) {}
 PipelineCache::~PipelineCache() {
@@ -79,7 +85,8 @@ PipelineCache::~PipelineCache() {
   }
 }
 PipelineFuture PipelineCache::Request(const rhi::PipelineDescriptor &descriptor) {
-  const auto key = PipelineKey(descriptor);
+  const Implementation::Key key{descriptor.layout_hash, descriptor.shader_hash,
+                                descriptor.color_format};
   std::lock_guard lock{implementation_->mutex};
   if (const auto found = implementation_->entries.find(key);
       found != implementation_->entries.end()) {
