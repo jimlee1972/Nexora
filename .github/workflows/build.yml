@@ -19,7 +19,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: lukka/get-cmake@latest
-      - run: cmake --preset ${{ matrix.preset }}
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
+      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
 
