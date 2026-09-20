@@ -53,6 +53,35 @@ def _looks_like_constant_buffer_node(node: dict) -> bool:
     return False
 
 
+def _extract_size(node: dict):
+    """Pull a byte size off a node that looks like a constant buffer. Real
+    slangc output (verified against slangc 2026.18) puts the container's own
+    `sizes` in descriptor-table-slot units, not bytes; the actual byte size
+    is `elementType.sizes[*].value` (kind "uniform"). Both a flat
+    `size`/`byteSize`/`uniformSize` key and the container's own `sizes` are
+    checked as fallbacks since the exact shape has drifted across slangc
+    versions."""
+    element_type = node.get("elementType")
+    if isinstance(element_type, dict):
+        element_sizes = element_type.get("sizes")
+        if isinstance(element_sizes, list):
+            for entry in element_sizes:
+                if isinstance(entry, dict) and isinstance(entry.get("value"), int):
+                    return entry["value"]
+    for key in _SIZE_KEYS:
+        value = node.get(key)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, dict) and isinstance(value.get("value"), int):
+            return value["value"]
+    sizes = node.get("sizes")
+    if isinstance(sizes, list):
+        for entry in sizes:
+            if isinstance(entry, dict) and isinstance(entry.get("value"), int):
+                return entry["value"]
+    return None
+
+
 def _find_uniform_size(blob, backend_name: str) -> int:
     """Recursively search a slangc reflection JSON document for the byte size
     of the constant-buffer parameter. Raises with a diagnostic message rather
@@ -62,13 +91,9 @@ def _find_uniform_size(blob, backend_name: str) -> int:
     def visit(node):
         if isinstance(node, dict):
             if _looks_like_constant_buffer_node(node):
-                for key in _SIZE_KEYS:
-                    value = node.get(key)
-                    if isinstance(value, int):
-                        found.append(value)
-                    nested_type = node.get("type")
-                    if isinstance(nested_type, dict) and isinstance(nested_type.get(key), int):
-                        found.append(nested_type[key])
+                size = _extract_size(node)
+                if size is not None:
+                    found.append(size)
             for value in node.values():
                 visit(value)
         elif isinstance(node, list):
@@ -126,16 +151,20 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", required=True)
     parser.add_argument("--output", required=True)
-    parser.add_argument("--dxil-reflection", required=True)
+    # DXIL needs Microsoft's dxcompiler, which the portable Slang release does
+    # not ship for Linux/macOS (see Engine/RHI/README.md); it is only
+    # required -- and only validated -- on Windows.
+    parser.add_argument("--dxil-reflection")
     parser.add_argument("--spirv-reflection", required=True)
     parser.add_argument("--metal-reflection", required=True)
     args = parser.parse_args()
 
     backends = {
-        "dxil": args.dxil_reflection,
         "spirv": args.spirv_reflection,
         "metal": args.metal_reflection,
     }
+    if args.dxil_reflection:
+        backends["dxil"] = args.dxil_reflection
     for name, path in backends.items():
         blob = _load_json(path)
         actual_size = _find_uniform_size(blob, name)
@@ -146,17 +175,22 @@ def main() -> int:
                 f"Triangle.slang's FrameConstants."
             )
 
+    # "msl" is the backend id used by Engine/RHI's canonical fixture; slangc's
+    # `-target metal` output is tracked here as "metal" until normalized. The
+    # list reflects only backends actually validated above -- "dxil" is
+    # omitted rather than claimed when this platform couldn't run it.
+    backend_order = {"dxil": 0, "spirv": 1, "metal": 2}
+    reported_name = {"dxil": "dxil", "spirv": "spirv", "metal": "msl"}
     canonical = {
         "schema_version": 1,
         "source": "Triangle.slang",
         "entry_points": {"vertex": "vertexMain", "fragment": "fragmentMain"},
         "bindings": [CANONICAL_BINDING],
-        "backends": sorted(backends.keys(), key=lambda name: {"dxil": 0, "spirv": 1, "metal": 2}[name]),
+        "backends": [
+            reported_name[name] for name in sorted(backends.keys(), key=backend_order.get)
+        ],
         "layout_hash": _compute_layout_hash(CANONICAL_BINDING),
     }
-    # "msl" is the backend id used by Engine/RHI's canonical fixture; slangc's
-    # `-target metal` output is tracked here as "metal" until normalized.
-    canonical["backends"] = ["dxil", "spirv", "msl"]
 
     with open(args.output, "w", encoding="utf-8") as handle:
         json.dump(canonical, handle, indent=2)

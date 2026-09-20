@@ -16,34 +16,44 @@ function(nexora_configure_slang)
 
   set(shader_source "${PROJECT_SOURCE_DIR}/Shaders/Triangle.slang")
   set(shader_output_dir "${PROJECT_BINARY_DIR}/Shaders")
-  set(dxil_output "${shader_output_dir}/Triangle.dxil")
   set(spirv_output "${shader_output_dir}/Triangle.spv")
   set(metal_output "${shader_output_dir}/Triangle.metal")
-  set(dxil_reflection "${shader_output_dir}/Triangle.dxil.reflection.json")
   set(spirv_reflection "${shader_output_dir}/Triangle.spv.reflection.json")
   set(metal_reflection "${shader_output_dir}/Triangle.metal.reflection.json")
   set(canonical_reflection "${shader_output_dir}/Triangle.reflection.json")
   set(normalizer "${PROJECT_SOURCE_DIR}/Tools/Build/NormalizeShaderReflection.py")
 
-  add_custom_command(
-    OUTPUT
-      "${dxil_output}"
-      "${spirv_output}"
-      "${metal_output}"
-      "${dxil_reflection}"
-      "${spirv_reflection}"
-      "${metal_reflection}"
-      "${canonical_reflection}"
-    COMMAND "${CMAKE_COMMAND}" -E make_directory "${shader_output_dir}"
-    COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
-            # Multiple entry points produce a DXIL library; SM 6.6 keeps DXC validation enabled.
-            -target dxil
-            -profile sm_6_6
-            -entry vertexMain
-            -entry fragmentMain
-            -reflection-json "${dxil_reflection}"
-            -o "${dxil_output}"
-            "${shader_source}"
+  set(cross_compile_outputs
+    "${spirv_output}" "${metal_output}" "${spirv_reflection}" "${metal_reflection}"
+    "${canonical_reflection}")
+  set(normalizer_args
+    --source "${shader_source}"
+    --output "${canonical_reflection}"
+    --spirv-reflection "${spirv_reflection}"
+    --metal-reflection "${metal_reflection}")
+  set(commands COMMAND "${CMAKE_COMMAND}" -E make_directory "${shader_output_dir}")
+
+  # DXIL needs Microsoft's dxcompiler, which the portable Slang release does
+  # not ship for Linux/macOS (see Engine/RHI/README.md): it is only compiled
+  # and validated on Windows, where dxcompiler is reliably available.
+  if(WIN32)
+    set(dxil_output "${shader_output_dir}/Triangle.dxil")
+    set(dxil_reflection "${shader_output_dir}/Triangle.dxil.reflection.json")
+    list(APPEND cross_compile_outputs "${dxil_output}" "${dxil_reflection}")
+    list(APPEND normalizer_args --dxil-reflection "${dxil_reflection}")
+    list(APPEND commands
+      COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
+              # Multiple entry points produce a DXIL library; SM 6.6 keeps DXC validation enabled.
+              -target dxil
+              -profile sm_6_6
+              -entry vertexMain
+              -entry fragmentMain
+              -reflection-json "${dxil_reflection}"
+              -o "${dxil_output}"
+              "${shader_source}")
+  endif()
+
+  list(APPEND commands
     COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
             -target spirv
             -profile glsl_450
@@ -60,23 +70,16 @@ function(nexora_configure_slang)
             -reflection-json "${metal_reflection}"
             -o "${metal_output}"
             "${shader_source}"
-    COMMAND "${Python3_EXECUTABLE}"
-            "${normalizer}"
-            --source "${shader_source}"
-            --output "${canonical_reflection}"
-            --dxil-reflection "${dxil_reflection}"
-            --spirv-reflection "${spirv_reflection}"
-            --metal-reflection "${metal_reflection}"
+    COMMAND "${Python3_EXECUTABLE}" "${normalizer}" ${normalizer_args})
+
+  add_custom_command(
+    OUTPUT ${cross_compile_outputs}
+    ${commands}
     DEPENDS "${shader_source}" "${normalizer}"
     COMMENT "Compiling and normalizing the canonical Slang triangle"
     VERBATIM)
 
-  add_custom_target(NexoraSlangArtifacts ALL
-    DEPENDS
-      "${dxil_output}"
-      "${spirv_output}"
-      "${metal_output}"
-      "${canonical_reflection}")
+  add_custom_target(NexoraSlangArtifacts ALL DEPENDS ${cross_compile_outputs})
 
   set(NEXORA_SLANG_ARTIFACT_TARGET NexoraSlangArtifacts PARENT_SCOPE)
   set(NEXORA_SLANG_DXIL_OUTPUT "${dxil_output}" PARENT_SCOPE)
