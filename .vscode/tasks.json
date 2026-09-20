@@ -1,8 +1,32 @@
 {
   "version": "2.0.0",
   "tasks": [
-    { "label": "Configure", "type": "shell", "command": "cmake --preset linux-development", "problemMatcher": [] },
-    { "label": "Build", "type": "shell", "command": "cmake --build --preset linux-development", "dependsOn": "Configure", "group": { "kind": "build", "isDefault": true }, "problemMatcher": ["$gcc"] },
-    { "label": "Test", "type": "shell", "command": "ctest --preset linux-development", "dependsOn": "Build", "group": "test", "problemMatcher": [] }
+    {
+      "label": "CMake: Configure (Windows Development)",
+      "type": "process",
+      "command": "${config:cmake.cmakePath}",
+      "args": ["--preset", "windows-development"],
+      "problemMatcher": []
+    },
+    {
+      "label": "CMake: Build (Windows Development)",
+      "type": "process",
+      "command": "${config:cmake.cmakePath}",
+      "args": ["--build", "--preset", "windows-development"],
+      "dependsOn": "CMake: Configure (Windows Development)",
+      "dependsOrder": "sequence",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$msCompile"]
+    },
+    {
+      "label": "CMake: Test (Windows Development)",
+      "type": "process",
+      "command": "${config:cmake.ctestPath}",
+      "args": ["--preset", "windows-development"],
+      "dependsOn": "CMake: Build (Windows Development)",
+      "dependsOrder": "sequence",
+      "group": "test",
+      "problemMatcher": []
+    }
   ]
 }

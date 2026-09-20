@@ -1,3 +1,9 @@
 {
-  "recommendations": ["llvm-vs-code-extensions.vscode-clangd", "ms-vscode.cmake-tools", "vadimcn.vscode-lldb", "ziglang.vscode-zig"]
+  "recommendations": [
+    "ms-vscode.cmake-tools",
+    "ms-vscode.cpptools",
+    "llvm-vs-code-extensions.vscode-clangd",
+    "vadimcn.vscode-lldb",
+    "ziglang.vscode-zig"
+  ]
 }
