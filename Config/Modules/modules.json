@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "modules": [
+    { "name": "Foundation", "dependencies": [] },
+    { "name": "Core", "dependencies": ["Foundation"] },
+    { "name": "Host", "dependencies": ["Core"] },
+    { "name": "ExamplePlugin", "feature": "NEXORA_FEATURE_EXAMPLE_PLUGIN", "dependencies": ["Foundation"] }
+  ]
+}

@@ -1,0 +1,4 @@
+include(NexoraTarget)
+add_library(NexoraExamplePlugin MODULE ExamplePlugin.cpp)
+target_link_libraries(NexoraExamplePlugin PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraExamplePlugin)

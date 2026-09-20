@@ -1,0 +1,184 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_STANDARD": "20",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NEXORA_LINK_MODE": "Modular"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-development",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Development",
+        "NEXORA_LINK_MODE": "Modular"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-shipping",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Shipping",
+        "NEXORA_LINK_MODE": "Monolithic",
+        "BUILD_TESTING": "OFF"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "windows-development",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Development",
+        "NEXORA_LINK_MODE": "Modular",
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Development;Shipping"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "generator": "Visual Studio 17 2022"
+    },
+    {
+      "name": "macos-development",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Development",
+        "NEXORA_LINK_MODE": "Modular"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "android-development",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Development",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/CMake/Toolchains/Android.cmake",
+        "ANDROID_ABI": "arm64-v8a",
+        "ANDROID_PLATFORM": "android-26",
+        "NEXORA_LINK_MODE": "Monolithic"
+      },
+      "condition": {
+        "type": "notEquals",
+        "lhs": "$env{ANDROID_NDK_ROOT}",
+        "rhs": ""
+      }
+    },
+    {
+      "name": "ios-development",
+      "inherits": "base",
+      "generator": "Xcode",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Development",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/CMake/Toolchains/iOS.cmake",
+        "NEXORA_LINK_MODE": "Monolithic",
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Development;Shipping"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug"
+    },
+    {
+      "name": "linux-development",
+      "configurePreset": "linux-development"
+    },
+    {
+      "name": "linux-shipping",
+      "configurePreset": "linux-shipping"
+    },
+    {
+      "name": "windows-development",
+      "configurePreset": "windows-development",
+      "configuration": "Development"
+    },
+    {
+      "name": "macos-development",
+      "configurePreset": "macos-development"
+    },
+    {
+      "name": "android-development",
+      "configurePreset": "android-development"
+    },
+    {
+      "name": "ios-development",
+      "configurePreset": "ios-development",
+      "configuration": "Development"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-development",
+      "configurePreset": "linux-development",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-development",
+      "configurePreset": "windows-development",
+      "output": {
+        "outputOnFailure": true
+      },
+      "configuration": "Development"
+    },
+    {
+      "name": "macos-development",
+      "configurePreset": "macos-development",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

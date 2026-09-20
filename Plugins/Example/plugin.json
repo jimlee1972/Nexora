@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "id": "org.nexora.example",
+  "version": "0.1.0",
+  "engine_abi": 1,
+  "optional": true,
+  "dependencies": ["Foundation"]
+}

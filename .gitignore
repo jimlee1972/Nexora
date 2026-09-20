@@ -13,3 +13,12 @@ build/
 out/
 bin/
 obj/
+
+# Repository VS Code configuration is part of the build contract.
+!.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+CMakeUserPresets.json
+compile_commands.json

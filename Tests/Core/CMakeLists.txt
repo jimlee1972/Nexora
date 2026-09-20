@@ -1,0 +1,5 @@
+include(NexoraTarget)
+add_executable(NexoraCoreTests CoreTests.cpp)
+target_link_libraries(NexoraCoreTests PRIVATE Nexora::Core)
+nexora_apply_defaults(NexoraCoreTests)
+add_test(NAME core.runtime COMMAND NexoraCoreTests)

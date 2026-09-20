@@ -1,0 +1,5 @@
+include(NexoraTarget)
+add_executable(NexoraFoundationTests BuildInfoTests.cpp)
+target_link_libraries(NexoraFoundationTests PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraFoundationTests)
+add_test(NAME foundation.build_info COMMAND NexoraFoundationTests)
