@@ -246,7 +246,7 @@ public:
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
   void EndRendering() override;
 
-  [[nodiscard]] bool IsClosed() const noexcept { return closed_; }
+  [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
   [[nodiscard]] bool IsSubmitted() const noexcept { return submitted_; }
   [[nodiscard]] bool BelongsTo(const VulkanDevice &device) const noexcept {
     return &device_ == &device;
@@ -670,7 +670,8 @@ void VulkanDevice::TransitionTextureImmediately(TextureRecord &texture, Resource
     Check(functions_.BeginCommandBuffer(command_buffer, &begin_info),
           "vkBeginCommandBuffer(texture transition)");
     const auto destination = StageFor(state);
-    VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = destination.access;
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -710,7 +711,8 @@ TextureHandle VulkanDevice::CreateTexture(const TextureDescriptor &descriptor) {
   if (descriptor.width == 0 || descriptor.height == 0)
     throw std::invalid_argument("invalid texture extent");
   const auto format = ToFormat(descriptor.format);
-  VkImageCreateInfo image_info{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+  VkImageCreateInfo image_info{};
+  image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   image_info.imageType = VK_IMAGE_TYPE_2D;
   image_info.format = format;
   image_info.extent = {descriptor.width, descriptor.height, 1};
@@ -805,8 +807,8 @@ PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor
       VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
   VkPipelineViewportStateCreateInfo viewport_state{
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, nullptr, 0, 1, nullptr, 1, nullptr};
-  VkPipelineRasterizationStateCreateInfo rasterizer{
-      VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
+  VkPipelineRasterizationStateCreateInfo rasterizer{};
+  rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
   rasterizer.depthClampEnable = VK_FALSE;
   rasterizer.rasterizerDiscardEnable = VK_FALSE;
   rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
@@ -960,6 +962,7 @@ void VulkanDevice::Submit(CommandList &commands) {
     Require(validated->BelongsTo(*this), "command list belongs to another device");
     Require(validated->IsClosed(), "cannot submit an open command list");
     Require(!validated->IsSubmitted(), "command list was already submitted");
+    validated->Close();
     const VkFenceCreateInfo fence_info{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
     Check(functions_.CreateFence(device_, &fence_info, nullptr, &fence), "vkCreateFence(submit)");
     const VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0, nullptr, nullptr,
@@ -1096,7 +1099,8 @@ void VulkanCommandList::Transition(const Barrier &barrier) {
   auto &texture = device_.RecordTransition(barrier);
   const auto source = StageFor(barrier.before);
   const auto destination = StageFor(barrier.after);
-  VkImageMemoryBarrier native{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+  VkImageMemoryBarrier native{};
+  native.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   native.srcAccessMask = source.access;
   native.dstAccessMask = destination.access;
   native.oldLayout = ToLayout(barrier.before);
@@ -1121,7 +1125,8 @@ void VulkanCommandList::BeginRendering(const RenderingInfo &info) {
                                             info.width, info.height);
   VkClearValue clear{};
   clear.color.float32[3] = 1.0F;
-  VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+  VkRenderPassBeginInfo begin{};
+  begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   begin.renderPass = device_.RenderPassFor(target.descriptor.format);
   begin.framebuffer = framebuffer_;
   begin.renderArea.extent = {info.width, info.height};
