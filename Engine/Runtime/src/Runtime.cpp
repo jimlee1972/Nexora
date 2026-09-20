@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <queue>
 #include <stdexcept>
 
 namespace nexora::runtime {
@@ -126,7 +127,7 @@ bool ExtensionRegistry::HasService(std::string_view service) const {
   });
 }
 
-void UndoStack::Execute(std::function<void()> apply, std::function<void()> undo) {
+void UndoStack::Execute(const std::function<void()> &apply, std::function<void()> undo) {
   if (!apply || !undo)
     throw std::invalid_argument("transaction callbacks must be valid");
   apply();
@@ -159,6 +160,127 @@ CharacterMotion CharacterMotor::Simulate(CharacterIntent intent, double max_spee
   const auto length = std::hypot(intent.requested_x, intent.requested_z);
   const auto scale = length > max_speed && length > 0.0 ? max_speed / length : 1.0;
   return {intent.requested_x * scale, intent.requested_z * scale, ground_contact};
+}
+
+bool NavigationGraph::AddNode(NavigationNode node) {
+  if (node.id == 0 || !std::isfinite(node.x) || !std::isfinite(node.z) || nodes_.contains(node.id))
+    return false;
+  nodes_.emplace(node.id, std::move(node));
+  return true;
+}
+
+std::vector<Id> NavigationGraph::FindPath(Id start, Id goal) const {
+  if (!nodes_.contains(start) || !nodes_.contains(goal))
+    return {};
+  std::queue<Id> open;
+  std::unordered_map<Id, Id> parent;
+  open.push(start);
+  parent.emplace(start, 0);
+  while (!open.empty() && !parent.contains(goal)) {
+    const auto current = open.front();
+    open.pop();
+    for (const auto neighbour : nodes_.at(current).neighbours) {
+      if (!nodes_.contains(neighbour) || parent.contains(neighbour))
+        continue;
+      parent.emplace(neighbour, current);
+      open.push(neighbour);
+    }
+  }
+  if (!parent.contains(goal))
+    return {};
+  std::vector<Id> path;
+  for (auto cursor = goal; cursor != 0; cursor = parent.at(cursor))
+    path.push_back(cursor);
+  std::ranges::reverse(path);
+  return path;
+}
+
+bool LocalizationCatalog::Add(LocalizedEntry entry) {
+  if (entry.key.empty() || entry.translations.empty() || entries_.contains(entry.key))
+    return false;
+  return entries_.emplace(entry.key, std::move(entry)).second;
+}
+
+// The two string views deliberately mirror the conventional lookup(key, locale) API.
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+std::string_view LocalizationCatalog::Resolve(std::string_view key, std::string_view locale) const {
+  const auto entry = entries_.find(std::string(key));
+  if (entry == entries_.end())
+    return key;
+  if (const auto exact = entry->second.translations.find(std::string(locale));
+      exact != entry->second.translations.end())
+    return exact->second;
+  if (const auto fallback = entry->second.translations.find(fallback_locale_);
+      fallback != entry->second.translations.end())
+    return fallback->second;
+  return key;
+}
+
+bool AnimationPlayer::Play(AnimationClip clip) {
+  if (clip.id == 0 || !std::isfinite(clip.duration) || clip.duration <= 0.0)
+    return false;
+  clip_ = clip;
+  time_ = 0.0;
+  playing_ = true;
+  return true;
+}
+
+void AnimationPlayer::Advance(double seconds) {
+  if (!playing_ || !std::isfinite(seconds) || seconds <= 0.0)
+    return;
+  time_ += seconds;
+  if (time_ < clip_.duration)
+    return;
+  if (clip_.looping)
+    time_ = std::fmod(time_, clip_.duration);
+  else {
+    time_ = clip_.duration;
+    playing_ = false;
+  }
+}
+
+bool AudioMixer::Play(AudioVoice voice) {
+  if (voice.resource == 0 || !std::isfinite(voice.gain) || voice.gain < 0.0F ||
+      voices_.size() >= voice_limit_)
+    return false;
+  voices_.push_back(voice);
+  return true;
+}
+
+bool AudioMixer::Stop(Id resource) {
+  const auto voice = std::ranges::find_if(
+      voices_, [resource](const auto &candidate) { return candidate.resource == resource; });
+  if (voice == voices_.end())
+    return false;
+  voices_.erase(voice);
+  return true;
+}
+
+void AudioMixer::SetMasterGain(float gain) noexcept {
+  master_gain_ = std::isfinite(gain) ? std::clamp(gain, 0.0F, 1.0F) : 0.0F;
+}
+
+bool MediaQueue::Push(VideoFrame frame) {
+  if (capacity_ == 0 || frames_.size() >= capacity_ || frame.sequence <= last_sequence_ ||
+      !std::isfinite(frame.presentation_time) || frame.presentation_time < seek_time_)
+    return false;
+  last_sequence_ = frame.sequence;
+  frames_.push_back(frame);
+  return true;
+}
+
+std::optional<VideoFrame> MediaQueue::PopReady(double clock) {
+  if (frames_.empty() || !std::isfinite(clock) || frames_.front().presentation_time > clock)
+    return std::nullopt;
+  const auto frame = frames_.front();
+  frames_.pop_front();
+  return frame;
+}
+
+void MediaQueue::Seek(double presentation_time) {
+  frames_.clear();
+  last_sequence_ = 0;
+  seek_time_ = std::isfinite(presentation_time) ? std::max(0.0, presentation_time) : 0.0;
 }
 
 void ResidencySet::Acquire(Id resource) { ++references_[resource]; }
@@ -206,6 +328,7 @@ bool PlatformRuntime::RouteWebViewPointer(bool inside_native_view) const noexcep
 }
 
 PackageManifest Packager::Build(ShippingProfile profile, const PackageInput &input,
+                                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                                 std::span<const std::string> enabled_plugins,
                                 std::span<const std::string> enabled_shaders) const {
   PackageManifest result;

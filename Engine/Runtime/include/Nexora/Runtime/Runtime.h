@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <optional>
 #include <span>
@@ -91,7 +92,7 @@ private:
 
 class NEXORA_RUNTIME_API UndoStack final {
 public:
-  void Execute(std::function<void()> apply, std::function<void()> undo);
+  void Execute(const std::function<void()> &apply, std::function<void()> undo);
   bool Undo();
 
 private:
@@ -132,6 +133,93 @@ public:
 };
 struct NavigationOutput final {
   double desired_x{}, desired_z{};
+};
+
+struct NavigationNode final {
+  Id id{};
+  double x{}, z{};
+  std::vector<Id> neighbours;
+};
+class NEXORA_RUNTIME_API NavigationGraph final {
+public:
+  bool AddNode(NavigationNode node);
+  [[nodiscard]] std::vector<Id> FindPath(Id start, Id goal) const;
+
+private:
+  std::unordered_map<Id, NavigationNode> nodes_;
+};
+
+struct LocalizedEntry final {
+  std::string key;
+  std::unordered_map<std::string, std::string> translations;
+};
+class NEXORA_RUNTIME_API LocalizationCatalog final {
+public:
+  explicit LocalizationCatalog(std::string fallback_locale = "en")
+      : fallback_locale_(std::move(fallback_locale)) {}
+  bool Add(LocalizedEntry entry);
+  [[nodiscard]] std::string_view Resolve(std::string_view key, std::string_view locale) const;
+
+private:
+  std::string fallback_locale_;
+  std::unordered_map<std::string, LocalizedEntry> entries_;
+};
+
+struct AnimationClip final {
+  Id id{};
+  double duration{};
+  bool looping{};
+};
+class NEXORA_RUNTIME_API AnimationPlayer final {
+public:
+  bool Play(AnimationClip clip);
+  void Advance(double seconds);
+  [[nodiscard]] double Time() const noexcept { return time_; }
+  [[nodiscard]] bool Playing() const noexcept { return playing_; }
+
+private:
+  AnimationClip clip_{};
+  double time_{};
+  bool playing_{};
+};
+
+struct AudioVoice final {
+  Id resource{};
+  float gain{1.0F};
+  bool spatial{};
+};
+class NEXORA_RUNTIME_API AudioMixer final {
+public:
+  explicit AudioMixer(std::size_t voice_limit) : voice_limit_(voice_limit) {}
+  bool Play(AudioVoice voice);
+  bool Stop(Id resource);
+  void SetMasterGain(float gain) noexcept;
+  [[nodiscard]] std::size_t ActiveVoiceCount() const noexcept { return voices_.size(); }
+  [[nodiscard]] float MasterGain() const noexcept { return master_gain_; }
+
+private:
+  std::size_t voice_limit_{};
+  float master_gain_{1.0F};
+  std::vector<AudioVoice> voices_;
+};
+
+struct VideoFrame final {
+  std::uint64_t sequence{};
+  double presentation_time{};
+};
+class NEXORA_RUNTIME_API MediaQueue final {
+public:
+  explicit MediaQueue(std::size_t capacity) : capacity_(capacity) {}
+  bool Push(VideoFrame frame);
+  [[nodiscard]] std::optional<VideoFrame> PopReady(double clock);
+  void Seek(double presentation_time);
+  [[nodiscard]] std::size_t Size() const noexcept { return frames_.size(); }
+
+private:
+  std::size_t capacity_{};
+  std::uint64_t last_sequence_{};
+  double seek_time_{};
+  std::deque<VideoFrame> frames_;
 };
 
 class NEXORA_RUNTIME_API ResidencySet final {

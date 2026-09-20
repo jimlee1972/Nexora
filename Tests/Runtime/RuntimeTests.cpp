@@ -46,8 +46,22 @@ int RunTests() {
           "M7 duplicated touch delivery");
   Require(VirtualList{10000, 50, 12}.ElementCount() == 12, "M7 list was not virtualized");
 
+  LocalizationCatalog text{"en"};
+  Require(text.Add({"menu.play", {{"en", "Play"}, {"zh-TW", "開始遊戲"}}}),
+          "M7 localization entry was rejected");
+  Require(text.Resolve("menu.play", "zh-TW") == "開始遊戲" &&
+              text.Resolve("menu.play", "fr") == "Play" &&
+              text.Resolve("menu.missing", "en") == "menu.missing",
+          "M7 localization fallback failed");
+
   const auto motion = CharacterMotor{}.Simulate({10.0, 0.0}, 3.0, true);
   Require(motion.actual_x == 3.0 && motion.grounded, "M8 motor did not resolve requested motion");
+  NavigationGraph navigation;
+  Require(navigation.AddNode({1, 0, 0, {2}}) && navigation.AddNode({2, 1, 0, {3}}) &&
+              navigation.AddNode({3, 2, 0, {}}) &&
+              navigation.FindPath(1, 3) == std::vector<Id>({1, 2, 3}) &&
+              navigation.FindPath(3, 1).empty(),
+          "M8 navigation path contract failed");
 
   ResidencySet residency;
   residency.Acquire(8);
@@ -56,6 +70,24 @@ int RunTests() {
   Require(residency.Resident(8), "M9 released an active media resource");
   residency.Release(8);
   Require(!residency.Resident(8), "M9 residency reference leaked");
+  AnimationPlayer animation;
+  Require(animation.Play({1, 1.0, true}), "M9 animation clip was rejected");
+  animation.Advance(1.25);
+  Require(animation.Playing() && animation.Time() == 0.25, "M9 animation looping failed");
+  AudioMixer mixer{1};
+  Require(mixer.Play({10, 0.5F, true}) && !mixer.Play({11, 1.0F, false}),
+          "M9 audio voice limit failed");
+  mixer.SetMasterGain(2.0F);
+  Require(mixer.MasterGain() == 1.0F && mixer.Stop(10), "M9 audio control failed");
+  MediaQueue media{2};
+  Require(media.Push({1, 0.0}) && media.Push({2, 0.04}) && !media.Push({3, 0.08}) &&
+              !media.PopReady(-1.0).has_value(),
+          "M9 bounded media decode queue failed");
+  const auto first_frame = media.PopReady(0.0);
+  Require(first_frame.has_value() && first_frame->sequence == 1,
+          "M9 ready media frame was not returned");
+  media.Seek(2.0);
+  Require(!media.Push({1, 1.0}) && media.Push({1, 2.0}), "M9 media seek failed");
 
   StreamingWorld streaming;
   Require(streaming.Add({10, 99, 100, 200, true, true, true}), "M10 cell add failed");
