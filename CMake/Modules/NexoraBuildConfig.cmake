@@ -27,7 +27,14 @@ function(nexora_configure_build)
     $<$<CONFIG:Shipping>:NEXORA_BUILD_SHIPPING=1>)
 
   if(MSVC)
-    add_compile_options(/W4 /WX /permissive- /EHsc)
+    # C4251 ("class needs to have dll-interface") fires on every private
+    # STL member of an exported PIMPL-style class (JobHandle::state_,
+    # Engine::implementation_, etc.); those members are never touched
+    # across the DLL boundary directly, only through the class's own
+    # exported methods, and every Modular target here is built by the same
+    # compiler/runtime in one job, so the mismatch this warns about cannot
+    # actually occur.
+    add_compile_options(/W4 /WX /wd4251 /permissive- /EHsc)
   else()
     add_compile_options(-Wall -Wextra -Wpedantic -Werror)
   endif()

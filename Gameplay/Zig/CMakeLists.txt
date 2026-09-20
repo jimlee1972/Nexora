@@ -9,11 +9,21 @@ if(NOT CMAKE_CXX_OUTPUT_EXTENSION)
   endif()
 endif()
 
+set(NEXORA_ZIG_BUILD_OBJ_ARGS
+  build-obj
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig"
+  -O Debug -femit-bin=${NEXORA_ZIG_SAMPLE_OBJECT})
+if(NOT WIN32)
+  # Without this, zig build-obj emits non-PIC code on Linux/macOS, which
+  # cannot be linked into NexoraZigGameplayTests -- a normal PIE executable
+  # on modern toolchains: "relocation R_X86_64_32S against `.rodata.cst16'
+  # can not be used when making a PIE object; recompile with -fPIE".
+  list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS -fPIC)
+endif()
+
 add_custom_command(
   OUTPUT "${NEXORA_ZIG_SAMPLE_OBJECT}"
-  COMMAND "${NEXORA_ZIG_EXECUTABLE}" build-obj
-          "${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig"
-          -O Debug -femit-bin=${NEXORA_ZIG_SAMPLE_OBJECT}
+  COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${NEXORA_ZIG_BUILD_OBJ_ARGS}
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig"
   COMMENT "Building the Zig gameplay ABI sample"
   VERBATIM)
