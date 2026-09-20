@@ -24,6 +24,9 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.14.0
+      - name: Set up MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
       - name: Install Slang (Linux and macOS)
         if: runner.os != 'Windows'
         shell: bash

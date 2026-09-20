@@ -62,15 +62,13 @@
       "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Development",
-        "NEXORA_LINK_MODE": "Modular",
-        "CMAKE_CONFIGURATION_TYPES": "Debug;Development;Shipping"
+        "NEXORA_LINK_MODE": "Modular"
       },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
-      },
-      "generator": "Visual Studio 17 2022"
+      }
     },
     {
       "name": "macos-development",
@@ -133,8 +131,7 @@
     },
     {
       "name": "windows-development",
-      "configurePreset": "windows-development",
-      "configuration": "Development"
+      "configurePreset": "windows-development"
     },
     {
       "name": "macos-development",
@@ -170,8 +167,7 @@
       "configurePreset": "windows-development",
       "output": {
         "outputOnFailure": true
-      },
-      "configuration": "Development"
+      }
     },
     {
       "name": "macos-development",
