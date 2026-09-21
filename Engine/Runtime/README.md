@@ -69,3 +69,43 @@ remain required follow-up gates.
 Desktop CI builds the same module on Linux, Windows, and macOS. A separate CI smoke matrix also
 runs `zig build-obj` for `aarch64-linux-android` and `aarch64-ios`; these checks validate object
 generation only and do not claim Android NDK or iOS SDK linking, packaging, or runtime execution.
+
+## V1-M5 asset, cooker, bundle, and residency pipeline
+
+`AssetPipeline.h` is the public, platform-neutral content contract. Authoring identities are
+non-zero 128-bit UUIDs, references remain UUID-based after a source file moves, and importers are
+selected by normalized source extension. Importers publish a complete `CanonicalAsset` or fail
+without modifying the derived-data cache or any active runtime generation.
+
+The cooker keys local derived data by UUID, type, platform, settings, dependencies, and canonical
+payload. It emits the versioned `NXAB` runtime blob; deserialization validates the schema, bounds,
+and payload content hash before publishing data. Runtime generations consume only these blobs and
+bundle metadata—there is no source-path or source-format loading entry point in the runtime store.
+The in-memory DDC is intentionally a replaceable local-cache baseline; cache loss never changes
+runtime correctness.
+
+`BundleBuilder` lays validated runtime blobs into a contiguous bundle and records UUID, offset,
+size, and hash in its manifest. Verification rejects corrupt bytes, overlapping/non-contiguous
+entries, duplicate UUIDs, and unsupported blobs. Bundle dependency validation requires every named
+dependency to exist, rejects cycles before staging, and can return the complete closed cycle path.
+Staging builds an isolated candidate generation and only publishes it on `ActivateStaged()`, so a
+failed import, cook, verification, or dependency gate leaves the prior good generation active.
+Rollback swaps the active and previous verified generations.
+
+Generation pins are reference-counted. A pin keeps a generation available across activation;
+asset residency is separately reference-counted per UUID and generation so old and new bytes can
+coexist safely. `ResidentBytes()` exposes the current streaming-memory baseline. Collection never
+reclaims the active, previous, staged, pinned, or resident generation. The store is synchronous
+and owned by its calling thread; returned blob pointers remain valid until their residency is
+released and the generation becomes collectible. No pipeline object is thread-safe.
+
+`DataTable` provides the M5 typed-table foundation: immutable rows after successful build, unique
+string primary keys, constant-time indexed lookup, and atomic rejection that retains the previous
+good table. Rich schema types and JSON authoring adapters can be layered over this runtime
+container without introducing a JSON DOM into gameplay hot loops.
+
+Configure with `-DNEXORA_ENABLE_ASSET_PIPELINE=OFF` to omit the importer, cooker, DDC, bundle,
+generation, and DataTable implementation from `NexoraRuntime`. The enabled test covers the full
+source-to-import-to-cook-to-bundle-to-runtime path, corrupt data and dependency-cycle failures,
+DDC reuse, rollback, generation pinning, residency accounting, DataTable atomicity, and a 10,000
+asset performance baseline. The disabled configuration runs a dedicated feature-strip test.
