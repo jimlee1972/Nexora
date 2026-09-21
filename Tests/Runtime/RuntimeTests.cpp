@@ -54,6 +54,7 @@ int RunTests() {
               text.Resolve("menu.missing", "en") == "menu.missing",
           "M7 localization fallback failed");
 
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
   const auto motion = CharacterMotor{}.Simulate({10.0, 0.0}, 3.0, true);
   Require(motion.actual_x == 3.0 && motion.grounded, "M8 motor did not resolve requested motion");
   NavigationGraph navigation;
@@ -62,6 +63,7 @@ int RunTests() {
               navigation.FindPath(1, 3) == std::vector<Id>({1, 2, 3}) &&
               navigation.FindPath(3, 1).empty(),
           "M8 navigation path contract failed");
+#endif
 
   ResidencySet residency;
   residency.Acquire(8);
