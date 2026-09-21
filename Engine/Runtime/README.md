@@ -128,12 +128,10 @@ symbol: no Engine source changes and no private Engine header. `ServiceRegistry`
 name-keyed lookup for typed services that plugins and engine subsystems publish to each other.
 
 `SceneEditor` composes `World`, `WorldCommandBuffer`, and `UndoStack` (from the M4 vertical slice)
-into Create/Modify/Undo operations. Undoing a destroyed entity restores its component data, but
-`World` has no public API to recreate an entity under a caller-chosen ID, so the restored entity is
-a new entity with the same data rather than the original one; an older undo card still referencing
-the original ID becomes a safe no-op rather than corrupting the newer entity, because
-`WorldCommandBuffer::Apply` already rejects commands whose entity does not exist. This identity
-limitation is exercised directly by `runtime.v1_m6_editor_sdk`, not hidden.
+into Create/Modify/Undo operations. Undoing a destroyed entity restores both its component data and
+stable ID through the editor's privileged access to `World`; older transform and create undo cards
+therefore continue to target the same entity. Destroy also validates that the entity belongs to the
+supplied scene before mutating the world.
 
 `Prefab` is a tree of named nodes with string properties, giving nested prefab composition for
 free. `PrefabInstance` resolves a property by checking its own per-instance overrides before

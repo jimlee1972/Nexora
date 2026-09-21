@@ -85,6 +85,11 @@ int Run() {
   Require(editor.SetTransform(entity_id, {7.0, 8.0, 9.0}) && editor.UndoDepth() == 2,
           "scene editor did not apply the pre-destroy marker transform");
 
+  const auto other_scene = world.LoadScene("OtherScene");
+  Require(!editor.DestroyEntity(other_scene, entity_id) && editor.UndoDepth() == 2 &&
+              world.FindEntity(entity_id) != nullptr,
+          "scene editor accepted an entity from a different scene");
+
   Require(editor.DestroyEntity(scene, entity_id) && editor.UndoDepth() == 3,
           "scene editor did not destroy the entity");
   Require(world.FindEntity(entity_id) == nullptr, "destroyed entity is still findable");
@@ -92,24 +97,16 @@ int Run() {
   Require(editor.Undo() && editor.UndoDepth() == 2, "undoing the destroy failed");
   Require(world.FindScene(scene)->entities.size() == 1,
           "undoing a destroy did not restore an entity");
-  Require(world.FindScene(scene)->entities.front().transform.x == 7.0,
-          "undoing a destroy did not restore the entity's component data");
+  Require(world.FindEntity(entity_id) != nullptr && world.FindEntity(entity_id)->transform.x == 7.0,
+          "undoing a destroy did not restore the entity's identity and component data");
 
-  // World has no public API to recreate an entity under a caller-chosen ID
-  // (documented in EditorSdk.h), so the restored entity above has a new,
-  // different ID than the one SceneEditor::CreateEntity produced first. The
-  // two remaining undo cards below it (the marker SetTransform and the
-  // original CreateEntity) still target that original, now-gone ID:
-  // WorldCommandBuffer::Apply rejects a command whose entity does not exist,
-  // so popping them is a safe, observable no-op rather than a silent
-  // corruption -- they pop the stack but leave the restored entity in place.
-  Require(editor.Undo() && editor.UndoDepth() == 1, "the stale transform-undo card was not popped");
-  Require(
-      world.FindScene(scene)->entities.size() == 1,
-      "a stale transform-undo below a destroy+restore unexpectedly changed the restored entity");
-  Require(editor.Undo() && editor.UndoDepth() == 0, "the stale create-undo card was not popped");
-  Require(world.FindScene(scene)->entities.size() == 1,
-          "a stale create-undo below a destroy+restore unexpectedly removed the restored entity");
+  Require(editor.Undo() && editor.UndoDepth() == 1,
+          "undoing a transform after restoring an entity failed");
+  Require(world.FindEntity(entity_id) != nullptr && world.FindEntity(entity_id)->transform.x == 0.0,
+          "transform undo did not target the restored stable entity");
+  Require(editor.Undo() && editor.UndoDepth() == 0, "undoing entity creation failed");
+  Require(world.FindEntity(entity_id) == nullptr,
+          "undoing entity creation did not remove the restored stable entity");
   Require(!editor.Undo(), "undo succeeded past the bottom of the stack");
 
   // ---- Prefab / nested prefab / override / rebase / variant ----

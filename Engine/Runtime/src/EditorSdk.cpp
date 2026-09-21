@@ -147,8 +147,11 @@ bool SceneEditor::SetTransform(Id entity, Transform transform) {
   return true;
 }
 bool SceneEditor::DestroyEntity(Id scene, Id entity) {
+  const auto *target_scene = world_.FindScene(scene);
   const auto *existing = world_.FindEntity(entity);
-  if (!existing)
+  if (!target_scene || !existing ||
+      std::ranges::find(target_scene->entities, entity, &Entity::id) ==
+          target_scene->entities.end())
     return false;
   const Entity snapshot = *existing;
   WorldCommandBuffer apply;
@@ -157,14 +160,12 @@ bool SceneEditor::DestroyEntity(Id scene, Id entity) {
     return false;
   undo_.Execute([] {},
                 [this, scene, snapshot] {
-                  auto &restored = world_.CreateEntity(scene);
-                  restored.transform = snapshot.transform;
-                  restored.camera = snapshot.camera;
-                  restored.light = snapshot.light;
-                  restored.mesh_renderer = snapshot.mesh_renderer;
-                  restored.camera_data = snapshot.camera_data;
-                  restored.light_data = snapshot.light_data;
-                  restored.mesh_data = snapshot.mesh_data;
+                  auto *target = const_cast<Scene *>(world_.FindScene(scene));
+                  if (target == nullptr || target->state == SceneState::Unloading ||
+                      target->state == SceneState::Unloaded || world_.FindEntity(snapshot.id))
+                    return;
+                  target->entities.push_back(snapshot);
+                  world_.next_id_ = std::max(world_.next_id_, snapshot.id + 1);
                 });
   ++depth_;
   return true;
