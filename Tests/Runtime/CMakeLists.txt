@@ -19,6 +19,16 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E echo "V1-M8 gameplay simulation stripped")
 endif()
 
+if(NEXORA_ENABLE_LARGE_WORLD)
+  add_executable(NexoraV1M10Tests V1M10Tests.cpp)
+  target_link_libraries(NexoraV1M10Tests PRIVATE Nexora::Runtime)
+  nexora_apply_defaults(NexoraV1M10Tests)
+  add_test(NAME runtime.v1_m10_large_world COMMAND NexoraV1M10Tests)
+else()
+  add_test(NAME runtime.v1_m10_feature_strip
+    COMMAND "${CMAKE_COMMAND}" -E echo "V1-M10 large world stripped")
+endif()
+
 if(NEXORA_ENABLE_PRESENTATION)
   add_executable(NexoraV1M9Tests V1M9Tests.cpp)
   target_link_libraries(NexoraV1M9Tests PRIVATE Nexora::Runtime)
