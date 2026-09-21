@@ -10,7 +10,7 @@ Instead, it makes the ownership and safety boundaries executable before those in
 | M5 | Hash-validated asset generations, dependency-cycle rejection, pinning and rollback |
 | M6 | Reflection metadata, a real dynamic plugin loader with a stable C ABI gate and service registration, a scene editor built on Create/Modify/Undo, and prefab override/rebase (see below for the full vertical slice; `ExtensionRegistry`/`UndoStack` remain the lighter M6 row exercised by `runtime.v1_m4_m12_contracts`) |
 | M7 | Device-neutral input routing, stable touch IDs, virtual-list materialization and locale fallback |
-| M8 | Separate character intent and resolved motion; query-only navigation paths do not write transforms |
+| M8 | CPU-authoritative batched physics queries; motor/controller separation; tiled navigation desired velocity; typed blackboard, compact behavior runtime, and budgeted perception |
 | M9 | Animation playback, bounded audio voices, reference-counted residency and a timestamped media queue |
 | M10 | Separate cell/bundle identity, observable RAM/VRAM use, HLOD state and occupied-cell pins |
 | M11 | App lifecycle, pressure policy and native WebView pointer ownership |
@@ -20,6 +20,12 @@ The contract test `runtime.v1_m4_m12_contracts` exercises every row, including l
 fallback, unreachable navigation, animation looping, audio voice limits, media back-pressure and
 seek invalidation. Platform SDK adapters and production authoring tools remain future work and
 must preserve these interfaces rather than bypassing their lifecycle checks.
+
+## V1-M8 gameplay simulation
+
+`GameplaySimulation.h` is the public, backend-neutral boundary for Physics → Character → Navigation → AI. `PhysicsWorld` provides authoritative immediate and batch queries without exposing Jolt types. The standard motor owns desired locomotion, gravity, root motion, and external velocity; `CharacterController` owns collision resolution, ground snap, stepping, crouch clearance, and teleport semantics. Every result reports requested and actual motion separately. Objects are synchronous and caller-owned; none are thread-safe.
+
+`NavigationWorld` owns streamed tiles and invalidates paths by generation when a tile unloads. It only returns a desired velocity and never receives a `World` or writable `Transform`. The AI foundation uses fixed typed blackboard slots, a compact shared behavior program with per-tick deterministic traces, and a stimulus query with an explicit work/result budget. Configure with `-DNEXORA_ENABLE_GAMEPLAY_SIMULATION=OFF` to strip this implementation and run the feature-strip gate. The enabled test validates batched physics queries, ground/wall resolution, teleport, cross-tile navigation and stale-path invalidation, blackboard typing, behavior execution, and perception budgets.
 
 ## V1-M4 scene vertical slice
 

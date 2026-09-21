@@ -9,6 +9,16 @@ target_link_libraries(NexoraV1M7Tests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraV1M7Tests)
 add_test(NAME runtime.v1_m7_input_ui_localization COMMAND NexoraV1M7Tests)
 
+if(NEXORA_ENABLE_GAMEPLAY_SIMULATION)
+  add_executable(NexoraV1M8Tests V1M8Tests.cpp)
+  target_link_libraries(NexoraV1M8Tests PRIVATE Nexora::Runtime)
+  nexora_apply_defaults(NexoraV1M8Tests)
+  add_test(NAME runtime.v1_m8_gameplay_simulation COMMAND NexoraV1M8Tests)
+else()
+  add_test(NAME runtime.v1_m8_feature_strip
+    COMMAND "${CMAKE_COMMAND}" -E echo "V1-M8 gameplay simulation stripped")
+endif()
+
 add_executable(NexoraV1M4Tests V1M4Tests.cpp)
 target_link_libraries(NexoraV1M4Tests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraV1M4Tests)

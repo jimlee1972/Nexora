@@ -10,6 +10,8 @@ option(NEXORA_ENABLE_SCENE_RENDERING "Build the V1-M4 scene presentation path" O
 option(NEXORA_ENABLE_ASSET_PIPELINE "Build the V1-M5 authoring/cooking and bundle pipeline" ON)
 option(NEXORA_ENABLE_EDITOR_SDK
        "Build the V1-M6 reflection, plugin host, scene editor, and prefab foundation" ON)
+option(NEXORA_ENABLE_GAMEPLAY_SIMULATION
+       "Build the V1-M8 physics, character, navigation, and AI foundation" ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
