@@ -8,7 +8,7 @@ Instead, it makes the ownership and safety boundaries executable before those in
 | --- | --- |
 | M4 | Additive scene lifecycle, stable entity IDs, deferred safe unload, double-precision transforms |
 | M5 | Hash-validated asset generations, dependency-cycle rejection, pinning and rollback |
-| M6 | Plugin ABI validation, service discovery and undo transactions |
+| M6 | Reflection metadata, a real dynamic plugin loader with a stable C ABI gate, a scene editor built on Create/Modify/Undo, and prefab override/rebase (see below for the full vertical slice; `ExtensionRegistry`/`UndoStack` remain the lighter M6 row exercised by `runtime.v1_m4_m12_contracts`) |
 | M7 | Device-neutral input routing, stable touch IDs, virtual-list materialization and locale fallback |
 | M8 | Separate character intent and resolved motion; query-only navigation paths do not write transforms |
 | M9 | Animation playback, bounded audio voices, reference-counted residency and a timestamped media queue |
@@ -109,3 +109,49 @@ generation, and DataTable implementation from `NexoraRuntime`. The enabled test 
 source-to-import-to-cook-to-bundle-to-runtime path, corrupt data and dependency-cycle failures,
 DDC reuse, rollback, generation pinning, residency accounting, DataTable atomicity, and a 10,000
 asset performance baseline. The disabled configuration runs a dedicated feature-strip test.
+
+## V1-M6 reflection, plugin host, scene editor, and prefab foundation
+
+`EditorSdk.h` is the public, platform-neutral contract for the tooling half of V1-M6.
+`ReflectionRegistry` stores hashed-name `TypeDescriptor`/`FieldDescriptor` metadata and rejects a
+duplicate type name or ID; it is deliberately independent of any specific reflected type, rather
+than hand-annotating `World`'s existing structs.
+
+`PluginHost` is a real cross-platform dynamic loader (`dlopen`/`dlsym` on Linux and macOS,
+`LoadLibrary`/`GetProcAddress` on Windows), not an in-process descriptor comparison. The plugin
+contract is the single exported C symbol `NexoraPluginAbiVersion()` (see
+`Plugins/Example/ExamplePlugin.cpp`, which only includes the public `Nexora/Foundation/BuildInfo.h`
+header). `Load()` resolves that symbol and closes the library immediately, before any other use,
+if the symbol is missing or its reported ABI does not match the host's -- an ABI mismatch never
+reaches a second engine call. Adding a new plugin requires only a manifest and this one exported
+symbol: no Engine source changes and no private Engine header. `ServiceRegistry` is a separate
+name-keyed lookup for typed services that plugins and engine subsystems publish to each other.
+
+`SceneEditor` composes `World`, `WorldCommandBuffer`, and `UndoStack` (from the M4 vertical slice)
+into Create/Modify/Undo operations. Undoing a destroyed entity restores its component data, but
+`World` has no public API to recreate an entity under a caller-chosen ID, so the restored entity is
+a new entity with the same data rather than the original one; an older undo card still referencing
+the original ID becomes a safe no-op rather than corrupting the newer entity, because
+`WorldCommandBuffer::Apply` already rejects commands whose entity does not exist. This identity
+limitation is exercised directly by `runtime.v1_m6_editor_sdk`, not hidden.
+
+`Prefab` is a tree of named nodes with string properties, giving nested prefab composition for
+free. `PrefabInstance` resolves a property by checking its own per-instance overrides before
+falling back to the prefab tree, so an override on a missing path is rejected up front.
+`Rebase()` retargets an instance at a new template and drops any override whose path the new
+template no longer has, rather than leaving it silently dangling. `PrefabVariant` instead bakes a
+fixed override set into a new, fully materialized `Prefab` tree that can itself be nested or
+instanced downstream. `ProjectSettings` is a typed key/value store with an explicit-fallback
+getter.
+
+Configure with `-DNEXORA_ENABLE_EDITOR_SDK=OFF` to omit this file from `NexoraRuntime`; the disabled
+configuration runs a dedicated feature-strip test. The enabled test additionally loads
+`NexoraExamplePlugin`'s real built shared library through `PluginHost` when
+`NEXORA_FEATURE_EXAMPLE_PLUGIN` is on, proving the ABI gate against an artifact built from nothing
+but the public plugin contract, not a mock.
+
+**Scope note:** this milestone's graphical surfaces -- Hierarchy, Scene View, Game View, Inspector,
+Property Drawer, Asset Browser, Gizmo, and Profiler UI -- are not implemented here. They need a
+windowing/rendering front end this repository does not have yet (`Apps/Host/NexoraHost` is a
+headless CLI); `SceneEditor` and `PrefabInstance` are the data-model and command layer such a
+front end would eventually drive, exercised here through CTest rather than through any UI.

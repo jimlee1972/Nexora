@@ -118,8 +118,13 @@ and [`Engine/Renderer/README.md`](Engine/Renderer/README.md).
 
 V1-M4 now has an executable data-to-render vertical slice with versioned deterministic scene
 snapshots, isolated editor/play worlds, dependency-ordered systems, deferred structural commands,
-additive/persistent scene lifecycle, component extraction, and RenderGraph presentation. The later
-V1 dependency chain has a platform-neutral executable baseline in `NexoraRuntime`: versioned assets, plugin ABI checks, input routing,
+additive/persistent scene lifecycle, component extraction, and RenderGraph presentation. V1-M5 adds
+a hash-validated asset/cooker/bundle pipeline with dependency-cycle rejection, generation pinning,
+and rollback. V1-M6 adds reflection metadata, a real cross-platform plugin loader that gates on a
+stable C ABI symbol before any other use, a scene editor with Create/Modify/Undo, and prefab
+override/rebase; it does not include a graphical Hierarchy/Scene View/Inspector/Gizmo editor, which
+needs a windowing/rendering front end this repository does not have yet. The remaining V1
+dependency chain has a platform-neutral executable baseline in `NexoraRuntime`: input routing,
 character-motion boundaries, presentation residency, large-world cell policy, mobile lifecycle,
 and shipping-profile stripping. These are contract foundations rather than claims that third-party
 SDK backends or production tools are complete. See [`Engine/Runtime/README.md`](Engine/Runtime/README.md)
