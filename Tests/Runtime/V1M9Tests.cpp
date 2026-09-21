@@ -15,7 +15,7 @@ void Require(bool value, const char *message) {
 int RunTests() {
   using namespace nexora::runtime::presentation;
   Skeleton skeleton;
-  Require(!skeleton.Build({{{1}, "cycle"}}), "skeleton accepted a forward parent");
+  Require(!skeleton.Build({{1, "cycle"}}), "skeleton accepted a forward parent");
   Require(skeleton.Build({{-1, "root"}, {0, "hand"}}), "valid skeleton was rejected");
 
   AnimationGraph graph;
