@@ -89,6 +89,16 @@ int main() {
               document.AppliedLocalizationGeneration() == localization.Generation(),
           "disabled UI did not refresh localization");
 
+  Require(localization.SetLocale("fr"), "locale change to fr failed");
+  Require(localization.Resolve("play") == "Play",
+          "resolve did not fall back to the default locale for an untranslated key");
+  Require(!localization.SetFallbackLocale("en"), "no-op fallback locale change reported success");
+  Require(localization.SetFallbackLocale("zh"), "fallback locale change failed");
+  Require(localization.Resolve("play") == "遊玩+",
+          "resolve did not use the updated fallback locale");
+  Require(localization.Resolve("unknown-key") == "unknown-key",
+          "resolve did not fall back to the raw key when no locale has a translation");
+
   const auto logical = document.LogicalViewport();
   document.SetLogicalResolution(1280, 720);
   Require(logical.width == 100 && document.LogicalViewport().width == 1280,

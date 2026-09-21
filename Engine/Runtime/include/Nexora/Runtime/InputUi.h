@@ -95,15 +95,19 @@ struct UIElement final {
 };
 enum class UIInputPolicy { PassThrough, ConsumeOnHit, BlockBelow };
 
+// Resolve() checks the active locale first, then the fallback locale (default "en")
+// when the key is untranslated there, and only returns the raw key if neither has it.
 class NEXORA_RUNTIME_API LocalizationTable final {
 public:
   bool SetLocale(std::string locale);
+  bool SetFallbackLocale(std::string locale);
   void Set(std::string locale, std::string key, std::string value);
   [[nodiscard]] std::string Resolve(std::string_view key) const;
   [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }
 
 private:
   std::string locale_{"en"};
+  std::string fallback_locale_{"en"};
   std::uint64_t generation_{1};
   std::unordered_map<std::string, std::unordered_map<std::string, std::string>> values_;
 };
