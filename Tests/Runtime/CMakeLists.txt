@@ -29,6 +29,16 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E echo "V1-M10 large world stripped")
 endif()
 
+if(NEXORA_ENABLE_PLATFORM)
+  add_executable(NexoraV1M11Tests V1M11Tests.cpp)
+  target_link_libraries(NexoraV1M11Tests PRIVATE Nexora::Runtime)
+  nexora_apply_defaults(NexoraV1M11Tests)
+  add_test(NAME runtime.v1_m11_platform COMMAND NexoraV1M11Tests)
+else()
+  add_test(NAME runtime.v1_m11_feature_strip
+    COMMAND "${CMAKE_COMMAND}" -E echo "V1-M11 platform integration stripped")
+endif()
+
 if(NEXORA_ENABLE_PRESENTATION)
   add_executable(NexoraV1M9Tests V1M9Tests.cpp)
   target_link_libraries(NexoraV1M9Tests PRIVATE Nexora::Runtime)

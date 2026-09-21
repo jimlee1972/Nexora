@@ -21,6 +21,29 @@ fallback, unreachable navigation, animation looping, audio voice limits, media b
 seek invalidation. Platform SDK adapters and production authoring tools remain future work and
 must preserve these interfaces rather than bypassing their lifecycle checks.
 
+## V1-M11 mobile platform and native WebView runtime
+
+`Platform.h` is the SDK-neutral contract for app lifecycle, permissions, safe-area insets,
+orientation, thermal and memory pressure, haptics, clipboard, deep links, IME composition, native
+sharing, platform login, and named Android GPU workarounds. `platform::Runtime` owns copied event
+state and synchronously invokes optional platform-service callbacks on the calling thread. Invalid
+safe areas, URIs, IME cursors, unavailable services, and terminal lifecycle transitions fail
+without partially changing state. Callbacks must not outlive the runtime and are not thread-safe.
+
+`NativeWebViewHost` exclusively owns opaque native view handles created by an SDK adapter and
+destroys every live handle on explicit removal or host destruction. Engine-visible IDs never
+expose native pointers. Navigation and pointer delivery validate the view before entering the
+adapter. `IsNativeOverlay()` explicitly identifies WebViews as compositor-owned native overlays;
+they are therefore not render items and never enter the RenderGraph UI pass. Counters expose
+creation, destruction, routing, and rejected-operation activity for diagnostics.
+
+Configure with `-DNEXORA_ENABLE_PLATFORM=OFF` to omit the M11 implementation and run its
+feature-strip gate. The enabled test covers the complete callback/event vertical slice, lifecycle
+background/resume, failure paths, deterministic handle destruction, native pointer routing, and a
+10,000-event performance baseline. Android WebView, WebView2, and WKWebView adapters plus physical
+iOS/Android device execution remain platform-SDK gates; this portable Linux gate does not claim
+those device runs.
+
 ## V1-M10 large-world runtime
 
 `LargeWorld.h` defines stable fixed-grid addressing, spatial lookup, streaming demand, room/portal
