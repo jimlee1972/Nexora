@@ -105,9 +105,17 @@ PhysicsWorld::RaycastBatch(std::span<const RaycastRequest> requests) const {
 }
 
 CharacterMoveResult CharacterController::Move(CharacterState &state, SimulationVector request,
-                                              const PhysicsWorld &physics) const {
+                                              const PhysicsWorld &physics,
+                                              bool ground_ready) const {
   CharacterMoveResult out{};
   out.requested_motion = request;
+  if (!ground_ready) {
+    state.ground = CharacterGroundState::StreamingPending;
+    state.ground_body = 0;
+    out.ground = state.ground;
+    out.motion_error = request;
+    return out;
+  }
   auto actual = request;
   const auto horizontal = SimulationVector{request.x, 0, request.z};
   const auto distance = Length(horizontal);
@@ -155,7 +163,14 @@ bool CharacterController::SetCrouched(CharacterState &state, bool crouched,
   return true;
 }
 void CharacterController::Teleport(CharacterState &state, SimulationVector position,
-                                   bool preserve_velocity) const {
+                                   bool preserve_velocity, bool destination_ready) const {
+  if (!destination_ready) {
+    // The destination cell has no collision yet: hold the character where it already has
+    // valid ground rather than placing it at a coordinate nothing has streamed in for.
+    state.ground = CharacterGroundState::StreamingPending;
+    state.ground_body = 0;
+    return;
+  }
   state.position = position;
   state.ground = CharacterGroundState::Unsupported;
   state.ground_body = 0;
@@ -164,12 +179,19 @@ void CharacterController::Teleport(CharacterState &state, SimulationVector posit
 }
 CharacterMoveResult StandardCharacterMotor::Tick(CharacterState &state, const CharacterInput &input,
                                                  double seconds, const PhysicsWorld &physics,
-                                                 const CharacterController &controller) {
+                                                 const CharacterController &controller,
+                                                 bool ground_ready) {
   if (!std::isfinite(seconds) || seconds <= 0 || !Finite(state.position) ||
-      !Finite(state.velocity) || !Finite(input.root_motion) ||
-      !Finite(input.external_velocity) || !std::isfinite(input.move_x) ||
-      !std::isfinite(input.move_z))
+      !Finite(state.velocity) || !Finite(input.root_motion) || !Finite(input.external_velocity) ||
+      !std::isfinite(input.move_x) || !std::isfinite(input.move_z))
     return {};
+  if (!ground_ready) {
+    // Suspend locomotion entirely while streaming in the ground: no gravity accrual, no
+    // motion, so the character neither free-falls nor snaps once the cell becomes ready.
+    state.velocity = {};
+    external_velocity_ = {};
+    return controller.Move(state, {}, physics, false);
+  }
   auto planar = SimulationVector{input.move_x, 0, input.move_z};
   const auto max_speed = (input.flags & CharacterSprint) != 0 ? 8.0 : 5.0;
   if (Length(planar) > 1)

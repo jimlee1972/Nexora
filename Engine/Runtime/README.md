@@ -119,7 +119,37 @@ gate, supporting dedicated/headless builds without Animation, Audio, VFX, or Med
 
 `GameplaySimulation.h` is the public, backend-neutral boundary for Physics → Character → Navigation → AI. `PhysicsWorld` provides authoritative immediate and batch queries without exposing Jolt types. The standard motor owns desired locomotion, gravity, root motion, and external velocity; `CharacterController` owns collision resolution, ground snap, stepping, crouch clearance, and teleport semantics. Every result reports requested and actual motion separately. Objects are synchronous and caller-owned; none are thread-safe.
 
-`NavigationWorld` owns streamed tiles and invalidates paths by generation when a tile unloads. It only returns a desired velocity and never receives a `World` or writable `Transform`. The AI foundation uses fixed typed blackboard slots, a compact shared behavior program with per-tick deterministic traces, and a stimulus query with an explicit work/result budget. Configure with `-DNEXORA_ENABLE_GAMEPLAY_SIMULATION=OFF` to strip this implementation and run the feature-strip gate. The enabled test validates batched physics queries, ground/wall resolution, teleport, cross-tile navigation and stale-path invalidation, blackboard typing, behavior execution, and perception budgets.
+`Move()`/`Teleport()` also take a caller-supplied `ground_ready`/`destination_ready` readiness flag and report `CharacterGroundState::StreamingPending` when it is false: locomotion, gravity accrual, and ground snap/step evaluation are all suspended and the character holds its current position instead of free-falling through geometry that has not streamed in, per the V1-M10 large-world streaming contract. This header stays independent of `LargeWorld.h` by design (either can be stripped without the other), so the readiness flag is the full extent of the contract here; a caller that wants the M10 `StreamingManager` to drive it is expected to pin the character's cells with `SetOccupied()` and query `Status(cell)->residency == Residency::Full` itself — declaring the character a high-priority streaming source and any automatic bridging between the two systems is gameplay/application-layer wiring this foundation does not provide.
+
+`NavigationWorld` owns streamed tiles and invalidates paths by generation when a tile unloads. It only returns a desired velocity and never receives a `World` or writable `Transform`. The AI foundation uses fixed typed blackboard slots, a compact shared behavior program with per-tick deterministic traces, and a stimulus query with an explicit work/result budget. Configure with `-DNEXORA_ENABLE_GAMEPLAY_SIMULATION=OFF` to strip this implementation and run the feature-strip gate. The enabled test validates batched physics queries, ground/wall resolution, teleport, streaming-pending hold/resume, cross-tile navigation and stale-path invalidation, blackboard typing, behavior execution, and perception budgets.
+
+## V1-M7 input, UI, and localization runtime
+
+`InputUi.h` is the device-neutral input and UI boundary; unlike M8-M12 it has no feature-strip
+switch and always compiles into `NexoraRuntime`. `InputSystem` lets keyboard, mouse, gamepad, and
+touch devices contribute to one user in the same frame, keyed by `(device kind, device id)`
+ownership, and rejects a duplicate `sequence` so a platform backend can safely redeliver an event
+without double-counting it; `PointerId` stays stable across an individual touch's down/move/up
+events. `ActionMap` evaluates named actions from bound raw controls without engine code depending
+on concrete device layouts.
+
+`UIDocument` composes a parent/anchor `RectTransform` tree and dispatches pointer input through
+explicit capture → target → bubble phases; `CapturePointer` gives one element exclusive routing
+for a pointer until released, and `UIRouter` orders multiple documents by priority. `VirtualizedListModel`
+keeps only the visible window plus overscan realized regardless of total item count.
+`LocalizationTable::Resolve` checks the active locale first, then falls back to a configurable
+fallback locale (`SetFallbackLocale`, default `"en"`) before returning the raw key, and
+`RefreshLocalization` only re-resolves element text when its generation counter has advanced, so a
+disabled document can defer localization work until it is shown again.
+
+`TextEditBuffer` validates UTF-8 on every mutation and indexes IME composition ranges by
+**code-point**, not grapheme-cluster, boundaries — a deliberate scope limit, not an oversight;
+composing/committing/undoing text never exposes a byte offset that splits a multi-byte code point.
+The enabled test (`runtime.v1_m7_input_ui_localization`) covers simultaneous multi-device input
+and duplicate-sequence rejection, capture/target/bubble dispatch and pointer capture exclusivity,
+list virtualization at scale, locale switching and fallback-locale resolution, disabled-document
+localization refresh, logical-resolution independence, UTF-8 IME composition/undo and invalid-UTF-8
+rejection, and a 10,000-event input routing performance baseline.
 
 ## V1-M4 scene vertical slice
 
@@ -239,7 +269,7 @@ against a built artifact, not a mock. Registration is optional: `Load()` without
 argument (or a plugin that omits `NexoraPluginRegister`) only proves ABI compatibility, which is a
 legitimate plugin on its own. This `ServiceRegistry`/`PluginHost` pair is the real, dynamically-loaded
 extension mechanism; the pre-existing in-process `ExtensionRegistry` (`Runtime.h`, from the earlier
-M4-M12 contract sweep, exercised by `runtime.v1_m4_m12_contracts`) is a lighter descriptor/ABI-number
+M4-M11 contract sweep, exercised by `runtime.v1_m4_m11_contracts`) is a lighter descriptor/ABI-number
 bookkeeping structure that predates this milestone and does not itself load anything.
 
 `SceneEditor` composes `World`, `WorldCommandBuffer`, and `UndoStack` (from the M4 vertical slice)
