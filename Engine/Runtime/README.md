@@ -11,7 +11,7 @@ Instead, it makes the ownership and safety boundaries executable before those in
 | M6 | Reflection metadata, a real dynamic plugin loader with a stable C ABI gate and service registration, a scene editor built on Create/Modify/Undo, and prefab override/rebase (see below for the full vertical slice; `ExtensionRegistry`/`UndoStack` remain the lighter M6 row exercised by `runtime.v1_m4_m12_contracts`) |
 | M7 | Device-neutral input routing, stable touch IDs, virtual-list materialization and locale fallback |
 | M8 | CPU-authoritative batched physics queries; motor/controller separation; tiled navigation desired velocity; typed blackboard, compact behavior runtime, and budgeted perception |
-| M9 | Animation playback, bounded audio voices, reference-counted residency and a timestamped media queue |
+| M9 | Skeleton/clip blending and root motion, skinning palettes, audio buses with voice-safe residency, particle SoA, and non-blocking timestamped video presentation |
 | M10 | Separate cell/bundle identity, observable RAM/VRAM use, HLOD state and occupied-cell pins |
 | M11 | App lifecycle, pressure policy and native WebView pointer ownership |
 | M12 | Profile-driven plugin, shader, optional-asset and headless presentation stripping |
@@ -20,6 +20,34 @@ The contract test `runtime.v1_m4_m12_contracts` exercises every row, including l
 fallback, unreachable navigation, animation looping, audio voice limits, media back-pressure and
 seek invalidation. Platform SDK adapters and production authoring tools remain future work and
 must preserve these interfaces rather than bypassing their lifecycle checks.
+
+## V1-M9 presentation runtime
+
+`Presentation.h` is the backend-neutral boundary for Animation, Audio, VFX, and Video. Animation
+validates an acyclic parent-before-child skeleton, samples translation tracks, blends graph state
+transitions, extracts root motion, and publishes a validated matrix palette for a renderer's GPU
+vertex-skinning or baked-animation-texture backend. The graph and palette are synchronous and
+caller-owned; production clip compression and GPU upload remain backend responsibilities.
+
+`AudioEngine` enforces a hard voice limit, routes events through named buses, and acquires a
+reference in `ResidencyTracker` for every active voice. Stopping one of several voices cannot
+unload their shared clip. The `streaming` event bit is preserved for a MiniAudio/platform adapter;
+this layer deliberately performs no device I/O.
+
+`ParticleSystem` uses separate position, velocity, age, and lifetime arrays with bounded capacity.
+Sprite, mesh, and trail renderer kinds share this CPU simulation contract; GPU simulation and draw
+expansion can consume the same spawn data without changing gameplay ownership.
+
+Decoded video producers submit texture identities to a bounded `VideoPlayer` queue. `Tick()` only
+examines already decoded frames, drops superseded frames against the audio clock, and publishes a
+`VideoTexture()` identity usable by UI or materials, so gameplay never waits for decode. Seeking
+flushes queued frames and rejects stale timestamps; subtitle selection uses the same clock. A
+platform hardware decoder owns its worker and texture allocation outside this synchronous queue,
+and video audio is expected to enter `AudioEngine`, making that audio clock the A/V sync authority.
+
+Configure with `-DNEXORA_ENABLE_PRESENTATION=OFF` to omit the complete M9 implementation. The
+disabled configuration exposes `NEXORA_PRESENTATION_ENABLED=0` and runs only the feature-strip
+gate, supporting dedicated/headless builds without Animation, Audio, VFX, or Media code.
 
 ## V1-M8 gameplay simulation
 
