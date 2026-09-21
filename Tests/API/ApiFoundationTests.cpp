@@ -178,7 +178,13 @@ int Run() {
   Require(!Uuid::Parse("not-a-uuid").HasValue(), "malformed Uuid text was accepted");
   Require(!Uuid::Parse("01234567-89ab-cdef-0123-456789abcde").HasValue(),
           "a truncated Uuid (one hex digit short) was accepted");
-  Require(!Uuid::Parse(StringView("0123\000567-89ab-cdef-0123-456789abcdef", 36)).HasValue(),
+  // Split into adjacent literals so the "\0" octal escape isn't immediately
+  // followed by a digit within the same token: MSVC's C4125 (and /WX) treats
+  // that as an error even though "\0" is unambiguously one byte here.
+  Require(!Uuid::Parse(StringView("0123\0"
+                                  "567-89ab-cdef-0123-456789abcdef",
+                                  36))
+               .HasValue(),
           "a Uuid string with an embedded NUL was accepted");
 
   // ---- Name hash collision diagnostics: statistical sanity check, not a
