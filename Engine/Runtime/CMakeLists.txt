@@ -2,6 +2,8 @@ include(NexoraTarget)
 add_library(NexoraRuntime ${NEXORA_MODULE_LIBRARY_TYPE}
   src/InputUi.cpp
   src/GameplayModuleHost.cpp
+  src/GameWorld.cpp
+  src/GameplayHostBridge.cpp
   src/Runtime.cpp)
 if(NEXORA_ENABLE_GAMEPLAY_SIMULATION)
   target_sources(NexoraRuntime PRIVATE src/GameplaySimulation.cpp)

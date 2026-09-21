@@ -1,0 +1,61 @@
+#pragma once
+
+// API-M6 (Roadmap/*/Engine_API_*Roadmap.md section 3.6): wires the
+// already-declared NexoraGameplayHostV2 C ABI (Nexora/Foundation/
+// GameplayABI.h) to real nexora::game::GameWorld state, instead of that
+// struct's read_component/write_component/log/subscribe_event/
+// set_tick_enabled slots only ever being filled by test-scoped stand-ins
+// (see Gameplay/Zig/ZigGameplayTests.cpp's HostState, which is exactly
+// that: a fake host with its own private component_value, unrelated to any
+// real World). A Zig or C game module built against this host can now
+// actually read and write an entity's Transform through the supported
+// public API rather than an engine-internal pointer.
+//
+// Scope of this pass: only the Transform component type is wired.
+// subscribe_event and set_tick_enabled remain no-ops (EventBus and tick
+// gating integration are not built here); camera/light/mesh-renderer
+// component types are not exposed through this bridge yet. Extending
+// read_component/write_component to another component type means adding
+// another case alongside TransformComponentType()'s, not redesigning this
+// file. The existing Gameplay/Zig/src/game_module.zig sample and its test
+// were NOT changed to consume this bridge -- that would require rebuilding
+// and re-verifying the Zig object, and no Zig toolchain is available to do
+// that in this environment; it remains open follow-up work.
+#include "Nexora/Foundation/GameplayABI.h"
+#include "Nexora/Game/GameWorld.h"
+#include "Nexora/Runtime/Api.h"
+
+#include <cstdint>
+
+namespace nexora::game {
+
+// Stable FNV-1a hash of "Nexora.Transform" (nexora::foundation::Name),
+// shared by any C++ caller and by a game module across the ABI boundary, so
+// neither side hardcodes a magic numeric component_type.
+[[nodiscard]] NEXORA_RUNTIME_API std::uint64_t TransformComponentType() noexcept;
+
+// The wire format read_component/write_component exchange for
+// TransformComponentType(): three tightly packed doubles. This is
+// deliberately not nexora::runtime::Transform's in-memory layout (which
+// carries no ABI-stability guarantee of its own) -- the bridge copies field
+// by field in both directions, so it keeps working even if Transform gains
+// a member; only this struct's own shape is the actual wire contract.
+struct GameplayTransformWire final {
+  double x{}, y{}, z{};
+};
+
+// context for a NexoraGameplayHostV2 built by MakeHost(): `world` must
+// outlive every NexoraGameModuleV2 built against that host, since the host's
+// callbacks read through this pointer on every read_component/
+// write_component call.
+struct GameplayHostContext final {
+  GameWorld *world{};
+};
+
+// Builds a NexoraGameplayHostV2 whose context is `&context`. Every callback
+// pointer is a plain free function (no captures), matching the ABI's
+// function-pointer-only shape; state lives in *context, not in a closure.
+[[nodiscard]] NEXORA_RUNTIME_API NexoraGameplayHostV2
+MakeHost(GameplayHostContext &context) noexcept;
+
+} // namespace nexora::game

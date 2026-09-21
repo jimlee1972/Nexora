@@ -298,3 +298,45 @@ Property Drawer, Asset Browser, Gizmo, and Profiler UI -- are not implemented he
 windowing/rendering front end this repository does not have yet (`Apps/Host/NexoraHost` is a
 headless CLI); `SceneEditor` and `PrefabInstance` are the data-model and command layer such a
 front end would eventually drive, exercised here through CTest rather than through any UI.
+
+## API-M5/M6 Game facade and gameplay host bridge
+
+`Nexora/Game/GameWorld.h` is the API-M5 boundary over `World`: `World::FindEntity`/`FindScene`
+return a pointer into `World`'s own `std::vector<Entity>`/`std::vector<Scene>` storage, which
+`CreateEntity`/`LoadScene` can reallocate at any time, so nothing outside this file is meant to
+call them directly. `GameWorld` wraps the same operations behind by-value `EntitySnapshot`/
+`EntitySpawnDescriptor` and plain `nexora::runtime::Id` -- never a pointer -- satisfying the
+roadmap's explicit rule that a Zig module must never receive a movable C++ ECS storage pointer.
+`Id` itself is not re-wrapped in a generational handle: it is already a monotonically increasing,
+never-reused identifier, which the V1 Complete Plan's ABI rules list as its own accepted
+C-ABI-crossing category ("EntityID"), separate from an index+generation Opaque Handle.
+
+`SpawnEntity` attaches camera/light/mesh-renderer at creation time via `EntitySpawnDescriptor`
+(they are plain fields on `Entity`); `SetTransform`/`DestroyEntity` go through a one-shot
+`WorldCommandBuffer` internally, reusing the M4 command-buffer contract rather than adding new
+`World` friend access. `Query(scene, mask)` is an OR-mask batch query over a scene's entities.
+`CaptureInput` wraps `InputSystem::Consume` into a by-value `InputSnapshot`, and `AssetRef` is a
+named re-export of the already-ABI-appropriate `AssetUuid` (API-M2). **Not built here:** physics
+(`PhysicsWorld`/`CharacterController`) and audio (`AudioMixer`) remain standalone systems with
+their own `SimulationId`/resource-id space, not entity-integrated by this facade -- that binding
+is a larger design this pass does not attempt.
+
+`Nexora/Game/GameplayHostBridge.h` is the API-M6 piece: it wires the `NexoraGameplayHostV2` C ABI
+(`Nexora/Foundation/GameplayABI.h`, the "Zig gameplay bridge" contract above) to a real `GameWorld`
+instead of the `read_component`/`write_component`/`log`/`subscribe_event`/`set_tick_enabled` slots
+only ever being filled by a test-scoped stand-in (`Gameplay/Zig/ZigGameplayTests.cpp`'s `HostState`
+is exactly that: a fake host with its own private value, unrelated to any real `World`). `MakeHost`
+builds a real `NexoraGameplayHostV2` whose `read_component`/`write_component` actually read and
+write a live entity's `Transform`, keyed by `TransformComponentType()` (a stable FNV-1a hash of
+`"Nexora.Transform"` via `nexora::foundation::Name`, not a magic number either side has to agree on
+by convention). Only the Transform component type is wired in this pass; `subscribe_event` and
+`set_tick_enabled` remain honest no-ops (they report failure/do nothing rather than a false
+success) since no EventBus or tick-gating integration exists yet to route them through.
+
+**Not verified here:** `Gameplay/Zig/src/game_module.zig` and its test were not changed to consume
+this bridge. No Zig toolchain is available in this environment (`which zig` fails), so a change to
+the `.zig` file could not be locally rebuilt or verified; only `gameplay.zig_abi_smoke`'s CI runners
+have Zig. `GameplayHostBridge` is instead fully covered by a C++-only test
+(`Tests/Runtime/GameplayHostBridgeTests.cpp`) that calls the built `NexoraGameplayHostV2` function
+pointers directly. Having the Zig sample actually call through this bridge, replacing its own
+private fake host, remains open follow-up work.
