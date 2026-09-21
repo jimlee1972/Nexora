@@ -137,10 +137,56 @@ override/rebase with nested-prefab composition. It does not include a graphical 
 View/Game View/Inspector/Gizmo editor, which needs a windowing/rendering front end this repository
 does not have yet.
 
+## V1-M7 input, UI, and localization runtime
+
+V1-M7 adds a device-neutral input/UI runtime: multi-device input routing with duplicate-sequence
+rejection and stable pointer IDs, capture/target/bubble UI dispatch with pointer capture,
+virtualized list windowing, and locale-resolution with a configurable fallback locale (checked
+before falling back to the raw key). Unlike M8-M12 it has no feature-strip switch and always
+compiles into `NexoraRuntime`.
+
+## V1-M8 gameplay simulation
+
+V1-M8 adds a backend-neutral Physics -> Character -> Navigation -> AI boundary: batched physics
+queries, ground/wall/step resolution and teleport semantics, streamed navigation tiles with
+stale-path invalidation, and a typed blackboard/behavior/perception AI foundation.
+`CharacterController`/`StandardCharacterMotor` also honor a caller-supplied ground/destination
+readiness flag, holding position and reporting `CharacterGroundState::StreamingPending` instead of
+free-falling through geometry that has not streamed in yet. Automatically wiring that flag to
+`LargeWorld`'s streaming manager remains gameplay/application-layer integration work, not part of
+this foundation.
+
+## V1-M9 presentation runtime
+
+V1-M9 adds skeleton/clip animation blending with root motion extraction and a GPU skinning palette,
+a voice-limited audio engine with bus routing and residency accounting, a struct-of-arrays particle
+system, and a non-blocking timestamped video player with subtitle and seek support. Device-level
+backends (a MiniAudio/platform audio adapter, hardware video decode, GPU skinning upload) remain
+future work.
+
+## V1-M10 large-world runtime
+
+V1-M10 adds stable fixed-grid addressing, spatial lookup, separate cell/full-bundle/HLOD-bundle
+streaming residency with occupied-cell pinning and portal prefetch, offline HLOD, clipmap terrain,
+and instanced vegetation, all synchronous and caller-owned.
+
+## V1-M11 mobile platform and native WebView runtime
+
+V1-M11 adds an SDK-neutral app-lifecycle, permission, safe-area, and thermal/memory pressure-policy
+contract, plus a native WebView host with deterministic handle destruction and validated pointer
+routing. Android/iOS platform SDK adapters (WebView2, WKWebView, Android WebView) and physical
+device execution remain platform-SDK gates outside this portable baseline.
+
+## V1-M12 shipping, packaging, and hardening
+
+V1-M12 adds a profile-driven packaging contract with independent plugin/shader/asset stripping,
+staged bundle update with confirm/rollback, crash-report evidence capture, soak-growth monitoring,
+and a four-platform device-evidence matrix. Signed installers, store update transports, and
+physical multi-hour device soak runs remain release-infrastructure gates.
+
 ## Later runtime contracts
 
-The remaining V1 dependency chain has a platform-neutral executable baseline in `NexoraRuntime`:
-input routing, character-motion boundaries, presentation residency, large-world cell policy, mobile
-lifecycle, and shipping-profile stripping. These are contract foundations rather than claims that
-third-party SDK backends or production tools are complete. See
-[`Engine/Runtime/README.md`](Engine/Runtime/README.md) for the milestone matrix and explicit scope.
+M7 through M12 above are executable contract foundations on this portable Linux baseline, not
+claims that third-party SDK backends or production authoring tools are complete. See
+[`Engine/Runtime/README.md`](Engine/Runtime/README.md) for the full milestone matrix, per-feature
+strip flags, and exact test coverage.
