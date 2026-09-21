@@ -78,9 +78,10 @@ public:
 
 private:
   friend class WorldCommandBuffer;
+  friend class SceneEditor;
   friend NEXORA_RUNTIME_API std::optional<SceneFrameResult>
-  RenderSceneFrame(const World &, rhi::Device &, rhi::TextureHandle,
-                   const rhi::TextureDescriptor &, rhi::PipelineHandle);
+  RenderSceneFrame(const World &, rhi::Device &, rhi::TextureHandle, const rhi::TextureDescriptor &,
+                   rhi::PipelineHandle);
   Id next_id_{1};
   std::vector<Scene> scenes_;
   WorldKind kind_;

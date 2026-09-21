@@ -4,6 +4,11 @@ target_link_libraries(NexoraRuntimeTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraRuntimeTests)
 add_test(NAME runtime.v1_m4_m12_contracts COMMAND NexoraRuntimeTests)
 
+add_executable(NexoraV1M7Tests V1M7Tests.cpp)
+target_link_libraries(NexoraV1M7Tests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraV1M7Tests)
+add_test(NAME runtime.v1_m7_input_ui_localization COMMAND NexoraV1M7Tests)
+
 add_executable(NexoraV1M4Tests V1M4Tests.cpp)
 target_link_libraries(NexoraV1M4Tests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraV1M4Tests)

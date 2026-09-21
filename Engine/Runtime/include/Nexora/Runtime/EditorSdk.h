@@ -102,9 +102,8 @@ private:
 // ---- Scene editor: Create / Modify / Undo over World ----
 //
 // Composes World, WorldCommandBuffer, and UndoStack. Undoing a destroyed
-// entity restores its component data but not its original stable ID: World
-// has no public API to recreate an entity under a caller-chosen ID, so a
-// restored entity is a new entity with the same data.
+// entity restores its component data and stable ID, keeping older undo
+// transactions valid.
 
 class NEXORA_RUNTIME_API SceneEditor final {
 public:
