@@ -13,3 +13,13 @@ add_executable(NexoraGameplayModuleHostTests GameplayModuleHostTests.cpp)
 target_link_libraries(NexoraGameplayModuleHostTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraGameplayModuleHostTests)
 add_test(NAME runtime.gameplay_module_host COMMAND NexoraGameplayModuleHostTests)
+
+if(NEXORA_ENABLE_ASSET_PIPELINE)
+  add_executable(NexoraV1M5Tests V1M5Tests.cpp)
+  target_link_libraries(NexoraV1M5Tests PRIVATE Nexora::Runtime)
+  nexora_apply_defaults(NexoraV1M5Tests)
+  add_test(NAME runtime.v1_m5_asset_pipeline COMMAND NexoraV1M5Tests)
+else()
+  add_test(NAME runtime.v1_m5_feature_strip
+    COMMAND "${CMAKE_COMMAND}" -E echo "V1-M5 asset pipeline stripped")
+endif()
