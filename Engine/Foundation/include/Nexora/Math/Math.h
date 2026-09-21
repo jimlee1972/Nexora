@@ -260,7 +260,11 @@ struct Transform final {
 // Inverse of Compose(): extracts translation from column 3, scale from the
 // length of each basis column, and rotation via Shepperd's method on the
 // remaining orthonormal columns. Only exact for matrices Compose() could have
-// produced (no shear); shear is dropped rather than reported.
+// produced (no shear); shear is dropped rather than reported. A reflected
+// (mirrored) transform -- negative determinant, e.g. scale.x < 0 -- has an
+// improper linear part; the sign is folded into scale.x rather than left in
+// the rotation, so the recovered axes stay a proper (det +1) rotation, which
+// Shepperd's method below assumes, and Compose(Decompose(m)) still equals m.
 [[nodiscard]] inline Transform Decompose(const Matrix4 &m) {
   Transform t;
   t.translation = {m(0, 3), m(1, 3), m(2, 3)};
@@ -268,7 +272,10 @@ struct Transform final {
   const Vector3 column_y{m(0, 1), m(1, 1), m(2, 1)};
   const Vector3 column_z{m(0, 2), m(1, 2), m(2, 2)};
   t.scale = {Length(column_x), Length(column_y), Length(column_z)};
-  const Vector3 axis_x = t.scale.x > kEpsilon ? column_x * (1.0F / t.scale.x) : Vector3{1, 0, 0};
+  if (Dot(column_x, Cross(column_y, column_z)) < 0.0F)
+    t.scale.x = -t.scale.x;
+  const Vector3 axis_x =
+      std::abs(t.scale.x) > kEpsilon ? column_x * (1.0F / t.scale.x) : Vector3{1, 0, 0};
   const Vector3 axis_y = t.scale.y > kEpsilon ? column_y * (1.0F / t.scale.y) : Vector3{0, 1, 0};
   const Vector3 axis_z = t.scale.z > kEpsilon ? column_z * (1.0F / t.scale.z) : Vector3{0, 0, 1};
   const float m00 = axis_x.x, m10 = axis_x.y, m20 = axis_x.z;

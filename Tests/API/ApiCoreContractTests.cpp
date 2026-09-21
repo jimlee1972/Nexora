@@ -137,12 +137,11 @@ int Run() {
   const auto temp_dir = std::filesystem::temp_directory_path() / "nexora-api-vfs-contract-test";
   std::filesystem::remove_all(temp_dir);
   std::filesystem::create_directories(temp_dir);
-  // WriteAtomic never creates parent directories (only the temp-file rename
-  // target must already exist), unlike a memory mount's flat key/value
-  // store; the "dir" subdirectory has to be pre-created for the directory
-  // backend to exercise the same "dir/file.bin"-shaped paths as the memory
-  // backend below.
-  std::filesystem::create_directories(temp_dir / "dir");
+  // No "dir" subdirectory is pre-created here: WriteAtomic creates missing
+  // parent directories on the directory backend, matching a memory mount's
+  // flat key/value store where "dir/file.bin" never needed one to exist.
+  // This is exactly what proves the two backends are equivalent rather than
+  // only individually correct -- see RunBackendContractSuite's first write.
   Require(vfs.Mount("directory", temp_dir), "directory mount must succeed on a real directory");
   RunBackendContractSuite(vfs, "directory");
   std::filesystem::remove_all(temp_dir);

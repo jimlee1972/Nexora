@@ -114,6 +114,20 @@ int Run() {
     Require(NearlyEqual(recomposed.values[i], original_matrix.values[i], 1e-3F),
             "Compose(Decompose(Compose(t))) drifted from Compose(t)");
 
+  // ---- Compose/Decompose with a reflected (mirrored) scale: the linear
+  // part has a negative determinant, so naively taking column lengths and
+  // feeding them straight into Shepperd's method would produce an improper
+  // rotation matrix and silently un-mirror the transform on recompose. ----
+  const Transform mirrored{{1.0F, 2.0F, 3.0F},
+                           Quaternion::FromAxisAngleRadians({0, 1, 0}, Radians(52.0F)),
+                           {-2.0F, 3.0F, 4.0F}};
+  const Transform decomposed_mirror = Decompose(Compose(mirrored));
+  const auto recomposed_mirror = Compose(decomposed_mirror);
+  const auto mirrored_matrix = Compose(mirrored);
+  for (std::size_t i = 0; i < 16; ++i)
+    Require(NearlyEqual(recomposed_mirror.values[i], mirrored_matrix.values[i], 1e-3F),
+            "Compose(Decompose(Compose(t))) did not preserve a reflected (negative scale) t");
+
   // ---- Matrix4 InverseSafe ----
   const Matrix4 identity{};
   Require(BytewiseRoundTrip(InverseSafe(identity)), "identity inverse is not itself byte-stable");
@@ -176,6 +190,12 @@ int Run() {
   Require(parsed_no_dashes.HasValue() && parsed_no_dashes.Value() == parsed.Value(),
           "dash-free Uuid text did not parse to the same value");
   Require(!Uuid::Parse("not-a-uuid").HasValue(), "malformed Uuid text was accepted");
+  Require(!Uuid::Parse("----0123456789abcdef0123456789abcdef").HasValue(),
+          "36 chars with dashes only at the front (not the canonical positions) was accepted");
+  Require(!Uuid::Parse("0123456-789ab-cdef-0123-456789abcdef").HasValue(),
+          "a dash one position off from canonical was accepted");
+  Require(!Uuid::Parse("0123456789abcdef0123456789abcdef-").HasValue(),
+          "a 33-character string one dash too long was accepted");
   Require(!Uuid::Parse("01234567-89ab-cdef-0123-456789abcde").HasValue(),
           "a truncated Uuid (one hex digit short) was accepted");
   // Split into adjacent literals so the "\0" octal escape isn't immediately

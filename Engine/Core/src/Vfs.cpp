@@ -182,6 +182,14 @@ ReadResult::Status VirtualFileSystem::WriteAtomic(std::string_view virtual_path,
     file.modified = std::filesystem::file_time_type::clock::now();
     return ReadResult::Status::Completed;
   }
+  // Create the parent directory if it doesn't exist yet: a memory mount's
+  // flat key/value store has no notion of a missing parent, so requiring
+  // one here would make an operation that succeeds on one backend silently
+  // fail on the other for the exact same virtual path.
+  std::error_code parent_error;
+  std::filesystem::create_directories(located.path.parent_path(), parent_error);
+  if (parent_error)
+    return ReadResult::Status::IoError;
   auto temporary = located.path;
   temporary += ".nexora-tmp";
   std::ofstream stream{temporary, std::ios::binary | std::ios::trunc};

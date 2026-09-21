@@ -42,10 +42,21 @@ struct Uuid final {
   friend constexpr bool operator==(Uuid, Uuid) = default;
   [[nodiscard]] constexpr bool IsNil() const { return high == 0 && low == 0; }
 
-  // Accepts canonical 8-4-4-4-12 hex with dashes, or the same 32 hex digits
-  // without them; anything else (including an embedded NUL, which just fails
-  // as a non-hex character) is ErrorCode::InvalidArgument.
+  // Accepts exactly canonical 8-4-4-4-12 hex with dashes at those four fixed
+  // positions (36 chars), or the same 32 hex digits with no dashes at all;
+  // anything else -- wrong length, a dash anywhere else, a missing dash at a
+  // canonical position, or a non-hex character including an embedded NUL --
+  // is ErrorCode::InvalidArgument. Dashes are not simply skipped wherever
+  // they occur: that would silently accept malformed text like four leading
+  // dashes followed by 32 hex digits.
   [[nodiscard]] static Result<Uuid> Parse(StringView text) {
+    bool dashed;
+    if (text.size() == 36)
+      dashed = true;
+    else if (text.size() == 32)
+      dashed = false;
+    else
+      return ErrorCode::InvalidArgument;
     const auto hex_value = [](char c) -> int {
       if (c >= '0' && c <= '9')
         return c - '0';
@@ -55,25 +66,27 @@ struct Uuid final {
         return c - 'A' + 10;
       return -1;
     };
+    const auto is_dash_position = [](std::size_t i) {
+      return i == 8 || i == 13 || i == 18 || i == 23;
+    };
     std::uint8_t bytes[16]{};
     std::size_t byte_index = 0;
-    int high_nibble = -1;
-    for (const char c : text) {
-      if (byte_index >= 16)
-        return ErrorCode::InvalidArgument;
-      if (c == '-')
+    std::size_t i = 0;
+    while (byte_index < 16) {
+      if (dashed && is_dash_position(i)) {
+        if (text[i] != '-')
+          return ErrorCode::InvalidArgument;
+        ++i;
         continue;
-      const int value = hex_value(c);
-      if (value < 0)
-        return ErrorCode::InvalidArgument;
-      if (high_nibble < 0) {
-        high_nibble = value;
-      } else {
-        bytes[byte_index++] = static_cast<std::uint8_t>((high_nibble << 4) | value);
-        high_nibble = -1;
       }
+      const int high = hex_value(text[i]);
+      const int low = i + 1 < text.size() ? hex_value(text[i + 1]) : -1;
+      if (high < 0 || low < 0)
+        return ErrorCode::InvalidArgument;
+      bytes[byte_index++] = static_cast<std::uint8_t>((high << 4) | low);
+      i += 2;
     }
-    if (byte_index != 16 || high_nibble >= 0)
+    if (i != text.size())
       return ErrorCode::InvalidArgument;
     Uuid uuid;
     for (int k = 0; k < 8; ++k)
