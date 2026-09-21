@@ -18,6 +18,7 @@ NativeWebViewHost::~NativeWebViewHost() { DestroyAll(); }
 
 std::optional<std::uint64_t> NativeWebViewHost::CreateView(const WebViewDescriptor &descriptor) {
   if (!create_ || !destroy_ || !IsValidUri(descriptor.initial_url) ||
+      !std::isfinite(descriptor.rect.x) || !std::isfinite(descriptor.rect.y) ||
       !IsFiniteNonNegative(descriptor.rect.width) || !IsFiniteNonNegative(descriptor.rect.height) ||
       descriptor.rect.width == 0.0F || descriptor.rect.height == 0.0F) {
     ++stats_.rejected_operations;

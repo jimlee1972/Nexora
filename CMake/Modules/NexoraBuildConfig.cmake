@@ -10,7 +10,9 @@ function(nexora_configure_build)
   if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Development CACHE STRING "Build type" FORCE)
   endif()
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Development Shipping)
+  if(DEFINED CMAKE_BUILD_TYPE AND NOT CMAKE_BUILD_TYPE STREQUAL "")
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Development Shipping)
+  endif()
   if(CMAKE_BUILD_TYPE AND NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Development|Shipping)$")
     message(FATAL_ERROR "CMAKE_BUILD_TYPE must be Debug, Development, or Shipping")
   endif()
@@ -54,7 +56,10 @@ function(nexora_configure_build)
     # exported methods, and every Modular target here is built by the same
     # compiler/runtime in one job, so the mismatch this warns about cannot
     # actually occur.
-    add_compile_options(/W4 /WX /wd4251 /permissive- /EHsc)
+    # Runtime tests intentionally exercise UTF-8 text, IME composition, and
+    # localized UI strings.  Do not let the machine's active code page change
+    # their meaning (or turn otherwise valid UTF-8 source into C4819/C2001).
+    add_compile_options(/W4 /WX /wd4251 /permissive- /EHsc /utf-8)
   else()
     add_compile_options(-Wall -Wextra -Wpedantic -Werror)
   endif()

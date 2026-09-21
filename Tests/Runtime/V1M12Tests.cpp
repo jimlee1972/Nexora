@@ -1,5 +1,6 @@
 #include "Nexora/Runtime/Shipping.h"
 
+#include <chrono>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -103,9 +104,11 @@ int RunTests() {
     large.artifacts.push_back({"asset-" + std::to_string(index),
                                "assets/" + std::to_string(index) + ".bundle", "digest",
                                ArtifactKind::Asset, 1, false});
+  const auto begin = std::chrono::steady_clock::now();
   const auto baseline = packager.Build(large);
   Require(baseline && baseline.manifest.artifacts.size() == 10000 &&
-              baseline.manifest.total_bytes == 10000,
+              baseline.manifest.total_bytes == 10000 &&
+              std::chrono::steady_clock::now() - begin < std::chrono::seconds(2),
           "10,000-artifact packaging performance baseline failed");
   return 0;
 }

@@ -158,7 +158,8 @@ public:
   [[nodiscard]] BehaviorTrace Tick(const Blackboard &blackboard) const;
 
 private:
-  bool Evaluate(std::uint32_t node, const Blackboard &, BehaviorTrace &) const;
+  bool Evaluate(std::uint32_t node, const Blackboard &, BehaviorTrace &,
+                  std::vector<std::uint8_t> &active) const;
   std::vector<BehaviorNode> nodes_;
 };
 enum class StimulusKind { Sight, Hearing };

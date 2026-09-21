@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 
 namespace platform = nexora::runtime::platform;
@@ -82,7 +83,11 @@ void WebViewOwnership() {
               host.Stats().created == 1 && host.Stats().destroyed == 1 &&
               host.Stats().routed_pointers == 1 && host.Stats().rejected_operations == 1,
           "native WebView ownership failed");
-  Require(!host.CreateView({"bad", {0, 0, 0, 10}, false}), "invalid WebView descriptor accepted");
+  Require(!host.CreateView({"bad", {0, 0, 0, 10}, false}) &&
+              !host.CreateView({"https://nexora.dev",
+                                       {std::numeric_limits<float>::quiet_NaN(), 0, 10, 10},
+                                       false}),
+          "invalid WebView descriptor accepted");
 }
 
 void Baseline() {

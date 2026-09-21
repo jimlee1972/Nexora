@@ -10,8 +10,9 @@ namespace {
 bool Finite(Vec3d value) {
   return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
 }
-bool Fits(MemoryUsage usage, StreamingBudget budget) {
-  return usage.ram <= budget.ram && usage.vram <= budget.vram;
+bool Fits(MemoryUsage usage, MemoryUsage additional, StreamingBudget budget) {
+  return usage.ram <= budget.ram && additional.ram <= budget.ram - usage.ram &&
+         usage.vram <= budget.vram && additional.vram <= budget.vram - usage.vram;
 }
 MemoryUsage Add(MemoryUsage a, MemoryUsage b) { return {a.ram + b.ram, a.vram + b.vram}; }
 MemoryUsage Cost(const CellDescriptor &cell, Residency state) {
@@ -82,13 +83,25 @@ std::vector<Id> LooseQuadtree::Query(const Bounds &bounds) const {
 }
 
 StreamingManager::StreamingManager(StreamingBudget budget, double unload_hysteresis)
-    : budget_(budget), hysteresis_(unload_hysteresis) {}
+    : budget_(budget),
+      hysteresis_(std::isfinite(unload_hysteresis) && unload_hysteresis >= 0.0
+                      ? unload_hysteresis
+                      : 0.0) {}
 bool StreamingManager::AddCell(CellDescriptor cell) {
   if (cell.cell_id == 0 || cell.full_bundle_id == 0 || cell.hlod_bundle_id == 0 ||
       cell.cell_id == cell.full_bundle_id || cell.cell_id == cell.hlod_bundle_id ||
-      cell.full_bundle_id == cell.hlod_bundle_id || !cell.bounds.Valid() ||
-      cells_.contains(cell.cell_id))
+      cell.full_bundle_id == cell.hlod_bundle_id || !cell.bounds.Valid())
     return false;
+  for (const auto &[existing_id, existing] : cells_)
+    if (cell.cell_id == existing_id || cell.cell_id == existing.descriptor.full_bundle_id ||
+        cell.cell_id == existing.descriptor.hlod_bundle_id ||
+        cell.full_bundle_id == existing_id ||
+        cell.full_bundle_id == existing.descriptor.full_bundle_id ||
+        cell.full_bundle_id == existing.descriptor.hlod_bundle_id ||
+        cell.hlod_bundle_id == existing_id ||
+        cell.hlod_bundle_id == existing.descriptor.full_bundle_id ||
+        cell.hlod_bundle_id == existing.descriptor.hlod_bundle_id)
+      return false;
   return cells_.emplace(cell.cell_id, CellRecord{cell, {}}).second;
 }
 bool StreamingManager::AddOrUpdateSource(StreamingSource source) {
@@ -182,8 +195,9 @@ bool StreamingManager::Update() {
     auto &cell = cells_.at(request.id);
     if (request.desired == Residency::Unloaded)
       continue;
-    const auto candidate = Add(usage, Cost(cell.descriptor, request.desired));
-    if (!Fits(candidate, budget_) && !cell.status.occupied) {
+    const auto cost = Cost(cell.descriptor, request.desired);
+    const auto candidate = Add(usage, cost);
+    if (!Fits(usage, cost, budget_) && !cell.status.occupied) {
       ++rejected_;
       all_satisfied = false;
       continue;

@@ -1,6 +1,7 @@
 #include "Nexora/Runtime/Presentation.h"
 
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -23,6 +24,10 @@ int RunTests() {
           "walk clip was rejected");
   Require(graph.AddClip({2, 1.0F, true, {{0, {{0.0F, {}}, {1.0F, {6.0F, 0.0F, 0.0F}}}}}}),
           "run clip was rejected");
+  Require(!graph.AddClip({3, 1.0F, true,
+                                  {{0, {{0.0F, {}}, {1.0F, {1.0F, 0.0F, 0.0F}}}},
+                                   {0, {{0.0F, {}}, {1.0F, {2.0F, 0.0F, 0.0F}}}}}}),
+          "animation accepted duplicate joint tracks");
   Require(graph.Play(1), "animation state did not start");
   const auto walk = graph.Update(0.25F);
   Require(std::abs(walk.translations[0].x - 0.5F) < 0.001F &&
@@ -69,6 +74,25 @@ int RunTests() {
   video.Seek(2.0);
   Require(!video.SubmitDecoded({1, 1.9, 200}) && video.SubmitDecoded({1, 2.0, 201}),
           "media seek did not invalidate stale decode output");
+
+  Require(graph.Play(1), "looping animation did not restart");
+  const auto looped = graph.Update(1.0F);
+  Require(std::abs(looped.root_motion.x - 2.0F) < 0.001F,
+          "looped animation root motion did not preserve cycle displacement");
+
+  VideoPlayer ordered{3};
+  Require(ordered.SubmitDecoded({1, 0.2, 300}) &&
+              !ordered.SubmitDecoded({2, 0.1, 301}),
+          "video accepted out-of-order presentation timestamps");
+
+  ParticleSystem baseline{10000, ParticleRenderer::Sprite};
+  const auto begin = std::chrono::steady_clock::now();
+  for (int index = 0; index < 10000; ++index)
+    Require(baseline.Spawn({{}, {1, 0, 0}, 1.0F}), "particle baseline spawn failed");
+  baseline.Update(0.01F);
+  Require(baseline.Count() == 10000 &&
+              std::chrono::steady_clock::now() - begin < std::chrono::seconds(2),
+          "presentation performance baseline failed");
   return 0;
 }
 } // namespace

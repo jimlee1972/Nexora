@@ -4,6 +4,45 @@
 #include <cmath>
 
 namespace nexora::runtime {
+namespace {
+bool IsValidUtf8(std::string_view text) noexcept {
+  for (std::size_t byte = 0; byte < text.size();) {
+    const auto first = static_cast<unsigned char>(text[byte]);
+    std::size_t width = 0;
+    std::uint32_t codepoint = 0;
+    if (first <= 0x7FU) {
+      width = 1;
+      codepoint = first;
+    } else if (first >= 0xC2U && first <= 0xDFU) {
+      width = 2;
+      codepoint = first & 0x1FU;
+    } else if (first >= 0xE0U && first <= 0xEFU) {
+      width = 3;
+      codepoint = first & 0x0FU;
+    } else if (first >= 0xF0U && first <= 0xF4U) {
+      width = 4;
+      codepoint = first & 0x07U;
+    } else {
+      return false;
+    }
+    if (byte + width > text.size())
+      return false;
+    for (std::size_t index = 1; index < width; ++index) {
+      const auto continuation = static_cast<unsigned char>(text[byte + index]);
+      if ((continuation & 0xC0U) != 0x80U)
+        return false;
+      codepoint = (codepoint << 6U) | (continuation & 0x3FU);
+    }
+    if ((width == 2 && codepoint < 0x80U) ||
+        (width == 3 && codepoint < 0x800U) ||
+        (width == 4 && codepoint < 0x10000U) || codepoint > 0x10FFFFU ||
+        (codepoint >= 0xD800U && codepoint <= 0xDFFFU))
+      return false;
+    byte += width;
+  }
+  return true;
+}
+} // namespace
 
 std::uint64_t InputSystem::DeviceKey(InputDeviceKind kind, std::uint32_t id) noexcept {
   return (static_cast<std::uint64_t>(kind) << 32U) | id;
@@ -71,8 +110,14 @@ bool LocalizationTable::SetLocale(std::string locale) {
   return true;
 }
 void LocalizationTable::Set(std::string locale, std::string key, std::string value) {
-  values_[std::move(locale)].insert_or_assign(std::move(key), std::move(value));
+  auto &table = values_[std::move(locale)];
+  const auto found = table.find(key);
+  if (found != table.end() && found->second == value)
+    return;
+  table.insert_or_assign(std::move(key), std::move(value));
+  ++generation_;
 }
+
 std::string LocalizationTable::Resolve(std::string_view key) const {
   const auto locale = values_.find(locale_);
   if (locale != values_.end()) {
@@ -82,7 +127,6 @@ std::string LocalizationTable::Resolve(std::string_view key) const {
   }
   return std::string(key);
 }
-
 UIDocument::UIDocument(float width, float height) { SetLogicalResolution(width, height); }
 UIElementId UIDocument::Create(UIElementKind kind, UIElementId parent) {
   if (parent != 0 && Find(parent) == nullptr)
@@ -238,22 +282,19 @@ std::vector<Rect> BuildNineSlice(Rect rect, NineSliceBorders b) {
 }
 
 std::optional<std::size_t> TextEditBuffer::ByteOffset(std::string_view text, std::size_t point) {
+  if (!IsValidUtf8(text))
+    return std::nullopt;
   std::size_t current = 0;
   for (std::size_t byte = 0; byte < text.size();) {
-    if (current++ == point)
+    if (current == point)
       return byte;
     const auto c = static_cast<unsigned char>(text[byte]);
     const std::size_t width = c < 0x80             ? 1
                               : (c & 0xE0) == 0xC0 ? 2
                               : (c & 0xF0) == 0xE0 ? 3
-                              : (c & 0xF8) == 0xF0 ? 4
-                                                   : 0;
-    if (!width || byte + width > text.size())
-      return std::nullopt;
-    for (std::size_t i = 1; i < width; ++i)
-      if ((static_cast<unsigned char>(text[byte + i]) & 0xC0) != 0x80)
-        return std::nullopt;
+                                                   : 4;
     byte += width;
+    ++current;
   }
   return current == point ? std::optional{text.size()} : std::nullopt;
 }

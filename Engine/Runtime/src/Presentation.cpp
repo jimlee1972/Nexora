@@ -13,6 +13,12 @@ Vec3 Lerp(Vec3 a, Vec3 b, float alpha) { return Add(a, Scale(Subtract(b, a), alp
 bool Finite(Vec3 value) {
   return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
 }
+Vec3 RootTranslation(const AnimationAsset &clip, bool end) {
+  for (const auto &track : clip.tracks)
+    if (track.joint == 0)
+      return end ? track.translations.back().value : track.translations.front().value;
+  return {};
+}
 } // namespace
 
 bool Skeleton::Build(std::vector<Joint> joints) {
@@ -38,13 +44,15 @@ bool AnimationGraph::AddClip(AnimationAsset clip) {
   if (clip.id == 0 || !std::isfinite(clip.duration) || clip.duration <= 0.0F ||
       skeleton_.JointCount() == 0 || clips_.contains(clip.id))
     return false;
+  std::vector<bool> track_seen(skeleton_.JointCount());
   for (const auto &track : clip.tracks) {
-    if (track.joint >= skeleton_.JointCount() || track.translations.empty())
+    if (track.joint >= skeleton_.JointCount() || track.translations.empty() || track_seen[track.joint])
       return false;
+    track_seen[track.joint] = true;
     float previous = -1.0F;
     for (const auto &key : track.translations) {
       if (!std::isfinite(key.time) || key.time < 0.0F || key.time > clip.duration ||
-          key.time < previous || !Finite(key.value))
+          key.time <= previous || !Finite(key.value))
         return false;
       previous = key.time;
     }
@@ -96,8 +104,24 @@ AnimationPose AnimationGraph::Update(float seconds) {
   const auto before = Sample(active_, time_);
   time_ += seconds;
   auto pose = Sample(active_, time_);
-  if (!pose.translations.empty())
+  if (!pose.translations.empty()) {
     pose.root_motion = Subtract(pose.translations.front(), before.translations.front());
+    const auto &clip = clips_.at(active_);
+    if (clip.looping && seconds > 0.0F) {
+      const auto previous_cycle =
+          static_cast<std::uint64_t>(std::floor((time_ - seconds) / clip.duration));
+      const auto current_cycle = static_cast<std::uint64_t>(std::floor(time_ / clip.duration));
+      if (current_cycle > previous_cycle) {
+        const auto start = RootTranslation(clip, false);
+        const auto end = RootTranslation(clip, true);
+        const auto completed = current_cycle - previous_cycle;
+        pose.root_motion = Add(
+            Subtract(end, before.translations.front()),
+            Scale(Subtract(end, start), static_cast<float>(completed - 1)));
+        pose.root_motion = Add(pose.root_motion, Subtract(pose.translations.front(), start));
+      }
+    }
+  }
   if (previous_ != 0 && blend_time_ < blend_duration_) {
     previous_time_ += seconds;
     blend_time_ += seconds;
@@ -201,7 +225,8 @@ void ParticleSystem::Update(float seconds) {
 bool VideoPlayer::SubmitDecoded(DecodedVideoFrame frame) {
   if (capacity_ == 0 || frames_.size() >= capacity_ || frame.sequence <= last_sequence_ ||
       frame.texture == 0 || !std::isfinite(frame.presentation_time) ||
-      frame.presentation_time < seek_time_)
+      frame.presentation_time < seek_time_ ||
+      (!frames_.empty() && frame.presentation_time < frames_.back().presentation_time))
     return false;
   last_sequence_ = frame.sequence;
   frames_.push_back(frame);

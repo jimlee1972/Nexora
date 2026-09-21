@@ -16,6 +16,9 @@ SimulationVector Sub(SimulationVector a, SimulationVector b) {
 }
 SimulationVector Mul(SimulationVector a, double b) { return {a.x * b, a.y * b, a.z * b}; }
 double Length(SimulationVector a) { return std::sqrt(a.x * a.x + a.y * a.y + a.z * a.z); }
+bool Finite(SimulationVector a) {
+  return std::isfinite(a.x) && std::isfinite(a.y) && std::isfinite(a.z);
+}
 SimulationVector Normalize(SimulationVector a) {
   const auto n = Length(a);
   return n > 0 ? Mul(a, 1 / n) : SimulationVector{};
@@ -23,7 +26,8 @@ SimulationVector Normalize(SimulationVector a) {
 } // namespace
 
 bool PhysicsWorld::AddBody(PhysicsBody body) {
-  if (body.id == 0 || bodies_.contains(body.id) || body.minimum.x > body.maximum.x ||
+  if (body.id == 0 || bodies_.contains(body.id) || !Finite(body.minimum) ||
+      !Finite(body.maximum) || !Finite(body.velocity) || body.minimum.x > body.maximum.x ||
       body.minimum.y > body.maximum.y || body.minimum.z > body.maximum.z)
     return false;
   return bodies_.emplace(body.id, body).second;
@@ -42,7 +46,8 @@ void PhysicsWorld::Step(double seconds) {
   }
 }
 std::optional<PhysicsHit> PhysicsWorld::Raycast(const RaycastRequest &request) const {
-  if (request.distance < 0 || !std::isfinite(request.distance))
+  if (!Finite(request.origin) || !Finite(request.direction) || request.distance < 0 ||
+      !std::isfinite(request.distance))
     return std::nullopt;
   const auto direction = Normalize(request.direction);
   if (Length(direction) == 0)
@@ -160,7 +165,10 @@ void CharacterController::Teleport(CharacterState &state, SimulationVector posit
 CharacterMoveResult StandardCharacterMotor::Tick(CharacterState &state, const CharacterInput &input,
                                                  double seconds, const PhysicsWorld &physics,
                                                  const CharacterController &controller) {
-  if (!std::isfinite(seconds) || seconds <= 0)
+  if (!std::isfinite(seconds) || seconds <= 0 || !Finite(state.position) ||
+      !Finite(state.velocity) || !Finite(input.root_motion) ||
+      !Finite(input.external_velocity) || !std::isfinite(input.move_x) ||
+      !std::isfinite(input.move_z))
     return {};
   auto planar = SimulationVector{input.move_x, 0, input.move_z};
   const auto max_speed = (input.flags & CharacterSprint) != 0 ? 8.0 : 5.0;
@@ -237,7 +245,8 @@ std::optional<NavigationPath> NavigationWorld::FindPath(SimulationId start,
 SimulationVector NavigationWorld::DesiredVelocity(const NavigationPath &path,
                                                   SimulationVector position,
                                                   double max_speed) const {
-  if (path.generation != generation_ || path.points.empty() || max_speed <= 0)
+  if (path.generation != generation_ || path.points.empty() || !Finite(position) ||
+      !std::isfinite(max_speed) || max_speed <= 0)
     return {};
   auto target = path.points.back();
   for (const auto &point : path.points)
@@ -258,44 +267,57 @@ const BlackboardValue *Blackboard::Get(std::size_t slot) const {
   return slot < slots_.size() ? &slots_[slot] : nullptr;
 }
 bool BehaviorProgram::Evaluate(std::uint32_t index, const Blackboard &blackboard,
-                               BehaviorTrace &trace) const {
-  if (index >= nodes_.size())
+                               BehaviorTrace &trace,
+                               std::vector<std::uint8_t> &active) const {
+  if (index >= nodes_.size() || active[index] != 0)
     return false;
+  active[index] = 1;
   trace.visited.push_back(index);
   const auto &node = nodes_[index];
+  bool result = false;
   if (node.op == BehaviorOp::Succeed)
-    return true;
-  if (node.op == BehaviorOp::Fail)
-    return false;
-  if (node.op == BehaviorOp::BlackboardBool) {
+    result = true;
+  else if (node.op == BehaviorOp::Fail)
+    result = false;
+  else if (node.op == BehaviorOp::BlackboardBool) {
     const auto *value = blackboard.Get(node.slot);
-    return value && std::holds_alternative<bool>(*value) && std::get<bool>(*value);
+    result = value && std::holds_alternative<bool>(*value) && std::get<bool>(*value);
+  } else if (node.first_child <= nodes_.size() &&
+             node.child_count <= nodes_.size() - node.first_child) {
+    if (node.op == BehaviorOp::Sequence) {
+      result = true;
+      for (std::uint32_t i = 0; i < node.child_count; ++i)
+        if (!Evaluate(node.first_child + i, blackboard, trace, active)) {
+          result = false;
+          break;
+        }
+    } else if (node.op == BehaviorOp::Selector) {
+      for (std::uint32_t i = 0; i < node.child_count; ++i)
+        if (Evaluate(node.first_child + i, blackboard, trace, active)) {
+          result = true;
+          break;
+        }
+    }
   }
-  if (node.first_child > nodes_.size() || node.child_count > nodes_.size() - node.first_child)
-    return false;
-  if (node.op == BehaviorOp::Sequence) {
-    for (std::uint32_t i = 0; i < node.child_count; ++i)
-      if (!Evaluate(node.first_child + i, blackboard, trace))
-        return false;
-    return true;
-  }
-  for (std::uint32_t i = 0; i < node.child_count; ++i)
-    if (Evaluate(node.first_child + i, blackboard, trace))
-      return true;
-  return false;
+  active[index] = 0;
+  return result;
 }
 BehaviorTrace BehaviorProgram::Tick(const Blackboard &blackboard) const {
   BehaviorTrace trace;
-  trace.succeeded = !nodes_.empty() && Evaluate(0, blackboard, trace);
+  std::vector<std::uint8_t> active(nodes_.size());
+  trace.succeeded = !nodes_.empty() && Evaluate(0, blackboard, trace, active);
   return trace;
 }
 void PerceptionSystem::Publish(Stimulus stimulus) {
-  if (stimulus.source != 0 && stimulus.strength >= 0)
+  if (stimulus.source != 0 && Finite(stimulus.position) &&
+      std::isfinite(stimulus.strength) && stimulus.strength >= 0)
     stimuli_.push_back(stimulus);
 }
 std::vector<Stimulus> PerceptionSystem::Query(SimulationVector observer, double range,
                                               std::size_t budget) const {
   std::vector<Stimulus> result;
+  if (!Finite(observer) || !std::isfinite(range) || range < 0.0)
+    return result;
   for (const auto &stimulus : stimuli_) {
     if (result.size() >= budget)
       break;

@@ -27,13 +27,19 @@ if(NOT NEXORA_SHIPPING_PROFILE MATCHES "^(Minimal|Full|Dedicated)$")
 endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Shipping")
   if(NEXORA_SHIPPING_PROFILE STREQUAL "Minimal")
-    set(NEXORA_ENABLE_EDITOR_SDK OFF)
-    set(NEXORA_FEATURE_EXAMPLE_PLUGIN OFF)
+    set(NEXORA_ENABLE_EDITOR_SDK OFF CACHE BOOL
+        "Build the V1-M6 reflection, plugin host, scene editor, and prefab foundation" FORCE)
+    set(NEXORA_FEATURE_EXAMPLE_PLUGIN OFF CACHE BOOL
+        "Build the example optional plugin" FORCE)
   elseif(NEXORA_SHIPPING_PROFILE STREQUAL "Dedicated")
-    set(NEXORA_ENABLE_EDITOR_SDK OFF)
-    set(NEXORA_FEATURE_EXAMPLE_PLUGIN OFF)
-    set(NEXORA_ENABLE_PRESENTATION OFF)
-    set(NEXORA_ENABLE_SCENE_RENDERING OFF)
+    set(NEXORA_ENABLE_EDITOR_SDK OFF CACHE BOOL
+        "Build the V1-M6 reflection, plugin host, scene editor, and prefab foundation" FORCE)
+    set(NEXORA_FEATURE_EXAMPLE_PLUGIN OFF CACHE BOOL
+        "Build the example optional plugin" FORCE)
+    set(NEXORA_ENABLE_PRESENTATION OFF CACHE BOOL
+        "Build the V1-M9 animation, audio, VFX, and media foundation" FORCE)
+    set(NEXORA_ENABLE_SCENE_RENDERING OFF CACHE BOOL
+        "Build the V1-M4 scene presentation path" FORCE)
   endif()
 endif()
 

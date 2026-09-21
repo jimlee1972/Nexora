@@ -24,7 +24,8 @@ void Streaming() {
   Require(s.AddCell({10, 110, 210, Box(0, 0, 100, 100), 400, 300, 40, 30}) &&
               s.AddCell({11, 111, 211, Box(100, 0, 200, 100), 400, 300, 40, 30}),
           "cell add failed");
-  Require(!s.AddCell({12, 12, 212, Box(200, 0, 300, 100), 1, 1, 1, 1}),
+  Require(!s.AddCell({12, 12, 212, Box(200, 0, 300, 100), 1, 1, 1, 1}) &&
+              !s.AddCell({12, 110, 212, Box(200, 0, 300, 100), 1, 1, 1, 1}),
           "cell/bundle identity accepted");
   Require(s.AddPortal(10, 11) && s.AddOrUpdateSource({1, {50, 0, 50}, 25, 60, 5}) && s.Update(),
           "streaming update failed");

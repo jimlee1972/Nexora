@@ -1,5 +1,7 @@
 #include "Nexora/Runtime/GameplaySimulation.h"
+#include <chrono>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 using namespace nexora::runtime;
 static void Require(bool value, const char *message) {
@@ -54,5 +56,22 @@ int main() {
   perception.Publish({7, StimulusKind::Hearing, {2, 0, 0}, 1});
   perception.Publish({8, StimulusKind::Sight, {3, 0, 0}, 1});
   Require(perception.Query({0, 0, 0}, 10, 1).size() == 1, "perception budget failed");
+  perception.Publish({9, StimulusKind::Sight,
+                      {std::numeric_limits<double>::quiet_NaN(), 0, 0}, 1});
+  Require(perception.Query({0, 0, 0}, std::numeric_limits<double>::quiet_NaN(), 1).empty(),
+          "invalid perception input was accepted");
+
+  BehaviorProgram cycle({{BehaviorOp::Sequence, 1, 1, 0},
+                         {BehaviorOp::Sequence, 0, 1, 0}});
+  const auto cycle_trace = cycle.Tick(blackboard);
+  Require(!cycle_trace.succeeded && cycle_trace.visited == std::vector<std::uint32_t>({0, 1}),
+          "cyclic behavior program was not bounded");
+
+  std::vector<RaycastRequest> baseline_requests(10000, RaycastRequest{{0, 2, 0}, {0, -1, 0}, 10});
+  const auto begin = std::chrono::steady_clock::now();
+  const auto baseline_hits = physics.RaycastBatch(baseline_requests);
+  Require(baseline_hits.size() == baseline_requests.size() &&
+              std::chrono::steady_clock::now() - begin < std::chrono::seconds(2),
+          "physics batch performance baseline failed");
   return 0;
 }

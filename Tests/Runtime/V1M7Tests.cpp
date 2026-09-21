@@ -1,5 +1,6 @@
 #include "Nexora/Runtime/InputUi.h"
 
+#include <chrono>
 #include <stdexcept>
 
 using namespace nexora::runtime;
@@ -79,8 +80,12 @@ int main() {
   document.RefreshLocalization(localization);
   document.SetEnabled(false);
   Require(localization.SetLocale("zh"), "locale change failed");
+  const auto before_content_update = localization.Generation();
+  localization.Set("zh", "play", "遊玩+");
+  Require(localization.Generation() > before_content_update,
+          "localization content update did not advance generation");
   document.SetEnabled(true, &localization);
-  Require(document.Find(button)->text == "遊玩" &&
+  Require(document.Find(button)->text == "遊玩+" &&
               document.AppliedLocalizationGeneration() == localization.Generation(),
           "disabled UI did not refresh localization");
 
@@ -94,5 +99,21 @@ int main() {
   Require(edit.BeginComposition(1) && edit.UpdateComposition("好") && edit.CommitComposition(),
           "IME composition failed");
   Require(edit.Text() == "A好界" && edit.Undo() && edit.Text() == "A界", "UTF-8 edit undo failed");
+
+  TextEditBuffer invalid_utf8;
+  invalid_utf8.Set(std::string{static_cast<char>(0xC0), static_cast<char>(0xAF)});
+  Require(invalid_utf8.Text().empty(), "invalid UTF-8 was accepted");
+  Require(!invalid_utf8.BeginComposition(1), "invalid UTF-8 exposed a code-point boundary");
+
+  InputSystem baseline;
+  Require(baseline.Assign(0, InputDeviceKind::Keyboard, 0), "baseline input assignment failed");
+  const auto begin = std::chrono::steady_clock::now();
+  for (std::uint64_t sequence = 1; sequence <= 10000; ++sequence)
+    Require(baseline.Push({sequence, InputDeviceKind::Keyboard, 0, InputEventKind::Button,
+                           "baseline", 1, 0, 0, 0, {}}),
+            "baseline input push failed");
+  Require(baseline.Consume(0).size() == 10000 &&
+              std::chrono::steady_clock::now() - begin < std::chrono::seconds(2),
+          "input routing performance baseline failed");
   return 0;
 }
