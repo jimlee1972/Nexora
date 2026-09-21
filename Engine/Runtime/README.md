@@ -21,6 +21,21 @@ fallback, unreachable navigation, animation looping, audio voice limits, media b
 seek invalidation. Platform SDK adapters and production authoring tools remain future work and
 must preserve these interfaces rather than bypassing their lifecycle checks.
 
+## V1-M10 large-world runtime
+
+`LargeWorld.h` defines stable fixed-grid addressing, spatial lookup, streaming demand, room/portal
+prefetch, offline HLOD, terrain patches, and instanced vegetation. `StreamingManager` keeps cell,
+full-bundle, and HLOD-bundle identities separate; ranks source demand deterministically; applies
+unload hysteresis; and exposes RAM/VRAM use and rejected transitions. Occupied cells remain fully
+resident for collision continuity even when a source leaves or the budget is temporarily too small.
+Far HLOD has independent memory cost and residency and can therefore outlive its full cell.
+
+Terrain uses cullable clipmap patches and vegetation uses species-owned instance arrays, so neither
+creates `World` entities. All objects are synchronous and caller-owned; returned views remain valid
+only until their owner is mutated. Configure with `-DNEXORA_ENABLE_LARGE_WORLD=OFF` to strip the
+implementation. The enabled test covers every M10 gate, failure paths, portal prefetch, LOD/culling,
+and a 10,000-item spatial performance baseline.
+
 ## V1-M9 presentation runtime
 
 `Presentation.h` is the backend-neutral boundary for Animation, Audio, VFX, and Video. Animation
