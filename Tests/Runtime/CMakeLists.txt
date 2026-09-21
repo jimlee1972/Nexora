@@ -23,3 +23,21 @@ else()
   add_test(NAME runtime.v1_m5_feature_strip
     COMMAND "${CMAKE_COMMAND}" -E echo "V1-M5 asset pipeline stripped")
 endif()
+
+if(NEXORA_ENABLE_EDITOR_SDK)
+  add_executable(NexoraV1M6Tests V1M6Tests.cpp)
+  target_link_libraries(NexoraV1M6Tests PRIVATE Nexora::Runtime)
+  nexora_apply_defaults(NexoraV1M6Tests)
+  add_test(NAME runtime.v1_m6_editor_sdk COMMAND NexoraV1M6Tests)
+  # The example plugin is the real .so/.dll PluginHost loads to prove the
+  # stable-ABI contract end-to-end; it is optional (NEXORA_FEATURE_EXAMPLE_PLUGIN),
+  # so only wire its path in when the target actually exists.
+  if(TARGET NexoraExamplePlugin)
+    add_dependencies(NexoraV1M6Tests NexoraExamplePlugin)
+    set_property(TEST runtime.v1_m6_editor_sdk APPEND PROPERTY ENVIRONMENT
+      "NEXORA_EXAMPLE_PLUGIN_PATH=$<TARGET_FILE:NexoraExamplePlugin>")
+  endif()
+else()
+  add_test(NAME runtime.v1_m6_feature_strip
+    COMMAND "${CMAKE_COMMAND}" -E echo "V1-M6 editor SDK stripped")
+endif()
