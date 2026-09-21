@@ -8,7 +8,7 @@ Instead, it makes the ownership and safety boundaries executable before those in
 | --- | --- |
 | M4 | Additive scene lifecycle, stable entity IDs, deferred safe unload, double-precision transforms |
 | M5 | Hash-validated asset generations, dependency-cycle rejection, pinning and rollback |
-| M6 | Reflection metadata, a real dynamic plugin loader with a stable C ABI gate, a scene editor built on Create/Modify/Undo, and prefab override/rebase (see below for the full vertical slice; `ExtensionRegistry`/`UndoStack` remain the lighter M6 row exercised by `runtime.v1_m4_m12_contracts`) |
+| M6 | Reflection metadata, a real dynamic plugin loader with a stable C ABI gate and service registration, a scene editor built on Create/Modify/Undo, and prefab override/rebase (see below for the full vertical slice; `ExtensionRegistry`/`UndoStack` remain the lighter M6 row exercised by `runtime.v1_m4_m12_contracts`) |
 | M7 | Device-neutral input routing, stable touch IDs, virtual-list materialization and locale fallback |
 | M8 | Separate character intent and resolved motion; query-only navigation paths do not write transforms |
 | M9 | Animation playback, bounded audio voices, reference-counted residency and a timestamped media queue |
@@ -118,14 +118,29 @@ duplicate type name or ID; it is deliberately independent of any specific reflec
 than hand-annotating `World`'s existing structs.
 
 `PluginHost` is a real cross-platform dynamic loader (`dlopen`/`dlsym` on Linux and macOS,
-`LoadLibrary`/`GetProcAddress` on Windows), not an in-process descriptor comparison. The plugin
-contract is the single exported C symbol `NexoraPluginAbiVersion()` (see
+`LoadLibrary`/`GetProcAddress` on Windows), not an in-process descriptor comparison. The required
+plugin contract is the single exported C symbol `NexoraPluginAbiVersion()` (see
 `Plugins/Example/ExamplePlugin.cpp`, which only includes the public `Nexora/Foundation/BuildInfo.h`
-header). `Load()` resolves that symbol and closes the library immediately, before any other use,
-if the symbol is missing or its reported ABI does not match the host's -- an ABI mismatch never
-reaches a second engine call. Adding a new plugin requires only a manifest and this one exported
-symbol: no Engine source changes and no private Engine header. `ServiceRegistry` is a separate
-name-keyed lookup for typed services that plugins and engine subsystems publish to each other.
+and `Nexora/Foundation/PluginAbi.h` headers). `Load()` resolves that symbol and closes the library
+immediately, before resolving or calling anything else, if the symbol is missing or its reported
+ABI does not match the host's -- an ABI mismatch never reaches a second engine call, including the
+registration step below. Adding a new plugin requires only a manifest and this one exported symbol:
+no Engine source changes and no private Engine header.
+
+`ServiceRegistry` is a name-keyed lookup for typed services that plugins and engine subsystems
+publish to each other, and `PluginHost` actually connects a loaded plugin to one: a plugin that
+additionally exports the optional `NexoraPluginRegister` symbol (also declared in `PluginAbi.h`, as
+a plain C function-pointer signature -- the plugin side of the ABI never needs a `Nexora::Runtime`
+C++ type such as `ServiceRegistry` itself) gets it called once, after the ABI check passes, with a
+callback the plugin uses to publish services into the `ServiceRegistry` passed to `Load()`.
+`Plugins/Example/ExamplePlugin.cpp` exports this and registers a real string service, so
+`runtime.v1_m6_editor_sdk` proves the full loop -- ABI gate, dynamic load, and registration --
+against a built artifact, not a mock. Registration is optional: `Load()` without a `ServiceRegistry`
+argument (or a plugin that omits `NexoraPluginRegister`) only proves ABI compatibility, which is a
+legitimate plugin on its own. This `ServiceRegistry`/`PluginHost` pair is the real, dynamically-loaded
+extension mechanism; the pre-existing in-process `ExtensionRegistry` (`Runtime.h`, from the earlier
+M4-M12 contract sweep, exercised by `runtime.v1_m4_m12_contracts`) is a lighter descriptor/ABI-number
+bookkeeping structure that predates this milestone and does not itself load anything.
 
 `SceneEditor` composes `World`, `WorldCommandBuffer`, and `UndoStack` (from the M4 vertical slice)
 into Create/Modify/Undo operations. Undoing a destroyed entity restores its component data, but
@@ -147,8 +162,8 @@ getter.
 Configure with `-DNEXORA_ENABLE_EDITOR_SDK=OFF` to omit this file from `NexoraRuntime`; the disabled
 configuration runs a dedicated feature-strip test. The enabled test additionally loads
 `NexoraExamplePlugin`'s real built shared library through `PluginHost` when
-`NEXORA_FEATURE_EXAMPLE_PLUGIN` is on, proving the ABI gate against an artifact built from nothing
-but the public plugin contract, not a mock.
+`NEXORA_FEATURE_EXAMPLE_PLUGIN` is on, proving both the ABI gate and service registration against an
+artifact built from nothing but the public plugin contract, not a mock.
 
 **Scope note:** this milestone's graphical surfaces -- Hierarchy, Scene View, Game View, Inspector,
 Property Drawer, Asset Browser, Gizmo, and Profiler UI -- are not implemented here. They need a

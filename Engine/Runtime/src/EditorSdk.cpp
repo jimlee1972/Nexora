@@ -1,5 +1,7 @@
 #include "Nexora/Runtime/EditorSdk.h"
 
+#include "Nexora/Foundation/PluginAbi.h"
+
 #include <algorithm>
 #include <cstring>
 
@@ -33,6 +35,10 @@ void *OpenLibrary(const std::string &path) { return dlopen(path.c_str(), RTLD_NO
 void CloseLibrary(void *handle) { dlclose(handle); }
 void *ResolveSymbol(void *handle, const char *name) { return dlsym(handle, name); }
 #endif
+
+void RegisterServiceTrampoline(void *context, const char *name, void *service) {
+  static_cast<ServiceRegistry *>(context)->Register(name, service);
+}
 
 template <typename Node> Node *FindNodeImpl(Node &node, std::string_view path) {
   if (path.empty())
@@ -79,23 +85,30 @@ const TypeDescriptor *ReflectionRegistry::FindById(TypeId id) const {
 
 PluginHost::~PluginHost() { UnloadAll(); }
 
-PluginLoadResult PluginHost::Load(const std::string &library_path) {
+PluginLoadResult PluginHost::Load(const std::string &library_path, ServiceRegistry *services) {
   void *handle = OpenLibrary(library_path);
   if (!handle)
-    return {false, PluginLoadError::OpenFailed, 0};
-  void *symbol = ResolveSymbol(handle, "NexoraPluginAbiVersion");
-  if (!symbol) {
+    return {false, PluginLoadError::OpenFailed, 0, false};
+  void *abi_symbol = ResolveSymbol(handle, "NexoraPluginAbiVersion");
+  if (!abi_symbol) {
     CloseLibrary(handle);
-    return {false, PluginLoadError::MissingAbiSymbol, 0};
+    return {false, PluginLoadError::MissingAbiSymbol, 0, false};
   }
   using AbiVersionFn = std::uint32_t (*)();
-  const auto reported = FunctionCast<AbiVersionFn>(symbol)();
+  const auto reported = FunctionCast<AbiVersionFn>(abi_symbol)();
   if (reported != engine_abi_) {
     CloseLibrary(handle);
-    return {false, PluginLoadError::AbiMismatch, reported};
+    return {false, PluginLoadError::AbiMismatch, reported, false};
+  }
+  bool registered = false;
+  if (services != nullptr) {
+    if (void *register_symbol = ResolveSymbol(handle, "NexoraPluginRegister")) {
+      FunctionCast<NexoraPluginRegisterFn>(register_symbol)(services, &RegisterServiceTrampoline);
+      registered = true;
+    }
   }
   handles_.push_back(handle);
-  return {true, PluginLoadError::None, reported};
+  return {true, PluginLoadError::None, reported, registered};
 }
 void PluginHost::UnloadAll() noexcept {
   for (auto *handle : handles_)
