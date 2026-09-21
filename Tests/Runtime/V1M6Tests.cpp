@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
 
 namespace {
 using namespace nexora::runtime;
@@ -47,17 +48,21 @@ int Run() {
   if (const auto *plugin_path = std::getenv("NEXORA_EXAMPLE_PLUGIN_PATH");
       plugin_path != nullptr && *plugin_path != '\0') {
     PluginHost mismatched_host(nexora::foundation::kEngineAbiVersion + 1);
-    const auto mismatch = mismatched_host.Load(plugin_path);
+    const auto mismatch = mismatched_host.Load(plugin_path, &services);
     Require(!mismatch.loaded && mismatch.error == PluginLoadError::AbiMismatch &&
                 mismatch.reported_abi == nexora::foundation::kEngineAbiVersion &&
-                mismatched_host.LoadedCount() == 0,
-            "ABI-mismatched plugin was loaded instead of being rejected before use");
+                !mismatch.registered && mismatched_host.LoadedCount() == 0 &&
+                services.Find("example.marker") == nullptr,
+            "ABI-mismatched plugin was loaded or registered instead of being rejected before use");
 
-    const auto matched = matching_host.Load(plugin_path);
+    const auto matched = matching_host.Load(plugin_path, &services);
     Require(matched.loaded && matched.error == PluginLoadError::None &&
                 matched.reported_abi == nexora::foundation::kEngineAbiVersion &&
-                matching_host.LoadedCount() == 1,
-            "an ABI-matched plugin built from only public headers failed to load");
+                matched.registered && matching_host.LoadedCount() == 1,
+            "an ABI-matched plugin built from only public headers failed to load or register");
+    const auto *marker = static_cast<const char *>(services.Find("example.marker"));
+    Require(marker != nullptr && std::string_view(marker) == "Nexora example plugin",
+            "plugin registration did not reach the host's service registry");
   } else {
     std::cout << "V1-M6: NEXORA_EXAMPLE_PLUGIN_PATH not set, skipping the real plugin load\n";
   }

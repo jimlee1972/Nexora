@@ -131,9 +131,11 @@ cook, or verification failure.
 
 V1-M6 adds reflection metadata, a real cross-platform plugin loader (`dlopen`/`LoadLibrary`, not an
 in-process comparison) that gates on a stable C ABI symbol and rejects a mismatch before any other
-use, a scene editor built on Create/Modify/Undo, and prefab override/rebase with nested-prefab
-composition. It does not include a graphical Hierarchy/Scene View/Game View/Inspector/Gizmo editor,
-which needs a windowing/rendering front end this repository does not have yet.
+use -- including an optional second entry point a plugin exports to register services back into the
+engine over a plain C callback -- a scene editor built on Create/Modify/Undo, and prefab
+override/rebase with nested-prefab composition. It does not include a graphical Hierarchy/Scene
+View/Game View/Inspector/Gizmo editor, which needs a windowing/rendering front end this repository
+does not have yet.
 
 ## Later runtime contracts
 

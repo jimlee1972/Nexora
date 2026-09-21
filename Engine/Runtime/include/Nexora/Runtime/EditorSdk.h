@@ -42,38 +42,9 @@ private:
   std::unordered_map<std::string, TypeId> by_name_;
 };
 
-// ---- Plugin host: stable C ABI, real dynamic loading ----
-//
-// The plugin contract is the single exported symbol `NexoraPluginAbiVersion()`
-// (see Plugins/Example/ExamplePlugin.cpp). PluginHost resolves it and rejects
-// the plugin before any other use if the symbol is missing or the reported
-// ABI does not match the host's. No private engine header is required to
-// author a plugin, and no engine source changes are required to add one.
-
-enum class PluginLoadError { None, OpenFailed, MissingAbiSymbol, AbiMismatch };
-struct PluginLoadResult final {
-  bool loaded{};
-  PluginLoadError error{PluginLoadError::None};
-  std::uint32_t reported_abi{};
-};
-
-class NEXORA_RUNTIME_API PluginHost final {
-public:
-  explicit PluginHost(std::uint32_t engine_abi) noexcept : engine_abi_(engine_abi) {}
-  ~PluginHost();
-  PluginHost(const PluginHost &) = delete;
-  PluginHost &operator=(const PluginHost &) = delete;
-
-  [[nodiscard]] PluginLoadResult Load(const std::string &library_path);
-  void UnloadAll() noexcept;
-  [[nodiscard]] std::size_t LoadedCount() const noexcept { return handles_.size(); }
-
-private:
-  std::uint32_t engine_abi_;
-  std::vector<void *> handles_;
-};
-
 // ---- Service registry ----
+// (declared before PluginHost: Load() optionally publishes a plugin's
+// services into one)
 
 class NEXORA_RUNTIME_API ServiceRegistry final {
 public:
@@ -84,6 +55,48 @@ public:
 
 private:
   std::unordered_map<std::string, void *> services_;
+};
+
+// ---- Plugin host: stable C ABI, real dynamic loading ----
+//
+// The required contract is the single exported symbol `NexoraPluginAbiVersion()`
+// (see Plugins/Example/ExamplePlugin.cpp and Nexora/Foundation/PluginAbi.h).
+// PluginHost resolves it and rejects the plugin before any other use -- before
+// resolving or calling anything else, including the optional registration
+// entry point below -- if the symbol is missing or the reported ABI does not
+// match the host's. No private engine header is required to author a plugin,
+// and no engine source changes are required to add one.
+//
+// A plugin that additionally exports `NexoraPluginRegister` (optional; see
+// PluginAbi.h for its C function-pointer signature) gets it called once,
+// after the ABI check passes, with a callback it can use to publish services
+// into the ServiceRegistry passed to Load(). Passing no ServiceRegistry (the
+// default) skips registration entirely, e.g. for a Load() call that only
+// wants to verify ABI compatibility.
+
+enum class PluginLoadError { None, OpenFailed, MissingAbiSymbol, AbiMismatch };
+struct PluginLoadResult final {
+  bool loaded{};
+  PluginLoadError error{PluginLoadError::None};
+  std::uint32_t reported_abi{};
+  bool registered{};
+};
+
+class NEXORA_RUNTIME_API PluginHost final {
+public:
+  explicit PluginHost(std::uint32_t engine_abi) noexcept : engine_abi_(engine_abi) {}
+  ~PluginHost();
+  PluginHost(const PluginHost &) = delete;
+  PluginHost &operator=(const PluginHost &) = delete;
+
+  [[nodiscard]] PluginLoadResult Load(const std::string &library_path,
+                                      ServiceRegistry *services = nullptr);
+  void UnloadAll() noexcept;
+  [[nodiscard]] std::size_t LoadedCount() const noexcept { return handles_.size(); }
+
+private:
+  std::uint32_t engine_abi_;
+  std::vector<void *> handles_;
 };
 
 // ---- Scene editor: Create / Modify / Undo over World ----
