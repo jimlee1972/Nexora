@@ -8,7 +8,7 @@ Instead, it makes the ownership and safety boundaries executable before those in
 | --- | --- |
 | M4 | Additive scene lifecycle, stable entity IDs, deferred safe unload, double-precision transforms |
 | M5 | Hash-validated asset generations, dependency-cycle rejection, pinning and rollback |
-| M6 | Reflection metadata, a real dynamic plugin loader with a stable C ABI gate and service registration, a scene editor built on Create/Modify/Undo, and prefab override/rebase (see below for the full vertical slice; `ExtensionRegistry`/`UndoStack` remain the lighter M6 row exercised by `runtime.v1_m4_m12_contracts`) |
+| M6 | Reflection metadata, a real dynamic plugin loader with a stable C ABI gate and service registration, a scene editor built on Create/Modify/Undo, and prefab override/rebase (see below for the full vertical slice; `ExtensionRegistry`/`UndoStack` remain the lighter M6 row exercised by `runtime.v1_m4_m11_contracts`) |
 | M7 | Device-neutral input routing, stable touch IDs, virtual-list materialization and locale fallback |
 | M8 | CPU-authoritative batched physics queries; motor/controller separation; tiled navigation desired velocity; typed blackboard, compact behavior runtime, and budgeted perception |
 | M9 | Skeleton/clip blending and root motion, skinning palettes, audio buses with voice-safe residency, particle SoA, and non-blocking timestamped video presentation |
@@ -16,10 +16,38 @@ Instead, it makes the ownership and safety boundaries executable before those in
 | M11 | App lifecycle, pressure policy and native WebView pointer ownership |
 | M12 | Profile-driven plugin, shader, optional-asset and headless presentation stripping |
 
-The contract test `runtime.v1_m4_m12_contracts` exercises every row, including localization
+The contract tests exercise every row, including localization
 fallback, unreachable navigation, animation looping, audio voice limits, media back-pressure and
 seek invalidation. Platform SDK adapters and production authoring tools remain future work and
 must preserve these interfaces rather than bypassing their lifecycle checks.
+
+## V1-M12 shipping, packaging, and hardening
+
+`Shipping.h` is the platform-neutral delivery contract. `Packager` creates an owning,
+deterministically ordered manifest and rejects empty identities/digests, unsafe relative paths, and
+output collisions before publishing any result. Plugin and shader allowlists are independent;
+Minimal removes optional content, Dedicated removes all shader and presentation artifacts, and SDK
+content is opt-in. This makes every strip decision observable without copying files or invoking a
+platform signing tool from the runtime.
+
+`BundleUpdater` stages only newer, digest-bearing generations, retains the last installed
+generation across activation/restart, and provides explicit confirm or rollback transitions.
+`CrashReporter` copies required build/platform/reason metadata and retains a bounded tail of
+breadcrumbs. `SoakMonitor` consumes caller-supplied monotonic frame samples and reports peak and
+end-to-end growth without owning profiler memory. `DeviceMatrix` records unique startup evidence
+for Windows, macOS, Android, and iOS; recording is a testable evidence contract, not a claim that a
+device was run by this Linux build.
+
+All objects are synchronous, caller-owned, and perform no background work or filesystem/network
+I/O. Returned values own their storage. Configure with `-DNEXORA_ENABLE_SHIPPING=OFF` to omit the
+implementation. Shipping builds require compiler IPO/LTO support and use
+`NEXORA_SHIPPING_PROFILE=Minimal|Full|Dedicated`; Minimal and Dedicated strip the editor SDK at
+configure time, while Dedicated also strips scene rendering and all presentation implementations.
+The `runtime.v1_m12_shipping` gate covers a complete package/update/crash flow, invalid and unsafe
+inputs, every strip axis, rollback/restart, a four-platform evidence matrix, leak-growth detection,
+and 10,000-artifact / 10,000-sample performance baselines. Actual signed installers, store update
+transports, native crash dump upload, physical-device startup, and multi-hour sanitizer/device soak
+runs remain release-infrastructure gates and are not claimed by this portable foundation.
 
 ## V1-M11 mobile platform and native WebView runtime
 
