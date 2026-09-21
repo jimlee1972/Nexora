@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <limits>
 #include <optional>
+#include <utility>
 
 namespace nexora::math {
 
@@ -84,7 +85,51 @@ struct Matrix4 final {
     return values[row * 4 + column];
   }
 };
-using Matrix3 = std::array<float, 9>;
+struct Matrix3 final {
+  std::array<float, 9> values{1, 0, 0, 0, 1, 0, 0, 0, 1};
+  [[nodiscard]] constexpr float &operator()(std::size_t row, std::size_t column) {
+    return values[row * 3 + column];
+  }
+  [[nodiscard]] constexpr float operator()(std::size_t row, std::size_t column) const {
+    return values[row * 3 + column];
+  }
+};
+[[nodiscard]] inline Matrix3 operator*(const Matrix3 &a, const Matrix3 &b) {
+  Matrix3 r{};
+  r.values.fill(0);
+  for (std::size_t i = 0; i < 3; ++i)
+    for (std::size_t j = 0; j < 3; ++j)
+      for (std::size_t k = 0; k < 3; ++k)
+        r(i, j) += a(i, k) * b(k, j);
+  return r;
+}
+[[nodiscard]] constexpr Vector3 operator*(const Matrix3 &m, Vector3 v) {
+  return {m(0, 0) * v.x + m(0, 1) * v.y + m(0, 2) * v.z,
+          m(1, 0) * v.x + m(1, 1) * v.y + m(1, 2) * v.z,
+          m(2, 0) * v.x + m(2, 1) * v.y + m(2, 2) * v.z};
+}
+[[nodiscard]] constexpr float Determinant(const Matrix3 &m) {
+  return m(0, 0) * (m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1)) -
+         m(0, 1) * (m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0)) +
+         m(0, 2) * (m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0));
+}
+[[nodiscard]] inline Matrix3 InverseSafe(const Matrix3 &m, const Matrix3 &fallback = Matrix3{}) {
+  const float det = Determinant(m);
+  if (std::abs(det) <= kEpsilon)
+    return fallback;
+  const float inv_det = 1.0F / det;
+  Matrix3 r{};
+  r(0, 0) = (m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1)) * inv_det;
+  r(0, 1) = (m(0, 2) * m(2, 1) - m(0, 1) * m(2, 2)) * inv_det;
+  r(0, 2) = (m(0, 1) * m(1, 2) - m(0, 2) * m(1, 1)) * inv_det;
+  r(1, 0) = (m(1, 2) * m(2, 0) - m(1, 0) * m(2, 2)) * inv_det;
+  r(1, 1) = (m(0, 0) * m(2, 2) - m(0, 2) * m(2, 0)) * inv_det;
+  r(1, 2) = (m(0, 2) * m(1, 0) - m(0, 0) * m(1, 2)) * inv_det;
+  r(2, 0) = (m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0)) * inv_det;
+  r(2, 1) = (m(0, 1) * m(2, 0) - m(0, 0) * m(2, 1)) * inv_det;
+  r(2, 2) = (m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0)) * inv_det;
+  return r;
+}
 [[nodiscard]] inline Matrix4 operator*(const Matrix4 &a, const Matrix4 &b) {
   Matrix4 r{};
   r.values.fill(0);
@@ -93,6 +138,49 @@ using Matrix3 = std::array<float, 9>;
       for (size_t k = 0; k < 4; ++k)
         r(i, j) += a(i, k) * b(k, j);
   return r;
+}
+// Gauss-Jordan elimination with partial pivoting; returns fallback (identity by
+// default) when the matrix is singular within kEpsilon, matching the file's
+// NormalizeSafe-style epsilon policy instead of propagating NaN/Inf.
+[[nodiscard]] inline Matrix4 InverseSafe(const Matrix4 &m, const Matrix4 &fallback = Matrix4{}) {
+  std::array<std::array<float, 8>, 4> a{};
+  for (std::size_t row = 0; row < 4; ++row) {
+    for (std::size_t column = 0; column < 4; ++column)
+      a[row][column] = m(row, column);
+    a[row][4 + row] = 1.0F;
+  }
+  for (std::size_t column = 0; column < 4; ++column) {
+    std::size_t pivot = column;
+    float best = std::abs(a[column][column]);
+    for (std::size_t row = column + 1; row < 4; ++row) {
+      const float candidate = std::abs(a[row][column]);
+      if (candidate > best) {
+        best = candidate;
+        pivot = row;
+      }
+    }
+    if (best <= kEpsilon)
+      return fallback;
+    if (pivot != column)
+      std::swap(a[pivot], a[column]);
+    const float scale = 1.0F / a[column][column];
+    for (float &value : a[column])
+      value *= scale;
+    for (std::size_t row = 0; row < 4; ++row) {
+      if (row == column)
+        continue;
+      const float factor = a[row][column];
+      if (factor == 0.0F)
+        continue;
+      for (std::size_t k = 0; k < 8; ++k)
+        a[row][k] -= factor * a[column][k];
+    }
+  }
+  Matrix4 result{};
+  for (std::size_t row = 0; row < 4; ++row)
+    for (std::size_t column = 0; column < 4; ++column)
+      result(row, column) = a[row][4 + column];
+  return result;
 }
 [[nodiscard]] inline Matrix4 PerspectiveRadians(float fov, float aspect, float near_plane,
                                                 float far_plane) {
@@ -104,6 +192,45 @@ using Matrix3 = std::array<float, 9>;
   r(2, 2) = far_plane / (near_plane - far_plane);
   r(2, 3) = far_plane * near_plane / (near_plane - far_plane);
   r(3, 2) = -1;
+  return r;
+}
+// Right-handed, D3D-style [0,1] depth range to match PerspectiveRadians.
+[[nodiscard]] inline Matrix4 Orthographic(float left, float right, float bottom, float top,
+                                          float near_plane, float far_plane) {
+  Matrix4 r{};
+  r.values.fill(0);
+  r(0, 0) = 2.0F / (right - left);
+  r(0, 3) = -(right + left) / (right - left);
+  r(1, 1) = 2.0F / (top - bottom);
+  r(1, 3) = -(top + bottom) / (top - bottom);
+  r(2, 2) = 1.0F / (near_plane - far_plane);
+  r(2, 3) = near_plane / (near_plane - far_plane);
+  r(3, 3) = 1.0F;
+  return r;
+}
+// Right-handed view matrix; no angle parameter, so unlike PerspectiveRadians this
+// name carries no Radians/Degrees suffix.
+[[nodiscard]] inline Matrix4 LookAt(Vector3 eye, Vector3 target, Vector3 up = {0, 1, 0}) {
+  const Vector3 z_axis = NormalizeSafe(eye - target, {0, 0, 1});
+  const Vector3 x_axis = NormalizeSafe(Cross(up, z_axis), {1, 0, 0});
+  const Vector3 y_axis = Cross(z_axis, x_axis);
+  Matrix4 r{};
+  r(0, 0) = x_axis.x;
+  r(0, 1) = x_axis.y;
+  r(0, 2) = x_axis.z;
+  r(0, 3) = -Dot(x_axis, eye);
+  r(1, 0) = y_axis.x;
+  r(1, 1) = y_axis.y;
+  r(1, 2) = y_axis.z;
+  r(1, 3) = -Dot(y_axis, eye);
+  r(2, 0) = z_axis.x;
+  r(2, 1) = z_axis.y;
+  r(2, 2) = z_axis.z;
+  r(2, 3) = -Dot(z_axis, eye);
+  r(3, 0) = 0;
+  r(3, 1) = 0;
+  r(3, 2) = 0;
+  r(3, 3) = 1;
   return r;
 }
 struct Transform final {
@@ -129,6 +256,41 @@ struct Transform final {
   r(2, 2) = (1 - 2 * (xx + yy)) * t.scale.z;
   r(2, 3) = t.translation.z;
   return r;
+}
+// Inverse of Compose(): extracts translation from column 3, scale from the
+// length of each basis column, and rotation via Shepperd's method on the
+// remaining orthonormal columns. Only exact for matrices Compose() could have
+// produced (no shear); shear is dropped rather than reported.
+[[nodiscard]] inline Transform Decompose(const Matrix4 &m) {
+  Transform t;
+  t.translation = {m(0, 3), m(1, 3), m(2, 3)};
+  const Vector3 column_x{m(0, 0), m(1, 0), m(2, 0)};
+  const Vector3 column_y{m(0, 1), m(1, 1), m(2, 1)};
+  const Vector3 column_z{m(0, 2), m(1, 2), m(2, 2)};
+  t.scale = {Length(column_x), Length(column_y), Length(column_z)};
+  const Vector3 axis_x = t.scale.x > kEpsilon ? column_x * (1.0F / t.scale.x) : Vector3{1, 0, 0};
+  const Vector3 axis_y = t.scale.y > kEpsilon ? column_y * (1.0F / t.scale.y) : Vector3{0, 1, 0};
+  const Vector3 axis_z = t.scale.z > kEpsilon ? column_z * (1.0F / t.scale.z) : Vector3{0, 0, 1};
+  const float m00 = axis_x.x, m10 = axis_x.y, m20 = axis_x.z;
+  const float m01 = axis_y.x, m11 = axis_y.y, m21 = axis_y.z;
+  const float m02 = axis_z.x, m12 = axis_z.y, m22 = axis_z.z;
+  const float trace = m00 + m11 + m22;
+  Quaternion q;
+  if (trace > 0.0F) {
+    const float s = std::sqrt(trace + 1.0F) * 2.0F;
+    q = {(m21 - m12) / s, (m02 - m20) / s, (m10 - m01) / s, 0.25F * s};
+  } else if (m00 > m11 && m00 > m22) {
+    const float s = std::sqrt(1.0F + m00 - m11 - m22) * 2.0F;
+    q = {0.25F * s, (m01 + m10) / s, (m02 + m20) / s, (m21 - m12) / s};
+  } else if (m11 > m22) {
+    const float s = std::sqrt(1.0F + m11 - m00 - m22) * 2.0F;
+    q = {(m01 + m10) / s, 0.25F * s, (m12 + m21) / s, (m02 - m20) / s};
+  } else {
+    const float s = std::sqrt(1.0F + m22 - m00 - m11) * 2.0F;
+    q = {(m02 + m20) / s, (m12 + m21) / s, 0.25F * s, (m10 - m01) / s};
+  }
+  t.rotation = NormalizeSafe(q);
+  return t;
 }
 struct Color final {
   float r{}, g{}, b{}, a{1};
@@ -174,5 +336,52 @@ struct Frustum final {
                   clamp(s.center.z, b.minimum.z, b.maximum.z)};
   const auto d = s.center - p;
   return Dot(d, d) <= s.radius * s.radius;
+}
+// Gribb-Hartmann plane extraction from a row-major, D3D-style [0,1]-depth
+// view-projection matrix. Planes are ordered left, right, bottom, top, near,
+// far and each is normalized so Intersects() can compare against a raw radius.
+[[nodiscard]] inline Frustum ExtractFrustum(const Matrix4 &view_projection) {
+  const auto &m = view_projection;
+  const auto make_plane = [](float a, float b, float c, float d) {
+    Plane p{{a, b, c}, d};
+    const float length = Length(p.normal);
+    if (length > kEpsilon) {
+      p.normal = p.normal * (1.0F / length);
+      p.distance /= length;
+    }
+    return p;
+  };
+  Frustum frustum;
+  frustum.planes[0] = make_plane(m(0, 0) + m(3, 0), m(0, 1) + m(3, 1), m(0, 2) + m(3, 2),
+                                 m(0, 3) + m(3, 3)); // left
+  frustum.planes[1] = make_plane(m(3, 0) - m(0, 0), m(3, 1) - m(0, 1), m(3, 2) - m(0, 2),
+                                 m(3, 3) - m(0, 3)); // right
+  frustum.planes[2] = make_plane(m(1, 0) + m(3, 0), m(1, 1) + m(3, 1), m(1, 2) + m(3, 2),
+                                 m(1, 3) + m(3, 3)); // bottom
+  frustum.planes[3] =
+      make_plane(m(3, 0) - m(1, 0), m(3, 1) - m(1, 1), m(3, 2) - m(1, 2), m(3, 3) - m(1, 3)); // top
+  frustum.planes[4] = make_plane(m(2, 0), m(2, 1), m(2, 2), m(2, 3)); // near
+  frustum.planes[5] =
+      make_plane(m(3, 0) - m(2, 0), m(3, 1) - m(2, 1), m(3, 2) - m(2, 2), m(3, 3) - m(2, 3)); // far
+  return frustum;
+}
+// Conservative (may accept AABBs only touching a far corner): tests the box's
+// positive vertex against each plane rather than doing full separating-axis work.
+[[nodiscard]] inline bool Intersects(const Frustum &frustum, const Aabb &box) {
+  for (const auto &plane : frustum.planes) {
+    const Vector3 positive{plane.normal.x >= 0 ? box.maximum.x : box.minimum.x,
+                           plane.normal.y >= 0 ? box.maximum.y : box.minimum.y,
+                           plane.normal.z >= 0 ? box.maximum.z : box.minimum.z};
+    if (Dot(plane.normal, positive) + plane.distance < 0.0F)
+      return false;
+  }
+  return true;
+}
+[[nodiscard]] inline bool Intersects(const Frustum &frustum, const Sphere &sphere) {
+  for (const auto &plane : frustum.planes) {
+    if (Dot(plane.normal, sphere.center) + plane.distance < -sphere.radius)
+      return false;
+  }
+  return true;
 }
 } // namespace nexora::math

@@ -1,0 +1,4 @@
+include(NexoraTarget)
+add_executable(NexoraApiFoundationSample ApiFoundationSample.cpp)
+target_link_libraries(NexoraApiFoundationSample PRIVATE Nexora::Core)
+nexora_apply_defaults(NexoraApiFoundationSample)

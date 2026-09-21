@@ -5,6 +5,7 @@
 #include "Nexora/Core/Log.h"
 #include "Nexora/Core/Time.h"
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <mutex>
@@ -74,16 +75,40 @@ private:
   std::unordered_map<std::string, std::string> values_;
 };
 
+// A scoped timer that, on destruction, hands (name, elapsed nanoseconds) to a
+// globally registered sink if one is set. This is the marker *emission*
+// hook the roadmap asks for, not a profiler: aggregation, a HUD, a
+// chrome://tracing JSON writer, or forwarding onto EventBus all belong
+// inside the function you register with SetSink, not in this class.
 class ProfilingMarker final {
 public:
+  using SinkFunction = void (*)(std::string_view name, std::uint64_t nanoseconds);
+
+  // A plain function pointer (not std::function) so the sink can be read
+  // lock-free from every marker's destructor. The default, nullptr, makes
+  // this a zero-overhead scoped timer exactly like before this hook existed.
+  // Not meant to be changed concurrently with steady-state marker traffic:
+  // set it once during startup, before other threads start creating markers.
+  static void SetSink(SinkFunction sink) noexcept { Sink().store(sink, std::memory_order_release); }
+
   explicit ProfilingMarker(std::string_view name) noexcept
       : name_(name), start_(MonotonicNanoseconds()) {}
+  ~ProfilingMarker() {
+    if (const auto sink = Sink().load(std::memory_order_acquire))
+      sink(name_, ElapsedNanoseconds());
+  }
+  ProfilingMarker(const ProfilingMarker &) = delete;
+  ProfilingMarker &operator=(const ProfilingMarker &) = delete;
   [[nodiscard]] std::string_view Name() const noexcept { return name_; }
   [[nodiscard]] std::uint64_t ElapsedNanoseconds() const noexcept {
     return MonotonicNanoseconds() - start_;
   }
 
 private:
+  static std::atomic<SinkFunction> &Sink() noexcept {
+    static std::atomic<SinkFunction> sink{nullptr};
+    return sink;
+  }
   std::string_view name_;
   std::uint64_t start_;
 };

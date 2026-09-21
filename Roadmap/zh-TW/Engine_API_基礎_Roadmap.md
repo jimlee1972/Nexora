@@ -84,3 +84,16 @@ Tests/API/                                    conformance and ABI tests
 ## 7. 與其他 Roadmap 的關係
 
 API-M1～M4 是 Zig Showcase 與 Editor 共用前置；API-M5/M6 讓兩者只能經受支援的 public API 操作 Runtime。Zig Showcase 是第一個外部 consumer，Editor 則是高壓 consumer；兩者發現的缺口回補 API，而不是各自建立私有捷徑。
+
+## 8. API-M1～M4 現況（2026-09-22）
+
+依第 2 節「文件、單元測試、ABI test 與 sample 缺一不可」核對，逐項如實記錄，不視為整體完成：
+
+- **API-M1 Math**：`Engine/Foundation/include/Nexora/Math/Math.h` 已有 dot/cross/normalize-safe/lerp/slerp、TRS compose/decompose、`Matrix3`/`Matrix4` inverse（epsilon-fallback policy）、`LookAt`、`Orthographic`/`PerspectiveRadians`、`ExtractFrustum` 與 `Intersects(Frustum, Aabb/Sphere)`。`Tests/API/ApiFoundationTests.cpp` 提供 `sizeof/alignof/offsetof` ABI layout gate、byte-level round trip、Compose/Decompose 反函數驗證。**尚未做**：SIMD 路徑（目前只有 scalar 實作，沒有 SIMD/scalar 容差比對）、座標系 golden tests（只有內部一致性驗證，沒有跟外部參考引擎比對）。
+- **API-M2 基礎型別**：`Engine/Foundation/include/Nexora/Foundation/Types.h` 有 UTF-8 驗證、`StringView`/`String`/`ByteBuffer`/`Span`、`Uuid`（含 `Parse`/`ToString`）、`Name`、`Result<T>`、locale-independent `ParseNumber`。Generational handle 由既有的 `Nexora::Core::Handle<Tag>`/`HandlePool<Tag>`（`Engine/Core/include/Nexora/Core/Handle.h`）滿足，故意不在 Foundation 重複一份。**尚未做**：本節提到的「ABI 使用 caller buffer 或 engine-owned opaque buffer + destroy function」——目前沒有任何型別需要把 `String`/`ByteBuffer`/`Span` 本身（而不是 handle 或 POD）帶過 C ABI，所以還沒有為此建立對應機制。
+- **API-M3 VFS**：`Engine/Core/include/Nexora/Core/Vfs.h` 的 `VirtualFileSystem` 現在有兩種 backend：`Mount`（目錄）與新增的 `MountMemory`（記憶體，同一套 Read/WriteAtomic/Metadata/Enumerate 介面）。`Tests/API/ApiCoreContractTests.cpp` 對兩種 backend 跑同一套 contract（讀寫/metadata/enumerate/traversal 拒絕/錯誤注入/數 MiB 級大檔往返）。Mount 名稱本身是呼叫端自訂，尚未把 `engine:// project:// bundle:// cache:// user:// temp://` 六個 canonical root 全部接上——目前只有 `Engine::Initialize` 掛的 `content` 一個。**尚未做**：`BundleMount`/`PlatformPackageMount`、完整 async IO scheduler（priority preemption、request merge、aligned read、streaming deadline hint）、memory mapping、Shipping 下的呼叫端權限管控（`Mount` 目前對任何呼叫端一視同仁，只擋 mount 內部的路徑逃逸）、真正的多 GB/offset 邊界測試（現有測試是數 MiB smoke test，不是完整 huge-file 測試）。
+- **API-M4 Engine services**：`Engine/Core/include/Nexora/Core/Services.h` 的 `MonotonicNanoseconds`/`RandomStream`（PCG32，含 version）/`Configuration` 搭配既有 `FixedTickClock`（game time/fixed tick）、`AsyncLogService`（structured logging）、`JobSystem`（task dispatch）、`EventBus`（event subscription）已覆蓋清單全部九項。`ProfilingMarker` 新增了 `SetSink` 這個 plain-function-pointer emission hook（此前只是計時器，沒有任何輸出機制）。`Tests/API/ApiCoreContractTests.cpp` 涵蓋 `MonotonicNanoseconds` 單調性與 `ProfilingMarker` sink 呼叫驗證。
+
+**Sample**：`Samples/Api/ApiFoundationSample.cpp`（`NEXORA_FEATURE_API_SAMPLES`，預設 ON）是一個會被實際編譯、執行的最小範例，涵蓋 Math/Types/VFS/Services，並以 `samples.api_foundation` 掛進 CTest；不是 `Roadmap/V1-Visual-Showcase-Long-Term-Plan.md` 定義的視窗化 `NexoraShowcase`（那是獨立的 V1-M0～M12 專案，需要 Windows/DX12）。
+
+以上驗證僅在 Linux `linux-development` preset 跑過（含一次手動 ASan/UBSan 編譯，對新增測試與 sample 無記憶體錯誤/UB/洩漏）；Windows/macOS/Android/iOS 未在此驗證。

@@ -6,8 +6,10 @@
 #include <chrono>
 #include <cstddef>
 #include <filesystem>
+#include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -43,6 +45,12 @@ class NEXORA_CORE_API VirtualFileSystem final {
 public:
   explicit VirtualFileSystem(JobSystem &jobs) : jobs_(jobs) {}
   bool Mount(std::string_view name, const std::filesystem::path &root);
+  // In-memory mount: content lives only for this VirtualFileSystem's lifetime
+  // (never touches the host filesystem) and is visible through the same
+  // Read/WriteAtomic/Enumerate/Metadata surface a directory mount uses, so
+  // callers and tests don't need a backend-specific code path. Intended for
+  // cache/temp-style roots and for hosting cooked bundle content in memory.
+  bool MountMemory(std::string_view name);
   bool Unmount(std::string_view name);
   [[nodiscard]] ReadResult Read(std::string_view virtual_path) const;
   [[nodiscard]] std::pair<ReadResult::Status, FileMetadata>
@@ -55,12 +63,35 @@ public:
                                           const CancellationToken &cancellation = {});
 
 private:
+  struct MemoryFile final {
+    std::vector<std::byte> bytes;
+    std::filesystem::file_time_type modified{};
+  };
+  struct MemoryBackend final {
+    std::mutex mutex;
+    std::map<std::string, MemoryFile> files;
+  };
   struct MountPoint final {
     std::string name;
-    std::filesystem::path root;
+    std::filesystem::path root;            // Directory backend when memory is null.
+    std::shared_ptr<MemoryBackend> memory; // Non-null selects the memory backend.
   };
-  [[nodiscard]] std::pair<ReadResult::Status, std::filesystem::path>
-  Resolve(std::string_view virtual_path) const;
+  struct ParsedPath final {
+    std::string mount_name;
+    std::string relative;
+  };
+  // Located result of resolving a virtual path against the mount table:
+  // either a canonicalized host path (directory backend) or a memory backend
+  // plus the key to use within it. `status` is Completed only when exactly
+  // one of the two is populated.
+  struct Located final {
+    ReadResult::Status status{ReadResult::Status::InvalidPath};
+    std::filesystem::path path;
+    std::shared_ptr<MemoryBackend> memory;
+    std::string relative_key;
+  };
+  [[nodiscard]] static std::optional<ParsedPath> ParseVirtualPath(std::string_view virtual_path);
+  [[nodiscard]] Located Locate(std::string_view virtual_path) const;
   JobSystem &jobs_;
   mutable std::mutex mutex_;
   std::vector<MountPoint> mounts_;
