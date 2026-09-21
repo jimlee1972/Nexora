@@ -340,19 +340,4 @@ private:
   AppState state_{AppState::Foreground};
 };
 
-enum class ShippingProfile { Minimal, Full, Dedicated };
-struct PackageInput final {
-  std::vector<std::string> plugins, shader_families, assets;
-};
-struct PackageManifest final {
-  std::vector<std::string> files;
-  bool presentation{};
-};
-class NEXORA_RUNTIME_API Packager final {
-public:
-  PackageManifest Build(ShippingProfile profile, const PackageInput &input,
-                        std::span<const std::string> enabled_plugins,
-                        std::span<const std::string> enabled_shaders) const;
-};
-
 } // namespace nexora::runtime

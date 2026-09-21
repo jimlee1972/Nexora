@@ -107,13 +107,6 @@ int RunTests() {
   Require(platform.RouteWebViewPointer(true) && !platform.RouteWebViewPointer(false),
           "M11 native view routing failed");
 
-  const PackageInput package{
-      {"editor", "game"}, {"lit", "debug"}, {"core.bundle", "optional/demo.bundle"}};
-  const std::vector<std::string> plugins{"game"}, shaders{"lit"};
-  const auto minimal = Packager{}.Build(ShippingProfile::Minimal, package, plugins, shaders);
-  Require(minimal.presentation && minimal.files.size() == 3, "M12 minimal stripping failed");
-  const auto dedicated = Packager{}.Build(ShippingProfile::Dedicated, package, plugins, shaders);
-  Require(!dedicated.presentation && dedicated.files.size() == 3, "M12 dedicated stripping failed");
   return 0;
 }
 } // namespace

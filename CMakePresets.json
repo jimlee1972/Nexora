@@ -49,6 +49,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Shipping",
         "NEXORA_LINK_MODE": "Monolithic",
+        "NEXORA_SHIPPING_PROFILE": "Minimal",
         "BUILD_TESTING": "OFF"
       },
       "condition": {

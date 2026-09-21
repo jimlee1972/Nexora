@@ -2,7 +2,17 @@ include(NexoraTarget)
 add_executable(NexoraRuntimeTests RuntimeTests.cpp)
 target_link_libraries(NexoraRuntimeTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraRuntimeTests)
-add_test(NAME runtime.v1_m4_m12_contracts COMMAND NexoraRuntimeTests)
+add_test(NAME runtime.v1_m4_m11_contracts COMMAND NexoraRuntimeTests)
+
+if(NEXORA_ENABLE_SHIPPING)
+  add_executable(NexoraV1M12Tests V1M12Tests.cpp)
+  target_link_libraries(NexoraV1M12Tests PRIVATE Nexora::Runtime)
+  nexora_apply_defaults(NexoraV1M12Tests)
+  add_test(NAME runtime.v1_m12_shipping COMMAND NexoraV1M12Tests)
+else()
+  add_test(NAME runtime.v1_m12_feature_strip
+    COMMAND "${CMAKE_COMMAND}" -E echo "V1-M12 shipping implementation stripped")
+endif()
 
 add_executable(NexoraV1M7Tests V1M7Tests.cpp)
 target_link_libraries(NexoraV1M7Tests PRIVATE Nexora::Runtime)

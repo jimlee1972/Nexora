@@ -495,29 +495,4 @@ bool PlatformRuntime::RouteWebViewPointer(bool inside_native_view) const noexcep
   return inside_native_view;
 }
 
-PackageManifest Packager::Build(ShippingProfile profile, const PackageInput &input,
-                                // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-                                std::span<const std::string> enabled_plugins,
-                                std::span<const std::string> enabled_shaders) const {
-  PackageManifest result;
-  result.presentation = profile != ShippingProfile::Dedicated;
-  result.files = input.assets;
-  const auto enabled = [](std::string_view value, std::span<const std::string> values) {
-    return std::ranges::find(values, value) != values.end();
-  };
-  for (const auto &plugin : input.plugins)
-    if (enabled(plugin, enabled_plugins))
-      result.files.push_back("plugins/" + plugin);
-  if (result.presentation)
-    for (const auto &shader : input.shader_families)
-      if (enabled(shader, enabled_shaders))
-        result.files.push_back("shaders/" + shader);
-  if (profile == ShippingProfile::Minimal)
-    result.files.erase(
-        std::remove_if(result.files.begin(), result.files.end(),
-                       [](const auto &file) { return file.starts_with("optional/"); }),
-        result.files.end());
-  return result;
-}
-
 } // namespace nexora::runtime
