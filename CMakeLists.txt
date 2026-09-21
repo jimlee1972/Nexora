@@ -16,6 +16,8 @@ option(NEXORA_ENABLE_PRESENTATION
        "Build the V1-M9 animation, audio, VFX, and media foundation" ON)
 option(NEXORA_ENABLE_LARGE_WORLD
        "Build the V1-M10 large-world streaming, terrain, vegetation, and HLOD foundation" ON)
+option(NEXORA_ENABLE_PLATFORM
+       "Build the V1-M11 mobile platform and native WebView foundation" ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
