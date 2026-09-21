@@ -12,6 +12,8 @@ option(NEXORA_ENABLE_EDITOR_SDK
        "Build the V1-M6 reflection, plugin host, scene editor, and prefab foundation" ON)
 option(NEXORA_ENABLE_GAMEPLAY_SIMULATION
        "Build the V1-M8 physics, character, navigation, and AI foundation" ON)
+option(NEXORA_ENABLE_PRESENTATION
+       "Build the V1-M9 animation, audio, VFX, and media foundation" ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/Modules")
