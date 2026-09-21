@@ -42,14 +42,17 @@ bool VirtualFileSystem::Unmount(std::string_view name) {
 
 std::pair<ReadResult::Status, std::filesystem::path>
 VirtualFileSystem::Resolve(std::string_view virtual_path) const {
-  const auto separator = virtual_path.find('/');
+  const auto scheme = virtual_path.find("://");
+  const auto separator = scheme == std::string_view::npos ? virtual_path.find('/') : scheme;
+  const auto relative_start = scheme == std::string_view::npos ? separator + 1 : scheme + 3;
   if (separator == std::string_view::npos || separator == 0 ||
-      separator + 1 >= virtual_path.size()) {
+      relative_start >= virtual_path.size()) {
     return {ReadResult::Status::InvalidPath, {}};
   }
   const auto mount_name = virtual_path.substr(0, separator);
-  std::filesystem::path relative{virtual_path.substr(separator + 1)};
-  if (relative.is_absolute())
+  const auto relative_text = virtual_path.substr(relative_start);
+  std::filesystem::path relative{relative_text};
+  if (relative.is_absolute() || relative_text.find('\\') != std::string_view::npos)
     return {ReadResult::Status::InvalidPath, {}};
   for (const auto &part : relative) {
     if (part == "..")
@@ -60,7 +63,87 @@ VirtualFileSystem::Resolve(std::string_view virtual_path) const {
       mounts_, [mount_name](const MountPoint &mount) { return mount.name == mount_name; });
   if (found == mounts_.end())
     return {ReadResult::Status::NotFound, {}};
-  return {ReadResult::Status::Completed, found->root / relative};
+  std::error_code error;
+  const auto resolved = std::filesystem::weakly_canonical(found->root / relative, error);
+  if (error)
+    return {ReadResult::Status::IoError, {}};
+  auto root_part = found->root.begin();
+  auto resolved_part = resolved.begin();
+  for (; root_part != found->root.end(); ++root_part, ++resolved_part) {
+    if (resolved_part == resolved.end() || *root_part != *resolved_part)
+      return {ReadResult::Status::InvalidPath, {}};
+  }
+  return {ReadResult::Status::Completed, resolved};
+}
+
+std::pair<ReadResult::Status, FileMetadata>
+VirtualFileSystem::Metadata(std::string_view virtual_path) const {
+  const auto [status, path] = Resolve(virtual_path);
+  if (status != ReadResult::Status::Completed)
+    return {status, {}};
+  std::error_code error;
+  const auto info = std::filesystem::status(path, error);
+  if (error || !std::filesystem::exists(info))
+    return {ReadResult::Status::NotFound, {}};
+  FileMetadata result{};
+  result.is_directory = std::filesystem::is_directory(info);
+  result.modified = std::filesystem::last_write_time(path, error);
+  if (error)
+    return {ReadResult::Status::IoError, {}};
+  if (!result.is_directory) {
+    result.size = std::filesystem::file_size(path, error);
+    if (error)
+      return {ReadResult::Status::IoError, {}};
+  }
+  return {ReadResult::Status::Completed, result};
+}
+
+std::pair<ReadResult::Status, std::vector<std::string>>
+VirtualFileSystem::Enumerate(std::string_view virtual_directory) const {
+  const auto [status, path] = Resolve(virtual_directory);
+  if (status != ReadResult::Status::Completed)
+    return {status, {}};
+  std::error_code error;
+  std::vector<std::string> entries;
+  for (std::filesystem::directory_iterator it{path, error}, end; !error && it != end;
+       it.increment(error))
+    entries.push_back(it->path().filename().generic_string());
+  if (error)
+    return {ReadResult::Status::IoError, {}};
+  std::ranges::sort(entries);
+  return {ReadResult::Status::Completed, std::move(entries)};
+}
+
+ReadResult::Status VirtualFileSystem::WriteAtomic(std::string_view virtual_path,
+                                                  std::span<const std::byte> bytes) const {
+  const auto [status, path] = Resolve(virtual_path);
+  if (status != ReadResult::Status::Completed)
+    return status;
+  auto temporary = path;
+  temporary += ".nexora-tmp";
+  std::ofstream stream{temporary, std::ios::binary | std::ios::trunc};
+  if (!stream)
+    return ReadResult::Status::IoError;
+  if (!bytes.empty())
+    stream.write(reinterpret_cast<const char *>(bytes.data()),
+                 static_cast<std::streamsize>(bytes.size()));
+  stream.close();
+  if (!stream) {
+    std::filesystem::remove(temporary);
+    return ReadResult::Status::IoError;
+  }
+  std::error_code error;
+  std::filesystem::rename(temporary, path, error);
+  if (error) {
+    std::filesystem::remove(path, error);
+    error.clear();
+    std::filesystem::rename(temporary, path, error);
+  }
+  if (error) {
+    std::filesystem::remove(temporary);
+    return ReadResult::Status::IoError;
+  }
+  return ReadResult::Status::Completed;
 }
 
 ReadResult VirtualFileSystem::Read(std::string_view virtual_path) const {
