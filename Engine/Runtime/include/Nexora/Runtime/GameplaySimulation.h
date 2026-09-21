@@ -85,14 +85,22 @@ struct CharacterMoveResult final {
   SimulationVector desired_velocity{}, resolved_velocity{}, ground_normal{0, 1, 0};
   CharacterGroundState ground{CharacterGroundState::InAir};
 };
+// `ground_ready`/`destination_ready` are a caller-supplied readiness oracle: this header
+// stays independent of LargeWorld, so a caller that streams the world (e.g. by keeping the
+// character's occupied cells pinned via StreamingManager::SetOccupied and checking
+// Status(cell)->residency == Residency::Full) passes false while collision for the
+// character's cell has not streamed in. When not ready, Move()/Teleport() hold the character
+// at its current position, report CharacterGroundState::StreamingPending, and skip ground
+// snap/step evaluation entirely rather than free-falling through unloaded geometry.
 class NEXORA_RUNTIME_API CharacterController final {
 public:
   explicit CharacterController(CharacterControllerConfig config = {}) : config_(config) {}
   [[nodiscard]] CharacterMoveResult Move(CharacterState &state, SimulationVector requested_motion,
-                                         const PhysicsWorld &physics) const;
+                                         const PhysicsWorld &physics,
+                                         bool ground_ready = true) const;
   bool SetCrouched(CharacterState &state, bool crouched, const PhysicsWorld &physics) const;
-  void Teleport(CharacterState &state, SimulationVector position,
-                bool preserve_velocity = false) const;
+  void Teleport(CharacterState &state, SimulationVector position, bool preserve_velocity = false,
+                bool destination_ready = true) const;
 
 private:
   CharacterControllerConfig config_;
@@ -101,7 +109,8 @@ class NEXORA_RUNTIME_API StandardCharacterMotor final {
 public:
   [[nodiscard]] CharacterMoveResult Tick(CharacterState &state, const CharacterInput &input,
                                          double seconds, const PhysicsWorld &physics,
-                                         const CharacterController &controller);
+                                         const CharacterController &controller,
+                                         bool ground_ready = true);
 
 private:
   SimulationVector external_velocity_{};

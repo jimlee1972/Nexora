@@ -32,6 +32,28 @@ int main() {
   Require(state.ground == CharacterGroundState::Unsupported && state.velocity == SimulationVector{},
           "teleport contract failed");
 
+  CharacterState pending_state{{5, 0.1, 0}, {1, -2, 0}, CharacterGroundState::OnGround};
+  auto pending_result =
+      motor.Tick(pending_state, {1, 0, 0, {}, {}}, 0.1, physics, controller, false);
+  Require(pending_state.ground == CharacterGroundState::StreamingPending &&
+              pending_state.position == SimulationVector{5, 0.1, 0} &&
+              pending_state.velocity == SimulationVector{} &&
+              pending_result.actual_motion == SimulationVector{},
+          "unready ground did not suspend locomotion");
+  auto resumed_result = motor.Tick(pending_state, {1, 0, 0, {}, {}}, 0.1, physics, controller);
+  Require(resumed_result.ground == CharacterGroundState::OnGround && pending_state.position.x > 5,
+          "streaming-pending motor did not resume once ground became ready");
+
+  CharacterState blocked_teleport{{9, 4, 0}, {0, -3, 0}, CharacterGroundState::OnGround};
+  controller.Teleport(blocked_teleport, {0, 4, 0}, false, false);
+  Require(blocked_teleport.ground == CharacterGroundState::StreamingPending &&
+              blocked_teleport.position == SimulationVector{9, 4, 0},
+          "teleport into an unready destination placed the character without collision");
+  controller.Teleport(blocked_teleport, {0, 4, 0}, false, true);
+  Require(blocked_teleport.ground == CharacterGroundState::Unsupported &&
+              blocked_teleport.position == SimulationVector{0, 4, 0},
+          "teleport did not complete once the destination became ready");
+
   NavigationWorld nav;
   Require(nav.LoadTile(1, {{10, 1, {0, 0, 0}, {20}}}) &&
               nav.LoadTile(2, {{20, 2, {4, 0, 0}, {30}}, {30, 2, {8, 0, 0}, {}}}),

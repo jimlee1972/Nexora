@@ -109,6 +109,13 @@ bool LocalizationTable::SetLocale(std::string locale) {
   ++generation_;
   return true;
 }
+bool LocalizationTable::SetFallbackLocale(std::string locale) {
+  if (locale.empty() || locale == fallback_locale_)
+    return false;
+  fallback_locale_ = std::move(locale);
+  ++generation_;
+  return true;
+}
 void LocalizationTable::Set(std::string locale, std::string key, std::string value) {
   auto &table = values_[std::move(locale)];
   const auto found = table.find(key);
@@ -124,6 +131,14 @@ std::string LocalizationTable::Resolve(std::string_view key) const {
     const auto value = locale->second.find(std::string(key));
     if (value != locale->second.end())
       return value->second;
+  }
+  if (locale_ != fallback_locale_) {
+    const auto fallback = values_.find(fallback_locale_);
+    if (fallback != values_.end()) {
+      const auto value = fallback->second.find(std::string(key));
+      if (value != fallback->second.end())
+        return value->second;
+    }
   }
   return std::string(key);
 }
