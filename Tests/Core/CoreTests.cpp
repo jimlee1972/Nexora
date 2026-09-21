@@ -1,6 +1,7 @@
 #include "Nexora/Core/Engine.h"
 #include "Nexora/Core/Handle.h"
 #include "Nexora/Core/Platform.h"
+#include "Nexora/Core/Services.h"
 #include "Nexora/Core/TaskGraph.h"
 #include "Nexora/Core/Timer.h"
 
@@ -115,11 +116,23 @@ int RunTests() {
   }
   VirtualFileSystem vfs{jobs};
   Require(vfs.Mount("test", temporary), "mount must succeed");
+  Require(vfs.Read("test://sample.bin").status == ReadResult::Status::Completed,
+          "URI syntax must be supported");
   const auto read = vfs.Read("test/sample.bin");
   Require(read.status == ReadResult::Status::Completed && read.bytes.size() == 6,
           "read must succeed");
   Require(vfs.Read("test/../escape").status == ReadResult::Status::InvalidPath,
           "path traversal must be rejected");
+  const auto [metadata_status, metadata] = vfs.Metadata("test://sample.bin");
+  Require(metadata_status == ReadResult::Status::Completed && metadata.size == 6,
+          "metadata must expose file size");
+  const std::array replacement{std::byte{'a'}, std::byte{'p'}, std::byte{'i'}};
+  Require(vfs.WriteAtomic("test://written.bin", replacement) == ReadResult::Status::Completed &&
+              vfs.Read("test://written.bin").bytes.size() == replacement.size(),
+          "atomic writes must become readable");
+  const auto [enumerate_status, entries] = vfs.Enumerate("test://.");
+  Require(enumerate_status == ReadResult::Status::Completed && entries.size() == 2,
+          "directory enumeration must return sorted entries");
   CancellationSource read_cancel;
   read_cancel.Cancel();
   const auto async = vfs.ReadAsync("test/sample.bin", read_cancel.Token());
@@ -146,6 +159,12 @@ int RunTests() {
   FixedTickClock clock{0.01, 2, 0.1};
   const auto tick = clock.Advance(0.05);
   Require(tick.fixed_ticks == 2 && clock.State().fixed_tick == 2, "catch-up must be bounded");
+  RandomStream random_a{17}, random_b{17};
+  Require(random_a.NextU32() == random_b.NextU32(), "seeded random streams must replay");
+  Configuration configuration;
+  Require(configuration.Set("render.quality", "high") &&
+              configuration.Get("render.quality") == "high",
+          "configuration values must round-trip");
 
   TimerScheduler timers;
   int timer_runs = 0;

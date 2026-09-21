@@ -2,6 +2,20 @@
 
 `NexoraCore` owns process-level runtime services. It depends only on `NexoraFoundation`; higher-level world, rendering, asset, editor, and gameplay modules must depend on Core rather than the reverse.
 
+## Public I/O and services (API-M3/M4)
+
+`VirtualFileSystem` accepts both `mount/path` and public `mount://path` URIs. It rejects traversal,
+absolute paths, backslashes, and symlink escapes. Reads and metadata are snapshots; enumeration is
+lexically sorted. `WriteAtomic` writes a sibling temporary file then renames it, so success makes
+the complete replacement visible. Async completion runs on a job worker and the returned handle
+owns its result state.
+
+`Services.h` exposes steady-clock nanoseconds, deterministic versioned PCG random streams,
+thread-safe configuration, and scoped profiling timing alongside the existing fixed game clock,
+logging, jobs, and event bus. Simulation must use `FixedTickClock`, not wall time. Event callbacks
+run synchronously on the publishing thread; unsubscribing prevents future calls but does not cancel
+a callback already copied for dispatch.
+
 ## Lifecycle
 
 `Engine::Initialize` starts logging, workers, and the `content` VFS mount. `Engine::Shutdown` drains jobs before destroying VFS state, then drains logging. Both shutdown and destruction are idempotent. `EngineServices` is a non-owning view valid only between initialization and shutdown.

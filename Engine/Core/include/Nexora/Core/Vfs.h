@@ -3,6 +3,7 @@
 #include "Nexora/Core/Api.h"
 #include "Nexora/Core/JobSystem.h"
 
+#include <chrono>
 #include <cstddef>
 #include <filesystem>
 #include <memory>
@@ -18,6 +19,12 @@ struct ReadResult final {
   enum class Status { Pending, Completed, Cancelled, NotFound, InvalidPath, IoError };
   Status status{Status::Pending};
   std::vector<std::byte> bytes;
+};
+
+struct FileMetadata final {
+  std::uintmax_t size{};
+  bool is_directory{};
+  std::filesystem::file_time_type modified{};
 };
 
 class NEXORA_CORE_API AsyncReadHandle final {
@@ -38,6 +45,12 @@ public:
   bool Mount(std::string_view name, const std::filesystem::path &root);
   bool Unmount(std::string_view name);
   [[nodiscard]] ReadResult Read(std::string_view virtual_path) const;
+  [[nodiscard]] std::pair<ReadResult::Status, FileMetadata>
+  Metadata(std::string_view virtual_path) const;
+  [[nodiscard]] std::pair<ReadResult::Status, std::vector<std::string>>
+  Enumerate(std::string_view virtual_directory) const;
+  [[nodiscard]] ReadResult::Status WriteAtomic(std::string_view virtual_path,
+                                               std::span<const std::byte> bytes) const;
   [[nodiscard]] AsyncReadHandle ReadAsync(std::string virtual_path,
                                           const CancellationToken &cancellation = {});
 
