@@ -1,5 +1,6 @@
 include(NexoraTarget)
 add_library(NexoraRuntime ${NEXORA_MODULE_LIBRARY_TYPE}
+  src/InputUi.cpp
   src/GameplayModuleHost.cpp
   src/Runtime.cpp)
 if(NEXORA_ENABLE_ASSET_PIPELINE)
