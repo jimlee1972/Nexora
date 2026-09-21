@@ -195,6 +195,7 @@ struct NEXORA_RUNTIME_API VirtualList final {
   [[nodiscard]] std::size_t ElementCount() const noexcept;
 };
 
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
 struct CharacterIntent final {
   double requested_x{}, requested_z{};
 };
@@ -223,6 +224,7 @@ public:
 private:
   std::unordered_map<Id, NavigationNode> nodes_;
 };
+#endif
 
 struct LocalizedEntry final {
   std::string key;

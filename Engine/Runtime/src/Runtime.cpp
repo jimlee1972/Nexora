@@ -321,6 +321,7 @@ std::size_t VirtualList::ElementCount() const noexcept {
   return std::min(item_count - std::min(item_count, first_visible), visible_count);
 }
 
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
 CharacterMotion CharacterMotor::Simulate(CharacterIntent intent, double max_speed,
                                          bool ground_contact) const {
   const auto length = std::hypot(intent.requested_x, intent.requested_z);
@@ -360,6 +361,7 @@ std::vector<Id> NavigationGraph::FindPath(Id start, Id goal) const {
   std::ranges::reverse(path);
   return path;
 }
+#endif
 
 bool LocalizationCatalog::Add(LocalizedEntry entry) {
   if (entry.key.empty() || entry.translations.empty() || entries_.contains(entry.key))
