@@ -179,13 +179,19 @@ dependency cycles, safe unload, deterministic save/load, and a 10,000-entity tim
 
 ## Zig gameplay bridge
 
-`GameplayModuleHost` executes the versioned `NexoraGameModuleV2` C ABI while the original V1 layouts
-remain declared for source compatibility. It validates the host and
+`GameplayModuleHost` executes the versioned `NexoraGameModuleV3` C ABI while the V1 and V2 layouts
+remain declared for source compatibility. V3 separates state creation/destruction from
+`on_start`/`on_stop`, makes update failures observable through `NexoraGameplayResult`, adds an
+optional fixed-update callback guarded by a capability bit, and exposes host/module capability
+masks. It validates the host and
 module structure sizes, ABI version, and required callbacks before initialization. Update, reload,
 and unload operations are serialized; a replacement module is initialized before the active module
 is shut down, and a rejected replacement leaves the active module running.
 
-The host table exposes size-checked component reads/writes, event subscription, and tick control.
+The host table exposes size-checked component reads/writes and logging. A module may retain the
+table only from successful `create` until `destroy`; all lifecycle and update calls are serialized
+on the thread that calls `GameplayModuleHost`. No exception or allocation ownership crosses the C
+ABI. Event delivery and engine allocator callbacks remain future additive capabilities.
 Modules may additionally provide state save/load callbacks. Reload serializes the active state,
 initializes and restores the candidate, and only then retires the active module; migration failure
 keeps the active module alive. `GetReloadStats()` exposes successful reload count, migrated bytes,

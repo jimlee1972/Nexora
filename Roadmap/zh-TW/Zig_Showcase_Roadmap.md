@@ -2,6 +2,11 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
 
+**施工狀態（2026-09-22）：** ZS-M0 已開始。ABI V3 現在定義明確的 result 與 capability 值、
+分離 create/start/stop/destroy 階段、可回報失敗的 variable/fixed update，以及 C++ Host 的
+transactional state migration；repository 內的 C++ fake module 會驗證此 contract。Dynamic
+discovery、allocator callback、C++/Zig 共用 vector suite 與 ZS-M1 仍未完成。
+
 ## 1. 核心決策
 
 Showcase 的 `main`、平台視窗、Engine lifecycle、render loop 與 shutdown 必須由 C++ Host/Engine 啟動；Zig 是被載入的 gameplay module，不是 process owner。Zig 透過穩定 C ABI 呼叫 Engine API，建立內容、處理 tick/input、操作 entity/component 並更新展示狀態。這取代「Zig 只做 ABI smoke」作為對外示範，但保留 smoke test。

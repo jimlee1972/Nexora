@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string_view>
 
-extern "C" int32_t NexoraGameModuleLoad(uint32_t requested_abi, NexoraGameModuleV2 *module);
+extern "C" int32_t NexoraGameModuleLoad(uint32_t requested_abi, NexoraGameModuleV3 *module);
 extern "C" uint32_t NexoraGameModuleUpdateCount();
 extern "C" double NexoraGameModuleElapsedSeconds();
 
@@ -14,8 +14,6 @@ namespace {
 
 struct HostState final {
   bool received_log{};
-  bool subscribed{};
-  bool tick_enabled{};
   std::uint32_t component_value{41};
 };
 
@@ -39,33 +37,22 @@ int32_t WriteComponent(void *context, uint64_t entity, uint64_t type, const void
   return 0;
 }
 
-int32_t SubscribeEvent(void *context, uint64_t type) {
-  static_cast<HostState *>(context)->subscribed = type == 0x1001;
-  return type == 0x1001 ? 0 : -1;
-}
-
-void SetTickEnabled(void *context, uint32_t enabled) {
-  static_cast<HostState *>(context)->tick_enabled = enabled != 0;
-}
-
 } // namespace
 
 int main() {
   HostState state;
-  NexoraGameplayHostV2 api{sizeof(NexoraGameplayHostV2),
+  NexoraGameplayHostV3 api{sizeof(NexoraGameplayHostV3),
                            NEXORA_GAMEPLAY_ABI_VERSION,
+                           0,
                            &state,
                            Log,
                            ReadComponent,
-                           WriteComponent,
-                           SubscribeEvent,
-                           SetTickEnabled};
+                           WriteComponent};
   nexora::runtime::GameplayModuleHost host(api);
 
   assert(host.Load(NexoraGameModuleLoad));
   assert(state.received_log);
-  assert(state.subscribed);
-  assert(state.tick_enabled);
+  assert(host.FixedUpdate(1.0 / 60.0));
   assert(host.Update(0.25));
   assert(host.Update(0.5));
   assert(NexoraGameModuleUpdateCount() == 2);
