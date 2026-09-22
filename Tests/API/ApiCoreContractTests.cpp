@@ -163,10 +163,37 @@ void RunMountRootWriteRejectionTest() {
           "reason even though there is no directory to destroy on this backend");
 }
 
+// Regression for a P1 a review caught on the fix above itself: the empty-
+// relative-key root check can be bypassed by a dot alias of the root, such
+// as "mount://.", whose pre-canonicalization textual key is the nonempty
+// "." even though it resolves to the mount root directory just like the
+// bare "mount://" case -- and on the directory backend, resolving there
+// means WriteAtomic's rename-fallback path can still delete that empty
+// directory exactly as the original bug did.
+void RunMountRootDotAliasWriteRejectionTest() {
+  JobSystem jobs{1};
+  VirtualFileSystem vfs{jobs};
+  const std::vector<std::byte> payload{std::byte{1}};
+
+  const auto temp_dir =
+      std::filesystem::temp_directory_path() / "nexora-api-vfs-root-dot-alias-test";
+  std::filesystem::remove_all(temp_dir);
+  std::filesystem::create_directories(temp_dir);
+  Require(vfs.Mount("root", temp_dir), "directory mount must succeed on a real empty directory");
+  Require(vfs.WriteAtomic("root://.", payload) == ReadResult::Status::InvalidPath,
+          "WriteAtomic must reject a dot alias of a mount's own root exactly like the bare root, "
+          "since both canonicalize to the same destination");
+  Require(std::filesystem::is_directory(temp_dir),
+          "an empty mount root must survive a rejected WriteAtomic(\"mount://.\") as a directory, "
+          "not be replaced by a file");
+  std::filesystem::remove_all(temp_dir);
+}
+
 int Run() {
   RunHandleTests();
   RunServicesTests();
   RunMountRootWriteRejectionTest();
+  RunMountRootDotAliasWriteRejectionTest();
 
   JobSystem jobs{1};
   VirtualFileSystem vfs{jobs};
