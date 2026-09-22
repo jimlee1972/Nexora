@@ -240,6 +240,14 @@ source-to-import-to-cook-to-bundle-to-runtime path, corrupt data and dependency-
 DDC reuse, rollback, generation pinning, residency accounting, DataTable atomicity, and a 10,000
 asset performance baseline. The disabled configuration runs a dedicated feature-strip test.
 
+`BundleMount.h` (also gated by `NEXORA_ENABLE_ASSET_PIPELINE`) is the API-M3 bundle-backend
+deliverable: `MountBundle(vfs, name, bundle)` verifies the bundle (`BundleBuilder::Verify`), then
+writes each asset's raw serialized bytes into a fresh `core::VirtualFileSystem` memory mount at
+`<name>://<uuid>.blob`. A caller reads an asset back with the VFS's own `Read`, then
+`AssetCooker::Deserialize` -- there is no bundle-specific read API, since the whole point is that a
+bundle becomes ordinary, browsable VFS content. It refuses (and leaves no partial mount behind) a
+bundle that fails verification, an already-mounted name, or a write failure partway through.
+
 ## V1-M6 reflection, plugin host, scene editor, and prefab foundation
 
 `EditorSdk.h` is the public, platform-neutral contract for the tooling half of V1-M6.

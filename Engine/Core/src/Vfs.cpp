@@ -58,8 +58,13 @@ VirtualFileSystem::ParseVirtualPath(std::string_view virtual_path) {
   const auto scheme = virtual_path.find("://");
   const auto separator = scheme == std::string_view::npos ? virtual_path.find('/') : scheme;
   const auto relative_start = scheme == std::string_view::npos ? separator + 1 : scheme + 3;
+  // relative_start == size() is the mount's own root ("mount://" with
+  // nothing after it) -- allowed, not a missing path, so Enumerate can list
+  // everything a mount contains without a caller having to know or guess a
+  // subpath. Only relative_start > size() (impossible from the arithmetic
+  // above, kept as a defensive bound) or no separator at all is rejected.
   if (separator == std::string_view::npos || separator == 0 ||
-      relative_start >= virtual_path.size()) {
+      relative_start > virtual_path.size()) {
     return std::nullopt;
   }
   const auto mount_name = virtual_path.substr(0, separator);

@@ -4,21 +4,31 @@
 
 ## Public I/O and services (API-M3/M4)
 
-`VirtualFileSystem` accepts both `mount/path` and public `mount://path` URIs. It rejects traversal,
-absolute paths, backslashes, and symlink escapes -- this path-containment check is always on, for
-every mount, in every build configuration; it is not gated behind a Shipping-only privilege tier
-(see "Not yet implemented" below). Reads and metadata are snapshots; enumeration is lexically
-sorted. `WriteAtomic` writes a sibling temporary file then renames it (directory backend) or
-replaces a map entry under a mutex (memory backend), so success makes the complete replacement
-visible; it does not create parent directories. Async completion runs on a job worker and the
-returned handle owns its result state; the cancellation token is checked once, before the read
-starts, not partway through a large read already in flight.
+`VirtualFileSystem` accepts both `mount/path` and public `mount://path` URIs, including a mount's
+own root with nothing after the scheme (`"mount://"`) -- that resolves to the empty relative path,
+not `InvalidPath`, so `Enumerate` can list everything a mount contains without a caller having to
+know or guess a subpath first. It rejects traversal, absolute paths, backslashes, and symlink
+escapes -- this path-containment check is always on, for every mount, in every build configuration;
+it is not gated behind a Shipping-only privilege tier (see "Not yet implemented" below). Reads and
+metadata are snapshots; enumeration is lexically sorted. `WriteAtomic` writes a sibling temporary
+file then renames it (directory backend, creating any missing parent directory first) or replaces a
+map entry under a mutex (memory backend, which never had a notion of a missing parent to begin
+with), so success makes the complete replacement visible and both backends agree on the exact same
+virtual path. Async completion runs on a job worker and the returned handle owns its result state;
+the cancellation token is checked once, before the read starts, not partway through a large read
+already in flight.
 
 Mount names are caller-chosen, not fixed by this file: the master plan's canonical logical roots
 (`engine:// project:// bundle:// cache:// user:// temp://`, see the V1 Complete Plan's "P. Virtual
 File System") are a naming *convention* for callers to follow, not something `VirtualFileSystem`
-enforces. Only `content` is currently wired up, by `Engine::Initialize` below -- the other five
-roots are not yet mounted by any Core or Runtime code.
+enforces. `Engine::Initialize` below wires up `content` and `temp` (the latter via
+`std::filesystem::temp_directory_path()`, the one canonical root this engine can mount correctly on
+every platform without new platform-specific code); `engine`, `project`, and `user` are not yet
+mounted by any Core or Runtime code, since a real per-OS user-data/cache/install directory query
+(Windows `%APPDATA%`, macOS Application Support, Linux XDG dirs, Android/iOS sandbox paths) doesn't
+exist here yet and this engine does not fabricate one. `bundle` is not a single static mount at
+all -- it's the mount *type* `MountBundle` (below) creates per-bundle at runtime, not something
+`Engine::Initialize` mounts once at startup.
 
 Two backend kinds share the same `Mount`-table/`Read`/`WriteAtomic`/`Metadata`/`Enumerate` surface:
 a directory backend (`Mount`, backed by a real host directory) and a memory backend (`MountMemory`,
@@ -40,10 +50,16 @@ scoped timer. It is an emission hook, not a profiler: aggregation, a HUD, or for
 `EventBus` belongs in the function you register, not in this class. Not thread-safe to change
 concurrently with steady-state marker traffic -- set it once at startup.
 
+A bundle backend exists at the Runtime layer, not here: `Nexora::Runtime::MountBundle`
+(`Engine/Runtime/include/Nexora/Runtime/BundleMount.h`) projects a verified V1-M5 `Bundle`'s assets
+onto a `MountMemory` mount, one file per asset. It could not live in `VirtualFileSystem` itself --
+`Bundle` is a Runtime type, and Core must not depend on Runtime -- so it is a Runtime-side function
+that takes a `VirtualFileSystem&` the caller already owns, not a third `Mount*` method here.
+
 **Not yet implemented** (tracked against the V1 Complete Plan's "P. Virtual File System" and the
-Engine API Foundation roadmap, not silently treated as done): a `BundleMount`/`PlatformPackageMount`
-backend; the full async IO scheduler (request merge/coalescing, priority preemption, aligned reads,
-streaming deadline hints -- `ReadAsync` here is a single job per request with no such scheduling);
+Engine API Foundation roadmap, not silently treated as done): a `PlatformPackageMount` backend; the
+full async IO scheduler (request merge/coalescing, priority preemption, aligned reads, streaming
+deadline hints -- `ReadAsync` here is a single job per request with no such scheduling);
 memory-mapped file access; and call-site privilege gating for who may call `Mount`/`MountMemory`
 with which paths in a Shipping build (today `Mount` is just a regular Core API -- any caller with a
 `VirtualFileSystem&` can mount any host directory it can see; only path traversal *within* an
@@ -51,7 +67,7 @@ already-mounted root is rejected).
 
 ## Lifecycle
 
-`Engine::Initialize` starts logging, workers, and the `content` VFS mount. `Engine::Shutdown` drains jobs before destroying VFS state, then drains logging. Both shutdown and destruction are idempotent. `EngineServices` is a non-owning view valid only between initialization and shutdown.
+`Engine::Initialize` starts logging, workers, and the `content` and `temp` VFS mounts. `Engine::Shutdown` drains jobs before destroying VFS state, then drains logging. Both shutdown and destruction are idempotent. `EngineServices` is a non-owning view valid only between initialization and shutdown.
 
 ## Threading and lifetime
 
