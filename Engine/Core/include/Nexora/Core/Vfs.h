@@ -83,7 +83,12 @@ private:
   // Located result of resolving a virtual path against the mount table:
   // either a canonicalized host path (directory backend) or a memory backend
   // plus the key to use within it. `status` is Completed only when exactly
-  // one of the two is populated.
+  // one of the two is populated. `relative_key` is always the parsed
+  // relative path text for both backends (empty means the caller asked for
+  // the mount's own root, e.g. "mount://" with nothing after it) -- Read/
+  // Metadata/Enumerate treat an empty key as the root, and WriteAtomic
+  // rejects it: writing "to" a mount's root would mean replacing the mount
+  // point itself, not a file within it.
   struct Located final {
     ReadResult::Status status{ReadResult::Status::InvalidPath};
     std::filesystem::path path;

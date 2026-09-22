@@ -133,9 +133,40 @@ void RunBackendContractSuite(VirtualFileSystem &vfs, const std::string &mount) {
           "a multi-MiB read must return the exact bytes written");
 }
 
+// Regression for a real bug a review caught: allowing Enumerate to reach a
+// mount's own root made WriteAtomic reach it too, and on the directory
+// backend WriteAtomic's rename-fallback path can delete an *empty*
+// directory and rename the temp file into its place -- silently replacing
+// the mount point itself with a regular file. WriteAtomic must reject the
+// root outright, on both backends, before ever touching the filesystem.
+void RunMountRootWriteRejectionTest() {
+  JobSystem jobs{1};
+  VirtualFileSystem vfs{jobs};
+  const std::vector<std::byte> payload{std::byte{1}};
+
+  const auto temp_dir = std::filesystem::temp_directory_path() / "nexora-api-vfs-root-write-test";
+  std::filesystem::remove_all(temp_dir);
+  std::filesystem::create_directories(temp_dir);
+  Require(vfs.Mount("root", temp_dir), "directory mount must succeed on a real empty directory");
+  Require(vfs.WriteAtomic("root://", payload) == ReadResult::Status::InvalidPath,
+          "WriteAtomic must reject a mount's own root instead of replacing the mount point");
+  Require(std::filesystem::is_directory(temp_dir),
+          "an empty mount root must survive a rejected WriteAtomic(\"mount://\") as a directory, "
+          "not be replaced by a file");
+  Require(vfs.Enumerate("root://").first == ReadResult::Status::Completed,
+          "the mount must still be usable after the rejected write");
+  std::filesystem::remove_all(temp_dir);
+
+  Require(vfs.MountMemory("memroot"), "memory mount must succeed");
+  Require(vfs.WriteAtomic("memroot://", payload) == ReadResult::Status::InvalidPath,
+          "WriteAtomic must reject a memory mount's own root too, for the same backend-parity "
+          "reason even though there is no directory to destroy on this backend");
+}
+
 int Run() {
   RunHandleTests();
   RunServicesTests();
+  RunMountRootWriteRejectionTest();
 
   JobSystem jobs{1};
   VirtualFileSystem vfs{jobs};
