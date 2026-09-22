@@ -146,21 +146,31 @@ template <typename T>
   return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 [[nodiscard]] inline float Length(Vector3 value) { return std::sqrt(Dot(value, value)); }
-// Constrained template, not a plain Vector3 overload, for the same reason as
-// Vector4's NormalizeSafe above: Vector3 and Quaternion are both aggregates
-// with 3 (or 3-of-4, since Quaternion::w defaults) initializable members, so
-// a bare `NormalizeSafe({1, 2, 3})` would otherwise be ambiguous between
-// this and Quaternion's NormalizeSafe below. Deduction from a bare
-// braced-init-list never happens, so neither template is a viable candidate
-// for that call (a clear "no matching function" instead of silently picking
-// one type or being ambiguous); called with an already-typed argument (as
-// every call site in this file does, e.g. FromAxisAngleRadians below), T
-// deduces normally.
-template <typename T>
-  requires std::is_same_v<T, Vector3>
-[[nodiscard]] inline Vector3 NormalizeSafe(T value, T fallback = {}) {
+// Two required arguments, plain (non-template) overload: this form was
+// never ambiguous with Quaternion::NormalizeSafe below (which takes exactly
+// one argument, so arity alone rules it out for a 2-argument call), so it
+// stays a normal overload and keeps accepting bare brace-init lists for
+// either or both arguments -- e.g. FromAxisAngleRadians's
+// `NormalizeSafe(axis, {0, 1, 0})` below, or a fully bare
+// `NormalizeSafe({3, 4, 0}, {0, 1, 0})`.
+[[nodiscard]] inline Vector3 NormalizeSafe(Vector3 value, Vector3 fallback) {
   const float length = Length(value);
   return std::isfinite(length) && length > kEpsilon ? value * (1.0F / length) : fallback;
+}
+// One-argument convenience (default fallback = a zero Vector3), constrained
+// to exactly Vector3 and declared as a template for the same reason as
+// Vector4's NormalizeSafe above: this arity -- not the two-argument form --
+// is what a bare `NormalizeSafe({1, 2, 3})` would otherwise resolve to
+// ambiguously against Quaternion's one-argument NormalizeSafe below (both
+// are aggregates with a 3-of-4-or-3-of-3 initializable-member shape).
+// Deduction from a bare braced-init-list never happens, so neither
+// one-argument template is a viable candidate for that call (a clear "no
+// matching function" instead of silently picking one type or being
+// ambiguous); called with an already-typed Vector3, T deduces normally.
+template <typename T>
+  requires std::is_same_v<T, Vector3>
+[[nodiscard]] inline Vector3 NormalizeSafe(T value) {
+  return NormalizeSafe(value, Vector3{});
 }
 [[nodiscard]] constexpr Vector3 Lerp(Vector3 a, Vector3 b, float t) { return a + (b - a) * t; }
 

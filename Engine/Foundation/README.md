@@ -42,14 +42,18 @@ each term still carries real floating-point error). **Not done**: the SIMD path 
 `Dot(Vector4, Vector4)` -- `Vector3`'s dot/cross, `Matrix3`/`Matrix4` multiplication, and every
 other operation in this file remain scalar-only, and the SSE2 path itself is unverified on ARM/NEON
 (it simply falls back to scalar there via the `NEXORA_MATH_HAS_SSE2` guard, which is correct but
-untested since this sandbox has no ARM target). `Vector3::NormalizeSafe` and
-`Quaternion::NormalizeSafe` are constrained templates for the same reason: a bare
-`NormalizeSafe({1, 2, 3})` was ambiguous between them (`Quaternion::w` defaults to `1.0F`, so a
-3-element list aggregate-inits either type), and the fix is the same one used for `Vector4` --
-neither template is deducible from a bare braced-init-list, so that call now fails to compile
-outright (a clear "no matching function", not a silent pick or an ambiguity) instead of being
-accepted by whichever type deduction happened to prefer; every existing call site passes an
-already-typed argument and is unaffected.
+untested since this sandbox has no ARM target). `Quaternion::NormalizeSafe` and `Vector3`'s
+one-argument `NormalizeSafe(Vector3)` (default fallback = a zero vector) are constrained templates
+for the same reason as `Vector4`'s: a bare `NormalizeSafe({1, 2, 3})` was ambiguous between them
+(`Quaternion::w` defaults to `1.0F`, so a 3-element list aggregate-inits either type), and neither
+template is deducible from a bare braced-init-list, so that call now fails to compile outright (a
+clear "no matching function", not a silent pick or an ambiguity) instead of being accepted by
+whichever type happened to win. `Vector3`'s **two**-argument `NormalizeSafe(Vector3, Vector3)`
+stays a plain, non-template overload: that arity was never ambiguous with `Quaternion`'s
+one-argument overload in the first place (arity alone rules it out), so templating it too would
+only have broken existing bare-brace two-argument calls like
+`NormalizeSafe({3, 4, 0}, {0, 1, 0})` for no benefit -- exactly the regression a review caught when
+the whole two-argument overload was made a template.
 
 `Dot4`/`Length4`/`NormalizeSafe4`/`Lerp4` also still exist, as thin non-template forwarding
 wrappers over the templated names above, kept for any caller that adopted that spelling during the
