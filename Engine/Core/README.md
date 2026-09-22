@@ -21,8 +21,14 @@ already in flight.
 Mount names are caller-chosen, not fixed by this file: the master plan's canonical logical roots
 (`engine:// project:// bundle:// cache:// user:// temp://`, see the V1 Complete Plan's "P. Virtual
 File System") are a naming *convention* for callers to follow, not something `VirtualFileSystem`
-enforces. Only `content` is currently wired up, by `Engine::Initialize` below -- the other five
-roots are not yet mounted by any Core or Runtime code.
+enforces. `Engine::Initialize` below wires up `content` and `temp` (the latter via
+`std::filesystem::temp_directory_path()`, the one canonical root this engine can mount correctly on
+every platform without new platform-specific code); `engine`, `project`, and `user` are not yet
+mounted by any Core or Runtime code, since a real per-OS user-data/cache/install directory query
+(Windows `%APPDATA%`, macOS Application Support, Linux XDG dirs, Android/iOS sandbox paths) doesn't
+exist here yet and this engine does not fabricate one. `bundle` is not a single static mount at
+all -- it's the mount *type* `MountBundle` (below) creates per-bundle at runtime, not something
+`Engine::Initialize` mounts once at startup.
 
 Two backend kinds share the same `Mount`-table/`Read`/`WriteAtomic`/`Metadata`/`Enumerate` surface:
 a directory backend (`Mount`, backed by a real host directory) and a memory backend (`MountMemory`,
@@ -61,7 +67,7 @@ already-mounted root is rejected).
 
 ## Lifecycle
 
-`Engine::Initialize` starts logging, workers, and the `content` VFS mount. `Engine::Shutdown` drains jobs before destroying VFS state, then drains logging. Both shutdown and destruction are idempotent. `EngineServices` is a non-owning view valid only between initialization and shutdown.
+`Engine::Initialize` starts logging, workers, and the `content` and `temp` VFS mounts. `Engine::Shutdown` drains jobs before destroying VFS state, then drains logging. Both shutdown and destruction are idempotent. `EngineServices` is a non-owning view valid only between initialization and shutdown.
 
 ## Threading and lifetime
 

@@ -186,10 +186,21 @@ int RunTests() {
     engine.Initialize({2, 16, 1024, "."});
     Require(engine.IsInitialized() && engine.Services().jobs->WorkerCount() == 2,
             "engine services must start");
+    // temp:// is one of the master plan's canonical VFS roots (see Vfs.h);
+    // confirm Initialize actually mounted a real, writable temp directory,
+    // not just that startup didn't throw.
+    auto *vfs = engine.Services().vfs;
+    const std::vector<std::byte> marker{std::byte{'o'}, std::byte{'k'}};
+    Require(vfs->WriteAtomic("temp://nexora-core-test-marker", marker) ==
+                ReadResult::Status::Completed,
+            "Initialize must mount a real, writable temp:// root");
+    Require(vfs->Read("temp://nexora-core-test-marker").bytes == marker,
+            "temp:// must round-trip what was written to it");
     engine.BeginFrame();
     engine.Shutdown();
     Require(!engine.IsInitialized(), "engine must shut down cleanly");
   }
+  std::filesystem::remove(std::filesystem::temp_directory_path() / "nexora-core-test-marker");
   return 0;
 }
 

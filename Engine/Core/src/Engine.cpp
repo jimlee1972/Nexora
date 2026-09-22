@@ -33,6 +33,20 @@ void Engine::Initialize(const EngineConfiguration &configuration) {
     log->Stop();
     throw std::runtime_error("failed to mount content root");
   }
+  // temp:// is the one canonical root (see Vfs.h's doc comment) this engine
+  // can mount correctly on every platform without new platform-specific
+  // code: std::filesystem::temp_directory_path() is a standard, portable
+  // query, unlike a real per-OS user-data or cache directory (Windows
+  // %APPDATA%, macOS Application Support, Linux XDG dirs, Android/iOS
+  // sandbox paths), which this engine has no platform query for yet and so
+  // does not attempt to fabricate here.
+  std::error_code temp_error;
+  const auto temp_directory = std::filesystem::temp_directory_path(temp_error);
+  if (!temp_error && !vfs->Mount("temp", temp_directory)) {
+    jobs->Stop();
+    log->Stop();
+    throw std::runtime_error("failed to mount temp root");
+  }
   implementation_->memory = std::move(memory);
   implementation_->log = std::move(log);
   implementation_->jobs = std::move(jobs);
