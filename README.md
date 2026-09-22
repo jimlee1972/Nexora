@@ -7,7 +7,7 @@
 
 Nexora is an open-source cross-platform 3D engine initiative focused on a high-performance C++20 core, Zig gameplay, a language-neutral stable C ABI, modern rendering, scalable world systems, and AI-assisted engineering.
 
-This repository currently starts with the architecture and implementation-planning baseline. The roadmap documents are available in English under `Roadmap/en/`, with their original Traditional Chinese editions preserved under `Roadmap/zh-TW/`.
+This repository contains an executable C++20 engine/runtime baseline in addition to its architecture and implementation plans. The roadmap documents are available in English under `Roadmap/en/`, with their original Traditional Chinese editions preserved under `Roadmap/zh-TW/`.
 
 ### Direction
 
@@ -24,7 +24,26 @@ See the bilingual document index in [`Roadmap/README.md`](Roadmap/README.md).
 
 ### Repository status
 
-The current public baseline is documentation-first. Runtime source code, build scripts, and executable engine modules will be added as the implementation milestones become concrete.
+The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, API samples, a Zig gameplay consumer, and a headless `NexoraShowcase`. The milestone sections below describe the implemented portable contract foundations and explicitly call out platform or production backends that remain future work.
+
+#### Engine API status
+
+The Engine API is **not fully complete** against the definition of done in the [Engine API Foundation Roadmap](Roadmap/en/Engine_API_Foundation_Roadmap.md). The public README therefore does not mark the whole API as complete.
+
+| Track | Status | Available now / remaining gate |
+| --- | --- | --- |
+| API-M1 Math and geometry | In progress | Core math, geometry, transforms, layout tests, and an executable sample are available; broader SIMD/ARM coverage and external coordinate golden tests remain. |
+| API-M2 Foundation data types | In progress | UTF-8 strings/views, buffers/spans, UUIDs, names, results, parsing, and generational handles are available; the cross-ABI owned-buffer contract remains. |
+| API-M3 VFS and file I/O | In progress | Directory, memory, and bundle-backed access are available; platform package mounts, the full async scheduler, memory mapping, Shipping privilege gates, and huge-file boundaries remain. |
+| API-M4 Engine services | Complete for the roadmap scope | Monotonic/game/fixed time, versioned deterministic random, configuration, logging, jobs, events, and profiling-marker emission are implemented and tested. |
+| API-M5 World/game facade | In progress | Handle/value-based entity, scene, transform, camera, light, mesh-renderer, asset-reference, and input access are available; physics, character, and audio entity integration remains. |
+| API-M6 Bindings and versioning | In progress | Versioned C ABI host tables and real `GameWorld` component wire paths are available; event subscription, tick control, and the remaining conformance/compatibility gates remain. |
+
+#### Zig gameplay and Showcase status
+
+Zig is no longer only a planned language direction. The repository builds a Zig 0.14.0 gameplay object and ABI smoke consumer. The current headless/static ZS-M1 verification slice has C++ own `main`, engine/world lifetime, fixed and variable updates, offscreen rendering, transactional reload, and shutdown, while Zig mutates a live entity Transform through the public V3 ABI. See the [Showcase README](Apps/Showcase/README.md) for the supported workflow.
+
+This is **not the completed Zig Showcase roadmap**: dynamic module discovery, native window/swapchain presentation, the API-driven gallery rooms, broader failure coverage, and packaged Development/Shipping distribution (ZS-M2 through ZS-M5) remain open. The headless report labels native presentation `CONTRACT ONLY` rather than presenting it as implemented.
 
 ### Important note
 
@@ -49,7 +68,7 @@ Nexora is released under the [MIT License](LICENSE).
 
 Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核心、Zig Gameplay、語言中立的穩定 C ABI、現代化渲染、可擴展世界系統，以及 AI 輔助工程流程。
 
-目前 repository 先以架構與施工規劃為公開基線。英文版位於 `Roadmap/en/`，並保留 `Roadmap/zh-TW/` 下的繁體中文原文，方便貢獻者交叉參照。
+目前 repository 除了架構與施工規劃，也已包含可執行的 C++20 Engine／Runtime 基線。英文版 Roadmap 位於 `Roadmap/en/`，並保留 `Roadmap/zh-TW/` 下的繁體中文原文，方便貢獻者交叉參照。
 
 ### 發展方向
 
@@ -66,7 +85,26 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 
 ### Repository 狀態
 
-目前公開基線以文件為主。Runtime 原始碼、Build Script 與可執行的 Engine Module 會在施工里程碑具體化後逐步加入。
+目前已可建置及測試 Foundation、Core、RHI、Renderer、Runtime、API sample、Zig gameplay consumer 與 headless `NexoraShowcase`。下方里程碑章節會列出已實作的 portable contract foundation，並明確標示仍待完成的平台或 production backend。
+
+#### Engine API 狀態
+
+依照 [Engine API 基礎 Roadmap](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) 的 Definition of Done，Engine API **尚未全部完成**，因此本 README 不會把整體 API 標成完成。
+
+| Track | 狀態 | 現有能力／剩餘 Gate |
+| --- | --- | --- |
+| API-M1 Math 與幾何 | 施工中 | 已有核心 math、geometry、transform、layout tests 與可執行 sample；仍缺更廣的 SIMD／ARM coverage 與外部座標 golden tests。 |
+| API-M2 基礎資料型別 | 施工中 | 已有 UTF-8 string/view、buffer/span、UUID、name、result、parsing 與 generational handle；仍缺跨 ABI owned-buffer contract。 |
+| API-M3 VFS 與檔案 I/O | 施工中 | 已有 directory、memory 與 bundle-backed access；仍缺 platform package mount、完整 async scheduler、memory mapping、Shipping privilege gate 與 huge-file boundary。 |
+| API-M4 Engine services | Roadmap scope 已完成 | Monotonic/game/fixed time、含版本的 deterministic random、configuration、logging、jobs、events 與 profiling-marker emission 均已有實作及測試。 |
+| API-M5 World/game facade | 施工中 | 已有 handle/value-based entity、scene、transform、camera、light、mesh-renderer、asset reference 與 input access；仍缺 physics、character 與 audio 的 entity integration。 |
+| API-M6 Bindings 與版本化 | 施工中 | 已有 versioned C ABI host table 與連到真實 `GameWorld` 的 component wire path；仍缺 event subscription、tick control，以及其餘 conformance／compatibility gates。 |
+
+#### Zig Gameplay 與 Showcase 狀態
+
+Zig 已不只是規劃中的語言方向。Repository 會建置 Zig 0.14.0 gameplay object 與 ABI smoke consumer；目前 headless/static ZS-M1 verification slice 由 C++ 擁有 `main`、Engine／World lifetime、fixed 與 variable update、offscreen rendering、transactional reload 及 shutdown，Zig 則透過公開 V3 ABI 修改真實 entity 的 Transform。支援的操作流程請參閱 [Showcase README](Apps/Showcase/README.md)。
+
+這**不代表 Zig Showcase Roadmap 已全部完成**：dynamic module discovery、native window/swapchain presentation、API-driven gallery rooms、更完整的 failure coverage，以及 Development／Shipping packaged distribution（ZS-M2～ZS-M5）仍未完成。Headless report 會把 native presentation 標成 `CONTRACT ONLY`，不會冒充已實作。
 
 ### 重要說明
 
