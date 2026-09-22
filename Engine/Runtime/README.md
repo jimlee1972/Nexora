@@ -337,9 +337,16 @@ is exactly that: a fake host with its own private value, unrelated to any real `
 builds a real `NexoraGameplayHostV2` whose `read_component`/`write_component` actually read and
 write a live entity's `Transform`, keyed by `TransformComponentType()` (a stable FNV-1a hash of
 `"Nexora.Transform"` via `nexora::foundation::Name`, not a magic number either side has to agree on
-by convention). Only the Transform component type is wired in this pass; `subscribe_event` and
-`set_tick_enabled` remain honest no-ops (they report failure/do nothing rather than a false
-success) since no EventBus or tick-gating integration exists yet to route them through.
+by convention). Only the Transform component type is wired in this pass. `log` now forwards to a
+real `core::AsyncLogService` when `GameplayHostContext::log` is set (category `"Gameplay"`,
+level validated against `LogLevel`'s own range before the `uint32_t` -> enum cast, message built
+from the `(pointer, length)` pair rather than assumed NUL-terminated); it stays a silent no-op when
+that field is left null, exactly as it always was. `subscribe_event` and `set_tick_enabled` remain
+honest no-ops, and not because of a missing wiring pass: the ABI itself has no callback slot for the
+host to invoke the module when a subscribed event later fires, and gating
+`GameplayModuleHost::Update` calls would need either that Runtime-namespace type to depend on this
+Game-namespace context or a new decoupled primitive threaded through both -- both are real API/ABI
+design decisions, not gaps to fill in passing.
 
 **Not verified here:** `Gameplay/Zig/src/game_module.zig` and its test were not changed to consume
 this bridge. No Zig toolchain is available in this environment (`which zig` fails), so a change to
