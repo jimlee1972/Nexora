@@ -20,8 +20,8 @@
 // redundant, not safer.
 //
 // Camera, light, and mesh-renderer are entity-integrated here (set at spawn
-// time via EntitySpawnDescriptor, read back via EntitySnapshot): they are
-// already plain fields on nexora::runtime::Entity. Physics and audio are
+// time or attached, updated, and removed through component setters, then
+// read back via EntitySnapshot). Physics and audio are
 // NOT entity-integrated by this facade: nexora::runtime::PhysicsWorld,
 // CharacterController, and AudioMixer remain standalone systems with their
 // own SimulationId/resource-id space, unconnected to nexora::runtime::Id.
@@ -58,11 +58,8 @@ struct EntitySnapshot final {
   runtime::MeshComponent mesh{};
 };
 
-// Components are attached at spawn time; SetTransform is the only
-// post-spawn mutator this facade provides (camera/light/mesh-renderer are
-// typically set once when an entity is created, unlike a transform that
-// changes every frame -- a later pass can add per-component setters if a
-// real use needs them).
+// Components can be attached at spawn time and subsequently updated or
+// removed through GameWorld or DeferredCommands.
 struct EntitySpawnDescriptor final {
   runtime::Transform transform{};
   std::optional<runtime::CameraComponent> camera;
@@ -74,6 +71,31 @@ struct EntitySpawnDescriptor final {
 // decoupled from InputSystem's own internal per-user event buffers.
 struct InputSnapshot final {
   std::vector<runtime::RawInputEvent> events;
+};
+
+// A caller-owned mutation batch. Submit is atomic with respect to invalid
+// entity handles: if any referenced entity is stale, none of the commands are
+// applied. Successfully submitted commands are consumed.
+class NEXORA_RUNTIME_API DeferredCommands final {
+public:
+  void SetTransform(runtime::Id entity, runtime::Transform transform) {
+    commands_.SetTransform(entity, transform);
+  }
+  void SetCamera(runtime::Id entity, std::optional<runtime::CameraComponent> camera) {
+    commands_.SetCamera(entity, camera);
+  }
+  void SetLight(runtime::Id entity, std::optional<runtime::LightComponent> light) {
+    commands_.SetLight(entity, light);
+  }
+  void SetMeshRenderer(runtime::Id entity, std::optional<runtime::MeshComponent> mesh) {
+    commands_.SetMeshRenderer(entity, mesh);
+  }
+  void DestroyEntity(runtime::Id entity) { commands_.DestroyEntity(entity); }
+  [[nodiscard]] std::size_t Size() const noexcept { return commands_.Size(); }
+
+private:
+  friend class GameWorld;
+  runtime::WorldCommandBuffer commands_;
 };
 [[nodiscard]] NEXORA_RUNTIME_API InputSnapshot CaptureInput(runtime::InputSystem &input,
                                                             runtime::InputUserId user);
@@ -105,6 +127,10 @@ public:
   }
   [[nodiscard]] std::optional<EntitySnapshot> GetEntity(runtime::Id entity) const;
   bool SetTransform(runtime::Id entity, runtime::Transform transform);
+  bool SetCamera(runtime::Id entity, std::optional<runtime::CameraComponent> camera);
+  bool SetLight(runtime::Id entity, std::optional<runtime::LightComponent> light);
+  bool SetMeshRenderer(runtime::Id entity, std::optional<runtime::MeshComponent> mesh);
+  bool Submit(DeferredCommands &commands) { return commands.commands_.Apply(world_); }
 
   // OR semantics: an entity matches if it has ANY component flag set in
   // `mask` (not all of them). mask == 0 matches every entity in the scene.

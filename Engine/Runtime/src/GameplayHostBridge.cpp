@@ -10,31 +10,69 @@ namespace {
 
 int32_t ReadComponent(void *context, uint64_t entity, uint64_t component_type, void *data,
                       uint32_t data_size) {
-  if (context == nullptr || data == nullptr || component_type != TransformComponentType() ||
-      data_size < sizeof(GameplayTransformWire)) {
+  if (context == nullptr || data == nullptr) {
     return -1;
   }
   const auto &host_context = *static_cast<const GameplayHostContext *>(context);
+  if (host_context.world == nullptr)
+    return -1;
   const auto snapshot = host_context.world->GetEntity(entity);
   if (!snapshot)
     return -1;
-  const GameplayTransformWire wire{snapshot->transform.x, snapshot->transform.y,
-                                   snapshot->transform.z};
-  std::memcpy(data, &wire, sizeof(wire));
+  if (component_type == TransformComponentType() && data_size >= sizeof(GameplayTransformWire)) {
+    const GameplayTransformWire wire{snapshot->transform.x, snapshot->transform.y,
+                                     snapshot->transform.z};
+    std::memcpy(data, &wire, sizeof(wire));
+  } else if (component_type == CameraComponentType() && snapshot->has_camera &&
+             data_size >= sizeof(GameplayCameraWire)) {
+    const GameplayCameraWire wire{snapshot->camera.vertical_field_of_view,
+                                  snapshot->camera.near_plane, snapshot->camera.far_plane};
+    std::memcpy(data, &wire, sizeof(wire));
+  } else if (component_type == LightComponentType() && snapshot->has_light &&
+             data_size >= sizeof(GameplayLightWire)) {
+    const GameplayLightWire wire{snapshot->light.intensity};
+    std::memcpy(data, &wire, sizeof(wire));
+  } else if (component_type == MeshRendererComponentType() && snapshot->has_mesh_renderer &&
+             data_size >= sizeof(GameplayMeshRendererWire)) {
+    const GameplayMeshRendererWire wire{snapshot->mesh.mesh, snapshot->mesh.material.shader};
+    std::memcpy(data, &wire, sizeof(wire));
+  } else {
+    return -1;
+  }
   return 0;
 }
 
 int32_t WriteComponent(void *context, uint64_t entity, uint64_t component_type, const void *data,
                        uint32_t data_size) {
-  if (context == nullptr || data == nullptr || component_type != TransformComponentType() ||
-      data_size < sizeof(GameplayTransformWire)) {
+  if (context == nullptr || data == nullptr) {
     return -1;
   }
   auto &host_context = *static_cast<GameplayHostContext *>(context);
-  GameplayTransformWire wire{};
-  std::memcpy(&wire, data, sizeof(wire));
-  const runtime::Transform transform{wire.x, wire.y, wire.z};
-  return host_context.world->SetTransform(entity, transform) ? 0 : -1;
+  if (host_context.world == nullptr)
+    return -1;
+  bool written = false;
+  if (component_type == TransformComponentType() && data_size >= sizeof(GameplayTransformWire)) {
+    GameplayTransformWire wire{};
+    std::memcpy(&wire, data, sizeof(wire));
+    written = host_context.world->SetTransform(entity, {wire.x, wire.y, wire.z});
+  } else if (component_type == CameraComponentType() && data_size >= sizeof(GameplayCameraWire)) {
+    GameplayCameraWire wire{};
+    std::memcpy(&wire, data, sizeof(wire));
+    written = host_context.world->SetCamera(
+        entity,
+        runtime::CameraComponent{wire.vertical_field_of_view, wire.near_plane, wire.far_plane});
+  } else if (component_type == LightComponentType() && data_size >= sizeof(GameplayLightWire)) {
+    GameplayLightWire wire{};
+    std::memcpy(&wire, data, sizeof(wire));
+    written = host_context.world->SetLight(entity, runtime::LightComponent{wire.intensity});
+  } else if (component_type == MeshRendererComponentType() &&
+             data_size >= sizeof(GameplayMeshRendererWire)) {
+    GameplayMeshRendererWire wire{};
+    std::memcpy(&wire, data, sizeof(wire));
+    written = host_context.world->SetMeshRenderer(
+        entity, runtime::MeshComponent{wire.mesh, runtime::MaterialComponent{wire.shader}});
+  }
+  return written ? 0 : -1;
 }
 
 // Not implemented in this pass: the ABI has no callback slot for the host
@@ -70,6 +108,11 @@ void Log(void *context, uint32_t level, const char *message, uint32_t message_le
 
 std::uint64_t TransformComponentType() noexcept {
   return foundation::Name("Nexora.Transform").Value();
+}
+std::uint64_t CameraComponentType() noexcept { return foundation::Name("Nexora.Camera").Value(); }
+std::uint64_t LightComponentType() noexcept { return foundation::Name("Nexora.Light").Value(); }
+std::uint64_t MeshRendererComponentType() noexcept {
+  return foundation::Name("Nexora.MeshRenderer").Value();
 }
 
 NexoraGameplayHostV2 MakeHost(GameplayHostContext &context) noexcept {

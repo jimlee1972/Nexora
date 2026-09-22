@@ -320,9 +320,11 @@ never-reused identifier, which the V1 Complete Plan's ABI rules list as its own 
 C-ABI-crossing category ("EntityID"), separate from an index+generation Opaque Handle.
 
 `SpawnEntity` attaches camera/light/mesh-renderer at creation time via `EntitySpawnDescriptor`
-(they are plain fields on `Entity`); `SetTransform`/`DestroyEntity` go through a one-shot
-`WorldCommandBuffer` internally, reusing the M4 command-buffer contract rather than adding new
-`World` friend access. `Query(scene, mask)` is an OR-mask batch query over a scene's entities.
+(they are plain fields on `Entity`). Component setters attach, update, or remove those components;
+`DeferredCommands` exposes atomic mutation batches and rejects a full batch if an entity is stale.
+The immediate setters and `DestroyEntity` use the same `WorldCommandBuffer` internally, reusing
+the M4 command-buffer contract rather than adding new `World` friend access.
+`Query(scene, mask)` is an OR-mask batch query over a scene's entities.
 `CaptureInput` wraps `InputSystem::Consume` into a by-value `InputSnapshot`, and `AssetRef` is a
 named re-export of the already-ABI-appropriate `AssetUuid` (API-M2). **Not built here:** physics
 (`PhysicsWorld`/`CharacterController`) and audio (`AudioMixer`) remain standalone systems with
@@ -335,9 +337,9 @@ instead of the `read_component`/`write_component`/`log`/`subscribe_event`/`set_t
 only ever being filled by a test-scoped stand-in (`Gameplay/Zig/ZigGameplayTests.cpp`'s `HostState`
 is exactly that: a fake host with its own private value, unrelated to any real `World`). `MakeHost`
 builds a real `NexoraGameplayHostV2` whose `read_component`/`write_component` actually read and
-write a live entity's `Transform`, keyed by `TransformComponentType()` (a stable FNV-1a hash of
-`"Nexora.Transform"` via `nexora::foundation::Name`, not a magic number either side has to agree on
-by convention). Only the Transform component type is wired in this pass. `log` now forwards to a
+write a live entity's Transform, camera, light, and mesh-renderer state. Stable component IDs are
+derived from their `Nexora.*` names, and explicit wire structures keep internal C++ layouts out of
+the ABI. `log` forwards to a
 real `core::AsyncLogService` when `GameplayHostContext::log` is set (category `"Gameplay"`,
 level validated against `LogLevel`'s own range before the `uint32_t` -> enum cast, message built
 from the `(pointer, length)` pair rather than assumed NUL-terminated); it stays a silent no-op when

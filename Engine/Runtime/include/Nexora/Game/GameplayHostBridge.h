@@ -11,7 +11,7 @@
 // actually read and write an entity's Transform through the supported
 // public API rather than an engine-internal pointer.
 //
-// Scope of this pass: only the Transform component type is wired, and `log`
+// Transform, camera, light, and mesh-renderer component types are wired, and `log`
 // is now wired to a real core::AsyncLogService (previously a pure no-op that
 // silently dropped every module log call). subscribe_event and
 // set_tick_enabled remain no-ops, for a reason beyond "not built yet": the
@@ -22,10 +22,9 @@
 // would require either GameplayModuleHost to depend on this Game-namespace
 // context or a new decoupled primitive threaded through both -- either is a
 // real design decision, not a wiring gap, and belongs in its own pass, not
-// this one. Camera/light/mesh-renderer component types are not exposed
-// through this bridge yet. Extending read_component/write_component to
-// another component type means adding another case alongside
-// TransformComponentType()'s, not redesigning this file. The existing
+// this one. Extending read_component/write_component to another component
+// type means adding another case alongside the built-in component IDs, not
+// redesigning this file. The existing
 // Gameplay/Zig/src/game_module.zig sample and its test were NOT changed to
 // consume this bridge -- that would require rebuilding and re-verifying the
 // Zig object, and no Zig toolchain is available to do that in this
@@ -43,6 +42,9 @@ namespace nexora::game {
 // shared by any C++ caller and by a game module across the ABI boundary, so
 // neither side hardcodes a magic numeric component_type.
 [[nodiscard]] NEXORA_RUNTIME_API std::uint64_t TransformComponentType() noexcept;
+[[nodiscard]] NEXORA_RUNTIME_API std::uint64_t CameraComponentType() noexcept;
+[[nodiscard]] NEXORA_RUNTIME_API std::uint64_t LightComponentType() noexcept;
+[[nodiscard]] NEXORA_RUNTIME_API std::uint64_t MeshRendererComponentType() noexcept;
 
 // The wire format read_component/write_component exchange for
 // TransformComponentType(): three tightly packed doubles. This is
@@ -52,6 +54,18 @@ namespace nexora::game {
 // a member; only this struct's own shape is the actual wire contract.
 struct GameplayTransformWire final {
   double x{}, y{}, z{};
+};
+struct GameplayCameraWire final {
+  double vertical_field_of_view{60.0};
+  double near_plane{0.1};
+  double far_plane{1000.0};
+};
+struct GameplayLightWire final {
+  float intensity{1.0F};
+};
+struct GameplayMeshRendererWire final {
+  std::uint64_t mesh{};
+  std::uint64_t shader{};
 };
 
 // context for a NexoraGameplayHostV2 built by MakeHost(): `world` must
