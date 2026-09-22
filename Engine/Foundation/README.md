@@ -22,17 +22,28 @@ The ABI layout gate (`sizeof`/`alignof`/`offsetof` for every POD type here, plus
 `Tests/API/ApiFoundationTests.cpp`, not in this module: Foundation intentionally carries no test
 dependency of its own.
 
-`Vector4::Dot` (and the `Length`/`NormalizeSafe`/`Lerp` built on it) dispatch to an SSE2
-implementation when `NEXORA_MATH_HAS_SSE2` is set (any x86/x64 target with SSE2, which is baseline
-on x86-64), falling back to the plain scalar reduction otherwise; both paths are exposed as
+`Dot4`/`Length4`/`NormalizeSafe4`/`Lerp4` are `Vector4`'s dedicated equivalents of `Vector3`'s
+`Dot`/`Length`/`NormalizeSafe`/`Lerp` -- deliberately not overloads of those same names. `Vector3`
+and `Vector4` are aggregates, so a bare brace-init list like `{1, 2, 3}` is a viable, equally-good
+conversion to either type (the missing `Vector4::w` is simply value-initialized), which would make
+every existing bare-brace call to `Dot`/`Length`/`NormalizeSafe`/`Lerp` ambiguous the moment a
+same-named `Vector4` overload existed; distinct names sidestep that instead of requiring every call
+site to spell out `Vector3{...}`/`Vector4{...}`. `Dot4` dispatches to an SSE2 implementation when
+`NEXORA_MATH_HAS_SSE2` is set (any x86/x64 target with SSE2, which is baseline on x86-64), falling
+back to the plain scalar reduction otherwise; both paths are exposed as
 `detail::DotSimd`/`detail::DotScalar` and cross-checked by a 10,000-iteration fuzz test in
 `Tests/API/ApiFoundationTests.cpp` (tolerance scaled to the sum of `|component product|` magnitudes,
 not to the final dot value, since catastrophic cancellation can drive that value near zero while
-each term still carries real floating-point error). **Not done**: this covers only `Vector4::Dot`
+each term still carries real floating-point error). **Not done**: the SIMD path covers only `Dot4`
 -- `Vector3`'s dot/cross, `Matrix3`/`Matrix4` multiplication, and every other operation in this file
 remain scalar-only, and the SSE2 path itself is unverified on ARM/NEON (it simply falls back to
 scalar there via the `NEXORA_MATH_HAS_SSE2` guard, which is correct but untested since this sandbox
-has no ARM target).
+has no ARM target). Separately, and pre-existing rather than introduced by this SIMD work: a bare
+`NormalizeSafe({1, 2, 3})` is itself already ambiguous between `Vector3` and `Quaternion` (whose `w`
+defaults to `1.0F`, so a 3-element list aggregate-inits either), which the same naming hazard
+applies to but which this pass did not touch -- flagged here rather than fixed, since resolving it
+means picking a naming or API-shape convention for `Quaternion` too, which deserves its own pass
+rather than riding an unrelated regression fix.
 
 ## Foundation types (API-M2)
 

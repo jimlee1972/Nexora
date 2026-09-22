@@ -98,7 +98,7 @@ int Run() {
 
   // ---- Vector4 arithmetic and the scalar/SIMD tolerance requirement ----
   // Add/Subtract/Scale are lane-wise with no reduction, so scalar and SIMD
-  // agree exactly; Dot/Length/NormalizeSafe involve a horizontal sum, whose
+  // agree exactly; Dot4/Length4/NormalizeSafe4 involve a horizontal sum, whose
   // reduction order genuinely differs between the two paths (floating-point
   // addition isn't associative), which is exactly what the roadmap's
   // "scalar/SIMD result tolerance test" acceptance criterion is checking
@@ -116,18 +116,18 @@ int Run() {
     const auto scaled = a * 2.0F;
     Require(scaled.x == 2.0F && scaled.y == 4.0F && scaled.z == 6.0F && scaled.w == 8.0F,
             "Vector4 operator* gave the wrong result");
-    Require(NearlyEqual(Dot(a, b), 5.0F - 12.0F + 21.0F - 32.0F, 1e-4F),
-            "Vector4 Dot gave the wrong result");
-    Require(NearlyEqual(Length(Vector4{2.0F, 0.0F, 0.0F, 0.0F}), 2.0F),
-            "Vector4 Length gave the wrong result");
-    const auto normalized = NormalizeSafe(Vector4{0.0F, 3.0F, 0.0F, 4.0F});
-    Require(NearlyEqual(Length(normalized), 1.0F, 1e-4F),
-            "Vector4 NormalizeSafe did not produce a unit vector");
-    Require(NormalizeSafe(Vector4{}).x == 0.0F && NormalizeSafe(Vector4{}).w == 0.0F,
-            "Vector4 NormalizeSafe did not fall back on a zero-length input");
-    const auto lerped = Lerp(Vector4{0, 0, 0, 0}, Vector4{2, 4, 6, 8}, 0.5F);
+    Require(NearlyEqual(Dot4(a, b), 5.0F - 12.0F + 21.0F - 32.0F, 1e-4F),
+            "Vector4 Dot4 gave the wrong result");
+    Require(NearlyEqual(Length4(Vector4{2.0F, 0.0F, 0.0F, 0.0F}), 2.0F),
+            "Vector4 Length4 gave the wrong result");
+    const auto normalized = NormalizeSafe4(Vector4{0.0F, 3.0F, 0.0F, 4.0F});
+    Require(NearlyEqual(Length4(normalized), 1.0F, 1e-4F),
+            "Vector4 NormalizeSafe4 did not produce a unit vector");
+    Require(NormalizeSafe4(Vector4{}).x == 0.0F && NormalizeSafe4(Vector4{}).w == 0.0F,
+            "Vector4 NormalizeSafe4 did not fall back on a zero-length input");
+    const auto lerped = Lerp4(Vector4{0, 0, 0, 0}, Vector4{2, 4, 6, 8}, 0.5F);
     Require(lerped.x == 1.0F && lerped.y == 2.0F && lerped.z == 3.0F && lerped.w == 4.0F,
-            "Vector4 Lerp gave the wrong result");
+            "Vector4 Lerp4 gave the wrong result");
 
     std::mt19937 random{12345};
     std::uniform_real_distribution<float> distribution{-1000.0F, 1000.0F};
@@ -136,7 +136,7 @@ int Run() {
                       distribution(random)};
       const Vector4 y{distribution(random), distribution(random), distribution(random),
                       distribution(random)};
-      const float simd_dot = Dot(x, y);
+      const float simd_dot = Dot4(x, y);
       const float scalar_dot = detail::DotScalar(x, y);
       // Tolerance relative to the sum of the |term| magnitudes, not to the
       // final (possibly near-cancelled) dot value: two large, opposite-sign
@@ -146,7 +146,7 @@ int Run() {
       const float magnitude =
           std::abs(x.x * y.x) + std::abs(x.y * y.y) + std::abs(x.z * y.z) + std::abs(x.w * y.w);
       Require(NearlyEqual(simd_dot, scalar_dot, magnitude * 1e-5F + 1e-3F),
-              "Dot(Vector4, Vector4)'s active path drifted from the scalar reference beyond "
+              "Dot4(Vector4, Vector4)'s active path drifted from the scalar reference beyond "
               "floating-point reduction-order tolerance");
     }
   }
