@@ -102,7 +102,7 @@ VirtualFileSystem::Located VirtualFileSystem::Locate(std::string_view virtual_pa
     if (resolved_part == resolved.end() || *root_part != *resolved_part)
       return {ReadResult::Status::InvalidPath, {}, {}, {}};
   }
-  return {ReadResult::Status::Completed, resolved, {}, {}};
+  return {ReadResult::Status::Completed, resolved, {}, parsed->relative};
 }
 
 std::pair<ReadResult::Status, FileMetadata>
@@ -180,6 +180,16 @@ ReadResult::Status VirtualFileSystem::WriteAtomic(std::string_view virtual_path,
   const auto located = Locate(virtual_path);
   if (located.status != ReadResult::Status::Completed)
     return located.status;
+  // A mount's own root ("mount://" with nothing after it) is a valid target
+  // for Read/Metadata/Enumerate but not for WriteAtomic: on the directory
+  // backend, located.path would be the mount's root directory itself, and
+  // this function's own rename-fallback path (below) can delete an empty
+  // directory and rename the temp file into its place, silently turning the
+  // mount point into a regular file. Reject before touching the host
+  // filesystem at all, and do the same for the memory backend so both
+  // backends keep agreeing on which paths are writable.
+  if (located.relative_key.empty())
+    return ReadResult::Status::InvalidPath;
   if (located.memory) {
     std::lock_guard lock{located.memory->mutex};
     auto &file = located.memory->files[located.relative_key];
