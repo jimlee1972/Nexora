@@ -22,6 +22,18 @@ The ABI layout gate (`sizeof`/`alignof`/`offsetof` for every POD type here, plus
 `Tests/API/ApiFoundationTests.cpp`, not in this module: Foundation intentionally carries no test
 dependency of its own.
 
+`Vector4::Dot` (and the `Length`/`NormalizeSafe`/`Lerp` built on it) dispatch to an SSE2
+implementation when `NEXORA_MATH_HAS_SSE2` is set (any x86/x64 target with SSE2, which is baseline
+on x86-64), falling back to the plain scalar reduction otherwise; both paths are exposed as
+`detail::DotSimd`/`detail::DotScalar` and cross-checked by a 10,000-iteration fuzz test in
+`Tests/API/ApiFoundationTests.cpp` (tolerance scaled to the sum of `|component product|` magnitudes,
+not to the final dot value, since catastrophic cancellation can drive that value near zero while
+each term still carries real floating-point error). **Not done**: this covers only `Vector4::Dot`
+-- `Vector3`'s dot/cross, `Matrix3`/`Matrix4` multiplication, and every other operation in this file
+remain scalar-only, and the SSE2 path itself is unverified on ARM/NEON (it simply falls back to
+scalar there via the `NEXORA_MATH_HAS_SSE2` guard, which is correct but untested since this sandbox
+has no ARM target).
+
 ## Foundation types (API-M2)
 
 `Nexora/Foundation/Types.h` provides UTF-8 validation, byte-oriented string views, stable FNV-1a
