@@ -148,6 +148,27 @@ int Run() {
                 lerped4.w == lerped.w,
             "Lerp4 must forward to Lerp");
 
+    // Quaternion::NormalizeSafe and Vector3::NormalizeSafe's one-argument
+    // (default-fallback) form are deduction-constrained templates now, for
+    // the same reason as Vector4's: a bare `NormalizeSafe({1, 2, 3})` would
+    // otherwise be ambiguous between them (Quaternion::w defaults to 1.0F,
+    // so a 3-element list aggregate-inits either type). Typed calls to both
+    // must still work correctly.
+    Require(NearlyEqual(Length(NormalizeSafe(Vector3{3.0F, 4.0F, 0.0F})), 1.0F, 1e-4F),
+            "Vector3 NormalizeSafe's one-argument form (now a constrained template) did not "
+            "produce a unit vector");
+    const auto normalized_quat = NormalizeSafe(Quaternion{0.0F, 0.0F, 0.0F, 2.0F});
+    Require(NearlyEqual(normalized_quat.w, 1.0F, 1e-4F),
+            "Quaternion NormalizeSafe (now a constrained template) did not produce a unit "
+            "quaternion");
+    // Regression check for the P2 finding that templating the whole 2-arg
+    // Vector3::NormalizeSafe overload broke a bare-brace 2-argument call:
+    // that arity was never ambiguous with Quaternion's 1-argument overload
+    // in the first place, so it must remain a plain overload and keep
+    // accepting two bare brace-init lists.
+    Require(NearlyEqual(Length(NormalizeSafe({3.0F, 4.0F, 0.0F}, {0.0F, 1.0F, 0.0F})), 1.0F, 1e-4F),
+            "a bare 2-argument NormalizeSafe(Vector3, Vector3) call must still compile and work");
+
     std::mt19937 random{12345};
     std::uniform_real_distribution<float> distribution{-1000.0F, 1000.0F};
     for (int i = 0; i < 10000; ++i) {
