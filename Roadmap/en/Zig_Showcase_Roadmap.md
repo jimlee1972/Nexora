@@ -2,6 +2,11 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
 
+**Implementation status (2026-09-22):** ZS-M0 has started. ABI V3 now defines explicit result and
+capability values, separate create/start/stop/destroy phases, fallible variable/fixed updates, and
+transactional state migration in the C++ host. The in-tree C++ fake module exercises this contract.
+Dynamic discovery, allocator callbacks, a shared C++/Zig vector suite, and ZS-M1 remain open.
+
 ## 1. Architectural decision
 
 The Showcase `main`, platform window, engine lifecycle, render loop, and shutdown are owned by the C++ Host/Engine. Zig is a loaded gameplay module, never the process owner. It calls the stable C ABI to create content, consume tick/input, manipulate entities/components, and update presentation state. This makes Zig more than an ABI smoke while retaining that smoke gate.

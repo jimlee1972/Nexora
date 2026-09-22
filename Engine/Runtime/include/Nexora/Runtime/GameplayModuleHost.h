@@ -18,26 +18,27 @@ public:
     std::chrono::nanoseconds last_reload_duration{};
     std::uint32_t migrated_bytes{};
   };
-  explicit GameplayModuleHost(NexoraGameplayHostV2 host) noexcept;
+  explicit GameplayModuleHost(NexoraGameplayHostV3 host) noexcept;
   ~GameplayModuleHost();
 
   GameplayModuleHost(const GameplayModuleHost &) = delete;
   GameplayModuleHost &operator=(const GameplayModuleHost &) = delete;
 
-  [[nodiscard]] bool Load(NexoraGameModuleLoadFn load);
-  [[nodiscard]] bool Reload(NexoraGameModuleLoadFn load);
+  [[nodiscard]] bool Load(NexoraGameModuleLoadV3Fn load);
+  [[nodiscard]] bool Reload(NexoraGameModuleLoadV3Fn load);
+  [[nodiscard]] bool FixedUpdate(double fixed_delta_seconds);
   [[nodiscard]] bool Update(double delta_seconds);
   void Unload() noexcept;
   [[nodiscard]] bool IsLoaded() const noexcept;
   [[nodiscard]] ReloadStats GetReloadStats() const noexcept;
 
 private:
-  [[nodiscard]] bool Create(NexoraGameModuleLoadFn load, NexoraGameModuleV2 &module) const;
+  [[nodiscard]] bool Create(NexoraGameModuleLoadV3Fn load, NexoraGameModuleV3 &module) const;
   void ShutdownLocked() noexcept;
 
-  NexoraGameplayHostV2 host_{};
+  NexoraGameplayHostV3 host_{};
   mutable std::mutex mutex_;
-  NexoraGameModuleV2 module_{};
+  NexoraGameModuleV3 module_{};
   bool loaded_{};
   ReloadStats reload_stats_{};
 };
