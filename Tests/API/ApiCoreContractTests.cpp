@@ -98,6 +98,12 @@ void RunBackendContractSuite(VirtualFileSystem &vfs, const std::string &mount) {
               entries.front() == "file.bin",
           "Enumerate must list the file written under its directory prefix");
 
+  const auto [root_status, root_entries] = vfs.Enumerate(mount + "://");
+  Require(root_status == ReadResult::Status::Completed && root_entries.size() == 1 &&
+              root_entries.front() == "dir",
+          "Enumerate on a mount's own root (\"mount://\" with nothing after it) must list its "
+          "top-level contents, not be rejected as an invalid path");
+
   // ---- Error injection ----
   Require(vfs.Read(mount + "://missing.bin").status == ReadResult::Status::NotFound,
           "reading a file that was never written must be NotFound");
