@@ -1,5 +1,17 @@
 const abi_version: u32 = 3;
 
+fn hashName(comptime text: []const u8) u64 {
+    var hash: u64 = 14695981039346656037;
+    for (text) |byte| {
+        hash ^= byte;
+        hash *%= 1099511628211;
+    }
+    return hash;
+}
+
+const primary_entity: u64 = 0;
+const transform_component_type: u64 = hashName("Nexora.Transform");
+
 const GameplayHost = extern struct {
     struct_size: u32,
     abi_version: u32,
@@ -27,7 +39,15 @@ const GameModule = extern struct {
 
 const State = extern struct {
     update_count: u32 = 0,
+    fixed_update_count: u32 = 0,
+    start_count: u32 = 0,
     elapsed_seconds: f64 = 0,
+};
+
+const Transform = extern struct {
+    x: f64 = 0,
+    y: f64 = 0,
+    z: f64 = 0,
 };
 
 var state = State{};
@@ -63,13 +83,17 @@ fn loadState(module_state: ?*anyopaque, data: ?*const anyopaque, data_size: u32)
 }
 
 fn onStart(module_state: ?*anyopaque) callconv(.c) i32 {
-    _ = module_state;
+    const opaque_state = module_state orelse return -3;
+    const current: *State = @ptrCast(@alignCast(opaque_state));
+    current.start_count += 1;
     return 0;
 }
 
 fn fixedUpdate(module_state: ?*anyopaque, delta_seconds: f64) callconv(.c) i32 {
-    _ = module_state;
     _ = delta_seconds;
+    const opaque_state = module_state orelse return -3;
+    const current: *State = @ptrCast(@alignCast(opaque_state));
+    current.fixed_update_count += 1;
     return 0;
 }
 
@@ -79,12 +103,14 @@ fn update(module_state: ?*anyopaque, delta_seconds: f64) callconv(.c) i32 {
     current.update_count += 1;
     current.elapsed_seconds += delta_seconds;
     if (host_api) |host| {
-        var value: u32 = 0;
+        var transform = Transform{};
         if (host.read_component) |read| {
-            if (read(host.context, 1, 0x2001, &value, @sizeOf(u32)) == 0) {
-                value += 1;
+            if (read(host.context, primary_entity, transform_component_type, &transform,
+                @sizeOf(Transform)) == 0) {
+                transform.x += delta_seconds;
                 if (host.write_component) |write| {
-                    _ = write(host.context, 1, 0x2001, &value, @sizeOf(u32));
+                    _ = write(host.context, primary_entity, transform_component_type, &transform,
+                        @sizeOf(Transform));
                 }
             }
         }
@@ -108,7 +134,7 @@ export fn NexoraGameModuleLoad(requested_abi: u32, module: ?*GameModule) i32 {
     output.* = .{
         .struct_size = @intCast(@sizeOf(GameModule)),
         .abi_version = abi_version,
-        .capabilities = 3,
+        .capabilities = 1 | 2,
         .module_state = null,
         .create = create,
         .on_start = onStart,
@@ -128,4 +154,12 @@ export fn NexoraGameModuleUpdateCount() u32 {
 
 export fn NexoraGameModuleElapsedSeconds() f64 {
     return state.elapsed_seconds;
+}
+
+export fn NexoraGameModuleFixedUpdateCount() u32 {
+    return state.fixed_update_count;
+}
+
+export fn NexoraGameModuleStartCount() u32 {
+    return state.start_count;
 }

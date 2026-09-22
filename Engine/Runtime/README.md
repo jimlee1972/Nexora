@@ -362,10 +362,11 @@ later fires, and gating `GameplayModuleHost::Update` calls would need either tha
 type to depend on this Game-namespace context or a new decoupled primitive threaded through both --
 both are real API/ABI design decisions, not gaps to fill in passing.
 
-**Not verified here:** `Gameplay/Zig/src/game_module.zig` and its test were not changed to consume
-this bridge. No Zig toolchain is available in this environment (`which zig` fails), so a change to
-the `.zig` file could not be locally rebuilt or verified; only `gameplay.zig_abi_smoke`'s CI runners
-have Zig. `GameplayHostBridge` is instead fully covered by a C++-only test
-(`Tests/Runtime/GameplayHostBridgeTests.cpp`) that calls the built `NexoraGameplayHostV2` function
-pointers directly. Having the Zig sample actually call through this bridge, replacing its own
-private fake host, remains open follow-up work.
+`Gameplay/Zig/src/game_module.zig` and its ABI test now build with the repository-local Zig 0.14.0
+toolchain and are covered by `gameplay.zig_abi_smoke`. `Apps/Showcase/NexoraShowcase` uses a
+separate V3 host adapter to map the stable Transform wire to a live `GameWorld` entity and emits
+headless render/reload evidence; the local Windows `windows-zig-showcase` preset covers it with
+`showcase.zig_headless`. `GameplayHostBridge` remains a V2 C++ facade covered by
+`Tests/Runtime/GameplayHostBridgeTests.cpp`; its generic V2 `MakeHost()` entry is intentionally not
+silently substituted for the V3 Showcase table. Native window/swapchain execution and dynamic
+module discovery remain open.

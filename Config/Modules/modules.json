@@ -55,6 +55,14 @@
       "dependencies": [
         "Runtime"
       ]
+    },
+    {
+      "name": "ZigShowcase",
+      "feature": "NEXORA_ENABLE_ZIG_GAMEPLAY",
+      "dependencies": [
+        "GameplayZig",
+        "Runtime"
+      ]
     }
   ]
 }

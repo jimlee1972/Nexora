@@ -1,4 +1,10 @@
-find_program(NEXORA_ZIG_EXECUTABLE NAMES zig REQUIRED)
+set(NEXORA_ZIG_EXECUTABLE "" CACHE FILEPATH "Path to the Zig compiler")
+if(NOT NEXORA_ZIG_EXECUTABLE)
+  find_program(NEXORA_ZIG_EXECUTABLE NAMES zig REQUIRED)
+endif()
+if(NOT EXISTS "${NEXORA_ZIG_EXECUTABLE}")
+  message(FATAL_ERROR "NEXORA_ZIG_EXECUTABLE does not exist: ${NEXORA_ZIG_EXECUTABLE}")
+endif()
 
 set(NEXORA_ZIG_SAMPLE_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/zig_gameplay_sample${CMAKE_CXX_OUTPUT_EXTENSION}")
 if(NOT CMAKE_CXX_OUTPUT_EXTENSION)
@@ -37,7 +43,9 @@ endif()
 add_custom_command(
   OUTPUT "${NEXORA_ZIG_SAMPLE_OBJECT}"
   COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${NEXORA_ZIG_BUILD_OBJ_ARGS}
-  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig"
+  DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig"
+    "${PROJECT_SOURCE_DIR}/Engine/Foundation/include/Nexora/Foundation/GameplayABI.h"
   COMMENT "Building the Zig gameplay ABI sample"
   VERBATIM)
 
@@ -45,16 +53,23 @@ set_source_files_properties("${NEXORA_ZIG_SAMPLE_OBJECT}" PROPERTIES
   EXTERNAL_OBJECT TRUE
   GENERATED TRUE)
 
-add_executable(NexoraZigGameplayTests
-  ZigGameplayTests.cpp
-  "${NEXORA_ZIG_SAMPLE_OBJECT}")
-target_link_libraries(NexoraZigGameplayTests PRIVATE Nexora::Runtime)
-if(WIN32)
-  # Zig's std library calls raw NT syscalls directly (file I/O, debug-info
-  # lookup for its panic handler, etc.); zig's own linker driver links
-  # ntdll.lib for this automatically, but link.exe invoked from CMake does
-  # not. See https://github.com/ziglang/zig/issues/18893.
-  target_link_libraries(NexoraZigGameplayTests PRIVATE ntdll)
+add_custom_target(NexoraZigGameplayBuild DEPENDS "${NEXORA_ZIG_SAMPLE_OBJECT}")
+
+set(NEXORA_ZIG_SAMPLE_OBJECT "${NEXORA_ZIG_SAMPLE_OBJECT}" PARENT_SCOPE)
+
+if(BUILD_TESTING)
+  add_executable(NexoraZigGameplayTests
+    ZigGameplayTests.cpp
+    "${NEXORA_ZIG_SAMPLE_OBJECT}")
+  add_dependencies(NexoraZigGameplayTests NexoraZigGameplayBuild)
+  target_link_libraries(NexoraZigGameplayTests PRIVATE Nexora::Runtime)
+  if(WIN32)
+    # Zig's std library calls raw NT syscalls directly (file I/O, debug-info
+    # lookup for its panic handler, etc.); zig's own linker driver links
+    # ntdll.lib for this automatically, but link.exe invoked from CMake does
+    # not. See https://github.com/ziglang/zig/issues/18893.
+    target_link_libraries(NexoraZigGameplayTests PRIVATE ntdll)
+  endif()
+  nexora_apply_defaults(NexoraZigGameplayTests)
+  add_test(NAME gameplay.zig_abi_smoke COMMAND NexoraZigGameplayTests)
 endif()
-nexora_apply_defaults(NexoraZigGameplayTests)
-add_test(NAME gameplay.zig_abi_smoke COMMAND NexoraZigGameplayTests)

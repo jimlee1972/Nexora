@@ -7,6 +7,12 @@
 transactional state migration；repository 內的 C++ fake module 會驗證此 contract。Dynamic
 discovery、allocator callback、C++/Zig 共用 vector suite 與 ZS-M1 仍未完成。
 
+**本機施工狀態（2026-09-23）：** 已提供 deterministic headless/static 的 ZS-M1 驗證 slice，
+輸出 `NexoraShowcase.exe`。C++ 擁有 `main`、Engine lifecycle、小型 `GameWorld`、
+fixed/update scheduling、offscreen scene rendering、reload 與 shutdown；Zig consumer 透過
+公開 ABI 修改 primary entity 的 Transform，並由 executable 輸出 JSON evidence report。Dynamic
+module discovery 與 native window/swapchain 仍未完成；report 會將後者標示為 `CONTRACT ONLY`。
+
 ## 1. 核心決策
 
 Showcase 的 `main`、平台視窗、Engine lifecycle、render loop 與 shutdown 必須由 C++ Host/Engine 啟動；Zig 是被載入的 gameplay module，不是 process owner。Zig 透過穩定 C ABI 呼叫 Engine API，建立內容、處理 tick/input、操作 entity/component 並更新展示狀態。這取代「Zig 只做 ABI smoke」作為對外示範，但保留 smoke test。

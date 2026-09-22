@@ -24,11 +24,12 @@
 // real design decision, not a wiring gap, and belongs in its own pass, not
 // this one. Extending read_component/write_component to another component
 // type means adding another case alongside the built-in component IDs, not
-// redesigning this file. The existing
-// Gameplay/Zig/src/game_module.zig sample and its test were NOT changed to
-// consume this bridge -- that would require rebuilding and re-verifying the
-// Zig object, and no Zig toolchain is available to do that in this
-// environment; it remains open follow-up work.
+// redesigning this file. The V3 Zig Showcase uses a separate V3 host table
+// with the same stable Transform component ID and wire contract; this V2
+// bridge remains a C++ facade for callers that use NexoraGameplayHostV2.
+// Keeping the V2 bridge and V3 Showcase adapter separate avoids treating the
+// V2 struct as the V3 module contract; each path is covered by its respective
+// tests.
 #include "Nexora/Core/Log.h"
 #include "Nexora/Foundation/GameplayABI.h"
 #include "Nexora/Game/GameWorld.h"

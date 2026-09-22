@@ -72,6 +72,26 @@
       }
     },
     {
+      "name": "windows-zig-showcase",
+      "inherits": "base",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Development;Shipping",
+        "NEXORA_ENABLE_ZIG_GAMEPLAY": "ON",
+        "NEXORA_ENABLE_NATIVE_BACKENDS": "OFF",
+        "NEXORA_LINK_MODE": "Modular"
+      },
+      "environment": {
+        "PATH": "${sourceDir}/.tools/zig-win-x86_64-0.14.0;$penv{PATH}"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
       "name": "macos-development",
       "inherits": "base",
       "cacheVariables": {
@@ -135,6 +155,10 @@
       "configurePreset": "windows-development"
     },
     {
+      "name": "windows-zig-showcase",
+      "configurePreset": "windows-zig-showcase"
+    },
+    {
       "name": "macos-development",
       "configurePreset": "macos-development"
     },
@@ -166,6 +190,13 @@
     {
       "name": "windows-development",
       "configurePreset": "windows-development",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-zig-showcase",
+      "configurePreset": "windows-zig-showcase",
       "output": {
         "outputOnFailure": true
       }
