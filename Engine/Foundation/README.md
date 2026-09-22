@@ -42,13 +42,14 @@ each term still carries real floating-point error). **Not done**: the SIMD path 
 `Dot(Vector4, Vector4)` -- `Vector3`'s dot/cross, `Matrix3`/`Matrix4` multiplication, and every
 other operation in this file remain scalar-only, and the SSE2 path itself is unverified on ARM/NEON
 (it simply falls back to scalar there via the `NEXORA_MATH_HAS_SSE2` guard, which is correct but
-untested since this sandbox has no ARM target). Separately, and pre-existing rather than introduced
-by this SIMD work: a bare `NormalizeSafe({1, 2, 3})` is itself already ambiguous between `Vector3`
-and `Quaternion` (whose `w` defaults to `1.0F`, so a 3-element list aggregate-inits either) --
-`Quaternion::NormalizeSafe` is a plain (non-template) overload, so the same deduction-based fix
-doesn't apply to it as-is. Flagged here rather than fixed, since resolving it means picking a
-naming or API-shape convention for `Quaternion` too, which deserves its own pass rather than riding
-an unrelated regression fix.
+untested since this sandbox has no ARM target). `Vector3::NormalizeSafe` and
+`Quaternion::NormalizeSafe` are constrained templates for the same reason: a bare
+`NormalizeSafe({1, 2, 3})` was ambiguous between them (`Quaternion::w` defaults to `1.0F`, so a
+3-element list aggregate-inits either type), and the fix is the same one used for `Vector4` --
+neither template is deducible from a bare braced-init-list, so that call now fails to compile
+outright (a clear "no matching function", not a silent pick or an ambiguity) instead of being
+accepted by whichever type deduction happened to prefer; every existing call site passes an
+already-typed argument and is unaffected.
 
 `Dot4`/`Length4`/`NormalizeSafe4`/`Lerp4` also still exist, as thin non-template forwarding
 wrappers over the templated names above, kept for any caller that adopted that spelling during the

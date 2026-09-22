@@ -148,6 +148,18 @@ int Run() {
                 lerped4.w == lerped.w,
             "Lerp4 must forward to Lerp");
 
+    // Vector3::NormalizeSafe and Quaternion::NormalizeSafe are also
+    // deduction-constrained templates now, for the same reason as Vector4's:
+    // a bare `NormalizeSafe({1, 2, 3})` would otherwise be ambiguous between
+    // them (Quaternion::w defaults to 1.0F, so a 3-element list aggregate-
+    // inits either type). Typed calls to both must still work correctly.
+    Require(NearlyEqual(Length(NormalizeSafe(Vector3{3.0F, 4.0F, 0.0F})), 1.0F, 1e-4F),
+            "Vector3 NormalizeSafe (now a constrained template) did not produce a unit vector");
+    const auto normalized_quat = NormalizeSafe(Quaternion{0.0F, 0.0F, 0.0F, 2.0F});
+    Require(NearlyEqual(normalized_quat.w, 1.0F, 1e-4F),
+            "Quaternion NormalizeSafe (now a constrained template) did not produce a unit "
+            "quaternion");
+
     std::mt19937 random{12345};
     std::uniform_real_distribution<float> distribution{-1000.0F, 1000.0F};
     for (int i = 0; i < 10000; ++i) {

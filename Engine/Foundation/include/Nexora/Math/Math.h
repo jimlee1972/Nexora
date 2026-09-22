@@ -146,7 +146,19 @@ template <typename T>
   return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 [[nodiscard]] inline float Length(Vector3 value) { return std::sqrt(Dot(value, value)); }
-[[nodiscard]] inline Vector3 NormalizeSafe(Vector3 value, Vector3 fallback = {}) {
+// Constrained template, not a plain Vector3 overload, for the same reason as
+// Vector4's NormalizeSafe above: Vector3 and Quaternion are both aggregates
+// with 3 (or 3-of-4, since Quaternion::w defaults) initializable members, so
+// a bare `NormalizeSafe({1, 2, 3})` would otherwise be ambiguous between
+// this and Quaternion's NormalizeSafe below. Deduction from a bare
+// braced-init-list never happens, so neither template is a viable candidate
+// for that call (a clear "no matching function" instead of silently picking
+// one type or being ambiguous); called with an already-typed argument (as
+// every call site in this file does, e.g. FromAxisAngleRadians below), T
+// deduces normally.
+template <typename T>
+  requires std::is_same_v<T, Vector3>
+[[nodiscard]] inline Vector3 NormalizeSafe(T value, T fallback = {}) {
   const float length = Length(value);
   return std::isfinite(length) && length > kEpsilon ? value * (1.0F / length) : fallback;
 }
@@ -161,7 +173,9 @@ struct Quaternion final {
     return {axis.x * s, axis.y * s, axis.z * s, std::cos(half)};
   }
 };
-[[nodiscard]] inline Quaternion NormalizeSafe(Quaternion q) {
+template <typename T>
+  requires std::is_same_v<T, Quaternion>
+[[nodiscard]] inline Quaternion NormalizeSafe(T q) {
   const float n = std::sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
   return std::isfinite(n) && n > kEpsilon ? Quaternion{q.x / n, q.y / n, q.z / n, q.w / n}
                                           : Quaternion{};
