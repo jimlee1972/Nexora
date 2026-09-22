@@ -102,7 +102,16 @@ VirtualFileSystem::Located VirtualFileSystem::Locate(std::string_view virtual_pa
     if (resolved_part == resolved.end() || *root_part != *resolved_part)
       return {ReadResult::Status::InvalidPath, {}, {}, {}};
   }
-  return {ReadResult::Status::Completed, resolved, {}, parsed->relative};
+  // resolved_part == resolved.end() here means the canonicalized destination
+  // has no path components left beyond the mount root -- i.e. it IS the
+  // root, however the caller spelled it. A dot alias such as "mount://."
+  // produces a nonempty textual relative_text ("."), but weakly_canonical
+  // collapses it back to found->root, so trusting the pre-canonicalization
+  // text here would let WriteAtomic's empty-relative_key root check be
+  // bypassed by such an alias while it still resolves to (and can still
+  // destroy) the real mount root directory.
+  const bool is_root = resolved_part == resolved.end();
+  return {ReadResult::Status::Completed, resolved, {}, is_root ? std::string{} : parsed->relative};
 }
 
 std::pair<ReadResult::Status, FileMetadata>

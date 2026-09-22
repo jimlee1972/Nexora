@@ -8,6 +8,20 @@
 #include <optional>
 #include <utility>
 
+// SSE2 is the x86-64 baseline (always present on that architecture, unlike
+// AVX/AVX2), so this is not an optional-feature flag: it is on whenever the
+// target actually has the instructions, off (falling back to the portable
+// scalar path with identical semantics) on any other architecture, e.g. ARM
+// without an explicit NEON path. Only the x86/SSE2 path has been exercised
+// in this environment; see the API-M1 roadmap status note for what that
+// does and does not verify.
+#if defined(__SSE2__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2) || defined(_M_X64)
+#define NEXORA_MATH_HAS_SSE2 1
+#include <emmintrin.h>
+#else
+#define NEXORA_MATH_HAS_SSE2 0
+#endif
+
 namespace nexora::math {
 
 inline constexpr float kEpsilon = 1.0e-6F;
@@ -33,7 +47,58 @@ struct Vector3 final {
 };
 struct Vector4 final {
   float x{}, y{}, z{}, w{};
+  friend constexpr Vector4 operator+(Vector4 a, Vector4 b) {
+    return {a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w};
+  }
+  friend constexpr Vector4 operator-(Vector4 a, Vector4 b) {
+    return {a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w};
+  }
+  friend constexpr Vector4 operator*(Vector4 a, float s) {
+    return {a.x * s, a.y * s, a.z * s, a.w * s};
+  }
 };
+// The scalar reference implementations behind Dot(Vector4, Vector4) et al.
+// below: always available (not just as an ARM/no-SSE2 fallback), so the
+// SIMD path can be tested against them for tolerance rather than assumed
+// correct. Never called directly outside this header and its test.
+namespace detail {
+[[nodiscard]] constexpr float DotScalar(Vector4 a, Vector4 b) noexcept {
+  return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+} // namespace detail
+#if NEXORA_MATH_HAS_SSE2
+namespace detail {
+// Sums a __m128's four lanes into lane 0 via a shuffle-and-add tree, not a
+// left-to-right scalar accumulation -- floating-point addition isn't
+// associative, so this can differ from DotScalar in the last ULP or two.
+// That's exactly why Dot(Vector4, Vector4)'s tolerance test compares against
+// DotScalar with a small epsilon instead of requiring bit-exact equality.
+[[nodiscard]] inline float DotSimd(Vector4 a, Vector4 b) noexcept {
+  const __m128 va = _mm_loadu_ps(&a.x);
+  const __m128 vb = _mm_loadu_ps(&b.x);
+  const __m128 products = _mm_mul_ps(va, vb);
+  const __m128 shuffled = _mm_shuffle_ps(products, products, _MM_SHUFFLE(2, 3, 0, 1));
+  const __m128 sums = _mm_add_ps(products, shuffled);
+  const __m128 high = _mm_movehl_ps(shuffled, sums);
+  const __m128 total = _mm_add_ss(sums, high);
+  return _mm_cvtss_f32(total);
+}
+} // namespace detail
+#endif
+[[nodiscard]] inline float Dot(Vector4 a, Vector4 b) noexcept {
+#if NEXORA_MATH_HAS_SSE2
+  return detail::DotSimd(a, b);
+#else
+  return detail::DotScalar(a, b);
+#endif
+}
+[[nodiscard]] inline float Length(Vector4 value) { return std::sqrt(Dot(value, value)); }
+[[nodiscard]] inline Vector4 NormalizeSafe(Vector4 value, Vector4 fallback = {}) {
+  const float length = Length(value);
+  return std::isfinite(length) && length > kEpsilon ? value * (1.0F / length) : fallback;
+}
+[[nodiscard]] constexpr Vector4 Lerp(Vector4 a, Vector4 b, float t) { return a + (b - a) * t; }
+
 [[nodiscard]] constexpr float Dot(Vector3 a, Vector3 b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
 }
@@ -68,8 +133,8 @@ struct Quaternion final {
     dot = -dot;
   }
   if (dot > 0.9995F)
-    return NormalizeSafe({a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t,
-                          a.w + (b.w - a.w) * t});
+    return NormalizeSafe(Quaternion{a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t,
+                                    a.z + (b.z - a.z) * t, a.w + (b.w - a.w) * t});
   const float theta = std::acos(std::clamp(dot, -1.0F, 1.0F)), s = std::sin(theta);
   const float x = std::sin((1 - t) * theta) / s, y = std::sin(t * theta) / s;
   return {a.x * x + b.x * y, a.y * x + b.y * y, a.z * x + b.z * y, a.w * x + b.w * y};
