@@ -4,6 +4,16 @@ target_link_libraries(NexoraRuntimeTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraRuntimeTests)
 add_test(NAME runtime.v1_m4_m11_contracts COMMAND NexoraRuntimeTests)
 
+add_executable(NexoraGameWorldTests GameWorldTests.cpp)
+target_link_libraries(NexoraGameWorldTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraGameWorldTests)
+add_test(NAME api.game_world_facade COMMAND NexoraGameWorldTests)
+
+add_executable(NexoraGameplayHostBridgeTests GameplayHostBridgeTests.cpp)
+target_link_libraries(NexoraGameplayHostBridgeTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraGameplayHostBridgeTests)
+add_test(NAME api.gameplay_host_bridge COMMAND NexoraGameplayHostBridgeTests)
+
 if(NEXORA_ENABLE_SHIPPING)
   add_executable(NexoraV1M12Tests V1M12Tests.cpp)
   target_link_libraries(NexoraV1M12Tests PRIVATE Nexora::Runtime)

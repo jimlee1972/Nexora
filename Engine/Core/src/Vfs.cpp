@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <fstream>
 #include <mutex>
+#include <unordered_set>
 
 namespace nexora::core {
 struct AsyncReadHandle::State final {
@@ -30,7 +31,19 @@ bool VirtualFileSystem::Mount(std::string_view name, const std::filesystem::path
                           [name](const MountPoint &mount) { return mount.name == name; })) {
     return false;
   }
-  mounts_.push_back({std::string{name}, canonical});
+  mounts_.push_back({std::string{name}, canonical, nullptr});
+  return true;
+}
+
+bool VirtualFileSystem::MountMemory(std::string_view name) {
+  if (name.empty() || name.find('/') != std::string_view::npos)
+    return false;
+  std::lock_guard lock{mutex_};
+  if (std::ranges::any_of(mounts_,
+                          [name](const MountPoint &mount) { return mount.name == name; })) {
+    return false;
+  }
+  mounts_.push_back({std::string{name}, {}, std::make_shared<MemoryBackend>()});
   return true;
 }
 
@@ -40,58 +53,79 @@ bool VirtualFileSystem::Unmount(std::string_view name) {
          0;
 }
 
-std::pair<ReadResult::Status, std::filesystem::path>
-VirtualFileSystem::Resolve(std::string_view virtual_path) const {
+std::optional<VirtualFileSystem::ParsedPath>
+VirtualFileSystem::ParseVirtualPath(std::string_view virtual_path) {
   const auto scheme = virtual_path.find("://");
   const auto separator = scheme == std::string_view::npos ? virtual_path.find('/') : scheme;
   const auto relative_start = scheme == std::string_view::npos ? separator + 1 : scheme + 3;
   if (separator == std::string_view::npos || separator == 0 ||
       relative_start >= virtual_path.size()) {
-    return {ReadResult::Status::InvalidPath, {}};
+    return std::nullopt;
   }
   const auto mount_name = virtual_path.substr(0, separator);
   const auto relative_text = virtual_path.substr(relative_start);
+  if (relative_text.find('\\') != std::string_view::npos)
+    return std::nullopt;
   std::filesystem::path relative{relative_text};
-  if (relative.is_absolute() || relative_text.find('\\') != std::string_view::npos)
-    return {ReadResult::Status::InvalidPath, {}};
+  if (relative.is_absolute())
+    return std::nullopt;
   for (const auto &part : relative) {
     if (part == "..")
-      return {ReadResult::Status::InvalidPath, {}};
+      return std::nullopt;
   }
+  return ParsedPath{std::string(mount_name), relative.generic_string()};
+}
+
+VirtualFileSystem::Located VirtualFileSystem::Locate(std::string_view virtual_path) const {
+  const auto parsed = ParseVirtualPath(virtual_path);
+  if (!parsed)
+    return {ReadResult::Status::InvalidPath, {}, {}, {}};
   std::lock_guard lock{mutex_};
   const auto found = std::ranges::find_if(
-      mounts_, [mount_name](const MountPoint &mount) { return mount.name == mount_name; });
+      mounts_, [&parsed](const MountPoint &mount) { return mount.name == parsed->mount_name; });
   if (found == mounts_.end())
-    return {ReadResult::Status::NotFound, {}};
+    return {ReadResult::Status::NotFound, {}, {}, {}};
+  if (found->memory)
+    return {ReadResult::Status::Completed, {}, found->memory, parsed->relative};
   std::error_code error;
-  const auto resolved = std::filesystem::weakly_canonical(found->root / relative, error);
+  const auto resolved = std::filesystem::weakly_canonical(found->root / parsed->relative, error);
   if (error)
-    return {ReadResult::Status::IoError, {}};
+    return {ReadResult::Status::IoError, {}, {}, {}};
   auto root_part = found->root.begin();
   auto resolved_part = resolved.begin();
   for (; root_part != found->root.end(); ++root_part, ++resolved_part) {
     if (resolved_part == resolved.end() || *root_part != *resolved_part)
-      return {ReadResult::Status::InvalidPath, {}};
+      return {ReadResult::Status::InvalidPath, {}, {}, {}};
   }
-  return {ReadResult::Status::Completed, resolved};
+  return {ReadResult::Status::Completed, resolved, {}, {}};
 }
 
 std::pair<ReadResult::Status, FileMetadata>
 VirtualFileSystem::Metadata(std::string_view virtual_path) const {
-  const auto [status, path] = Resolve(virtual_path);
-  if (status != ReadResult::Status::Completed)
-    return {status, {}};
+  const auto located = Locate(virtual_path);
+  if (located.status != ReadResult::Status::Completed)
+    return {located.status, {}};
+  if (located.memory) {
+    std::lock_guard lock{located.memory->mutex};
+    const auto found = located.memory->files.find(located.relative_key);
+    if (found == located.memory->files.end())
+      return {ReadResult::Status::NotFound, {}};
+    FileMetadata result{};
+    result.size = found->second.bytes.size();
+    result.modified = found->second.modified;
+    return {ReadResult::Status::Completed, result};
+  }
   std::error_code error;
-  const auto info = std::filesystem::status(path, error);
+  const auto info = std::filesystem::status(located.path, error);
   if (error || !std::filesystem::exists(info))
     return {ReadResult::Status::NotFound, {}};
   FileMetadata result{};
   result.is_directory = std::filesystem::is_directory(info);
-  result.modified = std::filesystem::last_write_time(path, error);
+  result.modified = std::filesystem::last_write_time(located.path, error);
   if (error)
     return {ReadResult::Status::IoError, {}};
   if (!result.is_directory) {
-    result.size = std::filesystem::file_size(path, error);
+    result.size = std::filesystem::file_size(located.path, error);
     if (error)
       return {ReadResult::Status::IoError, {}};
   }
@@ -100,12 +134,34 @@ VirtualFileSystem::Metadata(std::string_view virtual_path) const {
 
 std::pair<ReadResult::Status, std::vector<std::string>>
 VirtualFileSystem::Enumerate(std::string_view virtual_directory) const {
-  const auto [status, path] = Resolve(virtual_directory);
-  if (status != ReadResult::Status::Completed)
-    return {status, {}};
+  const auto located = Locate(virtual_directory);
+  if (located.status != ReadResult::Status::Completed)
+    return {located.status, {}};
+  if (located.memory) {
+    // Memory mounts are a flat key/value store; enumeration lists the
+    // distinct immediate segment past the given prefix, so directory-style
+    // nesting still works for callers that write "a/b/c" style keys.
+    const std::string prefix =
+        located.relative_key.empty() ? std::string{} : located.relative_key + "/";
+    std::lock_guard lock{located.memory->mutex};
+    std::vector<std::string> entries;
+    std::unordered_set<std::string> seen;
+    for (const auto &[key, file] : located.memory->files) {
+      if (key.rfind(prefix, 0) != 0)
+        continue;
+      const auto rest = key.substr(prefix.size());
+      const auto slash = rest.find('/');
+      const auto immediate = slash == std::string::npos ? rest : rest.substr(0, slash);
+      if (immediate.empty() || !seen.insert(immediate).second)
+        continue;
+      entries.push_back(immediate);
+    }
+    std::ranges::sort(entries);
+    return {ReadResult::Status::Completed, std::move(entries)};
+  }
   std::error_code error;
   std::vector<std::string> entries;
-  for (std::filesystem::directory_iterator it{path, error}, end; !error && it != end;
+  for (std::filesystem::directory_iterator it{located.path, error}, end; !error && it != end;
        it.increment(error))
     entries.push_back(it->path().filename().generic_string());
   if (error)
@@ -116,10 +172,25 @@ VirtualFileSystem::Enumerate(std::string_view virtual_directory) const {
 
 ReadResult::Status VirtualFileSystem::WriteAtomic(std::string_view virtual_path,
                                                   std::span<const std::byte> bytes) const {
-  const auto [status, path] = Resolve(virtual_path);
-  if (status != ReadResult::Status::Completed)
-    return status;
-  auto temporary = path;
+  const auto located = Locate(virtual_path);
+  if (located.status != ReadResult::Status::Completed)
+    return located.status;
+  if (located.memory) {
+    std::lock_guard lock{located.memory->mutex};
+    auto &file = located.memory->files[located.relative_key];
+    file.bytes.assign(bytes.begin(), bytes.end());
+    file.modified = std::filesystem::file_time_type::clock::now();
+    return ReadResult::Status::Completed;
+  }
+  // Create the parent directory if it doesn't exist yet: a memory mount's
+  // flat key/value store has no notion of a missing parent, so requiring
+  // one here would make an operation that succeeds on one backend silently
+  // fail on the other for the exact same virtual path.
+  std::error_code parent_error;
+  std::filesystem::create_directories(located.path.parent_path(), parent_error);
+  if (parent_error)
+    return ReadResult::Status::IoError;
+  auto temporary = located.path;
   temporary += ".nexora-tmp";
   std::ofstream stream{temporary, std::ios::binary | std::ios::trunc};
   if (!stream)
@@ -133,11 +204,11 @@ ReadResult::Status VirtualFileSystem::WriteAtomic(std::string_view virtual_path,
     return ReadResult::Status::IoError;
   }
   std::error_code error;
-  std::filesystem::rename(temporary, path, error);
+  std::filesystem::rename(temporary, located.path, error);
   if (error) {
-    std::filesystem::remove(path, error);
+    std::filesystem::remove(located.path, error);
     error.clear();
-    std::filesystem::rename(temporary, path, error);
+    std::filesystem::rename(temporary, located.path, error);
   }
   if (error) {
     std::filesystem::remove(temporary);
@@ -147,10 +218,17 @@ ReadResult::Status VirtualFileSystem::WriteAtomic(std::string_view virtual_path,
 }
 
 ReadResult VirtualFileSystem::Read(std::string_view virtual_path) const {
-  const auto [status, path] = Resolve(virtual_path);
-  if (status != ReadResult::Status::Completed)
-    return {status, {}};
-  std::ifstream stream{path, std::ios::binary | std::ios::ate};
+  const auto located = Locate(virtual_path);
+  if (located.status != ReadResult::Status::Completed)
+    return {located.status, {}};
+  if (located.memory) {
+    std::lock_guard lock{located.memory->mutex};
+    const auto found = located.memory->files.find(located.relative_key);
+    if (found == located.memory->files.end())
+      return {ReadResult::Status::NotFound, {}};
+    return {ReadResult::Status::Completed, found->second.bytes};
+  }
+  std::ifstream stream{located.path, std::ios::binary | std::ios::ate};
   if (!stream)
     return {ReadResult::Status::NotFound, {}};
   const auto end = stream.tellg();

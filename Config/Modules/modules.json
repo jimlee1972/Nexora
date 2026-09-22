@@ -43,6 +43,13 @@
       ]
     },
     {
+      "name": "ApiSamples",
+      "feature": "NEXORA_FEATURE_API_SAMPLES",
+      "dependencies": [
+        "Core"
+      ]
+    },
+    {
       "name": "GameplayZig",
       "feature": "NEXORA_ENABLE_ZIG_GAMEPLAY",
       "dependencies": [

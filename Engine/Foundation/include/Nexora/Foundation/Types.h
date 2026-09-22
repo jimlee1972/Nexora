@@ -41,7 +41,91 @@ struct Uuid final {
   std::uint64_t high{}, low{};
   friend constexpr bool operator==(Uuid, Uuid) = default;
   [[nodiscard]] constexpr bool IsNil() const { return high == 0 && low == 0; }
+
+  // Accepts exactly canonical 8-4-4-4-12 hex with dashes at those four fixed
+  // positions (36 chars), or the same 32 hex digits with no dashes at all;
+  // anything else -- wrong length, a dash anywhere else, a missing dash at a
+  // canonical position, or a non-hex character including an embedded NUL --
+  // is ErrorCode::InvalidArgument. Dashes are not simply skipped wherever
+  // they occur: that would silently accept malformed text like four leading
+  // dashes followed by 32 hex digits.
+  [[nodiscard]] static Result<Uuid> Parse(StringView text) {
+    bool dashed;
+    if (text.size() == 36)
+      dashed = true;
+    else if (text.size() == 32)
+      dashed = false;
+    else
+      return ErrorCode::InvalidArgument;
+    const auto hex_value = [](char c) -> int {
+      if (c >= '0' && c <= '9')
+        return c - '0';
+      if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+      if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+      return -1;
+    };
+    const auto is_dash_position = [](std::size_t i) {
+      return i == 8 || i == 13 || i == 18 || i == 23;
+    };
+    std::uint8_t bytes[16]{};
+    std::size_t byte_index = 0;
+    std::size_t i = 0;
+    while (byte_index < 16) {
+      if (dashed && is_dash_position(i)) {
+        if (text[i] != '-')
+          return ErrorCode::InvalidArgument;
+        ++i;
+        continue;
+      }
+      const int high = hex_value(text[i]);
+      const int low = i + 1 < text.size() ? hex_value(text[i + 1]) : -1;
+      if (high < 0 || low < 0)
+        return ErrorCode::InvalidArgument;
+      bytes[byte_index++] = static_cast<std::uint8_t>((high << 4) | low);
+      i += 2;
+    }
+    if (i != text.size())
+      return ErrorCode::InvalidArgument;
+    Uuid uuid;
+    for (int k = 0; k < 8; ++k)
+      uuid.high = (uuid.high << 8) | bytes[k];
+    for (int k = 8; k < 16; ++k)
+      uuid.low = (uuid.low << 8) | bytes[k];
+    return uuid;
+  }
+
+  [[nodiscard]] String ToString() const {
+    static constexpr char kHex[] = "0123456789abcdef";
+    std::uint8_t bytes[16];
+    for (int k = 0; k < 8; ++k)
+      bytes[k] = static_cast<std::uint8_t>(high >> (8 * (7 - k)));
+    for (int k = 0; k < 8; ++k)
+      bytes[8 + k] = static_cast<std::uint8_t>(low >> (8 * (7 - k)));
+    String out;
+    out.reserve(36);
+    for (int k = 0; k < 16; ++k) {
+      out.push_back(kHex[bytes[k] >> 4]);
+      out.push_back(kHex[bytes[k] & 0x0F]);
+      if (k == 3 || k == 5 || k == 7 || k == 9)
+        out.push_back('-');
+    }
+    return out;
+  }
 };
+// The API-M2 generational-handle deliverable is `nexora::core::Handle<Tag>` /
+// `HandlePool<Tag>` in Nexora/Core/Handle.h (index + generation, generation 0
+// invalid), already used by EventBus, Timer, and the RHI backends. It is not
+// duplicated here: Core depends on Foundation, not the other way around, and
+// moving it down would mean rewriting every existing consumer's namespace for
+// no behavioral change, which is a larger refactor than this pass calls for.
+// Name intentionally stores only a 64-bit FNV-1a hash, not the original text:
+// it is meant to be a cheap, ABI-stable StringId, not a debugging aid. Two
+// distinct strings that hash to the same value are indistinguishable and will
+// compare equal; this is an accepted, extremely low-probability trade-off of
+// the hash-only design (see the API-M2 hash collision diagnostics test),
+// not a bug to be fixed by widening Name to also carry the source string.
 class Name final {
 public:
   constexpr Name() = default;

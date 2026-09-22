@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Nexora/Core/Api.h"
 #include "Nexora/Core/EventBus.h"
 #include "Nexora/Core/JobSystem.h"
 #include "Nexora/Core/Log.h"
@@ -74,10 +75,36 @@ private:
   std::unordered_map<std::string, std::string> values_;
 };
 
-class ProfilingMarker final {
+// A scoped timer that, on destruction, hands (name, elapsed nanoseconds) to a
+// globally registered sink if one is set. This is the marker *emission*
+// hook the roadmap asks for, not a profiler: aggregation, a HUD, a
+// chrome://tracing JSON writer, or forwarding onto EventBus all belong
+// inside the function you register with SetSink, not in this class.
+//
+// The sink storage lives in Services.cpp (an exported NEXORA_CORE_API
+// function), not as a function-local static in this header: in the Modular
+// link mode every shared library that includes this header is built with
+// hidden inline visibility, so a header-only static would give each DSO
+// (Core, Runtime, a plugin, the host) its own separate copy -- a sink
+// registered by the host would silently never see markers created inside
+// Core or a plugin. Routing through one exported function keeps it truly
+// global across module boundaries.
+class NEXORA_CORE_API ProfilingMarker final {
 public:
+  using SinkFunction = void (*)(std::string_view name, std::uint64_t nanoseconds);
+
+  // A plain function pointer (not std::function) so the sink can be read
+  // lock-free from every marker's destructor. The default, nullptr, makes
+  // this a zero-overhead scoped timer exactly like before this hook existed.
+  // Not meant to be changed concurrently with steady-state marker traffic:
+  // set it once during startup, before other threads start creating markers.
+  static void SetSink(SinkFunction sink) noexcept;
+
   explicit ProfilingMarker(std::string_view name) noexcept
       : name_(name), start_(MonotonicNanoseconds()) {}
+  ~ProfilingMarker();
+  ProfilingMarker(const ProfilingMarker &) = delete;
+  ProfilingMarker &operator=(const ProfilingMarker &) = delete;
   [[nodiscard]] std::string_view Name() const noexcept { return name_; }
   [[nodiscard]] std::uint64_t ElapsedNanoseconds() const noexcept {
     return MonotonicNanoseconds() - start_;
