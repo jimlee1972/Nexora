@@ -22,28 +22,37 @@ The ABI layout gate (`sizeof`/`alignof`/`offsetof` for every POD type here, plus
 `Tests/API/ApiFoundationTests.cpp`, not in this module: Foundation intentionally carries no test
 dependency of its own.
 
-`Dot4`/`Length4`/`NormalizeSafe4`/`Lerp4` are `Vector4`'s dedicated equivalents of `Vector3`'s
-`Dot`/`Length`/`NormalizeSafe`/`Lerp` -- deliberately not overloads of those same names. `Vector3`
-and `Vector4` are aggregates, so a bare brace-init list like `{1, 2, 3}` is a viable, equally-good
-conversion to either type (the missing `Vector4::w` is simply value-initialized), which would make
-every existing bare-brace call to `Dot`/`Length`/`NormalizeSafe`/`Lerp` ambiguous the moment a
-same-named `Vector4` overload existed; distinct names sidestep that instead of requiring every call
-site to spell out `Vector3{...}`/`Vector4{...}`. `Dot4` dispatches to an SSE2 implementation when
+`Vector4`'s `Dot`/`Length`/`NormalizeSafe`/`Lerp` share their names with `Vector3`'s overloads of the
+same operation, but are declared as function templates constrained to exactly `Vector4`
+(`template <typename T> requires std::is_same_v<T, Vector4>`) rather than plain `Vector4` overloads.
+A plain overload would be ambiguous for a bare brace-init-list call such as `Dot({1, 2, 3},
+{4, 5, 6})`, since `Vector3` and `Vector4` are both aggregates and a 3-of-4-members initializer list
+is an equally good conversion to either (the missing `Vector4::w` is simply value-initialized) --
+which would silently break the brace-init calling convention this file already relies on elsewhere.
+Template argument deduction is never attempted from a bare braced-init-list against a plain
+type-template parameter, so the `Vector4` templates simply are not viable candidates for such a
+call and the ambiguity never arises; called with an already-typed `Vector4` (the common case for
+this kind of API), they bind normally. `Dot` dispatches to an SSE2 implementation when
 `NEXORA_MATH_HAS_SSE2` is set (any x86/x64 target with SSE2, which is baseline on x86-64), falling
 back to the plain scalar reduction otherwise; both paths are exposed as
 `detail::DotSimd`/`detail::DotScalar` and cross-checked by a 10,000-iteration fuzz test in
 `Tests/API/ApiFoundationTests.cpp` (tolerance scaled to the sum of `|component product|` magnitudes,
 not to the final dot value, since catastrophic cancellation can drive that value near zero while
-each term still carries real floating-point error). **Not done**: the SIMD path covers only `Dot4`
--- `Vector3`'s dot/cross, `Matrix3`/`Matrix4` multiplication, and every other operation in this file
-remain scalar-only, and the SSE2 path itself is unverified on ARM/NEON (it simply falls back to
-scalar there via the `NEXORA_MATH_HAS_SSE2` guard, which is correct but untested since this sandbox
-has no ARM target). Separately, and pre-existing rather than introduced by this SIMD work: a bare
-`NormalizeSafe({1, 2, 3})` is itself already ambiguous between `Vector3` and `Quaternion` (whose `w`
-defaults to `1.0F`, so a 3-element list aggregate-inits either), which the same naming hazard
-applies to but which this pass did not touch -- flagged here rather than fixed, since resolving it
-means picking a naming or API-shape convention for `Quaternion` too, which deserves its own pass
-rather than riding an unrelated regression fix.
+each term still carries real floating-point error). **Not done**: the SIMD path covers only
+`Dot(Vector4, Vector4)` -- `Vector3`'s dot/cross, `Matrix3`/`Matrix4` multiplication, and every
+other operation in this file remain scalar-only, and the SSE2 path itself is unverified on ARM/NEON
+(it simply falls back to scalar there via the `NEXORA_MATH_HAS_SSE2` guard, which is correct but
+untested since this sandbox has no ARM target). Separately, and pre-existing rather than introduced
+by this SIMD work: a bare `NormalizeSafe({1, 2, 3})` is itself already ambiguous between `Vector3`
+and `Quaternion` (whose `w` defaults to `1.0F`, so a 3-element list aggregate-inits either) --
+`Quaternion::NormalizeSafe` is a plain (non-template) overload, so the same deduction-based fix
+doesn't apply to it as-is. Flagged here rather than fixed, since resolving it means picking a
+naming or API-shape convention for `Quaternion` too, which deserves its own pass rather than riding
+an unrelated regression fix.
+
+`Dot4`/`Length4`/`NormalizeSafe4`/`Lerp4` also still exist, as thin non-template forwarding
+wrappers over the templated names above, kept for any caller that adopted that spelling during the
+brief window it was the only one available.
 
 ## Foundation types (API-M2)
 

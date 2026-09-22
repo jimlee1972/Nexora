@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <limits>
 #include <optional>
+#include <type_traits>
 #include <utility>
 
 // SSE2 is the x86-64 baseline (always present on that architecture, unlike
@@ -57,10 +58,10 @@ struct Vector4 final {
     return {a.x * s, a.y * s, a.z * s, a.w * s};
   }
 };
-// The scalar reference implementations behind Dot4(Vector4, Vector4) et al.
-// below: always available (not just as an ARM/no-SSE2 fallback), so the
-// SIMD path can be tested against them for tolerance rather than assumed
-// correct. Never called directly outside this header and its test.
+// The scalar reference implementation behind Dot(Vector4, Vector4) below:
+// always available (not just as an ARM/no-SSE2 fallback), so the SIMD path
+// can be tested against them for tolerance rather than assumed correct.
+// Never called directly outside this header and its test.
 namespace detail {
 [[nodiscard]] constexpr float DotScalar(Vector4 a, Vector4 b) noexcept {
   return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
@@ -71,7 +72,7 @@ namespace detail {
 // Sums a __m128's four lanes into lane 0 via a shuffle-and-add tree, not a
 // left-to-right scalar accumulation -- floating-point addition isn't
 // associative, so this can differ from DotScalar in the last ULP or two.
-// That's exactly why Dot4(Vector4, Vector4)'s tolerance test compares against
+// That's exactly why Dot(Vector4, Vector4)'s tolerance test compares against
 // DotScalar with a small epsilon instead of requiring bit-exact equality.
 [[nodiscard]] inline float DotSimd(Vector4 a, Vector4 b) noexcept {
   const __m128 va = _mm_loadu_ps(&a.x);
@@ -85,29 +86,58 @@ namespace detail {
 }
 } // namespace detail
 #endif
-// Named Dot4/Length4/NormalizeSafe4/Lerp4 (not Dot/Length/NormalizeSafe/Lerp)
-// deliberately: a name shared with Vector3's overload of the same operation
-// is ambiguous for any caller that passes bare brace-init lists instead of
-// already-typed values (e.g. `Dot({1,2,3}, {4,5,6})` -- an aggregate with a
-// 3-of-4-members initializer list is a viable, equally-good conversion to
-// both Vector3 and Vector4), which would silently break the existing
-// brace-init calling convention this file already relies on elsewhere (see
+// Dot/Length/NormalizeSafe/Lerp for Vector4 share their names with Vector3's
+// overloads of the same operation on purpose (matching Vector3's API shape),
+// but are declared as templates constrained to exactly Vector4 rather than
+// plain Vector4 overloads. A plain overload would be ambiguous for any bare
+// brace-init-list call -- e.g. `Dot({1,2,3}, {4,5,6})`, since an aggregate
+// with a 3-of-4-members initializer list is an equally good conversion to
+// both Vector3 and Vector4 -- which would silently break the brace-init
+// calling convention this file already relies on elsewhere (see
 // Quaternion::FromAxisAngleRadians's `NormalizeSafe(axis, {0, 1, 0})` a few
-// lines down). Distinct names sidestep the ambiguity entirely rather than
-// requiring every call site to spell out `Vector3{...}`/`Vector4{...}`.
-[[nodiscard]] inline float Dot4(Vector4 a, Vector4 b) noexcept {
+// lines down). Template argument deduction is never attempted from a bare
+// braced-init-list against a plain type-template parameter, so these
+// templates simply aren't viable candidates for such a call and the
+// ambiguity never arises; called with an already-typed `Vector4` (or
+// anywhere T can be deduced from another argument), they bind normally.
+template <typename T>
+  requires std::is_same_v<T, Vector4>
+[[nodiscard]] inline float Dot(T a, T b) noexcept {
 #if NEXORA_MATH_HAS_SSE2
   return detail::DotSimd(a, b);
 #else
   return detail::DotScalar(a, b);
 #endif
 }
-[[nodiscard]] inline float Length4(Vector4 value) { return std::sqrt(Dot4(value, value)); }
-[[nodiscard]] inline Vector4 NormalizeSafe4(Vector4 value, Vector4 fallback = {}) {
-  const float length = Length4(value);
+template <typename T>
+  requires std::is_same_v<T, Vector4>
+[[nodiscard]] inline float Length(T value) {
+  return std::sqrt(Dot(value, value));
+}
+template <typename T>
+  requires std::is_same_v<T, Vector4>
+[[nodiscard]] inline Vector4 NormalizeSafe(T value, T fallback = {}) {
+  const float length = Length(value);
   return std::isfinite(length) && length > kEpsilon ? value * (1.0F / length) : fallback;
 }
-[[nodiscard]] constexpr Vector4 Lerp4(Vector4 a, Vector4 b, float t) { return a + (b - a) * t; }
+template <typename T>
+  requires std::is_same_v<T, Vector4>
+[[nodiscard]] constexpr Vector4 Lerp(T a, T b, float t) {
+  return a + (b - a) * t;
+}
+// Dot4/Length4/NormalizeSafe4/Lerp4: thin forwarding wrappers kept for any
+// caller that adopted these names during the brief window they were the
+// only spelling for Vector4's Dot/Length/NormalizeSafe/Lerp (this file's
+// prior commit). Safe to keep alongside the templates above: since these
+// are plain, non-template Vector4 overloads with their own distinct names,
+// they never participate in the Vector3/Vector4 bare-brace overload
+// resolution the templates above exist to avoid.
+[[nodiscard]] inline float Dot4(Vector4 a, Vector4 b) noexcept { return Dot(a, b); }
+[[nodiscard]] inline float Length4(Vector4 value) { return Length(value); }
+[[nodiscard]] inline Vector4 NormalizeSafe4(Vector4 value, Vector4 fallback = {}) {
+  return NormalizeSafe(value, fallback);
+}
+[[nodiscard]] constexpr Vector4 Lerp4(Vector4 a, Vector4 b, float t) { return Lerp(a, b, t); }
 
 [[nodiscard]] constexpr float Dot(Vector3 a, Vector3 b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
