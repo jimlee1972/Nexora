@@ -52,6 +52,24 @@ bool GameWorld::SetTransform(runtime::Id entity, runtime::Transform transform) {
   return commands.Apply(world_);
 }
 
+bool GameWorld::SetCamera(runtime::Id entity, std::optional<runtime::CameraComponent> camera) {
+  runtime::WorldCommandBuffer commands;
+  commands.SetCamera(entity, camera);
+  return commands.Apply(world_);
+}
+
+bool GameWorld::SetLight(runtime::Id entity, std::optional<runtime::LightComponent> light) {
+  runtime::WorldCommandBuffer commands;
+  commands.SetLight(entity, light);
+  return commands.Apply(world_);
+}
+
+bool GameWorld::SetMeshRenderer(runtime::Id entity, std::optional<runtime::MeshComponent> mesh) {
+  runtime::WorldCommandBuffer commands;
+  commands.SetMeshRenderer(entity, mesh);
+  return commands.Apply(world_);
+}
+
 std::vector<runtime::Id> GameWorld::Query(runtime::Id scene, QueryMask mask) const {
   std::vector<runtime::Id> result;
   const auto *found_scene = world_.FindScene(scene);

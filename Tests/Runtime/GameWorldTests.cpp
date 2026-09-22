@@ -50,6 +50,36 @@ int Run() {
   Require(world.GetEntity(plain)->transform.x == 9.0, "SetTransform must be visible on read-back");
   Require(!world.SetTransform(999999, {}), "SetTransform on a missing id must fail");
 
+  // ---- Component mutation/removal ----
+  Require(world.SetLight(plain, LightComponent{4.0F}), "SetLight must attach a light");
+  Require(world.GetEntity(plain)->has_light && world.GetEntity(plain)->light.intensity == 4.0F,
+          "SetLight data must round trip");
+  Require(world.SetLight(plain, std::nullopt), "SetLight(nullopt) must remove a light");
+  Require(!world.GetEntity(plain)->has_light, "removed light must not remain queryable");
+  Require(world.SetCamera(plain, CameraComponent{80.0, 0.2, 900.0}),
+          "SetCamera must attach a camera");
+  Require(world.SetMeshRenderer(plain, MeshComponent{88, {99}}),
+          "SetMeshRenderer must attach a renderer");
+
+  // ---- Deferred mutation batch ----
+  DeferredCommands deferred;
+  deferred.SetTransform(plain, {5.0, 6.0, 7.0});
+  deferred.SetCamera(plain, std::nullopt);
+  deferred.SetLight(plain, LightComponent{3.0F});
+  Require(deferred.Size() == 3, "deferred command buffer must report queued commands");
+  Require(world.Submit(deferred), "a valid deferred batch must apply");
+  Require(deferred.Size() == 0, "a successful submit must consume the batch");
+  Require(world.GetEntity(plain)->transform.x == 5.0 && !world.GetEntity(plain)->has_camera &&
+              world.GetEntity(plain)->has_light,
+          "deferred component mutations must become visible together");
+
+  DeferredCommands invalid_batch;
+  invalid_batch.SetTransform(plain, {100.0, 0.0, 0.0});
+  invalid_batch.SetTransform(999999, {});
+  Require(!world.Submit(invalid_batch), "a batch containing a stale entity must fail");
+  Require(world.GetEntity(plain)->transform.x == 5.0,
+          "a rejected deferred batch must not partially mutate the world");
+
   // ---- IsAlive / DestroyEntity ----
   Require(world.IsAlive(plain), "a spawned entity must be alive");
   Require(world.DestroyEntity(plain), "DestroyEntity must succeed on a live entity");
