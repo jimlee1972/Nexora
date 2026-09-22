@@ -50,6 +50,10 @@ doesn't apply to it as-is. Flagged here rather than fixed, since resolving it me
 naming or API-shape convention for `Quaternion` too, which deserves its own pass rather than riding
 an unrelated regression fix.
 
+`Dot4`/`Length4`/`NormalizeSafe4`/`Lerp4` also still exist, as thin non-template forwarding
+wrappers over the templated names above, kept for any caller that adopted that spelling during the
+brief window it was the only one available.
+
 ## Foundation types (API-M2)
 
 `Nexora/Foundation/Types.h` provides UTF-8 validation, byte-oriented string views, stable FNV-1a

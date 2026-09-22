@@ -137,6 +137,17 @@ int Run() {
     Require(NearlyEqual(Dot({1.0F, 0.0F, 0.0F}, {0.0F, 1.0F, 0.0F}), 0.0F),
             "a bare brace-init Dot call must still resolve to Vector3::Dot unambiguously");
 
+    // Dot4/Length4/NormalizeSafe4/Lerp4 must keep forwarding to the same
+    // results as their Dot/Length/NormalizeSafe/Lerp equivalents.
+    Require(NearlyEqual(Dot4(a, b), Dot(a, b)), "Dot4 must forward to Dot");
+    Require(NearlyEqual(Length4(a), Length(a)), "Length4 must forward to Length");
+    Require(NormalizeSafe4(a).x == NormalizeSafe(a).x,
+            "NormalizeSafe4 must forward to NormalizeSafe");
+    const auto lerped4 = Lerp4(Vector4{0, 0, 0, 0}, Vector4{2, 4, 6, 8}, 0.5F);
+    Require(lerped4.x == lerped.x && lerped4.y == lerped.y && lerped4.z == lerped.z &&
+                lerped4.w == lerped.w,
+            "Lerp4 must forward to Lerp");
+
     std::mt19937 random{12345};
     std::uniform_real_distribution<float> distribution{-1000.0F, 1000.0F};
     for (int i = 0; i < 10000; ++i) {

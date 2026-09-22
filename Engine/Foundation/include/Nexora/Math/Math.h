@@ -125,6 +125,19 @@ template <typename T>
 [[nodiscard]] constexpr Vector4 Lerp(T a, T b, float t) {
   return a + (b - a) * t;
 }
+// Dot4/Length4/NormalizeSafe4/Lerp4: thin forwarding wrappers kept for any
+// caller that adopted these names during the brief window they were the
+// only spelling for Vector4's Dot/Length/NormalizeSafe/Lerp (this file's
+// prior commit). Safe to keep alongside the templates above: since these
+// are plain, non-template Vector4 overloads with their own distinct names,
+// they never participate in the Vector3/Vector4 bare-brace overload
+// resolution the templates above exist to avoid.
+[[nodiscard]] inline float Dot4(Vector4 a, Vector4 b) noexcept { return Dot(a, b); }
+[[nodiscard]] inline float Length4(Vector4 value) { return Length(value); }
+[[nodiscard]] inline Vector4 NormalizeSafe4(Vector4 value, Vector4 fallback = {}) {
+  return NormalizeSafe(value, fallback);
+}
+[[nodiscard]] constexpr Vector4 Lerp4(Vector4 a, Vector4 b, float t) { return Lerp(a, b, t); }
 
 [[nodiscard]] constexpr float Dot(Vector3 a, Vector3 b) {
   return a.x * b.x + a.y * b.y + a.z * b.z;
