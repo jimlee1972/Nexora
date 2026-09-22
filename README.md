@@ -34,6 +34,13 @@ The files under `Roadmap/` are design and planning artifacts. Their prose is not
 
 Issues and pull requests are welcome. Please keep architecture changes traceable to a roadmap document, describe compatibility or contract impact, and include validation evidence for implementation changes.
 
+### Codex Cloud
+
+Use [`cloud-setup.sh`](cloud-setup.sh) as the Codex Cloud environment setup script. It installs the
+Linux toolchain, CMake, and Zig version used by this repository, then warms the development preset.
+Repository-specific agent instructions, validation gates, and commit/PR conventions are defined in
+[`AGENTS.md`](AGENTS.md).
+
 ### License
 
 Nexora is released under the [MIT License](LICENSE).
@@ -68,6 +75,12 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 ### 貢獻方式
 
 歡迎提交 Issue 與 Pull Request。架構變更請對應到 Roadmap 文件，說明相容性或 Contract 影響；實作變更請附上驗證證據。
+
+### Codex Cloud
+
+請將 [`cloud-setup.sh`](cloud-setup.sh) 設為 Codex Cloud environment 的 setup script；它會安裝本專案使用的
+Linux toolchain、CMake 與 Zig 版本，並預先 configure development preset。Codex 的專案指示、驗證 gate，
+以及 commit／PR 規範定義於 [`AGENTS.md`](AGENTS.md)。
 
 ### 授權
 
