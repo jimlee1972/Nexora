@@ -1,6 +1,7 @@
 // API-M6 conformance: NexoraGameplayHostV2's read_component/write_component,
 // built by nexora::game::MakeHost, actually reads and writes a real
-// GameWorld entity's Transform -- not a test-only fake host.
+// GameWorld entity's Transform -- not a test-only fake host. Also covers
+// the `log` callback's real core::AsyncLogService wiring.
 #include "Nexora/Foundation/GameplayABI.h"
 #include "Nexora/Game/GameplayHostBridge.h"
 
@@ -11,6 +12,8 @@
 namespace {
 using namespace nexora::game;
 using namespace nexora::runtime;
+using nexora::core::AsyncLogService;
+using nexora::core::LogLevel;
 
 void Require(bool value, const char *message) {
   if (!value)
@@ -71,6 +74,35 @@ int Run() {
   Require(host.subscribe_event(host.context, 1) != 0,
           "subscribe_event has no real implementation yet and must not report success");
   host.set_tick_enabled(host.context, 1); // must not crash; no observable state to assert on
+
+  // ---- log: dropped when GameplayHostContext::log is null (unchanged
+  // default behavior), forwarded to a real AsyncLogService when set ----
+  const char message[] = "hello from gameplay";
+  host.log(host.context, static_cast<uint32_t>(LogLevel::Info), message,
+           static_cast<uint32_t>(sizeof(message) - 1));
+  // No log service is attached above, so this must not have crashed or
+  // gone anywhere observable -- there is nothing further to assert here
+  // beyond "the call above returned".
+
+  AsyncLogService log_service;
+  log_service.Start();
+  GameplayHostContext logging_context{&world, &log_service};
+  const auto logging_host = MakeHost(logging_context);
+  logging_host.log(logging_host.context, static_cast<uint32_t>(LogLevel::Warning), message,
+                   static_cast<uint32_t>(sizeof(message) - 1));
+  log_service.Flush();
+  const auto records = log_service.CrashRingSnapshot();
+  Require(records.size() == 1 && records.front().level == LogLevel::Warning &&
+              records.front().category == "Gameplay" && records.front().message == message,
+          "log must forward to the attached AsyncLogService with the right level/category/text");
+
+  // An out-of-range level must be dropped, not reinterpreted as whichever
+  // LogLevel that bit pattern happens to alias.
+  logging_host.log(logging_host.context, 200, message, static_cast<uint32_t>(sizeof(message) - 1));
+  log_service.Flush();
+  Require(log_service.CrashRingSnapshot().size() == 1,
+          "an out-of-range log level must be dropped rather than misinterpreted");
+  log_service.Stop();
 
   return 0;
 }
