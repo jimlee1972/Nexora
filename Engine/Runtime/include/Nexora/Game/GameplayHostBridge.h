@@ -58,6 +58,18 @@ struct GameplayTransformWire final {
 // outlive every NexoraGameModuleV2 built against that host, since the host's
 // callbacks read through this pointer on every read_component/
 // write_component call.
+// A plain C++ type, not part of the stable, versioned C ABI surface
+// (NexoraGameplayHostV2/NexoraGameModuleV2, which carry struct_size and an
+// abi_version this repo's ABI gate checks) -- like every other Runtime C++
+// facade type (GameWorld, EntitySpawnDescriptor, EntitySnapshot, ...), it
+// has no struct_size of its own and callers must be rebuilt against the
+// current header whenever it changes, exactly as they must for those
+// types. This is a deliberate scope boundary, not an oversight: giving
+// GameplayHostContext its own struct_size/versioning would only be
+// consistent if every sibling C++ facade type got the same treatment,
+// which is a real, larger design decision (a genuine ABI surface for the
+// Game-namespace C++ facade, not just this one struct) that belongs in its
+// own pass, not something to retrofit onto a single type in passing.
 struct GameplayHostContext final {
   GameWorld *world{};
   // Optional: when null (the default), the host's `log` callback silently
