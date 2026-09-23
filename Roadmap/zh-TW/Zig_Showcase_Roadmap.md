@@ -10,8 +10,8 @@
 transactional state migration；repository 內的 C++ fake module 會驗證此 contract。Zig module
 現在會透過成對的 V3 host allocator callback 取得與釋放獨立 state，reload candidate
 也不再共用 global state。Fake 與 Zig module 現在共用一份 vector set；allocation tag、negative
-descriptor/callback coverage 與 Linux sanitizer preset 已完成 ZS-M0。Dynamic discovery 與其餘
-ZS-M1 仍未完成。
+descriptor/callback coverage 與 Linux sanitizer preset 已完成 ZS-M0。Runtime dynamic discovery
+與 generation lifecycle 已完成；Showcase artifact wiring 與 ZS-M1 的 native presentation 仍待完成。
 
 **本機施工狀態（2026-09-23）：** 已提供 deterministic headless/static 的 ZS-M1 驗證 slice，
 輸出 `NexoraShowcase.exe`。C++ 擁有 `main`、Engine lifecycle、小型 `GameWorld`、
@@ -70,7 +70,8 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
 - **ZS-M1 Bootstrap**：`NexoraShowcase` C++ target 負責 CLI、window/headless、module discovery；Zig `on_start/update/on_stop` 可執行。
   - ✅ C++-owned `main`、Engine/World lifetime、fixed/update scheduling 與 ordered shutdown。
   - ✅ deterministic headless validation backend、JSON evidence 與 static Zig object consumer。
-  - 待辦：dynamic library discovery、generation ownership、job quiescence 與真正的 library unload/rollback。
+  - ✅ Runtime dynamic library discovery、generation ownership、job quiescence 與真正的 library unload/rollback。
+  - 待辦：建置 Zig Development shared-library artifact，並由 `NexoraShowcase` 選取。
   - 待辦：native window/input/swapchain；該邊界由 Window & Presentation Roadmap 負責。
 - **ZS-M2 API-driven scene**：只用 API Roadmap 的 C/Zig bindings 建 scene、camera、mesh、input 與 diagnostics。
   - 待辦：將目前由 C++ 建立的 camera/light/cubes 改由 Zig 經公開 API 建立。
@@ -81,8 +82,8 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
   - 待辦：camera input、selection/raycast、physics/navigation、animation/audio/VFX 與 large-world overlays。
   - 待辦：逐項顯示 `IMPLEMENTED` / `CONTRACT ONLY` / `UNAVAILABLE`，並提供 capability fallback tests。
 - **ZS-M4 Reload and failure**：transactional hot reload、state migration、錯誤 module/ABI rejection、舊版本 rollback。
-  - 待辦：針對真正 dynamic generations 的 file stabilization、job drain、restore failure 與 old-generation rollback。
-  - 待辦：device lost、update/fixed-update failure、shutdown-during-reload 與 repeated reload stress。
+  - ✅ 真正 dynamic generations 的 job drain、restore failure、old-generation rollback、shutdown-during-reload 與 repeated reload stress。
+  - 待辦：file stabilization，以及 device lost 與 dynamic update/fixed-update failure 整合。
 - **ZS-M5 Distribution**：Development dynamic 與 Shipping static/packaged profiles，產生 license/build/API manifest。
   - 待辦：Development dynamic package、Shipping static package、clean-machine launch smoke。
   - 待辦：license/build/API/content manifests、checksums 與可重現的 packaging command。
