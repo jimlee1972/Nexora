@@ -8,8 +8,6 @@
 
 namespace Nexora::Presentation {
 
-enum class SurfaceBackend : std::uint8_t { Automatic, Dx12 };
-
 struct RenderSurfaceDescriptor final {
   std::string_view title = "Nexora";
   std::uint32_t width = 1280;
@@ -17,6 +15,7 @@ struct RenderSurfaceDescriptor final {
   bool resizable = true;
   SurfaceBackend backend = SurfaceBackend::Automatic;
   PresentMode presentMode = PresentMode::VSync;
+  ColorSpace colorSpace = ColorSpace::Srgb;
 };
 
 struct SurfaceInputSnapshot final {

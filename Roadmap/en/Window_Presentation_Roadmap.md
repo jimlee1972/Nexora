@@ -2,7 +2,7 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-23
 
-> **Progress: 80%** (WP-M0 through WP-M3 are implemented; native Windows acceptance still requires a passing Windows/DX12 runner; WP-M4 remains open.)
+> **Progress: implementation complete** (WP-M0 through WP-M4 are implemented. Native Windows/DX12, Linux/Windows Vulkan, and macOS/Metal acceptance still require passing target-host runners.)
 
 ## 1. Purpose and ownership
 
@@ -71,11 +71,13 @@ an Editor dependency to Runtime. Auto fallback emits and records its reason, exp
 does not fall back, and non-Windows contract tests retain the deterministic headless gate. Actual
 Windows/DX12 execution remains target-host acceptance evidence rather than a Linux-cloud claim.
 
-### WP-M4 — Additional platforms and hardening
+### ✅ WP-M4 — Additional platforms and hardening
 
 - Add Vulkan window-system surfaces on supported Linux/Windows hosts and Metal presentation on macOS.
 - Validate multi-window/multi-surface lifetime, HDR/color-space negotiation, fullscreen, hot-plug, and long-run resize/device-loss stress.
 - Record target-host evidence separately; cross-compilation alone is not runtime validation.
+
+Delivered evidence: Linux uses an X11 window implementation and Vulkan WSI swapchain; Windows can select Vulkan alongside DX12; macOS uses a Cocoa window and `CAMetalLayer`. Backend negotiation records the selected present mode and color space, while fullscreen, multi-surface lifetime, 2,048-cycle resize stress, zero extent, out-of-date, surface-loss, and device-loss paths are covered by the portable contract gate. These sources and cross-platform contracts complete the implementation scope; runtime acceptance remains explicitly target-host evidence and is not inferred from Linux compilation.
 
 ## 5. Validation and Definition of Done
 

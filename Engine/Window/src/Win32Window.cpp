@@ -99,6 +99,34 @@ public:
                ? WindowError::None
                : WindowError::PlatformFailure;
   }
+  WindowError SetFullscreen(WindowHandle h, bool fullscreen) override {
+    if (!OnOwner())
+      return WindowError::WrongThread;
+    auto hwnd = Find(h);
+    if (!hwnd)
+      return WindowError::InvalidHandle;
+    auto &state = fullscreen_[h.value];
+    if (state == fullscreen)
+      return WindowError::None;
+    if (fullscreen) {
+      GetWindowRect(hwnd, &windowedRects_[h.value]);
+      SetWindowLongPtrW(hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+      const auto monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+      MONITORINFO info{sizeof(info)};
+      if (!GetMonitorInfoW(monitor, &info))
+        return WindowError::PlatformFailure;
+      SetWindowPos(hwnd, HWND_TOP, info.rcMonitor.left, info.rcMonitor.top,
+                   info.rcMonitor.right - info.rcMonitor.left,
+                   info.rcMonitor.bottom - info.rcMonitor.top, SWP_FRAMECHANGED);
+    } else {
+      SetWindowLongPtrW(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+      const auto r = windowedRects_[h.value];
+      SetWindowPos(hwnd, nullptr, r.left, r.top, r.right - r.left, r.bottom - r.top,
+                   SWP_NOZORDER | SWP_FRAMECHANGED);
+    }
+    state = fullscreen;
+    return WindowError::None;
+  }
   std::span<const WindowEvent> PumpEvents() override {
     pumped_.clear();
     if (!OnOwner())
@@ -207,6 +235,8 @@ private:
   bool available_{};
   uint64_t next_ = 1;
   std::unordered_map<uint64_t, HWND> windows_;
+  std::unordered_map<uint64_t, bool> fullscreen_;
+  std::unordered_map<uint64_t, RECT> windowedRects_;
   std::vector<WindowEvent> pending_, pumped_;
 };
 } // namespace

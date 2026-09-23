@@ -14,6 +14,7 @@
 #include <wrl/client.h>
 
 namespace Nexora::Presentation {
+std::unique_ptr<ISurface> CreateVulkanSurface(const SurfaceDescriptor &, Window::IWindowSystem &);
 namespace {
 using Microsoft::WRL::ComPtr;
 constexpr UINT kMaximumFrames = 3;
@@ -240,6 +241,12 @@ private:
 };
 } // namespace
 std::unique_ptr<ISurface> CreateSurface(const SurfaceDescriptor &d, Window::IWindowSystem &w) {
+#if defined(NEXORA_HAS_VULKAN_PRESENTATION)
+  if (d.backend == SurfaceBackend::Vulkan)
+    return CreateVulkanSurface(d, w);
+#endif
+  if (d.backend != SurfaceBackend::Automatic && d.backend != SurfaceBackend::Dx12)
+    return {};
   return std::make_unique<Dx12Surface>(d, w);
 }
 } // namespace Nexora::Presentation
