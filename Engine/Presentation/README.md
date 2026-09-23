@@ -1,4 +1,10 @@
-# Nexora Presentation contract (WP-M2)
+# Nexora Presentation contract (WP-M3)
+
+`RenderSurface` is the application-facing native presentation owner shared by Showcase and future
+Editor Scene/Game views. It owns an `IWindowSystem`, one window, and one `ISurface`, pumps and
+normalizes window input, forwards resize events, and preserves the required surface-before-window
+teardown order. This module depends on Window and RHI; Runtime has no dependency on Presentation or
+Editor. Factory failures include a human-readable reason, and callers must report any fallback.
 
 The application owns a presentation adapter and its source window. The Win32 adapter privately owns
 its DXGI flip-discard swapchain, D3D12 device/queue, render-target backbuffers, per-frame command
@@ -18,3 +24,7 @@ immediate presentation with `DXGI_PRESENT_ALLOW_TEARING` only when supported. `O
 `SurfaceLost`, and `DeviceLost` distinguish recovery scopes. `SurfaceDiagnostics` supplies acquire,
 present, resize-generation, fence-wait, and last-HRESULT evidence; screenshots are supplementary and
 never replace these counters and correctness assertions. Non-Windows builds expose no native surface.
+
+`BeginFrame()` pumps window events and acquires the swapchain image; `EndFrame()` submits the clear
+and presents it. `SurfaceInputSnapshot` is retained by the render-surface owner and remains valid
+until the next event pump. Both calls, creation, and teardown run on the owning application thread.

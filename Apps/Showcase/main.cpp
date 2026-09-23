@@ -3,6 +3,7 @@
 #include "Nexora/Foundation/GameplayABI.h"
 #include "Nexora/Game/GameWorld.h"
 #include "Nexora/Game/GameplayHostBridge.h"
+#include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/ShaderReflection.h"
 #include "Nexora/Renderer/FramePipeline.h"
 #include "Nexora/Renderer/PipelineCache.h"
@@ -16,6 +17,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <new>
 #include <optional>
 #include <sstream>
@@ -40,6 +42,7 @@ struct CommandLine final {
   bool headless{true};
   bool validate_v1{};
   bool reload{true};
+  bool frames_explicit{};
   std::size_t frames{4};
   std::string mode{"headless"};
   std::string scene{"hub"};
@@ -58,6 +61,7 @@ struct ShowcaseHostContext final {
   std::size_t read_callbacks{};
   std::size_t write_callbacks{};
   bool received_zig_log{};
+  Nexora::Presentation::SurfaceInputSnapshot input{};
 };
 
 struct ShowcaseRun final {
@@ -82,6 +86,10 @@ struct ShowcaseRun final {
   bool received_zig_log{};
   std::size_t debug_lines{};
   std::size_t api_errors{};
+  bool native_presentation{};
+  bool backend_fallback{};
+  std::string fallback_reason;
+  Nexora::Presentation::SurfaceDiagnostics surface{};
 };
 
 bool ParseUnsigned(std::string_view text, std::size_t &value) {
@@ -112,6 +120,7 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
         error = "--frames must be an integer from 1 to 10000";
         return false;
       }
+      command.frames_explicit = true;
     } else if (argument.starts_with("--report=")) {
       command.report = std::filesystem::path(argument.substr(9));
       if (command.report.empty()) {
@@ -120,11 +129,11 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       }
     } else if (argument.starts_with("--mode=")) {
       command.mode = std::string(argument.substr(7));
-      if (command.mode != "headless") {
-        error = "only --mode=headless is implemented; windowed mode remains CONTRACT ONLY";
+      if (command.mode != "headless" && command.mode != "interactive") {
+        error = "--mode must be headless or interactive";
         return false;
       }
-      command.headless = true;
+      command.headless = command.mode == "headless";
     } else if (argument.starts_with("--scene=")) {
       command.scene = std::string(argument.substr(8));
       if (command.scene != "hub") {
@@ -133,13 +142,11 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       }
     } else if (argument.starts_with("--backend=")) {
       command.backend = std::string(argument.substr(10));
-      if (command.backend != "auto" && command.backend != "validation") {
-        error =
-            "supported backends are auto and validation; native window backends are CONTRACT ONLY";
+      if (command.backend != "auto" && command.backend != "validation" &&
+          command.backend != "dx12") {
+        error = "supported backends are auto, validation, and dx12";
         return false;
       }
-      if (command.backend == "auto")
-        command.backend = "validation";
     } else {
       error = "unknown argument: " + std::string(argument);
       return false;
@@ -157,9 +164,9 @@ void PrintUsage() {
                "  --frames=N                 run N fixed/update frames (1..10000)\n"
                "  --report=PATH              write the JSON report to PATH\n"
                "  --no-reload                skip the transactional Zig state reload\n"
-               "  --mode=headless            explicit headless mode\n"
+               "  --mode=headless|interactive select deterministic or native presentation\n"
                "  --scene=hub                run the Zig Showcase Hub scene\n"
-               "  --backend=auto|validation  use the validation offscreen backend\n";
+               "  --backend=auto|validation|dx12 select the presentation backend\n";
 }
 
 void Log(void *opaque_context, std::uint32_t level, const char *message,
@@ -294,7 +301,10 @@ int32_t CaptureInput(void *opaque, std::uint32_t user, NexoraInputSnapshot *snap
   if (!opaque || !snapshot || user != 0)
     return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
   const auto &context = *static_cast<ShowcaseHostContext *>(opaque);
-  *snapshot = {context.frame, 0.0, 0.0, 0, 0};
+  *snapshot = {context.input.sequence, static_cast<double>(context.input.pointerX),
+               static_cast<double>(context.input.pointerY),
+               context.input.lastKeyDown ? static_cast<std::uint32_t>(context.input.lastKey) : 0,
+               context.input.focused ? 1U : 0U};
   return NEXORA_GAMEPLAY_OK;
 }
 int32_t ResolveAsset(void *, std::uint64_t high, std::uint64_t low, NexoraAssetHandle *asset) {
@@ -369,6 +379,34 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   }
   result.module_loaded = module.IsLoaded();
 
+  std::unique_ptr<Nexora::Presentation::RenderSurface> nativeSurface;
+  if (!command.headless && command.backend != "validation") {
+    const auto backend = command.backend == "dx12"
+                             ? Nexora::Presentation::SurfaceBackend::Dx12
+                             : Nexora::Presentation::SurfaceBackend::Automatic;
+    auto created = Nexora::Presentation::CreateRenderSurface(
+        {"Nexora Showcase", 1280, 720, true, backend, Nexora::Presentation::PresentMode::VSync});
+    if (created) {
+      nativeSurface = std::move(created.surface);
+      result.native_presentation = true;
+    } else if (command.backend == "auto") {
+      result.backend_fallback = true;
+      result.fallback_reason = created.reason;
+      std::cerr << "NexoraShowcase: backend fallback auto -> validation: " << created.reason
+                << '\n';
+    } else {
+      error = "dx12 presentation failed: " + created.reason;
+      module.Unload();
+      return false;
+    }
+  } else if (!command.headless) {
+    result.backend_fallback = true;
+    result.fallback_reason =
+        "validation backend is offscreen and cannot provide an interactive window";
+    std::cerr << "NexoraShowcase: interactive fallback to headless: " << result.fallback_reason
+              << '\n';
+  }
+
   auto device = rhi::CreateValidationDevice();
   const auto layout = rhi::TrianglePipelineLayout();
   renderer::PipelineCache pipelines{*device, *engine.Services().jobs};
@@ -381,7 +419,26 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
                                                  "Zig Showcase offscreen output"};
   const auto output = device->CreateTexture(output_descriptor);
 
-  for (std::size_t frame = 0; frame < command.frames; ++frame) {
+  const auto frameLimit = nativeSurface && !command.frames_explicit
+                              ? std::numeric_limits<std::size_t>::max()
+                              : command.frames;
+  std::size_t executedFrames = 0;
+  for (std::size_t frame = 0; frame < frameLimit; ++frame) {
+    if (nativeSurface) {
+      const auto status = nativeSurface->BeginFrame();
+      if (nativeSurface->CloseRequested())
+        break;
+      if (status == Nexora::Presentation::SurfaceStatus::ZeroExtent ||
+          status == Nexora::Presentation::SurfaceStatus::Occluded)
+        continue;
+      if (status != Nexora::Presentation::SurfaceStatus::Ready) {
+        error =
+            "presentation acquire failed: " + std::string(Nexora::Presentation::ToString(status));
+        device->DestroyTexture(output);
+        return false;
+      }
+      context.input = nativeSurface->Input();
+    }
     context.frame = frame + 1;
     engine.BeginFrame();
     if (!module.FixedUpdate(kFixedDeltaSeconds) || !module.Update(kFixedDeltaSeconds)) {
@@ -390,6 +447,16 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
       return false;
     }
     world.EndFrame();
+    ++executedFrames;
+    if (nativeSurface) {
+      const auto status = nativeSurface->EndFrame();
+      if (status != Nexora::Presentation::SurfaceStatus::Ready &&
+          status != Nexora::Presentation::SurfaceStatus::Occluded) {
+        error = "presentation failed: " + std::string(Nexora::Presentation::ToString(status));
+        device->DestroyTexture(output);
+        return false;
+      }
+    }
   }
 
   const auto scene = context.scene;
@@ -415,17 +482,24 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   const auto visible_meshes = world.Query(scene, game::GameWorld::kQueryMeshRenderer).size();
   const bool lifecycle_ok = context.received_zig_log && module.IsLoaded() &&
                             NexoraGameModuleStartCount() >= 1 &&
-                            NexoraGameModuleFixedUpdateCount() == command.frames &&
-                            NexoraGameModuleUpdateCount() == command.frames;
+                            NexoraGameModuleFixedUpdateCount() == executedFrames &&
+                            NexoraGameModuleUpdateCount() == executedFrames;
   const bool scene_ok = snapshot.has_value() && visible_meshes == 3 &&
-                        NearlyEqual(snapshot->transform.x, command.frames * kFixedDeltaSeconds) &&
-                        context.debug_lines == command.frames && context.api_errors == 0;
+                        NearlyEqual(snapshot->transform.x, executedFrames * kFixedDeltaSeconds) &&
+                        context.debug_lines == executedFrames && context.api_errors == 0;
   const bool render_ok = render.has_value() && render->visible_meshes == visible_meshes &&
                          render->passes == 5 && render->barriers == 6 &&
                          diagnostics.validation_errors == 0;
   const bool migration_ok =
       !command.reload || (reload_ok && reload.successful_reloads == 1 && reload.migrated_bytes > 0);
   module.Unload();
+  if (nativeSurface) {
+    result.surface = nativeSurface->Diagnostics();
+    if (nativeSurface->DrainAndDestroy() != Nexora::Presentation::SurfaceStatus::Ready) {
+      error = "native presentation teardown failed";
+      return false;
+    }
+  }
   const bool shutdown_ok = !module.IsLoaded();
 
   result.engine_initialized = engine.IsInitialized();
@@ -434,7 +508,7 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   result.render_ok = render_ok;
   result.reload_ok = migration_ok;
   result.shutdown_ok = shutdown_ok;
-  result.frames = command.frames;
+  result.frames = executedFrames;
   result.scene_entities = world.Query(scene).size();
   result.visible_meshes = visible_meshes;
   result.scene_id = scene;
@@ -481,7 +555,8 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"headless_validation\": \"IMPLEMENTED\",\n"
          << "    \"transactional_reload\": \"" << (run.reload_ok ? "IMPLEMENTED" : "FAIL")
          << "\",\n"
-         << "    \"windowed_native_backend\": \"CONTRACT ONLY\"\n"
+         << "    \"windowed_native_backend\": \""
+         << (run.native_presentation ? "IMPLEMENTED" : "AVAILABLE ON WINDOWS") << "\"\n"
          << "  },\n"
          << "  \"lifecycle\": {\n"
          << "    \"engine_initialized\": " << run.engine_initialized << ",\n"
@@ -509,7 +584,11 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"public_api_errors\": " << run.api_errors << "\n"
          << "  },\n"
          << "  \"render_evidence\": {\n"
-         << "    \"backend\": \"Validation\",\n"
+         << "    \"backend\": \"" << (run.native_presentation ? "DX12" : "Validation") << "\",\n"
+         << "    \"backend_fallback\": " << run.backend_fallback << ",\n"
+         << "    \"fallback_reason\": \"" << run.fallback_reason << "\",\n"
+         << "    \"surface_acquires\": " << run.surface.acquiredFrames << ",\n"
+         << "    \"surface_presents\": " << run.surface.presentedFrames << ",\n"
          << "    \"visible_meshes\": " << run.visible_meshes << ",\n"
          << "    \"passes\": " << run.render.passes << ",\n"
          << "    \"barriers\": " << run.render.barriers << ",\n"

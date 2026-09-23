@@ -1,5 +1,7 @@
 include(NexoraTarget)
-add_library(NexoraPresentation ${NEXORA_MODULE_LIBRARY_TYPE} src/Presentation.cpp)
+add_library(NexoraPresentation ${NEXORA_MODULE_LIBRARY_TYPE}
+  src/Presentation.cpp
+  src/RenderSurface.cpp)
 add_library(Nexora::Presentation ALIAS NexoraPresentation)
 target_include_directories(NexoraPresentation PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_link_libraries(NexoraPresentation PUBLIC Nexora::RHI Nexora::Window)

@@ -9,9 +9,12 @@ real C++ world mutation rather than only an isolated counter. Its state is
 created and destroyed through the paired host allocator callbacks, including
 both sides of a transactional reload, rather than relying on Zig global state.
 
-The current slice is deterministic and headless. It uses the validation RHI
-and reports the native window/swapchain path as `CONTRACT ONLY`; it does not
-claim to provide a Win32 window or DX12 swapchain yet.
+The deterministic headless slice continues to use the validation RHI. On Windows,
+`--mode=interactive --backend=dx12` additionally owns a visible Win32 window, pumps normalized
+input, and acquires/clears/presents through the DX12 swapchain until the window closes. Supplying
+`--frames=N` bounds an interactive verification run. `--backend=auto` may fall back to the
+validation path on an unsupported host, but prints and records `fallback_reason`; explicit `dx12`
+requests fail rather than silently switching backends.
 
 ## Windows build
 

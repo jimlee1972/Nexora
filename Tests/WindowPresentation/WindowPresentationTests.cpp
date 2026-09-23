@@ -1,4 +1,4 @@
-#include "Nexora/Presentation/Surface.h"
+#include "Nexora/Presentation/RenderSurface.h"
 
 #include <cassert>
 #include <deque>
@@ -123,6 +123,16 @@ private:
 } // namespace
 
 int main() {
+  assert(Presentation::ToString(Presentation::SurfaceBackend::Dx12) == "dx12");
+  assert(Presentation::ToString(Presentation::SurfaceStatus::DeviceLost) == "device_lost");
+#if !defined(_WIN32)
+  const auto unsupported = Presentation::CreateRenderSurface(
+      {"unsupported", 640, 480, true, Presentation::SurfaceBackend::Dx12});
+  assert(!unsupported);
+  assert(unsupported.status == Presentation::SurfaceStatus::Unsupported);
+  assert(!unsupported.reason.empty());
+#endif
+
   FakeWindowSystem windows;
   const auto created = windows.Create({"Fake", 640, 480, true, false});
   assert(created);
