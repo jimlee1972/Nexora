@@ -79,6 +79,7 @@ public:
 private:
   friend class WorldCommandBuffer;
   friend class SceneEditor;
+  friend class PlaySession;
   friend NEXORA_RUNTIME_API std::optional<SceneFrameResult>
   RenderSceneFrame(const World &, rhi::Device &, rhi::TextureHandle, const rhi::TextureDescriptor &,
                    rhi::PipelineHandle);

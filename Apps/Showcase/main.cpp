@@ -9,6 +9,7 @@
 #include "Nexora/Renderer/PipelineCache.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
 
+#include <array>
 #include <charconv>
 #include <cmath>
 #include <cstdint>
@@ -92,6 +93,52 @@ struct ShowcaseRun final {
   Nexora::Presentation::SurfaceDiagnostics surface{};
 };
 
+enum class CapabilityState { Implemented, ContractOnly, Unavailable };
+
+struct GalleryRoom final {
+  std::string_view id;
+  std::string_view title;
+  CapabilityState state;
+  std::string_view fallback;
+};
+
+constexpr std::array<GalleryRoom, 5> GalleryRooms() {
+  return {
+      {{"math", "Math Lab", CapabilityState::Implemented, "CPU transform and ray/AABB diagnostics"},
+       {"scene", "Scene Lab", CapabilityState::Implemented,
+        "public scene/entity/component callbacks"},
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+       {"gameplay", "Gameplay Lab", CapabilityState::Implemented, "deterministic physics raycast"},
+#else
+       {"gameplay", "Gameplay Lab", CapabilityState::ContractOnly,
+        "physics/navigation simulation is disabled"},
+#endif
+       {"presentation", "Presentation Lab", CapabilityState::ContractOnly,
+        "animation, audio, and VFX backends are not connected"},
+       {"streaming", "Streaming Lab", CapabilityState::Unavailable,
+        "cell residency and HLOD APIs are not available"}}};
+}
+
+constexpr std::string_view ToString(CapabilityState state) {
+  switch (state) {
+  case CapabilityState::Implemented:
+    return "IMPLEMENTED";
+  case CapabilityState::ContractOnly:
+    return "CONTRACT ONLY";
+  case CapabilityState::Unavailable:
+    return "UNAVAILABLE";
+  }
+  return "UNAVAILABLE";
+}
+
+const GalleryRoom *FindGalleryRoom(std::string_view id) {
+  for (const auto &room : GalleryRooms()) {
+    if (room.id == id)
+      return &room;
+  }
+  return nullptr;
+}
+
 bool ParseUnsigned(std::string_view text, std::size_t &value) {
   if (text.empty())
     return false;
@@ -136,8 +183,9 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       command.headless = command.mode == "headless";
     } else if (argument.starts_with("--scene=")) {
       command.scene = std::string(argument.substr(8));
-      if (command.scene != "hub") {
-        error = "only --scene=hub is implemented in the Zig bootstrap slice";
+      if (command.scene != "hub" && command.scene != "tour" &&
+          FindGalleryRoom(command.scene) == nullptr) {
+        error = "--scene must be hub, tour, math, scene, gameplay, presentation, or streaming";
         return false;
       }
     } else if (argument.starts_with("--backend=")) {
@@ -156,17 +204,19 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
 }
 
 void PrintUsage() {
-  std::cout << "NexoraShowcase - C++ engine-owned Zig gameplay showcase\n"
-               "Usage: NexoraShowcase.exe [options]\n\n"
-               "Options:\n"
-               "  --headless                 run the deterministic offscreen showcase\n"
-               "  --validate-v1              include the V1 validation label in the report\n"
-               "  --frames=N                 run N fixed/update frames (1..10000)\n"
-               "  --report=PATH              write the JSON report to PATH\n"
-               "  --no-reload                skip the transactional Zig state reload\n"
-               "  --mode=headless|interactive select deterministic or native presentation\n"
-               "  --scene=hub                run the Zig Showcase Hub scene\n"
-               "  --backend=auto|validation|dx12 select the presentation backend\n";
+  std::cout
+      << "NexoraShowcase - C++ engine-owned Zig gameplay showcase\n"
+         "Usage: NexoraShowcase.exe [options]\n\n"
+         "Options:\n"
+         "  --headless                 run the deterministic offscreen showcase\n"
+         "  --validate-v1              include the V1 validation label in the report\n"
+         "  --frames=N                 run N fixed/update frames (1..10000)\n"
+         "  --report=PATH              write the JSON report to PATH\n"
+         "  --no-reload                skip the transactional Zig state reload\n"
+         "  --mode=headless|interactive select deterministic or native presentation\n"
+         "  --scene=ROOM               select hub, tour, math, scene, gameplay, presentation, "
+         "or streaming\n"
+         "  --backend=auto|validation|dx12 select the presentation backend\n";
 }
 
 void Log(void *opaque_context, std::uint32_t level, const char *message,
@@ -557,6 +607,18 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "\",\n"
          << "    \"windowed_native_backend\": \""
          << (run.native_presentation ? "IMPLEMENTED" : "AVAILABLE ON WINDOWS") << "\"\n"
+         << "  },\n"
+         << "  \"gallery\": {\n"
+         << "    \"selected\": \"" << command.scene << "\",\n"
+         << "    \"rooms\": [\n";
+  const auto rooms = GalleryRooms();
+  for (std::size_t index = 0; index < rooms.size(); ++index) {
+    const auto &room = rooms[index];
+    report << "      {\"id\": \"" << room.id << "\", \"title\": \"" << room.title
+           << "\", \"status\": \"" << ToString(room.state) << "\", \"fallback\": \""
+           << room.fallback << "\"}" << (index + 1 == rooms.size() ? "\n" : ",\n");
+  }
+  report << "    ]\n"
          << "  },\n"
          << "  \"lifecycle\": {\n"
          << "    \"engine_initialized\": " << run.engine_initialized << ",\n"

@@ -114,6 +114,47 @@ int Run() {
           "undoing entity creation did not remove the restored stable entity");
   Require(!editor.Undo(), "undo succeeded past the bottom of the stack");
 
+  // ---- Play-in-Editor: isolated world / pause / step / focus / apply-back ----
+  auto &pie_entity = editor.CreateEntity(scene);
+  const auto pie_entity_id = pie_entity.id;
+  Require(editor.SetTransform(pie_entity_id, {1.0, 0.0, 0.0}), "PIE source transform setup failed");
+  PlaySession play(world);
+  const auto simulate = [pie_entity_id](World &play_world, double fixed_delta) {
+    const auto *current = play_world.FindEntity(pie_entity_id);
+    if (current == nullptr)
+      return false;
+    WorldCommandBuffer commands;
+    commands.SetTransform(pie_entity_id, {current->transform.x + fixed_delta, current->transform.y,
+                                          current->transform.z});
+    return commands.Apply(play_world);
+  };
+  Require(!play.Start(0.0, simulate) && play.Start(0.5, simulate) &&
+              play.State() == PlayState::Playing && play.PlayWorld() != nullptr &&
+              play.PlayWorld()->Kind() == WorldKind::Play && !play.AcceptsInput(),
+          "PIE did not create an isolated Play World with safe input focus");
+  play.SetInputFocus(true);
+  Require(play.AcceptsInput(), "PIE Game View could not acquire input focus");
+  Require(!play.Start(0.5, simulate) && play.Tick() &&
+              play.PlayWorld()->FindEntity(pie_entity_id)->transform.x == 1.5 &&
+              world.FindEntity(pie_entity_id)->transform.x == 1.0,
+          "PIE tick leaked into the Editor World");
+  Require(play.Pause() && !play.Tick() && play.Step() && play.Stats().fixed_ticks == 2 &&
+              play.Stats().manual_steps == 1 &&
+              play.PlayWorld()->FindEntity(pie_entity_id)->transform.x == 2.0,
+          "PIE pause/step did not execute exactly one fixed tick");
+  play.SetInputFocus(false);
+  Require(!play.AcceptsInput() && play.Resume() && !play.Step() && play.Tick(),
+          "PIE focus or resume policy failed");
+  Require(play.Stop() && play.State() == PlayState::Stopped && play.PlayWorld() == nullptr &&
+              world.FindEntity(pie_entity_id)->transform.x == 1.0 && !play.AcceptsInput(),
+          "default PIE stop did not discard Play World changes");
+
+  Require(play.Start(0.25, simulate) && play.Pause() && play.Step() &&
+              play.Stop(ApplyBackPolicy::Transforms) && play.Stats().applied_transforms == 1 &&
+              world.FindEntity(pie_entity_id)->transform.x == 1.25,
+          "explicit PIE transform apply-back failed");
+  Require(!play.Stop(ApplyBackPolicy::Transforms), "stopped PIE session accepted another stop");
+
   // ---- Prefab / nested prefab / override / rebase / variant ----
   PrefabNode child{"Weapon", {{"damage", "10"}}, {}};
   PrefabNode root{"Hero", {{"health", "100"}}, {child}};
@@ -129,6 +170,13 @@ int Run() {
   Require(instance.OverrideCount() == 1, "override count is wrong");
   Require(instance.SetOverride("Weapon", "damage", "30") && instance.OverrideCount() == 1,
           "re-setting the same override key created a duplicate");
+  Require(instance.Overrides().size() == 1 && instance.Overrides().front().path == "Weapon" &&
+              instance.RevertOverride("Weapon", "damage") && instance.OverrideCount() == 0 &&
+              instance.Resolve("Weapon", "damage") == "10" &&
+              !instance.RevertOverride("Weapon", "damage"),
+          "prefab override diff or revert failed");
+  Require(instance.SetOverride("Weapon", "damage", "30"),
+          "prefab override could not be restored for apply/rebase coverage");
 
   PrefabNode new_child{"Weapon", {{"damage", "10"}, {"range", "5"}}, {}};
   PrefabNode new_root{"Hero", {{"health", "150"}}, {new_child}};
@@ -137,6 +185,11 @@ int Run() {
   Require(instance.Resolve("", "health") == "150" && instance.Resolve("Weapon", "damage") == "30" &&
               instance.Resolve("Weapon", "range") == "5",
           "rebase did not combine the new template with the surviving override");
+  const auto applied_prefab = instance.ApplyOverrides();
+  Require(applied_prefab && instance.OverrideCount() == 0 &&
+              instance.Resolve("Weapon", "damage") == "30" &&
+              applied_prefab->Find("Weapon") != nullptr,
+          "prefab override apply did not create a clean source revision");
 
   PrefabNode stale_child{"Renamed", {}, {}};
   PrefabNode stale_root{"Hero", {}, {stale_child}};
