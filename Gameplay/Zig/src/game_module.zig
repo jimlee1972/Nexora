@@ -21,6 +21,8 @@ const State = extern struct {
     fixed_update_count: u32 = 0,
     start_count: u32 = 0,
     elapsed_seconds: f64 = 0,
+    scene: u64 = 0,
+    primary_entity: u64 = 0,
 };
 
 const Allocation = extern struct {
@@ -86,6 +88,36 @@ fn onStart(module_state: ?*anyopaque) callconv(.c) i32 {
     const current = &owner.state;
     current.start_count += 1;
     observed_start_count = current.start_count;
+    const host = owner.host;
+    if ((host.capabilities & nexora.scene_api_capability) != 0 and current.scene == 0) {
+        const load_scene = host.load_scene orelse return -2;
+        const activate_scene = host.activate_scene orelse return -2;
+        const spawn_entity = host.spawn_entity orelse return -2;
+        const despawn_entity = host.despawn_entity orelse return -2;
+        const resolve_asset = host.resolve_asset orelse return -2;
+        var scene: u64 = 0;
+        const name = "Zig Showcase Hub";
+        if (load_scene(host.context, name.ptr, @intCast(name.len), 1, &scene) != 0 or
+            activate_scene(host.context, scene) != 0) return -3;
+        var mesh = nexora.AssetHandle{};
+        var material = nexora.AssetHandle{};
+        if (resolve_asset(host.context, 0x4e45584f5241, 0x2001, &mesh) != 0 or
+            resolve_asset(host.context, 0x4e45584f5241, 0x1001, &material) != 0) return -3;
+        var descriptor = nexora.EntitySpawnDescriptor{ .components = 1, .position = .{ .x = 0, .y = 2, .z = 6 }, .camera_fov_degrees = 60 };
+        var entity: u64 = 0;
+        if (spawn_entity(host.context, scene, &descriptor, &entity) != 0) return -3;
+        descriptor = .{ .components = 2, .position = .{ .x = 2, .y = 4, .z = 2 }, .light_intensity = 2 };
+        if (spawn_entity(host.context, scene, &descriptor, &entity) != 0) return -3;
+        const positions = [_]f64{ 0, -2, 2 };
+        for (positions, 0..) |x, index| {
+            descriptor = .{ .components = 4 | 8, .position = .{ .x = x }, .mesh = .{ .value = mesh.value + @as(u64, @intCast(index)) }, .material = material, .bounds_minimum = .{ .x = x - 0.5, .y = -0.5, .z = -0.5 }, .bounds_maximum = .{ .x = x + 0.5, .y = 0.5, .z = 0.5 } };
+            if (spawn_entity(host.context, scene, &descriptor, &entity) != 0) return -3;
+            if (index == 0) current.primary_entity = entity;
+        }
+        descriptor = .{};
+        if (spawn_entity(host.context, scene, &descriptor, &entity) != 0 or despawn_entity(host.context, entity) != 0) return -3;
+        current.scene = scene;
+    }
     return 0;
 }
 
@@ -111,15 +143,26 @@ fn update(module_state: ?*anyopaque, delta_seconds: f64) callconv(.c) i32 {
     {
         var transform = Transform{};
         if (host.read_component) |read| {
-            if (read(host.context, primary_entity, transform_component_type, &transform,
+            if (read(host.context, if (current.primary_entity != 0) current.primary_entity else primary_entity, transform_component_type, &transform,
                 @sizeOf(Transform)) == 0) {
                 transform.x += delta_seconds;
                 if (host.write_component) |write| {
-                    _ = write(host.context, primary_entity, transform_component_type, &transform,
+                    _ = write(host.context, if (current.primary_entity != 0) current.primary_entity else primary_entity, transform_component_type, &transform,
                         @sizeOf(Transform));
                 }
             }
         }
+    }
+    if ((host.capabilities & nexora.scene_api_capability) != 0) {
+        var input = nexora.InputSnapshot{};
+        if (host.capture_input) |capture| if (capture(host.context, 0, &input) != 0) return -3;
+        var hit = nexora.RaycastHit{};
+        const ray = nexora.RaycastRequest{ .origin = .{ .z = 5 }, .direction = .{ .z = -1 }, .distance = 10 };
+        if (host.raycast) |raycast| if (raycast(host.context, &ray, &hit) != 0) return -3;
+        const line = nexora.DebugLine{ .start = ray.origin, .end = hit.point, .rgba = 0xff00ffff };
+        if (host.debug_draw_line) |draw| if (draw(host.context, &line) != 0) return -3;
+        var diagnostics = nexora.FrameDiagnostics{};
+        if (host.get_diagnostics) |get| if (get(host.context, &diagnostics) != 0) return -3;
     }
     return 0;
 }
