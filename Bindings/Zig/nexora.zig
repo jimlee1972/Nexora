@@ -17,6 +17,8 @@ pub const GameplayHostV3 = extern struct {
     log: ?*const fn (?*anyopaque, u32, [*]const u8, u32) callconv(.c) void,
     read_component: ?*const fn (?*anyopaque, u64, u64, ?*anyopaque, u32) callconv(.c) i32,
     write_component: ?*const fn (?*anyopaque, u64, u64, ?*const anyopaque, u32) callconv(.c) i32,
+    allocate: ?*const fn (?*anyopaque, u64, u64) callconv(.c) ?*anyopaque,
+    deallocate: ?*const fn (?*anyopaque, ?*anyopaque, u64, u64) callconv(.c) void,
 };
 
 pub const GameModuleV3 = extern struct {

@@ -3,9 +3,9 @@
 #include "Nexora/Foundation/GameplayABI.h"
 #include "Nexora/Game/GameWorld.h"
 #include "Nexora/Game/GameplayHostBridge.h"
+#include "Nexora/RHI/ShaderReflection.h"
 #include "Nexora/Renderer/FramePipeline.h"
 #include "Nexora/Renderer/PipelineCache.h"
-#include "Nexora/RHI/ShaderReflection.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
 
 #include <charconv>
@@ -16,6 +16,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <new>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
@@ -127,7 +128,8 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
     } else if (argument.starts_with("--backend=")) {
       command.backend = std::string(argument.substr(10));
       if (command.backend != "auto" && command.backend != "validation") {
-        error = "supported backends are auto and validation; native window backends are CONTRACT ONLY";
+        error =
+            "supported backends are auto and validation; native window backends are CONTRACT ONLY";
         return false;
       }
       if (command.backend == "auto")
@@ -207,9 +209,32 @@ int32_t WriteComponent(void *opaque_context, std::uint64_t entity, std::uint64_t
   return NEXORA_GAMEPLAY_OK;
 }
 
+void *Allocate(void *, std::uint64_t size, std::uint64_t alignment) {
+  if (size == 0 || alignment == 0 || (alignment & (alignment - 1)) != 0)
+    return nullptr;
+  try {
+    return ::operator new(static_cast<std::size_t>(size),
+                          std::align_val_t{static_cast<std::size_t>(alignment)});
+  } catch (const std::bad_alloc &) {
+    return nullptr;
+  }
+}
+
+void Deallocate(void *, void *allocation, std::uint64_t, std::uint64_t alignment) {
+  if (allocation != nullptr)
+    ::operator delete(allocation, std::align_val_t{static_cast<std::size_t>(alignment)});
+}
+
 NexoraGameplayHostV3 MakeHost(ShowcaseHostContext &context) {
-  return {sizeof(NexoraGameplayHostV3), NEXORA_GAMEPLAY_ABI_VERSION, 0, &context, &Log,
-          &ReadComponent, &WriteComponent};
+  return {sizeof(NexoraGameplayHostV3),
+          NEXORA_GAMEPLAY_ABI_VERSION,
+          NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR,
+          &context,
+          &Log,
+          &ReadComponent,
+          &WriteComponent,
+          &Allocate,
+          &Deallocate};
 }
 
 bool NearlyEqual(double left, double right) { return std::abs(left - right) < 0.000001; }
@@ -258,9 +283,9 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
       {layout.layout_hash, 0x1234, rhi::TextureFormat::Rgba8Unorm, "Zig Showcase"});
   future.Wait();
   const auto pipeline = future.Get();
-  const rhi::TextureDescriptor output_descriptor{
-      640, 360, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::Present,
-      "Zig Showcase offscreen output"};
+  const rhi::TextureDescriptor output_descriptor{640, 360, rhi::TextureFormat::Rgba8Unorm,
+                                                 rhi::ResourceState::Present,
+                                                 "Zig Showcase offscreen output"};
   const auto output = device->CreateTexture(output_descriptor);
 
   for (std::size_t frame = 0; frame < command.frames; ++frame) {
@@ -284,8 +309,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   if (command.reload)
     reload_ok = module.Reload(NexoraGameModuleLoad);
   const auto reload = module.GetReloadStats();
-  const auto render = runtime::RenderSceneFrame(
-      world.InternalWorld(), *device, output, output_descriptor, pipeline);
+  const auto render = runtime::RenderSceneFrame(world.InternalWorld(), *device, output,
+                                                output_descriptor, pipeline);
   const auto diagnostics = device->Diagnostics();
   device->WaitIdle();
   device->DestroyTexture(output);
@@ -301,8 +326,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   const bool render_ok = render.has_value() && render->visible_meshes == visible_meshes &&
                          render->passes == 5 && render->barriers == 6 &&
                          diagnostics.validation_errors == 0;
-  const bool migration_ok = !command.reload || (reload_ok && reload.successful_reloads == 1 &&
-                                                reload.migrated_bytes > 0);
+  const bool migration_ok =
+      !command.reload || (reload_ok && reload.successful_reloads == 1 && reload.migrated_bytes > 0);
   module.Unload();
   const bool shutdown_ok = !module.IsLoaded();
 
@@ -355,8 +380,8 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"engine_owned_main\": \"IMPLEMENTED\",\n"
          << "    \"zig_static_gameplay\": \"IMPLEMENTED\",\n"
          << "    \"headless_validation\": \"IMPLEMENTED\",\n"
-         << "    \"transactional_reload\": \""
-         << (run.reload_ok ? "IMPLEMENTED" : "FAIL") << "\",\n"
+         << "    \"transactional_reload\": \"" << (run.reload_ok ? "IMPLEMENTED" : "FAIL")
+         << "\",\n"
          << "    \"windowed_native_backend\": \"CONTRACT ONLY\"\n"
          << "  },\n"
          << "  \"lifecycle\": {\n"

@@ -188,10 +188,12 @@ module structure sizes, ABI version, and required callbacks before initializatio
 and unload operations are serialized; a replacement module is initialized before the active module
 is shut down, and a rejected replacement leaves the active module running.
 
-The host table exposes size-checked component reads/writes and logging. A module may retain the
-table only from successful `create` until `destroy`; all lifecycle and update calls are serialized
-on the thread that calls `GameplayModuleHost`. No exception or allocation ownership crosses the C
-ABI. Event delivery and engine allocator callbacks remain future additive capabilities.
+The host table exposes size-checked component reads/writes, logging, and an explicitly paired host
+allocator. A module may retain the table only from successful `create` until `destroy`; all
+lifecycle and update calls are serialized on the thread that calls `GameplayModuleHost`. The Zig
+module allocates its state through the host and returns the exact allocation during `destroy`, so
+allocation ownership never crosses the C ABI implicitly and reload candidates have independent
+state. No exception crosses the C ABI. Event delivery remains a future additive capability.
 Modules may additionally provide state save/load callbacks. Reload serializes the active state,
 initializes and restores the candidate, and only then retires the active module; migration failure
 keeps the active module alive. `GetReloadStats()` exposes successful reload count, migrated bytes,

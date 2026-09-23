@@ -27,7 +27,8 @@ typedef enum NexoraGameplayResult {
 typedef enum NexoraGameplayCapability {
   NEXORA_GAMEPLAY_CAPABILITY_NONE = 0,
   NEXORA_GAMEPLAY_CAPABILITY_STATE_MIGRATION = 1u << 0,
-  NEXORA_GAMEPLAY_CAPABILITY_FIXED_UPDATE = 1u << 1
+  NEXORA_GAMEPLAY_CAPABILITY_FIXED_UPDATE = 1u << 1,
+  NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR = 1u << 2
 } NexoraGameplayCapability;
 
 typedef struct NexoraGameplayHostV1 {
@@ -82,6 +83,8 @@ typedef struct NexoraGameplayHostV3 {
                             uint32_t data_size);
   int32_t (*write_component)(void *context, uint64_t entity, uint64_t component_type,
                              const void *data, uint32_t data_size);
+  void *(*allocate)(void *context, uint64_t size, uint64_t alignment);
+  void (*deallocate)(void *context, void *allocation, uint64_t size, uint64_t alignment);
 } NexoraGameplayHostV3;
 
 typedef struct NexoraGameModuleV3 {

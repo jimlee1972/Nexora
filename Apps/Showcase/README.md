@@ -5,7 +5,9 @@ slice. The process entry point, `Engine`, `GameWorld`, fixed/update loop,
 offscreen renderer, reload, and shutdown are owned by C++; the Zig object only
 uses the V3 gameplay ABI callbacks. The Zig module moves the primary cube's
 Transform through the public component wire contract, so the report proves a
-real C++ world mutation rather than only an isolated counter.
+real C++ world mutation rather than only an isolated counter. Its state is
+created and destroyed through the paired host allocator callbacks, including
+both sides of a transactional reload, rather than relying on Zig global state.
 
 The current slice is deterministic and headless. It uses the validation RHI
 and reports the native window/swapchain path as `CONTRACT ONLY`; it does not
