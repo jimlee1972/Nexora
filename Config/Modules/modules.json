@@ -57,6 +57,20 @@
       ]
     },
     {
+      "name": "Editor",
+      "feature": "NEXORA_ENABLE_EDITOR",
+      "dependencies": [
+        "Runtime"
+      ]
+    },
+    {
+      "name": "EditorApp",
+      "feature": "NEXORA_ENABLE_EDITOR",
+      "dependencies": [
+        "Editor"
+      ]
+    },
+    {
       "name": "ExamplePlugin",
       "feature": "NEXORA_FEATURE_EXAMPLE_PLUGIN",
       "dependencies": [

@@ -6,8 +6,8 @@
 > 已完成的 Runtime/Editor SDK 前置不向上取整為 Editor milestone。）
 
 **已完成前置：** ✅ reflection metadata；✅ command/undo data model；✅ prefab override/rebase；
-✅ isolated PIE session；
-✅ dynamic plugin ABI gate。**待辦：** window/docking/UI shell、graphical views、authoring workflows
+✅ isolated PIE session；✅ dynamic plugin ABI gate；✅ standalone process 與 portable
+workspace/document core。**待辦：** window/docking/UI shell、graphical views、authoring workflows
 與 production hardening。
 
 ## 1. 產品願景
@@ -46,17 +46,30 @@ Milestone 必須嚴格依 **ED-M0 → ED-M1 → ED-M2** 交付。ED-M0 尚未確
 theme、DPI、IME、accessibility 與 crash recovery；透過 ADR 與聚焦 prototype 選擇 UI framework。
 Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
+- ✅ 已實作 standalone `NexoraEditor` process、versioned project/workspace format、stable panel
+  ID、command namespace、atomic workspace replacement 與 recovery journal。
+- 待辦：UI framework ADR，以及圖形化 docking、theme、DPI、IME、accessibility 與 crash UX。
+
 ### ED-M1 — Project 與 Asset workspace
 
 建立、開啟與升級 project；Content Browser 支援 search/filter、folder/UUID、drag/drop、import
 status、dependency 檢視與 reimport；background import 必須提供取消、進度與可採取行動的錯誤，
 並產生 deterministic artifact。
 
+- ✅ 已實作 project create/open、deterministic content-tree indexing、UUID/path search/filter、
+  cancellation、progress、可檢查錯誤與 deterministic artifact hash。
+- 待辦：圖形化 Content Browser、drag/drop、dependency inspection 與 reimport UX。
+
 ### ED-M2 — Scene authoring core
 
 Hierarchy、Scene View、Inspector、camera controls、selection/picking、translate/rotate/scale gizmo、
 parent/reorder、multi-selection、copy/paste、undo/redo 與 save/reload。Reflection 產生 property
 widgets；未知 component 保留 raw data，不靜默遺失。
+
+- ✅ Editor Core 已實作 stable-ID hierarchy/selection、cycle-safe reparenting、multi-selection、
+  clipboard duplication、transform transaction、undo 與 atomic scene save/reload。
+- 待辦：圖形化 Hierarchy/Scene/Inspector、picking、camera controls、gizmo、reflection widget
+  與 unknown-component visual workflow。
 
 ### ED-M3 — PIE 與 debugging
 
