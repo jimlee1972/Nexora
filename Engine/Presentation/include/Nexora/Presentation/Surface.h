@@ -4,6 +4,7 @@
 #include "Nexora/Window/Window.h"
 
 #include <cstdint>
+#include <memory>
 #include <thread>
 
 namespace Nexora::Presentation {
@@ -20,6 +21,14 @@ struct SurfaceDescriptor final {
   ColorSpace colorSpace = ColorSpace::Srgb;
 };
 
+struct SurfaceDiagnostics final {
+  std::uint64_t acquiredFrames = 0;
+  std::uint64_t presentedFrames = 0;
+  std::uint64_t resizeGenerations = 0;
+  std::uint64_t fenceWaits = 0;
+  std::int64_t lastPlatformResult = 0;
+};
+
 enum class SurfaceStatus : std::uint8_t {
   Ready,
   ZeroExtent,
@@ -29,6 +38,7 @@ enum class SurfaceStatus : std::uint8_t {
   Unsupported,
   InvalidDescriptor,
   WrongThread,
+  Occluded,
 };
 
 // The adapter owns its swapchain/backbuffers; the application owns the adapter and source window.
@@ -41,9 +51,13 @@ public:
   virtual SurfaceStatus NotifyWindowExtent(std::uint32_t width, std::uint32_t height) noexcept = 0;
   virtual SurfaceStatus Acquire() = 0;
   virtual SurfaceStatus Present() = 0;
+  [[nodiscard]] virtual SurfaceDiagnostics Diagnostics() const noexcept = 0;
   // Waits for submitted GPU work and releases all swapchain resources. Idempotent and render-thread
   // only.
   virtual SurfaceStatus DrainAndDestroy() = 0;
 };
+
+[[nodiscard]] NEXORA_PRESENTATION_API std::unique_ptr<ISurface>
+CreateSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows);
 
 } // namespace Nexora::Presentation

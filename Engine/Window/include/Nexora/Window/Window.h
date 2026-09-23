@@ -3,6 +3,7 @@
 #include "Nexora/Window/Api.h"
 
 #include <cstdint>
+#include <memory>
 #include <span>
 #include <string_view>
 #include <thread>
@@ -52,6 +53,7 @@ enum class WindowError : std::uint8_t {
   InvalidDescriptor,
   InvalidHandle,
   WrongThread,
+  PlatformFailure,
 };
 
 struct WindowResult final {
@@ -72,7 +74,15 @@ public:
   [[nodiscard]] virtual std::thread::id OwnerThread() const noexcept = 0;
   [[nodiscard]] virtual WindowResult Create(const WindowDescriptor &descriptor) = 0;
   [[nodiscard]] virtual WindowError Destroy(WindowHandle window) = 0;
+  [[nodiscard]] virtual WindowError Show(WindowHandle window, bool visible) = 0;
+  [[nodiscard]] virtual WindowError Resize(WindowHandle window, std::uint32_t clientWidth,
+                                           std::uint32_t clientHeight) = 0;
   [[nodiscard]] virtual std::span<const WindowEvent> PumpEvents() = 0;
+  // Opaque native identity for presentation adapters; nullptr for unsupported handles.
+  [[nodiscard]] virtual void *NativeHandle(WindowHandle window) const noexcept = 0;
 };
+
+// Returns the native platform implementation, or nullptr on unsupported platforms.
+[[nodiscard]] NEXORA_WINDOW_API std::unique_ptr<IWindowSystem> CreateWindowSystem();
 
 } // namespace Nexora::Window

@@ -5,6 +5,12 @@
 #include <thread>
 #include <vector>
 
+#if defined(_WIN32)
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 namespace {
 using namespace Nexora;
 
@@ -29,6 +35,18 @@ public:
     pumped_.clear();
     return Window::WindowError::None;
   }
+  Window::WindowError Show(Window::WindowHandle window, bool) override {
+    return alive_ && window.value == 1 ? Window::WindowError::None
+                                       : Window::WindowError::InvalidHandle;
+  }
+  Window::WindowError Resize(Window::WindowHandle window, std::uint32_t width,
+                             std::uint32_t height) override {
+    if (!alive_ || window.value != 1)
+      return Window::WindowError::InvalidHandle;
+    ResizeEvent(width, height, 0);
+    return Window::WindowError::None;
+  }
+  void *NativeHandle(Window::WindowHandle) const noexcept override { return nullptr; }
   std::span<const Window::WindowEvent> PumpEvents() override {
     pumped_.clear();
     for (const auto &event : pending_) {
@@ -43,7 +61,7 @@ public:
     pending_.clear();
     return pumped_;
   }
-  void Resize(std::uint32_t width, std::uint32_t height, std::uint64_t timestamp) {
+  void ResizeEvent(std::uint32_t width, std::uint32_t height, std::uint64_t timestamp) {
     pending_.push_back({{1}, Window::WindowEventType::Resized, timestamp, width, height});
   }
   [[nodiscard]] bool Alive() const noexcept { return alive_; }
@@ -80,6 +98,7 @@ public:
   Presentation::SurfaceStatus Present() override {
     return destroyed_ ? Presentation::SurfaceStatus::SurfaceLost : Status();
   }
+  Presentation::SurfaceDiagnostics Diagnostics() const noexcept override { return {}; }
   Presentation::SurfaceStatus DrainAndDestroy() override {
     if (!destroyed_)
       ++drainCount_;
@@ -114,8 +133,8 @@ int main() {
 
   FakeSurface surface({created.handle, 640, 480, 2});
   assert(surface.Acquire() == Presentation::SurfaceStatus::Ready);
-  windows.Resize(800, 600, 1);
-  windows.Resize(0, 0, 2);
+  windows.ResizeEvent(800, 600, 1);
+  windows.ResizeEvent(0, 0, 2);
   const auto events = windows.PumpEvents();
   assert(events.size() == 1 && events[0].width == 0 && events[0].height == 0);
   assert(surface.NotifyWindowExtent(events[0].width, events[0].height) ==
@@ -135,5 +154,55 @@ int main() {
   assert(surface.DrainCount() == 1);
   assert(windows.Destroy(created.handle) == Window::WindowError::None);
   assert(!windows.Alive());
+
+#if defined(_WIN32)
+  auto nativeWindows = Window::CreateWindowSystem();
+  assert(nativeWindows);
+  const auto native = nativeWindows->Create({"Nexora DX12 validation", 320, 240, true, true});
+  assert(native);
+  auto nativeSurface =
+      Presentation::CreateSurface({native.handle, 320, 240, 2, Presentation::PresentMode::Immediate,
+                                   Presentation::ColorSpace::Srgb},
+                                  *nativeWindows);
+  assert(nativeSurface);
+  for (int frame = 0; frame != 3; ++frame) {
+    nativeWindows->PumpEvents();
+    assert(nativeSurface->Acquire() == Presentation::SurfaceStatus::Ready);
+    assert(nativeSurface->Present() == Presentation::SurfaceStatus::Ready);
+  }
+  assert(nativeWindows->Resize(native.handle, 400, 300) == Window::WindowError::None);
+  nativeWindows->PumpEvents();
+  assert(nativeSurface->NotifyWindowExtent(400, 300) == Presentation::SurfaceStatus::Ready);
+  assert(nativeSurface->Acquire() == Presentation::SurfaceStatus::Ready);
+  assert(nativeSurface->Present() == Presentation::SurfaceStatus::Ready);
+  const auto diagnostics = nativeSurface->Diagnostics();
+  assert(diagnostics.acquiredFrames == 4);
+  assert(diagnostics.presentedFrames == 4);
+  assert(diagnostics.resizeGenerations == 1);
+  assert(nativeSurface->DrainAndDestroy() == Presentation::SurfaceStatus::Ready);
+  assert(nativeWindows->Destroy(native.handle) == Window::WindowError::None);
+
+  for (int iteration = 0; iteration != 8; ++iteration) {
+    const auto repeated = nativeWindows->Create({"lifecycle", 64, 64, true, false});
+    assert(repeated);
+    assert(nativeWindows->Destroy(repeated.handle) == Window::WindowError::None);
+  }
+
+  const auto eventWindow = nativeWindows->Create({"events", 160, 90, true, false});
+  assert(eventWindow);
+  auto hwnd = static_cast<HWND>(nativeWindows->NativeHandle(eventWindow.handle));
+  assert(hwnd);
+  PostMessageW(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(200, 100));
+  PostMessageW(hwnd, WM_SIZE, SIZE_MINIMIZED, MAKELPARAM(0, 0));
+  PostMessageW(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(320, 180));
+  auto resizeEvents = nativeWindows->PumpEvents();
+  assert(resizeEvents.size() == 1);
+  assert(resizeEvents[0].type == Window::WindowEventType::Resized);
+  assert(resizeEvents[0].width == 320 && resizeEvents[0].height == 180);
+
+  PostMessageW(hwnd, WM_CLOSE, 0, 0);
+  assert(nativeWindows->Destroy(eventWindow.handle) == Window::WindowError::None);
+  assert(nativeWindows->PumpEvents().empty());
+#endif
   return 0;
 }

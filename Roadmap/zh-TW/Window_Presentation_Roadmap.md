@@ -2,7 +2,7 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-23
 
-> **進度：20%**（WP-M0 已通過驗收；WP-M1～WP-M4 仍待完成。）
+> **進度：60%**（WP-M0 至 WP-M2 已實作；WP-M1/WP-M2 必須通過 Windows/DX12 runner 才能驗收；WP-M3 與 WP-M4 尚未完成。）
 
 ## 1. 目的與 ownership
 
@@ -16,7 +16,7 @@ backend-neutral surface event。Zig gameplay 不得取得 native window、device
 - ✅ Validation 與 native RHI device 可執行 deterministic offscreen workload。
 - ✅ Renderer scene extraction 與 offscreen `Present` state validation 已有測試。
 - ✅ `NexoraShowcase` 已有 headless lifecycle，並將 native presentation 標為 `CONTRACT ONLY`。
-- 待辦：尚無 platform window module、window event pump、window-system swapchain 或螢幕上的 frame。
+- 已實作、待 Windows 驗收：Win32 window/event translation 與 DX12 window-system swapchain；Showcase/Editor 整合仍未完成。
 
 ## 3. 必要 contract
 
@@ -54,6 +54,8 @@ README 記錄 ownership、lifetime、threading、resize 與 recovery 規則。�
 - 建立、acquire、render to、resize 與 present DXGI swapchain，不洩漏 DXGI/D3D12 type。
 - 定義 backbuffer/fence ownership、frames in flight、vsync/tearing policy、color format 與 present diagnostics。
 - 處理 occlusion、zero extent、surface loss、device removal 與 resize failure，不損壞 active generation。
+
+Windows 驗收證據由 `window_presentation.contracts` 產生：測試會建立真實 Win32 視窗、acquire、clear 並 present 四個 DX12 frame、調整 swapchain 大小，且斷言診斷計數器。WP-M1/WP-M2 必須等 Windows/DX12 runner 綠燈後才能標為驗收；Linux 契約結果或 screenshot 均不足以單獨作為證據。
 
 ### WP-M3 — Showcase 與 Editor 整合
 
