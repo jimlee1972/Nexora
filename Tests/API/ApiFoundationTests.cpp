@@ -1,6 +1,7 @@
 // API-M1/API-M2 conformance: ABI layout gates for the Math.h POD surface plus
 // behavioral coverage for the geometry, Uuid, and generational-handle helpers
 // that don't yet have any test coverage elsewhere.
+#include "Nexora/Foundation/DataAbi.h"
 #include "Nexora/Foundation/Types.h"
 #include "Nexora/Math/Math.h"
 
@@ -10,6 +11,7 @@
 #include <random>
 #include <stdexcept>
 #include <unordered_set>
+#include <vector>
 
 namespace {
 using namespace nexora::math;
@@ -310,6 +312,52 @@ int Run() {
   for (int i = 0; i < 20000; ++i)
     seen.insert(Name(("nexora.name." + std::to_string(i)).c_str()).Value());
   Require(seen.size() == 20000, "FNV-1a produced a collision across 20000 short distinct names");
+
+  // ---- Stable C data ABI: the executable passes bytes into Foundation's
+  // allocation domain and releases them through its matching destroy export.
+  // This exercises a real module boundary in the default Modular build. ----
+  const std::uint8_t utf8_with_nul[]{'N', 'e', 'x', 'o', 'r', 'a', 0, 0xE2, 0x9C, 0x93};
+  NexoraFoundationOwnedBuffer *owned = nullptr;
+  Require(nexora_foundation_string_create_utf8({utf8_with_nul, sizeof(utf8_with_nul)}, &owned) ==
+                  NEXORA_FOUNDATION_OK &&
+              owned != nullptr,
+          "the C ABI did not create an engine-owned UTF-8 string");
+  NexoraFoundationByteView byte_view{};
+  Require(nexora_foundation_buffer_view(owned, &byte_view) == NEXORA_FOUNDATION_OK &&
+              byte_view.size == sizeof(utf8_with_nul) &&
+              std::memcmp(byte_view.data, utf8_with_nul, sizeof(utf8_with_nul)) == 0,
+          "the C ABI view did not preserve an embedded NUL");
+
+  std::uint64_t required = 0;
+  std::uint8_t too_small[2]{0xAA, 0xBB};
+  Require(nexora_foundation_buffer_copy(owned, too_small, sizeof(too_small), &required) ==
+                  NEXORA_FOUNDATION_ERROR_BUFFER_TOO_SMALL &&
+              required == sizeof(utf8_with_nul) && too_small[0] == 0xAA && too_small[1] == 0xBB,
+          "the caller-buffer query did not report size without a partial write");
+  std::vector<std::uint8_t> copy(required);
+  Require(nexora_foundation_buffer_copy(owned, copy.data(), copy.size(), &required) ==
+                  NEXORA_FOUNDATION_OK &&
+              std::memcmp(copy.data(), utf8_with_nul, sizeof(utf8_with_nul)) == 0,
+          "the caller-owned C ABI buffer copy failed");
+  nexora_foundation_buffer_destroy(owned);
+
+  const std::uint8_t malformed[]{0xC0, 0x80};
+  owned = reinterpret_cast<NexoraFoundationOwnedBuffer *>(1);
+  Require(nexora_foundation_string_create_utf8({malformed, sizeof(malformed)}, &owned) ==
+                  NEXORA_FOUNDATION_ERROR_INVALID_UTF8 &&
+              owned == nullptr,
+          "the C ABI accepted malformed UTF-8 or left a stale output handle");
+  Require(nexora_foundation_buffer_create({nullptr, 1}, &owned) ==
+                  NEXORA_FOUNDATION_ERROR_INVALID_ARGUMENT &&
+              owned == nullptr,
+          "the C ABI accepted a null pointer with a non-zero length");
+  Require(nexora_foundation_buffer_create({nullptr, 0}, &owned) == NEXORA_FOUNDATION_OK,
+          "the C ABI rejected an empty buffer");
+  Require(nexora_foundation_buffer_copy(owned, nullptr, 0, &required) == NEXORA_FOUNDATION_OK &&
+              required == 0,
+          "the C ABI could not copy an empty buffer");
+  nexora_foundation_buffer_destroy(owned);
+  nexora_foundation_buffer_destroy(nullptr);
 
   return 0;
 }
