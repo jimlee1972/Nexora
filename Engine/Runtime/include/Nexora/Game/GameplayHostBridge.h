@@ -13,16 +13,11 @@
 //
 // Transform, camera, light, and mesh-renderer component types are wired, and `log`
 // is now wired to a real core::AsyncLogService (previously a pure no-op that
-// silently dropped every module log call). subscribe_event and
-// set_tick_enabled remain no-ops, for a reason beyond "not built yet": the
-// ABI itself has no callback slot for the host to call back into the module
-// (subscribe_event's signature is `(context, event_type) -> int32_t`, with
-// no function pointer to invoke when that event later fires), and
-// set_tick_enabled's effect (suppressing GameplayModuleHost::Update calls)
-// would require either GameplayModuleHost to depend on this Game-namespace
-// context or a new decoupled primitive threaded through both -- either is a
-// real design decision, not a wiring gap, and belongs in its own pass, not
-// this one. Extending read_component/write_component to another component
+// silently dropped every module log call). Event subscription and tick
+// control delegate to embedding-owned callbacks in GameplayHostContext. This
+// keeps the V2 ABI stable while making both operations observable and leaves
+// event delivery/update scheduling under the embedding host that owns them.
+// Extending read_component/write_component to another component
 // type means adding another case alongside the built-in component IDs, not
 // redesigning this file. The V3 Zig Showcase uses a separate V3 host table
 // with the same stable Transform component ID and wire contract; this V2
@@ -86,11 +81,19 @@ struct GameplayMeshRendererWire final {
 // Game-namespace C++ facade, not just this one struct) that belongs in its
 // own pass, not something to retrofit onto a single type in passing.
 struct GameplayHostContext final {
+  using SubscribeEventFn = int32_t (*)(void *context, std::uint64_t event_type);
+  using SetTickEnabledFn = void (*)(void *context, bool enabled);
+
   GameWorld *world{};
   // Optional: when null (the default), the host's `log` callback silently
   // drops every module log call, exactly as it did before this field
   // existed. When set, `log` forwards to this service instead.
   core::AsyncLogService *log{};
+  // Optional embedding hooks. subscribe_event reports unsupported when its
+  // hook is null; set_tick_enabled is a no-op when its hook is null.
+  void *control_context{};
+  SubscribeEventFn subscribe_event{};
+  SetTickEnabledFn set_tick_enabled{};
 };
 
 // Builds a NexoraGameplayHostV2 whose context is `&context`. Every callback

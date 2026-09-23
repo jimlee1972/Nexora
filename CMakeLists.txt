@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(Nexora VERSION 0.1.0 LANGUAGES CXX)
+project(Nexora VERSION 0.1.0 LANGUAGES C CXX)
 
 option(NEXORA_ENABLE_ZIG_GAMEPLAY "Build the Zig gameplay ABI sample and NexoraShowcase" OFF)
 option(NEXORA_ENABLE_SLANG "Compile and validate the canonical Slang shader" OFF)
@@ -92,6 +92,7 @@ if(NEXORA_ENABLE_ZIG_GAMEPLAY)
 endif()
 
 if(BUILD_TESTING)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
   add_subdirectory(Tests/Foundation)
   add_subdirectory(Tests/Core)
   add_subdirectory(Tests/API)

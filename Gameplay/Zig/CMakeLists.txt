@@ -17,7 +17,9 @@ endif()
 
 set(NEXORA_ZIG_BUILD_OBJ_ARGS
   build-obj
-  "${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig"
+  --dep nexora
+  -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
+  -Mnexora=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig
   -O Debug -femit-bin=${NEXORA_ZIG_SAMPLE_OBJECT}
   # A plain `zig build-obj` doesn't link in Zig's own compiler-rt, so the
   # stack-check safety instrumentation it emits by default is left calling
@@ -45,7 +47,8 @@ add_custom_command(
   COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${NEXORA_ZIG_BUILD_OBJ_ARGS}
   DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig"
-    "${PROJECT_SOURCE_DIR}/Engine/Foundation/include/Nexora/Foundation/GameplayABI.h"
+    "${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig"
+    "${PROJECT_SOURCE_DIR}/Engine/API/include/nexora/nexora.h"
   COMMENT "Building the Zig gameplay ABI sample"
   VERBATIM)
 

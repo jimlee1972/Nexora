@@ -20,6 +20,21 @@ void Require(bool value, const char *message) {
     throw std::runtime_error(message);
 }
 
+struct ControlState final {
+  std::uint64_t subscribed_event{};
+  bool tick_enabled{true};
+};
+
+int32_t Subscribe(void *context, std::uint64_t event_type) {
+  auto &state = *static_cast<ControlState *>(context);
+  state.subscribed_event = event_type;
+  return NEXORA_GAMEPLAY_OK;
+}
+
+void SetTick(void *context, bool enabled) {
+  static_cast<ControlState *>(context)->tick_enabled = enabled;
+}
+
 int Run() {
   GameWorld world;
   const auto scene = world.LoadScene("BridgeTestScene");
@@ -98,11 +113,18 @@ int Run() {
                                          &wire, sizeof(wire)) != 0,
           "read_component with a null world must fail rather than dereference it");
 
-  // subscribe_event/set_tick_enabled are documented as unimplemented in this
-  // pass; confirm they report that honestly rather than a false success.
-  Require(host.subscribe_event(host.context, 1) != 0,
-          "subscribe_event has no real implementation yet and must not report success");
-  host.set_tick_enabled(host.context, 1); // must not crash; no observable state to assert on
+  Require(host.subscribe_event(host.context, 1) == NEXORA_GAMEPLAY_ERROR_UNSUPPORTED,
+          "subscribe_event must report unsupported when no embedding hook is installed");
+  host.set_tick_enabled(host.context, 1); // optional missing hook remains safe
+
+  ControlState control;
+  GameplayHostContext controlled_context{&world, nullptr, &control, &Subscribe, &SetTick};
+  const auto controlled_host = MakeHost(controlled_context);
+  Require(controlled_host.subscribe_event(controlled_host.context, 42) == NEXORA_GAMEPLAY_OK &&
+              control.subscribed_event == 42,
+          "subscribe_event must delegate to the embedding event router");
+  controlled_host.set_tick_enabled(controlled_host.context, 0);
+  Require(!control.tick_enabled, "set_tick_enabled must delegate to the embedding scheduler");
 
   // ---- log: dropped when GameplayHostContext::log is null (unchanged
   // default behavior), forwarded to a real AsyncLogService when set ----

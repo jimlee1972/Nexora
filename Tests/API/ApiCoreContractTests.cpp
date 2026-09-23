@@ -119,7 +119,7 @@ void RunServiceCallbackContractTests() {
 
   std::thread::id callback_thread;
   const auto deferred = events.Subscribe<ServiceEvent>(
-      [&](const ServiceEvent &event) { callback_thread = std::this_thread::get_id(); });
+      [&](const ServiceEvent &) { callback_thread = std::this_thread::get_id(); });
   events.Enqueue(ServiceEvent{3});
   const auto dispatch_thread = std::this_thread::get_id();
   events.DispatchDeferred();
