@@ -28,11 +28,11 @@ The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, AP
 
 #### Engine API status
 
-The Engine API is **not fully complete** against the definition of done in the [Engine API Foundation Roadmap](Roadmap/en/Engine_API_Foundation_Roadmap.md). The public README therefore does not mark the whole API as complete.
+The Engine API is **complete for the portable roadmap scope** defined by the [Engine API Foundation Roadmap](Roadmap/en/Engine_API_Foundation_Roadmap.md). Platform-specific runtime evidence remains a target-platform validation responsibility and is not represented as missing API functionality.
 
 | Track | Status | Available now / remaining gate |
 | --- | --- | --- |
-| API-M1 Math and geometry | In progress | Core math, geometry, transforms, layout tests, and an executable sample are available; broader SIMD/ARM coverage and external coordinate golden tests remain. |
+| API-M1 Math and geometry | Complete for the roadmap scope | Full math, geometry, transforms, ABI/layout tests, SSE2/NEON paths, independent DirectXMath coordinate goldens, and an executable sample are available; ARM runtime evidence remains target-host validation. |
 | API-M2 Foundation data types | Complete for the roadmap scope | UTF-8 strings/views, buffers/spans, UUIDs, names, results, parsing, generational handles, and caller-owned or opaque engine-owned C ABI buffers are implemented and tested. |
 | API-M3 VFS and file I/O | Complete for the roadmap scope | Directory, memory, read-only package, and bundle backends; streams, ranged/async reads, mapping, watches, atomic writes, Shipping host-mount restrictions, and >4 GiB sparse-offset gates are implemented. |
 | API-M4 Engine services | Complete for the roadmap scope | Monotonic/game/fixed time, versioned deterministic random, configuration, logging, jobs, events, and profiling-marker emission are implemented and tested. |
@@ -89,11 +89,11 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 
 #### Engine API 狀態
 
-依照 [Engine API 基礎 Roadmap](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) 的 Definition of Done，Engine API **尚未全部完成**，因此本 README 不會把整體 API 標成完成。
+Engine API 已完成 [Engine API 基礎 Roadmap](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) 定義的 **portable roadmap scope**。平台特定的 runtime evidence 仍須由目標平台驗證，不視為 API 功能缺漏。
 
 | Track | 狀態 | 現有能力／剩餘 Gate |
 | --- | --- | --- |
-| API-M1 Math 與幾何 | 施工中 | 已有核心 math、geometry、transform、layout tests 與可執行 sample；仍缺更廣的 SIMD／ARM coverage 與外部座標 golden tests。 |
+| API-M1 Math 與幾何 | Roadmap scope 已完成 | 已有完整 math、geometry、transform、ABI/layout tests、SSE2/NEON 路徑、獨立 DirectXMath 座標 golden 與可執行 sample；ARM runtime evidence 仍須在目標主機驗證。 |
 | API-M2 基礎資料型別 | Roadmap scope 已完成 | UTF-8 string/view、buffer/span、UUID、name、result、parsing、generational handle，以及 caller-owned 或 opaque engine-owned C ABI buffer 均已實作及測試。 |
 | API-M3 VFS 與檔案 I/O | Roadmap scope 已完成 | 已實作 directory、memory、唯讀 package 與 bundle backend、stream、range/async read、mapping、watch、atomic write、Shipping host-mount 限制及 >4 GiB sparse-offset gate。 |
 | API-M4 Engine services | Roadmap scope 已完成 | Monotonic/game/fixed time、含版本的 deterministic random、configuration、logging、jobs、events 與 profiling-marker emission 均已有實作及測試。 |
