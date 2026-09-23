@@ -77,8 +77,18 @@ creates property widgets; unknown components retain raw data instead of being si
     immutable apply, variants, and nested-path rebase.
   - Open: graphical workflows, additive scene tooling, migrations, recovery, and source-control diff/merge.
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
+  - ✅ Portable capability registry enforces stable tool IDs and honest implemented/read-only/
+    unavailable states with fallback reasons.
+  - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ Portable build frontend validates and atomically writes target/configuration/command and
+    checksummed artifact manifests; monotonic CPU/GPU/memory frame capture is implemented.
+  - Open: graphical frontend, remote deployment/logs, live profiler integration, and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ 100k-item virtual hierarchy ranges, trusted-publisher/signature policy, and telemetry that
+    drops events until explicit opt-in are covered by portable tests.
+  - Open: graphical performance/soak acceptance, workspace migrations, corrupt-document recovery,
+    and keyboard/screen-reader audits.
 
 ## 4. Persistence and transaction contract
 

@@ -81,8 +81,10 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
   - ✅ Job drain, restore failure, old-generation rollback, shutdown-during-reload, and repeated-reload stress for real dynamic generations.
   - Open: file stabilization plus device-loss and dynamic update/fixed-update failure integration.
 - **ZS-M5 Distribution:** dynamic Development and static/packaged Shipping profiles with license/build/API manifests.
-  - Open: Development dynamic package, Shipping static package, and clean-machine launch smoke.
-  - Open: license/build/API/content manifests, checksums, and a reproducible packaging command.
+  - ✅ Reproducible Development-dynamic and Shipping-static package targets emit license,
+    build/API/content manifests, per-artifact SHA-256 digests, and `SHA256SUMS`.
+  - Open: retain launch evidence from the generated command on a clean target machine. Package
+    construction in Linux CI does not substitute for target-host acceptance.
 
 ## 5. Evidence and completion
 

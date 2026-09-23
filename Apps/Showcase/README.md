@@ -89,3 +89,20 @@ opaque non-owning IDs, and debug requests are copied by the host. Invalid pointe
 UUIDs, or lifecycle state return `NexoraGameplayResult` without partial publication. The Zig module
 retains only opaque IDs and its host-allocated state between callbacks; those IDs become invalid
 when their host-owned world is destroyed.
+
+## Reproducible packages
+
+The `NexoraShowcasePackageDevelopment` target creates a Development package containing the
+executable and dynamic Zig gameplay module. `NexoraShowcasePackageShipping` creates the static
+Shipping layout and must be invoked from a Shipping/monolithic build. Both use the same deterministic
+packaging command and emit `build.json`, the public API manifest, a content manifest with SHA-256
+digests, `SHA256SUMS`, and the repository license beneath `build/<preset>/package`.
+
+```bash
+cmake --build --preset linux-development --target NexoraShowcasePackageDevelopment
+cmake --build --preset linux-shipping --target NexoraShowcasePackageShipping
+```
+
+The generated `build.json` records the exact clean-machine launch command. Package creation is not
+host acceptance: execute that command after copying the directory to a clean target machine and
+retain its report as distribution evidence.
