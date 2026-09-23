@@ -19,23 +19,23 @@
 // an identifier that already can't collide with a stale reference would be
 // redundant, not safer.
 //
-// Camera, light, and mesh-renderer are entity-integrated here (set at spawn
-// time or attached, updated, and removed through component setters, then
-// read back via EntitySnapshot). Physics and audio are
-// NOT entity-integrated by this facade: nexora::runtime::PhysicsWorld,
-// CharacterController, and AudioMixer remain standalone systems with their
-// own SimulationId/resource-id space, unconnected to nexora::runtime::Id.
-// Building a real entity<->physics-body / entity<->audio-voice binding is a
-// larger design than this pass covers; treat that as still open rather than
-// implied "done" by this file's existence.
+// Camera, light, mesh-renderer, physics, character, and audio state are bound
+// to entity IDs here. Optional simulation functionality remains guarded by
+// NEXORA_GAMEPLAY_SIMULATION_ENABLED so feature-stripped builds keep a valid
+// facade; audio uses Runtime's portable AudioMixer contract.
 #include "Nexora/Runtime/Api.h"
 #include "Nexora/Runtime/AssetPipeline.h"
 #include "Nexora/Runtime/InputUi.h"
 #include "Nexora/Runtime/Runtime.h"
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+#include "Nexora/Runtime/GameplaySimulation.h"
+#endif
 
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace nexora::game {
@@ -53,9 +53,18 @@ struct EntitySnapshot final {
   bool has_camera{};
   bool has_light{};
   bool has_mesh_renderer{};
+  bool has_audio{};
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  bool has_physics{};
+  bool has_character{};
+#endif
   runtime::CameraComponent camera{};
   runtime::LightComponent light{};
   runtime::MeshComponent mesh{};
+  runtime::AudioVoice audio{};
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  runtime::CharacterState character{};
+#endif
 };
 
 // Components can be attached at spawn time and subsequently updated or
@@ -65,6 +74,11 @@ struct EntitySpawnDescriptor final {
   std::optional<runtime::CameraComponent> camera;
   std::optional<runtime::LightComponent> light;
   std::optional<runtime::MeshComponent> mesh_renderer;
+  std::optional<runtime::AudioVoice> audio;
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  std::optional<runtime::PhysicsBody> physics;
+  std::optional<runtime::CharacterControllerConfig> character;
+#endif
 };
 
 // Read-only, by-value capture of one input user's events for this frame,
@@ -90,12 +104,16 @@ public:
   void SetMeshRenderer(runtime::Id entity, std::optional<runtime::MeshComponent> mesh) {
     commands_.SetMeshRenderer(entity, mesh);
   }
-  void DestroyEntity(runtime::Id entity) { commands_.DestroyEntity(entity); }
+  void DestroyEntity(runtime::Id entity) {
+    commands_.DestroyEntity(entity);
+    destroyed_.push_back(entity);
+  }
   [[nodiscard]] std::size_t Size() const noexcept { return commands_.Size(); }
 
 private:
   friend class GameWorld;
   runtime::WorldCommandBuffer commands_;
+  std::vector<runtime::Id> destroyed_;
 };
 [[nodiscard]] NEXORA_RUNTIME_API InputSnapshot CaptureInput(runtime::InputSystem &input,
                                                             runtime::InputUserId user);
@@ -111,7 +129,9 @@ private:
 // into extern "C".
 class NEXORA_RUNTIME_API GameWorld final {
 public:
-  explicit GameWorld(runtime::WorldKind kind = runtime::WorldKind::Editor) : world_(kind) {}
+  explicit GameWorld(runtime::WorldKind kind = runtime::WorldKind::Editor,
+                     std::size_t audio_voice_limit = 32)
+      : world_(kind), audio_(audio_voice_limit) {}
 
   [[nodiscard]] runtime::Id LoadScene(std::string name, bool persistent = false) {
     return world_.LoadScene(std::move(name), persistent);
@@ -130,7 +150,22 @@ public:
   bool SetCamera(runtime::Id entity, std::optional<runtime::CameraComponent> camera);
   bool SetLight(runtime::Id entity, std::optional<runtime::LightComponent> light);
   bool SetMeshRenderer(runtime::Id entity, std::optional<runtime::MeshComponent> mesh);
-  bool Submit(DeferredCommands &commands) { return commands.commands_.Apply(world_); }
+  bool SetAudio(runtime::Id entity, std::optional<runtime::AudioVoice> audio);
+  bool PlayAudio(runtime::Id entity);
+  bool StopAudio(runtime::Id entity);
+  [[nodiscard]] std::size_t ActiveAudioVoices() const noexcept { return audio_.ActiveVoiceCount(); }
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  bool SetPhysics(runtime::Id entity, std::optional<runtime::PhysicsBody> body);
+  [[nodiscard]] std::optional<runtime::Id>
+  RaycastEntity(const runtime::RaycastRequest &request) const;
+  void StepPhysics(double seconds) { physics_.Step(seconds); }
+  bool SetCharacter(runtime::Id entity, std::optional<runtime::CharacterControllerConfig> config);
+  [[nodiscard]] std::optional<runtime::CharacterState> GetCharacter(runtime::Id entity) const;
+  [[nodiscard]] std::optional<runtime::CharacterMoveResult>
+  TickCharacter(runtime::Id entity, const runtime::CharacterInput &input, double seconds,
+                bool ground_ready = true);
+#endif
+  bool Submit(DeferredCommands &commands);
 
   // OR semantics: an entity matches if it has ANY component flag set in
   // `mask` (not all of them). mask == 0 matches every entity in the scene.
@@ -138,6 +173,11 @@ public:
   static constexpr QueryMask kQueryCamera = 1U << 0U;
   static constexpr QueryMask kQueryLight = 1U << 1U;
   static constexpr QueryMask kQueryMeshRenderer = 1U << 2U;
+  static constexpr QueryMask kQueryAudio = 1U << 3U;
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  static constexpr QueryMask kQueryPhysics = 1U << 4U;
+  static constexpr QueryMask kQueryCharacter = 1U << 5U;
+#endif
   [[nodiscard]] std::vector<runtime::Id> Query(runtime::Id scene, QueryMask mask = 0) const;
 
   // Escape hatch for code that legitimately needs the full World/
@@ -148,7 +188,24 @@ public:
   [[nodiscard]] const runtime::World &InternalWorld() const noexcept { return world_; }
 
 private:
+  void RemoveBindings(runtime::Id entity);
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  struct CharacterBinding final {
+    explicit CharacterBinding(runtime::CharacterControllerConfig config) : controller(config) {}
+    runtime::CharacterState state;
+    runtime::CharacterController controller;
+    runtime::StandardCharacterMotor motor;
+  };
+#endif
   runtime::World world_;
+  runtime::AudioMixer audio_;
+  std::unordered_map<runtime::Id, runtime::AudioVoice> entity_audio_;
+  std::unordered_set<runtime::Id> playing_audio_;
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  runtime::PhysicsWorld physics_;
+  std::unordered_set<runtime::Id> physics_entities_;
+  std::unordered_map<runtime::Id, CharacterBinding> characters_;
+#endif
 };
 
 } // namespace nexora::game

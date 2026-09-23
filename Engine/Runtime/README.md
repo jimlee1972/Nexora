@@ -332,10 +332,14 @@ The immediate setters and `DestroyEntity` use the same `WorldCommandBuffer` inte
 the M4 command-buffer contract rather than adding new `World` friend access.
 `Query(scene, mask)` is an OR-mask batch query over a scene's entities.
 `CaptureInput` wraps `InputSystem::Consume` into a by-value `InputSnapshot`, and `AssetRef` is a
-named re-export of the already-ABI-appropriate `AssetUuid` (API-M2). **Not built here:** physics
-(`PhysicsWorld`/`CharacterController`) and audio (`AudioMixer`) remain standalone systems with
-their own `SimulationId`/resource-id space, not entity-integrated by this facade -- that binding
-is a larger design this pass does not attempt.
+named re-export of the already-ABI-appropriate `AssetUuid` (API-M2). The facade owns its portable
+`PhysicsWorld` and `AudioMixer`, binds bodies and voices to the owning entity ID, removes those
+bindings on entity destruction, resolves ray hits back to entity IDs, and synchronizes an attached
+`CharacterController`'s position to the entity Transform after each motor tick. Audio resource IDs
+are unique within a `GameWorld`, making entity stop/destruction deterministic with `AudioMixer`'s
+resource-based stop contract. Physics and character methods are omitted when the optional gameplay
+simulation feature is stripped; the rest of the API-M5 facade remains available. All facade calls
+are synchronous, caller-thread-only, and retain no caller-owned spans or references.
 
 `Nexora/Game/GameplayHostBridge.h` is the API-M6 piece: it wires the `NexoraGameplayHostV2` C ABI
 (`Nexora/Foundation/GameplayABI.h`, the "Zig gameplay bridge" contract above) to a real `GameWorld`
