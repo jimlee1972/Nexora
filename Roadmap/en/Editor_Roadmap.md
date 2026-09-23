@@ -6,7 +6,8 @@
 > completed Runtime/Editor SDK prerequisites are not rounded up into an Editor milestone.)
 
 **Completed prerequisites:** ✅ reflection metadata; ✅ command/undo data model;
-✅ prefab override/rebase; ✅ isolated PIE session; ✅ dynamic plugin ABI gate. **Open:** window/docking/UI shell,
+✅ prefab override/rebase; ✅ isolated PIE session; ✅ dynamic plugin ABI gate; ✅ standalone
+process and portable workspace/document core. **Open:** window/docking/UI shell,
 graphical views, authoring workflows, and production hardening.
 
 ## 1. Product vision
@@ -42,17 +43,30 @@ shortcut routing, docking, theme, DPI, IME, accessibility, and crash recovery. S
 framework through an ADR and focused prototypes; wireframes or an isolated widget demo do not
 satisfy this milestone.
 
+- ✅ The standalone `NexoraEditor` process, versioned project/workspace format, stable panel IDs,
+  command namespace, atomic workspace replacement, and recovery journal are implemented.
+- Open: UI-framework ADR and graphical docking, theme, DPI, IME, accessibility, and crash UX.
+
 ### ED-M1 — Project and asset workspace
 
 Create, open, and upgrade projects. Deliver a Content Browser with search/filter, folder/UUID,
 drag/drop, import status, dependency inspection, and reimport. Background import must expose
 cancellation, progress, and actionable errors, and must produce deterministic artifacts.
 
+- ✅ Project create/open, deterministic content-tree indexing, UUID/path search and filtering,
+  cancellation, progress, inspectable errors, and deterministic artifact hashes are implemented.
+- Open: graphical Content Browser, drag/drop, dependency inspection, and reimport UX.
+
 ### ED-M2 — Scene authoring core
 
 Deliver Hierarchy, Scene View, Inspector, camera controls, selection/picking, translate/rotate/scale
 gizmos, parenting/reordering, multi-selection, clipboard, undo/redo, and save/reload. Reflection
 creates property widgets; unknown components retain raw data instead of being silently discarded.
+
+- ✅ Stable-ID hierarchy/selection, cycle-safe reparenting, multi-selection, clipboard duplication,
+  transform transactions, undo, and atomic scene save/reload are implemented in Editor Core.
+- Open: graphical Hierarchy/Scene/Inspector, picking, camera controls, gizmos, reflected widgets,
+  and unknown-component visual workflows.
 
 - **ED-M3 — PIE/debugging:** Game View, play/pause/step, fixed ticks, input focus, isolated worlds, apply policy, Console, runtime inspection, debugger boundary. The engine loads Zig gameplay; the Editor is not Zig `main`.
   - ✅ Portable `PlaySession` prerequisite covers isolated Play World ownership, fixed tick,

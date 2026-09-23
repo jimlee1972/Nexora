@@ -21,9 +21,10 @@ requests fail rather than silently switching backends.
 `--scene=tour` emits the complete gallery capability matrix. Individual `math`, `scene`,
 `gameplay`, `presentation`, and `streaming` room IDs can also be selected. Every room is reported as
 `IMPLEMENTED`, `CONTRACT ONLY`, or `UNAVAILABLE`, with an explicit fallback description; selecting
-a room never pretends that an absent backend exists. The current portable slice implements the Math
-and Scene rooms, conditionally implements the Gameplay physics query when simulation is enabled,
-keeps Presentation at its public-contract fallback, and reports Streaming as unavailable.
+a room never pretends that an absent backend exists. The portable slice implements the Math and
+Scene rooms, conditionally implements the Gameplay physics query when simulation is enabled, and
+reports Presentation and Streaming as implemented when their runtime feature modules are enabled.
+Disabled modules retain explicit `CONTRACT ONLY` or `UNAVAILABLE` fallbacks.
 
 ```bash
 NexoraShowcase --headless --scene=tour --frames=4 --report=showcase-gallery.json

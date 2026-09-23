@@ -119,10 +119,20 @@ constexpr std::array<GalleryRoom, 5> GalleryRooms() {
        {"gameplay", "Gameplay Lab", CapabilityState::ContractOnly,
         "physics/navigation simulation is disabled"},
 #endif
+#if NEXORA_PRESENTATION_ENABLED
+       {"presentation", "Presentation Lab", CapabilityState::Implemented,
+        "portable animation, audio, VFX, and media simulation"},
+#else
        {"presentation", "Presentation Lab", CapabilityState::ContractOnly,
-        "animation, audio, and VFX backends are not connected"},
+        "presentation simulation is disabled"},
+#endif
+#if NEXORA_LARGE_WORLD_ENABLED
+       {"streaming", "Streaming Lab", CapabilityState::Implemented,
+        "cell residency, budgets, and HLOD fallback"}}};
+#else
        {"streaming", "Streaming Lab", CapabilityState::Unavailable,
-        "cell residency and HLOD APIs are not available"}}};
+        "large-world streaming is disabled"}}};
+#endif
 }
 
 constexpr std::string_view ToString(CapabilityState state) {

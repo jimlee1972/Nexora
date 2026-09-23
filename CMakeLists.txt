@@ -12,6 +12,7 @@ option(NEXORA_ENABLE_SCENE_RENDERING "Build the V1-M4 scene presentation path" O
 option(NEXORA_ENABLE_ASSET_PIPELINE "Build the V1-M5 authoring/cooking and bundle pipeline" ON)
 option(NEXORA_ENABLE_EDITOR_SDK
        "Build the V1-M6 reflection, plugin host, scene editor, and prefab foundation" ON)
+option(NEXORA_ENABLE_EDITOR "Build the standalone Nexora Editor preview" ON)
 option(NEXORA_ENABLE_GAMEPLAY_SIMULATION
        "Build the V1-M8 physics, character, navigation, and AI foundation" ON)
 option(NEXORA_ENABLE_PRESENTATION
@@ -28,6 +29,7 @@ if(NOT NEXORA_SHIPPING_PROFILE MATCHES "^(Minimal|Full|Dedicated)$")
   message(FATAL_ERROR "NEXORA_SHIPPING_PROFILE must be Minimal, Full, or Dedicated")
 endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Shipping")
+  set(NEXORA_ENABLE_EDITOR OFF CACHE BOOL "Build the standalone Nexora Editor preview" FORCE)
   if(NEXORA_SHIPPING_PROFILE STREQUAL "Minimal")
     set(NEXORA_ENABLE_EDITOR_SDK OFF CACHE BOOL
         "Build the V1-M6 reflection, plugin host, scene editor, and prefab foundation" FORCE)
@@ -43,6 +45,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Shipping")
     set(NEXORA_ENABLE_SCENE_RENDERING OFF CACHE BOOL
         "Build the V1-M4 scene presentation path" FORCE)
   endif()
+endif()
+if(NEXORA_ENABLE_EDITOR AND (NOT NEXORA_ENABLE_EDITOR_SDK OR NOT NEXORA_ENABLE_ASSET_PIPELINE))
+  message(FATAL_ERROR "NEXORA_ENABLE_EDITOR requires the Editor SDK and asset pipeline")
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -90,6 +95,10 @@ if(NEXORA_ENABLE_WINDOW_PRESENTATION)
 endif()
 add_subdirectory(Engine/Renderer)
 add_subdirectory(Engine/Runtime)
+if(NEXORA_ENABLE_EDITOR)
+  add_subdirectory(Engine/Editor)
+  add_subdirectory(Apps/Editor)
+endif()
 add_subdirectory(Apps/Host)
 
 include(CTest)
@@ -109,6 +118,9 @@ if(BUILD_TESTING)
   add_subdirectory(Tests/API)
   add_subdirectory(Tests/Renderer)
   add_subdirectory(Tests/Runtime)
+  if(NEXORA_ENABLE_EDITOR)
+    add_subdirectory(Tests/Editor)
+  endif()
   add_test(
     NAME build.module_graph
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR}
