@@ -43,7 +43,8 @@ fn create(module_state: *?*anyopaque, host: *const GameplayHost) callconv(.c) i3
     if (host.abi_version != abi_version or host.struct_size < @sizeOf(GameplayHost)) return -1;
     if ((host.capabilities & 4) == 0) return -2;
     const allocate = host.allocate orelse return -2;
-    const allocation = allocate(host.context, @sizeOf(Allocation), @alignOf(Allocation)) orelse return -3;
+    const allocation = allocate(host.context, @intFromEnum(nexora.AllocationOwner.gameplay_state),
+        @sizeOf(Allocation), @alignOf(Allocation)) orelse return -3;
     const created: *Allocation = @ptrCast(@alignCast(allocation));
     created.* = .{ .host = host };
     observed_update_count = 0;
@@ -132,7 +133,8 @@ fn destroy(module_state: ?*anyopaque) callconv(.c) void {
     const owner: *Allocation = @ptrCast(@alignCast(allocation));
     const host = owner.host;
     if (host.deallocate) |deallocate| {
-        deallocate(host.context, allocation, @sizeOf(Allocation), @alignOf(Allocation));
+        deallocate(host.context, @intFromEnum(nexora.AllocationOwner.gameplay_state), allocation,
+            @sizeOf(Allocation), @alignOf(Allocation));
     }
 }
 

@@ -76,6 +76,7 @@ add_test(NAME runtime.v1_m4_vertical_slice COMMAND NexoraV1M4Tests)
 
 add_executable(NexoraGameplayModuleHostTests GameplayModuleHostTests.cpp)
 target_link_libraries(NexoraGameplayModuleHostTests PRIVATE Nexora::Runtime)
+target_include_directories(NexoraGameplayModuleHostTests PRIVATE "${PROJECT_SOURCE_DIR}/Tests/Gameplay")
 nexora_apply_defaults(NexoraGameplayModuleHostTests)
 add_test(NAME runtime.gameplay_module_host COMMAND NexoraGameplayModuleHostTests)
 

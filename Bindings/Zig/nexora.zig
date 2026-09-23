@@ -9,6 +9,12 @@ pub const Result = enum(i32) {
     lifecycle = -3,
 };
 
+pub const AllocationOwner = enum(u64) {
+    unknown = 0,
+    gameplay_state = 1,
+    state_migration = 2,
+};
+
 pub const GameplayHostV3 = extern struct {
     struct_size: u32,
     abi_version: u32,
@@ -17,8 +23,8 @@ pub const GameplayHostV3 = extern struct {
     log: ?*const fn (?*anyopaque, u32, [*]const u8, u32) callconv(.c) void,
     read_component: ?*const fn (?*anyopaque, u64, u64, ?*anyopaque, u32) callconv(.c) i32,
     write_component: ?*const fn (?*anyopaque, u64, u64, ?*const anyopaque, u32) callconv(.c) i32,
-    allocate: ?*const fn (?*anyopaque, u64, u64) callconv(.c) ?*anyopaque,
-    deallocate: ?*const fn (?*anyopaque, ?*anyopaque, u64, u64) callconv(.c) void,
+    allocate: ?*const fn (?*anyopaque, u64, u64, u64) callconv(.c) ?*anyopaque,
+    deallocate: ?*const fn (?*anyopaque, u64, ?*anyopaque, u64, u64) callconv(.c) void,
 };
 
 pub const GameModuleV3 = extern struct {

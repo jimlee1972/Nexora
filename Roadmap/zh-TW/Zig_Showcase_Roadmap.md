@@ -9,7 +9,9 @@
 分離 create/start/stop/destroy 階段、可回報失敗的 variable/fixed update，以及 C++ Host 的
 transactional state migration；repository 內的 C++ fake module 會驗證此 contract。Zig module
 現在會透過成對的 V3 host allocator callback 取得與釋放獨立 state，reload candidate
-也不再共用 global state。Dynamic discovery、C++/Zig 共用 vector suite 與其餘 ZS-M1 仍未完成。
+也不再共用 global state。Fake 與 Zig module 現在共用一份 vector set；allocation tag、negative
+descriptor/callback coverage 與 Linux sanitizer preset 已完成 ZS-M0。Dynamic discovery 與其餘
+ZS-M1 仍未完成。
 
 **本機施工狀態（2026-09-23）：** 已提供 deterministic headless/static 的 ZS-M1 驗證 slice，
 輸出 `NexoraShowcase.exe`。C++ 擁有 `main`、Engine lifecycle、小型 `GameWorld`、
@@ -63,8 +65,8 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
 - **ZS-M0 Contract**：確立 Host-owned lifecycle、function table、錯誤/記憶體/thread contract；C++ fake module 與 Zig smoke 共用 conformance suite。
   - ✅ ABI V3 lifecycle、result/capability、paired allocator 與 transactional state migration。
   - ✅ C++ fake module 的 lifecycle/reload contract 驗證。
-  - 待辦：C++ fake 與 Zig consumer 共用同一份 conformance vectors。
-  - 待辦：owner tags，missing symbol/version/struct-size/callback failure，以及 sanitizer gates。
+  - ✅ C++ fake 與 Zig consumer 共用同一份 conformance vectors。
+  - ✅ owner tags、missing symbol/version/struct-size/callback failure，以及 Linux sanitizer gates。
 - **ZS-M1 Bootstrap**：`NexoraShowcase` C++ target 負責 CLI、window/headless、module discovery；Zig `on_start/update/on_stop` 可執行。
   - ✅ C++-owned `main`、Engine/World lifetime、fixed/update scheduling 與 ordered shutdown。
   - ✅ deterministic headless validation backend、JSON evidence 與 static Zig object consumer。

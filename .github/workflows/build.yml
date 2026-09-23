@@ -160,6 +160,9 @@ jobs:
       - run: cmake -DROOT=$PWD -P Tools/Build/ValidateModuleGraph.cmake
       - run: cmake -DROOT=$PWD -P Tools/Build/ValidatePluginManifests.cmake
       - run: cmake -DROOT=$PWD -P Tools/Build/ValidateShaderContract.cmake
-      - run: cmake -S . -B build/asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" -DCMAKE_SHARED_LINKER_FLAGS="-fsanitize=address,undefined"
-      - run: cmake --build build/asan
-      - run: ctest --test-dir build/asan --output-on-failure
+      - run: cmake --preset linux-sanitizers
+      - run: cmake --build --preset linux-sanitizers
+      - run: ctest --preset linux-sanitizers
+      - run: cmake --preset linux-thread-sanitizer
+      - run: cmake --build --preset linux-thread-sanitizer
+      - run: ctest --preset linux-thread-sanitizer

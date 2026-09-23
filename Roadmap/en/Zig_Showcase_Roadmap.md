@@ -9,8 +9,9 @@
 capability values, separate create/start/stop/destroy phases, fallible variable/fixed updates, and
 transactional state migration in the C++ host. The in-tree C++ fake module exercises this contract.
 The Zig module now owns independently allocated state obtained and released through paired V3 host
-allocator callbacks, including reload candidates. Dynamic discovery, a shared C++/Zig vector suite,
-and the remainder of ZS-M1 remain open.
+allocator callbacks, including reload candidates. The fake and Zig module now consume one vector
+set; allocation tags, negative descriptor/callback coverage, and Linux sanitizer presets complete
+ZS-M0. Dynamic discovery and the remainder of ZS-M1 remain open.
 
 **Local implementation status (2026-09-23):** A deterministic headless/static ZS-M1 verification
 slice is now available as `NexoraShowcase.exe`. C++ owns `main`, engine lifecycle, a small
@@ -57,8 +58,8 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
 - **ZS-M0 Contract:** host-owned lifecycle, function table, errors/memory/threads; one suite for a C++ fake and Zig smoke.
   - ✅ ABI V3 lifecycle, result/capability values, paired allocator, and transactional state migration.
   - ✅ C++ fake-module lifecycle and reload contract coverage.
-  - Open: one shared conformance-vector set for the C++ fake and Zig consumer.
-  - Open: owner tags, missing-symbol/version/structure-size/callback failures, and sanitizer gates.
+  - ✅ One shared conformance-vector set for the C++ fake and Zig consumer.
+  - ✅ Owner tags, missing-symbol/version/structure-size/callback failures, and Linux sanitizer gates.
 - **ZS-M1 Bootstrap:** C++ `NexoraShowcase` owns CLI, window/headless mode, discovery; Zig start/update/stop executes.
   - ✅ C++-owned `main`, Engine/World lifetime, fixed/update scheduling, and ordered shutdown.
   - ✅ Deterministic headless validation backend, JSON evidence, and static Zig-object consumer.

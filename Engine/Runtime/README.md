@@ -189,15 +189,30 @@ and unload operations are serialized; a replacement module is initialized before
 is shut down, and a rejected replacement leaves the active module running.
 
 The host table exposes size-checked component reads/writes, logging, and an explicitly paired host
-allocator. A module may retain the table only from successful `create` until `destroy`; all
-lifecycle and update calls are serialized on the thread that calls `GameplayModuleHost`. The Zig
-module allocates its state through the host and returns the exact allocation during `destroy`, so
-allocation ownership never crosses the C ABI implicitly and reload candidates have independent
-state. No exception crosses the C ABI. Event delivery remains a future additive capability.
+allocator. Every allocation and matching deallocation carries the same `NexoraAllocationOwner`;
+gameplay state uses `NEXORA_ALLOCATION_OWNER_GAMEPLAY_STATE`, while migration scratch storage is
+reserved for `NEXORA_ALLOCATION_OWNER_STATE_MIGRATION`. The allocating host owns the allocator and
+the module owns the returned block until it returns that exact pointer, size, alignment, and tag.
+A module may retain the table only from successful `create` until `destroy`; the table and module
+state are invalid immediately after `destroy`. Lifecycle and update calls are serialized but run
+on whichever caller thread entered `GameplayModuleHost`; callbacks must not re-enter the same host
+or retain borrowed component buffers. The Zig module allocates its state through the host and
+returns the exact allocation during `destroy`, so allocation ownership never crosses the C ABI
+implicitly and reload candidates have independent state. No exception crosses the C ABI; every
+fallible callback reports a `NexoraGameplayResult`, and an update failure does not implicitly
+unload the active module. Event delivery remains a future additive capability.
 Modules may additionally provide state save/load callbacks. Reload serializes the active state,
 initializes and restores the candidate, and only then retires the active module; migration failure
-keeps the active module alive. `GetReloadStats()` exposes successful reload count, migrated bytes,
+stops and destroys the candidate while keeping the active module alive. Reload never unloads code;
+the embedding keeps both generations resident until the call returns and quiesces module-owned
+work before invoking it. `GetReloadStats()` exposes successful reload count, migrated bytes,
 and wall-clock reload duration for profiler integration.
+
+`Tests/Gameplay/GameplayConformanceVectors.h` is the single lifecycle/update vector set used by the
+C++ fake and Zig consumer. The Runtime negative suite rejects a missing loader symbol, ABI and
+structure-size mismatches, absent required callbacks, and callback failures. Linux sanitizer gates
+are directly runnable with `linux-sanitizers` (AddressSanitizer plus UndefinedBehaviorSanitizer)
+and `linux-thread-sanitizer`; TSan is separate because it cannot be combined with ASan.
 
 Configure with `-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON` to compile the minimal Zig GameModule and run the
 `gameplay.zig_abi_smoke` test. Zig 0.14.0 is the pinned CI toolchain. This is the first executable

@@ -31,6 +31,12 @@ typedef enum NexoraGameplayCapability {
   NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR = 1u << 2
 } NexoraGameplayCapability;
 
+typedef enum NexoraAllocationOwner {
+  NEXORA_ALLOCATION_OWNER_UNKNOWN = 0,
+  NEXORA_ALLOCATION_OWNER_GAMEPLAY_STATE = 1,
+  NEXORA_ALLOCATION_OWNER_STATE_MIGRATION = 2
+} NexoraAllocationOwner;
+
 typedef struct NexoraGameplayHostV1 {
   uint32_t struct_size;
   uint32_t abi_version;
@@ -83,8 +89,9 @@ typedef struct NexoraGameplayHostV3 {
                             uint32_t data_size);
   int32_t (*write_component)(void *context, uint64_t entity, uint64_t component_type,
                              const void *data, uint32_t data_size);
-  void *(*allocate)(void *context, uint64_t size, uint64_t alignment);
-  void (*deallocate)(void *context, void *allocation, uint64_t size, uint64_t alignment);
+  void *(*allocate)(void *context, uint64_t owner, uint64_t size, uint64_t alignment);
+  void (*deallocate)(void *context, uint64_t owner, void *allocation, uint64_t size,
+                     uint64_t alignment);
 } NexoraGameplayHostV3;
 
 typedef struct NexoraGameModuleV3 {
