@@ -28,7 +28,7 @@ void Engine::Initialize(const EngineConfiguration &configuration) {
   auto frame_arena = std::make_unique<FrameArena>(configuration.frame_arena_capacity);
   log->Start();
   jobs->Start();
-  if (!vfs->Mount("content", configuration.content_root)) {
+  if (!vfs->MountHost("content", configuration.content_root)) {
     jobs->Stop();
     log->Stop();
     throw std::runtime_error("failed to mount content root");
@@ -42,7 +42,7 @@ void Engine::Initialize(const EngineConfiguration &configuration) {
   // does not attempt to fabricate here.
   std::error_code temp_error;
   const auto temp_directory = std::filesystem::temp_directory_path(temp_error);
-  if (!temp_error && !vfs->Mount("temp", temp_directory)) {
+  if (!temp_error && !vfs->MountHost("temp", temp_directory)) {
     jobs->Stop();
     log->Stop();
     throw std::runtime_error("failed to mount temp root");

@@ -16,6 +16,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -131,6 +132,85 @@ void RunBackendContractSuite(VirtualFileSystem &vfs, const std::string &mount) {
   const auto large_read = vfs.Read(mount + "://dir/large.bin");
   Require(large_read.status == ReadResult::Status::Completed && large_read.bytes == large,
           "a multi-MiB read must return the exact bytes written");
+
+  const auto range = vfs.ReadRange(mount + "://dir/large.bin", 1024, 4096);
+  Require(range.status == ReadResult::Status::Completed && range.bytes.size() == 4096 &&
+              range.bytes.front() == large[1024],
+          "ReadRange must support 64-bit offsets and bounded partial reads");
+  const auto stream = vfs.OpenRead(mount + "://dir/large.bin");
+  std::vector<std::byte> streamed(16);
+  Require(stream.IsValid() && stream.Size() == large.size() &&
+              stream.ReadAt(2048, streamed).status == ReadResult::Status::Completed &&
+              streamed.front() == large[2048],
+          "OpenRead must provide positional stream reads without a shared cursor");
+}
+
+void RunAdvancedVfsTests() {
+  JobSystem jobs{1};
+  jobs.Start();
+  VirtualFileSystem vfs{jobs};
+  Require(vfs.MountMemory("advanced"), "advanced memory mount must succeed");
+  int changes = 0;
+  const auto watch = vfs.Watch("advanced://watched.bin", [&](const FileChange &change) {
+    Require(change.kind == FileChangeKind::Created, "first watch event must be Created");
+    ++changes;
+  });
+  const std::vector<std::byte> payload(8192, std::byte{0x2a});
+  Require(vfs.WriteAtomic("advanced://watched.bin", payload) == ReadResult::Status::Completed,
+          "watched write must succeed");
+  vfs.PollWatches();
+  Require(changes == 1 && vfs.Unwatch(watch),
+          "watch polling must notify on its calling thread and support unsubscribe");
+
+  const auto mapped = vfs.MapReadOnly("advanced://watched.bin");
+  Require(mapped.Bytes().size() == payload.size() && mapped.Bytes().front() == payload.front(),
+          "memory-backed MapReadOnly must expose a stable snapshot");
+
+  AsyncReadOptions options{};
+  options.offset = 4096;
+  options.size = 4096;
+  options.alignment = 4096;
+  options.priority = JobPriority::High;
+  auto async = vfs.ReadAsync("advanced://watched.bin", options);
+  CancellationSource cancelled_source;
+  auto cancelled_peer = vfs.ReadAsync("advanced://watched.bin", options, cancelled_source.Token());
+  cancelled_source.Cancel();
+  for (int attempt = 0; attempt < 100 && async.Get().status == ReadResult::Status::Pending;
+       ++attempt)
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  Require(async.Get().status == ReadResult::Status::Completed && async.Get().bytes.size() == 4096,
+          "priority/aligned asynchronous ranged read must complete");
+  Require(cancelled_peer.Get().status == ReadResult::Status::Cancelled,
+          "coalesced asynchronous reads must retain per-handle cancellation results");
+
+  const std::map<std::string, std::vector<std::byte>> package{{"asset.bin", payload}};
+  Require(vfs.MountPackage("package", package), "platform package adapter mount must succeed");
+  Require(vfs.Read("package://asset.bin").bytes == payload,
+          "package mount must expose supplied platform-package bytes");
+  Require(vfs.WriteAtomic("package://asset.bin", {}) == ReadResult::Status::IoError,
+          "package mount must be read-only");
+
+  const auto sparse_root =
+      std::filesystem::temp_directory_path() / "nexora-api-vfs-large-offset-test";
+  std::filesystem::remove_all(sparse_root);
+  std::filesystem::create_directories(sparse_root);
+  constexpr std::uint64_t large_offset = (std::uint64_t{4} << 30) + 17;
+  {
+    std::ofstream sparse{sparse_root / "sparse.bin", std::ios::binary};
+    sparse.seekp(static_cast<std::streamoff>(large_offset));
+    sparse.put('\x5a');
+  }
+  Require(vfs.Mount("sparse", sparse_root), "sparse-file directory mount must succeed");
+  const auto tail = vfs.ReadRange("sparse://sparse.bin", large_offset, 1);
+  Require(tail.status == ReadResult::Status::Completed && tail.bytes.size() == 1 &&
+              tail.bytes.front() == std::byte{0x5a},
+          "ReadRange must preserve offsets beyond the 32-bit boundary");
+  const auto file_mapping = vfs.MapReadOnly("sparse://sparse.bin");
+  Require(file_mapping.Bytes().size() == large_offset + 1 &&
+              file_mapping.Bytes()[large_offset] == std::byte{0x5a},
+          "directory MapReadOnly must map a sparse file beyond the 32-bit boundary");
+  std::filesystem::remove_all(sparse_root);
+  jobs.Stop();
 }
 
 // Regression for a real bug a review caught: allowing Enumerate to reach a
@@ -194,6 +274,7 @@ int Run() {
   RunServicesTests();
   RunMountRootWriteRejectionTest();
   RunMountRootDotAliasWriteRejectionTest();
+  RunAdvancedVfsTests();
 
   JobSystem jobs{1};
   VirtualFileSystem vfs{jobs};
