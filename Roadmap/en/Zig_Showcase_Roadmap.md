@@ -72,6 +72,8 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
   - ✅ Append-only spawn/despawn, scene, input snapshot, opaque asset handle, raycast, high-level debug draw, and diagnostics callbacks.
   - ✅ C header, ABI manifest/baseline, Zig binding, ownership/thread/error contract, C++ ABI gates, Zig smoke, and deterministic headless evidence are synchronized.
 - **ZS-M3 Feature gallery:** bounded physics, presentation, and streaming rooms with capability fallbacks.
+  - ✅ Scriptable room selection and deterministic capability/fallback evidence for the Math, Scene,
+    Gameplay, Presentation, and Streaming rooms.
   - Open: interactive Math, Scene, Gameplay, Presentation, and Streaming rooms.
   - Open: camera input, selection/raycast, physics/navigation, animation/audio/VFX, and large-world overlays.
   - Open: per-feature `IMPLEMENTED` / `CONTRACT ONLY` / `UNAVAILABLE` labels and capability-fallback tests.

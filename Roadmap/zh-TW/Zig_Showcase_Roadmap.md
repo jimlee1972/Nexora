@@ -78,6 +78,8 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
   - ✅ 以 append-only 方式補齊 spawn/despawn、scene、input snapshot、opaque asset handle、raycast、高階 debug draw 與 diagnostics callbacks。
   - ✅ C header、ABI manifest/baseline、Zig binding、ownership/thread/error contract、C++ ABI gates、Zig smoke 與 deterministic headless evidence 已同步。
 - **ZS-M3 Feature gallery**：加入 physics、animation/audio/VFX、streaming 的 bounded showcases 與 capability fallback。
+  - ✅ Math、Scene、Gameplay、Presentation 與 Streaming room 已有可 script 選擇及 deterministic
+    capability／fallback 證據。
   - 待辦：Math、Scene、Gameplay、Presentation 與 Streaming 五個可操作房間。
   - 待辦：camera input、selection/raycast、physics/navigation、animation/audio/VFX 與 large-world overlays。
   - 待辦：逐項顯示 `IMPLEMENTED` / `CONTRACT ONLY` / `UNAVAILABLE`，並提供 capability fallback tests。

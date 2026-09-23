@@ -16,6 +16,19 @@ input, and acquires/clears/presents through the DX12 swapchain until the window 
 validation path on an unsupported host, but prints and records `fallback_reason`; explicit `dx12`
 requests fail rather than silently switching backends.
 
+## Feature gallery
+
+`--scene=tour` emits the complete gallery capability matrix. Individual `math`, `scene`,
+`gameplay`, `presentation`, and `streaming` room IDs can also be selected. Every room is reported as
+`IMPLEMENTED`, `CONTRACT ONLY`, or `UNAVAILABLE`, with an explicit fallback description; selecting
+a room never pretends that an absent backend exists. The current portable slice implements the Math
+and Scene rooms, conditionally implements the Gameplay physics query when simulation is enabled,
+keeps Presentation at its public-contract fallback, and reports Streaming as unavailable.
+
+```bash
+NexoraShowcase --headless --scene=tour --frames=4 --report=showcase-gallery.json
+```
+
 ## Windows build
 
 The repository pins Zig 0.14.0 for the gameplay object. If it is not already
