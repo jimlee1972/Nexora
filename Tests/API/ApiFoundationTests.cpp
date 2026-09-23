@@ -241,6 +241,32 @@ int Run() {
               InverseSafe(singular, identity).values == identity.values,
           "InverseSafe did not fall back on a singular matrix");
 
+  // Cross-check the accelerated Matrix4 multiply against the deliberately
+  // scalar reference over deterministic random inputs. The magnitude-based
+  // tolerance permits only the reduction-order error introduced by SIMD.
+  {
+    std::mt19937 random{67890};
+    std::uniform_real_distribution<float> distribution{-20.0F, 20.0F};
+    for (int iteration = 0; iteration < 5000; ++iteration) {
+      Matrix4 a{}, b{};
+      for (float &value : a.values)
+        value = distribution(random);
+      for (float &value : b.values)
+        value = distribution(random);
+      const Matrix4 active = a * b;
+      const Matrix4 scalar = detail::MultiplyScalar(a, b);
+      for (std::size_t row = 0; row < 4; ++row) {
+        for (std::size_t column = 0; column < 4; ++column) {
+          float magnitude = 0.0F;
+          for (std::size_t k = 0; k < 4; ++k)
+            magnitude += std::abs(a(row, k) * b(k, column));
+          Require(NearlyEqual(active(row, column), scalar(row, column), magnitude * 1e-5F + 1e-4F),
+                  "Matrix4 SIMD multiply drifted from its scalar reference");
+        }
+      }
+    }
+  }
+
   // ---- Matrix3 ----
   const Matrix3 rotate90{0, -1, 0, 1, 0, 0, 0, 0, 1};
   Require(NearlyEqual(Determinant(rotate90), 1.0F), "Matrix3 determinant is wrong");
@@ -276,6 +302,22 @@ int Run() {
           "frustum rejected a centered aabb");
   Require(!Intersects(frustum, Aabb{{500, 500, 500}, {501, 501, 501}}),
           "frustum accepted a far-away aabb");
+
+  // Coordinate golden fixtures independently generated with DirectXMath's
+  // right-handed LookAt/Perspective functions, then transposed from its
+  // row-vector convention into Nexora's documented column-vector convention.
+  // These constants intentionally avoid deriving the expected values with
+  // Nexora helpers, so a consistent sign/layout regression cannot self-pass.
+  const Matrix4 golden_view{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -5, 0, 0, 0, 1};
+  const Matrix4 golden_projection{0.5F, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1.1F, -1.1F, 0, 0, -1, 0};
+  const Matrix4 actual_view = LookAt({0, 0, 5}, {0, 0, 0});
+  const Matrix4 actual_projection = PerspectiveRadians(Radians(90.0F), 2.0F, 1.0F, 11.0F);
+  for (std::size_t i = 0; i < 16; ++i) {
+    Require(NearlyEqual(actual_view.values[i], golden_view.values[i], 1e-5F),
+            "LookAt disagreed with the external right-handed coordinate golden");
+    Require(NearlyEqual(actual_projection.values[i], golden_projection.values[i], 1e-5F),
+            "PerspectiveRadians disagreed with the external right-handed coordinate golden");
+  }
 
   // ---- Uuid parse/format round trip and rejection ----
   const auto parsed = Uuid::Parse("01234567-89ab-cdef-0123-456789abcdef");
