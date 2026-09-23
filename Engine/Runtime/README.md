@@ -225,7 +225,7 @@ Configure with `-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON` to compile the minimal Zig Game
 `gameplay.zig_abi_smoke` test. Zig 0.14.0 is the pinned CI toolchain. This is the first executable
 toolchain gate. The Runtime dynamic-generation suite uses real native libraries and covers
 discovery, repeated reload, failed restore rollback, job quiescence, and shutdown during a barrier.
-Wiring the Zig Showcase executable to a Development shared-library artifact, mobile
+The Zig Showcase executable is wired to a Development shared-library artifact; mobile
 cross-compilation, and device execution remain required follow-up gates.
 
 Desktop CI builds the same module on Linux, Windows, and macOS. A separate CI smoke matrix also

@@ -2,22 +2,25 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
 
-> **進度：40%**（截至 2026-09-23；依第 4 節 6 個 milestone 的加權驗收清單計算，
+> **進度：70%**（截至 2026-09-23；依第 4 節 6 個 milestone 的加權驗收清單計算，
 > 已完成項目以 ✅ 標示，結果向下取整至 10%。）
 
-**施工狀態（2026-09-23）：** ZS-M0 已開始。ABI V3 現在定義明確的 result 與 capability 值、
+**施工狀態（2026-09-23）：** ZS-M0 至 ZS-M2 已完成。ABI V3 現在定義明確的 result 與 capability 值、
 分離 create/start/stop/destroy 階段、可回報失敗的 variable/fixed update，以及 C++ Host 的
 transactional state migration；repository 內的 C++ fake module 會驗證此 contract。Zig module
 現在會透過成對的 V3 host allocator callback 取得與釋放獨立 state，reload candidate
 也不再共用 global state。Fake 與 Zig module 現在共用一份 vector set；allocation tag、negative
 descriptor/callback coverage 與 Linux sanitizer preset 已完成 ZS-M0。Runtime dynamic discovery
-與 generation lifecycle 已完成；Showcase artifact wiring 與 ZS-M1 的 native presentation 仍待完成。
+與 generation lifecycle 已完成；Showcase 會建置並選取 Zig Development shared library，Shipping
+則保留相同 ABI 的 static link。
 
-**本機施工狀態（2026-09-23）：** 已提供 deterministic headless/static 的 ZS-M1 驗證 slice，
+**本機施工狀態（2026-09-23）：** 已提供 deterministic headless/static 與 Development-dynamic
+的 ZS-M1 驗證 slice，
 輸出 `NexoraShowcase.exe`。C++ 擁有 `main`、Engine lifecycle、小型 `GameWorld`、
 fixed/update scheduling、offscreen scene rendering、reload 與 shutdown；Zig consumer 透過
 公開 ABI 修改 primary entity 的 Transform，並由 executable 輸出 JSON evidence report。Dynamic
-module discovery 與 native window/swapchain 仍未完成；report 會將後者標示為 `CONTRACT ONLY`。
+module discovery 已納入 CTest。Native Win32/DX12 presentation 已透過 Window 與 Presentation
+contract 實作，但仍須在 Windows target host 驗收。
 
 ## 1. 核心決策
 
@@ -62,18 +65,18 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
 
 ## 4. 階段
 
-- **ZS-M0 Contract**：確立 Host-owned lifecycle、function table、錯誤/記憶體/thread contract；C++ fake module 與 Zig smoke 共用 conformance suite。
+- **✅ ZS-M0 Contract**：確立 Host-owned lifecycle、function table、錯誤/記憶體/thread contract；C++ fake module 與 Zig smoke 共用 conformance suite。
   - ✅ ABI V3 lifecycle、result/capability、paired allocator 與 transactional state migration。
   - ✅ C++ fake module 的 lifecycle/reload contract 驗證。
   - ✅ C++ fake 與 Zig consumer 共用同一份 conformance vectors。
   - ✅ owner tags、missing symbol/version/struct-size/callback failure，以及 Linux sanitizer gates。
-- **ZS-M1 Bootstrap**：`NexoraShowcase` C++ target 負責 CLI、window/headless、module discovery；Zig `on_start/update/on_stop` 可執行。
+- **✅ ZS-M1 Bootstrap**：`NexoraShowcase` C++ target 負責 CLI、window/headless、module discovery；Zig `on_start/update/on_stop` 可執行。
   - ✅ C++-owned `main`、Engine/World lifetime、fixed/update scheduling 與 ordered shutdown。
   - ✅ deterministic headless validation backend、JSON evidence 與 static Zig object consumer。
   - ✅ Runtime dynamic library discovery、generation ownership、job quiescence 與真正的 library unload/rollback。
-  - 待辦：建置 Zig Development shared-library artifact，並由 `NexoraShowcase` 選取。
-  - 待辦：native window/input/swapchain；該邊界由 Window & Presentation Roadmap 負責。
-- **ZS-M2 API-driven scene**：只用 API Roadmap 的 C/Zig bindings 建 scene、camera、mesh、input 與 diagnostics。
+  - ✅ 建置 Zig Development shared-library artifact，並由 `NexoraShowcase` 選取。
+  - ✅ 透過 Window 與 Presentation boundary 使用 native window/input/swapchain。
+- **✅ ZS-M2 API-driven scene**：只用 API Roadmap 的 C/Zig bindings 建 scene、camera、mesh、input 與 diagnostics。
   - ✅ Zig 經 public host table 建立 scene、camera、light 與 cubes；C++ 保留 engine/world/render ownership。
   - ✅ 以 append-only 方式補齊 spawn/despawn、scene、input snapshot、opaque asset handle、raycast、高階 debug draw 與 diagnostics callbacks。
   - ✅ C header、ABI manifest/baseline、Zig binding、ownership/thread/error contract、C++ ABI gates、Zig smoke 與 deterministic headless evidence 已同步。

@@ -3,7 +3,7 @@
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
 
 
-> **Progress: 40%** (mean of the tracked API, Zig Showcase, and Editor delivery roadmaps.)
+> **Progress: 50%** (mean of the tracked API, Zig Showcase, and Editor delivery roadmaps, rounded down to 10%.)
 
 **Completed delivery track:** ✅ Engine API Foundation portable scope. **Open:** Zig Showcase and graphical Editor delivery gates.
 

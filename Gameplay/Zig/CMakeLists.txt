@@ -7,6 +7,8 @@ if(NOT EXISTS "${NEXORA_ZIG_EXECUTABLE}")
 endif()
 
 set(NEXORA_ZIG_SAMPLE_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/zig_gameplay_sample${CMAKE_CXX_OUTPUT_EXTENSION}")
+set(NEXORA_ZIG_SHARED_LIBRARY
+    "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}NexoraZigGameplay${CMAKE_SHARED_LIBRARY_SUFFIX}")
 if(NOT CMAKE_CXX_OUTPUT_EXTENSION)
   if(WIN32)
     set(NEXORA_ZIG_SAMPLE_OBJECT "${CMAKE_CURRENT_BINARY_DIR}/zig_gameplay_sample.obj")
@@ -58,7 +60,29 @@ set_source_files_properties("${NEXORA_ZIG_SAMPLE_OBJECT}" PROPERTIES
 
 add_custom_target(NexoraZigGameplayBuild DEPENDS "${NEXORA_ZIG_SAMPLE_OBJECT}")
 
+set(NEXORA_ZIG_BUILD_LIB_ARGS
+  build-lib
+  --dep nexora
+  -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
+  -Mnexora=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig
+  -dynamic -O Debug -femit-bin=${NEXORA_ZIG_SHARED_LIBRARY})
+if(WIN32)
+  list(APPEND NEXORA_ZIG_BUILD_LIB_ARGS -fcompiler-rt)
+endif()
+
+add_custom_command(
+  OUTPUT "${NEXORA_ZIG_SHARED_LIBRARY}"
+  COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${NEXORA_ZIG_BUILD_LIB_ARGS}
+  DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig"
+    "${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig"
+    "${PROJECT_SOURCE_DIR}/Engine/API/include/nexora/nexora.h"
+  COMMENT "Building the Zig gameplay Development shared library"
+  VERBATIM)
+add_custom_target(NexoraZigGameplaySharedBuild DEPENDS "${NEXORA_ZIG_SHARED_LIBRARY}")
+
 set(NEXORA_ZIG_SAMPLE_OBJECT "${NEXORA_ZIG_SAMPLE_OBJECT}" PARENT_SCOPE)
+set(NEXORA_ZIG_SHARED_LIBRARY "${NEXORA_ZIG_SHARED_LIBRARY}" PARENT_SCOPE)
 
 if(BUILD_TESTING)
   add_executable(NexoraZigGameplayTests

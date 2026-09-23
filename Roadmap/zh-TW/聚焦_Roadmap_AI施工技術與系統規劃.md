@@ -3,7 +3,7 @@
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
 
 
-> **進度：40%**（依追蹤的 Engine API、Zig Showcase 與 Editor 三份 delivery roadmap 取平均。）
+> **進度：50%**（依追蹤的 Engine API、Zig Showcase 與 Editor 三份 delivery roadmap 取平均，向下取整至 10%。）
 
 **已完成 delivery track：** ✅ Engine API Foundation portable scope。**待辦：** Zig Showcase 與圖形化 Editor delivery gates。
 
