@@ -2,6 +2,11 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
 
+
+> **Progress: 40%** (mean of the tracked API, Zig Showcase, and Editor delivery roadmaps.)
+
+**Completed delivery track:** ✅ Engine API Foundation portable scope. **Open:** Zig Showcase and graphical Editor delivery gates.
+
 ## 1. Analysis and critical path
 
 These roadmaps must not be implemented by agents independently generating files. The API contract is upstream, the Showcase is the first external consumer, and the Editor is the high-complexity consumer. The critical path is **API conventions → Math/Text/VFS → C ABI/Zig binding → engine-owned Showcase → Editor shell/authoring → PIE/tools**. AI is useful for bounded implementation, adapters, test matrices, and synchronized documentation. Humans own ABI, UX, dependency, security, and release-status decisions.

@@ -2,6 +2,12 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
 
+> **Progress: 100%** for the portable roadmap scope: API-M1 through API-M6 meet the gates
+> defined here. Target-platform runtime evidence must not be read as validated in Linux cloud.
+
+**Completed:** ✅ API-M1 math/geometry; ✅ API-M2 foundation types; ✅ API-M3 VFS/I/O;
+✅ API-M4 services; ✅ API-M5 World/Game facade; ✅ API-M6 C/Zig bindings and ABI versioning.
+
 ## 1. Purpose and gap
 
 Existing modules prove lifecycle, RHI, scene, and runtime contracts, but tested internal types are not yet a durable game-author API. This roadmap adds the math, transform, text, file I/O, time, identity, collection, and diagnostics surface expected from a 3D engine, with explicit C++, stable C ABI, and Zig boundaries.

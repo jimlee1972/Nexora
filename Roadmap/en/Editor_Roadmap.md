@@ -2,6 +2,13 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
 
+> **Progress: 0%** (none of ED-M0 through ED-M7 has passed graphical Editor acceptance;
+> completed Runtime/Editor SDK prerequisites are not rounded up into an Editor milestone.)
+
+**Completed prerequisites:** ✅ reflection metadata; ✅ command/undo data model;
+✅ prefab override/rebase; ✅ dynamic plugin ABI gate. **Open:** window/docking/UI shell,
+graphical views, authoring workflows, and production hardening.
+
 ## 1. Product vision
 
 Build a standalone `NexoraEditor` with a Unity/Unreal-like workflow—not a claim of feature parity. Its first production path covers Project Browser, Hierarchy, Scene View, Game View, Inspector, Content Browser, Console, Profiler, gizmos, undo/redo, Play-in-Editor (PIE), and import/cook/build. The Editor consumes Runtime APIs and is never required by a shipped game.

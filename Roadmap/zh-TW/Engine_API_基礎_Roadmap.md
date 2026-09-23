@@ -2,6 +2,12 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
 
+> **進度：100%**（portable roadmap scope；API-M1～API-M6 均通過本文定義的 gate。
+> Target-platform runtime evidence 不得解讀為已在 Linux cloud 驗證。）
+
+**已完成：** ✅ API-M1 Math/geometry；✅ API-M2 foundation types；✅ API-M3 VFS/I/O；
+✅ API-M4 services；✅ API-M5 World/Game facade；✅ API-M6 C/Zig bindings 與 ABI versioning。
+
 ## 1. 目的與缺口
 
 現有模組已證明 lifecycle、RHI、scene 與各 runtime contract，但「有測試的內部型別」不等於「遊戲作者可長期依賴的 Engine API」。本 Roadmap 補齊一般 3D 引擎應有的 Math、Transform、字串、檔案 I/O、時間、識別、容器與診斷表面，並同時定義 C++、穩定 C ABI、Zig 三層界線。
