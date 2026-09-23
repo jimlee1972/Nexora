@@ -2,6 +2,11 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
 
+
+> **進度：40%**（依追蹤的 Engine API、Zig Showcase 與 Editor 三份 delivery roadmap 取平均。）
+
+**已完成 delivery track：** ✅ Engine API Foundation portable scope。**待辦：** Zig Showcase 與圖形化 Editor delivery gates。
+
 ## 1. 分析結論
 
 三份 Roadmap 不適合讓 AI 平行「把檔案生出來」：API contract 是上游，Showcase 是第一個外部 consumer，Editor 是高複雜度 consumer。建議關鍵路徑為 **API conventions → Math/Text/VFS → C ABI/Zig binding → Engine-owned Showcase → Editor shell/authoring → PIE/tools**。AI 擅長 bounded implementation、adapter、測試矩陣與文件同步；人類必須決定 ABI、UX、第三方相依、資安與 release status。

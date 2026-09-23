@@ -2,6 +2,13 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
 
+> **進度：0%**（ED-M0～ED-M7 尚無任一 milestone 通過圖形化 Editor 驗收；
+> 已完成的 Runtime/Editor SDK 前置不向上取整為 Editor milestone。）
+
+**已完成前置：** ✅ reflection metadata；✅ command/undo data model；✅ prefab override/rebase；
+✅ dynamic plugin ABI gate。**待辦：** window/docking/UI shell、graphical views、authoring workflows
+與 production hardening。
+
 ## 1. 產品願景
 
 建立類似 Unity/Unreal 工作流的獨立 `NexoraEditor`，而不是宣稱複製其全部功能。第一條 production path 包含 Project Browser、Hierarchy、Scene View、Game View、Inspector、Content Browser、Console、Profiler、Gizmo、Undo/Redo、Play-in-Editor（PIE）、import/cook/build。Editor 是 Runtime 的 client，不得成為遊戲執行必要相依。
