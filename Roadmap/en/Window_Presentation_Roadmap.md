@@ -2,7 +2,7 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-23
 
-> **Progress: 20%** (WP-M0 is accepted; WP-M1 through WP-M4 remain open.)
+> **Progress: 60%** (WP-M0 through WP-M2 are implemented; WP-M1/WP-M2 acceptance requires a passing Windows/DX12 runner; WP-M3 and WP-M4 remain open.)
 
 ## 1. Purpose and ownership
 
@@ -17,7 +17,7 @@ receives a native window, device, queue, or swapchain pointer.
 - ✅ Validation and native RHI devices execute deterministic offscreen workloads.
 - ✅ Renderer scene extraction and offscreen `Present` state validation are covered by tests.
 - ✅ `NexoraShowcase` has a headless lifecycle and reports native presentation as `CONTRACT ONLY`.
-- Open: there is no platform window module, window event pump, window-system swapchain, or on-screen frame.
+- Implemented pending Windows acceptance: Win32 window/event translation and a DX12 window-system swapchain; Showcase/Editor integration remains open.
 
 ## 3. Required contracts
 
@@ -55,6 +55,8 @@ No native window or swapchain backend is claimed by this milestone.
 - Create, acquire, render to, resize, and present a DXGI swapchain without leaking DXGI/D3D12 types.
 - Define backbuffer/fence ownership, frames in flight, vsync/tearing policy, color format, and present diagnostics.
 - Handle occlusion, zero extent, surface loss, device removal, and failed resize without corrupting the active generation.
+
+Windows acceptance evidence is produced by `window_presentation.contracts`: it creates a real Win32 window, acquires, clears, and presents four DX12 frames, resizes the swapchain, and asserts diagnostic counters. A green Windows/DX12 runner is required before marking WP-M1/WP-M2 accepted; Linux contract results or screenshots alone are insufficient.
 
 ### WP-M3 — Showcase and Editor integration
 
