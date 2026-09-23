@@ -3,17 +3,77 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <cstring>
+#include <filesystem>
+#include <memory>
+#include <string>
 #include <vector>
+
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#else
+#include <dlfcn.h>
+#endif
 
 namespace nexora::runtime {
 namespace {
 
 constexpr std::size_t kRequiredHostSize = sizeof(NexoraGameplayHostV3);
 constexpr std::size_t kRequiredModuleSize = sizeof(NexoraGameModuleV3);
+constexpr auto kLoaderSymbol = "NexoraGameModuleLoad";
+
+template <typename Function> Function FunctionCast(void *symbol) noexcept {
+  static_assert(sizeof(Function) == sizeof(symbol));
+  Function function{};
+  std::memcpy(&function, &symbol, sizeof(function));
+  return function;
+}
 
 } // namespace
 
+struct GameplayModuleHost::DynamicLibrary final {
+#if defined(_WIN32)
+  HMODULE handle{};
+#else
+  void *handle{};
+#endif
+
+  ~DynamicLibrary() {
+    if (handle == nullptr)
+      return;
+#if defined(_WIN32)
+    FreeLibrary(handle);
+#else
+    dlclose(handle);
+#endif
+  }
+
+  static std::unique_ptr<DynamicLibrary> Open(const std::filesystem::path &path) {
+    auto result = std::make_unique<DynamicLibrary>();
+#if defined(_WIN32)
+    result->handle = LoadLibraryW(path.c_str());
+#else
+    result->handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
+#endif
+    return result->handle == nullptr ? nullptr : std::move(result);
+  }
+
+  NexoraGameModuleLoadV3Fn Loader() const noexcept {
+#if defined(_WIN32)
+    return FunctionCast<NexoraGameModuleLoadV3Fn>(
+        reinterpret_cast<void *>(GetProcAddress(handle, kLoaderSymbol)));
+#else
+    return FunctionCast<NexoraGameModuleLoadV3Fn>(dlsym(handle, kLoaderSymbol));
+#endif
+  }
+};
+
 GameplayModuleHost::GameplayModuleHost(NexoraGameplayHostV3 host) noexcept : host_(host) {}
+
+GameplayModuleHost::GameplayModuleHost(NexoraGameplayHostV3 host,
+                                       QuiescenceBarrier quiescence) noexcept
+    : host_(host), quiescence_(quiescence) {}
 
 GameplayModuleHost::~GameplayModuleHost() { Unload(); }
 
@@ -52,13 +112,54 @@ bool GameplayModuleHost::Load(NexoraGameModuleLoadV3Fn load) {
     return false;
   module_ = candidate;
   loaded_ = true;
+  generation_ = 1;
+  return true;
+}
+
+bool GameplayModuleHost::Load(const std::filesystem::path &library) {
+  auto candidate_library = DynamicLibrary::Open(library);
+  if (!candidate_library)
+    return false;
+  const auto load = candidate_library->Loader();
+  std::scoped_lock lock(mutex_);
+  if (loaded_)
+    return false;
+  NexoraGameModuleV3 candidate{};
+  if (!Create(load, candidate))
+    return false;
+  module_ = candidate;
+  library_ = candidate_library.release();
+  loaded_ = true;
+  generation_ = 1;
   return true;
 }
 
 bool GameplayModuleHost::Reload(NexoraGameModuleLoadV3Fn load) {
   const auto started = std::chrono::steady_clock::now();
   std::scoped_lock lock(mutex_);
-  if (!loaded_)
+  if (!ReloadLocked(load, nullptr))
+    return false;
+  reload_stats_.last_reload_duration = std::chrono::steady_clock::now() - started;
+  return true;
+}
+
+bool GameplayModuleHost::Reload(const std::filesystem::path &library) {
+  const auto started = std::chrono::steady_clock::now();
+  auto candidate_library = DynamicLibrary::Open(library);
+  if (!candidate_library)
+    return false;
+  const auto load = candidate_library->Loader();
+  std::scoped_lock lock(mutex_);
+  if (!ReloadLocked(load, candidate_library.get()))
+    return false;
+  candidate_library.release();
+  reload_stats_.last_reload_duration = std::chrono::steady_clock::now() - started;
+  return true;
+}
+
+bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
+                                      DynamicLibrary *candidate_library) {
+  if (!loaded_ || (library_ != nullptr && candidate_library == nullptr))
     return false;
 
   std::vector<std::byte> saved_state;
@@ -85,13 +186,34 @@ bool GameplayModuleHost::Reload(NexoraGameModuleLoadV3Fn load) {
     }
   }
 
-  ShutdownLocked();
+  QuiesceLocked();
+  auto *retired_library = library_;
+  module_.on_stop(module_.module_state);
+  module_.destroy(module_.module_state);
+  module_ = {};
   module_ = candidate;
+  library_ = candidate_library;
   loaded_ = true;
+  ++generation_;
+  delete retired_library;
   ++reload_stats_.successful_reloads;
   reload_stats_.migrated_bytes = static_cast<std::uint32_t>(saved_state.size());
-  reload_stats_.last_reload_duration = std::chrono::steady_clock::now() - started;
   return true;
+}
+
+std::filesystem::path GameplayModuleHost::Discover(const std::filesystem::path &directory,
+                                                   std::string_view module_name) {
+  if (module_name.empty() || !std::filesystem::is_directory(directory))
+    return {};
+#if defined(_WIN32)
+  const std::string filename = std::string(module_name) + ".dll";
+#elif defined(__APPLE__)
+  const std::string filename = "lib" + std::string(module_name) + ".dylib";
+#else
+  const std::string filename = "lib" + std::string(module_name) + ".so";
+#endif
+  const auto candidate = directory / filename;
+  return std::filesystem::is_regular_file(candidate) ? candidate : std::filesystem::path{};
 }
 
 bool GameplayModuleHost::Update(double delta_seconds) {
@@ -115,11 +237,19 @@ bool GameplayModuleHost::FixedUpdate(double fixed_delta_seconds) {
 
 void GameplayModuleHost::ShutdownLocked() noexcept {
   if (loaded_) {
+    QuiesceLocked();
     module_.on_stop(module_.module_state);
     module_.destroy(module_.module_state);
   }
   module_ = {};
   loaded_ = false;
+  delete library_;
+  library_ = nullptr;
+}
+
+void GameplayModuleHost::QuiesceLocked() const noexcept {
+  if (quiescence_.wait != nullptr)
+    quiescence_.wait(quiescence_.context, generation_);
 }
 
 void GameplayModuleHost::Unload() noexcept {
@@ -130,6 +260,11 @@ void GameplayModuleHost::Unload() noexcept {
 bool GameplayModuleHost::IsLoaded() const noexcept {
   std::scoped_lock lock(mutex_);
   return loaded_;
+}
+
+std::uint64_t GameplayModuleHost::Generation() const noexcept {
+  std::scoped_lock lock(mutex_);
+  return generation_;
 }
 
 GameplayModuleHost::ReloadStats GameplayModuleHost::GetReloadStats() const noexcept {

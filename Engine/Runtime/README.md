@@ -202,11 +202,18 @@ implicitly and reload candidates have independent state. No exception crosses th
 fallible callback reports a `NexoraGameplayResult`, and an update failure does not implicitly
 unload the active module. Event delivery remains a future additive capability.
 Modules may additionally provide state save/load callbacks. Reload serializes the active state,
-initializes and restores the candidate, and only then retires the active module; migration failure
-stops and destroys the candidate while keeping the active module alive. Reload never unloads code;
-the embedding keeps both generations resident until the call returns and quiesces module-owned
-work before invoking it. `GetReloadStats()` exposes successful reload count, migrated bytes,
-and wall-clock reload duration for profiler integration.
+initializes and restores the candidate, and only then retires the active module; load, descriptor,
+start, and migration failures stop and destroy the candidate while keeping the active module alive.
+The path overloads discover platform-named modules and own each loaded library as one monotonically
+numbered generation. Before retiring a generation, the host invokes the configured quiescence
+barrier while lifecycle serialization is held; the embedding must wait there for every job and
+deferred callback that can enter that generation. Only after the barrier, `on_stop`, and `destroy`
+does the host release the old `LoadLibrary`/`dlopen` handle. Unload follows the same ordering, so
+shutdown racing a reload is serialized and cannot release callable code. Static function-pointer
+loads remain supported for monolithic/Shipping consumers, but a dynamically owned generation may
+only be replaced by another dynamically owned generation. `Generation()` and `GetReloadStats()`
+expose the active generation, successful reload count, migrated bytes, and wall-clock reload
+duration for diagnostics and profiler integration.
 
 `Tests/Gameplay/GameplayConformanceVectors.h` is the single lifecycle/update vector set used by the
 C++ fake and Zig consumer. The Runtime negative suite rejects a missing loader symbol, ABI and
@@ -216,8 +223,10 @@ and `linux-thread-sanitizer`; TSan is separate because it cannot be combined wit
 
 Configure with `-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON` to compile the minimal Zig GameModule and run the
 `gameplay.zig_abi_smoke` test. Zig 0.14.0 is the pinned CI toolchain. This is the first executable
-toolchain gate. Dynamic-library/editor orchestration, mobile cross-compilation, and device execution
-remain required follow-up gates.
+toolchain gate. The Runtime dynamic-generation suite uses real native libraries and covers
+discovery, repeated reload, failed restore rollback, job quiescence, and shutdown during a barrier.
+Wiring the Zig Showcase executable to a Development shared-library artifact, mobile
+cross-compilation, and device execution remain required follow-up gates.
 
 Desktop CI builds the same module on Linux, Windows, and macOS. A separate CI smoke matrix also
 runs `zig build-obj` for `aarch64-linux-android` and `aarch64-ios`; these checks validate object

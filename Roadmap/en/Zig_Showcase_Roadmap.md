@@ -11,7 +11,8 @@ transactional state migration in the C++ host. The in-tree C++ fake module exerc
 The Zig module now owns independently allocated state obtained and released through paired V3 host
 allocator callbacks, including reload candidates. The fake and Zig module now consume one vector
 set; allocation tags, negative descriptor/callback coverage, and Linux sanitizer presets complete
-ZS-M0. Dynamic discovery and the remainder of ZS-M1 remain open.
+ZS-M0. Runtime dynamic discovery and generation lifecycle are now implemented; Showcase artifact
+wiring and the native presentation portion of ZS-M1 remain open.
 
 **Local implementation status (2026-09-23):** A deterministic headless/static ZS-M1 verification
 slice is now available as `NexoraShowcase.exe`. C++ owns `main`, engine lifecycle, a small
@@ -63,7 +64,8 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
 - **ZS-M1 Bootstrap:** C++ `NexoraShowcase` owns CLI, window/headless mode, discovery; Zig start/update/stop executes.
   - ✅ C++-owned `main`, Engine/World lifetime, fixed/update scheduling, and ordered shutdown.
   - ✅ Deterministic headless validation backend, JSON evidence, and static Zig-object consumer.
-  - Open: dynamic-library discovery, generation ownership, job quiescence, and real library unload/rollback.
+  - ✅ Runtime dynamic-library discovery, generation ownership, job quiescence, and real library unload/rollback.
+  - Open: build and select the Zig Development shared-library artifact from `NexoraShowcase`.
   - Open: native window/input/swapchain; that boundary is owned by the Window & Presentation Roadmap.
 - **ZS-M2 API scene:** build scene, camera, mesh, input, and diagnostics solely through public C/Zig bindings.
   - Open: move camera/light/cube creation from C++ into Zig through public APIs.
@@ -74,8 +76,8 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
   - Open: camera input, selection/raycast, physics/navigation, animation/audio/VFX, and large-world overlays.
   - Open: per-feature `IMPLEMENTED` / `CONTRACT ONLY` / `UNAVAILABLE` labels and capability-fallback tests.
 - **ZS-M4 Reload/failure:** transactional reload, state migration, bad ABI rejection, and rollback.
-  - Open: file stabilization, job drain, restore failure, and old-generation rollback for real dynamic generations.
-  - Open: device loss, update/fixed-update failure, shutdown-during-reload, and repeated-reload stress.
+  - ✅ Job drain, restore failure, old-generation rollback, shutdown-during-reload, and repeated-reload stress for real dynamic generations.
+  - Open: file stabilization plus device-loss and dynamic update/fixed-update failure integration.
 - **ZS-M5 Distribution:** dynamic Development and static/packaged Shipping profiles with license/build/API manifests.
   - Open: Development dynamic package, Shipping static package, and clean-machine launch smoke.
   - Open: license/build/API/content manifests, checksums, and a reproducible packaging command.

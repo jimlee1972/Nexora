@@ -80,6 +80,25 @@ target_include_directories(NexoraGameplayModuleHostTests PRIVATE "${PROJECT_SOUR
 nexora_apply_defaults(NexoraGameplayModuleHostTests)
 add_test(NAME runtime.gameplay_module_host COMMAND NexoraGameplayModuleHostTests)
 
+foreach(generation IN ITEMS First Second Failing)
+  add_library(NexoraDynamicGameplay${generation} MODULE DynamicGameplayModule.cpp)
+  target_link_libraries(NexoraDynamicGameplay${generation} PRIVATE Nexora::Foundation)
+  nexora_apply_defaults(NexoraDynamicGameplay${generation})
+endforeach()
+target_compile_definitions(NexoraDynamicGameplayFirst PRIVATE NEXORA_TEST_GENERATION=1)
+target_compile_definitions(NexoraDynamicGameplaySecond PRIVATE NEXORA_TEST_GENERATION=2)
+target_compile_definitions(NexoraDynamicGameplayFailing PRIVATE
+  NEXORA_TEST_GENERATION=3 NEXORA_TEST_FAIL_RESTORE=1)
+
+add_executable(NexoraDynamicGameplayModuleTests DynamicGameplayModuleTests.cpp)
+target_link_libraries(NexoraDynamicGameplayModuleTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraDynamicGameplayModuleTests)
+add_test(NAME runtime.dynamic_gameplay_module
+  COMMAND NexoraDynamicGameplayModuleTests
+    $<TARGET_FILE:NexoraDynamicGameplayFirst>
+    $<TARGET_FILE:NexoraDynamicGameplaySecond>
+    $<TARGET_FILE:NexoraDynamicGameplayFailing>)
+
 if(NEXORA_ENABLE_ASSET_PIPELINE)
   add_executable(NexoraV1M5Tests V1M5Tests.cpp)
   target_link_libraries(NexoraV1M5Tests PRIVATE Nexora::Runtime)
