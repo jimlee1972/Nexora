@@ -9,18 +9,20 @@
 #include <type_traits>
 #include <utility>
 
-// SSE2 is the x86-64 baseline (always present on that architecture, unlike
-// AVX/AVX2), so this is not an optional-feature flag: it is on whenever the
-// target actually has the instructions, off (falling back to the portable
-// scalar path with identical semantics) on any other architecture, e.g. ARM
-// without an explicit NEON path. Only the x86/SSE2 path has been exercised
-// in this environment; see the API-M1 roadmap status note for what that
-// does and does not verify.
+// SIMD is an implementation detail. SSE2 is the x86-64 baseline and NEON is
+// the AArch64 baseline; every accelerated reduction has a scalar reference
+// implementation below so its tolerance can be tested independently.
 #if defined(__SSE2__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 2) || defined(_M_X64)
 #define NEXORA_MATH_HAS_SSE2 1
 #include <emmintrin.h>
 #else
 #define NEXORA_MATH_HAS_SSE2 0
+#endif
+#if defined(__ARM_NEON) || defined(__ARM_NEON__)
+#define NEXORA_MATH_HAS_NEON 1
+#include <arm_neon.h>
+#else
+#define NEXORA_MATH_HAS_NEON 0
 #endif
 
 namespace nexora::math {
@@ -67,7 +69,7 @@ namespace detail {
   return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 } // namespace detail
-#if NEXORA_MATH_HAS_SSE2
+#if NEXORA_MATH_HAS_SSE2 || NEXORA_MATH_HAS_NEON
 namespace detail {
 // Sums a __m128's four lanes into lane 0 via a shuffle-and-add tree, not a
 // left-to-right scalar accumulation -- floating-point addition isn't
@@ -75,6 +77,7 @@ namespace detail {
 // That's exactly why Dot(Vector4, Vector4)'s tolerance test compares against
 // DotScalar with a small epsilon instead of requiring bit-exact equality.
 [[nodiscard]] inline float DotSimd(Vector4 a, Vector4 b) noexcept {
+#if NEXORA_MATH_HAS_SSE2
   const __m128 va = _mm_loadu_ps(&a.x);
   const __m128 vb = _mm_loadu_ps(&b.x);
   const __m128 products = _mm_mul_ps(va, vb);
@@ -83,6 +86,15 @@ namespace detail {
   const __m128 high = _mm_movehl_ps(shuffled, sums);
   const __m128 total = _mm_add_ss(sums, high);
   return _mm_cvtss_f32(total);
+#else
+  const float32x4_t products = vmulq_f32(vld1q_f32(&a.x), vld1q_f32(&b.x));
+#if defined(__aarch64__)
+  return vaddvq_f32(products);
+#else
+  const float32x2_t pairs = vadd_f32(vget_low_f32(products), vget_high_f32(products));
+  return vget_lane_f32(vpadd_f32(pairs, pairs), 0);
+#endif
+#endif
 }
 } // namespace detail
 #endif
@@ -103,7 +115,7 @@ namespace detail {
 template <typename T>
   requires std::is_same_v<T, Vector4>
 [[nodiscard]] inline float Dot(T a, T b) noexcept {
-#if NEXORA_MATH_HAS_SSE2
+#if NEXORA_MATH_HAS_SSE2 || NEXORA_MATH_HAS_NEON
   return detail::DotSimd(a, b);
 #else
   return detail::DotScalar(a, b);
@@ -259,14 +271,45 @@ struct Matrix3 final {
   r(2, 2) = (m(0, 0) * m(1, 1) - m(0, 1) * m(1, 0)) * inv_det;
   return r;
 }
-[[nodiscard]] inline Matrix4 operator*(const Matrix4 &a, const Matrix4 &b) {
+namespace detail {
+[[nodiscard]] inline Matrix4 MultiplyScalar(const Matrix4 &a, const Matrix4 &b) noexcept {
   Matrix4 r{};
   r.values.fill(0);
-  for (size_t i = 0; i < 4; ++i)
-    for (size_t j = 0; j < 4; ++j)
-      for (size_t k = 0; k < 4; ++k)
+  for (std::size_t i = 0; i < 4; ++i)
+    for (std::size_t j = 0; j < 4; ++j)
+      for (std::size_t k = 0; k < 4; ++k)
         r(i, j) += a(i, k) * b(k, j);
   return r;
+}
+#if NEXORA_MATH_HAS_SSE2 || NEXORA_MATH_HAS_NEON
+[[nodiscard]] inline Matrix4 MultiplySimd(const Matrix4 &a, const Matrix4 &b) noexcept {
+  Matrix4 result{};
+  for (std::size_t row = 0; row < 4; ++row) {
+#if NEXORA_MATH_HAS_SSE2
+    const __m128 value =
+        _mm_add_ps(_mm_add_ps(_mm_mul_ps(_mm_set1_ps(a(row, 0)), _mm_loadu_ps(&b.values[0])),
+                              _mm_mul_ps(_mm_set1_ps(a(row, 1)), _mm_loadu_ps(&b.values[4]))),
+                   _mm_add_ps(_mm_mul_ps(_mm_set1_ps(a(row, 2)), _mm_loadu_ps(&b.values[8])),
+                              _mm_mul_ps(_mm_set1_ps(a(row, 3)), _mm_loadu_ps(&b.values[12]))));
+    _mm_storeu_ps(&result.values[row * 4], value);
+#else
+    const float32x4_t value =
+        vmlaq_n_f32(vmlaq_n_f32(vmulq_n_f32(vld1q_f32(&b.values[0]), a(row, 0)),
+                                vld1q_f32(&b.values[4]), a(row, 1)),
+                    vld1q_f32(&b.values[8]), a(row, 2));
+    vst1q_f32(&result.values[row * 4], vmlaq_n_f32(value, vld1q_f32(&b.values[12]), a(row, 3)));
+#endif
+  }
+  return result;
+}
+#endif
+} // namespace detail
+[[nodiscard]] inline Matrix4 operator*(const Matrix4 &a, const Matrix4 &b) noexcept {
+#if NEXORA_MATH_HAS_SSE2 || NEXORA_MATH_HAS_NEON
+  return detail::MultiplySimd(a, b);
+#else
+  return detail::MultiplyScalar(a, b);
+#endif
 }
 // Gauss-Jordan elimination with partial pivoting; returns fallback (identity by
 // default) when the matrix is singular within kEpsilon, matching the file's
