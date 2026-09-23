@@ -6,7 +6,7 @@
 > completed Runtime/Editor SDK prerequisites are not rounded up into an Editor milestone.)
 
 **Completed prerequisites:** ✅ reflection metadata; ✅ command/undo data model;
-✅ prefab override/rebase; ✅ dynamic plugin ABI gate. **Open:** window/docking/UI shell,
+✅ prefab override/rebase; ✅ isolated PIE session; ✅ dynamic plugin ABI gate. **Open:** window/docking/UI shell,
 graphical views, authoring workflows, and production hardening.
 
 ## 1. Product vision
@@ -55,7 +55,13 @@ gizmos, parenting/reordering, multi-selection, clipboard, undo/redo, and save/re
 creates property widgets; unknown components retain raw data instead of being silently discarded.
 
 - **ED-M3 — PIE/debugging:** Game View, play/pause/step, fixed ticks, input focus, isolated worlds, apply policy, Console, runtime inspection, debugger boundary. The engine loads Zig gameplay; the Editor is not Zig `main`.
+  - ✅ Portable `PlaySession` prerequisite covers isolated Play World ownership, fixed tick,
+    play/pause/step, input-focus policy, discard-by-default, and explicit transform apply-back.
+  - Open: graphical Game View, Console/runtime inspection, and debugger integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Portable prefab prerequisite covers inspectable override diffs, targeted/full revert,
+    immutable apply, variants, and nested-path rebase.
+  - Open: graphical workflows, additive scene tooling, migrations, recovery, and source-control diff/merge.
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.

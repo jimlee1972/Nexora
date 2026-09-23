@@ -6,6 +6,7 @@
 > 已完成的 Runtime/Editor SDK 前置不向上取整為 Editor milestone。）
 
 **已完成前置：** ✅ reflection metadata；✅ command/undo data model；✅ prefab override/rebase；
+✅ isolated PIE session；
 ✅ dynamic plugin ABI gate。**待辦：** window/docking/UI shell、graphical views、authoring workflows
 與 production hardening。
 
@@ -61,9 +62,17 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 
 Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔離、apply changes policy、Console、entity/component inspection、breakpoint adapter boundary。Zig gameplay 由 Engine Host 載入，Editor 不成為 Zig `main`。
 
+- ✅ Portable `PlaySession` prerequisite 已涵蓋隔離 Play World ownership、fixed tick、
+  play/pause/step、input-focus policy、預設丟棄及明確 transform apply-back。
+- 待辦：圖形化 Game View、Console/runtime inspection 與 debugger 整合。
+
 ### ED-M4 — Prefab、場景與 collaboration safety
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
+
+- ✅ Portable prefab prerequisite 已涵蓋可檢視 override diff、單筆／全部 revert、immutable
+  apply、variant 與 nested-path rebase。
+- 待辦：圖形化 workflow、additive scene tooling、migration、recovery 與 source-control diff/merge。
 
 ### ED-M5 — Specialized tools
 

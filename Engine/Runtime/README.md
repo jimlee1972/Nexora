@@ -339,6 +339,19 @@ windowing/rendering front end this repository does not have yet (`Apps/Host/Nexo
 headless CLI); `SceneEditor` and `PrefabInstance` are the data-model and command layer such a
 front end would eventually drive, exercised here through CTest rather than through any UI.
 
+`PlaySession` is the portable PIE ownership contract. It owns an isolated `WorldKind::Play` clone;
+`Tick` runs only while playing, `Step` runs exactly one fixed update while paused, and input focus
+starts released until explicitly granted by editor policy. Stopping discards runtime mutations by
+default. The only supported apply-back policy copies changed transforms for stable entity IDs;
+runtime-created entities and all other component mutations remain isolated and are discarded. The
+Play World and update callback
+are released before `Stop` returns.
+
+`PrefabInstance` exposes its override diff as a read-only span. Individual entries or the full diff
+can be reverted, while `ApplyOverrides` creates a new immutable prefab revision and clears the
+instance diff. Rebase keeps only overrides whose stable node paths survive in the new revision;
+these operations never mutate a shared source prefab in place.
+
 ## API-M5/M6 Game facade and gameplay host bridge
 
 `Nexora/Game/GameWorld.h` is the API-M5 boundary over `World`: `World::FindEntity`/`FindScene`

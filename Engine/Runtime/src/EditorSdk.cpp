@@ -3,6 +3,7 @@
 #include "Nexora/Foundation/PluginAbi.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 #if defined(_WIN32)
@@ -190,6 +191,70 @@ bool SceneEditor::Undo() {
   return true;
 }
 
+bool PlaySession::Start(double fixed_delta_seconds, FixedUpdate fixed_update) {
+  if (state_ != PlayState::Stopped || !std::isfinite(fixed_delta_seconds) ||
+      fixed_delta_seconds <= 0.0 || !fixed_update)
+    return false;
+  play_world_.emplace(editor_world_.CloneForPlay());
+  fixed_update_ = std::move(fixed_update);
+  fixed_delta_seconds_ = fixed_delta_seconds;
+  state_ = PlayState::Playing;
+  input_focused_ = false;
+  stats_ = {};
+  return true;
+}
+
+bool PlaySession::Pause() noexcept {
+  if (state_ != PlayState::Playing)
+    return false;
+  state_ = PlayState::Paused;
+  return true;
+}
+
+bool PlaySession::Resume() noexcept {
+  if (state_ != PlayState::Paused)
+    return false;
+  state_ = PlayState::Playing;
+  return true;
+}
+
+bool PlaySession::ExecuteFixedTick(bool manual) {
+  if (!play_world_ || !fixed_update_ || !fixed_update_(*play_world_, fixed_delta_seconds_))
+    return false;
+  play_world_->EndFrame();
+  ++stats_.fixed_ticks;
+  stats_.manual_steps += static_cast<std::uint64_t>(manual);
+  return true;
+}
+
+bool PlaySession::Tick() { return state_ == PlayState::Playing && ExecuteFixedTick(false); }
+
+bool PlaySession::Step() { return state_ == PlayState::Paused && ExecuteFixedTick(true); }
+
+bool PlaySession::Stop(ApplyBackPolicy policy) {
+  if (state_ == PlayState::Stopped || !play_world_)
+    return false;
+  bool applied = true;
+  if (policy == ApplyBackPolicy::Transforms) {
+    WorldCommandBuffer commands;
+    for (const auto &scene : play_world_->scenes_)
+      for (const auto &entity : scene.entities)
+        if (const auto *editor_entity = editor_world_.FindEntity(entity.id);
+            editor_entity != nullptr && editor_entity->transform != entity.transform) {
+          commands.SetTransform(entity.id, entity.transform);
+          ++stats_.applied_transforms;
+        }
+    if (commands.Size() != 0)
+      applied = commands.Apply(editor_world_);
+  }
+  play_world_.reset();
+  fixed_update_ = {};
+  fixed_delta_seconds_ = 0.0;
+  state_ = PlayState::Stopped;
+  input_focused_ = false;
+  return applied;
+}
+
 const PrefabNode *Prefab::Find(std::string_view path) const { return FindNodeImpl(root_, path); }
 
 bool PrefabInstance::SetOverride(std::string path, std::string key, std::string value) {
@@ -226,6 +291,36 @@ bool PrefabInstance::Rebase(std::shared_ptr<const Prefab> new_prefab) {
                                   }),
                    overrides_.end());
   return true;
+}
+
+bool PrefabInstance::RevertOverride(std::string_view path, std::string_view key) {
+  const auto found = std::ranges::find_if(overrides_, [path, key](const auto &entry) {
+    return entry.path == path && entry.key == key;
+  });
+  if (found == overrides_.end())
+    return false;
+  overrides_.erase(found);
+  return true;
+}
+
+std::shared_ptr<const Prefab> PrefabInstance::ApplyOverrides() {
+  if (!prefab_)
+    return nullptr;
+  PrefabNode root = prefab_->Root();
+  for (const auto &override_entry : overrides_) {
+    auto *node = FindNodeImpl(root, std::string_view(override_entry.path));
+    if (!node)
+      continue;
+    const auto property =
+        std::ranges::find(node->properties, override_entry.key, &PrefabProperty::key);
+    if (property == node->properties.end())
+      node->properties.push_back({override_entry.key, override_entry.value});
+    else
+      property->value = override_entry.value;
+  }
+  prefab_ = std::make_shared<Prefab>(std::move(root));
+  overrides_.clear();
+  return prefab_;
 }
 
 std::shared_ptr<Prefab> PrefabVariant::Bake() const {
