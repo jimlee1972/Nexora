@@ -1,6 +1,6 @@
 # Nexora 圖形化 Editor Roadmap
 
-> 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
+> 版本：v1.1｜狀態：規劃基線｜更新：2026-09-23
 
 > **進度：0%**（ED-M0～ED-M7 尚無任一 milestone 通過圖形化 Editor 驗收；
 > 已完成的 Runtime/Editor SDK 前置不向上取整為 Editor milestone。）
@@ -35,17 +35,27 @@ NexoraEditor (tool process)
 
 ## 3. Milestones
 
+Milestone 必須嚴格依 **ED-M0 → ED-M1 → ED-M2** 交付。ED-M0 尚未確立產品與 UX contract
+前，不開始 production widget 實作。尤其 Editor shell 依賴 public window/swapchain path，
+不得只為顯示 UI 而另造暫時性的 private presentation path。
+
 ### ED-M0 — Product shell 與 UX contract
 
-確立 supported OS、project/workspace layout、panel IDs、command routing、shortcut conflict、theme/DPI/IME/accessibility、crash recovery；用 UX wireframe 與 ADR 選 UI framework，不先把 mockup 當完成品。
+確立 supported OS、project/workspace format、stable panel IDs、command/shortcut routing、docking、
+theme、DPI、IME、accessibility 與 crash recovery；透過 ADR 與聚焦 prototype 選擇 UI framework。
+Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 ### ED-M1 — Project 與 Asset workspace
 
-建立/開啟/升級 project；Content Browser 支援 search/filter、folder/UUID、drag/drop、import status、dependency與 reimport；background import 有取消、進度、錯誤與 deterministic artifact。
+建立、開啟與升級 project；Content Browser 支援 search/filter、folder/UUID、drag/drop、import
+status、dependency 檢視與 reimport；background import 必須提供取消、進度與可採取行動的錯誤，
+並產生 deterministic artifact。
 
 ### ED-M2 — Scene authoring core
 
-Hierarchy、Scene View、Inspector、camera controls、select/pick、translate/rotate/scale gizmo、parent/reorder、multi-selection、copy/paste、save/reload。Reflection 產生 property widgets；未知 component 保留 raw data，不靜默遺失。
+Hierarchy、Scene View、Inspector、camera controls、selection/picking、translate/rotate/scale gizmo、
+parent/reorder、multi-selection、copy/paste、undo/redo 與 save/reload。Reflection 產生 property
+widgets；未知 component 保留 raw data，不靜默遺失。
 
 ### ED-M3 — PIE 與 debugging
 
@@ -85,8 +95,14 @@ Scene/Prefab/Project 格式要 versioned、deterministic、atomic write；每筆
 
 ## 6. 發布切片
 
-**Editor Preview** 完成 M0～M2；**Creator Alpha** 加入 M3/M4；**Production Beta** 加入至少一組 specialized tools、build/profile 與 hardening。版本標章依實際 gate，不因 panel 存在就標為完成。
+**Editor Preview** 必須完整通過 ED-M0、ED-M1 與 ED-M2，任一單獨 milestone 都不足以構成
+Preview；**Creator Alpha** 加入 M3/M4；**Production Beta** 加入至少一組 specialized tools、
+build/profile 與 hardening。版本標章依實際驗收證據，不因 panel 存在或前置 groundwork
+已完成就標為完成。
 
 ## 7. 依賴與非目標
 
-依賴 Engine API M1～M5、window/swapchain、reflection、asset pipeline、scene snapshot 與 Editor SDK。第一版不做完整 visual scripting、Marketplace、雲端協作、電影級工具或所有平台 remote deployment；這些在核心 authoring loop 穩定後另立 Roadmap。
+依賴 Engine API M1～M5、window/swapchain、reflection、asset pipeline、scene snapshot 與 Editor
+SDK。因此已有 reflection、undo model 或 prefab groundwork，仍不代表圖形化 Editor 已完成。
+第一版不做完整 visual scripting、Marketplace、雲端協作、電影級工具或所有平台 remote
+deployment；這些在核心 authoring loop 穩定後另立 Roadmap。
