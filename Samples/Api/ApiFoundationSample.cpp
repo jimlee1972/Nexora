@@ -85,8 +85,12 @@ bool RunVfsSample() {
     return false;
   }
   const auto read = vfs.Read("sample://greeting.txt");
-  const bool ok = read.status == ReadResult::Status::Completed && read.bytes.size() == text.size();
-  std::printf("  memory-mounted read back %zu bytes: %s\n", read.bytes.size(),
+  const auto stream = vfs.OpenRead("sample://greeting.txt");
+  const auto mapped = vfs.MapReadOnly("sample://greeting.txt");
+  const bool ok = read.status == ReadResult::Status::Completed &&
+                  read.bytes.size() == text.size() && stream.IsValid() &&
+                  stream.Size() == text.size() && mapped.Bytes().size() == text.size();
+  std::printf("  read/stream/map memory-mounted %zu bytes: %s\n", read.bytes.size(),
               ok ? "ok" : "FAILED");
   return ok;
 }
