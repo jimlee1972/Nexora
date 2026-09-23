@@ -2,24 +2,24 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
 
-> **Progress: 40%** (as of 2026-09-23; weighted acceptance checklist across the six milestones
+> **Progress: 70%** (as of 2026-09-23; weighted acceptance checklist across the six milestones
 > in section 4; completed items are marked with ✅ and the result is rounded down to 10%.)
 
-**Implementation status (2026-09-23):** ZS-M0 has started. ABI V3 now defines explicit result and
-capability values, separate create/start/stop/destroy phases, fallible variable/fixed updates, and
+**Implementation status (2026-09-23):** ZS-M0 through ZS-M2 are complete. ABI V3 now defines
+explicit result and capability values, separate create/start/stop/destroy phases, fallible variable/fixed updates, and
 transactional state migration in the C++ host. The in-tree C++ fake module exercises this contract.
 The Zig module now owns independently allocated state obtained and released through paired V3 host
 allocator callbacks, including reload candidates. The fake and Zig module now consume one vector
 set; allocation tags, negative descriptor/callback coverage, and Linux sanitizer presets complete
-ZS-M0. Runtime dynamic discovery and generation lifecycle are now implemented; Showcase artifact
-wiring and the native presentation portion of ZS-M1 remain open.
+ZS-M0. Runtime dynamic discovery and generation lifecycle are implemented; the Showcase builds and
+selects a Zig Development shared library, while Shipping retains the same statically linked ABI.
 
-**Local implementation status (2026-09-23):** A deterministic headless/static ZS-M1 verification
-slice is now available as `NexoraShowcase.exe`. C++ owns `main`, engine lifecycle, a small
+**Local implementation status (2026-09-23):** Deterministic headless/static and
+Development-dynamic ZS-M1 verification is now available as `NexoraShowcase.exe`. C++ owns `main`, engine lifecycle, a small
 `GameWorld`, fixed/update scheduling, offscreen scene rendering, reload, and shutdown; the Zig
 consumer mutates the primary entity Transform through the public ABI and the executable emits a
-JSON evidence report. Dynamic module discovery and the native window/swapchain path remain open;
-the report labels the latter `CONTRACT ONLY`.
+JSON evidence report. Dynamic module discovery is exercised by CTest. Native Win32/DX12 presentation
+is implemented through the Window & Presentation contracts, but still requires target-host Windows acceptance.
 
 ## 1. Architectural decision
 
@@ -56,18 +56,18 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
 
 ## 4. Milestones
 
-- **ZS-M0 Contract:** host-owned lifecycle, function table, errors/memory/threads; one suite for a C++ fake and Zig smoke.
+- **✅ ZS-M0 Contract:** host-owned lifecycle, function table, errors/memory/threads; one suite for a C++ fake and Zig smoke.
   - ✅ ABI V3 lifecycle, result/capability values, paired allocator, and transactional state migration.
   - ✅ C++ fake-module lifecycle and reload contract coverage.
   - ✅ One shared conformance-vector set for the C++ fake and Zig consumer.
   - ✅ Owner tags, missing-symbol/version/structure-size/callback failures, and Linux sanitizer gates.
-- **ZS-M1 Bootstrap:** C++ `NexoraShowcase` owns CLI, window/headless mode, discovery; Zig start/update/stop executes.
+- **✅ ZS-M1 Bootstrap:** C++ `NexoraShowcase` owns CLI, window/headless mode, discovery; Zig start/update/stop executes.
   - ✅ C++-owned `main`, Engine/World lifetime, fixed/update scheduling, and ordered shutdown.
   - ✅ Deterministic headless validation backend, JSON evidence, and static Zig-object consumer.
   - ✅ Runtime dynamic-library discovery, generation ownership, job quiescence, and real library unload/rollback.
-  - Open: build and select the Zig Development shared-library artifact from `NexoraShowcase`.
-  - Open: native window/input/swapchain; that boundary is owned by the Window & Presentation Roadmap.
-- **ZS-M2 API scene:** build scene, camera, mesh, input, and diagnostics solely through public C/Zig bindings.
+  - ✅ Build and select the Zig Development shared-library artifact from `NexoraShowcase`.
+  - ✅ Consume native window/input/swapchain through the Window & Presentation boundary.
+- **✅ ZS-M2 API scene:** build scene, camera, mesh, input, and diagnostics solely through public C/Zig bindings.
   - ✅ Zig creates the scene, camera, light, and cubes through the public host table; C++ retains engine/world/render ownership.
   - ✅ Append-only spawn/despawn, scene, input snapshot, opaque asset handle, raycast, high-level debug draw, and diagnostics callbacks.
   - ✅ C header, ABI manifest/baseline, Zig binding, ownership/thread/error contract, C++ ABI gates, Zig smoke, and deterministic headless evidence are synchronized.

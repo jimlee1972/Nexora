@@ -44,13 +44,13 @@ READMEs. Both modules are guarded by `NEXORA_ENABLE_WINDOW_PRESENTATION`, their 
 the validated module graph, and `window_presentation.contracts` exercises the fake lifecycle gate.
 No native window or swapchain backend is claimed by this milestone.
 
-### WP-M1 — Win32 window and input
+### ✅ WP-M1 — Win32 window and input
 
 - Create/close/show/resize a Win32 window with DPI-aware client sizing and a deterministic event pump.
 - Translate keyboard, text/IME, pointer, wheel, focus, and close events into backend-neutral snapshots.
 - Cover repeated create/destroy, resize storms, minimize/restore, and shutdown while events are queued.
 
-### WP-M2 — DX12 swapchain presentation
+### ✅ WP-M2 — DX12 swapchain presentation
 
 - Create, acquire, render to, resize, and present a DXGI swapchain without leaking DXGI/D3D12 types.
 - Define backbuffer/fence ownership, frames in flight, vsync/tearing policy, color format, and present diagnostics.

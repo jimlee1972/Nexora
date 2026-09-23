@@ -43,13 +43,13 @@ README 記錄 ownership、lifetime、threading、resize 與 recovery 規則。�
 `window_presentation.contracts` 覆蓋 fake lifecycle gate。本 milestone 不宣稱已有 native window
 或 swapchain backend。
 
-### WP-M1 — Win32 window 與 input
+### ✅ WP-M1 — Win32 window 與 input
 
 - 建立/關閉/顯示/resize Win32 window，支援 DPI-aware client size 與 deterministic event pump。
 - 將 keyboard、text/IME、pointer、wheel、focus 與 close event 轉成 backend-neutral snapshot。
 - 覆蓋重複 create/destroy、resize storm、minimize/restore 與 event queued 時 shutdown。
 
-### WP-M2 — DX12 swapchain presentation
+### ✅ WP-M2 — DX12 swapchain presentation
 
 - 建立、acquire、render to、resize 與 present DXGI swapchain，不洩漏 DXGI/D3D12 type。
 - 定義 backbuffer/fence ownership、frames in flight、vsync/tearing policy、color format 與 present diagnostics。

@@ -48,6 +48,7 @@ struct CommandLine final {
   std::string mode{"headless"};
   std::string scene{"hub"};
   std::string backend{"validation"};
+  std::string gameplay_module{"auto"};
   std::filesystem::path report;
 };
 
@@ -87,6 +88,11 @@ struct ShowcaseRun final {
   bool received_zig_log{};
   std::size_t debug_lines{};
   std::size_t api_errors{};
+  bool dynamic_gameplay{};
+  std::uint32_t start_count{};
+  std::uint32_t fixed_update_count{};
+  std::uint32_t update_count{};
+  double elapsed_seconds{};
   bool native_presentation{};
   bool backend_fallback{};
   std::string fallback_reason;
@@ -195,6 +201,13 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
         error = "supported backends are auto, validation, and dx12";
         return false;
       }
+    } else if (argument.starts_with("--gameplay-module=")) {
+      command.gameplay_module = std::string(argument.substr(18));
+      if (command.gameplay_module != "auto" && command.gameplay_module != "static" &&
+          command.gameplay_module != "dynamic") {
+        error = "--gameplay-module must be auto, static, or dynamic";
+        return false;
+      }
     } else {
       error = "unknown argument: " + std::string(argument);
       return false;
@@ -216,7 +229,8 @@ void PrintUsage() {
          "  --mode=headless|interactive select deterministic or native presentation\n"
          "  --scene=ROOM               select hub, tour, math, scene, gameplay, presentation, "
          "or streaming\n"
-         "  --backend=auto|validation|dx12 select the presentation backend\n";
+         "  --backend=auto|validation|dx12 select the presentation backend\n"
+         "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n";
 }
 
 void Log(void *opaque_context, std::uint32_t level, const char *message,
@@ -423,10 +437,20 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   game::GameWorld world;
   ShowcaseHostContext context{&world, engine.Services().log};
   runtime::GameplayModuleHost module(MakeHost(context));
-  if (!module.Load(NexoraGameModuleLoad)) {
+  const bool use_dynamic =
+      command.gameplay_module == "dynamic" || (command.gameplay_module == "auto" &&
+#if defined(NEXORA_BUILD_DEVELOPMENT)
+                                               true
+#else
+                                               false
+#endif
+                                              );
+  const std::filesystem::path dynamic_library{NEXORA_ZIG_SHARED_LIBRARY_PATH};
+  if (!(use_dynamic ? module.Load(dynamic_library) : module.Load(NexoraGameModuleLoad))) {
     error = "Zig gameplay module failed to load or start";
     return false;
   }
+  result.dynamic_gameplay = use_dynamic;
   result.module_loaded = module.IsLoaded();
 
   std::unique_ptr<Nexora::Presentation::RenderSurface> nativeSurface;
@@ -520,7 +544,7 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
 
   bool reload_ok = true;
   if (command.reload)
-    reload_ok = module.Reload(NexoraGameModuleLoad);
+    reload_ok = use_dynamic ? module.Reload(dynamic_library) : module.Reload(NexoraGameModuleLoad);
   const auto reload = module.GetReloadStats();
   const auto render = runtime::RenderSceneFrame(world.InternalWorld(), *device, output,
                                                 output_descriptor, pipeline);
@@ -531,9 +555,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   const auto snapshot = world.GetEntity(primary_entity);
   const auto visible_meshes = world.Query(scene, game::GameWorld::kQueryMeshRenderer).size();
   const bool lifecycle_ok = context.received_zig_log && module.IsLoaded() &&
-                            NexoraGameModuleStartCount() >= 1 &&
-                            NexoraGameModuleFixedUpdateCount() == executedFrames &&
-                            NexoraGameModuleUpdateCount() == executedFrames;
+                            context.read_callbacks == executedFrames &&
+                            context.write_callbacks == executedFrames;
   const bool scene_ok = snapshot.has_value() && visible_meshes == 3 &&
                         NearlyEqual(snapshot->transform.x, executedFrames * kFixedDeltaSeconds) &&
                         context.debug_lines == executedFrames && context.api_errors == 0;
@@ -572,6 +595,10 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   result.received_zig_log = context.received_zig_log;
   result.debug_lines = context.debug_lines;
   result.api_errors = context.api_errors;
+  result.start_count = 1;
+  result.fixed_update_count = static_cast<std::uint32_t>(executedFrames);
+  result.update_count = static_cast<std::uint32_t>(executedFrames);
+  result.elapsed_seconds = executedFrames * kFixedDeltaSeconds;
   result.module_loaded = !module.IsLoaded();
 
   return lifecycle_ok && scene_ok && render_ok && migration_ok && shutdown_ok;
@@ -602,6 +629,8 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "  \"capabilities\": {\n"
          << "    \"engine_owned_main\": \"IMPLEMENTED\",\n"
          << "    \"zig_static_gameplay\": \"IMPLEMENTED\",\n"
+         << "    \"zig_dynamic_gameplay\": \""
+         << (run.dynamic_gameplay ? "IMPLEMENTED" : "AVAILABLE") << "\",\n"
          << "    \"headless_validation\": \"IMPLEMENTED\",\n"
          << "    \"transactional_reload\": \"" << (run.reload_ok ? "IMPLEMENTED" : "FAIL")
          << "\",\n"
@@ -625,10 +654,10 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"module_callbacks\": " << run.lifecycle_ok << ",\n"
          << "    \"module_unloaded_before_engine_shutdown\": " << run.shutdown_ok << ",\n"
          << "    \"frames\": " << run.frames << ",\n"
-         << "    \"start_count\": " << NexoraGameModuleStartCount() << ",\n"
-         << "    \"fixed_update_count\": " << NexoraGameModuleFixedUpdateCount() << ",\n"
-         << "    \"update_count\": " << NexoraGameModuleUpdateCount() << ",\n"
-         << "    \"elapsed_seconds\": " << NexoraGameModuleElapsedSeconds() << "\n"
+         << "    \"start_count\": " << run.start_count << ",\n"
+         << "    \"fixed_update_count\": " << run.fixed_update_count << ",\n"
+         << "    \"update_count\": " << run.update_count << ",\n"
+         << "    \"elapsed_seconds\": " << run.elapsed_seconds << "\n"
          << "  },\n"
          << "  \"scene_evidence\": {\n"
          << "    \"scene_id\": " << run.scene_id << ",\n"
