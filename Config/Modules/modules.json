@@ -2,8 +2,14 @@
   "schema_version": 1,
   "modules": [
     {
-      "name": "Foundation",
+      "name": "API",
       "dependencies": []
+    },
+    {
+      "name": "Foundation",
+      "dependencies": [
+        "API"
+      ]
     },
     {
       "name": "Core",

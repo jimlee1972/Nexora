@@ -1,4 +1,5 @@
-const abi_version: u32 = 3;
+const nexora = @import("nexora");
+const abi_version = nexora.abi_version;
 
 fn hashName(comptime text: []const u8) u64 {
     var hash: u64 = 14695981039346656037;
@@ -12,30 +13,8 @@ fn hashName(comptime text: []const u8) u64 {
 const primary_entity: u64 = 0;
 const transform_component_type: u64 = hashName("Nexora.Transform");
 
-const GameplayHost = extern struct {
-    struct_size: u32,
-    abi_version: u32,
-    capabilities: u64,
-    context: ?*anyopaque,
-    log: ?*const fn (?*anyopaque, u32, [*]const u8, u32) callconv(.c) void,
-    read_component: ?*const fn (?*anyopaque, u64, u64, ?*anyopaque, u32) callconv(.c) i32,
-    write_component: ?*const fn (?*anyopaque, u64, u64, ?*const anyopaque, u32) callconv(.c) i32,
-};
-
-const GameModule = extern struct {
-    struct_size: u32,
-    abi_version: u32,
-    capabilities: u64,
-    module_state: ?*anyopaque,
-    create: ?*const fn (*?*anyopaque, *const GameplayHost) callconv(.c) i32,
-    on_start: ?*const fn (?*anyopaque) callconv(.c) i32,
-    fixed_update: ?*const fn (?*anyopaque, f64) callconv(.c) i32,
-    update: ?*const fn (?*anyopaque, f64) callconv(.c) i32,
-    on_stop: ?*const fn (?*anyopaque) callconv(.c) void,
-    destroy: ?*const fn (?*anyopaque) callconv(.c) void,
-    save_state: ?*const fn (?*anyopaque, ?*anyopaque, u32) callconv(.c) u32,
-    load_state: ?*const fn (?*anyopaque, ?*const anyopaque, u32) callconv(.c) i32,
-};
+const GameplayHost = nexora.GameplayHostV3;
+const GameModule = nexora.GameModuleV3;
 
 const State = extern struct {
     update_count: u32 = 0,

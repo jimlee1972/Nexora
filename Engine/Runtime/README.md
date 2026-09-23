@@ -356,11 +356,18 @@ like every other Runtime C++ facade type (`GameWorld`, `EntitySpawnDescriptor`, 
 checks); callers must be rebuilt against the current header when it changes, same as for any of
 those sibling types. Giving it its own binary-compatibility guarantee would only make sense as part
 of a real ABI surface for the whole Game-namespace C++ facade, not a single struct in passing.
-`subscribe_event` and `set_tick_enabled` remain honest no-ops, and not because of a missing wiring
-pass: the ABI itself has no callback slot for the host to invoke the module when a subscribed event
-later fires, and gating `GameplayModuleHost::Update` calls would need either that Runtime-namespace
-type to depend on this Game-namespace context or a new decoupled primitive threaded through both --
-both are real API/ABI design decisions, not gaps to fill in passing.
+`subscribe_event` and `set_tick_enabled` delegate to optional embedding-owned callbacks in
+`GameplayHostContext`. A missing subscription hook returns `NEXORA_GAMEPLAY_ERROR_UNSUPPORTED`;
+a missing tick hook is a safe no-op. The embedding owns event delivery and update scheduling, so
+the bridge never retains callback state past the context lifetime and invokes both hooks
+synchronously on the calling game thread.
+
+The canonical language boundary now lives in `Engine/API/include/nexora/nexora.h`;
+`Nexora/Foundation/GameplayABI.h` is a compatibility include rather than a duplicate declaration.
+`Engine/API/abi_manifest.json` records since, ownership, nullability, threading, error, and
+determinism metadata for every callback export. `abi_baseline_v3.json` plus
+`api.m6_manifest_compatibility` reject field removal/reordering without a major bump, while the
+C11 consumer and `Bindings/Zig/nexora.zig` gate both supported language views.
 
 `Gameplay/Zig/src/game_module.zig` and its ABI test now build with the repository-local Zig 0.14.0
 toolchain and are covered by `gameplay.zig_abi_smoke`. `Apps/Showcase/NexoraShowcase` uses a

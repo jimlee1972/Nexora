@@ -75,13 +75,22 @@ int32_t WriteComponent(void *context, uint64_t entity, uint64_t component_type, 
   return written ? 0 : -1;
 }
 
-// Not implemented in this pass: the ABI has no callback slot for the host
-// to invoke the module when a subscribed event later fires, and gating
-// GameplayModuleHost::Update calls is a cross-namespace design decision
-// (see this header's top comment) -- neither is a plain wiring gap, so they
-// report failure/no-op rather than silently pretending to succeed.
-int32_t SubscribeEvent(void * /*context*/, uint64_t /*event_type*/) { return -1; }
-void SetTickEnabled(void * /*context*/, uint32_t /*enabled*/) {}
+int32_t SubscribeEvent(void *context, uint64_t event_type) {
+  if (context == nullptr)
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  const auto &host_context = *static_cast<const GameplayHostContext *>(context);
+  if (host_context.subscribe_event == nullptr)
+    return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+  return host_context.subscribe_event(host_context.control_context, event_type);
+}
+
+void SetTickEnabled(void *context, uint32_t enabled) {
+  if (context == nullptr)
+    return;
+  const auto &host_context = *static_cast<const GameplayHostContext *>(context);
+  if (host_context.set_tick_enabled != nullptr)
+    host_context.set_tick_enabled(host_context.control_context, enabled != 0);
+}
 
 void Log(void *context, uint32_t level, const char *message, uint32_t message_length) {
   if (context == nullptr || message == nullptr)
