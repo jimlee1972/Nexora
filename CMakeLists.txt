@@ -133,4 +133,8 @@ if(BUILD_TESTING)
     NAME build.plugin_manifests
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR}
             -P "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Build/ValidatePluginManifests.cmake")
+  add_test(
+    NAME build.showcase_package
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Package/TestPackageShowcase.py")
 endif()

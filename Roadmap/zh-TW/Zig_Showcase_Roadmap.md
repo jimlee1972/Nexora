@@ -90,8 +90,10 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
   - ✅ 真正 dynamic generations 的 job drain、restore failure、old-generation rollback、shutdown-during-reload 與 repeated reload stress。
   - 待辦：file stabilization，以及 device lost 與 dynamic update/fixed-update failure 整合。
 - **ZS-M5 Distribution**：Development dynamic 與 Shipping static/packaged profiles，產生 license/build/API manifest。
-  - 待辦：Development dynamic package、Shipping static package、clean-machine launch smoke。
-  - 待辦：license/build/API/content manifests、checksums 與可重現的 packaging command。
+  - ✅ 可重現的 Development-dynamic 與 Shipping-static package target 會產生 license、
+    build/API/content manifest、逐 artifact SHA-256 digest 與 `SHA256SUMS`。
+  - 待辦：在乾淨的 target machine 執行產物記錄的 command 並保留 launch 證據。Linux CI
+    建立 package 不能取代 target-host 驗收。
 
 ## 5. 測試與驗收
 

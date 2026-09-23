@@ -23,6 +23,25 @@ add_custom_command(TARGET NexoraShowcase POST_BUILD
           "${NEXORA_ZIG_SHARED_LIBRARY}" "$<TARGET_FILE_DIR:NexoraShowcase>"
   VERBATIM)
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_custom_target(NexoraShowcasePackageDevelopment
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/PackageShowcase.py"
+          --profile Development --binary "$<TARGET_FILE:NexoraShowcase>"
+          --gameplay-module "${NEXORA_ZIG_SHARED_LIBRARY}"
+          --api-manifest "${CMAKE_SOURCE_DIR}/Engine/API/abi_manifest.json"
+          --license "${CMAKE_SOURCE_DIR}/LICENSE"
+          --output "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development"
+  DEPENDS NexoraShowcase
+  VERBATIM)
+add_custom_target(NexoraShowcasePackageShipping
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/PackageShowcase.py"
+          --profile Shipping --binary "$<TARGET_FILE:NexoraShowcase>"
+          --api-manifest "${CMAKE_SOURCE_DIR}/Engine/API/abi_manifest.json"
+          --license "${CMAKE_SOURCE_DIR}/LICENSE"
+          --output "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Shipping"
+  DEPENDS NexoraShowcase
+  VERBATIM)
+
 if(BUILD_TESTING)
   add_test(
     NAME showcase.zig_headless

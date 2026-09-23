@@ -1,3 +1,4 @@
+#include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 
 #include <chrono>
@@ -98,6 +99,42 @@ int Run() {
   Require(play.Start(1.0 / 60.0, [](runtime::World &, double) { return true; }) && play.Pause() &&
               play.Step() && play.Stop(),
           "PIE controls failed");
+
+  editor::SpecializedToolRegistry tools;
+  Require(
+      tools.Register({"material", "Material Graph", editor::CapabilityState::ReadOnly,
+                      "renderer graph editing is unavailable"}) &&
+          tools.Register({"physics", "Physics Debug", editor::CapabilityState::Implemented, {}}) &&
+          !tools.Register({"physics", "Duplicate", editor::CapabilityState::Implemented, {}}) &&
+          tools.Find("material")->state == editor::CapabilityState::ReadOnly,
+      "specialized tool capability policy failed");
+
+  editor::BuildManifest manifest{
+      1,
+      {"linux-dev", "linux-x64", "Development", "cmake --build --preset linux-development"},
+      {{"bin/game", "sha256:game", 42}}};
+  const auto manifest_path = root / "build-manifest.json";
+  Require(editor::BuildFrontend::Write(manifest, manifest_path, &error) &&
+              fs::file_size(manifest_path) > 0,
+          "build manifest failed");
+  manifest.artifacts.push_back({"../escape", "bad", 1});
+  Require(!editor::BuildFrontend::Validate(manifest, &error), "unsafe build artifact accepted");
+
+  editor::ProfileSession profile;
+  Require(profile.Add({1, 2.0, 3.0, 100}) && profile.Add({2, 8.0, 4.0, 200}) &&
+              !profile.Add({2, 1.0, 1.0, 1}) && profile.Peak()->frame == 2,
+          "profile session failed");
+  editor::VirtualHierarchy hierarchy(100000);
+  Require(hierarchy.Visible(99990, 50) == std::pair<std::size_t, std::size_t>{99990, 10},
+          "virtual hierarchy bounds failed");
+  editor::ExtensionPolicy policy{true, {"Nexora"}};
+  Require(policy.Allows("Nexora", true) && !policy.Allows("Nexora", false) &&
+              !policy.Allows("Unknown", true),
+          "extension signature policy failed");
+  editor::TelemetryConsent telemetry;
+  Require(!telemetry.Record("startup") && telemetry.Events().empty(), "telemetry was not opt-in");
+  telemetry.Set(true);
+  Require(telemetry.Record("startup") && telemetry.Events().size() == 1, "opt-in telemetry failed");
   return 0;
 }
 } // namespace

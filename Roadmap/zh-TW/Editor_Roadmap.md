@@ -91,13 +91,26 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 Material/shader graph、animation state/curve、particle/VFX、audio mixer、navigation/physics debug、terrain/vegetation、localization。每個工具以 capability plugin 交付，缺 backend 時 read-only 或清楚 unavailable。
 
+- ✅ Portable capability registry 強制 stable tool ID 與誠實的 implemented/read-only/unavailable
+  狀態，fallback 必須附原因。
+- 待辦：由各 production subsystem 支援的圖形化 specialized tool 與 capability plugin。
+
 ### ED-M6 — Build、profile 與 extensibility
 
 Build profiles、cook/package frontend、target/device matrix、remote deploy/log、CPU/GPU/memory/frame profiler、plugin manager、script/API docs。任何「Build Success」必須附 target manifest 與可重現 command。
 
+- ✅ Portable build frontend 會驗證並 atomic 寫入 target/configuration/command 與帶 checksum
+  的 artifact manifest；monotonic CPU/GPU/memory frame capture 已實作。
+- 待辦：圖形化 frontend、remote deployment/log、live profiler 整合與 plugin manager。
+
 ### ED-M7 — Production hardening
 
 大型 project incremental index、virtualized UI、100k entity hierarchy、長時 soak、workspace migration、corrupt document recovery、signed extension policy、telemetry opt-in/privacy、keyboard-only與螢幕閱讀器 audit。
+
+- ✅ Portable tests 已涵蓋 100k-item virtual hierarchy range、trusted-publisher/signature policy，
+  以及明確 opt-in 前會丟棄 event 的 telemetry。
+- 待辦：圖形化 performance/soak 驗收、workspace migration、corrupt-document recovery，以及
+  keyboard/screen-reader audit。
 
 ## 4. 儲存與 transaction contract
 
