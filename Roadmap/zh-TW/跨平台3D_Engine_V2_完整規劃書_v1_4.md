@@ -3744,6 +3744,9 @@ Stable C Gameplay ABI：
 
 ## V2-M0 — V1 → V2 Migration / Production Baseline
 
+> **Repository 狀態：portable gate 已驗收。** `Tools/Migration/ScanV1Project.py` 會稽核 canonical module schema、gameplay ABI、plugin manifest，以及必要的 Development／Shipping profile。穩定的 content fingerprint 同時作為 reference-project snapshot 與 regression-baseline identity；`build.v2_migration_scanner` 證明 deterministic output 與可採取行動的 failure report。Native target performance 仍屬 target-host gate。
+
+
 施工：
 
 ```text
