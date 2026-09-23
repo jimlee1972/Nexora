@@ -1,7 +1,8 @@
 include(NexoraTarget)
 
 add_library(NexoraFoundation ${NEXORA_MODULE_LIBRARY_TYPE}
-  src/BuildInfo.cpp)
+  src/BuildInfo.cpp
+  src/DataAbi.cpp)
 add_library(Nexora::Foundation ALIAS NexoraFoundation)
 
 configure_file(

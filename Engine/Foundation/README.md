@@ -50,17 +50,22 @@ brief window it was the only one available.
 `Nexora/Foundation/Types.h` provides UTF-8 validation, byte-oriented string views, stable FNV-1a
 names, UUID values (with `Parse`/`ToString` for the canonical `8-4-4-4-12` hex form), spans, byte
 buffers, locale-independent numeric parsing, and a small `Result<T>` error carrier. Views never
-own their input. Embedded NUL is preserved as a byte; validation checks encoding only. Containers
-own their memory and must be created and destroyed in the same C++ runtime module; they are not a
-stable C ABI -- that is a deliberate scoping of this file to the C++ convenience layer, not a gap:
-the roadmap's opaque-handle/POD/versioned-function-table C ABI rules apply to the actual crossing
-points (see `Nexora/Core/Handle.h`'s `Handle<Tag>`/`HandlePool<Tag>`, already used by `EventBus`,
-`Timer`, and the RHI backends, for the generational-handle deliverable; it is not duplicated here
-since Core depends on Foundation, not the reverse). `Name` stores only a 64-bit FNV-1a hash, not
+own their input. Embedded NUL is preserved as a byte; validation checks encoding only. C++
+containers own their memory and must be created and destroyed in the same C++ runtime module.
+
+`Nexora/Foundation/DataAbi.h` is the stable C crossing point for text and bytes. Its pointer-length
+views do not imply NUL termination. Callers can either copy into their own buffer after a required-
+size query, or receive an opaque Foundation allocation and return it through
+`nexora_foundation_buffer_destroy`; the latter's borrowed view expires when its handle is destroyed.
+All functions return explicit result codes, reject a null pointer with nonzero length, and the text
+constructor validates UTF-8 while preserving embedded NUL. The ABI version macro is
+`NEXORA_FOUNDATION_DATA_ABI_VERSION`.
+
+The generational-handle deliverable is `Nexora/Core/Handle.h`'s `Handle<Tag>`/`HandlePool<Tag>`,
+already used by `EventBus`, `Timer`, and the RHI backends; it is not duplicated here since Core
+depends on Foundation, not the reverse. `Name` stores only a 64-bit FNV-1a hash, not
 the source string, as a deliberate ABI-stable-StringId trade-off -- two distinct strings that hash
 identically are indistinguishable; see the class's doc comment and the API-M2 hash-collision test.
-
-**Not yet implemented**: a caller-buffer or engine-owned-opaque-buffer C ABI variant of
-`String`/`ByteBuffer`/`Span` for cases that need those specific containers (not just a handle or
-POD) to cross the ABI boundary. Nothing in the engine currently needs that, so it has not been
-built ahead of a real use.
+The API-M2 tests cover malformed UTF-8, embedded NUL, caller-buffer sizing without partial writes,
+opaque allocation/destruction across the Foundation module boundary, UUID parsing, locale-neutral
+number parsing, and collision diagnostics. The API sample also consumes the C data ABI.

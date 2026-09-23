@@ -32,8 +32,8 @@ The Engine API is **not fully complete** against the definition of done in the [
 
 | Track | Status | Available now / remaining gate |
 | --- | --- | --- |
-| API-M1 Math and geometry | Portable implementation complete | Full math, geometry, transforms, ABI/layout tests, SSE2/NEON paths, independent DirectXMath coordinate goldens, and an executable sample are available; ARM runtime evidence remains target-host validation. |
-| API-M2 Foundation data types | In progress | UTF-8 strings/views, buffers/spans, UUIDs, names, results, parsing, and generational handles are available; the cross-ABI owned-buffer contract remains. |
+| API-M1 Math and geometry | In progress | Core math, geometry, transforms, layout tests, and an executable sample are available; broader SIMD/ARM coverage and external coordinate golden tests remain. |
+| API-M2 Foundation data types | Complete for the roadmap scope | UTF-8 strings/views, buffers/spans, UUIDs, names, results, parsing, generational handles, and caller-owned or opaque engine-owned C ABI buffers are implemented and tested. |
 | API-M3 VFS and file I/O | In progress | Directory, memory, and bundle-backed access are available; platform package mounts, the full async scheduler, memory mapping, Shipping privilege gates, and huge-file boundaries remain. |
 | API-M4 Engine services | Complete for the roadmap scope | Monotonic/game/fixed time, versioned deterministic random, configuration, logging, jobs, events, and profiling-marker emission are implemented and tested. |
 | API-M5 World/game facade | In progress | Handle/value-based entity, scene, transform, camera, light, mesh-renderer, asset-reference, and input access are available; physics, character, and audio entity integration remains. |
@@ -93,8 +93,8 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 
 | Track | 狀態 | 現有能力／剩餘 Gate |
 | --- | --- | --- |
-| API-M1 Math 與幾何 | Portable implementation 已完成 | 已有完整 math、geometry、transform、ABI/layout tests、SSE2/NEON 路徑、獨立 DirectXMath 座標 golden 與可執行 sample；ARM runtime evidence 仍須在目標主機驗證。 |
-| API-M2 基礎資料型別 | 施工中 | 已有 UTF-8 string/view、buffer/span、UUID、name、result、parsing 與 generational handle；仍缺跨 ABI owned-buffer contract。 |
+| API-M1 Math 與幾何 | 施工中 | 已有核心 math、geometry、transform、layout tests 與可執行 sample；仍缺更廣的 SIMD／ARM coverage 與外部座標 golden tests。 |
+| API-M2 基礎資料型別 | Roadmap scope 已完成 | UTF-8 string/view、buffer/span、UUID、name、result、parsing、generational handle，以及 caller-owned 或 opaque engine-owned C ABI buffer 均已實作及測試。 |
 | API-M3 VFS 與檔案 I/O | 施工中 | 已有 directory、memory 與 bundle-backed access；仍缺 platform package mount、完整 async scheduler、memory mapping、Shipping privilege gate 與 huge-file boundary。 |
 | API-M4 Engine services | Roadmap scope 已完成 | Monotonic/game/fixed time、含版本的 deterministic random、configuration、logging、jobs、events 與 profiling-marker emission 均已有實作及測試。 |
 | API-M5 World/game facade | 施工中 | 已有 handle/value-based entity、scene、transform、camera、light、mesh-renderer、asset reference 與 input access；仍缺 physics、character 與 audio 的 entity integration。 |
