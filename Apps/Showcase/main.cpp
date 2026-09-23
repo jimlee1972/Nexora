@@ -207,8 +207,8 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
     } else if (argument.starts_with("--backend=")) {
       command.backend = std::string(argument.substr(10));
       if (command.backend != "auto" && command.backend != "validation" &&
-          command.backend != "dx12") {
-        error = "supported backends are auto, validation, and dx12";
+          command.backend != "dx12" && command.backend != "vulkan" && command.backend != "metal") {
+        error = "supported backends are auto, validation, dx12, vulkan, and metal";
         return false;
       }
     } else if (argument.starts_with("--gameplay-module=")) {
@@ -239,7 +239,7 @@ void PrintUsage() {
          "  --mode=headless|interactive select deterministic or native presentation\n"
          "  --scene=ROOM               select hub, tour, math, scene, gameplay, presentation, "
          "or streaming\n"
-         "  --backend=auto|validation|dx12 select the presentation backend\n"
+         "  --backend=auto|validation|dx12|vulkan|metal select the presentation backend\n"
          "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n";
 }
 
@@ -465,9 +465,13 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
 
   std::unique_ptr<Nexora::Presentation::RenderSurface> nativeSurface;
   if (!command.headless && command.backend != "validation") {
-    const auto backend = command.backend == "dx12"
-                             ? Nexora::Presentation::SurfaceBackend::Dx12
-                             : Nexora::Presentation::SurfaceBackend::Automatic;
+    auto backend = Nexora::Presentation::SurfaceBackend::Automatic;
+    if (command.backend == "dx12")
+      backend = Nexora::Presentation::SurfaceBackend::Dx12;
+    else if (command.backend == "vulkan")
+      backend = Nexora::Presentation::SurfaceBackend::Vulkan;
+    else if (command.backend == "metal")
+      backend = Nexora::Presentation::SurfaceBackend::Metal;
     auto created = Nexora::Presentation::CreateRenderSurface(
         {"Nexora Showcase", 1280, 720, true, backend, Nexora::Presentation::PresentMode::VSync});
     if (created) {
@@ -479,7 +483,7 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
       std::cerr << "NexoraShowcase: backend fallback auto -> validation: " << created.reason
                 << '\n';
     } else {
-      error = "dx12 presentation failed: " + created.reason;
+      error = command.backend + " presentation failed: " + created.reason;
       module.Unload();
       return false;
     }

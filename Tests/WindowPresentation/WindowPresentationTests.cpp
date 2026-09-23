@@ -46,6 +46,12 @@ public:
     ResizeEvent(width, height, 0);
     return Window::WindowError::None;
   }
+  Window::WindowError SetFullscreen(Window::WindowHandle window, bool fullscreen) override {
+    if (!alive_ || window.value != 1)
+      return Window::WindowError::InvalidHandle;
+    fullscreen_ = fullscreen;
+    return Window::WindowError::None;
+  }
   void *NativeHandle(Window::WindowHandle) const noexcept override { return nullptr; }
   std::span<const Window::WindowEvent> PumpEvents() override {
     pumped_.clear();
@@ -69,6 +75,7 @@ public:
 private:
   std::thread::id owner_ = std::this_thread::get_id();
   bool alive_ = false;
+  bool fullscreen_ = false;
   std::deque<Window::WindowEvent> pending_;
   std::vector<Window::WindowEvent> pumped_;
 };
@@ -124,6 +131,8 @@ private:
 
 int main() {
   assert(Presentation::ToString(Presentation::SurfaceBackend::Dx12) == "dx12");
+  assert(Presentation::ToString(Presentation::SurfaceBackend::Vulkan) == "vulkan");
+  assert(Presentation::ToString(Presentation::SurfaceBackend::Metal) == "metal");
   assert(Presentation::ToString(Presentation::SurfaceStatus::DeviceLost) == "device_lost");
 #if !defined(_WIN32)
   const auto unsupported = Presentation::CreateRenderSurface(
@@ -136,6 +145,8 @@ int main() {
   FakeWindowSystem windows;
   const auto created = windows.Create({"Fake", 640, 480, true, false});
   assert(created);
+  assert(windows.SetFullscreen(created.handle, true) == Window::WindowError::None);
+  assert(windows.SetFullscreen(created.handle, false) == Window::WindowError::None);
   Window::WindowResult crossThreadCreate;
   std::thread wrongThread([&] { crossThreadCreate = windows.Create({}); });
   wrongThread.join();
@@ -158,6 +169,23 @@ int main() {
   assert(surface.Acquire() == Presentation::SurfaceStatus::SurfaceLost);
   surface.Inject(Presentation::SurfaceStatus::DeviceLost);
   assert(surface.Acquire() == Presentation::SurfaceStatus::DeviceLost);
+
+  // A bounded resize/failure stress pass gates recovery without requiring a display server.
+  for (std::uint32_t iteration = 1; iteration <= 2048; ++iteration) {
+    assert(surface.NotifyWindowExtent(320 + iteration % 17, 180 + iteration % 11) ==
+           Presentation::SurfaceStatus::Ready);
+    assert(surface.Acquire() == Presentation::SurfaceStatus::Ready);
+    assert(surface.Present() == Presentation::SurfaceStatus::Ready);
+  }
+
+  FakeWindowSystem secondWindows;
+  const auto secondCreated = secondWindows.Create({"Second", 320, 180, true, false});
+  assert(secondCreated);
+  FakeSurface secondSurface({secondCreated.handle, 320, 180, 3});
+  assert(secondSurface.Acquire() == Presentation::SurfaceStatus::Ready);
+  assert(secondSurface.Present() == Presentation::SurfaceStatus::Ready);
+  assert(secondSurface.DrainAndDestroy() == Presentation::SurfaceStatus::Ready);
+  assert(secondWindows.Destroy(secondCreated.handle) == Window::WindowError::None);
 
   assert(surface.DrainAndDestroy() == Presentation::SurfaceStatus::Ready);
   assert(surface.DrainAndDestroy() == Presentation::SurfaceStatus::Ready);

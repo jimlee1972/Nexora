@@ -11,6 +11,7 @@ namespace Nexora::Presentation {
 
 enum class PresentMode : std::uint8_t { VSync, Immediate };
 enum class ColorSpace : std::uint8_t { Srgb, Hdr10 };
+enum class SurfaceBackend : std::uint8_t { Automatic, Dx12, Vulkan, Metal };
 
 struct SurfaceDescriptor final {
   Window::WindowHandle window;
@@ -19,6 +20,7 @@ struct SurfaceDescriptor final {
   std::uint8_t framesInFlight = 2;
   PresentMode presentMode = PresentMode::VSync;
   ColorSpace colorSpace = ColorSpace::Srgb;
+  SurfaceBackend backend = SurfaceBackend::Automatic;
 };
 
 struct SurfaceDiagnostics final {
@@ -27,6 +29,9 @@ struct SurfaceDiagnostics final {
   std::uint64_t resizeGenerations = 0;
   std::uint64_t fenceWaits = 0;
   std::int64_t lastPlatformResult = 0;
+  ColorSpace negotiatedColorSpace = ColorSpace::Srgb;
+  PresentMode negotiatedPresentMode = PresentMode::VSync;
+  std::uint64_t surfaceRecoveries = 0;
 };
 
 enum class SurfaceStatus : std::uint8_t {

@@ -2,7 +2,7 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-23
 
-> **進度：80%**（WP-M0 至 WP-M3 已實作；native Windows 驗收仍須通過 Windows/DX12 runner；WP-M4 尚未完成。）
+> **進度：實作完成**（WP-M0 至 WP-M4 已實作；native Windows/DX12、Linux/Windows Vulkan 與 macOS/Metal 驗收仍須通過各 target-host runner。）
 
 ## 1. 目的與 ownership
 
@@ -69,12 +69,14 @@ Scene/Game view 可使用相同 public owner，不必讓 Runtime 新增 Editor d
 並記錄原因，明確指定 DX12 時失敗不會 fallback，non-Windows contract test 則保留 deterministic
 headless gate。實際 Windows/DX12 執行仍屬 target-host 驗收證據，不宣稱已在 Linux cloud 驗證。
 
-### WP-M4 — 其他平台與 hardening
+### ✅ WP-M4 — 其他平台與 hardening
 
 - 在支援的 Linux/Windows host 加入 Vulkan window-system surface，並在 macOS 加入 Metal presentation。
 - 驗證 multi-window/multi-surface lifetime、HDR/color-space negotiation、fullscreen、hot-plug
   與長時間 resize/device-loss stress。
 - 分開記錄 target-host evidence；cross-compilation 不等於 runtime validation。
+
+交付證據：Linux 使用 X11 window implementation 與 Vulkan WSI swapchain；Windows 可在 DX12 之外選擇 Vulkan；macOS 使用 Cocoa window 與 `CAMetalLayer`。Backend negotiation 會記錄選定的 present mode 與 color space；portable contract gate 覆蓋 fullscreen、multi-surface lifetime、2,048-cycle resize stress、zero extent、out-of-date、surface-loss 與 device-loss path。這些 source 與跨平台 contract 完成 implementation scope；runtime 驗收仍明確屬於 target-host evidence，不會從 Linux compilation 推定。
 
 ## 5. 驗證與 Definition of Done
 

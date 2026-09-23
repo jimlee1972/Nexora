@@ -80,34 +80,39 @@ SurfaceStatus RenderSurface::DrainAndDestroy() {
 RenderSurfaceResult CreateRenderSurface(const RenderSurfaceDescriptor &descriptor) {
   if (descriptor.width == 0 || descriptor.height == 0)
     return {{}, SurfaceStatus::InvalidDescriptor, "render surface extent must be non-zero"};
-#if !defined(_WIN32)
-  (void)descriptor;
-  return {{},
-          SurfaceStatus::Unsupported,
-          "native presentation is unavailable on this host; DX12 requires Windows"};
+#if defined(_WIN32)
+  if (descriptor.backend == SurfaceBackend::Metal)
+#elif defined(__linux__)
+  if (descriptor.backend == SurfaceBackend::Dx12 || descriptor.backend == SurfaceBackend::Metal)
+#elif defined(__APPLE__)
+  if (descriptor.backend == SurfaceBackend::Dx12 || descriptor.backend == SurfaceBackend::Vulkan)
 #else
-  if (descriptor.backend != SurfaceBackend::Automatic && descriptor.backend != SurfaceBackend::Dx12)
+  if (true)
+#endif
     return {{}, SurfaceStatus::Unsupported, "requested presentation backend is unsupported"};
   auto state = std::make_unique<RenderSurface::State>();
   state->windows = Window::CreateWindowSystem();
   if (!state->windows)
-    return {{}, SurfaceStatus::Unsupported, "Win32 window system is unavailable"};
+    return {{}, SurfaceStatus::Unsupported, "native window system is unavailable"};
   const auto created = state->windows->Create(
       {descriptor.title, descriptor.width, descriptor.height, descriptor.resizable, true});
   if (!created)
-    return {{}, SurfaceStatus::SurfaceLost, "Win32 window creation failed"};
+    return {{},
+            created.error == Window::WindowError::Unsupported ? SurfaceStatus::Unsupported
+                                                              : SurfaceStatus::SurfaceLost,
+            "native window creation failed"};
   state->window = created.handle;
-  state->surface = CreateSurface({created.handle, descriptor.width, descriptor.height, 2,
-                                  descriptor.presentMode, ColorSpace::Srgb},
-                                 *state->windows);
+  state->surface =
+      CreateSurface({created.handle, descriptor.width, descriptor.height, 2, descriptor.presentMode,
+                     descriptor.colorSpace, descriptor.backend},
+                    *state->windows);
   if (!state->surface) {
     state->windows->Destroy(created.handle);
-    return {{}, SurfaceStatus::Unsupported, "DX12 swapchain creation is unavailable"};
+    return {{}, SurfaceStatus::Unsupported, "requested swapchain creation is unavailable"};
   }
   return {std::unique_ptr<RenderSurface>(new RenderSurface(std::move(state))),
           SurfaceStatus::Ready,
           {}};
-#endif
 }
 
 std::string_view ToString(SurfaceBackend backend) noexcept {
@@ -116,6 +121,10 @@ std::string_view ToString(SurfaceBackend backend) noexcept {
     return "auto";
   case SurfaceBackend::Dx12:
     return "dx12";
+  case SurfaceBackend::Vulkan:
+    return "vulkan";
+  case SurfaceBackend::Metal:
+    return "metal";
   }
   return "unknown";
 }
