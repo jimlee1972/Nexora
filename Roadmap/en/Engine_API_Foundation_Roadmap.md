@@ -23,27 +23,27 @@ Existing modules prove lifecycle, RHI, scene, and runtime contracts, but tested 
 
 ## 3. API tracks
 
-### API-M1 — Math and geometry
+### ✅ API-M1 — Math and geometry
 
 Deliver `Scalar`, `Vector2/3/4`, `Quaternion`, `Matrix3/4`, `Transform`, `Color`, `Rect`, `Ray`, `Plane`, `Aabb`, `Sphere`, and `Frustum`, including safe normalization, interpolation, TRS composition/decomposition, projection, intersection, and epsilon policy. Gates cover scalar/SIMD tolerance, NaN and zero-length behavior, coordinate golden tests, serialization round trips, and C ABI layout.
 
-### API-M2 — Foundation data types
+### ✅ API-M2 — Foundation data types
 
 Deliver UTF-8 `StringView`/engine-owned `String`, formatting/parsing boundaries, `Uuid`, `Name/StringId`, generational handles, `Result/ErrorCode`, `Span`, and `ByteBuffer`. C++ containers remain conveniences; ABI buffers are caller-owned or opaque engine allocations with matching destroy functions. Test malformed UTF-8, embedded NUL, locale-independent parsing, collision diagnostics, and cross-module allocation.
 
-### API-M3 — VFS and file I/O
+### ✅ API-M3 — VFS and file I/O
 
 Expose mount URIs (`content://`, `user://`, `cache://`), canonical paths, small synchronous reads, asynchronous requests, streams, enumeration, metadata, atomic writes, and watches. Specify sandboxing, symlinks, case behavior, cancellation, partial reads, and completion threads. Gates cover memory/temp/bundle backends, traversal attacks, cancellation races, atomic replacement, large offsets, and injected failures.
 
-### API-M4 — Engine services
+### ✅ API-M4 — Engine services
 
 Expose monotonic/game/fixed time, versioned random streams, structured logs, profiling markers, configuration, task dispatch, and event subscriptions. Wall-clock time cannot drive simulation. Every callback states its thread, lifetime, unsubscribe, and reentrancy contract.
 
-### API-M5 — World/game facade
+### ✅ API-M5 — World/game facade
 
 Use opaque world/entity handles and component type IDs for spawn/destroy, get/set/batch query, deferred commands, scene loading, asset references, input snapshots, and camera/light/renderable/physics/audio facades. Zig never receives movable C++ ECS storage pointers.
 
-### API-M6 — Bindings and versioning
+### ✅ API-M6 — Bindings and versioning
 
 Create a canonical C header and ABI manifest. Generate or validate the C++ facade and Zig thin wrapper from the same declarations. Every export records `since`, ownership, nullability, threading, errors, and determinism. Extensible descriptors carry `struct_size`; semantic removal requires a major ABI.
 

@@ -26391,7 +26391,7 @@ Authenticated Remote Dev Console
 > Phase 描述功能群與版本 Gate；Milestone 描述工程團隊應該先把哪條依賴鏈打通。  
 > 原則：**地基先行、Vertical Slice、每一步都能執行與驗證、避免十個系統同時半成品。**
 
-## V1-M0 — Repository / Build / CI 骨架
+## ✅ V1-M0 — Repository / Build / CI 骨架
 
 **目的：** 先把所有後續工程都必須依賴的 Build Contract 定死。
 
@@ -26434,7 +26434,7 @@ iOS
 
 ---
 
-## V1-M1 — Core Runtime Foundation
+## ✅ V1-M1 — Core Runtime Foundation
 
 **目的：** 讓 Engine 本身先「活起來」。
 
@@ -26486,7 +26486,7 @@ Clean Shutdown
 
 ---
 
-## V1-M2 — Slang / RHI Cross-Platform PoC
+## ✅ V1-M2 — Slang / RHI Cross-Platform PoC
 
 **目的：** 最早驗證整個 Renderer 最危險的跨平台假設。
 
@@ -26521,7 +26521,7 @@ Zig Android / iOS cross-compile smoke test
 
 ---
 
-## V1-M3 — Renderer Mainline
+## ✅ V1-M3 — Renderer Mainline
 
 **目的：** 完成真正可擴充的 Renderer 主幹。
 
@@ -26561,7 +26561,7 @@ Frame Pipeline
 
 ---
 
-## V1-M4 — First Engine Vertical Slice
+## ✅ V1-M4 — First Engine Vertical Slice
 
 **目的：** 第一次打通「Data → Scene → Render」。
 
@@ -26618,7 +26618,7 @@ Large-world coordinate foundation
 
 ---
 
-## V1-M5 — Asset / Serialization / Cooker / Bundle
+## ✅ V1-M5 — Asset / Serialization / Cooker / Bundle
 
 **目的：** 把「可顯示一個模型」升級成正式內容管線。
 
@@ -26688,7 +26688,7 @@ DataTable foundation
 
 ---
 
-## V1-M6 — Reflection / Editor / Prefab / Plugin SDK
+## ✅ V1-M6 — Reflection / Editor / Prefab / Plugin SDK
 
 **目的：** 讓引擎開始能被「真正製作內容」。
 
@@ -26736,7 +26736,7 @@ Editor Extension
 
 ---
 
-## V1-M7 — Input / Runtime UI / Text / Localization
+## ✅ V1-M7 — Input / Runtime UI / Text / Localization
 
 **目的：** 讓專案第一次具備完整玩家互動介面。
 
@@ -26782,7 +26782,7 @@ ViewModel / Binding
 
 ---
 
-## V1-M8 — Physics → Character → Navigation → AI
+## ✅ V1-M8 — Physics → Character → Navigation → AI
 
 **目的：** 按真正依賴關係建立 Gameplay Simulation。
 
@@ -26820,7 +26820,7 @@ Blackboard / BT / Perception
 
 ---
 
-## V1-M9 — Animation / Audio / VFX / Video
+## ✅ V1-M9 — Animation / Audio / VFX / Video
 
 **目的：** 補完整 Presentation / Character Runtime。
 
@@ -26881,7 +26881,7 @@ Video Audio → Audio.Core
 
 ---
 
-## V1-M10 — Large Scene / Streaming / Terrain / Vegetation / HLOD
+## ✅ V1-M10 — Large Scene / Streaming / Terrain / Vegetation / HLOD
 
 **目的：** 在所有基礎系統都成熟後才正式擴到大世界。
 
@@ -26917,7 +26917,7 @@ Culling
 
 ---
 
-## V1-M11 — Mobile / Platform / WebView
+## ✅ V1-M11 — Mobile / Platform / WebView
 
 **目的：** 完成產品層平台整合，而不是到最後才第一次 Port。
 
@@ -26951,7 +26951,7 @@ WebView2 / Android WebView / WKWebView
 
 ---
 
-## V1-M12 — Shipping / Packaging / Hardening
+## ✅ V1-M12 — Shipping / Packaging / Hardening
 
 **目的：** 把「能做遊戲」變成「能交付」。
 

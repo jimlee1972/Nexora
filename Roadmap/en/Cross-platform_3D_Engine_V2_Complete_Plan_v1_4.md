@@ -3730,7 +3730,7 @@ However, a major schema does not guarantee that binary recompilation is complete
 > V2 is established on the premise that **all V1 Gates have passed**.
 > V2 does not rewrite the core; the construction focus is first to stabilize “Production Metadata / Toolchain,” then expand toward GPU-Driven, Large World, Networking, and advanced Gameplay Frameworks.
 
-## V2-M0 — V1 → V2 Migration / Production Baseline
+## ✅ V2-M0 — V1 → V2 Migration / Production Baseline
 
 > **Repository status: accepted (portable gate).** `Tools/Migration/ScanV1Project.py` audits the canonical module schema, gameplay ABI, plugin manifests, and required Development/Shipping profiles. Its stable content fingerprint is the reference-project snapshot and regression-baseline identity; `build.v2_migration_scanner` proves deterministic output and actionable failure reporting. Native target performance remains a target-host gate.
 

@@ -3742,7 +3742,7 @@ Stable C Gameplay ABI：
 > V2 建立在 **V1 全部 Gate 已通過** 的前提下。  
 > V2 不重寫核心；施工重點是先把「Production Metadata / Toolchain」穩定，再往 GPU-Driven、Large World、Networking 與高階 Gameplay Framework 擴張。
 
-## V2-M0 — V1 → V2 Migration / Production Baseline
+## ✅ V2-M0 — V1 → V2 Migration / Production Baseline
 
 > **Repository 狀態：portable gate 已驗收。** `Tools/Migration/ScanV1Project.py` 會稽核 canonical module schema、gameplay ABI、plugin manifest，以及必要的 Development／Shipping profile。穩定的 content fingerprint 同時作為 reference-project snapshot 與 regression-baseline identity；`build.v2_migration_scanner` 證明 deterministic output 與可採取行動的 failure report。Native target performance 仍屬 target-host gate。
 

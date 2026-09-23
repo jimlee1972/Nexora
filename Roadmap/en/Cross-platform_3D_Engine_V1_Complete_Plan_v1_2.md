@@ -26289,7 +26289,7 @@ Authenticated Remote Dev Console
 > Phases describe feature groups and version Gates; Milestones describe which dependency chain the engineering team should establish first.
 > Principle: **Lay the foundation first, use Vertical Slices, make every step executable and verifiable, and avoid having ten systems simultaneously remain half-finished.**
 
-## V1-M0 — Repository / Build / CI Skeleton
+## ✅ V1-M0 — Repository / Build / CI Skeleton
 
 **Purpose:** First establish the Build Contract on which all subsequent engineering must depend.
 
@@ -26332,7 +26332,7 @@ This phase only requires “minimum compilability, startup, and executable tests
 
 ---
 
-## V1-M1 — Core Runtime Foundation
+## ✅ V1-M1 — Core Runtime Foundation
 
 **Purpose:** Make the Engine itself “come alive” first.
 
@@ -26384,7 +26384,7 @@ Clean Shutdown
 
 ---
 
-## V1-M2 — Slang / RHI Cross-Platform PoC
+## ✅ V1-M2 — Slang / RHI Cross-Platform PoC
 
 **Purpose:** Validate the most dangerous cross-platform assumptions of the entire Renderer as early as possible.
 
@@ -26419,7 +26419,7 @@ If this Gate fails, the RHI / Shader / Zig boundaries must be adjusted here; the
 
 ---
 
-## V1-M3 — Renderer Mainline
+## ✅ V1-M3 — Renderer Mainline
 
 **Purpose:** Complete a genuinely extensible Renderer mainline.
 
@@ -26459,7 +26459,7 @@ Frame Pipeline
 
 ---
 
-## V1-M4 — First Engine Vertical Slice
+## ✅ V1-M4 — First Engine Vertical Slice
 
 **Purpose:** Connect “Data → Scene → Render” for the first time.
 
@@ -26516,7 +26516,7 @@ Large-world coordinate foundation
 
 ---
 
-## V1-M5 — Asset / Serialization / Cooker / Bundle
+## ✅ V1-M5 — Asset / Serialization / Cooker / Bundle
 
 **Purpose:** Upgrade “displaying a model” into a formal content pipeline.
 
@@ -26586,7 +26586,7 @@ DataTable foundation
 
 ---
 
-## V1-M6 — Reflection / Editor / Prefab / Plugin SDK
+## ✅ V1-M6 — Reflection / Editor / Prefab / Plugin SDK
 
 **Purpose:** Enable the engine to begin producing content “for real.”
 
@@ -26634,7 +26634,7 @@ Editor Extension
 
 ---
 
-## V1-M7 — Input / Runtime UI / Text / Localization
+## ✅ V1-M7 — Input / Runtime UI / Text / Localization
 
 **Purpose:** Give the project a complete player interaction interface for the first time.
 
@@ -26680,7 +26680,7 @@ ViewModel / Binding
 
 ---
 
-## V1-M8 — Physics → Character → Navigation → AI
+## ✅ V1-M8 — Physics → Character → Navigation → AI
 
 **Purpose:** Establish Gameplay Simulation according to the actual dependency relationships.
 
@@ -26718,7 +26718,7 @@ Do not reverse the order by implementing AI first and adding character movement 
 
 ---
 
-## V1-M9 — Animation / Audio / VFX / Video
+## ✅ V1-M9 — Animation / Audio / VFX / Video
 
 **Purpose:** Complete Presentation / Character Runtime.
 
@@ -26779,7 +26779,7 @@ Video Audio → Audio.Core
 
 ---
 
-## V1-M10 — Large Scene / Streaming / Terrain / Vegetation / HLOD
+## ✅ V1-M10 — Large Scene / Streaming / Terrain / Vegetation / HLOD
 
 **Purpose:** Expand to a large world formally only after all foundational systems have matured.
 
@@ -26815,7 +26815,7 @@ Culling
 
 ---
 
-## V1-M11 — Mobile / Platform / WebView
+## ✅ V1-M11 — Mobile / Platform / WebView
 
 **Purpose:** Complete product-level platform integration rather than performing the first Port only at the end.
 
@@ -26849,7 +26849,7 @@ WebView2 / Android WebView / WKWebView
 
 ---
 
-## V1-M12 — Shipping / Packaging / Hardening
+## ✅ V1-M12 — Shipping / Packaging / Hardening
 
 **Purpose:** Turn “can make a game” into “can deliver one.”
 
