@@ -37,7 +37,7 @@ completion on every target platform.
 | [V3 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V3_Complete_Plan_v1_4.md) | **0%** | No V3 delivery milestone has an accepted repository gate. |
 | [V3 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md) | **0%** | Execution plan only; no V3 milestone accepted. |
 | [Engine API Foundation](Roadmap/en/Engine_API_Foundation_Roadmap.md) | **100%** | ✅ API-M1 through ✅ API-M6 complete for portable scope. |
-| [Window and Native Presentation](Roadmap/en/Window_Presentation_Roadmap.md) | **0%** | Offscreen prerequisites exist, but no WP milestone is accepted. |
+| [Window and Native Presentation](Roadmap/en/Window_Presentation_Roadmap.md) | **20%** | WP-M0 contracts, optional module boundary, and fake lifecycle gate are accepted; native adapters remain open. |
 | [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **20%** | Contract/headless-static slices are complete; dynamic, graphical, gallery, failure, and distribution gates remain. |
 | [Graphical Editor](Roadmap/en/Editor_Roadmap.md) | **0%** | Runtime prerequisites exist, but no graphical ED milestone is accepted. |
 | [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **40%** | Mean of its API, Zig Showcase, and Editor delivery tracks. |
@@ -117,7 +117,7 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | [V3 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V3_完整規劃書_v1_4.md) | **0%** | 尚無 V3 delivery milestone 通過 repository gate。 |
 | [V3 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) | **0%** | 僅為施工規劃；尚無 V3 milestone 驗收。 |
 | [Engine API 基礎](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) | **100%** | ✅ API-M1 至 ✅ API-M6 完成 portable scope。 |
-| [Window 與 Native Presentation](Roadmap/zh-TW/Window_Presentation_Roadmap.md) | **0%** | 已有 offscreen 前置，但尚無 WP milestone 驗收。 |
+| [Window 與 Native Presentation](Roadmap/zh-TW/Window_Presentation_Roadmap.md) | **20%** | WP-M0 contract、optional module boundary 與 fake lifecycle gate 已驗收；native adapter 仍待完成。 |
 | [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **20%** | Contract/headless-static slice 已完成；dynamic、圖形、gallery、failure 與 distribution gate 待辦。 |
 | [圖形化 Editor](Roadmap/zh-TW/Editor_Roadmap.md) | **0%** | 已有 Runtime 前置，但尚無 graphical ED milestone 驗收。 |
 | [聚焦 Roadmap AI 施工規劃](Roadmap/zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) | **40%** | API、Zig Showcase 與 Editor 三條 delivery track 的平均。 |

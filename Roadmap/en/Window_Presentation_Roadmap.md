@@ -2,8 +2,7 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-23
 
-> **Progress: 0%** (none of WP-M0 through WP-M4 has met its acceptance gate. Completed
-> prerequisites are marked with ✅ and are not counted as completed window/presentation work.)
+> **Progress: 20%** (WP-M0 is accepted; WP-M1 through WP-M4 remain open.)
 
 ## 1. Purpose and ownership
 
@@ -33,11 +32,17 @@ receives a native window, device, queue, or swapchain pointer.
 
 ## 4. Milestones
 
-### WP-M0 — Contract and module boundary
+### ✅ WP-M0 — Contract and module boundary
 
 - Define the public window/surface descriptors, events, errors, ownership, and threading contract.
 - Add feature options and module-graph declarations without making headless builds depend on a window SDK.
 - Add fake-window and fake-surface lifecycle, resize-coalescing, zero-extent, and teardown tests.
+
+Delivered evidence: `Nexora::Window` and `Nexora::Presentation` expose only backend-neutral public
+types; their ownership, lifetime, threading, resize, and recovery rules are recorded in module
+READMEs. Both modules are guarded by `NEXORA_ENABLE_WINDOW_PRESENTATION`, their dependencies are in
+the validated module graph, and `window_presentation.contracts` exercises the fake lifecycle gate.
+No native window or swapchain backend is claimed by this milestone.
 
 ### WP-M1 — Win32 window and input
 
@@ -71,4 +76,3 @@ receives a native window, device, queue, or swapchain pointer.
 - Linux headless configure/build/test remains independent of desktop display availability.
 - Windowed shutdown produces no live GPU resources, queued callbacks, or native handles.
 - The Showcase and Editor consume only public window/presentation contracts.
-
