@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <new>
 #include <string_view>
 
 extern "C" int32_t NexoraGameModuleLoad(uint32_t requested_abi, NexoraGameModuleV3 *module);
@@ -17,6 +18,8 @@ namespace {
 
 struct HostState final {
   bool received_log{};
+  std::uint32_t allocations{};
+  std::uint32_t deallocations{};
   nexora::game::GameplayTransformWire transform{1.0, 2.0, 3.0};
 };
 
@@ -44,17 +47,30 @@ int32_t WriteComponent(void *context, uint64_t entity, uint64_t type, const void
   return 0;
 }
 
+void *Allocate(void *context, std::uint64_t size, std::uint64_t alignment) {
+  ++static_cast<HostState *>(context)->allocations;
+  return ::operator new(static_cast<std::size_t>(size),
+                        std::align_val_t{static_cast<std::size_t>(alignment)});
+}
+
+void Deallocate(void *context, void *allocation, std::uint64_t, std::uint64_t alignment) {
+  ++static_cast<HostState *>(context)->deallocations;
+  ::operator delete(allocation, std::align_val_t{static_cast<std::size_t>(alignment)});
+}
+
 } // namespace
 
 int main() {
   HostState state;
   NexoraGameplayHostV3 api{sizeof(NexoraGameplayHostV3),
                            NEXORA_GAMEPLAY_ABI_VERSION,
-                           0,
+                           NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR,
                            &state,
                            Log,
                            ReadComponent,
-                           WriteComponent};
+                           WriteComponent,
+                           Allocate,
+                           Deallocate};
   nexora::runtime::GameplayModuleHost host(api);
 
   assert(host.Load(NexoraGameModuleLoad));
@@ -71,4 +87,6 @@ int main() {
   assert(NexoraGameModuleUpdateCount() == 2);
   assert(host.GetReloadStats().migrated_bytes > 0);
   host.Unload();
+  assert(state.allocations == 2);
+  assert(state.deallocations == 2);
 }

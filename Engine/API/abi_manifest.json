@@ -22,6 +22,8 @@
     { "name": "NexoraGameplayHostV3.log", "since": 3, "ownership": "borrowed", "nullability": "message_nonnull", "threading": "caller_thread", "errors": "none", "determinism": "diagnostic_only" },
     { "name": "NexoraGameplayHostV3.read_component", "since": 3, "ownership": "caller_buffer", "nullability": "data_nonnull", "threading": "game_thread", "errors": "NexoraGameplayResult", "determinism": "world_state" },
     { "name": "NexoraGameplayHostV3.write_component", "since": 3, "ownership": "borrowed", "nullability": "data_nonnull", "threading": "game_thread", "errors": "NexoraGameplayResult", "determinism": "ordered_mutation" },
+    { "name": "NexoraGameplayHostV3.allocate", "since": 3, "ownership": "module_until_deallocate", "nullability": "nullable_on_failure", "threading": "caller_thread", "errors": "null_on_failure", "determinism": "not_applicable" },
+    { "name": "NexoraGameplayHostV3.deallocate", "since": 3, "ownership": "returns_to_host", "nullability": "allocation_nullable", "threading": "caller_thread", "errors": "none", "determinism": "not_applicable" },
     { "name": "NexoraGameModuleV3.create", "since": 3, "ownership": "module_state_owned_by_module", "nullability": "nonnull", "threading": "host_serialized", "errors": "NexoraGameplayResult", "determinism": "module_defined" },
     { "name": "NexoraGameModuleV3.on_start", "since": 3, "ownership": "borrowed", "nullability": "state_module_defined", "threading": "host_serialized", "errors": "NexoraGameplayResult", "determinism": "module_defined" },
     { "name": "NexoraGameModuleV3.fixed_update", "since": 3, "ownership": "borrowed", "nullability": "state_module_defined", "threading": "host_serialized", "errors": "NexoraGameplayResult", "determinism": "fixed_delta_driven" },

@@ -1,7 +1,7 @@
 {
   "major": 3,
   "structures": {
-    "NexoraGameplayHostV3": ["struct_size", "abi_version", "capabilities", "context", "log", "read_component", "write_component"],
+    "NexoraGameplayHostV3": ["struct_size", "abi_version", "capabilities", "context", "log", "read_component", "write_component", "allocate", "deallocate"],
     "NexoraGameModuleV3": ["struct_size", "abi_version", "capabilities", "module_state", "create", "on_start", "fixed_update", "update", "on_stop", "destroy", "save_state", "load_state"]
   }
 }

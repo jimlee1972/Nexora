@@ -2,10 +2,12 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
 
-**Implementation status (2026-09-22):** ZS-M0 has started. ABI V3 now defines explicit result and
+**Implementation status (2026-09-23):** ZS-M0 has started. ABI V3 now defines explicit result and
 capability values, separate create/start/stop/destroy phases, fallible variable/fixed updates, and
 transactional state migration in the C++ host. The in-tree C++ fake module exercises this contract.
-Dynamic discovery, allocator callbacks, a shared C++/Zig vector suite, and ZS-M1 remain open.
+The Zig module now owns independently allocated state obtained and released through paired V3 host
+allocator callbacks, including reload candidates. Dynamic discovery, a shared C++/Zig vector suite,
+and the remainder of ZS-M1 remain open.
 
 **Local implementation status (2026-09-23):** A deterministic headless/static ZS-M1 verification
 slice is now available as `NexoraShowcase.exe`. C++ owns `main`, engine lifecycle, a small

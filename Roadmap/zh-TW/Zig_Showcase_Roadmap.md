@@ -2,10 +2,11 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
 
-**施工狀態（2026-09-22）：** ZS-M0 已開始。ABI V3 現在定義明確的 result 與 capability 值、
+**施工狀態（2026-09-23）：** ZS-M0 已開始。ABI V3 現在定義明確的 result 與 capability 值、
 分離 create/start/stop/destroy 階段、可回報失敗的 variable/fixed update，以及 C++ Host 的
-transactional state migration；repository 內的 C++ fake module 會驗證此 contract。Dynamic
-discovery、allocator callback、C++/Zig 共用 vector suite 與 ZS-M1 仍未完成。
+transactional state migration；repository 內的 C++ fake module 會驗證此 contract。Zig module
+現在會透過成對的 V3 host allocator callback 取得與釋放獨立 state，reload candidate
+也不再共用 global state。Dynamic discovery、C++/Zig 共用 vector suite 與其餘 ZS-M1 仍未完成。
 
 **本機施工狀態（2026-09-23）：** 已提供 deterministic headless/static 的 ZS-M1 驗證 slice，
 輸出 `NexoraShowcase.exe`。C++ 擁有 `main`、Engine lifecycle、小型 `GameWorld`、
