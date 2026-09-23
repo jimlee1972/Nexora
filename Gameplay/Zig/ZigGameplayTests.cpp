@@ -1,3 +1,4 @@
+#include "GameplayConformanceVectors.h"
 #include "Nexora/Foundation/GameplayABI.h"
 #include "Nexora/Game/GameplayHostBridge.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
@@ -20,6 +21,8 @@ struct HostState final {
   bool received_log{};
   std::uint32_t allocations{};
   std::uint32_t deallocations{};
+  std::uint64_t allocation_owner{};
+  std::uint64_t deallocation_owner{};
   nexora::game::GameplayTransformWire transform{1.0, 2.0, 3.0};
 };
 
@@ -47,14 +50,19 @@ int32_t WriteComponent(void *context, uint64_t entity, uint64_t type, const void
   return 0;
 }
 
-void *Allocate(void *context, std::uint64_t size, std::uint64_t alignment) {
-  ++static_cast<HostState *>(context)->allocations;
+void *Allocate(void *context, std::uint64_t owner, std::uint64_t size, std::uint64_t alignment) {
+  auto &state = *static_cast<HostState *>(context);
+  ++state.allocations;
+  state.allocation_owner = owner;
   return ::operator new(static_cast<std::size_t>(size),
                         std::align_val_t{static_cast<std::size_t>(alignment)});
 }
 
-void Deallocate(void *context, void *allocation, std::uint64_t, std::uint64_t alignment) {
-  ++static_cast<HostState *>(context)->deallocations;
+void Deallocate(void *context, std::uint64_t owner, void *allocation, std::uint64_t,
+                std::uint64_t alignment) {
+  auto &state = *static_cast<HostState *>(context);
+  ++state.deallocations;
+  state.deallocation_owner = owner;
   ::operator delete(allocation, std::align_val_t{static_cast<std::size_t>(alignment)});
 }
 
@@ -75,18 +83,19 @@ int main() {
 
   assert(host.Load(NexoraGameModuleLoad));
   assert(state.received_log);
-  assert(host.FixedUpdate(1.0 / 60.0));
-  assert(host.Update(0.25));
-  assert(host.Update(0.5));
+  assert(nexora::test::RunGameplayConformanceVectors(host));
   assert(NexoraGameModuleStartCount() == 1);
-  assert(NexoraGameModuleFixedUpdateCount() == 1);
-  assert(NexoraGameModuleUpdateCount() == 2);
-  assert(std::abs(NexoraGameModuleElapsedSeconds() - 0.75) < 0.000001);
-  assert(std::abs(state.transform.x - 1.75) < 0.000001);
+  assert(NexoraGameModuleFixedUpdateCount() == nexora::test::kExpectedFixedUpdates);
+  assert(NexoraGameModuleUpdateCount() == nexora::test::kExpectedUpdates);
+  assert(std::abs(NexoraGameModuleElapsedSeconds() - nexora::test::kExpectedElapsedSeconds) <
+         0.000001);
+  assert(std::abs(state.transform.x - (1.0 + nexora::test::kExpectedElapsedSeconds)) < 0.000001);
   assert(host.Reload(NexoraGameModuleLoad));
-  assert(NexoraGameModuleUpdateCount() == 2);
+  assert(NexoraGameModuleUpdateCount() == nexora::test::kExpectedUpdates);
   assert(host.GetReloadStats().migrated_bytes > 0);
   host.Unload();
   assert(state.allocations == 2);
   assert(state.deallocations == 2);
+  assert(state.allocation_owner == NEXORA_ALLOCATION_OWNER_GAMEPLAY_STATE);
+  assert(state.deallocation_owner == NEXORA_ALLOCATION_OWNER_GAMEPLAY_STATE);
 }

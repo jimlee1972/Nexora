@@ -44,6 +44,40 @@
       }
     },
     {
+      "name": "linux-sanitizers",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NEXORA_LINK_MODE": "Modular",
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-thread-sanitizer",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NEXORA_LINK_MODE": "Modular",
+        "CMAKE_C_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=thread",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=thread"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
       "name": "linux-shipping",
       "inherits": "base",
       "cacheVariables": {
@@ -147,6 +181,14 @@
       "configurePreset": "linux-development"
     },
     {
+      "name": "linux-thread-sanitizer",
+      "configurePreset": "linux-thread-sanitizer"
+    },
+    {
+      "name": "linux-sanitizers",
+      "configurePreset": "linux-sanitizers"
+    },
+    {
       "name": "linux-shipping",
       "configurePreset": "linux-shipping"
     },
@@ -183,6 +225,20 @@
     {
       "name": "linux-development",
       "configurePreset": "linux-development",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-thread-sanitizer",
+      "configurePreset": "linux-thread-sanitizer",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-sanitizers",
+      "configurePreset": "linux-sanitizers",
       "output": {
         "outputOnFailure": true
       }

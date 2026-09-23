@@ -209,7 +209,7 @@ int32_t WriteComponent(void *opaque_context, std::uint64_t entity, std::uint64_t
   return NEXORA_GAMEPLAY_OK;
 }
 
-void *Allocate(void *, std::uint64_t size, std::uint64_t alignment) {
+void *Allocate(void *, std::uint64_t, std::uint64_t size, std::uint64_t alignment) {
   if (size == 0 || alignment == 0 || (alignment & (alignment - 1)) != 0)
     return nullptr;
   try {
@@ -220,7 +220,7 @@ void *Allocate(void *, std::uint64_t size, std::uint64_t alignment) {
   }
 }
 
-void Deallocate(void *, void *allocation, std::uint64_t, std::uint64_t alignment) {
+void Deallocate(void *, std::uint64_t, void *allocation, std::uint64_t, std::uint64_t alignment) {
   if (allocation != nullptr)
     ::operator delete(allocation, std::align_val_t{static_cast<std::size_t>(alignment)});
 }

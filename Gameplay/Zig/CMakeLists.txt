@@ -66,6 +66,7 @@ if(BUILD_TESTING)
     "${NEXORA_ZIG_SAMPLE_OBJECT}")
   add_dependencies(NexoraZigGameplayTests NexoraZigGameplayBuild)
   target_link_libraries(NexoraZigGameplayTests PRIVATE Nexora::Runtime)
+  target_include_directories(NexoraZigGameplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Tests/Gameplay")
   if(WIN32)
     # Zig's std library calls raw NT syscalls directly (file I/O, debug-info
     # lookup for its panic handler, etc.); zig's own linker driver links
