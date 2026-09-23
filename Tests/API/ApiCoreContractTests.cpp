@@ -9,6 +9,7 @@
 #include "Nexora/Core/Services.h"
 #include "Nexora/Core/Vfs.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -58,6 +59,7 @@ void RecordMarker(std::string_view name, std::uint64_t nanoseconds) {
 }
 
 void RunServicesTests() {
+  static_assert(kEngineServicesApiVersion == 1);
   const auto first = MonotonicNanoseconds();
   const auto second = MonotonicNanoseconds();
   Require(second >= first, "MonotonicNanoseconds must never go backwards");
@@ -77,6 +79,79 @@ void RunServicesTests() {
     (void)marker;
   }
   Require(g_sink_calls == 1, "clearing the sink must stop further emission");
+
+  RandomStream original{0x12345678ULL, 7};
+  (void)original.NextU32();
+  const auto checkpoint = original.Save();
+  const std::array expected{original.NextU32(), original.NextU32(), original.NextU32()};
+  RandomStream replay;
+  Require(replay.Restore(checkpoint), "a matching random-stream version must restore");
+  const std::array actual{replay.NextU32(), replay.NextU32(), replay.NextU32()};
+  Require(actual == expected, "a restored random stream must replay the exact sequence");
+  auto incompatible = checkpoint;
+  ++incompatible.version;
+  Require(!replay.Restore(incompatible), "an incompatible random-stream version must be rejected");
+
+  Configuration configuration;
+  Require(!configuration.Set("", "invalid"), "configuration must reject an empty key");
+  Require(configuration.Set("render.quality", "high") &&
+              configuration.Get("render.quality") == "high" &&
+              configuration.Remove("render.quality") && !configuration.Get("render.quality"),
+          "configuration set/get/remove must have explicit success and missing-value behavior");
+}
+
+struct ServiceEvent final {
+  int value{};
+};
+
+void RunServiceCallbackContractTests() {
+  EventBus events;
+  int sum = 0;
+  SubscriptionHandle subscription{};
+  subscription = events.Subscribe<ServiceEvent>([&](const ServiceEvent &event) {
+    sum += event.value;
+    Require(events.Unsubscribe(subscription),
+            "an event callback must be able to unsubscribe itself reentrantly");
+    events.Publish(ServiceEvent{100});
+  });
+  events.Publish(ServiceEvent{2});
+  Require(sum == 2, "reentrant publish must observe the updated subscription set");
+
+  std::thread::id callback_thread;
+  const auto deferred = events.Subscribe<ServiceEvent>(
+      [&](const ServiceEvent &event) { callback_thread = std::this_thread::get_id(); });
+  events.Enqueue(ServiceEvent{3});
+  const auto dispatch_thread = std::this_thread::get_id();
+  events.DispatchDeferred();
+  Require(callback_thread == dispatch_thread,
+          "deferred event callbacks must run on the dispatching thread");
+  Require(events.Unsubscribe(deferred), "a live deferred-event subscription must unsubscribe");
+
+  JobSystem jobs{1};
+  jobs.Start();
+  const auto caller_thread = std::this_thread::get_id();
+  std::thread::id worker_thread;
+  const auto completed =
+      jobs.Submit({[&](const CancellationToken &) { worker_thread = std::this_thread::get_id(); },
+                   JobPriority::Normal,
+                   {},
+                   "api-m4-worker-thread"});
+  jobs.Wait(completed);
+  Require(completed.Status() == JobStatus::Completed && worker_thread != caller_thread,
+          "task callbacks must execute to completion on a worker thread");
+  const auto failed = jobs.Submit({[](const CancellationToken &) { throw std::runtime_error("x"); },
+                                   JobPriority::Normal,
+                                   {},
+                                   "api-m4-failure"});
+  bool failure_observed = false;
+  try {
+    jobs.Wait(failed);
+  } catch (const std::runtime_error &) {
+    failure_observed = true;
+  }
+  Require(failure_observed && failed.Status() == JobStatus::Failed,
+          "task callback exceptions must be reported by Wait with Failed status");
+  jobs.Stop();
 }
 
 // Runs the same read/write/metadata/enumerate/error sequence against a VFS
@@ -272,6 +347,7 @@ void RunMountRootDotAliasWriteRejectionTest() {
 int Run() {
   RunHandleTests();
   RunServicesTests();
+  RunServiceCallbackContractTests();
   RunMountRootWriteRejectionTest();
   RunMountRootDotAliasWriteRejectionTest();
   RunAdvancedVfsTests();

@@ -29,6 +29,9 @@ private:
 };
 
 struct JobDescriptor final {
+  // The function and its captures are owned until the job reaches a terminal
+  // status. It runs once on a worker thread, unless cancellation is observed
+  // before execution. Exceptions are captured as Failed and rethrown by Wait.
   std::function<void(const CancellationToken &)> function;
   JobPriority priority{JobPriority::Normal};
   CancellationToken cancellation;

@@ -30,6 +30,9 @@ public:
 
   void Start();
   void Stop();
+  // Concurrent writers transfer ownership of category/message to the service.
+  // Flush blocks until all records accepted before the call have reached the
+  // crash ring. Stop drains accepted records and is idempotent.
   void Write(LogLevel level, std::string category, std::string message);
   void Flush();
   [[nodiscard]] std::vector<LogRecord> CrashRingSnapshot() const;
