@@ -24,6 +24,21 @@
       ]
     },
     {
+      "name": "Window",
+      "feature": "NEXORA_ENABLE_WINDOW_PRESENTATION",
+      "dependencies": [
+        "Core"
+      ]
+    },
+    {
+      "name": "Presentation",
+      "feature": "NEXORA_ENABLE_WINDOW_PRESENTATION",
+      "dependencies": [
+        "RHI",
+        "Window"
+      ]
+    },
+    {
       "name": "Renderer",
       "dependencies": [
         "RHI"

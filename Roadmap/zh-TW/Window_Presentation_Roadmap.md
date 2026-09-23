@@ -2,8 +2,7 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-23
 
-> **進度：0%**（WP-M0～WP-M4 尚無任一 milestone 通過驗收；已完成的前置條件以 ✅
-> 標示，但不計入 window/presentation 交付進度。）
+> **進度：20%**（WP-M0 已通過驗收；WP-M1～WP-M4 仍待完成。）
 
 ## 1. 目的與 ownership
 
@@ -32,11 +31,17 @@ backend-neutral surface event。Zig gameplay 不得取得 native window、device
 
 ## 4. Milestones
 
-### WP-M0 — Contract 與 module boundary
+### ✅ WP-M0 — Contract 與 module boundary
 
 - 定義公開 window/surface descriptor、event、error、ownership 與 threading contract。
 - 加入 feature option 與 module graph 宣告，不得讓 headless build 依賴 window SDK。
 - 加入 fake-window/fake-surface lifecycle、resize coalescing、zero extent 與 teardown tests。
+
+交付證據：`Nexora::Window` 與 `Nexora::Presentation` 的公開 type 全為 backend-neutral；module
+README 記錄 ownership、lifetime、threading、resize 與 recovery 規則。兩個 module 均受
+`NEXORA_ENABLE_WINDOW_PRESENTATION` 控制，dependency 已加入受驗證的 module graph，且
+`window_presentation.contracts` 覆蓋 fake lifecycle gate。本 milestone 不宣稱已有 native window
+或 swapchain backend。
 
 ### WP-M1 — Win32 window 與 input
 
@@ -71,4 +76,3 @@ backend-neutral surface event。Zig gameplay 不得取得 native window、device
 - Linux headless configure/build/test 不依賴 desktop display。
 - Windowed shutdown 後不可留下 GPU resource、queued callback 或 native handle。
 - Showcase 與 Editor 只使用 public window/presentation contract。
-
