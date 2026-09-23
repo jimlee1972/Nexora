@@ -20,4 +20,10 @@ if(BUILD_TESTING)
   add_test(
     NAME showcase.zig_headless
     COMMAND NexoraShowcase --headless --validate-v1 --frames=4)
+  add_test(
+    NAME showcase.feature_gallery
+    COMMAND NexoraShowcase --headless --scene=tour --frames=1 --no-reload)
+  set_tests_properties(showcase.feature_gallery PROPERTIES
+    PASS_REGULAR_EXPRESSION
+      "\"id\": \"math\".*\"id\": \"scene\".*\"id\": \"gameplay\".*\"id\": \"presentation\".*\"id\": \"streaming\"")
 endif()
