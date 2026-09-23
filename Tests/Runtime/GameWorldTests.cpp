@@ -104,6 +104,55 @@ int Run() {
   Require(world.Query(123456789).empty(),
           "a query against a missing scene must be empty, not throw");
 
+  // ---- Entity-bound audio ----
+  EntitySpawnDescriptor audio_descriptor;
+  audio_descriptor.audio = AudioVoice{700, 0.5F, true};
+  const auto audio_entity = world.SpawnEntity(scene, audio_descriptor);
+  Require(world.GetEntity(audio_entity)->has_audio &&
+              world.GetEntity(audio_entity)->audio.resource == 700,
+          "audio binding must round trip through the entity snapshot");
+  Require(world.PlayAudio(audio_entity) && world.ActiveAudioVoices() == 1,
+          "an entity-bound audio voice must play");
+  Require(!world.SetAudio(camera_entity, AudioVoice{700, 1.0F, false}),
+          "one audio resource must not ambiguously bind to two entities");
+  Require(world.StopAudio(audio_entity) && world.ActiveAudioVoices() == 0,
+          "an entity-bound audio voice must stop");
+  Require(world.Query(scene, GameWorld::kQueryAudio) == std::vector<Id>{audio_entity},
+          "audio entities must participate in batch queries");
+  Require(world.PlayAudio(audio_entity), "audio must restart before deferred destruction");
+  DeferredCommands destroy_audio;
+  destroy_audio.DestroyEntity(audio_entity);
+  Require(world.Submit(destroy_audio) && world.ActiveAudioVoices() == 0,
+          "deferred destruction must release an entity's audio voice");
+
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  // ---- Entity-bound physics and character ----
+  EntitySpawnDescriptor actor_descriptor;
+  actor_descriptor.physics = PhysicsBody{0, {-0.5, 0.0, -0.5}, {0.5, 2.0, 0.5}, false, false, {}};
+  actor_descriptor.character = CharacterControllerConfig{};
+  const auto actor = world.SpawnEntity(scene, actor_descriptor);
+  const auto actor_snapshot = world.GetEntity(actor);
+  Require(actor_snapshot->has_physics && actor_snapshot->has_character,
+          "physics and character bindings must appear in the entity snapshot");
+  const auto hit = world.RaycastEntity({{0.0, 1.0, -2.0}, {0.0, 0.0, 1.0}, 10.0});
+  Require(hit && *hit == actor, "physics raycasts must resolve back to the owning entity");
+  CharacterInput character_input;
+  character_input.move_x = 1.0;
+  const auto movement = world.TickCharacter(actor, character_input, 0.1);
+  Require(movement.has_value(), "an entity-bound character must tick");
+  const auto character = world.GetCharacter(actor);
+  Require(character.has_value() && world.GetEntity(actor)->transform.x == character->position.x,
+          "character movement must synchronize the entity transform");
+  Require(world.Query(scene, GameWorld::kQueryPhysics | GameWorld::kQueryCharacter) ==
+              std::vector<Id>{actor},
+          "simulation bindings must participate in batch queries");
+  DeferredCommands destroy_actor;
+  destroy_actor.DestroyEntity(actor);
+  Require(world.Submit(destroy_actor) &&
+              !world.RaycastEntity({{0.0, 1.0, -2.0}, {0.0, 0.0, 1.0}, 10.0}),
+          "deferred destruction must remove physics and character bindings");
+#endif
+
   // ---- Input snapshot ----
   InputSystem input_system;
   Require(input_system.Assign(1, InputDeviceKind::Keyboard, 0), "device assignment must succeed");
