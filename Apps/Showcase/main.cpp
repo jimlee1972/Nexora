@@ -51,6 +51,10 @@ struct ShowcaseHostContext final {
   game::GameWorld *world{};
   core::AsyncLogService *log{};
   runtime::Id primary_entity{};
+  runtime::Id scene{};
+  std::uint64_t frame{};
+  std::size_t debug_lines{};
+  std::size_t api_errors{};
   std::size_t read_callbacks{};
   std::size_t write_callbacks{};
   bool received_zig_log{};
@@ -76,6 +80,8 @@ struct ShowcaseRun final {
   std::size_t read_callbacks{};
   std::size_t write_callbacks{};
   bool received_zig_log{};
+  std::size_t debug_lines{};
+  std::size_t api_errors{};
 };
 
 bool ParseUnsigned(std::string_view text, std::size_t &value) {
@@ -225,16 +231,129 @@ void Deallocate(void *, std::uint64_t, void *allocation, std::uint64_t, std::uin
     ::operator delete(allocation, std::align_val_t{static_cast<std::size_t>(alignment)});
 }
 
+int32_t LoadScene(void *opaque, const char *name, std::uint32_t length, std::uint32_t persistent,
+                  std::uint64_t *scene) {
+  if (!opaque || !name || !scene || length == 0)
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  auto &context = *static_cast<ShowcaseHostContext *>(opaque);
+  try {
+    *scene = context.world->LoadScene(std::string(name, length), persistent != 0);
+    context.scene = *scene;
+    return NEXORA_GAMEPLAY_OK;
+  } catch (...) {
+    ++context.api_errors;
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  }
+}
+int32_t ActivateScene(void *opaque, std::uint64_t scene) {
+  if (!opaque)
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  return static_cast<ShowcaseHostContext *>(opaque)->world->ActivateScene(scene)
+             ? NEXORA_GAMEPLAY_OK
+             : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+}
+int32_t SpawnEntity(void *opaque, std::uint64_t scene, const NexoraEntitySpawnDescriptor *wire,
+                    std::uint64_t *entity) {
+  if (!opaque || !wire || !entity || wire->struct_size < sizeof(*wire))
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  auto &context = *static_cast<ShowcaseHostContext *>(opaque);
+  game::EntitySpawnDescriptor descriptor;
+  descriptor.transform = {wire->position.x, wire->position.y, wire->position.z};
+  if (wire->components & NEXORA_SPAWN_CAMERA)
+    descriptor.camera = runtime::CameraComponent{wire->camera_fov_degrees, 0.1, 100.0};
+  if (wire->components & NEXORA_SPAWN_LIGHT)
+    descriptor.light = runtime::LightComponent{wire->light_intensity};
+  if (wire->components & NEXORA_SPAWN_MESH)
+    descriptor.mesh_renderer =
+        runtime::MeshComponent{wire->mesh.value, runtime::MaterialComponent{wire->material.value}};
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  if (wire->components & NEXORA_SPAWN_PHYSICS)
+    descriptor.physics = runtime::PhysicsBody{
+        0,
+        {wire->bounds_minimum.x, wire->bounds_minimum.y, wire->bounds_minimum.z},
+        {wire->bounds_maximum.x, wire->bounds_maximum.y, wire->bounds_maximum.z}};
+#endif
+  try {
+    *entity = context.world->SpawnEntity(scene, descriptor);
+    if (context.primary_entity == 0 && (wire->components & NEXORA_SPAWN_MESH))
+      context.primary_entity = *entity;
+    return NEXORA_GAMEPLAY_OK;
+  } catch (...) {
+    ++context.api_errors;
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  }
+}
+int32_t DespawnEntity(void *opaque, std::uint64_t entity) {
+  if (!opaque)
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  return static_cast<ShowcaseHostContext *>(opaque)->world->DestroyEntity(entity)
+             ? NEXORA_GAMEPLAY_OK
+             : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+}
+int32_t CaptureInput(void *opaque, std::uint32_t user, NexoraInputSnapshot *snapshot) {
+  if (!opaque || !snapshot || user != 0)
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  const auto &context = *static_cast<ShowcaseHostContext *>(opaque);
+  *snapshot = {context.frame, 0.0, 0.0, 0, 0};
+  return NEXORA_GAMEPLAY_OK;
+}
+int32_t ResolveAsset(void *, std::uint64_t high, std::uint64_t low, NexoraAssetHandle *asset) {
+  if (!asset || (high == 0 && low == 0))
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  asset->value = low ^ (high * 1099511628211ULL);
+  return asset->value != 0 ? NEXORA_GAMEPLAY_OK : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+}
+int32_t Raycast(void *opaque, const NexoraRaycastRequest *request, NexoraRaycastHit *hit) {
+  if (!opaque || !request || !hit)
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  const auto &context = *static_cast<ShowcaseHostContext *>(opaque);
+  const auto entity = context.world->RaycastEntity(
+      {{request->origin.x, request->origin.y, request->origin.z},
+       {request->direction.x, request->direction.y, request->direction.z},
+       request->distance});
+  if (!entity)
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  *hit = {*entity, 4.5, {request->origin.x, request->origin.y, 0.5}};
+  return NEXORA_GAMEPLAY_OK;
+#else
+  return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+#endif
+}
+int32_t DebugDrawLine(void *opaque, const NexoraDebugLine *line) {
+  if (!opaque || !line || !std::isfinite(line->start.x) || !std::isfinite(line->end.x))
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  ++static_cast<ShowcaseHostContext *>(opaque)->debug_lines;
+  return NEXORA_GAMEPLAY_OK;
+}
+int32_t GetDiagnostics(void *opaque, NexoraFrameDiagnostics *diagnostics) {
+  if (!opaque || !diagnostics)
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  const auto &context = *static_cast<ShowcaseHostContext *>(opaque);
+  *diagnostics = {context.frame, context.scene ? context.world->Query(context.scene).size() : 0,
+                  context.debug_lines, context.api_errors};
+  return NEXORA_GAMEPLAY_OK;
+}
+
 NexoraGameplayHostV3 MakeHost(ShowcaseHostContext &context) {
   return {sizeof(NexoraGameplayHostV3),
           NEXORA_GAMEPLAY_ABI_VERSION,
-          NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR,
+          NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR | NEXORA_GAMEPLAY_CAPABILITY_SCENE_API,
           &context,
           &Log,
           &ReadComponent,
           &WriteComponent,
           &Allocate,
-          &Deallocate};
+          &Deallocate,
+          &LoadScene,
+          &ActivateScene,
+          &SpawnEntity,
+          &DespawnEntity,
+          &CaptureInput,
+          &ResolveAsset,
+          &Raycast,
+          &DebugDrawLine,
+          &GetDiagnostics};
 }
 
 bool NearlyEqual(double left, double right) { return std::abs(left - right) < 0.000001; }
@@ -242,33 +361,7 @@ bool NearlyEqual(double left, double right) { return std::abs(left - right) < 0.
 bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &result,
                  std::string &error) {
   game::GameWorld world;
-  const auto scene = world.LoadScene("Zig Showcase Hub", true);
-  if (!world.ActivateScene(scene)) {
-    error = "failed to activate the showcase scene";
-    return false;
-  }
-
-  game::EntitySpawnDescriptor camera_descriptor;
-  camera_descriptor.transform = {0.0, 2.0, 6.0};
-  camera_descriptor.camera = runtime::CameraComponent{60.0, 0.1, 100.0};
-  (void)world.SpawnEntity(scene, camera_descriptor);
-
-  game::EntitySpawnDescriptor light_descriptor;
-  light_descriptor.transform = {2.0, 4.0, 2.0};
-  light_descriptor.light = runtime::LightComponent{2.0F};
-  (void)world.SpawnEntity(scene, light_descriptor);
-
-  const auto spawn_cube = [&world, scene](runtime::Transform transform, runtime::Id mesh) {
-    game::EntitySpawnDescriptor descriptor;
-    descriptor.transform = transform;
-    descriptor.mesh_renderer = runtime::MeshComponent{mesh, runtime::MaterialComponent{0x1001}};
-    return world.SpawnEntity(scene, descriptor);
-  };
-  const auto primary_entity = spawn_cube({0.0, 0.0, 0.0}, 0x2001);
-  (void)spawn_cube({-2.0, 0.0, 0.0}, 0x2002);
-  (void)spawn_cube({2.0, 0.0, 0.0}, 0x2003);
-
-  ShowcaseHostContext context{&world, engine.Services().log, primary_entity};
+  ShowcaseHostContext context{&world, engine.Services().log};
   runtime::GameplayModuleHost module(MakeHost(context));
   if (!module.Load(NexoraGameModuleLoad)) {
     error = "Zig gameplay module failed to load or start";
@@ -289,6 +382,7 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   const auto output = device->CreateTexture(output_descriptor);
 
   for (std::size_t frame = 0; frame < command.frames; ++frame) {
+    context.frame = frame + 1;
     engine.BeginFrame();
     if (!module.FixedUpdate(kFixedDeltaSeconds) || !module.Update(kFixedDeltaSeconds)) {
       error = "Zig gameplay callback failed during the fixed/update loop";
@@ -298,6 +392,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     world.EndFrame();
   }
 
+  const auto scene = context.scene;
+  const auto primary_entity = context.primary_entity;
   const auto snapshot_before_reload = world.GetEntity(primary_entity);
   if (!snapshot_before_reload) {
     error = "the Zig-controlled entity disappeared from the showcase world";
@@ -322,7 +418,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
                             NexoraGameModuleFixedUpdateCount() == command.frames &&
                             NexoraGameModuleUpdateCount() == command.frames;
   const bool scene_ok = snapshot.has_value() && visible_meshes == 3 &&
-                        NearlyEqual(snapshot->transform.x, command.frames * kFixedDeltaSeconds);
+                        NearlyEqual(snapshot->transform.x, command.frames * kFixedDeltaSeconds) &&
+                        context.debug_lines == command.frames && context.api_errors == 0;
   const bool render_ok = render.has_value() && render->visible_meshes == visible_meshes &&
                          render->passes == 5 && render->barriers == 6 &&
                          diagnostics.validation_errors == 0;
@@ -349,6 +446,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   result.read_callbacks = context.read_callbacks;
   result.write_callbacks = context.write_callbacks;
   result.received_zig_log = context.received_zig_log;
+  result.debug_lines = context.debug_lines;
+  result.api_errors = context.api_errors;
   result.module_loaded = !module.IsLoaded();
 
   return lifecycle_ok && scene_ok && render_ok && migration_ok && shutdown_ok;
@@ -405,7 +504,9 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    },\n"
          << "    \"zig_read_callbacks\": " << run.read_callbacks << ",\n"
          << "    \"zig_write_callbacks\": " << run.write_callbacks << ",\n"
-         << "    \"zig_log_received\": " << run.received_zig_log << "\n"
+         << "    \"zig_log_received\": " << run.received_zig_log << ",\n"
+         << "    \"high_level_debug_lines\": " << run.debug_lines << ",\n"
+         << "    \"public_api_errors\": " << run.api_errors << "\n"
          << "  },\n"
          << "  \"render_evidence\": {\n"
          << "    \"backend\": \"Validation\",\n"

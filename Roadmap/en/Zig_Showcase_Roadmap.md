@@ -2,7 +2,7 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
 
-> **Progress: 20%** (as of 2026-09-23; weighted acceptance checklist across the six milestones
+> **Progress: 40%** (as of 2026-09-23; weighted acceptance checklist across the six milestones
 > in section 4; completed items are marked with ✅ and the result is rounded down to 10%.)
 
 **Implementation status (2026-09-23):** ZS-M0 has started. ABI V3 now defines explicit result and
@@ -68,9 +68,9 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
   - Open: build and select the Zig Development shared-library artifact from `NexoraShowcase`.
   - Open: native window/input/swapchain; that boundary is owned by the Window & Presentation Roadmap.
 - **ZS-M2 API scene:** build scene, camera, mesh, input, and diagnostics solely through public C/Zig bindings.
-  - Open: move camera/light/cube creation from C++ into Zig through public APIs.
-  - Open: versioned spawn/despawn, scene, input snapshot, asset handle, raycast, debug draw, and diagnostics callbacks.
-  - Open: synchronize every export across the C header, ABI manifest/baseline, Zig binding, ownership/thread/error contract, and tests.
+  - ✅ Zig creates the scene, camera, light, and cubes through the public host table; C++ retains engine/world/render ownership.
+  - ✅ Append-only spawn/despawn, scene, input snapshot, opaque asset handle, raycast, high-level debug draw, and diagnostics callbacks.
+  - ✅ C header, ABI manifest/baseline, Zig binding, ownership/thread/error contract, C++ ABI gates, Zig smoke, and deterministic headless evidence are synchronized.
 - **ZS-M3 Feature gallery:** bounded physics, presentation, and streaming rooms with capability fallbacks.
   - Open: interactive Math, Scene, Gameplay, Presentation, and Streaming rooms.
   - Open: camera input, selection/raycast, physics/navigation, animation/audio/VFX, and large-world overlays.

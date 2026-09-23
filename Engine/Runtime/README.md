@@ -399,6 +399,8 @@ determinism metadata for every callback export. `abi_baseline_v3.json` plus
 `api.m6_manifest_compatibility` reject field removal/reordering without a major bump, while the
 C11 consumer and `Bindings/Zig/nexora.zig` gate both supported language views.
 
+The append-only V3 scene API callbacks expose only copied wire descriptors and opaque scalar IDs. Scene and entity lifetime remain host-owned; asset handles are non-owning UUID-derived tokens; input and diagnostics are by-value snapshots; raycast results are copied; and debug lines are high-level requests copied synchronously by the host. Every callback runs on the serialized game thread, borrows pointer arguments only for that call, returns `NexoraGameplayResult`, and publishes no partial object on failure. No RHI, device, queue, native-window, or swapchain pointer crosses this boundary.
+
 `Gameplay/Zig/src/game_module.zig` and its ABI test now build with the repository-local Zig 0.14.0
 toolchain and are covered by `gameplay.zig_abi_smoke`. `Apps/Showcase/NexoraShowcase` uses a
 separate V3 host adapter to map the stable Transform wire to a live `GameWorld` entity and emits

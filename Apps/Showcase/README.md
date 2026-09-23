@@ -56,3 +56,19 @@ and select `NexoraShowcase` as the launch target. The
 `Nexora Zig Showcase (Windows)` `cppvsdbg` configuration runs the same
 headless command from the Run and Debug panel. CMake Tools invokes MSVC; VS
 Code is the editor and task/debugger frontend, not a separate compiler.
+
+## ZS-M2 public scene boundary
+
+The headless scene is authored by Zig through append-only `NexoraGameplayHostV3` callbacks. Zig
+loads and activates the scene, resolves opaque asset handles, spawns the camera/light/physics-backed
+mesh entities, exercises despawn, consumes an input snapshot, raycasts, submits high-level debug
+lines, and reads frame diagnostics. C++ continues to own `GameWorld`, input/backend state, physics,
+render extraction, and all returned handles; Zig receives no RHI, device, queue, swapchain, native
+window, or movable ECS pointer.
+
+All callbacks execute synchronously on the serialized game thread. Input and diagnostics are copied
+snapshots, spawn/debug descriptors are borrowed only for the call, asset/entity/scene values are
+opaque non-owning IDs, and debug requests are copied by the host. Invalid pointers, sizes, handles,
+UUIDs, or lifecycle state return `NexoraGameplayResult` without partial publication. The Zig module
+retains only opaque IDs and its host-allocated state between callbacks; those IDs become invalid
+when their host-owned world is destroyed.

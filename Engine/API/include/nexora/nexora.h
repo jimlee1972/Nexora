@@ -28,7 +28,8 @@ typedef enum NexoraGameplayCapability {
   NEXORA_GAMEPLAY_CAPABILITY_NONE = 0,
   NEXORA_GAMEPLAY_CAPABILITY_STATE_MIGRATION = 1u << 0,
   NEXORA_GAMEPLAY_CAPABILITY_FIXED_UPDATE = 1u << 1,
-  NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR = 1u << 2
+  NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR = 1u << 2,
+  NEXORA_GAMEPLAY_CAPABILITY_SCENE_API = 1u << 3
 } NexoraGameplayCapability;
 
 typedef enum NexoraAllocationOwner {
@@ -79,6 +80,57 @@ typedef struct NexoraGameModuleV2 {
 
 typedef int32_t (*NexoraGameModuleLoadFn)(uint32_t requested_abi, NexoraGameModuleV2 *module);
 
+typedef struct NexoraVec3 { double x, y, z; } NexoraVec3;
+typedef struct NexoraAssetHandle { uint64_t value; } NexoraAssetHandle;
+typedef struct NexoraEntitySpawnDescriptor {
+  uint32_t struct_size;
+  uint32_t components;
+  NexoraVec3 position;
+  double camera_fov_degrees;
+  float light_intensity;
+  uint32_t reserved;
+  NexoraAssetHandle mesh;
+  NexoraAssetHandle material;
+  NexoraVec3 bounds_minimum;
+  NexoraVec3 bounds_maximum;
+} NexoraEntitySpawnDescriptor;
+typedef struct NexoraInputSnapshot {
+  uint64_t sequence;
+  double move_x;
+  double move_y;
+  uint32_t buttons;
+  uint32_t reserved;
+} NexoraInputSnapshot;
+typedef struct NexoraRaycastRequest {
+  NexoraVec3 origin;
+  NexoraVec3 direction;
+  double distance;
+} NexoraRaycastRequest;
+typedef struct NexoraRaycastHit {
+  uint64_t entity;
+  double distance;
+  NexoraVec3 point;
+} NexoraRaycastHit;
+typedef struct NexoraDebugLine {
+  NexoraVec3 start;
+  NexoraVec3 end;
+  uint32_t rgba;
+  float duration_seconds;
+} NexoraDebugLine;
+typedef struct NexoraFrameDiagnostics {
+  uint64_t frame;
+  uint64_t scene_entities;
+  uint64_t debug_lines;
+  uint64_t api_errors;
+} NexoraFrameDiagnostics;
+
+enum NexoraSpawnComponent {
+  NEXORA_SPAWN_CAMERA = 1u << 0,
+  NEXORA_SPAWN_LIGHT = 1u << 1,
+  NEXORA_SPAWN_MESH = 1u << 2,
+  NEXORA_SPAWN_PHYSICS = 1u << 3
+};
+
 typedef struct NexoraGameplayHostV3 {
   uint32_t struct_size;
   uint32_t abi_version;
@@ -92,6 +144,18 @@ typedef struct NexoraGameplayHostV3 {
   void *(*allocate)(void *context, uint64_t owner, uint64_t size, uint64_t alignment);
   void (*deallocate)(void *context, uint64_t owner, void *allocation, uint64_t size,
                      uint64_t alignment);
+  int32_t (*load_scene)(void *context, const char *name, uint32_t name_length,
+                        uint32_t persistent, uint64_t *scene);
+  int32_t (*activate_scene)(void *context, uint64_t scene);
+  int32_t (*spawn_entity)(void *context, uint64_t scene,
+                          const NexoraEntitySpawnDescriptor *descriptor, uint64_t *entity);
+  int32_t (*despawn_entity)(void *context, uint64_t entity);
+  int32_t (*capture_input)(void *context, uint32_t user, NexoraInputSnapshot *snapshot);
+  int32_t (*resolve_asset)(void *context, uint64_t uuid_high, uint64_t uuid_low,
+                           NexoraAssetHandle *asset);
+  int32_t (*raycast)(void *context, const NexoraRaycastRequest *request, NexoraRaycastHit *hit);
+  int32_t (*debug_draw_line)(void *context, const NexoraDebugLine *line);
+  int32_t (*get_diagnostics)(void *context, NexoraFrameDiagnostics *diagnostics);
 } NexoraGameplayHostV3;
 
 typedef struct NexoraGameModuleV3 {

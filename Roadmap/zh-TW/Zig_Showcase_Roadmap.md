@@ -2,7 +2,7 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
 
-> **進度：20%**（截至 2026-09-23；依第 4 節 6 個 milestone 的加權驗收清單計算，
+> **進度：40%**（截至 2026-09-23；依第 4 節 6 個 milestone 的加權驗收清單計算，
 > 已完成項目以 ✅ 標示，結果向下取整至 10%。）
 
 **施工狀態（2026-09-23）：** ZS-M0 已開始。ABI V3 現在定義明確的 result 與 capability 值、
@@ -74,9 +74,9 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
   - 待辦：建置 Zig Development shared-library artifact，並由 `NexoraShowcase` 選取。
   - 待辦：native window/input/swapchain；該邊界由 Window & Presentation Roadmap 負責。
 - **ZS-M2 API-driven scene**：只用 API Roadmap 的 C/Zig bindings 建 scene、camera、mesh、input 與 diagnostics。
-  - 待辦：將目前由 C++ 建立的 camera/light/cubes 改由 Zig 經公開 API 建立。
-  - 待辦：版本化 spawn/despawn、scene、input snapshot、asset handle、raycast、debug draw 與 diagnostics callbacks。
-  - 待辦：每項新 export 同步 C header、ABI manifest/baseline、Zig binding、ownership/thread/error contract 與 tests。
+  - ✅ Zig 經 public host table 建立 scene、camera、light 與 cubes；C++ 保留 engine/world/render ownership。
+  - ✅ 以 append-only 方式補齊 spawn/despawn、scene、input snapshot、opaque asset handle、raycast、高階 debug draw 與 diagnostics callbacks。
+  - ✅ C header、ABI manifest/baseline、Zig binding、ownership/thread/error contract、C++ ABI gates、Zig smoke 與 deterministic headless evidence 已同步。
 - **ZS-M3 Feature gallery**：加入 physics、animation/audio/VFX、streaming 的 bounded showcases 與 capability fallback。
   - 待辦：Math、Scene、Gameplay、Presentation 與 Streaming 五個可操作房間。
   - 待辦：camera input、selection/raycast、physics/navigation、animation/audio/VFX 與 large-world overlays。
