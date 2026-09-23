@@ -82,7 +82,8 @@
       "feature": "NEXORA_ENABLE_ZIG_GAMEPLAY",
       "dependencies": [
         "GameplayZig",
-        "Runtime"
+        "Runtime",
+        "Presentation"
       ]
     }
   ]

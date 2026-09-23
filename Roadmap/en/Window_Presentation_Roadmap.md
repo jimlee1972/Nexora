@@ -2,7 +2,7 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-23
 
-> **Progress: 60%** (WP-M0 through WP-M2 are implemented; WP-M1/WP-M2 acceptance requires a passing Windows/DX12 runner; WP-M3 and WP-M4 remain open.)
+> **Progress: 80%** (WP-M0 through WP-M3 are implemented; native Windows acceptance still requires a passing Windows/DX12 runner; WP-M4 remains open.)
 
 ## 1. Purpose and ownership
 
@@ -16,8 +16,8 @@ receives a native window, device, queue, or swapchain pointer.
 
 - ✅ Validation and native RHI devices execute deterministic offscreen workloads.
 - ✅ Renderer scene extraction and offscreen `Present` state validation are covered by tests.
-- ✅ `NexoraShowcase` has a headless lifecycle and reports native presentation as `CONTRACT ONLY`.
-- Implemented pending Windows acceptance: Win32 window/event translation and a DX12 window-system swapchain; Showcase/Editor integration remains open.
+- ✅ `NexoraShowcase` preserves its headless lifecycle and can own a reusable native render surface.
+- Implemented pending Windows acceptance: Win32 window/input translation, DX12 presentation, and Showcase integration through the application-facing `RenderSurface` boundary.
 
 ## 3. Required contracts
 
@@ -58,11 +58,18 @@ No native window or swapchain backend is claimed by this milestone.
 
 Windows acceptance evidence is produced by `window_presentation.contracts`: it creates a real Win32 window, acquires, clears, and presents four DX12 frames, resizes the swapchain, and asserts diagnostic counters. A green Windows/DX12 runner is required before marking WP-M1/WP-M2 accepted; Linux contract results or screenshots alone are insufficient.
 
-### WP-M3 — Showcase and Editor integration
+### ✅ WP-M3 — Showcase and Editor integration
 
 - Run `NexoraShowcase --mode=interactive --backend=dx12` with visible output and input.
 - Provide reusable render surfaces for Scene/Game views without making Runtime depend on Editor.
 - Preserve the deterministic Linux headless path and make fallback reasons visible rather than silent.
+
+Delivered evidence: `NexoraShowcase --mode=interactive --backend=dx12` creates the reusable
+Presentation-owned `RenderSurface`, pumps input, and presents until close; bounded frame runs are
+available for automation. The same public owner is usable by Editor Scene/Game views without adding
+an Editor dependency to Runtime. Auto fallback emits and records its reason, explicit DX12 failure
+does not fall back, and non-Windows contract tests retain the deterministic headless gate. Actual
+Windows/DX12 execution remains target-host acceptance evidence rather than a Linux-cloud claim.
 
 ### WP-M4 — Additional platforms and hardening
 

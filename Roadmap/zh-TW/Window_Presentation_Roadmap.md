@@ -2,7 +2,7 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-23
 
-> **進度：60%**（WP-M0 至 WP-M2 已實作；WP-M1/WP-M2 必須通過 Windows/DX12 runner 才能驗收；WP-M3 與 WP-M4 尚未完成。）
+> **進度：80%**（WP-M0 至 WP-M3 已實作；native Windows 驗收仍須通過 Windows/DX12 runner；WP-M4 尚未完成。）
 
 ## 1. 目的與 ownership
 
@@ -15,8 +15,8 @@ backend-neutral surface event。Zig gameplay 不得取得 native window、device
 
 - ✅ Validation 與 native RHI device 可執行 deterministic offscreen workload。
 - ✅ Renderer scene extraction 與 offscreen `Present` state validation 已有測試。
-- ✅ `NexoraShowcase` 已有 headless lifecycle，並將 native presentation 標為 `CONTRACT ONLY`。
-- 已實作、待 Windows 驗收：Win32 window/event translation 與 DX12 window-system swapchain；Showcase/Editor 整合仍未完成。
+- ✅ `NexoraShowcase` 保留 headless lifecycle，並可擁有可重用的 native render surface。
+- 已實作、待 Windows 驗收：Win32 window/input translation、DX12 presentation，以及透過 application-facing `RenderSurface` boundary 完成的 Showcase 整合。
 
 ## 3. 必要 contract
 
@@ -57,11 +57,17 @@ README 記錄 ownership、lifetime、threading、resize 與 recovery 規則。�
 
 Windows 驗收證據由 `window_presentation.contracts` 產生：測試會建立真實 Win32 視窗、acquire、clear 並 present 四個 DX12 frame、調整 swapchain 大小，且斷言診斷計數器。WP-M1/WP-M2 必須等 Windows/DX12 runner 綠燈後才能標為驗收；Linux 契約結果或 screenshot 均不足以單獨作為證據。
 
-### WP-M3 — Showcase 與 Editor 整合
+### ✅ WP-M3 — Showcase 與 Editor 整合
 
 - 讓 `NexoraShowcase --mode=interactive --backend=dx12` 擁有可見輸出與 input。
 - 提供 Scene/Game view 可重用的 render surface，不讓 Runtime 依賴 Editor。
 - 保留 deterministic Linux headless path，fallback 必須顯示原因而不得靜默發生。
+
+交付證據：`NexoraShowcase --mode=interactive --backend=dx12` 會建立由 Presentation 擁有、可重用的
+`RenderSurface`，pump input 並持續 present 至關閉；自動化可使用有 frame 上限的執行方式。Editor
+Scene/Game view 可使用相同 public owner，不必讓 Runtime 新增 Editor dependency。Auto fallback 會輸出
+並記錄原因，明確指定 DX12 時失敗不會 fallback，non-Windows contract test 則保留 deterministic
+headless gate。實際 Windows/DX12 執行仍屬 target-host 驗收證據，不宣稱已在 Linux cloud 驗證。
 
 ### WP-M4 — 其他平台與 hardening
 

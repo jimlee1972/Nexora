@@ -8,7 +8,7 @@ add_executable(NexoraShowcase
   main.cpp
   "${NEXORA_ZIG_SAMPLE_OBJECT}")
 add_dependencies(NexoraShowcase NexoraZigGameplayBuild)
-target_link_libraries(NexoraShowcase PRIVATE Nexora::Runtime)
+target_link_libraries(NexoraShowcase PRIVATE Nexora::Runtime Nexora::Presentation)
 if(WIN32)
   # The Zig object may reference the NT syscall import directly. CMake's
   # link.exe invocation does not inherit the Zig driver's implicit ntdll link.
