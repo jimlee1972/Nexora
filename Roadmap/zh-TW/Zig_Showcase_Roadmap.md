@@ -65,4 +65,4 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
 
 完成代表 clone/build 後由 `NexoraShowcase` 啟動，明確證明 C++ 擁有 `main`，Zig gameplay 經公開 API 驅動畫面，且 headless、錯誤、reload 與 Shipping profile 有證據。第一版不允許 Zig 直接呼叫 RHI/native window，不要求 Zig 編寫 editor UI，也不把缺少平台 SDK 的功能標成完成。
 
-本文件與既有 `V1-Visual-Showcase-Long-Term-Plan.md` 互補：該文件描述整體展示產品，本文件專門約束 Zig consumer 與 Engine-owned entry point。
+本文件與既有 [`V1-Visual-Showcase-Long-Term-Plan.md`](V1-Visual-Showcase-Long-Term-Plan.md) 互補：該文件描述整體展示產品，本文件專門約束 Zig consumer 與 Engine-owned entry point。

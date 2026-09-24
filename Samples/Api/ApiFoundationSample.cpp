@@ -3,9 +3,9 @@
 // only, the same way Plugins/Example proves the plugin ABI by actually
 // building and loading a real .so rather than only asserting in a unit
 // test. This is not the windowed NexoraShowcase demo (see
-// Roadmap/V1-Visual-Showcase-Long-Term-Plan.md for that, separate, V1-M0~M12
-// effort) -- it is the roadmap's per-API "sample" deliverable: minimal,
-// headless, and safe to run in CI.
+// Roadmap/en/V1-Visual-Showcase-Long-Term-Plan.md for that, separate,
+// V1-M0~M12 effort) -- it is the roadmap's per-API "sample" deliverable:
+// minimal, headless, and safe to run in CI.
 #include "Nexora/Core/Handle.h"
 #include "Nexora/Core/JobSystem.h"
 #include "Nexora/Core/Services.h"
