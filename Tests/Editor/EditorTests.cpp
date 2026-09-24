@@ -94,6 +94,9 @@ int Run() {
   const auto placeholder = loaded_world.LoadScene("Placeholder");
   editor::SceneDocument loaded(loaded_world, placeholder);
   Require(loaded.Reload(scene_path) && loaded.Name(child) == "Child", "scene reload failed");
+  Require(document.Create("Bad\nName") == 0 && document.Create("Bad\rName") == 0,
+          "a node name containing a newline must be rejected, since Save()/Reload() use a "
+          "line-oriented format that a newline would silently corrupt");
 
   runtime::PlaySession play(world);
   Require(play.Start(1.0 / 60.0, [](runtime::World &, double) { return true; }) && play.Pause() &&
@@ -119,6 +122,15 @@ int Run() {
           "build manifest failed");
   manifest.artifacts.push_back({"../escape", "bad", 1});
   Require(!editor::BuildFrontend::Validate(manifest, &error), "unsafe build artifact accepted");
+#if defined(_WIN32)
+  // std::filesystem::path only parses a drive letter as a root-name on Windows,
+  // so this rejection is inherently platform-specific and cannot be exercised
+  // by the Linux gate.
+  manifest.artifacts.back() = {"C:/Windows/System32/evil.dll", "bad", 1};
+  Require(!editor::BuildFrontend::Validate(manifest, &error),
+          "a Windows drive-letter-rooted artifact path must be rejected even though it starts "
+          "with neither '/' nor '\\\\', or it can escape the sandbox root it gets joined onto");
+#endif
 
   editor::ProfileSession profile;
   Require(profile.Add({1, 2.0, 3.0, 100}) && profile.Add({2, 8.0, 4.0, 200}) &&

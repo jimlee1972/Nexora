@@ -71,8 +71,7 @@ int Run() {
   World world;
   const auto scene = world.LoadScene("EditorScene");
   SceneEditor editor(world);
-  auto &entity = editor.CreateEntity(scene);
-  const auto entity_id = entity.id;
+  const auto entity_id = editor.CreateEntity(scene);
   Require(editor.UndoDepth() == 1 && world.FindEntity(entity_id) != nullptr,
           "scene editor did not create the entity");
 
@@ -115,8 +114,7 @@ int Run() {
   Require(!editor.Undo(), "undo succeeded past the bottom of the stack");
 
   // ---- Play-in-Editor: isolated world / pause / step / focus / apply-back ----
-  auto &pie_entity = editor.CreateEntity(scene);
-  const auto pie_entity_id = pie_entity.id;
+  const auto pie_entity_id = editor.CreateEntity(scene);
   Require(editor.SetTransform(pie_entity_id, {1.0, 0.0, 0.0}), "PIE source transform setup failed");
   PlaySession play(world);
   const auto simulate = [pie_entity_id](World &play_world, double fixed_delta) {

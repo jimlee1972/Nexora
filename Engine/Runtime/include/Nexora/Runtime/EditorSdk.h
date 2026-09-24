@@ -110,7 +110,12 @@ class NEXORA_RUNTIME_API SceneEditor final {
 public:
   explicit SceneEditor(World &world) noexcept : world_(world) {}
 
-  Entity &CreateEntity(Id scene);
+  // Returns the new entity's stable Id rather than a reference into World's
+  // internal storage: World::CreateEntity's Entity& is only safe to use
+  // before any other call that can mutate the owning scene's entity
+  // storage (see Engine/Runtime/README.md), a discipline this class's own
+  // external callers cannot be expected to know about.
+  Id CreateEntity(Id scene);
   bool SetTransform(Id entity, Transform transform);
   bool DestroyEntity(Id scene, Id entity);
   bool Undo();
