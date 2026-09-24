@@ -48,7 +48,6 @@ public:
   Render(Nexora::Presentation::RenderSurface &surface, std::uint32_t width, std::uint32_t height);
   void UpdateImeCandidate(Nexora::Presentation::RenderSurface &surface);
   [[nodiscard]] RecoveryChoice TakeRecoveryChoice() noexcept;
-  [[nodiscard]] bool RecoveryPromptVisible() const noexcept;
 
 private:
   struct State;
