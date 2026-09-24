@@ -129,6 +129,10 @@ Phase 1 開始之前先講——後面所有內容都是建立在這個假設上
 
 ### Phase 6 — Crash-recovery UX
 
+- **實作狀態：workflow gate 已實作；實體 display 檢視仍屬於 ED-M0 的整體人工 gate。** Linux host
+  具備 `Xvfb` 與 `xdotool` 時，CTest 現在會在 pending journal 存在時砍掉真正的圖形化 process，
+  重新啟動、觀察已開啟的 modal，再透過原生鍵盤事件驅動 recover 與 discard。測試會確認 recover
+  取代 workspace 並刪除 journal，而 discard 只刪除 journal。
 - `ProjectWorkspace::RecoverWorkspace` 跟 recovery journal 在資料層已經存在
   （`Engine/Editor/README.md`）。這個階段只加 UI：啟動時如果偵測到 recovery journal，在正常
   shell 渲染前先跳出一個「復原或捨棄」的對話框。

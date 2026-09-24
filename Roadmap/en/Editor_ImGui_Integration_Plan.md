@@ -144,6 +144,11 @@ different default), say so before Phase 1 starts -- everything past this section
 
 ### Phase 6 -- Crash-recovery UX
 
+- **Implementation status: workflow gate implemented; physical-display review remains part of the
+  ED-M0 human gate.** On Linux hosts with `Xvfb` and `xdotool`, CTest now kills the real graphical
+  process with a pending journal, relaunches it, observes the open modal, and drives both recovery
+  choices through native keyboard events. It verifies that recover replaces the workspace and
+  removes the journal, while discard removes only the journal.
 - `ProjectWorkspace::RecoverWorkspace` and the recovery journal already exist at the data layer
   (`Engine/Editor/README.md`). This phase adds only the UI: on startup, if a recovery journal is
   present, show a dialog offering recover-or-discard before the normal shell renders.
