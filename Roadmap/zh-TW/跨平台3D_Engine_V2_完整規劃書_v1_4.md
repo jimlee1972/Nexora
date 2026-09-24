@@ -3768,7 +3768,14 @@ Reference Project Snapshot
 
 ---
 
-## V2-M1 — Clang Reflection / DDC / Headless Toolchain
+## ✅ V2-M1 — Clang Reflection / DDC / Headless Toolchain
+
+> **Repository 狀態：portable gate 已驗收。** `Tools/Production/NexoraTool.py` 從 Clang JSON AST
+> 產生排序後的 canonical metadata、保存不可變的 content-addressed artifact、以獨立 worker
+> process 執行每次 import，並提供適合 CI 的 validate／import／cook commandlet。Versioned external
+> entity manifest 與 deterministic structural JSON diff 奠定 scene 基礎；
+> `build.v2_production_toolchain` 覆蓋 deterministic output、worker crash、cache reuse 與 headless
+> cook path。
 
 先做：
 

@@ -2253,7 +2253,7 @@ LiveOps 可 rollback
 
 ```text
 ✅ V2-M0  Migration / Baseline
-V2-M1  Clang Reflection / DDC / Headless Toolchain
+✅ V2-M1  Clang Reflection / DDC / Headless Toolchain
 V2-M2  GPUScene
 V2-M3  GPU-driven Renderer
 V2-M4  Large World V2
@@ -2319,5 +2319,4 @@ Done
 ```
 
 必須提供可驗證證據。
-
 

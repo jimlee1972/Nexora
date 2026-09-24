@@ -141,4 +141,8 @@ if(BUILD_TESTING)
     NAME build.v2_migration_scanner
     COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Migration/TestScanV1Project.py")
+  add_test(
+    NAME build.v2_production_toolchain
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Production/TestNexoraTool.py")
 endif()

@@ -3756,7 +3756,14 @@ Reference Project Snapshot
 
 ---
 
-## V2-M1 — Clang Reflection / DDC / Headless Toolchain
+## ✅ V2-M1 — Clang Reflection / DDC / Headless Toolchain
+
+> **Repository status: accepted (portable gate).** `Tools/Production/NexoraTool.py` emits sorted
+> canonical metadata from Clang's JSON AST, stores immutable content-addressed artifacts, isolates
+> each import in a worker process, and exposes CI-safe validate/import/cook commandlets. Versioned
+> external entity manifests and deterministic structural JSON diffs provide the scene foundation;
+> `build.v2_production_toolchain` covers deterministic output, worker crashes, cache reuse, and the
+> headless cook path.
 
 Do first:
 
