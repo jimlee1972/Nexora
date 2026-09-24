@@ -4,6 +4,8 @@
 **Corresponding Source: Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md**
 **Purpose: AI implementation, Engine Programmer implementation, system decomposition, Code Review, CI Gate.**
 
+> **Progress: 15%** (✅ V2-M0 and ✅ V2-M1 are accepted; V2-M2 through V2-M12 remain open.)
+
 
 
 ---

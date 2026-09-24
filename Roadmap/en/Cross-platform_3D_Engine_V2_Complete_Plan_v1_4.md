@@ -3,6 +3,8 @@
 **Document Version: Master Draft v1.4**
 **Engine Generation: V2.x — Scale-Up / Production**
 
+> **Progress: 15%** (✅ V2-M0 and ✅ V2-M1 have passed their portable repository gates; V2-M2 through V2-M12 remain open. Native target evidence remains a separate gate.)
+
 > This document is the **V2 Master Plan**. All V1 Contracts are inherited by default; only items explicitly marked “V2 supersede” in this document may change V1 behavior.
 >
 > The theme of V2 is not rewriting the engine, but expanding V1 to GPU-Driven, Large World V2, Networking / Dedicated Server, advanced AI / Navigation / Animation, Distributed Build, LiveOps, and Production Tooling.
