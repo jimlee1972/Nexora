@@ -75,6 +75,16 @@ nexora_declare_features()
 nexora_validate_module_graph("${CMAKE_CURRENT_SOURCE_DIR}/Config/Modules/modules.json")
 nexora_configure_slang()
 
+if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
+  include(FetchContent)
+  FetchContent_Declare(
+    nexora_imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG v1.91.9b-docking
+    GIT_SHALLOW TRUE)
+  FetchContent_MakeAvailable(nexora_imgui)
+endif()
+
 if(NEXORA_ENABLE_NATIVE_BACKENDS AND (WIN32 OR (UNIX AND NOT APPLE)))
   include(FetchContent)
   set(VULKAN_HEADERS_ENABLE_MODULE OFF CACHE BOOL "" FORCE)

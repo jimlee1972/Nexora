@@ -1,5 +1,6 @@
 #include "Nexora/RHI/Device.h"
 
+#include <algorithm>
 #include <mutex>
 #include <stdexcept>
 #include <unordered_map>
@@ -61,12 +62,25 @@ public:
     std::lock_guard lock{mutex_};
     const auto handle = textures_.Create();
     texture_states_.emplace(Key(handle), descriptor.initial_state);
+    texture_sizes_.emplace(Key(handle),
+                           static_cast<std::uint64_t>(descriptor.width) * descriptor.height * 4U);
+    texture_row_pitches_.emplace(Key(handle), descriptor.width * 4U);
     return handle;
+  }
+  void WriteTextureRgba8(TextureHandle texture, std::span<const std::byte> data,
+                         std::uint32_t row_pitch) override {
+    std::lock_guard lock{mutex_};
+    Require(textures_.Contains(texture), "writing invalid texture");
+    Require(row_pitch == texture_row_pitches_.at(Key(texture)) &&
+                data.size() == texture_sizes_.at(Key(texture)),
+            "texture upload size is invalid");
   }
   void DestroyTexture(TextureHandle texture) override {
     std::lock_guard lock{mutex_};
     Require(textures_.Destroy(texture), "destroying invalid texture");
     texture_states_.erase(Key(texture));
+    texture_sizes_.erase(Key(texture));
+    texture_row_pitches_.erase(Key(texture));
   }
   BufferHandle CreateBuffer(const BufferDescriptor &descriptor) override {
     if (descriptor.size == 0)
@@ -102,7 +116,7 @@ public:
   std::unique_ptr<CommandList> CreateCommandList(QueueType) override {
     return std::make_unique<ValidationCommandList>(*this);
   }
-  void Submit(CommandList &commands) override {
+  std::uint64_t Submit(CommandList &commands) override {
     auto *validated = dynamic_cast<ValidationCommandList *>(&commands);
     std::lock_guard lock{mutex_};
     Require(validated != nullptr, "command list belongs to another device");
@@ -115,6 +129,17 @@ public:
     diagnostics_.draw_calls += validated->DrawCalls();
     diagnostics_.compute_dispatches += validated->Dispatches();
     diagnostics_.indirect_draw_calls += validated->IndirectDraws();
+    completed_submission_ = ++submitted_submission_;
+    return submitted_submission_;
+  }
+  std::uint64_t CompletedSubmissionValue() const noexcept override {
+    std::lock_guard lock{mutex_};
+    return completed_submission_;
+  }
+  void WaitForSubmission(std::uint64_t value) override {
+    std::lock_guard lock{mutex_};
+    Require(value <= submitted_submission_, "waiting for an unknown submission");
+    completed_submission_ = std::max(completed_submission_, value);
   }
   void Present(TextureHandle texture) override {
     std::lock_guard lock{mutex_};
@@ -173,8 +198,12 @@ private:
   core::HandlePool<BufferTag> buffers_;
   core::HandlePool<PipelineTag> pipelines_;
   std::unordered_map<std::uint64_t, ResourceState> texture_states_;
+  std::unordered_map<std::uint64_t, std::uint64_t> texture_sizes_;
+  std::unordered_map<std::uint64_t, std::uint32_t> texture_row_pitches_;
   std::unordered_map<std::uint64_t, std::uint64_t> buffer_sizes_;
   DeviceDiagnostics diagnostics_;
+  std::uint64_t submitted_submission_{};
+  std::uint64_t completed_submission_{};
 };
 
 void ValidationCommandList::Transition(const Barrier &barrier) {

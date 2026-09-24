@@ -60,6 +60,23 @@ int Run() {
   }
   Require(reopened.DiscardRecovery(&error) && !reopened.HasRecoveryJournal(),
           "workspace recovery discard failed");
+  error.clear();
+  Require(!reopened.DiscardRecovery(&error) && !error.empty(),
+          "missing recovery journal did not report an actionable error");
+  {
+    std::ofstream recovery(root / ".nexora/workspace.recovery", std::ios::trunc);
+    recovery << "schema=1\ncorrupt-entry\n";
+  }
+  error.clear();
+  Require(!reopened.RecoverWorkspace(&error) && reopened.HasRecoveryJournal() && !error.empty(),
+          "corrupt recovery journal was not preserved with an actionable error");
+  Require(reopened.DiscardRecovery(&error), "corrupt recovery journal could not be discarded");
+  const std::string layout = "[Window][Hierarchy###nexora.hierarchy]\nPos=0,0\n";
+  Require(reopened.SaveEditorLayout(layout, &error) && reopened.LoadEditorLayout(&error) == layout,
+          "editor layout round-trip failed");
+  std::ofstream(root / ".nexora/editor-layout.ini", std::ios::trunc) << "schema=999\n";
+  Require(!reopened.LoadEditorLayout(&error) && !error.empty(),
+          "unsupported editor layout schema was accepted");
 
   {
     std::ofstream(root / "Content/Hero.mesh") << "mesh";

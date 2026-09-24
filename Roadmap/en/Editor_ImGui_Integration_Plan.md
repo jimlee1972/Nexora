@@ -1,14 +1,15 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
-> Version: v1.3 | Status: implementation in progress; native GPU renderer and target-host evidence pending |
+> Version: v1.3 | Status: implementation in progress; target-host evidence pending |
 > Updated: 2026-09-24 | Relates to: `Editor_Roadmap.md` (ED-M0),
 > `ADR-0001-Editor-UI-Framework.md`, `Window_Presentation_Roadmap.md`
 
 > **Repository audit (2026-09-24):** implementation is **in progress**. The checked foundations
 > below are present in source and contract tests, but **none of WP0–WP8 has passed its exit gate**.
-> In particular, retained GPU resources, direct rendering to the borrowed presentation target,
-> layout persistence, DPI font-atlas rebuilding, destructive recovery tests, and target-host
-> evidence remain open. A checked foundation must not be interpreted as ED-M0 acceptance.
+> Retained GPU resources, direct rendering to the borrowed presentation target, project-owned
+> layout persistence, DPI font-atlas rebuilding, and recovery failure contracts are implemented.
+> Real-process recovery and target-host evidence remain open, so these foundations must not be
+> interpreted as ED-M0 acceptance.
 
 ## 1. Goal, acceptance boundary, and current truth
 
@@ -18,14 +19,12 @@ ED-M0 is accepted only when the Editor opens through the public `RenderSurface`,
 GPU-backed docked shell, consumes real input, handles DPI and Windows IME, exposes recovery before
 normal editing, and has reproducible automated and target-host evidence.
 
-The repository already contains a feature-gated `NexoraEditorImGui`, a pinned Dear ImGui docking
-dependency, context ownership, input translation, stable-ID docking, a live Hierarchy, recovery
-modal, DPI/theme policy, an RHI draw-contract path, and an application path that composites a CPU
-rasterized RGBA8 image into the acquired surface. These are foundations, not final renderer
-acceptance: the graphical path must stop CPU-rasterizing every frame and submit ImGui's textured,
-indexed draw lists directly to the acquired presentation image through the public RHI contract.
-Real-display Linux evidence and Windows DPI/IME evidence are also still absent. Therefore ED-M0
-remains open.
+The repository contains a feature-gated `NexoraEditorImGui`, a pinned Dear ImGui docking dependency,
+context ownership, input translation, stable-ID docking, a live Hierarchy, recovery modal,
+DPI/theme policy, generation-checked textures, completion-tracked resource rings, and native
+Vulkan/DX12/Metal draw recording through a backend-neutral presentation contract. These remain
+foundations rather than final renderer acceptance because real-display Linux evidence and Windows
+DPI/IME evidence are still absent. Therefore ED-M0 remains open.
 
 ### Verified implementation checklist
 
@@ -43,12 +42,14 @@ remains open.
   implementation foundations.
 - [x] Recovery UI calls only `ProjectWorkspace` recover/discard operations, preserves failures,
   and exposes exactly-once result consumption.
-- [ ] The production surface overload records native GPU draws; it still CPU-rasterizes a full
-  RGBA8 frame and calls `CompositeRgba8`.
-- [ ] Pipeline, sampler, font atlas, texture registry, and upload rings are retained and retired
-  by GPU completion values; the current RHI overload creates transient resources per call.
-- [ ] Layout round-trip, DPI font-atlas rebuilding, complete recovery failure/process tests, and
-  Linux/Windows target-host acceptance evidence exist.
+- [x] The production surface overload emits backend-neutral textured/indexed `UiDrawData`; Vulkan,
+  DX12, and Metal implementations record native GPU draws without `CompositeRgba8`.
+- [x] Pipeline, sampler, generation-checked textures, bounded upload rings, and
+  completion-protected retirement are implemented for the production surface and validation paths.
+- [x] Project-owned layout persistence, DPI font-atlas rebuilding, and recovery
+  failure/exactly-once contract coverage exist.
+- [ ] Native graphical validation, real-process recovery, repeated-frame Linux display evidence,
+  and Windows DPI/IME target-host acceptance evidence are recorded and passing.
 
 ### Definition of "done"
 
@@ -173,7 +174,7 @@ and resource retirement; Vulkan validation reports no errors for an offscreen fr
 
 ### WP2 — Implement the retained GPU renderer resources
 
-**Status: remaining; current public-RHI overload is a draw-contract scaffold.**
+**Status: implemented in source and validation contracts; native target-host validation remains.**
 
 1. Introduce a renderer-owned state object beneath `EditorImGuiHost`: pipeline, sampler, font
    texture/view, descriptor bindings, and a bounded ring of per-frame vertex/index upload buffers.
@@ -198,7 +199,7 @@ font rebuild do not leak; sanitizer/validation runs find no stale-handle or out-
 
 ### WP3 — Connect the renderer to the acquired presentation image
 
-**Status: remaining; the current native overload CPU-rasterizes and calls `CompositeRgba8`.**
+**Status: implemented in source for Vulkan, DX12, and Metal; target-host validation remains.**
 
 1. Add the smallest public `RenderSurface` frame-target access needed by a renderer, preferably a
    callback/encoder or borrowed RHI target descriptor valid only between `BeginFrame` and
@@ -218,7 +219,8 @@ no per-frame full-screen CPU RGBA buffer or readback/upload round trip remains.
 
 ### WP4 — Input, docking, persistence, and command routing hardening
 
-**Status: portable core mostly present; persistence and target-host proof remain.**
+**Status: portable core and versioned project-owned layout round-trip are present; target-host proof
+remains.**
 
 1. Retain the full key mapping (navigation/editing, punctuation, keypad, F1-F12, alphanumeric, and
    left/right modifiers). Add table-driven tests for press/release and modifier snapshots.
@@ -238,7 +240,8 @@ proves typing, shortcuts, drag docking, wheel axes, focus loss, and close behavi
 
 ### WP5 — DPI, fonts, and theme
 
-**Status: live extent/DPI forwarding exists; crisp font rebuild and Windows proof remain.**
+**Status: live extent/DPI forwarding and bucketed font rebuild exist; production GPU atlas upload
+and Windows proof remain.**
 
 1. Define a small DPI bucket policy (for example, nearest supported scale with hysteresis) and an
    immutable base style. Recompute style from base whenever the bucket changes; never repeatedly

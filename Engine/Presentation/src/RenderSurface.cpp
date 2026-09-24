@@ -68,6 +68,11 @@ SurfaceStatus RenderSurface::CompositeRgba8(std::span<const std::byte> pixels, s
                                       : state_->surface->CompositeRgba8(pixels, width, height);
 }
 
+SurfaceStatus RenderSurface::RenderUi(const UiDrawData &draw_data) {
+  return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost
+                                      : state_->surface->RenderUi(draw_data);
+}
+
 bool RenderSurface::CloseRequested() const noexcept { return !state_ || state_->closeRequested; }
 
 const SurfaceInputSnapshot &RenderSurface::Input() const noexcept {

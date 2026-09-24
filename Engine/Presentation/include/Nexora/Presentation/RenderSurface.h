@@ -51,6 +51,7 @@ public:
   [[nodiscard]] SurfaceStatus BeginFrame();
   [[nodiscard]] SurfaceStatus CompositeRgba8(std::span<const std::byte> pixels, std::uint32_t width,
                                              std::uint32_t height);
+  [[nodiscard]] SurfaceStatus RenderUi(const UiDrawData &draw_data);
   [[nodiscard]] SurfaceStatus EndFrame();
   [[nodiscard]] bool CloseRequested() const noexcept;
   [[nodiscard]] const SurfaceInputSnapshot &Input() const noexcept;

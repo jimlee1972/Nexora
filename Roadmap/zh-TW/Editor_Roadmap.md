@@ -18,7 +18,7 @@ workspace/document core。**待辦：** window/docking/UI shell、graphical view
 
 | Scope | Repository 證據 | 已驗收 |
 | --- | --- | :---: |
-| ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、RHI draw contract 與 CPU surface composition 已存在。Native retained GPU rendering、persistence、recovery hardening 與 Linux/Windows host evidence 仍待完成。 | [ ] |
+| ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Real-process recovery 與 Linux/Windows host evidence 仍待完成。 | [ ] |
 | ED-M1 project/assets | Portable create/open、deterministic indexing/search、cancellation/progress/error record 與 artifact hash 已存在。Graphical Content Browser、dependency/reimport 與 drag/drop workflow 仍待完成。 | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection、reparent、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在。Scene View、Inspector、picking、camera、gizmo 與 reflected graphical widget 仍待完成。 | [ ] |
 | ED-M3 PIE/debugging | Isolated `PlaySession`、fixed tick、pause/step、focus policy、discard 與 explicit transform apply-back 已存在。Graphical Game View、Console/runtime inspection 與 debugger integration 仍待完成。 | [ ] |

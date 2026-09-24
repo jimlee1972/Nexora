@@ -43,6 +43,8 @@ public:
   bool SaveWorkspace(std::span<const std::string> open_documents, std::string *error = nullptr);
   bool RecoverWorkspace(std::string *error = nullptr);
   bool DiscardRecovery(std::string *error = nullptr);
+  bool SaveEditorLayout(std::string_view layout, std::string *error = nullptr);
+  [[nodiscard]] std::optional<std::string> LoadEditorLayout(std::string *error = nullptr) const;
   [[nodiscard]] bool HasRecoveryJournal() const;
   [[nodiscard]] bool HasExternalChange() const;
   [[nodiscard]] const ProjectDescriptor &Project() const noexcept { return project_; }

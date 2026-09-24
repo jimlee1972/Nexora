@@ -146,17 +146,25 @@ bool ProjectWorkspace::RecoverWorkspace(std::string *error) {
   std::ifstream input(root_ / ".nexora/workspace.recovery");
   std::string line;
   std::vector<std::string> recovered;
-  if (!input || !std::getline(input, line) || line != "schema=1")
+  if (!input || !std::getline(input, line) || line != "schema=1") {
+    if (error)
+      *error = "recovery journal is missing, unreadable, or uses an unsupported schema";
     return false;
+  }
   while (std::getline(input, line))
     if (line.starts_with("document="))
       recovered.push_back(line.substr(9));
-    else
+    else {
+      if (error)
+        *error = "recovery journal contains an invalid entry";
       return false;
+    }
   if (!WriteWorkspace(recovered, error))
     return false;
   std::error_code ec;
   std::filesystem::remove(root_ / ".nexora/workspace.recovery", ec);
+  if (ec && error)
+    *error = "workspace recovered but journal cleanup failed: " + ec.message();
   return !ec;
 }
 bool ProjectWorkspace::DiscardRecovery(std::string *error) {
@@ -164,7 +172,47 @@ bool ProjectWorkspace::DiscardRecovery(std::string *error) {
   const bool removed = std::filesystem::remove(root_ / ".nexora/workspace.recovery", ec);
   if (ec && error)
     *error = "could not discard recovery journal: " + ec.message();
+  else if (!removed && error)
+    *error = "recovery journal does not exist";
   return !ec && removed;
+}
+bool ProjectWorkspace::SaveEditorLayout(std::string_view layout, std::string *error) {
+  if (error)
+    error->clear();
+  if (root_.empty() || layout.empty() || layout.find('\0') != std::string_view::npos) {
+    if (error)
+      *error = "editor layout is empty or invalid";
+    return false;
+  }
+  return AtomicWrite(root_ / ".nexora/editor-layout.ini", "schema=1\n" + std::string(layout),
+                     error);
+}
+std::optional<std::string> ProjectWorkspace::LoadEditorLayout(std::string *error) const {
+  if (error)
+    error->clear();
+  std::ifstream input(root_ / ".nexora/editor-layout.ini", std::ios::binary);
+  if (!input)
+    return std::nullopt;
+  std::string schema;
+  if (!std::getline(input, schema) || schema != "schema=1") {
+    if (error)
+      *error = "invalid or unsupported editor layout";
+    return std::nullopt;
+  }
+  std::ostringstream contents;
+  contents << input.rdbuf();
+  if (!input.good() && !input.eof()) {
+    if (error)
+      *error = "could not read editor layout";
+    return std::nullopt;
+  }
+  auto layout = contents.str();
+  if (layout.empty()) {
+    if (error)
+      *error = "editor layout is empty";
+    return std::nullopt;
+  }
+  return layout;
 }
 bool ProjectWorkspace::HasRecoveryJournal() const {
   std::error_code ec;

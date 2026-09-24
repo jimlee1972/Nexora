@@ -5,6 +5,7 @@
 #include "Nexora/RHI/Device.h"
 #endif
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -21,6 +22,12 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
     return 1;
   }
   nexora::editor::imgui::EditorImGuiHost ui;
+  std::string layout_error;
+  if (const auto layout = workspace.LoadEditorLayout(&layout_error);
+      layout && !ui.LoadLayout(*layout))
+    std::cerr << "ignored invalid editor layout\n";
+  else if (!layout_error.empty())
+    std::cerr << layout_error << '\n';
   nexora::editor::ProductShell shell;
   nexora::runtime::World world;
   const auto scene_id = world.LoadScene("Main");
@@ -31,31 +38,49 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
   nexora::editor::SceneDocument scene(world, scene_id);
   scene.Create("Scene Root");
   std::uint32_t frames = 0;
+  int result = 0;
   while (!created.surface->CloseRequested() && (frame_limit == 0 || frames < frame_limit)) {
     const auto status = created.surface->BeginFrame();
     const auto action = Nexora::Presentation::RecoveryAction(status);
-    if (action == Nexora::Presentation::SurfaceAction::Abort)
+    if (action == Nexora::Presentation::SurfaceAction::Abort) {
+      result = 1;
       break;
+    }
     if (action != Nexora::Presentation::SurfaceAction::Render)
       continue;
     ui.ProcessEvents(created.surface->Events());
     const auto &frame = created.surface->FrameInfo();
     if (frame.width == 0 || frame.height == 0)
       continue;
-    ui.SetDisplay(static_cast<float>(frame.width), static_cast<float>(frame.height),
-                  frame.dpiScale);
+    const auto dpi = std::max(frame.dpiScale, 0.25F);
+    ui.SetDisplay(static_cast<float>(frame.width) / dpi, static_cast<float>(frame.height) / dpi,
+                  dpi);
     ui.UpdateImeCandidate(*created.surface);
     ui.BeginFrame();
     ui.DrawProductShell(shell, &scene, &workspace);
     static_cast<void>(ui.EndFrame());
     if (ui.Render(*created.surface, frame.width, frame.height) !=
-        Nexora::Presentation::SurfaceStatus::Ready)
+        Nexora::Presentation::SurfaceStatus::Ready) {
+      result = 1;
       break;
-    if (created.surface->EndFrame() != Nexora::Presentation::SurfaceStatus::Ready)
+    }
+    if (created.surface->EndFrame() != Nexora::Presentation::SurfaceStatus::Ready) {
+      result = 1;
       break;
+    }
     ++frames;
   }
-  return created.surface->DrainAndDestroy() == Nexora::Presentation::SurfaceStatus::Ready ? 0 : 1;
+  if (!workspace.SaveEditorLayout(ui.SaveLayout(), &layout_error))
+    std::cerr << layout_error << '\n';
+  const auto diagnostics = created.surface->Diagnostics();
+  std::cerr << "graphical evidence: acquired=" << diagnostics.acquiredFrames
+            << " presented=" << diagnostics.presentedFrames
+            << " ui_draws=" << diagnostics.nativeUiDrawCalls
+            << " ui_uploads=" << diagnostics.nativeUiTextureUploads
+            << " ui_rejected=" << diagnostics.nativeUiRejectedTextures << '\n';
+  if (created.surface->DrainAndDestroy() != Nexora::Presentation::SurfaceStatus::Ready)
+    result = 1;
+  return result;
 }
 #endif
 

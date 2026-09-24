@@ -57,6 +57,9 @@ public:
   virtual ~Device() = default;
   [[nodiscard]] virtual Backend GetBackend() const noexcept = 0;
   [[nodiscard]] virtual TextureHandle CreateTexture(const TextureDescriptor &descriptor) = 0;
+  virtual void WriteTextureRgba8(TextureHandle, std::span<const std::byte>, std::uint32_t) {
+    throw std::logic_error("texture uploads are unsupported");
+  }
   virtual void DestroyTexture(TextureHandle texture) = 0;
   [[nodiscard]] virtual BufferHandle CreateBuffer(const BufferDescriptor &) {
     throw std::logic_error("buffer creation is unsupported");
@@ -70,7 +73,11 @@ public:
   [[nodiscard]] virtual PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) = 0;
   virtual void DestroyPipeline(PipelineHandle pipeline) = 0;
   [[nodiscard]] virtual std::unique_ptr<CommandList> CreateCommandList(QueueType queue) = 0;
-  virtual void Submit(CommandList &commands) = 0;
+  // Returns a monotonically increasing completion value. Resources referenced by the command list
+  // remain in use until CompletedSubmissionValue reaches that value.
+  virtual std::uint64_t Submit(CommandList &commands) = 0;
+  [[nodiscard]] virtual std::uint64_t CompletedSubmissionValue() const noexcept = 0;
+  virtual void WaitForSubmission(std::uint64_t value) = 0;
   virtual void Present(TextureHandle texture) = 0;
   virtual void WaitIdle() = 0;
   [[nodiscard]] virtual DeviceDiagnostics Diagnostics() const noexcept = 0;

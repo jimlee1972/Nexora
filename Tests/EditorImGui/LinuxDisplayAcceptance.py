@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+"""Exercise the production Vulkan Editor path in a real X11 server."""
+
+import argparse
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import tempfile
+import time
+
+
+def wait_for_window(xdotool: str, environment: dict[str, str]) -> str:
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        found = subprocess.run(
+            [xdotool, "search", "--name", "Nexora Editor"],
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if found.returncode == 0 and found.stdout.strip():
+            return found.stdout.splitlines()[0]
+        time.sleep(0.1)
+    raise RuntimeError("Nexora Editor window did not appear")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--editor", required=True)
+    parser.add_argument("--xvfb", required=True)
+    parser.add_argument("--xdotool", required=True)
+    args = parser.parse_args()
+    root = Path(tempfile.mkdtemp(prefix="nexora-display-acceptance-"))
+    display = f":{100 + os.getpid() % 400}"
+    environment = os.environ.copy()
+    environment["DISPLAY"] = display
+    xvfb = subprocess.Popen(
+        [args.xvfb, display, "-screen", "0", "1600x900x24", "-nolisten", "tcp"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    editor = None
+    try:
+        deadline = time.monotonic() + 10
+        socket = Path(f"/tmp/.X11-unix/X{display[1:]}")
+        while not socket.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        (root / "Content").mkdir()
+        (root / ".nexora").mkdir()
+        (root / "project.nexora").write_text("schema=1\nname=Display Acceptance\n")
+        (root / ".nexora/workspace").write_text("schema=1\n")
+        editor = subprocess.Popen(
+            [args.editor, f"--project={root}", "--graphical", "--frames=180"],
+            env=environment,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        window = wait_for_window(args.xdotool, environment)
+        subprocess.run([args.xdotool, "windowfocus", window], env=environment, check=True)
+        subprocess.run([args.xdotool, "windowsize", window, "1024", "640"], env=environment,
+                       check=True)
+        subprocess.run([args.xdotool, "mousemove", "200", "160", "click", "1"],
+                       env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        _, stderr = editor.communicate(timeout=30)
+        editor = None
+        if "graphical evidence:" not in stderr:
+            raise RuntimeError(f"missing graphical diagnostics: {stderr}")
+        match = re.search(
+            r"presented=(\d+) ui_draws=(\d+) ui_uploads=(\d+) ui_rejected=(\d+)", stderr
+        )
+        if not match or min(map(int, match.groups()[:3])) <= 0 or int(match.group(4)) != 0:
+            raise RuntimeError(f"native UI evidence was incomplete: {stderr}")
+        if not (root / ".nexora/editor-layout.ini").is_file():
+            raise RuntimeError("the Editor did not persist its layout")
+        return 0
+    finally:
+        if editor is not None and editor.poll() is None:
+            editor.kill()
+            editor.wait(timeout=5)
+        xvfb.terminate()
+        xvfb.wait(timeout=5)
+        shutil.rmtree(root, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
