@@ -50,12 +50,19 @@ def main() -> int:
     copy(args.api_manifest, manifest_dir / "api.json")
 
     artifacts.sort(key=lambda item: item["path"])
+    module_argument = ""
+    if args.gameplay_module:
+        module_argument = (f" --gameplay-module=dynamic"
+                           f" --gameplay-library=bin/{args.gameplay_module.name}")
+    else:
+        module_argument = " --gameplay-module=static"
     build = {
         "schema_version": 1,
         "application": "NexoraShowcase",
         "profile": args.profile,
         "gameplay_linkage": "dynamic" if args.gameplay_module else "static",
-        "launch": f"bin/{args.binary.name} --headless --scene=tour --frames=1 --no-reload",
+        "launch": (f"bin/{args.binary.name} --headless --scene=tour --frames=1 --no-reload"
+                   f"{module_argument} --report=launch-report.json"),
     }
     content = {"schema_version": 1, "artifacts": artifacts}
     manifest_dir.mkdir(parents=True, exist_ok=True)

@@ -3845,7 +3845,9 @@ invalidation 的 conservative Hi-Z、visible-instance compaction、material／me
 classification 與 indirect-command generation。Portable command contract 現已記錄 compute
 dispatch 與 indirect drawing、將 backend output 與 CPU reference 比較、追蹤 normal-path
 readback diagnostics，並由 RenderGraph 發出明確的 compute／graphics ownership barrier。
-V2-M3 仍維持未完成，因 native compute／indirect execution 與 DX12／Vulkan／Metal target-tier
+Vulkan 現已在 Linux native offscreen gate 執行由 indirect buffer 支援的
+`vkCmdDrawIndirect`。V2-M3 仍維持未完成，因 native compute execution、DX12／Metal indirect
+execution 與完整 DX12／Vulkan／Metal target-tier
 parity 尚未通過 target-host gate。
 
 順序：
@@ -3888,6 +3890,11 @@ Meshlet metadata
 ---
 
 ## V2-M4 — Large World V2
+
+目前 portable foundation 已提供 deterministic integer-coordinate cell generation／build hash、
+incremental rebuild input、維持 gameplay absolute identity 的 quantized origin rebase，以及依
+revision 排序的 persistent cell delta executable contract。Adaptive hierarchy splitting、3D volume
+policy、HLOD V2／impostor 與 partition commandlet 仍待完成。
 
 施工：
 

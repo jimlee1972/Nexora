@@ -94,6 +94,9 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
     build/API/content manifest、逐 artifact SHA-256 digest 與 `SHA256SUMS`。
   - 待辦：在乾淨的 target machine 執行產物記錄的 command 並保留 launch 證據。Linux CI
     建立 package 不能取代 target-host 驗收。
+  - ✅ Linux clean-package evidence 會驗證全部 checksum、建立全新的隔離副本，從該副本啟動
+    relocatable dynamic package，並保留 report／exit status。其他 target host 與獨立配置機器
+    的驗收仍待完成。
 
 ## 5. 測試與驗收
 

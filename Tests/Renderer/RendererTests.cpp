@@ -53,9 +53,11 @@ void VerifyNativeBackend(nexora::rhi::Backend backend) {
     Require(frame.passes == 3 && frame.barriers == 4,
             "native backend generated unexpected render graph work");
     const auto diagnostics = device->Diagnostics();
-    Require(diagnostics.submitted_command_lists == 3 && diagnostics.draw_calls == 2 &&
-                diagnostics.barriers == 4 && diagnostics.presents == 1 &&
-                diagnostics.validation_errors == 0,
+    const auto expected_draws = backend == rhi::Backend::Vulkan ? 1U : 2U;
+    const auto expected_indirect = backend == rhi::Backend::Vulkan ? 1U : 0U;
+    Require(diagnostics.submitted_command_lists == 3 && diagnostics.draw_calls == expected_draws &&
+                diagnostics.indirect_draw_calls == expected_indirect && diagnostics.barriers == 4 &&
+                diagnostics.presents == 1 && diagnostics.validation_errors == 0,
             "native backend diagnostics are unexpected");
     device->DestroyTexture(swapchain);
   }

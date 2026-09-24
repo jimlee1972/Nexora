@@ -74,6 +74,14 @@ those device runs.
 
 ## V1-M10 large-world runtime
 
+The initial V2-M4 portable layer adds deterministic integer-coordinate partition cells and hashes,
+an incremental rebuild entry point, quantized double-precision world-origin rebasing, and
+revision-ordered persistent cell deltas. Builds sort input identities and serialized deltas before
+hashing, so unordered container iteration cannot affect output. These synchronous, caller-owned
+contracts perform no filesystem I/O; gameplay keeps absolute identities/coordinates while only
+render-relative coordinates consume the rebase origin. Adaptive hierarchy splitting, 3D volume
+policy, HLOD V2/impostors, and the production partition commandlet remain open.
+
 `LargeWorld.h` defines stable fixed-grid addressing, spatial lookup, streaming demand, room/portal
 prefetch, offline HLOD, terrain patches, and instanced vegetation. `StreamingManager` keeps cell,
 full-bundle, and HLOD-bundle identities separate; ranks source demand deterministically; applies

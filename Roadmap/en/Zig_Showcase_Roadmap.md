@@ -85,6 +85,9 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
     build/API/content manifests, per-artifact SHA-256 digests, and `SHA256SUMS`.
   - Open: retain launch evidence from the generated command on a clean target machine. Package
     construction in Linux CI does not substitute for target-host acceptance.
+  - ✅ Linux clean-package evidence verifies all checksums, stages a fresh isolated copy, launches
+    the relocatable dynamic package from that copy, and retains its report/exit status. Other target
+    hosts and independently provisioned-machine acceptance remain open.
 
 ## 5. Evidence and completion
 

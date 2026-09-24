@@ -224,6 +224,7 @@ struct VulkanFunctions final {
   PFN_vkCmdSetViewport CmdSetViewport{};
   PFN_vkCmdSetScissor CmdSetScissor{};
   PFN_vkCmdDraw CmdDraw{};
+  PFN_vkCmdDrawIndirect CmdDrawIndirect{};
 };
 
 template <typename Function>
@@ -244,6 +245,7 @@ public:
   void BeginRendering(const RenderingInfo &info) override;
   void BindPipeline(PipelineHandle pipeline) override;
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
+  void DrawIndirect(std::uint32_t command_count) override;
   void EndRendering() override;
 
   [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
@@ -253,6 +255,7 @@ public:
   }
   [[nodiscard]] std::uint64_t Barriers() const noexcept { return barriers_; }
   [[nodiscard]] std::uint64_t DrawCalls() const noexcept { return draws_; }
+  [[nodiscard]] std::uint64_t IndirectDraws() const noexcept { return indirect_draws_; }
   void MarkSubmitted() noexcept { submitted_ = true; }
   void Close();
 
@@ -271,6 +274,9 @@ private:
   std::uint32_t height_{};
   std::uint64_t barriers_{};
   std::uint64_t draws_{};
+  std::uint64_t indirect_draws_{};
+  VkBuffer indirect_buffer_{VK_NULL_HANDLE};
+  VkDeviceMemory indirect_memory_{VK_NULL_HANDLE};
 };
 
 class VulkanDevice final : public Device {
@@ -434,6 +440,7 @@ void VulkanDevice::LoadDeviceFunctions() {
   LOAD_DEVICE(CmdSetViewport, "vkCmdSetViewport");
   LOAD_DEVICE(CmdSetScissor, "vkCmdSetScissor");
   LOAD_DEVICE(CmdDraw, "vkCmdDraw");
+  LOAD_DEVICE(CmdDrawIndirect, "vkCmdDrawIndirect");
 #undef LOAD_DEVICE
 }
 
@@ -977,6 +984,7 @@ void VulkanDevice::Submit(CommandList &commands) {
     ++diagnostics_.submitted_command_lists;
     diagnostics_.barriers += validated->Barriers();
     diagnostics_.draw_calls += validated->DrawCalls();
+    diagnostics_.indirect_draw_calls += validated->IndirectDraws();
   }
   try {
     Check(functions_.WaitForFences(device_, 1, &fence, VK_TRUE,
@@ -1087,6 +1095,10 @@ VulkanCommandList::~VulkanCommandList() {
     device_.functions_.FreeCommandBuffers(device_.device_, command_pool_, 1, &command_buffer_);
   if (command_pool_ != VK_NULL_HANDLE)
     device_.functions_.DestroyCommandPool(device_.device_, command_pool_, nullptr);
+  if (indirect_buffer_ != VK_NULL_HANDLE)
+    device_.functions_.DestroyBuffer(device_.device_, indirect_buffer_, nullptr);
+  if (indirect_memory_ != VK_NULL_HANDLE)
+    device_.functions_.FreeMemory(device_.device_, indirect_memory_, nullptr);
 }
 
 void VulkanCommandList::Transition(const Barrier &barrier) {
@@ -1166,6 +1178,39 @@ void VulkanCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_
     throw std::logic_error("invalid Vulkan draw");
   device_.functions_.CmdDraw(command_buffer_, vertex_count, instance_count, 0, 0);
   ++draws_;
+}
+
+void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
+  if (submitted_ || !rendering_ || !pipeline_bound_ || command_count == 0 ||
+      indirect_buffer_ != VK_NULL_HANDLE)
+    throw std::logic_error("invalid Vulkan indirect draw");
+  const VkDeviceSize size = sizeof(VkDrawIndirectCommand) * command_count;
+  const VkBufferCreateInfo buffer_info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, nullptr, 0, size,
+                                       VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+                                       VK_SHARING_MODE_EXCLUSIVE, 0, nullptr};
+  Check(device_.functions_.CreateBuffer(device_.device_, &buffer_info, nullptr, &indirect_buffer_),
+        "vkCreateBuffer(indirect)");
+  VkMemoryRequirements requirements{};
+  device_.functions_.GetBufferMemoryRequirements(device_.device_, indirect_buffer_, &requirements);
+  const VkMemoryAllocateInfo allocation{
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr, requirements.size,
+      device_.FindMemoryType(requirements.memoryTypeBits,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
+  Check(device_.functions_.AllocateMemory(device_.device_, &allocation, nullptr, &indirect_memory_),
+        "vkAllocateMemory(indirect)");
+  Check(device_.functions_.BindBufferMemory(device_.device_, indirect_buffer_, indirect_memory_, 0),
+        "vkBindBufferMemory(indirect)");
+  void *mapped = nullptr;
+  Check(device_.functions_.MapMemory(device_.device_, indirect_memory_, 0, size, 0, &mapped),
+        "vkMapMemory(indirect)");
+  auto *commands = static_cast<VkDrawIndirectCommand *>(mapped);
+  for (std::uint32_t index = 0; index < command_count; ++index)
+    commands[index] = {3, 1, 0, index};
+  device_.functions_.UnmapMemory(device_.device_, indirect_memory_);
+  device_.functions_.CmdDrawIndirect(command_buffer_, indirect_buffer_, 0, command_count,
+                                     sizeof(VkDrawIndirectCommand));
+  ++indirect_draws_;
 }
 
 void VulkanCommandList::EndRendering() {

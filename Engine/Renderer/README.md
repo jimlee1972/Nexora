@@ -89,5 +89,7 @@ RenderGraph tracks a logical owner queue for every resource. A use on a differen
 queue emits an ownership barrier even when the resource state is unchanged, and statistics expose
 those transfers separately from ordinary state transitions. The graph retains transient ownership
 until all submitted work is idle, then releases the resources; imported resources remain
-caller-owned. Native queue/timeline and compute/indirect implementations remain target-backend gates
-and must not be inferred from validation-backend coverage.
+caller-owned. Vulkan's native offscreen gate now replaces one direct draw with a real
+indirect-buffer-backed `vkCmdDrawIndirect` call and verifies its diagnostic separately. Native
+Vulkan compute pipelines, native queue/timeline integration, DX12/Metal execution, and target-host
+parity remain open gates; none is inferred from validation-backend or Vulkan-indirect coverage.

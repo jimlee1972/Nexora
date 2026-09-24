@@ -1,4 +1,5 @@
 #include "Nexora/Runtime/LargeWorld.h"
+#include <array>
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -76,6 +77,39 @@ void Baseline() {
               std::chrono::steady_clock::now() - begin < std::chrono::seconds(5),
           "spatial baseline failed");
 }
+void V2Foundation() {
+  const std::vector<lw::SpatialItem> items{
+      {3, Box(140, 10, 150, 20)}, {1, Box(10, 10, 20, 20)}, {2, Box(20, 10, 30, 20)}};
+  lw::AdaptivePartitionBuilder builder{100};
+  const auto first = builder.Build(items);
+  const std::vector<lw::SpatialItem> reordered{items.rbegin(), items.rend()};
+  const auto second = builder.Build(reordered);
+  Require(first && second && first->build_hash == second->build_hash &&
+              first->cells.size() == second->cells.size() &&
+              first->cells.front().id == second->cells.front().id &&
+              first->cells.front().content == second->cells.front().content,
+          "V2 partition build is not deterministic");
+  const std::array<lw::Id, 1> changed{3};
+  const auto incremental = builder.Rebuild(*first, reordered, changed);
+  Require(incremental && incremental->build_hash == first->build_hash,
+          "V2 unchanged incremental build diverged");
+
+  lw::WorldOrigin origin{1000, 256};
+  Require(!origin.Update({999, 0, 0}), "origin rebased before threshold");
+  const auto rebase = origin.Update({1300, 0, -20});
+  Require(rebase && rebase->current_origin.x == 1280 && rebase->sequence == 1 &&
+              origin.ToRenderRelative({1301, 0, -20}).x == 21,
+          "origin rebase was not quantized or identity-neutral");
+
+  lw::PersistentDeltaStore deltas;
+  Require(deltas.Apply({7, 20, 1, false, "open"}) && deltas.Apply({7, 10, 2, true, {}}) &&
+              !deltas.Apply({7, 20, 1, false, "stale"}),
+          "persistent delta revision contract failed");
+  const auto loaded = deltas.Load(7);
+  Require(loaded.size() == 2 && loaded[0].object == 10 && loaded[1].payload == "open" &&
+              deltas.Digest(7) != 0,
+          "persistent delta reload is not deterministic");
+}
 } // namespace
 int main() {
   try {
@@ -83,6 +117,7 @@ int main() {
     Streaming();
     Content();
     Baseline();
+    V2Foundation();
     return 0;
   } catch (const std::exception &e) {
     std::cerr << e.what() << '\n';

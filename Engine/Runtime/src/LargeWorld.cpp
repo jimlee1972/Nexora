@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 #include <ranges>
+#include <type_traits>
 
 namespace nexora::runtime::large_world {
 namespace {
@@ -84,9 +85,8 @@ std::vector<Id> LooseQuadtree::Query(const Bounds &bounds) const {
 
 StreamingManager::StreamingManager(StreamingBudget budget, double unload_hysteresis)
     : budget_(budget),
-      hysteresis_(std::isfinite(unload_hysteresis) && unload_hysteresis >= 0.0
-                      ? unload_hysteresis
-                      : 0.0) {}
+      hysteresis_(std::isfinite(unload_hysteresis) && unload_hysteresis >= 0.0 ? unload_hysteresis
+                                                                               : 0.0) {}
 bool StreamingManager::AddCell(CellDescriptor cell) {
   if (cell.cell_id == 0 || cell.full_bundle_id == 0 || cell.hlod_bundle_id == 0 ||
       cell.cell_id == cell.full_bundle_id || cell.cell_id == cell.hlod_bundle_id ||
@@ -94,8 +94,7 @@ bool StreamingManager::AddCell(CellDescriptor cell) {
     return false;
   for (const auto &[existing_id, existing] : cells_)
     if (cell.cell_id == existing_id || cell.cell_id == existing.descriptor.full_bundle_id ||
-        cell.cell_id == existing.descriptor.hlod_bundle_id ||
-        cell.full_bundle_id == existing_id ||
+        cell.cell_id == existing.descriptor.hlod_bundle_id || cell.full_bundle_id == existing_id ||
         cell.full_bundle_id == existing.descriptor.full_bundle_id ||
         cell.full_bundle_id == existing.descriptor.hlod_bundle_id ||
         cell.hlod_bundle_id == existing_id ||
@@ -303,6 +302,166 @@ std::size_t VegetationField::InstanceCount() const noexcept {
   for (const auto &[id, instances] : species_)
     count += instances.size();
   return count;
+}
+
+namespace {
+constexpr std::uint64_t kHashOffset = 14695981039346656037ULL;
+constexpr std::uint64_t kHashPrime = 1099511628211ULL;
+void HashBytes(std::uint64_t &hash, const void *data, std::size_t size) noexcept {
+  const auto *bytes = static_cast<const unsigned char *>(data);
+  for (std::size_t index = 0; index < size; ++index)
+    hash = (hash ^ bytes[index]) * kHashPrime;
+}
+void HashValue(std::uint64_t &hash, bool value) noexcept {
+  const unsigned char byte = value ? 1U : 0U;
+  HashBytes(hash, &byte, 1);
+}
+template <typename T> void HashValue(std::uint64_t &hash, T value) noexcept {
+  static_assert(std::is_integral_v<T>);
+  using Unsigned = std::make_unsigned_t<T>;
+  Unsigned bits = static_cast<Unsigned>(value);
+  for (std::size_t index = 0; index < sizeof(bits); ++index) {
+    const auto byte = static_cast<unsigned char>(bits & static_cast<Unsigned>(0xffU));
+    HashBytes(hash, &byte, 1);
+    bits >>= 8U;
+  }
+}
+Id CoordinateId(const PartitionCoordinate &coordinate) noexcept {
+  std::uint64_t hash = kHashOffset;
+  HashValue(hash, coordinate.x);
+  HashValue(hash, coordinate.y);
+  HashValue(hash, coordinate.z);
+  HashValue(hash, coordinate.level);
+  return hash == 0 ? 1 : hash;
+}
+} // namespace
+
+AdaptivePartitionBuilder::AdaptivePartitionBuilder(double leaf_size, std::size_t split_threshold,
+                                                   std::uint8_t max_level)
+    : leaf_size_(leaf_size), split_threshold_(split_threshold), max_level_(max_level) {}
+
+std::optional<PartitionBuild>
+AdaptivePartitionBuilder::Build(std::span<const SpatialItem> items) const {
+  if (!std::isfinite(leaf_size_) || leaf_size_ <= 0.0 || split_threshold_ == 0 || max_level_ == 0)
+    return std::nullopt;
+  std::vector<SpatialItem> ordered(items.begin(), items.end());
+  if (std::ranges::any_of(ordered,
+                          [](const auto &item) { return item.id == 0 || !item.bounds.Valid(); }))
+    return std::nullopt;
+  std::ranges::sort(ordered, {}, &SpatialItem::id);
+  if (std::ranges::adjacent_find(ordered, {}, &SpatialItem::id) != ordered.end())
+    return std::nullopt;
+
+  std::unordered_map<Id, PartitionCell> cells;
+  for (const auto &item : ordered) {
+    const Vec3d center{(item.bounds.minimum.x + item.bounds.maximum.x) * 0.5,
+                       (item.bounds.minimum.y + item.bounds.maximum.y) * 0.5,
+                       (item.bounds.minimum.z + item.bounds.maximum.z) * 0.5};
+    PartitionCoordinate coordinate{static_cast<std::int64_t>(std::floor(center.x / leaf_size_)),
+                                   static_cast<std::int64_t>(std::floor(center.y / leaf_size_)),
+                                   static_cast<std::int64_t>(std::floor(center.z / leaf_size_)), 0};
+    const Id id = CoordinateId(coordinate);
+    auto [entry, inserted] = cells.try_emplace(id);
+    auto &cell = entry->second;
+    if (inserted) {
+      cell.id = id;
+      cell.coordinate = coordinate;
+      const Vec3d minimum{coordinate.x * leaf_size_, coordinate.y * leaf_size_,
+                          coordinate.z * leaf_size_};
+      cell.bounds = {minimum,
+                     {minimum.x + leaf_size_, minimum.y + leaf_size_, minimum.z + leaf_size_}};
+    }
+    cell.content.push_back(item.id);
+  }
+  PartitionBuild result;
+  result.cells.reserve(cells.size());
+  for (auto &[id, cell] : cells) {
+    (void)id;
+    cell.content_hash = kHashOffset;
+    for (const Id content : cell.content)
+      HashValue(cell.content_hash, content);
+    result.cells.push_back(std::move(cell));
+  }
+  std::ranges::sort(result.cells, {}, &PartitionCell::id);
+  result.build_hash = kHashOffset;
+  for (const auto &cell : result.cells) {
+    HashValue(result.build_hash, cell.id);
+    HashValue(result.build_hash, cell.content_hash);
+  }
+  return result;
+}
+
+std::optional<PartitionBuild>
+AdaptivePartitionBuilder::Rebuild(const PartitionBuild &previous,
+                                  std::span<const SpatialItem> items,
+                                  std::span<const Id> changed_items) const {
+  auto rebuilt = Build(items);
+  if (!rebuilt)
+    return std::nullopt;
+  std::vector<Id> changed(changed_items.begin(), changed_items.end());
+  std::ranges::sort(changed);
+  if (std::ranges::adjacent_find(changed) != changed.end())
+    return std::nullopt;
+  for (auto &cell : rebuilt->cells) {
+    const bool affected = std::ranges::any_of(
+        cell.content, [&](Id id) { return std::ranges::binary_search(changed, id); });
+    if (!affected) {
+      const auto old = std::ranges::find(previous.cells, cell.id, &PartitionCell::id);
+      if (old != previous.cells.end() && old->content == cell.content)
+        cell.content_hash = old->content_hash;
+    }
+  }
+  return rebuilt;
+}
+
+WorldOrigin::WorldOrigin(double threshold, double quantum)
+    : threshold_(threshold), quantum_(quantum) {}
+std::optional<OriginRebase> WorldOrigin::Update(Vec3d observer) {
+  if (!Finite(observer) || !std::isfinite(threshold_) || threshold_ <= 0.0 ||
+      !std::isfinite(quantum_) || quantum_ <= 0.0)
+    return std::nullopt;
+  const auto relative = ToRenderRelative(observer);
+  if (std::max({std::abs(relative.x), std::abs(relative.y), std::abs(relative.z)}) < threshold_)
+    return std::nullopt;
+  const Vec3d previous = origin_;
+  const auto snap = [this](double value) { return std::floor(value / quantum_) * quantum_; };
+  origin_ = {snap(observer.x), snap(observer.y), snap(observer.z)};
+  return OriginRebase{previous,
+                      origin_,
+                      {previous.x - origin_.x, previous.y - origin_.y, previous.z - origin_.z},
+                      ++sequence_};
+}
+Vec3d WorldOrigin::ToRenderRelative(Vec3d absolute) const noexcept {
+  return {absolute.x - origin_.x, absolute.y - origin_.y, absolute.z - origin_.z};
+}
+
+bool PersistentDeltaStore::Apply(PersistentCellDelta delta) {
+  if (delta.cell == 0 || delta.object == 0 || delta.revision == 0)
+    return false;
+  auto &objects = cells_[delta.cell];
+  const auto found = objects.find(delta.object);
+  if (found != objects.end() && found->second.revision >= delta.revision)
+    return false;
+  objects.insert_or_assign(delta.object, std::move(delta));
+  return true;
+}
+std::vector<PersistentCellDelta> PersistentDeltaStore::Load(Id cell) const {
+  std::vector<PersistentCellDelta> result;
+  if (const auto found = cells_.find(cell); found != cells_.end())
+    for (const auto &[id, delta] : found->second)
+      (void)id, result.push_back(delta);
+  std::ranges::sort(result, {}, &PersistentCellDelta::object);
+  return result;
+}
+std::uint64_t PersistentDeltaStore::Digest(Id cell) const noexcept {
+  std::uint64_t hash = kHashOffset;
+  for (const auto &delta : Load(cell)) {
+    HashValue(hash, delta.object);
+    HashValue(hash, delta.revision);
+    HashValue(hash, delta.removed);
+    HashBytes(hash, delta.payload.data(), delta.payload.size());
+  }
+  return hash;
 }
 
 } // namespace nexora::runtime::large_world

@@ -1191,8 +1191,9 @@ Only then may it publish.
 > **V2-M3 implementation status:** In progress. A deterministic CPU reference now covers
 > frustum/distance/LOD culling, conservative Hi-Z and invalidation, compaction, classification, and
 > indirect-command generation. Portable compute/indirect recording, RenderGraph queue ownership,
-> CPU/GPU comparison, and no-readback diagnostics are now covered by contract tests. Native compute
-> execution and target-tier parity remain required before acceptance.
+> CPU/GPU comparison, and no-readback diagnostics are now covered by contract tests. Native Vulkan
+> indirect execution now has a real Linux `vkCmdDrawIndirect` path. Native compute execution,
+> DX12/Metal indirect execution, and full target-tier parity remain required before acceptance.
 
 Repository evidence checklist:
 
@@ -1200,7 +1201,8 @@ Repository evidence checklist:
 - [x] Portable compute dispatch and indirect draw recording.
 - [x] RenderGraph compute/graphics ownership transitions.
 - [x] CPU/backend comparison and normal-path no-readback diagnostics.
-- [ ] Native compute/indirect execution and target-tier parity on DX12, Vulkan, and Metal.
+- [x] Native Vulkan indirect execution in the Linux offscreen gate.
+- [ ] Native compute execution, DX12/Metal indirect execution, and complete target-tier parity.
 
 Core data:
 

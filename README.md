@@ -32,13 +32,13 @@ completion on every target platform.
 | --- | ---: | --- |
 | ✅ [V1 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md) | **100%** | 13/13 portable M0–M12 contract foundations delivered; native/product adapters remain separate gates. |
 | ✅ [V1 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V1_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **100%** | Tracks the same accepted portable V1 implementation baseline. |
-| [V2 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) | **23%** | ✅ V2-M0 through ✅ V2-M2 are accepted; V2-M3 now has portable compute/indirect command contracts and RenderGraph ownership evidence, but native GPU execution gates remain open. |
+| [V2 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) | **23%** | ✅ V2-M0 through ✅ V2-M2 are accepted; V2-M3 adds Linux Vulkan native indirect execution, while native compute and cross-target parity remain open. V2-M4 now has a portable deterministic foundation. |
 | [V2 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **23%** | ✅ V2-M0 through ✅ V2-M2 are accepted; V2-M3 contract checks cover reference culling, indirect commands, CPU/GPU comparison, and no-readback diagnostics, but the milestone is not yet accepted. |
 | [V3 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V3_Complete_Plan_v1_4.md) | **0%** | No V3 delivery milestone has an accepted repository gate. |
 | [V3 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md) | **0%** | Execution plan only; no V3 milestone accepted. |
 | ✅ [Engine API Foundation](Roadmap/en/Engine_API_Foundation_Roadmap.md) | **100%** | ✅ API-M1 through ✅ API-M6 complete for portable scope. |
 | ✅ [Window and Native Presentation](Roadmap/en/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 through ✅ WP-M4 are implemented; native backend execution remains a target-host acceptance gate. |
-| [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 through ✅ ZS-M4 are complete; ZS-M5 target-host distribution acceptance remains open. |
+| [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 through ✅ ZS-M4 are complete; ZS-M5 has automated Linux isolated-package launch evidence, while other target-host distribution acceptance remains open. |
 | [Graphical Editor](Roadmap/en/Editor_Roadmap.md) | **0%** | Runtime prerequisites exist, but no graphical ED milestone is accepted. |
 | [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **60%** | Mean of API 100%, Zig Showcase 90%, and Editor 0%, rounded down to 10%. |
 | [V1 Visual Showcase](Roadmap/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | Headless entry/reporting prerequisites exist; no windowed phase is complete. |
@@ -120,13 +120,13 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | --- | ---: | --- |
 | ✅ [V1 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V1_完整規劃書_v1_2.md) | **100%** | 13/13 個 portable M0–M12 contract foundation 已交付；native/product adapter 仍為獨立 gate。 |
 | ✅ [V1 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_2.md) | **100%** | 對應同一個已驗收的 portable V1 施工基線。 |
-| [V2 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) | **23%** | ✅ V2-M0 至 ✅ V2-M2 已驗收；V2-M3 現已有 portable compute／indirect command contract 與 RenderGraph ownership 證據，但 native GPU execution gate 仍待完成。 |
+| [V2 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) | **23%** | ✅ V2-M0 至 ✅ V2-M2 已驗收；V2-M3 新增 Linux Vulkan native indirect execution，但 native compute 與跨 target parity 仍待完成。V2-M4 現已有 portable deterministic foundation。 |
 | [V2 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) | **23%** | ✅ V2-M0 至 ✅ V2-M2 已驗收；V2-M3 contract check 已涵蓋 reference culling、indirect command、CPU／GPU comparison 與 no-readback diagnostics，但 milestone 尚未驗收。 |
 | [V3 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V3_完整規劃書_v1_4.md) | **0%** | 尚無 V3 delivery milestone 通過 repository gate。 |
 | [V3 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) | **0%** | 僅為施工規劃；尚無 V3 milestone 驗收。 |
 | ✅ [Engine API 基礎](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) | **100%** | ✅ API-M1 至 ✅ API-M6 完成 portable scope。 |
 | ✅ [Window 與 Native Presentation](Roadmap/zh-TW/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 至 ✅ WP-M4 已實作；native backend 執行仍為 target-host 驗收 gate。 |
-| [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 至 ✅ ZS-M4 已完成；ZS-M5 target-host distribution 驗收仍待完成。 |
+| [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 至 ✅ ZS-M4 已完成；ZS-M5 現有自動化 Linux isolated-package launch evidence，其他 target-host distribution 驗收仍待完成。 |
 | [圖形化 Editor](Roadmap/zh-TW/Editor_Roadmap.md) | **0%** | 已有 Runtime 前置，但尚無 graphical ED milestone 驗收。 |
 | [聚焦 Roadmap AI 施工規劃](Roadmap/zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) | **60%** | API 100%、Zig Showcase 90% 與 Editor 0% 的平均，向下取整至 10%。 |
 | [V1 可視化 Showcase](Roadmap/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | 已有 headless entry/reporting 前置；尚無 windowed phase 完成。 |

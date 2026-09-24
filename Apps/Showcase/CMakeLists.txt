@@ -37,6 +37,14 @@ add_custom_target(NexoraShowcasePackageDevelopment
           --output "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development"
   DEPENDS NexoraShowcase
   VERBATIM)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_custom_target(NexoraShowcasePackageDevelopmentEvidence
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/LaunchShowcasePackage.py"
+            --package "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development"
+            --evidence "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development/launch-evidence-linux.json"
+    DEPENDS NexoraShowcasePackageDevelopment
+    VERBATIM)
+endif()
 add_custom_target(NexoraShowcasePackageShipping
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/PackageShowcase.py"
           --profile Shipping --binary "$<TARGET_FILE:NexoraShowcase>"
