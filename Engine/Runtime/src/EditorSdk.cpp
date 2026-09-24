@@ -130,9 +130,8 @@ void *ServiceRegistry::Find(std::string_view name) const {
   return found == services_.end() ? nullptr : found->second;
 }
 
-Entity &SceneEditor::CreateEntity(Id scene) {
-  auto &entity = world_.CreateEntity(scene);
-  const auto id = entity.id;
+Id SceneEditor::CreateEntity(Id scene) {
+  const auto id = world_.CreateEntity(scene).id;
   undo_.Execute([] {},
                 [this, id] {
                   WorldCommandBuffer commands;
@@ -140,7 +139,7 @@ Entity &SceneEditor::CreateEntity(Id scene) {
                   (void)commands.Apply(world_);
                 });
   ++depth_;
-  return entity;
+  return id;
 }
 bool SceneEditor::SetTransform(Id entity, Transform transform) {
   const auto *existing = world_.FindEntity(entity);

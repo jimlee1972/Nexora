@@ -9,6 +9,7 @@
 #include <imm.h>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 #include <windows.h>
@@ -20,6 +21,17 @@ std::uint64_t Now() noexcept {
   return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
                                         std::chrono::steady_clock::now().time_since_epoch())
                                         .count());
+}
+std::wstring Utf8ToWide(std::string_view utf8) {
+  if (utf8.empty())
+    return {};
+  const auto length =
+      MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()), nullptr, 0);
+  if (length <= 0)
+    return {};
+  std::wstring wide(static_cast<std::size_t>(length), L'\0');
+  MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()), wide.data(), length);
+  return wide;
 }
 class Win32WindowSystem final : public IWindowSystem {
 public:
@@ -49,7 +61,7 @@ public:
     if (!available_ || d.width == 0 || d.height == 0)
       return {{}, WindowError::InvalidDescriptor};
     const auto id = next_++;
-    std::wstring title(d.title.begin(), d.title.end());
+    std::wstring title = Utf8ToWide(d.title);
     DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX |
                   (d.resizable ? WS_THICKFRAME | WS_MAXIMIZEBOX : 0);
     RECT r{0, 0, static_cast<LONG>(d.width), static_cast<LONG>(d.height)};
@@ -202,12 +214,16 @@ private:
     case WM_IME_COMPOSITION:
       if (l & GCS_RESULTSTR) {
         auto imc = ImmGetContext(h);
-        LONG bytes = ImmGetCompositionStringW(imc, GCS_RESULTSTR, nullptr, 0);
-        std::wstring text(bytes / 2, L'\0');
-        ImmGetCompositionStringW(imc, GCS_RESULTSTR, text.data(), bytes);
-        ImmReleaseContext(h, imc);
-        for (wchar_t c : text)
-          self->Push(h, WindowEventType::Text, c);
+        if (imc) {
+          LONG bytes = ImmGetCompositionStringW(imc, GCS_RESULTSTR, nullptr, 0);
+          if (bytes > 0) {
+            std::wstring text(static_cast<std::size_t>(bytes) / 2, L'\0');
+            ImmGetCompositionStringW(imc, GCS_RESULTSTR, text.data(), bytes);
+            for (wchar_t c : text)
+              self->Push(h, WindowEventType::Text, c);
+          }
+          ImmReleaseContext(h, imc);
+        }
       }
       return 0;
     case WM_MOUSEMOVE:

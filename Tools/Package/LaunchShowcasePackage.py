@@ -13,6 +13,25 @@ from pathlib import Path
 from PackageShowcase import digest
 
 
+def safe_join(base: Path, relative: str) -> Path:
+    """Join `relative` onto `base`, rejecting anything that would escape it.
+
+    `Path.__truediv__` does not collapse `..` segments, and silently discards
+    `base` entirely when `relative` is itself absolute (on POSIX *and*
+    Windows, e.g. a leading "/" or a Windows drive letter). A package's
+    SHA256SUMS/build.json are meant to be trusted output of PackageShowcase.py,
+    but this tool also has to treat a package it did not produce itself (a
+    corrupted or tampered one) as untrusted input, since it goes on to chmod
+    and execute whatever path it resolves to.
+    """
+    if not relative or Path(relative).is_absolute():
+        raise RuntimeError(f"package path escapes the package root: {relative}")
+    candidate = (base / relative).resolve()
+    if candidate != base and base not in candidate.parents:
+        raise RuntimeError(f"package path escapes the package root: {relative}")
+    return candidate
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--package", required=True, type=Path)
@@ -28,7 +47,7 @@ def main() -> int:
     verified = []
     for line in checksums.read_text(encoding="utf-8").splitlines():
         expected, relative = line.split("  ", 1)
-        artifact = source / relative
+        artifact = safe_join(source, relative)
         if not artifact.is_file() or digest(artifact) != expected:
             raise RuntimeError(f"package checksum mismatch: {relative}")
         verified.append(relative)
@@ -36,9 +55,19 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="nexora-clean-package-") as temporary:
         staged = Path(temporary) / "NexoraShowcase"
         shutil.copytree(source, staged)
+        # Re-verify against the staged copy actually about to be chmod'd/executed,
+        # not just the original `source` -- otherwise a change to `source` between
+        # the loop above and this copytree would go undetected, and the emitted
+        # "checksums_verified"/"isolated_copy" evidence would certify content that
+        # was never actually run.
+        for line in checksums.read_text(encoding="utf-8").splitlines():
+            expected, relative = line.split("  ", 1)
+            staged_artifact = safe_join(staged, relative)
+            if not staged_artifact.is_file() or digest(staged_artifact) != expected:
+                raise RuntimeError(f"staged copy checksum mismatch: {relative}")
         build = json.loads((staged / "manifests/build.json").read_text(encoding="utf-8"))
         command = shlex.split(build["launch"])
-        executable = staged / command[0]
+        executable = safe_join(staged, command[0])
         executable.chmod(executable.stat().st_mode | 0o100)
         completed = subprocess.run([str(executable), *command[1:]], cwd=staged,
                                    text=True, capture_output=True, check=False)

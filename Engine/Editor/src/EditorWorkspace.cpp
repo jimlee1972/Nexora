@@ -216,11 +216,16 @@ const AssetEntry *AssetWorkspace::Find(runtime::AssetUuid id) const {
 SceneDocument::SceneDocument(runtime::World &world, runtime::Id scene)
     : world_(world), scene_(scene), editor_(world) {}
 runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
-  if (name.empty() || (parent != 0 && std::ranges::find(nodes_, parent, &Node::id) == nodes_.end()))
+  // Save() persists each node as a single "node <id> <parent> <name>\n" line and
+  // Reload() parses strictly line-by-line, so an embedded newline would split one
+  // node into two physical lines and make the file permanently unloadable.
+  if (name.empty() || name.find('\n') != std::string::npos ||
+      name.find('\r') != std::string::npos ||
+      (parent != 0 && std::ranges::find(nodes_, parent, &Node::id) == nodes_.end()))
     return 0;
-  auto &entity = editor_.CreateEntity(scene_);
-  nodes_.push_back({entity.id, parent, std::move(name)});
-  return entity.id;
+  const auto entity_id = editor_.CreateEntity(scene_);
+  nodes_.push_back({entity_id, parent, std::move(name)});
+  return entity_id;
 }
 bool SceneDocument::Select(std::span<const runtime::Id> entities) {
   std::unordered_set<runtime::Id> unique;

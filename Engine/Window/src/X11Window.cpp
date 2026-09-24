@@ -154,8 +154,8 @@ public:
         break;
       case ButtonPress:
         event.type = WindowEventType::Wheel;
-        event.value1 = native.xbutton.button == 4 ? 120 : native.xbutton.button == 5 ? -120 : 0;
-        emit = event.value1 != 0;
+        event.value0 = native.xbutton.button == 4 ? 120 : native.xbutton.button == 5 ? -120 : 0;
+        emit = event.value0 != 0;
         break;
       default:
         emit = false;

@@ -13,7 +13,12 @@ bool SafePath(std::string_view path) {
   if (path.empty() || path.starts_with('/') || path.starts_with('\\'))
     return false;
   std::filesystem::path parsed(path);
-  return path.find('\\') == std::string_view::npos &&
+  // is_absolute()/has_root_name() catches a Windows drive-letter-rooted path
+  // (e.g. "C:/Windows/System32/x.dll"), which starts with neither '/' nor
+  // '\\' and so would otherwise slip past the checks above and later escape
+  // the sandbox root it is joined onto.
+  return path.find('\\') == std::string_view::npos && !parsed.is_absolute() &&
+         !parsed.has_root_name() &&
          std::ranges::none_of(parsed, [](const auto &part) { return part == ".." || part == "."; });
 }
 

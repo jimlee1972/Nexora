@@ -43,23 +43,27 @@ public:
       return;
     const char *extensions[] = {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME};
 #endif
-    VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};
+    VkApplicationInfo app{};
+    app.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     app.pApplicationName = "NexoraPresentation";
     app.apiVersion = VK_API_VERSION_1_1;
-    VkInstanceCreateInfo create{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
+    VkInstanceCreateInfo create{};
+    create.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create.pApplicationInfo = &app;
     create.enabledExtensionCount = 2;
     create.ppEnabledExtensionNames = extensions;
     if (vkCreateInstance(&create, nullptr, &instance_) != VK_SUCCESS)
       return;
 #if defined(__linux__)
-    VkXlibSurfaceCreateInfoKHR surfaceCreate{VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR};
+    VkXlibSurfaceCreateInfoKHR surfaceCreate{};
+    surfaceCreate.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
     surfaceCreate.dpy = display_;
     surfaceCreate.window = nativeWindow_;
     if (vkCreateXlibSurfaceKHR(instance_, &surfaceCreate, nullptr, &surface_) != VK_SUCCESS)
       return;
 #else
-    VkWin32SurfaceCreateInfoKHR surfaceCreate{VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
+    VkWin32SurfaceCreateInfoKHR surfaceCreate{};
+    surfaceCreate.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceCreate.hinstance = GetModuleHandleW(nullptr);
     surfaceCreate.hwnd = nativeWindow_;
     if (vkCreateWin32SurfaceKHR(instance_, &surfaceCreate, nullptr, &surface_) != VK_SUCCESS)
@@ -89,12 +93,14 @@ public:
     if (!physical_)
       return;
     constexpr float priority = 1.0F;
-    VkDeviceQueueCreateInfo queueCreate{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
+    VkDeviceQueueCreateInfo queueCreate{};
+    queueCreate.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreate.queueFamilyIndex = queueFamily_;
     queueCreate.queueCount = 1;
     queueCreate.pQueuePriorities = &priority;
     const char *deviceExtensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-    VkDeviceCreateInfo deviceCreate{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
+    VkDeviceCreateInfo deviceCreate{};
+    deviceCreate.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceCreate.queueCreateInfoCount = 1;
     deviceCreate.pQueueCreateInfos = &queueCreate;
     deviceCreate.enabledExtensionCount = 1;
@@ -102,7 +108,8 @@ public:
     if (vkCreateDevice(physical_, &deviceCreate, nullptr, &device_) != VK_SUCCESS)
       return;
     vkGetDeviceQueue(device_, queueFamily_, 0, &queue_);
-    VkCommandPoolCreateInfo poolCreate{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+    VkCommandPoolCreateInfo poolCreate{};
+    poolCreate.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolCreate.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolCreate.queueFamilyIndex = queueFamily_;
     if (vkCreateCommandPool(device_, &poolCreate, nullptr, &commandPool_) != VK_SUCCESS)
@@ -143,7 +150,6 @@ public:
     if (vkWaitForFences(device_, 1, &frame.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
     ++diagnostics_.fenceWaits;
-    vkResetFences(device_, 1, &frame.fence);
     const auto result = vkAcquireNextImageKHR(device_, swapchain_, UINT64_MAX, frame.available,
                                               VK_NULL_HANDLE, &imageIndex_);
     diagnostics_.lastPlatformResult = result;
@@ -153,10 +159,17 @@ public:
       return SurfaceStatus::SurfaceLost;
     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
       return SurfaceStatus::DeviceLost;
+    // Only reset the fence once we are committed to resubmitting on it below --
+    // resetting it earlier and then bailing out on an acquire failure would leave
+    // it permanently unsignaled, so the next Acquire() cycling back to this frame
+    // slot would block forever in the vkWaitForFences call above.
+    vkResetFences(device_, 1, &frame.fence);
     vkResetCommandBuffer(frame.commands, 0);
-    VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    VkCommandBufferBeginInfo begin{};
+    begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     vkBeginCommandBuffer(frame.commands, &begin);
-    VkImageMemoryBarrier toTransfer{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+    VkImageMemoryBarrier toTransfer{};
+    toTransfer.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     toTransfer.srcAccessMask = 0;
     toTransfer.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     toTransfer.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -192,7 +205,8 @@ public:
       return SurfaceStatus::OutOfDate;
     auto &frame = frames_[frame_];
     constexpr VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    VkSubmitInfo submit{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    VkSubmitInfo submit{};
+    submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit.waitSemaphoreCount = 1;
     submit.pWaitSemaphores = &frame.available;
     submit.pWaitDstStageMask = &waitStage;
@@ -202,7 +216,8 @@ public:
     submit.pSignalSemaphores = &frame.finished;
     if (vkQueueSubmit(queue_, 1, &submit, frame.fence) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
-    VkPresentInfoKHR present{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+    VkPresentInfoKHR present{};
+    present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present.waitSemaphoreCount = 1;
     present.pWaitSemaphores = &frame.finished;
     present.swapchainCount = 1;
@@ -306,7 +321,8 @@ private:
                               capabilities.maxImageExtent.width);
     extent.height = std::clamp(extent.height, capabilities.minImageExtent.height,
                                capabilities.maxImageExtent.height);
-    VkSwapchainCreateInfoKHR create{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
+    VkSwapchainCreateInfoKHR create{};
+    create.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create.surface = surface_;
     create.minImageCount = std::clamp(2U, capabilities.minImageCount,
                                       capabilities.maxImageCount ? capabilities.maxImageCount : 3U);
@@ -328,14 +344,17 @@ private:
     vkGetSwapchainImagesKHR(device_, swapchain_, &imageCount, images_.data());
     frames_.resize(std::min<std::size_t>(kMaxFrames, images_.size()));
     std::vector<VkCommandBuffer> commands(frames_.size());
-    VkCommandBufferAllocateInfo allocate{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    VkCommandBufferAllocateInfo allocate{};
+    allocate.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocate.commandPool = commandPool_;
     allocate.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocate.commandBufferCount = static_cast<std::uint32_t>(commands.size());
     if (vkAllocateCommandBuffers(device_, &allocate, commands.data()) != VK_SUCCESS)
       return false;
-    VkSemaphoreCreateInfo semaphore{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-    VkFenceCreateInfo fence{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+    VkSemaphoreCreateInfo semaphore{};
+    semaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    VkFenceCreateInfo fence{};
+    fence.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     for (std::size_t index = 0; index < frames_.size(); ++index) {
       frames_[index].commands = commands[index];

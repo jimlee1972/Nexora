@@ -324,7 +324,11 @@ bookkeeping structure that predates this milestone and does not itself load anyt
 into Create/Modify/Undo operations. Undoing a destroyed entity restores both its component data and
 stable ID through the editor's privileged access to `World`; older transform and create undo cards
 therefore continue to target the same entity. Destroy also validates that the entity belongs to the
-supplied scene before mutating the world.
+supplied scene before mutating the world. `CreateEntity` returns the new entity's stable `Id`, not a
+reference into `World`'s storage: unlike `World::CreateEntity` (consumed immediately, within this
+file, per the rule above), `SceneEditor` is the public data-model layer external callers such as a
+future editor UI are meant to drive, so it cannot assume a caller consumes the reference before some
+other call reallocates the owning scene's entity storage underneath it.
 
 `Prefab` is a tree of named nodes with string properties, giving nested prefab composition for
 free. `PrefabInstance` resolves a property by checking its own per-instance overrides before

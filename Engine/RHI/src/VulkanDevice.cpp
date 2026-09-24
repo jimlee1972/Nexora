@@ -673,6 +673,7 @@ void VulkanDevice::TransitionTextureImmediately(TextureRecord &texture, Resource
                                             nullptr,
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
                                             nullptr};
+  VkFence fence = VK_NULL_HANDLE;
   try {
     Check(functions_.BeginCommandBuffer(command_buffer, &begin_info),
           "vkBeginCommandBuffer(texture transition)");
@@ -696,7 +697,6 @@ void VulkanDevice::TransitionTextureImmediately(TextureRecord &texture, Resource
     Check(functions_.EndCommandBuffer(command_buffer),
           "vkEndCommandBuffer(texture transition)");
     const VkFenceCreateInfo fence_info{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
-    VkFence fence = VK_NULL_HANDLE;
     Check(functions_.CreateFence(device_, &fence_info, nullptr, &fence),
           "vkCreateFence(texture transition)");
     const VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0, nullptr, nullptr,
@@ -707,6 +707,8 @@ void VulkanDevice::TransitionTextureImmediately(TextureRecord &texture, Resource
           "vkWaitForFences(texture transition)");
     functions_.DestroyFence(device_, fence, nullptr);
   } catch (...) {
+    if (fence != VK_NULL_HANDLE)
+      functions_.DestroyFence(device_, fence, nullptr);
     functions_.FreeCommandBuffers(device_, immediate_command_pool_, 1, &command_buffer);
     throw;
   }
@@ -734,31 +736,31 @@ TextureHandle VulkanDevice::CreateTexture(const TextureDescriptor &descriptor) {
 
   TextureRecord record;
   record.descriptor = descriptor;
-  Check(functions_.CreateImage(device_, &image_info, nullptr, &record.image),
-        "vkCreateImage");
-  VkMemoryRequirements requirements{};
-  functions_.GetImageMemoryRequirements(device_, record.image, &requirements);
-  const VkMemoryAllocateInfo allocate_info{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-                                           nullptr,
-                                           requirements.size,
-                                           FindMemoryType(requirements.memoryTypeBits,
-                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
-  Check(functions_.AllocateMemory(device_, &allocate_info, nullptr, &record.memory),
-        "vkAllocateMemory(image)");
-  Check(functions_.BindImageMemory(device_, record.image, record.memory, 0),
-        "vkBindImageMemory");
-  const VkImageViewCreateInfo view_info{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                                        nullptr,
-                                        0,
-                                        record.image,
-                                        VK_IMAGE_VIEW_TYPE_2D,
-                                        format,
-                                        {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-                                         VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-                                        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
-  Check(functions_.CreateImageView(device_, &view_info, nullptr, &record.view),
-        "vkCreateImageView");
   try {
+    Check(functions_.CreateImage(device_, &image_info, nullptr, &record.image),
+          "vkCreateImage");
+    VkMemoryRequirements requirements{};
+    functions_.GetImageMemoryRequirements(device_, record.image, &requirements);
+    const VkMemoryAllocateInfo allocate_info{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+                                             nullptr,
+                                             requirements.size,
+                                             FindMemoryType(requirements.memoryTypeBits,
+                                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
+    Check(functions_.AllocateMemory(device_, &allocate_info, nullptr, &record.memory),
+          "vkAllocateMemory(image)");
+    Check(functions_.BindImageMemory(device_, record.image, record.memory, 0),
+          "vkBindImageMemory");
+    const VkImageViewCreateInfo view_info{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                                          nullptr,
+                                          0,
+                                          record.image,
+                                          VK_IMAGE_VIEW_TYPE_2D,
+                                          format,
+                                          {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+                                           VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
+                                          {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+    Check(functions_.CreateImageView(device_, &view_info, nullptr, &record.view),
+          "vkCreateImageView");
     TransitionTextureImmediately(record, descriptor.initial_state);
   } catch (...) {
     DestroyTextureRecord(record);

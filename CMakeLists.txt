@@ -138,6 +138,10 @@ if(BUILD_TESTING)
     COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Package/TestPackageShowcase.py")
   add_test(
+    NAME build.showcase_package_launch_safety
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Package/TestLaunchShowcasePackage.py")
+  add_test(
     NAME build.v2_migration_scanner
     COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Migration/TestScanV1Project.py")

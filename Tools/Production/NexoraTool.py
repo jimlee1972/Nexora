@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import subprocess
 import sys
 from pathlib import Path
@@ -23,7 +24,10 @@ def canonical_bytes(value: Any) -> bytes:
 
 def write_atomic(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    # A random suffix (not just the PID) keeps two threads in the same
+    # process from racing on the same temp filename before the atomic
+    # rename below.
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
     temporary.write_bytes(data)
     temporary.replace(path)
 
@@ -85,8 +89,7 @@ class DerivedDataCache:
 
 
 def worker_request(request: dict[str, Any]) -> dict[str, Any]:
-    source = Path(request["source"])
-    source_bytes = source.read_bytes()
+    source_bytes = bytes.fromhex(request["source_hex"])
     if request.get("settings", {}).get("simulate_crash"):
         os._exit(70)
     artifact = canonical_bytes({
@@ -98,7 +101,17 @@ def worker_request(request: dict[str, Any]) -> dict[str, Any]:
 
 
 def isolated_import(source: Path, ddc: DerivedDataCache, settings: dict[str, Any]) -> dict[str, Any]:
-    request = {"source": str(source.resolve()), "settings": settings}
+    # Read the source exactly once and hand the worker those same bytes
+    # (rather than a path it re-reads independently), so the artifact's
+    # embedded source_sha256 and the DDC cache key it is stored under always
+    # describe the identical byte snapshot even if the file on disk is
+    # concurrently modified between the two -- the tool's own contract is
+    # that independent commandlets may run concurrently.
+    try:
+        source_bytes = source.read_bytes()
+    except OSError as error:
+        return {"ok": False, "error": str(error)}
+    request = {"source_hex": source_bytes.hex(), "settings": settings}
     process = subprocess.run(
         [sys.executable, str(Path(__file__).resolve()), "_worker"],
         input=json.dumps(request), capture_output=True, text=True, check=False,
@@ -107,7 +120,7 @@ def isolated_import(source: Path, ddc: DerivedDataCache, settings: dict[str, Any
         return {"ok": False, "error": f"import worker exited with code {process.returncode}"}
     response = json.loads(process.stdout)
     artifact = bytes.fromhex(response["artifact_hex"])
-    key = ddc.key(source.read_bytes(), "raw", "1", settings)
+    key = ddc.key(source_bytes, "raw", "1", settings)
     path = ddc.store(key, artifact)
     return {"ok": True, "key": key, "artifact": str(path), "artifact_sha256": sha256(artifact)}
 
