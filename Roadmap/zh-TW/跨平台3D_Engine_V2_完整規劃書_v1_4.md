@@ -3849,6 +3849,9 @@ Vulkan 現已在 Linux native offscreen gate 執行由 indirect buffer 支援的
 `vkCmdDrawIndirect`。V2-M3 仍維持未完成，因 native compute execution、DX12／Metal indirect
 execution 與完整 DX12／Vulkan／Metal target-tier
 parity 尚未通過 target-host gate。
+[V2-M3_GPU_Driven_Native_Execution_Plan.md](V2-M3_GPU_Driven_Native_Execution_Plan.md)
+把剩餘工作拆成分階段計畫，並對照原始碼逐一確認了每個 backend 的
+`Dispatch`/`DrawIndirect` 覆蓋現況；目前是提案計畫，尚未開始。
 
 順序：
 
