@@ -62,18 +62,57 @@ Apple 主機）；下面各階段中，Vulkan 的部分可以在這裡實作跟�
 
 ## 5. 分階段計畫
 
-### Phase 1 — Vulkan compute dispatch（這裡可以驗證，Linux）
+### Phase 1a — Vulkan compute dispatch，形狀層級（已完成）
 
-- 實作 `VulkanCommandList::Dispatch`（`vkCmdDispatch`），比照現有 `VulkanCommandList::DrawIndirect`
-  的做法（command pool/buffer 這個 device 上已經有了）。
-- 寫出第一個真正的 compute shader：frustum + distance culling，逐欄位比對
-  `BuildGPUDrivenCommands()` 的 CPU-reference 語意（這就是之後 `CompareGPUDrivenResults()` 要拿來
-  驗證這個 shader 的基準）。
-- 新增一個類似 `renderer.contracts` 的 `VerifyNativeBackend` 的 native-Vulkan 測試，但要完整跑
-  `RecordGPUDrivenExecution`（不只是裸的 triangle frame），並斷言
-  `diagnostics.compute_dispatches`/`indirect_draw_calls` 跟 CPU reference 的計數一致。
-- Gate：`CompareGPUDrivenResults()` 回報 Vulkan 執行結果跟 CPU reference 之間沒有落差，在這個
-  session 的 Linux host 上驗證過。
+- ✅ 實作了 `VulkanCommandList::Dispatch`（`vkCmdDispatch`），比照現有
+  `VulkanCommandList::DrawIndirect` 的做法；在 `VulkanDevice::Submit` 接上
+  `DeviceDiagnostics::compute_dispatches` 的彙總，跟 `DrawCalls()`/`IndirectDraws()` 現有的彙總
+  方式一致。
+- ✅ 新增了 `GPUDrivenPipelineTests.cpp::TestNormalPathOnVulkan`，對一個真正的
+  `rhi::CreateDevice(Backend::Vulkan)` device 完整跑 `RecordGPUDrivenExecution`（在 Vulkan 不存在
+  時透過 `IsBackendAvailable` 乾淨跳過），斷言 `diagnostics.compute_dispatches == 1 &&
+  diagnostics.indirect_draw_calls == 1 && diagnostics.draw_calls == 1` 跟
+  `diagnostics.readbacks == 0`，跟同一個檔案裡既有的 validation-backend 斷言完全對應。已驗證：
+  `linux-development`（35/35 ctest）跟 `linux-sanitizers`（ASan+UBSan，35/35 ctest）。
+- 這一步關掉了這份計畫一開始點出的那個缺口（`Dispatch` 在 Vulkan 上會丟例外），也證明了真正的
+  `RecordGPUDrivenExecution` 路徑——不只是無關的 triangle-frame smoke test——確實會在真實的
+  Vulkan 硬體/驅動上 dispatch 跟 indirect-draw。
+- **這一步還沒證明的事**：`RecordGPUDrivenExecution` 的 `Dispatch`/`DrawIndirect` 呼叫只吃單純的
+  數字（`candidate_count`、`indirect_command_count`）——沒有綁定任何 scene 資料、view 參數或輸出
+  buffer 到這次 dispatch 上。下面的 compute shader 工作需要真正的、GPU 看得到的輸入/輸出
+  buffer，這比這份計畫原本設想的還要大一塊前置工作；見 Phase 1b。
+
+### Phase 1b — 前置需求：RHI 裡的 buffer 資源與 compute-pipeline 建立（尚未開始，需要先確認）
+
+在開始 Phase 1a 的過程中對照原始碼確認：RHI **完全沒有辦法建立、上傳、綁定或讀回 GPU
+buffer**，而 `Device::CreatePipeline` **無條件只會建出 graphics pipeline**（寫死的
+vertex+fragment stage、`vkCreateGraphicsPipelines`），沒有 compute 路徑。具體來說：
+
+- `Types.h` 已經宣告了 `BufferHandle`/`BufferTag`/`BufferDescriptor`/
+  `BindingType::StorageBuffer`——但 `Device` 或 `CommandList` 裡完全沒有任何東西會建立、銷毀、
+  綁定或 map 它。這些是沒人用的骨架，很可能就是為了這件事先埋下去、卻從來沒做完。
+- `VulkanDevice.cpp` 已經載入了需要的原始 Vulkan function pointer（`vkCreateBuffer`、
+  `vkGetBufferMemoryRequirements`、`vkBindBufferMemory`、`vkMapMemory`/`vkUnmapMemory`、
+  `vkCreateDescriptorSetLayout`、`vkCreateDescriptorPool`、`vkAllocateDescriptorSets`、
+  `vkUpdateDescriptorSets`），但只拿來內部用在一個固定用途的東西上：一個綁在 descriptor set
+  0/binding 0、給那個寫死的 triangle pipeline 用的 64-byte uniform buffer。這些都沒有公開暴露，
+  也不夠通用到可以給 compute shader 的 scene/view/output 資料綁一個任意的 storage buffer。
+- 一個真正的 culling compute shader 至少需要：一個唯讀的 scene object 資料 structured/storage
+  buffer、一個裝壓縮後 instance 輸出的 storage buffer、一個裝 indirect command 輸出的 storage
+  buffer，加上一個小的 view/frustum 參數 uniform buffer——好幾個不同型別、不同大小的 buffer，
+  不是現在這個寫死的單一 uniform binding。
+
+要補上這個缺口，代表要擴充共用的 `rhi::Device`/`rhi::CommandList` 抽象介面
+（`Engine/RHI/include/Nexora/RHI/Device.h`），加上 buffer 的建立/銷毀/上傳跟一套
+compute-resource-binding 機制，並且在現有的 graphics pipeline 建立路徑旁邊加一條 compute
+pipeline 建立路徑。因為這些是加在共用介面上的 pure-virtual 新方法，**每一個** backend
+（`ValidationDevice`、`VulkanDevice`、`D3D12Device`、`MetalDevice`）都至少要有個最小實作，build
+才能繼續過關，即使現在真正需要能動的只有 Validation 跟 Vulkan。這是真正獨立、基礎性的一塊工作
+——不是「寫一個 shader」——正好就是這個 repo 一貫規則要求動手前先討論的那種
+RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更。**尚未開始；在 Phase 1 真正的
+compute shader 工作可以開始之前，需要先確認新 API 的形狀（buffer 生命週期/所有權模型、上傳
+路徑——staging buffer 還是 host-visible mapping、binding 模型——固定 slot 還是通用的
+descriptor-set builder）。**
 
 ### Phase 2 — Vulkan 上剩下的 compute 階段
 
