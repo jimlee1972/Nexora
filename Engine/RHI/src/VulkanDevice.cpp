@@ -895,8 +895,15 @@ void VulkanDevice::DestroyPipeline(PipelineHandle pipeline) {
 }
 
 std::unique_ptr<CommandList> VulkanDevice::CreateCommandList(QueueType queue) {
-  if (queue != QueueType::Graphics)
-    throw std::invalid_argument("Vulkan triangle backend only supports graphics queue");
+  // This device selects a single queue family that supports both graphics and
+  // present (see SelectPhysicalDevice), which on every host this backend
+  // targets also supports compute; VulkanCommandList's command pool is
+  // created against that same family regardless of `queue`. There is no
+  // separate transfer-only queue family selected, so QueueType::Copy is
+  // genuinely unsupported today (V2-M3's open "native queue/timeline
+  // integration" gate), unlike Compute.
+  if (queue != QueueType::Graphics && queue != QueueType::Compute)
+    throw std::invalid_argument("Vulkan backend only supports the graphics/compute queue");
   return std::make_unique<VulkanCommandList>(*this, queue);
 }
 

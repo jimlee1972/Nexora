@@ -62,27 +62,81 @@ Apple 主機）；下面各階段中，Vulkan 的部分可以在這裡實作跟�
 
 ## 5. 分階段計畫
 
-### Phase 1a — Vulkan compute dispatch，形狀層級（已完成）
+### Phase 1a — Vulkan compute dispatch，形狀層級（已完成，且已修正）
 
 - ✅ 實作了 `VulkanCommandList::Dispatch`（`vkCmdDispatch`），比照現有
   `VulkanCommandList::DrawIndirect` 的做法；在 `VulkanDevice::Submit` 接上
   `DeviceDiagnostics::compute_dispatches` 的彙總，跟 `DrawCalls()`/`IndirectDraws()` 現有的彙總
   方式一致。
-- ✅ 新增了 `GPUDrivenPipelineTests.cpp::TestNormalPathOnVulkan`，對一個真正的
-  `rhi::CreateDevice(Backend::Vulkan)` device 完整跑 `RecordGPUDrivenExecution`（在 Vulkan 不存在
-  時透過 `IsBackendAvailable` 乾淨跳過），斷言 `diagnostics.compute_dispatches == 1 &&
-  diagnostics.indirect_draw_calls == 1 && diagnostics.draw_calls == 1` 跟
-  `diagnostics.readbacks == 0`，跟同一個檔案裡既有的 validation-backend 斷言完全對應。已驗證：
-  `linux-development`（35/35 ctest）跟 `linux-sanitizers`（ASan+UBSan，35/35 ctest）。
-- 這一步關掉了這份計畫一開始點出的那個缺口（`Dispatch` 在 Vulkan 上會丟例外），也證明了真正的
-  `RecordGPUDrivenExecution` 路徑——不只是無關的 triangle-frame smoke test——確實會在真實的
-  Vulkan 硬體/驅動上 dispatch 跟 indirect-draw。
-- **這一步還沒證明的事**：`RecordGPUDrivenExecution` 的 `Dispatch`/`DrawIndirect` 呼叫只吃單純的
-  數字（`candidate_count`、`indirect_command_count`）——沒有綁定任何 scene 資料、view 參數或輸出
-  buffer 到這次 dispatch 上。下面的 compute shader 工作需要真正的、GPU 看得到的輸入/輸出
-  buffer，這比這份計畫原本設想的還要大一塊前置工作；見 Phase 1b。
+- ✅ 在確認真正驗證有沒有跑起來的過程中，順手抓到並修了一個原本就潛伏在那的真 bug：
+  `VulkanDevice::CreateCommandList` 一律拒絕 `QueueType::Compute`（丟出
+  `"Vulkan triangle backend only supports graphics queue"`），但底層的 command pool 不管拿到什麼
+  queue type 都是建在同一個支援 graphics 的 queue family 上，而這個 family 在這個 backend 鎖定的
+  每一種主機上都同時支援 compute。把檢查放寬成接受 `Graphics`/`Compute`，只擋 `Copy`（這個是真的
+  不支援——沒有另外選一個 transfer queue family）。
+- **修正這份計畫自己先前講錯的一件事**：這個 Phase 早先的版本加了一個測試
+  （`TestNormalPathOnVulkan`），完整跑一次 `RecordGPUDrivenExecution` 對真實 Vulkan，並且在引入它
+  的 PR 裡宣稱「已經確認它會走真的 Vulkan 路徑……不是被靜默跳過」。那句話是錯的。當時用來檢查的
+  本機 build 是 `NEXORA_ENABLE_SLANG` 關掉的狀態（這個 repo 的預設值），在這個狀態下
+  `VulkanDevice` 的建構子——它無條件要求 `NEXORA_SLANG_SPIRV_PATH` 這個環境變數，沒設就丟例外——
+  永遠會失敗，所以 `IsBackendAvailable(Vulkan)` 永遠回傳 `false`，測試永遠靜默跳過。跳過跟真的
+  跑過，exit code 看起來一模一樣，這正是一開始沒發現的原因。已經徹底 root-cause 並修正：把這個
+  repo CI 用的、釘住版本的 Slang 工具鏈（`shader-slang/slang` v2026.18）裝進這個 session、用
+  `-DNEXORA_ENABLE_SLANG=ON` 重新 configure（對應 `build.yml` desktop job 實際的呼叫方式，這個
+  session 單純的 `cmake --preset linux-development` 預設不會這樣），並且把
+  `renderer.contracts` 早就有的 `NEXORA_SLANG_SPIRV_PATH`/`NEXORA_REQUIRE_NATIVE_BACKENDS` CTest
+  環境屬性也加到 `renderer.v2_gpu_driven` 上（原本只有前者有）。`renderer.contracts` 的耗時從
+  接近 0.00 秒變成大約 0.1 秒，一旦真的在跑 Vulkan——這是往後任何「native backend 已驗證」的宣稱
+  都值得順手檢查的訊號。
+- **真的讓 Vulkan 跑起來之後，`TestNormalPathOnVulkan` 馬上就 segfault 了**——不是優雅地失敗，是
+  真的當掉，用 `gdb` 確認是在 Mesa 的 `libvulkan_lvp.so`（這個 sandbox 用的軟體 Vulkan driver）
+  裡面，在一個 driver worker thread 上，執行 queue 的時候炸的。根本原因：
+  `RecordGPUDrivenExecution` 的 `Dispatch` 呼叫沒有綁任何 compute pipeline——這在它的「只管形狀」
+  設計下是對的（見 §2），對 `ValidationDevice` 也無害（它本來就不模擬 pipeline-binding 狀態），
+  但 `vkCmdDispatch` 在沒有綁 compute pipeline 的情況下是 Vulkan spec 定義的 undefined
+  behavior，而這個 sandbox 沒裝 validation layer，沒辦法把它變成乾淨的錯誤而不是 driver crash。
+  因為現在完全沒有辦法建立*任何* compute pipeline（Phase 1b 的範圍），現在沒有辦法安全地做這個
+  呼叫。**移除了 `TestNormalPathOnVulkan`**，換成 `TestDispatchPreconditionsOnVulkan`，只測試
+  `Dispatch` 自己的 precondition 檢查（例如拒絕 group count 為零）——這些檢查會在記錄任何東西
+  之前就丟例外，永遠碰不到 driver。真正的 end-to-end native dispatch 測試要等 Phase 1b 提供可以
+  綁的東西才能做。
+- 已驗證（這次是真的開了 Slang）：`linux-development`（36/36 ctest，含只有
+  `NEXORA_ENABLE_SLANG` 開啟時才存在的 `build.shader_crosscompile`）。也重新驗證了沒開 Slang 的
+  一般 `linux-development` preset（這個 repo 的預設值）依然乾淨地降級（35/35，少了那個多出來的
+  shader-crosscompile 測試，符合預期）。
+- Slang 開著的 `linux-sanitizers` 是 35/36：`renderer.contracts` 在 ASan 下失敗了，一個
+  112-byte／2-allocation 的 leak，call stack 整個都在 `libNexoraCore.so` 裡面、在一個
+  `core::JobSystem` 的 worker thread 上（`asan_thread_start` → `start_thread`，整條 trace 沒有
+  任何 Vulkan/RHI 的 symbol）。已經確認這是既有問題，跟這個 Phase 的改動無關，不是這次工作引入
+  的：用 `git stash` 退回前一個 commit、重新 build、重跑，Phase 1a 的 `Dispatch`/
+  `CreateCommandList` 改動一個都不在的情況下一樣重現。之前沒被抓到，純粹是因為這是這個 session
+  裡第一次 `renderer.contracts` 同時在 ASan 底下跑、又真的有在跑真實 Vulkan（這個 session 之前每
+  一次 sanitizer run 都是 Slang 關著的）。這裡先不修——是 `core::JobSystem` 的 thread-lifecycle
+  問題，跟 V2-M3 的 RHI/Renderer 範圍是不同的子系統——但先在這裡記下來，不悶著不講，因為這是一個
+  真的、可重現的 ASan 發現，之後應該有人接手處理。
+- **這次講精確一點，Phase 1a 真正確立的東西**：`Dispatch` 已經實作，它的 precondition 檢查已經
+  用真實 Vulkan 驗證過；`CreateCommandList(Compute)` 現在能動了；`renderer.contracts` 那個
+  triangle-frame 測試，只要 Slang 開著，本來就真的有在真實 Vulkan 上驗證 `DrawIndirect`（roadmap
+  原本這部分的宣稱站得住腳）。`RecordGPUDrivenExecution` 真正的 culling/compute 輸出，完全還沒
+  在真實硬體上驗證過——那完全是 Phase 1b + Phase 2 的工作。
 
-### Phase 1b — 前置需求：RHI 裡的 buffer 資源與 compute-pipeline 建立（尚未開始，需要先確認）
+### Phase 1b — 前置需求：RHI 裡的 buffer 資源與 compute-pipeline 建立（部分已被其他工作取代，見更新）
+
+> **更新（2026-09-25）**：下面這幾段描述的是開始 Phase 1a 時找到的缺口。在那之後，另一條並行的
+> 工作（`Editor_ImGui_Integration_Plan.md`，由另一個 agent session 推進）已經把真正的
+> `Device::CreateBuffer`/`WriteBuffer`/`DestroyBuffer`、
+> `CommandList::BindVertexBuffer`/`BindIndexBuffer`/`BindTexture`、`DrawIndexed`、
+> `SetScissor`，跟一套正常的 submission timeline（`Submit` 回傳一個 completion value；
+> `CompletedSubmissionValue`/`WaitForSubmission`）加進了
+> `Engine/RHI/include/Nexora/RHI/Device.h`——已經在這次更新時對照 `main` 確認過真的在那裡。這關掉
+> 了這個缺口「完全沒辦法建立/上傳/銷毀 buffer」的那一半。但**沒有**關掉 compute 專屬的那一半：
+> `PipelineDescriptor` 沒變（依然沒有 compute 路徑，`VulkanDevice::CreatePipeline` 依然寫死
+> `vkCreateGraphicsPipelines`），也依然沒有辦法把一個 buffer 綁成 compute shader 的 storage
+> 資源（現在只有 vertex/index/texture binding，全部都是 graphics 導向——不意外，畢竟那份工作的
+> 目的是 ImGui 渲染，不是 compute culling）。所以 Phase 1b 現在剩下的範圍變窄了、也變得比較實際：
+> compute pipeline 建立跟 compute 資源（descriptor-set）綁定，重用新加的 buffer
+> 建立/上傳/銷毀原語，不用重新發明一套。這一節剩下的內容維持原樣，留作當時實際驗證過的紀錄，不
+> 事後改寫成看起來像是猜對了的樣子。
 
 在開始 Phase 1a 的過程中對照原始碼確認：RHI **完全沒有辦法建立、上傳、綁定或讀回 GPU
 buffer**，而 `Device::CreatePipeline` **無條件只會建出 graphics pipeline**（寫死的

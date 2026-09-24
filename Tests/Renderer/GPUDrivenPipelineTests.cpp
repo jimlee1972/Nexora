@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -110,15 +111,36 @@ void TestNormalPathRecordsNoReadbackOn(const std::unique_ptr<rhi::Device> &devic
 void TestNormalPathRecordsNoReadback() {
   TestNormalPathRecordsNoReadbackOn(rhi::CreateValidationDevice(), "validation backend");
 }
-void TestNormalPathOnVulkan() {
-  // Only Vulkan implements both Dispatch (vkCmdDispatch) and DrawIndirect
-  // (vkCmdDrawIndirect) today -- D3D12/Metal override neither yet (V2-M3
-  // Phase 3/4), so this is deliberately Vulkan-specific rather than a
-  // generic "whichever native backend is available" check, which would
-  // throw on those two.
-  if (!rhi::IsBackendAvailable(rhi::Backend::Vulkan))
+void TestDispatchPreconditionsOnVulkan() {
+  // Only Vulkan implements Dispatch (vkCmdDispatch) today -- D3D12/Metal
+  // override neither Dispatch nor DrawIndirect yet (V2-M3 Phase 3/4).
+  //
+  // This deliberately does NOT record-and-submit a real dispatch the way
+  // TestNormalPathRecordsNoReadbackOn does for the validation backend.
+  // RecordGPUDrivenExecution's Dispatch call has no compute pipeline bound
+  // (the RHI has no compute-pipeline-creation path yet -- see V2-M3 Phase
+  // 1b), and vkCmdDispatch with no bound compute pipeline is undefined
+  // behavior per the Vulkan spec. Confirmed empirically: recording and
+  // submitting exactly that sequence segfaults Mesa's lvp (Lavapipe)
+  // software driver deep inside libvulkan_lvp.so during queue execution,
+  // on a worker thread, with no validation layer enabled to catch the
+  // invalid usage earlier. So this only exercises Dispatch's own
+  // precondition checks (which run before anything touches the driver),
+  // not a real GPU-executed dispatch -- that has to wait for Phase 1b.
+  if (!rhi::IsBackendAvailable(rhi::Backend::Vulkan)) {
+    const auto *required = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS");
+    Require(!(required && *required == '1'), "Vulkan is required but unavailable");
     return;
-  TestNormalPathRecordsNoReadbackOn(rhi::CreateDevice(rhi::Backend::Vulkan), "Vulkan backend");
+  }
+  auto device = rhi::CreateDevice(rhi::Backend::Vulkan);
+  auto compute = device->CreateCommandList(rhi::QueueType::Compute);
+  bool threw = false;
+  try {
+    compute->Dispatch(0);
+  } catch (const std::logic_error &) {
+    threw = true;
+  }
+  Require(threw, "Vulkan Dispatch must reject a zero group count before touching the driver");
 }
 } // namespace
 int main() {
@@ -127,7 +149,7 @@ int main() {
   TestInvalidDepthInput();
   TestReferenceComparison();
   TestNormalPathRecordsNoReadback();
-  TestNormalPathOnVulkan();
+  TestDispatchPreconditionsOnVulkan();
   std::cout << "GPU-driven pipeline tests passed\n";
   return 0;
 }

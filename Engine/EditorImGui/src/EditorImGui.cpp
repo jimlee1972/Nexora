@@ -102,8 +102,12 @@ std::string PanelWindowName(std::string_view id) {
 
 void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
   ImGui::DockBuilderRemoveNode(dockspace);
-  ImGui::DockBuilderAddNode(dockspace,
-                            ImGuiDockNodeFlags_DockSpace | ImGuiDockNodeFlags_PassthruCentralNode);
+  // ImGuiDockNodeFlags_DockSpace is ImGuiDockNodeFlagsPrivate_, a different enum type from the
+  // public ImGuiDockNodeFlags_ that ImGuiDockNodeFlags_PassthruCentralNode belongs to; OR-ing them
+  // directly triggers -Wdeprecated-enum-enum-conversion, so combine them as plain ints first.
+  ImGui::DockBuilderAddNode(dockspace, static_cast<ImGuiDockNodeFlags>(
+                                           static_cast<int>(ImGuiDockNodeFlags_DockSpace) |
+                                           static_cast<int>(ImGuiDockNodeFlags_PassthruCentralNode)));
   ImGui::DockBuilderSetNodeSize(dockspace, viewport.Size);
 
   ImGuiID center = dockspace;
