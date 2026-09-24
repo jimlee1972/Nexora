@@ -11,6 +11,7 @@ FrameResult ExecuteTriangleFrame(rhi::Device &device, rhi::TextureHandle swapcha
   offscreen_descriptor.debug_name = "Triangle offscreen";
   const auto offscreen = graph.CreateTransientTexture(offscreen_descriptor);
   const auto swapchain = graph.ImportTexture(swapchain_texture, swapchain_descriptor);
+  const bool native_vulkan_indirect = device.GetBackend() == rhi::Backend::Vulkan;
   (void)graph.AddPass(
       {"Offscreen",
        rhi::QueueType::Graphics,
@@ -29,12 +30,15 @@ FrameResult ExecuteTriangleFrame(rhi::Device &device, rhi::TextureHandle swapcha
        rhi::QueueType::Graphics,
        {{offscreen, rhi::ResourceState::ShaderRead}},
        {{swapchain, rhi::ResourceState::RenderTarget}},
-       [swapchain, pipeline, width = swapchain_descriptor.width,
+       [swapchain, pipeline, native_vulkan_indirect, width = swapchain_descriptor.width,
         height = swapchain_descriptor.height](rhi::CommandList &commands,
                                               std::span<const rhi::TextureHandle> textures) {
          commands.BeginRendering({textures[swapchain.id], width, height});
          commands.BindPipeline(pipeline);
-         commands.Draw(3);
+         if (native_vulkan_indirect)
+           commands.DrawIndirect(1);
+         else
+           commands.Draw(3);
          commands.EndRendering();
        }});
   (void)graph.AddPass({"Present",

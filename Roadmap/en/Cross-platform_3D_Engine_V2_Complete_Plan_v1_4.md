@@ -3,6 +3,8 @@
 **Document Version: Master Draft v1.4**
 **Engine Generation: V2.x — Scale-Up / Production**
 
+> **Progress: 23%** (✅ V2-M0 through ✅ V2-M2 have passed their portable repository gates; V2-M3 through V2-M12 remain open. Native target evidence remains a separate gate.)
+
 > This document is the **V2 Master Plan**. All V1 Contracts are inherited by default; only items explicitly marked “V2 supersede” in this document may change V1 behavior.
 >
 > The theme of V2 is not rewriting the engine, but expanding V1 to GPU-Driven, Large World V2, Networking / Dedicated Server, advanced AI / Navigation / Animation, Distributed Build, LiveOps, and Production Tooling.
@@ -3730,7 +3732,10 @@ However, a major schema does not guarantee that binary recompilation is complete
 > V2 is established on the premise that **all V1 Gates have passed**.
 > V2 does not rewrite the core; the construction focus is first to stabilize “Production Metadata / Toolchain,” then expand toward GPU-Driven, Large World, Networking, and advanced Gameplay Frameworks.
 
-## V2-M0 — V1 → V2 Migration / Production Baseline
+## ✅ V2-M0 — V1 → V2 Migration / Production Baseline
+
+> **Repository status: accepted (portable gate).** `Tools/Migration/ScanV1Project.py` audits the canonical module schema, gameplay ABI, plugin manifests, and required Development/Shipping profiles. Its stable content fingerprint is the reference-project snapshot and regression-baseline identity; `build.v2_migration_scanner` proves deterministic output and actionable failure reporting. Native target performance remains a target-host gate.
+
 
 Construction:
 
@@ -3753,7 +3758,14 @@ Reference Project Snapshot
 
 ---
 
-## V2-M1 — Clang Reflection / DDC / Headless Toolchain
+## ✅ V2-M1 — Clang Reflection / DDC / Headless Toolchain
+
+> **Repository status: accepted (portable gate).** `Tools/Production/NexoraTool.py` emits sorted
+> canonical metadata from Clang's JSON AST, stores immutable content-addressed artifacts, isolates
+> each import in a worker process, and exposes CI-safe validate/import/cook commandlets. Versioned
+> external entity manifests and deterministic structural JSON diffs provide the scene foundation;
+> `build.v2_production_toolchain` covers deterministic output, worker crashes, cache reuse, and the
+> headless cook path.
 
 Do first:
 
@@ -3780,7 +3792,7 @@ Reason: Subsequent Networking Schema, Distributed Cook, and Large World Build al
 
 ---
 
-## V2-M2 — GPUScene / Render Extraction V2
+## ✅ V2-M2 — GPUScene / Render Extraction V2
 
 Construction:
 
@@ -3806,9 +3818,25 @@ Do not implement complete GPU culling yet.
 ✓ CPU reference path and GPUScene rendering can be compared
 ```
 
+Delivered evidence: `GPUScene` provides stable generational object slots, categorized deterministic
+dirty uploads, current/previous transforms, bounds, mesh/material resource indices, visibility and
+LOD metadata, and fence-safe retirement. Its deterministic CPU reference snapshot permits complete
+identity and render-data comparison before GPU culling is enabled. Contract tests cover create,
+update, destroy/reuse, stale handles, dirty batches, transform history, fence reclamation, and the
+reference snapshot.
+
 ---
 
 ## V2-M3 — GPU-Driven Rendering
+
+Current evidence: the deterministic CPU reference implements frustum/distance/LOD culling,
+conservative Hi-Z with explicit invalidation, visible-instance compaction, material/mesh/LOD
+classification, and indirect-command generation. The portable command contract now records compute
+dispatch and indirect drawing, compares backend output with the CPU reference, tracks normal-path
+readback diagnostics, and makes RenderGraph emit explicit compute/graphics ownership barriers.
+Vulkan now executes one indirect-buffer-backed `vkCmdDrawIndirect` in its native Linux offscreen
+gate. V2-M3 remains open because native compute execution, DX12/Metal indirect execution, and full
+DX12/Vulkan/Metal target-tier parity have not passed their target-host gates.
 
 Order:
 
@@ -3838,17 +3866,25 @@ Meshlet metadata
 
 **Gate:**
 
-```text
-✓ Large numbers of instances no longer require CPU one-draw-per-object
-✓ DX12 / Vulkan / Metal target tier parity
-✓ No normal-path GPU readback
-✓ RenderGraph owns queue / barrier / lifetime
-✓ CPU fallback can perform correctness comparison
-```
+- [x] The portable command path batches large instance sets instead of issuing one CPU draw per
+      object.
+- [ ] Native DX12 / Vulkan / Metal target-tier parity is demonstrated on target hosts.
+- [x] Contract diagnostics verify that the normal portable path performs no GPU readback.
+- [x] RenderGraph owns queue transitions, barriers, and resource lifetime in the portable contract.
+- [x] The CPU fallback performs deterministic correctness comparison with recorded backend output.
+
+Checked items are repository-level contract evidence. V2-M3 is accepted only after the remaining
+native target-host parity item passes; therefore the milestone and overall progress stay open at
+23%.
 
 ---
 
 ## V2-M4 — Large World V2
+
+Current portable foundation: deterministic integer-coordinate cell generation and build hashes,
+incremental rebuild input, quantized origin rebasing that leaves absolute gameplay identity intact,
+and revision-ordered persistent cell deltas are executable contracts. Adaptive hierarchy splitting,
+3D volume policy, HLOD V2/impostors, and the partition commandlet remain open.
 
 Construction:
 

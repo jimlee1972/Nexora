@@ -11,25 +11,20 @@
 // actually read and write an entity's Transform through the supported
 // public API rather than an engine-internal pointer.
 //
-// Scope of this pass: only the Transform component type is wired, and `log`
+// Transform, camera, light, and mesh-renderer component types are wired, and `log`
 // is now wired to a real core::AsyncLogService (previously a pure no-op that
-// silently dropped every module log call). subscribe_event and
-// set_tick_enabled remain no-ops, for a reason beyond "not built yet": the
-// ABI itself has no callback slot for the host to call back into the module
-// (subscribe_event's signature is `(context, event_type) -> int32_t`, with
-// no function pointer to invoke when that event later fires), and
-// set_tick_enabled's effect (suppressing GameplayModuleHost::Update calls)
-// would require either GameplayModuleHost to depend on this Game-namespace
-// context or a new decoupled primitive threaded through both -- either is a
-// real design decision, not a wiring gap, and belongs in its own pass, not
-// this one. Camera/light/mesh-renderer component types are not exposed
-// through this bridge yet. Extending read_component/write_component to
-// another component type means adding another case alongside
-// TransformComponentType()'s, not redesigning this file. The existing
-// Gameplay/Zig/src/game_module.zig sample and its test were NOT changed to
-// consume this bridge -- that would require rebuilding and re-verifying the
-// Zig object, and no Zig toolchain is available to do that in this
-// environment; it remains open follow-up work.
+// silently dropped every module log call). Event subscription and tick
+// control delegate to embedding-owned callbacks in GameplayHostContext. This
+// keeps the V2 ABI stable while making both operations observable and leaves
+// event delivery/update scheduling under the embedding host that owns them.
+// Extending read_component/write_component to another component
+// type means adding another case alongside the built-in component IDs, not
+// redesigning this file. The V3 Zig Showcase uses a separate V3 host table
+// with the same stable Transform component ID and wire contract; this V2
+// bridge remains a C++ facade for callers that use NexoraGameplayHostV2.
+// Keeping the V2 bridge and V3 Showcase adapter separate avoids treating the
+// V2 struct as the V3 module contract; each path is covered by its respective
+// tests.
 #include "Nexora/Core/Log.h"
 #include "Nexora/Foundation/GameplayABI.h"
 #include "Nexora/Game/GameWorld.h"
@@ -43,6 +38,9 @@ namespace nexora::game {
 // shared by any C++ caller and by a game module across the ABI boundary, so
 // neither side hardcodes a magic numeric component_type.
 [[nodiscard]] NEXORA_RUNTIME_API std::uint64_t TransformComponentType() noexcept;
+[[nodiscard]] NEXORA_RUNTIME_API std::uint64_t CameraComponentType() noexcept;
+[[nodiscard]] NEXORA_RUNTIME_API std::uint64_t LightComponentType() noexcept;
+[[nodiscard]] NEXORA_RUNTIME_API std::uint64_t MeshRendererComponentType() noexcept;
 
 // The wire format read_component/write_component exchange for
 // TransformComponentType(): three tightly packed doubles. This is
@@ -52,6 +50,18 @@ namespace nexora::game {
 // a member; only this struct's own shape is the actual wire contract.
 struct GameplayTransformWire final {
   double x{}, y{}, z{};
+};
+struct GameplayCameraWire final {
+  double vertical_field_of_view{60.0};
+  double near_plane{0.1};
+  double far_plane{1000.0};
+};
+struct GameplayLightWire final {
+  float intensity{1.0F};
+};
+struct GameplayMeshRendererWire final {
+  std::uint64_t mesh{};
+  std::uint64_t shader{};
 };
 
 // context for a NexoraGameplayHostV2 built by MakeHost(): `world` must
@@ -71,11 +81,19 @@ struct GameplayTransformWire final {
 // Game-namespace C++ facade, not just this one struct) that belongs in its
 // own pass, not something to retrofit onto a single type in passing.
 struct GameplayHostContext final {
+  using SubscribeEventFn = int32_t (*)(void *context, std::uint64_t event_type);
+  using SetTickEnabledFn = void (*)(void *context, bool enabled);
+
   GameWorld *world{};
   // Optional: when null (the default), the host's `log` callback silently
   // drops every module log call, exactly as it did before this field
   // existed. When set, `log` forwards to this service instead.
   core::AsyncLogService *log{};
+  // Optional embedding hooks. subscribe_event reports unsupported when its
+  // hook is null; set_tick_enabled is a no-op when its hook is null.
+  void *control_context{};
+  SubscribeEventFn subscribe_event{};
+  SetTickEnabledFn set_tick_enabled{};
 };
 
 // Builds a NexoraGameplayHostV2 whose context is `&context`. Every callback

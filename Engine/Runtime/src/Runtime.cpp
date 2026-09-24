@@ -134,22 +134,66 @@ World World::CloneForPlay() const {
 }
 
 void WorldCommandBuffer::SetTransform(Id entity, Transform transform) {
-  commands_.push_back({entity, transform});
+  Command command{};
+  command.entity = entity;
+  command.kind = Command::Kind::Transform;
+  command.transform = transform;
+  commands_.push_back(command);
 }
-void WorldCommandBuffer::DestroyEntity(Id entity) { commands_.push_back({entity, std::nullopt}); }
+void WorldCommandBuffer::SetCamera(Id entity, std::optional<CameraComponent> camera) {
+  Command command{};
+  command.entity = entity;
+  command.kind = Command::Kind::Camera;
+  command.camera = camera;
+  commands_.push_back(command);
+}
+void WorldCommandBuffer::SetLight(Id entity, std::optional<LightComponent> light) {
+  Command command{};
+  command.entity = entity;
+  command.kind = Command::Kind::Light;
+  command.light = light;
+  commands_.push_back(command);
+}
+void WorldCommandBuffer::SetMeshRenderer(Id entity, std::optional<MeshComponent> mesh) {
+  Command command{};
+  command.entity = entity;
+  command.kind = Command::Kind::MeshRenderer;
+  command.mesh = mesh;
+  commands_.push_back(command);
+}
+void WorldCommandBuffer::DestroyEntity(Id entity) {
+  Command command{};
+  command.entity = entity;
+  command.kind = Command::Kind::Destroy;
+  commands_.push_back(command);
+}
 
 bool WorldCommandBuffer::Apply(World &world) {
-  for (const auto &command : commands_)
-    if (world.FindEntity(command.entity) == nullptr)
+  std::unordered_set<Id> destroyed;
+  for (const auto &command : commands_) {
+    if (world.FindEntity(command.entity) == nullptr || destroyed.contains(command.entity))
       return false;
+    if (command.kind == Command::Kind::Destroy)
+      destroyed.insert(command.entity);
+  }
   for (const auto &command : commands_)
     for (auto &scene : world.scenes_)
       if (const auto found = std::ranges::find(scene.entities, command.entity, &Entity::id);
           found != scene.entities.end()) {
-        if (command.transform)
-          found->transform = *command.transform;
-        else
+        if (command.kind == Command::Kind::Transform) {
+          found->transform = command.transform;
+        } else if (command.kind == Command::Kind::Camera) {
+          found->camera = command.camera.has_value();
+          found->camera_data = command.camera.value_or(CameraComponent{});
+        } else if (command.kind == Command::Kind::Light) {
+          found->light = command.light.has_value();
+          found->light_data = command.light.value_or(LightComponent{});
+        } else if (command.kind == Command::Kind::MeshRenderer) {
+          found->mesh_renderer = command.mesh.has_value();
+          found->mesh_data = command.mesh.value_or(MeshComponent{});
+        } else {
           scene.entities.erase(found);
+        }
         break;
       }
   commands_.clear();

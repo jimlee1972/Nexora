@@ -2635,7 +2635,7 @@ Automatically verifiable conditions.
 
 # V1 Milestone AI Work Packages
 
-## M0
+## ✅ M0
 
 AI may work in parallel on:
 
@@ -2649,7 +2649,7 @@ Formatting / lint
 
 Do not modify the same root CMake target definition in parallel unless ownership has first been divided.
 
-## M1
+## ✅ M1
 
 Work packages:
 
@@ -2664,7 +2664,7 @@ VFS
 
 Each must first have its own unit tests, followed by Engine Init integration.
 
-## M2
+## ✅ M2
 
 Work packages:
 
@@ -2679,7 +2679,7 @@ Zig ABI PoC
 
 There may be only one Canonical Reflection owner to prevent the three backends from defining their own schemas.
 
-## M3
+## ✅ M3
 
 Divide the Renderer into:
 
@@ -2695,7 +2695,7 @@ Frame Pipeline
 
 RenderGraph barrier ownership must have a single responsible owner.
 
-## M4-M12
+## ✅ M4-M12
 
 Each milestone must include at least:
 

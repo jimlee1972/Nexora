@@ -2,8 +2,14 @@
   "schema_version": 1,
   "modules": [
     {
-      "name": "Foundation",
+      "name": "API",
       "dependencies": []
+    },
+    {
+      "name": "Foundation",
+      "dependencies": [
+        "API"
+      ]
     },
     {
       "name": "Core",
@@ -15,6 +21,21 @@
       "name": "RHI",
       "dependencies": [
         "Core"
+      ]
+    },
+    {
+      "name": "Window",
+      "feature": "NEXORA_ENABLE_WINDOW_PRESENTATION",
+      "dependencies": [
+        "Core"
+      ]
+    },
+    {
+      "name": "Presentation",
+      "feature": "NEXORA_ENABLE_WINDOW_PRESENTATION",
+      "dependencies": [
+        "RHI",
+        "Window"
       ]
     },
     {
@@ -36,6 +57,20 @@
       ]
     },
     {
+      "name": "Editor",
+      "feature": "NEXORA_ENABLE_EDITOR",
+      "dependencies": [
+        "Runtime"
+      ]
+    },
+    {
+      "name": "EditorApp",
+      "feature": "NEXORA_ENABLE_EDITOR",
+      "dependencies": [
+        "Editor"
+      ]
+    },
+    {
       "name": "ExamplePlugin",
       "feature": "NEXORA_FEATURE_EXAMPLE_PLUGIN",
       "dependencies": [
@@ -54,6 +89,17 @@
       "feature": "NEXORA_ENABLE_ZIG_GAMEPLAY",
       "dependencies": [
         "Runtime"
+      ]
+    },
+    {
+      "name": "ZigShowcase",
+      "feature": "NEXORA_ENABLE_ZIG_GAMEPLAY",
+      "dependencies": [
+        "GameplayZig",
+        "Runtime",
+        "Renderer",
+        "RHI",
+        "Presentation"
       ]
     }
   ]

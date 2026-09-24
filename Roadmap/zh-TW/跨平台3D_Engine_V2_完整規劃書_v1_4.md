@@ -3,6 +3,8 @@
 **文件版本：Master Draft v1.4**
 **Engine 世代：V2.x — Scale-Up / Production**
 
+> **進度：23%**（✅ V2-M0 至 ✅ V2-M2 已通過 portable repository gate；V2-M3 至 V2-M12 仍待完成。Native target evidence 維持獨立 gate。）
+
 > 本文件為 **V2 Master Plan**，所有 V1 Contract 預設繼承；只有本文件明確標示「V2 supersede」的項目可以改變 V1 行為。
 >
 > V2 的主題不是重寫引擎，而是把 V1 擴張到 GPU-Driven、Large World V2、Networking / Dedicated Server、進階 AI / Navigation / Animation、Distributed Build、LiveOps 與 Production Tooling。
@@ -3742,7 +3744,10 @@ Stable C Gameplay ABI：
 > V2 建立在 **V1 全部 Gate 已通過** 的前提下。  
 > V2 不重寫核心；施工重點是先把「Production Metadata / Toolchain」穩定，再往 GPU-Driven、Large World、Networking 與高階 Gameplay Framework 擴張。
 
-## V2-M0 — V1 → V2 Migration / Production Baseline
+## ✅ V2-M0 — V1 → V2 Migration / Production Baseline
+
+> **Repository 狀態：portable gate 已驗收。** `Tools/Migration/ScanV1Project.py` 會稽核 canonical module schema、gameplay ABI、plugin manifest，以及必要的 Development／Shipping profile。穩定的 content fingerprint 同時作為 reference-project snapshot 與 regression-baseline identity；`build.v2_migration_scanner` 證明 deterministic output 與可採取行動的 failure report。Native target performance 仍屬 target-host gate。
+
 
 施工：
 
@@ -3765,7 +3770,14 @@ Reference Project Snapshot
 
 ---
 
-## V2-M1 — Clang Reflection / DDC / Headless Toolchain
+## ✅ V2-M1 — Clang Reflection / DDC / Headless Toolchain
+
+> **Repository 狀態：portable gate 已驗收。** `Tools/Production/NexoraTool.py` 從 Clang JSON AST
+> 產生排序後的 canonical metadata、保存不可變的 content-addressed artifact、以獨立 worker
+> process 執行每次 import，並提供適合 CI 的 validate／import／cook commandlet。Versioned external
+> entity manifest 與 deterministic structural JSON diff 奠定 scene 基礎；
+> `build.v2_production_toolchain` 覆蓋 deterministic output、worker crash、cache reuse 與 headless
+> cook path。
 
 先做：
 
@@ -3792,7 +3804,7 @@ Structural Scene Diff foundation
 
 ---
 
-## V2-M2 — GPUScene / Render Extraction V2
+## ✅ V2-M2 — GPUScene / Render Extraction V2
 
 施工：
 
@@ -3818,9 +3830,25 @@ Fence-safe retirement
 ✓ CPU reference path 與 GPUScene rendering 可比對
 ```
 
+已交付證據：`GPUScene` 提供穩定的 generational object slot、分類且 deterministic 的 dirty
+upload、current／previous transform、bounds、mesh／material resource index、visibility 與 LOD
+metadata，以及 fence-safe retirement。其 deterministic CPU reference snapshot 可在啟用 GPU
+culling 前完整比較 identity 與 render data。Contract tests 覆蓋 create、update、destroy／reuse、
+stale handle、dirty batch、transform history、fence reclamation 與 reference snapshot。
+
 ---
 
 ## V2-M3 — GPU-Driven Rendering
+
+目前證據：deterministic CPU reference 已實作 frustum／distance／LOD culling、具明確
+invalidation 的 conservative Hi-Z、visible-instance compaction、material／mesh／LOD
+classification 與 indirect-command generation。Portable command contract 現已記錄 compute
+dispatch 與 indirect drawing、將 backend output 與 CPU reference 比較、追蹤 normal-path
+readback diagnostics，並由 RenderGraph 發出明確的 compute／graphics ownership barrier。
+Vulkan 現已在 Linux native offscreen gate 執行由 indirect buffer 支援的
+`vkCmdDrawIndirect`。V2-M3 仍維持未完成，因 native compute execution、DX12／Metal indirect
+execution 與完整 DX12／Vulkan／Metal target-tier
+parity 尚未通過 target-host gate。
 
 順序：
 
@@ -3850,17 +3878,23 @@ Meshlet metadata
 
 **Gate：**
 
-```text
-✓ 大量 instance 不再需要 CPU one-draw-per-object
-✓ DX12 / Vulkan / Metal target tier parity
-✓ No normal-path GPU readback
-✓ RenderGraph owns queue / barrier / lifetime
-✓ CPU fallback 可做 correctness comparison
-```
+- [x] Portable command path 會將大量 instance 分批，不再由 CPU 逐 object 發出 draw。
+- [ ] 在 target host 上證明 native DX12／Vulkan／Metal target-tier parity。
+- [x] Contract diagnostics 驗證 normal portable path 不會執行 GPU readback。
+- [x] Portable contract 中的 queue transition、barrier 與 resource lifetime 由 RenderGraph 擁有。
+- [x] CPU fallback 會對 recorded backend output 進行 deterministic correctness comparison。
+
+已勾選項目代表 repository-level contract 證據。V2-M3 只會在剩餘 native target-host parity
+項目通過後驗收；因此該 milestone 仍未勾選，整體進度仍為 23%。
 
 ---
 
 ## V2-M4 — Large World V2
+
+目前 portable foundation 已提供 deterministic integer-coordinate cell generation／build hash、
+incremental rebuild input、維持 gameplay absolute identity 的 quantized origin rebase，以及依
+revision 排序的 persistent cell delta executable contract。Adaptive hierarchy splitting、3D volume
+policy、HLOD V2／impostor 與 partition commandlet 仍待完成。
 
 施工：
 

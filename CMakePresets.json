@@ -44,6 +44,40 @@
       }
     },
     {
+      "name": "linux-sanitizers",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NEXORA_LINK_MODE": "Modular",
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-thread-sanitizer",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NEXORA_LINK_MODE": "Modular",
+        "CMAKE_C_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=thread",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=thread"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
       "name": "linux-shipping",
       "inherits": "base",
       "cacheVariables": {
@@ -64,6 +98,26 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Development",
         "NEXORA_LINK_MODE": "Modular"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "windows-zig-showcase",
+      "inherits": "base",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Development;Shipping",
+        "NEXORA_ENABLE_ZIG_GAMEPLAY": "ON",
+        "NEXORA_ENABLE_NATIVE_BACKENDS": "OFF",
+        "NEXORA_LINK_MODE": "Modular"
+      },
+      "environment": {
+        "PATH": "${sourceDir}/.tools/zig-win-x86_64-0.14.0;$penv{PATH}"
       },
       "condition": {
         "type": "equals",
@@ -127,12 +181,24 @@
       "configurePreset": "linux-development"
     },
     {
+      "name": "linux-thread-sanitizer",
+      "configurePreset": "linux-thread-sanitizer"
+    },
+    {
+      "name": "linux-sanitizers",
+      "configurePreset": "linux-sanitizers"
+    },
+    {
       "name": "linux-shipping",
       "configurePreset": "linux-shipping"
     },
     {
       "name": "windows-development",
       "configurePreset": "windows-development"
+    },
+    {
+      "name": "windows-zig-showcase",
+      "configurePreset": "windows-zig-showcase"
     },
     {
       "name": "macos-development",
@@ -164,8 +230,29 @@
       }
     },
     {
+      "name": "linux-thread-sanitizer",
+      "configurePreset": "linux-thread-sanitizer",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-sanitizers",
+      "configurePreset": "linux-sanitizers",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
       "name": "windows-development",
       "configurePreset": "windows-development",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-zig-showcase",
+      "configurePreset": "windows-zig-showcase",
       "output": {
         "outputOnFailure": true
       }

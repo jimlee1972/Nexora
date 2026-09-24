@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -121,6 +122,50 @@ private:
   std::size_t depth_{};
 };
 
+// ---- Play-in-Editor session ----
+
+enum class PlayState { Stopped, Playing, Paused };
+enum class ApplyBackPolicy { Discard, Transforms };
+
+struct PlaySessionStats final {
+  std::uint64_t fixed_ticks{};
+  std::uint64_t manual_steps{};
+  std::uint64_t applied_transforms{};
+};
+
+// Owns an isolated Play World cloned from the Editor World. Simulation mutations never reach the
+// Editor World until Stop(Transforms) explicitly applies stable-ID transform changes. Input focus
+// is session policy only; platform events remain owned and routed by the embedding editor.
+class NEXORA_RUNTIME_API PlaySession final {
+public:
+  using FixedUpdate = std::function<bool(World &, double)>;
+
+  explicit PlaySession(World &editor_world) noexcept : editor_world_(editor_world) {}
+  bool Start(double fixed_delta_seconds, FixedUpdate fixed_update);
+  bool Pause() noexcept;
+  bool Resume() noexcept;
+  bool Tick();
+  bool Step();
+  bool Stop(ApplyBackPolicy policy = ApplyBackPolicy::Discard);
+  void SetInputFocus(bool focused) noexcept { input_focused_ = focused && play_world_.has_value(); }
+  [[nodiscard]] bool AcceptsInput() const noexcept {
+    return input_focused_ && state_ != PlayState::Stopped;
+  }
+  [[nodiscard]] PlayState State() const noexcept { return state_; }
+  [[nodiscard]] World *PlayWorld() noexcept { return play_world_ ? &*play_world_ : nullptr; }
+  [[nodiscard]] const PlaySessionStats &Stats() const noexcept { return stats_; }
+
+private:
+  bool ExecuteFixedTick(bool manual);
+  World &editor_world_;
+  std::optional<World> play_world_;
+  FixedUpdate fixed_update_;
+  double fixed_delta_seconds_{};
+  PlayState state_{PlayState::Stopped};
+  bool input_focused_{};
+  PlaySessionStats stats_{};
+};
+
 // ---- Prefab / nested prefab / variant ----
 
 struct PrefabProperty final {
@@ -156,7 +201,12 @@ public:
   [[nodiscard]] std::optional<std::string> Resolve(std::string_view path,
                                                    std::string_view key) const;
   bool Rebase(std::shared_ptr<const Prefab> new_prefab);
+  bool RevertOverride(std::string_view path, std::string_view key);
+  void RevertAll() noexcept { overrides_.clear(); }
+  // Applies the current override diff to a new immutable prefab revision and clears the diff.
+  [[nodiscard]] std::shared_ptr<const Prefab> ApplyOverrides();
   [[nodiscard]] std::size_t OverrideCount() const noexcept { return overrides_.size(); }
+  [[nodiscard]] std::span<const PrefabOverride> Overrides() const noexcept { return overrides_; }
   [[nodiscard]] const Prefab &Source() const noexcept { return *prefab_; }
 
 private:

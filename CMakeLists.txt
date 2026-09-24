@@ -1,15 +1,18 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(Nexora VERSION 0.1.0 LANGUAGES CXX)
+project(Nexora VERSION 0.1.0 LANGUAGES C CXX)
 
-option(NEXORA_ENABLE_ZIG_GAMEPLAY "Build the Zig gameplay ABI sample" OFF)
+option(NEXORA_ENABLE_ZIG_GAMEPLAY "Build the Zig gameplay ABI sample and NexoraShowcase" OFF)
 option(NEXORA_ENABLE_SLANG "Compile and validate the canonical Slang shader" OFF)
 option(NEXORA_ENABLE_MIMALLOC "Fetch mimalloc and use it as the TrackingAllocator backend" OFF)
 option(NEXORA_ENABLE_NATIVE_BACKENDS "Build the platform RHI backends" ON)
+option(NEXORA_ENABLE_WINDOW_PRESENTATION
+       "Build the backend-neutral window and native-presentation contracts" ON)
 option(NEXORA_ENABLE_SCENE_RENDERING "Build the V1-M4 scene presentation path" ON)
 option(NEXORA_ENABLE_ASSET_PIPELINE "Build the V1-M5 authoring/cooking and bundle pipeline" ON)
 option(NEXORA_ENABLE_EDITOR_SDK
        "Build the V1-M6 reflection, plugin host, scene editor, and prefab foundation" ON)
+option(NEXORA_ENABLE_EDITOR "Build the standalone Nexora Editor preview" ON)
 option(NEXORA_ENABLE_GAMEPLAY_SIMULATION
        "Build the V1-M8 physics, character, navigation, and AI foundation" ON)
 option(NEXORA_ENABLE_PRESENTATION
@@ -26,6 +29,7 @@ if(NOT NEXORA_SHIPPING_PROFILE MATCHES "^(Minimal|Full|Dedicated)$")
   message(FATAL_ERROR "NEXORA_SHIPPING_PROFILE must be Minimal, Full, or Dedicated")
 endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Shipping")
+  set(NEXORA_ENABLE_EDITOR OFF CACHE BOOL "Build the standalone Nexora Editor preview" FORCE)
   if(NEXORA_SHIPPING_PROFILE STREQUAL "Minimal")
     set(NEXORA_ENABLE_EDITOR_SDK OFF CACHE BOOL
         "Build the V1-M6 reflection, plugin host, scene editor, and prefab foundation" FORCE)
@@ -41,6 +45,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Shipping")
     set(NEXORA_ENABLE_SCENE_RENDERING OFF CACHE BOOL
         "Build the V1-M4 scene presentation path" FORCE)
   endif()
+endif()
+if(NEXORA_ENABLE_EDITOR AND (NOT NEXORA_ENABLE_EDITOR_SDK OR NOT NEXORA_ENABLE_ASSET_PIPELINE))
+  message(FATAL_ERROR "NEXORA_ENABLE_EDITOR requires the Editor SDK and asset pipeline")
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -79,20 +86,40 @@ endif()
 
 add_subdirectory(Engine/Foundation)
 add_subdirectory(Engine/Core)
+if(NEXORA_ENABLE_WINDOW_PRESENTATION)
+  add_subdirectory(Engine/Window)
+endif()
 add_subdirectory(Engine/RHI)
+if(NEXORA_ENABLE_WINDOW_PRESENTATION)
+  add_subdirectory(Engine/Presentation)
+endif()
 add_subdirectory(Engine/Renderer)
 add_subdirectory(Engine/Runtime)
+if(NEXORA_ENABLE_EDITOR)
+  add_subdirectory(Engine/Editor)
+  add_subdirectory(Apps/Editor)
+endif()
 add_subdirectory(Apps/Host)
 
 include(CTest)
+
+if(NEXORA_ENABLE_ZIG_GAMEPLAY)
+  add_subdirectory(Gameplay/Zig)
+  add_subdirectory(Apps/Showcase)
+endif()
+
 if(BUILD_TESTING)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
   add_subdirectory(Tests/Foundation)
   add_subdirectory(Tests/Core)
+  if(NEXORA_ENABLE_WINDOW_PRESENTATION)
+    add_subdirectory(Tests/WindowPresentation)
+  endif()
   add_subdirectory(Tests/API)
   add_subdirectory(Tests/Renderer)
   add_subdirectory(Tests/Runtime)
-  if(NEXORA_ENABLE_ZIG_GAMEPLAY)
-    add_subdirectory(Gameplay/Zig)
+  if(NEXORA_ENABLE_EDITOR)
+    add_subdirectory(Tests/Editor)
   endif()
   add_test(
     NAME build.module_graph
@@ -106,4 +133,16 @@ if(BUILD_TESTING)
     NAME build.plugin_manifests
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR}
             -P "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Build/ValidatePluginManifests.cmake")
+  add_test(
+    NAME build.showcase_package
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Package/TestPackageShowcase.py")
+  add_test(
+    NAME build.v2_migration_scanner
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Migration/TestScanV1Project.py")
+  add_test(
+    NAME build.v2_production_toolchain
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Production/TestNexoraTool.py")
 endif()

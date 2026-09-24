@@ -1,0 +1,39 @@
+# Editor Core contract
+
+`NexoraEditorCore` is the UI-independent authoring layer used by the standalone `NexoraEditor`
+process. It owns project/workspace persistence, deterministic content indexing, stable panel and
+command identities, hierarchy metadata, selection, clipboard operations, and scene-document
+persistence. The production-support layer also owns explicit specialized-tool capability states,
+reproducible build manifests, portable frame samples, virtual hierarchy ranges, signed-extension
+policy, and opt-in telemetry state. It composes public Runtime Editor SDK APIs rather than reaching
+into renderer or platform internals.
+
+## Ownership and lifetime
+
+- `ProjectWorkspace` owns its descriptor and open-document list; files are atomically replaced and
+  a recovery journal is written before the primary workspace file.
+- `AssetWorkspace` owns index entries. Pointers returned by `Find` and `Search` are borrowed until
+  the next `ImportTree` call or destruction.
+- `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
+  hierarchy use stable IDs, never component or container pointers.
+- `PlaySession` remains the Runtime-owned PIE boundary. Play worlds are isolated and discarded by
+  default; explicit apply-back is required.
+- Specialized tools are registrations, not implied backends: a tool must report `Implemented`,
+  `ReadOnly`, or `Unavailable`, and every non-implemented state carries a reason.
+- Build manifests own copied profile/artifact data and are atomically replaced. A successful
+  manifest always records its target, configuration, reproducible command, artifact sizes, and
+  checksums.
+
+## Threading, errors, and deferred work
+
+The current API is serialized and synchronous. Callers may run content indexing on a worker, but
+must not call the same workspace concurrently. Long imports report progress and observe a
+cancellation callback between files. Failed/cancelled entries remain inspectable and never replace
+an existing artifact implicitly. Functions report expected failures with `false`, optional values,
+or per-entry error text; filesystem exceptions are converted to error results where applicable.
+Profiling samples require strictly increasing frame IDs. Telemetry drops every event until the user
+explicitly opts in; extension policy rejects untrusted publishers and, by default, invalid or
+missing signatures.
+
+The core deliberately does not claim graphical Editor acceptance. Docking, DPI/IME/accessibility,
+viewport rendering, gizmos, and native-host visual validation remain UI-host responsibilities.

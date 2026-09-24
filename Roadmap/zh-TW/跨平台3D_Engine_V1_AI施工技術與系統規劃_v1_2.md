@@ -2647,7 +2647,7 @@ unit / integration / golden / perf。
 
 # V1 Milestone AI 工作包
 
-## M0
+## ✅ M0
 
 AI 可平行：
 
@@ -2661,7 +2661,7 @@ Formatting / lint
 
 不可平行修改同一 root CMake target definition，除非先切 ownership。
 
-## M1
+## ✅ M1
 
 工作包：
 
@@ -2676,7 +2676,7 @@ VFS
 
 先各自有 unit tests，再做 Engine Init integration。
 
-## M2
+## ✅ M2
 
 工作包：
 
@@ -2691,7 +2691,7 @@ Zig ABI PoC
 
 Canonical Reflection owner 只能一個 task，避免三 backend 各自定 schema。
 
-## M3
+## ✅ M3
 
 Renderer 分：
 
@@ -2707,7 +2707,7 @@ Frame Pipeline
 
 RenderGraph barrier ownership 必須單一負責。
 
-## M4-M12
+## ✅ M4-M12
 
 每個 milestone 至少要有：
 

@@ -12,6 +12,17 @@
       "console": "integratedTerminal"
     },
     {
+      "name": "Nexora Zig Showcase (Windows)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "CMake: build Zig Showcase",
+      "args": ["--headless", "--validate-v1", "--frames=4"],
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
+    },
+    {
       "name": "Nexora Host (macOS/Linux)",
       "type": "lldb",
       "request": "launch",

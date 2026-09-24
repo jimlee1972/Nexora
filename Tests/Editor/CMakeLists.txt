@@ -1,0 +1,4 @@
+add_executable(NexoraEditorTests EditorTests.cpp)
+target_link_libraries(NexoraEditorTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraEditorTests)
+add_test(NAME editor.preview_contract COMMAND NexoraEditorTests)

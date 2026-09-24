@@ -17,6 +17,13 @@ using SubscriptionHandle = Handle<EventSubscriptionTag>;
 
 class EventBus final {
 public:
+  // Subscribe, Unsubscribe, Enqueue, and Publish are thread-safe. Publish invokes
+  // callbacks synchronously on the publishing thread, without holding the bus
+  // lock. Callbacks may publish, subscribe, or unsubscribe reentrantly. A
+  // callback already copied by an in-progress Publish can still run after
+  // Unsubscribe returns; the subscriber must keep captured state alive until
+  // concurrent publishers have joined. Deferred events are owned by the bus and
+  // run on the thread that calls DispatchDeferred.
   template <typename Event>
   SubscriptionHandle Subscribe(std::function<void(const Event &)> callback) {
     std::lock_guard lock{mutex_};

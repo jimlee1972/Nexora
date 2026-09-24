@@ -74,6 +74,14 @@ those device runs.
 
 ## V1-M10 large-world runtime
 
+The initial V2-M4 portable layer adds deterministic integer-coordinate partition cells and hashes,
+an incremental rebuild entry point, quantized double-precision world-origin rebasing, and
+revision-ordered persistent cell deltas. Builds sort input identities and serialized deltas before
+hashing, so unordered container iteration cannot affect output. These synchronous, caller-owned
+contracts perform no filesystem I/O; gameplay keeps absolute identities/coordinates while only
+render-relative coordinates consume the rebase origin. Adaptive hierarchy splitting, 3D volume
+policy, HLOD V2/impostors, and the production partition commandlet remain open.
+
 `LargeWorld.h` defines stable fixed-grid addressing, spatial lookup, streaming demand, room/portal
 prefetch, offline HLOD, terrain patches, and instanced vegetation. `StreamingManager` keeps cell,
 full-bundle, and HLOD-bundle identities separate; ranks source demand deterministically; applies
@@ -179,22 +187,54 @@ dependency cycles, safe unload, deterministic save/load, and a 10,000-entity tim
 
 ## Zig gameplay bridge
 
-`GameplayModuleHost` executes the versioned `NexoraGameModuleV2` C ABI while the original V1 layouts
-remain declared for source compatibility. It validates the host and
+`GameplayModuleHost` executes the versioned `NexoraGameModuleV3` C ABI while the V1 and V2 layouts
+remain declared for source compatibility. V3 separates state creation/destruction from
+`on_start`/`on_stop`, makes update failures observable through `NexoraGameplayResult`, adds an
+optional fixed-update callback guarded by a capability bit, and exposes host/module capability
+masks. It validates the host and
 module structure sizes, ABI version, and required callbacks before initialization. Update, reload,
 and unload operations are serialized; a replacement module is initialized before the active module
 is shut down, and a rejected replacement leaves the active module running.
 
-The host table exposes size-checked component reads/writes, event subscription, and tick control.
+The host table exposes size-checked component reads/writes, logging, and an explicitly paired host
+allocator. Every allocation and matching deallocation carries the same `NexoraAllocationOwner`;
+gameplay state uses `NEXORA_ALLOCATION_OWNER_GAMEPLAY_STATE`, while migration scratch storage is
+reserved for `NEXORA_ALLOCATION_OWNER_STATE_MIGRATION`. The allocating host owns the allocator and
+the module owns the returned block until it returns that exact pointer, size, alignment, and tag.
+A module may retain the table only from successful `create` until `destroy`; the table and module
+state are invalid immediately after `destroy`. Lifecycle and update calls are serialized but run
+on whichever caller thread entered `GameplayModuleHost`; callbacks must not re-enter the same host
+or retain borrowed component buffers. The Zig module allocates its state through the host and
+returns the exact allocation during `destroy`, so allocation ownership never crosses the C ABI
+implicitly and reload candidates have independent state. No exception crosses the C ABI; every
+fallible callback reports a `NexoraGameplayResult`, and an update failure does not implicitly
+unload the active module. Event delivery remains a future additive capability.
 Modules may additionally provide state save/load callbacks. Reload serializes the active state,
-initializes and restores the candidate, and only then retires the active module; migration failure
-keeps the active module alive. `GetReloadStats()` exposes successful reload count, migrated bytes,
-and wall-clock reload duration for profiler integration.
+initializes and restores the candidate, and only then retires the active module; load, descriptor,
+start, and migration failures stop and destroy the candidate while keeping the active module alive.
+The path overloads discover platform-named modules and own each loaded library as one monotonically
+numbered generation. Before retiring a generation, the host invokes the configured quiescence
+barrier while lifecycle serialization is held; the embedding must wait there for every job and
+deferred callback that can enter that generation. Only after the barrier, `on_stop`, and `destroy`
+does the host release the old `LoadLibrary`/`dlopen` handle. Unload follows the same ordering, so
+shutdown racing a reload is serialized and cannot release callable code. Static function-pointer
+loads remain supported for monolithic/Shipping consumers, but a dynamically owned generation may
+only be replaced by another dynamically owned generation. `Generation()` and `GetReloadStats()`
+expose the active generation, successful reload count, migrated bytes, and wall-clock reload
+duration for diagnostics and profiler integration. Dynamic path reloads first require consecutive stable file-size and write-time samples, so a linker copy cannot be opened halfway through publication. `GetFailureState()` records the callback kind, ABI result, and generation for the latest variable/fixed-update failure; failures remain observable without implicitly unloading state and a successful transactional reload clears the prior generation's failure.
+
+`Tests/Gameplay/GameplayConformanceVectors.h` is the single lifecycle/update vector set used by the
+C++ fake and Zig consumer. The Runtime negative suite rejects a missing loader symbol, ABI and
+structure-size mismatches, absent required callbacks, and callback failures. Linux sanitizer gates
+are directly runnable with `linux-sanitizers` (AddressSanitizer plus UndefinedBehaviorSanitizer)
+and `linux-thread-sanitizer`; TSan is separate because it cannot be combined with ASan.
 
 Configure with `-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON` to compile the minimal Zig GameModule and run the
 `gameplay.zig_abi_smoke` test. Zig 0.14.0 is the pinned CI toolchain. This is the first executable
-toolchain gate. Dynamic-library/editor orchestration, mobile cross-compilation, and device execution
-remain required follow-up gates.
+toolchain gate. The Runtime dynamic-generation suite uses real native libraries and covers
+discovery, repeated reload, failed restore rollback, job quiescence, and shutdown during a barrier.
+The Zig Showcase executable is wired to a Development shared-library artifact; mobile
+cross-compilation, and device execution remain required follow-up gates.
 
 Desktop CI builds the same module on Linux, Windows, and macOS. A separate CI smoke matrix also
 runs `zig build-obj` for `aarch64-linux-android` and `aarch64-ios`; these checks validate object
@@ -307,6 +347,19 @@ windowing/rendering front end this repository does not have yet (`Apps/Host/Nexo
 headless CLI); `SceneEditor` and `PrefabInstance` are the data-model and command layer such a
 front end would eventually drive, exercised here through CTest rather than through any UI.
 
+`PlaySession` is the portable PIE ownership contract. It owns an isolated `WorldKind::Play` clone;
+`Tick` runs only while playing, `Step` runs exactly one fixed update while paused, and input focus
+starts released until explicitly granted by editor policy. Stopping discards runtime mutations by
+default. The only supported apply-back policy copies changed transforms for stable entity IDs;
+runtime-created entities and all other component mutations remain isolated and are discarded. The
+Play World and update callback
+are released before `Stop` returns.
+
+`PrefabInstance` exposes its override diff as a read-only span. Individual entries or the full diff
+can be reverted, while `ApplyOverrides` creates a new immutable prefab revision and clears the
+instance diff. Rebase keeps only overrides whose stable node paths survive in the new revision;
+these operations never mutate a shared source prefab in place.
+
 ## API-M5/M6 Game facade and gameplay host bridge
 
 `Nexora/Game/GameWorld.h` is the API-M5 boundary over `World`: `World::FindEntity`/`FindScene`
@@ -320,14 +373,20 @@ never-reused identifier, which the V1 Complete Plan's ABI rules list as its own 
 C-ABI-crossing category ("EntityID"), separate from an index+generation Opaque Handle.
 
 `SpawnEntity` attaches camera/light/mesh-renderer at creation time via `EntitySpawnDescriptor`
-(they are plain fields on `Entity`); `SetTransform`/`DestroyEntity` go through a one-shot
-`WorldCommandBuffer` internally, reusing the M4 command-buffer contract rather than adding new
-`World` friend access. `Query(scene, mask)` is an OR-mask batch query over a scene's entities.
+(they are plain fields on `Entity`). Component setters attach, update, or remove those components;
+`DeferredCommands` exposes atomic mutation batches and rejects a full batch if an entity is stale.
+The immediate setters and `DestroyEntity` use the same `WorldCommandBuffer` internally, reusing
+the M4 command-buffer contract rather than adding new `World` friend access.
+`Query(scene, mask)` is an OR-mask batch query over a scene's entities.
 `CaptureInput` wraps `InputSystem::Consume` into a by-value `InputSnapshot`, and `AssetRef` is a
-named re-export of the already-ABI-appropriate `AssetUuid` (API-M2). **Not built here:** physics
-(`PhysicsWorld`/`CharacterController`) and audio (`AudioMixer`) remain standalone systems with
-their own `SimulationId`/resource-id space, not entity-integrated by this facade -- that binding
-is a larger design this pass does not attempt.
+named re-export of the already-ABI-appropriate `AssetUuid` (API-M2). The facade owns its portable
+`PhysicsWorld` and `AudioMixer`, binds bodies and voices to the owning entity ID, removes those
+bindings on entity destruction, resolves ray hits back to entity IDs, and synchronizes an attached
+`CharacterController`'s position to the entity Transform after each motor tick. Audio resource IDs
+are unique within a `GameWorld`, making entity stop/destruction deterministic with `AudioMixer`'s
+resource-based stop contract. Physics and character methods are omitted when the optional gameplay
+simulation feature is stripped; the rest of the API-M5 facade remains available. All facade calls
+are synchronous, caller-thread-only, and retain no caller-owned spans or references.
 
 `Nexora/Game/GameplayHostBridge.h` is the API-M6 piece: it wires the `NexoraGameplayHostV2` C ABI
 (`Nexora/Foundation/GameplayABI.h`, the "Zig gameplay bridge" contract above) to a real `GameWorld`
@@ -335,9 +394,9 @@ instead of the `read_component`/`write_component`/`log`/`subscribe_event`/`set_t
 only ever being filled by a test-scoped stand-in (`Gameplay/Zig/ZigGameplayTests.cpp`'s `HostState`
 is exactly that: a fake host with its own private value, unrelated to any real `World`). `MakeHost`
 builds a real `NexoraGameplayHostV2` whose `read_component`/`write_component` actually read and
-write a live entity's `Transform`, keyed by `TransformComponentType()` (a stable FNV-1a hash of
-`"Nexora.Transform"` via `nexora::foundation::Name`, not a magic number either side has to agree on
-by convention). Only the Transform component type is wired in this pass. `log` now forwards to a
+write a live entity's Transform, camera, light, and mesh-renderer state. Stable component IDs are
+derived from their `Nexora.*` names, and explicit wire structures keep internal C++ layouts out of
+the ABI. `log` forwards to a
 real `core::AsyncLogService` when `GameplayHostContext::log` is set (category `"Gameplay"`,
 level validated against `LogLevel`'s own range before the `uint32_t` -> enum cast, message built
 from the `(pointer, length)` pair rather than assumed NUL-terminated); it stays a silent no-op when
@@ -348,16 +407,26 @@ like every other Runtime C++ facade type (`GameWorld`, `EntitySpawnDescriptor`, 
 checks); callers must be rebuilt against the current header when it changes, same as for any of
 those sibling types. Giving it its own binary-compatibility guarantee would only make sense as part
 of a real ABI surface for the whole Game-namespace C++ facade, not a single struct in passing.
-`subscribe_event` and `set_tick_enabled` remain honest no-ops, and not because of a missing wiring
-pass: the ABI itself has no callback slot for the host to invoke the module when a subscribed event
-later fires, and gating `GameplayModuleHost::Update` calls would need either that Runtime-namespace
-type to depend on this Game-namespace context or a new decoupled primitive threaded through both --
-both are real API/ABI design decisions, not gaps to fill in passing.
+`subscribe_event` and `set_tick_enabled` delegate to optional embedding-owned callbacks in
+`GameplayHostContext`. A missing subscription hook returns `NEXORA_GAMEPLAY_ERROR_UNSUPPORTED`;
+a missing tick hook is a safe no-op. The embedding owns event delivery and update scheduling, so
+the bridge never retains callback state past the context lifetime and invokes both hooks
+synchronously on the calling game thread.
 
-**Not verified here:** `Gameplay/Zig/src/game_module.zig` and its test were not changed to consume
-this bridge. No Zig toolchain is available in this environment (`which zig` fails), so a change to
-the `.zig` file could not be locally rebuilt or verified; only `gameplay.zig_abi_smoke`'s CI runners
-have Zig. `GameplayHostBridge` is instead fully covered by a C++-only test
-(`Tests/Runtime/GameplayHostBridgeTests.cpp`) that calls the built `NexoraGameplayHostV2` function
-pointers directly. Having the Zig sample actually call through this bridge, replacing its own
-private fake host, remains open follow-up work.
+The canonical language boundary now lives in `Engine/API/include/nexora/nexora.h`;
+`Nexora/Foundation/GameplayABI.h` is a compatibility include rather than a duplicate declaration.
+`Engine/API/abi_manifest.json` records since, ownership, nullability, threading, error, and
+determinism metadata for every callback export. `abi_baseline_v3.json` plus
+`api.m6_manifest_compatibility` reject field removal/reordering without a major bump, while the
+C11 consumer and `Bindings/Zig/nexora.zig` gate both supported language views.
+
+The append-only V3 scene API callbacks expose only copied wire descriptors and opaque scalar IDs. Scene and entity lifetime remain host-owned; asset handles are non-owning UUID-derived tokens; input and diagnostics are by-value snapshots; raycast results are copied; and debug lines are high-level requests copied synchronously by the host. Every callback runs on the serialized game thread, borrows pointer arguments only for that call, returns `NexoraGameplayResult`, and publishes no partial object on failure. No RHI, device, queue, native-window, or swapchain pointer crosses this boundary.
+
+`Gameplay/Zig/src/game_module.zig` and its ABI test now build with the repository-local Zig 0.14.0
+toolchain and are covered by `gameplay.zig_abi_smoke`. `Apps/Showcase/NexoraShowcase` uses a
+separate V3 host adapter to map the stable Transform wire to a live `GameWorld` entity and emits
+headless render/reload evidence; the local Windows `windows-zig-showcase` preset covers it with
+`showcase.zig_headless`. `GameplayHostBridge` remains a V2 C++ facade covered by
+`Tests/Runtime/GameplayHostBridgeTests.cpp`; its generic V2 `MakeHost()` entry is intentionally not
+silently substituted for the V3 Showcase table. Native window/swapchain execution and dynamic
+module discovery remain open.

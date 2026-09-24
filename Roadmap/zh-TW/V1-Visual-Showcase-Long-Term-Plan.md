@@ -1,5 +1,18 @@
 # Nexora V1 可視化展示 Demo 長期規劃
 
+> **進度：10%**（截至 2026-09-23；依 Phase A～E 驗收項目加權計算，
+> 已完成項目以 ✅ 標示；headless contract 不等於已完成視窗化 phase。）
+
+## 0. 現況盤點
+
+- ✅ 已有 C++-owned `NexoraShowcase` entry point、CLI 與 ordered Engine/module shutdown。
+- ✅ 已有 deterministic headless scene、validation RHI、scene extraction 與 JSON evidence report。
+- ✅ 已有 Zig static consumer 的 fixed/update、Transform read/write 與 transactional state migration。
+- 待辦：native window/input/swapchain 由 Window 與 Native Presentation Roadmap 管理。
+- 待辦：真正的 3D Hub、Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping 房間。
+- 待辦：M0～M12 probe registry、interactive/guided tour、error injection 與視覺 status UI。
+- 待辦：clean package launch、manifest/checksum、windowed smoke 與版本化 screenshot evidence。
+
 > 文件版本：v1.0
 >
 > 文件狀態：規畫基線（Draft）
@@ -257,10 +270,10 @@ UI、headless report、CTest adapter 與 Guided Tour 都消費同一份結果。
 
 目標：產出第一個能開窗、關窗、resize、顯示 clear color 與 diagnostics overlay 的 NexoraShowcase.exe。
 
-- 建立 Apps/Showcase target 與命令列解析。
+- ✅ 建立 Apps/Showcase target 與 headless 命令列解析。
 - 建立 backend-neutral WindowSurface contract。
 - Windows 實作 Win32 window 與 DX12 swapchain。
-- 保留現有 offscreen device/test path。
+- ✅ 保留現有 offscreen device/test path。
 - 加入 showcase.startup、showcase.resize、showcase.shutdown smoke。
 
 ### Phase B — First 3D Vertical Slice

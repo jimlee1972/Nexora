@@ -79,6 +79,7 @@ public:
 private:
   friend class WorldCommandBuffer;
   friend class SceneEditor;
+  friend class PlaySession;
   friend NEXORA_RUNTIME_API std::optional<SceneFrameResult>
   RenderSceneFrame(const World &, rhi::Device &, rhi::TextureHandle, const rhi::TextureDescriptor &,
                    rhi::PipelineHandle);
@@ -90,14 +91,22 @@ private:
 class NEXORA_RUNTIME_API WorldCommandBuffer final {
 public:
   void SetTransform(Id entity, Transform transform);
+  void SetCamera(Id entity, std::optional<CameraComponent> camera);
+  void SetLight(Id entity, std::optional<LightComponent> light);
+  void SetMeshRenderer(Id entity, std::optional<MeshComponent> mesh);
   void DestroyEntity(Id entity);
   [[nodiscard]] bool Apply(World &world);
   [[nodiscard]] std::size_t Size() const noexcept { return commands_.size(); }
 
 private:
   struct Command final {
+    enum class Kind { Transform, Camera, Light, MeshRenderer, Destroy };
     Id entity{};
-    std::optional<Transform> transform;
+    Kind kind{};
+    Transform transform{};
+    std::optional<CameraComponent> camera;
+    std::optional<LightComponent> light;
+    std::optional<MeshComponent> mesh;
   };
   std::vector<Command> commands_;
 };

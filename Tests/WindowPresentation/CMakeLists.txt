@@ -1,0 +1,5 @@
+include(NexoraTarget)
+add_executable(NexoraWindowPresentationTests WindowPresentationTests.cpp)
+target_link_libraries(NexoraWindowPresentationTests PRIVATE Nexora::Presentation)
+nexora_apply_defaults(NexoraWindowPresentationTests)
+add_test(NAME window_presentation.contracts COMMAND NexoraWindowPresentationTests)

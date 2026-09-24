@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <span>
+#include <stdexcept>
 #include <string_view>
 
 namespace nexora::rhi {
@@ -14,6 +15,9 @@ struct DeviceDiagnostics final {
   std::uint64_t draw_calls{};
   std::uint64_t presents{};
   std::uint64_t validation_errors{};
+  std::uint64_t compute_dispatches{};
+  std::uint64_t indirect_draw_calls{};
+  std::uint64_t readbacks{};
 };
 class NEXORA_RHI_API CommandList {
 public:
@@ -22,6 +26,12 @@ public:
   virtual void BeginRendering(const RenderingInfo &info) = 0;
   virtual void BindPipeline(PipelineHandle pipeline) = 0;
   virtual void Draw(std::uint32_t vertex_count, std::uint32_t instance_count = 1) = 0;
+  virtual void Dispatch(std::uint32_t, std::uint32_t = 1, std::uint32_t = 1) {
+    throw std::logic_error("compute dispatch is unsupported");
+  }
+  virtual void DrawIndirect(std::uint32_t) {
+    throw std::logic_error("indirect drawing is unsupported");
+  }
   virtual void EndRendering() = 0;
 };
 

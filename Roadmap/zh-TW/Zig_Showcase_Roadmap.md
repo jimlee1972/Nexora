@@ -2,6 +2,26 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
 
+> **進度：90%**（截至 2026-09-24；依第 4 節 6 個 milestone 的加權驗收清單計算，
+> 已完成項目以 ✅ 標示，結果向下取整至 10%。）
+
+**施工狀態（2026-09-24）：** ZS-M0 至 ZS-M4 已完成。ABI V3 現在定義明確的 result 與 capability 值、
+分離 create/start/stop/destroy 階段、可回報失敗的 variable/fixed update，以及 C++ Host 的
+transactional state migration；repository 內的 C++ fake module 會驗證此 contract。Zig module
+現在會透過成對的 V3 host allocator callback 取得與釋放獨立 state，reload candidate
+也不再共用 global state。Fake 與 Zig module 現在共用一份 vector set；allocation tag、negative
+descriptor/callback coverage 與 Linux sanitizer preset 已完成 ZS-M0。Runtime dynamic discovery
+與 generation lifecycle 已完成；Showcase 會建置並選取 Zig Development shared library，Shipping
+則保留相同 ABI 的 static link。
+
+**本機施工狀態（2026-09-23）：** 已提供 deterministic headless/static 與 Development-dynamic
+的 ZS-M1 驗證 slice，
+輸出 `NexoraShowcase.exe`。C++ 擁有 `main`、Engine lifecycle、小型 `GameWorld`、
+fixed/update scheduling、offscreen scene rendering、reload 與 shutdown；Zig consumer 透過
+公開 ABI 修改 primary entity 的 Transform，並由 executable 輸出 JSON evidence report。Dynamic
+module discovery 已納入 CTest。Native Win32/DX12 presentation 已透過 Window 與 Presentation
+contract 實作，但仍須在 Windows target host 驗收。
+
 ## 1. 核心決策
 
 Showcase 的 `main`、平台視窗、Engine lifecycle、render loop 與 shutdown 必須由 C++ Host/Engine 啟動；Zig 是被載入的 gameplay module，不是 process owner。Zig 透過穩定 C ABI 呼叫 Engine API，建立內容、處理 tick/input、操作 entity/component 並更新展示狀態。這取代「Zig 只做 ABI smoke」作為對外示範，但保留 smoke test。
@@ -45,12 +65,38 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
 
 ## 4. 階段
 
-- **ZS-M0 Contract**：確立 Host-owned lifecycle、function table、錯誤/記憶體/thread contract；C++ fake module 與 Zig smoke 共用 conformance suite。
-- **ZS-M1 Bootstrap**：`NexoraShowcase` C++ target 負責 CLI、window/headless、module discovery；Zig `on_start/update/on_stop` 可執行。
-- **ZS-M2 API-driven scene**：只用 API Roadmap 的 C/Zig bindings 建 scene、camera、mesh、input 與 diagnostics。
-- **ZS-M3 Feature gallery**：加入 physics、animation/audio/VFX、streaming 的 bounded showcases 與 capability fallback。
-- **ZS-M4 Reload and failure**：transactional hot reload、state migration、錯誤 module/ABI rejection、舊版本 rollback。
+- **✅ ZS-M0 Contract**：確立 Host-owned lifecycle、function table、錯誤/記憶體/thread contract；C++ fake module 與 Zig smoke 共用 conformance suite。
+  - ✅ ABI V3 lifecycle、result/capability、paired allocator 與 transactional state migration。
+  - ✅ C++ fake module 的 lifecycle/reload contract 驗證。
+  - ✅ C++ fake 與 Zig consumer 共用同一份 conformance vectors。
+  - ✅ owner tags、missing symbol/version/struct-size/callback failure，以及 Linux sanitizer gates。
+- **✅ ZS-M1 Bootstrap**：`NexoraShowcase` C++ target 負責 CLI、window/headless、module discovery；Zig `on_start/update/on_stop` 可執行。
+  - ✅ C++-owned `main`、Engine/World lifetime、fixed/update scheduling 與 ordered shutdown。
+  - ✅ deterministic headless validation backend、JSON evidence 與 static Zig object consumer。
+  - ✅ Runtime dynamic library discovery、generation ownership、job quiescence 與真正的 library unload/rollback。
+  - ✅ 建置 Zig Development shared-library artifact，並由 `NexoraShowcase` 選取。
+  - ✅ 透過 Window 與 Presentation boundary 使用 native window/input/swapchain。
+- **✅ ZS-M2 API-driven scene**：只用 API Roadmap 的 C/Zig bindings 建 scene、camera、mesh、input 與 diagnostics。
+  - ✅ Zig 經 public host table 建立 scene、camera、light 與 cubes；C++ 保留 engine/world/render ownership。
+  - ✅ 以 append-only 方式補齊 spawn/despawn、scene、input snapshot、opaque asset handle、raycast、高階 debug draw 與 diagnostics callbacks。
+  - ✅ C header、ABI manifest/baseline、Zig binding、ownership/thread/error contract、C++ ABI gates、Zig smoke 與 deterministic headless evidence 已同步。
+- **✅ ZS-M3 Feature gallery**：加入 physics、animation/audio/VFX、streaming 的 bounded showcases 與 capability fallback。
+  - ✅ Math、Scene、Gameplay、Presentation 與 Streaming room 已有可 script 選擇及 deterministic
+    capability／fallback 證據。
+  - ✅ Native interaction 提供 WASD camera 移動，公開 Zig scene callback 則執行 selection raycast 與高階 query trace。
+  - ✅ Physics/navigation、animation/audio/VFX 與 cell/HLOD room overlay 依編譯進 Runtime capability 顯示狀態。
+  - ✅ 每個 room 皆顯示 `IMPLEMENTED` / `CONTRACT ONLY` / `UNAVAILABLE`，minimal-capability CTest 固定 fallback matrix。
+- **✅ ZS-M4 Reload and failure**：transactional hot reload、state migration、錯誤 module/ABI rejection、舊版本 rollback。
+  - ✅ 真正 dynamic generations 的 job drain、restore failure、old-generation rollback、shutdown-during-reload 與 repeated reload stress。
+  - ✅ Dynamic library replacement 會等待檔案大小與寫入時間穩定後才載入；host 記錄帶 generation 的 update/fixed-update failure，Presentation 並將 device lost 明確分類為 device recreation，而非 surface retry。
 - **ZS-M5 Distribution**：Development dynamic 與 Shipping static/packaged profiles，產生 license/build/API manifest。
+  - ✅ 可重現的 Development-dynamic 與 Shipping-static package target 會產生 license、
+    build/API/content manifest、逐 artifact SHA-256 digest 與 `SHA256SUMS`。
+  - 待辦：在乾淨的 target machine 執行產物記錄的 command 並保留 launch 證據。Linux CI
+    建立 package 不能取代 target-host 驗收。
+  - ✅ Linux clean-package evidence 會驗證全部 checksum、建立全新的隔離副本，從該副本啟動
+    relocatable dynamic package，並保留 report／exit status。其他 target host 與獨立配置機器
+    的驗收仍待完成。
 
 ## 5. 測試與驗收
 

@@ -16,6 +16,8 @@
 
 namespace nexora::core {
 
+inline constexpr std::uint32_t kEngineServicesApiVersion = 1;
+
 [[nodiscard]] inline std::uint64_t MonotonicNanoseconds() noexcept {
   return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
                                         std::chrono::steady_clock::now().time_since_epoch())
@@ -26,6 +28,12 @@ namespace nexora::core {
 class RandomStream final {
 public:
   static constexpr std::uint32_t kVersion = 1;
+  struct State final {
+    std::uint64_t state{};
+    std::uint64_t increment{};
+    std::uint32_t version{kVersion};
+  };
+
   explicit RandomStream(std::uint64_t seed = 0, std::uint64_t sequence = 1) {
     Seed(seed, sequence);
   }
@@ -46,6 +54,14 @@ public:
   [[nodiscard]] float NextFloat() {
     return static_cast<float>(NextU32() >> 8U) * (1.0F / 16777216.0F);
   }
+  [[nodiscard]] State Save() const noexcept { return {state_, increment_, kVersion}; }
+  [[nodiscard]] bool Restore(const State &state) noexcept {
+    if (state.version != kVersion || (state.increment & 1U) == 0U)
+      return false;
+    state_ = state.state;
+    increment_ = state.increment;
+    return true;
+  }
 
 private:
   std::uint64_t state_{}, increment_{};
@@ -53,6 +69,7 @@ private:
 
 class Configuration final {
 public:
+  static constexpr std::uint32_t kVersion = 1;
   bool Set(std::string key, std::string value) {
     if (key.empty())
       return false;
@@ -91,6 +108,7 @@ private:
 // global across module boundaries.
 class NEXORA_CORE_API ProfilingMarker final {
 public:
+  static constexpr std::uint32_t kVersion = 1;
   using SinkFunction = void (*)(std::string_view name, std::uint64_t nanoseconds);
 
   // A plain function pointer (not std::function) so the sink can be read

@@ -1,6 +1,8 @@
 include(NexoraTarget)
 add_library(NexoraRenderer ${NEXORA_MODULE_LIBRARY_TYPE}
   src/FramePipeline.cpp
+  src/GPUDrivenPipeline.cpp
+  src/GPUScene.cpp
   src/PipelineCache.cpp
   src/RenderGraph.cpp)
 add_library(Nexora::Renderer ALIAS NexoraRenderer)

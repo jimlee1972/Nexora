@@ -10,6 +10,7 @@
 #include "Nexora/Core/JobSystem.h"
 #include "Nexora/Core/Services.h"
 #include "Nexora/Core/Vfs.h"
+#include "Nexora/Foundation/DataAbi.h"
 #include "Nexora/Foundation/Types.h"
 #include "Nexora/Math/Math.h"
 
@@ -55,7 +56,17 @@ bool RunTypesSample() {
   std::printf("  Uuid round trip: %s\n", uuid.Value().ToString().c_str());
   const bool valid_utf8 = IsValidUtf8("Nexora \xE2\x9C\x93");
   std::printf("  IsValidUtf8: %s\n", valid_utf8 ? "true" : "false");
-  return valid_utf8;
+  const std::uint8_t payload[]{'A', 'P', 'I', 0, 'M', '2'};
+  NexoraFoundationOwnedBuffer *owned = nullptr;
+  const bool created = nexora_foundation_string_create_utf8({payload, sizeof(payload)}, &owned) ==
+                       NEXORA_FOUNDATION_OK;
+  NexoraFoundationByteView view{};
+  const bool preserved = created &&
+                         nexora_foundation_buffer_view(owned, &view) == NEXORA_FOUNDATION_OK &&
+                         view.size == sizeof(payload);
+  std::printf("  C ABI owned UTF-8 buffer: %s\n", preserved ? "ok" : "FAILED");
+  nexora_foundation_buffer_destroy(owned);
+  return valid_utf8 && preserved;
 }
 
 bool RunVfsSample() {
@@ -74,8 +85,12 @@ bool RunVfsSample() {
     return false;
   }
   const auto read = vfs.Read("sample://greeting.txt");
-  const bool ok = read.status == ReadResult::Status::Completed && read.bytes.size() == text.size();
-  std::printf("  memory-mounted read back %zu bytes: %s\n", read.bytes.size(),
+  const auto stream = vfs.OpenRead("sample://greeting.txt");
+  const auto mapped = vfs.MapReadOnly("sample://greeting.txt");
+  const bool ok = read.status == ReadResult::Status::Completed &&
+                  read.bytes.size() == text.size() && stream.IsValid() &&
+                  stream.Size() == text.size() && mapped.Bytes().size() == text.size();
+  std::printf("  read/stream/map memory-mounted %zu bytes: %s\n", read.bytes.size(),
               ok ? "ok" : "FAILED");
   return ok;
 }

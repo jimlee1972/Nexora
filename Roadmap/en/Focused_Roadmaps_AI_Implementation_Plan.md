@@ -1,6 +1,11 @@
 # Engine API, Zig Showcase, and Editor: AI Implementation Technology and System Plan
 
-> Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
+> Version: v1.0 | Status: active delivery | Updated: 2026-09-24
+
+
+> **Progress: 60%** (API 100%, Zig Showcase 90%, and Editor 0%; arithmetic mean 63.3%, rounded down to 10%.)
+
+**Accepted delivery:** ✅ Engine API Foundation portable scope and ✅ Zig Showcase ZS-M0 through ZS-M4. **Open:** Zig Showcase ZS-M5 clean-target distribution acceptance and all graphical Editor delivery gates.
 
 ## 1. Analysis and critical path
 

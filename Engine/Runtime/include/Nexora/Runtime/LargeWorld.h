@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -161,6 +162,72 @@ public:
 
 private:
   std::unordered_map<Id, std::vector<VegetationInstance>> species_;
+};
+
+// V2 partition identities are derived from integer coordinates rather than floating-point
+// positions, making build output stable across hosts and repeated incremental builds.
+struct PartitionCoordinate final {
+  std::int64_t x{}, y{}, z{};
+  std::uint8_t level{};
+  friend bool operator==(const PartitionCoordinate &, const PartitionCoordinate &) = default;
+};
+struct PartitionCell final {
+  Id id{};
+  PartitionCoordinate coordinate{};
+  Bounds bounds{};
+  std::vector<Id> content;
+  std::uint64_t content_hash{};
+};
+struct PartitionBuild final {
+  std::vector<PartitionCell> cells;
+  std::uint64_t build_hash{};
+};
+class NEXORA_RUNTIME_API AdaptivePartitionBuilder final {
+public:
+  explicit AdaptivePartitionBuilder(double leaf_size, std::size_t split_threshold = 8,
+                                    std::uint8_t max_level = 8);
+  [[nodiscard]] std::optional<PartitionBuild> Build(std::span<const SpatialItem> items) const;
+  [[nodiscard]] std::optional<PartitionBuild> Rebuild(const PartitionBuild &previous,
+                                                      std::span<const SpatialItem> items,
+                                                      std::span<const Id> changed_items) const;
+
+private:
+  double leaf_size_{};
+  std::size_t split_threshold_{};
+  std::uint8_t max_level_{};
+};
+
+struct OriginRebase final {
+  Vec3d previous_origin{}, current_origin{}, render_delta{};
+  std::uint64_t sequence{};
+};
+class NEXORA_RUNTIME_API WorldOrigin final {
+public:
+  explicit WorldOrigin(double threshold, double quantum);
+  [[nodiscard]] std::optional<OriginRebase> Update(Vec3d observer);
+  [[nodiscard]] Vec3d ToRenderRelative(Vec3d absolute) const noexcept;
+  [[nodiscard]] Vec3d Origin() const noexcept { return origin_; }
+
+private:
+  double threshold_{}, quantum_{};
+  Vec3d origin_{};
+  std::uint64_t sequence_{};
+};
+
+struct PersistentCellDelta final {
+  Id cell{}, object{};
+  std::uint64_t revision{};
+  bool removed{};
+  std::string payload;
+};
+class NEXORA_RUNTIME_API PersistentDeltaStore final {
+public:
+  bool Apply(PersistentCellDelta delta);
+  [[nodiscard]] std::vector<PersistentCellDelta> Load(Id cell) const;
+  [[nodiscard]] std::uint64_t Digest(Id cell) const noexcept;
+
+private:
+  std::unordered_map<Id, std::unordered_map<Id, PersistentCellDelta>> cells_;
 };
 
 } // namespace nexora::runtime::large_world

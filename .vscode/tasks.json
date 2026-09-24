@@ -15,6 +15,20 @@
       "command": "ctest",
       "group": "test",
       "problemMatcher": []
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: build Zig Showcase",
+      "command": "build",
+      "targets": ["NexoraShowcase"],
+      "problemMatcher": ["$gcc", "$msCompile"]
+    },
+    {
+      "type": "cmake",
+      "label": "CMake: test Zig Showcase",
+      "command": "ctest",
+      "group": "test",
+      "problemMatcher": []
     }
   ]
 }

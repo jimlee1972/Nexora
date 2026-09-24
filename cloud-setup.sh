@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Nexora — Claude Code cloud environment setup script
+# Nexora — Codex Cloud environment setup script
 #
-# 貼進 claude.ai/code → Environments → 你的環境 → Setup script。
+# 將內容設為 Codex Cloud environment 的 setup script。
 # 這支 script 在 VM 建立時跑一次，結果會被快取，之後每個 session 直接用。
 # 目標：讓 `cmake --preset linux-development` 到 `ctest` 全程可跑。
 

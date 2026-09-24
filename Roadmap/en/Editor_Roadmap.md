@@ -1,6 +1,14 @@
 # Nexora Graphical Editor Roadmap
 
-> Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
+> Version: v1.1 | Status: planning baseline | Updated: 2026-09-23
+
+> **Progress: 0%** (none of ED-M0 through ED-M7 has passed graphical Editor acceptance;
+> completed Runtime/Editor SDK prerequisites are not rounded up into an Editor milestone.)
+
+**Completed prerequisites:** ✅ reflection metadata; ✅ command/undo data model;
+✅ prefab override/rebase; ✅ isolated PIE session; ✅ dynamic plugin ABI gate; ✅ standalone
+process and portable workspace/document core. **Open:** window/docking/UI shell,
+graphical views, authoring workflows, and production hardening.
 
 ## 1. Product vision
 
@@ -23,14 +31,64 @@ Editor metadata stays out of Shipping components. Selection stores stable IDs, n
 
 ## 3. Milestones
 
-- **ED-M0 — Shell and UX contract:** OS support, project/workspace format, stable panel IDs, command/shortcut routing, theme, DPI, IME, accessibility, and crash recovery; select the UI framework by ADR and prototypes.
-- **ED-M1 — Project/asset workspace:** create/open/upgrade projects; search/filter Content Browser; UUIDs, drag/drop, import status, dependency view, reimport; cancellable deterministic background imports.
-- **ED-M2 — Scene authoring:** Hierarchy, Scene View, Inspector, camera, picking, TRS gizmos, parenting/order, multi-select, clipboard, save/reload. Reflection creates widgets; unknown components retain raw data.
+Milestones are delivered in strict order: **ED-M0 → ED-M1 → ED-M2**. The Editor must not begin
+production widget implementation before ED-M0 settles its product and UX contracts. In particular,
+the shell depends on the public window/swapchain path and must not invent a temporary private
+presentation path merely to display UI.
+
+### ED-M0 — Product shell and UX contract
+
+Define supported operating systems, project/workspace formats, stable panel IDs, command and
+shortcut routing, docking, theme, DPI, IME, accessibility, and crash recovery. Select the UI
+framework through an ADR and focused prototypes; wireframes or an isolated widget demo do not
+satisfy this milestone.
+
+- ✅ The standalone `NexoraEditor` process, versioned project/workspace format, stable panel IDs,
+  command namespace, atomic workspace replacement, and recovery journal are implemented.
+- Open: UI-framework ADR and graphical docking, theme, DPI, IME, accessibility, and crash UX.
+
+### ED-M1 — Project and asset workspace
+
+Create, open, and upgrade projects. Deliver a Content Browser with search/filter, folder/UUID,
+drag/drop, import status, dependency inspection, and reimport. Background import must expose
+cancellation, progress, and actionable errors, and must produce deterministic artifacts.
+
+- ✅ Project create/open, deterministic content-tree indexing, UUID/path search and filtering,
+  cancellation, progress, inspectable errors, and deterministic artifact hashes are implemented.
+- Open: graphical Content Browser, drag/drop, dependency inspection, and reimport UX.
+
+### ED-M2 — Scene authoring core
+
+Deliver Hierarchy, Scene View, Inspector, camera controls, selection/picking, translate/rotate/scale
+gizmos, parenting/reordering, multi-selection, clipboard, undo/redo, and save/reload. Reflection
+creates property widgets; unknown components retain raw data instead of being silently discarded.
+
+- ✅ Stable-ID hierarchy/selection, cycle-safe reparenting, multi-selection, clipboard duplication,
+  transform transactions, undo, and atomic scene save/reload are implemented in Editor Core.
+- Open: graphical Hierarchy/Scene/Inspector, picking, camera controls, gizmos, reflected widgets,
+  and unknown-component visual workflows.
+
 - **ED-M3 — PIE/debugging:** Game View, play/pause/step, fixed ticks, input focus, isolated worlds, apply policy, Console, runtime inspection, debugger boundary. The engine loads Zig gameplay; the Editor is not Zig `main`.
+  - ✅ Portable `PlaySession` prerequisite covers isolated Play World ownership, fixed tick,
+    play/pause/step, input-focus policy, discard-by-default, and explicit transform apply-back.
+  - Open: graphical Game View, Console/runtime inspection, and debugger integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Portable prefab prerequisite covers inspectable override diffs, targeted/full revert,
+    immutable apply, variants, and nested-path rebase.
+  - Open: graphical workflows, additive scene tooling, migrations, recovery, and source-control diff/merge.
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
+  - ✅ Portable capability registry enforces stable tool IDs and honest implemented/read-only/
+    unavailable states with fallback reasons.
+  - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ Portable build frontend validates and atomically writes target/configuration/command and
+    checksummed artifact manifests; monotonic CPU/GPU/memory frame capture is implemented.
+  - Open: graphical frontend, remote deployment/logs, live profiler integration, and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ 100k-item virtual hierarchy ranges, trusted-publisher/signature policy, and telemetry that
+    drops events until explicit opt-in are covered by portable tests.
+  - Open: graphical performance/soak acceptance, workspace migrations, corrupt-document recovery,
+    and keyboard/screen-reader audits.
 
 ## 4. Persistence and transaction contract
 
@@ -50,4 +108,10 @@ Scene, Prefab, and Project formats are versioned, deterministic, and atomically 
 
 ## 6. Release slices, dependencies, and non-goals
 
-**Editor Preview** delivers M0–M2, **Creator Alpha** adds M3/M4, and **Production Beta** adds selected specialized tools, build/profile, and hardening. Labels follow evidence, not panel existence. Dependencies include Engine API M1–M5, window/swapchain, reflection, assets, scene snapshots, and Editor SDK. Full visual scripting, a marketplace, cloud collaboration, cinematic tooling, and every remote platform are separate future roadmaps.
+**Editor Preview** requires all of ED-M0, ED-M1, and ED-M2; none of those milestones alone qualifies.
+**Creator Alpha** adds M3/M4, and **Production Beta** adds selected specialized tools, build/profile,
+and hardening. Labels follow acceptance evidence, not panel existence or prerequisite groundwork.
+Dependencies include Engine API M1–M5, window/swapchain, reflection, the asset pipeline, scene
+snapshots, and the Editor SDK. Completed reflection, undo-model, or prefab foundations therefore do
+not make the graphical Editor complete. Full visual scripting, a marketplace, cloud collaboration,
+cinematic tooling, and every remote platform are separate future roadmaps.
