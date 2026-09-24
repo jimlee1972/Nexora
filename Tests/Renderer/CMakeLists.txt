@@ -12,6 +12,11 @@ target_link_libraries(NexoraGPUSceneTests PRIVATE Nexora::Renderer)
 nexora_apply_defaults(NexoraGPUSceneTests)
 add_test(NAME renderer.v2_gpu_scene COMMAND NexoraGPUSceneTests)
 
+add_executable(NexoraGPUDrivenTests GPUDrivenPipelineTests.cpp)
+target_link_libraries(NexoraGPUDrivenTests PRIVATE Nexora::Renderer)
+nexora_apply_defaults(NexoraGPUDrivenTests)
+add_test(NAME renderer.v2_gpu_driven COMMAND NexoraGPUDrivenTests)
+
 if(NEXORA_ENABLE_SLANG)
   add_executable(NexoraShaderReflectionContractTests ShaderReflectionCrossCompileTests.cpp)
   target_link_libraries(NexoraShaderReflectionContractTests PRIVATE Nexora::RHI)
