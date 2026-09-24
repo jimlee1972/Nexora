@@ -2,10 +2,10 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
 
-> **Progress: 70%** (as of 2026-09-23; weighted acceptance checklist across the six milestones
+> **Progress: 90%** (as of 2026-09-24; weighted acceptance checklist across the six milestones
 > in section 4; completed items are marked with ✅ and the result is rounded down to 10%.)
 
-**Implementation status (2026-09-23):** ZS-M0 through ZS-M2 are complete. ABI V3 now defines
+**Implementation status (2026-09-24):** ZS-M0 through ZS-M4 are complete. ABI V3 now defines
 explicit result and capability values, separate create/start/stop/destroy phases, fallible variable/fixed updates, and
 transactional state migration in the C++ host. The in-tree C++ fake module exercises this contract.
 The Zig module now owns independently allocated state obtained and released through paired V3 host
@@ -71,15 +71,15 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
   - ✅ Zig creates the scene, camera, light, and cubes through the public host table; C++ retains engine/world/render ownership.
   - ✅ Append-only spawn/despawn, scene, input snapshot, opaque asset handle, raycast, high-level debug draw, and diagnostics callbacks.
   - ✅ C header, ABI manifest/baseline, Zig binding, ownership/thread/error contract, C++ ABI gates, Zig smoke, and deterministic headless evidence are synchronized.
-- **ZS-M3 Feature gallery:** bounded physics, presentation, and streaming rooms with capability fallbacks.
+- **✅ ZS-M3 Feature gallery:** bounded physics, presentation, and streaming rooms with capability fallbacks.
   - ✅ Scriptable room selection and deterministic capability/fallback evidence for the Math, Scene,
     Gameplay, Presentation, and Streaming rooms.
-  - Open: interactive Math, Scene, Gameplay, Presentation, and Streaming rooms.
-  - Open: camera input, selection/raycast, physics/navigation, animation/audio/VFX, and large-world overlays.
-  - Open: per-feature `IMPLEMENTED` / `CONTRACT ONLY` / `UNAVAILABLE` labels and capability-fallback tests.
-- **ZS-M4 Reload/failure:** transactional reload, state migration, bad ABI rejection, and rollback.
+  - ✅ Native interaction adds WASD camera movement while the public Zig scene callback performs selection raycasts and high-level query traces.
+  - ✅ Physics/navigation, animation/audio/VFX, and cell/HLOD room overlays derive their state from compiled runtime capabilities.
+  - ✅ Every room exposes `IMPLEMENTED` / `CONTRACT ONLY` / `UNAVAILABLE`, and the minimal-capability CTest locks the fallback matrix.
+- **✅ ZS-M4 Reload/failure:** transactional reload, state migration, bad ABI rejection, and rollback.
   - ✅ Job drain, restore failure, old-generation rollback, shutdown-during-reload, and repeated-reload stress for real dynamic generations.
-  - Open: file stabilization plus device-loss and dynamic update/fixed-update failure integration.
+  - ✅ Dynamic library replacement waits for stable size/write-time samples before loading. The host records generation-scoped update/fixed-update failures, and Presentation maps device loss to explicit device recreation rather than surface retry.
 - **ZS-M5 Distribution:** dynamic Development and static/packaged Shipping profiles with license/build/API manifests.
   - ✅ Reproducible Development-dynamic and Shipping-static package targets emit license,
     build/API/content manifests, per-artifact SHA-256 digests, and `SHA256SUMS`.

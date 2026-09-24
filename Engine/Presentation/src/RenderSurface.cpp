@@ -153,4 +153,40 @@ std::string_view ToString(SurfaceStatus status) noexcept {
   return "unknown";
 }
 
+SurfaceAction RecoveryAction(SurfaceStatus status) noexcept {
+  switch (status) {
+  case SurfaceStatus::Ready:
+    return SurfaceAction::Render;
+  case SurfaceStatus::ZeroExtent:
+  case SurfaceStatus::Occluded:
+    return SurfaceAction::Suspend;
+  case SurfaceStatus::OutOfDate:
+  case SurfaceStatus::SurfaceLost:
+    return SurfaceAction::RecreateSurface;
+  case SurfaceStatus::DeviceLost:
+    return SurfaceAction::RecreateDevice;
+  case SurfaceStatus::Unsupported:
+  case SurfaceStatus::InvalidDescriptor:
+  case SurfaceStatus::WrongThread:
+    return SurfaceAction::Abort;
+  }
+  return SurfaceAction::Abort;
+}
+
+std::string_view ToString(SurfaceAction action) noexcept {
+  switch (action) {
+  case SurfaceAction::Render:
+    return "render";
+  case SurfaceAction::Suspend:
+    return "suspend";
+  case SurfaceAction::RecreateSurface:
+    return "recreate_surface";
+  case SurfaceAction::RecreateDevice:
+    return "recreate_device";
+  case SurfaceAction::Abort:
+    return "abort";
+  }
+  return "abort";
+}
+
 } // namespace Nexora::Presentation

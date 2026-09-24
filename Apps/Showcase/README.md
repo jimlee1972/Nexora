@@ -25,6 +25,7 @@ a room never pretends that an absent backend exists. The portable slice implemen
 Scene rooms, conditionally implements the Gameplay physics query when simulation is enabled, and
 reports Presentation and Streaming as implemented when their runtime feature modules are enabled.
 Disabled modules retain explicit `CONTRACT ONLY` or `UNAVAILABLE` fallbacks.
+Native interaction uses WASD to move the gallery camera; Zig performs the public raycast used for selection and the report records camera, selection, raycast, and recovery overlays. `--capabilities=minimal` forces the deterministic fallback matrix used by CTest without pretending disabled feature modules are present.
 
 ```bash
 NexoraShowcase --headless --scene=tour --frames=4 --report=showcase-gallery.json

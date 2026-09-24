@@ -15,7 +15,7 @@ Resize publication may come from the window owner and atomically replaces older 
 extent suspends work. Swapchain replacement drains work before releasing images, and a generation is
 committed only after replacement resources succeed. `OutOfDate`, `SurfaceLost`, `DeviceLost`,
 `Occluded`, and `Unsupported` distinguish recovery scopes; recovery and resize generations are
-observable diagnostics.
+observable diagnostics. `RecoveryAction()` is the application policy boundary: zero extent/occlusion suspend, out-of-date or surface loss recreate the surface, and device loss requires device recreation rather than an unsafe surface-only retry.
 
 `DrainAndDestroy()` is idempotent, waits for submitted GPU work, and releases all backend objects before
 the source window. Portable tests cover multi-surface lifetime, 2,048 resize cycles, zero extent,

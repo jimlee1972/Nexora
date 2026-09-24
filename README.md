@@ -38,7 +38,7 @@ completion on every target platform.
 | [V3 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md) | **0%** | Execution plan only; no V3 milestone accepted. |
 | ✅ [Engine API Foundation](Roadmap/en/Engine_API_Foundation_Roadmap.md) | **100%** | ✅ API-M1 through ✅ API-M6 complete for portable scope. |
 | ✅ [Window and Native Presentation](Roadmap/en/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 through ✅ WP-M4 are implemented; native backend execution remains a target-host acceptance gate. |
-| [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **70%** | ZS-M0 through ZS-M2 are complete, including Development dynamic loading and native-presentation integration. |
+| [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **90%** | ZS-M0 through ZS-M4 are complete, including the capability-aware gallery and reload/failure integration. |
 | [Graphical Editor](Roadmap/en/Editor_Roadmap.md) | **0%** | Runtime prerequisites exist, but no graphical ED milestone is accepted. |
 | [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **50%** | Mean of its API, Zig Showcase, and Editor delivery tracks, rounded down to 10%. |
 | [V1 Visual Showcase](Roadmap/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | Headless entry/reporting prerequisites exist; no windowed phase is complete. |
@@ -65,7 +65,7 @@ The Engine API is **complete for the portable roadmap scope** defined by the [En
 
 Zig is no longer only a planned language direction. The repository builds a Zig 0.14.0 gameplay object and ABI smoke consumer. The current headless/static ZS-M1 verification slice has C++ own `main`, engine/world lifetime, fixed and variable updates, offscreen rendering, transactional reload, and shutdown, while Zig mutates a live entity Transform through the public V3 ABI. See the [Showcase README](Apps/Showcase/README.md) for the supported workflow.
 
-ZS-M0 through ZS-M2 are complete: Development uses a discovered Zig shared library, native presentation is integrated behind public contracts, and the API-driven scene is covered headlessly. Interactive gallery depth, broader failure coverage, and packaged distribution (ZS-M3 through ZS-M5) remain open. The headless report labels native presentation `CONTRACT ONLY` rather than presenting it as implemented.
+ZS-M0 through ZS-M4 are complete: the capability-aware gallery supports camera input, selection raycasts, honest feature overlays and tested fallbacks; dynamic reload now stabilizes files and reports callback/device-loss recovery scopes. Clean-machine distribution acceptance (ZS-M5) remains open.
 
 #### Window and native presentation status
 
@@ -126,7 +126,7 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | [V3 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) | **0%** | 僅為施工規劃；尚無 V3 milestone 驗收。 |
 | ✅ [Engine API 基礎](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) | **100%** | ✅ API-M1 至 ✅ API-M6 完成 portable scope。 |
 | ✅ [Window 與 Native Presentation](Roadmap/zh-TW/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 至 ✅ WP-M4 已實作；native backend 執行仍為 target-host 驗收 gate。 |
-| [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **70%** | ZS-M0 至 ZS-M2 已完成，包含 Development dynamic loading 與 native presentation 整合。 |
+| [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **90%** | ZS-M0 至 ZS-M4 已完成，包含 capability-aware gallery 與 reload/failure 整合。 |
 | [圖形化 Editor](Roadmap/zh-TW/Editor_Roadmap.md) | **0%** | 已有 Runtime 前置，但尚無 graphical ED milestone 驗收。 |
 | [聚焦 Roadmap AI 施工規劃](Roadmap/zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) | **50%** | API、Zig Showcase 與 Editor 三條 delivery track 的平均，向下取整至 10%。 |
 | [V1 可視化 Showcase](Roadmap/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | 已有 headless entry/reporting 前置；尚無 windowed phase 完成。 |
@@ -152,7 +152,7 @@ Engine API 已完成 [Engine API 基礎 Roadmap](Roadmap/zh-TW/Engine_API_基礎
 
 Zig 已不只是規劃中的語言方向。Repository 會建置 Zig 0.14.0 gameplay object 與 ABI smoke consumer；目前 headless/static ZS-M1 verification slice 由 C++ 擁有 `main`、Engine／World lifetime、fixed 與 variable update、offscreen rendering、transactional reload 及 shutdown，Zig 則透過公開 V3 ABI 修改真實 entity 的 Transform。支援的操作流程請參閱 [Showcase README](Apps/Showcase/README.md)。
 
-ZS-M0 至 ZS-M2 已完成：Development 會載入 discover 到的 Zig shared library、native presentation 經公開 contract 整合，API-driven scene 也有 headless coverage。可互動 gallery 深度、更完整的 failure coverage 與 packaged distribution（ZS-M3～ZS-M5）仍待完成。Headless report 會把 native presentation 標成 `CONTRACT ONLY`，不會冒充已實作。
+ZS-M0 至 ZS-M4 已完成：capability-aware gallery 支援 camera input、selection raycast、誠實的 feature overlay 與已測 fallback；dynamic reload 也會穩定檔案並回報 callback/device-lost recovery scope。乾淨機器上的 distribution 驗收（ZS-M5）仍待完成。
 
 #### Window 與 Native Presentation 狀態
 

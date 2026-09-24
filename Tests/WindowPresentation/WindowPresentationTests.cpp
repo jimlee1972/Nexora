@@ -134,6 +134,15 @@ int main() {
   assert(Presentation::ToString(Presentation::SurfaceBackend::Vulkan) == "vulkan");
   assert(Presentation::ToString(Presentation::SurfaceBackend::Metal) == "metal");
   assert(Presentation::ToString(Presentation::SurfaceStatus::DeviceLost) == "device_lost");
+  assert(Presentation::RecoveryAction(Presentation::SurfaceStatus::Ready) ==
+         Presentation::SurfaceAction::Render);
+  assert(Presentation::RecoveryAction(Presentation::SurfaceStatus::ZeroExtent) ==
+         Presentation::SurfaceAction::Suspend);
+  assert(Presentation::RecoveryAction(Presentation::SurfaceStatus::OutOfDate) ==
+         Presentation::SurfaceAction::RecreateSurface);
+  assert(Presentation::RecoveryAction(Presentation::SurfaceStatus::DeviceLost) ==
+         Presentation::SurfaceAction::RecreateDevice);
+  assert(Presentation::ToString(Presentation::SurfaceAction::RecreateDevice) == "recreate_device");
 #if !defined(_WIN32)
   const auto unsupported = Presentation::CreateRenderSurface(
       {"unsupported", 640, 480, true, Presentation::SurfaceBackend::Dx12});

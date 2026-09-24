@@ -170,9 +170,15 @@ int main() {
   assert(first_state.elapsed_seconds == nexora::test::kExpectedElapsedSeconds);
   fail_update = true;
   assert(!host.Update(0.016));
+  auto failure = host.GetFailureState();
+  assert(failure.callback == nexora::runtime::GameplayModuleHost::CallbackFailure::Update);
+  assert(failure.result == NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
+  assert(failure.generation == 1);
   fail_update = false;
   fail_fixed_update = true;
   assert(!host.FixedUpdate(1.0 / 60.0));
+  failure = host.GetFailureState();
+  assert(failure.callback == nexora::runtime::GameplayModuleHost::CallbackFailure::FixedUpdate);
   fail_fixed_update = false;
   assert(!host.FixedUpdate(0.0));
 
@@ -185,6 +191,8 @@ int main() {
   assert(!host.Reload(LoadSecond));
   fail_load = false;
   assert(host.Reload(LoadSecond));
+  assert(host.GetFailureState().callback ==
+         nexora::runtime::GameplayModuleHost::CallbackFailure::None);
   assert(first_state.stopped);
   assert(second_state.updates == nexora::test::kExpectedUpdates);
   assert(host.Update(0.016));

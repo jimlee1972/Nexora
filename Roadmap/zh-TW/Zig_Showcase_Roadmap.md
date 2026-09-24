@@ -2,10 +2,10 @@
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
 
-> **進度：70%**（截至 2026-09-23；依第 4 節 6 個 milestone 的加權驗收清單計算，
+> **進度：90%**（截至 2026-09-24；依第 4 節 6 個 milestone 的加權驗收清單計算，
 > 已完成項目以 ✅ 標示，結果向下取整至 10%。）
 
-**施工狀態（2026-09-23）：** ZS-M0 至 ZS-M2 已完成。ABI V3 現在定義明確的 result 與 capability 值、
+**施工狀態（2026-09-24）：** ZS-M0 至 ZS-M4 已完成。ABI V3 現在定義明確的 result 與 capability 值、
 分離 create/start/stop/destroy 階段、可回報失敗的 variable/fixed update，以及 C++ Host 的
 transactional state migration；repository 內的 C++ fake module 會驗證此 contract。Zig module
 現在會透過成對的 V3 host allocator callback 取得與釋放獨立 state，reload candidate
@@ -80,15 +80,15 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
   - ✅ Zig 經 public host table 建立 scene、camera、light 與 cubes；C++ 保留 engine/world/render ownership。
   - ✅ 以 append-only 方式補齊 spawn/despawn、scene、input snapshot、opaque asset handle、raycast、高階 debug draw 與 diagnostics callbacks。
   - ✅ C header、ABI manifest/baseline、Zig binding、ownership/thread/error contract、C++ ABI gates、Zig smoke 與 deterministic headless evidence 已同步。
-- **ZS-M3 Feature gallery**：加入 physics、animation/audio/VFX、streaming 的 bounded showcases 與 capability fallback。
+- **✅ ZS-M3 Feature gallery**：加入 physics、animation/audio/VFX、streaming 的 bounded showcases 與 capability fallback。
   - ✅ Math、Scene、Gameplay、Presentation 與 Streaming room 已有可 script 選擇及 deterministic
     capability／fallback 證據。
-  - 待辦：Math、Scene、Gameplay、Presentation 與 Streaming 五個可操作房間。
-  - 待辦：camera input、selection/raycast、physics/navigation、animation/audio/VFX 與 large-world overlays。
-  - 待辦：逐項顯示 `IMPLEMENTED` / `CONTRACT ONLY` / `UNAVAILABLE`，並提供 capability fallback tests。
-- **ZS-M4 Reload and failure**：transactional hot reload、state migration、錯誤 module/ABI rejection、舊版本 rollback。
+  - ✅ Native interaction 提供 WASD camera 移動，公開 Zig scene callback 則執行 selection raycast 與高階 query trace。
+  - ✅ Physics/navigation、animation/audio/VFX 與 cell/HLOD room overlay 依編譯進 Runtime capability 顯示狀態。
+  - ✅ 每個 room 皆顯示 `IMPLEMENTED` / `CONTRACT ONLY` / `UNAVAILABLE`，minimal-capability CTest 固定 fallback matrix。
+- **✅ ZS-M4 Reload and failure**：transactional hot reload、state migration、錯誤 module/ABI rejection、舊版本 rollback。
   - ✅ 真正 dynamic generations 的 job drain、restore failure、old-generation rollback、shutdown-during-reload 與 repeated reload stress。
-  - 待辦：file stabilization，以及 device lost 與 dynamic update/fixed-update failure 整合。
+  - ✅ Dynamic library replacement 會等待檔案大小與寫入時間穩定後才載入；host 記錄帶 generation 的 update/fixed-update failure，Presentation 並將 device lost 明確分類為 device recreation，而非 surface retry。
 - **ZS-M5 Distribution**：Development dynamic 與 Shipping static/packaged profiles，產生 license/build/API manifest。
   - ✅ 可重現的 Development-dynamic 與 Shipping-static package target 會產生 license、
     build/API/content manifest、逐 artifact SHA-256 digest 與 `SHA256SUMS`。

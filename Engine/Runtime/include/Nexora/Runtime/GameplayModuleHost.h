@@ -15,6 +15,20 @@ namespace nexora::runtime {
 // serialized so a reload can never invalidate code while update is executing.
 class NEXORA_RUNTIME_API GameplayModuleHost final {
 public:
+  enum class CallbackFailure : std::uint8_t { None, FixedUpdate, Update };
+
+  struct FailureState final {
+    CallbackFailure callback{CallbackFailure::None};
+    std::int32_t result{NEXORA_GAMEPLAY_OK};
+    std::uint64_t generation{};
+  };
+
+  struct FileStabilization final {
+    std::chrono::milliseconds poll_interval{25};
+    std::uint32_t required_stable_samples{2};
+    std::uint32_t maximum_samples{40};
+  };
+
   struct QuiescenceBarrier final {
     void *context{};
     void (*wait)(void *context, std::uint64_t generation){};
@@ -36,6 +50,7 @@ public:
   [[nodiscard]] bool Reload(NexoraGameModuleLoadV3Fn load);
   [[nodiscard]] bool Load(const std::filesystem::path &library);
   [[nodiscard]] bool Reload(const std::filesystem::path &library);
+  [[nodiscard]] bool Reload(const std::filesystem::path &library, FileStabilization stabilization);
   [[nodiscard]] static std::filesystem::path Discover(const std::filesystem::path &directory,
                                                       std::string_view module_name);
   [[nodiscard]] bool FixedUpdate(double fixed_delta_seconds);
@@ -44,6 +59,7 @@ public:
   [[nodiscard]] bool IsLoaded() const noexcept;
   [[nodiscard]] std::uint64_t Generation() const noexcept;
   [[nodiscard]] ReloadStats GetReloadStats() const noexcept;
+  [[nodiscard]] FailureState GetFailureState() const noexcept;
 
 private:
   struct DynamicLibrary;
@@ -60,6 +76,7 @@ private:
   std::uint64_t generation_{};
   bool loaded_{};
   ReloadStats reload_stats_{};
+  FailureState failure_state_{};
 };
 
 } // namespace nexora::runtime
