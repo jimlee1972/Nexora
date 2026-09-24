@@ -1188,6 +1188,11 @@ Only then may it publish.
 > mesh/material indices, visibility and LOD metadata, fence-safe retirement, and a deterministic CPU
 > reference snapshot. Full GPU-driven culling remains V2-M3 scope.
 
+> **V2-M3 implementation status:** In progress. A deterministic CPU reference now covers
+> frustum/distance/LOD culling, conservative Hi-Z and invalidation, compaction, classification, and
+> indirect-command generation. Native compute execution, RenderGraph synchronization, no-readback
+> evidence, and target-tier parity remain required before acceptance.
+
 Core data:
 
 ```cpp

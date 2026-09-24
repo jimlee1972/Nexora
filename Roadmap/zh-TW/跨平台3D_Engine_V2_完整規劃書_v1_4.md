@@ -3,7 +3,7 @@
 **文件版本：Master Draft v1.4**
 **Engine 世代：V2.x — Scale-Up / Production**
 
-> **進度：15%**（✅ V2-M0 與 ✅ V2-M1 已通過 portable repository gate；V2-M2 至 V2-M12 仍待完成。Native target evidence 維持獨立 gate。）
+> **進度：23%**（✅ V2-M0 至 ✅ V2-M2 已通過 portable repository gate；V2-M3 至 V2-M12 仍待完成。Native target evidence 維持獨立 gate。）
 
 > 本文件為 **V2 Master Plan**，所有 V1 Contract 預設繼承；只有本文件明確標示「V2 supersede」的項目可以改變 V1 行為。
 >
@@ -3804,7 +3804,7 @@ Structural Scene Diff foundation
 
 ---
 
-## V2-M2 — GPUScene / Render Extraction V2
+## ✅ V2-M2 — GPUScene / Render Extraction V2
 
 施工：
 
@@ -3830,9 +3830,21 @@ Fence-safe retirement
 ✓ CPU reference path 與 GPUScene rendering 可比對
 ```
 
+已交付證據：`GPUScene` 提供穩定的 generational object slot、分類且 deterministic 的 dirty
+upload、current／previous transform、bounds、mesh／material resource index、visibility 與 LOD
+metadata，以及 fence-safe retirement。其 deterministic CPU reference snapshot 可在啟用 GPU
+culling 前完整比較 identity 與 render data。Contract tests 覆蓋 create、update、destroy／reuse、
+stale handle、dirty batch、transform history、fence reclamation 與 reference snapshot。
+
 ---
 
 ## V2-M3 — GPU-Driven Rendering
+
+目前證據：deterministic CPU reference 已實作 frustum／distance／LOD culling、具明確
+invalidation 的 conservative Hi-Z、visible-instance compaction、material／mesh／LOD
+classification 與 indirect-command generation。V2-M3 仍維持未完成，因 native
+compute／indirect execution、RenderGraph queue／barrier ownership、no-readback 證據，以及
+DX12／Vulkan／Metal target-tier parity 尚未通過 gate。
 
 順序：
 
