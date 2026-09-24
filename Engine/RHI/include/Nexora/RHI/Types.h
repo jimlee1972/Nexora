@@ -29,6 +29,7 @@ enum class TextureFormat : std::uint8_t { Rgba8Unorm, Bgra8Unorm, Depth32Float }
 enum class ShaderStage : std::uint8_t { Vertex = 1, Fragment = 2, Compute = 4 };
 enum class BindingType : std::uint8_t { ConstantBuffer, Texture, Sampler, StorageBuffer };
 enum class IndexFormat : std::uint8_t { Uint16, Uint32 };
+enum class PipelineType : std::uint8_t { Graphics, Compute };
 
 struct BufferDescriptor final {
   std::uint64_t size{};
@@ -52,6 +53,7 @@ struct PipelineDescriptor final {
   std::uint64_t shader_hash{};
   TextureFormat color_format{TextureFormat::Rgba8Unorm};
   std::string debug_name;
+  PipelineType type{PipelineType::Graphics};
 };
 struct RenderingInfo final {
   TextureHandle color_target;

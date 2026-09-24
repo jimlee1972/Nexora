@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend 執行計畫
 
-> 版本：v1.0｜狀態：施工中；Phase 1a 已完成｜更新：2026-09-24｜對應：
+> 版本：v1.0｜狀態：施工中；Phase 1b 已完成，Phase 2 已開始｜更新：2026-09-24｜對應：
 > `跨平台3D_Engine_V2_完整規劃書_v1_4.md` §V2-M3
 
 ## 1. 目的
@@ -8,7 +8,7 @@
 V2-M3 的 gate 有四項已勾選（portable command batching、no-readback contract diagnostics、
 RenderGraph queue/barrier ownership、CPU-reference correctness comparison），還有一項未勾選：
 **native DX12/Vulkan/Metal target-tier parity on target hosts**。這份文件規劃要補上那一項所需的
-工作。Phase 1a 已完成，但 milestone 仍未完成；其餘階段全部落地並通過各自的
+工作。Phase 1a 與 1b 已完成，Phase 2 也已有 Linux Vulkan compute 證據，但 milestone 仍未完成；其餘階段全部落地並通過各自的
 gate 之前，roadmap 進度百分比不會變動。
 
 ## 2. 現況基線（對照原始碼逐一確認過，不是只憑 roadmap 文字）
@@ -120,7 +120,7 @@ Apple 主機）；下面各階段中，Vulkan 的部分可以在這裡實作跟�
   原本這部分的宣稱站得住腳）。`RecordGPUDrivenExecution` 真正的 culling/compute 輸出，完全還沒
   在真實硬體上驗證過——那完全是 Phase 1b + Phase 2 的工作。
 
-### Phase 1b — 前置需求：RHI 裡的 buffer 資源與 compute-pipeline 建立（部分已被其他工作取代，見更新）
+### ✅ Phase 1b — RHI buffer 資源與 compute-pipeline 建立（已完成）
 
 > **更新（2026-09-25）**：下面這幾段描述的是開始 Phase 1a 時找到的缺口。在那之後，另一條並行的
 > 工作（`Editor_ImGui_Integration_Plan.md`，由另一個 agent session 推進）已經把真正的
@@ -163,12 +163,16 @@ pipeline 建立路徑。因為這些是加在共用介面上的 pure-virtual 新
 （`ValidationDevice`、`VulkanDevice`、`D3D12Device`、`MetalDevice`）都至少要有個最小實作，build
 才能繼續過關，即使現在真正需要能動的只有 Validation 跟 Vulkan。這是真正獨立、基礎性的一塊工作
 ——不是「寫一個 shader」——正好就是這個 repo 一貫規則要求動手前先討論的那種
-RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更。**尚未開始；在 Phase 1 真正的
-compute shader 工作可以開始之前，需要先確認新 API 的形狀（buffer 生命週期/所有權模型、上傳
-路徑——staging buffer 還是 host-visible mapping、binding 模型——固定 slot 還是通用的
-descriptor-set builder）。**
+RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更。**已用 backend-neutral compute pipeline kind、四個固定 storage-buffer slot、host-visible upload 與明確標為 test-only 的 bounded readback seam 完成。固定 slot 讓本階段保持狹窄；通用 descriptor builder 仍是後續工作。**
 
 ### Phase 2 — Vulkan 上剩下的 compute 階段
+
+> **更新（2026-09-24）：施工中。** Linux Vulkan 現在會建立真正的 compute pipeline，透過四個
+> backend-neutral slot 綁定 candidate／visible／indirect／statistics storage buffer，dispatch
+> `GPUDriven.slang`、等待 native completion，並比對 test-only readback 結果。正常路徑仍然
+> readback-free，diagnostics 也會分開計算 dispatch 與驗收 readback。這是 native pipeline／
+> binding／dispatch foundation 的驗收證據，尚不是下方完整 frustum／Hi-Z／LOD／sorted-bin
+> 演算法的驗收。
 
 - Hi-Z occlusion（針對既有 `HiZPyramid` contract 做 conservative test）、visible-instance
   compaction、material/mesh/LOD classification、indirect-command generation，各自寫成 compute

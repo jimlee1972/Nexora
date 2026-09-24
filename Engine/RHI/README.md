@@ -2,7 +2,7 @@
 
 ## Completed
 
-- `Shaders/Triangle.slang` is the canonical two-entry-point triangle shader.
+- `Shaders/Triangle.slang` is the canonical graphics and compute acceptance shader.
 - With `NEXORA_ENABLE_SLANG=ON`, the CMake pipeline compiles the source to SPIR-V and Metal
   source everywhere, plus DXIL on Windows (see "DXIL scope" below), emits Slang reflection JSON
   for each target, and normalizes the results into one backend-neutral metadata document.
@@ -58,9 +58,12 @@ to assert that it never maps GPU output. Resource barriers include source and de
 RenderGraph, rather than a backend or pass callback, owns queue transfers. The validation backend
 executes the complete portable contract. Vulkan now also records a real `vkCmdDrawIndirect` from
 host-visible indirect command storage and reports it independently in device diagnostics; the
-offscreen gate exercises that path on a Vulkan-capable Linux host. Native Vulkan compute pipelines
-and DX12/Metal compute/indirect implementations, followed by full target-host parity evidence,
-remain required before V2-M3 can be accepted.
+offscreen gate exercises that path on a Vulkan-capable Linux host. Vulkan also creates compute
+pipelines, exposes four backend-neutral storage-buffer slots, and runs a real cull/compact kernel on
+the Linux native gate. Readback is available only through the explicitly test-only
+`ReadBufferForTesting` API and is counted independently; production recording remains readback-free.
+Native queue/timeline separation and DX12/Metal compute/indirect implementations, followed by full
+target-host parity evidence, remain required before V2-M3 can be accepted.
 
 ## Editor draw-list command contract
 

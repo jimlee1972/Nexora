@@ -116,13 +116,17 @@ JobSystem::JobSystem(std::size_t worker_count)
 JobSystem::~JobSystem() { Stop(); }
 
 void JobSystem::Start() {
-  std::lock_guard lock{implementation_->mutex};
-  if (implementation_->running)
+  auto *const implementation = implementation_.get();
+  std::lock_guard lock{implementation->mutex};
+  if (implementation->running)
     return;
-  implementation_->stopping = false;
-  implementation_->running = true;
-  for (std::size_t index = 0; index < implementation_->requested_workers; ++index) {
-    implementation_->workers.emplace_back([this, index] { implementation_->Worker(index); });
+  implementation->stopping = false;
+  implementation->running = true;
+  for (std::size_t index = 0; index < implementation->requested_workers; ++index) {
+    // Capture the stable implementation allocation directly. Capturing JobSystem's `this` made
+    // worker teardown depend on the wrapper object's lifetime even though Stop joins the workers.
+    implementation->workers.emplace_back(
+        [implementation, index] { implementation->Worker(index); });
   }
 }
 
@@ -137,8 +141,12 @@ void JobSystem::Stop() {
   for (auto &worker : implementation_->workers)
     if (worker.joinable())
       worker.join();
-  implementation_->workers.clear();
-  implementation_->running = false;
+  {
+    std::lock_guard lock{implementation_->mutex};
+    implementation_->workers.clear();
+    implementation_->running = false;
+    implementation_->stopping = false;
+  }
 }
 
 JobHandle JobSystem::Submit(JobDescriptor descriptor, std::span<const JobHandle> dependencies) {
