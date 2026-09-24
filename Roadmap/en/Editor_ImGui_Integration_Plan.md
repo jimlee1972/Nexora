@@ -163,8 +163,9 @@ different default), say so before Phase 1 starts -- everything past this section
 
 ### Implementation evidence
 
-- `NexoraEditorImGui` owns the context, stable-ID dockspace, theme/DPI policy, pointer, button,
-  wheel, key, text and focus ingestion, and the current public-RHI validation submission scaffold.
+- `NexoraEditorImGui` owns the context, stable-ID dockspace, initial Hierarchy-left/Console-bottom
+  layout, theme/DPI policy, pointer, button, wheel, key, text and focus ingestion, and the current
+  public-RHI validation submission scaffold.
 - `NexoraEditor --graphical` creates the public `RenderSurface`, consumes its borrowed events, and
   drives the UI and recover/discard lifecycle.
 - The Hierarchy lists live `SceneDocument::Nodes()` and round-trips selection through

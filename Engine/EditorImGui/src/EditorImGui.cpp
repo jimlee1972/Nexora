@@ -1,6 +1,7 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <algorithm>
 #include <array>
@@ -20,6 +21,7 @@ struct EditorImGuiHost::State final {
   float dpi_scale = 1.0F;
   RecoveryChoice recovery_choice = RecoveryChoice::None;
   bool recovery_prompt_opened = false;
+  bool initial_dock_layout_built = false;
   std::string recovery_error;
 
   static void SetImeData(ImGuiContext *context, ImGuiViewport *, ImGuiPlatformImeData *data) {
@@ -42,6 +44,31 @@ void ApplyTheme(float scale) {
   style.FrameRounding = 3.0F;
   style.ScaleAllSizes(scale);
 }
+
+std::string PanelWindowName(std::string_view id) {
+  const auto panels = ProductShell::Panels();
+  const auto panel = std::ranges::find(panels, id, &PanelDescriptor::id);
+  if (panel == panels.end())
+    return std::string(id);
+  return std::string(panel->title) + "###" + std::string(panel->id);
+}
+
+void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
+  ImGui::DockBuilderRemoveNode(dockspace);
+  ImGui::DockBuilderAddNode(dockspace,
+                            ImGuiDockNodeFlags_DockSpace | ImGuiDockNodeFlags_PassthruCentralNode);
+  ImGui::DockBuilderSetNodeSize(dockspace, viewport.Size);
+
+  ImGuiID center = dockspace;
+  const ImGuiID hierarchy =
+      ImGui::DockBuilderSplitNode(center, ImGuiDir_Left, 0.22F, nullptr, &center);
+  const ImGuiID console =
+      ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.25F, nullptr, &center);
+  ImGui::DockBuilderDockWindow(PanelWindowName("nexora.hierarchy").c_str(), hierarchy);
+  ImGui::DockBuilderDockWindow(PanelWindowName("nexora.console").c_str(), console);
+  ImGui::DockBuilderFinish(dockspace);
+}
+
 ImGuiKey ToImGuiKey(Nexora::Window::Key key) {
   using Key = Nexora::Window::Key;
   if (key >= Key::Digit0 && key <= Key::Digit9)
@@ -197,8 +224,15 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
 void EditorImGuiHost::DrawProductShell(const ProductShell &shell, SceneDocument *scene,
                                        ProjectWorkspace *workspace) {
   Activate(state_->context);
-  ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
-  if (ImGui::Begin("Hierarchy###nexora.hierarchy")) {
+  const auto *viewport = ImGui::GetMainViewport();
+  const ImGuiID dockspace =
+      ImGui::DockSpaceOverViewport(0, viewport, ImGuiDockNodeFlags_PassthruCentralNode);
+  if (!state_->initial_dock_layout_built) {
+    BuildInitialDockLayout(dockspace, *viewport);
+    state_->initial_dock_layout_built = true;
+  }
+  const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
+  if (ImGui::Begin(hierarchy_window.c_str())) {
     if (scene != nullptr) {
       const auto selected = scene->Selection();
       for (const auto &node : scene->Nodes()) {
@@ -214,7 +248,8 @@ void EditorImGuiHost::DrawProductShell(const ProductShell &shell, SceneDocument 
     }
   }
   ImGui::End();
-  if (ImGui::Begin("Console###nexora.console"))
+  const auto console_window = PanelWindowName("nexora.console");
+  if (ImGui::Begin(console_window.c_str()))
     ImGui::Text("Last command: %.*s", static_cast<int>(shell.LastCommand().size()),
                 shell.LastCommand().data());
   ImGui::End();
