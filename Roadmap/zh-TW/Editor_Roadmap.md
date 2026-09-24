@@ -53,6 +53,8 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   的無障礙缺口。這份 ADR 只確定了 framework 選型，不等於圖形化 docking、theme、DPI、IME、
   accessibility 或 crash UX 已完成。
 - 待辦：圖形化 docking、theme、DPI、IME 接線、ADR-0001 點名的無障礙方向展開，以及 crash UX。
+  [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md) 把這些剩餘範圍拆成分階段
+  計畫；目前是提案計畫，尚未開始。
 
 ### ED-M1 — Project 與 Asset workspace
 
