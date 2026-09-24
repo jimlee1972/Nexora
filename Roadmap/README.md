@@ -21,6 +21,11 @@ This directory contains the version roadmaps and focused capability roadmaps for
 | Editor Roadmap | **0% graphical acceptance** | [Graphical Editor Roadmap](en/Editor_Roadmap.md) |
 | Focused Roadmaps AI Plan | **60%** | [AI Implementation Technology and System Plan](en/Focused_Roadmaps_AI_Implementation_Plan.md) |
 
+> `Tools/Migration/ScanV1Project.py` (V1-to-V2 migration audit) and `Tools/Production/NexoraTool.py`
+> (Clang reflection / DDC / headless toolchain) do not have dedicated roadmap documents. They are
+> tracked inside the V2 Complete Plan as milestones V2-M0 and V2-M1 respectively — see that
+> document rather than expecting a standalone entry here.
+
 ### Recommended reading order
 
 Current execution focus: **V2-M3 GPU-Driven Rendering** remains the next open delivery milestone.
@@ -60,6 +65,10 @@ The documents are planning artifacts. They do not themselves authorize commands,
 | V1 可視化展示 Demo 長期規劃 | **Draft** | [Nexora V1 可視化展示 Demo 長期規劃](zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) |
 | Editor Roadmap | **0% 圖形化驗收** | [圖形化 Editor Roadmap](zh-TW/Editor_Roadmap.md) |
 | 聚焦 Roadmap AI 施工規劃 | **60%** | [AI 施工技術與系統規劃](zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) |
+
+> `Tools/Migration/ScanV1Project.py`（V1 到 V2 的 migration 稽核）與 `Tools/Production/NexoraTool.py`
+> （Clang reflection／DDC／headless toolchain）沒有獨立的 roadmap 文件，而是收錄在 V2 完整規劃書的
+> V2-M0 與 V2-M1 milestone 內 —— 請直接參閱該文件，不要預期這裡會有獨立條目。
 
 ### 建議閱讀順序
 
