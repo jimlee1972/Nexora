@@ -7,8 +7,8 @@
 > **Repository 稽核（2026-09-24）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
 > source 與 contract test，但 **WP0～WP8 尚無任何一包通過 exit gate**。Retained GPU resource、
 > 直接渲染至 borrowed presentation target、project-owned layout persistence、DPI font-atlas rebuild
-> 與 recovery failure contract 已實作。Real-process recovery 與 target-host evidence 仍待完成，
-> 因此 foundation 打勾不得解讀成 ED-M0 已驗收。
+> 與 recovery failure contract 已實作。自動化 X11 kill/relaunch recovery 已有覆蓋；physical-display
+> 與 Windows target-host evidence 仍待完成，因此 foundation 打勾不得解讀成 ED-M0 已驗收。
 
 ## 1. 目標、驗收邊界與目前事實
 
@@ -44,8 +44,9 @@ Metal native draw recording。這些仍只是 foundation，因 real-display Linu
   bounded upload ring 與 completion-protected retirement。
 - [x] Project-owned layout persistence、DPI font-atlas rebuild，以及 recovery failure／exactly-once
   contract coverage 已存在。
-- [ ] Native graphical validation、real-process recovery、repeated-frame Linux display evidence，
-  以及 Windows DPI／IME target-host acceptance evidence 均已有記錄且通過。
+- [ ] Physical-display Linux graphical validation 與 Windows DPI／IME target-host acceptance
+  evidence 均已有記錄且通過。Automated X11 rendering 與 kill/relaunch recovery 已納入 feature-on
+  Linux gate。
 
 ### 「完成」的定義
 
@@ -146,7 +147,7 @@ AI agent 必須依順序執行 work package。每個 package 都要以 focused t
 
 ### WP1 — 讓 public RHI 足以表達 ImGui
 
-**狀態：未完成；阻擋最終 GPU path。**
+**狀態：source 與 validation contract 已實作；native target-host validation 仍待完成。**
 
 1. 對照 `ImDrawVert`/`ImDrawIdx` 與每個 `ImDrawCmd` field，稽核 public RHI capability。必須能表達
    dynamic vertex/index upload、orthographic constants、alpha blending、depth test/write off、cull-none、
@@ -223,8 +224,8 @@ drag docking、wheel axis、focus loss、close。
 
 ### WP5 — DPI、font 與 theme
 
-**狀態：live extent/DPI forwarding 與 bucketed font rebuild 已有；production GPU atlas upload 與
-Windows 證據未完成。**
+**狀態：live extent/DPI forwarding、bucketed font rebuild 與 production GPU atlas upload 已有；
+Windows 證據仍待完成。**
 
 1. 定義小型 DPI bucket policy（例如 nearest supported scale 加 hysteresis）與 immutable base style；bucket
    改變時由 base 重算，禁止再縮放已縮放的 style。
@@ -255,7 +256,8 @@ Windows 證據未完成。**
 
 ### WP7 — Recovery UX 與基本 keyboard accessibility
 
-**狀態：modal/data-layer call 已有；destructive flow 與 real-process test 未完成。**
+**狀態：modal/data-layer call 與 automated X11 kill/relaunch recovery 已有；destructive discard
+與 physical-display 證據仍待完成。**
 
 1. 正常編輯可互動前偵測 journal。Recovery modal 取得 focus、限制 keyboard navigation，明確提供 Recover
    與 Discard；Discard 要有清楚破壞性文字，不能因 default button 取得 focus 就執行。
@@ -271,7 +273,8 @@ Windows 證據未完成。**
 
 ### WP8 — Target-host matrix、證據、清理與 milestone 更新
 
-**狀態：未完成。**
+**狀態：automated Linux X11 smoke/recovery 已實作；physical-display Linux 與 Windows 證據仍待
+完成。**
 
 1. Clean tree 執行 §6 完整 Linux gate。WP1/WP3 更動 linkage/API boundary，因此也跑 `linux-shipping`。
 2. Real X11 display 執行 launch、font/text 可見、Hierarchy selection、docking、各類 input、resize/

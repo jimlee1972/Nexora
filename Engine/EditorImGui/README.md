@@ -43,6 +43,8 @@ remains a release-runner responsibility.
 Window backends normalize navigation, editing, punctuation, keypad, function, alphanumeric, and
 left/right modifier keys before events reach the host. Each key event carries the complete
 Control/Shift/Alt/Super snapshot, which the host publishes through Dear ImGui's modifier events.
+Dear ImGui keyboard navigation is enabled so the recovery modal and shell remain operable without
+a pointer; OS-level multi-viewport creation stays disabled.
 
 ## Accessibility direction
 

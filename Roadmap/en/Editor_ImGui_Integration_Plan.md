@@ -8,8 +8,8 @@
 > below are present in source and contract tests, but **none of WP0–WP8 has passed its exit gate**.
 > Retained GPU resources, direct rendering to the borrowed presentation target, project-owned
 > layout persistence, DPI font-atlas rebuilding, and recovery failure contracts are implemented.
-> Real-process recovery and target-host evidence remain open, so these foundations must not be
-> interpreted as ED-M0 acceptance.
+> Automated X11 crash/relaunch recovery is now covered; physical-display and Windows target-host
+> evidence remain open, so these foundations must not be interpreted as ED-M0 acceptance.
 
 ## 1. Goal, acceptance boundary, and current truth
 
@@ -48,8 +48,9 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
   completion-protected retirement are implemented for the production surface and validation paths.
 - [x] Project-owned layout persistence, DPI font-atlas rebuilding, and recovery
   failure/exactly-once contract coverage exist.
-- [ ] Native graphical validation, real-process recovery, repeated-frame Linux display evidence,
-  and Windows DPI/IME target-host acceptance evidence are recorded and passing.
+- [ ] Physical-display Linux graphical validation and Windows DPI/IME target-host acceptance
+  evidence are recorded and passing. Automated X11 rendering and kill/relaunch recovery are
+  available in the feature-on Linux gate.
 
 ### Definition of "done"
 
@@ -155,7 +156,7 @@ cache is available, report an environment limitation; never silently disable the
 
 ### WP1 — Make the public RHI sufficient for ImGui
 
-**Status: remaining. This blocks the final GPU path.**
+**Status: implemented in source and validation contracts; native target-host validation remains.**
 
 1. Compare `ImDrawVert`/`ImDrawIdx` and every `ImDrawCmd` field with public RHI capabilities.
    Required semantics are dynamic vertex/index upload, orthographic constants, alpha blending,
@@ -240,8 +241,8 @@ proves typing, shortcuts, drag docking, wheel axes, focus loss, and close behavi
 
 ### WP5 — DPI, fonts, and theme
 
-**Status: live extent/DPI forwarding and bucketed font rebuild exist; production GPU atlas upload
-and Windows proof remain.**
+**Status: live extent/DPI forwarding, bucketed font rebuild, and production GPU atlas upload exist;
+Windows proof remains.**
 
 1. Define a small DPI bucket policy (for example, nearest supported scale with hysteresis) and an
    immutable base style. Recompute style from base whenever the bucket changes; never repeatedly
@@ -274,7 +275,8 @@ once and correctly positioned candidates at more than one DPI.
 
 ### WP7 — Recovery UX and basic keyboard accessibility
 
-**Status: modal/data-layer calls exist; destructive-flow and real-process tests remain.**
+**Status: modal/data-layer calls and automated X11 kill/relaunch recovery exist; destructive discard
+and physical-display evidence remain.**
 
 1. Detect a journal before normal editing becomes interactive. Recovery modal takes focus, traps
    keyboard navigation, and offers explicit Recover and Discard actions. Discard requires clear
@@ -294,7 +296,8 @@ recover and discard without data loss outside the selected policy.
 
 ### WP8 — Target-host matrix, evidence, cleanup, and milestone update
 
-**Status: remaining.**
+**Status: automated Linux X11 smoke/recovery implemented; physical-display Linux and Windows
+evidence remain.**
 
 1. Run the full Linux gate listed in §6 with a clean tree. Because WP1/WP3 alter linkage/API
    boundaries, run `linux-shipping` too.

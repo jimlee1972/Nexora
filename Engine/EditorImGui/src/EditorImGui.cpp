@@ -190,7 +190,7 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
   state_->context = ImGui::CreateContext();
   Activate(state_->context);
   auto &io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
   io.IniFilename = nullptr;
   io.BackendPlatformUserData = state_.get();
   io.Fonts->SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));

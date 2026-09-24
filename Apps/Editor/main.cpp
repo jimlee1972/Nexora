@@ -39,6 +39,7 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
   scene.Create("Scene Root");
   std::uint32_t frames = 0;
   int result = 0;
+  auto recovery_choice = nexora::editor::imgui::RecoveryChoice::None;
   while (!created.surface->CloseRequested() && (frame_limit == 0 || frames < frame_limit)) {
     const auto status = created.surface->BeginFrame();
     const auto action = Nexora::Presentation::RecoveryAction(status);
@@ -58,6 +59,9 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
     ui.UpdateImeCandidate(*created.surface);
     ui.BeginFrame();
     ui.DrawProductShell(shell, &scene, &workspace);
+    if (const auto choice = ui.TakeRecoveryChoice();
+        choice != nexora::editor::imgui::RecoveryChoice::None)
+      recovery_choice = choice;
     static_cast<void>(ui.EndFrame());
     if (ui.Render(*created.surface, frame.width, frame.height) !=
         Nexora::Presentation::SurfaceStatus::Ready) {
@@ -77,7 +81,11 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
             << " presented=" << diagnostics.presentedFrames
             << " ui_draws=" << diagnostics.nativeUiDrawCalls
             << " ui_uploads=" << diagnostics.nativeUiTextureUploads
-            << " ui_rejected=" << diagnostics.nativeUiRejectedTextures << '\n';
+            << " ui_rejected=" << diagnostics.nativeUiRejectedTextures << " recovery="
+            << (recovery_choice == nexora::editor::imgui::RecoveryChoice::Recover   ? "recover"
+                : recovery_choice == nexora::editor::imgui::RecoveryChoice::Discard ? "discard"
+                                                                                    : "none")
+            << '\n';
   if (created.surface->DrainAndDestroy() != Nexora::Presentation::SurfaceStatus::Ready)
     result = 1;
   return result;
