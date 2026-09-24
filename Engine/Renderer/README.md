@@ -1,4 +1,4 @@
-# Nexora rendering contracts (V1-M2 / V1-M3)
+# Nexora rendering contracts (V1-M2 / V1-M3 / V2-M2)
 
 This slice establishes the backend-neutral contracts, a validation backend, and the native
 offscreen execution path used by the V1-M3 platform gates.
@@ -37,3 +37,29 @@ window-system presentation remain explicit expansion points.
 ## Ownership and lifetime
 
 `NexoraRenderer -> NexoraRHI -> NexoraCore`. RenderGraph owns transient textures only for one execution and waits idle before releasing them. Imported resources remain caller-owned. A `PipelineCache` must be destroyed before its device and job system; destruction waits outstanding creation jobs and releases cached pipelines.
+
+## V2-M2 GPUScene contract
+
+`GPUScene` owns CPU-side render-object records and stable slot identities. A `GPUObjectHandle` is an
+index plus a nonzero generation; create and ordinary updates retain the index. Destroy invalidates
+the generation immediately, removes the object from reference extraction, and queues the slot for
+reuse only after `Collect(completed_fence)` reaches its retirement fence. Repeated destroy and every
+read or write through a stale handle fail without changing the free list.
+
+Each active record stores current and previous transforms, world-space sphere bounds, mesh and
+material resource indices, visibility flags, and selected-LOD metadata. Create initializes previous
+from current. Transform writes never change previous; `CommitFrame()` advances previous from current
+after extraction, so multiple writes in one frame preserve motion history. A reused slot is
+initialized entirely from its new descriptor and cannot inherit history from its prior generation.
+
+`ExtractUpdates()` consumes only dirty records and pending retirements. Dirty masks distinguish full
+create, transform, bounds, resources, visibility, LOD, and retirement work. Records are ordered by
+slot and generation for deterministic upload. `ExtractReferenceSnapshot()` independently emits all
+active records in slot order and counts visible draw instances, providing the CPU reference used to
+compare identity and every render datum before V2-M3 GPU culling is introduced.
+
+GPUScene methods are externally synchronized: callers must serialize mutation, extraction,
+collection, commit, and reads. Failed handle operations return `false` or `std::nullopt`; they do not
+throw. Upload batches and snapshots own their returned data. `Clear()`/destruction discard active,
+dirty, free, and pending-retirement state and therefore require the caller to have ended any GPU use
+of those slots.

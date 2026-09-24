@@ -4,7 +4,7 @@
 **對應來源：跨平台3D_Engine_V2_完整規劃書_v1_4.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
-> **進度：15%**（✅ V2-M0 與 ✅ V2-M1 已驗收；V2-M2 至 V2-M12 仍待完成。）
+> **進度：23%**（✅ V2-M0 至 ✅ V2-M2 已驗收；V2-M3 至 V2-M12 仍待完成。）
 
 
 
@@ -1193,6 +1193,11 @@ Output type
 
 # V2 GPUScene
 
+> **V2-M2 實作狀態：** 已驗收。Renderer contract 現已提供穩定的 generational slots、分類且
+> deterministic 的 dirty uploads、current/previous transform history、world bounds、mesh/material
+> indices、visibility 與 LOD metadata、fence-safe retirement，以及 deterministic CPU reference
+> snapshot。完整 GPU-driven culling 仍屬於 V2-M3 範圍。
+
 核心資料：
 
 ```cpp
@@ -2256,7 +2261,7 @@ LiveOps 可 rollback
 ```text
 ✅ V2-M0  Migration / Baseline
 ✅ V2-M1  Clang Reflection / DDC / Headless Toolchain
-V2-M2  GPUScene
+✅ V2-M2  GPUScene
 V2-M3  GPU-driven Renderer
 V2-M4  Large World V2
 V2-M5  Dedicated Server / Transport

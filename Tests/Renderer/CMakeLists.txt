@@ -7,6 +7,11 @@ endif()
 nexora_apply_defaults(NexoraRendererTests)
 add_test(NAME renderer.contracts COMMAND NexoraRendererTests)
 
+add_executable(NexoraGPUSceneTests GPUSceneTests.cpp)
+target_link_libraries(NexoraGPUSceneTests PRIVATE Nexora::Renderer)
+nexora_apply_defaults(NexoraGPUSceneTests)
+add_test(NAME renderer.v2_gpu_scene COMMAND NexoraGPUSceneTests)
+
 if(NEXORA_ENABLE_SLANG)
   add_executable(NexoraShaderReflectionContractTests ShaderReflectionCrossCompileTests.cpp)
   target_link_libraries(NexoraShaderReflectionContractTests PRIVATE Nexora::RHI)
