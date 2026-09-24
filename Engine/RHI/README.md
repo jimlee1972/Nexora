@@ -71,3 +71,10 @@ types. The validation backend checks resource existence, upload bounds, sampled-
 all bindings required by an indexed draw. Backends that have not implemented this expanded subset
 fail explicitly through the default interface methods; they must not silently translate indexed UI
 geometry into non-indexed draws.
+
+Texture uploads use tightly packed RGBA8 bytes plus an explicit row pitch. `Submit` returns a
+monotonic completion value; resources referenced by that submission remain in use until
+`CompletedSubmissionValue` reaches the value or `WaitForSubmission` returns. This lets bounded UI
+upload rings and replaced atlas generations retire without assuming that queue submission is
+synchronous. Current native devices complete `Submit` before returning, while the contract and
+validation backend preserve the completion-value boundary for asynchronous implementations.

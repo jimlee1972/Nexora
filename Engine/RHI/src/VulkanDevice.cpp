@@ -297,7 +297,9 @@ public:
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override;
   void DestroyPipeline(PipelineHandle pipeline) override;
   std::unique_ptr<CommandList> CreateCommandList(QueueType queue) override;
-  void Submit(CommandList &commands) override;
+  std::uint64_t Submit(CommandList &commands) override;
+  [[nodiscard]] std::uint64_t CompletedSubmissionValue() const noexcept override;
+  void WaitForSubmission(std::uint64_t value) override;
   void Present(TextureHandle texture) override;
   void WaitIdle() override;
   [[nodiscard]] DeviceDiagnostics Diagnostics() const noexcept override;
@@ -347,6 +349,8 @@ private:
   std::unordered_map<std::uint64_t, TextureRecord> textures_;
   std::unordered_map<std::uint64_t, PipelineRecord> pipelines_;
   DeviceDiagnostics diagnostics_{};
+  std::uint64_t submitted_submission_{};
+  std::uint64_t completed_submission_{};
 };
 
 struct VulkanDevice::TextureRecord final {
@@ -967,7 +971,7 @@ VulkanDevice::PipelineRecord &VulkanDevice::ValidatePipeline(PipelineHandle pipe
   return found->second;
 }
 
-void VulkanDevice::Submit(CommandList &commands) {
+std::uint64_t VulkanDevice::Submit(CommandList &commands) {
   auto *validated = dynamic_cast<VulkanCommandList *>(&commands);
   VkFence fence = VK_NULL_HANDLE;
   {
@@ -1007,6 +1011,19 @@ void VulkanDevice::Submit(CommandList &commands) {
     DestroyFramebuffer(validated->framebuffer_);
     validated->framebuffer_ = VK_NULL_HANDLE;
   }
+  std::lock_guard lock{mutex_};
+  completed_submission_ = ++submitted_submission_;
+  return submitted_submission_;
+}
+
+std::uint64_t VulkanDevice::CompletedSubmissionValue() const noexcept {
+  std::lock_guard lock{mutex_};
+  return completed_submission_;
+}
+
+void VulkanDevice::WaitForSubmission(std::uint64_t value) {
+  std::lock_guard lock{mutex_};
+  Require(value <= submitted_submission_, "waiting for an unknown Vulkan submission");
 }
 
 void VulkanDevice::Present(TextureHandle texture) {

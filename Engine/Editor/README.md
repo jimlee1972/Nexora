@@ -12,7 +12,8 @@ into renderer or platform internals.
 
 - `ProjectWorkspace` owns its descriptor and open-document list; files are atomically replaced, a
   recovery journal is written before the primary workspace file, and successful save/recovery
-  removes that journal. The UI may query and explicitly discard a pending journal.
+  removes that journal. The UI may query and explicitly discard a pending journal. Versioned Editor
+  layout payloads are persisted separately and never use Dear ImGui's unmanaged global ini file.
 - `AssetWorkspace` owns index entries. Pointers returned by `Find` and `Search` are borrowed until
   the next `ImportTree` call or destruction.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and

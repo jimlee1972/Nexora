@@ -1,15 +1,3 @@
-include(FetchContent)
-
-FetchContent_Declare(
-  nexora_imgui
-  GIT_REPOSITORY https://github.com/ocornut/imgui.git
-  GIT_TAG v1.91.9b-docking
-  GIT_SHALLOW TRUE)
-FetchContent_GetProperties(nexora_imgui)
-if(NOT nexora_imgui_POPULATED)
-  FetchContent_Populate(nexora_imgui)
-endif()
-
 add_library(NexoraDearImGui STATIC
   "${nexora_imgui_SOURCE_DIR}/imgui.cpp"
   "${nexora_imgui_SOURCE_DIR}/imgui_demo.cpp"
