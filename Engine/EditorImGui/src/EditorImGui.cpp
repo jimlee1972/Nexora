@@ -14,6 +14,8 @@ struct EditorImGuiHost::State final {
   Nexora::Presentation::RenderSurface *surface = nullptr;
   float dpi_scale = 1.0F;
   RecoveryChoice recovery_choice = RecoveryChoice::None;
+  bool recovery_prompt_opened = false;
+  std::string recovery_error;
 
   static void SetImeData(ImGuiContext *context, ImGuiViewport *, ImGuiPlatformImeData *data) {
     ImGui::SetCurrentContext(context);
@@ -156,23 +158,37 @@ void EditorImGuiHost::DrawProductShell(const ProductShell &shell, SceneDocument 
   ImGui::End();
 
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
-  if (recovery_available)
+  if (recovery_available && !state_->recovery_prompt_opened) {
     ImGui::OpenPopup("Recover workspace###editor.recovery");
+    state_->recovery_prompt_opened = true;
+  }
+  if (!recovery_available)
+    state_->recovery_prompt_opened = false;
   if (ImGui::BeginPopupModal("Recover workspace###editor.recovery", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::TextUnformatted("A recovery journal is available.");
+    if (!state_->recovery_error.empty())
+      ImGui::TextWrapped("%s", state_->recovery_error.c_str());
     if (ImGui::Button("Recover")) {
       std::string error;
-      if (workspace->RecoverWorkspace(&error))
+      if (workspace->RecoverWorkspace(&error)) {
         state_->recovery_choice = RecoveryChoice::Recover;
-      ImGui::CloseCurrentPopup();
+        state_->recovery_error.clear();
+        ImGui::CloseCurrentPopup();
+      } else {
+        state_->recovery_error = std::move(error);
+      }
     }
     ImGui::SameLine();
     if (ImGui::Button("Discard")) {
       std::string error;
-      if (workspace->DiscardRecovery(&error))
+      if (workspace->DiscardRecovery(&error)) {
         state_->recovery_choice = RecoveryChoice::Discard;
-      ImGui::CloseCurrentPopup();
+        state_->recovery_error.clear();
+        ImGui::CloseCurrentPopup();
+      } else {
+        state_->recovery_error = std::move(error);
+      }
     }
     ImGui::EndPopup();
   }

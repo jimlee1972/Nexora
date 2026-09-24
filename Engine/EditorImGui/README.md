@@ -13,6 +13,8 @@ and presents panels using the stable IDs owned by `NexoraEditorCore`.
 - The host does not own a native window or swapchain. The application supplies events exposed by
   `RenderSurface::Events`; `Render` records the generated draw lists through the public RHI, and
   the application retains target ownership.
+- Recovery is prompted once per discovered journal. Failed recover/discard operations keep the
+  modal open and expose the data-layer error instead of silently dismissing it.
 
 ## Threading and errors
 

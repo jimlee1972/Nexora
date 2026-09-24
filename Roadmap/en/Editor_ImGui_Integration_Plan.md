@@ -1,6 +1,6 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
-> Version: v1.1 | Status: portable implementation landed; target-host acceptance pending |
+> Version: v1.2 | Status: portable shell correction landed; renderer and target-host acceptance pending |
 > Updated: 2026-09-24 | Relates to:
 > `Editor_Roadmap.md` (ED-M0), `ADR-0001-Editor-UI-Framework.md`
 
@@ -10,8 +10,10 @@
 line item of ED-M0. This document plans the remaining ED-M0 scope the ADR explicitly did not
 close: graphical docking, theme, DPI, IME wiring, the accessibility direction, and crash-recovery
 UX. The feature-gated portable host, RHI submission contract, docking shell, input/DPI/IME bridge,
-live Hierarchy interaction, recovery UX, and accessibility direction are now implemented. Native
-visual evidence remains an acceptance gate, so this delivery does not by itself accept ED-M0.
+live Hierarchy interaction, recovery UX, and accessibility direction are now implemented. The
+current RHI submission remains a validation scaffold rather than a complete textured/indexed ImGui
+renderer, and native visual evidence remains an acceptance gate, so this delivery does not accept
+ED-M0.
 
 **This plan's first step introduces a new third-party dependency (vendoring Dear ImGui) and
 changes the build system (a new CMake module, a new module-graph entry, a new feature option).**
@@ -162,12 +164,15 @@ different default), say so before Phase 1 starts -- everything past this section
 ### Implementation evidence
 
 - `NexoraEditorImGui` owns the context, stable-ID dockspace, theme/DPI policy, pointer, button,
-  wheel, key, text and focus ingestion, and public-RHI draw submission.
+  wheel, key, text and focus ingestion, and the current public-RHI validation submission scaffold.
 - `NexoraEditor --graphical` creates the public `RenderSurface`, consumes its borrowed events, and
   drives the UI and recover/discard lifecycle.
 - The Hierarchy lists live `SceneDocument::Nodes()` and round-trips selection through
   `SceneDocument::Select`. Win32 owns candidate-window positioning; unsupported hosts report that
   status explicitly. The ED-M7 accessibility handoff is recorded in `Engine/EditorImGui/README.md`.
+- The graphical application now passes a live scene and the surface-owned extent/DPI snapshot;
+  resize recreates its offscreen validation target. Connecting textured/indexed draw data to an
+  acquired presentation backbuffer remains required before Phase 1 or Phase 2 can pass.
 
 ## 7. Risks
 

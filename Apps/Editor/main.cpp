@@ -21,12 +21,21 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
     return 1;
   }
   auto device = nexora::rhi::CreateValidationDevice();
-  const auto target =
-      device->CreateTexture({1280, 720, nexora::rhi::TextureFormat::Rgba8Unorm,
-                             nexora::rhi::ResourceState::Undefined, "Editor UI target"});
+  auto target = device->CreateTexture({1280, 720, nexora::rhi::TextureFormat::Rgba8Unorm,
+                                       nexora::rhi::ResourceState::Undefined, "Editor UI target"});
+  std::uint32_t target_width = 1280;
+  std::uint32_t target_height = 720;
   auto state = nexora::rhi::ResourceState::Undefined;
   nexora::editor::imgui::EditorImGuiHost ui;
   nexora::editor::ProductShell shell;
+  nexora::runtime::World world;
+  const auto scene_id = world.LoadScene("Main");
+  if (!world.Activate(scene_id)) {
+    std::cerr << "failed to activate the editor scene\n";
+    return 1;
+  }
+  nexora::editor::SceneDocument scene(world, scene_id);
+  scene.Create("Scene Root");
   std::uint32_t frames = 0;
   while (!created.surface->CloseRequested() && (frame_limit == 0 || frames < frame_limit)) {
     const auto status = created.surface->BeginFrame();
@@ -36,12 +45,26 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
     if (action != Nexora::Presentation::SurfaceAction::Render)
       continue;
     ui.ProcessEvents(created.surface->Events());
-    ui.SetDisplay(1280.0F, 720.0F, 1.0F);
+    const auto &frame = created.surface->FrameInfo();
+    if (frame.width == 0 || frame.height == 0)
+      continue;
+    if (frame.width != target_width || frame.height != target_height) {
+      device->WaitIdle();
+      device->DestroyTexture(target);
+      target =
+          device->CreateTexture({frame.width, frame.height, nexora::rhi::TextureFormat::Rgba8Unorm,
+                                 nexora::rhi::ResourceState::Undefined, "Editor UI target"});
+      target_width = frame.width;
+      target_height = frame.height;
+      state = nexora::rhi::ResourceState::Undefined;
+    }
+    ui.SetDisplay(static_cast<float>(frame.width), static_cast<float>(frame.height),
+                  frame.dpiScale);
     ui.UpdateImeCandidate(*created.surface);
     ui.BeginFrame();
-    ui.DrawProductShell(shell, nullptr, &workspace);
+    ui.DrawProductShell(shell, &scene, &workspace);
     static_cast<void>(ui.EndFrame());
-    static_cast<void>(ui.Render(*device, target, 1280, 720, state, false));
+    static_cast<void>(ui.Render(*device, target, frame.width, frame.height, state, false));
     state = nexora::rhi::ResourceState::ShaderRead;
     if (created.surface->EndFrame() != Nexora::Presentation::SurfaceStatus::Ready)
       break;

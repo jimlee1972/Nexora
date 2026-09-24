@@ -10,6 +10,7 @@ struct RenderSurface::State final {
   Window::WindowHandle window;
   std::unique_ptr<ISurface> surface;
   SurfaceInputSnapshot input;
+  SurfaceFrameInfo frame;
   std::vector<Window::WindowEvent> events;
   bool closeRequested = false;
   bool destroyed = false;
@@ -32,7 +33,12 @@ SurfaceStatus RenderSurface::BeginFrame() {
       state_->closeRequested = true;
       break;
     case Window::WindowEventType::Resized:
+      state_->frame.width = event.width;
+      state_->frame.height = event.height;
       state_->surface->NotifyWindowExtent(event.width, event.height);
+      break;
+    case Window::WindowEventType::DpiChanged:
+      state_->frame.dpiScale = event.scale;
       break;
     case Window::WindowEventType::FocusChanged:
       state_->input.focused = event.value0 != 0;
@@ -61,6 +67,11 @@ bool RenderSurface::CloseRequested() const noexcept { return !state_ || state_->
 const SurfaceInputSnapshot &RenderSurface::Input() const noexcept {
   static const SurfaceInputSnapshot empty;
   return state_ ? state_->input : empty;
+}
+
+const SurfaceFrameInfo &RenderSurface::FrameInfo() const noexcept {
+  static const SurfaceFrameInfo empty;
+  return state_ ? state_->frame : empty;
 }
 
 std::span<const Window::WindowEvent> RenderSurface::Events() const noexcept {
@@ -106,6 +117,7 @@ RenderSurfaceResult CreateRenderSurface(const RenderSurfaceDescriptor &descripto
 #endif
     return {{}, SurfaceStatus::Unsupported, "requested presentation backend is unsupported"};
   auto state = std::make_unique<RenderSurface::State>();
+  state->frame = {descriptor.width, descriptor.height, 1.0F};
   state->windows = Window::CreateWindowSystem();
   if (!state->windows)
     return {{}, SurfaceStatus::Unsupported, "native window system is unavailable"};
