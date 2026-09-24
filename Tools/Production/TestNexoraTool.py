@@ -29,6 +29,13 @@ with tempfile.TemporaryDirectory() as directory:
     imported_b = MODULE.isolated_import(source, cache, {"quality": "high"})
     assert imported_a == imported_b and imported_a["ok"]
     assert len(imported_a["key"]) == 64 and len(imported_a["artifact_sha256"]) == 64
+    renamed_source = root / "renamed-asset.json"
+    renamed_source.write_bytes(source.read_bytes())
+    imported_renamed = MODULE.isolated_import(renamed_source, cache, {"quality": "high"})
+    assert imported_renamed["ok"]
+    assert imported_renamed["key"] == imported_a["key"]
+    assert imported_renamed["artifact"] == imported_a["artifact"]
+    assert imported_renamed["artifact_sha256"] == imported_a["artifact_sha256"]
     crashed = MODULE.isolated_import(source, cache, {"simulate_crash": True})
     assert not crashed["ok"] and "code 70" in crashed["error"]
 

@@ -91,7 +91,6 @@ def worker_request(request: dict[str, Any]) -> dict[str, Any]:
         os._exit(70)
     artifact = canonical_bytes({
         "schema_version": SCHEMA_VERSION,
-        "source": source.name,
         "source_sha256": sha256(source_bytes),
         "settings": request.get("settings", {}),
     })
