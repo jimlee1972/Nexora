@@ -49,6 +49,7 @@ struct CommandLine final {
   std::string scene{"hub"};
   std::string backend{"validation"};
   std::string gameplay_module{"auto"};
+  std::filesystem::path gameplay_library;
   std::string capabilities{"auto"};
   std::filesystem::path report;
 };
@@ -240,6 +241,12 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
         error = "--gameplay-module must be auto, static, or dynamic";
         return false;
       }
+    } else if (argument.starts_with("--gameplay-library=")) {
+      command.gameplay_library = std::filesystem::path(argument.substr(19));
+      if (command.gameplay_library.empty()) {
+        error = "--gameplay-library requires a path";
+        return false;
+      }
     } else if (argument.starts_with("--capabilities=")) {
       command.capabilities = std::string(argument.substr(15));
       if (command.capabilities != "auto" && command.capabilities != "minimal") {
@@ -269,6 +276,7 @@ void PrintUsage() {
          "or streaming\n"
          "  --backend=auto|validation|dx12|vulkan|metal select the presentation backend\n"
          "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n"
+         "  --gameplay-library=PATH     override the dynamic Zig artifact path\n"
          "  --capabilities=auto|minimal override the gallery capability probe\n";
 }
 
@@ -520,7 +528,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
                                                false
 #endif
                                               );
-  const std::filesystem::path dynamic_library{NEXORA_ZIG_SHARED_LIBRARY_PATH};
+  const std::filesystem::path dynamic_library =
+      command.gameplay_library.empty() ? NEXORA_ZIG_SHARED_LIBRARY_PATH : command.gameplay_library;
   if (!(use_dynamic ? module.Load(dynamic_library) : module.Load(NexoraGameModuleLoad))) {
     error = "Zig gameplay module failed to load or start";
     return false;

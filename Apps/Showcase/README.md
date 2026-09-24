@@ -104,6 +104,14 @@ cmake --build --preset linux-development --target NexoraShowcasePackageDevelopme
 cmake --build --preset linux-shipping --target NexoraShowcasePackageShipping
 ```
 
-The generated `build.json` records the exact clean-machine launch command. Package creation is not
-host acceptance: execute that command after copying the directory to a clean target machine and
-retain its report as distribution evidence.
+The generated `build.json` records the exact relocatable launch command, including the packaged Zig
+library path. On Linux, the evidence target verifies every packaged checksum, copies the package to
+a fresh temporary directory, launches only from that copy, and retains the embedded Showcase report
+plus command and exit status in `launch-evidence-linux.json`:
+
+```bash
+cmake --build --preset linux-development --target NexoraShowcasePackageDevelopmentEvidence
+```
+
+This is Linux clean-package launch evidence, not evidence for Windows, macOS, or a separately
+provisioned physical machine.

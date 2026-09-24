@@ -56,5 +56,8 @@ Command lists expose backend-neutral compute dispatch and indirect-draw recordin
 compute dispatches, indirect draws, and readbacks independently, allowing the normal GPU-driven path
 to assert that it never maps GPU output. Resource barriers include source and destination queues so
 RenderGraph, rather than a backend or pass callback, owns queue transfers. The validation backend
-executes this contract today. DX12, Vulkan, and Metal native implementations and target-host evidence
+executes the complete portable contract. Vulkan now also records a real `vkCmdDrawIndirect` from
+host-visible indirect command storage and reports it independently in device diagnostics; the
+offscreen gate exercises that path on a Vulkan-capable Linux host. Native Vulkan compute pipelines
+and DX12/Metal compute/indirect implementations, followed by full target-host parity evidence,
 remain required before V2-M3 can be accepted.

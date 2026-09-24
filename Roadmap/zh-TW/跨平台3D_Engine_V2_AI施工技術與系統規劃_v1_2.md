@@ -1202,7 +1202,8 @@ Output type
 > frustum／distance／LOD culling、conservative Hi-Z 與 invalidation、compaction、classification
 > 及 indirect-command generation。Portable compute／indirect recording、RenderGraph queue
 > ownership、CPU／GPU comparison 與 no-readback diagnostics 現已有 contract test 覆蓋；native
-> compute execution 與 target-tier parity 仍須完成後才能驗收。
+> Vulkan indirect execution 現已有真正的 Linux `vkCmdDrawIndirect` 路徑。Native compute
+> execution、DX12／Metal indirect execution 與完整 target-tier parity 仍須完成後才能驗收。
 
 Repository 證據清單：
 
@@ -1210,7 +1211,8 @@ Repository 證據清單：
 - [x] Portable compute dispatch 與 indirect draw recording。
 - [x] RenderGraph compute／graphics ownership transition。
 - [x] CPU／backend comparison 與 normal-path no-readback diagnostics。
-- [ ] DX12、Vulkan 與 Metal 的 native compute／indirect execution 與 target-tier parity。
+- [x] Linux offscreen gate 的 native Vulkan indirect execution。
+- [ ] Native compute execution、DX12／Metal indirect execution 與完整 target-tier parity。
 
 核心資料：
 

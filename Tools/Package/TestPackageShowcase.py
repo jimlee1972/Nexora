@@ -22,6 +22,7 @@ def main() -> int:
         build = json.loads((output / "manifests/build.json").read_text())
         content = json.loads((output / "manifests/content.json").read_text())
         assert build["gameplay_linkage"] == "dynamic"
+        assert "--gameplay-library=bin/gameplay.so" in build["launch"]
         assert len(content["artifacts"]) == 2
         assert (output / "manifests/SHA256SUMS").read_text().count("\n") == 6
     return 0

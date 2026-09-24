@@ -3834,8 +3834,9 @@ conservative Hi-Z with explicit invalidation, visible-instance compaction, mater
 classification, and indirect-command generation. The portable command contract now records compute
 dispatch and indirect drawing, compares backend output with the CPU reference, tracks normal-path
 readback diagnostics, and makes RenderGraph emit explicit compute/graphics ownership barriers.
-V2-M3 remains open because native compute/indirect execution and DX12/Vulkan/Metal target-tier parity
-have not passed their target-host gates.
+Vulkan now executes one indirect-buffer-backed `vkCmdDrawIndirect` in its native Linux offscreen
+gate. V2-M3 remains open because native compute execution, DX12/Metal indirect execution, and full
+DX12/Vulkan/Metal target-tier parity have not passed their target-host gates.
 
 Order:
 
@@ -3879,6 +3880,11 @@ native target-host parity item passes; therefore the milestone and overall progr
 ---
 
 ## V2-M4 — Large World V2
+
+Current portable foundation: deterministic integer-coordinate cell generation and build hashes,
+incremental rebuild input, quantized origin rebasing that leaves absolute gameplay identity intact,
+and revision-ordered persistent cell deltas are executable contracts. Adaptive hierarchy splitting,
+3D volume policy, HLOD V2/impostors, and the partition commandlet remain open.
 
 Construction:
 
