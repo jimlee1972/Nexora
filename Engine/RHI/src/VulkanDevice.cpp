@@ -225,6 +225,7 @@ struct VulkanFunctions final {
   PFN_vkCmdSetScissor CmdSetScissor{};
   PFN_vkCmdDraw CmdDraw{};
   PFN_vkCmdDrawIndirect CmdDrawIndirect{};
+  PFN_vkCmdDispatch CmdDispatch{};
 };
 
 template <typename Function>
@@ -246,6 +247,7 @@ public:
   void BindPipeline(PipelineHandle pipeline) override;
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
   void DrawIndirect(std::uint32_t command_count) override;
+  void Dispatch(std::uint32_t groups_x, std::uint32_t groups_y, std::uint32_t groups_z) override;
   void EndRendering() override;
 
   [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
@@ -256,6 +258,7 @@ public:
   [[nodiscard]] std::uint64_t Barriers() const noexcept { return barriers_; }
   [[nodiscard]] std::uint64_t DrawCalls() const noexcept { return draws_; }
   [[nodiscard]] std::uint64_t IndirectDraws() const noexcept { return indirect_draws_; }
+  [[nodiscard]] std::uint64_t Dispatches() const noexcept { return dispatches_; }
   void MarkSubmitted() noexcept { submitted_ = true; }
   void Close();
 
@@ -275,6 +278,7 @@ private:
   std::uint64_t barriers_{};
   std::uint64_t draws_{};
   std::uint64_t indirect_draws_{};
+  std::uint64_t dispatches_{};
   VkBuffer indirect_buffer_{VK_NULL_HANDLE};
   VkDeviceMemory indirect_memory_{VK_NULL_HANDLE};
 };
@@ -441,6 +445,7 @@ void VulkanDevice::LoadDeviceFunctions() {
   LOAD_DEVICE(CmdSetScissor, "vkCmdSetScissor");
   LOAD_DEVICE(CmdDraw, "vkCmdDraw");
   LOAD_DEVICE(CmdDrawIndirect, "vkCmdDrawIndirect");
+  LOAD_DEVICE(CmdDispatch, "vkCmdDispatch");
 #undef LOAD_DEVICE
 }
 
@@ -987,6 +992,7 @@ void VulkanDevice::Submit(CommandList &commands) {
     diagnostics_.barriers += validated->Barriers();
     diagnostics_.draw_calls += validated->DrawCalls();
     diagnostics_.indirect_draw_calls += validated->IndirectDraws();
+    diagnostics_.compute_dispatches += validated->Dispatches();
   }
   try {
     Check(functions_.WaitForFences(device_, 1, &fence, VK_TRUE,
@@ -1213,6 +1219,14 @@ void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
   device_.functions_.CmdDrawIndirect(command_buffer_, indirect_buffer_, 0, command_count,
                                      sizeof(VkDrawIndirectCommand));
   ++indirect_draws_;
+}
+
+void VulkanCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
+                                 std::uint32_t groups_z) {
+  if (submitted_ || rendering_ || groups_x == 0 || groups_y == 0 || groups_z == 0)
+    throw std::logic_error("invalid Vulkan dispatch");
+  device_.functions_.CmdDispatch(command_buffer_, groups_x, groups_y, groups_z);
+  ++dispatches_;
 }
 
 void VulkanCommandList::EndRendering() {

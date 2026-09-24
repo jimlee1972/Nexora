@@ -65,18 +65,64 @@ here, but their DX12/Metal counterparts need to be run and evidenced on native h
 
 ## 5. Phased plan
 
-### Phase 1 -- Vulkan compute dispatch (Linux-verifiable here)
+### Phase 1a -- Vulkan compute dispatch, shape-level (done)
 
-- Implement `VulkanCommandList::Dispatch` (`vkCmdDispatch`), mirroring the existing
-  `VulkanCommandList::DrawIndirect` pattern (command pool/buffer already exist on this device).
-- Write the first real compute shader: frustum + distance culling, matching
-  `BuildGPUDrivenCommands()`'s CPU-reference semantics field-for-field (this is the shader
-  `CompareGPUDrivenResults()` will validate against).
-- Add a native-Vulkan test analogous to `renderer.contracts`'s `VerifyNativeBackend`, but calling
-  `RecordGPUDrivenExecution` end-to-end (not just a bare triangle frame) and asserting
-  `diagnostics.compute_dispatches`/`indirect_draw_calls` match the CPU reference's counts.
-- Gate: `CompareGPUDrivenResults()` reports no mismatch between the Vulkan-executed output and the
-  CPU reference, on this session's Linux host.
+- ✅ Implemented `VulkanCommandList::Dispatch` (`vkCmdDispatch`), mirroring the existing
+  `VulkanCommandList::DrawIndirect` pattern; wired `DeviceDiagnostics::compute_dispatches`
+  aggregation in `VulkanDevice::Submit`, matching how `DrawCalls()`/`IndirectDraws()` already
+  aggregate.
+- ✅ Added `GPUDrivenPipelineTests.cpp::TestNormalPathOnVulkan`, which runs
+  `RecordGPUDrivenExecution` end-to-end against a real `rhi::CreateDevice(Backend::Vulkan)` device
+  (skipping cleanly via `IsBackendAvailable` where Vulkan isn't present) and asserts
+  `diagnostics.compute_dispatches == 1 && diagnostics.indirect_draw_calls == 1 &&
+  diagnostics.draw_calls == 1` and `diagnostics.readbacks == 0`, exactly mirroring the existing
+  validation-backend assertion in the same file. Verified: `linux-development` (35/35 ctest) and
+  `linux-sanitizers` (ASan+UBSan, 35/35 ctest).
+- This closes the literal gap the plan opened with (`Dispatch` throwing on Vulkan) and proves the
+  real `RecordGPUDrivenExecution` path -- not just an unrelated triangle-frame smoke test --
+  genuinely dispatches and indirect-draws on real Vulkan hardware/driver.
+- **What this does not yet prove**: `RecordGPUDrivenExecution`'s `Dispatch`/`DrawIndirect` calls
+  take only plain counts (`candidate_count`, `indirect_command_count`) -- no scene data, view
+  parameters, or output buffer are bound to the dispatch. The compute shader work below needs real
+  GPU-visible input/output buffers, which is a bigger prerequisite than this plan originally
+  assumed; see Phase 1b.
+
+### Phase 1b -- prerequisite: buffer resources and compute-pipeline creation in the RHI (not started, needs confirmation)
+
+Verified against source while starting Phase 1a: the RHI has **no way to create, upload to, bind,
+or read back a GPU buffer**, and `Device::CreatePipeline` **unconditionally builds a graphics
+pipeline** (hardcoded vertex+fragment stages, `vkCreateGraphicsPipelines`) with no compute path.
+Specifically:
+
+- `Types.h` already declares `BufferHandle`/`BufferTag`/`BufferDescriptor`/
+  `BindingType::StorageBuffer` -- but nothing in `Device` or `CommandList` ever creates, destroys,
+  binds, or maps one. These are unused scaffolding, presumably put in place for exactly this work
+  and never finished.
+- `VulkanDevice.cpp` already loads the raw Vulkan function pointers this needs
+  (`vkCreateBuffer`, `vkGetBufferMemoryRequirements`, `vkBindBufferMemory`, `vkMapMemory`/
+  `vkUnmapMemory`, `vkCreateDescriptorSetLayout`, `vkCreateDescriptorPool`,
+  `vkAllocateDescriptorSets`, `vkUpdateDescriptorSets`) and uses them internally for exactly one
+  fixed-purpose object: a single 64-byte uniform buffer bound at descriptor set 0/binding 0 for the
+  hardcoded triangle pipeline. None of this is exposed publicly or general enough to bind an
+  arbitrary storage buffer for a compute shader's scene/view/output data.
+- A real culling compute shader needs, at minimum: a read-only structured/storage buffer of scene
+  object data, a storage buffer for compacted-instance output, a storage buffer for indirect
+  command output, and a small uniform buffer for view/frustum parameters -- several buffers of
+  varying type and size, not the one fixed uniform binding that exists today.
+
+Closing this gap means extending the shared `rhi::Device`/`rhi::CommandList` abstract interface
+(`Engine/RHI/include/Nexora/RHI/Device.h`) with buffer create/destroy/upload and a
+compute-resource-binding mechanism, and adding a compute pipeline creation path alongside the
+existing graphics one. Because these are pure-virtual additions to a shared interface, **every**
+backend (`ValidationDevice`, `VulkanDevice`, `D3D12Device`, `MetalDevice`) needs at least a
+minimal implementation for the build to keep compiling, even though only Validation and Vulkan
+need to work correctly right now. This is a genuinely separate, foundational piece of work -- not
+"write one shader" -- and is exactly the kind of RHI-wide interface change this repository's
+standing rules ask to be discussed before starting, even though it introduces no new third-party
+dependency or CI change. **Not started; needs confirmation on the shape of the new API (buffer
+lifetime/ownership model, upload path -- staging buffer vs. host-visible mapping, binding
+model -- fixed slots vs. a general descriptor-set builder) before Phase 1's actual compute shader
+work can begin.**
 
 ### Phase 2 -- Remaining compute stages on Vulkan
 
