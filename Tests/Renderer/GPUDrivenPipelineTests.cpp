@@ -2,6 +2,8 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
+#include <string>
 #include <string_view>
 
 using namespace nexora;
@@ -81,8 +83,8 @@ void TestReferenceComparison() {
   Require(!mismatch.matches && mismatch.first_command_mismatch == 0,
           "indirect argument mismatch identifies its first command");
 }
-void TestNormalPathRecordsNoReadback() {
-  auto device = rhi::CreateValidationDevice();
+void TestNormalPathRecordsNoReadbackOn(const std::unique_ptr<rhi::Device> &device,
+                                       std::string_view label) {
   auto compute = device->CreateCommandList(rhi::QueueType::Compute);
   auto graphics = device->CreateCommandList(rhi::QueueType::Graphics);
   const auto target = device->CreateTexture(
@@ -98,10 +100,25 @@ void TestNormalPathRecordsNoReadback() {
   const auto diagnostics = device->Diagnostics();
   Require(diagnostics.compute_dispatches == 1 && diagnostics.indirect_draw_calls == 1 &&
               diagnostics.draw_calls == 1,
-          "normal path dispatches once and submits GPU-generated bins indirectly");
-  Require(diagnostics.readbacks == 0, "normal GPU-driven execution records no readback");
+          std::string(label) + ": normal path dispatches once and submits GPU-generated bins "
+                               "indirectly");
+  Require(diagnostics.readbacks == 0,
+          std::string(label) + ": normal GPU-driven execution records no readback");
   device->DestroyPipeline(pipeline);
   device->DestroyTexture(target);
+}
+void TestNormalPathRecordsNoReadback() {
+  TestNormalPathRecordsNoReadbackOn(rhi::CreateValidationDevice(), "validation backend");
+}
+void TestNormalPathOnVulkan() {
+  // Only Vulkan implements both Dispatch (vkCmdDispatch) and DrawIndirect
+  // (vkCmdDrawIndirect) today -- D3D12/Metal override neither yet (V2-M3
+  // Phase 3/4), so this is deliberately Vulkan-specific rather than a
+  // generic "whichever native backend is available" check, which would
+  // throw on those two.
+  if (!rhi::IsBackendAvailable(rhi::Backend::Vulkan))
+    return;
+  TestNormalPathRecordsNoReadbackOn(rhi::CreateDevice(rhi::Backend::Vulkan), "Vulkan backend");
 }
 } // namespace
 int main() {
@@ -110,6 +127,7 @@ int main() {
   TestInvalidDepthInput();
   TestReferenceComparison();
   TestNormalPathRecordsNoReadback();
+  TestNormalPathOnVulkan();
   std::cout << "GPU-driven pipeline tests passed\n";
   return 0;
 }
