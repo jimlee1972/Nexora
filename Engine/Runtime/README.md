@@ -213,7 +213,7 @@ shutdown racing a reload is serialized and cannot release callable code. Static 
 loads remain supported for monolithic/Shipping consumers, but a dynamically owned generation may
 only be replaced by another dynamically owned generation. `Generation()` and `GetReloadStats()`
 expose the active generation, successful reload count, migrated bytes, and wall-clock reload
-duration for diagnostics and profiler integration.
+duration for diagnostics and profiler integration. Dynamic path reloads first require consecutive stable file-size and write-time samples, so a linker copy cannot be opened halfway through publication. `GetFailureState()` records the callback kind, ABI result, and generation for the latest variable/fixed-update failure; failures remain observable without implicitly unloading state and a successful transactional reload clears the prior generation's failure.
 
 `Tests/Gameplay/GameplayConformanceVectors.h` is the single lifecycle/update vector set used by the
 C++ fake and Zig consumer. The Runtime negative suite rejects a missing loader symbol, ABI and

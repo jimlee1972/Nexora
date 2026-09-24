@@ -49,6 +49,7 @@ struct CommandLine final {
   std::string scene{"hub"};
   std::string backend{"validation"};
   std::string gameplay_module{"auto"};
+  std::string capabilities{"auto"};
   std::filesystem::path report;
 };
 
@@ -57,9 +58,13 @@ struct ShowcaseHostContext final {
   core::AsyncLogService *log{};
   runtime::Id primary_entity{};
   runtime::Id scene{};
+  runtime::Id camera_entity{};
+  runtime::Id selected_entity{};
   std::uint64_t frame{};
   std::size_t debug_lines{};
   std::size_t api_errors{};
+  std::size_t raycasts{};
+  std::size_t camera_moves{};
   std::size_t read_callbacks{};
   std::size_t write_callbacks{};
   bool received_zig_log{};
@@ -88,6 +93,11 @@ struct ShowcaseRun final {
   bool received_zig_log{};
   std::size_t debug_lines{};
   std::size_t api_errors{};
+  std::size_t raycasts{};
+  std::size_t camera_moves{};
+  runtime::Id selected_entity{};
+  runtime::Transform camera_transform{};
+  std::string presentation_recovery{"render"};
   bool dynamic_gameplay{};
   std::uint32_t start_count{};
   std::uint32_t fixed_update_count{};
@@ -108,7 +118,19 @@ struct GalleryRoom final {
   std::string_view fallback;
 };
 
-constexpr std::array<GalleryRoom, 5> GalleryRooms() {
+constexpr std::array<GalleryRoom, 5> GalleryRooms(bool minimal = false) {
+  if (minimal) {
+    return {{{"math", "Math Lab", CapabilityState::Implemented,
+              "CPU transform and ray/AABB diagnostics"},
+             {"scene", "Scene Lab", CapabilityState::Implemented,
+              "public scene/entity/component callbacks"},
+             {"gameplay", "Gameplay Lab", CapabilityState::ContractOnly,
+              "physics/navigation capability was not advertised"},
+             {"presentation", "Presentation Lab", CapabilityState::ContractOnly,
+              "animation/audio/VFX capability was not advertised"},
+             {"streaming", "Streaming Lab", CapabilityState::Unavailable,
+              "large-world capability was not advertised"}}};
+  }
   return {
       {{"math", "Math Lab", CapabilityState::Implemented, "CPU transform and ray/AABB diagnostics"},
        {"scene", "Scene Lab", CapabilityState::Implemented,
@@ -218,6 +240,12 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
         error = "--gameplay-module must be auto, static, or dynamic";
         return false;
       }
+    } else if (argument.starts_with("--capabilities=")) {
+      command.capabilities = std::string(argument.substr(15));
+      if (command.capabilities != "auto" && command.capabilities != "minimal") {
+        error = "--capabilities must be auto or minimal";
+        return false;
+      }
     } else {
       error = "unknown argument: " + std::string(argument);
       return false;
@@ -240,7 +268,8 @@ void PrintUsage() {
          "  --scene=ROOM               select hub, tour, math, scene, gameplay, presentation, "
          "or streaming\n"
          "  --backend=auto|validation|dx12|vulkan|metal select the presentation backend\n"
-         "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n";
+         "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n"
+         "  --capabilities=auto|minimal override the gallery capability probe\n";
 }
 
 void Log(void *opaque_context, std::uint32_t level, const char *message,
@@ -356,6 +385,8 @@ int32_t SpawnEntity(void *opaque, std::uint64_t scene, const NexoraEntitySpawnDe
 #endif
   try {
     *entity = context.world->SpawnEntity(scene, descriptor);
+    if (wire->components & NEXORA_SPAWN_CAMERA)
+      context.camera_entity = *entity;
     if (context.primary_entity == 0 && (wire->components & NEXORA_SPAWN_MESH))
       context.primary_entity = *entity;
     return NEXORA_GAMEPLAY_OK;
@@ -391,7 +422,7 @@ int32_t Raycast(void *opaque, const NexoraRaycastRequest *request, NexoraRaycast
   if (!opaque || !request || !hit)
     return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
-  const auto &context = *static_cast<ShowcaseHostContext *>(opaque);
+  auto &context = *static_cast<ShowcaseHostContext *>(opaque);
   const auto entity = context.world->RaycastEntity(
       {{request->origin.x, request->origin.y, request->origin.z},
        {request->direction.x, request->direction.y, request->direction.z},
@@ -399,6 +430,8 @@ int32_t Raycast(void *opaque, const NexoraRaycastRequest *request, NexoraRaycast
   if (!entity)
     return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
   *hit = {*entity, 4.5, {request->origin.x, request->origin.y, 0.5}};
+  context.selected_entity = *entity;
+  ++context.raycasts;
   return NEXORA_GAMEPLAY_OK;
 #else
   return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
@@ -441,6 +474,38 @@ NexoraGameplayHostV3 MakeHost(ShowcaseHostContext &context) {
 }
 
 bool NearlyEqual(double left, double right) { return std::abs(left - right) < 0.000001; }
+
+void UpdateInteractiveCamera(ShowcaseHostContext &context) {
+  if (!context.input.lastKeyDown || context.camera_entity == 0)
+    return;
+  const auto camera = context.world->GetEntity(context.camera_entity);
+  if (!camera)
+    return;
+  auto transform = camera->transform;
+  constexpr double step = 0.25;
+  switch (context.input.lastKey) {
+  case 'W':
+  case 'w':
+    transform.z -= step;
+    break;
+  case 'S':
+  case 's':
+    transform.z += step;
+    break;
+  case 'A':
+  case 'a':
+    transform.x -= step;
+    break;
+  case 'D':
+  case 'd':
+    transform.x += step;
+    break;
+  default:
+    return;
+  }
+  if (context.world->SetTransform(context.camera_entity, transform))
+    ++context.camera_moves;
+}
 
 bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &result,
                  std::string &error) {
@@ -520,12 +585,15 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
           status == Nexora::Presentation::SurfaceStatus::Occluded)
         continue;
       if (status != Nexora::Presentation::SurfaceStatus::Ready) {
+        result.presentation_recovery =
+            Nexora::Presentation::ToString(Nexora::Presentation::RecoveryAction(status));
         error =
             "presentation acquire failed: " + std::string(Nexora::Presentation::ToString(status));
         device->DestroyTexture(output);
         return false;
       }
       context.input = nativeSurface->Input();
+      UpdateInteractiveCamera(context);
     }
     context.frame = frame + 1;
     engine.BeginFrame();
@@ -540,6 +608,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
       const auto status = nativeSurface->EndFrame();
       if (status != Nexora::Presentation::SurfaceStatus::Ready &&
           status != Nexora::Presentation::SurfaceStatus::Occluded) {
+        result.presentation_recovery =
+            Nexora::Presentation::ToString(Nexora::Presentation::RecoveryAction(status));
         error = "presentation failed: " + std::string(Nexora::Presentation::ToString(status));
         device->DestroyTexture(output);
         return false;
@@ -609,6 +679,11 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   result.received_zig_log = context.received_zig_log;
   result.debug_lines = context.debug_lines;
   result.api_errors = context.api_errors;
+  result.raycasts = context.raycasts;
+  result.camera_moves = context.camera_moves;
+  result.selected_entity = context.selected_entity;
+  if (const auto camera = world.GetEntity(context.camera_entity))
+    result.camera_transform = camera->transform;
   result.start_count = 1;
   result.fixed_update_count = static_cast<std::uint32_t>(executedFrames);
   result.update_count = static_cast<std::uint32_t>(executedFrames);
@@ -649,12 +724,15 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"transactional_reload\": \"" << (run.reload_ok ? "IMPLEMENTED" : "FAIL")
          << "\",\n"
          << "    \"windowed_native_backend\": \""
-         << (run.native_presentation ? "IMPLEMENTED" : "AVAILABLE ON WINDOWS") << "\"\n"
+         << (run.native_presentation ? "IMPLEMENTED" : "AVAILABLE ON WINDOWS") << "\",\n"
+         << "    \"camera_input\": \"IMPLEMENTED\",\n"
+         << "    \"selection_raycast\": \"IMPLEMENTED\",\n"
+         << "    \"capability_overlays\": \"IMPLEMENTED\"\n"
          << "  },\n"
          << "  \"gallery\": {\n"
          << "    \"selected\": \"" << command.scene << "\",\n"
          << "    \"rooms\": [\n";
-  const auto rooms = GalleryRooms();
+  const auto rooms = GalleryRooms(command.capabilities == "minimal");
   for (std::size_t index = 0; index < rooms.size(); ++index) {
     const auto &room = rooms[index];
     report << "      {\"id\": \"" << room.id << "\", \"title\": \"" << room.title
@@ -688,10 +766,19 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"high_level_debug_lines\": " << run.debug_lines << ",\n"
          << "    \"public_api_errors\": " << run.api_errors << "\n"
          << "  },\n"
+         << "  \"interaction_overlay\": {\n"
+         << "    \"camera_controls\": \"WASD\",\n"
+         << "    \"camera_moves\": " << run.camera_moves << ",\n"
+         << "    \"camera_position\": [" << run.camera_transform.x << ", " << run.camera_transform.y
+         << ", " << run.camera_transform.z << "],\n"
+         << "    \"raycasts\": " << run.raycasts << ",\n"
+         << "    \"selected_entity\": " << run.selected_entity << "\n"
+         << "  },\n"
          << "  \"render_evidence\": {\n"
          << "    \"backend\": \"" << (run.native_presentation ? "DX12" : "Validation") << "\",\n"
          << "    \"backend_fallback\": " << run.backend_fallback << ",\n"
          << "    \"fallback_reason\": \"" << run.fallback_reason << "\",\n"
+         << "    \"recovery_action\": \"" << run.presentation_recovery << "\",\n"
          << "    \"surface_acquires\": " << run.surface.acquiredFrames << ",\n"
          << "    \"surface_presents\": " << run.surface.presentedFrames << ",\n"
          << "    \"visible_meshes\": " << run.visible_meshes << ",\n"

@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #if defined(_WIN32)
@@ -144,7 +145,40 @@ bool GameplayModuleHost::Reload(NexoraGameModuleLoadV3Fn load) {
 }
 
 bool GameplayModuleHost::Reload(const std::filesystem::path &library) {
+  return Reload(library, {});
+}
+
+bool GameplayModuleHost::Reload(const std::filesystem::path &library,
+                                FileStabilization stabilization) {
   const auto started = std::chrono::steady_clock::now();
+  if (stabilization.required_stable_samples == 0 || stabilization.maximum_samples == 0 ||
+      stabilization.required_stable_samples > stabilization.maximum_samples ||
+      stabilization.poll_interval.count() < 0)
+    return false;
+
+  std::error_code error;
+  std::uintmax_t previous_size{};
+  std::filesystem::file_time_type previous_write{};
+  std::uint32_t stable_samples{};
+  for (std::uint32_t sample = 0; sample < stabilization.maximum_samples; ++sample) {
+    const auto size = std::filesystem::file_size(library, error);
+    if (error)
+      return false;
+    const auto write = std::filesystem::last_write_time(library, error);
+    if (error)
+      return false;
+    if (sample != 0 && size == previous_size && write == previous_write)
+      ++stable_samples;
+    else
+      stable_samples = 1;
+    if (stable_samples >= stabilization.required_stable_samples)
+      break;
+    previous_size = size;
+    previous_write = write;
+    if (sample + 1 == stabilization.maximum_samples)
+      return false;
+    std::this_thread::sleep_for(stabilization.poll_interval);
+  }
   auto candidate_library = DynamicLibrary::Open(library);
   if (!candidate_library)
     return false;
@@ -195,6 +229,7 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
   library_ = candidate_library;
   loaded_ = true;
   ++generation_;
+  failure_state_ = {};
   delete retired_library;
   ++reload_stats_.successful_reloads;
   reload_stats_.migrated_bytes = static_cast<std::uint32_t>(saved_state.size());
@@ -222,7 +257,10 @@ bool GameplayModuleHost::Update(double delta_seconds) {
   std::scoped_lock lock(mutex_);
   if (!loaded_)
     return false;
-  return module_.update(module_.module_state, delta_seconds) == NEXORA_GAMEPLAY_OK;
+  const auto result = module_.update(module_.module_state, delta_seconds);
+  if (result != NEXORA_GAMEPLAY_OK)
+    failure_state_ = {CallbackFailure::Update, result, generation_};
+  return result == NEXORA_GAMEPLAY_OK;
 }
 
 bool GameplayModuleHost::FixedUpdate(double fixed_delta_seconds) {
@@ -232,7 +270,10 @@ bool GameplayModuleHost::FixedUpdate(double fixed_delta_seconds) {
   if (!loaded_ || module_.fixed_update == nullptr ||
       (module_.capabilities & NEXORA_GAMEPLAY_CAPABILITY_FIXED_UPDATE) == 0)
     return false;
-  return module_.fixed_update(module_.module_state, fixed_delta_seconds) == NEXORA_GAMEPLAY_OK;
+  const auto result = module_.fixed_update(module_.module_state, fixed_delta_seconds);
+  if (result != NEXORA_GAMEPLAY_OK)
+    failure_state_ = {CallbackFailure::FixedUpdate, result, generation_};
+  return result == NEXORA_GAMEPLAY_OK;
 }
 
 void GameplayModuleHost::ShutdownLocked() noexcept {
@@ -270,6 +311,11 @@ std::uint64_t GameplayModuleHost::Generation() const noexcept {
 GameplayModuleHost::ReloadStats GameplayModuleHost::GetReloadStats() const noexcept {
   std::scoped_lock lock(mutex_);
   return reload_stats_;
+}
+
+GameplayModuleHost::FailureState GameplayModuleHost::GetFailureState() const noexcept {
+  std::scoped_lock lock(mutex_);
+  return failure_state_;
 }
 
 } // namespace nexora::runtime

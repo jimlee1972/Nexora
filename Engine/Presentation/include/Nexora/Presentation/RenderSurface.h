@@ -8,6 +8,8 @@
 
 namespace Nexora::Presentation {
 
+enum class SurfaceAction : std::uint8_t { Render, Suspend, RecreateSurface, RecreateDevice, Abort };
+
 struct RenderSurfaceDescriptor final {
   std::string_view title = "Nexora";
   std::uint32_t width = 1280;
@@ -66,5 +68,9 @@ struct RenderSurfaceResult final {
 CreateRenderSurface(const RenderSurfaceDescriptor &descriptor);
 [[nodiscard]] NEXORA_PRESENTATION_API std::string_view ToString(SurfaceBackend backend) noexcept;
 [[nodiscard]] NEXORA_PRESENTATION_API std::string_view ToString(SurfaceStatus status) noexcept;
+// Maps backend status to application recovery scope. Device loss is deliberately distinct from
+// surface recreation so applications never retry a dead device as if it were a resize.
+[[nodiscard]] NEXORA_PRESENTATION_API SurfaceAction RecoveryAction(SurfaceStatus status) noexcept;
+[[nodiscard]] NEXORA_PRESENTATION_API std::string_view ToString(SurfaceAction action) noexcept;
 
 } // namespace Nexora::Presentation

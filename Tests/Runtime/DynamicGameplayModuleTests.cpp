@@ -52,6 +52,7 @@ int main(int argc, char **argv) {
   assert(host.Load(first));
   assert(host.Generation() == 1);
   assert(host.Update(0.016));
+  assert(!host.Reload(first, {std::chrono::milliseconds{0}, 2, 1}));
 
   assert(!host.Reload(first.parent_path() / "missing-module"));
   assert(host.Generation() == 1);
@@ -66,7 +67,7 @@ int main(int argc, char **argv) {
   }
   std::atomic_bool reload_finished{};
   std::thread reload([&] {
-    assert(host.Reload(second));
+    assert(host.Reload(second, {std::chrono::milliseconds{1}, 2, 4}));
     reload_finished = true;
   });
   {

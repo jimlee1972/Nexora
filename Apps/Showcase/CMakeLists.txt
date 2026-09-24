@@ -9,7 +9,11 @@ add_executable(NexoraShowcase
   "${NEXORA_ZIG_SAMPLE_OBJECT}")
 add_dependencies(NexoraShowcase NexoraZigGameplayBuild)
 add_dependencies(NexoraShowcase NexoraZigGameplaySharedBuild)
-target_link_libraries(NexoraShowcase PRIVATE Nexora::Runtime Nexora::Presentation)
+target_link_libraries(NexoraShowcase PRIVATE
+  Nexora::Runtime
+  Nexora::Renderer
+  Nexora::RHI
+  Nexora::Presentation)
 if(WIN32)
   # The Zig object may reference the NT syscall import directly. CMake's
   # link.exe invocation does not inherit the Zig driver's implicit ntdll link.
@@ -52,7 +56,14 @@ if(BUILD_TESTING)
   add_test(
     NAME showcase.zig_dynamic
     COMMAND NexoraShowcase --headless --frames=4 --gameplay-module=dynamic)
+  add_test(
+    NAME showcase.capability_fallbacks
+    COMMAND NexoraShowcase --headless --scene=tour --frames=1 --no-reload
+            --capabilities=minimal)
   set_tests_properties(showcase.feature_gallery PROPERTIES
     PASS_REGULAR_EXPRESSION
       "\"id\": \"math\".*\"id\": \"scene\".*\"id\": \"gameplay\".*\"id\": \"presentation\".*\"id\": \"streaming\"")
+  set_tests_properties(showcase.capability_fallbacks PROPERTIES
+    PASS_REGULAR_EXPRESSION
+      "Gameplay Lab.*CONTRACT ONLY.*Presentation Lab.*CONTRACT ONLY.*Streaming Lab.*UNAVAILABLE")
 endif()
