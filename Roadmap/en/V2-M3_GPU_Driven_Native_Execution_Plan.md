@@ -63,31 +63,104 @@ session (no MSVC, no Apple host); those phases are implementable and locally tes
 here, but their DX12/Metal counterparts need to be run and evidenced on native hosts, same as
 `Window_Presentation_Roadmap.md`'s WP-M1/WP-M2 already established for the windowing side.
 
+**Operational note, learned the hard way in Phase 1a**: `cmake --preset linux-development` on its
+own (this repo's default) does **not** enable Slang, and `VulkanDevice`'s constructor unconditionally
+requires a compiled SPIR-V artifact via `NEXORA_SLANG_SPIRV_PATH` -- without it, every native-Vulkan
+code path silently reports itself unavailable via `IsBackendAvailable` and every test guarded by it
+silently skips with a passing exit code. Genuinely exercising any native-Vulkan work in this plan
+requires `-DNEXORA_ENABLE_SLANG=ON` (matching `build.yml`'s actual desktop-job invocation) with a
+`slangc` binary on `PATH` (this session installed `shader-slang/slang` v2026.18 the same way
+`build.yml`'s "Install Slang (Linux and macOS)" step does), *and* the relevant CTest target needs
+the same `NEXORA_SLANG_SPIRV_PATH`/`NEXORA_REQUIRE_NATIVE_BACKENDS` environment properties
+`renderer.contracts` already has in `Tests/Renderer/CMakeLists.txt` -- a new test target does not
+inherit them automatically. A near-instant runtime for a test that claims to exercise real Vulkan
+is a reliable tell that it silently skipped instead.
+
 ## 5. Phased plan
 
-### Phase 1a -- Vulkan compute dispatch, shape-level (done)
+### Phase 1a -- Vulkan compute dispatch, shape-level (done, corrected)
 
 - ✅ Implemented `VulkanCommandList::Dispatch` (`vkCmdDispatch`), mirroring the existing
   `VulkanCommandList::DrawIndirect` pattern; wired `DeviceDiagnostics::compute_dispatches`
   aggregation in `VulkanDevice::Submit`, matching how `DrawCalls()`/`IndirectDraws()` already
   aggregate.
-- ✅ Added `GPUDrivenPipelineTests.cpp::TestNormalPathOnVulkan`, which runs
-  `RecordGPUDrivenExecution` end-to-end against a real `rhi::CreateDevice(Backend::Vulkan)` device
-  (skipping cleanly via `IsBackendAvailable` where Vulkan isn't present) and asserts
-  `diagnostics.compute_dispatches == 1 && diagnostics.indirect_draw_calls == 1 &&
-  diagnostics.draw_calls == 1` and `diagnostics.readbacks == 0`, exactly mirroring the existing
-  validation-backend assertion in the same file. Verified: `linux-development` (35/35 ctest) and
-  `linux-sanitizers` (ASan+UBSan, 35/35 ctest).
-- This closes the literal gap the plan opened with (`Dispatch` throwing on Vulkan) and proves the
-  real `RecordGPUDrivenExecution` path -- not just an unrelated triangle-frame smoke test --
-  genuinely dispatches and indirect-draws on real Vulkan hardware/driver.
-- **What this does not yet prove**: `RecordGPUDrivenExecution`'s `Dispatch`/`DrawIndirect` calls
-  take only plain counts (`candidate_count`, `indirect_command_count`) -- no scene data, view
-  parameters, or output buffer are bound to the dispatch. The compute shader work below needs real
-  GPU-visible input/output buffers, which is a bigger prerequisite than this plan originally
-  assumed; see Phase 1b.
+- ✅ Fixed a real, previously-latent bug found while getting genuine verification working:
+  `VulkanDevice::CreateCommandList` unconditionally rejected `QueueType::Compute`
+  (`"Vulkan triangle backend only supports graphics queue"`), even though the underlying command
+  pool is created against the one graphics-capable queue family regardless of the requested queue
+  type and that family supports compute on every host this backend targets. Relaxed the check to
+  accept `Graphics`/`Compute` and reject only `Copy` (genuinely unsupported -- no separate transfer
+  queue family is selected).
+- **Correction to this plan's own earlier claim**: an initial version of this phase added a test
+  (`TestNormalPathOnVulkan`) that ran `RecordGPUDrivenExecution` end-to-end against real Vulkan and
+  claimed (in the PR that introduced it) to have "confirmed it exercises the real Vulkan path...
+  not silently skipped." That claim was wrong. The local build used to check it had
+  `NEXORA_ENABLE_SLANG` off (this repo's default), under which `VulkanDevice`'s constructor -- which
+  unconditionally requires the `NEXORA_SLANG_SPIRV_PATH` environment variable and throws otherwise
+  -- always failed, so `IsBackendAvailable(Vulkan)` always returned `false` and the test always
+  silently skipped. The exit code looked identical to a genuine pass either way, which is precisely
+  how this went unnoticed initially. Root-caused and fixed properly: installed the pinned Slang
+  toolchain this repo's CI uses (`shader-slang/slang` v2026.18) into this session, reconfigured with
+  `-DNEXORA_ENABLE_SLANG=ON` (matching `build.yml`'s actual desktop-job invocation, which this
+  session's plain `cmake --preset linux-development` does not match by default), and added the same
+  `NEXORA_SLANG_SPIRV_PATH`/`NEXORA_REQUIRE_NATIVE_BACKENDS` CTest environment properties to
+  `renderer.v2_gpu_driven` that `renderer.contracts` already had (only that one test had them).
+  `renderer.contracts` went from ~0.00s to ~0.1s once genuinely exercising Vulkan -- a useful tell
+  for "was this actually skipped" that's worth checking on any future native-backend claim in this
+  repo.
+- **With genuine Vulkan execution turned on, `TestNormalPathOnVulkan` immediately segfaulted** --
+  not gracefully, a real crash, confirmed via `gdb` to be inside Mesa's `libvulkan_lvp.so` (the
+  software Vulkan driver this sandbox uses), on a driver worker thread, during queue execution.
+  Root cause: `RecordGPUDrivenExecution`'s `Dispatch` call has no compute pipeline bound --
+  correct per its "shape-only" design (see §2), and harmless against `ValidationDevice`, which
+  doesn't model pipeline-binding state -- but `vkCmdDispatch` with no bound compute pipeline is
+  undefined behavior per the Vulkan spec, and this sandbox has no validation layers installed to
+  turn that into a clean error instead of a driver crash. Since there is no way to create *any*
+  compute pipeline yet (Phase 1b), there is no way to make this call safely today. **Removed
+  `TestNormalPathOnVulkan`** and replaced it with `TestDispatchPreconditionsOnVulkan`, which only
+  exercises `Dispatch`'s own precondition checks (e.g. rejecting a zero group count) -- these throw
+  before recording anything, so they never reach the driver. A real end-to-end native dispatch test
+  has to wait for Phase 1b to provide something to bind.
+- Verified (with Slang genuinely enabled this time): `linux-development` (36/36 ctest, including
+  `build.shader_crosscompile` which only exists under `NEXORA_ENABLE_SLANG`). Also re-verified the
+  plain `linux-development` preset without Slang (this repo's default) still degrades cleanly
+  (35/35, the extra shader-crosscompile test absent as expected).
+- `linux-sanitizers` with Slang on is 35/36: `renderer.contracts` now fails under ASan with a
+  112-byte/2-allocation leak, stack entirely inside `libNexoraCore.so` on a `core::JobSystem`
+  worker thread (`asan_thread_start` -> `start_thread`, no Vulkan/RHI symbol anywhere in the
+  trace). Confirmed this is pre-existing and unrelated to this phase's changes, not something this
+  work introduced: reproduces identically (`git stash` back to the prior commit, rebuild, rerun)
+  with none of Phase 1a's `Dispatch`/`CreateCommandList` changes present. It was never caught
+  before simply because this is the first time in this session `renderer.contracts` has run under
+  ASan *and* genuinely exercised real Vulkan at the same time (every earlier sanitizer run in this
+  session also had Slang off). Left unfixed here -- it's a `core::JobSystem` thread-lifecycle issue,
+  a different subsystem than V2-M3's RHI/Renderer scope -- but flagged here rather than silently
+  ignored, since it's a real, reproducible ASan finding a future session should pick up.
+- **What Phase 1a actually established**, stated precisely this time: `Dispatch` is implemented and
+  its precondition checks are real-Vulkan-verified; `CreateCommandList(Compute)` now works; the
+  `renderer.contracts` triangle-frame test was already genuinely exercising `DrawIndirect` on real
+  Vulkan once Slang is on (that part of the original roadmap claim holds). Nothing about
+  `RecordGPUDrivenExecution`'s actual culling/compute output has been verified against real
+  hardware -- that remains entirely Phase 1b + Phase 2 work.
 
-### Phase 1b -- prerequisite: buffer resources and compute-pipeline creation in the RHI (not started, needs confirmation)
+### Phase 1b -- prerequisite: buffer resources and compute-pipeline creation in the RHI (partially superseded, see update)
+
+> **Update (2026-09-25):** the paragraphs below describe the gap as found while starting Phase 1a.
+> Since then, a parallel effort (`Editor_ImGui_Integration_Plan.md`, driven by a different agent
+> session) has added real `Device::CreateBuffer`/`WriteBuffer`/`DestroyBuffer`,
+> `CommandList::BindVertexBuffer`/`BindIndexBuffer`/`BindTexture`, `DrawIndexed`, `SetScissor`, and
+> a proper submission timeline (`Submit` returns a completion value; `CompletedSubmissionValue`/
+> `WaitForSubmission`) to `Engine/RHI/include/Nexora/RHI/Device.h` -- verified present on `main` as
+> of this update. That closes the "no way to create/upload/destroy a buffer at all" half of this
+> gap. It does **not** close the compute-specific half: `PipelineDescriptor` is unchanged (still no
+> compute path, still hardcoded `vkCreateGraphicsPipelines` in `VulkanDevice::CreatePipeline`), and
+> there is still no way to bind a buffer as a compute shader's storage resource (only
+> vertex/index/texture binding exists, all graphics-oriented -- unsurprising, since that work's
+> purpose was ImGui rendering, not compute culling). So Phase 1b now has a narrower, real remaining
+> scope: compute pipeline creation and compute-resource (descriptor-set) binding, reusing the new
+> buffer create/write/destroy primitives rather than re-inventing them. The rest of this section is
+> kept as-written for the record of what was actually verified at the time, not edited to look like
+> a correct prediction in hindsight.
 
 Verified against source while starting Phase 1a: the RHI has **no way to create, upload to, bind,
 or read back a GPU buffer**, and `Device::CreatePipeline` **unconditionally builds a graphics
