@@ -19,6 +19,7 @@ This directory contains the version roadmaps and focused capability roadmaps for
 | ✅ Window and Native Presentation Roadmap | **100% implementation** | [Window and Native Presentation Roadmap](en/Window_Presentation_Roadmap.md) |
 | V1 Visual Showcase Long-Term Plan | **Draft** | [V1 Visual Showcase Demo Long-Term Plan](en/V1-Visual-Showcase-Long-Term-Plan.md) |
 | Editor Roadmap | **0% graphical acceptance** | [Graphical Editor Roadmap](en/Editor_Roadmap.md) |
+| ✅ ADR-0001: Editor UI Framework | **Accepted** | [ADR-0001: Editor UI Framework](en/ADR-0001-Editor-UI-Framework.md) |
 | Focused Roadmaps AI Plan | **60%** | [AI Implementation Technology and System Plan](en/Focused_Roadmaps_AI_Implementation_Plan.md) |
 
 > `Tools/Migration/ScanV1Project.py` (V1-to-V2 migration audit) and `Tools/Production/NexoraTool.py`
@@ -64,6 +65,7 @@ The documents are planning artifacts. They do not themselves authorize commands,
 | ✅ Window 與 Native Presentation Roadmap | **100% 實作** | [Window 與 Native Presentation Roadmap](zh-TW/Window_Presentation_Roadmap.md) |
 | V1 可視化展示 Demo 長期規劃 | **Draft** | [Nexora V1 可視化展示 Demo 長期規劃](zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) |
 | Editor Roadmap | **0% 圖形化驗收** | [圖形化 Editor Roadmap](zh-TW/Editor_Roadmap.md) |
+| ✅ ADR-0001：Editor UI Framework | **Accepted** | [ADR-0001：Editor UI Framework](zh-TW/ADR-0001-Editor-UI-Framework.md) |
 | 聚焦 Roadmap AI 施工規劃 | **60%** | [AI 施工技術與系統規劃](zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) |
 
 > `Tools/Migration/ScanV1Project.py`（V1 到 V2 的 migration 稽核）與 `Tools/Production/NexoraTool.py`

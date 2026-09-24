@@ -27,7 +27,7 @@ NexoraEditor (tool process)
   Editor World -- snapshot/clone --> Play World
 ```
 
-Editor metadata stays out of Shipping components. Selection stores stable IDs, not relocatable pointers. Every mutation is a transaction, including property edits, gizmo drags, reparenting, and multi-edit. PIE clones an isolated Play World and discards changes unless explicitly applied. Engine Core cannot depend on the UI framework; an ADR evaluates docking, IME, accessibility, multi-viewport support, and maintenance. Extensions register panels, commands, importers, and inspectors through the versioned Editor SDK only.
+Editor metadata stays out of Shipping components. Selection stores stable IDs, not relocatable pointers. Every mutation is a transaction, including property edits, gizmo drags, reparenting, and multi-edit. PIE clones an isolated Play World and discards changes unless explicitly applied. Engine Core cannot depend on the UI framework; [ADR-0001](ADR-0001-Editor-UI-Framework.md) records that evaluation (docking, IME, accessibility, multi-viewport support, and maintenance) and its outcome. Extensions register panels, commands, importers, and inspectors through the versioned Editor SDK only.
 
 ## 3. Milestones
 
@@ -45,7 +45,12 @@ satisfy this milestone.
 
 - ✅ The standalone `NexoraEditor` process, versioned project/workspace format, stable panel IDs,
   command namespace, atomic workspace replacement, and recovery journal are implemented.
-- Open: UI-framework ADR and graphical docking, theme, DPI, IME, accessibility, and crash UX.
+- ✅ UI-framework ADR: [ADR-0001](ADR-0001-Editor-UI-Framework.md) selects Dear ImGui
+  (docking/multi-viewport), rendered through `Nexora::RHI` rather than a competing windowing
+  stack, and names the accessibility gap ED-M7 still has to scope. The ADR settles the framework
+  choice only -- it is not itself graphical docking, theme, DPI, IME, accessibility, or crash UX.
+- Open: graphical docking, theme, DPI, IME wiring, the accessibility direction ADR-0001 names, and
+  crash UX.
 
 ### ED-M1 — Project and asset workspace
 
