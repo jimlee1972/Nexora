@@ -1204,6 +1204,14 @@ Output type
 > ownership、CPU／GPU comparison 與 no-readback diagnostics 現已有 contract test 覆蓋；native
 > compute execution 與 target-tier parity 仍須完成後才能驗收。
 
+Repository 證據清單：
+
+- [x] Deterministic CPU culling、compaction、classification 與 indirect-command reference。
+- [x] Portable compute dispatch 與 indirect draw recording。
+- [x] RenderGraph compute／graphics ownership transition。
+- [x] CPU／backend comparison 與 normal-path no-readback diagnostics。
+- [ ] DX12、Vulkan 與 Metal 的 native compute／indirect execution 與 target-tier parity。
+
 核心資料：
 
 ```cpp

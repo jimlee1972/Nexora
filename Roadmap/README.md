@@ -22,6 +22,10 @@ This directory contains the version roadmaps and focused capability roadmaps for
 
 ### Recommended reading order
 
+Current execution focus: **V2-M3 GPU-Driven Rendering** remains the next open delivery milestone.
+Its portable reference and command-contract checks are present; native compute/indirect execution
+and DX12/Vulkan/Metal target-tier parity are the remaining acceptance gates.
+
 1. V1 Complete Plan — the production-foundation baseline.
 2. V1 AI Implementation Technology and System Plan — implementation, tooling, and validation contracts.
 3. V2 Complete Plan — GPU-driven, large-world, networking, and production-scale extensions.
@@ -55,6 +59,10 @@ The documents are planning artifacts. They do not themselves authorize commands,
 | 聚焦 Roadmap AI 施工規劃 | **60%** | [AI 施工技術與系統規劃](zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) |
 
 ### 建議閱讀順序
+
+目前施工焦點：**V2-M3 GPU-Driven Rendering** 仍是下一個待交付 milestone。Portable reference 與
+command-contract check 已就緒；剩餘驗收 gate 是 native compute／indirect execution 與
+DX12／Vulkan／Metal target-tier parity。
 
 1. V1 完整規劃書：Production Foundation 基線。
 2. V1 AI 施工技術與系統規劃：施工、工具與驗證 Contract。
