@@ -19,7 +19,9 @@ NexoraTool.py diff <before.json> <after.json> --output <diff.json>
 
 Reflection is sourced from Clang's JSON AST and includes complete record declarations carrying a
 Clang `annotate` attribute. The cache key covers importer identity/version, canonical settings, and
-source content; artifacts are written atomically beneath a two-character hash fanout.
+source content; artifacts are written atomically beneath a two-character hash fanout. Source file
+names are report metadata rather than artifact inputs, so byte-identical sources reuse one cache
+entry after a rename or move.
 
 ## Ownership, failure, and process isolation
 
