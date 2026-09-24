@@ -4,7 +4,7 @@
 **Corresponding Source: Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md**
 **Purpose: AI implementation, Engine Programmer implementation, system decomposition, Code Review, CI Gate.**
 
-> **Progress: 15%** (✅ V2-M0 and ✅ V2-M1 are accepted; V2-M2 through V2-M12 remain open.)
+> **Progress: 23%** (✅ V2-M0 through ✅ V2-M2 are accepted; V2-M3 through V2-M12 remain open.)
 
 
 
@@ -1183,6 +1183,11 @@ Only then may it publish.
 
 # V2 GPUScene
 
+> **V2-M2 implementation status:** Accepted. The Renderer contract now provides stable generational
+> slots, categorized deterministic dirty uploads, current/previous transform history, world bounds,
+> mesh/material indices, visibility and LOD metadata, fence-safe retirement, and a deterministic CPU
+> reference snapshot. Full GPU-driven culling remains V2-M3 scope.
+
 Core data:
 
 ```cpp
@@ -2246,7 +2251,7 @@ LiveOps can roll back
 ```text
 ✅ V2-M0  Migration / Baseline
 ✅ V2-M1  Clang Reflection / DDC / Headless Toolchain
-V2-M2  GPUScene
+✅ V2-M2  GPUScene
 V2-M3  GPU-driven Renderer
 V2-M4  Large World V2
 V2-M5  Dedicated Server / Transport
