@@ -13,6 +13,10 @@ and presents panels using the stable IDs owned by `NexoraEditorCore`.
 - The host does not own a native window or swapchain. The application supplies events exposed by
   `RenderSurface::Events`; `Render` records the generated draw lists through the public RHI, and
   the application retains target ownership.
+- `Render` uploads each draw list to transient public-RHI vertex and index buffers, applies its
+  framebuffer-scaled clip rectangles, binds the font texture slot, and preserves ImGui index and
+  vertex offsets in indexed draws. The submitted command list owns the ordering; transient
+  resources are released only after `Submit` returns.
 - Recovery is prompted once per discovered journal. Failed recover/discard operations keep the
   modal open and expose the data-layer error instead of silently dismissing it.
 
