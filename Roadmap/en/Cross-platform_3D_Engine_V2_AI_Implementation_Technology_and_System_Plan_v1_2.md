@@ -1194,6 +1194,14 @@ Only then may it publish.
 > CPU/GPU comparison, and no-readback diagnostics are now covered by contract tests. Native compute
 > execution and target-tier parity remain required before acceptance.
 
+Repository evidence checklist:
+
+- [x] Deterministic CPU culling, compaction, classification, and indirect-command reference.
+- [x] Portable compute dispatch and indirect draw recording.
+- [x] RenderGraph compute/graphics ownership transitions.
+- [x] CPU/backend comparison and normal-path no-readback diagnostics.
+- [ ] Native compute/indirect execution and target-tier parity on DX12, Vulkan, and Metal.
+
 Core data:
 
 ```cpp

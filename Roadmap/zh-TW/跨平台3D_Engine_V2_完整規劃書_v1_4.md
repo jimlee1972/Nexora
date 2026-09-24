@@ -3876,13 +3876,14 @@ Meshlet metadata
 
 **Gate：**
 
-```text
-✓ 大量 instance 不再需要 CPU one-draw-per-object
-✓ DX12 / Vulkan / Metal target tier parity
-✓ No normal-path GPU readback
-✓ RenderGraph owns queue / barrier / lifetime
-✓ CPU fallback 可做 correctness comparison
-```
+- [x] Portable command path 會將大量 instance 分批，不再由 CPU 逐 object 發出 draw。
+- [ ] 在 target host 上證明 native DX12／Vulkan／Metal target-tier parity。
+- [x] Contract diagnostics 驗證 normal portable path 不會執行 GPU readback。
+- [x] Portable contract 中的 queue transition、barrier 與 resource lifetime 由 RenderGraph 擁有。
+- [x] CPU fallback 會對 recorded backend output 進行 deterministic correctness comparison。
+
+已勾選項目代表 repository-level contract 證據。V2-M3 只會在剩餘 native target-host parity
+項目通過後驗收；因此該 milestone 仍未勾選，整體進度仍為 23%。
 
 ---
 
