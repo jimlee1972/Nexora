@@ -41,6 +41,11 @@ public:
   [[nodiscard]] std::uint32_t Render(nexora::rhi::Device &device, nexora::rhi::TextureHandle target,
                                      std::uint32_t width, std::uint32_t height,
                                      nexora::rhi::ResourceState before, bool prepare_for_present);
+  // Rasterizes the current ImGui draw data and composites it into the RenderSurface's acquired
+  // swapchain image. This is the native Editor path; the RHI overload remains a headless contract
+  // test path.
+  [[nodiscard]] Nexora::Presentation::SurfaceStatus
+  Render(Nexora::Presentation::RenderSurface &surface, std::uint32_t width, std::uint32_t height);
   void UpdateImeCandidate(Nexora::Presentation::RenderSurface &surface);
   [[nodiscard]] RecoveryChoice TakeRecoveryChoice() noexcept;
 

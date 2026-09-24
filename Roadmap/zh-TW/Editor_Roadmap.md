@@ -55,6 +55,9 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 - ✅ Feature-gated Dear ImGui host 已實作
   [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md) 所述的 portable docking、
   theme／DPI、input／IME、live panel、recovery UX 與 accessibility-direction contract。
+- ✅ 在 Vulkan host 上，圖形化 process 會將 ImGui draw data composite 至 public
+  `RenderSurface` 已 acquire 的 swapchain backbuffer；Linux 與 Windows window event 也會正規化
+  完整的 Editor 按鍵／modifier 集合。
 - 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及 Windows DPI／IME 證據；
   target-host gate 通過之前 ED-M0 仍維持 open。
 

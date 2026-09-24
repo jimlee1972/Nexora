@@ -5,6 +5,11 @@ owns one window system, window, and `ISurface`, forwards normalized events and r
 destroys the GPU surface before its window. Runtime remains independent of Presentation and Editor.
 The borrowed `Events()` span and `FrameInfo()` snapshot remain valid until the next `BeginFrame()`;
 `FrameInfo()` tracks the latest client extent and DPI scale so UI hosts do not duplicate window state.
+After a successful `BeginFrame`, `CompositeRgba8` uploads a tightly packed full-frame image into the
+acquired swapchain backbuffer. The pixels are borrowed only for the call; submission and presentation
+remain serialized on the surface owner thread. Unsupported platform adapters fail explicitly rather
+than presenting an unrelated offscreen target. The Vulkan adapter implements this upload path;
+equivalent DX12 and Metal compositors remain target-platform work.
 
 DX12 uses a DXGI flip-discard swapchain, Vulkan uses the host WSI swapchain (Xlib on Linux and Win32 on
 Windows), and Metal uses `CAMetalLayer`. Their native devices, queues, images, synchronization objects,

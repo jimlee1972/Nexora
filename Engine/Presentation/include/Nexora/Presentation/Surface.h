@@ -3,8 +3,10 @@
 #include "Nexora/Presentation/Api.h"
 #include "Nexora/Window/Window.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <thread>
 
 namespace Nexora::Presentation {
@@ -55,6 +57,10 @@ public:
   [[nodiscard]] virtual std::thread::id RenderThread() const noexcept = 0;
   virtual SurfaceStatus NotifyWindowExtent(std::uint32_t width, std::uint32_t height) noexcept = 0;
   virtual SurfaceStatus Acquire() = 0;
+  // Copies a complete tightly-packed RGBA8 frame into the currently acquired backbuffer.
+  virtual SurfaceStatus CompositeRgba8(std::span<const std::byte>, std::uint32_t, std::uint32_t) {
+    return SurfaceStatus::Unsupported;
+  }
   virtual SurfaceStatus Present() = 0;
   [[nodiscard]] virtual SurfaceDiagnostics Diagnostics() const noexcept = 0;
   // Waits for submitted GPU work and releases all swapchain resources. Idempotent and render-thread
