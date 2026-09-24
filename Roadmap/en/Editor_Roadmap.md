@@ -10,6 +10,27 @@
 process and portable workspace/document core. **Open:** window/docking/UI shell,
 graphical views, authoring workflows, and production hardening.
 
+### Repository completion audit (2026-09-24)
+
+The audit distinguishes a checked implementation foundation from an accepted graphical milestone.
+Source and contract tests confirm the checked rows; no ED milestone currently satisfies its complete
+automated **and** target-host gate, so overall graphical acceptance remains **0/8 (0%)**.
+
+| Scope | Repository evidence | Accepted |
+| --- | --- | :---: |
+| ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, RHI draw contract, and CPU surface composition exist. Native retained GPU rendering, persistence, recovery hardening, and Linux/Windows host evidence remain open. | [ ] |
+| ED-M1 project/assets | Portable create/open, deterministic indexing/search, cancellation/progress/error records, and artifact hashing exist. Graphical Content Browser, dependency/reimport, and drag/drop workflows remain open. | [ ] |
+| ED-M2 scene authoring | Portable hierarchy/selection, reparent, multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist. Scene View, Inspector, picking, cameras, gizmos, and reflected graphical widgets remain open. | [ ] |
+| ED-M3 PIE/debugging | Isolated `PlaySession`, fixed tick, pause/step, focus policy, discard, and explicit transform apply-back exist. Graphical Game View, Console/runtime inspection, and debugger integration remain open. | [ ] |
+| ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
+| ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
+| ED-M6 build/profile/extensions | Portable build manifests/checksums and monotonic profile capture exist. Graphical build/deploy/log/profile/plugin-manager workflows remain open. | [ ] |
+| ED-M7 hardening | Portable virtual hierarchy, trust/signature policy, and telemetry opt-in tests exist. Graphical scale/soak, migration/corruption, keyboard, and screen-reader audits remain open. | [ ] |
+
+The focused [Dear ImGui plan](Editor_ImGui_Integration_Plan.md) contains the granular checked ED-M0
+foundations. Check a row above only when its milestone Definition of Done in §14 is evidenced; do not
+derive milestone progress from the number of implemented prerequisites.
+
 ## 1. Product vision
 
 Build a standalone `NexoraEditor` with a Unity/Unreal-like workflow—not a claim of feature parity. Its first production path covers Project Browser, Hierarchy, Scene View, Game View, Inspector, Content Browser, Console, Profiler, gizmos, undo/redo, Play-in-Editor (PIE), and import/cook/build. The Editor consumes Runtime APIs and is never required by a shipped game.

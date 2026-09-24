@@ -10,6 +10,27 @@
 workspace/document core。**待辦：** window/docking/UI shell、graphical views、authoring workflows
 與 production hardening。
 
+### Repository 完成度稽核（2026-09-24）
+
+本稽核明確區分「已打勾的 implementation foundation」與「已驗收的 graphical milestone」。Source
+與 contract test 能確認下列已存在的 foundation；目前沒有任何 ED milestone 同時通過完整 automated
+與 target-host gate，因此整體圖形化驗收仍是 **0/8（0%）**。
+
+| Scope | Repository 證據 | 已驗收 |
+| --- | --- | :---: |
+| ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、RHI draw contract 與 CPU surface composition 已存在。Native retained GPU rendering、persistence、recovery hardening 與 Linux/Windows host evidence 仍待完成。 | [ ] |
+| ED-M1 project/assets | Portable create/open、deterministic indexing/search、cancellation/progress/error record 與 artifact hash 已存在。Graphical Content Browser、dependency/reimport 與 drag/drop workflow 仍待完成。 | [ ] |
+| ED-M2 scene authoring | Portable hierarchy/selection、reparent、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在。Scene View、Inspector、picking、camera、gizmo 與 reflected graphical widget 仍待完成。 | [ ] |
+| ED-M3 PIE/debugging | Isolated `PlaySession`、fixed tick、pause/step、focus policy、discard 與 explicit transform apply-back 已存在。Graphical Game View、Console/runtime inspection 與 debugger integration 仍待完成。 | [ ] |
+| ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
+| ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
+| ED-M6 build/profile/extensions | Portable build manifest/checksum 與 monotonic profile capture 已存在。Graphical build/deploy/log/profile/plugin-manager workflow 仍待完成。 | [ ] |
+| ED-M7 hardening | Portable virtual hierarchy、trust/signature policy 與 telemetry opt-in test 已存在。Graphical scale/soak、migration/corruption、keyboard 與 screen-reader audit 仍待完成。 | [ ] |
+
+Focused [Dear ImGui 計畫](Editor_ImGui_Integration_Plan.md) 已列出細部打勾的 ED-M0 foundation。只有
+具備 §14 milestone Definition of Done 的證據才能勾選上表；不得用已實作 prerequisite 數量推算
+milestone 進度。
+
 ## 1. 產品願景
 
 建立類似 Unity/Unreal 工作流的獨立 `NexoraEditor`，而不是宣稱複製其全部功能。第一條 production path 包含 Project Browser、Hierarchy、Scene View、Game View、Inspector、Content Browser、Console、Profiler、Gizmo、Undo/Redo、Play-in-Editor（PIE）、import/cook/build。Editor 是 Runtime 的 client，不得成為遊戲執行必要相依。

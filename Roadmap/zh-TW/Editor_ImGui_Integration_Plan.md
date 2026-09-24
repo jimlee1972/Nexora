@@ -4,6 +4,12 @@
 > 更新：2026-09-24｜對應：`Editor_Roadmap.md`（ED-M0）、
 > `ADR-0001-Editor-UI-Framework.md`、`Window_Presentation_Roadmap.md`
 
+> **Repository 稽核（2026-09-24）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
+> source 與 contract test，但 **WP0～WP8 尚無任何一包通過 exit gate**。尤其 retained GPU
+> resource、直接渲染至 borrowed presentation target、layout persistence、DPI font-atlas rebuild、
+> destructive recovery test 與 target-host evidence 仍待完成。Foundation 打勾不得解讀成 ED-M0
+> 已驗收。
+
 ## 1. 目標、驗收邊界與目前事實
 
 ADR-0001 已選定支援 docking 的 Dear ImGui。本文件是 AI agent 完成 ED-M0 時必須遵守的施工規格，
@@ -17,6 +23,28 @@ input translation、stable-ID docking、live Hierarchy、recovery modal、DPI/th
 不是最終 renderer 驗收：graphical path 必須停止每 frame 在 CPU rasterize，改由 public RHI contract 把
 ImGui textured/indexed draw list 直接 submit 到 acquired presentation image。Real-display Linux 證據與
 Windows DPI/IME 證據也仍缺少，因此 ED-M0 保持未完成。
+
+### 已確認實作 checklist
+
+- [x] Graphical shell 是 optional 且隔離於 `NexoraEditorImGui`；Editor Core 不相依 Dear ImGui。
+- [x] Dear ImGui 固定為 `v1.91.9b-docking`、已啟用 docking，並停用 unmanaged `imgui.ini`
+  persistence。
+- [x] `NexoraEditor --graphical` 建立一個 public `RenderSurface`，並消費其 `WindowEvent` stream
+  與即時 `FrameInfo` extent／DPI state。
+- [x] Host 擁有一個 `ImGuiContext`、呈現 stable-ID Hierarchy／Console panel、建立 initial dock
+  layout，且 Hierarchy selection 會經 `SceneDocument` round-trip。
+- [x] Portable RHI draw-contract overload 會上傳 vertex/index、套用 scaled scissor、保留 index/
+  vertex offset，並由 validation device 測試。
+- [x] Key/modifier、pointer、wheel、focus、Unicode text、DPI 與 IME candidate callback 已有施工
+  foundation。
+- [x] Recovery UI 只呼叫 `ProjectWorkspace` recover/discard operation、保留 failure，並提供
+  exactly-once result consumption。
+- [ ] Production surface overload 會記錄 native GPU draw；目前仍逐 frame CPU rasterize 完整 RGBA8
+  image 並呼叫 `CompositeRgba8`。
+- [ ] Pipeline、sampler、font atlas、texture registry 與 upload ring 已 retained 且依 GPU completion
+  value retire；目前 RHI overload 每次呼叫仍建立 transient resource。
+- [ ] Layout round-trip、DPI font-atlas rebuild、完整 recovery failure/process test，以及 Linux／
+  Windows target-host acceptance evidence 已具備。
 
 ### 「完成」的定義
 

@@ -4,6 +4,12 @@
 > Updated: 2026-09-24 | Relates to: `Editor_Roadmap.md` (ED-M0),
 > `ADR-0001-Editor-UI-Framework.md`, `Window_Presentation_Roadmap.md`
 
+> **Repository audit (2026-09-24):** implementation is **in progress**. The checked foundations
+> below are present in source and contract tests, but **none of WP0–WP8 has passed its exit gate**.
+> In particular, retained GPU resources, direct rendering to the borrowed presentation target,
+> layout persistence, DPI font-atlas rebuilding, destructive recovery tests, and target-host
+> evidence remain open. A checked foundation must not be interpreted as ED-M0 acceptance.
+
 ## 1. Goal, acceptance boundary, and current truth
 
 ADR-0001 selected Dear ImGui with docking. This plan is the execution specification an AI agent
@@ -20,6 +26,29 @@ acceptance: the graphical path must stop CPU-rasterizing every frame and submit 
 indexed draw lists directly to the acquired presentation image through the public RHI contract.
 Real-display Linux evidence and Windows DPI/IME evidence are also still absent. Therefore ED-M0
 remains open.
+
+### Verified implementation checklist
+
+- [x] The graphical shell is optional and isolated in `NexoraEditorImGui`; Editor Core has no
+  Dear ImGui dependency.
+- [x] Dear ImGui is pinned to `v1.91.9b-docking`, docking is enabled, and unmanaged `imgui.ini`
+  persistence is disabled.
+- [x] `NexoraEditor --graphical` creates one public `RenderSurface` and consumes its `WindowEvent`
+  stream and live `FrameInfo` extent/DPI state.
+- [x] The host owns one `ImGuiContext`, presents stable-ID Hierarchy/Console panels, builds the
+  initial dock layout, and round-trips Hierarchy selection through `SceneDocument`.
+- [x] The portable RHI draw-contract overload uploads vertices/indices, applies scaled scissors,
+  preserves index/vertex offsets, and is exercised on the validation device.
+- [x] Key/modifier, pointer, wheel, focus, Unicode text, DPI, and IME candidate callbacks have
+  implementation foundations.
+- [x] Recovery UI calls only `ProjectWorkspace` recover/discard operations, preserves failures,
+  and exposes exactly-once result consumption.
+- [ ] The production surface overload records native GPU draws; it still CPU-rasterizes a full
+  RGBA8 frame and calls `CompositeRgba8`.
+- [ ] Pipeline, sampler, font atlas, texture registry, and upload rings are retained and retired
+  by GPU completion values; the current RHI overload creates transient resources per call.
+- [ ] Layout round-trip, DPI font-atlas rebuilding, complete recovery failure/process tests, and
+  Linux/Windows target-host acceptance evidence exist.
 
 ### Definition of "done"
 
