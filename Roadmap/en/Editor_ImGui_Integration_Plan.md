@@ -171,8 +171,10 @@ different default), say so before Phase 1 starts -- everything past this section
   `SceneDocument::Select`. Win32 owns candidate-window positioning; unsupported hosts report that
   status explicitly. The ED-M7 accessibility handoff is recorded in `Engine/EditorImGui/README.md`.
 - The graphical application now passes a live scene and the surface-owned extent/DPI snapshot;
-  resize recreates its offscreen validation target. Connecting textured/indexed draw data to an
-  acquired presentation backbuffer remains required before Phase 1 or Phase 2 can pass.
+  resize recreates its offscreen validation target. The public RHI and validation submission now
+  preserve ImGui vertex/index buffers, indexed offsets, clip rectangles, and the font texture
+  binding. Native backend implementations and connection to an acquired presentation backbuffer
+  remain required before Phase 1 or Phase 2 can pass.
 
 ## 7. Risks
 

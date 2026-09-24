@@ -28,10 +28,17 @@ enum class ResourceState : std::uint8_t {
 enum class TextureFormat : std::uint8_t { Rgba8Unorm, Bgra8Unorm, Depth32Float };
 enum class ShaderStage : std::uint8_t { Vertex = 1, Fragment = 2, Compute = 4 };
 enum class BindingType : std::uint8_t { ConstantBuffer, Texture, Sampler, StorageBuffer };
+enum class IndexFormat : std::uint8_t { Uint16, Uint32 };
 
 struct BufferDescriptor final {
   std::uint64_t size{};
   std::string debug_name;
+};
+struct ScissorRect final {
+  std::int32_t x{};
+  std::int32_t y{};
+  std::uint32_t width{};
+  std::uint32_t height{};
 };
 struct TextureDescriptor final {
   std::uint32_t width{};

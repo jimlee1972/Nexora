@@ -61,3 +61,13 @@ host-visible indirect command storage and reports it independently in device dia
 offscreen gate exercises that path on a Vulkan-capable Linux host. Native Vulkan compute pipelines
 and DX12/Metal compute/indirect implementations, followed by full target-host parity evidence,
 remain required before V2-M3 can be accepted.
+
+## Editor draw-list command contract
+
+The public command-list contract includes vertex/index-buffer binding, indexed draws with base
+index and vertex offsets, per-command scissor rectangles, and texture-slot binding. Devices also
+expose transient buffer creation and bounded uploads so UI hosts do not need backend-native buffer
+types. The validation backend checks resource existence, upload bounds, sampled-texture state, and
+all bindings required by an indexed draw. Backends that have not implemented this expanded subset
+fail explicitly through the default interface methods; they must not silently translate indexed UI
+geometry into non-indexed draws.

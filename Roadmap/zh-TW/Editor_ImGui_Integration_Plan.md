@@ -155,8 +155,9 @@ Phase 1 開始之前先講——後面所有內容都是建立在這個假設上
   Win32 擁有 candidate-window positioning；不支援的 host 會明確回報。ED-M7 accessibility handoff
   記錄於 `Engine/EditorImGui/README.md`。
 - Graphical application 現在會傳入 live scene 與 surface 擁有的 extent／DPI snapshot；resize 時會
-  重建 offscreen validation target。在 Phase 1 或 Phase 2 通過前，仍必須把 textured／indexed draw
-  data 接到 acquired presentation backbuffer。
+  重建 offscreen validation target。public RHI 與 validation submission 現在會保留 ImGui
+  vertex／index buffer、indexed offset、clip rectangle 與 font texture binding。在 Phase 1 或
+  Phase 2 通過前，仍須完成 native backend 實作並連接 acquired presentation backbuffer。
 
 ## 7. 風險
 

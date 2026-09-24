@@ -5,8 +5,10 @@
 #include <algorithm>
 #include <array>
 #include <ranges>
+#include <span>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace nexora::editor::imgui {
 struct EditorImGuiHost::State final {
@@ -205,16 +207,53 @@ std::uint32_t EditorImGuiHost::Render(nexora::rhi::Device &device,
   const auto pipeline =
       device.CreatePipeline({0x494d4755494c4159ULL, 0x494d475549534844ULL,
                              nexora::rhi::TextureFormat::Rgba8Unorm, "Editor ImGui"});
+  const auto font_texture =
+      device.CreateTexture({1, 1, nexora::rhi::TextureFormat::Rgba8Unorm,
+                            nexora::rhi::ResourceState::ShaderRead, "Editor ImGui font atlas"});
   auto commands = device.CreateCommandList(nexora::rhi::QueueType::Graphics);
   commands->Transition({target, before, nexora::rhi::ResourceState::RenderTarget});
   commands->BeginRendering({target, width, height});
   commands->BindPipeline(pipeline);
+  std::vector<nexora::rhi::BufferHandle> transient_buffers;
   std::uint32_t submitted = 0;
   for (int list_index = 0; list_index < draw->CmdListsCount; ++list_index) {
     const auto *list = draw->CmdLists[list_index];
+    if (list->VtxBuffer.empty() || list->IdxBuffer.empty())
+      continue;
+    const auto vertex_bytes = std::as_bytes(
+        std::span{list->VtxBuffer.Data, static_cast<std::size_t>(list->VtxBuffer.Size)});
+    const auto index_bytes = std::as_bytes(
+        std::span{list->IdxBuffer.Data, static_cast<std::size_t>(list->IdxBuffer.Size)});
+    const auto vertex_buffer = device.CreateBuffer({vertex_bytes.size(), "Editor ImGui vertices"});
+    const auto index_buffer = device.CreateBuffer({index_bytes.size(), "Editor ImGui indices"});
+    transient_buffers.push_back(vertex_buffer);
+    transient_buffers.push_back(index_buffer);
+    device.WriteBuffer(vertex_buffer, 0, vertex_bytes);
+    device.WriteBuffer(index_buffer, 0, index_bytes);
+    commands->BindVertexBuffer(vertex_buffer);
+    commands->BindIndexBuffer(index_buffer, sizeof(ImDrawIdx) == 2
+                                                ? nexora::rhi::IndexFormat::Uint16
+                                                : nexora::rhi::IndexFormat::Uint32);
+    commands->BindTexture(0, font_texture);
     for (const auto &draw_command : list->CmdBuffer) {
       if (draw_command.UserCallback == nullptr && draw_command.ElemCount > 0) {
-        commands->Draw(draw_command.ElemCount);
+        const auto left = std::max(0.0F, (draw_command.ClipRect.x - draw->DisplayPos.x) *
+                                             draw->FramebufferScale.x);
+        const auto top = std::max(0.0F, (draw_command.ClipRect.y - draw->DisplayPos.y) *
+                                            draw->FramebufferScale.y);
+        const auto right =
+            std::min(static_cast<float>(width),
+                     (draw_command.ClipRect.z - draw->DisplayPos.x) * draw->FramebufferScale.x);
+        const auto bottom =
+            std::min(static_cast<float>(height),
+                     (draw_command.ClipRect.w - draw->DisplayPos.y) * draw->FramebufferScale.y);
+        if (right <= left || bottom <= top)
+          continue;
+        commands->SetScissor({static_cast<std::int32_t>(left), static_cast<std::int32_t>(top),
+                              static_cast<std::uint32_t>(right - left),
+                              static_cast<std::uint32_t>(bottom - top)});
+        commands->DrawIndexed(draw_command.ElemCount, 1, draw_command.IdxOffset,
+                              static_cast<std::int32_t>(draw_command.VtxOffset));
         ++submitted;
       }
     }
@@ -224,6 +263,9 @@ std::uint32_t EditorImGuiHost::Render(nexora::rhi::Device &device,
                         prepare_for_present ? nexora::rhi::ResourceState::Present
                                             : nexora::rhi::ResourceState::ShaderRead});
   device.Submit(*commands);
+  for (const auto buffer : transient_buffers)
+    device.DestroyBuffer(buffer);
+  device.DestroyTexture(font_texture);
   device.DestroyPipeline(pipeline);
   return submitted;
 }

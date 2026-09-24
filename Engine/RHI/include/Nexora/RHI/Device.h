@@ -3,6 +3,7 @@
 #include "Nexora/RHI/Api.h"
 #include "Nexora/RHI/Types.h"
 
+#include <cstddef>
 #include <memory>
 #include <span>
 #include <stdexcept>
@@ -25,7 +26,23 @@ public:
   virtual void Transition(const Barrier &barrier) = 0;
   virtual void BeginRendering(const RenderingInfo &info) = 0;
   virtual void BindPipeline(PipelineHandle pipeline) = 0;
+  virtual void BindVertexBuffer(BufferHandle, std::uint64_t = 0) {
+    throw std::logic_error("vertex-buffer binding is unsupported");
+  }
+  virtual void BindIndexBuffer(BufferHandle, IndexFormat, std::uint64_t = 0) {
+    throw std::logic_error("index-buffer binding is unsupported");
+  }
+  virtual void BindTexture(std::uint32_t, TextureHandle) {
+    throw std::logic_error("texture binding is unsupported");
+  }
+  virtual void SetScissor(const ScissorRect &) {
+    throw std::logic_error("scissor rectangles are unsupported");
+  }
   virtual void Draw(std::uint32_t vertex_count, std::uint32_t instance_count = 1) = 0;
+  virtual void DrawIndexed(std::uint32_t, std::uint32_t = 1, std::uint32_t = 0, std::int32_t = 0,
+                           std::uint32_t = 0) {
+    throw std::logic_error("indexed drawing is unsupported");
+  }
   virtual void Dispatch(std::uint32_t, std::uint32_t = 1, std::uint32_t = 1) {
     throw std::logic_error("compute dispatch is unsupported");
   }
@@ -41,6 +58,15 @@ public:
   [[nodiscard]] virtual Backend GetBackend() const noexcept = 0;
   [[nodiscard]] virtual TextureHandle CreateTexture(const TextureDescriptor &descriptor) = 0;
   virtual void DestroyTexture(TextureHandle texture) = 0;
+  [[nodiscard]] virtual BufferHandle CreateBuffer(const BufferDescriptor &) {
+    throw std::logic_error("buffer creation is unsupported");
+  }
+  virtual void WriteBuffer(BufferHandle, std::uint64_t, std::span<const std::byte>) {
+    throw std::logic_error("buffer uploads are unsupported");
+  }
+  virtual void DestroyBuffer(BufferHandle) {
+    throw std::logic_error("buffer destruction is unsupported");
+  }
   [[nodiscard]] virtual PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) = 0;
   virtual void DestroyPipeline(PipelineHandle pipeline) = 0;
   [[nodiscard]] virtual std::unique_ptr<CommandList> CreateCommandList(QueueType queue) = 0;

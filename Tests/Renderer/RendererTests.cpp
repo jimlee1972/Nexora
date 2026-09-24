@@ -6,6 +6,7 @@
 #include <array>
 #include <cstdlib>
 #include <iostream>
+#include <span>
 #include <stdexcept>
 
 namespace {
@@ -110,6 +111,32 @@ int RunTests() {
                 diagnostics.barriers == 4 && diagnostics.presents == 1 &&
                 diagnostics.validation_errors == 0,
             "validation backend diagnostics are unexpected");
+
+    const std::array<std::byte, 12> vertex_data{};
+    const std::array<std::byte, 6> index_data{};
+    const auto vertices = device->CreateBuffer({vertex_data.size(), "UI vertices"});
+    const auto indices = device->CreateBuffer({index_data.size(), "UI indices"});
+    const auto sampled = device->CreateTexture(
+        {1, 1, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::ShaderRead, "UI texture"});
+    device->WriteBuffer(vertices, 0, vertex_data);
+    device->WriteBuffer(indices, 0, index_data);
+    auto indexed = device->CreateCommandList(rhi::QueueType::Graphics);
+    indexed->Transition({swapchain, rhi::ResourceState::Present, rhi::ResourceState::RenderTarget});
+    indexed->BeginRendering({swapchain, 640, 360});
+    indexed->BindPipeline(pipeline);
+    indexed->BindVertexBuffer(vertices);
+    indexed->BindIndexBuffer(indices, rhi::IndexFormat::Uint16);
+    indexed->BindTexture(0, sampled);
+    indexed->SetScissor({8, 12, 320, 180});
+    indexed->DrawIndexed(3, 1, 0, 0, 0);
+    indexed->EndRendering();
+    indexed->Transition({swapchain, rhi::ResourceState::RenderTarget, rhi::ResourceState::Present});
+    device->Submit(*indexed);
+    Require(device->Diagnostics().draw_calls == 3,
+            "indexed draw was not reported by validation diagnostics");
+    device->DestroyTexture(sampled);
+    device->DestroyBuffer(indices);
+    device->DestroyBuffer(vertices);
 
     auto submitted = device->CreateCommandList(rhi::QueueType::Graphics);
     device->Submit(*submitted);
