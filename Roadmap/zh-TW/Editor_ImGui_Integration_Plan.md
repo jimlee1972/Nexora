@@ -38,15 +38,14 @@ Metal native draw recording。這些仍只是 foundation，因 real-display Linu
   foundation。
 - [x] Recovery UI 只呼叫 `ProjectWorkspace` recover/discard operation、保留 failure，並提供
   exactly-once result consumption。
-- [ ] Production surface overload 現會送出 backend-neutral textured/indexed `UiDrawData`，Vulkan、
-  DX12 與 Metal implementation 直接記錄 native GPU draw，不再呼叫 `CompositeRgba8`。此項仍需
-  target-host validation 才能驗收。
-- [ ] Production surface 與 validation path 已實作 pipeline、sampler、generation-checked texture、
-  bounded upload ring 與 completion-protected retirement。Native validation 與 repeated-frame
-  target-host evidence 仍待完成。
-- [ ] Project-owned layout persistence、DPI font-atlas rebuild，以及 recovery failure／exactly-once
-  contract coverage 已存在。Real-process recovery 與 Linux／Windows target-host acceptance evidence
-  仍待完成。
+- [x] Production surface overload 會送出 backend-neutral textured/indexed `UiDrawData`；Vulkan、
+  DX12 與 Metal implementation 直接記錄 native GPU draw，不再呼叫 `CompositeRgba8`。
+- [x] Production surface 與 validation path 已實作 pipeline、sampler、generation-checked texture、
+  bounded upload ring 與 completion-protected retirement。
+- [x] Project-owned layout persistence、DPI font-atlas rebuild，以及 recovery failure／exactly-once
+  contract coverage 已存在。
+- [ ] Native graphical validation、real-process recovery、repeated-frame Linux display evidence，
+  以及 Windows DPI／IME target-host acceptance evidence 均已有記錄且通過。
 
 ### 「完成」的定義
 

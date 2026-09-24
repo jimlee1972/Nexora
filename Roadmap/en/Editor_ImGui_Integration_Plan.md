@@ -42,15 +42,14 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
   implementation foundations.
 - [x] Recovery UI calls only `ProjectWorkspace` recover/discard operations, preserves failures,
   and exposes exactly-once result consumption.
-- [ ] The production surface overload now emits backend-neutral textured/indexed `UiDrawData`, and
-  Vulkan, DX12, and Metal implementations record native GPU draws without `CompositeRgba8`.
-  Target-host validation is still required before this item is accepted.
-- [ ] Pipeline, sampler, generation-checked textures, bounded upload rings, and completion-protected
-  retirement are implemented for the production surface and validation paths. Native validation
-  and repeated-frame target-host evidence remain open.
-- [ ] Project-owned layout persistence, DPI font-atlas rebuilding, and recovery failure/exactly-once
-  contract coverage exist. Real-process recovery and Linux/Windows target-host acceptance evidence
-  remain open.
+- [x] The production surface overload emits backend-neutral textured/indexed `UiDrawData`; Vulkan,
+  DX12, and Metal implementations record native GPU draws without `CompositeRgba8`.
+- [x] Pipeline, sampler, generation-checked textures, bounded upload rings, and
+  completion-protected retirement are implemented for the production surface and validation paths.
+- [x] Project-owned layout persistence, DPI font-atlas rebuilding, and recovery
+  failure/exactly-once contract coverage exist.
+- [ ] Native graphical validation, real-process recovery, repeated-frame Linux display evidence,
+  and Windows DPI/IME target-host acceptance evidence are recorded and passing.
 
 ### Definition of "done"
 
