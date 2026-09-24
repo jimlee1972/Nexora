@@ -11,6 +11,7 @@
 int main() {
   nexora::editor::imgui::EditorImGuiHost host;
   assert((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) == 0);
+  assert((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard) != 0);
   nexora::runtime::World world;
   const auto scene_id = world.LoadScene("Editor ImGui contract");
   assert(world.Activate(scene_id));

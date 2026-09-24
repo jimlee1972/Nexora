@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the production Vulkan Editor path in a real X11 server."""
+"""Exercise rendering and crash-relaunch recovery in a real X11 server."""
 
 import argparse
 import os
@@ -25,6 +25,19 @@ def wait_for_window(xdotool: str, environment: dict[str, str]) -> str:
             return found.stdout.splitlines()[0]
         time.sleep(0.1)
     raise RuntimeError("Nexora Editor window did not appear")
+
+
+def launch(editor: str, root: Path, environment: dict[str, str], frames: int = 0):
+    command = [editor, f"--project={root}", "--graphical"]
+    if frames:
+        command.append(f"--frames={frames}")
+    return subprocess.Popen(
+        command,
+        env=environment,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
 
 
 def main() -> int:
@@ -53,13 +66,7 @@ def main() -> int:
         (root / ".nexora").mkdir()
         (root / "project.nexora").write_text("schema=1\nname=Display Acceptance\n")
         (root / ".nexora/workspace").write_text("schema=1\n")
-        editor = subprocess.Popen(
-            [args.editor, f"--project={root}", "--graphical", "--frames=180"],
-            env=environment,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
+        editor = launch(args.editor, root, environment)
         window = wait_for_window(args.xdotool, environment)
         subprocess.run([args.xdotool, "windowfocus", window], env=environment, check=True)
         subprocess.run([args.xdotool, "windowsize", window, "1024", "640"], env=environment,
@@ -67,6 +74,20 @@ def main() -> int:
         subprocess.run([args.xdotool, "mousemove", "200", "160", "click", "1"],
                        env=environment, check=True)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+
+        # Simulate a crash only after a valid recovery journal is durable. The relaunched
+        # process must discover it before normal editing and accept the keyboard-only choice.
+        (root / ".nexora/workspace.recovery").write_text(
+            "schema=1\ndocument=Recovered.scene\n"
+        )
+        editor.kill()
+        editor.wait(timeout=5)
+        editor = launch(args.editor, root, environment, frames=600)
+        window = wait_for_window(args.xdotool, environment)
+        subprocess.run([args.xdotool, "windowfocus", window], env=environment, check=True)
+        time.sleep(0.5)
+        subprocess.run([args.xdotool, "key", "Tab", "key", "Return"],
+                       env=environment, check=True)
         _, stderr = editor.communicate(timeout=30)
         editor = None
         if "graphical evidence:" not in stderr:
@@ -76,6 +97,12 @@ def main() -> int:
         )
         if not match or min(map(int, match.groups()[:3])) <= 0 or int(match.group(4)) != 0:
             raise RuntimeError(f"native UI evidence was incomplete: {stderr}")
+        if "recovery=recover" not in stderr:
+            raise RuntimeError(f"recovery choice was not observed after relaunch: {stderr}")
+        if (root / ".nexora/workspace.recovery").exists():
+            raise RuntimeError("successful recovery did not remove the journal")
+        if "document=Recovered.scene" not in (root / ".nexora/workspace").read_text():
+            raise RuntimeError("recovered workspace contents were not committed")
         if not (root / ".nexora/editor-layout.ini").is_file():
             raise RuntimeError("the Editor did not persist its layout")
         return 0
