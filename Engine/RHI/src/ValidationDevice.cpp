@@ -16,9 +16,13 @@ public:
   void BeginRendering(const RenderingInfo &info) override;
   void BindPipeline(PipelineHandle pipeline) override;
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
+  void Dispatch(std::uint32_t groups_x, std::uint32_t groups_y, std::uint32_t groups_z) override;
+  void DrawIndirect(std::uint32_t command_count) override;
   void EndRendering() override;
   [[nodiscard]] std::uint64_t Barriers() const noexcept { return barriers_; }
   [[nodiscard]] std::uint64_t DrawCalls() const noexcept { return draws_; }
+  [[nodiscard]] std::uint64_t Dispatches() const noexcept { return dispatches_; }
+  [[nodiscard]] std::uint64_t IndirectDraws() const noexcept { return indirect_draws_; }
   [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
   [[nodiscard]] bool IsSubmitted() const noexcept { return submitted_; }
   [[nodiscard]] bool BelongsTo(const ValidationDevice &device) const noexcept {
@@ -33,6 +37,8 @@ private:
   bool submitted_{false};
   std::uint64_t barriers_{};
   std::uint64_t draws_{};
+  std::uint64_t dispatches_{};
+  std::uint64_t indirect_draws_{};
 };
 
 class ValidationDevice final : public Device {
@@ -76,6 +82,8 @@ public:
     ++diagnostics_.submitted_command_lists;
     diagnostics_.barriers += validated->Barriers();
     diagnostics_.draw_calls += validated->DrawCalls();
+    diagnostics_.compute_dispatches += validated->Dispatches();
+    diagnostics_.indirect_draw_calls += validated->IndirectDraws();
   }
   void Present(TextureHandle texture) override {
     std::lock_guard lock{mutex_};
@@ -150,6 +158,18 @@ void ValidationCommandList::Draw(std::uint32_t vertex_count, std::uint32_t insta
   if (submitted_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 || instance_count == 0) {
     throw std::logic_error("invalid draw");
   }
+  ++draws_;
+}
+void ValidationCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
+                                     std::uint32_t groups_z) {
+  if (submitted_ || rendering_ || groups_x == 0 || groups_y == 0 || groups_z == 0)
+    throw std::logic_error("invalid dispatch");
+  ++dispatches_;
+}
+void ValidationCommandList::DrawIndirect(std::uint32_t command_count) {
+  if (submitted_ || !rendering_ || !pipeline_bound_ || command_count == 0)
+    throw std::logic_error("invalid indirect draw");
+  ++indirect_draws_;
   ++draws_;
 }
 void ValidationCommandList::EndRendering() {

@@ -49,3 +49,12 @@ validated on that host (never a hardcoded `["dxil", "spirv", "msl"]` regardless 
   and window-system swapchains are later expansion points rather than silently emulated here.
 - The DXIL leg of `build.shader_crosscompile` is exercised by the Windows CI matrix; local builds
   can keep `NEXORA_ENABLE_SLANG=OFF` when `slangc` is not installed.
+
+## V2-M3 command contract
+
+Command lists expose backend-neutral compute dispatch and indirect-draw recording. Diagnostics count
+compute dispatches, indirect draws, and readbacks independently, allowing the normal GPU-driven path
+to assert that it never maps GPU output. Resource barriers include source and destination queues so
+RenderGraph, rather than a backend or pass callback, owns queue transfers. The validation backend
+executes this contract today. DX12, Vulkan, and Metal native implementations and target-host evidence
+remain required before V2-M3 can be accepted.

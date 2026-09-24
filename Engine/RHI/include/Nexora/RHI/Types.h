@@ -55,5 +55,7 @@ struct Barrier final {
   TextureHandle texture;
   ResourceState before{ResourceState::Undefined};
   ResourceState after{ResourceState::Undefined};
+  QueueType source_queue{QueueType::Graphics};
+  QueueType destination_queue{QueueType::Graphics};
 };
 } // namespace nexora::rhi

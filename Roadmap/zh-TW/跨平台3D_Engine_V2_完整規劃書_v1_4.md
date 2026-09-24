@@ -3842,9 +3842,11 @@ stale handle、dirty batch、transform history、fence reclamation 與 reference
 
 目前證據：deterministic CPU reference 已實作 frustum／distance／LOD culling、具明確
 invalidation 的 conservative Hi-Z、visible-instance compaction、material／mesh／LOD
-classification 與 indirect-command generation。V2-M3 仍維持未完成，因 native
-compute／indirect execution、RenderGraph queue／barrier ownership、no-readback 證據，以及
-DX12／Vulkan／Metal target-tier parity 尚未通過 gate。
+classification 與 indirect-command generation。Portable command contract 現已記錄 compute
+dispatch 與 indirect drawing、將 backend output 與 CPU reference 比較、追蹤 normal-path
+readback diagnostics，並由 RenderGraph 發出明確的 compute／graphics ownership barrier。
+V2-M3 仍維持未完成，因 native compute／indirect execution 與 DX12／Vulkan／Metal target-tier
+parity 尚未通過 target-host gate。
 
 順序：
 

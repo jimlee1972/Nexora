@@ -79,6 +79,15 @@ or major occluder changes, and `Relaxed` increases bias for uncertain history. C
 and pyramids and must keep a referenced pyramid alive during generation. The API retains no inputs,
 allocates no GPU resources, and does not mutate GPUScene.
 
-Backends must preserve these stage semantics and compare compute output against this reference before
-enabling GPU-generated draws. Queue assignment and native indirect execution remain RHI backend
-responsibilities; this module exposes no backend-native handles.
+Backends must preserve these stage semantics. `CompareGPUDrivenResults()` provides an explicit
+correctness gate that reports the first compacted-instance or indirect-command mismatch. It is not
+called by the normal rendering path: `RecordGPUDrivenExecution()` records one compute dispatch and
+one indirect submission for all generated bins without exposing a readback operation or issuing a
+CPU draw for each object.
+
+RenderGraph tracks a logical owner queue for every resource. A use on a different compute/graphics
+queue emits an ownership barrier even when the resource state is unchanged, and statistics expose
+those transfers separately from ordinary state transitions. The graph retains transient ownership
+until all submitted work is idle, then releases the resources; imported resources remain
+caller-owned. Native queue/timeline and compute/indirect implementations remain target-backend gates
+and must not be inferred from validation-backend coverage.

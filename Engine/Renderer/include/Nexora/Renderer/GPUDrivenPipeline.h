@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Nexora/RHI/Device.h"
 #include "Nexora/Renderer/GPUScene.h"
 
 #include <cstdint>
@@ -57,9 +58,26 @@ struct GPUDrivenResult final {
   GPUDrivenStatistics statistics{};
 };
 
+struct GPUDrivenComparison final {
+  bool matches{};
+  std::size_t first_instance_mismatch{static_cast<std::size_t>(-1)};
+  std::size_t first_command_mismatch{static_cast<std::size_t>(-1)};
+};
+
 // Deterministic reference implementation of the GPU compute stages. Backends upload the same
 // inputs and compare their compacted instances and indirect arguments against this result.
 [[nodiscard]] NEXORA_RENDERER_API GPUDrivenResult
 BuildGPUDrivenCommands(const GPUSceneReferenceSnapshot &scene, const GPUDrivenView &view);
+
+[[nodiscard]] NEXORA_RENDERER_API GPUDrivenComparison
+CompareGPUDrivenResults(const GPUDrivenResult &reference, const GPUDrivenResult &gpu_output);
+
+// Records the normal GPU path. Output buffers are backend-owned; this path deliberately exposes no
+// mapping/readback operation. Correctness readback is an explicit test-only operation compared with
+// CompareGPUDrivenResults().
+NEXORA_RENDERER_API void RecordGPUDrivenExecution(rhi::CommandList &compute_commands,
+                                                  rhi::CommandList &graphics_commands,
+                                                  std::uint32_t candidate_count,
+                                                  std::uint32_t indirect_command_count);
 
 } // namespace nexora::renderer

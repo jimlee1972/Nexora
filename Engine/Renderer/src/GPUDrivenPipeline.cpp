@@ -131,4 +131,54 @@ GPUDrivenResult BuildGPUDrivenCommands(const GPUSceneReferenceSnapshot &scene,
   return result;
 }
 
+GPUDrivenComparison CompareGPUDrivenResults(const GPUDrivenResult &reference,
+                                            const GPUDrivenResult &gpu_output) {
+  GPUDrivenComparison comparison;
+  const auto instance_count = std::min(reference.instances.size(), gpu_output.instances.size());
+  for (std::size_t index = 0; index < instance_count; ++index) {
+    const auto &a = reference.instances[index];
+    const auto &b = gpu_output.instances[index];
+    if (a.object != b.object || a.mesh_resource_index != b.mesh_resource_index ||
+        a.material_resource_index != b.material_resource_index || a.lod_index != b.lod_index) {
+      comparison.first_instance_mismatch = index;
+      break;
+    }
+  }
+  if (comparison.first_instance_mismatch == static_cast<std::size_t>(-1) &&
+      reference.instances.size() != gpu_output.instances.size())
+    comparison.first_instance_mismatch = instance_count;
+
+  const auto command_count = std::min(reference.commands.size(), gpu_output.commands.size());
+  for (std::size_t index = 0; index < command_count; ++index) {
+    const auto &a = reference.commands[index];
+    const auto &b = gpu_output.commands[index];
+    if (a.mesh_resource_index != b.mesh_resource_index ||
+        a.material_resource_index != b.material_resource_index || a.lod_index != b.lod_index ||
+        a.first_instance != b.first_instance || a.instance_count != b.instance_count) {
+      comparison.first_command_mismatch = index;
+      break;
+    }
+  }
+  if (comparison.first_command_mismatch == static_cast<std::size_t>(-1) &&
+      reference.commands.size() != gpu_output.commands.size())
+    comparison.first_command_mismatch = command_count;
+  comparison.matches =
+      comparison.first_instance_mismatch == static_cast<std::size_t>(-1) &&
+      comparison.first_command_mismatch == static_cast<std::size_t>(-1) &&
+      reference.statistics.candidates == gpu_output.statistics.candidates &&
+      reference.statistics.frustum_rejected == gpu_output.statistics.frustum_rejected &&
+      reference.statistics.distance_rejected == gpu_output.statistics.distance_rejected &&
+      reference.statistics.occlusion_rejected == gpu_output.statistics.occlusion_rejected;
+  return comparison;
+}
+
+void RecordGPUDrivenExecution(rhi::CommandList &compute_commands,
+                              rhi::CommandList &graphics_commands, std::uint32_t candidate_count,
+                              std::uint32_t indirect_command_count) {
+  if (candidate_count != 0)
+    compute_commands.Dispatch((candidate_count + 63U) / 64U);
+  if (indirect_command_count != 0)
+    graphics_commands.DrawIndirect(indirect_command_count);
+}
+
 } // namespace nexora::renderer
