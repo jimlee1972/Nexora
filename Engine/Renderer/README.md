@@ -1,4 +1,4 @@
-# Nexora rendering contracts (V1-M2 / V1-M3 / V2-M2)
+# Nexora rendering contracts (V1-M2 / V1-M3 / V2-M2 / V2-M3)
 
 This slice establishes the backend-neutral contracts, a validation backend, and the native
 offscreen execution path used by the V1-M3 platform gates.
@@ -63,3 +63,22 @@ collection, commit, and reads. Failed handle operations return `false` or `std::
 throw. Upload batches and snapshots own their returned data. `Clear()`/destruction discard active,
 dirty, free, and pending-retirement state and therefore require the caller to have ended any GPU use
 of those slots.
+
+## V2-M3 GPU-driven contract
+
+`BuildGPUDrivenCommands()` is the deterministic CPU reference for the backend compute pipeline. It
+consumes an immutable GPUScene snapshot and performs visibility filtering, sphere/frustum culling,
+distance rejection, distance-based LOD selection, conservative Hi-Z occlusion, visible-instance
+compaction, material/mesh/LOD classification, and indirect-command generation. Results are ordered
+by classification key and stable object identity. One command addresses each contiguous compacted
+bin, so CPU submission scales with bins instead of individual objects.
+
+`HiZPyramid` stores standard `[0, 1]` depth and reduces each mip with maximum depth. Missing or
+invalid history accepts objects, `Invalidated` bypasses testing after camera teleports, fast rotation,
+or major occluder changes, and `Relaxed` increases bias for uncertain history. Callers own snapshots
+and pyramids and must keep a referenced pyramid alive during generation. The API retains no inputs,
+allocates no GPU resources, and does not mutate GPUScene.
+
+Backends must preserve these stage semantics and compare compute output against this reference before
+enabling GPU-generated draws. Queue assignment and native indirect execution remain RHI backend
+responsibilities; this module exposes no backend-native handles.
