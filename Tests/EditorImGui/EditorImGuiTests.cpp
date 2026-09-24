@@ -5,6 +5,12 @@
 
 int main() {
   nexora::editor::imgui::EditorImGuiHost host;
+  nexora::runtime::World world;
+  const auto scene_id = world.LoadScene("Editor ImGui contract");
+  assert(world.Activate(scene_id));
+  nexora::editor::SceneDocument scene(world, scene_id);
+  const auto root = scene.Create("Scene Root");
+  assert(root != 0 && scene.Nodes().size() == 1);
   host.SetDisplay(1280.0F, 720.0F, 1.5F);
   const std::array events{
       Nexora::Window::WindowEvent{
@@ -14,7 +20,7 @@ int main() {
   host.ProcessEvents(events);
   host.BeginFrame();
   nexora::editor::ProductShell shell;
-  host.DrawProductShell(shell);
+  host.DrawProductShell(shell, &scene);
   const auto metrics = host.EndFrame();
   assert(metrics.command_lists > 0);
   assert(metrics.vertices > 0);

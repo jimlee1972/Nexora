@@ -2,14 +2,17 @@
 
 `NexoraEditorImGui` is an optional UI-host module. It owns the Dear ImGui context, translates
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
-and presents panels using the stable IDs owned by `NexoraEditorCore`.
+and presents panels using the stable IDs owned by `NexoraEditorCore`. On the first frame it builds
+the default workspace with Hierarchy on the left, Console along the bottom, and an open center area
+for the upcoming Scene/Game views.
 
 ## Ownership and lifetime
 
 - `EditorImGuiHost` owns one ImGui context and destroys it with the host.
 - Draw data and frame metrics are valid only for the frame in which `EndFrame` returns them.
 - `ProductShell` and `SceneDocument` remain borrowed Editor Core models and outlive calls that
-  present them.
+  present them. The Hierarchy reads nodes from the supplied live document and writes a clicked
+  node back through `SceneDocument::Select`; the application owns that document and its `World`.
 - The host does not own a native window or swapchain. The application supplies events exposed by
   `RenderSurface::Events`; the native `Render` overload rasterizes the generated draw lists and
   composites the resulting RGBA8 frame into the surface's currently acquired swapchain backbuffer.

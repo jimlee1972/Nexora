@@ -147,8 +147,9 @@ Phase 1 開始之前先講——後面所有內容都是建立在這個假設上
 
 ### 實作證據
 
-- `NexoraEditorImGui` 擁有 context、stable-ID dockspace、theme／DPI policy、pointer、button、
-  wheel、key、text、focus ingestion，以及目前的 public-RHI validation submission scaffold。
+- `NexoraEditorImGui` 擁有 context、stable-ID dockspace、Hierarchy 在左／Console 在下的初始
+  layout、theme／DPI policy、pointer、button、wheel、key、text、focus ingestion，以及目前的
+  public-RHI validation submission scaffold。
 - `NexoraEditor --graphical` 建立 public `RenderSurface`、消費其 borrowed events，並驅動 UI 與
   recover／discard lifecycle。
 - Hierarchy 顯示 live `SceneDocument::Nodes()`，並透過 `SceneDocument::Select` 回寫 selection。
