@@ -134,7 +134,13 @@ bool ProjectWorkspace::SaveWorkspace(std::span<const std::string> documents, std
     journal += "document=" + document + "\n";
   if (!AtomicWrite(root_ / ".nexora/workspace.recovery", journal, error))
     return false;
-  return WriteWorkspace(documents, error);
+  if (!WriteWorkspace(documents, error))
+    return false;
+  std::error_code ec;
+  std::filesystem::remove(root_ / ".nexora/workspace.recovery", ec);
+  if (ec && error)
+    *error = "workspace saved but recovery journal cleanup failed: " + ec.message();
+  return !ec;
 }
 bool ProjectWorkspace::RecoverWorkspace(std::string *error) {
   std::ifstream input(root_ / ".nexora/workspace.recovery");
@@ -147,7 +153,23 @@ bool ProjectWorkspace::RecoverWorkspace(std::string *error) {
       recovered.push_back(line.substr(9));
     else
       return false;
-  return WriteWorkspace(recovered, error);
+  if (!WriteWorkspace(recovered, error))
+    return false;
+  std::error_code ec;
+  std::filesystem::remove(root_ / ".nexora/workspace.recovery", ec);
+  return !ec;
+}
+bool ProjectWorkspace::DiscardRecovery(std::string *error) {
+  std::error_code ec;
+  const bool removed = std::filesystem::remove(root_ / ".nexora/workspace.recovery", ec);
+  if (ec && error)
+    *error = "could not discard recovery journal: " + ec.message();
+  return !ec && removed;
+}
+bool ProjectWorkspace::HasRecoveryJournal() const {
+  std::error_code ec;
+  return !root_.empty() &&
+         std::filesystem::is_regular_file(root_ / ".nexora/workspace.recovery", ec);
 }
 bool ProjectWorkspace::HasExternalChange() const {
   std::error_code ec;
@@ -317,5 +339,12 @@ std::optional<runtime::Id> SceneDocument::Parent(runtime::Id entity) const {
 std::string_view SceneDocument::Name(runtime::Id entity) const {
   const auto found = std::ranges::find(nodes_, entity, &Node::id);
   return found == nodes_.end() ? std::string_view{} : found->name;
+}
+std::vector<SceneDocument::NodeView> SceneDocument::Nodes() const {
+  std::vector<NodeView> result;
+  result.reserve(nodes_.size());
+  for (const auto &node : nodes_)
+    result.push_back({node.id, node.parent, node.name});
+  return result;
 }
 } // namespace nexora::editor

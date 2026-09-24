@@ -52,9 +52,11 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   （docking/multi-viewport），透過 `Nexora::RHI` 渲染而非另帶一套視窗系統，並點名 ED-M7 仍要展開
   的無障礙缺口。這份 ADR 只確定了 framework 選型，不等於圖形化 docking、theme、DPI、IME、
   accessibility 或 crash UX 已完成。
-- 待辦：圖形化 docking、theme、DPI、IME 接線、ADR-0001 點名的無障礙方向展開，以及 crash UX。
-  [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md) 把這些剩餘範圍拆成分階段
-  計畫；目前是提案計畫，尚未開始。
+- ✅ Feature-gated Dear ImGui host 已實作
+  [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md) 所述的 portable docking、
+  theme／DPI、input／IME、live panel、recovery UX 與 accessibility-direction contract。
+- 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及 Windows DPI／IME 證據；
+  target-host gate 通過之前 ED-M0 仍維持 open。
 
 ### ED-M1 — Project 與 Asset workspace
 

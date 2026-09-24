@@ -1,6 +1,7 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
-> Version: v1.0 | Status: proposed plan, not yet started | Updated: 2026-09-24 | Relates to:
+> Version: v1.1 | Status: portable implementation landed; target-host acceptance pending |
+> Updated: 2026-09-24 | Relates to:
 > `Editor_Roadmap.md` (ED-M0), `ADR-0001-Editor-UI-Framework.md`
 
 ## 1. Purpose
@@ -8,7 +9,9 @@
 [ADR-0001](ADR-0001-Editor-UI-Framework.md) selected Dear ImGui and settled the "UI-framework ADR"
 line item of ED-M0. This document plans the remaining ED-M0 scope the ADR explicitly did not
 close: graphical docking, theme, DPI, IME wiring, the accessibility direction, and crash-recovery
-UX. It is a plan, not a milestone status update: nothing here is implemented yet.
+UX. The feature-gated portable host, RHI submission contract, docking shell, input/DPI/IME bridge,
+live Hierarchy interaction, recovery UX, and accessibility direction are now implemented. Native
+visual evidence remains an acceptance gate, so this delivery does not by itself accept ED-M0.
 
 **This plan's first step introduces a new third-party dependency (vendoring Dear ImGui) and
 changes the build system (a new CMake module, a new module-graph entry, a new feature option).**
@@ -155,6 +158,16 @@ different default), say so before Phase 1 starts -- everything past this section
 - ED-M0 as a whole milestone is not marked accepted until every item in `Editor_Roadmap.md`'s
   ED-M0 gate (not just this plan's phases) has passing evidence -- this plan does not by itself
   authorize updating that milestone's status.
+
+### Implementation evidence
+
+- `NexoraEditorImGui` owns the context, stable-ID dockspace, theme/DPI policy, pointer, button,
+  wheel, key, text and focus ingestion, and public-RHI draw submission.
+- `NexoraEditor --graphical` creates the public `RenderSurface`, consumes its borrowed events, and
+  drives the UI and recover/discard lifecycle.
+- The Hierarchy lists live `SceneDocument::Nodes()` and round-trips selection through
+  `SceneDocument::Select`. Win32 owns candidate-window positioning; unsupported hosts report that
+  status explicitly. The ED-M7 accessibility handoff is recorded in `Engine/EditorImGui/README.md`.
 
 ## 7. Risks
 

@@ -119,6 +119,9 @@ public:
     return events_;
   }
   void *NativeHandle(WindowHandle handle) const noexcept override { return Find(handle); }
+  WindowError SetImeCandidatePosition(WindowHandle handle, std::int32_t, std::int32_t) override {
+    return Find(handle) ? WindowError::Unsupported : WindowError::InvalidHandle;
+  }
 
 private:
   bool OnOwner() const noexcept { return owner_ == std::this_thread::get_id(); }

@@ -10,8 +10,9 @@ into renderer or platform internals.
 
 ## Ownership and lifetime
 
-- `ProjectWorkspace` owns its descriptor and open-document list; files are atomically replaced and
-  a recovery journal is written before the primary workspace file.
+- `ProjectWorkspace` owns its descriptor and open-document list; files are atomically replaced, a
+  recovery journal is written before the primary workspace file, and successful save/recovery
+  removes that journal. The UI may query and explicitly discard a pending journal.
 - `AssetWorkspace` owns index entries. Pointers returned by `Find` and `Search` are borrowed until
   the next `ImportTree` call or destruction.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
@@ -35,5 +36,7 @@ Profiling samples require strictly increasing frame IDs. Telemetry drops every e
 explicitly opts in; extension policy rejects untrusted publishers and, by default, invalid or
 missing signatures.
 
-The core deliberately does not claim graphical Editor acceptance. Docking, DPI/IME/accessibility,
-viewport rendering, gizmos, and native-host visual validation remain UI-host responsibilities.
+The core deliberately does not depend on a UI toolkit. The optional `NexoraEditorImGui` owner
+provides docking, theme/DPI scaling, input/text forwarding, stable-panel presentation, and recovery
+choice UX. Native renderer submission, platform IME candidate positioning, accessibility,
+viewport rendering, gizmos, and target-host visual validation remain UI-host responsibilities.

@@ -1,3 +1,7 @@
 add_executable(NexoraEditor main.cpp)
 target_link_libraries(NexoraEditor PRIVATE Nexora::Editor)
+if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
+  target_link_libraries(NexoraEditor PRIVATE Nexora::EditorImGui Nexora::Presentation)
+  target_compile_definitions(NexoraEditor PRIVATE NEXORA_EDITOR_GRAPHICAL_SHELL=1)
+endif()
 nexora_apply_defaults(NexoraEditor)
