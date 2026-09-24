@@ -1,13 +1,15 @@
 # Editor ED-M0 Dear ImGui 整合計畫
 
-> 版本：v1.0｜狀態：提案計畫，尚未開始｜更新：2026-09-24｜對應：
+> 版本：v1.1｜狀態：portable 實作已落地，target-host 驗收待完成｜更新：2026-09-24｜對應：
 > `Editor_Roadmap.md`（ED-M0）、`ADR-0001-Editor-UI-Framework.md`
 
 ## 1. 目的
 
 [ADR-0001](ADR-0001-Editor-UI-Framework.md) 選定了 Dear ImGui，把 ED-M0「UI-framework ADR」這一項
 定案。這份文件規劃 ADR 明確沒有關掉的 ED-M0 剩餘範圍：圖形化 docking、theme、DPI、IME 接線、
-無障礙方向、crash-recovery UX。這是一份計畫，不是 milestone 進度更新：目前文件裡的東西都還沒實作。
+無障礙方向、crash-recovery UX。Feature-gated portable host、RHI submission contract、docking
+shell、input／DPI／IME bridge、可互動 Hierarchy、recovery UX 與 accessibility 方向現已實作。
+Native visual evidence 仍是驗收 gate，因此本次交付本身不會把 ED-M0 標記為已驗收。
 
 **這份計畫的第一步會引入一個新的第三方依賴（vendor Dear ImGui）並動到 build 系統（新的 CMake
 module、新的 module-graph 條目、新的 feature option）。** 按照這個 repo 一貫的規則（「遇到需要裝
@@ -141,6 +143,16 @@ Phase 1 開始之前先講——後面所有內容都是建立在這個假設上
 - ED-M0 整個 milestone 不會因為這份計畫就被標記為驗收完成，要等
   `Editor_Roadmap.md` 的 ED-M0 gate 裡每一項（不只是這份計畫的各 Phase）都有通過的證據——這份計畫
   本身不授權更新那個 milestone 的狀態。
+
+### 實作證據
+
+- `NexoraEditorImGui` 擁有 context、stable-ID dockspace、theme／DPI policy、pointer、button、
+  wheel、key、text、focus ingestion，以及 public-RHI draw submission。
+- `NexoraEditor --graphical` 建立 public `RenderSurface`、消費其 borrowed events，並驅動 UI 與
+  recover／discard lifecycle。
+- Hierarchy 顯示 live `SceneDocument::Nodes()`，並透過 `SceneDocument::Select` 回寫 selection。
+  Win32 擁有 candidate-window positioning；不支援的 host 會明確回報。ED-M7 accessibility handoff
+  記錄於 `Engine/EditorImGui/README.md`。
 
 ## 7. 風險
 

@@ -53,6 +53,10 @@ public:
     return Window::WindowError::None;
   }
   void *NativeHandle(Window::WindowHandle) const noexcept override { return nullptr; }
+  Window::WindowError SetImeCandidatePosition(Window::WindowHandle, std::int32_t,
+                                              std::int32_t) override {
+    return Window::WindowError::Unsupported;
+  }
   std::span<const Window::WindowEvent> PumpEvents() override {
     pumped_.clear();
     for (const auto &event : pending_) {

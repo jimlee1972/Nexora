@@ -42,6 +42,8 @@ public:
   bool Open(const std::filesystem::path &root, std::string *error = nullptr);
   bool SaveWorkspace(std::span<const std::string> open_documents, std::string *error = nullptr);
   bool RecoverWorkspace(std::string *error = nullptr);
+  bool DiscardRecovery(std::string *error = nullptr);
+  [[nodiscard]] bool HasRecoveryJournal() const;
   [[nodiscard]] bool HasExternalChange() const;
   [[nodiscard]] const ProjectDescriptor &Project() const noexcept { return project_; }
   [[nodiscard]] const std::filesystem::path &Root() const noexcept { return root_; }
@@ -82,6 +84,10 @@ private:
 
 class NEXORA_EDITOR_API SceneDocument final {
 public:
+  struct NodeView final {
+    runtime::Id id{}, parent{};
+    std::string_view name;
+  };
   SceneDocument(runtime::World &world, runtime::Id scene);
   runtime::Id Create(std::string name, runtime::Id parent = 0);
   bool Select(std::span<const runtime::Id> entities);
@@ -95,6 +101,7 @@ public:
   [[nodiscard]] std::span<const runtime::Id> Selection() const noexcept { return selection_; }
   [[nodiscard]] std::optional<runtime::Id> Parent(runtime::Id entity) const;
   [[nodiscard]] std::string_view Name(runtime::Id entity) const;
+  [[nodiscard]] std::vector<NodeView> Nodes() const;
 
 private:
   struct Node final {

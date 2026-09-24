@@ -10,8 +10,9 @@ into renderer or platform internals.
 
 ## Ownership and lifetime
 
-- `ProjectWorkspace` owns its descriptor and open-document list; files are atomically replaced and
-  a recovery journal is written before the primary workspace file.
+- `ProjectWorkspace` owns its descriptor and open-document list; files are atomically replaced, a
+  recovery journal is written before the primary workspace file, and successful save/recovery
+  removes that journal. The UI may query and explicitly discard a pending journal.
 - `AssetWorkspace` owns index entries. Pointers returned by `Find` and `Search` are borrowed until
   the next `ImportTree` call or destruction.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and

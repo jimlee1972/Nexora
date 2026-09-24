@@ -3,6 +3,7 @@
 #include "Nexora/Presentation/Surface.h"
 
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -45,6 +46,8 @@ public:
   [[nodiscard]] SurfaceStatus EndFrame();
   [[nodiscard]] bool CloseRequested() const noexcept;
   [[nodiscard]] const SurfaceInputSnapshot &Input() const noexcept;
+  [[nodiscard]] std::span<const Window::WindowEvent> Events() const noexcept;
+  [[nodiscard]] Window::WindowError SetImeCandidatePosition(std::int32_t x, std::int32_t y);
   [[nodiscard]] SurfaceDiagnostics Diagnostics() const noexcept;
   [[nodiscard]] SurfaceStatus DrainAndDestroy();
 

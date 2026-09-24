@@ -2,6 +2,8 @@
 
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/EditorImGui/Api.h"
+#include "Nexora/Presentation/RenderSurface.h"
+#include "Nexora/RHI/Device.h"
 #include "Nexora/Window/Window.h"
 
 #include <cstdint>
@@ -34,8 +36,12 @@ public:
   void ProcessEvents(std::span<const Nexora::Window::WindowEvent> events);
   void BeginFrame(float delta_seconds = 1.0F / 60.0F);
   void DrawProductShell(const ProductShell &shell, SceneDocument *scene = nullptr,
-                        bool recovery_available = false);
+                        ProjectWorkspace *workspace = nullptr);
   [[nodiscard]] FrameMetrics EndFrame();
+  [[nodiscard]] std::uint32_t Render(nexora::rhi::Device &device, nexora::rhi::TextureHandle target,
+                                     std::uint32_t width, std::uint32_t height,
+                                     nexora::rhi::ResourceState before, bool prepare_for_present);
+  void UpdateImeCandidate(Nexora::Presentation::RenderSurface &surface);
   [[nodiscard]] RecoveryChoice TakeRecoveryChoice() noexcept;
 
 private:

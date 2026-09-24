@@ -10,10 +10,12 @@ on `OwnerThread()`. Events use steady-clock timestamps and consecutive resize no
 window are coalesced. Zero extent means minimization. A returned event span is borrowed until the next
 pump or system destruction. Destroy removes queued events and no callback or deferred work survives it.
 
-Win32 provides per-monitor DPI, keyboard/text/IME, pointer and wheel translation. X11 provides close,
-configure, focus, keyboard, pointer and wheel translation plus EWMH fullscreen. Cocoa provides native
-window lifetime, resize observation, visibility, and Spaces fullscreen. Display/DPI changes are
-represented by backend-neutral `DisplayChanged` and `DpiChanged` events where a host reports them.
+Win32 provides per-monitor DPI, keyboard/text/IME, pointer-button and wheel translation, including
+native IME candidate positioning. X11 provides close, configure, focus, keyboard, pointer-button and
+two-axis wheel translation plus EWMH fullscreen; candidate positioning reports `Unsupported`. Cocoa
+provides native window lifetime, resize observation, visibility, and Spaces fullscreen. Display/DPI
+changes are represented by backend-neutral `DisplayChanged` and `DpiChanged` events where a host
+reports them.
 
 `NEXORA_ENABLE_WINDOW_PRESENTATION=OFF` removes Window and Presentation, preserving a headless build
 without desktop SDK dependencies. Runtime validation for each native implementation belongs to that

@@ -153,9 +153,17 @@ public:
         event.value1 = native.xmotion.y;
         break;
       case ButtonPress:
-        event.type = WindowEventType::Wheel;
-        event.value0 = native.xbutton.button == 4 ? 120 : native.xbutton.button == 5 ? -120 : 0;
-        emit = event.value0 != 0;
+      case ButtonRelease:
+        if (native.xbutton.button >= 4 && native.xbutton.button <= 7) {
+          event.type = WindowEventType::Wheel;
+          event.value0 = native.xbutton.button == 6 ? -120 : native.xbutton.button == 7 ? 120 : 0;
+          event.value1 = native.xbutton.button == 4 ? 120 : native.xbutton.button == 5 ? -120 : 0;
+          emit = native.type == ButtonPress;
+        } else {
+          event.type = WindowEventType::PointerButton;
+          event.value0 = static_cast<std::int32_t>(native.xbutton.button - 1U);
+          event.value1 = native.type == ButtonPress;
+        }
         break;
       default:
         emit = false;
@@ -175,6 +183,9 @@ public:
   }
   void *NativeHandle(WindowHandle handle) const noexcept override {
     return reinterpret_cast<void *>(Find(handle));
+  }
+  WindowError SetImeCandidatePosition(WindowHandle handle, std::int32_t, std::int32_t) override {
+    return Find(handle) ? WindowError::Unsupported : WindowError::InvalidHandle;
   }
 
 private:

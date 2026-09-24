@@ -49,9 +49,11 @@ satisfy this milestone.
   (docking/multi-viewport), rendered through `Nexora::RHI` rather than a competing windowing
   stack, and names the accessibility gap ED-M7 still has to scope. The ADR settles the framework
   choice only -- it is not itself graphical docking, theme, DPI, IME, accessibility, or crash UX.
-- Open: graphical docking, theme, DPI, IME wiring, the accessibility direction ADR-0001 names, and
-  crash UX. [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md) plans this
-  remaining scope in phases; it is a proposed plan, not yet started.
+- ✅ The feature-gated Dear ImGui host implements the portable docking, theme/DPI, input/IME,
+  live-panel, recovery UX, and accessibility-direction contracts described by
+  [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md).
+- Open acceptance: real-display Linux visual/input/recovery evidence and Windows DPI/IME evidence.
+  ED-M0 remains open until those target-host gates pass.
 
 ### ED-M1 — Project and asset workspace
 

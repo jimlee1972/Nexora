@@ -19,4 +19,13 @@ int main() {
   assert(metrics.command_lists > 0);
   assert(metrics.vertices > 0);
   assert(metrics.indices > 0);
+  auto device = nexora::rhi::CreateValidationDevice();
+  const auto target =
+      device->CreateTexture({1280, 720, nexora::rhi::TextureFormat::Rgba8Unorm,
+                             nexora::rhi::ResourceState::Undefined, "Editor ImGui offscreen"});
+  const auto draws =
+      host.Render(*device, target, 1280, 720, nexora::rhi::ResourceState::Undefined, false);
+  const auto diagnostics = device->Diagnostics();
+  assert(draws > 0 && diagnostics.draw_calls == draws && diagnostics.validation_errors == 0);
+  device->DestroyTexture(target);
 }
