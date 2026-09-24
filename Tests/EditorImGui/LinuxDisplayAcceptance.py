@@ -40,6 +40,30 @@ def launch(editor: str, root: Path, environment: dict[str, str], frames: int = 0
     )
 
 
+def finish_recovery_choice(
+    editor: subprocess.Popen[str],
+    xdotool: str,
+    environment: dict[str, str],
+    key_sequence: list[str],
+    expected_choice: str,
+) -> str:
+    window = wait_for_window(xdotool, environment)
+    subprocess.run([xdotool, "windowfocus", window], env=environment, check=True)
+    time.sleep(0.5)
+    subprocess.run([xdotool, *key_sequence], env=environment, check=True)
+    _, stderr = editor.communicate(timeout=30)
+    if "graphical evidence:" not in stderr:
+        raise RuntimeError(f"missing graphical diagnostics: {stderr}")
+    match = re.search(
+        r"presented=(\d+) ui_draws=(\d+) ui_uploads=(\d+) ui_rejected=(\d+)", stderr
+    )
+    if not match or min(map(int, match.groups()[:3])) <= 0 or int(match.group(4)) != 0:
+        raise RuntimeError(f"native UI evidence was incomplete: {stderr}")
+    if f"recovery={expected_choice}" not in stderr:
+        raise RuntimeError(f"{expected_choice} choice was not observed after relaunch: {stderr}")
+    return stderr
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--editor", required=True)
@@ -83,26 +107,34 @@ def main() -> int:
         editor.kill()
         editor.wait(timeout=5)
         editor = launch(args.editor, root, environment, frames=600)
-        window = wait_for_window(args.xdotool, environment)
-        subprocess.run([args.xdotool, "windowfocus", window], env=environment, check=True)
-        time.sleep(0.5)
-        subprocess.run([args.xdotool, "key", "Tab", "key", "Return"],
-                       env=environment, check=True)
-        _, stderr = editor.communicate(timeout=30)
-        editor = None
-        if "graphical evidence:" not in stderr:
-            raise RuntimeError(f"missing graphical diagnostics: {stderr}")
-        match = re.search(
-            r"presented=(\d+) ui_draws=(\d+) ui_uploads=(\d+) ui_rejected=(\d+)", stderr
+        finish_recovery_choice(
+            editor, args.xdotool, environment, ["key", "Tab", "key", "Return"], "recover"
         )
-        if not match or min(map(int, match.groups()[:3])) <= 0 or int(match.group(4)) != 0:
-            raise RuntimeError(f"native UI evidence was incomplete: {stderr}")
-        if "recovery=recover" not in stderr:
-            raise RuntimeError(f"recovery choice was not observed after relaunch: {stderr}")
+        editor = None
         if (root / ".nexora/workspace.recovery").exists():
             raise RuntimeError("successful recovery did not remove the journal")
         if "document=Recovered.scene" not in (root / ".nexora/workspace").read_text():
             raise RuntimeError("recovered workspace contents were not committed")
+
+        # Exercise the destructive branch separately. Discard must remove only the journal and
+        # leave the last committed workspace untouched.
+        committed_workspace = (root / ".nexora/workspace").read_text()
+        (root / ".nexora/workspace.recovery").write_text(
+            "schema=1\ndocument=Discarded.scene\n"
+        )
+        editor = launch(args.editor, root, environment, frames=600)
+        finish_recovery_choice(
+            editor,
+            args.xdotool,
+            environment,
+            ["key", "Tab", "key", "Tab", "key", "Return"],
+            "discard",
+        )
+        editor = None
+        if (root / ".nexora/workspace.recovery").exists():
+            raise RuntimeError("successful discard did not remove the journal")
+        if (root / ".nexora/workspace").read_text() != committed_workspace:
+            raise RuntimeError("discard changed the last committed workspace")
         if not (root / ".nexora/editor-layout.ini").is_file():
             raise RuntimeError("the Editor did not persist its layout")
         return 0

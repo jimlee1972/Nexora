@@ -8,8 +8,9 @@
 > below are present in source and contract tests, but **none of WP0–WP8 has passed its exit gate**.
 > Retained GPU resources, direct rendering to the borrowed presentation target, project-owned
 > layout persistence, DPI font-atlas rebuilding, and recovery failure contracts are implemented.
-> Automated X11 crash/relaunch recovery is now covered; physical-display and Windows target-host
-> evidence remain open, so these foundations must not be interpreted as ED-M0 acceptance.
+> Automated X11 crash/relaunch recovery now covers both recover and destructive-discard choices,
+> including preservation of the last committed workspace on discard; physical-display and Windows
+> target-host evidence remain open, so these foundations must not be interpreted as ED-M0 acceptance.
 
 ## 1. Goal, acceptance boundary, and current truth
 
@@ -275,8 +276,8 @@ once and correctly positioned candidates at more than one DPI.
 
 ### WP7 — Recovery UX and basic keyboard accessibility
 
-**Status: modal/data-layer calls and automated X11 kill/relaunch recovery exist; destructive discard
-and physical-display evidence remain.**
+**Status: modal/data-layer calls and automated X11 kill/relaunch coverage for both recover and
+destructive discard exist; physical-display evidence remains.**
 
 1. Detect a journal before normal editing becomes interactive. Recovery modal takes focus, traps
    keyboard navigation, and offers explicit Recover and Discard actions. Discard requires clear

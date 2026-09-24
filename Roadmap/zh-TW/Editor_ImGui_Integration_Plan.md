@@ -7,8 +7,9 @@
 > **Repository 稽核（2026-09-24）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
 > source 與 contract test，但 **WP0～WP8 尚無任何一包通過 exit gate**。Retained GPU resource、
 > 直接渲染至 borrowed presentation target、project-owned layout persistence、DPI font-atlas rebuild
-> 與 recovery failure contract 已實作。自動化 X11 kill/relaunch recovery 已有覆蓋；physical-display
-> 與 Windows target-host evidence 仍待完成，因此 foundation 打勾不得解讀成 ED-M0 已驗收。
+> 與 recovery failure contract 已實作。自動化 X11 kill/relaunch recovery 現已同時覆蓋 recover 與
+> destructive discard，並驗證 discard 不會變更最後提交的 workspace；physical-display 與 Windows
+> target-host evidence 仍待完成，因此 foundation 打勾不得解讀成 ED-M0 已驗收。
 
 ## 1. 目標、驗收邊界與目前事實
 
@@ -256,8 +257,8 @@ Windows 證據仍待完成。**
 
 ### WP7 — Recovery UX 與基本 keyboard accessibility
 
-**狀態：modal/data-layer call 與 automated X11 kill/relaunch recovery 已有；destructive discard
-與 physical-display 證據仍待完成。**
+**狀態：modal/data-layer call 與 automated X11 kill/relaunch 的 recover／destructive discard
+coverage 已有；physical-display 證據仍待完成。**
 
 1. 正常編輯可互動前偵測 journal。Recovery modal 取得 focus、限制 keyboard navigation，明確提供 Recover
    與 Discard；Discard 要有清楚破壞性文字，不能因 default button 取得 focus 就執行。
