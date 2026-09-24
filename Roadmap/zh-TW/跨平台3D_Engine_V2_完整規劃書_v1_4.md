@@ -3,6 +3,8 @@
 **文件版本：Master Draft v1.4**
 **Engine 世代：V2.x — Scale-Up / Production**
 
+> **進度：15%**（✅ V2-M0 與 ✅ V2-M1 已通過 portable repository gate；V2-M2 至 V2-M12 仍待完成。Native target evidence 維持獨立 gate。）
+
 > 本文件為 **V2 Master Plan**，所有 V1 Contract 預設繼承；只有本文件明確標示「V2 supersede」的項目可以改變 V1 行為。
 >
 > V2 的主題不是重寫引擎，而是把 V1 擴張到 GPU-Driven、Large World V2、Networking / Dedicated Server、進階 AI / Navigation / Animation、Distributed Build、LiveOps 與 Production Tooling。

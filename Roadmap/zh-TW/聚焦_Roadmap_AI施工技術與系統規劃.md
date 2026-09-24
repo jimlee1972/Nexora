@@ -1,11 +1,11 @@
 # Engine API、Zig Showcase、Editor：AI 施工技術與系統規劃
 
-> 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
+> 版本：v1.0｜狀態：施工中｜更新：2026-09-24
 
 
-> **進度：50%**（依追蹤的 Engine API、Zig Showcase 與 Editor 三份 delivery roadmap 取平均，向下取整至 10%。）
+> **進度：60%**（API 100%、Zig Showcase 90%、Editor 0%；算術平均 63.3%，向下取整至 10%。）
 
-**已完成 delivery track：** ✅ Engine API Foundation portable scope。**待辦：** Zig Showcase 與圖形化 Editor delivery gates。
+**已驗收 delivery：** ✅ Engine API Foundation portable scope，以及 ✅ Zig Showcase ZS-M0 至 ZS-M4。**待辦：** Zig Showcase ZS-M5 乾淨 target distribution 驗收，以及全部圖形化 Editor delivery gates。
 
 ## 1. 分析結論
 
