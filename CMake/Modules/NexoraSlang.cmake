@@ -15,8 +15,10 @@ function(nexora_configure_slang)
   find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
   set(shader_source "${PROJECT_SOURCE_DIR}/Shaders/Triangle.slang")
+  set(compute_shader_source "${PROJECT_SOURCE_DIR}/Shaders/GPUDriven.slang")
   set(shader_output_dir "${PROJECT_BINARY_DIR}/Shaders")
   set(spirv_output "${shader_output_dir}/Triangle.spv")
+  set(compute_spirv_output "${shader_output_dir}/GPUDriven.spv")
   set(metal_output "${shader_output_dir}/Triangle.metal")
   set(spirv_reflection "${shader_output_dir}/Triangle.spv.reflection.json")
   set(metal_reflection "${shader_output_dir}/Triangle.metal.reflection.json")
@@ -24,7 +26,7 @@ function(nexora_configure_slang)
   set(normalizer "${PROJECT_SOURCE_DIR}/Tools/Build/NormalizeShaderReflection.py")
 
   set(cross_compile_outputs
-    "${spirv_output}" "${metal_output}" "${spirv_reflection}" "${metal_reflection}"
+    "${spirv_output}" "${compute_spirv_output}" "${metal_output}" "${spirv_reflection}" "${metal_reflection}"
     "${canonical_reflection}")
   set(normalizer_args
     --source "${shader_source}"
@@ -80,6 +82,13 @@ function(nexora_configure_slang)
             -o "${spirv_output}"
             "${shader_source}"
     COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
+            -target spirv
+            -profile glsl_450
+            -entry computeMain
+            -fvk-use-entrypoint-name
+            -o "${compute_spirv_output}"
+            "${compute_shader_source}"
+    COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
             -target metal
             -entry vertexMain
             -entry fragmentMain
@@ -91,7 +100,7 @@ function(nexora_configure_slang)
   add_custom_command(
     OUTPUT ${cross_compile_outputs}
     ${commands}
-    DEPENDS "${shader_source}" "${normalizer}"
+    DEPENDS "${shader_source}" "${compute_shader_source}" "${normalizer}"
     COMMENT "Compiling and normalizing the canonical Slang triangle"
     VERBATIM)
 
@@ -102,6 +111,7 @@ function(nexora_configure_slang)
   set(NEXORA_SLANG_DXIL_VERTEX_OUTPUT "${dxil_vertex_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_DXIL_FRAGMENT_OUTPUT "${dxil_fragment_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_SPIRV_OUTPUT "${spirv_output}" PARENT_SCOPE)
+  set(NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT "${compute_spirv_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_METAL_OUTPUT "${metal_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_CANONICAL_REFLECTION "${canonical_reflection}" PARENT_SCOPE)
 endfunction()

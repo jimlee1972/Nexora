@@ -1192,7 +1192,7 @@ Only then may it publish.
 > frustum/distance/LOD culling, conservative Hi-Z and invalidation, compaction, classification, and
 > indirect-command generation. Portable compute/indirect recording, RenderGraph queue ownership,
 > CPU/GPU comparison, and no-readback diagnostics are now covered by contract tests. Native Vulkan
-> indirect execution now has a real Linux `vkCmdDrawIndirect` path. Native compute execution,
+> execution now has real indirect drawing plus compute-pipeline/storage-buffer evidence. The full compute algorithm,
 > DX12/Metal indirect execution, and full target-tier parity remain required before acceptance.
 
 Repository evidence checklist:
@@ -1202,7 +1202,8 @@ Repository evidence checklist:
 - ✅ RenderGraph compute/graphics ownership transitions.
 - ✅ CPU/backend comparison and normal-path no-readback diagnostics.
 - ✅ Native Vulkan indirect execution in the Linux offscreen gate.
-- [ ] Native compute execution, DX12/Metal indirect execution, and complete target-tier parity.
+- ✅ Native Vulkan compute-pipeline dispatch and storage-buffer binding/readback acceptance.
+- [ ] Full native compute algorithm, DX12/Metal indirect execution, and complete target-tier parity.
 
 Core data:
 

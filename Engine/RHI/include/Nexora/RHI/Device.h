@@ -35,6 +35,9 @@ public:
   virtual void BindTexture(std::uint32_t, TextureHandle) {
     throw std::logic_error("texture binding is unsupported");
   }
+  virtual void BindStorageBuffer(std::uint32_t, BufferHandle) {
+    throw std::logic_error("storage-buffer binding is unsupported");
+  }
   virtual void SetScissor(const ScissorRect &) {
     throw std::logic_error("scissor rectangles are unsupported");
   }
@@ -69,6 +72,10 @@ public:
   }
   virtual void DestroyBuffer(BufferHandle) {
     throw std::logic_error("buffer destruction is unsupported");
+  }
+  // Explicitly test-only: production rendering must not introduce synchronous readback.
+  virtual void ReadBufferForTesting(BufferHandle, std::uint64_t, std::span<std::byte>) {
+    throw std::logic_error("buffer readback is unsupported");
   }
   [[nodiscard]] virtual PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) = 0;
   virtual void DestroyPipeline(PipelineHandle pipeline) = 0;

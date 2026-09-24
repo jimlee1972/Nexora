@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend Execution Plan
 
-> Version: v1.0 | Status: in progress; Phase 1a complete | Updated: 2026-09-24 | Relates to:
+> Version: v1.0 | Status: in progress; Phase 1b complete, Phase 2 started | Updated: 2026-09-24 | Relates to:
 > `Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md` §V2-M3
 
 ## 1. Purpose
@@ -8,7 +8,7 @@
 V2-M3's gate has four checked items (portable command batching, no-readback contract diagnostics,
 RenderGraph queue/barrier ownership, CPU-reference correctness comparison) and one unchecked item:
 **native DX12/Vulkan/Metal target-tier parity on target hosts**. This document plans the work
-needed to check that last box. Phase 1a is complete, but the milestone remains open and no roadmap
+needed to check that last box. Phases 1a and 1b are complete and Phase 2 has Linux Vulkan compute evidence, but the milestone remains open and no roadmap
 progress percentage changes until all remaining phases land and pass their gates.
 
 ## 2. Current baseline (verified against source, not just roadmap prose)
@@ -142,7 +142,7 @@ is a reliable tell that it silently skipped instead.
   `RecordGPUDrivenExecution`'s actual culling/compute output has been verified against real
   hardware -- that remains entirely Phase 1b + Phase 2 work.
 
-### Phase 1b -- prerequisite: buffer resources and compute-pipeline creation in the RHI (partially superseded, see update)
+### ✅ Phase 1b -- buffer resources and compute-pipeline creation in the RHI (done)
 
 > **Update (2026-09-25):** the paragraphs below describe the gap as found while starting Phase 1a.
 > Since then, a parallel effort (`Editor_ImGui_Integration_Plan.md`, driven by a different agent
@@ -191,12 +191,16 @@ minimal implementation for the build to keep compiling, even though only Validat
 need to work correctly right now. This is a genuinely separate, foundational piece of work -- not
 "write one shader" -- and is exactly the kind of RHI-wide interface change this repository's
 standing rules ask to be discussed before starting, even though it introduces no new third-party
-dependency or CI change. **Not started; needs confirmation on the shape of the new API (buffer
-lifetime/ownership model, upload path -- staging buffer vs. host-visible mapping, binding
-model -- fixed slots vs. a general descriptor-set builder) before Phase 1's actual compute shader
-work can begin.**
+dependency or CI change. **Completed with a backend-neutral compute pipeline kind, four fixed storage-buffer slots, host-visible uploads, and an explicitly test-only bounded readback seam. The fixed slots keep this phase narrow; a general descriptor builder remains future work.**
 
 ### Phase 2 -- Remaining compute stages on Vulkan
+
+> **Update (2026-09-24): in progress.** Linux Vulkan now creates a real compute pipeline, binds
+> candidate/visible/indirect/statistics storage buffers through four backend-neutral slots, dispatches
+> `GPUDriven.slang`, waits for native completion, and compares test-only readback results. The normal
+> path remains readback-free and diagnostics distinguish its dispatch from acceptance readbacks. This
+> is acceptance evidence for the native pipeline/binding/dispatch foundation, not yet the full
+> frustum/Hi-Z/LOD/sorted-bin algorithm described below.
 
 - Hi-Z occlusion (conservative test against the existing `HiZPyramid` contract), visible-instance
   compaction, material/mesh/LOD classification, and indirect-command generation, each as

@@ -21,6 +21,10 @@ Typical success paths are `RandomStream replay; replay.Restore(stream.Save())`, 
 ## Threading and lifetime
 
 - `JobSystem`, `AsyncLogService`, `TrackingAllocator`, and `VirtualFileSystem` support concurrent producers.
+- `JobSystem::Stop` joins every worker before clearing thread objects and publishes its stopped
+  lifecycle state under the scheduler mutex. Worker entry points capture the stable implementation
+  allocation rather than the public wrapper; destruction and repeated start/stop therefore cannot
+  leave a worker retaining the wrapper lifetime.
 - `EventBus` snapshots callbacks before invoking them, so callbacks run without its lock held.
 - `FrameArena` is single-owner. Its allocations are invalid after `Reset`; callers must complete dependent jobs before `Engine::BeginFrame`.
 - `AsyncReadHandle::Get` is a snapshot and never blocks. `Pending` means the caller should poll or schedule later work.

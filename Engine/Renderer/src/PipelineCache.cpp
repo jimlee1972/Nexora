@@ -41,6 +41,7 @@ struct PipelineCache::Implementation final {
     std::uint64_t layout_hash{};
     std::uint64_t shader_hash{};
     rhi::TextureFormat color_format{};
+    rhi::PipelineType type{};
     friend bool operator==(const Key &, const Key &) = default;
   };
   struct KeyHash final {
@@ -49,6 +50,7 @@ struct PipelineCache::Implementation final {
       hash ^= static_cast<std::size_t>(key.shader_hash) + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
       hash ^=
           static_cast<std::size_t>(key.color_format) + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
+      hash ^= static_cast<std::size_t>(key.type) + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
       return hash;
     }
   };
@@ -86,7 +88,7 @@ PipelineCache::~PipelineCache() {
 }
 PipelineFuture PipelineCache::Request(const rhi::PipelineDescriptor &descriptor) {
   const Implementation::Key key{descriptor.layout_hash, descriptor.shader_hash,
-                                descriptor.color_format};
+                                descriptor.color_format, descriptor.type};
   std::lock_guard lock{implementation_->mutex};
   if (const auto found = implementation_->entries.find(key);
       found != implementation_->entries.end()) {
@@ -113,7 +115,7 @@ PipelineFuture PipelineCache::Request(const rhi::PipelineDescriptor &descriptor)
                                     },
                                     core::JobPriority::Normal,
                                     {},
-                                    "Create graphics pipeline"});
+                                    "Create pipeline"});
   implementation_->entries.emplace(key, Implementation::Entry{state, job});
   return {std::move(state), std::move(job)};
 }

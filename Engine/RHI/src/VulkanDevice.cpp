@@ -29,8 +29,7 @@
 namespace nexora::rhi {
 namespace {
 
-template <typename Function, typename Pointer>
-Function FunctionCast(Pointer pointer) {
+template <typename Function, typename Pointer> Function FunctionCast(Pointer pointer) {
   static_assert(sizeof(Function) == sizeof(Pointer));
   Function function{};
   std::memcpy(&function, &pointer, sizeof(function));
@@ -52,6 +51,10 @@ std::uint64_t Key(TextureHandle handle) {
 }
 
 std::uint64_t Key(PipelineHandle handle) {
+  return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
+}
+
+std::uint64_t Key(BufferHandle handle) {
   return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
 }
 
@@ -215,6 +218,7 @@ struct VulkanFunctions final {
   PFN_vkCreateFramebuffer CreateFramebuffer{};
   PFN_vkDestroyFramebuffer DestroyFramebuffer{};
   PFN_vkCreateGraphicsPipelines CreateGraphicsPipelines{};
+  PFN_vkCreateComputePipelines CreateComputePipelines{};
   PFN_vkDestroyPipeline DestroyPipeline{};
   PFN_vkCmdPipelineBarrier CmdPipelineBarrier{};
   PFN_vkCmdBeginRenderPass CmdBeginRenderPass{};
@@ -228,8 +232,7 @@ struct VulkanFunctions final {
   PFN_vkCmdDispatch CmdDispatch{};
 };
 
-template <typename Function>
-Function RequireFunction(Function function, const char *name) {
+template <typename Function> Function RequireFunction(Function function, const char *name) {
   if (!function)
     throw std::runtime_error(std::string("Vulkan function was not found: ") + name);
   return function;
@@ -245,6 +248,7 @@ public:
   void Transition(const Barrier &barrier) override;
   void BeginRendering(const RenderingInfo &info) override;
   void BindPipeline(PipelineHandle pipeline) override;
+  void BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) override;
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
   void DrawIndirect(std::uint32_t command_count) override;
   void Dispatch(std::uint32_t groups_x, std::uint32_t groups_y, std::uint32_t groups_z) override;
@@ -270,6 +274,7 @@ private:
   VkFramebuffer framebuffer_{VK_NULL_HANDLE};
   bool rendering_{false};
   bool pipeline_bound_{false};
+  PipelineType pipeline_type_{PipelineType::Graphics};
   bool submitted_{false};
   bool closed_{false};
   TextureHandle render_target_{};
@@ -285,6 +290,7 @@ private:
 
 class VulkanDevice final : public Device {
   struct TextureRecord;
+  struct BufferRecord;
   struct PipelineRecord;
 
 public:
@@ -294,6 +300,12 @@ public:
   Backend GetBackend() const noexcept override { return Backend::Vulkan; }
   TextureHandle CreateTexture(const TextureDescriptor &descriptor) override;
   void DestroyTexture(TextureHandle texture) override;
+  BufferHandle CreateBuffer(const BufferDescriptor &descriptor) override;
+  void WriteBuffer(BufferHandle buffer, std::uint64_t offset,
+                   std::span<const std::byte> data) override;
+  void ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
+                            std::span<std::byte> data) override;
+  void DestroyBuffer(BufferHandle buffer) override;
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override;
   void DestroyPipeline(PipelineHandle pipeline) override;
   std::unique_ptr<CommandList> CreateCommandList(QueueType queue) override;
@@ -318,12 +330,14 @@ private:
   TextureRecord &RecordTransition(const Barrier &barrier);
   TextureRecord &ValidateRenderTarget(TextureHandle texture);
   PipelineRecord &ValidatePipeline(PipelineHandle pipeline);
+  BufferRecord &ValidateBuffer(BufferHandle buffer);
   VkFramebuffer CreateFramebuffer(const TextureRecord &texture, VkRenderPass render_pass,
                                   std::uint32_t width, std::uint32_t height);
   void DestroyFramebuffer(VkFramebuffer framebuffer);
   VkRenderPass RenderPassFor(TextureFormat format) const;
   std::uint32_t FindMemoryType(std::uint32_t type_bits, VkMemoryPropertyFlags properties) const;
   void DestroyTextureRecord(TextureRecord &texture);
+  void DestroyBufferRecord(BufferRecord &buffer);
   void DestroyPipelineRecord(PipelineRecord &pipeline);
 
   VulkanLoader loader_;
@@ -340,17 +354,30 @@ private:
   VkBuffer uniform_buffer_{VK_NULL_HANDLE};
   VkDeviceMemory uniform_memory_{VK_NULL_HANDLE};
   VkShaderModule shader_module_{VK_NULL_HANDLE};
+  VkShaderModule compute_shader_module_{VK_NULL_HANDLE};
   VkPipelineLayout pipeline_layout_{VK_NULL_HANDLE};
+  VkDescriptorSetLayout compute_descriptor_set_layout_{VK_NULL_HANDLE};
+  VkDescriptorPool compute_descriptor_pool_{VK_NULL_HANDLE};
+  VkDescriptorSet compute_descriptor_set_{VK_NULL_HANDLE};
+  VkPipelineLayout compute_pipeline_layout_{VK_NULL_HANDLE};
   VkRenderPass rgba_render_pass_{VK_NULL_HANDLE};
   VkRenderPass bgra_render_pass_{VK_NULL_HANDLE};
   mutable std::mutex mutex_;
   core::HandlePool<TextureTag> texture_pool_;
+  core::HandlePool<BufferTag> buffer_pool_;
   core::HandlePool<PipelineTag> pipeline_pool_;
   std::unordered_map<std::uint64_t, TextureRecord> textures_;
+  std::unordered_map<std::uint64_t, BufferRecord> buffers_;
   std::unordered_map<std::uint64_t, PipelineRecord> pipelines_;
   DeviceDiagnostics diagnostics_{};
   std::uint64_t submitted_submission_{};
   std::uint64_t completed_submission_{};
+};
+
+struct VulkanDevice::BufferRecord final {
+  BufferDescriptor descriptor;
+  VkBuffer buffer{VK_NULL_HANDLE};
+  VkDeviceMemory memory{VK_NULL_HANDLE};
 };
 
 struct VulkanDevice::TextureRecord final {
@@ -369,30 +396,29 @@ struct VulkanDevice::PipelineRecord final {
 
 void VulkanDevice::LoadInstanceFunctions() {
   functions_.DestroyInstance = RequireFunction(
-      loader_.Instance<PFN_vkDestroyInstance>(instance_, "vkDestroyInstance"),
-      "vkDestroyInstance");
+      loader_.Instance<PFN_vkDestroyInstance>(instance_, "vkDestroyInstance"), "vkDestroyInstance");
   functions_.EnumeratePhysicalDevices = RequireFunction(
       loader_.Instance<PFN_vkEnumeratePhysicalDevices>(instance_, "vkEnumeratePhysicalDevices"),
       "vkEnumeratePhysicalDevices");
-  functions_.GetPhysicalDeviceQueueFamilyProperties = RequireFunction(
-      loader_.Instance<PFN_vkGetPhysicalDeviceQueueFamilyProperties>(
-          instance_, "vkGetPhysicalDeviceQueueFamilyProperties"),
-      "vkGetPhysicalDeviceQueueFamilyProperties");
-  functions_.GetPhysicalDeviceMemoryProperties = RequireFunction(
-      loader_.Instance<PFN_vkGetPhysicalDeviceMemoryProperties>(
-          instance_, "vkGetPhysicalDeviceMemoryProperties"),
-      "vkGetPhysicalDeviceMemoryProperties");
+  functions_.GetPhysicalDeviceQueueFamilyProperties =
+      RequireFunction(loader_.Instance<PFN_vkGetPhysicalDeviceQueueFamilyProperties>(
+                          instance_, "vkGetPhysicalDeviceQueueFamilyProperties"),
+                      "vkGetPhysicalDeviceQueueFamilyProperties");
+  functions_.GetPhysicalDeviceMemoryProperties =
+      RequireFunction(loader_.Instance<PFN_vkGetPhysicalDeviceMemoryProperties>(
+                          instance_, "vkGetPhysicalDeviceMemoryProperties"),
+                      "vkGetPhysicalDeviceMemoryProperties");
   functions_.CreateDevice = RequireFunction(
       loader_.Instance<PFN_vkCreateDevice>(instance_, "vkCreateDevice"), "vkCreateDevice");
-  functions_.GetDeviceProcAddr = RequireFunction(
-      loader_.Instance<PFN_vkGetDeviceProcAddr>(instance_, "vkGetDeviceProcAddr"),
-      "vkGetDeviceProcAddr");
+  functions_.GetDeviceProcAddr =
+      RequireFunction(loader_.Instance<PFN_vkGetDeviceProcAddr>(instance_, "vkGetDeviceProcAddr"),
+                      "vkGetDeviceProcAddr");
 }
 
 void VulkanDevice::LoadDeviceFunctions() {
-#define LOAD_DEVICE(member, symbol)                                                        \
-  functions_.member = RequireFunction(                                                     \
-      FunctionCast<decltype(functions_.member)>(functions_.GetDeviceProcAddr(device_, symbol)), \
+#define LOAD_DEVICE(member, symbol)                                                                \
+  functions_.member = RequireFunction(                                                             \
+      FunctionCast<decltype(functions_.member)>(functions_.GetDeviceProcAddr(device_, symbol)),    \
       symbol)
   LOAD_DEVICE(DestroyDevice, "vkDestroyDevice");
   LOAD_DEVICE(GetDeviceQueue, "vkGetDeviceQueue");
@@ -439,6 +465,7 @@ void VulkanDevice::LoadDeviceFunctions() {
   LOAD_DEVICE(CreateFramebuffer, "vkCreateFramebuffer");
   LOAD_DEVICE(DestroyFramebuffer, "vkDestroyFramebuffer");
   LOAD_DEVICE(CreateGraphicsPipelines, "vkCreateGraphicsPipelines");
+  LOAD_DEVICE(CreateComputePipelines, "vkCreateComputePipelines");
   LOAD_DEVICE(DestroyPipeline, "vkDestroyPipeline");
   LOAD_DEVICE(CmdPipelineBarrier, "vkCmdPipelineBarrier");
   LOAD_DEVICE(CmdBeginRenderPass, "vkCmdBeginRenderPass");
@@ -460,18 +487,25 @@ VulkanDevice::VulkanDevice() {
   std::ifstream shader_file(shader_path, std::ios::binary | std::ios::ate);
   if (!shader_file)
     throw std::runtime_error(std::string("cannot open Vulkan shader artifact: ") + shader_path);
-  functions_.GetInstanceProcAddr =
-      RequireFunction(loader_.Global<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr"),
-                      "vkGetInstanceProcAddr");
-  const VkApplicationInfo application_info{
-      VK_STRUCTURE_TYPE_APPLICATION_INFO, nullptr, "Nexora", VK_MAKE_VERSION(0, 1, 0),
-      "Nexora", VK_MAKE_VERSION(0, 1, 0), VK_API_VERSION_1_0};
-  const VkInstanceCreateInfo instance_info{
-      VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, nullptr, 0, &application_info, 0, nullptr, 0,
-      nullptr};
+  functions_.GetInstanceProcAddr = RequireFunction(
+      loader_.Global<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr"), "vkGetInstanceProcAddr");
+  const VkApplicationInfo application_info{VK_STRUCTURE_TYPE_APPLICATION_INFO,
+                                           nullptr,
+                                           "Nexora",
+                                           VK_MAKE_VERSION(0, 1, 0),
+                                           "Nexora",
+                                           VK_MAKE_VERSION(0, 1, 0),
+                                           VK_API_VERSION_1_0};
+  const VkInstanceCreateInfo instance_info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+                                           nullptr,
+                                           0,
+                                           &application_info,
+                                           0,
+                                           nullptr,
+                                           0,
+                                           nullptr};
   const auto create_instance =
-      RequireFunction(loader_.Global<PFN_vkCreateInstance>("vkCreateInstance"),
-                      "vkCreateInstance");
+      RequireFunction(loader_.Global<PFN_vkCreateInstance>("vkCreateInstance"), "vkCreateInstance");
   Check(create_instance(&instance_info, nullptr, &instance_), "vkCreateInstance");
   LoadInstanceFunctions();
   SelectPhysicalDevice();
@@ -509,17 +543,23 @@ void VulkanDevice::SelectPhysicalDevice() {
 void VulkanDevice::CreateCoreObjects() {
   constexpr float priority = 1.0F;
   const VkDeviceQueueCreateInfo queue_info{
-      VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, nullptr, 0, graphics_queue_family_, 1,
-      &priority};
-  const VkDeviceCreateInfo device_info{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO, nullptr, 0, 1,
-                                       &queue_info, 0, nullptr, 0, nullptr, nullptr};
+      VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, nullptr, 0, graphics_queue_family_, 1, &priority};
+  const VkDeviceCreateInfo device_info{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                                       nullptr,
+                                       0,
+                                       1,
+                                       &queue_info,
+                                       0,
+                                       nullptr,
+                                       0,
+                                       nullptr,
+                                       nullptr};
   Check(functions_.CreateDevice(physical_device_, &device_info, nullptr, &device_),
         "vkCreateDevice");
   LoadDeviceFunctions();
   functions_.GetDeviceQueue(device_, graphics_queue_family_, 0, &graphics_queue_);
 
-  const VkCommandPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                                          nullptr,
+  const VkCommandPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr,
                                           VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
                                           graphics_queue_family_};
   Check(functions_.CreateCommandPool(device_, &pool_info, nullptr, &immediate_command_pool_),
@@ -547,11 +587,17 @@ void VulkanDevice::CreateRenderPasses() {
     dependency.dstSubpass = 0;
     dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                               VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    const VkRenderPassCreateInfo render_pass_info{
-        VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO, nullptr, 0, 1, &attachment, 1, &subpass, 1,
-        &dependency};
+    dependency.dstAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    const VkRenderPassCreateInfo render_pass_info{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+                                                  nullptr,
+                                                  0,
+                                                  1,
+                                                  &attachment,
+                                                  1,
+                                                  &subpass,
+                                                  1,
+                                                  &dependency};
     VkRenderPass render_pass = VK_NULL_HANDLE;
     Check(functions_.CreateRenderPass(device_, &render_pass_info, nullptr, &render_pass),
           "vkCreateRenderPass");
@@ -586,19 +632,16 @@ void VulkanDevice::CreateUniformResources() {
         "vkCreateBuffer(uniform)");
   VkMemoryRequirements requirements{};
   functions_.GetBufferMemoryRequirements(device_, uniform_buffer_, &requirements);
-  const VkMemoryAllocateInfo allocate_info{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-                                           nullptr,
-                                           requirements.size,
-                                           FindMemoryType(requirements.memoryTypeBits,
-                                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
+  const VkMemoryAllocateInfo allocate_info{
+      VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr, requirements.size,
+      FindMemoryType(requirements.memoryTypeBits,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
   Check(functions_.AllocateMemory(device_, &allocate_info, nullptr, &uniform_memory_),
         "vkAllocateMemory(uniform)");
   Check(functions_.BindBufferMemory(device_, uniform_buffer_, uniform_memory_, 0),
         "vkBindBufferMemory(uniform)");
   void *mapped = nullptr;
-  Check(functions_.MapMemory(device_, uniform_memory_, 0, 64, 0, &mapped),
-        "vkMapMemory(uniform)");
+  Check(functions_.MapMemory(device_, uniform_memory_, 0, 64, 0, &mapped), "vkMapMemory(uniform)");
   const float identity[16] = {1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F,
                               0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F};
   std::memcpy(mapped, identity, sizeof(identity));
@@ -608,80 +651,105 @@ void VulkanDevice::CreateUniformResources() {
                                              VK_SHADER_STAGE_VERTEX_BIT, nullptr};
   const VkDescriptorSetLayoutCreateInfo layout_info{
       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1, &binding};
-  Check(functions_.CreateDescriptorSetLayout(device_, &layout_info, nullptr,
-                                             &descriptor_set_layout_),
-        "vkCreateDescriptorSetLayout");
+  Check(
+      functions_.CreateDescriptorSetLayout(device_, &layout_info, nullptr, &descriptor_set_layout_),
+      "vkCreateDescriptorSetLayout");
   const VkDescriptorPoolSize pool_size{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1};
-  const VkDescriptorPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                                             nullptr,
-                                             0,
-                                             1,
-                                             1,
-                                             &pool_size};
+  const VkDescriptorPoolCreateInfo pool_info{
+      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, nullptr, 0, 1, 1, &pool_size};
   Check(functions_.CreateDescriptorPool(device_, &pool_info, nullptr, &descriptor_pool_),
         "vkCreateDescriptorPool");
   const VkDescriptorSetAllocateInfo set_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                                             nullptr,
-                                             descriptor_pool_,
-                                             1,
-                                             &descriptor_set_layout_};
+                                             nullptr, descriptor_pool_, 1, &descriptor_set_layout_};
   Check(functions_.AllocateDescriptorSets(device_, &set_info, &descriptor_set_),
         "vkAllocateDescriptorSets");
   const VkDescriptorBufferInfo descriptor_buffer{uniform_buffer_, 0, 64};
-  const VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                   nullptr,
-                                   descriptor_set_,
-                                   0,
-                                   0,
-                                   1,
-                                   VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                   nullptr,
-                                   &descriptor_buffer,
-                                   nullptr};
+  const VkWriteDescriptorSet write{
+      VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, descriptor_set_,    0,      0, 1,
+      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,      nullptr, &descriptor_buffer, nullptr};
   functions_.UpdateDescriptorSets(device_, 1, &write, 0, nullptr);
   const VkPipelineLayoutCreateInfo pipeline_layout_info{
-      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, 0, 1, &descriptor_set_layout_, 0,
+      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      nullptr,
+      0,
+      1,
+      &descriptor_set_layout_,
+      0,
       nullptr};
-  Check(functions_.CreatePipelineLayout(device_, &pipeline_layout_info, nullptr,
-                                        &pipeline_layout_),
+  Check(functions_.CreatePipelineLayout(device_, &pipeline_layout_info, nullptr, &pipeline_layout_),
         "vkCreatePipelineLayout");
+
+  VkDescriptorSetLayoutBinding storage_bindings[4]{};
+  for (std::uint32_t index = 0; index < 4; ++index) {
+    storage_bindings[index].binding = index;
+    storage_bindings[index].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    storage_bindings[index].descriptorCount = 1;
+    storage_bindings[index].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+  }
+  const VkDescriptorSetLayoutCreateInfo compute_layout_info{
+      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 4, storage_bindings};
+  Check(functions_.CreateDescriptorSetLayout(device_, &compute_layout_info, nullptr,
+                                             &compute_descriptor_set_layout_),
+        "vkCreateDescriptorSetLayout(compute)");
+  const VkDescriptorPoolSize compute_pool_size{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4};
+  const VkDescriptorPoolCreateInfo compute_pool_info{
+      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, nullptr, 0, 1, 1, &compute_pool_size};
+  Check(functions_.CreateDescriptorPool(device_, &compute_pool_info, nullptr,
+                                        &compute_descriptor_pool_),
+        "vkCreateDescriptorPool(compute)");
+  const VkDescriptorSetAllocateInfo compute_set_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                                                     nullptr, compute_descriptor_pool_, 1,
+                                                     &compute_descriptor_set_layout_};
+  Check(functions_.AllocateDescriptorSets(device_, &compute_set_info, &compute_descriptor_set_),
+        "vkAllocateDescriptorSets(compute)");
+  const VkPipelineLayoutCreateInfo compute_pipeline_layout_info{
+      VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      nullptr,
+      0,
+      1,
+      &compute_descriptor_set_layout_,
+      0,
+      nullptr};
+  Check(functions_.CreatePipelineLayout(device_, &compute_pipeline_layout_info, nullptr,
+                                        &compute_pipeline_layout_),
+        "vkCreatePipelineLayout(compute)");
 }
 
 void VulkanDevice::LoadShaderModule() {
-  const auto *path = std::getenv("NEXORA_SLANG_SPIRV_PATH");
-  if (!path || *path == '\0')
-    throw std::runtime_error("NEXORA_SLANG_SPIRV_PATH is required for the Vulkan backend");
-  std::ifstream file(path, std::ios::binary | std::ios::ate);
-  if (!file)
-    throw std::runtime_error(std::string("cannot open Vulkan shader artifact: ") + path);
-  const auto size = file.tellg();
-  if (size <= 0 || (size % static_cast<std::streamoff>(sizeof(std::uint32_t))) != 0)
-    throw std::runtime_error("Vulkan shader artifact has an invalid size");
-  std::vector<std::uint32_t> words(static_cast<std::size_t>(size) / sizeof(std::uint32_t));
-  file.seekg(0);
-  file.read(reinterpret_cast<char *>(words.data()), size);
-  const VkShaderModuleCreateInfo module_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                                             nullptr,
-                                             0,
-                                             words.size() * sizeof(std::uint32_t),
-                                             words.data()};
-  Check(functions_.CreateShaderModule(device_, &module_info, nullptr, &shader_module_),
-        "vkCreateShaderModule");
+  const auto load = [this](const char *environment, VkShaderModule &module) {
+    const auto *path = std::getenv(environment);
+    if (!path || *path == '\0')
+      throw std::runtime_error(std::string(environment) + " is required for the Vulkan backend");
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file)
+      throw std::runtime_error(std::string("cannot open Vulkan shader artifact: ") + path);
+    const auto size = file.tellg();
+    if (size <= 0 || (size % static_cast<std::streamoff>(sizeof(std::uint32_t))) != 0)
+      throw std::runtime_error("Vulkan shader artifact has an invalid size");
+    std::vector<std::uint32_t> words(static_cast<std::size_t>(size) / sizeof(std::uint32_t));
+    file.seekg(0);
+    file.read(reinterpret_cast<char *>(words.data()), size);
+    const VkShaderModuleCreateInfo module_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr,
+                                               0, words.size() * sizeof(std::uint32_t),
+                                               words.data()};
+    Check(functions_.CreateShaderModule(device_, &module_info, nullptr, &module),
+          "vkCreateShaderModule");
+  };
+  load("NEXORA_SLANG_SPIRV_PATH", shader_module_);
+  load("NEXORA_SLANG_COMPUTE_SPIRV_PATH", compute_shader_module_);
 }
 
 void VulkanDevice::TransitionTextureImmediately(TextureRecord &texture, ResourceState state) {
   if (state == ResourceState::Undefined)
     return;
-  const VkCommandBufferAllocateInfo allocate_info{
-      VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr, immediate_command_pool_,
-      VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
+  const VkCommandBufferAllocateInfo allocate_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                                  nullptr, immediate_command_pool_,
+                                                  VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
   VkCommandBuffer command_buffer = VK_NULL_HANDLE;
   Check(functions_.AllocateCommandBuffers(device_, &allocate_info, &command_buffer),
         "vkAllocateCommandBuffers(texture transition)");
-  const VkCommandBufferBeginInfo begin_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                                            nullptr,
-                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-                                            nullptr};
+  const VkCommandBufferBeginInfo begin_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
+                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, nullptr};
   VkFence fence = VK_NULL_HANDLE;
   try {
     Check(functions_.BeginCommandBuffer(command_buffer, &begin_info),
@@ -702,17 +770,24 @@ void VulkanDevice::TransitionTextureImmediately(TextureRecord &texture, Resource
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
     functions_.CmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                   destination.stages, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-    Check(functions_.EndCommandBuffer(command_buffer),
-          "vkEndCommandBuffer(texture transition)");
+                                  destination.stages, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    Check(functions_.EndCommandBuffer(command_buffer), "vkEndCommandBuffer(texture transition)");
     const VkFenceCreateInfo fence_info{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
     Check(functions_.CreateFence(device_, &fence_info, nullptr, &fence),
           "vkCreateFence(texture transition)");
-    const VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0, nullptr, nullptr,
-                                   1, &command_buffer, 0, nullptr};
+    const VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                                   nullptr,
+                                   0,
+                                   nullptr,
+                                   nullptr,
+                                   1,
+                                   &command_buffer,
+                                   0,
+                                   nullptr};
     Check(functions_.QueueSubmit(graphics_queue_, 1, &submit_info, fence),
           "vkQueueSubmit(texture transition)");
-    Check(functions_.WaitForFences(device_, 1, &fence, VK_TRUE, std::numeric_limits<std::uint64_t>::max()),
+    Check(functions_.WaitForFences(device_, 1, &fence, VK_TRUE,
+                                   std::numeric_limits<std::uint64_t>::max()),
           "vkWaitForFences(texture transition)");
     functions_.DestroyFence(device_, fence, nullptr);
   } catch (...) {
@@ -746,28 +821,25 @@ TextureHandle VulkanDevice::CreateTexture(const TextureDescriptor &descriptor) {
   TextureRecord record;
   record.descriptor = descriptor;
   try {
-    Check(functions_.CreateImage(device_, &image_info, nullptr, &record.image),
-          "vkCreateImage");
+    Check(functions_.CreateImage(device_, &image_info, nullptr, &record.image), "vkCreateImage");
     VkMemoryRequirements requirements{};
     functions_.GetImageMemoryRequirements(device_, record.image, &requirements);
-    const VkMemoryAllocateInfo allocate_info{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-                                             nullptr,
-                                             requirements.size,
-                                             FindMemoryType(requirements.memoryTypeBits,
-                                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
+    const VkMemoryAllocateInfo allocate_info{
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr, requirements.size,
+        FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)};
     Check(functions_.AllocateMemory(device_, &allocate_info, nullptr, &record.memory),
           "vkAllocateMemory(image)");
-    Check(functions_.BindImageMemory(device_, record.image, record.memory, 0),
-          "vkBindImageMemory");
-    const VkImageViewCreateInfo view_info{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                                          nullptr,
-                                          0,
-                                          record.image,
-                                          VK_IMAGE_VIEW_TYPE_2D,
-                                          format,
-                                          {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-                                           VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-                                          {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+    Check(functions_.BindImageMemory(device_, record.image, record.memory, 0), "vkBindImageMemory");
+    const VkImageViewCreateInfo view_info{
+        VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        nullptr,
+        0,
+        record.image,
+        VK_IMAGE_VIEW_TYPE_2D,
+        format,
+        {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+         VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
+        {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
     Check(functions_.CreateImageView(device_, &view_info, nullptr, &record.view),
           "vkCreateImageView");
     TransitionTextureImmediately(record, descriptor.initial_state);
@@ -804,9 +876,115 @@ void VulkanDevice::DestroyTexture(TextureHandle texture) {
   Require(texture_pool_.Destroy(texture), "destroying stale Vulkan texture");
 }
 
+BufferHandle VulkanDevice::CreateBuffer(const BufferDescriptor &descriptor) {
+  if (descriptor.size == 0)
+    throw std::invalid_argument("buffer size must be non-zero");
+  BufferRecord record;
+  record.descriptor = descriptor;
+  const VkBufferCreateInfo info{
+      VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      nullptr,
+      0,
+      descriptor.size,
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+          VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
+      VK_SHARING_MODE_EXCLUSIVE,
+      0,
+      nullptr};
+  try {
+    Check(functions_.CreateBuffer(device_, &info, nullptr, &record.buffer), "vkCreateBuffer");
+    VkMemoryRequirements requirements{};
+    functions_.GetBufferMemoryRequirements(device_, record.buffer, &requirements);
+    const VkMemoryAllocateInfo allocation{
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr, requirements.size,
+        FindMemoryType(requirements.memoryTypeBits,
+                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
+    Check(functions_.AllocateMemory(device_, &allocation, nullptr, &record.memory),
+          "vkAllocateMemory(buffer)");
+    Check(functions_.BindBufferMemory(device_, record.buffer, record.memory, 0),
+          "vkBindBufferMemory");
+  } catch (...) {
+    DestroyBufferRecord(record);
+    throw;
+  }
+  std::lock_guard lock{mutex_};
+  const auto handle = buffer_pool_.Create();
+  buffers_.emplace(Key(handle), std::move(record));
+  return handle;
+}
+
+void VulkanDevice::WriteBuffer(BufferHandle buffer, std::uint64_t offset,
+                               std::span<const std::byte> data) {
+  auto &record = ValidateBuffer(buffer);
+  Require(offset <= record.descriptor.size && data.size() <= record.descriptor.size - offset,
+          "Vulkan buffer write is out of bounds");
+  void *mapped = nullptr;
+  Check(functions_.MapMemory(device_, record.memory, offset, data.size(), 0, &mapped),
+        "vkMapMemory(buffer write)");
+  std::memcpy(mapped, data.data(), data.size());
+  functions_.UnmapMemory(device_, record.memory);
+}
+
+void VulkanDevice::ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
+                                        std::span<std::byte> data) {
+  auto &record = ValidateBuffer(buffer);
+  Require(offset <= record.descriptor.size && data.size() <= record.descriptor.size - offset,
+          "Vulkan buffer read is out of bounds");
+  void *mapped = nullptr;
+  Check(functions_.MapMemory(device_, record.memory, offset, data.size(), 0, &mapped),
+        "vkMapMemory(buffer read)");
+  std::memcpy(data.data(), mapped, data.size());
+  functions_.UnmapMemory(device_, record.memory);
+  ++diagnostics_.readbacks;
+}
+
+void VulkanDevice::DestroyBufferRecord(BufferRecord &buffer) {
+  if (buffer.buffer != VK_NULL_HANDLE)
+    functions_.DestroyBuffer(device_, buffer.buffer, nullptr);
+  if (buffer.memory != VK_NULL_HANDLE)
+    functions_.FreeMemory(device_, buffer.memory, nullptr);
+  buffer.buffer = VK_NULL_HANDLE;
+  buffer.memory = VK_NULL_HANDLE;
+}
+
+void VulkanDevice::DestroyBuffer(BufferHandle buffer) {
+  std::lock_guard lock{mutex_};
+  const auto found = buffers_.find(Key(buffer));
+  Require(buffer_pool_.Contains(buffer) && found != buffers_.end(),
+          "destroying invalid Vulkan buffer");
+  DestroyBufferRecord(found->second);
+  buffers_.erase(found);
+  Require(buffer_pool_.Destroy(buffer), "destroying stale Vulkan buffer");
+}
+
 PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor) {
   if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
     throw std::invalid_argument("pipeline hashes must be non-zero");
+  if (descriptor.type == PipelineType::Compute) {
+    const VkPipelineShaderStageCreateInfo stage{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                                                nullptr,
+                                                0,
+                                                VK_SHADER_STAGE_COMPUTE_BIT,
+                                                compute_shader_module_,
+                                                "computeMain",
+                                                nullptr};
+    const VkComputePipelineCreateInfo info{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+                                           nullptr,
+                                           0,
+                                           stage,
+                                           compute_pipeline_layout_,
+                                           VK_NULL_HANDLE,
+                                           -1};
+    PipelineRecord record;
+    record.descriptor = descriptor;
+    Check(functions_.CreateComputePipelines(device_, VK_NULL_HANDLE, 1, &info, nullptr,
+                                            &record.pipeline),
+          "vkCreateComputePipelines");
+    std::lock_guard lock{mutex_};
+    const auto handle = pipeline_pool_.Create();
+    pipelines_.emplace(Key(handle), std::move(record));
+    return handle;
+  }
   const auto render_pass = RenderPassFor(descriptor.color_format);
   VkPipelineShaderStageCreateInfo stages[2]{};
   stages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -818,7 +996,12 @@ PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor
   stages[1].module = shader_module_;
   stages[1].pName = "fragmentMain";
   const VkPipelineVertexInputStateCreateInfo vertex_input{
-      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, nullptr, 0, 0, nullptr, 0,
+      VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+      nullptr,
+      0,
+      0,
+      nullptr,
+      0,
       nullptr};
   const VkPipelineInputAssemblyStateCreateInfo input_assembly{
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0,
@@ -834,38 +1017,50 @@ PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor
   rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
   rasterizer.lineWidth = 1.0F;
   const VkPipelineMultisampleStateCreateInfo multisample{
-      VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, nullptr, 0, VK_SAMPLE_COUNT_1_BIT,
-      VK_FALSE, 1.0F, nullptr, VK_FALSE, VK_FALSE};
+      VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+      nullptr,
+      0,
+      VK_SAMPLE_COUNT_1_BIT,
+      VK_FALSE,
+      1.0F,
+      nullptr,
+      VK_FALSE,
+      VK_FALSE};
   VkPipelineColorBlendAttachmentState blend_attachment{};
   blend_attachment.blendEnable = VK_FALSE;
   blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                                     VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
   const VkPipelineColorBlendStateCreateInfo blend{
-      VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO, nullptr, 0, VK_FALSE,
-      VK_LOGIC_OP_COPY, 1, &blend_attachment, {0.0F, 0.0F, 0.0F, 0.0F}};
+      VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+      nullptr,
+      0,
+      VK_FALSE,
+      VK_LOGIC_OP_COPY,
+      1,
+      &blend_attachment,
+      {0.0F, 0.0F, 0.0F, 0.0F}};
   const VkDynamicState dynamic_states[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
   const VkPipelineDynamicStateCreateInfo dynamic_state{
       VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr, 0, 2, dynamic_states};
-  const VkGraphicsPipelineCreateInfo pipeline_info{
-      VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-      nullptr,
-      0,
-      2,
-      stages,
-      &vertex_input,
-      &input_assembly,
-      nullptr,
-      &viewport_state,
-      &rasterizer,
-      &multisample,
-      nullptr,
-      &blend,
-      &dynamic_state,
-      pipeline_layout_,
-      render_pass,
-      0,
-      VK_NULL_HANDLE,
-      -1};
+  const VkGraphicsPipelineCreateInfo pipeline_info{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+                                                   nullptr,
+                                                   0,
+                                                   2,
+                                                   stages,
+                                                   &vertex_input,
+                                                   &input_assembly,
+                                                   nullptr,
+                                                   &viewport_state,
+                                                   &rasterizer,
+                                                   &multisample,
+                                                   nullptr,
+                                                   &blend,
+                                                   &dynamic_state,
+                                                   pipeline_layout_,
+                                                   render_pass,
+                                                   0,
+                                                   VK_NULL_HANDLE,
+                                                   -1};
   PipelineRecord record;
   record.descriptor = descriptor;
   record.render_pass = render_pass;
@@ -919,8 +1114,9 @@ VkRenderPass VulkanDevice::RenderPassFor(TextureFormat format) const {
   throw std::invalid_argument("Vulkan render pass requires a color format");
 }
 
-VkFramebuffer VulkanDevice::CreateFramebuffer(const TextureRecord &texture, VkRenderPass render_pass,
-                                              std::uint32_t width, std::uint32_t height) {
+VkFramebuffer VulkanDevice::CreateFramebuffer(const TextureRecord &texture,
+                                              VkRenderPass render_pass, std::uint32_t width,
+                                              std::uint32_t height) {
   const VkImageView attachment = texture.view;
   const VkFramebufferCreateInfo framebuffer_info{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                                                  nullptr,
@@ -954,8 +1150,7 @@ VulkanDevice::TextureRecord &VulkanDevice::RecordTransition(const Barrier &barri
   const auto found = textures_.find(Key(barrier.texture));
   Require(texture_pool_.Contains(barrier.texture) && found != textures_.end(),
           "barrier references invalid Vulkan texture");
-  Require(found->second.logical_state == barrier.before,
-          "Vulkan barrier before-state mismatch");
+  Require(found->second.logical_state == barrier.before, "Vulkan barrier before-state mismatch");
   found->second.logical_state = barrier.after;
   return found->second;
 }
@@ -978,6 +1173,14 @@ VulkanDevice::PipelineRecord &VulkanDevice::ValidatePipeline(PipelineHandle pipe
   return found->second;
 }
 
+VulkanDevice::BufferRecord &VulkanDevice::ValidateBuffer(BufferHandle buffer) {
+  std::lock_guard lock{mutex_};
+  const auto found = buffers_.find(Key(buffer));
+  Require(buffer_pool_.Contains(buffer) && found != buffers_.end(),
+          "binding invalid Vulkan buffer");
+  return found->second;
+}
+
 std::uint64_t VulkanDevice::Submit(CommandList &commands) {
   auto *validated = dynamic_cast<VulkanCommandList *>(&commands);
   VkFence fence = VK_NULL_HANDLE;
@@ -990,8 +1193,9 @@ std::uint64_t VulkanDevice::Submit(CommandList &commands) {
     validated->Close();
     const VkFenceCreateInfo fence_info{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
     Check(functions_.CreateFence(device_, &fence_info, nullptr, &fence), "vkCreateFence(submit)");
-    const VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0, nullptr, nullptr,
-                                   1, &validated->command_buffer_, 0, nullptr};
+    const VkSubmitInfo submit_info{
+        VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0,      nullptr, nullptr, 1,
+        &validated->command_buffer_,   0,       nullptr};
     try {
       Check(functions_.QueueSubmit(graphics_queue_, 1, &submit_info, fence), "vkQueueSubmit");
     } catch (...) {
@@ -1064,10 +1268,20 @@ VulkanDevice::~VulkanDevice() {
     (void)key, DestroyPipelineRecord(pipeline);
   for (auto &[key, texture] : textures_)
     (void)key, DestroyTextureRecord(texture);
+  for (auto &[key, buffer] : buffers_)
+    (void)key, DestroyBufferRecord(buffer);
   if (shader_module_ != VK_NULL_HANDLE)
     functions_.DestroyShaderModule(device_, shader_module_, nullptr);
+  if (compute_shader_module_ != VK_NULL_HANDLE)
+    functions_.DestroyShaderModule(device_, compute_shader_module_, nullptr);
   if (pipeline_layout_ != VK_NULL_HANDLE)
     functions_.DestroyPipelineLayout(device_, pipeline_layout_, nullptr);
+  if (compute_pipeline_layout_ != VK_NULL_HANDLE)
+    functions_.DestroyPipelineLayout(device_, compute_pipeline_layout_, nullptr);
+  if (compute_descriptor_pool_ != VK_NULL_HANDLE)
+    functions_.DestroyDescriptorPool(device_, compute_descriptor_pool_, nullptr);
+  if (compute_descriptor_set_layout_ != VK_NULL_HANDLE)
+    functions_.DestroyDescriptorSetLayout(device_, compute_descriptor_set_layout_, nullptr);
   if (descriptor_pool_ != VK_NULL_HANDLE)
     functions_.DestroyDescriptorPool(device_, descriptor_pool_, nullptr);
   if (descriptor_set_layout_ != VK_NULL_HANDLE)
@@ -1091,23 +1305,20 @@ VulkanDevice::~VulkanDevice() {
 
 VulkanCommandList::VulkanCommandList(VulkanDevice &device, QueueType queue) : device_(device) {
   (void)queue;
-  const VkCommandPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                                          nullptr,
+  const VkCommandPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr,
                                           VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
                                           device_.graphics_queue_family_};
   Check(device_.functions_.CreateCommandPool(device_.device_, &pool_info, nullptr, &command_pool_),
         "vkCreateCommandPool(command list)");
-  const VkCommandBufferAllocateInfo allocate_info{
-      VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO, nullptr, command_pool_,
-      VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
+  const VkCommandBufferAllocateInfo allocate_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                                  nullptr, command_pool_,
+                                                  VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
   try {
     Check(device_.functions_.AllocateCommandBuffers(device_.device_, &allocate_info,
                                                     &command_buffer_),
           "vkAllocateCommandBuffers(command list)");
-    const VkCommandBufferBeginInfo begin_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                                              nullptr,
-                                              VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-                                              nullptr};
+    const VkCommandBufferBeginInfo begin_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
+                                              VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, nullptr};
     Check(device_.functions_.BeginCommandBuffer(command_buffer_, &begin_info),
           "vkBeginCommandBuffer(command list)");
   } catch (...) {
@@ -1156,7 +1367,7 @@ void VulkanCommandList::Transition(const Barrier &barrier) {
   native.subresourceRange.levelCount = 1;
   native.subresourceRange.layerCount = 1;
   device_.functions_.CmdPipelineBarrier(command_buffer_, source.stages, destination.stages, 0, 0,
-                                         nullptr, 0, nullptr, 1, &native);
+                                        nullptr, 0, nullptr, 1, &native);
   ++barriers_;
 }
 
@@ -1164,9 +1375,8 @@ void VulkanCommandList::BeginRendering(const RenderingInfo &info) {
   if (submitted_ || rendering_ || info.width == 0 || info.height == 0)
     throw std::logic_error("invalid Vulkan BeginRendering");
   auto &target = device_.ValidateRenderTarget(info.color_target);
-  framebuffer_ = device_.CreateFramebuffer(target,
-                                            device_.RenderPassFor(target.descriptor.format),
-                                            info.width, info.height);
+  framebuffer_ = device_.CreateFramebuffer(target, device_.RenderPassFor(target.descriptor.format),
+                                           info.width, info.height);
   VkClearValue clear{};
   clear.color.float32[3] = 1.0F;
   VkRenderPassBeginInfo begin{};
@@ -1185,9 +1395,23 @@ void VulkanCommandList::BeginRendering(const RenderingInfo &info) {
 }
 
 void VulkanCommandList::BindPipeline(PipelineHandle pipeline) {
-  if (submitted_ || !rendering_)
-    throw std::logic_error("Vulkan pipeline binding requires rendering");
+  if (submitted_)
+    throw std::logic_error("cannot bind a Vulkan pipeline after submission");
   auto &record = device_.ValidatePipeline(pipeline);
+  if (record.descriptor.type == PipelineType::Compute) {
+    if (rendering_)
+      throw std::logic_error("Vulkan compute pipeline cannot be bound during rendering");
+    device_.functions_.CmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                       record.pipeline);
+    device_.functions_.CmdBindDescriptorSets(command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                             device_.compute_pipeline_layout_, 0, 1,
+                                             &device_.compute_descriptor_set_, 0, nullptr);
+    pipeline_bound_ = true;
+    pipeline_type_ = PipelineType::Compute;
+    return;
+  }
+  if (!rendering_)
+    throw std::logic_error("Vulkan graphics pipeline binding requires rendering");
   const auto &target = device_.ValidateRenderTarget(render_target_);
   device_.Require(record.render_pass == device_.RenderPassFor(target.descriptor.format),
                   "Vulkan pipeline format does not match render target");
@@ -1203,6 +1427,25 @@ void VulkanCommandList::BindPipeline(PipelineHandle pipeline) {
   device_.functions_.CmdSetViewport(command_buffer_, 0, 1, &viewport);
   device_.functions_.CmdSetScissor(command_buffer_, 0, 1, &scissor);
   pipeline_bound_ = true;
+  pipeline_type_ = PipelineType::Graphics;
+}
+
+void VulkanCommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) {
+  if (submitted_ || rendering_ || binding >= 4)
+    throw std::logic_error("invalid Vulkan storage-buffer binding");
+  auto &record = device_.ValidateBuffer(buffer);
+  const VkDescriptorBufferInfo buffer_info{record.buffer, 0, record.descriptor.size};
+  const VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                   nullptr,
+                                   device_.compute_descriptor_set_,
+                                   binding,
+                                   0,
+                                   1,
+                                   VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                   nullptr,
+                                   &buffer_info,
+                                   nullptr};
+  device_.functions_.UpdateDescriptorSets(device_.device_, 1, &write, 0, nullptr);
 }
 
 void VulkanCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
@@ -1217,9 +1460,14 @@ void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
       indirect_buffer_ != VK_NULL_HANDLE)
     throw std::logic_error("invalid Vulkan indirect draw");
   const VkDeviceSize size = sizeof(VkDrawIndirectCommand) * command_count;
-  const VkBufferCreateInfo buffer_info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, nullptr, 0, size,
+  const VkBufferCreateInfo buffer_info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                                       nullptr,
+                                       0,
+                                       size,
                                        VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
-                                       VK_SHARING_MODE_EXCLUSIVE, 0, nullptr};
+                                       VK_SHARING_MODE_EXCLUSIVE,
+                                       0,
+                                       nullptr};
   Check(device_.functions_.CreateBuffer(device_.device_, &buffer_info, nullptr, &indirect_buffer_),
         "vkCreateBuffer(indirect)");
   VkMemoryRequirements requirements{};
@@ -1247,7 +1495,8 @@ void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
 
 void VulkanCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
                                  std::uint32_t groups_z) {
-  if (submitted_ || rendering_ || groups_x == 0 || groups_y == 0 || groups_z == 0)
+  if (submitted_ || rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Compute ||
+      groups_x == 0 || groups_y == 0 || groups_z == 0)
     throw std::logic_error("invalid Vulkan dispatch");
   device_.functions_.CmdDispatch(command_buffer_, groups_x, groups_y, groups_z);
   ++dispatches_;
@@ -1269,10 +1518,7 @@ void VulkanCommandList::Close() {
   closed_ = true;
 }
 
-
 } // namespace
 
-std::unique_ptr<Device> CreateVulkanDevice() {
-  return std::make_unique<VulkanDevice>();
-}
+std::unique_ptr<Device> CreateVulkanDevice() { return std::make_unique<VulkanDevice>(); }
 } // namespace nexora::rhi

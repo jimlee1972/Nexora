@@ -19,6 +19,7 @@ public:
   void BindVertexBuffer(BufferHandle buffer, std::uint64_t offset) override;
   void BindIndexBuffer(BufferHandle buffer, IndexFormat format, std::uint64_t offset) override;
   void BindTexture(std::uint32_t binding, TextureHandle texture) override;
+  void BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) override;
   void SetScissor(const ScissorRect &rect) override;
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
   void DrawIndexed(std::uint32_t index_count, std::uint32_t instance_count,
@@ -45,6 +46,8 @@ private:
   bool vertex_buffer_bound_{false};
   bool index_buffer_bound_{false};
   bool texture_bound_{false};
+  bool compute_pipeline_bound_{false};
+  bool storage_buffer_bound_{false};
   bool scissor_set_{false};
   bool submitted_{false};
   std::uint64_t barriers_{};
@@ -88,6 +91,7 @@ public:
     std::lock_guard lock{mutex_};
     const auto handle = buffers_.Create();
     buffer_sizes_.emplace(Key(handle), descriptor.size);
+    buffer_data_.emplace(Key(handle), std::vector<std::byte>(descriptor.size));
     return handle;
   }
   void WriteBuffer(BufferHandle buffer, std::uint64_t offset,
@@ -96,22 +100,39 @@ public:
     Require(buffers_.Contains(buffer), "writing invalid buffer");
     const auto size = buffer_sizes_.at(Key(buffer));
     Require(offset <= size && data.size() <= size - offset, "buffer write is out of bounds");
+    std::ranges::copy(data,
+                      buffer_data_.at(Key(buffer)).begin() + static_cast<std::ptrdiff_t>(offset));
   }
   void DestroyBuffer(BufferHandle buffer) override {
     std::lock_guard lock{mutex_};
     Require(buffers_.Destroy(buffer), "destroying invalid buffer");
     buffer_sizes_.erase(Key(buffer));
+    buffer_data_.erase(Key(buffer));
+  }
+  void ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
+                            std::span<std::byte> data) override {
+    std::lock_guard lock{mutex_};
+    Require(buffers_.Contains(buffer), "reading invalid buffer");
+    const auto &source = buffer_data_.at(Key(buffer));
+    Require(offset <= source.size() && data.size() <= source.size() - offset,
+            "buffer read is out of bounds");
+    std::ranges::copy_n(source.begin() + static_cast<std::ptrdiff_t>(offset), data.size(),
+                        data.begin());
+    ++diagnostics_.readbacks;
   }
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override {
     if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0) {
       throw std::invalid_argument("pipeline hashes must be non-zero");
     }
     std::lock_guard lock{mutex_};
-    return pipelines_.Create();
+    const auto handle = pipelines_.Create();
+    pipeline_types_.emplace(Key(handle), descriptor.type);
+    return handle;
   }
   void DestroyPipeline(PipelineHandle pipeline) override {
     std::lock_guard lock{mutex_};
     Require(pipelines_.Destroy(pipeline), "destroying invalid pipeline");
+    pipeline_types_.erase(Key(pipeline));
   }
   std::unique_ptr<CommandList> CreateCommandList(QueueType) override {
     return std::make_unique<ValidationCommandList>(*this);
@@ -167,9 +188,10 @@ public:
     Require(texture_states_.at(Key(texture)) == ResourceState::RenderTarget,
             "render target is not in RenderTarget state");
   }
-  void ValidatePipeline(PipelineHandle pipeline) {
+  PipelineType ValidatePipeline(PipelineHandle pipeline) {
     std::lock_guard lock{mutex_};
     Require(pipelines_.Contains(pipeline), "binding invalid pipeline");
+    return pipeline_types_.at(Key(pipeline));
   }
   void ValidateBuffer(BufferHandle buffer, std::uint64_t offset) {
     std::lock_guard lock{mutex_};
@@ -201,6 +223,8 @@ private:
   std::unordered_map<std::uint64_t, std::uint64_t> texture_sizes_;
   std::unordered_map<std::uint64_t, std::uint32_t> texture_row_pitches_;
   std::unordered_map<std::uint64_t, std::uint64_t> buffer_sizes_;
+  std::unordered_map<std::uint64_t, std::vector<std::byte>> buffer_data_;
+  std::unordered_map<std::uint64_t, PipelineType> pipeline_types_;
   DeviceDiagnostics diagnostics_;
   std::uint64_t submitted_submission_{};
   std::uint64_t completed_submission_{};
@@ -244,16 +268,27 @@ void ValidationCommandList::BindTexture(std::uint32_t, TextureHandle texture) {
   device_.ValidateSampledTexture(texture);
   texture_bound_ = true;
 }
+void ValidationCommandList::BindStorageBuffer(std::uint32_t, BufferHandle buffer) {
+  if (submitted_ || rendering_)
+    throw std::logic_error("storage-buffer binding requires a compute command list");
+  device_.ValidateBuffer(buffer, 0);
+  storage_buffer_bound_ = true;
+}
 void ValidationCommandList::SetScissor(const ScissorRect &rect) {
   if (submitted_ || !rendering_ || rect.width == 0 || rect.height == 0)
     throw std::logic_error("invalid scissor rectangle");
   scissor_set_ = true;
 }
 void ValidationCommandList::BindPipeline(PipelineHandle pipeline) {
-  if (submitted_ || !rendering_)
-    throw std::logic_error("pipeline binding requires rendering");
-  device_.ValidatePipeline(pipeline);
-  pipeline_bound_ = true;
+  if (submitted_)
+    throw std::logic_error("cannot bind a pipeline after submission");
+  const auto type = device_.ValidatePipeline(pipeline);
+  if (type == PipelineType::Graphics && !rendering_)
+    throw std::logic_error("graphics pipeline binding requires rendering");
+  if (type == PipelineType::Compute && rendering_)
+    throw std::logic_error("compute pipeline binding cannot occur during rendering");
+  pipeline_bound_ = type == PipelineType::Graphics;
+  compute_pipeline_bound_ = type == PipelineType::Compute;
 }
 void ValidationCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
   if (submitted_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 || instance_count == 0) {
