@@ -28,6 +28,10 @@ the roadmap and never rounded up to a completed milestone. The V1
 percentage is specifically the portable contract-foundation scope described below, not production
 completion on every target platform.
 
+Completed roadmap items use the green `✅` marker. Every content change must re-evaluate affected
+roadmap items and keep this GitHub README's progress and status text synchronized with the evidence;
+an unchecked or unmarked item remains incomplete.
+
 | Roadmap | Progress | Basis |
 | --- | ---: | --- |
 | ✅ [V1 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md) | **100%** | 13/13 portable M0–M12 contract foundations delivered; native/product adapters remain separate gates. |
@@ -41,7 +45,7 @@ completion on every target platform.
 | [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 through ✅ ZS-M4 are complete; ZS-M5 has automated Linux isolated-package launch evidence, while other target-host distribution acceptance remains open. |
 | [Graphical Editor](Roadmap/en/Editor_Roadmap.md) | **0% (0/8)** | Repository audit confirms portable foundations for every ED track and an in-progress Dear ImGui shell, but no graphical ED milestone has passed all automated and target-host gates. |
 | [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **60%** | Mean of API 100%, Zig Showcase 90%, and Editor 0%, rounded down to 10%. |
-| [V1 Visual Showcase](Roadmap/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | Headless entry/reporting prerequisites exist; no windowed phase is complete. |
+| [V1 Visual Showcase](Roadmap/en/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | Headless entry/reporting prerequisites exist; no windowed phase is complete. |
 
 
 ### Repository status
@@ -116,6 +120,9 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 只有具備證據的已完成驗收項目才計入；部分進度記錄在各 Roadmap 內，且不會向上取整為已完成 milestone。V1 百分比
 特指下方所述的 portable contract-foundation scope，不代表所有目標平台的 production 實作均已完成。
 
+已完成的 Roadmap 項目統一使用綠色 `✅` 標記。每次更新內容都必須重新檢視受影響的 Roadmap 項目，
+並根據驗收證據同步這份 GitHub README 的進度或狀態文字；未打勾或未標記的項目視為尚未完成。
+
 | Roadmap | 進度 | 計算依據 |
 | --- | ---: | --- |
 | ✅ [V1 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V1_完整規劃書_v1_2.md) | **100%** | 13/13 個 portable M0–M12 contract foundation 已交付；native/product adapter 仍為獨立 gate。 |
@@ -129,7 +136,7 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 至 ✅ ZS-M4 已完成；ZS-M5 現有自動化 Linux isolated-package launch evidence，其他 target-host distribution 驗收仍待完成。 |
 | [圖形化 Editor](Roadmap/zh-TW/Editor_Roadmap.md) | **0%（0/8）** | Repository 稽核確認各 ED track 已有 portable foundation，Dear ImGui shell 亦在施工中，但尚無 graphical ED milestone 通過全部 automated 與 target-host gate。 |
 | [聚焦 Roadmap AI 施工規劃](Roadmap/zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) | **60%** | API 100%、Zig Showcase 90% 與 Editor 0% 的平均，向下取整至 10%。 |
-| [V1 可視化 Showcase](Roadmap/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | 已有 headless entry/reporting 前置；尚無 windowed phase 完成。 |
+| [V1 可視化 Showcase](Roadmap/zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | 已有 headless entry/reporting 前置；尚無 windowed phase 完成。 |
 
 ### Repository 狀態
 

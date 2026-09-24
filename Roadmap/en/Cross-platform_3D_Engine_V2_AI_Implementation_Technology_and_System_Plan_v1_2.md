@@ -1197,11 +1197,11 @@ Only then may it publish.
 
 Repository evidence checklist:
 
-- [x] Deterministic CPU culling, compaction, classification, and indirect-command reference.
-- [x] Portable compute dispatch and indirect draw recording.
-- [x] RenderGraph compute/graphics ownership transitions.
-- [x] CPU/backend comparison and normal-path no-readback diagnostics.
-- [x] Native Vulkan indirect execution in the Linux offscreen gate.
+- ✅ Deterministic CPU culling, compaction, classification, and indirect-command reference.
+- ✅ Portable compute dispatch and indirect draw recording.
+- ✅ RenderGraph compute/graphics ownership transitions.
+- ✅ CPU/backend comparison and normal-path no-readback diagnostics.
+- ✅ Native Vulkan indirect execution in the Linux offscreen gate.
 - [ ] Native compute execution, DX12/Metal indirect execution, and complete target-tier parity.
 
 Core data:

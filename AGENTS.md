@@ -22,6 +22,10 @@ macOS, Android, or iOS validation ran in the Linux cloud environment.
 
 - Read the relevant README and roadmap document before changing an architectural boundary.
 - Keep `Roadmap/en/` and `Roadmap/zh-TW/` synchronized.
+- After every content change, review all roadmap documents for affected delivered functionality.
+  Mark every newly completed item with the green `✅` symbol (never `[x]`), keep incomplete items
+  unmarked, and update the progress or supporting status text in the repository-root `README.md`
+  (the GitHub README). Do not claim completion without acceptance evidence.
 - Declare module dependencies in `Config/Modules/modules.json`; optional modules require a feature
   option.
 - Update the applicable contract README when ownership, lifetime, threading, error, or deferred-work

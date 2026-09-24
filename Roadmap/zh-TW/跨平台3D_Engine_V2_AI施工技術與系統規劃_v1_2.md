@@ -1207,11 +1207,11 @@ Output type
 
 Repository 證據清單：
 
-- [x] Deterministic CPU culling、compaction、classification 與 indirect-command reference。
-- [x] Portable compute dispatch 與 indirect draw recording。
-- [x] RenderGraph compute／graphics ownership transition。
-- [x] CPU／backend comparison 與 normal-path no-readback diagnostics。
-- [x] Linux offscreen gate 的 native Vulkan indirect execution。
+- ✅ Deterministic CPU culling、compaction、classification 與 indirect-command reference。
+- ✅ Portable compute dispatch 與 indirect draw recording。
+- ✅ RenderGraph compute／graphics ownership transition。
+- ✅ CPU／backend comparison 與 normal-path no-readback diagnostics。
+- ✅ Linux offscreen gate 的 native Vulkan indirect execution。
 - [ ] Native compute execution、DX12／Metal indirect execution 與完整 target-tier parity。
 
 核心資料：

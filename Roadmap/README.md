@@ -4,6 +4,10 @@
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).
 
+Completed items use the green `✅` marker. After every repository content change, affected roadmap
+status and the progress/status summary in the repository-root [`README.md`](../README.md) must be
+updated together and remain evidence-based.
+
 ### Document index
 
 | Document | Progress | English edition |
@@ -17,11 +21,11 @@ This directory contains the version roadmaps and focused capability roadmaps for
 | ✅ Engine API Foundation Roadmap | **100%** | [Engine API Foundation Roadmap](en/Engine_API_Foundation_Roadmap.md) |
 | Zig Showcase Roadmap | **90%** | [Zig Showcase and Engine-owned Entry Point Roadmap](en/Zig_Showcase_Roadmap.md) |
 | ✅ Window and Native Presentation Roadmap | **100% implementation** | [Window and Native Presentation Roadmap](en/Window_Presentation_Roadmap.md) |
-| V1 Visual Showcase Long-Term Plan | **Draft** | [V1 Visual Showcase Demo Long-Term Plan](en/V1-Visual-Showcase-Long-Term-Plan.md) |
+| V1 Visual Showcase Long-Term Plan | **10%** | [V1 Visual Showcase Demo Long-Term Plan](en/V1-Visual-Showcase-Long-Term-Plan.md) |
 | Editor Roadmap | **0% graphical acceptance** | [Graphical Editor Roadmap](en/Editor_Roadmap.md) |
 | ✅ ADR-0001: Editor UI Framework | **Accepted** | [ADR-0001: Editor UI Framework](en/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui Integration Plan | **In progress; no WP exit gate accepted** | [Editor ED-M0 Dear ImGui Integration Plan](en/Editor_ImGui_Integration_Plan.md) |
-| V2-M3 GPU-Driven Native Execution Plan | **Proposed, not started** | [V2-M3 GPU-Driven Native Execution Plan](en/V2-M3_GPU_Driven_Native_Execution_Plan.md) |
+| V2-M3 GPU-Driven Native Execution Plan | **In progress; ✅ Phase 1a complete** | [V2-M3 GPU-Driven Native Execution Plan](en/V2-M3_GPU_Driven_Native_Execution_Plan.md) |
 | Focused Roadmaps AI Plan | **60%** | [AI Implementation Technology and System Plan](en/Focused_Roadmaps_AI_Implementation_Plan.md) |
 
 > `Tools/Migration/ScanV1Project.py` (V1-to-V2 migration audit) and `Tools/Production/NexoraTool.py`
@@ -52,6 +56,9 @@ The documents are planning artifacts. They do not themselves authorize commands,
 
 本目錄收錄 Nexora 公開基線使用的版本規劃與聚焦能力規劃。英文版位於 [`en/`](en/)，對應的繁體中文版位於 [`zh-TW/`](zh-TW/)。
 
+已完成項目統一使用綠色 `✅` 標記。每次 repository 內容更新後，必須一併更新受影響的
+Roadmap 狀態與 repository root [`README.md`](../README.md) 的進度／狀態摘要，且所有完成標記都必須有驗收證據。
+
 ### 文件索引
 
 | 文件 | 進度 | 繁體中文版 |
@@ -65,11 +72,11 @@ The documents are planning artifacts. They do not themselves authorize commands,
 | ✅ Engine API 基礎 Roadmap | **100%** | [Engine API 基礎 Roadmap](zh-TW/Engine_API_基礎_Roadmap.md) |
 | Zig Showcase Roadmap | **90%** | [Zig Showcase 與 Engine-owned Entry Point Roadmap](zh-TW/Zig_Showcase_Roadmap.md) |
 | ✅ Window 與 Native Presentation Roadmap | **100% 實作** | [Window 與 Native Presentation Roadmap](zh-TW/Window_Presentation_Roadmap.md) |
-| V1 可視化展示 Demo 長期規劃 | **Draft** | [Nexora V1 可視化展示 Demo 長期規劃](zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) |
+| V1 可視化展示 Demo 長期規劃 | **10%** | [Nexora V1 可視化展示 Demo 長期規劃](zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) |
 | Editor Roadmap | **0% 圖形化驗收** | [圖形化 Editor Roadmap](zh-TW/Editor_Roadmap.md) |
 | ✅ ADR-0001：Editor UI Framework | **Accepted** | [ADR-0001：Editor UI Framework](zh-TW/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui 整合計畫 | **施工中；尚無 WP 通過 exit gate** | [Editor ED-M0 Dear ImGui 整合計畫](zh-TW/Editor_ImGui_Integration_Plan.md) |
-| V2-M3 GPU-Driven Native Execution 計畫 | **提案，尚未開始** | [V2-M3 GPU-Driven Native Execution 計畫](zh-TW/V2-M3_GPU_Driven_Native_Execution_Plan.md) |
+| V2-M3 GPU-Driven Native Execution 計畫 | **施工中；✅ Phase 1a 已完成** | [V2-M3 GPU-Driven Native Execution 計畫](zh-TW/V2-M3_GPU_Driven_Native_Execution_Plan.md) |
 | 聚焦 Roadmap AI 施工規劃 | **60%** | [AI 施工技術與系統規劃](zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) |
 
 > `Tools/Migration/ScanV1Project.py`（V1 到 V2 的 migration 稽核）與 `Tools/Production/NexoraTool.py`

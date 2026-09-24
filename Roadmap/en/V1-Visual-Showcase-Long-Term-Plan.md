@@ -1,5 +1,18 @@
 # Nexora V1 Visual Showcase Demo Long-Term Plan
 
+> **Progress: 10%** (as of 2026-09-23; weighted across the Phase A-E acceptance items;
+> completed items use ✅; a headless contract does not complete a windowed phase.)
+
+## 0. Current-state audit
+
+- ✅ C++-owned `NexoraShowcase` entry point, CLI, and ordered Engine/module shutdown exist.
+- ✅ A deterministic headless scene, validation RHI, scene extraction, and JSON evidence report exist.
+- ✅ The Zig static consumer provides fixed/update, Transform read/write, and transactional state migration.
+- Open: native window/input/swapchain are owned by the Window and Native Presentation Roadmap.
+- Open: real 3D Hub and Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping rooms.
+- Open: M0-M12 probe registry, interactive/guided tour, error injection, and visual status UI.
+- Open: clean package launch, manifest/checksum, windowed smoke, and versioned screenshot evidence.
+
 > Document version: v1.0
 >
 > Document status: planning baseline (Draft)
