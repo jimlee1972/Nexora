@@ -23,9 +23,7 @@ for the upcoming Scene/Game views.
   vertex offsets in indexed draws. The submitted command list owns the ordering; transient
   resources are released only after `Submit` returns.
 - Recovery is prompted once per discovered journal. Failed recover/discard operations keep the
-  modal open and expose the data-layer error instead of silently dismissing it. The modal accepts
-  both its visible buttons and the `R` (recover) / `D` (discard) keys so display-backed workflow
-  automation exercises the same UI path as a user.
+  modal open and expose the data-layer error instead of silently dismissing it.
 
 ## Threading and errors
 
@@ -44,12 +42,3 @@ The stable `ProductShell` panel and command IDs are the semantic source for a fu
 accessibility tree. Widget labels use those stable IDs and never become the data-model identity.
 Dear ImGui does not provide a native accessibility tree, so keyboard traversal and screen-reader
 bridges remain ED-M7 work; plugins must not inspect the ImGui widget tree to supply semantics.
-
-## Display-backed recovery gate
-
-When `Xvfb` and `xdotool` are available at configure time,
-`editor.crash_recovery_workflow` launches the real graphical Editor on X11, kills it with a pending
-journal, relaunches it, and waits until the recovery modal is visibly open. It then drives both the
-recover and discard choices through native keyboard events and verifies the resulting files. This
-is automated Linux display evidence; physical-display inspection remains part of ED-M0's broader
-human acceptance gate.

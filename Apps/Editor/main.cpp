@@ -31,7 +31,6 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
   nexora::editor::SceneDocument scene(world, scene_id);
   scene.Create("Scene Root");
   std::uint32_t frames = 0;
-  bool reported_recovery_prompt = false;
   while (!created.surface->CloseRequested() && (frame_limit == 0 || frames < frame_limit)) {
     const auto status = created.surface->BeginFrame();
     const auto action = Nexora::Presentation::RecoveryAction(status);
@@ -48,10 +47,6 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
     ui.UpdateImeCandidate(*created.surface);
     ui.BeginFrame();
     ui.DrawProductShell(shell, &scene, &workspace);
-    if (ui.RecoveryPromptVisible() && !reported_recovery_prompt) {
-      std::cerr << "recovery prompt visible\n";
-      reported_recovery_prompt = true;
-    }
     static_cast<void>(ui.EndFrame());
     if (ui.Render(*created.surface, frame.width, frame.height) !=
         Nexora::Presentation::SurfaceStatus::Ready)

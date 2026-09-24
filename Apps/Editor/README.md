@@ -29,5 +29,3 @@ presentation backend is reported as an error rather than silently falling back t
 The shell tracks the surface's live client extent and DPI scale, rebuilds its composited UI frame
 after a resize, submits it into the acquired presentation backbuffer, and supplies a live
 `SceneDocument` to the Hierarchy panel. It does not create a validation-device offscreen target.
-The recovery modal also supports `R` to recover and `D` to discard, enabling the display-backed
-crash/relaunch workflow gate without bypassing the graphical prompt.
