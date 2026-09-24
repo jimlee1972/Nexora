@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend Execution Plan
 
-> Version: v1.0 | Status: proposed plan, not yet started | Updated: 2026-09-24 | Relates to:
+> Version: v1.0 | Status: in progress; Phase 1a complete | Updated: 2026-09-24 | Relates to:
 > `Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md` §V2-M3
 
 ## 1. Purpose
@@ -8,9 +8,8 @@
 V2-M3's gate has four checked items (portable command batching, no-readback contract diagnostics,
 RenderGraph queue/barrier ownership, CPU-reference correctness comparison) and one unchecked item:
 **native DX12/Vulkan/Metal target-tier parity on target hosts**. This document plans the work
-needed to check that last box. It is a plan, not a milestone status update: nothing in this
-document is implemented yet, and no roadmap progress percentage changes until the phases below
-actually land and pass their gates.
+needed to check that last box. Phase 1a is complete, but the milestone remains open and no roadmap
+progress percentage changes until all remaining phases land and pass their gates.
 
 ## 2. Current baseline (verified against source, not just roadmap prose)
 
@@ -78,7 +77,7 @@ is a reliable tell that it silently skipped instead.
 
 ## 5. Phased plan
 
-### Phase 1a -- Vulkan compute dispatch, shape-level (done, corrected)
+### ✅ Phase 1a -- Vulkan compute dispatch, shape-level (done, corrected)
 
 - ✅ Implemented `VulkanCommandList::Dispatch` (`vkCmdDispatch`), mirroring the existing
   `VulkanCommandList::DrawIndirect` pattern; wired `DeviceDiagnostics::compute_dispatches`

@@ -28,25 +28,25 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
 
 ### Verified implementation checklist
 
-- [x] The graphical shell is optional and isolated in `NexoraEditorImGui`; Editor Core has no
+- ✅ The graphical shell is optional and isolated in `NexoraEditorImGui`; Editor Core has no
   Dear ImGui dependency.
-- [x] Dear ImGui is pinned to `v1.91.9b-docking`, docking is enabled, and unmanaged `imgui.ini`
+- ✅ Dear ImGui is pinned to `v1.91.9b-docking`, docking is enabled, and unmanaged `imgui.ini`
   persistence is disabled.
-- [x] `NexoraEditor --graphical` creates one public `RenderSurface` and consumes its `WindowEvent`
+- ✅ `NexoraEditor --graphical` creates one public `RenderSurface` and consumes its `WindowEvent`
   stream and live `FrameInfo` extent/DPI state.
-- [x] The host owns one `ImGuiContext`, presents stable-ID Hierarchy/Console panels, builds the
+- ✅ The host owns one `ImGuiContext`, presents stable-ID Hierarchy/Console panels, builds the
   initial dock layout, and round-trips Hierarchy selection through `SceneDocument`.
-- [x] The portable RHI draw-contract overload uploads vertices/indices, applies scaled scissors,
+- ✅ The portable RHI draw-contract overload uploads vertices/indices, applies scaled scissors,
   preserves index/vertex offsets, and is exercised on the validation device.
-- [x] Key/modifier, pointer, wheel, focus, Unicode text, DPI, and IME candidate callbacks have
+- ✅ Key/modifier, pointer, wheel, focus, Unicode text, DPI, and IME candidate callbacks have
   implementation foundations.
-- [x] Recovery UI calls only `ProjectWorkspace` recover/discard operations, preserves failures,
+- ✅ Recovery UI calls only `ProjectWorkspace` recover/discard operations, preserves failures,
   and exposes exactly-once result consumption.
-- [x] The production surface overload emits backend-neutral textured/indexed `UiDrawData`; Vulkan,
+- ✅ The production surface overload emits backend-neutral textured/indexed `UiDrawData`; Vulkan,
   DX12, and Metal implementations record native GPU draws without `CompositeRgba8`.
-- [x] Pipeline, sampler, generation-checked textures, bounded upload rings, and
+- ✅ Pipeline, sampler, generation-checked textures, bounded upload rings, and
   completion-protected retirement are implemented for the production surface and validation paths.
-- [x] Project-owned layout persistence, DPI font-atlas rebuilding, and recovery
+- ✅ Project-owned layout persistence, DPI font-atlas rebuilding, and recovery
   failure/exactly-once contract coverage exist.
 - [ ] Physical-display Linux graphical validation and Windows DPI/IME target-host acceptance
   evidence are recorded and passing. Automated X11 rendering and kill/relaunch recovery are

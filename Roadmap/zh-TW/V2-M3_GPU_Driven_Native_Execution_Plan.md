@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend 執行計畫
 
-> 版本：v1.0｜狀態：提案計畫，尚未開始｜更新：2026-09-24｜對應：
+> 版本：v1.0｜狀態：施工中；Phase 1a 已完成｜更新：2026-09-24｜對應：
 > `跨平台3D_Engine_V2_完整規劃書_v1_4.md` §V2-M3
 
 ## 1. 目的
@@ -8,8 +8,8 @@
 V2-M3 的 gate 有四項已勾選（portable command batching、no-readback contract diagnostics、
 RenderGraph queue/barrier ownership、CPU-reference correctness comparison），還有一項未勾選：
 **native DX12/Vulkan/Metal target-tier parity on target hosts**。這份文件規劃要補上那一項所需的
-工作。這是一份計畫，不是 milestone 進度更新：目前文件裡的東西都還沒實作，下面各階段實際落地並
-通過各自的 gate 之前，roadmap 進度百分比不會變動。
+工作。Phase 1a 已完成，但 milestone 仍未完成；其餘階段全部落地並通過各自的
+gate 之前，roadmap 進度百分比不會變動。
 
 ## 2. 現況基線（對照原始碼逐一確認過，不是只憑 roadmap 文字）
 
@@ -62,7 +62,7 @@ Apple 主機）；下面各階段中，Vulkan 的部分可以在這裡實作跟�
 
 ## 5. 分階段計畫
 
-### Phase 1a — Vulkan compute dispatch，形狀層級（已完成，且已修正）
+### ✅ Phase 1a — Vulkan compute dispatch，形狀層級（已完成，且已修正）
 
 - ✅ 實作了 `VulkanCommandList::Dispatch`（`vkCmdDispatch`），比照現有
   `VulkanCommandList::DrawIndirect` 的做法；在 `VulkanDevice::Submit` 接上

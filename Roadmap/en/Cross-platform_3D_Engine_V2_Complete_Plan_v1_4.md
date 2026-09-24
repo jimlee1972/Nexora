@@ -3869,12 +3869,12 @@ Meshlet metadata
 
 **Gate:**
 
-- [x] The portable command path batches large instance sets instead of issuing one CPU draw per
+- ✅ The portable command path batches large instance sets instead of issuing one CPU draw per
       object.
 - [ ] Native DX12 / Vulkan / Metal target-tier parity is demonstrated on target hosts.
-- [x] Contract diagnostics verify that the normal portable path performs no GPU readback.
-- [x] RenderGraph owns queue transitions, barriers, and resource lifetime in the portable contract.
-- [x] The CPU fallback performs deterministic correctness comparison with recorded backend output.
+- ✅ Contract diagnostics verify that the normal portable path performs no GPU readback.
+- ✅ RenderGraph owns queue transitions, barriers, and resource lifetime in the portable contract.
+- ✅ The CPU fallback performs deterministic correctness comparison with recorded backend output.
 
 Checked items are repository-level contract evidence. V2-M3 is accepted only after the remaining
 native target-host parity item passes; therefore the milestone and overall progress stay open at

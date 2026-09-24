@@ -25,24 +25,24 @@ Metal native draw recording。這些仍只是 foundation，因 real-display Linu
 
 ### 已確認實作 checklist
 
-- [x] Graphical shell 是 optional 且隔離於 `NexoraEditorImGui`；Editor Core 不相依 Dear ImGui。
-- [x] Dear ImGui 固定為 `v1.91.9b-docking`、已啟用 docking，並停用 unmanaged `imgui.ini`
+- ✅ Graphical shell 是 optional 且隔離於 `NexoraEditorImGui`；Editor Core 不相依 Dear ImGui。
+- ✅ Dear ImGui 固定為 `v1.91.9b-docking`、已啟用 docking，並停用 unmanaged `imgui.ini`
   persistence。
-- [x] `NexoraEditor --graphical` 建立一個 public `RenderSurface`，並消費其 `WindowEvent` stream
+- ✅ `NexoraEditor --graphical` 建立一個 public `RenderSurface`，並消費其 `WindowEvent` stream
   與即時 `FrameInfo` extent／DPI state。
-- [x] Host 擁有一個 `ImGuiContext`、呈現 stable-ID Hierarchy／Console panel、建立 initial dock
+- ✅ Host 擁有一個 `ImGuiContext`、呈現 stable-ID Hierarchy／Console panel、建立 initial dock
   layout，且 Hierarchy selection 會經 `SceneDocument` round-trip。
-- [x] Portable RHI draw-contract overload 會上傳 vertex/index、套用 scaled scissor、保留 index/
+- ✅ Portable RHI draw-contract overload 會上傳 vertex/index、套用 scaled scissor、保留 index/
   vertex offset，並由 validation device 測試。
-- [x] Key/modifier、pointer、wheel、focus、Unicode text、DPI 與 IME candidate callback 已有施工
+- ✅ Key/modifier、pointer、wheel、focus、Unicode text、DPI 與 IME candidate callback 已有施工
   foundation。
-- [x] Recovery UI 只呼叫 `ProjectWorkspace` recover/discard operation、保留 failure，並提供
+- ✅ Recovery UI 只呼叫 `ProjectWorkspace` recover/discard operation、保留 failure，並提供
   exactly-once result consumption。
-- [x] Production surface overload 會送出 backend-neutral textured/indexed `UiDrawData`；Vulkan、
+- ✅ Production surface overload 會送出 backend-neutral textured/indexed `UiDrawData`；Vulkan、
   DX12 與 Metal implementation 直接記錄 native GPU draw，不再呼叫 `CompositeRgba8`。
-- [x] Production surface 與 validation path 已實作 pipeline、sampler、generation-checked texture、
+- ✅ Production surface 與 validation path 已實作 pipeline、sampler、generation-checked texture、
   bounded upload ring 與 completion-protected retirement。
-- [x] Project-owned layout persistence、DPI font-atlas rebuild，以及 recovery failure／exactly-once
+- ✅ Project-owned layout persistence、DPI font-atlas rebuild，以及 recovery failure／exactly-once
   contract coverage 已存在。
 - [ ] Physical-display Linux graphical validation 與 Windows DPI／IME target-host acceptance
   evidence 均已有記錄且通過。Automated X11 rendering 與 kill/relaunch recovery 已納入 feature-on
