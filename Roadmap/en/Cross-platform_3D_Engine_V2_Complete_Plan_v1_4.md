@@ -3,7 +3,7 @@
 **Document Version: Master Draft v1.4**
 **Engine Generation: V2.x — Scale-Up / Production**
 
-> **Progress: 15%** (✅ V2-M0 and ✅ V2-M1 have passed their portable repository gates; V2-M2 through V2-M12 remain open. Native target evidence remains a separate gate.)
+> **Progress: 23%** (✅ V2-M0 through ✅ V2-M2 have passed their portable repository gates; V2-M3 through V2-M12 remain open. Native target evidence remains a separate gate.)
 
 > This document is the **V2 Master Plan**. All V1 Contracts are inherited by default; only items explicitly marked “V2 supersede” in this document may change V1 behavior.
 >
@@ -3792,7 +3792,7 @@ Reason: Subsequent Networking Schema, Distributed Cook, and Large World Build al
 
 ---
 
-## V2-M2 — GPUScene / Render Extraction V2
+## ✅ V2-M2 — GPUScene / Render Extraction V2
 
 Construction:
 
@@ -3818,9 +3818,22 @@ Do not implement complete GPU culling yet.
 ✓ CPU reference path and GPUScene rendering can be compared
 ```
 
+Delivered evidence: `GPUScene` provides stable generational object slots, categorized deterministic
+dirty uploads, current/previous transforms, bounds, mesh/material resource indices, visibility and
+LOD metadata, and fence-safe retirement. Its deterministic CPU reference snapshot permits complete
+identity and render-data comparison before GPU culling is enabled. Contract tests cover create,
+update, destroy/reuse, stale handles, dirty batches, transform history, fence reclamation, and the
+reference snapshot.
+
 ---
 
 ## V2-M3 — GPU-Driven Rendering
+
+Current evidence: the deterministic CPU reference implements frustum/distance/LOD culling,
+conservative Hi-Z with explicit invalidation, visible-instance compaction, material/mesh/LOD
+classification, and indirect-command generation. V2-M3 remains open because native compute/indirect
+execution, RenderGraph queue/barrier ownership, no-readback proof, and DX12/Vulkan/Metal target-tier
+parity have not passed their gates.
 
 Order:
 

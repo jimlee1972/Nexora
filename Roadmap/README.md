@@ -10,8 +10,8 @@ This directory contains the version roadmaps and focused capability roadmaps for
 | --- | ---: | --- |
 | ✅ V1 Complete Plan | **100%** | [Cross-platform 3D Engine — V1 Complete Plan](en/Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md) |
 | ✅ V1 AI Implementation Technology and System Plan | **100%** | [Cross-platform 3D Engine — V1 AI Implementation Technology and System Plan](en/Cross-platform_3D_Engine_V1_AI_Implementation_Technology_and_System_Plan_v1_2.md) |
-| V2 Complete Plan | **15%** | [Cross-platform 3D Engine — V2 Complete Plan](en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) |
-| V2 AI Implementation Technology and System Plan | **15%** | [Cross-platform 3D Engine — V2 AI Implementation Technology and System Plan](en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md) |
+| V2 Complete Plan | **23%** | [Cross-platform 3D Engine — V2 Complete Plan](en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) |
+| V2 AI Implementation Technology and System Plan | **23%** | [Cross-platform 3D Engine — V2 AI Implementation Technology and System Plan](en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md) |
 | V3 Complete Plan | **0%** | [Cross-platform 3D Engine — V3 Complete Plan](en/Cross-platform_3D_Engine_V3_Complete_Plan_v1_4.md) |
 | V3 AI Implementation Technology and System Plan | **0%** | [Cross-platform 3D Engine — V3 AI Implementation Technology and System Plan](en/Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md) |
 | ✅ Engine API Foundation Roadmap | **100%** | [Engine API Foundation Roadmap](en/Engine_API_Foundation_Roadmap.md) |
@@ -44,8 +44,8 @@ The documents are planning artifacts. They do not themselves authorize commands,
 | --- | ---: | --- |
 | ✅ V1 完整規劃書 | **100%** | [跨平台 3D Engine — V1 完整規劃書](zh-TW/跨平台3D_Engine_V1_完整規劃書_v1_2.md) |
 | ✅ V1 AI 施工技術與系統規劃 | **100%** | [跨平台 3D Engine — V1 AI 施工技術與系統規劃](zh-TW/跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_2.md) |
-| V2 完整規劃書 | **15%** | [跨平台 3D Engine — V2 完整規劃書](zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) |
-| V2 AI 施工技術與系統規劃 | **15%** | [跨平台 3D Engine — V2 AI 施工技術與系統規劃](zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) |
+| V2 完整規劃書 | **23%** | [跨平台 3D Engine — V2 完整規劃書](zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) |
+| V2 AI 施工技術與系統規劃 | **23%** | [跨平台 3D Engine — V2 AI 施工技術與系統規劃](zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) |
 | V3 完整規劃書 | **0%** | [跨平台 3D Engine — V3 完整規劃書](zh-TW/跨平台3D_Engine_V3_完整規劃書_v1_4.md) |
 | V3 AI 施工技術與系統規劃 | **0%** | [跨平台 3D Engine — V3 AI 施工技術與系統規劃](zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) |
 | ✅ Engine API 基礎 Roadmap | **100%** | [Engine API 基礎 Roadmap](zh-TW/Engine_API_基礎_Roadmap.md) |
