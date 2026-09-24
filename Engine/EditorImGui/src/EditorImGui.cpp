@@ -266,7 +266,7 @@ void EditorImGuiHost::DrawProductShell(const ProductShell &shell, SceneDocument 
     ImGui::TextUnformatted("A recovery journal is available.");
     if (!state_->recovery_error.empty())
       ImGui::TextWrapped("%s", state_->recovery_error.c_str());
-    if (ImGui::Button("Recover")) {
+    if (ImGui::Button("Recover") || ImGui::IsKeyPressed(ImGuiKey_R, false)) {
       std::string error;
       if (workspace->RecoverWorkspace(&error)) {
         state_->recovery_choice = RecoveryChoice::Recover;
@@ -277,7 +277,7 @@ void EditorImGuiHost::DrawProductShell(const ProductShell &shell, SceneDocument 
       }
     }
     ImGui::SameLine();
-    if (ImGui::Button("Discard")) {
+    if (ImGui::Button("Discard") || ImGui::IsKeyPressed(ImGuiKey_D, false)) {
       std::string error;
       if (workspace->DiscardRecovery(&error)) {
         state_->recovery_choice = RecoveryChoice::Discard;
@@ -470,5 +470,10 @@ RecoveryChoice EditorImGuiHost::TakeRecoveryChoice() noexcept {
   const auto choice = state_->recovery_choice;
   state_->recovery_choice = RecoveryChoice::None;
   return choice;
+}
+
+bool EditorImGuiHost::RecoveryPromptVisible() const noexcept {
+  Activate(state_->context);
+  return ImGui::IsPopupOpen("Recover workspace###editor.recovery");
 }
 } // namespace nexora::editor::imgui

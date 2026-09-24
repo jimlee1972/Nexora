@@ -1,337 +1,182 @@
 # Editor ED-M0 Dear ImGui 整合計畫
 
-> 版本：v1.3｜狀態：施工中；native GPU renderer 與 target-host 證據待完成｜
-> 更新：2026-09-24｜對應：`Editor_Roadmap.md`（ED-M0）、
-> `ADR-0001-Editor-UI-Framework.md`、`Window_Presentation_Roadmap.md`
-
-## 1. 目標、驗收邊界與目前事實
-
-ADR-0001 已選定支援 docking 的 Dear ImGui。本文件是 AI agent 完成 ED-M0 時必須遵守的施工規格，
-不得另造第二套 window、presentation 或 editor data model。只有 Editor 經 public `RenderSurface` 開啟、
-顯示可用的 GPU-backed docked shell、吃到真實 input、正確處理 DPI 與 Windows IME、在正常編輯前提供
-recovery，且具備可重現的自動化與 target-host 證據，ED-M0 才算驗收。
-
-Repo 已有 feature-gated `NexoraEditorImGui`、釘版 Dear ImGui docking dependency、context ownership、
-input translation、stable-ID docking、live Hierarchy、recovery modal、DPI/theme policy、RHI draw-contract
-路徑，以及將 CPU rasterized RGBA8 image composite 進 acquired surface 的 application 路徑。這些是基礎，
-不是最終 renderer 驗收：graphical path 必須停止每 frame 在 CPU rasterize，改由 public RHI contract 把
-ImGui textured/indexed draw list 直接 submit 到 acquired presentation image。Real-display Linux 證據與
-Windows DPI/IME 證據也仍缺少，因此 ED-M0 保持未完成。
-
-### 「完成」的定義
-
-同一個 commit 必須同時滿足：
-
-1. `NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF` 保留 headless Editor，且不 fetch/link Dear ImGui。
-2. Feature ON 時，`NexoraEditor --graphical --project=<path>` 只使用一個 `RenderSurface`；Editor Core
-   看不到 native graphics API 或 OS window handle。
-3. Native path 把 vertex/index data、projection constants、scissor rectangles、font/user textures、alpha
-   blending 與 resource transitions submit 到 acquired backbuffer。Production 不再使用 CPU compositor
-   （如有充分理由，可只留下明確命名的 test oracle）。
-4. Resize、minimize、out-of-date/suboptimal surface status、DPI change、focus loss、shutdown 都遵守
-   `RenderSurface` recovery state machine，不 leak 或使用 in-flight resource。
-5. Hierarchy selection 經 `SceneDocument` round-trip；recovery failure 可處理；持久化的是 stable panel ID，
-   不是 visible label 或 ImGui ID。
-6. Linux automated gate 通過；Linux/X11 real-display 證據覆蓋 render/input/resize/recovery；Windows
-   target-host 證據覆蓋 per-monitor DPI 與 IME composition/candidate position。未驗證平台必須明列，
-   不得由「可編譯」推定通過。
-
-## 2. 固定架構決策
-
-以下決策在 ED-M0 期間視為已定案。若施工需要更改，必須先更新 ADR-0001（或新增 superseding ADR）、
-本文件的雙語版本，以及受影響的 contract README，再合併程式碼。
-
-| 主題 | 決策 | 理由／後果 |
-| --- | --- | --- |
-| UI framework | Dear ImGui docking，固定 `v1.91.9b-docking`。 | Immediate-mode UI 適合 custom RHI；不可追 moving branch。記錄確切 tag 與 MIT license。 |
-| 取得方式 | CMake `FetchContent`，只有 `NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON` 才可觸及。 | Dependency 保持 optional；configure-off 在無網路/cache 時仍須成功。本 milestone 不加 submodule 或 system package requirement。 |
-| Module 邊界 | `NexoraEditorImGui` 只依賴 public `Editor`、`Presentation`、`Window`、`RHI`；Editor Core 不依賴 ImGui。 | UI ownership 留在 portable document/transaction model 外；`Config/Modules/modules.json` 是權威來源。 |
-| Window/presentation | Application 擁有唯一 `RenderSurface`；UI host 只在 frame 內借用。 | 禁止 GLFW/SDL、第二個 swapchain、private native handle 或 backend-specific window creation。 |
-| Renderer | 只做一個基於 public RHI 的 backend，不分別複製 ImGui Vulkan/DX12/Metal renderer。Platform-specific code 留在 RHI/Presentation 下。 | 避免三份 renderer 漂移，也能使用 validation-device test。若 public RHI 不足，應擴充 generic RHI 並寫 contract，不可 downcast。 |
-| Multi-viewport | 開 docking；OS-level ImGui multi-viewport 延後。 | 額外 platform window 需要 multi-surface ownership 設計。ED-M0 只需 docked main window，`ViewportsEnable` 保持關閉。 |
-| Context | 一個 `EditorImGuiHost` 擁有一個 `ImGuiContext`；所有呼叫在 window-owner thread 串行執行。 | Draw data 只借用到下一次 `BeginFrame` 或 context 銷毀；background thread 不得呼叫 ImGui。 |
-| ID/persistence | `ProductShell` panel/command ID 是 semantic identity；`###stable.id` 分離顯示名稱。 | 改名／在地化不可破壞 layout 或未來 accessibility semantics。Layout 由 Editor Core 以版本化 workspace 保存，不使用 unmanaged global `imgui.ini`。 |
-| Input | `WindowEvent` 是唯一 input source。Key event 帶完整 modifier snapshot；text event 帶 Unicode scalar。 | 不可直接 poll Win32/X11/Cocoa；文字輸入與 shortcut key 分開。 |
-| DPI/font | 座標是 logical UI unit；framebuffer scale 與 surface extent 決定 pixel。選定 DPI bucket 改變時重建 font resource。 | 只用 `FontGlobalScale` 是暫時 scaffold，無法保證清晰輸出。Style 必須由 immutable base 導出，避免累積縮放。 |
-| IME | Text 由 `WindowEventType::Text` 進入；candidate positioning 經 `RenderSurface::SetImeCandidatePosition`。 | 不向 ImGui 暴露 native window handle；Windows target-host 證據必須存在。 |
-| Texture | `ImTextureID` 對應 generation-checked Editor UI texture registry；font atlas 使用保留 entry。未知／過期 ID 使用 diagnostic fallback 並回報錯誤。 | 不可 reinterpret 任意 pointer/raw RHI handle；ED-M1 thumbnail 重用 backend 前必須具備。 |
-| Recovery | Data layer 擁有 journal operation；UI 在正常編輯前提供 recover/discard，失敗時 modal 保持開啟。 | UI 不自行刪除或改寫 journal；每次 choice 只消費一次。 |
-| Accessibility | Stable panel/command ID 是 semantic seed；native accessibility 留給 ED-M7。 | Dear ImGui 沒有 accessibility tree。ED-M0 記錄 handoff 並提供 keyboard-operable recovery/basic shell，不得宣稱 screen-reader 完成。 |
-| Failure policy | 預期的 surface state 跳過／重建 frame；invalid contract 回 typed status/error；programmer invariant 在 Development assert。 | 禁止靜默 fallback 到 private renderer、exception 穿越 module boundary、minimized 時 busy loop。 |
-
-## 3. Ownership、lifetime 與 frame contract
-
-必要的 ownership graph：
-
-```text
-NexoraEditor process
-  ProjectWorkspace / World / SceneDocument / ProductShell（application 擁有）
-  RenderSurface（application 擁有並 drain）
-  EditorImGuiHost（擁有 ImGuiContext 與 renderer cache）
-    font atlas + UI texture registry + per-frame upload allocations
-    借用的 WindowEvent span、models 與 acquired frame target
-```
-
-以下 frame 順序是強制 contract：
-
-1. `RenderSurface::BeginFrame()` pump event，並 acquire 或描述 next target。
-2. 用 `RecoveryAction` 解讀 `SurfaceStatus`。Abort 就退出；skip 不開始 ImGui render submission；
-   recreate/resize 必須在記錄新 frame resource 前完成。
-3. Borrowed event span 只 feed 一次，按 queue 順序處理 focus、pointer、button、wheel、key/modifier、
-   text、close、resize、DPI。
-4. 在 `BeginFrame` 後讀 `FrameInfo()`；把目前 logical extent、DPI、framebuffer scale 傳給 `SetDisplay`。
-   Zero extent 代表 suspended/minimized：等待 event，不 allocate。
-5. 依序且各一次呼叫 `BeginFrame(delta)`、建立 dockspace/panel/modal、`EndFrame()`。
-6. 將 `ImDrawData` 轉成 RHI command：upload buffer、bind projection/pipeline/texture、套用 `DisplayPos` 與
-   `FramebufferScale` 後 clamp scissor、依 callback policy 執行 callback，再以 `IdxOffset` 加
-   `VtxOffset` draw。
-7. Transition 到 presentation state、submit，最後只呼叫一次 `RenderSurface::EndFrame()`。
-8. Upload/font/descriptor resource 只能在保護其最後使用的 completion value 完成後 retire。退出時先
-   wait/drain，再 destroy host，最後 destroy surface。
-
-Borrowed span、`ImDrawData`、acquired image handle 不可跨 frame cache。`ProjectWorkspace`、
-`SceneDocument`、`ProductShell` 必須活過 `DrawProductShell` 呼叫。更改這些規則時，須同步更新
-`Engine/EditorImGui/README.md` 與所屬 RHI/Presentation README。
-
-## 4. 依序施工計畫
-
-AI agent 必須依順序執行 work package。每個 package 都要以 focused test 與 `git diff` review 收尾；
-不可把全部工作塞進一個無法 review 的變更。Checkbox／狀態只反映 repo 事實，不表示意圖。
-
-### WP0 — Baseline 與 reproducibility audit
-
-**狀態：部分完成。**
-
-1. 讀 `CLAUDE.md`、Editor、EditorImGui、RHI、Window、Presentation README、ADR-0001 與兩份相關
-   roadmap；編輯前先記錄 contract 衝突。
-2. Configure/build/test `linux-development`；若更動 RHI ABI、module dependency、exported header 或
-   link boundary，另跑 `linux-shipping`。
-3. Graphical feature OFF 與 ON 各 configure 一次；確認 OFF 不 populate `nexora_imgui`，ON resolve 到
-   pinned tag；validation note 記錄 resolved revision。不可 commit `_deps`、build tree 或
-   `CMakeUserPresets.json`。
-4. 盤點現有 test（`editor.imgui_contract`、presentation contract、module graph），把後續每一個驗收條件
-   對應到 test 或 target-host checklist。
-
-**Exit gate：**乾淨的 baseline result 與明確 gap list。若 configure 需要網路但沒有 cache，回報環境限制；
-不可靜默關閉 feature。
-
-### WP1 — 讓 public RHI 足以表達 ImGui
-
-**狀態：未完成；阻擋最終 GPU path。**
-
-1. 對照 `ImDrawVert`/`ImDrawIdx` 與每個 `ImDrawCmd` field，稽核 public RHI capability。必須能表達
-   dynamic vertex/index upload、orthographic constants、alpha blending、depth test/write off、cull-none、
-   scissor、sampled RGBA texture、indexed base-vertex draw。
-2. 只新增缺少的 generic primitive，不得加入以 ImGui 命名的 RHI type。定義 texture upload row pitch、
-   sampler/filter/address mode、descriptor lifetime、shader visibility、completion/fence ownership；若 contract
-   有變，同步更新 `Engine/RHI/README.md`。
-3. Generic primitive 先在 validation device 實作及 contract-test，再做 Vulkan。DX12/Metal 必須在各自
-   target host 可編譯後才可視為 portable；未實跑前 acceptance 不勾選。
-4. 經既有 shader pipeline 加入 deterministic shader source/reflection；禁止在 `EditorImGui.cpp` 內嵌
-   backend-only ad-hoc bytecode。
-
-**Exit gate：**validation-device test 證明 state transition、binding、scissor、indexed offset 與 resource
-retirement；Vulkan offscreen frame 沒有 validation error。
-
-### WP2 — 實作 retained GPU renderer resource
-
-**狀態：未完成；目前 public-RHI overload 只是 draw-contract scaffold。**
-
-1. 在 `EditorImGuiHost` 下建立 renderer-owned state：pipeline、sampler、font texture/view、descriptor
-   binding、有限大小的 per-frame vertex/index upload buffer ring。知道 device/format 後才 lazy-create
-   stable resource；禁止每 frame create/destroy pipeline 與 font texture。
-2. Upload 真正 RGBA32 font atlas，把 registry ID 設進 `io.Fonts->TexID`，並在 context/font/DPI generation
-   改變時重建。舊 generation 只能在 GPU completion 後 retire。
-3. Flatten 或 stream 全部 draw list 且保留 per-list base offset；projection 由 `DisplayPos` 與
-   `DisplaySize` 算出；支援 16/32-bit `ImDrawIdx`。
-4. 每個 command 都要：處理 reset-render-state callback、明定 application callback policy、轉換/clamp
-   clip rectangle、跳過空／越界 clip、bind generation-checked texture，並呼叫
-   `DrawIndexed(ElemCount, ..., IdxOffset, VtxOffset)`。
-5. Shader output 與 surface format 的 premultiplied/non-premultiplied blending 要一致；明確處理 sRGB 與
-   UNORM。用 pixel-readback golden case 覆蓋 color、alpha、font UV、overlapping clip、non-zero display
-   origin、non-zero vertex offset。
-6. Allocation 必須有上限與可觀察性：需要時 geometric growth，completion 後重用；暴露 vertex、index、
-   draw call、reallocation、rejected texture metrics。
-
-**Exit gate：**重複 offscreen frame 產生穩定 pixel 與 allocation count；resize/font rebuild 不 leak；
-sanitizer/validation 沒有 stale handle 或 out-of-bounds。
-
-### WP3 — 把 renderer 接到 acquired presentation image
-
-**狀態：未完成；目前 native overload 在 CPU rasterize 後呼叫 `CompositeRgba8`。**
-
-1. 為 renderer 增加最小的 public `RenderSurface` frame-target access，優先選 callback/encoder 或只在
-   `BeginFrame` 到 `EndFrame` 間有效的 borrowed RHI target descriptor。禁止暴露 `VkImage`、
-   `ID3D12Resource`、`MTLTexture` 或永久 image handle。
-2. 定義 initial/final state、format、extent、generation，以及 resize/recreate 時的 invalidation。
-   Presentation 繼續擁有 acquisition、synchronization、present。
-3. 以 WP2 共用 command recording 取代 production `Render(RenderSurface&)` CPU loop；draw-list traversal
-   最多只有一份實作。
-4. 依 `RecoveryAction` 處理 `OutOfDate`、`Suboptimal`、`Occluded`、`Suspended`、device loss、close。
-   Minimized 不可 spin；沒有 acquire 的 frame 不可呼叫 `EndFrame`。
-5. 同一變更更新 `Engine/Presentation/README.md`、`Engine/EditorImGui/README.md`、module dependency、
-   exported API test。
-
-**Exit gate：**graphical executable 經 public surface present GPU-rendered ImGui；不再存在 per-frame
-full-screen CPU RGBA buffer 或 readback/upload round trip。
-
-### WP4 — 強化 input、docking、persistence 與 command routing
-
-**狀態：portable core 大致存在；persistence 與 target-host 證據未完成。**
-
-1. 保留完整 key mapping（navigation/editing、punctuation、keypad、F1-F12、alphanumeric、左右 modifier），
-   加入 press/release 與 modifier snapshot 的 table-driven test。
-2. 測試 pointer leave/focus loss，確保 deactivation 後不殘留 stuck button/key。Wheel 固定
-   horizontal=`value0`、vertical=`value1`，且只 normalize 一次。
-3. Initial dock layout 固定為 Hierarchy 左、Console 下、center reserved。只在新 workspace/layout schema
-   建立；之後 restore Editor-owned versioned layout。未知／缺少 panel ID 只診斷並忽略，不 crash。
-4. Shortcut 先經 `ProductShell` command ID routing，再進 panel behavior。依 ImGui capture flag 決定
-   gameplay/scene tool 是否收到 pointer/keyboard；不得以 visible label 當 command identity。
-5. `ViewportsEnable` 保持關閉，增加 assertion/test，避免 ImGui upgrade 偷偷建立 native platform window。
-
-**Exit gate：**synthetic-event automated test 通過、layout round-trip；real X11 session 證明 typing、shortcut、
-drag docking、wheel axis、focus loss、close。
-
-### WP5 — DPI、font 與 theme
-
-**狀態：live extent/DPI forwarding 已有；清晰 font rebuild 與 Windows 證據未完成。**
-
-1. 定義小型 DPI bucket policy（例如 nearest supported scale 加 hysteresis）與 immutable base style；bucket
-   改變時由 base 重算，禁止再縮放已縮放的 style。
-2. 依 bucket pixel density 重建 atlas，同時維持 logical widget size；在 frame boundary 原子切換 font
-   texture generation，延後銷毀舊 GPU resource。
-3. Acquisition 後的 `FrameInfo` 是唯一真值。測 same-frame resize+DPI、monitor move、minimize/restore、
-   fractional scale、rapid change。
-4. 交付一套對比度足夠的 first-class dark theme；per-user theme editor 不屬於 ED-M0。
-
-**Exit gate：**Windows 100%、125%、150%、200% screenshot/checklist 證明 text 清晰、hit target 正確、
-無 cumulative scaling、無 stale extent frame。
-
-### WP6 — IME 與 Unicode
-
-**狀態：event forwarding 與 candidate callback 已有；target-host 證據未完成。**
-
-1. 驗證 Unicode scalar（含 supplementary-plane）；無效 scalar 不可送進 `AddInputCharacter`。Key event
-   不得重複產生 text event。
-2. 每個 active frame 更新 `Platform_SetImeDataFn` 借用的 surface；frame/surface 結束即清除，避免 callback
-   dereference 已銷毀 surface。
-3. 把 ImGui logical cursor coordinate 經 viewport origin 與 DPI 轉成
-   `SetImeCandidatePosition` 所要求的 client-pixel coordinate。
-4. Windows 使用 Microsoft Pinyin 或另一個已安裝 IME 測試 composition start/update/commit、cancel、移動
-   input cursor、切換 DPI/monitor、candidate positioning。Unsupported X11 行為不得當作 Windows 證據。
-
-**Exit gate：**Windows recording/screenshot 與 checklist 證明 committed text 恰好一次，且 candidate 在至少
-兩種 DPI 下位置正確。
-
-### WP7 — Recovery UX 與基本 keyboard accessibility
-
-**狀態：modal/data-layer call 已有；destructive flow 與 real-process test 未完成。**
-
-1. 正常編輯可互動前偵測 journal。Recovery modal 取得 focus、限制 keyboard navigation，明確提供 Recover
-   與 Discard；Discard 要有清楚破壞性文字，不能因 default button 取得 focus 就執行。
-2. 只呼叫 `ProjectWorkspace::RecoverWorkspace`/`DiscardRecovery`。Operation 執行中防止 duplicate submit；
-   失敗時保留 journal/modal、顯示可處理錯誤，允許 retry 或 safe exit。
-3. Data-driven test 覆蓋 no journal、recover/discard success、recover/discard failure、恰好一次的
-   `TakeRecoveryChoice`。Process-level test 在 journal durable 後 kill、relaunch 並驗證選擇。
-4. 驗證 shell/modal keyboard traversal 與 visible focus。記錄 ED-M7 secondary accessibility tree 缺少的
-   semantic data；plugin 不得 inspect ImGui widget tree。
-
-**Exit gate：**自動化 failure path 通過；real-display kill/relaunch session 證明 recover/discard，且不損失
-所選 policy 之外的資料。
-
-### WP8 — Target-host matrix、證據、清理與 milestone 更新
-
-**狀態：未完成。**
-
-1. Clean tree 執行 §6 完整 Linux gate。WP1/WP3 更動 linkage/API boundary，因此也跑 `linux-shipping`。
-2. Real X11 display 執行 launch、font/text 可見、Hierarchy selection、docking、各類 input、resize/
-   minimize/restore、recovery checklist；記錄 command、commit、backend/device、result、artifact location。
-3. Windows 以 graphical feature build Development/Shipping，再執行 DPI/IME checklist。只有 surface 真正
-   選擇 DX12 時才能宣稱 DX12，Vulkan result 不可代替。
-4. 只有宣告 macOS Editor support 時 macOS/Metal 才成為必需 supported-backend parity；macOS target host
-   實跑前只能列 unverified，不可列 passed。
-5. 移除 production CPU compositor/dead scaffold、更新 contract README、同步雙語 roadmap、review final
-   diff，最後才更新 ED-M0 狀態。只有 panel 存在不構成驗收。
-
-**Exit gate：**每個必要 evidence row 都有 link/result，沒有任何 required row 寫「assumed」。
-
-## 5. 技術問題與解法登錄表
-
-| 問題 | 必要解法 | 禁止捷徑 | 驗證 |
-| --- | --- | --- | --- |
-| RHI 缺 renderer operation | 新增 backend-neutral RHI contract、validation implementation，再做 native implementation。 | EditorImGui include Vulkan/DX12/Metal header 或 downcast device。 | Validation trace 加 native validation。 |
-| Swapchain image 由 Presentation 擁有 | 借用帶 generation/state contract 的 frame-scoped RHI target/encoder。 | 另建 swapchain 或暴露永久 native image handle。 | Resize/recreate stress 與 stale-generation rejection。 |
-| GPU/CPU lifetime 不同步 | Completion-tracked ring buffer 與 deferred destruction。 | 除非 contract 保證完成，否則不可在 `Submit` 後立刻 destroy upload/font resource。 | Multi-frame validation/sanitizer stress。 |
-| Font atlas 目前只是 placeholder | Upload 真 atlas pixel，每 generation 保留穩定 texture registration。 | Bind 1x1 texture 或每 draw 重建。 | Font pixel golden 與穩定 allocation metric。 |
-| 任意 `ImTextureID` | Generation-checked registry 加 fallback/error。 | Cast pointer/raw handle。 | Valid、stale、unknown、destroyed texture test。 |
-| Clip/offset bug | 套用 display origin/framebuffer scale、clamp、保留兩種 offset 與 index width。 | 假設 origin zero 或只有 16-bit index。 | Synthetic multi-list draw golden。 |
-| DPI 模糊／累積放大 | Bucketed atlas rebuild；style 從 immutable base 產生。 | 只靠 `FontGlobalScale` 或重複 `ScaleAllSizes`。 | Multi-DPI screenshot 與 numeric style test。 |
-| Shortcut/text 重複 | Key route command；只有 text event 加 character；遵守 capture/focus。 | 由 virtual key 推導文字。 | Unicode 與 shortcut collision test。 |
-| IME use-after-free／位置錯 | Frame-scoped surface binding，加 logical-to-client-pixel conversion。 | 永久 cache native handle/raw surface。 | Destroy/recreate 與 multi-DPI IME test。 |
-| Corrupt recovery journal | 保留 journal、顯示 error，依 data-layer policy 提供 retry/discard。 | Auto-delete、auto-recover、隱藏錯誤。 | Injected I/O/corruption test。 |
-| Configure 時無網路 | OFF build 獨立；ON build 清楚失敗或使用核准的 pre-populated cache。 | Fetch unpinned branch 或靜默 build stub。 | Clean configure OFF/ON。 |
-| Scope creep | 限制在 shell/Hierarchy/Console/recovery；延後 Content Browser、viewport gizmo、PIE、profiler。 | 因有 dock window 就把後續 Editor milestone 標完成。 | Roadmap review。 |
-
-## 6. 驗證命令與證據格式
-
-施工中執行 focused test，交付前執行完整 gate：
-
-```bash
-cmake --preset linux-development
-cmake --build --preset linux-development
-ctest --preset linux-development
-
-cmake --preset linux-shipping
-cmake --build --preset linux-shipping
-```
-
-若 preset 開了 graphical shell，還要明確 configure 一次 feature-off build；現有 focused test 可用：
-
-```bash
-ctest --preset linux-development -R 'editor.imgui_contract|window_presentation.contracts|build.module_graph' --output-on-failure
-```
-
-不可用 Linux 宣稱 Windows/macOS validation。每筆 manual evidence 必須包含：
-
-```text
-commit: <sha>
-host/os: <exact version>
-window backend / RHI backend / GPU / driver: <values>
-configuration and command: <values>
-scenario: <acceptance checklist id>
-result: pass | fail | blocked
-artifacts: <log/screenshot/video path>
-notes: <validation messages or limitation>
-```
-
-必要 automated coverage 包括 feature OFF/ON configure、module graph、context lifetime、event/key table、
-dock/layout ID、各 recovery outcome、draw-list conversion、texture generation、clip/offset/index-width golden、
-resize/recreate、resource retirement、重複 frame 且 allocation 有界。必要 human evidence 包括 output 可讀、
-真實互動、docking、focus、DPI、IME、crash recovery；screenshot 本身無法證明 input/lifetime 行為。
-
-## 7. AI 施工與變更紀律
-
-- 一次只做一個 WP 與一個 architectural boundary。編輯前在 change note 寫明 invariant、files、expected
-  test、rollback point。
-- 新增 abstraction 前先搜尋既有 public abstraction；不可從 roadmap 猜 API，必須查 header/test。
-  不可修改 generated build output 或 fetched dependency source。
-- Patch 要可 review：RHI contract、backend implementation、Editor integration、evidence update 應各自使用
-  conventional commit，除非 atomic compilation 確實要求合併。
-- 只用 repo `.clang-format` 格式化碰過的 C++。English/Traditional Chinese roadmap 在同一 commit 同步。
-- Ownership、lifetime、threading、error、deferred-work behavior 改變時，同 patch 更新 owning README；
-  dependency 改變時更新 `Config/Modules/modules.json` 與 test。
-- Gate 失敗不算完成。記錄確切 failure、保留最後 buildable commit；應 revert 目前 WP，不可加 private
-  bypass。
-- 不可只看 source 就勾 status。「Implemented」需要 automated result；「accepted」還需要上文指定的
-  target-host evidence。
-
-## 8. 明確 non-goal 與後續 handoff
-
-ED-M0 不交付 Content Browser/thumbnail、Scene View、gizmo、Game View/PIE、inspector widget、specialized
-tool、build/profile UI、detached OS-level ImGui viewport、user-authored theme 或 screen-reader accessibility
-tree。WP2 texture registry 只是未來 panel 可使用的 backend contract，不代表可以提早施工。
-
-ED-M7 handoff 必須列出 stable semantic ID、label、role/action/value gap、focus order、keyboard-only failure、
-live-region 需求與候選 platform bridge。該文件可建議 secondary accessibility library，但採用 dependency
-需要獨立決策與核准。在此之前，只能誠實宣稱「basic keyboard-operable ED-M0 shell；screen-reader
-support 尚未實作」。
+> 版本：v1.2｜狀態：portable shell 修正已落地，renderer 與 target-host 驗收待完成｜更新：2026-09-24｜對應：
+> `Editor_Roadmap.md`（ED-M0）、`ADR-0001-Editor-UI-Framework.md`
+
+## 1. 目的
+
+[ADR-0001](ADR-0001-Editor-UI-Framework.md) 選定了 Dear ImGui，把 ED-M0「UI-framework ADR」這一項
+定案。這份文件規劃 ADR 明確沒有關掉的 ED-M0 剩餘範圍：圖形化 docking、theme、DPI、IME 接線、
+無障礙方向、crash-recovery UX。Feature-gated portable host、RHI submission contract、docking
+shell、input／DPI／IME bridge、可互動 Hierarchy、recovery UX 與 accessibility 方向現已實作。目前
+RHI submission 仍是 validation scaffold，還不是完整的 textured／indexed ImGui renderer；native
+visual evidence 也仍是驗收 gate，因此本次交付不會把 ED-M0 標記為已驗收。
+
+**這份計畫的第一步會引入一個新的第三方依賴（vendor Dear ImGui）並動到 build 系統（新的 CMake
+module、新的 module-graph 條目、新的 feature option）。** 按照這個 repo 一貫的規則（「遇到需要裝
+新相依、改 CI、或動 build 系統的情況，先講清楚再做」），需要在動手寫程式碼之前明確確認的是*這一
+步*，不是整份計畫。寫這份計畫文件本身不算踩線。
+
+## 2. 現況基線（對照原始碼確認過）
+
+- `Apps/Editor/NexoraEditor`（`Apps/Editor/main.cpp`）目前是一支 headless CLI：開專案、index
+  content、寫出 JSON report。沒有視窗、沒有渲染，只依賴 `Nexora::Editor`（見
+  `Apps/Editor/CMakeLists.txt`）。
+- `NexoraEditorCore`（`Engine/Editor/`）依設計就是 UI-toolkit agnostic（`Engine/Editor/README.md`）：
+  workspace、asset indexing、`SceneDocument`（create/select/reparent/undo）、specialized-tool
+  capability registry、build-manifest frontend 都已存在且是 portable-tested，但 README 講得很清楚：
+  「Docking、DPI/IME/accessibility、viewport rendering、gizmo、native-host 視覺驗證仍是 UI-host
+  的責任」——也就是這份計畫要做的事，不是已經做完的事。
+- `Nexora::Window` 跟 `Nexora::Presentation` 已經提供了平台視窗、input 轉譯、以及
+  `Window_Presentation_Roadmap.md` WP-M3 點名 Editor Scene/Game view 應該重用的 RHI-backed
+  `RenderSurface`（「Editor Scene/Game view 可用，不用讓 Runtime 額外依賴 Editor」）。這份計畫的
+  ImGui backend 就是透過那個既有的 surface 渲染，不會另外造一個。
+- `Config/Modules/modules.json` 已經有這份計畫需要的 feature-gated-module pattern：
+  `Window`/`Presentation` 被 `NEXORA_ENABLE_WINDOW_PRESENTATION` 擋著，`Editor`/`EditorApp` 被
+  `NEXORA_ENABLE_EDITOR` 擋著。新的 `EditorImGui` module 照同樣的形狀接進去就好。
+- 這次 session 前面那輪 bug 修正剛好動到這份計畫會直接依賴的程式碼：
+  `Engine/Window/src/X11Window.cpp` 的滾輪軸向修正、`Win32Window.cpp` 的 IME null/負值檢查跟
+  UTF-8 標題轉碼，正好就是下面 Phase 2 要轉送進 `ImGuiIO` 的那些 input/IME 管線。
+
+## 3. 範圍與不做的事
+
+範圍內：vendor Dear ImGui、針對每個已支援的 RHI/Window 平台組合各寫一份 renderer/input backend、
+docking、DPI、IME 轉送、透過既有 `NexoraEditorCore` registry 接一個真正的 panel、以及建立在既有
+recovery-journal 資料層（`ProjectWorkspace::RecoverWorkspace`，`Engine/Editor/README.md` 裡已標記
+完成）上的 crash-recovery UX。
+
+範圍外：ED-M1 到 ED-M7 剩下的圖形化工作（Content Browser、Scene View gizmo、PIE Game View、
+specialized-tool panel、build/profile frontend、production hardening）——這份計畫只把 ED-M0 本身
+推到圖形化驗收。完整的無障礙實作也不在範圍內；依照 ADR-0001，這份計畫的 Phase 5 只接 ImGui 本來
+就暴露出來的管線（IME 定位），不包含 ED-M7 之後要另外展開的第二層 accessibility tree。
+
+## 4. 動手寫程式碼前需要先確認的依賴決定
+
+- **什麼**：vendor Dear ImGui（docking 功能/branch）的原始碼，最可能透過 CMake `FetchContent`
+  釘住特定 tag（不是追蹤一個持續變動的 branch），跟這個 repo 現在拉 Vulkan headers 的方式一致
+  （這次 session 的 build 輸出裡看到的 `_deps/nexora_vulkan_headers-src`），而不是 git submodule。
+- **授權**：MIT，跟本 repo 自己的 `LICENSE` 一致——沒有摩擦（寫 ADR 的時候已經確認過）。
+- **新的 CMake module**：`Engine/EditorImGui`（名稱還可以再討論），擋在一個新的 feature option
+  後面，例如 `NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL`（預設 OFF，等 Phase 1 落地後再重新考慮），在
+  `Config/Modules/modules.json` 裡依賴 `Editor`、`Presentation`、`Window`、`RHI`。`EditorApp`/
+  `Apps/Editor` 只在這個 option 開啟時才多這個連結依賴，option 關掉時現有的 headless CLI 路徑照樣
+  能動。
+- **對 CI 的影響**：多一條 Linux CI leg（option 開啟）建置，之後再視需要加 Windows/macOS leg；
+  在真的有 native rendering 之前，先用一個 offscreen/headless 的 ImGui smoke test（見 Phase 1）
+  讓它可以在現有的 Linux gate 上測試，不需要真的有 display。
+
+如果這個形狀不是你要的（不同的 vendoring 機制、不同的 module 名稱/位置、不同的預設值），請在
+Phase 1 開始之前先講——後面所有內容都是建立在這個假設上的。
+
+## 5. 分階段計畫
+
+### Phase 1 — Vendor ImGui + 最小 offscreen smoke test（這裡可以驗證，Linux）
+
+- 加上 `FetchContent` 宣告、新的 `EditorImGui` module 骨架、module-graph 條目、feature option，
+  全部預設 OFF，不影響現有 build。
+- 先寫 Vulkan renderer backend（這個雲端 session 唯一真的能跑的 native RHI backend）：把 ImGui
+  的 draw data 轉譯成 `Nexora::RHI` 的 texture/pipeline/command-list 呼叫，渲染目標用 offscreen
+  render target，做法跟現有 renderer contract test 用的 `ExecuteTriangleFrame` 一樣——不需要真的
+  視窗或 display。
+- Gate：新增一個 contract test，把一個 ImGui frame（哪怕只是 `ImGui::ShowDemoWindow`）渲染到
+  offscreen 的 `Nexora::RHI` validation-device 跟 Vulkan-device texture 上，斷言沒有 validation
+  error、draw call 數不為零，比照 `window_presentation.contracts` 現在對 fake/offscreen surface
+  生命週期測試的做法。
+
+### Phase 2 — 真正的視窗 + input 轉譯
+
+- 把 Vulkan backend 接到真正的 `Nexora::Presentation::RenderSurface`（依照 WP-M3，就是 Showcase
+  已經在用的那個可重用 surface owner），而不是 offscreen texture。
+- 把 `Nexora::Window` 的事件轉譯進 `ImGuiIO`：pointer 位置、滑鼠按鍵、（X11 修正已經落地的）正確
+  軸向的滾輪量、鍵盤、以及送進 `ImGuiIO::AddInputCharacter` 的文字/組字事件。
+- Gate：只能靠 target-host 證據（真正的視窗、真正的 input）——這跟
+  `Window_Presentation_Roadmap.md` 裡 WP-M1 要求 Windows runner 是同一個等級；Linux/X11 這裡可以
+  開發、可以做部分 smoke test，但完整的互動驗證需要真的有 display，這個雲端 session 沒有。
+
+### Phase 3 — Docking + 第一個真正的 panel
+
+- 開啟 ImGui 的 docking branch 功能集；定義初始 dock layout 跟穩定的 panel ID，重用
+  `ProductShell::Panels()`/`IsStablePanelId`（`Engine/Editor/README.md`），不要另外發明一套平行的
+  panel-identity 機制。
+- 把一個真正的 panel 完整接到 live 的 `NexoraEditorCore` 狀態上——Console 或一個最小的 Hierarchy
+  view 是最小、最正確的選擇，因為兩者都已經有一個 portable 的資料來源（`SceneDocument` 的 node
+  list），不需要額外的 Editor Core 新工作。
+- Gate：panel 要反映 live 的 `SceneDocument` 狀態，且能把一個使用者動作（例如選取一個 node）
+  round-trip 回 `SceneDocument::Select`。
+
+### Phase 4 — Theme / DPI
+
+- **實作狀態：完成；Windows target-host 驗收仍待完成。** 圖形化 application 會在
+  `BeginFrame()` 後讀取 `RenderSurface::FrameInfo()`，並將即時 client extent 與保留的 DPI scale
+  傳入 `EditorImGuiHost::SetDisplay()`；不再於同一 frame 以固定的 `1280 x 720`／`1.0` 覆蓋
+  `DpiChanged` event。
+- Theme：ED-M0 驗收只需要一套 first-class theme 就夠，milestone 的 gate 沒有要求 per-user 主題。
+- DPI：把 `Engine/Window` 的 Win32 backend 本來就會算的 DPI-aware sizing（這次 session review
+  Win32Window.cpp 時看到的 `AdjustWindowRectExForDpi`）轉送進 ImGui 的 font atlas scale 跟 style
+  scale。
+
+### Phase 5 — IME 接線
+
+- **實作狀態：完成；Windows target-host 驗收仍待完成。** Composition text forwarding 與 native
+  candidate-position callback 已存在，但在 Windows 實跑證明可輸入 composition text，且 candidate
+  window 位於 ImGui text cursor 前，不可將此 gate 標記為通過。
+- 把 `Engine/Window` 的組字完成文字事件（就是這次 session 修的 Win32 IME null/負值那段管線）轉送
+  進 `ImGuiIO::AddInputCharacter`，並實作 `io.SetPlatformImeDataFn` 把原生 IME 候選字視窗定位在
+  ImGui 的輸入游標上。
+- Gate：Windows 上（僅限 target-host）一個文字欄位能接受 IME 組字輸入，且不會讓 Linux 上既有的
+  `Engine/Window` IME contract 退步（X11Window 已經處理的部分之外，Linux 沒有額外的 IME 概念要
+  接）。
+
+### Phase 6 — Crash-recovery UX
+
+- **實作狀態：workflow gate 已實作；實體 display 檢視仍屬於 ED-M0 的整體人工 gate。** Linux host
+  具備 `Xvfb` 與 `xdotool` 時，CTest 現在會在 pending journal 存在時砍掉真正的圖形化 process，
+  重新啟動、觀察已開啟的 modal，再透過原生鍵盤事件驅動 recover 與 discard。測試會確認 recover
+  取代 workspace 並刪除 journal，而 discard 只刪除 journal。
+- `ProjectWorkspace::RecoverWorkspace` 跟 recovery journal 在資料層已經存在
+  （`Engine/Editor/README.md`）。這個階段只加 UI：啟動時如果偵測到 recovery journal，在正常
+  shell 渲染前先跳出一個「復原或捨棄」的對話框。
+- Gate：session 中途把 process 砍掉再重開會提供復原選項；選擇捨棄會照既有資料層 contract 的保證
+  把 journal 丟掉。
+
+### Phase 7 — 無障礙方向（只做管線規劃，不做實作）
+
+- 依照 ADR-0001，這個階段是展開範圍，不是交付：確認 Phase 3 已經在用的 panel/command registry
+  （`ProductShell::Panels()`、穩定的 panel/command ID）是否足以驅動未來的第二層 accessibility
+  tree，把找到的缺口記錄下來留給 ED-M7 處理。這裡不會蓋出任何 accessibility tree。
+
+## 6. 驗證與完成定義
+
+- Phase 1 跟 Phase 3（offscreen render、docking/panel 邏輯）可以在這個 repo 現有的 Linux gate 上
+  驗證。
+- Phase 2、Phase 4（DPI）、Phase 5（IME）、Phase 6（crash UX）都需要至少一個平台的真實視窗
+  target-host 證據；Linux/X11 能拿到有 display 的 Linux host 能提供的那部分覆蓋，但 Windows/macOS
+  的驗收明確不在這個雲端 session 能力範圍內，符合這個 repo 一貫「不虛報沒跑過的平台覆蓋」的規則。
+- ED-M0 整個 milestone 不會因為這份計畫就被標記為驗收完成，要等
+  `Editor_Roadmap.md` 的 ED-M0 gate 裡每一項（不只是這份計畫的各 Phase）都有通過的證據——這份計畫
+  本身不授權更新那個 milestone 的狀態。
+
+### 實作證據
+
+- `NexoraEditorImGui` 擁有 context、stable-ID dockspace、Hierarchy 在左／Console 在下的初始
+  layout、theme／DPI policy、pointer、button、wheel、key、text、focus ingestion，以及目前的
+  public-RHI validation submission scaffold。
+- `NexoraEditor --graphical` 建立 public `RenderSurface`、消費其 borrowed events，並驅動 UI 與
+  recover／discard lifecycle。
+- Hierarchy 顯示 live `SceneDocument::Nodes()`，並透過 `SceneDocument::Select` 回寫 selection。
+  Win32 擁有 candidate-window positioning；不支援的 host 會明確回報。ED-M7 accessibility handoff
+  記錄於 `Engine/EditorImGui/README.md`。
+- Graphical application 現在會傳入 live scene 與 surface 擁有的 extent／DPI snapshot；resize 時會
+  重建 offscreen validation target。public RHI 與 validation submission 現在會保留 ImGui
+  vertex／index buffer、indexed offset、clip rectangle 與 font texture binding。在 Phase 1 或
+  Phase 2 通過前，仍須完成 native backend 實作並連接 acquired presentation backbuffer。
+
+## 7. 風險
+
+- Docking branch 的維護：ImGui 的 docking 功能過去長期活在跟 mainline release 分開的 branch 上；
+  照 §4 釘住特定 tag、每次升級再重新評估，會比追一個持續變動的 branch 便宜。
+- Vulkan 上 font atlas + descriptor-set 的生命週期，是視窗 resize 時很常見的 validation error 來
+  源；Phase 1 先做 offscreen 的做法，就是要把這個問題跟視窗 resize 的互動隔開，留到 Phase 2 再處理。
+- Scope creep 風險：一旦有了真正的視窗，很容易忍不住想做超出 ED-M0 範圍的東西（例如提早開始做
+  ED-M1 的 Content Browser）。這份計畫的各 Phase gate 就是為了把工作範圍鎖在 ED-M0 自己的驗收
+  標準內。
