@@ -106,6 +106,10 @@ Phase 1 開始之前先講——後面所有內容都是建立在這個假設上
 
 ### Phase 4 — Theme / DPI
 
+- **實作狀態：完成；Windows target-host 驗收仍待完成。** 圖形化 application 會在
+  `BeginFrame()` 後讀取 `RenderSurface::FrameInfo()`，並將即時 client extent 與保留的 DPI scale
+  傳入 `EditorImGuiHost::SetDisplay()`；不再於同一 frame 以固定的 `1280 x 720`／`1.0` 覆蓋
+  `DpiChanged` event。
 - Theme：ED-M0 驗收只需要一套 first-class theme 就夠，milestone 的 gate 沒有要求 per-user 主題。
 - DPI：把 `Engine/Window` 的 Win32 backend 本來就會算的 DPI-aware sizing（這次 session review
   Win32Window.cpp 時看到的 `AdjustWindowRectExForDpi`）轉送進 ImGui 的 font atlas scale 跟 style
@@ -113,6 +117,9 @@ Phase 1 開始之前先講——後面所有內容都是建立在這個假設上
 
 ### Phase 5 — IME 接線
 
+- **實作狀態：完成；Windows target-host 驗收仍待完成。** Composition text forwarding 與 native
+  candidate-position callback 已存在，但在 Windows 實跑證明可輸入 composition text，且 candidate
+  window 位於 ImGui text cursor 前，不可將此 gate 標記為通過。
 - 把 `Engine/Window` 的組字完成文字事件（就是這次 session 修的 Win32 IME null/負值那段管線）轉送
   進 `ImGuiIO::AddInputCharacter`，並實作 `io.SetPlatformImeDataFn` 把原生 IME 候選字視窗定位在
   ImGui 的輸入游標上。
