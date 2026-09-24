@@ -69,11 +69,11 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_PATH -Value $slangc.DirectoryName
           & $slangc.FullName -v
-      - name: Install Vulkan runtime (Linux)
+      - name: Install Vulkan and X11 development packages (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libvulkan1 mesa-vulkan-drivers
+          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev
       - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
@@ -118,6 +118,11 @@ jobs:
       - name: Set up MSVC environment (Windows)
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
+      - name: Install Vulkan and X11 development packages (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev
       - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_MIMALLOC=ON
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
@@ -152,6 +157,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: lukka/get-cmake@latest
+      - name: Install Vulkan and X11 development packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev
       - run: cmake --preset linux-shipping
       - run: cmake --build --preset linux-shipping
       - run: cmake -S . -B build/feature-off -G Ninja -DCMAKE_BUILD_TYPE=Development -DNEXORA_FEATURE_EXAMPLE_PLUGIN=OFF

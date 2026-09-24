@@ -31,7 +31,7 @@ NexoraEditor (tool process)
 - UI selection 使用 stable IDs/handles，不保存可 relocation pointer。
 - 所有修改走 command/transaction；property edit、gizmo drag、reparent、multi-edit 都可 undo。
 - PIE 複製/序列化隔離的 Play World；停止時預設丟棄變更，明確選擇才 apply back。
-- Engine Core 不依賴 UI framework；UI backend 可替換，第一階段選型須以 docking、IME、accessibility、多 viewport 與維護性 ADR 決定。
+- Engine Core 不依賴 UI framework；UI backend 可替換，第一階段選型的 docking、IME、accessibility、多 viewport 與維護性評估記錄在 [ADR-0001](ADR-0001-Editor-UI-Framework.md)。
 - 外掛只能經 versioned Editor SDK 註冊 panel、command、importer 與 inspector，不接觸私有 singleton。
 
 ## 3. Milestones
@@ -48,7 +48,11 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 - ✅ 已實作 standalone `NexoraEditor` process、versioned project/workspace format、stable panel
   ID、command namespace、atomic workspace replacement 與 recovery journal。
-- 待辦：UI framework ADR，以及圖形化 docking、theme、DPI、IME、accessibility 與 crash UX。
+- ✅ UI framework ADR：[ADR-0001](ADR-0001-Editor-UI-Framework.md) 選定 Dear ImGui
+  （docking/multi-viewport），透過 `Nexora::RHI` 渲染而非另帶一套視窗系統，並點名 ED-M7 仍要展開
+  的無障礙缺口。這份 ADR 只確定了 framework 選型，不等於圖形化 docking、theme、DPI、IME、
+  accessibility 或 crash UX 已完成。
+- 待辦：圖形化 docking、theme、DPI、IME 接線、ADR-0001 點名的無障礙方向展開，以及 crash UX。
 
 ### ED-M1 — Project 與 Asset workspace
 
