@@ -1190,8 +1190,9 @@ Only then may it publish.
 
 > **V2-M3 implementation status:** In progress. A deterministic CPU reference now covers
 > frustum/distance/LOD culling, conservative Hi-Z and invalidation, compaction, classification, and
-> indirect-command generation. Native compute execution, RenderGraph synchronization, no-readback
-> evidence, and target-tier parity remain required before acceptance.
+> indirect-command generation. Portable compute/indirect recording, RenderGraph queue ownership,
+> CPU/GPU comparison, and no-readback diagnostics are now covered by contract tests. Native compute
+> execution and target-tier parity remain required before acceptance.
 
 Core data:
 

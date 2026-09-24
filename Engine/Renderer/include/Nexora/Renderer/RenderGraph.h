@@ -35,6 +35,7 @@ public:
     std::size_t pass_count{};
     std::size_t transient_texture_count{};
     std::size_t barrier_count{};
+    std::size_t queue_transfer_count{};
   };
 
   [[nodiscard]] GraphTexture ImportTexture(rhi::TextureHandle texture,

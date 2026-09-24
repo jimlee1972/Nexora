@@ -1200,8 +1200,9 @@ Output type
 
 > **V2-M3 實作狀態：** 進行中。Deterministic CPU reference 現已涵蓋
 > frustum／distance／LOD culling、conservative Hi-Z 與 invalidation、compaction、classification
-> 及 indirect-command generation。Native compute execution、RenderGraph synchronization、
-> no-readback 證據與 target-tier parity 仍須完成後才能驗收。
+> 及 indirect-command generation。Portable compute／indirect recording、RenderGraph queue
+> ownership、CPU／GPU comparison 與 no-readback diagnostics 現已有 contract test 覆蓋；native
+> compute execution 與 target-tier parity 仍須完成後才能驗收。
 
 核心資料：
 

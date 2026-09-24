@@ -45,8 +45,8 @@ void VerifyNativeBackend(nexora::rhi::Backend backend) {
         cache.Request({layout.layout_hash, 0x1234, rhi::TextureFormat::Rgba8Unorm, "Triangle"});
     future.Wait();
     const auto pipeline = future.Get();
-    const rhi::TextureDescriptor swapchain_descriptor{
-        640, 360, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::Present, "Native target"};
+    const rhi::TextureDescriptor swapchain_descriptor{640, 360, rhi::TextureFormat::Rgba8Unorm,
+                                                      rhi::ResourceState::Present, "Native target"};
     const auto swapchain = device->CreateTexture(swapchain_descriptor);
     const auto frame =
         renderer::ExecuteTriangleFrame(*device, swapchain, swapchain_descriptor, pipeline);
@@ -149,6 +149,24 @@ int RunTests() {
     rejected_conflicting_use = true;
   }
   Require(rejected_conflicting_use, "a pass must not ambiguously read and write one texture");
+
+  renderer::RenderGraph queues;
+  const auto shared = queues.CreateTransientTexture(
+      {1, 1, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::Undefined, "Queue shared"});
+  (void)queues.AddPass({"Cull",
+                        rhi::QueueType::Compute,
+                        {},
+                        {{shared, rhi::ResourceState::ShaderRead}},
+                        [](rhi::CommandList &commands, auto) { commands.Dispatch(1); }});
+  (void)queues.AddPass({"Consume",
+                        rhi::QueueType::Graphics,
+                        {{shared, rhi::ResourceState::ShaderRead}},
+                        {},
+                        [](rhi::CommandList &, auto) {}});
+  queues.Compile();
+  queues.Execute(*device);
+  Require(queues.GetStatistics().queue_transfer_count == 1,
+          "render graph owns graphics/compute queue transfers");
 
   for (const auto backend :
        std::array{rhi::Backend::Direct3D12, rhi::Backend::Vulkan, rhi::Backend::Metal}) {

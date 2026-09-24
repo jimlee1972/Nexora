@@ -3831,9 +3831,11 @@ reference snapshot.
 
 Current evidence: the deterministic CPU reference implements frustum/distance/LOD culling,
 conservative Hi-Z with explicit invalidation, visible-instance compaction, material/mesh/LOD
-classification, and indirect-command generation. V2-M3 remains open because native compute/indirect
-execution, RenderGraph queue/barrier ownership, no-readback proof, and DX12/Vulkan/Metal target-tier
-parity have not passed their gates.
+classification, and indirect-command generation. The portable command contract now records compute
+dispatch and indirect drawing, compares backend output with the CPU reference, tracks normal-path
+readback diagnostics, and makes RenderGraph emit explicit compute/graphics ownership barriers.
+V2-M3 remains open because native compute/indirect execution and DX12/Vulkan/Metal target-tier parity
+have not passed their target-host gates.
 
 Order:
 

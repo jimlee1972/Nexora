@@ -128,7 +128,7 @@ void RenderGraph::Compile() {
   statistics_ = {passes_.size(),
                  static_cast<std::size_t>(std::ranges::count_if(
                      textures_, [](const TextureRecord &t) { return t.transient; })),
-                 0};
+                 0, 0};
   compiled_ = true;
 }
 
@@ -137,7 +137,9 @@ void RenderGraph::Execute(rhi::Device &device) {
     throw std::logic_error("render graph must be compiled before execution");
   std::vector<rhi::TextureHandle> handles(textures_.size());
   std::vector<rhi::ResourceState> states(textures_.size());
+  std::vector<std::optional<rhi::QueueType>> owners(textures_.size());
   statistics_.barrier_count = 0;
+  statistics_.queue_transfer_count = 0;
   const auto release_transients = [&] {
     for (std::size_t index = 0; index < textures_.size(); ++index) {
       if (textures_[index].transient && handles[index].IsValid())
@@ -154,15 +156,23 @@ void RenderGraph::Execute(rhi::Device &device) {
         handles[index] = textures_[index].imported;
       }
       states[index] = textures_[index].descriptor.initial_state;
+      if (!textures_[index].transient)
+        owners[index] = rhi::QueueType::Graphics;
     }
     for (const auto pass_index : execution_order_) {
       const auto &pass = passes_[pass_index];
       auto commands = device.CreateCommandList(pass.queue);
       const auto transition = [&](const TextureUse &use) {
-        if (states[use.texture.id] != use.state) {
-          commands->Transition({handles[use.texture.id], states[use.texture.id], use.state});
+        const bool queue_transfer =
+            owners[use.texture.id].has_value() && owners[use.texture.id].value() != pass.queue;
+        if (states[use.texture.id] != use.state || queue_transfer) {
+          commands->Transition({handles[use.texture.id], states[use.texture.id], use.state,
+                                owners[use.texture.id].value_or(pass.queue), pass.queue});
           states[use.texture.id] = use.state;
+          owners[use.texture.id] = pass.queue;
           ++statistics_.barrier_count;
+          if (queue_transfer)
+            ++statistics_.queue_transfer_count;
         }
       };
       std::ranges::for_each(pass.reads, transition);

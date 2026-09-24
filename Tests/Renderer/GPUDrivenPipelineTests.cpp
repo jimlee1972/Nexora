@@ -69,11 +69,47 @@ void TestInvalidDepthInput() {
   const auto invalid = HiZPyramid::Build(2, 2, depth);
   Require(invalid.mips.empty() && invalid.width == 0, "invalid depth dimensions fail closed");
 }
+void TestReferenceComparison() {
+  GPUSceneReferenceSnapshot scene;
+  scene.objects = {Object(3, {0, 0, 0.2F}, 0.05F, 4, 2)};
+  const auto reference = BuildGPUDrivenCommands(scene, {});
+  auto gpu_output = reference;
+  Require(CompareGPUDrivenResults(reference, gpu_output).matches,
+          "identical GPU output matches the CPU reference");
+  ++gpu_output.commands[0].instance_count;
+  const auto mismatch = CompareGPUDrivenResults(reference, gpu_output);
+  Require(!mismatch.matches && mismatch.first_command_mismatch == 0,
+          "indirect argument mismatch identifies its first command");
+}
+void TestNormalPathRecordsNoReadback() {
+  auto device = rhi::CreateValidationDevice();
+  auto compute = device->CreateCommandList(rhi::QueueType::Compute);
+  auto graphics = device->CreateCommandList(rhi::QueueType::Graphics);
+  const auto target = device->CreateTexture(
+      {1, 1, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::RenderTarget, "target"});
+  const auto pipeline =
+      device->CreatePipeline({1, 1, rhi::TextureFormat::Rgba8Unorm, "gpu-driven"});
+  graphics->BeginRendering({target, 1, 1});
+  graphics->BindPipeline(pipeline);
+  RecordGPUDrivenExecution(*compute, *graphics, 4096, 7);
+  graphics->EndRendering();
+  device->Submit(*compute);
+  device->Submit(*graphics);
+  const auto diagnostics = device->Diagnostics();
+  Require(diagnostics.compute_dispatches == 1 && diagnostics.indirect_draw_calls == 1 &&
+              diagnostics.draw_calls == 1,
+          "normal path dispatches once and submits GPU-generated bins indirectly");
+  Require(diagnostics.readbacks == 0, "normal GPU-driven execution records no readback");
+  device->DestroyPipeline(pipeline);
+  device->DestroyTexture(target);
+}
 } // namespace
 int main() {
   TestCullingLODCompactionAndClassification();
   TestHiZAndInvalidation();
   TestInvalidDepthInput();
+  TestReferenceComparison();
+  TestNormalPathRecordsNoReadback();
   std::cout << "GPU-driven pipeline tests passed\n";
   return 0;
 }
