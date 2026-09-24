@@ -52,6 +52,9 @@ satisfy this milestone.
 - ✅ The feature-gated Dear ImGui host implements the portable docking, theme/DPI, input/IME,
   live-panel, recovery UX, and accessibility-direction contracts described by
   [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md).
+- ✅ On Vulkan hosts, the graphical process composites ImGui draw data into the acquired public
+  `RenderSurface` swapchain backbuffer; Linux and Windows window events normalize the complete
+  Editor key/modifier set.
 - Open acceptance: real-display Linux visual/input/recovery evidence and Windows DPI/IME evidence.
   ED-M0 remains open until those target-host gates pass.
 

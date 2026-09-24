@@ -4,6 +4,9 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstring>
 #include <ranges>
 #include <span>
 #include <string>
@@ -39,25 +42,73 @@ void ApplyTheme(float scale) {
   style.FrameRounding = 3.0F;
   style.ScaleAllSizes(scale);
 }
-ImGuiKey ToImGuiKey(std::int32_t key) {
-  if (key >= 'A' && key <= 'Z')
-    return static_cast<ImGuiKey>(ImGuiKey_A + key - 'A');
-  if (key >= '0' && key <= '9')
-    return static_cast<ImGuiKey>(ImGuiKey_0 + key - '0');
+ImGuiKey ToImGuiKey(Nexora::Window::Key key) {
+  using Key = Nexora::Window::Key;
+  if (key >= Key::Digit0 && key <= Key::Digit9)
+    return static_cast<ImGuiKey>(ImGuiKey_0 + static_cast<int>(key) -
+                                 static_cast<int>(Key::Digit0));
+  if (key >= Key::A && key <= Key::Z)
+    return static_cast<ImGuiKey>(ImGuiKey_A + static_cast<int>(key) - static_cast<int>(Key::A));
+  if (key >= Key::F1 && key <= Key::F12)
+    return static_cast<ImGuiKey>(ImGuiKey_F1 + static_cast<int>(key) - static_cast<int>(Key::F1));
+  if (key >= Key::Keypad0 && key <= Key::Keypad9)
+    return static_cast<ImGuiKey>(ImGuiKey_Keypad0 + static_cast<int>(key) -
+                                 static_cast<int>(Key::Keypad0));
+#define NEXORA_KEY(native, imgui)                                                                  \
+  case Key::native:                                                                                \
+    return ImGuiKey_##imgui
   switch (key) {
-  case 8:
-    return ImGuiKey_Backspace;
-  case 9:
-    return ImGuiKey_Tab;
-  case 13:
-    return ImGuiKey_Enter;
-  case 27:
-    return ImGuiKey_Escape;
-  case 32:
-    return ImGuiKey_Space;
+    NEXORA_KEY(Tab, Tab);
+    NEXORA_KEY(LeftArrow, LeftArrow);
+    NEXORA_KEY(RightArrow, RightArrow);
+    NEXORA_KEY(UpArrow, UpArrow);
+    NEXORA_KEY(DownArrow, DownArrow);
+    NEXORA_KEY(PageUp, PageUp);
+    NEXORA_KEY(PageDown, PageDown);
+    NEXORA_KEY(Home, Home);
+    NEXORA_KEY(End, End);
+    NEXORA_KEY(Insert, Insert);
+    NEXORA_KEY(Delete, Delete);
+    NEXORA_KEY(Backspace, Backspace);
+    NEXORA_KEY(Space, Space);
+    NEXORA_KEY(Enter, Enter);
+    NEXORA_KEY(Escape, Escape);
+    NEXORA_KEY(Apostrophe, Apostrophe);
+    NEXORA_KEY(Comma, Comma);
+    NEXORA_KEY(Minus, Minus);
+    NEXORA_KEY(Period, Period);
+    NEXORA_KEY(Slash, Slash);
+    NEXORA_KEY(Semicolon, Semicolon);
+    NEXORA_KEY(Equal, Equal);
+    NEXORA_KEY(LeftBracket, LeftBracket);
+    NEXORA_KEY(Backslash, Backslash);
+    NEXORA_KEY(RightBracket, RightBracket);
+    NEXORA_KEY(GraveAccent, GraveAccent);
+    NEXORA_KEY(CapsLock, CapsLock);
+    NEXORA_KEY(ScrollLock, ScrollLock);
+    NEXORA_KEY(NumLock, NumLock);
+    NEXORA_KEY(PrintScreen, PrintScreen);
+    NEXORA_KEY(Pause, Pause);
+    NEXORA_KEY(KeypadDecimal, KeypadDecimal);
+    NEXORA_KEY(KeypadDivide, KeypadDivide);
+    NEXORA_KEY(KeypadMultiply, KeypadMultiply);
+    NEXORA_KEY(KeypadSubtract, KeypadSubtract);
+    NEXORA_KEY(KeypadAdd, KeypadAdd);
+    NEXORA_KEY(KeypadEnter, KeypadEnter);
+    NEXORA_KEY(KeypadEqual, KeypadEqual);
+    NEXORA_KEY(LeftShift, LeftShift);
+    NEXORA_KEY(LeftControl, LeftCtrl);
+    NEXORA_KEY(LeftAlt, LeftAlt);
+    NEXORA_KEY(LeftSuper, LeftSuper);
+    NEXORA_KEY(RightShift, RightShift);
+    NEXORA_KEY(RightControl, RightCtrl);
+    NEXORA_KEY(RightAlt, RightAlt);
+    NEXORA_KEY(RightSuper, RightSuper);
+    NEXORA_KEY(Menu, Menu);
   default:
     return ImGuiKey_None;
   }
+#undef NEXORA_KEY
 }
 } // namespace
 
@@ -107,7 +158,16 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
         io.AddMouseButtonEvent(event.value0, event.value1 != 0);
       break;
     case Nexora::Window::WindowEventType::Key: {
-      const auto key = ToImGuiKey(event.value0);
+      const auto modifiers = static_cast<unsigned>(event.modifiers);
+      io.AddKeyEvent(ImGuiMod_Ctrl, (modifiers & static_cast<unsigned>(
+                                                     Nexora::Window::KeyModifiers::Control)) != 0);
+      io.AddKeyEvent(ImGuiMod_Shift,
+                     (modifiers & static_cast<unsigned>(Nexora::Window::KeyModifiers::Shift)) != 0);
+      io.AddKeyEvent(ImGuiMod_Alt,
+                     (modifiers & static_cast<unsigned>(Nexora::Window::KeyModifiers::Alt)) != 0);
+      io.AddKeyEvent(ImGuiMod_Super,
+                     (modifiers & static_cast<unsigned>(Nexora::Window::KeyModifiers::Super)) != 0);
+      const auto key = ToImGuiKey(static_cast<Nexora::Window::Key>(event.value0));
       if (key != ImGuiKey_None)
         io.AddKeyEvent(key, event.value1 != 0);
       break;
@@ -268,6 +328,91 @@ std::uint32_t EditorImGuiHost::Render(nexora::rhi::Device &device,
   device.DestroyTexture(font_texture);
   device.DestroyPipeline(pipeline);
   return submitted;
+}
+
+Nexora::Presentation::SurfaceStatus
+EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint32_t width,
+                        std::uint32_t height) {
+  Activate(state_->context);
+  const auto *draw = ImGui::GetDrawData();
+  if (draw == nullptr || width == 0 || height == 0)
+    return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
+  std::vector<std::uint32_t> pixels(static_cast<std::size_t>(width) * height, 0xff29140aU);
+  unsigned char *atlas = nullptr;
+  int atlas_width = 0;
+  int atlas_height = 0;
+  ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&atlas, &atlas_width, &atlas_height);
+  auto blend = [](std::uint32_t destination, std::uint32_t source) {
+    const auto alpha = (source >> 24U) & 0xffU;
+    std::uint32_t result = 0xff000000U;
+    for (unsigned shift : {0U, 8U, 16U}) {
+      const auto value = (((source >> shift) & 0xffU) * alpha +
+                          ((destination >> shift) & 0xffU) * (255U - alpha)) /
+                         255U;
+      result |= value << shift;
+    }
+    return result;
+  };
+  for (int list_index = 0; list_index < draw->CmdListsCount; ++list_index) {
+    const auto &list = *draw->CmdLists[list_index];
+    for (const auto &command : list.CmdBuffer) {
+      if (command.UserCallback != nullptr)
+        continue;
+      const int clip_left = std::max(0, static_cast<int>(command.ClipRect.x));
+      const int clip_top = std::max(0, static_cast<int>(command.ClipRect.y));
+      const int clip_right =
+          std::min(static_cast<int>(width), static_cast<int>(command.ClipRect.z));
+      const int clip_bottom =
+          std::min(static_cast<int>(height), static_cast<int>(command.ClipRect.w));
+      for (unsigned index = 0; index + 2 < command.ElemCount; index += 3) {
+        const auto vertex = [&](unsigned corner) -> const ImDrawVert & {
+          return list.VtxBuffer[static_cast<int>(
+              list.IdxBuffer[command.IdxOffset + index + corner] + command.VtxOffset)];
+        };
+        const auto &a = vertex(0);
+        const auto &b = vertex(1);
+        const auto &c = vertex(2);
+        const float area =
+            (b.pos.x - a.pos.x) * (c.pos.y - a.pos.y) - (b.pos.y - a.pos.y) * (c.pos.x - a.pos.x);
+        if (std::abs(area) < 0.0001F)
+          continue;
+        const int left = std::max(
+            clip_left, static_cast<int>(std::floor(std::min({a.pos.x, b.pos.x, c.pos.x}))));
+        const int top =
+            std::max(clip_top, static_cast<int>(std::floor(std::min({a.pos.y, b.pos.y, c.pos.y}))));
+        const int right = std::min(
+            clip_right, static_cast<int>(std::ceil(std::max({a.pos.x, b.pos.x, c.pos.x}))));
+        const int bottom = std::min(
+            clip_bottom, static_cast<int>(std::ceil(std::max({a.pos.y, b.pos.y, c.pos.y}))));
+        for (int y = top; y < bottom; ++y)
+          for (int x = left; x < right; ++x) {
+            const float px = static_cast<float>(x) + 0.5F, py = static_cast<float>(y) + 0.5F;
+            const float wa =
+                ((b.pos.x - px) * (c.pos.y - py) - (b.pos.y - py) * (c.pos.x - px)) / area;
+            const float wb =
+                ((c.pos.x - px) * (a.pos.y - py) - (c.pos.y - py) * (a.pos.x - px)) / area;
+            const float wc = 1.0F - wa - wb;
+            if (wa < 0.0F || wb < 0.0F || wc < 0.0F)
+              continue;
+            const float u = wa * a.uv.x + wb * b.uv.x + wc * c.uv.x;
+            const float v = wa * a.uv.y + wb * b.uv.y + wc * c.uv.y;
+            const int tx = std::clamp(static_cast<int>(u * atlas_width), 0, atlas_width - 1);
+            const int ty = std::clamp(static_cast<int>(v * atlas_height), 0, atlas_height - 1);
+            const auto sample = atlas[(ty * atlas_width + tx) * 4 + 3];
+            const auto channel = [&](unsigned shift) {
+              return static_cast<std::uint32_t>(wa * ((a.col >> shift) & 0xffU) +
+                                                wb * ((b.col >> shift) & 0xffU) +
+                                                wc * ((c.col >> shift) & 0xffU));
+            };
+            const std::uint32_t color = channel(0) | (channel(8) << 8U) | (channel(16) << 16U) |
+                                        ((channel(24) * sample / 255U) << 24U);
+            auto &destination = pixels[static_cast<std::size_t>(y) * width + x];
+            destination = blend(destination, color);
+          }
+      }
+    }
+  }
+  return surface.CompositeRgba8(std::as_bytes(std::span{pixels}), width, height);
 }
 
 void EditorImGuiHost::UpdateImeCandidate(Nexora::Presentation::RenderSurface &surface) {

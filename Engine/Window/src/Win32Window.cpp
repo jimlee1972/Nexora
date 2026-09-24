@@ -17,6 +17,130 @@
 
 namespace Nexora::Window {
 namespace {
+Key TranslateKey(WPARAM key, LPARAM data) noexcept {
+  if (key >= '0' && key <= '9')
+    return static_cast<Key>(static_cast<int>(Key::Digit0) + key - '0');
+  if (key >= 'A' && key <= 'Z')
+    return static_cast<Key>(static_cast<int>(Key::A) + key - 'A');
+  if (key >= VK_F1 && key <= VK_F12)
+    return static_cast<Key>(static_cast<int>(Key::F1) + key - VK_F1);
+  if (key >= VK_NUMPAD0 && key <= VK_NUMPAD9)
+    return static_cast<Key>(static_cast<int>(Key::Keypad0) + key - VK_NUMPAD0);
+  switch (key) {
+  case VK_TAB:
+    return Key::Tab;
+  case VK_LEFT:
+    return Key::LeftArrow;
+  case VK_RIGHT:
+    return Key::RightArrow;
+  case VK_UP:
+    return Key::UpArrow;
+  case VK_DOWN:
+    return Key::DownArrow;
+  case VK_PRIOR:
+    return Key::PageUp;
+  case VK_NEXT:
+    return Key::PageDown;
+  case VK_HOME:
+    return Key::Home;
+  case VK_END:
+    return Key::End;
+  case VK_INSERT:
+    return Key::Insert;
+  case VK_DELETE:
+    return Key::Delete;
+  case VK_BACK:
+    return Key::Backspace;
+  case VK_SPACE:
+    return Key::Space;
+  case VK_RETURN:
+    return (data & (1LL << 24)) ? Key::KeypadEnter : Key::Enter;
+  case VK_ESCAPE:
+    return Key::Escape;
+  case VK_OEM_7:
+    return Key::Apostrophe;
+  case VK_OEM_COMMA:
+    return Key::Comma;
+  case VK_OEM_MINUS:
+    return Key::Minus;
+  case VK_OEM_PERIOD:
+    return Key::Period;
+  case VK_OEM_2:
+    return Key::Slash;
+  case VK_OEM_1:
+    return Key::Semicolon;
+  case VK_OEM_PLUS:
+    return Key::Equal;
+  case VK_OEM_4:
+    return Key::LeftBracket;
+  case VK_OEM_5:
+    return Key::Backslash;
+  case VK_OEM_6:
+    return Key::RightBracket;
+  case VK_OEM_3:
+    return Key::GraveAccent;
+  case VK_CAPITAL:
+    return Key::CapsLock;
+  case VK_SCROLL:
+    return Key::ScrollLock;
+  case VK_NUMLOCK:
+    return Key::NumLock;
+  case VK_SNAPSHOT:
+    return Key::PrintScreen;
+  case VK_PAUSE:
+    return Key::Pause;
+  case VK_DECIMAL:
+    return Key::KeypadDecimal;
+  case VK_DIVIDE:
+    return Key::KeypadDivide;
+  case VK_MULTIPLY:
+    return Key::KeypadMultiply;
+  case VK_SUBTRACT:
+    return Key::KeypadSubtract;
+  case VK_ADD:
+    return Key::KeypadAdd;
+  case VK_LSHIFT:
+    return Key::LeftShift;
+  case VK_SHIFT:
+    return ((data >> 16) & 0xff) == MapVirtualKeyW(VK_RSHIFT, MAPVK_VK_TO_VSC) ? Key::RightShift
+                                                                               : Key::LeftShift;
+  case VK_LCONTROL:
+    return Key::LeftControl;
+  case VK_CONTROL:
+    return (data & (1LL << 24)) ? Key::RightControl : Key::LeftControl;
+  case VK_LMENU:
+    return Key::LeftAlt;
+  case VK_MENU:
+    return (data & (1LL << 24)) ? Key::RightAlt : Key::LeftAlt;
+  case VK_LWIN:
+    return Key::LeftSuper;
+  case VK_RSHIFT:
+    return Key::RightShift;
+  case VK_RCONTROL:
+    return Key::RightControl;
+  case VK_RMENU:
+    return Key::RightAlt;
+  case VK_RWIN:
+    return Key::RightSuper;
+  case VK_APPS:
+    return Key::Menu;
+  default:
+    return Key::Unknown;
+  }
+}
+
+KeyModifiers CurrentModifiers() noexcept {
+  unsigned modifiers = 0;
+  if (GetKeyState(VK_CONTROL) & 0x8000)
+    modifiers |= static_cast<unsigned>(KeyModifiers::Control);
+  if (GetKeyState(VK_SHIFT) & 0x8000)
+    modifiers |= static_cast<unsigned>(KeyModifiers::Shift);
+  if (GetKeyState(VK_MENU) & 0x8000)
+    modifiers |= static_cast<unsigned>(KeyModifiers::Alt);
+  if ((GetKeyState(VK_LWIN) | GetKeyState(VK_RWIN)) & 0x8000)
+    modifiers |= static_cast<unsigned>(KeyModifiers::Super);
+  return static_cast<KeyModifiers>(modifiers);
+}
 std::uint64_t Now() noexcept {
   return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
                                         std::chrono::steady_clock::now().time_since_epoch())
@@ -188,10 +312,10 @@ private:
     std::erase_if(pumped_, [&](auto &e) { return e.window == h; });
   }
   void Push(HWND hwnd, WindowEventType type, int v0 = 0, int v1 = 0, uint32_t w = 0, uint32_t h = 0,
-            float scale = 1) {
+            float scale = 1, KeyModifiers modifiers = KeyModifiers::None) {
     auto id = (uint64_t)(uintptr_t)GetPropW(hwnd, L"Nexora.Handle");
     if (id)
-      pending_.push_back({{id}, type, Now(), w, h, scale, v0, v1});
+      pending_.push_back({{id}, type, Now(), w, h, scale, v0, v1, modifiers});
   }
   static LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM w, LPARAM l) {
     auto *self = reinterpret_cast<Win32WindowSystem *>(GetWindowLongPtrW(h, GWLP_USERDATA));
@@ -223,7 +347,8 @@ private:
     case WM_SYSKEYDOWN:
     case WM_KEYUP:
     case WM_SYSKEYUP:
-      self->Push(h, WindowEventType::Key, (int)w, (m == WM_KEYDOWN || m == WM_SYSKEYDOWN) ? 1 : 0);
+      self->Push(h, WindowEventType::Key, static_cast<int>(TranslateKey(w, l)),
+                 (m == WM_KEYDOWN || m == WM_SYSKEYDOWN) ? 1 : 0, 0, 0, 1.0F, CurrentModifiers());
       return 0;
     case WM_CHAR:
       self->Push(h, WindowEventType::Text, (int)w);

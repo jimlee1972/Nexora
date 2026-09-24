@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cstring>
 #include <limits>
 #include <vector>
 
@@ -149,6 +150,7 @@ public:
     auto &frame = frames_[frame_];
     if (vkWaitForFences(device_, 1, &frame.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
+    DestroyUpload(frame);
     ++diagnostics_.fenceWaits;
     const auto result = vkAcquireNextImageKHR(device_, swapchain_, UINT64_MAX, frame.available,
                                               VK_NULL_HANDLE, &imageIndex_);
@@ -183,19 +185,68 @@ public:
     const VkClearColorValue color{{0.04F, 0.08F, 0.16F, 1.0F}};
     vkCmdClearColorImage(frame.commands, images_[imageIndex_], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                          &color, 1, &toTransfer.subresourceRange);
-    VkImageMemoryBarrier toPresent = toTransfer;
-    toPresent.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    toPresent.dstAccessMask = 0;
-    toPresent.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    toPresent.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1,
-                         &toPresent);
-    vkEndCommandBuffer(frame.commands);
     acquired_ = true;
     ++diagnostics_.acquiredFrames;
     if (result == VK_SUBOPTIMAL_KHR)
       dirty_.store(true);
+    return SurfaceStatus::Ready;
+  }
+  SurfaceStatus CompositeRgba8(std::span<const std::byte> pixels, std::uint32_t width,
+                               std::uint32_t height) override {
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    if (!acquired_ || width != width_ || height != height_ ||
+        pixels.size() != static_cast<std::size_t>(width) * height * 4U)
+      return SurfaceStatus::InvalidDescriptor;
+    auto &frame = frames_[frame_];
+    VkBufferCreateInfo bufferCreate{};
+    bufferCreate.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferCreate.size = pixels.size();
+    bufferCreate.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    bufferCreate.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    if (vkCreateBuffer(device_, &bufferCreate, nullptr, &frame.upload) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
+    VkMemoryRequirements requirements{};
+    vkGetBufferMemoryRequirements(device_, frame.upload, &requirements);
+    VkPhysicalDeviceMemoryProperties properties{};
+    vkGetPhysicalDeviceMemoryProperties(physical_, &properties);
+    std::uint32_t memoryType = properties.memoryTypeCount;
+    for (std::uint32_t index = 0; index < properties.memoryTypeCount; ++index) {
+      const auto flags = properties.memoryTypes[index].propertyFlags;
+      if ((requirements.memoryTypeBits & (1U << index)) &&
+          (flags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) ==
+              (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
+        memoryType = index;
+        break;
+      }
+    }
+    if (memoryType == properties.memoryTypeCount)
+      return SurfaceStatus::Unsupported;
+    VkMemoryAllocateInfo allocate{};
+    allocate.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocate.allocationSize = requirements.size;
+    allocate.memoryTypeIndex = memoryType;
+    if (vkAllocateMemory(device_, &allocate, nullptr, &frame.uploadMemory) != VK_SUCCESS ||
+        vkBindBufferMemory(device_, frame.upload, frame.uploadMemory, 0) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
+    std::vector<std::byte> converted;
+    if (swapchainFormat_ == VK_FORMAT_B8G8R8A8_UNORM ||
+        swapchainFormat_ == VK_FORMAT_B8G8R8A8_SRGB) {
+      converted.assign(pixels.begin(), pixels.end());
+      for (std::size_t offset = 0; offset < converted.size(); offset += 4)
+        std::swap(converted[offset], converted[offset + 2]);
+      pixels = converted;
+    }
+    void *mapped = nullptr;
+    if (vkMapMemory(device_, frame.uploadMemory, 0, pixels.size(), 0, &mapped) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
+    std::memcpy(mapped, pixels.data(), pixels.size());
+    vkUnmapMemory(device_, frame.uploadMemory);
+    VkBufferImageCopy copy{};
+    copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    copy.imageExtent = {width, height, 1};
+    vkCmdCopyBufferToImage(frame.commands, frame.upload, images_[imageIndex_],
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
     return SurfaceStatus::Ready;
   }
   SurfaceStatus Present() override {
@@ -204,6 +255,19 @@ public:
     if (!acquired_)
       return SurfaceStatus::OutOfDate;
     auto &frame = frames_[frame_];
+    VkImageMemoryBarrier toPresent{};
+    toPresent.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    toPresent.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    toPresent.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    toPresent.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    toPresent.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toPresent.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    toPresent.image = images_[imageIndex_];
+    toPresent.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                         &toPresent);
+    vkEndCommandBuffer(frame.commands);
     constexpr VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     VkSubmitInfo submit{};
     submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -266,11 +330,22 @@ private:
     VkSemaphore available{};
     VkSemaphore finished{};
     VkFence fence{};
+    VkBuffer upload{};
+    VkDeviceMemory uploadMemory{};
   };
   static constexpr std::size_t kMaxFrames = 3;
   bool OnThread() const noexcept { return thread_ == std::this_thread::get_id(); }
+  void DestroyUpload(Frame &frame) {
+    if (frame.upload)
+      vkDestroyBuffer(device_, frame.upload, nullptr);
+    if (frame.uploadMemory)
+      vkFreeMemory(device_, frame.uploadMemory, nullptr);
+    frame.upload = VK_NULL_HANDLE;
+    frame.uploadMemory = VK_NULL_HANDLE;
+  }
   void DestroySwapchain() {
     for (auto &frame : frames_) {
+      DestroyUpload(frame);
       if (frame.fence)
         vkDestroyFence(device_, frame.fence, nullptr);
       if (frame.available)
@@ -295,6 +370,13 @@ private:
     if (formats.empty())
       return false;
     auto selected = formats.front();
+    if (const auto rgba = std::find_if(formats.begin(), formats.end(),
+                                       [](const auto &format) {
+                                         return format.format == VK_FORMAT_R8G8B8A8_UNORM ||
+                                                format.format == VK_FORMAT_R8G8B8A8_SRGB;
+                                       });
+        rgba != formats.end())
+      selected = *rgba;
     if (requestedColorSpace_ == ColorSpace::Hdr10) {
       const auto hdr = std::find_if(formats.begin(), formats.end(), [](const auto &format) {
         return format.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT;
@@ -338,6 +420,7 @@ private:
     create.clipped = VK_TRUE;
     if (vkCreateSwapchainKHR(device_, &create, nullptr, &swapchain_) != VK_SUCCESS)
       return false;
+    swapchainFormat_ = selected.format;
     std::uint32_t imageCount = 0;
     vkGetSwapchainImagesKHR(device_, swapchain_, &imageCount, nullptr);
     images_.resize(imageCount);
@@ -386,6 +469,7 @@ private:
   VkSurfaceKHR surface_{};
   VkSwapchainKHR swapchain_{};
   VkCommandPool commandPool_{};
+  VkFormat swapchainFormat_{};
   std::vector<VkImage> images_;
   std::vector<Frame> frames_;
   SurfaceDiagnostics diagnostics_{};

@@ -20,12 +20,6 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
     std::cerr << "graphical shell unavailable: " << created.reason << '\n';
     return 1;
   }
-  auto device = nexora::rhi::CreateValidationDevice();
-  auto target = device->CreateTexture({1280, 720, nexora::rhi::TextureFormat::Rgba8Unorm,
-                                       nexora::rhi::ResourceState::Undefined, "Editor UI target"});
-  std::uint32_t target_width = 1280;
-  std::uint32_t target_height = 720;
-  auto state = nexora::rhi::ResourceState::Undefined;
   nexora::editor::imgui::EditorImGuiHost ui;
   nexora::editor::ProductShell shell;
   nexora::runtime::World world;
@@ -48,30 +42,19 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
     const auto &frame = created.surface->FrameInfo();
     if (frame.width == 0 || frame.height == 0)
       continue;
-    if (frame.width != target_width || frame.height != target_height) {
-      device->WaitIdle();
-      device->DestroyTexture(target);
-      target =
-          device->CreateTexture({frame.width, frame.height, nexora::rhi::TextureFormat::Rgba8Unorm,
-                                 nexora::rhi::ResourceState::Undefined, "Editor UI target"});
-      target_width = frame.width;
-      target_height = frame.height;
-      state = nexora::rhi::ResourceState::Undefined;
-    }
     ui.SetDisplay(static_cast<float>(frame.width), static_cast<float>(frame.height),
                   frame.dpiScale);
     ui.UpdateImeCandidate(*created.surface);
     ui.BeginFrame();
     ui.DrawProductShell(shell, &scene, &workspace);
     static_cast<void>(ui.EndFrame());
-    static_cast<void>(ui.Render(*device, target, frame.width, frame.height, state, false));
-    state = nexora::rhi::ResourceState::ShaderRead;
+    if (ui.Render(*created.surface, frame.width, frame.height) !=
+        Nexora::Presentation::SurfaceStatus::Ready)
+      break;
     if (created.surface->EndFrame() != Nexora::Presentation::SurfaceStatus::Ready)
       break;
     ++frames;
   }
-  device->WaitIdle();
-  device->DestroyTexture(target);
   return created.surface->DrainAndDestroy() == Nexora::Presentation::SurfaceStatus::Ready ? 0 : 1;
 }
 #endif

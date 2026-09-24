@@ -6,6 +6,7 @@
 
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
+#include <X11/keysym.h>
 #undef None
 #include <algorithm>
 #include <chrono>
@@ -16,6 +17,87 @@
 
 namespace Nexora::Window {
 namespace {
+Key TranslateKey(KeySym symbol) noexcept {
+  if (symbol >= XK_0 && symbol <= XK_9)
+    return static_cast<Key>(static_cast<int>(Key::Digit0) + symbol - XK_0);
+  if (symbol >= XK_A && symbol <= XK_Z)
+    return static_cast<Key>(static_cast<int>(Key::A) + symbol - XK_A);
+  if (symbol >= XK_a && symbol <= XK_z)
+    return static_cast<Key>(static_cast<int>(Key::A) + symbol - XK_a);
+  if (symbol >= XK_F1 && symbol <= XK_F12)
+    return static_cast<Key>(static_cast<int>(Key::F1) + symbol - XK_F1);
+  if (symbol >= XK_KP_0 && symbol <= XK_KP_9)
+    return static_cast<Key>(static_cast<int>(Key::Keypad0) + symbol - XK_KP_0);
+#define NEXORA_X11_KEY(x, key)                                                                     \
+  case XK_##x:                                                                                     \
+    return Key::key
+  switch (symbol) {
+    NEXORA_X11_KEY(Tab, Tab);
+    NEXORA_X11_KEY(Left, LeftArrow);
+    NEXORA_X11_KEY(Right, RightArrow);
+    NEXORA_X11_KEY(Up, UpArrow);
+    NEXORA_X11_KEY(Down, DownArrow);
+    NEXORA_X11_KEY(Prior, PageUp);
+    NEXORA_X11_KEY(Next, PageDown);
+    NEXORA_X11_KEY(Home, Home);
+    NEXORA_X11_KEY(End, End);
+    NEXORA_X11_KEY(Insert, Insert);
+    NEXORA_X11_KEY(Delete, Delete);
+    NEXORA_X11_KEY(BackSpace, Backspace);
+    NEXORA_X11_KEY(space, Space);
+    NEXORA_X11_KEY(Return, Enter);
+    NEXORA_X11_KEY(Escape, Escape);
+    NEXORA_X11_KEY(apostrophe, Apostrophe);
+    NEXORA_X11_KEY(comma, Comma);
+    NEXORA_X11_KEY(minus, Minus);
+    NEXORA_X11_KEY(period, Period);
+    NEXORA_X11_KEY(slash, Slash);
+    NEXORA_X11_KEY(semicolon, Semicolon);
+    NEXORA_X11_KEY(equal, Equal);
+    NEXORA_X11_KEY(bracketleft, LeftBracket);
+    NEXORA_X11_KEY(backslash, Backslash);
+    NEXORA_X11_KEY(bracketright, RightBracket);
+    NEXORA_X11_KEY(grave, GraveAccent);
+    NEXORA_X11_KEY(Caps_Lock, CapsLock);
+    NEXORA_X11_KEY(Scroll_Lock, ScrollLock);
+    NEXORA_X11_KEY(Num_Lock, NumLock);
+    NEXORA_X11_KEY(Print, PrintScreen);
+    NEXORA_X11_KEY(Pause, Pause);
+    NEXORA_X11_KEY(KP_Decimal, KeypadDecimal);
+    NEXORA_X11_KEY(KP_Divide, KeypadDivide);
+    NEXORA_X11_KEY(KP_Multiply, KeypadMultiply);
+    NEXORA_X11_KEY(KP_Subtract, KeypadSubtract);
+    NEXORA_X11_KEY(KP_Add, KeypadAdd);
+    NEXORA_X11_KEY(KP_Enter, KeypadEnter);
+    NEXORA_X11_KEY(KP_Equal, KeypadEqual);
+    NEXORA_X11_KEY(Shift_L, LeftShift);
+    NEXORA_X11_KEY(Control_L, LeftControl);
+    NEXORA_X11_KEY(Alt_L, LeftAlt);
+    NEXORA_X11_KEY(Super_L, LeftSuper);
+    NEXORA_X11_KEY(Shift_R, RightShift);
+    NEXORA_X11_KEY(Control_R, RightControl);
+    NEXORA_X11_KEY(Alt_R, RightAlt);
+    NEXORA_X11_KEY(Super_R, RightSuper);
+    NEXORA_X11_KEY(Menu, Menu);
+  default:
+    return Key::Unknown;
+  }
+#undef NEXORA_X11_KEY
+}
+
+KeyModifiers TranslateModifiers(unsigned state) noexcept {
+  unsigned result = 0;
+  if (state & ControlMask)
+    result |= static_cast<unsigned>(KeyModifiers::Control);
+  if (state & ShiftMask)
+    result |= static_cast<unsigned>(KeyModifiers::Shift);
+  if (state & Mod1Mask)
+    result |= static_cast<unsigned>(KeyModifiers::Alt);
+  if (state & Mod4Mask)
+    result |= static_cast<unsigned>(KeyModifiers::Super);
+  return static_cast<KeyModifiers>(result);
+}
+
 std::uint64_t Now() noexcept {
   return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
                                         std::chrono::steady_clock::now().time_since_epoch())
@@ -144,8 +226,22 @@ public:
       case KeyPress:
       case KeyRelease:
         event.type = WindowEventType::Key;
-        event.value0 = native.xkey.keycode;
+        event.value0 = static_cast<std::int32_t>(TranslateKey(XLookupKeysym(&native.xkey, 0)));
         event.value1 = native.type == KeyPress;
+        event.modifiers = TranslateModifiers(native.xkey.state);
+        if (event.value1) {
+          const auto key = static_cast<Key>(event.value0);
+          unsigned modifiers = static_cast<unsigned>(event.modifiers);
+          if (key == Key::LeftControl || key == Key::RightControl)
+            modifiers |= static_cast<unsigned>(KeyModifiers::Control);
+          if (key == Key::LeftShift || key == Key::RightShift)
+            modifiers |= static_cast<unsigned>(KeyModifiers::Shift);
+          if (key == Key::LeftAlt || key == Key::RightAlt)
+            modifiers |= static_cast<unsigned>(KeyModifiers::Alt);
+          if (key == Key::LeftSuper || key == Key::RightSuper)
+            modifiers |= static_cast<unsigned>(KeyModifiers::Super);
+          event.modifiers = static_cast<KeyModifiers>(modifiers);
+        }
         break;
       case MotionNotify:
         event.type = WindowEventType::Pointer;
