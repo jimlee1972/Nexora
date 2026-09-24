@@ -1,5 +1,7 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 
+#include "imgui.h"
+
 #include <array>
 #include <cassert>
 
@@ -11,13 +13,19 @@ int main() {
   nexora::editor::SceneDocument scene(world, scene_id);
   const auto root = scene.Create("Scene Root");
   assert(root != 0 && scene.Nodes().size() == 1);
-  host.SetDisplay(1280.0F, 720.0F, 1.5F);
+  host.SetDisplay(1280.0F, 720.0F, 1.0F);
   const std::array events{
       Nexora::Window::WindowEvent{
           {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, 320, 240},
       Nexora::Window::WindowEvent{{}, Nexora::Window::WindowEventType::Text, 0, 0, 0, 1.0F, 'N', 0},
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::DpiChanged, 0, 0, 0, 1.5F, 0, 0},
   };
   host.ProcessEvents(events);
+  host.SetDisplay(1600.0F, 900.0F, 1.5F);
+  assert(ImGui::GetIO().DisplaySize.x == 1600.0F);
+  assert(ImGui::GetIO().DisplaySize.y == 900.0F);
+  assert(ImGui::GetIO().FontGlobalScale == 1.5F);
   host.BeginFrame();
   nexora::editor::ProductShell shell;
   host.DrawProductShell(shell, &scene);

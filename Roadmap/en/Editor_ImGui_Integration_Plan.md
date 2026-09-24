@@ -119,6 +119,10 @@ different default), say so before Phase 1 starts -- everything past this section
 
 ### Phase 4 -- Theme / DPI
 
+- **Implementation status: complete; Windows target-host acceptance remains open.** The graphical
+  application reads `RenderSurface::FrameInfo()` after `BeginFrame()` and supplies its live client
+  extent and retained DPI scale to `EditorImGuiHost::SetDisplay()`. It no longer replaces a
+  `DpiChanged` event with a fixed `1280 x 720` / `1.0` display on the same frame.
 - Theme: a single first-class theme is sufficient for ED-M0 acceptance; per-user theming is not
   required by the milestone's gate.
 - DPI: forward the DPI-aware sizing `Engine/Window`'s Win32 backend already computes
@@ -127,6 +131,10 @@ different default), say so before Phase 1 starts -- everything past this section
 
 ### Phase 5 -- IME wiring
 
+- **Implementation status: complete; Windows target-host acceptance remains open.** Composition
+  text forwarding and the native candidate-position callback are present, but this gate must not
+  pass until a Windows run demonstrates composition input and candidate placement at the ImGui
+  text cursor.
 - Forward `Engine/Window`'s composed-text events (the exact plumbing this session's Win32 IME
   null/negative-size fix hardened) into `ImGuiIO::AddInputCharacter`, and implement
   `io.SetPlatformImeDataFn` to position the native IME candidate window at ImGui's input cursor.
