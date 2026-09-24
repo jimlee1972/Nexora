@@ -17,6 +17,7 @@ This directory contains the version roadmaps and focused capability roadmaps for
 | ✅ Engine API Foundation Roadmap | **100%** | [Engine API Foundation Roadmap](en/Engine_API_Foundation_Roadmap.md) |
 | Zig Showcase Roadmap | **90%** | [Zig Showcase and Engine-owned Entry Point Roadmap](en/Zig_Showcase_Roadmap.md) |
 | ✅ Window and Native Presentation Roadmap | **100% implementation** | [Window and Native Presentation Roadmap](en/Window_Presentation_Roadmap.md) |
+| V1 Visual Showcase Long-Term Plan | **Draft** | [V1 Visual Showcase Demo Long-Term Plan](en/V1-Visual-Showcase-Long-Term-Plan.md) |
 | Editor Roadmap | **0% graphical acceptance** | [Graphical Editor Roadmap](en/Editor_Roadmap.md) |
 | Focused Roadmaps AI Plan | **60%** | [AI Implementation Technology and System Plan](en/Focused_Roadmaps_AI_Implementation_Plan.md) |
 
@@ -32,7 +33,8 @@ and DX12/Vulkan/Metal target-tier parity are the remaining acceptance gates.
 4. V3 Complete Plan — distributed simulation, GPU simulation, ray tracing, and ML expansion.
 5. The V2/V3 AI implementation plans — execution rules and engineering gates for each generation.
 6. The focused capability roadmaps — API foundation, window/presentation, Zig showcase, and editor delivery.
-7. The focused-roadmaps AI plan — dependency-aware AI execution, evidence, and review policy.
+7. The V1 Visual Showcase Long-Term Plan — the windowed `NexoraShowcase` demo product this complements the Zig Showcase Roadmap with.
+8. The focused-roadmaps AI plan — dependency-aware AI execution, evidence, and review policy.
 
 The documents are planning artifacts. They do not themselves authorize commands, credentials, publishing, or changes to external systems.
 
@@ -55,6 +57,7 @@ The documents are planning artifacts. They do not themselves authorize commands,
 | ✅ Engine API 基礎 Roadmap | **100%** | [Engine API 基礎 Roadmap](zh-TW/Engine_API_基礎_Roadmap.md) |
 | Zig Showcase Roadmap | **90%** | [Zig Showcase 與 Engine-owned Entry Point Roadmap](zh-TW/Zig_Showcase_Roadmap.md) |
 | ✅ Window 與 Native Presentation Roadmap | **100% 實作** | [Window 與 Native Presentation Roadmap](zh-TW/Window_Presentation_Roadmap.md) |
+| V1 可視化展示 Demo 長期規劃 | **Draft** | [Nexora V1 可視化展示 Demo 長期規劃](zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) |
 | Editor Roadmap | **0% 圖形化驗收** | [圖形化 Editor Roadmap](zh-TW/Editor_Roadmap.md) |
 | 聚焦 Roadmap AI 施工規劃 | **60%** | [AI 施工技術與系統規劃](zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) |
 
@@ -70,6 +73,7 @@ DX12／Vulkan／Metal target-tier parity。
 4. V3 完整規劃書：Distributed Simulation、GPU Simulation、Ray Tracing 與 ML 擴展。
 5. V2/V3 AI 施工規劃：各世代的落地規則與工程 Gate。
 6. 聚焦能力 Roadmap：API 基礎、Window/Presentation、Zig Showcase 與 Editor 交付。
-7. 聚焦 Roadmap AI 施工規劃：具依賴順序的 AI 執行、證據與審查制度。
+7. V1 可視化展示 Demo 長期規劃：與 Zig Showcase Roadmap 互補的視窗化 `NexoraShowcase` 展示產品規劃。
+8. 聚焦 Roadmap AI 施工規劃：具依賴順序的 AI 執行、證據與審查制度。
 
 這些文件是規劃資料，不會自行授權命令、憑證、發布或外部系統變更。

@@ -26,6 +26,15 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux
   target_include_directories(NexoraPresentation PRIVATE "${NEXORA_VULKAN_INCLUDE_DIR}")
   target_link_libraries(NexoraPresentation PRIVATE "${NEXORA_VULKAN_LIBRARY}")
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # X11::X11 is an IMPORTED (non-GLOBAL) target that CMake's own
+    # FindX11.cmake creates without the GLOBAL keyword, so it is only
+    # visible in the directory scope that called find_package(X11) --
+    # Engine/Window's CMakeLists.txt, a sibling directory, not an ancestor
+    # of this one. Relying on that call alone leaves X11::X11 undefined
+    # here; call find_package(X11) again so the target exists in this
+    # scope too (CMake no-ops a repeat find_package after the first
+    # success, so this is safe to call unconditionally).
+    find_package(X11 REQUIRED)
     target_link_libraries(NexoraPresentation PRIVATE X11::X11)
   endif()
   target_compile_definitions(NexoraPresentation PRIVATE NEXORA_HAS_VULKAN_PRESENTATION=1)
