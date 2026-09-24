@@ -39,7 +39,7 @@ completion on every target platform.
 | ✅ [Engine API Foundation](Roadmap/en/Engine_API_Foundation_Roadmap.md) | **100%** | ✅ API-M1 through ✅ API-M6 complete for portable scope. |
 | ✅ [Window and Native Presentation](Roadmap/en/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 through ✅ WP-M4 are implemented; native backend execution remains a target-host acceptance gate. |
 | [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 through ✅ ZS-M4 are complete; ZS-M5 has automated Linux isolated-package launch evidence, while other target-host distribution acceptance remains open. |
-| [Graphical Editor](Roadmap/en/Editor_Roadmap.md) | **0%** | Runtime prerequisites exist, but no graphical ED milestone is accepted. |
+| [Graphical Editor](Roadmap/en/Editor_Roadmap.md) | **0% (0/8)** | Repository audit confirms portable foundations for every ED track and an in-progress Dear ImGui shell, but no graphical ED milestone has passed all automated and target-host gates. |
 | [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **60%** | Mean of API 100%, Zig Showcase 90%, and Editor 0%, rounded down to 10%. |
 | [V1 Visual Showcase](Roadmap/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | Headless entry/reporting prerequisites exist; no windowed phase is complete. |
 
@@ -73,7 +73,7 @@ The [Window and Native Presentation Roadmap](Roadmap/en/Window_Presentation_Road
 
 #### Editor status
 
-The [Graphical Editor Roadmap](Roadmap/en/Editor_Roadmap.md) remains at **0% graphical milestone acceptance**. The standalone process and portable workspace/document core are available, together with completed prerequisites for reflection, command/undo, prefab override/rebase, isolated PIE, dynamic plugin ABI validation, project/content indexing, scene authoring transactions, capability reporting, build manifests, profiling capture, large-hierarchy virtualization, extension trust, and telemetry opt-in. ED-M0 through ED-M7 remain open until their graphical workflows and human/visual acceptance gates are complete; prerequisite work is not rounded up into an accepted Editor milestone.
+The [Graphical Editor Roadmap](Roadmap/en/Editor_Roadmap.md) remains at **0/8 (0%) graphical milestone acceptance** after the 2026-09-24 source/test audit. The standalone process and portable workspace/document core are available, together with completed prerequisites for reflection, command/undo, prefab override/rebase, isolated PIE, dynamic plugin ABI validation, project/content indexing, scene authoring transactions, capability reporting, build manifests, profiling capture, large-hierarchy virtualization, extension trust, and telemetry opt-in. The focused [ED-M0 Dear ImGui plan](Roadmap/en/Editor_ImGui_Integration_Plan.md) is **in progress**: optional context/docking, stable panels, event/DPI/IME forwarding, live Hierarchy, recovery UI, validation-device draw contracts, and CPU composition to the public surface are present. Direct retained GPU rendering, layout persistence, DPI font-atlas rebuilding, recovery failure/process coverage, and Linux/Windows target-host evidence remain open. ED-M0 through ED-M7 are therefore unchecked; prerequisites are not rounded up into accepted milestones.
 
 ### Important note
 
@@ -127,7 +127,7 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | ✅ [Engine API 基礎](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) | **100%** | ✅ API-M1 至 ✅ API-M6 完成 portable scope。 |
 | ✅ [Window 與 Native Presentation](Roadmap/zh-TW/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 至 ✅ WP-M4 已實作；native backend 執行仍為 target-host 驗收 gate。 |
 | [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 至 ✅ ZS-M4 已完成；ZS-M5 現有自動化 Linux isolated-package launch evidence，其他 target-host distribution 驗收仍待完成。 |
-| [圖形化 Editor](Roadmap/zh-TW/Editor_Roadmap.md) | **0%** | 已有 Runtime 前置，但尚無 graphical ED milestone 驗收。 |
+| [圖形化 Editor](Roadmap/zh-TW/Editor_Roadmap.md) | **0%（0/8）** | Repository 稽核確認各 ED track 已有 portable foundation，Dear ImGui shell 亦在施工中，但尚無 graphical ED milestone 通過全部 automated 與 target-host gate。 |
 | [聚焦 Roadmap AI 施工規劃](Roadmap/zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) | **60%** | API 100%、Zig Showcase 90% 與 Editor 0% 的平均，向下取整至 10%。 |
 | [V1 可視化 Showcase](Roadmap/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | 已有 headless entry/reporting 前置；尚無 windowed phase 完成。 |
 
@@ -160,7 +160,7 @@ ZS-M0 至 ZS-M4 已完成：capability-aware gallery 支援 camera input、selec
 
 #### Editor 狀態
 
-[圖形化 Editor Roadmap](Roadmap/zh-TW/Editor_Roadmap.md) 的**圖形化 milestone 驗收進度仍為 0%**。目前已有 standalone process 與 portable workspace／document core，並完成 reflection、command／undo、prefab override／rebase、隔離 PIE、dynamic plugin ABI 驗證、project／content indexing、scene authoring transaction、capability reporting、build manifest、profiling capture、大型 hierarchy virtualization、extension trust 與 telemetry opt-in 等前置能力。ED-M0 至 ED-M7 必須等圖形化 workflow 與 human／visual acceptance gate 完成後才能打勾；前置工作不會向上取整為已驗收的 Editor milestone。
+[圖形化 Editor Roadmap](Roadmap/zh-TW/Editor_Roadmap.md) 經 2026-09-24 source/test 稽核後，**圖形化 milestone 驗收仍為 0/8（0%）**。目前已有 standalone process 與 portable workspace／document core，並完成 reflection、command／undo、prefab override／rebase、隔離 PIE、dynamic plugin ABI 驗證、project／content indexing、scene authoring transaction、capability reporting、build manifest、profiling capture、大型 hierarchy virtualization、extension trust 與 telemetry opt-in 等前置能力。Focused [ED-M0 Dear ImGui 計畫](Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md) 為**施工中**：optional context/docking、stable panel、event/DPI/IME forwarding、live Hierarchy、recovery UI、validation-device draw contract，以及經 public surface 的 CPU composition 已存在；direct retained GPU rendering、layout persistence、DPI font-atlas rebuild、recovery failure/process coverage 與 Linux/Windows target-host evidence 仍待完成。因此 ED-M0 至 ED-M7 都不打勾，前置工作不會向上取整為已驗收 milestone。
 
 ### 重要說明
 
