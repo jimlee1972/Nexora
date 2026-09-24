@@ -159,6 +159,23 @@ public:
     return pumped_;
   }
   void *NativeHandle(WindowHandle h) const noexcept override { return Find(h); }
+  WindowError SetImeCandidatePosition(WindowHandle handle, std::int32_t x,
+                                      std::int32_t y) override {
+    if (!OnOwner())
+      return WindowError::WrongThread;
+    const auto hwnd = Find(handle);
+    if (!hwnd)
+      return WindowError::InvalidHandle;
+    const auto context = ImmGetContext(hwnd);
+    if (!context)
+      return WindowError::PlatformFailure;
+    CANDIDATEFORM candidate{};
+    candidate.dwStyle = CFS_CANDIDATEPOS;
+    candidate.ptCurrentPos = {x, y};
+    const bool positioned = ImmSetCandidateWindow(context, &candidate) != FALSE;
+    ImmReleaseContext(hwnd, context);
+    return positioned ? WindowError::None : WindowError::PlatformFailure;
+  }
 
 private:
   bool OnOwner() const { return std::this_thread::get_id() == owner_; }
@@ -227,11 +244,19 @@ private:
       }
       return 0;
     case WM_MOUSEMOVE:
+      self->Push(h, WindowEventType::Pointer, GET_X_LPARAM(l), GET_Y_LPARAM(l));
+      return 0;
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:
     case WM_RBUTTONDOWN:
     case WM_RBUTTONUP:
-      self->Push(h, WindowEventType::Pointer, GET_X_LPARAM(l), GET_Y_LPARAM(l));
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONUP:
+      self->Push(h, WindowEventType::PointerButton,
+                 m == WM_LBUTTONDOWN || m == WM_LBUTTONUP   ? 0
+                 : m == WM_RBUTTONDOWN || m == WM_RBUTTONUP ? 1
+                                                            : 2,
+                 m == WM_LBUTTONDOWN || m == WM_RBUTTONDOWN || m == WM_MBUTTONDOWN);
       return 0;
     case WM_MOUSEWHEEL:
     case WM_MOUSEHWHEEL:

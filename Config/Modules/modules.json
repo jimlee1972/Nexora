@@ -71,6 +71,16 @@
       ]
     },
     {
+      "name": "EditorImGui",
+      "feature": "NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL",
+      "dependencies": [
+        "Editor",
+        "Presentation",
+        "Window",
+        "RHI"
+      ]
+    },
+    {
       "name": "ExamplePlugin",
       "feature": "NEXORA_FEATURE_EXAMPLE_PLUGIN",
       "dependencies": [

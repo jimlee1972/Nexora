@@ -33,6 +33,7 @@ enum class WindowEventType : std::uint8_t {
   Key,
   Text,
   Pointer,
+  PointerButton,
   Wheel,
   DisplayChanged,
 };
@@ -80,6 +81,8 @@ public:
                                            std::uint32_t clientHeight) = 0;
   [[nodiscard]] virtual WindowError SetFullscreen(WindowHandle window, bool fullscreen) = 0;
   [[nodiscard]] virtual std::span<const WindowEvent> PumpEvents() = 0;
+  [[nodiscard]] virtual WindowError SetImeCandidatePosition(WindowHandle window, std::int32_t x,
+                                                            std::int32_t y) = 0;
   // Opaque native identity for presentation adapters; nullptr for unsupported handles.
   [[nodiscard]] virtual void *NativeHandle(WindowHandle window) const noexcept = 0;
 };

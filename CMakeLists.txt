@@ -13,6 +13,8 @@ option(NEXORA_ENABLE_ASSET_PIPELINE "Build the V1-M5 authoring/cooking and bundl
 option(NEXORA_ENABLE_EDITOR_SDK
        "Build the V1-M6 reflection, plugin host, scene editor, and prefab foundation" ON)
 option(NEXORA_ENABLE_EDITOR "Build the standalone Nexora Editor preview" ON)
+option(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL
+       "Build the Dear ImGui graphical Editor shell" OFF)
 option(NEXORA_ENABLE_GAMEPLAY_SIMULATION
        "Build the V1-M8 physics, character, navigation, and AI foundation" ON)
 option(NEXORA_ENABLE_PRESENTATION
@@ -48,6 +50,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Shipping")
 endif()
 if(NEXORA_ENABLE_EDITOR AND (NOT NEXORA_ENABLE_EDITOR_SDK OR NOT NEXORA_ENABLE_ASSET_PIPELINE))
   message(FATAL_ERROR "NEXORA_ENABLE_EDITOR requires the Editor SDK and asset pipeline")
+endif()
+if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL AND
+   (NOT NEXORA_ENABLE_EDITOR OR NOT NEXORA_ENABLE_WINDOW_PRESENTATION))
+  message(FATAL_ERROR
+          "NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL requires Editor and Window Presentation")
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -97,6 +104,9 @@ add_subdirectory(Engine/Renderer)
 add_subdirectory(Engine/Runtime)
 if(NEXORA_ENABLE_EDITOR)
   add_subdirectory(Engine/Editor)
+  if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
+    add_subdirectory(Engine/EditorImGui)
+  endif()
   add_subdirectory(Apps/Editor)
 endif()
 add_subdirectory(Apps/Host)
@@ -120,6 +130,9 @@ if(BUILD_TESTING)
   add_subdirectory(Tests/Runtime)
   if(NEXORA_ENABLE_EDITOR)
     add_subdirectory(Tests/Editor)
+    if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
+      add_subdirectory(Tests/EditorImGui)
+    endif()
   endif()
   add_test(
     NAME build.module_graph

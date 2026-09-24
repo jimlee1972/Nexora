@@ -1,0 +1,4 @@
+add_executable(NexoraEditorImGuiTests EditorImGuiTests.cpp)
+target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraEditorImGuiTests)
+add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)

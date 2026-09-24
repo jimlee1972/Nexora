@@ -3,6 +3,7 @@
 #include "Nexora/Presentation/Surface.h"
 
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -29,6 +30,12 @@ struct SurfaceInputSnapshot final {
   bool focused = false;
 };
 
+struct SurfaceFrameInfo final {
+  std::uint32_t width = 0;
+  std::uint32_t height = 0;
+  float dpiScale = 1.0F;
+};
+
 // Application-facing owner for a native window and presentation surface. Showcase and editor views
 // can share this boundary without placing either application policy in Runtime.
 class NEXORA_PRESENTATION_API RenderSurface final {
@@ -45,6 +52,9 @@ public:
   [[nodiscard]] SurfaceStatus EndFrame();
   [[nodiscard]] bool CloseRequested() const noexcept;
   [[nodiscard]] const SurfaceInputSnapshot &Input() const noexcept;
+  [[nodiscard]] const SurfaceFrameInfo &FrameInfo() const noexcept;
+  [[nodiscard]] std::span<const Window::WindowEvent> Events() const noexcept;
+  [[nodiscard]] Window::WindowError SetImeCandidatePosition(std::int32_t x, std::int32_t y);
   [[nodiscard]] SurfaceDiagnostics Diagnostics() const noexcept;
   [[nodiscard]] SurfaceStatus DrainAndDestroy();
 

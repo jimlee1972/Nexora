@@ -50,9 +50,16 @@ int Run() {
     std::ofstream recovery(root / ".nexora/workspace.recovery", std::ios::trunc);
     recovery << "schema=1\ndocument=Content/Recovered.scene\n";
   }
-  Require(reopened.RecoverWorkspace(&error) &&
+  Require(reopened.HasRecoveryJournal() && reopened.RecoverWorkspace(&error) &&
               reopened.OpenDocuments().front() == "Content/Recovered.scene",
           "workspace recovery failed");
+  Require(!reopened.HasRecoveryJournal(), "successful recovery must remove the journal");
+  {
+    std::ofstream recovery(root / ".nexora/workspace.recovery", std::ios::trunc);
+    recovery << "schema=1\n";
+  }
+  Require(reopened.DiscardRecovery(&error) && !reopened.HasRecoveryJournal(),
+          "workspace recovery discard failed");
 
   {
     std::ofstream(root / "Content/Hero.mesh") << "mesh";
@@ -78,6 +85,8 @@ int Run() {
   editor::SceneDocument document(world, scene);
   const auto parent = document.Create("Parent");
   const auto child = document.Create("Child", parent);
+  Require(document.Nodes().size() == 2 && document.Nodes()[1].parent == parent,
+          "hierarchy view contract failed");
   Require(parent && child && document.Parent(child) == parent && !document.Reparent(parent, child),
           "hierarchy cycle policy failed");
   const std::vector<runtime::Id> selected{child};
