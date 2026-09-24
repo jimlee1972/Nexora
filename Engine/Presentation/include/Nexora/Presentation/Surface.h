@@ -34,6 +34,43 @@ struct SurfaceDiagnostics final {
   ColorSpace negotiatedColorSpace = ColorSpace::Srgb;
   PresentMode negotiatedPresentMode = PresentMode::VSync;
   std::uint64_t surfaceRecoveries = 0;
+  std::uint64_t nativeUiDrawCalls = 0;
+  std::uint64_t nativeUiBufferReallocations = 0;
+  std::uint64_t nativeUiTextureUploads = 0;
+  std::uint64_t nativeUiRejectedTextures = 0;
+};
+
+struct UiVertex final {
+  float position[2]{};
+  float uv[2]{};
+  std::uint32_t color{};
+};
+
+struct UiDrawCommand final {
+  std::int32_t clipX{};
+  std::int32_t clipY{};
+  std::uint32_t clipWidth{};
+  std::uint32_t clipHeight{};
+  std::uint64_t textureId{};
+  std::uint32_t elementCount{};
+  std::uint32_t indexOffset{};
+  std::int32_t vertexOffset{};
+};
+
+struct UiTextureUpload final {
+  std::uint64_t textureId{};
+  std::uint32_t width{};
+  std::uint32_t height{};
+  std::uint32_t rowPitch{};
+  std::span<const std::byte> pixels;
+};
+
+struct UiDrawData final {
+  std::span<const UiVertex> vertices;
+  std::span<const std::byte> indices;
+  std::span<const UiDrawCommand> commands;
+  std::span<const UiTextureUpload> textureUploads;
+  bool indices32Bit = false;
 };
 
 enum class SurfaceStatus : std::uint8_t {
@@ -61,6 +98,9 @@ public:
   virtual SurfaceStatus CompositeRgba8(std::span<const std::byte>, std::uint32_t, std::uint32_t) {
     return SurfaceStatus::Unsupported;
   }
+  // Records textured indexed UI geometry directly into the acquired presentation image. All spans
+  // are borrowed for this call; texture IDs are generation-checked opaque values.
+  virtual SurfaceStatus RenderUi(const UiDrawData &) { return SurfaceStatus::Unsupported; }
   virtual SurfaceStatus Present() = 0;
   [[nodiscard]] virtual SurfaceDiagnostics Diagnostics() const noexcept = 0;
   // Waits for submitted GPU work and releases all swapchain resources. Idempotent and render-thread

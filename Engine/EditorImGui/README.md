@@ -14,14 +14,22 @@ for the upcoming Scene/Game views.
   present them. The Hierarchy reads nodes from the supplied live document and writes a clicked
   node back through `SceneDocument::Select`; the application owns that document and its `World`.
 - The host does not own a native window or swapchain. The application supplies events exposed by
-  `RenderSurface::Events`; the native `Render` overload rasterizes the generated draw lists and
-  composites the resulting RGBA8 frame into the surface's currently acquired swapchain backbuffer.
-  The application retains target ownership. The public-RHI overload is retained for deterministic
-  headless draw-contract validation and is not the graphical application's presentation path.
-- `Render` uploads each draw list to transient public-RHI vertex and index buffers, applies its
-  framebuffer-scaled clip rectangles, binds the font texture slot, and preserves ImGui index and
-  vertex offsets in indexed draws. The submitted command list owns the ordering; transient
-  resources are released only after `Submit` returns.
+  `RenderSurface::Events`; the native `Render` overload flattens ImGui draw lists into the public
+  backend-neutral `UiDrawData` contract. `RenderSurface` records those indexed draws directly into
+  its acquired native GPU image. The application retains target ownership. The public-RHI overload
+  remains the deterministic headless draw-contract path.
+- The public-RHI `Render` path lazily retains one pipeline, an atlas-sized validation font-texture
+  allocation, and geometrically grown vertex/index upload buffers. Repeated frames reuse those
+  resources.
+  `ReleaseRenderer` waits for the device before destroying them and must run before that device is
+  destroyed. The path applies framebuffer-scaled clip rectangles and preserves ImGui index and
+  vertex offsets. The native `RenderSurface` path owns an equivalent completion-protected cache.
+- DPI is quantized to 100%, 125%, 150%, or 200%. Crossing a bucket rebuilds the font atlas at that
+  pixel density, publishes the framebuffer scale, and derives the theme anew rather than
+  cumulatively scaling an existing style.
+- Dear ImGui's global ini file remains disabled. `SaveLayout` and `LoadLayout` provide an explicit
+  in-memory round trip. `ProjectWorkspace` stores that payload with an explicit schema under the
+  project `.nexora` directory; malformed or unsupported payloads are rejected.
 - Recovery is prompted once per discovered journal. Failed recover/discard operations keep the
   modal open and expose the data-layer error instead of silently dismissing it.
 

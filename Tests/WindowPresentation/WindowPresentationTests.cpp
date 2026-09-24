@@ -1,5 +1,6 @@
 #include "Nexora/Presentation/RenderSurface.h"
 
+#include <array>
 #include <cassert>
 #include <deque>
 #include <thread>
@@ -109,6 +110,20 @@ public:
   Presentation::SurfaceStatus Present() override {
     return destroyed_ ? Presentation::SurfaceStatus::SurfaceLost : Status();
   }
+  Presentation::SurfaceStatus RenderUi(const Presentation::UiDrawData &drawData) override {
+    if (destroyed_ || drawData.vertices.empty() || drawData.indices.empty() ||
+        drawData.commands.empty())
+      return Presentation::SurfaceStatus::InvalidDescriptor;
+    const auto indexSize = drawData.indices32Bit ? 4U : 2U;
+    for (const auto &command : drawData.commands)
+      if (command.elementCount == 0 ||
+          (static_cast<std::size_t>(command.indexOffset) + command.elementCount) * indexSize >
+              drawData.indices.size() ||
+          command.clipWidth == 0 || command.clipHeight == 0)
+        return Presentation::SurfaceStatus::InvalidDescriptor;
+    uiDrawCalls_ += drawData.commands.size();
+    return Presentation::SurfaceStatus::Ready;
+  }
   Presentation::SurfaceDiagnostics Diagnostics() const noexcept override { return {}; }
   Presentation::SurfaceStatus DrainAndDestroy() override {
     if (!destroyed_)
@@ -117,6 +132,7 @@ public:
     return Presentation::SurfaceStatus::Ready;
   }
   [[nodiscard]] std::uint32_t DrainCount() const noexcept { return drainCount_; }
+  [[nodiscard]] std::uint64_t UiDrawCalls() const noexcept { return uiDrawCalls_; }
   void Inject(Presentation::SurfaceStatus status) noexcept { nextStatus_ = status; }
 
 private:
@@ -128,6 +144,7 @@ private:
   std::uint32_t width_;
   std::uint32_t height_;
   std::uint32_t drainCount_ = 0;
+  std::uint64_t uiDrawCalls_ = 0;
   bool destroyed_ = false;
   Presentation::SurfaceStatus nextStatus_ = Presentation::SurfaceStatus::Ready;
 };
@@ -167,6 +184,13 @@ int main() {
 
   FakeSurface surface({created.handle, 640, 480, 2});
   assert(surface.Acquire() == Presentation::SurfaceStatus::Ready);
+  const std::array<Presentation::UiVertex, 3> uiVertices{};
+  const std::array<std::uint16_t, 3> uiIndices{};
+  const std::array uiCommands{Presentation::UiDrawCommand{0, 0, 64, 64, 1, 3, 0, 0}};
+  assert(
+      surface.RenderUi({uiVertices, std::as_bytes(std::span{uiIndices}), uiCommands, {}, false}) ==
+      Presentation::SurfaceStatus::Ready);
+  assert(surface.UiDrawCalls() == 1);
   windows.ResizeEvent(800, 600, 1);
   windows.ResizeEvent(0, 0, 2);
   const auto events = windows.PumpEvents();

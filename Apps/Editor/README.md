@@ -26,6 +26,8 @@ NexoraEditor --project=/path/to/project --graphical
 
 `--frames=N` supplies a bounded native smoke run for target-host automation. A missing display or
 presentation backend is reported as an error rather than silently falling back to the CLI.
-The shell tracks the surface's live client extent and DPI scale, rebuilds its composited UI frame
-after a resize, submits it into the acquired presentation backbuffer, and supplies a live
-`SceneDocument` to the Hierarchy panel. It does not create a validation-device offscreen target.
+The shell tracks the surface's live client extent and DPI scale, rebuilds its bucketed font atlas,
+and submits backend-neutral textured/indexed UI draws directly into the acquired native GPU
+backbuffer. It also round-trips a versioned project layout and supplies a live `SceneDocument` to
+the Hierarchy panel. It does not create a validation-device offscreen target or a full-frame CPU
+RGBA image.

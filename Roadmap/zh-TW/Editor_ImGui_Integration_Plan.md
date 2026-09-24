@@ -1,14 +1,14 @@
 # Editor ED-M0 Dear ImGui 整合計畫
 
-> 版本：v1.3｜狀態：施工中；native GPU renderer 與 target-host 證據待完成｜
+> 版本：v1.3｜狀態：施工中；target-host 證據待完成｜
 > 更新：2026-09-24｜對應：`Editor_Roadmap.md`（ED-M0）、
 > `ADR-0001-Editor-UI-Framework.md`、`Window_Presentation_Roadmap.md`
 
 > **Repository 稽核（2026-09-24）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
-> source 與 contract test，但 **WP0～WP8 尚無任何一包通過 exit gate**。尤其 retained GPU
-> resource、直接渲染至 borrowed presentation target、layout persistence、DPI font-atlas rebuild、
-> destructive recovery test 與 target-host evidence 仍待完成。Foundation 打勾不得解讀成 ED-M0
-> 已驗收。
+> source 與 contract test，但 **WP0～WP8 尚無任何一包通過 exit gate**。Retained GPU resource、
+> 直接渲染至 borrowed presentation target、project-owned layout persistence、DPI font-atlas rebuild
+> 與 recovery failure contract 已實作。Real-process recovery 與 target-host evidence 仍待完成，
+> 因此 foundation 打勾不得解讀成 ED-M0 已驗收。
 
 ## 1. 目標、驗收邊界與目前事實
 
@@ -18,11 +18,10 @@ ADR-0001 已選定支援 docking 的 Dear ImGui。本文件是 AI agent 完成 E
 recovery，且具備可重現的自動化與 target-host 證據，ED-M0 才算驗收。
 
 Repo 已有 feature-gated `NexoraEditorImGui`、釘版 Dear ImGui docking dependency、context ownership、
-input translation、stable-ID docking、live Hierarchy、recovery modal、DPI/theme policy、RHI draw-contract
-路徑，以及將 CPU rasterized RGBA8 image composite 進 acquired surface 的 application 路徑。這些是基礎，
-不是最終 renderer 驗收：graphical path 必須停止每 frame 在 CPU rasterize，改由 public RHI contract 把
-ImGui textured/indexed draw list 直接 submit 到 acquired presentation image。Real-display Linux 證據與
-Windows DPI/IME 證據也仍缺少，因此 ED-M0 保持未完成。
+input translation、stable-ID docking、live Hierarchy、recovery modal、DPI/theme policy、generation-checked
+texture、completion-tracked resource ring，以及經 backend-neutral presentation contract 的 Vulkan／DX12／
+Metal native draw recording。這些仍只是 foundation，因 real-display Linux 證據與 Windows DPI／IME
+證據仍缺少，因此 ED-M0 保持未完成。
 
 ### 已確認實作 checklist
 
@@ -39,12 +38,15 @@ Windows DPI/IME 證據也仍缺少，因此 ED-M0 保持未完成。
   foundation。
 - [x] Recovery UI 只呼叫 `ProjectWorkspace` recover/discard operation、保留 failure，並提供
   exactly-once result consumption。
-- [ ] Production surface overload 會記錄 native GPU draw；目前仍逐 frame CPU rasterize 完整 RGBA8
-  image 並呼叫 `CompositeRgba8`。
-- [ ] Pipeline、sampler、font atlas、texture registry 與 upload ring 已 retained 且依 GPU completion
-  value retire；目前 RHI overload 每次呼叫仍建立 transient resource。
-- [ ] Layout round-trip、DPI font-atlas rebuild、完整 recovery failure/process test，以及 Linux／
-  Windows target-host acceptance evidence 已具備。
+- [ ] Production surface overload 現會送出 backend-neutral textured/indexed `UiDrawData`，Vulkan、
+  DX12 與 Metal implementation 直接記錄 native GPU draw，不再呼叫 `CompositeRgba8`。此項仍需
+  target-host validation 才能驗收。
+- [ ] Production surface 與 validation path 已實作 pipeline、sampler、generation-checked texture、
+  bounded upload ring 與 completion-protected retirement。Native validation 與 repeated-frame
+  target-host evidence 仍待完成。
+- [ ] Project-owned layout persistence、DPI font-atlas rebuild，以及 recovery failure／exactly-once
+  contract coverage 已存在。Real-process recovery 與 Linux／Windows target-host acceptance evidence
+  仍待完成。
 
 ### 「完成」的定義
 
@@ -163,7 +165,7 @@ retirement；Vulkan offscreen frame 沒有 validation error。
 
 ### WP2 — 實作 retained GPU renderer resource
 
-**狀態：未完成；目前 public-RHI overload 只是 draw-contract scaffold。**
+**狀態：source 與 validation contract 已實作；native target-host validation 仍待完成。**
 
 1. 在 `EditorImGuiHost` 下建立 renderer-owned state：pipeline、sampler、font texture/view、descriptor
    binding、有限大小的 per-frame vertex/index upload buffer ring。知道 device/format 後才 lazy-create
@@ -186,7 +188,7 @@ sanitizer/validation 沒有 stale handle 或 out-of-bounds。
 
 ### WP3 — 把 renderer 接到 acquired presentation image
 
-**狀態：未完成；目前 native overload 在 CPU rasterize 後呼叫 `CompositeRgba8`。**
+**狀態：Vulkan、DX12 與 Metal source 已實作；target-host validation 仍待完成。**
 
 1. 為 renderer 增加最小的 public `RenderSurface` frame-target access，優先選 callback/encoder 或只在
    `BeginFrame` 到 `EndFrame` 間有效的 borrowed RHI target descriptor。禁止暴露 `VkImage`、
@@ -205,7 +207,7 @@ full-screen CPU RGBA buffer 或 readback/upload round trip。
 
 ### WP4 — 強化 input、docking、persistence 與 command routing
 
-**狀態：portable core 大致存在；persistence 與 target-host 證據未完成。**
+**狀態：portable core 與 versioned project-owned layout round-trip 已存在；target-host 證據未完成。**
 
 1. 保留完整 key mapping（navigation/editing、punctuation、keypad、F1-F12、alphanumeric、左右 modifier），
    加入 press/release 與 modifier snapshot 的 table-driven test。
@@ -222,7 +224,8 @@ drag docking、wheel axis、focus loss、close。
 
 ### WP5 — DPI、font 與 theme
 
-**狀態：live extent/DPI forwarding 已有；清晰 font rebuild 與 Windows 證據未完成。**
+**狀態：live extent/DPI forwarding 與 bucketed font rebuild 已有；production GPU atlas upload 與
+Windows 證據未完成。**
 
 1. 定義小型 DPI bucket policy（例如 nearest supported scale 加 hysteresis）與 immutable base style；bucket
    改變時由 base 重算，禁止再縮放已縮放的 style。

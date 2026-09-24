@@ -122,7 +122,9 @@ public:
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override;
   void DestroyPipeline(PipelineHandle pipeline) override;
   std::unique_ptr<CommandList> CreateCommandList(QueueType queue) override;
-  void Submit(CommandList &commands) override;
+  std::uint64_t Submit(CommandList &commands) override;
+  [[nodiscard]] std::uint64_t CompletedSubmissionValue() const noexcept override;
+  void WaitForSubmission(std::uint64_t value) override;
   void Present(TextureHandle texture) override;
   void WaitIdle() override;
   [[nodiscard]] DeviceDiagnostics Diagnostics() const noexcept override;
@@ -147,6 +149,8 @@ private:
   std::unordered_map<std::uint64_t, TextureRecord> textures_;
   std::unordered_map<std::uint64_t, PipelineRecord> pipelines_;
   DeviceDiagnostics diagnostics_{};
+  std::uint64_t submitted_submission_{};
+  std::uint64_t completed_submission_{};
 };
 
 struct MetalDevice::TextureRecord final {
@@ -303,7 +307,7 @@ MetalDevice::PipelineRecord &MetalDevice::ValidatePipeline(PipelineHandle pipeli
   return found->second;
 }
 
-void MetalDevice::Submit(CommandList &commands) {
+std::uint64_t MetalDevice::Submit(CommandList &commands) {
   auto *validated = dynamic_cast<MetalCommandList *>(&commands);
   {
     std::lock_guard lock{mutex_};
@@ -323,6 +327,19 @@ void MetalDevice::Submit(CommandList &commands) {
     throw std::runtime_error("Metal command buffer failed: " +
                              ErrorDescription(validated->command_buffer_.error));
   }
+  std::lock_guard lock{mutex_};
+  completed_submission_ = ++submitted_submission_;
+  return submitted_submission_;
+}
+
+std::uint64_t MetalDevice::CompletedSubmissionValue() const noexcept {
+  std::lock_guard lock{mutex_};
+  return completed_submission_;
+}
+
+void MetalDevice::WaitForSubmission(std::uint64_t value) {
+  std::lock_guard lock{mutex_};
+  Require(value <= submitted_submission_, "waiting for an unknown Metal submission");
 }
 
 void MetalDevice::Present(TextureHandle texture) {

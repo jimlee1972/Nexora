@@ -118,6 +118,8 @@ int RunTests() {
     const auto indices = device->CreateBuffer({index_data.size(), "UI indices"});
     const auto sampled = device->CreateTexture(
         {1, 1, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::ShaderRead, "UI texture"});
+    const std::array<std::byte, 4> texel{};
+    device->WriteTextureRgba8(sampled, texel, 4);
     device->WriteBuffer(vertices, 0, vertex_data);
     device->WriteBuffer(indices, 0, index_data);
     auto indexed = device->CreateCommandList(rhi::QueueType::Graphics);
@@ -131,7 +133,10 @@ int RunTests() {
     indexed->DrawIndexed(3, 1, 0, 0, 0);
     indexed->EndRendering();
     indexed->Transition({swapchain, rhi::ResourceState::RenderTarget, rhi::ResourceState::Present});
-    device->Submit(*indexed);
+    const auto completion = device->Submit(*indexed);
+    Require(completion > 0 && device->CompletedSubmissionValue() >= completion,
+            "submission completion did not advance");
+    device->WaitForSubmission(completion);
     Require(device->Diagnostics().draw_calls == 3,
             "indexed draw was not reported by validation diagnostics");
     device->DestroyTexture(sampled);

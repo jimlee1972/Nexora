@@ -333,7 +333,7 @@ public:
     return std::make_unique<D3D12CommandList>(*this, queue);
   }
 
-  void Submit(CommandList &commands) override {
+  std::uint64_t Submit(CommandList &commands) override {
     auto *validated = dynamic_cast<D3D12CommandList *>(&commands);
     std::uint64_t fence_value{};
     {
@@ -353,6 +353,19 @@ public:
       diagnostics_.draw_calls += validated->DrawCalls();
     }
     WaitForFence(fence_value);
+    return fence_value;
+  }
+
+  std::uint64_t CompletedSubmissionValue() const noexcept override {
+    return fence_ ? fence_->GetCompletedValue() : 0;
+  }
+
+  void WaitForSubmission(std::uint64_t value) override {
+    {
+      std::lock_guard lock{mutex_};
+      Require(value <= next_fence_, "waiting for an unknown D3D12 submission");
+    }
+    WaitForFence(value);
   }
 
   void Present(TextureHandle texture) override {
