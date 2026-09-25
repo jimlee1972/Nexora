@@ -38,6 +38,9 @@ public:
   virtual void BindStorageBuffer(std::uint32_t, BufferHandle) {
     throw std::logic_error("storage-buffer binding is unsupported");
   }
+  virtual void BindIndirectBuffer(BufferHandle, std::uint64_t = 0, std::uint32_t = 0) {
+    throw std::logic_error("indirect-buffer binding is unsupported");
+  }
   virtual void SetScissor(const ScissorRect &) {
     throw std::logic_error("scissor rectangles are unsupported");
   }

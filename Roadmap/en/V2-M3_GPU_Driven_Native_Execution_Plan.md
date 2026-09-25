@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend Execution Plan
 
-> Version: v1.0 | Status: in progress; Phase 1b complete, Phase 2 started | Updated: 2026-09-24 | Relates to:
+> Version: v1.0 | Status: in progress; Linux Vulkan Phase 2 acceptance pending | Updated: 2026-09-25 | Relates to:
 > `Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md` §V2-M3
 
 ## 1. Purpose
@@ -8,8 +8,7 @@
 V2-M3's gate has four checked items (portable command batching, no-readback contract diagnostics,
 RenderGraph queue/barrier ownership, CPU-reference correctness comparison) and one unchecked item:
 **native DX12/Vulkan/Metal target-tier parity on target hosts**. This document plans the work
-needed to check that last box. Phases 1a and 1b are complete and Phase 2 has Linux Vulkan compute evidence, but the milestone remains open and no roadmap
-progress percentage changes until all remaining phases land and pass their gates.
+needed to check that last box. Phases 1a and 1b are complete and Phase 2 has a Linux Vulkan implementation whose native comparison evidence is still pending; the milestone remains open and no roadmap progress percentage changes until all remaining phases land and pass their gates.
 
 ## 2. Current baseline (verified against source, not just roadmap prose)
 
@@ -193,22 +192,23 @@ need to work correctly right now. This is a genuinely separate, foundational pie
 standing rules ask to be discussed before starting, even though it introduces no new third-party
 dependency or CI change. **Completed with a backend-neutral compute pipeline kind, four fixed storage-buffer slots, host-visible uploads, and an explicitly test-only bounded readback seam. The fixed slots keep this phase narrow; a general descriptor builder remains future work.**
 
-### Phase 2 -- Remaining compute stages on Vulkan
+### Phase 2 -- Full compute stages on Vulkan (acceptance pending)
 
-> **Update (2026-09-24): in progress.** Linux Vulkan now creates a real compute pipeline, binds
-> candidate/visible/indirect/statistics storage buffers through four backend-neutral slots, dispatches
-> `GPUDriven.slang`, waits for native completion, and compares test-only readback results. The normal
-> path remains readback-free and diagnostics distinguish its dispatch from acceptance readbacks. This
-> is acceptance evidence for the native pipeline/binding/dispatch foundation, not yet the full
-> frustum/Hi-Z/LOD/sorted-bin algorithm described below.
+> **Update (2026-09-25): implementation complete; native acceptance pending.** The shader and native test cover every Phase 2 stage, but Phase 2 is not marked ✅ until the Slang-enabled Linux Vulkan test actually runs and `CompareGPUDrivenResults()` passes. Shader compilation, a non-throwing dispatch, and diagnostics counters are not acceptance evidence.
 
-- Hi-Z occlusion (conservative test against the existing `HiZPyramid` contract), visible-instance
-  compaction, material/mesh/LOD classification, and indirect-command generation, each as
-  compute shaders, added incrementally with the same CPU-reference comparison gate per stage.
-- RenderGraph integration: confirm the existing queue-ownership barrier tracking
-  (`Engine/Renderer/README.md` §RenderGraph) correctly sequences these new compute passes against
-  the graphics passes that consume their output, on real Vulkan queues (not just the validation
-  device's logical tracking).
+- `GPUDriven.slang` now executes frustum rejection, distance rejection and LOD selection,
+  conservative max-depth Hi-Z testing (including relaxed and invalidated policies), visible-instance
+  compaction, deterministic material/mesh/LOD classification, and indirect-command generation.
+- The Linux native acceptance packs the same scene, view, LOD thresholds, and Hi-Z pyramid used
+  by `BuildGPUDrivenCommands()`, reads back only after completion, reconstructs the backend result,
+  and requires `CompareGPUDrivenResults()` to match every instance, command, and statistic.
+- The acceptance workload executes through RenderGraph compute and graphics passes and verifies
+  both ownership transfers before issuing native indirect drawing. Normal execution remains
+  readback-free; the bounded readbacks exist only in the correctness gate.
+- The deterministic single-invocation kernel is deliberately an acceptance implementation: it
+  is intended to prove the complete native semantics without subgroup/atomic ordering differences. Parallel scan,
+  radix classification, and production-scale performance tuning remain optimization work and do not
+  alter the result contract.
 
 ### Phase 3 -- D3D12 backend
 

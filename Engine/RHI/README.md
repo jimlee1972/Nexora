@@ -58,9 +58,7 @@ to assert that it never maps GPU output. Resource barriers include source and de
 RenderGraph, rather than a backend or pass callback, owns queue transfers. The validation backend
 executes the complete portable contract. Vulkan now also records a real `vkCmdDrawIndirect` from
 host-visible indirect command storage and reports it independently in device diagnostics; the
-offscreen gate exercises that path on a Vulkan-capable Linux host. Vulkan also creates compute
-pipelines, exposes four backend-neutral storage-buffer slots, and runs a real cull/compact kernel on
-the Linux native gate. Readback is available only through the explicitly test-only
+offscreen gate exercises that path on a Vulkan-capable Linux host. Vulkan also creates compute pipelines, exposes four backend-neutral storage-buffer slots, and provides the complete deterministic culling, LOD, Hi-Z, compaction, classification, and command-generation kernel. The Linux native gate requires an exact CPU/GPU comparison before RenderGraph binds its generated Vulkan-compatible indirect buffer for drawing; compilation, dispatch, and counters alone do not satisfy the gate. Readback is available only through the explicitly test-only
 `ReadBufferForTesting` API and is counted independently; production recording remains readback-free.
 Native queue/timeline separation and DX12/Metal compute/indirect implementations, followed by full
 target-host parity evidence, remain required before V2-M3 can be accepted.

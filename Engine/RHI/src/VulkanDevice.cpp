@@ -249,6 +249,7 @@ public:
   void BeginRendering(const RenderingInfo &info) override;
   void BindPipeline(PipelineHandle pipeline) override;
   void BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) override;
+  void BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset, std::uint32_t stride) override;
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
   void DrawIndirect(std::uint32_t command_count) override;
   void Dispatch(std::uint32_t groups_x, std::uint32_t groups_y, std::uint32_t groups_z) override;
@@ -286,6 +287,9 @@ private:
   std::uint64_t dispatches_{};
   VkBuffer indirect_buffer_{VK_NULL_HANDLE};
   VkDeviceMemory indirect_memory_{VK_NULL_HANDLE};
+  VkBuffer bound_indirect_buffer_{VK_NULL_HANDLE};
+  VkDeviceSize bound_indirect_offset_{};
+  std::uint32_t bound_indirect_stride_{sizeof(VkDrawIndirectCommand)};
 };
 
 class VulkanDevice final : public Device {
@@ -1448,6 +1452,20 @@ void VulkanCommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle bu
   device_.functions_.UpdateDescriptorSets(device_.device_, 1, &write, 0, nullptr);
 }
 
+void VulkanCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset,
+                                           std::uint32_t stride) {
+  if (submitted_ || !rendering_ ||
+      (stride != 0 && (stride < sizeof(VkDrawIndirectCommand) || stride % 4 != 0)))
+    throw std::logic_error("indirect-buffer binding requires rendering");
+  auto &record = device_.ValidateBuffer(buffer);
+  if (offset > record.descriptor.size ||
+      sizeof(VkDrawIndirectCommand) > record.descriptor.size - offset)
+    throw std::logic_error("indirect-buffer binding is out of bounds");
+  bound_indirect_buffer_ = record.buffer;
+  bound_indirect_offset_ = offset;
+  bound_indirect_stride_ = stride == 0 ? sizeof(VkDrawIndirectCommand) : stride;
+}
+
 void VulkanCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
   if (submitted_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 || instance_count == 0)
     throw std::logic_error("invalid Vulkan draw");
@@ -1457,8 +1475,15 @@ void VulkanCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_
 
 void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
   if (submitted_ || !rendering_ || !pipeline_bound_ || command_count == 0 ||
-      indirect_buffer_ != VK_NULL_HANDLE)
+      (bound_indirect_buffer_ == VK_NULL_HANDLE && indirect_buffer_ != VK_NULL_HANDLE))
     throw std::logic_error("invalid Vulkan indirect draw");
+  if (bound_indirect_buffer_ != VK_NULL_HANDLE) {
+    device_.functions_.CmdDrawIndirect(command_buffer_, bound_indirect_buffer_,
+                                       bound_indirect_offset_, command_count,
+                                       bound_indirect_stride_);
+    ++indirect_draws_;
+    return;
+  }
   const VkDeviceSize size = sizeof(VkDrawIndirectCommand) * command_count;
   const VkBufferCreateInfo buffer_info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                                        nullptr,
