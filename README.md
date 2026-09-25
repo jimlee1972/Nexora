@@ -45,7 +45,7 @@ an unchecked or unmarked item remains incomplete.
 | [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 through ✅ ZS-M4 are complete; ZS-M5 has automated Linux isolated-package launch evidence, while other target-host distribution acceptance remains open. |
 | [Graphical Editor](Roadmap/en/Editor_Roadmap.md) | **0% (0/8)** | Repository audit confirms portable foundations for every ED track and an in-progress Dear ImGui shell, but no graphical ED milestone has passed all automated and target-host gates. |
 | [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **60%** | Mean of API 100%, Zig Showcase 90%, and Editor 0%, rounded down to 10%. |
-| [V1 Visual Showcase](Roadmap/en/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | Headless entry/reporting prerequisites exist; no windowed phase is complete. |
+| [V1 Visual Showcase](Roadmap/en/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | Linux/Vulkan Phase A is implemented with clear color, triangle, diagnostics, resize/shutdown, separate evidence, and Xvfb smoke; native acceptance is pending. |
 
 
 ### Repository status
@@ -140,7 +140,7 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 至 ✅ ZS-M4 已完成；ZS-M5 現有自動化 Linux isolated-package launch evidence，其他 target-host distribution 驗收仍待完成。 |
 | [圖形化 Editor](Roadmap/zh-TW/Editor_Roadmap.md) | **0%（0/8）** | Repository 稽核確認各 ED track 已有 portable foundation，Dear ImGui shell 亦在施工中，但尚無 graphical ED milestone 通過全部 automated 與 target-host gate。 |
 | [聚焦 Roadmap AI 施工規劃](Roadmap/zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) | **60%** | API 100%、Zig Showcase 90% 與 Editor 0% 的平均，向下取整至 10%。 |
-| [V1 可視化 Showcase](Roadmap/zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | 已有 headless entry/reporting 前置；尚無 windowed phase 完成。 |
+| [V1 可視化 Showcase](Roadmap/zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | Linux/Vulkan Phase A 已實作 clear color、triangle、diagnostics、resize/shutdown、分離 evidence 與 Xvfb smoke；native 驗收待完成。 |
 
 ### Repository 狀態
 

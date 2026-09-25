@@ -9,12 +9,9 @@ real C++ world mutation rather than only an isolated counter. Its state is
 created and destroyed through the paired host allocator callbacks, including
 both sides of a transactional reload, rather than relying on Zig global state.
 
-Development builds a `NexoraZigGameplay` shared library and `NexoraShowcase` selects it by default; `--gameplay-module=static` retains the statically linked ABI path used by Shipping, while `dynamic` makes discovery failure explicit. The deterministic headless slice continues to use the validation RHI. On Windows,
-`--mode=interactive --backend=dx12` additionally owns a visible Win32 window, pumps normalized
-input, and acquires/clears/presents through the DX12 swapchain until the window closes. Supplying
-`--frames=N` bounds an interactive verification run. `--backend=auto` may fall back to the
-validation path on an unsupported host, but prints and records `fallback_reason`; explicit `dx12`
-requests fail rather than silently switching backends.
+Development builds a `NexoraZigGameplay` shared library and `NexoraShowcase` selects it by default; `--gameplay-module=static` retains the statically linked ABI path used by Shipping, while `dynamic` makes discovery failure explicit. The deterministic headless slice continues to use the validation RHI. On Linux, `--mode=interactive --backend=vulkan` owns an X11 window and Vulkan swapchain; on Windows, `--backend=dx12` uses Win32/DX12. Both paths display a clear-color background, software-rasterized triangle, and diagnostics panel through the existing presentation composition boundary. They pump normalized input and acquire/compose/present until the window closes. Supplying `--frames=N` bounds an interactive verification run. `--backend=auto` may fall back to the validation path on an unsupported host, but prints and records `fallback_reason`; explicit native requests fail rather than silently switching backends.
+
+The report deliberately separates `headless_evidence` from `windowed_evidence`. Linux CTest also registers `showcase.linux_vulkan_virtual_display`: it starts an isolated Xvfb server, runs four Vulkan frames, requests a 960x540 resize, verifies startup/composition/present/shutdown evidence, and skips with code 77 when Xvfb is not installed.
 
 ## Feature gallery
 

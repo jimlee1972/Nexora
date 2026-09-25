@@ -57,6 +57,7 @@ public:
   [[nodiscard]] const SurfaceInputSnapshot &Input() const noexcept;
   [[nodiscard]] const SurfaceFrameInfo &FrameInfo() const noexcept;
   [[nodiscard]] std::span<const Window::WindowEvent> Events() const noexcept;
+  [[nodiscard]] Window::WindowError Resize(std::uint32_t width, std::uint32_t height);
   [[nodiscard]] Window::WindowError SetImeCandidatePosition(std::int32_t x, std::int32_t y);
   [[nodiscard]] SurfaceDiagnostics Diagnostics() const noexcept;
   [[nodiscard]] SurfaceStatus DrainAndDestroy();
