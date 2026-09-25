@@ -307,6 +307,9 @@ coverage 已有；physical-display 證據仍待完成。**
 | Corrupt recovery journal | 保留 journal、顯示 error，依 data-layer policy 提供 retry/discard。 | Auto-delete、auto-recover、隱藏錯誤。 | Injected I/O/corruption test。 |
 | Configure 時無網路 | OFF build 獨立；ON build 清楚失敗或使用核准的 pre-populated cache。 | Fetch unpinned branch 或靜默 build stub。 | Clean configure OFF/ON。 |
 | Scope creep | 限制在 shell/Hierarchy/Console/recovery；延後 Content Browser、viewport gizmo、PIE、profiler。 | 因有 dock window 就把後續 Editor milestone 標完成。 | Roadmap review。 |
+| 預設 1.0 DPI bucket 下 font atlas 永遠沒建立（`dpi_bucket` 預設值 `1.0F` 剛好等於 `DpiBucket(1.0F)`，導致第一次 `SetDisplay()` 是 no-op，之後 `NewFrame()` 撞上 ImGui 的 `IsBuilt()` assertion） | 把 `dpi_bucket` 初始值改成所有真實 bucket 都不會等於的 sentinel（`0.0F`），讓第一次 `SetDisplay()` 一定會建 atlas。 | 對第一次呼叫特殊處理，或在建構子裡用假的 DPI scale 建 atlas。 | `editor.imgui_contract`（2026-09-25 修正）；先前被舊測試的前兩次 `SetDisplay()` 剛好跨過 bucket 邊界所掩蓋，未曾暴露。 |
+| `~EditorImGuiHost()` 在 `DestroyContext` 前從未清掉 `io.BackendPlatformUserData`，觸發 ImGui `Shutdown()` 的「忘記關閉 platform backend」assertion | 在 `DestroyContext` 前（`Activate` 之後）清掉 `BackendPlatformUserData`。 | 用 build define 壓掉 assertion，而不清 backend state。 | `editor.imgui_contract`；在下面兩項修正之前測試會提早中止，從未執行到這一步。 |
+| `ImGui::Shortcut(..., ImGuiInputFlags_RouteGlobal)` 在第一次註冊的那一幀永遠不會觸發（Dear ImGui 的 routing 仲裁延遲一幀：`SetShortcutRouting()` 寫入 `RoutingNext`，`RoutingCurr` 要到下一幀 `NewFrame()` 才會採用），且單一 `ProcessEvents()` 裡混合 pointer/text/key 事件的 batch，在 `ConfigInputTrickleEventQueue`（Dear ImGui 設計上每幀最多套用一種 input type 轉換）下需要好幾幀才能完全套用 | 先畫一個不含任何 key event 的暖身幀，預先註冊 shortcut routing，再模擬按鍵；測試若把合成事件 batch 當成單一確定性單位重播（而非即時逐 tick 輸入），就關掉 `ConfigInputTrickleEventQueue`。 | 把 shortcut 改成 `ImGuiInputFlags_RouteAlways` 來繞過 routing 仲裁（會掩蓋真正的多視窗 shortcut 衝突），或放著 trickling 開著、賭混合型別的 batch 剛好一幀內排空。 | `editor.imgui_contract` 的 Ctrl+S routing assertion（2026-09-25 修正）。 |
 
 ## 6. 驗證命令與證據格式
 

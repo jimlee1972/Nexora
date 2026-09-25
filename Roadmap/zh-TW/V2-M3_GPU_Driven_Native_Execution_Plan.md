@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend 執行計畫
 
-> 版本：v1.0｜狀態：施工中；Phase 1b 已完成，Phase 2 已開始｜更新：2026-09-24｜對應：
+> 版本：v1.0｜狀態：施工中；Phase 2 Linux Vulkan acceptance 待補｜更新：2026-09-25｜對應：
 > `跨平台3D_Engine_V2_完整規劃書_v1_4.md` §V2-M3
 
 ## 1. 目的
@@ -23,16 +23,20 @@ override 的情況下會直接丟例外（`"compute dispatch is unsupported"` /
 | --- | --- | --- | --- |
 | `ValidationDevice`（portable CPU reference） | ✅ 已 override | ✅ 已 override | `renderer.v2_gpu_driven` 會完整跑過 culling/Hi-Z/compaction/indirect-generation 整條 pipeline，且是 deterministic 的。 |
 | `VulkanDevice` | ❌ 未 override（會丟例外） | ✅ 已 override（`vkCmdDrawIndirect`） | `renderer.contracts`（`Tests/Renderer/RendererTests.cpp::VerifyNativeBackend`）會在真實 Linux Vulkan 上透過一個極簡的 triangle frame 跑 `DrawIndirect`——**不是**透過 `RecordGPUDrivenExecution`，也從未呼叫過 `Dispatch`。 |
-| `D3D12Device` | ❌ 未 override（會丟例外） | ❌ 未 override（會丟例外） | `Engine/RHI/src/D3D12Device.cpp` 裡這兩個 symbol 出現次數都是 0。 |
-| `MetalDevice` | ❌ 未 override（會丟例外） | ❌ 未 override（會丟例外） | `Engine/RHI/src/MetalDevice.mm` 裡這兩個 symbol 出現次數都是 0。 |
+| `D3D12Device` | ✅ 已 override（`ID3D12GraphicsCommandList::Dispatch`） | ✅ 已 override（`ExecuteIndirect`） | 依 §5 Phase 3 已實作（原始碼已確認：`Engine/RHI/src/D3D12Device.cpp` 的 `D3D12CommandList::Dispatch`/`DrawIndirect`）；Windows-host 執行與 `CompareGPUDrivenResults()` 證據無法在這個 Linux 雲端 session 產出，target-tier acceptance 仍待補。 |
+| `MetalDevice` | ❌ 未 override（會丟例外） | ❌ 未 override（會丟例外） | `Engine/RHI/src/MetalDevice.mm` 裡這兩個 symbol 出現次數都是 0；Phase 4 尚未開始。 |
 
-簡單講：完整的 GPU-driven pipeline（`RecordGPUDrivenExecution`）**目前只跑過 CPU reference**。
-Vulkan 只有來自另一個無關、更簡單的 smoke test 的 indirect-draw 證據。Compute dispatch 從來沒有在
-任何 native backend 上執行過。D3D12 跟 Metal 現在完全無法執行這條路徑的任何部分——呼叫進去會直接
-丟例外。這跟 `Engine/Renderer/README.md` 自己的敘述一致：「Native Vulkan compute pipelines、
-native queue/timeline integration、DX12/Metal execution 與 target-host parity 都還是 open gate，
-不能從 validation-backend 或 Vulkan-indirect 的覆蓋率去推論。」這份計畫是第一次把這件事拆成有順序
-的工程步驟寫下來。
+簡單講：真正的 production 呼叫點 `RecordGPUDrivenExecution()` **目前只跑過 CPU reference**
+（`Tests/Renderer/GPUDrivenPipelineTests.cpp` 的 `TestNormalPathRecordsNoReadbackOn`，只用
+`CreateValidationDevice()` 跑過）。依 §5 Phase 2，真實 Linux Vulkan 現在會獨立跑過等價的
+compute/indirect 各階段（`TestNativeComputeOnVulkan`，一個手動搭建、自己建立 compute-dispatch
+與 indirect-draw pass 的 `RenderGraph`，用 `CompareGPUDrivenResults()` 驗證）——但這個測試
+harness 是直接呼叫 `Dispatch`／`DrawIndirect`，**不是**透過 `RecordGPUDrivenExecution()` 本身，
+所以把 production 呼叫點接到 Vulkan 上執行仍是未關閉的缺口。D3D12 現在兩個進入點都已實作並經過
+原始碼審查（§5 Phase 3），但完全沒有 target-host 執行證據，因為這個 session 無法跑 Windows
+build。Metal 則兩者皆無。這跟 `Engine/Renderer/README.md` 自己區分「已實作的接線」與「已驗證的
+target-host parity」的敘述一致：以上都不能從 validation-backend 的覆蓋率去推論。這份計畫按 phase
+追蹤證據；每個 phase 最新、最權威的狀態見 §5。
 
 ## 3. 範圍與不做的事
 

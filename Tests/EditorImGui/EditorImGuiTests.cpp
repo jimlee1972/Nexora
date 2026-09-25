@@ -18,7 +18,26 @@ int main() {
   nexora::editor::SceneDocument scene(world, scene_id);
   const auto root = scene.Create("Scene Root");
   assert(root != 0 && scene.Nodes().size() == 1);
+  // Dear ImGui's input trickling (ConfigInputTrickleEventQueue, on by default) deliberately applies
+  // only one input-type transition per NewFrame() so fast real interleaved events (e.g. a mouse
+  // move followed by a click) keep correct sub-frame chronology; a batch mixing pointer/text/key
+  // events queued in one ProcessEvents() call below would then need several frames to fully drain.
+  // This test replays a synthetic event batch as a single deterministic unit rather than live
+  // input, so disable trickling to make ProcessEvents() -> one NewFrame() a reliable, complete
+  // apply.
+  ImGui::GetIO().ConfigInputTrickleEventQueue = false;
   host.SetDisplay(1280.0F, 720.0F, 1.0F);
+  nexora::editor::ProductShell shell;
+  // Dear ImGui's Shortcut()/SetShortcutRouting() arbitrate routing one frame ahead: a route
+  // registered during a frame only "wins" starting the *next* frame (see RoutingNext/RoutingCurr
+  // in imgui.cpp's UpdateKeyRoutingTable()/SetShortcutRouting()). Draw one frame with no key event
+  // queued so the Ctrl+S route is primed before the simulated keypress below; DrawProductShell()
+  // registers the shortcut unconditionally regardless of key state, and this warm-up frame never
+  // calls Render(), so it does not perturb the renderer-metrics assertions further down.
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  assert(shell.LastCommand().empty());
+  static_cast<void>(host.EndFrame());
   const std::array events{
       Nexora::Window::WindowEvent{
           {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, 320, 240},
@@ -51,7 +70,6 @@ int main() {
   assert(ImGui::GetIO().DisplayFramebufferScale.x == 1.5F);
   assert(ImGui::GetIO().FontGlobalScale > 0.66F && ImGui::GetIO().FontGlobalScale < 0.67F);
   host.BeginFrame();
-  nexora::editor::ProductShell shell;
   host.DrawProductShell(shell, &scene);
   assert(shell.LastCommand() == "editor.scene.save");
   const auto metrics = host.EndFrame();

@@ -45,7 +45,11 @@ struct EditorImGuiHost::State final {
   ImGuiContext *context = nullptr;
   Nexora::Presentation::RenderSurface *surface = nullptr;
   float dpi_scale = 1.0F;
-  float dpi_bucket = 1.0F;
+  // Sentinel below every real DpiBucket() result ({1.0, 1.25, 1.5, 2.0}) so the first SetDisplay()
+  // call always builds the font atlas, even when the initial DPI resolves to the 1.0 bucket; a
+  // default of 1.0F here would make that common case a no-op and leave the atlas unbuilt, which
+  // ImGui::NewFrame() asserts on.
+  float dpi_bucket = 0.0F;
   std::uint32_t font_generation = 1;
   std::uint32_t surface_font_generation = 0;
   RendererMetrics renderer_metrics;
@@ -203,8 +207,14 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
 }
 
 EditorImGuiHost::~EditorImGuiHost() {
-  if (state_ && state_->context)
+  if (state_ && state_->context) {
+    // ImGui::Shutdown() (invoked by DestroyContext) asserts BackendPlatformUserData is cleared,
+    // treating a non-null value as a sign the platform backend never ran its own shutdown; clear it
+    // here since EditorImGuiHost is the only "backend" this context has.
+    Activate(state_->context);
+    ImGui::GetIO().BackendPlatformUserData = nullptr;
     ImGui::DestroyContext(state_->context);
+  }
 }
 EditorImGuiHost::EditorImGuiHost(EditorImGuiHost &&) noexcept = default;
 EditorImGuiHost &EditorImGuiHost::operator=(EditorImGuiHost &&) noexcept = default;

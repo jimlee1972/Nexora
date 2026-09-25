@@ -23,17 +23,23 @@ implementations unconditionally throw (`"compute dispatch is unsupported"` /
 | --- | --- | --- | --- |
 | `ValidationDevice` (portable CPU reference) | ✅ overridden | ✅ overridden | `renderer.v2_gpu_driven` exercises the full culling/Hi-Z/compaction/indirect-generation pipeline deterministically. |
 | `VulkanDevice` | ❌ not overridden (throws) | ✅ overridden (`vkCmdDrawIndirect`) | `renderer.contracts` (`Tests/Renderer/RendererTests.cpp::VerifyNativeBackend`) exercises `DrawIndirect` on real Linux Vulkan through a minimal triangle frame -- **not** through `RecordGPUDrivenExecution`, and never calls `Dispatch`. |
-| `D3D12Device` | ❌ not overridden (throws) | ❌ not overridden (throws) | Zero occurrences of either symbol in `Engine/RHI/src/D3D12Device.cpp`. |
-| `MetalDevice` | ❌ not overridden (throws) | ❌ not overridden (throws) | Zero occurrences of either symbol in `Engine/RHI/src/MetalDevice.mm`. |
+| `D3D12Device` | ✅ overridden (`ID3D12GraphicsCommandList::Dispatch`) | ✅ overridden (`ExecuteIndirect`) | Implemented per §5 Phase 3 (source-verified: `D3D12CommandList::Dispatch`/`DrawIndirect` in `Engine/RHI/src/D3D12Device.cpp`); Windows-host execution and `CompareGPUDrivenResults()` evidence cannot be produced from this Linux cloud session, so target-tier acceptance is still pending. |
+| `MetalDevice` | ❌ not overridden (throws) | ❌ not overridden (throws) | Zero occurrences of either symbol in `Engine/RHI/src/MetalDevice.mm`; Phase 4 has not started. |
 
-In short: the full GPU-driven pipeline (`RecordGPUDrivenExecution`) has **only ever run against the
-CPU reference**. Vulkan has real indirect-draw evidence from an unrelated, simpler smoke test.
-Compute dispatch has never executed on any native backend. D3D12 and Metal cannot execute any part
-of this path today -- calling into either throws immediately. This matches
-`Engine/Renderer/README.md`'s own statement: "Native Vulkan compute pipelines, native
-queue/timeline integration, DX12/Metal execution, and target-host parity remain open gates; none
-is inferred from validation-backend or Vulkan-indirect coverage." This plan is the first attempt to
-write that evidence down as an ordered set of engineering steps.
+In short: the actual production call site, `RecordGPUDrivenExecution()`, has **only ever run
+end-to-end against the CPU reference** (`Tests/Renderer/GPUDrivenPipelineTests.cpp`'s
+`TestNormalPathRecordsNoReadbackOn`, exercised solely with `CreateValidationDevice()`). Per §5
+Phase 2, real Linux Vulkan now independently exercises the equivalent compute/indirect stages
+end-to-end (`TestNativeComputeOnVulkan`, a hand-built `RenderGraph` with its own compute-dispatch
+and indirect-draw passes, checked against `CompareGPUDrivenResults()`) -- but that harness calls
+`Dispatch`/`DrawIndirect` directly, **not** through `RecordGPUDrivenExecution()` itself, so wiring
+the production call site to run on Vulkan remains open. D3D12 now has both entry points implemented
+and source-reviewed (§5 Phase 3) but zero target-host execution evidence, since this session
+cannot run a Windows build. Metal has neither implementation nor evidence. This matches
+`Engine/Renderer/README.md`'s own statement distinguishing implemented plumbing from verified
+target-host parity: none of the above is inferred from validation-backend coverage alone. This plan
+tracks that evidence phase by phase; see §5 for the authoritative, most recently updated status of
+each phase.
 
 ## 3. Scope and non-goals
 
