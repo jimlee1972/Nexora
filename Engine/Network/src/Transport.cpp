@@ -118,6 +118,8 @@ TransportPair CreateSimulatedTransportPair(PacketSimulation client_to_server,
           std::make_unique<SimulatedTransport>(std::move(link), 1, server_to_client)};
 }
 
+TransportPair CreateLoopbackTransportPair() { return CreateSimulatedTransportPair(); }
+
 Connection::Connection(INetTransport &transport, ProtocolIdentity identity, bool server)
     : transport_(transport), identity_(std::move(identity)), server_(server) {}
 
@@ -131,6 +133,10 @@ bool Connection::Connect() {
   body.insert(
       body.end(), reinterpret_cast<const std::byte *>(identity_.build_id.data()),
       reinterpret_cast<const std::byte *>(identity_.build_id.data() + identity_.build_id.size()));
+  rejection_ = RejectReason::None;
+  next_sequence_ = 0;
+  last_sequenced_received_ = 0;
+  received_.clear();
   state_ = ConnectionState::Connecting;
   return transport_.Send(ControlPacket(kHandshake, body));
 }
@@ -140,6 +146,9 @@ void Connection::Disconnect() {
     (void)transport_.Send(ControlPacket(kDisconnect));
   }
   state_ = ConnectionState::Disconnected;
+  rejection_ = RejectReason::None;
+  next_sequence_ = 0;
+  last_sequenced_received_ = 0;
   received_.clear();
 }
 
@@ -167,6 +176,9 @@ void Connection::Tick(std::uint64_t now_milliseconds) {
         } else {
           state_ = ConnectionState::Connected;
           rejection_ = RejectReason::None;
+          next_sequence_ = 0;
+          last_sequenced_received_ = 0;
+          received_.clear();
           (void)transport_.Send(ControlPacket(kAccept));
           continue;
         }
@@ -181,6 +193,9 @@ void Connection::Tick(std::uint64_t now_milliseconds) {
       rejection_ = static_cast<RejectReason>(std::to_integer<std::uint8_t>(packet.payload[1]));
     } else if (kind == kDisconnect) {
       state_ = ConnectionState::Disconnected;
+      rejection_ = RejectReason::None;
+      next_sequence_ = 0;
+      last_sequenced_received_ = 0;
       received_.clear();
     } else if (kind == kUser && state_ == ConnectionState::Connected) {
       packet.payload.erase(packet.payload.begin());

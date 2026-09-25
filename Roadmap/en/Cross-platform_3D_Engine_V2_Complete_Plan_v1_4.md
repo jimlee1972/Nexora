@@ -3912,7 +3912,7 @@ Construction:
 
 ## ✅ V2-M5 — Dedicated Server / Transport Foundation
 
-Portable implementation now provides a `linux-headless` preset that configures only the renderer-free server closure, a caller-owned `INetTransport` boundary, UDP-oriented datagrams, protocol/build handshake rejection, explicit channel semantics, and deterministic seeded loss/latency/jitter simulation. Native UDP and encrypted production adapters remain backend gates.
+Portable implementation now provides a `linux-headless` preset that configures only the renderer-free server closure, caller-owned loopback and simulated `INetTransport` pairs, UDP-oriented datagrams, protocol/build handshake rejection, explicit channel semantics, and deterministic seeded loss/latency/jitter simulation. Headless acceptance covers malformed handshakes, exact simulation timing, deterministic traces, 1,000 reconnect/disconnect cycles, and both declared and configured-target dependency closures. Native UDP and encrypted production adapters remain backend gates.
 
 Do first:
 
@@ -3937,6 +3937,9 @@ Do not implement Prediction first.
 ✅ Client / Server connect / disconnect is stable
 ✅ Loss / latency / jitter simulator is available
 ✅ Protocol mismatch clean reject
+✅ Malformed handshakes are rejected without accepting user traffic
+✅ Seeded simulation traces are deterministic in headless tests
+✅ 1,000 reconnect / disconnect cycles reset per-session state
 ```
 
 ---
