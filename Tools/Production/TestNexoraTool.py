@@ -53,6 +53,20 @@ with tempfile.TemporaryDirectory() as directory:
         {"op": "replace", "path": "/x", "value": 2},
     ]
 
+    world = {"regions": [
+        {"id": "west", "items": [{"id": "b", "position": [101, 2, 3]},
+                                     {"id": "a", "position": [1, 2, 3]}]},
+        {"id": "east", "items": [{"id": "c", "position": [201, 2, 3]}]},
+    ]}
+    partition_a = MODULE.build_world_partition(world, 100, 8)
+    partition_b = MODULE.build_world_partition({"regions": list(reversed(world["regions"]))}, 100, 8)
+    assert partition_a == partition_b
+    changed_world = json.loads(json.dumps(world))
+    changed_world["regions"][1]["items"][0]["position"][0] = 301
+    incremental = MODULE.build_world_partition(changed_world, 100, 8, partition_a, {"east"})
+    assert incremental["regions"][1] == partition_a["regions"][1]
+    assert incremental["regions"][0] != partition_a["regions"][0]
+
     report = root / "report.json"
     completed = subprocess.run([sys.executable, str(MODULE_PATH), "cook", str(source),
                                 "--ddc", str(root / "command-ddc"), "--output", str(report)], check=False)

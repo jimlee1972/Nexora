@@ -36,8 +36,8 @@ an unchecked or unmarked item remains incomplete.
 | --- | ---: | --- |
 | ✅ [V1 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md) | **100%** | 13/13 portable M0–M12 contract foundations delivered; native/product adapters remain separate gates. |
 | ✅ [V1 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V1_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **100%** | Tracks the same accepted portable V1 implementation baseline. |
-| [V2 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) | **23%** | ✅ V2-M0 through ✅ V2-M2 are accepted; V2-M3 has a full Linux Vulkan compute implementation and a mandatory CPU/GPU comparison gate; native execution evidence and cross-target parity remain open. V2-M4 now has a portable deterministic foundation. |
-| [V2 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **23%** | ✅ V2-M0 through ✅ V2-M2 are accepted; V2-M3 contract checks cover reference culling, indirect commands, CPU/GPU comparison, and no-readback diagnostics, but the milestone is not yet accepted. |
+| [V2 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) | **31%** | ✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 are accepted; V2-M4 covers adaptive/3D partitioning, CellGroups, origin rebasing, HLOD/impostors, persistent deltas, and the headless incremental commandlet. V2-M3 native execution evidence remains open. |
+| [V2 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **31%** | ✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 are accepted; V2-M3 contract checks exist, but native parity remains open. |
 | [V3 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V3_Complete_Plan_v1_4.md) | **0%** | No V3 delivery milestone has an accepted repository gate. |
 | [V3 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md) | **0%** | Execution plan only; no V3 milestone accepted. |
 | ✅ [Engine API Foundation](Roadmap/en/Engine_API_Foundation_Roadmap.md) | **100%** | ✅ API-M1 through ✅ API-M6 complete for portable scope. |
@@ -127,8 +127,8 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | --- | ---: | --- |
 | ✅ [V1 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V1_完整規劃書_v1_2.md) | **100%** | 13/13 個 portable M0–M12 contract foundation 已交付；native/product adapter 仍為獨立 gate。 |
 | ✅ [V1 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_2.md) | **100%** | 對應同一個已驗收的 portable V1 施工基線。 |
-| [V2 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) | **23%** | ✅ V2-M0 至 ✅ V2-M2 已驗收；V2-M3 已有完整 Linux Vulkan compute 實作與強制 CPU／GPU comparison gate；native execution 證據與跨 target parity 仍待完成。V2-M4 現已有 portable deterministic foundation。 |
-| [V2 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) | **23%** | ✅ V2-M0 至 ✅ V2-M2 已驗收；V2-M3 contract check 已涵蓋 reference culling、indirect command、CPU／GPU comparison 與 no-readback diagnostics，但 milestone 尚未驗收。 |
+| [V2 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) | **31%** | ✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 已驗收；V2-M4 涵蓋 adaptive／3D partition、CellGroup、origin rebase、HLOD／impostor、persistent delta 與 headless incremental commandlet。V2-M3 native execution 證據仍待完成。 |
+| [V2 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) | **31%** | ✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 已驗收；V2-M3 contract check 已存在，但 native parity 仍待完成。 |
 | [V3 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V3_完整規劃書_v1_4.md) | **0%** | 尚無 V3 delivery milestone 通過 repository gate。 |
 | [V3 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) | **0%** | 僅為施工規劃；尚無 V3 milestone 驗收。 |
 | ✅ [Engine API 基礎](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) | **100%** | ✅ API-M1 至 ✅ API-M6 完成 portable scope。 |

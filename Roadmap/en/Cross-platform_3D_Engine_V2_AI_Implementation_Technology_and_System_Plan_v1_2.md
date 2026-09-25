@@ -4,7 +4,7 @@
 **Corresponding Source: Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md**
 **Purpose: AI implementation, Engine Programmer implementation, system decomposition, Code Review, CI Gate.**
 
-> **Progress: 23%** (✅ V2-M0 through ✅ V2-M2 are accepted; V2-M3 through V2-M12 remain open.)
+> **Progress: 31%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 are accepted; V2-M3 and V2-M5 through V2-M12 remain open.)
 
 
 
@@ -1387,6 +1387,8 @@ General material VT is optional.
 ---
 
 # V2 Adaptive World Partition
+
+**Delivered (V2-M4): ✅** Adaptive quadtree cells, hierarchical CellGroups, 3D volume policies, origin-rebase identity, ready-gated HLOD/impostors, persistent delta reload, occupied-footprint pins, and the changed-region commandlet are covered by Linux tests.
 
 V1 stable grid → V2 adaptive authoring/cook partition.
 

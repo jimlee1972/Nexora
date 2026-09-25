@@ -74,19 +74,15 @@ those device runs.
 
 ## V1-M10 large-world runtime
 
-The initial V2-M4 portable layer adds deterministic integer-coordinate partition cells and hashes,
-an incremental rebuild entry point, quantized double-precision world-origin rebasing, and
-revision-ordered persistent cell deltas. Builds sort input identities and serialized deltas before
-hashing, so unordered container iteration cannot affect output. These synchronous, caller-owned
-contracts perform no filesystem I/O; gameplay keeps absolute identities/coordinates while only
-render-relative coordinates consume the rebase origin. Adaptive hierarchy splitting, 3D volume
-policy, HLOD V2/impostors, and the production partition commandlet remain open.
+The V2-M4 portable layer provides deterministic adaptive XZ hierarchy splitting, stable integer-coordinate cell identities and hashes, hierarchical cell groups, fixed-grid/explicit 3D volume policies, quantized double-precision world-origin rebasing, and revision-ordered persistent cell deltas. Builds sort identities before hashing, so unordered input cannot affect output. `HlodV2` keeps full content visible until a selected merged-mesh or impostor artifact reports ready, preventing transition holes; `ImpostorBuilder` produces an order-independent artifact identity. `PersistentDeltaStore::Materialize` overlays deltas on scene defaults without retaining a runtime-memory snapshot. These synchronous, caller-owned contracts perform no filesystem I/O; gameplay keeps absolute identities/coordinates while only render-relative coordinates consume the rebase origin.
 
 `LargeWorld.h` defines stable fixed-grid addressing, spatial lookup, streaming demand, room/portal
 prefetch, offline HLOD, terrain patches, and instanced vegetation. `StreamingManager` keeps cell,
 full-bundle, and HLOD-bundle identities separate; ranks source demand deterministically; applies
 unload hysteresis; and exposes RAM/VRAM use and rejected transitions. Occupied cells remain fully
 resident for collision continuity even when a source leaves or the budget is temporarily too small.
+`SetOccupiedFootprint` atomically replaces each character's intersected adaptive/3D cell set, so both
+sides of a boundary remain pinned until the character footprint leaves them.
 Far HLOD has independent memory cost and residency and can therefore outlive its full cell.
 
 Terrain uses cullable clipmap patches and vegetation uses species-owned instance arrays, so neither

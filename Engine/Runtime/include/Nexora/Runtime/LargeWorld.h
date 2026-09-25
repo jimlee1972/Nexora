@@ -95,6 +95,9 @@ public:
   bool RemoveSource(Id source);
   bool AddPortal(Id from_cell, Id to_cell);
   bool SetOccupied(Id cell, bool occupied);
+  // Replaces one character's occupied set atomically. Every intersected collision cell is pinned.
+  bool SetOccupiedFootprint(Id character, const Bounds &footprint);
+  bool ClearOccupiedFootprint(Id character);
   bool Update();
   [[nodiscard]] const CellDescriptor *FindCell(Id cell) const;
   [[nodiscard]] std::optional<CellStatus> Status(Id cell) const;
@@ -111,6 +114,8 @@ private:
   std::unordered_map<Id, CellRecord> cells_;
   std::unordered_map<Id, StreamingSource> sources_;
   std::unordered_map<Id, std::unordered_set<Id>> portals_;
+  std::unordered_set<Id> manually_occupied_;
+  std::unordered_map<Id, std::unordered_set<Id>> occupied_by_character_;
   std::size_t rejected_{};
 };
 
@@ -182,6 +187,21 @@ struct PartitionBuild final {
   std::vector<PartitionCell> cells;
   std::uint64_t build_hash{};
 };
+struct CellGroup final {
+  Id id{};
+  std::uint8_t level{};
+  Bounds bounds{};
+  std::vector<Id> cells;
+  std::uint64_t content_hash{};
+};
+class NEXORA_RUNTIME_API CellGroupBuilder final {
+public:
+  explicit CellGroupBuilder(std::size_t fanout = 4);
+  [[nodiscard]] std::vector<CellGroup> Build(const PartitionBuild &partition) const;
+
+private:
+  std::size_t fanout_{};
+};
 class NEXORA_RUNTIME_API AdaptivePartitionBuilder final {
 public:
   explicit AdaptivePartitionBuilder(double leaf_size, std::size_t split_threshold = 8,
@@ -195,6 +215,22 @@ private:
   double leaf_size_{};
   std::size_t split_threshold_{};
   std::uint8_t max_level_{};
+};
+
+enum class VolumePartitionMode { Grid3D, Explicit };
+struct ExplicitVolume final {
+  Id id{};
+  Bounds bounds{};
+};
+class NEXORA_RUNTIME_API VolumePartitionBuilder final {
+public:
+  VolumePartitionBuilder(double cell_size, VolumePartitionMode mode);
+  [[nodiscard]] std::optional<PartitionBuild>
+  Build(std::span<const SpatialItem> items, std::span<const ExplicitVolume> volumes = {}) const;
+
+private:
+  double cell_size_{};
+  VolumePartitionMode mode_{};
 };
 
 struct OriginRebase final {
@@ -214,6 +250,42 @@ private:
   std::uint64_t sequence_{};
 };
 
+enum class HlodRepresentation { Full, MergedMesh, Impostor };
+struct HlodTier final {
+  Id id{};
+  Id group{};
+  HlodRepresentation representation{HlodRepresentation::Full};
+  double minimum_distance{};
+  std::uint64_t artifact_hash{};
+};
+struct HlodSelection final {
+  Id visible_tier{};
+  bool show_full_content{true};
+};
+class NEXORA_RUNTIME_API HlodV2 final {
+public:
+  bool AddTier(HlodTier tier);
+  bool SetReady(Id tier, bool ready);
+  [[nodiscard]] HlodSelection Select(Id group, double distance) const;
+
+private:
+  std::vector<HlodTier> tiers_;
+  std::unordered_set<Id> ready_;
+};
+struct ImpostorArtifact final {
+  Id id{};
+  Id group{};
+  std::uint32_t views{};
+  std::uint32_t resolution{};
+  std::uint64_t content_hash{};
+};
+class NEXORA_RUNTIME_API ImpostorBuilder final {
+public:
+  [[nodiscard]] std::optional<ImpostorArtifact> Build(Id group, std::span<const Id> source_assets,
+                                                      std::uint32_t views,
+                                                      std::uint32_t resolution) const;
+};
+
 struct PersistentCellDelta final {
   Id cell{}, object{};
   std::uint64_t revision{};
@@ -225,6 +297,8 @@ public:
   bool Apply(PersistentCellDelta delta);
   [[nodiscard]] std::vector<PersistentCellDelta> Load(Id cell) const;
   [[nodiscard]] std::uint64_t Digest(Id cell) const noexcept;
+  [[nodiscard]] std::unordered_map<Id, std::string>
+  Materialize(Id cell, const std::unordered_map<Id, std::string> &defaults) const;
 
 private:
   std::unordered_map<Id, std::unordered_map<Id, PersistentCellDelta>> cells_;

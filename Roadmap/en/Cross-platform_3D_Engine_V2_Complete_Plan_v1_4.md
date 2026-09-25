@@ -3,7 +3,7 @@
 **Document Version: Master Draft v1.4**
 **Engine Generation: V2.x — Scale-Up / Production**
 
-> **Progress: 23%** (✅ V2-M0 through ✅ V2-M2 have passed their portable repository gates; V2-M3 through V2-M12 remain open. Native target evidence remains a separate gate.)
+> **Progress: 31%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 have passed their portable repository gates; V2-M3 and V2-M5 through V2-M12 remain open. Native target evidence remains a separate gate.)
 
 > This document is the **V2 Master Plan**. All V1 Contracts are inherited by default; only items explicitly marked “V2 supersede” in this document may change V1 behavior.
 >
@@ -783,7 +783,7 @@ V2 adds:
 
 ```text
 Multi-tier HLOD
-Impostor
+✅ Impostor
 Material Atlas
 Streaming-aware HLOD
 GPU-driven HLOD selection hints
@@ -974,7 +974,7 @@ V1 already uses a high-precision World Position foundation.
 V2 formally adds:
 
 ```text
-World Origin Rebasing
+✅ World Origin Rebasing
 ```
 
 However, this is a runtime optimization, not a gameplay-visible teleport.
@@ -3880,35 +3880,32 @@ native target-host parity item passes; therefore the milestone and overall progr
 
 ---
 
-## V2-M4 — Large World V2
+## ✅ V2-M4 — Large World V2
 
-Current portable foundation: deterministic integer-coordinate cell generation and build hashes,
-incremental rebuild input, quantized origin rebasing that leaves absolute gameplay identity intact,
-and revision-ordered persistent cell deltas are executable contracts. Adaptive hierarchy splitting,
-3D volume policy, HLOD V2/impostors, and the partition commandlet remain open.
+The portable implementation now delivers deterministic adaptive hierarchy generation, CellGroups, fixed-grid/explicit 3D volume partitioning, quantized origin rebasing that preserves absolute gameplay identity, ready-gated HLOD V2/deterministic impostors, persistent delta materialization, and a changed-region headless partition commandlet. The Linux gates below provide repository acceptance evidence.
 
 Construction:
 
 ```text
-Adaptive Quadtree Cell Generation
-Hierarchical Cell Group
-3D Volume Partition
-World Origin Rebasing
-HLOD V2
-Impostor
-Persistent Cell Delta
-World Partition Commandlet
+✅ Adaptive Quadtree Cell Generation
+✅ Hierarchical Cell Group
+✅ 3D Volume Partition
+✅ World Origin Rebasing
+✅ HLOD V2
+✅ Impostor
+✅ Persistent Cell Delta
+✅ World Partition Commandlet
 ```
 
 **Gate:**
 
 ```text
-✓ Origin rebase is invisible to gameplay identity
-✓ Partition build deterministic
-✓ HLOD switch does not produce holes
-✓ Persistent cell unload/reload state is correct
-✓ Changed regions can be incrementally rebuilt
-✓ Character does not lose Collision when crossing Adaptive/3D Partition Cell boundaries（Occupied Cell Pinned extended to V2 Partition）
+✅ Origin rebase is invisible to gameplay identity
+✅ Partition build deterministic
+✅ HLOD switch does not produce holes
+✅ Persistent cell unload/reload state is correct
+✅ Changed regions can be incrementally rebuilt
+✅ Character does not lose Collision when crossing Adaptive/3D Partition Cell boundaries（Occupied Cell Pinned extended to V2 Partition）
 ```
 
 ---
