@@ -63,6 +63,13 @@ offscreen gate exercises that path on a Vulkan-capable Linux host. Vulkan also c
 Native queue/timeline separation and DX12/Metal compute/indirect implementations, followed by full
 target-host parity evidence, remain required before V2-M3 can be accepted.
 
+`Nexora/RHI/IndirectCommand.h` fixes the indirect-buffer ABI once for every backend. Its first four
+32-bit words are the common non-indexed draw arguments used by Vulkan, D3D12, and Metal; five
+classification words follow, for a 36-byte stride. `IndirectCommandABI.inc` is the shared C++/Slang
+source of word offsets. Native backends consume the four-word prefix at that stride and must not
+declare a backend-private command record. This is an append-only binary contract: changing an
+existing word or its offset requires a new ABI version rather than an in-place reinterpretation.
+
 ## Editor draw-list command contract
 
 The public command-list contract includes vertex/index-buffer binding, indexed draws with base

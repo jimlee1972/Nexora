@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/RHI/Api.h"
+#include "Nexora/RHI/IndirectCommand.h"
 #include "Nexora/RHI/Types.h"
 
 #include <cstddef>

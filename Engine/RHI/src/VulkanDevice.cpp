@@ -289,7 +289,7 @@ private:
   VkDeviceMemory indirect_memory_{VK_NULL_HANDLE};
   VkBuffer bound_indirect_buffer_{VK_NULL_HANDLE};
   VkDeviceSize bound_indirect_offset_{};
-  std::uint32_t bound_indirect_stride_{sizeof(VkDrawIndirectCommand)};
+  std::uint32_t bound_indirect_stride_{DrawIndirectArgumentSize};
 };
 
 class VulkanDevice final : public Device {
@@ -1455,15 +1455,14 @@ void VulkanCommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle bu
 void VulkanCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset,
                                            std::uint32_t stride) {
   if (submitted_ || !rendering_ ||
-      (stride != 0 && (stride < sizeof(VkDrawIndirectCommand) || stride % 4 != 0)))
+      (stride != 0 && (stride < DrawIndirectArgumentSize || stride % alignof(std::uint32_t) != 0)))
     throw std::logic_error("indirect-buffer binding requires rendering");
   auto &record = device_.ValidateBuffer(buffer);
-  if (offset > record.descriptor.size ||
-      sizeof(VkDrawIndirectCommand) > record.descriptor.size - offset)
+  if (offset > record.descriptor.size || DrawIndirectArgumentSize > record.descriptor.size - offset)
     throw std::logic_error("indirect-buffer binding is out of bounds");
   bound_indirect_buffer_ = record.buffer;
   bound_indirect_offset_ = offset;
-  bound_indirect_stride_ = stride == 0 ? sizeof(VkDrawIndirectCommand) : stride;
+  bound_indirect_stride_ = stride == 0 ? DrawIndirectArgumentSize : stride;
 }
 
 void VulkanCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
@@ -1484,7 +1483,7 @@ void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
     ++indirect_draws_;
     return;
   }
-  const VkDeviceSize size = sizeof(VkDrawIndirectCommand) * command_count;
+  const VkDeviceSize size = DrawIndirectArgumentSize * command_count;
   const VkBufferCreateInfo buffer_info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                                        nullptr,
                                        0,
@@ -1509,12 +1508,12 @@ void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
   void *mapped = nullptr;
   Check(device_.functions_.MapMemory(device_.device_, indirect_memory_, 0, size, 0, &mapped),
         "vkMapMemory(indirect)");
-  auto *commands = static_cast<VkDrawIndirectCommand *>(mapped);
+  auto *commands = static_cast<DrawIndirectArguments *>(mapped);
   for (std::uint32_t index = 0; index < command_count; ++index)
     commands[index] = {3, 1, 0, index};
   device_.functions_.UnmapMemory(device_.device_, indirect_memory_);
   device_.functions_.CmdDrawIndirect(command_buffer_, indirect_buffer_, 0, command_count,
-                                     sizeof(VkDrawIndirectCommand));
+                                     DrawIndirectArgumentSize);
   ++indirect_draws_;
 }
 

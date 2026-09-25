@@ -56,6 +56,10 @@ The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, AP
 
 V2-M5 is complete for the portable foundation: the `linux-headless` preset builds only the renderer-free server closure, and `NexoraNetwork` exposes synchronous loopback/simulated transports and a connection contract with protocol/build identity checks, explicit channel semantics, and deterministic loss/latency/jitter simulation. Headless tests cover malformed handshakes and 1,000 reconnect/disconnect cycles; dependency checks verify the declared closure and configured targets. `NexoraDedicatedServer` links only through Network → Core → Foundation, keeping Renderer and presentation modules outside its dependency closure. Native socket, encryption, and hosted production deployment remain backend gates.
 
+#### V2 GPU-driven status
+
+V2-M3 now has one fixed 36-byte indirect-command ABI shared by C++ and Slang: the Vulkan/D3D12/Metal-compatible non-indexed draw prefix is followed by backend-neutral classification metadata. Vulkan consumes this canonical stride directly. The Vulkan CPU/GPU native comparison still requires a Slang-enabled acceptance run, while D3D12/Metal execution and all native target-host evidence remain open; therefore V2-M3 and the 38% roadmap total are unchanged.
+
 #### Engine API status
 
 The Engine API is **complete for the portable roadmap scope** defined by the [Engine API Foundation Roadmap](Roadmap/en/Engine_API_Foundation_Roadmap.md). Platform-specific runtime evidence remains a target-platform validation responsibility and is not represented as missing API functionality.
@@ -149,6 +153,10 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 #### V2 Networking 狀態
 
 V2-M5 portable foundation 已完成：`linux-headless` preset 僅建置 renderer-free server closure，而 `NexoraNetwork` 提供 synchronous loopback／simulated transport 與 connection contract，包含 protocol／build identity 檢查、明確 channel semantics，以及 deterministic loss／latency／jitter simulation。Headless tests 涵蓋 malformed handshake 與 1,000 次 reconnect／disconnect cycle；dependency checks 會驗證宣告的 closure 與實際設定產生的 targets。`NexoraDedicatedServer` 僅透過 Network → Core → Foundation 連結，Renderer 與 presentation module 不會進入其 dependency closure。Native socket、encryption 與 hosted production deployment 仍為 backend gate。
+
+#### V2 GPU-driven 狀態
+
+V2-M3 現已有一套由 C++ 與 Slang 共用的固定 36-byte indirect-command ABI：Vulkan／D3D12／Metal 相容的 non-indexed draw prefix 後接 backend-neutral classification metadata，且 Vulkan 直接消費此 canonical stride。Vulkan CPU/GPU native comparison 仍須以啟用 Slang 的 acceptance run 驗證，D3D12／Metal execution 與所有 native target-host 證據亦仍待完成；因此 V2-M3 與 38% Roadmap 總進度維持不變。
 
 #### Engine API 狀態
 

@@ -183,6 +183,10 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
 - Deterministic single-invocation kernel 刻意定位為驗收實作：它避免 subgroup／atomic ordering 差異並
   用來證明完整 native semantic。Parallel scan、radix classification 與 production-scale 效能調校仍屬最佳化，
   不會改變result contract。
+- ✅ Indirect buffer 現已固定為單一公開 RHI ABI：四個 word 的 non-indexed native draw prefix
+  後接五個 classification word（36-byte stride）。C++ 與 Slang 讀取同一份 word-offset include，
+  Vulkan 也綁定此 canonical stride；D3D12 與 Metal 必須直接消費同一 record，不得另訂或轉譯
+  backend-private command layout。
 
 ### Phase 3 — D3D12 backend
 
