@@ -8,8 +8,7 @@
 V2-M3 的 gate 有四項已勾選（portable command batching、no-readback contract diagnostics、
 RenderGraph queue/barrier ownership、CPU-reference correctness comparison），還有一項未勾選：
 **native DX12/Vulkan/Metal target-tier parity on target hosts**。這份文件規劃要補上那一項所需的
-工作。Phase 1a 與 1b 已完成，Phase 2 也已有 Linux Vulkan compute 證據，但 milestone 仍未完成；其餘階段全部落地並通過各自的
-gate 之前，roadmap 進度百分比不會變動。
+工作。Phase 1a 與 1b 已完成，Phase 2 已有 Linux Vulkan 實作但 native comparison 證據仍待補；milestone 仍未完成。其餘階段全部落地並通過各自的 gate 之前，roadmap 進度百分比不會變動。
 
 ## 2. 現況基線（對照原始碼逐一確認過，不是只憑 roadmap 文字）
 
@@ -165,19 +164,21 @@ pipeline 建立路徑。因為這些是加在共用介面上的 pure-virtual 新
 ——不是「寫一個 shader」——正好就是這個 repo 一貫規則要求動手前先討論的那種
 RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更。**已用 backend-neutral compute pipeline kind、四個固定 storage-buffer slot、host-visible upload 與明確標為 test-only 的 bounded readback seam 完成。固定 slot 讓本階段保持狹窄；通用 descriptor builder 仍是後續工作。**
 
-### ✅ Phase 2 — Vulkan 完整 compute 階段（完成）
+### Phase 2 — Vulkan 完整 compute 階段（待 native 驗收）
 
-- ✅ `GPUDriven.slang` 現在會執行 frustum rejection、distance rejection 與 LOD selection、
+> **更新（2026-09-25）：實作完成，native 驗收待完成。** Shader 與 native test 已涵蓋每個 Phase 2 stage，但在 Slang-enabled Linux Vulkan test 實際執行並通過 `CompareGPUDrivenResults()` 前，不標記 Phase 2 為 ✅。Shader 編譯、Dispatch 未拋例外與 diagnostics counter 都不算驗收證據。
+
+- `GPUDriven.slang` 現在會執行 frustum rejection、distance rejection 與 LOD selection、
   conservative max-depth Hi-Z 測試（包含 relaxed 與 invalidated policy）、visible-instance
   compaction、deterministic material／mesh／LOD classification，以及 indirect-command generation。
-- ✅ Linux native 驗收會封裝與 `BuildGPUDrivenCommands()` 相同的 scene、view、LOD threshold 與
+- Linux native 驗收會封裝與 `BuildGPUDrivenCommands()` 相同的 scene、view、LOD threshold 與
   Hi-Z pyramid；completion 後才透過 test-only readback 重建 backend result，並要求
   `CompareGPUDrivenResults()` 的每個 instance、command 與 statistic 都一致。
-- ✅ 驗收 workload 透過 RenderGraph compute 與 graphics pass 執行，驗證兩次 ownership transfer
+- 驗收 workload 透過 RenderGraph compute 與 graphics pass 執行，驗證兩次 ownership transfer
   後才送出 native indirect draw。正常執行仍然沒有 readback；bounded readback 只存在 correctness gate。
 - Deterministic single-invocation kernel 刻意定位為驗收實作：它避免 subgroup／atomic ordering 差異並
-  證明完整 native semantic。Parallel scan、radix classification 與 production-scale 效能調校仍屬最佳化，
-  不會改變已驗收的 result contract。
+  用來證明完整 native semantic。Parallel scan、radix classification 與 production-scale 效能調校仍屬最佳化，
+  不會改變result contract。
 
 ### Phase 3 — D3D12 backend
 

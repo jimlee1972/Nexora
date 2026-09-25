@@ -8,7 +8,9 @@ RWStructuredBuffer<uint> computeStatistics : register(u3);
 static const uint kHeaderWords = 44;
 static const uint kCandidateWords = 12;
 static const uint kVisibleWords = 5;
-static const uint kCommandWords = 5;
+// Each command starts with the native VkDrawIndirectCommand-compatible words and retains the
+// backend-neutral classification record after them for CompareGPUDrivenResults().
+static const uint kCommandWords = 9;
 
 float candidateFloat(uint candidate, uint field) {
   return asfloat(computeCandidates[kHeaderWords + candidate * kCandidateWords + field]);
@@ -97,6 +99,10 @@ void computeMain(uint3 id : SV_DispatchThreadID) {
   computeStatistics[0] = candidateCount;
   for (uint i = 1; i < 8; ++i)
     computeStatistics[i] = 0;
+  // Graphics submits the maximum candidate count without a CPU count readback. Empty slots are
+  // valid zero-work indirect commands, so only the generated bins execute vertices.
+  for (uint i = 0; i < candidateCount * kCommandWords; ++i)
+    computeIndirect[i] = 0;
 
   uint visibleCount = 0;
   for (uint candidate = 0; candidate < candidateCount; ++candidate) {
@@ -160,13 +166,19 @@ void computeMain(uint3 id : SV_DispatchThreadID) {
     }
     if (newBin) {
       uint command = commandCount++ * kCommandWords;
-      computeIndirect[command] = computeVisible[visible + 2];
-      computeIndirect[command + 1] = computeVisible[visible + 3];
-      computeIndirect[command + 2] = computeVisible[visible + 4];
-      computeIndirect[command + 3] = instance;
-      computeIndirect[command + 4] = 1;
+      computeIndirect[command] = 3; // vertexCount
+      computeIndirect[command + 1] = 1; // instanceCount
+      computeIndirect[command + 2] = 0; // firstVertex
+      computeIndirect[command + 3] = instance; // firstInstance
+      computeIndirect[command + 4] = computeVisible[visible + 2];
+      computeIndirect[command + 5] = computeVisible[visible + 3];
+      computeIndirect[command + 6] = computeVisible[visible + 4];
+      computeIndirect[command + 7] = instance;
+      computeIndirect[command + 8] = 1;
     } else {
-      ++computeIndirect[(commandCount - 1) * kCommandWords + 4];
+      uint command = (commandCount - 1) * kCommandWords;
+      ++computeIndirect[command + 1];
+      ++computeIndirect[command + 8];
     }
   }
   computeStatistics[4] = visibleCount;

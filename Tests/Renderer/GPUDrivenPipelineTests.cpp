@@ -168,6 +168,11 @@ void TestNativeComputeOnVulkan() {
   view.hi_z = &hi_z;
   view.hi_z_policy = HiZPolicy::Enabled;
   const auto reference = BuildGPUDrivenCommands(scene, view);
+  Require(reference.statistics.frustum_rejected == 1 &&
+              reference.statistics.distance_rejected == 1 &&
+              reference.statistics.occlusion_rejected == 1 && reference.commands.size() == 1 &&
+              reference.commands[0].instance_count == 2,
+          "native fixture exercises every culling stage, compaction, and classification");
 
   constexpr std::size_t header_words = 44;
   constexpr std::size_t candidate_words = 12;
@@ -213,7 +218,7 @@ void TestNativeComputeOnVulkan() {
   const auto visible =
       device->CreateBuffer({scene.objects.size() * 5 * sizeof(std::uint32_t), "compute visible"});
   const auto indirect =
-      device->CreateBuffer({scene.objects.size() * 5 * sizeof(std::uint32_t), "compute indirect"});
+      device->CreateBuffer({scene.objects.size() * 9 * sizeof(std::uint32_t), "compute indirect"});
   const auto statistics = device->CreateBuffer({8 * sizeof(std::uint32_t), "compute statistics"});
   device->WriteBuffer(input, 0, std::as_bytes(std::span{packed}));
   const auto pipeline = device->CreatePipeline(
@@ -247,8 +252,8 @@ void TestNativeComputeOnVulkan() {
                      [&](rhi::CommandList &commands, std::span<const rhi::TextureHandle> textures) {
                        commands.BeginRendering({textures[token.id], 1, 1});
                        commands.BindPipeline(graphics_pipeline);
-                       commands.BindIndirectBuffer(indirect);
-                       commands.DrawIndirect(1);
+                       commands.BindIndirectBuffer(indirect, 0, 9 * sizeof(std::uint32_t));
+                       commands.DrawIndirect(static_cast<std::uint32_t>(scene.objects.size()));
                        commands.EndRendering();
                      }});
   graph.AddDependency(compute_pass, graphics_pass);
@@ -257,7 +262,7 @@ void TestNativeComputeOnVulkan() {
   Require(graph.GetStatistics().queue_transfer_count == 2,
           "RenderGraph owns graphics-to-compute and compute-to-graphics queue transfers");
   std::vector<std::uint32_t> output(scene.objects.size() * 5);
-  std::vector<std::uint32_t> arguments(scene.objects.size() * 5);
+  std::vector<std::uint32_t> arguments(scene.objects.size() * 9);
   std::uint32_t counts[8]{};
   device->ReadBufferForTesting(visible, 0, std::as_writable_bytes(std::span{output}));
   device->ReadBufferForTesting(indirect, 0, std::as_writable_bytes(std::span{arguments}));
@@ -270,7 +275,7 @@ void TestNativeComputeOnVulkan() {
         {{output[base], output[base + 1]}, output[base + 2], output[base + 3], output[base + 4]});
   }
   for (std::size_t index = 0; index < counts[5]; ++index) {
-    const auto base = index * 5;
+    const auto base = index * 9 + 4;
     gpu_output.commands.push_back({arguments[base], arguments[base + 1], arguments[base + 2],
                                    arguments[base + 3], arguments[base + 4]});
   }
