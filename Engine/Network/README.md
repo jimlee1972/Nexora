@@ -11,3 +11,7 @@ disconnect, channel semantics, and sequencing are explicit state rather than tra
 The included deterministic transport pair models a UDP-oriented unreliable datagram boundary and
 supports seeded loss, latency, and jitter. It performs no socket or background-thread work; native
 UDP/DTLS/console adapters remain backend gates and must preserve this ownership and polling contract.
+
+The `linux-headless` configure, build, and test presets set `NEXORA_HEADLESS=ON`. This profile builds
+the Foundation → Core → Network → DedicatedServer closure and its contract tests without
+configuring RHI, Renderer, Runtime, presentation, Editor, or client application targets.

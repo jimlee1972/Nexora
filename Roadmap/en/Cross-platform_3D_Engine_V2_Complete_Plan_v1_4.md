@@ -3912,7 +3912,7 @@ Construction:
 
 ## ✅ V2-M5 — Dedicated Server / Transport Foundation
 
-Portable implementation now provides a renderer-free headless target, a caller-owned `INetTransport` boundary, UDP-oriented datagrams, protocol/build handshake rejection, explicit channel semantics, and deterministic seeded loss/latency/jitter simulation. Native UDP and encrypted production adapters remain backend gates.
+Portable implementation now provides a `linux-headless` preset that configures only the renderer-free server closure, a caller-owned `INetTransport` boundary, UDP-oriented datagrams, protocol/build handshake rejection, explicit channel semantics, and deterministic seeded loss/latency/jitter simulation. Native UDP and encrypted production adapters remain backend gates.
 
 Do first:
 
