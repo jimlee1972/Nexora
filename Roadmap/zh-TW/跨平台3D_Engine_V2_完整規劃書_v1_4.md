@@ -3921,7 +3921,7 @@ Portable implementation 現已交付 deterministic adaptive hierarchy、CellGrou
 
 ## ✅ V2-M5 — Dedicated Server / Transport Foundation
 
-Portable implementation 現已提供僅設定 renderer-free server closure 的 `linux-headless` preset、caller-owned `INetTransport` 邊界、UDP-oriented datagram、protocol／build handshake rejection、明確 channel semantics，以及 deterministic seeded loss／latency／jitter simulation。Native UDP 與 production encryption adapter 仍為 backend gate。
+Portable implementation 現已提供僅設定 renderer-free server closure 的 `linux-headless` preset、caller-owned loopback 與 simulated `INetTransport` pair、UDP-oriented datagram、protocol／build handshake rejection、明確 channel semantics，以及 deterministic seeded loss／latency／jitter simulation。Headless acceptance 涵蓋 malformed handshake、精確 simulation timing、deterministic trace、1,000 次 reconnect／disconnect cycle，以及宣告與 configured-target dependency closure。Native UDP 與 production encryption adapter 仍為 backend gate。
 
 先做：
 
@@ -3946,6 +3946,9 @@ Packet Simulation
 ✅ Client / Server connect / disconnect 穩定
 ✅ Loss / latency / jitter simulator 可用
 ✅ Protocol mismatch clean reject
+✅ Malformed handshake 會被拒絕且不接受 user traffic
+✅ Seeded simulation trace 在 headless test 中具 deterministic
+✅ 1,000 次 reconnect／disconnect cycle 會重設 per-session state
 ```
 
 ---

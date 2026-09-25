@@ -54,7 +54,7 @@ The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, AP
 
 #### V2 networking status
 
-V2-M5 is complete for the portable foundation: the `linux-headless` preset builds only the renderer-free server closure, and `NexoraNetwork` exposes a synchronous transport and connection contract with protocol/build identity checks, explicit channel semantics, and deterministic loss/latency/jitter simulation. `NexoraDedicatedServer` links only through Network → Core → Foundation, keeping Renderer and presentation modules outside its dependency closure. Native socket, encryption, and hosted production deployment remain backend gates.
+V2-M5 is complete for the portable foundation: the `linux-headless` preset builds only the renderer-free server closure, and `NexoraNetwork` exposes synchronous loopback/simulated transports and a connection contract with protocol/build identity checks, explicit channel semantics, and deterministic loss/latency/jitter simulation. Headless tests cover malformed handshakes and 1,000 reconnect/disconnect cycles; dependency checks verify the declared closure and configured targets. `NexoraDedicatedServer` links only through Network → Core → Foundation, keeping Renderer and presentation modules outside its dependency closure. Native socket, encryption, and hosted production deployment remain backend gates.
 
 #### Engine API status
 
@@ -148,7 +148,7 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 
 #### V2 Networking 狀態
 
-V2-M5 portable foundation 已完成：`linux-headless` preset 僅建置 renderer-free server closure，而 `NexoraNetwork` 提供 synchronous transport 與 connection contract，包含 protocol／build identity 檢查、明確 channel semantics，以及 deterministic loss／latency／jitter simulation。`NexoraDedicatedServer` 僅透過 Network → Core → Foundation 連結，Renderer 與 presentation module 不會進入其 dependency closure。Native socket、encryption 與 hosted production deployment 仍為 backend gate。
+V2-M5 portable foundation 已完成：`linux-headless` preset 僅建置 renderer-free server closure，而 `NexoraNetwork` 提供 synchronous loopback／simulated transport 與 connection contract，包含 protocol／build identity 檢查、明確 channel semantics，以及 deterministic loss／latency／jitter simulation。Headless tests 涵蓋 malformed handshake 與 1,000 次 reconnect／disconnect cycle；dependency checks 會驗證宣告的 closure 與實際設定產生的 targets。`NexoraDedicatedServer` 僅透過 Network → Core → Foundation 連結，Renderer 與 presentation module 不會進入其 dependency closure。Native socket、encryption 與 hosted production deployment 仍為 backend gate。
 
 #### Engine API 狀態
 

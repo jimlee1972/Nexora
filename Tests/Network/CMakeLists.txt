@@ -6,4 +6,5 @@ add_test(NAME network.v2_m5_transport COMMAND NexoraNetworkTests)
 
 add_test(NAME network.v2_m5_headless_dependency
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/VerifyHeadlessDependency.py"
-          "${PROJECT_SOURCE_DIR}/Config/Modules/modules.json")
+          "${PROJECT_SOURCE_DIR}/Config/Modules/modules.json" "${CMAKE_BINARY_DIR}"
+          "$<BOOL:${NEXORA_HEADLESS}>")

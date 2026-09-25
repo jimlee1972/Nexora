@@ -47,6 +47,8 @@ struct TransportPair {
   std::unique_ptr<INetTransport> server;
 };
 
+[[nodiscard]] NEXORA_NETWORK_API TransportPair CreateLoopbackTransportPair();
+
 [[nodiscard]] NEXORA_NETWORK_API TransportPair CreateSimulatedTransportPair(
     PacketSimulation client_to_server = {}, PacketSimulation server_to_client = {});
 
