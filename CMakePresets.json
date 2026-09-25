@@ -44,6 +44,22 @@
       }
     },
     {
+      "name": "linux-headless",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Development",
+        "NEXORA_LINK_MODE": "Modular",
+        "NEXORA_HEADLESS": "ON",
+        "NEXORA_ENABLE_NETWORK": "ON",
+        "NEXORA_ENABLE_DEDICATED_SERVER": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
       "name": "linux-sanitizers",
       "inherits": "base",
       "cacheVariables": {
@@ -181,6 +197,10 @@
       "configurePreset": "linux-development"
     },
     {
+      "name": "linux-headless",
+      "configurePreset": "linux-headless"
+    },
+    {
       "name": "linux-thread-sanitizer",
       "configurePreset": "linux-thread-sanitizer"
     },
@@ -225,6 +245,13 @@
     {
       "name": "linux-development",
       "configurePreset": "linux-development",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-headless",
+      "configurePreset": "linux-headless",
       "output": {
         "outputOnFailure": true
       }

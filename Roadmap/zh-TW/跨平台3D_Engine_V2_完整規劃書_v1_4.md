@@ -3921,7 +3921,7 @@ Portable implementation 現已交付 deterministic adaptive hierarchy、CellGrou
 
 ## ✅ V2-M5 — Dedicated Server / Transport Foundation
 
-Portable implementation 現已提供 renderer-free headless target、caller-owned `INetTransport` 邊界、UDP-oriented datagram、protocol／build handshake rejection、明確 channel semantics，以及 deterministic seeded loss／latency／jitter simulation。Native UDP 與 production encryption adapter 仍為 backend gate。
+Portable implementation 現已提供僅設定 renderer-free server closure 的 `linux-headless` preset、caller-owned `INetTransport` 邊界、UDP-oriented datagram、protocol／build handshake rejection、明確 channel semantics，以及 deterministic seeded loss／latency／jitter simulation。Native UDP 與 production encryption adapter 仍為 backend gate。
 
 先做：
 
