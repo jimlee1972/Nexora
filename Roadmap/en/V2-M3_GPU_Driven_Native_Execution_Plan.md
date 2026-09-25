@@ -26,9 +26,14 @@ implementations unconditionally throw (`"compute dispatch is unsupported"` /
 | `D3D12Device` | ✅ overridden (`ID3D12GraphicsCommandList::Dispatch`) | ✅ overridden (`ExecuteIndirect`) | Implemented per §5 Phase 3 (source-verified: `D3D12CommandList::Dispatch`/`DrawIndirect` in `Engine/RHI/src/D3D12Device.cpp`); Windows-host execution and `CompareGPUDrivenResults()` evidence cannot be produced from this Linux cloud session, so target-tier acceptance is still pending. |
 | `MetalDevice` | ❌ not overridden (throws) | ❌ not overridden (throws) | Zero occurrences of either symbol in `Engine/RHI/src/MetalDevice.mm`; Phase 4 has not started. |
 
-In short: the full GPU-driven pipeline (`RecordGPUDrivenExecution`) has **only ever run
-end-to-end against the CPU reference and, per §5 Phase 2, real Linux Vulkan** (native acceptance
-pending final `CompareGPUDrivenResults()` sign-off). D3D12 now has both entry points implemented
+In short: the actual production call site, `RecordGPUDrivenExecution()`, has **only ever run
+end-to-end against the CPU reference** (`Tests/Renderer/GPUDrivenPipelineTests.cpp`'s
+`TestNormalPathRecordsNoReadbackOn`, exercised solely with `CreateValidationDevice()`). Per §5
+Phase 2, real Linux Vulkan now independently exercises the equivalent compute/indirect stages
+end-to-end (`TestNativeComputeOnVulkan`, a hand-built `RenderGraph` with its own compute-dispatch
+and indirect-draw passes, checked against `CompareGPUDrivenResults()`) -- but that harness calls
+`Dispatch`/`DrawIndirect` directly, **not** through `RecordGPUDrivenExecution()` itself, so wiring
+the production call site to run on Vulkan remains open. D3D12 now has both entry points implemented
 and source-reviewed (§5 Phase 3) but zero target-host execution evidence, since this session
 cannot run a Windows build. Metal has neither implementation nor evidence. This matches
 `Engine/Renderer/README.md`'s own statement distinguishing implemented plumbing from verified
