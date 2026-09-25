@@ -1,15 +1,17 @@
 # Editor ED-M0 Dear ImGui 整合計畫
 
 > 版本：v1.3｜狀態：施工中；target-host 證據待完成｜
-> 更新：2026-09-24｜對應：`Editor_Roadmap.md`（ED-M0）、
+> 更新：2026-09-25｜對應：`Editor_Roadmap.md`（ED-M0）、
 > `ADR-0001-Editor-UI-Framework.md`、`Window_Presentation_Roadmap.md`
 
-> **Repository 稽核（2026-09-24）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
+> **Repository 稽核（2026-09-25）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
 > source 與 contract test，但 **WP0～WP8 尚無任何一包通過 exit gate**。Retained GPU resource、
 > 直接渲染至 borrowed presentation target、project-owned layout persistence、DPI font-atlas rebuild
-> 與 recovery failure contract 已實作。自動化 X11 kill/relaunch recovery 現已同時覆蓋 recover 與
-> destructive discard，並驗證 discard 不會變更最後提交的 workspace；physical-display 與 Windows
-> target-host evidence 仍待完成，因此 foundation 打勾不得解讀成 ED-M0 已驗收。
+> 與 recovery failure contract 已實作。自動化 X11 coverage 現已涵蓋 startup、resize、close、
+> corrupt-layout replacement、legacy-layout migration，以及 recover／destructive discard 兩條
+> crash/relaunch recovery 路徑。Portable coverage 也會測 stale texture generation、deferred
+> font-atlas retirement、所有 DPI bucket，與有界的 512-frame docking/layout soak。Physical-display
+> 與 Windows target-host evidence 仍待完成，因此 foundation 打勾不得解讀成 ED-M0 已驗收。
 
 ## 1. 目標、驗收邊界與目前事實
 

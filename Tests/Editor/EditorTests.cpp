@@ -74,6 +74,16 @@ int Run() {
   const std::string layout = "[Window][Hierarchy###nexora.hierarchy]\nPos=0,0\n";
   Require(reopened.SaveEditorLayout(layout, &error) && reopened.LoadEditorLayout(&error) == layout,
           "editor layout round-trip failed");
+  std::ofstream(root / ".nexora/editor-layout.ini", std::ios::trunc) << "schema=0\n" << layout;
+  Require(reopened.LoadEditorLayout(&error) == layout,
+          "legacy editor layout did not migrate through the current reader");
+  Require(reopened.SaveEditorLayout(layout, &error), "migrated editor layout was not rewritten");
+  {
+    std::ifstream migrated(root / ".nexora/editor-layout.ini");
+    std::string schema;
+    Require(std::getline(migrated, schema) && schema == "schema=1",
+            "migrated editor layout did not use the current schema");
+  }
   std::ofstream(root / ".nexora/editor-layout.ini", std::ios::trunc) << "schema=999\n";
   Require(!reopened.LoadEditorLayout(&error) && !error.empty(),
           "unsupported editor layout schema was accepted");

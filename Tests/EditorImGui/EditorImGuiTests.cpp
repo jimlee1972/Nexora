@@ -84,8 +84,36 @@ int main() {
   assert(draws > 0 && diagnostics.draw_calls == draws * 4 && diagnostics.validation_errors == 0);
   assert(host.UnregisterTexture(texture_id));
   assert(!host.UnregisterTexture(texture_id));
+  for (int list = 0; list < ImGui::GetDrawData()->CmdListsCount; ++list)
+    for (auto &command : ImGui::GetDrawData()->CmdLists[list]->CmdBuffer)
+      command.TextureId = static_cast<ImTextureID>(texture_id);
+  assert(host.Render(*device, target, 1280, 720, nexora::rhi::ResourceState::ShaderRead, false) ==
+         draws);
+  assert(host.GetRendererMetrics().rejected_textures > 0);
   const auto next_texture_id = host.RegisterTexture(*device, user_texture);
   assert(next_texture_id != texture_id && host.UnregisterTexture(next_texture_id));
+
+  // Exercise every DPI bucket and a bounded long-running layout/render loop. Each bucket switch
+  // rebuilds the atlas once; subsequent stable frames reuse allocations and reject no callbacks.
+  constexpr std::array dpi_scales{1.25F, 1.5F, 2.0F, 1.0F};
+  for (const float dpi : dpi_scales) {
+    host.SetDisplay(1280.0F / dpi, 720.0F / dpi, dpi);
+    host.BeginFrame();
+    host.DrawProductShell(shell, &scene);
+    static_cast<void>(host.EndFrame());
+    assert(host.Render(*device, target, 1280, 720, nexora::rhi::ResourceState::ShaderRead, false) >
+           0);
+  }
+  const auto reallocations_before_soak = host.GetRendererMetrics().buffer_reallocations;
+  for (int frame = 0; frame < 512; ++frame) {
+    host.BeginFrame();
+    host.DrawProductShell(shell, &scene);
+    static_cast<void>(host.EndFrame());
+    assert(host.Render(*device, target, 1280, 720, nexora::rhi::ResourceState::ShaderRead, false) >
+           0);
+  }
+  const auto soaked = host.GetRendererMetrics();
+  assert(soaked.font_rebuilds == 5 && soaked.buffer_reallocations == reallocations_before_soak);
   const auto layout = host.SaveLayout();
   assert(!layout.empty() && host.LoadLayout(layout));
   assert(!host.LoadLayout("not an ImGui layout"));

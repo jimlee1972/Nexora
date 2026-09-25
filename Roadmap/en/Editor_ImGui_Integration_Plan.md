@@ -1,16 +1,18 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
 > Version: v1.3 | Status: implementation in progress; target-host evidence pending |
-> Updated: 2026-09-24 | Relates to: `Editor_Roadmap.md` (ED-M0),
+> Updated: 2026-09-25 | Relates to: `Editor_Roadmap.md` (ED-M0),
 > `ADR-0001-Editor-UI-Framework.md`, `Window_Presentation_Roadmap.md`
 
-> **Repository audit (2026-09-24):** implementation is **in progress**. The checked foundations
+> **Repository audit (2026-09-25):** implementation is **in progress**. The checked foundations
 > below are present in source and contract tests, but **none of WP0–WP8 has passed its exit gate**.
 > Retained GPU resources, direct rendering to the borrowed presentation target, project-owned
 > layout persistence, DPI font-atlas rebuilding, and recovery failure contracts are implemented.
-> Automated X11 crash/relaunch recovery now covers both recover and destructive-discard choices,
-> including preservation of the last committed workspace on discard; physical-display and Windows
-> target-host evidence remain open, so these foundations must not be interpreted as ED-M0 acceptance.
+> Automated X11 coverage now includes startup, resize, close, corrupt-layout replacement, legacy-layout
+> migration, and crash/relaunch recovery for both recover and destructive-discard choices. Portable
+> coverage also exercises stale texture generations, deferred font-atlas retirement, every DPI bucket,
+> and a bounded 512-frame docking/layout soak. Physical-display and Windows target-host evidence
+> remain open, so these foundations must not be interpreted as ED-M0 acceptance.
 
 ## 1. Goal, acceptance boundary, and current truth
 

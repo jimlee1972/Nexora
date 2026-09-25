@@ -194,7 +194,7 @@ std::optional<std::string> ProjectWorkspace::LoadEditorLayout(std::string *error
   if (!input)
     return std::nullopt;
   std::string schema;
-  if (!std::getline(input, schema) || schema != "schema=1") {
+  if (!std::getline(input, schema) || (schema != "schema=0" && schema != "schema=1")) {
     if (error)
       *error = "invalid or unsupported editor layout";
     return std::nullopt;

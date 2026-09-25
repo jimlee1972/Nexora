@@ -29,7 +29,8 @@ for the upcoming Scene/Game views.
   cumulatively scaling an existing style.
 - Dear ImGui's global ini file remains disabled. `SaveLayout` and `LoadLayout` provide an explicit
   in-memory round trip. `ProjectWorkspace` stores that payload with an explicit schema under the
-  project `.nexora` directory; malformed or unsupported payloads are rejected.
+  project `.nexora` directory. The legacy schema 0 payload is read and rewritten as schema 1 on the
+  next save; malformed or unsupported payloads are rejected and replaced only by a normal save.
 - Recovery is prompted once per discovered journal. Failed recover/discard operations keep the
   modal open and expose the data-layer error instead of silently dismissing it.
 
