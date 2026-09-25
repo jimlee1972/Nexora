@@ -99,6 +99,35 @@ def main() -> int:
                        env=environment, check=True)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
 
+        # A real close event must stop the unbounded loop and still drain/persist cleanly.
+        subprocess.run([args.xdotool, "windowclose", window], env=environment, check=True)
+        _, stderr = editor.communicate(timeout=30)
+        if editor.returncode != 0 or "graphical evidence:" not in stderr:
+            raise RuntimeError(f"close-event shutdown failed: {stderr}")
+        editor = None
+
+        # A corrupt project-owned layout is rejected without preventing startup. The bounded
+        # run replaces it with the current schema after the default dock layout is rebuilt.
+        (root / ".nexora/editor-layout.ini").write_text("schema=999\ncorrupt\n")
+        editor = launch(args.editor, root, environment, frames=8)
+        _, stderr = editor.communicate(timeout=30)
+        if editor.returncode != 0 or "invalid or unsupported editor layout" not in stderr:
+            raise RuntimeError(f"corrupt-layout recovery failed: {stderr}")
+        editor = None
+        if not (root / ".nexora/editor-layout.ini").read_text().startswith("schema=1\n"):
+            raise RuntimeError("corrupt layout was not replaced with the current schema")
+
+        # The legacy schema remains readable and is migrated by the normal shutdown save.
+        current_layout = (root / ".nexora/editor-layout.ini").read_text().split("\n", 1)[1]
+        (root / ".nexora/editor-layout.ini").write_text("schema=0\n" + current_layout)
+        editor = launch(args.editor, root, environment, frames=8)
+        _, stderr = editor.communicate(timeout=30)
+        if editor.returncode != 0 or "graphical evidence:" not in stderr:
+            raise RuntimeError(f"layout migration run failed: {stderr}")
+        editor = None
+        if not (root / ".nexora/editor-layout.ini").read_text().startswith("schema=1\n"):
+            raise RuntimeError("legacy layout was not migrated to the current schema")
+
         # Simulate a crash only after a valid recovery journal is durable. The relaunched
         # process must discover it before normal editing and accept the keyboard-only choice.
         (root / ".nexora/workspace.recovery").write_text(
