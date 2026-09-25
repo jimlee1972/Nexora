@@ -213,6 +213,10 @@ dependency or CI change. **Completed with a backend-neutral compute pipeline kin
   is intended to prove the complete native semantics without subgroup/atomic ordering differences. Parallel scan,
   radix classification, and production-scale performance tuning remain optimization work and do not
   alter the result contract.
+- ✅ The indirect buffer is now pinned to one public RHI ABI: a four-word non-indexed native draw
+  prefix followed by five classification words (36-byte stride). C++ and Slang consume the same
+  word-offset include, and Vulkan binds that canonical stride. D3D12 and Metal must consume this
+  record directly rather than defining or translating private command layouts.
 
 ### Phase 3 -- D3D12 backend
 

@@ -1,3 +1,5 @@
+#include "../Engine/RHI/include/Nexora/RHI/IndirectCommandABI.inc"
+
 // Packed ABI used by the native Vulkan acceptance path. Keeping the four fixed storage slots
 // preserves the Phase 1b RHI contract while allowing every GPU-driven stage to execute on-device.
 StructuredBuffer<uint> computeCandidates : register(t0);
@@ -8,9 +10,10 @@ RWStructuredBuffer<uint> computeStatistics : register(u3);
 static const uint kHeaderWords = 44;
 static const uint kCandidateWords = 12;
 static const uint kVisibleWords = 5;
-// Each command starts with the native VkDrawIndirectCommand-compatible words and retains the
-// backend-neutral classification record after them for CompareGPUDrivenResults().
-static const uint kCommandWords = 9;
+// Canonical Nexora indirect ABI (Nexora/RHI/IndirectCommand.h): the first four words match
+// VkDrawIndirectCommand, D3D12_DRAW_ARGUMENTS, and MTLDrawPrimitivesIndirectArguments. The five
+// backend-neutral classification words remain available to CompareGPUDrivenResults().
+static const uint kCommandWords = NEXORA_GPU_DRIVEN_INDIRECT_COMMAND_WORDS;
 
 float candidateFloat(uint candidate, uint field) {
   return asfloat(computeCandidates[kHeaderWords + candidate * kCandidateWords + field]);
@@ -166,19 +169,19 @@ void computeMain(uint3 id : SV_DispatchThreadID) {
     }
     if (newBin) {
       uint command = commandCount++ * kCommandWords;
-      computeIndirect[command] = 3; // vertexCount
-      computeIndirect[command + 1] = 1; // instanceCount
-      computeIndirect[command + 2] = 0; // firstVertex
-      computeIndirect[command + 3] = instance; // firstInstance
-      computeIndirect[command + 4] = computeVisible[visible + 2];
-      computeIndirect[command + 5] = computeVisible[visible + 3];
-      computeIndirect[command + 6] = computeVisible[visible + 4];
-      computeIndirect[command + 7] = instance;
-      computeIndirect[command + 8] = 1;
+      computeIndirect[command + NEXORA_INDIRECT_VERTEX_COUNT_WORD] = 3;
+      computeIndirect[command + NEXORA_INDIRECT_INSTANCE_COUNT_WORD] = 1;
+      computeIndirect[command + NEXORA_INDIRECT_FIRST_VERTEX_WORD] = 0;
+      computeIndirect[command + NEXORA_INDIRECT_FIRST_INSTANCE_WORD] = instance;
+      computeIndirect[command + NEXORA_INDIRECT_MESH_WORD] = computeVisible[visible + 2];
+      computeIndirect[command + NEXORA_INDIRECT_MATERIAL_WORD] = computeVisible[visible + 3];
+      computeIndirect[command + NEXORA_INDIRECT_LOD_WORD] = computeVisible[visible + 4];
+      computeIndirect[command + NEXORA_INDIRECT_COMPACTED_FIRST_INSTANCE_WORD] = instance;
+      computeIndirect[command + NEXORA_INDIRECT_COMPACTED_INSTANCE_COUNT_WORD] = 1;
     } else {
       uint command = (commandCount - 1) * kCommandWords;
-      ++computeIndirect[command + 1];
-      ++computeIndirect[command + 8];
+      ++computeIndirect[command + NEXORA_INDIRECT_INSTANCE_COUNT_WORD];
+      ++computeIndirect[command + NEXORA_INDIRECT_COMPACTED_INSTANCE_COUNT_WORD];
     }
   }
   computeStatistics[4] = visibleCount;

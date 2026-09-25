@@ -85,6 +85,11 @@ called by the normal rendering path: `RecordGPUDrivenExecution()` records one co
 one indirect submission for all generated bins without exposing a readback operation or issuing a
 CPU draw for each object.
 
+Generated bins use the single RHI-owned `GPUDrivenIndirectCommand` ABI. The native draw prefix and
+classification suffix have a fixed 36-byte stride, and the compute shader imports the same word
+offset definitions as C++. Vulkan, D3D12, and Metal adapters may select their native submission API,
+but may not translate this buffer into backend-specific command layouts.
+
 RenderGraph tracks a logical owner queue for every resource. A use on a different compute/graphics
 queue emits an ownership barrier even when the resource state is unchanged, and statistics expose
 those transfers separately from ordinary state transitions. The graph retains transient ownership
