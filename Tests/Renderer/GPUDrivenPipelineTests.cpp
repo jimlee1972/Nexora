@@ -1,5 +1,7 @@
 #include "Nexora/Renderer/GPUDrivenPipeline.h"
+#include "Nexora/Renderer/RenderGraph.h"
 
+#include <bit>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -153,35 +155,134 @@ void TestNativeComputeOnVulkan() {
     return;
   }
   auto device = rhi::CreateDevice(rhi::Backend::Vulkan);
-  const std::uint32_t candidates[] = {4, 7, 12, 15};
-  const std::uint32_t initial_statistics[4]{0, 0, 4, 0};
-  const auto input = device->CreateBuffer({sizeof(candidates), "compute candidates"});
-  const auto visible = device->CreateBuffer({sizeof(candidates), "compute visible"});
-  const auto indirect = device->CreateBuffer({sizeof(candidates), "compute indirect"});
-  const auto statistics = device->CreateBuffer({sizeof(initial_statistics), "compute statistics"});
-  device->WriteBuffer(input, 0, std::as_bytes(std::span{candidates}));
-  device->WriteBuffer(statistics, 0, std::as_bytes(std::span{initial_statistics}));
+  GPUSceneReferenceSnapshot scene;
+  scene.objects = {Object(8, {0, 0, 0.2F}, 0.05F, 8, 2),  Object(2, {0.2F, 0, 0.2F}, 0.05F, 8, 2),
+                   Object(7, {0, 0, 0.8F}, 0.05F, 3, 1),  Object(4, {2, 0, 0.2F}, 0.05F, 5, 0),
+                   Object(5, {0, 0, 0.95F}, 0.05F, 7, 0), Object(9, {0, 0, 0.4F}, 0.05F, 6, 0)};
+  scene.objects.back().descriptor.visibility_flags = 0;
+  const float depth[] = {0.25F, 0.25F, 0.25F, 0.25F};
+  const auto hi_z = HiZPyramid::Build(2, 2, depth);
+  GPUDrivenView view;
+  view.maximum_distance = 0.85F;
+  view.lod_distances = {0.15F, 0.5F};
+  view.hi_z = &hi_z;
+  view.hi_z_policy = HiZPolicy::Enabled;
+  const auto reference = BuildGPUDrivenCommands(scene, view);
+
+  constexpr std::size_t header_words = 44;
+  constexpr std::size_t candidate_words = 12;
+  std::vector<std::uint32_t> packed(header_words + scene.objects.size() * candidate_words);
+  const auto bits = [](float value) { return std::bit_cast<std::uint32_t>(value); };
+  packed[0] = static_cast<std::uint32_t>(scene.objects.size());
+  packed[1] = hi_z.width;
+  packed[2] = hi_z.height;
+  packed[3] = static_cast<std::uint32_t>(hi_z.mips.size());
+  packed[4] = bits(view.maximum_distance);
+  packed[5] = bits(view.occlusion_bias);
+  packed[6] = static_cast<std::uint32_t>(view.hi_z_policy);
+  packed[7] = bits(view.camera_position.x);
+  packed[8] = bits(view.camera_position.y);
+  packed[9] = bits(view.camera_position.z);
+  packed[10] = static_cast<std::uint32_t>(view.lod_distances.size());
+  for (std::size_t index = 0; index < view.lod_distances.size(); ++index)
+    packed[11 + index] = bits(view.lod_distances[index]);
+  for (std::size_t index = 0; index < view.view_projection.values.size(); ++index)
+    packed[20 + index] = bits(view.view_projection.values[index]);
+  for (std::size_t index = 0; index < scene.objects.size(); ++index) {
+    const auto &entry = scene.objects[index];
+    const auto &object = entry.descriptor;
+    const auto base = header_words + index * candidate_words;
+    packed[base] = bits(object.world_bounds.center.x);
+    packed[base + 1] = bits(object.world_bounds.center.y);
+    packed[base + 2] = bits(object.world_bounds.center.z);
+    packed[base + 3] = bits(object.world_bounds.radius);
+    packed[base + 4] = entry.object.slot;
+    packed[base + 5] = entry.object.generation;
+    packed[base + 6] = object.mesh_resource_index;
+    packed[base + 7] = object.material_resource_index;
+    packed[base + 8] = object.visibility_flags;
+    packed[base + 9] = object.lod.lod_count;
+  }
+  for (std::size_t mip = 0; mip < hi_z.mips.size(); ++mip) {
+    packed[36 + mip] = static_cast<std::uint32_t>(packed.size());
+    for (const float value : hi_z.mips[mip])
+      packed.push_back(bits(value));
+  }
+  const auto input =
+      device->CreateBuffer({packed.size() * sizeof(std::uint32_t), "compute candidates"});
+  const auto visible =
+      device->CreateBuffer({scene.objects.size() * 5 * sizeof(std::uint32_t), "compute visible"});
+  const auto indirect =
+      device->CreateBuffer({scene.objects.size() * 5 * sizeof(std::uint32_t), "compute indirect"});
+  const auto statistics = device->CreateBuffer({8 * sizeof(std::uint32_t), "compute statistics"});
+  device->WriteBuffer(input, 0, std::as_bytes(std::span{packed}));
   const auto pipeline = device->CreatePipeline(
       {1, 2, rhi::TextureFormat::Rgba8Unorm, "native compute", rhi::PipelineType::Compute});
-  auto commands = device->CreateCommandList(rhi::QueueType::Compute);
-  commands->BindStorageBuffer(0, input);
-  commands->BindStorageBuffer(1, visible);
-  commands->BindStorageBuffer(2, indirect);
-  commands->BindStorageBuffer(3, statistics);
-  commands->BindPipeline(pipeline);
-  commands->Dispatch(1);
-  const auto completion = device->Submit(*commands);
-  device->WaitForSubmission(completion);
-  std::uint32_t output[4]{};
-  std::uint32_t counts[4]{};
+  const auto graphics_pipeline =
+      device->CreatePipeline({1, 1, rhi::TextureFormat::Rgba8Unorm, "native indirect"});
+  const rhi::TextureDescriptor target_descriptor{1, 1, rhi::TextureFormat::Rgba8Unorm,
+                                                 rhi::ResourceState::ShaderRead,
+                                                 "GPU-driven graph token"};
+  const auto target = device->CreateTexture(target_descriptor);
+  RenderGraph graph;
+  const auto token = graph.ImportTexture(target, target_descriptor);
+  const auto compute_pass =
+      graph.AddPass({"GPU-driven compute",
+                     rhi::QueueType::Compute,
+                     {},
+                     {{token, rhi::ResourceState::ShaderRead}},
+                     [&](rhi::CommandList &commands, std::span<const rhi::TextureHandle>) {
+                       commands.BindStorageBuffer(0, input);
+                       commands.BindStorageBuffer(1, visible);
+                       commands.BindStorageBuffer(2, indirect);
+                       commands.BindStorageBuffer(3, statistics);
+                       commands.BindPipeline(pipeline);
+                       commands.Dispatch(1);
+                     }});
+  const auto graphics_pass =
+      graph.AddPass({"GPU-driven indirect draw",
+                     rhi::QueueType::Graphics,
+                     {},
+                     {{token, rhi::ResourceState::RenderTarget}},
+                     [&](rhi::CommandList &commands, std::span<const rhi::TextureHandle> textures) {
+                       commands.BeginRendering({textures[token.id], 1, 1});
+                       commands.BindPipeline(graphics_pipeline);
+                       commands.BindIndirectBuffer(indirect);
+                       commands.DrawIndirect(1);
+                       commands.EndRendering();
+                     }});
+  graph.AddDependency(compute_pass, graphics_pass);
+  graph.Compile();
+  graph.Execute(*device);
+  Require(graph.GetStatistics().queue_transfer_count == 2,
+          "RenderGraph owns graphics-to-compute and compute-to-graphics queue transfers");
+  std::vector<std::uint32_t> output(scene.objects.size() * 5);
+  std::vector<std::uint32_t> arguments(scene.objects.size() * 5);
+  std::uint32_t counts[8]{};
   device->ReadBufferForTesting(visible, 0, std::as_writable_bytes(std::span{output}));
+  device->ReadBufferForTesting(indirect, 0, std::as_writable_bytes(std::span{arguments}));
   device->ReadBufferForTesting(statistics, 0, std::as_writable_bytes(std::span{counts}));
-  Require(counts[0] == 2 && counts[1] == 2, "Vulkan compute culls and compacts candidates");
-  Require((output[0] == 4 || output[0] == 12) && (output[1] == 4 || output[1] == 12) &&
-              output[0] != output[1],
-          "Vulkan storage-buffer output contains the visible candidates");
-  Require(device->Diagnostics().compute_dispatches == 1 && device->Diagnostics().readbacks == 2,
+  GPUDrivenResult gpu_output;
+  gpu_output.statistics = {counts[0], counts[1], counts[2], counts[3]};
+  for (std::size_t index = 0; index < counts[4]; ++index) {
+    const auto base = index * 5;
+    gpu_output.instances.push_back(
+        {{output[base], output[base + 1]}, output[base + 2], output[base + 3], output[base + 4]});
+  }
+  for (std::size_t index = 0; index < counts[5]; ++index) {
+    const auto base = index * 5;
+    gpu_output.commands.push_back({arguments[base], arguments[base + 1], arguments[base + 2],
+                                   arguments[base + 3], arguments[base + 4]});
+  }
+  Require(CompareGPUDrivenResults(reference, gpu_output).matches,
+          "native Vulkan stages match CPU frustum, distance/LOD, Hi-Z, compaction, "
+          "classification, and indirect generation");
+  Require(device->Diagnostics().compute_dispatches == 1 && device->Diagnostics().readbacks == 3,
           "Vulkan compute diagnostics distinguish dispatch from test-only readback");
+  Require(device->Diagnostics().indirect_draw_calls == 1,
+          "RenderGraph graphics pass consumes the compute stage before indirect drawing");
+  device->DestroyTexture(target);
+  device->DestroyPipeline(graphics_pipeline);
   device->DestroyPipeline(pipeline);
   device->DestroyBuffer(statistics);
   device->DestroyBuffer(indirect);

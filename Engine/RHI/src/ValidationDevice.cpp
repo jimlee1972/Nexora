@@ -20,6 +20,7 @@ public:
   void BindIndexBuffer(BufferHandle buffer, IndexFormat format, std::uint64_t offset) override;
   void BindTexture(std::uint32_t binding, TextureHandle texture) override;
   void BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) override;
+  void BindIndirectBuffer(BufferHandle buffer) override;
   void SetScissor(const ScissorRect &rect) override;
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
   void DrawIndexed(std::uint32_t index_count, std::uint32_t instance_count,
@@ -273,6 +274,11 @@ void ValidationCommandList::BindStorageBuffer(std::uint32_t, BufferHandle buffer
     throw std::logic_error("storage-buffer binding requires a compute command list");
   device_.ValidateBuffer(buffer, 0);
   storage_buffer_bound_ = true;
+}
+void ValidationCommandList::BindIndirectBuffer(BufferHandle buffer) {
+  if (submitted_ || !rendering_)
+    throw std::logic_error("indirect-buffer binding requires rendering");
+  device_.ValidateBuffer(buffer, 0);
 }
 void ValidationCommandList::SetScissor(const ScissorRect &rect) {
   if (submitted_ || !rendering_ || rect.width == 0 || rect.height == 0)
