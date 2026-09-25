@@ -61,7 +61,7 @@ The Engine API is **complete for the portable roadmap scope** defined by the [En
 | API-M1 Math and geometry | Complete for the roadmap scope | Full math, geometry, transforms, ABI/layout tests, SSE2/NEON paths, independent DirectXMath coordinate goldens, and an executable sample are available; ARM runtime evidence remains target-host validation. |
 | API-M2 Foundation data types | Complete for the roadmap scope | UTF-8 strings/views, buffers/spans, UUIDs, names, results, parsing, generational handles, and caller-owned or opaque engine-owned C ABI buffers are implemented and tested. |
 | API-M3 VFS and file I/O | Complete for the roadmap scope | Directory, memory, read-only package, and bundle backends; streams, ranged/async reads, mapping, watches, atomic writes, Shipping host-mount restrictions, and >4 GiB sparse-offset gates are implemented. |
-| API-M4 Engine services | Complete for the roadmap scope | Monotonic/game/fixed time, versioned deterministic random, configuration, logging, jobs, events, and profiling-marker emission are implemented and tested. |
+| API-M4 Engine services | Complete for the roadmap scope | Monotonic/game/fixed time, versioned deterministic random, configuration, logging, jobs, events, and profiling-marker emission are implemented and tested; JobSystem shutdown now has lifecycle-leak regression coverage for drain, join, capture release, and restart. |
 | API-M5 World/game facade | Complete for the roadmap scope | Handle/value-based entity, scene, transform, camera, light, mesh-renderer, physics, character, audio, asset-reference, and input access are implemented and tested. |
 | API-M6 Bindings and versioning | Complete for the roadmap scope | A canonical C11 header, machine-readable ABI manifest, C and Zig consumers, append-only compatibility gate, versioned descriptors, real `GameWorld` wire paths, and embedding-owned event/tick hooks are implemented and tested. |
 
@@ -151,7 +151,7 @@ Engine API 已完成 [Engine API 基礎 Roadmap](Roadmap/zh-TW/Engine_API_基礎
 | API-M1 Math 與幾何 | Roadmap scope 已完成 | 已有完整 math、geometry、transform、ABI/layout tests、SSE2/NEON 路徑、獨立 DirectXMath 座標 golden 與可執行 sample；ARM runtime evidence 仍須在目標主機驗證。 |
 | API-M2 基礎資料型別 | Roadmap scope 已完成 | UTF-8 string/view、buffer/span、UUID、name、result、parsing、generational handle，以及 caller-owned 或 opaque engine-owned C ABI buffer 均已實作及測試。 |
 | API-M3 VFS 與檔案 I/O | Roadmap scope 已完成 | 已實作 directory、memory、唯讀 package 與 bundle backend、stream、range/async read、mapping、watch、atomic write、Shipping host-mount 限制及 >4 GiB sparse-offset gate。 |
-| API-M4 Engine services | Roadmap scope 已完成 | Monotonic/game/fixed time、含版本的 deterministic random、configuration、logging、jobs、events 與 profiling-marker emission 均已有實作及測試。 |
+| API-M4 Engine services | Roadmap scope 已完成 | Monotonic/game/fixed time、含版本的 deterministic random、configuration、logging、jobs、events 與 profiling-marker emission 均已有實作及測試；JobSystem shutdown 現有 drain、join、capture 釋放及 restart 的 lifecycle-leak regression coverage。 |
 | API-M5 World/game facade | Roadmap scope 已完成 | Handle/value-based entity、scene、transform、camera、light、mesh-renderer、physics、character、audio、asset reference 與 input access 均已實作及測試。 |
 | API-M6 Bindings 與版本化 | Roadmap scope 已完成 | 已實作 canonical C11 header、machine-readable ABI manifest、C 與 Zig consumer、append-only compatibility gate、versioned descriptor、連到真實 `GameWorld` 的 wire path，以及由 embedding host 擁有的 event／tick hook，並有測試覆蓋。 |
 

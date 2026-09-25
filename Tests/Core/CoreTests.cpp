@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -81,6 +82,26 @@ int RunTests() {
       {[](const CancellationToken &) {}, JobPriority::Normal, cancellation.Token(), "cancelled"});
   jobs.Wait(cancelled);
   Require(cancelled.Status() == JobStatus::Cancelled, "cancelled job must not execute");
+
+  // Regression for the lifecycle leak first exposed by renderer.contracts under ASan. Exercise
+  // both a drain and a restart, then prove that worker-owned callback captures are released before
+  // the scheduler itself is destroyed.
+  auto worker_capture = std::make_shared<int>(42);
+  const std::weak_ptr<int> released_capture = worker_capture;
+  const auto draining = jobs.Submit(
+      {[capture = std::move(worker_capture)](const CancellationToken &) { (void)*capture; },
+       JobPriority::Normal,
+       {},
+       "lifecycle drain"});
+  jobs.Stop();
+  Require(draining.Status() == JobStatus::Completed,
+          "Stop must drain accepted jobs before joining workers");
+  Require(released_capture.expired(),
+          "Stop must release callback captures after draining terminal jobs");
+  jobs.Start();
+  const auto restarted =
+      jobs.Submit({[](const CancellationToken &) {}, JobPriority::Normal, {}, "lifecycle restart"});
+  jobs.Wait(restarted);
 
   Require(platform::HardwareConcurrency() >= 1, "hardware concurrency must never report zero");
   platform::SetCurrentThreadName("Nexora.CoreTests");

@@ -134,6 +134,10 @@ is a reliable tell that it silently skipped instead.
   session also had Slang off). Left unfixed here -- it's a `core::JobSystem` thread-lifecycle issue,
   a different subsystem than V2-M3's RHI/Renderer scope -- but flagged here rather than silently
   ignored, since it's a real, reproducible ASan finding a future session should pick up.
+  **Resolved (2026-09-25):** `Stop` now drains and joins workers, then releases thread closures and
+  retained queue storage at the lifecycle boundary instead of wrapper destruction; the Core
+  contract suite covers capture release plus stop/start reuse. This closes the recorded lifecycle
+  leak; it does not change V2-M3 milestone completion or claim additional native-backend parity.
 - **What Phase 1a actually established**, stated precisely this time: `Dispatch` is implemented and
   its precondition checks are real-Vulkan-verified; `CreateCommandList(Compute)` now works; the
   `renderer.contracts` triangle-frame test was already genuinely exercising `DrawIndirect` on real

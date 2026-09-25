@@ -113,6 +113,10 @@ Apple 主機）；下面各階段中，Vulkan 的部分可以在這裡實作跟�
   一次 sanitizer run 都是 Slang 關著的）。這裡先不修——是 `core::JobSystem` 的 thread-lifecycle
   問題，跟 V2-M3 的 RHI/Renderer 範圍是不同的子系統——但先在這裡記下來，不悶著不講，因為這是一個
   真的、可重現的 ASan 發現，之後應該有人接手處理。
+  **已修正（2026-09-25）**：`Stop` 現在會 drain 並 join worker，接著在 lifecycle boundary
+  釋放 thread closure 及 queue 保留的 storage，不再延後到 wrapper destruction；Core contract
+  suite 也涵蓋 capture 釋放及 stop/start 重複使用。這會關閉已記錄的 lifecycle leak，但不改變
+  V2-M3 milestone 完成度，也不宣稱新增任何 native-backend parity。
 - **這次講精確一點，Phase 1a 真正確立的東西**：`Dispatch` 已經實作，它的 precondition 檢查已經
   用真實 Vulkan 驗證過；`CreateCommandList(Compute)` 現在能動了；`renderer.contracts` 那個
   triangle-frame 測試，只要 Slang 開著，本來就真的有在真實 Vulkan 上驗證 `DrawIndirect`（roadmap

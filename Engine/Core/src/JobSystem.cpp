@@ -143,7 +143,11 @@ void JobSystem::Stop() {
       worker.join();
   {
     std::lock_guard lock{implementation_->mutex};
-    implementation_->workers.clear();
+    // Release both the thread closures and the deque's retained empty block at the lifecycle
+    // boundary. Keeping their capacity until the wrapper destructor made stopped schedulers retain
+    // the allocations that ASan first exposed through renderer.contracts.
+    std::vector<std::thread>{}.swap(implementation_->workers);
+    std::deque<Implementation::Work>{}.swap(implementation_->queue);
     implementation_->running = false;
     implementation_->stopping = false;
   }
