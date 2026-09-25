@@ -3,7 +3,7 @@
 **文件版本：Master Draft v1.4**
 **Engine 世代：V2.x — Scale-Up / Production**
 
-> **進度：23%**（✅ V2-M0 至 ✅ V2-M2 已通過 portable repository gate；V2-M3 至 V2-M12 仍待完成。Native target evidence 維持獨立 gate。）
+> **進度：31%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 已通過 portable repository gate；V2-M3、V2-M5 至 V2-M12 仍待完成。Native target evidence 維持獨立 gate。）
 
 > 本文件為 **V2 Master Plan**，所有 V1 Contract 預設繼承；只有本文件明確標示「V2 supersede」的項目可以改變 V1 行為。
 >
@@ -783,7 +783,7 @@ V2 增加：
 
 ```text
 Multi-tier HLOD
-Impostor
+✅ Impostor
 Material Atlas
 Streaming-aware HLOD
 GPU-driven HLOD selection hints
@@ -976,7 +976,7 @@ V1 已使用高精度 World Position foundation。
 V2 正式加入：
 
 ```text
-World Origin Rebasing
+✅ World Origin Rebasing
 ```
 
 但它是 runtime optimization，不是 gameplay-visible teleport。
@@ -3889,35 +3889,32 @@ Meshlet metadata
 
 ---
 
-## V2-M4 — Large World V2
+## ✅ V2-M4 — Large World V2
 
-目前 portable foundation 已提供 deterministic integer-coordinate cell generation／build hash、
-incremental rebuild input、維持 gameplay absolute identity 的 quantized origin rebase，以及依
-revision 排序的 persistent cell delta executable contract。Adaptive hierarchy splitting、3D volume
-policy、HLOD V2／impostor 與 partition commandlet 仍待完成。
+Portable implementation 現已交付 deterministic adaptive hierarchy、CellGroup、fixed-grid／explicit 3D volume partition、維持 gameplay absolute identity 的 quantized origin rebase、ready-gated HLOD V2／deterministic impostor、persistent delta materialization，以及支援 changed-region 的 headless partition commandlet。下列 Linux gate 提供 repository acceptance evidence。
 
 施工：
 
 ```text
-Adaptive Quadtree Cell Generation
-Hierarchical Cell Group
-3D Volume Partition
-World Origin Rebasing
-HLOD V2
-Impostor
-Persistent Cell Delta
-World Partition Commandlet
+✅ Adaptive Quadtree Cell Generation
+✅ Hierarchical Cell Group
+✅ 3D Volume Partition
+✅ World Origin Rebasing
+✅ HLOD V2
+✅ Impostor
+✅ Persistent Cell Delta
+✅ World Partition Commandlet
 ```
 
 **Gate：**
 
 ```text
-✓ Origin rebase 對 gameplay identity 不可見
-✓ Partition build deterministic
-✓ HLOD switch 不出現 hole
-✓ Persistent cell unload/reload state 正確
-✓ Changed region 可 incremental rebuild
-✓ Character 跨 Adaptive/3D Partition Cell 邊界不失去 Collision（Occupied Cell Pinned 延伸至 V2 Partition）
+✅ Origin rebase 對 gameplay identity 不可見
+✅ Partition build deterministic
+✅ HLOD switch 不出現 hole
+✅ Persistent cell unload/reload state 正確
+✅ Changed region 可 incremental rebuild
+✅ Character 跨 Adaptive/3D Partition Cell 邊界不失去 Collision（Occupied Cell Pinned 延伸至 V2 Partition）
 ```
 
 ---

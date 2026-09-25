@@ -165,6 +165,44 @@ def structural_diff(before: Any, after: Any, path: str = "") -> list[dict[str, A
     return changes
 
 
+def build_world_partition(world: dict[str, Any], leaf_size: float, split_threshold: int,
+                          previous: dict[str, Any] | None = None,
+                          changed_regions: set[str] | None = None) -> dict[str, Any]:
+    """Build deterministic, region-addressed partition metadata without loading a whole world."""
+    if leaf_size <= 0 or split_threshold <= 0:
+        raise ValueError("leaf size and split threshold must be positive")
+    regions = world.get("regions", [])
+    seen: set[str] = set()
+    prior = {item["id"]: item for item in (previous or {}).get("regions", [])}
+    output = []
+    for region in sorted(regions, key=lambda item: item["id"]):
+        region_id = region.get("id")
+        if not isinstance(region_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", region_id):
+            raise ValueError(f"invalid region id: {region_id!r}")
+        if region_id in seen:
+            raise ValueError(f"duplicate region id: {region_id}")
+        seen.add(region_id)
+        if changed_regions is not None and region_id not in changed_regions and region_id in prior:
+            output.append(prior[region_id])
+            continue
+        cells: dict[tuple[int, int, int], list[str]] = {}
+        for item in sorted(region.get("items", []), key=lambda entry: entry["id"]):
+            position = item.get("position", [])
+            if len(position) != 3:
+                raise ValueError(f"item {item.get('id')!r} requires a 3D position")
+            coordinate = tuple(int(value // leaf_size) for value in position)
+            cells.setdefault(coordinate, []).append(str(item["id"]))
+        cell_records = [{"coordinate": list(coordinate), "items": items}
+                        for coordinate, items in sorted(cells.items())]
+        descriptor = {"id": region_id, "cells": cell_records,
+                      "split_threshold": split_threshold}
+        descriptor["hash"] = sha256(canonical_bytes(descriptor))
+        output.append(descriptor)
+    result = {"schema_version": SCHEMA_VERSION, "kind": "world-partition", "regions": output}
+    result["build_hash"] = sha256(canonical_bytes(result))
+    return result
+
+
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description=__doc__)
     commands = root.add_subparsers(dest="command", required=True)
@@ -185,6 +223,13 @@ def parser() -> argparse.ArgumentParser:
     externalize = commands.add_parser("externalize")
     externalize.add_argument("scene", type=Path)
     externalize.add_argument("--output", type=Path, required=True)
+    partition = commands.add_parser("world-partition")
+    partition.add_argument("world", type=Path)
+    partition.add_argument("--output", type=Path, required=True)
+    partition.add_argument("--leaf-size", type=float, default=100.0)
+    partition.add_argument("--split-threshold", type=int, default=8)
+    partition.add_argument("--previous", type=Path)
+    partition.add_argument("--changed-region", action="append")
     commands.add_parser("_worker")
     return root
 
@@ -204,6 +249,13 @@ def main() -> int:
             return 0
         if args.command == "externalize":
             externalize_scene(json.loads(args.scene.read_text()), args.output)
+            return 0
+        if args.command == "world-partition":
+            previous = json.loads(args.previous.read_text()) if args.previous else None
+            changed = set(args.changed_region) if args.changed_region is not None else None
+            result = build_world_partition(json.loads(args.world.read_text()), args.leaf_size,
+                                           args.split_threshold, previous, changed)
+            write_atomic(args.output, canonical_bytes(result))
             return 0
         failures = []
         results = []

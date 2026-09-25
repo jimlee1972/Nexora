@@ -4,7 +4,7 @@
 **對應來源：跨平台3D_Engine_V2_完整規劃書_v1_4.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
-> **進度：23%**（✅ V2-M0 至 ✅ V2-M2 已驗收；V2-M3 至 V2-M12 仍待完成。）
+> **進度：31%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 已驗收；V2-M3、V2-M5 至 V2-M12 仍待完成。）
 
 
 
@@ -1397,6 +1397,8 @@ General material VT optional。
 ---
 
 # V2 Adaptive World Partition
+
+**已交付（V2-M4）：✅** Adaptive quadtree cell、hierarchical CellGroup、3D volume policy、origin-rebase identity、ready-gated HLOD／impostor、persistent delta reload、occupied-footprint pin 與 changed-region commandlet 均有 Linux test 覆蓋。
 
 V1 stable grid → V2 adaptive authoring/cook partition。
 

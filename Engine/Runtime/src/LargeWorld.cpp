@@ -121,7 +121,42 @@ bool StreamingManager::SetOccupied(Id cell, bool occupied) {
   const auto found = cells_.find(cell);
   if (found == cells_.end())
     return false;
-  found->second.status.occupied = occupied;
+  if (occupied)
+    manually_occupied_.insert(cell);
+  else
+    manually_occupied_.erase(cell);
+  found->second.status.occupied =
+      occupied || std::ranges::any_of(occupied_by_character_, [cell](const auto &entry) {
+        return entry.second.contains(cell);
+      });
+  return true;
+}
+bool StreamingManager::SetOccupiedFootprint(Id character, const Bounds &footprint) {
+  if (character == 0 || !footprint.Valid())
+    return false;
+  std::unordered_set<Id> next;
+  for (const auto &[id, cell] : cells_)
+    if (cell.descriptor.bounds.Intersects(footprint))
+      next.insert(id);
+  if (next.empty())
+    return false;
+  occupied_by_character_.insert_or_assign(character, std::move(next));
+  for (auto &[id, cell] : cells_) {
+    cell.status.occupied = manually_occupied_.contains(id) ||
+                           std::ranges::any_of(occupied_by_character_, [id](const auto &entry) {
+                             return entry.second.contains(id);
+                           });
+  }
+  return true;
+}
+bool StreamingManager::ClearOccupiedFootprint(Id character) {
+  if (occupied_by_character_.erase(character) == 0)
+    return false;
+  for (auto &[id, cell] : cells_)
+    cell.status.occupied = manually_occupied_.contains(id) ||
+                           std::ranges::any_of(occupied_by_character_, [id](const auto &entry) {
+                             return entry.second.contains(id);
+                           });
   return true;
 }
 MemoryUsage StreamingManager::Usage() const noexcept {
@@ -352,26 +387,63 @@ AdaptivePartitionBuilder::Build(std::span<const SpatialItem> items) const {
   if (std::ranges::adjacent_find(ordered, {}, &SpatialItem::id) != ordered.end())
     return std::nullopt;
 
-  std::unordered_map<Id, PartitionCell> cells;
+  std::unordered_map<Id, std::vector<SpatialItem>> roots;
+  const double root_size = std::ldexp(leaf_size_, max_level_);
   for (const auto &item : ordered) {
     const Vec3d center{(item.bounds.minimum.x + item.bounds.maximum.x) * 0.5,
                        (item.bounds.minimum.y + item.bounds.maximum.y) * 0.5,
                        (item.bounds.minimum.z + item.bounds.maximum.z) * 0.5};
-    PartitionCoordinate coordinate{static_cast<std::int64_t>(std::floor(center.x / leaf_size_)),
-                                   static_cast<std::int64_t>(std::floor(center.y / leaf_size_)),
-                                   static_cast<std::int64_t>(std::floor(center.z / leaf_size_)), 0};
+    PartitionCoordinate root{static_cast<std::int64_t>(std::floor(center.x / root_size)), 0,
+                             static_cast<std::int64_t>(std::floor(center.z / root_size)),
+                             max_level_};
+    roots[CoordinateId(root)].push_back(item);
+  }
+  std::vector<std::pair<PartitionCoordinate, std::vector<SpatialItem>>> pending;
+  for (auto &[id, bucket] : roots) {
+    (void)id;
+    const auto &first = bucket.front().bounds;
+    const Vec3d center{(first.minimum.x + first.maximum.x) * .5, 0,
+                       (first.minimum.z + first.maximum.z) * .5};
+    pending.push_back({{static_cast<std::int64_t>(std::floor(center.x / root_size)), 0,
+                        static_cast<std::int64_t>(std::floor(center.z / root_size)), max_level_},
+                       std::move(bucket)});
+  }
+  std::unordered_map<Id, PartitionCell> cells;
+  while (!pending.empty()) {
+    auto [coordinate, bucket] = std::move(pending.back());
+    pending.pop_back();
+    if (bucket.size() > split_threshold_ && coordinate.level > 0) {
+      const auto child_level = static_cast<std::uint8_t>(coordinate.level - 1);
+      const double child_size = std::ldexp(leaf_size_, child_level);
+      std::unordered_map<Id, std::pair<PartitionCoordinate, std::vector<SpatialItem>>> children;
+      for (const auto &item : bucket) {
+        const Vec3d center{(item.bounds.minimum.x + item.bounds.maximum.x) * .5, 0,
+                           (item.bounds.minimum.z + item.bounds.maximum.z) * .5};
+        PartitionCoordinate child{static_cast<std::int64_t>(std::floor(center.x / child_size)), 0,
+                                  static_cast<std::int64_t>(std::floor(center.z / child_size)),
+                                  child_level};
+        auto &entry = children[CoordinateId(child)];
+        entry.first = child;
+        entry.second.push_back(item);
+      }
+      for (auto &[id, child] : children)
+        (void)id, pending.push_back(std::move(child));
+      continue;
+    }
     const Id id = CoordinateId(coordinate);
     auto [entry, inserted] = cells.try_emplace(id);
     auto &cell = entry->second;
     if (inserted) {
       cell.id = id;
       cell.coordinate = coordinate;
-      const Vec3d minimum{coordinate.x * leaf_size_, coordinate.y * leaf_size_,
-                          coordinate.z * leaf_size_};
+      const double size = std::ldexp(leaf_size_, coordinate.level);
+      const Vec3d minimum{coordinate.x * size, -std::numeric_limits<double>::max(),
+                          coordinate.z * size};
       cell.bounds = {minimum,
-                     {minimum.x + leaf_size_, minimum.y + leaf_size_, minimum.z + leaf_size_}};
+                     {minimum.x + size, std::numeric_limits<double>::max(), minimum.z + size}};
     }
-    cell.content.push_back(item.id);
+    for (const auto &item : bucket)
+      cell.content.push_back(item.id);
   }
   PartitionBuild result;
   result.cells.reserve(cells.size());
@@ -385,6 +457,87 @@ AdaptivePartitionBuilder::Build(std::span<const SpatialItem> items) const {
   std::ranges::sort(result.cells, {}, &PartitionCell::id);
   result.build_hash = kHashOffset;
   for (const auto &cell : result.cells) {
+    HashValue(result.build_hash, cell.id);
+    HashValue(result.build_hash, cell.content_hash);
+  }
+  return result;
+}
+
+CellGroupBuilder::CellGroupBuilder(std::size_t fanout) : fanout_(fanout) {}
+std::vector<CellGroup> CellGroupBuilder::Build(const PartitionBuild &partition) const {
+  std::vector<CellGroup> result;
+  if (fanout_ < 2)
+    return result;
+  for (std::size_t begin = 0; begin < partition.cells.size(); begin += fanout_) {
+    const std::size_t end = std::min(partition.cells.size(), begin + fanout_);
+    CellGroup group;
+    group.content_hash = kHashOffset;
+    group.bounds = partition.cells[begin].bounds;
+    for (std::size_t index = begin; index < end; ++index) {
+      const auto &cell = partition.cells[index];
+      group.cells.push_back(cell.id);
+      HashValue(group.content_hash, cell.id);
+      group.bounds.minimum.x = std::min(group.bounds.minimum.x, cell.bounds.minimum.x);
+      group.bounds.minimum.y = std::min(group.bounds.minimum.y, cell.bounds.minimum.y);
+      group.bounds.minimum.z = std::min(group.bounds.minimum.z, cell.bounds.minimum.z);
+      group.bounds.maximum.x = std::max(group.bounds.maximum.x, cell.bounds.maximum.x);
+      group.bounds.maximum.y = std::max(group.bounds.maximum.y, cell.bounds.maximum.y);
+      group.bounds.maximum.z = std::max(group.bounds.maximum.z, cell.bounds.maximum.z);
+    }
+    group.id = group.content_hash == 0 ? 1 : group.content_hash;
+    result.push_back(std::move(group));
+  }
+  return result;
+}
+
+VolumePartitionBuilder::VolumePartitionBuilder(double cell_size, VolumePartitionMode mode)
+    : cell_size_(cell_size), mode_(mode) {}
+std::optional<PartitionBuild>
+VolumePartitionBuilder::Build(std::span<const SpatialItem> items,
+                              std::span<const ExplicitVolume> volumes) const {
+  if (!std::isfinite(cell_size_) || cell_size_ <= 0 || items.empty())
+    return std::nullopt;
+  std::vector<PartitionCell> cells;
+  std::unordered_map<Id, std::size_t> indices;
+  for (const auto &item : items) {
+    if (!item.id || !item.bounds.Valid())
+      return std::nullopt;
+    const Vec3d center{(item.bounds.minimum.x + item.bounds.maximum.x) * .5,
+                       (item.bounds.minimum.y + item.bounds.maximum.y) * .5,
+                       (item.bounds.minimum.z + item.bounds.maximum.z) * .5};
+    PartitionCoordinate coordinate{};
+    Bounds bounds{};
+    Id id{};
+    if (mode_ == VolumePartitionMode::Explicit) {
+      const ExplicitVolume *volume = nullptr;
+      for (const auto &candidate : volumes)
+        if (candidate.id && candidate.bounds.Valid() &&
+            candidate.bounds.Intersects({center, center}) && (!volume || candidate.id < volume->id))
+          volume = &candidate;
+      if (!volume)
+        return std::nullopt;
+      id = volume->id;
+      bounds = volume->bounds;
+    } else {
+      coordinate = {static_cast<std::int64_t>(std::floor(center.x / cell_size_)),
+                    static_cast<std::int64_t>(std::floor(center.y / cell_size_)),
+                    static_cast<std::int64_t>(std::floor(center.z / cell_size_)), 0};
+      id = CoordinateId(coordinate);
+      const Vec3d minimum{coordinate.x * cell_size_, coordinate.y * cell_size_,
+                          coordinate.z * cell_size_};
+      bounds = {minimum, {minimum.x + cell_size_, minimum.y + cell_size_, minimum.z + cell_size_}};
+    }
+    auto [found, inserted] = indices.emplace(id, cells.size());
+    if (inserted)
+      cells.push_back({id, coordinate, bounds, {}, kHashOffset});
+    cells[found->second].content.push_back(item.id);
+  }
+  std::ranges::sort(cells, {}, &PartitionCell::id);
+  PartitionBuild result{std::move(cells), kHashOffset};
+  for (auto &cell : result.cells) {
+    std::ranges::sort(cell.content);
+    for (Id id : cell.content)
+      HashValue(cell.content_hash, id);
     HashValue(result.build_hash, cell.id);
     HashValue(result.build_hash, cell.content_hash);
   }
@@ -435,6 +588,55 @@ Vec3d WorldOrigin::ToRenderRelative(Vec3d absolute) const noexcept {
   return {absolute.x - origin_.x, absolute.y - origin_.y, absolute.z - origin_.z};
 }
 
+bool HlodV2::AddTier(HlodTier tier) {
+  if (!tier.id || !tier.group || !std::isfinite(tier.minimum_distance) ||
+      tier.minimum_distance < 0 || !tier.artifact_hash ||
+      std::ranges::find(tiers_, tier.id, &HlodTier::id) != tiers_.end())
+    return false;
+  tiers_.push_back(tier);
+  std::ranges::sort(tiers_, [](const auto &a, const auto &b) {
+    return a.group != b.group ? a.group < b.group : a.minimum_distance < b.minimum_distance;
+  });
+  return true;
+}
+bool HlodV2::SetReady(Id tier, bool ready) {
+  if (std::ranges::find(tiers_, tier, &HlodTier::id) == tiers_.end())
+    return false;
+  if (ready)
+    ready_.insert(tier);
+  else
+    ready_.erase(tier);
+  return true;
+}
+HlodSelection HlodV2::Select(Id group, double distance) const {
+  HlodSelection result;
+  if (!std::isfinite(distance))
+    return result;
+  for (const auto &tier : tiers_)
+    if (tier.group == group && distance >= tier.minimum_distance && ready_.contains(tier.id)) {
+      result.visible_tier = tier.id;
+      result.show_full_content = tier.representation == HlodRepresentation::Full;
+    }
+  return result;
+}
+std::optional<ImpostorArtifact> ImpostorBuilder::Build(Id group, std::span<const Id> assets,
+                                                       std::uint32_t views,
+                                                       std::uint32_t resolution) const {
+  if (!group || assets.empty() || views < 4 || resolution == 0 || (resolution & (resolution - 1)))
+    return std::nullopt;
+  std::vector<Id> ordered(assets.begin(), assets.end());
+  std::ranges::sort(ordered);
+  if (!ordered.front() || std::ranges::adjacent_find(ordered) != ordered.end())
+    return std::nullopt;
+  std::uint64_t hash = kHashOffset;
+  HashValue(hash, group);
+  HashValue(hash, views);
+  HashValue(hash, resolution);
+  for (Id asset : ordered)
+    HashValue(hash, asset);
+  return ImpostorArtifact{hash == 0 ? 1 : hash, group, views, resolution, hash};
+}
+
 bool PersistentDeltaStore::Apply(PersistentCellDelta delta) {
   if (delta.cell == 0 || delta.object == 0 || delta.revision == 0)
     return false;
@@ -462,6 +664,18 @@ std::uint64_t PersistentDeltaStore::Digest(Id cell) const noexcept {
     HashBytes(hash, delta.payload.data(), delta.payload.size());
   }
   return hash;
+}
+std::unordered_map<Id, std::string>
+PersistentDeltaStore::Materialize(Id cell,
+                                  const std::unordered_map<Id, std::string> &defaults) const {
+  auto result = defaults;
+  for (const auto &delta : Load(cell)) {
+    if (delta.removed)
+      result.erase(delta.object);
+    else
+      result.insert_or_assign(delta.object, delta.payload);
+  }
+  return result;
 }
 
 } // namespace nexora::runtime::large_world

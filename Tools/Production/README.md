@@ -15,6 +15,8 @@ NexoraTool.py import <asset>... --ddc <directory> [--output <report.json>]
 NexoraTool.py cook <asset>... --ddc <directory> [--output <report.json>]
 NexoraTool.py externalize <scene.json> --output <world-directory>
 NexoraTool.py diff <before.json> <after.json> --output <diff.json>
+NexoraTool.py world-partition <world.json> --output <partition.json>
+  [--previous <partition.json> --changed-region <id>] [--leaf-size <size>]
 ```
 
 Reflection is sourced from Clang's JSON AST and includes complete record declarations carrying a
@@ -31,3 +33,9 @@ existing key with different bytes is rejected as a collision. External entity ID
 portable filename characters, duplicate IDs are rejected, and the manifest records each entity's
 content hash. Operations are synchronous; callers may run independent commandlets concurrently,
 while atomic replacement prevents partial cache or metadata files from becoming visible.
+
+`world-partition` consumes region-addressed scene metadata in deterministic region/item order and
+emits stable cell coordinates, per-region hashes, and a whole-build hash. With `--previous` and one
+or more `--changed-region` arguments it rebuilds only those regions and carries all other immutable
+region records forward byte-for-byte. It is the headless CI/cook entry point and never requires the
+complete runtime world to be resident.
