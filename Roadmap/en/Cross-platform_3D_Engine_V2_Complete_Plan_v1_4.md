@@ -3834,8 +3834,7 @@ conservative Hi-Z with explicit invalidation, visible-instance compaction, mater
 classification, and indirect-command generation. The portable command contract now records compute
 dispatch and indirect drawing, compares backend output with the CPU reference, tracks normal-path
 readback diagnostics, and makes RenderGraph emit explicit compute/graphics ownership barriers.
-Vulkan now executes an indirect-buffer-backed `vkCmdDrawIndirect` plus a real compute pipeline with four storage-buffer bindings in its native Linux gate. V2-M3 remains open because the full frustum/Hi-Z/LOD compute algorithm, DX12/Metal indirect execution, and full
-DX12/Vulkan/Metal target-tier parity have not passed their target-host gates.
+Linux Vulkan now executes the complete frustum/distance/LOD/Hi-Z/compaction/classification/indirect-generation compute algorithm, verifies its output against the CPU reference, and crosses RenderGraph compute-to-graphics ownership before native indirect drawing. V2-M3 remains open because DX12/Metal indirect execution and full DX12/Vulkan/Metal target-tier parity have not passed their target-host gates.
 [V2-M3_GPU_Driven_Native_Execution_Plan.md](V2-M3_GPU_Driven_Native_Execution_Plan.md) plans the
 remaining work in phases, verified against the actual per-backend `Dispatch`/`DrawIndirect`
 coverage in source; Phases 1a/1b are complete and Phase 2 is in progress.

@@ -165,21 +165,19 @@ pipeline 建立路徑。因為這些是加在共用介面上的 pure-virtual 新
 ——不是「寫一個 shader」——正好就是這個 repo 一貫規則要求動手前先討論的那種
 RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更。**已用 backend-neutral compute pipeline kind、四個固定 storage-buffer slot、host-visible upload 與明確標為 test-only 的 bounded readback seam 完成。固定 slot 讓本階段保持狹窄；通用 descriptor builder 仍是後續工作。**
 
-### Phase 2 — Vulkan 上剩下的 compute 階段
+### ✅ Phase 2 — Vulkan 完整 compute 階段（完成）
 
-> **更新（2026-09-24）：施工中。** Linux Vulkan 現在會建立真正的 compute pipeline，透過四個
-> backend-neutral slot 綁定 candidate／visible／indirect／statistics storage buffer，dispatch
-> `GPUDriven.slang`、等待 native completion，並比對 test-only readback 結果。正常路徑仍然
-> readback-free，diagnostics 也會分開計算 dispatch 與驗收 readback。這是 native pipeline／
-> binding／dispatch foundation 的驗收證據，尚不是下方完整 frustum／Hi-Z／LOD／sorted-bin
-> 演算法的驗收。
-
-- Hi-Z occlusion（針對既有 `HiZPyramid` contract 做 conservative test）、visible-instance
-  compaction、material/mesh/LOD classification、indirect-command generation，各自寫成 compute
-  shader，逐階段加入、每個階段都用同一套 CPU-reference 比對 gate 驗證。
-- RenderGraph 整合：確認既有的 queue-ownership barrier tracking（`Engine/Renderer/README.md`
-  §RenderGraph）在真正的 Vulkan queue 上（不只是 validation device 的邏輯追蹤）能正確排序這些新的
-  compute pass 跟消費它們輸出的 graphics pass。
+- ✅ `GPUDriven.slang` 現在會執行 frustum rejection、distance rejection 與 LOD selection、
+  conservative max-depth Hi-Z 測試（包含 relaxed 與 invalidated policy）、visible-instance
+  compaction、deterministic material／mesh／LOD classification，以及 indirect-command generation。
+- ✅ Linux native 驗收會封裝與 `BuildGPUDrivenCommands()` 相同的 scene、view、LOD threshold 與
+  Hi-Z pyramid；completion 後才透過 test-only readback 重建 backend result，並要求
+  `CompareGPUDrivenResults()` 的每個 instance、command 與 statistic 都一致。
+- ✅ 驗收 workload 透過 RenderGraph compute 與 graphics pass 執行，驗證兩次 ownership transfer
+  後才送出 native indirect draw。正常執行仍然沒有 readback；bounded readback 只存在 correctness gate。
+- Deterministic single-invocation kernel 刻意定位為驗收實作：它避免 subgroup／atomic ordering 差異並
+  證明完整 native semantic。Parallel scan、radix classification 與 production-scale 效能調校仍屬最佳化，
+  不會改變已驗收的 result contract。
 
 ### Phase 3 — D3D12 backend
 

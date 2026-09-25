@@ -3845,7 +3845,7 @@ invalidation 的 conservative Hi-Z、visible-instance compaction、material／me
 classification 與 indirect-command generation。Portable command contract 現已記錄 compute
 dispatch 與 indirect drawing、將 backend output 與 CPU reference 比較、追蹤 normal-path
 readback diagnostics，並由 RenderGraph 發出明確的 compute／graphics ownership barrier。
-Vulkan 現已在 Linux native gate 執行由 indirect buffer 支援的 `vkCmdDrawIndirect`，以及綁定四個 storage buffer 的真正 compute pipeline。V2-M3 仍維持未完成，因完整 frustum／Hi-Z／LOD compute 演算法、DX12／Metal indirect execution 與完整 DX12／Vulkan／Metal target-tier parity 尚未通過 gate。
+Linux Vulkan 現已執行完整 frustum／distance／LOD／Hi-Z／compaction／classification／indirect-generation compute 演算法、對 CPU reference 驗證輸出，並在 native indirect draw 前跨越 RenderGraph compute-to-graphics ownership。V2-M3 仍維持未完成，因 DX12／Metal indirect execution 與完整 DX12／Vulkan／Metal target-tier parity 尚未通過 gate。
 [V2-M3_GPU_Driven_Native_Execution_Plan.md](V2-M3_GPU_Driven_Native_Execution_Plan.md)
 把剩餘工作拆成分階段計畫，並對照原始碼逐一確認了每個 backend 的
 `Dispatch`/`DrawIndirect` 覆蓋現況；Phase 1a／1b 已完成，Phase 2 施工中。

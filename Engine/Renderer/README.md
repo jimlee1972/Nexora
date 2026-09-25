@@ -89,9 +89,4 @@ RenderGraph tracks a logical owner queue for every resource. A use on a differen
 queue emits an ownership barrier even when the resource state is unchanged, and statistics expose
 those transfers separately from ordinary state transitions. The graph retains transient ownership
 until all submitted work is idle, then releases the resources; imported resources remain
-caller-owned. Vulkan's native gate executes both an indirect-buffer-backed `vkCmdDrawIndirect` and
-a real compute pipeline whose four storage slots represent candidates, compacted instances,
-indirect arguments, and statistics. The acceptance test waits for completion and uses the
-explicitly test-only readback seam to verify compacted output; normal recording performs no
-readback. Native queue/timeline separation, DX12/Metal execution, and target-host parity remain
-open gates; none is inferred from Linux Vulkan coverage.
+caller-owned. Vulkan's native gate executes the full frustum/distance/LOD/Hi-Z/compaction/classification/indirect-generation kernel through a RenderGraph compute pass, transfers ownership to a graphics pass, and issues native indirect drawing. Its four storage slots represent packed scene/view/Hi-Z input, compacted instances, indirect arguments, and statistics. The acceptance test waits for completion, reconstructs the backend result through the explicitly test-only readback seam, and requires an exact `CompareGPUDrivenResults()` match; normal recording performs no readback. Native queue/timeline separation, DX12/Metal execution, and target-host parity remain open gates; none is inferred from Linux Vulkan coverage.

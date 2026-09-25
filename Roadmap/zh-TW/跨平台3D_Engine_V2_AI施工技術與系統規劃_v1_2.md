@@ -1202,8 +1202,8 @@ Output type
 > frustum／distance／LOD culling、conservative Hi-Z 與 invalidation、compaction、classification
 > 及 indirect-command generation。Portable compute／indirect recording、RenderGraph queue
 > ownership、CPU／GPU comparison 與 no-readback diagnostics 現已有 contract test 覆蓋；native
-> Vulkan 現已有真正的 Linux indirect draw 與 compute-pipeline/storage-buffer 證據。完整 compute
-> 演算法、DX12／Metal indirect execution 與完整 target-tier parity 仍須完成後才能驗收。
+> Vulkan 現已透過 RenderGraph 執行完整 compute 演算法、比對 CPU reference output，並送出 native indirect draw。
+> DX12／Metal indirect execution 與完整 target-tier parity 仍須完成後才能驗收。
 
 Repository 證據清單：
 
@@ -1213,7 +1213,8 @@ Repository 證據清單：
 - ✅ CPU／backend comparison 與 normal-path no-readback diagnostics。
 - ✅ Linux offscreen gate 的 native Vulkan indirect execution。
 - ✅ Native Vulkan compute-pipeline dispatch 與 storage-buffer binding/readback 驗收。
-- [ ] 完整 native compute 演算法、DX12／Metal indirect execution 與完整 target-tier parity。
+- ✅ 完整 native Vulkan compute 演算法與 CPU／GPU comparison。
+- [ ] DX12／Metal indirect execution 與完整 target-tier parity。
 
 核心資料：
 
