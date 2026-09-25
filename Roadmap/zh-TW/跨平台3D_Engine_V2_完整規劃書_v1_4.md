@@ -3,7 +3,7 @@
 **文件版本：Master Draft v1.4**
 **Engine 世代：V2.x — Scale-Up / Production**
 
-> **進度：31%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 已通過 portable repository gate；V2-M3、V2-M5 至 V2-M12 仍待完成。Native target evidence 維持獨立 gate。）
+> **進度：38%**（✅ V2-M0 至 ✅ V2-M2、✅ V2-M4 與 ✅ V2-M5 已通過 portable repository gate；V2-M3、V2-M6 至 V2-M12 仍待完成。Native target evidence 維持獨立 gate。）
 
 > 本文件為 **V2 Master Plan**，所有 V1 Contract 預設繼承；只有本文件明確標示「V2 supersede」的項目可以改變 V1 行為。
 >
@@ -3919,7 +3919,9 @@ Portable implementation 現已交付 deterministic adaptive hierarchy、CellGrou
 
 ---
 
-## V2-M5 — Dedicated Server / Transport Foundation
+## ✅ V2-M5 — Dedicated Server / Transport Foundation
+
+Portable implementation 現已提供 renderer-free headless target、caller-owned `INetTransport` 邊界、UDP-oriented datagram、protocol／build handshake rejection、明確 channel semantics，以及 deterministic seeded loss／latency／jitter simulation。Native UDP 與 production encryption adapter 仍為 backend gate。
 
 先做：
 
@@ -3940,10 +3942,10 @@ Packet Simulation
 **Gate：**
 
 ```text
-✓ Linux headless server 無 Renderer dependency
-✓ Client / Server connect / disconnect 穩定
-✓ Loss / latency / jitter simulator 可用
-✓ Protocol mismatch clean reject
+✅ Linux headless server 無 Renderer dependency
+✅ Client / Server connect / disconnect 穩定
+✅ Loss / latency / jitter simulator 可用
+✅ Protocol mismatch clean reject
 ```
 
 ---

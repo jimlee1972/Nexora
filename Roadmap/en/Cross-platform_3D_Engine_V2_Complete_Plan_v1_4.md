@@ -3,7 +3,7 @@
 **Document Version: Master Draft v1.4**
 **Engine Generation: V2.x — Scale-Up / Production**
 
-> **Progress: 31%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 have passed their portable repository gates; V2-M3 and V2-M5 through V2-M12 remain open. Native target evidence remains a separate gate.)
+> **Progress: 38%** (✅ V2-M0 through ✅ V2-M2, ✅ V2-M4, and ✅ V2-M5 have passed their portable repository gates; V2-M3 and V2-M6 through V2-M12 remain open. Native target evidence remains a separate gate.)
 
 > This document is the **V2 Master Plan**. All V1 Contracts are inherited by default; only items explicitly marked “V2 supersede” in this document may change V1 behavior.
 >
@@ -3910,7 +3910,9 @@ Construction:
 
 ---
 
-## V2-M5 — Dedicated Server / Transport Foundation
+## ✅ V2-M5 — Dedicated Server / Transport Foundation
+
+Portable implementation now provides a renderer-free headless target, a caller-owned `INetTransport` boundary, UDP-oriented datagrams, protocol/build handshake rejection, explicit channel semantics, and deterministic seeded loss/latency/jitter simulation. Native UDP and encrypted production adapters remain backend gates.
 
 Do first:
 
@@ -3931,10 +3933,10 @@ Do not implement Prediction first.
 **Gate:**
 
 ```text
-✓ Linux headless server has no Renderer dependency
-✓ Client / Server connect / disconnect is stable
-✓ Loss / latency / jitter simulator is available
-✓ Protocol mismatch clean reject
+✅ Linux headless server has no Renderer dependency
+✅ Client / Server connect / disconnect is stable
+✅ Loss / latency / jitter simulator is available
+✅ Protocol mismatch clean reject
 ```
 
 ---

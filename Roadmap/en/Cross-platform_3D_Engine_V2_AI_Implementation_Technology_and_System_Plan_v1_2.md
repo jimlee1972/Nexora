@@ -4,7 +4,7 @@
 **Corresponding Source: Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md**
 **Purpose: AI implementation, Engine Programmer implementation, system decomposition, Code Review, CI Gate.**
 
-> **Progress: 31%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 are accepted; V2-M3 and V2-M5 through V2-M12 remain open.)
+> **Progress: 38%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 are accepted; V2-M3 and V2-M6 through V2-M12 remain open.)
 
 
 
@@ -1685,6 +1685,9 @@ Do not assume Jolt cross-platform bitwise determinism.
 
 # V2 Dedicated Server
 
+**Delivered (V2-M5): ✅** The renderer-free `NexoraDedicatedServer` target, versioned build-aware handshake, explicit channel semantics, deterministic packet simulation, and connect/disconnect rejection gates are covered by Linux tests.
+
+
 Profile：
 
 ```text
@@ -2274,7 +2277,7 @@ LiveOps can roll back
 ✅ V2-M2  GPUScene
 V2-M3  GPU-driven Renderer
 V2-M4  Large World V2
-V2-M5  Dedicated Server / Transport
+✅ V2-M5  Dedicated Server / Transport
 V2-M6  Replication / Interest / Prediction / Replay
 V2-M7  Navigation / Crowd / AI V2
 V2-M8  Animation V2
