@@ -58,7 +58,7 @@ V2-M5 is complete for the portable foundation: the `linux-headless` preset build
 
 #### V2 GPU-driven status
 
-V2-M3 now has one fixed 36-byte indirect-command ABI shared by C++ and Slang: the Vulkan/D3D12/Metal-compatible non-indexed draw prefix is followed by backend-neutral classification metadata. Vulkan consumes this canonical stride directly. The Vulkan CPU/GPU native comparison still requires a Slang-enabled acceptance run, while D3D12/Metal execution and all native target-host evidence remain open; therefore V2-M3 and the 38% roadmap total are unchanged.
+V2-M3 now has one fixed 36-byte indirect-command ABI shared by C++ and Slang: the Vulkan/D3D12/Metal-compatible non-indexed draw prefix is followed by backend-neutral classification metadata. Vulkan consumes this canonical stride directly. D3D12 command recording now covers `Dispatch` and canonical-stride `ExecuteIndirect`, but Windows execution and comparison evidence remain pending. The Vulkan CPU/GPU native comparison still requires a Slang-enabled acceptance run, while Metal execution also remains open; therefore V2-M3 and the 38% roadmap total are unchanged.
 
 #### Engine API status
 
@@ -156,7 +156,7 @@ V2-M5 portable foundation 已完成：`linux-headless` preset 僅建置 renderer
 
 #### V2 GPU-driven 狀態
 
-V2-M3 現已有一套由 C++ 與 Slang 共用的固定 36-byte indirect-command ABI：Vulkan／D3D12／Metal 相容的 non-indexed draw prefix 後接 backend-neutral classification metadata，且 Vulkan 直接消費此 canonical stride。Vulkan CPU/GPU native comparison 仍須以啟用 Slang 的 acceptance run 驗證，D3D12／Metal execution 與所有 native target-host 證據亦仍待完成；因此 V2-M3 與 38% Roadmap 總進度維持不變。
+V2-M3 現已有一套由 C++ 與 Slang 共用的固定 36-byte indirect-command ABI：Vulkan／D3D12／Metal 相容的 non-indexed draw prefix 後接 backend-neutral classification metadata，且 Vulkan 直接消費此 canonical stride。D3D12 command recording 現已涵蓋 `Dispatch` 與採 canonical stride 的 `ExecuteIndirect`，但 Windows execution 與 comparison 證據仍待完成。Vulkan CPU/GPU native comparison 仍須以啟用 Slang 的 acceptance run 驗證，Metal execution 亦仍待完成；因此 V2-M3 與 38% Roadmap 總進度維持不變。
 
 #### Engine API 狀態
 

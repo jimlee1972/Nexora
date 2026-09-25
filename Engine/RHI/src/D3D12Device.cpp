@@ -46,6 +46,10 @@ std::uint64_t Key(PipelineHandle handle) {
   return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
 }
 
+std::uint64_t Key(BufferHandle handle) {
+  return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
+}
+
 DXGI_FORMAT ToFormat(TextureFormat format) {
   switch (format) {
   case TextureFormat::Rgba8Unorm:
@@ -81,9 +85,8 @@ ComPtr<ID3DBlob> CompileShader(const char *source, const char *entry, const char
   ComPtr<ID3DBlob> bytecode;
   ComPtr<ID3DBlob> errors;
   constexpr UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
-  const auto result =
-      D3DCompile(source, std::strlen(source), "NexoraTriangle.hlsl", nullptr, nullptr, entry,
-                  profile, flags, 0, &bytecode, &errors);
+  const auto result = D3DCompile(source, std::strlen(source), "NexoraTriangle.hlsl", nullptr,
+                                 nullptr, entry, profile, flags, 0, &bytecode, &errors);
   if (FAILED(result)) {
     const auto *message =
         errors ? static_cast<const char *>(errors->GetBufferPointer()) : "unknown shader error";
@@ -97,8 +100,7 @@ ComPtr<ID3DBlob> LoadShaderArtifact(const char *environment_name) {
   if (!path || *path == '\0')
     return {};
   ComPtr<ID3DBlob> bytecode;
-  Check(D3DReadFileToBlob(std::filesystem::path(path).c_str(), &bytecode),
-        "D3DReadFileToBlob");
+  Check(D3DReadFileToBlob(std::filesystem::path(path).c_str(), &bytecode), "D3DReadFileToBlob");
   return bytecode;
 }
 
@@ -137,7 +139,11 @@ public:
   void Transition(const Barrier &barrier) override;
   void BeginRendering(const RenderingInfo &info) override;
   void BindPipeline(PipelineHandle pipeline) override;
+  void BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset, std::uint32_t stride) override;
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
+  void Dispatch(std::uint32_t group_count_x, std::uint32_t group_count_y,
+                std::uint32_t group_count_z) override;
+  void DrawIndirect(std::uint32_t draw_count) override;
   void EndRendering() override;
 
   [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
@@ -147,6 +153,8 @@ public:
   }
   [[nodiscard]] std::uint64_t Barriers() const noexcept { return barriers_; }
   [[nodiscard]] std::uint64_t DrawCalls() const noexcept { return draws_; }
+  [[nodiscard]] std::uint64_t Dispatches() const noexcept { return dispatches_; }
+  [[nodiscard]] std::uint64_t IndirectDraws() const noexcept { return indirect_draws_; }
   void MarkSubmitted() noexcept { submitted_ = true; }
   void Close();
 
@@ -157,15 +165,22 @@ private:
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> list_;
   bool rendering_{false};
   bool pipeline_bound_{false};
+  PipelineType pipeline_type_{PipelineType::Graphics};
   bool submitted_{false};
   bool closed_{false};
   std::uint64_t barriers_{};
   std::uint64_t draws_{};
+  std::uint64_t dispatches_{};
+  std::uint64_t indirect_draws_{};
+  ID3D12Resource *indirect_buffer_{};
+  std::uint64_t indirect_offset_{};
+  std::uint32_t indirect_stride_{};
 };
 
 class D3D12Device final : public Device {
   struct TextureRecord;
   struct PipelineRecord;
+  struct BufferRecord;
 
 public:
   D3D12Device() {
@@ -173,16 +188,16 @@ public:
     Check(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)), "CreateDXGIFactory2");
 
     ComPtr<IDXGIAdapter1> selected;
-    for (UINT index = 0; factory->EnumAdapterByGpuPreference(
-                               index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                               IID_PPV_ARGS(&selected)) != DXGI_ERROR_NOT_FOUND;
+    for (UINT index = 0;
+         factory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                                             IID_PPV_ARGS(&selected)) != DXGI_ERROR_NOT_FOUND;
          ++index) {
       DXGI_ADAPTER_DESC1 description{};
       Check(selected->GetDesc1(&description), "IDXGIAdapter1::GetDesc1");
       if ((description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
         continue;
-      if (SUCCEEDED(D3D12CreateDevice(selected.Get(), D3D_FEATURE_LEVEL_11_0,
-                                      IID_PPV_ARGS(&device_)))) {
+      if (SUCCEEDED(
+              D3D12CreateDevice(selected.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device_)))) {
         break;
       }
       selected.Reset();
@@ -203,19 +218,27 @@ public:
     heap_description.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     Check(device_->CreateDescriptorHeap(&heap_description, IID_PPV_ARGS(&rtv_heap_)),
           "CreateDescriptorHeap");
-    rtv_increment_ =
-        device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    rtv_increment_ = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-    Check(device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_)),
-          "CreateFence");
+    Check(device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_)), "CreateFence");
     fence_event_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
     if (!fence_event_)
       throw std::runtime_error("CreateEventW failed");
 
     CreateRootSignature();
     CreateFrameConstants();
+    D3D12_INDIRECT_ARGUMENT_DESC indirect_argument{};
+    indirect_argument.Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW;
+    D3D12_COMMAND_SIGNATURE_DESC signature{};
+    signature.ByteStride = GPUDrivenIndirectCommandStride;
+    signature.NumArgumentDescs = 1;
+    signature.pArgumentDescs = &indirect_argument;
+    Check(device_->CreateCommandSignature(&signature, nullptr,
+                                          IID_PPV_ARGS(&draw_indirect_signature_)),
+          "CreateCommandSignature(draw indirect)");
     vertex_shader_ = LoadShaderArtifact("NEXORA_SLANG_DXIL_VERTEX_PATH");
     pixel_shader_ = LoadShaderArtifact("NEXORA_SLANG_DXIL_FRAGMENT_PATH");
+    compute_shader_ = LoadShaderArtifact("NEXORA_SLANG_COMPUTE_DXIL_PATH");
     if (!vertex_shader_ || !pixel_shader_) {
       if (vertex_shader_ || pixel_shader_)
         throw std::runtime_error("both Slang DXIL entry-point artifacts are required");
@@ -289,9 +312,76 @@ public:
     Require(texture_pool_.Destroy(texture), "destroying stale D3D12 texture");
   }
 
+  BufferHandle CreateBuffer(const BufferDescriptor &descriptor) override {
+    if (descriptor.size == 0)
+      throw std::invalid_argument("D3D12 buffer size must be non-zero");
+    D3D12_RESOURCE_DESC resource{};
+    resource.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    resource.Width = descriptor.size;
+    resource.Height = 1;
+    resource.DepthOrArraySize = 1;
+    resource.MipLevels = 1;
+    resource.SampleDesc.Count = 1;
+    resource.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    D3D12_HEAP_PROPERTIES heap{};
+    heap.Type = D3D12_HEAP_TYPE_UPLOAD;
+    heap.CreationNodeMask = 1;
+    heap.VisibleNodeMask = 1;
+    BufferRecord record;
+    record.descriptor = descriptor;
+    Check(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &resource,
+                                           D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                                           IID_PPV_ARGS(&record.resource)),
+          "CreateCommittedResource(buffer)");
+    std::lock_guard lock{mutex_};
+    const auto handle = buffer_pool_.Create();
+    buffers_.emplace(Key(handle), std::move(record));
+    return handle;
+  }
+
+  void WriteBuffer(BufferHandle buffer, std::uint64_t offset,
+                   std::span<const std::byte> data) override {
+    std::lock_guard lock{mutex_};
+    auto &record = ValidateBufferLocked(buffer);
+    Require(offset <= record.descriptor.size && data.size() <= record.descriptor.size - offset,
+            "D3D12 buffer upload exceeds allocation");
+    void *mapped{};
+    D3D12_RANGE read_range{0, 0};
+    Check(record.resource->Map(0, &read_range, &mapped), "Map(buffer)");
+    std::memcpy(static_cast<std::byte *>(mapped) + offset, data.data(), data.size());
+    const D3D12_RANGE written_range{static_cast<SIZE_T>(offset),
+                                    static_cast<SIZE_T>(offset + data.size())};
+    record.resource->Unmap(0, &written_range);
+  }
+
+  void DestroyBuffer(BufferHandle buffer) override {
+    std::lock_guard lock{mutex_};
+    Require(buffer_pool_.Contains(buffer) && buffers_.contains(Key(buffer)),
+            "destroying invalid D3D12 buffer");
+    buffers_.erase(Key(buffer));
+    Require(buffer_pool_.Destroy(buffer), "destroying stale D3D12 buffer");
+  }
+
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override {
     if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
       throw std::invalid_argument("pipeline hashes must be non-zero");
+    PipelineRecord record;
+    record.type = descriptor.type;
+    if (descriptor.type == PipelineType::Compute) {
+      if (!compute_shader_)
+        throw std::runtime_error("D3D12 compute pipeline requires Slang DXIL");
+      D3D12_COMPUTE_PIPELINE_STATE_DESC compute_description{};
+      compute_description.pRootSignature = root_signature_.Get();
+      compute_description.CS = {compute_shader_->GetBufferPointer(),
+                                compute_shader_->GetBufferSize()};
+      Check(
+          device_->CreateComputePipelineState(&compute_description, IID_PPV_ARGS(&record.pipeline)),
+          "CreateComputePipelineState");
+      std::lock_guard lock{mutex_};
+      const auto handle = pipeline_pool_.Create();
+      pipelines_.emplace(Key(handle), std::move(record));
+      return handle;
+    }
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_description{};
     pipeline_description.pRootSignature = root_signature_.Get();
     pipeline_description.VS = {vertex_shader_->GetBufferPointer(), vertex_shader_->GetBufferSize()};
@@ -309,10 +399,9 @@ public:
     pipeline_description.RTVFormats[0] = ToFormat(descriptor.color_format);
     pipeline_description.SampleDesc.Count = 1;
 
-    PipelineRecord record;
-    Check(device_->CreateGraphicsPipelineState(&pipeline_description,
-                                               IID_PPV_ARGS(&record.pipeline)),
-          "CreateGraphicsPipelineState");
+    Check(
+        device_->CreateGraphicsPipelineState(&pipeline_description, IID_PPV_ARGS(&record.pipeline)),
+        "CreateGraphicsPipelineState");
     std::lock_guard lock{mutex_};
     const auto handle = pipeline_pool_.Create();
     pipelines_.emplace(Key(handle), std::move(record));
@@ -328,8 +417,8 @@ public:
   }
 
   std::unique_ptr<CommandList> CreateCommandList(QueueType queue) override {
-    if (queue != QueueType::Graphics)
-      throw std::invalid_argument("D3D12 triangle backend only supports graphics queue");
+    if (queue == QueueType::Copy)
+      throw std::invalid_argument("D3D12 backend does not expose a copy command list");
     return std::make_unique<D3D12CommandList>(*this, queue);
   }
 
@@ -351,6 +440,8 @@ public:
       ++diagnostics_.submitted_command_lists;
       diagnostics_.barriers += validated->Barriers();
       diagnostics_.draw_calls += validated->DrawCalls();
+      diagnostics_.compute_dispatches += validated->Dispatches();
+      diagnostics_.indirect_draw_calls += validated->IndirectDraws();
     }
     WaitForFence(fence_value);
     return fence_value;
@@ -417,6 +508,18 @@ public:
     return found->second.pipeline.Get();
   }
 
+  PipelineType ValidatePipelineType(PipelineHandle pipeline) {
+    std::lock_guard lock{mutex_};
+    const auto found = pipelines_.find(Key(pipeline));
+    Require(found != pipelines_.end(), "binding invalid D3D12 pipeline");
+    return found->second.type;
+  }
+
+  BufferRecord &ValidateBuffer(BufferHandle buffer) {
+    std::lock_guard lock{mutex_};
+    return ValidateBufferLocked(buffer);
+  }
+
   ID3D12RootSignature *RootSignature() const noexcept { return root_signature_.Get(); }
   D3D12_GPU_VIRTUAL_ADDRESS ConstantsAddress() const noexcept {
     return constants_->GetGPUVirtualAddress();
@@ -431,10 +534,20 @@ private:
   };
   struct PipelineRecord final {
     ComPtr<ID3D12PipelineState> pipeline;
+    PipelineType type{PipelineType::Graphics};
+  };
+  struct BufferRecord final {
+    BufferDescriptor descriptor;
+    ComPtr<ID3D12Resource> resource;
   };
 
-  template <typename Pool, typename Handle>
-  static std::uint64_t HandleKey(Handle handle) {
+  BufferRecord &ValidateBufferLocked(BufferHandle buffer) {
+    const auto found = buffers_.find(Key(buffer));
+    Require(found != buffers_.end(), "binding invalid D3D12 buffer");
+    return found->second;
+  }
+
+  template <typename Pool, typename Handle> static std::uint64_t HandleKey(Handle handle) {
     return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
   }
 
@@ -458,11 +571,11 @@ private:
 
     ComPtr<ID3DBlob> serialized;
     ComPtr<ID3DBlob> errors;
-    Check(D3D12SerializeRootSignature(&description, D3D_ROOT_SIGNATURE_VERSION_1,
-                                      &serialized, &errors),
+    Check(D3D12SerializeRootSignature(&description, D3D_ROOT_SIGNATURE_VERSION_1, &serialized,
+                                      &errors),
           "D3D12SerializeRootSignature");
-    Check(device_->CreateRootSignature(0, serialized->GetBufferPointer(), serialized->GetBufferSize(),
-                                       IID_PPV_ARGS(&root_signature_)),
+    Check(device_->CreateRootSignature(0, serialized->GetBufferPointer(),
+                                       serialized->GetBufferSize(), IID_PPV_ARGS(&root_signature_)),
           "CreateRootSignature");
   }
 
@@ -506,9 +619,11 @@ private:
   ComPtr<ID3D12DescriptorHeap> rtv_heap_;
   ComPtr<ID3D12Fence> fence_;
   ComPtr<ID3D12RootSignature> root_signature_;
+  ComPtr<ID3D12CommandSignature> draw_indirect_signature_;
   ComPtr<ID3D12Resource> constants_;
   ComPtr<ID3DBlob> vertex_shader_;
   ComPtr<ID3DBlob> pixel_shader_;
+  ComPtr<ID3DBlob> compute_shader_;
   HANDLE fence_event_{};
   UINT rtv_increment_{};
   UINT next_rtv_{};
@@ -516,8 +631,10 @@ private:
   mutable std::mutex mutex_;
   core::HandlePool<TextureTag> texture_pool_;
   core::HandlePool<PipelineTag> pipeline_pool_;
+  core::HandlePool<BufferTag> buffer_pool_;
   std::unordered_map<std::uint64_t, TextureRecord> textures_;
   std::unordered_map<std::uint64_t, PipelineRecord> pipelines_;
+  std::unordered_map<std::uint64_t, BufferRecord> buffers_;
   DeviceDiagnostics diagnostics_;
 
   friend class D3D12CommandList;
@@ -558,8 +675,8 @@ void D3D12CommandList::BeginRendering(const RenderingInfo &info) {
   list_->OMSetRenderTargets(1, &target.rtv, FALSE, nullptr);
   const float clear[] = {0.0F, 0.0F, 0.0F, 1.0F};
   list_->ClearRenderTargetView(target.rtv, clear, 0, nullptr);
-  D3D12_VIEWPORT viewport{0.0F, 0.0F, static_cast<float>(info.width),
-                          static_cast<float>(info.height), 0.0F, 1.0F};
+  D3D12_VIEWPORT viewport{
+      0.0F, 0.0F, static_cast<float>(info.width), static_cast<float>(info.height), 0.0F, 1.0F};
   D3D12_RECT scissor{0, 0, static_cast<LONG>(info.width), static_cast<LONG>(info.height)};
   list_->RSSetViewports(1, &viewport);
   list_->RSSetScissorRects(1, &scissor);
@@ -570,19 +687,56 @@ void D3D12CommandList::BeginRendering(const RenderingInfo &info) {
 }
 
 void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
-  if (submitted_ || !rendering_)
-    throw std::logic_error("D3D12 pipeline binding requires rendering");
+  if (submitted_)
+    throw std::logic_error("cannot bind a pipeline on a submitted D3D12 command list");
+  pipeline_type_ = device_.ValidatePipelineType(pipeline);
+  if ((pipeline_type_ == PipelineType::Graphics) != rendering_)
+    throw std::logic_error("D3D12 pipeline type does not match command-list rendering state");
   list_->SetPipelineState(device_.ValidatePipeline(pipeline));
+  if (pipeline_type_ == PipelineType::Compute)
+    list_->SetComputeRootSignature(device_.RootSignature());
   pipeline_bound_ = true;
 }
 
+void D3D12CommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset,
+                                          std::uint32_t stride) {
+  if (submitted_ || stride != GPUDrivenIndirectCommandStride ||
+      offset % alignof(std::uint32_t) != 0)
+    throw std::logic_error("invalid D3D12 indirect-buffer binding");
+  auto &record = device_.ValidateBuffer(buffer);
+  if (offset > record.descriptor.size || record.descriptor.size - offset < DrawIndirectArgumentSize)
+    throw std::logic_error("D3D12 indirect-buffer binding exceeds allocation");
+  indirect_buffer_ = record.resource.Get();
+  indirect_offset_ = offset;
+  indirect_stride_ = stride;
+}
+
 void D3D12CommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
-  if (submitted_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 ||
-      instance_count == 0)
+  if (submitted_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 || instance_count == 0)
     throw std::logic_error("invalid D3D12 draw");
   list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   list_->DrawInstanced(vertex_count, instance_count, 0, 0);
   ++draws_;
+}
+
+void D3D12CommandList::Dispatch(std::uint32_t group_count_x, std::uint32_t group_count_y,
+                                std::uint32_t group_count_z) {
+  if (submitted_ || rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Compute ||
+      group_count_x == 0 || group_count_y == 0 || group_count_z == 0)
+    throw std::logic_error("invalid D3D12 dispatch");
+  list_->Dispatch(group_count_x, group_count_y, group_count_z);
+  ++dispatches_;
+}
+
+void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
+  if (submitted_ || !rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Graphics ||
+      !indirect_buffer_ || indirect_stride_ != GPUDrivenIndirectCommandStride || draw_count == 0)
+    throw std::logic_error("invalid D3D12 indirect draw");
+  list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  list_->ExecuteIndirect(device_.draw_indirect_signature_.Get(), draw_count, indirect_buffer_,
+                         indirect_offset_, nullptr, 0);
+  ++draws_;
+  ++indirect_draws_;
 }
 
 void D3D12CommandList::EndRendering() {
@@ -599,7 +753,5 @@ void D3D12CommandList::Close() {
 }
 } // namespace
 
-std::unique_ptr<Device> CreateDirect3D12Device() {
-  return std::make_unique<D3D12Device>();
-}
+std::unique_ptr<Device> CreateDirect3D12Device() { return std::make_unique<D3D12Device>(); }
 } // namespace nexora::rhi

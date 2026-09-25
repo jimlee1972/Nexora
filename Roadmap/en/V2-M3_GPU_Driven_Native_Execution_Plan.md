@@ -220,8 +220,14 @@ dependency or CI change. **Completed with a backend-neutral compute pipeline kin
 
 ### Phase 3 -- D3D12 backend
 
-- Implement `Dispatch` and `DrawIndirect` on `D3D12Device`'s command list (currently absent
-  entirely): `ID3D12GraphicsCommandList::Dispatch` and `ExecuteIndirect` with a command signature
+> **Update (2026-09-25): command recording implemented; target-host acceptance pending.** The
+> backend now records `Dispatch` and `ExecuteIndirect`, uses the canonical 36-byte command stride,
+> tracks both diagnostics, accepts compute command lists, and builds the Slang compute entry point
+> as DXIL on Windows. The required Windows execution and `CompareGPUDrivenResults()` evidence has
+> not run in this Linux environment, so Phase 3 is not marked ✅.
+
+- Implement `Dispatch` and `DrawIndirect` on `D3D12Device`'s command list:
+  `ID3D12GraphicsCommandList::Dispatch` and `ExecuteIndirect` with a command signature
   matching the indirect-buffer layout `BuildGPUDrivenCommands()` already produces.
 - Port the compute shaders from Phase 1/2 (Slang already targets multiple backends per the
   existing shader-contract validation; confirm HLSL/DXIL output needs no stage-semantic changes).

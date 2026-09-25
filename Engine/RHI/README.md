@@ -60,8 +60,12 @@ executes the complete portable contract. Vulkan now also records a real `vkCmdDr
 host-visible indirect command storage and reports it independently in device diagnostics; the
 offscreen gate exercises that path on a Vulkan-capable Linux host. Vulkan also creates compute pipelines, exposes four backend-neutral storage-buffer slots, and provides the complete deterministic culling, LOD, Hi-Z, compaction, classification, and command-generation kernel. The Linux native gate requires an exact CPU/GPU comparison before RenderGraph binds its generated Vulkan-compatible indirect buffer for drawing; compilation, dispatch, and counters alone do not satisfy the gate. Readback is available only through the explicitly test-only
 `ReadBufferForTesting` API and is counted independently; production recording remains readback-free.
-Native queue/timeline separation and DX12/Metal compute/indirect implementations, followed by full
-target-host parity evidence, remain required before V2-M3 can be accepted.
+D3D12 now records compute dispatch and canonical-stride `ExecuteIndirect`, accounts for both in
+diagnostics, and obtains its compute PSO bytecode from the Windows Slang DXIL artifact. Its
+host-visible buffer implementation establishes command-recording coverage; writable storage
+descriptors and the Windows `CompareGPUDrivenResults()` target-host gate remain required before the
+D3D12 phase can be accepted. Native queue/timeline separation, Metal compute/indirect execution,
+and full target-host parity evidence also remain required before V2-M3 can be accepted.
 
 `Nexora/RHI/IndirectCommand.h` fixes the indirect-buffer ABI once for every backend. Its first four
 32-bit words are the common non-indexed draw arguments used by Vulkan, D3D12, and Metal; five
