@@ -1,17 +1,19 @@
 # Nexora V1 Visual Showcase Demo Long-Term Plan
 
-> **Progress: 10%** (as of 2026-09-23; weighted across the Phase A-E acceptance items;
-> completed items use ✅; a headless contract does not complete a windowed phase.)
+> **Progress: 10%** (as of 2026-09-25; weighted across the Phase A-E acceptance items;
+> Linux/Vulkan Phase A implementation awaits native virtual-display acceptance.)
 
 ## 0. Current-state audit
 
 - ✅ C++-owned `NexoraShowcase` entry point, CLI, and ordered Engine/module shutdown exist.
 - ✅ A deterministic headless scene, validation RHI, scene extraction, and JSON evidence report exist.
 - ✅ The Zig static consumer provides fixed/update, Transform read/write, and transactional state migration.
-- Open: native window/input/swapchain are owned by the Window and Native Presentation Roadmap.
+- ✅ Source/test audit confirmed that Window, Presentation, and RHI buffer contracts already exist;
+  the Showcase reuses `RenderSurface` rather than recreating those boundaries.
+- Implemented pending native acceptance: Linux/X11/Vulkan windowed startup, bounded resize, clear color, triangle, diagnostics panel, shutdown, and Xvfb smoke.
 - Open: real 3D Hub and Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping rooms.
 - Open: M0-M12 probe registry, interactive/guided tour, error injection, and visual status UI.
-- Open: clean package launch, manifest/checksum, windowed smoke, and versioned screenshot evidence.
+- Open: physical-display target-host acceptance and versioned screenshot evidence.
 
 > Document version: v1.0
 >
@@ -270,11 +272,13 @@ The UI, headless report, CTest adapter, and Guided Tour all consume the same res
 
 Goal: produce a first `NexoraShowcase.exe` that can open a window, close it, resize, and show a clear color plus a diagnostics overlay.
 
-- Create the `Apps/Showcase` target and command-line parsing.
-- Create the backend-neutral WindowSurface contract.
-- Implement Win32 window and DX12 swapchain on Windows.
-- Keep the existing offscreen device/test path unchanged.
-- Add `showcase.startup`, `showcase.resize`, `showcase.shutdown` smoke tests.
+- ✅ Reuse the existing `Apps/Showcase` target, CLI, Window abstraction, and `RenderSurface` presentation boundary after auditing their source and tests.
+- Implemented pending native acceptance: Linux/X11/Vulkan windowed startup and bounded shutdown.
+- Implemented pending native acceptance: clear color, triangle, and diagnostics panel through `CompositeRgba8`.
+- Implemented pending native acceptance: `showcase.linux_vulkan_virtual_display` exercises resize/swapchain recreation and startup/present/shutdown under Xvfb.
+- ✅ Keep validation-RHI headless execution unchanged and report headless/windowed evidence in separate JSON objects.
+
+Linux/Vulkan is the Phase A cloud implementation slice; it becomes accepted only after the virtual-display test executes rather than skips. Existing Windows/DX12 and macOS/Metal adapters are not claimed as target-host acceptance by this Linux run.
 
 ### Phase B -- First 3D Vertical Slice
 

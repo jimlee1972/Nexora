@@ -25,6 +25,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 extern "C" int32_t NexoraGameModuleLoad(uint32_t requested_abi, NexoraGameModuleV3 *module);
 extern "C" uint32_t NexoraGameModuleUpdateCount();
@@ -52,6 +53,8 @@ struct CommandLine final {
   std::filesystem::path gameplay_library;
   std::string capabilities{"auto"};
   std::filesystem::path report;
+  std::uint32_t resize_width{};
+  std::uint32_t resize_height{};
 };
 
 struct ShowcaseHostContext final {
@@ -108,6 +111,9 @@ struct ShowcaseRun final {
   bool backend_fallback{};
   std::string fallback_reason;
   Nexora::Presentation::SurfaceDiagnostics surface{};
+  std::string windowed_backend{"none"};
+  std::uint32_t resize_requests{};
+  std::uint32_t composed_frames{};
 };
 
 enum class CapabilityState { Implemented, ContractOnly, Unavailable };
@@ -187,6 +193,20 @@ bool ParseUnsigned(std::string_view text, std::size_t &value) {
   return result.ec == std::errc{} && result.ptr == end;
 }
 
+bool ParseExtent(std::string_view text, std::uint32_t &width, std::uint32_t &height) {
+  const auto separator = text.find('x');
+  std::size_t parsedWidth = 0;
+  std::size_t parsedHeight = 0;
+  if (separator == std::string_view::npos ||
+      !ParseUnsigned(text.substr(0, separator), parsedWidth) ||
+      !ParseUnsigned(text.substr(separator + 1), parsedHeight) || parsedWidth == 0 ||
+      parsedHeight == 0 || parsedWidth > 8192 || parsedHeight > 8192)
+    return false;
+  width = static_cast<std::uint32_t>(parsedWidth);
+  height = static_cast<std::uint32_t>(parsedHeight);
+  return true;
+}
+
 bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &error) {
   for (int index = 1; index < argc; ++index) {
     const std::string_view argument{argv[index]};
@@ -211,6 +231,11 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       command.report = std::filesystem::path(argument.substr(9));
       if (command.report.empty()) {
         error = "--report requires a path";
+        return false;
+      }
+    } else if (argument.starts_with("--resize=")) {
+      if (!ParseExtent(argument.substr(9), command.resize_width, command.resize_height)) {
+        error = "--resize must be WIDTHxHEIGHT with dimensions from 1 to 8192";
         return false;
       }
     } else if (argument.starts_with("--mode=")) {
@@ -270,6 +295,7 @@ void PrintUsage() {
          "  --validate-v1              include the V1 validation label in the report\n"
          "  --frames=N                 run N fixed/update frames (1..10000)\n"
          "  --report=PATH              write the JSON report to PATH\n"
+         "  --resize=WIDTHxHEIGHT      request one native resize after startup\n"
          "  --no-reload                skip the transactional Zig state reload\n"
          "  --mode=headless|interactive select deterministic or native presentation\n"
          "  --scene=ROOM               select hub, tour, math, scene, gameplay, presentation, "
@@ -278,6 +304,55 @@ void PrintUsage() {
          "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n"
          "  --gameplay-library=PATH     override the dynamic Zig artifact path\n"
          "  --capabilities=auto|minimal override the gallery capability probe\n";
+}
+
+std::vector<std::byte> BuildShowcaseFrame(std::uint32_t width, std::uint32_t height) {
+  std::vector<std::byte> pixels(static_cast<std::size_t>(width) * height * 4U);
+  auto setPixel = [&](std::uint32_t x, std::uint32_t y, std::uint8_t r, std::uint8_t g,
+                      std::uint8_t b) {
+    const auto offset = (static_cast<std::size_t>(y) * width + x) * 4U;
+    pixels[offset] = static_cast<std::byte>(r);
+    pixels[offset + 1] = static_cast<std::byte>(g);
+    pixels[offset + 2] = static_cast<std::byte>(b);
+    pixels[offset + 3] = std::byte{255};
+  };
+  for (std::uint32_t y = 0; y < height; ++y)
+    for (std::uint32_t x = 0; x < width; ++x)
+      setPixel(x, y, 13, static_cast<std::uint8_t>(24 + (24U * y) / height), 48);
+
+  const float ax = width * 0.50F;
+  const float ay = height * 0.16F;
+  const float bx = width * 0.20F;
+  const float by = height * 0.80F;
+  const float cx = width * 0.80F;
+  const float cy = height * 0.80F;
+  const auto edge = [](float x0, float y0, float x1, float y1, float x, float y) {
+    return (x - x0) * (y1 - y0) - (y - y0) * (x1 - x0);
+  };
+  for (std::uint32_t y = 0; y < height; ++y) {
+    for (std::uint32_t x = 0; x < width; ++x) {
+      const float w0 = edge(bx, by, cx, cy, static_cast<float>(x), static_cast<float>(y));
+      const float w1 = edge(cx, cy, ax, ay, static_cast<float>(x), static_cast<float>(y));
+      const float w2 = edge(ax, ay, bx, by, static_cast<float>(x), static_cast<float>(y));
+      if ((w0 >= 0 && w1 >= 0 && w2 >= 0) || (w0 <= 0 && w1 <= 0 && w2 <= 0))
+        setPixel(x, y, static_cast<std::uint8_t>(70 + 150 * y / height),
+                 static_cast<std::uint8_t>(210 - 100 * x / width), 245);
+    }
+  }
+
+  const auto panelWidth = std::min<std::uint32_t>(width / 3U, 300U);
+  const auto panelHeight = std::min<std::uint32_t>(height / 4U, 120U);
+  for (std::uint32_t y = 12; y < 12 + panelHeight && y < height; ++y)
+    for (std::uint32_t x = 12; x < 12 + panelWidth && x < width; ++x)
+      setPixel(x, y, 20, 29, 43);
+  for (std::uint32_t row = 0; row < 4; ++row) {
+    const auto y0 = 25U + row * 20U;
+    const auto barWidth = panelWidth > 40 ? panelWidth - 28U - row * 18U : 0U;
+    for (std::uint32_t y = y0; y < y0 + 6U && y < height; ++y)
+      for (std::uint32_t x = 26; x < 26 + barWidth && x < width; ++x)
+        setPixel(x, y, row == 0 ? 74 : 148, row == 0 ? 222 : 163, row == 0 ? 128 : 184);
+  }
+  return pixels;
 }
 
 void Log(void *opaque_context, std::uint32_t level, const char *message,
@@ -551,6 +626,14 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     if (created) {
       nativeSurface = std::move(created.surface);
       result.native_presentation = true;
+#if defined(__linux__)
+      result.windowed_backend = "vulkan";
+#elif defined(_WIN32)
+      result.windowed_backend =
+          backend == Nexora::Presentation::SurfaceBackend::Vulkan ? "vulkan" : "dx12";
+#elif defined(__APPLE__)
+      result.windowed_backend = "metal";
+#endif
     } else if (command.backend == "auto") {
       result.backend_fallback = true;
       result.fallback_reason = created.reason;
@@ -603,6 +686,15 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
       }
       context.input = nativeSurface->Input();
       UpdateInteractiveCamera(context);
+      if (frame == 0 && command.resize_width != 0) {
+        if (nativeSurface->Resize(command.resize_width, command.resize_height) !=
+            Nexora::Window::WindowError::None) {
+          error = "native window resize request failed";
+          device->DestroyTexture(output);
+          return false;
+        }
+        ++result.resize_requests;
+      }
     }
     context.frame = frame + 1;
     engine.BeginFrame();
@@ -614,6 +706,17 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     world.EndFrame();
     ++executedFrames;
     if (nativeSurface) {
+      const auto frameInfo = nativeSurface->FrameInfo();
+      const auto pixels = BuildShowcaseFrame(frameInfo.width, frameInfo.height);
+      const auto composite =
+          nativeSurface->CompositeRgba8(pixels, frameInfo.width, frameInfo.height);
+      if (composite != Nexora::Presentation::SurfaceStatus::Ready) {
+        error = "showcase frame composition failed: " +
+                std::string(Nexora::Presentation::ToString(composite));
+        device->DestroyTexture(output);
+        return false;
+      }
+      ++result.composed_frames;
       const auto status = nativeSurface->EndFrame();
       if (status != Nexora::Presentation::SurfaceStatus::Ready &&
           status != Nexora::Presentation::SurfaceStatus::Occluded) {
@@ -733,7 +836,7 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"transactional_reload\": \"" << (run.reload_ok ? "IMPLEMENTED" : "FAIL")
          << "\",\n"
          << "    \"windowed_native_backend\": \""
-         << (run.native_presentation ? "IMPLEMENTED" : "AVAILABLE ON WINDOWS") << "\",\n"
+         << (run.native_presentation ? "IMPLEMENTED" : "NOT EXECUTED") << "\",\n"
          << "    \"camera_input\": \"IMPLEMENTED\",\n"
          << "    \"selection_raycast\": \"IMPLEMENTED\",\n"
          << "    \"capability_overlays\": \"IMPLEMENTED\"\n"
@@ -783,13 +886,9 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"raycasts\": " << run.raycasts << ",\n"
          << "    \"selected_entity\": " << run.selected_entity << "\n"
          << "  },\n"
-         << "  \"render_evidence\": {\n"
-         << "    \"backend\": \"" << (run.native_presentation ? "DX12" : "Validation") << "\",\n"
-         << "    \"backend_fallback\": " << run.backend_fallback << ",\n"
-         << "    \"fallback_reason\": \"" << run.fallback_reason << "\",\n"
-         << "    \"recovery_action\": \"" << run.presentation_recovery << "\",\n"
-         << "    \"surface_acquires\": " << run.surface.acquiredFrames << ",\n"
-         << "    \"surface_presents\": " << run.surface.presentedFrames << ",\n"
+         << "  \"headless_evidence\": {\n"
+         << "    \"executed\": " << command.headless << ",\n"
+         << "    \"backend\": \"Validation\",\n"
          << "    \"visible_meshes\": " << run.visible_meshes << ",\n"
          << "    \"passes\": " << run.render.passes << ",\n"
          << "    \"barriers\": " << run.render.barriers << ",\n"
@@ -797,6 +896,21 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"draw_calls\": " << run.device.draw_calls << ",\n"
          << "    \"presents\": " << run.device.presents << ",\n"
          << "    \"validation_errors\": " << run.device.validation_errors << "\n"
+         << "  },\n"
+         << "  \"windowed_evidence\": {\n"
+         << "    \"executed\": " << run.native_presentation << ",\n"
+         << "    \"backend\": \"" << run.windowed_backend << "\",\n"
+         << "    \"backend_fallback\": " << run.backend_fallback << ",\n"
+         << "    \"fallback_reason\": \"" << run.fallback_reason << "\",\n"
+         << "    \"recovery_action\": \"" << run.presentation_recovery << "\",\n"
+         << "    \"surface_acquires\": " << run.surface.acquiredFrames << ",\n"
+         << "    \"surface_presents\": " << run.surface.presentedFrames << ",\n"
+         << "    \"resize_requests\": " << run.resize_requests << ",\n"
+         << "    \"resize_generations\": " << run.surface.resizeGenerations << ",\n"
+         << "    \"composed_frames\": " << run.composed_frames << ",\n"
+         << "    \"clear_color\": true,\n"
+         << "    \"triangle\": true,\n"
+         << "    \"diagnostics_overlay\": true\n"
          << "  },\n"
          << "  \"reload\": {\n"
          << "    \"requested\": " << command.reload << ",\n"

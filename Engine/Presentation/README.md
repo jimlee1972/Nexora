@@ -30,3 +30,8 @@ observable diagnostics. `RecoveryAction()` is the application policy boundary: z
 the source window. Portable tests cover multi-surface lifetime, 2,048 resize cycles, zero extent,
 failure injection, ordering, and idempotent teardown. Real acquire/render/present acceptance remains
 separate target-host evidence for Windows/DX12, Linux and Windows/Vulkan, and macOS/Metal.
+
+Application owners may request a client resize through `RenderSurface::Resize`; the call follows the
+window owner-thread rule and the resulting event publishes the new extent on a later `BeginFrame`.
+This keeps resize requests above the native window abstraction while swapchain recreation remains
+private to Presentation.

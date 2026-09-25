@@ -90,6 +90,11 @@ std::span<const Window::WindowEvent> RenderSurface::Events() const noexcept {
                 : std::span<const Window::WindowEvent>{};
 }
 
+Window::WindowError RenderSurface::Resize(std::uint32_t width, std::uint32_t height) {
+  return state_ && !state_->destroyed ? state_->windows->Resize(state_->window, width, height)
+                                      : Window::WindowError::InvalidHandle;
+}
+
 Window::WindowError RenderSurface::SetImeCandidatePosition(std::int32_t x, std::int32_t y) {
   return state_ && !state_->destroyed
              ? state_->windows->SetImeCandidatePosition(state_->window, x, y)

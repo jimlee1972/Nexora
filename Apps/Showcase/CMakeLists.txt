@@ -55,6 +55,7 @@ add_custom_target(NexoraShowcasePackageShipping
   VERBATIM)
 
 if(BUILD_TESTING)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
   add_test(
     NAME showcase.zig_headless
     COMMAND NexoraShowcase --headless --validate-v1 --frames=4)
@@ -74,4 +75,15 @@ if(BUILD_TESTING)
   set_tests_properties(showcase.capability_fallbacks PROPERTIES
     PASS_REGULAR_EXPRESSION
       "Gameplay Lab.*CONTRACT ONLY.*Presentation Lab.*CONTRACT ONLY.*Streaming Lab.*UNAVAILABLE")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_test(
+      NAME showcase.linux_vulkan_virtual_display
+      COMMAND "${Python3_EXECUTABLE}"
+              "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVirtualDisplaySmoke.py"
+              "$<TARGET_FILE:NexoraShowcase>")
+    set_tests_properties(showcase.linux_vulkan_virtual_display PROPERTIES
+      LABELS "showcase;vulkan;virtual-display"
+      SKIP_RETURN_CODE 77
+      TIMEOUT 45)
+  endif()
 endif()
