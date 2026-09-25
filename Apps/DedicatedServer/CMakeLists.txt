@@ -1,0 +1,4 @@
+include(NexoraTarget)
+add_executable(NexoraDedicatedServer main.cpp)
+target_link_libraries(NexoraDedicatedServer PRIVATE Nexora::Network)
+nexora_apply_defaults(NexoraDedicatedServer)

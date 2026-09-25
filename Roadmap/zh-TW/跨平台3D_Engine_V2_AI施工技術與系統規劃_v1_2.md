@@ -4,7 +4,7 @@
 **對應來源：跨平台3D_Engine_V2_完整規劃書_v1_4.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
-> **進度：31%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 已驗收；V2-M3、V2-M5 至 V2-M12 仍待完成。）
+> **進度：38%**（✅ V2-M0 至 ✅ V2-M2、✅ V2-M4 與 ✅ V2-M5 已驗收；V2-M3、V2-M6 至 V2-M12 仍待完成。）
 
 
 
@@ -1695,6 +1695,9 @@ Presentation smoothing
 
 # V2 Dedicated Server
 
+**已交付（V2-M5）：✅** Renderer-free `NexoraDedicatedServer` target、含版本與 build identity 的 handshake、明確 channel semantics、deterministic packet simulation，以及 connect／disconnect rejection gate 均由 Linux 測試覆蓋。
+
+
 Profile：
 
 ```text
@@ -2284,7 +2287,7 @@ LiveOps 可 rollback
 ✅ V2-M2  GPUScene
 V2-M3  GPU-driven Renderer
 V2-M4  Large World V2
-V2-M5  Dedicated Server / Transport
+✅ V2-M5  Dedicated Server / Transport
 V2-M6  Replication / Interest / Prediction / Replay
 V2-M7  Navigation / Crowd / AI V2
 V2-M8  Animation V2

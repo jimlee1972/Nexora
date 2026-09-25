@@ -18,6 +18,13 @@
       ]
     },
     {
+      "name": "Network",
+      "feature": "NEXORA_ENABLE_NETWORK",
+      "dependencies": [
+        "Core"
+      ]
+    },
+    {
       "name": "RHI",
       "dependencies": [
         "Core"
@@ -54,6 +61,13 @@
       "name": "Host",
       "dependencies": [
         "Runtime"
+      ]
+    },
+    {
+      "name": "DedicatedServer",
+      "feature": "NEXORA_ENABLE_DEDICATED_SERVER",
+      "dependencies": [
+        "Network"
       ]
     },
     {
