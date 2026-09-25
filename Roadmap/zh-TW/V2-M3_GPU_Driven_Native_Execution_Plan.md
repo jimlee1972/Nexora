@@ -190,7 +190,12 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
 
 ### Phase 3 — D3D12 backend
 
-- 在 `D3D12Device` 的 command list 上實作 `Dispatch` 跟 `DrawIndirect`（目前完全沒有）：
+> **更新（2026-09-25）：command recording 已實作，target-host 驗收待完成。** Backend 現已記錄
+> `Dispatch` 與 `ExecuteIndirect`、使用 canonical 36-byte command stride、追蹤兩項 diagnostics、
+> 接受 compute command list，並於 Windows 將 Slang compute entry point 建置成 DXIL。目前 Linux
+> 環境未執行必要的 Windows execution 與 `CompareGPUDrivenResults()` 證據，因此不將 Phase 3 標為 ✅。
+
+- 在 `D3D12Device` 的 command list 上實作 `Dispatch` 跟 `DrawIndirect`：
   `ID3D12GraphicsCommandList::Dispatch`，以及搭配跟 `BuildGPUDrivenCommands()` 已經產生的
   indirect-buffer layout 一致的 command signature 的 `ExecuteIndirect`。
 - 把 Phase 1/2 的 compute shader 搬過來（Slang 本來就針對多個 backend，照現有 shader-contract
