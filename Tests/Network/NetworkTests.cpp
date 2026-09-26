@@ -1,4 +1,5 @@
 #include "Nexora/Network/EntityMapping.h"
+#include "Nexora/Network/Replication.h"
 #include "Nexora/Network/Transport.h"
 
 #include <cstddef>
@@ -225,6 +226,156 @@ void TestNetworkEntityMapping() {
           "server allocated two IDs for one local entity");
 }
 
+ReplicationSchema TestSchema() {
+  return {
+      0x10203040,
+      2,
+      {{1, WireType::Unsigned, FieldCompatibility::Required, Quantization{0, 1000, 10}, "health"},
+       {7, WireType::Bytes, FieldCompatibility::Optional, std::nullopt, "name"}}};
+}
+
+std::vector<std::byte> ByteValues(std::initializer_list<unsigned> values) {
+  std::vector<std::byte> result;
+  for (const auto value : values) {
+    result.push_back(static_cast<std::byte>(value));
+  }
+  return result;
+}
+
+void TestReplicationSchemaAndSnapshot() {
+  const auto schema = TestSchema();
+  Require(schema.IsValid(), "replication schema was invalid");
+  Require(schema.Hash() == 0xa634de9a8a78180cull, "cross-build schema hash changed");
+  ReplicationSchema older{
+      0x10203040,
+      1,
+      {{1, WireType::Unsigned, FieldCompatibility::Required, Quantization{0, 1000, 10}, "hp"}}};
+  Require(schema.IsBackwardCompatibleWith(older), "optional schema extension was incompatible");
+  ReplicationSchema breaking{
+      0x10203040,
+      3,
+      {{1, WireType::Signed, FieldCompatibility::Required, Quantization{0, 1000, 10}, "health"}}};
+  Require(!breaking.IsBackwardCompatibleWith(schema), "wire type change was compatible");
+
+  Snapshot input{42,
+                 {{7, WireType::Bytes, ByteValues({'n', 'p', 'c'})},
+                  {1, WireType::Unsigned, ByteValues({0x64, 0x00})}},
+                 {}};
+  const auto encoded = EncodeSnapshot(schema, input);
+  const auto golden = ByteValues({
+      0x50, 0x52, 0x53, 0x4e, 0x40, 0x30, 0x20, 0x10, 0x02, 0x00, 0x0c, 0x18,
+      0x78, 0x8a, 0x9a, 0xde, 0x34, 0xa6, 0x2a, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00, 0x64,
+      0x00, 0x07, 0x00, 0x03, 0x03, 0x00, 0x00, 0x00, 0x6e, 0x70, 0x63,
+  });
+  Require(encoded == golden, "snapshot golden byte vector changed");
+  Snapshot decoded;
+  Require(DecodeSnapshot(schema, encoded, decoded) == SnapshotError::None,
+          "snapshot decode failed");
+  Require(EncodeSnapshot(schema, decoded) == golden, "snapshot round trip was not deterministic");
+
+  ReplicationSchema old_reader{
+      0x10203040,
+      1,
+      {{1, WireType::Unsigned, FieldCompatibility::Required, Quantization{0, 1000, 10}, "hp"}}};
+  Snapshot forwarded;
+  Require(DecodeSnapshot(old_reader, encoded, forwarded) == SnapshotError::None,
+          "older schema rejected an optional unknown field");
+  Require(forwarded.unknown_fields.size() == 1 &&
+              forwarded.unknown_fields.front() == input.fields.front(),
+          "unknown field was not preserved byte-for-byte");
+
+  for (std::size_t size = 0; size < encoded.size(); ++size) {
+    Snapshot rejected;
+    Require(DecodeSnapshot(schema, std::span{encoded}.first(size), rejected) != SnapshotError::None,
+            "truncated snapshot was accepted");
+  }
+}
+
+void TestDeltaCompression() {
+  const auto schema = TestSchema();
+  Snapshot baseline{
+      100,
+      {{1, WireType::Unsigned, ByteValues({10})}, {7, WireType::Bytes, ByteValues({'a'})}},
+      {}};
+  Snapshot current{
+      101,
+      {{1, WireType::Unsigned, ByteValues({11})}, {7, WireType::Bytes, ByteValues({'a'})}},
+      {}};
+  const auto delta = EncodeDelta(schema, current, &baseline);
+  Require(!delta.full_snapshot && delta.baseline_id == baseline.id,
+          "delta did not identify its baseline");
+  Snapshot decoded;
+  Require(DecodeDelta(schema, delta, &baseline, decoded) == DeltaError::None && decoded == current,
+          "delta deterministic round trip failed");
+  Require(DecodeDelta(schema, delta, nullptr, decoded) == DeltaError::BaselineMissing,
+          "missing baseline did not request fallback");
+  const auto full = EncodeDelta(schema, current, nullptr);
+  Require(full.full_snapshot && DecodeDelta(schema, full, nullptr, decoded) == DeltaError::None &&
+              decoded == current,
+          "full snapshot fallback failed");
+
+  for (std::size_t size = 0; size < delta.bytes.size(); ++size) {
+    auto truncated = delta;
+    truncated.bytes.resize(size);
+    Require(DecodeDelta(schema, truncated, &baseline, decoded) != DeltaError::None,
+            "truncated delta was accepted");
+  }
+  auto corrupt = delta;
+  corrupt.bytes[0] ^= std::byte{0xff};
+  Require(DecodeDelta(schema, corrupt, &baseline, decoded) == DeltaError::Malformed,
+          "corrupt delta was accepted");
+
+  BaselineStore store(2);
+  store.Insert(baseline);
+  store.Insert(current);
+  store.Insert(Snapshot{102, current.fields, {}});
+  Require(store.Find(100) == nullptr && store.Find(101) != nullptr,
+          "expired baseline was retained");
+}
+
+class ExplicitInterestProvider final : public IInterestProvider {
+public:
+  std::unordered_map<ConnectionID, std::vector<NetworkEntityID>> subscriptions;
+
+  InterestQuery Query(ConnectionID connection, std::size_t cursor,
+                      std::size_t max_work) const override {
+    const auto found = subscriptions.find(connection);
+    if (found == subscriptions.end()) {
+      return {{}, 0, true};
+    }
+    const auto end = std::min(found->second.size(), cursor + max_work);
+    return {{found->second.begin() + static_cast<std::ptrdiff_t>(cursor),
+             found->second.begin() + static_cast<std::ptrdiff_t>(end)},
+            end,
+            end == found->second.size()};
+  }
+};
+
+void TestInterestManagement() {
+  ExplicitInterestProvider provider;
+  provider.subscriptions[1] = {{1, 1}, {2, 1}, {3, 1}};
+  provider.subscriptions[2] = {{99, 1}};
+  InterestManager manager;
+  const auto partial = manager.Update(1, provider, 2);
+  Require(!partial.complete && partial.spawn.empty() && partial.work <= 2,
+          "interest update exceeded budget or exposed a partial scan");
+  const auto entered = manager.Update(1, provider, 2);
+  Require(entered.complete && entered.spawn.size() == 3 && entered.work <= 2,
+          "interest enter semantics failed");
+  Require(!manager.Contains(1, {99, 1}), "connection interest degraded into global replication");
+  Require(manager.Update(2, provider, 1).spawn == std::vector<NetworkEntityID>{{99, 1}},
+          "connection-scoped interest sets leaked");
+
+  provider.subscriptions[1] = {{2, 1}};
+  const auto changed = manager.Update(1, provider, 4);
+  Require(changed.spawn.empty() && changed.despawn.size() == 2 && manager.Contains(1, {2, 1}) &&
+              !manager.Contains(1, {1, 1}),
+          "interest leave/despawn semantics failed");
+  manager.Remove(1);
+  Require(!manager.Contains(1, {2, 1}), "removed connection retained interest state");
+}
+
 } // namespace
 
 int main() {
@@ -234,4 +385,7 @@ int main() {
   TestIdentityMismatchRejection();
   TestReconnectDisconnectStress();
   TestNetworkEntityMapping();
+  TestReplicationSchemaAndSnapshot();
+  TestDeltaCompression();
+  TestInterestManagement();
 }
