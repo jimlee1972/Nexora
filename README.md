@@ -54,7 +54,7 @@ The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, AP
 
 #### V2 networking status
 
-V2-M5 is complete for the portable foundation: the `linux-headless` preset builds only the renderer-free server closure, and `NexoraNetwork` exposes synchronous loopback/simulated transports and a connection contract with protocol/build identity checks, explicit channel semantics, and deterministic loss/latency/jitter simulation. Headless tests cover malformed handshakes and 1,000 reconnect/disconnect cycles; dependency checks verify the declared closure and configured targets. `NexoraDedicatedServer` links only through Network → Core → Foundation, keeping Renderer and presentation modules outside its dependency closure. Native socket, encryption, and hosted production deployment remain backend gates.
+V2-M5 is complete for the portable foundation: the `linux-headless` preset builds only the renderer-free server closure, and `NexoraNetwork` exposes synchronous loopback/simulated transports and a connection contract with protocol/build identity checks, explicit channel semantics, and deterministic loss/latency/jitter simulation. The first V2-M6 slice adds server-authoritative generational `NetworkEntityID` allocation, independent client/server local-entity mappings, stale-ID rejection, and spawn/despawn/reconnect cleanup. Headless tests cover completely different peer-local IDs, malformed handshakes, and 1,000 reconnect/disconnect cycles; dependency checks verify the declared closure and configured targets. The remaining replication, interest, prediction, and replay gates keep V2-M6 open. `NexoraDedicatedServer` links only through Network → Core → Foundation, keeping Renderer and presentation modules outside its dependency closure. Native socket, encryption, and hosted production deployment remain backend gates.
 
 #### V2 GPU-driven status
 
@@ -152,7 +152,7 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 
 #### V2 Networking 狀態
 
-V2-M5 portable foundation 已完成：`linux-headless` preset 僅建置 renderer-free server closure，而 `NexoraNetwork` 提供 synchronous loopback／simulated transport 與 connection contract，包含 protocol／build identity 檢查、明確 channel semantics，以及 deterministic loss／latency／jitter simulation。Headless tests 涵蓋 malformed handshake 與 1,000 次 reconnect／disconnect cycle；dependency checks 會驗證宣告的 closure 與實際設定產生的 targets。`NexoraDedicatedServer` 僅透過 Network → Core → Foundation 連結，Renderer 與 presentation module 不會進入其 dependency closure。Native socket、encryption 與 hosted production deployment 仍為 backend gate。
+V2-M5 portable foundation 已完成：`linux-headless` preset 僅建置 renderer-free server closure，而 `NexoraNetwork` 提供 synchronous loopback／simulated transport 與 connection contract，包含 protocol／build identity 檢查、明確 channel semantics，以及 deterministic loss／latency／jitter simulation。首個 V2-M6 slice 新增 server-authoritative generational `NetworkEntityID` allocation、client／server 各自獨立的 local-entity mapping、stale-ID rejection，以及 spawn／despawn／reconnect cleanup。Headless tests 涵蓋完全不同的 peer-local ID、malformed handshake 與 1,000 次 reconnect／disconnect cycle；dependency checks 會驗證宣告的 closure 與實際設定產生的 targets。其餘 replication、interest、prediction 與 replay gate 尚未完成，因此 V2-M6 維持未驗收。`NexoraDedicatedServer` 僅透過 Network → Core → Foundation 連結，Renderer 與 presentation module 不會進入其 dependency closure。Native socket、encryption 與 hosted production deployment 仍為 backend gate。
 
 #### V2 GPU-driven 狀態
 

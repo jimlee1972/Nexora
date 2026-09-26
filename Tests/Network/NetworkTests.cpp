@@ -1,3 +1,4 @@
+#include "Nexora/Network/EntityMapping.h"
 #include "Nexora/Network/Transport.h"
 
 #include <cstddef>
@@ -179,6 +180,51 @@ void TestReconnectDisconnectStress() {
   }
 }
 
+void TestNetworkEntityMapping() {
+  ServerEntityMap server;
+  ClientEntityMap client;
+  constexpr LocalEntityID server_local = 17;
+  constexpr LocalEntityID client_local = 9'000'001;
+
+  const auto first = server.Spawn(server_local);
+  Require(first.has_value(), "server did not allocate a network entity ID");
+  Require(server.Resolve(*first) == server_local, "server network mapping did not resolve");
+  Require(client.Spawn(*first, client_local), "client did not bind the server spawn");
+  Require(client.Resolve(*first) == client_local, "client network mapping did not resolve");
+  Require(server_local != client_local, "test local entity IDs unexpectedly match");
+  Require(server.Resolve(*first) != client.Resolve(*first),
+          "network identity did not decouple peer-local entity IDs");
+
+  Require(server.Despawn(*first), "server did not despawn network entity");
+  Require(client.Despawn(*first), "client did not apply network despawn");
+  Require(!server.Resolve(*first).has_value(), "server accepted a stale network entity ID");
+  Require(!client.Resolve(*first).has_value(), "client accepted a stale network entity ID");
+  Require(!client.Spawn(*first, client_local + 1), "client rebound a stale generation");
+
+  const auto second = server.Spawn(server_local + 1);
+  Require(second.has_value(), "server did not reuse a released network slot");
+  Require(second->index == first->index && second->generation > first->generation,
+          "server did not advance the reused slot generation");
+  Require(client.Spawn(*second, client_local + 1), "client rejected a fresh generation");
+  Require(!client.Despawn(*first), "stale despawn removed a fresh client binding");
+  Require(client.Resolve(*second) == client_local + 1,
+          "stale despawn corrupted the fresh client binding");
+
+  server.ResetSession();
+  client.ResetSession();
+  Require(server.Size() == 0 && client.Size() == 0, "reconnect reset retained entity mappings");
+  Require(!server.Resolve(*second).has_value(), "server reconnect retained an old mapping");
+  Require(!client.Resolve(*second).has_value(), "client reconnect retained an old mapping");
+
+  const auto reconnected = server.Spawn(server_local + 2);
+  Require(reconnected.has_value() && reconnected->generation > second->generation,
+          "server reconnect did not invalidate the previous session generation");
+  Require(client.Spawn(*reconnected, client_local + 2),
+          "client could not bind an entity after reconnect");
+  Require(!server.Spawn(server_local + 2).has_value(),
+          "server allocated two IDs for one local entity");
+}
+
 } // namespace
 
 int main() {
@@ -187,4 +233,5 @@ int main() {
   TestMalformedHandshakes();
   TestIdentityMismatchRejection();
   TestReconnectDisconnectStress();
+  TestNetworkEntityMapping();
 }

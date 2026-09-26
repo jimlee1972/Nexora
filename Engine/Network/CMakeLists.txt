@@ -1,5 +1,5 @@
 include(NexoraTarget)
-add_library(NexoraNetwork ${NEXORA_MODULE_LIBRARY_TYPE} src/Transport.cpp)
+add_library(NexoraNetwork ${NEXORA_MODULE_LIBRARY_TYPE} src/EntityMapping.cpp src/Transport.cpp)
 add_library(Nexora::Network ALIAS NexoraNetwork)
 target_include_directories(NexoraNetwork PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_link_libraries(NexoraNetwork PUBLIC Nexora::Core)
