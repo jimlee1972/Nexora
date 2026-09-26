@@ -13,6 +13,18 @@ void Require(bool value, const char *message) {
     throw std::runtime_error(message);
 }
 
+class TestDebugger final : public DebuggerAdapter {
+public:
+  bool Attach() override {
+    snapshot.state = DebuggerState::Running;
+    return true;
+  }
+  void Detach() noexcept override { snapshot = {}; }
+  DebuggerSnapshot Poll() override { return snapshot; }
+
+  DebuggerSnapshot snapshot;
+};
+
 int Run() {
   Require(EditorSdkEnabled(), "editor SDK unexpectedly stripped");
 
@@ -152,6 +164,67 @@ int Run() {
               world.FindEntity(pie_entity_id)->transform.x == 1.25,
           "explicit PIE transform apply-back failed");
   Require(!play.Stop(ApplyBackPolicy::Transforms), "stopped PIE session accepted another stop");
+
+  // ---- PIE Console / inspection / debugger / recovery / conflict contracts ----
+  RuntimeConsole console(2);
+  Require(
+      console.Push({0, RuntimeLogSeverity::Info, "gameplay", 100, "player.zig:10", "ready"}) &&
+          console.Push(
+              {0, RuntimeLogSeverity::Warning, "physics", 200, "motor.cpp:20", "blocked"}) &&
+          console.Push({0, RuntimeLogSeverity::Error, "gameplay", 300, "player.zig:30", "failed"}),
+      "structured runtime records were rejected");
+  const auto records = console.Snapshot();
+  Require(records.size() == 2 && records[0].sequence == 2 && records[1].sequence == 3 &&
+              records[1].severity == RuntimeLogSeverity::Error && console.DroppedCount() == 1,
+          "bounded Console ordering or visible drop count failed");
+  RuntimeConsole disabled_console(0);
+  Require(!disabled_console.Push({}) && disabled_console.DroppedCount() == 1,
+          "zero-capacity Console did not report its dropped record");
+
+  bool fail_next = false;
+  const auto recoverable_simulate = [pie_entity_id, &fail_next](World &play_world, double) {
+    if (fail_next) {
+      fail_next = false;
+      return false;
+    }
+    return play_world.FindEntity(pie_entity_id) != nullptr;
+  };
+  Require(play.Start(0.25, recoverable_simulate), "recoverable PIE session did not start");
+  const auto inspection = play.Inspect();
+  Require(inspection.fixed_tick == 0 && inspection.entities.size() == 1 &&
+              inspection.entities.front().id == pie_entity_id &&
+              inspection.entities.front().transform.x == 1.25,
+          "runtime inspection did not return an owning component snapshot");
+
+  TestDebugger debugger;
+  Require(debugger.Attach(), "debugger adapter did not attach");
+  debugger.snapshot = {
+      DebuggerState::Paused, DebuggerLocation{"player.zig", 42, 3}, {"breakpoint"}};
+  play.SetInputFocus(true);
+  Require(play.PollDebugger(debugger) && play.State() == PlayState::Paused &&
+              play.LastPauseReason() == PauseReason::DebuggerBreak && !play.AcceptsInput(),
+          "debugger break did not cross the adapter as a safe pause reason");
+  Require(play.Resume(), "PIE did not resume after debugger pause");
+  fail_next = true;
+  Require(!play.Tick() && play.State() == PlayState::Paused &&
+              play.LastPauseReason() == PauseReason::RuntimeFailure && play.Stats().crashes == 1 &&
+              play.Resume() && play.Tick(),
+          "runtime failure was not contained for session recovery");
+  Require(play.Stop(), "recovered PIE session could not stop cleanly");
+
+  Require(play.Start(0.25, simulate) && play.Tick(), "conflict PIE session setup failed");
+  Require(editor.SetTransform(pie_entity_id, {9.0, 0.0, 0.0}),
+          "concurrent Editor transform setup failed");
+  const auto conflicts = play.PreviewTransformApplyBack();
+  Require(conflicts.size() == 1 && conflicts.front().entity == pie_entity_id &&
+              conflicts.front().original.x == 1.25 && conflicts.front().editor.x == 9.0 &&
+              conflicts.front().runtime.x == 1.5 && conflicts.front().editor_exists &&
+              conflicts.front().conflict,
+          "deterministic apply-back conflict preview failed");
+  Require(!play.Stop(ApplyBackPolicy::Transforms) &&
+              play.LastApplyBackStatus() == ApplyBackStatus::Conflict &&
+              world.FindEntity(pie_entity_id)->transform.x == 9.0,
+          "conflicting apply-back mutated the Editor World");
 
   // ---- Prefab / nested prefab / override / rebase / variant ----
   PrefabNode child{"Weapon", {{"damage", "10"}}, {}};

@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <string>
@@ -129,6 +130,83 @@ private:
 
 // ---- Play-in-Editor session ----
 
+enum class RuntimeLogSeverity { Trace, Info, Warning, Error, Fatal };
+
+struct RuntimeLogRecord final {
+  std::uint64_t sequence{};
+  RuntimeLogSeverity severity{RuntimeLogSeverity::Info};
+  std::string category;
+  std::uint64_t timestamp_nanoseconds{};
+  std::string source;
+  std::string message;
+};
+
+// Multi-producer, bounded Console ingress. Snapshot returns owning records in sequence order and
+// never exposes storage that can be invalidated by a producer.
+class NEXORA_RUNTIME_API RuntimeConsole final {
+public:
+  explicit RuntimeConsole(std::size_t capacity) noexcept : capacity_(capacity) {}
+  bool Push(RuntimeLogRecord record);
+  [[nodiscard]] std::vector<RuntimeLogRecord> Snapshot() const;
+  [[nodiscard]] std::uint64_t DroppedCount() const;
+
+private:
+  const std::size_t capacity_;
+  mutable std::mutex mutex_;
+  std::vector<RuntimeLogRecord> records_;
+  std::uint64_t next_sequence_{1};
+  std::uint64_t dropped_{};
+};
+
+struct RuntimeEntitySnapshot final {
+  Id id{};
+  Id scene{};
+  Transform transform{};
+  bool camera{};
+  bool light{};
+  bool mesh_renderer{};
+};
+
+struct RuntimeInspectionSnapshot final {
+  std::uint64_t fixed_tick{};
+  std::vector<RuntimeEntitySnapshot> entities;
+};
+
+enum class PauseReason { None, User, StepComplete, DebuggerBreak, RuntimeFailure };
+enum class DebuggerState { Detached, Running, Paused };
+
+struct DebuggerLocation final {
+  std::string source;
+  std::uint32_t line{};
+  std::uint32_t column{};
+};
+
+struct DebuggerSnapshot final {
+  DebuggerState state{DebuggerState::Detached};
+  std::optional<DebuggerLocation> location;
+  std::vector<std::string> diagnostics;
+};
+
+// Adapter implementations own native debugger/IDE state. PlaySession only consumes copied state.
+class NEXORA_RUNTIME_API DebuggerAdapter {
+public:
+  virtual ~DebuggerAdapter() = default;
+  virtual bool Attach() = 0;
+  virtual void Detach() noexcept = 0;
+  [[nodiscard]] virtual DebuggerSnapshot Poll() = 0;
+};
+
+struct TransformApplyDiff final {
+  Id entity{};
+  Transform original{};
+  Transform editor{};
+  Transform runtime{};
+  bool editor_exists{};
+  bool conflict{};
+};
+
+enum class ApplyBackStatus { Discarded, Applied, Conflict, Failed };
+
 enum class PlayState { Stopped, Playing, Paused };
 enum class ApplyBackPolicy { Discard, Transforms };
 
@@ -136,6 +214,7 @@ struct PlaySessionStats final {
   std::uint64_t fixed_ticks{};
   std::uint64_t manual_steps{};
   std::uint64_t applied_transforms{};
+  std::uint64_t crashes{};
 };
 
 // Owns an isolated Play World cloned from the Editor World. Simulation mutations never reach the
@@ -152,11 +231,16 @@ public:
   bool Tick();
   bool Step();
   bool Stop(ApplyBackPolicy policy = ApplyBackPolicy::Discard);
+  [[nodiscard]] std::vector<TransformApplyDiff> PreviewTransformApplyBack() const;
+  [[nodiscard]] RuntimeInspectionSnapshot Inspect() const;
+  bool PollDebugger(DebuggerAdapter &debugger);
   void SetInputFocus(bool focused) noexcept { input_focused_ = focused && play_world_.has_value(); }
   [[nodiscard]] bool AcceptsInput() const noexcept {
     return input_focused_ && state_ != PlayState::Stopped;
   }
   [[nodiscard]] PlayState State() const noexcept { return state_; }
+  [[nodiscard]] PauseReason LastPauseReason() const noexcept { return pause_reason_; }
+  [[nodiscard]] ApplyBackStatus LastApplyBackStatus() const noexcept { return apply_status_; }
   [[nodiscard]] World *PlayWorld() noexcept { return play_world_ ? &*play_world_ : nullptr; }
   [[nodiscard]] const PlaySessionStats &Stats() const noexcept { return stats_; }
 
@@ -169,6 +253,9 @@ private:
   PlayState state_{PlayState::Stopped};
   bool input_focused_{};
   PlaySessionStats stats_{};
+  std::unordered_map<Id, Transform> source_transforms_;
+  PauseReason pause_reason_{PauseReason::None};
+  ApplyBackStatus apply_status_{ApplyBackStatus::Discarded};
 };
 
 // ---- Prefab / nested prefab / variant ----

@@ -32,7 +32,8 @@ into renderer or platform internals.
   Picking results are accepted only for the latest request and matching scene/viewport generations.
   Scene camera files are atomically replaced, while undo/redo history owns its replay callbacks.
 - `PlaySession` remains the Runtime-owned PIE boundary. Play worlds are isolated and discarded by
-  default; explicit apply-back is required.
+  default; explicit apply-back is required and rejects concurrent Editor transform changes atomically.
+  Console records and inspection/debugger state cross as owning snapshots, never live World pointers.
 - Specialized tools are registrations, not implied backends: a tool must report `Implemented`,
   `ReadOnly`, or `Unavailable`, and every non-implemented state carries a reason.
 - Build manifests own copied profile/artifact data and are atomically replaced. A successful

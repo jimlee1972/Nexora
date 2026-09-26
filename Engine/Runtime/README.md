@@ -351,9 +351,21 @@ front end would eventually drive, exercised here through CTest rather than throu
 `Tick` runs only while playing, `Step` runs exactly one fixed update while paused, and input focus
 starts released until explicitly granted by editor policy. Stopping discards runtime mutations by
 default. The only supported apply-back policy copies changed transforms for stable entity IDs;
-runtime-created entities and all other component mutations remain isolated and are discarded. The
-Play World and update callback
-are released before `Stop` returns.
+runtime-created entities and all other component mutations remain isolated and are discarded.
+Transform apply-back is a deterministic stable-ID diff against the source transform snapshot. If an
+Editor transform changed concurrently, the entire apply is rejected without partial mutation and the
+conflict remains visible through `LastApplyBackStatus`. The Play World and update callback are released
+before `Stop` returns, including after conflicts and contained update failures.
+
+`RuntimeConsole` is a bounded, mutex-protected multi-producer ingress for owning structured records
+(sequence, severity, category, timestamp, source, and message). Old records are evicted in sequence
+order and the cumulative dropped count is observable. `PlaySession::Inspect` similarly returns an
+owning, stable-ID-sorted entity/component snapshot rather than pointers into relocatable World storage.
+Failed fixed updates pause the session, revoke input, and expose `RuntimeFailure`, allowing the editor
+to inspect, resume, or stop the still-owned Play World. User, step-complete, debugger-break, and failure
+pause reasons are distinct. Native IDE/debugger integration stays behind the caller-owned
+`DebuggerAdapter`; attach/detach and polling occur synchronously on the caller thread, and only copied
+location/diagnostic state crosses the boundary.
 
 `PrefabInstance` exposes its override diff as a read-only span. Individual entries or the full diff
 can be reverted, while `ApplyOverrides` creates a new immutable prefab revision and clears the
