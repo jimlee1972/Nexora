@@ -1,4 +1,6 @@
+#include "Nexora/Network/Dormancy.h"
 #include "Nexora/Network/EntityMapping.h"
+#include "Nexora/Network/Prediction.h"
 #include "Nexora/Network/Replication.h"
 #include "Nexora/Network/Transport.h"
 
@@ -376,6 +378,95 @@ void TestInterestManagement() {
   Require(!manager.Contains(1, {2, 1}), "removed connection retained interest state");
 }
 
+void TestDormancy() {
+  DormancyManager manager;
+  constexpr NetworkEntityID entity{7, 2};
+  Require(manager.Register(entity) == 1, "entity did not receive an initial dirty generation");
+
+  auto first = manager.Evaluate(10, entity, true);
+  Require(first.action == ReplicationAction::FullSnapshot && first.generation == 1 &&
+              first.baseline_id == 0,
+          "first interest entry did not force a full snapshot");
+  Require(manager.Acknowledge(10, entity, 1, 100), "connection did not acknowledge baseline");
+  Require(manager.Evaluate(10, entity, true).action == ReplicationAction::None,
+          "acknowledged clean entity replicated again");
+
+  manager.SetDormant(entity, true);
+  Require(manager.IsDormant(entity) &&
+              manager.Evaluate(10, entity, true).action == ReplicationAction::None,
+          "clean dormant entity was not suppressed");
+  Require(manager.MarkDirty(entity) == 2 && !manager.IsDormant(entity),
+          "dirty entity did not wake from dormancy");
+  const auto wake = manager.Evaluate(10, entity, true);
+  Require(wake.action == ReplicationAction::Delta && wake.baseline_id == 100 &&
+              wake.woke_from_dormancy,
+          "dormant wake-up did not use the connection baseline");
+
+  const auto other_connection = manager.Evaluate(20, entity, true);
+  Require(other_connection.action == ReplicationAction::FullSnapshot,
+          "acknowledgement leaked between connections");
+  Require(!manager.Acknowledge(10, entity, 3, 101), "future generation was acknowledged");
+  Require(manager.Acknowledge(10, entity, 2, 101), "wake-up generation was not acknowledged");
+
+  Require(manager.Evaluate(10, entity, false).action == ReplicationAction::Despawn,
+          "interest departure did not emit despawn");
+  const auto reentry = manager.Evaluate(10, entity, true);
+  Require(reentry.action == ReplicationAction::FullSnapshot && reentry.baseline_id == 0,
+          "interest re-entry did not invalidate the old baseline");
+}
+
+void TestPredictionAndReplay() {
+  PredictionBuffer client;
+  const auto first = client.Push(2);
+  const auto second = client.Push(2);
+  const auto third = client.Push(-1);
+  Require(first.sequence == 1 && second.sequence == 2 && third.sequence == 3,
+          "client input sequences were not monotonic");
+  Require(client.State() == PredictedState{9, 3}, "prediction simulation changed unexpectedly");
+
+  Require(client.Reconcile({1, {1, 1}}), "authoritative correction was rejected");
+  Require(client.Pending().size() == 2 && client.Pending().front().sequence == 2,
+          "acknowledged input was not removed from the pending queue");
+  Require(client.State() == PredictedState{6, 2},
+          "authoritative correction did not replay pending input");
+  Require(!client.Reconcile({0, {0, 0}}), "stale correction was accepted");
+
+  ReplayLog capture;
+  capture.RecordInput(10, first);
+  capture.RecordInput(20, second);
+  capture.RecordCorrection(35, {1, {1, 1}});
+  capture.RecordInput(40, third);
+  const auto encoded = capture.Encode();
+  ReplayLog decoded;
+  Require(ReplayLog::Decode(encoded, decoded) && decoded.Events() == capture.Events(),
+          "network replay log did not round trip");
+  Require(decoded.Replay() == PredictedState{1, 0},
+          "replay did not reproduce the captured correction/input ordering");
+  for (std::size_t size = 0; size < encoded.size(); ++size) {
+    ReplayLog rejected;
+    Require(!ReplayLog::Decode(std::span{encoded}.first(size), rejected),
+            "truncated replay log was accepted");
+  }
+
+  // Delivery ticks model test latency explicitly; repeated capture playback must be bit-identical.
+  ReplayLog delayed;
+  PredictedState server;
+  for (std::uint64_t sequence = 1; sequence <= 64; ++sequence) {
+    const InputCommand input{sequence, static_cast<std::int32_t>(sequence % 5) - 2};
+    delayed.RecordInput(sequence + 6, input);
+    server = SimulateInput(server, input);
+    if (sequence % 8 == 0) {
+      delayed.RecordCorrection(sequence + 12, {sequence, server});
+    }
+  }
+  const auto expected = delayed.Replay();
+  for (int run = 0; run < 100; ++run) {
+    ReplayLog copy;
+    Require(ReplayLog::Decode(delayed.Encode(), copy) && copy.Replay() == expected,
+            "simulation under test latency was not deterministic");
+  }
+}
+
 } // namespace
 
 int main() {
@@ -388,4 +479,6 @@ int main() {
   TestReplicationSchemaAndSnapshot();
   TestDeltaCompression();
   TestInterestManagement();
+  TestDormancy();
+  TestPredictionAndReplay();
 }

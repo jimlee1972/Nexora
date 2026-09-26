@@ -36,8 +36,8 @@ an unchecked or unmarked item remains incomplete.
 | --- | ---: | --- |
 | ✅ [V1 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md) | **100%** | 13/13 portable M0–M12 contract foundations delivered; native/product adapters remain separate gates. |
 | ✅ [V1 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V1_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **100%** | Tracks the same accepted portable V1 implementation baseline. |
-| [V2 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) | **38%** | ✅ V2-M0 through ✅ V2-M2, ✅ V2-M4, and ✅ V2-M5 are accepted; M5 adds the renderer-free dedicated server, transport handshake, channel semantics, and deterministic packet simulation. V2-M3 native execution evidence remains open. |
-| [V2 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **38%** | Tracks the same accepted portable V2-M5 networking foundation; V2-M3 native parity remains open. |
+| [V2 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) | **46%** | ✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 are accepted; M6 adds dormancy, prediction, reconciliation, and replay reference contracts. V2-M3 native execution evidence remains open. |
+| [V2 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **46%** | Tracks the same accepted portable V2-M6 networking reference scope; V2-M3 native parity remains open. |
 | [V3 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V3_Complete_Plan_v1_4.md) | **0%** | No V3 delivery milestone has an accepted repository gate. |
 | [V3 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md) | **0%** | Execution plan only; no V3 milestone accepted. |
 | ✅ [Engine API Foundation](Roadmap/en/Engine_API_Foundation_Roadmap.md) | **100%** | ✅ API-M1 through ✅ API-M6 complete for portable scope. |
@@ -54,11 +54,11 @@ The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, AP
 
 #### V2 networking status
 
-V2-M5 is complete for the portable foundation: the `linux-headless` preset builds only the renderer-free server closure, and `NexoraNetwork` exposes synchronous loopback/simulated transports and a connection contract with protocol/build identity checks, explicit channel semantics, and deterministic loss/latency/jitter simulation. V2-M6 now includes server-authoritative generational `NetworkEntityID` allocation, versioned and cross-build-hashed replication schemas, deterministic snapshots, baseline delta compression with full fallback, and connection-scoped budgeted interest management. Headless golden-vector and round-trip tests cover unknown fields, malformed/truncated packets, baseline expiry, distinct peer-local IDs, and prevention of global replication. Prediction, reconciliation, dormancy, and replay gates keep V2-M6 open. `NexoraDedicatedServer` links only through Network → Core → Foundation, keeping Renderer and presentation modules outside its dependency closure. Native socket, encryption, and hosted production deployment remain backend gates.
+V2-M5 is complete for the portable foundation: the `linux-headless` preset builds only the renderer-free server closure, and `NexoraNetwork` exposes synchronous loopback/simulated transports and a connection contract with protocol/build identity checks, explicit channel semantics, and deterministic loss/latency/jitter simulation. V2-M6 is now complete for its portable reference scope, adding dirty-generation dormancy with connection-local acknowledgement and re-entry baseline invalidation, sequenced client prediction, authoritative correction with pending-input replay, deterministic fixed-point latency tests, and versioned replay logs to the existing entity, schema, snapshot, delta, and interest foundations. Headless tests cover malformed/truncated data, baseline expiry, connection isolation, dormant wake-up, deterministic correction, and network-bug reproduction. `NexoraDedicatedServer` links only through Network → Core → Foundation, keeping Renderer and presentation modules outside its dependency closure. Native socket, encryption, and hosted production deployment remain backend gates.
 
 #### V2 GPU-driven status
 
-V2-M3 now has one fixed 36-byte indirect-command ABI shared by C++ and Slang: the Vulkan/D3D12/Metal-compatible non-indexed draw prefix is followed by backend-neutral classification metadata. Vulkan consumes this canonical stride directly. D3D12 command recording now covers `Dispatch` and canonical-stride `ExecuteIndirect`, but Windows execution and comparison evidence remain pending. The Vulkan CPU/GPU native comparison still requires a Slang-enabled acceptance run, while Metal execution also remains open; therefore V2-M3 and the 38% roadmap total are unchanged.
+V2-M3 now has one fixed 36-byte indirect-command ABI shared by C++ and Slang: the Vulkan/D3D12/Metal-compatible non-indexed draw prefix is followed by backend-neutral classification metadata. Vulkan consumes this canonical stride directly. D3D12 command recording now covers `Dispatch` and canonical-stride `ExecuteIndirect`, but Windows execution and comparison evidence remain pending. The Vulkan CPU/GPU native comparison still requires a Slang-enabled acceptance run, while Metal execution also remains open; therefore V2-M3 remains open independently of the 46% roadmap total.
 
 #### Engine API status
 
@@ -135,8 +135,8 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | --- | ---: | --- |
 | ✅ [V1 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V1_完整規劃書_v1_2.md) | **100%** | 13/13 個 portable M0–M12 contract foundation 已交付；native/product adapter 仍為獨立 gate。 |
 | ✅ [V1 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_2.md) | **100%** | 對應同一個已驗收的 portable V1 施工基線。 |
-| [V2 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) | **38%** | ✅ V2-M0 至 ✅ V2-M2、✅ V2-M4 與 ✅ V2-M5 已驗收；M5 新增 renderer-free dedicated server、transport handshake、channel semantics 與 deterministic packet simulation。V2-M3 native execution 證據仍待完成。 |
-| [V2 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) | **38%** | 追蹤同一套已驗收的 portable V2-M5 networking foundation；V2-M3 native parity 仍待完成。 |
+| [V2 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) | **46%** | ✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已驗收；M6 新增 dormancy、prediction、reconciliation 與 replay reference contract。V2-M3 native execution 證據仍待完成。 |
+| [V2 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) | **46%** | 追蹤同一套已驗收的 portable V2-M6 networking reference scope；V2-M3 native parity 仍待完成。 |
 | [V3 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V3_完整規劃書_v1_4.md) | **0%** | 尚無 V3 delivery milestone 通過 repository gate。 |
 | [V3 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) | **0%** | 僅為施工規劃；尚無 V3 milestone 驗收。 |
 | ✅ [Engine API 基礎](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) | **100%** | ✅ API-M1 至 ✅ API-M6 完成 portable scope。 |
@@ -152,11 +152,11 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 
 #### V2 Networking 狀態
 
-V2-M5 portable foundation 已完成：`linux-headless` preset 僅建置 renderer-free server closure，而 `NexoraNetwork` 提供 synchronous loopback／simulated transport 與 connection contract，包含 protocol／build identity 檢查、明確 channel semantics，以及 deterministic loss／latency／jitter simulation。V2-M6 現已包含 server-authoritative generational `NetworkEntityID` allocation、versioned 且具 cross-build hash 的 replication schema、deterministic snapshot、具 full fallback 的 baseline delta compression，以及 connection-scoped 且具 budget 的 interest management。Headless golden-vector 與 round-trip tests 涵蓋 unknown field、malformed／truncated packet、baseline expiry、不同 peer-local ID，以及防止 global replication。Prediction、reconciliation、dormancy 與 replay gate 仍使 V2-M6 維持未驗收。`NexoraDedicatedServer` 僅透過 Network → Core → Foundation 連結，Renderer 與 presentation module 不會進入其 dependency closure。Native socket、encryption 與 hosted production deployment 仍為 backend gate。
+V2-M5 portable foundation 已完成：`linux-headless` preset 僅建置 renderer-free server closure，而 `NexoraNetwork` 提供 synchronous loopback／simulated transport 與 connection contract，包含 protocol／build identity 檢查、明確 channel semantics，以及 deterministic loss／latency／jitter simulation。V2-M6 現已完成 portable reference scope：在既有 entity、schema、snapshot、delta 與 interest foundation 上，加入具 connection-local acknowledgement 與 re-entry baseline invalidation 的 dirty-generation dormancy、具序號的 client prediction、會 replay pending input 的 authoritative correction、deterministic fixed-point latency tests，以及 versioned replay log。Headless tests 涵蓋 malformed／truncated data、baseline expiry、connection isolation、dormant wake-up、deterministic correction 與 network bug reproduction。`NexoraDedicatedServer` 僅透過 Network → Core → Foundation 連結，Renderer 與 presentation module 不會進入其 dependency closure。Native socket、encryption 與 hosted production deployment 仍為 backend gate。
 
 #### V2 GPU-driven 狀態
 
-V2-M3 現已有一套由 C++ 與 Slang 共用的固定 36-byte indirect-command ABI：Vulkan／D3D12／Metal 相容的 non-indexed draw prefix 後接 backend-neutral classification metadata，且 Vulkan 直接消費此 canonical stride。D3D12 command recording 現已涵蓋 `Dispatch` 與採 canonical stride 的 `ExecuteIndirect`，但 Windows execution 與 comparison 證據仍待完成。Vulkan CPU/GPU native comparison 仍須以啟用 Slang 的 acceptance run 驗證，Metal execution 亦仍待完成；因此 V2-M3 與 38% Roadmap 總進度維持不變。
+V2-M3 現已有一套由 C++ 與 Slang 共用的固定 36-byte indirect-command ABI：Vulkan／D3D12／Metal 相容的 non-indexed draw prefix 後接 backend-neutral classification metadata，且 Vulkan 直接消費此 canonical stride。D3D12 command recording 現已涵蓋 `Dispatch` 與採 canonical stride 的 `ExecuteIndirect`，但 Windows execution 與 comparison 證據仍待完成。Vulkan CPU/GPU native comparison 仍須以啟用 Slang 的 acceptance run 驗證，Metal execution 亦仍待完成；因此 V2-M3 仍獨立於 46% Roadmap 總進度維持未完成。
 
 #### Engine API 狀態
 

@@ -3,7 +3,7 @@
 **Document Version: Master Draft v1.4**
 **Engine Generation: V2.x — Scale-Up / Production**
 
-> **Progress: 38%** (✅ V2-M0 through ✅ V2-M2, ✅ V2-M4, and ✅ V2-M5 have passed their portable repository gates; V2-M3 and V2-M6 through V2-M12 remain open. Native target evidence remains a separate gate.)
+> **Progress: 46%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 have passed their portable repository gates; V2-M3 and V2-M7 through V2-M12 remain open. Native target evidence remains a separate gate.)
 
 > This document is the **V2 Master Plan**. All V1 Contracts are inherited by default; only items explicitly marked “V2 supersede” in this document may change V1 behavior.
 >
@@ -3944,9 +3944,9 @@ Do not implement Prediction first.
 
 ---
 
-## V2-M6 — Replication / Interest / Prediction / Replay
+## ✅ V2-M6 — Replication / Interest / Prediction / Replay
 
-Portable NetworkEntityID, replication, and interest foundations are now implemented: server-authoritative generational identities; versioned, cross-build-hashed schemas; deterministic snapshots with unknown-field preservation; baseline-ID delta compression with full fallback; and connection-scoped, budgeted provider-driven interest enter/leave semantics. Golden vectors, deterministic round trips, malformed/truncated rejection, baseline expiry, and non-global-interest tests provide acceptance evidence. Prediction, reconciliation, dormancy, and replay remain open, so V2-M6 is not yet accepted.
+✅ V2-M6 is complete for the portable reference scope: server-authoritative generational identities; versioned, cross-build-hashed schemas; deterministic snapshots; baseline delta compression; connection-scoped interest; dirty-generation dormancy with per-connection acknowledgement and re-entry baseline invalidation; sequenced client prediction; authoritative reconciliation with pending-input replay; and versioned network replay logs. Headless tests provide acceptance evidence for malformed/truncated rejection, baseline expiry, non-global interest, dormant wake-up, connection isolation, deterministic simulation under test latency, and replay-based reproduction. Native transport and physics-specific prediction remain separate backend/integration gates.
 
 Order:
 
@@ -3975,9 +3975,9 @@ Replay
 ```text
 ✅ Client / Server local EntityID can be completely different
 ✅ Interest does not perform global replication
-✓ Character prediction is playable under test latency
-✓ Reconciliation can replay pending input
-✓ Replay is sufficient to reproduce network bugs
+✅ Character prediction is playable under test latency
+✅ Reconciliation can replay pending input
+✅ Replay is sufficient to reproduce network bugs
 ```
 
 ---
