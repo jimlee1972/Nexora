@@ -21,7 +21,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Real-process recovery and Linux/Windows host evidence remain open. | [ ] |
 | ED-M1 project/assets | Portable create/open, deterministic indexing/search, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. Graphical workflow acceptance remains open. | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection, reparent, multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist. Scene View, Inspector, picking, cameras, gizmos, and reflected graphical widgets remain open. | [ ] |
-| ED-M3 PIE/debugging | Isolated `PlaySession`, fixed tick, pause/step, focus policy, discard, and explicit transform apply-back exist. Graphical Game View, Console/runtime inspection, and debugger integration remain open. | [ ] |
+| ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. Graphical Game View, Console UI, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
 | ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
 | ED-M6 build/profile/extensions | Portable build manifests/checksums and monotonic profile capture exist. Graphical build/deploy/log/profile/plugin-manager workflows remain open. | [ ] |
@@ -111,7 +111,10 @@ creates property widgets; unknown components retain raw data instead of being si
 - **ED-M3 — PIE/debugging:** Game View, play/pause/step, fixed ticks, input focus, isolated worlds, apply policy, Console, runtime inspection, debugger boundary. The engine loads Zig gameplay; the Editor is not Zig `main`.
   - ✅ Portable `PlaySession` prerequisite covers isolated Play World ownership, fixed tick,
     play/pause/step, input-focus policy, discard-by-default, and explicit transform apply-back.
-  - Open: graphical Game View, Console/runtime inspection, and debugger integration.
+  - ✅ Portable debugging prerequisite adds structured bounded Console records, owning runtime
+    inspection snapshots, debugger boundary/pause reasons, contained update recovery, and deterministic
+    all-or-nothing transform conflict detection.
+  - Open: graphical Game View and Console UI plus native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
   - ✅ Portable prefab prerequisite covers inspectable override diffs, targeted/full revert,
     immutable apply, variants, and nested-path rebase.

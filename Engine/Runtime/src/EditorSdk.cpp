@@ -190,6 +190,31 @@ bool SceneEditor::Undo() {
   return true;
 }
 
+bool RuntimeConsole::Push(RuntimeLogRecord record) {
+  std::scoped_lock lock(mutex_);
+  if (capacity_ == 0) {
+    ++dropped_;
+    return false;
+  }
+  record.sequence = next_sequence_++;
+  if (records_.size() == capacity_) {
+    records_.erase(records_.begin());
+    ++dropped_;
+  }
+  records_.push_back(std::move(record));
+  return true;
+}
+
+std::vector<RuntimeLogRecord> RuntimeConsole::Snapshot() const {
+  std::scoped_lock lock(mutex_);
+  return records_;
+}
+
+std::uint64_t RuntimeConsole::DroppedCount() const {
+  std::scoped_lock lock(mutex_);
+  return dropped_;
+}
+
 bool PlaySession::Start(double fixed_delta_seconds, FixedUpdate fixed_update) {
   if (state_ != PlayState::Stopped || !std::isfinite(fixed_delta_seconds) ||
       fixed_delta_seconds <= 0.0 || !fixed_update)
@@ -200,6 +225,12 @@ bool PlaySession::Start(double fixed_delta_seconds, FixedUpdate fixed_update) {
   state_ = PlayState::Playing;
   input_focused_ = false;
   stats_ = {};
+  source_transforms_.clear();
+  for (const auto &scene : editor_world_.scenes_)
+    for (const auto &entity : scene.entities)
+      source_transforms_.emplace(entity.id, entity.transform);
+  pause_reason_ = PauseReason::None;
+  apply_status_ = ApplyBackStatus::Discarded;
   return true;
 }
 
@@ -207,6 +238,7 @@ bool PlaySession::Pause() noexcept {
   if (state_ != PlayState::Playing)
     return false;
   state_ = PlayState::Paused;
+  pause_reason_ = PauseReason::User;
   return true;
 }
 
@@ -214,15 +246,25 @@ bool PlaySession::Resume() noexcept {
   if (state_ != PlayState::Paused)
     return false;
   state_ = PlayState::Playing;
+  pause_reason_ = PauseReason::None;
   return true;
 }
 
 bool PlaySession::ExecuteFixedTick(bool manual) {
-  if (!play_world_ || !fixed_update_ || !fixed_update_(*play_world_, fixed_delta_seconds_))
+  if (!play_world_ || !fixed_update_)
     return false;
+  if (!fixed_update_(*play_world_, fixed_delta_seconds_)) {
+    state_ = PlayState::Paused;
+    input_focused_ = false;
+    pause_reason_ = PauseReason::RuntimeFailure;
+    ++stats_.crashes;
+    return false;
+  }
   play_world_->EndFrame();
   ++stats_.fixed_ticks;
   stats_.manual_steps += static_cast<std::uint64_t>(manual);
+  if (manual)
+    pause_reason_ = PauseReason::StepComplete;
   return true;
 }
 
@@ -234,24 +276,75 @@ bool PlaySession::Stop(ApplyBackPolicy policy) {
   if (state_ == PlayState::Stopped || !play_world_)
     return false;
   bool applied = true;
+  apply_status_ =
+      policy == ApplyBackPolicy::Discard ? ApplyBackStatus::Discarded : ApplyBackStatus::Applied;
   if (policy == ApplyBackPolicy::Transforms) {
     WorldCommandBuffer commands;
-    for (const auto &scene : play_world_->scenes_)
-      for (const auto &entity : scene.entities)
-        if (const auto *editor_entity = editor_world_.FindEntity(entity.id);
-            editor_entity != nullptr && editor_entity->transform != entity.transform) {
-          commands.SetTransform(entity.id, entity.transform);
-          ++stats_.applied_transforms;
-        }
-    if (commands.Size() != 0)
-      applied = commands.Apply(editor_world_);
+    const auto diffs = PreviewTransformApplyBack();
+    if (std::ranges::any_of(diffs, &TransformApplyDiff::conflict)) {
+      applied = false;
+      apply_status_ = ApplyBackStatus::Conflict;
+    } else {
+      for (const auto &diff : diffs) {
+        commands.SetTransform(diff.entity, diff.runtime);
+        ++stats_.applied_transforms;
+      }
+      if (commands.Size() != 0 && !commands.Apply(editor_world_)) {
+        applied = false;
+        apply_status_ = ApplyBackStatus::Failed;
+      }
+    }
   }
   play_world_.reset();
   fixed_update_ = {};
   fixed_delta_seconds_ = 0.0;
   state_ = PlayState::Stopped;
   input_focused_ = false;
+  source_transforms_.clear();
+  pause_reason_ = PauseReason::None;
   return applied;
+}
+
+std::vector<TransformApplyDiff> PlaySession::PreviewTransformApplyBack() const {
+  std::vector<TransformApplyDiff> diffs;
+  if (!play_world_)
+    return diffs;
+  for (const auto &scene : play_world_->scenes_)
+    for (const auto &entity : scene.entities) {
+      const auto original = source_transforms_.find(entity.id);
+      const auto *editor = editor_world_.FindEntity(entity.id);
+      if (original == source_transforms_.end() || entity.transform == original->second)
+        continue;
+      diffs.push_back({entity.id, original->second, editor ? editor->transform : Transform{},
+                       entity.transform, editor != nullptr,
+                       editor == nullptr || editor->transform != original->second});
+    }
+  std::ranges::sort(diffs, {}, &TransformApplyDiff::entity);
+  return diffs;
+}
+
+RuntimeInspectionSnapshot PlaySession::Inspect() const {
+  RuntimeInspectionSnapshot snapshot{stats_.fixed_ticks, {}};
+  if (!play_world_)
+    return snapshot;
+  for (const auto &scene : play_world_->scenes_)
+    for (const auto &entity : scene.entities)
+      snapshot.entities.push_back({entity.id, scene.id, entity.transform, entity.camera,
+                                   entity.light, entity.mesh_renderer});
+  std::ranges::sort(snapshot.entities, {}, &RuntimeEntitySnapshot::id);
+  return snapshot;
+}
+
+bool PlaySession::PollDebugger(DebuggerAdapter &debugger) {
+  if (state_ == PlayState::Stopped)
+    return false;
+  const auto snapshot = debugger.Poll();
+  if (snapshot.state != DebuggerState::Paused)
+    return false;
+  state_ = PlayState::Paused;
+  input_focused_ = false;
+  pause_reason_ = PauseReason::DebuggerBreak;
+  return true;
 }
 
 const PrefabNode *Prefab::Find(std::string_view path) const { return FindNodeImpl(root_, path); }

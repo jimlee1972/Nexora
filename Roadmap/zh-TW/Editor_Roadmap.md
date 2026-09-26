@@ -21,7 +21,7 @@ workspace/document core。**待辦：** window/docking/UI shell、graphical view
 | ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Real-process recovery 與 Linux/Windows host evidence 仍待完成。 | [ ] |
 | ED-M1 project/assets | Portable create/open、deterministic indexing/search、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Graphical workflow 驗收仍待完成。 | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection、reparent、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在。Scene View、Inspector、picking、camera、gizmo 與 reflected graphical widget 仍待完成。 | [ ] |
-| ED-M3 PIE/debugging | Isolated `PlaySession`、fixed tick、pause/step、focus policy、discard 與 explicit transform apply-back 已存在。Graphical Game View、Console/runtime inspection 與 debugger integration 仍待完成。 | [ ] |
+| ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。Graphical Game View、Console UI 與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
 | ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
 | ED-M6 build/profile/extensions | Portable build manifest/checksum 與 monotonic profile capture 已存在。Graphical build/deploy/log/profile/plugin-manager workflow 仍待完成。 | [ ] |
@@ -117,7 +117,10 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 - ✅ Portable `PlaySession` prerequisite 已涵蓋隔離 Play World ownership、fixed tick、
   play/pause/step、input-focus policy、預設丟棄及明確 transform apply-back。
-- 待辦：圖形化 Game View、Console/runtime inspection 與 debugger 整合。
+- ✅ Portable debugging prerequisite 新增 structured bounded Console records、owning runtime
+  inspection snapshots、debugger boundary/pause reasons、contained update recovery，以及 deterministic
+  all-or-nothing transform conflict detection。
+- 待辦：圖形化 Game View、Console UI 與 native debugger/IDE 整合。
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
