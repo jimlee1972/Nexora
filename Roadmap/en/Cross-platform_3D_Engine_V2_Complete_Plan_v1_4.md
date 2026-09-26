@@ -3912,7 +3912,7 @@ Construction:
 
 ## ✅ V2-M5 — Dedicated Server / Transport Foundation
 
-Portable implementation now provides a `linux-headless` preset that configures only the renderer-free server closure, caller-owned loopback and simulated `INetTransport` pairs, UDP-oriented datagrams, protocol/build handshake rejection, explicit channel semantics, and deterministic seeded loss/latency/jitter simulation. Headless acceptance covers malformed handshakes, exact simulation timing, deterministic traces, 1,000 reconnect/disconnect cycles, and both declared and configured-target dependency closures. Native UDP and encrypted production adapters remain backend gates.
+Portable implementation now provides a `linux-headless` preset that configures only the renderer-free server closure, caller-owned loopback and simulated `INetTransport` pairs, a portable socket-provider boundary, UDP-oriented datagrams, protocol/build handshake rejection, explicit channel semantics, and deterministic seeded loss/latency/jitter simulation. The server owns fixed-step scheduling, bounded graceful drain, admission, per-client packet/byte budgets, ordered replay capture, and canonical state hashes. Headless acceptance covers a 4,096-input malformed corpus, exact simulation timing, deterministic traces, 10,000 reconnect/disconnect cycles, and both declared and configured-target dependency closures. Native UDP/DTLS and encrypted production adapters remain backend gates; portable simulated coverage does not complete production networking.
 
 Do first:
 
@@ -3939,7 +3939,10 @@ Do not implement Prediction first.
 ✅ Protocol mismatch clean reject
 ✅ Malformed handshakes are rejected without accepting user traffic
 ✅ Seeded simulation traces are deterministic in headless tests
-✅ 1,000 reconnect / disconnect cycles reset per-session state
+✅ 10,000 reconnect / disconnect cycles reset per-session state
+✅ Fixed-step ownership, bounded catch-up, admission, budgets, and graceful drain are deterministic
+✅ Packet replay capture and canonical server state hash are repeatable
+✅ Portable socket-provider contract precedes native adapters
 ```
 
 ---

@@ -65,12 +65,28 @@ reset per-session sequencing and queued application packets so the same `Connect
 reused safely. Native UDP/DTLS/console adapters remain backend gates and must preserve this ownership
 and polling contract.
 
+`ServerRuntime` is the single-threaded owner of authoritative fixed-step scheduling. It borrows
+already-connected `Connection` objects, closes admission at a configured capacity or once draining
+begins, applies independent packet-count and byte budgets per client per tick, and caps catch-up work.
+Simulation sees only a monotonic tick index, never wall-clock time. Every accepted packet is retained
+in an ordered replay capture, and each completed tick hashes simulation-provided canonical state with
+specified FNV-1a bytes. Shutdown first enters `Draining`, continues bounded fixed ticks for clients to
+depart, then disconnects remaining clients and becomes `Stopped`; no callbacks run afterward.
+
+`ISocketProvider` and `IDatagramSocket` define the portable datagram creation, bind, send, poll, and
+close boundary before any native adapter is selected. Providers own platform initialization; returned
+sockets are caller-owned and cannot outlive their provider. This interface and the loopback/simulated
+transports are not evidence of production networking: native UDP/DTLS adapters, encryption, and their
+target-platform acceptance remain backend gates.
+
 The `linux-headless` configure, build, and test presets set `NEXORA_HEADLESS=ON`. This profile builds
 the Foundation → Core → Network → DedicatedServer closure and its contract tests without
 configuring RHI, Renderer, Runtime, presentation, Editor, or client application targets.
 The Network contract suite runs headlessly and covers repeatable seeded traces, loopback delivery,
-loss/latency/jitter boundaries, malformed handshakes, protocol/build mismatch rejection, and 1,000
-disconnect/reconnect cycles. V2-M6 coverage additionally gates dirty-generation wake-up,
+loss/latency/jitter boundaries, a 4,096-input malformed packet corpus, protocol/build mismatch
+rejection, and 10,000 disconnect/reconnect cycles. Server-runtime coverage gates fixed scheduling,
+bounded catch-up/drain, admission and per-client budgets, replay capture, and state hashing. V2-M6
+coverage additionally gates dirty-generation wake-up,
 connection-local acknowledgements, baseline invalidation on interest re-entry, authoritative
 correction with pending-input replay, deterministic latency simulation, and replay-log round trips.
 Its dependency check validates both the declared module closure and the targets exposed by an actual `NEXORA_HEADLESS` configuration.

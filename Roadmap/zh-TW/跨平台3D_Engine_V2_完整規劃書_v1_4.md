@@ -3921,7 +3921,7 @@ Portable implementation 現已交付 deterministic adaptive hierarchy、CellGrou
 
 ## ✅ V2-M5 — Dedicated Server / Transport Foundation
 
-Portable implementation 現已提供僅設定 renderer-free server closure 的 `linux-headless` preset、caller-owned loopback 與 simulated `INetTransport` pair、UDP-oriented datagram、protocol／build handshake rejection、明確 channel semantics，以及 deterministic seeded loss／latency／jitter simulation。Headless acceptance 涵蓋 malformed handshake、精確 simulation timing、deterministic trace、1,000 次 reconnect／disconnect cycle，以及宣告與 configured-target dependency closure。Native UDP 與 production encryption adapter 仍為 backend gate。
+Portable implementation 現已提供僅設定 renderer-free server closure 的 `linux-headless` preset、caller-owned loopback 與 simulated `INetTransport` pair、portable socket-provider boundary、UDP-oriented datagram、protocol／build handshake rejection、明確 channel semantics，以及 deterministic seeded loss／latency／jitter simulation。Server 擁有 fixed-step scheduling、bounded graceful drain、admission、per-client packet／byte budget、ordered replay capture 與 canonical state hash。Headless acceptance 涵蓋 4,096 筆 malformed corpus、精確 simulation timing、deterministic trace、10,000 次 reconnect／disconnect cycle，以及宣告與 configured-target dependency closure。Native UDP／DTLS 與 production encryption adapter 仍為 backend gate；portable simulated coverage 不代表 production networking 已完成。
 
 先做：
 
@@ -3948,7 +3948,10 @@ Packet Simulation
 ✅ Protocol mismatch clean reject
 ✅ Malformed handshake 會被拒絕且不接受 user traffic
 ✅ Seeded simulation trace 在 headless test 中具 deterministic
-✅ 1,000 次 reconnect／disconnect cycle 會重設 per-session state
+✅ 10,000 次 reconnect／disconnect cycle 會重設 per-session state
+✅ Fixed-step ownership、bounded catch-up、admission、budget 與 graceful drain 具 deterministic
+✅ Packet replay capture 與 canonical server state hash 可重複
+✅ Portable socket-provider contract 先於 native adapter
 ```
 
 ---
