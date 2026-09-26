@@ -19,7 +19,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | Scope | Repository evidence | Accepted |
 | --- | --- | :---: |
 | ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Real-process recovery and Linux/Windows host evidence remain open. | [ ] |
-| ED-M1 project/assets | Portable create/open, deterministic indexing/search, cancellation/progress/error records, and artifact hashing exist. Graphical Content Browser, dependency/reimport, and drag/drop workflows remain open. | [ ] |
+| ED-M1 project/assets | Portable create/open, deterministic indexing/search, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. Graphical workflow acceptance remains open. | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection, reparent, multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist. Scene View, Inspector, picking, cameras, gizmos, and reflected graphical widgets remain open. | [ ] |
 | ED-M3 PIE/debugging | Isolated `PlaySession`, fixed tick, pause/step, focus policy, discard, and explicit transform apply-back exist. Graphical Game View, Console/runtime inspection, and debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
@@ -87,7 +87,10 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 - ✅ Project create/open, deterministic content-tree indexing, UUID/path search and filtering,
   cancellation, progress, inspectable errors, and deterministic artifact hashes are implemented.
-- Open: graphical Content Browser, drag/drop, dependency inspection, and reimport UX.
+- ✅ Portable virtualized Content Browser/breadcrumb/selection models, transactional rename/move/
+  delete, typed generation-safe drag validation, dependency/cycle inspection, transactional
+  reimport, watcher debounce, and explicit dirty-conflict decisions are implemented and tested.
+- Open: graphical Content Browser, drag/drop, dependency inspection, and reimport UX acceptance.
 
 ### ED-M2 — Scene authoring core
 

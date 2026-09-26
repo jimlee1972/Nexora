@@ -1,3 +1,4 @@
+#include "Nexora/Editor/ContentBrowser.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 
@@ -105,6 +106,93 @@ int Run() {
   Require(cancelled.ImportTree(root / "Content", [] { return true; }) &&
               cancelled.Entries().front().state == editor::ImportState::Cancelled,
           "asset cancellation failed");
+
+  const runtime::AssetUuid mesh_id{1, 1}, material_id{1, 2}, scene_id{1, 3};
+  editor::ContentBrowserModel browser(7);
+  const std::vector<editor::ContentItem> content{
+      {mesh_id, "Content/Hero.mesh", "mesh", "mesh-v1", editor::ThumbnailState::Ready},
+      {material_id, "Content/Hero.material", "material", "material-v1",
+       editor::ThumbnailState::Loading},
+      {scene_id, "Content/Levels/Main.scene", "scene", "scene-v1", editor::ThumbnailState::Failed}};
+  Require(browser.Reset(content, 7) && browser.SetFolder("Content") &&
+              browser.Breadcrumbs().size() == 1 && browser.Visible(0, 1).size() == 1 &&
+              browser.Visible(1, 10).size() == 1,
+          "virtualized content browser or breadcrumb state failed");
+  browser.SetFilter("hero", "mesh");
+  Require(browser.Visible(0, 10).size() == 1 && browser.Select(mesh_id) &&
+              browser.Select(material_id, true) && browser.Selection().size() == 2 &&
+              browser.Toggle(mesh_id) && !browser.IsSelected(mesh_id),
+          "content filter or stable selection model failed");
+  Require(browser.Rename(mesh_id, "Player.mesh", &error) &&
+              browser.Find(mesh_id)->path == "Content/Player.mesh" && browser.Undo() &&
+              browser.Find(mesh_id)->path == "Content/Hero.mesh",
+          "transactional rename/undo failed");
+  const std::vector<runtime::AssetUuid> move_ids{mesh_id, material_id};
+  Require(browser.Move(move_ids, "Content/Characters", &error) &&
+              browser.Find(mesh_id)->path == "Content/Characters/Hero.mesh",
+          "transactional multi-asset move failed");
+  const std::vector<runtime::AssetUuid> invalid_delete{mesh_id, {99, 99}};
+  Require(!browser.Delete(invalid_delete, &error) && browser.Find(mesh_id),
+          "failed delete did not roll back atomically");
+  const std::vector<runtime::AssetUuid> delete_ids{material_id};
+  Require(browser.Delete(delete_ids, &error) && !browser.Find(material_id) && browser.Undo() &&
+              browser.Find(material_id),
+          "transactional delete/undo failed");
+
+  editor::AssetDragPayload drag{std::string(editor::AssetDragPayload::kType), 7, mesh_id};
+  Require(editor::ValidateDrag(drag, browser, "Content/Props", true) ==
+              editor::DragValidation::Valid,
+          "valid typed drag payload was rejected");
+  drag.project_generation = 6;
+  Require(editor::ValidateDrag(drag, browser, "Content/Props", true) ==
+              editor::DragValidation::StaleProject,
+          "stale typed drag payload was accepted");
+  drag.project_generation = 7;
+  drag.type = "untyped";
+  Require(editor::ValidateDrag(drag, browser, "Content/Props", true) ==
+              editor::DragValidation::WrongType,
+          "wrong drag payload type was accepted");
+
+  editor::AssetDependencyGraph dependencies;
+  Require(dependencies.Set(mesh_id, std::vector<runtime::AssetUuid>{material_id}) &&
+              dependencies.Set(material_id, std::vector<runtime::AssetUuid>{scene_id}) &&
+              dependencies.Forward(mesh_id) == std::vector<runtime::AssetUuid>{material_id} &&
+              dependencies.Reverse(scene_id) == std::vector<runtime::AssetUuid>{material_id} &&
+              dependencies.FindCycle().empty() &&
+              dependencies.Set(scene_id, std::vector<runtime::AssetUuid>{mesh_id}) &&
+              !dependencies.FindCycle().empty(),
+          "dependency graph inspection or cycle detection failed");
+  Require(dependencies.Set(scene_id, {}), "dependency cycle could not be removed");
+
+  editor::ReimportTransaction reimport(7, mesh_id, "mesh-v1");
+  Require(reimport.Stage(
+              {7, mesh_id, "source-v2", "settings-v1", "mesh-v2", {material_id}, {}, false}) &&
+              !reimport.Commit(8, dependencies) && reimport.Artifact() == "mesh-v1" &&
+              reimport.Commit(7, dependencies) && reimport.Artifact() == "mesh-v2",
+          "reimport staleness validation or atomic publish failed");
+  editor::ReimportTransaction cyclic_reimport(7, scene_id, "scene-v1");
+  Require(cyclic_reimport.Stage(
+              {7, scene_id, "source-v2", "settings-v1", "scene-v2", {mesh_id}, {}, false}) &&
+              !cyclic_reimport.Commit(7, dependencies) && cyclic_reimport.Artifact() == "scene-v1",
+          "failed reimport did not preserve the previous artifact");
+
+  using namespace std::chrono_literals;
+  editor::WatcherDebouncer watcher(50ms);
+  const auto now = std::chrono::steady_clock::now();
+  watcher.Push({"Content/Hero.mesh", now, false});
+  watcher.Push({"Content/Hero.mesh", now + 10ms, false});
+  watcher.Push({"Content/Self.mesh", now, true});
+  Require(watcher.Flush(now + 40ms).empty() &&
+              watcher.Flush(now + 70ms) == std::vector<fs::path>{fs::path("Content/Hero.mesh")},
+          "watcher debounce/coalescing or self-write suppression failed");
+
+  editor::DirtyConflictModel conflicts;
+  Require(!conflicts.Detect(mesh_id, "same", "same", true) &&
+              conflicts.Detect(mesh_id, "editor", "disk", true) &&
+              conflicts.Find(mesh_id)->choice == editor::DirtyConflictChoice::Pending &&
+              conflicts.Resolve(mesh_id, editor::DirtyConflictChoice::Compare) &&
+              conflicts.Find(mesh_id)->choice == editor::DirtyConflictChoice::Compare,
+          "dirty external-change conflict resolution failed");
 
   runtime::World world;
   const auto scene = world.LoadScene("Main");
