@@ -4,7 +4,7 @@
 **對應來源：跨平台3D_Engine_V2_完整規劃書_v1_4.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
-> **進度：38%**（✅ V2-M0 至 ✅ V2-M2、✅ V2-M4 與 ✅ V2-M5 已驗收；V2-M3、V2-M6 至 V2-M12 仍待完成。）
+> **進度：46%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已驗收；V2-M3、V2-M7 至 V2-M12 仍待完成。）
 
 
 
@@ -2288,7 +2288,7 @@ LiveOps 可 rollback
 V2-M3  GPU-driven Renderer
 V2-M4  Large World V2
 ✅ V2-M5  Dedicated Server / Transport
-V2-M6  Replication / Interest / Prediction / Replay
+✅ V2-M6  Replication / Interest / Prediction / Replay
 V2-M7  Navigation / Crowd / AI V2
 V2-M8  Animation V2
 V2-M9  Timeline / UI V2 / Audio / Media V2

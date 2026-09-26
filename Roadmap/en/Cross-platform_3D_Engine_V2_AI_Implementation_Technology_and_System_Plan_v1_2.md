@@ -4,7 +4,7 @@
 **Corresponding Source: Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md**
 **Purpose: AI implementation, Engine Programmer implementation, system decomposition, Code Review, CI Gate.**
 
-> **Progress: 38%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 are accepted; V2-M3 and V2-M6 through V2-M12 remain open.)
+> **Progress: 46%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 are accepted; V2-M3 and V2-M7 through V2-M12 remain open.)
 
 
 
@@ -2278,7 +2278,7 @@ LiveOps can roll back
 V2-M3  GPU-driven Renderer
 V2-M4  Large World V2
 ✅ V2-M5  Dedicated Server / Transport
-V2-M6  Replication / Interest / Prediction / Replay
+✅ V2-M6  Replication / Interest / Prediction / Replay
 V2-M7  Navigation / Crowd / AI V2
 V2-M8  Animation V2
 V2-M9  Timeline / UI V2 / Audio / Media V2

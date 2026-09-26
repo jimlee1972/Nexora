@@ -41,6 +41,23 @@ spawn semantics and departures emit despawn semantics. An entity never enters a 
 unless that connection's provider returned it, preventing fallback to global replication. The
 manager and providers are caller-synchronized and not thread-safe.
 
+`DormancyManager` assigns a monotonic dirty generation to each registered network entity and keeps
+acknowledged generations and baseline IDs independently for every connection. Clean acknowledged
+entities produce no replication work. Mutating a dormant entity wakes it; an interest departure
+emits despawn semantics and invalidates that connection's baseline, so re-entry always requests a
+full snapshot before deltas resume. Invalid, stale, or future acknowledgements do not advance state.
+Entity and connection removal explicitly release their tracking state. The manager is caller-owned,
+synchronous, and not thread-safe.
+
+`PredictionBuffer` assigns monotonically increasing client input sequences, applies the fixed-point
+reference simulation immediately, and retains commands until an authoritative correction
+acknowledges them. Reconciliation restores authoritative state and deterministically replays only
+pending input. The reference simulation uses saturating integer arithmetic and does not claim that a
+physics backend is bitwise deterministic. `ReplayLog` captures input/correction delivery ticks and
+payloads in a versioned canonical little-endian format; strict decoding rejects truncated, trailing,
+or unknown event data, allowing the captured network ordering to reproduce bugs offline. These
+objects are caller-owned, synchronous, and not thread-safe.
+
 The included loopback pair delivers in-process datagrams immediately. The deterministic simulated
 pair models a UDP-oriented unreliable datagram boundary and supports seeded loss, latency, and
 jitter. Both perform no socket or background-thread work. Disconnect and a newly accepted handshake
@@ -53,5 +70,7 @@ the Foundation → Core → Network → DedicatedServer closure and its contract
 configuring RHI, Renderer, Runtime, presentation, Editor, or client application targets.
 The Network contract suite runs headlessly and covers repeatable seeded traces, loopback delivery,
 loss/latency/jitter boundaries, malformed handshakes, protocol/build mismatch rejection, and 1,000
-disconnect/reconnect cycles. Its dependency check validates both the declared module closure and the
-targets exposed by an actual `NEXORA_HEADLESS` configuration.
+disconnect/reconnect cycles. V2-M6 coverage additionally gates dirty-generation wake-up,
+connection-local acknowledgements, baseline invalidation on interest re-entry, authoritative
+correction with pending-input replay, deterministic latency simulation, and replay-log round trips.
+Its dependency check validates both the declared module closure and the targets exposed by an actual `NEXORA_HEADLESS` configuration.

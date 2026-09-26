@@ -3,7 +3,7 @@
 **文件版本：Master Draft v1.4**
 **Engine 世代：V2.x — Scale-Up / Production**
 
-> **進度：38%**（✅ V2-M0 至 ✅ V2-M2、✅ V2-M4 與 ✅ V2-M5 已通過 portable repository gate；V2-M3、V2-M6 至 V2-M12 仍待完成。Native target evidence 維持獨立 gate。）
+> **進度：46%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已通過 portable repository gate；V2-M3、V2-M7 至 V2-M12 仍待完成。Native target evidence 維持獨立 gate。）
 
 > 本文件為 **V2 Master Plan**，所有 V1 Contract 預設繼承；只有本文件明確標示「V2 supersede」的項目可以改變 V1 行為。
 >
@@ -3953,9 +3953,9 @@ Packet Simulation
 
 ---
 
-## V2-M6 — Replication / Interest / Prediction / Replay
+## ✅ V2-M6 — Replication / Interest / Prediction / Replay
 
-Portable NetworkEntityID、replication 與 interest foundation 現已實作：server-authoritative generational identity、含 cross-build hash 的 versioned schema、保留 unknown field 的 deterministic snapshot、具 baseline ID 與 full fallback 的 delta compression，以及 connection-scoped、具 budget 的 provider-driven interest enter／leave semantics。Golden vector、deterministic round trip、malformed／truncated rejection、baseline expiry 與 non-global-interest 測試提供驗收證據。Prediction、reconciliation、dormancy 與 replay 仍待完成，因此 V2-M6 尚未驗收。
+✅ V2-M6 已完成 portable reference scope：server-authoritative generational identity、含 cross-build hash 的 versioned schema、deterministic snapshot、baseline delta compression、connection-scoped interest、具 per-connection acknowledgement 與 re-entry baseline invalidation 的 dirty-generation dormancy、具序號的 client prediction、會 replay pending input 的 authoritative reconciliation，以及 versioned network replay log。Headless tests 已為 malformed／truncated rejection、baseline expiry、non-global interest、dormant wake-up、connection isolation、測試 latency 下的 deterministic simulation 與 replay reproduction 提供驗收證據。Native transport 與 physics-specific prediction 仍屬獨立 backend／integration gate。
 
 順序：
 
@@ -3984,9 +3984,9 @@ Replay
 ```text
 ✅ Client / Server local EntityID 可完全不同
 ✅ Interest 不會 global replicate
-✓ Character prediction 在測試 latency 下可玩
-✓ Reconciliation 可 replay pending input
-✓ Replay 足以重現 network bug
+✅ Character prediction 在測試 latency 下可玩
+✅ Reconciliation 可 replay pending input
+✅ Replay 足以重現 network bug
 ```
 
 ---
