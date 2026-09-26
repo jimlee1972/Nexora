@@ -131,4 +131,65 @@ private:
   std::size_t cursor_{};
 };
 
+using SceneDocumentId = std::uint64_t;
+struct AdditiveScene final {
+  SceneDocumentId id{};
+  std::string path;
+  bool owned{};
+  std::vector<SceneDocumentId> dependencies;
+};
+
+// Owns the additive-scene composition snapshot. Dependencies are validated and load order is
+// deterministic; a failed edit leaves the previous graph intact.
+class NEXORA_EDITOR_API AdditiveSceneGraph final {
+public:
+  bool Add(AdditiveScene scene);
+  bool SetDependencies(SceneDocumentId id, std::vector<SceneDocumentId> dependencies);
+  bool Remove(SceneDocumentId id);
+  [[nodiscard]] std::vector<SceneDocumentId> LoadOrder(std::string *error = nullptr) const;
+  [[nodiscard]] const AdditiveScene *Find(SceneDocumentId id) const noexcept;
+
+private:
+  std::unordered_map<SceneDocumentId, AdditiveScene> scenes_;
+};
+
+struct MigrationChange final {
+  std::string path, before, after;
+};
+struct MigrationReport final {
+  std::uint32_t from{}, to{};
+  bool dry_run{};
+  std::vector<MigrationChange> changes;
+};
+class NEXORA_EDITOR_API DocumentMigration final {
+public:
+  using Step = std::function<std::optional<std::string>(std::string_view)>;
+  bool Register(std::uint32_t from, Step step);
+  [[nodiscard]] std::optional<MigrationReport> Run(std::uint32_t from, std::uint32_t to,
+                                                   std::string_view path, std::string &document,
+                                                   bool dry_run) const;
+
+private:
+  std::unordered_map<std::uint32_t, Step> steps_;
+};
+
+class NEXORA_EDITOR_API AutosaveJournal final {
+public:
+  static bool Write(const std::filesystem::path &path, std::uint64_t revision,
+                    std::string_view payload, std::string *error = nullptr);
+  static std::optional<std::string> Recover(const std::filesystem::path &path,
+                                            std::uint64_t *revision = nullptr,
+                                            std::string *error = nullptr);
+};
+
+enum class MergeChoice { Local, Remote, Manual };
+struct MergeRecord final {
+  std::string stable_path, base, local, remote, resolution;
+  MergeChoice choice{MergeChoice::Manual};
+  [[nodiscard]] bool Conflicted() const noexcept {
+    return local != remote && local != base && remote != base;
+  }
+};
+NEXORA_EDITOR_API std::vector<MergeRecord> ThreeWayMerge(std::span<const MergeRecord> records);
+
 } // namespace nexora::editor

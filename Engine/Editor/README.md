@@ -24,6 +24,10 @@ into renderer or platform internals.
   staleness, failure, or a cycle preserves the previous artifact.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
   hierarchy use stable IDs, never component or container pointers.
+- `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
+  from references, and rejects cycles or unsafe removal atomically. Migration dry-runs never mutate
+  source text; bounded autosave journals reject corruption; stable-path three-way records retain
+  unresolved base/local/remote values without coupling conflicts to a source-control provider.
 - Inspector adapters borrow reflection metadata and expose differing multi-selection values as an
   explicit mixed state. Unknown component stores own opaque bytes and replace their state only
   after a complete payload validates, so unavailable plugins do not silently discard authoring

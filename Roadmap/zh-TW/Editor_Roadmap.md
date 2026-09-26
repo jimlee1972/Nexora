@@ -128,7 +128,9 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 - ✅ Portable prefab prerequisite 已涵蓋可檢視 override diff、單筆／全部 revert、immutable
   apply、variant 與 nested-path rebase。
-- 待辦：圖形化 workflow、additive scene tooling、migration、recovery 與 source-control diff/merge。
+- ✅ 已實作並測試 portable additive-scene ownership／dependency ordering、migration dry-run、
+  atomic bounded autosave／corrupt recovery，以及 stable-path three-way conflict records。
+- 待辦：圖形化 workflow 與 source-control provider UI 整合。
 
 ### ED-M5 — Specialized tools
 

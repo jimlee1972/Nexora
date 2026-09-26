@@ -118,7 +118,9 @@ creates property widgets; unknown components retain raw data instead of being si
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
   - ✅ Portable prefab prerequisite covers inspectable override diffs, targeted/full revert,
     immutable apply, variants, and nested-path rebase.
-  - Open: graphical workflows, additive scene tooling, migrations, recovery, and source-control diff/merge.
+  - ✅ Portable additive-scene ownership/dependency ordering, migration dry-run, atomic bounded
+    autosave/corrupt recovery, and stable-path three-way conflict records are implemented and tested.
+  - Open: graphical workflows and source-control-provider UI integration.
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
   - ✅ Portable capability registry enforces stable tool IDs and honest implemented/read-only/
     unavailable states with fallback reasons.

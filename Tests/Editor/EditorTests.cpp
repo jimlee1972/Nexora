@@ -380,6 +380,45 @@ int Run() {
   Require(!telemetry.Record("startup") && telemetry.Events().empty(), "telemetry was not opt-in");
   telemetry.Set(true);
   Require(telemetry.Record("startup") && telemetry.Events().size() == 1, "opt-in telemetry failed");
+  editor::AdditiveSceneGraph scene_graph;
+  Require(scene_graph.Add({1, "Content/Base.scene", true, {}}) &&
+              scene_graph.Add({2, "Content/Lighting.scene", false, {}}) &&
+              scene_graph.SetDependencies(2, {1}) &&
+              scene_graph.LoadOrder() == std::vector<editor::SceneDocumentId>{1, 2} &&
+              !scene_graph.Remove(1),
+          "additive scene graph failed");
+  Require(!scene_graph.SetDependencies(1, {2}) && scene_graph.LoadOrder().size() == 2,
+          "scene dependency cycle did not roll back");
+  editor::DocumentMigration migration;
+  Require(migration.Register(1,
+                             [](std::string_view value) {
+                               return std::optional{std::string(value) + "\nschema=2"};
+                             }),
+          "migration registration failed");
+  std::string migratable = "scene";
+  const auto dry_run = migration.Run(1, 2, "Content/Main.scene", migratable, true);
+  Require(dry_run && dry_run->changes.size() == 1 && migratable == "scene",
+          "migration dry-run mutated document");
+  Require(migration.Run(1, 2, "Content/Main.scene", migratable, false) &&
+              migratable == "scene\nschema=2",
+          "migration commit failed");
+  const auto journal_path = root / ".nexora/Main.autosave";
+  std::uint64_t recovered_revision{};
+  Require(editor::AutosaveJournal::Write(journal_path, 9, "recoverable scene", &error) &&
+              editor::AutosaveJournal::Recover(journal_path, &recovered_revision, &error) ==
+                  std::optional<std::string>{"recoverable scene"} &&
+              recovered_revision == 9,
+          "autosave journal round trip failed");
+  std::ofstream(journal_path, std::ios::trunc) << "corrupt";
+  Require(!editor::AutosaveJournal::Recover(journal_path, nullptr, &error),
+          "corrupt autosave journal accepted");
+  const std::vector<editor::MergeRecord> merge_input{
+      {"entity/1/name", "Hero", "Hero", "Player", {}, editor::MergeChoice::Manual},
+      {"entity/2/name", "Light", "Key", "Fill", {}, editor::MergeChoice::Manual}};
+  const auto merge = editor::ThreeWayMerge(merge_input);
+  Require(merge[0].choice == editor::MergeChoice::Remote && merge[0].resolution == "Player" &&
+              merge[1].Conflicted() && merge[1].resolution.empty(),
+          "three-way merge failed");
   return 0;
 }
 } // namespace
