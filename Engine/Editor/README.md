@@ -16,6 +16,12 @@ into renderer or platform internals.
   layout payloads are persisted separately and never use Dear ImGui's unmanaged global ini file.
 - `AssetWorkspace` owns index entries. Pointers returned by `Find` and `Search` are borrowed until
   the next `ImportTree` call or destruction.
+- `ContentBrowserModel` owns its sorted item snapshot, breadcrumb and stable-ID selection state.
+  Virtual ranges borrow item pointers until the next mutation. Rename, multi-item move, and delete
+  validate a complete replacement snapshot before committing and retain one undo snapshot.
+- Typed asset drag payloads carry the project generation and asset UUID. Reimport results are staged
+  and may publish only when their generation and dependency graph remain valid; cancellation,
+  staleness, failure, or a cycle preserves the previous artifact.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
   hierarchy use stable IDs, never component or container pointers.
 - `PlaySession` remains the Runtime-owned PIE boundary. Play worlds are isolated and discarded by
@@ -36,6 +42,10 @@ or per-entry error text; filesystem exceptions are converted to error results wh
 Profiling samples require strictly increasing frame IDs. Telemetry drops every event until the user
 explicitly opts in; extension policy rejects untrusted publishers and, by default, invalid or
 missing signatures.
+
+Watcher events are path-coalesced after a caller-supplied debounce interval and known self-writes are
+discarded. A disk change never overwrites dirty authoring state: `DirtyConflictModel` retains both
+hashes until the authoring thread explicitly chooses reload, keep, or compare.
 
 The core deliberately does not depend on a UI toolkit. The optional `NexoraEditorImGui` owner
 provides docking, theme/DPI scaling, input/text forwarding, stable-panel presentation, and recovery

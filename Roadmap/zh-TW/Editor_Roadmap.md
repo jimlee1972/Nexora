@@ -19,7 +19,7 @@ workspace/document core。**待辦：** window/docking/UI shell、graphical view
 | Scope | Repository 證據 | 已驗收 |
 | --- | --- | :---: |
 | ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Real-process recovery 與 Linux/Windows host evidence 仍待完成。 | [ ] |
-| ED-M1 project/assets | Portable create/open、deterministic indexing/search、cancellation/progress/error record 與 artifact hash 已存在。Graphical Content Browser、dependency/reimport 與 drag/drop workflow 仍待完成。 | [ ] |
+| ED-M1 project/assets | Portable create/open、deterministic indexing/search、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Graphical workflow 驗收仍待完成。 | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection、reparent、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在。Scene View、Inspector、picking、camera、gizmo 與 reflected graphical widget 仍待完成。 | [ ] |
 | ED-M3 PIE/debugging | Isolated `PlaySession`、fixed tick、pause/step、focus policy、discard 與 explicit transform apply-back 已存在。Graphical Game View、Console/runtime inspection 與 debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
@@ -90,7 +90,10 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 - ✅ 已實作 project create/open、deterministic content-tree indexing、UUID/path search/filter、
   cancellation、progress、可檢查錯誤與 deterministic artifact hash。
-- 待辦：圖形化 Content Browser、drag/drop、dependency inspection 與 reimport UX。
+- ✅ 已實作並測試 portable virtualized Content Browser／breadcrumb／selection model、
+  transactional rename／move／delete、typed generation-safe drag validation、dependency／cycle
+  inspection、transactional reimport、watcher debounce 與明確的 dirty-conflict decision。
+- 待辦：圖形化 Content Browser、drag/drop、dependency inspection 與 reimport UX 驗收。
 
 ### ED-M2 — Scene authoring core
 

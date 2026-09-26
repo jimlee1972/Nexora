@@ -1,5 +1,6 @@
 include(NexoraTarget)
 add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
+  src/ContentBrowser.cpp
   src/EditorProduction.cpp
   src/EditorWorkspace.cpp)
 add_library(Nexora::Editor ALIAS NexoraEditorCore)
