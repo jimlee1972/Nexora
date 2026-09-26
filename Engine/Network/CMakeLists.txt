@@ -1,6 +1,6 @@
 include(NexoraTarget)
 add_library(NexoraNetwork ${NEXORA_MODULE_LIBRARY_TYPE} src/Dormancy.cpp src/EntityMapping.cpp src/Prediction.cpp
-                                              src/Replication.cpp src/Transport.cpp)
+                                              src/Replication.cpp src/ServerRuntime.cpp src/Transport.cpp)
 add_library(Nexora::Network ALIAS NexoraNetwork)
 target_include_directories(NexoraNetwork PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_link_libraries(NexoraNetwork PUBLIC Nexora::Core)

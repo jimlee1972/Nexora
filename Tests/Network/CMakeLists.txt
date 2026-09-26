@@ -7,6 +7,7 @@ add_test(NAME network.v2_m6_entity_mapping COMMAND NexoraNetworkTests)
 add_test(NAME network.v2_m6_replication_interest COMMAND NexoraNetworkTests)
 add_test(NAME network.v2_m6_dormancy COMMAND NexoraNetworkTests)
 add_test(NAME network.v2_m6_prediction_replay COMMAND NexoraNetworkTests)
+add_test(NAME network.server_runtime_contract COMMAND NexoraNetworkTests)
 
 add_test(NAME network.v2_m5_headless_dependency
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/VerifyHeadlessDependency.py"

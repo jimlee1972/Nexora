@@ -2,8 +2,11 @@
 #include "Nexora/Network/EntityMapping.h"
 #include "Nexora/Network/Prediction.h"
 #include "Nexora/Network/Replication.h"
+#include "Nexora/Network/ServerRuntime.h"
+#include "Nexora/Network/SocketProvider.h"
 #include "Nexora/Network/Transport.h"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -165,7 +168,7 @@ void TestReconnectDisconnectStress() {
   auto pair = CreateLoopbackTransportPair();
   Connection client(*pair.client, {7, "build-a"}, false);
   Connection server(*pair.server, {7, "build-a"}, true);
-  for (std::uint64_t iteration = 0; iteration < 1000; ++iteration) {
+  for (std::uint64_t iteration = 0; iteration < 10'000; ++iteration) {
     Connect(client, server, iteration);
     Require(client.Send(3, ChannelSemantics::UnreliableSequenced, Bytes("cycle")),
             "stress packet send failed");
@@ -181,6 +184,133 @@ void TestReconnectDisconnectStress() {
             "server remained connected during stress test");
     Require(!server.Poll(packet), "disconnect retained a received packet");
   }
+}
+
+void TestMalformedPacketCorpus() {
+  // A deterministic fuzz-style corpus exercises every short control-packet length and arbitrary
+  // kind bytes. No input may publish a user packet or accidentally establish a session.
+  for (unsigned seed = 0; seed < 256; ++seed) {
+    for (std::size_t size = 0; size < 16; ++size) {
+      std::vector<std::byte> payload(size);
+      auto value = static_cast<std::uint32_t>(seed + 1);
+      for (auto &byte : payload) {
+        value = value * 1664525U + 1013904223U;
+        byte = static_cast<std::byte>(value >> 24U);
+      }
+      auto pair = CreateLoopbackTransportPair();
+      Connection server(*pair.server, {7, "build-a"}, true);
+      Require(pair.client->Send({0, ChannelSemantics::ReliableOrdered, seed, payload}),
+              "fuzz corpus injection failed");
+      server.Tick(0);
+      Packet packet;
+      Require(server.State() != ConnectionState::Connected && !server.Poll(packet),
+              "malformed corpus established a connection or published a packet");
+    }
+  }
+}
+
+class TestServerSimulation final : public IServerSimulation {
+public:
+  void Receive(ServerClientID client, const Packet &packet) override {
+    value += client + packet.payload.size();
+    ++received;
+  }
+  void FixedTick(std::uint64_t tick) override { value += tick; }
+  void CaptureCanonicalState(std::vector<std::byte> &output) const override {
+    output.clear();
+    for (unsigned shift = 0; shift < 64; shift += 8) {
+      output.push_back(static_cast<std::byte>((value >> shift) & 0xffU));
+    }
+  }
+
+  std::uint64_t value{};
+  std::size_t received{};
+};
+
+void TestServerRuntimeContract() {
+  auto first_pair = CreateLoopbackTransportPair();
+  Connection first_client(*first_pair.client, {7, "build-a"}, false);
+  Connection first_server(*first_pair.server, {7, "build-a"}, true);
+  Connect(first_client, first_server);
+
+  auto second_pair = CreateLoopbackTransportPair();
+  Connection second_client(*second_pair.client, {7, "build-a"}, false);
+  Connection second_server(*second_pair.server, {7, "build-a"}, true);
+  Connect(second_client, second_server);
+
+  TestServerSimulation simulation;
+  ServerRuntimeConfig config;
+  config.ticks_per_second = 10;
+  config.max_catch_up_ticks = 2;
+  config.max_clients = 1;
+  config.packets_per_client_per_tick = 2;
+  config.bytes_per_client_per_tick = 8;
+  config.shutdown_drain_ticks = 2;
+  ServerRuntime runtime(config, simulation);
+  Require(runtime.Admit(41, first_server) == AdmissionResult::Accepted,
+          "connected client was not admitted");
+  Require(runtime.Admit(42, second_server) == AdmissionResult::Capacity,
+          "server admission capacity was not enforced");
+
+  for (int packet = 0; packet < 3; ++packet) {
+    Require(first_client.Send(1, ChannelSemantics::ReliableOrdered, Bytes("abc")),
+            "server budget test packet send failed");
+  }
+  first_client.Tick(0);
+  runtime.Advance(std::chrono::milliseconds(99));
+  Require(runtime.TickIndex() == 0, "server ran before its fixed step");
+  runtime.Advance(std::chrono::milliseconds(301));
+  Require(runtime.TickIndex() == 2, "server catch-up cap was not enforced");
+  Require(simulation.received == 3 && runtime.Capture().size() == 3,
+          "per-client packet budget did not defer excess work to the next tick");
+  const auto first_hash = runtime.StateHash();
+  Require(first_hash != 0, "server state hash was not captured");
+
+  TestServerSimulation repeat_simulation;
+  ServerRuntime repeat(config, repeat_simulation);
+  repeat.Advance(std::chrono::milliseconds(200));
+  Require(repeat.TickIndex() == 2 && repeat.StateHash() != first_hash,
+          "server state hash did not distinguish canonical simulation state");
+
+  runtime.RequestShutdown();
+  Require(runtime.State() == ServerRunState::Draining &&
+              runtime.Admit(42, second_server) == AdmissionResult::Draining,
+          "shutdown did not close admission");
+  runtime.Advance(std::chrono::milliseconds(200));
+  Require(runtime.State() == ServerRunState::Stopped && runtime.ClientCount() == 0 &&
+              first_server.State() == ConnectionState::Disconnected,
+          "server did not finish bounded graceful drain");
+}
+
+class NullDatagramSocket final : public IDatagramSocket {
+public:
+  bool Bind(const SocketEndpoint &local) override {
+    endpoint = local;
+    return open;
+  }
+  bool SendTo(const SocketEndpoint &, std::span<const std::byte>) override { return open; }
+  bool Poll(SocketDatagram &) override { return false; }
+  void Close() override { open = false; }
+  bool IsOpen() const noexcept override { return open; }
+
+  SocketEndpoint endpoint;
+  bool open{true};
+};
+
+class NullSocketProvider final : public ISocketProvider {
+public:
+  std::unique_ptr<IDatagramSocket> CreateDatagramSocket() override {
+    return std::make_unique<NullDatagramSocket>();
+  }
+};
+
+void TestPortableSocketProviderBoundary() {
+  NullSocketProvider provider;
+  auto socket = provider.CreateDatagramSocket();
+  Require(socket && socket->Bind({"loopback.invalid", 9000}) && socket->IsOpen(),
+          "portable socket provider could not create and bind its adapter");
+  socket->Close();
+  Require(!socket->IsOpen(), "portable socket close contract failed");
 }
 
 void TestNetworkEntityMapping() {
@@ -475,6 +605,9 @@ int main() {
   TestMalformedHandshakes();
   TestIdentityMismatchRejection();
   TestReconnectDisconnectStress();
+  TestMalformedPacketCorpus();
+  TestServerRuntimeContract();
+  TestPortableSocketProviderBoundary();
   TestNetworkEntityMapping();
   TestReplicationSchemaAndSnapshot();
   TestDeltaCompression();
