@@ -1,12 +1,14 @@
 #include "Nexora/Editor/ContentBrowser.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/SceneAuthoring.h"
 
 #include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace {
@@ -221,6 +223,113 @@ int Run() {
   Require(document.Create("Bad\nName") == 0 && document.Create("Bad\rName") == 0,
           "a node name containing a newline must be rejected, since Save()/Reload() use a "
           "line-oriented format that a newline would silently corrupt");
+
+  runtime::ReflectionRegistry reflection;
+  const auto transform_type = runtime::HashTypeName("Transform");
+  Require(reflection.Register({"Transform", transform_type, {{"x", 1, 0, sizeof(double)}}}),
+          "reflection registration failed");
+  std::unordered_map<runtime::Id, editor::InspectorValue> inspector_values{{parent, 1.0},
+                                                                           {child, 2.0}};
+  editor::InspectorPropertyAdapter inspector(reflection);
+  const std::vector<runtime::Id> inspect_entities{parent, child};
+  const std::vector<runtime::TypeId> inspect_components{transform_type};
+  auto properties = inspector.Inspect(inspect_entities, inspect_components,
+                                      [&](runtime::Id entity, runtime::TypeId, std::string_view) {
+                                        return std::optional{inspector_values.at(entity)};
+                                      });
+  Require(properties.size() == 1 && properties.front().mixed && !properties.front().value,
+          "mixed-value inspector state was not represented explicitly");
+  Require(inspector.Apply(inspect_entities, properties.front(), editor::InspectorValue{3.0},
+                          [&](runtime::Id entity, runtime::TypeId, std::string_view,
+                              const editor::InspectorValue &value) {
+                            inspector_values[entity] = value;
+                            return true;
+                          }) &&
+              inspector_values[parent] == editor::InspectorValue{3.0} &&
+              inspector_values[child] == editor::InspectorValue{3.0},
+          "multi-selection inspector edit failed");
+
+  editor::UnknownComponentStore unknown;
+  Require(unknown.Set(child, {77, "Plugin.Component", {0, 1, 127, 255}}),
+          "unknown component staging failed");
+  Require(unknown.Set(parent, {78, "Plugin.Empty", {}}), "empty unknown component staging failed");
+  editor::UnknownComponentStore unknown_reloaded;
+  Require(unknown_reloaded.Deserialize(unknown.Serialize()) &&
+              unknown_reloaded.Find(child).size() == 1 &&
+              unknown_reloaded.Find(child).front().data ==
+                  std::vector<std::uint8_t>({0, 1, 127, 255}) &&
+              unknown_reloaded.Find(parent).front().data.empty(),
+          "unknown component opaque data was not preserved byte-for-byte");
+  const auto preserved_unknown = unknown_reloaded.Serialize();
+  Require(!unknown_reloaded.Deserialize("corrupt") &&
+              unknown_reloaded.Serialize() == preserved_unknown,
+          "corrupt opaque component input replaced valid authoring state");
+
+  std::unordered_map<runtime::Id, runtime::Transform> gizmo_transforms{{parent, {1, 1, 1}},
+                                                                       {child, {2, 2, 2}}};
+  editor::GizmoTransaction gizmo;
+  Require(gizmo.Begin(inspect_entities,
+                      [&](runtime::Id id, runtime::Transform &value) {
+                        value = gizmo_transforms.at(id);
+                        return true;
+                      }),
+          "gizmo transaction did not begin");
+  const std::vector<runtime::Transform> dragged{{10, 10, 10}, {20, 20, 20}};
+  Require(gizmo.Update(dragged,
+                       [&](runtime::Id id, runtime::Transform value) {
+                         gizmo_transforms[id] = value;
+                         return true;
+                       }) &&
+              gizmo.Cancel([&](runtime::Id id, runtime::Transform value) {
+                gizmo_transforms[id] = value;
+                return true;
+              }) &&
+              gizmo_transforms[parent] == runtime::Transform{1, 1, 1} &&
+              gizmo.State() == editor::GizmoState::Idle,
+          "gizmo cancellation did not restore the initial transform snapshot");
+
+  editor::AsyncPickingValidator picking;
+  picking.Reset(4, 8);
+  const auto stale_pick = picking.Request();
+  const auto current_pick = picking.Request();
+  Require(!picking.Accept(stale_pick) && picking.Accept(current_pick),
+          "picking request ordering validation failed");
+  picking.Reset(5, 8);
+  Require(!picking.Accept(current_pick), "stale scene-generation pick was accepted");
+
+  const editor::SceneCameraState camera{{1, 2, 3}, 0.25, 0.5, 12.0, true, 42.0};
+  const auto camera_path = root / ".nexora/scene-camera.state";
+  Require(editor::CameraPersistence::Save(camera_path, camera, &error) &&
+              editor::CameraPersistence::Load(camera_path, &error) == camera,
+          "scene camera persistence failed");
+
+  editor::UndoRedoHistory history;
+  int replay_value = 1000;
+  for (int index = 0; index < 1000; ++index)
+    Require(history.Push({[&] {
+                            --replay_value;
+                            return true;
+                          },
+                          [&] {
+                            ++replay_value;
+                            return true;
+                          }}),
+            "undo history push failed");
+  for (int index = 0; index < 1000; ++index)
+    Require(history.Undo(), "1,000-step undo replay failed");
+  Require(replay_value == 0 && history.UndoDepth() == 0 && history.RedoDepth() == 1000,
+          "undo replay produced incorrect state");
+  for (int index = 0; index < 1000; ++index)
+    Require(history.Redo(), "1,000-step redo replay failed");
+  Require(replay_value == 1000 && history.UndoDepth() == 1000,
+          "redo replay produced incorrect state");
+
+  const auto nodes_before_corruption = loaded.Nodes().size();
+  std::ofstream(scene_path, std::ios::trunc)
+      << "NEXORA_EDITOR_SCENE 1\nnode 1 2 First\nnode 2 1 Second\nworld\ncorrupt";
+  Require(!loaded.Reload(scene_path) && loaded.Nodes().size() == nodes_before_corruption &&
+              loaded.Name(child) == "Child",
+          "corrupt scene recovery did not preserve the loaded document state");
 
   runtime::PlaySession play(world);
   Require(play.Start(1.0 / 60.0, [](runtime::World &, double) { return true; }) && play.Pause() &&

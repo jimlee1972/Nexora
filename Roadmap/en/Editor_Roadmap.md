@@ -100,8 +100,13 @@ creates property widgets; unknown components retain raw data instead of being si
 
 - ✅ Stable-ID hierarchy/selection, cycle-safe reparenting, multi-selection, clipboard duplication,
   transform transactions, undo, and atomic scene save/reload are implemented in Editor Core.
-- Open: graphical Hierarchy/Scene/Inspector, picking, camera controls, gizmos, reflected widgets,
-  and unknown-component visual workflows.
+- ✅ Portable Inspector property adapters and mixed-value multi-selection, opaque unknown-component
+  round trips, a cancel-safe gizmo transaction state machine, generation-safe asynchronous picking,
+  atomic camera persistence, 1,000-step undo/redo replay, and corrupt-scene state preservation are
+  implemented and tested.
+- Open: graphical Hierarchy/Scene/Inspector, renderer-backed picking, camera controls, gizmos,
+  reflected widgets, and unknown-component visual workflows. ED-M2 exit still requires UI
+  select/edit/undo/save/restart acceptance and visual evidence.
 
 - **ED-M3 — PIE/debugging:** Game View, play/pause/step, fixed ticks, input focus, isolated worlds, apply policy, Console, runtime inspection, debugger boundary. The engine loads Zig gameplay; the Editor is not Zig `main`.
   - ✅ Portable `PlaySession` prerequisite covers isolated Play World ownership, fixed tick,

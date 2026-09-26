@@ -103,8 +103,13 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 
 - ✅ Editor Core 已實作 stable-ID hierarchy/selection、cycle-safe reparenting、multi-selection、
   clipboard duplication、transform transaction、undo 與 atomic scene save/reload。
-- 待辦：圖形化 Hierarchy/Scene/Inspector、picking、camera controls、gizmo、reflection widget
-  與 unknown-component visual workflow。
+- ✅ 已實作並測試 portable Inspector property adapter 與 mixed-value multi-selection、opaque
+  unknown-component round trip、可安全取消的 gizmo transaction state machine、generation-safe
+  asynchronous picking、atomic camera persistence、1,000-step undo/redo replay，以及 corrupt scene
+  的既有狀態保留。
+- 待辦：圖形化 Hierarchy／Scene／Inspector、renderer-backed picking、camera controls、gizmo、
+  reflected widget 與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成
+  select／edit／undo／save／restart 驗收與視覺證據。
 
 ### ED-M3 — PIE 與 debugging
 
