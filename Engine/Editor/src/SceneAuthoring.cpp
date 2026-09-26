@@ -4,6 +4,7 @@
 #include <charconv>
 #include <fstream>
 #include <iomanip>
+#include <set>
 #include <sstream>
 
 namespace nexora::editor {
@@ -249,5 +250,150 @@ bool UndoRedoHistory::Redo() {
     return false;
   ++cursor_;
   return true;
+}
+
+bool AdditiveSceneGraph::Add(AdditiveScene scene) {
+  return scene.id && !scene.path.empty() && scenes_.emplace(scene.id, std::move(scene)).second;
+}
+const AdditiveScene *AdditiveSceneGraph::Find(SceneDocumentId id) const noexcept {
+  const auto found = scenes_.find(id);
+  return found == scenes_.end() ? nullptr : &found->second;
+}
+std::vector<SceneDocumentId> AdditiveSceneGraph::LoadOrder(std::string *error) const {
+  std::unordered_map<SceneDocumentId, std::size_t> degree;
+  std::unordered_map<SceneDocumentId, std::vector<SceneDocumentId>> outgoing;
+  for (const auto &[id, scene] : scenes_) {
+    degree[id] = scene.dependencies.size();
+    for (const auto dependency : scene.dependencies)
+      outgoing[dependency].push_back(id);
+  }
+  std::set<SceneDocumentId> ready;
+  for (const auto &[id, count] : degree)
+    if (!count)
+      ready.insert(id);
+  std::vector<SceneDocumentId> order;
+  while (!ready.empty()) {
+    const auto id = *ready.begin();
+    ready.erase(ready.begin());
+    order.push_back(id);
+    for (const auto dependent : outgoing[id])
+      if (!--degree[dependent])
+        ready.insert(dependent);
+  }
+  if (order.size() != scenes_.size()) {
+    Error(error, "scene dependency cycle");
+    return {};
+  }
+  return order;
+}
+bool AdditiveSceneGraph::SetDependencies(SceneDocumentId id,
+                                         std::vector<SceneDocumentId> dependencies) {
+  const auto found = scenes_.find(id);
+  if (found == scenes_.end() || std::ranges::any_of(dependencies, [&](const auto dependency) {
+        return dependency == id || !scenes_.contains(dependency);
+      }))
+    return false;
+  std::ranges::sort(dependencies);
+  dependencies.erase(std::unique(dependencies.begin(), dependencies.end()), dependencies.end());
+  const auto previous = found->second.dependencies;
+  found->second.dependencies = std::move(dependencies);
+  if (!scenes_.empty() && LoadOrder().empty()) {
+    found->second.dependencies = previous;
+    return false;
+  }
+  return true;
+}
+bool AdditiveSceneGraph::Remove(SceneDocumentId id) {
+  if (!scenes_.contains(id) || std::ranges::any_of(scenes_, [&](const auto &entry) {
+        return std::ranges::find(entry.second.dependencies, id) != entry.second.dependencies.end();
+      }))
+    return false;
+  scenes_.erase(id);
+  return true;
+}
+bool DocumentMigration::Register(std::uint32_t from, Step step) {
+  return step && steps_.emplace(from, std::move(step)).second;
+}
+std::optional<MigrationReport> DocumentMigration::Run(std::uint32_t from, std::uint32_t to,
+                                                      std::string_view path, std::string &document,
+                                                      bool dry_run) const {
+  if (from >= to)
+    return std::nullopt;
+  MigrationReport report{from, to, dry_run, {}};
+  auto current = document;
+  for (auto version = from; version < to; ++version) {
+    const auto step = steps_.find(version);
+    if (step == steps_.end())
+      return std::nullopt;
+    auto next = step->second(current);
+    if (!next)
+      return std::nullopt;
+    report.changes.push_back({std::string(path), current, *next});
+    current = std::move(*next);
+  }
+  if (!dry_run)
+    document = std::move(current);
+  return report;
+}
+bool AutosaveJournal::Write(const std::filesystem::path &path, std::uint64_t revision,
+                            std::string_view payload, std::string *error) {
+  auto temporary = path;
+  temporary += ".tmp";
+  std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
+  output << "NEXORA_AUTOSAVE 1 " << revision << ' ' << payload.size() << '\n' << payload;
+  output.close();
+  if (!output) {
+    Error(error, "failed to write autosave journal");
+    return false;
+  }
+  std::error_code ec;
+  std::filesystem::rename(temporary, path, ec);
+  if (ec) {
+    std::filesystem::remove(path, ec);
+    ec.clear();
+    std::filesystem::rename(temporary, path, ec);
+  }
+  if (ec)
+    Error(error, ec.message());
+  return !ec;
+}
+std::optional<std::string> AutosaveJournal::Recover(const std::filesystem::path &path,
+                                                    std::uint64_t *revision, std::string *error) {
+  std::ifstream input(path, std::ios::binary);
+  std::string magic;
+  unsigned version{};
+  std::uint64_t found_revision{}, size{};
+  if (!(input >> magic >> version >> found_revision >> size) || magic != "NEXORA_AUTOSAVE" ||
+      version != 1 || input.get() != '\n' || size > 64 * 1024 * 1024) {
+    Error(error, "corrupt autosave header");
+    return std::nullopt;
+  }
+  std::string payload(size, '\0');
+  input.read(payload.data(), static_cast<std::streamsize>(size));
+  if (static_cast<std::uint64_t>(input.gcount()) != size ||
+      input.peek() != std::char_traits<char>::eof()) {
+    Error(error, "corrupt autosave payload");
+    return std::nullopt;
+  }
+  if (revision)
+    *revision = found_revision;
+  return payload;
+}
+std::vector<MergeRecord> ThreeWayMerge(std::span<const MergeRecord> records) {
+  std::vector<MergeRecord> result(records.begin(), records.end());
+  for (auto &record : result) {
+    if (record.local == record.remote || record.remote == record.base) {
+      record.choice = MergeChoice::Local;
+      record.resolution = record.local;
+    } else if (record.local == record.base) {
+      record.choice = MergeChoice::Remote;
+      record.resolution = record.remote;
+    } else {
+      record.choice = MergeChoice::Manual;
+      record.resolution.clear();
+    }
+  }
+  std::ranges::sort(result, {}, &MergeRecord::stable_path);
+  return result;
 }
 } // namespace nexora::editor
