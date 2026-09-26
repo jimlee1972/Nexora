@@ -24,6 +24,13 @@ into renderer or platform internals.
   staleness, failure, or a cycle preserves the previous artifact.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
   hierarchy use stable IDs, never component or container pointers.
+- Inspector adapters borrow reflection metadata and expose differing multi-selection values as an
+  explicit mixed state. Unknown component stores own opaque bytes and replace their state only
+  after a complete payload validates, so unavailable plugins do not silently discard authoring
+  data.
+- Gizmo transactions own their stable-ID and initial-transform snapshots until commit or cancel.
+  Picking results are accepted only for the latest request and matching scene/viewport generations.
+  Scene camera files are atomically replaced, while undo/redo history owns its replay callbacks.
 - `PlaySession` remains the Runtime-owned PIE boundary. Play worlds are isolated and discarded by
   default; explicit apply-back is required.
 - Specialized tools are registrations, not implied backends: a tool must report `Implemented`,
@@ -51,3 +58,5 @@ The core deliberately does not depend on a UI toolkit. The optional `NexoraEdito
 provides docking, theme/DPI scaling, input/text forwarding, stable-panel presentation, and recovery
 choice UX. Native renderer submission, platform IME candidate positioning, accessibility,
 viewport rendering, gizmos, and target-host visual validation remain UI-host responsibilities.
+The portable gizmo state machine and picking validator define transaction and asynchronous-result
+policy only; they do not claim graphical manipulation or renderer-backed picking acceptance.

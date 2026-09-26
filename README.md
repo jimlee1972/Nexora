@@ -85,7 +85,7 @@ The [Window and Native Presentation Roadmap](Roadmap/en/Window_Presentation_Road
 
 #### Editor status
 
-The [Graphical Editor Roadmap](Roadmap/en/Editor_Roadmap.md) remains at **0/8 (0%) graphical milestone acceptance**. The portable ED-M1 foundation now includes virtualized Content Browser, breadcrumb and selection models, transactional rename/move/delete, typed generation-safe drag validation, dependency-cycle inspection, transactional reimport, watcher debounce, and explicit dirty-conflict decisions with unit coverage. The focused [ED-M0 Dear ImGui plan](Roadmap/en/Editor_ImGui_Integration_Plan.md) remains **in progress**, and graphical ED-M1 workflow plus physical-display Linux and Windows evidence remain open. ED-M0 through ED-M7 are therefore unchecked; portable prerequisites are not rounded up into accepted graphical milestones.
+The [Graphical Editor Roadmap](Roadmap/en/Editor_Roadmap.md) remains at **0/8 (0%) graphical milestone acceptance**. The portable ED-M1 foundation covers transactional content workflows, while ED-M2 now also has Inspector property adapters and mixed values, opaque unknown-component preservation, gizmo and asynchronous-picking state validation, camera persistence, 1,000-step undo/redo replay, and corrupt-scene recovery coverage. The focused [ED-M0 Dear ImGui plan](Roadmap/en/Editor_ImGui_Integration_Plan.md) remains **in progress**; graphical workflows, physical-display evidence, and ED-M2 UI select/edit/undo/save/restart visual acceptance remain open. ED-M0 through ED-M7 are therefore unchecked; portable prerequisites are not rounded up into accepted graphical milestones.
 
 ### Important note
 
@@ -183,7 +183,7 @@ ZS-M0 至 ZS-M4 已完成：capability-aware gallery 支援 camera input、selec
 
 #### Editor 狀態
 
-[圖形化 Editor Roadmap](Roadmap/zh-TW/Editor_Roadmap.md) 的**圖形化 milestone 驗收仍為 0/8（0%）**。Portable ED-M1 foundation 現已包含 virtualized Content Browser、breadcrumb 與 selection model、transactional rename／move／delete、typed generation-safe drag validation、dependency-cycle inspection、transactional reimport、watcher debounce，以及有 unit coverage 的明確 dirty-conflict decision。Focused [ED-M0 Dear ImGui 計畫](Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md) 仍為**施工中**，圖形化 ED-M1 workflow 與 physical-display Linux／Windows evidence 仍待完成。因此 ED-M0 至 ED-M7 都不打勾；portable prerequisite 不會向上取整為已驗收的 graphical milestone。
+[圖形化 Editor Roadmap](Roadmap/zh-TW/Editor_Roadmap.md) 的**圖形化 milestone 驗收仍為 0/8（0%）**。Portable ED-M1 foundation 涵蓋 transactional content workflow；ED-M2 現也包含 Inspector property adapter 與 mixed value、opaque unknown-component preservation、gizmo 與 asynchronous-picking state validation、camera persistence、1,000-step undo/redo replay，以及 corrupt-scene recovery coverage。Focused [ED-M0 Dear ImGui 計畫](Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md) 仍為**施工中**；圖形化 workflow、physical-display evidence，以及 ED-M2 UI select／edit／undo／save／restart 視覺驗收仍待完成。因此 ED-M0 至 ED-M7 都不打勾；portable prerequisite 不會向上取整為已驗收的 graphical milestone。
 
 ### 重要說明
 

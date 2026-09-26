@@ -2,7 +2,8 @@ include(NexoraTarget)
 add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/ContentBrowser.cpp
   src/EditorProduction.cpp
-  src/EditorWorkspace.cpp)
+  src/EditorWorkspace.cpp
+  src/SceneAuthoring.cpp)
 add_library(Nexora::Editor ALIAS NexoraEditorCore)
 target_include_directories(NexoraEditorCore PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_link_libraries(NexoraEditorCore PUBLIC Nexora::Runtime)

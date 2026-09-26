@@ -371,6 +371,25 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
       return false;
     loaded.push_back(std::move(node));
   }
+  if (line != "world")
+    return false;
+  std::unordered_set<runtime::Id> ids;
+  for (const auto &node : loaded)
+    if (!node.id || !ids.insert(node.id).second)
+      return false;
+  for (const auto &node : loaded) {
+    if (node.parent && !ids.contains(node.parent))
+      return false;
+    std::unordered_set<runtime::Id> ancestors;
+    for (auto parent = node.parent; parent;) {
+      if (!ancestors.insert(parent).second)
+        return false;
+      const auto found = std::ranges::find(loaded, parent, &Node::id);
+      if (found == loaded.end())
+        return false;
+      parent = found->parent;
+    }
+  }
   world_data.assign(std::istreambuf_iterator<char>(input), {});
   const auto scene = world_.LoadSceneSnapshot(world_data);
   if (!scene)
