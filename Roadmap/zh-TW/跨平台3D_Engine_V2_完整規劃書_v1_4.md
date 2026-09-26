@@ -3955,6 +3955,8 @@ Packet Simulation
 
 ## V2-M6 — Replication / Interest / Prediction / Replay
 
+Portable NetworkEntityID foundation 現已實作：server-authoritative generational allocation、client／server 各自獨立的 bidirectional local mapping、stale-generation rejection，以及 spawn／despawn／reconnect lifecycle 測試。其餘 schema、snapshot、interest、prediction、reconciliation 與 replay 工作尚未完成，因此 V2-M6 維持未驗收。
+
 順序：
 
 ```text
@@ -3980,7 +3982,7 @@ Replay
 **Gate：**
 
 ```text
-✓ Client / Server local EntityID 可完全不同
+✅ Client / Server local EntityID 可完全不同
 ✓ Interest 不會 global replicate
 ✓ Character prediction 在測試 latency 下可玩
 ✓ Reconciliation 可 replay pending input

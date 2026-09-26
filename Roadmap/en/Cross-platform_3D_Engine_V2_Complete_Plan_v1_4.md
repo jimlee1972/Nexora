@@ -3946,6 +3946,8 @@ Do not implement Prediction first.
 
 ## V2-M6 — Replication / Interest / Prediction / Replay
 
+Portable NetworkEntityID foundation is now implemented: server-authoritative generational allocation, independent bidirectional client/server local mappings, stale-generation rejection, and spawn/despawn/reconnect lifecycle tests. The remaining schema, snapshot, interest, prediction, reconciliation, and replay work keeps V2-M6 open.
+
 Order:
 
 ```text
@@ -3971,7 +3973,7 @@ Replay
 **Gate:**
 
 ```text
-✓ Client / Server local EntityID can be completely different
+✅ Client / Server local EntityID can be completely different
 ✓ Interest does not perform global replication
 ✓ Character prediction is playable under test latency
 ✓ Reconciliation can replay pending input

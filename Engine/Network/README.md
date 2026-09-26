@@ -8,6 +8,16 @@ be linked by a headless server without Renderer, RHI, Presentation, UI, audio, G
 traffic validates both protocol version and build ID before user packets are accepted. Rejection,
 disconnect, channel semantics, and sequencing are explicit state rather than transport exceptions.
 
+`NetworkEntityID` is a server-allocated, session-scoped index plus generation and is never a local
+ECS `EntityID` or authoring UUID. `ServerEntityMap` exclusively allocates IDs and owns the server
+local-to-network binding. `ClientEntityMap` consumes spawn/despawn identities and owns an independent
+bidirectional local mapping, so peer-local handles need not match. Despawn tombstones generations and
+rejects delayed lookup, spawn, or despawn operations. On reconnect, callers reset both maps: the server
+advances live generations before reuse, while the client discards the old session namespace and its
+tombstones. Both maps are caller-owned, synchronous, and not thread-safe. A successful client spawn
+binding transfers no ownership of the local ECS entity; callers remain responsible for creating it
+before binding and destroying it after removing the binding.
+
 The included loopback pair delivers in-process datagrams immediately. The deterministic simulated
 pair models a UDP-oriented unreliable datagram boundary and supports seeded loss, latency, and
 jitter. Both perform no socket or background-thread work. Disconnect and a newly accepted handshake
