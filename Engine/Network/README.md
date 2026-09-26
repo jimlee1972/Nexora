@@ -18,6 +18,29 @@ tombstones. Both maps are caller-owned, synchronous, and not thread-safe. A succ
 binding transfers no ownership of the local ECS entity; callers remain responsible for creating it
 before binding and destroying it after removing the binding.
 
+`ReplicationSchema` defines a stable schema ID and monotonically increasing version, immutable
+16-bit field IDs, wire types, optional quantization bounds/bit counts, and required-versus-optional
+compatibility. Schema hashes use a specified field-order-independent FNV-1a byte stream, so the same
+contract has the same hash across compilers and builds. A newer schema is backward compatible only
+when every old field retains its ID, wire type, and quantization and every added field is optional.
+Snapshot encoding is canonical little-endian TLV ordered by field ID. Decoders reject malformed,
+duplicate, wrong-wire, and missing-required data; well-formed unknown fields are preserved as opaque
+wire values. Encoding and decoding are synchronous, allocate into caller-owned values, and retain no
+input spans.
+
+Delta packets identify both snapshot and baseline IDs and use a schema-ordered changed-field bitset.
+A missing or expired baseline returns `BaselineMissing`, after which the sender can use the explicit
+full-snapshot encoding. `BaselineStore` is caller-owned and capacity-bounded, evicting the oldest
+snapshot. Corrupt or truncated inputs are rejected without publishing a partially decoded snapshot.
+
+`InterestManager` owns a separate interest set and resumable scan per connection. It borrows an
+`IInterestProvider` only for a synchronous update; spatial indices and explicit subscriptions are
+provider implementations rather than Network-owned world state. Providers inspect no more than the
+requested budget, and changes become visible atomically after a complete bounded scan: entries emit
+spawn semantics and departures emit despawn semantics. An entity never enters a connection's set
+unless that connection's provider returned it, preventing fallback to global replication. The
+manager and providers are caller-synchronized and not thread-safe.
+
 The included loopback pair delivers in-process datagrams immediately. The deterministic simulated
 pair models a UDP-oriented unreliable datagram boundary and supports seeded loss, latency, and
 jitter. Both perform no socket or background-thread work. Disconnect and a newly accepted handshake
