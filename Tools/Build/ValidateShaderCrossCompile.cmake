@@ -3,7 +3,10 @@ if(NOT DEFINED ROOT)
   message(FATAL_ERROR "ROOT is required")
 endif()
 foreach(var CANONICAL_REFLECTION SPIRV_ARTIFACT METAL_ARTIFACT
-            COMMON_SPIRV_ARTIFACT COMMON_METAL_ARTIFACT REFLECTION_VERIFIER)
+            COMMON_SPIRV_ARTIFACT COMMON_METAL_ARTIFACT
+            SHADER_LIBRARY_SPIRV_ARTIFACT SHADER_LIBRARY_METAL_ARTIFACT
+            PBR_SPIRV_ARTIFACT PBR_METAL_ARTIFACT
+            UI_SPIRV_ARTIFACT UI_METAL_ARTIFACT REFLECTION_VERIFIER)
   if(NOT DEFINED ${var})
     message(FATAL_ERROR "${var} is required")
   endif()
@@ -12,13 +15,21 @@ endforeach()
 # DXIL is only produced on Windows (see NexoraSlang.cmake); DXIL_ARTIFACT is
 # omitted, not just empty, on other hosts.
 set(artifacts "${SPIRV_ARTIFACT}" "${METAL_ARTIFACT}" "${CANONICAL_REFLECTION}"
-              "${COMMON_SPIRV_ARTIFACT}" "${COMMON_METAL_ARTIFACT}")
+              "${COMMON_SPIRV_ARTIFACT}" "${COMMON_METAL_ARTIFACT}"
+              "${SHADER_LIBRARY_SPIRV_ARTIFACT}" "${SHADER_LIBRARY_METAL_ARTIFACT}"
+              "${PBR_SPIRV_ARTIFACT}" "${PBR_METAL_ARTIFACT}"
+              "${UI_SPIRV_ARTIFACT}" "${UI_METAL_ARTIFACT}")
 if(DEFINED DXIL_ARTIFACT)
   list(APPEND artifacts "${DXIL_ARTIFACT}")
 endif()
 if(DEFINED COMMON_DXIL_ARTIFACT)
   list(APPEND artifacts "${COMMON_DXIL_ARTIFACT}")
 endif()
+foreach(var SHADER_LIBRARY_DXIL_ARTIFACT PBR_DXIL_ARTIFACT UI_DXIL_ARTIFACT)
+  if(DEFINED ${var})
+    list(APPEND artifacts "${${var}}")
+  endif()
+endforeach()
 foreach(artifact ${artifacts})
   if(NOT EXISTS "${artifact}")
     message(FATAL_ERROR "Expected slang cross-compile artifact does not exist: ${artifact}")

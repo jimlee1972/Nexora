@@ -1,4 +1,4 @@
-implementing Nexora.Common;
+implementing "Nexora.Common";
 
 public float3 NexoraSrgbToLinear(float3 srgbColor)
 {

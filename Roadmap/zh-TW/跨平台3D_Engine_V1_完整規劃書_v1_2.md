@@ -6998,6 +6998,15 @@ stage／commit policy，以及編譯結果／diagnostic model；編譯失敗會�
 這不代表 Shader System PoC 或驗收清單已完成。Slang process／diagnostic parsing、cooked-file
 格式及載入、native module 建立、GPU-fence retirement，以及所有 target-host PoC 項目仍待完成。
 
+Portable shader library 實作狀態（2026-09-27）：`Shaders/Nexora/Common.slang` 現已提供
+PBR／IBL、StylizedPBR、Anime、Vegetation、Water、Unlit、shadow／post-process、skinning／instancing／
+Forward+、variant key 與 retained-mode UI helper。`PbrSmoke.slang` 實際涵蓋 PBR vertex／fragment、
+normal／ORM／emission map、irradiance 與 prefiltered environment cube、BRDF LUT 及 texture array；
+`UiSmoke.slang` 實際涵蓋 logical UI transform、atlas sampling、clip、nine-slice 與 straight-alpha
+composition。Slang 2026.18 的 SPIR-V／MSL 編譯，以及 Linux shader contract／artifact gate 均已
+通過。這只完成 portable source／cross-compile 切片；DXIL、DX12／Vulkan／Metal native execution、
+argument-buffer／實機驗證、cooked loading 與 golden image 仍待完成，因此 PoC 不標記完成。
+
 ### Shader Source of Truth / Metal Fallback
 
 正式規範：
