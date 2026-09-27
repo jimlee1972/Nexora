@@ -3,3 +3,8 @@ add_executable(NexoraCoreTests CoreTests.cpp)
 target_link_libraries(NexoraCoreTests PRIVATE Nexora::Core)
 nexora_apply_defaults(NexoraCoreTests)
 add_test(NAME core.runtime COMMAND NexoraCoreTests)
+
+add_executable(NexoraV2M11Tests V2M11Tests.cpp)
+target_link_libraries(NexoraV2M11Tests PRIVATE Nexora::Core)
+nexora_apply_defaults(NexoraV2M11Tests)
+add_test(NAME core.v2_m11_remote_diagnostics COMMAND NexoraV2M11Tests)
