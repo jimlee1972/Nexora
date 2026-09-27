@@ -109,7 +109,9 @@ with tempfile.TemporaryDirectory() as directory:
     pinned = generations.pin()
     transaction = MODULE.PatchVerificationTransaction(patch_manifest, patch_payloads)
     assert not transaction.activate(generations)
-    assert transaction.verify() and transaction.activate(generations)
+    assert transaction.verify()
+    transaction.manifest["generation"] = 99
+    assert transaction.activate(generations)
     assert generations.active_generation == 2 and generations.available(1)
     assert not generations.drain(1)
     assert generations.release(pinned) and generations.drain(1)
@@ -136,6 +138,15 @@ with tempfile.TemporaryDirectory() as directory:
     traversal_manifest["entries"][0]["path"] = "../escape.json"
     traversal_transaction = MODULE.PatchVerificationTransaction(traversal_manifest, patch_payloads)
     assert not traversal_transaction.verify()
+
+    drive_manifest = json.loads(json.dumps(patch_manifest))
+    drive_manifest["generation"] = 3
+    drive_manifest["entries"][0]["path"] = "C:/remote/data.json"
+    drive_transaction = MODULE.PatchVerificationTransaction(drive_manifest, patch_payloads)
+    assert not drive_transaction.verify()
+
+    downgrade = MODULE.GenerationRegistry(5)
+    assert not downgrade.activate(4)
 
     scene = {"entities": [{"id": "b", "name": "Second"}, {"id": "a", "name": "First"}]}
     manifest = MODULE.externalize_scene(scene, root / "world")
