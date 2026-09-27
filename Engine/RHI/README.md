@@ -13,6 +13,10 @@
   DXIL, Vulkan consumes SPIR-V, and Metal consumes Slang-generated MSL source.
   `IsArtifactCompatible` checks target format, payload presence, schema, and the existing canonical
   reflection/layout hash before an upper layer accepts an artifact for submission.
+- `ShaderResourceBindingMetadata` and `ValidateShaderResourceBindings` provide the backend-neutral
+  argument-buffer/device admission gate. They reject duplicate bindings, invalid stage masks,
+  read/write misuse, and argument-buffer groups that exceed physical device capability; native
+  backend code remains responsible for creating final descriptor/argument-buffer objects.
 - `Shaders/Nexora/Common.slang` is a reusable Slang module for common color transforms, luminance,
   ACES-fitted tone mapping, safe normalization, and a single-light Cook–Torrance/GGX BRDF.
   `CommonSmoke.slang` imports it and is part of the optional cross-compile gate; it does not change

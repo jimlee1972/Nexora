@@ -733,6 +733,8 @@ void VulkanDevice::LoadShaderModule() {
     std::vector<std::uint32_t> words(static_cast<std::size_t>(size) / sizeof(std::uint32_t));
     file.seekg(0);
     file.read(reinterpret_cast<char *>(words.data()), size);
+    if (!file || words.empty() || words.front() != 0x07230203U)
+      throw std::runtime_error("Vulkan shader artifact has an invalid SPIR-V magic");
     const VkShaderModuleCreateInfo module_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr,
                                                0, words.size() * sizeof(std::uint32_t),
                                                words.data()};

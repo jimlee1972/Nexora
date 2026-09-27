@@ -12,6 +12,11 @@ endif()
 nexora_apply_defaults(NexoraRendererTests)
 add_test(NAME renderer.contracts COMMAND NexoraRendererTests)
 
+add_executable(NexoraGoldenImageTests GoldenImageTests.cpp)
+target_link_libraries(NexoraGoldenImageTests PRIVATE Nexora::Renderer)
+nexora_apply_defaults(NexoraGoldenImageTests)
+add_test(NAME renderer.golden_image_acceptance COMMAND NexoraGoldenImageTests)
+
 add_executable(NexoraGPUSceneTests GPUSceneTests.cpp)
 target_link_libraries(NexoraGPUSceneTests PRIVATE Nexora::Renderer)
 nexora_apply_defaults(NexoraGPUSceneTests)

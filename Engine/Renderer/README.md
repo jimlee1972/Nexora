@@ -18,6 +18,11 @@ canonical reflection equality, the C++ layout hash, and the absence of backend-n
 public RHI headers. `renderer.contracts` then feeds the generated artifact paths to the platform
 native device and executes the same triangle workload.
 
+`Nexora/Renderer/GoldenImage.h` supplies a deterministic RGBA8 acceptance contract used by
+`renderer.golden_image_acceptance`: exact dimensions, per-channel tolerance, differing-pixel
+count, and a stable FNV-1a checksum. Platform runners can feed captured swapchain/offscreen
+pixels into this helper without introducing backend types into the renderer API.
+
 ## Shared shader library contract
 
 `Shaders/Nexora/Common.slang` is the only shared shader authoring module. Its helper sources cover

@@ -31740,3 +31740,7 @@ Modularity
 ```
 
 Only after all the above Gates pass may the project proceed to V2.
+<!-- Nexora shader implementation status (2026-09): the portable slice now includes the versioned
+NXSHDR cooked container, Development Slang compiler/hot-reload path, Shipping cooked-only admission,
+GPU-fence retirement, argument-buffer/device validation metadata, and deterministic RGBA8 golden
+image acceptance. Windows DXIL native execution and physical-device capture remain host-matrix gates. -->

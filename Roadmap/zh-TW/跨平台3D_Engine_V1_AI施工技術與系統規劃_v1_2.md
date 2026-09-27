@@ -2838,3 +2838,7 @@ Done
 ```
 
 必須提供可驗證證據。
+<!-- Nexora Shader 狀態（2026-09）：可攜式 slice 已完成版本化 NXSHDR cooked container、Development
+Slang 動態編譯與 hot-reload、Shipping 僅 cooked artifact、GPU fence retirement、argument-buffer/
+device validation metadata，以及 deterministic RGBA8 golden-image acceptance。Windows DXIL native
+execution 與實體 GPU capture 仍由 host matrix gate 驗證。 -->
