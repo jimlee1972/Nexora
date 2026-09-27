@@ -6976,6 +6976,16 @@ preserves the active generation on failed compilation. This does not complete th
 or acceptance list. Slang process/diagnostic parsing, cooked-file format and loading, native module
 creation, GPU-fence retirement, and all target-host PoC items remain open.
 
+Portable shader-library implementation note (2026-09-27): `Shaders/Nexora/Common.slang` now exposes
+PBR/IBL, StylizedPBR, Anime, Vegetation, Water, Unlit, shadow/post-process, skinning/instancing/Forward+,
+variant-key, and retained-mode UI helpers. `PbrSmoke.slang` exercises a real PBR vertex/fragment
+path with normal/ORM/emission maps, irradiance and prefiltered environment cubes, BRDF LUT, and a texture
+array; `UiSmoke.slang` exercises logical UI transforms, atlas sampling, clip, nine-slice, and
+straight-alpha composition. Slang 2026.18 SPIR-V/MSL compilation plus the Linux shader contract and
+artifact gates pass. This closes only the portable source/cross-compile slice; DXIL, native
+DX12/Vulkan/Metal execution, argument-buffer/device validation, cooked loading, and golden images
+remain open and the PoC is not marked complete.
+
 ### Shader Source of Truth / Metal Fallback
 
 Formal specification:

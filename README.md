@@ -70,10 +70,13 @@ accepts cooked artifacts only. The Editor model carries source-positioned diagno
 successful compile results transactionally, preserving the active generation on failure. This is a
 portable artifact-lifecycle slice: Slang process integration/diagnostic parsing, cooked-file
 serialization/loading, native module creation, and GPU-fence-safe retirement remain open and are
-not counted as completed shader-system acceptance. `Shaders/Nexora/Common.slang` now starts a
-reusable Slang module with color-space conversion, luminance, tone mapping, safe normalization, and
-direct GGX/Cook–Torrance lighting helpers; its smoke shader is wired into optional backend
-cross-compilation, pending that Slang-enabled gate in this environment.
+not counted as completed shader-system acceptance. `Shaders/Nexora/Common.slang` now contains the
+portable shared surface for PBR/IBL, StylizedPBR, Anime, Vegetation, Water, Unlit, shadow/post-process,
+skinning/instancing/Forward+, variant keys, and retained-mode UI helpers. `PbrSmoke.slang` and
+`UiSmoke.slang` are real vertex/fragment smoke entries (including IBL resources, Texture2DArray,
+atlas sampling, clip, and nine-slice); Linux Slang 2026.18 SPIR-V/MSL compilation and the shader
+contract/cross-compile tests pass. DXIL, native backend execution, cooked loading, and golden-image
+acceptance remain open.
 
 
 #### V2 late-milestone portable status
@@ -190,7 +193,7 @@ Showcase Validation Lab 現提供 portable M0～M12 probe registry、五態 stat
 
 #### Shader 系統狀態
 
-既有 Slang cross-compile／reflection gate 現增加 backend-neutral shader artifact contract 與 Runtime admission slot。DXIL、SPIR-V 與產生的 MSL 均依既有 canonical layout hash 驗證；Development 可 stage 動態編譯輸出，Shipping 僅接受 cooked artifact。Editor model 已能攜帶 source-positioned diagnostics，並以 transaction 套用成功編譯結果，失敗時保留 active generation。`Shaders/Nexora/Common.slang` 開始提供色彩空間轉換、luminance、tone mapping、安全 normalize 與 direct GGX／Cook–Torrance 光照 helper；smoke shader 已接入 optional backend cross-compile，仍待此環境執行 Slang gate。這只是 portable artifact lifecycle 與 shader library 切片；Slang process 整合與 diagnostic parsing、cooked-file serialization／loading、native module 建立及 GPU-fence-safe retirement 仍待實作，不計為 Shader System 驗收完成。
+既有 Slang cross-compile／reflection gate 現增加 backend-neutral shader artifact contract 與 Runtime admission slot。DXIL、SPIR-V 與產生的 MSL 均依既有 canonical layout hash 驗證；Development 可 stage 動態編譯輸出，Shipping 僅接受 cooked artifact。Editor model 已能攜帶 source-positioned diagnostics，並以 transaction 套用成功編譯結果，失敗時保留 active generation。`Shaders/Nexora/Common.slang` 現已提供 PBR／IBL、StylizedPBR、Anime、Vegetation、Water、Unlit、shadow／post-process、skinning／instancing／Forward+、variant key 與 retained-mode UI helper；`PbrSmoke.slang`／`UiSmoke.slang` 是含 IBL resource、Texture2DArray、atlas、clip、nine-slice 的實際 vertex／fragment smoke entry。Linux Slang 2026.18 的 SPIR-V／MSL 編譯與 shader contract／cross-compile tests 已通過；DXIL、native backend execution、cooked loading 與 golden-image acceptance 仍待完成。這仍只是 portable artifact lifecycle 與 shader library 切片；Slang process 整合與 diagnostic parsing、cooked-file serialization／loading、native module 建立及 GPU-fence-safe retirement 仍待實作，不計為 Shader System 驗收完成。
 
 
 #### V2 後段 milestone portable 狀態

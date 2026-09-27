@@ -1,4 +1,4 @@
-implementing Nexora.Common;
+implementing "Nexora.Common";
 
 public float3 NexoraSafeNormalize(float3 value)
 {

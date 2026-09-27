@@ -18,6 +18,23 @@ canonical reflection equality, the C++ layout hash, and the absence of backend-n
 public RHI headers. `renderer.contracts` then feeds the generated artifact paths to the platform
 native device and executes the same triangle workload.
 
+## Shared shader library contract
+
+`Shaders/Nexora/Common.slang` is the only shared shader authoring module. Its helper sources cover
+the roadmap's portable PBR/IBL, StylizedPBR, Anime, Vegetation, Water, Unlit, shadow/post-process,
+skinning/instancing/Forward+, variant-key, and retained-mode UI math. Resource sampling remains in
+the owning Slang entry point so tier-1 bindings and bindless paths can share the same calculations;
+RHI never owns this compiler or material policy.
+
+`PbrSmoke.slang` is the representative PBR vertex/fragment contract. It exercises base-color,
+normal, ORM, emission, irradiance cube, prefiltered environment cube, BRDF LUT, and texture-array resources
+with explicit Vulkan binding sets while retaining DX register declarations. `UiSmoke.slang` is the
+representative UI vertex/fragment contract for logical-coordinate transforms, atlas sampling,
+nine-slice UVs, rect clip, and straight-alpha composition. `ShaderLibrarySmoke.slang` keeps the
+remaining pure helper functions visible to the build contract. All three produce SPIR-V and MSL on
+Slang-enabled Linux/macOS builds and DXIL on Windows; platform execution, native pipeline creation,
+Metal fallback parity, and golden-image checks remain target-host gates.
+
 ## V1-M3 contract
 
 `RenderGraph` derives RAW/WAR/WAW dependencies, rejects cycles, topologically orders passes, computes transient lifetimes, and emits state transitions. `PipelineCache` coalesces identical asynchronous requests. The validation device rejects stale resources, invalid transitions, rendering-scope violations, missing pipelines, and presenting a non-Present resource.
