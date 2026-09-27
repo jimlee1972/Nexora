@@ -107,6 +107,8 @@ NATIVE_MAGICS = (
     bytes.fromhex("feedfacf"),
     bytes.fromhex("cefaedfe"),
     bytes.fromhex("cffaedfe"),
+    bytes.fromhex("cafebabe"),
+    bytes.fromhex("bebafeca"),
 )
 
 
@@ -186,7 +188,7 @@ def contains_native_code(path: str, payload: bytes) -> bool:
 
 
 def _safe_patch_path(value: str) -> bool:
-    if not value or "\\" in value:
+    if not value or "\\" in value or re.match(r"^[A-Za-z]:", value):
         return False
     path = PurePosixPath(value)
     return not path.is_absolute() and ".." not in path.parts and "." not in path.parts
@@ -215,7 +217,7 @@ class GenerationRegistry:
         return True
 
     def activate(self, generation: int) -> bool:
-        if generation <= 0 or generation == self.active_generation:
+        if generation <= self.active_generation:
             return False
         previous = self.active_generation
         self._retired.add(previous)
@@ -244,6 +246,7 @@ class PatchVerificationTransaction:
         self.verified = False
         self.activated = False
         self.error = ""
+        self._verified_generation: int | None = None
 
     def verify(self) -> bool:
         try:
@@ -272,17 +275,19 @@ class PatchVerificationTransaction:
                 if entry.get("size") != len(payload) or entry.get("sha256") != sha256(payload):
                     raise ValueError(f"patch payload verification failed: {path}")
             self.verified = True
+            self._verified_generation = generation
             self.error = ""
             return True
         except (TypeError, ValueError) as error:
             self.verified = False
+            self._verified_generation = None
             self.error = str(error)
             return False
 
     def activate(self, generations: GenerationRegistry) -> bool:
-        if not self.verified or self.activated:
+        if not self.verified or self.activated or self._verified_generation is None:
             return False
-        if not generations.activate(self.manifest["generation"]):
+        if not generations.activate(self._verified_generation):
             return False
         self.activated = True
         return True
