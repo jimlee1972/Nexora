@@ -1,6 +1,6 @@
 # Nexora V1 Visual Showcase Demo Long-Term Plan
 
-> **Progress: 10%** (as of 2026-09-25; weighted across the Phase A-E acceptance items;
+> **Progress: 24%** (as of 2026-09-26; weighted across the Phase A-E acceptance items;
 > Linux/Vulkan Phase A implementation awaits native virtual-display acceptance.)
 
 ## 0. Current-state audit
@@ -12,7 +12,8 @@
   the Showcase reuses `RenderSurface` rather than recreating those boundaries.
 - Implemented pending native acceptance: Linux/X11/Vulkan windowed startup, bounded resize, clear color, triangle, diagnostics panel, shutdown, and Xvfb smoke.
 - Open: real 3D Hub and Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping rooms.
-- Open: M0-M12 probe registry, interactive/guided tour, error injection, and visual status UI.
+- ✅ M0-M12 probe registry, status model, versioned JSON/Markdown serializers, CTest card mapping, and contained error injections are portable.
+- ✅ M7-M10 capability-aware room states emit headless evidence with `visual_complete: false`; interactive/guided tour and visual content remain open.
 - Open: physical-display target-host acceptance and versioned screenshot evidence.
 
 > Document version: v1.0
@@ -299,6 +300,8 @@ Goal: the Demo can trigger each M0-M12 probe individually and emit a JSON/Markdo
 - Implement the M4/M5/M6 scene/asset/editor foundation demos.
 - Add error injection: invalid assets, dependency cycles, plugin ABI mismatch, rollback.
 
+**Portable registry slice: ✅ complete.** Stable M0-M12 descriptors, the five-state model, versioned JSON/Markdown serialization, CTest card identities, and four contained error-injection results are implemented without replacing CTest.
+
 ### Phase D -- Gameplay / Presentation / World Rooms
 
 Goal: connect the M7-M10 Runtime contracts into the same 3D scene loop.
@@ -307,6 +310,8 @@ Goal: connect the M7-M10 Runtime contracts into the same 3D scene loop.
 - Character/physics/navigation/AI visualization.
 - Capability-aware animation/particle/audio/video demos.
 - Streaming cell/HLOD/procedural terrain/vegetation demo.
+
+**Headless room-state slice: ✅ complete; visuals remain open.** M7-M10 have capability-aware room records and headless evidence descriptions. Every record keeps `visual_complete: false`.
 
 ### Phase E -- Platform / Shipping / Distribution
 

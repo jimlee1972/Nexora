@@ -121,11 +121,47 @@ void TestNormalPathRecordsNoReadbackOn(const std::unique_ptr<rhi::Device> &devic
 void TestNormalPathRecordsNoReadback() {
   TestNormalPathRecordsNoReadbackOn(rhi::CreateValidationDevice(), "validation backend");
 }
+#if defined(__APPLE__)
+void TestMetalCommandRecording() {
+  Require(rhi::IsBackendAvailable(rhi::Backend::Metal), "Metal is required on the macOS runner");
+  auto device = rhi::CreateDevice(rhi::Backend::Metal);
+  auto compute = device->CreateCommandList(rhi::QueueType::Compute);
+  auto graphics = device->CreateCommandList(rhi::QueueType::Graphics);
+  const auto target = device->CreateTexture(
+      {1, 1, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::RenderTarget, "metal target"});
+  const auto graphicsPipeline =
+      device->CreatePipeline({1, 1, rhi::TextureFormat::Rgba8Unorm, "metal indirect"});
+  const auto computePipeline = device->CreatePipeline(
+      {1, 2, rhi::TextureFormat::Rgba8Unorm, "metal compute", rhi::PipelineType::Compute});
+  const auto storage = device->CreateBuffer({sizeof(std::uint32_t), "metal storage"});
+  const auto indirect =
+      device->CreateBuffer({rhi::GPUDrivenIndirectCommandStride, "metal indirect"});
+  rhi::GPUDrivenIndirectCommand command{};
+  command.draw.vertex_count = 3;
+  command.draw.instance_count = 1;
+  device->WriteBuffer(indirect, 0, std::as_bytes(std::span{&command, 1}));
+  compute->BindPipeline(computePipeline);
+  compute->BindStorageBuffer(0, storage);
+  compute->Dispatch(1);
+  graphics->BeginRendering({target, 1, 1});
+  graphics->BindPipeline(graphicsPipeline);
+  graphics->BindIndirectBuffer(indirect, 0, rhi::GPUDrivenIndirectCommandStride);
+  graphics->DrawIndirect(1);
+  graphics->EndRendering();
+  device->Submit(*compute);
+  device->Submit(*graphics);
+  const auto diagnostics = device->Diagnostics();
+  Require(diagnostics.compute_dispatches == 1 && diagnostics.indirect_draw_calls == 1,
+          "Metal records compute and canonical-stride indirect work");
+  device->DestroyBuffer(indirect);
+  device->DestroyBuffer(storage);
+  device->DestroyPipeline(computePipeline);
+  device->DestroyPipeline(graphicsPipeline);
+  device->DestroyTexture(target);
+}
+#endif
 void TestDispatchPreconditionsOnVulkan() {
-  // Only Vulkan implements Dispatch (vkCmdDispatch) today -- D3D12/Metal
-  // override neither Dispatch nor DrawIndirect yet (V2-M3 Phase 3/4).
-  //
-  // Keep the explicit argument-validation regression alongside the real native dispatch below.
+  // Keep the Vulkan-specific argument-validation regression alongside its native comparison gate.
   if (!rhi::IsBackendAvailable(rhi::Backend::Vulkan)) {
     const auto *required = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS");
     Require(!(required && *required == '1'), "Vulkan is required but unavailable");
@@ -302,6 +338,9 @@ int main() {
   TestInvalidDepthInput();
   TestReferenceComparison();
   TestNormalPathRecordsNoReadback();
+#if defined(__APPLE__)
+  TestMetalCommandRecording();
+#endif
   TestDispatchPreconditionsOnVulkan();
   TestNativeComputeOnVulkan();
   std::cout << "GPU-driven pipeline tests passed\n";

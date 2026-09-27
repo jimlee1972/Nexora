@@ -4,12 +4,17 @@ if(NOT NEXORA_ZIG_SAMPLE_OBJECT)
   message(FATAL_ERROR "NEXORA_ZIG_SAMPLE_OBJECT must be provided by Gameplay/Zig")
 endif()
 
+add_library(NexoraShowcaseProbes STATIC ShowcaseProbes.cpp)
+target_include_directories(NexoraShowcaseProbes PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+nexora_apply_defaults(NexoraShowcaseProbes)
+
 add_executable(NexoraShowcase
   main.cpp
   "${NEXORA_ZIG_SAMPLE_OBJECT}")
 add_dependencies(NexoraShowcase NexoraZigGameplayBuild)
 add_dependencies(NexoraShowcase NexoraZigGameplaySharedBuild)
 target_link_libraries(NexoraShowcase PRIVATE
+  NexoraShowcaseProbes
   Nexora::Runtime
   Nexora::Renderer
   Nexora::RHI
@@ -56,6 +61,13 @@ add_custom_target(NexoraShowcasePackageShipping
 
 if(BUILD_TESTING)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  add_test(
+    NAME showcase.v1_probe
+    COMMAND NexoraShowcaseProbeTests)
+  add_executable(NexoraShowcaseProbeTests
+    "${CMAKE_SOURCE_DIR}/Tests/Showcase/ShowcaseProbeTests.cpp")
+  target_link_libraries(NexoraShowcaseProbeTests PRIVATE NexoraShowcaseProbes)
+  nexora_apply_defaults(NexoraShowcaseProbeTests)
   add_test(
     NAME showcase.zig_headless
     COMMAND NexoraShowcase --headless --validate-v1 --frames=4)

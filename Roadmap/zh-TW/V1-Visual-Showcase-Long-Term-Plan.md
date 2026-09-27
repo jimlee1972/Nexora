@@ -1,6 +1,6 @@
 # Nexora V1 可視化展示 Demo 長期規劃
 
-> **進度：10%**（截至 2026-09-25；依 Phase A～E 驗收項目加權計算；
+> **進度：24%**（截至 2026-09-26；依 Phase A～E 驗收項目加權計算；
 > Linux/Vulkan Phase A implementation 尚待 native virtual-display 驗收。）
 
 ## 0. 現況盤點
@@ -11,7 +11,8 @@
 - ✅ Source/test audit 已確認 Window、Presentation 與 RHI buffer contract 均已存在；Showcase 重用 `RenderSurface`，沒有重建這些 boundary。
 - 已實作、待 native 驗收：Linux/X11/Vulkan windowed startup、bounded resize、clear color、triangle、diagnostics panel、shutdown 與 Xvfb smoke。
 - 待辦：真正的 3D Hub、Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping 房間。
-- 待辦：M0～M12 probe registry、interactive/guided tour、error injection 與視覺 status UI。
+- ✅ M0～M12 probe registry、status model、版本化 JSON／Markdown serializer、CTest card mapping 與受控 error injection 已可攜。
+- ✅ M7～M10 capability-aware room state 會輸出 headless evidence 與 `visual_complete: false`；interactive／guided tour 與視覺內容仍待完成。
 - 待辦：physical-display target-host 驗收與版本化 screenshot evidence。
 
 > 文件版本：v1.0
@@ -298,6 +299,8 @@ Linux/Vulkan 是 Phase A cloud implementation slice；只有 virtual-display tes
 - 實作 M4/M5/M6 的 scene/asset/editor foundation 展示。
 - 加入 error injection：無效 asset、dependency cycle、plugin ABI mismatch、rollback。
 
+**Portable registry slice：✅ 完成。** 穩定 M0～M12 descriptor、五態 model、版本化 JSON／Markdown serialization、CTest card identity 與四種受控 error-injection result 已實作，且不會取代 CTest。
+
 ### Phase D — Gameplay / Presentation / World Rooms
 
 目標：把 M7～M10 的 Runtime contract 接到同一個 3D scene loop。
@@ -306,6 +309,8 @@ Linux/Vulkan 是 Phase A cloud implementation slice；只有 virtual-display tes
 - Character/physics/navigation/AI 可視化。
 - Animation/particle/audio/video 的 capability-aware demo。
 - Streaming cell/HLOD/procedural terrain/vegetation demo。
+
+**Headless room-state slice：✅ 完成；視覺仍待完成。** M7～M10 已有 capability-aware room record 與 headless evidence 描述，每筆 record 均維持 `visual_complete: false`。
 
 ### Phase E — Platform / Shipping / Distribution
 

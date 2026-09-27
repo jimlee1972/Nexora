@@ -24,7 +24,7 @@ override 的情況下會直接丟例外（`"compute dispatch is unsupported"` /
 | `ValidationDevice`（portable CPU reference） | ✅ 已 override | ✅ 已 override | `renderer.v2_gpu_driven` 會完整跑過 culling/Hi-Z/compaction/indirect-generation 整條 pipeline，且是 deterministic 的。 |
 | `VulkanDevice` | ❌ 未 override（會丟例外） | ✅ 已 override（`vkCmdDrawIndirect`） | `renderer.contracts`（`Tests/Renderer/RendererTests.cpp::VerifyNativeBackend`）會在真實 Linux Vulkan 上透過一個極簡的 triangle frame 跑 `DrawIndirect`——**不是**透過 `RecordGPUDrivenExecution`，也從未呼叫過 `Dispatch`。 |
 | `D3D12Device` | ✅ 已 override（`ID3D12GraphicsCommandList::Dispatch`） | ✅ 已 override（`ExecuteIndirect`） | 依 §5 Phase 3 已實作（原始碼已確認：`Engine/RHI/src/D3D12Device.cpp` 的 `D3D12CommandList::Dispatch`/`DrawIndirect`）；Windows-host 執行與 `CompareGPUDrivenResults()` 證據無法在這個 Linux 雲端 session 產出，target-tier acceptance 仍待補。 |
-| `MetalDevice` | ❌ 未 override（會丟例外） | ❌ 未 override（會丟例外） | `Engine/RHI/src/MetalDevice.mm` 裡這兩個 symbol 出現次數都是 0；Phase 4 尚未開始。 |
+| `MetalDevice` | Source 已實作 | Source 已實作 | Compute pipeline／storage binding／dispatch 與 canonical-stride indirect draw 已存在；macOS execution evidence 仍待完成。 |
 
 簡單講：真正的 production 呼叫點 `RecordGPUDrivenExecution()` **目前只跑過 CPU reference**
 （`Tests/Renderer/GPUDrivenPipelineTests.cpp` 的 `TestNormalPathRecordsNoReadbackOn`，只用
@@ -208,6 +208,9 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
   碰不到。程式碼跟 shader 可以在這裡寫、在這裡 review，但過不過的證據沒辦法在這裡產生。
 
 ### Phase 4 — Metal backend
+
+> **Source implementation 已完成；macOS 驗收仍待完成。** Metal 現會建立 compute pipeline 與 shared storage buffer、綁定 storage slot、記錄 `dispatchThreadgroups`，並透過 indirect draw 消費 canonical 36-byte record。Linux portable source-contract test 會守住 entry point，但不宣稱已有 macOS execution 或 CPU／GPU comparison 證據。
+
 
 - 在 `MetalDevice` 上實作 `Dispatch` 跟 `DrawIndirect`（目前完全沒有）：
   `dispatchThreadgroups`/`dispatchThreads` 跟 `drawIndexedPrimitives(indirectBuffer:)`。
