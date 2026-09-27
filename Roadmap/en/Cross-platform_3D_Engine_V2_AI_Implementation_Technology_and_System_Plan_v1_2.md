@@ -4,7 +4,7 @@
 **Corresponding Source: Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md**
 **Purpose: AI implementation, Engine Programmer implementation, system decomposition, Code Review, CI Gate.**
 
-> **Progress: 46%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 are accepted; V2-M3 and V2-M7 through V2-M12 remain open.)
+> **Progress: 46%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 are accepted; V2-M3 and V2-M7 through V2-M12 remain open. V2-M7 has an in-progress portable foundation but is not yet accepted.)
 
 
 
@@ -2265,6 +2265,21 @@ Distributed Build is reproducible
 LiveOps can roll back
 ```
 
+
+---
+
+# V2-M7 Portable Foundation Status
+
+V2-M7 is **in progress**, not accepted. The first portable slice now provides the renderer-free
+`NexoraAI` boundary for hierarchical region/node routing, hard-budget navigation query scheduling,
+generic influence/cost fields, intent-only crowd output, deterministic Utility AI, relevance-based
+perception/decision/navigation LOD with dormancy, a batch `IPolicyRuntime` that emits the shared
+`AIAction`, and the synchronous self-play reset/step lifecycle.
+
+The `ai.v2_m7_navigation_crowd_policy` contract queues 5,000 navigation requests with a hard
+32-query-per-tick budget and checks 5,000 far-agent phase staggering. Production NavMesh streaming,
+job-system adapters, runtime character integration, policy backends, and multi-world training
+orchestration remain open.
 
 ---
 
