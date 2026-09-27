@@ -20,14 +20,18 @@ game-specific fields remain outside the pathfinding contract.
 implementation uses an XZ spatial hash and local separation so the API is not defined around a
 quadratic all-agents scan. A gameplay character layer remains responsible for applying intent.
 
-`UtilityAI` emits the same `AIAction` type used by learned policies. `IPolicyRuntime` is framework
-neutral, batch-oriented, versioned by policy ID/version, and emits `AIAction`; ONNX or another ML
-backend is therefore an optional adapter rather than a second gameplay-control path.
+`UtilityAI` emits the same `AIAction` type used by learned policies and supports deterministic
+selection, cooldown eligibility, and hysteresis around the current action. `IPolicyRuntime` is
+framework neutral, batch-oriented, versioned by policy ID/version, and emits `AIAction`; ONNX or
+another ML backend is therefore an optional adapter rather than a second gameplay-control path.
+`PolicyRuntimeDriver` accepts deferred inference, reuses a bounded-age cached batch, and falls back to
+a caller-supplied common action when inference is unavailable, invalid, or too stale.
 
 `SimulationLODPolicy` classifies full/reduced/far/dormant agents and exposes deterministic
-agent-ID phase staggering. Far agents therefore update at lower frequencies instead of producing a
-same-frame spike, while dormant agents have zero scheduled work until an external relevance change
-wakes them.
+agent-ID phase staggering. `AISimulationScheduler` turns those schedules into explicit perception,
+decision, and navigation work items plus per-tick counters. Far agents therefore update at lower
+frequencies instead of producing a same-frame spike, while dormant agents have zero scheduled work
+until an external relevance change wakes them.
 
 `SelfPlayBridge` is a synchronous tooling boundary over `ISelfPlayEnvironment`: reset, observations,
 actions, fixed simulation step, rewards, and termination are explicit. It does not include an

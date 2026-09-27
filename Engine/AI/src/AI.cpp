@@ -366,10 +366,16 @@ std::vector<CrowdResult> CrowdSystem::Solve(std::span<const CrowdAgentInput> age
   return out;
 }
 
-std::optional<UtilityDecision> UtilityAI::Select(std::span<const UtilityAction> actions) const {
+std::optional<UtilityDecision>
+UtilityAI::Select(std::span<const UtilityAction> actions, std::uint64_t tick,
+                  std::uint32_t current_action_id, double hysteresis) const {
   std::optional<UtilityDecision> best;
+  std::optional<UtilityDecision> current;
+  const auto switch_margin = std::isfinite(hysteresis) ? std::max(0.0, hysteresis) : 0.0;
+
   for (const auto &candidate : actions) {
-    if (!std::isfinite(candidate.bias) || candidate.bias < 0.0)
+    if (tick < candidate.cooldown_until_tick || !std::isfinite(candidate.bias) ||
+        candidate.bias < 0.0)
       continue;
     double score = candidate.bias;
     bool valid = true;
@@ -383,11 +389,19 @@ std::optional<UtilityDecision> UtilityAI::Select(std::span<const UtilityAction> 
     }
     if (!valid || !std::isfinite(score))
       continue;
+
+    const UtilityDecision decision{candidate.action, score};
+    if (candidate.action.action_id == current_action_id)
+      current = decision;
     if (!best || score > best->score + kEpsilon ||
         (std::abs(score - best->score) <= kEpsilon &&
          candidate.action.action_id < best->action.action_id))
-      best = UtilityDecision{candidate.action, score};
+      best = decision;
   }
+
+  if (best && current && best->action.action_id != current->action.action_id &&
+      best->score <= current->score + switch_margin + kEpsilon)
+    return current;
   return best;
 }
 
@@ -408,6 +422,60 @@ bool SimulationLODPolicy::ShouldRun(AgentId agent, std::uint64_t tick,
   if (agent == 0 || interval_ticks == 0)
     return false;
   return tick % interval_ticks == agent % interval_ticks;
+}
+
+std::vector<AIWorkItem> AISimulationScheduler::Build(
+    std::span<const AIAgentScheduleInput> agents, std::uint64_t tick) {
+  stats_ = {};
+  stats_.total_agents = agents.size();
+
+  std::vector<AIWorkItem> work;
+  work.reserve(agents.size());
+  for (const auto &agent : agents) {
+    const auto schedule = policy_.Classify(agent.relevance);
+    if (schedule.dormant) {
+      ++stats_.dormant_agents;
+      continue;
+    }
+    ++stats_.active_agents;
+
+    const auto perception =
+        SimulationLODPolicy::ShouldRun(agent.agent, tick, schedule.perception_interval_ticks);
+    const auto decision =
+        SimulationLODPolicy::ShouldRun(agent.agent, tick, schedule.decision_interval_ticks);
+    const auto navigation =
+        SimulationLODPolicy::ShouldRun(agent.agent, tick, schedule.navigation_interval_ticks);
+    stats_.perception_updates += perception ? 1U : 0U;
+    stats_.decision_updates += decision ? 1U : 0U;
+    stats_.navigation_updates += navigation ? 1U : 0U;
+    if (perception || decision || navigation)
+      work.push_back({agent.agent, schedule.lod, perception, decision, navigation});
+  }
+  return work;
+}
+
+PolicyBatchResult PolicyRuntimeDriver::Evaluate(
+    std::span<const PolicyObservation> observations, std::uint64_t tick) {
+  std::vector<AIAction> actions;
+  auto status = runtime_.Evaluate(observations, actions);
+
+  if (status == PolicyEvaluationStatus::Ready && actions.size() == observations.size()) {
+    cached_actions_ = actions;
+    cached_tick_ = tick;
+    has_cache_ = true;
+    return {status, std::move(actions), false, false};
+  }
+  if (status == PolicyEvaluationStatus::Ready)
+    status = PolicyEvaluationStatus::Invalid;
+
+  const auto cache_age_valid =
+      has_cache_ && cached_actions_.size() == observations.size() && tick >= cached_tick_ &&
+      tick - cached_tick_ <= max_stale_ticks_;
+  if (status == PolicyEvaluationStatus::Deferred && cache_age_valid)
+    return {status, cached_actions_, false, true};
+
+  std::vector<AIAction> fallback(observations.size(), fallback_action_);
+  return {status, std::move(fallback), true, false};
 }
 
 SelfPlayFrame SelfPlayBridge::Capture() const {

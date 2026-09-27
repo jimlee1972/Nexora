@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -184,6 +185,7 @@ struct UtilityAction final {
   AIAction action{};
   double bias{1.0};
   std::vector<UtilityConsideration> considerations;
+  std::uint64_t cooldown_until_tick{};
 };
 
 struct UtilityDecision final {
@@ -193,7 +195,9 @@ struct UtilityDecision final {
 
 class NEXORA_AI_API UtilityAI final {
 public:
-  [[nodiscard]] std::optional<UtilityDecision> Select(std::span<const UtilityAction> actions) const;
+  [[nodiscard]] std::optional<UtilityDecision>
+  Select(std::span<const UtilityAction> actions, std::uint64_t tick = 0,
+         std::uint32_t current_action_id = 0, double hysteresis = 0.0) const;
 };
 
 enum class PerceptionLOD : std::uint8_t { Full, Reduced, Far, Dormant };
@@ -221,9 +225,49 @@ public:
                                       std::uint32_t interval_ticks) noexcept;
 };
 
+struct AIAgentScheduleInput final {
+  AgentId agent{};
+  AgentRelevance relevance{};
+};
+
+struct AIWorkItem final {
+  AgentId agent{};
+  PerceptionLOD lod{PerceptionLOD::Dormant};
+  bool run_perception{};
+  bool run_decision{};
+  bool run_navigation{};
+};
+
+struct AISchedulerStats final {
+  std::uint64_t total_agents{};
+  std::uint64_t active_agents{};
+  std::uint64_t dormant_agents{};
+  std::uint64_t perception_updates{};
+  std::uint64_t decision_updates{};
+  std::uint64_t navigation_updates{};
+};
+
+class NEXORA_AI_API AISimulationScheduler final {
+public:
+  [[nodiscard]] std::vector<AIWorkItem> Build(std::span<const AIAgentScheduleInput> agents,
+                                              std::uint64_t tick);
+  [[nodiscard]] const AISchedulerStats &Stats() const noexcept { return stats_; }
+
+private:
+  SimulationLODPolicy policy_;
+  AISchedulerStats stats_{};
+};
+
 struct PolicyObservation final {
   AgentId agent{};
   std::vector<float> values;
+};
+
+enum class PolicyEvaluationStatus : std::uint8_t {
+  Ready,
+  Deferred,
+  Unavailable,
+  Invalid
 };
 
 class NEXORA_AI_API IPolicyRuntime {
@@ -231,8 +275,33 @@ public:
   virtual ~IPolicyRuntime() = default;
   [[nodiscard]] virtual const char *PolicyId() const noexcept = 0;
   [[nodiscard]] virtual std::uint64_t PolicyVersion() const noexcept = 0;
-  virtual bool Evaluate(std::span<const PolicyObservation> observations,
-                        std::vector<AIAction> &actions) = 0;
+  virtual PolicyEvaluationStatus Evaluate(std::span<const PolicyObservation> observations,
+                                          std::vector<AIAction> &actions) = 0;
+};
+
+struct PolicyBatchResult final {
+  PolicyEvaluationStatus status{PolicyEvaluationStatus::Unavailable};
+  std::vector<AIAction> actions;
+  bool used_fallback{};
+  bool reused_cached{};
+};
+
+class NEXORA_AI_API PolicyRuntimeDriver final {
+public:
+  PolicyRuntimeDriver(IPolicyRuntime &runtime, AIAction fallback_action,
+                      std::uint64_t max_stale_ticks)
+      : runtime_(runtime), fallback_action_(fallback_action), max_stale_ticks_(max_stale_ticks) {}
+
+  [[nodiscard]] PolicyBatchResult Evaluate(std::span<const PolicyObservation> observations,
+                                           std::uint64_t tick);
+
+private:
+  IPolicyRuntime &runtime_;
+  AIAction fallback_action_{};
+  std::uint64_t max_stale_ticks_{};
+  std::vector<AIAction> cached_actions_;
+  std::uint64_t cached_tick_{};
+  bool has_cache_{};
 };
 
 struct SelfPlayFrame final {

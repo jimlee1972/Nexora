@@ -15,14 +15,35 @@ class FakePolicy final : public IPolicyRuntime {
 public:
   const char *PolicyId() const noexcept override { return "fake-policy"; }
   std::uint64_t PolicyVersion() const noexcept override { return 7; }
-  bool Evaluate(std::span<const PolicyObservation> observations,
-                std::vector<AIAction> &actions) override {
+  PolicyEvaluationStatus Evaluate(std::span<const PolicyObservation> observations,
+                                  std::vector<AIAction> &actions) override {
     actions.clear();
     for (const auto &observation : observations)
       actions.push_back({static_cast<std::uint32_t>(observation.agent),
                          {{1, 0, 0}, 2.0, {1, 0, 0}, CharacterMovementMode::Grounded, 0}});
-    return true;
+    return PolicyEvaluationStatus::Ready;
   }
+};
+
+class SequencedPolicy final : public IPolicyRuntime {
+public:
+  const char *PolicyId() const noexcept override { return "sequenced-policy"; }
+  std::uint64_t PolicyVersion() const noexcept override { return 1; }
+
+  PolicyEvaluationStatus Evaluate(std::span<const PolicyObservation> observations,
+                                  std::vector<AIAction> &actions) override {
+    actions.clear();
+    if (calls_++ == 0) {
+      for (const auto &observation : observations)
+        actions.push_back({static_cast<std::uint32_t>(observation.agent),
+                           {{0, 0, 1}, 3.0, {0, 0, 1}, CharacterMovementMode::Grounded, 0}});
+      return PolicyEvaluationStatus::Ready;
+    }
+    return PolicyEvaluationStatus::Deferred;
+  }
+
+private:
+  std::uint32_t calls_{};
 };
 
 class FakeEnvironment final : public ISelfPlayEnvironment {
@@ -75,6 +96,53 @@ int main() {
   Require(direct && direct->nodes.front() == 10 && direct->nodes.back() == 30,
           "hierarchical path failed");
 
+  HierarchicalNavigationWorld cost_world;
+  Require(cost_world.AddRegion({1, {}}) &&
+              cost_world.AddNode({1, 1, {0, 0, 0}, {2, 3}}) &&
+              cost_world.AddNode({2, 1, {1, 0, 0}, {1, 4}}) &&
+              cost_world.AddNode({3, 1, {0, 0, 1}, {1, 4}}) &&
+              cost_world.AddNode({4, 1, {1, 0, 1}, {2, 3}}),
+          "cost-field navigation setup failed");
+  GridCostField reroute_cost({0, 0, 0}, 1.0, 3, 3);
+  Require(reroute_cost.Set(1, 0, 100.0), "reroute cost rejected");
+  const auto rerouted = cost_world.FindPath(1, 4, &reroute_cost);
+  Require(rerouted && rerouted->nodes.size() == 3 && rerouted->nodes[1] == 3,
+          "influence/cost field did not affect route selection");
+
+  NavigationQueryScheduler priority_scheduler(1);
+  const auto low_priority =
+      priority_scheduler.Submit(7001, 10, 30, 0, 10, world.Generation());
+  const auto high_priority =
+      priority_scheduler.Submit(7002, 10, 30, 100, 10, world.Generation());
+  Require(low_priority != 0 && high_priority != 0 &&
+              priority_scheduler.Process(world, 10, &field) == 1,
+          "priority scheduler setup failed");
+  const auto priority_results = priority_scheduler.DrainResults();
+  Require(priority_results.size() == 1 && priority_results[0].id == high_priority,
+          "navigation priority was not respected");
+
+  const auto replaced =
+      priority_scheduler.Submit(7003, 10, 30, 0, 11, world.Generation());
+  const auto replacement =
+      priority_scheduler.Submit(7003, 10, 30, 1, 11, world.Generation());
+  const auto cancelled =
+      priority_scheduler.Submit(7004, 10, 30, 2, 11, world.Generation());
+  Require(replaced != 0 && replacement != 0 && cancelled != 0 &&
+              priority_scheduler.Cancel(cancelled),
+          "navigation cancellation/coalescing setup failed");
+  priority_scheduler.Process(world, 11, &field);
+  const auto coalesced_results = priority_scheduler.DrainResults();
+  bool replaced_cancelled = false;
+  bool explicit_cancelled = false;
+  for (const auto &result : coalesced_results) {
+    replaced_cancelled |=
+        result.id == replaced && result.status == NavigationResultStatus::Cancelled;
+    explicit_cancelled |=
+        result.id == cancelled && result.status == NavigationResultStatus::Cancelled;
+  }
+  Require(replaced_cancelled && explicit_cancelled,
+          "navigation cancellation/coalescing did not produce cancelled results");
+
   NavigationQueryScheduler scheduler(32);
   for (AgentId agent = 1; agent <= 5000; ++agent)
     Require(scheduler.Submit(agent, 10, 30, static_cast<std::int32_t>(agent % 4), 100,
@@ -117,6 +185,15 @@ int main() {
   const auto decision = utility.Select(utility_actions);
   Require(decision && decision->action.action_id == 10,
           "utility tie-break was not deterministic");
+  const auto hysteresis_decision = utility.Select(utility_actions, 0, 20, 0.1);
+  Require(hysteresis_decision && hysteresis_decision->action.action_id == 20,
+          "utility hysteresis did not retain the current action");
+  auto cooldown_actions = std::vector<UtilityAction>(std::begin(utility_actions),
+                                                     std::end(utility_actions));
+  cooldown_actions[1].cooldown_until_tick = 5;
+  const auto cooldown_decision = utility.Select(cooldown_actions, 1);
+  Require(cooldown_decision && cooldown_decision->action.action_id == 20,
+          "utility cooldown did not suppress an unavailable action");
 
   SimulationLODPolicy lod;
   const auto far_schedule = lod.Classify({200.0, false, false, false, false});
@@ -124,19 +201,45 @@ int main() {
   Require(far_schedule.lod == PerceptionLOD::Far && far_schedule.perception_interval_ticks == 16 &&
               dormant_schedule.dormant,
           "far AI throttle/dormancy failed");
-  std::size_t far_updates = 0;
+  std::vector<AIAgentScheduleInput> scheduled_agents;
+  scheduled_agents.reserve(6000);
   for (AgentId agent = 1; agent <= 5000; ++agent)
-    far_updates += SimulationLODPolicy::ShouldRun(agent, 200, far_schedule.perception_interval_ticks)
-                       ? 1U
-                       : 0U;
-  Require(far_updates <= 313, "far agents were not phase-staggered");
+    scheduled_agents.push_back({agent, {200.0, false, false, false, false}});
+  for (AgentId agent = 5001; agent <= 6000; ++agent)
+    scheduled_agents.push_back({agent, {1000.0, false, false, false, false}});
+
+  AISimulationScheduler ai_scheduler;
+  const auto work = ai_scheduler.Build(scheduled_agents, 200);
+  const auto &ai_stats = ai_scheduler.Stats();
+  Require(ai_stats.total_agents == 6000 && ai_stats.active_agents == 5000 &&
+              ai_stats.dormant_agents == 1000 && ai_stats.perception_updates <= 313 &&
+              ai_stats.decision_updates <= 313 && ai_stats.navigation_updates <= 157 &&
+              work.size() <= 313,
+          "far/dormant AI scheduling exceeded phase-staggered work");
 
   FakePolicy policy;
   const std::vector<PolicyObservation> observations{{42, {1.0F, 2.0F}}};
   std::vector<AIAction> policy_actions;
-  Require(policy.Evaluate(observations, policy_actions) && policy_actions.size() == 1 &&
+  Require(policy.Evaluate(observations, policy_actions) == PolicyEvaluationStatus::Ready &&
+              policy_actions.size() == 1 &&
               policy_actions.front().character.desired_speed == 2.0,
           "learned policy runtime did not emit common AIAction");
+
+  SequencedPolicy sequenced_policy;
+  const AIAction fallback_action{
+      999, {{0, 0, 0}, 0.5, {0, 0, 1}, CharacterMovementMode::Grounded, 0}};
+  PolicyRuntimeDriver policy_driver(sequenced_policy, fallback_action, 2);
+  const auto ready_policy = policy_driver.Evaluate(observations, 10);
+  const auto delayed_policy = policy_driver.Evaluate(observations, 11);
+  const auto stale_policy = policy_driver.Evaluate(observations, 20);
+  Require(ready_policy.status == PolicyEvaluationStatus::Ready &&
+              ready_policy.actions[0].character.desired_speed == 3.0 &&
+              delayed_policy.status == PolicyEvaluationStatus::Deferred &&
+              delayed_policy.reused_cached && !delayed_policy.used_fallback &&
+              delayed_policy.actions[0].character.desired_speed == 3.0 &&
+              stale_policy.used_fallback && !stale_policy.reused_cached &&
+              stale_policy.actions[0].action_id == 999,
+          "policy delayed-result/fallback handling failed");
 
   FakeEnvironment environment;
   SelfPlayBridge bridge(environment);
