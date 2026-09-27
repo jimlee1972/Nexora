@@ -11,7 +11,7 @@ import re
 import secrets
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 
@@ -79,13 +79,213 @@ class DerivedDataCache:
         descriptor = {"importer": importer, "version": version, "settings": settings, "source_sha256": sha256(source)}
         return sha256(canonical_bytes(descriptor))
 
+    def path(self, key: str) -> Path:
+        return self.root / key[:2] / key[2:]
+
+    def load(self, key: str) -> bytes | None:
+        path = self.path(key)
+        return path.read_bytes() if path.is_file() else None
+
     def store(self, key: str, artifact: bytes) -> Path:
-        path = self.root / key[:2] / key[2:]
+        path = self.path(key)
         if path.exists() and path.read_bytes() != artifact:
             raise RuntimeError(f"DDC collision for {key}")
         if not path.exists():
             write_atomic(path, artifact)
         return path
+
+
+
+ARTIFACT_PROTOCOL_VERSION = 1
+DISTRIBUTED_WORK_KINDS = {"shader", "hlod", "cook"}
+REMOTE_CONTENT_KINDS = {"asset", "data-overlay", "localization-pack", "media"}
+NATIVE_CONTENT_EXTENSIONS = {".exe", ".dll", ".so", ".dylib", ".app", ".apk", ".ipa"}
+NATIVE_MAGICS = (
+    b"MZ",
+    b"\x7fELF",
+    bytes.fromhex("feedface"),
+    bytes.fromhex("feedfacf"),
+    bytes.fromhex("cefaedfe"),
+    bytes.fromhex("cffaedfe"),
+)
+
+
+def artifact_address(payload: bytes) -> str:
+    return f"sha256:{sha256(payload)}"
+
+
+def derivation_key(kind: str, tool: str, tool_version: str,
+                   input_addresses: list[str], settings: dict[str, Any]) -> str:
+    if not kind or not tool or not tool_version:
+        raise ValueError("artifact derivation identity must be non-empty")
+    if any(not address.startswith("sha256:") or len(address) != 71 for address in input_addresses):
+        raise ValueError("artifact inputs must use sha256 content addresses")
+    descriptor = {
+        "protocol_version": ARTIFACT_PROTOCOL_VERSION,
+        "kind": kind,
+        "tool": tool,
+        "tool_version": tool_version,
+        "inputs": sorted(input_addresses),
+        "settings": settings,
+    }
+    return sha256(canonical_bytes(descriptor))
+
+
+def distributed_work_unit(kind: str, tool: str, tool_version: str,
+                          input_addresses: list[str], settings: dict[str, Any]) -> dict[str, Any]:
+    if kind not in DISTRIBUTED_WORK_KINDS:
+        raise ValueError(f"unsupported distributed work kind: {kind}")
+    return {
+        "schema_version": ARTIFACT_PROTOCOL_VERSION,
+        "kind": kind,
+        "work_id": derivation_key(kind, tool, tool_version, input_addresses, settings),
+        "inputs": sorted(input_addresses),
+        "settings": settings,
+    }
+
+
+class SharedDerivedDataCache:
+    """Local-first DDC with an optional shared backend and verified fill."""
+
+    def __init__(self, local: DerivedDataCache, remote_get=None, remote_put=None):
+        self.local = local
+        self.remote_get = remote_get
+        self.remote_put = remote_put
+
+    def load(self, key: str) -> bytes | None:
+        local = self.local.load(key)
+        if local is not None:
+            return local
+        if self.remote_get is None:
+            return None
+        try:
+            remote = self.remote_get(key)
+        except (OSError, RuntimeError):
+            return None
+        if remote is None:
+            return None
+        address, payload = remote
+        if address != artifact_address(payload):
+            raise RuntimeError(f"remote DDC integrity failure for {key}")
+        self.local.store(key, payload)
+        return payload
+
+    def store(self, key: str, artifact: bytes) -> Path:
+        path = self.local.store(key, artifact)
+        if self.remote_put is not None:
+            try:
+                self.remote_put(key, artifact_address(artifact), artifact)
+            except (OSError, RuntimeError):
+                pass
+        return path
+
+
+def contains_native_code(path: str, payload: bytes) -> bool:
+    suffix = PurePosixPath(path).suffix.lower()
+    return suffix in NATIVE_CONTENT_EXTENSIONS or any(payload.startswith(magic) for magic in NATIVE_MAGICS)
+
+
+def _safe_patch_path(value: str) -> bool:
+    if not value or "\\" in value:
+        return False
+    path = PurePosixPath(value)
+    return not path.is_absolute() and ".." not in path.parts and "." not in path.parts
+
+
+class GenerationRegistry:
+    def __init__(self, active_generation: int):
+        if active_generation <= 0:
+            raise ValueError("active generation must be positive")
+        self.active_generation = active_generation
+        self._retired: set[int] = set()
+        self._pins: dict[int, int] = {active_generation: 0}
+
+    def pin(self, generation: int | None = None) -> int:
+        generation = self.active_generation if generation is None else generation
+        if generation != self.active_generation and generation not in self._retired:
+            raise ValueError("generation is not available")
+        self._pins[generation] = self._pins.get(generation, 0) + 1
+        return generation
+
+    def release(self, generation: int) -> bool:
+        count = self._pins.get(generation, 0)
+        if count <= 0:
+            return False
+        self._pins[generation] = count - 1
+        return True
+
+    def activate(self, generation: int) -> bool:
+        if generation <= 0 or generation == self.active_generation:
+            return False
+        previous = self.active_generation
+        self._retired.add(previous)
+        self._pins.setdefault(previous, 0)
+        self.active_generation = generation
+        self._pins.setdefault(generation, 0)
+        return True
+
+    def drain(self, generation: int) -> bool:
+        if generation not in self._retired or self._pins.get(generation, 0) != 0:
+            return False
+        self._retired.remove(generation)
+        self._pins.pop(generation, None)
+        return True
+
+    def available(self, generation: int) -> bool:
+        return generation == self.active_generation or generation in self._retired
+
+
+class PatchVerificationTransaction:
+    """Verifies a complete patch before allowing generation activation."""
+
+    def __init__(self, manifest: dict[str, Any], payloads: dict[str, bytes]):
+        self.manifest = manifest
+        self.payloads = payloads
+        self.verified = False
+        self.activated = False
+        self.error = ""
+
+    def verify(self) -> bool:
+        try:
+            if self.manifest.get("schema_version") != ARTIFACT_PROTOCOL_VERSION:
+                raise ValueError("unsupported patch manifest version")
+            generation = self.manifest.get("generation")
+            if not isinstance(generation, int) or generation <= 0:
+                raise ValueError("invalid patch generation")
+            entries = self.manifest.get("entries")
+            if not isinstance(entries, list) or not entries:
+                raise ValueError("patch manifest requires entries")
+            seen: set[str] = set()
+            for entry in entries:
+                path = entry.get("path")
+                kind = entry.get("kind")
+                if not isinstance(path, str) or not _safe_patch_path(path) or path in seen:
+                    raise ValueError(f"unsafe or duplicate patch path: {path!r}")
+                seen.add(path)
+                if kind not in REMOTE_CONTENT_KINDS:
+                    raise ValueError(f"remote content kind is not allowed: {kind!r}")
+                payload = self.payloads.get(path)
+                if payload is None:
+                    raise ValueError(f"missing patch payload: {path}")
+                if contains_native_code(path, payload):
+                    raise ValueError(f"native executable content rejected: {path}")
+                if entry.get("size") != len(payload) or entry.get("sha256") != sha256(payload):
+                    raise ValueError(f"patch payload verification failed: {path}")
+            self.verified = True
+            self.error = ""
+            return True
+        except (TypeError, ValueError) as error:
+            self.verified = False
+            self.error = str(error)
+            return False
+
+    def activate(self, generations: GenerationRegistry) -> bool:
+        if not self.verified or self.activated:
+            return False
+        if not generations.activate(self.manifest["generation"]):
+            return False
+        self.activated = True
+        return True
 
 
 def worker_request(request: dict[str, Any]) -> dict[str, Any]:
