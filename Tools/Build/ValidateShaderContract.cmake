@@ -44,3 +44,50 @@ foreach(symbol computeMain computeCandidates computeVisible computeIndirect comp
   endif()
 endforeach()
 message(STATUS "Validated GPU-driven compute shader contract")
+
+set(common_module "${ROOT}/Shaders/Nexora/Common.slang")
+set(common_smoke "${ROOT}/Shaders/CommonSmoke.slang")
+file(READ "${common_module}" common_module_source)
+file(READ "${common_smoke}" common_smoke_source)
+foreach(module_symbol IN ITEMS
+    "module Nexora.Common;"
+    "__include \"Nexora/Common/Math.slang\";"
+    "__include \"Nexora/Common/Color.slang\";"
+    "__include \"Nexora/Common/Lighting.slang\";")
+  string(FIND "${common_module_source}" "${module_symbol}" position)
+  if(position EQUAL -1)
+    message(FATAL_ERROR "${common_module}: missing shared module contract '${module_symbol}'")
+  endif()
+endforeach()
+file(GLOB common_sources "${ROOT}/Shaders/Nexora/Common/*.slang")
+foreach(symbol IN ITEMS
+    NexoraSafeNormalize
+    NexoraSrgbToLinear
+    NexoraLinearToSrgb
+    NexoraRec709Luminance
+    NexoraAcesApproximate
+    NexoraFresnelSchlick
+    NexoraEvaluateDirectBrdf)
+  set(symbol_found FALSE)
+  foreach(source IN LISTS common_sources)
+    file(READ "${source}" source_contents)
+    string(FIND "${source_contents}" "${symbol}" position)
+    if(NOT position EQUAL -1)
+      set(symbol_found TRUE)
+      break()
+    endif()
+  endforeach()
+  if(NOT symbol_found)
+    message(FATAL_ERROR "Nexora.Common: missing reusable shader function '${symbol}'")
+  endif()
+  string(FIND "${common_smoke_source}" "${symbol}(" smoke_position)
+  if(smoke_position EQUAL -1)
+    message(FATAL_ERROR
+      "${common_smoke}: shared function '${symbol}' is not covered by the compile smoke")
+  endif()
+endforeach()
+string(FIND "${common_smoke_source}" "import Nexora.Common;" import_position)
+if(import_position EQUAL -1)
+  message(FATAL_ERROR "${common_smoke}: must import the canonical Nexora.Common module")
+endif()
+message(STATUS "Validated reusable color and direct-lighting Slang module contract")

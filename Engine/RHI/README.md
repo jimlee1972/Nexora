@@ -13,6 +13,10 @@
   DXIL, Vulkan consumes SPIR-V, and Metal consumes Slang-generated MSL source.
   `IsArtifactCompatible` checks target format, payload presence, schema, and the existing canonical
   reflection/layout hash before an upper layer accepts an artifact for submission.
+- `Shaders/Nexora/Common.slang` is a reusable Slang module for common color transforms, luminance,
+  ACES-fitted tone mapping, safe normalization, and a single-light Cook–Torrance/GGX BRDF.
+  `CommonSmoke.slang` imports it and is part of the optional cross-compile gate; it does not change
+  the triangle or GPU-driven acceptance shader outputs.
 - Public RHI headers expose only backend-neutral descriptors, enums, handles, and interfaces.
   Native DX12, Vulkan, and Metal types are not part of the public contract.
 - `NEXORA_ENABLE_SLANG` is disabled by default so environments without `slangc` retain the

@@ -16,6 +16,13 @@ function(nexora_configure_slang)
 
   set(shader_source "${PROJECT_SOURCE_DIR}/Shaders/Triangle.slang")
   set(compute_shader_source "${PROJECT_SOURCE_DIR}/Shaders/GPUDriven.slang")
+  set(common_shader_source "${PROJECT_SOURCE_DIR}/Shaders/CommonSmoke.slang")
+  set(common_module_sources
+    "${PROJECT_SOURCE_DIR}/Shaders/Nexora/Common.slang"
+    "${PROJECT_SOURCE_DIR}/Shaders/Nexora/Common/Math.slang"
+    "${PROJECT_SOURCE_DIR}/Shaders/Nexora/Common/Color.slang"
+    "${PROJECT_SOURCE_DIR}/Shaders/Nexora/Common/Lighting.slang")
+  set(common_include_args -I "${PROJECT_SOURCE_DIR}/Shaders")
   set(shader_output_dir "${PROJECT_BINARY_DIR}/Shaders")
   set(spirv_output "${shader_output_dir}/Triangle.spv")
   set(compute_spirv_output "${shader_output_dir}/GPUDriven.spv")
@@ -23,11 +30,13 @@ function(nexora_configure_slang)
   set(spirv_reflection "${shader_output_dir}/Triangle.spv.reflection.json")
   set(metal_reflection "${shader_output_dir}/Triangle.metal.reflection.json")
   set(canonical_reflection "${shader_output_dir}/Triangle.reflection.json")
+  set(common_spirv_output "${shader_output_dir}/CommonSmoke.spv")
+  set(common_metal_output "${shader_output_dir}/CommonSmoke.metal")
   set(normalizer "${PROJECT_SOURCE_DIR}/Tools/Build/NormalizeShaderReflection.py")
 
   set(cross_compile_outputs
     "${spirv_output}" "${compute_spirv_output}" "${metal_output}" "${spirv_reflection}" "${metal_reflection}"
-    "${canonical_reflection}")
+    "${canonical_reflection}" "${common_spirv_output}" "${common_metal_output}")
   set(normalizer_args
     --source "${shader_source}"
     --output "${canonical_reflection}"
@@ -43,9 +52,11 @@ function(nexora_configure_slang)
     set(dxil_vertex_output "${shader_output_dir}/Triangle.vertex.dxil")
     set(dxil_fragment_output "${shader_output_dir}/Triangle.fragment.dxil")
     set(compute_dxil_output "${shader_output_dir}/GPUDriven.dxil")
+    set(common_dxil_output "${shader_output_dir}/CommonSmoke.dxil")
     set(dxil_reflection "${shader_output_dir}/Triangle.dxil.reflection.json")
     list(APPEND cross_compile_outputs "${dxil_output}" "${dxil_vertex_output}"
-         "${dxil_fragment_output}" "${compute_dxil_output}" "${dxil_reflection}")
+         "${dxil_fragment_output}" "${compute_dxil_output}" "${dxil_reflection}"
+         "${common_dxil_output}")
     list(APPEND normalizer_args --dxil-reflection "${dxil_reflection}")
     list(APPEND commands
       COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
@@ -76,6 +87,13 @@ function(nexora_configure_slang)
               -entry computeMain
               -o "${compute_dxil_output}"
               "${compute_shader_source}")
+    list(APPEND commands
+      COMMAND "${NEXORA_SLANGC_EXECUTABLE}" ${common_include_args}
+              -target dxil
+              -profile sm_6_6
+              -entry commonMain
+              -o "${common_dxil_output}"
+              "${common_shader_source}")
   endif()
 
   list(APPEND commands
@@ -102,13 +120,26 @@ function(nexora_configure_slang)
             -reflection-json "${metal_reflection}"
             -o "${metal_output}"
             "${shader_source}"
+    COMMAND "${NEXORA_SLANGC_EXECUTABLE}" ${common_include_args}
+            -target spirv
+            -profile glsl_450
+            -entry commonMain
+            -fvk-use-entrypoint-name
+            -o "${common_spirv_output}"
+            "${common_shader_source}"
+    COMMAND "${NEXORA_SLANGC_EXECUTABLE}" ${common_include_args}
+            -target metal
+            -entry commonMain
+            -o "${common_metal_output}"
+            "${common_shader_source}"
     COMMAND "${Python3_EXECUTABLE}" "${normalizer}" ${normalizer_args})
 
   add_custom_command(
     OUTPUT ${cross_compile_outputs}
     ${commands}
-    DEPENDS "${shader_source}" "${compute_shader_source}" "${normalizer}"
-    COMMENT "Compiling and normalizing the canonical Slang triangle"
+    DEPENDS "${shader_source}" "${compute_shader_source}" "${common_shader_source}"
+            ${common_module_sources} "${normalizer}"
+    COMMENT "Compiling canonical Slang shaders and shared shader library"
     VERBATIM)
 
   add_custom_target(NexoraSlangArtifacts ALL DEPENDS ${cross_compile_outputs})
@@ -122,4 +153,7 @@ function(nexora_configure_slang)
   set(NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT "${compute_spirv_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_METAL_OUTPUT "${metal_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_CANONICAL_REFLECTION "${canonical_reflection}" PARENT_SCOPE)
+  set(NEXORA_SLANG_COMMON_SPIRV_OUTPUT "${common_spirv_output}" PARENT_SCOPE)
+  set(NEXORA_SLANG_COMMON_METAL_OUTPUT "${common_metal_output}" PARENT_SCOPE)
+  set(NEXORA_SLANG_COMMON_DXIL_OUTPUT "${common_dxil_output}" PARENT_SCOPE)
 endfunction()
