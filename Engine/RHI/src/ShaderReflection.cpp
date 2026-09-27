@@ -30,4 +30,17 @@ PipelineLayoutMetadata TrianglePipelineLayout() {
       {0x01, 0, BindingType::ConstantBuffer, static_cast<std::uint8_t>(ShaderStage::Vertex), 64}};
   return {1, bindings, ComputeLayoutHash(bindings)};
 }
+
+bool IsArtifactCompatible(const ShaderModuleArtifact &artifact, Backend backend,
+                         std::uint64_t expected_layout_hash) noexcept {
+  const bool target_matches =
+      (backend == Backend::Direct3D12 && artifact.format == ShaderBinaryFormat::Dxil) ||
+      (backend == Backend::Vulkan && artifact.format == ShaderBinaryFormat::SpirV) ||
+      (backend == Backend::Metal && artifact.format == ShaderBinaryFormat::MetalSource);
+  if (!target_matches || artifact.shader_id.empty() || artifact.entry_point.empty() ||
+      artifact.binary.empty() || artifact.reflection.schema_version != 1 ||
+      artifact.reflection.layout_hash != expected_layout_hash)
+    return false;
+  return ComputeLayoutHash(artifact.reflection.bindings) == artifact.reflection.layout_hash;
+}
 } // namespace nexora::rhi

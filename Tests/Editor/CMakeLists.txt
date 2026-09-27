@@ -1,3 +1,8 @@
+add_executable(NexoraEditorShaderTests ShaderAuthoringTests.cpp)
+target_link_libraries(NexoraEditorShaderTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraEditorShaderTests)
+add_test(NAME editor.shader_authoring_contracts COMMAND NexoraEditorShaderTests)
+
 add_executable(NexoraEditorTests EditorTests.cpp)
 target_link_libraries(NexoraEditorTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraEditorTests)
