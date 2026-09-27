@@ -25,6 +25,7 @@ int RunTests() {
   Require(timeline.Seek(999.0) && timeline.Time() == 10.0 &&
               std::abs(*timeline.Evaluate("camera.fov") - 80.0F) < 0.001F,
           "timeline scrub did not clamp deterministically");
+  Require(!timeline.SetDuration(5.0), "timeline duration invalidated existing track keys");
 
   CameraRig rig;
   Require(rig.SetLayers({{0, 1.0F, {0, 0, 5, 60}}, {10, 1.0F, {10, 2, 3, 70}},
@@ -40,6 +41,11 @@ int RunTests() {
   Require(flex.size() == 2 && std::abs(flex[0].rect.width - 35.0F) < 0.001F &&
               std::abs(flex[1].rect.width - 65.0F) < 0.001F,
           "flex layout grow resolution failed");
+  const std::array overflow_items{FlexItem{3, 20, 0}, FlexItem{4, 20, 0}};
+  const auto shrunk = ResolveFlex({0, 0, 30, 20}, overflow_items, FlexDirection::Row, 0);
+  Require(shrunk.size() == 2 && std::abs(shrunk[0].rect.width - 15.0F) < 0.001F &&
+              std::abs(shrunk[1].rect.width - 15.0F) < 0.001F,
+          "flex layout did not shrink overflowing basis values");
   const std::array grid_items{GridItem{1, 0, 0, 1, 1}, GridItem{2, 1, 0, 1, 2}};
   const auto grid = ResolveGrid({0, 0, 100, 100}, 2, 2, grid_items, 10, 10);
   Require(grid.size() == 2 && std::abs(grid[0].rect.width - 45.0F) < 0.001F &&
