@@ -442,3 +442,41 @@ headless render/reload evidence; the local Windows `windows-zig-showcase` preset
 `Tests/Runtime/GameplayHostBridgeTests.cpp`; its generic V2 `MakeHost()` entry is intentionally not
 silently substituted for the V3 Showcase table. Native window/swapchain execution and dynamic
 module discovery remain open.
+
+## V2-M9 Timeline, UI, Audio, and Media portable foundation
+
+`PresentationV2.h` builds on the existing V1 UI and presentation contracts. `Timeline` owns
+deterministic keyed tracks with clamped scrub/seek and interpolation; `CameraRig` resolves weighted
+layers at the highest active priority. Flex and grid layout return owning `LayoutBox` values using
+the existing logical `Rect` coordinate system. `RichText` resolves localization-key spans through
+the existing `LocalizationTable`, and `StyleSheet` plus `Theme` provide deterministic class-order
+cascade and inline overrides without introducing a second localization or shaping authority.
+
+`AccessibilityTree` validates stable element IDs, parent existence, cycles, and required accessible
+names, then exposes deterministic reading order. `ProjectSurfacePointer` maps a world-space ray
+through triangle barycentrics to UV and then to the existing UI pointer coordinates. `RoomAudioGraph`
+finds the strongest portal-transmission route without requiring a per-source physics raycast.
+
+`AdaptiveMediaStream` models local, HLS, and DASH segment timelines but deliberately forwards seek
+and decoded-frame publication through the existing V1 `VideoPlayer`; the local-player contract
+therefore remains authoritative. DRM and capture/encoder are optional provider interfaces compiled
+only with `NEXORA_ENABLE_MEDIA_DRM` and `NEXORA_ENABLE_CAPTURE_ENCODER`, both OFF by default and
+fully strippable. The portable gate is `runtime.v2_m9_timeline_ui_audio_media`. Production text
+shaping/rendering, audio device/spatialization backends, HLS/DASH transport/ABR, DRM systems, and
+capture codecs remain backend gates.
+
+## V2-M12 hardening and reference-project portable foundation
+
+`HardeningV2.h` defines the five V2 reference-project identities—Massive Outdoor, Indoor Portal
+Dungeon, Network Arena, Crowd City, and Mobile Stress—and the capabilities each project must cover.
+The portable hardening helpers add deterministic save-image corruption detection, a thermal
+throttle policy/evidence validator, and an explicit V1-like footprint-growth budget. These are
+evidence contracts, not substitutes for physical-device or long-duration runs.
+
+`runtime.v2_m12_hardening_reference_projects` combines those contracts with the existing
+`SoakMonitor`, `BundleUpdater`, and Network entity maps. Its fast gate checks 100,000 bounded
+streaming-style resource samples, 2,000 disconnect/reconnect mapping resets, rollback to a
+known-good generation, corrupted-save rejection, thermal-throttle evidence, and disabled-feature
+footprint tolerance. It does **not** claim the V2-M12 shipping gate: five complete reference
+projects, 24h+ streaming/network soaks, and real mobile thermal behavior still require target-host
+execution and release-lab evidence.
