@@ -39,3 +39,31 @@ emits stable cell coordinates, per-region hashes, and a whole-build hash. With `
 or more `--changed-region` arguments it rebuilds only those regions and carries all other immutable
 region records forward byte-for-byte. It is the headless CI/cook entry point and never requires the
 complete runtime world to be resident.
+
+## V2-M10 shared DDC, distributed work, and LiveOps foundation
+
+The V2-M10 portable layer extends the same production tool rather than creating a parallel build
+system. Artifacts use an explicit `sha256:<digest>` content address, while `derivation_key()`
+hashes a canonical descriptor containing protocol version, work kind, tool identity/version,
+sorted input content addresses, and canonical settings. `distributed_work_unit()` applies that
+identity to shader, HLOD, and cook jobs, so independently scheduled workers receive the same
+deterministic work ID for identical inputs.
+
+`SharedDerivedDataCache` is local-first. A local hit never depends on the shared service; a remote
+outage or failed publish cannot stop local development. Remote fills are accepted only when the
+returned content address matches the bytes and are then copied into the immutable local cache.
+This contract intentionally does not define a transport, authentication mechanism, or hosted DDC
+service.
+
+LiveOps patch activation is transactional. `PatchVerificationTransaction` validates every manifest
+entry, relative path, allowed remote-content kind, exact byte size, SHA-256 digest, and native-code
+policy before it can advance `GenerationRegistry`. The registry retains retired generations while
+they have pins and permits drain only after the reference count reaches zero. Remote payloads with
+native executable extensions or PE/ELF/Mach-O magic are rejected; data overlays, localization
+packs, assets, and media remain data-only.
+
+`build.v2_production_toolchain` covers deterministic hash vectors, input-order independence,
+shared-cache fill and outage fallback, corrupt remote rejection, verify-before-activate,
+generation pin/drain, traversal rejection, and native executable rejection. Distributed worker
+deployment, remote service availability/SLOs, signing/key management, and production rollout
+orchestration remain infrastructure gates.

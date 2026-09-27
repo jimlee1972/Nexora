@@ -19,6 +19,8 @@ option(NEXORA_ENABLE_GAMEPLAY_SIMULATION
        "Build the V1-M8 physics, character, navigation, and AI foundation" ON)
 option(NEXORA_ENABLE_PRESENTATION
        "Build the V1-M9 animation, audio, VFX, and media foundation" ON)
+option(NEXORA_ENABLE_MEDIA_DRM "Build the optional V2-M9 DRM provider boundary" OFF)
+option(NEXORA_ENABLE_CAPTURE_ENCODER "Build the optional V2-M9 capture/encoder boundary" OFF)
 option(NEXORA_ENABLE_LARGE_WORLD
        "Build the V1-M10 large-world streaming, terrain, vegetation, and HLOD foundation" ON)
 option(NEXORA_ENABLE_PLATFORM

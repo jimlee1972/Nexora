@@ -4060,6 +4060,14 @@ Motion Matching optional
 
 ## V2-M9 — Timeline / UI V2 / Audio / Media V2
 
+> **Portable foundation 進行中（2026-09-27）：** `PresentationV2` 已提供可 deterministic
+> scrub／seek 的 Timeline data model、priority Camera Rig、Flex／Grid layout、沿用既有
+> `LocalizationTable` 的 RichText、StyleSheet／Theme resolution、accessibility semantics、
+> world ray → UV → UI 投影、room／portal audio routing，以及維持 V1 `VideoPlayer`
+> decoded-frame contract 的 HLS／DASH segment layer。DRM 與 capture／encoder boundary
+> 均為 compile-time optional 且預設關閉。Production shaping／rendering、device audio、
+> streaming transport／ABR、DRM 實作與 capture codec 仍待完成，因此 V2-M9 尚未驗收。
+
 施工：
 
 ```text
@@ -4091,6 +4099,13 @@ Capture / Encoder optional
 
 ## V2-M10 — Shared DDC / Distributed Build / LiveOps
 
+> **Portable foundation 進行中（2026-09-27）：** production commandlet 現已定義
+> content-addressed artifact、shader／HLOD／cook deterministic derivation／work ID、
+> local-first Shared DDC fallback、transactional patch verification、generation pin／drain、
+> data-only overlay／localization pack，以及依副檔名與 binary magic 拒絕 native executable。
+> `build.v2_production_toolchain` 涵蓋這些 headless contract。Hosted DDC、distributed worker
+> 部署、簽章與 production rollout 仍待完成，因此 V2-M10 尚未驗收。
+
 施工：
 
 ```text
@@ -4118,6 +4133,12 @@ Remote Content Verification
 
 ## V2-M11 — Remote Tools / Device Profiling / Production Diagnostics
 
+> **Portable foundation 進行中（2026-09-27）：** Core 現已擁有版本化 remote diagnostics
+> wire schema 與 headless `TraceAggregator`，支援 unified Trace ID、streaming／network／
+> memory／GPU／IO correlation、resource 一致的 IO → cook artifact → GPU upload chain，
+> 以及 PluginID cost attribution。Android／iOS／Desktop／Server 的 transport、discovery、
+> authentication 與實際 host adapter 仍需 target-host evidence，因此 V2-M11 尚未驗收。
+
 施工：
 
 ```text
@@ -4141,6 +4162,13 @@ Build Size / Feature report foundation
 ---
 
 ## V2-M12 — V2 Hardening / Reference Projects / Shipping
+
+> **Portable foundation 進行中（2026-09-27）：** 五個 reference project 現已有
+> machine-readable capability catalog；快速 hardening gate 涵蓋 bounded streaming-style
+> sample、disconnect／reconnect mapping drain、known-good rollback、save corruption rejection、
+> thermal-throttle evidence semantics，以及 V1-like footprint growth limit。此快速 gate 不會
+> 被視為 24h+／physical-device 驗收；完整 reference-project 執行、長時間 soak 與真實 mobile
+> thermal evidence 仍待完成，因此 V2-M12 尚未驗收。
 
 執行：
 

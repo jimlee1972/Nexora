@@ -36,8 +36,8 @@ an unchecked or unmarked item remains incomplete.
 | --- | ---: | --- |
 | ✅ [V1 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md) | **100%** | 13/13 portable M0–M12 contract foundations delivered; native/product adapters remain separate gates. |
 | ✅ [V1 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V1_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **100%** | Tracks the same accepted portable V1 implementation baseline. |
-| [V2 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) | **46%** | ✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 are accepted; V2-M7 now has an in-progress portable AI/navigation foundation with a hard query budget, intent-only crowd output, LOD/dormancy, shared policy actions, and a self-play bridge. M7 is not yet accepted. |
-| [V2 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **46%** | Tracks the same accepted V2 baseline and the in-progress V2-M7 portable AI/navigation foundation; production NavMesh/job integration, policy backends, and multi-world training orchestration remain open. |
+| [V2 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) | **46%** | ✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 are accepted. V2-M7 and V2-M9 through V2-M12 now have in-progress portable foundations, but none of those milestones is accepted; V2-M3 and V2-M8 also remain open. |
+| [V2 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **46%** | Tracks the same accepted V2 baseline plus the in-progress V2-M7 and V2-M9–M12 portable foundations; production backends, distributed infrastructure, cross-device diagnostics, and hardening acceptance remain open. |
 | [V3 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V3_Complete_Plan_v1_4.md) | **0%** | No V3 delivery milestone has an accepted repository gate. |
 | [V3 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md) | **0%** | Execution plan only; no V3 milestone accepted. |
 | ✅ [Engine API Foundation](Roadmap/en/Engine_API_Foundation_Roadmap.md) | **100%** | ✅ API-M1 through ✅ API-M6 complete for portable scope. |
@@ -61,6 +61,19 @@ V2-M5 is complete for the portable foundation: the `linux-headless` preset build
 V2-M3 now has one fixed 36-byte indirect-command ABI shared by C++ and Slang: the Vulkan/D3D12/Metal-compatible non-indexed draw prefix is followed by backend-neutral classification metadata. Vulkan consumes this canonical stride directly. D3D12 command recording now covers `Dispatch` and canonical-stride `ExecuteIndirect`, but Windows execution and comparison evidence remain pending. The Vulkan CPU/GPU native comparison still requires a Slang-enabled acceptance run, while Metal execution also remains open; therefore V2-M3 remains open independently of the 46% roadmap total.
 The Showcase Validation Lab now provides a portable M0-M12 probe registry, five-state status model, versioned JSON/Markdown reports, CTest card mapping, four contained error injections, and M7-M10 capability-aware headless room evidence. Room records explicitly remain visually incomplete.
 
+
+#### V2 late-milestone portable status
+
+V2-M9 now has backend-neutral Timeline/Camera Rig, Flex/Grid, localized RichText, Theme/StyleSheet,
+accessibility, Surface UI projection, room/portal audio, HLS/DASH segment contracts, and optional
+DRM/capture boundaries while preserving the V1 `VideoPlayer` contract. V2-M10 extends the existing
+production commandlet with deterministic content-addressed work identities, local-first Shared DDC,
+transactional patch verification, generation pin/drain, and native-code rejection. V2-M11 adds a
+versioned Core diagnostics wire schema with headless Trace ID correlation and PluginID attribution.
+V2-M12 defines the five reference-project capability profiles and fast hardening probes for bounded
+growth, reconnect drain, rollback, save corruption, thermal-policy evidence, and V1-like footprint
+limits. These are portable foundations only: M9-M12 remain unaccepted until their production,
+target-host, full-reference-project, and long-soak gates are satisfied.
 
 #### Engine API status
 
@@ -137,8 +150,8 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | --- | ---: | --- |
 | ✅ [V1 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V1_完整規劃書_v1_2.md) | **100%** | 13/13 個 portable M0–M12 contract foundation 已交付；native/product adapter 仍為獨立 gate。 |
 | ✅ [V1 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_2.md) | **100%** | 對應同一個已驗收的 portable V1 施工基線。 |
-| [V2 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) | **46%** | ✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已驗收；M6 新增 dormancy、prediction、reconciliation 與 replay reference contract。V2-M3 native execution 證據仍待完成。 |
-| [V2 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) | **46%** | 追蹤同一套已驗收的 portable V2-M6 networking reference scope；V2-M3 native parity 仍待完成。 |
+| [V2 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) | **46%** | ✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已驗收。V2-M7 與 V2-M9 至 V2-M12 現已有進行中的 portable foundation，但這些 milestone 均尚未驗收；V2-M3 與 V2-M8 亦仍待完成。 |
+| [V2 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) | **46%** | 追蹤同一套已驗收的 V2 基線，以及進行中的 V2-M7 與 V2-M9～M12 portable foundation；production backend、distributed infrastructure、跨裝置 diagnostics 與 hardening 驗收仍待完成。 |
 | [V3 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V3_完整規劃書_v1_4.md) | **0%** | 尚無 V3 delivery milestone 通過 repository gate。 |
 | [V3 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) | **0%** | 僅為施工規劃；尚無 V3 milestone 驗收。 |
 | ✅ [Engine API 基礎](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) | **100%** | ✅ API-M1 至 ✅ API-M6 完成 portable scope。 |
@@ -161,6 +174,20 @@ V2-M5 portable foundation 已完成：`linux-headless` preset 僅建置 renderer
 V2-M3 現已有一套由 C++ 與 Slang 共用的固定 36-byte indirect-command ABI：Vulkan／D3D12／Metal 相容的 non-indexed draw prefix 後接 backend-neutral classification metadata，且 Vulkan 直接消費此 canonical stride。D3D12 command recording 現已涵蓋 `Dispatch` 與採 canonical stride 的 `ExecuteIndirect`，但 Windows execution 與 comparison 證據仍待完成。Vulkan CPU/GPU native comparison 仍須以啟用 Slang 的 acceptance run 驗證，Metal execution 亦仍待完成；因此 V2-M3 仍獨立於 46% Roadmap 總進度維持未完成。
 Showcase Validation Lab 現提供 portable M0～M12 probe registry、五態 status model、版本化 JSON／Markdown report、CTest card mapping、四種受控 error injection，以及 M7～M10 capability-aware headless room evidence；room record 仍明確標示視覺未完成。
 
+
+#### V2 後段 milestone portable 狀態
+
+V2-M9 現已有 backend-neutral Timeline／Camera Rig、Flex／Grid、沿用 localization 的
+RichText、Theme／StyleSheet、accessibility、Surface UI 投影、room／portal audio、
+HLS／DASH segment contract 與 optional DRM／capture boundary，同時維持 V1
+`VideoPlayer` contract。V2-M10 在既有 production commandlet 上加入 deterministic
+content-addressed work identity、local-first Shared DDC、transactional patch verification、
+generation pin／drain 與 native-code rejection。V2-M11 在 Core 加入版本化 diagnostics
+wire schema、headless Trace ID correlation 與 PluginID attribution。V2-M12 定義五個
+reference project 的 capability profile，並加入 bounded growth、reconnect drain、rollback、
+save corruption、thermal-policy evidence 與 V1-like footprint limit 的快速 hardening probe。
+這些仍只是 portable foundation；M9～M12 必須等 production、target-host、完整 reference
+project 與長時間 soak gate 通過後才會驗收。
 
 #### Engine API 狀態
 

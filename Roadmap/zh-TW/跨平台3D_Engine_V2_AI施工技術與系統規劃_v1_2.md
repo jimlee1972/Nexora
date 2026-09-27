@@ -2293,6 +2293,24 @@ backend 與 multi-world training orchestration 仍待完成。
 
 ---
 
+# V2-M9 至 V2-M12 Portable Foundation 狀態
+
+V2-M9 至 V2-M12 現已有第一階段 portable／headless foundation，但不改變 milestone
+驗收狀態。M9 加入 Timeline／Camera Rig、Flex／Grid、沿用 localization 的 RichText、
+StyleSheet／Theme、accessibility semantics、Surface UI 投影、room／portal audio、
+HLS／DASH segment contract，以及可完全 strip 的 DRM／capture boundary。M10 加入
+deterministic content-addressed artifact／work identity、local-first Shared DDC、transactional
+patch verification、generation pin／drain 與 data-only remote-content policy。M11 加入版本化
+diagnostics wire schema、headless Trace ID aggregation 與 PluginID cost attribution。M12 加入
+五個 reference project capability 定義，以及 growth、disconnect／reconnect drain、rollback、
+corruption、thermal-policy evidence 與 disabled-feature footprint 的快速 hardening probe。
+
+這些 foundation 不會取代 production media backend、hosted／distributed build infrastructure、
+Android／iOS／Desktop／Server remote-tool host、完整 reference project、24h+ soak 或真實
+mobile thermal evidence 的驗收。因此 V2-M9、M10、M11、M12 仍維持未標記。
+
+---
+
 # Milestone Index
 
 

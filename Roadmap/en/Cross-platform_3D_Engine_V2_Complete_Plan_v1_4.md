@@ -4050,6 +4050,14 @@ Motion Matching optional
 
 ## V2-M9 — Timeline / UI V2 / Audio / Media V2
 
+> **Portable foundation in progress (2026-09-27):** `PresentationV2` now provides a deterministic
+> Timeline data model with scrub/seek, priority Camera Rig, Flex/Grid layout, RichText routed through
+> the existing `LocalizationTable`, StyleSheet/Theme resolution, accessibility semantics,
+> world-ray → UV → UI projection, room/portal audio routing, and an HLS/DASH segment layer that
+> preserves the V1 `VideoPlayer` decoded-frame contract. DRM and capture/encoder boundaries are
+> compile-time optional and OFF by default. Production shaping/rendering, device audio, streaming
+> transport/ABR, DRM implementations, and capture codecs remain open, so V2-M9 is not yet accepted.
+
 Construction:
 
 ```text
@@ -4081,6 +4089,13 @@ Capture / Encoder optional
 
 ## V2-M10 — Shared DDC / Distributed Build / LiveOps
 
+> **Portable foundation in progress (2026-09-27):** the production commandlet now defines
+> content-addressed artifacts, deterministic derivation/work IDs for shader/HLOD/cook jobs, a
+> local-first Shared DDC fallback, transactional patch verification, generation pin/drain, data-only
+> overlays/localization packs, and native executable rejection by extension and binary magic.
+> `build.v2_production_toolchain` covers the headless contract. Hosted DDC, distributed worker
+> deployment, signing, and production rollout remain open, so V2-M10 is not yet accepted.
+
 Construction:
 
 ```text
@@ -4108,6 +4123,12 @@ Remote Content Verification
 
 ## V2-M11 — Remote Tools / Device Profiling / Production Diagnostics
 
+> **Portable foundation in progress (2026-09-27):** Core now owns a versioned remote-diagnostics
+> wire schema and headless `TraceAggregator` for unified Trace IDs, streaming/network/memory/GPU/IO
+> correlation, resource-consistent IO → cook artifact → GPU upload chains, and PluginID cost
+> attribution. Android/iOS/Desktop/Server transport, discovery, authentication, and real host
+> adapters still require target-host evidence, so V2-M11 is not yet accepted.
+
 Construction:
 
 ```text
@@ -4131,6 +4152,13 @@ Build Size / Feature report foundation
 ---
 
 ## V2-M12 — V2 Hardening / Reference Projects / Shipping
+
+> **Portable foundation in progress (2026-09-27):** the five reference projects now have a
+> machine-readable capability catalog, while the fast hardening gate covers bounded streaming-style
+> samples, disconnect/reconnect mapping drain, known-good rollback, save corruption rejection,
+> thermal-throttle evidence semantics, and V1-like footprint growth limits. This is deliberately not
+> treated as the 24h+/physical-device acceptance gate; complete reference-project runs, long soaks,
+> and real mobile thermal evidence remain open, so V2-M12 is not yet accepted.
 
 Execute:
 
