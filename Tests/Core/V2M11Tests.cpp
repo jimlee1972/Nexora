@@ -37,6 +37,14 @@ int RunTests() {
   auto bad_magic = encoded;
   bad_magic.front() = std::byte{0};
   Require(!DecodeTraceEvent(bad_magic), "trace packet with invalid magic was accepted");
+  auto oversized_string = encoded;
+  const std::size_t plugin_length_offset = oversized_string.size() - io.plugin_id.size() -
+                                           io.resource.size() - 8;
+  oversized_string[plugin_length_offset] = std::byte{0xff};
+  oversized_string[plugin_length_offset + 1] = std::byte{0xff};
+  oversized_string[plugin_length_offset + 2] = std::byte{0xff};
+  oversized_string[plugin_length_offset + 3] = std::byte{0x7f};
+  Require(!DecodeTraceEvent(oversized_string), "oversized trace string length was accepted");
 
   const MetricSample metric{trace, 240, 64ULL * 1024ULL * 1024ULL, 700, 8192, 1024,
                             "linux-server", "streaming.plugin"};
@@ -83,6 +91,14 @@ int RunTests() {
                   {mismatch, 3, 2, TraceCategory::GpuUpload, 5, 6, 1, "p", "asset://b"}) &&
               !mismatch_aggregator.Correlate(mismatch).streaming_chain,
           "unrelated resources were falsely correlated into one streaming hitch");
+  Require(mismatch_aggregator.Ingest(
+              {mismatch, 4, 0, TraceCategory::Io, 7, 8, 1, "p", "asset://b"}) &&
+              mismatch_aggregator.Ingest(
+                  {mismatch, 5, 4, TraceCategory::CookArtifact, 9, 10, 1, "p", "asset://b"}) &&
+              mismatch_aggregator.Ingest(
+                  {mismatch, 6, 5, TraceCategory::GpuUpload, 11, 12, 1, "p", "asset://b"}) &&
+              mismatch_aggregator.Correlate(mismatch).streaming_chain,
+          "later valid resource chain was hidden by an unrelated earlier IO span");
   return 0;
 }
 } // namespace
