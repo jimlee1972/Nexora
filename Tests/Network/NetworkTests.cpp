@@ -319,6 +319,42 @@ void TestServerRuntimeByteBudgetDefersOversizedPacket() {
           "packet deferred by the byte budget was dropped instead of delivered on the next tick");
 }
 
+void TestServerRuntimeByteBudgetDoesNotHeadOfLineBlock() {
+  // A packet larger than the *entire* per-tick byte budget (not merely the budget remaining after
+  // an earlier packet) can never satisfy "if (bytes > 0 && ...)"'s sibling check on any tick if
+  // that guard were missing, since bytes resets to 0 every tick: PeekPendingPayloadSize would keep
+  // reporting it, Poll() would never be called for it, and it would sit at the head of the queue
+  // forever, blocking every packet queued behind it (Connection::Send() places no cap on payload
+  // size). The fix takes at least the head packet on an otherwise-empty tick regardless of its
+  // size, bounding the stall to that one oversized packet rather than the whole connection.
+  auto pair = CreateLoopbackTransportPair();
+  Connection client(*pair.client, {7, "build-a"}, false);
+  Connection server(*pair.server, {7, "build-a"}, true);
+  Connect(client, server);
+
+  TestServerSimulation simulation;
+  ServerRuntimeConfig config;
+  config.ticks_per_second = 10;
+  config.packets_per_client_per_tick = 5;
+  config.bytes_per_client_per_tick = 4;
+  ServerRuntime runtime(config, simulation);
+  Require(runtime.Admit(1, server) == AdmissionResult::Accepted, "client was not admitted");
+
+  Require(client.Send(1, ChannelSemantics::ReliableOrdered, Bytes("abcdefghij")),
+          "oversized packet send failed"); // received payload: 10 bytes, exceeds the full budget
+  Require(client.Send(1, ChannelSemantics::ReliableOrdered, Bytes("xy")),
+          "small packet send failed"); // received payload: 2 bytes
+  client.Tick(0);
+
+  runtime.Advance(std::chrono::milliseconds(101));
+  Require(runtime.TickIndex() == 1 && simulation.received == 1 && runtime.Capture().size() == 1,
+          "an over-full-budget packet on an empty tick was not taken to guarantee progress");
+
+  runtime.Advance(std::chrono::milliseconds(101));
+  Require(runtime.TickIndex() == 2 && simulation.received == 2 && runtime.Capture().size() == 2,
+          "the packet behind an oversized head-of-line packet was permanently blocked");
+}
+
 class NullDatagramSocket final : public IDatagramSocket {
 public:
   bool Bind(const SocketEndpoint &local) override {
@@ -645,6 +681,7 @@ int main() {
   TestMalformedPacketCorpus();
   TestServerRuntimeContract();
   TestServerRuntimeByteBudgetDefersOversizedPacket();
+  TestServerRuntimeByteBudgetDoesNotHeadOfLineBlock();
   TestPortableSocketProviderBoundary();
   TestNetworkEntityMapping();
   TestReplicationSchemaAndSnapshot();

@@ -87,8 +87,14 @@ void ServerRuntime::RunTick() {
     // budget above (which already short-circuits before Poll() is ever called).
     while (packets < config_.packets_per_client_per_tick &&
            connection->PeekPendingPayloadSize(pending_size)) {
-      if (pending_size >
-          config_.bytes_per_client_per_tick - std::min(bytes, config_.bytes_per_client_per_tick)) {
+      // A packet larger than the *entire* per-tick budget can never satisfy the plain
+      // over-budget check below on any tick (bytes resets to 0 each tick), which would leave it
+      // stuck at the head of the queue forever and head-of-line-block every packet behind it.
+      // Only defer for budget reasons once this tick has already accepted something: an empty
+      // tick always takes at least the head packet, bounding the stall to one oversized packet
+      // rather than blocking the connection indefinitely.
+      if (bytes > 0 && pending_size > config_.bytes_per_client_per_tick -
+                                          std::min(bytes, config_.bytes_per_client_per_tick)) {
         break;
       }
       Packet packet;
