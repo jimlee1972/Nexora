@@ -1,6 +1,7 @@
 #include "Nexora/AI/AI.h"
 
 #include <iterator>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -93,6 +94,19 @@ int main() {
 
   GridCostField field({0, 0, 0}, 5.0, 8, 2);
   Require(field.Set(3, 0, 25.0), "cost field rejected update");
+
+  // width * height must not silently wrap: an overflowing product used to leave costs_ undersized
+  // while width_/height_ kept their huge original values, turning any in-range Set()/Cost() call
+  // into an out-of-bounds heap access. A field built from an overflowing product must behave as
+  // the empty field it safely degrades to, rejecting every index instead of touching memory it
+  // doesn't own.
+  constexpr std::size_t kHalfSizeTBits = std::numeric_limits<std::size_t>::digits / 2;
+  GridCostField overflowing_field({0, 0, 0}, 1.0, std::size_t{1} << kHalfSizeTBits,
+                                  std::size_t{1} << kHalfSizeTBits);
+  Require(!overflowing_field.Set(0, 0, 1.0),
+          "overflowing grid dimensions were not rejected before indexing");
+  Require(overflowing_field.Cost({0, 0, 0}) == 0.0,
+          "overflowing grid dimensions did not degrade to an empty field");
   const auto direct = world.FindPath(10, 30, &field);
   Require(direct && direct->nodes.front() == 10 && direct->nodes.back() == 30,
           "hierarchical path failed");

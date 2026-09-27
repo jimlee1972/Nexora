@@ -68,6 +68,13 @@ and polling contract.
 `ServerRuntime` is the single-threaded owner of authoritative fixed-step scheduling. It borrows
 already-connected `Connection` objects, closes admission at a configured capacity or once draining
 begins, applies independent packet-count and byte budgets per client per tick, and caps catch-up work.
+Both budgets defer excess work to a later tick rather than dropping it: the pending packet is only
+dequeued once it is known to fit the tick's remaining byte budget, so a single packet larger than
+what remains this tick (but not larger than the full per-tick budget) is delivered on the next tick
+instead of being silently discarded. A single packet larger than the *entire* per-tick byte budget
+is still taken on an otherwise-empty tick rather than deferred forever, guaranteeing at least one
+packet's progress per tick and bounding the connection to at most one such oversized packet instead
+of head-of-line-blocking every packet queued behind it.
 Simulation sees only a monotonic tick index, never wall-clock time. Every accepted packet is retained
 in an ordered replay capture, and each completed tick hashes simulation-provided canonical state with
 specified FNV-1a bytes. Shutdown first enters `Draining`, continues bounded fixed ticks for clients to

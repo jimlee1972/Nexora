@@ -244,6 +244,15 @@ dependency or CI change. **Completed with a backend-neutral compute pipeline kin
 ### Phase 4 -- Metal backend
 
 > **Source implementation complete; macOS acceptance pending.** Metal now creates compute pipelines and shared storage buffers, binds storage slots, records `dispatchThreadgroups`, and consumes canonical 36-byte records through indirect draws. A portable source-contract test guards these entry points on Linux; no macOS execution or CPU/GPU comparison is claimed.
+>
+> **Bug fix (2026-09-27, source-reviewed, unverified on macOS):** `LoadShaderLibrary()`'s fallback
+> compute-shader path never checked `compute_function_` for nil after compiling the embedded
+> fallback source, unlike every other Metal object this file creates. A nil function passed to
+> `newComputePipelineStateWithFunction:error:` raises an uncaught Objective-C exception
+> (`std::terminate()`, not a catchable `std::runtime_error`) rather than failing gracefully. Added
+> the missing nil check with a `std::runtime_error`, matching this file's existing pattern. This
+> cannot be built or exercised in this Linux cloud session; a macOS host must confirm it compiles
+> and that the fallback path still behaves correctly.
 
 
 - Implement `Dispatch` and `DrawIndirect` on `MetalDevice` (currently absent entirely):
@@ -279,3 +288,14 @@ dependency or CI change. **Completed with a backend-neutral compute pipeline kin
 - Async/queue-ownership behavior is the one area where the portable contract's "logical tracking"
   and real hardware queues can diverge; Phase 2's RenderGraph integration step exists specifically
   to catch that before D3D12/Metal work begins on top of an unverified assumption.
+- **Flagged, not fixed (found 2026-09-27):** `BindIndirectBuffer` on all three native backends
+  (`VulkanDevice.cpp`, `D3D12Device.cpp`, `MetalDevice.mm`) validates only that the *first* indirect
+  command's bytes fit the bound buffer (`offset + DrawIndirectArgumentSize <= size`), not that the
+  full range a later `DrawIndirect(command_count)` call will read (`offset +
+  command_count * stride`) does. A caller that binds a buffer sized for one command and then draws
+  more reads past the allocation on every backend identically -- this is a pre-existing, symmetric
+  gap across the reference (Vulkan) and both newer backends, not a regression introduced by any
+  recent phase, so it is out of scope to fix as part of landing D3D12/Metal parity. A future pass
+  should validate the full range at `DrawIndirect` time (where `command_count` is actually known)
+  on all three backends together, since fixing only one would silently create a
+  cross-backend contract mismatch.

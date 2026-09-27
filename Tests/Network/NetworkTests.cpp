@@ -282,6 +282,79 @@ void TestServerRuntimeContract() {
           "server did not finish bounded graceful drain");
 }
 
+void TestServerRuntimeByteBudgetDefersOversizedPacket() {
+  // Connection::Poll() unconditionally dequeues, so the byte-budget check must happen before
+  // Poll() is called, not after: otherwise a packet that doesn't fit this tick's remaining budget
+  // gets popped and then discarded instead of deferred, unlike the packet-count budget (which
+  // already short-circuits before Poll() runs). This reproduces exactly that scenario: a packet
+  // that fits the tick's *full* byte budget but not the budget remaining after an earlier packet
+  // in the same tick must survive to be delivered on the next tick, not vanish.
+  auto pair = CreateLoopbackTransportPair();
+  Connection client(*pair.client, {7, "build-a"}, false);
+  Connection server(*pair.server, {7, "build-a"}, true);
+  Connect(client, server);
+
+  TestServerSimulation simulation;
+  ServerRuntimeConfig config;
+  config.ticks_per_second = 10;
+  config.packets_per_client_per_tick = 5; // high enough that only the byte budget can gate here
+  config.bytes_per_client_per_tick = 4;
+  ServerRuntime runtime(config, simulation);
+  Require(runtime.Admit(1, server) == AdmissionResult::Accepted, "client was not admitted");
+
+  // Connection::Tick() strips the internal channel-type prefix byte before a received packet is
+  // queued, so its payload size here is the raw text length, not the wire size Send() transmits.
+  Require(client.Send(1, ChannelSemantics::ReliableOrdered, Bytes("abc")),
+          "first packet send failed"); // received payload: 3 bytes
+  Require(client.Send(1, ChannelSemantics::ReliableOrdered, Bytes("def")),
+          "second packet send failed"); // received payload: 3 bytes
+  client.Tick(0);
+
+  runtime.Advance(std::chrono::milliseconds(101));
+  Require(runtime.TickIndex() == 1 && simulation.received == 1 && runtime.Capture().size() == 1,
+          "byte budget did not defer the packet that exceeded the tick's remaining budget");
+
+  runtime.Advance(std::chrono::milliseconds(101));
+  Require(runtime.TickIndex() == 2 && simulation.received == 2 && runtime.Capture().size() == 2,
+          "packet deferred by the byte budget was dropped instead of delivered on the next tick");
+}
+
+void TestServerRuntimeByteBudgetDoesNotHeadOfLineBlock() {
+  // A packet larger than the *entire* per-tick byte budget (not merely the budget remaining after
+  // an earlier packet) can never satisfy "if (bytes > 0 && ...)"'s sibling check on any tick if
+  // that guard were missing, since bytes resets to 0 every tick: PeekPendingPayloadSize would keep
+  // reporting it, Poll() would never be called for it, and it would sit at the head of the queue
+  // forever, blocking every packet queued behind it (Connection::Send() places no cap on payload
+  // size). The fix takes at least the head packet on an otherwise-empty tick regardless of its
+  // size, bounding the stall to that one oversized packet rather than the whole connection.
+  auto pair = CreateLoopbackTransportPair();
+  Connection client(*pair.client, {7, "build-a"}, false);
+  Connection server(*pair.server, {7, "build-a"}, true);
+  Connect(client, server);
+
+  TestServerSimulation simulation;
+  ServerRuntimeConfig config;
+  config.ticks_per_second = 10;
+  config.packets_per_client_per_tick = 5;
+  config.bytes_per_client_per_tick = 4;
+  ServerRuntime runtime(config, simulation);
+  Require(runtime.Admit(1, server) == AdmissionResult::Accepted, "client was not admitted");
+
+  Require(client.Send(1, ChannelSemantics::ReliableOrdered, Bytes("abcdefghij")),
+          "oversized packet send failed"); // received payload: 10 bytes, exceeds the full budget
+  Require(client.Send(1, ChannelSemantics::ReliableOrdered, Bytes("xy")),
+          "small packet send failed"); // received payload: 2 bytes
+  client.Tick(0);
+
+  runtime.Advance(std::chrono::milliseconds(101));
+  Require(runtime.TickIndex() == 1 && simulation.received == 1 && runtime.Capture().size() == 1,
+          "an over-full-budget packet on an empty tick was not taken to guarantee progress");
+
+  runtime.Advance(std::chrono::milliseconds(101));
+  Require(runtime.TickIndex() == 2 && simulation.received == 2 && runtime.Capture().size() == 2,
+          "the packet behind an oversized head-of-line packet was permanently blocked");
+}
+
 class NullDatagramSocket final : public IDatagramSocket {
 public:
   bool Bind(const SocketEndpoint &local) override {
@@ -607,6 +680,8 @@ int main() {
   TestReconnectDisconnectStress();
   TestMalformedPacketCorpus();
   TestServerRuntimeContract();
+  TestServerRuntimeByteBudgetDefersOversizedPacket();
+  TestServerRuntimeByteBudgetDoesNotHeadOfLineBlock();
   TestPortableSocketProviderBoundary();
   TestNetworkEntityMapping();
   TestReplicationSchemaAndSnapshot();

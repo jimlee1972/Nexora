@@ -210,6 +210,14 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
 ### Phase 4 — Metal backend
 
 > **Source implementation 已完成；macOS 驗收仍待完成。** Metal 現會建立 compute pipeline 與 shared storage buffer、綁定 storage slot、記錄 `dispatchThreadgroups`，並透過 indirect draw 消費 canonical 36-byte record。Linux portable source-contract test 會守住 entry point，但不宣稱已有 macOS execution 或 CPU／GPU comparison 證據。
+>
+> **Bug 修正（2026-09-27，僅原始碼審查，未在 macOS 上驗證）：** `LoadShaderLibrary()` 的 fallback
+> compute shader 路徑在編譯內嵌 fallback source 後，從未檢查 `compute_function_` 是否為 nil——
+> 這跟這個檔案裡其他每一個 Metal object 的建立方式都不一致。把 nil function 傳給
+> `newComputePipelineStateWithFunction:error:` 會丟出無法攔截的 Objective-C exception
+> （直接 `std::terminate()`，不是可以 catch 的 `std::runtime_error`），而不是優雅地失敗。已補上
+> 缺少的 nil check 並丟出 `std::runtime_error`，跟這個檔案既有的模式一致。這個修正無法在這個
+> Linux 雲端 session 裡編譯或執行；需要 macOS host 確認它能編譯、且 fallback 路徑行為仍然正確。
 
 
 - 在 `MetalDevice` 上實作 `Dispatch` 跟 `DrawIndirect`（目前完全沒有）：
@@ -242,3 +250,12 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
 - Async/queue-ownership 行為是 portable contract 的「邏輯追蹤」跟真實硬體 queue 最可能出現落差的
   地方；Phase 2 的 RenderGraph 整合步驟就是為了在 D3D12/Metal 的工作疊上一個沒驗證過的假設之前，
   先把這個抓出來。
+- **已標記、尚未修正（2026-09-27 發現）：** 三個 native backend（`VulkanDevice.cpp`、
+  `D3D12Device.cpp`、`MetalDevice.mm`）的 `BindIndirectBuffer` 都只驗證「第一個」indirect
+  command 的 bytes 是否落在綁定的 buffer 內（`offset + DrawIndirectArgumentSize <= size`），
+  沒有驗證之後 `DrawIndirect(command_count)` 實際會讀到的完整範圍
+  （`offset + command_count * stride`）。呼叫端如果綁定了只夠放一個 command 的 buffer，卻畫了
+  更多 command，會在三個 backend 上都一樣讀到 allocation 之外——這是參考實作（Vulkan）跟兩個
+  較新 backend 共同、對稱存在的既有缺口，不是最近哪個 phase 造成的 regression，所以在這次補齊
+  D3D12/Metal parity 的範圍裡不修。之後應該在 `DrawIndirect`（`command_count` 真正已知的地方）
+  一次驗證完整範圍，三個 backend 一起修，只修一個會悄悄造成 backend 之間的 contract 不一致。
