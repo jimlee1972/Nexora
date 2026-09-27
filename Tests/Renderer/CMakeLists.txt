@@ -1,4 +1,9 @@
 include(NexoraTarget)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME renderer.metal_source_contract
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/MetalSourceContract.py"
+          "${CMAKE_SOURCE_DIR}/Engine/RHI/src/MetalDevice.mm")
 add_executable(NexoraRendererTests RendererTests.cpp)
 target_link_libraries(NexoraRendererTests PRIVATE Nexora::Renderer)
 if(WIN32)
@@ -16,6 +21,9 @@ add_executable(NexoraGPUDrivenTests GPUDrivenPipelineTests.cpp)
 target_link_libraries(NexoraGPUDrivenTests PRIVATE Nexora::Renderer)
 nexora_apply_defaults(NexoraGPUDrivenTests)
 add_test(NAME renderer.v2_gpu_driven COMMAND NexoraGPUDrivenTests)
+if(APPLE AND NEXORA_ENABLE_NATIVE_BACKENDS)
+  set_tests_properties(renderer.v2_gpu_driven PROPERTIES LABELS "metal;native-acceptance")
+endif()
 
 if(NEXORA_ENABLE_SLANG)
   add_executable(NexoraShaderReflectionContractTests ShaderReflectionCrossCompileTests.cpp)

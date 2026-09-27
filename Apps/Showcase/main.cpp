@@ -8,6 +8,7 @@
 #include "Nexora/Renderer/FramePipeline.h"
 #include "Nexora/Renderer/PipelineCache.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
+#include "ShowcaseProbes.h"
 
 #include <array>
 #include <charconv>
@@ -807,6 +808,27 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
 
 std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
   const auto build = foundation::GetBuildInfo();
+  const auto probes = showcase::ProbeRegistry::CreateV1Registry().RunAll();
+  const auto roomStates = showcase::BuildRoomStates({true,
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+                                                     true,
+#else
+                                                     false,
+#endif
+#if NEXORA_PRESENTATION_ENABLED
+                                                     true,
+#else
+                                                     false,
+#endif
+#if NEXORA_LARGE_WORLD_ENABLED
+                                                     true
+#else
+                                                     false
+#endif
+  });
+  auto validationLab = showcase::SerializeJson(probes, roomStates);
+  if (!validationLab.empty() && validationLab.back() == '\n')
+    validationLab.pop_back();
   std::ostringstream report;
   report << std::boolalpha << std::setprecision(17);
   report << "{\n"
@@ -912,6 +934,7 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"triangle\": true,\n"
          << "    \"diagnostics_overlay\": true\n"
          << "  },\n"
+         << "  \"validation_lab\": " << validationLab << ",\n"
          << "  \"reload\": {\n"
          << "    \"requested\": " << command.reload << ",\n"
          << "    \"successful_reloads\": " << run.reload.successful_reloads << ",\n"

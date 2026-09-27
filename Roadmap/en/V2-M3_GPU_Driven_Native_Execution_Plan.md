@@ -24,7 +24,7 @@ implementations unconditionally throw (`"compute dispatch is unsupported"` /
 | `ValidationDevice` (portable CPU reference) | ✅ overridden | ✅ overridden | `renderer.v2_gpu_driven` exercises the full culling/Hi-Z/compaction/indirect-generation pipeline deterministically. |
 | `VulkanDevice` | ❌ not overridden (throws) | ✅ overridden (`vkCmdDrawIndirect`) | `renderer.contracts` (`Tests/Renderer/RendererTests.cpp::VerifyNativeBackend`) exercises `DrawIndirect` on real Linux Vulkan through a minimal triangle frame -- **not** through `RecordGPUDrivenExecution`, and never calls `Dispatch`. |
 | `D3D12Device` | ✅ overridden (`ID3D12GraphicsCommandList::Dispatch`) | ✅ overridden (`ExecuteIndirect`) | Implemented per §5 Phase 3 (source-verified: `D3D12CommandList::Dispatch`/`DrawIndirect` in `Engine/RHI/src/D3D12Device.cpp`); Windows-host execution and `CompareGPUDrivenResults()` evidence cannot be produced from this Linux cloud session, so target-tier acceptance is still pending. |
-| `MetalDevice` | ❌ not overridden (throws) | ❌ not overridden (throws) | Zero occurrences of either symbol in `Engine/RHI/src/MetalDevice.mm`; Phase 4 has not started. |
+| `MetalDevice` | Source implemented | Source implemented | Compute pipeline/storage binding/dispatch and canonical-stride indirect draw are present; macOS execution evidence remains open. |
 
 In short: the actual production call site, `RecordGPUDrivenExecution()`, has **only ever run
 end-to-end against the CPU reference** (`Tests/Renderer/GPUDrivenPipelineTests.cpp`'s
@@ -242,6 +242,9 @@ dependency or CI change. **Completed with a backend-neutral compute pipeline kin
   the pass/fail evidence cannot.
 
 ### Phase 4 -- Metal backend
+
+> **Source implementation complete; macOS acceptance pending.** Metal now creates compute pipelines and shared storage buffers, binds storage slots, records `dispatchThreadgroups`, and consumes canonical 36-byte records through indirect draws. A portable source-contract test guards these entry points on Linux; no macOS execution or CPU/GPU comparison is claimed.
+
 
 - Implement `Dispatch` and `DrawIndirect` on `MetalDevice` (currently absent entirely):
   `dispatchThreadgroups`/`dispatchThreads` and `drawIndexedPrimitives(indirectBuffer:)`.
