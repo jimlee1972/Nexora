@@ -41,3 +41,20 @@ The tracking allocator's aligned-allocate/deallocate calls are the replaceable b
 ## Deferred work
 
 This slice establishes the M1 contracts and smoke gates. A work-stealing scheduler, recurring system-graph caching, and C ABI wrappers remain follow-up M1 work rather than being represented by placeholder APIs. The opt-in mimalloc backend has only been exercised on Linux in this environment; Windows/macOS/Android/iOS builds with `NEXORA_ENABLE_MIMALLOC=ON` are unverified here.
+
+## V2-M11 remote diagnostics portable foundation
+
+`RemoteDiagnostics.h` defines a backend-neutral, versioned binary wire contract in Core so desktop,
+server, Android, and iOS adapters can share one protocol without introducing Renderer or Runtime
+dependencies. A `TraceId` flows through CPU, IO, cook-artifact, GPU-upload, network, and memory
+records. Trace and metric decoders reject bad magic/version, truncation, invalid span timing, and
+trailing bytes before publishing an owning value.
+
+`TraceAggregator` is synchronous and caller-owned. It isolates trace IDs, rejects duplicate span
+IDs, orders events deterministically, correlates an IO → cook artifact → GPU upload chain only when
+the resource identity is consistent, and attributes span time, bytes, GPU time, resident memory,
+IO, and network bytes to `PluginID`. The `core.v2_m11_remote_diagnostics` headless gate covers
+wire round-trips, malformed packets, correlation, resource isolation, and plugin-cost attribution.
+Remote inspector/profiler transports, authentication, device discovery, and Android/iOS/Desktop/
+Server host adapters remain target-host gates; this Linux portable layer does not claim remote
+observation on those devices.
