@@ -43,7 +43,7 @@ struct Reader final {
     return true;
   }
   bool U16(std::uint16_t &value) {
-    if (offset + 2 > bytes.size())
+    if (offset > bytes.size() || bytes.size() - offset < 2)
       return false;
     value = static_cast<std::uint16_t>(std::to_integer<std::uint8_t>(bytes[offset])) |
             static_cast<std::uint16_t>(std::to_integer<std::uint8_t>(bytes[offset + 1])) << 8U;
@@ -51,7 +51,7 @@ struct Reader final {
     return true;
   }
   bool U32(std::uint32_t &value) {
-    if (offset + 4 > bytes.size())
+    if (offset > bytes.size() || bytes.size() - offset < 4)
       return false;
     value = 0;
     for (unsigned shift = 0; shift < 32; shift += 8)
@@ -59,7 +59,7 @@ struct Reader final {
     return true;
   }
   bool U64(std::uint64_t &value) {
-    if (offset + 8 > bytes.size())
+    if (offset > bytes.size() || bytes.size() - offset < 8)
       return false;
     value = 0;
     for (unsigned shift = 0; shift < 64; shift += 8)
@@ -68,7 +68,8 @@ struct Reader final {
   }
   bool String(std::string &value) {
     std::uint32_t size{};
-    if (!U32(size) || offset + size > bytes.size())
+    if (!U32(size) || offset > bytes.size() ||
+        static_cast<std::size_t>(size) > bytes.size() - offset)
       return false;
     value.clear();
     value.reserve(size);
@@ -206,27 +207,22 @@ TraceCorrelation TraceAggregator::Correlate(TraceId trace) const {
   });
   std::ranges::stable_sort(result.metrics, {}, &MetricSample::timestamp_ns);
 
-  std::optional<std::uint64_t> io_time;
-  std::optional<std::uint64_t> cook_time;
-  std::optional<std::uint64_t> gpu_time;
-  std::string streaming_resource;
+  enum class StreamingStage : std::uint8_t { None, Io, Cook, Gpu };
+  std::unordered_map<std::string, StreamingStage> streaming;
   for (const auto &event : result.events) {
     if (!event.plugin_id.empty()) {
       auto &cost = result.plugin_costs[event.plugin_id];
       cost.span_time_ns += event.end_ns - event.begin_ns;
       cost.bytes += event.bytes;
     }
-    if (event.category == TraceCategory::Io && !io_time) {
-      io_time = event.begin_ns;
-      streaming_resource = event.resource;
-    } else if (event.category == TraceCategory::CookArtifact && io_time && !cook_time &&
-               event.begin_ns >= *io_time &&
-               (streaming_resource.empty() || event.resource == streaming_resource)) {
-      cook_time = event.begin_ns;
-    } else if (event.category == TraceCategory::GpuUpload && cook_time && !gpu_time &&
-               event.begin_ns >= *cook_time &&
-               (streaming_resource.empty() || event.resource == streaming_resource)) {
-      gpu_time = event.begin_ns;
+    auto &stage = streaming[event.resource];
+    if (event.category == TraceCategory::Io) {
+      stage = StreamingStage::Io;
+    } else if (event.category == TraceCategory::CookArtifact && stage == StreamingStage::Io) {
+      stage = StreamingStage::Cook;
+    } else if (event.category == TraceCategory::GpuUpload && stage == StreamingStage::Cook) {
+      stage = StreamingStage::Gpu;
+      result.streaming_chain = true;
     }
   }
   for (const auto &sample : result.metrics) {
@@ -238,7 +234,6 @@ TraceCorrelation TraceAggregator::Correlate(TraceId trace) const {
     cost.io_bytes += sample.io_bytes;
     cost.network_bytes += sample.network_bytes;
   }
-  result.streaming_chain = io_time && cook_time && gpu_time;
   return result;
 }
 
