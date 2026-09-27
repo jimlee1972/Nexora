@@ -2283,6 +2283,25 @@ orchestration remain open.
 
 ---
 
+# V2-M9 through V2-M12 Portable Foundation Status
+
+V2-M9 through V2-M12 now have initial portable/headless foundations without changing their
+milestone acceptance state. M9 adds Timeline/Camera Rig, Flex/Grid, localized RichText,
+StyleSheet/Theme, accessibility semantics, Surface UI projection, room/portal audio, HLS/DASH
+segment contracts, and fully strippable DRM/capture boundaries. M10 adds deterministic
+content-addressed artifact/work identities, local-first Shared DDC, transactional patch
+verification, generation pin/drain, and data-only remote-content policy. M11 adds a versioned
+diagnostics wire schema plus headless Trace ID aggregation and PluginID cost attribution. M12 adds
+the five reference-project capability definitions and fast hardening probes for growth,
+disconnect/reconnect drain, rollback, corruption, thermal-policy evidence, and disabled-feature
+footprint.
+
+These foundations are not acceptance substitutes for production media backends, hosted/distributed
+build infrastructure, Android/iOS/Desktop/Server remote-tool hosts, complete reference projects,
+24h+ soaks, or real mobile thermal evidence. V2-M9, M10, M11, and M12 therefore remain unmarked.
+
+---
+
 # Milestone Index
 
 
