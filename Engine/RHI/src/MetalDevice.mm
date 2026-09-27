@@ -252,6 +252,8 @@ void MetalDevice::LoadShaderLibrary() {
       throw std::runtime_error("Metal compute shader compilation failed: " +
                                ErrorDescription(compute_error));
     compute_function_ = [compute_library newFunctionWithName:@"computeMain"];
+    if (!compute_function_)
+      throw std::runtime_error("Metal fallback compute shader has no computeMain entry point");
   }
 }
 

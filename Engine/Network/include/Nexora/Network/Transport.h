@@ -81,6 +81,10 @@ public:
   [[nodiscard]] bool Send(std::uint8_t channel, ChannelSemantics semantics,
                           std::span<const std::byte> payload);
   [[nodiscard]] bool Poll(Packet &packet);
+  // Reports the next pending packet's payload size without dequeuing it, so a caller enforcing a
+  // per-tick byte budget can decide whether to defer the packet to a later tick before Poll()'s
+  // unconditional pop would otherwise discard that option.
+  [[nodiscard]] bool PeekPendingPayloadSize(std::size_t &payload_size) const noexcept;
 
   [[nodiscard]] ConnectionState State() const noexcept { return state_; }
   [[nodiscard]] RejectReason Rejection() const noexcept { return rejection_; }

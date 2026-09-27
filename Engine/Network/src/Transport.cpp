@@ -230,4 +230,12 @@ bool Connection::Poll(Packet &packet) {
   return true;
 }
 
+bool Connection::PeekPendingPayloadSize(std::size_t &payload_size) const noexcept {
+  if (received_.empty()) {
+    return false;
+  }
+  payload_size = received_.front().payload.size();
+  return true;
+}
+
 } // namespace nexora::network

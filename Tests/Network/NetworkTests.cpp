@@ -282,6 +282,43 @@ void TestServerRuntimeContract() {
           "server did not finish bounded graceful drain");
 }
 
+void TestServerRuntimeByteBudgetDefersOversizedPacket() {
+  // Connection::Poll() unconditionally dequeues, so the byte-budget check must happen before
+  // Poll() is called, not after: otherwise a packet that doesn't fit this tick's remaining budget
+  // gets popped and then discarded instead of deferred, unlike the packet-count budget (which
+  // already short-circuits before Poll() runs). This reproduces exactly that scenario: a packet
+  // that fits the tick's *full* byte budget but not the budget remaining after an earlier packet
+  // in the same tick must survive to be delivered on the next tick, not vanish.
+  auto pair = CreateLoopbackTransportPair();
+  Connection client(*pair.client, {7, "build-a"}, false);
+  Connection server(*pair.server, {7, "build-a"}, true);
+  Connect(client, server);
+
+  TestServerSimulation simulation;
+  ServerRuntimeConfig config;
+  config.ticks_per_second = 10;
+  config.packets_per_client_per_tick = 5; // high enough that only the byte budget can gate here
+  config.bytes_per_client_per_tick = 4;
+  ServerRuntime runtime(config, simulation);
+  Require(runtime.Admit(1, server) == AdmissionResult::Accepted, "client was not admitted");
+
+  // Connection::Tick() strips the internal channel-type prefix byte before a received packet is
+  // queued, so its payload size here is the raw text length, not the wire size Send() transmits.
+  Require(client.Send(1, ChannelSemantics::ReliableOrdered, Bytes("abc")),
+          "first packet send failed"); // received payload: 3 bytes
+  Require(client.Send(1, ChannelSemantics::ReliableOrdered, Bytes("def")),
+          "second packet send failed"); // received payload: 3 bytes
+  client.Tick(0);
+
+  runtime.Advance(std::chrono::milliseconds(101));
+  Require(runtime.TickIndex() == 1 && simulation.received == 1 && runtime.Capture().size() == 1,
+          "byte budget did not defer the packet that exceeded the tick's remaining budget");
+
+  runtime.Advance(std::chrono::milliseconds(101));
+  Require(runtime.TickIndex() == 2 && simulation.received == 2 && runtime.Capture().size() == 2,
+          "packet deferred by the byte budget was dropped instead of delivered on the next tick");
+}
+
 class NullDatagramSocket final : public IDatagramSocket {
 public:
   bool Bind(const SocketEndpoint &local) override {
@@ -607,6 +644,7 @@ int main() {
   TestReconnectDisconnectStress();
   TestMalformedPacketCorpus();
   TestServerRuntimeContract();
+  TestServerRuntimeByteBudgetDefersOversizedPacket();
   TestPortableSocketProviderBoundary();
   TestNetworkEntityMapping();
   TestReplicationSchemaAndSnapshot();

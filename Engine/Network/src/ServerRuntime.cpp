@@ -80,12 +80,19 @@ void ServerRuntime::RunTick() {
     }
     std::size_t packets{};
     std::size_t bytes{};
-    Packet packet;
-    while (packets < config_.packets_per_client_per_tick && connection->Poll(packet)) {
-      if (packet.payload.size() >
+    std::size_t pending_size{};
+    // Peek the next packet's size before dequeuing it: Poll() unconditionally pops, so checking
+    // the byte budget only after polling would permanently drop a packet that doesn't fit this
+    // tick's remaining budget instead of deferring it to the next tick, unlike the packet-count
+    // budget above (which already short-circuits before Poll() is ever called).
+    while (packets < config_.packets_per_client_per_tick &&
+           connection->PeekPendingPayloadSize(pending_size)) {
+      if (pending_size >
           config_.bytes_per_client_per_tick - std::min(bytes, config_.bytes_per_client_per_tick)) {
         break;
       }
+      Packet packet;
+      static_cast<void>(connection->Poll(packet));
       bytes += packet.payload.size();
       ++packets;
       capture_.push_back({tick_index_, id, packet});

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <functional>
+#include <limits>
 #include <queue>
 #include <unordered_set>
 #include <utility>
@@ -28,6 +29,18 @@ Vec3 Normalize(Vec3 value) {
 }
 
 double Distance(Vec3 a, Vec3 b) { return Length(Sub(a, b)); }
+
+// width * height in GridCostField's member-initializer list runs before the constructor body can
+// validate anything; an overflowing product would silently undersize costs_ while width_/height_
+// keep their large, non-zero, un-reset values, making every in-range Set()/Cost() index an
+// out-of-bounds access into a too-small vector. Returns 0 (an intentionally empty field) for a
+// zero dimension or an overflowing product alike, so the constructor body's existing
+// width_==0/height_==0 reset can be extended with an emptiness check to catch both cases.
+std::size_t SafeGridArea(std::size_t width, std::size_t height) {
+  if (width == 0 || height == 0 || width > std::numeric_limits<std::size_t>::max() / height)
+    return 0;
+  return width * height;
+}
 
 std::int64_t CrowdCell(double x, double size) {
   return static_cast<std::int64_t>(std::floor(x / size));
@@ -58,9 +71,9 @@ double CurveValue(const UtilityConsideration &consideration) {
 GridCostField::GridCostField(Vec3 origin, double cell_size, std::size_t width, std::size_t height,
                              double default_cost)
     : origin_(origin), cell_size_(cell_size), width_(width), height_(height),
-      costs_(width * height, std::max(0.0, default_cost)) {
+      costs_(SafeGridArea(width, height), std::max(0.0, default_cost)) {
   if (!Finite(origin_) || !std::isfinite(cell_size_) || cell_size_ <= 0.0 || width_ == 0 ||
-      height_ == 0) {
+      height_ == 0 || costs_.empty()) {
     cell_size_ = 0.0;
     width_ = 0;
     height_ = 0;

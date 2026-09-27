@@ -13,7 +13,10 @@ job system, but the scheduler itself creates no threads and performs no hidden b
 
 `GridCostField` is a generic non-negative spatial cost provider. Navigation can consume any
 `INavigationCostProvider`, so danger, congestion, terrain preference, tactical influence, or other
-game-specific fields remain outside the pathfinding contract.
+game-specific fields remain outside the pathfinding contract. Construction rejects a `width`/`height`
+pair whose product would overflow `size_t` (in addition to either dimension being individually zero)
+by degrading to an empty field rather than undersizing the backing storage, so every subsequently
+in-range `Set`/`Cost` call stays a bounds-checked no-op instead of an out-of-bounds access.
 
 `CrowdSystem` consumes immutable agent snapshots and returns `CrowdResult` containing only
 `CharacterIntent`. It never receives or mutates a character transform/controller. The reference
