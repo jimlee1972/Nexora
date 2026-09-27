@@ -36,7 +36,10 @@ Style MergeStyle(Style base, const Style &overlay) {
 
 Timeline::Timeline(double duration) noexcept { SetDuration(duration); }
 bool Timeline::SetDuration(double duration) noexcept {
-  if (!Finite(duration) || duration < 0.0)
+  if (!Finite(duration) || duration < 0.0 ||
+      std::ranges::any_of(tracks_, [duration](const auto &track) {
+        return !track.keys.empty() && track.keys.back().time > duration;
+      }))
     return false;
   duration_ = duration;
   time_ = std::min(time_, duration_);
@@ -121,20 +124,26 @@ std::vector<LayoutBox> ResolveFlex(Rect container, std::span<const FlexItem> ite
   const float main_size = direction == FlexDirection::Row ? container.width : container.height;
   float basis_sum = 0.0F;
   float grow_sum = 0.0F;
+  std::unordered_set<UIElementId> ids;
   for (const auto &item : items) {
-    if (item.id == 0 || !Finite(item.basis) || item.basis < 0.0F || !Finite(item.grow) ||
-        item.grow < 0.0F)
+    if (item.id == 0 || !ids.insert(item.id).second || !Finite(item.basis) || item.basis < 0.0F ||
+        !Finite(item.grow) || item.grow < 0.0F)
       return {};
     basis_sum += item.basis;
     grow_sum += item.grow;
   }
   const float gap_sum = gap * static_cast<float>(items.size() - 1);
-  const float extra = std::max(0.0F, main_size - basis_sum - gap_sum);
+  if (gap_sum > main_size)
+    return {};
+  const float available = main_size - gap_sum;
+  const float shrink = basis_sum > available && basis_sum > 0.0F ? available / basis_sum : 1.0F;
+  const float extra = std::max(0.0F, available - basis_sum);
   float cursor = direction == FlexDirection::Row ? container.x : container.y;
   std::vector<LayoutBox> result;
   result.reserve(items.size());
   for (const auto &item : items) {
-    const float main = item.basis + (grow_sum > 0.0F ? extra * item.grow / grow_sum : 0.0F);
+    const float main =
+        item.basis * shrink + (grow_sum > 0.0F ? extra * item.grow / grow_sum : 0.0F);
     Rect rect = direction == FlexDirection::Row
                     ? Rect{cursor, container.y, main, container.height}
                     : Rect{container.x, cursor, container.width, main};
