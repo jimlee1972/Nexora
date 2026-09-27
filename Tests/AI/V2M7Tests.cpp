@@ -1,5 +1,6 @@
 #include "Nexora/AI/AI.h"
 
+#include <iterator>
 #include <stdexcept>
 #include <vector>
 

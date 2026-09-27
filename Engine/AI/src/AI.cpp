@@ -5,6 +5,7 @@
 #include <functional>
 #include <queue>
 #include <unordered_set>
+#include <utility>
 
 namespace nexora::ai {
 namespace {
