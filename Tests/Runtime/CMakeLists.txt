@@ -1,4 +1,9 @@
 include(NexoraTarget)
+add_executable(NexoraShaderRuntimeTests ShaderRuntimeTests.cpp)
+target_link_libraries(NexoraShaderRuntimeTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraShaderRuntimeTests)
+add_test(NAME runtime.shader_artifact_contracts COMMAND NexoraShaderRuntimeTests)
+
 add_executable(NexoraRuntimeTests RuntimeTests.cpp)
 target_link_libraries(NexoraRuntimeTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraRuntimeTests)

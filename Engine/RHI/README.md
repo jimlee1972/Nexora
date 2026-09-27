@@ -9,6 +9,10 @@
 - The normalized metadata is checked against `TrianglePipelineLayout()` and
   `ComputeLayoutHash()` by the `build.shader_crosscompile` test. The checked-in
   `Shaders/Triangle.reflection.json` remains the reviewable canonical fixture.
+- `ShaderModuleArtifact` is the compiler-independent boundary for compiled modules: DX12 consumes
+  DXIL, Vulkan consumes SPIR-V, and Metal consumes Slang-generated MSL source.
+  `IsArtifactCompatible` checks target format, payload presence, schema, and the existing canonical
+  reflection/layout hash before an upper layer accepts an artifact for submission.
 - Public RHI headers expose only backend-neutral descriptors, enums, handles, and interfaces.
   Native DX12, Vulkan, and Metal types are not part of the public contract.
 - `NEXORA_ENABLE_SLANG` is disabled by default so environments without `slangc` retain the

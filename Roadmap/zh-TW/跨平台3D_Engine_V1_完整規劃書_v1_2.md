@@ -6992,6 +6992,12 @@ PoC 驗證項目：
 
 只有全部通過後，才將 Slang 定為唯一 Shader Frontend。
 
+Repository 實作狀態（2026-09-27）：portable baseline 現有 backend-neutral compiled-artifact
+contract、保留 canonical reflection hash 並在 Shipping mode 拒絕動態編譯的 Runtime
+stage／commit policy，以及編譯結果／diagnostic model；編譯失敗會保留 active generation。
+這不代表 Shader System PoC 或驗收清單已完成。Slang process／diagnostic parsing、cooked-file
+格式及載入、native module 建立、GPU-fence retirement，以及所有 target-host PoC 項目仍待完成。
+
 ### Shader Source of Truth / Metal Fallback
 
 正式規範：

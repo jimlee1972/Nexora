@@ -61,6 +61,17 @@ V2-M5 is complete for the portable foundation: the `linux-headless` preset build
 V2-M3 now has one fixed 36-byte indirect-command ABI shared by C++ and Slang: the Vulkan/D3D12/Metal-compatible non-indexed draw prefix is followed by backend-neutral classification metadata. Vulkan consumes this canonical stride directly. D3D12 command recording now covers `Dispatch` and canonical-stride `ExecuteIndirect`, but Windows execution and comparison evidence remain pending. The Vulkan CPU/GPU native comparison still requires a Slang-enabled acceptance run, while Metal execution also remains open; therefore V2-M3 remains open independently of the 46% roadmap total.
 The Showcase Validation Lab now provides a portable M0-M12 probe registry, five-state status model, versioned JSON/Markdown reports, CTest card mapping, four contained error injections, and M7-M10 capability-aware headless room evidence. Room records explicitly remain visually incomplete.
 
+#### Shader system status
+
+The existing Slang cross-compile/reflection gate is extended with a backend-neutral shader artifact
+contract and a Runtime admission slot. DXIL, SPIR-V, and generated MSL are checked against the
+existing canonical layout hash; Development may stage dynamic compiler output, while Shipping
+accepts cooked artifacts only. The Editor model carries source-positioned diagnostics and applies
+successful compile results transactionally, preserving the active generation on failure. This is a
+portable artifact-lifecycle slice: Slang process integration/diagnostic parsing, cooked-file
+serialization/loading, native module creation, and GPU-fence-safe retirement remain open and are
+not counted as completed shader-system acceptance.
+
 
 #### V2 late-milestone portable status
 
@@ -173,6 +184,10 @@ V2-M5 portable foundation 已完成：`linux-headless` preset 僅建置 renderer
 
 V2-M3 現已有一套由 C++ 與 Slang 共用的固定 36-byte indirect-command ABI：Vulkan／D3D12／Metal 相容的 non-indexed draw prefix 後接 backend-neutral classification metadata，且 Vulkan 直接消費此 canonical stride。D3D12 command recording 現已涵蓋 `Dispatch` 與採 canonical stride 的 `ExecuteIndirect`，但 Windows execution 與 comparison 證據仍待完成。Vulkan CPU/GPU native comparison 仍須以啟用 Slang 的 acceptance run 驗證，Metal execution 亦仍待完成；因此 V2-M3 仍獨立於 46% Roadmap 總進度維持未完成。
 Showcase Validation Lab 現提供 portable M0～M12 probe registry、五態 status model、版本化 JSON／Markdown report、CTest card mapping、四種受控 error injection，以及 M7～M10 capability-aware headless room evidence；room record 仍明確標示視覺未完成。
+
+#### Shader 系統狀態
+
+既有 Slang cross-compile／reflection gate 現增加 backend-neutral shader artifact contract 與 Runtime admission slot。DXIL、SPIR-V 與產生的 MSL 均依既有 canonical layout hash 驗證；Development 可 stage 動態編譯輸出，Shipping 僅接受 cooked artifact。Editor model 已能攜帶 source-positioned diagnostics，並以 transaction 套用成功編譯結果，失敗時保留 active generation。這只是 portable artifact lifecycle 切片；Slang process 整合與 diagnostic parsing、cooked-file serialization／loading、native module 建立及 GPU-fence-safe retirement 仍待實作，不計為 Shader System 驗收完成。
 
 
 #### V2 後段 milestone portable 狀態

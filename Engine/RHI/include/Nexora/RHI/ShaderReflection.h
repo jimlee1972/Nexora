@@ -3,6 +3,7 @@
 #include "Nexora/RHI/Api.h"
 #include "Nexora/RHI/Types.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <string>
@@ -23,9 +24,23 @@ struct PipelineLayoutMetadata final {
   std::uint64_t layout_hash{};
 };
 
+// Compiler output is carried across the RHI boundary without exposing Slang compiler types.
+// MetalSource contains Slang-generated MSL source for the platform Metal compiler.
+enum class ShaderBinaryFormat : std::uint8_t { Dxil, SpirV, MetalSource };
+struct ShaderModuleArtifact final {
+  std::string shader_id;
+  ShaderBinaryFormat format{ShaderBinaryFormat::SpirV};
+  std::string entry_point;
+  std::vector<std::byte> binary;
+  PipelineLayoutMetadata reflection;
+};
+
 [[nodiscard]] NEXORA_RHI_API std::uint64_t
 ComputeLayoutHash(std::span<const ShaderBinding> bindings);
 [[nodiscard]] NEXORA_RHI_API bool IsCanonicalLayout(const PipelineLayoutMetadata &left,
                                                     const PipelineLayoutMetadata &right) noexcept;
 [[nodiscard]] NEXORA_RHI_API PipelineLayoutMetadata TrianglePipelineLayout();
+[[nodiscard]] NEXORA_RHI_API bool IsArtifactCompatible(
+    const ShaderModuleArtifact &artifact, Backend backend,
+    std::uint64_t expected_layout_hash) noexcept;
 } // namespace nexora::rhi

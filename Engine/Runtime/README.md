@@ -1,5 +1,16 @@
 # V1-M4 through V1-M12 runtime contracts
 
+## Shader artifact admission and replacement
+
+`ShaderArtifactSlot` accepts an RHI `ShaderModuleArtifact` after backend-format and canonical
+reflection/layout-hash validation. Its mode comes from the Runtime build configuration, so
+Development may stage dynamic compiler output and Shipping accepts cooked artifacts only. Staging
+never changes the active artifact; `Commit()` publishes
+the validated candidate and increments its generation, while a failed validation leaves the active
+generation untouched. Calls are serialized on the owning thread, and returned artifact pointers are
+borrowed until the next successful commit or slot destruction. This first slice does not invoke
+`slangc`, load cooked files, create native shader modules, or retire artifacts against GPU fences.
+
 `NexoraRuntime` is the dependency-ordered, platform-neutral baseline for the remaining V1
 milestones. It deliberately contains no SDK-specific physics, media, mobile, or editor backend.
 Instead, it makes the ownership and safety boundaries executable before those integrations land.

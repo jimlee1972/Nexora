@@ -6969,6 +6969,13 @@ PoC validation items:
 
 Only after all items pass should Slang be designated as the sole Shader Frontend.
 
+Repository implementation note (2026-09-27): the portable baseline now has a backend-neutral
+compiled-artifact contract, a Runtime staging/commit policy that preserves canonical reflection
+hashes and rejects dynamic compilation in Shipping mode, and an Editor result/diagnostic model that
+preserves the active generation on failed compilation. This does not complete the Shader System PoC
+or acceptance list. Slang process/diagnostic parsing, cooked-file format and loading, native module
+creation, GPU-fence retirement, and all target-host PoC items remain open.
+
 ### Shader Source of Truth / Metal Fallback
 
 Formal specification:
