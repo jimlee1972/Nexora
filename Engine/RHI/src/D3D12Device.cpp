@@ -101,6 +101,9 @@ ComPtr<ID3DBlob> LoadShaderArtifact(const char *environment_name) {
     return {};
   ComPtr<ID3DBlob> bytecode;
   Check(D3DReadFileToBlob(std::filesystem::path(path).c_str(), &bytecode), "D3DReadFileToBlob");
+  if (!bytecode || bytecode->GetBufferSize() < 4 ||
+      std::memcmp(bytecode->GetBufferPointer(), "DXBC", 4) != 0)
+    throw std::runtime_error(std::string("DXIL artifact is not a valid DXBC container: ") + path);
   return bytecode;
 }
 

@@ -24,6 +24,25 @@ struct PipelineLayoutMetadata final {
   std::uint64_t layout_hash{};
 };
 
+enum class ShaderBindingAccess : std::uint8_t { ReadOnly, ReadWrite };
+struct ShaderResourceBindingMetadata final {
+  std::uint32_t set{};
+  std::uint32_t binding{};
+  BindingType type{BindingType::ConstantBuffer};
+  std::uint8_t stages{};
+  std::uint32_t array_count{1};
+  ShaderBindingAccess access{ShaderBindingAccess::ReadOnly};
+  std::uint32_t argument_buffer_group{};
+  friend bool operator==(const ShaderResourceBindingMetadata &,
+                         const ShaderResourceBindingMetadata &) = default;
+};
+struct ShaderDeviceCapabilities final {
+  Backend backend{Backend::Null};
+  bool supports_argument_buffers{};
+  std::uint32_t max_argument_buffer_bindings{4096};
+  std::uint32_t max_descriptor_sets{8};
+};
+
 // Compiler output is carried across the RHI boundary without exposing Slang compiler types.
 // MetalSource contains Slang-generated MSL source for the platform Metal compiler.
 enum class ShaderBinaryFormat : std::uint8_t { Dxil, SpirV, MetalSource };
@@ -43,4 +62,7 @@ ComputeLayoutHash(std::span<const ShaderBinding> bindings);
 [[nodiscard]] NEXORA_RHI_API bool IsArtifactCompatible(
     const ShaderModuleArtifact &artifact, Backend backend,
     std::uint64_t expected_layout_hash) noexcept;
+[[nodiscard]] NEXORA_RHI_API bool ValidateShaderResourceBindings(
+    std::span<const ShaderResourceBindingMetadata> resources,
+    const ShaderDeviceCapabilities &capabilities, std::string &error);
 } // namespace nexora::rhi
