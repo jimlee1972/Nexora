@@ -3,7 +3,7 @@
 **Document Version: Master Draft v1.4**
 **Engine Generation: V2.x — Scale-Up / Production**
 
-> **Progress: 46%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 have passed their portable repository gates; V2-M3 and V2-M7 through V2-M12 remain open. Native target evidence remains a separate gate.)
+> **Progress: 46%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 have passed their portable repository gates; V2-M3 and V2-M7 through V2-M12 remain open. V2-M7 now has an in-progress portable foundation but is not yet accepted. Native target evidence remains a separate gate.)
 
 > This document is the **V2 Master Plan**. All V1 Contracts are inherited by default; only items explicitly marked “V2 supersede” in this document may change V1 behavior.
 >
@@ -3986,6 +3986,16 @@ Replay
 ---
 
 ## V2-M7 — Navigation / Crowd / AI V2
+
+> **Implementation status: In progress.** The first portable vertical slice adds a renderer-free
+> `NexoraAI` module with hierarchical region/node routing, a hard-budget navigation query scheduler,
+> generic influence/cost fields, intent-only local crowd avoidance, deterministic Utility AI,
+> relevance-based perception/decision/navigation LOD with dormant far agents, a framework-neutral
+> batched `IPolicyRuntime` sharing the common `AIAction`, and a synchronous self-play reset/step
+> bridge. The `ai.v2_m7_navigation_crowd_policy` contract test queues 5,000 navigation requests
+> against a 32-query-per-tick budget and checks 5,000 far-agent phase staggering. Production NavMesh
+> streaming, job-system adapters, runtime character integration, policy backends, and multi-world
+> training orchestration remain open, so V2-M7 is not yet accepted.
 
 Construction:
 

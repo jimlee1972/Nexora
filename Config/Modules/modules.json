@@ -18,6 +18,12 @@
       ]
     },
     {
+      "name": "AI",
+      "dependencies": [
+        "Core"
+      ]
+    },
+    {
       "name": "Network",
       "feature": "NEXORA_ENABLE_NETWORK",
       "dependencies": [

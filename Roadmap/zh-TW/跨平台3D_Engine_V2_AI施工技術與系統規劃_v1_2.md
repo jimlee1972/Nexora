@@ -4,7 +4,7 @@
 **對應來源：跨平台3D_Engine_V2_完整規劃書_v1_4.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
-> **進度：46%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已驗收；V2-M3、V2-M7 至 V2-M12 仍待完成。）
+> **進度：46%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已驗收；V2-M3、V2-M7 至 V2-M12 仍待完成。V2-M7 已有第一個 portable foundation，但仍屬進行中且尚未驗收。）
 
 
 
@@ -2275,6 +2275,21 @@ Distributed Build 可重現
 LiveOps 可 rollback
 ```
 
+
+---
+
+# V2-M7 Portable Foundation 狀態
+
+V2-M7 **進行中，尚未驗收**。第一個 portable slice 已建立 renderer-free 的 `NexoraAI`
+邊界，包含 hierarchical region/node routing、hard-budget navigation query scheduling、
+generic influence/cost field、只輸出 `CharacterIntent` 的 crowd、deterministic Utility AI、
+具 dormancy 的 perception／decision／navigation LOD、輸出共用 `AIAction` 的 batch
+`IPolicyRuntime`，以及同步 self-play reset/step lifecycle。
+
+`ai.v2_m7_navigation_crowd_policy` contract 會排入 5,000 個 navigation request 並限制
+每 tick 最多 32 個 query，也會驗證 5,000 個 far agent 的 phase staggering。
+Production NavMesh streaming、job-system adapter、runtime character integration、policy
+backend 與 multi-world training orchestration 仍待完成。
 
 ---
 

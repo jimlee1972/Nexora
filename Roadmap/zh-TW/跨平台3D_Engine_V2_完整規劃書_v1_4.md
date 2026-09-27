@@ -3,7 +3,7 @@
 **文件版本：Master Draft v1.4**
 **Engine 世代：V2.x — Scale-Up / Production**
 
-> **進度：46%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已通過 portable repository gate；V2-M3、V2-M7 至 V2-M12 仍待完成。Native target evidence 維持獨立 gate。）
+> **進度：46%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已通過 portable repository gate；V2-M3、V2-M7 至 V2-M12 仍待完成。V2-M7 已有第一個 portable foundation，但仍屬進行中且尚未驗收。Native target evidence 維持獨立 gate。）
 
 > 本文件為 **V2 Master Plan**，所有 V1 Contract 預設繼承；只有本文件明確標示「V2 supersede」的項目可以改變 V1 行為。
 >
@@ -3995,6 +3995,17 @@ Replay
 ---
 
 ## V2-M7 — Navigation / Crowd / AI V2
+
+> **施工狀態：進行中。** 第一個 portable vertical slice 新增 renderer-free 的 `NexoraAI`
+> module，包含 hierarchical region/node routing、hard-budget navigation query scheduler、
+> generic influence/cost field、只輸出 `CharacterIntent` 的 local crowd avoidance、
+> deterministic Utility AI、支援 far/dormant 的 perception／decision／navigation LOD、
+> 與傳統 AI 共用 `AIAction` 的 framework-neutral batch `IPolicyRuntime`，以及同步
+> self-play reset/step bridge。`ai.v2_m7_navigation_crowd_policy` contract test 會排入
+> 5,000 個 navigation request 並限制每 tick 最多 32 個 query，也會驗證 5,000 個 far
+> agent 的 phase staggering。Production NavMesh streaming、job-system adapter、runtime
+> character integration、policy backend 與 multi-world training orchestration 仍待完成，
+> 因此 V2-M7 尚未驗收。
 
 施工：
 

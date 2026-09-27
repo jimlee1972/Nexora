@@ -1,0 +1,5 @@
+include(NexoraTarget)
+add_executable(NexoraV2M7Tests V2M7Tests.cpp)
+target_link_libraries(NexoraV2M7Tests PRIVATE Nexora::AI)
+nexora_apply_defaults(NexoraV2M7Tests)
+add_test(NAME ai.v2_m7_navigation_crowd_policy COMMAND NexoraV2M7Tests)
