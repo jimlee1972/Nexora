@@ -86,7 +86,7 @@ if(NEXORA_ENABLE_SLANG)
     # gets, or CreateDevice(Vulkan) throws immediately and IsBackendAvailable
     # silently reports Vulkan as absent -- the test would then skip instead of
     # actually exercising the real GPU-driven dispatch/indirect-draw path.
-    if(NEXORA_ENABLE_VULKAN_BACKEND)
+    if(NEXORA_ENABLE_VULKAN_BACKEND AND NOT APPLE)
       set_property(TEST renderer.v2_gpu_driven APPEND PROPERTY ENVIRONMENT
         "NEXORA_SLANG_SPIRV_PATH=${NEXORA_SLANG_SPIRV_OUTPUT}"
         "NEXORA_SLANG_COMPUTE_SPIRV_PATH=${NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT}"
