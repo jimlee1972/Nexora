@@ -71,15 +71,17 @@ add_custom_target(NexoraZigGameplayBuild DEPENDS "${NEXORA_ZIG_SAMPLE_OBJECT}")
 set(NEXORA_ZIG_BUILD_LIB_ARGS
   build-lib
   --dep nexora
-  -O Debug
+  -O Debug)
+if(APPLE)
+  # -lc is per-module: it must precede -Mroot, which consumes the root settings.
+  list(APPEND NEXORA_ZIG_BUILD_LIB_ARGS -lc)
+endif()
+list(APPEND NEXORA_ZIG_BUILD_LIB_ARGS
   -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
   -Mnexora=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig
   -dynamic -femit-bin=${NEXORA_ZIG_SHARED_LIBRARY})
 if(WIN32)
   list(APPEND NEXORA_ZIG_BUILD_LIB_ARGS -fcompiler-rt)
-elseif(APPLE)
-  # Zig's macOS dynamic-library link must resolve its libc references.
-  list(APPEND NEXORA_ZIG_BUILD_LIB_ARGS -lc)
 endif()
 
 add_custom_command(
