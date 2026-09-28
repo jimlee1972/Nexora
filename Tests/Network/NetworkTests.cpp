@@ -82,7 +82,8 @@ void TestLoopbackTransport() {
   Require(packet.channel == 2, "loopback channel changed");
   Require(packet.semantics == ChannelSemantics::ReliableOrdered,
           "loopback channel semantics changed");
-  Require(packet.payload == std::vector<std::byte>(Bytes("hello").begin(), Bytes("hello").end()),
+  const auto expected = Bytes("hello");
+  Require(packet.payload == std::vector<std::byte>(expected.begin(), expected.end()),
           "loopback payload changed");
 
   client.Disconnect();

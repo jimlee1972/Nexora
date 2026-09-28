@@ -62,7 +62,7 @@ private:
 
 class NEXORA_CORE_API MappedFile final {
 public:
-  MappedFile() = default;
+  MappedFile();
   ~MappedFile();
   MappedFile(MappedFile &&) noexcept;
   MappedFile &operator=(MappedFile &&) noexcept;

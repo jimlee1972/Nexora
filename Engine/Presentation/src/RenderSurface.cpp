@@ -150,7 +150,7 @@ RenderSurfaceResult CreateRenderSurface(const RenderSurfaceDescriptor &descripto
                      descriptor.colorSpace, descriptor.backend},
                     *state->windows);
   if (!state->surface) {
-    state->windows->Destroy(created.handle);
+    static_cast<void>(state->windows->Destroy(created.handle));
     return {{}, SurfaceStatus::Unsupported, "requested swapchain creation is unavailable"};
   }
   return {std::unique_ptr<RenderSurface>(new RenderSurface(std::move(state))),
