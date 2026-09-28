@@ -24,6 +24,14 @@ jobs:
       - uses: mlugg/setup-zig@v2
         with:
           version: 0.14.0
+      - name: Select Command Line Tools SDK for Zig (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          sdk=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
+          test -f "${sdk}/usr/lib/libSystem.tbd"
+          echo 'DEVELOPER_DIR=/Library/Developer/CommandLineTools' >> "${GITHUB_ENV}"
+          xcrun --show-sdk-path
       - name: Set up MSVC environment (Windows)
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
