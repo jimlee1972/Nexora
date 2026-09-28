@@ -274,6 +274,13 @@
       }
     },
     {
+      "name": "linux-shipping",
+      "configurePreset": "linux-shipping",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
       "name": "linux-headless",
       "configurePreset": "linux-headless",
       "output": {
