@@ -1,6 +1,7 @@
 #include "Nexora/Network/Replication.h"
 
 #include <algorithm>
+#include <iterator>
 #include <limits>
 #include <unordered_set>
 

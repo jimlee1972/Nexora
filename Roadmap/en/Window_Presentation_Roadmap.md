@@ -1,8 +1,8 @@
 # Nexora Window and Native Presentation Roadmap
 
-> Version: v1.0 | Status: planning baseline | Updated: 2026-09-23
+> Version: v1.0 | Status: planning baseline | Updated: 2026-09-28
 
-> **Progress: implementation complete** (WP-M0 through WP-M4 are implemented. Native Windows/DX12, Linux/Windows Vulkan, and macOS/Metal acceptance still require passing target-host runners.)
+> **Progress: implementation complete** (WP-M0 through WP-M4 are implemented. Windows/DX12 acceptance for WP-M1/WP-M2 is recorded; Linux/Windows Vulkan, macOS/Metal, and Showcase runtime acceptance still require target-host runners.)
 
 ## 1. Purpose and ownership
 
@@ -17,7 +17,7 @@ receives a native window, device, queue, or swapchain pointer.
 - ✅ Validation and native RHI devices execute deterministic offscreen workloads.
 - ✅ Renderer scene extraction and offscreen `Present` state validation are covered by tests.
 - ✅ `NexoraShowcase` preserves its headless lifecycle and can own a reusable native render surface.
-- Implemented pending Windows acceptance: Win32 window/input translation, DX12 presentation, and Showcase integration through the application-facing `RenderSurface` boundary.
+- Implemented: Win32 window/input translation and DX12 presentation have WP-M1/WP-M2 Windows acceptance evidence; Showcase integration remains a separate target-host gate.
 
 ## 3. Required contracts
 
@@ -56,7 +56,7 @@ No native window or swapchain backend is claimed by this milestone.
 - Define backbuffer/fence ownership, frames in flight, vsync/tearing policy, color format, and present diagnostics.
 - Handle occlusion, zero extent, surface loss, device removal, and failed resize without corrupting the active generation.
 
-Windows acceptance evidence is produced by `window_presentation.contracts`: it creates a real Win32 window, acquires, clears, and presents four DX12 frames, resizes the swapchain, and asserts diagnostic counters. A green Windows/DX12 runner is required before marking WP-M1/WP-M2 accepted; Linux contract results or screenshots alone are insufficient.
+Windows acceptance evidence is produced by `window_presentation.contracts`: it creates a real Win32 window, acquires, clears, and presents four DX12 frames, resizes the swapchain, and asserts diagnostic counters. On 2026-09-28, the local x64 `windows-dx12-development` preset built the native D3D12 path with Vulkan disabled and passed this contract, recording the WP-M1/WP-M2 target-host evidence. Linux contract results or screenshots alone are insufficient.
 
 ### ✅ WP-M3 — Showcase and Editor integration
 
@@ -69,7 +69,7 @@ Presentation-owned `RenderSurface`, pumps input, and presents until close; bound
 available for automation. The same public owner is usable by Editor Scene/Game views without adding
 an Editor dependency to Runtime. Auto fallback emits and records its reason, explicit DX12 failure
 does not fall back, and non-Windows contract tests retain the deterministic headless gate. Actual
-Windows/DX12 execution remains target-host acceptance evidence rather than a Linux-cloud claim.
+Windows/DX12 execution of the Showcase command remains target-host acceptance evidence rather than a Linux-cloud claim.
 
 ### ✅ WP-M4 — Additional platforms and hardening
 
@@ -77,7 +77,7 @@ Windows/DX12 execution remains target-host acceptance evidence rather than a Lin
 - Validate multi-window/multi-surface lifetime, HDR/color-space negotiation, fullscreen, hot-plug, and long-run resize/device-loss stress.
 - Record target-host evidence separately; cross-compilation alone is not runtime validation.
 
-Delivered evidence: Linux uses an X11 window implementation and Vulkan WSI swapchain; Windows can select Vulkan alongside DX12; macOS uses a Cocoa window and `CAMetalLayer`. Backend negotiation records the selected present mode and color space, while fullscreen, multi-surface lifetime, 2,048-cycle resize stress, zero extent, out-of-date, surface-loss, and device-loss paths are covered by the portable contract gate. These sources and cross-platform contracts complete the implementation scope; runtime acceptance remains explicitly target-host evidence and is not inferred from Linux compilation.
+Delivered evidence: Linux uses an X11 window implementation and Vulkan WSI swapchain; Windows can select Vulkan alongside DX12; macOS uses a Cocoa window and `CAMetalLayer`. Backend negotiation records the selected present mode and color space, while fullscreen, multi-surface lifetime, 2,048-cycle resize stress, zero extent, out-of-date, surface-loss, and device-loss paths are covered by the portable contract gate. These sources and cross-platform contracts complete the implementation scope; WP-M1/WP-M2 Windows/DX12 runtime acceptance is recorded, while Showcase and other platform runtime acceptance remain explicitly target-host evidence and are not inferred from Linux compilation.
 
 ## 5. Validation and Definition of Done
 

@@ -20,7 +20,8 @@ std::unique_ptr<Device> CreateMetalDevice() {
 #endif
 
 #if (defined(_WIN32) || (defined(__unix__) && !defined(__APPLE__))) && \
-    defined(NEXORA_ENABLE_NATIVE_BACKENDS)
+    defined(NEXORA_ENABLE_NATIVE_BACKENDS) && \
+    defined(NEXORA_ENABLE_VULKAN_BACKEND)
 std::unique_ptr<Device> CreateVulkanDevice();
 #else
 std::unique_ptr<Device> CreateVulkanDevice() {

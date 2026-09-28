@@ -6,7 +6,6 @@
 #include "Nexora/Window/Window.h"
 #include <algorithm>
 #include <chrono>
-#include <imm.h>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -14,6 +13,7 @@
 #include <vector>
 #include <windows.h>
 #include <windowsx.h>
+#include <imm.h>
 
 namespace Nexora::Window {
 namespace {
@@ -165,7 +165,7 @@ public:
     wc.lpfnWndProc = &WndProc;
     wc.hInstance = instance_;
     wc.lpszClassName = L"Nexora.Window";
-    wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+    wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
     atom_ = RegisterClassExW(&wc);
     if (!atom_ && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
       return;

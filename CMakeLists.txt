@@ -6,6 +6,7 @@ option(NEXORA_ENABLE_ZIG_GAMEPLAY "Build the Zig gameplay ABI sample and NexoraS
 option(NEXORA_ENABLE_SLANG "Compile and validate the canonical Slang shader" OFF)
 option(NEXORA_ENABLE_MIMALLOC "Fetch mimalloc and use it as the TrackingAllocator backend" OFF)
 option(NEXORA_ENABLE_NATIVE_BACKENDS "Build the platform RHI backends" ON)
+option(NEXORA_ENABLE_VULKAN_BACKEND "Build the Vulkan RHI and presentation backend" ON)
 option(NEXORA_ENABLE_WINDOW_PRESENTATION
        "Build the backend-neutral window and native-presentation contracts" ON)
 option(NEXORA_ENABLE_SCENE_RENDERING "Build the V1-M4 scene presentation path" ON)
@@ -106,7 +107,8 @@ if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
   FetchContent_MakeAvailable(nexora_imgui)
 endif()
 
-if(NEXORA_ENABLE_NATIVE_BACKENDS AND (WIN32 OR (UNIX AND NOT APPLE)))
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND
+   (WIN32 OR (UNIX AND NOT APPLE)))
   include(FetchContent)
   set(VULKAN_HEADERS_ENABLE_MODULE OFF CACHE BOOL "" FORCE)
   set(VULKAN_HEADERS_ENABLE_TESTS OFF CACHE BOOL "" FORCE)

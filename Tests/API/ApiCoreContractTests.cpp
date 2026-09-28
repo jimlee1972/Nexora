@@ -280,10 +280,12 @@ void RunAdvancedVfsTests() {
   Require(tail.status == ReadResult::Status::Completed && tail.bytes.size() == 1 &&
               tail.bytes.front() == std::byte{0x5a},
           "ReadRange must preserve offsets beyond the 32-bit boundary");
-  const auto file_mapping = vfs.MapReadOnly("sparse://sparse.bin");
-  Require(file_mapping.Bytes().size() == large_offset + 1 &&
-              file_mapping.Bytes()[large_offset] == std::byte{0x5a},
-          "directory MapReadOnly must map a sparse file beyond the 32-bit boundary");
+  {
+    const auto file_mapping = vfs.MapReadOnly("sparse://sparse.bin");
+    Require(file_mapping.Bytes().size() == large_offset + 1 &&
+                file_mapping.Bytes()[large_offset] == std::byte{0x5a},
+            "directory MapReadOnly must map a sparse file beyond the 32-bit boundary");
+  }
   std::filesystem::remove_all(sparse_root);
   jobs.Stop();
 }

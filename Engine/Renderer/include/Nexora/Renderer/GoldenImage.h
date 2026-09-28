@@ -39,7 +39,7 @@ struct GoldenImageComparison {
       const auto lhs = std::to_integer<std::uint8_t>(actual[pixel + channel]);
       const auto rhs = std::to_integer<std::uint8_t>(expected[pixel + channel]);
       const auto delta = lhs > rhs ? lhs - rhs : rhs - lhs;
-      pixel_delta = delta > pixel_delta ? delta : pixel_delta;
+      pixel_delta = static_cast<std::uint8_t>(delta > pixel_delta ? delta : pixel_delta);
     }
     if (pixel_delta > channel_tolerance)
       ++comparison.differing_pixels;

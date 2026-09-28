@@ -8,6 +8,8 @@
 #include <unordered_set>
 
 #if defined(_WIN32)
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #else
 #include <fcntl.h>
@@ -58,6 +60,7 @@ struct MappedFile::State final {
 #endif
   }
 };
+MappedFile::MappedFile() = default;
 MappedFile::~MappedFile() = default;
 MappedFile::MappedFile(std::unique_ptr<State> state) : state_(std::move(state)) {}
 MappedFile::MappedFile(MappedFile &&) noexcept = default;

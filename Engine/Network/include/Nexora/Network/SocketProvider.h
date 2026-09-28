@@ -24,7 +24,7 @@ struct SocketDatagram {
 
 class NEXORA_NETWORK_API IDatagramSocket {
 public:
-  virtual ~IDatagramSocket() = default;
+  virtual ~IDatagramSocket();
   [[nodiscard]] virtual bool Bind(const SocketEndpoint &local) = 0;
   [[nodiscard]] virtual bool SendTo(const SocketEndpoint &peer,
                                     std::span<const std::byte> bytes) = 0;
@@ -37,7 +37,7 @@ public:
 // the caller and must not outlive their provider. Native UDP and DTLS providers are backend gates.
 class NEXORA_NETWORK_API ISocketProvider {
 public:
-  virtual ~ISocketProvider() = default;
+  virtual ~ISocketProvider();
   [[nodiscard]] virtual std::unique_ptr<IDatagramSocket> CreateDatagramSocket() = 0;
 };
 

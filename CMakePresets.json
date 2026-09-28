@@ -122,6 +122,25 @@
       }
     },
     {
+      "name": "windows-dx12-development",
+      "inherits": "base",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Development",
+        "NEXORA_ENABLE_NATIVE_BACKENDS": "ON",
+        "NEXORA_ENABLE_VULKAN_BACKEND": "OFF",
+        "NEXORA_ENABLE_ZIG_GAMEPLAY": "OFF",
+        "NEXORA_ENABLE_EDITOR": "OFF",
+        "NEXORA_LINK_MODE": "Modular"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
       "name": "windows-zig-showcase",
       "inherits": "base",
       "generator": "Visual Studio 17 2022",
@@ -217,6 +236,11 @@
       "configurePreset": "windows-development"
     },
     {
+      "name": "windows-dx12-development",
+      "configurePreset": "windows-dx12-development",
+      "configuration": "Development"
+    },
+    {
       "name": "windows-zig-showcase",
       "configurePreset": "windows-zig-showcase"
     },
@@ -273,6 +297,14 @@
     {
       "name": "windows-development",
       "configurePreset": "windows-development",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-dx12-development",
+      "configurePreset": "windows-dx12-development",
+      "configuration": "Development",
       "output": {
         "outputOnFailure": true
       }

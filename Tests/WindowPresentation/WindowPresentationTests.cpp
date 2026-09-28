@@ -241,12 +241,12 @@ int main() {
                                   *nativeWindows);
   assert(nativeSurface);
   for (int frame = 0; frame != 3; ++frame) {
-    nativeWindows->PumpEvents();
+    static_cast<void>(nativeWindows->PumpEvents());
     assert(nativeSurface->Acquire() == Presentation::SurfaceStatus::Ready);
     assert(nativeSurface->Present() == Presentation::SurfaceStatus::Ready);
   }
   assert(nativeWindows->Resize(native.handle, 400, 300) == Window::WindowError::None);
-  nativeWindows->PumpEvents();
+  static_cast<void>(nativeWindows->PumpEvents());
   assert(nativeSurface->NotifyWindowExtent(400, 300) == Presentation::SurfaceStatus::Ready);
   assert(nativeSurface->Acquire() == Presentation::SurfaceStatus::Ready);
   assert(nativeSurface->Present() == Presentation::SurfaceStatus::Ready);

@@ -41,7 +41,7 @@ an unchecked or unmarked item remains incomplete.
 | [V3 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V3_Complete_Plan_v1_4.md) | **0%** | No V3 delivery milestone has an accepted repository gate. |
 | [V3 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md) | **0%** | Execution plan only; no V3 milestone accepted. |
 | ✅ [Engine API Foundation](Roadmap/en/Engine_API_Foundation_Roadmap.md) | **100%** | ✅ API-M1 through ✅ API-M6 complete for portable scope. |
-| ✅ [Window and Native Presentation](Roadmap/en/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 through ✅ WP-M4 are implemented; native backend execution remains a target-host acceptance gate. |
+| ✅ [Window and Native Presentation](Roadmap/en/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 through ✅ WP-M4 are implemented; Windows/DX12 WP-M1/WP-M2 runtime acceptance is recorded, while Showcase, Vulkan/Metal, and other native-host acceptance remain separate gates. |
 | [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 through ✅ ZS-M4 are complete; ZS-M5 has automated Linux isolated-package launch evidence, while other target-host distribution acceptance remains open. |
 | [Graphical Editor](Roadmap/en/Editor_Roadmap.md) | **0% (0/8)** | Repository audit confirms portable foundations for every ED track and an in-progress Dear ImGui shell, but no graphical ED milestone has passed all automated and target-host gates. |
 | [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **60%** | Mean of API 100%, Zig Showcase 90%, and Editor 0%, rounded down to 10%. |
@@ -113,7 +113,7 @@ ZS-M0 through ZS-M4 are complete: the capability-aware gallery supports camera i
 
 #### Window and native presentation status
 
-The [Window and Native Presentation Roadmap](Roadmap/en/Window_Presentation_Roadmap.md) is **100% implementation complete**: WP-M0 through WP-M4 provide the module boundary, native window/input implementations, DX12/Vulkan/Metal presentation paths, reusable Showcase/Editor surfaces, and lifecycle/failure hardening. This percentage records implementation scope, not cross-platform runtime acceptance. Native Windows/DX12, Linux/Windows Vulkan, and macOS/Metal runners must still pass on their respective target hosts.
+The [Window and Native Presentation Roadmap](Roadmap/en/Window_Presentation_Roadmap.md) is **100% implementation complete**: WP-M0 through WP-M4 provide the module boundary, native window/input implementations, DX12/Vulkan/Metal presentation paths, reusable Showcase/Editor surfaces, and lifecycle/failure hardening. This percentage records implementation scope, not cross-platform runtime acceptance. Windows/DX12 WP-M1/WP-M2 runner evidence is now recorded; Showcase interactive, Linux/Windows Vulkan, and macOS/Metal runtime acceptance remain target-host gates.
 
 #### Editor status
 
@@ -172,7 +172,7 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | [V3 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V3_完整規劃書_v1_4.md) | **0%** | 尚無 V3 delivery milestone 通過 repository gate。 |
 | [V3 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) | **0%** | 僅為施工規劃；尚無 V3 milestone 驗收。 |
 | ✅ [Engine API 基礎](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) | **100%** | ✅ API-M1 至 ✅ API-M6 完成 portable scope。 |
-| ✅ [Window 與 Native Presentation](Roadmap/zh-TW/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 至 ✅ WP-M4 已實作；native backend 執行仍為 target-host 驗收 gate。 |
+| ✅ [Window 與 Native Presentation](Roadmap/zh-TW/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 至 ✅ WP-M4 已實作；Windows/DX12 WP-M1/WP-M2 runtime 驗收已記錄，Showcase、Vulkan/Metal 與其他 native-host 驗收仍為獨立 gate。 |
 | [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 至 ✅ ZS-M4 已完成；ZS-M5 現有自動化 Linux isolated-package launch evidence，其他 target-host distribution 驗收仍待完成。 |
 | [圖形化 Editor](Roadmap/zh-TW/Editor_Roadmap.md) | **0%（0/8）** | Repository 稽核確認各 ED track 已有 portable foundation，Dear ImGui shell 亦在施工中，但尚無 graphical ED milestone 通過全部 automated 與 target-host gate。 |
 | [聚焦 Roadmap AI 施工規劃](Roadmap/zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) | **60%** | API 100%、Zig Showcase 90% 與 Editor 0% 的平均，向下取整至 10%。 |
@@ -231,7 +231,7 @@ ZS-M0 至 ZS-M4 已完成：capability-aware gallery 支援 camera input、selec
 
 #### Window 與 Native Presentation 狀態
 
-[Window 與 Native Presentation Roadmap](Roadmap/zh-TW/Window_Presentation_Roadmap.md) 的**實作進度為 100%**：WP-M0 至 WP-M4 已交付模組邊界、native window／input 實作、DX12／Vulkan／Metal presentation path、Showcase／Editor 可重用 surface，以及 lifecycle／failure hardening。此百分比代表實作 scope，不代表跨平台 runtime 驗收已完成；native Windows/DX12、Linux/Windows Vulkan 與 macOS/Metal runner 仍須分別在對應 target host 通過。
+[Window 與 Native Presentation Roadmap](Roadmap/zh-TW/Window_Presentation_Roadmap.md) 的**實作進度為 100%**：WP-M0 至 WP-M4 已交付模組邊界、native window／input 實作、DX12／Vulkan／Metal presentation path、Showcase／Editor 可重用 surface，以及 lifecycle／failure hardening。此百分比代表實作 scope，不代表跨平台 runtime 驗收已完成；Windows/DX12 WP-M1/WP-M2 runner evidence 已記錄，Showcase interactive、Linux/Windows Vulkan 與 macOS/Metal runtime 驗收仍須在對應 target host 通過。
 
 #### Editor 狀態
 
