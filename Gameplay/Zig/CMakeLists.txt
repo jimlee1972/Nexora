@@ -1,5 +1,6 @@
 set(NEXORA_ZIG_EXECUTABLE "" CACHE FILEPATH "Path to the Zig compiler")
 if(NOT NEXORA_ZIG_EXECUTABLE)
+  unset(NEXORA_ZIG_EXECUTABLE CACHE)
   find_program(NEXORA_ZIG_EXECUTABLE NAMES zig REQUIRED)
 endif()
 if(NOT EXISTS "${NEXORA_ZIG_EXECUTABLE}")
@@ -17,12 +18,15 @@ if(NOT CMAKE_CXX_OUTPUT_EXTENSION)
   endif()
 endif()
 
+set(NEXORA_ZIG_OBJECT_OPTIMIZATION Debug)
+if(CMAKE_BUILD_TYPE STREQUAL "Shipping")
+  set(NEXORA_ZIG_OBJECT_OPTIMIZATION ReleaseSafe)
+endif()
+
 set(NEXORA_ZIG_BUILD_OBJ_ARGS
   build-obj
   --dep nexora
-  -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
-  -Mnexora=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig
-  -O Debug -femit-bin=${NEXORA_ZIG_SAMPLE_OBJECT}
+  -O ${NEXORA_ZIG_OBJECT_OPTIMIZATION}
   # A plain `zig build-obj` doesn't link in Zig's own compiler-rt, so the
   # stack-check safety instrumentation it emits by default is left calling
   # an undefined `__zig_probe_stack` on Linux/macOS.
@@ -43,6 +47,10 @@ else()
   # can not be used when making a PIE object; recompile with -fPIE".
   list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS -fPIC)
 endif()
+list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS
+  -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
+  -Mnexora=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig
+  -femit-bin=${NEXORA_ZIG_SAMPLE_OBJECT})
 
 add_custom_command(
   OUTPUT "${NEXORA_ZIG_SAMPLE_OBJECT}"
@@ -60,25 +68,37 @@ set_source_files_properties("${NEXORA_ZIG_SAMPLE_OBJECT}" PROPERTIES
 
 add_custom_target(NexoraZigGameplayBuild DEPENDS "${NEXORA_ZIG_SAMPLE_OBJECT}")
 
-set(NEXORA_ZIG_BUILD_LIB_ARGS
-  build-lib
-  --dep nexora
-  -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
-  -Mnexora=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig
-  -dynamic -O Debug -femit-bin=${NEXORA_ZIG_SHARED_LIBRARY})
-if(WIN32)
-  list(APPEND NEXORA_ZIG_BUILD_LIB_ARGS -fcompiler-rt)
+if(APPLE)
+  # Zig 0.14's Mach-O linker cannot resolve libSystem on the macOS CI SDK.
+  # The PIC Zig object is already compiled; use the host linker for the dylib.
+  add_custom_command(
+    OUTPUT "${NEXORA_ZIG_SHARED_LIBRARY}"
+    COMMAND "${CMAKE_CXX_COMPILER}" -dynamiclib "${NEXORA_ZIG_SAMPLE_OBJECT}"
+            -o "${NEXORA_ZIG_SHARED_LIBRARY}"
+    DEPENDS "${NEXORA_ZIG_SAMPLE_OBJECT}"
+    COMMENT "Linking the Zig gameplay Development shared library with Apple Clang"
+    VERBATIM)
+else()
+  set(NEXORA_ZIG_BUILD_LIB_ARGS
+    build-lib
+    --dep nexora
+    -O Debug
+    -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
+    -Mnexora=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig
+    -dynamic -femit-bin=${NEXORA_ZIG_SHARED_LIBRARY})
+  if(WIN32)
+    list(APPEND NEXORA_ZIG_BUILD_LIB_ARGS -fcompiler-rt)
+  endif()
+  add_custom_command(
+    OUTPUT "${NEXORA_ZIG_SHARED_LIBRARY}"
+    COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${NEXORA_ZIG_BUILD_LIB_ARGS}
+    DEPENDS
+      "${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig"
+      "${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig"
+      "${PROJECT_SOURCE_DIR}/Engine/API/include/nexora/nexora.h"
+    COMMENT "Building the Zig gameplay Development shared library"
+    VERBATIM)
 endif()
-
-add_custom_command(
-  OUTPUT "${NEXORA_ZIG_SHARED_LIBRARY}"
-  COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${NEXORA_ZIG_BUILD_LIB_ARGS}
-  DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig"
-    "${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig"
-    "${PROJECT_SOURCE_DIR}/Engine/API/include/nexora/nexora.h"
-  COMMENT "Building the Zig gameplay Development shared library"
-  VERBATIM)
 add_custom_target(NexoraZigGameplaySharedBuild DEPENDS "${NEXORA_ZIG_SHARED_LIBRARY}")
 
 set(NEXORA_ZIG_SAMPLE_OBJECT "${NEXORA_ZIG_SAMPLE_OBJECT}" PARENT_SCOPE)

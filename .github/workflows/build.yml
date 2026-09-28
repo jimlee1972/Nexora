@@ -74,9 +74,17 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev
-      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON
+      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }}
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
+      - name: Verify Development Showcase package
+        if: runner.os != 'macOS'
+        run: cmake --build --preset ${{ matrix.preset }} --target NexoraShowcasePackageDevelopmentEvidence
+      - uses: actions/upload-artifact@v4
+        if: runner.os != 'macOS'
+        with:
+          name: showcase-${{ matrix.preset }}-package-evidence
+          path: build/${{ matrix.preset }}/package/NexoraShowcase-Development/launch-evidence-*.json
 
   zig-mobile-cross-build:
     name: Zig object smoke (${{ matrix.target }})
@@ -94,10 +102,29 @@ jobs:
           version: 0.14.0
       - name: Build Zig GameModule object
         run: >-
-          zig build-obj Gameplay/Zig/src/game_module.zig
+          zig build-obj
+          --dep nexora
           -target ${{ matrix.target }}
           -O Debug
+          -Mroot=Gameplay/Zig/src/game_module.zig
+          -Mnexora=Bindings/Zig/nexora.zig
           -femit-bin=${{ runner.temp }}/nexora-${{ matrix.target }}.o
+
+  showcase-windows-shipping-package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
+      - uses: ilammy/msvc-dev-cmd@v1
+      - run: cmake --preset windows-zig-showcase-shipping
+      - run: cmake --build --preset windows-zig-showcase-shipping --target NexoraShowcasePackageShippingEvidence --parallel 4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: showcase-windows-shipping-evidence
+          path: build/windows-zig-showcase-shipping/package/NexoraShowcase-Shipping/launch-evidence-windows.json
 
   mimalloc-smoke:
     name: mimalloc backend (${{ matrix.preset }})
@@ -123,7 +150,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev
-      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_MIMALLOC=ON
+      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_MIMALLOC=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }}
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
 
@@ -157,12 +184,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: lukka/get-cmake@latest
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
       - name: Install Vulkan and X11 development packages
         run: |
           sudo apt-get update
           sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev
-      - run: cmake --preset linux-shipping
+      - run: cmake --preset linux-shipping -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON
       - run: cmake --build --preset linux-shipping
+      - run: cmake --build --preset linux-shipping --target NexoraShowcasePackageShippingEvidence
+      - uses: actions/upload-artifact@v4
+        with:
+          name: showcase-linux-shipping-package-evidence
+          path: build/linux-shipping/package/NexoraShowcase-Shipping/launch-evidence-linux.json
       - run: cmake -S . -B build/feature-off -G Ninja -DCMAKE_BUILD_TYPE=Development -DNEXORA_FEATURE_EXAMPLE_PLUGIN=OFF
       - run: cmake --build build/feature-off
       - run: test ! -e build/feature-off/Plugins/Example/libNexoraExamplePlugin.so

@@ -5,7 +5,7 @@
 
 > **進度：60%**（API 100%、Zig Showcase 90%、Editor 0%；算術平均 63.3%，向下取整至 10%。）
 
-**已驗收 delivery：** ✅ Engine API Foundation portable scope，以及 ✅ Zig Showcase ZS-M0 至 ZS-M4。**待辦：** Zig Showcase ZS-M5 乾淨 target distribution 驗收，以及全部圖形化 Editor delivery gates。
+**已驗收 delivery：** ✅ Engine API Foundation portable scope，以及 ✅ Zig Showcase ZS-M0 至 ZS-M4。**待辦：** Zig Showcase ZS-M5 獨立配置乾淨 target 的 distribution 驗收，以及全部圖形化 Editor delivery gates。Windows 開發工作站現有 Development 與 Shipping 兩種 package 啟動證據，但尚不足以結案 ZS-M5。
 
 ## 1. 分析結論
 

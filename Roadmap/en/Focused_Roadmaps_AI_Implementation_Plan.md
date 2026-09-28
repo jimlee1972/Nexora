@@ -5,7 +5,7 @@
 
 > **Progress: 60%** (API 100%, Zig Showcase 90%, and Editor 0%; arithmetic mean 63.3%, rounded down to 10%.)
 
-**Accepted delivery:** ✅ Engine API Foundation portable scope and ✅ Zig Showcase ZS-M0 through ZS-M4. **Open:** Zig Showcase ZS-M5 clean-target distribution acceptance and all graphical Editor delivery gates.
+**Accepted delivery:** ✅ Engine API Foundation portable scope and ✅ Zig Showcase ZS-M0 through ZS-M4. **Open:** Zig Showcase ZS-M5 independently provisioned clean-target distribution acceptance and all graphical Editor delivery gates. Windows workstation package launch evidence is available for both Development and Shipping, but does not close ZS-M5.
 
 ## 1. Analysis and critical path
 

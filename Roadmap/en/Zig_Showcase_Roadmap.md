@@ -1,8 +1,8 @@
 # Nexora Zig Showcase and Engine-owned Entry Point Roadmap
 
-> Version: v1.0 | Status: planning baseline | Updated: 2026-09-21
+> Version: v1.0 | Status: planning baseline | Updated: 2026-09-29
 
-> **Progress: 90%** (as of 2026-09-24; weighted acceptance checklist across the six milestones
+> **Progress: 90%** (as of 2026-09-29; weighted acceptance checklist across the six milestones
 > in section 4; completed items are marked with ✅ and the result is rounded down to 10%.)
 
 **Implementation status (2026-09-24):** ZS-M0 through ZS-M4 are complete. ABI V3 now defines
@@ -83,11 +83,16 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
 - **ZS-M5 Distribution:** dynamic Development and static/packaged Shipping profiles with license/build/API manifests.
   - ✅ Reproducible Development-dynamic and Shipping-static package targets emit license,
     build/API/content manifests, per-artifact SHA-256 digests, and `SHA256SUMS`.
-  - Open: retain launch evidence from the generated command on a clean target machine. Package
-    construction in Linux CI does not substitute for target-host acceptance.
+  - Open: retain launch evidence from the generated command on an independently provisioned clean
+    target machine. A build runner or development workstation does not satisfy this final gate.
   - ✅ Linux clean-package evidence verifies all checksums, stages a fresh isolated copy, launches
     the relocatable dynamic package from that copy, and retains its report/exit status. Other target
     hosts and independently provisioned-machine acceptance remain open.
+  - ✅ On a Windows development workstation, isolated copies of the Development-dynamic and
+    Shipping-monolithic/static packages passed all 13 and 5 checksums respectively, launched the
+    recorded command, and emitted `PASS` reports. This is Windows target-host evidence, not
+    independently provisioned clean-machine acceptance. The CI workflow is configured to run the
+    package evidence targets.
 
 ## 5. Evidence and completion
 

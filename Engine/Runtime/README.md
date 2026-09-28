@@ -221,8 +221,10 @@ implicitly and reload candidates have independent state. No exception crosses th
 fallible callback reports a `NexoraGameplayResult`, and an update failure does not implicitly
 unload the active module. Event delivery remains a future additive capability.
 Modules may additionally provide state save/load callbacks. Reload serializes the active state,
-initializes and restores the candidate, and only then retires the active module; load, descriptor,
-start, and migration failures stop and destroy the candidate while keeping the active module alive.
+creates and restores the candidate before calling its `on_start`, and only then retires the active
+module. This ordering lets `on_start` reuse restored scene and entity handles instead of spawning
+duplicate content. Load, descriptor, start, and migration failures destroy the candidate while
+keeping the active module alive; `on_stop` runs only for a module that started successfully.
 The path overloads discover platform-named modules and own each loaded library as one monotonically
 numbered generation. Before retiring a generation, the host invokes the configured quiescence
 barrier while lifecycle serialization is held; the embedding must wait there for every job and
