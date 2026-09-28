@@ -96,11 +96,6 @@ bool GameplayModuleHost::Create(NexoraGameModuleLoadV3Fn load, NexoraGameModuleV
   if (module.create(&state, &host_) != NEXORA_GAMEPLAY_OK)
     return false;
   module.module_state = state;
-  if (module.on_start(state) != NEXORA_GAMEPLAY_OK) {
-    module.destroy(state);
-    module = {};
-    return false;
-  }
   return true;
 }
 
@@ -111,6 +106,10 @@ bool GameplayModuleHost::Load(NexoraGameModuleLoadV3Fn load) {
   NexoraGameModuleV3 candidate{};
   if (!Create(load, candidate))
     return false;
+  if (candidate.on_start(candidate.module_state) != NEXORA_GAMEPLAY_OK) {
+    candidate.destroy(candidate.module_state);
+    return false;
+  }
   module_ = candidate;
   loaded_ = true;
   generation_ = 1;
@@ -128,6 +127,10 @@ bool GameplayModuleHost::Load(const std::filesystem::path &library) {
   NexoraGameModuleV3 candidate{};
   if (!Create(load, candidate))
     return false;
+  if (candidate.on_start(candidate.module_state) != NEXORA_GAMEPLAY_OK) {
+    candidate.destroy(candidate.module_state);
+    return false;
+  }
   module_ = candidate;
   library_ = candidate_library.release();
   loaded_ = true;
@@ -214,10 +217,13 @@ bool GameplayModuleHost::ReloadLocked(NexoraGameModuleLoadV3Fn load,
     if (candidate.load_state == nullptr ||
         candidate.load_state(candidate.module_state, saved_state.data(),
                              static_cast<std::uint32_t>(saved_state.size())) != 0) {
-      candidate.on_stop(candidate.module_state);
       candidate.destroy(candidate.module_state);
       return false;
     }
+  }
+  if (candidate.on_start(candidate.module_state) != NEXORA_GAMEPLAY_OK) {
+    candidate.destroy(candidate.module_state);
+    return false;
   }
 
   QuiesceLocked();

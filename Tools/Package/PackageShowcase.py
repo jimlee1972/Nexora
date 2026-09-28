@@ -26,8 +26,10 @@ def copy(source: Path, destination: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", required=True, choices=("Development", "Shipping"))
+    parser.add_argument("--build-configuration", choices=("Development", "Shipping"))
     parser.add_argument("--binary", required=True, type=Path)
     parser.add_argument("--gameplay-module", type=Path)
+    parser.add_argument("--runtime-libraries", nargs="*", type=Path, default=[])
     parser.add_argument("--api-manifest", required=True, type=Path)
     parser.add_argument("--license", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
@@ -35,9 +37,20 @@ def main() -> int:
 
     if args.profile == "Development" and args.gameplay_module is None:
         parser.error("Development packages require --gameplay-module")
-    for path in (args.binary, args.api_manifest, args.license, args.gameplay_module):
+    if args.profile == "Shipping" and args.gameplay_module is not None:
+        parser.error("Shipping packages must use the static gameplay module")
+    if args.build_configuration and args.build_configuration != args.profile:
+        parser.error("package profile must match the build configuration")
+    for path in (args.binary, args.api_manifest, args.license, args.gameplay_module,
+                 *args.runtime_libraries):
         if path is not None and not path.is_file():
             parser.error(f"input does not exist: {path}")
+    package_binaries = [args.binary, *args.runtime_libraries]
+    if args.gameplay_module:
+        package_binaries.append(args.gameplay_module)
+    names = [path.name for path in package_binaries]
+    if len(names) != len(set(names)):
+        parser.error("package binaries must have distinct file names")
 
     if args.output.exists():
         shutil.rmtree(args.output)
@@ -46,6 +59,8 @@ def main() -> int:
     artifacts = [copy(args.binary, bin_dir / args.binary.name)]
     if args.gameplay_module:
         artifacts.append(copy(args.gameplay_module, bin_dir / args.gameplay_module.name))
+    for library in args.runtime_libraries:
+        artifacts.append(copy(library, bin_dir / library.name))
     copy(args.license, args.output / "LICENSE")
     copy(args.api_manifest, manifest_dir / "api.json")
 

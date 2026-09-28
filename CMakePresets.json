@@ -161,6 +161,17 @@
       }
     },
     {
+      "name": "windows-zig-showcase-shipping",
+      "inherits": "windows-zig-showcase",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Shipping",
+        "CMAKE_CONFIGURATION_TYPES": "Shipping",
+        "BUILD_TESTING": "OFF",
+        "NEXORA_LINK_MODE": "Monolithic",
+        "NEXORA_SHIPPING_PROFILE": "Minimal"
+      }
+    },
+    {
       "name": "macos-development",
       "inherits": "base",
       "cacheVariables": {
@@ -243,6 +254,11 @@
     {
       "name": "windows-zig-showcase",
       "configurePreset": "windows-zig-showcase"
+    },
+    {
+      "name": "windows-zig-showcase-shipping",
+      "configurePreset": "windows-zig-showcase-shipping",
+      "configuration": "Shipping"
     },
     {
       "name": "macos-development",

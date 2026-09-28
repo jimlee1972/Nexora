@@ -92,9 +92,10 @@ when their host-owned world is destroyed.
 
 ## Reproducible packages
 
-The `NexoraShowcasePackageDevelopment` target creates a Development package containing the
-executable and dynamic Zig gameplay module. `NexoraShowcasePackageShipping` creates the static
-Shipping layout and must be invoked from a Shipping/monolithic build. Both use the same deterministic
+The `NexoraShowcasePackageDevelopment` target creates a Development/Modular package containing the
+executable, dynamic Zig gameplay module, and required engine DLLs on Windows.
+`NexoraShowcasePackageShipping` creates the static Shipping/Monolithic layout and is available only
+from a Monolithic build. Both use the same deterministic
 packaging command and emit `build.json`, the public API manifest, a content manifest with SHA-256
 digests, `SHA256SUMS`, and the repository license beneath `build/<preset>/package`.
 
@@ -112,5 +113,17 @@ plus command and exit status in `launch-evidence-linux.json`:
 cmake --build --preset linux-development --target NexoraShowcasePackageDevelopmentEvidence
 ```
 
-This is Linux clean-package launch evidence, not evidence for Windows, macOS, or a separately
-provisioned physical machine.
+On Windows, the same evidence launcher verifies the package checksums, stages a fresh isolated copy,
+executes the recorded command, and retains `launch-evidence-windows.json`:
+
+```powershell
+cmake --build --preset windows-zig-showcase --config Development --target NexoraShowcasePackageDevelopmentEvidence
+cmake --preset windows-zig-showcase-shipping
+cmake --build --preset windows-zig-showcase-shipping --target NexoraShowcasePackageShippingEvidence
+```
+
+The Windows Shipping preset uses a separate Monolithic build and static Zig gameplay. On a separately
+provisioned target machine, copy one complete package directory, verify `manifests/SHA256SUMS`, run
+the exact command in `manifests/build.json` from the package root, and retain `launch-report.json`
+alongside the command, exit status, and host details. CI and developer-machine isolated-copy evidence do
+not establish this final clean-machine acceptance gate.

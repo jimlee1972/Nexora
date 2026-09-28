@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import platform
 import shlex
 import shutil
 import subprocess
@@ -79,7 +80,7 @@ def main() -> int:
 
     evidence = {
         "schema_version": 1,
-        "platform": "linux",
+        "platform": platform.system().lower(),
         "profile": build["profile"],
         "isolated_copy": True,
         "checksums_verified": len(verified),

@@ -1,8 +1,8 @@
 # Nexora Zig Showcase 與 Engine-owned Entry Point Roadmap
 
-> 版本：v1.0｜狀態：規劃基線｜更新：2026-09-21
+> 版本：v1.0｜狀態：規劃基線｜更新：2026-09-29
 
-> **進度：90%**（截至 2026-09-24；依第 4 節 6 個 milestone 的加權驗收清單計算，
+> **進度：90%**（截至 2026-09-29；依第 4 節 6 個 milestone 的加權驗收清單計算，
 > 已完成項目以 ✅ 標示，結果向下取整至 10%。）
 
 **施工狀態（2026-09-24）：** ZS-M0 至 ZS-M4 已完成。ABI V3 現在定義明確的 result 與 capability 值、
@@ -92,11 +92,14 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
 - **ZS-M5 Distribution**：Development dynamic 與 Shipping static/packaged profiles，產生 license/build/API manifest。
   - ✅ 可重現的 Development-dynamic 與 Shipping-static package target 會產生 license、
     build/API/content manifest、逐 artifact SHA-256 digest 與 `SHA256SUMS`。
-  - 待辦：在乾淨的 target machine 執行產物記錄的 command 並保留 launch 證據。Linux CI
-    建立 package 不能取代 target-host 驗收。
+  - 待辦：在獨立配置的乾淨 target machine 執行產物記錄的 command 並保留 launch 證據。
+    CI runner 或開發工作站的結果尚不足以通過這項最終驗收。
   - ✅ Linux clean-package evidence 會驗證全部 checksum、建立全新的隔離副本，從該副本啟動
     relocatable dynamic package，並保留 report／exit status。其他 target host 與獨立配置機器
     的驗收仍待完成。
+  - ✅ Windows 開發工作站上，Development-dynamic 與 Shipping-monolithic/static 套件的隔離副本
+    分別通過 13 與 5 個 checksum、依記錄命令啟動並產出 `PASS` report。這是 Windows target-host
+    證據，尚非獨立配置的乾淨機器驗收；CI workflow 已配置兩種 package evidence target。
 
 ## 5. 測試與驗收
 
