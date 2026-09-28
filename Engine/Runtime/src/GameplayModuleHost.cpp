@@ -249,7 +249,12 @@ std::filesystem::path GameplayModuleHost::Discover(const std::filesystem::path &
 #if defined(_WIN32)
   const std::string filename = std::string(module_name) + ".dll";
 #elif defined(__APPLE__)
-  const std::string filename = "lib" + std::string(module_name) + ".dylib";
+  const std::string basename = "lib" + std::string(module_name);
+  const auto dylib = directory / (basename + ".dylib");
+  if (std::filesystem::is_regular_file(dylib))
+    return dylib;
+  const auto bundle = directory / (basename + ".so");
+  return std::filesystem::is_regular_file(bundle) ? bundle : std::filesystem::path{};
 #else
   const std::string filename = "lib" + std::string(module_name) + ".so";
 #endif

@@ -77,6 +77,9 @@ set(NEXORA_ZIG_BUILD_LIB_ARGS
   -dynamic -femit-bin=${NEXORA_ZIG_SHARED_LIBRARY})
 if(WIN32)
   list(APPEND NEXORA_ZIG_BUILD_LIB_ARGS -fcompiler-rt)
+elseif(APPLE)
+  # Zig's macOS dynamic-library link must resolve its libc references.
+  list(APPEND NEXORA_ZIG_BUILD_LIB_ARGS -lc)
 endif()
 
 add_custom_command(
