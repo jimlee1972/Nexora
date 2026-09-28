@@ -23,6 +23,8 @@ struct Packet {
   ChannelSemantics semantics{ChannelSemantics::Unreliable};
   std::uint64_t sequence{};
   std::vector<std::byte> payload;
+
+  bool operator==(const Packet &) const = default;
 };
 
 class NEXORA_NETWORK_API INetTransport {
