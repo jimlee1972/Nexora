@@ -171,6 +171,9 @@
         "NEXORA_LINK_MODE": "Monolithic",
         "NEXORA_SHIPPING_PROFILE": "Minimal"
       },
+      "environment": {
+        "PATH": "${sourceDir}/.tools/zig-win-x86_64-0.14.0;$penv{PATH}"
+      },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",

@@ -70,15 +70,16 @@ void Deallocate(void *context, std::uint64_t owner, void *allocation, std::uint6
 
 int main() {
   HostState state;
-  NexoraGameplayHostV3 api{sizeof(NexoraGameplayHostV3),
-                           NEXORA_GAMEPLAY_ABI_VERSION,
-                           NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR,
-                           &state,
-                           Log,
-                           ReadComponent,
-                           WriteComponent,
-                           Allocate,
-                           Deallocate};
+  NexoraGameplayHostV3 api{};
+  api.struct_size = sizeof(NexoraGameplayHostV3);
+  api.abi_version = NEXORA_GAMEPLAY_ABI_VERSION;
+  api.capabilities = NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR;
+  api.context = &state;
+  api.log = Log;
+  api.read_component = ReadComponent;
+  api.write_component = WriteComponent;
+  api.allocate = Allocate;
+  api.deallocate = Deallocate;
   nexora::runtime::GameplayModuleHost host(api);
 
   assert(host.Load(NexoraGameModuleLoad));

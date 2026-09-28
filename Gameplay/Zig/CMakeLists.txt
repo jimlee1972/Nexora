@@ -26,9 +26,7 @@ endif()
 set(NEXORA_ZIG_BUILD_OBJ_ARGS
   build-obj
   --dep nexora
-  -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
-  -Mnexora=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig
-  -O ${NEXORA_ZIG_OBJECT_OPTIMIZATION} -femit-bin=${NEXORA_ZIG_SAMPLE_OBJECT}
+  -O ${NEXORA_ZIG_OBJECT_OPTIMIZATION}
   # A plain `zig build-obj` doesn't link in Zig's own compiler-rt, so the
   # stack-check safety instrumentation it emits by default is left calling
   # an undefined `__zig_probe_stack` on Linux/macOS.
@@ -49,6 +47,10 @@ else()
   # can not be used when making a PIE object; recompile with -fPIE".
   list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS -fPIC)
 endif()
+list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS
+  -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
+  -Mnexora=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig
+  -femit-bin=${NEXORA_ZIG_SAMPLE_OBJECT})
 
 add_custom_command(
   OUTPUT "${NEXORA_ZIG_SAMPLE_OBJECT}"
@@ -69,9 +71,10 @@ add_custom_target(NexoraZigGameplayBuild DEPENDS "${NEXORA_ZIG_SAMPLE_OBJECT}")
 set(NEXORA_ZIG_BUILD_LIB_ARGS
   build-lib
   --dep nexora
+  -O Debug
   -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
   -Mnexora=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig
-  -dynamic -O Debug -femit-bin=${NEXORA_ZIG_SHARED_LIBRARY})
+  -dynamic -femit-bin=${NEXORA_ZIG_SHARED_LIBRARY})
 if(WIN32)
   list(APPEND NEXORA_ZIG_BUILD_LIB_ARGS -fcompiler-rt)
 endif()

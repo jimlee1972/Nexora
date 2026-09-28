@@ -25,6 +25,7 @@ def safe_join(base: Path, relative: str) -> Path:
     corrupted or tampered one) as untrusted input, since it goes on to chmod
     and execute whatever path it resolves to.
     """
+    base = base.resolve()
     if not relative or Path(relative).is_absolute():
         raise RuntimeError(f"package path escapes the package root: {relative}")
     candidate = (base / relative).resolve()
