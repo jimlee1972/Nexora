@@ -162,13 +162,19 @@
     },
     {
       "name": "windows-zig-showcase-shipping",
-      "inherits": "windows-zig-showcase",
+      "inherits": "base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Shipping",
-        "CMAKE_CONFIGURATION_TYPES": "Shipping",
         "BUILD_TESTING": "OFF",
+        "NEXORA_ENABLE_ZIG_GAMEPLAY": "ON",
+        "NEXORA_ENABLE_NATIVE_BACKENDS": "OFF",
         "NEXORA_LINK_MODE": "Monolithic",
         "NEXORA_SHIPPING_PROFILE": "Minimal"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
       }
     },
     {

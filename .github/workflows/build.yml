@@ -74,7 +74,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev
-      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON
+      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }}
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
       - name: Verify Development Showcase package
@@ -102,9 +102,12 @@ jobs:
           version: 0.14.0
       - name: Build Zig GameModule object
         run: >-
-          zig build-obj Gameplay/Zig/src/game_module.zig
+          zig build-obj
+          --dep nexora
           -target ${{ matrix.target }}
           -O Debug
+          -Mroot=Gameplay/Zig/src/game_module.zig
+          -Mnexora=Bindings/Zig/nexora.zig
           -femit-bin=${{ runner.temp }}/nexora-${{ matrix.target }}.o
 
   showcase-windows-shipping-package:
@@ -147,7 +150,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev
-      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_MIMALLOC=ON
+      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_MIMALLOC=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }}
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
 
