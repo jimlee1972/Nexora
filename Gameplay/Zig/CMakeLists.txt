@@ -1,7 +1,12 @@
 set(NEXORA_ZIG_EXECUTABLE "" CACHE FILEPATH "Path to the Zig compiler")
 if(NOT NEXORA_ZIG_EXECUTABLE)
+  # An empty cache entry prevents find_program from searching the environment.
+  # Drop it first so CI-provisioned Zig installations can be discovered on PATH.
   unset(NEXORA_ZIG_EXECUTABLE CACHE)
-  find_program(NEXORA_ZIG_EXECUTABLE NAMES zig REQUIRED)
+  find_program(NEXORA_ZIG_EXECUTABLE NAMES zig)
+endif()
+if(NOT NEXORA_ZIG_EXECUTABLE)
+  message(FATAL_ERROR "Zig compiler was not found; set NEXORA_ZIG_EXECUTABLE to the zig executable path")
 endif()
 if(NOT EXISTS "${NEXORA_ZIG_EXECUTABLE}")
   message(FATAL_ERROR "NEXORA_ZIG_EXECUTABLE does not exist: ${NEXORA_ZIG_EXECUTABLE}")
@@ -41,11 +46,13 @@ if(WIN32)
   # code. See https://github.com/ziglang/zig/issues/15107.
   list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS -fcompiler-rt)
 else()
-  # Without this, zig build-obj emits non-PIC code on Linux/macOS, which
-  # cannot be linked into NexoraZigGameplayTests -- a normal PIE executable
+  # Without this, zig build-obj emits non-PIE code on Linux/macOS, which
+  # cannot be linked into NexoraZigGameplayTests, a normal PIE executable:
   # on modern toolchains: "relocation R_X86_64_32S against `.rodata.cst16'
   # can not be used when making a PIE object; recompile with -fPIE".
-  list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS -fPIC)
+  # Standalone objects also need compiler-rt because build-obj does not bundle
+  # __zig_probe_stack with the object by default.
+  list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS -fPIE -fcompiler-rt)
 endif()
 list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS
   -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
