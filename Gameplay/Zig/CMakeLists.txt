@@ -1,6 +1,12 @@
 set(NEXORA_ZIG_EXECUTABLE "" CACHE FILEPATH "Path to the Zig compiler")
 if(NOT NEXORA_ZIG_EXECUTABLE)
-  find_program(NEXORA_ZIG_EXECUTABLE NAMES zig REQUIRED)
+  # An empty cache entry prevents find_program from searching the environment.
+  # Drop it first so CI-provisioned Zig installations can be discovered on PATH.
+  unset(NEXORA_ZIG_EXECUTABLE CACHE)
+  find_program(NEXORA_ZIG_EXECUTABLE NAMES zig)
+endif()
+if(NOT NEXORA_ZIG_EXECUTABLE)
+  message(FATAL_ERROR "Zig compiler was not found; set NEXORA_ZIG_EXECUTABLE to the zig executable path")
 endif()
 if(NOT EXISTS "${NEXORA_ZIG_EXECUTABLE}")
   message(FATAL_ERROR "NEXORA_ZIG_EXECUTABLE does not exist: ${NEXORA_ZIG_EXECUTABLE}")
