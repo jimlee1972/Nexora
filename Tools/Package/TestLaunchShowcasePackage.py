@@ -24,6 +24,7 @@ def main() -> int:
         # A well-formed relative path pointing inside the package must resolve normally.
         resolved = safe_join(base, "bin/showcase")
         assert resolved == (base / "bin/showcase").resolve()
+        assert safe_join(base / ".", "bin/showcase") == resolved
 
         # A SHA256SUMS entry or build.json launch command crafted to escape the
         # package root -- via a parent-directory traversal or an absolute path --

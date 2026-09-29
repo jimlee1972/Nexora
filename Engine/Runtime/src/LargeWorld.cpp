@@ -354,9 +354,9 @@ void HashValue(std::uint64_t &hash, bool value) noexcept {
 template <typename T> void HashValue(std::uint64_t &hash, T value) noexcept {
   static_assert(std::is_integral_v<T>);
   using Unsigned = std::make_unsigned_t<T>;
-  Unsigned bits = static_cast<Unsigned>(value);
-  for (std::size_t index = 0; index < sizeof(bits); ++index) {
-    const auto byte = static_cast<unsigned char>(bits & static_cast<Unsigned>(0xffU));
+  std::uint64_t bits = static_cast<Unsigned>(value);
+  for (std::size_t index = 0; index < sizeof(Unsigned); ++index) {
+    const auto byte = static_cast<unsigned char>(bits & 0xffU);
     HashBytes(hash, &byte, 1);
     bits >>= 8U;
   }

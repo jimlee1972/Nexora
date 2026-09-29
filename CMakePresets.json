@@ -161,6 +161,26 @@
       }
     },
     {
+      "name": "windows-zig-showcase-shipping",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Shipping",
+        "BUILD_TESTING": "OFF",
+        "NEXORA_ENABLE_ZIG_GAMEPLAY": "ON",
+        "NEXORA_ENABLE_NATIVE_BACKENDS": "OFF",
+        "NEXORA_LINK_MODE": "Monolithic",
+        "NEXORA_SHIPPING_PROFILE": "Minimal"
+      },
+      "environment": {
+        "PATH": "${sourceDir}/.tools/zig-win-x86_64-0.14.0;$penv{PATH}"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
       "name": "macos-development",
       "inherits": "base",
       "cacheVariables": {
@@ -243,6 +263,11 @@
     {
       "name": "windows-zig-showcase",
       "configurePreset": "windows-zig-showcase"
+    },
+    {
+      "name": "windows-zig-showcase-shipping",
+      "configurePreset": "windows-zig-showcase-shipping",
+      "configuration": "Shipping"
     },
     {
       "name": "macos-development",

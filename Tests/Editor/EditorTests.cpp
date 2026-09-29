@@ -6,6 +6,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -427,6 +428,7 @@ int main() {
   try {
     return Run();
   } catch (const std::exception &error) {
-    return error.what()[0] == '\0' ? 0 : 1;
+    std::cerr << "editor.preview_contract: " << error.what() << '\n';
+    return 1;
   }
 }

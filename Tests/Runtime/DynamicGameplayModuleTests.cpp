@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
       first.parent_path(), first.stem().string().starts_with("lib")
                                ? first.stem().string().substr(3)
                                : first.stem().string());
-  assert(std::filesystem::equivalent(discovered, first));
+  assert(!discovered.empty() && std::filesystem::equivalent(discovered, first));
   assert(nexora::runtime::GameplayModuleHost::Discover(first.parent_path(), "missing").empty());
 
   Barrier barrier;
