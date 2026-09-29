@@ -297,6 +297,8 @@ void TestNativeComputeOnVulkan() {
   graph.Execute(*device);
   Require(graph.GetStatistics().queue_transfer_count == 2,
           "RenderGraph owns graphics-to-compute and compute-to-graphics queue transfers");
+  Require(device->Diagnostics().readbacks == 0,
+          "production RenderGraph passes do not read back GPU output");
   std::vector<std::uint32_t> output(scene.objects.size() * 5);
   std::vector<std::uint32_t> arguments(scene.objects.size() * rhi::GPUDrivenIndirectCommandWords);
   std::uint32_t counts[8]{};
