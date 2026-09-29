@@ -172,13 +172,21 @@ GPUDrivenComparison CompareGPUDrivenResults(const GPUDrivenResult &reference,
   return comparison;
 }
 
+void RecordGPUDrivenCompute(rhi::CommandList &commands, std::uint32_t candidate_count) {
+  if (candidate_count != 0)
+    commands.Dispatch((candidate_count + 63U) / 64U);
+}
+
+void RecordGPUDrivenIndirect(rhi::CommandList &commands, std::uint32_t indirect_command_count) {
+  if (indirect_command_count != 0)
+    commands.DrawIndirect(indirect_command_count);
+}
+
 void RecordGPUDrivenExecution(rhi::CommandList &compute_commands,
                               rhi::CommandList &graphics_commands, std::uint32_t candidate_count,
                               std::uint32_t indirect_command_count) {
-  if (candidate_count != 0)
-    compute_commands.Dispatch((candidate_count + 63U) / 64U);
-  if (indirect_command_count != 0)
-    graphics_commands.DrawIndirect(indirect_command_count);
+  RecordGPUDrivenCompute(compute_commands, candidate_count);
+  RecordGPUDrivenIndirect(graphics_commands, indirect_command_count);
 }
 
 } // namespace nexora::renderer
