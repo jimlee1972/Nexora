@@ -24,6 +24,7 @@ bool fail_fixed_update{};
 bool fail_update{};
 bool fail_save{};
 bool fail_load{};
+bool second_start_saw_restored_state{};
 
 int32_t InitializeFirst(void **state, const NexoraGameplayHostV3 *) {
   if (fail_create)
@@ -38,6 +39,9 @@ int32_t InitializeSecond(void **state, const NexoraGameplayHostV3 *) {
 int32_t Start(void *state) {
   if (fail_start)
     return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+  if (state == &second_state)
+    second_start_saw_restored_state =
+        static_cast<State *>(state)->updates == nexora::test::kExpectedUpdates;
   static_cast<State *>(state)->started = true;
   return NEXORA_GAMEPLAY_OK;
 }
@@ -190,7 +194,12 @@ int main() {
   fail_load = true;
   assert(!host.Reload(LoadSecond));
   fail_load = false;
+  fail_start = true;
+  assert(!host.Reload(LoadSecond));
+  assert(!first_state.stopped);
+  fail_start = false;
   assert(host.Reload(LoadSecond));
+  assert(second_start_saw_restored_state);
   assert(host.GetFailureState().callback ==
          nexora::runtime::GameplayModuleHost::CallbackFailure::None);
   assert(first_state.stopped);

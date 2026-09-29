@@ -12,7 +12,6 @@ add_executable(NexoraShowcase
   main.cpp
   "${NEXORA_ZIG_SAMPLE_OBJECT}")
 add_dependencies(NexoraShowcase NexoraZigGameplayBuild)
-add_dependencies(NexoraShowcase NexoraZigGameplaySharedBuild)
 target_link_libraries(NexoraShowcase PRIVATE
   NexoraShowcaseProbes
   Nexora::Runtime
@@ -25,39 +24,70 @@ if(WIN32)
   target_link_libraries(NexoraShowcase PRIVATE ntdll)
 endif()
 nexora_apply_defaults(NexoraShowcase)
-target_compile_definitions(NexoraShowcase PRIVATE
-  NEXORA_ZIG_SHARED_LIBRARY_PATH="${NEXORA_ZIG_SHARED_LIBRARY}")
-add_custom_command(TARGET NexoraShowcase POST_BUILD
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-          "${NEXORA_ZIG_SHARED_LIBRARY}" "$<TARGET_FILE_DIR:NexoraShowcase>"
-  VERBATIM)
+if(NEXORA_LINK_MODE STREQUAL "Modular")
+  add_dependencies(NexoraShowcase NexoraZigGameplaySharedBuild)
+  target_compile_definitions(NexoraShowcase PRIVATE
+    NEXORA_ZIG_SHARED_LIBRARY_PATH="${NEXORA_ZIG_SHARED_LIBRARY}")
+  add_custom_command(TARGET NexoraShowcase POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${NEXORA_ZIG_SHARED_LIBRARY}" "$<TARGET_FILE_DIR:NexoraShowcase>"
+    VERBATIM)
+else()
+  target_compile_definitions(NexoraShowcase PRIVATE NEXORA_ZIG_SHARED_LIBRARY_PATH="")
+endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-add_custom_target(NexoraShowcasePackageDevelopment
-  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/PackageShowcase.py"
-          --profile Development --binary "$<TARGET_FILE:NexoraShowcase>"
-          --gameplay-module "${NEXORA_ZIG_SHARED_LIBRARY}"
-          --api-manifest "${CMAKE_SOURCE_DIR}/Engine/API/abi_manifest.json"
-          --license "${CMAKE_SOURCE_DIR}/LICENSE"
-          --output "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development"
-  DEPENDS NexoraShowcase
-  VERBATIM)
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  add_custom_target(NexoraShowcasePackageDevelopmentEvidence
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/LaunchShowcasePackage.py"
-            --package "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development"
-            --evidence "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development/launch-evidence-linux.json"
-    DEPENDS NexoraShowcasePackageDevelopment
-    VERBATIM)
+set(NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS)
+if(WIN32 AND NEXORA_LINK_MODE STREQUAL "Modular")
+  list(APPEND NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS
+       --runtime-libraries "$<TARGET_RUNTIME_DLLS:NexoraShowcase>")
 endif()
-add_custom_target(NexoraShowcasePackageShipping
-  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/PackageShowcase.py"
-          --profile Shipping --binary "$<TARGET_FILE:NexoraShowcase>"
-          --api-manifest "${CMAKE_SOURCE_DIR}/Engine/API/abi_manifest.json"
-          --license "${CMAKE_SOURCE_DIR}/LICENSE"
-          --output "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Shipping"
-  DEPENDS NexoraShowcase
-  VERBATIM)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32)
+  string(TOLOWER "${CMAKE_SYSTEM_NAME}" NEXORA_SHOWCASE_EVIDENCE_PLATFORM)
+endif()
+if(NEXORA_LINK_MODE STREQUAL "Modular")
+  add_custom_target(NexoraShowcasePackageDevelopment
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/PackageShowcase.py"
+            --profile Development --build-configuration "$<CONFIG>"
+            --binary "$<TARGET_FILE:NexoraShowcase>"
+            --gameplay-module "${NEXORA_ZIG_SHARED_LIBRARY}"
+            ${NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS}
+            --api-manifest "${CMAKE_SOURCE_DIR}/Engine/API/abi_manifest.json"
+            --license "${CMAKE_SOURCE_DIR}/LICENSE"
+            --output "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development"
+    DEPENDS NexoraShowcase
+    COMMAND_EXPAND_LISTS
+    VERBATIM)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32)
+    add_custom_target(NexoraShowcasePackageDevelopmentEvidence
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/LaunchShowcasePackage.py"
+              --package "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development"
+              --evidence "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development/launch-evidence-${NEXORA_SHOWCASE_EVIDENCE_PLATFORM}.json"
+      DEPENDS NexoraShowcasePackageDevelopment
+      VERBATIM)
+  endif()
+endif()
+if(NEXORA_LINK_MODE STREQUAL "Monolithic")
+  add_custom_target(NexoraShowcasePackageShipping
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/PackageShowcase.py"
+            --profile Shipping --build-configuration "$<CONFIG>"
+            --binary "$<TARGET_FILE:NexoraShowcase>"
+            ${NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS}
+            --api-manifest "${CMAKE_SOURCE_DIR}/Engine/API/abi_manifest.json"
+            --license "${CMAKE_SOURCE_DIR}/LICENSE"
+            --output "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Shipping"
+    DEPENDS NexoraShowcase
+    COMMAND_EXPAND_LISTS
+    VERBATIM)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32)
+    add_custom_target(NexoraShowcasePackageShippingEvidence
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/LaunchShowcasePackage.py"
+              --package "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Shipping"
+              --evidence "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Shipping/launch-evidence-${NEXORA_SHOWCASE_EVIDENCE_PLATFORM}.json"
+      DEPENDS NexoraShowcasePackageShipping
+      VERBATIM)
+  endif()
+endif()
 
 if(BUILD_TESTING)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)

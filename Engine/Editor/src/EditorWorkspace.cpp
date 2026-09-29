@@ -159,6 +159,7 @@ bool ProjectWorkspace::RecoverWorkspace(std::string *error) {
         *error = "recovery journal contains an invalid entry";
       return false;
     }
+  input.close();
   if (!WriteWorkspace(recovered, error))
     return false;
   std::error_code ec;
@@ -194,7 +195,14 @@ std::optional<std::string> ProjectWorkspace::LoadEditorLayout(std::string *error
   if (!input)
     return std::nullopt;
   std::string schema;
-  if (!std::getline(input, schema) || (schema != "schema=0" && schema != "schema=1")) {
+  if (!std::getline(input, schema)) {
+    if (error)
+      *error = "invalid or unsupported editor layout";
+    return std::nullopt;
+  }
+  if (!schema.empty() && schema.back() == '\r')
+    schema.pop_back();
+  if (schema != "schema=0" && schema != "schema=1") {
     if (error)
       *error = "invalid or unsupported editor layout";
     return std::nullopt;
@@ -207,6 +215,9 @@ std::optional<std::string> ProjectWorkspace::LoadEditorLayout(std::string *error
     return std::nullopt;
   }
   auto layout = contents.str();
+  for (auto position = layout.find("\r\n"); position != std::string::npos;
+       position = layout.find("\r\n", position))
+    layout.replace(position, 2, "\n");
   if (layout.empty()) {
     if (error)
       *error = "editor layout is empty";

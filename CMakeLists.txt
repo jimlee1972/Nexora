@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.25)
 
 project(Nexora VERSION 0.1.0 LANGUAGES C CXX)
 
+if(APPLE)
+  enable_language(OBJCXX)
+endif()
+
 option(NEXORA_ENABLE_ZIG_GAMEPLAY "Build the Zig gameplay ABI sample and NexoraShowcase" OFF)
 option(NEXORA_ENABLE_SLANG "Compile and validate the canonical Slang shader" OFF)
 option(NEXORA_ENABLE_MIMALLOC "Fetch mimalloc and use it as the TrackingAllocator backend" OFF)

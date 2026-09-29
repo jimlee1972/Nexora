@@ -803,6 +803,21 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   result.elapsed_seconds = executedFrames * kFixedDeltaSeconds;
   result.module_loaded = !module.IsLoaded();
 
+  if (!lifecycle_ok)
+    error = "gameplay lifecycle evidence did not match the executed frames";
+  else if (!scene_ok)
+    error = "Zig scene mutation evidence did not match the executed frames";
+  else if (!render_ok)
+    error = "offscreen render evidence did not match the scene (rendered=" +
+            std::to_string(render ? render->visible_meshes : 0) +
+            ", expected=" + std::to_string(visible_meshes) +
+            ", passes=" + std::to_string(render ? render->passes : 0) +
+            ", barriers=" + std::to_string(render ? render->barriers : 0) +
+            ", validation_errors=" + std::to_string(diagnostics.validation_errors) + ")";
+  else if (!migration_ok)
+    error = "gameplay state migration did not complete";
+  else if (!shutdown_ok)
+    error = "gameplay module remained loaded after shutdown";
   return lifecycle_ok && scene_ok && render_ok && migration_ok && shutdown_ok;
 }
 
