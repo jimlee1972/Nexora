@@ -43,11 +43,11 @@ if(WIN32)
   # code. See https://github.com/ziglang/zig/issues/15107.
   list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS -fcompiler-rt)
 else()
-  # Without this, zig build-obj emits non-PIC code on Linux/macOS, which
-  # cannot be linked into NexoraZigGameplayTests -- a normal PIE executable
+  # Without this, zig build-obj emits non-PIE code on Linux/macOS, which
+  # cannot be linked into NexoraZigGameplayTests, a normal PIE executable:
   # on modern toolchains: "relocation R_X86_64_32S against `.rodata.cst16'
   # can not be used when making a PIE object; recompile with -fPIE".
-  list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS -fPIC)
+  list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS -fPIE)
 endif()
 
 add_custom_command(
