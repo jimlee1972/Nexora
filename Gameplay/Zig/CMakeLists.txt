@@ -47,7 +47,9 @@ else()
   # cannot be linked into NexoraZigGameplayTests, a normal PIE executable:
   # on modern toolchains: "relocation R_X86_64_32S against `.rodata.cst16'
   # can not be used when making a PIE object; recompile with -fPIE".
-  list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS -fPIE)
+  # Standalone objects also need compiler-rt because build-obj does not bundle
+  # __zig_probe_stack with the object by default.
+  list(APPEND NEXORA_ZIG_BUILD_OBJ_ARGS -fPIE -fcompiler-rt)
 endif()
 
 add_custom_command(
