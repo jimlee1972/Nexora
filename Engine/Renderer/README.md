@@ -112,6 +112,8 @@ classification suffix have a fixed 36-byte stride, and the compute shader import
 offset definitions as C++. Vulkan, D3D12, and Metal adapters may select their native submission API,
 but may not translate this buffer into backend-specific command layouts.
 
+`RecordGPUDrivenCompute()` and `RecordGPUDrivenIndirect()` are the per-pass stage recorders for RenderGraph compute and graphics callbacks; `RecordGPUDrivenExecution()` delegates to those same functions for callers holding both command lists. Passes bind their own pipeline and buffers before recording. The stage recorders do not submit, allocate, synchronize, or read back resources; RenderGraph retains queue and lifetime ownership. The Linux Vulkan gate runs these recorders with Slang 2026.18 on Mesa lavapipe and compares bounded readbacks against the CPU reference. Physical-GPU performance and other native backend parity require separate evidence.
+
 RenderGraph tracks a logical owner queue for every resource. A use on a different compute/graphics
 queue emits an ownership barrier even when the resource state is unchanged, and statistics expose
 those transfers separately from ordinary state transitions. The graph retains transient ownership

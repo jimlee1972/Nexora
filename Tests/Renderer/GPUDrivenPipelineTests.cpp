@@ -267,19 +267,19 @@ void TestNativeComputeOnVulkan() {
   const auto target = device->CreateTexture(target_descriptor);
   RenderGraph graph;
   const auto token = graph.ImportTexture(target, target_descriptor);
-  const auto compute_pass =
-      graph.AddPass({"GPU-driven compute",
-                     rhi::QueueType::Compute,
-                     {},
-                     {{token, rhi::ResourceState::ShaderRead}},
-                     [&](rhi::CommandList &commands, std::span<const rhi::TextureHandle>) {
-                       commands.BindStorageBuffer(0, input);
-                       commands.BindStorageBuffer(1, visible);
-                       commands.BindStorageBuffer(2, indirect);
-                       commands.BindStorageBuffer(3, statistics);
-                       commands.BindPipeline(pipeline);
-                       commands.Dispatch(1);
-                     }});
+  const auto compute_pass = graph.AddPass(
+      {"GPU-driven compute",
+       rhi::QueueType::Compute,
+       {},
+       {{token, rhi::ResourceState::ShaderRead}},
+       [&](rhi::CommandList &commands, std::span<const rhi::TextureHandle>) {
+         commands.BindStorageBuffer(0, input);
+         commands.BindStorageBuffer(1, visible);
+         commands.BindStorageBuffer(2, indirect);
+         commands.BindStorageBuffer(3, statistics);
+         commands.BindPipeline(pipeline);
+         RecordGPUDrivenCompute(commands, static_cast<std::uint32_t>(scene.objects.size()));
+       }});
   const auto graphics_pass = graph.AddPass(
       {"GPU-driven indirect draw",
        rhi::QueueType::Graphics,
@@ -289,7 +289,7 @@ void TestNativeComputeOnVulkan() {
          commands.BeginRendering({textures[token.id], 1, 1});
          commands.BindPipeline(graphics_pipeline);
          commands.BindIndirectBuffer(indirect, 0, rhi::GPUDrivenIndirectCommandStride);
-         commands.DrawIndirect(static_cast<std::uint32_t>(scene.objects.size()));
+         RecordGPUDrivenIndirect(commands, static_cast<std::uint32_t>(scene.objects.size()));
          commands.EndRendering();
        }});
   graph.AddDependency(compute_pass, graphics_pass);

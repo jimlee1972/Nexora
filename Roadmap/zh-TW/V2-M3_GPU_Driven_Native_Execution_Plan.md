@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend 執行計畫
 
-> 版本：v1.0｜狀態：施工中；Phase 2 Linux Vulkan acceptance 待補｜更新：2026-09-25｜對應：
+> 版本：v1.0｜狀態：施工中；Phase 2 Linux Vulkan 已驗收｜更新：2026-09-29｜對應：
 > `跨平台3D_Engine_V2_完整規劃書_v1_4.md` §V2-M3
 
 ## 1. 目的
@@ -8,7 +8,7 @@
 V2-M3 的 gate 有四項已勾選（portable command batching、no-readback contract diagnostics、
 RenderGraph queue/barrier ownership、CPU-reference correctness comparison），還有一項未勾選：
 **native DX12/Vulkan/Metal target-tier parity on target hosts**。這份文件規劃要補上那一項所需的
-工作。Phase 1a 與 1b 已完成，Phase 2 已有 Linux Vulkan 實作但 native comparison 證據仍待補；milestone 仍未完成。其餘階段全部落地並通過各自的 gate 之前，roadmap 進度百分比不會變動。
+工作。Phase 1a 與 1b 已完成，Phase 2 已通過啟用 Slang 的 Linux Vulkan CPU/GPU 比對；milestone 仍未完成。其餘階段全部落地並通過各自的 gate 之前，roadmap 進度百分比不會變動。
 
 ## 2. 現況基線（對照原始碼逐一確認過，不是只憑 roadmap 文字）
 
@@ -26,15 +26,9 @@ override 的情況下會直接丟例外（`"compute dispatch is unsupported"` /
 | `D3D12Device` | ✅ 已 override（`ID3D12GraphicsCommandList::Dispatch`） | ✅ 已 override（`ExecuteIndirect`） | 依 §5 Phase 3 已實作（原始碼已確認：`Engine/RHI/src/D3D12Device.cpp` 的 `D3D12CommandList::Dispatch`/`DrawIndirect`）；Windows-host 執行與 `CompareGPUDrivenResults()` 證據無法在這個 Linux 雲端 session 產出，target-tier acceptance 仍待補。 |
 | `MetalDevice` | Source 已實作 | Source 已實作 | Compute pipeline／storage binding／dispatch 與 canonical-stride indirect draw 已存在；macOS execution evidence 仍待完成。 |
 
-簡單講：真正的 production 呼叫點 `RecordGPUDrivenExecution()` **目前只跑過 CPU reference**
-（`Tests/Renderer/GPUDrivenPipelineTests.cpp` 的 `TestNormalPathRecordsNoReadbackOn`，只用
-`CreateValidationDevice()` 跑過）。依 §5 Phase 2，真實 Linux Vulkan 現在會獨立跑過等價的
-compute/indirect 各階段（`TestNativeComputeOnVulkan`，一個手動搭建、自己建立 compute-dispatch
-與 indirect-draw pass 的 `RenderGraph`，用 `CompareGPUDrivenResults()` 驗證）——但這個測試
-harness 是直接呼叫 `Dispatch`／`DrawIndirect`，**不是**透過 `RecordGPUDrivenExecution()` 本身，
-所以把 production 呼叫點接到 Vulkan 上執行仍是未關閉的缺口。D3D12 現在兩個進入點都已實作並經過
-原始碼審查（§5 Phase 3），但完全沒有 target-host 執行證據，因為這個 session 無法跑 Windows
-build。Metal 則兩者皆無。這跟 `Engine/Renderer/README.md` 自己區分「已實作的接線」與「已驗證的
+Production 記錄 contract 已由 CPU validation device 驗證；Linux Vulkan 驗收現在於
+RenderGraph 不同 pass 呼叫共用的 compute／indirect 階段記錄函式，並將 native 輸出交給
+`CompareGPUDrivenResults()` 比對。D3D12 與 Metal 仍須各自在目標主機取得比對證據。這跟 `Engine/Renderer/README.md` 自己區分「已實作的接線」與「已驗證的
 target-host parity」的敘述一致：以上都不能從 validation-backend 的覆蓋率去推論。這份計畫按 phase
 追蹤證據；每個 phase 最新、最權威的狀態見 §5。
 
@@ -172,9 +166,11 @@ pipeline 建立路徑。因為這些是加在共用介面上的 pure-virtual 新
 ——不是「寫一個 shader」——正好就是這個 repo 一貫規則要求動手前先討論的那種
 RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更。**已用 backend-neutral compute pipeline kind、四個固定 storage-buffer slot、host-visible upload 與明確標為 test-only 的 bounded readback seam 完成。固定 slot 讓本階段保持狹窄；通用 descriptor builder 仍是後續工作。**
 
-### Phase 2 — Vulkan 完整 compute 階段（待 native 驗收）
+### ✅ Phase 2 — Vulkan 完整 compute 階段（Linux 驗收）
 
-> **更新（2026-09-25）：實作完成，native 驗收待完成。** Shader 與 native test 已涵蓋每個 Phase 2 stage，但在 Slang-enabled Linux Vulkan test 實際執行並通過 `CompareGPUDrivenResults()` 前，不標記 Phase 2 為 ✅。Shader 編譯、Dispatch 未拋例外與 diagnostics counter 都不算驗收證據。
+> **更新（2026-09-29）：Linux Vulkan 驗收通過。** 使用 Slang 2026.18 於 Mesa lavapipe 執行 `renderer.v2_gpu_driven`，並設定 `NEXORA_REQUIRE_NATIVE_BACKENDS=1`。RenderGraph 的 compute 與 indirect callback 呼叫 `RecordGPUDrivenExecution()` 共用的階段記錄函式；有限的測試讀回通過 `CompareGPUDrivenResults()`，包含統計數據。此證據只驗收 Linux Vulkan Phase 2 的正確性；實體 GPU 效能與 DX12／Metal 目標主機 gate 仍待完成。
+>
+> 歷史紀錄（2026-09-25）：實作完成，native 驗收待完成。 Shader 與 native test 已涵蓋每個 Phase 2 stage，但在 Slang-enabled Linux Vulkan test 實際執行並通過 `CompareGPUDrivenResults()` 前，不標記 Phase 2 為 ✅。Shader 編譯、Dispatch 未拋例外與 diagnostics counter 都不算驗收證據。
 
 - `GPUDriven.slang` 現在會執行 frustum rejection、distance rejection 與 LOD selection、
   conservative max-depth Hi-Z 測試（包含 relaxed 與 invalidated policy）、visible-instance

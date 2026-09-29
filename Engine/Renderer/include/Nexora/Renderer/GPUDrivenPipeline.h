@@ -75,6 +75,12 @@ CompareGPUDrivenResults(const GPUDrivenResult &reference, const GPUDrivenResult 
 // Records the normal GPU path. Output buffers are backend-owned; this path deliberately exposes no
 // mapping/readback operation. Correctness readback is an explicit test-only operation compared with
 // CompareGPUDrivenResults().
+// RenderGraph pass callbacks record each stage on their owning queue.
+NEXORA_RENDERER_API void RecordGPUDrivenCompute(rhi::CommandList &commands,
+                                                std::uint32_t candidate_count);
+NEXORA_RENDERER_API void RecordGPUDrivenIndirect(rhi::CommandList &commands,
+                                                 std::uint32_t indirect_command_count);
+
 NEXORA_RENDERER_API void RecordGPUDrivenExecution(rhi::CommandList &compute_commands,
                                                   rhi::CommandList &graphics_commands,
                                                   std::uint32_t candidate_count,
