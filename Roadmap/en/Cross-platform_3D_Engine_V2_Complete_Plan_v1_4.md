@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 26937)
-Total output lines: 7067
-
 # Cross-Platform 3D Engine — V2 Complete Planning Document
 
 **Document Version: Master Draft v1.4**
@@ -3009,7 +3006,1328 @@ Network services must not become a single point of failure that makes developmen
 
 ---
 
-# Eighty-F…6937 tokens truncated…Impostor Builder
+# Eighty-Four, Import Worker Process
+
+High-risk importers:
+
+```text
+FBX
+Image codec
+Third-party converter
+```
+
+Can execute in an independent process:
+
+```text
+ImportWorker
+```
+
+Importer crash:
+
+```text
+Editor survives
+↓
+Import marked failed
+↓
+Previous valid runtime artifact preserved
+```
+
+---
+
+# Eighty-Five, Distributed Build Worker
+
+Unified worker protocol:
+
+```text
+Task
+Input Hash
+Tool Version
+Platform Profile
+Output Hash
+```
+
+Candidates:
+
+```text
+Shader Compile
+Texture Cook
+Mesh Cook
+HLOD
+Nav
+Probe
+DataTable
+Package Chunk
+```
+
+Workers do not directly modify the authoritative state of the Asset DB.
+
+The Coordinator verifies the output hash before committing.
+
+---
+
+# Eighty-Six, Incremental Patch Build
+
+V2 Content Build:
+
+```text
+Previous Manifest
+vs
+Current Manifest
+↓
+Changed Assets
+Changed Bundles
+Changed Cells
+Changed Tables
+↓
+Patch Manifest
+```
+
+Supports:
+
+```text
+Add
+Replace
+Retire
+```
+
+Does not perform native executable hot patching.
+
+---
+
+# Eighty-Seven, DataTable V2
+
+V1 Runtime can use typed immutable tables.
+
+V2:
+
+```text
+.tablebin
+Packed Memory Block
+Memory Mapping
+Data Overlay
+LiveOps Layer
+```
+
+---
+
+# Eighty-Eight, Packed Runtime Table
+
+```text
+Header
+Rows
+Primary Index
+Secondary Index
+Sorted Views
+Group Pool
+Array Pool
+String Pool
+Derived Data
+```
+
+Can use:
+
+```text
+Single / Few allocations
+or
+Memory-mapped read-only block
+```
+
+C++ / Zig views do not expose STL pointers.
+
+---
+
+# Eighty-Nine, Data Overlay
+
+Live configuration can use:
+
+```text
+Base Table
++
+Patch Overlay
+↓
+Resolved Table Generation
+```
+
+Still follows:
+
+```text
+Immutable after finalize
+```
+
+Update:
+
+```text
+Build N+1
+↓
+Validate
+↓
+Atomic Registry Swap
+↓
+Old Generation remains pinned until refs drain
+```
+
+In-place row mutation that causes a thread race is not allowed.
+
+---
+
+# Ninety, General Serialization V2
+
+The cooked binary format is upgraded to:
+
+```text
+Relocatable
+Versioned
+Endian-defined
+Pointer-free
+```
+
+Goals:
+
+```text
+Fast load
+Memory map where appropriate
+Skip unknown optional section
+Schema migration at cook/editor
+```
+
+Shipping runtime does not bear the responsibility of migrating arbitrary historical authoring formats.
+
+---
+
+# Ninety-One, File System / IO V2
+
+Add:
+
+```text
+IO Batch
+Read Coalescing
+Priority Inheritance
+Cancellation
+Streaming Trace
+Optional Direct IO backend
+```
+
+Asset Streaming can submit:
+
+```text
+IORequestBatch
+```
+
+rather than issuing a large number of tiny read syscalls.
+
+---
+
+# Ninety-Two, Package / Plugin V2
+
+Project package system:
+
+```text
+Package Manifest
+Version
+Dependency
+Optional Feature
+Platform Filter
+Editor-only
+Runtime
+```
+
+Lock:
+
+```text
+Project.lock
+```
+
+Guarantees that CI and other development machines use the same plugin / package versions.
+
+---
+
+# Ninety-Three, Platform V2
+
+Add officially:
+
+```text
+Linux Headless
+Linux Desktop △
+```
+
+Headless Linux:
+
+```text
+✅ V2 Networking / Server required
+```
+
+Linux Desktop:
+
+```text
+△
+```
+
+Enable the Vulkan desktop backend if required by the product.
+
+WebGPU / WASM:
+
+```text
+△ R&D
+```
+
+Not included in the V2 release gate.
+
+Console:
+
+```text
+△ SDK / business-dependent
+```
+
+The Engine interface remains portable, but completion is not pretended without an SDK.
+
+---
+
+# Ninety-Four, Save / Cloud V2
+
+V1 Save:
+
+```text
+Local Slot
+Profile
+Migration
+Atomic Write
+Recovery
+```
+
+V2:
+
+```text
+Cloud Save Adapter
+Conflict Metadata
+Cross-device Revision
+Server-authoritative Boundary
+```
+
+The cloud backend is implemented as a plugin.
+
+The core only defines:
+
+```text
+Revision
+Timestamp
+DeviceID
+Content Hash
+Conflict State
+```
+
+Engine does not automatically choose which save wins.
+
+Gameplay / Product policy determines this.
+
+---
+
+# Ninety-Five, Localization V2
+
+V1 has completed the locale / ICU foundation.
+
+V2 adds:
+
+```text
+Remote Localization Pack
+DLC Locale Bundle
+Localized Voice Pack
+Pseudo Localization
+Localization Coverage Report
+```
+
+CI:
+
+```text
+Missing Key
+Unused Key
+Missing Font Glyph
+Placeholder mismatch
+Plural form missing
+```
+
+---
+
+# Ninety-Six, Profiler / Diagnostics V2
+
+V2 turns the profiler into a cross-process / remote tool.
+
+```text
+Trace Producer
+↓
+Local Ring
+↓
+Stream / File
+↓
+Editor Profiler
+```
+
+Events:
+
+```text
+CPU Span
+Job
+GPU Pass
+RenderGraph
+IO
+Asset
+Streaming
+Network
+Physics
+Animation
+AI
+Audio
+Memory
+```
+
+---
+
+# Ninety-Seven, Unified Trace ID
+
+Used across subsystems:
+
+```text
+FrameID
+WorldID
+EntityID when safe
+JobID
+AssetID
+CellID
+NetworkEntityID
+```
+
+For example, a single hitch can be traced through:
+
+```text
+Cell Requested
+↓
+IO
+↓
+Decompress
+↓
+GPU Upload
+↓
+HLOD Switch
+↓
+Frame Spike
+```
+
+---
+
+# Ninety-Eight, Runtime Developer Console V2
+
+V1 developer console upgraded with:
+
+```text
+Command
+CVar
+Watch
+Remote Command
+Role / Permission
+```
+
+Remote server build:
+
+```text
+Readonly
+Developer
+Admin
+```
+
+Permissions must be restrictable.
+
+Shipping default:
+
+```text
+disabled
+or
+authenticated restricted mode
+```
+
+---
+
+# Ninety-Nine, LiveOps / Remote Content
+
+V2 officially supports:
+
+```text
+Remote Content Manifest
+DataTable Overlay
+Localization Pack
+Asset Bundle Patch
+Event Configuration
+```
+
+Still prohibited:
+
+```text
+Native DLL / dylib / executable remote content update
+```
+
+Gameplay native module updates still require a normal App / executable update.
+
+---
+
+# One Hundred, Feature Flag System
+
+V2 Project Settings adds:
+
+```text
+FeatureFlag
+```
+
+Types:
+
+```text
+Build-time
+Cook-time
+Runtime Data-driven
+Server-authoritative
+```
+
+Feature flags should not be scattered throughout gameplay as arbitrary strings.
+
+They can be managed through schemas / IDs.
+
+---
+
+# One Hundred One, Security Boundary
+
+Because Network / LiveOps are added in V2, formally establish:
+
+```text
+Untrusted Network Data
+Untrusted Remote Content Manifest
+Untrusted Web Content
+Untrusted Save / User Data
+```
+
+All parsers:
+
+```text
+Bounds Checked
+Size Limited
+Version Checked
+No raw pointer serialization
+```
+
+Remote manifests must have:
+
+```text
+Signature / Integrity verification
+```
+
+Specific cryptographic implementations use mature libraries; cryptographic primitives must not be implemented from scratch.
+
+---
+
+# One Hundred Two, Performance Budget V2
+
+Each Platform Profile includes more than a Quality Tier.
+
+Add:
+
+```text
+PerformanceBudgetProfile
+├─ CPU Frame Budget
+├─ GPU Frame Budget
+├─ Draw Budget
+├─ Visible Instance Budget
+├─ Animation Budget
+├─ Physics Budget
+├─ AI Budget
+├─ Navigation Budget
+├─ RAM
+├─ VRAM
+├─ Streaming IO
+└─ Network Bandwidth
+```
+
+Subsystems can:
+
+```text
+Request
+Observe
+Degrade
+Recover
+```
+
+rather than hardcoding independently.
+
+---
+
+# One Hundred Three, Scalability Governor
+
+V2 can add:
+
+```text
+ScalabilityGovernor
+```
+
+Inputs:
+
+```text
+GPU time
+CPU time
+Memory Pressure
+Thermal
+Battery
+Frame target
+```
+
+Outputs:
+
+```text
+Dynamic Resolution
+Shadow Budget
+Vegetation Distance
+VFX Budget
+Animation LOD
+AI LOD
+Streaming aggressiveness
+```
+
+However:
+
+```text
+Gameplay Authority
+```
+
+must not be arbitrarily changed by presentation scalability.
+
+---
+
+# One Hundred Four, Thermal / Mobile V2
+
+Mobile can use:
+
+```text
+Thermal State
+Battery State
+Sustained GPU Time
+```
+
+to enter:
+
+```text
+Normal
+Warm
+Hot
+Critical
+```
+
+The Performance Profile provides the downgrade policy.
+
+Avoid lowering settings only after FPS has dropped.
+
+---
+
+# One Hundred Five, Editor Quality / Device Preview
+
+Editor can:
+
+```text
+Preview Device Profile
+```
+
+For example:
+
+```text
+Android Low
+Android High
+iPhone class
+Desktop Mid
+Desktop Ultra
+```
+
+Preview:
+
+```text
+Texture Residency
+Shadow
+LOD
+UI Safe Area
+Dynamic Resolution target
+Feature Strip
+```
+
+This is not limited to changing a single graphics quality dropdown.
+
+---
+
+# One Hundred Six, V2 Project Migration
+
+V1 Project upgrade to V2:
+
+```text
+Project Copy / Branch
+↓
+Migration Scan
+↓
+Scene / Prefab / Metadata Migration
+↓
+Rebuild DDC
+↓
+Rebuild HLOD / Nav / Shader
+↓
+Validation
+```
+
+Do not directly overwrite the only project copy.
+
+Editor provides:
+
+```text
+Migration Report
+```
+
+Listing:
+
+```text
+Changed Schema
+Deprecated Setting
+Plugin ABI mismatch
+Missing migration
+Rebuild required
+```
+
+---
+
+# One Hundred Seven, ABI / Plugin Migration
+
+The V2 major version may update the internal ABI.
+
+However, Plugins handshake using:
+
+```text
+Plugin API Version
+Engine ABI Hash
+Build Configuration
+Platform
+Architecture
+```
+
+Mismatch:
+
+```text
+Reject Load
+```
+
+It must not be discovered only after a crash.
+
+Stable C Gameplay ABI:
+
+```text
+Maintain versioned compatibility strategy
+```
+
+However, a major schema does not guarantee that binary recompilation is completely unnecessary.
+
+---
+
+
+---
+
+# V2 Construction Milestones（Implementation Milestones）
+
+> V2 is established on the premise that **all V1 Gates have passed**.
+> V2 does not rewrite the core; the construction focus is first to stabilize “Production Metadata / Toolchain,” then expand toward GPU-Driven, Large World, Networking, and advanced Gameplay Frameworks.
+
+## ✅ V2-M0 — V1 → V2 Migration / Production Baseline
+
+> **Repository status: accepted (portable gate).** `Tools/Migration/ScanV1Project.py` audits the canonical module schema, gameplay ABI, plugin manifests, and required Development/Shipping profiles. Its stable content fingerprint is the reference-project snapshot and regression-baseline identity; `build.v2_migration_scanner` proves deterministic output and actionable failure reporting. Native target performance remains a target-host gate.
+
+
+Construction:
+
+```text
+V1 Project Migration Scanner
+Plugin / Package ABI Audit
+Schema Audit
+Build Profile Audit
+Performance Baseline
+Reference Project Snapshot
+```
+
+**Gate:**
+
+```text
+✓ V1 Project can still build normally without enabling any V2 feature
+✓ Migration Report can list schema / plugin / rebuild requirements
+✓ V1 benchmark becomes the V2 regression baseline
+```
+
+---
+
+## ✅ V2-M1 — Clang Reflection / DDC / Headless Toolchain
+
+> **Repository status: accepted (portable gate).** `Tools/Production/NexoraTool.py` emits sorted
+> canonical metadata from Clang's JSON AST, stores immutable content-addressed artifacts, isolates
+> each import in a worker process, and exposes CI-safe validate/import/cook commandlets. Versioned
+> external entity manifests and deterministic structural JSON diffs provide the scene foundation;
+> `build.v2_production_toolchain` covers deterministic output, worker crashes, cache reuse, and the
+> headless cook path.
+
+Do first:
+
+```text
+Clang AST Reflection Generator
+Canonical Metadata Output
+Content-addressable DDC
+Import Worker Process
+Headless Commandlet
+Externalized World Entity Files
+Structural Scene Diff foundation
+```
+
+Reason: Subsequent Networking Schema, Distributed Cook, and Large World Build all depend on stable metadata and headless tools.
+
+**Gate:**
+
+```text
+✓ Reflection output deterministic
+✓ Import worker crash does not bring down the Editor
+✓ Headless Cook / Validate can run in CI
+✓ DDC same input → same artifact hash
+```
+
+---
+
+## ✅ V2-M2 — GPUScene / Render Extraction V2
+
+Construction:
+
+```text
+GPUScene
+Stable GPU Object Slot
+Dirty Update
+Previous Transform
+Bounds
+Mesh / Material ResourceIndex
+Visibility Flags
+LOD Metadata
+Fence-safe retirement
+```
+
+Do not implement complete GPU culling yet.
+
+**Gate:**
+
+```text
+✓ CPU extraction can stably update GPUScene
+✓ Destroy / reuse does not produce GPU stale slots
+✓ CPU reference path and GPUScene rendering can be compared
+```
+
+Delivered evidence: `GPUScene` provides stable generational object slots, categorized deterministic
+dirty uploads, current/previous transforms, bounds, mesh/material resource indices, visibility and
+LOD metadata, and fence-safe retirement. Its deterministic CPU reference snapshot permits complete
+identity and render-data comparison before GPU culling is enabled. Contract tests cover create,
+update, destroy/reuse, stale handles, dirty batches, transform history, fence reclamation, and the
+reference snapshot.
+
+---
+
+## V2-M3 — GPU-Driven Rendering
+
+Current evidence: the deterministic CPU reference implements frustum/distance/LOD culling,
+conservative Hi-Z with explicit invalidation, visible-instance compaction, material/mesh/LOD
+classification, and indirect-command generation. The portable command contract now records compute
+dispatch and indirect drawing, compares backend output with the CPU reference, tracks normal-path
+readback diagnostics, and makes RenderGraph emit explicit compute/graphics ownership barriers.
+Linux Vulkan now has the complete frustum/distance/LOD/Hi-Z/compaction/classification/indirect-generation implementation. Its Slang-enabled RenderGraph test runs on Mesa lavapipe, requires native backend availability, and compares all bounded output against the CPU reference before indirect drawing. GitHub Actions run `36609837931` passed the full Linux Development configure/build/CTest gate as well as the Linux shipping, package/evidence, sanitizer, and TSan build-contract job; Phase 2 Linux Vulkan acceptance is complete. The indirect record is fixed once as a shared C++/Slang 36-byte ABI with a common Vulkan/D3D12/Metal non-indexed draw prefix; backends may not redefine it. DX12/Metal execution and full target-tier parity remain open.
+[V2-M3_GPU_Driven_Native_Execution_Plan.md](V2-M3_GPU_Driven_Native_Execution_Plan.md) plans the
+remaining work in phases, verified against the actual per-backend `Dispatch`/`DrawIndirect`
+coverage in source; Phases 1a/1b and Linux Vulkan Phase 2 are accepted, while DX12/Metal target execution remains open.
+
+Order:
+
+```text
+Compute Frustum Culling
+↓
+GPU Distance / LOD
+↓
+Hi-Z
+↓
+Instance Compaction
+↓
+Material / PSO Classification
+↓
+Indirect Command Generation
+↓
+Async Compute Integration
+```
+
+Then add:
+
+```text
+Temporal Upscaler Interface
+Compute Skinning
+Meshlet metadata
+```
+
+**Gate:**
+
+- ✅ The portable command path batches large instance sets instead of issuing one CPU draw per
+      object.
+- [ ] Native DX12 / Vulkan / Metal target-tier parity is demonstrated on target hosts.
+- ✅ Contract diagnostics verify that the normal portable path performs no GPU readback.
+- ✅ RenderGraph owns queue transitions, barriers, and resource lifetime in the portable contract.
+- ✅ The CPU fallback performs deterministic correctness comparison with recorded backend output.
+
+Checked items are repository-level contract evidence. V2-M3 is accepted only after the remaining
+native target-host parity item passes; therefore the milestone and overall progress stay open at
+23%.
+
+---
+
+## ✅ V2-M4 — Large World V2
+
+The portable implementation now delivers deterministic adaptive hierarchy generation, CellGroups, fixed-grid/explicit 3D volume partitioning, quantized origin rebasing that preserves absolute gameplay identity, ready-gated HLOD V2/deterministic impostors, persistent delta materialization, and a changed-region headless partition commandlet. The Linux gates below provide repository acceptance evidence.
+
+Construction:
+
+```text
+✅ Adaptive Quadtree Cell Generation
+✅ Hierarchical Cell Group
+✅ 3D Volume Partition
+✅ World Origin Rebasing
+✅ HLOD V2
+✅ Impostor
+✅ Persistent Cell Delta
+✅ World Partition Commandlet
+```
+
+**Gate:**
+
+```text
+✅ Origin rebase is invisible to gameplay identity
+✅ Partition build deterministic
+✅ HLOD switch does not produce holes
+✅ Persistent cell unload/reload state is correct
+✅ Changed regions can be incrementally rebuilt
+✅ Character does not lose Collision when crossing Adaptive/3D Partition Cell boundaries（Occupied Cell Pinned extended to V2 Partition）
+```
+
+---
+
+## ✅ V2-M5 — Dedicated Server / Transport Foundation
+
+Portable implementation now provides a `linux-headless` preset that configures only the renderer-free server closure, caller-owned loopback and simulated `INetTransport` pairs, a portable socket-provider boundary, UDP-oriented datagrams, protocol/build handshake rejection, explicit channel semantics, and deterministic seeded loss/latency/jitter simulation. The server owns fixed-step scheduling, bounded graceful drain, admission, per-client packet/byte budgets, ordered replay capture, and canonical state hashes. Headless acceptance covers a 4,096-input malformed corpus, exact simulation timing, deterministic traces, 10,000 reconnect/disconnect cycles, and both declared and configured-target dependency closures. Native UDP/DTLS and encrypted production adapters remain backend gates; portable simulated coverage does not complete production networking.
+
+Do first:
+
+```text
+Headless Linux Profile
+INetTransport
+UDP-oriented transport
+Connection
+Handshake
+Protocol Version
+Build ID
+Channel Semantics
+Packet Simulation
+```
+
+Do not implement Prediction first.
+
+**Gate:**
+
+```text
+✅ Linux headless server has no Renderer dependency
+✅ Client / Server connect / disconnect is stable
+✅ Loss / latency / jitter simulator is available
+✅ Protocol mismatch clean reject
+✅ Malformed handshakes are rejected without accepting user traffic
+✅ Seeded simulation traces are deterministic in headless tests
+✅ 10,000 reconnect / disconnect cycles reset per-session state
+✅ Fixed-step ownership, bounded catch-up, admission, budgets, and graceful drain are deterministic
+✅ Packet replay capture and canonical server state hash are repeatable
+✅ Portable socket-provider contract precedes native adapters
+```
+
+---
+
+## ✅ V2-M6 — Replication / Interest / Prediction / Replay
+
+✅ V2-M6 is complete for the portable reference scope: server-authoritative generational identities; versioned, cross-build-hashed schemas; deterministic snapshots; baseline delta compression; connection-scoped interest; dirty-generation dormancy with per-connection acknowledgement and re-entry baseline invalidation; sequenced client prediction; authoritative reconciliation with pending-input replay; and versioned network replay logs. Headless tests provide acceptance evidence for malformed/truncated rejection, baseline expiry, non-global interest, dormant wake-up, connection isolation, deterministic simulation under test latency, and replay-based reproduction. Native transport and physics-specific prediction remain separate backend/integration gates.
+
+Order:
+
+```text
+NetworkEntityID
+↓
+Replication Schema Codegen
+↓
+Snapshot
+↓
+Delta Compression
+↓
+Interest
+↓
+Dormancy
+↓
+Prediction
+↓
+Reconciliation
+↓
+Replay
+```
+
+**Gate:**
+
+```text
+✅ Client / Server local EntityID can be completely different
+✅ Interest does not perform global replication
+✅ Character prediction is playable under test latency
+✅ Reconciliation can replay pending input
+✅ Replay is sufficient to reproduce network bugs
+```
+
+---
+
+## V2-M7 — Navigation / Crowd / AI V2
+
+> **Implementation status: In progress.** The first portable vertical slice adds a renderer-free
+> `NexoraAI` module with hierarchical region/node routing, a hard-budget navigation query scheduler,
+> generic influence/cost fields, intent-only local crowd avoidance, deterministic Utility AI,
+> relevance-based perception/decision/navigation LOD with dormant far agents, a framework-neutral
+> batched `IPolicyRuntime` sharing the common `AIAction`, and a synchronous self-play reset/step
+> bridge. The `ai.v2_m7_navigation_crowd_policy` contract test queues 5,000 navigation requests
+> against a 32-query-per-tick budget and checks 5,000 far-agent phase staggering. The optional
+> `NexoraAIIntegration` module projects valid AI `CharacterIntent` locomotion into Runtime's
+> horizontal motor input while preserving both modules' dependency boundaries. Production NavMesh
+> streaming, job-system adapters, and policy backends remain open. A portable multi-world self-play
+> coordinator now derives deterministic world seeds, bounds worlds serviced per tick, rotates service
+> fairly, isolates per-world deferred-policy caches, and contains environment failures. Production
+> training and distributed orchestration remain open, so V2-M7 is not yet accepted.
+
+Construction:
+
+```text
+Hierarchical Navigation
+Navigation Query Scheduler
+Crowd
+Utility AI
+Perception LOD
+Influence / Cost Field
+Learned Policy Runtime Interface
+Self-play Bridge
+Budgeted Multi-world Self-play Orchestrator
+```
+
+**Gate:**
+
+```text
+✓ Thousands of AI agents do not perform synchronous pathfinding in the same frame
+✓ Far AI can be throttled / dormant
+✓ Crowd outputs CharacterIntent and does not directly modify Transform
+✓ Learned Policy can be consumed through the same Action Interface
+```
+
+---
+
+## V2-M8 — Animation V2
+
+Construction:
+
+```text
+Compute Skinning
+GPU Pose Sampling
+Compressed Pose
+Runtime Retarget V2
+Motion Warping
+Inertialization
+Sync Group
+Pose Search
+Motion Matching optional
+```
+
+**Gate:**
+
+```text
+✓ Compute / Vertex Skinning can be selected through the profile
+✓ GPU crowd animation does not become gameplay event authority
+✓ Motion Warping is ultimately resolved through CharacterMotor / Controller
+✓ Pose Search database can be rebuilt deterministically
+```
+
+---
+
+## V2-M9 — Timeline / UI V2 / Audio / Media V2
+
+> **Portable foundation in progress (2026-09-27):** `PresentationV2` now provides a deterministic
+> Timeline data model with scrub/seek, priority Camera Rig, Flex/Grid layout, RichText routed through
+> the existing `LocalizationTable`, StyleSheet/Theme resolution, accessibility semantics,
+> world-ray → UV → UI projection, room/portal audio routing, and an HLS/DASH segment layer that
+> preserves the V1 `VideoPlayer` decoded-frame contract. DRM and capture/encoder boundaries are
+> compile-time optional and OFF by default. Production shaping/rendering, device audio, streaming
+> transport/ABR, DRM implementations, and capture codecs remain open, so V2-M9 is not yet accepted.
+
+Construction:
+
+```text
+Timeline
+Camera Rig
+Flex Layout
+Advanced Grid
+RichText
+StyleSheet / Theme
+Surface UI
+Accessibility foundation
+Room / Portal Audio
+Media Streaming HLS / DASH
+DRM Provider Boundary
+Capture / Encoder optional
+```
+
+**Gate:**
+
+```text
+✓ Timeline can scrub / seek
+✓ Surface UI world ray → UV → UI hit is correct
+✓ RichText uses the existing shaping / localization
+✓ Media Streaming does not break the V1 local VideoPlayer contract
+✓ DRM / Capture / Encoder can be completely stripped
+```
+
+---
+
+## V2-M10 — Shared DDC / Distributed Build / LiveOps
+
+> **Portable foundation in progress (2026-09-27):** the production commandlet now defines
+> content-addressed artifacts, deterministic derivation/work IDs for shader/HLOD/cook jobs, a
+> local-first Shared DDC fallback, transactional patch verification, generation pin/drain, data-only
+> overlays/localization packs, and native executable rejection by extension and binary magic.
+> `build.v2_production_toolchain` covers the headless contract. Hosted DDC, distributed worker
+> deployment, signing, and production rollout remain open, so V2-M10 is not yet accepted.
+
+Construction:
+
+```text
+Shared DDC
+Distributed Shader Compile
+Distributed HLOD
+Distributed Cook
+Patch Manifest
+Data Overlay
+Localization Pack
+Remote Content Verification
+```
+
+**Gate:**
+
+```text
+✓ Development can continue locally when Remote DDC is down
+✓ Two workers same input → same artifact hash
+✓ Patch cannot activate before verification is complete
+✓ Old generation pins until refs drain
+✓ Remote content cannot carry native executable code
+```
+
+---
+
+## V2-M11 — Remote Tools / Device Profiling / Production Diagnostics
+
+> **Portable foundation in progress (2026-09-27):** Core now owns a versioned remote-diagnostics
+> wire schema and headless `TraceAggregator` for unified Trace IDs, streaming/network/memory/GPU/IO
+> correlation, resource-consistent IO → cook artifact → GPU upload chains, and PluginID cost
+> attribution. Android/iOS/Desktop/Server transport, discovery, authentication, and real host
+> adapters still require target-host evidence, so V2-M11 is not yet accepted.
+
+Construction:
+
+```text
+Remote Device Inspector
+Remote Profiler
+Unified Trace ID
+Streaming Trace
+Network Trace
+Memory / GPU / IO correlation
+Build Size / Feature report foundation
+```
+
+**Gate:**
+
+```text
+✓ Android / iOS / Desktop / Server can all be observed remotely
+✓ A single streaming hitch can be traced across IO → cook artifact → GPU upload
+✓ PluginID can be used for cost attribution
+```
+
+---
+
+## V2-M12 — V2 Hardening / Reference Projects / Shipping
+
+> **Portable foundation in progress (2026-09-27):** the five reference projects now have a
+> machine-readable capability catalog, while the fast hardening gate covers bounded streaming-style
+> samples, disconnect/reconnect mapping drain, known-good rollback, save corruption rejection,
+> thermal-throttle evidence semantics, and V1-like footprint growth limits. This is deliberately not
+> treated as the 24h+/physical-device acceptance gate; complete reference-project runs, long soaks,
+> and real mobile thermal evidence remain open, so V2-M12 is not yet accepted.
+
+Execute:
+
+```text
+Massive Outdoor
+Indoor Portal Dungeon
+Network Arena
+Crowd City
+Mobile Stress
+```
+
+Test for extended periods:
+
+```text
+Streaming Soak
+Network Soak
+Memory Pressure
+Thermal
+Patch Rollback
+Save Corruption
+Server Reconnect
+```
+
+**Gate:**
+
+```text
+✓ All V2 reference projects pass
+✓ 24h+ streaming soak has no unbounded growth
+✓ Network mapping has no leak after disconnect
+✓ Patch rollback can return to known-good
+✓ When V2 features are disabled, V1-like project footprint does not grow abnormally
+```
+
+---
+
+## V2 Construction Dependency Graph
+
+```text
+M0 Migration / Baseline
+ │
+ ▼
+M1 Reflection / DDC / Headless Tools
+ │
+ ├───────────────┐
+ ▼               ▼
+M2 GPUScene    M4 Large World foundation
+ │
+ ▼
+M3 GPU Driven
+ │
+ ├───────────────┐
+ ▼               ▼
+M5 Transport   M7 AI/Nav foundation
+ │               │
+ ▼               ▼
+M6 Replication M8 Animation V2
+ │               │
+ └───────┬───────┘
+         ▼
+M9 Timeline / UI / Audio / Media
+         │
+         ▼
+M10 Distributed Build / LiveOps
+         │
+         ▼
+M11 Remote Diagnostics
+         │
+         ▼
+M12 Hardening / Shipping
+```
+
+
+# One Hundred Eight, V2 Development Phases
+
+V2 should not all be developed in parallel at once.
+
+Recommended order:
+
+```text
+V2-A Production Foundation
+↓
+V2-B GPU Driven
+↓
+V2-C Large World V2
+↓
+V2-D Networking
+↓
+V2-E Advanced Character / AI / Navigation
+↓
+V2-F Runtime / Cinematic / UI
+↓
+V2-G Distributed Build / LiveOps
+↓
+V2-H Hardening
+```
+
+---
+
+# One Hundred Nine, Phase V2-A — Production Foundation
+
+Contents:
+
+```text
+Clang AST Reflection
+Content-addressable DDC
+Import Worker
+Headless Commandlet
+Externalized World Entity Files
+Scene Structural Diff
+Prefab Rebase / Conflict UI
+Remote Device Inspector foundation
+Unified Trace IDs
+```
+
+Gate:
+
+```text
+Reflection generated deterministically
+Large Scene can use external entity storage
+Editor survives importer worker crash
+Headless cook works in CI
+Scene diff understands entity/component/property changes
+Shared metadata consumer remains compatible
+```
+
+---
+
+# One Hundred Ten, Phase V2-B — GPU Driven Renderer
+
+Contents:
+
+```text
+GPUScene
+Compute Frustum Culling
+Hi-Z
+GPU LOD
+GPU Draw Classification
+Indirect Draw
+Async Compute
+Compute Skinning
+Temporal Upscaler API
+```
+
+Gate:
+
+```text
+100k+ static instances do not require one CPU draw submission each
+GPU-driven path has backend parity on DX12 / Vulkan / Metal target tier
+No hidden sync GPU readback in normal culling path
+RenderGraph owns all transitions / queue sync
+GPU culling can be disabled for debug and compared against CPU reference
+```---
+
+# 111. Phase V2-C — Large World V2
+
+Contents:
+
+```text
+Adaptive Partition
+Hierarchical Cell Group
+3D Volume Partition
+World Origin Rebasing
+HLOD V2
+Impostor Builder
 Cell Persistent State
 World Partition Commandlets
 Distributed HLOD Build

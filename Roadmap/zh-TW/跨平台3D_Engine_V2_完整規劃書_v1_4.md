@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 26044)
-Total output lines: 7089
-
 # 跨平台 3D Engine — V2 完整規劃書
 
 **文件版本：Master Draft v1.4**
@@ -3140,7 +3137,1131 @@ Derived Data
 可：
 
 ```text
-Sin…6044 tokens truncated…aracter / AI / Navigation
+Single / Few allocations
+or
+Memory-mapped read-only block
+```
+
+C++ / Zig view 都不暴露 STL pointer。
+
+---
+
+# 八十九、Data Overlay
+
+Live configuration 可：
+
+```text
+Base Table
++
+Patch Overlay
+↓
+Resolved Table Generation
+```
+
+仍遵守：
+
+```text
+Immutable after finalize
+```
+
+更新：
+
+```text
+Build N+1
+↓
+Validate
+↓
+Atomic Registry Swap
+↓
+Old Generation remains pinned until refs drain
+```
+
+不允許 row 原地 mutate 造成 thread race。
+
+---
+
+# 九十、General Serialization V2
+
+Cooked binary format 升級為：
+
+```text
+Relocatable
+Versioned
+Endian-defined
+Pointer-free
+```
+
+目標：
+
+```text
+Fast load
+Memory map where appropriate
+Skip unknown optional section
+Schema migration at cook/editor
+```
+
+Shipping runtime 不承擔任意歷史 authoring format migration。
+
+---
+
+# 九十一、File System / IO V2
+
+增加：
+
+```text
+IO Batch
+Read Coalescing
+Priority Inheritance
+Cancellation
+Streaming Trace
+Optional Direct IO backend
+```
+
+Asset Streaming 可提交：
+
+```text
+IORequestBatch
+```
+
+而非大量微小 read syscall。
+
+---
+
+# 九十二、Package / Plugin V2
+
+Project package system：
+
+```text
+Package Manifest
+Version
+Dependency
+Optional Feature
+Platform Filter
+Editor-only
+Runtime
+```
+
+Lock：
+
+```text
+Project.lock
+```
+
+保證 CI 與其他開發機拿相同 plugin / package version。
+
+---
+
+# 九十三、Platform V2
+
+新增正式：
+
+```text
+Linux Headless
+Linux Desktop △
+```
+
+Headless Linux：
+
+```text
+✅ V2 Networking / Server required
+```
+
+Linux Desktop：
+
+```text
+△
+```
+
+若產品需求存在則啟用 Vulkan desktop backend。
+
+WebGPU / WASM：
+
+```text
+△ R&D
+```
+
+不列 V2 release gate。
+
+Console：
+
+```text
+△ SDK / business-dependent
+```
+
+Engine interface 保持可移植，但不在沒有 SDK 的情況假裝完成。
+
+---
+
+# 九十四、Save / Cloud V2
+
+V1 Save：
+
+```text
+Local Slot
+Profile
+Migration
+Atomic Write
+Recovery
+```
+
+V2：
+
+```text
+Cloud Save Adapter
+Conflict Metadata
+Cross-device Revision
+Server-authoritative Boundary
+```
+
+Cloud backend 以 plugin。
+
+核心只定義：
+
+```text
+Revision
+Timestamp
+DeviceID
+Content Hash
+Conflict State
+```
+
+Engine 不自動選擇哪份存檔勝出。
+
+Gameplay / Product policy 決定。
+
+---
+
+# 九十五、Localization V2
+
+V1 已完成 locale / ICU foundation。
+
+V2 加：
+
+```text
+Remote Localization Pack
+DLC Locale Bundle
+Localized Voice Pack
+Pseudo Localization
+Localization Coverage Report
+```
+
+CI：
+
+```text
+Missing Key
+Unused Key
+Missing Font Glyph
+Placeholder mismatch
+Plural form missing
+```
+
+---
+
+# 九十六、Profiler / Diagnostics V2
+
+V2 把 profiler 變成跨 process / remote 工具。
+
+```text
+Trace Producer
+↓
+Local Ring
+↓
+Stream / File
+↓
+Editor Profiler
+```
+
+事件：
+
+```text
+CPU Span
+Job
+GPU Pass
+RenderGraph
+IO
+Asset
+Streaming
+Network
+Physics
+Animation
+AI
+Audio
+Memory
+```
+
+---
+
+# 九十七、Unified Trace ID
+
+跨 subsystem 使用：
+
+```text
+FrameID
+WorldID
+EntityID when safe
+JobID
+AssetID
+CellID
+NetworkEntityID
+```
+
+例如一次卡頓可追：
+
+```text
+Cell Requested
+↓
+IO
+↓
+Decompress
+↓
+GPU Upload
+↓
+HLOD Switch
+↓
+Frame Spike
+```
+
+---
+
+# 九十八、Runtime Developer Console V2
+
+V1 developer console 升級：
+
+```text
+Command
+CVar
+Watch
+Remote Command
+Role / Permission
+```
+
+Remote server build：
+
+```text
+Readonly
+Developer
+Admin
+```
+
+權限必須可限制。
+
+Shipping 預設：
+
+```text
+disabled
+or
+authenticated restricted mode
+```
+
+---
+
+# 九十九、LiveOps / Remote Content
+
+V2 正式支援：
+
+```text
+Remote Content Manifest
+DataTable Overlay
+Localization Pack
+Asset Bundle Patch
+Event Configuration
+```
+
+仍禁止：
+
+```text
+Native DLL / dylib / executable remote content update
+```
+
+Gameplay native module 更新仍需正常 App / executable update。
+
+---
+
+# 一百、Feature Flag System
+
+V2 Project Settings 增加：
+
+```text
+FeatureFlag
+```
+
+類型：
+
+```text
+Build-time
+Cook-time
+Runtime Data-driven
+Server-authoritative
+```
+
+Feature flag 不應使用任意字串散落 gameplay。
+
+可由 schema / ID 管理。
+
+---
+
+# 一百零一、Security Boundary
+
+V2 因 Network / LiveOps 增加，正式建立：
+
+```text
+Untrusted Network Data
+Untrusted Remote Content Manifest
+Untrusted Web Content
+Untrusted Save / User Data
+```
+
+所有解析器：
+
+```text
+Bounds Checked
+Size Limited
+Version Checked
+No raw pointer serialization
+```
+
+Remote manifest 必須：
+
+```text
+Signature / Integrity verification
+```
+
+具體 cryptographic implementation 採成熟 library，不自行實作 crypto primitive。
+
+---
+
+# 一百零二、Performance Budget V2
+
+每個 Platform Profile 不只 Quality Tier。
+
+新增：
+
+```text
+PerformanceBudgetProfile
+├─ CPU Frame Budget
+├─ GPU Frame Budget
+├─ Draw Budget
+├─ Visible Instance Budget
+├─ Animation Budget
+├─ Physics Budget
+├─ AI Budget
+├─ Navigation Budget
+├─ RAM
+├─ VRAM
+├─ Streaming IO
+└─ Network Bandwidth
+```
+
+Subsystem 可以：
+
+```text
+Request
+Observe
+Degrade
+Recover
+```
+
+而不是各自硬編碼。
+
+---
+
+# 一百零三、Scalability Governor
+
+V2 可加入：
+
+```text
+ScalabilityGovernor
+```
+
+輸入：
+
+```text
+GPU time
+CPU time
+Memory Pressure
+Thermal
+Battery
+Frame target
+```
+
+輸出：
+
+```text
+Dynamic Resolution
+Shadow Budget
+Vegetation Distance
+VFX Budget
+Animation LOD
+AI LOD
+Streaming aggressiveness
+```
+
+但：
+
+```text
+Gameplay Authority
+```
+
+不得被 presentation scalability 任意改變。
+
+---
+
+# 一百零四、Thermal / Mobile V2
+
+Mobile 可根據：
+
+```text
+Thermal State
+Battery State
+Sustained GPU Time
+```
+
+進入：
+
+```text
+Normal
+Warm
+Hot
+Critical
+```
+
+由 Performance Profile 提供 downgrade policy。
+
+避免只靠 FPS 掉了才降設定。
+
+---
+
+# 一百零五、Editor Quality / Device Preview
+
+Editor 可以：
+
+```text
+Preview Device Profile
+```
+
+例如：
+
+```text
+Android Low
+Android High
+iPhone class
+Desktop Mid
+Desktop Ultra
+```
+
+Preview：
+
+```text
+Texture Residency
+Shadow
+LOD
+UI Safe Area
+Dynamic Resolution target
+Feature Strip
+```
+
+不是只改一個 graphics quality dropdown。
+
+---
+
+# 一百零六、V2 Project Migration
+
+V1 Project 升 V2：
+
+```text
+Project Copy / Branch
+↓
+Migration Scan
+↓
+Scene / Prefab / Metadata Migration
+↓
+Rebuild DDC
+↓
+Rebuild HLOD / Nav / Shader
+↓
+Validation
+```
+
+不直接覆蓋唯一 project copy。
+
+Editor 提供：
+
+```text
+Migration Report
+```
+
+列出：
+
+```text
+Changed Schema
+Deprecated Setting
+Plugin ABI mismatch
+Missing migration
+Rebuild required
+```
+
+---
+
+# 一百零七、ABI / Plugin Migration
+
+V2 major version 可以更新 internal ABI。
+
+但 Plugin：
+
+```text
+Plugin API Version
+Engine ABI Hash
+Build Configuration
+Platform
+Architecture
+```
+
+握手。
+
+Mismatch：
+
+```text
+Reject Load
+```
+
+不得 crash 後才發現。
+
+Stable C Gameplay ABI：
+
+```text
+保持 versioned compatibility strategy
+```
+
+但 major schema 不保證二進位完全不重編。
+
+---
+
+
+---
+
+# V2 施工 Milestone（Implementation Milestones）
+
+> V2 建立在 **V1 全部 Gate 已通過** 的前提下。  
+> V2 不重寫核心；施工重點是先把「Production Metadata / Toolchain」穩定，再往 GPU-Driven、Large World、Networking 與高階 Gameplay Framework 擴張。
+
+## ✅ V2-M0 — V1 → V2 Migration / Production Baseline
+
+> **Repository 狀態：portable gate 已驗收。** `Tools/Migration/ScanV1Project.py` 會稽核 canonical module schema、gameplay ABI、plugin manifest，以及必要的 Development／Shipping profile。穩定的 content fingerprint 同時作為 reference-project snapshot 與 regression-baseline identity；`build.v2_migration_scanner` 證明 deterministic output 與可採取行動的 failure report。Native target performance 仍屬 target-host gate。
+
+
+施工：
+
+```text
+V1 Project Migration Scanner
+Plugin / Package ABI Audit
+Schema Audit
+Build Profile Audit
+Performance Baseline
+Reference Project Snapshot
+```
+
+**Gate：**
+
+```text
+✓ V1 Project 不開任何 V2 feature 仍可正常 build
+✓ Migration Report 可列出 schema / plugin / rebuild requirements
+✓ V1 benchmark 成為 V2 regression baseline
+```
+
+---
+
+## ✅ V2-M1 — Clang Reflection / DDC / Headless Toolchain
+
+> **Repository 狀態：portable gate 已驗收。** `Tools/Production/NexoraTool.py` 從 Clang JSON AST
+> 產生排序後的 canonical metadata、保存不可變的 content-addressed artifact、以獨立 worker
+> process 執行每次 import，並提供適合 CI 的 validate／import／cook commandlet。Versioned external
+> entity manifest 與 deterministic structural JSON diff 奠定 scene 基礎；
+> `build.v2_production_toolchain` 覆蓋 deterministic output、worker crash、cache reuse 與 headless
+> cook path。
+
+先做：
+
+```text
+Clang AST Reflection Generator
+Canonical Metadata Output
+Content-addressable DDC
+Import Worker Process
+Headless Commandlet
+Externalized World Entity Files
+Structural Scene Diff foundation
+```
+
+原因：後面的 Networking Schema、Distributed Cook、Large World Build 都依賴穩定 metadata 與 headless tool。
+
+**Gate：**
+
+```text
+✓ Reflection output deterministic
+✓ Import worker crash 不拖垮 Editor
+✓ Headless Cook / Validate 可在 CI 跑
+✓ DDC same input → same artifact hash
+```
+
+---
+
+## ✅ V2-M2 — GPUScene / Render Extraction V2
+
+施工：
+
+```text
+GPUScene
+Stable GPU Object Slot
+Dirty Update
+Previous Transform
+Bounds
+Mesh / Material ResourceIndex
+Visibility Flags
+LOD Metadata
+Fence-safe retirement
+```
+
+先不做完整 GPU culling。
+
+**Gate：**
+
+```text
+✓ CPU extraction 可穩定更新 GPUScene
+✓ Destroy / reuse 不發生 GPU stale slot
+✓ CPU reference path 與 GPUScene rendering 可比對
+```
+
+已交付證據：`GPUScene` 提供穩定的 generational object slot、分類且 deterministic 的 dirty
+upload、current／previous transform、bounds、mesh／material resource index、visibility 與 LOD
+metadata，以及 fence-safe retirement。其 deterministic CPU reference snapshot 可在啟用 GPU
+culling 前完整比較 identity 與 render data。Contract tests 覆蓋 create、update、destroy／reuse、
+stale handle、dirty batch、transform history、fence reclamation 與 reference snapshot。
+
+---
+
+## V2-M3 — GPU-Driven Rendering
+
+目前證據：deterministic CPU reference 已實作 frustum／distance／LOD culling、具明確
+invalidation 的 conservative Hi-Z、visible-instance compaction、material／mesh／LOD
+classification 與 indirect-command generation。Portable command contract 現已記錄 compute
+dispatch 與 indirect drawing、將 backend output 與 CPU reference 比較、追蹤 normal-path
+readback diagnostics，並由 RenderGraph 發出明確的 compute／graphics ownership barrier。
+Linux Vulkan 現已有完整 frustum／distance／LOD／Hi-Z／compaction／classification／indirect-generation 實作。Slang-enabled RenderGraph 專項測試於 Mesa lavapipe 執行，強制要求 native backend 可用，並在 indirect draw 前將有限輸出與 CPU reference 比對。GitHub Actions run `36609837931` 已通過 Linux Development configure/build/完整 CTest，以及 Linux shipping、package/evidence、sanitizer 與 TSan build-contract job，因此 Linux Vulkan Phase 2 已驗收。Indirect record 已固定為 C++／Slang 共用的 36-byte ABI，並以前四個 word 作為 Vulkan／D3D12／Metal 共通的 non-indexed draw prefix；backend 不得自行重訂。DX12／Metal execution 與完整 target-tier parity 仍待完成.
+[V2-M3_GPU_Driven_Native_Execution_Plan.md](V2-M3_GPU_Driven_Native_Execution_Plan.md)
+把剩餘工作拆成分階段計畫，並對照原始碼逐一確認了每個 backend 的
+`Dispatch`/`DrawIndirect` 覆蓋現況；Phase 1a／1b 與 Linux Vulkan Phase 2 已驗收，DX12／Metal target 執行仍待完成。
+
+順序：
+
+```text
+Compute Frustum Culling
+↓
+GPU Distance / LOD
+↓
+Hi-Z
+↓
+Instance Compaction
+↓
+Material / PSO Classification
+↓
+Indirect Command Generation
+↓
+Async Compute Integration
+```
+
+再加入：
+
+```text
+Temporal Upscaler Interface
+Compute Skinning
+Meshlet metadata
+```
+
+**Gate：**
+
+- ✅ Portable command path 會將大量 instance 分批，不再由 CPU 逐 object 發出 draw。
+- [ ] 在 target host 上證明 native DX12／Vulkan／Metal target-tier parity。
+- ✅ Contract diagnostics 驗證 normal portable path 不會執行 GPU readback。
+- ✅ Portable contract 中的 queue transition、barrier 與 resource lifetime 由 RenderGraph 擁有。
+- ✅ CPU fallback 會對 recorded backend output 進行 deterministic correctness comparison。
+
+已勾選項目代表 repository-level contract 證據。V2-M3 只會在剩餘 native target-host parity
+項目通過後驗收；因此該 milestone 仍未勾選，整體進度仍為 23%。
+
+---
+
+## ✅ V2-M4 — Large World V2
+
+Portable implementation 現已交付 deterministic adaptive hierarchy、CellGroup、fixed-grid／explicit 3D volume partition、維持 gameplay absolute identity 的 quantized origin rebase、ready-gated HLOD V2／deterministic impostor、persistent delta materialization，以及支援 changed-region 的 headless partition commandlet。下列 Linux gate 提供 repository acceptance evidence。
+
+施工：
+
+```text
+✅ Adaptive Quadtree Cell Generation
+✅ Hierarchical Cell Group
+✅ 3D Volume Partition
+✅ World Origin Rebasing
+✅ HLOD V2
+✅ Impostor
+✅ Persistent Cell Delta
+✅ World Partition Commandlet
+```
+
+**Gate：**
+
+```text
+✅ Origin rebase 對 gameplay identity 不可見
+✅ Partition build deterministic
+✅ HLOD switch 不出現 hole
+✅ Persistent cell unload/reload state 正確
+✅ Changed region 可 incremental rebuild
+✅ Character 跨 Adaptive/3D Partition Cell 邊界不失去 Collision（Occupied Cell Pinned 延伸至 V2 Partition）
+```
+
+---
+
+## ✅ V2-M5 — Dedicated Server / Transport Foundation
+
+Portable implementation 現已提供僅設定 renderer-free server closure 的 `linux-headless` preset、caller-owned loopback 與 simulated `INetTransport` pair、portable socket-provider boundary、UDP-oriented datagram、protocol／build handshake rejection、明確 channel semantics，以及 deterministic seeded loss／latency／jitter simulation。Server 擁有 fixed-step scheduling、bounded graceful drain、admission、per-client packet／byte budget、ordered replay capture 與 canonical state hash。Headless acceptance 涵蓋 4,096 筆 malformed corpus、精確 simulation timing、deterministic trace、10,000 次 reconnect／disconnect cycle，以及宣告與 configured-target dependency closure。Native UDP／DTLS 與 production encryption adapter 仍為 backend gate；portable simulated coverage 不代表 production networking 已完成。
+
+先做：
+
+```text
+Headless Linux Profile
+INetTransport
+UDP-oriented transport
+Connection
+Handshake
+Protocol Version
+Build ID
+Channel Semantics
+Packet Simulation
+```
+
+不要一開始就做 Prediction。
+
+**Gate：**
+
+```text
+✅ Linux headless server 無 Renderer dependency
+✅ Client / Server connect / disconnect 穩定
+✅ Loss / latency / jitter simulator 可用
+✅ Protocol mismatch clean reject
+✅ Malformed handshake 會被拒絕且不接受 user traffic
+✅ Seeded simulation trace 在 headless test 中具 deterministic
+✅ 10,000 次 reconnect／disconnect cycle 會重設 per-session state
+✅ Fixed-step ownership、bounded catch-up、admission、budget 與 graceful drain 具 deterministic
+✅ Packet replay capture 與 canonical server state hash 可重複
+✅ Portable socket-provider contract 先於 native adapter
+```
+
+---
+
+## ✅ V2-M6 — Replication / Interest / Prediction / Replay
+
+✅ V2-M6 已完成 portable reference scope：server-authoritative generational identity、含 cross-build hash 的 versioned schema、deterministic snapshot、baseline delta compression、connection-scoped interest、具 per-connection acknowledgement 與 re-entry baseline invalidation 的 dirty-generation dormancy、具序號的 client prediction、會 replay pending input 的 authoritative reconciliation，以及 versioned network replay log。Headless tests 已為 malformed／truncated rejection、baseline expiry、non-global interest、dormant wake-up、connection isolation、測試 latency 下的 deterministic simulation 與 replay reproduction 提供驗收證據。Native transport 與 physics-specific prediction 仍屬獨立 backend／integration gate。
+
+順序：
+
+```text
+NetworkEntityID
+↓
+Replication Schema Codegen
+↓
+Snapshot
+↓
+Delta Compression
+↓
+Interest
+↓
+Dormancy
+↓
+Prediction
+↓
+Reconciliation
+↓
+Replay
+```
+
+**Gate：**
+
+```text
+✅ Client / Server local EntityID 可完全不同
+✅ Interest 不會 global replicate
+✅ Character prediction 在測試 latency 下可玩
+✅ Reconciliation 可 replay pending input
+✅ Replay 足以重現 network bug
+```
+
+---
+
+## V2-M7 — Navigation / Crowd / AI V2
+
+> **施工狀態：進行中。** 第一個 portable vertical slice 新增 renderer-free 的 `NexoraAI`
+> module，包含 hierarchical region/node routing、hard-budget navigation query scheduler、
+> generic influence/cost field、只輸出 `CharacterIntent` 的 local crowd avoidance、
+> deterministic Utility AI、支援 far/dormant 的 perception／decision／navigation LOD、
+> 與傳統 AI 共用 `AIAction` 的 framework-neutral batch `IPolicyRuntime`，以及同步
+> self-play reset/step bridge。`ai.v2_m7_navigation_crowd_policy` contract test 會排入
+> 5,000 個 navigation request 並限制每 tick 最多 32 個 query，也會驗證 5,000 個 far
+> agent 的 phase staggering。新增的 optional `NexoraAIIntegration` module 可將有效 AI
+> `CharacterIntent` locomotion 投影到 Runtime 的水平 motor input，並維持兩模組的依賴邊界。
+> Production NavMesh streaming、job-system adapter 與 policy backend 仍待完成。Portable
+> multi-world self-play coordinator 現可依 world ID 推導 deterministic seed、限制每 tick 服務
+> 數量、輪轉公平排程、隔離各 world 的 deferred-policy cache，並限制環境失敗影響範圍。Production
+> training 與 distributed orchestration 仍待完成，
+> 因此 V2-M7 尚未驗收。
+
+施工：
+
+```text
+Hierarchical Navigation
+Navigation Query Scheduler
+Crowd
+Utility AI
+Perception LOD
+Influence / Cost Field
+Learned Policy Runtime Interface
+Self-play Bridge
+Budgeted Multi-world Self-play Orchestrator
+```
+
+**Gate：**
+
+```text
+✓ Thousands AI 不會同 frame synchronous pathfind
+✓ Far AI 可降頻 / dormant
+✓ Crowd 輸出 CharacterIntent，不直接改 Transform
+✓ Learned Policy 可被同一 Action Interface 消費
+```
+
+---
+
+## V2-M8 — Animation V2
+
+施工：
+
+```text
+Compute Skinning
+GPU Pose Sampling
+Compressed Pose
+Runtime Retarget V2
+Motion Warping
+Inertialization
+Sync Group
+Pose Search
+Motion Matching optional
+```
+
+**Gate：**
+
+```text
+✓ Compute / Vertex Skinning 可 profile-driven 選擇
+✓ GPU crowd animation 不成為 gameplay event authority
+✓ Motion Warping 最終仍經 CharacterMotor / Controller resolve
+✓ Pose Search database 可重建且 deterministic
+```
+
+---
+
+## V2-M9 — Timeline / UI V2 / Audio / Media V2
+
+> **Portable foundation 進行中（2026-09-27）：** `PresentationV2` 已提供可 deterministic
+> scrub／seek 的 Timeline data model、priority Camera Rig、Flex／Grid layout、沿用既有
+> `LocalizationTable` 的 RichText、StyleSheet／Theme resolution、accessibility semantics、
+> world ray → UV → UI 投影、room／portal audio routing，以及維持 V1 `VideoPlayer`
+> decoded-frame contract 的 HLS／DASH segment layer。DRM 與 capture／encoder boundary
+> 均為 compile-time optional 且預設關閉。Production shaping／rendering、device audio、
+> streaming transport／ABR、DRM 實作與 capture codec 仍待完成，因此 V2-M9 尚未驗收。
+
+施工：
+
+```text
+Timeline
+Camera Rig
+Flex Layout
+Advanced Grid
+RichText
+StyleSheet / Theme
+Surface UI
+Accessibility foundation
+Room / Portal Audio
+Media Streaming HLS / DASH
+DRM Provider Boundary
+Capture / Encoder optional
+```
+
+**Gate：**
+
+```text
+✓ Timeline 可 scrub / seek
+✓ Surface UI world ray → UV → UI hit 正確
+✓ RichText 走既有 shaping / localization
+✓ Media Streaming 不改壞 V1 local VideoPlayer contract
+✓ DRM / Capture / Encoder 可完全 strip
+```
+
+---
+
+## V2-M10 — Shared DDC / Distributed Build / LiveOps
+
+> **Portable foundation 進行中（2026-09-27）：** production commandlet 現已定義
+> content-addressed artifact、shader／HLOD／cook deterministic derivation／work ID、
+> local-first Shared DDC fallback、transactional patch verification、generation pin／drain、
+> data-only overlay／localization pack，以及依副檔名與 binary magic 拒絕 native executable。
+> `build.v2_production_toolchain` 涵蓋這些 headless contract。Hosted DDC、distributed worker
+> 部署、簽章與 production rollout 仍待完成，因此 V2-M10 尚未驗收。
+
+施工：
+
+```text
+Shared DDC
+Distributed Shader Compile
+Distributed HLOD
+Distributed Cook
+Patch Manifest
+Data Overlay
+Localization Pack
+Remote Content Verification
+```
+
+**Gate：**
+
+```text
+✓ Remote DDC 掛掉仍能本機開發
+✓ Two workers same input → same artifact hash
+✓ Patch 驗證完成前不能 activate
+✓ Old generation pins until refs drain
+✓ Remote content 不可帶 native executable code
+```
+
+---
+
+## V2-M11 — Remote Tools / Device Profiling / Production Diagnostics
+
+> **Portable foundation 進行中（2026-09-27）：** Core 現已擁有版本化 remote diagnostics
+> wire schema 與 headless `TraceAggregator`，支援 unified Trace ID、streaming／network／
+> memory／GPU／IO correlation、resource 一致的 IO → cook artifact → GPU upload chain，
+> 以及 PluginID cost attribution。Android／iOS／Desktop／Server 的 transport、discovery、
+> authentication 與實際 host adapter 仍需 target-host evidence，因此 V2-M11 尚未驗收。
+
+施工：
+
+```text
+Remote Device Inspector
+Remote Profiler
+Unified Trace ID
+Streaming Trace
+Network Trace
+Memory / GPU / IO correlation
+Build Size / Feature report foundation
+```
+
+**Gate：**
+
+```text
+✓ Android / iOS / Desktop / Server 都可遠端觀察
+✓ 一次 streaming hitch 可跨 IO → cook artifact → GPU upload 追蹤
+✓ PluginID 可做 cost attribution
+```
+
+---
+
+## V2-M12 — V2 Hardening / Reference Projects / Shipping
+
+> **Portable foundation 進行中（2026-09-27）：** 五個 reference project 現已有
+> machine-readable capability catalog；快速 hardening gate 涵蓋 bounded streaming-style
+> sample、disconnect／reconnect mapping drain、known-good rollback、save corruption rejection、
+> thermal-throttle evidence semantics，以及 V1-like footprint growth limit。此快速 gate 不會
+> 被視為 24h+／physical-device 驗收；完整 reference-project 執行、長時間 soak 與真實 mobile
+> thermal evidence 仍待完成，因此 V2-M12 尚未驗收。
+
+執行：
+
+```text
+Massive Outdoor
+Indoor Portal Dungeon
+Network Arena
+Crowd City
+Mobile Stress
+```
+
+長時間測：
+
+```text
+Streaming Soak
+Network Soak
+Memory Pressure
+Thermal
+Patch Rollback
+Save Corruption
+Server Reconnect
+```
+
+**Gate：**
+
+```text
+✓ V2 reference projects 全過
+✓ 24h+ streaming soak 無 unbounded growth
+✓ Network mapping disconnect 後無 leak
+✓ Patch rollback 可回 known-good
+✓ V2 feature 關閉後 V1-like project footprint 不異常膨脹
+```
+
+---
+
+## V2 施工依賴圖
+
+```text
+M0 Migration / Baseline
+ │
+ ▼
+M1 Reflection / DDC / Headless Tools
+ │
+ ├───────────────┐
+ ▼               ▼
+M2 GPUScene    M4 Large World foundation
+ │
+ ▼
+M3 GPU Driven
+ │
+ ├───────────────┐
+ ▼               ▼
+M5 Transport   M7 AI/Nav foundation
+ │               │
+ ▼               ▼
+M6 Replication M8 Animation V2
+ │               │
+ └───────┬───────┘
+         ▼
+M9 Timeline / UI / Audio / Media
+         │
+         ▼
+M10 Distributed Build / LiveOps
+         │
+         ▼
+M11 Remote Diagnostics
+         │
+         ▼
+M12 Hardening / Shipping
+```
+
+
+# 一百零八、V2 Development Phases
+
+V2 不一次平行全部做。
+
+建議順序：
+
+```text
+V2-A Production Foundation
+↓
+V2-B GPU Driven
+↓
+V2-C Large World V2
+↓
+V2-D Networking
+↓
+V2-E Advanced Character / AI / Navigation
 ↓
 V2-F Runtime / Cinematic / UI
 ↓
