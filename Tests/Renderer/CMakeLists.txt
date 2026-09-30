@@ -17,6 +17,11 @@ target_link_libraries(NexoraSceneFrameTests PRIVATE Nexora::Renderer)
 nexora_apply_defaults(NexoraSceneFrameTests)
 add_test(NAME renderer.scene_frame_contracts COMMAND NexoraSceneFrameTests)
 
+add_executable(NexoraMaterialTests MaterialTests.cpp)
+target_link_libraries(NexoraMaterialTests PRIVATE Nexora::Renderer)
+nexora_apply_defaults(NexoraMaterialTests)
+add_test(NAME renderer.material_contracts COMMAND NexoraMaterialTests)
+
 add_executable(NexoraGoldenImageTests GoldenImageTests.cpp)
 target_link_libraries(NexoraGoldenImageTests PRIVATE Nexora::Renderer)
 nexora_apply_defaults(NexoraGoldenImageTests)

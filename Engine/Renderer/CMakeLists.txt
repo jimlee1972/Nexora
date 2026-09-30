@@ -3,6 +3,7 @@ add_library(NexoraRenderer ${NEXORA_MODULE_LIBRARY_TYPE}
   src/FramePipeline.cpp
   src/GPUDrivenPipeline.cpp
   src/GPUScene.cpp
+  src/Material.cpp
   src/PipelineCache.cpp
   src/RenderGraph.cpp)
 target_sources(NexoraRenderer PRIVATE src/SceneFrame.cpp)
