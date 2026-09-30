@@ -7321,6 +7321,17 @@ Platform / Quality Profile
 
 ## XXI. Material System
 
+### ✅ Portable material integration foundation (2026-09-30)
+
+The repository now provides the backend-neutral schema, six-model selection, feature-keyed
+used-variant stripping, resource-index binding with semantic missing-resource fallback,
+generation-based transactional hot reload, and Material Inspector reflection/layout hashing.
+Existing shared Slang contracts cover PBR/IBL, StylizedPBR, Anime, Vegetation, Water, Unlit,
+shadow/post-process, instancing, skinning, and Forward+. Linux acceptance covers the portable
+contracts together with SPIR-V, generated MSL, canonical reflection/layout hashes, Validation RHI,
+and lavapipe paths. DXIL execution, native Metal module execution, and physical-GPU golden images
+remain target-host gates and are not marked complete here.
+
 ### Material / Shading Model Layering
 
 Material is not extended by creating a completely independent Renderer for every visual effect.

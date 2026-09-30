@@ -7347,6 +7347,17 @@ Platform / Quality Profile
 
 ## 二十一、Material 系統
 
+### ✅ Portable material integration foundation（2026-09-30）
+
+Repository 現已提供 backend-neutral schema、六種 model selection、以 feature key 驅動的
+used-variant stripping、具 semantic missing-resource fallback 的 resource-index binding、
+generation-based transactional hot reload，以及 Material Inspector reflection/layout hashing。
+既有共用 Slang contract 涵蓋 PBR／IBL、StylizedPBR、Anime、Vegetation、Water、Unlit、
+shadow／post-process、instancing、skinning 與 Forward+。Linux 驗收涵蓋 portable contract，
+並搭配 SPIR-V、generated MSL、canonical reflection/layout hash、Validation RHI 與 lavapipe
+路徑；DXIL execution、native Metal module execution 與實體 GPU golden image 仍是 target-host
+gate，此處不標記為完成。
+
 ### Material / Shading Model 分層
 
 Material 不以「每種視覺效果都建立完全獨立 Renderer」的方式擴充。

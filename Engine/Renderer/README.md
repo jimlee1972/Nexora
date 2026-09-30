@@ -40,6 +40,27 @@ remaining pure helper functions visible to the build contract. All three produce
 Slang-enabled Linux/macOS builds and DXIL on Windows; platform execution, native pipeline creation,
 Metal fallback parity, and golden-image checks remain target-host gates.
 
+## Material and shading integration contract
+
+`MaterialSchema` records a stable shading-model enum, an independent surface mode, feature bits,
+shader/profile identity, typed parameters, and texture resource identities. The six shared models
+(PBR, StylizedPBR, Anime, Vegetation, Water, and Unlit) select variants in the same renderer;
+IBL, shadow/post-process, instancing, skinning, and Forward+ are explicit feature-key dimensions.
+`StripMaterialVariants()` retains only validated, unique variants observed during asset scanning and
+does not impose a global variant-count ceiling.
+
+Materials store no backend descriptor objects. `BindMaterialResources()` resolves resource IDs at
+the binding boundary and substitutes a semantic-specific fallback for missing textures, while
+reporting each substitution. `ReflectMaterial()` exposes typed fields, constant-buffer offsets,
+texture semantics, and a stable layout hash to Material Inspector adapters.
+
+`MaterialRegistry` owns published CPU schemas. Publish and reload are externally synchronized;
+invalid input is rejected without changing the live entry. Successful hot reload atomically replaces
+the schema and advances its generation, invalidating prior handles. Returned schema pointers remain
+owned by the registry and are valid only until the next mutation. These portable contracts and the
+shared Slang helpers are covered in Linux; DXIL execution, native Metal module execution, and
+physical-GPU golden images remain target-host acceptance gates.
+
 ## V1-M3 contract
 
 `RenderGraph` derives RAW/WAR/WAW dependencies, rejects cycles, topologically orders passes, computes transient lifetimes, and emits state transitions. `PipelineCache` coalesces identical asynchronous requests. The validation device rejects stale resources, invalid transitions, rendering-scope violations, missing pipelines, and presenting a non-Present resource.

@@ -76,6 +76,11 @@ skinning/instancing/Forward+, variant keys, and retained-mode UI helpers. `PbrSm
 atlas sampling, clip, and nine-slice); Linux Slang 2026.18 SPIR-V/MSL compilation and the shader
 contract/cross-compile tests pass. Actual DXIL/native backend execution and captured target-host
 golden baselines remain open platform gates; the portable harness does not claim those results.
+Renderer now also exposes a ✅ backend-neutral material schema and integration contract covering all
+six shading models, resource binding with semantic missing-texture fallbacks, used-variant stripping,
+generation-based hot reload, and stable Material Inspector reflection/layout hashes. The existing
+shared Slang library supplies PBR/IBL and specialized shading helpers; native DXIL/Metal execution
+and physical-GPU visual acceptance remain target-host gates.
 
 
 #### V2 late-milestone portable status
@@ -193,6 +198,7 @@ Showcase Validation Lab 現提供 portable M0～M12 probe registry、誠實的�
 #### Shader 系統狀態
 
 Shader production pipeline 現有 ✅ portable 驗收 gate：Editor 會呼叫設定的 `slangc` process、解析 file／line／column／severity／backend／variant diagnostics、追蹤 source／include invalidation，並依明確 budget 快取成功的 Development variant。Runtime 會序列化及載入含 checksum 的 cooked artifact、強制 Shipping cooked-only admission、透過注入的 native adapter 建立 backend module、transactionally 發布 generation，且僅在 GPU fence 完成後回收被替換的 module。Renderer 提供包含 generation 的 pipeline-state key 與具命名 case 的 golden-image harness。`Shaders/Nexora/Common.slang` 現已提供 PBR／IBL、StylizedPBR、Anime、Vegetation、Water、Unlit、shadow／post-process、skinning／instancing／Forward+、variant key 與 retained-mode UI helper；`PbrSmoke.slang`／`UiSmoke.slang` 是含 IBL resource、Texture2DArray、atlas、clip、nine-slice 的實際 vertex／fragment smoke entry。Linux Slang 2026.18 的 SPIR-V／MSL 編譯與 shader contract／cross-compile tests 已通過；實際 DXIL／native backend execution 與 target-host capture golden baseline 仍是未完成的平台 gate，portable harness 不宣稱這些結果。
+Renderer 現在也提供 ✅ backend-neutral material schema 與整合 contract，涵蓋六種 shading model、具 semantic 缺失貼圖 fallback 的 resource binding、used-variant stripping、generation-based hot reload，以及穩定的 Material Inspector reflection/layout hash。既有共用 Slang library 提供 PBR／IBL 與專用 shading helper；native DXIL／Metal execution 與實體 GPU 視覺驗收仍屬 target-host gate。
 
 
 #### V2 後段 milestone portable 狀態
