@@ -2,7 +2,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <span>
+#include <string>
+#include <vector>
 
 namespace nexora::renderer {
 
@@ -11,6 +14,23 @@ struct GoldenImageComparison {
   std::size_t differing_pixels = 0;
   std::uint8_t max_channel_delta = 0;
 };
+
+struct GoldenImageCase final {
+  std::string name;
+  std::uint32_t width{};
+  std::uint32_t height{};
+  std::uint8_t channel_tolerance{};
+  std::size_t differing_pixel_budget{};
+  std::vector<std::byte> expected_rgba8;
+};
+
+struct GoldenImageCaseResult final {
+  std::string name;
+  bool passed{};
+  GoldenImageComparison comparison;
+};
+
+using GoldenImageProducer = std::function<std::vector<std::byte>(const GoldenImageCase &)>;
 
 [[nodiscard]] inline std::uint64_t HashRgba8(std::span<const std::byte> pixels) noexcept {
   constexpr std::uint64_t offset = 1469598103934665603ULL;
@@ -29,9 +49,8 @@ struct GoldenImageComparison {
                                              std::uint8_t channel_tolerance,
                                              GoldenImageComparison &comparison) noexcept {
   comparison = {};
-  if (width == 0 || height == 0 || width > (UINT32_MAX / 4U) ||
-      actual.size() != expected.size() || actual.size() !=
-          static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4U)
+  if (width == 0 || height == 0 || width > (UINT32_MAX / 4U) || actual.size() != expected.size() ||
+      actual.size() != static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4U)
     return false;
   for (std::size_t pixel = 0; pixel < actual.size(); pixel += 4) {
     std::uint8_t pixel_delta = 0;
@@ -43,12 +62,27 @@ struct GoldenImageComparison {
     }
     if (pixel_delta > channel_tolerance)
       ++comparison.differing_pixels;
-    comparison.max_channel_delta = pixel_delta > comparison.max_channel_delta
-                                       ? pixel_delta
-                                       : comparison.max_channel_delta;
+    comparison.max_channel_delta =
+        pixel_delta > comparison.max_channel_delta ? pixel_delta : comparison.max_channel_delta;
   }
   comparison.matched = comparison.differing_pixels == 0;
   return true;
+}
+
+[[nodiscard]] inline std::vector<GoldenImageCaseResult>
+RunGoldenImageHarness(std::span<const GoldenImageCase> cases, const GoldenImageProducer &producer) {
+  std::vector<GoldenImageCaseResult> results;
+  results.reserve(cases.size());
+  for (const auto &test : cases) {
+    GoldenImageCaseResult result;
+    result.name = test.name;
+    const auto actual = producer ? producer(test) : std::vector<std::byte>{};
+    const auto valid = CompareGoldenRgba8(actual, test.expected_rgba8, test.width, test.height,
+                                          test.channel_tolerance, result.comparison);
+    result.passed = valid && result.comparison.differing_pixels <= test.differing_pixel_budget;
+    results.push_back(std::move(result));
+  }
+  return results;
 }
 
 } // namespace nexora::renderer

@@ -1868,6 +1868,14 @@ must register through RenderGraph
 
 # V1 Shader
 
+> **Portable production-pipeline status (2026-09-30): ✅** The repository gate now covers the
+> `slangc` process boundary; structured file/line/column/severity/backend/variant diagnostics;
+> checksummed cooked serialization and loading; a dependency-aware Development cache with explicit
+> variant budgets; Shipping cooked-only admission; callback-backed native-module creation;
+> generation-bearing PSO keys; transactional rollback; fence-safe retirement; dependency
+> invalidation; and a named golden-image harness. Actual DXIL execution and captured target-host
+> golden baselines remain platform acceptance gates, not claims made by the Linux portable gate.
+
 Source:
 
 ```text

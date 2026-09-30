@@ -63,20 +63,19 @@ The Showcase Validation Lab now provides a portable M0-M12 probe registry, hones
 
 #### Shader system status
 
-The existing Slang cross-compile/reflection gate is extended with a backend-neutral shader artifact
-contract and a Runtime admission slot. DXIL, SPIR-V, and generated MSL are checked against the
-existing canonical layout hash; Development may stage dynamic compiler output, while Shipping
-accepts cooked artifacts only. The Editor model carries source-positioned diagnostics and applies
-successful compile results transactionally, preserving the active generation on failure. This is a
-portable artifact-lifecycle slice: Slang process integration/diagnostic parsing, cooked-file
-serialization/loading, native module creation, and GPU-fence-safe retirement remain open and are
-not counted as completed shader-system acceptance. `Shaders/Nexora/Common.slang` now contains the
+The shader production pipeline now has a ✅ portable acceptance gate: the Editor invokes the
+configured `slangc` process, parses file/line/column/severity/backend/variant diagnostics, tracks
+source/include invalidation, and caches successful Development variants against an explicit budget.
+Runtime serializes and loads checksummed cooked artifacts, enforces Shipping cooked-only admission,
+creates backend modules through an injected native adapter, publishes generations transactionally,
+and retires replaced modules only after their GPU fence. Renderer exposes generation-bearing
+pipeline-state keys and a named golden-image harness. `Shaders/Nexora/Common.slang` now contains the
 portable shared surface for PBR/IBL, StylizedPBR, Anime, Vegetation, Water, Unlit, shadow/post-process,
 skinning/instancing/Forward+, variant keys, and retained-mode UI helpers. `PbrSmoke.slang` and
 `UiSmoke.slang` are real vertex/fragment smoke entries (including IBL resources, Texture2DArray,
 atlas sampling, clip, and nine-slice); Linux Slang 2026.18 SPIR-V/MSL compilation and the shader
-contract/cross-compile tests pass. DXIL, native backend execution, cooked loading, and golden-image
-acceptance remain open.
+contract/cross-compile tests pass. Actual DXIL/native backend execution and captured target-host
+golden baselines remain open platform gates; the portable harness does not claim those results.
 
 
 #### V2 late-milestone portable status
@@ -193,7 +192,7 @@ Showcase Validation Lab 現提供 portable M0～M12 probe registry、誠實的�
 
 #### Shader 系統狀態
 
-既有 Slang cross-compile／reflection gate 現增加 backend-neutral shader artifact contract 與 Runtime admission slot。DXIL、SPIR-V 與產生的 MSL 均依既有 canonical layout hash 驗證；Development 可 stage 動態編譯輸出，Shipping 僅接受 cooked artifact。Editor model 已能攜帶 source-positioned diagnostics，並以 transaction 套用成功編譯結果，失敗時保留 active generation。`Shaders/Nexora/Common.slang` 現已提供 PBR／IBL、StylizedPBR、Anime、Vegetation、Water、Unlit、shadow／post-process、skinning／instancing／Forward+、variant key 與 retained-mode UI helper；`PbrSmoke.slang`／`UiSmoke.slang` 是含 IBL resource、Texture2DArray、atlas、clip、nine-slice 的實際 vertex／fragment smoke entry。Linux Slang 2026.18 的 SPIR-V／MSL 編譯與 shader contract／cross-compile tests 已通過；DXIL、native backend execution、cooked loading 與 golden-image acceptance 仍待完成。這仍只是 portable artifact lifecycle 與 shader library 切片；Slang process 整合與 diagnostic parsing、cooked-file serialization／loading、native module 建立及 GPU-fence-safe retirement 仍待實作，不計為 Shader System 驗收完成。
+Shader production pipeline 現有 ✅ portable 驗收 gate：Editor 會呼叫設定的 `slangc` process、解析 file／line／column／severity／backend／variant diagnostics、追蹤 source／include invalidation，並依明確 budget 快取成功的 Development variant。Runtime 會序列化及載入含 checksum 的 cooked artifact、強制 Shipping cooked-only admission、透過注入的 native adapter 建立 backend module、transactionally 發布 generation，且僅在 GPU fence 完成後回收被替換的 module。Renderer 提供包含 generation 的 pipeline-state key 與具命名 case 的 golden-image harness。`Shaders/Nexora/Common.slang` 現已提供 PBR／IBL、StylizedPBR、Anime、Vegetation、Water、Unlit、shadow／post-process、skinning／instancing／Forward+、variant key 與 retained-mode UI helper；`PbrSmoke.slang`／`UiSmoke.slang` 是含 IBL resource、Texture2DArray、atlas、clip、nine-slice 的實際 vertex／fragment smoke entry。Linux Slang 2026.18 的 SPIR-V／MSL 編譯與 shader contract／cross-compile tests 已通過；實際 DXIL／native backend execution 與 target-host capture golden baseline 仍是未完成的平台 gate，portable harness 不宣稱這些結果。
 
 
 #### V2 後段 milestone portable 狀態

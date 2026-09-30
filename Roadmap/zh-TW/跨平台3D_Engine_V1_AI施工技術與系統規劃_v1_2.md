@@ -1880,6 +1880,14 @@ must register through RenderGraph
 
 # V1 Shader
 
+> **Portable production pipeline 狀態（2026-09-30）：✅** Repository gate 現已涵蓋 `slangc`
+> process boundary、具 file／line／column／severity／backend／variant 的結構化 diagnostics、
+> 含 checksum 的 cooked serialization／loading、具明確 variant budget 與 dependency 感知的
+> Development cache、Shipping cooked-only admission、callback-backed native module 建立、包含
+> generation 的 PSO key、transactional rollback、fence-safe retirement、dependency invalidation，
+> 以及具命名 case 的 golden-image harness。實際 DXIL 執行與 target-host capture golden baseline
+> 仍是平台驗收 gate，並非 Linux portable gate 所宣稱的成果。
+
 Source：
 
 ```text

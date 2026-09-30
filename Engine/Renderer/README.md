@@ -18,9 +18,9 @@ canonical reflection equality, the C++ layout hash, and the absence of backend-n
 public RHI headers. `renderer.contracts` then feeds the generated artifact paths to the platform
 native device and executes the same triangle workload.
 
-`Nexora/Renderer/GoldenImage.h` supplies a deterministic RGBA8 acceptance contract used by
+`Nexora/Renderer/GoldenImage.h` supplies a deterministic, named-case RGBA8 harness used by
 `renderer.golden_image_acceptance`: exact dimensions, per-channel tolerance, differing-pixel
-count, and a stable FNV-1a checksum. Platform runners can feed captured swapchain/offscreen
+budget/count, and a stable FNV-1a checksum. Platform runners can feed captured swapchain/offscreen
 pixels into this helper without introducing backend types into the renderer API.
 
 ## Shared shader library contract
@@ -47,7 +47,8 @@ Metal fallback parity, and golden-image checks remain target-host gates.
 Passes must declare each texture exactly once: a texture cannot be both read and written by the
 same pass. Unused transients are lifetime-elided and never allocated. Command lists are single-use;
 submission while a rendering scope is open, submission to another device, a second submission, or
-recording after submission is rejected. Pipeline identity is the complete layout/shader/format key
+recording after submission is rejected. `MakePipelineCacheKey` makes shader generation explicit;
+pipeline identity is the complete layout/shader/generation/format/type key
 (debug labels are deliberately excluded), so hash collisions cannot alias cache entries.
 
 The executable test runs `Offscreen -> Main -> Present` through this contract and verifies pass,
