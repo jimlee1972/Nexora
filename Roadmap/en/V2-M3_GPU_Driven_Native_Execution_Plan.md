@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend Execution Plan
 
-> Version: v1.0 | Status: in progress; focused Linux Vulkan comparison passes, full development gate pending | Updated: 2026-09-30 | Relates to:
+> Version: v1.0 | Status: in progress; Linux Vulkan Phase 2 accepted, other target gates open | Updated: 2026-09-30 | Relates to:
 > `Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md` §V2-M3
 
 ## 1. Purpose
@@ -196,9 +196,9 @@ need to work correctly right now. This is a genuinely separate, foundational pie
 standing rules ask to be discussed before starting, even though it introduces no new third-party
 dependency or CI change. **Completed with a backend-neutral compute pipeline kind, four fixed storage-buffer slots, host-visible uploads, and an explicitly test-only bounded readback seam. The fixed slots keep this phase narrow; a general descriptor builder remains future work.**
 
-### Phase 2 -- Full compute stages on Vulkan (focused native comparison passes; preset gate pending)
+### ✅ Phase 2 -- Full compute stages on Vulkan (Linux acceptance)
 
-> **Update (2026-09-30): focused Linux Vulkan comparison passed; full preset gate pending.** The Slang 2026.18 build ran `renderer.v2_gpu_driven` on Mesa lavapipe with `NEXORA_REQUIRE_NATIVE_BACKENDS=1`. Its RenderGraph compute and indirect callbacks invoke the same stage recorders used by `RecordGPUDrivenExecution()`, and bounded output readbacks pass `CompareGPUDrivenResults()` including statistics. The required full `linux-development` CTest run remains 50/51 because `build.v2_production_toolchain` cannot find `clang++`; therefore Phase 2 is not marked accepted until the repository-mandated full gate passes. Physical-GPU performance and DX12/Metal target-host gates also remain open.
+> **Update (2026-09-30): Linux Vulkan acceptance passed.** The Slang 2026.18 build ran `renderer.v2_gpu_driven` on Mesa lavapipe with `NEXORA_REQUIRE_NATIVE_BACKENDS=1`. Its RenderGraph compute and indirect callbacks invoke the same stage recorders used by `RecordGPUDrivenExecution()`, and bounded output readbacks pass `CompareGPUDrivenResults()` including statistics. GitHub Actions run `36609837931` passed the full Linux Development configure/build/CTest job and the Linux shipping, package/evidence, sanitizer, and TSan build-contract job. The current Work Mode container's local CTest remains 50/51 solely because its image lacks `clang++`; this does not supersede the successful CI run. Physical-GPU performance and DX12/Metal target-host gates remain open.
 >
 > Historical note (2026-09-25): implementation complete; native acceptance pending. The shader and native test cover every Phase 2 stage, but Phase 2 is not marked ✅ until the Slang-enabled Linux Vulkan test actually runs and `CompareGPUDrivenResults()` passes. Shader compilation, a non-throwing dispatch, and diagnostics counters are not acceptance evidence.
 
