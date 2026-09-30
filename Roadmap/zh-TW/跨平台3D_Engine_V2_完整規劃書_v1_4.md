@@ -4003,8 +4003,9 @@ Replay
 > 與傳統 AI 共用 `AIAction` 的 framework-neutral batch `IPolicyRuntime`，以及同步
 > self-play reset/step bridge。`ai.v2_m7_navigation_crowd_policy` contract test 會排入
 > 5,000 個 navigation request 並限制每 tick 最多 32 個 query，也會驗證 5,000 個 far
-> agent 的 phase staggering。Production NavMesh streaming、job-system adapter、runtime
-> character integration、policy backend 與 multi-world training orchestration 仍待完成，
+> agent 的 phase staggering。新增的 optional `NexoraAIIntegration` module 可將有效 AI
+> `CharacterIntent` locomotion 投影到 Runtime 的水平 motor input，並維持兩模組的依賴邊界。
+> Production NavMesh streaming、job-system adapter、policy backend 與 multi-world training orchestration 仍待完成，
 > 因此 V2-M7 尚未驗收。
 
 施工：

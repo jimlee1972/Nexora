@@ -51,6 +51,16 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E echo "V1-M8 gameplay simulation stripped")
 endif()
 
+if(NEXORA_ENABLE_AI_RUNTIME_BRIDGE)
+  add_executable(NexoraAIIntentAdapterTests AIIntentAdapterTests.cpp)
+  target_link_libraries(NexoraAIIntentAdapterTests PRIVATE Nexora::AIIntegration)
+  nexora_apply_defaults(NexoraAIIntentAdapterTests)
+  add_test(NAME runtime.v2_m7_ai_character_intent_bridge COMMAND NexoraAIIntentAdapterTests)
+else()
+  add_test(NAME runtime.v2_m7_ai_character_intent_bridge_feature_strip
+    COMMAND "${CMAKE_COMMAND}" -E echo "V2-M7 AI Runtime bridge stripped")
+endif()
+
 if(NEXORA_ENABLE_LARGE_WORLD)
   add_executable(NexoraV1M10Tests V1M10Tests.cpp)
   target_link_libraries(NexoraV1M10Tests PRIVATE Nexora::Runtime)

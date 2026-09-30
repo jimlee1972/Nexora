@@ -142,6 +142,13 @@ gate, supporting dedicated/headless builds without Animation, Audio, VFX, or Med
 
 `NavigationWorld` owns streamed tiles and invalidates paths by generation when a tile unloads. It only returns a desired velocity and never receives a `World` or writable `Transform`. The AI foundation uses fixed typed blackboard slots, a compact shared behavior program with per-tick deterministic traces, and a stimulus query with an explicit work/result budget. Configure with `-DNEXORA_ENABLE_GAMEPLAY_SIMULATION=OFF` to strip this implementation and run the feature-strip gate. The enabled test validates batched physics queries, ground/wall resolution, teleport, streaming-pending hold/resume, cross-tile navigation and stale-path invalidation, blackboard typing, behavior execution, and perception budgets.
 
+V2-M7's optional `NexoraAIIntegration::IntentAdapter` is a higher-level module that maps AI desired
+XZ direction and speed into Runtime's requested horizontal motion. It rejects non-finite direction
+components and invalid speeds and maps `Disabled` to a zero-motion hold. Runtime retains motor
+clamping and character ownership; the adapter runs synchronously and owns no state. It requires both
+`NEXORA_ENABLE_AI_RUNTIME_BRIDGE` and `NEXORA_ENABLE_GAMEPLAY_SIMULATION`, and is not linked into
+`NexoraRuntime` itself.
+
 ## V1-M7 input, UI, and localization runtime
 
 `InputUi.h` is the device-neutral input and UI boundary; unlike M8-M12 it has no feature-strip

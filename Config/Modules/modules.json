@@ -64,6 +64,14 @@
       ]
     },
     {
+      "name": "AIIntegration",
+      "feature": "NEXORA_ENABLE_AI_RUNTIME_BRIDGE",
+      "dependencies": [
+        "Runtime",
+        "AI"
+      ]
+    },
+    {
       "name": "Host",
       "dependencies": [
         "Runtime"
