@@ -5,6 +5,7 @@ add_library(NexoraRenderer ${NEXORA_MODULE_LIBRARY_TYPE}
   src/GPUScene.cpp
   src/PipelineCache.cpp
   src/RenderGraph.cpp)
+target_sources(NexoraRenderer PRIVATE src/SceneFrame.cpp)
 add_library(Nexora::Renderer ALIAS NexoraRenderer)
 target_include_directories(NexoraRenderer PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_link_libraries(NexoraRenderer PUBLIC Nexora::RHI)

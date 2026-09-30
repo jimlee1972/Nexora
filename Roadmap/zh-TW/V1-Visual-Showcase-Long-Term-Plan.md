@@ -291,6 +291,12 @@ Linux/Vulkan 是 Phase A cloud implementation slice；只有 virtual-display tes
 - 建立程序化 mesh/material，第一版不依賴大型外部資產。
 - 實作 Rendering Room 與 frame diagnostics。
 
+**Portable scene-frame foundation：✅ 完成；graphical binding 仍待完成。** Renderer 擁有經驗證的
+camera、indexed mesh、material、light、procedural cube 與 deterministic frame-resource contract。
+Headless validation 涵蓋 buffer、depth 與 sampled texture、sampler-policy count、indexed
+submission、failure、lifetime 與 shutdown。Native Vulkan binding、互動式 Rendering Room 輸出、
+Xvfb/lavapipe evidence 及其他 target-host evidence 仍待完成。
+
 ### Phase C — Probe 與 V1 Validation Lab
 
 目標：Demo 可以逐一觸發 M0～M12 probe，並輸出 JSON/Markdown 報告。

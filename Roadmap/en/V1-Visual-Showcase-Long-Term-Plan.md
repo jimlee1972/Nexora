@@ -292,6 +292,12 @@ Goal: the Hub scene shows a genuinely interactive 3D frame.
 - Build procedural mesh/material content so the first version does not depend on large external assets.
 - Implement the Rendering Room and frame diagnostics.
 
+**Portable scene-frame foundation: ✅ complete; graphical binding remains open.** Renderer owns
+validated camera, indexed mesh, material, light, procedural cube, and deterministic frame-resource
+contracts. Headless validation covers buffers, depth and sampled textures, sampler-policy counts,
+indexed submission, failures, lifetime, and shutdown. Native Vulkan binding, interactive Rendering
+Room output, Xvfb/lavapipe evidence, and other target-host evidence remain open.
+
 ### Phase C -- Probe and V1 Validation Lab
 
 Goal: the Demo can trigger each M0-M12 probe individually and emit a JSON/Markdown report.

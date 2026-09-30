@@ -19,6 +19,8 @@ public:
   void BindVertexBuffer(BufferHandle buffer, std::uint64_t offset) override;
   void BindIndexBuffer(BufferHandle buffer, IndexFormat format, std::uint64_t offset) override;
   void BindTexture(std::uint32_t binding, TextureHandle texture) override;
+  void BindConstantBuffer(std::uint32_t binding, BufferHandle buffer,
+                          std::uint64_t offset) override;
   void BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) override;
   void BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset, std::uint32_t stride) override;
   void SetScissor(const ScissorRect &rect) override;
@@ -268,6 +270,12 @@ void ValidationCommandList::BindTexture(std::uint32_t, TextureHandle texture) {
     throw std::logic_error("texture binding requires rendering");
   device_.ValidateSampledTexture(texture);
   texture_bound_ = true;
+}
+void ValidationCommandList::BindConstantBuffer(std::uint32_t, BufferHandle buffer,
+                                               std::uint64_t offset) {
+  if (submitted_ || !rendering_)
+    throw std::logic_error("constant-buffer binding requires rendering");
+  device_.ValidateBuffer(buffer, offset);
 }
 void ValidationCommandList::BindStorageBuffer(std::uint32_t, BufferHandle buffer) {
   if (submitted_ || rendering_)
