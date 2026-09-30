@@ -1203,7 +1203,7 @@ Output type
 > 及 indirect-command generation。Portable compute／indirect recording、RenderGraph queue
 > ownership、CPU／GPU comparison 與 no-readback diagnostics 現已有 contract test 覆蓋；native
 > Vulkan 已有完整 compute 實作，以及在 indirect draw 前強制通過 `CompareGPUDrivenResults()` 的 native gate。
-> Slang-enabled Linux Vulkan 證據、DX12／Metal execution 與完整 target-tier parity 仍須完成後才能驗收。
+> Slang-enabled Linux Vulkan 專項測試現已於 Mesa lavapipe 通過，並將輸出與 CPU reference 比對。完整 `linux-development` gate 仍因雲端環境缺少 `clang++` 而待完成；DX12／Metal execution 與完整 target-tier parity 也仍是驗收必要條件.
 
 Repository 證據清單：
 
@@ -1213,8 +1213,8 @@ Repository 證據清單：
 - ✅ CPU／backend comparison 與 normal-path no-readback diagnostics。
 - ✅ Linux offscreen gate 的 native Vulkan indirect execution。
 - ✅ Native Vulkan compute-pipeline dispatch 與 storage-buffer binding/readback 驗收。
-- 完整 native Vulkan compute 實作與強制 CPU／GPU comparison（驗收證據待補）。
-- [ ] Slang-enabled Linux Vulkan 證據、DX12／Metal execution 與完整 target-tier parity。
+- ✅ 透過 RenderGraph 的 Vulkan native compute 實作與強制 CPU／GPU 比對專項測試（Mesa lavapipe；`CompareGPUDrivenResults()` 通過）。
+- [ ] 完整 `linux-development` gate、DX12／Metal execution 與完整 target-tier parity。
 
 核心資料：
 
