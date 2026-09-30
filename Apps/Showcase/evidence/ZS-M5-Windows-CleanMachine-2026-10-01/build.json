@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "application": "NexoraShowcase",
+  "profile": "Development",
+  "gameplay_linkage": "dynamic",
+  "launch": "bin/NexoraShowcase.exe --headless --scene=tour --frames=1 --no-reload --gameplay-module=dynamic --gameplay-library=bin/NexoraZigGameplay.dll --report=launch-report.json"
+}

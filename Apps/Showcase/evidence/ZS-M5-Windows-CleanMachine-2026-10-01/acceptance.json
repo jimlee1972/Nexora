@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "acceptance": "ZS-M5 Windows clean-machine distribution",
+  "result": "PASS",
+  "recorded_local": "2026-10-01T01:52:45.5993577+08:00",
+  "recorded_utc": "2026-09-30T17:52:45.6058518Z",
+  "source_commit": "631f506463a2765dd84a0423b0811650ef8206e6",
+  "target": {
+    "provisioning": "independently provisioned VirtualBox guest from Windows ISO",
+    "vm_name": "Nexora-ZS-M5-CleanMachine-Win10",
+    "vm_uuid": "71571b18-806d-425b-ad19-712c9043663d",
+    "base_snapshot": "ZS-M5-Clean-Windows10-Base-NoMedia",
+    "base_snapshot_uuid": "9d46e380-d1e3-46d5-8847-fe2bd889d4e8",
+    "guest_hostname": "nexora-zs-m5",
+    "guest_os": "Microsoft Windows 10 version 10.0.19045.3803",
+    "virtualbox": "7.2.20r175154",
+    "cpu_count": 2,
+    "memory_mb": 6144,
+    "firmware": "BIOS",
+    "network": "NAT",
+    "iso_path": "E:\\Downloads\\Windows10.iso",
+    "iso_sha256": "c548feffb69bf0e9839fc96706058d8406f276f2822e22f41422840bb68c5cb6"
+  },
+  "package": {
+    "profile": "Development",
+    "gameplay_linkage": "dynamic",
+    "source_package": "build/windows-zig-showcase/package/NexoraShowcase-Development",
+    "guest_package_root": "C:\\NexoraShowcase-Development",
+    "build_manifest": "build.json",
+    "checksum_manifest": "SHA256SUMS",
+    "checksums_verified": 16,
+    "checksum_manifest_sha256": "a674afa1bab4f8d36b14a1611d92d9099573dd166c652e0ac84272d81a3740fb"
+  },
+  "launch": {
+    "command": "bin/NexoraShowcase.exe --headless --scene=tour --frames=1 --no-reload --gameplay-module=dynamic --gameplay-library=bin/NexoraZigGameplay.dll --report=launch-report.json",
+    "guest_working_directory": "C:\\NexoraShowcase-Development",
+    "exit_code": 0,
+    "report_file": "launch-report.json",
+    "report_status": "PASS",
+    "report_build_id": "631f506463a2",
+    "mode": "headless",
+    "backend": "validation",
+    "windowed_native_backend": "NOT EXECUTED",
+    "launch_report_sha256": "c98fd34aec1d120e754a9a515ed45aebd40c6e4a8e727cfbc4857b1488374222"
+  },
+  "evidence_files": [
+    "acceptance.json",
+    "acceptance.md",
+    "launch-report.json",
+    "build.json",
+    "content.json",
+    "SHA256SUMS"
+  ]
+}

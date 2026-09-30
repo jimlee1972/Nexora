@@ -1,11 +1,11 @@
 # Nexora Zig Showcase 與 Engine-owned Entry Point Roadmap
 
-> 版本：v1.0｜狀態：規劃基線｜更新：2026-09-29
+> 版本：v1.0｜狀態：規劃基線｜更新：2026-10-01
 
-> **進度：90%**（截至 2026-09-29；依第 4 節 6 個 milestone 的加權驗收清單計算，
+> **進度：100%**（截至 2026-10-01；依第 4 節 6 個 milestone 的加權驗收清單計算，
 > 已完成項目以 ✅ 標示，結果向下取整至 10%。）
 
-**施工狀態（2026-09-24）：** ZS-M0 至 ZS-M4 已完成。ABI V3 現在定義明確的 result 與 capability 值、
+**施工狀態（2026-10-01）：** ZS-M0 至 ZS-M5 已完成。ABI V3 現在定義明確的 result 與 capability 值、
 分離 create/start/stop/destroy 階段、可回報失敗的 variable/fixed update，以及 C++ Host 的
 transactional state migration；repository 內的 C++ fake module 會驗證此 contract。Zig module
 現在會透過成對的 V3 host allocator callback 取得與釋放獨立 state，reload candidate
@@ -89,17 +89,17 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
 - **✅ ZS-M4 Reload and failure**：transactional hot reload、state migration、錯誤 module/ABI rejection、舊版本 rollback。
   - ✅ 真正 dynamic generations 的 job drain、restore failure、old-generation rollback、shutdown-during-reload 與 repeated reload stress。
   - ✅ Dynamic library replacement 會等待檔案大小與寫入時間穩定後才載入；host 記錄帶 generation 的 update/fixed-update failure，Presentation 並將 device lost 明確分類為 device recreation，而非 surface retry。
-- **ZS-M5 Distribution**：Development dynamic 與 Shipping static/packaged profiles，產生 license/build/API manifest。
+- **✅ ZS-M5 Distribution**：Development dynamic 與 Shipping static/packaged profiles，產生 license/build/API manifest。
   - ✅ 可重現的 Development-dynamic 與 Shipping-static package target 會產生 license、
     build/API/content manifest、逐 artifact SHA-256 digest 與 `SHA256SUMS`。
-  - 待辦：在獨立配置的乾淨 target machine 執行產物記錄的 command 並保留 launch 證據。
-    CI runner 或開發工作站的結果尚不足以通過這項最終驗收。
+  - ✅ 獨立配置的 Windows 10 target 已在 package root 驗證全部 16 個 `SHA256SUMS` 項目，
+    執行產物記錄的 command 並取得 exit code 0 與 `launch-report.json` 的 `PASS`；
+    證據保留於 [acceptance record](../../Apps/Showcase/evidence/ZS-M5-Windows-CleanMachine-2026-10-01/acceptance.md)。
   - ✅ Linux clean-package evidence 會驗證全部 checksum、建立全新的隔離副本，從該副本啟動
-    relocatable dynamic package，並保留 report／exit status。其他 target host 與獨立配置機器
-    的驗收仍待完成。
+    relocatable dynamic package，並保留 report／exit status。其他 target host 的驗收仍待完成。
   - ✅ Windows 開發工作站上，Development-dynamic 與 Shipping-monolithic/static 套件的隔離副本
-    分別通過 13 與 5 個 checksum、依記錄命令啟動並產出 `PASS` report。這是 Windows target-host
-    證據，尚非獨立配置的乾淨機器驗收；CI workflow 已配置兩種 package evidence target。
+    分別通過 13 與 5 個 checksum、依記錄命令啟動並產出 `PASS` report。這是 Windows 開發工作站
+    證據，與上方記錄的獨立配置乾淨機器驗收分開；CI workflow 已配置兩種 package evidence target。
 
 ## 5. 測試與驗收
 

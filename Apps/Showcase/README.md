@@ -94,7 +94,8 @@ when their host-owned world is destroyed.
 ## Reproducible packages
 
 The `NexoraShowcasePackageDevelopment` target creates a Development/Modular package containing the
-executable, dynamic Zig gameplay module, and required engine DLLs on Windows.
+executable, dynamic Zig gameplay module, required engine DLLs, and the MSVC CRT redistributable DLLs
+on Windows, so a clean target does not need a separately installed Visual C++ runtime.
 `NexoraShowcasePackageShipping` creates the static Shipping/Monolithic layout and is available only
 from a Monolithic build. Both use the same deterministic
 packaging command and emit `build.json`, the public API manifest, a content manifest with SHA-256

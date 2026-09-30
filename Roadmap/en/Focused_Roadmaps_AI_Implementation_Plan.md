@@ -1,11 +1,11 @@
 # Engine API, Zig Showcase, and Editor: AI Implementation Technology and System Plan
 
-> Version: v1.0 | Status: active delivery | Updated: 2026-09-24
+> Version: v1.0 | Status: active delivery | Updated: 2026-10-01
 
 
-> **Progress: 60%** (API 100%, Zig Showcase 90%, and Editor 0%; arithmetic mean 63.3%, rounded down to 10%.)
+> **Progress: 60%** (API 100%, Zig Showcase 100%, and Editor 0%; arithmetic mean 66.6%, rounded down to 10%.)
 
-**Accepted delivery:** ✅ Engine API Foundation portable scope and ✅ Zig Showcase ZS-M0 through ZS-M4. **Open:** Zig Showcase ZS-M5 independently provisioned clean-target distribution acceptance and all graphical Editor delivery gates. Windows workstation package launch evidence is available for both Development and Shipping, but does not close ZS-M5.
+**Accepted delivery:** ✅ Engine API Foundation portable scope and ✅ Zig Showcase ZS-M0 through ✅ ZS-M5. **Open:** all graphical Editor delivery gates. The independent Windows clean-machine acceptance is recorded in [the ZS-M5 acceptance record](../../Apps/Showcase/evidence/ZS-M5-Windows-CleanMachine-2026-10-01/acceptance.md).
 
 ## 1. Analysis and critical path
 
