@@ -2279,8 +2279,10 @@ perception/decision/navigation LOD with dormancy, a batch `IPolicyRuntime` that 
 The `ai.v2_m7_navigation_crowd_policy` contract queues 5,000 navigation requests with a hard
 32-query-per-tick budget and checks 5,000 far-agent phase staggering. The optional
 `NexoraAIIntegration` module now projects valid AI `CharacterIntent` locomotion into Runtime's
-horizontal motor input without changing either module's dependency direction. Production NavMesh
-streaming, job-system adapters, policy backends, and multi-world training
+horizontal motor input without changing either module's dependency direction. A portable
+multi-world self-play coordinator adds deterministic world seeds, a per-tick service budget,
+round-robin fairness, per-world deferred-policy cache isolation, and failure containment. Production
+NavMesh streaming, job-system adapters, policy backends, and large-scale/distributed training
 orchestration remain open.
 
 ---

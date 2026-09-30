@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -332,6 +333,68 @@ private:
   [[nodiscard]] SelfPlayFrame Capture() const;
   ISelfPlayEnvironment &environment_;
   std::uint64_t step_{};
+};
+
+using SelfPlayWorldId = std::uint64_t;
+
+enum class SelfPlayWorldState : std::uint8_t { Pending, Active, Completed, Failed };
+
+struct SelfPlayWorldSnapshot final {
+  SelfPlayWorldId id{};
+  std::uint64_t seed{};
+  SelfPlayWorldState state{SelfPlayWorldState::Pending};
+  std::optional<SelfPlayFrame> frame;
+  std::string failure;
+  bool used_fallback{};
+  bool reused_cached_action{};
+};
+
+struct SelfPlayOrchestratorTick final {
+  std::size_t processed_worlds{};
+  std::size_t deferred_worlds{};
+  std::vector<SelfPlayWorldSnapshot> updates;
+};
+
+struct SelfPlayOrchestratorStats final {
+  std::size_t registered_worlds{};
+  std::size_t pending_worlds{};
+  std::size_t active_worlds{};
+  std::size_t completed_worlds{};
+  std::size_t failed_worlds{};
+  std::uint64_t simulation_steps{};
+  std::size_t max_processed_per_tick{};
+};
+
+// Budgeted synchronous orchestration across caller-owned independent self-play environments.
+class NEXORA_AI_API SelfPlayBatchOrchestrator final {
+public:
+  SelfPlayBatchOrchestrator(IPolicyRuntime &runtime, AIAction fallback_action,
+                            std::uint64_t max_stale_ticks, std::uint64_t base_seed,
+                            std::size_t max_worlds, std::size_t worlds_per_tick);
+  ~SelfPlayBatchOrchestrator();
+  SelfPlayBatchOrchestrator(const SelfPlayBatchOrchestrator &) = delete;
+  SelfPlayBatchOrchestrator &operator=(const SelfPlayBatchOrchestrator &) = delete;
+
+  [[nodiscard]] std::optional<SelfPlayWorldId> AddWorld(ISelfPlayEnvironment &environment);
+  bool Retire(SelfPlayWorldId world);
+  [[nodiscard]] SelfPlayOrchestratorTick Tick(std::uint64_t tick);
+  [[nodiscard]] std::vector<SelfPlayWorldSnapshot> Snapshot() const;
+  [[nodiscard]] const SelfPlayOrchestratorStats &Stats() const noexcept { return stats_; }
+
+private:
+  struct Slot;
+  void RefreshStats() noexcept;
+
+  IPolicyRuntime &runtime_;
+  AIAction fallback_action_{};
+  std::uint64_t max_stale_ticks_{};
+  std::uint64_t base_seed_{};
+  std::size_t max_worlds_{};
+  std::size_t worlds_per_tick_{};
+  SelfPlayWorldId next_world_id_{1};
+  std::size_t next_slot_{};
+  std::vector<std::unique_ptr<Slot>> slots_;
+  SelfPlayOrchestratorStats stats_{};
 };
 
 } // namespace nexora::ai

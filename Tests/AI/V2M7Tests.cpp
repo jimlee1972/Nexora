@@ -50,7 +50,12 @@ private:
 
 class FakeEnvironment final : public ISelfPlayEnvironment {
 public:
+  explicit FakeEnvironment(std::uint64_t done_after = 2, bool fail_reset = false)
+      : done_after_(done_after), fail_reset_(fail_reset) {}
+
   bool Reset(std::uint64_t seed) override {
+    if (fail_reset_)
+      return false;
     seed_ = seed;
     step_ = 0;
     done_ = false;
@@ -67,16 +72,37 @@ public:
   }
   bool StepSimulation() override {
     ++step_;
-    done_ = step_ >= 2;
+    done_ = step_ >= done_after_;
     return true;
   }
   std::vector<double> Rewards() const override { return {last_.character.desired_speed}; }
   bool Done() const override { return done_; }
+  [[nodiscard]] std::uint32_t LastActionId() const noexcept { return last_.action_id; }
 
 private:
   std::uint64_t seed_{}, step_{};
+  std::uint64_t done_after_{};
+  bool fail_reset_{};
   bool done_{};
   AIAction last_{};
+};
+
+class DeferredAfterFirstPolicy final : public IPolicyRuntime {
+public:
+  const char *PolicyId() const noexcept override { return "deferred-after-first"; }
+  std::uint64_t PolicyVersion() const noexcept override { return 1; }
+  PolicyEvaluationStatus Evaluate(std::span<const PolicyObservation> observations,
+                                  std::vector<AIAction> &actions) override {
+    actions.clear();
+    if (calls_++ != 0)
+      return PolicyEvaluationStatus::Deferred;
+    for (const auto &observation : observations)
+      actions.push_back({static_cast<std::uint32_t>(observation.agent), {}});
+    return PolicyEvaluationStatus::Ready;
+  }
+
+private:
+  std::uint32_t calls_{};
 };
 } // namespace
 
@@ -267,6 +293,62 @@ int main() {
   const auto step2 = bridge.Step(policy_actions);
   Require(step2 && step2->done && step2->step == 2, "self-play termination failed");
   Require(!bridge.Step(policy_actions), "self-play accepted actions after termination");
+
+  const AIAction runner_fallback{
+      999, {{0, 0, 0}, 0.5, {0, 0, 1}, CharacterMovementMode::Grounded, 0}};
+  DeferredAfterFirstPolicy deferred_policy;
+  SelfPlayBatchOrchestrator orchestrator{deferred_policy, runner_fallback, 2, 1234, 2, 1};
+  FakeEnvironment world_a{10};
+  FakeEnvironment world_b{10};
+  const auto world_a_id = orchestrator.AddWorld(world_a);
+  const auto duplicate_world_rejected = !orchestrator.AddWorld(world_a);
+  const auto world_b_id = orchestrator.AddWorld(world_b);
+  const auto capacity_rejected = !orchestrator.AddWorld(environment);
+  Require(world_a_id && world_b_id && duplicate_world_rejected && capacity_rejected &&
+              !orchestrator.Retire(*world_a_id),
+          "self-play world registration, capacity, or active retirement contract failed");
+  const auto seeds = orchestrator.Snapshot();
+  Require(seeds.size() == 2 && seeds[0].seed != seeds[1].seed,
+          "self-play world seed derivation was not distinct");
+
+  SelfPlayBatchOrchestrator same_seed_orchestrator{deferred_policy, runner_fallback, 2, 1234, 2, 1};
+  FakeEnvironment same_seed_world_a{10};
+  Require(same_seed_orchestrator.AddWorld(same_seed_world_a) &&
+              same_seed_orchestrator.Snapshot()[0].seed == seeds[0].seed,
+          "self-play world seeds were not deterministic");
+
+  const auto first_world_tick = orchestrator.Tick(0);
+  const auto second_world_tick = orchestrator.Tick(1);
+  const auto first_world_again = orchestrator.Tick(2);
+  Require(first_world_tick.processed_worlds == 1 && first_world_tick.deferred_worlds == 1 &&
+              first_world_tick.updates[0].id == *world_a_id &&
+              second_world_tick.updates[0].id == *world_b_id &&
+              second_world_tick.updates[0].used_fallback && world_b.LastActionId() == 999 &&
+              first_world_again.updates[0].id == *world_a_id &&
+              first_world_again.updates[0].reused_cached_action && world_a.LastActionId() == 1,
+          "self-play budget fairness or per-world policy cache isolation failed");
+  Require(orchestrator.Stats().simulation_steps == 3 &&
+              orchestrator.Stats().max_processed_per_tick == 1 &&
+              orchestrator.Stats().active_worlds == 2,
+          "self-play bounded orchestration stats are inconsistent");
+
+  SelfPlayBatchOrchestrator failure_orchestrator{policy, runner_fallback, 0, 7, 2, 1};
+  FakeEnvironment healthy_world{10};
+  FakeEnvironment failed_world{10, true};
+  const auto healthy_id = failure_orchestrator.AddWorld(healthy_world);
+  const auto failed_id = failure_orchestrator.AddWorld(failed_world);
+  const auto healthy_tick = failure_orchestrator.Tick(0);
+  const auto failed_tick = failure_orchestrator.Tick(1);
+  const auto healthy_again = failure_orchestrator.Tick(2);
+  Require(healthy_id && failed_id && healthy_tick.updates[0].id == *healthy_id &&
+              failed_tick.updates.size() == 1 &&
+              failed_tick.updates[0].id == *failed_id &&
+              failed_tick.updates[0].state == SelfPlayWorldState::Failed &&
+              healthy_again.updates[0].id == *healthy_id &&
+              failure_orchestrator.Stats().active_worlds == 1 &&
+              failure_orchestrator.Stats().failed_worlds == 1 &&
+              failure_orchestrator.Retire(*failed_id),
+          "self-play world failure was not isolated from healthy worlds");
 
   return 0;
 }

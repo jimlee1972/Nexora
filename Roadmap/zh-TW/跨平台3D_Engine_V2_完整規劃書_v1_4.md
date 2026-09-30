@@ -4005,7 +4005,10 @@ Replay
 > 5,000 個 navigation request 並限制每 tick 最多 32 個 query，也會驗證 5,000 個 far
 > agent 的 phase staggering。新增的 optional `NexoraAIIntegration` module 可將有效 AI
 > `CharacterIntent` locomotion 投影到 Runtime 的水平 motor input，並維持兩模組的依賴邊界。
-> Production NavMesh streaming、job-system adapter、policy backend 與 multi-world training orchestration 仍待完成，
+> Production NavMesh streaming、job-system adapter 與 policy backend 仍待完成。Portable
+> multi-world self-play coordinator 現可依 world ID 推導 deterministic seed、限制每 tick 服務
+> 數量、輪轉公平排程、隔離各 world 的 deferred-policy cache，並限制環境失敗影響範圍。Production
+> training 與 distributed orchestration 仍待完成，
 > 因此 V2-M7 尚未驗收。
 
 施工：
@@ -4019,6 +4022,7 @@ Perception LOD
 Influence / Cost Field
 Learned Policy Runtime Interface
 Self-play Bridge
+Budgeted Multi-world Self-play Orchestrator
 ```
 
 **Gate：**

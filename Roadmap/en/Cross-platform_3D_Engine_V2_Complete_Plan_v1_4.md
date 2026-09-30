@@ -3996,8 +3996,10 @@ Replay
 > against a 32-query-per-tick budget and checks 5,000 far-agent phase staggering. The optional
 > `NexoraAIIntegration` module projects valid AI `CharacterIntent` locomotion into Runtime's
 > horizontal motor input while preserving both modules' dependency boundaries. Production NavMesh
-> streaming, job-system adapters, policy backends, and multi-world
-> training orchestration remain open, so V2-M7 is not yet accepted.
+> streaming, job-system adapters, and policy backends remain open. A portable multi-world self-play
+> coordinator now derives deterministic world seeds, bounds worlds serviced per tick, rotates service
+> fairly, isolates per-world deferred-policy caches, and contains environment failures. Production
+> training and distributed orchestration remain open, so V2-M7 is not yet accepted.
 
 Construction:
 
@@ -4010,6 +4012,7 @@ Perception LOD
 Influence / Cost Field
 Learned Policy Runtime Interface
 Self-play Bridge
+Budgeted Multi-world Self-play Orchestrator
 ```
 
 **Gate:**

@@ -45,9 +45,20 @@ until an external relevance change wakes them.
 actions, fixed simulation step, rewards, and termination are explicit. It does not include an
 engine-native trainer or ML framework dependency.
 
-All objects are caller-owned and not thread-safe. Returned vectors own their storage. The portable
-contract test includes 5,000 navigation requests with a hard 32-query tick budget, 5,000 far-agent
-phase staggering, stale-query rejection, crowd intent-only output, deterministic Utility AI,
-learned-policy action compatibility, influence cost sampling, and the self-play reset/step lifecycle.
-Production NavMesh streaming, job-system adapters, runtime character integration, policy backends,
-and large multi-world training orchestration remain later V2-M7 work packages.
+`SelfPlayBatchOrchestrator` is the first portable multi-world coordinator. It derives stable seeds
+from a caller-supplied base seed and world ID, bounds registered worlds and worlds serviced per tick,
+and uses round-robin scheduling so an active world is advanced at most once per call. Environments
+and the shared policy runtime are borrowed; each world owns an independent bridge and policy-result
+cache, preventing a deferred action batch from leaking between simulations. Reset/action/step
+failures and callback exceptions fail only the affected world. Snapshots own their returned frame
+data, and completed or failed worlds may be explicitly retired to release a slot. The coordinator is
+synchronous, caller-thread-only, non-reentrant, and not thread-safe; it does not create workers,
+batch inference across worlds, or provide a trainer/distributed service.
+
+AI objects and environments are caller-owned and not thread-safe. Returned vectors own their
+storage. The portable contract test includes 5,000 navigation requests with a hard 32-query tick
+budget, 5,000 far-agent phase staggering, stale-query rejection, crowd intent-only output,
+deterministic Utility AI, learned-policy action compatibility, influence cost sampling, single-world
+self-play lifecycle, bounded/fair multi-world service, deterministic world seeds, per-world deferred
+policy isolation, and failure isolation. Production NavMesh streaming, job-system adapters, policy
+backends, and large-scale/distributed multi-world training remain later V2-M7 work packages.
