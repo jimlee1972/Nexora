@@ -276,6 +276,7 @@ UI、headless report、CTest adapter 與 Guided Tour 都消費同一份結果。
 - 已實作、待 native 驗收：Linux/X11/Vulkan windowed startup 與 bounded shutdown。
 - 已實作、待 native 驗收：透過 `CompositeRgba8` 顯示 clear color、triangle 與 diagnostics panel。
 - 已實作、待 native 驗收：以 `showcase.linux_vulkan_virtual_display` 在 Xvfb 下驗證 resize/swapchain recreation，以及 startup/present/shutdown。
+- ✅ Linux CI gate 會配置 Xvfb，且 virtual display 不可用時會 fail 而非 skip；Phase A 仍須有一次通過且非 skip 的執行才能驗收。
 - ✅ 維持 validation-RHI headless execution不變，並將 headless/windowed evidence 分成不同 JSON object。
 
 Linux/Vulkan 是 Phase A cloud implementation slice；只有 virtual-display test 實際執行而非 skip 後才算驗收；本次 Linux 執行不宣稱既有 Windows/DX12 與 macOS/Metal adapter 已通過 target-host 驗收。
