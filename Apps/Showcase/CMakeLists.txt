@@ -119,6 +119,10 @@ if(BUILD_TESTING)
       "Gameplay Lab.*CONTRACT ONLY.*Presentation Lab.*CONTRACT ONLY.*Streaming Lab.*UNAVAILABLE")
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(
+      NAME showcase.linux_vulkan_evidence_policy
+      COMMAND "${Python3_EXECUTABLE}"
+              "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVirtualDisplaySmokeTests.py")
+    add_test(
       NAME showcase.linux_vulkan_virtual_display
       COMMAND "${Python3_EXECUTABLE}"
               "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVirtualDisplaySmoke.py"

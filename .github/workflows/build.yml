@@ -73,7 +73,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev
+          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb
       - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }}
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}

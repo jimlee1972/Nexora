@@ -11,13 +11,21 @@ import tempfile
 import time
 
 
+def unavailable(message: str) -> int:
+    """Treat missing native evidence as a CI failure and a local skip."""
+    if os.environ.get("CI", "").lower() == "true":
+        print(f"FAIL: {message}; CI requires Linux virtual-display acceptance")
+        return 1
+    print(f"SKIP: {message}; virtual-display acceptance was not executed")
+    return 77
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         raise SystemExit("usage: LinuxVirtualDisplaySmoke.py NEXORA_SHOWCASE")
     xvfb = shutil.which("Xvfb")
     if xvfb is None:
-        print("SKIP: Xvfb is not installed; virtual-display acceptance was not executed")
-        return 77
+        return unavailable("Xvfb is not installed")
 
     with tempfile.TemporaryDirectory(prefix="nexora-showcase-") as temporary:
         report = Path(temporary) / "windowed.json"
@@ -31,8 +39,7 @@ def main() -> int:
         try:
             time.sleep(0.5)
             if server.poll() is not None:
-                print(f"SKIP: Xvfb failed to start: {server.stderr.read().strip()}")
-                return 77
+                return unavailable(f"Xvfb failed to start: {server.stderr.read().strip()}")
             environment = os.environ.copy()
             environment["DISPLAY"] = display
             completed = subprocess.run(

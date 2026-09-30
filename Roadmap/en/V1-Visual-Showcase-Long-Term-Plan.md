@@ -277,6 +277,7 @@ Goal: produce a first `NexoraShowcase.exe` that can open a window, close it, res
 - Implemented pending native acceptance: Linux/X11/Vulkan windowed startup and bounded shutdown.
 - Implemented pending native acceptance: clear color, triangle, and diagnostics panel through `CompositeRgba8`.
 - Implemented pending native acceptance: `showcase.linux_vulkan_virtual_display` exercises resize/swapchain recreation and startup/present/shutdown under Xvfb.
+- ✅ The Linux CI gate provisions Xvfb and fails, rather than skips, when the virtual display is unavailable; a passing non-skip run is still required before accepting Phase A.
 - ✅ Keep validation-RHI headless execution unchanged and report headless/windowed evidence in separate JSON objects.
 
 Linux/Vulkan is the Phase A cloud implementation slice; it becomes accepted only after the virtual-display test executes rather than skips. Existing Windows/DX12 and macOS/Metal adapters are not claimed as target-host acceptance by this Linux run.
