@@ -2,9 +2,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <exception>
 #include <functional>
+#include <iterator>
 #include <limits>
+#include <memory>
 #include <queue>
+#include <stdexcept>
 #include <unordered_set>
 #include <utility>
 
@@ -509,6 +513,173 @@ std::optional<SelfPlayFrame> SelfPlayBridge::Step(std::span<const AIAction> acti
     return std::nullopt;
   ++step_;
   return Capture();
+}
+
+struct SelfPlayBatchOrchestrator::Slot final {
+  Slot(SelfPlayWorldId world_id, std::uint64_t world_seed, ISelfPlayEnvironment &world_environment,
+       IPolicyRuntime &policy_runtime, AIAction fallback_action, std::uint64_t max_stale_ticks)
+      : snapshot{world_id, world_seed, SelfPlayWorldState::Pending, std::nullopt, {}, false, false},
+        environment(world_environment), bridge(environment),
+        policy(policy_runtime, fallback_action, max_stale_ticks) {}
+
+  SelfPlayWorldSnapshot snapshot;
+  ISelfPlayEnvironment &environment;
+  SelfPlayBridge bridge;
+  PolicyRuntimeDriver policy;
+};
+
+namespace {
+std::uint64_t DeriveSelfPlaySeed(std::uint64_t base_seed, SelfPlayWorldId world) noexcept {
+  auto value = base_seed + world + 0x9e3779b97f4a7c15ULL;
+  value = (value ^ (value >> 30U)) * 0xbf58476d1ce4e5b9ULL;
+  value = (value ^ (value >> 27U)) * 0x94d049bb133111ebULL;
+  return value ^ (value >> 31U);
+}
+} // namespace
+
+SelfPlayBatchOrchestrator::SelfPlayBatchOrchestrator(
+    IPolicyRuntime &runtime, AIAction fallback_action, std::uint64_t max_stale_ticks,
+    std::uint64_t base_seed, std::size_t max_worlds, std::size_t worlds_per_tick)
+    : runtime_(runtime), fallback_action_(fallback_action), max_stale_ticks_(max_stale_ticks),
+      base_seed_(base_seed), max_worlds_(max_worlds), worlds_per_tick_(worlds_per_tick) {
+  if (max_worlds_ == 0 || worlds_per_tick_ == 0)
+    throw std::invalid_argument("self-play world and per-tick budgets must be non-zero");
+  slots_.reserve(max_worlds_);
+}
+
+SelfPlayBatchOrchestrator::~SelfPlayBatchOrchestrator() = default;
+
+std::optional<SelfPlayWorldId>
+SelfPlayBatchOrchestrator::AddWorld(ISelfPlayEnvironment &environment) {
+  if (slots_.size() >= max_worlds_ || next_world_id_ == 0)
+    return std::nullopt;
+  for (const auto &slot : slots_)
+    if (&slot->environment == &environment)
+      return std::nullopt;
+
+  const auto id = next_world_id_++;
+  slots_.push_back(std::make_unique<Slot>(id, DeriveSelfPlaySeed(base_seed_, id), environment,
+                                          runtime_, fallback_action_, max_stale_ticks_));
+  RefreshStats();
+  return id;
+}
+
+bool SelfPlayBatchOrchestrator::Retire(SelfPlayWorldId world) {
+  const auto found = std::ranges::find_if(slots_, [world](const auto &slot) {
+    return slot->snapshot.id == world &&
+           (slot->snapshot.state == SelfPlayWorldState::Completed ||
+            slot->snapshot.state == SelfPlayWorldState::Failed);
+  });
+  if (found == slots_.end())
+    return false;
+
+  const auto index = static_cast<std::size_t>(std::distance(slots_.begin(), found));
+  slots_.erase(found);
+  if (slots_.empty())
+    next_slot_ = 0;
+  else {
+    if (index < next_slot_)
+      --next_slot_;
+    next_slot_ %= slots_.size();
+  }
+  RefreshStats();
+  return true;
+}
+
+SelfPlayOrchestratorTick SelfPlayBatchOrchestrator::Tick(std::uint64_t tick) {
+  SelfPlayOrchestratorTick result;
+  if (slots_.empty())
+    return result;
+  const auto eligible_worlds = stats_.pending_worlds + stats_.active_worlds;
+
+  std::size_t scanned = 0;
+  while (scanned < slots_.size() && result.processed_worlds < worlds_per_tick_) {
+    auto &slot = *slots_[next_slot_];
+    next_slot_ = (next_slot_ + 1) % slots_.size();
+    ++scanned;
+    auto &snapshot = slot.snapshot;
+    if (snapshot.state == SelfPlayWorldState::Completed ||
+        snapshot.state == SelfPlayWorldState::Failed)
+      continue;
+
+    ++result.processed_worlds;
+    try {
+      if (snapshot.state == SelfPlayWorldState::Pending) {
+        auto initial = slot.bridge.Reset(snapshot.seed);
+        if (!initial) {
+          snapshot.state = SelfPlayWorldState::Failed;
+          snapshot.failure = "environment reset failed";
+          result.updates.push_back(snapshot);
+          continue;
+        }
+        snapshot.frame = std::move(*initial);
+        snapshot.state = snapshot.frame->done ? SelfPlayWorldState::Completed
+                                              : SelfPlayWorldState::Active;
+      }
+
+      if (snapshot.state == SelfPlayWorldState::Active) {
+        auto policy_result = slot.policy.Evaluate(snapshot.frame->observations, tick);
+        snapshot.used_fallback = policy_result.used_fallback;
+        snapshot.reused_cached_action = policy_result.reused_cached;
+        auto next = slot.bridge.Step(policy_result.actions);
+        if (!next) {
+          snapshot.state = SelfPlayWorldState::Failed;
+          snapshot.failure = "environment action or simulation step failed";
+        } else {
+          snapshot.frame = std::move(*next);
+          ++stats_.simulation_steps;
+          if (snapshot.frame->done)
+            snapshot.state = SelfPlayWorldState::Completed;
+        }
+      }
+    } catch (const std::exception &error) {
+      snapshot.state = SelfPlayWorldState::Failed;
+      snapshot.failure = std::string("self-play callback threw: ") + error.what();
+    } catch (...) {
+      snapshot.state = SelfPlayWorldState::Failed;
+      snapshot.failure = "self-play callback threw an unknown exception";
+    }
+    result.updates.push_back(snapshot);
+  }
+
+  RefreshStats();
+  stats_.max_processed_per_tick =
+      std::max(stats_.max_processed_per_tick, result.processed_worlds);
+  result.deferred_worlds = eligible_worlds - result.processed_worlds;
+  return result;
+}
+
+std::vector<SelfPlayWorldSnapshot> SelfPlayBatchOrchestrator::Snapshot() const {
+  std::vector<SelfPlayWorldSnapshot> snapshots;
+  snapshots.reserve(slots_.size());
+  for (const auto &slot : slots_)
+    snapshots.push_back(slot->snapshot);
+  return snapshots;
+}
+
+void SelfPlayBatchOrchestrator::RefreshStats() noexcept {
+  const auto simulation_steps = stats_.simulation_steps;
+  const auto max_processed = stats_.max_processed_per_tick;
+  stats_ = {};
+  stats_.registered_worlds = slots_.size();
+  stats_.simulation_steps = simulation_steps;
+  stats_.max_processed_per_tick = max_processed;
+  for (const auto &slot : slots_) {
+    switch (slot->snapshot.state) {
+    case SelfPlayWorldState::Pending:
+      ++stats_.pending_worlds;
+      break;
+    case SelfPlayWorldState::Active:
+      ++stats_.active_worlds;
+      break;
+    case SelfPlayWorldState::Completed:
+      ++stats_.completed_worlds;
+      break;
+    case SelfPlayWorldState::Failed:
+      ++stats_.failed_worlds;
+      break;
+    }
+  }
 }
 
 } // namespace nexora::ai
