@@ -9,6 +9,11 @@
 #include <vector>
 
 namespace nexora::renderer {
+PipelineCacheKey MakePipelineCacheKey(const rhi::PipelineDescriptor &descriptor,
+                                      std::uint64_t shader_generation) noexcept {
+  return {descriptor.layout_hash, descriptor.shader_hash, shader_generation,
+          descriptor.color_format, descriptor.type};
+}
 struct PipelineFuture::State final {
   std::atomic_bool ready{false};
   bool done{false};
@@ -37,17 +42,12 @@ rhi::PipelineHandle PipelineFuture::Get() const {
 }
 
 struct PipelineCache::Implementation final {
-  struct Key final {
-    std::uint64_t layout_hash{};
-    std::uint64_t shader_hash{};
-    rhi::TextureFormat color_format{};
-    rhi::PipelineType type{};
-    friend bool operator==(const Key &, const Key &) = default;
-  };
   struct KeyHash final {
-    std::size_t operator()(const Key &key) const noexcept {
+    std::size_t operator()(const PipelineCacheKey &key) const noexcept {
       auto hash = static_cast<std::size_t>(key.layout_hash);
       hash ^= static_cast<std::size_t>(key.shader_hash) + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
+      hash ^= static_cast<std::size_t>(key.shader_generation) + 0x9e3779b9U + (hash << 6U) +
+              (hash >> 2U);
       hash ^=
           static_cast<std::size_t>(key.color_format) + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
       hash ^= static_cast<std::size_t>(key.type) + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
@@ -62,7 +62,7 @@ struct PipelineCache::Implementation final {
   rhi::Device &device;
   core::JobSystem &jobs;
   mutable std::mutex mutex;
-  std::unordered_map<Key, Entry, KeyHash> entries;
+  std::unordered_map<PipelineCacheKey, Entry, KeyHash> entries;
 };
 PipelineCache::PipelineCache(rhi::Device &device, core::JobSystem &jobs)
     : implementation_(std::make_unique<Implementation>(device, jobs)) {}
@@ -87,8 +87,11 @@ PipelineCache::~PipelineCache() {
   }
 }
 PipelineFuture PipelineCache::Request(const rhi::PipelineDescriptor &descriptor) {
-  const Implementation::Key key{descriptor.layout_hash, descriptor.shader_hash,
-                                descriptor.color_format, descriptor.type};
+  return Request(descriptor, 0);
+}
+PipelineFuture PipelineCache::Request(const rhi::PipelineDescriptor &descriptor,
+                                      std::uint64_t shader_generation) {
+  const auto key = MakePipelineCacheKey(descriptor, shader_generation);
   std::lock_guard lock{implementation_->mutex};
   if (const auto found = implementation_->entries.find(key);
       found != implementation_->entries.end()) {

@@ -4,9 +4,20 @@
 #include "Nexora/RHI/Device.h"
 #include "Nexora/Renderer/Api.h"
 
+#include <cstdint>
 #include <memory>
 
 namespace nexora::renderer {
+struct PipelineCacheKey final {
+  std::uint64_t layout_hash{};
+  std::uint64_t shader_hash{};
+  std::uint64_t shader_generation{};
+  rhi::TextureFormat color_format{};
+  rhi::PipelineType type{};
+  friend bool operator==(const PipelineCacheKey &, const PipelineCacheKey &) = default;
+};
+[[nodiscard]] NEXORA_RENDERER_API PipelineCacheKey MakePipelineCacheKey(
+    const rhi::PipelineDescriptor &descriptor, std::uint64_t shader_generation = 0) noexcept;
 class NEXORA_RENDERER_API PipelineFuture final {
 public:
   PipelineFuture() = default;
@@ -30,6 +41,8 @@ public:
   PipelineCache(const PipelineCache &) = delete;
   PipelineCache &operator=(const PipelineCache &) = delete;
   [[nodiscard]] PipelineFuture Request(const rhi::PipelineDescriptor &descriptor);
+  [[nodiscard]] PipelineFuture Request(const rhi::PipelineDescriptor &descriptor,
+                                       std::uint64_t shader_generation);
   [[nodiscard]] std::size_t Size() const noexcept;
 
 private:

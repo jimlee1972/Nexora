@@ -1,8 +1,8 @@
 #include "Nexora/Runtime/ShaderRuntime.h"
 
-#include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <stdexcept>
 #include <vector>
 
@@ -19,7 +19,7 @@ nexora::rhi::ShaderModuleArtifact MakeArtifact(nexora::rhi::Backend backend,
   artifact.shader_id = "triangle";
   artifact.format = backend == Backend::Direct3D12 ? ShaderBinaryFormat::Dxil
                     : backend == Backend::Metal    ? ShaderBinaryFormat::MetalSource
-                                                    : ShaderBinaryFormat::SpirV;
+                                                   : ShaderBinaryFormat::SpirV;
   artifact.entry_point = "vertexMain";
   artifact.binary = {std::byte{0x01}, std::byte{0x02}};
   artifact.reflection = TrianglePipelineLayout();
@@ -56,7 +56,8 @@ void Run() {
   corrupted.back() ^= std::byte{0x01};
   Require(!runtime::DeserializeCookedShaderArtifact(corrupted, decoded, error),
           "corrupted cooked shader artifact was accepted");
-  const auto cooked_path = std::filesystem::temp_directory_path() / "nexora-shader-runtime-test.nxsh";
+  const auto cooked_path =
+      std::filesystem::temp_directory_path() / "nexora-shader-runtime-test.nxsh";
   {
     std::ofstream file(cooked_path, std::ios::binary);
     file.write(reinterpret_cast<const char *>(cooked.data()),
@@ -108,8 +109,40 @@ void Run() {
   }
   Require(fresh.Stage(MakeArtifact(rhi::Backend::Vulkan, layout_hash),
                       runtime::ShaderArtifactSource::Cooked, error) &&
-                      fresh.Commit(error),
+              fresh.Commit(error),
           "Runtime rejected cooked artifacts");
+
+  std::vector<runtime::NativeShaderModuleHandle> destroyed_modules;
+  runtime::NativeShaderModuleHandle next_module = 40;
+  runtime::ShaderArtifactSlot native_slot{
+      rhi::Backend::Vulkan,
+      layout_hash,
+      {[&next_module](const rhi::ShaderModuleArtifact &, std::string &) { return ++next_module; },
+       [&destroyed_modules](runtime::NativeShaderModuleHandle module) {
+         destroyed_modules.push_back(module);
+       }}};
+  Require(native_slot.Stage(first, runtime::ShaderArtifactSource::Cooked, error) &&
+              native_slot.Commit(error) && native_slot.NativeModule() == 41,
+          "native shader module was not created transactionally");
+  Require(native_slot.Stage(replacement, runtime::ShaderArtifactSource::Cooked, error) &&
+              native_slot.Commit(19, error) && native_slot.NativeModule() == 42 &&
+              destroyed_modules.empty(),
+          "native shader replacement retired too early");
+  Require(native_slot.CollectRetired(18) == 0 && native_slot.CollectRetired(19) == 1 &&
+              destroyed_modules == std::vector<runtime::NativeShaderModuleHandle>{41},
+          "native shader module was not retired at its GPU fence");
+  runtime::ShaderArtifactSlot failing_native{
+      rhi::Backend::Vulkan,
+      layout_hash,
+      {[](const rhi::ShaderModuleArtifact &, std::string &native_error) {
+         native_error = "injected native failure";
+         return runtime::NativeShaderModuleHandle{};
+       },
+       {}}};
+  Require(failing_native.Stage(first, runtime::ShaderArtifactSource::Cooked, error) &&
+              !failing_native.Commit(error) && failing_native.Generation() == 0 &&
+              failing_native.Active() == nullptr,
+          "failed native creation changed the active shader generation");
 
   const std::vector<rhi::ShaderResourceBindingMetadata> resources{
       {0, 0, rhi::BindingType::StorageBuffer, static_cast<std::uint8_t>(rhi::ShaderStage::Compute),

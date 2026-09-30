@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -14,20 +15,29 @@
 namespace nexora::runtime {
 enum class ShaderBuildMode : std::uint8_t { Development, Shipping };
 enum class ShaderArtifactSource : std::uint8_t { Cooked, DynamicCompile };
+using NativeShaderModuleHandle = std::uint64_t;
+struct NativeShaderModuleCallbacks final {
+  std::function<NativeShaderModuleHandle(const rhi::ShaderModuleArtifact &, std::string &)> create;
+  std::function<void(NativeShaderModuleHandle)> destroy;
+};
 
-[[nodiscard]] NEXORA_RUNTIME_API bool SerializeCookedShaderArtifact(
-    const rhi::ShaderModuleArtifact &artifact, std::vector<std::byte> &output,
-    std::string &error);
-[[nodiscard]] NEXORA_RUNTIME_API bool DeserializeCookedShaderArtifact(
-    std::span<const std::byte> input, rhi::ShaderModuleArtifact &artifact, std::string &error);
-[[nodiscard]] NEXORA_RUNTIME_API bool LoadCookedShaderArtifact(
-    const std::filesystem::path &path, rhi::ShaderModuleArtifact &artifact, std::string &error);
+[[nodiscard]] NEXORA_RUNTIME_API bool
+SerializeCookedShaderArtifact(const rhi::ShaderModuleArtifact &artifact,
+                              std::vector<std::byte> &output, std::string &error);
+[[nodiscard]] NEXORA_RUNTIME_API bool
+DeserializeCookedShaderArtifact(std::span<const std::byte> input,
+                                rhi::ShaderModuleArtifact &artifact, std::string &error);
+[[nodiscard]] NEXORA_RUNTIME_API bool LoadCookedShaderArtifact(const std::filesystem::path &path,
+                                                               rhi::ShaderModuleArtifact &artifact,
+                                                               std::string &error);
 
 // Caller-thread-only transactional artifact slot. Compiler execution remains an Editor/tool
 // service; Runtime accepts only its backend-specific output and never owns compiler objects.
 class NEXORA_RUNTIME_API ShaderArtifactSlot final {
 public:
-  ShaderArtifactSlot(rhi::Backend backend, std::uint64_t expected_layout_hash);
+  ShaderArtifactSlot(rhi::Backend backend, std::uint64_t expected_layout_hash,
+                     NativeShaderModuleCallbacks native = {});
+  ~ShaderArtifactSlot();
 
   [[nodiscard]] bool Stage(rhi::ShaderModuleArtifact artifact, ShaderArtifactSource source,
                            std::string &error);
@@ -41,11 +51,13 @@ public:
   [[nodiscard]] ShaderBuildMode BuildMode() const noexcept { return mode_; }
   [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }
   [[nodiscard]] std::size_t RetiredCount() const noexcept { return retired_.size(); }
+  [[nodiscard]] NativeShaderModuleHandle NativeModule() const noexcept { return native_module_; }
 
 private:
   struct RetiredArtifact final {
     std::uint64_t retire_fence{};
     rhi::ShaderModuleArtifact artifact;
+    NativeShaderModuleHandle native_module{};
   };
 
   rhi::Backend backend_;
@@ -55,5 +67,7 @@ private:
   std::optional<rhi::ShaderModuleArtifact> staged_;
   std::vector<RetiredArtifact> retired_;
   std::uint64_t generation_{};
+  NativeShaderModuleCallbacks native_;
+  NativeShaderModuleHandle native_module_{};
 };
 } // namespace nexora::runtime

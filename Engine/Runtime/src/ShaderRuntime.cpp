@@ -56,8 +56,9 @@ bool ValidArtifactShape(const rhi::ShaderModuleArtifact &artifact, std::string &
     error = "cooked shader artifact has an empty identity, entry point, or payload";
     return false;
   }
-  if (artifact.shader_id.size() > kMaxCookedString || artifact.entry_point.size() > kMaxCookedString ||
-      artifact.binary.size() > kMaxCookedBinary || artifact.reflection.bindings.size() > kMaxCookedBindings ||
+  if (artifact.shader_id.size() > kMaxCookedString ||
+      artifact.entry_point.size() > kMaxCookedString || artifact.binary.size() > kMaxCookedBinary ||
+      artifact.reflection.bindings.size() > kMaxCookedBindings ||
       artifact.reflection.schema_version != 1 || artifact.reflection.layout_hash == 0 ||
       rhi::ComputeLayoutHash(artifact.reflection.bindings) != artifact.reflection.layout_hash) {
     error = "cooked shader artifact shape or canonical reflection is invalid";
@@ -101,7 +102,8 @@ bool SerializeCookedShaderArtifact(const rhi::ShaderModuleArtifact &artifact,
     output.insert(output.end(), 2, std::byte{0});
     AppendU32(output, binding.byte_size);
   }
-  const auto payload_hash = HashBytes(std::span<const std::byte>(output).subspan(kCookedHeaderSize));
+  const auto payload_hash =
+      HashBytes(std::span<const std::byte>(output).subspan(kCookedHeaderSize));
   for (std::uint32_t index = 0; index < 8; ++index)
     output[44 + index] = static_cast<std::byte>((payload_hash >> (index * 8U)) & 0xffU);
   error.clear();
@@ -145,9 +147,9 @@ bool DeserializeCookedShaderArtifact(std::span<const std::byte> input,
     return false;
   }
   const auto binding_bytes = static_cast<std::size_t>(binding_count) * 20U;
-  if (offset > input.size() ||
-      input.size() - offset < static_cast<std::size_t>(shader_size) + entry_size + binary_size +
-                                  binding_bytes) {
+  if (offset > input.size() || input.size() - offset < static_cast<std::size_t>(shader_size) +
+                                                           entry_size + binary_size +
+                                                           binding_bytes) {
     error = "cooked shader artifact is truncated";
     return false;
   }
@@ -173,8 +175,9 @@ bool DeserializeCookedShaderArtifact(std::span<const std::byte> input,
     binding.type = static_cast<rhi::BindingType>(std::to_integer<unsigned char>(input[offset++]));
     binding.stages = std::to_integer<unsigned char>(input[offset++]);
     offset += 2;
-    if (!ReadU32(input, offset, binding.byte_size) || binding.type > rhi::BindingType::StorageBuffer ||
-        binding.stages == 0 || (binding.stages & ~static_cast<std::uint8_t>(7)) != 0) {
+    if (!ReadU32(input, offset, binding.byte_size) ||
+        binding.type > rhi::BindingType::StorageBuffer || binding.stages == 0 ||
+        (binding.stages & ~static_cast<std::uint8_t>(7)) != 0) {
       error = "cooked shader artifact binding metadata is invalid";
       return false;
     }
@@ -207,15 +210,27 @@ bool LoadCookedShaderArtifact(const std::filesystem::path &path,
   }
   return DeserializeCookedShaderArtifact(bytes, artifact, error);
 }
-ShaderArtifactSlot::ShaderArtifactSlot(rhi::Backend backend,
-                                       std::uint64_t expected_layout_hash)
+ShaderArtifactSlot::ShaderArtifactSlot(rhi::Backend backend, std::uint64_t expected_layout_hash,
+                                       NativeShaderModuleCallbacks native)
     : backend_(backend),
 #if defined(NEXORA_SHIPPING_ENABLED) && NEXORA_SHIPPING_ENABLED
       mode_(ShaderBuildMode::Shipping),
 #else
       mode_(ShaderBuildMode::Development),
 #endif
-      expected_layout_hash_(expected_layout_hash) {}
+      expected_layout_hash_(expected_layout_hash), native_(std::move(native)) {
+}
+
+ShaderArtifactSlot::~ShaderArtifactSlot() {
+  if (!native_.destroy)
+    return;
+  if (native_module_ != 0)
+    native_.destroy(native_module_);
+  for (const auto &retired : retired_) {
+    if (retired.native_module != 0)
+      native_.destroy(retired.native_module);
+  }
+}
 
 bool ShaderArtifactSlot::Stage(rhi::ShaderModuleArtifact artifact, ShaderArtifactSource source,
                                std::string &error) {
@@ -254,9 +269,19 @@ bool ShaderArtifactSlot::Commit(std::uint64_t retire_fence, std::string &error) 
     error = "shader artifact generation is exhausted";
     return false;
   }
+  NativeShaderModuleHandle candidate_module = 0;
+  if (native_.create) {
+    candidate_module = native_.create(*staged_, error);
+    if (candidate_module == 0) {
+      if (error.empty())
+        error = "native shader-module creation failed";
+      return false;
+    }
+  }
   if (active_)
-    retired_.push_back({retire_fence, std::move(*active_)});
+    retired_.push_back({retire_fence, std::move(*active_), native_module_});
   active_ = std::move(staged_);
+  native_module_ = candidate_module;
   staged_.reset();
   ++generation_;
   error.clear();
@@ -268,8 +293,12 @@ void ShaderArtifactSlot::DiscardStaged() noexcept { staged_.reset(); }
 std::size_t ShaderArtifactSlot::CollectRetired(std::uint64_t completed_fence) noexcept {
   const auto before = retired_.size();
   retired_.erase(std::remove_if(retired_.begin(), retired_.end(),
-                                [completed_fence](const RetiredArtifact &artifact) {
-                                  return artifact.retire_fence <= completed_fence;
+                                [this, completed_fence](const RetiredArtifact &artifact) {
+                                  if (artifact.retire_fence > completed_fence)
+                                    return false;
+                                  if (artifact.native_module != 0 && native_.destroy)
+                                    native_.destroy(artifact.native_module);
+                                  return true;
                                 }),
                  retired_.end());
   return before - retired_.size();

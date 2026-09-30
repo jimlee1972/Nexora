@@ -10,16 +10,16 @@ void Require(bool value, const char *message) {
   if (!value)
     throw std::runtime_error(message);
 }
-}
+} // namespace
 
 int main() {
   try {
     using namespace nexora::renderer;
     const std::array<std::byte, 16> expected{
-        std::byte{0}, std::byte{0}, std::byte{0}, std::byte{255},
-        std::byte{255}, std::byte{0}, std::byte{0}, std::byte{255},
-        std::byte{0}, std::byte{255}, std::byte{0}, std::byte{255},
-        std::byte{0}, std::byte{0}, std::byte{255}, std::byte{255}};
+        std::byte{0},   std::byte{0},   std::byte{0},   std::byte{255},
+        std::byte{255}, std::byte{0},   std::byte{0},   std::byte{255},
+        std::byte{0},   std::byte{255}, std::byte{0},   std::byte{255},
+        std::byte{0},   std::byte{0},   std::byte{255}, std::byte{255}};
     auto actual = expected;
     GoldenImageComparison comparison;
     Require(CompareGoldenRgba8(actual, expected, 2, 2, 0, comparison) && comparison.matched,
@@ -32,6 +32,14 @@ int main() {
                 comparison.differing_pixels == 1 && comparison.max_channel_delta == 5,
             "golden image acceptance missed a differing pixel");
     Require(HashRgba8(expected) != 0, "golden image hash was not deterministic");
+    const std::array<GoldenImageCase, 1> cases{
+        {{"shader-library-smoke", 2, 2, 0, 0,
+          std::vector<std::byte>(expected.begin(), expected.end())}}};
+    const auto results = RunGoldenImageHarness(cases, [&expected](const GoldenImageCase &) {
+      return std::vector<std::byte>(expected.begin(), expected.end());
+    });
+    Require(results.size() == 1 && results[0].passed && results[0].name == "shader-library-smoke",
+            "golden image harness did not execute the named image case");
     std::cout << "Golden image acceptance contracts passed\n";
     return 0;
   } catch (const std::exception &exception) {

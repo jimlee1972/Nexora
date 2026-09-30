@@ -1,7 +1,8 @@
 # Editor Core contract
 
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
-The UI-independent `ShaderCompileResult` carries file/line/column diagnostics. `CompileSlang`
+The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
+diagnostics. `CompileSlang`
 invokes the configured `slangc` process (or an injected runner), captures diagnostics, and
 validates the requested artifact payload. `ShaderHotReloadController` watches source timestamps
 and `ApplyShaderCompileResult` publishes only successful, layout-compatible output through
@@ -9,6 +10,10 @@ Runtime's transactional slot. Reload commits may carry a GPU retire fence so old
 alive until in-flight work has completed; a Shipping-configured Runtime rejects the dynamic path.
 These integrations preserve the RHI artifact and canonical reflection contract rather than moving
 compiler ownership into RHI.
+`DevelopmentShaderCache` owns successful results by source/target/profile/variant, accounts against
+an explicit (not globally fixed) variant budget, and invalidates all consumers when a recorded
+source or include dependency changes. Shipping admission remains exclusively in Runtime and never
+consults this development cache.
 
 `NexoraEditorCore` is the UI-independent authoring layer used by the standalone `NexoraEditor`
 process. It owns project/workspace persistence, deterministic content indexing, stable panel and

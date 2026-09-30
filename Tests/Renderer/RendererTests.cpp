@@ -80,6 +80,10 @@ int RunTests() {
   jobs.Start();
   rhi::PipelineDescriptor pipeline_descriptor{dxil.layout_hash, 0x1234,
                                               rhi::TextureFormat::Rgba8Unorm, "Triangle"};
+  const auto cache_key = renderer::MakePipelineCacheKey(pipeline_descriptor, 7);
+  Require(cache_key.layout_hash == dxil.layout_hash && cache_key.shader_hash == 0x1234 &&
+              cache_key.shader_generation == 7,
+          "pipeline-state cache key omitted shader generation");
   rhi::PipelineHandle pipeline;
   {
     renderer::PipelineCache cache{*device, jobs};
@@ -88,6 +92,10 @@ int RunTests() {
     first.Wait();
     Require(first.IsReady() && duplicate.IsReady(), "asynchronous pipeline did not become ready");
     Require(cache.Size() == 1, "pipeline cache did not coalesce identical requests");
+    const auto next_generation = cache.Request(pipeline_descriptor, 1);
+    next_generation.Wait();
+    Require(next_generation.IsReady() && cache.Size() == 2,
+            "pipeline cache aliased distinct shader generations");
     pipeline = first.Get();
     const auto failed = cache.Request({0, 0, rhi::TextureFormat::Rgba8Unorm, "Invalid"});
     failed.Wait();

@@ -9,11 +9,11 @@ versioned `NXSHDR` container is loaded with `LoadCookedShaderArtifact` and valid
 payload bounds, and reflection table before staging. Staging never changes the active artifact;
 `Commit(retire_fence, ...)` publishes
 the validated candidate and increments its generation, while a failed validation leaves the active
-generation untouched. Calls are serialized on the owning thread, and returned artifact pointers are
-borrowed until the next successful commit or slot destruction. This first slice does not invoke
-`slangc`, load cooked files, create native shader modules, or retire artifacts against GPU fences.
-`CollectRetired(completed_fence)` releases replaced modules only after the owning GPU fence has
-completed, keeping hot-reload replacement safe for in-flight command buffers.
+generation untouched. An optional backend callback creates the native module before publication;
+creation failure rolls back the transaction. Calls are serialized on the owning thread, and returned
+artifact pointers are borrowed until the next successful commit or slot destruction.
+`CollectRetired(completed_fence)` destroys replaced artifacts and native modules only after the
+owning GPU fence has completed, keeping hot-reload replacement safe for in-flight command buffers.
 
 `NexoraRuntime` is the dependency-ordered, platform-neutral baseline for the remaining V1
 milestones. It deliberately contains no SDK-specific physics, media, mobile, or editor backend.
