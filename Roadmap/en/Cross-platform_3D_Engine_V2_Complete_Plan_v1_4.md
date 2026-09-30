@@ -3993,8 +3993,10 @@ Replay
 > relevance-based perception/decision/navigation LOD with dormant far agents, a framework-neutral
 > batched `IPolicyRuntime` sharing the common `AIAction`, and a synchronous self-play reset/step
 > bridge. The `ai.v2_m7_navigation_crowd_policy` contract test queues 5,000 navigation requests
-> against a 32-query-per-tick budget and checks 5,000 far-agent phase staggering. Production NavMesh
-> streaming, job-system adapters, runtime character integration, policy backends, and multi-world
+> against a 32-query-per-tick budget and checks 5,000 far-agent phase staggering. The optional
+> `NexoraAIIntegration` module projects valid AI `CharacterIntent` locomotion into Runtime's
+> horizontal motor input while preserving both modules' dependency boundaries. Production NavMesh
+> streaming, job-system adapters, policy backends, and multi-world
 > training orchestration remain open, so V2-M7 is not yet accepted.
 
 Construction:

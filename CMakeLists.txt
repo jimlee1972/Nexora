@@ -22,6 +22,8 @@ option(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL
        "Build the Dear ImGui graphical Editor shell" OFF)
 option(NEXORA_ENABLE_GAMEPLAY_SIMULATION
        "Build the V1-M8 physics, character, navigation, and AI foundation" ON)
+option(NEXORA_ENABLE_AI_RUNTIME_BRIDGE
+       "Build the optional V2-M7 AI CharacterIntent to Runtime adapter" ON)
 option(NEXORA_ENABLE_PRESENTATION
        "Build the V1-M9 animation, audio, VFX, and media foundation" ON)
 option(NEXORA_ENABLE_MEDIA_DRM "Build the optional V2-M9 DRM provider boundary" OFF)
@@ -81,6 +83,9 @@ if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL AND
    (NOT NEXORA_ENABLE_EDITOR OR NOT NEXORA_ENABLE_WINDOW_PRESENTATION))
   message(FATAL_ERROR
           "NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL requires Editor and Window Presentation")
+endif()
+if(NEXORA_ENABLE_AI_RUNTIME_BRIDGE AND NOT NEXORA_ENABLE_GAMEPLAY_SIMULATION)
+  message(FATAL_ERROR "NEXORA_ENABLE_AI_RUNTIME_BRIDGE requires NEXORA_ENABLE_GAMEPLAY_SIMULATION")
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -144,6 +149,9 @@ if(NOT NEXORA_HEADLESS)
   endif()
   add_subdirectory(Engine/Renderer)
   add_subdirectory(Engine/Runtime)
+  if(NEXORA_ENABLE_AI_RUNTIME_BRIDGE)
+    add_subdirectory(Engine/AIIntegration)
+  endif()
   if(NEXORA_ENABLE_EDITOR)
     add_subdirectory(Engine/Editor)
     if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)

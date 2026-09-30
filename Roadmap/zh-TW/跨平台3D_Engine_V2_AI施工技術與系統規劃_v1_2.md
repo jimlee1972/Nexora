@@ -2287,8 +2287,9 @@ generic influence/cost field、只輸出 `CharacterIntent` 的 crowd、determini
 `IPolicyRuntime`，以及同步 self-play reset/step lifecycle。
 
 `ai.v2_m7_navigation_crowd_policy` contract 會排入 5,000 個 navigation request 並限制
-每 tick 最多 32 個 query，也會驗證 5,000 個 far agent 的 phase staggering。
-Production NavMesh streaming、job-system adapter、runtime character integration、policy
+每 tick 最多 32 個 query，也會驗證 5,000 個 far agent 的 phase staggering。新增的 optional
+`NexoraAIIntegration` module 可將有效 AI `CharacterIntent` locomotion 投影到 Runtime 的水平
+motor input，不改變任一模組的依賴方向。Production NavMesh streaming、job-system adapter、policy
 backend 與 multi-world training orchestration 仍待完成。
 
 ---

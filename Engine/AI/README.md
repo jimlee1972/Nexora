@@ -23,6 +23,11 @@ in-range `Set`/`Cost` call stays a bounds-checked no-op instead of an out-of-bou
 implementation uses an XZ spatial hash and local separation so the API is not defined around a
 quadratic all-agents scan. A gameplay character layer remains responsible for applying intent.
 
+The optional `NexoraAIIntegration` module projects AI locomotion into Runtime's horizontal
+`CharacterIntent`. It is kept outside both modules to preserve AI's Core-only dependency and
+Runtime's renderer-only dependency; invalid movement values are rejected, and the adapter never
+owns or mutates a character.
+
 `UtilityAI` emits the same `AIAction` type used by learned policies and supports deterministic
 selection, cooldown eligibility, and hysteresis around the current action. `IPolicyRuntime` is
 framework neutral, batch-oriented, versioned by policy ID/version, and emits `AIAction`; ONNX or
