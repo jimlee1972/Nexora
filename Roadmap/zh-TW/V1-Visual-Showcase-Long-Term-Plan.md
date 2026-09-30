@@ -10,7 +10,7 @@
 - ✅ 已有 Zig static consumer 的 fixed/update、Transform read/write 與 transactional state migration。
 - ✅ Source/test audit 已確認 Window、Presentation 與 RHI buffer contract 均已存在；Showcase 重用 `RenderSurface`，沒有重建這些 boundary。
 - 已實作、待 native 驗收：Linux/X11/Vulkan windowed startup、bounded resize、clear color、triangle、diagnostics panel、shutdown 與 Xvfb smoke。
-- 待辦：真正的 3D Hub、Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping 房間。
+- ✅ 3D Hub 已呈現 M0～M12 Validation Lab 卡片、穩定 room/world-object 關聯與可見的受控失敗狀態；Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping 房間的 authored content 仍待完成。
 - ✅ M0～M12 probe registry、status model、版本化 JSON／Markdown serializer、CTest card mapping 與受控 error injection 已可攜。
 - ✅ M7～M10 capability-aware room state 會輸出 headless evidence 與 `visual_complete: false`；interactive／guided tour 與視覺內容仍待完成。
 - 待辦：physical-display target-host 驗收與版本化 screenshot evidence。

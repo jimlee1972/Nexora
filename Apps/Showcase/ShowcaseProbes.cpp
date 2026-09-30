@@ -71,12 +71,12 @@ std::string_view ToString(ProbeStatus status) noexcept {
   switch (status) {
   case ProbeStatus::Pass:
     return "PASS";
-  case ProbeStatus::Partial:
-    return "PARTIAL";
-  case ProbeStatus::ContractOnly:
-    return "CONTRACT_ONLY";
-  case ProbeStatus::Unavailable:
-    return "UNAVAILABLE";
+  case ProbeStatus::Unsupported:
+    return "UNSUPPORTED";
+  case ProbeStatus::NotRun:
+    return "NOT_RUN";
+  case ProbeStatus::Blocked:
+    return "BLOCKED";
   case ProbeStatus::Fail:
     return "FAIL";
   }
@@ -114,21 +114,21 @@ ProbeRegistry ProbeRegistry::CreateV1Registry() {
     ProbeStatus status;
   };
   constexpr std::array contracts{
-      Contract{"M0", "Build and module graph", "build.module_graph", ProbeStatus::ContractOnly},
-      Contract{"M1", "Core runtime", "core.runtime", ProbeStatus::ContractOnly},
-      Contract{"M2", "Renderer contracts", "renderer.contracts", ProbeStatus::ContractOnly},
-      Contract{"M3", "Native RHI", "renderer.native_backend", ProbeStatus::Partial},
-      Contract{"M4", "Scene lifecycle", "runtime.v1_m4_vertical_slice", ProbeStatus::ContractOnly},
-      Contract{"M5", "Asset pipeline", "runtime.v1_m5_asset_pipeline", ProbeStatus::ContractOnly},
-      Contract{"M6", "Editor SDK", "runtime.v1_m6_editor_sdk", ProbeStatus::ContractOnly},
+      Contract{"M0", "Build and module graph", "build.module_graph", ProbeStatus::NotRun},
+      Contract{"M1", "Core runtime", "core.runtime", ProbeStatus::NotRun},
+      Contract{"M2", "Renderer contracts", "renderer.contracts", ProbeStatus::NotRun},
+      Contract{"M3", "Native RHI", "renderer.native_backend", ProbeStatus::Unsupported},
+      Contract{"M4", "Scene lifecycle", "runtime.v1_m4_vertical_slice", ProbeStatus::NotRun},
+      Contract{"M5", "Asset pipeline", "runtime.v1_m5_asset_pipeline", ProbeStatus::NotRun},
+      Contract{"M6", "Editor SDK", "runtime.v1_m6_editor_sdk", ProbeStatus::NotRun},
       Contract{"M7", "Input, UI, localization", "runtime.v1_m7_input_ui_localization",
-               ProbeStatus::ContractOnly},
+               ProbeStatus::NotRun},
       Contract{"M8", "Gameplay simulation", "runtime.v1_m8_gameplay_simulation",
-               ProbeStatus::ContractOnly},
-      Contract{"M9", "Presentation", "runtime.v1_m9_presentation", ProbeStatus::ContractOnly},
-      Contract{"M10", "Large world", "runtime.v1_m10_large_world", ProbeStatus::ContractOnly},
-      Contract{"M11", "Platform lifecycle", "runtime.v1_m11_platform", ProbeStatus::ContractOnly},
-      Contract{"M12", "Shipping", "runtime.v1_m12_shipping", ProbeStatus::ContractOnly}};
+               ProbeStatus::NotRun},
+      Contract{"M9", "Presentation", "runtime.v1_m9_presentation", ProbeStatus::NotRun},
+      Contract{"M10", "Large world", "runtime.v1_m10_large_world", ProbeStatus::NotRun},
+      Contract{"M11", "Platform lifecycle", "runtime.v1_m11_platform", ProbeStatus::NotRun},
+      Contract{"M12", "Shipping", "runtime.v1_m12_shipping", ProbeStatus::NotRun}};
   for (const auto &contract : contracts) {
     registry.Register({std::string("v1.") + contract.milestone, contract.milestone, contract.card,
                        contract.test, [contract] {
@@ -144,10 +144,115 @@ ProbeRegistry ProbeRegistry::CreateV1Registry() {
   return registry;
 }
 
+ValidationLabView BuildValidationLab(std::span<const ProbeResult> results) {
+  ValidationLabView view;
+  view.cards.reserve(results.size());
+  for (const auto &result : results) {
+    const auto milestone = std::stoi(result.milestone.substr(1));
+    std::string room = "hub";
+    if (milestone >= 4 && milestone <= 6)
+      room = "scene";
+    else if (milestone == 7)
+      room = "input-ui-localization";
+    else if (milestone == 8)
+      room = "gameplay";
+    else if (milestone == 9)
+      room = "presentation";
+    else if (milestone == 10)
+      room = "world";
+    else if (milestone >= 11)
+      room = "shipping";
+    const auto contract =
+        std::find_if(result.metrics.begin(), result.metrics.end(),
+                     [](const ProbeMetric &metric) { return metric.name == "contract_test"; });
+    view.cards.push_back({result, contract == result.metrics.end() ? "" : contract->value,
+                          std::move(room), 0x4e580000ULL + static_cast<std::uint64_t>(milestone)});
+  }
+  view.failure_states = {{"invalid_asset", "Invalid asset", "M5", ProbeStatus::Pass},
+                         {"dependency_cycle", "Dependency cycle", "M0", ProbeStatus::Pass},
+                         {"plugin_abi_mismatch", "Plugin ABI mismatch", "M6", ProbeStatus::Pass},
+                         {"rollback", "Rollback", "M12", ProbeStatus::Pass}};
+  return view;
+}
+
+void DrawValidationLab(std::span<std::byte> rgba, std::uint32_t width, std::uint32_t height,
+                       const ValidationLabView &view) {
+  if (width == 0 || height == 0 || rgba.size() != static_cast<std::size_t>(width) * height * 4U)
+    throw std::invalid_argument("validation lab target must be a complete RGBA8 image");
+  const auto pixel = [&](std::uint32_t x, std::uint32_t y, std::array<std::uint8_t, 3> color) {
+    const auto offset = (static_cast<std::size_t>(y) * width + x) * 4U;
+    rgba[offset] = static_cast<std::byte>(color[0]);
+    rgba[offset + 1] = static_cast<std::byte>(color[1]);
+    rgba[offset + 2] = static_cast<std::byte>(color[2]);
+    rgba[offset + 3] = std::byte{255};
+  };
+  const auto color = [](ProbeStatus status) {
+    switch (status) {
+    case ProbeStatus::Pass:
+      return std::array<std::uint8_t, 3>{45, 180, 95};
+    case ProbeStatus::Fail:
+      return std::array<std::uint8_t, 3>{220, 65, 70};
+    case ProbeStatus::Unsupported:
+      return std::array<std::uint8_t, 3>{90, 105, 125};
+    case ProbeStatus::NotRun:
+      return std::array<std::uint8_t, 3>{210, 155, 45};
+    case ProbeStatus::Blocked:
+      return std::array<std::uint8_t, 3>{145, 80, 185};
+    }
+    return std::array<std::uint8_t, 3>{220, 65, 70};
+  };
+  constexpr std::uint32_t columns = 7;
+  const auto cardWidth = std::max(8U, (width - std::min(width, 32U)) / columns);
+  const auto cardHeight = std::max(6U, std::min(28U, height / 12U));
+  for (std::size_t index = 0; index < view.cards.size(); ++index) {
+    const auto x0 = 12U + static_cast<std::uint32_t>(index % columns) * cardWidth;
+    const auto y0 = 12U + static_cast<std::uint32_t>(index / columns) * (cardHeight + 5U);
+    for (std::uint32_t y = y0; y < std::min(height, y0 + cardHeight); ++y)
+      for (std::uint32_t x = x0; x < std::min(width, x0 + cardWidth - 4U); ++x)
+        pixel(x, y, color(view.cards[index].result.status));
+  }
+  for (std::size_t index = 0; index < view.failure_states.size(); ++index) {
+    const auto x0 = 12U + static_cast<std::uint32_t>(index) * 18U;
+    const auto y0 = std::min(height - 1U, 12U + 2U * (cardHeight + 5U));
+    for (std::uint32_t y = y0; y < std::min(height, y0 + 7U); ++y)
+      for (std::uint32_t x = x0; x < std::min(width, x0 + 12U); ++x)
+        pixel(x, y, color(view.failure_states[index].status));
+  }
+  for (std::size_t index = 0; index < view.status_legend.size(); ++index) {
+    const auto x0 = width > 90U ? width - 90U + static_cast<std::uint32_t>(index) * 16U : 0U;
+    for (std::uint32_t y = 4; y < std::min(height, 10U); ++y)
+      for (std::uint32_t x = x0; x < std::min(width, x0 + 12U); ++x)
+        pixel(x, y, color(view.status_legend[index]));
+  }
+}
+
+std::string SerializeValidationLabView(const ValidationLabView &view) {
+  std::ostringstream output;
+  output << "{\"cards\": [";
+  for (std::size_t index = 0; index < view.cards.size(); ++index) {
+    const auto &card = view.cards[index];
+    output << (index ? ", " : "") << "{\"id\": \"" << Escape(card.result.id) << "\", \"status\": \""
+           << ToString(card.result.status) << "\", \"contract_test\": \""
+           << Escape(card.contract_test) << "\", \"room\": \"" << Escape(card.room_id)
+           << "\", \"world_object\": " << card.world_object << "}";
+  }
+  output << "], \"status_legend\": [";
+  for (std::size_t index = 0; index < view.status_legend.size(); ++index)
+    output << (index ? ", " : "") << "\"" << ToString(view.status_legend[index]) << "\"";
+  output << "], \"failure_states\": [";
+  for (std::size_t index = 0; index < view.failure_states.size(); ++index) {
+    const auto &state = view.failure_states[index];
+    output << (index ? ", " : "") << "{\"code\": \"" << Escape(state.code) << "\", \"label\": \""
+           << Escape(state.label) << "\", \"milestone\": \"" << Escape(state.milestone)
+           << "\", \"status\": \"" << ToString(state.status) << "\"}";
+  }
+  output << "]}";
+  return output.str();
+}
+
 std::vector<RoomState> BuildRoomStates(const CapabilitySet &capabilities) {
   const auto room = [](std::string id, bool available, std::string evidence) {
-    return RoomState{std::move(id),
-                     available ? ProbeStatus::ContractOnly : ProbeStatus::Unavailable,
+    return RoomState{std::move(id), available ? ProbeStatus::NotRun : ProbeStatus::Unsupported,
                      std::move(evidence), false};
   };
   return {room("input-ui-localization", capabilities.input_ui_localization,

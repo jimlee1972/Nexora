@@ -11,7 +11,7 @@
 - ✅ Source/test audit confirmed that Window, Presentation, and RHI buffer contracts already exist;
   the Showcase reuses `RenderSurface` rather than recreating those boundaries.
 - Implemented pending native acceptance: Linux/X11/Vulkan windowed startup, bounded resize, clear color, triangle, diagnostics panel, shutdown, and Xvfb smoke.
-- Open: real 3D Hub and Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping rooms.
+- ✅ The 3D Hub presents M0-M12 Validation Lab cards with stable room/world-object associations and visible contained-failure states; authored Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping room content remains open.
 - ✅ M0-M12 probe registry, status model, versioned JSON/Markdown serializers, CTest card mapping, and contained error injections are portable.
 - ✅ M7-M10 capability-aware room states emit headless evidence with `visual_complete: false`; interactive/guided tour and visual content remain open.
 - Open: physical-display target-host acceptance and versioned screenshot evidence.
