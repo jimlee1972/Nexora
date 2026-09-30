@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <span>
@@ -9,7 +11,7 @@
 
 namespace nexora::showcase {
 
-enum class ProbeStatus : std::uint8_t { Pass, Partial, ContractOnly, Unavailable, Fail };
+enum class ProbeStatus : std::uint8_t { Pass, Fail, Unsupported, NotRun, Blocked };
 
 struct ProbeMetric final {
   std::string name;
@@ -24,7 +26,7 @@ struct ProbeIssue final {
 struct ProbeResult final {
   std::string id;
   std::string milestone;
-  ProbeStatus status{ProbeStatus::Unavailable};
+  ProbeStatus status{ProbeStatus::NotRun};
   std::string summary;
   std::vector<ProbeMetric> metrics;
   std::vector<ProbeIssue> issues;
@@ -55,9 +57,31 @@ struct CapabilitySet final {
 
 struct RoomState final {
   std::string id;
-  ProbeStatus status{ProbeStatus::Unavailable};
+  ProbeStatus status{ProbeStatus::Unsupported};
   std::string evidence;
   bool visual_complete{};
+};
+
+struct ProbeCard final {
+  ProbeResult result;
+  std::string contract_test;
+  std::string room_id;
+  std::uint64_t world_object{};
+};
+
+struct FailureState final {
+  std::string code;
+  std::string label;
+  std::string milestone;
+  ProbeStatus status{ProbeStatus::Pass};
+};
+
+struct ValidationLabView final {
+  std::vector<ProbeCard> cards;
+  std::vector<FailureState> failure_states;
+  std::array<ProbeStatus, 5> status_legend{ProbeStatus::Pass, ProbeStatus::Fail,
+                                           ProbeStatus::Unsupported, ProbeStatus::NotRun,
+                                           ProbeStatus::Blocked};
 };
 
 class ProbeRegistry final {
@@ -73,6 +97,10 @@ private:
 };
 
 [[nodiscard]] std::string_view ToString(ProbeStatus status) noexcept;
+[[nodiscard]] ValidationLabView BuildValidationLab(std::span<const ProbeResult> results);
+void DrawValidationLab(std::span<std::byte> rgba, std::uint32_t width, std::uint32_t height,
+                       const ValidationLabView &view);
+[[nodiscard]] std::string SerializeValidationLabView(const ValidationLabView &view);
 [[nodiscard]] std::vector<RoomState> BuildRoomStates(const CapabilitySet &capabilities);
 [[nodiscard]] std::string SerializeJson(std::span<const ProbeResult> results,
                                         std::span<const RoomState> rooms = {});

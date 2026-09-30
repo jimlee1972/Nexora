@@ -59,7 +59,7 @@ V2-M5 is complete for the portable foundation: the `linux-headless` preset build
 #### V2 GPU-driven status
 
 V2-M3 now has one fixed 36-byte indirect-command ABI shared by C++ and Slang: the Vulkan/D3D12/Metal-compatible non-indexed draw prefix is followed by backend-neutral classification metadata. Vulkan consumes this canonical stride directly. D3D12 command recording now covers `Dispatch` and canonical-stride `ExecuteIndirect`, but Windows execution and comparison evidence remain pending. The Slang-enabled Linux Vulkan RenderGraph test passes on Mesa lavapipe, including `CompareGPUDrivenResults()`, and the full Linux development, shipping package/evidence, sanitizer, and TSan jobs passed in GitHub Actions run 36609837931. This Work Mode container lacks `clang++`, so its local full CTest rerun is 50/51; physical-GPU performance and Metal execution remain open, while Windows DX12 requires target-host evidence. V2-M3 remains open independently of the 46% roadmap total.
-The Showcase Validation Lab now provides a portable M0-M12 probe registry, five-state status model, versioned JSON/Markdown reports, CTest card mapping, four contained error injections, and M7-M10 capability-aware headless room evidence. Room records explicitly remain visually incomplete.
+The Showcase Validation Lab now provides a portable M0-M12 probe registry, honest five-state status model, versioned JSON/Markdown reports, CTest card mapping, four contained error injections, and M7-M10 capability-aware headless room evidence. The 3D Hub now renders all thirteen cards from that shared model and reports stable room/world-object associations without executing CTest logic; authored room visuals and target-host evidence remain open.
 
 #### Shader system status
 
@@ -189,7 +189,7 @@ V2-M5 portable foundation 已完成：`linux-headless` preset 僅建置 renderer
 #### V2 GPU-driven 狀態
 
 V2-M3 現已有一套由 C++ 與 Slang 共用的固定 36-byte indirect-command ABI：Vulkan／D3D12／Metal 相容的 non-indexed draw prefix 後接 backend-neutral classification metadata，且 Vulkan 直接消費此 canonical stride。D3D12 command recording 現已涵蓋 `Dispatch` 與採 canonical stride 的 `ExecuteIndirect`，但 Windows execution 與 comparison 證據仍待完成。啟用 Slang 的 Linux Vulkan RenderGraph 專項測試已於 Mesa lavapipe 通過，包含 `CompareGPUDrivenResults()`；GitHub Actions run 36609837931 的完整 Linux development、shipping package/evidence、sanitizer 與 TSan jobs 亦全數通過。本 Work Mode 雲端容器缺少 `clang++`，因此本地完整 CTest 為 50/51；實體 GPU 效能、Metal execution 與 Windows DX12 目標主機證據仍待完成；因此 V2-M3 仍獨立於 46% Roadmap 總進度維持未完成。
-Showcase Validation Lab 現提供 portable M0～M12 probe registry、五態 status model、版本化 JSON／Markdown report、CTest card mapping、四種受控 error injection，以及 M7～M10 capability-aware headless room evidence；room record 仍明確標示視覺未完成。
+Showcase Validation Lab 現提供 portable M0～M12 probe registry、誠實的五態 status model、版本化 JSON／Markdown report、CTest card mapping、四種受控 error injection，以及 M7～M10 capability-aware headless room evidence。3D Hub 現由同一 model 繪製全部十三張卡片，並回報穩定的 room/world-object 關聯，且不執行 CTest 邏輯；authored room visuals 與 target-host evidence 仍待完成。
 
 #### Shader 系統狀態
 

@@ -307,7 +307,8 @@ void PrintUsage() {
          "  --capabilities=auto|minimal override the gallery capability probe\n";
 }
 
-std::vector<std::byte> BuildShowcaseFrame(std::uint32_t width, std::uint32_t height) {
+std::vector<std::byte> BuildShowcaseFrame(std::uint32_t width, std::uint32_t height,
+                                          const showcase::ValidationLabView &validationLab) {
   std::vector<std::byte> pixels(static_cast<std::size_t>(width) * height * 4U);
   auto setPixel = [&](std::uint32_t x, std::uint32_t y, std::uint8_t r, std::uint8_t g,
                       std::uint8_t b) {
@@ -353,6 +354,7 @@ std::vector<std::byte> BuildShowcaseFrame(std::uint32_t width, std::uint32_t hei
       for (std::uint32_t x = 26; x < 26 + barWidth && x < width; ++x)
         setPixel(x, y, row == 0 ? 74 : 148, row == 0 ? 222 : 163, row == 0 ? 128 : 184);
   }
+  showcase::DrawValidationLab(pixels, width, height, validationLab);
   return pixels;
 }
 
@@ -669,6 +671,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
                               ? std::numeric_limits<std::size_t>::max()
                               : command.frames;
   std::size_t executedFrames = 0;
+  const auto validationLab =
+      showcase::BuildValidationLab(showcase::ProbeRegistry::CreateV1Registry().RunAll());
   for (std::size_t frame = 0; frame < frameLimit; ++frame) {
     if (nativeSurface) {
       const auto status = nativeSurface->BeginFrame();
@@ -708,7 +712,7 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     ++executedFrames;
     if (nativeSurface) {
       const auto frameInfo = nativeSurface->FrameInfo();
-      const auto pixels = BuildShowcaseFrame(frameInfo.width, frameInfo.height);
+      const auto pixels = BuildShowcaseFrame(frameInfo.width, frameInfo.height, validationLab);
       const auto composite =
           nativeSurface->CompositeRgba8(pixels, frameInfo.width, frameInfo.height);
       if (composite != Nexora::Presentation::SurfaceStatus::Ready) {
@@ -842,6 +846,7 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
 #endif
   });
   auto validationLab = showcase::SerializeJson(probes, roomStates);
+  const auto validationLabView = showcase::BuildValidationLab(probes);
   if (!validationLab.empty() && validationLab.back() == '\n')
     validationLab.pop_back();
   std::ostringstream report;
@@ -950,6 +955,8 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"diagnostics_overlay\": true\n"
          << "  },\n"
          << "  \"validation_lab\": " << validationLab << ",\n"
+         << "  \"validation_lab_presentation\": "
+         << showcase::SerializeValidationLabView(validationLabView) << ",\n"
          << "  \"reload\": {\n"
          << "    \"requested\": " << command.reload << ",\n"
          << "    \"successful_reloads\": " << run.reload.successful_reloads << ",\n"
