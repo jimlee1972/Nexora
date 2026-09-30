@@ -92,7 +92,9 @@ The public command-list contract includes vertex/index-buffer binding, indexed d
 index and vertex offsets, per-command scissor rectangles, and texture-slot binding. Devices also
 expose transient buffer creation and bounded uploads so UI hosts do not need backend-native buffer
 types. The validation backend checks resource existence, upload bounds, sampled-texture state, and
-all bindings required by an indexed draw. Backends that have not implemented this expanded subset
+all bindings required by an indexed draw. Phase B adds explicit, validated constant-buffer binding;
+scene submission binds vertex, index, constant, sampled-texture, and scissor state. Backends that
+have not implemented this expanded subset
 fail explicitly through the default interface methods; they must not silently translate indexed UI
 geometry into non-indexed draws.
 

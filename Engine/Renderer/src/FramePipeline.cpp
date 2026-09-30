@@ -122,4 +122,27 @@ FrameResult ExecuteSceneFrame(rhi::Device &device, rhi::TextureHandle swapchain_
   const auto statistics = graph.GetStatistics();
   return {statistics.pass_count, statistics.barrier_count};
 }
+
+FrameResult ExecuteSceneFrame(rhi::Device &device, rhi::TextureHandle swapchain_texture,
+                              const rhi::TextureDescriptor &swapchain_descriptor,
+                              rhi::PipelineHandle pipeline, const FrameResources &resources) {
+  auto commands = device.CreateCommandList(rhi::QueueType::Graphics);
+  commands->Transition(
+      {swapchain_texture, swapchain_descriptor.initial_state, rhi::ResourceState::RenderTarget});
+  commands->BeginRendering(
+      {swapchain_texture, swapchain_descriptor.width, swapchain_descriptor.height});
+  commands->BindPipeline(pipeline);
+  commands->BindVertexBuffer(resources.Vertices());
+  commands->BindIndexBuffer(resources.Indices(), rhi::IndexFormat::Uint16);
+  commands->BindConstantBuffer(0, resources.Constants());
+  commands->BindTexture(1, resources.Albedo());
+  commands->SetScissor({0, 0, swapchain_descriptor.width, swapchain_descriptor.height});
+  commands->DrawIndexed(resources.IndexCount());
+  commands->EndRendering();
+  commands->Transition(
+      {swapchain_texture, rhi::ResourceState::RenderTarget, rhi::ResourceState::Present});
+  device.Submit(*commands);
+  device.Present(swapchain_texture);
+  return {1, 2};
+}
 } // namespace nexora::renderer

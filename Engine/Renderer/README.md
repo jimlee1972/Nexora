@@ -60,6 +60,19 @@ window-system presentation remain explicit expansion points.
 
 `NexoraRenderer -> NexoraRHI -> NexoraCore`. RenderGraph owns transient textures only for one execution and waits idle before releasing them. Imported resources remain caller-owned. A `PipelineCache` must be destroyed before its device and job system; destruction waits outstanding creation jobs and releases cached pipelines.
 
+## Showcase Phase B scene-frame contract
+
+`SceneFrame` is the Renderer-owned public model for the first 3D slice: camera, indexed mesh,
+material, and directional light values own their CPU storage. `MakeProceduralRenderingRoom()`
+returns deterministic cube content without asset dependencies, while `ValidateSceneFrame()` rejects
+empty geometry, invalid indices, invalid clip planes, and non-finite material or light values.
+
+`FrameResources` exclusively owns a vertex buffer, index buffer, constant buffer, depth texture,
+sampled albedo texture, and immutable sampler policy. It is non-copyable and non-movable, waits for
+device idle at shutdown, and releases resources in reverse dependency order. The device must outlive
+it and callers serialize access. The validation backend provides headless contract evidence; native
+descriptor/depth binding and interactive visual acceptance remain separate target-host gates.
+
 ## V2-M2 GPUScene contract
 
 `GPUScene` owns CPU-side render-object records and stable slot identities. A `GPUObjectHandle` is an

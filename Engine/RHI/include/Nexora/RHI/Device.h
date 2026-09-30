@@ -36,6 +36,9 @@ public:
   virtual void BindTexture(std::uint32_t, TextureHandle) {
     throw std::logic_error("texture binding is unsupported");
   }
+  virtual void BindConstantBuffer(std::uint32_t, BufferHandle, std::uint64_t = 0) {
+    throw std::logic_error("constant-buffer binding is unsupported");
+  }
   virtual void BindStorageBuffer(std::uint32_t, BufferHandle) {
     throw std::logic_error("storage-buffer binding is unsupported");
   }
