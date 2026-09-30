@@ -42,9 +42,9 @@ an unchecked or unmarked item remains incomplete.
 | [V3 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md) | **0%** | Execution plan only; no V3 milestone accepted. |
 | ✅ [Engine API Foundation](Roadmap/en/Engine_API_Foundation_Roadmap.md) | **100%** | ✅ API-M1 through ✅ API-M6 complete for portable scope. |
 | ✅ [Window and Native Presentation](Roadmap/en/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 through ✅ WP-M4 are implemented; Windows/DX12 WP-M1/WP-M2 runtime acceptance is recorded, while Showcase, Vulkan/Metal, and other native-host acceptance remain separate gates. |
-| [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 through ✅ ZS-M4 are complete; ZS-M5 has Linux and Windows isolated-package launch evidence, but independently provisioned clean-machine acceptance remains open. |
+| ✅ [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **100%** | ✅ ZS-M0 through ✅ ZS-M5 are complete; the independently provisioned Windows clean-machine Development package acceptance is recorded with 16/16 checksums and a PASS launch report. |
 | [Graphical Editor](Roadmap/en/Editor_Roadmap.md) | **0% (0/8)** | Repository audit confirms portable foundations for every ED track and an in-progress Dear ImGui shell, but no graphical ED milestone has passed all automated and target-host gates. |
-| [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **60%** | Mean of API 100%, Zig Showcase 90%, and Editor 0%, rounded down to 10%. |
+| [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **60%** | Mean of API 100%, Zig Showcase 100%, and Editor 0%, rounded down to 10%. |
 | [V1 Visual Showcase](Roadmap/en/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | Phase A is implemented pending native acceptance; Phase B now has a ✅ portable scene-frame/resource foundation, while native binding and the interactive Rendering Room remain open. |
 
 
@@ -113,7 +113,7 @@ The Engine API is **complete for the portable roadmap scope** defined by the [En
 
 Zig is no longer only a planned language direction. The repository builds a Zig 0.14.0 gameplay object and ABI smoke consumer. The current headless/static ZS-M1 verification slice has C++ own `main`, engine/world lifetime, fixed and variable updates, offscreen rendering, transactional reload, and shutdown, while Zig mutates a live entity Transform through the public V3 ABI. See the [Showcase README](Apps/Showcase/README.md) for the supported workflow.
 
-ZS-M0 through ZS-M4 are complete: the capability-aware gallery supports camera input, selection raycasts, honest feature overlays and tested fallbacks; dynamic reload now stabilizes files, restores candidate state before `on_start` to prevent duplicate scenes, and reports callback/device-loss recovery scopes. Development-dynamic and Shipping-monolithic/static packages both launch from checksum-verified isolated copies on a Windows workstation. Independently provisioned clean-machine distribution acceptance (ZS-M5) remains open.
+ZS-M0 through ZS-M5 are complete: the capability-aware gallery supports camera input, selection raycasts, honest feature overlays and tested fallbacks; dynamic reload now stabilizes files, restores candidate state before `on_start` to prevent duplicate scenes, and reports callback/device-loss recovery scopes. Development-dynamic and Shipping-monolithic/static packages launch from checksum-verified isolated copies, and the independently provisioned Windows clean-machine Development package passed 16/16 checksums and emitted a PASS launch report. See the [ZS-M5 acceptance record](Apps/Showcase/evidence/ZS-M5-Windows-CleanMachine-2026-10-01/acceptance.md).
 
 #### Window and native presentation status
 
@@ -177,9 +177,9 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | [V3 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) | **0%** | 僅為施工規劃；尚無 V3 milestone 驗收。 |
 | ✅ [Engine API 基礎](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) | **100%** | ✅ API-M1 至 ✅ API-M6 完成 portable scope。 |
 | ✅ [Window 與 Native Presentation](Roadmap/zh-TW/Window_Presentation_Roadmap.md) | **100%** | ✅ WP-M0 至 ✅ WP-M4 已實作；Windows/DX12 WP-M1/WP-M2 runtime 驗收已記錄，Showcase、Vulkan/Metal 與其他 native-host 驗收仍為獨立 gate。 |
-| [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **90%** | ✅ ZS-M0 至 ✅ ZS-M4 已完成；ZS-M5 現有 Linux 與 Windows 隔離套件啟動證據，獨立配置乾淨機器的驗收仍待完成。 |
+| ✅ [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **100%** | ✅ ZS-M0 至 ✅ ZS-M5 已完成；獨立配置 Windows 乾淨機器的 Development package 已通過 16/16 checksum 並產出 PASS launch report。 |
 | [圖形化 Editor](Roadmap/zh-TW/Editor_Roadmap.md) | **0%（0/8）** | Repository 稽核確認各 ED track 已有 portable foundation，Dear ImGui shell 亦在施工中，但尚無 graphical ED milestone 通過全部 automated 與 target-host gate。 |
-| [聚焦 Roadmap AI 施工規劃](Roadmap/zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) | **60%** | API 100%、Zig Showcase 90% 與 Editor 0% 的平均，向下取整至 10%。 |
+| [聚焦 Roadmap AI 施工規劃](Roadmap/zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) | **60%** | API 100%、Zig Showcase 100% 與 Editor 0% 的平均，向下取整至 10%。 |
 | [V1 可視化 Showcase](Roadmap/zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) | **10%** | Phase A 已實作但仍待 native 驗收；Phase B 現有 ✅ portable scene-frame/resource foundation，native binding 與互動式 Rendering Room 仍待完成。 |
 
 ### Repository 狀態
@@ -232,7 +232,7 @@ Engine API 已完成 [Engine API 基礎 Roadmap](Roadmap/zh-TW/Engine_API_基礎
 
 Zig 已不只是規劃中的語言方向。Repository 會建置 Zig 0.14.0 gameplay object 與 ABI smoke consumer；目前 headless/static ZS-M1 verification slice 由 C++ 擁有 `main`、Engine／World lifetime、fixed 與 variable update、offscreen rendering、transactional reload 及 shutdown，Zig 則透過公開 V3 ABI 修改真實 entity 的 Transform。支援的操作流程請參閱 [Showcase README](Apps/Showcase/README.md)。
 
-ZS-M0 至 ZS-M4 已完成：capability-aware gallery 支援 camera input、selection raycast、誠實的 feature overlay 與已測 fallback；dynamic reload 也會穩定檔案、在 `on_start` 前恢復候選 state 以避免重複場景，並回報 callback/device-lost recovery scope。Windows 開發工作站上的 Development-dynamic 與 Shipping-monolithic/static 套件已從 checksum 驗證過的隔離副本啟動；獨立配置乾淨機器上的 distribution 驗收（ZS-M5）仍待完成。
+ZS-M0 至 ZS-M5 已完成：capability-aware gallery 支援 camera input、selection raycast、誠實的 feature overlay 與已測 fallback；dynamic reload 也會穩定檔案、在 `on_start` 前恢復候選 state 以避免重複場景，並回報 callback/device-lost recovery scope。Windows 開發工作站上的 Development-dynamic 與 Shipping-monolithic/static 套件已從 checksum 驗證過的隔離副本啟動；獨立配置 Windows 乾淨機器的 Development package 已通過 16/16 checksum 並產出 PASS launch report。
 
 #### Window 與 Native Presentation 狀態
 

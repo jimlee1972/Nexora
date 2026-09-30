@@ -1,11 +1,11 @@
 # Nexora Zig Showcase and Engine-owned Entry Point Roadmap
 
-> Version: v1.0 | Status: planning baseline | Updated: 2026-09-29
+> Version: v1.0 | Status: planning baseline | Updated: 2026-10-01
 
-> **Progress: 90%** (as of 2026-09-29; weighted acceptance checklist across the six milestones
+> **Progress: 100%** (as of 2026-10-01; weighted acceptance checklist across the six milestones
 > in section 4; completed items are marked with ✅ and the result is rounded down to 10%.)
 
-**Implementation status (2026-09-24):** ZS-M0 through ZS-M4 are complete. ABI V3 now defines
+**Implementation status (2026-10-01):** ZS-M0 through ZS-M5 are complete. ABI V3 now defines
 explicit result and capability values, separate create/start/stop/destroy phases, fallible variable/fixed updates, and
 transactional state migration in the C++ host. The in-tree C++ fake module exercises this contract.
 The Zig module now owns independently allocated state obtained and released through paired V3 host
@@ -80,17 +80,18 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
 - **✅ ZS-M4 Reload/failure:** transactional reload, state migration, bad ABI rejection, and rollback.
   - ✅ Job drain, restore failure, old-generation rollback, shutdown-during-reload, and repeated-reload stress for real dynamic generations.
   - ✅ Dynamic library replacement waits for stable size/write-time samples before loading. The host records generation-scoped update/fixed-update failures, and Presentation maps device loss to explicit device recreation rather than surface retry.
-- **ZS-M5 Distribution:** dynamic Development and static/packaged Shipping profiles with license/build/API manifests.
+- **✅ ZS-M5 Distribution:** dynamic Development and static/packaged Shipping profiles with license/build/API manifests.
   - ✅ Reproducible Development-dynamic and Shipping-static package targets emit license,
     build/API/content manifests, per-artifact SHA-256 digests, and `SHA256SUMS`.
-  - Open: retain launch evidence from the generated command on an independently provisioned clean
-    target machine. A build runner or development workstation does not satisfy this final gate.
+  - ✅ An independently provisioned Windows 10 target passed the generated command from its package
+    root after verifying all 16 `SHA256SUMS` entries; exit code 0 and `launch-report.json` status `PASS`
+    are retained in [the acceptance record](../../Apps/Showcase/evidence/ZS-M5-Windows-CleanMachine-2026-10-01/acceptance.md).
   - ✅ Linux clean-package evidence verifies all checksums, stages a fresh isolated copy, launches
     the relocatable dynamic package from that copy, and retains its report/exit status. Other target
-    hosts and independently provisioned-machine acceptance remain open.
+    hosts remain open.
   - ✅ On a Windows development workstation, isolated copies of the Development-dynamic and
     Shipping-monolithic/static packages passed all 13 and 5 checksums respectively, launched the
-    recorded command, and emitted `PASS` reports. This is Windows target-host evidence, not
+    recorded command, and emitted `PASS` reports. This workstation evidence is separate from the
     independently provisioned clean-machine acceptance. The CI workflow is configured to run the
     package evidence targets.
 

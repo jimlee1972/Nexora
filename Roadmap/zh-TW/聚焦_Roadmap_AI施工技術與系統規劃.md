@@ -1,11 +1,11 @@
 # Engine API、Zig Showcase、Editor：AI 施工技術與系統規劃
 
-> 版本：v1.0｜狀態：施工中｜更新：2026-09-24
+> 版本：v1.0｜狀態：施工中｜更新：2026-10-01
 
 
-> **進度：60%**（API 100%、Zig Showcase 90%、Editor 0%；算術平均 63.3%，向下取整至 10%。）
+> **進度：60%**（API 100%、Zig Showcase 100%、Editor 0%；算術平均 66.6%，向下取整至 10%。）
 
-**已驗收 delivery：** ✅ Engine API Foundation portable scope，以及 ✅ Zig Showcase ZS-M0 至 ZS-M4。**待辦：** Zig Showcase ZS-M5 獨立配置乾淨 target 的 distribution 驗收，以及全部圖形化 Editor delivery gates。Windows 開發工作站現有 Development 與 Shipping 兩種 package 啟動證據，但尚不足以結案 ZS-M5。
+**已驗收 delivery：** ✅ Engine API Foundation portable scope，以及 ✅ Zig Showcase ZS-M0 至 ✅ ZS-M5。**待辦：** 全部圖形化 Editor delivery gates。獨立配置 Windows 乾淨機器的 ZS-M5 驗收已記錄於 [acceptance record](../../Apps/Showcase/evidence/ZS-M5-Windows-CleanMachine-2026-10-01/acceptance.md)。
 
 ## 1. 分析結論
 
