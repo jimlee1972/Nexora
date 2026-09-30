@@ -1193,7 +1193,7 @@ Only then may it publish.
 > indirect-command generation. Portable compute/indirect recording, RenderGraph queue ownership,
 > CPU/GPU comparison, and no-readback diagnostics are now covered by contract tests. Native Vulkan
 > has a complete compute implementation and a native gate that requires `CompareGPUDrivenResults()` before indirect drawing.
-> The focused Slang-enabled Linux Vulkan test now passes on Mesa lavapipe and compares its output against the CPU reference. The full `linux-development` gate remains pending because `clang++` is unavailable in the cloud image; DX12/Metal execution and full target-tier parity also remain required before acceptance.
+> The Slang-enabled Linux Vulkan test passes on Mesa lavapipe and compares its output against the CPU reference. GitHub Actions run `36609837931` passed the full Linux Development gate, shipping/package evidence, sanitizer, and TSan gates; Linux Vulkan Phase 2 is accepted. DX12/Metal execution and full target-tier parity remain open.
 
 Repository evidence checklist:
 
@@ -1203,8 +1203,8 @@ Repository evidence checklist:
 - ✅ CPU/backend comparison and normal-path no-readback diagnostics.
 - ✅ Native Vulkan indirect execution in the Linux offscreen gate.
 - ✅ Native Vulkan compute-pipeline dispatch and storage-buffer binding/readback acceptance.
-- ✅ Focused native Vulkan compute implementation and mandatory CPU/GPU comparison through RenderGraph (Mesa lavapipe; `CompareGPUDrivenResults()` passes).
-- [ ] Full `linux-development` gate, DX12/Metal execution, and complete target-tier parity.
+- ✅ Linux Vulkan compute implementation and mandatory CPU/GPU comparison through RenderGraph (Mesa lavapipe; `CompareGPUDrivenResults()` and full repository gate pass in CI).
+- [ ] DX12/Metal execution and complete target-tier parity.
 
 Core data:
 

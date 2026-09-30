@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend 執行計畫
 
-> 版本：v1.0｜狀態：施工中；Linux Vulkan 專項比對通過，完整 development gate 待完成｜更新：2026-09-30｜對應：
+> 版本：v1.0｜狀態：施工中；Linux Vulkan Phase 2 已驗收，其他 target gate 仍待完成｜更新：2026-09-30｜對應：
 > `跨平台3D_Engine_V2_完整規劃書_v1_4.md` §V2-M3
 
 ## 1. 目的
@@ -166,9 +166,9 @@ pipeline 建立路徑。因為這些是加在共用介面上的 pure-virtual 新
 ——不是「寫一個 shader」——正好就是這個 repo 一貫規則要求動手前先討論的那種
 RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更。**已用 backend-neutral compute pipeline kind、四個固定 storage-buffer slot、host-visible upload 與明確標為 test-only 的 bounded readback seam 完成。固定 slot 讓本階段保持狹窄；通用 descriptor builder 仍是後續工作。**
 
-### Phase 2 — Vulkan 完整 compute 階段（native 專項比對通過；preset gate 待完成）
+### ✅ Phase 2 — Vulkan 完整 compute 階段（Linux 驗收）
 
-> **更新（2026-09-30）：Linux Vulkan 專項比對通過；完整 preset gate 待完成。** 使用 Slang 2026.18 於 Mesa lavapipe 執行 `renderer.v2_gpu_driven`，並設定 `NEXORA_REQUIRE_NATIVE_BACKENDS=1`。RenderGraph 的 compute 與 indirect callback 呼叫 `RecordGPUDrivenExecution()` 共用的階段記錄函式；有限的測試讀回通過 `CompareGPUDrivenResults()`，包含統計數據。必要的完整 `linux-development` CTest 為 50/51，`build.v2_production_toolchain` 因找不到 `clang++` 失敗；依 repository gate，完整測試通過前不標記 Phase 2 已驗收。實體 GPU 效能與 DX12／Metal 目標主機 gate 也仍待完成。
+> **更新（2026-09-30）：Linux Vulkan 驗收通過。** 使用 Slang 2026.18 於 Mesa lavapipe 執行 `renderer.v2_gpu_driven`，並設定 `NEXORA_REQUIRE_NATIVE_BACKENDS=1`。RenderGraph 的 compute 與 indirect callback 呼叫 `RecordGPUDrivenExecution()` 共用的階段記錄函式；有限的測試讀回通過 `CompareGPUDrivenResults()`，包含統計數據。GitHub Actions run `36609837931` 的 Linux Development configure/build/完整 CTest，以及 Linux shipping、package/evidence、sanitizer 與 TSan build-contract job 全數通過。本 Work Mode 容器的本地 CTest 因缺少 `clang++` 為 50/51；此環境限制不推翻 CI 成功證據。實體 GPU 效能與 DX12／Metal 目標主機 gate 仍待完成。
 >
 > 歷史紀錄（2026-09-25）：實作完成，native 驗收待完成。 Shader 與 native test 已涵蓋每個 Phase 2 stage，但在 Slang-enabled Linux Vulkan test 實際執行並通過 `CompareGPUDrivenResults()` 前，不標記 Phase 2 為 ✅。Shader 編譯、Dispatch 未拋例外與 diagnostics counter 都不算驗收證據。
 
