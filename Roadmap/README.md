@@ -26,6 +26,7 @@ updated together and remain evidence-based.
 | ✅ ADR-0001: Editor UI Framework | **Accepted** | [ADR-0001: Editor UI Framework](en/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui Integration Plan | **In progress; no WP exit gate accepted** | [Editor ED-M0 Dear ImGui Integration Plan](en/Editor_ImGui_Integration_Plan.md) |
 | V2-M3 GPU-Driven Native Execution Plan | **In progress; ✅ Phase 1a and Metal source slice complete** | [V2-M3 GPU-Driven Native Execution Plan](en/V2-M3_GPU_Driven_Native_Execution_Plan.md) |
+| Transform Rotation and Scale Plan | **Plan only; not approved or implemented** | [Transform Rotation and Scale Plan](en/Transform_Rotation_Scale_Plan.md) |
 | Focused Roadmaps AI Plan | **60%** | [AI Implementation Technology and System Plan](en/Focused_Roadmaps_AI_Implementation_Plan.md) |
 
 > `Tools/Migration/ScanV1Project.py` (V1-to-V2 migration audit) and `Tools/Production/NexoraTool.py`
@@ -77,6 +78,7 @@ Roadmap 狀態與 repository root [`README.md`](../README.md) 的進度／狀態
 | ✅ ADR-0001：Editor UI Framework | **Accepted** | [ADR-0001：Editor UI Framework](zh-TW/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui 整合計畫 | **施工中；尚無 WP 通過 exit gate** | [Editor ED-M0 Dear ImGui 整合計畫](zh-TW/Editor_ImGui_Integration_Plan.md) |
 | V2-M3 GPU-Driven Native Execution 計畫 | **施工中；✅ Phase 1a 與 Metal source slice 已完成** | [V2-M3 GPU-Driven Native Execution 計畫](zh-TW/V2-M3_GPU_Driven_Native_Execution_Plan.md) |
+| Transform 旋轉與縮放擴充計畫 | **僅為計畫；尚未核准或實作** | [Transform 旋轉與縮放擴充計畫](zh-TW/Transform_Rotation_Scale_Plan.md) |
 | 聚焦 Roadmap AI 施工規劃 | **60%** | [AI 施工技術與系統規劃](zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) |
 
 > `Tools/Migration/ScanV1Project.py`（V1 到 V2 的 migration 稽核）與 `Tools/Production/NexoraTool.py`

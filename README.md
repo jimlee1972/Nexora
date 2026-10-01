@@ -126,7 +126,7 @@ The [Window and Native Presentation Roadmap](Roadmap/en/Window_Presentation_Road
 
 #### Editor status
 
-The [Graphical Editor Roadmap](Roadmap/en/Editor_Roadmap.md) remains at **0/8 (0%) graphical milestone acceptance**. Portable foundations now include ED-M4 additive-scene ownership and dependency ordering, migration dry-runs, bounded autosave recovery, and source-control-neutral three-way conflicts, and UI-neutral viewport pick-ray, AABB picking, axis-drag, snapping, and resize-hysteresis math, in addition to the existing ED-M1 through ED-M3 contracts. The focused [ED-M0 Dear ImGui plan](Roadmap/en/Editor_ImGui_Integration_Plan.md) remains **in progress**; graphical workflows, native debugger integration, physical-display evidence, and UI acceptance remain open. ED-M0 through ED-M7 are therefore unchecked; portable prerequisites are not rounded up into accepted graphical milestones.
+The [Graphical Editor Roadmap](Roadmap/en/Editor_Roadmap.md) remains at **0/8 (0%) graphical milestone acceptance**. Portable foundations now include ED-M4 additive-scene ownership and dependency ordering, migration dry-runs, bounded autosave recovery, and source-control-neutral three-way conflicts, and UI-neutral viewport pick-ray, AABB picking, axis-drag, snapping, and resize-hysteresis math, in addition to the existing ED-M1 through ED-M3 contracts. A [plan for rotation and scale transforms](Roadmap/en/Transform_Rotation_Scale_Plan.md), needed for rotate and scale gizmos, exists but is not approved or implemented. The focused [ED-M0 Dear ImGui plan](Roadmap/en/Editor_ImGui_Integration_Plan.md) remains **in progress**; graphical workflows, native debugger integration, physical-display evidence, and UI acceptance remain open. ED-M0 through ED-M7 are therefore unchecked; portable prerequisites are not rounded up into accepted graphical milestones.
 
 ### Important note
 
@@ -245,7 +245,7 @@ ZS-M0 至 ZS-M5 已完成：capability-aware gallery 支援 camera input、selec
 
 #### Editor 狀態
 
-[圖形化 Editor Roadmap](Roadmap/zh-TW/Editor_Roadmap.md) 的**圖形化 milestone 驗收仍為 0/8（0%）**。Portable foundation 除既有 ED-M1 至 ED-M3 contract 外，現已加入 ED-M4 additive-scene ownership 與 dependency ordering、migration dry-run、bounded autosave recovery，以及 source-control-neutral three-way conflict，另有與 UI 無關的 viewport pick ray、AABB picking、軸向拖曳、snapping 與 resize hysteresis 數學。Focused [ED-M0 Dear ImGui 計畫](Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md) 仍為**施工中**；圖形化 workflow、native debugger integration、physical-display evidence 與 UI 驗收仍待完成。因此 ED-M0 至 ED-M7 都不打勾；portable prerequisite 不會向上取整為已驗收的 graphical milestone。
+[圖形化 Editor Roadmap](Roadmap/zh-TW/Editor_Roadmap.md) 的**圖形化 milestone 驗收仍為 0/8（0%）**。Portable foundation 除既有 ED-M1 至 ED-M3 contract 外，現已加入 ED-M4 additive-scene ownership 與 dependency ordering、migration dry-run、bounded autosave recovery，以及 source-control-neutral three-way conflict，另有與 UI 無關的 viewport pick ray、AABB picking、軸向拖曳、snapping 與 resize hysteresis 數學。旋轉與縮放 transform（rotate／scale gizmo 所需）的[計畫](Roadmap/zh-TW/Transform_Rotation_Scale_Plan.md)已存在，但尚未核准或實作。Focused [ED-M0 Dear ImGui 計畫](Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md) 仍為**施工中**；圖形化 workflow、native debugger integration、physical-display evidence 與 UI 驗收仍待完成。因此 ED-M0 至 ED-M7 都不打勾；portable prerequisite 不會向上取整為已驗收的 graphical milestone。
 
 ### 重要說明
 
