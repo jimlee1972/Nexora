@@ -11,6 +11,7 @@
 - ✅ Source/test audit 已確認 Window、Presentation 與 RHI buffer contract 均已存在；Showcase 重用 `RenderSurface`，沒有重建這些 boundary。
 - 已實作、待 native 驗收：Linux/X11/Vulkan windowed startup、bounded resize、clear color、triangle、diagnostics panel、shutdown 與 Xvfb smoke。
 - ✅ Windows/Win32/DX12 windowed compositing（`Dx12Surface::CompositeRgba8`）已實作：視窗能顯示真正的 clear color、software-rasterized triangle 與 diagnostics panel，並以開發機手動驗證為證據（`--mode=interactive --backend=dx12`，跑了 600 次 acquire/composite/present 循環，`backend_fallback=false`，並截取了實際視窗畫面）。此前這段是缺的——`Dx12Surface` 繼承了 `ISurface::CompositeRgba8` 的基底預設值（回傳 `Unsupported`），導致 `--backend=dx12` 直接失敗而非悄悄降級。Clean-machine 與 CI 的 windowed 驗收仍待完成；目前只有單一開發機的手動證據。
+- ✅ Windows/Win32/DX12 native GPU scene binding 現已驅動 Rendering Room 的 indexed、depth-tested procedural cube。Development dynamic package 與 Shipping static package 都在開發機執行 600 frames，得到 `scene_draws=600`、`surface_acquires=600`、`surface_presents=600`、`resize_generations=2`、`backend_fallback=false`，並截取到可見的 GPU scene 畫面。Clean-machine／CI windowed 驗收、其他 native backend 仍待完成。
 - ✅ 3D Hub 已呈現 M0～M12 Validation Lab 卡片、穩定 room/world-object 關聯與可見的受控失敗狀態；Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping 房間的 authored content 仍待完成。
 - ✅ M0～M12 probe registry、status model、版本化 JSON／Markdown serializer、CTest card mapping 與受控 error injection 已可攜。
 - ✅ M7～M10 capability-aware room state 會輸出 headless evidence 與 `visual_complete: false`；interactive／guided tour 與視覺內容仍待完成。
@@ -292,12 +293,12 @@ Linux/Vulkan 是 Phase A cloud implementation slice；只有 virtual-display tes
 - 建立程序化 mesh/material，第一版不依賴大型外部資產。
 - 實作 Rendering Room 與 frame diagnostics。
 
-**Portable scene-frame foundation：✅ 完成；graphical binding 仍待完成。** Renderer 擁有經驗證的
+**Portable scene-frame foundation：✅ 完成；Windows/DX12 graphical binding 已在開發機 ✅ 驗證。**
 camera、indexed mesh、material、light、procedural cube 與 deterministic frame-resource contract。
 Headless validation 涵蓋 buffer、depth 與 sampled texture、sampler-policy count、indexed
-submission、failure、lifetime 與 shutdown。Windows/DX12 windowed compositing（`Dx12Surface::CompositeRgba8`）
-現已實作，並以開發機手動驗證為證據。Native Vulkan binding、互動式 Rendering Room 輸出、
-Xvfb/lavapipe evidence 及各 backend 的 clean-machine/CI target-host evidence 仍待完成。
+submission、failure、lifetime 與 shutdown。Windows/DX12 windowed compositing 與互動式 Rendering
+Room GPU scene path 已以開發機手動驗證為證據；Native Vulkan binding、Xvfb/lavapipe evidence
+及各 backend 的 clean-machine/CI target-host evidence 仍待完成。
 
 ### Phase C — Probe 與 V1 Validation Lab
 

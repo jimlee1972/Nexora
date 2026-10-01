@@ -3,10 +3,12 @@
 #include "Nexora/Foundation/GameplayABI.h"
 #include "Nexora/Game/GameWorld.h"
 #include "Nexora/Game/GameplayHostBridge.h"
+#include "Nexora/Math/Math.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/ShaderReflection.h"
 #include "Nexora/Renderer/FramePipeline.h"
 #include "Nexora/Renderer/PipelineCache.h"
+#include "Nexora/Renderer/SceneFrame.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
 #include "ShowcaseProbes.h"
 
@@ -115,6 +117,7 @@ struct ShowcaseRun final {
   std::string windowed_backend{"none"};
   std::uint32_t resize_requests{};
   std::uint32_t composed_frames{};
+  std::uint32_t scene_draws{};
 };
 
 enum class CapabilityState { Implemented, ContractOnly, Unavailable };
@@ -248,9 +251,10 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       command.headless = command.mode == "headless";
     } else if (argument.starts_with("--scene=")) {
       command.scene = std::string(argument.substr(8));
-      if (command.scene != "hub" && command.scene != "tour" &&
+      if (command.scene != "hub" && command.scene != "tour" && command.scene != "rendering" &&
           FindGalleryRoom(command.scene) == nullptr) {
-        error = "--scene must be hub, tour, math, scene, gameplay, presentation, or streaming";
+        error = "--scene must be hub, tour, rendering, math, scene, gameplay, presentation, or "
+                "streaming";
         return false;
       }
     } else if (argument.starts_with("--backend=")) {
@@ -299,8 +303,8 @@ void PrintUsage() {
          "  --resize=WIDTHxHEIGHT      request one native resize after startup\n"
          "  --no-reload                skip the transactional Zig state reload\n"
          "  --mode=headless|interactive select deterministic or native presentation\n"
-         "  --scene=ROOM               select hub, tour, math, scene, gameplay, presentation, "
-         "or streaming\n"
+         "  --scene=ROOM               select hub, tour, rendering, math, scene, gameplay, "
+         "presentation, or streaming\n"
          "  --backend=auto|validation|dx12|vulkan|metal select the presentation backend\n"
          "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n"
          "  --gameplay-library=PATH     override the dynamic Zig artifact path\n"
@@ -664,6 +668,17 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   std::size_t executedFrames = 0;
   const auto validationLab =
       showcase::BuildValidationLab(showcase::ProbeRegistry::CreateV1Registry().RunAll());
+  // Built once: the Rendering Room's procedural cube geometry never changes between frames, only
+  // the camera orbit below does.
+  const auto renderingRoomScene = renderer::MakeProceduralRenderingRoom();
+  std::vector<Nexora::Presentation::SceneVertex> renderingRoomVertices;
+  renderingRoomVertices.reserve(renderingRoomScene.mesh.vertices.size());
+  for (const auto &vertex : renderingRoomScene.mesh.vertices)
+    renderingRoomVertices.push_back({{vertex.position[0], vertex.position[1], vertex.position[2]},
+                                      {vertex.normal[0], vertex.normal[1], vertex.normal[2]}});
+  const float renderingRoomOrbitRadius =
+      std::sqrt(renderingRoomScene.camera.position[0] * renderingRoomScene.camera.position[0] +
+                renderingRoomScene.camera.position[2] * renderingRoomScene.camera.position[2]);
   for (std::size_t frame = 0; frame < frameLimit; ++frame) {
     if (nativeSurface) {
       const auto status = nativeSurface->BeginFrame();
@@ -703,16 +718,50 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     ++executedFrames;
     if (nativeSurface) {
       const auto frameInfo = nativeSurface->FrameInfo();
-      const auto pixels = BuildShowcaseFrame(frameInfo.width, frameInfo.height, validationLab);
-      const auto composite =
-          nativeSurface->CompositeRgba8(pixels, frameInfo.width, frameInfo.height);
-      if (composite != Nexora::Presentation::SurfaceStatus::Ready) {
-        error = "showcase frame composition failed: " +
-                std::string(Nexora::Presentation::ToString(composite));
-        device->DestroyTexture(output);
-        return false;
+      if (command.scene == "rendering") {
+        const float angle = static_cast<float>(frame) * 0.01F;
+        const math::Vector3 eye{renderingRoomOrbitRadius * std::sin(angle),
+                                renderingRoomScene.camera.position[1],
+                                renderingRoomOrbitRadius * std::cos(angle)};
+        const auto view = math::LookAt(eye, {0, 0, 0});
+        const float aspect = frameInfo.height ? static_cast<float>(frameInfo.width) /
+                                                     static_cast<float>(frameInfo.height)
+                                              : 1.0F;
+        const auto projection = math::PerspectiveRadians(
+            renderingRoomScene.camera.vertical_fov_radians, aspect,
+            renderingRoomScene.camera.near_plane, renderingRoomScene.camera.far_plane);
+        const auto mvp = projection * view;
+        Nexora::Presentation::SceneDrawData draw{};
+        draw.vertices = renderingRoomVertices;
+        draw.indices = renderingRoomScene.mesh.indices;
+        std::memcpy(draw.model_view_projection, mvp.values.data(),
+                    sizeof(draw.model_view_projection));
+        std::memcpy(draw.light_direction, renderingRoomScene.light.direction.data(),
+                    sizeof(draw.light_direction));
+        std::memcpy(draw.light_color, renderingRoomScene.light.color.data(),
+                    sizeof(draw.light_color));
+        std::memcpy(draw.base_color, renderingRoomScene.material.base_color.data(),
+                    sizeof(draw.base_color));
+        const auto drawStatus = nativeSurface->DrawScene(draw);
+        if (drawStatus != Nexora::Presentation::SurfaceStatus::Ready) {
+          error = "showcase scene draw failed: " +
+                  std::string(Nexora::Presentation::ToString(drawStatus));
+          device->DestroyTexture(output);
+          return false;
+        }
+        ++result.scene_draws;
+      } else {
+        const auto pixels = BuildShowcaseFrame(frameInfo.width, frameInfo.height, validationLab);
+        const auto composite =
+            nativeSurface->CompositeRgba8(pixels, frameInfo.width, frameInfo.height);
+        if (composite != Nexora::Presentation::SurfaceStatus::Ready) {
+          error = "showcase frame composition failed: " +
+                  std::string(Nexora::Presentation::ToString(composite));
+          device->DestroyTexture(output);
+          return false;
+        }
+        ++result.composed_frames;
       }
-      ++result.composed_frames;
       const auto status = nativeSurface->EndFrame();
       if (status != Nexora::Presentation::SurfaceStatus::Ready &&
           status != Nexora::Presentation::SurfaceStatus::Occluded) {
@@ -941,9 +990,12 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"resize_requests\": " << run.resize_requests << ",\n"
          << "    \"resize_generations\": " << run.surface.resizeGenerations << ",\n"
          << "    \"composed_frames\": " << run.composed_frames << ",\n"
+         << "    \"scene_draws\": " << run.scene_draws << ",\n"
+         << "    \"rendering_mode\": \"" << (run.scene_draws > 0 ? "gpu_scene" : "cpu_composite")
+         << "\",\n"
          << "    \"clear_color\": true,\n"
-         << "    \"triangle\": true,\n"
-         << "    \"diagnostics_overlay\": true\n"
+         << "    \"triangle\": " << (run.composed_frames > 0) << ",\n"
+         << "    \"diagnostics_overlay\": " << (run.composed_frames > 0) << "\n"
          << "  },\n"
          << "  \"validation_lab\": " << validationLab << ",\n"
          << "  \"validation_lab_presentation\": "

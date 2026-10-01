@@ -193,6 +193,13 @@ int main() {
       surface.RenderUi({uiVertices, std::as_bytes(std::span{uiIndices}), uiCommands, {}, false}) ==
       Presentation::SurfaceStatus::Ready);
   assert(surface.UiDrawCalls() == 1);
+  // FakeSurface does not override DrawScene, so it must fall back to ISurface's base default --
+  // Unsupported, never a silent no-op "success" -- exactly like every backend without a real
+  // geometry pipeline (e.g. Vulkan today) reports it.
+  const std::array<Presentation::SceneVertex, 3> sceneVertices{};
+  const std::array<std::uint16_t, 3> sceneIndices{};
+  assert(surface.DrawScene({sceneVertices, sceneIndices}) ==
+         Presentation::SurfaceStatus::Unsupported);
   windows.ResizeEvent(800, 600, 1);
   windows.ResizeEvent(0, 0, 2);
   const auto events = windows.PumpEvents();
