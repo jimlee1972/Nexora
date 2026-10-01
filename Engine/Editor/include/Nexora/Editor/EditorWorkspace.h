@@ -98,6 +98,9 @@ public:
   bool Select(std::span<const runtime::Id> entities);
   // Undoable; keeps the entity's world pose like dragging in Unity's Hierarchy. Rejects cycles.
   bool Reparent(runtime::Id entity, runtime::Id parent);
+  // A Hierarchy drag: reparent keeping the world pose and place the node at `index` among its new
+  // siblings (clamped to the last position), as one undo step.
+  bool Move(runtime::Id entity, runtime::Id parent, std::size_t index);
   bool SetTransform(runtime::Id entity, runtime::Transform transform);
   bool CopySelection();
   bool Paste();
@@ -107,6 +110,8 @@ public:
   [[nodiscard]] std::span<const runtime::Id> Selection() const noexcept { return selection_; }
   [[nodiscard]] std::optional<runtime::Id> Parent(runtime::Id entity) const;
   [[nodiscard]] std::string_view Name(runtime::Id entity) const;
+  // In runtime sibling order (scene storage order), so a Hierarchy view can list children as
+  // ordered by Move and the runtime.
   [[nodiscard]] std::vector<NodeView> Nodes() const;
 
 private:

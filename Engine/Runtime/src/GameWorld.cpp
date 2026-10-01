@@ -140,6 +140,12 @@ bool GameWorld::SetParent(runtime::Id entity, runtime::Id parent, bool keep_worl
   return commands.Apply(world_);
 }
 
+bool GameWorld::SetSiblingIndex(runtime::Id entity, std::size_t index) {
+  runtime::WorldCommandBuffer commands;
+  commands.SetSiblingIndex(entity, index);
+  return commands.Apply(world_);
+}
+
 bool GameWorld::SetCamera(runtime::Id entity, std::optional<runtime::CameraComponent> camera) {
   runtime::WorldCommandBuffer commands;
   commands.SetCamera(entity, camera);

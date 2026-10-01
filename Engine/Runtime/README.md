@@ -233,8 +233,13 @@ dependency cycles, safe unload, deterministic save/load, and a 10,000-entity tim
 Entities form a hierarchy following Unity's conventions ([plan](../../Roadmap/en/Entity_Parenting_Plan.md)).
 `Entity::parent` is 0 for a root, and `Entity::transform` is **local**: relative to the parent, or
 the world pose for a root. A parent and its child are always in the same scene and the hierarchy is
-acyclic. Storage order is not hierarchy order: a child may be stored before its parent, and there is
-no sibling ordering yet.
+acyclic. Siblings (the children of one parent, or the roots of a scene) are ordered by their scene storage
+order, which snapshots keep. `SiblingIndex` reads an entity's position and
+`WorldCommandBuffer::SetSiblingIndex` moves it, clamping past the end, like Unity's
+Get/SetSiblingIndex. A reparent makes the entity its new parent's last child. Both move the entity
+within the scene storage, a structural change that invalidates entity references like creation and
+destruction do. A child may still be stored before its parent; only the order among siblings is
+meaningful.
 
 - Reads: `World::Parent` (nullopt for a missing entity), `Children` (direct children in storage
   order), `Subtree` (the entity first, every parent before its children), `WorldTransform`, and

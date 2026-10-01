@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iomanip>
 #include <sstream>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace nexora::editor {
@@ -338,6 +339,12 @@ bool SceneDocument::Reparent(runtime::Id entity, runtime::Id parent) {
   // The runtime rejects self-parenting and cycles.
   return editor_.SetParent(entity, parent, true);
 }
+bool SceneDocument::Move(runtime::Id entity, runtime::Id parent, std::size_t index) {
+  if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end() ||
+      (parent && std::ranges::find(nodes_, parent, &Node::id) == nodes_.end()))
+    return false;
+  return editor_.Move(entity, parent, index, true);
+}
 bool SceneDocument::SetTransform(runtime::Id entity, runtime::Transform transform) {
   return editor_.SetTransform(entity, transform);
 }
@@ -466,8 +473,13 @@ std::string_view SceneDocument::Name(runtime::Id entity) const {
 std::vector<SceneDocument::NodeView> SceneDocument::Nodes() const {
   std::vector<NodeView> result;
   result.reserve(nodes_.size());
+  std::unordered_map<runtime::Id, std::string_view> names;
   for (const auto &node : nodes_)
-    result.push_back({node.id, world_.Parent(node.id).value_or(0), node.name});
+    names.emplace(node.id, node.name);
+  if (const auto *scene = world_.FindScene(scene_))
+    for (const auto &entity : scene->entities)
+      if (const auto found = names.find(entity.id); found != names.end())
+        result.push_back({entity.id, entity.parent, found->second});
   return result;
 }
 } // namespace nexora::editor

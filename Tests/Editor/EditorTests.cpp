@@ -208,6 +208,12 @@ int Run() {
           "hierarchy view contract failed");
   Require(parent && child && document.Parent(child) == parent && !document.Reparent(parent, child),
           "hierarchy cycle policy failed");
+  // A Hierarchy drag places a node among its new siblings; Nodes() lists the runtime order.
+  const auto sibling = document.Create("Sibling", parent);
+  Require(document.Move(sibling, parent, 0) && document.Nodes()[1].id == sibling &&
+              document.Nodes()[2].id == child && document.Undo() &&
+              document.Nodes()[1].id == child && document.Undo() && document.Nodes().size() == 2,
+          "Move and Nodes() must follow the runtime sibling order");
   const std::vector<runtime::Id> selected{child};
   Require(document.Select(selected) && document.SetTransform(child, {1, 2, 3}) &&
               document.CopySelection() && document.Paste(),

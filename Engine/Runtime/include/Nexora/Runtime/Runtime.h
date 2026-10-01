@@ -119,6 +119,9 @@ public:
   [[nodiscard]] std::optional<Id> Parent(Id entity) const;
   // Direct children in scene storage order.
   [[nodiscard]] std::vector<Id> Children(Id entity) const;
+  // Position among the children of the entity's parent (or the roots of its scene), in order; this
+  // order is the scene storage order, so snapshots keep it. nullopt for a missing entity.
+  [[nodiscard]] std::optional<std::size_t> SiblingIndex(Id entity) const;
   // The entity and all its descendants, parents before children.
   [[nodiscard]] std::vector<Id> Subtree(Id entity) const;
   // World pose composed along the parent chain. Lossy under shear; see ComposeTransforms.
@@ -149,6 +152,10 @@ public:
   // its local transform is kept and it moves with the new parent. The parent must be in the same
   // scene and must not be the entity or one of its descendants.
   void SetParent(Id entity, Id parent, bool keep_world = true);
+  // Unity's SetSiblingIndex: moves the entity to position `index` among the children of its parent
+  // (the roots of its scene for a root), clamped to the last position. A reparent makes the entity
+  // its new parent's last child, as in Unity.
+  void SetSiblingIndex(Id entity, std::size_t index);
   void SetCamera(Id entity, std::optional<CameraComponent> camera);
   void SetLight(Id entity, std::optional<LightComponent> light);
   void SetMeshRenderer(Id entity, std::optional<MeshComponent> mesh);
@@ -164,12 +171,13 @@ public:
 
 private:
   struct Command final {
-    enum class Kind { Transform, Parent, Camera, Light, MeshRenderer, Destroy };
+    enum class Kind { Transform, Parent, SiblingIndex, Camera, Light, MeshRenderer, Destroy };
     Id entity{};
     Kind kind{};
     Transform transform{};
     Id parent{};
     bool keep_world{true};
+    std::size_t sibling_index{};
     std::optional<CameraComponent> camera;
     std::optional<LightComponent> light;
     std::optional<MeshComponent> mesh;

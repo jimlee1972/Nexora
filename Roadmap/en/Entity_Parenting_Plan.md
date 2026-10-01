@@ -1,8 +1,8 @@
 # Entity Parenting (Transform Hierarchy) — Plan
 
 > Version: v1.1 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
-> ✅ phases 1 and 2 complete; phase 3 gizmo math done; Hierarchy drag/sibling order and phase 4 not
-> started** | Updated: 2026-10-01 | Relates to:
+> ✅ phases 1, 2, and 3 (data model) complete; the graphical Hierarchy and gizmos are the Editor
+> roadmap's; phase 4 not started** | Updated: 2026-10-01 | Relates to:
 > `Transform_Rotation_Scale_Plan.md`, `Editor_Roadmap.md` §ED-M2
 
 ## 1. Purpose
@@ -55,9 +55,10 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
    `"Nexora.WorldTransform"`, and `"Nexora.TransformV2"`); character controllers under a parent,
    following Unity: the controller moves in world space, starts each tick from the transform's
    current world position (so a moving parent carries it), and stores the result locally.
-3. **Editor tools.** World/local and pivot gizmo modes (math done: `GizmoAxes`, `ApplyGizmo`,
+3. ✅ **Editor tools (data model; the graphical tools are the Editor roadmap's).** World/local and pivot gizmo modes (math done: `GizmoAxes`, `ApplyGizmo`,
    `GizmoRoots` in `ViewportMath.h`, working on the world TRS like Unity), Hierarchy drag
-   reparenting, sibling order.
+   reparenting and sibling order (done: `SetSiblingIndex`/`SiblingIndex`, reparent-to-last,
+   undoable `SceneEditor::Move`, `SceneDocument::Move`, and `Nodes()` in sibling order).
 4. **Rendering.** When renderers consume entity transforms, they must use `WorldMatrix`.
 
 ## 5. Phase-1 limits (documented, not hidden)
@@ -69,7 +70,8 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
 - `PlaySession` apply-back still applies transforms only; parent changes made during play are not
   applied back, and an entity whose parent changed during play is reported as an apply-back conflict
   (its local values belong to another parent, so copying them would move it).
-- No sibling ordering beyond scene storage order.
+- ~~No sibling ordering beyond scene storage order.~~ Phase 3 added Unity-style sibling indices, kept
+  in the scene storage order (so no snapshot format change).
 
 ## 6. Risks
 
