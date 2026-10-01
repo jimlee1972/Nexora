@@ -26,7 +26,7 @@ points, defines, include directories, declared dependencies, schema, and reflect
 an explicit (not globally fixed) variant budget, and invalidates all consumers when a recorded
 source or include dependency changes. Callers should take a `CaptureShaderInputs` snapshot before
 compiling and pass it to `Store`, so a save landing mid-compile leaves the entry stale instead of
-being stamped as current. Shipping admission remains exclusively in Runtime and never
+being stamped as current; `Store` rejects (and does not budget) a result whose snapshot is already stale. Shipping admission remains exclusively in Runtime and never
 consults this development cache.
 
 `NexoraEditorCore` is the UI-independent authoring layer used by the standalone `NexoraEditor`

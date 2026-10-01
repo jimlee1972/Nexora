@@ -528,6 +528,16 @@ bool DevelopmentShaderCache::Store(const ShaderCompileRequest &request, ShaderCo
   }
   Entry entry;
   entry.result = std::move(result);
+  // Inputs edited after the snapshot mean the result is already stale: refuse it (and drop any
+  // older entry) rather than let it occupy budget until the next Find notices.
+  for (const auto &[path, stamp] : inputs.write_times) {
+    if (WriteTime(path) != stamp) {
+      entries_.erase(key);
+      budget_.used = entries_.size();
+      error = "shader inputs changed while compiling; result discarded as stale";
+      return false;
+    }
+  }
   entry.dependency_write_times = std::move(inputs.write_times);
   entries_.insert_or_assign(key, std::move(entry));
   budget_.used = entries_.size();
