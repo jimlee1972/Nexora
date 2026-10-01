@@ -7,8 +7,13 @@ InputSnapshot CaptureInput(runtime::InputSystem &input, runtime::InputUserId use
 }
 
 runtime::Id GameWorld::SpawnEntity(runtime::Id scene, EntitySpawnDescriptor descriptor) {
+  // Validate before creating anything so an invalid transform leaves the world untouched.
+  const auto transform = runtime::NormalizedTransform(descriptor.transform);
+  if (!transform)
+    throw std::invalid_argument(
+        "invalid transform: non-finite value, zero scale, or zero rotation");
   auto &entity = world_.CreateEntity(scene);
-  entity.transform = descriptor.transform;
+  entity.transform = *transform;
   if (descriptor.camera) {
     entity.camera = true;
     entity.camera_data = *descriptor.camera;
@@ -212,8 +217,11 @@ GameWorld::TickCharacter(runtime::Id entity, const runtime::CharacterInput &inpu
   auto &binding = found->second;
   auto result =
       binding.motor.Tick(binding.state, input, seconds, physics_, binding.controller, ground_ready);
-  if (!SetTransform(entity,
-                    {binding.state.position.x, binding.state.position.y, binding.state.position.z}))
+  const auto *current = world_.FindEntity(entity);
+  if (current == nullptr ||
+      !SetTransform(entity,
+                    runtime::WithPosition(current->transform, binding.state.position.x,
+                                          binding.state.position.y, binding.state.position.z)))
     return std::nullopt;
   return result;
 }

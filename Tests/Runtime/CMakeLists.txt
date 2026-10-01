@@ -14,6 +14,11 @@ target_link_libraries(NexoraGameWorldTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraGameWorldTests)
 add_test(NAME api.game_world_facade COMMAND NexoraGameWorldTests)
 
+add_executable(NexoraTransformTests TransformTests.cpp)
+target_link_libraries(NexoraTransformTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraTransformTests)
+add_test(NAME runtime.transform_rotation_scale COMMAND NexoraTransformTests)
+
 add_executable(NexoraGameplayHostBridgeTests GameplayHostBridgeTests.cpp)
 target_link_libraries(NexoraGameplayHostBridgeTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraGameplayHostBridgeTests)

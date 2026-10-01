@@ -185,14 +185,30 @@ rejection, and a 10,000-event input routing performance baseline.
 ## V1-M4 scene vertical slice
 
 `World` owns scenes and their entities. Entity identifiers remain stable across scene
-serialization, and snapshots use the versioned `NEXORA_SCENE 1` text schema. Loading validates the
-complete snapshot before publishing it; malformed versions, duplicate IDs, non-finite transforms,
+serialization, and snapshots use the versioned `NEXORA_SCENE` text schema. Loading validates the
+complete snapshot before publishing it; malformed versions, duplicate IDs, invalid transforms,
 and IDs already owned by the destination world are rejected without partially adding a scene.
 An entity count larger than the snapshot text could possibly hold (an entity record needs at least 25
-characters) is rejected before any allocation, and the up-front reservation is capped at a small
-constant, so a hostile snapshot cannot make the loader throw or reserve memory proportional to a claimed
-count.
+characters in version 1 and 39 in version 2) is rejected before any allocation, and the up-front
+reservation is capped at a small constant, so a hostile snapshot cannot make the loader throw or
+reserve memory proportional to a claimed count.
 Double-precision world transforms provide the large-coordinate foundation.
+
+`runtime::Transform` is one component holding a position, a rotation stored as a unit quaternion
+(`qx, qy, qz, qw`, identity by default), and a per-axis scale (`sx, sy, sz`, one by default), following
+the Unity and Unreal convention of a single transform with possibly non-uniform scale. Euler angles
+are an Editor presentation and are not stored here. Negative scale mirrors an axis; a zero scale, a
+non-finite value, or a zero-length quaternion is invalid (`IsValidTransform`). Every transform that
+reaches a `World` is validated and its quaternion normalized (`NormalizedTransform`): a
+`WorldCommandBuffer` containing an invalid transform is rejected whole before anything changes,
+`GameWorld::SpawnEntity` throws `std::invalid_argument`, and a snapshot with an invalid transform is
+rejected. Snapshots are written as `NEXORA_SCENE 2`, whose entity record adds the rotation and scale
+after the position; `NEXORA_SCENE 1` (position only) remains readable and loads with identity rotation
+and unit scale, so a loaded version 1 scene is upgraded to version 2 the next time it is saved. The
+text is written and read in the classic locale. Writers that own only the position (the Zig/C
+`write_component` bridge and a character controller's per-tick synchronization) use `WithPosition` and
+therefore keep the entity's rotation and scale. The transform is currently world-space: entities have
+no parent hierarchy yet, which Unity and Unreal transforms are relative to.
 
 Scenes enter `LoadedInactive`, may transition to `Active`, and unload through `Unloading` before
 their entity storage is released by `EndFrame`. Persistent scenes reject unload requests. An editor
@@ -427,7 +443,8 @@ the M4 command-buffer contract rather than adding new `World` friend access.
 named re-export of the already-ABI-appropriate `AssetUuid` (API-M2). The facade owns its portable
 `PhysicsWorld` and `AudioMixer`, binds bodies and voices to the owning entity ID, removes those
 bindings on entity destruction, resolves ray hits back to entity IDs, and synchronizes an attached
-`CharacterController`'s position to the entity Transform after each motor tick. Audio resource IDs
+`CharacterController`'s position to the entity Transform after each motor tick (its rotation and
+scale are left untouched). Audio resource IDs
 are unique within a `GameWorld`, making entity stop/destruction deterministic with `AudioMixer`'s
 resource-based stop contract. Physics and character methods are omitted when the optional gameplay
 simulation feature is stripped; the rest of the API-M5 facade remains available. All facade calls
@@ -439,7 +456,8 @@ instead of the `read_component`/`write_component`/`log`/`subscribe_event`/`set_t
 only ever being filled by a test-scoped stand-in (`Gameplay/Zig/ZigGameplayTests.cpp`'s `HostState`
 is exactly that: a fake host with its own private value, unrelated to any real `World`). `MakeHost`
 builds a real `NexoraGameplayHostV2` whose `read_component`/`write_component` actually read and
-write a live entity's Transform, camera, light, and mesh-renderer state. Stable component IDs are
+write a live entity's Transform, camera, light, and mesh-renderer state (the Transform wire is a
+position only, so a write changes the position and keeps the entity's rotation and scale). Stable component IDs are
 derived from their `Nexora.*` names, and explicit wire structures keep internal C++ layouts out of
 the ABI. `log` forwards to a
 real `core::AsyncLogService` when `GameplayHostContext::log` is set (category `"Gameplay"`,

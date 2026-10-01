@@ -4,11 +4,38 @@
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
+#include <locale>
 #include <queue>
 #include <sstream>
 #include <stdexcept>
 
 namespace nexora::runtime {
+
+bool IsValidTransform(const Transform &transform) noexcept {
+  const double values[] = {transform.x,  transform.y,  transform.z,  transform.qx, transform.qy,
+                           transform.qz, transform.qw, transform.sx, transform.sy, transform.sz};
+  for (const auto value : values)
+    if (!std::isfinite(value))
+      return false;
+  if (transform.sx == 0.0 || transform.sy == 0.0 || transform.sz == 0.0)
+    return false;
+  const auto length = std::sqrt(transform.qx * transform.qx + transform.qy * transform.qy +
+                                transform.qz * transform.qz + transform.qw * transform.qw);
+  // Tiny lengths cannot be normalized meaningfully; an overflowed length is not finite.
+  return std::isfinite(length) && length > 1e-12;
+}
+
+std::optional<Transform> NormalizedTransform(Transform transform) noexcept {
+  if (!IsValidTransform(transform))
+    return std::nullopt;
+  const auto length = std::sqrt(transform.qx * transform.qx + transform.qy * transform.qy +
+                                transform.qz * transform.qz + transform.qw * transform.qw);
+  transform.qx /= length;
+  transform.qy /= length;
+  transform.qz /= length;
+  transform.qw /= length;
+  return transform;
+}
 
 Id World::LoadScene(std::string name, bool persistent) {
   const auto id = next_id_++;
@@ -22,35 +49,43 @@ std::optional<std::string> World::SaveScene(Id id) const {
       scene->state == SceneState::Unloaded)
     return std::nullopt;
   std::ostringstream output;
-  output << "NEXORA_SCENE 1 " << std::quoted(scene->name) << ' ' << scene->persistent << ' '
+  // The classic locale keeps the text identical regardless of the process locale.
+  output.imbue(std::locale::classic());
+  output << "NEXORA_SCENE 2 " << std::quoted(scene->name) << ' ' << scene->persistent << ' '
          << scene->entities.size() << '\n';
   output << std::setprecision(17);
   for (const auto &entity : scene->entities)
     output << entity.id << ' ' << entity.transform.x << ' ' << entity.transform.y << ' '
-           << entity.transform.z << ' ' << entity.camera << ' ' << entity.light << ' '
-           << entity.mesh_renderer << ' ' << entity.camera_data.vertical_field_of_view << ' '
-           << entity.camera_data.near_plane << ' ' << entity.camera_data.far_plane << ' '
-           << entity.light_data.intensity << ' ' << entity.mesh_data.mesh << ' '
-           << entity.mesh_data.material.shader << '\n';
+           << entity.transform.z << ' ' << entity.transform.qx << ' ' << entity.transform.qy << ' '
+           << entity.transform.qz << ' ' << entity.transform.qw << ' ' << entity.transform.sx << ' '
+           << entity.transform.sy << ' ' << entity.transform.sz << ' ' << entity.camera << ' '
+           << entity.light << ' ' << entity.mesh_renderer << ' '
+           << entity.camera_data.vertical_field_of_view << ' ' << entity.camera_data.near_plane
+           << ' ' << entity.camera_data.far_plane << ' ' << entity.light_data.intensity << ' '
+           << entity.mesh_data.mesh << ' ' << entity.mesh_data.material.shader << '\n';
   return output.str();
 }
 
 std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
   std::istringstream input{std::string(snapshot)};
+  input.imbue(std::locale::classic());
   std::string magic, name;
   unsigned version{};
   bool persistent{};
   std::size_t count{};
+  // Version 1 stored only a position; version 2 adds rotation and scale. Both stay readable, and a
+  // version 1 entity loads with identity rotation and unit scale.
   if (!(input >> magic >> version >> std::quoted(name) >> persistent >> count) ||
-      magic != "NEXORA_SCENE" || version != 1 || name.empty())
+      magic != "NEXORA_SCENE" || (version != 1 && version != 2) || name.empty())
     return std::nullopt;
   // `count` comes from the snapshot itself, so it can claim billions of entities and make the
-  // reservation throw or allocate gigabytes. An entity record is 13 whitespace-separated tokens, so
-  // it needs at least 25 characters; reject counts the text cannot hold, and never reserve more
-  // than a small constant up front (the vector grows as records are actually parsed).
-  constexpr std::size_t kMinEntityTextSize = 25;
+  // reservation throw or allocate gigabytes. An entity record is 13 (version 1) or 20 (version 2)
+  // whitespace-separated tokens, so it needs at least 25 or 39 characters; reject counts the text
+  // cannot hold, and never reserve more than a small constant up front (the vector grows as records
+  // are actually parsed).
+  const std::size_t min_entity_text_size = version == 1 ? 25 : 39;
   constexpr std::size_t kMaxInitialReserve = 1024;
-  if (count > snapshot.size() / kMinEntityTextSize)
+  if (count > snapshot.size() / min_entity_text_size)
     return std::nullopt;
   Scene loaded{next_id_, std::move(name), SceneState::LoadedInactive, persistent, {}};
   loaded.entities.reserve(std::min(count, kMaxInitialReserve));
@@ -58,15 +93,24 @@ std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
   auto next_id = next_id_ + 1;
   for (std::size_t index = 0; index < count; ++index) {
     Entity entity;
-    if (!(input >> entity.id >> entity.transform.x >> entity.transform.y >> entity.transform.z >>
-          entity.camera >> entity.light >> entity.mesh_renderer >>
+    if (!(input >> entity.id >> entity.transform.x >> entity.transform.y >> entity.transform.z))
+      return std::nullopt;
+    if (version == 2 &&
+        !(input >> entity.transform.qx >> entity.transform.qy >> entity.transform.qz >>
+          entity.transform.qw >> entity.transform.sx >> entity.transform.sy >> entity.transform.sz))
+      return std::nullopt;
+    if (!(input >> entity.camera >> entity.light >> entity.mesh_renderer >>
           entity.camera_data.vertical_field_of_view >> entity.camera_data.near_plane >>
           entity.camera_data.far_plane >> entity.light_data.intensity >> entity.mesh_data.mesh >>
           entity.mesh_data.material.shader) ||
-        entity.id == 0 || FindEntity(entity.id) != nullptr || !ids.insert(entity.id).second ||
-        !std::isfinite(entity.transform.x) || !std::isfinite(entity.transform.y) ||
-        !std::isfinite(entity.transform.z))
+        entity.id == 0 || FindEntity(entity.id) != nullptr || !ids.insert(entity.id).second)
       return std::nullopt;
+    // Rejects non-finite values, a zero scale, and a degenerate quaternion; a valid quaternion that
+    // is not unit length is normalized so a loaded scene always holds unit rotations.
+    const auto normalized = NormalizedTransform(entity.transform);
+    if (!normalized)
+      return std::nullopt;
+    entity.transform = *normalized;
     next_id = std::max(next_id, entity.id + 1);
     loaded.entities.push_back(entity);
   }
@@ -181,6 +225,9 @@ bool WorldCommandBuffer::Apply(World &world) {
   for (const auto &command : commands_) {
     if (world.FindEntity(command.entity) == nullptr || destroyed.contains(command.entity))
       return false;
+    // Validate before mutating anything so an invalid transform rejects the whole batch.
+    if (command.kind == Command::Kind::Transform && !IsValidTransform(command.transform))
+      return false;
     if (command.kind == Command::Kind::Destroy)
       destroyed.insert(command.entity);
   }
@@ -189,7 +236,7 @@ bool WorldCommandBuffer::Apply(World &world) {
       if (const auto found = std::ranges::find(scene.entities, command.entity, &Entity::id);
           found != scene.entities.end()) {
         if (command.kind == Command::Kind::Transform) {
-          found->transform = command.transform;
+          found->transform = *NormalizedTransform(command.transform);
         } else if (command.kind == Command::Kind::Camera) {
           found->camera = command.camera.has_value();
           found->camera_data = command.camera.value_or(CameraComponent{});

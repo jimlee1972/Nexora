@@ -54,7 +54,12 @@ int32_t WriteComponent(void *context, uint64_t entity, uint64_t component_type, 
   if (component_type == TransformComponentType() && data_size >= sizeof(GameplayTransformWire)) {
     GameplayTransformWire wire{};
     std::memcpy(&wire, data, sizeof(wire));
-    written = host_context.world->SetTransform(entity, {wire.x, wire.y, wire.z});
+    // The wire carries a position only; keep the entity's rotation and scale instead of resetting
+    // them to identity.
+    const auto current = host_context.world->GetEntity(entity);
+    written =
+        current && host_context.world->SetTransform(
+                       entity, runtime::WithPosition(current->transform, wire.x, wire.y, wire.z));
   } else if (component_type == CameraComponentType() && data_size >= sizeof(GameplayCameraWire)) {
     GameplayCameraWire wire{};
     std::memcpy(&wire, data, sizeof(wire));
