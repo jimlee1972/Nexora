@@ -66,7 +66,7 @@ HiZPyramid HiZPyramid::Build(std::uint32_t width, std::uint32_t height,
   while (source_width > 1 || source_height > 1) {
     const auto target_width = std::max(1U, source_width / 2U);
     const auto target_height = std::max(1U, source_height / 2U);
-    std::vector<float> target(target_width * target_height);
+    std::vector<float> target(static_cast<std::size_t>(target_width) * target_height);
     const auto &source = result.mips.back();
     for (std::uint32_t y = 0; y < target_height; ++y) {
       for (std::uint32_t x = 0; x < target_width; ++x) {

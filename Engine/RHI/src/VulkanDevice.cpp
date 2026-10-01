@@ -1485,7 +1485,7 @@ void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
     ++indirect_draws_;
     return;
   }
-  const VkDeviceSize size = DrawIndirectArgumentSize * command_count;
+  const VkDeviceSize size = static_cast<VkDeviceSize>(DrawIndirectArgumentSize) * command_count;
   const VkBufferCreateInfo buffer_info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                                        nullptr,
                                        0,

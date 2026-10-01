@@ -116,7 +116,12 @@ FrameResources::FrameResources(rhi::Device &device, const SceneFrame &frame, std
 FrameResources::~FrameResources() {
   if (!device_)
     return;
-  device_->WaitIdle();
+  // A destructor must not throw (it would terminate during unwinding): if the device is lost and
+  // WaitIdle fails, still release the handles so the device can clean up its own records.
+  try {
+    device_->WaitIdle();
+  } catch (...) {
+  }
   device_->DestroyTexture(albedo_);
   device_->DestroyTexture(depth_);
   device_->DestroyBuffer(constants_);
