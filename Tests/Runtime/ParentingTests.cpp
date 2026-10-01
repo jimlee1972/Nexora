@@ -426,6 +426,21 @@ void TestSceneEditorUndo() {
   Require(editor.DestroyEntity(scene, first) && editor.Undo() &&
               (world.Children(parent) == std::vector<Id>{first, second}),
           "undoing a destroy must restore the sibling position");
+  // Reordering within the same parent must not reparent: here the parent's world pose overflows, so
+  // a keep-world reparent cannot be expressed, yet the order change itself is fine.
+  const auto far_grandparent = editor.CreateEntity(scene);
+  const auto far_parent = editor.CreateEntity(scene);
+  const auto near_a = editor.CreateEntity(scene);
+  const auto near_b = editor.CreateEntity(scene);
+  Require(editor.SetTransform(far_grandparent, {1e308, 0.0, 0.0}) &&
+              editor.SetTransform(far_parent, {1e308, 0.0, 0.0}) &&
+              editor.SetParent(far_parent, far_grandparent, false) &&
+              editor.SetParent(near_a, far_parent, false) &&
+              editor.SetParent(near_b, far_parent, false),
+          "overflow setup failed");
+  Require(editor.Move(near_b, far_parent, 0) &&
+              (world.Children(far_parent) == std::vector<Id>{near_b, near_a}),
+          "a same-parent Move must only reorder");
 
   Require(editor.SetParent(child, parent, false) && editor.SetParent(grandchild, child, false),
           "building the hierarchy failed");

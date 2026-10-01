@@ -171,7 +171,10 @@ bool SceneEditor::SetSiblingIndex(Id entity, std::size_t index) {
 }
 bool SceneEditor::Move(Id entity, Id parent, std::size_t index, bool keep_world) {
   WorldCommandBuffer apply;
-  apply.SetParent(entity, parent, keep_world);
+  // Reordering within the same parent needs no reparent, which could fail on a pose that cannot
+  // be re-expressed even though the order change is always possible.
+  if (world_.Parent(entity) != parent)
+    apply.SetParent(entity, parent, keep_world);
   apply.SetSiblingIndex(entity, index);
   return ApplyHierarchyEdit(entity, apply);
 }
