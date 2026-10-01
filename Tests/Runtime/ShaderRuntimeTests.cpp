@@ -12,6 +12,18 @@ void Require(bool value, const char *message) {
     throw std::runtime_error(message);
 }
 
+// Recomputes the NXSHDR payload checksum (bytes 44..51, over everything after the 52-byte header)
+// so a test can reach validation that runs after the checksum gate.
+void ResignCookedPayload(std::vector<std::byte> &cooked) {
+  std::uint64_t hash = 1469598103934665603ULL;
+  for (std::size_t index = 52; index < cooked.size(); ++index) {
+    hash ^= std::to_integer<unsigned char>(cooked[index]);
+    hash *= 1099511628211ULL;
+  }
+  for (std::uint32_t index = 0; index < 8; ++index)
+    cooked[44 + index] = static_cast<std::byte>((hash >> (index * 8U)) & 0xffU);
+}
+
 nexora::rhi::ShaderModuleArtifact MakeArtifact(nexora::rhi::Backend backend,
                                                std::uint64_t layout_hash) {
   using namespace nexora::rhi;
@@ -56,6 +68,22 @@ void Run() {
   corrupted.back() ^= std::byte{0x01};
   Require(!runtime::DeserializeCookedShaderArtifact(corrupted, decoded, error),
           "corrupted cooked shader artifact was accepted");
+
+  // Every rejection must explain itself; a stale or empty message leaves StageCookedFile callers
+  // unable to report why a cooked artifact was refused.
+  auto wrong_version = cooked;
+  wrong_version[8] ^= std::byte{0xff};
+  error = "stale message";
+  Require(!runtime::DeserializeCookedShaderArtifact(wrong_version, decoded, error) &&
+              error.find("version") != std::string::npos,
+          "unsupported cooked artifact version was rejected without an error message");
+  auto trailing = cooked;
+  trailing.push_back(std::byte{0x00});
+  ResignCookedPayload(trailing);
+  error = "stale message";
+  Require(!runtime::DeserializeCookedShaderArtifact(trailing, decoded, error) &&
+              error.find("trailing") != std::string::npos,
+          "cooked artifact with trailing bytes was rejected without an error message");
   const auto cooked_path =
       std::filesystem::temp_directory_path() / "nexora-shader-runtime-test.nxsh";
   {
@@ -143,6 +171,9 @@ void Run() {
               !failing_native.Commit(error) && failing_native.Generation() == 0 &&
               failing_native.Active() == nullptr,
           "failed native creation changed the active shader generation");
+  Require(!failing_native.Commit(error) &&
+              error.find("no validated shader artifact is staged") != std::string::npos,
+          "native creation failure did not roll back the staged candidate");
 
   const std::vector<rhi::ShaderResourceBindingMetadata> resources{
       {0, 0, rhi::BindingType::StorageBuffer, static_cast<std::uint8_t>(rhi::ShaderStage::Compute),

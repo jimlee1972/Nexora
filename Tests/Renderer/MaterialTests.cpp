@@ -24,8 +24,10 @@ public:
                                        : std::optional<std::uint32_t>(iterator->second);
   }
   std::uint32_t FallbackTexture(std::string_view semantic) const override {
+    ++fallback_requests;
     return semantic == "Normal" ? 2U : 1U;
   }
+  mutable std::size_t fallback_requests{};
 };
 
 MaterialSchema MakeMaterial(ShadingModel model = ShadingModel::PBR) {
@@ -74,6 +76,10 @@ void TestBindingFallbackAndReflection() {
           "resident texture must resolve through the resource registry");
   Require(binding.textures[1].resource_index == 2U && binding.textures[1].used_fallback,
           "missing normal texture must use semantic fallback");
+  // A resolver may create, count, or reject fallbacks lazily, so it must only be asked for one
+  // when resolution actually failed.
+  Require(resolver.fallback_requests == 1U,
+          "a fallback texture was requested for a texture that resolved");
 
   const auto reflection = ReflectMaterial(material);
   Require(reflection.parameters.size() == 2U && reflection.texture_semantics.size() == 2U,

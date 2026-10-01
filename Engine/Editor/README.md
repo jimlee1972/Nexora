@@ -4,13 +4,25 @@ Shader authoring and diagnostics remain an Editor/tool responsibility above Runt
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
 diagnostics. `CompileSlang`
 invokes the configured `slangc` process (or an injected runner), captures diagnostics, and
-validates the requested artifact payload. `ShaderHotReloadController` watches source timestamps
-and `ApplyShaderCompileResult` publishes only successful, layout-compatible output through
+validates the requested artifact payload. The default runner launches the compiler directly
+(`posix_spawnp` on Linux/macOS, `CreateProcessW` on Windows) with an argument vector and never
+through a shell, because request paths, include directories, and defines come from project content;
+iOS and Android have no default runner and require an injected one. A launch failure or a non-zero
+exit without a parseable error is reported as an error diagnostic rather than silently dropped.
+`ParseShaderDiagnostics` understands both the native Slang 2026 layout (`error[E30015]: ...`
+followed by ` --> file:line:col`) and the single-line `file:line:col: severity: message` form.
+Severity comes only from the explicit severity token, echoed source and gutter lines are ignored,
+and out-of-range line or column numbers degrade to 0 instead of throwing.
+`ShaderHotReloadController` tracks each compile request (shader, target, variant, includes, and
+defines) separately and fingerprints the source plus every declared dependency, so editing an
+included file triggers a reload and one variant observing a source edit never suppresses another
+variant's rebuild. `ApplyShaderCompileResult` publishes only successful, layout-compatible output through
 Runtime's transactional slot. Reload commits may carry a GPU retire fence so old modules remain
 alive until in-flight work has completed; a Shipping-configured Runtime rejects the dynamic path.
 These integrations preserve the RHI artifact and canonical reflection contract rather than moving
 compiler ownership into RHI.
-`DevelopmentShaderCache` owns successful results by source/target/profile/variant, accounts against
+`DevelopmentShaderCache` owns successful results keyed by source, target, profile, variant, entry
+points, defines, include directories, declared dependencies, schema, and reflection layout, accounts against
 an explicit (not globally fixed) variant budget, and invalidates all consumers when a recorded
 source or include dependency changes. Shipping admission remains exclusively in Runtime and never
 consults this development cache.

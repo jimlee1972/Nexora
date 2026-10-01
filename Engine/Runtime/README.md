@@ -6,14 +6,19 @@
 reflection/layout-hash validation. Its mode comes from the Runtime build configuration, so
 Development may stage dynamic compiler output and Shipping accepts cooked artifacts only. The
 versioned `NXSHDR` container is loaded with `LoadCookedShaderArtifact` and validates its checksum,
-payload bounds, and reflection table before staging. Staging never changes the active artifact;
+payload bounds, and reflection table before staging; an unsupported version or trailing bytes after
+the binding table are rejected with a specific error message. Staging never changes the active artifact;
 `Commit(retire_fence, ...)` publishes
 the validated candidate and increments its generation, while a failed validation leaves the active
 generation untouched. An optional backend callback creates the native module before publication;
-creation failure rolls back the transaction. Calls are serialized on the owning thread, and returned
+creation failure rolls back the transaction and discards the staged candidate, so a retried
+`Commit` fails until a new artifact is staged. Calls are serialized on the owning thread, and returned
 artifact pointers are borrowed until the next successful commit or slot destruction.
 `CollectRetired(completed_fence)` destroys replaced artifacts and native modules only after the
 owning GPU fence has completed, keeping hot-reload replacement safe for in-flight command buffers.
+Destroying the slot itself destroys the active and all retired native modules immediately without
+consulting fences; the owner must ensure the device is idle (or every retire fence has completed)
+before the slot is destroyed.
 
 `NexoraRuntime` is the dependency-ordered, platform-neutral baseline for the remaining V1
 milestones. It deliberately contains no SDK-specific physics, media, mobile, or editor backend.
@@ -144,7 +149,7 @@ gate, supporting dedicated/headless builds without Animation, Audio, VFX, or Med
 
 V2-M7's optional `NexoraAIIntegration::IntentAdapter` is a higher-level module that maps AI desired
 XZ direction and speed into Runtime's requested horizontal motion. It rejects non-finite direction
-components and invalid speeds and maps `Disabled` to a zero-motion hold. Runtime retains motor
+components, invalid speeds, and any projection whose components or planar magnitude overflow, and maps `Disabled` to a zero-motion hold. Runtime retains motor
 clamping and character ownership; the adapter runs synchronously and owns no state. It requires both
 `NEXORA_ENABLE_AI_RUNTIME_BRIDGE` and `NEXORA_ENABLE_GAMEPLAY_SIMULATION`, and is not linked into
 `NexoraRuntime` itself.

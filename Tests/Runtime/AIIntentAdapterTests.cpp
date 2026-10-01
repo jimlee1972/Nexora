@@ -35,6 +35,19 @@ int main() {
                {{1.0, 0.0, 0.0}, -1.0, {}, ai::CharacterMovementMode::Grounded, 0})
                .has_value(),
           "negative AI movement speed was accepted");
+  // Finite inputs whose product overflows must be rejected rather than reaching the motor, where
+  // hypot()/scaling would turn +inf into NaN on the character.
+  Require(!ai::integration::IntentAdapter::Project(
+               {{1e200, 0.0, 0.0}, 1e200, {}, ai::CharacterMovementMode::Grounded, 0})
+               .has_value(),
+          "AI movement overflowing to infinity was accepted");
+  Require(!ai::integration::IntentAdapter::Project({{1.0, 0.0, 1.0},
+                                                    std::numeric_limits<double>::max(),
+                                                    {},
+                                                    ai::CharacterMovementMode::Grounded,
+                                                    0})
+               .has_value(),
+          "AI movement whose planar magnitude overflows was accepted");
   const auto motion = runtime::CharacterMotor{}.Simulate(*projected, 3.0, true);
   Require(std::abs(motion.actual_x - 1.8) < 1e-12 && std::abs(motion.actual_z - 2.4) < 1e-12 &&
               motion.grounded,

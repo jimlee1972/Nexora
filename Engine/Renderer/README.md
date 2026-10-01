@@ -20,7 +20,7 @@ native device and executes the same triangle workload.
 
 `Nexora/Renderer/GoldenImage.h` supplies a deterministic, named-case RGBA8 harness used by
 `renderer.golden_image_acceptance`: exact dimensions, per-channel tolerance, differing-pixel
-budget/count, and a stable FNV-1a checksum. Platform runners can feed captured swapchain/offscreen
+budget/count, and a stable standard 64-bit FNV-1a checksum (offset basis `0xcbf29ce484222325`). Platform runners can feed captured swapchain/offscreen
 pixels into this helper without introducing backend types into the renderer API.
 
 ## Shared shader library contract
@@ -51,7 +51,8 @@ does not impose a global variant-count ceiling.
 
 Materials store no backend descriptor objects. `BindMaterialResources()` resolves resource IDs at
 the binding boundary and substitutes a semantic-specific fallback for missing textures, while
-reporting each substitution. `ReflectMaterial()` exposes typed fields, constant-buffer offsets,
+reporting each substitution. The fallback is requested from the resolver only for textures that
+actually failed to resolve. `ReflectMaterial()` exposes typed fields, constant-buffer offsets,
 texture semantics, and a stable layout hash to Material Inspector adapters.
 
 `MaterialRegistry` owns published CPU schemas. Publish and reload are externally synchronized;
@@ -87,7 +88,11 @@ window-system presentation remain explicit expansion points.
 `SceneFrame` is the Renderer-owned public model for the first 3D slice: camera, indexed mesh,
 material, and directional light values own their CPU storage. `MakeProceduralRenderingRoom()`
 returns deterministic cube content without asset dependencies, while `ValidateSceneFrame()` rejects
-empty geometry, invalid indices, invalid clip planes, and non-finite material or light values.
+empty geometry, invalid indices, non-finite or inverted clip planes, an invalid field of view, a
+non-finite camera position or target or a camera targeting its own position, non-finite base color,
+roughness or metallic outside `[0, 1]`, a non-finite or zero light direction, a non-finite light
+color, and a non-finite or negative light intensity. Every comparison is NaN-safe because these
+values are uploaded verbatim into the constant buffer.
 
 `FrameResources` exclusively owns a vertex buffer, index buffer, constant buffer, depth texture,
 sampled albedo texture, and immutable sampler policy. It is non-copyable and non-movable, waits for

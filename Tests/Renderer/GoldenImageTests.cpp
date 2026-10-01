@@ -32,6 +32,11 @@ int main() {
                 comparison.differing_pixels == 1 && comparison.max_channel_delta == 5,
             "golden image acceptance missed a differing pixel");
     Require(HashRgba8(expected) != 0, "golden image hash was not deterministic");
+    // Published FNV-1a 64 test vectors: the empty input hashes to the offset basis, "a" to
+    // 0xaf63dc4c8601ec8c. External tools comparing captured images depend on the real algorithm.
+    const std::array<std::byte, 1> letter_a{std::byte{0x61}};
+    Require(HashRgba8({}) == 0xcbf29ce484222325ULL && HashRgba8(letter_a) == 0xaf63dc4c8601ec8cULL,
+            "golden image hash is not standard FNV-1a");
     const std::array<GoldenImageCase, 1> cases{
         {{"shader-library-smoke", 2, 2, 0, 0,
           std::vector<std::byte>(expected.begin(), expected.end())}}};

@@ -123,8 +123,10 @@ bool DeserializeCookedShaderArtifact(std::span<const std::byte> input,
   }
   std::size_t offset = 8;
   std::uint32_t version = 0;
-  if (!ReadU32(input, offset, version) || version != kCookedVersion)
+  if (!ReadU32(input, offset, version) || version != kCookedVersion) {
+    error = "cooked shader artifact version is unsupported";
     return false;
+  }
   const auto format = std::to_integer<unsigned char>(input[offset++]);
   if (format > static_cast<unsigned char>(rhi::ShaderBinaryFormat::MetalSource)) {
     error = "cooked shader artifact format is invalid";
@@ -183,7 +185,11 @@ bool DeserializeCookedShaderArtifact(std::span<const std::byte> input,
     }
     artifact.reflection.bindings.push_back(binding);
   }
-  if (offset != input.size() || !ValidArtifactShape(artifact, error))
+  if (offset != input.size()) {
+    error = "cooked shader artifact has trailing bytes after the binding table";
+    return false;
+  }
+  if (!ValidArtifactShape(artifact, error))
     return false;
   error.clear();
   return true;
@@ -275,6 +281,9 @@ bool ShaderArtifactSlot::Commit(std::uint64_t retire_fence, std::string &error) 
     if (candidate_module == 0) {
       if (error.empty())
         error = "native shader-module creation failed";
+      // Roll the transaction back: a candidate the backend rejected must not stay staged, or the
+      // next Commit() would silently retry the same rejected artifact.
+      staged_.reset();
       return false;
     }
   }

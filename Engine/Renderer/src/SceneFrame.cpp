@@ -10,15 +10,41 @@ template <typename T> std::span<const std::byte> Bytes(std::span<const T> values
   return std::as_bytes(values);
 }
 bool Finite(float value) { return std::isfinite(value); }
+template <std::size_t Count> bool Finite(const std::array<float, Count> &values) {
+  for (const auto value : values)
+    if (!std::isfinite(value))
+      return false;
+  return true;
+}
+template <std::size_t Count> bool NonZero(const std::array<float, Count> &values) {
+  for (const auto value : values)
+    if (value != 0.0F)
+      return true;
+  return false;
+}
 } // namespace
 
+// Every value here is uploaded verbatim into the frame's constant buffer, so anything that is not
+// finite (or that makes the projection/view/light direction degenerate) would silently poison the
+// whole frame. Comparisons are written so NaN fails them: `!(x > 0)` rejects NaN, `x <= 0` does
+// not.
 bool ValidateSceneFrame(const SceneFrame &frame) noexcept {
-  if (frame.mesh.vertices.empty() || frame.mesh.indices.empty() ||
-      frame.camera.near_plane <= 0.0F || frame.camera.far_plane <= frame.camera.near_plane ||
-      frame.camera.vertical_fov_radians <= 0.0F || !Finite(frame.camera.vertical_fov_radians) ||
-      !Finite(frame.material.roughness) || frame.material.roughness < 0.0F ||
-      frame.material.roughness > 1.0F || !Finite(frame.light.intensity) ||
-      frame.light.intensity < 0.0F)
+  const auto &camera = frame.camera;
+  if (frame.mesh.vertices.empty() || frame.mesh.indices.empty())
+    return false;
+  if (!Finite(camera.near_plane) || !Finite(camera.far_plane) || !(camera.near_plane > 0.0F) ||
+      !(camera.far_plane > camera.near_plane) || !Finite(camera.vertical_fov_radians) ||
+      !(camera.vertical_fov_radians > 0.0F) || !Finite(camera.position) || !Finite(camera.target) ||
+      camera.position == camera.target)
+    return false;
+  const auto &material = frame.material;
+  if (!Finite(material.base_color) || !Finite(material.roughness) ||
+      !(material.roughness >= 0.0F && material.roughness <= 1.0F) || !Finite(material.metallic) ||
+      !(material.metallic >= 0.0F && material.metallic <= 1.0F))
+    return false;
+  const auto &light = frame.light;
+  if (!Finite(light.direction) || !NonZero(light.direction) || !Finite(light.color) ||
+      !Finite(light.intensity) || !(light.intensity >= 0.0F))
     return false;
   for (const auto index : frame.mesh.indices)
     if (index >= frame.mesh.vertices.size())

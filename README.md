@@ -64,8 +64,9 @@ The Showcase Validation Lab now provides a portable M0-M12 probe registry, hones
 #### Shader system status
 
 The shader production pipeline now has a ✅ portable acceptance gate: the Editor invokes the
-configured `slangc` process, parses file/line/column/severity/backend/variant diagnostics, tracks
-source/include invalidation, and caches successful Development variants against an explicit budget.
+configured `slangc` process directly without a shell, parses native Slang 2026 and single-line
+file/line/column/severity/backend/variant diagnostics, tracks source/include invalidation per compile
+request, and caches successful Development variants against an explicit budget.
 Runtime serializes and loads checksummed cooked artifacts, enforces Shipping cooked-only admission,
 creates backend modules through an injected native adapter, publishes generations transactionally,
 and retires replaced modules only after their GPU fence. Renderer exposes generation-bearing
