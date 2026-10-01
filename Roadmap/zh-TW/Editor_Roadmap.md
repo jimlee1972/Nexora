@@ -1,6 +1,6 @@
 # Nexora 圖形化 Editor Roadmap
 
-> 版本：v1.2｜狀態：AI 可執行交付計畫｜更新：2026-09-24
+> 版本：v1.3｜狀態：AI 可執行交付計畫｜更新：2026-10-02
 
 > **進度：0%**（ED-M0～ED-M7 尚無任一 milestone 通過圖形化 Editor 驗收；
 > 已完成的 Runtime/Editor SDK 前置不向上取整為 Editor milestone。）
@@ -10,7 +10,7 @@
 workspace/document core。**待辦：** window/docking/UI shell、graphical views、authoring workflows
 與 production hardening。
 
-### Repository 完成度稽核（2026-09-24）
+### Repository 完成度稽核（2026-10-02）
 
 本稽核明確區分「已打勾的 implementation foundation」與「已驗收的 graphical milestone」。Source
 與 contract test 能確認下列已存在的 foundation；目前沒有任何 ED milestone 同時通過完整 automated
@@ -79,8 +79,8 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 - ✅ 在 Vulkan host 上，圖形化 process 會將 ImGui draw data composite 至 public
   `RenderSurface` 已 acquire 的 swapchain backbuffer；Linux 與 Windows window event 也會正規化
   完整的 Editor 按鍵／modifier 集合。
-- 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及 Windows DPI／IME 證據；
-  target-host gate 通過之前 ED-M0 仍維持 open。
+- 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及人工 Windows DPI／IME 證據；
+  automated Windows contract 不取代 target-host gate，因此 ED-M0 仍維持 open。
 
 ### ED-M1 — Project 與 Asset workspace
 

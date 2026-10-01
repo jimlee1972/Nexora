@@ -55,6 +55,9 @@ authoring views on first launch.
 - DPI is quantized to 100%, 125%, 150%, or 200%. Crossing a bucket rebuilds the font atlas at that
   pixel density, publishes the framebuffer scale, and derives the theme anew rather than
   cumulatively scaling an existing style.
+- `UpdateImeCandidate` borrows the active `RenderSurface` only for the current ImGui frame;
+  `EndFrame` clears that borrow. The platform callback converts logical cursor coordinates to
+  rounded client pixels with the current DPI scale and ignores hidden candidates.
 - Dear ImGui's global ini file remains disabled. `SaveLayout` and `LoadLayout` provide an explicit
   in-memory round trip. `ProjectWorkspace` stores that payload with an explicit schema under the
   project `.nexora` directory. The legacy schema 0 payload is read and rewritten as schema 1 on the
