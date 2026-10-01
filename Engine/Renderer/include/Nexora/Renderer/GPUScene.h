@@ -133,6 +133,12 @@ public:
   [[nodiscard]] GPUSceneReferenceSnapshot ExtractReferenceSnapshot() const;
   [[nodiscard]] GPUSceneStatistics GetStatistics() const noexcept;
 
+  // A process-unique identity for this scene's contents, never 0 for a live scene. Handles carry no
+  // scene identity, so owners that track handles across calls bind to this value. It moves with the
+  // contents (a moved-to scene keeps it) and changes on Clear(), after which every earlier handle
+  // is stale even though slot/generation pairs restart.
+  [[nodiscard]] std::uint64_t InstanceId() const noexcept;
+
   // Advances motion history after extraction. Multiple transform writes before this call preserve
   // the previous frame's transform.
   void CommitFrame();

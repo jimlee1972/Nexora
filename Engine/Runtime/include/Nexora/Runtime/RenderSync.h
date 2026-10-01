@@ -22,7 +22,9 @@ ToRenderMatrix(const TransformMatrix &matrix) noexcept;
 // A sphere that contains `local` after `matrix`, including under shear: the radius is scaled by
 // the matrix's largest stretch (its spectral norm), not by a per-axis scale. It bounds what the GPU
 // draws: the float matrix ToRenderMatrix uploads, evaluated in float, so neither coefficient
-// narrowing nor the GPU's rounding can move a drawn point outside it.
+// narrowing nor the GPU's rounding can move a drawn point outside it. When that float evaluation
+// could overflow in an intermediate sum, the radius is infinite (unbounded), which the sync
+// rejects.
 [[nodiscard]] NEXORA_RUNTIME_API math::Sphere TransformBounds(const TransformMatrix &matrix,
                                                               const math::Sphere &local) noexcept;
 
@@ -78,9 +80,12 @@ struct CulledSceneFrame final {
 // World matrices are computed once per entity per call, so a call is linear in the entity count.
 //
 // Ownership: a sync owns exactly the objects it created, in the one GPUScene that holds them.
-// While it owns any, it is bound to that scene (GPU handles carry no scene identity): Sync,
-// RenderFrame, and Release refuse any other scene, and the bound scene must not be moved. Release()
-// destroys them all and unbinds, so the sync can then serve another scene. Destroy and Release pass
+// While it owns any, it is bound to that scene's GPUScene::InstanceId (GPU handles carry no scene
+// identity, and an address can be reused by a new scene): Sync, RenderFrame, and Release refuse any
+// other scene, including a scene rebuilt at the same address or the same scene after Clear().
+// Moving the bound GPUScene is fine; its identity moves with its contents. Release() destroys the
+// objects and unbinds, so the sync can then serve another scene; when the bound scene was destroyed
+// or cleared, Abandon() forgets the objects without touching any scene. Destroy and Release pass
 // `retire_fence` to GPUScene::Destroy. A sync cannot be copied or move-assigned, which would
 // duplicate or silently drop that ownership; moving it hands the objects over. Destroying a sync
 // that still owns objects leaves them in the scene, so call Release() first. The sync and the
@@ -116,6 +121,9 @@ public:
   // Destroys every object this sync created and unbinds it. false, with nothing destroyed, when
   // `scene` is not the scene those objects live in.
   bool Release(renderer::GPUScene &scene, std::uint64_t retire_fence);
+  // Forgets every object and unbinds without touching any scene: for when the bound scene was
+  // destroyed or cleared, so its objects no longer exist to release.
+  void Abandon() noexcept;
 
 private:
   struct Mirror final {
@@ -123,8 +131,8 @@ private:
     renderer::GPUObjectDescriptor descriptor{};
   };
   std::unordered_map<Id, Mirror> objects_;
-  // The scene holding objects_, or null when the sync owns nothing.
-  const renderer::GPUScene *scene_{};
+  // GPUScene::InstanceId of the scene holding objects_, or 0 when the sync owns nothing.
+  std::uint64_t scene_id_{};
 };
 
 } // namespace nexora::runtime

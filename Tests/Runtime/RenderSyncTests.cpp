@@ -12,6 +12,7 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -402,6 +403,80 @@ void TestSceneBindingAndOwnership() {
           "a released sync can serve another scene");
 }
 
+void TestSceneReplacedAtSameAddress() {
+  // Codex's case: a scene destroyed and rebuilt in place, or cleared, reuses both the address and
+  // the slot/generation pairs, so only the scene's instance identity tells it apart.
+  runtime::World world;
+  const auto main_scene = world.LoadScene("Main");
+  Require(world.Activate(main_scene), "activation failed");
+  const auto mesh = Create(world, main_scene);
+  std::optional<renderer::GPUScene> gpu;
+  gpu.emplace();
+  runtime::RenderSceneSync sync;
+  Require(sync.Sync(world, *gpu, Resolve, 1).has_value(), "the first sync failed");
+  const auto owned = *sync.Handle(mesh);
+  gpu.reset();
+  gpu.emplace();
+  const auto unrelated = gpu->Create({});
+  Require(unrelated == owned, "the test needs the rebuilt scene to reuse the handle");
+  Require(!sync.Sync(world, *gpu, Resolve, 2).has_value() && !sync.Release(*gpu, 3) &&
+              gpu->Read(unrelated).has_value() && gpu->GetStatistics().active_object_count == 1,
+          "a scene rebuilt at the same address must not be taken for the bound one");
+  sync.Abandon();
+  Require(sync.ObjectCount() == 0 && sync.Sync(world, *gpu, Resolve, 4).has_value(),
+          "after Abandon the sync can serve the new scene");
+
+  // Clear() is the same hazard within one scene object.
+  gpu->Clear();
+  Require(!sync.Sync(world, *gpu, Resolve, 5).has_value(),
+          "a cleared scene must not be taken for the bound one");
+  sync.Abandon();
+
+  // Moving the bound scene keeps the binding: the identity moves with the contents.
+  Require(sync.Sync(world, *gpu, Resolve, 6).has_value(), "re-syncing the cleared scene failed");
+  renderer::GPUScene moved(std::move(*gpu));
+  Require(sync.Sync(world, moved, Resolve, 7).has_value() && sync.Release(moved, 8) &&
+              moved.GetStatistics().active_object_count == 0,
+          "a moved scene must stay bound to the sync that owns its objects");
+}
+
+void TestManySmallCyclesStayLinear() {
+  // Codex's case: 10,000 independent two-node cycles. Without per-walk revisit detection each walk
+  // runs on until it has taken as many steps as the scene has entities.
+  runtime::World world;
+  const auto main_scene = world.LoadScene("Main");
+  Require(world.Activate(main_scene), "activation failed");
+  constexpr std::size_t kPairs = 10000;
+  std::vector<Id> ids;
+  for (std::size_t index = 0; index < 2 * kPairs; ++index)
+    ids.push_back(Create(world, main_scene));
+  auto &entities = const_cast<runtime::Scene *>(world.FindScene(main_scene))->entities;
+  for (std::size_t pair = 0; pair < kPairs; ++pair) {
+    entities[2 * pair].parent = ids[2 * pair + 1];
+    entities[2 * pair + 1].parent = ids[2 * pair];
+  }
+  renderer::GPUScene gpu;
+  runtime::RenderSceneSync sync;
+  const auto start = std::chrono::steady_clock::now();
+  const auto stats = *sync.Sync(world, gpu, Resolve, 1);
+  const auto elapsed = std::chrono::steady_clock::now() - start;
+  Require(stats.rejected == 2 * kPairs && stats.created == 0,
+          "every entity on a small cycle is rejected");
+  Require(elapsed < std::chrono::seconds(2), "rejecting many small cycles must stay linear");
+}
+
+void TestIntermediateOverflowIsUnbounded() {
+  // Codex's case: the final coordinate is finite (2e38 + 2e38 - 3e38 = 1e38), but the GPU's float
+  // partial sum 2e38 + 2e38 overflows to inf first.
+  runtime::TransformMatrix matrix{1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1};
+  const auto bounds = runtime::TransformBounds(matrix, {{2.0e38F, 2.0e38F, -3.0e38F}, 1.0F});
+  Require(std::isinf(bounds.radius),
+          "bounds whose float evaluation could overflow must be reported as unbounded");
+  // Large but safe values stay bounded.
+  const auto safe = runtime::TransformBounds(matrix, {{1.0e37F, 1.0e37F, -1.0e37F}, 1.0F});
+  Require(std::isfinite(safe.radius), "values well inside the float range must stay bounded");
+}
+
 void TestDeepChainsMatchWorldMatrix() {
   runtime::World world;
   const auto main_scene = world.LoadScene("Main");
@@ -679,6 +754,9 @@ int main() {
     TestCorruptCyclesStayLinear();
     TestFloatMatrixBounds();
     TestSceneBindingAndOwnership();
+    TestSceneReplacedAtSameAddress();
+    TestManySmallCyclesStayLinear();
+    TestIntermediateOverflowIsUnbounded();
     TestDeepChainsMatchWorldMatrix();
     TestCameraView();
     TestCameraIgnoresParentScale();
