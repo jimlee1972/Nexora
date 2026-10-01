@@ -26,12 +26,13 @@
 namespace nexora::editor::imgui {
 struct EditorImGuiHost::State final {
   struct HierarchySelectionRequest final {
-    runtime::Id entity{};
+    SceneDocument::NodeKey entity;
     bool additive = false;
     bool range = false;
   };
   struct HierarchyMoveRequest final {
-    runtime::Id entity{}, parent{};
+    SceneDocument::NodeKey entity;
+    std::optional<SceneDocument::NodeKey> parent;
     std::size_t index{};
   };
   struct Renderer final {
@@ -77,12 +78,19 @@ struct EditorImGuiHost::State final {
   bool focus_initial_content = false;
   std::string recovery_error;
   std::array<char, 128> hierarchy_filter{};
+  std::array<char, 256> hierarchy_rename{};
   std::uint32_t hierarchy_visible_rows = 0;
+  std::uint32_t hierarchy_rendered_rows = 0;
   std::uint32_t hierarchy_selection = 0;
-  std::optional<runtime::Id> hierarchy_selection_anchor;
+  std::optional<SceneDocument::NodeKey> hierarchy_selection_anchor;
+  std::vector<SceneDocument::NodeKey> hierarchy_expanded;
   std::optional<HierarchySelectionRequest> hierarchy_selection_request;
   std::optional<HierarchyMoveRequest> hierarchy_move_request;
   std::optional<int> hierarchy_reorder_request;
+  std::optional<std::pair<SceneDocument::NodeKey, bool>> hierarchy_expansion_request;
+  std::optional<SceneDocument::NodeKey> hierarchy_rename_target;
+  std::optional<std::pair<SceneDocument::NodeKey, std::string>> hierarchy_rename_request;
+  std::string hierarchy_error;
   std::array<char, 128> content_query{};
   std::array<char, 64> content_type{};
   std::array<char, 260> content_rename{};
@@ -245,6 +253,8 @@ static_assert(std::is_trivially_copyable_v<AssetDragData>);
 
 struct HierarchyDragData final {
   runtime::Id entity{};
+  std::uint64_t entity_generation{};
+  std::uint64_t document_generation{};
 };
 static_assert(std::is_trivially_copyable_v<HierarchyDragData>);
 
@@ -261,13 +271,14 @@ bool ContainsAsciiInsensitive(std::string_view value, std::string_view query) {
 
 template <typename StateT>
 bool ApplyHierarchySelection(StateT &state, SceneDocument &scene,
-                             std::span<const runtime::Id> visible, runtime::Id entity,
+                             std::span<const SceneDocument::NodeKey> visible,
+                             SceneDocument::NodeKey entity,
                              bool additive, bool range) {
   const auto target = std::ranges::find(visible, entity);
   if (target == visible.end())
     return false;
 
-  std::vector<runtime::Id> selection;
+  std::vector<SceneDocument::NodeKey> selection;
   if (range && state.hierarchy_selection_anchor) {
     const auto anchor = std::ranges::find(visible, *state.hierarchy_selection_anchor);
     if (anchor != visible.end()) {
@@ -277,7 +288,12 @@ bool ApplyHierarchySelection(StateT &state, SceneDocument &scene,
     }
   }
   if (selection.empty() && additive) {
-    selection.assign(scene.Selection().begin(), scene.Selection().end());
+    for (const auto selected : scene.Selection()) {
+      const auto key = scene.Key(selected);
+      if (!key)
+        return false;
+      selection.push_back(*key);
+    }
     if (const auto selected = std::ranges::find(selection, entity); selected != selection.end())
       selection.erase(selected);
     else
@@ -315,7 +331,10 @@ bool MoveHierarchySelection(SceneDocument &scene, std::span<const SceneDocument:
   const auto current = SiblingIndex(nodes, entity);
   if ((direction < 0 && current == 0) || (direction > 0 && current + 1 >= sibling_count))
     return false;
-  return scene.Move(entity, target->parent, direction < 0 ? current - 1 : current + 1);
+  const auto parent = target->parent == 0 ? std::nullopt : scene.Key(target->parent);
+  if (target->parent != 0 && !parent)
+    return false;
+  return scene.Move(target->Key(), parent, direction < 0 ? current - 1 : current + 1);
 }
 
 const char *ThumbnailLabel(ThumbnailState state) {
@@ -351,21 +370,33 @@ bool AcceptAssetDrop(ProjectContentSession &content, const std::filesystem::path
 
 template <typename StateT> void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene) {
   state.hierarchy_visible_rows = 0;
+  state.hierarchy_rendered_rows = 0;
   state.hierarchy_selection = 0;
   if (scene == nullptr) {
     state.hierarchy_selection_anchor.reset();
+    state.hierarchy_expanded.clear();
     state.hierarchy_selection_request.reset();
     state.hierarchy_move_request.reset();
     state.hierarchy_reorder_request.reset();
+    state.hierarchy_expansion_request.reset();
+    state.hierarchy_rename_target.reset();
+    state.hierarchy_rename_request.reset();
+    state.hierarchy_error.clear();
     return;
   }
   const auto nodes = scene->Nodes();
-  std::vector<runtime::Id> visible;
+  std::erase_if(state.hierarchy_expanded, [scene](const auto key) {
+    return key.document_generation != scene->Generation() || scene->Key(key.id) != key;
+  });
+  if (state.hierarchy_selection_anchor &&
+      scene->Key(state.hierarchy_selection_anchor->id) != state.hierarchy_selection_anchor)
+    state.hierarchy_selection_anchor.reset();
+  std::vector<SceneDocument::NodeKey> visible;
   visible.reserve(nodes.size());
   const std::string_view filter(state.hierarchy_filter.data());
   for (const auto &node : nodes)
     if (ContainsAsciiInsensitive(node.name, filter))
-      visible.push_back(node.id);
+      visible.push_back(node.Key());
   state.hierarchy_visible_rows = static_cast<std::uint32_t>(
       std::min<std::size_t>(visible.size(), std::numeric_limits<std::uint32_t>::max()));
 
@@ -381,6 +412,23 @@ template <typename StateT> void ApplyPendingHierarchyRequests(StateT &state, Sce
   if (state.hierarchy_reorder_request) {
     const auto direction = std::exchange(state.hierarchy_reorder_request, std::nullopt);
     static_cast<void>(MoveHierarchySelection(*scene, nodes, *direction));
+  }
+  if (state.hierarchy_expansion_request) {
+    const auto request = std::exchange(state.hierarchy_expansion_request, std::nullopt);
+    if (scene->Key(request->first.id) == request->first) {
+      const auto expanded = std::ranges::find(state.hierarchy_expanded, request->first);
+      if (request->second && expanded == state.hierarchy_expanded.end())
+        state.hierarchy_expanded.push_back(request->first);
+      else if (!request->second && expanded != state.hierarchy_expanded.end())
+        state.hierarchy_expanded.erase(expanded);
+    }
+  }
+  if (state.hierarchy_rename_request) {
+    auto request = std::exchange(state.hierarchy_rename_request, std::nullopt);
+    if (!scene->Rename(request->first, std::move(request->second)))
+      state.hierarchy_error = "Rename rejected because the entity or document generation is stale.";
+    else
+      state.hierarchy_error.clear();
   }
   state.hierarchy_selection = static_cast<std::uint32_t>(
       std::min<std::size_t>(scene->Selection().size(), std::numeric_limits<std::uint32_t>::max()));

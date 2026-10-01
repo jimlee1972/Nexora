@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cctype>
 #include <charconv>
 #include <fstream>
@@ -21,6 +22,14 @@ constexpr std::array kPanels{PanelDescriptor{"nexora.project", "Project"},
                              PanelDescriptor{"nexora.content", "Content"},
                              PanelDescriptor{"nexora.console", "Console"},
                              PanelDescriptor{"nexora.profiler", "Profiler"}};
+
+std::uint64_t NextDocumentGeneration() noexcept {
+  static std::atomic_uint64_t next{1};
+  auto generation = next.fetch_add(1, std::memory_order_relaxed);
+  if (generation == 0)
+    generation = next.fetch_add(1, std::memory_order_relaxed);
+  return generation;
+}
 
 std::uint64_t Hash(std::string_view text, std::uint64_t seed) {
   auto value = seed;
@@ -291,7 +300,8 @@ const AssetEntry *AssetWorkspace::Find(runtime::AssetUuid id) const {
 }
 
 SceneDocument::SceneDocument(runtime::World &world, runtime::Id scene)
-    : world_(world), scene_(scene), editor_(world) {}
+    : world_(world), scene_(scene), editor_(world), document_generation_(NextDocumentGeneration()) {
+}
 runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
   // Save() persists each node as a single "node <id> <parent> <name>\n" line and
   // Reload() parses strictly line-by-line, so an embedded newline would split one
@@ -316,7 +326,11 @@ runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
     if (!attach.Apply(world_))
       return 0;
   }
-  nodes_.push_back({entity_id, std::move(name)});
+  const auto generation = next_entity_generation_++;
+  if (next_entity_generation_ == 0)
+    ++next_entity_generation_;
+  nodes_.push_back({entity_id, std::move(name), generation});
+  undo_.push_back({});
   return entity_id;
 }
 bool SceneDocument::Select(std::span<const runtime::Id> entities) {
@@ -327,21 +341,65 @@ bool SceneDocument::Select(std::span<const runtime::Id> entities) {
   selection_.assign(entities.begin(), entities.end());
   return true;
 }
+bool SceneDocument::Select(std::span<const NodeKey> entities) {
+  std::vector<runtime::Id> ids;
+  ids.reserve(entities.size());
+  for (const auto key : entities) {
+    const auto found = std::ranges::find(nodes_, key.id, &Node::id);
+    if (key.document_generation != document_generation_ || found == nodes_.end() ||
+        found->generation != key.entity_generation || world_.FindEntity(key.id) == nullptr)
+      return false;
+    ids.push_back(key.id);
+  }
+  return Select(ids);
+}
+bool SceneDocument::Rename(NodeKey entity, std::string name) {
+  if (name.empty() || name.find('\n') != std::string::npos || name.find('\r') != std::string::npos)
+    return false;
+  const auto found = std::ranges::find(nodes_, entity.id, &Node::id);
+  if (entity.document_generation != document_generation_ || found == nodes_.end() ||
+      found->generation != entity.entity_generation || world_.FindEntity(entity.id) == nullptr)
+    return false;
+  if (found->name == name)
+    return true;
+  undo_.push_back({UndoEntry::Kind::Rename, entity, std::exchange(found->name, std::move(name))});
+  return true;
+}
 bool SceneDocument::Reparent(runtime::Id entity, runtime::Id parent) {
   if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end() ||
       (parent && std::ranges::find(nodes_, parent, &Node::id) == nodes_.end()))
     return false;
   // The runtime rejects self-parenting and cycles.
-  return editor_.SetParent(entity, parent, true);
+  if (!editor_.SetParent(entity, parent, true))
+    return false;
+  undo_.push_back({});
+  return true;
 }
 bool SceneDocument::Move(runtime::Id entity, runtime::Id parent, std::size_t index) {
   if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end() ||
       (parent && std::ranges::find(nodes_, parent, &Node::id) == nodes_.end()))
     return false;
-  return editor_.Move(entity, parent, index, true);
+  if (!editor_.Move(entity, parent, index, true))
+    return false;
+  undo_.push_back({});
+  return true;
+}
+bool SceneDocument::Move(NodeKey entity, std::optional<NodeKey> parent, std::size_t index) {
+  const auto current = Key(entity.id);
+  if (!current || *current != entity)
+    return false;
+  if (parent) {
+    const auto current_parent = Key(parent->id);
+    if (!current_parent || *current_parent != *parent)
+      return false;
+  }
+  return Move(entity.id, parent ? parent->id : 0, index);
 }
 bool SceneDocument::SetTransform(runtime::Id entity, runtime::Transform transform) {
-  return editor_.SetTransform(entity, transform);
+  if (!editor_.SetTransform(entity, transform))
+    return false;
+  undo_.push_back({});
+  return true;
 }
 bool SceneDocument::CopySelection() {
   clipboard_.clear();
@@ -359,13 +417,31 @@ bool SceneDocument::Paste() {
   for (const auto &source : clipboard_) {
     const auto id = Create(source.name + " Copy");
     // The copy is a root, so give it the source's world pose to make it appear in the same place.
-    if (const auto world = world_.WorldTransform(source.id))
-      editor_.SetTransform(id, *world);
-    selection_.push_back(id);
+    if (id != 0) {
+      if (const auto world = world_.WorldTransform(source.id))
+        static_cast<void>(SetTransform(id, *world));
+      selection_.push_back(id);
+    }
   }
+  return !selection_.empty();
+}
+bool SceneDocument::Undo() {
+  if (undo_.empty())
+    return false;
+  const auto &entry = undo_.back();
+  if (entry.kind == UndoEntry::Kind::Runtime) {
+    if (!editor_.Undo())
+      return false;
+  } else {
+    const auto found = std::ranges::find(nodes_, entry.entity.id, &Node::id);
+    if (entry.entity.document_generation != document_generation_ || found == nodes_.end() ||
+        found->generation != entry.entity.entity_generation)
+      return false;
+    found->name = entry.previous_name;
+  }
+  undo_.pop_back();
   return true;
 }
-bool SceneDocument::Undo() { return editor_.Undo(); }
 bool SceneDocument::Save(const std::filesystem::path &path) const {
   const auto snapshot = world_.SaveScene(scene_);
   if (!snapshot)
@@ -450,11 +526,25 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
   if (!scene || (migrate && !migration().Apply(world_)))
     return false;
   scene_ = *scene;
+  document_generation_ = NextDocumentGeneration();
   nodes_.clear();
-  for (auto &node : loaded)
-    nodes_.push_back({node.id, std::move(node.name)});
+  for (auto &node : loaded) {
+    const auto generation = next_entity_generation_++;
+    if (next_entity_generation_ == 0)
+      ++next_entity_generation_;
+    nodes_.push_back({node.id, std::move(node.name), generation});
+  }
   selection_.clear();
+  clipboard_.clear();
+  undo_.clear();
+  editor_.ClearUndo();
   return true;
+}
+std::optional<SceneDocument::NodeKey> SceneDocument::Key(runtime::Id entity) const noexcept {
+  const auto found = std::ranges::find(nodes_, entity, &Node::id);
+  if (found == nodes_.end() || world_.FindEntity(entity) == nullptr)
+    return std::nullopt;
+  return NodeKey{entity, found->generation, document_generation_};
 }
 std::optional<runtime::Id> SceneDocument::Parent(runtime::Id entity) const {
   if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())
@@ -468,13 +558,15 @@ std::string_view SceneDocument::Name(runtime::Id entity) const {
 std::vector<SceneDocument::NodeView> SceneDocument::Nodes() const {
   std::vector<NodeView> result;
   result.reserve(nodes_.size());
-  std::unordered_map<runtime::Id, std::string_view> names;
+  std::unordered_map<runtime::Id, const Node *> indexed;
+  indexed.reserve(nodes_.size());
   for (const auto &node : nodes_)
-    names.emplace(node.id, node.name);
+    indexed.emplace(node.id, &node);
   if (const auto *scene = world_.FindScene(scene_))
     for (const auto &entity : scene->entities)
-      if (const auto found = names.find(entity.id); found != names.end())
-        result.push_back({entity.id, entity.parent, found->second});
+      if (const auto found = indexed.find(entity.id); found != indexed.end())
+        result.push_back({entity.id, entity.parent, found->second->name, found->second->generation,
+                          document_generation_});
   return result;
 }
 } // namespace nexora::editor

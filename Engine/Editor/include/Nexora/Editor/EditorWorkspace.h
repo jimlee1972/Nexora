@@ -5,6 +5,7 @@
 #include "Nexora/Runtime/AssetPipeline.h"
 #include "Nexora/Runtime/EditorSdk.h"
 
+#include <compare>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -150,19 +151,33 @@ private:
 // hierarchy itself lives in the runtime (Entity::parent); this class reads it from there.
 class NEXORA_EDITOR_API SceneDocument final {
 public:
+  struct NodeKey final {
+    runtime::Id id{};
+    std::uint64_t entity_generation{};
+    std::uint64_t document_generation{};
+    auto operator<=>(const NodeKey &) const = default;
+  };
   struct NodeView final {
     runtime::Id id{}, parent{};
     std::string_view name;
+    std::uint64_t entity_generation{};
+    std::uint64_t document_generation{};
+    [[nodiscard]] NodeKey Key() const noexcept {
+      return {id, entity_generation, document_generation};
+    }
   };
   SceneDocument(runtime::World &world, runtime::Id scene);
   // Creates a node; with a parent the new entity starts at the parent's origin (identity local).
   runtime::Id Create(std::string name, runtime::Id parent = 0);
   bool Select(std::span<const runtime::Id> entities);
+  bool Select(std::span<const NodeKey> entities);
+  bool Rename(NodeKey entity, std::string name);
   // Undoable; keeps the entity's world pose like dragging in Unity's Hierarchy. Rejects cycles.
   bool Reparent(runtime::Id entity, runtime::Id parent);
   // A Hierarchy drag: reparent keeping the world pose and place the node at `index` among its new
   // siblings (clamped to the last position), as one undo step.
   bool Move(runtime::Id entity, runtime::Id parent, std::size_t index);
+  bool Move(NodeKey entity, std::optional<NodeKey> parent, std::size_t index);
   bool SetTransform(runtime::Id entity, runtime::Transform transform);
   bool CopySelection();
   bool Paste();
@@ -170,6 +185,8 @@ public:
   bool Save(const std::filesystem::path &path) const;
   bool Reload(const std::filesystem::path &path);
   [[nodiscard]] std::span<const runtime::Id> Selection() const noexcept { return selection_; }
+  [[nodiscard]] std::optional<NodeKey> Key(runtime::Id entity) const noexcept;
+  [[nodiscard]] std::uint64_t Generation() const noexcept { return document_generation_; }
   [[nodiscard]] std::optional<runtime::Id> Parent(runtime::Id entity) const;
   [[nodiscard]] std::string_view Name(runtime::Id entity) const;
   // In runtime sibling order (scene storage order), so a Hierarchy view can list children as
@@ -180,6 +197,12 @@ private:
   struct Node final {
     runtime::Id id{};
     std::string name;
+    std::uint64_t generation{};
+  };
+  struct UndoEntry final {
+    enum class Kind { Runtime, Rename } kind{Kind::Runtime};
+    NodeKey entity;
+    std::string previous_name;
   };
   runtime::World &world_;
   runtime::Id scene_{};
@@ -187,6 +210,9 @@ private:
   std::vector<Node> nodes_;
   std::vector<runtime::Id> selection_;
   std::vector<Node> clipboard_;
+  std::vector<UndoEntry> undo_;
+  std::uint64_t document_generation_{};
+  std::uint64_t next_entity_generation_{1};
 };
 
 } // namespace nexora::editor

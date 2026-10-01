@@ -253,6 +253,10 @@ bool SceneEditor::Undo() {
   --depth_;
   return true;
 }
+void SceneEditor::ClearUndo() noexcept {
+  undo_ = {};
+  depth_ = 0;
+}
 
 bool RuntimeConsole::Push(RuntimeLogRecord record) {
   std::scoped_lock lock(mutex_);

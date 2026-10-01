@@ -526,6 +526,17 @@ int Run() {
   const auto child = document.Create("Child", parent);
   Require(document.Nodes().size() == 2 && document.Nodes()[1].parent == parent,
           "hierarchy view contract failed");
+  const auto parent_key = *document.Key(parent);
+  const auto child_key = *document.Key(child);
+  Require(parent_key == document.Nodes()[0].Key() && child_key == document.Nodes()[1].Key() &&
+              parent_key.document_generation == document.Generation() &&
+              parent_key.entity_generation != child_key.entity_generation,
+          "Hierarchy keys must carry document and entity generations");
+  Require(document.Rename(parent_key, "Renamed Parent") &&
+              document.Name(parent) == "Renamed Parent" && document.Undo() &&
+              document.Name(parent) == "Parent" && !document.Rename(parent_key, "Bad\nName") &&
+              !document.Rename(parent_key, "Bad\rName"),
+          "generation-safe Hierarchy rename/undo contract failed");
   Require(parent && child && document.Parent(child) == parent && !document.Reparent(parent, child),
           "hierarchy cycle policy failed");
   // A Hierarchy drag places a node among its new siblings; Nodes() lists the runtime order.
@@ -547,9 +558,22 @@ int Run() {
   runtime::World loaded_world;
   const auto placeholder = loaded_world.LoadScene("Placeholder");
   editor::SceneDocument loaded(loaded_world, placeholder);
-  Require(loaded.Reload(scene_path) && loaded.Name(child) == "Child" &&
-              loaded.Parent(child) == parent && loaded_world.Parent(child) == parent,
+  const auto placeholder_generation = loaded.Generation();
+  Require(loaded.Reload(scene_path) && loaded.Generation() != placeholder_generation &&
+              loaded.Name(child) == "Child" && loaded.Parent(child) == parent &&
+              loaded_world.Parent(child) == parent,
           "scene reload failed");
+  const auto loaded_child_key = *loaded.Key(child);
+  const editor::SceneDocument::NodeKey stale_document_key{
+      loaded_child_key.id, loaded_child_key.entity_generation, placeholder_generation};
+  const editor::SceneDocument::NodeKey stale_entity_key{loaded_child_key.id,
+                                                        loaded_child_key.entity_generation + 1,
+                                                        loaded_child_key.document_generation};
+  const std::array stale_selection{stale_document_key};
+  Require(!loaded.Rename(stale_document_key, "Stale") &&
+              !loaded.Rename(stale_entity_key, "Stale") && !loaded.Select(stale_selection) &&
+              !loaded.Move(stale_document_key, std::nullopt, 0) && loaded.Name(child) == "Child",
+          "stale Hierarchy keys were accepted after document/entity generation changed");
 
   // Before snapshot version 3 the hierarchy lived only in the node lines and every transform was
   // a world pose; migrating must parent the entities without moving them.

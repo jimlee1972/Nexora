@@ -129,6 +129,7 @@ public:
   // Destroys the entity and its descendants; undo restores the whole subtree.
   bool DestroyEntity(Id scene, Id entity);
   bool Undo();
+  void ClearUndo() noexcept;
   [[nodiscard]] std::size_t UndoDepth() const noexcept { return depth_; }
 
 private:
