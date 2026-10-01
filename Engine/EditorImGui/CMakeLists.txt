@@ -16,6 +16,9 @@ target_link_libraries(NexoraEditorImGui
   PUBLIC Nexora::Editor Nexora::Presentation Nexora::Window
   PRIVATE NexoraDearImGui)
 target_compile_definitions(NexoraEditorImGui PRIVATE NEXORA_EDITOR_IMGUI_EXPORTS)
+if(BUILD_TESTING)
+  target_compile_definitions(NexoraEditorImGui PRIVATE NEXORA_EDITOR_IMGUI_TEST_ACCESS=1)
+endif()
 if(NEXORA_LINK_MODE STREQUAL "Monolithic")
   target_compile_definitions(NexoraEditorImGui PUBLIC NEXORA_EDITOR_IMGUI_STATIC=1)
 endif()

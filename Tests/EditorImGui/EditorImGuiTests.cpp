@@ -1,6 +1,5 @@
+#include "EditorImGuiTestAccess.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
-
-#include "imgui.h"
 
 #include <array>
 #include <cassert>
@@ -9,9 +8,12 @@
 #include <fstream>
 
 int main() {
+  using nexora::editor::imgui::EditorImGuiTestAccess;
   nexora::editor::imgui::EditorImGuiHost host;
-  assert((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) == 0);
-  assert((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard) != 0);
+  const auto initial_state = EditorImGuiTestAccess::Inspect(host);
+  assert(!initial_state.platform_viewports_enabled);
+  assert(initial_state.keyboard_navigation_enabled);
+  assert(initial_state.input_trickle_enabled);
   nexora::runtime::World world;
   const auto scene_id = world.LoadScene("Editor ImGui contract");
   assert(world.Activate(scene_id));
@@ -25,7 +27,8 @@ int main() {
   // This test replays a synthetic event batch as a single deterministic unit rather than live
   // input, so disable trickling to make ProcessEvents() -> one NewFrame() a reliable, complete
   // apply.
-  ImGui::GetIO().ConfigInputTrickleEventQueue = false;
+  EditorImGuiTestAccess::SetInputTrickle(host, false);
+  assert(!EditorImGuiTestAccess::Inspect(host).input_trickle_enabled);
   host.SetDisplay(1280.0F, 720.0F, 1.0F);
   nexora::editor::ProductShell shell;
   // Dear ImGui's Shortcut()/SetShortcutRouting() arbitrate routing one frame ahead: a route
@@ -65,10 +68,11 @@ int main() {
   };
   host.ProcessEvents(events);
   host.SetDisplay(1600.0F, 900.0F, 1.5F);
-  assert(ImGui::GetIO().DisplaySize.x == 1600.0F);
-  assert(ImGui::GetIO().DisplaySize.y == 900.0F);
-  assert(ImGui::GetIO().DisplayFramebufferScale.x == 1.5F);
-  assert(ImGui::GetIO().FontGlobalScale > 0.66F && ImGui::GetIO().FontGlobalScale < 0.67F);
+  const auto display_state = EditorImGuiTestAccess::Inspect(host);
+  assert(display_state.display_width == 1600.0F);
+  assert(display_state.display_height == 900.0F);
+  assert(display_state.framebuffer_scale == 1.5F);
+  assert(display_state.font_global_scale > 0.66F && display_state.font_global_scale < 0.67F);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene);
   assert(shell.LastCommand() == "editor.scene.save");
@@ -85,9 +89,7 @@ int main() {
                              nexora::rhi::ResourceState::ShaderRead, "Editor user texture"});
   const auto texture_id = host.RegisterTexture(*device, user_texture);
   assert(texture_id != 0);
-  for (int list = 0; list < ImGui::GetDrawData()->CmdListsCount; ++list)
-    for (auto &command : ImGui::GetDrawData()->CmdLists[list]->CmdBuffer)
-      command.TextureId = static_cast<ImTextureID>(texture_id);
+  assert(EditorImGuiTestAccess::OverrideDrawTexture(host, texture_id) > 0);
   const auto draws =
       host.Render(*device, target, 1280, 720, nexora::rhi::ResourceState::Undefined, false);
   auto repeated_draws = draws;
@@ -102,9 +104,7 @@ int main() {
   assert(draws > 0 && diagnostics.draw_calls == draws * 4 && diagnostics.validation_errors == 0);
   assert(host.UnregisterTexture(texture_id));
   assert(!host.UnregisterTexture(texture_id));
-  for (int list = 0; list < ImGui::GetDrawData()->CmdListsCount; ++list)
-    for (auto &command : ImGui::GetDrawData()->CmdLists[list]->CmdBuffer)
-      command.TextureId = static_cast<ImTextureID>(texture_id);
+  assert(EditorImGuiTestAccess::OverrideDrawTexture(host, texture_id) > 0);
   assert(host.Render(*device, target, 1280, 720, nexora::rhi::ResourceState::ShaderRead, false) ==
          draws);
   assert(host.GetRendererMetrics().rejected_textures > 0);

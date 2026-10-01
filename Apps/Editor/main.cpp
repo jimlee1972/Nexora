@@ -41,8 +41,8 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
   int result = 0;
   auto recovery_choice = nexora::editor::imgui::RecoveryChoice::None;
   while (!created.surface->CloseRequested() && (frame_limit == 0 || frames < frame_limit)) {
-    const auto status = created.surface->BeginFrame();
-    const auto action = Nexora::Presentation::RecoveryAction(status);
+    const auto begin_frame_status = created.surface->BeginFrame();
+    const auto action = Nexora::Presentation::RecoveryAction(begin_frame_status);
     if (action == Nexora::Presentation::SurfaceAction::Abort) {
       // A window closed during startup can no longer back a swapchain, so BeginFrame reports a
       // failure caused by the close itself. When the user already asked to quit, that is a clean
