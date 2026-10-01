@@ -11,6 +11,9 @@ authoring views on first launch.
 ## Ownership and lifetime
 
 - `EditorImGuiHost` owns one ImGui context and destroys it with the host.
+- Modular builds expose Dear ImGui as one shared dependency so `NexoraEditorImGui` and each
+  host/test executable observe the same process-global context; Monolithic builds keep it as one
+  statically linked dependency inside the executable.
 - Draw data and frame metrics are valid only for the frame in which `EndFrame` returns them.
 - `DrawProjectSelector` owns only editable UTF-8 fields, the displayed error, and at most one
   `ProjectSelectorRequest`. `TakeProjectSelectorRequest` transfers that request once. The host never

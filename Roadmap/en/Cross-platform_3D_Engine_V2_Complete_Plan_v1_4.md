@@ -3834,10 +3834,10 @@ conservative Hi-Z with explicit invalidation, visible-instance compaction, mater
 classification, and indirect-command generation. The portable command contract now records compute
 dispatch and indirect drawing, compares backend output with the CPU reference, tracks normal-path
 readback diagnostics, and makes RenderGraph emit explicit compute/graphics ownership barriers.
-Linux Vulkan now has the complete frustum/distance/LOD/Hi-Z/compaction/classification/indirect-generation implementation. Its Slang-enabled RenderGraph test runs on Mesa lavapipe, requires native backend availability, and compares all bounded output against the CPU reference before indirect drawing. GitHub Actions run `36609837931` passed the full Linux Development configure/build/CTest gate as well as the Linux shipping, package/evidence, sanitizer, and TSan build-contract job; Phase 2 Linux Vulkan acceptance is complete. The indirect record is fixed once as a shared C++/Slang 36-byte ABI with a common Vulkan/D3D12/Metal non-indexed draw prefix; backends may not redefine it. DX12/Metal execution and full target-tier parity remain open.
+Linux Vulkan now has the complete frustum/distance/LOD/Hi-Z/compaction/classification/indirect-generation implementation. Its Slang-enabled RenderGraph test runs on Mesa lavapipe, requires native backend availability, and compares all bounded output against the CPU reference before indirect drawing. GitHub Actions run `36609837931` passed the full Linux Development configure/build/CTest gate as well as the Linux shipping, package/evidence, sanitizer, and TSan build-contract job; Phase 2 Linux Vulkan acceptance is complete. The indirect record is fixed once as a shared C++/Slang 36-byte ABI with a common Vulkan/D3D12/Metal non-indexed draw prefix; backends may not redefine it. D3D12 execution now has a local Windows target-host comparison record; Metal execution and full target-tier parity remain open.
 [V2-M3_GPU_Driven_Native_Execution_Plan.md](V2-M3_GPU_Driven_Native_Execution_Plan.md) plans the
 remaining work in phases, verified against the actual per-backend `Dispatch`/`DrawIndirect`
-coverage in source; Phases 1a/1b and Linux Vulkan Phase 2 are accepted, while DX12/Metal target execution remains open.
+coverage in source; Phases 1a/1b and Linux Vulkan Phase 2 are accepted, while D3D12 target execution is recorded on the local Windows host and Metal target execution remains open.
 
 Order:
 

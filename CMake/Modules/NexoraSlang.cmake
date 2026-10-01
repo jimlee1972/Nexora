@@ -111,7 +111,8 @@ function(nexora_configure_slang)
               "${shader_source}"
       COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
               -target dxil
-              -profile sm_6_6
+              # Keep the native GPU-driven gate compatible with feature-level 11_0-class adapters.
+              -profile sm_6_0
               -entry computeMain
               -o "${compute_dxil_output}"
               "${compute_shader_source}")

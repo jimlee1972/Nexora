@@ -90,6 +90,11 @@ if(NEXORA_ENABLE_SLANG)
         "NEXORA_SLANG_DXIL_FRAGMENT_PATH=${NEXORA_SLANG_DXIL_FRAGMENT_OUTPUT}"
         "NEXORA_SLANG_COMPUTE_DXIL_PATH=${NEXORA_SLANG_COMPUTE_DXIL_OUTPUT}")
     endif()
+    if(WIN32)
+      set_property(TEST renderer.v2_gpu_driven APPEND PROPERTY ENVIRONMENT
+        "NEXORA_SLANG_COMPUTE_DXIL_PATH=${NEXORA_SLANG_COMPUTE_DXIL_OUTPUT}"
+        "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+    endif()
     # VulkanDevice's constructor requires NEXORA_SLANG_SPIRV_PATH (it loads the
     # compiled shader module unconditionally), so TestNormalPathOnVulkan in
     # GPUDrivenPipelineTests.cpp needs the same environment renderer.contracts
