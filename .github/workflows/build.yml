@@ -235,6 +235,7 @@ jobs:
           sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev
       - run: cmake --preset linux-shipping -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON
       - run: cmake --build --preset linux-shipping
+      - run: ctest --preset linux-shipping
       - run: cmake --build --preset linux-shipping --target NexoraShowcasePackageShippingEvidence
       - uses: actions/upload-artifact@v4
         with:
