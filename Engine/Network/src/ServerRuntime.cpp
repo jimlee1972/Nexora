@@ -93,8 +93,8 @@ void ServerRuntime::RunTick() {
       // Only defer for budget reasons once this tick has already accepted something: an empty
       // tick always takes at least the head packet, bounding the stall to one oversized packet
       // rather than blocking the connection indefinitely.
-      if (bytes > 0 && pending_size > config_.bytes_per_client_per_tick -
-                                          std::min(bytes, config_.bytes_per_client_per_tick)) {
+      if (packets > 0 && pending_size > config_.bytes_per_client_per_tick -
+                                            std::min(bytes, config_.bytes_per_client_per_tick)) {
         break;
       }
       Packet packet;

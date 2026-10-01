@@ -356,6 +356,37 @@ void TestServerRuntimeByteBudgetDoesNotHeadOfLineBlock() {
           "the packet behind an oversized head-of-line packet was permanently blocked");
 }
 
+void TestServerRuntimeByteBudgetCountsZeroBytePackets() {
+  // The "take at least the head packet" exception applies only to a tick that has accepted
+  // nothing. A zero-byte packet still counts as accepted work, so an oversized packet queued behind
+  // it must wait for the next tick instead of riding the exception in the same tick.
+  auto pair = CreateLoopbackTransportPair();
+  Connection client(*pair.client, {7, "build-a"}, false);
+  Connection server(*pair.server, {7, "build-a"}, true);
+  Connect(client, server);
+
+  TestServerSimulation simulation;
+  ServerRuntimeConfig config;
+  config.ticks_per_second = 10;
+  config.packets_per_client_per_tick = 5;
+  config.bytes_per_client_per_tick = 4;
+  ServerRuntime runtime(config, simulation);
+  Require(runtime.Admit(1, server) == AdmissionResult::Accepted, "client was not admitted");
+
+  Require(client.Send(1, ChannelSemantics::ReliableOrdered, Bytes("")),
+          "zero-byte packet send failed");
+  Require(client.Send(1, ChannelSemantics::ReliableOrdered, Bytes("abcdefghij")),
+          "oversized packet send failed"); // received payload: 10 bytes, exceeds the full budget
+  client.Tick(0);
+
+  runtime.Advance(std::chrono::milliseconds(101));
+  Require(runtime.TickIndex() == 1 && simulation.received == 1 && runtime.Capture().size() == 1,
+          "an oversized packet behind a zero-byte packet was admitted in the same tick");
+  runtime.Advance(std::chrono::milliseconds(101));
+  Require(runtime.TickIndex() == 2 && simulation.received == 2 && runtime.Capture().size() == 2,
+          "the deferred oversized packet was not delivered on the next tick");
+}
+
 class NullDatagramSocket final : public IDatagramSocket {
 public:
   bool Bind(const SocketEndpoint &local) override {
@@ -683,6 +714,7 @@ int main() {
   TestServerRuntimeContract();
   TestServerRuntimeByteBudgetDefersOversizedPacket();
   TestServerRuntimeByteBudgetDoesNotHeadOfLineBlock();
+  TestServerRuntimeByteBudgetCountsZeroBytePackets();
   TestPortableSocketProviderBoundary();
   TestNetworkEntityMapping();
   TestReplicationSchemaAndSnapshot();

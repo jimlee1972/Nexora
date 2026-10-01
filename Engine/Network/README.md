@@ -72,7 +72,8 @@ Both budgets defer excess work to a later tick rather than dropping it: the pend
 dequeued once it is known to fit the tick's remaining byte budget, so a single packet larger than
 what remains this tick (but not larger than the full per-tick budget) is delivered on the next tick
 instead of being silently discarded. A single packet larger than the *entire* per-tick byte budget
-is still taken on an otherwise-empty tick rather than deferred forever, guaranteeing at least one
+is still taken on a tick that has not yet accepted any packet (zero-byte packets count as
+accepted work) rather than deferred forever, guaranteeing at least one
 packet's progress per tick and bounding the connection to at most one such oversized packet instead
 of head-of-line-blocking every packet queued behind it.
 Simulation sees only a monotonic tick index, never wall-clock time. Every accepted packet is retained

@@ -32,8 +32,9 @@ struct GoldenImageCaseResult final {
 
 using GoldenImageProducer = std::function<std::vector<std::byte>(const GoldenImageCase &)>;
 
+// Standard 64-bit FNV-1a, so captures hashed by external platform runners or tools agree with it.
 [[nodiscard]] inline std::uint64_t HashRgba8(std::span<const std::byte> pixels) noexcept {
-  constexpr std::uint64_t offset = 1469598103934665603ULL;
+  constexpr std::uint64_t offset = 14695981039346656037ULL;
   constexpr std::uint64_t prime = 1099511628211ULL;
   auto hash = offset;
   for (const auto value : pixels) {

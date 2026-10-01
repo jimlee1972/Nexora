@@ -14,8 +14,16 @@ std::optional<runtime::CharacterIntent> IntentAdapter::Project(const CharacterIn
   if (intent.movement_mode == CharacterMovementMode::Disabled) {
     return runtime::CharacterIntent{};
   }
-  return runtime::CharacterIntent{direction.x * intent.desired_speed,
-                                  direction.z * intent.desired_speed};
+  // Finite inputs can still overflow: a large speed times a large or non-unit direction yields
+  // +/-inf, and the motor's hypot()/scale step then turns that into NaN on the character. Reject
+  // any projection whose components or planar magnitude are not finite.
+  const runtime::CharacterIntent projected{direction.x * intent.desired_speed,
+                                           direction.z * intent.desired_speed};
+  if (!std::isfinite(projected.requested_x) || !std::isfinite(projected.requested_z) ||
+      !std::isfinite(std::hypot(projected.requested_x, projected.requested_z))) {
+    return std::nullopt;
+  }
+  return projected;
 }
 
 } // namespace nexora::ai::integration

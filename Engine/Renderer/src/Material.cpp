@@ -111,7 +111,9 @@ MaterialBinding BindMaterialResources(const MaterialSchema &material,
   result.textures.reserve(material.textures.size());
   for (const auto &texture : material.textures) {
     const auto resolved = resolver.ResolveTexture(texture.resource_id);
-    const auto index = resolved.value_or(resolver.FallbackTexture(texture.semantic));
+    // Ask for a fallback only when resolution actually failed: value_or() would evaluate
+    // FallbackTexture() eagerly for every texture, even ones that resolved.
+    const auto index = resolved ? *resolved : resolver.FallbackTexture(texture.semantic);
     result.textures.push_back({texture.semantic, index, !resolved.has_value()});
     HashString(result.layout_hash, texture.semantic);
   }

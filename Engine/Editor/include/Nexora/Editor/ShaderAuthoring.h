@@ -85,8 +85,13 @@ public:
   void Forget(const std::filesystem::path &source_path);
 
 private:
+  struct ObservedInputs final {
+    std::string source;
+    std::uint64_t fingerprint{};
+  };
   CompileFunction compile_;
-  std::unordered_map<std::string, std::int64_t> observed_write_times_;
+  // Keyed per compile request, fingerprinting the source and its declared dependencies.
+  std::unordered_map<std::string, ObservedInputs> observed_inputs_;
 };
 
 struct ShaderVariantBudget final {

@@ -529,11 +529,18 @@ struct SelfPlayBatchOrchestrator::Slot final {
 };
 
 namespace {
-std::uint64_t DeriveSelfPlaySeed(std::uint64_t base_seed, SelfPlayWorldId world) noexcept {
-  auto value = base_seed + world + 0x9e3779b97f4a7c15ULL;
+std::uint64_t SplitMix64(std::uint64_t value) noexcept {
+  value += 0x9e3779b97f4a7c15ULL;
   value = (value ^ (value >> 30U)) * 0xbf58476d1ce4e5b9ULL;
   value = (value ^ (value >> 27U)) * 0x94d049bb133111ebULL;
   return value ^ (value >> 31U);
+}
+
+// Mixes the base seed before combining it with the world ID. Adding them first made neighbouring
+// base seeds share nearly every world seed (base 1234 world 2 equalled base 1235 world 1), so runs
+// launched with consecutive base seeds were heavily correlated.
+std::uint64_t DeriveSelfPlaySeed(std::uint64_t base_seed, SelfPlayWorldId world) noexcept {
+  return SplitMix64(SplitMix64(base_seed) + world);
 }
 } // namespace
 

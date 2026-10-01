@@ -317,6 +317,14 @@ int main() {
               same_seed_orchestrator.Snapshot()[0].seed == seeds[0].seed,
           "self-play world seeds were not deterministic");
 
+  // Runs launched with neighbouring base seeds must not share world seeds: with base+world mixing,
+  // (1234, world 2) collided with (1235, world 1).
+  SelfPlayBatchOrchestrator neighbour_orchestrator{deferred_policy, runner_fallback, 2, 1235, 2, 1};
+  FakeEnvironment neighbour_world{10};
+  Require(neighbour_orchestrator.AddWorld(neighbour_world) &&
+              neighbour_orchestrator.Snapshot()[0].seed != seeds[1].seed,
+          "neighbouring self-play base seeds produced colliding world seeds");
+
   const auto first_world_tick = orchestrator.Tick(0);
   const auto second_world_tick = orchestrator.Tick(1);
   const auto first_world_again = orchestrator.Tick(2);

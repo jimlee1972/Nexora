@@ -25,8 +25,9 @@ quadratic all-agents scan. A gameplay character layer remains responsible for ap
 
 The optional `NexoraAIIntegration` module projects AI locomotion into Runtime's horizontal
 `CharacterIntent`. It is kept outside both modules to preserve AI's Core-only dependency and
-Runtime's renderer-only dependency; invalid movement values are rejected, and the adapter never
-owns or mutates a character.
+Runtime's renderer-only dependency; invalid movement values, including finite inputs whose projected
+velocity or planar magnitude overflows to infinity, are rejected, and the adapter never owns or
+mutates a character.
 
 `UtilityAI` emits the same `AIAction` type used by learned policies and supports deterministic
 selection, cooldown eligibility, and hysteresis around the current action. `IPolicyRuntime` is
@@ -46,7 +47,8 @@ actions, fixed simulation step, rewards, and termination are explicit. It does n
 engine-native trainer or ML framework dependency.
 
 `SelfPlayBatchOrchestrator` is the first portable multi-world coordinator. It derives stable seeds
-from a caller-supplied base seed and world ID, bounds registered worlds and worlds serviced per tick,
+from a caller-supplied base seed and world ID (the base seed is SplitMix64-mixed before the world ID
+is combined, so consecutive base seeds do not share world seeds), bounds registered worlds and worlds serviced per tick,
 and uses round-robin scheduling so an active world is advanced at most once per call. Environments
 and the shared policy runtime are borrowed; each world owns an independent bridge and policy-result
 cache, preventing a deferred action batch from leaking between simulations. Reset/action/step

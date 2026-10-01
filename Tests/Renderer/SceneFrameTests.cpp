@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 
 namespace {
@@ -32,6 +33,30 @@ int RunTests() {
   invalid = first;
   invalid.material.roughness = std::nanf("");
   Require(!renderer::ValidateSceneFrame(invalid), "non-finite material must be rejected");
+
+  // Every value below is uploaded verbatim into the constant buffer. NaN in particular slips past
+  // naive `<=` comparisons, so each degenerate case must be rejected explicitly.
+  const auto rejects = [&first](auto mutate, const char *message) {
+    auto frame = first;
+    mutate(frame);
+    Require(!renderer::ValidateSceneFrame(frame), message);
+  };
+  const auto nan = std::nanf("");
+  const auto inf = std::numeric_limits<float>::infinity();
+  rejects([nan](auto &frame) { frame.camera.near_plane = nan; }, "NaN near plane was accepted");
+  rejects([inf](auto &frame) { frame.camera.far_plane = inf; }, "infinite far plane was accepted");
+  rejects([nan](auto &frame) { frame.camera.position[0] = nan; },
+          "non-finite camera position was accepted");
+  rejects([](auto &frame) { frame.camera.target = frame.camera.position; },
+          "camera looking at its own position was accepted");
+  rejects([nan](auto &frame) { frame.material.metallic = nan; }, "NaN metallic was accepted");
+  rejects([](auto &frame) { frame.material.metallic = 2.0F; },
+          "out-of-range metallic was accepted");
+  rejects([nan](auto &frame) { frame.material.base_color[3] = nan; },
+          "NaN base color was accepted");
+  rejects([](auto &frame) { frame.light.direction = {0.0F, 0.0F, 0.0F}; },
+          "zero light direction was accepted");
+  rejects([inf](auto &frame) { frame.light.color[1] = inf; }, "infinite light color was accepted");
 
   auto device = rhi::CreateValidationDevice();
   {
