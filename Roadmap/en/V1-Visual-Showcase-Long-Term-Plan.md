@@ -11,6 +11,7 @@
 - ✅ Source/test audit confirmed that Window, Presentation, and RHI buffer contracts already exist;
   the Showcase reuses `RenderSurface` rather than recreating those boundaries.
 - Implemented pending native acceptance: Linux/X11/Vulkan windowed startup, bounded resize, clear color, triangle, diagnostics panel, shutdown, and Xvfb smoke.
+- ✅ Windows/Win32/DX12 windowed compositing (`Dx12Surface::CompositeRgba8`) is implemented: the window opened a visible clear color, software-rasterized triangle, and diagnostics panel, confirmed by manual developer-machine evidence (`--mode=interactive --backend=dx12`, 600 acquire/composite/present cycles, `backend_fallback=false`, and a captured screenshot of the live window). This was previously missing -- `Dx12Surface` inherited the base `ISurface::CompositeRgba8` default (`Unsupported`), so `--backend=dx12` failed outright rather than silently degrading. Clean-machine and CI windowed acceptance are still open; this is single-developer-machine manual evidence only.
 - ✅ The 3D Hub presents M0-M12 Validation Lab cards with stable room/world-object associations and visible contained-failure states; authored Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping room content remains open.
 - ✅ M0-M12 probe registry, status model, versioned JSON/Markdown serializers, CTest card mapping, and contained error injections are portable.
 - ✅ M7-M10 capability-aware room states emit headless evidence with `visual_complete: false`; interactive/guided tour and visual content remain open.
@@ -20,7 +21,7 @@
 >
 > Document status: planning baseline (Draft)
 >
-> Updated: 2026-09-22
+> Updated: 2026-10-01
 
 ## 1. Purpose
 
@@ -239,7 +240,7 @@ Every row needs two results: the Contract Gate is automated evidence, and the Sh
 | M0 | CMake preset, module graph, build/CTest, Host startup | Build ID, module list, startup diagnostics | Contract exists; visual entry point pending |
 | M1 | `core.runtime`, Foundation/Gameplay ABI | Frame time, job graph, allocator/log/VFS counters | Contract exists; shown via diagnostics |
 | M2 | Shader reflection, validation device, renderer contracts | Shader/pass/resource overlay | Offscreen verifiable; window path pending |
-| M3 | Native DX12/Vulkan/Metal offscreen path | Backend badge, native present counters, 3D frame | Native offscreen exists; swapchain pending |
+| M3 | Native DX12/Vulkan/Metal offscreen path | Backend badge, native present counters, 3D frame | Native offscreen exists; Windows/DX12 windowed compositing implemented and developer-machine verified; Linux/Vulkan and macOS/Metal windowed compositing and clean-machine/CI acceptance pending |
 | M4 | `runtime.v1_m4_vertical_slice`, scene snapshot/lifecycle | Operable scene, entity, undo, play/editor world | Runtime foundation exists; content and UI pending |
 | M5 | `runtime.v1_m5_asset_pipeline` | Import/cook/bundle/progress/reload/rollback | Contract exists; showcase assets pending |
 | M6 | `runtime.v1_m6_editor_sdk`, plugin ABI/prefab | Reflection inspector, Undo, prefab rebase, plugin status | Editor SDK exists; graphical editor not in current state |
@@ -295,8 +296,10 @@ Goal: the Hub scene shows a genuinely interactive 3D frame.
 **Portable scene-frame foundation: ✅ complete; graphical binding remains open.** Renderer owns
 validated camera, indexed mesh, material, light, procedural cube, and deterministic frame-resource
 contracts. Headless validation covers buffers, depth and sampled textures, sampler-policy counts,
-indexed submission, failures, lifetime, and shutdown. Native Vulkan binding, interactive Rendering
-Room output, Xvfb/lavapipe evidence, and other target-host evidence remain open.
+indexed submission, failures, lifetime, and shutdown. Windows/DX12 windowed compositing is now
+implemented (`Dx12Surface::CompositeRgba8`) and confirmed by manual developer-machine evidence; native
+Vulkan binding, interactive Rendering Room output, Xvfb/lavapipe evidence, and clean-machine/CI target-host
+evidence for every backend remain open.
 
 ### Phase C -- Probe and V1 Validation Lab
 

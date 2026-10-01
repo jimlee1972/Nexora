@@ -115,6 +115,62 @@ public:
     acquired_ = true;
     return SurfaceStatus::Ready;
   }
+  SurfaceStatus CompositeRgba8(std::span<const std::byte> pixels, std::uint32_t width,
+                               std::uint32_t height) override {
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    if (!acquired_ || width != width_ || height != height_ ||
+        pixels.size() != static_cast<std::size_t>(width) * height * 4U)
+      return SurfaceStatus::InvalidDescriptor;
+    const UINT rowPitch = width * 4U;
+    const UINT alignedPitch = (rowPitch + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) &
+                              ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1);
+    D3D12_HEAP_PROPERTIES uploadHeap{};
+    uploadHeap.Type = D3D12_HEAP_TYPE_UPLOAD;
+    uploadHeap.CreationNodeMask = 1;
+    uploadHeap.VisibleNodeMask = 1;
+    D3D12_RESOURCE_DESC stagingDesc{};
+    stagingDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    stagingDesc.Width = static_cast<UINT64>(alignedPitch) * height;
+    stagingDesc.Height = 1;
+    stagingDesc.DepthOrArraySize = 1;
+    stagingDesc.MipLevels = 1;
+    stagingDesc.SampleDesc.Count = 1;
+    stagingDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    ComPtr<ID3D12Resource> staging;
+    if (FAILED(device_->CreateCommittedResource(&uploadHeap, D3D12_HEAP_FLAG_NONE, &stagingDesc,
+                                                D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                                                IID_PPV_ARGS(&staging))))
+      return SurfaceStatus::DeviceLost;
+    void *mapped = nullptr;
+    D3D12_RANGE noRead{0, 0};
+    if (FAILED(staging->Map(0, &noRead, &mapped)))
+      return SurfaceStatus::DeviceLost;
+    for (std::uint32_t row = 0; row < height; ++row)
+      std::memcpy(static_cast<std::byte *>(mapped) + static_cast<std::size_t>(row) * alignedPitch,
+                  pixels.data() + static_cast<std::size_t>(row) * rowPitch, rowPitch);
+    staging->Unmap(0, nullptr);
+    D3D12_RESOURCE_BARRIER toCopyDest{};
+    toCopyDest.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    toCopyDest.Transition = {buffers_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                             D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST};
+    commands_->ResourceBarrier(1, &toCopyDest);
+    D3D12_TEXTURE_COPY_LOCATION destination{};
+    destination.pResource = buffers_[frame_].Get();
+    destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    D3D12_TEXTURE_COPY_LOCATION source{};
+    source.pResource = staging.Get();
+    source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    source.PlacedFootprint.Footprint = {DXGI_FORMAT_R8G8B8A8_UNORM, width, height, 1, alignedPitch};
+    commands_->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
+    D3D12_RESOURCE_BARRIER toRenderTarget{};
+    toRenderTarget.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    toRenderTarget.Transition = {buffers_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                                 D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET};
+    commands_->ResourceBarrier(1, &toRenderTarget);
+    retired_[frame_].push_back(staging);
+    return SurfaceStatus::Ready;
+  }
   SurfaceStatus Present() override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
