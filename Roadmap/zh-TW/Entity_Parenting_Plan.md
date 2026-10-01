@@ -42,7 +42,7 @@ entity 沒有階層，所以每個 `runtime::Transform` 都是世界座標，而
    parent。本階段有角色控制器的 entity 必須是根物件；階段 2 已解除此限制（見 §5）。
 2. ✅ **Gameplay 邊界。**有版本的 Zig／C parent 與 world transform wire（`"Nexora.Parent"`、`"Nexora.WorldTransform"` 與 `"Nexora.TransformV2"`）；父物件底下的角色控制器，沿用 Unity：控制器在世界空間移動，每次 tick 從 transform 當下的世界位置開始（移動中的父物件會帶著它走），結果再存回 local。
 3. ✅ **Editor 工具（資料模型；圖形化工具屬 Editor roadmap）。**world／local 與 pivot gizmo 模式（數學已完成：`ViewportMath.h` 的 `GizmoAxes`、`ApplyGizmo`、`GizmoRoots`，與 Unity 一樣以世界 TRS 運算）、Hierarchy 拖曳重新掛接與兄弟順序（已完成：`SetSiblingIndex`／`SiblingIndex`、重新掛接後成為最後一個子物件、可復原的 `SceneEditor::Move`、`SceneDocument::Move`，以及依兄弟順序列出的 `Nodes()`）。
-4. ✅ **渲染（GPU scene 同步；尚無應用程式透過它繪製）。**當渲染器開始讀 entity transform 時，必須使用 `WorldMatrix`。`RenderSceneSync`（`RenderSync.h`）就是這個讀取者：它把作用中場景的 mesh renderer 同步到 `renderer::GPUScene`，使用每個 entity 精確的 world matrix（含 shear）與保守的世界包圍球（半徑以矩陣的 spectral norm 放大），因此移動父物件會更新所有被渲染的子孫。每次同步會快取矩陣，成本與 entity 數量成線性；超出 float 範圍的姿態不會進入 GPU scene。把應用程式的繪製迴圈接上它，屬於渲染器與 Editor viewport 的工作。
+4. ✅ **渲染（GPU scene 同步；尚無應用程式透過它繪製）。**當渲染器開始讀 entity transform 時，必須使用 `WorldMatrix`。`RenderSceneSync`（`RenderSync.h`）就是這個讀取者：它把作用中場景的 mesh renderer 同步到 `renderer::GPUScene`，使用每個 entity 精確的 world matrix（含 shear）與保守的世界包圍球（半徑以實際上傳之 float 矩陣的 spectral norm 放大，再加上 shader 最壞情況的 float 誤差），因此移動父物件會更新所有被渲染的子孫。每次同步會快取矩陣，損壞的父鏈在第一次重訪時就判定失敗，成本與 entity 數量成線性；超出 float 範圍的姿態（包括中間加總會溢位者）不會進入 GPU scene。同步器以 `InstanceId` 綁定到它的 `GPUScene`，在相同位址重建或被 `Clear()` 的場景不會被誤認為持有其物件的那一個。攝影機也會跟著階層走：`CameraView` 以攝影機 world matrix 的位置與世界旋轉建立視角（與 Unity 一樣忽略縮放），`RenderSceneSync::RenderFrame` 會先透過該攝影機對 GPU scene 做剔除再送出。把應用程式的繪製迴圈接上它，屬於渲染器與 Editor viewport 的工作。
 
 ## 5. 階段 1 的限制（明文記錄，不隱藏）
 

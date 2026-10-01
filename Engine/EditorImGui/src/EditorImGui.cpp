@@ -1,4 +1,7 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+#include "EditorImGuiTestAccess.h"
+#endif
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -8,9 +11,13 @@
 #include <cmath>
 #include <cstddef>
 #include <cstring>
+#include <exception>
+#include <limits>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -56,7 +63,37 @@ struct EditorImGuiHost::State final {
   RecoveryChoice recovery_choice = RecoveryChoice::None;
   bool recovery_prompt_opened = false;
   bool initial_dock_layout_built = false;
+  bool focus_initial_content = false;
   std::string recovery_error;
+  std::array<char, 128> content_query{};
+  std::array<char, 64> content_type{};
+  std::array<char, 260> content_rename{};
+  std::optional<runtime::AssetUuid> content_rename_target;
+  std::uint32_t content_visible_items = 0;
+  std::uint32_t content_visible_folders = 0;
+  std::uint32_t content_selection = 0;
+  std::uint32_t content_forward_dependencies = 0;
+  std::uint32_t content_reverse_dependencies = 0;
+  bool content_import_active = false;
+  ImportOperationState content_import_state = ImportOperationState::Succeeded;
+  std::uint32_t content_import_diagnostics = 0;
+  bool project_writable = false;
+  bool project_upgrade_required = false;
+  std::uint32_t recent_projects = 0;
+  std::array<char, 1024> selector_root{};
+  std::array<char, 256> selector_name{};
+  std::optional<ProjectSelectorRequest> selector_request;
+  bool selector_cancel_requested = false;
+  std::string selector_error;
+  std::string selector_status;
+  bool selector_busy = false;
+  bool selector_initialized = false;
+  bool selector_focus_root = true;
+  bool selector_read_only = false;
+  bool selector_visible = false;
+  std::uint32_t selector_recent_projects = 0;
+  bool selector_root_active = false;
+  bool app_focused = false;
 
   static void SetImeData(ImGuiContext *context, ImGuiViewport *, ImGuiPlatformImeData *data) {
     ImGui::SetCurrentContext(context);
@@ -104,14 +141,54 @@ std::string PanelWindowName(std::string_view id) {
   return std::string(panel->title) + "###" + std::string(panel->id);
 }
 
+std::string PathLabel(const std::filesystem::path &path) {
+  const auto encoded = path.generic_u8string();
+  std::string result;
+  result.reserve(encoded.size());
+  for (const char8_t byte : encoded)
+    result.push_back(static_cast<char>(byte));
+  return result;
+}
+
+std::optional<std::filesystem::path> PathFromLabel(std::string_view label) {
+  if (label.empty())
+    return std::nullopt;
+  try {
+    std::u8string encoded;
+    encoded.reserve(label.size());
+    for (const char byte : label)
+      encoded.push_back(static_cast<char8_t>(static_cast<unsigned char>(byte)));
+    return std::filesystem::path(encoded);
+  } catch (const std::exception &) {
+    return std::nullopt;
+  }
+}
+
+template <typename StateT>
+void QueueProjectSelection(StateT &state, ProjectSelectorAction action,
+                           const std::filesystem::path &root, std::string name,
+                           ProjectAccess access) {
+  if (root.empty()) {
+    state.selector_error = "Choose a project root before continuing.";
+    return;
+  }
+  if (action == ProjectSelectorAction::Create && name.empty()) {
+    state.selector_error = "Enter a project name before creating it.";
+    return;
+  }
+  state.selector_error.clear();
+  state.selector_request = {action, root, std::move(name), access};
+}
+
 void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
   ImGui::DockBuilderRemoveNode(dockspace);
   // ImGuiDockNodeFlags_DockSpace is ImGuiDockNodeFlagsPrivate_, a different enum type from the
   // public ImGuiDockNodeFlags_ that ImGuiDockNodeFlags_PassthruCentralNode belongs to; OR-ing them
   // directly triggers -Wdeprecated-enum-enum-conversion, so combine them as plain ints first.
-  ImGui::DockBuilderAddNode(dockspace, static_cast<ImGuiDockNodeFlags>(
-                                           static_cast<int>(ImGuiDockNodeFlags_DockSpace) |
-                                           static_cast<int>(ImGuiDockNodeFlags_PassthruCentralNode)));
+  ImGui::DockBuilderAddNode(
+      dockspace,
+      static_cast<ImGuiDockNodeFlags>(static_cast<int>(ImGuiDockNodeFlags_DockSpace) |
+                                      static_cast<int>(ImGuiDockNodeFlags_PassthruCentralNode)));
   ImGui::DockBuilderSetNodeSize(dockspace, viewport.Size);
 
   ImGuiID center = dockspace;
@@ -119,9 +196,290 @@ void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
       ImGui::DockBuilderSplitNode(center, ImGuiDir_Left, 0.22F, nullptr, &center);
   const ImGuiID console =
       ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.25F, nullptr, &center);
-  ImGui::DockBuilderDockWindow(PanelWindowName("nexora.hierarchy").c_str(), hierarchy);
-  ImGui::DockBuilderDockWindow(PanelWindowName("nexora.console").c_str(), console);
+  const auto project_window = PanelWindowName("nexora.project");
+  const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
+  const auto console_window = PanelWindowName("nexora.console");
+  const auto content_window = PanelWindowName("nexora.content");
+  ImGui::DockBuilderDockWindow(project_window.c_str(), hierarchy);
+  ImGui::DockBuilderDockWindow(hierarchy_window.c_str(), hierarchy);
+  ImGui::DockBuilderDockWindow(console_window.c_str(), console);
+  ImGui::DockBuilderDockWindow(content_window.c_str(), console);
   ImGui::DockBuilderFinish(dockspace);
+  // DockBuilderFinish binds existing windows and may replace the pre-finish selection. Set the
+  // selected tabs after that bind so first-frame submission order cannot hide authoring views.
+  if (auto *node = ImGui::DockBuilderGetNode(hierarchy))
+    node->SelectedTabId = ImHashStr(hierarchy_window.c_str());
+  if (auto *node = ImGui::DockBuilderGetNode(console))
+    node->SelectedTabId = ImHashStr(content_window.c_str());
+}
+
+struct AssetDragData final {
+  std::uint64_t project_generation{};
+  runtime::AssetUuid asset;
+};
+static_assert(std::is_trivially_copyable_v<AssetDragData>);
+
+const char *ThumbnailLabel(ThumbnailState state) {
+  switch (state) {
+  case ThumbnailState::Loading:
+    return "[Loading]";
+  case ThumbnailState::Ready:
+    return "[Ready]";
+  case ThumbnailState::Failed:
+    return "[Failed]";
+  }
+  return "[Unknown]";
+}
+
+bool AcceptAssetDrop(ProjectContentSession &content, const std::filesystem::path &folder) {
+  if (!ImGui::BeginDragDropTarget())
+    return false;
+  bool moved = false;
+  if (const auto *payload = ImGui::AcceptDragDropPayload(AssetDragPayload::kType.data());
+      payload != nullptr && payload->DataSize == sizeof(AssetDragData)) {
+    const auto &data = *static_cast<const AssetDragData *>(payload->Data);
+    moved = content.Move(
+        {std::string(AssetDragPayload::kType), data.project_generation, data.asset}, folder);
+  }
+  ImGui::EndDragDropTarget();
+  return moved;
+}
+
+template <typename StateT>
+void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
+                      const RecentProjectStore *recent_projects) {
+  state.project_writable = workspace != nullptr && workspace->Writable();
+  state.project_upgrade_required =
+      workspace != nullptr && workspace->UpgradeState() == ProjectUpgradeState::Required;
+  state.recent_projects =
+      recent_projects == nullptr
+          ? 0
+          : static_cast<std::uint32_t>(std::min<std::size_t>(
+                recent_projects->Entries().size(), std::numeric_limits<std::uint32_t>::max()));
+
+  const auto window = PanelWindowName("nexora.project");
+  if (!ImGui::Begin(window.c_str())) {
+    ImGui::End();
+    return;
+  }
+  if (workspace == nullptr) {
+    ImGui::TextUnformatted("No project is open.");
+  } else {
+    ImGui::Text("Name: %s", workspace->Project().name.c_str());
+    ImGui::Text("UUID: %s", workspace->Project().id.ToString().c_str());
+    ImGui::Text("Root: %s", PathLabel(workspace->Root()).c_str());
+    ImGui::Text("Schema: %u / %u", workspace->Project().schema_version,
+                ProjectDescriptor::kSchemaVersion);
+    ImGui::TextColored(workspace->Writable() ? ImVec4(0.45F, 0.85F, 0.45F, 1.0F)
+                                             : ImVec4(1.0F, 0.75F, 0.3F, 1.0F),
+                       "Access: %s", workspace->Writable() ? "Read-write" : "Read-only");
+    if (workspace->UpgradeState() == ProjectUpgradeState::Applied)
+      ImGui::TextUnformatted("Project descriptor upgraded during this session.");
+    else if (workspace->UpgradeState() == ProjectUpgradeState::Required)
+      ImGui::TextWrapped(
+          "This legacy project is open read-only. Reopen it for writing to upgrade safely.");
+  }
+
+  ImGui::SeparatorText("Recent projects");
+  if (recent_projects == nullptr || recent_projects->Entries().empty()) {
+    ImGui::TextUnformatted("No recent projects.");
+  } else {
+    for (const auto &recent : recent_projects->Entries()) {
+      ImGui::BulletText("%s", recent.name.c_str());
+      ImGui::SameLine();
+      ImGui::TextDisabled("%s", PathLabel(recent.root).c_str());
+    }
+  }
+  ImGui::End();
+}
+
+template <typename StateT>
+void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImportQueue *imports) {
+  static_cast<void>(content.PollReimport());
+  auto &browser = content.Browser();
+  state.content_visible_items = 0;
+  state.content_visible_folders = 0;
+  state.content_selection = static_cast<std::uint32_t>(browser.Selection().size());
+  state.content_forward_dependencies = 0;
+  state.content_reverse_dependencies = 0;
+  state.content_import_active = content.ReimportBusy();
+  state.content_import_diagnostics = 0;
+  if (const auto status = content.ReimportStatus()) {
+    state.content_import_state = status->state;
+    state.content_import_diagnostics = static_cast<std::uint32_t>(std::min<std::size_t>(
+        status->diagnostics.size(), std::numeric_limits<std::uint32_t>::max()));
+  }
+
+  const auto window = PanelWindowName("nexora.content");
+  if (!ImGui::Begin(window.c_str())) {
+    ImGui::End();
+    return;
+  }
+
+  for (const auto &breadcrumb : browser.Breadcrumbs()) {
+    if (ImGui::Button(breadcrumb.label.c_str()))
+      static_cast<void>(browser.SetFolder(breadcrumb.path));
+    static_cast<void>(AcceptAssetDrop(content, breadcrumb.path));
+    ImGui::SameLine();
+    ImGui::TextUnformatted("/");
+    ImGui::SameLine();
+  }
+  ImGui::NewLine();
+
+  bool filter_changed = ImGui::InputTextWithHint(
+      "##content-search", "Search assets", state.content_query.data(), state.content_query.size());
+  ImGui::SameLine();
+  ImGui::SetNextItemWidth(120.0F);
+  filter_changed |= ImGui::InputTextWithHint("##content-type", "Type", state.content_type.data(),
+                                             state.content_type.size());
+  if (filter_changed)
+    browser.SetFilter(state.content_query.data(), state.content_type.data());
+  ImGui::SameLine();
+  ImGui::BeginDisabled(!content.CanUndo());
+  if (ImGui::Button("Undo content"))
+    static_cast<void>(content.Undo());
+  ImGui::EndDisabled();
+
+  std::optional<runtime::AssetUuid> delete_asset;
+  std::optional<runtime::AssetUuid> reimport_asset;
+  bool open_rename = false;
+  const auto folders = browser.ChildFolders();
+  state.content_visible_folders = static_cast<std::uint32_t>(folders.size());
+  for (const auto &folder : folders) {
+    const auto label = "[Folder] " + folder.label + "##" + folder.path.generic_string();
+    if (ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick) &&
+        ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+      static_cast<void>(browser.SetFolder(folder.path));
+    static_cast<void>(AcceptAssetDrop(content, folder.path));
+  }
+
+  const auto visible_count = browser.VisibleCount();
+  state.content_visible_items = static_cast<std::uint32_t>(
+      std::min<std::size_t>(visible_count, std::numeric_limits<std::uint32_t>::max()));
+  ImGuiListClipper clipper;
+  clipper.Begin(static_cast<int>(std::min<std::size_t>(
+      visible_count, static_cast<std::size_t>(std::numeric_limits<int>::max()))));
+  while (clipper.Step()) {
+    const auto visible =
+        browser.Visible(static_cast<std::size_t>(clipper.DisplayStart),
+                        static_cast<std::size_t>(clipper.DisplayEnd - clipper.DisplayStart));
+    for (const auto *item : visible) {
+      const auto label = std::string(ThumbnailLabel(item->thumbnail)) + " " +
+                         item->path.filename().string() + "##" + item->id.ToString();
+      if (ImGui::Selectable(label.c_str(), browser.IsSelected(item->id))) {
+        if (ImGui::GetIO().KeyCtrl)
+          static_cast<void>(browser.Toggle(item->id));
+        else
+          static_cast<void>(browser.Select(item->id));
+      }
+      if (ImGui::BeginDragDropSource()) {
+        const AssetDragData payload{browser.ProjectGeneration(), item->id};
+        ImGui::SetDragDropPayload(AssetDragPayload::kType.data(), &payload, sizeof(payload));
+        ImGui::TextUnformatted(item->path.filename().string().c_str());
+        ImGui::EndDragDropSource();
+      }
+      if (ImGui::BeginPopupContextItem()) {
+        if (ImGui::MenuItem("Rename", nullptr, false, content.Writable())) {
+          state.content_rename.fill(0);
+          const auto filename = item->path.filename().string();
+          std::memcpy(state.content_rename.data(), filename.data(),
+                      std::min(filename.size(), state.content_rename.size() - 1));
+          state.content_rename_target = item->id;
+          open_rename = true;
+        }
+        if (ImGui::MenuItem("Reimport", nullptr, false,
+                            content.Writable() && imports != nullptr && !content.ReimportBusy()))
+          reimport_asset = item->id;
+        if (ImGui::MenuItem("Delete", nullptr, false, content.Writable()))
+          delete_asset = item->id;
+        ImGui::EndPopup();
+      }
+    }
+  }
+
+  if (reimport_asset && imports != nullptr)
+    static_cast<void>(content.BeginReimport(*imports, *reimport_asset));
+  if (delete_asset) {
+    const std::array assets{*delete_asset};
+    static_cast<void>(content.Delete(assets));
+  }
+  if (open_rename)
+    ImGui::OpenPopup("Rename asset###editor.content.rename");
+  if (ImGui::BeginPopupModal("Rename asset###editor.content.rename", nullptr,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    ImGui::InputText("Filename", state.content_rename.data(), state.content_rename.size());
+    if (ImGui::Button("Apply") && state.content_rename_target &&
+        content.Rename(*state.content_rename_target, state.content_rename.data())) {
+      state.content_rename_target.reset();
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel")) {
+      state.content_rename_target.reset();
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+  }
+
+  const auto selection = browser.Selection();
+  state.content_selection = static_cast<std::uint32_t>(selection.size());
+  ImGui::SeparatorText("Asset details");
+  if (selection.size() == 1) {
+    if (const auto *item = browser.Find(selection.front())) {
+      ImGui::Text("Path: %s", item->path.generic_string().c_str());
+      ImGui::Text("UUID: %s", item->id.ToString().c_str());
+      ImGui::Text("Type: %s", item->type.c_str());
+      ImGui::Text("Artifact: %s", item->artifact_hash.c_str());
+      const auto forward = content.Dependencies().Forward(item->id);
+      const auto reverse = content.Dependencies().Reverse(item->id);
+      state.content_forward_dependencies = static_cast<std::uint32_t>(forward.size());
+      state.content_reverse_dependencies = static_cast<std::uint32_t>(reverse.size());
+      if (ImGui::TreeNode("Dependencies")) {
+        if (forward.empty())
+          ImGui::TextUnformatted("None");
+        for (const auto dependency : forward) {
+          const auto *target = browser.Find(dependency);
+          ImGui::BulletText("%s", target ? target->path.generic_string().c_str()
+                                         : dependency.ToString().c_str());
+        }
+        ImGui::TreePop();
+      }
+      if (ImGui::TreeNode("Referenced by")) {
+        if (reverse.empty())
+          ImGui::TextUnformatted("None");
+        for (const auto dependency : reverse) {
+          const auto *target = browser.Find(dependency);
+          ImGui::BulletText("%s", target ? target->path.generic_string().c_str()
+                                         : dependency.ToString().c_str());
+        }
+        ImGui::TreePop();
+      }
+    }
+  } else {
+    ImGui::Text("%zu assets selected", selection.size());
+  }
+  if (const auto status = content.ReimportStatus()) {
+    ImGui::SeparatorText("Import operation");
+    ImGui::Text("Operation: %llu", static_cast<unsigned long long>(status->operation));
+    if (!status->progress.empty()) {
+      const auto &progress = status->progress.back();
+      const float fraction = progress.total == 0 ? 0.0F
+                                                 : static_cast<float>(progress.completed) /
+                                                       static_cast<float>(progress.total);
+      ImGui::ProgressBar(std::clamp(fraction, 0.0F, 1.0F));
+    }
+    if (content.ReimportBusy() && ImGui::Button("Cancel import"))
+      static_cast<void>(content.CancelReimport());
+    for (const auto &diagnostic : status->diagnostics)
+      ImGui::TextWrapped("[%s] %s", diagnostic.code.c_str(), diagnostic.message.c_str());
+    if (status->dropped_progress != 0 || status->dropped_diagnostics != 0)
+      ImGui::TextDisabled("Bounded history dropped %zu progress and %zu diagnostic events.",
+                          status->dropped_progress, status->dropped_diagnostics);
+  }
+  if (!content.LastError().empty())
+    ImGui::TextWrapped("Content error: %.*s", static_cast<int>(content.LastError().size()),
+                       content.LastError().data());
+  ImGui::End();
 }
 
 ImGuiKey ToImGuiKey(Nexora::Window::Key key) {
@@ -203,6 +561,8 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
   io.BackendPlatformUserData = state_.get();
   io.Fonts->SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
   ImGui::GetPlatformIO().Platform_SetImeDataFn = &State::SetImeData;
+  constexpr std::string_view default_project_name = "New Project";
+  std::ranges::copy(default_project_name, state_->selector_name.begin());
   ApplyTheme();
 }
 
@@ -278,6 +638,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
         io.AddInputCharacter(static_cast<unsigned int>(event.value0));
       break;
     case Nexora::Window::WindowEventType::FocusChanged:
+      state_->app_focused = event.value0 != 0;
       io.AddFocusEvent(event.value0 != 0);
       break;
     case Nexora::Window::WindowEventType::DpiChanged:
@@ -295,9 +656,132 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   ImGui::NewFrame();
 }
 
-void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
-                                       ProjectWorkspace *workspace) {
+void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_projects,
+                                          ProjectAccess default_access) {
   Activate(state_->context);
+  state_->selector_visible = true;
+  state_->selector_recent_projects =
+      recent_projects == nullptr
+          ? 0
+          : static_cast<std::uint32_t>(std::min<std::size_t>(
+                recent_projects->Entries().size(), std::numeric_limits<std::uint32_t>::max()));
+  if (!state_->selector_initialized) {
+    state_->selector_read_only = default_access == ProjectAccess::ReadOnly;
+    state_->selector_initialized = true;
+  }
+
+  const auto *viewport = ImGui::GetMainViewport();
+  ImGui::SetNextWindowPos(viewport->WorkPos);
+  ImGui::SetNextWindowSize(viewport->WorkSize);
+  constexpr auto flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
+  if (!ImGui::Begin("Project Browser###nexora.project-selector", nullptr, flags)) {
+    ImGui::End();
+    return;
+  }
+
+  ImGui::TextUnformatted("Nexora Editor");
+  ImGui::SeparatorText("Create or open a project");
+  ImGui::BeginDisabled(state_->selector_busy);
+  ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 720.0F));
+  const bool focus_root = state_->selector_focus_root && state_->app_focused;
+  if (focus_root)
+    ImGui::SetWindowFocus();
+  ImGui::InputText("Project root", state_->selector_root.data(), state_->selector_root.size());
+  if (focus_root) {
+    ImGui::FocusItem();
+    ImGui::ActivateItemByID(ImGui::GetItemID());
+    state_->selector_focus_root = false;
+  }
+  state_->selector_root_active = ImGui::IsItemActive();
+  ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 420.0F));
+  ImGui::InputText("Project name", state_->selector_name.data(), state_->selector_name.size());
+  ImGui::Checkbox("Open read-only", &state_->selector_read_only);
+
+  const auto typed_root = PathFromLabel(state_->selector_root.data());
+  const bool open_requested = ImGui::Button("Open project (Ctrl+O)") ||
+                              ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_O);
+  if (open_requested) {
+    if (typed_root)
+      QueueProjectSelection(*state_, ProjectSelectorAction::Open, *typed_root, {},
+                            state_->selector_read_only ? ProjectAccess::ReadOnly
+                                                       : ProjectAccess::ReadWrite);
+    else
+      state_->selector_error = "Project root must be non-empty valid UTF-8.";
+  }
+  ImGui::SameLine();
+  ImGui::BeginDisabled(state_->selector_read_only);
+  const bool create_requested = ImGui::Button("Create project (Ctrl+N)") ||
+                                ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_N);
+  if (create_requested) {
+    if (typed_root)
+      QueueProjectSelection(*state_, ProjectSelectorAction::Create, *typed_root,
+                            state_->selector_name.data(), ProjectAccess::ReadWrite);
+    else
+      state_->selector_error = "Project root must be non-empty valid UTF-8.";
+  }
+  ImGui::EndDisabled();
+  if (state_->selector_read_only)
+    ImGui::TextDisabled("Creating a project requires read-write access.");
+  if (!state_->selector_error.empty())
+    ImGui::TextWrapped("%s", state_->selector_error.c_str());
+
+  ImGui::SeparatorText("Recent projects");
+  if (recent_projects == nullptr || recent_projects->Entries().empty()) {
+    ImGui::TextUnformatted("No recent projects.");
+  } else {
+    for (const auto &recent : recent_projects->Entries()) {
+      ImGui::PushID(recent.id.ToString().c_str());
+      if (ImGui::Button("Open"))
+        QueueProjectSelection(*state_, ProjectSelectorAction::Open, recent.root, {},
+                              state_->selector_read_only ? ProjectAccess::ReadOnly
+                                                         : ProjectAccess::ReadWrite);
+      ImGui::SameLine();
+      ImGui::Text("%s", recent.name.c_str());
+      ImGui::SameLine();
+      ImGui::TextDisabled("%s", PathLabel(recent.root).c_str());
+      ImGui::PopID();
+    }
+  }
+  ImGui::EndDisabled();
+  if (!state_->selector_status.empty())
+    ImGui::TextWrapped("%s", state_->selector_status.c_str());
+  if (state_->selector_busy && ImGui::Button("Cancel import"))
+    state_->selector_cancel_requested = true;
+  ImGui::End();
+}
+
+std::optional<ProjectSelectorRequest> EditorImGuiHost::TakeProjectSelectorRequest() {
+  auto request = std::move(state_->selector_request);
+  state_->selector_request.reset();
+  return request;
+}
+
+bool EditorImGuiHost::TakeProjectSelectorCancel() noexcept {
+  const bool requested = state_->selector_cancel_requested;
+  state_->selector_cancel_requested = false;
+  return requested;
+}
+
+void EditorImGuiHost::SetProjectSelectorError(std::string error) {
+  state_->selector_error = std::move(error);
+}
+
+void EditorImGuiHost::SetProjectSelectorStatus(std::string status, bool busy) {
+  state_->selector_status = std::move(status);
+  state_->selector_busy = busy;
+}
+
+std::string_view EditorImGuiHost::ProjectSelectorError() const noexcept {
+  return state_->selector_error;
+}
+
+void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
+                                       ProjectWorkspace *workspace, ProjectContentSession *content,
+                                       RecentProjectStore *recent_projects,
+                                       AssetImportQueue *imports) {
+  Activate(state_->context);
+  state_->selector_visible = false;
   if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal))
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
   const auto *viewport = ImGui::GetMainViewport();
@@ -306,6 +790,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (!state_->initial_dock_layout_built) {
     BuildInitialDockLayout(dockspace, *viewport);
     state_->initial_dock_layout_built = true;
+    state_->focus_initial_content = true;
   }
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
   if (ImGui::Begin(hierarchy_window.c_str())) {
@@ -329,6 +814,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::Text("Last command: %.*s", static_cast<int>(shell.LastCommand().size()),
                 shell.LastCommand().data());
   ImGui::End();
+  if (content != nullptr)
+    DrawContentBrowser(*state_, *content, imports);
+  DrawProjectPanel(*state_, workspace, recent_projects);
+  if (state_->focus_initial_content) {
+    const auto content_window_name = PanelWindowName("nexora.content");
+    auto *content_window = ImGui::FindWindowByName(content_window_name.c_str());
+    if (content_window != nullptr && content_window->DockNode != nullptr &&
+        content_window->DockNode->TabBar != nullptr) {
+      content_window->DockNode->SelectedTabId = content_window->TabId;
+      content_window->DockNode->TabBar->SelectedTabId = content_window->TabId;
+      content_window->DockNode->TabBar->NextSelectedTabId = content_window->TabId;
+      state_->focus_initial_content = false;
+    }
+  }
 
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
   if (recovery_available && !state_->recovery_prompt_opened) {
@@ -681,4 +1180,70 @@ bool EditorImGuiHost::ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryC
 }
 
 std::string_view EditorImGuiHost::RecoveryError() const noexcept { return state_->recovery_error; }
+
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto &io = ImGui::GetIO();
+  return {(io.ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard) != 0,
+          (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0,
+          io.ConfigInputTrickleEventQueue,
+          io.DisplaySize.x,
+          io.DisplaySize.y,
+          io.DisplayFramebufferScale.x,
+          io.FontGlobalScale,
+          host.state_->content_visible_items,
+          host.state_->content_visible_folders,
+          host.state_->content_selection,
+          host.state_->content_forward_dependencies,
+          host.state_->content_reverse_dependencies,
+          host.state_->content_import_active,
+          host.state_->content_import_state,
+          host.state_->content_import_diagnostics,
+          host.state_->project_writable,
+          host.state_->project_upgrade_required,
+          host.state_->recent_projects,
+          host.state_->selector_visible,
+          host.state_->selector_recent_projects,
+          host.state_->app_focused,
+          host.state_->selector_focus_root,
+          host.state_->selector_root_active};
+}
+
+std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHost &host) noexcept {
+  return host.state_->selector_root.data();
+}
+
+void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept {
+  Activate(host.state_->context);
+  ImGui::GetIO().ConfigInputTrickleEventQueue = enabled;
+}
+
+void EditorImGuiTestAccess::QueueProjectSelection(EditorImGuiHost &host,
+                                                  ProjectSelectorRequest request) {
+  host.state_->selector_request = std::move(request);
+}
+
+void EditorImGuiTestAccess::QueueProjectImportCancellation(EditorImGuiHost &host) noexcept {
+  host.state_->selector_cancel_requested = true;
+}
+
+std::uint32_t EditorImGuiTestAccess::OverrideDrawTexture(EditorImGuiHost &host,
+                                                         std::uint64_t texture_id) noexcept {
+  Activate(host.state_->context);
+  auto *draw = ImGui::GetDrawData();
+  if (draw == nullptr)
+    return 0;
+  std::uint32_t overridden = 0;
+  for (int list = 0; list < draw->CmdListsCount; ++list) {
+    for (auto &command : draw->CmdLists[list]->CmdBuffer) {
+      if (command.UserCallback != nullptr || command.ElemCount == 0)
+        continue;
+      command.TextureId = static_cast<ImTextureID>(texture_id);
+      ++overridden;
+    }
+  }
+  return overridden;
+}
+#endif
 } // namespace nexora::editor::imgui

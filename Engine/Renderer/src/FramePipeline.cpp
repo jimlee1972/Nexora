@@ -74,7 +74,10 @@ FrameResult ExecuteSceneFrame(rhi::Device &device, rhi::TextureHandle swapchain_
                          rhi::CommandList &commands, std::span<const rhi::TextureHandle> textures) {
                        commands.BeginRendering({textures[shadow.id], width, height});
                        commands.BindPipeline(pipeline);
-                       commands.Draw(3, static_cast<std::uint32_t>(visible_meshes));
+                       // A culled-empty frame still clears its targets; a zero-instance draw is
+                       // invalid on every backend.
+                       if (visible_meshes != 0)
+                         commands.Draw(3, static_cast<std::uint32_t>(visible_meshes));
                        commands.EndRendering();
                      }});
   const auto light_culling =
@@ -93,7 +96,10 @@ FrameResult ExecuteSceneFrame(rhi::Device &device, rhi::TextureHandle swapchain_
                          rhi::CommandList &commands, std::span<const rhi::TextureHandle> textures) {
                        commands.BeginRendering({textures[scene_color.id], width, height});
                        commands.BindPipeline(pipeline);
-                       commands.Draw(3, static_cast<std::uint32_t>(visible_meshes));
+                       // A culled-empty frame still clears its targets; a zero-instance draw is
+                       // invalid on every backend.
+                       if (visible_meshes != 0)
+                         commands.Draw(3, static_cast<std::uint32_t>(visible_meshes));
                        commands.EndRendering();
                      }});
   (void)graph.AddPass(

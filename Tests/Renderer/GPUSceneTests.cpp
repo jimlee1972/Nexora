@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 using namespace nexora;
@@ -156,11 +157,29 @@ void TestLargeDeterministicSetAndClear() {
 
 } // namespace
 
+void TestInstanceIdentity() {
+  GPUScene first;
+  GPUScene second;
+  const auto id = first.InstanceId();
+  Require(id != 0 && second.InstanceId() != 0 && second.InstanceId() != id,
+          "every scene has its own nonzero identity");
+  const auto handle = first.Create({});
+  GPUScene moved(std::move(first));
+  Require(moved.InstanceId() == id && moved.Read(handle).has_value(),
+          "identity moves with the scene's contents");
+  moved.Clear();
+  Require(moved.InstanceId() != id && moved.InstanceId() != 0,
+          "Clear invalidates every handle, so the identity changes");
+  const auto reused = moved.Create({});
+  Require(reused == handle, "after Clear a new object can reuse an old slot/generation pair");
+}
+
 int main() {
   TestCreateDirtyAndMotionHistory();
   TestStableSlotsRetirementAndStaleHandles();
   TestDirtyCategoriesAndReferenceSnapshot();
   TestLargeDeterministicSetAndClear();
+  TestInstanceIdentity();
   std::cout << "GPUScene tests passed\n";
   return 0;
 }

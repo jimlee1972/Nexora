@@ -71,13 +71,15 @@ RenderGraph, rather than a backend or pass callback, owns queue transfers. The v
 executes the complete portable contract. Vulkan now also records a real `vkCmdDrawIndirect` from
 host-visible indirect command storage and reports it independently in device diagnostics; the
 offscreen gate exercises that path on a Vulkan-capable Linux host. Vulkan also creates compute pipelines, exposes four backend-neutral storage-buffer slots, and provides the complete deterministic culling, LOD, Hi-Z, compaction, classification, and command-generation kernel. The Linux native gate requires an exact CPU/GPU comparison before RenderGraph binds its generated Vulkan-compatible indirect buffer for drawing; compilation, dispatch, and counters alone do not satisfy the gate. Readback is available only through the explicitly test-only
-`ReadBufferForTesting` API and is counted independently; production recording remains readback-free. `ReadTextureForTesting` is the equivalent test-only texture seam: it waits for device idle, copies the whole 4-byte-per-pixel texture into tightly packed host memory, restores the texture's recorded layout, and counts as a readback. Only Vulkan implements it; other backends throw `std::logic_error` until their own native evidence exists, and depth textures are rejected.
+`ReadBufferForTesting` API and is counted independently; production recording remains readback-free. `ReadTextureForTesting` is the equivalent test-only texture seam: it waits for device idle, copies the whole 4-byte-per-pixel texture into tightly packed host memory, restores the texture's recorded layout, and counts as a readback. Vulkan and D3D12 implement buffer readback for their native acceptance gates; other backends throw `std::logic_error` until their own native evidence exists, and depth textures are rejected.
 D3D12 now records compute dispatch and canonical-stride `ExecuteIndirect`, accounts for both in
-diagnostics, and obtains its compute PSO bytecode from the Windows Slang DXIL artifact. Its
-host-visible buffer implementation establishes command-recording coverage; writable storage
-descriptors and the Windows `CompareGPUDrivenResults()` target-host gate remain required before the
-D3D12 phase can be accepted. Native queue/timeline separation, Metal compute/indirect execution,
-and full target-host parity evidence also remain required before V2-M3 can be accepted.
+diagnostics, and obtains its compute PSO bytecode from the Windows DXIL artifact. Its buffer
+path keeps upload staging separate from default-heap UAV-capable GPU storage, binds the four
+fixed shader slots (`t0`, `u1`, `u2`, `u3`), records the required copy/state transitions, and
+provides test-only buffer readback. On 2026-10-02, the local Windows NVIDIA GTX 960 host passed
+`renderer.v2_gpu_driven` with an SDK `dxc`-generated `sm_6_0` artifact and an exact
+`CompareGPUDrivenResults()` match. Native queue/timeline separation, Metal compute/indirect
+execution, and full target-host parity evidence remain open before V2-M3 can be accepted.
 
 `Nexora/RHI/IndirectCommand.h` fixes the indirect-buffer ABI once for every backend. Its first four
 32-bit words are the common non-indexed draw arguments used by Vulkan, D3D12, and Metal; five

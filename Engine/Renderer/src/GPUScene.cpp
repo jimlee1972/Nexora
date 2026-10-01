@@ -1,6 +1,7 @@
 #include "Nexora/Renderer/GPUScene.h"
 
 #include <algorithm>
+#include <atomic>
 #include <utility>
 
 namespace nexora::renderer {
@@ -12,6 +13,11 @@ namespace {
 [[nodiscard]] bool Equal(const math::Sphere &left, const math::Sphere &right) {
   return left.center.x == right.center.x && left.center.y == right.center.y &&
          left.center.z == right.center.z && left.radius == right.radius;
+}
+
+[[nodiscard]] std::uint64_t NextInstanceId() noexcept {
+  static std::atomic<std::uint64_t> next{1};
+  return next.fetch_add(1, std::memory_order_relaxed);
 }
 
 } // namespace
@@ -33,6 +39,7 @@ struct GPUScene::Impl final {
   std::vector<RetiredSlot> retired_slots;
   std::vector<GPUSceneUpdate> retirement_updates;
   std::uint32_t active_count{};
+  std::uint64_t instance_id{NextInstanceId()};
 
   [[nodiscard]] Slot *Find(GPUObjectHandle object) {
     if (!object.IsValid() || object.slot >= slots.size())
@@ -253,6 +260,11 @@ void GPUScene::Clear() noexcept {
   impl_->retired_slots.clear();
   impl_->retirement_updates.clear();
   impl_->active_count = 0;
+  impl_->instance_id = NextInstanceId();
+}
+
+std::uint64_t GPUScene::InstanceId() const noexcept {
+  return impl_ != nullptr ? impl_->instance_id : 0;
 }
 
 } // namespace nexora::renderer

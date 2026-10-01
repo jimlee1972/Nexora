@@ -133,9 +133,16 @@ throw. Upload batches and snapshots own their returned data. `Clear()`/destructi
 dirty, free, and pending-retirement state and therefore require the caller to have ended any GPU use
 of those slots.
 
+`InstanceId()` is a process-unique, nonzero identity for a scene's contents. Handles carry no scene
+identity, so code that keeps handles across calls binds to it: it moves with the contents (a
+moved-to scene keeps it) and changes on `Clear()`, after which slot/generation pairs restart and
+every earlier handle is stale.
+
 Entity transforms reach the GPUScene only through the Runtime's `RenderSceneSync`, which writes each
 entity's exact world matrix (never a local transform) and conservative world bounds; see the Runtime
 README's "Render sync" section. The renderer does not depend on the Runtime.
+`ExecuteSceneFrame` with zero visible meshes (everything culled) still runs every pass and clears
+its targets, but records no mesh draw: a zero-instance draw is invalid on every backend.
 
 ## V2-M3 GPU-driven contract
 
@@ -169,4 +176,4 @@ RenderGraph tracks a logical owner queue for every resource. A use on a differen
 queue emits an ownership barrier even when the resource state is unchanged, and statistics expose
 those transfers separately from ordinary state transitions. The graph retains transient ownership
 until all submitted work is idle, then releases the resources; imported resources remain
-caller-owned. Vulkan's native gate is defined to execute the full frustum/distance/LOD/Hi-Z/compaction/classification/indirect-generation kernel through a RenderGraph compute pass, require an exact CPU/GPU result comparison, transfer ownership to a graphics pass, and issue native indirect drawing. Its four storage slots represent packed scene/view/Hi-Z input, compacted instances, indirect arguments, and statistics. The acceptance test waits for completion, reconstructs the backend result through the explicitly test-only readback seam, and requires an exact `CompareGPUDrivenResults()` match; normal recording performs no readback. Native queue/timeline separation, DX12/Metal execution, and target-host parity remain open gates; none is inferred from Linux Vulkan coverage.
+caller-owned. Vulkan's native gate is defined to execute the full frustum/distance/LOD/Hi-Z/compaction/classification/indirect-generation kernel through a RenderGraph compute pass, require an exact CPU/GPU result comparison, transfer ownership to a graphics pass, and issue native indirect drawing. Its four storage slots represent packed scene/view/Hi-Z input, compacted instances, indirect arguments, and statistics. The acceptance test waits for completion, reconstructs the backend result through the explicitly test-only readback seam, and requires an exact `CompareGPUDrivenResults()` match; normal recording performs no readback. The local Windows/DX12 gate now also passes this comparison through the same four-slot shader contract; native queue/timeline separation, Metal execution, and full target-host parity remain open gates. None of those open gates is inferred from Linux Vulkan coverage.

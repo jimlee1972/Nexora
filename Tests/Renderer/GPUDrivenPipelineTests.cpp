@@ -183,14 +183,21 @@ void TestDispatchPreconditionsOnVulkan() {
   Require(threw, "Vulkan Dispatch must reject a zero group count before touching the driver");
   device->DestroyBuffer(storage);
   device->DestroyPipeline(pipeline);
-}
-void TestNativeComputeOnVulkan() {
-  if (!rhi::IsBackendAvailable(rhi::Backend::Vulkan)) {
-    const auto *required = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS");
-    Require(!(required && *required == '1'), "Vulkan is required but unavailable");
+}void TestNativeComputeOnBackend(rhi::Backend backend, std::string_view label) {
+  const auto *required = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS");
+  const bool require_native = required && *required == '1';
+  if (!rhi::IsBackendAvailable(backend)) {
+    Require(!require_native, std::string(label) + " backend is required but unavailable");
     return;
   }
-  auto device = rhi::CreateDevice(rhi::Backend::Vulkan);
+  if (backend == rhi::Backend::Direct3D12) {
+    const auto *dxil = std::getenv("NEXORA_SLANG_COMPUTE_DXIL_PATH");
+    if (!dxil || *dxil == '\0') {
+      Require(!require_native, "D3D12 compute DXIL is required for native GPU-driven execution");
+      return;
+    }
+  }
+  auto device = rhi::CreateDevice(backend);
   GPUSceneReferenceSnapshot scene;
   scene.objects = {Object(8, {0, 0, 0.2F}, 0.05F, 8, 2),  Object(2, {0.2F, 0, 0.2F}, 0.05F, 8, 2),
                    Object(7, {0, 0, 0.8F}, 0.05F, 3, 1),  Object(4, {2, 0, 0.2F}, 0.05F, 5, 0),
@@ -319,12 +326,12 @@ void TestNativeComputeOnVulkan() {
                                    arguments[base + 3], arguments[base + 4]});
   }
   Require(CompareGPUDrivenResults(reference, gpu_output).matches,
-          "native Vulkan stages match CPU frustum, distance/LOD, Hi-Z, compaction, "
+          std::string("native ") + std::string(label) + " stages match CPU frustum, distance/LOD, Hi-Z, compaction, "
           "classification, and indirect generation");
   Require(device->Diagnostics().compute_dispatches == 1 && device->Diagnostics().readbacks == 3,
-          "Vulkan compute diagnostics distinguish dispatch from test-only readback");
+          std::string(label) + " compute diagnostics distinguish dispatch from test-only readback");
   Require(device->Diagnostics().indirect_draw_calls == 1,
-          "RenderGraph graphics pass consumes the compute stage before indirect drawing");
+          std::string(label) + " RenderGraph graphics pass consumes the compute stage before indirect drawing");
   device->DestroyTexture(target);
   device->DestroyPipeline(graphics_pipeline);
   device->DestroyPipeline(pipeline);
@@ -343,8 +350,17 @@ int main() {
 #if defined(__APPLE__)
   TestMetalCommandRecording();
 #endif
-  TestDispatchPreconditionsOnVulkan();
-  TestNativeComputeOnVulkan();
+  try {
+#if defined(_WIN32)
+    TestNativeComputeOnBackend(rhi::Backend::Direct3D12, "D3D12");
+#else
+    TestDispatchPreconditionsOnVulkan();
+    TestNativeComputeOnBackend(rhi::Backend::Vulkan, "Vulkan");
+#endif
+  } catch (const std::exception &error) {
+    std::cerr << "FAIL: native GPU-driven backend threw: " << error.what() << '\n';
+    return 1;
+  }
   std::cout << "GPU-driven pipeline tests passed\n";
   return 0;
 }

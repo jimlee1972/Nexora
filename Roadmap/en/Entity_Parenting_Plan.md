@@ -62,10 +62,16 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
 4. ✅ **Rendering (GPU scene sync; no app draws through it yet).** When renderers consume entity
    transforms, they must use `WorldMatrix`. `RenderSceneSync` (`RenderSync.h`) is that consumer: it
    mirrors the mesh renderers of the active scenes into `renderer::GPUScene` with each entity's exact
-   world matrix (shear included) and conservative world bounds (the matrix's spectral norm scales the
-   radius), so moving a parent updates every rendered descendant. Matrices are memoized per call, so
-   a sync is linear in the entity count; poses that overflow float are kept out. Wiring an
-   application's draw loop to it belongs to the renderer and Editor viewport work.
+   world matrix (shear included) and conservative world bounds (the uploaded float matrix's spectral
+   norm scales the radius, padded by the shader's worst-case float error), so moving a parent updates
+   every rendered descendant. Matrices are memoized per call and broken parent chains fail on their
+   first revisit, so a sync is linear in the entity count; poses that overflow float, including in
+   an intermediate sum, are kept out. A sync is bound to its `GPUScene` by `InstanceId`, so a scene
+   rebuilt at the same address or cleared is never mistaken for the one holding its objects. Cameras follow
+   the hierarchy too: `CameraView` places the view at the camera's world-matrix position and orients
+   it by the world rotation (scale ignored, as in Unity), and `RenderSceneSync::RenderFrame` culls the GPU scene through that camera before
+   submitting. Wiring an application's draw loop to it belongs to the renderer and Editor viewport
+   work.
 
 ## 5. Phase-1 limits (documented, not hidden)
 

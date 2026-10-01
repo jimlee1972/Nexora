@@ -11,7 +11,7 @@
 > Automated X11 coverage now includes startup, resize, close, corrupt-layout replacement, legacy-layout
 > migration, and crash/relaunch recovery for both recover and destructive-discard choices. Portable
 > coverage also exercises stale texture generations, deferred font-atlas retirement, every DPI bucket,
-> and a bounded 512-frame docking/layout soak. Physical-display and Windows target-host evidence
+> and a bounded 512-frame docking/layout soak. Physical-display Linux and Windows DPI/IME target-host evidence
 > remain open, so these foundations must not be interpreted as ED-M0 acceptance.
 
 ## 1. Goal, acceptance boundary, and current truth
@@ -52,7 +52,7 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
 - ✅ Project-owned layout persistence, DPI font-atlas rebuilding, and recovery
   failure/exactly-once contract coverage exist.
 - [ ] Physical-display Linux graphical validation and Windows DPI/IME target-host acceptance
-  evidence are recorded and passing. Automated X11 rendering and kill/relaunch recovery are
+  evidence are complete. Automated X11 rendering and kill/relaunch recovery are
   available in the feature-on Linux gate. **Status note (2026-10-01):** running that gate for the
   first time on a virtual display (Xvfb with Mesa lavapipe) exposed three real defects, now fixed: the
   Editor treated an empty first ImGui frame as fatal, the X11 window ignored `DestroyNotify` and
@@ -60,8 +60,11 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
   surface loss. The acceptance script also had a `kill()` on an already-finished process. It now
   passes 5/5 locally. This is virtual-display evidence only: the dedicated CI job
   `editor-linux-display` (Xvfb, Mesa software Vulkan, `xdotool`, `NexoraEditorImGui` on) now builds and
-  runs it and fails if the test is not registered, so its latest result is the source of truth; neither
-  physical-display nor Windows evidence exists. The box stays unchecked.
+  runs it and fails if the test is not registered, so its latest result is the source of truth. A separate
+  Windows/DX12 developer-host smoke opens the real Editor window for 240 frames and reports
+  acquired=240, presented=240, ui_draws=717, ui_uploads=1, ui_rejected=0, recovery=none;
+  the same configuration passes 59/59 CTest. These bounded developer-host checks do not cover
+  physical-display Linux or Windows per-monitor DPI/IME acceptance. The box stays unchecked.
 
 ### Definition of "done"
 

@@ -296,8 +296,13 @@ mesh renderers of a `World`'s active scenes into a `renderer::GPUScene`, one GPU
 
 - Each object's transform is the entity's exact `WorldMatrix`, converted by `ToRenderMatrix` to the
   renderer's (row, column) `math::Matrix4`, so shear under non-uniformly scaled parents survives.
-  `TransformBounds` scales the mesh's local sphere by the matrix's spectral norm (its largest
-  stretch) and rounds up, so the bounds stay conservative under shear and float narrowing.
+  `TransformBounds` bounds what the GPU actually draws: it applies the uploaded float matrix,
+  scales the mesh's local sphere by that matrix's spectral norm (its largest stretch), and pads the
+  radius by the worst-case float evaluation error of the shader's sums, so the bounds stay
+  conservative under shear, coefficient narrowing, and large translations that cancel a far-off
+  mesh center. That error bound holds only without overflow, so when an intermediate float sum
+  could overflow (even with a finite result) the radius is infinite and the sync rejects the
+  object.
 - The caller's `RenderResourceResolver` maps a `MeshComponent` to resource indices and local bounds;
   returning nullopt (an asset that is not resident) keeps the entity out of the GPU scene.
 - `Sync` creates objects for new mesh renderers, writes only the transform, bounds, or resources that
@@ -306,16 +311,40 @@ mesh renderers of a `World`'s active scenes into a `renderer::GPUScene`, one GPU
   that overflows float, or a parent cycle written directly into `Entity::parent`). Visibility and
   LOD belong to other systems and are never overwritten after creation. An object destroyed behind
   the sync's back is mirrored again.
-- World matrices are memoized per call (bit-identical to `WorldMatrix`), so a sync is linear in the
-  entity count even on deep chains. Destruction runs in entity-id order, keeping GPU slot reuse
+- World matrices are memoized per call (bit-identical to `WorldMatrix`). A walk up a parent chain
+  fails as soon as it revisits an entity (a cycle written directly into `Entity::parent`), and
+  entities on a failed walk are remembered as such, so a sync is linear in the entity count even on
+  deep chains, one large corrupted cycle, or many small ones. Destruction runs in entity-id order, keeping GPU slot reuse
   deterministic.
 - Ownership and threading: the sync owns only the objects it created and hands `retire_fence` to
-  `GPUScene::Destroy`; `Release` destroys them all. The sync, the `World`, and the `GPUScene` are
-  externally synchronized on one thread, like the `GPUScene` itself. No application draw loop is
-  wired to it yet.
+  `GPUScene::Destroy`. GPU handles carry no scene identity, so while a sync owns objects it is bound
+  to the `GPUScene::InstanceId` of the scene holding them: `Sync`, `RenderFrame`, and `Release`
+  refuse any other scene (nullopt or `false`, with nothing touched), including a scene rebuilt at
+  the same address or the same scene after `Clear()`. Moving the bound scene keeps the binding.
+  `Release` destroys every object and unbinds; `Abandon` forgets them without touching any scene,
+  for when the bound scene was destroyed or cleared. The sync cannot be copied or move-assigned (either would
+  duplicate or silently drop ownership); move construction hands the objects over. Destroying a
+  sync that still owns objects leaves them in the scene, so release it first. The sync, the
+  `World`, and the `GPUScene` are externally synchronized on one thread, like the `GPUScene` itself.
+- `CameraView` builds a camera entity's view the way Unity's Camera does: the position comes from
+  its exact world matrix and the orientation from its world rotation (the product of the chain's
+  rotations), so a camera under a moving or turning parent follows it while a non-uniformly or
+  negatively scaled parent neither skews nor flips the view. Nexora is right-handed, so the camera
+  looks down its local -Z. The projection uses `CameraComponent`'s vertical field of view and clip
+  planes with `[0, 1]` depth, validated as the floats the renderer uses (a field of view that rounds
+  to 180 or a near plane that rounds to 0 is rejected). The far plane culls through the frustum, so
+  the view sets no radial distance limit that would cut off the frustum's far corners. Invalid
+  camera data or a bad aspect ratio produce no view.
+- `RenderSceneSync::RenderFrame` always syncs, then renders the GPU scene through the world's first
+  camera: `BuildGPUDrivenCommands` culls by frustum and distance, and only the kept objects reach
+  `ExecuteSceneFrame`. It needs a camera and a light, like `RenderSceneFrame`; a frame in which
+  everything is culled still clears its targets. Upload extraction and `GPUScene::CommitFrame` stay
+  with the caller that owns the GPU buffers. No application uses it yet; the Showcase keeps
+  `RenderSceneFrame`, whose evidence counts every mesh renderer.
 
 Limits: `PlaySession` apply-back copies transforms only and reports a conflict for an entity whose
-parent changed during play; rendering and physics do not consume entity transforms yet.
+parent changed during play; physics does not consume entity transforms yet (rendering does, through
+`RenderSceneSync`).
 
 Gameplay modules reach the hierarchy through component wires in `nexora/nexora.h`, read and written
 with `read_component`/`write_component`:

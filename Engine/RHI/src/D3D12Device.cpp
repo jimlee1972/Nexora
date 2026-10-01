@@ -13,6 +13,7 @@
 #include <windows.h>
 #include <wrl/client.h>
 
+#include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -142,6 +143,7 @@ public:
   void Transition(const Barrier &barrier) override;
   void BeginRendering(const RenderingInfo &info) override;
   void BindPipeline(PipelineHandle pipeline) override;
+  void BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) override;
   void BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset, std::uint32_t stride) override;
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
   void Dispatch(std::uint32_t group_count_x, std::uint32_t group_count_y,
@@ -178,6 +180,8 @@ private:
   ID3D12Resource *indirect_buffer_{};
   std::uint64_t indirect_offset_{};
   std::uint32_t indirect_stride_{};
+  std::array<D3D12_GPU_VIRTUAL_ADDRESS, 4> storage_buffers_{};
+  std::array<bool, 4> storage_bound_{};
 };
 
 class D3D12Device final : public Device {
@@ -336,6 +340,15 @@ public:
                                            D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
                                            IID_PPV_ARGS(&record.resource)),
           "CreateCommittedResource(buffer)");
+    auto gpu_resource_description = resource;
+    gpu_resource_description.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    auto gpu_heap = heap;
+    gpu_heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+    Check(device_->CreateCommittedResource(&gpu_heap, D3D12_HEAP_FLAG_NONE,
+                                           &gpu_resource_description,
+                                           D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                           IID_PPV_ARGS(&record.gpu_resource)),
+          "CreateCommittedResource(buffer GPU)");
     std::lock_guard lock{mutex_};
     const auto handle = buffer_pool_.Create();
     buffers_.emplace(Key(handle), std::move(record));
@@ -355,7 +368,11 @@ public:
     const D3D12_RANGE written_range{static_cast<SIZE_T>(offset),
                                     static_cast<SIZE_T>(offset + data.size())};
     record.resource->Unmap(0, &written_range);
+    record.upload_dirty = true;
   }
+
+  void ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
+                            std::span<std::byte> data) override;
 
   void DestroyBuffer(BufferHandle buffer) override {
     std::lock_guard lock{mutex_};
@@ -542,6 +559,9 @@ private:
   struct BufferRecord final {
     BufferDescriptor descriptor;
     ComPtr<ID3D12Resource> resource;
+    ComPtr<ID3D12Resource> gpu_resource;
+    D3D12_RESOURCE_STATES gpu_state{D3D12_RESOURCE_STATE_COPY_DEST};
+    bool upload_dirty{true};
   };
 
   BufferRecord &ValidateBufferLocked(BufferHandle buffer) {
@@ -550,6 +570,36 @@ private:
     return found->second;
   }
 
+  ID3D12Resource *PrepareBuffer(ID3D12GraphicsCommandList *list, BufferHandle buffer,
+                                D3D12_RESOURCE_STATES state) {
+    std::lock_guard lock{mutex_};
+    auto &record = ValidateBufferLocked(buffer);
+    if (record.upload_dirty) {
+      if (record.gpu_state != D3D12_RESOURCE_STATE_COPY_DEST) {
+        D3D12_RESOURCE_BARRIER transition{};
+        transition.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        transition.Transition.pResource = record.gpu_resource.Get();
+        transition.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        transition.Transition.StateBefore = record.gpu_state;
+        transition.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+        list->ResourceBarrier(1, &transition);
+        record.gpu_state = D3D12_RESOURCE_STATE_COPY_DEST;
+      }
+      list->CopyResource(record.gpu_resource.Get(), record.resource.Get());
+      record.upload_dirty = false;
+    }
+    if (record.gpu_state != state) {
+      D3D12_RESOURCE_BARRIER transition{};
+      transition.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      transition.Transition.pResource = record.gpu_resource.Get();
+      transition.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+      transition.Transition.StateBefore = record.gpu_state;
+      transition.Transition.StateAfter = state;
+      list->ResourceBarrier(1, &transition);
+      record.gpu_state = state;
+    }
+    return record.gpu_resource.Get();
+  }
   template <typename Pool, typename Handle> static std::uint64_t HandleKey(Handle handle) {
     return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
   }
@@ -562,14 +612,24 @@ private:
   }
 
   void CreateRootSignature() {
-    D3D12_ROOT_PARAMETER parameter{};
-    parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-    parameter.Descriptor.ShaderRegister = 0;
-    parameter.Descriptor.RegisterSpace = 0;
-    parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+    std::array<D3D12_ROOT_PARAMETER, 5> parameters{};
+    parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+    parameters[0].Descriptor.ShaderRegister = 0;
+    parameters[0].Descriptor.RegisterSpace = 0;
+    parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    for (std::uint32_t index = 1; index < 4; ++index) {
+      parameters[index].ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+      parameters[index].Descriptor.ShaderRegister = index;
+      parameters[index].Descriptor.RegisterSpace = 0;
+      parameters[index].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    }
+    parameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+    parameters[4].Descriptor.ShaderRegister = 0;
+    parameters[4].Descriptor.RegisterSpace = 0;
+    parameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
     D3D12_ROOT_SIGNATURE_DESC description{};
-    description.NumParameters = 1;
-    description.pParameters = &parameter;
+    description.NumParameters = static_cast<UINT>(parameters.size());
+    description.pParameters = parameters.data();
     description.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
     ComPtr<ID3DBlob> serialized;
@@ -579,9 +639,8 @@ private:
           "D3D12SerializeRootSignature");
     Check(device_->CreateRootSignature(0, serialized->GetBufferPointer(),
                                        serialized->GetBufferSize(), IID_PPV_ARGS(&root_signature_)),
-          "CreateRootSignature");
+          "ID3D12Device::CreateRootSignature");
   }
-
   void CreateFrameConstants() {
     D3D12_RESOURCE_DESC description{};
     description.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -684,7 +743,7 @@ void D3D12CommandList::BeginRendering(const RenderingInfo &info) {
   list_->RSSetViewports(1, &viewport);
   list_->RSSetScissorRects(1, &scissor);
   list_->SetGraphicsRootSignature(device_.RootSignature());
-  list_->SetGraphicsRootConstantBufferView(0, device_.ConstantsAddress());
+  list_->SetGraphicsRootConstantBufferView(4, device_.ConstantsAddress());
   rendering_ = true;
   pipeline_bound_ = false;
 }
@@ -696,9 +755,34 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
   if ((pipeline_type_ == PipelineType::Graphics) != rendering_)
     throw std::logic_error("D3D12 pipeline type does not match command-list rendering state");
   list_->SetPipelineState(device_.ValidatePipeline(pipeline));
-  if (pipeline_type_ == PipelineType::Compute)
+  if (pipeline_type_ == PipelineType::Compute) {
     list_->SetComputeRootSignature(device_.RootSignature());
+    for (std::uint32_t index = 0; index < storage_buffers_.size(); ++index) {
+      if (!storage_bound_[index])
+        continue;
+      if (index == 0)
+        list_->SetComputeRootShaderResourceView(index, storage_buffers_[index]);
+      else
+        list_->SetComputeRootUnorderedAccessView(index, storage_buffers_[index]);
+    }
+  }
   pipeline_bound_ = true;
+}
+
+void D3D12CommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) {
+  if (submitted_ || rendering_ || binding >= storage_buffers_.size())
+    throw std::logic_error("invalid D3D12 storage-buffer binding");
+  const auto state = binding == 0 ? D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+                                  : D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+  auto *resource = device_.PrepareBuffer(list_.Get(), buffer, state);
+  storage_buffers_[binding] = resource->GetGPUVirtualAddress();
+  storage_bound_[binding] = true;
+  if (pipeline_bound_ && pipeline_type_ == PipelineType::Compute) {
+    if (binding == 0)
+      list_->SetComputeRootShaderResourceView(binding, storage_buffers_[binding]);
+    else
+      list_->SetComputeRootUnorderedAccessView(binding, storage_buffers_[binding]);
+  }
 }
 
 void D3D12CommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset,
@@ -709,7 +793,8 @@ void D3D12CommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t off
   auto &record = device_.ValidateBuffer(buffer);
   if (offset > record.descriptor.size || record.descriptor.size - offset < DrawIndirectArgumentSize)
     throw std::logic_error("D3D12 indirect-buffer binding exceeds allocation");
-  indirect_buffer_ = record.resource.Get();
+  indirect_buffer_ = device_.PrepareBuffer(list_.Get(), buffer,
+                                        D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
   indirect_offset_ = offset;
   indirect_stride_ = stride;
 }
@@ -753,6 +838,85 @@ void D3D12CommandList::Close() {
     return;
   Check(list_->Close(), "ID3D12GraphicsCommandList::Close");
   closed_ = true;
+}
+void D3D12Device::ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
+                                        std::span<std::byte> data) {
+  WaitIdle();
+  ComPtr<ID3D12Resource> readback;
+  ComPtr<ID3D12CommandAllocator> allocator;
+  ComPtr<ID3D12GraphicsCommandList> list;
+  std::uint64_t fence_value{};
+  {
+    std::lock_guard lock{mutex_};
+    auto &record = ValidateBufferLocked(buffer);
+    Require(offset <= record.descriptor.size && data.size() <= record.descriptor.size - offset,
+            "D3D12 buffer readback exceeds allocation");
+    if (data.empty())
+      return;
+
+    D3D12_HEAP_PROPERTIES readback_heap{};
+    readback_heap.Type = D3D12_HEAP_TYPE_READBACK;
+    readback_heap.CreationNodeMask = 1;
+    readback_heap.VisibleNodeMask = 1;
+    D3D12_RESOURCE_DESC readback_description{};
+    readback_description.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    readback_description.Width = data.size();
+    readback_description.Height = 1;
+    readback_description.DepthOrArraySize = 1;
+    readback_description.MipLevels = 1;
+    readback_description.SampleDesc.Count = 1;
+    readback_description.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    Check(device_->CreateCommittedResource(
+              &readback_heap, D3D12_HEAP_FLAG_NONE, &readback_description,
+              D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&readback)),
+          "CreateCommittedResource(readback)");
+    Check(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                          IID_PPV_ARGS(&allocator)),
+          "CreateCommandAllocator(readback)");
+    Check(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(), nullptr,
+                                     IID_PPV_ARGS(&list)),
+          "CreateCommandList(readback)");
+
+    const auto transition = [&](D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) {
+      if (before == after)
+        return;
+      D3D12_RESOURCE_BARRIER barrier{};
+      barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barrier.Transition.pResource = record.gpu_resource.Get();
+      barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+      barrier.Transition.StateBefore = before;
+      barrier.Transition.StateAfter = after;
+      list->ResourceBarrier(1, &barrier);
+    };
+
+    const auto original_state = record.gpu_state;
+    if (record.upload_dirty) {
+      transition(record.gpu_state, D3D12_RESOURCE_STATE_COPY_DEST);
+      record.gpu_state = D3D12_RESOURCE_STATE_COPY_DEST;
+      list->CopyResource(record.gpu_resource.Get(), record.resource.Get());
+      record.upload_dirty = false;
+      transition(record.gpu_state, original_state);
+      record.gpu_state = original_state;
+    }
+    transition(record.gpu_state, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    record.gpu_state = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    list->CopyBufferRegion(readback.Get(), 0, record.gpu_resource.Get(), offset, data.size());
+    transition(record.gpu_state, original_state);
+    record.gpu_state = original_state;
+    Check(list->Close(), "ID3D12GraphicsCommandList::Close(readback)");
+    ID3D12CommandList *native_list = list.Get();
+    queue_->ExecuteCommandLists(1, &native_list);
+    fence_value = ++next_fence_;
+    Check(queue_->Signal(fence_.Get(), fence_value), "ID3D12CommandQueue::Signal(readback)");
+  }
+  WaitForFence(fence_value);
+  void *mapped{};
+  D3D12_RANGE read_range{0, data.size()};
+  Check(readback->Map(0, &read_range, &mapped), "Map(readback)");
+  std::memcpy(data.data(), mapped, data.size());
+  readback->Unmap(0, nullptr);
+  std::lock_guard lock{mutex_};
+  ++diagnostics_.readbacks;
 }
 } // namespace
 

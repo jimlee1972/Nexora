@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <deque>
+#include <ranges>
 #include <thread>
 #include <vector>
 
@@ -10,6 +11,7 @@
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <imm.h>
 #endif
 
 namespace {
@@ -191,6 +193,13 @@ int main() {
       surface.RenderUi({uiVertices, std::as_bytes(std::span{uiIndices}), uiCommands, {}, false}) ==
       Presentation::SurfaceStatus::Ready);
   assert(surface.UiDrawCalls() == 1);
+  // FakeSurface does not override DrawScene, so it must fall back to ISurface's base default --
+  // Unsupported, never a silent no-op "success" -- exactly like every backend without a real
+  // geometry pipeline (e.g. Vulkan today) reports it.
+  const std::array<Presentation::SceneVertex, 3> sceneVertices{};
+  const std::array<std::uint16_t, 3> sceneIndices{};
+  assert(surface.DrawScene({sceneVertices, sceneIndices}) ==
+         Presentation::SurfaceStatus::Unsupported);
   windows.ResizeEvent(800, 600, 1);
   windows.ResizeEvent(0, 0, 2);
   const auto events = windows.PumpEvents();
@@ -267,6 +276,63 @@ int main() {
   assert(eventWindow);
   auto hwnd = static_cast<HWND>(nativeWindows->NativeHandle(eventWindow.handle));
   assert(hwnd);
+
+  SendMessageW(hwnd, WM_CHAR, 0xD83D, 0);
+  assert(nativeWindows->PumpEvents().empty());
+  SendMessageW(hwnd, WM_CHAR, 0xDE80, 0);
+  const auto supplementaryText = nativeWindows->PumpEvents();
+  assert(supplementaryText.size() == 1);
+  assert(supplementaryText[0].type == Window::WindowEventType::Text);
+  assert(supplementaryText[0].value0 == 0x1F680);
+
+  SendMessageW(hwnd, WM_CHAR, 0xDE80, 0);
+  assert(nativeWindows->PumpEvents().empty());
+  SendMessageW(hwnd, WM_CHAR, 0xD83D, 0);
+  SendMessageW(hwnd, WM_CHAR, L'A', 0);
+  const auto recoveredText = nativeWindows->PumpEvents();
+  assert(recoveredText.size() == 1);
+  assert(recoveredText[0].type == Window::WindowEventType::Text);
+  assert(recoveredText[0].value0 == L'A');
+  assert(SendMessageW(hwnd, WM_UNICHAR, UNICODE_NOCHAR, 0) == TRUE);
+  SendMessageW(hwnd, WM_CHAR, 0xD83D, 0);
+  SendMessageW(hwnd, WM_UNICHAR, 0x1F642, 0);
+  const auto unicodeText = nativeWindows->PumpEvents();
+  assert(unicodeText.size() == 1);
+  assert(unicodeText[0].type == Window::WindowEventType::Text);
+  assert(unicodeText[0].value0 == 0x1F642);
+  SendMessageW(hwnd, WM_CHAR, 0xDE80, 0);
+  assert(nativeWindows->PumpEvents().empty());
+
+  RECT dpiRectangle{20, 30, 500, 300};
+  SendMessageW(hwnd, WM_DPICHANGED, MAKELONG(144, 144), reinterpret_cast<LPARAM>(&dpiRectangle));
+  const auto dpiEvents = nativeWindows->PumpEvents();
+  const auto dpiEvent =
+      std::ranges::find(dpiEvents, Window::WindowEventType::DpiChanged, &Window::WindowEvent::type);
+  assert(dpiEvent != dpiEvents.end());
+  assert(dpiEvent->scale == 1.5F);
+
+  auto inputContext = ImmGetContext(hwnd);
+  HIMC ownedInputContext = nullptr;
+  HIMC previousInputContext = nullptr;
+  if (!inputContext) {
+    ownedInputContext = ImmCreateContext();
+    assert(ownedInputContext);
+    previousInputContext = ImmAssociateContext(hwnd, ownedInputContext);
+    inputContext = ImmGetContext(hwnd);
+  }
+  assert(inputContext);
+  assert(nativeWindows->SetImeCandidatePosition(eventWindow.handle, 42, 84) ==
+         Window::WindowError::None);
+  CANDIDATEFORM candidate{};
+  assert(ImmGetCandidateWindow(inputContext, 0, &candidate));
+  assert(candidate.dwStyle == CFS_CANDIDATEPOS);
+  assert(candidate.ptCurrentPos.x == 42 && candidate.ptCurrentPos.y == 84);
+  ImmReleaseContext(hwnd, inputContext);
+  if (ownedInputContext) {
+    ImmAssociateContext(hwnd, previousInputContext);
+    assert(ImmDestroyContext(ownedInputContext));
+  }
+
   PostMessageW(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(200, 100));
   PostMessageW(hwnd, WM_SIZE, SIZE_MINIMIZED, MAKELPARAM(0, 0));
   PostMessageW(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(320, 180));

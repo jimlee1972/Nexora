@@ -10,8 +10,12 @@ scissors, offsets, and generation-checked texture uploads and records native GPU
 the acquired image. Vulkan, DX12, and Metal keep their pipeline, sampler, texture descriptors, and
 bounded per-frame upload buffers below this boundary; resources replaced by a later atlas generation
 are released only after the protecting frame fence/command buffer completes. No native image or
-device handle escapes. `CompositeRgba8` remains a legacy full-frame upload for non-Editor clients;
-the production Editor does not call it.
+device handle escapes. `DrawScene` similarly borrows one indexed `SceneDrawData` mesh, transform,
+light, and base color for the duration of the call and records a depth-tested native scene draw on
+the render thread. DX12 owns the depth buffer, pipeline, and bounded per-frame upload storage;
+backends without a native geometry path return `Unsupported` rather than silently compositing a
+fallback. `SurfaceDiagnostics::sceneDrawCalls` counts accepted native scene draws. `CompositeRgba8`
+remains a legacy full-frame upload for non-Editor clients; the production Editor does not call it.
 
 DX12 uses a DXGI flip-discard swapchain, Vulkan uses the host WSI swapchain (Xlib on Linux and Win32 on
 Windows), and Metal uses `CAMetalLayer`. Their native devices, queues, images, synchronization objects,

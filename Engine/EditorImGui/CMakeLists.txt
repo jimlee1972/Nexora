@@ -1,4 +1,12 @@
-add_library(NexoraDearImGui STATIC
+set(NEXORA_DEAR_IMGUI_LIBRARY_TYPE STATIC)
+if(NEXORA_LINK_MODE STREQUAL "Modular")
+  # Dear ImGui stores the current context in a process-global symbol.  A
+  # static copy embedded in both NexoraEditorImGui.dll and a host/test EXE
+  # creates two independent GImGui values across the module boundary.
+  set(NEXORA_DEAR_IMGUI_LIBRARY_TYPE SHARED)
+endif()
+
+add_library(NexoraDearImGui ${NEXORA_DEAR_IMGUI_LIBRARY_TYPE}
   "${nexora_imgui_SOURCE_DIR}/imgui.cpp"
   "${nexora_imgui_SOURCE_DIR}/imgui_demo.cpp"
   "${nexora_imgui_SOURCE_DIR}/imgui_draw.cpp"
@@ -6,6 +14,13 @@ add_library(NexoraDearImGui STATIC
   "${nexora_imgui_SOURCE_DIR}/imgui_widgets.cpp")
 target_include_directories(NexoraDearImGui SYSTEM PUBLIC "${nexora_imgui_SOURCE_DIR}")
 set_target_properties(NexoraDearImGui PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if(NEXORA_LINK_MODE STREQUAL "Modular")
+  if(WIN32)
+    target_compile_definitions(NexoraDearImGui
+      PRIVATE "IMGUI_API=__declspec(dllexport)"
+      INTERFACE "IMGUI_API=__declspec(dllimport)")
+  endif()
+endif()
 
 include(NexoraTarget)
 add_library(NexoraEditorImGui ${NEXORA_MODULE_LIBRARY_TYPE} src/EditorImGui.cpp)
@@ -16,6 +31,9 @@ target_link_libraries(NexoraEditorImGui
   PUBLIC Nexora::Editor Nexora::Presentation Nexora::Window
   PRIVATE NexoraDearImGui)
 target_compile_definitions(NexoraEditorImGui PRIVATE NEXORA_EDITOR_IMGUI_EXPORTS)
+if(BUILD_TESTING)
+  target_compile_definitions(NexoraEditorImGui PRIVATE NEXORA_EDITOR_IMGUI_TEST_ACCESS=1)
+endif()
 if(NEXORA_LINK_MODE STREQUAL "Monolithic")
   target_compile_definitions(NexoraEditorImGui PUBLIC NEXORA_EDITOR_IMGUI_STATIC=1)
 endif()

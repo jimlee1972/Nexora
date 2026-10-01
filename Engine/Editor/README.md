@@ -39,18 +39,57 @@ into renderer or platform internals.
 
 ## Ownership and lifetime
 
-- `ProjectWorkspace` owns its descriptor and open-document list; files are atomically replaced, a
-  recovery journal is written before the primary workspace file, and successful save/recovery
-  removes that journal. The UI may query and explicitly discard a pending journal. Versioned Editor
-  layout payloads are persisted separately and never use Dear ImGui's unmanaged global ini file.
+- `ProjectWorkspace` owns its descriptor, stable project UUID, open-document list, and (for
+  read-write access) one OS-held writer lease on `.nexora/editor.lock`. A second writer fails with
+  the owning process ID while any number of explicit read-only observers may coexist. The lock file
+  is metadata, not the lease: the kernel releases the actual lock on normal close or process death.
+  Schema-1 descriptors remain readable; a read-write open atomically upgrades them to schema 2 and
+  persists their derived UUID, while a read-only open reports `Required` without changing the
+  project. All project-owned writes reject read-only workspaces. Workspace files are atomically
+  replaced, a recovery journal is written before the primary workspace file, and successful
+  save/recovery removes that journal. The UI may query and explicitly discard a pending journal.
+  Versioned Editor layout payloads are persisted separately and never use Dear ImGui's unmanaged
+  global ini file.
+- `RecentProjectStore` owns user-level, schema-versioned recent-project state separately from the
+  project. Entries are keyed by project UUID, deduplicated by UUID or canonical root, bounded to 12,
+  and atomically replaced. The application chooses its storage path; read-only project access does
+  not grant writes to project-owned files.
+- The graphical project selector is a UI request source, not a project owner. `NexoraEditor` stages
+  a candidate `ProjectWorkspace`, submits its content tree to `AssetImportQueue`, and activates the
+  resulting `AssetWorkspace` and `ProjectContentSession` only after create/open, identity
+  validation, background indexing, and content binding all succeed. Cancellation or failure leaves
+  the selector active and releases the candidate writer lease.
 - `AssetWorkspace` owns index entries. Pointers returned by `Find` and `Search` are borrowed until
-  the next `ImportTree` call or destruction.
+  the next successful `ImportTree` call or destruction. The Editor executable uses
+  `PersistentReadWrite`: every source asset has a sibling `<asset>.meta` with schema, UUID, and
+  importer type. Existing sidecars are validated before publishing a replacement index; malformed,
+  oversized, symlinked, or duplicate-UUID metadata fails without replacing the last good index.
+  `PersistentReadOnly` never creates missing sidecars and rejects incomplete identity state.
+  `DerivedFromPath` remains an explicitly non-persistent compatibility mode.
 - `ContentBrowserModel` owns its sorted item snapshot, breadcrumb and stable-ID selection state.
   Virtual ranges borrow item pointers until the next mutation. Rename, multi-item move, and delete
   validate a complete replacement snapshot before committing and retain one undo snapshot.
+- `ProjectContentSession` owns the live browser model, dependency/conflict state, canonical project
+  root, project generation, and one recoverable filesystem mutation. The application owns the
+  session; UI code borrows it for a frame and never retains `ContentItem` pointers. Rename and move
+  use same-volume filesystem renames after validating a candidate model. Delete moves files into a
+  unique project-local `.nexora/trash` operation directory, and undo restores both files and model.
+  In persistent-identity mode, each source and its `.meta` sidecar are one rollback-capable
+  transaction, so rename, move, delete, and undo cannot detach the UUID from the source. Existing
+  files and symlinks outside the canonical project root are rejected before mutation.
 - Typed asset drag payloads carry the project generation and asset UUID. Reimport results are staged
   and may publish only when their generation and dependency graph remain valid; cancellation,
-  staleness, failure, or a cycle preserves the previous artifact.
+  staleness, failure, or a cycle preserves the previous artifact. `ProjectContentSession` also keeps
+  a newer reimport artifact in the pending undo snapshot, so undo cannot resurrect stale metadata.
+- `AssetImportQueue` owns generation-tagged workspace-import and reimport jobs submitted to an
+  application-owned `JobSystem`. Its worker state retains bounded progress and diagnostic histories
+  (stable code, severity, message, path, and asset context); overflow is counted explicitly.
+  Workspace results and reimport artifacts remain staging data until the authoring thread calls
+  `TakeResult` or `ProjectContentSession::PollReimport`. Reimport publication revalidates project
+  generation, asset path, previous artifact, settings identity, source-file revision/size, and
+  dependency revision before committing. The staging result itself carries deterministic
+  source/settings hashes. The queue must be destroyed before its `JobSystem`; `Shutdown` stops intake,
+  requests cancellation, and waits for every retained job.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
   hierarchy use stable IDs, never component or container pointers. The hierarchy itself is the
   runtime's (`Entity::parent`, see the Runtime README's entity hierarchy section); the document keeps
@@ -87,11 +126,23 @@ into renderer or platform internals.
 
 ## Threading, errors, and deferred work
 
-The current API is serialized and synchronous. Callers may run content indexing on a worker, but
-must not call the same workspace concurrently. Long imports report progress and observe a
-cancellation callback between files. Failed/cancelled entries remain inspectable and never replace
-an existing artifact implicitly. Functions report expected failures with `false`, optional values,
-or per-entry error text; filesystem exceptions are converted to error results where applicable.
+Project create/open/upgrade, recent-project mutation, workspace/layout writes, and content-model
+publication remain serialized on the authoring thread. `AssetImportQueue` workers only read source
+snapshots, create deterministic staging results, and append bounded progress/diagnostic events; they
+never mutate a live `AssetWorkspace`, `ProjectContentSession`, or UI model. Cancellation is checked
+before and between enumerate/read/stage/publish phases. A queued or in-flight cancellation, worker
+failure, stale completion, or dependency-cycle rejection discards staging and preserves the active
+index/artifact. The writer lease serializes cooperating Editor processes; read-only observers cannot
+upgrade, recover, save layout, or open writable content. A multi-file rename failure rolls
+already-moved files back before returning an actionable error. The synchronous `ImportTree` and
+`Reimport` entry points remain compatibility paths for headless callers; the graphical shell uses
+the background queue. Dirty-conflict presentation remains ED-M1 work. Functions report expected
+failures with `false`, optional values, stable diagnostic codes, or per-entry error text;
+filesystem exceptions are converted to error results where applicable.
+
+The `.meta` filename suffix is reserved for asset identity sidecars and is excluded from the source
+asset index. Artifact hashes use the persistent UUID plus source bytes rather than the current path,
+so an Editor move followed by reopen does not invalidate identity or derived-data addressing.
 Profiling samples require strictly increasing frame IDs. Telemetry drops every event until the user
 explicitly opts in; extension policy rejects untrusted publishers and, by default, invalid or
 missing signatures.
@@ -137,7 +188,8 @@ Renderer-backed ID-buffer picking and the graphical gizmo handles remain open.
 
 `editor.parser_robustness` mutation-tests the parsers that read persisted or external data (trace and
 metric decoding, replay log, unknown-component store, scene snapshot, runtime blob, NXSHDR, shader
-diagnostics, asset UUID, autosave, camera, and project/workspace/layout files) with fixed seeds. It
+diagnostics, asset UUID, autosave, camera, and project/workspace/layout/recent-project files) with
+fixed seeds. It
 requires every parser to return normally on corrupted input; under the ASan/UBSan presets memory and
 undefined-behavior errors fail it too. Set `NEXORA_PARSER_ROBUSTNESS_ITERATIONS` for a longer local soak.
 It is a robustness check, not a proof that no malformed input can fail.

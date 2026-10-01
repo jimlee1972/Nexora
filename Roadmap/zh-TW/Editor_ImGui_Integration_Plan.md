@@ -10,8 +10,8 @@
 > 與 recovery failure contract 已實作。自動化 X11 coverage 現已涵蓋 startup、resize、close、
 > corrupt-layout replacement、legacy-layout migration，以及 recover／destructive discard 兩條
 > crash/relaunch recovery 路徑。Portable coverage 也會測 stale texture generation、deferred
-> font-atlas retirement、所有 DPI bucket，與有界的 512-frame docking/layout soak。Physical-display
-> 與 Windows target-host evidence 仍待完成，因此 foundation 打勾不得解讀成 ED-M0 已驗收。
+> font-atlas retirement、所有 DPI bucket，與有界的 512-frame docking/layout soak。Physical-display Linux
+> 與 Windows DPI／IME target-host evidence 仍待完成，因此 foundation 打勾不得解讀成 ED-M0 已驗收。
 
 ## 1. 目標、驗收邊界與目前事實
 
@@ -48,14 +48,14 @@ Metal native draw recording。這些仍只是 foundation，因 real-display Linu
 - ✅ Project-owned layout persistence、DPI font-atlas rebuild，以及 recovery failure／exactly-once
   contract coverage 已存在。
 - [ ] Physical-display Linux graphical validation 與 Windows DPI／IME target-host acceptance
-  evidence 均已有記錄且通過。Automated X11 rendering 與 kill/relaunch recovery 已納入 feature-on
+  evidence 尚未全部完成。Automated X11 rendering 與 kill/relaunch recovery 已納入 feature-on
   Linux gate。**狀態備註（2026-10-01）：**首次在虛擬顯示器（Xvfb 搭配 Mesa lavapipe）上實際執行該
   gate，暴露出三個真實缺陷，現已修正：Editor 把空的首幀 ImGui 資料視為致命錯誤、X11 視窗忽略
   `DestroyNotify` 並對已被銷毀的視窗再次銷毀（`BadWindow`）、Editor 在可復原的 surface 遺失時以非零
   結束。驗收腳本本身也對已結束的程序呼叫 `kill()`。目前本機連跑 5 次皆通過。這只是虛擬顯示器、僅限本機的
   證據：專用的 CI job `editor-linux-display`（Xvfb、Mesa 軟體 Vulkan、`xdotool`、啟用
   `NexoraEditorImGui`）現在會建置並執行它，且在該測試未註冊時直接失敗，因此以它的最新結果為準；
-  仍沒有實體顯示器或 Windows 證據。此項維持未勾選。
+  另有 Windows/DX12 開發機 smoke 實際開啟 Editor 視窗執行 240 frames，回報 acquired=240、presented=240、ui_draws=717、ui_uploads=1、ui_rejected=0、recovery=none；同一 configuration 的 CTest 為 59/59 通過。這些是 bounded 開發機檢查，尚未覆蓋實體顯示器 Linux 或 Windows per-monitor DPI／IME 驗收。此項維持未勾選。
 
 ### 「完成」的定義
 
