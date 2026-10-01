@@ -10,74 +10,33 @@ namespace {
 
 int32_t ReadComponent(void *context, uint64_t entity, uint64_t component_type, void *data,
                       uint32_t data_size) {
-  if (context == nullptr || data == nullptr) {
+  if (context == nullptr)
     return -1;
-  }
   const auto &host_context = *static_cast<const GameplayHostContext *>(context);
-  if (host_context.world == nullptr)
-    return -1;
-  const auto snapshot = host_context.world->GetEntity(entity);
-  if (!snapshot)
-    return -1;
-  if (component_type == TransformComponentType() && data_size >= sizeof(GameplayTransformWire)) {
-    const GameplayTransformWire wire{snapshot->transform.x, snapshot->transform.y,
-                                     snapshot->transform.z};
-    std::memcpy(data, &wire, sizeof(wire));
-  } else if (component_type == CameraComponentType() && snapshot->has_camera &&
-             data_size >= sizeof(GameplayCameraWire)) {
-    const GameplayCameraWire wire{snapshot->camera.vertical_field_of_view,
-                                  snapshot->camera.near_plane, snapshot->camera.far_plane};
-    std::memcpy(data, &wire, sizeof(wire));
-  } else if (component_type == LightComponentType() && snapshot->has_light &&
-             data_size >= sizeof(GameplayLightWire)) {
-    const GameplayLightWire wire{snapshot->light.intensity};
-    std::memcpy(data, &wire, sizeof(wire));
-  } else if (component_type == MeshRendererComponentType() && snapshot->has_mesh_renderer &&
-             data_size >= sizeof(GameplayMeshRendererWire)) {
-    const GameplayMeshRendererWire wire{snapshot->mesh.mesh, snapshot->mesh.material.shader};
-    std::memcpy(data, &wire, sizeof(wire));
-  } else {
-    return -1;
-  }
-  return 0;
+  // The V2 table reports every failure as -1.
+  return host_context.world != nullptr &&
+                 ReadGameplayComponent(*host_context.world, entity, component_type, data,
+                                       data_size) == NEXORA_GAMEPLAY_OK
+             ? 0
+             : -1;
 }
 
 int32_t WriteComponent(void *context, uint64_t entity, uint64_t component_type, const void *data,
                        uint32_t data_size) {
-  if (context == nullptr || data == nullptr) {
+  if (context == nullptr)
     return -1;
-  }
   auto &host_context = *static_cast<GameplayHostContext *>(context);
-  if (host_context.world == nullptr)
-    return -1;
-  bool written = false;
-  if (component_type == TransformComponentType() && data_size >= sizeof(GameplayTransformWire)) {
-    GameplayTransformWire wire{};
-    std::memcpy(&wire, data, sizeof(wire));
-    // The wire carries a position only; keep the entity's rotation and scale instead of resetting
-    // them to identity.
-    const auto current = host_context.world->GetEntity(entity);
-    written =
-        current && host_context.world->SetTransform(
-                       entity, runtime::WithPosition(current->transform, wire.x, wire.y, wire.z));
-  } else if (component_type == CameraComponentType() && data_size >= sizeof(GameplayCameraWire)) {
-    GameplayCameraWire wire{};
-    std::memcpy(&wire, data, sizeof(wire));
-    written = host_context.world->SetCamera(
-        entity,
-        runtime::CameraComponent{wire.vertical_field_of_view, wire.near_plane, wire.far_plane});
-  } else if (component_type == LightComponentType() && data_size >= sizeof(GameplayLightWire)) {
-    GameplayLightWire wire{};
-    std::memcpy(&wire, data, sizeof(wire));
-    written = host_context.world->SetLight(entity, runtime::LightComponent{wire.intensity});
-  } else if (component_type == MeshRendererComponentType() &&
-             data_size >= sizeof(GameplayMeshRendererWire)) {
-    GameplayMeshRendererWire wire{};
-    std::memcpy(&wire, data, sizeof(wire));
-    written = host_context.world->SetMeshRenderer(
-        entity, runtime::MeshComponent{wire.mesh, runtime::MaterialComponent{wire.shader}});
-  }
-  return written ? 0 : -1;
+  return host_context.world != nullptr &&
+                 WriteGameplayComponent(*host_context.world, entity, component_type, data,
+                                        data_size) == NEXORA_GAMEPLAY_OK
+             ? 0
+             : -1;
+}
+
+NexoraTransformV2 ToWire(const runtime::Transform &transform) {
+  return {{transform.x, transform.y, transform.z},
+          {transform.qx, transform.qy, transform.qz, transform.qw},
+          {transform.sx, transform.sy, transform.sz}};
 }
 
 int32_t SubscribeEvent(void *context, uint64_t event_type) {
@@ -127,6 +86,126 @@ std::uint64_t CameraComponentType() noexcept { return foundation::Name("Nexora.C
 std::uint64_t LightComponentType() noexcept { return foundation::Name("Nexora.Light").Value(); }
 std::uint64_t MeshRendererComponentType() noexcept {
   return foundation::Name("Nexora.MeshRenderer").Value();
+}
+
+std::uint64_t TransformV2ComponentType() noexcept {
+  return foundation::Name("Nexora.TransformV2").Value();
+}
+std::uint64_t WorldTransformComponentType() noexcept {
+  return foundation::Name("Nexora.WorldTransform").Value();
+}
+std::uint64_t ParentComponentType() noexcept { return foundation::Name("Nexora.Parent").Value(); }
+
+int32_t ReadGameplayComponent(const GameWorld &world, runtime::Id entity,
+                              std::uint64_t component_type, void *data, std::uint32_t data_size) {
+  if (data == nullptr)
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  const auto snapshot = world.GetEntity(entity);
+  if (!snapshot)
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  const auto copy = [&](const auto &wire) {
+    if (data_size < sizeof(wire))
+      return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+    std::memcpy(data, &wire, sizeof(wire));
+    return NEXORA_GAMEPLAY_OK;
+  };
+  if (component_type == TransformComponentType())
+    return copy(
+        GameplayTransformWire{snapshot->transform.x, snapshot->transform.y, snapshot->transform.z});
+  if (component_type == TransformV2ComponentType())
+    return copy(ToWire(snapshot->transform));
+  if (component_type == WorldTransformComponentType()) {
+    const auto world_transform = world.GetWorldTransform(entity);
+    if (!world_transform)
+      return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+    return copy(ToWire(*world_transform));
+  }
+  if (component_type == ParentComponentType())
+    return copy(NexoraParent{world.GetParent(entity).value_or(0), 0, 0});
+  if (component_type == CameraComponentType())
+    return snapshot->has_camera
+               ? copy(GameplayCameraWire{snapshot->camera.vertical_field_of_view,
+                                         snapshot->camera.near_plane, snapshot->camera.far_plane})
+               : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  if (component_type == LightComponentType())
+    return snapshot->has_light ? copy(GameplayLightWire{snapshot->light.intensity})
+                               : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  if (component_type == MeshRendererComponentType())
+    return snapshot->has_mesh_renderer
+               ? copy(GameplayMeshRendererWire{snapshot->mesh.mesh, snapshot->mesh.material.shader})
+               : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+}
+
+int32_t WriteGameplayComponent(GameWorld &world, runtime::Id entity, std::uint64_t component_type,
+                               const void *data, std::uint32_t data_size) {
+  if (data == nullptr)
+    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  const auto read = [&](auto &wire) {
+    if (data_size < sizeof(wire))
+      return false;
+    std::memcpy(&wire, data, sizeof(wire));
+    return true;
+  };
+  const auto result = [](bool written) {
+    return written ? NEXORA_GAMEPLAY_OK : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+  };
+  if (component_type == TransformComponentType()) {
+    GameplayTransformWire wire{};
+    if (!read(wire))
+      return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+    // The wire carries a position only; keep the entity's rotation and scale instead of resetting
+    // them to identity.
+    const auto current = world.GetEntity(entity);
+    return result(current &&
+                  world.SetTransform(
+                      entity, runtime::WithPosition(current->transform, wire.x, wire.y, wire.z)));
+  }
+  if (component_type == TransformV2ComponentType()) {
+    NexoraTransformV2 wire{};
+    if (!read(wire))
+      return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+    runtime::Transform transform{wire.position.x, wire.position.y, wire.position.z};
+    transform.qx = wire.rotation.x;
+    transform.qy = wire.rotation.y;
+    transform.qz = wire.rotation.z;
+    transform.qw = wire.rotation.w;
+    transform.sx = wire.scale.x;
+    transform.sy = wire.scale.y;
+    transform.sz = wire.scale.z;
+    // SetTransform validates and normalizes, and rejects an invalid transform.
+    return result(world.SetTransform(entity, transform));
+  }
+  if (component_type == WorldTransformComponentType())
+    return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+  if (component_type == ParentComponentType()) {
+    NexoraParent wire{};
+    if (!read(wire))
+      return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+    return result(world.SetParent(entity, wire.parent, wire.keep_local == 0));
+  }
+  if (component_type == CameraComponentType()) {
+    GameplayCameraWire wire{};
+    if (!read(wire))
+      return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+    return result(
+        world.SetCamera(entity, runtime::CameraComponent{wire.vertical_field_of_view,
+                                                         wire.near_plane, wire.far_plane}));
+  }
+  if (component_type == LightComponentType()) {
+    GameplayLightWire wire{};
+    if (!read(wire))
+      return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+    return result(world.SetLight(entity, runtime::LightComponent{wire.intensity}));
+  }
+  if (component_type == MeshRendererComponentType()) {
+    GameplayMeshRendererWire wire{};
+    if (!read(wire))
+      return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+    return result(world.SetMeshRenderer(
+        entity, runtime::MeshComponent{wire.mesh, runtime::MaterialComponent{wire.shader}}));
+  }
+  return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
 }
 
 NexoraGameplayHostV2 MakeHost(GameplayHostContext &context) noexcept {

@@ -10,6 +10,15 @@ _Static_assert(offsetof(NexoraGameModuleV3, struct_size) == 0, "descriptor prefi
 _Static_assert(offsetof(NexoraGameModuleV3, abi_version) == sizeof(uint32_t),
                "descriptor prefix changed");
 
+/* Component wires: tightly packed doubles and 64-bit ids, the same layout on every target. */
+_Static_assert(sizeof(NexoraQuat) == 32 && offsetof(NexoraQuat, w) == 24, "NexoraQuat changed");
+_Static_assert(sizeof(NexoraTransformV2) == 80 && offsetof(NexoraTransformV2, rotation) == 24 &&
+                   offsetof(NexoraTransformV2, scale) == 56,
+               "NexoraTransformV2 changed");
+_Static_assert(sizeof(NexoraParent) == 16 && offsetof(NexoraParent, keep_local) == 8 &&
+                   offsetof(NexoraParent, reserved) == 12,
+               "NexoraParent changed");
+
 int main(void) {
   NexoraGameplayHostV3 host = {0};
   NexoraGameModuleV3 module = {0};

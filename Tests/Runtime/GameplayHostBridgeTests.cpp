@@ -157,10 +157,111 @@ int Run() {
 
   return 0;
 }
+
+// "Nexora.TransformV2", "Nexora.WorldTransform", and "Nexora.Parent" through the shared path used
+// by every host table (the V2 bridge above and the V3 Showcase host).
+void TestHierarchyWires() {
+  GameWorld world;
+  const auto scene = world.LoadScene("Wires");
+  EntitySpawnDescriptor parent_descriptor;
+  parent_descriptor.transform = {10.0, 0.0, 0.0};
+  parent_descriptor.transform.qy = parent_descriptor.transform.qw = 0.70710678118654752440;
+  parent_descriptor.transform.sx = parent_descriptor.transform.sy = parent_descriptor.transform.sz =
+      2.0;
+  const auto parent = world.SpawnEntity(scene, parent_descriptor);
+  EntitySpawnDescriptor child_descriptor;
+  child_descriptor.transform = {10.0, 0.0, -2.0};
+  const auto child = world.SpawnEntity(scene, child_descriptor);
+
+  // Parent: write with keep_local == 0 keeps the world pose (Unity's default).
+  const NexoraParent attach{parent, 0, 0};
+  Require(WriteGameplayComponent(world, child, ParentComponentType(), &attach, sizeof(attach)) ==
+              NEXORA_GAMEPLAY_OK,
+          "writing Nexora.Parent must reparent");
+  NexoraParent parent_read{};
+  Require(ReadGameplayComponent(world, child, ParentComponentType(), &parent_read,
+                                sizeof(parent_read)) == NEXORA_GAMEPLAY_OK &&
+              parent_read.parent == parent,
+          "reading Nexora.Parent must return the parent id");
+
+  NexoraTransformV2 local{};
+  NexoraTransformV2 world_pose{};
+  Require(ReadGameplayComponent(world, child, TransformV2ComponentType(), &local, sizeof(local)) ==
+                  NEXORA_GAMEPLAY_OK &&
+              ReadGameplayComponent(world, child, WorldTransformComponentType(), &world_pose,
+                                    sizeof(world_pose)) == NEXORA_GAMEPLAY_OK,
+          "TransformV2 and WorldTransform must be readable");
+  const auto near = [](double a, double b) { return a - b < 1e-9 && b - a < 1e-9; };
+  Require(near(world_pose.position.x, 10.0) && near(world_pose.position.z, -2.0) &&
+              near(world_pose.scale.x, 1.0) && near(local.position.x, 1.0) &&
+              near(local.scale.x, 0.5),
+          "the local transform is relative to the parent and the world pose did not move");
+  GameplayTransformWire position{};
+  Require(ReadGameplayComponent(world, child, TransformComponentType(), &position,
+                                sizeof(position)) == NEXORA_GAMEPLAY_OK &&
+              near(position.x, local.position.x),
+          "the original Transform wire carries the local position");
+
+  // TransformV2: a full write round trips; an invalid one is rejected and changes nothing.
+  NexoraTransformV2 written{{1.0, 2.0, 3.0}, {0.0, 0.0, 0.0, 2.0}, {-1.0, 2.0, 3.0}};
+  Require(WriteGameplayComponent(world, child, TransformV2ComponentType(), &written,
+                                 sizeof(written)) == NEXORA_GAMEPLAY_OK,
+          "writing a valid TransformV2 must succeed");
+  const auto stored = world.GetEntity(child)->transform;
+  Require(stored.qw == 1.0 && stored.sx == -1.0 && stored.sz == 3.0 && stored.y == 2.0,
+          "TransformV2 must store rotation (normalized) and mirroring scale");
+  written.scale.y = 0.0;
+  Require(WriteGameplayComponent(world, child, TransformV2ComponentType(), &written,
+                                 sizeof(written)) == NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT &&
+              world.GetEntity(child)->transform == stored,
+          "a zero scale must be rejected without changing the entity");
+
+  // A position-only write keeps rotation and scale (this path also serves the V3 Showcase host,
+  // which used to reset them to identity).
+  const GameplayTransformWire moved{4.0, 5.0, 6.0};
+  Require(WriteGameplayComponent(world, child, TransformComponentType(), &moved, sizeof(moved)) ==
+                  NEXORA_GAMEPLAY_OK &&
+              world.GetEntity(child)->transform.sx == -1.0 &&
+              world.GetEntity(child)->transform.x == 4.0,
+          "a Transform write must keep rotation and scale");
+
+  // Read-only, unsupported, undersized, and rejected cases.
+  Require(WriteGameplayComponent(world, child, WorldTransformComponentType(), &world_pose,
+                                 sizeof(world_pose)) == NEXORA_GAMEPLAY_ERROR_UNSUPPORTED,
+          "Nexora.WorldTransform must be read only");
+  Require(ReadGameplayComponent(world, child, TransformV2ComponentType(), &local,
+                                sizeof(local) - 1) == NEXORA_GAMEPLAY_ERROR_UNSUPPORTED &&
+              ReadGameplayComponent(world, child, ParentComponentType() ^ 1, &parent_read,
+                                    sizeof(parent_read)) == NEXORA_GAMEPLAY_ERROR_UNSUPPORTED,
+          "an undersized buffer or unknown component must be unsupported");
+  const NexoraParent cycle{child, 0, 0};
+  Require(WriteGameplayComponent(world, parent, ParentComponentType(), &cycle, sizeof(cycle)) ==
+                  NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT &&
+              ReadGameplayComponent(world, 999'999, ParentComponentType(), &parent_read,
+                                    sizeof(parent_read)) == NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT,
+          "a cycle or a missing entity must be rejected");
+  // Keep-local detaches with the local values unchanged.
+  const auto before = world.GetEntity(child)->transform;
+  const NexoraParent detach{0, 1, 0};
+  Require(WriteGameplayComponent(world, child, ParentComponentType(), &detach, sizeof(detach)) ==
+                  NEXORA_GAMEPLAY_OK &&
+              world.GetParent(child) == Id{0} && world.GetEntity(child)->transform == before,
+          "keep_local must keep the local values");
+
+  // The V2 table reaches the same wires.
+  GameplayHostContext context{&world};
+  const auto host = MakeHost(context);
+  Require(host.read_component(host.context, child, TransformV2ComponentType(), &local,
+                              sizeof(local)) == 0 &&
+              host.write_component(host.context, child, WorldTransformComponentType(), &world_pose,
+                                   sizeof(world_pose)) == -1,
+          "the V2 bridge must serve the new wires and report failures as -1");
+}
 } // namespace
 
 int main() {
   try {
+    TestHierarchyWires();
     return Run();
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

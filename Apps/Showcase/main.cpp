@@ -379,17 +379,11 @@ int32_t ReadComponent(void *opaque_context, std::uint64_t entity, std::uint64_t 
   if (context.world == nullptr)
     return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
   const auto resolved_entity = entity == kPrimaryEntityToken ? context.primary_entity : entity;
-  const auto snapshot = context.world->GetEntity(resolved_entity);
-  if (!snapshot)
-    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
-  if (component_type != game::TransformComponentType() ||
-      data_size < sizeof(game::GameplayTransformWire))
-    return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
-  const game::GameplayTransformWire wire{snapshot->transform.x, snapshot->transform.y,
-                                         snapshot->transform.z};
-  std::memcpy(data, &wire, sizeof(wire));
-  ++context.read_callbacks;
-  return NEXORA_GAMEPLAY_OK;
+  const auto result =
+      game::ReadGameplayComponent(*context.world, resolved_entity, component_type, data, data_size);
+  if (result == NEXORA_GAMEPLAY_OK)
+    ++context.read_callbacks;
+  return result;
 }
 
 int32_t WriteComponent(void *opaque_context, std::uint64_t entity, std::uint64_t component_type,
@@ -400,15 +394,12 @@ int32_t WriteComponent(void *opaque_context, std::uint64_t entity, std::uint64_t
   if (context.world == nullptr)
     return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
   const auto resolved_entity = entity == kPrimaryEntityToken ? context.primary_entity : entity;
-  if (component_type != game::TransformComponentType() ||
-      data_size < sizeof(game::GameplayTransformWire))
-    return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
-  game::GameplayTransformWire wire{};
-  std::memcpy(&wire, data, sizeof(wire));
-  if (!context.world->SetTransform(resolved_entity, {wire.x, wire.y, wire.z}))
-    return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
-  ++context.write_callbacks;
-  return NEXORA_GAMEPLAY_OK;
+  // The shared path keeps the entity's rotation and scale on a position-only Transform write.
+  const auto result = game::WriteGameplayComponent(*context.world, resolved_entity, component_type,
+                                                   data, data_size);
+  if (result == NEXORA_GAMEPLAY_OK)
+    ++context.write_callbacks;
+  return result;
 }
 
 void *Allocate(void *, std::uint64_t, std::uint64_t size, std::uint64_t alignment) {

@@ -41,9 +41,29 @@ namespace nexora::game {
 [[nodiscard]] NEXORA_RUNTIME_API std::uint64_t CameraComponentType() noexcept;
 [[nodiscard]] NEXORA_RUNTIME_API std::uint64_t LightComponentType() noexcept;
 [[nodiscard]] NEXORA_RUNTIME_API std::uint64_t MeshRendererComponentType() noexcept;
+// "Nexora.TransformV2" (NexoraTransformV2, the full local transform), "Nexora.WorldTransform"
+// (NexoraTransformV2, read only), and "Nexora.Parent" (NexoraParent); see nexora/nexora.h.
+[[nodiscard]] NEXORA_RUNTIME_API std::uint64_t TransformV2ComponentType() noexcept;
+[[nodiscard]] NEXORA_RUNTIME_API std::uint64_t WorldTransformComponentType() noexcept;
+[[nodiscard]] NEXORA_RUNTIME_API std::uint64_t ParentComponentType() noexcept;
+
+// The read_component/write_component behavior shared by every host table built over a GameWorld
+// (the V2 bridge below and the V3 Showcase host). Returns a NexoraGameplayResult:
+// NEXORA_GAMEPLAY_ERROR_UNSUPPORTED for an unknown component type, a buffer smaller than its wire,
+// or a write to a read-only component; NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT for a missing entity,
+// a component the entity does not have, or a rejected write.
+[[nodiscard]] NEXORA_RUNTIME_API int32_t ReadGameplayComponent(const GameWorld &world,
+                                                               runtime::Id entity,
+                                                               std::uint64_t component_type,
+                                                               void *data, std::uint32_t data_size);
+[[nodiscard]] NEXORA_RUNTIME_API int32_t WriteGameplayComponent(GameWorld &world,
+                                                                runtime::Id entity,
+                                                                std::uint64_t component_type,
+                                                                const void *data,
+                                                                std::uint32_t data_size);
 
 // The wire format read_component/write_component exchange for
-// TransformComponentType(): three tightly packed doubles. This is
+// TransformComponentType(): three tightly packed doubles, the local position. This is
 // deliberately not nexora::runtime::Transform's in-memory layout (which
 // carries no ABI-stability guarantee of its own) -- the bridge copies field
 // by field in both directions, so it keeps working even if Transform gains

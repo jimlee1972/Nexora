@@ -271,9 +271,24 @@ no sibling ordering yet.
 
 Phase 1 limits: a character-controlled entity must be a root (`GameWorld` rejects parenting one and
 attaching a character to a parented entity), because the controller writes world positions into the
-transform; the Zig/C Transform wire carries the local position; `PlaySession` apply-back copies
+transform; `PlaySession` apply-back copies
 transforms only and reports a conflict for an entity whose parent changed during play; rendering and
 physics do not consume entity transforms yet.
+
+Gameplay modules reach the hierarchy through component wires in `nexora/nexora.h`, read and written
+with `read_component`/`write_component`:
+- `"Nexora.Transform"`: three doubles holding the local position. A write keeps rotation and scale.
+- `"Nexora.TransformV2"` (`NexoraTransformV2`): the full local transform. A write is validated and
+  normalized; an invalid one is rejected and leaves the entity unchanged.
+- `"Nexora.WorldTransform"`: the same layout for the world pose. It is read only and lossy under
+  shear, like `WorldTransform`.
+- `"Nexora.Parent"` (`NexoraParent`): the parent id, 0 for a root. A write reparents through
+  `GameWorld::SetParent`, with all of its rejections. `keep_local == 0` keeps the world pose
+  (Unity's default); non-zero keeps the local values.
+
+`ReadGameplayComponent`/`WriteGameplayComponent` in `GameplayHostBridge.h` implement every wire
+once. The V2 bridge and the V3 Showcase host both call them, so the two cannot drift. The V3 host
+used to reset rotation and scale on a position write, a defect the shared path removes.
 
 ## Zig gameplay bridge
 
@@ -544,7 +559,8 @@ The append-only V3 scene API callbacks expose only copied wire descriptors and o
 
 `Gameplay/Zig/src/game_module.zig` and its ABI test now build with the repository-local Zig 0.14.0
 toolchain and are covered by `gameplay.zig_abi_smoke`. `Apps/Showcase/NexoraShowcase` uses a
-separate V3 host adapter to map the stable Transform wire to a live `GameWorld` entity and emits
+separate V3 host adapter, which serves the component wires through the same shared read/write path,
+to map the stable Transform wire to a live `GameWorld` entity and emits
 headless render/reload evidence; the local Windows `windows-zig-showcase` preset covers it with
 `showcase.zig_headless`. `GameplayHostBridge` remains a V2 C++ facade covered by
 `Tests/Runtime/GameplayHostBridgeTests.cpp`; its generic V2 `MakeHost()` entry is intentionally not

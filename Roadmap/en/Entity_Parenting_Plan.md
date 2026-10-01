@@ -1,7 +1,8 @@
 # Entity Parenting (Transform Hierarchy) — Plan
 
 > Version: v1.1 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
-> ✅ phase 1 complete; phase 3 gizmo math done, the rest of phase 3 and phases 2 and 4 not started** | Updated: 2026-10-01 | Relates to:
+> ✅ phase 1 complete; phase 2 wires and phase 3 gizmo math done; characters under a parent, Hierarchy
+> drag/sibling order, and phase 4 not started** | Updated: 2026-10-01 | Relates to:
 > `Transform_Rotation_Scale_Plan.md`, `Editor_Roadmap.md` §ED-M2
 
 ## 1. Purpose
@@ -50,7 +51,8 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
    reported, snapshot v3, undoable `SceneEditor::SetParent` and subtree-restoring destroy undo,
    `GameWorld` wrappers, and `SceneDocument` reading parents from the runtime. Character-controlled
    entities must be roots in this phase (see §5).
-2. **Gameplay boundary.** Versioned Zig/C wire for parent and world transform; character controllers
+2. **Gameplay boundary.** Versioned Zig/C wire for parent and world transform (done: `"Nexora.Parent"`,
+   `"Nexora.WorldTransform"`, and `"Nexora.TransformV2"`); character controllers
    under a parent.
 3. **Editor tools.** World/local and pivot gizmo modes (math done: `GizmoAxes`, `ApplyGizmo`,
    `GizmoRoots` in `ViewportMath.h`, working on the world TRS like Unity), Hierarchy drag

@@ -1,6 +1,9 @@
 {
   "major": 3,
   "structures": {
+    "NexoraQuat": ["x", "y", "z", "w"],
+    "NexoraTransformV2": ["position", "rotation", "scale"],
+    "NexoraParent": ["parent", "keep_local", "reserved"],
     "NexoraGameplayHostV3": [
       "struct_size",
       "abi_version",

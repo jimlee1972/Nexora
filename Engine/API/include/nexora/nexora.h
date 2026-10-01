@@ -124,6 +124,39 @@ typedef struct NexoraFrameDiagnostics {
   uint64_t api_errors;
 } NexoraFrameDiagnostics;
 
+/*
+ * Component wires exchanged through read_component/write_component. The component type is the
+ * 64-bit FNV-1a hash of the component name. Transforms are local: relative to the parent, or the
+ * world pose for a root. "Nexora.Transform" (three doubles: the local position; a write keeps the
+ * rotation and scale) is unchanged.
+ */
+typedef struct NexoraQuat {
+  double x, y, z, w;
+} NexoraQuat;
+/*
+ * "Nexora.TransformV2" (read/write): the full local transform. A write is rejected unless every
+ * value is finite, the quaternion has non-zero length (it is normalized), and no scale is zero;
+ * negative scale mirrors. "Nexora.WorldTransform" (read only) uses the same layout for the world
+ * pose, which is the nearest translation/rotation/scale when a non-uniformly scaled ancestor has a
+ * rotated descendant (like Unity's lossyScale).
+ */
+typedef struct NexoraTransformV2 {
+  NexoraVec3 position;
+  NexoraQuat rotation;
+  NexoraVec3 scale;
+} NexoraTransformV2;
+/*
+ * "Nexora.Parent" (read/write): the parent entity, 0 for a root. A write reparents within the same
+ * scene and is rejected for a cycle, a missing parent, another scene, or an entity with a character
+ * controller. keep_local == 0 keeps the world pose (Unity's worldPositionStays, the default);
+ * non-zero keeps the local values. reads return keep_local and reserved as 0.
+ */
+typedef struct NexoraParent {
+  uint64_t parent;
+  uint32_t keep_local;
+  uint32_t reserved;
+} NexoraParent;
+
 enum NexoraSpawnComponent {
   NEXORA_SPAWN_CAMERA = 1u << 0,
   NEXORA_SPAWN_LIGHT = 1u << 1,
