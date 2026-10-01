@@ -3845,10 +3845,10 @@ invalidation 的 conservative Hi-Z、visible-instance compaction、material／me
 classification 與 indirect-command generation。Portable command contract 現已記錄 compute
 dispatch 與 indirect drawing、將 backend output 與 CPU reference 比較、追蹤 normal-path
 readback diagnostics，並由 RenderGraph 發出明確的 compute／graphics ownership barrier。
-Linux Vulkan 現已有完整 frustum／distance／LOD／Hi-Z／compaction／classification／indirect-generation 實作。Slang-enabled RenderGraph 專項測試於 Mesa lavapipe 執行，強制要求 native backend 可用，並在 indirect draw 前將有限輸出與 CPU reference 比對。GitHub Actions run `36609837931` 已通過 Linux Development configure/build/完整 CTest，以及 Linux shipping、package/evidence、sanitizer 與 TSan build-contract job，因此 Linux Vulkan Phase 2 已驗收。Indirect record 已固定為 C++／Slang 共用的 36-byte ABI，並以前四個 word 作為 Vulkan／D3D12／Metal 共通的 non-indexed draw prefix；backend 不得自行重訂。DX12／Metal execution 與完整 target-tier parity 仍待完成.
+Linux Vulkan 現已有完整 frustum／distance／LOD／Hi-Z／compaction／classification／indirect-generation 實作。Slang-enabled RenderGraph 專項測試於 Mesa lavapipe 執行，強制要求 native backend 可用，並在 indirect draw 前將有限輸出與 CPU reference 比對。GitHub Actions run `36609837931` 已通過 Linux Development configure/build/完整 CTest，以及 Linux shipping、package/evidence、sanitizer 與 TSan build-contract job，因此 Linux Vulkan Phase 2 已驗收。Indirect record 已固定為 C++／Slang 共用的 36-byte ABI，並以前四個 word 作為 Vulkan／D3D12／Metal 共通的 non-indexed draw prefix；backend 不得自行重訂。D3D12 execution 現已有本機 Windows target-host comparison record；Metal execution 與完整 target-tier parity 仍待完成。
 [V2-M3_GPU_Driven_Native_Execution_Plan.md](V2-M3_GPU_Driven_Native_Execution_Plan.md)
 把剩餘工作拆成分階段計畫，並對照原始碼逐一確認了每個 backend 的
-`Dispatch`/`DrawIndirect` 覆蓋現況；Phase 1a／1b 與 Linux Vulkan Phase 2 已驗收，DX12／Metal target 執行仍待完成。
+`Dispatch`/`DrawIndirect` 覆蓋現況；Phase 1a／1b 與 Linux Vulkan Phase 2 已驗收，D3D12 target 執行已在本機 Windows host 記錄，Metal target 執行仍待完成。
 
 順序：
 

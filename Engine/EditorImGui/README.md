@@ -11,16 +11,22 @@ authoring views on first launch.
 ## Ownership and lifetime
 
 - `EditorImGuiHost` owns one ImGui context and destroys it with the host.
+- Modular builds expose Dear ImGui as one shared dependency so `NexoraEditorImGui` and each
+  host/test executable observe the same process-global context; Monolithic builds keep it as one
+  statically linked dependency inside the executable.
 - Draw data and frame metrics are valid only for the frame in which `EndFrame` returns them.
 - `DrawProjectSelector` owns only editable UTF-8 fields, the displayed error, and at most one
   `ProjectSelectorRequest`. `TakeProjectSelectorRequest` transfers that request once. The host never
   creates directories, acquires a writer lease, indexes content, or replaces the active project;
   the application performs those steps and reports a failed activation back to the selector.
 - `ProductShell` and `SceneDocument` remain borrowed Editor Core models and outlive calls that
-  present them. The Hierarchy owns only its filter and selection anchor. It renders the parent-aware
-  tree, routes plain/Ctrl/Shift selection through `SceneDocument::Select`, and routes sibling
-  reorder or drag/drop reparenting through `SceneDocument::Move`; cycle rejection and undo stay in
-  Editor Core. The application owns the document and its `World`.
+  present them. The Hierarchy owns only presentation state: its filter, generation-keyed expansion
+  and selection anchor, rename buffer/modal, and pending one-frame UI requests. It builds
+  parent-aware visible rows and clips their submission with `ImGuiListClipper`; plain/Ctrl/Shift
+  selection routes through `SceneDocument::Select`, rename routes through `SceneDocument::Rename`,
+  and sibling reorder or drag/drop reparenting routes through `SceneDocument::Move`. Stale entity or
+  document generations, cycle rejection, and undo remain in Editor Core. The application owns the
+  document and its `World`.
 - `ProjectContentSession` is also borrowed for each `DrawProductShell` call. The Content panel reads
   virtualized ranges from its UUID-keyed model, emits generation-tagged POD drag payloads, and routes
   rename/move/delete/undo/reimport back through the session. Reimport submits to the borrowed

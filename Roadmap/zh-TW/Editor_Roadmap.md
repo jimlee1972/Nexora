@@ -7,7 +7,7 @@
 
 **已完成前置：** ✅ reflection metadata；✅ command/undo data model；✅ prefab override/rebase；
 ✅ isolated PIE session；✅ dynamic plugin ABI gate；✅ standalone process 與 portable
-workspace/document core。**待辦：** window/docking/UI shell、graphical views、authoring workflows
+workspace/document core。**待辦：** 其餘 graphical view、authoring workflow、target-host 驗收
 與 production hardening。
 
 ### Repository 完成度稽核（2026-10-02）
@@ -18,9 +18,9 @@ workspace/document core。**待辦：** window/docking/UI shell、graphical view
 
 | Scope | Repository 證據 | 已驗收 |
 | --- | --- | :---: |
-| ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Real-process recovery 與 Linux/Windows host evidence 仍待完成。 | [ ] |
+| ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Real-process recovery、實體顯示器 Linux 與 Windows DPI／IME host evidence 仍待完成；已記錄 bounded Windows/DX12 開發機 shell smoke。 | [ ] |
 | ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態、提供圖形化 create/open/recent selector、將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation，執行具 bounded progress 與 structured diagnostic 的 cancellable background import/reimport、顯示 dependency cycle，並提供阻塞式 reload／keep／compare conflict UX；實體顯示／Windows workflow 驗收仍待完成。 | [ ] |
-| ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware tree、filter、selection anchor、multi-selection、兄弟排序與 cycle-safe reparent。Rename／virtualization、Scene View、Inspector、renderer-backed picking、camera、gizmo 操作與 reflected graphical widget 仍待完成。 | [ ] |
+| ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware expandable tree、filter、以 generation 為 key 的 expansion／selection、可見列裁切提交、可復原 rename、兄弟排序與 cycle-safe reparent，且會拒絕 stale entity／document generation。Scene View、Inspector、renderer-backed picking、camera、gizmo 操作、reflected graphical widget 與 unknown-component visual workflow 仍待完成。 | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。Graphical Game View、Console UI 與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
 | ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
@@ -79,8 +79,9 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 - ✅ 在 Vulkan host 上，圖形化 process 會將 ImGui draw data composite 至 public
   `RenderSurface` 已 acquire 的 swapchain backbuffer；Linux 與 Windows window event 也會正規化
   完整的 Editor 按鍵／modifier 集合。
-- 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及人工 Windows DPI／IME 證據；
-  automated Windows contract 不取代 target-host gate，因此 ED-M0 仍維持 open。
+- 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及 Windows DPI／IME 證據；
+  已記錄 bounded Windows/DX12 開發機 shell smoke，但完整 target-host gate 通過之前 ED-M0
+  仍維持 open。
 
 ### ED-M1 — Project 與 Asset workspace
 
@@ -132,12 +133,13 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   unknown-component round trip、可安全取消的 gizmo transaction state machine、generation-safe
   asynchronous picking、atomic camera persistence、1,000-step undo/redo replay，以及 corrupt scene
   的既有狀態保留。
-- ✅ 圖形化 Hierarchy 現會繪製 parent-aware expandable tree、依 entity name 過濾、以保留的
-  anchor 處理 plain／Ctrl／Shift selection，並把兄弟排序與 drag/drop reparent 送進可復原、
-  cycle-safe 的 `SceneDocument::Move` contract。
-- 待辦：Hierarchy rename／virtualization、圖形化 Scene／Inspector、renderer-backed picking、
-  camera controls、gizmo、reflected widget 與 unknown-component visual workflow。ED-M2 exit
-  仍需 UI 中完成 select／edit／undo／save／restart 驗收與視覺證據。
+- ✅ 圖形化 Hierarchy 現會繪製 parent-aware expandable tree、依 entity name 過濾、以保留且
+  generation-keyed 的 anchor 處理 plain／Ctrl／Shift selection、裁切可見列提交，並把 rename、
+  兄弟排序與 drag/drop reparent 送進 generation-safe、可復原的 `SceneDocument` contract；stale
+  entity／document generation 會被拒絕。
+- 待辦：圖形化 Scene／Inspector、renderer-backed picking、camera control、gizmo、reflected widget
+  與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成 select／edit／undo／save／restart
+  驗收與視覺證據。
 
 ### ED-M3 — PIE 與 debugging
 
@@ -318,7 +320,7 @@ watcher burst、drag validation。新 project 必須能全程由 UI import、搜
 
 **相依：** WP2 與 production serialization/reflection API。
 
-1. Hierarchy row、expansion、selection anchor、filter、rename、reorder、cycle-safe reparent 全部以 entity／
+1. ✅ Hierarchy row、expansion、selection anchor、filter、rename、reorder、cycle-safe reparent 全部以 entity／
    document generation 為 key 並 virtualize。
 2. Scene View 渲染至 Editor-owned、RHI-neutral texture token；resize 有 hysteresis，舊 GPU resource 依
    completion value retire，每 document 保存 camera。

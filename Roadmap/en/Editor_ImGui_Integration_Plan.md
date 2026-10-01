@@ -1,21 +1,18 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
-> Version: v1.4 | Status: implementation in progress; target-host evidence pending |
-> Updated: 2026-10-02 | Relates to: `Editor_Roadmap.md` (ED-M0),
+> Version: v1.3 | Status: implementation in progress; target-host evidence pending |
+> Updated: 2026-09-25 | Relates to: `Editor_Roadmap.md` (ED-M0),
 > `ADR-0001-Editor-UI-Framework.md`, `Window_Presentation_Roadmap.md`
 
-> **Repository audit (2026-10-02):** implementation is **in progress**. The checked foundations
+> **Repository audit (2026-09-25):** implementation is **in progress**. The checked foundations
 > below are present in source and contract tests, but **none of WP0–WP8 has passed its exit gate**.
 > Retained GPU resources, direct rendering to the borrowed presentation target, project-owned
 > layout persistence, DPI font-atlas rebuilding, and recovery failure contracts are implemented.
 > Automated X11 coverage now includes startup, resize, close, corrupt-layout replacement, legacy-layout
 > migration, and crash/relaunch recovery for both recover and destructive-discard choices. Portable
 > coverage also exercises stale texture generations, deferred font-atlas retirement, every DPI bucket,
-> and a bounded 512-frame docking/layout soak. Windows contract coverage now normalizes UTF-16
-> surrogate pairs to one Unicode scalar, rejects unpaired surrogates, verifies `WM_DPICHANGED`, and
-> checks frame-scoped IME candidate placement through a real DX12 `RenderSurface` at 100% and 150%.
-> Physical-display and manual Windows IME/DPI evidence remain open, so these foundations must not be
-> interpreted as ED-M0 acceptance.
+> and a bounded 512-frame docking/layout soak. Physical-display Linux and Windows DPI/IME target-host evidence
+> remain open, so these foundations must not be interpreted as ED-M0 acceptance.
 
 ## 1. Goal, acceptance boundary, and current truth
 
@@ -55,17 +52,19 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
 - ✅ Project-owned layout persistence, DPI font-atlas rebuilding, and recovery
   failure/exactly-once contract coverage exist.
 - [ ] Physical-display Linux graphical validation and Windows DPI/IME target-host acceptance
-  evidence are recorded and passing. Automated X11 rendering and kill/relaunch recovery are
+  evidence are complete. Automated X11 rendering and kill/relaunch recovery are
   available in the feature-on Linux gate. **Status note (2026-10-01):** running that gate for the
-  first time on a virtual display (Xvfb with Mesa lavapipe) exposed four real defects, now fixed: the
+  first time on a virtual display (Xvfb with Mesa lavapipe) exposed three real defects, now fixed: the
   Editor treated an empty first ImGui frame as fatal, the X11 window ignored `DestroyNotify` and
-  destroyed an already-destroyed window (`BadWindow`), X11 emitted physical keys but no committed
-  UTF-8 `Text` events, and the Editor exited non-zero on a recoverable surface loss. The acceptance
-  script also had a `kill()` on an already-finished process. This is virtual-display evidence only:
-  the dedicated CI job
+  destroyed an already-destroyed window (`BadWindow`), and the Editor exited non-zero on a recoverable
+  surface loss. The acceptance script also had a `kill()` on an already-finished process. It now
+  passes 5/5 locally. This is virtual-display evidence only: the dedicated CI job
   `editor-linux-display` (Xvfb, Mesa software Vulkan, `xdotool`, `NexoraEditorImGui` on) now builds and
-  runs it and fails if the test is not registered, so its latest result is the source of truth; neither
-  physical-display nor Windows evidence exists. The box stays unchecked.
+  runs it and fails if the test is not registered, so its latest result is the source of truth. A separate
+  Windows/DX12 developer-host smoke opens the real Editor window for 240 frames and reports
+  acquired=240, presented=240, ui_draws=717, ui_uploads=1, ui_rejected=0, recovery=none;
+  the same configuration passes 59/59 CTest. These bounded developer-host checks do not cover
+  physical-display Linux or Windows per-monitor DPI/IME acceptance. The box stays unchecked.
 
 ### Definition of "done"
 
@@ -256,8 +255,8 @@ proves typing, shortcuts, drag docking, wheel axes, focus loss, and close behavi
 
 ### WP5 — DPI, fonts, and theme
 
-**Status: live extent/DPI forwarding, bucketed font rebuild, production GPU atlas upload, and a
-Win32 `WM_DPICHANGED`/candidate-scaling contract exist; four-scale visual proof remains.**
+**Status: live extent/DPI forwarding, bucketed font rebuild, and production GPU atlas upload exist;
+Windows proof remains.**
 
 1. Define a small DPI bucket policy (for example, nearest supported scale with hysteresis) and an
    immutable base style. Recompute style from base whenever the bucket changes; never repeatedly
@@ -273,8 +272,7 @@ text, correct hit targets, no cumulative scaling, and no one-frame stale extent.
 
 ### WP6 — IME and Unicode
 
-**Status: event forwarding, supplementary-plane scalar normalization, and frame-scoped candidate
-callback coverage exist; installed-IME target-host proof remains.**
+**Status: event forwarding and candidate callback exist; target-host proof remains.**
 
 1. Validate Unicode scalar handling, including supplementary-plane characters; reject invalid
    scalar values before `AddInputCharacter`. Key events must never duplicate text events.
@@ -362,9 +360,6 @@ ctest --preset linux-development
 cmake --preset linux-shipping
 cmake --build --preset linux-shipping
 ```
-
-`linux-shipping` is a configure/build/package linkage gate and intentionally keeps
-`BUILD_TESTING=OFF`; executable contracts run under development, ASan/UBSan, and TSan presets.
 
 Also configure an explicit feature-off build if the preset enables the graphical shell, and run the
 focused tests by name where available:

@@ -73,6 +73,11 @@ SurfaceStatus RenderSurface::RenderUi(const UiDrawData &draw_data) {
                                       : state_->surface->RenderUi(draw_data);
 }
 
+SurfaceStatus RenderSurface::DrawScene(const SceneDrawData &draw_data) {
+  return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost
+                                      : state_->surface->DrawScene(draw_data);
+}
+
 bool RenderSurface::CloseRequested() const noexcept { return !state_ || state_->closeRequested; }
 
 const SurfaceInputSnapshot &RenderSurface::Input() const noexcept {

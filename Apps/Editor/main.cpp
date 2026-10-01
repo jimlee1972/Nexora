@@ -228,16 +228,16 @@ int RunGraphical(std::optional<ProjectState> project,
       return recovery == Nexora::Presentation::SurfaceAction::RecreateSurface ||
              recovery == Nexora::Presentation::SurfaceAction::Suspend;
     };
-    if (const auto status = ui.Render(*created.surface, frame.width, frame.height);
-        status != Nexora::Presentation::SurfaceStatus::Ready) {
-      if (surface_recoverable(status))
+    if (const auto render_status = ui.Render(*created.surface, frame.width, frame.height);
+        render_status != Nexora::Presentation::SurfaceStatus::Ready) {
+      if (surface_recoverable(render_status))
         continue;
       result = created.surface->CloseRequested() ? 0 : 1;
       break;
     }
-    if (const auto status = created.surface->EndFrame();
-        status != Nexora::Presentation::SurfaceStatus::Ready) {
-      if (surface_recoverable(status))
+    if (const auto end_status = created.surface->EndFrame();
+        end_status != Nexora::Presentation::SurfaceStatus::Ready) {
+      if (surface_recoverable(end_status))
         continue;
       result = created.surface->CloseRequested() ? 0 : 1;
       break;

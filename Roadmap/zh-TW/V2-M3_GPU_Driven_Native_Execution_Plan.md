@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend 執行計畫
 
-> 版本：v1.0｜狀態：施工中；Linux Vulkan Phase 2 已驗收，其他 target gate 仍待完成｜更新：2026-09-30｜對應：
+> 版本：v1.0｜狀態：施工中；Linux Vulkan Phase 2 與 Windows/DX12 Phase 3 已在 target host 驗收，Metal 與完整 parity 仍待完成｜更新：2026-10-02｜對應：
 > `跨平台3D_Engine_V2_完整規劃書_v1_4.md` §V2-M3
 
 ## 1. 目的
@@ -22,13 +22,13 @@ override 的情況下會直接丟例外（`"compute dispatch is unsupported"` /
 | Backend | `Dispatch` | `DrawIndirect` | 證據 |
 | --- | --- | --- | --- |
 | `ValidationDevice`（portable CPU reference） | ✅ 已 override | ✅ 已 override | `renderer.v2_gpu_driven` 會完整跑過 culling/Hi-Z/compaction/indirect-generation 整條 pipeline，且是 deterministic 的。 |
-| `VulkanDevice` | ❌ 未 override（會丟例外） | ✅ 已 override（`vkCmdDrawIndirect`） | `renderer.contracts`（`Tests/Renderer/RendererTests.cpp::VerifyNativeBackend`）會在真實 Linux Vulkan 上透過一個極簡的 triangle frame 跑 `DrawIndirect`——**不是**透過 `RecordGPUDrivenExecution`，也從未呼叫過 `Dispatch`。 |
-| `D3D12Device` | ✅ 已 override（`ID3D12GraphicsCommandList::Dispatch`） | ✅ 已 override（`ExecuteIndirect`） | 依 §5 Phase 3 已實作（原始碼已確認：`Engine/RHI/src/D3D12Device.cpp` 的 `D3D12CommandList::Dispatch`/`DrawIndirect`）；Windows-host 執行與 `CompareGPUDrivenResults()` 證據無法在這個 Linux 雲端 session 產出，target-tier acceptance 仍待補。 |
+| `VulkanDevice` | ✅ 已 override（`vkCmdDispatch`） | ✅ 已 override（`vkCmdDrawIndirect`） | 啟用 Slang 的 Linux `renderer.v2_gpu_driven` 會完整執行 compute／indirect path，並將 bounded output 與 CPU reference 比對。 |
+| `D3D12Device` | ✅ 已 override（`ID3D12GraphicsCommandList::Dispatch`） | ✅ 已 override（`ExecuteIndirect`） | ✅ 2026-10-02 已在本機 Windows target host 通過 `renderer.v2_gpu_driven`：default-heap storage buffer、`t0`／`u1`～`u3` binding、state transition、readback 與精確 `CompareGPUDrivenResults()` 比對均通過；主機為 NVIDIA GTX 960，artifact 由 SDK `dxc` 以 `sm_6_0` 產生。 |
 | `MetalDevice` | Source 已實作 | Source 已實作 | Compute pipeline／storage binding／dispatch 與 canonical-stride indirect draw 已存在；macOS execution evidence 仍待完成。 |
 
 Production 記錄 contract 已由 CPU validation device 驗證；Linux Vulkan 驗收現在於
 RenderGraph 不同 pass 呼叫共用的 compute／indirect 階段記錄函式，並將 native 輸出交給
-`CompareGPUDrivenResults()` 比對。D3D12 與 Metal 仍須各自在目標主機取得比對證據。這跟 `Engine/Renderer/README.md` 自己區分「已實作的接線」與「已驗證的
+`CompareGPUDrivenResults()` 比對。D3D12 的本機 Windows target-host 比對已記錄於 §5；Metal 仍須在目標主機取得比對證據。這跟 `Engine/Renderer/README.md` 自己區分「已實作的接線」與「已驗證的
 target-host parity」的敘述一致：以上都不能從 validation-backend 的覆蓋率去推論。這份計畫按 phase
 追蹤證據；每個 phase 最新、最權威的狀態見 §5。
 
@@ -52,9 +52,9 @@ Vulkan/D3D12/Metal API，加上已經被 `NEXORA_ENABLE_SLANG` 擋住的 Slang s
 會放在 `Shaders/` 底下，跟現有的 `Triangle.slang` 放一起，一樣要通過 shader-contract 驗證。這代表
 這份計畫落在 CLAUDE.md 要求「先講清楚再做」的「新依賴/改 CI」範疇*之外*——不會踩到那條線。
 
-雲端 session 沒辦法產出 Windows/DX12 跟 macOS/Metal 的 target-host 驗收證據（沒有 MSVC、沒有
-Apple 主機）；下面各階段中，Vulkan 的部分可以在這裡實作跟本機驗證，但 DX12/Metal 對應的部分需要
-在原生主機上跑過、留下證據，跟 `Window_Presentation_Roadmap.md` 的 WP-M1/WP-M2 在視窗那條線上
+這個 Linux 雲端 session 沒辦法產出 macOS/Metal 的 target-host 驗收證據；本機 Windows/DX12 Phase 3
+證據已記錄於 §5，Metal 仍需要原生主機。Vulkan 的部分可以在這裡實作跟本機驗證，而各平台對應的
+驗收需要在原生主機上跑過、留下證據，跟 `Window_Presentation_Roadmap.md` 的 WP-M1/WP-M2 在視窗那條線上
 已經確立的模式一樣。
 
 ## 5. 分階段計畫
@@ -188,20 +188,27 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
   Vulkan 也綁定此 canonical stride；D3D12 與 Metal 必須直接消費同一 record，不得另訂或轉譯
   backend-private command layout。
 
-### Phase 3 — D3D12 backend
+### ✅ Phase 3 — D3D12 backend
 
-> **更新（2026-09-25）：command recording 已實作，target-host 驗收待完成。** Backend 現已記錄
-> `Dispatch` 與 `ExecuteIndirect`、使用 canonical 36-byte command stride、追蹤兩項 diagnostics、
-> 接受 compute command list，並於 Windows 將 Slang compute entry point 建置成 DXIL。目前 Linux
-> 環境未執行必要的 Windows execution 與 `CompareGPUDrivenResults()` 證據，因此不將 Phase 3 標為 ✅。
+> **更新（2026-10-02）：Windows target-host 驗收已通過。** Backend 現會把四個固定
+> storage-buffer slot（`t0`、`u1`、`u2`、`u3`）綁到可 UAV 寫入的 default-heap resource，記錄
+> upload copy 與 resource-state transition，執行 Slang-compatible compute kernel，並透過
+> `ExecuteIndirect` 消費 canonical-stride buffer。Test-only readback 會在比對前恢復 buffer 的
+> recorded state。
+>
+> 本機 Windows NVIDIA GTX 960 以 `NEXORA_REQUIRE_NATIVE_BACKENDS=1` 執行
+> `renderer.v2_gpu_driven`，使用 Windows SDK `dxc` 從 `Shaders/GPUDriven.slang` 產生的
+> `sm_6_0` artifact；所有 bounded instance、indirect command 與 culling statistic 都通過
+> `CompareGPUDrivenResults()`。CMake 的 Slang compute-DXIL profile 已改為 `sm_6_0`，讓產物可在
+> feature-level 11_0-class adapter 使用。這是 D3D12 Phase 3 的 target-host record；Metal
+> execution、native queue/timeline separation 與完整 parity 仍是 V2-M3 的 open gate。
 
-- 在 `D3D12Device` 的 command list 上實作 `Dispatch` 跟 `DrawIndirect`：
-  `ID3D12GraphicsCommandList::Dispatch`，以及搭配跟 `BuildGPUDrivenCommands()` 已經產生的
-  indirect-buffer layout 一致的 command signature 的 `ExecuteIndirect`。
-- 把 Phase 1/2 的 compute shader 搬過來（Slang 本來就針對多個 backend，照現有 shader-contract
-  驗證的邏輯，確認輸出的 HLSL/DXIL 不需要改 stage semantic）。
-- 這個階段實際的執行與 `CompareGPUDrivenResults()` gate 只能在 Windows host 上跑——雲端 session
-  碰不到。程式碼跟 shader 可以在這裡寫、在這裡 review，但過不過的證據沒辦法在這裡產生。
+- ✅ 已在 `D3D12Device` command list 實作 `Dispatch` 與 `DrawIndirect`，使用
+  `ID3D12GraphicsCommandList::Dispatch`、canonical command signature 與 `ExecuteIndirect`。
+- ✅ 已把 Phase 1/2 compute shader path 搬到 Windows DXIL，並核對 resource register 與
+  D3D12 root signature。
+- ✅ 已加入 Windows target-host comparison gate；只有編譯、dispatch counter 或不丟例外的
+  command record 不算 acceptance evidence。
 
 ### Phase 4 — Metal backend
 
@@ -231,8 +238,9 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
 - 每一條新的 native code path 都要通過 `CompareGPUDrivenResults()` 驗證，不是只「編得過、跑不會
   丟例外」就算數。
 - Vulkan 的部分（Phase 1-2）在這個 repo 現有的 Linux CI／雲端 gate 上就能完整驗證。
-- D3D12（Phase 3）跟 Metal（Phase 4）需要 target-host runner；這份計畫不會用 Linux-only 的證據去
-  宣稱它們已驗收，符合這個 repo 一貫「不虛報未跑過的平台覆蓋」的規則。
+- D3D12 Phase 3 現已有 Windows target-host comparison record；Metal（Phase 4）仍需要 macOS
+  target-host execution 與 `CompareGPUDrivenResults()` 證據。完整 parity gate 仍開放，符合這個 repo
+  一貫「不虛報未跑過的平台覆蓋」的規則。
 - CPU reference（`BuildGPUDrivenCommands()`、`CompareGPUDrivenResults()`）的語意不在這份計畫的改動
   範圍內——是 backend 去符合它，不是它為了遷就某個 backend 而改。
 

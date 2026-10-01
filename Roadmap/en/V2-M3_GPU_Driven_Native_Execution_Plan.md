@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend Execution Plan
 
-> Version: v1.0 | Status: in progress; Linux Vulkan Phase 2 accepted, other target gates open | Updated: 2026-09-30 | Relates to:
+> Version: v1.0 | Status: in progress; Linux Vulkan Phase 2 and Windows/DX12 Phase 3 accepted on target hosts, Metal and full parity open | Updated: 2026-10-02 | Relates to:
 > `Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md` §V2-M3
 
 ## 1. Purpose
@@ -22,13 +22,13 @@ implementations unconditionally throw (`"compute dispatch is unsupported"` /
 | Backend | `Dispatch` | `DrawIndirect` | Evidence |
 | --- | --- | --- | --- |
 | `ValidationDevice` (portable CPU reference) | ✅ overridden | ✅ overridden | `renderer.v2_gpu_driven` exercises the full culling/Hi-Z/compaction/indirect-generation pipeline deterministically. |
-| `VulkanDevice` | ❌ not overridden (throws) | ✅ overridden (`vkCmdDrawIndirect`) | `renderer.contracts` (`Tests/Renderer/RendererTests.cpp::VerifyNativeBackend`) exercises `DrawIndirect` on real Linux Vulkan through a minimal triangle frame -- **not** through `RecordGPUDrivenExecution`, and never calls `Dispatch`. |
-| `D3D12Device` | ✅ overridden (`ID3D12GraphicsCommandList::Dispatch`) | ✅ overridden (`ExecuteIndirect`) | Implemented per §5 Phase 3 (source-verified: `D3D12CommandList::Dispatch`/`DrawIndirect` in `Engine/RHI/src/D3D12Device.cpp`); Windows-host execution and `CompareGPUDrivenResults()` evidence cannot be produced from this Linux cloud session, so target-tier acceptance is still pending. |
+| `VulkanDevice` | ✅ overridden (`vkCmdDispatch`) | ✅ overridden (`vkCmdDrawIndirect`) | Slang-enabled Linux `renderer.v2_gpu_driven` executes the full compute/indirect path and compares bounded output against the CPU reference. |
+| `D3D12Device` | ✅ overridden (`ID3D12GraphicsCommandList::Dispatch`) | ✅ overridden (`ExecuteIndirect`) | ✅ Windows target-host gate passed locally on 2026-10-02 through `renderer.v2_gpu_driven`: default-heap storage buffers, `t0`/`u1`–`u3` bindings, state transitions, readback, and exact `CompareGPUDrivenResults()` match on an NVIDIA GTX 960 using SDK `dxc` `sm_6_0` DXIL. |
 | `MetalDevice` | Source implemented | Source implemented | Compute pipeline/storage binding/dispatch and canonical-stride indirect draw are present; macOS execution evidence remains open. |
 
 The production recording contract is exercised by the CPU validation device, and the Linux
 Vulkan acceptance now invokes its shared compute/indirect stage recorders in separate RenderGraph
-passes, then compares their native output against `CompareGPUDrivenResults()`. D3D12 and Metal
+passes, then compares their native output against `CompareGPUDrivenResults()`. +
 still require their own target-host comparison evidence. This matches
 `Engine/Renderer/README.md`'s own statement distinguishing implemented plumbing from verified
 target-host parity: none of the above is inferred from validation-backend coverage alone. This plan
@@ -56,7 +56,7 @@ New compute shader sources go under `Shaders/` alongside the existing `Triangle.
 pass the same shader-contract validation. This keeps the work inside the "no new dependency, no CI
 change" category CLAUDE.md asks to be explained before crossing -- it is not crossed here.
 
-Target-host acceptance for Windows/DX12 and macOS/Metal cannot be produced from this cloud
++
 session (no MSVC, no Apple host); those phases are implementable and locally testable for Vulkan
 here, but their DX12/Metal counterparts need to be run and evidenced on native hosts, same as
 `Window_Presentation_Roadmap.md`'s WP-M1/WP-M2 already established for the windowing side.
@@ -198,7 +198,7 @@ dependency or CI change. **Completed with a backend-neutral compute pipeline kin
 
 ### ✅ Phase 2 -- Full compute stages on Vulkan (Linux acceptance)
 
-> **Update (2026-09-30): Linux Vulkan acceptance passed.** The Slang 2026.18 build ran `renderer.v2_gpu_driven` on Mesa lavapipe with `NEXORA_REQUIRE_NATIVE_BACKENDS=1`. Its RenderGraph compute and indirect callbacks invoke the same stage recorders used by `RecordGPUDrivenExecution()`, and bounded output readbacks pass `CompareGPUDrivenResults()` including statistics. GitHub Actions run `36609837931` passed the full Linux Development configure/build/CTest job and the Linux shipping, package/evidence, sanitizer, and TSan build-contract job. The current Work Mode container's local CTest remains 50/51 solely because its image lacks `clang++`; this does not supersede the successful CI run. Physical-GPU performance and DX12/Metal target-host gates remain open.
+> **Update (2026-09-30): Linux Vulkan acceptance passed.** The Slang 2026.18 build ran `renderer.v2_gpu_driven` on Mesa lavapipe with `NEXORA_REQUIRE_NATIVE_BACKENDS=1`. Its RenderGraph compute and indirect callbacks invoke the same stage recorders used by `RecordGPUDrivenExecution()`, and bounded output readbacks pass `CompareGPUDrivenResults()` including statistics. GitHub Actions run `36609837931` passed the full Linux Development configure/build/CTest job and the Linux shipping, package/evidence, sanitizer, and TSan build-contract job. The current Work Mode container's local CTest remains 50/51 solely because its image lacks `clang++`; this does not supersede the successful CI run. Physical-GPU performance and Metal target-host/full-parity gates remain open; the local DX12 Phase 3 record is described below.
 >
 > Historical note (2026-09-25): implementation complete; native acceptance pending. The shader and native test cover every Phase 2 stage, but Phase 2 is not marked ✅ until the Slang-enabled Linux Vulkan test actually runs and `CompareGPUDrivenResults()` passes. Shader compilation, a non-throwing dispatch, and diagnostics counters are not acceptance evidence.
 
@@ -220,22 +220,28 @@ dependency or CI change. **Completed with a backend-neutral compute pipeline kin
   word-offset include, and Vulkan binds that canonical stride. D3D12 and Metal must consume this
   record directly rather than defining or translating private command layouts.
 
-### Phase 3 -- D3D12 backend
+### ✅ Phase 3 -- D3D12 backend
 
-> **Update (2026-09-25): command recording implemented; target-host acceptance pending.** The
-> backend now records `Dispatch` and `ExecuteIndirect`, uses the canonical 36-byte command stride,
-> tracks both diagnostics, accepts compute command lists, and builds the Slang compute entry point
-> as DXIL on Windows. The required Windows execution and `CompareGPUDrivenResults()` evidence has
-> not run in this Linux environment, so Phase 3 is not marked ✅.
+> **Update (2026-10-02): Windows target-host acceptance passed.** The backend now binds four
+> fixed storage-buffer slots (`t0`, `u1`, `u2`, `u3`) to default-heap UAV-capable resources, records
+> upload copies and resource-state transitions, dispatches the Slang-compatible compute kernel, and
+> consumes the generated canonical-stride buffer through `ExecuteIndirect`. The test-only readback
+> seam restores the recorded buffer state before comparing output.
+>
+> The local Windows NVIDIA GTX 960 host passed `renderer.v2_gpu_driven` with
+> `NEXORA_REQUIRE_NATIVE_BACKENDS=1` and a Windows SDK `dxc` `sm_6_0` artifact compiled from
+> `Shaders/GPUDriven.slang`; `CompareGPUDrivenResults()` matched all bounded instances, indirect
+> commands, and culling statistics. The CMake Slang compute-DXIL profile is now `sm_6_0` so the
+> generated artifact remains usable on feature-level 11_0-class adapters. This is a target-host
+> record for D3D12 Phase 3; Metal execution, native queue/timeline separation, and full parity
+> remain open for V2-M3.
 
-- Implement `Dispatch` and `DrawIndirect` on `D3D12Device`'s command list:
-  `ID3D12GraphicsCommandList::Dispatch` and `ExecuteIndirect` with a command signature
-  matching the indirect-buffer layout `BuildGPUDrivenCommands()` already produces.
-- Port the compute shaders from Phase 1/2 (Slang already targets multiple backends per the
-  existing shader-contract validation; confirm HLSL/DXIL output needs no stage-semantic changes).
-- This phase's actual execution and `CompareGPUDrivenResults()` gate can only be run on a Windows
-  host -- out of this cloud session's reach. The code and shaders can be written and reviewed here;
-  the pass/fail evidence cannot.
+- ✅ Implemented `Dispatch` and `DrawIndirect` on `D3D12Device`'s command list with
+  `ID3D12GraphicsCommandList::Dispatch` and `ExecuteIndirect` using the canonical command signature.
+- ✅ Ported the Phase 1/2 compute shader path to Windows DXIL and verified its resource registers
+  against the D3D12 root signature.
+- ✅ Added the Windows target-host comparison gate; compilation, dispatch counters, or a
+  non-throwing command record alone are not treated as acceptance evidence.
 
 ### Phase 4 -- Metal backend
 
@@ -267,9 +273,9 @@ dependency or CI change. **Completed with a backend-neutral compute pipeline kin
 - Every new native code path is proven against `CompareGPUDrivenResults()`, not merely "compiles
   and runs without throwing."
 - Vulkan phases (1-2) are fully verifiable on this repository's Linux CI/cloud gate.
-- D3D12 (Phase 3) and Metal (Phase 4) require target-host runners; this plan does not claim their
-  acceptance from Linux-only evidence, matching this repository's standing rule against claiming
-  unverified platform coverage.
+- D3D12 Phase 3 now has a recorded Windows target-host comparison; Metal (Phase 4) still requires
+  macOS target-host execution and `CompareGPUDrivenResults()` evidence. The full parity gate remains
+  open, matching this repository's standing rule against claiming unverified platform coverage.
 - No change to the CPU-reference (`BuildGPUDrivenCommands()`, `CompareGPUDrivenResults()`) semantics
   is in scope -- backends conform to it, it does not change to accommodate a backend.
 

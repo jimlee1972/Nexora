@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "NexoraCore.dll",
+      "bytes": 1028608,
+      "sha256": "7e4362bce5e6140045828a0fc41c45318ba7dbad4cd83e89f894ace8378afee2"
+    },
+    {
+      "path": "NexoraFoundation.dll",
+      "bytes": 51712,
+      "sha256": "c2dd0d906671b42c0feab9f337d5676a54e2842b86d044025a0bd50106d62b6c"
+    },
+    {
+      "path": "NexoraPresentation.dll",
+      "bytes": 153088,
+      "sha256": "92abcad87bb4b3fe3211bf84a3e234ec9c91e94430409347f576e20b12aedb03"
+    },
+    {
+      "path": "NexoraRHI.dll",
+      "bytes": 403456,
+      "sha256": "bc3bac9b4a13f435f91792401178d827f69ab6ea1e342f73752bbcb51bda4aaf"
+    },
+    {
+      "path": "NexoraRenderer.dll",
+      "bytes": 565760,
+      "sha256": "1b21ee6579ff2d9ec310be4b86e750fe828adca462fcc132d99350b02e9618b8"
+    },
+    {
+      "path": "NexoraRuntime.dll",
+      "bytes": 3214848,
+      "sha256": "b3cbcbc3102e570cf8c379ebb5813375bb05d16fe190f38f1bb1774eaca31035"
+    },
+    {
+      "path": "NexoraShowcase.exe",
+      "bytes": 1996800,
+      "sha256": "9bde0d10751a6d8a523838cdd0731fceb81e89edfffd79b8e42cb4f730ef80ae"
+    },
+    {
+      "path": "NexoraWindow.dll",
+      "bytes": 140288,
+      "sha256": "4ee418f350228e52567b103aeff500851533add347a2a9c9d44703b7be883687"
+    },
+    {
+      "path": "NexoraZigGameplay.dll",
+      "bytes": 950272,
+      "sha256": "83948acc32ce72181540758a1828e54b67ad3829917ca09cb20aeacf4fb38382"
+    },
+    {
+      "path": "msvcp140.dll",
+      "bytes": 557728,
+      "sha256": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9"
+    },
+    {
+      "path": "vcruntime140.dll",
+      "bytes": 124544,
+      "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066"
+    },
+    {
+      "path": "vcruntime140_1.dll",
+      "bytes": 49792,
+      "sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f"
+    }
+  ]
+}

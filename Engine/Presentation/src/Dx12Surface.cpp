@@ -4,6 +4,7 @@
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include "Nexora/Presentation/Surface.h"
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstring>
@@ -66,6 +67,12 @@ public:
     if (FAILED(device_->CreateDescriptorHeap(&hd, IID_PPV_ARGS(&heap_))))
       return;
     increment_ = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc{};
+    dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+    dsvHeapDesc.NumDescriptors = frames_;
+    if (FAILED(device_->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsvHeap_))))
+      return;
+    dsvIncrement_ = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
     for (UINT i = 0; i < frames_; ++i)
       if (FAILED(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
                                                  IID_PPV_ARGS(&allocators_[i]))))
@@ -74,7 +81,7 @@ public:
                                           nullptr, IID_PPV_ARGS(&commands_))))
       return;
     commands_->Close();
-    valid_ = CreateSwapchain(width_, height_) && CreateUiResources();
+    valid_ = CreateSwapchain(width_, height_) && CreateUiResources() && CreateSceneResources();
   }
   ~Dx12Surface() override { DrainAndDestroy(); }
   std::thread::id RenderThread() const noexcept override { return renderThread_; }
@@ -111,6 +118,11 @@ public:
     rtv.ptr += SIZE_T(frame_) * increment_;
     constexpr float color[] = {0.04f, 0.08f, 0.16f, 1};
     commands_->ClearRenderTargetView(rtv, color, 0, nullptr);
+    if (dsvHeap_) {
+      auto dsv = dsvHeap_->GetCPUDescriptorHandleForHeapStart();
+      dsv.ptr += SIZE_T(frame_) * dsvIncrement_;
+      commands_->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+    }
     ++diagnostics_.acquiredFrames;
     acquired_ = true;
     return SurfaceStatus::Ready;
@@ -261,6 +273,70 @@ public:
     }
     return SurfaceStatus::Ready;
   }
+  SurfaceStatus DrawScene(const SceneDrawData &drawData) override {
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    if (!acquired_ || !scenePipeline_ || drawData.vertices.empty() || drawData.indices.empty())
+      return SurfaceStatus::InvalidDescriptor;
+    const auto vertexBytes = std::as_bytes(drawData.vertices);
+    const auto indexBytes = std::as_bytes(drawData.indices);
+    struct SceneConstants final {
+      float mvp[16];
+      float lightDirection[3];
+      float _pad0{};
+      float lightColor[3];
+      float _pad1{};
+      float baseColor[4];
+    } constants{};
+    std::memcpy(constants.mvp, drawData.model_view_projection, sizeof(constants.mvp));
+    std::memcpy(constants.lightDirection, drawData.light_direction, sizeof(constants.lightDirection));
+    std::memcpy(constants.lightColor, drawData.light_color, sizeof(constants.lightColor));
+    std::memcpy(constants.baseColor, drawData.base_color, sizeof(constants.baseColor));
+    // Constants live first, at offset 0 -- a committed resource's base GPU VA is always far more
+    // aligned than the 256 bytes a root CBV requires, so offset 0 is always valid there. Vertex and
+    // index data start at a fixed 256-byte boundary after it (comfortably past sizeof(constants)),
+    // so neither section can ever overlap regardless of how large the mesh grows.
+    constexpr std::size_t kGeometryOffset = 256;
+    const auto required = kGeometryOffset + vertexBytes.size() + indexBytes.size();
+    if (!EnsureSceneUpload(required))
+      return SurfaceStatus::DeviceLost;
+    void *mapped = nullptr;
+    D3D12_RANGE noRead{0, 0};
+    if (FAILED(sceneUploads_[frame_]->Map(0, &noRead, &mapped)))
+      return SurfaceStatus::DeviceLost;
+    std::memcpy(mapped, &constants, sizeof(constants));
+    std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset, vertexBytes.data(),
+                vertexBytes.size());
+    std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset + vertexBytes.size(),
+                indexBytes.data(), indexBytes.size());
+    sceneUploads_[frame_]->Unmap(0, nullptr);
+    const auto base = sceneUploads_[frame_]->GetGPUVirtualAddress();
+    const auto geometryBase = base + kGeometryOffset;
+    auto rtv = heap_->GetCPUDescriptorHandleForHeapStart();
+    rtv.ptr += SIZE_T(frame_) * increment_;
+    auto dsv = dsvHeap_->GetCPUDescriptorHandleForHeapStart();
+    dsv.ptr += SIZE_T(frame_) * dsvIncrement_;
+    commands_->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+    commands_->SetGraphicsRootSignature(sceneRootSignature_.Get());
+    commands_->SetPipelineState(scenePipeline_.Get());
+    commands_->SetGraphicsRootConstantBufferView(0, base);
+    const D3D12_VIEWPORT viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_),
+                                  0, 1};
+    commands_->RSSetViewports(1, &viewport);
+    const D3D12_RECT scissor{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
+    commands_->RSSetScissorRects(1, &scissor);
+    const D3D12_VERTEX_BUFFER_VIEW vertexView{geometryBase, static_cast<UINT>(vertexBytes.size()),
+                                              sizeof(SceneVertex)};
+    const D3D12_INDEX_BUFFER_VIEW indexView{geometryBase + vertexBytes.size(),
+                                            static_cast<UINT>(indexBytes.size()),
+                                            DXGI_FORMAT_R16_UINT};
+    commands_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    commands_->IASetVertexBuffers(0, 1, &vertexView);
+    commands_->IASetIndexBuffer(&indexView);
+    commands_->DrawIndexedInstanced(static_cast<UINT>(drawData.indices.size()), 1, 0, 0, 0);
+    ++diagnostics_.sceneDrawCalls;
+    return SurfaceStatus::Ready;
+  }
   SurfaceDiagnostics Diagnostics() const noexcept override { return diagnostics_; }
   SurfaceStatus DrainAndDestroy() override {
     if (destroyed_)
@@ -274,7 +350,11 @@ public:
     }
     for (auto &b : buffers_)
       b.Reset();
+    for (auto &d : depthBuffers_)
+      d.Reset();
     for (auto &upload : uiUploads_)
+      upload.Reset();
+    for (auto &upload : sceneUploads_)
       upload.Reset();
     uiTextures_.clear();
     for (auto &retired : retired_)
@@ -282,6 +362,9 @@ public:
     uiPipeline_.Reset();
     uiRootSignature_.Reset();
     uiDescriptors_.Reset();
+    scenePipeline_.Reset();
+    sceneRootSignature_.Reset();
+    dsvHeap_.Reset();
     swapchain_.Reset();
     destroyed_ = true;
     if (event_) {
@@ -382,6 +465,105 @@ private:
     pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     pipeline.SampleDesc.Count = 1;
     return SUCCEEDED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&uiPipeline_)));
+  }
+  // A self-contained indexed/lit/depth-tested pipeline for the Rendering Room, independent of the
+  // 2D CreateUiResources() pipeline above and of the offscreen rhi::Device (which this surface does
+  // not use at all -- see Dx12Surface's own constructor for its own independent ID3D12Device).
+  bool CreateSceneResources() {
+    D3D12_ROOT_PARAMETER parameter{};
+    parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+    parameter.Descriptor.ShaderRegister = 0;
+    parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    D3D12_ROOT_SIGNATURE_DESC root{};
+    root.NumParameters = 1;
+    root.pParameters = &parameter;
+    root.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+    ComPtr<ID3DBlob> signature, errors;
+    if (FAILED(D3D12SerializeRootSignature(&root, D3D_ROOT_SIGNATURE_VERSION_1, &signature,
+                                           &errors)) ||
+        FAILED(device_->CreateRootSignature(0, signature->GetBufferPointer(),
+                                            signature->GetBufferSize(),
+                                            IID_PPV_ARGS(&sceneRootSignature_))))
+      return false;
+    // Column-vector convention (row_major storage, mul(matrix, vector)) to match
+    // Nexora::Math::Matrix4's documented "row-major storage, column vectors" layout -- uploaded
+    // verbatim with no transpose. Faces are not culled: a convex opaque cube with depth testing
+    // looks identical either way, so this sidesteps depending on the mesh's winding convention.
+    constexpr char shader[] = R"(
+      cbuffer SceneConstants : register(b0) {
+        row_major float4x4 mvp;
+        float3 lightDirection; float _pad0;
+        float3 lightColor; float _pad1;
+        float4 baseColor;
+      };
+      struct VSInput { float3 position : POSITION; float3 normal : NORMAL; };
+      struct PSInput { float4 position : SV_Position; float3 normal : NORMAL; };
+      PSInput VSMain(VSInput input) {
+        PSInput output;
+        output.position = mul(mvp, float4(input.position, 1.0));
+        output.normal = input.normal;
+        return output;
+      }
+      float4 PSMain(PSInput input) : SV_Target {
+        float3 n = normalize(input.normal);
+        float ndotl = saturate(dot(n, normalize(-lightDirection)));
+        float3 ambient = baseColor.rgb * 0.15;
+        float3 lit = baseColor.rgb * lightColor * ndotl;
+        return float4(ambient + lit, baseColor.a);
+      }
+    )";
+    ComPtr<ID3DBlob> vertex, pixel;
+    if (FAILED(D3DCompile(shader, sizeof(shader), "NexoraRenderingRoom", nullptr, nullptr, "VSMain",
+                          "vs_5_0", 0, 0, &vertex, &errors)) ||
+        FAILED(D3DCompile(shader, sizeof(shader), "NexoraRenderingRoom", nullptr, nullptr, "PSMain",
+                          "ps_5_0", 0, 0, &pixel, &errors)))
+      return false;
+    const D3D12_INPUT_ELEMENT_DESC inputs[] = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(SceneVertex, position),
+         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(SceneVertex, normal),
+         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline{};
+    pipeline.pRootSignature = sceneRootSignature_.Get();
+    pipeline.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};
+    pipeline.PS = {pixel->GetBufferPointer(), pixel->GetBufferSize()};
+    pipeline.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+    pipeline.SampleMask = UINT_MAX;
+    pipeline.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+    pipeline.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    pipeline.RasterizerState.DepthClipEnable = TRUE;
+    pipeline.DepthStencilState.DepthEnable = TRUE;
+    pipeline.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+    pipeline.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+    pipeline.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    pipeline.InputLayout = {inputs, static_cast<UINT>(std::size(inputs))};
+    pipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pipeline.NumRenderTargets = 1;
+    pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pipeline.SampleDesc.Count = 1;
+    return SUCCEEDED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePipeline_)));
+  }
+  bool EnsureSceneUpload(std::size_t required) {
+    if (sceneUploadCapacity_[frame_] >= required)
+      return true;
+    sceneUploadCapacity_[frame_] = 4096;
+    while (sceneUploadCapacity_[frame_] < required)
+      sceneUploadCapacity_[frame_] *= 2;
+    D3D12_HEAP_PROPERTIES heap{};
+    heap.Type = D3D12_HEAP_TYPE_UPLOAD;
+    heap.CreationNodeMask = 1;
+    heap.VisibleNodeMask = 1;
+    D3D12_RESOURCE_DESC buffer{};
+    buffer.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    buffer.Width = sceneUploadCapacity_[frame_];
+    buffer.Height = 1;
+    buffer.DepthOrArraySize = 1;
+    buffer.MipLevels = 1;
+    buffer.SampleDesc.Count = 1;
+    buffer.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    return SUCCEEDED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &buffer,
+                                                      D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                                                      IID_PPV_ARGS(&sceneUploads_[frame_])));
   }
   bool EnsureUiUpload(std::size_t required) {
     if (uiUploadCapacity_[frame_] >= required)
@@ -519,6 +701,37 @@ private:
       r.ptr += SIZE_T(i) * increment_;
       device_->CreateRenderTargetView(buffers_[i].Get(), nullptr, r);
     }
+    return RebuildDepthBuffers();
+  }
+  bool RebuildDepthBuffers() {
+    if (!dsvHeap_)
+      return true;
+    D3D12_HEAP_PROPERTIES heap{};
+    heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heap.CreationNodeMask = 1;
+    heap.VisibleNodeMask = 1;
+    D3D12_RESOURCE_DESC desc{};
+    desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    desc.Width = width_;
+    desc.Height = height_;
+    desc.DepthOrArraySize = 1;
+    desc.MipLevels = 1;
+    desc.Format = DXGI_FORMAT_D32_FLOAT;
+    desc.SampleDesc.Count = 1;
+    desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    D3D12_CLEAR_VALUE clear{};
+    clear.Format = DXGI_FORMAT_D32_FLOAT;
+    clear.DepthStencil.Depth = 1.0f;
+    for (UINT i = 0; i < frames_; ++i) {
+      depthBuffers_[i].Reset();
+      if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc,
+                                                   D3D12_RESOURCE_STATE_DEPTH_WRITE, &clear,
+                                                   IID_PPV_ARGS(&depthBuffers_[i]))))
+        return false;
+      auto d = dsvHeap_->GetCPUDescriptorHandleForHeapStart();
+      d.ptr += SIZE_T(i) * dsvIncrement_;
+      device_->CreateDepthStencilView(depthBuffers_[i].Get(), nullptr, d);
+    }
     return true;
   }
   SurfaceStatus ApplyResize() {
@@ -576,6 +789,13 @@ private:
   std::array<std::vector<ComPtr<ID3D12Resource>>, kMaximumFrames> retired_;
   std::unordered_map<std::uint64_t, UiTexture> uiTextures_;
   ComPtr<IDXGISwapChain3> swapchain_;
+  ComPtr<ID3D12DescriptorHeap> dsvHeap_;
+  UINT dsvIncrement_{};
+  std::array<ComPtr<ID3D12Resource>, kMaximumFrames> depthBuffers_;
+  ComPtr<ID3D12RootSignature> sceneRootSignature_;
+  ComPtr<ID3D12PipelineState> scenePipeline_;
+  std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneUploads_;
+  std::array<std::size_t, kMaximumFrames> sceneUploadCapacity_{};
 };
 } // namespace
 std::unique_ptr<ISurface> CreateSurface(const SurfaceDescriptor &d, Window::IWindowSystem &w) {

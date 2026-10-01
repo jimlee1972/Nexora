@@ -156,8 +156,9 @@ the document/import owner to consume without the UI touching the filesystem.
 
 The core deliberately does not depend on a UI toolkit. The optional `NexoraEditorImGui` owner
 provides docking, theme/DPI scaling, input/text forwarding, stable-panel presentation, and recovery
-choice UX. Its Hierarchy filter/selection anchor are presentation state; selection and hierarchy
-edits still enter the core only through `SceneDocument::Select` and the undoable, cycle-safe
+choice UX. Its Hierarchy filter, generation-keyed expansion/selection anchor, rename buffer, and
+row clipping are presentation state; selection, rename, and hierarchy edits still enter the core
+only through `SceneDocument::Select`, `SceneDocument::Rename`, and the undoable, cycle-safe
 `SceneDocument::Move`. Native renderer submission, platform IME candidate positioning,
 accessibility, viewport rendering, gizmos, and target-host visual validation remain UI-host
 responsibilities.

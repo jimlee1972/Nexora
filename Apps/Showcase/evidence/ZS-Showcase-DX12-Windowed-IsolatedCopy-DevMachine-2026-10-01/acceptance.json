@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "acceptance": "Showcase Windows DX12 windowed compositing, isolated-copy evidence",
+  "tier": "developer-machine isolated package copy (NOT an independently provisioned clean machine/VM)",
+  "result": "PASS",
+  "recorded_local": "2026-10-01T22:22:50.7332967+08:00",
+  "recorded_utc": "2026-10-01T14:22:50.7332967Z",
+  "source_commit": "c3b4070dea2ba44cd3ddf0b2ab8202022099dbd5",
+  "target": {
+    "provisioning": "same physical developer machine as the build host; package copied to a fresh isolated temp directory outside the build tree",
+    "hostname": "JIM-PC",
+    "os": "Microsoft Windows 10 Home",
+    "os_version": "10.0.19045",
+    "note": "This is NOT a separate clean-machine/VM acceptance. See ZS-M5-Windows-CleanMachine-2026-10-01 for the independently provisioned VM tier (headless only, windowed_native_backend NOT EXECUTED there)."
+  },
+  "package": {
+    "profile": "Development",
+    "gameplay_linkage": "dynamic",
+    "source_package": "build/windows-dx12-zig-showcase/package/NexoraShowcase-Development",
+    "staged_copy_root": "%TEMP%/nexora-isolated-<random>/",
+    "build_manifest": "build.json",
+    "checksum_manifest": "SHA256SUMS",
+    "checksums_verified": 16,
+    "checksum_manifest_sha256": "5beee3b5de3b9fcf1bde17cec44699928690f45a1c53dcd708193ee1b7a1b82b"
+  },
+  "launch": {
+    "command": "bin/NexoraShowcase.exe --mode=interactive --scene=hub --backend=dx12 --frames=300 --gameplay-module=dynamic --gameplay-library=bin/NexoraZigGameplay.dll --report=launch-report-windowed.json",
+    "note": "This command is a manual windowed verification run from the checksum-verified isolated copy; it is NOT the package's recorded manifests/build.json launch command, which remains the headless --scene=tour smoke used by NexoraShowcasePackageDevelopmentEvidence.",
+    "exit_code": 0,
+    "report_file": "launch-report-windowed.json",
+    "report_status": "PASS",
+    "mode": "interactive",
+    "backend": "dx12",
+    "backend_fallback": false,
+    "windowed_native_backend": "IMPLEMENTED",
+    "surface_acquires": 300,
+    "surface_presents": 300,
+    "composed_frames": 300,
+    "clear_color": true,
+    "triangle": true,
+    "diagnostics_overlay": true,
+    "launch_report_sha256": "339274b27d2c3274aa9fd14906fc111c3578b0eae14db3a6fc19d897c03da308"
+  },
+  "screenshot": {
+    "file": "showcase-window-isolated-copy.png",
+    "capture_method": "user32.dll PrintWindow against the NexoraShowcase window handle only (not a full-desktop screen capture)"
+  },
+  "evidence_files": [
+    "acceptance.json",
+    "acceptance.md",
+    "launch-report-windowed.json",
+    "build.json",
+    "content.json",
+    "SHA256SUMS",
+    "showcase-window-isolated-copy.png"
+  ]
+}
