@@ -109,6 +109,8 @@ void TestCommandBuffer() {
           "a rejected batch partially mutated the world");
 }
 
+#if NEXORA_EDITOR_SDK_ENABLED
+// SceneEditor exists only with the Editor SDK feature.
 void TestUndoRestoresFullTransform() {
   runtime::World world;
   const auto scene = world.LoadScene("Undo");
@@ -120,6 +122,7 @@ void TestUndoRestoresFullTransform() {
               world.FindEntity(entity)->transform.sy == -2.0,
           "undo did not restore the full rotation and scale");
 }
+#endif
 
 void TestSnapshotRoundTrip() {
   runtime::World world;
@@ -225,7 +228,9 @@ int main() {
     TestDefaultsAndHelpers();
     TestValidation();
     TestCommandBuffer();
+#if NEXORA_EDITOR_SDK_ENABLED
     TestUndoRestoresFullTransform();
+#endif
     TestSnapshotRoundTrip();
     TestVersion1StillLoads();
     TestHostileSnapshots();

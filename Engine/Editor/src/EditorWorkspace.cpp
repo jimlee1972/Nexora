@@ -304,6 +304,14 @@ runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
       name.find('\r') != std::string::npos ||
       (parent != 0 && std::ranges::find(nodes_, parent, &Node::id) == nodes_.end()))
     return 0;
+  // The node list can outlive its entity (an undone creation), so the parent must also be a live
+  // entity of this scene; checking first means the attach below cannot fail after creation.
+  if (parent != 0) {
+    const auto *scene = world_.FindScene(scene_);
+    if (scene == nullptr ||
+        std::ranges::find(scene->entities, parent, &runtime::Entity::id) == scene->entities.end())
+      return 0;
+  }
   const auto entity_id = editor_.CreateEntity(scene_);
   if (parent != 0) {
     // Part of creating the node rather than a separate undo step: undoing the creation removes it.
@@ -390,11 +398,22 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
   }
   if (line != "world")
     return false;
+  world_data.assign(std::istreambuf_iterator<char>(input), {});
+  std::istringstream header(world_data);
+  std::string magic;
+  unsigned version{};
+  if (!(header >> magic >> version))
+    return false;
   std::unordered_set<runtime::Id> ids;
   for (const auto &node : loaded)
     if (!node.id || !ids.insert(node.id).second)
       return false;
+  // From world snapshot version 3 on, the snapshot is authoritative for the hierarchy and the
+  // node-line parent column is informational (a node may legitimately have a parent entity that is
+  // not a node), so only legacy files, whose migration uses that column, validate it.
   for (const auto &node : loaded) {
+    if (version >= 3)
+      break;
     if (node.parent && !ids.contains(node.parent))
       return false;
     std::unordered_set<runtime::Id> ancestors;
@@ -407,16 +426,9 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
       parent = found->parent;
     }
   }
-  world_data.assign(std::istreambuf_iterator<char>(input), {});
-  std::istringstream header(world_data);
-  std::string magic;
-  unsigned version{};
-  if (!(header >> magic >> version))
-    return false;
-  // From snapshot version 3 on, the world snapshot is authoritative for the hierarchy. Before it
-  // the hierarchy existed only in these node lines and never moved anything, so every transform was
-  // authored in world space: apply those parents keeping the world pose, so the migrated scene
-  // looks exactly as it did.
+  // Before snapshot version 3 the hierarchy existed only in these node lines and never moved
+  // anything, so every transform was authored in world space: apply those parents keeping the world
+  // pose, so the migrated scene looks exactly as it did.
   const auto migration = [&loaded, version] {
     runtime::WorldCommandBuffer commands;
     if (version < 3)

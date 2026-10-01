@@ -215,19 +215,30 @@ std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
   if (!input.eof())
     return std::nullopt;
   // Parents must be entities of this snapshot, never the entity itself, and the hierarchy must be
-  // acyclic. Walking at most `count` steps up from any entity detects a cycle.
+  // acyclic. Each entity is walked up only until it reaches an entity already proven to lead to a
+  // root, so the whole check is linear in the entity count even for one long chain.
   std::unordered_map<Id, Id> parents;
   for (const auto &entity : loaded.entities)
     parents.emplace(entity.id, entity.parent);
+  enum class Mark : unsigned char { Walking, Rooted };
+  std::unordered_map<Id, Mark> marks;
+  std::vector<Id> path;
   for (const auto &entity : loaded.entities) {
-    if (entity.parent != 0 && (entity.parent == entity.id || !parents.contains(entity.parent)))
-      return std::nullopt;
-    auto ancestor = entity.parent;
-    for (std::size_t steps = 0; ancestor != 0; ++steps) {
-      if (steps > loaded.entities.size() || ancestor == entity.id)
+    path.clear();
+    for (auto current = entity.id; current != 0 && !marks.contains(current);
+         current = parents.at(current)) {
+      const auto parent = parents.at(current);
+      if (parent != 0 && !parents.contains(parent))
         return std::nullopt;
-      ancestor = parents.at(ancestor);
+      marks.emplace(current, Mark::Walking);
+      path.push_back(current);
+      // Reaching an entity of the current walk again is a cycle (self-parenting included).
+      if (const auto found = marks.find(parent);
+          found != marks.end() && found->second == Mark::Walking)
+        return std::nullopt;
     }
+    for (const auto id : path)
+      marks[id] = Mark::Rooted;
   }
   const auto id = loaded.id;
   scenes_.push_back(std::move(loaded));
@@ -306,12 +317,25 @@ std::vector<Id> World::Children(Id entity) const {
 
 std::vector<Id> World::Subtree(Id entity) const {
   std::vector<Id> subtree;
-  if (FindEntity(entity) == nullptr)
-    return subtree;
-  subtree.push_back(entity);
-  for (std::size_t index = 0; index < subtree.size(); ++index)
-    for (const auto child : Children(subtree[index]))
-      subtree.push_back(child);
+  for (const auto &scene : scenes_) {
+    if (scene.state == SceneState::Unloaded ||
+        std::ranges::find(scene.entities, entity, &Entity::id) == scene.entities.end())
+      continue;
+    // One pass builds the child lists, so the walk is linear in the scene size. The visited set
+    // keeps a hierarchy corrupted by direct writes to Entity::parent from looping.
+    std::unordered_map<Id, std::vector<Id>> children;
+    for (const auto &candidate : scene.entities)
+      if (candidate.parent != 0)
+        children[candidate.parent].push_back(candidate.id);
+    std::unordered_set<Id> visited{entity};
+    subtree.push_back(entity);
+    for (std::size_t index = 0; index < subtree.size(); ++index)
+      if (const auto found = children.find(subtree[index]); found != children.end())
+        for (const auto child : found->second)
+          if (visited.insert(child).second)
+            subtree.push_back(child);
+    break;
+  }
   return subtree;
 }
 
@@ -448,16 +472,29 @@ bool WorldCommandBuffer::Apply(World &world) {
       nodes.at(command.entity).parent = command.parent;
     }
     if (command.kind == Command::Kind::Destroy) {
+      std::unordered_map<Id, std::vector<Id>> children;
+      for (const auto &[id, node] : nodes)
+        if (node.parent != 0 && !destroyed.contains(id))
+          children[node.parent].push_back(id);
       std::vector<Id> doomed{command.entity};
+      destroyed.insert(command.entity);
       for (std::size_t index = 0; index < doomed.size(); ++index)
-        for (const auto &[id, node] : nodes)
-          if (node.parent == doomed[index] && !destroyed.contains(id))
-            doomed.push_back(id);
-      destroyed.insert(doomed.begin(), doomed.end());
+        if (const auto found = children.find(doomed[index]); found != children.end())
+          for (const auto child : found->second)
+            if (destroyed.insert(child).second)
+              doomed.push_back(child);
     }
   }
 
-  // Pass 2 applies in order; every command was proven valid against the state it will see.
+  // Pass 2 applies in order; every command was proven valid against the state it will see. The one
+  // thing pass 1 cannot prove is that a keep-world reparent yields a representable local transform
+  // (two valid poses can still overflow when re-expressed), so a batch with one keeps a copy of the
+  // scenes and restores it if that happens, keeping the batch all-or-nothing.
+  std::optional<std::vector<Scene>> rollback;
+  if (std::ranges::any_of(commands_, [](const Command &command) {
+        return command.kind == Command::Kind::Parent && command.keep_world;
+      }))
+    rollback = world.scenes_;
   const auto locate = [&world](Id id) -> std::pair<Scene *, Entity *> {
     for (auto &scene : world.scenes_)
       if (const auto found = std::ranges::find(scene.entities, id, &Entity::id);
@@ -477,8 +514,13 @@ bool WorldCommandBuffer::Apply(World &world) {
         auto local = *world.WorldTransform(command.entity);
         if (command.parent != 0)
           local = RelativeTransform(*world.WorldTransform(command.parent), local);
-        if (const auto normalized = NormalizedTransform(local))
-          found->transform = *normalized;
+        const auto normalized = NormalizedTransform(local);
+        if (!normalized) {
+          world.scenes_ = std::move(*rollback);
+          last_destroyed_.clear();
+          return false;
+        }
+        found->transform = *normalized;
       }
       found->parent = command.parent;
     } else if (command.kind == Command::Kind::Camera) {
@@ -492,9 +534,9 @@ bool WorldCommandBuffer::Apply(World &world) {
       found->mesh_data = command.mesh.value_or(MeshComponent{});
     } else {
       const auto doomed = world.Subtree(command.entity);
-      std::erase_if(scene->entities, [&doomed](const Entity &entity) {
-        return std::ranges::find(doomed, entity.id) != doomed.end();
-      });
+      const std::unordered_set<Id> doomed_ids(doomed.begin(), doomed.end());
+      std::erase_if(scene->entities,
+                    [&doomed_ids](const Entity &entity) { return doomed_ids.contains(entity.id); });
       last_destroyed_.insert(last_destroyed_.end(), doomed.begin(), doomed.end());
     }
   }

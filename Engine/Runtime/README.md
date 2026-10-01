@@ -251,13 +251,20 @@ no sibling ordering yet.
   in another scene are rejected.
 - Batches are validated against the hierarchy as the earlier commands of the same batch leave it, so
   "detach, then destroy the old parent" is valid while "destroy the parent, then move the child" is
-  rejected whole, with nothing applied.
+  rejected whole, with nothing applied. A keep-world reparent whose re-expressed local transform is
+  not representable (two valid but extreme poses can overflow) also rejects the whole batch: such a
+  batch keeps a copy of the scenes during application and restores it.
 - `DestroyEntity` destroys the entity and every descendant, as in Unity and Unreal.
   `WorldCommandBuffer::LastDestroyed` lists every entity removed by the last successful `Apply`, so
   owners of per-entity state (such as `GameWorld`'s physics, audio, and character bindings) can release
   it for cascaded descendants too.
 - Loading a snapshot rejects a parent outside the snapshot, a self-parent, and any cycle, without
-  partially adding the scene.
+  partially adding the scene. Hierarchy validation, `Subtree`, and cascading destruction are linear in
+  the scene size, so one long chain cannot make loading or destroying quadratic.
+- `Entity::parent`, like `Entity::transform`, is a plain field: writing it directly through
+  `World::CreateEntity`'s reference bypasses all of the validation above and is reserved for code
+  that maintains the invariants itself. Traversal stays bounded even on a hierarchy corrupted that
+  way (`Subtree` tracks visited entities; ancestor walks are step-limited and then report failure).
 
 Phase 1 limits: a character-controlled entity must be a root (`GameWorld` rejects parenting one and
 attaching a character to a parented entity), because the controller writes world positions into the
@@ -406,7 +413,9 @@ bookkeeping structure that predates this milestone and does not itself load anyt
 into Create/Modify/Undo operations. Undoing a destroyed entity restores both its component data and
 stable ID through the editor's privileged access to `World`; older transform and create undo cards
 therefore continue to target the same entity. Destroy cascades to descendants, and undoing it restores
-the whole subtree with its parents and local transforms (only when none of those IDs exists again).
+the whole subtree with its parents and local transforms (only when none of those IDs exists again);
+if the subtree root's outside parent no longer exists by then, the root is restored as a root at the
+world pose it had.
 `SetParent` is undoable and restores the previous parent and the exact previous local transform.
 Destroy also validates that the entity belongs to the supplied scene before mutating the world. `CreateEntity` returns the new entity's stable `Id`, not a
 reference into `World`'s storage: unlike `World::CreateEntity` (consumed immediately, within this
@@ -441,8 +450,8 @@ starts released until explicitly granted by editor policy. Stopping discards run
 default. The only supported apply-back policy copies changed transforms for stable entity IDs;
 runtime-created entities and all other component mutations remain isolated and are discarded.
 Transform apply-back is a deterministic stable-ID diff against the source transform snapshot. If an
-Editor transform changed concurrently, or the entity's parent differs between the two worlds (local
-values from under another parent would be a different pose), the entire apply is rejected without
+Editor transform changed concurrently, or the entity was reparented in either world since play started
+(even with unchanged local values, since those would mean a different pose under another parent), the entire apply is rejected without
 partial mutation and the conflict remains visible through `LastApplyBackStatus`. The Play World and update callback are released
 before `Stop` returns, including after conflicts and contained update failures.
 
