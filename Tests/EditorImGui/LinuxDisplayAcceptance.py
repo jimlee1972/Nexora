@@ -107,13 +107,24 @@ def finish_project_selector(
     subprocess.run([xdotool, "windowfocus", window], env=environment, check=True)
     time.sleep(0.5)
     subprocess.run(
+        [xdotool, "mousemove", "--window", window, "120", "70", "click", "1"],
+        env=environment,
+        check=True,
+    )
+    time.sleep(0.2)
+    subprocess.run(
         [xdotool, "type", "--clearmodifiers", "--delay", "1", str(root)],
         env=environment,
         check=True,
     )
     time.sleep(0.2)
-    press("Tab")
     if action == "created":
+        subprocess.run(
+            [xdotool, "mousemove", "--window", window, "120", "94", "click", "1"],
+            env=environment,
+            check=True,
+        )
+        time.sleep(0.2)
         press("ctrl+a")
         subprocess.run(
             [xdotool, "type", "--clearmodifiers", "--delay", "1", name],
@@ -126,7 +137,9 @@ def finish_project_selector(
         while time.monotonic() < deadline and not (root / "project.nexora").is_file():
             time.sleep(0.1)
         if not (root / "project.nexora").is_file():
-            raise RuntimeError("graphical selector did not create the project")
+            subprocess.run([xdotool, "windowclose", window], env=environment, check=False)
+            _, stderr = editor.communicate(timeout=30)
+            raise RuntimeError(f"graphical selector did not create the project: {stderr}")
     else:
         press("ctrl+o")
         time.sleep(1.0)
@@ -181,8 +194,8 @@ def main() -> int:
         environment["DISPLAY"] = display
 
         # Launch without --project and complete both graphical selector paths through real X11
-        # keyboard input. Creation owns the writer lease and persists the descriptor; the second
-        # launch opens the same project as an explicit read-only observer.
+        # pointer, text, and shortcut input. Creation owns the writer lease and persists the
+        # descriptor; the second launch opens the same project as an explicit read-only observer.
         selector_root = root / "Created By Selector"
         editor = launch(args.editor, None, recent_projects, environment)
         finish_project_selector(
