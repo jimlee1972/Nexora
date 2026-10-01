@@ -63,12 +63,25 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
         choice != nexora::editor::imgui::RecoveryChoice::None)
       recovery_choice = choice;
     static_cast<void>(ui.EndFrame());
-    if (ui.Render(*created.surface, frame.width, frame.height) !=
-        Nexora::Presentation::SurfaceStatus::Ready) {
+    // A surface-level loss (the window vanished, the swapchain went out of date) is recoverable and
+    // is resolved by the next BeginFrame, which also pumps a pending close request. Anything else,
+    // device loss included, is a real failure.
+    const auto surface_recoverable = [](Nexora::Presentation::SurfaceStatus status) {
+      const auto recovery = Nexora::Presentation::RecoveryAction(status);
+      return recovery == Nexora::Presentation::SurfaceAction::RecreateSurface ||
+             recovery == Nexora::Presentation::SurfaceAction::Suspend;
+    };
+    if (const auto status = ui.Render(*created.surface, frame.width, frame.height);
+        status != Nexora::Presentation::SurfaceStatus::Ready) {
+      if (surface_recoverable(status))
+        continue;
       result = 1;
       break;
     }
-    if (created.surface->EndFrame() != Nexora::Presentation::SurfaceStatus::Ready) {
+    if (const auto status = created.surface->EndFrame();
+        status != Nexora::Presentation::SurfaceStatus::Ready) {
+      if (surface_recoverable(status))
+        continue;
       result = 1;
       break;
     }

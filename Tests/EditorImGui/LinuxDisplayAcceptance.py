@@ -128,13 +128,11 @@ def main() -> int:
         if not (root / ".nexora/editor-layout.ini").read_text().startswith("schema=1\n"):
             raise RuntimeError("legacy layout was not migrated to the current schema")
 
-        # Simulate a crash only after a valid recovery journal is durable. The relaunched
+        # Leave behind a valid recovery journal, as a crashed session would. The relaunched
         # process must discover it before normal editing and accept the keyboard-only choice.
         (root / ".nexora/workspace.recovery").write_text(
             "schema=1\ndocument=Recovered.scene\n"
         )
-        editor.kill()
-        editor.wait(timeout=5)
         editor = launch(args.editor, root, environment, frames=600)
         finish_recovery_choice(
             editor, args.xdotool, environment, ["key", "Tab", "key", "Return"], "recover"

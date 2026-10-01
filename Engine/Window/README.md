@@ -12,7 +12,9 @@ pump or system destruction. Destroy removes queued events and no callback or def
 
 Win32 provides per-monitor DPI, keyboard/text/IME, pointer-button and wheel translation, including
 native IME candidate positioning. X11 provides close, configure, focus, keyboard, pointer-button and
-two-axis wheel translation plus EWMH fullscreen; candidate positioning reports `Unsupported`. Cocoa
+two-axis wheel translation plus EWMH fullscreen; candidate positioning reports `Unsupported`. A window destroyed by the server or another client (no
+`WM_DELETE_WINDOW` is ever sent) is reported as a close request, and the system does not destroy it a
+second time. Cocoa
 provides native window lifetime, resize observation, visibility, and Spaces fullscreen. Display/DPI
 changes are represented by backend-neutral `DisplayChanged` and `DpiChanged` events where a host
 reports them.
