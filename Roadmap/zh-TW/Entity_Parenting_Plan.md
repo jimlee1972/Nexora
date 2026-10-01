@@ -1,7 +1,9 @@
 # Entity Parenting（Transform 階層）— 計畫
 
-> 版本：v1.1｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 階段 1、2、3（資料模型）與 4（GPU scene 同步）已完成；圖形化 Hierarchy 與 gizmo 屬 Editor roadmap**｜
-> 更新：2026-10-01｜對應：`Transform_Rotation_Scale_Plan.md`、`Editor_Roadmap.md` §ED-M2
+> 版本：v1.1｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 階段 1、2、3（資料模型）與
+> 4（GPU scene 同步）已完成；Editor roadmap 現已有圖形化 tree／filter／selection／reparent／reorder
+> foundation，rename、virtualization 與 gizmo 仍待完成**｜更新：2026-10-02｜對應：
+> `Transform_Rotation_Scale_Plan.md`、`Editor_Roadmap.md` §ED-M2
 
 ## 1. 目的
 

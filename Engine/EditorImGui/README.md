@@ -17,8 +17,10 @@ authoring views on first launch.
   creates directories, acquires a writer lease, indexes content, or replaces the active project;
   the application performs those steps and reports a failed activation back to the selector.
 - `ProductShell` and `SceneDocument` remain borrowed Editor Core models and outlive calls that
-  present them. The Hierarchy reads nodes from the supplied live document and writes a clicked
-  node back through `SceneDocument::Select`; the application owns that document and its `World`.
+  present them. The Hierarchy owns only its filter and selection anchor. It renders the parent-aware
+  tree, routes plain/Ctrl/Shift selection through `SceneDocument::Select`, and routes sibling
+  reorder or drag/drop reparenting through `SceneDocument::Move`; cycle rejection and undo stay in
+  Editor Core. The application owns the document and its `World`.
 - `ProjectContentSession` is also borrowed for each `DrawProductShell` call. The Content panel reads
   virtualized ranges from its UUID-keyed model, emits generation-tagged POD drag payloads, and routes
   rename/move/delete/undo/reimport back through the session. Reimport submits to the borrowed

@@ -63,5 +63,10 @@ shows the retained editor/disk hashes and keeps the conflict open; Reload or Kee
 terminal authoring-thread choice without direct UI filesystem access. Dependency cycles are also
 shown in the Content panel and continue to block artifact publication.
 
+The ED-M2 graphical Hierarchy foundation now renders a parent-aware expandable tree, filters by
+entity name, supports plain/Ctrl/Shift selection with a retained anchor, and routes sibling ordering
+and drag/drop reparenting through the undoable, cycle-safe `SceneDocument::Move` contract. Rename,
+virtualized rows, Scene View, Inspector, and the ED-M2 visual exit gate remain open.
+
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows
 fresh-project workflow acceptance remain open.

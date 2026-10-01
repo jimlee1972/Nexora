@@ -20,7 +20,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | --- | --- | :---: |
 | ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Real-process recovery and Linux/Windows host evidence remain open. | [ ] |
 | ED-M1 project/assets | Portable create/open, schema upgrade, single-writer/read-only access, recent-project state, deterministic indexing/search, persistent sidecar UUIDs, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. The native shell exposes project status, provides a graphical create/open/recent selector, binds the real index to a graphical Content panel with recoverable project-local mutations, runs cancellable background import/reimport with bounded progress and structured diagnostics, shows dependency cycles, and presents blocking reload/keep/compare conflict UX; physical-display/Windows workflow acceptance remains open. | [ ] |
-| ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. Scene View, Inspector, renderer-backed picking, cameras, gizmo manipulation, and reflected graphical widgets remain open. | [ ] |
+| ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. The graphical Hierarchy now presents a parent-aware tree, filtering, selection anchors, multi-selection, sibling ordering, and cycle-safe reparenting. Rename/virtualization, Scene View, Inspector, renderer-backed picking, cameras, gizmo manipulation, and reflected graphical widgets remain open. | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. Graphical Game View, Console UI, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
 | ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
@@ -131,9 +131,12 @@ creates property widgets; unknown components retain raw data instead of being si
   round trips, a cancel-safe gizmo transaction state machine, generation-safe asynchronous picking,
   atomic camera persistence, 1,000-step undo/redo replay, and corrupt-scene state preservation are
   implemented and tested.
-- Open: graphical Hierarchy/Scene/Inspector, renderer-backed picking, camera controls, gizmos,
-  reflected widgets, and unknown-component visual workflows. ED-M2 exit still requires UI
-  select/edit/undo/save/restart acceptance and visual evidence.
+- ✅ The graphical Hierarchy now renders a parent-aware expandable tree, filters by entity name,
+  applies plain/Ctrl/Shift selection with a retained anchor, and routes sibling ordering plus
+  drag/drop reparenting through the undoable, cycle-safe `SceneDocument::Move` contract.
+- Open: Hierarchy rename/virtualization, graphical Scene/Inspector, renderer-backed picking, camera
+  controls, gizmos, reflected widgets, and unknown-component visual workflows. ED-M2 exit still
+  requires UI select/edit/undo/save/restart acceptance and visual evidence.
 
 - **ED-M3 — PIE/debugging:** Game View, play/pause/step, fixed ticks, input focus, isolated worlds, apply policy, Console, runtime inspection, debugger boundary. The engine loads Zig gameplay; the Editor is not Zig `main`.
   - ✅ Portable `PlaySession` prerequisite covers isolated Play World ownership, fixed tick,

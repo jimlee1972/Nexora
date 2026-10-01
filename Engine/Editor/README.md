@@ -156,8 +156,11 @@ the document/import owner to consume without the UI touching the filesystem.
 
 The core deliberately does not depend on a UI toolkit. The optional `NexoraEditorImGui` owner
 provides docking, theme/DPI scaling, input/text forwarding, stable-panel presentation, and recovery
-choice UX. Native renderer submission, platform IME candidate positioning, accessibility,
-viewport rendering, gizmos, and target-host visual validation remain UI-host responsibilities.
+choice UX. Its Hierarchy filter/selection anchor are presentation state; selection and hierarchy
+edits still enter the core only through `SceneDocument::Select` and the undoable, cycle-safe
+`SceneDocument::Move`. Native renderer submission, platform IME candidate positioning,
+accessibility, viewport rendering, gizmos, and target-host visual validation remain UI-host
+responsibilities.
 The portable gizmo state machine and picking validator define transaction and asynchronous-result
 policy only; they do not claim graphical manipulation or renderer-backed picking acceptance.
 `Nexora/Editor/ViewportMath.h` adds the UI-neutral Scene View math those hosts consume, in double

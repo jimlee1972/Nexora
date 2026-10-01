@@ -20,7 +20,7 @@ workspace/document core。**待辦：** window/docking/UI shell、graphical view
 | --- | --- | :---: |
 | ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Real-process recovery 與 Linux/Windows host evidence 仍待完成。 | [ ] |
 | ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態、提供圖形化 create/open/recent selector、將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation，執行具 bounded progress 與 structured diagnostic 的 cancellable background import/reimport、顯示 dependency cycle，並提供阻塞式 reload／keep／compare conflict UX；實體顯示／Windows workflow 驗收仍待完成。 | [ ] |
-| ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。Scene View、Inspector、renderer-backed picking、camera、gizmo 操作與 reflected graphical widget 仍待完成。 | [ ] |
+| ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware tree、filter、selection anchor、multi-selection、兄弟排序與 cycle-safe reparent。Rename／virtualization、Scene View、Inspector、renderer-backed picking、camera、gizmo 操作與 reflected graphical widget 仍待完成。 | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。Graphical Game View、Console UI 與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
 | ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
@@ -132,9 +132,12 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   unknown-component round trip、可安全取消的 gizmo transaction state machine、generation-safe
   asynchronous picking、atomic camera persistence、1,000-step undo/redo replay，以及 corrupt scene
   的既有狀態保留。
-- 待辦：圖形化 Hierarchy／Scene／Inspector、renderer-backed picking、camera controls、gizmo、
-  reflected widget 與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成
-  select／edit／undo／save／restart 驗收與視覺證據。
+- ✅ 圖形化 Hierarchy 現會繪製 parent-aware expandable tree、依 entity name 過濾、以保留的
+  anchor 處理 plain／Ctrl／Shift selection，並把兄弟排序與 drag/drop reparent 送進可復原、
+  cycle-safe 的 `SceneDocument::Move` contract。
+- 待辦：Hierarchy rename／virtualization、圖形化 Scene／Inspector、renderer-backed picking、
+  camera controls、gizmo、reflected widget 與 unknown-component visual workflow。ED-M2 exit
+  仍需 UI 中完成 select／edit／undo／save／restart 驗收與視覺證據。
 
 ### ED-M3 — PIE 與 debugging
 

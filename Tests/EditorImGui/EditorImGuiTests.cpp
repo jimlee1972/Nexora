@@ -23,7 +23,9 @@ int main() {
   assert(world.Activate(scene_id));
   nexora::editor::SceneDocument scene(world, scene_id);
   const auto root = scene.Create("Scene Root");
-  assert(root != 0 && scene.Nodes().size() == 1);
+  const auto child = scene.Create("Child", root);
+  const auto sibling = scene.Create("Sibling");
+  assert(root != 0 && child != 0 && sibling != 0 && scene.Nodes().size() == 3);
   const auto content_root =
       std::filesystem::temp_directory_path() /
       ("nexora-imgui-content-" +
@@ -297,6 +299,66 @@ int main() {
   assert(!reloaded_conflict_state.content_conflict_visible);
   assert(reloaded_conflict_state.content_conflict_choice ==
          nexora::editor::DirtyConflictChoice::Reload);
+
+  EditorImGuiTestAccess::SetHierarchyFilter(host, "");
+  EditorImGuiTestAccess::QueueHierarchySelection(host, root, false, false);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  auto hierarchy_state = EditorImGuiTestAccess::Inspect(host);
+  assert(hierarchy_state.hierarchy_visible_rows == 3);
+  assert(hierarchy_state.hierarchy_selection == 1);
+  assert(hierarchy_state.hierarchy_selection_anchor == root);
+  assert(scene.Selection().size() == 1 && scene.Selection().front() == root);
+
+  EditorImGuiTestAccess::QueueHierarchySelection(host, child, true, false);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  hierarchy_state = EditorImGuiTestAccess::Inspect(host);
+  assert(hierarchy_state.hierarchy_selection == 2 &&
+         hierarchy_state.hierarchy_selection_anchor == child);
+  assert(std::ranges::find(scene.Selection(), root) != scene.Selection().end() &&
+         std::ranges::find(scene.Selection(), child) != scene.Selection().end());
+
+  EditorImGuiTestAccess::QueueHierarchySelection(host, sibling, false, true);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  hierarchy_state = EditorImGuiTestAccess::Inspect(host);
+  assert(hierarchy_state.hierarchy_selection == 2 &&
+         hierarchy_state.hierarchy_selection_anchor == child);
+  assert(std::ranges::find(scene.Selection(), child) != scene.Selection().end() &&
+         std::ranges::find(scene.Selection(), sibling) != scene.Selection().end());
+
+  EditorImGuiTestAccess::SetHierarchyFilter(host, "scene");
+  EditorImGuiTestAccess::QueueHierarchySelection(host, child, false, false);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  hierarchy_state = EditorImGuiTestAccess::Inspect(host);
+  assert(hierarchy_state.hierarchy_visible_rows == 1 && hierarchy_state.hierarchy_selection == 2);
+  assert(std::ranges::find(scene.Selection(), child) != scene.Selection().end() &&
+         std::ranges::find(scene.Selection(), sibling) != scene.Selection().end());
+  EditorImGuiTestAccess::SetHierarchyFilter(host, "");
+
+  EditorImGuiTestAccess::QueueHierarchyMove(host, sibling, root, 1);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(scene.Parent(sibling) == root);
+  EditorImGuiTestAccess::QueueHierarchySelection(host, sibling, false, false);
+  EditorImGuiTestAccess::QueueHierarchyReorder(host, -1);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(world.SiblingIndex(sibling) == 0);
+  EditorImGuiTestAccess::QueueHierarchyMove(host, root, child, 0);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(scene.Parent(root) == 0);
+
   auto device = nexora::rhi::CreateValidationDevice();
   const auto target =
       device->CreateTexture({1280, 720, nexora::rhi::TextureFormat::Rgba8Unorm,

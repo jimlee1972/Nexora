@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <cstddef>
 #include <cstring>
@@ -18,11 +19,21 @@
 #include <span>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 namespace nexora::editor::imgui {
 struct EditorImGuiHost::State final {
+  struct HierarchySelectionRequest final {
+    runtime::Id entity{};
+    bool additive = false;
+    bool range = false;
+  };
+  struct HierarchyMoveRequest final {
+    runtime::Id entity{}, parent{};
+    std::size_t index{};
+  };
   struct Renderer final {
     struct UploadSlot final {
       nexora::rhi::BufferHandle vertices;
@@ -65,6 +76,13 @@ struct EditorImGuiHost::State final {
   bool initial_dock_layout_built = false;
   bool focus_initial_content = false;
   std::string recovery_error;
+  std::array<char, 128> hierarchy_filter{};
+  std::uint32_t hierarchy_visible_rows = 0;
+  std::uint32_t hierarchy_selection = 0;
+  std::optional<runtime::Id> hierarchy_selection_anchor;
+  std::optional<HierarchySelectionRequest> hierarchy_selection_request;
+  std::optional<HierarchyMoveRequest> hierarchy_move_request;
+  std::optional<int> hierarchy_reorder_request;
   std::array<char, 128> content_query{};
   std::array<char, 64> content_type{};
   std::array<char, 260> content_rename{};
@@ -225,6 +243,81 @@ struct AssetDragData final {
 };
 static_assert(std::is_trivially_copyable_v<AssetDragData>);
 
+struct HierarchyDragData final {
+  runtime::Id entity{};
+};
+static_assert(std::is_trivially_copyable_v<HierarchyDragData>);
+
+constexpr std::string_view kHierarchyDragType = "NEXORA_HIERARCHY_ENTITY";
+
+bool ContainsAsciiInsensitive(std::string_view value, std::string_view query) {
+  if (query.empty())
+    return true;
+  return std::ranges::search(value, query, [](char left, char right) {
+           return std::tolower(static_cast<unsigned char>(left)) ==
+                  std::tolower(static_cast<unsigned char>(right));
+         }).begin() != value.end();
+}
+
+template <typename StateT>
+bool ApplyHierarchySelection(StateT &state, SceneDocument &scene,
+                             std::span<const runtime::Id> visible, runtime::Id entity,
+                             bool additive, bool range) {
+  const auto target = std::ranges::find(visible, entity);
+  if (target == visible.end())
+    return false;
+
+  std::vector<runtime::Id> selection;
+  if (range && state.hierarchy_selection_anchor) {
+    const auto anchor = std::ranges::find(visible, *state.hierarchy_selection_anchor);
+    if (anchor != visible.end()) {
+      const auto first = std::min(anchor, target);
+      const auto last = std::max(anchor, target);
+      selection.assign(first, std::next(last));
+    }
+  }
+  if (selection.empty() && additive) {
+    selection.assign(scene.Selection().begin(), scene.Selection().end());
+    if (const auto selected = std::ranges::find(selection, entity); selected != selection.end())
+      selection.erase(selected);
+    else
+      selection.push_back(entity);
+  } else if (selection.empty()) {
+    selection.push_back(entity);
+  }
+  if (!scene.Select(selection))
+    return false;
+  if (!range || !state.hierarchy_selection_anchor)
+    state.hierarchy_selection_anchor = entity;
+  return true;
+}
+
+std::size_t SiblingIndex(std::span<const SceneDocument::NodeView> nodes, runtime::Id entity) {
+  const auto target = std::ranges::find(nodes, entity, &SceneDocument::NodeView::id);
+  if (target == nodes.end())
+    return 0;
+  return static_cast<std::size_t>(std::ranges::count_if(
+      nodes.begin(), target, [parent = target->parent](const SceneDocument::NodeView &node) {
+        return node.parent == parent;
+      }));
+}
+
+bool MoveHierarchySelection(SceneDocument &scene, std::span<const SceneDocument::NodeView> nodes,
+                            int direction) {
+  if (scene.Selection().size() != 1 || direction == 0)
+    return false;
+  const auto entity = scene.Selection().front();
+  const auto target = std::ranges::find(nodes, entity, &SceneDocument::NodeView::id);
+  if (target == nodes.end())
+    return false;
+  const auto sibling_count = static_cast<std::size_t>(
+      std::ranges::count(nodes, target->parent, &SceneDocument::NodeView::parent));
+  const auto current = SiblingIndex(nodes, entity);
+  if ((direction < 0 && current == 0) || (direction > 0 && current + 1 >= sibling_count))
+    return false;
+  return scene.Move(entity, target->parent, direction < 0 ? current - 1 : current + 1);
+}
+
 const char *ThumbnailLabel(ThumbnailState state) {
   switch (state) {
   case ThumbnailState::Loading:
@@ -254,6 +347,163 @@ bool AcceptAssetDrop(ProjectContentSession &content, const std::filesystem::path
   }
   ImGui::EndDragDropTarget();
   return moved;
+}
+
+template <typename StateT> void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene) {
+  state.hierarchy_visible_rows = 0;
+  state.hierarchy_selection = 0;
+  if (scene == nullptr) {
+    state.hierarchy_selection_anchor.reset();
+    state.hierarchy_selection_request.reset();
+    state.hierarchy_move_request.reset();
+    state.hierarchy_reorder_request.reset();
+    return;
+  }
+  const auto nodes = scene->Nodes();
+  std::vector<runtime::Id> visible;
+  visible.reserve(nodes.size());
+  const std::string_view filter(state.hierarchy_filter.data());
+  for (const auto &node : nodes)
+    if (ContainsAsciiInsensitive(node.name, filter))
+      visible.push_back(node.id);
+  state.hierarchy_visible_rows = static_cast<std::uint32_t>(
+      std::min<std::size_t>(visible.size(), std::numeric_limits<std::uint32_t>::max()));
+
+  if (state.hierarchy_selection_request) {
+    const auto request = std::exchange(state.hierarchy_selection_request, std::nullopt);
+    static_cast<void>(ApplyHierarchySelection(state, *scene, visible, request->entity,
+                                              request->additive, request->range));
+  }
+  if (state.hierarchy_move_request) {
+    const auto request = std::exchange(state.hierarchy_move_request, std::nullopt);
+    static_cast<void>(scene->Move(request->entity, request->parent, request->index));
+  }
+  if (state.hierarchy_reorder_request) {
+    const auto direction = std::exchange(state.hierarchy_reorder_request, std::nullopt);
+    static_cast<void>(MoveHierarchySelection(*scene, nodes, *direction));
+  }
+  state.hierarchy_selection = static_cast<std::uint32_t>(
+      std::min<std::size_t>(scene->Selection().size(), std::numeric_limits<std::uint32_t>::max()));
+}
+
+template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scene) {
+  ImGui::SetNextItemWidth(-1.0F);
+  ImGui::InputTextWithHint("##hierarchy-filter", "Filter entities...",
+                           state.hierarchy_filter.data(), state.hierarchy_filter.size());
+  if (scene == nullptr) {
+    ImGui::TextUnformatted("No scene is open.");
+    return;
+  }
+
+  const auto nodes = scene->Nodes();
+  std::vector<runtime::Id> visible;
+  visible.reserve(nodes.size());
+  const std::string_view filter(state.hierarchy_filter.data());
+  for (const auto &node : nodes)
+    if (ContainsAsciiInsensitive(node.name, filter))
+      visible.push_back(node.id);
+  state.hierarchy_visible_rows = static_cast<std::uint32_t>(
+      std::min<std::size_t>(visible.size(), std::numeric_limits<std::uint32_t>::max()));
+
+  ImGui::BeginDisabled(scene->Selection().size() != 1);
+  if (ImGui::SmallButton("Move up"))
+    static_cast<void>(MoveHierarchySelection(*scene, nodes, -1));
+  ImGui::SameLine();
+  if (ImGui::SmallButton("Move down"))
+    static_cast<void>(MoveHierarchySelection(*scene, nodes, 1));
+  ImGui::EndDisabled();
+  ImGui::SameLine();
+  if (ImGui::SmallButton("Clear selection")) {
+    static_cast<void>(scene->Select({}));
+    state.hierarchy_selection_anchor.reset();
+  }
+  ImGui::Separator();
+
+  const auto handle_selection = [&](runtime::Id entity) {
+    const auto &io = ImGui::GetIO();
+    static_cast<void>(
+        ApplyHierarchySelection(state, *scene, visible, entity, io.KeyCtrl, io.KeyShift));
+  };
+  const auto handle_drag = [&](const SceneDocument::NodeView &node) {
+    if (ImGui::BeginDragDropSource()) {
+      const HierarchyDragData drag{node.id};
+      ImGui::SetDragDropPayload(kHierarchyDragType.data(), &drag, sizeof(drag));
+      ImGui::Text("Move %.*s", static_cast<int>(node.name.size()), node.name.data());
+      ImGui::EndDragDropSource();
+    }
+    if (!ImGui::BeginDragDropTarget())
+      return;
+    if (const auto *payload = ImGui::AcceptDragDropPayload(kHierarchyDragType.data());
+        payload != nullptr && payload->DataSize == sizeof(HierarchyDragData)) {
+      const auto &drag = *static_cast<const HierarchyDragData *>(payload->Data);
+      const auto child_count = static_cast<std::size_t>(
+          std::ranges::count(nodes, node.id, &SceneDocument::NodeView::parent));
+      static_cast<void>(scene->Move(drag.entity, node.id, child_count));
+    }
+    ImGui::EndDragDropTarget();
+  };
+
+  if (filter.empty()) {
+    std::unordered_map<runtime::Id, std::vector<const SceneDocument::NodeView *>> children;
+    children.reserve(nodes.size());
+    std::unordered_map<runtime::Id, const SceneDocument::NodeView *> by_id;
+    by_id.reserve(nodes.size());
+    for (const auto &node : nodes)
+      by_id.emplace(node.id, &node);
+    for (const auto &node : nodes) {
+      const auto parent = node.parent != 0 && by_id.contains(node.parent) ? node.parent : 0;
+      children[parent].push_back(&node);
+    }
+    const auto draw_tree = [&](auto &&self, runtime::Id parent) -> void {
+      for (const auto *node : children[parent]) {
+        const bool has_children = children.contains(node->id) && !children[node->id].empty();
+        ImGuiTreeNodeFlags flags =
+            ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth;
+        if (!has_children)
+          flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+        if (std::ranges::find(scene->Selection(), node->id) != scene->Selection().end())
+          flags |= ImGuiTreeNodeFlags_Selected;
+        const auto tree_id = "##hierarchy-" + std::to_string(node->id);
+        const bool open = ImGui::TreeNodeEx(tree_id.c_str(), flags, "%.*s",
+                                            static_cast<int>(node->name.size()), node->name.data());
+        if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+          handle_selection(node->id);
+        handle_drag(*node);
+        if (has_children && open) {
+          self(self, node->id);
+          ImGui::TreePop();
+        }
+      }
+    };
+    draw_tree(draw_tree, 0);
+  } else {
+    for (const auto &node : nodes) {
+      if (!ContainsAsciiInsensitive(node.name, filter))
+        continue;
+      const bool selected =
+          std::ranges::find(scene->Selection(), node.id) != scene->Selection().end();
+      const auto label = std::string(node.name) + "##" + std::to_string(node.id);
+      if (ImGui::Selectable(label.c_str(), selected))
+        handle_selection(node.id);
+      handle_drag(node);
+    }
+  }
+
+  ImGui::Selectable("Drop here to move to scene root", false, ImGuiSelectableFlags_AllowOverlap);
+  if (ImGui::BeginDragDropTarget()) {
+    if (const auto *payload = ImGui::AcceptDragDropPayload(kHierarchyDragType.data());
+        payload != nullptr && payload->DataSize == sizeof(HierarchyDragData)) {
+      const auto &drag = *static_cast<const HierarchyDragData *>(payload->Data);
+      const auto root_count = static_cast<std::size_t>(
+          std::ranges::count(nodes, runtime::Id{}, &SceneDocument::NodeView::parent));
+      static_cast<void>(scene->Move(drag.entity, 0, root_count));
+    }
+    ImGui::EndDragDropTarget();
+  }
+  if (visible.empty())
+    ImGui::TextDisabled("No matching entities.");
+  state.hierarchy_selection = static_cast<std::uint32_t>(
+      std::min<std::size_t>(scene->Selection().size(), std::numeric_limits<std::uint32_t>::max()));
 }
 
 template <typename StateT>
@@ -893,21 +1143,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->focus_initial_content = true;
   }
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
-  if (ImGui::Begin(hierarchy_window.c_str())) {
-    if (scene != nullptr) {
-      const auto selected = scene->Selection();
-      for (const auto &node : scene->Nodes()) {
-        const bool is_selected = std::ranges::find(selected, node.id) != selected.end();
-        const auto label = std::string(node.name) + "##" + std::to_string(node.id);
-        if (ImGui::Selectable(label.c_str(), is_selected)) {
-          const std::array selection{node.id};
-          scene->Select(selection);
-        }
-      }
-    } else {
-      ImGui::TextUnformatted("No scene is open.");
-    }
-  }
+  ApplyPendingHierarchyRequests(*state_, scene);
+  if (ImGui::Begin(hierarchy_window.c_str()))
+    DrawHierarchy(*state_, scene);
   ImGui::End();
   const auto console_window = PanelWindowName("nexora.console");
   if (ImGui::Begin(console_window.c_str()))
@@ -1292,6 +1530,9 @@ EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host)
           io.DisplaySize.y,
           io.DisplayFramebufferScale.x,
           io.FontGlobalScale,
+          host.state_->hierarchy_visible_rows,
+          host.state_->hierarchy_selection,
+          host.state_->hierarchy_selection_anchor.value_or(0),
           host.state_->content_visible_items,
           host.state_->content_visible_folders,
           host.state_->content_selection,
@@ -1322,6 +1563,27 @@ std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHos
 void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept {
   Activate(host.state_->context);
   ImGui::GetIO().ConfigInputTrickleEventQueue = enabled;
+}
+
+void EditorImGuiTestAccess::SetHierarchyFilter(EditorImGuiHost &host,
+                                               std::string_view filter) noexcept {
+  const auto count = std::min(filter.size(), host.state_->hierarchy_filter.size() - 1);
+  std::memcpy(host.state_->hierarchy_filter.data(), filter.data(), count);
+  host.state_->hierarchy_filter[count] = '\0';
+}
+
+void EditorImGuiTestAccess::QueueHierarchySelection(EditorImGuiHost &host, runtime::Id entity,
+                                                    bool additive, bool range) noexcept {
+  host.state_->hierarchy_selection_request = {entity, additive, range};
+}
+
+void EditorImGuiTestAccess::QueueHierarchyMove(EditorImGuiHost &host, runtime::Id entity,
+                                               runtime::Id parent, std::size_t index) noexcept {
+  host.state_->hierarchy_move_request = {entity, parent, index};
+}
+
+void EditorImGuiTestAccess::QueueHierarchyReorder(EditorImGuiHost &host, int direction) noexcept {
+  host.state_->hierarchy_reorder_request = direction;
 }
 
 void EditorImGuiTestAccess::QueueProjectSelection(EditorImGuiHost &host,

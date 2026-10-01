@@ -1,8 +1,9 @@
 # Entity Parenting (Transform Hierarchy) — Plan
 
 > Version: v1.1 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
-> ✅ phases 1, 2, 3 (data model), and 4 (GPU scene sync) complete; the graphical Hierarchy and
-> gizmos are the Editor roadmap's** | Updated: 2026-10-01 | Relates to:
+> ✅ phases 1, 2, 3 (data model), and 4 (GPU scene sync) complete; the Editor roadmap now has a
+> graphical tree/filter/selection/reparent/reorder foundation, while rename, virtualization, and
+> gizmos remain open** | Updated: 2026-10-02 | Relates to:
 > `Transform_Rotation_Scale_Plan.md`, `Editor_Roadmap.md` §ED-M2
 
 ## 1. Purpose

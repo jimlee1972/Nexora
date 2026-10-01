@@ -2,7 +2,9 @@
 
 #include "Nexora/EditorImGui/EditorImGui.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 namespace nexora::editor::imgui {
 
@@ -17,6 +19,9 @@ struct EditorImGuiTestState final {
   float display_height = 0.0F;
   float framebuffer_scale = 0.0F;
   float font_global_scale = 0.0F;
+  std::uint32_t hierarchy_visible_rows = 0;
+  std::uint32_t hierarchy_selection = 0;
+  runtime::Id hierarchy_selection_anchor = 0;
   std::uint32_t content_visible_items = 0;
   std::uint32_t content_visible_folders = 0;
   std::uint32_t content_selection = 0;
@@ -45,6 +50,12 @@ public:
   [[nodiscard]] static EditorImGuiTestState Inspect(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::string_view ProjectSelectorRoot(const EditorImGuiHost &host) noexcept;
   static void SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept;
+  static void SetHierarchyFilter(EditorImGuiHost &host, std::string_view filter) noexcept;
+  static void QueueHierarchySelection(EditorImGuiHost &host, runtime::Id entity, bool additive,
+                                      bool range) noexcept;
+  static void QueueHierarchyMove(EditorImGuiHost &host, runtime::Id entity, runtime::Id parent,
+                                 std::size_t index) noexcept;
+  static void QueueHierarchyReorder(EditorImGuiHost &host, int direction) noexcept;
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
   static void QueueContentConflictChoice(EditorImGuiHost &host, runtime::AssetUuid asset,
