@@ -64,8 +64,11 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
    mirrors the mesh renderers of the active scenes into `renderer::GPUScene` with each entity's exact
    world matrix (shear included) and conservative world bounds (the matrix's spectral norm scales the
    radius), so moving a parent updates every rendered descendant. Matrices are memoized per call, so
-   a sync is linear in the entity count; poses that overflow float are kept out. Wiring an
-   application's draw loop to it belongs to the renderer and Editor viewport work.
+   a sync is linear in the entity count; poses that overflow float are kept out. Cameras follow
+   the hierarchy too: `CameraView` builds the view from the camera's world matrix (scale ignored,
+   as in Unity), and `RenderSceneSync::RenderFrame` culls the GPU scene through that camera before
+   submitting. Wiring an application's draw loop to it belongs to the renderer and Editor viewport
+   work.
 
 ## 5. Phase-1 limits (documented, not hidden)
 

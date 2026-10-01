@@ -1,5 +1,7 @@
 #include "Nexora/Runtime/RenderSync.h"
 
+#include "Nexora/Renderer/FramePipeline.h"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -128,6 +130,65 @@ math::Sphere TransformBounds(const TransformMatrix &m, const math::Sphere &local
           std::nextafter(padded, std::numeric_limits<float>::infinity())};
 }
 
+std::optional<renderer::GPUDrivenView> CameraView(const World &world, Id camera, float aspect) {
+  const auto *entity = world.FindEntity(camera);
+  if (entity == nullptr || !entity->camera || !std::isfinite(aspect) || !(aspect > 0.0F))
+    return std::nullopt;
+  const auto &data = entity->camera_data;
+  if (!std::isfinite(data.vertical_field_of_view) || !(data.vertical_field_of_view > 0.0) ||
+      !(data.vertical_field_of_view < 180.0) || !std::isfinite(data.near_plane) ||
+      !std::isfinite(data.far_plane) || !(data.near_plane > 0.0) ||
+      !(data.far_plane > data.near_plane))
+    return std::nullopt;
+  const auto matrix = world.WorldMatrix(camera);
+  if (!matrix)
+    return std::nullopt;
+  const auto &m = *matrix;
+  // Orthonormalize the matrix's Z (backward) and Y (up) axes: scale and shear do not distort the
+  // view, and the basis stays right-handed even under a mirroring parent.
+  using Axis = std::array<double, 3>;
+  const auto normalized = [](Axis v) -> std::optional<Axis> {
+    const double length = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    if (!std::isfinite(length) || !(length > 1e-12))
+      return std::nullopt;
+    return Axis{v[0] / length, v[1] / length, v[2] / length};
+  };
+  const auto cross = [](const Axis &a, const Axis &b) {
+    return Axis{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
+  };
+  const auto back = normalized({m[8], m[9], m[10]});
+  if (!back)
+    return std::nullopt;
+  const auto right = normalized(cross({m[4], m[5], m[6]}, *back));
+  if (!right)
+    return std::nullopt;
+  const auto up = cross(*back, *right);
+  const Axis eye{m[12], m[13], m[14]};
+  if (!std::isfinite(eye[0]) || !std::isfinite(eye[1]) || !std::isfinite(eye[2]))
+    return std::nullopt;
+  math::Matrix4 view;
+  const std::array<const Axis *, 3> rows{&*right, &up, &*back};
+  for (std::size_t row = 0; row < 3; ++row) {
+    const auto &axis = *rows[row];
+    for (std::size_t column = 0; column < 3; ++column)
+      view(row, column) = static_cast<float>(axis[column]);
+    view(row, 3) = static_cast<float>(-(axis[0] * eye[0] + axis[1] * eye[1] + axis[2] * eye[2]));
+  }
+  const auto near_plane = static_cast<float>(data.near_plane);
+  const auto far_plane = static_cast<float>(data.far_plane);
+  renderer::GPUDrivenView result;
+  result.view_projection =
+      math::PerspectiveRadians(math::Radians(static_cast<float>(data.vertical_field_of_view)),
+                               aspect, near_plane, far_plane) *
+      view;
+  result.camera_position = {static_cast<float>(eye[0]), static_cast<float>(eye[1]),
+                            static_cast<float>(eye[2])};
+  result.maximum_distance = far_plane;
+  if (!Finite(result.view_projection))
+    return std::nullopt;
+  return result;
+}
+
 RenderSyncStatistics RenderSceneSync::Sync(const World &world, renderer::GPUScene &scene,
                                            const RenderResourceResolver &resolve,
                                            std::uint64_t retire_fence) {
@@ -207,6 +268,45 @@ RenderSyncStatistics RenderSceneSync::Sync(const World &world, renderer::GPUScen
     ++statistics.destroyed;
   }
   return statistics;
+}
+
+std::optional<CulledSceneFrame> RenderSceneSync::RenderFrame(
+    const World &world, renderer::GPUScene &scene, const RenderResourceResolver &resolve,
+    std::uint64_t retire_fence, rhi::Device &device, rhi::TextureHandle target,
+    const rhi::TextureDescriptor &target_descriptor, rhi::PipelineHandle pipeline) {
+  CulledSceneFrame result;
+  result.sync = Sync(world, scene, resolve, retire_fence);
+#if !NEXORA_SCENE_RENDERING_ENABLED
+  static_cast<void>(device);
+  static_cast<void>(target);
+  static_cast<void>(target_descriptor);
+  static_cast<void>(pipeline);
+  return std::nullopt;
+#else
+  bool light = false;
+  for (const auto &world_scene : world.scenes_) {
+    if (world_scene.state != SceneState::Active)
+      continue;
+    for (const auto &entity : world_scene.entities) {
+      if (result.camera == 0 && entity.camera)
+        result.camera = entity.id;
+      light = light || entity.light;
+    }
+  }
+  if (result.camera == 0 || !light || target_descriptor.height == 0)
+    return std::nullopt;
+  const auto view = CameraView(world, result.camera,
+                               static_cast<float>(target_descriptor.width) /
+                                   static_cast<float>(target_descriptor.height));
+  if (!view)
+    return std::nullopt;
+  const auto culled = renderer::BuildGPUDrivenCommands(scene.ExtractReferenceSnapshot(), *view);
+  result.culling = culled.statistics;
+  const auto executed = renderer::ExecuteSceneFrame(device, target, target_descriptor, pipeline,
+                                                    culled.instances.size());
+  result.frame = {culled.instances.size(), executed.passes, executed.barriers};
+  return result;
+#endif
 }
 
 std::optional<renderer::GPUObjectHandle> RenderSceneSync::Handle(Id entity) const {

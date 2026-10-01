@@ -136,6 +136,8 @@ of those slots.
 Entity transforms reach the GPUScene only through the Runtime's `RenderSceneSync`, which writes each
 entity's exact world matrix (never a local transform) and conservative world bounds; see the Runtime
 README's "Render sync" section. The renderer does not depend on the Runtime.
+`ExecuteSceneFrame` with zero visible meshes (everything culled) still runs every pass and clears
+its targets, but records no mesh draw: a zero-instance draw is invalid on every backend.
 
 ## V2-M3 GPU-driven contract
 
