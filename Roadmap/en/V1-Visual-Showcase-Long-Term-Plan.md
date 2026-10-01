@@ -11,7 +11,7 @@
 - ✅ Source/test audit confirmed that Window, Presentation, and RHI buffer contracts already exist;
   the Showcase reuses `RenderSurface` rather than recreating those boundaries.
 - Implemented pending native acceptance: Linux/X11/Vulkan windowed startup, bounded resize, clear color, triangle, diagnostics panel, shutdown, and Xvfb smoke.
-- ✅ Windows/Win32/DX12 windowed compositing (`Dx12Surface::CompositeRgba8`) is implemented: the window opened a visible clear color, software-rasterized triangle, and diagnostics panel, confirmed by manual developer-machine evidence (`--mode=interactive --backend=dx12`, 600 acquire/composite/present cycles, `backend_fallback=false`, and a captured screenshot of the live window). This was previously missing -- `Dx12Surface` inherited the base `ISurface::CompositeRgba8` default (`Unsupported`), so `--backend=dx12` failed outright rather than silently degrading. Clean-machine and CI windowed acceptance are still open; this is single-developer-machine manual evidence only.
+- ✅ Windows/Win32/DX12 windowed compositing (`Dx12Surface::CompositeRgba8`) is implemented: the window opened a visible clear color, software-rasterized triangle, and diagnostics panel. This was previously missing -- `Dx12Surface` inherited the base `ISurface::CompositeRgba8` default (`Unsupported`), so `--backend=dx12` failed outright rather than silently degrading. Verified at two tiers, both on the same developer machine: (1) running directly from the build tree (600 acquire/composite/present cycles, `backend_fallback=false`, captured window screenshot), and (2) `Apps/Showcase/evidence/ZS-Showcase-DX12-Windowed-IsolatedCopy-DevMachine-2026-10-01/` -- the `NexoraShowcasePackageDevelopment` package copied to a fresh isolated directory, all 16 SHA256SUMS entries re-verified against that copy, then launched windowed from there (300/300 acquire/composite/present, PASS, screenshot). Neither tier is an independently provisioned clean machine/VM or a CI gate -- that remains open, same as it is for Linux/Vulkan and macOS/Metal.
 - ✅ The 3D Hub presents M0-M12 Validation Lab cards with stable room/world-object associations and visible contained-failure states; authored Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping room content remains open.
 - ✅ M0-M12 probe registry, status model, versioned JSON/Markdown serializers, CTest card mapping, and contained error injections are portable.
 - ✅ M7-M10 capability-aware room states emit headless evidence with `visual_complete: false`; interactive/guided tour and visual content remain open.
@@ -297,7 +297,8 @@ Goal: the Hub scene shows a genuinely interactive 3D frame.
 validated camera, indexed mesh, material, light, procedural cube, and deterministic frame-resource
 contracts. Headless validation covers buffers, depth and sampled textures, sampler-policy counts,
 indexed submission, failures, lifetime, and shutdown. Windows/DX12 windowed compositing is now
-implemented (`Dx12Surface::CompositeRgba8`) and confirmed by manual developer-machine evidence; native
+implemented (`Dx12Surface::CompositeRgba8`) with isolated-copy evidence (see
+`Apps/Showcase/evidence/ZS-Showcase-DX12-Windowed-IsolatedCopy-DevMachine-2026-10-01/`); native
 Vulkan binding, interactive Rendering Room output, Xvfb/lavapipe evidence, and clean-machine/CI target-host
 evidence for every backend remain open.
 
