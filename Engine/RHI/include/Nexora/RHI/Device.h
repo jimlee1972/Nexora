@@ -84,6 +84,12 @@ public:
   virtual void ReadBufferForTesting(BufferHandle, std::uint64_t, std::span<std::byte>) {
     throw std::logic_error("buffer readback is unsupported");
   }
+  // Explicitly test-only. Waits for the device to go idle, then copies the whole texture into
+  // `data` as tightly packed rows of 4-byte pixels (`width * height * 4` bytes, the format's native
+  // channel order). The texture keeps its resource state.
+  virtual void ReadTextureForTesting(TextureHandle, std::span<std::byte>) {
+    throw std::logic_error("texture readback is unsupported");
+  }
   [[nodiscard]] virtual PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) = 0;
   virtual void DestroyPipeline(PipelineHandle pipeline) = 0;
   [[nodiscard]] virtual std::unique_ptr<CommandList> CreateCommandList(QueueType queue) = 0;

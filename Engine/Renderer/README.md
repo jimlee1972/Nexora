@@ -22,6 +22,13 @@ native device and executes the same triangle workload.
 `renderer.golden_image_acceptance`: exact dimensions, per-channel tolerance, differing-pixel
 budget/count, and a stable standard 64-bit FNV-1a checksum (offset basis `0xcbf29ce484222325`). Platform runners can feed captured swapchain/offscreen
 pixels into this helper without introducing backend types into the renderer API.
+`renderer.vulkan_golden_triangle` (Slang-enabled Linux Vulkan builds) renders the triangle frame
+offscreen at 64x64 on Mesa lavapipe through `ReadTextureForTesting`, requires two renders to be
+identical and to contain real coverage, and compares against the committed baseline
+`Tests/Renderer/Golden/triangle_vulkan_lavapipe_64x64.rgba` (per-channel tolerance 2, at most 1%
+differing pixels). Run the test binary with `NEXORA_GOLDEN_UPDATE=<path>` to regenerate it. This is a
+Linux software-rasterizer reference only; DX12, Metal, and physical-GPU baselines remain
+target-host gates.
 
 ## Shared shader library contract
 
