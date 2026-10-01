@@ -270,10 +270,19 @@ no sibling ordering yet.
   chain is dangling or cyclic.
 
 A character controller may sit under a parent, as Unity's CharacterController on a child does. It
-works in world space: `SetCharacter` starts it at the entity's world position. Each `TickCharacter`
-starts from the transform's current world position, so a moved parent (a moving platform) or a
-teleport carries the character. The resulting world position is stored relative to the parent,
-changing only the local position.
+works in world space, using the exact `WorldMatrix` translation, since the world TRS is only
+approximate under a sheared hierarchy.
+
+- `SetCharacter` starts the controller at the entity's world position.
+- Each `TickCharacter` starts from the transform's current world position, so a moved parent (a
+  moving platform) carries the character and keeps its ground contact. A keep-world reparent does
+  too.
+- When something else changed both the local and the world position, the tick treats it as a
+  teleport, with `CharacterController::Teleport` semantics: no ground and the velocity reset.
+- The new world position is mapped back through the inverse of the parent's matrix, so only the
+  local position changes.
+- The tick runs on a copy of the controller state and commits only after the transform is stored;
+  a move that cannot be stored changes neither.
 
 Limits: `PlaySession` apply-back copies transforms only and reports a conflict for an entity whose
 parent changed during play; rendering and physics do not consume entity transforms yet.

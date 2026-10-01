@@ -203,6 +203,9 @@ private:
     runtime::CharacterState state;
     runtime::CharacterController controller;
     runtime::StandardCharacterMotor motor;
+    // The local position the controller last wrote (or found at SetCharacter). A different local
+    // position at the next tick means something else moved the entity: a teleport.
+    runtime::SimulationVector local{};
   };
 #endif
   runtime::World world_;
