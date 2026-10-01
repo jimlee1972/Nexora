@@ -502,8 +502,21 @@ const ShaderCompileResult *DevelopmentShaderCache::Find(const ShaderCompileReque
   return &found->second.result;
 }
 
+ShaderInputSnapshot CaptureShaderInputs(const ShaderCompileRequest &request) {
+  ShaderInputSnapshot snapshot;
+  snapshot.write_times.emplace(NormalizePath(request.source_path), WriteTime(request.source_path));
+  for (const auto &dependency : request.dependencies)
+    snapshot.write_times.emplace(NormalizePath(dependency), WriteTime(dependency));
+  return snapshot;
+}
+
 bool DevelopmentShaderCache::Store(const ShaderCompileRequest &request, ShaderCompileResult result,
                                    std::string &error) {
+  return Store(request, std::move(result), CaptureShaderInputs(request), error);
+}
+
+bool DevelopmentShaderCache::Store(const ShaderCompileRequest &request, ShaderCompileResult result,
+                                   ShaderInputSnapshot inputs, std::string &error) {
   if (!result.succeeded) {
     error = "failed shader results are not cacheable";
     return false;
@@ -515,10 +528,17 @@ bool DevelopmentShaderCache::Store(const ShaderCompileRequest &request, ShaderCo
   }
   Entry entry;
   entry.result = std::move(result);
-  entry.dependency_write_times.emplace(NormalizePath(request.source_path),
-                                       WriteTime(request.source_path));
-  for (const auto &dependency : request.dependencies)
-    entry.dependency_write_times.emplace(NormalizePath(dependency), WriteTime(dependency));
+  // Inputs edited after the snapshot mean the result is already stale: refuse it (and drop any
+  // older entry) rather than let it occupy budget until the next Find notices.
+  for (const auto &[path, stamp] : inputs.write_times) {
+    if (WriteTime(path) != stamp) {
+      entries_.erase(key);
+      budget_.used = entries_.size();
+      error = "shader inputs changed while compiling; result discarded as stale";
+      return false;
+    }
+  }
+  entry.dependency_write_times = std::move(inputs.write_times);
   entries_.insert_or_assign(key, std::move(entry));
   budget_.used = entries_.size();
   error.clear();

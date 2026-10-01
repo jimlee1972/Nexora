@@ -157,6 +157,25 @@ int main() {
     other_include.include_directories = {"Shaders/Other"};
     Require(cache.Find(other_include) == nullptr,
             "a request with different include directories reused a cached artifact");
+    // A save that lands while the compile runs must leave the entry stale: the snapshot taken
+    // before compiling predates the new write time, so the next Find has to miss.
+    {
+      editor::DevelopmentShaderCache racy{{2, 0}};
+      const auto before_compile = editor::CaptureShaderInputs(request);
+      std::filesystem::last_write_time(source_path, std::filesystem::last_write_time(source_path) +
+                                                        std::chrono::seconds(2));
+      Require(!racy.Store(request, compiler_result, before_compile, error) &&
+                  racy.Find(request) == nullptr && racy.Budget().used == 0,
+              "a result compiled from pre-edit inputs was cached as current");
+      // It must not hold budget either: a valid second variant still fits a one-entry cache.
+      editor::DevelopmentShaderCache tight{{1, 0}};
+      Require(!tight.Store(request, compiler_result, before_compile, error),
+              "stale store accepted");
+      auto fresh = request;
+      fresh.variant = "FRESH";
+      Require(tight.Store(fresh, compiler_result, error),
+              "a stale result consumed the variant budget");
+    }
     auto second_request = request;
     second_request.variant = "SKINNED=0";
     Require(!cache.Store(second_request, compiler_result, error),

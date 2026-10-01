@@ -99,14 +99,27 @@ struct ShaderVariantBudget final {
   std::size_t used{};
 };
 
+// Write times of a request's source and declared dependencies at one instant. Capture it *before*
+// compiling and hand it to the cache with the result: stamping at store time would label output
+// built from older inputs as current when a file is saved mid-compile.
+struct ShaderInputSnapshot final {
+  std::unordered_map<std::string, std::int64_t> write_times;
+};
+[[nodiscard]] NEXORA_EDITOR_API ShaderInputSnapshot
+CaptureShaderInputs(const ShaderCompileRequest &request);
+
 // Development-only, process-local cache. Entries own compiler results and dependency timestamps;
 // a dependency change invalidates every variant which consumed it. Shipping never consults it.
 class NEXORA_EDITOR_API DevelopmentShaderCache final {
 public:
   explicit DevelopmentShaderCache(ShaderVariantBudget budget);
   [[nodiscard]] const ShaderCompileResult *Find(const ShaderCompileRequest &request);
+  // Snapshot-less overload stamps the inputs at store time and is only safe when nothing can edit
+  // them while the compile runs; prefer the overload taking a pre-compile snapshot.
   [[nodiscard]] bool Store(const ShaderCompileRequest &request, ShaderCompileResult result,
                            std::string &error);
+  [[nodiscard]] bool Store(const ShaderCompileRequest &request, ShaderCompileResult result,
+                           ShaderInputSnapshot inputs, std::string &error);
   std::size_t InvalidateDependency(const std::filesystem::path &dependency);
   [[nodiscard]] ShaderVariantBudget Budget() const noexcept;
 
