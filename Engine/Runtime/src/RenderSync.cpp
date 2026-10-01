@@ -44,10 +44,11 @@ bool Same(const math::Sphere &a, const math::Sphere &b) noexcept {
 }
 
 // World matrices of one scene, each computed once: an entity's matrix is its parent's matrix times
-// its local matrix, the same product, in the same order, as World::WorldMatrix. A walk longer than
-// the scene (a cycle written directly into Entity::parent) fails instead of looping, and every
-// entity on a failed walk is remembered, so later lookups through it fail at once and a scene full
-// of broken chains still costs linear time.
+// its local matrix, the same product, in the same order, as World::WorldMatrix. A walk that reaches
+// an entity it already passed (a cycle written directly into Entity::parent) fails at once instead
+// of looping, and every entity on a failed walk is remembered, so later lookups through it fail
+// immediately. Each entity is walked over at most once per successful or failed chain, so even a
+// scene of many small cycles costs linear time.
 class SceneMatrices final {
 public:
   explicit SceneMatrices(const Scene &scene) {
@@ -61,6 +62,7 @@ public:
       return &found->second;
     // Walk up to the first ancestor already computed (or the root), then compose downward.
     chain_.clear();
+    on_chain_.clear();
     const Entity *current = &entity;
     const TransformMatrix *base = nullptr;
     while (current != nullptr) {
@@ -68,7 +70,7 @@ public:
         base = &found->second;
         break;
       }
-      if (invalid_.contains(current->id) || chain_.size() >= entities_.size()) {
+      if (invalid_.contains(current->id) || !on_chain_.insert(current->id).second) {
         for (const auto *link : chain_)
           invalid_.insert(link->id);
         return nullptr;
@@ -99,6 +101,7 @@ private:
   std::unordered_map<Id, TransformMatrix> matrices_;
   std::unordered_set<Id> invalid_;
   std::vector<const Entity *> chain_;
+  std::unordered_set<Id> on_chain_;
 };
 
 } // namespace
@@ -146,7 +149,15 @@ math::Sphere TransformBounds(const TransformMatrix &matrix, const math::Sphere &
   // across three coordinates, covers both with room to spare, so no drawn point leaves the sphere;
   // the relative term absorbs rounding in the closed-form eigenvalue.
   const double epsilon = std::numeric_limits<float>::epsilon();
-  const double margin = radius * 1e-6 + 4.0 * epsilon * std::sqrt(3.0) * worst_terms;
+  // That bound only holds without overflow: every partial sum the GPU forms is at most the sum of
+  // the terms' magnitudes, so if that sum (with rounding room) could exceed the float range, an
+  // intermediate value may be inf even when the result is finite. Report such bounds as unbounded
+  // (an infinite radius), which the sync rejects.
+  if (!(worst_terms * (1.0 + 8.0 * epsilon) <= std::numeric_limits<float>::max()))
+    return {{}, std::numeric_limits<float>::infinity()};
+  // Gradual underflow adds an absolute error of at most half the smallest subnormal per operation.
+  const double margin = radius * 1e-6 + 4.0 * epsilon * std::sqrt(3.0) * worst_terms +
+                        4.0 * std::numeric_limits<float>::denorm_min();
   const auto padded = static_cast<float>(radius + margin);
   return {
       {static_cast<float>(center[0]), static_cast<float>(center[1]), static_cast<float>(center[2])},
@@ -208,7 +219,7 @@ std::optional<renderer::GPUDrivenView> CameraView(const World &world, Id camera,
 }
 
 RenderSceneSync::RenderSceneSync(RenderSceneSync &&other) noexcept
-    : objects_(std::exchange(other.objects_, {})), scene_(std::exchange(other.scene_, nullptr)) {}
+    : objects_(std::exchange(other.objects_, {})), scene_id_(std::exchange(other.scene_id_, 0)) {}
 
 std::optional<RenderSyncStatistics> RenderSceneSync::Sync(const World &world,
                                                           renderer::GPUScene &scene,
@@ -216,7 +227,7 @@ std::optional<RenderSyncStatistics> RenderSceneSync::Sync(const World &world,
                                                           std::uint64_t retire_fence) {
   // Handles carry no scene identity, so objects held in one GPUScene must never be read, updated,
   // or forgotten through another.
-  if (scene_ != nullptr && scene_ != &scene)
+  if (scene_id_ != 0 && scene_id_ != scene.InstanceId())
     return std::nullopt;
   RenderSyncStatistics statistics;
   std::unordered_set<Id> current;
@@ -293,7 +304,7 @@ std::optional<RenderSyncStatistics> RenderSceneSync::Sync(const World &world,
     objects_.erase(id);
     ++statistics.destroyed;
   }
-  scene_ = objects_.empty() ? nullptr : &scene;
+  scene_id_ = objects_.empty() ? 0 : scene.InstanceId();
   return statistics;
 }
 
@@ -346,7 +357,7 @@ std::optional<renderer::GPUObjectHandle> RenderSceneSync::Handle(Id entity) cons
 }
 
 bool RenderSceneSync::Release(renderer::GPUScene &scene, std::uint64_t retire_fence) {
-  if (scene_ != nullptr && scene_ != &scene)
+  if (scene_id_ != 0 && scene_id_ != scene.InstanceId())
     return false;
   std::vector<Id> ids;
   ids.reserve(objects_.size());
@@ -356,8 +367,13 @@ bool RenderSceneSync::Release(renderer::GPUScene &scene, std::uint64_t retire_fe
   for (const auto id : ids)
     static_cast<void>(scene.Destroy(objects_.at(id).handle, retire_fence));
   objects_.clear();
-  scene_ = nullptr;
+  scene_id_ = 0;
   return true;
+}
+
+void RenderSceneSync::Abandon() noexcept {
+  objects_.clear();
+  scene_id_ = 0;
 }
 
 } // namespace nexora::runtime
