@@ -127,14 +127,17 @@ The [Window and Native Presentation Roadmap](Roadmap/en/Window_Presentation_Road
 #### Editor status
 
 ED-M1 now includes a real-index-backed graphical Content Browser with recoverable project-local
-rename/move/delete/undo, generation-tagged drag/drop, dependency inspection, and synchronous
-reimport. Versioned sibling `.meta` records now preserve asset UUID and artifact identity across
-Editor moves and process reopen. Schema-2 project descriptors now carry stable UUIDs, schema-1
+rename/move/delete/undo, generation-tagged drag/drop, dependency inspection, and cancellable
+background reimport. An Editor-owned import queue also indexes selector projects in the background;
+workers expose bounded progress and structured diagnostics, while the authoring thread alone
+activates indexes or publishes revision-validated staged artifacts. Versioned sibling `.meta`
+records preserve asset UUID and artifact identity across Editor moves and process reopen. Schema-2
+project descriptors now carry stable UUIDs, schema-1
 projects upgrade atomically under an OS-held writer lease, explicit read-only processes coexist
 without project mutation, and the docked Project panel shows access/upgrade/recent-project status.
 A graphical Project Browser now supports create, read-write/read-only open, and recent shortcuts;
 activation is transactional and Linux Xvfb drives create/reopen from a launch without `--project`.
-Background jobs, conflict UX, and physical-display/Windows workflow acceptance remain open, so
+Conflict UX and physical-display/Windows workflow acceptance remain open, so
 milestone acceptance stays unchanged. The X11 window backend now owns one XIM input context per
 window, decodes committed UTF-8 into backend-neutral `Text` events, and keeps physical keys separate
 from text input.
@@ -259,14 +262,17 @@ ZS-M0 至 ZS-M5 已完成：capability-aware gallery 支援 camera input、selec
 #### Editor 狀態
 
 ED-M1 現已有 real-index-backed 圖形化 Content Browser，以及可回復的 project-local
-rename／move／delete／undo、generation-tagged drag/drop、dependency inspection 與同步 reimport。
-Versioned sibling `.meta` record 現可在 Editor 搬移與 process reopen 後保留 asset UUID 與
-artifact identity。Schema-2 project descriptor 現包含 stable UUID；schema-1 project 會在
+rename／move／delete／undo、generation-tagged drag/drop、dependency inspection 與可取消的
+background reimport。Editor-owned import queue 也會在背景索引 selector project；worker 提供
+bounded progress 與 structured diagnostic，只有 authoring thread 能啟用 index 或發布重新驗證
+revision 後的 staged artifact。Versioned sibling `.meta` record 現可在 Editor 搬移與 process
+reopen 後保留 asset UUID 與 artifact identity。Schema-2 project descriptor 現包含 stable UUID；
+schema-1 project 會在
 OS-held writer lease 下原子升級；明確的 read-only process 可共存且不能修改 project；
 docked Project panel 會顯示 access／upgrade／recent-project 狀態。圖形化 Project Browser 現支援
 create、read-write／read-only open 與 recent shortcut；project activation 為交易式，Linux Xvfb
-也會從未提供 `--project` 的啟動流程操作 create/reopen。Background job、conflict UX 與實體顯示／
-Windows workflow 驗收仍待完成，因此 milestone 驗收比例不變。X11 window backend 現會以每視窗
+也會從未提供 `--project` 的啟動流程操作 create/reopen。Conflict UX 與實體顯示／Windows
+workflow 驗收仍待完成，因此 milestone 驗收比例不變。X11 window backend 現會以每視窗
 XIM input context 將 committed UTF-8 解碼成 backend-neutral `Text` event，physical key 與 text input
 維持分離。
 

@@ -1,9 +1,11 @@
+#include "Nexora/Editor/AssetImport.h"
 #include "Nexora/Editor/ContentBrowser.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -11,6 +13,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -242,6 +245,130 @@ int Run() {
   Require(content_session.Reimport(indexed_mesh, &error) &&
               content_session.Browser().Find(indexed_mesh)->artifact_hash != artifact_before,
           "content reimport did not publish the updated artifact hash");
+
+  core::JobSystem import_jobs{1};
+  import_jobs.Start();
+  editor::AssetImportQueue imports{import_jobs, 2, 2};
+  const auto wait_for_result = [](auto &&poll, const char *message) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (std::chrono::steady_clock::now() < deadline) {
+      if (poll())
+        return;
+      std::this_thread::yield();
+    }
+    throw std::runtime_error(message);
+  };
+
+  const auto workspace_import =
+      imports.Start({21, root / "Content", editor::AssetIdentityMode::PersistentReadOnly}, &error);
+  Require(workspace_import != 0, "background workspace import did not start");
+  std::optional<editor::ImportOperationResult> workspace_result;
+  wait_for_result(
+      [&] {
+        workspace_result = imports.TakeResult(workspace_import);
+        return workspace_result.has_value();
+      },
+      "background workspace import did not finish");
+  Require(workspace_result->snapshot.state == editor::ImportOperationState::AwaitingPublish &&
+              workspace_result->workspace && workspace_result->workspace->Entries().size() == 2 &&
+              workspace_result->snapshot.progress.size() <= 2 &&
+              workspace_result->snapshot.dropped_progress > 0,
+          "background workspace import was not deterministic or progress history was unbounded");
+
+  const auto failing_source = root / "failing.asset";
+  std::ofstream(failing_source) << "staged";
+  std::atomic_bool release_failure{false};
+  const auto failure_blocker =
+      import_jobs.Submit({[&release_failure](const core::CancellationToken &) {
+                            while (!release_failure.load(std::memory_order_acquire))
+                              std::this_thread::yield();
+                          },
+                          core::JobPriority::High,
+                          {},
+                          "Editor import failure barrier"});
+  const runtime::AssetUuid failing_asset{81, 82};
+  const auto failing_import =
+      imports.Start({21, failing_asset, failing_source, "last-good", "default-v1", {}}, &error);
+  Require(failing_import != 0 && fs::remove(failing_source),
+          "background failure operation could not be staged");
+  release_failure.store(true, std::memory_order_release);
+  import_jobs.Wait(failure_blocker);
+  std::optional<editor::ImportOperationResult> failure_result;
+  wait_for_result(
+      [&] {
+        failure_result = imports.TakeResult(failing_import);
+        return failure_result.has_value();
+      },
+      "background failure operation did not finish");
+  Require(failure_result->snapshot.state == editor::ImportOperationState::Failed &&
+              !failure_result->reimport && !failure_result->snapshot.diagnostics.empty() &&
+              failure_result->snapshot.diagnostics.back().code == "reimport.read_failed" &&
+              failure_result->snapshot.diagnostics.back().asset == failing_asset,
+          "worker failure produced staging data or lacked an actionable structured diagnostic");
+
+  const auto shutdown_source = root / "shutdown.asset";
+  std::ofstream(shutdown_source) << std::string(1024 * 1024, 'x');
+  editor::AssetImportQueue shutdown_imports{import_jobs};
+  const auto shutdown_operation = shutdown_imports.Start(
+      {22, runtime::AssetUuid{91, 92}, shutdown_source, "last-good", "default-v1", {}}, &error);
+  Require(shutdown_operation != 0, "shutdown reimport operation did not start");
+  shutdown_imports.Shutdown();
+  Require(!shutdown_imports.Snapshot(shutdown_operation),
+          "import queue shutdown retained a worker or staged completion");
+
+  const auto asynchronous_before = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  std::ofstream(root / "Content/Hero.mesh", std::ios::trunc) << "mesh-async";
+  Require(content_session.BeginReimport(imports, indexed_mesh, &error),
+          "background reimport did not start");
+  wait_for_result([&] { return content_session.PollReimport(&error); },
+                  "background reimport did not finish");
+  const auto asynchronous_status = content_session.ReimportStatus();
+  Require(asynchronous_status &&
+              asynchronous_status->state == editor::ImportOperationState::Succeeded &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash != asynchronous_before &&
+              asynchronous_status->diagnostics.back().code == "reimport.succeeded",
+          "authoring-thread reimport publication or structured success diagnostic failed");
+
+  std::atomic_bool release_blocker{false};
+  const auto blocker =
+      import_jobs.Submit({[&release_blocker](const core::CancellationToken &) {
+                            while (!release_blocker.load(std::memory_order_acquire))
+                              std::this_thread::yield();
+                          },
+                          core::JobPriority::High,
+                          {},
+                          "Editor import cancellation barrier"});
+  const auto cancellation_artifact = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  std::ofstream(root / "Content/Hero.mesh", std::ios::trunc) << "mesh-cancelled";
+  Require(content_session.BeginReimport(imports, indexed_mesh, &error) &&
+              content_session.CancelReimport(),
+          "queued background reimport was not cancellable");
+  release_blocker.store(true, std::memory_order_release);
+  import_jobs.Wait(blocker);
+  wait_for_result([&] { return content_session.PollReimport(&error); },
+                  "cancelled background reimport did not drain");
+  const auto cancelled_status = content_session.ReimportStatus();
+  Require(cancelled_status && cancelled_status->state == editor::ImportOperationState::Cancelled &&
+              !cancelled_status->diagnostics.empty() &&
+              cancelled_status->diagnostics.back().code == "import.cancelled" &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash == cancellation_artifact,
+          "cancelled reimport replaced the old artifact or lacked a structured diagnostic");
+
+  std::ofstream(root / "Content/Hero.mesh", std::ios::trunc) << "mesh-staged";
+  Require(content_session.BeginReimport(imports, indexed_mesh, &error),
+          "stale-completion reimport did not start");
+  std::ofstream(root / "Content/Hero.mesh", std::ios::trunc) << "mesh-newer";
+  Require(content_session.Reimport(indexed_mesh, &error),
+          "foreground revision change for stale-completion test failed");
+  const auto newer_artifact = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  wait_for_result([&] { return content_session.PollReimport(&error); },
+                  "stale background reimport did not finish");
+  const auto stale_status = content_session.ReimportStatus();
+  Require(stale_status && stale_status->state == editor::ImportOperationState::Stale &&
+              stale_status->diagnostics.back().code == "reimport.stale" &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash == newer_artifact,
+          "stale reimport completion replaced the current artifact");
+
   Require(content_session.Delete(one_mesh, &error) && !fs::exists(root / "Content/Hero.mesh") &&
               !fs::exists(root / "Content/Hero.mesh.meta") &&
               content_session.Browser().Find(indexed_mesh) == nullptr &&

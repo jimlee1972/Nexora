@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/Editor/Api.h"
+#include "Nexora/Editor/AssetImport.h"
 #include "Nexora/Editor/ContentBrowser.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 
@@ -19,6 +20,13 @@ namespace nexora::editor {
 // this session; it never owns project files or retains ContentItem pointers across calls.
 class NEXORA_EDITOR_API ProjectContentSession final {
 public:
+  ProjectContentSession();
+  ~ProjectContentSession();
+  ProjectContentSession(ProjectContentSession &&) noexcept;
+  ProjectContentSession &operator=(ProjectContentSession &&) noexcept;
+  ProjectContentSession(const ProjectContentSession &) = delete;
+  ProjectContentSession &operator=(const ProjectContentSession &) = delete;
+
   bool Open(const ProjectWorkspace &workspace, const AssetWorkspace &assets,
             std::uint64_t project_generation, bool writable = true, std::string *error = nullptr);
 
@@ -41,8 +49,15 @@ public:
   bool Delete(std::span<const runtime::AssetUuid> assets, std::string *error = nullptr);
   bool Undo(std::string *error = nullptr);
   bool Reimport(runtime::AssetUuid asset, std::string *error = nullptr);
+  bool BeginReimport(AssetImportQueue &imports, runtime::AssetUuid asset,
+                     std::string *error = nullptr);
+  bool PollReimport(std::string *error = nullptr);
+  bool CancelReimport() noexcept;
+  [[nodiscard]] bool ReimportBusy() const noexcept;
+  [[nodiscard]] std::optional<ImportOperationSnapshot> ReimportStatus() const;
 
 private:
+  struct PendingReimport;
   using FileMove = std::pair<std::filesystem::path, std::filesystem::path>;
 
   bool CommitMoves(ContentBrowserModel candidate, std::vector<FileMove> moves,
@@ -65,6 +80,8 @@ private:
   bool writable_{};
   bool persistent_identities_{};
   std::string last_error_;
+  std::unique_ptr<PendingReimport> pending_reimport_;
+  std::optional<ImportOperationSnapshot> last_reimport_;
 };
 
 } // namespace nexora::editor

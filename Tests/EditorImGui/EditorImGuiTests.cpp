@@ -2,11 +2,13 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 int main() {
@@ -35,6 +37,9 @@ int main() {
   assert(content_assets.ImportTree(content_root / "Content", {}, {},
                                    nexora::editor::AssetIdentityMode::PersistentReadWrite,
                                    &content_error));
+  nexora::core::JobSystem import_jobs{1};
+  import_jobs.Start();
+  nexora::editor::AssetImportQueue imports{import_jobs};
   nexora::editor::ProjectContentSession content;
   assert(content.Open(content_workspace, content_assets, 3, true, &content_error));
   nexora::editor::RecentProjectStore recent_projects;
@@ -146,7 +151,22 @@ int main() {
          selector_request->root == selector_root && selector_request->name == "Selected" &&
          selector_request->access == nexora::editor::ProjectAccess::ReadWrite);
   assert(!host.TakeProjectSelectorRequest());
+  host.SetProjectSelectorStatus("Importing project content", true);
+  EditorImGuiTestAccess::QueueProjectImportCancellation(host);
+  assert(host.TakeProjectSelectorCancel());
+  assert(!host.TakeProjectSelectorCancel());
+  host.SetProjectSelectorStatus({}, false);
   nexora::editor::ProductShell shell;
+  std::atomic_bool release_import{false};
+  const auto import_blocker =
+      import_jobs.Submit({[&release_import](const nexora::core::CancellationToken &) {
+                            while (!release_import.load(std::memory_order_acquire))
+                              std::this_thread::yield();
+                          },
+                          nexora::core::JobPriority::High,
+                          {},
+                          "Editor ImGui import barrier"});
+  assert(content.BeginReimport(imports, mesh->id, &content_error));
   // Dear ImGui's Shortcut()/SetShortcutRouting() arbitrate routing one frame ahead: a route
   // registered during a frame only "wins" starting the *next* frame (see RoutingNext/RoutingCurr
   // in imgui.cpp's UpdateKeyRoutingTable()/SetShortcutRouting()). Draw one frame with no key event
@@ -154,9 +174,22 @@ int main() {
   // registers the shortcut unconditionally regardless of key state, and this warm-up frame never
   // calls Render(), so it does not perturb the renderer-metrics assertions further down.
   host.BeginFrame();
-  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects);
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
   assert(shell.LastCommand().empty());
   static_cast<void>(host.EndFrame());
+  const auto importing_state = EditorImGuiTestAccess::Inspect(host);
+  assert(importing_state.content_import_active);
+  assert(importing_state.content_import_state == nexora::editor::ImportOperationState::Running ||
+         importing_state.content_import_state == nexora::editor::ImportOperationState::Cancelling);
+  assert(content.CancelReimport());
+  release_import.store(true, std::memory_order_release);
+  import_jobs.Wait(import_blocker);
+  const auto import_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  while (!content.PollReimport(&content_error) &&
+         std::chrono::steady_clock::now() < import_deadline)
+    std::this_thread::yield();
+  assert(content.ReimportStatus() &&
+         content.ReimportStatus()->state == nexora::editor::ImportOperationState::Cancelled);
   const std::array events{
       Nexora::Window::WindowEvent{
           {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, 320, 240},
@@ -190,7 +223,7 @@ int main() {
   assert(display_state.framebuffer_scale == 1.5F);
   assert(display_state.font_global_scale > 0.66F && display_state.font_global_scale < 0.67F);
   host.BeginFrame();
-  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects);
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
   assert(shell.LastCommand() == "editor.scene.save");
   const auto metrics = host.EndFrame();
   assert(metrics.command_lists > 0);
@@ -202,6 +235,9 @@ int main() {
   assert(content_state.content_selection == 1);
   assert(content_state.content_forward_dependencies == 1);
   assert(content_state.content_reverse_dependencies == 0);
+  assert(!content_state.content_import_active);
+  assert(content_state.content_import_state == nexora::editor::ImportOperationState::Cancelled);
+  assert(content_state.content_import_diagnostics > 0);
   assert(content_state.project_writable);
   assert(!content_state.project_upgrade_required);
   assert(content_state.recent_projects == 1);

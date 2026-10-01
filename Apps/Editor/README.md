@@ -42,7 +42,13 @@ and submits backend-neutral textured/indexed UI draws directly into the acquired
 backbuffer. It also round-trips a versioned project layout and supplies a live `SceneDocument` to
 the Hierarchy panel. The same process binds its deterministic `AssetWorkspace` index to a live
 Content panel with breadcrumbs, folder navigation, search/type filtering, virtualized UUID-keyed
-rows, thumbnail state, selection, typed drag/drop, dependency inspection, and synchronous reimport.
+rows, thumbnail state, selection, typed drag/drop, dependency inspection, and background reimport.
+Project-selector activation now indexes content through an application-owned `AssetImportQueue`;
+the selector shows bounded progress and can cancel without activating a partial project. Content
+reimport uses the same queue, keeps source/settings hashes and dependency context in its staging
+result, and publishes only after the authoring thread revalidates the live asset revision.
+Cancelled, failed, or stale jobs leave the previous artifact active and expose structured diagnostic
+codes in the Content panel.
 Rename/move/delete operate through a recoverable project-content filesystem transaction, with
 project-local trash and one-step undo. The real project index creates or validates sibling
 `<asset>.meta` identity records; filesystem mutations move those records with their source,
@@ -52,6 +58,5 @@ shows the stable project UUID, schema and upgrade result, access mode, canonical
 recent-project list. Schema-1 projects upgrade atomically to schema 2 only while holding the writer
 lease; a read-only legacy open reports that an upgrade is required.
 
-This is an ED-M1 graphical foundation, not ED-M1 acceptance. Cancellable background import and
-reimport, dirty external-change decisions, and physical-display/Windows fresh-project workflow
-acceptance remain open.
+This is an ED-M1 graphical foundation, not ED-M1 acceptance. Dirty external-change decisions and
+physical-display/Windows fresh-project workflow acceptance remain open.

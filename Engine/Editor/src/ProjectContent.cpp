@@ -54,9 +54,45 @@ ThumbnailState ThumbnailFor(ImportState state) {
 
 } // namespace
 
+struct ProjectContentSession::PendingReimport final {
+  PendingReimport(AssetImportQueue &import_queue, ImportOperationId import_operation,
+                  std::uint64_t generation, runtime::AssetUuid target,
+                  std::filesystem::path asset_path, std::string artifact, std::string settings,
+                  std::filesystem::file_time_type source_write, std::uintmax_t source_bytes,
+                  std::vector<runtime::AssetUuid> asset_dependencies)
+      : queue(&import_queue), operation(import_operation), project_generation(generation),
+        asset(target), path(std::move(asset_path)), previous_artifact(std::move(artifact)),
+        settings_hash(std::move(settings)), source_write_time(source_write),
+        source_size(source_bytes), dependencies(std::move(asset_dependencies)) {}
+
+  AssetImportQueue *queue{};
+  ImportOperationId operation{};
+  std::uint64_t project_generation{};
+  runtime::AssetUuid asset;
+  std::filesystem::path path;
+  std::string previous_artifact;
+  std::string settings_hash;
+  std::filesystem::file_time_type source_write_time;
+  std::uintmax_t source_size{};
+  std::vector<runtime::AssetUuid> dependencies;
+
+  ~PendingReimport() {
+    if (queue != nullptr && operation != 0)
+      static_cast<void>(queue->Cancel(operation));
+  }
+};
+
+ProjectContentSession::ProjectContentSession() = default;
+ProjectContentSession::~ProjectContentSession() = default;
+ProjectContentSession::ProjectContentSession(ProjectContentSession &&) noexcept = default;
+ProjectContentSession &
+ProjectContentSession::operator=(ProjectContentSession &&) noexcept = default;
+
 bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetWorkspace &assets,
                                  std::uint64_t project_generation, bool writable,
                                  std::string *error) {
+  if (pending_reimport_)
+    return Fail("project content cannot reopen while a reimport is active", error);
   if (writable && !workspace.Writable())
     return Fail("a read-only project workspace cannot open writable content", error);
   std::error_code ec;
@@ -95,6 +131,7 @@ bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetW
   operation_ = 0;
   writable_ = writable;
   persistent_identities_ = persistent_identities;
+  last_reimport_.reset();
   ClearError(error);
   return true;
 }
@@ -367,6 +404,144 @@ bool ProjectContentSession::Reimport(runtime::AssetUuid asset, std::string *erro
     return Fail(error && !error->empty() ? *error : "reimport publication failed", error);
   ClearError(error);
   return true;
+}
+
+bool ProjectContentSession::BeginReimport(AssetImportQueue &imports, runtime::AssetUuid asset,
+                                          std::string *error) {
+  if (!writable_)
+    return Fail("project content is read-only", error);
+  if (pending_reimport_)
+    return Fail("another reimport operation is already active", error);
+  const auto *item = browser_.Find(asset);
+  if (item == nullptr)
+    return Fail("asset does not exist", error);
+
+  std::string path_error;
+  const auto source = ExistingPath(item->path, &path_error);
+  if (source.empty())
+    return Fail(path_error, error);
+  std::error_code revision_error;
+  const auto source_write_time = std::filesystem::last_write_time(source, revision_error);
+  if (revision_error)
+    return Fail("asset source revision could not be inspected: " + revision_error.message(), error);
+  const auto source_size = std::filesystem::file_size(source, revision_error);
+  if (revision_error)
+    return Fail("asset source revision could not be inspected: " + revision_error.message(), error);
+  ReimportJobRequest request{
+      browser_.ProjectGeneration(), asset,        source,
+      item->artifact_hash,          "default-v1", dependencies_.Forward(asset)};
+  std::string start_error;
+  const auto operation = imports.Start(request, &start_error);
+  if (operation == 0)
+    return Fail(start_error.empty() ? "reimport operation could not start" : start_error, error);
+  pending_reimport_ = std::make_unique<PendingReimport>(
+      imports, operation, request.project_generation, asset, item->path, item->artifact_hash,
+      request.settings_hash, source_write_time, source_size, request.dependencies);
+  last_reimport_.reset();
+  ClearError(error);
+  return true;
+}
+
+bool ProjectContentSession::PollReimport(std::string *error) {
+  if (!pending_reimport_)
+    return false;
+  auto result = pending_reimport_->queue->TakeResult(pending_reimport_->operation);
+  if (!result)
+    return false;
+
+  last_reimport_ = std::move(result->snapshot);
+  pending_reimport_->operation = 0;
+  const auto finish = [this](ImportOperationState state, ImportDiagnosticSeverity severity,
+                             std::string code, std::string message, std::string *out_error) {
+    last_reimport_->state = state;
+    if (last_reimport_->diagnostics.size() >= last_reimport_->diagnostic_capacity) {
+      last_reimport_->diagnostics.erase(last_reimport_->diagnostics.begin());
+      ++last_reimport_->dropped_diagnostics;
+    }
+    last_reimport_->diagnostics.push_back(
+        {last_reimport_->operation, severity, std::move(code), message, {}, {}});
+    last_error_ = state == ImportOperationState::Succeeded ? std::string{} : std::move(message);
+    if (out_error)
+      *out_error = last_error_;
+    pending_reimport_.reset();
+    return true;
+  };
+
+  if (last_reimport_->state == ImportOperationState::Cancelled) {
+    last_error_.clear();
+    if (error)
+      error->clear();
+    pending_reimport_.reset();
+    return true;
+  }
+  if (last_reimport_->state == ImportOperationState::Failed || !result->reimport) {
+    const auto message = !last_reimport_->diagnostics.empty()
+                             ? last_reimport_->diagnostics.back().message
+                             : "reimport worker produced no staged result";
+    return finish(ImportOperationState::Failed, ImportDiagnosticSeverity::Error,
+                  "reimport.worker_failed", message, error);
+  }
+
+  const auto *current = browser_.Find(pending_reimport_->asset);
+  std::string revision_path_error;
+  const auto source = ExistingPath(pending_reimport_->path, &revision_path_error);
+  std::error_code revision_error;
+  auto source_write_time = std::filesystem::file_time_type{};
+  std::uintmax_t source_size = 0;
+  bool source_revision_failed = source.empty();
+  if (!source_revision_failed) {
+    source_write_time = std::filesystem::last_write_time(source, revision_error);
+    source_revision_failed = static_cast<bool>(revision_error);
+    revision_error.clear();
+    source_size = std::filesystem::file_size(source, revision_error);
+    source_revision_failed = source_revision_failed || static_cast<bool>(revision_error);
+  }
+  if (browser_.ProjectGeneration() != pending_reimport_->project_generation || current == nullptr ||
+      current->path != pending_reimport_->path ||
+      current->artifact_hash != pending_reimport_->previous_artifact || source_revision_failed ||
+      source_write_time != pending_reimport_->source_write_time ||
+      source_size != pending_reimport_->source_size ||
+      result->reimport->settings_hash != pending_reimport_->settings_hash ||
+      dependencies_.Forward(pending_reimport_->asset) != pending_reimport_->dependencies) {
+    return finish(ImportOperationState::Stale, ImportDiagnosticSeverity::Warning, "reimport.stale",
+                  "Reimport completion was discarded because its project or asset revision is "
+                  "stale.",
+                  error);
+  }
+
+  ReimportTransaction transaction(pending_reimport_->project_generation, pending_reimport_->asset,
+                                  pending_reimport_->previous_artifact);
+  if (!transaction.Stage(std::move(*result->reimport)) ||
+      !transaction.Commit(browser_.ProjectGeneration(), dependencies_)) {
+    return finish(ImportOperationState::Failed, ImportDiagnosticSeverity::Error,
+                  "reimport.publish_failed", std::string(transaction.Diagnostic()), error);
+  }
+  std::string publish_error;
+  if (!browser_.PublishArtifact(pending_reimport_->asset, std::string(transaction.Artifact()),
+                                ThumbnailState::Ready, &publish_error)) {
+    return finish(ImportOperationState::Failed, ImportDiagnosticSeverity::Error,
+                  "reimport.publish_failed",
+                  publish_error.empty() ? "reimport publication failed" : publish_error, error);
+  }
+  if (last_reimport_->progress.size() >= last_reimport_->progress_capacity) {
+    last_reimport_->progress.erase(last_reimport_->progress.begin());
+    ++last_reimport_->dropped_progress;
+  }
+  last_reimport_->progress.push_back({last_reimport_->operation, ImportStage::Finished, 4, 4});
+  return finish(ImportOperationState::Succeeded, ImportDiagnosticSeverity::Info,
+                "reimport.succeeded", "Reimport artifact was published.", error);
+}
+
+bool ProjectContentSession::CancelReimport() noexcept {
+  return pending_reimport_ && pending_reimport_->queue->Cancel(pending_reimport_->operation);
+}
+
+bool ProjectContentSession::ReimportBusy() const noexcept { return pending_reimport_ != nullptr; }
+
+std::optional<ImportOperationSnapshot> ProjectContentSession::ReimportStatus() const {
+  if (pending_reimport_)
+    return pending_reimport_->queue->Snapshot(pending_reimport_->operation);
+  return last_reimport_;
 }
 
 } // namespace nexora::editor

@@ -22,6 +22,9 @@ struct EditorImGuiTestState final {
   std::uint32_t content_selection = 0;
   std::uint32_t content_forward_dependencies = 0;
   std::uint32_t content_reverse_dependencies = 0;
+  bool content_import_active = false;
+  ImportOperationState content_import_state = ImportOperationState::Succeeded;
+  std::uint32_t content_import_diagnostics = 0;
   bool project_writable = false;
   bool project_upgrade_required = false;
   std::uint32_t recent_projects = 0;
@@ -38,6 +41,7 @@ public:
   [[nodiscard]] static std::string_view ProjectSelectorRoot(const EditorImGuiHost &host) noexcept;
   static void SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept;
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
+  static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::uint32_t OverrideDrawTexture(EditorImGuiHost &host,
                                                          std::uint64_t texture_id) noexcept;
 };

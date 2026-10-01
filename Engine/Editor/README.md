@@ -55,9 +55,10 @@ into renderer or platform internals.
   and atomically replaced. The application chooses its storage path; read-only project access does
   not grant writes to project-owned files.
 - The graphical project selector is a UI request source, not a project owner. `NexoraEditor` stages
-  a candidate `ProjectWorkspace`, `AssetWorkspace`, and `ProjectContentSession`, then activates the
-  set only after create/open, identity validation, indexing, and content binding all succeed. A
-  failed request leaves the selector active and releases any candidate writer lease.
+  a candidate `ProjectWorkspace`, submits its content tree to `AssetImportQueue`, and activates the
+  resulting `AssetWorkspace` and `ProjectContentSession` only after create/open, identity
+  validation, background indexing, and content binding all succeed. Cancellation or failure leaves
+  the selector active and releases the candidate writer lease.
 - `AssetWorkspace` owns index entries. Pointers returned by `Find` and `Search` are borrowed until
   the next successful `ImportTree` call or destruction. The Editor executable uses
   `PersistentReadWrite`: every source asset has a sibling `<asset>.meta` with schema, UUID, and
@@ -80,6 +81,15 @@ into renderer or platform internals.
   and may publish only when their generation and dependency graph remain valid; cancellation,
   staleness, failure, or a cycle preserves the previous artifact. `ProjectContentSession` also keeps
   a newer reimport artifact in the pending undo snapshot, so undo cannot resurrect stale metadata.
+- `AssetImportQueue` owns generation-tagged workspace-import and reimport jobs submitted to an
+  application-owned `JobSystem`. Its worker state retains bounded progress and diagnostic histories
+  (stable code, severity, message, path, and asset context); overflow is counted explicitly.
+  Workspace results and reimport artifacts remain staging data until the authoring thread calls
+  `TakeResult` or `ProjectContentSession::PollReimport`. Reimport publication revalidates project
+  generation, asset path, previous artifact, settings identity, source-file revision/size, and
+  dependency revision before committing. The staging result itself carries deterministic
+  source/settings hashes. The queue must be destroyed before its `JobSystem`; `Shutdown` stops intake,
+  requests cancellation, and waits for every retained job.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
   hierarchy use stable IDs, never component or container pointers. The hierarchy itself is the
   runtime's (`Entity::parent`, see the Runtime README's entity hierarchy section); the document keeps
@@ -116,18 +126,19 @@ into renderer or platform internals.
 
 ## Threading, errors, and deferred work
 
-The current API is serialized and synchronous. Project create/open/upgrade, recent-project mutation,
-workspace/layout writes, and `ProjectContentSession` mutation and reimport calls run on the
-authoring thread. The writer lease serializes cooperating Editor processes; read-only observers
-cannot upgrade, recover, save layout, or open writable content. A multi-file rename failure rolls
-already-moved files back before returning an actionable error; failed reimport leaves the active
-artifact unchanged. Callers may run content indexing on a worker, but must not call the same
-workspace concurrently. Long imports report progress and observe a cancellation callback between
-files. Failed/cancelled entries remain inspectable and never replace an existing artifact
-implicitly. The current graphical reimport path is synchronous; cancellable staged worker execution
-and dirty-conflict presentation remain ED-M1 work. Functions report expected failures with `false`,
-optional values, or per-entry error text; filesystem exceptions are converted to error results where
-applicable.
+Project create/open/upgrade, recent-project mutation, workspace/layout writes, and content-model
+publication remain serialized on the authoring thread. `AssetImportQueue` workers only read source
+snapshots, create deterministic staging results, and append bounded progress/diagnostic events; they
+never mutate a live `AssetWorkspace`, `ProjectContentSession`, or UI model. Cancellation is checked
+before and between enumerate/read/stage/publish phases. A queued or in-flight cancellation, worker
+failure, stale completion, or dependency-cycle rejection discards staging and preserves the active
+index/artifact. The writer lease serializes cooperating Editor processes; read-only observers cannot
+upgrade, recover, save layout, or open writable content. A multi-file rename failure rolls
+already-moved files back before returning an actionable error. The synchronous `ImportTree` and
+`Reimport` entry points remain compatibility paths for headless callers; the graphical shell uses
+the background queue. Dirty-conflict presentation remains ED-M1 work. Functions report expected
+failures with `false`, optional values, stable diagnostic codes, or per-entry error text;
+filesystem exceptions are converted to error results where applicable.
 
 The `.meta` filename suffix is reserved for asset identity sidecars and is excluded from the source
 asset index. Artifact hashes use the persistent UUID plus source bytes rather than the current path,

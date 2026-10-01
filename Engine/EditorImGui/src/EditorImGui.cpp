@@ -74,13 +74,19 @@ struct EditorImGuiHost::State final {
   std::uint32_t content_selection = 0;
   std::uint32_t content_forward_dependencies = 0;
   std::uint32_t content_reverse_dependencies = 0;
+  bool content_import_active = false;
+  ImportOperationState content_import_state = ImportOperationState::Succeeded;
+  std::uint32_t content_import_diagnostics = 0;
   bool project_writable = false;
   bool project_upgrade_required = false;
   std::uint32_t recent_projects = 0;
   std::array<char, 1024> selector_root{};
   std::array<char, 256> selector_name{};
   std::optional<ProjectSelectorRequest> selector_request;
+  bool selector_cancel_requested = false;
   std::string selector_error;
+  std::string selector_status;
+  bool selector_busy = false;
   bool selector_initialized = false;
   bool selector_focus_root = true;
   bool selector_read_only = false;
@@ -287,13 +293,22 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
   ImGui::End();
 }
 
-template <typename StateT> void DrawContentBrowser(StateT &state, ProjectContentSession &content) {
+template <typename StateT>
+void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImportQueue *imports) {
+  static_cast<void>(content.PollReimport());
   auto &browser = content.Browser();
   state.content_visible_items = 0;
   state.content_visible_folders = 0;
   state.content_selection = static_cast<std::uint32_t>(browser.Selection().size());
   state.content_forward_dependencies = 0;
   state.content_reverse_dependencies = 0;
+  state.content_import_active = content.ReimportBusy();
+  state.content_import_diagnostics = 0;
+  if (const auto status = content.ReimportStatus()) {
+    state.content_import_state = status->state;
+    state.content_import_diagnostics = static_cast<std::uint32_t>(std::min<std::size_t>(
+        status->diagnostics.size(), std::numeric_limits<std::uint32_t>::max()));
+  }
 
   const auto window = PanelWindowName("nexora.content");
   if (!ImGui::Begin(window.c_str())) {
@@ -372,7 +387,8 @@ template <typename StateT> void DrawContentBrowser(StateT &state, ProjectContent
           state.content_rename_target = item->id;
           open_rename = true;
         }
-        if (ImGui::MenuItem("Reimport", nullptr, false, content.Writable()))
+        if (ImGui::MenuItem("Reimport", nullptr, false,
+                            content.Writable() && imports != nullptr && !content.ReimportBusy()))
           reimport_asset = item->id;
         if (ImGui::MenuItem("Delete", nullptr, false, content.Writable()))
           delete_asset = item->id;
@@ -381,8 +397,8 @@ template <typename StateT> void DrawContentBrowser(StateT &state, ProjectContent
     }
   }
 
-  if (reimport_asset)
-    static_cast<void>(content.Reimport(*reimport_asset));
+  if (reimport_asset && imports != nullptr)
+    static_cast<void>(content.BeginReimport(*imports, *reimport_asset));
   if (delete_asset) {
     const std::array assets{*delete_asset};
     static_cast<void>(content.Delete(assets));
@@ -441,6 +457,24 @@ template <typename StateT> void DrawContentBrowser(StateT &state, ProjectContent
     }
   } else {
     ImGui::Text("%zu assets selected", selection.size());
+  }
+  if (const auto status = content.ReimportStatus()) {
+    ImGui::SeparatorText("Import operation");
+    ImGui::Text("Operation: %llu", static_cast<unsigned long long>(status->operation));
+    if (!status->progress.empty()) {
+      const auto &progress = status->progress.back();
+      const float fraction = progress.total == 0 ? 0.0F
+                                                 : static_cast<float>(progress.completed) /
+                                                       static_cast<float>(progress.total);
+      ImGui::ProgressBar(std::clamp(fraction, 0.0F, 1.0F));
+    }
+    if (content.ReimportBusy() && ImGui::Button("Cancel import"))
+      static_cast<void>(content.CancelReimport());
+    for (const auto &diagnostic : status->diagnostics)
+      ImGui::TextWrapped("[%s] %s", diagnostic.code.c_str(), diagnostic.message.c_str());
+    if (status->dropped_progress != 0 || status->dropped_diagnostics != 0)
+      ImGui::TextDisabled("Bounded history dropped %zu progress and %zu diagnostic events.",
+                          status->dropped_progress, status->dropped_diagnostics);
   }
   if (!content.LastError().empty())
     ImGui::TextWrapped("Content error: %.*s", static_cast<int>(content.LastError().size()),
@@ -648,6 +682,7 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
 
   ImGui::TextUnformatted("Nexora Editor");
   ImGui::SeparatorText("Create or open a project");
+  ImGui::BeginDisabled(state_->selector_busy);
   ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 720.0F));
   const bool focus_root = state_->selector_focus_root && state_->app_focused;
   if (focus_root)
@@ -708,6 +743,11 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
       ImGui::PopID();
     }
   }
+  ImGui::EndDisabled();
+  if (!state_->selector_status.empty())
+    ImGui::TextWrapped("%s", state_->selector_status.c_str());
+  if (state_->selector_busy && ImGui::Button("Cancel import"))
+    state_->selector_cancel_requested = true;
   ImGui::End();
 }
 
@@ -717,8 +757,19 @@ std::optional<ProjectSelectorRequest> EditorImGuiHost::TakeProjectSelectorReques
   return request;
 }
 
+bool EditorImGuiHost::TakeProjectSelectorCancel() noexcept {
+  const bool requested = state_->selector_cancel_requested;
+  state_->selector_cancel_requested = false;
+  return requested;
+}
+
 void EditorImGuiHost::SetProjectSelectorError(std::string error) {
   state_->selector_error = std::move(error);
+}
+
+void EditorImGuiHost::SetProjectSelectorStatus(std::string status, bool busy) {
+  state_->selector_status = std::move(status);
+  state_->selector_busy = busy;
 }
 
 std::string_view EditorImGuiHost::ProjectSelectorError() const noexcept {
@@ -727,7 +778,8 @@ std::string_view EditorImGuiHost::ProjectSelectorError() const noexcept {
 
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
-                                       RecentProjectStore *recent_projects) {
+                                       RecentProjectStore *recent_projects,
+                                       AssetImportQueue *imports) {
   Activate(state_->context);
   state_->selector_visible = false;
   if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal))
@@ -763,7 +815,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                 shell.LastCommand().data());
   ImGui::End();
   if (content != nullptr)
-    DrawContentBrowser(*state_, *content);
+    DrawContentBrowser(*state_, *content, imports);
   DrawProjectPanel(*state_, workspace, recent_projects);
   if (state_->focus_initial_content) {
     const auto content_window_name = PanelWindowName("nexora.content");
@@ -1145,6 +1197,9 @@ EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host)
           host.state_->content_selection,
           host.state_->content_forward_dependencies,
           host.state_->content_reverse_dependencies,
+          host.state_->content_import_active,
+          host.state_->content_import_state,
+          host.state_->content_import_diagnostics,
           host.state_->project_writable,
           host.state_->project_upgrade_required,
           host.state_->recent_projects,
@@ -1167,6 +1222,10 @@ void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled)
 void EditorImGuiTestAccess::QueueProjectSelection(EditorImGuiHost &host,
                                                   ProjectSelectorRequest request) {
   host.state_->selector_request = std::move(request);
+}
+
+void EditorImGuiTestAccess::QueueProjectImportCancellation(EditorImGuiHost &host) noexcept {
+  host.state_->selector_cancel_requested = true;
 }
 
 std::uint32_t EditorImGuiTestAccess::OverrideDrawTexture(EditorImGuiHost &host,

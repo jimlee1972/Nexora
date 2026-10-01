@@ -1,3 +1,5 @@
+#include "Nexora/Core/JobSystem.h"
+#include "Nexora/Editor/AssetImport.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/ProjectContent.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
@@ -21,8 +23,9 @@ struct ProjectState final {
   nexora::editor::AssetWorkspace assets;
 };
 
-bool LoadProject(const std::filesystem::path &root, nexora::editor::ProjectAccess access,
-                 bool create, std::string name, ProjectState &destination, std::string *error) {
+bool OpenProjectWorkspace(const std::filesystem::path &root, nexora::editor::ProjectAccess access,
+                          bool create, std::string name, ProjectState &destination,
+                          std::string *error) {
   ProjectState candidate;
   if (create) {
     if (!candidate.workspace.Create(root, std::move(name), error))
@@ -30,6 +33,15 @@ bool LoadProject(const std::filesystem::path &root, nexora::editor::ProjectAcces
   } else if (!candidate.workspace.Open(root, access, error)) {
     return false;
   }
+  destination = std::move(candidate);
+  return true;
+}
+
+bool LoadProject(const std::filesystem::path &root, nexora::editor::ProjectAccess access,
+                 bool create, std::string name, ProjectState &destination, std::string *error) {
+  ProjectState candidate;
+  if (!OpenProjectWorkspace(root, access, create, std::move(name), candidate, error))
+    return false;
   if (!candidate.assets.ImportTree(candidate.workspace.Root() / "Content", {}, {},
                                    candidate.workspace.Writable()
                                        ? nexora::editor::AssetIdentityMode::PersistentReadWrite
@@ -51,7 +63,16 @@ int RunGraphical(std::optional<ProjectState> project,
     return 1;
   }
   nexora::editor::imgui::EditorImGuiHost ui;
+  nexora::core::JobSystem import_jobs{1};
+  import_jobs.Start();
+  nexora::editor::AssetImportQueue imports{import_jobs};
   nexora::editor::ProjectContentSession content;
+  struct PendingProject final {
+    ProjectState candidate;
+    nexora::editor::ImportOperationId import{};
+    bool created{};
+  };
+  std::optional<PendingProject> pending_project;
   std::string layout_error;
   const auto load_layout = [&](nexora::editor::ProjectWorkspace &workspace) {
     layout_error.clear();
@@ -104,36 +125,96 @@ int RunGraphical(std::optional<ProjectState> project,
                   dpi);
     ui.UpdateImeCandidate(*created.surface);
     ui.BeginFrame();
+    if (!project && pending_project) {
+      if (const auto snapshot = imports.Snapshot(pending_project->import)) {
+        std::string status = "Importing project content";
+        if (!snapshot->progress.empty()) {
+          const auto &progress = snapshot->progress.back();
+          if (progress.total != 0)
+            status += " (" + std::to_string(progress.completed) + "/" +
+                      std::to_string(progress.total) + ")";
+        }
+        ui.SetProjectSelectorStatus(std::move(status), true);
+      }
+      if (auto imported = imports.TakeResult(pending_project->import)) {
+        if (imported->snapshot.state == nexora::editor::ImportOperationState::Cancelled) {
+          ui.SetProjectSelectorError({});
+          ui.SetProjectSelectorStatus({}, false);
+          pending_project.reset();
+        } else if (imported->snapshot.state !=
+                       nexora::editor::ImportOperationState::AwaitingPublish ||
+                   !imported->workspace) {
+          const auto message = imported->snapshot.diagnostics.empty()
+                                   ? "Project content import failed."
+                                   : imported->snapshot.diagnostics.back().message;
+          ui.SetProjectSelectorError(message);
+          ui.SetProjectSelectorStatus({}, false);
+          pending_project.reset();
+        } else {
+          pending_project->candidate.assets = std::move(*imported->workspace);
+          nexora::editor::ProjectContentSession candidate_content;
+          std::string selector_error;
+          if (!candidate_content.Open(pending_project->candidate.workspace,
+                                      pending_project->candidate.assets, project_generation,
+                                      pending_project->candidate.workspace.Writable(),
+                                      &selector_error)) {
+            ui.SetProjectSelectorError(selector_error.empty() ? "Project content could not open."
+                                                              : std::move(selector_error));
+            ui.SetProjectSelectorStatus({}, false);
+            pending_project.reset();
+          } else {
+            const bool was_created = pending_project->created;
+            project = std::move(pending_project->candidate);
+            content = std::move(candidate_content);
+            pending_project.reset();
+            selector_result = was_created ? "created" : "opened";
+            if (!recent_projects.Record(project->workspace, &selector_error))
+              std::cerr << "recent-project warning: " << selector_error << '\n';
+            load_layout(project->workspace);
+            ui.SetProjectSelectorError({});
+            ui.SetProjectSelectorStatus({}, false);
+          }
+        }
+      }
+    }
     if (project) {
-      ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects);
+      ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports);
       if (const auto choice = ui.TakeRecoveryChoice();
           choice != nexora::editor::imgui::RecoveryChoice::None)
         recovery_choice = choice;
     } else {
       ui.DrawProjectSelector(&recent_projects, selector_access);
+      if (ui.TakeProjectSelectorCancel() && pending_project) {
+        static_cast<void>(imports.Cancel(pending_project->import));
+        ui.SetProjectSelectorStatus("Cancelling project import", true);
+      }
       if (auto request = ui.TakeProjectSelectorRequest()) {
-        ProjectState candidate;
-        std::string selector_error;
-        const bool create_project =
-            request->action == nexora::editor::imgui::ProjectSelectorAction::Create;
-        if (!LoadProject(request->root, request->access, create_project, std::move(request->name),
-                         candidate, &selector_error)) {
-          ui.SetProjectSelectorError(selector_error.empty() ? "Project activation failed."
-                                                            : std::move(selector_error));
+        if (pending_project) {
+          ui.SetProjectSelectorError("A project import is already running.");
         } else {
-          nexora::editor::ProjectContentSession candidate_content;
-          if (!candidate_content.Open(candidate.workspace, candidate.assets, project_generation,
-                                      candidate.workspace.Writable(), &selector_error)) {
-            ui.SetProjectSelectorError(selector_error.empty() ? "Project content could not open."
+          ProjectState candidate;
+          std::string selector_error;
+          const bool create_project =
+              request->action == nexora::editor::imgui::ProjectSelectorAction::Create;
+          if (!OpenProjectWorkspace(request->root, request->access, create_project,
+                                    std::move(request->name), candidate, &selector_error)) {
+            ui.SetProjectSelectorError(selector_error.empty() ? "Project activation failed."
                                                               : std::move(selector_error));
           } else {
-            project = std::move(candidate);
-            content = std::move(candidate_content);
-            selector_result = create_project ? "created" : "opened";
-            if (!recent_projects.Record(project->workspace, &selector_error))
-              std::cerr << "recent-project warning: " << selector_error << '\n';
-            load_layout(project->workspace);
-            ui.SetProjectSelectorError({});
+            const auto import =
+                imports.Start({project_generation, candidate.workspace.Root() / "Content",
+                               candidate.workspace.Writable()
+                                   ? nexora::editor::AssetIdentityMode::PersistentReadWrite
+                                   : nexora::editor::AssetIdentityMode::PersistentReadOnly},
+                              &selector_error);
+            if (import == 0) {
+              ui.SetProjectSelectorError(selector_error.empty() ? "Project import could not start."
+                                                                : std::move(selector_error));
+            } else {
+              ui.SetProjectSelectorError({});
+              ui.SetProjectSelectorStatus("Importing project content", true);
+              pending_project = PendingProject{std::move(candidate), import, create_project};
+            }
           }
         }
       }

@@ -21,7 +21,9 @@ authoring views on first launch.
   node back through `SceneDocument::Select`; the application owns that document and its `World`.
 - `ProjectContentSession` is also borrowed for each `DrawProductShell` call. The Content panel reads
   virtualized ranges from its UUID-keyed model, emits generation-tagged POD drag payloads, and routes
-  rename/move/delete/undo/reimport back through the session. It never writes the filesystem itself.
+  rename/move/delete/undo/reimport back through the session. Reimport submits to the borrowed
+  `AssetImportQueue`, shows bounded progress and structured diagnostics, offers cancellation, and
+  polls authoring-thread publication once per frame. It never writes the filesystem itself.
   Breadcrumb and folder drop targets validate the payload, project generation, destination, and
   write permission before the session mutates anything. Dependency rows resolve IDs only while the
   panel is drawing.
@@ -30,6 +32,10 @@ authoring views on first launch.
   applied/required upgrade state, and the bounded recent-project list. It never acquires a lock,
   upgrades a descriptor, or writes recent state; the application completes those operations before
   drawing.
+- The project selector displays background content-index progress and exposes a one-shot cancel
+  request. The application owns the candidate workspace and import operation, consumes the staged
+  `AssetWorkspace` on the window/authoring thread, and keeps the selector open after cancellation or
+  failure.
 - The host does not own a native window or swapchain. The application supplies events exposed by
   `RenderSurface::Events`; the native `Render` overload flattens ImGui draw lists into the public
   backend-neutral `UiDrawData` contract. `RenderSurface` records those indexed draws directly into

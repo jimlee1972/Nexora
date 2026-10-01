@@ -63,12 +63,15 @@ public:
   void DrawProjectSelector(const RecentProjectStore *recent_projects = nullptr,
                            ProjectAccess default_access = ProjectAccess::ReadWrite);
   [[nodiscard]] std::optional<ProjectSelectorRequest> TakeProjectSelectorRequest();
+  [[nodiscard]] bool TakeProjectSelectorCancel() noexcept;
   void SetProjectSelectorError(std::string error);
+  void SetProjectSelectorStatus(std::string status, bool busy);
   [[nodiscard]] std::string_view ProjectSelectorError() const noexcept;
   void DrawProductShell(ProductShell &shell, SceneDocument *scene = nullptr,
                         ProjectWorkspace *workspace = nullptr,
                         ProjectContentSession *content = nullptr,
-                        RecentProjectStore *recent_projects = nullptr);
+                        RecentProjectStore *recent_projects = nullptr,
+                        AssetImportQueue *imports = nullptr);
   [[nodiscard]] FrameMetrics EndFrame();
   // The validation/offscreen renderer retains its pipeline, font texture, and geometrically sized
   // upload buffers. ReleaseRenderer must be called before the supplied Device is destroyed.
