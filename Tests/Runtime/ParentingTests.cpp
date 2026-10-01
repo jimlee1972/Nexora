@@ -218,10 +218,11 @@ void TestBatchesAndCascade() {
   // including the commands already applied before the reparent, must then be rolled back.
   const auto far = Create(world, scene, {1e308, 0.0, 0.0});
   const auto opposite = Create(world, scene, {-1e308, 0.0, 0.0});
+  const auto *borrowed = world.FindEntity(b);
   runtime::WorldCommandBuffer overflow;
   overflow.SetTransform(b, {9.0, 9.0, 9.0});
   overflow.SetParent(far, opposite, true);
-  Require(!overflow.Apply(world) && world.Parent(far) == Id{0} &&
+  Require(!overflow.Apply(world) && world.FindEntity(b) == borrowed && world.Parent(far) == Id{0} &&
               world.FindEntity(far)->transform == Transform{1e308, 0.0, 0.0} &&
               world.FindEntity(b)->transform == Transform{5.0, 5.0, 5.0},
           "an unrepresentable keep-world reparent must reject the whole batch");
@@ -238,6 +239,16 @@ void TestBatchesAndCascade() {
   }
   Require(world.Subtree(loop_a).size() == 2 && !world.WorldTransform(loop_a),
           "a corrupted cyclic hierarchy must not hang traversal");
+  // Validating a reparent walks the new parent's ancestors; on a corrupted chain it must reject.
+  const auto newcomer = Create(world, scene);
+  Require(!Reparent(world, newcomer, loop_a) && world.Parent(newcomer) == Id{0},
+          "reparenting under a corrupted cycle must be rejected, not hang");
+  const auto dangling = Create(world, scene);
+  for (auto &entity : const_cast<runtime::Scene *>(world.FindScene(scene))->entities)
+    if (entity.id == dangling)
+      entity.parent = 999'999;
+  Require(!Reparent(world, newcomer, dangling),
+          "reparenting under a dangling chain must be rejected");
 }
 
 void TestLongChainsStayLinear() {

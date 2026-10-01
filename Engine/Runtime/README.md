@@ -253,7 +253,8 @@ no sibling ordering yet.
   "detach, then destroy the old parent" is valid while "destroy the parent, then move the child" is
   rejected whole, with nothing applied. A keep-world reparent whose re-expressed local transform is
   not representable (two valid but extreme poses can overflow) also rejects the whole batch: such a
-  batch keeps a copy of the scenes during application and restores it.
+  batch is rehearsed on a scratch copy of the world first and applied only if the rehearsal succeeds,
+  so a rejected batch never touches the world's storage and borrowed entity references stay valid.
 - `DestroyEntity` destroys the entity and every descendant, as in Unity and Unreal.
   `WorldCommandBuffer::LastDestroyed` lists every entity removed by the last successful `Apply`, so
   owners of per-entity state (such as `GameWorld`'s physics, audio, and character bindings) can release
@@ -264,7 +265,9 @@ no sibling ordering yet.
 - `Entity::parent`, like `Entity::transform`, is a plain field: writing it directly through
   `World::CreateEntity`'s reference bypasses all of the validation above and is reserved for code
   that maintains the invariants itself. Traversal stays bounded even on a hierarchy corrupted that
-  way (`Subtree` tracks visited entities; ancestor walks are step-limited and then report failure).
+  way: `Subtree` tracks visited entities, `WorldTransform`/`WorldMatrix` walks are step-limited and
+  then report failure, and validating a `SetParent` rejects the batch when the new parent's ancestor
+  chain is dangling or cyclic.
 
 Phase 1 limits: a character-controlled entity must be a root (`GameWorld` rejects parenting one and
 attaching a character to a parented entity), because the controller writes world positions into the
@@ -449,9 +452,11 @@ front end would eventually drive, exercised here through CTest rather than throu
 starts released until explicitly granted by editor policy. Stopping discards runtime mutations by
 default. The only supported apply-back policy copies changed transforms for stable entity IDs;
 runtime-created entities and all other component mutations remain isolated and are discarded.
-Transform apply-back is a deterministic stable-ID diff against the source transform snapshot. If an
-Editor transform changed concurrently, or the entity was reparented in either world since play started
-(even with unchanged local values, since those would mean a different pose under another parent), the entire apply is rejected without
+Transform apply-back is a deterministic stable-ID diff against the source transform snapshot. It
+considers only entities that play changed: a changed transform, or a parent different from the one
+at play start. If such an entity's Editor transform changed concurrently, or it was reparented in
+either world (even with unchanged local values, since those would mean a different pose under another
+parent), the entire apply is rejected without
 partial mutation and the conflict remains visible through `LastApplyBackStatus`. The Play World and update callback are released
 before `Stop` returns, including after conflicts and contained update failures.
 

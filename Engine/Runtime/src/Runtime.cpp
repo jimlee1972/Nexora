@@ -464,10 +464,14 @@ bool WorldCommandBuffer::Apply(World &world) {
         if (command.parent == command.entity || !alive(command.parent) ||
             nodes.at(command.parent).scene != nodes.at(command.entity).scene)
           return false;
-        // The new parent must not be the entity itself or one of its descendants.
-        for (auto ancestor = command.parent; ancestor != 0; ancestor = nodes.at(ancestor).parent)
-          if (ancestor == command.entity)
+        // The new parent must not be the entity itself or one of its descendants. The walk is
+        // bounded and checks each step, so an ancestor chain corrupted by a direct write to
+        // Entity::parent (a dangling parent or a cycle) rejects the batch instead of hanging.
+        std::size_t steps = 0;
+        for (auto ancestor = command.parent; ancestor != 0; ancestor = nodes.at(ancestor).parent) {
+          if (ancestor == command.entity || !nodes.contains(ancestor) || ++steps > nodes.size())
             return false;
+        }
       }
       nodes.at(command.entity).parent = command.parent;
     }
@@ -488,58 +492,68 @@ bool WorldCommandBuffer::Apply(World &world) {
 
   // Pass 2 applies in order; every command was proven valid against the state it will see. The one
   // thing pass 1 cannot prove is that a keep-world reparent yields a representable local transform
-  // (two valid poses can still overflow when re-expressed), so a batch with one keeps a copy of the
-  // scenes and restores it if that happens, keeping the batch all-or-nothing.
-  std::optional<std::vector<Scene>> rollback;
+  // (two valid poses can still overflow when re-expressed). A batch with one is therefore rehearsed
+  // on a scratch copy first and applied to the real world only once the rehearsal succeeds, so a
+  // rejected batch never touches the world's storage (borrowed entity references stay valid).
+  const auto apply_to = [this](World &target, std::vector<Id> *destroyed_out) {
+    const auto locate = [&target](Id id) -> std::pair<Scene *, Entity *> {
+      for (auto &scene : target.scenes_)
+        if (const auto found = std::ranges::find(scene.entities, id, &Entity::id);
+            found != scene.entities.end())
+          return {&scene, &*found};
+      return {nullptr, nullptr};
+    };
+    for (const auto &command : commands_) {
+      const auto [scene, found] = locate(command.entity);
+      if (found == nullptr)
+        continue;
+      if (command.kind == Command::Kind::Transform) {
+        found->transform = *NormalizedTransform(command.transform);
+      } else if (command.kind == Command::Kind::Parent) {
+        if (command.keep_world) {
+          // Keep the world pose (Unity's worldPositionStays): re-express it under the new parent.
+          auto local = *target.WorldTransform(command.entity);
+          if (command.parent != 0)
+            local = RelativeTransform(*target.WorldTransform(command.parent), local);
+          const auto normalized = NormalizedTransform(local);
+          if (!normalized)
+            return false;
+          found->transform = *normalized;
+        }
+        found->parent = command.parent;
+      } else if (command.kind == Command::Kind::Camera) {
+        found->camera = command.camera.has_value();
+        found->camera_data = command.camera.value_or(CameraComponent{});
+      } else if (command.kind == Command::Kind::Light) {
+        found->light = command.light.has_value();
+        found->light_data = command.light.value_or(LightComponent{});
+      } else if (command.kind == Command::Kind::MeshRenderer) {
+        found->mesh_renderer = command.mesh.has_value();
+        found->mesh_data = command.mesh.value_or(MeshComponent{});
+      } else {
+        const auto doomed = target.Subtree(command.entity);
+        const std::unordered_set<Id> doomed_ids(doomed.begin(), doomed.end());
+        std::erase_if(scene->entities, [&doomed_ids](const Entity &entity) {
+          return doomed_ids.contains(entity.id);
+        });
+        if (destroyed_out)
+          destroyed_out->insert(destroyed_out->end(), doomed.begin(), doomed.end());
+      }
+    }
+    return true;
+  };
   if (std::ranges::any_of(commands_, [](const Command &command) {
         return command.kind == Command::Kind::Parent && command.keep_world;
-      }))
-    rollback = world.scenes_;
-  const auto locate = [&world](Id id) -> std::pair<Scene *, Entity *> {
-    for (auto &scene : world.scenes_)
-      if (const auto found = std::ranges::find(scene.entities, id, &Entity::id);
-          found != scene.entities.end())
-        return {&scene, &*found};
-    return {nullptr, nullptr};
-  };
-  for (const auto &command : commands_) {
-    const auto [scene, found] = locate(command.entity);
-    if (found == nullptr)
-      continue;
-    if (command.kind == Command::Kind::Transform) {
-      found->transform = *NormalizedTransform(command.transform);
-    } else if (command.kind == Command::Kind::Parent) {
-      if (command.keep_world) {
-        // Keep the world pose (Unity's worldPositionStays): re-express it under the new parent.
-        auto local = *world.WorldTransform(command.entity);
-        if (command.parent != 0)
-          local = RelativeTransform(*world.WorldTransform(command.parent), local);
-        const auto normalized = NormalizedTransform(local);
-        if (!normalized) {
-          world.scenes_ = std::move(*rollback);
-          last_destroyed_.clear();
-          return false;
-        }
-        found->transform = *normalized;
-      }
-      found->parent = command.parent;
-    } else if (command.kind == Command::Kind::Camera) {
-      found->camera = command.camera.has_value();
-      found->camera_data = command.camera.value_or(CameraComponent{});
-    } else if (command.kind == Command::Kind::Light) {
-      found->light = command.light.has_value();
-      found->light_data = command.light.value_or(LightComponent{});
-    } else if (command.kind == Command::Kind::MeshRenderer) {
-      found->mesh_renderer = command.mesh.has_value();
-      found->mesh_data = command.mesh.value_or(MeshComponent{});
-    } else {
-      const auto doomed = world.Subtree(command.entity);
-      const std::unordered_set<Id> doomed_ids(doomed.begin(), doomed.end());
-      std::erase_if(scene->entities,
-                    [&doomed_ids](const Entity &entity) { return doomed_ids.contains(entity.id); });
-      last_destroyed_.insert(last_destroyed_.end(), doomed.begin(), doomed.end());
-    }
+      })) {
+    World rehearsal{world.kind_};
+    rehearsal.next_id_ = world.next_id_;
+    rehearsal.scenes_ = world.scenes_;
+    if (!apply_to(rehearsal, nullptr))
+      return false;
   }
+  // Deterministic, so after a successful rehearsal this cannot fail.
+  if (!apply_to(world, &last_destroyed_))
+    return false;
   commands_.clear();
   return true;
 }
