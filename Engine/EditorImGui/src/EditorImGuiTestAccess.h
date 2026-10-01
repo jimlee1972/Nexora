@@ -27,11 +27,15 @@ struct EditorImGuiTestState final {
   std::uint32_t recent_projects = 0;
   bool project_selector_visible = false;
   std::uint32_t selector_recent_projects = 0;
+  bool app_focused = false;
+  bool selector_root_focus_pending = false;
+  bool selector_root_active = false;
 };
 
 class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
   [[nodiscard]] static EditorImGuiTestState Inspect(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::string_view ProjectSelectorRoot(const EditorImGuiHost &host) noexcept;
   static void SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept;
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   [[nodiscard]] static std::uint32_t OverrideDrawTexture(EditorImGuiHost &host,

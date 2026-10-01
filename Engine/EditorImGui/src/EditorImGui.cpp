@@ -86,6 +86,8 @@ struct EditorImGuiHost::State final {
   bool selector_read_only = false;
   bool selector_visible = false;
   std::uint32_t selector_recent_projects = 0;
+  bool selector_root_active = false;
+  bool app_focused = false;
 
   static void SetImeData(ImGuiContext *context, ImGuiViewport *, ImGuiPlatformImeData *data) {
     ImGui::SetCurrentContext(context);
@@ -602,6 +604,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
         io.AddInputCharacter(static_cast<unsigned int>(event.value0));
       break;
     case Nexora::Window::WindowEventType::FocusChanged:
+      state_->app_focused = event.value0 != 0;
       io.AddFocusEvent(event.value0 != 0);
       break;
     case Nexora::Window::WindowEventType::DpiChanged:
@@ -646,20 +649,23 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   ImGui::TextUnformatted("Nexora Editor");
   ImGui::SeparatorText("Create or open a project");
   ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 720.0F));
-  if (state_->selector_focus_root &&
-      ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
-    ImGui::SetKeyboardFocusHere();
+  const bool focus_root = state_->selector_focus_root && state_->app_focused;
+  if (focus_root)
+    ImGui::SetWindowFocus();
+  ImGui::InputText("Project root", state_->selector_root.data(), state_->selector_root.size());
+  if (focus_root) {
+    ImGui::FocusItem();
+    ImGui::ActivateItemByID(ImGui::GetItemID());
     state_->selector_focus_root = false;
   }
-  ImGui::InputText("Project root", state_->selector_root.data(), state_->selector_root.size());
+  state_->selector_root_active = ImGui::IsItemActive();
   ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 420.0F));
   ImGui::InputText("Project name", state_->selector_name.data(), state_->selector_name.size());
   ImGui::Checkbox("Open read-only", &state_->selector_read_only);
 
   const auto typed_root = PathFromLabel(state_->selector_root.data());
-  const bool open_requested =
-      ImGui::Button("Open project (Ctrl+O)") ||
-      ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_RouteGlobal);
+  const bool open_requested = ImGui::Button("Open project (Ctrl+O)") ||
+                              ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_O);
   if (open_requested) {
     if (typed_root)
       QueueProjectSelection(*state_, ProjectSelectorAction::Open, *typed_root, {},
@@ -670,9 +676,8 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   }
   ImGui::SameLine();
   ImGui::BeginDisabled(state_->selector_read_only);
-  const bool create_requested =
-      ImGui::Button("Create project (Ctrl+N)") ||
-      ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_N, ImGuiInputFlags_RouteGlobal);
+  const bool create_requested = ImGui::Button("Create project (Ctrl+N)") ||
+                                ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_N);
   if (create_requested) {
     if (typed_root)
       QueueProjectSelection(*state_, ProjectSelectorAction::Create, *typed_root,
@@ -1144,7 +1149,14 @@ EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host)
           host.state_->project_upgrade_required,
           host.state_->recent_projects,
           host.state_->selector_visible,
-          host.state_->selector_recent_projects};
+          host.state_->selector_recent_projects,
+          host.state_->app_focused,
+          host.state_->selector_focus_root,
+          host.state_->selector_root_active};
+}
+
+std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHost &host) noexcept {
+  return host.state_->selector_root.data();
 }
 
 void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept {

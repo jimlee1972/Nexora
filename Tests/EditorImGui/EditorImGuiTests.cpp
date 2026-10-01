@@ -6,6 +6,8 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <string_view>
+#include <vector>
 
 int main() {
   using nexora::editor::imgui::EditorImGuiTestAccess;
@@ -63,6 +65,75 @@ int main() {
   const auto selector_state = EditorImGuiTestAccess::Inspect(host);
   assert(selector_metrics.vertices > 0 && selector_metrics.indices > 0);
   assert(selector_state.project_selector_visible && selector_state.selector_recent_projects == 1);
+  assert(!selector_state.app_focused && selector_state.selector_root_focus_pending);
+  const std::array focus_event{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 1, 0}};
+  host.ProcessEvents(focus_event);
+  host.BeginFrame();
+  host.DrawProjectSelector(&recent_projects);
+  static_cast<void>(host.EndFrame());
+  const auto focused_selector_state = EditorImGuiTestAccess::Inspect(host);
+  assert(focused_selector_state.app_focused && !focused_selector_state.selector_root_focus_pending);
+  host.BeginFrame();
+  host.DrawProjectSelector(&recent_projects);
+  static_cast<void>(host.EndFrame());
+  assert(EditorImGuiTestAccess::Inspect(host).selector_root_active);
+  std::vector<Nexora::Window::WindowEvent> selector_text;
+  for (const char character : std::string_view("selected"))
+    selector_text.push_back(
+        {{}, Nexora::Window::WindowEventType::Text, 0, 0, 0, 1.0F, character, 0});
+  host.ProcessEvents(selector_text);
+  host.BeginFrame();
+  host.DrawProjectSelector(&recent_projects);
+  static_cast<void>(host.EndFrame());
+  assert(EditorImGuiTestAccess::ProjectSelectorRoot(host) == "selected");
+  const std::array selector_shortcut{
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::LeftControl),
+                                  1,
+                                  Nexora::Window::KeyModifiers::Control},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::O),
+                                  1,
+                                  Nexora::Window::KeyModifiers::Control}};
+  host.ProcessEvents(selector_shortcut);
+  host.BeginFrame();
+  host.DrawProjectSelector(&recent_projects);
+  static_cast<void>(host.EndFrame());
+  const auto keyboard_selector_request = host.TakeProjectSelectorRequest();
+  assert(keyboard_selector_request);
+  assert(keyboard_selector_request->action == nexora::editor::imgui::ProjectSelectorAction::Open);
+  assert(keyboard_selector_request->root == std::filesystem::path("selected"));
+  assert(keyboard_selector_request->access == nexora::editor::ProjectAccess::ReadWrite);
+  const std::array selector_key_release{
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::O),
+                                  0,
+                                  Nexora::Window::KeyModifiers::Control},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::LeftControl),
+                                  0}};
+  host.ProcessEvents(selector_key_release);
   host.SetProjectSelectorError("project could not be opened");
   assert(host.ProjectSelectorError() == "project could not be opened");
   const auto selector_root = content_root / "selected";
