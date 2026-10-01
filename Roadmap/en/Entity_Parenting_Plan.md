@@ -1,8 +1,8 @@
 # Entity Parenting (Transform Hierarchy) — Plan
 
 > Version: v1.1 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
-> ✅ phase 1 complete; phase 2 wires and phase 3 gizmo math done; characters under a parent, Hierarchy
-> drag/sibling order, and phase 4 not started** | Updated: 2026-10-01 | Relates to:
+> ✅ phases 1 and 2 complete; phase 3 gizmo math done; Hierarchy drag/sibling order and phase 4 not
+> started** | Updated: 2026-10-01 | Relates to:
 > `Transform_Rotation_Scale_Plan.md`, `Editor_Roadmap.md` §ED-M2
 
 ## 1. Purpose
@@ -50,10 +50,11 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
    `Parent`/`Children`/`WorldTransform`/`WorldMatrix`, cascading destroy with the destroyed ids
    reported, snapshot v3, undoable `SceneEditor::SetParent` and subtree-restoring destroy undo,
    `GameWorld` wrappers, and `SceneDocument` reading parents from the runtime. Character-controlled
-   entities must be roots in this phase (see §5).
-2. **Gameplay boundary.** Versioned Zig/C wire for parent and world transform (done: `"Nexora.Parent"`,
-   `"Nexora.WorldTransform"`, and `"Nexora.TransformV2"`); character controllers
-   under a parent.
+   entities had to be roots in this phase; phase 2 lifted that (see §5).
+2. ✅ **Gameplay boundary.** Versioned Zig/C wire for parent and world transform (`"Nexora.Parent"`,
+   `"Nexora.WorldTransform"`, and `"Nexora.TransformV2"`); character controllers under a parent,
+   following Unity: the controller moves in world space, starts each tick from the transform's
+   current world position (so a moving parent carries it), and stores the result locally.
 3. **Editor tools.** World/local and pivot gizmo modes (math done: `GizmoAxes`, `ApplyGizmo`,
    `GizmoRoots` in `ViewportMath.h`, working on the world TRS like Unity), Hierarchy drag
    reparenting, sibling order.
@@ -61,8 +62,8 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
 
 ## 5. Phase-1 limits (documented, not hidden)
 
-- An entity with a character controller must be a root, and a parented entity cannot get one; the
-  controller writes world positions and a child stores local ones.
+- ~~An entity with a character controller must be a root.~~ Lifted in phase 2: the controller
+  converts between its world position and the child's local transform.
 - The Zig/C transform wire keeps carrying the **local** position; for roots that is the world
   position, so existing gameplay modules behave exactly as before.
 - `PlaySession` apply-back still applies transforms only; parent changes made during play are not

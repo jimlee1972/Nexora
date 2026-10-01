@@ -430,16 +430,105 @@ void TestGameWorld() {
           "a deferred cascaded destroy must release the descendants' bindings");
 
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
-  const auto holder = world.SpawnEntity(scene);
-  const auto actor = world.SpawnEntity(scene);
-  Require(world.SetCharacter(actor, runtime::CharacterControllerConfig{}), "character failed");
-  Require(!world.SetParent(actor, holder) && world.GetParent(actor) == runtime::Id{0} &&
-              world.SetParent(actor, 0),
-          "a character-controlled entity must stay a root in this phase");
-  const auto attached = world.SpawnEntity(scene);
-  Require(world.SetParent(attached, holder) &&
-              !world.SetCharacter(attached, runtime::CharacterControllerConfig{}),
-          "a parented entity must not gain a character controller in this phase");
+  // A character controller works in world space, also under a parent (Unity's CharacterController
+  // on a child): it starts each move from the transform's current world position, so a moving
+  // parent carries it, and the result is stored relative to the parent.
+  EntitySpawnDescriptor platform_descriptor;
+  platform_descriptor.transform = ParentPose(); // turned 90 degrees about +Y, scale 2
+  const auto platform = world.SpawnEntity(scene, platform_descriptor);
+  EntitySpawnDescriptor rider_descriptor;
+  rider_descriptor.transform = {10.0, 1.0, -2.0};
+  const auto rider = world.SpawnEntity(scene, rider_descriptor);
+  Require(world.SetParent(rider, platform) &&
+              world.SetCharacter(rider, runtime::CharacterControllerConfig{}),
+          "a parented entity must accept a character controller");
+  Require(Near(world.GetCharacter(rider)->position.x, 10.0) &&
+              Near(world.GetCharacter(rider)->position.z, -2.0),
+          "a character must start from the world position, not the local one");
+  runtime::CharacterInput forward;
+  forward.move_x = 1.0;
+  Require(world.TickCharacter(rider, forward, 0.1).has_value(), "the rider failed to tick");
+  const auto state = *world.GetCharacter(rider);
+  const auto rider_world = *world.GetWorldTransform(rider);
+  Require(Near(rider_world.x, state.position.x) && Near(rider_world.y, state.position.y) &&
+              Near(rider_world.z, state.position.z) && world.GetParent(rider) == platform,
+          "the controller's world position must be stored relative to the parent");
+  // Raise the platform; the next (tiny) step starts from the carried position.
+  auto raised = ParentPose();
+  raised.y = 5.0;
+  Require(world.SetTransform(platform, raised), "moving the platform failed");
+  Require(world.TickCharacter(rider, {}, 0.001).has_value() &&
+              std::abs(world.GetWorldTransform(rider)->y - (rider_world.y + 5.0)) < 0.05,
+          "a moving parent must carry its character along");
+  // Detaching keeps the world pose and the controller keeps working.
+  Require(world.SetParent(rider, 0) && world.TickCharacter(rider, forward, 0.1).has_value() &&
+              world.GetParent(rider) == runtime::Id{0},
+          "a detached character must keep ticking as a root");
+
+  // Under a sheared hierarchy (a non-uniformly scaled ancestor of a rotated parent) the world TRS
+  // is only approximate; the controller must use the exact matrix translation.
+  EntitySpawnDescriptor stretched;
+  stretched.transform.sx = 2.0;
+  const auto stretcher = world.SpawnEntity(scene, stretched);
+  EntitySpawnDescriptor turned;
+  turned.transform.qz = turned.transform.qw = kHalfSqrt2; // 90 degrees about +Z
+  const auto turner = world.SpawnEntity(scene, turned);
+  EntitySpawnDescriptor sheared_descriptor;
+  sheared_descriptor.transform = {1.0, 0.0, 0.0};
+  const auto sheared = world.SpawnEntity(scene, sheared_descriptor);
+  Require(world.SetParent(turner, stretcher, false) && world.SetParent(sheared, turner, false) &&
+              world.SetCharacter(sheared, runtime::CharacterControllerConfig{}),
+          "sheared hierarchy setup failed");
+  Require(Near(world.GetCharacter(sheared)->position.y, 1.0) &&
+              Near(world.GetWorldTransform(sheared)->y, 2.0),
+          "a character under shear must start at the exact matrix position, not the lossy TRS");
+  Require(world.TickCharacter(sheared, {}, 0.01).has_value(), "the sheared character failed");
+  const auto exact = *world.InternalWorld().WorldMatrix(sheared);
+  Require(Near(exact[12], world.GetCharacter(sheared)->position.x) &&
+              Near(exact[13], world.GetCharacter(sheared)->position.y),
+          "a character under shear must be stored so its exact world position is the controller's");
+
+  // Writing the position from outside is a teleport (no ground, velocity reset); a moving parent
+  // or a keep-world reparent is not.
+  EntitySpawnDescriptor faller_descriptor;
+  faller_descriptor.transform = {50.0, 100.0, 0.0};
+  const auto faller = world.SpawnEntity(scene, faller_descriptor);
+  Require(world.SetCharacter(faller, runtime::CharacterControllerConfig{}), "faller failed");
+  for (int step = 0; step < 3; ++step)
+    Require(world.TickCharacter(faller, {}, 0.1).has_value(), "falling failed");
+  const auto falling_speed = world.GetCharacter(faller)->velocity.y;
+  Require(falling_speed < -1.0, "the character must be falling before the checks");
+  const auto carrier = world.SpawnEntity(scene);
+  Require(world.SetParent(faller, carrier) && world.TickCharacter(faller, {}, 0.001).has_value() &&
+              world.GetCharacter(faller)->velocity.y < falling_speed + 0.1,
+          "a keep-world reparent must not count as a teleport");
+  auto lifted = *world.GetEntity(carrier);
+  lifted.transform.y = 20.0;
+  Require(world.SetTransform(carrier, lifted.transform) &&
+              world.TickCharacter(faller, {}, 0.001).has_value() &&
+              world.GetCharacter(faller)->velocity.y < falling_speed + 0.1,
+          "a moving parent must not count as a teleport");
+  Require(world.SetTransform(faller, {0.0, 200.0, 0.0}) &&
+              world.TickCharacter(faller, {}, 0.001).has_value() &&
+              std::abs(world.GetCharacter(faller)->velocity.y) < 0.1,
+          "writing the position from outside must be a teleport that resets the velocity");
+
+  // A move that cannot be stored (a parent scale too small to invert) changes nothing.
+  EntitySpawnDescriptor tiny_descriptor;
+  tiny_descriptor.transform.sx = tiny_descriptor.transform.sy = tiny_descriptor.transform.sz =
+      1e-200;
+  const auto tiny = world.SpawnEntity(scene, tiny_descriptor);
+  const auto stuck = world.SpawnEntity(scene);
+  Require(world.SetParent(stuck, tiny) &&
+              world.SetCharacter(stuck, runtime::CharacterControllerConfig{}),
+          "tiny parent setup failed");
+  const auto stuck_before = *world.GetCharacter(stuck);
+  const auto stuck_local = world.GetEntity(stuck)->transform;
+  Require(!world.TickCharacter(stuck, forward, 0.1).has_value() &&
+              world.GetCharacter(stuck)->position == stuck_before.position &&
+              world.GetCharacter(stuck)->velocity == stuck_before.velocity &&
+              world.GetEntity(stuck)->transform == stuck_local,
+          "a move that cannot be stored must leave the character and the entity unchanged");
 #endif
 }
 } // namespace

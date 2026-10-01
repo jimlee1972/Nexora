@@ -145,8 +145,8 @@ public:
   }
   [[nodiscard]] std::optional<EntitySnapshot> GetEntity(runtime::Id entity) const;
   bool SetTransform(runtime::Id entity, runtime::Transform transform);
-  // Unity-style reparenting (see WorldCommandBuffer::SetParent). In this phase an entity with a
-  // character controller must stay a root, so reparenting one is rejected.
+  // Unity-style reparenting (see WorldCommandBuffer::SetParent). A character-controlled entity may
+  // have a parent: the controller moves in world space and TickCharacter stores the result locally.
   bool SetParent(runtime::Id entity, runtime::Id parent, bool keep_world = true);
   // 0 for a root, nullopt for an entity that does not exist.
   [[nodiscard]] std::optional<runtime::Id> GetParent(runtime::Id entity) const {
@@ -203,6 +203,9 @@ private:
     runtime::CharacterState state;
     runtime::CharacterController controller;
     runtime::StandardCharacterMotor motor;
+    // The local position the controller last wrote (or found at SetCharacter). A different local
+    // position at the next tick means something else moved the entity: a teleport.
+    runtime::SimulationVector local{};
   };
 #endif
   runtime::World world_;

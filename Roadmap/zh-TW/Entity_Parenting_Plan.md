@@ -1,6 +1,6 @@
 # Entity Parenting（Transform 階層）— 計畫
 
-> 版本：v1.1｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 階段 1 已完成；階段 2 的 wire 與階段 3 的 gizmo 數學已完成；父物件底下的角色、Hierarchy 拖曳／兄弟順序與階段 4 尚未開始**｜
+> 版本：v1.1｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 階段 1、2 已完成；階段 3 的 gizmo 數學已完成；Hierarchy 拖曳／兄弟順序與階段 4 尚未開始**｜
 > 更新：2026-10-01｜對應：`Transform_Rotation_Scale_Plan.md`、`Editor_Roadmap.md` §ED-M2
 
 ## 1. 目的
@@ -39,15 +39,14 @@ entity 沒有階層，所以每個 `runtime::Transform` 都是世界座標，而
 1. ✅ **Runtime 核心與 Editor 統一。**parent 欄位、含驗證的 `SetParent`、
    `Parent`／`Children`／`WorldTransform`／`WorldMatrix`、回報被刪 id 的連帶刪除、快照 v3、可復原的
    `SceneEditor::SetParent` 與能還原子樹的刪除復原、`GameWorld` 包裝，以及 `SceneDocument` 改從 runtime 讀取
-   parent。本階段有角色控制器的 entity 必須是根物件（見 §5）。
-2. **Gameplay 邊界。**有版本的 Zig／C parent 與 world transform wire（已完成：`"Nexora.Parent"`、`"Nexora.WorldTransform"` 與 `"Nexora.TransformV2"`）；父物件底下的角色控制器。
+   parent。本階段有角色控制器的 entity 必須是根物件；階段 2 已解除此限制（見 §5）。
+2. ✅ **Gameplay 邊界。**有版本的 Zig／C parent 與 world transform wire（`"Nexora.Parent"`、`"Nexora.WorldTransform"` 與 `"Nexora.TransformV2"`）；父物件底下的角色控制器，沿用 Unity：控制器在世界空間移動，每次 tick 從 transform 當下的世界位置開始（移動中的父物件會帶著它走），結果再存回 local。
 3. **Editor 工具。**world／local 與 pivot gizmo 模式（數學已完成：`ViewportMath.h` 的 `GizmoAxes`、`ApplyGizmo`、`GizmoRoots`，與 Unity 一樣以世界 TRS 運算）、Hierarchy 拖曳重新掛接、兄弟順序。
 4. **渲染。**當渲染器開始讀 entity transform 時，必須使用 `WorldMatrix`。
 
 ## 5. 階段 1 的限制（明文記錄，不隱藏）
 
-- 有角色控制器的 entity 必須是根物件，已有父物件的 entity 也不能加角色控制器；控制器寫入的是世界位置，
-  而子物件存的是 local。
+- ~~有角色控制器的 entity 必須是根物件。~~ 階段 2 已解除：控制器會在世界位置與子物件的 local transform 之間換算。
 - Zig／C transform wire 繼續傳遞 **local** 位置；對根物件而言就是世界位置，因此既有 gameplay module 行為不變。
 - `PlaySession` 的 apply-back 仍只套用 transform；遊玩期間的 parent 變更不會套回，且遊玩期間 parent
   改變過的 entity 會回報為 apply-back 衝突（它的 local 值屬於另一個 parent，照抄會讓它移位）。

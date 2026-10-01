@@ -1,6 +1,34 @@
 #include "Nexora/Game/GameWorld.h"
 
+#include <algorithm>
+#include <cmath>
+
 namespace nexora::game {
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+namespace {
+// The point whose image under the affine `matrix` (column-major) is `point`; nullopt for a singular
+// or non-finite matrix or result.
+std::optional<runtime::SimulationVector> InverseAffinePoint(const runtime::TransformMatrix &matrix,
+                                                            runtime::SimulationVector point) {
+  const double x[3]{matrix[0], matrix[1], matrix[2]};
+  const double y[3]{matrix[4], matrix[5], matrix[6]};
+  const double z[3]{matrix[8], matrix[9], matrix[10]};
+  const double v[3]{point.x - matrix[12], point.y - matrix[13], point.z - matrix[14]};
+  // Cramer's rule with det(a, b, c) = a . (b x c).
+  const auto det = [](const double *a, const double *b, const double *c) {
+    return a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) +
+           a[2] * (b[0] * c[1] - b[1] * c[0]);
+  };
+  const auto d = det(x, y, z);
+  if (!std::isfinite(d) || std::abs(d) < 1e-300)
+    return std::nullopt;
+  const runtime::SimulationVector result{det(v, y, z) / d, det(x, v, z) / d, det(x, y, v) / d};
+  if (!std::isfinite(result.x) || !std::isfinite(result.y) || !std::isfinite(result.z))
+    return std::nullopt;
+  return result;
+}
+} // namespace
+#endif
 
 InputSnapshot CaptureInput(runtime::InputSystem &input, runtime::InputUserId user) {
   return {input.Consume(user)};
@@ -107,12 +135,6 @@ bool GameWorld::SetTransform(runtime::Id entity, runtime::Transform transform) {
 }
 
 bool GameWorld::SetParent(runtime::Id entity, runtime::Id parent, bool keep_world) {
-#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
-  // The character controller writes world positions into the entity transform, which is local
-  // under a parent; until that is resolved, character-controlled entities stay roots.
-  if (parent != 0 && characters_.contains(entity))
-    return false;
-#endif
   runtime::WorldCommandBuffer commands;
   commands.SetParent(entity, parent, keep_world);
   return commands.Apply(world_);
@@ -208,11 +230,13 @@ bool GameWorld::SetCharacter(runtime::Id entity,
     return false;
   if (!config)
     return characters_.erase(entity) != 0;
-  // See SetParent: a character-controlled entity must be a root in this phase.
-  if (world_.Parent(entity).value_or(0) != 0)
+  // The controller works in world space; under a parent the entity's transform is local.
+  const auto matrix = world_.WorldMatrix(entity);
+  if (!matrix)
     return false;
   CharacterBinding binding(*config);
-  binding.state.position = {snapshot->transform.x, snapshot->transform.y, snapshot->transform.z};
+  binding.state.position = {(*matrix)[12], (*matrix)[13], (*matrix)[14]};
+  binding.local = {snapshot->transform.x, snapshot->transform.y, snapshot->transform.z};
   characters_.insert_or_assign(entity, std::move(binding));
   return true;
 }
@@ -231,14 +255,47 @@ GameWorld::TickCharacter(runtime::Id entity, const runtime::CharacterInput &inpu
   if (found == characters_.end() || !IsAlive(entity))
     return std::nullopt;
   auto &binding = found->second;
-  auto result =
-      binding.motor.Tick(binding.state, input, seconds, physics_, binding.controller, ground_ready);
   const auto *current = world_.FindEntity(entity);
-  if (current == nullptr ||
-      !SetTransform(entity,
-                    runtime::WithPosition(current->transform, binding.state.position.x,
-                                          binding.state.position.y, binding.state.position.z)))
+  const auto matrix = world_.WorldMatrix(entity);
+  if (current == nullptr || !matrix)
     return std::nullopt;
+  // Like Unity's CharacterController, start each move from where the transform is now in world
+  // space. The exact matrix translation is used, since the world TRS is only approximate under a
+  // sheared hierarchy. Work on a copy so a move that cannot be stored leaves the binding as it was.
+  auto state = binding.state;
+  const runtime::SimulationVector world_position{(*matrix)[12], (*matrix)[13], (*matrix)[14]};
+  // A teleport is something else writing the entity's position: its local position changed and
+  // so did its world position. A moved parent changes only the world position, and a keep-world
+  // reparent only the local one; both carry the character and keep its ground contact.
+  const auto &local = current->transform;
+  const bool local_moved =
+      local.x != binding.local.x || local.y != binding.local.y || local.z != binding.local.z;
+  const auto near = [](double a, double b) {
+    return std::abs(a - b) <= 1e-9 * std::max({1.0, std::abs(a), std::abs(b)});
+  };
+  const bool world_moved = !near(world_position.x, binding.state.position.x) ||
+                           !near(world_position.y, binding.state.position.y) ||
+                           !near(world_position.z, binding.state.position.z);
+  if (local_moved && world_moved)
+    binding.controller.Teleport(state, world_position, false, ground_ready);
+  else
+    state.position = world_position;
+  auto result =
+      binding.motor.Tick(state, input, seconds, physics_, binding.controller, ground_ready);
+  // Store the new world position in the parent's space, changing only the local position.
+  auto stored = state.position;
+  if (current->parent != 0) {
+    const auto parent = world_.WorldMatrix(current->parent);
+    const auto inverse = parent ? InverseAffinePoint(*parent, state.position) : std::nullopt;
+    if (!inverse)
+      return std::nullopt;
+    stored = *inverse;
+  }
+  if (!SetTransform(entity,
+                    runtime::WithPosition(current->transform, stored.x, stored.y, stored.z)))
+    return std::nullopt;
+  binding.state = state;
+  binding.local = stored;
   return result;
 }
 #endif
