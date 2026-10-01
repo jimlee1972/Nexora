@@ -133,6 +133,10 @@ throw. Upload batches and snapshots own their returned data. `Clear()`/destructi
 dirty, free, and pending-retirement state and therefore require the caller to have ended any GPU use
 of those slots.
 
+Entity transforms reach the GPUScene only through the Runtime's `RenderSceneSync`, which writes each
+entity's exact world matrix (never a local transform) and conservative world bounds; see the Runtime
+README's "Render sync" section. The renderer does not depend on the Runtime.
+
 ## V2-M3 GPU-driven contract
 
 `BuildGPUDrivenCommands()` is the deterministic CPU reference for the backend compute pipeline. It

@@ -1,8 +1,8 @@
 # Entity Parenting (Transform Hierarchy) — Plan
 
 > Version: v1.1 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
-> ✅ phases 1, 2, and 3 (data model) complete; the graphical Hierarchy and gizmos are the Editor
-> roadmap's; phase 4 not started** | Updated: 2026-10-01 | Relates to:
+> ✅ phases 1, 2, 3 (data model), and 4 (GPU scene sync) complete; the graphical Hierarchy and
+> gizmos are the Editor roadmap's** | Updated: 2026-10-01 | Relates to:
 > `Transform_Rotation_Scale_Plan.md`, `Editor_Roadmap.md` §ED-M2
 
 ## 1. Purpose
@@ -59,7 +59,13 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
    `GizmoRoots` in `ViewportMath.h`, working on the world TRS like Unity), Hierarchy drag
    reparenting and sibling order (done: `SetSiblingIndex`/`SiblingIndex`, reparent-to-last,
    undoable `SceneEditor::Move`, `SceneDocument::Move`, and `Nodes()` in sibling order).
-4. **Rendering.** When renderers consume entity transforms, they must use `WorldMatrix`.
+4. ✅ **Rendering (GPU scene sync; no app draws through it yet).** When renderers consume entity
+   transforms, they must use `WorldMatrix`. `RenderSceneSync` (`RenderSync.h`) is that consumer: it
+   mirrors the mesh renderers of the active scenes into `renderer::GPUScene` with each entity's exact
+   world matrix (shear included) and conservative world bounds (the matrix's spectral norm scales the
+   radius), so moving a parent updates every rendered descendant. Matrices are memoized per call, so
+   a sync is linear in the entity count; poses that overflow float are kept out. Wiring an
+   application's draw loop to it belongs to the renderer and Editor viewport work.
 
 ## 5. Phase-1 limits (documented, not hidden)
 

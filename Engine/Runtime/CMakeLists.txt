@@ -5,6 +5,7 @@ add_library(NexoraRuntime ${NEXORA_MODULE_LIBRARY_TYPE}
   src/GameWorld.cpp
   src/GameplayHostBridge.cpp
   src/ShaderRuntime.cpp
+  src/RenderSync.cpp
   src/Runtime.cpp)
 if(NEXORA_ENABLE_GAMEPLAY_SIMULATION)
   target_sources(NexoraRuntime PRIVATE src/GameplaySimulation.cpp)

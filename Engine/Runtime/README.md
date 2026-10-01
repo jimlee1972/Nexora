@@ -247,7 +247,7 @@ meaningful.
   is exact unless a non-uniformly scaled ancestor has a rotated descendant, where the true world
   transform contains shear that a position/rotation/scale triple cannot hold; like Unity's
   `lossyScale`, it is then an approximation. `WorldMatrix` (column-major 4x4, `ToMatrix` per level)
-  is always exact and is what rendering will consume. `ComposeTransforms` and `RelativeTransform` are
+  is always exact and is what rendering consumes (see "Render sync" below). `ComposeTransforms` and `RelativeTransform` are
   the public building blocks.
 - Writes: `WorldCommandBuffer::SetParent(entity, parent, keep_world = true)`, with parent 0 to
   detach. `keep_world` is Unity's `worldPositionStays`: the local transform is recomputed so the
@@ -288,6 +288,31 @@ approximate under a sheared hierarchy.
   local position changes.
 - The tick runs on a copy of the controller state and commits only after the transform is stored;
   a move that cannot be stored changes neither.
+
+### Render sync
+
+`RenderSceneSync` (`RenderSync.h`) is the hierarchy's only path into the renderer: it mirrors the
+mesh renderers of a `World`'s active scenes into a `renderer::GPUScene`, one GPU object per entity.
+
+- Each object's transform is the entity's exact `WorldMatrix`, converted by `ToRenderMatrix` to the
+  renderer's (row, column) `math::Matrix4`, so shear under non-uniformly scaled parents survives.
+  `TransformBounds` scales the mesh's local sphere by the matrix's spectral norm (its largest
+  stretch) and rounds up, so the bounds stay conservative under shear and float narrowing.
+- The caller's `RenderResourceResolver` maps a `MeshComponent` to resource indices and local bounds;
+  returning nullopt (an asset that is not resident) keeps the entity out of the GPU scene.
+- `Sync` creates objects for new mesh renderers, writes only the transform, bounds, or resources that
+  changed, and destroys the objects of entities that were destroyed (including cascaded
+  descendants), lost their mesh renderer, left an active scene, or became unrepresentable (a pose
+  that overflows float, or a parent cycle written directly into `Entity::parent`). Visibility and
+  LOD belong to other systems and are never overwritten after creation. An object destroyed behind
+  the sync's back is mirrored again.
+- World matrices are memoized per call (bit-identical to `WorldMatrix`), so a sync is linear in the
+  entity count even on deep chains. Destruction runs in entity-id order, keeping GPU slot reuse
+  deterministic.
+- Ownership and threading: the sync owns only the objects it created and hands `retire_fence` to
+  `GPUScene::Destroy`; `Release` destroys them all. The sync, the `World`, and the `GPUScene` are
+  externally synchronized on one thread, like the `GPUScene` itself. No application draw loop is
+  wired to it yet.
 
 Limits: `PlaySession` apply-back copies transforms only and reports a conflict for an entity whose
 parent changed during play; rendering and physics do not consume entity transforms yet.

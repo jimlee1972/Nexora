@@ -47,7 +47,9 @@ void SetRotation(Transform &t, Quat q) noexcept {
   t.qz = q.z;
   t.qw = q.w;
 }
-TransformMatrix Multiply(const TransformMatrix &a, const TransformMatrix &b) noexcept {
+} // namespace
+
+TransformMatrix MultiplyMatrices(const TransformMatrix &a, const TransformMatrix &b) noexcept {
   TransformMatrix result{};
   for (int column = 0; column < 4; ++column)
     for (int row = 0; row < 4; ++row) {
@@ -58,7 +60,6 @@ TransformMatrix Multiply(const TransformMatrix &a, const TransformMatrix &b) noe
     }
   return result;
 }
-} // namespace
 
 TransformMatrix ToMatrix(const Transform &t) noexcept {
   const auto q = RotationOf(t);
@@ -414,7 +415,7 @@ std::optional<TransformMatrix> World::WorldMatrix(Id entity) const {
     return std::nullopt;
   auto result = ToMatrix(chain.back()->transform);
   for (auto it = chain.rbegin() + 1; it != chain.rend(); ++it)
-    result = Multiply(result, ToMatrix((*it)->transform));
+    result = MultiplyMatrices(result, ToMatrix((*it)->transform));
   return result;
 }
 
