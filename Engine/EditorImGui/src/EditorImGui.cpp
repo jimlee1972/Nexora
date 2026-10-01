@@ -704,6 +704,15 @@ void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled)
   ImGui::GetIO().ConfigInputTrickleEventQueue = enabled;
 }
 
+void EditorImGuiTestAccess::InvokeImeCallback(EditorImGuiHost &host, float x, float y,
+                                              bool visible) noexcept {
+  Activate(host.state_->context);
+  ImGuiPlatformImeData data{};
+  data.WantVisible = visible;
+  data.InputPos = {x, y};
+  EditorImGuiHost::State::SetImeData(host.state_->context, nullptr, &data);
+}
+
 std::uint32_t EditorImGuiTestAccess::OverrideDrawTexture(EditorImGuiHost &host,
                                                          std::uint64_t texture_id) noexcept {
   Activate(host.state_->context);

@@ -11,7 +11,10 @@ window are coalesced. Zero extent means minimization. A returned event span is b
 pump or system destruction. Destroy removes queued events and no callback or deferred work survives it.
 
 Win32 provides per-monitor DPI, keyboard/text/IME, pointer-button and wheel translation, including
-native IME candidate positioning. X11 provides close, configure, focus, keyboard, pointer-button and
+native IME candidate positioning in client-pixel coordinates. `WM_CHAR` and committed IME UTF-16
+are normalized to one `Text` event per Unicode scalar, including supplementary-plane characters;
+unpaired surrogates and invalid scalars are discarded rather than forwarded. X11 provides close,
+configure, focus, keyboard, pointer-button and
 two-axis wheel translation plus EWMH fullscreen; candidate positioning reports `Unsupported`. A window destroyed by the server or another client (no
 `WM_DELETE_WINDOW` is ever sent) is reported as a close request, and the system does not destroy it a
 second time. Cocoa
