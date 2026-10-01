@@ -620,6 +620,10 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
     vertex_base += static_cast<std::uint32_t>(list.VtxBuffer.Size);
     index_base += static_cast<std::uint32_t>(list.IdxBuffer.Size);
   }
+  // ImGui legitimately produces no geometry while windows are still sizing themselves (the first
+  // frame), and the surface contract rejects empty draw data. Nothing to draw is not a failure.
+  if (vertices.empty() || indices.empty() || commands.empty())
+    return Nexora::Presentation::SurfaceStatus::Ready;
   std::vector<Nexora::Presentation::UiTextureUpload> uploads;
   if (state_->surface_font_generation != state_->font_generation) {
     unsigned char *atlas = nullptr;

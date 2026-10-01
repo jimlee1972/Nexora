@@ -13,6 +13,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace Nexora::Window {
@@ -98,6 +99,28 @@ KeyModifiers TranslateModifiers(unsigned state) noexcept {
   return static_cast<KeyModifiers>(result);
 }
 
+using XErrorHandler = int (*)(Display *, XErrorEvent *);
+XErrorHandler g_previous_error_handler = nullptr;
+
+// Only BadWindow is tolerated, and only while DestroyWindowIfPresent installs this handler;
+// every other protocol error still reaches the previously installed handler.
+int IgnoreBadWindow(Display *display, XErrorEvent *error) {
+  if (error->error_code == BadWindow)
+    return 0;
+  return g_previous_error_handler != nullptr ? g_previous_error_handler(display, error) : 0;
+}
+
+// The server (or another client such as xdotool) may already have destroyed the window by the time
+// we do, and Vulkan can report the lost surface before the DestroyNotify has been pumped. A second
+// XDestroyWindow would otherwise raise BadWindow, whose default handler aborts the process.
+void DestroyWindowIfPresent(Display *display, ::Window window) {
+  g_previous_error_handler = XSetErrorHandler(IgnoreBadWindow);
+  XDestroyWindow(display, window);
+  XSync(display, False);
+  XSetErrorHandler(g_previous_error_handler);
+  g_previous_error_handler = nullptr;
+}
+
 std::uint64_t Now() noexcept {
   return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
                                         std::chrono::steady_clock::now().time_since_epoch())
@@ -114,7 +137,8 @@ public:
     if (!display_)
       return;
     for (const auto &[id, window] : windows_)
-      XDestroyWindow(display_, window);
+      if (!gone_.contains(window))
+        DestroyWindowIfPresent(display_, window);
     XCloseDisplay(display_);
   }
   std::thread::id OwnerThread() const noexcept override { return owner_; }
@@ -150,7 +174,10 @@ public:
     if (found == windows_.end())
       return WindowError::InvalidHandle;
     reverse_.erase(found->second);
-    XDestroyWindow(display_, found->second);
+    // A window the server already destroyed (see DestroyNotify below) must not be destroyed again:
+    // XDestroyWindow on it raises a BadWindow protocol error that aborts the process.
+    if (!gone_.erase(found->second))
+      DestroyWindowIfPresent(display_, found->second);
     windows_.erase(found);
     std::erase_if(pending_, [handle](const auto &event) { return event.window == handle; });
     std::erase_if(pumped_, [handle](const auto &event) { return event.window == handle; });
@@ -212,6 +239,13 @@ public:
       switch (native.type) {
       case ClientMessage:
         emit = static_cast<Atom>(native.xclient.data.l[0]) == closeAtom_;
+        break;
+      case DestroyNotify:
+        // The window was destroyed behind our back (a client such as xdotool, or the server), so
+        // no WM_DELETE_WINDOW will ever arrive. Report it as a close request so the owner stops.
+        emit = native.xdestroywindow.event == native.xdestroywindow.window;
+        if (emit)
+          gone_.insert(native.xdestroywindow.window);
         break;
       case ConfigureNotify:
         event.type = WindowEventType::Resized;
@@ -296,6 +330,7 @@ private:
   std::uint64_t next_ = 1;
   std::unordered_map<std::uint64_t, ::Window> windows_;
   std::unordered_map<::Window, WindowHandle> reverse_;
+  std::unordered_set<::Window> gone_; // destroyed by the server before our own Destroy
   std::vector<WindowEvent> pending_;
   std::vector<WindowEvent> pumped_;
 };
