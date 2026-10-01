@@ -4,6 +4,7 @@
 #include "Nexora/Editor/SceneAuthoring.h"
 
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -220,7 +221,39 @@ int Run() {
   runtime::World loaded_world;
   const auto placeholder = loaded_world.LoadScene("Placeholder");
   editor::SceneDocument loaded(loaded_world, placeholder);
-  Require(loaded.Reload(scene_path) && loaded.Name(child) == "Child", "scene reload failed");
+  Require(loaded.Reload(scene_path) && loaded.Name(child) == "Child" &&
+              loaded.Parent(child) == parent && loaded_world.Parent(child) == parent,
+          "scene reload failed");
+
+  // Before snapshot version 3 the hierarchy lived only in the node lines and every transform was
+  // a world pose; migrating must parent the entities without moving them.
+  const auto legacy_path = root / "Content/Legacy.scene";
+  std::ofstream(legacy_path, std::ios::binary | std::ios::trunc)
+      << "NEXORA_EDITOR_SCENE 1\nnode 5 0 Parent\nnode 6 5 Child\nworld\n"
+         "NEXORA_SCENE 2 \"Legacy\" 0 2\n"
+         "5 10 0 0 0 0.70710678118654752 0 0.70710678118654752 2 2 2 0 0 0 60 0.1 1000 1 0 0\n"
+         "6 10 0 -2 0 0 0 1 1 1 1 0 0 0 60 0.1 1000 1 0 0\n";
+  runtime::World legacy_world;
+  editor::SceneDocument legacy(legacy_world, legacy_world.LoadScene("Placeholder"));
+  Require(legacy.Reload(legacy_path) && legacy.Parent(6) == runtime::Id{5} &&
+              legacy_world.Parent(6) == runtime::Id{5},
+          "a legacy editor scene must migrate its node-line hierarchy into the runtime");
+  const auto migrated = *legacy_world.WorldTransform(6);
+  Require(std::abs(migrated.x - 10.0) < 1e-9 && std::abs(migrated.z + 2.0) < 1e-9 &&
+              std::abs(migrated.sx - 1.0) < 1e-9 &&
+              std::abs(legacy_world.FindEntity(6)->transform.x - 1.0) < 1e-9,
+          "migrating a legacy hierarchy must keep every world pose");
+  // A migration that cannot apply (a parent id that is a node but not an entity of this world)
+  // must fail without leaving a half-loaded scene behind.
+  const auto broken_path = root / "Content/Broken.scene";
+  std::ofstream(broken_path, std::ios::binary | std::ios::trunc)
+      << "NEXORA_EDITOR_SCENE 1\nnode 7 0 Ghost\nnode 8 7 Child\nworld\n"
+         "NEXORA_SCENE 2 \"Broken\" 0 1\n"
+         "8 0 0 0 0 0 0 1 1 1 1 0 0 0 60 0.1 1000 1 0 0\n";
+  runtime::World broken_world;
+  editor::SceneDocument broken(broken_world, broken_world.LoadScene("Placeholder"));
+  Require(!broken.Reload(broken_path) && broken_world.FindEntity(8) == nullptr,
+          "a failed legacy migration must not leave the scene loaded");
   Require(document.Create("Bad\nName") == 0 && document.Create("Bad\rName") == 0,
           "a node name containing a newline must be rejected, since Save()/Reload() use a "
           "line-oriented format that a newline would silently corrupt");

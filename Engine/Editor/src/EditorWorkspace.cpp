@@ -305,7 +305,14 @@ runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
       (parent != 0 && std::ranges::find(nodes_, parent, &Node::id) == nodes_.end()))
     return 0;
   const auto entity_id = editor_.CreateEntity(scene_);
-  nodes_.push_back({entity_id, parent, std::move(name)});
+  if (parent != 0) {
+    // Part of creating the node rather than a separate undo step: undoing the creation removes it.
+    runtime::WorldCommandBuffer attach;
+    attach.SetParent(entity_id, parent, false);
+    if (!attach.Apply(world_))
+      return 0;
+  }
+  nodes_.push_back({entity_id, std::move(name)});
   return entity_id;
 }
 bool SceneDocument::Select(std::span<const runtime::Id> entities) {
@@ -317,18 +324,11 @@ bool SceneDocument::Select(std::span<const runtime::Id> entities) {
   return true;
 }
 bool SceneDocument::Reparent(runtime::Id entity, runtime::Id parent) {
-  auto node = std::ranges::find(nodes_, entity, &Node::id);
-  if (node == nodes_.end() || entity == parent ||
+  if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end() ||
       (parent && std::ranges::find(nodes_, parent, &Node::id) == nodes_.end()))
     return false;
-  for (auto ancestor = parent; ancestor != 0;) {
-    if (ancestor == entity)
-      return false;
-    const auto found = std::ranges::find(nodes_, ancestor, &Node::id);
-    ancestor = found == nodes_.end() ? 0 : found->parent;
-  }
-  node->parent = parent;
-  return true;
+  // The runtime rejects self-parenting and cycles.
+  return editor_.SetParent(entity, parent, true);
 }
 bool SceneDocument::SetTransform(runtime::Id entity, runtime::Transform transform) {
   return editor_.SetTransform(entity, transform);
@@ -348,8 +348,9 @@ bool SceneDocument::Paste() {
   selection_.clear();
   for (const auto &source : clipboard_) {
     const auto id = Create(source.name + " Copy");
-    if (const auto *entity = world_.FindEntity(source.id))
-      editor_.SetTransform(id, entity->transform);
+    // The copy is a root, so give it the source's world pose to make it appear in the same place.
+    if (const auto world = world_.WorldTransform(source.id))
+      editor_.SetTransform(id, *world);
     selection_.push_back(id);
   }
   return true;
@@ -360,23 +361,28 @@ bool SceneDocument::Save(const std::filesystem::path &path) const {
   if (!snapshot)
     return false;
   std::string output = "NEXORA_EDITOR_SCENE 1\n";
+  // The parent column duplicates the runtime hierarchy (snapshot version 3) for older readers.
   for (const auto &node : nodes_)
-    output += "node " + std::to_string(node.id) + " " + std::to_string(node.parent) + " " +
-              node.name + "\n";
+    output += "node " + std::to_string(node.id) + " " +
+              std::to_string(world_.Parent(node.id).value_or(0)) + " " + node.name + "\n";
   output += "world\n" + *snapshot;
   return AtomicWrite(path, output, nullptr);
 }
 bool SceneDocument::Reload(const std::filesystem::path &path) {
   std::ifstream input(path, std::ios::binary);
   std::string line, world_data;
-  std::vector<Node> loaded;
+  struct LoadedNode final {
+    runtime::Id id{}, parent{};
+    std::string name;
+  };
+  std::vector<LoadedNode> loaded;
   if (!input || !std::getline(input, line) || line != "NEXORA_EDITOR_SCENE 1")
     return false;
   while (std::getline(input, line) && line != "world") {
     if (!line.starts_with("node "))
       return false;
     std::istringstream parser(line.substr(5));
-    Node node;
+    LoadedNode node;
     if (!(parser >> node.id >> node.parent >> std::ws) || !std::getline(parser, node.name) ||
         node.name.empty())
       return false;
@@ -395,24 +401,51 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
     for (auto parent = node.parent; parent;) {
       if (!ancestors.insert(parent).second)
         return false;
-      const auto found = std::ranges::find(loaded, parent, &Node::id);
+      const auto found = std::ranges::find(loaded, parent, &LoadedNode::id);
       if (found == loaded.end())
         return false;
       parent = found->parent;
     }
   }
   world_data.assign(std::istreambuf_iterator<char>(input), {});
+  std::istringstream header(world_data);
+  std::string magic;
+  unsigned version{};
+  if (!(header >> magic >> version))
+    return false;
+  // From snapshot version 3 on, the world snapshot is authoritative for the hierarchy. Before it
+  // the hierarchy existed only in these node lines and never moved anything, so every transform was
+  // authored in world space: apply those parents keeping the world pose, so the migrated scene
+  // looks exactly as it did.
+  const auto migration = [&loaded, version] {
+    runtime::WorldCommandBuffer commands;
+    if (version < 3)
+      for (const auto &node : loaded)
+        if (node.parent != 0)
+          commands.SetParent(node.id, node.parent, true);
+    return commands;
+  };
+  const bool migrate = migration().Size() != 0;
+  if (migrate) {
+    // Rehearse on a scratch world first so a failed migration never leaves a half-loaded scene.
+    runtime::World rehearsal{world_.Kind()};
+    if (!rehearsal.LoadSceneSnapshot(world_data) || !migration().Apply(rehearsal))
+      return false;
+  }
   const auto scene = world_.LoadSceneSnapshot(world_data);
-  if (!scene)
+  if (!scene || (migrate && !migration().Apply(world_)))
     return false;
   scene_ = *scene;
-  nodes_ = std::move(loaded);
+  nodes_.clear();
+  for (auto &node : loaded)
+    nodes_.push_back({node.id, std::move(node.name)});
   selection_.clear();
   return true;
 }
 std::optional<runtime::Id> SceneDocument::Parent(runtime::Id entity) const {
-  const auto found = std::ranges::find(nodes_, entity, &Node::id);
-  return found == nodes_.end() ? std::nullopt : std::optional(found->parent);
+  if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())
+    return std::nullopt;
+  return world_.Parent(entity);
 }
 std::string_view SceneDocument::Name(runtime::Id entity) const {
   const auto found = std::ranges::find(nodes_, entity, &Node::id);
@@ -422,7 +455,7 @@ std::vector<SceneDocument::NodeView> SceneDocument::Nodes() const {
   std::vector<NodeView> result;
   result.reserve(nodes_.size());
   for (const auto &node : nodes_)
-    result.push_back({node.id, node.parent, node.name});
+    result.push_back({node.id, world_.Parent(node.id).value_or(0), node.name});
   return result;
 }
 } // namespace nexora::editor

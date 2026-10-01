@@ -189,7 +189,7 @@ serialization, and snapshots use the versioned `NEXORA_SCENE` text schema. Loadi
 complete snapshot before publishing it; malformed versions, duplicate IDs, invalid transforms,
 and IDs already owned by the destination world are rejected without partially adding a scene.
 An entity count larger than the snapshot text could possibly hold (an entity record needs at least 25
-characters in version 1 and 39 in version 2) is rejected before any allocation, and the up-front
+characters in version 1, 39 in version 2, and 41 in version 3) is rejected before any allocation, and the up-front
 reservation is capped at a small constant, so a hostile snapshot cannot make the loader throw or
 reserve memory proportional to a claimed count.
 Double-precision world transforms provide the large-coordinate foundation.
@@ -202,13 +202,13 @@ non-finite value, or a zero-length quaternion is invalid (`IsValidTransform`). E
 reaches a `World` is validated and its quaternion normalized (`NormalizedTransform`): a
 `WorldCommandBuffer` containing an invalid transform is rejected whole before anything changes,
 `GameWorld::SpawnEntity` throws `std::invalid_argument`, and a snapshot with an invalid transform is
-rejected. Snapshots are written as `NEXORA_SCENE 2`, whose entity record adds the rotation and scale
-after the position; `NEXORA_SCENE 1` (position only) remains readable and loads with identity rotation
-and unit scale, so a loaded version 1 scene is upgraded to version 2 the next time it is saved. The
+rejected. Snapshots are written as `NEXORA_SCENE 3`, whose entity record is the ID, the parent ID,
+the position, the rotation, and the scale, followed by the components. `NEXORA_SCENE 2` (no parent)
+and `NEXORA_SCENE 1` (position only) remain readable: their entities load as roots, version 1 with
+identity rotation and unit scale, and either is upgraded to version 3 the next time it is saved. The
 text is written and read in the classic locale. Writers that own only the position (the Zig/C
 `write_component` bridge and a character controller's per-tick synchronization) use `WithPosition` and
-therefore keep the entity's rotation and scale. The transform is currently world-space: entities have
-no parent hierarchy yet, which Unity and Unreal transforms are relative to.
+therefore keep the entity's rotation and scale.
 
 Scenes enter `LoadedInactive`, may transition to `Active`, and unload through `Unloading` before
 their entity storage is released by `EndFrame`. Persistent scenes reject unload requests. An editor
@@ -227,6 +227,43 @@ it submits Shadow, Forward+ light-culling/draw, PostProcess, and Present RenderG
 same data/scene lifecycle and serialization contracts while stripping presentation submission.
 The `runtime.v1_m4_vertical_slice` test covers the complete data-to-render path, malformed input,
 dependency cycles, safe unload, deterministic save/load, and a 10,000-entity time/size baseline.
+
+### Entity hierarchy
+
+Entities form a hierarchy following Unity's conventions ([plan](../../Roadmap/en/Entity_Parenting_Plan.md)).
+`Entity::parent` is 0 for a root, and `Entity::transform` is **local**: relative to the parent, or
+the world pose for a root. A parent and its child are always in the same scene and the hierarchy is
+acyclic. Storage order is not hierarchy order: a child may be stored before its parent, and there is
+no sibling ordering yet.
+
+- Reads: `World::Parent` (nullopt for a missing entity), `Children` (direct children in storage
+  order), `Subtree` (the entity first, every parent before its children), `WorldTransform`, and
+  `WorldMatrix`. `WorldTransform` composes position, rotation, and per-axis scale down the chain and
+  is exact unless a non-uniformly scaled ancestor has a rotated descendant, where the true world
+  transform contains shear that a position/rotation/scale triple cannot hold; like Unity's
+  `lossyScale`, it is then an approximation. `WorldMatrix` (column-major 4x4, `ToMatrix` per level)
+  is always exact and is what rendering will consume. `ComposeTransforms` and `RelativeTransform` are
+  the public building blocks.
+- Writes: `WorldCommandBuffer::SetParent(entity, parent, keep_world = true)`, with parent 0 to
+  detach. `keep_world` is Unity's `worldPositionStays`: the local transform is recomputed so the
+  entity does not move; with `false` the local values are kept and the entity moves with its new
+  parent. Self-parenting, a parent that is the entity's own descendant, a missing parent, and a parent
+  in another scene are rejected.
+- Batches are validated against the hierarchy as the earlier commands of the same batch leave it, so
+  "detach, then destroy the old parent" is valid while "destroy the parent, then move the child" is
+  rejected whole, with nothing applied.
+- `DestroyEntity` destroys the entity and every descendant, as in Unity and Unreal.
+  `WorldCommandBuffer::LastDestroyed` lists every entity removed by the last successful `Apply`, so
+  owners of per-entity state (such as `GameWorld`'s physics, audio, and character bindings) can release
+  it for cascaded descendants too.
+- Loading a snapshot rejects a parent outside the snapshot, a self-parent, and any cycle, without
+  partially adding the scene.
+
+Phase 1 limits: a character-controlled entity must be a root (`GameWorld` rejects parenting one and
+attaching a character to a parented entity), because the controller writes world positions into the
+transform; the Zig/C Transform wire carries the local position; `PlaySession` apply-back copies
+transforms only and reports a conflict for an entity whose parent changed during play; rendering and
+physics do not consume entity transforms yet.
 
 ## Zig gameplay bridge
 
@@ -368,8 +405,10 @@ bookkeeping structure that predates this milestone and does not itself load anyt
 `SceneEditor` composes `World`, `WorldCommandBuffer`, and `UndoStack` (from the M4 vertical slice)
 into Create/Modify/Undo operations. Undoing a destroyed entity restores both its component data and
 stable ID through the editor's privileged access to `World`; older transform and create undo cards
-therefore continue to target the same entity. Destroy also validates that the entity belongs to the
-supplied scene before mutating the world. `CreateEntity` returns the new entity's stable `Id`, not a
+therefore continue to target the same entity. Destroy cascades to descendants, and undoing it restores
+the whole subtree with its parents and local transforms (only when none of those IDs exists again).
+`SetParent` is undoable and restores the previous parent and the exact previous local transform.
+Destroy also validates that the entity belongs to the supplied scene before mutating the world. `CreateEntity` returns the new entity's stable `Id`, not a
 reference into `World`'s storage: unlike `World::CreateEntity` (consumed immediately, within this
 file, per the rule above), `SceneEditor` is the public data-model layer external callers such as a
 future editor UI are meant to drive, so it cannot assume a caller consumes the reference before some
@@ -402,8 +441,9 @@ starts released until explicitly granted by editor policy. Stopping discards run
 default. The only supported apply-back policy copies changed transforms for stable entity IDs;
 runtime-created entities and all other component mutations remain isolated and are discarded.
 Transform apply-back is a deterministic stable-ID diff against the source transform snapshot. If an
-Editor transform changed concurrently, the entire apply is rejected without partial mutation and the
-conflict remains visible through `LastApplyBackStatus`. The Play World and update callback are released
+Editor transform changed concurrently, or the entity's parent differs between the two worlds (local
+values from under another parent would be a different pose), the entire apply is rejected without
+partial mutation and the conflict remains visible through `LastApplyBackStatus`. The Play World and update callback are released
 before `Stop` returns, including after conflicts and contained update failures.
 
 `RuntimeConsole` is a bounded, mutex-protected multi-producer ingress for owning structured records
@@ -436,13 +476,15 @@ C-ABI-crossing category ("EntityID"), separate from an index+generation Opaque H
 `SpawnEntity` attaches camera/light/mesh-renderer at creation time via `EntitySpawnDescriptor`
 (they are plain fields on `Entity`). Component setters attach, update, or remove those components;
 `DeferredCommands` exposes atomic mutation batches and rejects a full batch if an entity is stale.
+`SetParent`, `GetParent`, and `GetWorldTransform` expose the entity hierarchy; `EntitySnapshot::transform`
+is the local transform.
 The immediate setters and `DestroyEntity` use the same `WorldCommandBuffer` internally, reusing
 the M4 command-buffer contract rather than adding new `World` friend access.
 `Query(scene, mask)` is an OR-mask batch query over a scene's entities.
 `CaptureInput` wraps `InputSystem::Consume` into a by-value `InputSnapshot`, and `AssetRef` is a
 named re-export of the already-ABI-appropriate `AssetUuid` (API-M2). The facade owns its portable
 `PhysicsWorld` and `AudioMixer`, binds bodies and voices to the owning entity ID, removes those
-bindings on entity destruction, resolves ray hits back to entity IDs, and synchronizes an attached
+bindings on entity destruction (including descendants destroyed by the cascade), resolves ray hits back to entity IDs, and synchronizes an attached
 `CharacterController`'s position to the entity Transform after each motor tick (its rotation and
 scale are left untouched). Audio resource IDs
 are unique within a `GameWorld`, making entity stop/destruction deterministic with `AudioMixer`'s
@@ -457,7 +499,8 @@ only ever being filled by a test-scoped stand-in (`Gameplay/Zig/ZigGameplayTests
 is exactly that: a fake host with its own private value, unrelated to any real `World`). `MakeHost`
 builds a real `NexoraGameplayHostV2` whose `read_component`/`write_component` actually read and
 write a live entity's Transform, camera, light, and mesh-renderer state (the Transform wire is a
-position only, so a write changes the position and keeps the entity's rotation and scale). Stable component IDs are
+position only -- the local position under a parent -- so a write changes the position and keeps the
+entity's rotation and scale). Stable component IDs are
 derived from their `Nexora.*` names, and explicit wire structures keep internal C++ layouts out of
 the ABI. `log` forwards to a
 real `core::AsyncLogService` when `GameplayHostContext::log` is set (category `"Gameplay"`,

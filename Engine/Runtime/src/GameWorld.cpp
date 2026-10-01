@@ -49,7 +49,9 @@ bool GameWorld::DestroyEntity(runtime::Id entity) {
   commands.DestroyEntity(entity);
   if (!commands.Apply(world_))
     return false;
-  RemoveBindings(entity);
+  // Destruction cascades to descendants; release the bindings of every entity that was removed.
+  for (const auto destroyed : commands.LastDestroyed())
+    RemoveBindings(destroyed);
   return true;
 }
 
@@ -66,9 +68,8 @@ void GameWorld::RemoveBindings(runtime::Id entity) {
 bool GameWorld::Submit(DeferredCommands &commands) {
   if (!commands.commands_.Apply(world_))
     return false;
-  for (const auto entity : commands.destroyed_)
+  for (const auto entity : commands.commands_.LastDestroyed())
     RemoveBindings(entity);
-  commands.destroyed_.clear();
   return true;
 }
 
@@ -102,6 +103,18 @@ std::optional<EntitySnapshot> GameWorld::GetEntity(runtime::Id entity) const {
 bool GameWorld::SetTransform(runtime::Id entity, runtime::Transform transform) {
   runtime::WorldCommandBuffer commands;
   commands.SetTransform(entity, transform);
+  return commands.Apply(world_);
+}
+
+bool GameWorld::SetParent(runtime::Id entity, runtime::Id parent, bool keep_world) {
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  // The character controller writes world positions into the entity transform, which is local
+  // under a parent; until that is resolved, character-controlled entities stay roots.
+  if (parent != 0 && characters_.contains(entity))
+    return false;
+#endif
+  runtime::WorldCommandBuffer commands;
+  commands.SetParent(entity, parent, keep_world);
   return commands.Apply(world_);
 }
 
@@ -195,6 +208,9 @@ bool GameWorld::SetCharacter(runtime::Id entity,
     return false;
   if (!config)
     return characters_.erase(entity) != 0;
+  // See SetParent: a character-controlled entity must be a root in this phase.
+  if (world_.Parent(entity).value_or(0) != 0)
+    return false;
   CharacterBinding binding(*config);
   binding.state.position = {snapshot->transform.x, snapshot->transform.y, snapshot->transform.z};
   characters_.insert_or_assign(entity, std::move(binding));

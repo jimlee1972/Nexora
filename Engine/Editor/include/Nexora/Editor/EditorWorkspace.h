@@ -84,6 +84,8 @@ private:
   std::vector<AssetEntry> entries_;
 };
 
+// Editor view of one runtime scene: node names plus selection, clipboard, and persistence. The
+// hierarchy itself lives in the runtime (Entity::parent); this class reads it from there.
 class NEXORA_EDITOR_API SceneDocument final {
 public:
   struct NodeView final {
@@ -91,8 +93,10 @@ public:
     std::string_view name;
   };
   SceneDocument(runtime::World &world, runtime::Id scene);
+  // Creates a node; with a parent the new entity starts at the parent's origin (identity local).
   runtime::Id Create(std::string name, runtime::Id parent = 0);
   bool Select(std::span<const runtime::Id> entities);
+  // Undoable; keeps the entity's world pose like dragging in Unity's Hierarchy. Rejects cycles.
   bool Reparent(runtime::Id entity, runtime::Id parent);
   bool SetTransform(runtime::Id entity, runtime::Transform transform);
   bool CopySelection();
@@ -107,7 +111,7 @@ public:
 
 private:
   struct Node final {
-    runtime::Id id{}, parent{};
+    runtime::Id id{};
     std::string name;
   };
   runtime::World &world_;

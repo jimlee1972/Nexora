@@ -52,7 +52,14 @@ into renderer or platform internals.
   and may publish only when their generation and dependency graph remain valid; cancellation,
   staleness, failure, or a cycle preserves the previous artifact.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
-  hierarchy use stable IDs, never component or container pointers.
+  hierarchy use stable IDs, never component or container pointers. The hierarchy itself is the
+  runtime's (`Entity::parent`, see the Runtime README's entity hierarchy section); the document keeps
+  only node names. `Reparent` is an undoable runtime `SetParent` that keeps the world pose, `Create`
+  with a parent starts the node at the parent's origin, and `Paste` places the root copy at the
+  source's world pose. Editor scene files still write a parent column in each node line, but from
+  world snapshot version 3 on the snapshot is authoritative. A file whose world snapshot is version 1
+  or 2 is migrated on `Reload` by applying the node-line parents with the world pose kept, so nothing
+  moves; the migration is rehearsed on a scratch `World` first, so a failure leaves no scene loaded.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
   from references, and rejects cycles or unsafe removal atomically. Migration dry-runs never mutate
   source text; bounded autosave journals reject corruption; stable-path three-way records retain
@@ -65,7 +72,8 @@ into renderer or platform internals.
   Picking results are accepted only for the latest request and matching scene/viewport generations.
   Scene camera files are atomically replaced, while undo/redo history owns its replay callbacks.
 - `PlaySession` remains the Runtime-owned PIE boundary. Play worlds are isolated and discarded by
-  default; explicit apply-back is required and rejects concurrent Editor transform changes atomically.
+  default; explicit apply-back is required and rejects concurrent Editor transform changes and
+  entities reparented during play atomically.
   Console records and inspection/debugger state cross as owning snapshots, never live World pointers.
 - Specialized tools are registrations, not implied backends: a tool must report `Implemented`,
   `ReadOnly`, or `Unavailable`, and every non-implemented state carries a reason.

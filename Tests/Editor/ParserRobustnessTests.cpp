@@ -206,23 +206,33 @@ int Run() {
                        }});
   }
   {
-    // Seeds: a version 2 scene whose entities carry rotation and scale, and a hand-written version
-    // 1 scene (position only), so both readers are mutated.
+    // Seeds: a version 3 scene whose entities carry rotation, scale, and a parent chain, plus
+    // hand-written version 2 and version 1 scenes, so every reader is mutated.
     runtime::World world;
     const auto scene = world.LoadScene("Main");
     static_cast<void>(world.Activate(scene));
+    runtime::WorldCommandBuffer hierarchy;
+    runtime::Id previous{};
     for (int index = 0; index < 3; ++index) {
       auto &entity = world.CreateEntity(scene);
       entity.transform = {1.0 * index, 2.0, 3.0};
       entity.transform.qy = entity.transform.qw = 0.70710678118654752440;
       entity.transform.sx = 1.5;
       entity.transform.sy = -2.0;
+      if (previous != 0)
+        hierarchy.SetParent(entity.id, previous, false);
+      previous = entity.id;
     }
+    if (!hierarchy.Apply(world))
+      throw std::runtime_error("could not build the scene hierarchy seed");
+    const auto version2 = ToBytes(
+        "NEXORA_SCENE 2 \"rotated\" 0 1\n"
+        "1 5 6 7 0 0.70710678118654752 0 0.70710678118654752 1 2 3 0 0 0 60 0.1 1000 1 0 0\n");
     const auto legacy = ToBytes("NEXORA_SCENE 1 \"legacy\" 0 2\n"
                                 "1 5 6 7 0 0 0 60 0.1 1000 1 0 0\n"
                                 "2 -1 0 1 1 0 1 72 0.25 750 2 3 4\n");
     targets.push_back({"scene_snapshot",
-                       {ToBytes(world.SaveScene(scene).value_or("")), legacy, {}},
+                       {ToBytes(world.SaveScene(scene).value_or("")), version2, legacy, {}},
                        [](const Bytes &b) {
                          runtime::World fresh;
                          static_cast<void>(fresh.LoadSceneSnapshot(AsText(b)));

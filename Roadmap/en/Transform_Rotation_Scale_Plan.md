@@ -33,6 +33,8 @@ transfer their habits. Concretely:
 - Unity and Unreal transforms are **relative to a parent**. Nexora entities have no hierarchy yet, so
   until parenting exists this transform is effectively world-space. Parenting stays out of scope here
   but is the natural next plan.
+  *(Update: parenting is now the [Entity Parenting Plan](Entity_Parenting_Plan.md); its phase 1 makes
+  the transform local to the parent and moves snapshots to `NEXORA_SCENE 3`.)*
 
 ## 2. Verified current state
 

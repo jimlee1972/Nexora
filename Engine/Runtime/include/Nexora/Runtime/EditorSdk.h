@@ -118,6 +118,9 @@ public:
   // external callers cannot be expected to know about.
   Id CreateEntity(Id scene);
   bool SetTransform(Id entity, Transform transform);
+  // Undoable WorldCommandBuffer::SetParent. Undo restores the previous parent and local transform.
+  bool SetParent(Id entity, Id parent, bool keep_world = true);
+  // Destroys the entity and its descendants; undo restores the whole subtree.
   bool DestroyEntity(Id scene, Id entity);
   bool Undo();
   [[nodiscard]] std::size_t UndoDepth() const noexcept { return depth_; }

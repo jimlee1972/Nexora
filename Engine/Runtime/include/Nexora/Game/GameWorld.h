@@ -49,6 +49,7 @@ using AssetRef = runtime::AssetUuid;
 // value. Never holds a pointer or reference into World's storage.
 struct EntitySnapshot final {
   runtime::Id id{};
+  // Local transform (relative to `parent`); see GameWorld::GetWorldTransform for the world pose.
   runtime::Transform transform{};
   bool has_camera{};
   bool has_light{};
@@ -104,16 +105,13 @@ public:
   void SetMeshRenderer(runtime::Id entity, std::optional<runtime::MeshComponent> mesh) {
     commands_.SetMeshRenderer(entity, mesh);
   }
-  void DestroyEntity(runtime::Id entity) {
-    commands_.DestroyEntity(entity);
-    destroyed_.push_back(entity);
-  }
+  // Destroys the entity and its descendants; GameWorld releases every destroyed entity's bindings.
+  void DestroyEntity(runtime::Id entity) { commands_.DestroyEntity(entity); }
   [[nodiscard]] std::size_t Size() const noexcept { return commands_.Size(); }
 
 private:
   friend class GameWorld;
   runtime::WorldCommandBuffer commands_;
-  std::vector<runtime::Id> destroyed_;
 };
 [[nodiscard]] NEXORA_RUNTIME_API InputSnapshot CaptureInput(runtime::InputSystem &input,
                                                             runtime::InputUserId user);
@@ -147,6 +145,16 @@ public:
   }
   [[nodiscard]] std::optional<EntitySnapshot> GetEntity(runtime::Id entity) const;
   bool SetTransform(runtime::Id entity, runtime::Transform transform);
+  // Unity-style reparenting (see WorldCommandBuffer::SetParent). In this phase an entity with a
+  // character controller must stay a root, so reparenting one is rejected.
+  bool SetParent(runtime::Id entity, runtime::Id parent, bool keep_world = true);
+  // 0 for a root, nullopt for an entity that does not exist.
+  [[nodiscard]] std::optional<runtime::Id> GetParent(runtime::Id entity) const {
+    return world_.Parent(entity);
+  }
+  [[nodiscard]] std::optional<runtime::Transform> GetWorldTransform(runtime::Id entity) const {
+    return world_.WorldTransform(entity);
+  }
   bool SetCamera(runtime::Id entity, std::optional<runtime::CameraComponent> camera);
   bool SetLight(runtime::Id entity, std::optional<runtime::LightComponent> light);
   bool SetMeshRenderer(runtime::Id entity, std::optional<runtime::MeshComponent> mesh);

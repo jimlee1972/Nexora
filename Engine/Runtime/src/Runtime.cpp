@@ -8,8 +8,103 @@
 #include <queue>
 #include <sstream>
 #include <stdexcept>
+#include <unordered_map>
 
 namespace nexora::runtime {
+
+namespace {
+struct Quat final {
+  double x, y, z, w;
+};
+struct Vec3 final {
+  double x, y, z;
+};
+Quat RotationOf(const Transform &t) noexcept { return {t.qx, t.qy, t.qz, t.qw}; }
+Quat Conjugate(const Quat &q) noexcept { return {-q.x, -q.y, -q.z, q.w}; }
+Quat Multiply(const Quat &a, const Quat &b) noexcept {
+  return {
+      a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y, a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+      a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w, a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z};
+}
+Vec3 Rotate(const Quat &q, const Vec3 &v) noexcept {
+  // v' = v + 2w(u x v) + 2u x (u x v), with u the vector part of the unit quaternion.
+  const Vec3 t{2.0 * (q.y * v.z - q.z * v.y), 2.0 * (q.z * v.x - q.x * v.z),
+               2.0 * (q.x * v.y - q.y * v.x)};
+  return {v.x + q.w * t.x + (q.y * t.z - q.z * t.y), v.y + q.w * t.y + (q.z * t.x - q.x * t.z),
+          v.z + q.w * t.z + (q.x * t.y - q.y * t.x)};
+}
+void SetRotation(Transform &t, Quat q) noexcept {
+  const auto length = std::sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+  if (length > 0.0 && std::isfinite(length)) {
+    q.x /= length;
+    q.y /= length;
+    q.z /= length;
+    q.w /= length;
+  }
+  t.qx = q.x;
+  t.qy = q.y;
+  t.qz = q.z;
+  t.qw = q.w;
+}
+TransformMatrix Multiply(const TransformMatrix &a, const TransformMatrix &b) noexcept {
+  TransformMatrix result{};
+  for (int column = 0; column < 4; ++column)
+    for (int row = 0; row < 4; ++row) {
+      double sum = 0.0;
+      for (int k = 0; k < 4; ++k)
+        sum += a[k * 4 + row] * b[column * 4 + k];
+      result[column * 4 + row] = sum;
+    }
+  return result;
+}
+} // namespace
+
+TransformMatrix ToMatrix(const Transform &t) noexcept {
+  const auto q = RotationOf(t);
+  const double xx = q.x * q.x, yy = q.y * q.y, zz = q.z * q.z;
+  const double xy = q.x * q.y, xz = q.x * q.z, yz = q.y * q.z;
+  const double wx = q.w * q.x, wy = q.w * q.y, wz = q.w * q.z;
+  // Column-major translation * rotation * scale.
+  return {(1.0 - 2.0 * (yy + zz)) * t.sx,
+          2.0 * (xy + wz) * t.sx,
+          2.0 * (xz - wy) * t.sx,
+          0.0,
+          2.0 * (xy - wz) * t.sy,
+          (1.0 - 2.0 * (xx + zz)) * t.sy,
+          2.0 * (yz + wx) * t.sy,
+          0.0,
+          2.0 * (xz + wy) * t.sz,
+          2.0 * (yz - wx) * t.sz,
+          (1.0 - 2.0 * (xx + yy)) * t.sz,
+          0.0,
+          t.x,
+          t.y,
+          t.z,
+          1.0};
+}
+
+Transform ComposeTransforms(const Transform &parent, const Transform &child) noexcept {
+  const auto rotation = RotationOf(parent);
+  const auto offset =
+      Rotate(rotation, {parent.sx * child.x, parent.sy * child.y, parent.sz * child.z});
+  Transform result{parent.x + offset.x, parent.y + offset.y, parent.z + offset.z};
+  SetRotation(result, Multiply(rotation, RotationOf(child)));
+  result.sx = parent.sx * child.sx;
+  result.sy = parent.sy * child.sy;
+  result.sz = parent.sz * child.sz;
+  return result;
+}
+
+Transform RelativeTransform(const Transform &parent, const Transform &world) noexcept {
+  const auto inverse = Conjugate(RotationOf(parent));
+  const auto local = Rotate(inverse, {world.x - parent.x, world.y - parent.y, world.z - parent.z});
+  Transform result{local.x / parent.sx, local.y / parent.sy, local.z / parent.sz};
+  SetRotation(result, Multiply(inverse, RotationOf(world)));
+  result.sx = world.sx / parent.sx;
+  result.sy = world.sy / parent.sy;
+  result.sz = world.sz / parent.sz;
+  return result;
+}
 
 bool IsValidTransform(const Transform &transform) noexcept {
   const double values[] = {transform.x,  transform.y,  transform.z,  transform.qx, transform.qy,
@@ -51,15 +146,15 @@ std::optional<std::string> World::SaveScene(Id id) const {
   std::ostringstream output;
   // The classic locale keeps the text identical regardless of the process locale.
   output.imbue(std::locale::classic());
-  output << "NEXORA_SCENE 2 " << std::quoted(scene->name) << ' ' << scene->persistent << ' '
+  output << "NEXORA_SCENE 3 " << std::quoted(scene->name) << ' ' << scene->persistent << ' '
          << scene->entities.size() << '\n';
   output << std::setprecision(17);
   for (const auto &entity : scene->entities)
-    output << entity.id << ' ' << entity.transform.x << ' ' << entity.transform.y << ' '
-           << entity.transform.z << ' ' << entity.transform.qx << ' ' << entity.transform.qy << ' '
-           << entity.transform.qz << ' ' << entity.transform.qw << ' ' << entity.transform.sx << ' '
-           << entity.transform.sy << ' ' << entity.transform.sz << ' ' << entity.camera << ' '
-           << entity.light << ' ' << entity.mesh_renderer << ' '
+    output << entity.id << ' ' << entity.parent << ' ' << entity.transform.x << ' '
+           << entity.transform.y << ' ' << entity.transform.z << ' ' << entity.transform.qx << ' '
+           << entity.transform.qy << ' ' << entity.transform.qz << ' ' << entity.transform.qw << ' '
+           << entity.transform.sx << ' ' << entity.transform.sy << ' ' << entity.transform.sz << ' '
+           << entity.camera << ' ' << entity.light << ' ' << entity.mesh_renderer << ' '
            << entity.camera_data.vertical_field_of_view << ' ' << entity.camera_data.near_plane
            << ' ' << entity.camera_data.far_plane << ' ' << entity.light_data.intensity << ' '
            << entity.mesh_data.mesh << ' ' << entity.mesh_data.material.shader << '\n';
@@ -73,17 +168,18 @@ std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
   unsigned version{};
   bool persistent{};
   std::size_t count{};
-  // Version 1 stored only a position; version 2 adds rotation and scale. Both stay readable, and a
-  // version 1 entity loads with identity rotation and unit scale.
+  // Version 1 stored only a position, version 2 added rotation and scale, and version 3 adds the
+  // parent id. All stay readable: a version 1 entity loads with identity rotation and unit scale,
+  // and version 1 and 2 entities load as roots.
   if (!(input >> magic >> version >> std::quoted(name) >> persistent >> count) ||
-      magic != "NEXORA_SCENE" || (version != 1 && version != 2) || name.empty())
+      magic != "NEXORA_SCENE" || version < 1 || version > 3 || name.empty())
     return std::nullopt;
   // `count` comes from the snapshot itself, so it can claim billions of entities and make the
-  // reservation throw or allocate gigabytes. An entity record is 13 (version 1) or 20 (version 2)
-  // whitespace-separated tokens, so it needs at least 25 or 39 characters; reject counts the text
-  // cannot hold, and never reserve more than a small constant up front (the vector grows as records
-  // are actually parsed).
-  const std::size_t min_entity_text_size = version == 1 ? 25 : 39;
+  // reservation throw or allocate gigabytes. An entity record is 13, 20, or 21 whitespace-separated
+  // tokens (versions 1, 2, 3), so it needs at least 25, 39, or 41 characters; reject counts the
+  // text cannot hold, and never reserve more than a small constant up front (the vector grows as
+  // records are actually parsed).
+  const std::size_t min_entity_text_size = version == 1 ? 25 : version == 2 ? 39 : 41;
   constexpr std::size_t kMaxInitialReserve = 1024;
   if (count > snapshot.size() / min_entity_text_size)
     return std::nullopt;
@@ -93,9 +189,10 @@ std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
   auto next_id = next_id_ + 1;
   for (std::size_t index = 0; index < count; ++index) {
     Entity entity;
-    if (!(input >> entity.id >> entity.transform.x >> entity.transform.y >> entity.transform.z))
+    if (!(input >> entity.id) || (version >= 3 && !(input >> entity.parent)) ||
+        !(input >> entity.transform.x >> entity.transform.y >> entity.transform.z))
       return std::nullopt;
-    if (version == 2 &&
+    if (version >= 2 &&
         !(input >> entity.transform.qx >> entity.transform.qy >> entity.transform.qz >>
           entity.transform.qw >> entity.transform.sx >> entity.transform.sy >> entity.transform.sz))
       return std::nullopt;
@@ -117,6 +214,21 @@ std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
   input >> std::ws;
   if (!input.eof())
     return std::nullopt;
+  // Parents must be entities of this snapshot, never the entity itself, and the hierarchy must be
+  // acyclic. Walking at most `count` steps up from any entity detects a cycle.
+  std::unordered_map<Id, Id> parents;
+  for (const auto &entity : loaded.entities)
+    parents.emplace(entity.id, entity.parent);
+  for (const auto &entity : loaded.entities) {
+    if (entity.parent != 0 && (entity.parent == entity.id || !parents.contains(entity.parent)))
+      return std::nullopt;
+    auto ancestor = entity.parent;
+    for (std::size_t steps = 0; ancestor != 0; ++steps) {
+      if (steps > loaded.entities.size() || ancestor == entity.id)
+        return std::nullopt;
+      ancestor = parents.at(ancestor);
+    }
+  }
   const auto id = loaded.id;
   scenes_.push_back(std::move(loaded));
   next_id_ = next_id;
@@ -172,6 +284,72 @@ const Entity *World::FindEntity(Id id) const {
   return nullptr;
 }
 
+std::optional<Id> World::Parent(Id entity) const {
+  const auto *found = FindEntity(entity);
+  return found == nullptr ? std::nullopt : std::optional<Id>(found->parent);
+}
+
+std::vector<Id> World::Children(Id entity) const {
+  std::vector<Id> children;
+  if (entity == 0)
+    return children;
+  for (const auto &scene : scenes_)
+    if (scene.state != SceneState::Unloaded &&
+        std::ranges::find(scene.entities, entity, &Entity::id) != scene.entities.end()) {
+      for (const auto &candidate : scene.entities)
+        if (candidate.parent == entity)
+          children.push_back(candidate.id);
+      break;
+    }
+  return children;
+}
+
+std::vector<Id> World::Subtree(Id entity) const {
+  std::vector<Id> subtree;
+  if (FindEntity(entity) == nullptr)
+    return subtree;
+  subtree.push_back(entity);
+  for (std::size_t index = 0; index < subtree.size(); ++index)
+    for (const auto child : Children(subtree[index]))
+      subtree.push_back(child);
+  return subtree;
+}
+
+namespace {
+// The entity followed by its ancestors, or empty when the entity does not exist. The hierarchy is
+// validated acyclic on every mutation and load; the step limit only guards against corruption.
+std::vector<const Entity *> Ancestry(const World &world, Id entity) {
+  std::vector<const Entity *> chain;
+  for (auto *current = world.FindEntity(entity); current != nullptr;
+       current = current->parent == 0 ? nullptr : world.FindEntity(current->parent)) {
+    if (chain.size() > 1'000'000)
+      return {};
+    chain.push_back(current);
+  }
+  return chain;
+}
+} // namespace
+
+std::optional<Transform> World::WorldTransform(Id entity) const {
+  const auto chain = Ancestry(*this, entity);
+  if (chain.empty())
+    return std::nullopt;
+  auto result = chain.back()->transform;
+  for (auto it = chain.rbegin() + 1; it != chain.rend(); ++it)
+    result = ComposeTransforms(result, (*it)->transform);
+  return result;
+}
+
+std::optional<TransformMatrix> World::WorldMatrix(Id entity) const {
+  const auto chain = Ancestry(*this, entity);
+  if (chain.empty())
+    return std::nullopt;
+  auto result = ToMatrix(chain.back()->transform);
+  for (auto it = chain.rbegin() + 1; it != chain.rend(); ++it)
+    result = Multiply(result, ToMatrix((*it)->transform));
+  return result;
+}
+
 std::size_t World::ActiveSceneCount() const {
   return static_cast<std::size_t>(
       std::count_if(scenes_.begin(), scenes_.end(),
@@ -190,6 +368,14 @@ void WorldCommandBuffer::SetTransform(Id entity, Transform transform) {
   command.entity = entity;
   command.kind = Command::Kind::Transform;
   command.transform = transform;
+  commands_.push_back(command);
+}
+void WorldCommandBuffer::SetParent(Id entity, Id parent, bool keep_world) {
+  Command command{};
+  command.entity = entity;
+  command.kind = Command::Kind::Parent;
+  command.parent = parent;
+  command.keep_world = keep_world;
   commands_.push_back(command);
 }
 void WorldCommandBuffer::SetCamera(Id entity, std::optional<CameraComponent> camera) {
@@ -221,36 +407,97 @@ void WorldCommandBuffer::DestroyEntity(Id entity) {
 }
 
 bool WorldCommandBuffer::Apply(World &world) {
+  last_destroyed_.clear();
+  // Pass 1 validates the whole batch without mutating the world. Reparenting and destruction depend
+  // on the hierarchy as it will be after the earlier commands of the same batch, so those batches
+  // are checked against a simulated copy of each entity's scene and parent.
+  const bool hierarchy = std::ranges::any_of(commands_, [](const Command &command) {
+    return command.kind == Command::Kind::Parent || command.kind == Command::Kind::Destroy;
+  });
+  struct Node final {
+    Id scene{};
+    Id parent{};
+  };
+  std::unordered_map<Id, Node> nodes;
+  if (hierarchy)
+    for (const auto &scene : world.scenes_)
+      if (scene.state != SceneState::Unloaded)
+        for (const auto &entity : scene.entities)
+          nodes.emplace(entity.id, Node{scene.id, entity.parent});
   std::unordered_set<Id> destroyed;
-  for (const auto &command : commands_) {
-    if (world.FindEntity(command.entity) == nullptr || destroyed.contains(command.entity))
+  const auto alive = [&](Id id) {
+    if (destroyed.contains(id))
       return false;
-    // Validate before mutating anything so an invalid transform rejects the whole batch.
+    return hierarchy ? nodes.contains(id) : world.FindEntity(id) != nullptr;
+  };
+  for (const auto &command : commands_) {
+    if (!alive(command.entity))
+      return false;
     if (command.kind == Command::Kind::Transform && !IsValidTransform(command.transform))
       return false;
-    if (command.kind == Command::Kind::Destroy)
-      destroyed.insert(command.entity);
-  }
-  for (const auto &command : commands_)
-    for (auto &scene : world.scenes_)
-      if (const auto found = std::ranges::find(scene.entities, command.entity, &Entity::id);
-          found != scene.entities.end()) {
-        if (command.kind == Command::Kind::Transform) {
-          found->transform = *NormalizedTransform(command.transform);
-        } else if (command.kind == Command::Kind::Camera) {
-          found->camera = command.camera.has_value();
-          found->camera_data = command.camera.value_or(CameraComponent{});
-        } else if (command.kind == Command::Kind::Light) {
-          found->light = command.light.has_value();
-          found->light_data = command.light.value_or(LightComponent{});
-        } else if (command.kind == Command::Kind::MeshRenderer) {
-          found->mesh_renderer = command.mesh.has_value();
-          found->mesh_data = command.mesh.value_or(MeshComponent{});
-        } else {
-          scene.entities.erase(found);
-        }
-        break;
+    if (command.kind == Command::Kind::Parent) {
+      if (command.parent != 0) {
+        if (command.parent == command.entity || !alive(command.parent) ||
+            nodes.at(command.parent).scene != nodes.at(command.entity).scene)
+          return false;
+        // The new parent must not be the entity itself or one of its descendants.
+        for (auto ancestor = command.parent; ancestor != 0; ancestor = nodes.at(ancestor).parent)
+          if (ancestor == command.entity)
+            return false;
       }
+      nodes.at(command.entity).parent = command.parent;
+    }
+    if (command.kind == Command::Kind::Destroy) {
+      std::vector<Id> doomed{command.entity};
+      for (std::size_t index = 0; index < doomed.size(); ++index)
+        for (const auto &[id, node] : nodes)
+          if (node.parent == doomed[index] && !destroyed.contains(id))
+            doomed.push_back(id);
+      destroyed.insert(doomed.begin(), doomed.end());
+    }
+  }
+
+  // Pass 2 applies in order; every command was proven valid against the state it will see.
+  const auto locate = [&world](Id id) -> std::pair<Scene *, Entity *> {
+    for (auto &scene : world.scenes_)
+      if (const auto found = std::ranges::find(scene.entities, id, &Entity::id);
+          found != scene.entities.end())
+        return {&scene, &*found};
+    return {nullptr, nullptr};
+  };
+  for (const auto &command : commands_) {
+    const auto [scene, found] = locate(command.entity);
+    if (found == nullptr)
+      continue;
+    if (command.kind == Command::Kind::Transform) {
+      found->transform = *NormalizedTransform(command.transform);
+    } else if (command.kind == Command::Kind::Parent) {
+      if (command.keep_world) {
+        // Keep the world pose (Unity's worldPositionStays): re-express it under the new parent.
+        auto local = *world.WorldTransform(command.entity);
+        if (command.parent != 0)
+          local = RelativeTransform(*world.WorldTransform(command.parent), local);
+        if (const auto normalized = NormalizedTransform(local))
+          found->transform = *normalized;
+      }
+      found->parent = command.parent;
+    } else if (command.kind == Command::Kind::Camera) {
+      found->camera = command.camera.has_value();
+      found->camera_data = command.camera.value_or(CameraComponent{});
+    } else if (command.kind == Command::Kind::Light) {
+      found->light = command.light.has_value();
+      found->light_data = command.light.value_or(LightComponent{});
+    } else if (command.kind == Command::Kind::MeshRenderer) {
+      found->mesh_renderer = command.mesh.has_value();
+      found->mesh_data = command.mesh.value_or(MeshComponent{});
+    } else {
+      const auto doomed = world.Subtree(command.entity);
+      std::erase_if(scene->entities, [&doomed](const Entity &entity) {
+        return std::ranges::find(doomed, entity.id) != doomed.end();
+      });
+      last_destroyed_.insert(last_destroyed_.end(), doomed.begin(), doomed.end());
+    }
+  }
   commands_.clear();
   return true;
 }
