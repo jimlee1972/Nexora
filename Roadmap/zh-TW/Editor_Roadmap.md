@@ -1,6 +1,6 @@
 # Nexora 圖形化 Editor Roadmap
 
-> 版本：v1.2｜狀態：AI 可執行交付計畫｜更新：2026-09-24
+> 版本：v1.3｜狀態：AI 可執行交付計畫｜更新：2026-10-02
 
 > **進度：0%**（ED-M0～ED-M7 尚無任一 milestone 通過圖形化 Editor 驗收；
 > 已完成的 Runtime/Editor SDK 前置不向上取整為 Editor milestone。）
@@ -10,7 +10,7 @@
 workspace/document core。**待辦：** window/docking/UI shell、graphical views、authoring workflows
 與 production hardening。
 
-### Repository 完成度稽核（2026-09-24）
+### Repository 完成度稽核（2026-10-02）
 
 本稽核明確區分「已打勾的 implementation foundation」與「已驗收的 graphical milestone」。Source
 與 contract test 能確認下列已存在的 foundation；目前沒有任何 ED milestone 同時通過完整 automated
@@ -19,7 +19,7 @@ workspace/document core。**待辦：** window/docking/UI shell、graphical view
 | Scope | Repository 證據 | 已驗收 |
 | --- | --- | :---: |
 | ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Real-process recovery 與 Linux/Windows host evidence 仍待完成。 | [ ] |
-| ED-M1 project/assets | Portable create/open、deterministic indexing/search、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Graphical workflow 驗收仍待完成。 | [ ] |
+| ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態、提供圖形化 create/open/recent selector、將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation，並執行具 bounded progress 與 structured diagnostic 的 cancellable background import/reimport；conflict UX 與實體顯示／Windows workflow 驗收仍待完成。 | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。Scene View、Inspector、renderer-backed picking、camera、gizmo 操作與 reflected graphical widget 仍待完成。 | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。Graphical Game View、Console UI 與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
@@ -79,8 +79,8 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 - ✅ 在 Vulkan host 上，圖形化 process 會將 ImGui draw data composite 至 public
   `RenderSurface` 已 acquire 的 swapchain backbuffer；Linux 與 Windows window event 也會正規化
   完整的 Editor 按鍵／modifier 集合。
-- 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及 Windows DPI／IME 證據；
-  target-host gate 通過之前 ED-M0 仍維持 open。
+- 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及人工 Windows DPI／IME 證據；
+  automated Windows contract 不取代 target-host gate，因此 ED-M0 仍維持 open。
 
 ### ED-M1 — Project 與 Asset workspace
 
@@ -93,7 +93,29 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 - ✅ 已實作並測試 portable virtualized Content Browser／breadcrumb／selection model、
   transactional rename／move／delete、typed generation-safe drag validation、dependency／cycle
   inspection、transactional reimport、watcher debounce 與明確的 dirty-conflict decision。
-- 待辦：圖形化 Content Browser、drag/drop、dependency inspection 與 reimport UX 驗收。
+- ✅ 圖形化 shell 現已將真實 deterministic index 綁到 docked Content Browser，包含
+  breadcrumb／folder、search／type filter、virtualized UUID row、selection 與 thumbnail state。
+  Generation-tagged drag/drop、dependency inspection、background reimport，以及 filesystem-backed、
+  可回復的 rename／move／delete／undo 全部經 authoring-thread `ProjectContentSession`；UI 不直接寫檔。
+- ✅ Versioned sibling `<asset>.meta` record 會持久保存 UUID 與 importer type。Read-only indexing
+  會拒絕缺少或損壞的 identity state；writable indexing 以 atomic write 建立缺少的 record。
+  Rename、move、delete 與 undo 將 source/sidecar 視為同一 transaction；derived artifact 以 UUID
+  加 source bytes 定址，因此搬移與 process reopen 後 identity 仍保持不變。
+- ✅ Project descriptor 現具 stable UUID，並會在 OS-held single-writer lease 下由 schema 1
+  原子升級至 schema 2。明確的 read-only open 不得升級或修改 project-owned state；recent
+  project 使用有上限且版本化的 user-level store；docked Project panel 會顯示 canonical root、
+  schema／upgrade、access 與 recent-project 狀態。Core、graphical contract 與 Linux real-process
+  test 涵蓋第二 writer 拒絕及 read-only 共存。
+- ✅ 圖形化 Project Browser 只發出 one-shot create/open request，不擁有 project state；
+  application 會交易式啟用候選 workspace／index／content session，失敗時錯誤留在 selector。
+  Linux Xvfb 驗收會在沒有 `--project` 的情況下，以純鍵盤完成 create 與 read-only reopen，
+  再驗證 descriptor 與實際 access mode。
+- ✅ Editor-owned `AssetImportQueue` 現會以可取消的 Core job 執行 project indexing 與 reimport。
+  Worker 只產生帶 generation 的 staging result、bounded progress 與 structured diagnostic；
+  authoring thread 會重新驗證 revision／dependency 後，才啟用候選 index 或原子發布 reimport。
+  Queued cancellation、stale completion 與 shutdown 都會保留舊 index／artifact，selector 與
+  Content Browser 也會呈現 progress／cancel／failure state。
+- 待辦：dirty-conflict reload／keep／compare UI，以及實體顯示／Windows 新 project 全流程驗收。
 
 ### ED-M2 — Scene authoring core
 
@@ -272,12 +294,12 @@ Windows DPI/IME 證據。
 
 **相依：** WP1。
 
-1. 完成 create/open/upgrade：canonical root、schema compatibility、lock/read-only、recent project、
+1. ✅ 完成 create/open/upgrade：canonical root、schema compatibility、lock/read-only、recent project、
    actionable error，且不改 process working directory。
 2. 將 deterministic index 綁到以 asset UUID 為 key 的 virtualized Content Browser；加入 breadcrumb、
    search/filter、selection、transactional rename/move/delete 與 loading/error thumbnail state。
 3. Typed drag payload 攜帶 project generation 與 asset UUID；修改前驗證 type、target、permission、staleness。
-4. Import/reimport 使用 cancellable job，包含 source/settings hash、dependency、staging、atomic publish、
+4. ✅ Import/reimport 使用 cancellable job，包含 source/settings hash、dependency、staging、atomic publish、
    bounded progress、structured diagnostic；取消／失敗須保留舊 artifact。
 5. 顯示 forward/reverse dependency 與 cycle；debounce file event，dirty conflict 必須提供 reload/keep/
    compare，禁止覆蓋。

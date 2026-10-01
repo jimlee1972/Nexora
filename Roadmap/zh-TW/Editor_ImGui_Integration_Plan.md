@@ -1,17 +1,20 @@
 # Editor ED-M0 Dear ImGui 整合計畫
 
-> 版本：v1.3｜狀態：施工中；target-host 證據待完成｜
-> 更新：2026-09-25｜對應：`Editor_Roadmap.md`（ED-M0）、
+> 版本：v1.4｜狀態：施工中；target-host 證據待完成｜
+> 更新：2026-10-02｜對應：`Editor_Roadmap.md`（ED-M0）、
 > `ADR-0001-Editor-UI-Framework.md`、`Window_Presentation_Roadmap.md`
 
-> **Repository 稽核（2026-09-25）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
+> **Repository 稽核（2026-10-02）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
 > source 與 contract test，但 **WP0～WP8 尚無任何一包通過 exit gate**。Retained GPU resource、
 > 直接渲染至 borrowed presentation target、project-owned layout persistence、DPI font-atlas rebuild
 > 與 recovery failure contract 已實作。自動化 X11 coverage 現已涵蓋 startup、resize、close、
 > corrupt-layout replacement、legacy-layout migration，以及 recover／destructive discard 兩條
 > crash/relaunch recovery 路徑。Portable coverage 也會測 stale texture generation、deferred
-> font-atlas retirement、所有 DPI bucket，與有界的 512-frame docking/layout soak。Physical-display
-> 與 Windows target-host evidence 仍待完成，因此 foundation 打勾不得解讀成 ED-M0 已驗收。
+> font-atlas retirement、所有 DPI bucket，與有界的 512-frame docking/layout soak。Windows contract
+> coverage 現會把 UTF-16 surrogate pair 正規化成單一 Unicode scalar、拒絕 unpaired surrogate、驗證
+> `WM_DPICHANGED`，並經真實 DX12 `RenderSurface` 檢查 100%／150% DPI 的 frame-scoped IME candidate
+> positioning。Physical-display 與人工 Windows IME／DPI evidence 仍待完成，因此 foundation 打勾不得
+> 解讀成 ED-M0 已驗收。
 
 ## 1. 目標、驗收邊界與目前事實
 
@@ -50,10 +53,11 @@ Metal native draw recording。這些仍只是 foundation，因 real-display Linu
 - [ ] Physical-display Linux graphical validation 與 Windows DPI／IME target-host acceptance
   evidence 均已有記錄且通過。Automated X11 rendering 與 kill/relaunch recovery 已納入 feature-on
   Linux gate。**狀態備註（2026-10-01）：**首次在虛擬顯示器（Xvfb 搭配 Mesa lavapipe）上實際執行該
-  gate，暴露出三個真實缺陷，現已修正：Editor 把空的首幀 ImGui 資料視為致命錯誤、X11 視窗忽略
-  `DestroyNotify` 並對已被銷毀的視窗再次銷毀（`BadWindow`）、Editor 在可復原的 surface 遺失時以非零
-  結束。驗收腳本本身也對已結束的程序呼叫 `kill()`。目前本機連跑 5 次皆通過。這只是虛擬顯示器、僅限本機的
-  證據：專用的 CI job `editor-linux-display`（Xvfb、Mesa 軟體 Vulkan、`xdotool`、啟用
+  gate，暴露出四個真實缺陷，現已修正：Editor 把空的首幀 ImGui 資料視為致命錯誤、X11 視窗忽略
+  `DestroyNotify` 並對已被銷毀的視窗再次銷毀（`BadWindow`）、X11 只送出 physical key 而沒有送出
+  committed UTF-8 `Text` event、Editor 在可復原的 surface 遺失時以非零結束。驗收腳本本身也對已結束
+  的程序呼叫 `kill()`。這只是虛擬顯示器證據：專用的 CI job `editor-linux-display`（Xvfb、Mesa 軟體
+  Vulkan、`xdotool`、啟用
   `NexoraEditorImGui`）現在會建置並執行它，且在該測試未註冊時直接失敗，因此以它的最新結果為準；
   仍沒有實體顯示器或 Windows 證據。此項維持未勾選。
 
@@ -233,8 +237,8 @@ drag docking、wheel axis、focus loss、close。
 
 ### WP5 — DPI、font 與 theme
 
-**狀態：live extent/DPI forwarding、bucketed font rebuild 與 production GPU atlas upload 已有；
-Windows 證據仍待完成。**
+**狀態：live extent/DPI forwarding、bucketed font rebuild、production GPU atlas upload，以及 Win32
+`WM_DPICHANGED`／candidate scaling contract 已有；四種 scale 的 visual 證據仍待完成。**
 
 1. 定義小型 DPI bucket policy（例如 nearest supported scale 加 hysteresis）與 immutable base style；bucket
    改變時由 base 重算，禁止再縮放已縮放的 style。
@@ -249,7 +253,8 @@ Windows 證據仍待完成。**
 
 ### WP6 — IME 與 Unicode
 
-**狀態：event forwarding 與 candidate callback 已有；target-host 證據未完成。**
+**狀態：event forwarding、supplementary-plane scalar 正規化，以及 frame-scoped candidate callback
+coverage 已有；安裝實際 IME 的 target-host 證據未完成。**
 
 1. 驗證 Unicode scalar（含 supplementary-plane）；無效 scalar 不可送進 `AddInputCharacter`。Key event
    不得重複產生 text event。
@@ -329,6 +334,9 @@ ctest --preset linux-development
 cmake --preset linux-shipping
 cmake --build --preset linux-shipping
 ```
+
+`linux-shipping` 是 configure／build／package linkage gate，且刻意維持
+`BUILD_TESTING=OFF`；executable contract 由 development、ASan／UBSan 與 TSan preset 執行。
 
 若 preset 開了 graphical shell，還要明確 configure 一次 feature-off build；現有 focused test 可用：
 

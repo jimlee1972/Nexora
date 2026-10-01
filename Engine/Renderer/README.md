@@ -133,6 +133,11 @@ throw. Upload batches and snapshots own their returned data. `Clear()`/destructi
 dirty, free, and pending-retirement state and therefore require the caller to have ended any GPU use
 of those slots.
 
+`InstanceId()` is a process-unique, nonzero identity for a scene's contents. Handles carry no scene
+identity, so code that keeps handles across calls binds to it: it moves with the contents (a
+moved-to scene keeps it) and changes on `Clear()`, after which slot/generation pairs restart and
+every earlier handle is stale.
+
 Entity transforms reach the GPUScene only through the Runtime's `RenderSceneSync`, which writes each
 entity's exact world matrix (never a local transform) and conservative world bounds; see the Runtime
 README's "Render sync" section. The renderer does not depend on the Runtime.

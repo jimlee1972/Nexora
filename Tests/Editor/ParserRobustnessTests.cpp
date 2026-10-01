@@ -311,13 +311,25 @@ int Run() {
     static_cast<void>(workspace.SaveWorkspace(documents, &error));
     static_cast<void>(
         workspace.SaveEditorLayout("[Window][Hierarchy]\nPos=0,0\nSize=100,100\n", &error));
+    const auto recent_path = root / "recent-projects";
+    editor::RecentProjectStore recent_projects;
+    if (!recent_projects.Open(recent_path, &error) || !recent_projects.Record(workspace, &error))
+      throw std::runtime_error("could not create the recent-project seed: " + error);
+    targets.push_back(
+        {"recent_projects", {ReadFile(recent_path), {}}, [recent_path](const Bytes &b) {
+           WriteFile(recent_path, b);
+           editor::RecentProjectStore opened;
+           std::string message;
+           static_cast<void>(opened.Open(recent_path, &message));
+         }});
     const auto file_target = [&](const char *name, fs::path relative, bool recover) {
       const auto file = project / relative;
       targets.push_back({name, {ReadFile(file), {}}, [project, file, recover](const Bytes &b) {
                            WriteFile(file, b);
                            editor::ProjectWorkspace opened;
                            std::string message;
-                           static_cast<void>(opened.Open(project, &message));
+                           static_cast<void>(
+                               opened.Open(project, editor::ProjectAccess::ReadOnly, &message));
                            static_cast<void>(opened.HasExternalChange());
                            if (recover)
                              static_cast<void>(opened.RecoverWorkspace(&message));

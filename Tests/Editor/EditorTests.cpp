@@ -1,8 +1,11 @@
+#include "Nexora/Editor/AssetImport.h"
 #include "Nexora/Editor/ContentBrowser.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -10,6 +13,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -42,15 +46,90 @@ int Run() {
               !shell.RouteCommand("game.save"),
           "command routing failed");
 
-  editor::ProjectWorkspace project;
   std::string error;
-  Require(project.Create(root, "Preview", &error), "project creation failed");
   const std::vector<std::string> documents{"Content/Main.scene", "Content/Hero.prefab"};
-  Require(project.SaveWorkspace(documents, &error), "workspace save failed");
+  foundation::Uuid project_id;
+  const auto recent_path = root / ".nexora/test-recent-projects";
+  {
+    editor::ProjectWorkspace project;
+    Require(project.Create(root, "Preview", &error) && project.Writable() &&
+                project.Project().schema_version == editor::ProjectDescriptor::kSchemaVersion &&
+                !project.Project().id.IsNil(),
+            "project creation did not establish the current writable descriptor");
+    project_id = project.Project().id;
+    Require(project.SaveWorkspace(documents, &error), "workspace save failed");
+
+    editor::ProjectWorkspace contender;
+    Require(!contender.Open(root, &error) &&
+                error.starts_with("project is already open for writing"),
+            "a second writer acquired the project lock");
+    editor::ProjectWorkspace observer;
+    Require(observer.Open(root, editor::ProjectAccess::ReadOnly, &error) && !observer.Writable() &&
+                observer.Project().id == project_id && !observer.SaveWorkspace(documents, &error) &&
+                !error.empty(),
+            "read-only project access was not isolated from the writer");
+
+    editor::RecentProjectStore recents;
+    Require(recents.Open(recent_path, &error) && recents.Record(project, &error) &&
+                recents.Record(observer, &error) && recents.Entries().size() == 1 &&
+                recents.Entries().front().id == project_id,
+            "recent-project persistence did not deduplicate the current project");
+    editor::RecentProjectStore reopened_recents;
+    Require(reopened_recents.Open(recent_path, &error) && reopened_recents.Entries().size() == 1 &&
+                reopened_recents.Entries().front().root == project.Root(),
+            "recent-project state did not survive reopen");
+  }
   editor::ProjectWorkspace reopened;
   Require(reopened.Open(root, &error) && reopened.Project().name == "Preview" &&
-              reopened.OpenDocuments().size() == 2,
+              reopened.Project().id == project_id && reopened.OpenDocuments().size() == 2,
           "project open failed");
+
+  const auto legacy_root = root / "LegacyProject";
+  fs::create_directories(legacy_root / "Content");
+  fs::create_directories(legacy_root / ".nexora");
+  std::ofstream(legacy_root / "project.nexora") << "schema=1\nname=Legacy\n";
+  std::ofstream(legacy_root / ".nexora/workspace") << "schema=1\n";
+  foundation::Uuid legacy_id;
+  {
+    editor::ProjectWorkspace legacy_read_only;
+    Require(legacy_read_only.Open(legacy_root, editor::ProjectAccess::ReadOnly, &error) &&
+                legacy_read_only.UpgradeState() == editor::ProjectUpgradeState::Required &&
+                legacy_read_only.Project().schema_version == 1 &&
+                !legacy_read_only.Project().id.IsNil(),
+            "legacy read-only project did not expose the required upgrade");
+    legacy_id = legacy_read_only.Project().id;
+    std::ifstream descriptor(legacy_root / "project.nexora");
+    std::string schema;
+    Require(std::getline(descriptor, schema) && schema == "schema=1",
+            "read-only project open changed the legacy descriptor");
+  }
+  {
+    editor::ProjectWorkspace legacy_writer;
+    Require(legacy_writer.Open(legacy_root, &error) &&
+                legacy_writer.UpgradeState() == editor::ProjectUpgradeState::Applied &&
+                legacy_writer.Project().schema_version ==
+                    editor::ProjectDescriptor::kSchemaVersion &&
+                legacy_writer.Project().id == legacy_id,
+            "legacy project was not atomically upgraded with stable identity");
+    std::ifstream descriptor(legacy_root / "project.nexora");
+    std::string schema;
+    Require(std::getline(descriptor, schema) && schema == "schema=2",
+            "upgraded project descriptor was not persisted");
+  }
+  const auto invalid_legacy_root = root / "InvalidLegacyProject";
+  fs::create_directories(invalid_legacy_root / "Content");
+  fs::create_directories(invalid_legacy_root / ".nexora");
+  std::ofstream(invalid_legacy_root / "project.nexora") << "schema=1\nname=Invalid Legacy\n";
+  std::ofstream(invalid_legacy_root / ".nexora/workspace") << "schema=999\n";
+  editor::ProjectWorkspace invalid_legacy;
+  Require(!invalid_legacy.Open(invalid_legacy_root, &error) && !error.empty(),
+          "legacy project with an invalid workspace was opened");
+  {
+    std::ifstream descriptor(invalid_legacy_root / "project.nexora");
+    std::string schema;
+    Require(std::getline(descriptor, schema) && schema == "schema=1",
+            "failed project preflight changed the legacy descriptor");
+  }
   {
     std::ofstream recovery(root / ".nexora/workspace.recovery", std::ios::trunc);
     recovery << "schema=1\ndocument=Content/Recovered.scene\n";
@@ -99,13 +178,252 @@ int Run() {
   }
   editor::AssetWorkspace assets;
   std::size_t progress{};
-  Require(assets.ImportTree(root / "Content", {},
-                            [&](std::size_t current, std::size_t) { progress = current; }) &&
+  Require(assets.ImportTree(
+              root / "Content", {}, [&](std::size_t current, std::size_t) { progress = current; },
+              editor::AssetIdentityMode::PersistentReadWrite, &error) &&
               assets.Entries().size() == 2 && progress == 2,
           "asset import failed");
+  Require(fs::is_regular_file(root / "Content/Hero.mesh.meta") &&
+              fs::is_regular_file(root / "Content/Hero.material.meta"),
+          "persistent asset identity sidecars were not created");
   Require(assets.Search("hero").size() == 2 && assets.Search({}, ".mesh").size() == 1 &&
               assets.Find(assets.Entries().front().id),
           "asset search failed");
+
+  const auto mesh_entry = std::ranges::find(assets.Entries(), std::string("Hero.mesh"),
+                                            &editor::AssetEntry::relative_path);
+  Require(mesh_entry != assets.Entries().end(), "indexed mesh entry is missing");
+  editor::ProjectContentSession content_session;
+  Require(content_session.Open(reopened, assets, 11, true, &error) &&
+              content_session.Browser().VisibleCount() == 2 && content_session.Writable(),
+          "project content session did not bind the deterministic index");
+  const auto indexed_mesh = mesh_entry->id;
+  Require(content_session.Rename(indexed_mesh, "Player.mesh", &error) &&
+              fs::is_regular_file(root / "Content/Player.mesh") &&
+              fs::is_regular_file(root / "Content/Player.mesh.meta") &&
+              !fs::exists(root / "Content/Hero.mesh") && content_session.CanUndo() &&
+              !fs::exists(root / "Content/Hero.mesh.meta") && content_session.Undo(&error) &&
+              fs::is_regular_file(root / "Content/Hero.mesh") &&
+              fs::is_regular_file(root / "Content/Hero.mesh.meta"),
+          "filesystem-backed content rename/undo failed");
+  fs::create_directories(root / "Content/Characters");
+  const std::array one_mesh{indexed_mesh};
+  editor::AssetDragPayload content_drag{std::string(editor::AssetDragPayload::kType), 11,
+                                        indexed_mesh};
+  Require(content_session.Move(content_drag, "Content/Characters", &error) &&
+              fs::is_regular_file(root / "Content/Characters/Hero.mesh") &&
+              fs::is_regular_file(root / "Content/Characters/Hero.mesh.meta"),
+          "generation-safe content drag did not move the source file");
+  editor::AssetWorkspace moved_assets;
+  Require(moved_assets.ImportTree(root / "Content", {}, {},
+                                  editor::AssetIdentityMode::PersistentReadOnly, &error) &&
+              moved_assets.Find(indexed_mesh) &&
+              moved_assets.Find(indexed_mesh)->relative_path == "Characters/Hero.mesh",
+          "moved asset UUID did not survive an immediate read-only reopen");
+  const auto moved_artifact_before = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  std::ofstream(root / "Content/Characters/Hero.mesh", std::ios::trunc) << "mesh-v2";
+  Require(content_session.Reimport(indexed_mesh, &error) &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash != moved_artifact_before,
+          "reimport after a move did not publish the new artifact");
+  const auto moved_artifact_after = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  Require(content_session.Undo(&error) && fs::is_regular_file(root / "Content/Hero.mesh") &&
+              fs::is_regular_file(root / "Content/Hero.mesh.meta") &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash == moved_artifact_after,
+          "filesystem-backed content move/reimport/undo lost current artifact metadata");
+  content_drag.project_generation = 10;
+  Require(!content_session.Move(content_drag, "Content/Characters", &error) &&
+              fs::is_regular_file(root / "Content/Hero.mesh"),
+          "stale graphical asset drag payload changed project content");
+  std::ofstream(root / "Content/Characters/Hero.mesh") << "occupied";
+  Require(!content_session.Move(one_mesh, "Content/Characters", &error) &&
+              fs::is_regular_file(root / "Content/Hero.mesh") &&
+              content_session.Browser().Find(indexed_mesh)->path == "Content/Hero.mesh",
+          "failed content move did not preserve the source and model");
+  fs::remove(root / "Content/Characters/Hero.mesh");
+  const auto artifact_before = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  std::ofstream(root / "Content/Hero.mesh", std::ios::trunc) << "mesh-v3";
+  Require(content_session.Reimport(indexed_mesh, &error) &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash != artifact_before,
+          "content reimport did not publish the updated artifact hash");
+
+  core::JobSystem import_jobs{1};
+  import_jobs.Start();
+  editor::AssetImportQueue imports{import_jobs, 2, 2};
+  const auto wait_for_result = [](auto &&poll, const char *message) {
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (std::chrono::steady_clock::now() < deadline) {
+      if (poll())
+        return;
+      std::this_thread::yield();
+    }
+    throw std::runtime_error(message);
+  };
+
+  const auto workspace_import =
+      imports.Start({21, root / "Content", editor::AssetIdentityMode::PersistentReadOnly}, &error);
+  Require(workspace_import != 0, "background workspace import did not start");
+  std::optional<editor::ImportOperationResult> workspace_result;
+  wait_for_result(
+      [&] {
+        workspace_result = imports.TakeResult(workspace_import);
+        return workspace_result.has_value();
+      },
+      "background workspace import did not finish");
+  Require(workspace_result->snapshot.state == editor::ImportOperationState::AwaitingPublish &&
+              workspace_result->workspace && workspace_result->workspace->Entries().size() == 2 &&
+              workspace_result->snapshot.progress.size() <= 2 &&
+              workspace_result->snapshot.dropped_progress > 0,
+          "background workspace import was not deterministic or progress history was unbounded");
+
+  const auto failing_source = root / "failing.asset";
+  std::ofstream(failing_source) << "staged";
+  std::atomic_bool release_failure{false};
+  const auto failure_blocker =
+      import_jobs.Submit({[&release_failure](const core::CancellationToken &) {
+                            while (!release_failure.load(std::memory_order_acquire))
+                              std::this_thread::yield();
+                          },
+                          core::JobPriority::High,
+                          {},
+                          "Editor import failure barrier"});
+  const runtime::AssetUuid failing_asset{81, 82};
+  const auto failing_import =
+      imports.Start({21, failing_asset, failing_source, "last-good", "default-v1", {}}, &error);
+  Require(failing_import != 0 && fs::remove(failing_source),
+          "background failure operation could not be staged");
+  release_failure.store(true, std::memory_order_release);
+  import_jobs.Wait(failure_blocker);
+  std::optional<editor::ImportOperationResult> failure_result;
+  wait_for_result(
+      [&] {
+        failure_result = imports.TakeResult(failing_import);
+        return failure_result.has_value();
+      },
+      "background failure operation did not finish");
+  Require(failure_result->snapshot.state == editor::ImportOperationState::Failed &&
+              !failure_result->reimport && !failure_result->snapshot.diagnostics.empty() &&
+              failure_result->snapshot.diagnostics.back().code == "reimport.read_failed" &&
+              failure_result->snapshot.diagnostics.back().asset == failing_asset,
+          "worker failure produced staging data or lacked an actionable structured diagnostic");
+
+  const auto shutdown_source = root / "shutdown.asset";
+  std::ofstream(shutdown_source) << std::string(1024 * 1024, 'x');
+  editor::AssetImportQueue shutdown_imports{import_jobs};
+  const auto shutdown_operation = shutdown_imports.Start(
+      {22, runtime::AssetUuid{91, 92}, shutdown_source, "last-good", "default-v1", {}}, &error);
+  Require(shutdown_operation != 0, "shutdown reimport operation did not start");
+  shutdown_imports.Shutdown();
+  Require(!shutdown_imports.Snapshot(shutdown_operation),
+          "import queue shutdown retained a worker or staged completion");
+
+  const auto asynchronous_before = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  std::ofstream(root / "Content/Hero.mesh", std::ios::trunc) << "mesh-async";
+  Require(content_session.BeginReimport(imports, indexed_mesh, &error),
+          "background reimport did not start");
+  wait_for_result([&] { return content_session.PollReimport(&error); },
+                  "background reimport did not finish");
+  const auto asynchronous_status = content_session.ReimportStatus();
+  Require(asynchronous_status &&
+              asynchronous_status->state == editor::ImportOperationState::Succeeded &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash != asynchronous_before &&
+              asynchronous_status->diagnostics.back().code == "reimport.succeeded",
+          "authoring-thread reimport publication or structured success diagnostic failed");
+
+  std::atomic_bool release_blocker{false};
+  const auto blocker =
+      import_jobs.Submit({[&release_blocker](const core::CancellationToken &) {
+                            while (!release_blocker.load(std::memory_order_acquire))
+                              std::this_thread::yield();
+                          },
+                          core::JobPriority::High,
+                          {},
+                          "Editor import cancellation barrier"});
+  const auto cancellation_artifact = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  std::ofstream(root / "Content/Hero.mesh", std::ios::trunc) << "mesh-cancelled";
+  Require(content_session.BeginReimport(imports, indexed_mesh, &error) &&
+              content_session.CancelReimport(),
+          "queued background reimport was not cancellable");
+  release_blocker.store(true, std::memory_order_release);
+  import_jobs.Wait(blocker);
+  wait_for_result([&] { return content_session.PollReimport(&error); },
+                  "cancelled background reimport did not drain");
+  const auto cancelled_status = content_session.ReimportStatus();
+  Require(cancelled_status && cancelled_status->state == editor::ImportOperationState::Cancelled &&
+              !cancelled_status->diagnostics.empty() &&
+              cancelled_status->diagnostics.back().code == "import.cancelled" &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash == cancellation_artifact,
+          "cancelled reimport replaced the old artifact or lacked a structured diagnostic");
+
+  std::ofstream(root / "Content/Hero.mesh", std::ios::trunc) << "mesh-staged";
+  Require(content_session.BeginReimport(imports, indexed_mesh, &error),
+          "stale-completion reimport did not start");
+  std::ofstream(root / "Content/Hero.mesh", std::ios::trunc) << "mesh-newer";
+  Require(content_session.Reimport(indexed_mesh, &error),
+          "foreground revision change for stale-completion test failed");
+  const auto newer_artifact = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  wait_for_result([&] { return content_session.PollReimport(&error); },
+                  "stale background reimport did not finish");
+  const auto stale_status = content_session.ReimportStatus();
+  Require(stale_status && stale_status->state == editor::ImportOperationState::Stale &&
+              stale_status->diagnostics.back().code == "reimport.stale" &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash == newer_artifact,
+          "stale reimport completion replaced the current artifact");
+
+  Require(content_session.Delete(one_mesh, &error) && !fs::exists(root / "Content/Hero.mesh") &&
+              !fs::exists(root / "Content/Hero.mesh.meta") &&
+              content_session.Browser().Find(indexed_mesh) == nullptr &&
+              content_session.Undo(&error) && fs::is_regular_file(root / "Content/Hero.mesh") &&
+              fs::is_regular_file(root / "Content/Hero.mesh.meta") &&
+              content_session.Browser().Find(indexed_mesh),
+          "recoverable content delete/undo failed");
+  editor::AssetWorkspace reopened_assets;
+  Require(reopened_assets.ImportTree(root / "Content", {}, {},
+                                     editor::AssetIdentityMode::PersistentReadOnly, &error) &&
+              reopened_assets.Find(indexed_mesh) &&
+              reopened_assets.Find(indexed_mesh)->relative_path == "Hero.mesh" &&
+              reopened_assets.Find(indexed_mesh)->artifact_hash ==
+                  content_session.Browser().Find(indexed_mesh)->artifact_hash,
+          "asset UUID or artifact identity did not survive move/reimport/undo/reopen");
+  editor::ProjectWorkspace read_only_workspace;
+  Require(read_only_workspace.Open(root, editor::ProjectAccess::ReadOnly, &error),
+          "read-only observer could not open the writer-owned project");
+  editor::ProjectContentSession invalid_writable_content;
+  Require(!invalid_writable_content.Open(read_only_workspace, reopened_assets, 12, true, &error) &&
+              !error.empty(),
+          "read-only workspace opened writable project content");
+  editor::ProjectContentSession read_only_content;
+  Require(read_only_content.Open(read_only_workspace, reopened_assets, 12, false, &error) &&
+              !read_only_content.Rename(indexed_mesh, "Blocked.mesh", &error) &&
+              fs::is_regular_file(root / "Content/Hero.mesh") && !error.empty(),
+          "read-only project content accepted a mutation");
+  const auto identity_path = root / "Content/Hero.mesh.meta";
+  std::ifstream identity_input(identity_path, std::ios::binary);
+  const std::string valid_identity(std::istreambuf_iterator<char>(identity_input), {});
+  std::ofstream(identity_path, std::ios::trunc) << "schema=999\n";
+  Require(!reopened_assets.ImportTree(root / "Content", {}, {},
+                                      editor::AssetIdentityMode::PersistentReadOnly, &error) &&
+              reopened_assets.Find(indexed_mesh) && !error.empty(),
+          "corrupt asset identity replaced the last good index or lacked a diagnostic");
+  std::ofstream(identity_path, std::ios::trunc) << valid_identity;
+  const auto material_identity_path = root / "Content/Hero.material.meta";
+  std::ifstream material_identity_input(material_identity_path, std::ios::binary);
+  const std::string valid_material_identity(std::istreambuf_iterator<char>(material_identity_input),
+                                            {});
+  std::ofstream(material_identity_path, std::ios::trunc)
+      << "schema=1\nuuid=" << indexed_mesh.ToString() << "\ntype=.material\n";
+  Require(!reopened_assets.ImportTree(root / "Content", {}, {},
+                                      editor::AssetIdentityMode::PersistentReadOnly, &error) &&
+              reopened_assets.Find(indexed_mesh) && !error.empty(),
+          "duplicate asset UUID replaced the last good index or lacked a diagnostic");
+  std::ofstream(material_identity_path, std::ios::trunc) << valid_material_identity;
+  const auto missing_identity = root / "Content/MissingIdentity.mesh";
+  std::ofstream(missing_identity) << "mesh";
+  editor::AssetWorkspace missing_identity_assets;
+  Require(!missing_identity_assets.ImportTree(
+              root / "Content", {}, {}, editor::AssetIdentityMode::PersistentReadOnly, &error) &&
+              !error.empty() && !fs::exists(root / "Content/MissingIdentity.mesh.meta"),
+          "read-only persistent indexing created or accepted a missing identity sidecar");
+  fs::remove(missing_identity);
   editor::AssetWorkspace cancelled;
   Require(cancelled.ImportTree(root / "Content", [] { return true; }) &&
               cancelled.Entries().front().state == editor::ImportState::Cancelled,
@@ -119,8 +437,10 @@ int Run() {
        editor::ThumbnailState::Loading},
       {scene_id, "Content/Levels/Main.scene", "scene", "scene-v1", editor::ThumbnailState::Failed}};
   Require(browser.Reset(content, 7) && browser.SetFolder("Content") &&
-              browser.Breadcrumbs().size() == 1 && browser.Visible(0, 1).size() == 1 &&
-              browser.Visible(1, 10).size() == 1,
+              browser.Breadcrumbs().size() == 1 && browser.VisibleCount() == 2 &&
+              browser.ChildFolders().size() == 1 &&
+              browser.ChildFolders().front().path == "Content/Levels" &&
+              browser.Visible(0, 1).size() == 1 && browser.Visible(1, 10).size() == 1,
           "virtualized content browser or breadcrumb state failed");
   browser.SetFilter("hero", "mesh");
   Require(browser.Visible(0, 10).size() == 1 && browser.Select(mesh_id) &&

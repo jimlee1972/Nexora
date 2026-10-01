@@ -1,0 +1,821 @@
+#include "Nexora/Editor/EditorWorkspace.h"
+
+#include <algorithm>
+#include <array>
+#include <cerrno>
+#include <cstdlib>
+#include <exception>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
+#include <system_error>
+#include <unordered_set>
+#include <utility>
+
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#else
+#include <fcntl.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
+namespace nexora::editor {
+namespace {
+constexpr std::uint64_t kHashOffset = 1469598103934665603ULL;
+constexpr std::uint64_t kHashPrime = 1099511628211ULL;
+
+std::uint64_t Hash(std::string_view text, std::uint64_t seed) {
+  auto value = seed;
+  for (const unsigned char byte : text) {
+    value ^= byte;
+    value *= kHashPrime;
+  }
+  return value;
+}
+
+void StripCarriageReturn(std::string &line) {
+  if (!line.empty() && line.back() == '\r')
+    line.pop_back();
+}
+
+bool SafeLine(std::string_view value) {
+  return !value.empty() && value.size() <= 1024 &&
+         value.find_first_of("\r\n\0") == std::string_view::npos && foundation::IsValidUtf8(value);
+}
+
+std::string PathUtf8(const std::filesystem::path &path) {
+  const auto encoded = path.generic_u8string();
+  std::string result;
+  result.reserve(encoded.size());
+  for (const char8_t byte : encoded)
+    result.push_back(static_cast<char>(byte));
+  return result;
+}
+
+bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, std::string *error) {
+  if (error)
+    error->clear();
+  std::error_code ec;
+  if (!path.parent_path().empty())
+    std::filesystem::create_directories(path.parent_path(), ec);
+  if (ec) {
+    if (error)
+      *error = "could not create " + PathUtf8(path.parent_path()) + ": " + ec.message();
+    return false;
+  }
+  auto temporary = path;
+  temporary += ".tmp";
+  {
+    std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
+    if (!output || !(output << contents)) {
+      if (error)
+        *error = "could not write " + PathUtf8(temporary);
+      return false;
+    }
+  }
+  std::filesystem::rename(temporary, path, ec);
+  if (ec) {
+    std::filesystem::remove(path, ec);
+    ec.clear();
+    std::filesystem::rename(temporary, path, ec);
+  }
+  if (ec && error)
+    *error = "could not replace " + PathUtf8(path) + ": " + ec.message();
+  return !ec;
+}
+
+std::optional<std::filesystem::path> PathFromUtf8(std::string_view text) noexcept {
+  if (!foundation::IsValidUtf8(text))
+    return std::nullopt;
+  try {
+    std::u8string encoded;
+    encoded.reserve(text.size());
+    for (const unsigned char byte : text)
+      encoded.push_back(static_cast<char8_t>(byte));
+    return std::filesystem::path(encoded);
+  } catch (const std::exception &) {
+    return std::nullopt;
+  }
+}
+
+foundation::Uuid DerivedProjectId(const std::filesystem::path &root, std::string_view name) {
+  const auto key = PathUtf8(root) + "\n" + std::string(name);
+  foundation::Uuid id{Hash(key, kHashOffset), Hash(key, kHashPrime)};
+  if (id.IsNil())
+    id.low = 1;
+  return id;
+}
+
+std::string ProjectContents(const ProjectDescriptor &project) {
+  return "schema=2\nuuid=" + project.id.ToString() + "\nname=" + project.name + "\n";
+}
+
+bool ReadProjectDescriptor(const std::filesystem::path &path, ProjectDescriptor &project,
+                           bool &legacy, std::string *error) {
+  std::error_code ec;
+  const auto status = std::filesystem::symlink_status(path, ec);
+  const auto size = std::filesystem::file_size(path, ec);
+  if (ec || std::filesystem::is_symlink(status) || !std::filesystem::is_regular_file(status) ||
+      size > 4096) {
+    if (error)
+      *error = "project descriptor is unavailable, unsafe, or too large";
+    return false;
+  }
+  std::ifstream input(path, std::ios::binary);
+  std::vector<std::string> lines;
+  for (std::string line; std::getline(input, line);) {
+    StripCarriageReturn(line);
+    lines.push_back(std::move(line));
+    if (lines.size() > 3)
+      break;
+  }
+  if ((!input.good() && !input.eof()) || lines.empty()) {
+    if (error)
+      *error = "project descriptor could not be read";
+    return false;
+  }
+  legacy = lines[0] == "schema=1";
+  if (legacy && lines.size() == 2 && lines[1].starts_with("name=") &&
+      SafeLine(std::string_view(lines[1]).substr(5))) {
+    project = {{}, lines[1].substr(5), 1};
+    return true;
+  }
+  if (lines[0] == "schema=2" && lines.size() == 3 && lines[1].starts_with("uuid=") &&
+      lines[2].starts_with("name=") && SafeLine(std::string_view(lines[2]).substr(5))) {
+    const auto parsed = foundation::Uuid::Parse(
+        std::string_view(lines[1]).substr(std::string_view("uuid=").size()));
+    if (parsed && !parsed.Value().IsNil()) {
+      project = {parsed.Value(), lines[2].substr(5), ProjectDescriptor::kSchemaVersion};
+      return true;
+    }
+  }
+  if (error)
+    *error = "invalid or unsupported project descriptor";
+  return false;
+}
+
+bool ReadWorkspace(const std::filesystem::path &path, std::vector<std::string> &documents,
+                   std::string *error) {
+  std::ifstream input(path, std::ios::binary);
+  if (!input) {
+    documents.clear();
+    return true;
+  }
+  std::string line;
+  if (!std::getline(input, line)) {
+    if (error)
+      *error = "workspace is empty or unreadable";
+    return false;
+  }
+  StripCarriageReturn(line);
+  if (line != "schema=1") {
+    if (error)
+      *error = "workspace uses an unsupported schema";
+    return false;
+  }
+  std::vector<std::string> candidate;
+  while (std::getline(input, line)) {
+    StripCarriageReturn(line);
+    if (!line.starts_with("document=") ||
+        !SafeLine(std::string_view(line).substr(std::string_view("document=").size()))) {
+      if (error)
+        *error = "workspace contains an invalid document entry";
+      return false;
+    }
+    candidate.push_back(line.substr(9));
+    if (candidate.size() > 4096) {
+      if (error)
+        *error = "workspace contains too many documents";
+      return false;
+    }
+  }
+  if (!input.good() && !input.eof()) {
+    if (error)
+      *error = "workspace could not be read";
+    return false;
+  }
+  documents = std::move(candidate);
+  return true;
+}
+
+std::string ReadLockOwner(const std::filesystem::path &path) {
+  std::ifstream input(path, std::ios::binary);
+  std::string schema;
+  std::string process;
+  if (!input || !std::getline(input, schema) || !std::getline(input, process))
+    return {};
+  StripCarriageReturn(schema);
+  StripCarriageReturn(process);
+  if (schema == "schema=1" && process.starts_with("process="))
+    return process.substr(8);
+  return {};
+}
+
+std::string LockedMessage(const std::filesystem::path &path) {
+  const auto owner = ReadLockOwner(path);
+  return owner.empty() ? "project is already open for writing"
+                       : "project is already open for writing by process " + owner;
+}
+
+bool EnsureWritable(ProjectAccess access, std::string *error) {
+  if (access == ProjectAccess::ReadWrite)
+    return true;
+  if (error)
+    *error = "project is open read-only";
+  return false;
+}
+
+#if defined(_WIN32)
+std::optional<std::filesystem::path> EnvironmentPath(const wchar_t *name) {
+  wchar_t *value = nullptr;
+  std::size_t size = 0;
+  if (_wdupenv_s(&value, &size, name) != 0 || value == nullptr)
+    return std::nullopt;
+  const std::filesystem::path path(value);
+  std::free(value);
+  if (path.empty())
+    return std::nullopt;
+  return path;
+}
+#else
+std::optional<std::filesystem::path> EnvironmentPath(const char *name) {
+  const char *value = std::getenv(name);
+  if (value == nullptr || *value == '\0')
+    return std::nullopt;
+  return std::filesystem::path(value);
+}
+#endif
+} // namespace
+
+struct ProjectWorkspace::LockState final {
+  std::filesystem::path path;
+#if defined(_WIN32)
+  HANDLE handle = INVALID_HANDLE_VALUE;
+#else
+  int handle = -1;
+#endif
+
+  ~LockState() {
+#if defined(_WIN32)
+    if (handle != INVALID_HANDLE_VALUE) {
+      OVERLAPPED overlap{};
+      static_cast<void>(UnlockFileEx(handle, 0, MAXDWORD, MAXDWORD, &overlap));
+      CloseHandle(handle);
+    }
+#else
+    if (handle >= 0) {
+      static_cast<void>(flock(handle, LOCK_UN));
+      close(handle);
+    }
+#endif
+  }
+
+  static std::unique_ptr<LockState> Acquire(const std::filesystem::path &path, std::string *error) {
+    std::error_code ec;
+    const auto status = std::filesystem::symlink_status(path, ec);
+    if (ec == std::errc::no_such_file_or_directory)
+      ec.clear();
+    else if (ec || std::filesystem::is_symlink(status) ||
+             (std::filesystem::exists(status) && !std::filesystem::is_regular_file(status))) {
+      if (error)
+        *error = "project lock is unavailable or unsafe";
+      return nullptr;
+    }
+
+    auto lock = std::make_unique<LockState>();
+    lock->path = path;
+#if defined(_WIN32)
+    lock->handle =
+        CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+                    OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+    if (lock->handle == INVALID_HANDLE_VALUE) {
+      if (error)
+        *error = LockedMessage(path);
+      return nullptr;
+    }
+    BY_HANDLE_FILE_INFORMATION information{};
+    if (!GetFileInformationByHandle(lock->handle, &information) ||
+        (information.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
+      if (error)
+        *error = "project lock is unavailable or unsafe";
+      return nullptr;
+    }
+    OVERLAPPED overlap{};
+    if (!LockFileEx(lock->handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, MAXDWORD,
+                    MAXDWORD, &overlap)) {
+      if (error)
+        *error = LockedMessage(path);
+      return nullptr;
+    }
+    const auto metadata =
+        "schema=1\nprocess=" + std::to_string(GetCurrentProcessId()) + "\naccess=read-write\n";
+    LARGE_INTEGER start{};
+    DWORD written = 0;
+    if (!SetFilePointerEx(lock->handle, start, nullptr, FILE_BEGIN) ||
+        !SetEndOfFile(lock->handle) ||
+        !WriteFile(lock->handle, metadata.data(), static_cast<DWORD>(metadata.size()), &written,
+                   nullptr) ||
+        written != metadata.size() || !FlushFileBuffers(lock->handle)) {
+      if (error)
+        *error = "project lock metadata could not be written";
+      return nullptr;
+    }
+#else
+    int flags = O_RDWR | O_CREAT;
+#if defined(O_CLOEXEC)
+    flags |= O_CLOEXEC;
+#endif
+#if defined(O_NOFOLLOW)
+    flags |= O_NOFOLLOW;
+#endif
+    lock->handle = open(path.c_str(), flags, 0600);
+    if (lock->handle < 0) {
+      if (error)
+        *error = errno == ELOOP ? "project lock is unavailable or unsafe" : LockedMessage(path);
+      return nullptr;
+    }
+    struct stat information{};
+    if (fstat(lock->handle, &information) != 0 || !S_ISREG(information.st_mode)) {
+      if (error)
+        *error = "project lock is unavailable or unsafe";
+      return nullptr;
+    }
+    if (flock(lock->handle, LOCK_EX | LOCK_NB) != 0) {
+      if (error)
+        *error = LockedMessage(path);
+      return nullptr;
+    }
+    const auto metadata = "schema=1\nprocess=" + std::to_string(getpid()) + "\naccess=read-write\n";
+    if (ftruncate(lock->handle, 0) != 0 || lseek(lock->handle, 0, SEEK_SET) < 0) {
+      if (error)
+        *error = "project lock metadata could not be written";
+      return nullptr;
+    }
+    std::size_t offset = 0;
+    while (offset < metadata.size()) {
+      const auto written = write(lock->handle, metadata.data() + offset, metadata.size() - offset);
+      if (written <= 0) {
+        if (error)
+          *error = "project lock metadata could not be written";
+        return nullptr;
+      }
+      offset += static_cast<std::size_t>(written);
+    }
+    if (fsync(lock->handle) != 0) {
+      if (error)
+        *error = "project lock metadata could not be flushed";
+      return nullptr;
+    }
+#endif
+    return lock;
+  }
+};
+
+ProjectWorkspace::ProjectWorkspace() = default;
+ProjectWorkspace::~ProjectWorkspace() = default;
+ProjectWorkspace::ProjectWorkspace(ProjectWorkspace &&other) noexcept { *this = std::move(other); }
+ProjectWorkspace &ProjectWorkspace::operator=(ProjectWorkspace &&other) noexcept {
+  if (this == &other)
+    return *this;
+  root_ = std::move(other.root_);
+  project_ = std::move(other.project_);
+  documents_ = std::move(other.documents_);
+  workspace_write_time_ = other.workspace_write_time_;
+  lock_ = std::move(other.lock_);
+  access_ = other.access_;
+  upgrade_state_ = other.upgrade_state_;
+  other.root_.clear();
+  other.project_ = {};
+  other.documents_.clear();
+  other.workspace_write_time_ = {};
+  other.access_ = ProjectAccess::ReadOnly;
+  other.upgrade_state_ = ProjectUpgradeState::Current;
+  return *this;
+}
+
+bool ProjectWorkspace::Create(const std::filesystem::path &root, std::string name,
+                              std::string *error) {
+  if (error)
+    error->clear();
+  if (root.empty() || !SafeLine(name)) {
+    if (error)
+      *error = "project root or name is invalid";
+    return false;
+  }
+  std::error_code ec;
+  std::filesystem::create_directories(root / "Content", ec);
+  if (!ec)
+    std::filesystem::create_directories(root / ".nexora", ec);
+  if (ec) {
+    if (error)
+      *error = "project directories could not be created: " + ec.message();
+    return false;
+  }
+  const auto canonical_root = std::filesystem::canonical(root, ec);
+  if (ec) {
+    if (error)
+      *error = "project root could not be resolved: " + ec.message();
+    return false;
+  }
+  auto lock = LockState::Acquire(canonical_root / ".nexora/editor.lock", error);
+  if (!lock)
+    return false;
+  const auto descriptor_path = canonical_root / "project.nexora";
+  const auto descriptor_status = std::filesystem::symlink_status(descriptor_path, ec);
+  if (ec == std::errc::no_such_file_or_directory)
+    ec.clear();
+  else if (ec || std::filesystem::exists(descriptor_status)) {
+    if (error)
+      *error = "project descriptor already exists or cannot be inspected";
+    return false;
+  }
+  ProjectDescriptor project{DerivedProjectId(canonical_root, name), std::move(name),
+                            ProjectDescriptor::kSchemaVersion};
+  if (!AtomicWrite(descriptor_path, ProjectContents(project), error))
+    return false;
+  if (!AtomicWrite(canonical_root / ".nexora/workspace", "schema=1\n", error)) {
+    std::filesystem::remove(descriptor_path, ec);
+    return false;
+  }
+  const auto write_time =
+      std::filesystem::last_write_time(canonical_root / ".nexora/workspace", ec);
+  if (ec) {
+    if (error)
+      *error = "workspace timestamp could not be read: " + ec.message();
+    return false;
+  }
+  root_ = canonical_root;
+  project_ = std::move(project);
+  documents_.clear();
+  workspace_write_time_ = write_time;
+  lock_ = std::move(lock);
+  access_ = ProjectAccess::ReadWrite;
+  upgrade_state_ = ProjectUpgradeState::Current;
+  return true;
+}
+
+bool ProjectWorkspace::Open(const std::filesystem::path &root, std::string *error) {
+  return Open(root, ProjectAccess::ReadWrite, error);
+}
+
+bool ProjectWorkspace::Open(const std::filesystem::path &root, ProjectAccess access,
+                            std::string *error) {
+  if (error)
+    error->clear();
+  std::error_code ec;
+  const auto canonical_root = std::filesystem::canonical(root, ec);
+  if (ec || !std::filesystem::is_directory(canonical_root, ec)) {
+    if (error)
+      *error = "project root is unavailable";
+    return false;
+  }
+  std::unique_ptr<LockState> lock;
+  if (access == ProjectAccess::ReadWrite) {
+    lock = LockState::Acquire(canonical_root / ".nexora/editor.lock", error);
+    if (!lock)
+      return false;
+  }
+  ProjectDescriptor project;
+  bool legacy = false;
+  if (!ReadProjectDescriptor(canonical_root / "project.nexora", project, legacy, error))
+    return false;
+  project.id = legacy ? DerivedProjectId(canonical_root, project.name) : project.id;
+  auto upgrade = ProjectUpgradeState::Current;
+  std::vector<std::string> documents;
+  if (!ReadWorkspace(canonical_root / ".nexora/workspace", documents, error))
+    return false;
+  if (legacy) {
+    if (access == ProjectAccess::ReadWrite) {
+      project.schema_version = ProjectDescriptor::kSchemaVersion;
+      if (!AtomicWrite(canonical_root / "project.nexora", ProjectContents(project), error))
+        return false;
+      upgrade = ProjectUpgradeState::Applied;
+    } else {
+      upgrade = ProjectUpgradeState::Required;
+    }
+  }
+  auto write_time = std::filesystem::last_write_time(canonical_root / ".nexora/workspace", ec);
+  if (ec)
+    write_time = {};
+  root_ = canonical_root;
+  project_ = std::move(project);
+  documents_ = std::move(documents);
+  workspace_write_time_ = write_time;
+  lock_ = std::move(lock);
+  access_ = access;
+  upgrade_state_ = upgrade;
+  return true;
+}
+
+bool ProjectWorkspace::WriteWorkspace(std::span<const std::string> documents, std::string *error) {
+  if (!EnsureWritable(access_, error))
+    return false;
+  std::string contents = "schema=1\n";
+  for (const auto &document : documents) {
+    if (!SafeLine(document)) {
+      if (error)
+        *error = "workspace document path is invalid";
+      return false;
+    }
+    contents += "document=" + document + "\n";
+  }
+  if (!AtomicWrite(root_ / ".nexora/workspace", contents, error))
+    return false;
+  std::error_code ec;
+  workspace_write_time_ = std::filesystem::last_write_time(root_ / ".nexora/workspace", ec);
+  if (ec) {
+    if (error)
+      *error = "workspace was written but its timestamp is unavailable: " + ec.message();
+    return false;
+  }
+  documents_.assign(documents.begin(), documents.end());
+  return true;
+}
+
+bool ProjectWorkspace::SaveWorkspace(std::span<const std::string> documents, std::string *error) {
+  if (!EnsureWritable(access_, error))
+    return false;
+  std::string journal = "schema=1\n";
+  for (const auto &document : documents) {
+    if (!SafeLine(document)) {
+      if (error)
+        *error = "workspace document path is invalid";
+      return false;
+    }
+    journal += "document=" + document + "\n";
+  }
+  if (!AtomicWrite(root_ / ".nexora/workspace.recovery", journal, error))
+    return false;
+  if (!WriteWorkspace(documents, error))
+    return false;
+  std::error_code ec;
+  std::filesystem::remove(root_ / ".nexora/workspace.recovery", ec);
+  if (ec && error)
+    *error = "workspace saved but recovery journal cleanup failed: " + ec.message();
+  return !ec;
+}
+
+bool ProjectWorkspace::RecoverWorkspace(std::string *error) {
+  if (!EnsureWritable(access_, error))
+    return false;
+  std::ifstream input(root_ / ".nexora/workspace.recovery", std::ios::binary);
+  std::string line;
+  std::vector<std::string> recovered;
+  if (!input || !std::getline(input, line)) {
+    if (error)
+      *error = "recovery journal is missing or unreadable";
+    return false;
+  }
+  StripCarriageReturn(line);
+  if (line != "schema=1") {
+    if (error)
+      *error = "recovery journal uses an unsupported schema";
+    return false;
+  }
+  while (std::getline(input, line)) {
+    StripCarriageReturn(line);
+    if (!line.starts_with("document=") ||
+        !SafeLine(std::string_view(line).substr(std::string_view("document=").size()))) {
+      if (error)
+        *error = "recovery journal contains an invalid entry";
+      return false;
+    }
+    recovered.push_back(line.substr(9));
+    if (recovered.size() > 4096) {
+      if (error)
+        *error = "recovery journal contains too many documents";
+      return false;
+    }
+  }
+  if (!input.good() && !input.eof()) {
+    if (error)
+      *error = "recovery journal could not be read";
+    return false;
+  }
+  input.close();
+  if (!WriteWorkspace(recovered, error))
+    return false;
+  std::error_code ec;
+  std::filesystem::remove(root_ / ".nexora/workspace.recovery", ec);
+  if (ec && error)
+    *error = "workspace recovered but journal cleanup failed: " + ec.message();
+  return !ec;
+}
+
+bool ProjectWorkspace::DiscardRecovery(std::string *error) {
+  if (!EnsureWritable(access_, error))
+    return false;
+  std::error_code ec;
+  const bool removed = std::filesystem::remove(root_ / ".nexora/workspace.recovery", ec);
+  if (ec && error)
+    *error = "could not discard recovery journal: " + ec.message();
+  else if (!removed && error)
+    *error = "recovery journal does not exist";
+  return !ec && removed;
+}
+
+bool ProjectWorkspace::SaveEditorLayout(std::string_view layout, std::string *error) {
+  if (error)
+    error->clear();
+  if (!EnsureWritable(access_, error))
+    return false;
+  if (root_.empty() || layout.empty() || layout.find('\0') != std::string_view::npos) {
+    if (error)
+      *error = "editor layout is empty or invalid";
+    return false;
+  }
+  return AtomicWrite(root_ / ".nexora/editor-layout.ini", "schema=1\n" + std::string(layout),
+                     error);
+}
+
+std::optional<std::string> ProjectWorkspace::LoadEditorLayout(std::string *error) const {
+  if (error)
+    error->clear();
+  std::ifstream input(root_ / ".nexora/editor-layout.ini", std::ios::binary);
+  if (!input)
+    return std::nullopt;
+  std::string schema;
+  if (!std::getline(input, schema)) {
+    if (error)
+      *error = "invalid or unsupported editor layout";
+    return std::nullopt;
+  }
+  StripCarriageReturn(schema);
+  if (schema != "schema=0" && schema != "schema=1") {
+    if (error)
+      *error = "invalid or unsupported editor layout";
+    return std::nullopt;
+  }
+  std::ostringstream contents;
+  contents << input.rdbuf();
+  if (!input.good() && !input.eof()) {
+    if (error)
+      *error = "could not read editor layout";
+    return std::nullopt;
+  }
+  auto layout = contents.str();
+  for (auto position = layout.find("\r\n"); position != std::string::npos;
+       position = layout.find("\r\n", position))
+    layout.replace(position, 2, "\n");
+  if (layout.empty()) {
+    if (error)
+      *error = "editor layout is empty";
+    return std::nullopt;
+  }
+  return layout;
+}
+
+bool ProjectWorkspace::HasRecoveryJournal() const {
+  std::error_code ec;
+  return !root_.empty() &&
+         std::filesystem::is_regular_file(root_ / ".nexora/workspace.recovery", ec);
+}
+
+bool ProjectWorkspace::HasExternalChange() const {
+  std::error_code ec;
+  const auto current = std::filesystem::last_write_time(root_ / ".nexora/workspace", ec);
+  return !ec && current != workspace_write_time_;
+}
+
+std::filesystem::path RecentProjectStore::DefaultPath() {
+#if defined(_WIN32)
+  if (const auto local = EnvironmentPath(L"LOCALAPPDATA"))
+    return *local / "Nexora" / "Editor" / "recent-projects";
+  if (const auto roaming = EnvironmentPath(L"APPDATA"))
+    return *roaming / "Nexora" / "Editor" / "recent-projects";
+#elif defined(__APPLE__)
+  if (const auto home = EnvironmentPath("HOME"))
+    return *home / "Library" / "Application Support" / "Nexora" / "Editor" / "recent-projects";
+#else
+  if (const auto config = EnvironmentPath("XDG_CONFIG_HOME"))
+    return *config / "nexora" / "editor" / "recent-projects";
+  if (const auto home = EnvironmentPath("HOME"))
+    return *home / ".config" / "nexora" / "editor" / "recent-projects";
+#endif
+  return std::filesystem::temp_directory_path() / "nexora-editor-recent-projects";
+}
+
+bool RecentProjectStore::Open(const std::filesystem::path &path, std::string *error) {
+  if (error)
+    error->clear();
+  if (path.empty()) {
+    if (error)
+      *error = "recent-project storage path is empty";
+    return false;
+  }
+  std::error_code ec;
+  const auto status = std::filesystem::symlink_status(path, ec);
+  if (ec == std::errc::no_such_file_or_directory) {
+    path_ = path;
+    entries_.clear();
+    return true;
+  }
+  if (ec || std::filesystem::is_symlink(status) || !std::filesystem::is_regular_file(status) ||
+      std::filesystem::file_size(path, ec) > 65536 || ec) {
+    if (error)
+      *error = "recent-project storage is unavailable, unsafe, or too large";
+    return false;
+  }
+  std::ifstream input(path, std::ios::binary);
+  std::string line;
+  if (!input || !std::getline(input, line)) {
+    if (error)
+      *error = "recent-project storage is unreadable";
+    return false;
+  }
+  StripCarriageReturn(line);
+  if (line != "schema=1") {
+    if (error)
+      *error = "recent-project storage uses an unsupported schema";
+    return false;
+  }
+  std::vector<RecentProject> candidate;
+  std::unordered_set<std::string> ids;
+  std::unordered_set<std::string> roots;
+  while (std::getline(input, line)) {
+    StripCarriageReturn(line);
+    std::istringstream record(line);
+    std::string tag;
+    std::string id_text;
+    std::string root_text;
+    std::string name;
+    std::string extra;
+    if (!(record >> tag >> id_text >> std::quoted(root_text) >> std::quoted(name)) ||
+        record >> extra || tag != "entry" || !SafeLine(root_text) || !SafeLine(name)) {
+      if (error)
+        *error = "recent-project storage contains an invalid entry";
+      return false;
+    }
+    const auto id = foundation::Uuid::Parse(id_text);
+    const auto root = PathFromUtf8(root_text);
+    if (!id || id.Value().IsNil() || !root || !root->is_absolute() || !ids.insert(id_text).second ||
+        !roots.insert(PathUtf8(root->lexically_normal())).second) {
+      if (error)
+        *error = "recent-project storage contains a duplicate or invalid project";
+      return false;
+    }
+    candidate.push_back({id.Value(), root->lexically_normal(), std::move(name)});
+    if (candidate.size() > kMaximumEntries) {
+      if (error)
+        *error = "recent-project storage exceeds the entry limit";
+      return false;
+    }
+  }
+  if (!input.good() && !input.eof()) {
+    if (error)
+      *error = "recent-project storage could not be read";
+    return false;
+  }
+  path_ = path;
+  entries_ = std::move(candidate);
+  return true;
+}
+
+bool RecentProjectStore::Record(const ProjectWorkspace &workspace, std::string *error) {
+  if (path_.empty() || workspace.Root().empty() || workspace.Project().id.IsNil()) {
+    if (error)
+      *error = "recent-project store or project is not initialized";
+    return false;
+  }
+  const auto previous = entries_;
+  std::erase_if(entries_, [&](const RecentProject &entry) {
+    return entry.id == workspace.Project().id || entry.root == workspace.Root();
+  });
+  entries_.insert(entries_.begin(),
+                  {workspace.Project().id, workspace.Root(), workspace.Project().name});
+  if (entries_.size() > kMaximumEntries)
+    entries_.resize(kMaximumEntries);
+  if (Save(error))
+    return true;
+  entries_ = previous;
+  return false;
+}
+
+bool RecentProjectStore::Remove(foundation::Uuid id, std::string *error) {
+  const auto previous = entries_;
+  const auto removed =
+      std::erase_if(entries_, [&](const RecentProject &entry) { return entry.id == id; });
+  if (removed == 0) {
+    if (error)
+      *error = "recent project does not exist";
+    return false;
+  }
+  if (Save(error))
+    return true;
+  entries_ = previous;
+  return false;
+}
+
+bool RecentProjectStore::Save(std::string *error) {
+  std::ostringstream contents;
+  contents << "schema=1\n";
+  for (const auto &entry : entries_)
+    contents << "entry " << entry.id.ToString() << ' ' << std::quoted(PathUtf8(entry.root)) << ' '
+             << std::quoted(entry.name) << '\n';
+  return AtomicWrite(path_, contents.str(), error);
+}
+} // namespace nexora::editor
