@@ -6,6 +6,7 @@
 #include <cmath>
 #include <limits>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace nexora::runtime {
@@ -44,7 +45,9 @@ bool Same(const math::Sphere &a, const math::Sphere &b) noexcept {
 
 // World matrices of one scene, each computed once: an entity's matrix is its parent's matrix times
 // its local matrix, the same product, in the same order, as World::WorldMatrix. A walk longer than
-// the scene (a cycle written directly into Entity::parent) fails instead of looping.
+// the scene (a cycle written directly into Entity::parent) fails instead of looping, and every
+// entity on a failed walk is remembered, so later lookups through it fail at once and a scene full
+// of broken chains still costs linear time.
 class SceneMatrices final {
 public:
   explicit SceneMatrices(const Scene &scene) {
@@ -65,8 +68,11 @@ public:
         base = &found->second;
         break;
       }
-      if (chain_.size() >= entities_.size())
+      if (invalid_.contains(current->id) || chain_.size() >= entities_.size()) {
+        for (const auto *link : chain_)
+          invalid_.insert(link->id);
         return nullptr;
+      }
       chain_.push_back(current);
       if (current->parent == 0)
         break;
@@ -91,6 +97,7 @@ public:
 private:
   std::unordered_map<Id, const Entity *> entities_;
   std::unordered_map<Id, TransformMatrix> matrices_;
+  std::unordered_set<Id> invalid_;
   std::vector<const Entity *> chain_;
 };
 
@@ -104,14 +111,27 @@ math::Matrix4 ToRenderMatrix(const TransformMatrix &matrix) noexcept {
   return result;
 }
 
-math::Sphere TransformBounds(const TransformMatrix &m, const math::Sphere &local) noexcept {
-  const double x = local.center.x, y = local.center.y, z = local.center.z;
-  const double cx = m[0] * x + m[4] * y + m[8] * z + m[12];
-  const double cy = m[1] * x + m[5] * y + m[9] * z + m[13];
-  const double cz = m[2] * x + m[6] * y + m[10] * z + m[14];
+math::Sphere TransformBounds(const TransformMatrix &matrix, const math::Sphere &local) noexcept {
+  // Bound what the GPU draws: the float matrix ToRenderMatrix uploads, not the double one, since
+  // narrowing each coefficient can move a far-off point by more than a small radius.
+  TransformMatrix m{};
+  for (std::size_t index = 0; index < m.size(); ++index)
+    m[index] = static_cast<double>(static_cast<float>(matrix[index]));
+  const std::array<double, 3> c{local.center.x, local.center.y, local.center.z};
+  const double r = local.radius;
+  std::array<double, 3> center{};
+  double worst_terms = 0.0;
+  for (std::size_t row = 0; row < 3; ++row) {
+    center[row] = m[row] * c[0] + m[4 + row] * c[1] + m[8 + row] * c[2] + m[12 + row];
+    // Magnitude of the terms the GPU sums for any point of the sphere (|p_j| <= |c_j| + r).
+    double terms = std::abs(m[12 + row]);
+    for (std::size_t column = 0; column < 3; ++column)
+      terms += std::abs(m[column * 4 + row]) * (std::abs(c[column]) + r);
+    worst_terms = std::max(worst_terms, terms);
+  }
   // The spectral norm of the linear part L is sqrt(largest eigenvalue of L^T L). Gram entries are
   // dot products of L's columns.
-  const auto dot = [&m](int a, int b) {
+  const auto dot = [&m](std::size_t a, std::size_t b) {
     return m[a * 4] * m[b * 4] + m[a * 4 + 1] * m[b * 4 + 1] + m[a * 4 + 2] * m[b * 4 + 2];
   };
   const std::array<double, 9> gram{dot(0, 0), dot(0, 1), dot(0, 2), dot(1, 0), dot(1, 1),
@@ -119,15 +139,18 @@ math::Sphere TransformBounds(const TransformMatrix &m, const math::Sphere &local
   // A column's length never exceeds the norm; taking the larger keeps the bound safe against
   // rounding in the closed form.
   const double eigenvalue = std::max({LargestSymmetricEigenvalue(gram), gram[0], gram[4], gram[8]});
-  const double radius = static_cast<double>(local.radius) * std::sqrt(eigenvalue);
-  // Round the float radius up (with a relative margin for the float center) so narrowing never
-  // shrinks the sphere.
-  const double margin =
-      radius * 1e-6 + (std::abs(cx) + std::abs(cy) + std::abs(cz)) *
-                          static_cast<double>(std::numeric_limits<float>::epsilon());
+  const double radius = r * std::sqrt(eigenvalue);
+  // Per coordinate, the GPU's float evaluation of a 4-term sum errs by at most about 2 epsilon
+  // times the sum of the terms' magnitudes (Higham's gamma_4; epsilon is twice the unit roundoff),
+  // and narrowing the coefficients and the center adds at most epsilon times as much. 4 epsilon,
+  // across three coordinates, covers both with room to spare, so no drawn point leaves the sphere;
+  // the relative term absorbs rounding in the closed-form eigenvalue.
+  const double epsilon = std::numeric_limits<float>::epsilon();
+  const double margin = radius * 1e-6 + 4.0 * epsilon * std::sqrt(3.0) * worst_terms;
   const auto padded = static_cast<float>(radius + margin);
-  return {{static_cast<float>(cx), static_cast<float>(cy), static_cast<float>(cz)},
-          std::nextafter(padded, std::numeric_limits<float>::infinity())};
+  return {
+      {static_cast<float>(center[0]), static_cast<float>(center[1]), static_cast<float>(center[2])},
+      std::nextafter(padded, std::numeric_limits<float>::infinity())};
 }
 
 std::optional<renderer::GPUDrivenView> CameraView(const World &world, Id camera, float aspect) {
@@ -189,9 +212,17 @@ std::optional<renderer::GPUDrivenView> CameraView(const World &world, Id camera,
   return result;
 }
 
-RenderSyncStatistics RenderSceneSync::Sync(const World &world, renderer::GPUScene &scene,
-                                           const RenderResourceResolver &resolve,
-                                           std::uint64_t retire_fence) {
+RenderSceneSync::RenderSceneSync(RenderSceneSync &&other) noexcept
+    : objects_(std::exchange(other.objects_, {})), scene_(std::exchange(other.scene_, nullptr)) {}
+
+std::optional<RenderSyncStatistics> RenderSceneSync::Sync(const World &world,
+                                                          renderer::GPUScene &scene,
+                                                          const RenderResourceResolver &resolve,
+                                                          std::uint64_t retire_fence) {
+  // Handles carry no scene identity, so objects held in one GPUScene must never be read, updated,
+  // or forgotten through another.
+  if (scene_ != nullptr && scene_ != &scene)
+    return std::nullopt;
   RenderSyncStatistics statistics;
   std::unordered_set<Id> current;
   for (const auto &world_scene : world.scenes_) {
@@ -267,6 +298,7 @@ RenderSyncStatistics RenderSceneSync::Sync(const World &world, renderer::GPUScen
     objects_.erase(id);
     ++statistics.destroyed;
   }
+  scene_ = objects_.empty() ? nullptr : &scene;
   return statistics;
 }
 
@@ -274,8 +306,11 @@ std::optional<CulledSceneFrame> RenderSceneSync::RenderFrame(
     const World &world, renderer::GPUScene &scene, const RenderResourceResolver &resolve,
     std::uint64_t retire_fence, rhi::Device &device, rhi::TextureHandle target,
     const rhi::TextureDescriptor &target_descriptor, rhi::PipelineHandle pipeline) {
+  const auto synced = Sync(world, scene, resolve, retire_fence);
+  if (!synced)
+    return std::nullopt;
   CulledSceneFrame result;
-  result.sync = Sync(world, scene, resolve, retire_fence);
+  result.sync = *synced;
 #if !NEXORA_SCENE_RENDERING_ENABLED
   static_cast<void>(device);
   static_cast<void>(target);
@@ -315,7 +350,9 @@ std::optional<renderer::GPUObjectHandle> RenderSceneSync::Handle(Id entity) cons
   return std::nullopt;
 }
 
-void RenderSceneSync::Release(renderer::GPUScene &scene, std::uint64_t retire_fence) {
+bool RenderSceneSync::Release(renderer::GPUScene &scene, std::uint64_t retire_fence) {
+  if (scene_ != nullptr && scene_ != &scene)
+    return false;
   std::vector<Id> ids;
   ids.reserve(objects_.size());
   for (const auto &[id, mirror] : objects_)
@@ -324,6 +361,8 @@ void RenderSceneSync::Release(renderer::GPUScene &scene, std::uint64_t retire_fe
   for (const auto id : ids)
     static_cast<void>(scene.Destroy(objects_.at(id).handle, retire_fence));
   objects_.clear();
+  scene_ = nullptr;
+  return true;
 }
 
 } // namespace nexora::runtime

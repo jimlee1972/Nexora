@@ -7,10 +7,12 @@
 #include "Nexora/Runtime/RenderSync.h"
 #include "Nexora/Runtime/Runtime.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include <type_traits>
 #include <vector>
 
 namespace {
@@ -140,7 +142,7 @@ void TestParentMotionAndShear() {
 
   renderer::GPUScene gpu;
   runtime::RenderSceneSync sync;
-  auto stats = sync.Sync(world, gpu, Resolve, 1);
+  auto stats = *sync.Sync(world, gpu, Resolve, 1);
   Require(stats.created == 1 && sync.ObjectCount() == 1 && !sync.Handle(parent),
           "only mesh renderers are mirrored");
   auto object = Object(sync, gpu, child);
@@ -154,14 +156,14 @@ void TestParentMotionAndShear() {
   gpu.CommitFrame();
 
   // Unchanged world: nothing to upload.
-  stats = sync.Sync(world, gpu, Resolve, 2);
+  stats = *sync.Sync(world, gpu, Resolve, 2);
   Require(stats.created == 0 && stats.updated == 0 && stats.destroyed == 0 &&
               gpu.ExtractUpdates().updates.empty(),
           "an unchanged world must produce no GPU updates");
 
   // Moving only the parent moves the rendered child.
   Require(Move(world, parent, {8.0, 0.0, 0.0}), "moving the parent failed");
-  stats = sync.Sync(world, gpu, Resolve, 3);
+  stats = *sync.Sync(world, gpu, Resolve, 3);
   Require(stats.updated == 1, "moving a parent must update its rendered descendant");
   const auto batch = gpu.ExtractUpdates();
   Require(batch.updates.size() == 1 &&
@@ -207,7 +209,7 @@ void TestOwnershipAndRemoval() {
 
   renderer::GPUScene gpu;
   runtime::RenderSceneSync sync;
-  auto stats = sync.Sync(world, gpu, Resolve, 1);
+  auto stats = *sync.Sync(world, gpu, Resolve, 1);
   Require(stats.created == 4 && !sync.Handle(hidden),
           "mesh renderers in every active scene, and none in an inactive one, are mirrored");
 
@@ -226,7 +228,7 @@ void TestOwnershipAndRemoval() {
     Require(commands.Apply(world), "changing the material failed");
   }
   (void)gpu.ExtractUpdates();
-  stats = sync.Sync(world, gpu, Resolve, 3);
+  stats = *sync.Sync(world, gpu, Resolve, 3);
   Require(stats.updated == 1 && *sync.Handle(loner) == loner_handle &&
               Object(sync, gpu, loner).material_resource_index == 5,
           "a material change must update resources on the same object");
@@ -239,7 +241,7 @@ void TestOwnershipAndRemoval() {
     commands.SetMeshRenderer(other, std::nullopt);
     Require(commands.Apply(world), "destroying failed");
   }
-  stats = sync.Sync(world, gpu, Resolve, 4);
+  stats = *sync.Sync(world, gpu, Resolve, 4);
   Require(stats.destroyed == 3 && !sync.Handle(root) && !sync.Handle(leaf) && !sync.Handle(other),
           "destroyed entities and removed mesh renderers must lose their objects");
   {
@@ -247,7 +249,7 @@ void TestOwnershipAndRemoval() {
     commands.SetMeshRenderer(loner, runtime::MeshComponent{0, {kShader}});
     Require(commands.Apply(world), "clearing the mesh failed");
   }
-  stats = sync.Sync(world, gpu, Resolve, 5);
+  stats = *sync.Sync(world, gpu, Resolve, 5);
   Require(stats.destroyed == 1 && sync.ObjectCount() == 0,
           "a mesh the resolver rejects must leave the GPU scene");
   Require(gpu.GetStatistics().active_object_count == 0, "no object may leak in the GPU scene");
@@ -258,16 +260,16 @@ void TestOwnershipAndRemoval() {
   (void)sync.Sync(world, gpu, Resolve, 6);
   Require(sync.Handle(again) && sync.Handle(kept), "new mesh renderers must be mirrored");
   Require(world.RequestUnload(side_scene), "unload failed");
-  stats = sync.Sync(world, gpu, Resolve, 7);
+  stats = *sync.Sync(world, gpu, Resolve, 7);
   Require(stats.destroyed == 1 && !sync.Handle(again) && sync.Handle(kept),
           "a scene that stops being active must lose its objects");
 
   // An object destroyed behind the sync's back is mirrored again.
   Require(gpu.Destroy(*sync.Handle(kept), 8), "external destroy failed");
-  stats = sync.Sync(world, gpu, Resolve, 8);
+  stats = *sync.Sync(world, gpu, Resolve, 8);
   Require(stats.created == 1 && gpu.Read(*sync.Handle(kept)).has_value(),
           "a stale handle must be replaced by a new object");
-  sync.Release(gpu, 9);
+  Require(sync.Release(gpu, 9), "releasing from the bound scene failed");
   Require(sync.ObjectCount() == 0 && gpu.GetStatistics().active_object_count == 0,
           "Release must destroy every object the sync created");
 }
@@ -286,16 +288,16 @@ void TestOverflowIsRejected() {
 
   renderer::GPUScene gpu;
   runtime::RenderSceneSync sync;
-  auto stats = sync.Sync(world, gpu, Resolve, 1);
+  auto stats = *sync.Sync(world, gpu, Resolve, 1);
   Require(stats.rejected == 1 && stats.created == 1 && !sync.Handle(inner) && sync.Handle(fine),
           "a world matrix outside float range must be rejected, not rendered as inf");
 
   // An object that becomes unrepresentable is removed, and comes back when it fits again.
   Require(Move(world, inner, {}), "shrinking failed");
-  stats = sync.Sync(world, gpu, Resolve, 2);
+  stats = *sync.Sync(world, gpu, Resolve, 2);
   Require(stats.created == 1 && sync.Handle(inner), "a representable pose must be mirrored");
   Require(Move(world, inner, huge), "growing failed");
-  stats = sync.Sync(world, gpu, Resolve, 3);
+  stats = *sync.Sync(world, gpu, Resolve, 3);
   Require(stats.rejected == 1 && stats.destroyed == 1 && !sync.Handle(inner),
           "an object whose pose overflows must leave the GPU scene");
 }
@@ -312,9 +314,91 @@ void TestCorruptCycleIsBounded() {
   const_cast<runtime::Entity *>(world.FindEntity(b))->parent = a;
   renderer::GPUScene gpu;
   runtime::RenderSceneSync sync;
-  const auto stats = sync.Sync(world, gpu, Resolve, 1);
+  const auto stats = *sync.Sync(world, gpu, Resolve, 1);
   Require(stats.rejected == 2 && stats.created == 1 && sync.Handle(fine),
           "a cyclic parent chain must be rejected without hanging");
+}
+
+void TestFloatMatrixBounds() {
+  // A far-off mesh center cancelled by the translation: in double the world center is ~0, but the
+  // float coefficients the GPU uses move it by a few hundredths, more than the tiny radius.
+  Transform pose{};
+  pose.sx = 1.0000095;
+  pose.x = -1e6 * 1.0000095;
+  const auto matrix = runtime::ToMatrix(pose);
+  const math::Sphere local{{1.0e6F, 0.0F, 0.0F}, 0.01F};
+  const auto bounds = runtime::TransformBounds(matrix, local);
+  const auto render = runtime::ToRenderMatrix(matrix);
+  // Evaluate sample points exactly as a float shader would.
+  float worst = 0.0F;
+  for (const float dx : {-1.0F, 0.0F, 1.0F})
+    for (const float dy : {-1.0F, 0.0F, 1.0F}) {
+      const float px = local.center.x + dx * local.radius, py = local.center.y + dy * local.radius;
+      const float wx = render(0, 0) * px + render(0, 1) * py + render(0, 3);
+      const float wy = render(1, 0) * px + render(1, 1) * py + render(1, 3);
+      worst = std::max(worst, std::hypot(wx - bounds.center.x, wy - bounds.center.y));
+    }
+  Require(worst <= bounds.radius,
+          "the bounds must contain the points the float matrix actually draws");
+}
+
+void TestCorruptCyclesStayLinear() {
+  runtime::World world;
+  const auto main_scene = world.LoadScene("Main");
+  Require(world.Activate(main_scene), "activation failed");
+  constexpr std::size_t kRing = 20000;
+  std::vector<Id> ring;
+  for (std::size_t index = 0; index < kRing; ++index)
+    ring.push_back(Create(world, main_scene));
+  // One huge cycle written directly into the parent fields (in storage order, which is ring order).
+  auto &entities = const_cast<runtime::Scene *>(world.FindScene(main_scene))->entities;
+  for (std::size_t index = 0; index < kRing; ++index)
+    entities[index].parent = ring[(index + 1) % kRing];
+  renderer::GPUScene gpu;
+  runtime::RenderSceneSync sync;
+  const auto start = std::chrono::steady_clock::now();
+  const auto stats = *sync.Sync(world, gpu, Resolve, 1);
+  const auto elapsed = std::chrono::steady_clock::now() - start;
+  Require(stats.rejected == kRing && stats.created == 0, "every entity on the cycle is rejected");
+  // Without remembering failed walks this is 400 million steps.
+  Require(elapsed < std::chrono::seconds(2), "rejecting a large cycle must stay linear");
+}
+
+void TestSceneBindingAndOwnership() {
+  static_assert(!std::is_copy_constructible_v<runtime::RenderSceneSync> &&
+                    !std::is_copy_assignable_v<runtime::RenderSceneSync> &&
+                    !std::is_move_assignable_v<runtime::RenderSceneSync> &&
+                    std::is_nothrow_move_constructible_v<runtime::RenderSceneSync>,
+                "a sync owns GPU objects: no copies, no ownership-dropping assignment");
+  runtime::World world;
+  const auto main_scene = world.LoadScene("Main");
+  Require(world.Activate(main_scene), "activation failed");
+  const auto mesh = Create(world, main_scene);
+
+  renderer::GPUScene first;
+  renderer::GPUScene second;
+  // The second scene holds an unrelated object in the slot/generation the sync will use.
+  const auto unrelated = second.Create({});
+  runtime::RenderSceneSync sync;
+  Require(sync.Sync(world, first, Resolve, 1).has_value() && *sync.Handle(mesh) == unrelated,
+          "the test needs colliding handles");
+  Require(!sync.Sync(world, second, Resolve, 2).has_value() &&
+              second.Read(unrelated)->visibility_flags ==
+                  renderer::VisibilityFlags(renderer::GPUObjectVisibility::Visible) &&
+              second.GetStatistics().active_object_count == 1,
+          "a sync bound to one scene must not touch another scene's objects");
+  Require(!sync.Release(second, 3) && second.Read(unrelated).has_value() && sync.ObjectCount() == 1,
+          "releasing through the wrong scene must destroy nothing and keep ownership");
+
+  // Moving hands the objects over; the source is left empty and unbound.
+  runtime::RenderSceneSync moved(std::move(sync));
+  Require(moved.ObjectCount() == 1 && sync.ObjectCount() == 0, "a move must transfer ownership");
+  Require(sync.Sync(world, second, Resolve, 4).has_value(), "a moved-from sync must be unbound");
+  Require(sync.Release(second, 5), "releasing the moved-from sync's own objects failed");
+  Require(moved.Release(first, 6) && first.GetStatistics().active_object_count == 0,
+          "the new owner must release the moved objects");
+  Require(moved.Sync(world, second, Resolve, 7).has_value(),
+          "a released sync can serve another scene");
 }
 
 void TestDeepChainsMatchWorldMatrix() {
@@ -337,7 +421,7 @@ void TestDeepChainsMatchWorldMatrix() {
   renderer::GPUScene gpu;
   runtime::RenderSceneSync sync;
   const auto start = std::chrono::steady_clock::now();
-  const auto stats = sync.Sync(world, gpu, Resolve, 1);
+  const auto stats = *sync.Sync(world, gpu, Resolve, 1);
   const auto elapsed = std::chrono::steady_clock::now() - start;
   Require(stats.created == static_cast<std::size_t>(kDepth), "every link must be mirrored");
   for (const auto id : {chain.front(), chain[kDepth / 2], chain.back()})
@@ -520,6 +604,9 @@ int main() {
     TestOwnershipAndRemoval();
     TestOverflowIsRejected();
     TestCorruptCycleIsBounded();
+    TestCorruptCyclesStayLinear();
+    TestFloatMatrixBounds();
+    TestSceneBindingAndOwnership();
     TestDeepChainsMatchWorldMatrix();
     TestCameraView();
     TestCulledSceneFrame();
