@@ -228,7 +228,7 @@ int Run() {
   // Before snapshot version 3 the hierarchy lived only in the node lines and every transform was
   // a world pose; migrating must parent the entities without moving them.
   const auto legacy_path = root / "Content/Legacy.scene";
-  std::ofstream(legacy_path, std::ios::trunc)
+  std::ofstream(legacy_path, std::ios::binary | std::ios::trunc)
       << "NEXORA_EDITOR_SCENE 1\nnode 5 0 Parent\nnode 6 5 Child\nworld\n"
          "NEXORA_SCENE 2 \"Legacy\" 0 2\n"
          "5 10 0 0 0 0.70710678118654752 0 0.70710678118654752 2 2 2 0 0 0 60 0.1 1000 1 0 0\n"
@@ -246,7 +246,7 @@ int Run() {
   // A migration that cannot apply (a parent id that is a node but not an entity of this world)
   // must fail without leaving a half-loaded scene behind.
   const auto broken_path = root / "Content/Broken.scene";
-  std::ofstream(broken_path, std::ios::trunc)
+  std::ofstream(broken_path, std::ios::binary | std::ios::trunc)
       << "NEXORA_EDITOR_SCENE 1\nnode 7 0 Ghost\nnode 8 7 Child\nworld\n"
          "NEXORA_SCENE 2 \"Broken\" 0 1\n"
          "8 0 0 0 0 0 0 1 1 1 1 0 0 0 60 0.1 1000 1 0 0\n";
