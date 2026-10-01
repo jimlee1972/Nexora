@@ -2,6 +2,7 @@
 // destroy, get/set, batch query, scene load, and the input-snapshot helper.
 #include "Nexora/Game/GameWorld.h"
 
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 
@@ -130,6 +131,12 @@ int Run() {
   EntitySpawnDescriptor actor_descriptor;
   actor_descriptor.physics = PhysicsBody{0, {-0.5, 0.0, -0.5}, {0.5, 2.0, 0.5}, false, false, {}};
   actor_descriptor.character = CharacterControllerConfig{};
+  // A rotated, non-uniformly scaled actor: character movement owns the position only and must not
+  // reset the rotation or scale to identity on every tick.
+  actor_descriptor.transform.qy = 0.7071067811865476;
+  actor_descriptor.transform.qw = 0.7071067811865476;
+  actor_descriptor.transform.sx = 2.0;
+  actor_descriptor.transform.sz = 0.5;
   const auto actor = world.SpawnEntity(scene, actor_descriptor);
   const auto actor_snapshot = world.GetEntity(actor);
   Require(actor_snapshot->has_physics && actor_snapshot->has_character,
@@ -143,6 +150,11 @@ int Run() {
   const auto character = world.GetCharacter(actor);
   Require(character.has_value() && world.GetEntity(actor)->transform.x == character->position.x,
           "character movement must synchronize the entity transform");
+  const auto moved = world.GetEntity(actor)->transform;
+  Require(moved.sx == 2.0 && moved.sy == 1.0 && moved.sz == 0.5 && moved.qx == 0.0 &&
+              std::abs(moved.qy - 0.7071067811865476) < 1e-12 &&
+              std::abs(moved.qw - 0.7071067811865476) < 1e-12,
+          "character movement reset the entity's rotation or scale");
   Require(world.Query(scene, GameWorld::kQueryPhysics | GameWorld::kQueryCharacter) ==
               std::vector<Id>{actor},
           "simulation bindings must participate in batch queries");

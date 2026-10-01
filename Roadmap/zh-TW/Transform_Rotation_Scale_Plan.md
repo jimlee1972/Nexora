@@ -1,6 +1,6 @@
 # Transform 旋轉與縮放擴充 — 計畫
 
-> 版本：v1.0｜狀態：**僅為計畫；本文件內容皆未實作、也未核准**｜更新：2026-10-01｜對應：
+> 版本：v1.1｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；階段 1+2 施工中，其餘階段尚未開始**｜更新：2026-10-01｜對應：
 > `Editor_Roadmap.md` §ED-M2（gizmo）、`Engine_API_Foundation_Roadmap.md`
 
 ## 1. 目的與需要的決定
@@ -11,6 +11,22 @@
 會影響的範圍，讓它可以被當成**一個決定**來審閱，而不是逐檔案才發現。本文件不是開始實作的授權。
 
 **需要的決定：**核准（或修改）§4 的建議方案與 §6 的階段。
+
+## 1a. 決定（2026-10-01）
+
+負責人決定沿用 Unity 與 Unreal 的慣例，讓從它們轉過來的使用者可以沿用既有習慣。具體為：
+
+- 採下方**方案 A**：原地擴充 `runtime::Transform`（單一 component，如同 Unity 的 `Transform` 與
+  Unreal `USceneComponent` 的相對 transform），縮放為逐軸、可非等比。
+- **旋轉以 quaternion 儲存**；Euler 角是 Editor 的呈現方式。為了保留設計師輸入的值（Unity 以序列化的
+  Euler 提示做到這點），Euler 提示放在 **Editor 層**、隨 Editor 的場景資料儲存，不放進 runtime
+  component（階段 4）。
+- **快照升級為 v2**（`NEXORA_SCENE 2`），於第一次存檔時升級；v1 仍可讀取，旋轉為單位、縮放為 1。
+- **階段 1 與 2 一併出貨。**沒有持久化的資料模型會在存檔／讀檔時靜默遺失旋轉與縮放，因此視為同一個變更。
+  同一個變更也必須讓「只寫位置」的寫入者（Zig／C 的 `write_component` 橋接，以及角色控制器每個 tick 的
+  位置更新）不再重設旋轉與縮放；這兩處先前都是用 `{x, y, z}` 取代整個 `Transform`。
+- Unity 與 Unreal 的 transform 是**相對於 parent** 的。Nexora 的 entity 目前沒有階層，因此在 parenting
+  出現之前，這個 transform 實質上是世界空間。parenting 仍不在本計畫範圍內，但會是自然的下一份計畫。
 
 ## 2. 已驗證的現況
 
@@ -66,11 +82,11 @@
 
 ## 6. 階段（每階段以證據結尾，而非宣稱）
 
-1. **資料模型。**擴充 `Transform`、驗證與預設值；單元測試涵蓋單位預設值，以及拒絕
-   NaN／inf／零縮放／退化 quaternion。Gate：`linux-development` 與完整功能組態通過；以 `-Werror`
-   對 Windows 與 macOS 做 Zig 交叉編譯。
-2. **持久化。**快照 v2 writer、v1 reader、決定性往返，並把惡意輸入案例加入
-   `editor.parser_robustness`。Gate：v1 fixture 仍可載入，並重新存成文件所述的 v2 形式。
+1+2. **資料模型與持久化（同一個變更）。**擴充 `Transform` 並給預設值，加入驗證（有限值、非零縮放、
+   非退化 quaternion，套用與載入時正規化）、快照 v2 writer 與 v1 reader（決定性往返）、讓「只寫位置」
+   的寫入者保留旋轉與縮放，並把惡意輸入案例加入 `editor.parser_robustness`。Gate：
+   `linux-development` 與完整功能組態通過；以 `-Werror` 對 Windows 與 macOS 做 Zig 交叉編譯；
+   v1 快照仍可載入，並重新存成 v2 形式。
 3. **邊界。**新增有版本的 Zig／C wire component；ABI layout 測試；既有 Zig module 不變且仍通過。
    Gate：Zig gameplay 測試與 ABI layout gate。
 4. **Editor 數學。**旋轉／縮放 gizmo 數學，含 world／local／pivot 與負縮放規則，以及多選 pivot。
@@ -90,8 +106,8 @@
 
 階層／parent transform、動畫 retargeting、physics body 同步，以及任何圖形 Scene View。這些需要各自的計畫。
 
-## 9. 需要負責人回答的問題
+## 9. 問題（2026-10-01 已回答）
 
-1. 方案 A、B 還是 C？
-2. 快照是在第一次存檔時遷移到 v2，還是除非旋轉／縮放非預設值才維持 v1？
-3. Inspector 用 Euler 角、儲存用 quaternion，是否確認？
+1. 方案 A、B 還是 C？**A**，沿用 Unity／Unreal。
+2. 快照遷移？**第一次存檔升級為 v2**；v1 仍可讀取。
+3. Inspector 用 Euler 角、儲存用 quaternion？**是**，Euler 提示留在 Editor 層以保留輸入值。

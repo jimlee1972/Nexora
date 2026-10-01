@@ -20,10 +20,36 @@ namespace nexora::runtime {
 using Id = std::uint64_t;
 
 enum class SceneState { LoadedInactive, Active, Unloading, Unloaded };
+// Position, rotation, and scale of an entity, in the conventions Unity and Unreal users expect: one
+// component, a unit quaternion for rotation, and per-axis (possibly non-uniform) scale. Euler
+// angles are an Editor presentation, not stored here. The position members come first so `{x, y,
+// z}` initialization keeps working; rotation defaults to identity and scale to one.
+//
+// Values that reach a World (command buffer, snapshot) are validated and the quaternion normalized;
+// see IsValidTransform and NormalizedTransform. Negative scale mirrors an axis; zero is invalid.
 struct Transform final {
   double x{}, y{}, z{};
+  double qx{}, qy{}, qz{}, qw{1.0};
+  double sx{1.0}, sy{1.0}, sz{1.0};
   friend bool operator==(const Transform &, const Transform &) = default;
 };
+
+// True when every component is finite, no scale component is zero, and the quaternion has a usable
+// (finite, non-zero) length. A quaternion that is valid but not unit length is accepted here and
+// normalized by NormalizedTransform.
+[[nodiscard]] NEXORA_RUNTIME_API bool IsValidTransform(const Transform &transform) noexcept;
+// The transform with its rotation scaled to unit length, or nullopt when it is not valid.
+[[nodiscard]] NEXORA_RUNTIME_API std::optional<Transform>
+NormalizedTransform(Transform transform) noexcept;
+// A copy of `transform` with only the position replaced. Position-only writers (the gameplay
+// bridge, character movement) must use this so they do not reset an entity's rotation and scale.
+[[nodiscard]] inline Transform WithPosition(Transform transform, double x, double y,
+                                            double z) noexcept {
+  transform.x = x;
+  transform.y = y;
+  transform.z = z;
+  return transform;
+}
 struct CameraComponent final {
   double vertical_field_of_view{60.0};
   double near_plane{0.1};

@@ -1,7 +1,7 @@
 # Transform Rotation and Scale Extension — Plan
 
-> Version: v1.0 | Status: **plan only; nothing in this document is implemented or approved** |
-> Updated: 2026-10-01 | Relates to: `Editor_Roadmap.md` §ED-M2 (gizmos),
+> Version: v1.1 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
+> phase 1+2 in progress, later phases not started** | Updated: 2026-10-01 | Relates to: `Editor_Roadmap.md` §ED-M2 (gizmos),
 > `Engine_API_Foundation_Roadmap.md`
 
 ## 1. Purpose and decision needed
@@ -13,6 +13,26 @@ actually have a rotation and a scale. This plan records what such a change touch
 reviewed as one decision rather than discovered file by file. It is not authorization to start.
 
 **Decision requested:** approve (or amend) the recommended option in §4 and the phases in §6.
+
+## 1a. Decisions (2026-10-01)
+
+The owner chose to follow the Unity and Unreal conventions so that users coming from them can
+transfer their habits. Concretely:
+
+- **Option A** below: extend `runtime::Transform` in place (one component, like Unity's `Transform`
+  and Unreal's `USceneComponent` relative transform), with per-axis, possibly non-uniform scale.
+- **Rotation is stored as a quaternion**; Euler angles are an Editor presentation. To keep what a
+  designer typed (as Unity does with its serialized Euler hint), the Euler hint is an **Editor-layer**
+  value stored with the Editor's scene data, not in the runtime component (phase 4).
+- **Snapshots upgrade to v2** (`NEXORA_SCENE 2`) on the first save; v1 stays readable with identity
+  rotation and unit scale.
+- **Phases 1 and 2 ship together.** A data model without persistence would silently drop rotation and
+  scale on save/load, so they are one change. The same change must also stop position-only writers
+  (the Zig/C `write_component` bridge and the character controller's per-tick position update) from
+  resetting rotation and scale; both previously replaced the whole `Transform` with `{x, y, z}`.
+- Unity and Unreal transforms are **relative to a parent**. Nexora entities have no hierarchy yet, so
+  until parenting exists this transform is effectively world-space. Parenting stays out of scope here
+  but is the natural next plan.
 
 ## 2. Verified current state
 
@@ -72,11 +92,12 @@ scale ambiguity) and makes the editor fields lossy. Not recommended.
 
 ## 6. Phases (each ends with evidence, not a claim)
 
-1. **Data model.** Extend `Transform`, validation, defaults; unit tests for identity defaults and
-   rejection of NaN/inf/zero scale/degenerate quaternion. Gate: `linux-development` and the
-   full-feature config pass; Zig cross-compile for Windows and macOS with `-Werror`.
-2. **Persistence.** Snapshot v2 writer, v1 reader, deterministic round trip, hostile-input cases added
-   to `editor.parser_robustness`. Gate: v1 fixtures still load and re-save to the documented v2 form.
+1+2. **Data model and persistence (one change).** Extend `Transform` with defaults, validation
+   (finite values, non-zero scale, non-degenerate quaternion, normalized on apply and on load), the
+   snapshot v2 writer and v1 reader with a deterministic round trip, position-only writers that
+   preserve rotation/scale, and hostile-input cases in `editor.parser_robustness`. Gate:
+   `linux-development` and the full-feature config pass; Zig cross-compile for Windows and macOS with
+   `-Werror`; v1 snapshots still load and re-save in the v2 form.
 3. **Boundary.** New versioned Zig/C wire component; ABI layout tests; existing Zig module unchanged
    and still passing. Gate: the Zig gameplay tests and the ABI layout gate.
 4. **Editor math.** Rotation/scale gizmo math with world/local/pivot and negative-scale rules, and
@@ -98,8 +119,9 @@ scale ambiguity) and makes the editor fields lossy. Not recommended.
 Hierarchy/parenting transforms, animation retargeting, physics-body synchronization, and any
 graphical Scene View. Those need their own plans.
 
-## 9. Open questions for the owner
+## 9. Questions (answered 2026-10-01)
 
-1. Option A, B, or C?
-2. Should snapshots migrate to v2 on first save, or stay v1 unless rotation/scale is non-default?
-3. Euler angles in the Inspector, quaternion in storage — confirm.
+1. Option A, B, or C? **A**, following Unity/Unreal.
+2. Snapshot migration? **v2 on first save**; v1 stays readable.
+3. Euler angles in the Inspector, quaternion in storage? **Yes**, with the Euler hint kept in the Editor
+   layer so typed values are preserved.
