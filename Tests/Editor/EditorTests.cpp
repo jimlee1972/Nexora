@@ -1,6 +1,7 @@
 #include "Nexora/Editor/ContentBrowser.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 
 #include <chrono>
@@ -106,6 +107,61 @@ int Run() {
   Require(assets.Search("hero").size() == 2 && assets.Search({}, ".mesh").size() == 1 &&
               assets.Find(assets.Entries().front().id),
           "asset search failed");
+
+  const auto mesh_entry = std::ranges::find(assets.Entries(), std::string("Hero.mesh"),
+                                            &editor::AssetEntry::relative_path);
+  Require(mesh_entry != assets.Entries().end(), "indexed mesh entry is missing");
+  editor::ProjectContentSession content_session;
+  Require(content_session.Open(reopened, assets, 11, true, &error) &&
+              content_session.Browser().VisibleCount() == 2 && content_session.Writable(),
+          "project content session did not bind the deterministic index");
+  const auto indexed_mesh = mesh_entry->id;
+  Require(content_session.Rename(indexed_mesh, "Player.mesh", &error) &&
+              fs::is_regular_file(root / "Content/Player.mesh") &&
+              !fs::exists(root / "Content/Hero.mesh") && content_session.CanUndo() &&
+              content_session.Undo(&error) && fs::is_regular_file(root / "Content/Hero.mesh"),
+          "filesystem-backed content rename/undo failed");
+  fs::create_directories(root / "Content/Characters");
+  const std::array one_mesh{indexed_mesh};
+  editor::AssetDragPayload content_drag{std::string(editor::AssetDragPayload::kType), 11,
+                                        indexed_mesh};
+  Require(content_session.Move(content_drag, "Content/Characters", &error) &&
+              fs::is_regular_file(root / "Content/Characters/Hero.mesh"),
+          "generation-safe content drag did not move the source file");
+  const auto moved_artifact_before = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  std::ofstream(root / "Content/Characters/Hero.mesh", std::ios::trunc) << "mesh-v2";
+  Require(content_session.Reimport(indexed_mesh, &error) &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash != moved_artifact_before,
+          "reimport after a move did not publish the new artifact");
+  const auto moved_artifact_after = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  Require(content_session.Undo(&error) && fs::is_regular_file(root / "Content/Hero.mesh") &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash == moved_artifact_after,
+          "filesystem-backed content move/reimport/undo lost current artifact metadata");
+  content_drag.project_generation = 10;
+  Require(!content_session.Move(content_drag, "Content/Characters", &error) &&
+              fs::is_regular_file(root / "Content/Hero.mesh"),
+          "stale graphical asset drag payload changed project content");
+  std::ofstream(root / "Content/Characters/Hero.mesh") << "occupied";
+  Require(!content_session.Move(one_mesh, "Content/Characters", &error) &&
+              fs::is_regular_file(root / "Content/Hero.mesh") &&
+              content_session.Browser().Find(indexed_mesh)->path == "Content/Hero.mesh",
+          "failed content move did not preserve the source and model");
+  fs::remove(root / "Content/Characters/Hero.mesh");
+  const auto artifact_before = content_session.Browser().Find(indexed_mesh)->artifact_hash;
+  std::ofstream(root / "Content/Hero.mesh", std::ios::trunc) << "mesh-v3";
+  Require(content_session.Reimport(indexed_mesh, &error) &&
+              content_session.Browser().Find(indexed_mesh)->artifact_hash != artifact_before,
+          "content reimport did not publish the updated artifact hash");
+  Require(content_session.Delete(one_mesh, &error) && !fs::exists(root / "Content/Hero.mesh") &&
+              content_session.Browser().Find(indexed_mesh) == nullptr &&
+              content_session.Undo(&error) && fs::is_regular_file(root / "Content/Hero.mesh") &&
+              content_session.Browser().Find(indexed_mesh),
+          "recoverable content delete/undo failed");
+  editor::ProjectContentSession read_only_content;
+  Require(read_only_content.Open(reopened, assets, 12, false, &error) &&
+              !read_only_content.Rename(indexed_mesh, "Blocked.mesh", &error) &&
+              fs::is_regular_file(root / "Content/Hero.mesh") && !error.empty(),
+          "read-only project content accepted a mutation");
   editor::AssetWorkspace cancelled;
   Require(cancelled.ImportTree(root / "Content", [] { return true; }) &&
               cancelled.Entries().front().state == editor::ImportState::Cancelled,
@@ -119,8 +175,10 @@ int Run() {
        editor::ThumbnailState::Loading},
       {scene_id, "Content/Levels/Main.scene", "scene", "scene-v1", editor::ThumbnailState::Failed}};
   Require(browser.Reset(content, 7) && browser.SetFolder("Content") &&
-              browser.Breadcrumbs().size() == 1 && browser.Visible(0, 1).size() == 1 &&
-              browser.Visible(1, 10).size() == 1,
+              browser.Breadcrumbs().size() == 1 && browser.VisibleCount() == 2 &&
+              browser.ChildFolders().size() == 1 &&
+              browser.ChildFolders().front().path == "Content/Levels" &&
+              browser.Visible(0, 1).size() == 1 && browser.Visible(1, 10).size() == 1,
           "virtualized content browser or breadcrumb state failed");
   browser.SetFilter("hero", "mesh");
   Require(browser.Visible(0, 10).size() == 1 && browser.Select(mesh_id) &&

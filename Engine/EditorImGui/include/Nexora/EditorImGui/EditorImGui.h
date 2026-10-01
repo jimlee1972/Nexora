@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/EditorImGui/Api.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/Device.h"
@@ -48,7 +49,8 @@ public:
   void ProcessEvents(std::span<const Nexora::Window::WindowEvent> events);
   void BeginFrame(float delta_seconds = 1.0F / 60.0F);
   void DrawProductShell(ProductShell &shell, SceneDocument *scene = nullptr,
-                        ProjectWorkspace *workspace = nullptr);
+                        ProjectWorkspace *workspace = nullptr,
+                        ProjectContentSession *content = nullptr);
   [[nodiscard]] FrameMetrics EndFrame();
   // The validation/offscreen renderer retains its pipeline, font texture, and geometrically sized
   // upload buffers. ReleaseRenderer must be called before the supplied Device is destroyed.

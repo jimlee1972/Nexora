@@ -29,5 +29,13 @@ presentation backend is reported as an error rather than silently falling back t
 The shell tracks the surface's live client extent and DPI scale, rebuilds its bucketed font atlas,
 and submits backend-neutral textured/indexed UI draws directly into the acquired native GPU
 backbuffer. It also round-trips a versioned project layout and supplies a live `SceneDocument` to
-the Hierarchy panel. It does not create a validation-device offscreen target or a full-frame CPU
-RGBA image.
+the Hierarchy panel. The same process binds its deterministic `AssetWorkspace` index to a live
+Content panel with breadcrumbs, folder navigation, search/type filtering, virtualized UUID-keyed
+rows, thumbnail state, selection, typed drag/drop, dependency inspection, and synchronous reimport.
+Rename/move/delete operate through a recoverable project-content filesystem transaction, with
+project-local trash and one-step undo. It does not create a validation-device offscreen target or a
+full-frame CPU RGBA image.
+
+This is an ED-M1 graphical foundation, not ED-M1 acceptance. Project upgrade/locking/recent-project
+UX, cancellable background import and reimport, dirty external-change decisions, and a target-host
+fresh-project workflow remain open.

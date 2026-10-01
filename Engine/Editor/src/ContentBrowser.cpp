@@ -77,6 +77,36 @@ std::vector<const ContentItem *> ContentBrowserModel::Visible(std::size_t offset
   }
   return matches;
 }
+std::size_t ContentBrowserModel::VisibleCount() const {
+  std::size_t count = 0;
+  for (const auto &item : items_) {
+    const auto parent = item.path.parent_path();
+    if (parent == folder_ &&
+        (query_.empty() ||
+         Lower(item.path.filename().string()).find(query_) != std::string::npos) &&
+        (type_.empty() || Lower(item.type) == type_))
+      ++count;
+  }
+  return count;
+}
+std::vector<Breadcrumb> ContentBrowserModel::ChildFolders() const {
+  std::vector<Breadcrumb> folders;
+  std::unordered_set<std::string> seen;
+  for (const auto &item : items_) {
+    const auto relative = item.path.lexically_relative(folder_);
+    if (relative.empty() || relative == ".")
+      continue;
+    auto part = relative.begin();
+    const auto label = part->string();
+    if (++part == relative.end())
+      continue;
+    const auto path = (folder_ / label).lexically_normal();
+    if (seen.insert(path.generic_string()).second)
+      folders.push_back({label, path});
+  }
+  std::ranges::sort(folders, {}, &Breadcrumb::label);
+  return folders;
+}
 const ContentItem *ContentBrowserModel::Find(runtime::AssetUuid id) const {
   const auto found = std::ranges::find(items_, id, &ContentItem::id);
   return found == items_.end() ? nullptr : &*found;
@@ -179,6 +209,25 @@ bool ContentBrowserModel::Undo() {
     return false;
   items_.swap(undo_);
   undo_.clear();
+  return true;
+}
+bool ContentBrowserModel::PublishArtifact(runtime::AssetUuid id, std::string artifact_hash,
+                                          ThumbnailState thumbnail, std::string *error) {
+  const auto found = std::ranges::find(items_, id, &ContentItem::id);
+  if (found == items_.end() || artifact_hash.empty()) {
+    if (error)
+      *error = "asset or artifact hash is invalid";
+    return false;
+  }
+  found->artifact_hash = std::move(artifact_hash);
+  found->thumbnail = thumbnail;
+  const auto undo = std::ranges::find(undo_, id, &ContentItem::id);
+  if (undo != undo_.end()) {
+    undo->artifact_hash = found->artifact_hash;
+    undo->thumbnail = thumbnail;
+  }
+  if (error)
+    error->clear();
   return true;
 }
 

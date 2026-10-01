@@ -11,9 +11,12 @@
 #include <cmath>
 #include <cstddef>
 #include <cstring>
+#include <limits>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -60,6 +63,15 @@ struct EditorImGuiHost::State final {
   bool recovery_prompt_opened = false;
   bool initial_dock_layout_built = false;
   std::string recovery_error;
+  std::array<char, 128> content_query{};
+  std::array<char, 64> content_type{};
+  std::array<char, 260> content_rename{};
+  std::optional<runtime::AssetUuid> content_rename_target;
+  std::uint32_t content_visible_items = 0;
+  std::uint32_t content_visible_folders = 0;
+  std::uint32_t content_selection = 0;
+  std::uint32_t content_forward_dependencies = 0;
+  std::uint32_t content_reverse_dependencies = 0;
 
   static void SetImeData(ImGuiContext *context, ImGuiViewport *, ImGuiPlatformImeData *data) {
     ImGui::SetCurrentContext(context);
@@ -125,7 +137,201 @@ void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
       ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.25F, nullptr, &center);
   ImGui::DockBuilderDockWindow(PanelWindowName("nexora.hierarchy").c_str(), hierarchy);
   ImGui::DockBuilderDockWindow(PanelWindowName("nexora.console").c_str(), console);
+  ImGui::DockBuilderDockWindow(PanelWindowName("nexora.content").c_str(), console);
   ImGui::DockBuilderFinish(dockspace);
+}
+
+struct AssetDragData final {
+  std::uint64_t project_generation{};
+  runtime::AssetUuid asset;
+};
+static_assert(std::is_trivially_copyable_v<AssetDragData>);
+
+const char *ThumbnailLabel(ThumbnailState state) {
+  switch (state) {
+  case ThumbnailState::Loading:
+    return "[Loading]";
+  case ThumbnailState::Ready:
+    return "[Ready]";
+  case ThumbnailState::Failed:
+    return "[Failed]";
+  }
+  return "[Unknown]";
+}
+
+bool AcceptAssetDrop(ProjectContentSession &content, const std::filesystem::path &folder) {
+  if (!ImGui::BeginDragDropTarget())
+    return false;
+  bool moved = false;
+  if (const auto *payload = ImGui::AcceptDragDropPayload(AssetDragPayload::kType.data());
+      payload != nullptr && payload->DataSize == sizeof(AssetDragData)) {
+    const auto &data = *static_cast<const AssetDragData *>(payload->Data);
+    moved = content.Move(
+        {std::string(AssetDragPayload::kType), data.project_generation, data.asset}, folder);
+  }
+  ImGui::EndDragDropTarget();
+  return moved;
+}
+
+template <typename StateT> void DrawContentBrowser(StateT &state, ProjectContentSession &content) {
+  auto &browser = content.Browser();
+  state.content_visible_items = 0;
+  state.content_visible_folders = 0;
+  state.content_selection = static_cast<std::uint32_t>(browser.Selection().size());
+  state.content_forward_dependencies = 0;
+  state.content_reverse_dependencies = 0;
+
+  const auto window = PanelWindowName("nexora.content");
+  if (!ImGui::Begin(window.c_str())) {
+    ImGui::End();
+    return;
+  }
+
+  for (const auto &breadcrumb : browser.Breadcrumbs()) {
+    if (ImGui::Button(breadcrumb.label.c_str()))
+      static_cast<void>(browser.SetFolder(breadcrumb.path));
+    static_cast<void>(AcceptAssetDrop(content, breadcrumb.path));
+    ImGui::SameLine();
+    ImGui::TextUnformatted("/");
+    ImGui::SameLine();
+  }
+  ImGui::NewLine();
+
+  bool filter_changed = ImGui::InputTextWithHint(
+      "##content-search", "Search assets", state.content_query.data(), state.content_query.size());
+  ImGui::SameLine();
+  ImGui::SetNextItemWidth(120.0F);
+  filter_changed |= ImGui::InputTextWithHint("##content-type", "Type", state.content_type.data(),
+                                             state.content_type.size());
+  if (filter_changed)
+    browser.SetFilter(state.content_query.data(), state.content_type.data());
+  ImGui::SameLine();
+  ImGui::BeginDisabled(!content.CanUndo());
+  if (ImGui::Button("Undo content"))
+    static_cast<void>(content.Undo());
+  ImGui::EndDisabled();
+
+  std::optional<runtime::AssetUuid> delete_asset;
+  std::optional<runtime::AssetUuid> reimport_asset;
+  bool open_rename = false;
+  const auto folders = browser.ChildFolders();
+  state.content_visible_folders = static_cast<std::uint32_t>(folders.size());
+  for (const auto &folder : folders) {
+    const auto label = "[Folder] " + folder.label + "##" + folder.path.generic_string();
+    if (ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick) &&
+        ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+      static_cast<void>(browser.SetFolder(folder.path));
+    static_cast<void>(AcceptAssetDrop(content, folder.path));
+  }
+
+  const auto visible_count = browser.VisibleCount();
+  state.content_visible_items = static_cast<std::uint32_t>(
+      std::min<std::size_t>(visible_count, std::numeric_limits<std::uint32_t>::max()));
+  ImGuiListClipper clipper;
+  clipper.Begin(static_cast<int>(std::min<std::size_t>(
+      visible_count, static_cast<std::size_t>(std::numeric_limits<int>::max()))));
+  while (clipper.Step()) {
+    const auto visible =
+        browser.Visible(static_cast<std::size_t>(clipper.DisplayStart),
+                        static_cast<std::size_t>(clipper.DisplayEnd - clipper.DisplayStart));
+    for (const auto *item : visible) {
+      const auto label = std::string(ThumbnailLabel(item->thumbnail)) + " " +
+                         item->path.filename().string() + "##" + item->id.ToString();
+      if (ImGui::Selectable(label.c_str(), browser.IsSelected(item->id))) {
+        if (ImGui::GetIO().KeyCtrl)
+          static_cast<void>(browser.Toggle(item->id));
+        else
+          static_cast<void>(browser.Select(item->id));
+      }
+      if (ImGui::BeginDragDropSource()) {
+        const AssetDragData payload{browser.ProjectGeneration(), item->id};
+        ImGui::SetDragDropPayload(AssetDragPayload::kType.data(), &payload, sizeof(payload));
+        ImGui::TextUnformatted(item->path.filename().string().c_str());
+        ImGui::EndDragDropSource();
+      }
+      if (ImGui::BeginPopupContextItem()) {
+        if (ImGui::MenuItem("Rename", nullptr, false, content.Writable())) {
+          state.content_rename.fill(0);
+          const auto filename = item->path.filename().string();
+          std::memcpy(state.content_rename.data(), filename.data(),
+                      std::min(filename.size(), state.content_rename.size() - 1));
+          state.content_rename_target = item->id;
+          open_rename = true;
+        }
+        if (ImGui::MenuItem("Reimport", nullptr, false, content.Writable()))
+          reimport_asset = item->id;
+        if (ImGui::MenuItem("Delete", nullptr, false, content.Writable()))
+          delete_asset = item->id;
+        ImGui::EndPopup();
+      }
+    }
+  }
+
+  if (reimport_asset)
+    static_cast<void>(content.Reimport(*reimport_asset));
+  if (delete_asset) {
+    const std::array assets{*delete_asset};
+    static_cast<void>(content.Delete(assets));
+  }
+  if (open_rename)
+    ImGui::OpenPopup("Rename asset###editor.content.rename");
+  if (ImGui::BeginPopupModal("Rename asset###editor.content.rename", nullptr,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    ImGui::InputText("Filename", state.content_rename.data(), state.content_rename.size());
+    if (ImGui::Button("Apply") && state.content_rename_target &&
+        content.Rename(*state.content_rename_target, state.content_rename.data())) {
+      state.content_rename_target.reset();
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel")) {
+      state.content_rename_target.reset();
+      ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+  }
+
+  const auto selection = browser.Selection();
+  state.content_selection = static_cast<std::uint32_t>(selection.size());
+  ImGui::SeparatorText("Asset details");
+  if (selection.size() == 1) {
+    if (const auto *item = browser.Find(selection.front())) {
+      ImGui::Text("Path: %s", item->path.generic_string().c_str());
+      ImGui::Text("UUID: %s", item->id.ToString().c_str());
+      ImGui::Text("Type: %s", item->type.c_str());
+      ImGui::Text("Artifact: %s", item->artifact_hash.c_str());
+      const auto forward = content.Dependencies().Forward(item->id);
+      const auto reverse = content.Dependencies().Reverse(item->id);
+      state.content_forward_dependencies = static_cast<std::uint32_t>(forward.size());
+      state.content_reverse_dependencies = static_cast<std::uint32_t>(reverse.size());
+      if (ImGui::TreeNode("Dependencies")) {
+        if (forward.empty())
+          ImGui::TextUnformatted("None");
+        for (const auto dependency : forward) {
+          const auto *target = browser.Find(dependency);
+          ImGui::BulletText("%s", target ? target->path.generic_string().c_str()
+                                         : dependency.ToString().c_str());
+        }
+        ImGui::TreePop();
+      }
+      if (ImGui::TreeNode("Referenced by")) {
+        if (reverse.empty())
+          ImGui::TextUnformatted("None");
+        for (const auto dependency : reverse) {
+          const auto *target = browser.Find(dependency);
+          ImGui::BulletText("%s", target ? target->path.generic_string().c_str()
+                                         : dependency.ToString().c_str());
+        }
+        ImGui::TreePop();
+      }
+    }
+  } else {
+    ImGui::Text("%zu assets selected", selection.size());
+  }
+  if (!content.LastError().empty())
+    ImGui::TextWrapped("Content error: %.*s", static_cast<int>(content.LastError().size()),
+                       content.LastError().data());
+  ImGui::End();
 }
 
 ImGuiKey ToImGuiKey(Nexora::Window::Key key) {
@@ -300,7 +506,8 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
 }
 
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
-                                       ProjectWorkspace *workspace) {
+                                       ProjectWorkspace *workspace,
+                                       ProjectContentSession *content) {
   Activate(state_->context);
   if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal))
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
@@ -333,6 +540,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::Text("Last command: %.*s", static_cast<int>(shell.LastCommand().size()),
                 shell.LastCommand().data());
   ImGui::End();
+  if (content != nullptr)
+    DrawContentBrowser(*state_, *content);
 
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
   if (recovery_available && !state_->recovery_prompt_opened) {
@@ -696,7 +905,12 @@ EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host)
           io.DisplaySize.x,
           io.DisplaySize.y,
           io.DisplayFramebufferScale.x,
-          io.FontGlobalScale};
+          io.FontGlobalScale,
+          host.state_->content_visible_items,
+          host.state_->content_visible_folders,
+          host.state_->content_selection,
+          host.state_->content_forward_dependencies,
+          host.state_->content_reverse_dependencies};
 }
 
 void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept {

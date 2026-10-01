@@ -20,6 +20,28 @@ int main() {
   nexora::editor::SceneDocument scene(world, scene_id);
   const auto root = scene.Create("Scene Root");
   assert(root != 0 && scene.Nodes().size() == 1);
+  const auto content_root =
+      std::filesystem::temp_directory_path() /
+      ("nexora-imgui-content-" +
+       std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  nexora::editor::ProjectWorkspace content_workspace;
+  std::string content_error;
+  assert(content_workspace.Create(content_root, "Content", &content_error));
+  std::ofstream(content_root / "Content/Hero.mesh") << "mesh";
+  std::ofstream(content_root / "Content/Hero.material") << "material";
+  nexora::editor::AssetWorkspace content_assets;
+  assert(content_assets.ImportTree(content_root / "Content"));
+  nexora::editor::ProjectContentSession content;
+  assert(content.Open(content_workspace, content_assets, 3, true, &content_error));
+  const auto items = content.Browser().Items();
+  const auto mesh = std::ranges::find(items, std::filesystem::path("Content/Hero.mesh"),
+                                      &nexora::editor::ContentItem::path);
+  const auto material = std::ranges::find(items, std::filesystem::path("Content/Hero.material"),
+                                          &nexora::editor::ContentItem::path);
+  assert(mesh != items.end() && material != items.end());
+  const std::array material_dependency{material->id};
+  assert(content.Dependencies().Set(mesh->id, material_dependency));
+  assert(content.Browser().Select(mesh->id));
   // Dear ImGui's input trickling (ConfigInputTrickleEventQueue, on by default) deliberately applies
   // only one input-type transition per NewFrame() so fast real interleaved events (e.g. a mouse
   // move followed by a click) keep correct sub-frame chronology; a batch mixing pointer/text/key
@@ -38,7 +60,7 @@ int main() {
   // registers the shortcut unconditionally regardless of key state, and this warm-up frame never
   // calls Render(), so it does not perturb the renderer-metrics assertions further down.
   host.BeginFrame();
-  host.DrawProductShell(shell, &scene);
+  host.DrawProductShell(shell, &scene, nullptr, &content);
   assert(shell.LastCommand().empty());
   static_cast<void>(host.EndFrame());
   const std::array events{
@@ -74,12 +96,18 @@ int main() {
   assert(display_state.framebuffer_scale == 1.5F);
   assert(display_state.font_global_scale > 0.66F && display_state.font_global_scale < 0.67F);
   host.BeginFrame();
-  host.DrawProductShell(shell, &scene);
+  host.DrawProductShell(shell, &scene, nullptr, &content);
   assert(shell.LastCommand() == "editor.scene.save");
   const auto metrics = host.EndFrame();
   assert(metrics.command_lists > 0);
   assert(metrics.vertices > 0);
   assert(metrics.indices > 0);
+  const auto content_state = EditorImGuiTestAccess::Inspect(host);
+  assert(content_state.content_visible_items == 2);
+  assert(content_state.content_visible_folders == 0);
+  assert(content_state.content_selection == 1);
+  assert(content_state.content_forward_dependencies == 1);
+  assert(content_state.content_reverse_dependencies == 0);
   auto device = nexora::rhi::CreateValidationDevice();
   const auto target =
       device->CreateTexture({1280, 720, nexora::rhi::TextureFormat::Rgba8Unorm,
@@ -117,7 +145,17 @@ int main() {
   for (const float dpi : dpi_scales) {
     host.SetDisplay(1280.0F / dpi, 720.0F / dpi, dpi);
     host.BeginFrame();
-    host.DrawProductShell(shell, &scene);
+    host.DrawProductShell(shell, &scene, nullptr, &content);
+    static_cast<void>(host.EndFrame());
+    assert(host.Render(*device, target, 1280, 720, nexora::rhi::ResourceState::ShaderRead, false) >
+           0);
+  }
+  // Let all three upload slots observe the complete docked Content layout before taking the soak
+  // baseline. A newly added panel may be selected only after docking settles, but must not cause
+  // any allocation growth once every slot has rendered that layout.
+  for (int frame = 0; frame < 6; ++frame) {
+    host.BeginFrame();
+    host.DrawProductShell(shell, &scene, nullptr, &content);
     static_cast<void>(host.EndFrame());
     assert(host.Render(*device, target, 1280, 720, nexora::rhi::ResourceState::ShaderRead, false) >
            0);
@@ -125,7 +163,7 @@ int main() {
   const auto reallocations_before_soak = host.GetRendererMetrics().buffer_reallocations;
   for (int frame = 0; frame < 512; ++frame) {
     host.BeginFrame();
-    host.DrawProductShell(shell, &scene);
+    host.DrawProductShell(shell, &scene, nullptr, &content);
     static_cast<void>(host.EndFrame());
     assert(host.Render(*device, target, 1280, 720, nexora::rhi::ResourceState::ShaderRead, false) >
            0);
@@ -150,6 +188,7 @@ int main() {
   assert(host.TakeRecoveryChoice() == nexora::editor::imgui::RecoveryChoice::Discard);
   assert(host.TakeRecoveryChoice() == nexora::editor::imgui::RecoveryChoice::None);
   std::filesystem::remove_all(recovery_root);
+  std::filesystem::remove_all(content_root);
   host.ReleaseRenderer(*device);
   device->DestroyTexture(user_texture);
   device->DestroyTexture(target);

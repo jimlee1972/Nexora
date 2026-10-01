@@ -1,4 +1,5 @@
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/ProjectContent.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "Nexora/Presentation/RenderSurface.h"
@@ -14,7 +15,8 @@
 
 namespace {
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
-int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t frame_limit) {
+int RunGraphical(nexora::editor::ProjectWorkspace &workspace,
+                 const nexora::editor::AssetWorkspace &assets, std::uint32_t frame_limit) {
   auto created = Nexora::Presentation::CreateRenderSurface(
       {"Nexora Editor", 1280, 720, true, Nexora::Presentation::SurfaceBackend::Automatic});
   if (!created) {
@@ -22,7 +24,12 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
     return 1;
   }
   nexora::editor::imgui::EditorImGuiHost ui;
+  nexora::editor::ProjectContentSession content;
   std::string layout_error;
+  if (!content.Open(workspace, assets, 1, true, &layout_error)) {
+    std::cerr << layout_error << '\n';
+    return 1;
+  }
   if (const auto layout = workspace.LoadEditorLayout(&layout_error);
       layout && !ui.LoadLayout(*layout))
     std::cerr << "ignored invalid editor layout\n";
@@ -61,7 +68,7 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
                   dpi);
     ui.UpdateImeCandidate(*created.surface);
     ui.BeginFrame();
-    ui.DrawProductShell(shell, &scene, &workspace);
+    ui.DrawProductShell(shell, &scene, &workspace, &content);
     if (const auto choice = ui.TakeRecoveryChoice();
         choice != nexora::editor::imgui::RecoveryChoice::None)
       recovery_choice = choice;
@@ -148,7 +155,7 @@ int Run(int argc, char **argv) {
   }
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
   if (graphical)
-    return RunGraphical(workspace, frame_limit);
+    return RunGraphical(workspace, assets, frame_limit);
 #else
   static_cast<void>(frame_limit);
   if (graphical) {

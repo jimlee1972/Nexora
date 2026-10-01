@@ -19,7 +19,7 @@ workspace/document core。**待辦：** window/docking/UI shell、graphical view
 | Scope | Repository 證據 | 已驗收 |
 | --- | --- | :---: |
 | ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Real-process recovery 與 Linux/Windows host evidence 仍待完成。 | [ ] |
-| ED-M1 project/assets | Portable create/open、deterministic indexing/search、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Graphical workflow 驗收仍待完成。 | [ ] |
+| ED-M1 project/assets | Portable create/open、deterministic indexing/search、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation；background job、conflict/project-management UX 與 target-host workflow 驗收仍待完成。 | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。Scene View、Inspector、renderer-backed picking、camera、gizmo 操作與 reflected graphical widget 仍待完成。 | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。Graphical Game View、Console UI 與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
@@ -93,7 +93,13 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 - ✅ 已實作並測試 portable virtualized Content Browser／breadcrumb／selection model、
   transactional rename／move／delete、typed generation-safe drag validation、dependency／cycle
   inspection、transactional reimport、watcher debounce 與明確的 dirty-conflict decision。
-- 待辦：圖形化 Content Browser、drag/drop、dependency inspection 與 reimport UX 驗收。
+- ✅ 圖形化 shell 現已將真實 deterministic index 綁到 docked Content Browser，包含
+  breadcrumb／folder、search／type filter、virtualized UUID row、selection 與 thumbnail state。
+  Generation-tagged drag/drop、dependency inspection、同步 reimport，以及 filesystem-backed、
+  可回復的 rename／move／delete／undo 全部經 authoring-thread `ProjectContentSession`；UI 不直接寫檔。
+- 待辦：canonical project upgrade／lock／read-only／recent-project UX、具 bounded progress 與
+  structured diagnostic 的 cancellable background import/reimport、dirty-conflict reload／keep／
+  compare UI、跨重開仍持久的 asset identity，以及 target-host 新 project 全流程驗收。
 
 ### ED-M2 — Scene authoring core
 

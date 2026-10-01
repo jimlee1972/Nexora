@@ -17,6 +17,11 @@ struct EditorImGuiTestState final {
   float display_height = 0.0F;
   float framebuffer_scale = 0.0F;
   float font_global_scale = 0.0F;
+  std::uint32_t content_visible_items = 0;
+  std::uint32_t content_visible_folders = 0;
+  std::uint32_t content_selection = 0;
+  std::uint32_t content_forward_dependencies = 0;
+  std::uint32_t content_reverse_dependencies = 0;
 };
 
 class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {

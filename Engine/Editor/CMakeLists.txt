@@ -2,6 +2,7 @@ include(NexoraTarget)
 add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/ContentBrowser.cpp
   src/EditorProduction.cpp
+  src/ProjectContent.cpp
   src/EditorWorkspace.cpp
   src/ShaderAuthoring.cpp
   src/SceneAuthoring.cpp

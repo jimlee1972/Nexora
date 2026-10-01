@@ -48,9 +48,16 @@ into renderer or platform internals.
 - `ContentBrowserModel` owns its sorted item snapshot, breadcrumb and stable-ID selection state.
   Virtual ranges borrow item pointers until the next mutation. Rename, multi-item move, and delete
   validate a complete replacement snapshot before committing and retain one undo snapshot.
+- `ProjectContentSession` owns the live browser model, dependency/conflict state, canonical project
+  root, project generation, and one recoverable filesystem mutation. The application owns the
+  session; UI code borrows it for a frame and never retains `ContentItem` pointers. Rename and move
+  use same-volume filesystem renames after validating a candidate model. Delete moves files into a
+  unique project-local `.nexora/trash` operation directory, and undo restores both files and model.
+  Existing files and symlinks outside the canonical project root are rejected before mutation.
 - Typed asset drag payloads carry the project generation and asset UUID. Reimport results are staged
   and may publish only when their generation and dependency graph remain valid; cancellation,
-  staleness, failure, or a cycle preserves the previous artifact.
+  staleness, failure, or a cycle preserves the previous artifact. `ProjectContentSession` also keeps
+  a newer reimport artifact in the pending undo snapshot, so undo cannot resurrect stale metadata.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
   hierarchy use stable IDs, never component or container pointers. The hierarchy itself is the
   runtime's (`Entity::parent`, see the Runtime README's entity hierarchy section); the document keeps
@@ -87,11 +94,15 @@ into renderer or platform internals.
 
 ## Threading, errors, and deferred work
 
-The current API is serialized and synchronous. Callers may run content indexing on a worker, but
-must not call the same workspace concurrently. Long imports report progress and observe a
-cancellation callback between files. Failed/cancelled entries remain inspectable and never replace
-an existing artifact implicitly. Functions report expected failures with `false`, optional values,
-or per-entry error text; filesystem exceptions are converted to error results where applicable.
+The current API is serialized and synchronous. `ProjectContentSession` mutation and reimport calls
+run on the authoring thread. A multi-file rename failure rolls already-moved files back before
+returning an actionable error; failed reimport leaves the active artifact unchanged. Callers may run
+content indexing on a worker, but must not call the same workspace concurrently. Long imports report
+progress and observe a cancellation callback between files. Failed/cancelled entries remain
+inspectable and never replace an existing artifact implicitly. The current graphical reimport path
+is synchronous; cancellable staged worker execution and dirty-conflict presentation remain ED-M1
+work. Functions report expected failures with `false`, optional values, or per-entry error text;
+filesystem exceptions are converted to error results where applicable.
 Profiling samples require strictly increasing frame IDs. Telemetry drops every event until the user
 explicitly opts in; extension policy rejects untrusted publishers and, by default, invalid or
 missing signatures.
