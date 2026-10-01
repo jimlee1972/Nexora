@@ -159,6 +159,26 @@ bool SceneEditor::SetTransform(Id entity, Transform transform) {
   ++depth_;
   return true;
 }
+bool SceneEditor::SetParent(Id entity, Id parent, bool keep_world) {
+  const auto *existing = world_.FindEntity(entity);
+  if (!existing)
+    return false;
+  const auto previous_parent = existing->parent;
+  const auto previous_transform = existing->transform;
+  WorldCommandBuffer apply;
+  apply.SetParent(entity, parent, keep_world);
+  if (!apply.Apply(world_))
+    return false;
+  undo_.Execute([] {},
+                [this, entity, previous_parent, previous_transform] {
+                  WorldCommandBuffer commands;
+                  commands.SetParent(entity, previous_parent, false);
+                  commands.SetTransform(entity, previous_transform);
+                  (void)commands.Apply(world_);
+                });
+  ++depth_;
+  return true;
+}
 bool SceneEditor::DestroyEntity(Id scene, Id entity) {
   const auto *target_scene = world_.FindScene(scene);
   const auto *existing = world_.FindEntity(entity);
@@ -166,19 +186,27 @@ bool SceneEditor::DestroyEntity(Id scene, Id entity) {
       std::ranges::find(target_scene->entities, entity, &Entity::id) ==
           target_scene->entities.end())
     return false;
-  const Entity snapshot = *existing;
+  // Destruction cascades to descendants, so undo must restore the whole subtree.
+  std::vector<Entity> subtree;
+  for (const auto id : world_.Subtree(entity))
+    subtree.push_back(*world_.FindEntity(id));
   WorldCommandBuffer apply;
   apply.DestroyEntity(entity);
   if (!apply.Apply(world_))
     return false;
   undo_.Execute([] {},
-                [this, scene, snapshot] {
+                [this, scene, subtree] {
                   auto *target = const_cast<Scene *>(world_.FindScene(scene));
                   if (target == nullptr || target->state == SceneState::Unloading ||
-                      target->state == SceneState::Unloaded || world_.FindEntity(snapshot.id))
+                      target->state == SceneState::Unloaded ||
+                      std::ranges::any_of(subtree, [this](const Entity &restored) {
+                        return world_.FindEntity(restored.id) != nullptr;
+                      }))
                     return;
-                  target->entities.push_back(snapshot);
-                  world_.next_id_ = std::max(world_.next_id_, snapshot.id + 1);
+                  for (const auto &restored : subtree) {
+                    target->entities.push_back(restored);
+                    world_.next_id_ = std::max(world_.next_id_, restored.id + 1);
+                  }
                 });
   ++depth_;
   return true;
@@ -315,9 +343,12 @@ std::vector<TransformApplyDiff> PlaySession::PreviewTransformApplyBack() const {
       const auto *editor = editor_world_.FindEntity(entity.id);
       if (original == source_transforms_.end() || entity.transform == original->second)
         continue;
+      // Transforms are local, so a value from under a different parent would mean a different pose
+      // in the editor world; treat a reparented entity as a conflict rather than move it.
       diffs.push_back({entity.id, original->second, editor ? editor->transform : Transform{},
                        entity.transform, editor != nullptr,
-                       editor == nullptr || editor->transform != original->second});
+                       editor == nullptr || editor->transform != original->second ||
+                           editor->parent != entity.parent});
     }
   std::ranges::sort(diffs, {}, &TransformApplyDiff::entity);
   return diffs;

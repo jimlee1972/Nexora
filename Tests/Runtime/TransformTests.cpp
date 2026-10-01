@@ -130,15 +130,16 @@ void TestSnapshotRoundTrip() {
   Require(commands.Apply(world), "setup transform was rejected");
 
   const auto saved = world.SaveScene(scene);
-  Require(saved && saved->starts_with("NEXORA_SCENE 2 "), "a save must write the version 2 format");
+  Require(saved && saved->starts_with("NEXORA_SCENE 3 "),
+          "a save must write the current (version 3) format");
 
   runtime::World restored;
   const auto loaded = restored.LoadSceneSnapshot(*saved);
-  Require(loaded.has_value(), "a version 2 snapshot did not load");
+  Require(loaded.has_value(), "a saved snapshot did not load");
   const auto &entities = restored.FindScene(*loaded)->entities;
   Require(entities.size() == 1 && entities[0].transform == world.FindEntity(id)->transform,
           "rotation and scale did not survive a save/load round trip");
-  Require(restored.SaveScene(*loaded) == saved, "version 2 save/load was not deterministic");
+  Require(restored.SaveScene(*loaded) == saved, "save/load was not deterministic");
 }
 
 void TestVersion1StillLoads() {
@@ -151,8 +152,8 @@ void TestVersion1StillLoads() {
   Require(transform == Transform{5.0, 6.0, 7.0},
           "a version 1 entity must load with identity rotation and unit scale");
   const auto upgraded = world.SaveScene(*loaded);
-  Require(upgraded && upgraded->starts_with("NEXORA_SCENE 2 "),
-          "saving a loaded version 1 scene must upgrade it to version 2");
+  Require(upgraded && upgraded->starts_with("NEXORA_SCENE 3 "),
+          "saving a loaded version 1 scene must upgrade it to the current version");
 }
 
 void TestHostileSnapshots() {
@@ -172,7 +173,7 @@ void TestHostileSnapshots() {
           "an overflowing rotation was accepted from a snapshot");
   Require(!world.LoadSceneSnapshot("NEXORA_SCENE 2 \"x\" 0 1\n1 0 0 0 0 0 0 1\n").has_value(),
           "a truncated version 2 record was accepted");
-  Require(!world.LoadSceneSnapshot("NEXORA_SCENE 3 \"x\" 0 0\n").has_value(),
+  Require(!world.LoadSceneSnapshot("NEXORA_SCENE 4 \"x\" 0 0\n").has_value(),
           "an unknown snapshot version was accepted");
 
   // A usable but non-unit rotation is normalized on load.

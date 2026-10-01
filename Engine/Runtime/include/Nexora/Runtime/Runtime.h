@@ -3,6 +3,7 @@
 #include "Nexora/RHI/Device.h"
 #include "Nexora/Runtime/Api.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -50,6 +51,18 @@ NormalizedTransform(Transform transform) noexcept;
   transform.z = z;
   return transform;
 }
+// Column-major 4x4 affine matrix (translation * rotation * scale), double precision.
+using TransformMatrix = std::array<double, 16>;
+[[nodiscard]] NEXORA_RUNTIME_API TransformMatrix ToMatrix(const Transform &transform) noexcept;
+// `child` expressed in `parent`'s space, composed into one transform. Exact unless the parent has a
+// non-uniform scale and the child is rotated: that produces shear, which a transform cannot hold,
+// so the result keeps the component-wise product of the scales (Unity's `lossyScale` behaves the
+// same way). Use the matrices when the exact result matters.
+[[nodiscard]] NEXORA_RUNTIME_API Transform ComposeTransforms(const Transform &parent,
+                                                             const Transform &child) noexcept;
+// The inverse of ComposeTransforms: the local transform that, under `parent`, yields `world`.
+[[nodiscard]] NEXORA_RUNTIME_API Transform RelativeTransform(const Transform &parent,
+                                                             const Transform &world) noexcept;
 struct CameraComponent final {
   double vertical_field_of_view{60.0};
   double near_plane{0.1};
@@ -67,6 +80,10 @@ struct MeshComponent final {
 };
 struct Entity final {
   Id id{};
+  // 0 for a root. A parent is always an entity of the same scene, and the hierarchy is acyclic.
+  Id parent{};
+  // Relative to `parent` (Unity's localPosition/localRotation/localScale); for a root it is the
+  // world transform. See World::WorldTransform.
   Transform transform{};
   bool camera{};
   bool light{};
@@ -98,6 +115,16 @@ public:
   Entity &CreateEntity(Id scene);
   [[nodiscard]] const Scene *FindScene(Id scene) const;
   [[nodiscard]] const Entity *FindEntity(Id entity) const;
+  // The entity's parent (0 for a root), or nullopt when the entity does not exist.
+  [[nodiscard]] std::optional<Id> Parent(Id entity) const;
+  // Direct children in scene storage order.
+  [[nodiscard]] std::vector<Id> Children(Id entity) const;
+  // The entity and all its descendants, parents before children.
+  [[nodiscard]] std::vector<Id> Subtree(Id entity) const;
+  // World pose composed along the parent chain. Lossy under shear; see ComposeTransforms.
+  [[nodiscard]] std::optional<Transform> WorldTransform(Id entity) const;
+  // Exact world matrix (product of the chain's matrices), including any shear.
+  [[nodiscard]] std::optional<TransformMatrix> WorldMatrix(Id entity) const;
   [[nodiscard]] std::size_t ActiveSceneCount() const;
   [[nodiscard]] World CloneForPlay() const;
   [[nodiscard]] WorldKind Kind() const noexcept { return kind_; }
@@ -117,24 +144,38 @@ private:
 class NEXORA_RUNTIME_API WorldCommandBuffer final {
 public:
   void SetTransform(Id entity, Transform transform);
+  // Unity's SetParent(parent, worldPositionStays). `parent` 0 makes the entity a root. With
+  // `keep_world` the entity keeps its world pose and its local transform is recomputed; otherwise
+  // its local transform is kept and it moves with the new parent. The parent must be in the same
+  // scene and must not be the entity or one of its descendants.
+  void SetParent(Id entity, Id parent, bool keep_world = true);
   void SetCamera(Id entity, std::optional<CameraComponent> camera);
   void SetLight(Id entity, std::optional<LightComponent> light);
   void SetMeshRenderer(Id entity, std::optional<MeshComponent> mesh);
+  // Destroys the entity and all its descendants (Unity's Destroy on a GameObject).
   void DestroyEntity(Id entity);
+  // Applies every command or none: the whole batch is validated against a simulated hierarchy
+  // first, so a failing command leaves the world untouched.
   [[nodiscard]] bool Apply(World &world);
   [[nodiscard]] std::size_t Size() const noexcept { return commands_.size(); }
+  // Every entity removed by the last successful Apply, including cascaded descendants. Owners of
+  // per-entity resources (audio, physics, characters) must release them for each id listed here.
+  [[nodiscard]] std::span<const Id> LastDestroyed() const noexcept { return last_destroyed_; }
 
 private:
   struct Command final {
-    enum class Kind { Transform, Camera, Light, MeshRenderer, Destroy };
+    enum class Kind { Transform, Parent, Camera, Light, MeshRenderer, Destroy };
     Id entity{};
     Kind kind{};
     Transform transform{};
+    Id parent{};
+    bool keep_world{true};
     std::optional<CameraComponent> camera;
     std::optional<LightComponent> light;
     std::optional<MeshComponent> mesh;
   };
   std::vector<Command> commands_;
+  std::vector<Id> last_destroyed_;
 };
 
 class NEXORA_RUNTIME_API SystemScheduler final {

@@ -19,6 +19,11 @@ target_link_libraries(NexoraTransformTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraTransformTests)
 add_test(NAME runtime.transform_rotation_scale COMMAND NexoraTransformTests)
 
+add_executable(NexoraParentingTests ParentingTests.cpp)
+target_link_libraries(NexoraParentingTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraParentingTests)
+add_test(NAME runtime.entity_parenting COMMAND NexoraParentingTests)
+
 add_executable(NexoraGameplayHostBridgeTests GameplayHostBridgeTests.cpp)
 target_link_libraries(NexoraGameplayHostBridgeTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraGameplayHostBridgeTests)

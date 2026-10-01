@@ -27,6 +27,8 @@
   位置更新）不再重設旋轉與縮放；這兩處先前都是用 `{x, y, z}` 取代整個 `Transform`。
 - Unity 與 Unreal 的 transform 是**相對於 parent** 的。Nexora 的 entity 目前沒有階層，因此在 parenting
   出現之前，這個 transform 實質上是世界空間。parenting 仍不在本計畫範圍內，但會是自然的下一份計畫。
+  *（更新：parenting 現由 [Entity Parenting 計畫](Entity_Parenting_Plan.md) 負責；其第 1 階段讓 transform
+  改為相對於 parent，並把快照升到 `NEXORA_SCENE 3`。）*
 
 ## 2. 已驗證的現況
 
