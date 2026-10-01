@@ -86,6 +86,48 @@ jobs:
           name: showcase-${{ matrix.preset }}-package-evidence
           path: build/${{ matrix.preset }}/package/NexoraShowcase-Development/launch-evidence-*.json
 
+  # Runs the graphical Editor against a real X11 server (Xvfb) with Mesa's software Vulkan. It is a
+  # separate job so the feature-on build (Dear ImGui is fetched) cannot disturb the main matrix.
+  editor-linux-display:
+    name: Editor Linux display acceptance (Xvfb)
+    runs-on: ubuntu-latest
+    env:
+      SLANG_VERSION: 2026.18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - name: Install Slang
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="slang-${SLANG_VERSION}-linux-x86_64.tar.gz"
+          archive="${RUNNER_TEMP}/${package}"
+          install_root="${RUNNER_TEMP}/slang"
+          curl --fail --location --retry 3 --output "${archive}" \
+            "https://github.com/shader-slang/slang/releases/download/v${SLANG_VERSION}/${package}"
+          mkdir -p "${install_root}"
+          tar -xzf "${archive}" -C "${install_root}"
+          slangc="$(find "${install_root}" -type f -name slangc -print -quit)"
+          if [[ -z "${slangc}" ]]; then
+            echo "slangc was not found in ${archive}" >&2
+            exit 1
+          fi
+          echo "$(dirname "${slangc}")" >> "${GITHUB_PATH}"
+          "${slangc}" -v
+      - name: Install Vulkan, X11, Xvfb and xdotool
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool
+      - run: cmake --preset linux-development -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON
+      - run: cmake --build --preset linux-development
+      - name: Require the display acceptance to be registered
+        # The test is only registered when Xvfb and xdotool are found; fail loudly instead of
+        # silently skipping it if either goes missing.
+        run: |
+          ctest --preset linux-development -N -R '^editor\.linux_display_acceptance$' | grep -q 'Total Tests: 1'
+      - name: Editor tests (includes the Xvfb display acceptance)
+        run: ctest --preset linux-development -R '^editor\.' --output-on-failure
+
   zig-mobile-cross-build:
     name: Zig object smoke (${{ matrix.target }})
     strategy:

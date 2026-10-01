@@ -53,8 +53,9 @@ Metal native draw recording。這些仍只是 foundation，因 real-display Linu
   gate，暴露出三個真實缺陷，現已修正：Editor 把空的首幀 ImGui 資料視為致命錯誤、X11 視窗忽略
   `DestroyNotify` 並對已被銷毀的視窗再次銷毀（`BadWindow`）、Editor 在可復原的 surface 遺失時以非零
   結束。驗收腳本本身也對已結束的程序呼叫 `kill()`。目前本機連跑 5 次皆通過。這只是虛擬顯示器、僅限本機的
-  證據：CI 組態不建置 `NexoraEditorImGui` 也不安裝 `xdotool`，所以該 gate 尚未在 CI 強制執行，
-  也還沒有實體顯示器或 Windows 證據。此項維持未勾選。
+  證據：專用的 CI job `editor-linux-display`（Xvfb、Mesa 軟體 Vulkan、`xdotool`、啟用
+  `NexoraEditorImGui`）現在會建置並執行它，且在該測試未註冊時直接失敗，因此以它的最新結果為準；
+  仍沒有實體顯示器或 Windows 證據。此項維持未勾選。
 
 ### 「完成」的定義
 

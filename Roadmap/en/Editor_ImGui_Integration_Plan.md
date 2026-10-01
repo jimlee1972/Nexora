@@ -58,8 +58,9 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
   Editor treated an empty first ImGui frame as fatal, the X11 window ignored `DestroyNotify` and
   destroyed an already-destroyed window (`BadWindow`), and the Editor exited non-zero on a recoverable
   surface loss. The acceptance script also had a `kill()` on an already-finished process. It now
-  passes 5/5 locally. This is virtual-display, local-only evidence: the CI configuration does not
-  build `NexoraEditorImGui` or install `xdotool`, so the gate is not yet enforced there, and neither
+  passes 5/5 locally. This is virtual-display evidence only: the dedicated CI job
+  `editor-linux-display` (Xvfb, Mesa software Vulkan, `xdotool`, `NexoraEditorImGui` on) now builds and
+  runs it and fails if the test is not registered, so its latest result is the source of truth; neither
   physical-display nor Windows evidence exists. The box stays unchecked.
 
 ### Definition of "done"
