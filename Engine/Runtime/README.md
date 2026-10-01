@@ -300,7 +300,9 @@ mesh renderers of a `World`'s active scenes into a `renderer::GPUScene`, one GPU
   scales the mesh's local sphere by that matrix's spectral norm (its largest stretch), and pads the
   radius by the worst-case float evaluation error of the shader's sums, so the bounds stay
   conservative under shear, coefficient narrowing, and large translations that cancel a far-off
-  mesh center.
+  mesh center. That error bound holds only without overflow, so when an intermediate float sum
+  could overflow (even with a finite result) the radius is infinite and the sync rejects the
+  object.
 - The caller's `RenderResourceResolver` maps a `MeshComponent` to resource indices and local bounds;
   returning nullopt (an asset that is not resident) keeps the entity out of the GPU scene.
 - `Sync` creates objects for new mesh renderers, writes only the transform, bounds, or resources that
@@ -309,15 +311,18 @@ mesh renderers of a `World`'s active scenes into a `renderer::GPUScene`, one GPU
   that overflows float, or a parent cycle written directly into `Entity::parent`). Visibility and
   LOD belong to other systems and are never overwritten after creation. An object destroyed behind
   the sync's back is mirrored again.
-- World matrices are memoized per call (bit-identical to `WorldMatrix`), and entities found on a
-  broken (cyclic) chain are remembered as such, so a sync is linear in the entity count even on deep
-  chains or a large corrupted cycle. Destruction runs in entity-id order, keeping GPU slot reuse
+- World matrices are memoized per call (bit-identical to `WorldMatrix`). A walk up a parent chain
+  fails as soon as it revisits an entity (a cycle written directly into `Entity::parent`), and
+  entities on a failed walk are remembered as such, so a sync is linear in the entity count even on
+  deep chains, one large corrupted cycle, or many small ones. Destruction runs in entity-id order, keeping GPU slot reuse
   deterministic.
 - Ownership and threading: the sync owns only the objects it created and hands `retire_fence` to
   `GPUScene::Destroy`. GPU handles carry no scene identity, so while a sync owns objects it is bound
-  to the one `GPUScene` holding them: `Sync`, `RenderFrame`, and `Release` refuse any other scene
-  (nullopt or `false`, with nothing touched), and the bound scene must not be moved. `Release`
-  destroys every object and unbinds. The sync cannot be copied or move-assigned (either would
+  to the `GPUScene::InstanceId` of the scene holding them: `Sync`, `RenderFrame`, and `Release`
+  refuse any other scene (nullopt or `false`, with nothing touched), including a scene rebuilt at
+  the same address or the same scene after `Clear()`. Moving the bound scene keeps the binding.
+  `Release` destroys every object and unbinds; `Abandon` forgets them without touching any scene,
+  for when the bound scene was destroyed or cleared. The sync cannot be copied or move-assigned (either would
   duplicate or silently drop ownership); move construction hands the objects over. Destroying a
   sync that still owns objects leaves them in the scene, so release it first. The sync, the
   `World`, and the `GPUScene` are externally synchronized on one thread, like the `GPUScene` itself.

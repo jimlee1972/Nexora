@@ -5,6 +5,16 @@ target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
 
+if(WIN32)
+  add_executable(NexoraEditorWindowsDpiImeTests WindowsDpiImeTests.cpp)
+  target_include_directories(NexoraEditorWindowsDpiImeTests
+    PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+  target_link_libraries(NexoraEditorWindowsDpiImeTests
+    PRIVATE Nexora::EditorImGui imm32 user32)
+  nexora_apply_defaults(NexoraEditorWindowsDpiImeTests)
+  add_test(NAME editor.windows_dpi_ime_contract COMMAND NexoraEditorWindowsDpiImeTests)
+endif()
+
 find_program(NEXORA_XVFB_EXECUTABLE Xvfb)
 find_program(NEXORA_XDOTOOL_EXECUTABLE xdotool)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)

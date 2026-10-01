@@ -1,6 +1,6 @@
 # Nexora Graphical Editor Roadmap
 
-> Version: v1.2 | Status: AI-executable delivery plan | Updated: 2026-09-24
+> Version: v1.3 | Status: AI-executable delivery plan | Updated: 2026-10-02
 
 > **Progress: 0%** (none of ED-M0 through ED-M7 has passed graphical Editor acceptance;
 > completed Runtime/Editor SDK prerequisites are not rounded up into an Editor milestone.)
@@ -10,7 +10,7 @@
 process and portable workspace/document core. **Open:** window/docking/UI shell,
 graphical views, authoring workflows, and production hardening.
 
-### Repository completion audit (2026-09-24)
+### Repository completion audit (2026-10-02)
 
 The audit distinguishes a checked implementation foundation from an accepted graphical milestone.
 Source and contract tests confirm the checked rows; no ED milestone currently satisfies its complete
@@ -76,8 +76,8 @@ satisfy this milestone.
 - ✅ On Vulkan hosts, the graphical process composites ImGui draw data into the acquired public
   `RenderSurface` swapchain backbuffer; Linux and Windows window events normalize the complete
   Editor key/modifier set.
-- Open acceptance: real-display Linux visual/input/recovery evidence and Windows DPI/IME evidence.
-  ED-M0 remains open until those target-host gates pass.
+- Open acceptance: real-display Linux visual/input/recovery evidence and manual Windows DPI/IME
+  evidence. Automated Windows contracts do not replace those target-host gates; ED-M0 remains open.
 
 ### ED-M1 — Project and asset workspace
 
