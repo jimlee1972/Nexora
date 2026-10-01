@@ -123,7 +123,7 @@ The [Window and Native Presentation Roadmap](Roadmap/en/Window_Presentation_Road
 
 #### Editor status
 
-The [Graphical Editor Roadmap](Roadmap/en/Editor_Roadmap.md) remains at **0/8 (0%) graphical milestone acceptance**. Portable foundations now include ED-M4 additive-scene ownership and dependency ordering, migration dry-runs, bounded autosave recovery, and source-control-neutral three-way conflicts in addition to the existing ED-M1 through ED-M3 contracts. The focused [ED-M0 Dear ImGui plan](Roadmap/en/Editor_ImGui_Integration_Plan.md) remains **in progress**; graphical workflows, native debugger integration, physical-display evidence, and UI acceptance remain open. ED-M0 through ED-M7 are therefore unchecked; portable prerequisites are not rounded up into accepted graphical milestones.
+The [Graphical Editor Roadmap](Roadmap/en/Editor_Roadmap.md) remains at **0/8 (0%) graphical milestone acceptance**. Portable foundations now include ED-M4 additive-scene ownership and dependency ordering, migration dry-runs, bounded autosave recovery, and source-control-neutral three-way conflicts, and UI-neutral viewport pick-ray, AABB picking, axis-drag, snapping, and resize-hysteresis math, in addition to the existing ED-M1 through ED-M3 contracts. The focused [ED-M0 Dear ImGui plan](Roadmap/en/Editor_ImGui_Integration_Plan.md) remains **in progress**; graphical workflows, native debugger integration, physical-display evidence, and UI acceptance remain open. ED-M0 through ED-M7 are therefore unchecked; portable prerequisites are not rounded up into accepted graphical milestones.
 
 ### Important note
 

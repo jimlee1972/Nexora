@@ -94,3 +94,13 @@ choice UX. Native renderer submission, platform IME candidate positioning, acces
 viewport rendering, gizmos, and target-host visual validation remain UI-host responsibilities.
 The portable gizmo state machine and picking validator define transaction and asynchronous-result
 policy only; they do not claim graphical manipulation or renderer-backed picking acceptance.
+`Nexora/Editor/ViewportMath.h` adds the UI-neutral Scene View math those hosts consume, in double
+precision to match `runtime::Transform`: `ViewportPickRay` (pixel to world ray, origin top-left),
+`PickNearest` (AABB slab picking that skips hidden, locked, and malformed candidates, hits at
+distance 0 from inside a box, and breaks distance ties by lowest entity id), `AxisDragDistance`
+(closest-point projection of a drag ray onto a gizmo axis; undefined for a parallel ray),
+`SnapToStep` (half-away-from-zero grid snapping that never launders NaN), and
+`ViewportResizeFilter` (dead-band plus stable-frame hysteresis so panel jitter does not reallocate
+render targets). These are CPU-only and covered by `editor.viewport_math`. `runtime::Transform`
+currently carries position only, so rotation/scale gizmo modes, world/local and pivot rules, and
+renderer-backed ID-buffer picking remain open.

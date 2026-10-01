@@ -221,6 +221,7 @@ struct VulkanFunctions final {
   PFN_vkCreateComputePipelines CreateComputePipelines{};
   PFN_vkDestroyPipeline DestroyPipeline{};
   PFN_vkCmdPipelineBarrier CmdPipelineBarrier{};
+  PFN_vkCmdCopyImageToBuffer CmdCopyImageToBuffer{};
   PFN_vkCmdBeginRenderPass CmdBeginRenderPass{};
   PFN_vkCmdEndRenderPass CmdEndRenderPass{};
   PFN_vkCmdBindPipeline CmdBindPipeline{};
@@ -309,6 +310,7 @@ public:
                    std::span<const std::byte> data) override;
   void ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
                             std::span<std::byte> data) override;
+  void ReadTextureForTesting(TextureHandle texture, std::span<std::byte> data) override;
   void DestroyBuffer(BufferHandle buffer) override;
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override;
   void DestroyPipeline(PipelineHandle pipeline) override;
@@ -472,6 +474,7 @@ void VulkanDevice::LoadDeviceFunctions() {
   LOAD_DEVICE(CreateComputePipelines, "vkCreateComputePipelines");
   LOAD_DEVICE(DestroyPipeline, "vkDestroyPipeline");
   LOAD_DEVICE(CmdPipelineBarrier, "vkCmdPipelineBarrier");
+  LOAD_DEVICE(CmdCopyImageToBuffer, "vkCmdCopyImageToBuffer");
   LOAD_DEVICE(CmdBeginRenderPass, "vkCmdBeginRenderPass");
   LOAD_DEVICE(CmdEndRenderPass, "vkCmdEndRenderPass");
   LOAD_DEVICE(CmdBindPipeline, "vkCmdBindPipeline");
@@ -941,6 +944,129 @@ void VulkanDevice::ReadBufferForTesting(BufferHandle buffer, std::uint64_t offse
         "vkMapMemory(buffer read)");
   std::memcpy(data.data(), mapped, data.size());
   functions_.UnmapMemory(device_, record.memory);
+  ++diagnostics_.readbacks;
+}
+
+void VulkanDevice::ReadTextureForTesting(TextureHandle texture, std::span<std::byte> data) {
+  WaitIdle();
+  VkImage image{VK_NULL_HANDLE};
+  ResourceState state{};
+  TextureDescriptor descriptor;
+  {
+    std::lock_guard lock{mutex_};
+    const auto found = textures_.find(Key(texture));
+    Require(texture_pool_.Contains(texture) && found != textures_.end(),
+            "reading invalid Vulkan texture");
+    image = found->second.image;
+    state = found->second.logical_state;
+    descriptor = found->second.descriptor;
+  }
+  Require(descriptor.format != TextureFormat::Depth32Float,
+          "depth texture readback is unsupported");
+  Require(state != ResourceState::Undefined, "reading a Vulkan texture with undefined contents");
+  const auto byte_count =
+      static_cast<VkDeviceSize>(descriptor.width) * descriptor.height * std::uint64_t{4};
+  Require(data.size() == byte_count, "texture readback size must be width * height * 4");
+
+  VkBuffer staging{VK_NULL_HANDLE};
+  VkDeviceMemory staging_memory{VK_NULL_HANDLE};
+  VkCommandBuffer command_buffer{VK_NULL_HANDLE};
+  VkFence fence{VK_NULL_HANDLE};
+  const auto release = [&] {
+    if (fence != VK_NULL_HANDLE)
+      functions_.DestroyFence(device_, fence, nullptr);
+    if (command_buffer != VK_NULL_HANDLE)
+      functions_.FreeCommandBuffers(device_, immediate_command_pool_, 1, &command_buffer);
+    if (staging != VK_NULL_HANDLE)
+      functions_.DestroyBuffer(device_, staging, nullptr);
+    if (staging_memory != VK_NULL_HANDLE)
+      functions_.FreeMemory(device_, staging_memory, nullptr);
+  };
+  try {
+    const VkBufferCreateInfo buffer_info{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                                         nullptr,
+                                         0,
+                                         byte_count,
+                                         VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                         VK_SHARING_MODE_EXCLUSIVE,
+                                         0,
+                                         nullptr};
+    Check(functions_.CreateBuffer(device_, &buffer_info, nullptr, &staging),
+          "vkCreateBuffer(readback)");
+    VkMemoryRequirements requirements{};
+    functions_.GetBufferMemoryRequirements(device_, staging, &requirements);
+    const VkMemoryAllocateInfo allocation{
+        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr, requirements.size,
+        FindMemoryType(requirements.memoryTypeBits,
+                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)};
+    Check(functions_.AllocateMemory(device_, &allocation, nullptr, &staging_memory),
+          "vkAllocateMemory(readback)");
+    Check(functions_.BindBufferMemory(device_, staging, staging_memory, 0),
+          "vkBindBufferMemory(readback)");
+
+    const VkCommandBufferAllocateInfo allocate_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                                    nullptr, immediate_command_pool_,
+                                                    VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
+    Check(functions_.AllocateCommandBuffers(device_, &allocate_info, &command_buffer),
+          "vkAllocateCommandBuffers(readback)");
+    const VkCommandBufferBeginInfo begin_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
+                                              VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, nullptr};
+    Check(functions_.BeginCommandBuffer(command_buffer, &begin_info),
+          "vkBeginCommandBuffer(readback)");
+
+    const auto original = StageFor(state);
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = image;
+    barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    barrier.srcAccessMask = original.access;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    barrier.oldLayout = ToLayout(state);
+    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    functions_.CmdPipelineBarrier(command_buffer, original.stages, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                  0, 0, nullptr, 0, nullptr, 1, &barrier);
+    const VkBufferImageCopy region{0,         0,
+                                   0,         {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+                                   {0, 0, 0}, {descriptor.width, descriptor.height, 1}};
+    functions_.CmdCopyImageToBuffer(command_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                    staging, 1, &region);
+    // Restore the layout the render graph last recorded, so the readback leaves no trace.
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    barrier.dstAccessMask = original.access;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    barrier.newLayout = ToLayout(state);
+    functions_.CmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, original.stages,
+                                  0, 0, nullptr, 0, nullptr, 1, &barrier);
+    Check(functions_.EndCommandBuffer(command_buffer), "vkEndCommandBuffer(readback)");
+    const VkFenceCreateInfo fence_info{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
+    Check(functions_.CreateFence(device_, &fence_info, nullptr, &fence), "vkCreateFence(readback)");
+    const VkSubmitInfo submit_info{VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                                   nullptr,
+                                   0,
+                                   nullptr,
+                                   nullptr,
+                                   1,
+                                   &command_buffer,
+                                   0,
+                                   nullptr};
+    Check(functions_.QueueSubmit(graphics_queue_, 1, &submit_info, fence),
+          "vkQueueSubmit(readback)");
+    Check(functions_.WaitForFences(device_, 1, &fence, VK_TRUE,
+                                   std::numeric_limits<std::uint64_t>::max()),
+          "vkWaitForFences(readback)");
+    void *mapped = nullptr;
+    Check(functions_.MapMemory(device_, staging_memory, 0, byte_count, 0, &mapped),
+          "vkMapMemory(readback)");
+    std::memcpy(data.data(), mapped, data.size());
+    functions_.UnmapMemory(device_, staging_memory);
+  } catch (...) {
+    release();
+    throw;
+  }
+  release();
+  std::lock_guard lock{mutex_};
   ++diagnostics_.readbacks;
 }
 

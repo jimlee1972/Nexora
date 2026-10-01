@@ -101,6 +101,17 @@ if(NEXORA_ENABLE_SLANG)
         "NEXORA_SLANG_SPIRV_PATH=${NEXORA_SLANG_SPIRV_OUTPUT}"
         "NEXORA_SLANG_COMPUTE_SPIRV_PATH=${NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT}"
         "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+      # Linux software-rasterizer (Mesa lavapipe) golden only; other backends keep target-host baselines.
+      add_executable(NexoraVulkanGoldenTests VulkanGoldenTests.cpp)
+      target_link_libraries(NexoraVulkanGoldenTests PRIVATE Nexora::Renderer)
+      target_compile_definitions(NexoraVulkanGoldenTests PRIVATE
+        "NEXORA_GOLDEN_BASELINE=\"${CMAKE_CURRENT_SOURCE_DIR}/Golden/triangle_vulkan_lavapipe_64x64.rgba\"")
+      nexora_apply_defaults(NexoraVulkanGoldenTests)
+      add_test(NAME renderer.vulkan_golden_triangle COMMAND NexoraVulkanGoldenTests)
+      set_property(TEST renderer.vulkan_golden_triangle APPEND PROPERTY ENVIRONMENT
+        "NEXORA_SLANG_SPIRV_PATH=${NEXORA_SLANG_SPIRV_OUTPUT}"
+        "NEXORA_SLANG_COMPUTE_SPIRV_PATH=${NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT}"
+        "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
     endif()
   endif()
 endif()
