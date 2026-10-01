@@ -26,6 +26,10 @@ int main() {
   const auto child = scene.Create("Child", root);
   const auto sibling = scene.Create("Sibling");
   assert(root != 0 && child != 0 && sibling != 0 && scene.Nodes().size() == 3);
+  const auto root_key = scene.Key(root);
+  const auto child_key = scene.Key(child);
+  const auto sibling_key = scene.Key(sibling);
+  assert(root_key && child_key && sibling_key);
   const auto content_root =
       std::filesystem::temp_directory_path() /
       ("nexora-imgui-content-" +
@@ -301,38 +305,39 @@ int main() {
          nexora::editor::DirtyConflictChoice::Reload);
 
   EditorImGuiTestAccess::SetHierarchyFilter(host, "");
-  EditorImGuiTestAccess::QueueHierarchySelection(host, root, false, false);
+  EditorImGuiTestAccess::QueueHierarchyExpansion(host, *root_key, true);
+  EditorImGuiTestAccess::QueueHierarchySelection(host, *root_key, false, false);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
   static_cast<void>(host.EndFrame());
   auto hierarchy_state = EditorImGuiTestAccess::Inspect(host);
   assert(hierarchy_state.hierarchy_visible_rows == 3);
   assert(hierarchy_state.hierarchy_selection == 1);
-  assert(hierarchy_state.hierarchy_selection_anchor == root);
+  assert(hierarchy_state.hierarchy_selection_anchor == *root_key);
   assert(scene.Selection().size() == 1 && scene.Selection().front() == root);
 
-  EditorImGuiTestAccess::QueueHierarchySelection(host, child, true, false);
+  EditorImGuiTestAccess::QueueHierarchySelection(host, *child_key, true, false);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
   static_cast<void>(host.EndFrame());
   hierarchy_state = EditorImGuiTestAccess::Inspect(host);
   assert(hierarchy_state.hierarchy_selection == 2 &&
-         hierarchy_state.hierarchy_selection_anchor == child);
+         hierarchy_state.hierarchy_selection_anchor == *child_key);
   assert(std::ranges::find(scene.Selection(), root) != scene.Selection().end() &&
          std::ranges::find(scene.Selection(), child) != scene.Selection().end());
 
-  EditorImGuiTestAccess::QueueHierarchySelection(host, sibling, false, true);
+  EditorImGuiTestAccess::QueueHierarchySelection(host, *sibling_key, false, true);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
   static_cast<void>(host.EndFrame());
   hierarchy_state = EditorImGuiTestAccess::Inspect(host);
   assert(hierarchy_state.hierarchy_selection == 2 &&
-         hierarchy_state.hierarchy_selection_anchor == child);
+         hierarchy_state.hierarchy_selection_anchor == *child_key);
   assert(std::ranges::find(scene.Selection(), child) != scene.Selection().end() &&
          std::ranges::find(scene.Selection(), sibling) != scene.Selection().end());
 
   EditorImGuiTestAccess::SetHierarchyFilter(host, "scene");
-  EditorImGuiTestAccess::QueueHierarchySelection(host, child, false, false);
+  EditorImGuiTestAccess::QueueHierarchySelection(host, *child_key, false, false);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
   static_cast<void>(host.EndFrame());
@@ -342,22 +347,46 @@ int main() {
          std::ranges::find(scene.Selection(), sibling) != scene.Selection().end());
   EditorImGuiTestAccess::SetHierarchyFilter(host, "");
 
-  EditorImGuiTestAccess::QueueHierarchyMove(host, sibling, root, 1);
+  EditorImGuiTestAccess::QueueHierarchyMove(host, *sibling_key, *root_key, 1);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
   static_cast<void>(host.EndFrame());
   assert(scene.Parent(sibling) == root);
-  EditorImGuiTestAccess::QueueHierarchySelection(host, sibling, false, false);
+  EditorImGuiTestAccess::QueueHierarchySelection(host, *sibling_key, false, false);
   EditorImGuiTestAccess::QueueHierarchyReorder(host, -1);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
   static_cast<void>(host.EndFrame());
   assert(world.SiblingIndex(sibling) == 0);
-  EditorImGuiTestAccess::QueueHierarchyMove(host, root, child, 0);
+  EditorImGuiTestAccess::QueueHierarchyMove(host, *root_key, *child_key, 0);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
   static_cast<void>(host.EndFrame());
   assert(scene.Parent(root) == 0);
+
+  EditorImGuiTestAccess::QueueHierarchyRename(host, *sibling_key, "Renamed Sibling");
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(scene.Name(sibling) == "Renamed Sibling");
+  assert(scene.Undo() && scene.Name(sibling) == "Sibling");
+
+  const nexora::editor::SceneDocument::NodeKey stale_sibling{
+      sibling_key->id, sibling_key->entity_generation, sibling_key->document_generation + 1};
+  EditorImGuiTestAccess::QueueHierarchyRename(host, stale_sibling, "Stale Rename");
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(scene.Name(sibling) == "Sibling");
+
+  for (int entity = 0; entity < 256; ++entity)
+    assert(scene.Create("Virtualized " + std::to_string(entity)) != 0);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  hierarchy_state = EditorImGuiTestAccess::Inspect(host);
+  assert(hierarchy_state.hierarchy_visible_rows == 259);
+  assert(hierarchy_state.hierarchy_rendered_rows < hierarchy_state.hierarchy_visible_rows);
 
   auto device = nexora::rhi::CreateValidationDevice();
   const auto target =
