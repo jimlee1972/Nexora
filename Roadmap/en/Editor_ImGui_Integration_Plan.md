@@ -358,9 +358,9 @@ cmake --preset linux-development
 cmake --build --preset linux-development
 ctest --preset linux-development
 
-cmake --preset linux-shipping
+cmake --preset linux-shipping -DBUILD_TESTING=ON
 cmake --build --preset linux-shipping
-ctest --preset linux-shipping
+ctest --preset linux-shipping --no-tests=error
 ```
 
 Also configure an explicit feature-off build if the preset enables the graphical shell, and run the
