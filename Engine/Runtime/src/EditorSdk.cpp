@@ -190,12 +190,15 @@ bool SceneEditor::DestroyEntity(Id scene, Id entity) {
   std::vector<Entity> subtree;
   for (const auto id : world_.Subtree(entity))
     subtree.push_back(*world_.FindEntity(id));
+  // If the subtree root's parent is gone by the time this is undone, the root comes back as a root
+  // at the world pose it had, rather than under a dangling parent.
+  const auto root_world = world_.WorldTransform(entity).value_or(existing->transform);
   WorldCommandBuffer apply;
   apply.DestroyEntity(entity);
   if (!apply.Apply(world_))
     return false;
   undo_.Execute([] {},
-                [this, scene, subtree] {
+                [this, scene, subtree, root_world] {
                   auto *target = const_cast<Scene *>(world_.FindScene(scene));
                   if (target == nullptr || target->state == SceneState::Unloading ||
                       target->state == SceneState::Unloaded ||
@@ -203,8 +206,17 @@ bool SceneEditor::DestroyEntity(Id scene, Id entity) {
                         return world_.FindEntity(restored.id) != nullptr;
                       }))
                     return;
+                  const auto parent = subtree.front().parent;
+                  const bool orphaned =
+                      parent != 0 && std::ranges::find(target->entities, parent, &Entity::id) ==
+                                         target->entities.end();
                   for (const auto &restored : subtree) {
                     target->entities.push_back(restored);
+                    if (orphaned && restored.id == subtree.front().id) {
+                      target->entities.back().parent = 0;
+                      if (const auto normalized = NormalizedTransform(root_world))
+                        target->entities.back().transform = *normalized;
+                    }
                     world_.next_id_ = std::max(world_.next_id_, restored.id + 1);
                   }
                 });
@@ -254,9 +266,12 @@ bool PlaySession::Start(double fixed_delta_seconds, FixedUpdate fixed_update) {
   input_focused_ = false;
   stats_ = {};
   source_transforms_.clear();
+  source_parents_.clear();
   for (const auto &scene : editor_world_.scenes_)
-    for (const auto &entity : scene.entities)
+    for (const auto &entity : scene.entities) {
       source_transforms_.emplace(entity.id, entity.transform);
+      source_parents_.emplace(entity.id, entity.parent);
+    }
   pause_reason_ = PauseReason::None;
   apply_status_ = ApplyBackStatus::Discarded;
   return true;
@@ -329,6 +344,7 @@ bool PlaySession::Stop(ApplyBackPolicy policy) {
   state_ = PlayState::Stopped;
   input_focused_ = false;
   source_transforms_.clear();
+  source_parents_.clear();
   pause_reason_ = PauseReason::None;
   return applied;
 }
@@ -340,15 +356,21 @@ std::vector<TransformApplyDiff> PlaySession::PreviewTransformApplyBack() const {
   for (const auto &scene : play_world_->scenes_)
     for (const auto &entity : scene.entities) {
       const auto original = source_transforms_.find(entity.id);
-      const auto *editor = editor_world_.FindEntity(entity.id);
-      if (original == source_transforms_.end() || entity.transform == original->second)
+      if (original == source_transforms_.end())
         continue;
+      const auto original_parent = source_parents_.at(entity.id);
+      const bool reparented = entity.parent != original_parent;
+      if (!reparented && entity.transform == original->second)
+        continue;
+      const auto *editor = editor_world_.FindEntity(entity.id);
       // Transforms are local, so a value from under a different parent would mean a different pose
-      // in the editor world; treat a reparented entity as a conflict rather than move it.
+      // in the editor world. Apply-back copies transforms only, so an entity reparented in either
+      // world is a conflict rather than something to move, even when its local values are
+      // unchanged.
       diffs.push_back({entity.id, original->second, editor ? editor->transform : Transform{},
                        entity.transform, editor != nullptr,
                        editor == nullptr || editor->transform != original->second ||
-                           editor->parent != entity.parent});
+                           editor->parent != original_parent || reparented});
     }
   std::ranges::sort(diffs, {}, &TransformApplyDiff::entity);
   return diffs;

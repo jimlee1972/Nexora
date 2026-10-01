@@ -55,9 +55,11 @@ into renderer or platform internals.
   hierarchy use stable IDs, never component or container pointers. The hierarchy itself is the
   runtime's (`Entity::parent`, see the Runtime README's entity hierarchy section); the document keeps
   only node names. `Reparent` is an undoable runtime `SetParent` that keeps the world pose, `Create`
-  with a parent starts the node at the parent's origin, and `Paste` places the root copy at the
-  source's world pose. Editor scene files still write a parent column in each node line, but from
-  world snapshot version 3 on the snapshot is authoritative. A file whose world snapshot is version 1
+  with a parent starts the node at the parent's origin (and fails before creating anything if that
+  parent is no longer a live entity of the scene, e.g. after its creation was undone), and `Paste`
+  places the root copy at the source's world pose. Editor scene files still write a parent column in
+  each node line, but from world snapshot version 3 on the snapshot is authoritative and that column
+  is not validated, so a node whose runtime parent is not itself a node still reloads. A file whose world snapshot is version 1
   or 2 is migrated on `Reload` by applying the node-line parents with the world pose kept, so nothing
   moves; the migration is rehearsed on a scratch `World` first, so a failure leaves no scene loaded.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents

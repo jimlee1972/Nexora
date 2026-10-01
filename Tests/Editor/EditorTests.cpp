@@ -254,6 +254,34 @@ int Run() {
   editor::SceneDocument broken(broken_world, broken_world.LoadScene("Placeholder"));
   Require(!broken.Reload(broken_path) && broken_world.FindEntity(8) == nullptr,
           "a failed legacy migration must not leave the scene loaded");
+
+  // A node may have a runtime parent that is not a node; from snapshot version 3 on the file must
+  // still reload, with the snapshot as the authority for the hierarchy.
+  runtime::World mixed_world;
+  const auto mixed_scene = mixed_world.LoadScene("Mixed");
+  editor::SceneDocument mixed(mixed_world, mixed_scene);
+  const auto anchor = mixed_world.CreateEntity(mixed_scene).id;
+  const auto attached = mixed.Create("Attached");
+  runtime::WorldCommandBuffer attach_to_anchor;
+  attach_to_anchor.SetParent(attached, anchor, false);
+  const auto mixed_path = root / "Content/Mixed.scene";
+  Require(attach_to_anchor.Apply(mixed_world) && mixed.Save(mixed_path),
+          "mixed scene setup failed");
+  runtime::World mixed_reloaded_world;
+  editor::SceneDocument mixed_reloaded(mixed_reloaded_world,
+                                       mixed_reloaded_world.LoadScene("Placeholder"));
+  Require(mixed_reloaded.Reload(mixed_path) && mixed_reloaded.Parent(attached) == anchor,
+          "a saved scene whose node has a non-node parent must reload");
+
+  // A node whose entity was undone cannot become a parent: creation must fail without leaving an
+  // entity behind.
+  const auto ghost = mixed.Create("Ghost");
+  Require(ghost != 0 && mixed.Undo() && mixed_world.FindEntity(ghost) == nullptr,
+          "undoing a node creation failed");
+  const auto entity_count = mixed_world.FindScene(mixed_scene)->entities.size();
+  Require(mixed.Create("Orphan", ghost) == 0 &&
+              mixed_world.FindScene(mixed_scene)->entities.size() == entity_count,
+          "creating a node under an undone parent must fail without leaving an entity");
   Require(document.Create("Bad\nName") == 0 && document.Create("Bad\rName") == 0,
           "a node name containing a newline must be rejected, since Save()/Reload() use a "
           "line-oriented format that a newline would silently corrupt");

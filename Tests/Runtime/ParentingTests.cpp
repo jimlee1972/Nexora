@@ -7,6 +7,7 @@
 #include "Nexora/Runtime/Runtime.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -212,6 +213,68 @@ void TestBatchesAndCascade() {
   auto expected = std::vector<Id>{root, child, grandchild, sibling};
   std::ranges::sort(expected);
   Require(destroyed == expected, "LastDestroyed must report every cascaded entity");
+
+  // Two valid poses can still overflow when re-expressed relative to each other; the whole batch,
+  // including the commands already applied before the reparent, must then be rolled back.
+  const auto far = Create(world, scene, {1e308, 0.0, 0.0});
+  const auto opposite = Create(world, scene, {-1e308, 0.0, 0.0});
+  const auto *borrowed = world.FindEntity(b);
+  runtime::WorldCommandBuffer overflow;
+  overflow.SetTransform(b, {9.0, 9.0, 9.0});
+  overflow.SetParent(far, opposite, true);
+  Require(!overflow.Apply(world) && world.FindEntity(b) == borrowed && world.Parent(far) == Id{0} &&
+              world.FindEntity(far)->transform == Transform{1e308, 0.0, 0.0} &&
+              world.FindEntity(b)->transform == Transform{5.0, 5.0, 5.0},
+          "an unrepresentable keep-world reparent must reject the whole batch");
+
+  // Entity::parent is a public field; a cycle written directly bypasses validation, but traversal
+  // must still terminate.
+  const auto loop_a = Create(world, scene);
+  const auto loop_b = Create(world, scene);
+  for (auto &entity : const_cast<runtime::Scene *>(world.FindScene(scene))->entities) {
+    if (entity.id == loop_a)
+      entity.parent = loop_b;
+    if (entity.id == loop_b)
+      entity.parent = loop_a;
+  }
+  Require(world.Subtree(loop_a).size() == 2 && !world.WorldTransform(loop_a),
+          "a corrupted cyclic hierarchy must not hang traversal");
+  // Validating a reparent walks the new parent's ancestors; on a corrupted chain it must reject.
+  const auto newcomer = Create(world, scene);
+  Require(!Reparent(world, newcomer, loop_a) && world.Parent(newcomer) == Id{0},
+          "reparenting under a corrupted cycle must be rejected, not hang");
+  const auto dangling = Create(world, scene);
+  for (auto &entity : const_cast<runtime::Scene *>(world.FindScene(scene))->entities)
+    if (entity.id == dangling)
+      entity.parent = 999'999;
+  Require(!Reparent(world, newcomer, dangling),
+          "reparenting under a dangling chain must be rejected");
+}
+
+void TestLongChainsStayLinear() {
+  // One long chain is the worst case for per-entity ancestor walks and per-node child scans: both
+  // would be quadratic (billions of steps here); loading and destroying it must stay linear.
+  constexpr std::size_t kChain = 50'000;
+  runtime::World world;
+  const auto scene = world.LoadScene("Chain");
+  Id previous{};
+  for (std::size_t index = 0; index < kChain; ++index) {
+    auto &entity = world.CreateEntity(scene);
+    entity.parent = previous;
+    previous = entity.id;
+  }
+  const auto root = world.FindScene(scene)->entities.front().id;
+  const auto saved = world.SaveScene(scene);
+  Require(saved.has_value(), "the chain could not be saved");
+  const auto started = std::chrono::steady_clock::now();
+  runtime::World restored;
+  Require(restored.LoadSceneSnapshot(*saved).has_value(), "the chain snapshot was rejected");
+  runtime::WorldCommandBuffer destroy;
+  destroy.DestroyEntity(root);
+  Require(destroy.Apply(restored) && destroy.LastDestroyed().size() == kChain,
+          "destroying the chain root must destroy the whole chain");
+  Require(std::chrono::steady_clock::now() - started < std::chrono::seconds(10),
+          "loading or destroying a long chain is not linear");
 }
 
 std::string Record(Id id, Id parent) {
@@ -262,6 +325,8 @@ void TestSnapshotVersion3() {
           "a valid version 3 snapshot was rejected");
 }
 
+#if NEXORA_EDITOR_SDK_ENABLED
+// SceneEditor and PlaySession exist only with the Editor SDK feature.
 void TestSceneEditorUndo() {
   runtime::World world;
   const auto scene = world.LoadScene("Main");
@@ -291,6 +356,18 @@ void TestSceneEditorUndo() {
   Require(editor.Undo() && world.Parent(child) == parent && world.Parent(grandchild) == child &&
               SamePose(*world.WorldTransform(grandchild), before),
           "undoing a cascaded destroy must restore the whole subtree");
+
+  // If the subtree's outside parent disappears before the undo, the subtree root comes back as a
+  // root at the world pose it had, never under a dangling parent.
+  const auto child_world = *world.WorldTransform(child);
+  Require(editor.DestroyEntity(scene, child), "destroying the child failed");
+  runtime::WorldCommandBuffer remove_parent;
+  remove_parent.DestroyEntity(parent);
+  Require(remove_parent.Apply(world), "removing the parent failed");
+  Require(editor.Undo() && world.Parent(child) == Id{0} && world.Parent(grandchild) == child &&
+              SamePose(*world.WorldTransform(child), child_world) &&
+              SamePose(*world.WorldTransform(grandchild), before),
+          "an orphaned subtree must be restored as a root at its world pose");
 }
 
 void TestPlayApplyBack() {
@@ -310,7 +387,17 @@ void TestPlayApplyBack() {
               world.Parent(child) == Id{0} &&
               world.FindEntity(child)->transform == Transform{3.0, 0.0, 0.0},
           "apply-back must report a reparented entity as a conflict, not move it");
+
+  // Reparenting with keep-local leaves the local values unchanged, but it is still a conflict.
+  runtime::PlaySession keep_local(world);
+  Require(keep_local.Start(1.0 / 60.0, [](runtime::World &, double) { return true; }) &&
+              Reparent(*keep_local.PlayWorld(), child, parent, false),
+          "play setup failed");
+  Require(!keep_local.Stop(runtime::ApplyBackPolicy::Transforms) &&
+              keep_local.LastApplyBackStatus() == runtime::ApplyBackStatus::Conflict,
+          "apply-back must report a reparent even when the local transform is unchanged");
 }
+#endif
 
 void TestGameWorld() {
   using game::DeferredCommands;
@@ -364,8 +451,11 @@ int main() {
     TestWorldMatrixAndShear();
     TestBatchesAndCascade();
     TestSnapshotVersion3();
+    TestLongChainsStayLinear();
+#if NEXORA_EDITOR_SDK_ENABLED
     TestSceneEditorUndo();
     TestPlayApplyBack();
+#endif
     TestGameWorld();
     return 0;
   } catch (const std::exception &error) {

@@ -215,19 +215,30 @@ std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
   if (!input.eof())
     return std::nullopt;
   // Parents must be entities of this snapshot, never the entity itself, and the hierarchy must be
-  // acyclic. Walking at most `count` steps up from any entity detects a cycle.
+  // acyclic. Each entity is walked up only until it reaches an entity already proven to lead to a
+  // root, so the whole check is linear in the entity count even for one long chain.
   std::unordered_map<Id, Id> parents;
   for (const auto &entity : loaded.entities)
     parents.emplace(entity.id, entity.parent);
+  enum class Mark : unsigned char { Walking, Rooted };
+  std::unordered_map<Id, Mark> marks;
+  std::vector<Id> path;
   for (const auto &entity : loaded.entities) {
-    if (entity.parent != 0 && (entity.parent == entity.id || !parents.contains(entity.parent)))
-      return std::nullopt;
-    auto ancestor = entity.parent;
-    for (std::size_t steps = 0; ancestor != 0; ++steps) {
-      if (steps > loaded.entities.size() || ancestor == entity.id)
+    path.clear();
+    for (auto current = entity.id; current != 0 && !marks.contains(current);
+         current = parents.at(current)) {
+      const auto parent = parents.at(current);
+      if (parent != 0 && !parents.contains(parent))
         return std::nullopt;
-      ancestor = parents.at(ancestor);
+      marks.emplace(current, Mark::Walking);
+      path.push_back(current);
+      // Reaching an entity of the current walk again is a cycle (self-parenting included).
+      if (const auto found = marks.find(parent);
+          found != marks.end() && found->second == Mark::Walking)
+        return std::nullopt;
     }
+    for (const auto id : path)
+      marks[id] = Mark::Rooted;
   }
   const auto id = loaded.id;
   scenes_.push_back(std::move(loaded));
@@ -306,12 +317,25 @@ std::vector<Id> World::Children(Id entity) const {
 
 std::vector<Id> World::Subtree(Id entity) const {
   std::vector<Id> subtree;
-  if (FindEntity(entity) == nullptr)
-    return subtree;
-  subtree.push_back(entity);
-  for (std::size_t index = 0; index < subtree.size(); ++index)
-    for (const auto child : Children(subtree[index]))
-      subtree.push_back(child);
+  for (const auto &scene : scenes_) {
+    if (scene.state == SceneState::Unloaded ||
+        std::ranges::find(scene.entities, entity, &Entity::id) == scene.entities.end())
+      continue;
+    // One pass builds the child lists, so the walk is linear in the scene size. The visited set
+    // keeps a hierarchy corrupted by direct writes to Entity::parent from looping.
+    std::unordered_map<Id, std::vector<Id>> children;
+    for (const auto &candidate : scene.entities)
+      if (candidate.parent != 0)
+        children[candidate.parent].push_back(candidate.id);
+    std::unordered_set<Id> visited{entity};
+    subtree.push_back(entity);
+    for (std::size_t index = 0; index < subtree.size(); ++index)
+      if (const auto found = children.find(subtree[index]); found != children.end())
+        for (const auto child : found->second)
+          if (visited.insert(child).second)
+            subtree.push_back(child);
+    break;
+  }
   return subtree;
 }
 
@@ -440,64 +464,96 @@ bool WorldCommandBuffer::Apply(World &world) {
         if (command.parent == command.entity || !alive(command.parent) ||
             nodes.at(command.parent).scene != nodes.at(command.entity).scene)
           return false;
-        // The new parent must not be the entity itself or one of its descendants.
-        for (auto ancestor = command.parent; ancestor != 0; ancestor = nodes.at(ancestor).parent)
-          if (ancestor == command.entity)
+        // The new parent must not be the entity itself or one of its descendants. The walk is
+        // bounded and checks each step, so an ancestor chain corrupted by a direct write to
+        // Entity::parent (a dangling parent or a cycle) rejects the batch instead of hanging.
+        std::size_t steps = 0;
+        for (auto ancestor = command.parent; ancestor != 0; ancestor = nodes.at(ancestor).parent) {
+          if (ancestor == command.entity || !nodes.contains(ancestor) || ++steps > nodes.size())
             return false;
+        }
       }
       nodes.at(command.entity).parent = command.parent;
     }
     if (command.kind == Command::Kind::Destroy) {
+      std::unordered_map<Id, std::vector<Id>> children;
+      for (const auto &[id, node] : nodes)
+        if (node.parent != 0 && !destroyed.contains(id))
+          children[node.parent].push_back(id);
       std::vector<Id> doomed{command.entity};
+      destroyed.insert(command.entity);
       for (std::size_t index = 0; index < doomed.size(); ++index)
-        for (const auto &[id, node] : nodes)
-          if (node.parent == doomed[index] && !destroyed.contains(id))
-            doomed.push_back(id);
-      destroyed.insert(doomed.begin(), doomed.end());
+        if (const auto found = children.find(doomed[index]); found != children.end())
+          for (const auto child : found->second)
+            if (destroyed.insert(child).second)
+              doomed.push_back(child);
     }
   }
 
-  // Pass 2 applies in order; every command was proven valid against the state it will see.
-  const auto locate = [&world](Id id) -> std::pair<Scene *, Entity *> {
-    for (auto &scene : world.scenes_)
-      if (const auto found = std::ranges::find(scene.entities, id, &Entity::id);
-          found != scene.entities.end())
-        return {&scene, &*found};
-    return {nullptr, nullptr};
-  };
-  for (const auto &command : commands_) {
-    const auto [scene, found] = locate(command.entity);
-    if (found == nullptr)
-      continue;
-    if (command.kind == Command::Kind::Transform) {
-      found->transform = *NormalizedTransform(command.transform);
-    } else if (command.kind == Command::Kind::Parent) {
-      if (command.keep_world) {
-        // Keep the world pose (Unity's worldPositionStays): re-express it under the new parent.
-        auto local = *world.WorldTransform(command.entity);
-        if (command.parent != 0)
-          local = RelativeTransform(*world.WorldTransform(command.parent), local);
-        if (const auto normalized = NormalizedTransform(local))
+  // Pass 2 applies in order; every command was proven valid against the state it will see. The one
+  // thing pass 1 cannot prove is that a keep-world reparent yields a representable local transform
+  // (two valid poses can still overflow when re-expressed). A batch with one is therefore rehearsed
+  // on a scratch copy first and applied to the real world only once the rehearsal succeeds, so a
+  // rejected batch never touches the world's storage (borrowed entity references stay valid).
+  const auto apply_to = [this](World &target, std::vector<Id> *destroyed_out) {
+    const auto locate = [&target](Id id) -> std::pair<Scene *, Entity *> {
+      for (auto &scene : target.scenes_)
+        if (const auto found = std::ranges::find(scene.entities, id, &Entity::id);
+            found != scene.entities.end())
+          return {&scene, &*found};
+      return {nullptr, nullptr};
+    };
+    for (const auto &command : commands_) {
+      const auto [scene, found] = locate(command.entity);
+      if (found == nullptr)
+        continue;
+      if (command.kind == Command::Kind::Transform) {
+        found->transform = *NormalizedTransform(command.transform);
+      } else if (command.kind == Command::Kind::Parent) {
+        if (command.keep_world) {
+          // Keep the world pose (Unity's worldPositionStays): re-express it under the new parent.
+          auto local = *target.WorldTransform(command.entity);
+          if (command.parent != 0)
+            local = RelativeTransform(*target.WorldTransform(command.parent), local);
+          const auto normalized = NormalizedTransform(local);
+          if (!normalized)
+            return false;
           found->transform = *normalized;
+        }
+        found->parent = command.parent;
+      } else if (command.kind == Command::Kind::Camera) {
+        found->camera = command.camera.has_value();
+        found->camera_data = command.camera.value_or(CameraComponent{});
+      } else if (command.kind == Command::Kind::Light) {
+        found->light = command.light.has_value();
+        found->light_data = command.light.value_or(LightComponent{});
+      } else if (command.kind == Command::Kind::MeshRenderer) {
+        found->mesh_renderer = command.mesh.has_value();
+        found->mesh_data = command.mesh.value_or(MeshComponent{});
+      } else {
+        const auto doomed = target.Subtree(command.entity);
+        const std::unordered_set<Id> doomed_ids(doomed.begin(), doomed.end());
+        std::erase_if(scene->entities, [&doomed_ids](const Entity &entity) {
+          return doomed_ids.contains(entity.id);
+        });
+        if (destroyed_out)
+          destroyed_out->insert(destroyed_out->end(), doomed.begin(), doomed.end());
       }
-      found->parent = command.parent;
-    } else if (command.kind == Command::Kind::Camera) {
-      found->camera = command.camera.has_value();
-      found->camera_data = command.camera.value_or(CameraComponent{});
-    } else if (command.kind == Command::Kind::Light) {
-      found->light = command.light.has_value();
-      found->light_data = command.light.value_or(LightComponent{});
-    } else if (command.kind == Command::Kind::MeshRenderer) {
-      found->mesh_renderer = command.mesh.has_value();
-      found->mesh_data = command.mesh.value_or(MeshComponent{});
-    } else {
-      const auto doomed = world.Subtree(command.entity);
-      std::erase_if(scene->entities, [&doomed](const Entity &entity) {
-        return std::ranges::find(doomed, entity.id) != doomed.end();
-      });
-      last_destroyed_.insert(last_destroyed_.end(), doomed.begin(), doomed.end());
     }
+    return true;
+  };
+  if (std::ranges::any_of(commands_, [](const Command &command) {
+        return command.kind == Command::Kind::Parent && command.keep_world;
+      })) {
+    World rehearsal{world.kind_};
+    rehearsal.next_id_ = world.next_id_;
+    rehearsal.scenes_ = world.scenes_;
+    if (!apply_to(rehearsal, nullptr))
+      return false;
   }
+  // Deterministic, so after a successful rehearsal this cannot fail.
+  if (!apply_to(world, &last_destroyed_))
+    return false;
   commands_.clear();
   return true;
 }

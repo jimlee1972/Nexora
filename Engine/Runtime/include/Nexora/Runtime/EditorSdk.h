@@ -257,6 +257,7 @@ private:
   bool input_focused_{};
   PlaySessionStats stats_{};
   std::unordered_map<Id, Transform> source_transforms_;
+  std::unordered_map<Id, Id> source_parents_;
   PauseReason pause_reason_{PauseReason::None};
   ApplyBackStatus apply_status_{ApplyBackStatus::Discarded};
 };
