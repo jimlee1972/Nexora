@@ -50,7 +50,7 @@ an unchecked or unmarked item remains incomplete.
 
 ### Repository status
 
-The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, API samples, a Zig gameplay consumer, and a headless `NexoraShowcase`. The milestone sections below describe the implemented portable contract foundations and explicitly call out platform or production backends that remain future work.
+The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, API samples, a Zig gameplay consumer, and a headless `NexoraShowcase`. The milestone sections below describe the implemented portable contract foundations and explicitly call out platform or production backends that remain future work. Parsers for persisted or external data (for example scene snapshots) reject hostile size fields before allocating.
 
 #### V2 networking status
 
@@ -71,7 +71,10 @@ with a pre-compile input snapshot, so a save landing mid-compile is discarded as
 Runtime serializes and loads checksummed cooked artifacts, enforces Shipping cooked-only admission,
 creates backend modules through an injected native adapter, publishes generations transactionally,
 and retires replaced modules only after their GPU fence. Renderer exposes generation-bearing
-pipeline-state keys and a named golden-image harness. `Shaders/Nexora/Common.slang` now contains the
+pipeline-state keys and a named golden-image harness; Slang-enabled Linux Vulkan builds also run
+`renderer.vulkan_golden_triangle`, an offscreen Mesa lavapipe render compared against a committed
+baseline. That is a Linux software-rasterizer reference only; DX12, Metal, and physical-GPU baselines
+remain target-host gates. `Shaders/Nexora/Common.slang` now contains the
 portable shared surface for PBR/IBL, StylizedPBR, Anime, Vegetation, Water, Unlit, shadow/post-process,
 skinning/instancing/Forward+, variant keys, and retained-mode UI helpers. `PbrSmoke.slang` and
 `UiSmoke.slang` are real vertex/fragment smoke entries (including IBL resources, Texture2DArray,
@@ -186,7 +189,7 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 
 ### Repository 狀態
 
-目前已可建置及測試 Foundation、Core、RHI、Renderer、Runtime、API sample、Zig gameplay consumer 與 headless `NexoraShowcase`。下方里程碑章節會列出已實作的 portable contract foundation，並明確標示仍待完成的平台或 production backend。
+目前已可建置及測試 Foundation、Core、RHI、Renderer、Runtime、API sample、Zig gameplay consumer 與 headless `NexoraShowcase`。下方里程碑章節會列出已實作的 portable contract foundation，並明確標示仍待完成的平台或 production backend。讀取持久化或外部資料的 parser（例如場景快照）會在配置記憶體前先拒絕惡意的大小欄位。
 
 #### V2 Networking 狀態
 
@@ -199,7 +202,7 @@ Showcase Validation Lab 現提供 portable M0～M12 probe registry、誠實的�
 
 #### Shader 系統狀態
 
-Shader production pipeline 現有 ✅ portable 驗收 gate：Editor 會呼叫設定的 `slangc` process、解析 file／line／column／severity／backend／variant diagnostics、追蹤 source／include invalidation，並依明確 budget 快取成功的 Development variant。Runtime 會序列化及載入含 checksum 的 cooked artifact、強制 Shipping cooked-only admission、透過注入的 native adapter 建立 backend module、transactionally 發布 generation，且僅在 GPU fence 完成後回收被替換的 module。Renderer 提供包含 generation 的 pipeline-state key 與具命名 case 的 golden-image harness。`Shaders/Nexora/Common.slang` 現已提供 PBR／IBL、StylizedPBR、Anime、Vegetation、Water、Unlit、shadow／post-process、skinning／instancing／Forward+、variant key 與 retained-mode UI helper；`PbrSmoke.slang`／`UiSmoke.slang` 是含 IBL resource、Texture2DArray、atlas、clip、nine-slice 的實際 vertex／fragment smoke entry。Linux Slang 2026.18 的 SPIR-V／MSL 編譯與 shader contract／cross-compile tests 已通過；實際 DXIL／native backend execution 與 target-host capture golden baseline 仍是未完成的平台 gate，portable harness 不宣稱這些結果。
+Shader production pipeline 現有 ✅ portable 驗收 gate：Editor 會不經 shell 直接呼叫設定的 `slangc` process、解析 Slang 2026 原生與單行 file／line／column／severity／backend／variant diagnostics、依每個 compile request 追蹤 source／include invalidation，並依明確 budget 快取成功的 Development variant；結果以編譯前的輸入快照標記，因此編譯期間存檔會被視為過期而丟棄。Runtime 會序列化及載入含 checksum 的 cooked artifact、強制 Shipping cooked-only admission、透過注入的 native adapter 建立 backend module、transactionally 發布 generation，且僅在 GPU fence 完成後回收被替換的 module。Renderer 提供包含 generation 的 pipeline-state key 與具命名 case 的 golden-image harness；啟用 Slang 與 Vulkan 的 Linux build 另有 `renderer.vulkan_golden_triangle`，在 Mesa lavapipe 上離屏渲染並與提交的基準圖比對。這只是 Linux 軟體光柵化的參考基準，DX12、Metal 與實體 GPU 基準仍是 target-host gate。`Shaders/Nexora/Common.slang` 現已提供 PBR／IBL、StylizedPBR、Anime、Vegetation、Water、Unlit、shadow／post-process、skinning／instancing／Forward+、variant key 與 retained-mode UI helper；`PbrSmoke.slang`／`UiSmoke.slang` 是含 IBL resource、Texture2DArray、atlas、clip、nine-slice 的實際 vertex／fragment smoke entry。Linux Slang 2026.18 的 SPIR-V／MSL 編譯與 shader contract／cross-compile tests 已通過；實際 DXIL／native backend execution 與 target-host capture golden baseline 仍是未完成的平台 gate，portable harness 不宣稱這些結果。
 Renderer 現在也提供 ✅ backend-neutral material schema 與整合 contract，涵蓋六種 shading model、具 semantic 缺失貼圖 fallback 的 resource binding、used-variant stripping、generation-based hot reload，以及穩定的 Material Inspector reflection/layout hash。既有共用 Slang library 提供 PBR／IBL 與專用 shading helper；native DXIL／Metal execution 與實體 GPU 視覺驗收仍屬 target-host gate。
 
 
@@ -242,7 +245,7 @@ ZS-M0 至 ZS-M5 已完成：capability-aware gallery 支援 camera input、selec
 
 #### Editor 狀態
 
-[圖形化 Editor Roadmap](Roadmap/zh-TW/Editor_Roadmap.md) 的**圖形化 milestone 驗收仍為 0/8（0%）**。Portable foundation 除既有 ED-M1 至 ED-M3 contract 外，現已加入 ED-M4 additive-scene ownership 與 dependency ordering、migration dry-run、bounded autosave recovery，以及 source-control-neutral three-way conflict。Focused [ED-M0 Dear ImGui 計畫](Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md) 仍為**施工中**；圖形化 workflow、native debugger integration、physical-display evidence 與 UI 驗收仍待完成。因此 ED-M0 至 ED-M7 都不打勾；portable prerequisite 不會向上取整為已驗收的 graphical milestone。
+[圖形化 Editor Roadmap](Roadmap/zh-TW/Editor_Roadmap.md) 的**圖形化 milestone 驗收仍為 0/8（0%）**。Portable foundation 除既有 ED-M1 至 ED-M3 contract 外，現已加入 ED-M4 additive-scene ownership 與 dependency ordering、migration dry-run、bounded autosave recovery，以及 source-control-neutral three-way conflict，另有與 UI 無關的 viewport pick ray、AABB picking、軸向拖曳、snapping 與 resize hysteresis 數學。Focused [ED-M0 Dear ImGui 計畫](Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md) 仍為**施工中**；圖形化 workflow、native debugger integration、physical-display evidence 與 UI 驗收仍待完成。因此 ED-M0 至 ED-M7 都不打勾；portable prerequisite 不會向上取整為已驗收的 graphical milestone。
 
 ### 重要說明
 
