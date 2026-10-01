@@ -61,6 +61,14 @@ bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetW
   const auto root = std::filesystem::canonical(workspace.Root(), ec);
   if (ec || !std::filesystem::is_directory(root, ec))
     return Fail("project root is unavailable", error);
+  const bool persistent_identities = assets.PersistentIdentities();
+  if (persistent_identities) {
+    const auto expected_content = std::filesystem::canonical(root / "Content", ec);
+    if (ec || assets.ContentRoot() != expected_content)
+      return Fail("asset identity index belongs to a different content root", error);
+    if (writable && !assets.WritableIdentities())
+      return Fail("a read-only asset identity index cannot open a writable content session", error);
+  }
 
   std::vector<ContentItem> items;
   items.reserve(assets.Entries().size());
@@ -84,6 +92,7 @@ bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetW
   undo_moves_.clear();
   operation_ = 0;
   writable_ = writable;
+  persistent_identities_ = persistent_identities;
   ClearError(error);
   return true;
 }
@@ -99,6 +108,15 @@ void ProjectContentSession::ClearError(std::string *error) {
   last_error_.clear();
   if (error)
     error->clear();
+}
+
+void ProjectContentSession::AppendAssetMove(std::vector<FileMove> &moves,
+                                            const std::filesystem::path &source,
+                                            const std::filesystem::path &destination) const {
+  moves.emplace_back(source, destination);
+  if (persistent_identities_)
+    moves.emplace_back(AssetWorkspace::IdentitySidecar(source),
+                       AssetWorkspace::IdentitySidecar(destination));
 }
 
 std::filesystem::path ProjectContentSession::ExistingPath(const std::filesystem::path &relative,
@@ -204,7 +222,9 @@ bool ProjectContentSession::Rename(runtime::AssetUuid asset, std::string_view fi
   if (!candidate.Rename(asset, filename, &model_error))
     return Fail(model_error.empty() ? "asset rename was rejected" : model_error, error);
   const auto destination = candidate.Find(asset)->path;
-  return CommitMoves(std::move(candidate), {{source, destination}}, false, error);
+  std::vector<FileMove> moves;
+  AppendAssetMove(moves, source, destination);
+  return CommitMoves(std::move(candidate), std::move(moves), false, error);
 }
 
 bool ProjectContentSession::Move(std::span<const runtime::AssetUuid> assets,
@@ -217,7 +237,7 @@ bool ProjectContentSession::Move(std::span<const runtime::AssetUuid> assets,
     const auto *current = browser_.Find(asset);
     if (current == nullptr)
       return Fail("asset does not exist", error);
-    moves.emplace_back(current->path, folder / current->path.filename());
+    AppendAssetMove(moves, current->path, folder / current->path.filename());
   }
   auto candidate = browser_;
   std::string model_error;
@@ -257,8 +277,9 @@ bool ProjectContentSession::Delete(std::span<const runtime::AssetUuid> assets, s
     const auto *current = browser_.Find(asset);
     if (current == nullptr)
       return Fail("asset does not exist", error);
-    moves.emplace_back(current->path, std::filesystem::path(".nexora") / "trash" /
-                                          std::to_string(operation) / current->path);
+    AppendAssetMove(moves, current->path,
+                    std::filesystem::path(".nexora") / "trash" / std::to_string(operation) /
+                        current->path);
   }
   return CommitMoves(std::move(candidate), std::move(moves), true, error);
 }
@@ -325,9 +346,8 @@ bool ProjectContentSession::Reimport(runtime::AssetUuid asset, std::string *erro
   if (!input.good() && !input.eof())
     return Fail("asset source could not be read", error);
 
-  const auto relative = item->path.lexically_relative("Content").generic_string();
   const auto source_hash = Hex(Hash(bytes.str(), 1469598103934665603ULL));
-  const auto artifact_hash = Hex(Hash(bytes.str(), Hash(relative, 1469598103934665603ULL)));
+  const auto artifact_hash = Hex(Hash(bytes.str(), Hash(asset.ToString(), 1469598103934665603ULL)));
   ReimportTransaction transaction(browser_.ProjectGeneration(), asset, item->artifact_hash);
   const auto dependencies = dependencies_.Forward(asset);
   if (!transaction.Stage({browser_.ProjectGeneration(),

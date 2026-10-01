@@ -30,7 +30,9 @@ int main() {
   std::ofstream(content_root / "Content/Hero.mesh") << "mesh";
   std::ofstream(content_root / "Content/Hero.material") << "material";
   nexora::editor::AssetWorkspace content_assets;
-  assert(content_assets.ImportTree(content_root / "Content"));
+  assert(content_assets.ImportTree(content_root / "Content", {}, {},
+                                   nexora::editor::AssetIdentityMode::PersistentReadWrite,
+                                   &content_error));
   nexora::editor::ProjectContentSession content;
   assert(content.Open(content_workspace, content_assets, 3, true, &content_error));
   const auto items = content.Browser().Items();

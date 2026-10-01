@@ -33,8 +33,10 @@ the Hierarchy panel. The same process binds its deterministic `AssetWorkspace` i
 Content panel with breadcrumbs, folder navigation, search/type filtering, virtualized UUID-keyed
 rows, thumbnail state, selection, typed drag/drop, dependency inspection, and synchronous reimport.
 Rename/move/delete operate through a recoverable project-content filesystem transaction, with
-project-local trash and one-step undo. It does not create a validation-device offscreen target or a
-full-frame CPU RGBA image.
+project-local trash and one-step undo. The real project index creates or validates sibling
+`<asset>.meta` identity records; filesystem mutations move those records with their source,
+preserving UUID and artifact identity across rename, move, undo, and process reopen. It does not
+create a validation-device offscreen target or a full-frame CPU RGBA image.
 
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Project upgrade/locking/recent-project
 UX, cancellable background import and reimport, dirty external-change decisions, and a target-host

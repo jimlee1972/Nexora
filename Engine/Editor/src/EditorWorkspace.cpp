@@ -6,6 +6,7 @@
 #include <charconv>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -61,6 +62,61 @@ std::string Lower(std::string_view value) {
   std::ranges::transform(result, result.begin(),
                          [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return result;
+}
+
+void StripCarriageReturn(std::string &line) {
+  if (!line.empty() && line.back() == '\r')
+    line.pop_back();
+}
+
+runtime::AssetUuid DerivedAssetIdentity(std::string_view relative, std::uint64_t salt = 0) {
+  std::string key(relative);
+  if (salt != 0)
+    key += "#" + std::to_string(salt);
+  return {Hash(key, 1469598103934665603ULL), Hash(key, 1099511628211ULL)};
+}
+
+bool ReadAssetIdentity(const std::filesystem::path &path, runtime::AssetUuid &id, std::string &type,
+                       std::string &error) {
+  std::error_code ec;
+  const auto status = std::filesystem::symlink_status(path, ec);
+  const auto size = std::filesystem::file_size(path, ec);
+  if (ec || std::filesystem::is_symlink(status) || !std::filesystem::is_regular_file(status) ||
+      size > 4096) {
+    error = "asset identity sidecar is unavailable, unsafe, or too large: " + path.string();
+    return false;
+  }
+  std::ifstream input(path, std::ios::binary);
+  std::string schema, uuid, type_line, extra;
+  if (!input || !std::getline(input, schema) || !std::getline(input, uuid) ||
+      !std::getline(input, type_line) || std::getline(input, extra)) {
+    error = "asset identity sidecar is malformed: " + path.string();
+    return false;
+  }
+  StripCarriageReturn(schema);
+  StripCarriageReturn(uuid);
+  StripCarriageReturn(type_line);
+  const auto parsed = uuid.starts_with("uuid=")
+                          ? runtime::AssetUuid::Parse(std::string_view(uuid).substr(5))
+                          : std::nullopt;
+  if (schema != "schema=1" || !parsed || !type_line.starts_with("type=")) {
+    error = "asset identity sidecar has an invalid or unsupported schema: " + path.string();
+    return false;
+  }
+  id = *parsed;
+  type = Lower(std::string_view(type_line).substr(5));
+  return true;
+}
+
+bool WriteAssetIdentity(const std::filesystem::path &path, runtime::AssetUuid id,
+                        std::string_view type, std::string &error) {
+  if (id == runtime::AssetUuid{} || type.find('\n') != std::string_view::npos ||
+      type.find('\r') != std::string_view::npos) {
+    error = "asset identity metadata is invalid";
+    return false;
+  }
+  return AtomicWrite(path, "schema=1\nuuid=" + id.ToString() + "\ntype=" + std::string(type) + "\n",
+                     &error);
 }
 } // namespace
 
@@ -237,29 +293,124 @@ bool ProjectWorkspace::HasExternalChange() const {
   return !ec && current != workspace_write_time_;
 }
 
+std::filesystem::path AssetWorkspace::IdentitySidecar(const std::filesystem::path &asset_path) {
+  auto sidecar = asset_path;
+  sidecar += ".meta";
+  return sidecar;
+}
+
 bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cancelled cancelled,
-                                Progress progress) {
-  entries_.clear();
+                                Progress progress, AssetIdentityMode identity_mode,
+                                std::string *error) {
   std::error_code ec;
-  std::vector<std::filesystem::path> files;
-  for (std::filesystem::recursive_directory_iterator it(content_root, ec), end; !ec && it != end;
-       it.increment(ec))
-    if (it->is_regular_file())
-      files.push_back(it->path());
-  if (ec)
+  const auto root = std::filesystem::canonical(content_root, ec);
+  if (ec || !std::filesystem::is_directory(root, ec)) {
+    if (error)
+      *error = "content root is unavailable";
     return false;
+  }
+  std::vector<std::filesystem::path> files;
+  for (std::filesystem::recursive_directory_iterator it(root, ec), end; !ec && it != end;
+       it.increment(ec)) {
+    const auto status = it->symlink_status(ec);
+    if (ec)
+      break;
+    if (std::filesystem::is_regular_file(status) &&
+        Lower(it->path().extension().string()) != ".meta")
+      files.push_back(it->path());
+  }
+  if (ec) {
+    if (error)
+      *error = "content tree could not be enumerated: " + ec.message();
+    return false;
+  }
   std::ranges::sort(files);
+
+  struct Identity final {
+    runtime::AssetUuid id;
+    std::string type;
+  };
+  std::unordered_map<std::string, Identity> identities;
+  std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> used_ids;
+  if (identity_mode != AssetIdentityMode::DerivedFromPath) {
+    for (const auto &file : files) {
+      const auto relative = std::filesystem::relative(file, root, ec).generic_string();
+      if (ec) {
+        if (error)
+          *error = "asset path could not be made project-relative: " + ec.message();
+        return false;
+      }
+      const auto sidecar = IdentitySidecar(file);
+      const auto sidecar_status = std::filesystem::symlink_status(sidecar, ec);
+      if (ec == std::errc::no_such_file_or_directory) {
+        ec.clear();
+        continue;
+      }
+      if (ec) {
+        if (error)
+          *error = "asset identity sidecar could not be inspected: " + ec.message();
+        return false;
+      }
+      if (!std::filesystem::exists(sidecar_status))
+        continue;
+      Identity identity;
+      std::string identity_error;
+      if (!ReadAssetIdentity(sidecar, identity.id, identity.type, identity_error) ||
+          !used_ids.insert(identity.id).second) {
+        if (error)
+          *error = identity_error.empty() ? "asset identity UUID is duplicated: " + sidecar.string()
+                                          : std::move(identity_error);
+        return false;
+      }
+      identities.emplace(relative, std::move(identity));
+    }
+  }
+
+  std::vector<AssetEntry> entries;
+  entries.reserve(files.size());
   for (std::size_t index = 0; index < files.size(); ++index) {
-    const auto relative = std::filesystem::relative(files[index], content_root).generic_string();
-    AssetEntry entry{{Hash(relative, 1469598103934665603ULL), Hash(relative, 1099511628211ULL)},
-                     relative,
-                     Lower(files[index].extension().string()),
-                     {},
-                     ImportState::Pending,
-                     {}};
+    const auto relative = std::filesystem::relative(files[index], root, ec).generic_string();
+    if (ec) {
+      if (error)
+        *error = "asset path could not be made project-relative: " + ec.message();
+      return false;
+    }
+    auto type = Lower(files[index].extension().string());
+    auto id = DerivedAssetIdentity(relative);
+    if (identity_mode != AssetIdentityMode::DerivedFromPath) {
+      const auto existing = identities.find(relative);
+      if (existing != identities.end()) {
+        id = existing->second.id;
+        type = existing->second.type;
+      } else {
+        if (identity_mode == AssetIdentityMode::PersistentReadOnly) {
+          if (error)
+            *error = "asset identity sidecar is missing in read-only mode: " +
+                     IdentitySidecar(files[index]).string();
+          return false;
+        }
+        std::uint64_t salt = 0;
+        while (id == runtime::AssetUuid{} || used_ids.contains(id)) {
+          if (salt == std::numeric_limits<std::uint64_t>::max()) {
+            if (error)
+              *error = "asset identity space is exhausted";
+            return false;
+          }
+          id = DerivedAssetIdentity(relative, ++salt);
+        }
+        std::string identity_error;
+        if (!WriteAssetIdentity(IdentitySidecar(files[index]), id, type, identity_error)) {
+          if (error)
+            *error = std::move(identity_error);
+          return false;
+        }
+        used_ids.insert(id);
+      }
+    }
+    AssetEntry entry{id, relative, std::move(type), {}, ImportState::Pending, {}};
     if (cancelled && cancelled()) {
       entry.state = ImportState::Cancelled;
-      entries_.push_back(std::move(entry));
+      entries.push_back(std::move(entry));
       if (progress)
         progress(index + 1, files.size());
       continue;
@@ -271,13 +422,19 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
       entry.state = ImportState::Failed;
       entry.error = "read failed";
     } else {
-      entry.artifact_hash = Hex(Hash(bytes.str(), Hash(relative, 1469598103934665603ULL)));
+      entry.artifact_hash =
+          Hex(Hash(bytes.str(), Hash(entry.id.ToString(), 1469598103934665603ULL)));
       entry.state = ImportState::Imported;
     }
-    entries_.push_back(std::move(entry));
+    entries.push_back(std::move(entry));
     if (progress)
       progress(index + 1, files.size());
   }
+  entries_ = std::move(entries);
+  content_root_ = root;
+  identity_mode_ = identity_mode;
+  if (error)
+    error->clear();
   return true;
 }
 std::vector<const AssetEntry *> AssetWorkspace::Search(std::string_view query,

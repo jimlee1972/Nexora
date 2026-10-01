@@ -115,6 +115,9 @@ def main() -> int:
         environment["DISPLAY"] = display
         (root / "Content").mkdir()
         (root / ".nexora").mkdir()
+        source_asset = root / "Content/Hero.mesh"
+        source_asset.write_text("mesh")
+        identity_sidecar = Path(str(source_asset) + ".meta")
         (root / "project.nexora").write_text("schema=1\nname=Display Acceptance\n")
         (root / ".nexora/workspace").write_text("schema=1\n")
         editor = launch(args.editor, root, environment)
@@ -132,6 +135,15 @@ def main() -> int:
         if editor.returncode != 0 or "graphical evidence:" not in stderr:
             raise RuntimeError(f"close-event shutdown failed: {stderr}")
         editor = None
+        if not identity_sidecar.is_file():
+            raise RuntimeError("first Editor launch did not create an asset identity sidecar")
+        identity_text = identity_sidecar.read_text()
+        if not re.fullmatch(
+            r"schema=1\nuuid=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+            r"[0-9a-f]{4}-[0-9a-f]{12}\ntype=\.mesh\n",
+            identity_text,
+        ):
+            raise RuntimeError(f"asset identity sidecar is invalid: {identity_text!r}")
 
         # A corrupt project-owned layout is rejected without preventing startup. The bounded
         # run replaces it with the current schema after the default dock layout is rebuilt.
@@ -191,6 +203,10 @@ def main() -> int:
             raise RuntimeError("discard changed the last committed workspace")
         if not (root / ".nexora/editor-layout.ini").is_file():
             raise RuntimeError("the Editor did not persist its layout")
+        if identity_sidecar.read_text() != identity_text:
+            raise RuntimeError("asset identity changed across Editor process reopen")
+        if Path(str(identity_sidecar) + ".meta").exists():
+            raise RuntimeError("asset identity sidecar was indexed as a source asset")
         return 0
     finally:
         if editor is not None and editor.poll() is None:

@@ -19,7 +19,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | Scope | Repository evidence | Accepted |
 | --- | --- | :---: |
 | ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Real-process recovery and Linux/Windows host evidence remain open. | [ ] |
-| ED-M1 project/assets | Portable create/open, deterministic indexing/search, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. The native shell now binds the real index to a graphical Content panel and recoverable project-local mutations, but background jobs, conflict/project-management UX, and target-host workflow acceptance remain open. | [ ] |
+| ED-M1 project/assets | Portable create/open, deterministic indexing/search, persistent sidecar UUIDs, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. The native shell binds the real index to a graphical Content panel and recoverable project-local mutations, but background jobs, conflict/project-management UX, and target-host workflow acceptance remain open. | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. Scene View, Inspector, renderer-backed picking, cameras, gizmo manipulation, and reflected graphical widgets remain open. | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. Graphical Game View, Console UI, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
@@ -95,10 +95,13 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   states. Generation-tagged drag/drop, dependency inspection, synchronous reimport, and recoverable
   filesystem-backed rename/move/delete/undo route through an authoring-thread
   `ProjectContentSession`; the UI never writes files directly.
+- ✅ Versioned sibling `<asset>.meta` records persist UUID and importer type. Read-only indexing
+  rejects missing or corrupt identity state; writable indexing creates missing records atomically.
+  Rename, move, delete, and undo transact the source and sidecar together, and derived artifacts are
+  keyed by UUID plus source bytes, preserving identity across move and process reopen.
 - Open: canonical project upgrade/lock/read-only/recent-project UX, cancellable background
   import/reimport with bounded progress and structured diagnostics, dirty-conflict reload/keep/
-  compare UI, persistent asset identity across reopen, and target-host fresh-project workflow
-  acceptance.
+  compare UI, and target-host fresh-project workflow acceptance.
 
 ### ED-M2 — Scene authoring core
 

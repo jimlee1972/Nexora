@@ -149,8 +149,9 @@ int Run(int argc, char **argv) {
     return 1;
   }
   nexora::editor::AssetWorkspace assets;
-  if (!assets.ImportTree(project / "Content")) {
-    std::cerr << "content indexing failed\n";
+  if (!assets.ImportTree(project / "Content", {}, {},
+                         nexora::editor::AssetIdentityMode::PersistentReadWrite, &error)) {
+    std::cerr << "content indexing failed: " << error << '\n';
     return 1;
   }
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)

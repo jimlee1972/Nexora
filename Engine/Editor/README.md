@@ -44,7 +44,12 @@ into renderer or platform internals.
   removes that journal. The UI may query and explicitly discard a pending journal. Versioned Editor
   layout payloads are persisted separately and never use Dear ImGui's unmanaged global ini file.
 - `AssetWorkspace` owns index entries. Pointers returned by `Find` and `Search` are borrowed until
-  the next `ImportTree` call or destruction.
+  the next successful `ImportTree` call or destruction. The Editor executable uses
+  `PersistentReadWrite`: every source asset has a sibling `<asset>.meta` with schema, UUID, and
+  importer type. Existing sidecars are validated before publishing a replacement index; malformed,
+  oversized, symlinked, or duplicate-UUID metadata fails without replacing the last good index.
+  `PersistentReadOnly` never creates missing sidecars and rejects incomplete identity state.
+  `DerivedFromPath` remains an explicitly non-persistent compatibility mode.
 - `ContentBrowserModel` owns its sorted item snapshot, breadcrumb and stable-ID selection state.
   Virtual ranges borrow item pointers until the next mutation. Rename, multi-item move, and delete
   validate a complete replacement snapshot before committing and retain one undo snapshot.
@@ -53,7 +58,9 @@ into renderer or platform internals.
   session; UI code borrows it for a frame and never retains `ContentItem` pointers. Rename and move
   use same-volume filesystem renames after validating a candidate model. Delete moves files into a
   unique project-local `.nexora/trash` operation directory, and undo restores both files and model.
-  Existing files and symlinks outside the canonical project root are rejected before mutation.
+  In persistent-identity mode, each source and its `.meta` sidecar are one rollback-capable
+  transaction, so rename, move, delete, and undo cannot detach the UUID from the source. Existing
+  files and symlinks outside the canonical project root are rejected before mutation.
 - Typed asset drag payloads carry the project generation and asset UUID. Reimport results are staged
   and may publish only when their generation and dependency graph remain valid; cancellation,
   staleness, failure, or a cycle preserves the previous artifact. `ProjectContentSession` also keeps
@@ -103,6 +110,10 @@ inspectable and never replace an existing artifact implicitly. The current graph
 is synchronous; cancellable staged worker execution and dirty-conflict presentation remain ED-M1
 work. Functions report expected failures with `false`, optional values, or per-entry error text;
 filesystem exceptions are converted to error results where applicable.
+
+The `.meta` filename suffix is reserved for asset identity sidecars and is excluded from the source
+asset index. Artifact hashes use the persistent UUID plus source bytes rather than the current path,
+so an Editor move followed by reopen does not invalidate identity or derived-data addressing.
 Profiling samples require strictly increasing frame IDs. Telemetry drops every event until the user
 explicitly opts in; extension policy rejects untrusted publishers and, by default, invalid or
 missing signatures.

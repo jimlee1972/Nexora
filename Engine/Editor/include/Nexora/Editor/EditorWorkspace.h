@@ -60,6 +60,8 @@ private:
 };
 
 enum class ImportState { Pending, Imported, Cancelled, Failed };
+enum class AssetIdentityMode { DerivedFromPath, PersistentReadOnly, PersistentReadWrite };
+
 struct AssetEntry final {
   runtime::AssetUuid id;
   std::string relative_path;
@@ -74,14 +76,27 @@ public:
   using Cancelled = std::function<bool()>;
   using Progress = std::function<void(std::size_t, std::size_t)>;
   bool ImportTree(const std::filesystem::path &content_root, Cancelled cancelled = {},
-                  Progress progress = {});
+                  Progress progress = {},
+                  AssetIdentityMode identity_mode = AssetIdentityMode::DerivedFromPath,
+                  std::string *error = nullptr);
+  [[nodiscard]] static std::filesystem::path
+  IdentitySidecar(const std::filesystem::path &asset_path);
   [[nodiscard]] std::vector<const AssetEntry *> Search(std::string_view query,
                                                        std::string_view type = {}) const;
   [[nodiscard]] const AssetEntry *Find(runtime::AssetUuid id) const;
   [[nodiscard]] std::span<const AssetEntry> Entries() const noexcept { return entries_; }
+  [[nodiscard]] bool PersistentIdentities() const noexcept {
+    return identity_mode_ != AssetIdentityMode::DerivedFromPath;
+  }
+  [[nodiscard]] bool WritableIdentities() const noexcept {
+    return identity_mode_ == AssetIdentityMode::PersistentReadWrite;
+  }
+  [[nodiscard]] const std::filesystem::path &ContentRoot() const noexcept { return content_root_; }
 
 private:
   std::vector<AssetEntry> entries_;
+  std::filesystem::path content_root_;
+  AssetIdentityMode identity_mode_{AssetIdentityMode::DerivedFromPath};
 };
 
 // Editor view of one runtime scene: node names plus selection, clipboard, and persistence. The

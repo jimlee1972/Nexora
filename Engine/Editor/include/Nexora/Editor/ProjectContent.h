@@ -47,6 +47,8 @@ private:
 
   bool CommitMoves(ContentBrowserModel candidate, std::vector<FileMove> moves,
                    bool create_destination_directories, std::string *error);
+  void AppendAssetMove(std::vector<FileMove> &moves, const std::filesystem::path &source,
+                       const std::filesystem::path &destination) const;
   [[nodiscard]] std::filesystem::path ExistingPath(const std::filesystem::path &relative,
                                                    std::string *error) const;
   [[nodiscard]] std::filesystem::path DestinationPath(const std::filesystem::path &relative,
@@ -61,6 +63,7 @@ private:
   std::vector<FileMove> undo_moves_;
   std::uint64_t operation_{};
   bool writable_{};
+  bool persistent_identities_{};
   std::string last_error_;
 };
 

@@ -100,10 +100,14 @@ int Run() {
   }
   editor::AssetWorkspace assets;
   std::size_t progress{};
-  Require(assets.ImportTree(root / "Content", {},
-                            [&](std::size_t current, std::size_t) { progress = current; }) &&
+  Require(assets.ImportTree(
+              root / "Content", {}, [&](std::size_t current, std::size_t) { progress = current; },
+              editor::AssetIdentityMode::PersistentReadWrite, &error) &&
               assets.Entries().size() == 2 && progress == 2,
           "asset import failed");
+  Require(fs::is_regular_file(root / "Content/Hero.mesh.meta") &&
+              fs::is_regular_file(root / "Content/Hero.material.meta"),
+          "persistent asset identity sidecars were not created");
   Require(assets.Search("hero").size() == 2 && assets.Search({}, ".mesh").size() == 1 &&
               assets.Find(assets.Entries().front().id),
           "asset search failed");
@@ -118,16 +122,26 @@ int Run() {
   const auto indexed_mesh = mesh_entry->id;
   Require(content_session.Rename(indexed_mesh, "Player.mesh", &error) &&
               fs::is_regular_file(root / "Content/Player.mesh") &&
+              fs::is_regular_file(root / "Content/Player.mesh.meta") &&
               !fs::exists(root / "Content/Hero.mesh") && content_session.CanUndo() &&
-              content_session.Undo(&error) && fs::is_regular_file(root / "Content/Hero.mesh"),
+              !fs::exists(root / "Content/Hero.mesh.meta") && content_session.Undo(&error) &&
+              fs::is_regular_file(root / "Content/Hero.mesh") &&
+              fs::is_regular_file(root / "Content/Hero.mesh.meta"),
           "filesystem-backed content rename/undo failed");
   fs::create_directories(root / "Content/Characters");
   const std::array one_mesh{indexed_mesh};
   editor::AssetDragPayload content_drag{std::string(editor::AssetDragPayload::kType), 11,
                                         indexed_mesh};
   Require(content_session.Move(content_drag, "Content/Characters", &error) &&
-              fs::is_regular_file(root / "Content/Characters/Hero.mesh"),
+              fs::is_regular_file(root / "Content/Characters/Hero.mesh") &&
+              fs::is_regular_file(root / "Content/Characters/Hero.mesh.meta"),
           "generation-safe content drag did not move the source file");
+  editor::AssetWorkspace moved_assets;
+  Require(moved_assets.ImportTree(root / "Content", {}, {},
+                                  editor::AssetIdentityMode::PersistentReadOnly, &error) &&
+              moved_assets.Find(indexed_mesh) &&
+              moved_assets.Find(indexed_mesh)->relative_path == "Characters/Hero.mesh",
+          "moved asset UUID did not survive an immediate read-only reopen");
   const auto moved_artifact_before = content_session.Browser().Find(indexed_mesh)->artifact_hash;
   std::ofstream(root / "Content/Characters/Hero.mesh", std::ios::trunc) << "mesh-v2";
   Require(content_session.Reimport(indexed_mesh, &error) &&
@@ -135,6 +149,7 @@ int Run() {
           "reimport after a move did not publish the new artifact");
   const auto moved_artifact_after = content_session.Browser().Find(indexed_mesh)->artifact_hash;
   Require(content_session.Undo(&error) && fs::is_regular_file(root / "Content/Hero.mesh") &&
+              fs::is_regular_file(root / "Content/Hero.mesh.meta") &&
               content_session.Browser().Find(indexed_mesh)->artifact_hash == moved_artifact_after,
           "filesystem-backed content move/reimport/undo lost current artifact metadata");
   content_drag.project_generation = 10;
@@ -153,15 +168,53 @@ int Run() {
               content_session.Browser().Find(indexed_mesh)->artifact_hash != artifact_before,
           "content reimport did not publish the updated artifact hash");
   Require(content_session.Delete(one_mesh, &error) && !fs::exists(root / "Content/Hero.mesh") &&
+              !fs::exists(root / "Content/Hero.mesh.meta") &&
               content_session.Browser().Find(indexed_mesh) == nullptr &&
               content_session.Undo(&error) && fs::is_regular_file(root / "Content/Hero.mesh") &&
+              fs::is_regular_file(root / "Content/Hero.mesh.meta") &&
               content_session.Browser().Find(indexed_mesh),
           "recoverable content delete/undo failed");
+  editor::AssetWorkspace reopened_assets;
+  Require(reopened_assets.ImportTree(root / "Content", {}, {},
+                                     editor::AssetIdentityMode::PersistentReadOnly, &error) &&
+              reopened_assets.Find(indexed_mesh) &&
+              reopened_assets.Find(indexed_mesh)->relative_path == "Hero.mesh" &&
+              reopened_assets.Find(indexed_mesh)->artifact_hash ==
+                  content_session.Browser().Find(indexed_mesh)->artifact_hash,
+          "asset UUID or artifact identity did not survive move/reimport/undo/reopen");
   editor::ProjectContentSession read_only_content;
-  Require(read_only_content.Open(reopened, assets, 12, false, &error) &&
+  Require(read_only_content.Open(reopened, reopened_assets, 12, false, &error) &&
               !read_only_content.Rename(indexed_mesh, "Blocked.mesh", &error) &&
               fs::is_regular_file(root / "Content/Hero.mesh") && !error.empty(),
           "read-only project content accepted a mutation");
+  const auto identity_path = root / "Content/Hero.mesh.meta";
+  std::ifstream identity_input(identity_path, std::ios::binary);
+  const std::string valid_identity(std::istreambuf_iterator<char>(identity_input), {});
+  std::ofstream(identity_path, std::ios::trunc) << "schema=999\n";
+  Require(!reopened_assets.ImportTree(root / "Content", {}, {},
+                                      editor::AssetIdentityMode::PersistentReadOnly, &error) &&
+              reopened_assets.Find(indexed_mesh) && !error.empty(),
+          "corrupt asset identity replaced the last good index or lacked a diagnostic");
+  std::ofstream(identity_path, std::ios::trunc) << valid_identity;
+  const auto material_identity_path = root / "Content/Hero.material.meta";
+  std::ifstream material_identity_input(material_identity_path, std::ios::binary);
+  const std::string valid_material_identity(std::istreambuf_iterator<char>(material_identity_input),
+                                            {});
+  std::ofstream(material_identity_path, std::ios::trunc)
+      << "schema=1\nuuid=" << indexed_mesh.ToString() << "\ntype=.material\n";
+  Require(!reopened_assets.ImportTree(root / "Content", {}, {},
+                                      editor::AssetIdentityMode::PersistentReadOnly, &error) &&
+              reopened_assets.Find(indexed_mesh) && !error.empty(),
+          "duplicate asset UUID replaced the last good index or lacked a diagnostic");
+  std::ofstream(material_identity_path, std::ios::trunc) << valid_material_identity;
+  const auto missing_identity = root / "Content/MissingIdentity.mesh";
+  std::ofstream(missing_identity) << "mesh";
+  editor::AssetWorkspace missing_identity_assets;
+  Require(!missing_identity_assets.ImportTree(
+              root / "Content", {}, {}, editor::AssetIdentityMode::PersistentReadOnly, &error) &&
+              !error.empty() && !fs::exists(root / "Content/MissingIdentity.mesh.meta"),
+          "read-only persistent indexing created or accepted a missing identity sidecar");
+  fs::remove(missing_identity);
   editor::AssetWorkspace cancelled;
   Require(cancelled.ImportTree(root / "Content", [] { return true; }) &&
               cancelled.Entries().front().state == editor::ImportState::Cancelled,
