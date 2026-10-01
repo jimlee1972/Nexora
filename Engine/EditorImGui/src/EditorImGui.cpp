@@ -646,7 +646,8 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   ImGui::TextUnformatted("Nexora Editor");
   ImGui::SeparatorText("Create or open a project");
   ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 720.0F));
-  if (state_->selector_focus_root) {
+  if (state_->selector_focus_root &&
+      ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
     ImGui::SetKeyboardFocusHere();
     state_->selector_focus_root = false;
   }
@@ -656,7 +657,10 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   ImGui::Checkbox("Open read-only", &state_->selector_read_only);
 
   const auto typed_root = PathFromLabel(state_->selector_root.data());
-  if (ImGui::Button("Open project")) {
+  const bool open_requested =
+      ImGui::Button("Open project (Ctrl+O)") ||
+      ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_RouteGlobal);
+  if (open_requested) {
     if (typed_root)
       QueueProjectSelection(*state_, ProjectSelectorAction::Open, *typed_root, {},
                             state_->selector_read_only ? ProjectAccess::ReadOnly
@@ -666,7 +670,10 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   }
   ImGui::SameLine();
   ImGui::BeginDisabled(state_->selector_read_only);
-  if (ImGui::Button("Create project")) {
+  const bool create_requested =
+      ImGui::Button("Create project (Ctrl+N)") ||
+      ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_N, ImGuiInputFlags_RouteGlobal);
+  if (create_requested) {
     if (typed_root)
       QueueProjectSelection(*state_, ProjectSelectorAction::Create, *typed_root,
                             state_->selector_name.data(), ProjectAccess::ReadWrite);

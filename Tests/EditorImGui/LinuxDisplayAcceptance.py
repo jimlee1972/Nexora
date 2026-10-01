@@ -121,21 +121,14 @@ def finish_project_selector(
             check=True,
         )
         time.sleep(0.2)
-        # Project name -> read-only checkbox -> Open -> Create.
-        press("Tab")
-        press("Tab")
-        press("Tab")
-        press("Return")
+        press("ctrl+n")
         deadline = time.monotonic() + 15
         while time.monotonic() < deadline and not (root / "project.nexora").is_file():
             time.sleep(0.1)
         if not (root / "project.nexora").is_file():
             raise RuntimeError("graphical selector did not create the project")
     else:
-        # Project name -> read-only checkbox -> Open.
-        press("Tab")
-        press("Tab")
-        press("Return")
+        press("ctrl+o")
         time.sleep(1.0)
     subprocess.run([xdotool, "windowclose", window], env=environment, check=True)
     _, stderr = editor.communicate(timeout=30)
