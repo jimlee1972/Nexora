@@ -137,10 +137,12 @@ projects upgrade atomically under an OS-held writer lease, explicit read-only pr
 without project mutation, and the docked Project panel shows access/upgrade/recent-project status.
 A graphical Project Browser now supports create, read-write/read-only open, and recent shortcuts;
 activation is transactional and Linux Xvfb drives create/reopen from a launch without `--project`.
-Conflict UX and physical-display/Windows workflow acceptance remain open, so
-milestone acceptance stays unchanged. The X11 window backend now owns one XIM input context per
-window, decodes committed UTF-8 into backend-neutral `Text` events, and keeps physical keys separate
-from text input.
+The Content panel now shows dependency cycles and blocks dirty external changes behind an explicit
+Reload/Keep/Compare dialog; Compare preserves both hashes while terminal choices are recorded on
+the authoring thread without direct UI filesystem access. Physical-display/Windows workflow
+acceptance remains open, so milestone acceptance stays unchanged. The X11 window backend now owns
+one XIM input context per window, decodes committed UTF-8 into backend-neutral `Text` events, and
+keeps physical keys separate from text input.
 
 The [Graphical Editor Roadmap](Roadmap/en/Editor_Roadmap.md) remains at **0/8 (0%) graphical milestone acceptance**. Portable foundations now include ED-M4 additive-scene ownership and dependency ordering, migration dry-runs, bounded autosave recovery, and source-control-neutral three-way conflicts, and UI-neutral viewport pick-ray, AABB picking, axis-drag, snapping, and resize-hysteresis math, in addition to the existing ED-M1 through ED-M3 contracts. The [rotation and scale plan](Roadmap/en/Transform_Rotation_Scale_Plan.md) has ✅ all phases complete: `runtime::Transform` carries a quaternion rotation and per-axis scale following Unity/Unreal conventions, position-only writers preserve them, and `ViewportMath.h` provides Unity-style translate/rotate/scale gizmo math (Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots, covered by `editor.viewport_math`), and gameplay modules read and write `"Nexora.TransformV2"`, `"Nexora.WorldTransform"`, and `"Nexora.Parent"` through append-only C/Zig wires whose layouts are gated in C11, the ABI baseline, and Zig; the Euler Inspector hint waits for the graphical Inspector. Phases 1 and 2 of the [entity parenting plan](Roadmap/en/Entity_Parenting_Plan.md) are ✅ complete: entities form a Unity-style hierarchy with local transforms, world transform and exact world matrix, keep-world reparenting, and cascading destroy; scene snapshots are version 3 (versions 1 and 2 still load), the Editor scene document uses the runtime hierarchy, and character controllers work under a parent the way Unity's do (a moving parent carries them). Hierarchy batches are all-or-nothing, snapshot validation and cascading destroy are linear in the scene size, and PIE apply-back rejects entities reparented during play (`runtime.entity_parenting`, `editor.preview_contract`; Linux development, full-feature, Shipping, ASan/UBSan, and Editor-SDK-off builds, plus the full CI matrix after merge). Unity-style sibling order (`SetSiblingIndex`, reparent-to-last) and an undoable Hierarchy drag model (`SceneDocument::Move`) are in place; `RenderSceneSync` mirrors mesh renderers into the `GPUScene` with each entity's exact world matrix and conservative bounds, so a moved parent re-renders its subtree, and cameras follow their parents too (`CameraView`, plus a frustum-culled `RenderSceneSync::RenderFrame`; `runtime.render_sync`); no application draw loop uses it yet. These are portable math and data contracts; the graphical gizmo handles remain open. The Linux Editor display acceptance runs in a dedicated CI job (`editor-linux-display`, Xvfb with Mesa lavapipe) after fixing four real defects it exposed; there is still no physical-display or Windows evidence. The focused [ED-M0 Dear ImGui plan](Roadmap/en/Editor_ImGui_Integration_Plan.md) remains **in progress**; graphical workflows, native debugger integration, physical-display evidence, and UI acceptance remain open. ED-M0 through ED-M7 are therefore unchecked; portable prerequisites are not rounded up into accepted graphical milestones.
 
@@ -271,8 +273,10 @@ schema-1 project 會在
 OS-held writer lease 下原子升級；明確的 read-only process 可共存且不能修改 project；
 docked Project panel 會顯示 access／upgrade／recent-project 狀態。圖形化 Project Browser 現支援
 create、read-write／read-only open 與 recent shortcut；project activation 為交易式，Linux Xvfb
-也會從未提供 `--project` 的啟動流程操作 create/reopen。Conflict UX 與實體顯示／Windows
-workflow 驗收仍待完成，因此 milestone 驗收比例不變。X11 window backend 現會以每視窗
+也會從未提供 `--project` 的啟動流程操作 create/reopen。Content panel 現會顯示 dependency cycle，
+並以明確的 Reload／Keep／Compare dialog 阻擋 dirty external change；Compare 會保留兩側 hash，
+終局選擇由 authoring thread 記錄，UI 不直接操作 filesystem。實體顯示／Windows workflow
+驗收仍待完成，因此 milestone 驗收比例不變。X11 window backend 現會以每視窗
 XIM input context 將 committed UTF-8 解碼成 backend-neutral `Text` event，physical key 與 text input
 維持分離。
 

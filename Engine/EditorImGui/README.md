@@ -25,8 +25,11 @@ authoring views on first launch.
   `AssetImportQueue`, shows bounded progress and structured diagnostics, offers cancellation, and
   polls authoring-thread publication once per frame. It never writes the filesystem itself.
   Breadcrumb and folder drop targets validate the payload, project generation, destination, and
-  write permission before the session mutates anything. Dependency rows resolve IDs only while the
-  panel is drawing.
+  write permission before the session mutates anything. Dependency rows and cycle diagnostics
+  resolve IDs only while the panel is drawing. Dirty external changes open one blocking conflict
+  dialog at a time: Compare exposes the retained editor/disk hashes without resolving the conflict,
+  while Reload or Keep records the terminal authoring-thread decision. The host never reads or
+  overwrites the source file while presenting that choice.
 - `ProjectWorkspace` and `RecentProjectStore` are borrowed for the frame. The Project panel exposes
   project name, stable UUID, canonical root, descriptor schema, read-write/read-only access,
   applied/required upgrade state, and the bounded recent-project list. It never acquires a lock,
@@ -65,10 +68,10 @@ not merely in widgets. Content mutation errors remain on the session and are sho
 UI does not optimistically update around a failed filesystem transaction. Invalid display
 dimensions and delta times are clamped to safe values. The Window abstraction owns native IME
 candidate-window positioning; unsupported hosts report that result explicitly. Target-host visual
-acceptance remains a release-runner responsibility. Background import progress/cancellation and
-external dirty-conflict dialogs remain deferred ED-M1 work. The Xvfb acceptance launches without a
-project, drives create and read-only open through keyboard navigation, and verifies the resulting
-descriptor and active access mode in a real process.
+acceptance remains a release-runner responsibility. The Xvfb acceptance launches without a project,
+drives create and read-only open through keyboard navigation, and verifies the resulting descriptor
+and active access mode in a real process. Physical-display and Windows workflow acceptance remain
+ED-M1 work.
 
 Window backends normalize navigation, editing, punctuation, keypad, function, alphanumeric, and
 left/right modifier keys before events reach the host. Each key event carries the complete

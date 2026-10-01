@@ -190,6 +190,9 @@ int main() {
     std::this_thread::yield();
   assert(content.ReimportStatus() &&
          content.ReimportStatus()->state == nexora::editor::ImportOperationState::Cancelled);
+  assert(content.Conflicts().Detect(mesh->id, "editor-mesh-v2", "disk-mesh-v3", true));
+  const std::array mesh_dependency{mesh->id};
+  assert(content.Dependencies().Set(material->id, mesh_dependency));
   const std::array events{
       Nexora::Window::WindowEvent{
           {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, 320, 240},
@@ -234,13 +237,66 @@ int main() {
   assert(content_state.content_visible_folders == 0);
   assert(content_state.content_selection == 1);
   assert(content_state.content_forward_dependencies == 1);
-  assert(content_state.content_reverse_dependencies == 0);
+  assert(content_state.content_reverse_dependencies == 1);
+  assert(content_state.content_dependency_cycle == 3);
   assert(!content_state.content_import_active);
   assert(content_state.content_import_state == nexora::editor::ImportOperationState::Cancelled);
   assert(content_state.content_import_diagnostics > 0);
+  assert(content_state.content_conflicts == 1);
+  assert(content_state.content_conflict_visible);
+  assert(!content_state.content_conflict_compare_visible);
+  assert(content_state.content_conflict_choice == nexora::editor::DirtyConflictChoice::Pending);
   assert(content_state.project_writable);
   assert(!content_state.project_upgrade_required);
   assert(content_state.recent_projects == 1);
+
+  EditorImGuiTestAccess::QueueContentConflictChoice(host, material->id,
+                                                    nexora::editor::DirtyConflictChoice::Reload);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(content.Conflicts().Find(mesh->id)->choice ==
+         nexora::editor::DirtyConflictChoice::Pending);
+
+  EditorImGuiTestAccess::QueueContentConflictChoice(host, mesh->id,
+                                                    nexora::editor::DirtyConflictChoice::Compare);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  const auto compared_conflict_state = EditorImGuiTestAccess::Inspect(host);
+  assert(content.Conflicts().Find(mesh->id)->choice ==
+         nexora::editor::DirtyConflictChoice::Compare);
+  assert(compared_conflict_state.content_conflicts == 1);
+  assert(compared_conflict_state.content_conflict_visible);
+  assert(compared_conflict_state.content_conflict_compare_visible);
+  assert(compared_conflict_state.content_conflict_choice ==
+         nexora::editor::DirtyConflictChoice::Compare);
+
+  EditorImGuiTestAccess::QueueContentConflictChoice(host, mesh->id,
+                                                    nexora::editor::DirtyConflictChoice::Keep);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  const auto kept_conflict_state = EditorImGuiTestAccess::Inspect(host);
+  assert(content.Conflicts().Find(mesh->id)->choice == nexora::editor::DirtyConflictChoice::Keep);
+  assert(kept_conflict_state.content_conflicts == 0);
+  assert(!kept_conflict_state.content_conflict_visible);
+  assert(!kept_conflict_state.content_conflict_compare_visible);
+  assert(kept_conflict_state.content_conflict_choice == nexora::editor::DirtyConflictChoice::Keep);
+
+  assert(content.Conflicts().Detect(material->id, "editor-material-v2", "disk-material-v3", true));
+  EditorImGuiTestAccess::QueueContentConflictChoice(host, material->id,
+                                                    nexora::editor::DirtyConflictChoice::Reload);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  const auto reloaded_conflict_state = EditorImGuiTestAccess::Inspect(host);
+  assert(content.Conflicts().Find(material->id)->choice ==
+         nexora::editor::DirtyConflictChoice::Reload);
+  assert(reloaded_conflict_state.content_conflicts == 0);
+  assert(!reloaded_conflict_state.content_conflict_visible);
+  assert(reloaded_conflict_state.content_conflict_choice ==
+         nexora::editor::DirtyConflictChoice::Reload);
   auto device = nexora::rhi::CreateValidationDevice();
   const auto target =
       device->CreateTexture({1280, 720, nexora::rhi::TextureFormat::Rgba8Unorm,

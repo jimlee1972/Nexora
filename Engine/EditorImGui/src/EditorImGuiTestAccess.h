@@ -22,9 +22,14 @@ struct EditorImGuiTestState final {
   std::uint32_t content_selection = 0;
   std::uint32_t content_forward_dependencies = 0;
   std::uint32_t content_reverse_dependencies = 0;
+  std::uint32_t content_dependency_cycle = 0;
   bool content_import_active = false;
   ImportOperationState content_import_state = ImportOperationState::Succeeded;
   std::uint32_t content_import_diagnostics = 0;
+  std::uint32_t content_conflicts = 0;
+  bool content_conflict_visible = false;
+  bool content_conflict_compare_visible = false;
+  DirtyConflictChoice content_conflict_choice = DirtyConflictChoice::Pending;
   bool project_writable = false;
   bool project_upgrade_required = false;
   std::uint32_t recent_projects = 0;
@@ -42,6 +47,8 @@ public:
   static void SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept;
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
+  static void QueueContentConflictChoice(EditorImGuiHost &host, runtime::AssetUuid asset,
+                                         DirtyConflictChoice choice) noexcept;
   [[nodiscard]] static std::uint32_t OverrideDrawTexture(EditorImGuiHost &host,
                                                          std::uint64_t texture_id) noexcept;
 };

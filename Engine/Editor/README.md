@@ -136,9 +136,10 @@ index/artifact. The writer lease serializes cooperating Editor processes; read-o
 upgrade, recover, save layout, or open writable content. A multi-file rename failure rolls
 already-moved files back before returning an actionable error. The synchronous `ImportTree` and
 `Reimport` entry points remain compatibility paths for headless callers; the graphical shell uses
-the background queue. Dirty-conflict presentation remains ED-M1 work. Functions report expected
-failures with `false`, optional values, stable diagnostic codes, or per-entry error text;
-filesystem exceptions are converted to error results where applicable.
+the background queue. The optional graphical host presents `DirtyConflictModel` decisions, while
+the core remains the authoring-thread source of truth and never reloads over unsaved state.
+Functions report expected failures with `false`, optional values, stable diagnostic codes, or
+per-entry error text; filesystem exceptions are converted to error results where applicable.
 
 The `.meta` filename suffix is reserved for asset identity sidecars and is excluded from the source
 asset index. Artifact hashes use the persistent UUID plus source bytes rather than the current path,
@@ -149,7 +150,9 @@ missing signatures.
 
 Watcher events are path-coalesced after a caller-supplied debounce interval and known self-writes are
 discarded. A disk change never overwrites dirty authoring state: `DirtyConflictModel` retains both
-hashes until the authoring thread explicitly chooses reload, keep, or compare.
+hashes until the authoring thread explicitly chooses reload, keep, or compare. Compare is
+non-terminal and keeps the conflict actionable; reload and keep are terminal decisions retained for
+the document/import owner to consume without the UI touching the filesystem.
 
 The core deliberately does not depend on a UI toolkit. The optional `NexoraEditorImGui` owner
 provides docking, theme/DPI scaling, input/text forwarding, stable-panel presentation, and recovery

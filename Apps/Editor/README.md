@@ -58,5 +58,10 @@ shows the stable project UUID, schema and upgrade result, access mode, canonical
 recent-project list. Schema-1 projects upgrade atomically to schema 2 only while holding the writer
 lease; a read-only legacy open reports that an upgrade is required.
 
-This is an ED-M1 graphical foundation, not ED-M1 acceptance. Dirty external-change decisions and
-physical-display/Windows fresh-project workflow acceptance remain open.
+Dirty external changes now block automatic reload and open a Content-panel decision dialog. Compare
+shows the retained editor/disk hashes and keeps the conflict open; Reload or Keep records the
+terminal authoring-thread choice without direct UI filesystem access. Dependency cycles are also
+shown in the Content panel and continue to block artifact publication.
+
+This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows
+fresh-project workflow acceptance remain open.

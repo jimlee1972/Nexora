@@ -74,9 +74,15 @@ struct EditorImGuiHost::State final {
   std::uint32_t content_selection = 0;
   std::uint32_t content_forward_dependencies = 0;
   std::uint32_t content_reverse_dependencies = 0;
+  std::uint32_t content_dependency_cycle = 0;
   bool content_import_active = false;
   ImportOperationState content_import_state = ImportOperationState::Succeeded;
   std::uint32_t content_import_diagnostics = 0;
+  std::uint32_t content_conflicts = 0;
+  bool content_conflict_visible = false;
+  bool content_conflict_compare_visible = false;
+  DirtyConflictChoice content_conflict_choice = DirtyConflictChoice::Pending;
+  std::optional<std::pair<runtime::AssetUuid, DirtyConflictChoice>> content_conflict_choice_request;
   bool project_writable = false;
   bool project_upgrade_required = false;
   std::uint32_t recent_projects = 0;
@@ -231,6 +237,11 @@ const char *ThumbnailLabel(ThumbnailState state) {
   return "[Unknown]";
 }
 
+bool ActionableConflict(const DirtyConflict &conflict) noexcept {
+  return conflict.choice == DirtyConflictChoice::Pending ||
+         conflict.choice == DirtyConflictChoice::Compare;
+}
+
 bool AcceptAssetDrop(ProjectContentSession &content, const std::filesystem::path &folder) {
   if (!ImGui::BeginDragDropTarget())
     return false;
@@ -302,8 +313,15 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   state.content_selection = static_cast<std::uint32_t>(browser.Selection().size());
   state.content_forward_dependencies = 0;
   state.content_reverse_dependencies = 0;
+  state.content_dependency_cycle = 0;
   state.content_import_active = content.ReimportBusy();
   state.content_import_diagnostics = 0;
+  state.content_conflicts = static_cast<std::uint32_t>(std::min<std::size_t>(
+      std::ranges::count_if(content.Conflicts().Conflicts(), ActionableConflict),
+      std::numeric_limits<std::uint32_t>::max()));
+  state.content_conflict_visible = false;
+  state.content_conflict_compare_visible = false;
+  state.content_conflict_choice = DirtyConflictChoice::Pending;
   if (const auto status = content.ReimportStatus()) {
     state.content_import_state = status->state;
     state.content_import_diagnostics = static_cast<std::uint32_t>(std::min<std::size_t>(
@@ -457,6 +475,88 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     }
   } else {
     ImGui::Text("%zu assets selected", selection.size());
+  }
+  const auto dependency_cycle = content.Dependencies().FindCycle();
+  state.content_dependency_cycle = static_cast<std::uint32_t>(
+      std::min<std::size_t>(dependency_cycle.size(), std::numeric_limits<std::uint32_t>::max()));
+  if (!dependency_cycle.empty()) {
+    ImGui::SeparatorText("Dependency cycle");
+    ImGui::TextColored(ImVec4(1.0F, 0.45F, 0.35F, 1.0F),
+                       "Cyclic dependencies block artifact publication.");
+    for (const auto asset : dependency_cycle) {
+      const auto *item = browser.Find(asset);
+      const auto asset_label = item != nullptr ? item->path.generic_string() : asset.ToString();
+      ImGui::BulletText("%s", asset_label.c_str());
+    }
+  }
+  const auto conflicts = content.Conflicts().Conflicts();
+  const auto active_conflict = std::ranges::find_if(conflicts, ActionableConflict);
+  if (active_conflict != conflicts.end()) {
+    const auto conflict = *active_conflict;
+    state.content_conflict_visible = true;
+    state.content_conflict_compare_visible = conflict.choice == DirtyConflictChoice::Compare;
+    state.content_conflict_choice = conflict.choice;
+    ImGui::OpenPopup("External asset change###editor.content.dirty-conflict");
+
+    std::optional<DirtyConflictChoice> requested_choice;
+    if (state.content_conflict_choice_request) {
+      const auto request = std::exchange(state.content_conflict_choice_request, std::nullopt);
+      if (request->first == conflict.asset && request->second != DirtyConflictChoice::Pending)
+        requested_choice = request->second;
+    }
+
+    if (ImGui::BeginPopupModal("External asset change###editor.content.dirty-conflict", nullptr,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+      const auto *item = browser.Find(conflict.asset);
+      const auto asset_label =
+          item != nullptr ? item->path.generic_string() : conflict.asset.ToString();
+      ImGui::TextUnformatted("This asset changed on disk while the Editor has unsaved changes.");
+      ImGui::TextUnformatted("Automatic reload is blocked until you choose how to continue.");
+      ImGui::Separator();
+      ImGui::Text("Asset: %s", asset_label.c_str());
+
+      if (conflict.choice == DirtyConflictChoice::Compare ||
+          requested_choice == DirtyConflictChoice::Compare) {
+        state.content_conflict_compare_visible = true;
+        if (ImGui::BeginTable("##dirty-conflict-compare", 2,
+                              ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+          ImGui::TableSetupColumn("Editor version");
+          ImGui::TableSetupColumn("Disk version");
+          ImGui::TableHeadersRow();
+          ImGui::TableNextRow();
+          ImGui::TableSetColumnIndex(0);
+          ImGui::TextWrapped("%s", conflict.editor_hash.c_str());
+          ImGui::TableSetColumnIndex(1);
+          ImGui::TextWrapped("%s", conflict.disk_hash.c_str());
+          ImGui::EndTable();
+        }
+      } else {
+        ImGui::TextDisabled("Choose Compare to inspect the editor and disk hashes first.");
+      }
+
+      if (ImGui::Button("Reload from disk"))
+        requested_choice = DirtyConflictChoice::Reload;
+      ImGui::SameLine();
+      if (ImGui::Button("Keep editor version"))
+        requested_choice = DirtyConflictChoice::Keep;
+      ImGui::SameLine();
+      if (ImGui::Button("Compare"))
+        requested_choice = DirtyConflictChoice::Compare;
+
+      if (requested_choice && content.Conflicts().Resolve(conflict.asset, *requested_choice)) {
+        state.content_conflict_choice = *requested_choice;
+        state.content_conflict_compare_visible = *requested_choice == DirtyConflictChoice::Compare;
+        if (*requested_choice != DirtyConflictChoice::Compare) {
+          state.content_conflict_visible = false;
+          if (state.content_conflicts != 0)
+            --state.content_conflicts;
+          ImGui::CloseCurrentPopup();
+        }
+      }
+      ImGui::EndPopup();
+    }
+  } else {
+    state.content_conflict_choice_request.reset();
   }
   if (const auto status = content.ReimportStatus()) {
     ImGui::SeparatorText("Import operation");
@@ -1197,9 +1297,14 @@ EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host)
           host.state_->content_selection,
           host.state_->content_forward_dependencies,
           host.state_->content_reverse_dependencies,
+          host.state_->content_dependency_cycle,
           host.state_->content_import_active,
           host.state_->content_import_state,
           host.state_->content_import_diagnostics,
+          host.state_->content_conflicts,
+          host.state_->content_conflict_visible,
+          host.state_->content_conflict_compare_visible,
+          host.state_->content_conflict_choice,
           host.state_->project_writable,
           host.state_->project_upgrade_required,
           host.state_->recent_projects,
@@ -1226,6 +1331,12 @@ void EditorImGuiTestAccess::QueueProjectSelection(EditorImGuiHost &host,
 
 void EditorImGuiTestAccess::QueueProjectImportCancellation(EditorImGuiHost &host) noexcept {
   host.state_->selector_cancel_requested = true;
+}
+
+void EditorImGuiTestAccess::QueueContentConflictChoice(EditorImGuiHost &host,
+                                                       runtime::AssetUuid asset,
+                                                       DirtyConflictChoice choice) noexcept {
+  host.state_->content_conflict_choice_request = std::pair{asset, choice};
 }
 
 std::uint32_t EditorImGuiTestAccess::OverrideDrawTexture(EditorImGuiHost &host,

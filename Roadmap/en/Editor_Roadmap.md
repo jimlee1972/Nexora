@@ -19,7 +19,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | Scope | Repository evidence | Accepted |
 | --- | --- | :---: |
 | ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Real-process recovery and Linux/Windows host evidence remain open. | [ ] |
-| ED-M1 project/assets | Portable create/open, schema upgrade, single-writer/read-only access, recent-project state, deterministic indexing/search, persistent sidecar UUIDs, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. The native shell exposes project status, provides a graphical create/open/recent selector, binds the real index to a graphical Content panel with recoverable project-local mutations, and runs cancellable background import/reimport with bounded progress and structured diagnostics; conflict UX and physical-display/Windows workflow acceptance remain open. | [ ] |
+| ED-M1 project/assets | Portable create/open, schema upgrade, single-writer/read-only access, recent-project state, deterministic indexing/search, persistent sidecar UUIDs, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. The native shell exposes project status, provides a graphical create/open/recent selector, binds the real index to a graphical Content panel with recoverable project-local mutations, runs cancellable background import/reimport with bounded progress and structured diagnostics, shows dependency cycles, and presents blocking reload/keep/compare conflict UX; physical-display/Windows workflow acceptance remains open. | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. Scene View, Inspector, renderer-backed picking, cameras, gizmo manipulation, and reflected graphical widgets remain open. | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. Graphical Game View, Console UI, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
@@ -114,8 +114,10 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   reimport after revision/dependency revalidation. Queued cancellation, stale completion, and
   shutdown preserve the previous index/artifact, and both selector and Content Browser expose
   progress/cancel/failure states.
-- Open: dirty-conflict reload/keep/compare UI and physical-display/Windows fresh-project workflow
-  acceptance.
+- ✅ The graphical Content panel now shows dependency cycles and serializes dirty external changes
+  through one blocking dialog. Compare exposes both retained hashes without resolving the conflict;
+  Reload or Keep records the terminal authoring-thread decision, and no UI path overwrites files.
+- Open: physical-display/Windows fresh-project workflow acceptance.
 
 ### ED-M2 — Scene authoring core
 
@@ -284,7 +286,7 @@ closure leaves no callback or GPU resource referring to a destroyed owner.
 4. ✅ Make import/reimport cancellable jobs with source/settings hashes, dependency edges, staged output,
    atomic publish, bounded progress, and structured diagnostics. Cancellation/failure preserves the old
    artifact.
-5. Show forward/reverse dependencies and cycles. Debounce file events and require reload/keep/compare
+5. ✅ Show forward/reverse dependencies and cycles. Debounce file events and require reload/keep/compare
    for dirty conflicts instead of overwriting.
 
 **Tests/gate:** golden deterministic index/artifacts, upgrade/corruption, cancellation at every phase,
