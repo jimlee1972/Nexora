@@ -1,11 +1,14 @@
 #pragma once
 
 #include "Nexora/Editor/Api.h"
+#include "Nexora/Foundation/Types.h"
 #include "Nexora/Runtime/AssetPipeline.h"
 #include "Nexora/Runtime/EditorSdk.h"
 
+#include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -31,15 +34,27 @@ private:
 };
 
 struct ProjectDescriptor final {
-  static constexpr std::uint32_t kSchemaVersion = 1;
+  static constexpr std::uint32_t kSchemaVersion = 2;
+  foundation::Uuid id;
   std::string name;
   std::uint32_t schema_version{kSchemaVersion};
 };
 
+enum class ProjectAccess : std::uint8_t { ReadWrite, ReadOnly };
+enum class ProjectUpgradeState : std::uint8_t { Current, Applied, Required };
+
 class NEXORA_EDITOR_API ProjectWorkspace final {
 public:
+  ProjectWorkspace();
+  ~ProjectWorkspace();
+  ProjectWorkspace(ProjectWorkspace &&) noexcept;
+  ProjectWorkspace &operator=(ProjectWorkspace &&) noexcept;
+  ProjectWorkspace(const ProjectWorkspace &) = delete;
+  ProjectWorkspace &operator=(const ProjectWorkspace &) = delete;
+
   bool Create(const std::filesystem::path &root, std::string name, std::string *error = nullptr);
   bool Open(const std::filesystem::path &root, std::string *error = nullptr);
+  bool Open(const std::filesystem::path &root, ProjectAccess access, std::string *error = nullptr);
   bool SaveWorkspace(std::span<const std::string> open_documents, std::string *error = nullptr);
   bool RecoverWorkspace(std::string *error = nullptr);
   bool DiscardRecovery(std::string *error = nullptr);
@@ -50,16 +65,50 @@ public:
   [[nodiscard]] const ProjectDescriptor &Project() const noexcept { return project_; }
   [[nodiscard]] const std::filesystem::path &Root() const noexcept { return root_; }
   [[nodiscard]] std::span<const std::string> OpenDocuments() const noexcept { return documents_; }
+  [[nodiscard]] ProjectAccess Access() const noexcept { return access_; }
+  [[nodiscard]] bool Writable() const noexcept { return access_ == ProjectAccess::ReadWrite; }
+  [[nodiscard]] ProjectUpgradeState UpgradeState() const noexcept { return upgrade_state_; }
 
 private:
+  struct LockState;
   bool WriteWorkspace(std::span<const std::string> documents, std::string *error);
   std::filesystem::path root_;
   ProjectDescriptor project_;
   std::vector<std::string> documents_;
   std::filesystem::file_time_type workspace_write_time_{};
+  std::unique_ptr<LockState> lock_;
+  ProjectAccess access_{ProjectAccess::ReadOnly};
+  ProjectUpgradeState upgrade_state_{ProjectUpgradeState::Current};
+};
+
+struct RecentProject final {
+  foundation::Uuid id;
+  std::filesystem::path root;
+  std::string name;
+};
+
+// User-level, versioned recent-project state. The application owns this store separately from a
+// project so opening a project read-only never grants write access to project-owned files.
+class NEXORA_EDITOR_API RecentProjectStore final {
+public:
+  static constexpr std::size_t kMaximumEntries = 12;
+
+  [[nodiscard]] static std::filesystem::path DefaultPath();
+  bool Open(const std::filesystem::path &path, std::string *error = nullptr);
+  bool Record(const ProjectWorkspace &workspace, std::string *error = nullptr);
+  bool Remove(foundation::Uuid id, std::string *error = nullptr);
+  [[nodiscard]] std::span<const RecentProject> Entries() const noexcept { return entries_; }
+  [[nodiscard]] const std::filesystem::path &Path() const noexcept { return path_; }
+
+private:
+  bool Save(std::string *error);
+  std::filesystem::path path_;
+  std::vector<RecentProject> entries_;
 };
 
 enum class ImportState { Pending, Imported, Cancelled, Failed };
+enum class AssetIdentityMode { DerivedFromPath, PersistentReadOnly, PersistentReadWrite };
+
 struct AssetEntry final {
   runtime::AssetUuid id;
   std::string relative_path;
@@ -74,14 +123,27 @@ public:
   using Cancelled = std::function<bool()>;
   using Progress = std::function<void(std::size_t, std::size_t)>;
   bool ImportTree(const std::filesystem::path &content_root, Cancelled cancelled = {},
-                  Progress progress = {});
+                  Progress progress = {},
+                  AssetIdentityMode identity_mode = AssetIdentityMode::DerivedFromPath,
+                  std::string *error = nullptr);
+  [[nodiscard]] static std::filesystem::path
+  IdentitySidecar(const std::filesystem::path &asset_path);
   [[nodiscard]] std::vector<const AssetEntry *> Search(std::string_view query,
                                                        std::string_view type = {}) const;
   [[nodiscard]] const AssetEntry *Find(runtime::AssetUuid id) const;
   [[nodiscard]] std::span<const AssetEntry> Entries() const noexcept { return entries_; }
+  [[nodiscard]] bool PersistentIdentities() const noexcept {
+    return identity_mode_ != AssetIdentityMode::DerivedFromPath;
+  }
+  [[nodiscard]] bool WritableIdentities() const noexcept {
+    return identity_mode_ == AssetIdentityMode::PersistentReadWrite;
+  }
+  [[nodiscard]] const std::filesystem::path &ContentRoot() const noexcept { return content_root_; }
 
 private:
   std::vector<AssetEntry> entries_;
+  std::filesystem::path content_root_;
+  AssetIdentityMode identity_mode_{AssetIdentityMode::DerivedFromPath};
 };
 
 // Editor view of one runtime scene: node names plus selection, clipboard, and persistence. The

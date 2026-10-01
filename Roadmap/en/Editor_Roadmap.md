@@ -18,8 +18,8 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 
 | Scope | Repository evidence | Accepted |
 | --- | --- | :---: |
-| ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Automated Windows contracts cover Unicode scalar normalization, DPI events, and frame-scoped IME candidate placement; physical-display Linux and manual Windows DPI/IME evidence remain open. | [ ] |
-| ED-M1 project/assets | Portable create/open, deterministic indexing/search, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. Graphical workflow acceptance remains open. | [ ] |
+| ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Real-process recovery and Linux/Windows host evidence remain open. | [ ] |
+| ED-M1 project/assets | Portable create/open, schema upgrade, single-writer/read-only access, recent-project state, deterministic indexing/search, persistent sidecar UUIDs, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. The native shell exposes project status, provides a graphical create/open/recent selector, binds the real index to a graphical Content panel with recoverable project-local mutations, and runs cancellable background import/reimport with bounded progress and structured diagnostics; conflict UX and physical-display/Windows workflow acceptance remain open. | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. Scene View, Inspector, renderer-backed picking, cameras, gizmo manipulation, and reflected graphical widgets remain open. | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. Graphical Game View, Console UI, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
@@ -90,7 +90,32 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 - ✅ Portable virtualized Content Browser/breadcrumb/selection models, transactional rename/move/
   delete, typed generation-safe drag validation, dependency/cycle inspection, transactional
   reimport, watcher debounce, and explicit dirty-conflict decisions are implemented and tested.
-- Open: graphical Content Browser, drag/drop, dependency inspection, and reimport UX acceptance.
+- ✅ The graphical shell now binds the real deterministic index to a docked Content Browser with
+  breadcrumbs/folders, search/type filters, virtualized UUID-keyed rows, selection and thumbnail
+  states. Generation-tagged drag/drop, dependency inspection, background reimport, and recoverable
+  filesystem-backed rename/move/delete/undo route through an authoring-thread
+  `ProjectContentSession`; the UI never writes files directly.
+- ✅ Versioned sibling `<asset>.meta` records persist UUID and importer type. Read-only indexing
+  rejects missing or corrupt identity state; writable indexing creates missing records atomically.
+  Rename, move, delete, and undo transact the source and sidecar together, and derived artifacts are
+  keyed by UUID plus source bytes, preserving identity across move and process reopen.
+- ✅ Project descriptors now have stable UUIDs and atomically upgrade from schema 1 to schema 2
+  under an OS-held single-writer lease. Explicit read-only opens cannot upgrade or mutate
+  project-owned state, recent projects use a bounded versioned user-level store, and the docked
+  Project panel exposes canonical root, schema/upgrade, access, and recent-project status. Core,
+  graphical-contract, and Linux real-process tests cover writer rejection and read-only coexistence.
+- ✅ The graphical Project Browser emits one-shot create/open requests without owning project state.
+  The application transactionally activates the candidate workspace/index/content session and
+  keeps errors in the selector. Linux Xvfb acceptance drives keyboard-only create and read-only
+  reopen from a launch without `--project`, then verifies the descriptor and active access mode.
+- ✅ An Editor-owned `AssetImportQueue` now runs project indexing and reimport on cancellable Core
+  jobs. Workers produce generation-tagged staging results plus bounded progress and structured
+  diagnostics; the authoring thread alone activates a candidate index or atomically publishes a
+  reimport after revision/dependency revalidation. Queued cancellation, stale completion, and
+  shutdown preserve the previous index/artifact, and both selector and Content Browser expose
+  progress/cancel/failure states.
+- Open: dirty-conflict reload/keep/compare UI and physical-display/Windows fresh-project workflow
+  acceptance.
 
 ### ED-M2 — Scene authoring core
 
@@ -250,13 +275,13 @@ closure leaves no callback or GPU resource referring to a destroyed owner.
 
 **Depends on:** WP1.
 
-1. Finish create/open/upgrade validation: canonical roots, schema compatibility, lock/read-only mode,
+1. ✅ Finish create/open/upgrade validation: canonical roots, schema compatibility, lock/read-only mode,
    recent projects, and errors, without changing process working directory.
 2. Bind the deterministic index to a virtualized Content Browser keyed by asset UUID. Add breadcrumbs,
    search/filter, selection, transactional rename/move/delete, and loading/error thumbnail states.
 3. Use typed drag payloads containing project generation and asset UUID; validate type, target,
    permissions, and staleness before mutation.
-4. Make import/reimport cancellable jobs with source/settings hashes, dependency edges, staged output,
+4. ✅ Make import/reimport cancellable jobs with source/settings hashes, dependency edges, staged output,
    atomic publish, bounded progress, and structured diagnostics. Cancellation/failure preserves the old
    artifact.
 5. Show forward/reverse dependencies and cycles. Debounce file events and require reload/keep/compare

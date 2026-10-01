@@ -38,7 +38,10 @@ public:
   void SetFilter(std::string query, std::string type = {});
   [[nodiscard]] std::vector<const ContentItem *> Visible(std::size_t offset,
                                                          std::size_t count) const;
+  [[nodiscard]] std::size_t VisibleCount() const;
+  [[nodiscard]] std::vector<Breadcrumb> ChildFolders() const;
   [[nodiscard]] std::span<const Breadcrumb> Breadcrumbs() const noexcept { return breadcrumbs_; }
+  [[nodiscard]] std::span<const ContentItem> Items() const noexcept { return items_; }
   [[nodiscard]] std::uint64_t ProjectGeneration() const noexcept { return generation_; }
   [[nodiscard]] const ContentItem *Find(runtime::AssetUuid id) const;
 
@@ -53,6 +56,8 @@ public:
             std::string *error = nullptr);
   bool Delete(std::span<const runtime::AssetUuid> ids, std::string *error = nullptr);
   bool Undo();
+  bool PublishArtifact(runtime::AssetUuid id, std::string artifact_hash, ThumbnailState thumbnail,
+                       std::string *error = nullptr);
 
 private:
   bool Commit(std::vector<ContentItem> next, std::string *error);

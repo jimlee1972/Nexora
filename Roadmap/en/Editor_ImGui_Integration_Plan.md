@@ -57,11 +57,12 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
 - [ ] Physical-display Linux graphical validation and Windows DPI/IME target-host acceptance
   evidence are recorded and passing. Automated X11 rendering and kill/relaunch recovery are
   available in the feature-on Linux gate. **Status note (2026-10-01):** running that gate for the
-  first time on a virtual display (Xvfb with Mesa lavapipe) exposed three real defects, now fixed: the
+  first time on a virtual display (Xvfb with Mesa lavapipe) exposed four real defects, now fixed: the
   Editor treated an empty first ImGui frame as fatal, the X11 window ignored `DestroyNotify` and
-  destroyed an already-destroyed window (`BadWindow`), and the Editor exited non-zero on a recoverable
-  surface loss. The acceptance script also had a `kill()` on an already-finished process. It now
-  passes 5/5 locally. This is virtual-display evidence only: the dedicated CI job
+  destroyed an already-destroyed window (`BadWindow`), X11 emitted physical keys but no committed
+  UTF-8 `Text` events, and the Editor exited non-zero on a recoverable surface loss. The acceptance
+  script also had a `kill()` on an already-finished process. This is virtual-display evidence only:
+  the dedicated CI job
   `editor-linux-display` (Xvfb, Mesa software Vulkan, `xdotool`, `NexoraEditorImGui` on) now builds and
   runs it and fails if the test is not registered, so its latest result is the source of truth; neither
   physical-display nor Windows evidence exists. The box stays unchecked.
