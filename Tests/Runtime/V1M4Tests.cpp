@@ -49,6 +49,11 @@ int RunTests() {
   if (!restored_scene)
     throw std::runtime_error("scene snapshot could not be loaded");
   Require(restored.SaveScene(*restored_scene) == saved, "scene save/load was not deterministic");
+  // An entity count far beyond what the text could hold must be rejected, not reserved.
+  Require(
+      !restored.LoadSceneSnapshot("NEXORA_SCENE 1 \"huge\" 0 18446744073709551615").has_value() &&
+          !restored.LoadSceneSnapshot("NEXORA_SCENE 1 \"huge\" 0 4611686018427387904").has_value(),
+      "a snapshot claiming an impossible entity count was accepted or threw");
   Require(!restored.LoadSceneSnapshot("NEXORA_SCENE 99 \"broken\" 0 0").has_value(),
           "unsupported scene version was accepted");
 

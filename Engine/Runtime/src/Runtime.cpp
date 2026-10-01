@@ -44,6 +44,11 @@ std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
   if (!(input >> magic >> version >> std::quoted(name) >> persistent >> count) ||
       magic != "NEXORA_SCENE" || version != 1 || name.empty())
     return std::nullopt;
+  // `count` comes from the snapshot itself, so it can claim billions of entities. Every entity
+  // needs at least one byte of text, so a count above the snapshot size can never be satisfied;
+  // rejecting it also bounds the reservation (an unchecked reserve threw length_error/bad_alloc).
+  if (count > snapshot.size())
+    return std::nullopt;
   Scene loaded{next_id_, std::move(name), SceneState::LoadedInactive, persistent, {}};
   loaded.entities.reserve(count);
   std::unordered_set<Id> ids;

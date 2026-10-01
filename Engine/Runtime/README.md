@@ -188,6 +188,8 @@ rejection, and a 10,000-event input routing performance baseline.
 serialization, and snapshots use the versioned `NEXORA_SCENE 1` text schema. Loading validates the
 complete snapshot before publishing it; malformed versions, duplicate IDs, non-finite transforms,
 and IDs already owned by the destination world are rejected without partially adding a scene.
+An entity count larger than the snapshot text could possibly hold is rejected before any allocation, so a
+hostile snapshot cannot make the loader throw or reserve unbounded memory.
 Double-precision world transforms provide the large-coordinate foundation.
 
 Scenes enter `LoadedInactive`, may transition to `Active`, and unload through `Unloading` before
