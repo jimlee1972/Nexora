@@ -44,7 +44,10 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
     const auto status = created.surface->BeginFrame();
     const auto action = Nexora::Presentation::RecoveryAction(status);
     if (action == Nexora::Presentation::SurfaceAction::Abort) {
-      result = 1;
+      // A window closed during startup can no longer back a swapchain, so BeginFrame reports a
+      // failure caused by the close itself. When the user already asked to quit, that is a clean
+      // exit, not an error.
+      result = created.surface->CloseRequested() ? 0 : 1;
       break;
     }
     if (action != Nexora::Presentation::SurfaceAction::Render)
@@ -75,14 +78,14 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace, std::uint32_t fram
         status != Nexora::Presentation::SurfaceStatus::Ready) {
       if (surface_recoverable(status))
         continue;
-      result = 1;
+      result = created.surface->CloseRequested() ? 0 : 1;
       break;
     }
     if (const auto status = created.surface->EndFrame();
         status != Nexora::Presentation::SurfaceStatus::Ready) {
       if (surface_recoverable(status))
         continue;
-      result = 1;
+      result = created.surface->CloseRequested() ? 0 : 1;
       break;
     }
     ++frames;
