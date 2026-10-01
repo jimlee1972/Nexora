@@ -104,3 +104,10 @@ distance 0 from inside a box, and breaks distance ties by lowest entity id), `Ax
 render targets). These are CPU-only and covered by `editor.viewport_math`. `runtime::Transform`
 currently carries position only, so rotation/scale gizmo modes, world/local and pivot rules, and
 renderer-backed ID-buffer picking remain open.
+
+`editor.parser_robustness` mutation-tests the parsers that read persisted or external data (trace and
+metric decoding, replay log, unknown-component store, scene snapshot, runtime blob, NXSHDR, shader
+diagnostics, asset UUID, autosave, camera, and project/workspace/layout files) with fixed seeds. It
+requires every parser to return normally on corrupted input; under the ASan/UBSan presets memory and
+undefined-behavior errors fail it too. Set `NEXORA_PARSER_ROBUSTNESS_ITERATIONS` for a longer local soak.
+It is a robustness check, not a proof that no malformed input can fail.
