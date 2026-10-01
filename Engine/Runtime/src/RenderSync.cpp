@@ -157,56 +157,51 @@ std::optional<renderer::GPUDrivenView> CameraView(const World &world, Id camera,
   const auto *entity = world.FindEntity(camera);
   if (entity == nullptr || !entity->camera || !std::isfinite(aspect) || !(aspect > 0.0F))
     return std::nullopt;
+  // Validate the values the projection actually uses: narrowing can turn an accepted double into a
+  // degenerate float (a field of view just under 180 rounds to 180; a tiny near plane rounds to 0).
   const auto &data = entity->camera_data;
-  if (!std::isfinite(data.vertical_field_of_view) || !(data.vertical_field_of_view > 0.0) ||
-      !(data.vertical_field_of_view < 180.0) || !std::isfinite(data.near_plane) ||
-      !std::isfinite(data.far_plane) || !(data.near_plane > 0.0) ||
-      !(data.far_plane > data.near_plane))
+  const auto field_of_view = static_cast<float>(data.vertical_field_of_view);
+  const auto near_plane = static_cast<float>(data.near_plane);
+  const auto far_plane = static_cast<float>(data.far_plane);
+  if (!std::isfinite(field_of_view) || !(field_of_view > 0.0F) || !(field_of_view < 180.0F) ||
+      !std::isfinite(near_plane) || !std::isfinite(far_plane) || !(near_plane > 0.0F) ||
+      !(far_plane > near_plane))
     return std::nullopt;
+  // Unity's Camera: the position comes from the exact world matrix, the orientation from the world
+  // rotation (the product of the chain's rotations), so a non-uniformly or negatively scaled parent
+  // neither skews nor flips the view.
   const auto matrix = world.WorldMatrix(camera);
-  if (!matrix)
+  const auto pose = world.WorldTransform(camera);
+  if (!matrix || !pose)
     return std::nullopt;
+  Transform orientation{};
+  orientation.qx = pose->qx;
+  orientation.qy = pose->qy;
+  orientation.qz = pose->qz;
+  orientation.qw = pose->qw;
+  const auto rotation = ToMatrix(orientation);
   const auto &m = *matrix;
-  // Orthonormalize the matrix's Z (backward) and Y (up) axes: scale and shear do not distort the
-  // view, and the basis stays right-handed even under a mirroring parent.
   using Axis = std::array<double, 3>;
-  const auto normalized = [](Axis v) -> std::optional<Axis> {
-    const double length = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-    if (!std::isfinite(length) || !(length > 1e-12))
-      return std::nullopt;
-    return Axis{v[0] / length, v[1] / length, v[2] / length};
-  };
-  const auto cross = [](const Axis &a, const Axis &b) {
-    return Axis{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
-  };
-  const auto back = normalized({m[8], m[9], m[10]});
-  if (!back)
-    return std::nullopt;
-  const auto right = normalized(cross({m[4], m[5], m[6]}, *back));
-  if (!right)
-    return std::nullopt;
-  const auto up = cross(*back, *right);
   const Axis eye{m[12], m[13], m[14]};
   if (!std::isfinite(eye[0]) || !std::isfinite(eye[1]) || !std::isfinite(eye[2]))
     return std::nullopt;
+  // Rows of the view matrix: the world rotation's right (+X), up (+Y), and back (+Z) axes; the
+  // camera looks down -Z (Nexora is right-handed).
   math::Matrix4 view;
-  const std::array<const Axis *, 3> rows{&*right, &up, &*back};
   for (std::size_t row = 0; row < 3; ++row) {
-    const auto &axis = *rows[row];
+    const Axis axis{rotation[row * 4], rotation[row * 4 + 1], rotation[row * 4 + 2]};
     for (std::size_t column = 0; column < 3; ++column)
       view(row, column) = static_cast<float>(axis[column]);
     view(row, 3) = static_cast<float>(-(axis[0] * eye[0] + axis[1] * eye[1] + axis[2] * eye[2]));
   }
-  const auto near_plane = static_cast<float>(data.near_plane);
-  const auto far_plane = static_cast<float>(data.far_plane);
   renderer::GPUDrivenView result;
   result.view_projection =
-      math::PerspectiveRadians(math::Radians(static_cast<float>(data.vertical_field_of_view)),
-                               aspect, near_plane, far_plane) *
-      view;
+      math::PerspectiveRadians(math::Radians(field_of_view), aspect, near_plane, far_plane) * view;
   result.camera_position = {static_cast<float>(eye[0]), static_cast<float>(eye[1]),
                             static_cast<float>(eye[2])};
-  result.maximum_distance = far_plane;
+  // The far plane is already part of the frustum; a radial distance limit at the same value would
+  // cut off the frustum's far corners.
+  result.maximum_distance = std::numeric_limits<float>::max();
   if (!Finite(result.view_projection))
     return std::nullopt;
   return result;

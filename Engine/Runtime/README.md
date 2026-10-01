@@ -321,13 +321,15 @@ mesh renderers of a `World`'s active scenes into a `renderer::GPUScene`, one GPU
   duplicate or silently drop ownership); move construction hands the objects over. Destroying a
   sync that still owns objects leaves them in the scene, so release it first. The sync, the
   `World`, and the `GPUScene` are externally synchronized on one thread, like the `GPUScene` itself.
-- `CameraView` builds a camera entity's view the way Unity's Camera does: from its exact world
-  matrix, so a camera under a moving or turning parent follows it, with scale ignored (the matrix's
-  Z and Y axes are orthonormalized, keeping the basis right-handed even under a mirroring parent).
-  Nexora is right-handed, so the camera looks down its local -Z. The projection uses
-  `CameraComponent`'s vertical field of view and clip planes with `[0, 1]` depth, and the far plane
-  is the culling distance. Invalid camera data, a degenerate orientation, or a bad aspect ratio
-  produce no view.
+- `CameraView` builds a camera entity's view the way Unity's Camera does: the position comes from
+  its exact world matrix and the orientation from its world rotation (the product of the chain's
+  rotations), so a camera under a moving or turning parent follows it while a non-uniformly or
+  negatively scaled parent neither skews nor flips the view. Nexora is right-handed, so the camera
+  looks down its local -Z. The projection uses `CameraComponent`'s vertical field of view and clip
+  planes with `[0, 1]` depth, validated as the floats the renderer uses (a field of view that rounds
+  to 180 or a near plane that rounds to 0 is rejected). The far plane culls through the frustum, so
+  the view sets no radial distance limit that would cut off the frustum's far corners. Invalid
+  camera data or a bad aspect ratio produce no view.
 - `RenderSceneSync::RenderFrame` always syncs, then renders the GPU scene through the world's first
   camera: `BuildGPUDrivenCommands` culls by frustum and distance, and only the kept objects reach
   `ExecuteSceneFrame`. It needs a camera and a light, like `RenderSceneFrame`; a frame in which

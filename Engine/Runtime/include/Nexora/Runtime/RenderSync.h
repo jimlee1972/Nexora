@@ -26,12 +26,14 @@ ToRenderMatrix(const TransformMatrix &matrix) noexcept;
 [[nodiscard]] NEXORA_RUNTIME_API math::Sphere TransformBounds(const TransformMatrix &matrix,
                                                               const math::Sphere &local) noexcept;
 
-// What a camera entity sees, as Unity's Camera does: the view follows the entity's exact world
-// matrix, so a camera under a moving parent follows it, and ignores scale. Nexora is right-handed:
-// the camera looks down its local -Z with local +Y up, through CameraComponent's vertical field of
-// view (degrees) and clip planes, into the renderer's [0, 1] depth range. `maximum_distance` is the
-// far plane. nullopt for a missing entity, one without a camera, invalid camera data (field of view
-// outside (0, 180), near not positive, far not beyond near), a degenerate orientation, or an aspect
+// What a camera entity sees, as Unity's Camera does: the position follows the entity's exact world
+// matrix and the orientation its world rotation (the product of the chain's rotations), so a camera
+// under a moving or turning parent follows it, and scale (non-uniform or negative) never skews or
+// flips the view. Nexora is right-handed: the camera looks down its local -Z with local +Y up,
+// through CameraComponent's vertical field of view (degrees) and clip planes, into the renderer's
+// [0, 1] depth range. The far plane culls through the frustum, so `maximum_distance` is unlimited.
+// nullopt for a missing entity, one without a camera, camera data that is invalid as the renderer's
+// floats (field of view outside (0, 180), near not positive, far not beyond near), or an aspect
 // ratio that is not positive and finite.
 [[nodiscard]] NEXORA_RUNTIME_API std::optional<renderer::GPUDrivenView>
 CameraView(const World &world, Id camera, float aspect);
