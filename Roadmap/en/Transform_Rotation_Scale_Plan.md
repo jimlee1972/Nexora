@@ -1,7 +1,7 @@
 # Transform Rotation and Scale Extension — Plan
 
-> Version: v1.1 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
-> phase 1+2 in progress, later phases not started** | Updated: 2026-10-01 | Relates to: `Editor_Roadmap.md` §ED-M2 (gizmos),
+> Version: v1.2 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
+> ✅ phases 1+2 and 4 complete; phase 3 (Zig/C wire) not started** | Updated: 2026-10-01 | Relates to: `Editor_Roadmap.md` §ED-M2 (gizmos),
 > `Engine_API_Foundation_Roadmap.md`
 
 ## 1. Purpose and decision needed
@@ -94,7 +94,7 @@ scale ambiguity) and makes the editor fields lossy. Not recommended.
 
 ## 6. Phases (each ends with evidence, not a claim)
 
-1+2. **Data model and persistence (one change).** Extend `Transform` with defaults, validation
+1+2. ✅ **Data model and persistence (one change).** Extend `Transform` with defaults, validation
    (finite values, non-zero scale, non-degenerate quaternion, normalized on apply and on load), the
    snapshot v2 writer and v1 reader with a deterministic round trip, position-only writers that
    preserve rotation/scale, and hostile-input cases in `editor.parser_robustness`. Gate:
@@ -102,7 +102,7 @@ scale ambiguity) and makes the editor fields lossy. Not recommended.
    `-Werror`; v1 snapshots still load and re-save in the v2 form.
 3. **Boundary.** New versioned Zig/C wire component; ABI layout tests; existing Zig module unchanged
    and still passing. Gate: the Zig gameplay tests and the ABI layout gate.
-4. **Editor math.** Rotation/scale gizmo math with world/local/pivot and negative-scale rules, and
+4. ✅ **Editor math.** Rotation/scale gizmo math with world/local/pivot and negative-scale rules, and
    multi-selection pivots. Gate: deterministic tests plus a documented decision table.
 5. **Docs and status.** Update contract READMEs and the bilingual roadmap/README text. The graphical
    Editor remains unaccepted.

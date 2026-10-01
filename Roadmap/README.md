@@ -26,8 +26,8 @@ updated together and remain evidence-based.
 | ✅ ADR-0001: Editor UI Framework | **Accepted** | [ADR-0001: Editor UI Framework](en/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui Integration Plan | **In progress; no WP exit gate accepted** | [Editor ED-M0 Dear ImGui Integration Plan](en/Editor_ImGui_Integration_Plan.md) |
 | V2-M3 GPU-Driven Native Execution Plan | **In progress; ✅ Phase 1a and Metal source slice complete** | [V2-M3 GPU-Driven Native Execution Plan](en/V2-M3_GPU_Driven_Native_Execution_Plan.md) |
-| Transform Rotation and Scale Plan | **Approved; phase 1+2 (data model and persistence) in progress, later phases not started** | [Transform Rotation and Scale Plan](en/Transform_Rotation_Scale_Plan.md) |
-| Entity Parenting Plan | **Approved; phase 1 (runtime core and Editor unification) in progress, later phases not started** | [Entity Parenting Plan](en/Entity_Parenting_Plan.md) |
+| Transform Rotation and Scale Plan | **Approved; ✅ phases 1+2 (data model and persistence) and 4 (Editor gizmo math) complete, phase 3 (Zig/C wire) not started** | [Transform Rotation and Scale Plan](en/Transform_Rotation_Scale_Plan.md) |
+| Entity Parenting Plan | **Approved; ✅ phase 1 (runtime core and Editor unification) complete; phase 3 gizmo math done, its Hierarchy/sibling-order work and phases 2 and 4 not started** | [Entity Parenting Plan](en/Entity_Parenting_Plan.md) |
 | Focused Roadmaps AI Plan | **60%** | [AI Implementation Technology and System Plan](en/Focused_Roadmaps_AI_Implementation_Plan.md) |
 
 > `Tools/Migration/ScanV1Project.py` (V1-to-V2 migration audit) and `Tools/Production/NexoraTool.py`
@@ -79,8 +79,8 @@ Roadmap 狀態與 repository root [`README.md`](../README.md) 的進度／狀態
 | ✅ ADR-0001：Editor UI Framework | **Accepted** | [ADR-0001：Editor UI Framework](zh-TW/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui 整合計畫 | **施工中；尚無 WP 通過 exit gate** | [Editor ED-M0 Dear ImGui 整合計畫](zh-TW/Editor_ImGui_Integration_Plan.md) |
 | V2-M3 GPU-Driven Native Execution 計畫 | **施工中；✅ Phase 1a 與 Metal source slice 已完成** | [V2-M3 GPU-Driven Native Execution 計畫](zh-TW/V2-M3_GPU_Driven_Native_Execution_Plan.md) |
-| Transform 旋轉與縮放擴充計畫 | **已核准；階段 1+2（資料模型與持久化）施工中，其餘階段尚未開始** | [Transform 旋轉與縮放擴充計畫](zh-TW/Transform_Rotation_Scale_Plan.md) |
-| Entity Parenting 計畫 | **已核准；階段 1（runtime 核心與 Editor 統一）施工中，其餘階段尚未開始** | [Entity Parenting 計畫](zh-TW/Entity_Parenting_Plan.md) |
+| Transform 旋轉與縮放擴充計畫 | **已核准；✅ 階段 1+2（資料模型與持久化）與 4（Editor gizmo 數學）已完成，階段 3（Zig／C wire）尚未開始** | [Transform 旋轉與縮放擴充計畫](zh-TW/Transform_Rotation_Scale_Plan.md) |
+| Entity Parenting 計畫 | **已核准；✅ 階段 1（runtime 核心與 Editor 統一）已完成；階段 3 的 gizmo 數學已完成，其 Hierarchy／兄弟順序部分與階段 2、4 尚未開始** | [Entity Parenting 計畫](zh-TW/Entity_Parenting_Plan.md) |
 | 聚焦 Roadmap AI 施工規劃 | **60%** | [AI 施工技術與系統規劃](zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) |
 
 > `Tools/Migration/ScanV1Project.py`（V1 到 V2 的 migration 稽核）與 `Tools/Production/NexoraTool.py`

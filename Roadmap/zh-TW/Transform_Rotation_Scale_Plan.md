@@ -1,6 +1,6 @@
 # Transform 旋轉與縮放擴充 — 計畫
 
-> 版本：v1.1｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；階段 1+2 施工中，其餘階段尚未開始**｜更新：2026-10-01｜對應：
+> 版本：v1.2｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 階段 1+2 與 4 已完成；階段 3（Zig／C wire）尚未開始**｜更新：2026-10-01｜對應：
 > `Editor_Roadmap.md` §ED-M2（gizmo）、`Engine_API_Foundation_Roadmap.md`
 
 ## 1. 目的與需要的決定
@@ -84,14 +84,14 @@
 
 ## 6. 階段（每階段以證據結尾，而非宣稱）
 
-1+2. **資料模型與持久化（同一個變更）。**擴充 `Transform` 並給預設值，加入驗證（有限值、非零縮放、
+1+2. ✅ **資料模型與持久化（同一個變更）。**擴充 `Transform` 並給預設值，加入驗證（有限值、非零縮放、
    非退化 quaternion，套用與載入時正規化）、快照 v2 writer 與 v1 reader（決定性往返）、讓「只寫位置」
    的寫入者保留旋轉與縮放，並把惡意輸入案例加入 `editor.parser_robustness`。Gate：
    `linux-development` 與完整功能組態通過；以 `-Werror` 對 Windows 與 macOS 做 Zig 交叉編譯；
    v1 快照仍可載入，並重新存成 v2 形式。
 3. **邊界。**新增有版本的 Zig／C wire component；ABI layout 測試；既有 Zig module 不變且仍通過。
    Gate：Zig gameplay 測試與 ABI layout gate。
-4. **Editor 數學。**旋轉／縮放 gizmo 數學，含 world／local／pivot 與負縮放規則，以及多選 pivot。
+4. ✅ **Editor 數學。**旋轉／縮放 gizmo 數學，含 world／local／pivot 與負縮放規則，以及多選 pivot。
    Gate：決定性測試與書面決策表。
 5. **文件與狀態。**更新 contract README 與雙語 roadmap／README 文字。圖形 Editor 仍為未驗收。
 
