@@ -20,7 +20,9 @@ namespace nexora::runtime {
 [[nodiscard]] NEXORA_RUNTIME_API math::Matrix4
 ToRenderMatrix(const TransformMatrix &matrix) noexcept;
 // A sphere that contains `local` after `matrix`, including under shear: the radius is scaled by
-// the matrix's largest stretch (its spectral norm), not by a per-axis scale.
+// the matrix's largest stretch (its spectral norm), not by a per-axis scale. It bounds what the GPU
+// draws: the float matrix ToRenderMatrix uploads, evaluated in float, so neither coefficient
+// narrowing nor the GPU's rounding can move a drawn point outside it.
 [[nodiscard]] NEXORA_RUNTIME_API math::Sphere TransformBounds(const TransformMatrix &matrix,
                                                               const math::Sphere &local) noexcept;
 
@@ -55,6 +57,14 @@ struct RenderSyncStatistics final {
   std::size_t rejected{};
 };
 
+// One culled scene frame: what the sync changed, what culling kept, and the submitted frame.
+struct CulledSceneFrame final {
+  Id camera{};
+  RenderSyncStatistics sync{};
+  renderer::GPUDrivenStatistics culling{};
+  SceneFrameResult frame{};
+};
+
 // Mirrors the mesh renderers of a World's active scenes into a renderer::GPUScene, one GPU object
 // per entity. Each object's transform is the entity's exact world matrix (World::WorldMatrix), so a
 // child moves with its parent and keeps any shear; the renderer never sees local transforms.
@@ -65,26 +75,35 @@ struct RenderSyncStatistics final {
 // rejected. Visibility and LOD belong to other systems and are left untouched after creation.
 // World matrices are computed once per entity per call, so a call is linear in the entity count.
 //
-// The sync and the GPUScene are externally synchronized, like the GPUScene itself. A sync only
-// ever touches objects it created; destroy and Release() pass `retire_fence` to GPUScene::Destroy.
-// One culled scene frame: what the sync changed, what culling kept, and the submitted frame.
-struct CulledSceneFrame final {
-  Id camera{};
-  RenderSyncStatistics sync{};
-  renderer::GPUDrivenStatistics culling{};
-  SceneFrameResult frame{};
-};
-
+// Ownership: a sync owns exactly the objects it created, in the one GPUScene that holds them.
+// While it owns any, it is bound to that scene (GPU handles carry no scene identity): Sync,
+// RenderFrame, and Release refuse any other scene, and the bound scene must not be moved. Release()
+// destroys them all and unbinds, so the sync can then serve another scene. Destroy and Release pass
+// `retire_fence` to GPUScene::Destroy. A sync cannot be copied or move-assigned, which would
+// duplicate or silently drop that ownership; moving it hands the objects over. Destroying a sync
+// that still owns objects leaves them in the scene, so call Release() first. The sync and the
+// GPUScene are externally synchronized, like the GPUScene itself.
 class NEXORA_RUNTIME_API RenderSceneSync final {
 public:
-  RenderSyncStatistics Sync(const World &world, renderer::GPUScene &scene,
-                            const RenderResourceResolver &resolve, std::uint64_t retire_fence);
-  // Syncs `scene` (always), then renders it through the world's first camera (active scenes and
-  // storage in order) with the frustum and distance culling of renderer::BuildGPUDrivenCommands, so
-  // only the objects that camera can see are submitted. Like RenderSceneFrame, it needs a camera
-  // and a light, and returns nullopt without them, with an unusable camera, or when scene rendering
-  // is compiled out; a frame in which every object is culled still clears its targets. Upload
-  // extraction and GPUScene::CommitFrame stay with the caller that owns the GPU buffers.
+  RenderSceneSync() = default;
+  RenderSceneSync(const RenderSceneSync &) = delete;
+  RenderSceneSync &operator=(const RenderSceneSync &) = delete;
+  // Takes over `other`'s objects and binding; `other` is left empty and unbound.
+  RenderSceneSync(RenderSceneSync &&other) noexcept;
+  RenderSceneSync &operator=(RenderSceneSync &&) = delete;
+  ~RenderSceneSync() = default;
+
+  // nullopt, with nothing changed, when `scene` is not the scene this sync's objects live in.
+  std::optional<RenderSyncStatistics> Sync(const World &world, renderer::GPUScene &scene,
+                                           const RenderResourceResolver &resolve,
+                                           std::uint64_t retire_fence);
+  // Syncs `scene`, then renders it through the world's first camera (active scenes and storage in
+  // order) with the frustum and distance culling of renderer::BuildGPUDrivenCommands, so only the
+  // objects that camera can see are submitted. Like RenderSceneFrame, it needs a camera and a
+  // light, and returns nullopt without them, with an unusable camera, for a scene the sync is not
+  // bound to, or when scene rendering is compiled out (the sync still runs then); a frame in which
+  // every object is culled still clears its targets. Upload extraction and GPUScene::CommitFrame
+  // stay with the caller that owns the GPU buffers.
   std::optional<CulledSceneFrame>
   RenderFrame(const World &world, renderer::GPUScene &scene, const RenderResourceResolver &resolve,
               std::uint64_t retire_fence, rhi::Device &device, rhi::TextureHandle target,
@@ -92,8 +111,9 @@ public:
   // The GPU object mirroring `entity`, if any.
   [[nodiscard]] std::optional<renderer::GPUObjectHandle> Handle(Id entity) const;
   [[nodiscard]] std::size_t ObjectCount() const noexcept { return objects_.size(); }
-  // Destroys every object this sync created.
-  void Release(renderer::GPUScene &scene, std::uint64_t retire_fence);
+  // Destroys every object this sync created and unbinds it. false, with nothing destroyed, when
+  // `scene` is not the scene those objects live in.
+  bool Release(renderer::GPUScene &scene, std::uint64_t retire_fence);
 
 private:
   struct Mirror final {
@@ -101,6 +121,8 @@ private:
     renderer::GPUObjectDescriptor descriptor{};
   };
   std::unordered_map<Id, Mirror> objects_;
+  // The scene holding objects_, or null when the sync owns nothing.
+  const renderer::GPUScene *scene_{};
 };
 
 } // namespace nexora::runtime

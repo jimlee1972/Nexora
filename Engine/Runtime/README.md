@@ -296,8 +296,11 @@ mesh renderers of a `World`'s active scenes into a `renderer::GPUScene`, one GPU
 
 - Each object's transform is the entity's exact `WorldMatrix`, converted by `ToRenderMatrix` to the
   renderer's (row, column) `math::Matrix4`, so shear under non-uniformly scaled parents survives.
-  `TransformBounds` scales the mesh's local sphere by the matrix's spectral norm (its largest
-  stretch) and rounds up, so the bounds stay conservative under shear and float narrowing.
+  `TransformBounds` bounds what the GPU actually draws: it applies the uploaded float matrix,
+  scales the mesh's local sphere by that matrix's spectral norm (its largest stretch), and pads the
+  radius by the worst-case float evaluation error of the shader's sums, so the bounds stay
+  conservative under shear, coefficient narrowing, and large translations that cancel a far-off
+  mesh center.
 - The caller's `RenderResourceResolver` maps a `MeshComponent` to resource indices and local bounds;
   returning nullopt (an asset that is not resident) keeps the entity out of the GPU scene.
 - `Sync` creates objects for new mesh renderers, writes only the transform, bounds, or resources that
@@ -306,12 +309,18 @@ mesh renderers of a `World`'s active scenes into a `renderer::GPUScene`, one GPU
   that overflows float, or a parent cycle written directly into `Entity::parent`). Visibility and
   LOD belong to other systems and are never overwritten after creation. An object destroyed behind
   the sync's back is mirrored again.
-- World matrices are memoized per call (bit-identical to `WorldMatrix`), so a sync is linear in the
-  entity count even on deep chains. Destruction runs in entity-id order, keeping GPU slot reuse
+- World matrices are memoized per call (bit-identical to `WorldMatrix`), and entities found on a
+  broken (cyclic) chain are remembered as such, so a sync is linear in the entity count even on deep
+  chains or a large corrupted cycle. Destruction runs in entity-id order, keeping GPU slot reuse
   deterministic.
 - Ownership and threading: the sync owns only the objects it created and hands `retire_fence` to
-  `GPUScene::Destroy`; `Release` destroys them all. The sync, the `World`, and the `GPUScene` are
-  externally synchronized on one thread, like the `GPUScene` itself.
+  `GPUScene::Destroy`. GPU handles carry no scene identity, so while a sync owns objects it is bound
+  to the one `GPUScene` holding them: `Sync`, `RenderFrame`, and `Release` refuse any other scene
+  (nullopt or `false`, with nothing touched), and the bound scene must not be moved. `Release`
+  destroys every object and unbinds. The sync cannot be copied or move-assigned (either would
+  duplicate or silently drop ownership); move construction hands the objects over. Destroying a
+  sync that still owns objects leaves them in the scene, so release it first. The sync, the
+  `World`, and the `GPUScene` are externally synchronized on one thread, like the `GPUScene` itself.
 - `CameraView` builds a camera entity's view the way Unity's Camera does: from its exact world
   matrix, so a camera under a moving or turning parent follows it, with scale ignored (the matrix's
   Z and Y axes are orthonormalized, keeping the basis right-handed even under a mirroring parent).
@@ -327,7 +336,8 @@ mesh renderers of a `World`'s active scenes into a `renderer::GPUScene`, one GPU
   `RenderSceneFrame`, whose evidence counts every mesh renderer.
 
 Limits: `PlaySession` apply-back copies transforms only and reports a conflict for an entity whose
-parent changed during play; rendering and physics do not consume entity transforms yet.
+parent changed during play; physics does not consume entity transforms yet (rendering does, through
+`RenderSceneSync`).
 
 Gameplay modules reach the hierarchy through component wires in `nexora/nexora.h`, read and written
 with `read_component`/`write_component`:
