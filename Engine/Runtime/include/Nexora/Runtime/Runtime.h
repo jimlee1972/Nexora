@@ -54,6 +54,9 @@ NormalizedTransform(Transform transform) noexcept;
 // Column-major 4x4 affine matrix (translation * rotation * scale), double precision.
 using TransformMatrix = std::array<double, 16>;
 [[nodiscard]] NEXORA_RUNTIME_API TransformMatrix ToMatrix(const Transform &transform) noexcept;
+// `a * b` (b applied first). World matrices are products in root-to-leaf order.
+[[nodiscard]] NEXORA_RUNTIME_API TransformMatrix
+MultiplyMatrices(const TransformMatrix &a, const TransformMatrix &b) noexcept;
 // `child` expressed in `parent`'s space, composed into one transform. Exact unless the parent has a
 // non-uniform scale and the child is rotated: that produces shear, which a transform cannot hold,
 // so the result keeps the component-wise product of the scales (Unity's `lossyScale` behaves the
@@ -136,6 +139,7 @@ private:
   friend class WorldCommandBuffer;
   friend class SceneEditor;
   friend class PlaySession;
+  friend class RenderSceneSync;
   friend NEXORA_RUNTIME_API std::optional<SceneFrameResult>
   RenderSceneFrame(const World &, rhi::Device &, rhi::TextureHandle, const rhi::TextureDescriptor &,
                    rhi::PipelineHandle);

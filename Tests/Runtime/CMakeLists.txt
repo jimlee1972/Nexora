@@ -24,6 +24,11 @@ target_link_libraries(NexoraParentingTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraParentingTests)
 add_test(NAME runtime.entity_parenting COMMAND NexoraParentingTests)
 
+add_executable(NexoraRenderSyncTests RenderSyncTests.cpp)
+target_link_libraries(NexoraRenderSyncTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraRenderSyncTests)
+add_test(NAME runtime.render_sync COMMAND NexoraRenderSyncTests)
+
 add_executable(NexoraGameplayHostBridgeTests GameplayHostBridgeTests.cpp)
 target_link_libraries(NexoraGameplayHostBridgeTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraGameplayHostBridgeTests)
