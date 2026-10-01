@@ -9,6 +9,11 @@ private presentation path.
 NexoraEditor --project=/path/to/project --report=editor-report.json
 ```
 
+The default open is read-write and owns the project's single writer lease until process shutdown.
+Use `--read-only` for an explicit observer; it validates existing asset identity sidecars and never
+upgrades or writes project-owned files. `--recent-projects=PATH` overrides the user-level recent
+project store for isolated automation.
+
 This command is a headless workflow/evidence entry point, not the graphical acceptance gate. The
 native docking host and visual Scene/Game views must use the public Window and Presentation
 contracts when implemented.
@@ -36,8 +41,11 @@ Rename/move/delete operate through a recoverable project-content filesystem tran
 project-local trash and one-step undo. The real project index creates or validates sibling
 `<asset>.meta` identity records; filesystem mutations move those records with their source,
 preserving UUID and artifact identity across rename, move, undo, and process reopen. It does not
-create a validation-device offscreen target or a full-frame CPU RGBA image.
+create a validation-device offscreen target or a full-frame CPU RGBA image. The docked Project panel
+shows the stable project UUID, schema and upgrade result, access mode, canonical root, and bounded
+recent-project list. Schema-1 projects upgrade atomically to schema 2 only while holding the writer
+lease; a read-only legacy open reports that an upgrade is required.
 
-This is an ED-M1 graphical foundation, not ED-M1 acceptance. Project upgrade/locking/recent-project
-UX, cancellable background import and reimport, dirty external-change decisions, and a target-host
+This is an ED-M1 graphical foundation, not ED-M1 acceptance. A graphical create/open selector,
+cancellable background import and reimport, dirty external-change decisions, and a target-host
 fresh-project workflow remain open.

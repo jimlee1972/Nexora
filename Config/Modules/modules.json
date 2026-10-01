@@ -88,6 +88,7 @@
       "name": "Editor",
       "feature": "NEXORA_ENABLE_EDITOR",
       "dependencies": [
+        "Foundation",
         "Runtime"
       ]
     },

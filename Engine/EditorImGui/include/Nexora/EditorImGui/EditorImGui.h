@@ -50,7 +50,8 @@ public:
   void BeginFrame(float delta_seconds = 1.0F / 60.0F);
   void DrawProductShell(ProductShell &shell, SceneDocument *scene = nullptr,
                         ProjectWorkspace *workspace = nullptr,
-                        ProjectContentSession *content = nullptr);
+                        ProjectContentSession *content = nullptr,
+                        RecentProjectStore *recent_projects = nullptr);
   [[nodiscard]] FrameMetrics EndFrame();
   // The validation/offscreen renderer retains its pipeline, font texture, and geometrically sized
   // upload buffers. ReleaseRenderer must be called before the supplied Device is destroyed.

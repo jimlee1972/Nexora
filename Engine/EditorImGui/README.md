@@ -3,8 +3,10 @@
 `NexoraEditorImGui` is an optional UI-host module. It owns the Dear ImGui context, translates
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
 and presents panels using the stable IDs owned by `NexoraEditorCore`. On the first frame it builds
-the default workspace with Hierarchy on the left, Console and Content along the bottom, and an open
-center area for the upcoming Scene/Game views.
+the default workspace with Project and Hierarchy on the left, Console and Content along the bottom,
+and an open center area for the upcoming Scene/Game views. Hierarchy and Content are selected
+deterministically after their dock nodes settle, so adding a sibling tab cannot hide the primary
+authoring views on first launch.
 
 ## Ownership and lifetime
 
@@ -19,6 +21,11 @@ center area for the upcoming Scene/Game views.
   Breadcrumb and folder drop targets validate the payload, project generation, destination, and
   write permission before the session mutates anything. Dependency rows resolve IDs only while the
   panel is drawing.
+- `ProjectWorkspace` and `RecentProjectStore` are borrowed for the frame. The Project panel exposes
+  project name, stable UUID, canonical root, descriptor schema, read-write/read-only access,
+  applied/required upgrade state, and the bounded recent-project list. It never acquires a lock,
+  upgrades a descriptor, or writes recent state; the application completes those operations before
+  drawing.
 - The host does not own a native window or swapchain. The application supplies events exposed by
   `RenderSurface::Events`; the native `Render` overload flattens ImGui draw lists into the public
   backend-neutral `UiDrawData` contract. `RenderSurface` records those indexed draws directly into
@@ -42,12 +49,14 @@ center area for the upcoming Scene/Game views.
 
 ## Threading and errors
 
-All methods are serialized and run on the Window owner thread. Content mutation errors remain on the
-session and are shown in the panel; the UI does not optimistically update around a failed filesystem
-transaction. Invalid display dimensions and delta times are clamped to safe values. The Window
-abstraction owns native IME candidate-window positioning; unsupported hosts report that result
-explicitly. Target-host visual acceptance remains a release-runner responsibility. Background
-import progress/cancellation and external dirty-conflict dialogs remain deferred ED-M1 work.
+All methods are serialized and run on the Window owner thread. Project access/upgrade state is a
+snapshot borrowed from Editor Core; read-only state disables project-owned writes in the data layer,
+not merely in widgets. Content mutation errors remain on the session and are shown in the panel; the
+UI does not optimistically update around a failed filesystem transaction. Invalid display
+dimensions and delta times are clamped to safe values. The Window abstraction owns native IME
+candidate-window positioning; unsupported hosts report that result explicitly. Target-host visual
+acceptance remains a release-runner responsibility. A graphical create/open selector, background
+import progress/cancellation, and external dirty-conflict dialogs remain deferred ED-M1 work.
 
 Window backends normalize navigation, editing, punctuation, keypad, function, alphanumeric, and
 left/right modifier keys before events reach the host. Each key event carries the complete

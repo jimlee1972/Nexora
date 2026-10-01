@@ -22,6 +22,9 @@ struct EditorImGuiTestState final {
   std::uint32_t content_selection = 0;
   std::uint32_t content_forward_dependencies = 0;
   std::uint32_t content_reverse_dependencies = 0;
+  bool project_writable = false;
+  bool project_upgrade_required = false;
+  std::uint32_t recent_projects = 0;
 };
 
 class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {

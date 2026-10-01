@@ -57,6 +57,8 @@ ThumbnailState ThumbnailFor(ImportState state) {
 bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetWorkspace &assets,
                                  std::uint64_t project_generation, bool writable,
                                  std::string *error) {
+  if (writable && !workspace.Writable())
+    return Fail("a read-only project workspace cannot open writable content", error);
   std::error_code ec;
   const auto root = std::filesystem::canonical(workspace.Root(), ec);
   if (ec || !std::filesystem::is_directory(root, ec))

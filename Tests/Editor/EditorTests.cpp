@@ -43,15 +43,90 @@ int Run() {
               !shell.RouteCommand("game.save"),
           "command routing failed");
 
-  editor::ProjectWorkspace project;
   std::string error;
-  Require(project.Create(root, "Preview", &error), "project creation failed");
   const std::vector<std::string> documents{"Content/Main.scene", "Content/Hero.prefab"};
-  Require(project.SaveWorkspace(documents, &error), "workspace save failed");
+  foundation::Uuid project_id;
+  const auto recent_path = root / ".nexora/test-recent-projects";
+  {
+    editor::ProjectWorkspace project;
+    Require(project.Create(root, "Preview", &error) && project.Writable() &&
+                project.Project().schema_version == editor::ProjectDescriptor::kSchemaVersion &&
+                !project.Project().id.IsNil(),
+            "project creation did not establish the current writable descriptor");
+    project_id = project.Project().id;
+    Require(project.SaveWorkspace(documents, &error), "workspace save failed");
+
+    editor::ProjectWorkspace contender;
+    Require(!contender.Open(root, &error) &&
+                error.starts_with("project is already open for writing"),
+            "a second writer acquired the project lock");
+    editor::ProjectWorkspace observer;
+    Require(observer.Open(root, editor::ProjectAccess::ReadOnly, &error) && !observer.Writable() &&
+                observer.Project().id == project_id && !observer.SaveWorkspace(documents, &error) &&
+                !error.empty(),
+            "read-only project access was not isolated from the writer");
+
+    editor::RecentProjectStore recents;
+    Require(recents.Open(recent_path, &error) && recents.Record(project, &error) &&
+                recents.Record(observer, &error) && recents.Entries().size() == 1 &&
+                recents.Entries().front().id == project_id,
+            "recent-project persistence did not deduplicate the current project");
+    editor::RecentProjectStore reopened_recents;
+    Require(reopened_recents.Open(recent_path, &error) && reopened_recents.Entries().size() == 1 &&
+                reopened_recents.Entries().front().root == project.Root(),
+            "recent-project state did not survive reopen");
+  }
   editor::ProjectWorkspace reopened;
   Require(reopened.Open(root, &error) && reopened.Project().name == "Preview" &&
-              reopened.OpenDocuments().size() == 2,
+              reopened.Project().id == project_id && reopened.OpenDocuments().size() == 2,
           "project open failed");
+
+  const auto legacy_root = root / "LegacyProject";
+  fs::create_directories(legacy_root / "Content");
+  fs::create_directories(legacy_root / ".nexora");
+  std::ofstream(legacy_root / "project.nexora") << "schema=1\nname=Legacy\n";
+  std::ofstream(legacy_root / ".nexora/workspace") << "schema=1\n";
+  foundation::Uuid legacy_id;
+  {
+    editor::ProjectWorkspace legacy_read_only;
+    Require(legacy_read_only.Open(legacy_root, editor::ProjectAccess::ReadOnly, &error) &&
+                legacy_read_only.UpgradeState() == editor::ProjectUpgradeState::Required &&
+                legacy_read_only.Project().schema_version == 1 &&
+                !legacy_read_only.Project().id.IsNil(),
+            "legacy read-only project did not expose the required upgrade");
+    legacy_id = legacy_read_only.Project().id;
+    std::ifstream descriptor(legacy_root / "project.nexora");
+    std::string schema;
+    Require(std::getline(descriptor, schema) && schema == "schema=1",
+            "read-only project open changed the legacy descriptor");
+  }
+  {
+    editor::ProjectWorkspace legacy_writer;
+    Require(legacy_writer.Open(legacy_root, &error) &&
+                legacy_writer.UpgradeState() == editor::ProjectUpgradeState::Applied &&
+                legacy_writer.Project().schema_version ==
+                    editor::ProjectDescriptor::kSchemaVersion &&
+                legacy_writer.Project().id == legacy_id,
+            "legacy project was not atomically upgraded with stable identity");
+    std::ifstream descriptor(legacy_root / "project.nexora");
+    std::string schema;
+    Require(std::getline(descriptor, schema) && schema == "schema=2",
+            "upgraded project descriptor was not persisted");
+  }
+  const auto invalid_legacy_root = root / "InvalidLegacyProject";
+  fs::create_directories(invalid_legacy_root / "Content");
+  fs::create_directories(invalid_legacy_root / ".nexora");
+  std::ofstream(invalid_legacy_root / "project.nexora") << "schema=1\nname=Invalid Legacy\n";
+  std::ofstream(invalid_legacy_root / ".nexora/workspace") << "schema=999\n";
+  editor::ProjectWorkspace invalid_legacy;
+  Require(!invalid_legacy.Open(invalid_legacy_root, &error) && !error.empty(),
+          "legacy project with an invalid workspace was opened");
+  {
+    std::ifstream descriptor(invalid_legacy_root / "project.nexora");
+    std::string schema;
+    Require(std::getline(descriptor, schema) && schema == "schema=1",
+            "failed project preflight changed the legacy descriptor");
+  }
   {
     std::ofstream recovery(root / ".nexora/workspace.recovery", std::ios::trunc);
     recovery << "schema=1\ndocument=Content/Recovered.scene\n";
@@ -182,8 +257,15 @@ int Run() {
               reopened_assets.Find(indexed_mesh)->artifact_hash ==
                   content_session.Browser().Find(indexed_mesh)->artifact_hash,
           "asset UUID or artifact identity did not survive move/reimport/undo/reopen");
+  editor::ProjectWorkspace read_only_workspace;
+  Require(read_only_workspace.Open(root, editor::ProjectAccess::ReadOnly, &error),
+          "read-only observer could not open the writer-owned project");
+  editor::ProjectContentSession invalid_writable_content;
+  Require(!invalid_writable_content.Open(read_only_workspace, reopened_assets, 12, true, &error) &&
+              !error.empty(),
+          "read-only workspace opened writable project content");
   editor::ProjectContentSession read_only_content;
-  Require(read_only_content.Open(reopened, reopened_assets, 12, false, &error) &&
+  Require(read_only_content.Open(read_only_workspace, reopened_assets, 12, false, &error) &&
               !read_only_content.Rename(indexed_mesh, "Blocked.mesh", &error) &&
               fs::is_regular_file(root / "Content/Hero.mesh") && !error.empty(),
           "read-only project content accepted a mutation");

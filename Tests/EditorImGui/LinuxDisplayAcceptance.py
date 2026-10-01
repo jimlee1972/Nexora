@@ -62,8 +62,22 @@ def wait_for_window(xdotool: str, environment: dict[str, str]) -> str:
     raise RuntimeError("Nexora Editor window did not appear")
 
 
-def launch(editor: str, root: Path, environment: dict[str, str], frames: int = 0):
-    command = [editor, f"--project={root}", "--graphical"]
+def launch(
+    editor: str,
+    root: Path,
+    recent_projects: Path,
+    environment: dict[str, str],
+    frames: int = 0,
+    read_only: bool = False,
+):
+    command = [
+        editor,
+        f"--project={root}",
+        f"--recent-projects={recent_projects}",
+        "--graphical",
+    ]
+    if read_only:
+        command.append("--read-only")
     if frames:
         command.append(f"--frames={frames}")
     return subprocess.Popen(
@@ -106,6 +120,8 @@ def main() -> int:
     parser.add_argument("--xdotool", required=True)
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix="nexora-display-acceptance-"))
+    user_state = Path(tempfile.mkdtemp(prefix="nexora-editor-user-state-"))
+    recent_projects = user_state / "recent-projects"
     xvfb, display = start_xvfb(args.xvfb, "1600x900x24")
     environment = os.environ.copy()
     editor = None
@@ -120,8 +136,23 @@ def main() -> int:
         identity_sidecar = Path(str(source_asset) + ".meta")
         (root / "project.nexora").write_text("schema=1\nname=Display Acceptance\n")
         (root / ".nexora/workspace").write_text("schema=1\n")
-        editor = launch(args.editor, root, environment)
+        editor = launch(args.editor, root, recent_projects, environment)
         window = wait_for_window(args.xdotool, environment)
+
+        # The live Editor owns the only writer lease. A second writer must fail with an actionable
+        # diagnostic, while an explicit read-only process can render the same project without
+        # mutating project-owned state.
+        contender = launch(args.editor, root, recent_projects, environment, frames=8)
+        _, contender_stderr = contender.communicate(timeout=30)
+        if contender.returncode == 0 or "project is already open for writing" not in contender_stderr:
+            raise RuntimeError(f"second writer was not rejected: {contender_stderr}")
+        observer = launch(
+            args.editor, root, recent_projects, environment, frames=8, read_only=True
+        )
+        _, observer_stderr = observer.communicate(timeout=30)
+        if observer.returncode != 0 or "access=read-only" not in observer_stderr:
+            raise RuntimeError(f"read-only graphical open failed: {observer_stderr}")
+
         subprocess.run([args.xdotool, "windowfocus", window], env=environment, check=True)
         subprocess.run([args.xdotool, "windowsize", window, "1024", "640"], env=environment,
                        check=True)
@@ -135,6 +166,15 @@ def main() -> int:
         if editor.returncode != 0 or "graphical evidence:" not in stderr:
             raise RuntimeError(f"close-event shutdown failed: {stderr}")
         editor = None
+        project_descriptor = (root / "project.nexora").read_text()
+        if not re.fullmatch(
+            r"schema=2\nuuid=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+            r"[0-9a-f]{4}-[0-9a-f]{12}\nname=Display Acceptance\n",
+            project_descriptor,
+        ):
+            raise RuntimeError(f"legacy project was not upgraded canonically: {project_descriptor!r}")
+        if not recent_projects.is_file() or "Display Acceptance" not in recent_projects.read_text():
+            raise RuntimeError("the opened project was not persisted in recent-project state")
         if not identity_sidecar.is_file():
             raise RuntimeError("first Editor launch did not create an asset identity sidecar")
         identity_text = identity_sidecar.read_text()
@@ -148,7 +188,7 @@ def main() -> int:
         # A corrupt project-owned layout is rejected without preventing startup. The bounded
         # run replaces it with the current schema after the default dock layout is rebuilt.
         (root / ".nexora/editor-layout.ini").write_text("schema=999\ncorrupt\n")
-        editor = launch(args.editor, root, environment, frames=8)
+        editor = launch(args.editor, root, recent_projects, environment, frames=8)
         _, stderr = editor.communicate(timeout=30)
         if editor.returncode != 0 or "invalid or unsupported editor layout" not in stderr:
             raise RuntimeError(f"corrupt-layout recovery failed: {stderr}")
@@ -159,7 +199,7 @@ def main() -> int:
         # The legacy schema remains readable and is migrated by the normal shutdown save.
         current_layout = (root / ".nexora/editor-layout.ini").read_text().split("\n", 1)[1]
         (root / ".nexora/editor-layout.ini").write_text("schema=0\n" + current_layout)
-        editor = launch(args.editor, root, environment, frames=8)
+        editor = launch(args.editor, root, recent_projects, environment, frames=8)
         _, stderr = editor.communicate(timeout=30)
         if editor.returncode != 0 or "graphical evidence:" not in stderr:
             raise RuntimeError(f"layout migration run failed: {stderr}")
@@ -172,7 +212,7 @@ def main() -> int:
         (root / ".nexora/workspace.recovery").write_text(
             "schema=1\ndocument=Recovered.scene\n"
         )
-        editor = launch(args.editor, root, environment, frames=600)
+        editor = launch(args.editor, root, recent_projects, environment, frames=600)
         finish_recovery_choice(
             editor, args.xdotool, environment, ["key", "Tab", "key", "Return"], "recover"
         )
@@ -188,7 +228,7 @@ def main() -> int:
         (root / ".nexora/workspace.recovery").write_text(
             "schema=1\ndocument=Discarded.scene\n"
         )
-        editor = launch(args.editor, root, environment, frames=600)
+        editor = launch(args.editor, root, recent_projects, environment, frames=600)
         finish_recovery_choice(
             editor,
             args.xdotool,
@@ -215,6 +255,7 @@ def main() -> int:
         xvfb.terminate()
         xvfb.wait(timeout=5)
         shutil.rmtree(root, ignore_errors=True)
+        shutil.rmtree(user_state, ignore_errors=True)
 
 
 if __name__ == "__main__":

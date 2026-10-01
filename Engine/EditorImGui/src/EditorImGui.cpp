@@ -62,6 +62,7 @@ struct EditorImGuiHost::State final {
   RecoveryChoice recovery_choice = RecoveryChoice::None;
   bool recovery_prompt_opened = false;
   bool initial_dock_layout_built = false;
+  bool focus_initial_content = false;
   std::string recovery_error;
   std::array<char, 128> content_query{};
   std::array<char, 64> content_type{};
@@ -72,6 +73,9 @@ struct EditorImGuiHost::State final {
   std::uint32_t content_selection = 0;
   std::uint32_t content_forward_dependencies = 0;
   std::uint32_t content_reverse_dependencies = 0;
+  bool project_writable = false;
+  bool project_upgrade_required = false;
+  std::uint32_t recent_projects = 0;
 
   static void SetImeData(ImGuiContext *context, ImGuiViewport *, ImGuiPlatformImeData *data) {
     ImGui::SetCurrentContext(context);
@@ -119,6 +123,15 @@ std::string PanelWindowName(std::string_view id) {
   return std::string(panel->title) + "###" + std::string(panel->id);
 }
 
+std::string PathLabel(const std::filesystem::path &path) {
+  const auto encoded = path.generic_u8string();
+  std::string result;
+  result.reserve(encoded.size());
+  for (const char8_t byte : encoded)
+    result.push_back(static_cast<char>(byte));
+  return result;
+}
+
 void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
   ImGui::DockBuilderRemoveNode(dockspace);
   // ImGuiDockNodeFlags_DockSpace is ImGuiDockNodeFlagsPrivate_, a different enum type from the
@@ -135,10 +148,21 @@ void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
       ImGui::DockBuilderSplitNode(center, ImGuiDir_Left, 0.22F, nullptr, &center);
   const ImGuiID console =
       ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.25F, nullptr, &center);
-  ImGui::DockBuilderDockWindow(PanelWindowName("nexora.hierarchy").c_str(), hierarchy);
-  ImGui::DockBuilderDockWindow(PanelWindowName("nexora.console").c_str(), console);
-  ImGui::DockBuilderDockWindow(PanelWindowName("nexora.content").c_str(), console);
+  const auto project_window = PanelWindowName("nexora.project");
+  const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
+  const auto console_window = PanelWindowName("nexora.console");
+  const auto content_window = PanelWindowName("nexora.content");
+  ImGui::DockBuilderDockWindow(project_window.c_str(), hierarchy);
+  ImGui::DockBuilderDockWindow(hierarchy_window.c_str(), hierarchy);
+  ImGui::DockBuilderDockWindow(console_window.c_str(), console);
+  ImGui::DockBuilderDockWindow(content_window.c_str(), console);
   ImGui::DockBuilderFinish(dockspace);
+  // DockBuilderFinish binds existing windows and may replace the pre-finish selection. Set the
+  // selected tabs after that bind so first-frame submission order cannot hide authoring views.
+  if (auto *node = ImGui::DockBuilderGetNode(hierarchy))
+    node->SelectedTabId = ImHashStr(hierarchy_window.c_str());
+  if (auto *node = ImGui::DockBuilderGetNode(console))
+    node->SelectedTabId = ImHashStr(content_window.c_str());
 }
 
 struct AssetDragData final {
@@ -171,6 +195,54 @@ bool AcceptAssetDrop(ProjectContentSession &content, const std::filesystem::path
   }
   ImGui::EndDragDropTarget();
   return moved;
+}
+
+template <typename StateT>
+void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
+                      const RecentProjectStore *recent_projects) {
+  state.project_writable = workspace != nullptr && workspace->Writable();
+  state.project_upgrade_required =
+      workspace != nullptr && workspace->UpgradeState() == ProjectUpgradeState::Required;
+  state.recent_projects =
+      recent_projects == nullptr
+          ? 0
+          : static_cast<std::uint32_t>(std::min<std::size_t>(
+                recent_projects->Entries().size(), std::numeric_limits<std::uint32_t>::max()));
+
+  const auto window = PanelWindowName("nexora.project");
+  if (!ImGui::Begin(window.c_str())) {
+    ImGui::End();
+    return;
+  }
+  if (workspace == nullptr) {
+    ImGui::TextUnformatted("No project is open.");
+  } else {
+    ImGui::Text("Name: %s", workspace->Project().name.c_str());
+    ImGui::Text("UUID: %s", workspace->Project().id.ToString().c_str());
+    ImGui::Text("Root: %s", PathLabel(workspace->Root()).c_str());
+    ImGui::Text("Schema: %u / %u", workspace->Project().schema_version,
+                ProjectDescriptor::kSchemaVersion);
+    ImGui::TextColored(workspace->Writable() ? ImVec4(0.45F, 0.85F, 0.45F, 1.0F)
+                                             : ImVec4(1.0F, 0.75F, 0.3F, 1.0F),
+                       "Access: %s", workspace->Writable() ? "Read-write" : "Read-only");
+    if (workspace->UpgradeState() == ProjectUpgradeState::Applied)
+      ImGui::TextUnformatted("Project descriptor upgraded during this session.");
+    else if (workspace->UpgradeState() == ProjectUpgradeState::Required)
+      ImGui::TextWrapped(
+          "This legacy project is open read-only. Reopen it for writing to upgrade safely.");
+  }
+
+  ImGui::SeparatorText("Recent projects");
+  if (recent_projects == nullptr || recent_projects->Entries().empty()) {
+    ImGui::TextUnformatted("No recent projects.");
+  } else {
+    for (const auto &recent : recent_projects->Entries()) {
+      ImGui::BulletText("%s", recent.name.c_str());
+      ImGui::SameLine();
+      ImGui::TextDisabled("%s", PathLabel(recent.root).c_str());
+    }
+  }
+  ImGui::End();
 }
 
 template <typename StateT> void DrawContentBrowser(StateT &state, ProjectContentSession &content) {
@@ -506,8 +578,8 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
 }
 
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
-                                       ProjectWorkspace *workspace,
-                                       ProjectContentSession *content) {
+                                       ProjectWorkspace *workspace, ProjectContentSession *content,
+                                       RecentProjectStore *recent_projects) {
   Activate(state_->context);
   if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal))
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
@@ -517,6 +589,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (!state_->initial_dock_layout_built) {
     BuildInitialDockLayout(dockspace, *viewport);
     state_->initial_dock_layout_built = true;
+    state_->focus_initial_content = true;
   }
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
   if (ImGui::Begin(hierarchy_window.c_str())) {
@@ -542,6 +615,18 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   ImGui::End();
   if (content != nullptr)
     DrawContentBrowser(*state_, *content);
+  DrawProjectPanel(*state_, workspace, recent_projects);
+  if (state_->focus_initial_content) {
+    const auto content_window_name = PanelWindowName("nexora.content");
+    auto *content_window = ImGui::FindWindowByName(content_window_name.c_str());
+    if (content_window != nullptr && content_window->DockNode != nullptr &&
+        content_window->DockNode->TabBar != nullptr) {
+      content_window->DockNode->SelectedTabId = content_window->TabId;
+      content_window->DockNode->TabBar->SelectedTabId = content_window->TabId;
+      content_window->DockNode->TabBar->NextSelectedTabId = content_window->TabId;
+      state_->focus_initial_content = false;
+    }
+  }
 
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
   if (recovery_available && !state_->recovery_prompt_opened) {
@@ -910,7 +995,10 @@ EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host)
           host.state_->content_visible_folders,
           host.state_->content_selection,
           host.state_->content_forward_dependencies,
-          host.state_->content_reverse_dependencies};
+          host.state_->content_reverse_dependencies,
+          host.state_->project_writable,
+          host.state_->project_upgrade_required,
+          host.state_->recent_projects};
 }
 
 void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept {

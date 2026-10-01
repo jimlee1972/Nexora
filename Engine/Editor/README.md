@@ -39,10 +39,21 @@ into renderer or platform internals.
 
 ## Ownership and lifetime
 
-- `ProjectWorkspace` owns its descriptor and open-document list; files are atomically replaced, a
-  recovery journal is written before the primary workspace file, and successful save/recovery
-  removes that journal. The UI may query and explicitly discard a pending journal. Versioned Editor
-  layout payloads are persisted separately and never use Dear ImGui's unmanaged global ini file.
+- `ProjectWorkspace` owns its descriptor, stable project UUID, open-document list, and (for
+  read-write access) one OS-held writer lease on `.nexora/editor.lock`. A second writer fails with
+  the owning process ID while any number of explicit read-only observers may coexist. The lock file
+  is metadata, not the lease: the kernel releases the actual lock on normal close or process death.
+  Schema-1 descriptors remain readable; a read-write open atomically upgrades them to schema 2 and
+  persists their derived UUID, while a read-only open reports `Required` without changing the
+  project. All project-owned writes reject read-only workspaces. Workspace files are atomically
+  replaced, a recovery journal is written before the primary workspace file, and successful
+  save/recovery removes that journal. The UI may query and explicitly discard a pending journal.
+  Versioned Editor layout payloads are persisted separately and never use Dear ImGui's unmanaged
+  global ini file.
+- `RecentProjectStore` owns user-level, schema-versioned recent-project state separately from the
+  project. Entries are keyed by project UUID, deduplicated by UUID or canonical root, bounded to 12,
+  and atomically replaced. The application chooses its storage path; read-only project access does
+  not grant writes to project-owned files.
 - `AssetWorkspace` owns index entries. Pointers returned by `Find` and `Search` are borrowed until
   the next successful `ImportTree` call or destruction. The Editor executable uses
   `PersistentReadWrite`: every source asset has a sibling `<asset>.meta` with schema, UUID, and
@@ -101,15 +112,18 @@ into renderer or platform internals.
 
 ## Threading, errors, and deferred work
 
-The current API is serialized and synchronous. `ProjectContentSession` mutation and reimport calls
-run on the authoring thread. A multi-file rename failure rolls already-moved files back before
-returning an actionable error; failed reimport leaves the active artifact unchanged. Callers may run
-content indexing on a worker, but must not call the same workspace concurrently. Long imports report
-progress and observe a cancellation callback between files. Failed/cancelled entries remain
-inspectable and never replace an existing artifact implicitly. The current graphical reimport path
-is synchronous; cancellable staged worker execution and dirty-conflict presentation remain ED-M1
-work. Functions report expected failures with `false`, optional values, or per-entry error text;
-filesystem exceptions are converted to error results where applicable.
+The current API is serialized and synchronous. Project create/open/upgrade, recent-project mutation,
+workspace/layout writes, and `ProjectContentSession` mutation and reimport calls run on the
+authoring thread. The writer lease serializes cooperating Editor processes; read-only observers
+cannot upgrade, recover, save layout, or open writable content. A multi-file rename failure rolls
+already-moved files back before returning an actionable error; failed reimport leaves the active
+artifact unchanged. Callers may run content indexing on a worker, but must not call the same
+workspace concurrently. Long imports report progress and observe a cancellation callback between
+files. Failed/cancelled entries remain inspectable and never replace an existing artifact
+implicitly. The current graphical reimport path is synchronous; cancellable staged worker execution
+and dirty-conflict presentation remain ED-M1 work. Functions report expected failures with `false`,
+optional values, or per-entry error text; filesystem exceptions are converted to error results where
+applicable.
 
 The `.meta` filename suffix is reserved for asset identity sidecars and is excluded from the source
 asset index. Artifact hashes use the persistent UUID plus source bytes rather than the current path,
@@ -159,7 +173,8 @@ Renderer-backed ID-buffer picking and the graphical gizmo handles remain open.
 
 `editor.parser_robustness` mutation-tests the parsers that read persisted or external data (trace and
 metric decoding, replay log, unknown-component store, scene snapshot, runtime blob, NXSHDR, shader
-diagnostics, asset UUID, autosave, camera, and project/workspace/layout files) with fixed seeds. It
+diagnostics, asset UUID, autosave, camera, and project/workspace/layout/recent-project files) with
+fixed seeds. It
 requires every parser to return normally on corrupted input; under the ASan/UBSan presets memory and
 undefined-behavior errors fail it too. Set `NEXORA_PARSER_ROBUSTNESS_ITERATIONS` for a longer local soak.
 It is a robustness check, not a proof that no malformed input can fail.

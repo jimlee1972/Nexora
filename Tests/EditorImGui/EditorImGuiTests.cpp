@@ -35,6 +35,9 @@ int main() {
                                    &content_error));
   nexora::editor::ProjectContentSession content;
   assert(content.Open(content_workspace, content_assets, 3, true, &content_error));
+  nexora::editor::RecentProjectStore recent_projects;
+  assert(recent_projects.Open(content_root / ".nexora/test-ui-recents", &content_error));
+  assert(recent_projects.Record(content_workspace, &content_error));
   const auto items = content.Browser().Items();
   const auto mesh = std::ranges::find(items, std::filesystem::path("Content/Hero.mesh"),
                                       &nexora::editor::ContentItem::path);
@@ -62,7 +65,7 @@ int main() {
   // registers the shortcut unconditionally regardless of key state, and this warm-up frame never
   // calls Render(), so it does not perturb the renderer-metrics assertions further down.
   host.BeginFrame();
-  host.DrawProductShell(shell, &scene, nullptr, &content);
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects);
   assert(shell.LastCommand().empty());
   static_cast<void>(host.EndFrame());
   const std::array events{
@@ -98,7 +101,7 @@ int main() {
   assert(display_state.framebuffer_scale == 1.5F);
   assert(display_state.font_global_scale > 0.66F && display_state.font_global_scale < 0.67F);
   host.BeginFrame();
-  host.DrawProductShell(shell, &scene, nullptr, &content);
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects);
   assert(shell.LastCommand() == "editor.scene.save");
   const auto metrics = host.EndFrame();
   assert(metrics.command_lists > 0);
@@ -110,6 +113,9 @@ int main() {
   assert(content_state.content_selection == 1);
   assert(content_state.content_forward_dependencies == 1);
   assert(content_state.content_reverse_dependencies == 0);
+  assert(content_state.project_writable);
+  assert(!content_state.project_upgrade_required);
+  assert(content_state.recent_projects == 1);
   auto device = nexora::rhi::CreateValidationDevice();
   const auto target =
       device->CreateTexture({1280, 720, nexora::rhi::TextureFormat::Rgba8Unorm,
@@ -189,7 +195,9 @@ int main() {
   assert(host.ApplyRecoveryChoice(workspace, nexora::editor::imgui::RecoveryChoice::Discard));
   assert(host.TakeRecoveryChoice() == nexora::editor::imgui::RecoveryChoice::Discard);
   assert(host.TakeRecoveryChoice() == nexora::editor::imgui::RecoveryChoice::None);
+  workspace = {};
   std::filesystem::remove_all(recovery_root);
+  content_workspace = {};
   std::filesystem::remove_all(content_root);
   host.ReleaseRenderer(*device);
   device->DestroyTexture(user_texture);
