@@ -364,6 +364,12 @@ void TestGizmoSelection() {
 
   const auto center = SelectionCenter(world, std::vector<Id>{parent, other});
   Require(center && Near(center->x, 3.0) && Near(center->z, 0.0), "the selection centre is wrong");
+  const auto far_a = create(Transform{1e308, 0.0, 0.0});
+  const auto far_b = create(Transform{1e308, -1e308, 0.0});
+  const auto far_c = create(Transform{1e308, 1e308, 0.0});
+  const auto far_center = SelectionCenter(world, std::vector<Id>{far_a, far_b, far_c});
+  Require(far_center && Near(far_center->x / 1e308, 1.0) && Near(far_center->y, 0.0),
+          "the selection centre must not overflow for positions near the limit of a double");
   Require(!SelectionCenter(world, std::vector<Id>{}) &&
               !SelectionCenter(world, std::vector<Id>{999'999}) &&
               !GizmoTargets(world, std::vector<Id>{child, 999'999}),

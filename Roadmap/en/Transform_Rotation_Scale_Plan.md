@@ -1,7 +1,7 @@
 # Transform Rotation and Scale Extension — Plan
 
 > Version: v1.2 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
-> ✅ phases 1+2 and 4 complete; phase 3 (Zig/C wire) not started** | Updated: 2026-10-01 | Relates to: `Editor_Roadmap.md` §ED-M2 (gizmos),
+> ✅ phases 1+2, 4, and 5 (for the delivered phases) complete; phase 3 (Zig/C wire) not started** | Updated: 2026-10-01 | Relates to: `Editor_Roadmap.md` §ED-M2 (gizmos),
 > `Engine_API_Foundation_Roadmap.md`
 
 ## 1. Purpose and decision needed
@@ -104,7 +104,7 @@ scale ambiguity) and makes the editor fields lossy. Not recommended.
    and still passing. Gate: the Zig gameplay tests and the ABI layout gate.
 4. ✅ **Editor math.** Rotation/scale gizmo math with world/local/pivot and negative-scale rules, and
    multi-selection pivots. Gate: deterministic tests plus a documented decision table.
-5. **Docs and status.** Update contract READMEs and the bilingual roadmap/README text. The graphical
+5. ✅ **Docs and status (for phases 1+2 and 4; phase 3 updates its own docs when delivered).** Update contract READMEs and the bilingual roadmap/README text. The graphical
    Editor remains unaccepted.
 
 ## 7. Risks

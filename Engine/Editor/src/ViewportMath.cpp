@@ -397,14 +397,16 @@ std::optional<ViewportVector> SelectionCenter(const runtime::World &world,
                                               std::span<const runtime::Id> entities) {
   if (entities.empty())
     return std::nullopt;
-  Vec sum{};
+  // Each position is divided before it is added, so the partial sums stay within the largest
+  // coordinate and never overflow even when the positions are near the limit of a double.
+  const auto weight = 1.0 / static_cast<double>(entities.size());
+  Vec mean{};
   for (const auto id : entities) {
     const auto transform = world.WorldTransform(id);
     if (!transform)
       return std::nullopt;
-    sum = Add(sum, PositionOf(*transform));
+    mean = Add(mean, Scale(PositionOf(*transform), weight));
   }
-  const auto mean = Scale(sum, 1.0 / static_cast<double>(entities.size()));
   if (!Finite(mean))
     return std::nullopt;
   return mean;
