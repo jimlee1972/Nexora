@@ -1,6 +1,6 @@
 # Entity Parenting（Transform 階層）— 計畫
 
-> 版本：v1.1｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 階段 1 已完成；階段 3 的 gizmo 數學已完成，階段 3 其餘部分與階段 2、4 尚未開始**｜
+> 版本：v1.1｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 階段 1 已完成；階段 2 的 wire 與階段 3 的 gizmo 數學已完成；父物件底下的角色、Hierarchy 拖曳／兄弟順序與階段 4 尚未開始**｜
 > 更新：2026-10-01｜對應：`Transform_Rotation_Scale_Plan.md`、`Editor_Roadmap.md` §ED-M2
 
 ## 1. 目的
@@ -40,7 +40,7 @@ entity 沒有階層，所以每個 `runtime::Transform` 都是世界座標，而
    `Parent`／`Children`／`WorldTransform`／`WorldMatrix`、回報被刪 id 的連帶刪除、快照 v3、可復原的
    `SceneEditor::SetParent` 與能還原子樹的刪除復原、`GameWorld` 包裝，以及 `SceneDocument` 改從 runtime 讀取
    parent。本階段有角色控制器的 entity 必須是根物件（見 §5）。
-2. **Gameplay 邊界。**有版本的 Zig／C parent 與 world transform wire；父物件底下的角色控制器。
+2. **Gameplay 邊界。**有版本的 Zig／C parent 與 world transform wire（已完成：`"Nexora.Parent"`、`"Nexora.WorldTransform"` 與 `"Nexora.TransformV2"`）；父物件底下的角色控制器。
 3. **Editor 工具。**world／local 與 pivot gizmo 模式（數學已完成：`ViewportMath.h` 的 `GizmoAxes`、`ApplyGizmo`、`GizmoRoots`，與 Unity 一樣以世界 TRS 運算）、Hierarchy 拖曳重新掛接、兄弟順序。
 4. **渲染。**當渲染器開始讀 entity transform 時，必須使用 `WorldMatrix`。
 

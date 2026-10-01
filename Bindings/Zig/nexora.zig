@@ -30,6 +30,30 @@ pub const InputSnapshot = extern struct { sequence: u64 = 0, move_x: f64 = 0, mo
 pub const RaycastRequest = extern struct { origin: Vec3 = .{}, direction: Vec3 = .{}, distance: f64 = 0 };
 pub const RaycastHit = extern struct { entity: u64 = 0, distance: f64 = 0, point: Vec3 = .{} };
 pub const DebugLine = extern struct { start: Vec3 = .{}, end: Vec3 = .{}, rgba: u32 = 0, duration_seconds: f32 = 0 };
+pub const Quat = extern struct {
+    x: f64 = 0,
+    y: f64 = 0,
+    z: f64 = 0,
+    w: f64 = 1,
+};
+/// "Nexora.TransformV2" (local) and "Nexora.WorldTransform" (read only).
+pub const TransformV2 = extern struct {
+    position: Vec3 = .{},
+    rotation: Quat = .{},
+    scale: Vec3 = .{ .x = 1, .y = 1, .z = 1 },
+};
+/// "Nexora.Parent": 0 for a root; keep_local == 0 keeps the world pose when written.
+pub const Parent = extern struct {
+    parent: u64 = 0,
+    keep_local: u32 = 0,
+    reserved: u32 = 0,
+};
+// Component wires must match nexora/nexora.h on every target (checked by Tests/API too).
+comptime {
+    if (@sizeOf(Quat) != 32 or @sizeOf(TransformV2) != 80 or @offsetOf(TransformV2, "scale") != 56 or
+        @sizeOf(Parent) != 16 or @offsetOf(Parent, "keep_local") != 8)
+        @compileError("Nexora component wire layout changed");
+}
 pub const FrameDiagnostics = extern struct { frame: u64 = 0, scene_entities: u64 = 0, debug_lines: u64 = 0, api_errors: u64 = 0 };
 
 pub const GameplayHostV3 = extern struct {
