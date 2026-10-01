@@ -330,10 +330,12 @@ cmake --preset linux-development
 cmake --build --preset linux-development
 ctest --preset linux-development
 
-cmake --preset linux-shipping -DBUILD_TESTING=ON
+cmake --preset linux-shipping
 cmake --build --preset linux-shipping
-ctest --preset linux-shipping --no-tests=error
 ```
+
+`linux-shipping` 是 configure／build／package linkage gate，且刻意維持
+`BUILD_TESTING=OFF`；executable contract 由 development、ASan／UBSan 與 TSan preset 執行。
 
 若 preset 開了 graphical shell，還要明確 configure 一次 feature-off build；現有 focused test 可用：
 

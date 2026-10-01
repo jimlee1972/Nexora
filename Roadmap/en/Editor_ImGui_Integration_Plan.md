@@ -358,10 +358,12 @@ cmake --preset linux-development
 cmake --build --preset linux-development
 ctest --preset linux-development
 
-cmake --preset linux-shipping -DBUILD_TESTING=ON
+cmake --preset linux-shipping
 cmake --build --preset linux-shipping
-ctest --preset linux-shipping --no-tests=error
 ```
+
+`linux-shipping` is a configure/build/package linkage gate and intentionally keeps
+`BUILD_TESTING=OFF`; executable contracts run under development, ASan/UBSan, and TSan presets.
 
 Also configure an explicit feature-off build if the preset enables the graphical shell, and run the
 focused tests by name where available:
