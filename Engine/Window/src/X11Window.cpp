@@ -6,12 +6,17 @@
 
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #include <X11/keysym.h>
 #undef None
 #include <algorithm>
+#include <array>
 #include <chrono>
+#include <clocale>
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -127,18 +132,78 @@ std::uint64_t Now() noexcept {
                                         .count());
 }
 
+void AppendUtf8Text(std::vector<WindowEvent> &events, WindowHandle window, std::uint64_t timestamp,
+                    std::string_view text) {
+  for (std::size_t offset = 0; offset < text.size();) {
+    const auto lead = static_cast<std::uint8_t>(text[offset]);
+    std::uint32_t codepoint = 0;
+    std::size_t length = 0;
+    if (lead < 0x80U) {
+      codepoint = lead;
+      length = 1;
+    } else if ((lead & 0xe0U) == 0xc0U) {
+      codepoint = lead & 0x1fU;
+      length = 2;
+    } else if ((lead & 0xf0U) == 0xe0U) {
+      codepoint = lead & 0x0fU;
+      length = 3;
+    } else if ((lead & 0xf8U) == 0xf0U) {
+      codepoint = lead & 0x07U;
+      length = 4;
+    } else {
+      ++offset;
+      continue;
+    }
+    if (offset + length > text.size())
+      break;
+    bool valid = true;
+    for (std::size_t continuation = 1; continuation < length; ++continuation) {
+      const auto byte = static_cast<std::uint8_t>(text[offset + continuation]);
+      if ((byte & 0xc0U) != 0x80U) {
+        valid = false;
+        break;
+      }
+      codepoint = (codepoint << 6U) | (byte & 0x3fU);
+    }
+    const bool overlong = (length == 2 && codepoint < 0x80U) ||
+                          (length == 3 && codepoint < 0x800U) ||
+                          (length == 4 && codepoint < 0x10000U);
+    if (!valid || overlong || codepoint > 0x10ffffU ||
+        (codepoint >= 0xd800U && codepoint <= 0xdfffU)) {
+      ++offset;
+      continue;
+    }
+    offset += length;
+    if (codepoint < 0x20U || codepoint == 0x7fU)
+      continue;
+    WindowEvent event{window, WindowEventType::Text, timestamp};
+    event.value0 = static_cast<std::int32_t>(codepoint);
+    events.push_back(event);
+  }
+}
+
 class X11WindowSystem final : public IWindowSystem {
 public:
-  X11WindowSystem() : owner_(std::this_thread::get_id()), display_(XOpenDisplay(nullptr)) {
-    if (display_)
+  X11WindowSystem() : owner_(std::this_thread::get_id()) {
+    static_cast<void>(std::setlocale(LC_CTYPE, ""));
+    display_ = XOpenDisplay(nullptr);
+    if (display_) {
       closeAtom_ = XInternAtom(display_, "WM_DELETE_WINDOW", False);
+      static_cast<void>(XSetLocaleModifiers(""));
+      inputMethod_ = XOpenIM(display_, nullptr, nullptr, nullptr);
+    }
   }
   ~X11WindowSystem() override {
     if (!display_)
       return;
+    for (const auto &[window, input] : inputContexts_)
+      XDestroyIC(input);
+    inputContexts_.clear();
     for (const auto &[id, window] : windows_)
       if (!gone_.contains(window))
         DestroyWindowIfPresent(display_, window);
+    if (inputMethod_)
+      XCloseIM(inputMethod_);
     XCloseDisplay(display_);
   }
   std::thread::id OwnerThread() const noexcept override { return owner_; }
@@ -155,10 +220,21 @@ public:
       return {{}, WindowError::PlatformFailure};
     const std::string title(descriptor.title);
     XStoreName(display_, window, title.c_str());
-    XSelectInput(display_, window,
-                 StructureNotifyMask | FocusChangeMask | KeyPressMask | KeyReleaseMask |
-                     PointerMotionMask | ButtonPressMask | ButtonReleaseMask);
+    long event_mask = StructureNotifyMask | FocusChangeMask | KeyPressMask | KeyReleaseMask |
+                      PointerMotionMask | ButtonPressMask | ButtonReleaseMask;
+    XSelectInput(display_, window, event_mask);
     XSetWMProtocols(display_, window, &closeAtom_, 1);
+    if (inputMethod_) {
+      if (auto input = XCreateIC(inputMethod_, XNInputStyle, XIMPreeditNothing | XIMStatusNothing,
+                                 XNClientWindow, window, XNFocusWindow, window, nullptr)) {
+        inputContexts_[window] = input;
+        long filter_events = 0;
+        if (XGetICValues(input, XNFilterEvents, &filter_events, nullptr) == nullptr) {
+          event_mask |= filter_events;
+          XSelectInput(display_, window, event_mask);
+        }
+      }
+    }
     if (descriptor.initiallyVisible)
       XMapWindow(display_, window);
     const WindowHandle handle{next_++};
@@ -174,6 +250,7 @@ public:
     if (found == windows_.end())
       return WindowError::InvalidHandle;
     reverse_.erase(found->second);
+    DestroyInputContext(found->second);
     // A window the server already destroyed (see DestroyNotify below) must not be destroyed again:
     // XDestroyWindow on it raises a BadWindow protocol error that aborts the process.
     if (!gone_.erase(found->second))
@@ -231,6 +308,8 @@ public:
     while (XPending(display_)) {
       XEvent native{};
       XNextEvent(display_, &native);
+      if (XFilterEvent(&native, native.xany.window))
+        continue;
       const auto found = reverse_.find(native.xany.window);
       if (found == reverse_.end())
         continue;
@@ -244,8 +323,10 @@ public:
         // The window was destroyed behind our back (a client such as xdotool, or the server), so
         // no WM_DELETE_WINDOW will ever arrive. Report it as a close request so the owner stops.
         emit = native.xdestroywindow.event == native.xdestroywindow.window;
-        if (emit)
+        if (emit) {
           gone_.insert(native.xdestroywindow.window);
+          DestroyInputContext(native.xdestroywindow.window);
+        }
         break;
       case ConfigureNotify:
         event.type = WindowEventType::Resized;
@@ -256,6 +337,13 @@ public:
       case FocusOut:
         event.type = WindowEventType::FocusChanged;
         event.value0 = native.type == FocusIn;
+        if (const auto input = inputContexts_.find(native.xfocus.window);
+            input != inputContexts_.end()) {
+          if (native.type == FocusIn)
+            XSetICFocus(input->second);
+          else
+            XUnsetICFocus(input->second);
+        }
         break;
       case KeyPress:
       case KeyRelease:
@@ -275,6 +363,12 @@ public:
           if (key == Key::LeftSuper || key == Key::RightSuper)
             modifiers |= static_cast<unsigned>(KeyModifiers::Super);
           event.modifiers = static_cast<KeyModifiers>(modifiers);
+        }
+        if (native.type == KeyPress) {
+          pending_.push_back(event);
+          AppendUtf8Text(pending_, found->second, event.timestampNanoseconds,
+                         LookupUtf8(native.xkey));
+          emit = false;
         }
         break;
       case MotionNotify:
@@ -324,12 +418,47 @@ private:
     const auto found = windows_.find(handle.value);
     return found == windows_.end() ? 0 : found->second;
   }
+  void DestroyInputContext(::Window window) noexcept {
+    const auto found = inputContexts_.find(window);
+    if (found == inputContexts_.end())
+      return;
+    XDestroyIC(found->second);
+    inputContexts_.erase(found);
+  }
+  std::string LookupUtf8(XKeyPressedEvent &event) const {
+    const auto input = inputContexts_.find(event.window);
+    if (input != inputContexts_.end()) {
+      std::array<char, 64> buffer{};
+      KeySym symbol{};
+      Status status{};
+      int length = Xutf8LookupString(input->second, &event, buffer.data(),
+                                     static_cast<int>(buffer.size()), &symbol, &status);
+      if (status == XBufferOverflow && length > 0) {
+        std::string grown(static_cast<std::size_t>(length), '\0');
+        length = Xutf8LookupString(input->second, &event, grown.data(), length, &symbol, &status);
+        if ((status == XLookupChars || status == XLookupBoth) && length > 0)
+          return grown.substr(0, static_cast<std::size_t>(length));
+        return {};
+      }
+      if ((status == XLookupChars || status == XLookupBoth) && length > 0)
+        return {buffer.data(), static_cast<std::size_t>(length)};
+      return {};
+    }
+    std::array<char, 64> buffer{};
+    KeySym symbol{};
+    const int length =
+        XLookupString(&event, buffer.data(), static_cast<int>(buffer.size()), &symbol, nullptr);
+    return length > 0 ? std::string(buffer.data(), static_cast<std::size_t>(length))
+                      : std::string{};
+  }
   std::thread::id owner_;
   Display *display_{};
+  XIM inputMethod_{};
   Atom closeAtom_{};
   std::uint64_t next_ = 1;
   std::unordered_map<std::uint64_t, ::Window> windows_;
   std::unordered_map<::Window, WindowHandle> reverse_;
+  std::unordered_map<::Window, XIC> inputContexts_;
   std::unordered_set<::Window> gone_; // destroyed by the server before our own Destroy
   std::vector<WindowEvent> pending_;
   std::vector<WindowEvent> pumped_;

@@ -50,10 +50,11 @@ Metal native draw recording。這些仍只是 foundation，因 real-display Linu
 - [ ] Physical-display Linux graphical validation 與 Windows DPI／IME target-host acceptance
   evidence 均已有記錄且通過。Automated X11 rendering 與 kill/relaunch recovery 已納入 feature-on
   Linux gate。**狀態備註（2026-10-01）：**首次在虛擬顯示器（Xvfb 搭配 Mesa lavapipe）上實際執行該
-  gate，暴露出三個真實缺陷，現已修正：Editor 把空的首幀 ImGui 資料視為致命錯誤、X11 視窗忽略
-  `DestroyNotify` 並對已被銷毀的視窗再次銷毀（`BadWindow`）、Editor 在可復原的 surface 遺失時以非零
-  結束。驗收腳本本身也對已結束的程序呼叫 `kill()`。目前本機連跑 5 次皆通過。這只是虛擬顯示器、僅限本機的
-  證據：專用的 CI job `editor-linux-display`（Xvfb、Mesa 軟體 Vulkan、`xdotool`、啟用
+  gate，暴露出四個真實缺陷，現已修正：Editor 把空的首幀 ImGui 資料視為致命錯誤、X11 視窗忽略
+  `DestroyNotify` 並對已被銷毀的視窗再次銷毀（`BadWindow`）、X11 只送出 physical key 而沒有送出
+  committed UTF-8 `Text` event、Editor 在可復原的 surface 遺失時以非零結束。驗收腳本本身也對已結束
+  的程序呼叫 `kill()`。這只是虛擬顯示器證據：專用的 CI job `editor-linux-display`（Xvfb、Mesa 軟體
+  Vulkan、`xdotool`、啟用
   `NexoraEditorImGui`）現在會建置並執行它，且在該測試未註冊時直接失敗，因此以它的最新結果為準；
   仍沒有實體顯示器或 Windows 證據。此項維持未勾選。
 
