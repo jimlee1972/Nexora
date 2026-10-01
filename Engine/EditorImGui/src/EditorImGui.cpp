@@ -1,4 +1,7 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+#include "EditorImGuiTestAccess.h"
+#endif
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -109,9 +112,10 @@ void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
   // ImGuiDockNodeFlags_DockSpace is ImGuiDockNodeFlagsPrivate_, a different enum type from the
   // public ImGuiDockNodeFlags_ that ImGuiDockNodeFlags_PassthruCentralNode belongs to; OR-ing them
   // directly triggers -Wdeprecated-enum-enum-conversion, so combine them as plain ints first.
-  ImGui::DockBuilderAddNode(dockspace, static_cast<ImGuiDockNodeFlags>(
-                                           static_cast<int>(ImGuiDockNodeFlags_DockSpace) |
-                                           static_cast<int>(ImGuiDockNodeFlags_PassthruCentralNode)));
+  ImGui::DockBuilderAddNode(
+      dockspace,
+      static_cast<ImGuiDockNodeFlags>(static_cast<int>(ImGuiDockNodeFlags_DockSpace) |
+                                      static_cast<int>(ImGuiDockNodeFlags_PassthruCentralNode)));
   ImGui::DockBuilderSetNodeSize(dockspace, viewport.Size);
 
   ImGuiID center = dockspace;
@@ -681,4 +685,41 @@ bool EditorImGuiHost::ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryC
 }
 
 std::string_view EditorImGuiHost::RecoveryError() const noexcept { return state_->recovery_error; }
+
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto &io = ImGui::GetIO();
+  return {(io.ConfigFlags & ImGuiConfigFlags_NavEnableKeyboard) != 0,
+          (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) != 0,
+          io.ConfigInputTrickleEventQueue,
+          io.DisplaySize.x,
+          io.DisplaySize.y,
+          io.DisplayFramebufferScale.x,
+          io.FontGlobalScale};
+}
+
+void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept {
+  Activate(host.state_->context);
+  ImGui::GetIO().ConfigInputTrickleEventQueue = enabled;
+}
+
+std::uint32_t EditorImGuiTestAccess::OverrideDrawTexture(EditorImGuiHost &host,
+                                                         std::uint64_t texture_id) noexcept {
+  Activate(host.state_->context);
+  auto *draw = ImGui::GetDrawData();
+  if (draw == nullptr)
+    return 0;
+  std::uint32_t overridden = 0;
+  for (int list = 0; list < draw->CmdListsCount; ++list) {
+    for (auto &command : draw->CmdLists[list]->CmdBuffer) {
+      if (command.UserCallback != nullptr || command.ElemCount == 0)
+        continue;
+      command.TextureId = static_cast<ImTextureID>(texture_id);
+      ++overridden;
+    }
+  }
+  return overridden;
+}
+#endif
 } // namespace nexora::editor::imgui

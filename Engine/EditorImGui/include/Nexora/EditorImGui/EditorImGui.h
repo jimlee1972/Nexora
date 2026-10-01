@@ -14,6 +14,8 @@
 
 namespace nexora::editor::imgui {
 
+class EditorImGuiTestAccess;
+
 enum class RecoveryChoice : std::uint8_t { None, Recover, Discard };
 
 struct FrameMetrics final {
@@ -71,6 +73,7 @@ public:
   [[nodiscard]] std::string_view RecoveryError() const noexcept;
 
 private:
+  friend class EditorImGuiTestAccess;
   struct State;
   std::unique_ptr<State> state_;
 };
