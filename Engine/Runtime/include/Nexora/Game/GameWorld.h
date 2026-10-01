@@ -152,6 +152,11 @@ public:
   [[nodiscard]] std::optional<runtime::Id> GetParent(runtime::Id entity) const {
     return world_.Parent(entity);
   }
+  // Unity's SetSiblingIndex/GetSiblingIndex (see WorldCommandBuffer::SetSiblingIndex).
+  bool SetSiblingIndex(runtime::Id entity, std::size_t index);
+  [[nodiscard]] std::optional<std::size_t> GetSiblingIndex(runtime::Id entity) const {
+    return world_.SiblingIndex(entity);
+  }
   [[nodiscard]] std::optional<runtime::Transform> GetWorldTransform(runtime::Id entity) const {
     return world_.WorldTransform(entity);
   }

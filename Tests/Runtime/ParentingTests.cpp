@@ -251,6 +251,60 @@ void TestBatchesAndCascade() {
           "reparenting under a dangling chain must be rejected");
 }
 
+void TestSiblingOrder() {
+  runtime::World world;
+  const auto scene = world.LoadScene("Order");
+  const auto parent = Create(world, scene);
+  const auto a = Create(world, scene);
+  const auto b = Create(world, scene);
+  const auto c = Create(world, scene);
+  for (const auto child : {a, b, c})
+    Require(Reparent(world, child, parent, false), "setup failed");
+  Require((world.Children(parent) == std::vector<Id>{a, b, c}) && world.SiblingIndex(c) == 2u,
+          "a reparented entity must become its new parent's last child");
+  // Attaching in the opposite order of creation must still append: the order follows SetParent.
+  const auto late_parent = Create(world, scene);
+  const auto x = Create(world, scene);
+  const auto y = Create(world, scene);
+  Require(Reparent(world, y, late_parent, false) && Reparent(world, x, late_parent, false) &&
+              (world.Children(late_parent) == std::vector<Id>{y, x}),
+          "reparenting must append to the new parent's children, not keep the creation order");
+
+  runtime::WorldCommandBuffer first;
+  first.SetSiblingIndex(c, 0);
+  Require(first.Apply(world) && (world.Children(parent) == std::vector<Id>{c, a, b}) &&
+              world.SiblingIndex(a) == 1u,
+          "SetSiblingIndex must move an entity among its siblings");
+  runtime::WorldCommandBuffer clamp;
+  clamp.SetSiblingIndex(c, 99);
+  Require(clamp.Apply(world) && (world.Children(parent) == std::vector<Id>{a, b, c}),
+          "an index past the end must make the entity the last sibling");
+  // Roots are siblings too.
+  const auto other_root = Create(world, scene);
+  runtime::WorldCommandBuffer root_order;
+  root_order.SetSiblingIndex(other_root, 0);
+  Require(root_order.Apply(world) && world.SiblingIndex(other_root) == 0u &&
+              world.SiblingIndex(parent) == 1u,
+          "roots must be ordered among the scene's roots");
+  // A batch with an invalid command applies nothing, ordering included.
+  runtime::WorldCommandBuffer rejected;
+  rejected.SetSiblingIndex(b, 0);
+  rejected.SetSiblingIndex(999'999, 0);
+  Require(!rejected.Apply(world) && (world.Children(parent) == std::vector<Id>{a, b, c}),
+          "a rejected batch must not reorder anything");
+  // The order is the storage order, so snapshots keep it.
+  runtime::WorldCommandBuffer shuffle;
+  shuffle.SetSiblingIndex(c, 0);
+  shuffle.SetSiblingIndex(a, 2);
+  Require(shuffle.Apply(world) && (world.Children(parent) == std::vector<Id>{c, b, a}),
+          "shuffle failed");
+  runtime::World restored;
+  Require(restored.LoadSceneSnapshot(*world.SaveScene(scene)) &&
+              (restored.Children(parent) == std::vector<Id>{c, b, a}) &&
+              restored.SiblingIndex(other_root) == 0u,
+          "a snapshot must keep the sibling order");
+}
+
 void TestLongChainsStayLinear() {
   // One long chain is the worst case for per-entity ancestor walks and per-node child scans: both
   // would be quadratic (billions of steps here); loading and destroying it must stay linear.
@@ -346,6 +400,32 @@ void TestSceneEditorUndo() {
           "undoing a reparent must restore the parent and the exact local transform");
   Require(!editor.SetParent(parent, parent) && editor.UndoDepth() == depth,
           "a rejected reparent must not push an undo step");
+
+  // Sibling order is undoable, and a Hierarchy drag (Move) is one undo step.
+  const auto first = editor.CreateEntity(scene);
+  const auto second = editor.CreateEntity(scene);
+  Require(editor.SetParent(first, parent, false) && editor.SetParent(second, parent, false) &&
+              (world.Children(parent) == std::vector<Id>{first, second}),
+          "order setup failed");
+  Require(editor.SetSiblingIndex(second, 0) &&
+              (world.Children(parent) == std::vector<Id>{second, first}) && editor.Undo() &&
+              (world.Children(parent) == std::vector<Id>{first, second}),
+          "undoing SetSiblingIndex must restore the order");
+  const auto move_depth = editor.UndoDepth();
+  Require(editor.Move(child, parent, 0) && world.Parent(child) == parent &&
+              (world.Children(parent) == std::vector<Id>{child, first, second}) &&
+              editor.UndoDepth() == move_depth + 1,
+          "Move must reparent and order as one undo step");
+  Require(editor.Undo() && world.Parent(child) == Id{0} &&
+              world.FindEntity(child)->transform == Transform{3.0, 0.0, 0.0} &&
+              (world.Children(parent) == std::vector<Id>{first, second}),
+          "undoing Move must restore the parent, transform, and order");
+  Require(editor.SetParent(first, 0, true) && editor.Undo() &&
+              (world.Children(parent) == std::vector<Id>{first, second}),
+          "undoing a reparent must restore the sibling position");
+  Require(editor.DestroyEntity(scene, first) && editor.Undo() &&
+              (world.Children(parent) == std::vector<Id>{first, second}),
+          "undoing a destroy must restore the sibling position");
 
   Require(editor.SetParent(child, parent, false) && editor.SetParent(grandchild, child, false),
           "building the hierarchy failed");
@@ -540,6 +620,7 @@ int main() {
     TestWorldMatrixAndShear();
     TestBatchesAndCascade();
     TestSnapshotVersion3();
+    TestSiblingOrder();
     TestLongChainsStayLinear();
 #if NEXORA_EDITOR_SDK_ENABLED
     TestSceneEditorUndo();

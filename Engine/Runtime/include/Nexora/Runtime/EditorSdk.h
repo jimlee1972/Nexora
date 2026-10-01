@@ -118,14 +118,21 @@ public:
   // external callers cannot be expected to know about.
   Id CreateEntity(Id scene);
   bool SetTransform(Id entity, Transform transform);
-  // Undoable WorldCommandBuffer::SetParent. Undo restores the previous parent and local transform.
+  // Undoable WorldCommandBuffer::SetParent. Undo restores the previous parent, local transform,
+  // and sibling position.
   bool SetParent(Id entity, Id parent, bool keep_world = true);
+  // Undoable WorldCommandBuffer::SetSiblingIndex.
+  bool SetSiblingIndex(Id entity, std::size_t index);
+  // A Hierarchy drag as one undo step: reparent (keeping the world pose by default), then place the
+  // entity at `index` among its new siblings.
+  bool Move(Id entity, Id parent, std::size_t index, bool keep_world = true);
   // Destroys the entity and its descendants; undo restores the whole subtree.
   bool DestroyEntity(Id scene, Id entity);
   bool Undo();
   [[nodiscard]] std::size_t UndoDepth() const noexcept { return depth_; }
 
 private:
+  bool ApplyHierarchyEdit(Id entity, WorldCommandBuffer &apply);
   World &world_;
   UndoStack undo_;
   std::size_t depth_{};

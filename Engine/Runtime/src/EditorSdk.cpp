@@ -160,20 +160,36 @@ bool SceneEditor::SetTransform(Id entity, Transform transform) {
   return true;
 }
 bool SceneEditor::SetParent(Id entity, Id parent, bool keep_world) {
+  WorldCommandBuffer apply;
+  apply.SetParent(entity, parent, keep_world);
+  return ApplyHierarchyEdit(entity, apply);
+}
+bool SceneEditor::SetSiblingIndex(Id entity, std::size_t index) {
+  WorldCommandBuffer apply;
+  apply.SetSiblingIndex(entity, index);
+  return ApplyHierarchyEdit(entity, apply);
+}
+bool SceneEditor::Move(Id entity, Id parent, std::size_t index, bool keep_world) {
+  WorldCommandBuffer apply;
+  apply.SetParent(entity, parent, keep_world);
+  apply.SetSiblingIndex(entity, index);
+  return ApplyHierarchyEdit(entity, apply);
+}
+bool SceneEditor::ApplyHierarchyEdit(Id entity, WorldCommandBuffer &apply) {
   const auto *existing = world_.FindEntity(entity);
   if (!existing)
     return false;
   const auto previous_parent = existing->parent;
   const auto previous_transform = existing->transform;
-  WorldCommandBuffer apply;
-  apply.SetParent(entity, parent, keep_world);
+  const auto previous_index = *world_.SiblingIndex(entity);
   if (!apply.Apply(world_))
     return false;
   undo_.Execute([] {},
-                [this, entity, previous_parent, previous_transform] {
+                [this, entity, previous_parent, previous_transform, previous_index] {
                   WorldCommandBuffer commands;
                   commands.SetParent(entity, previous_parent, false);
                   commands.SetTransform(entity, previous_transform);
+                  commands.SetSiblingIndex(entity, previous_index);
                   (void)commands.Apply(world_);
                 });
   ++depth_;
@@ -190,6 +206,7 @@ bool SceneEditor::DestroyEntity(Id scene, Id entity) {
   std::vector<Entity> subtree;
   for (const auto id : world_.Subtree(entity))
     subtree.push_back(*world_.FindEntity(id));
+  const auto root_index = *world_.SiblingIndex(entity);
   // If the subtree root's parent is gone by the time this is undone, the root comes back as a root
   // at the world pose it had, rather than under a dangling parent.
   const auto root_world = world_.WorldTransform(entity).value_or(existing->transform);
@@ -198,7 +215,7 @@ bool SceneEditor::DestroyEntity(Id scene, Id entity) {
   if (!apply.Apply(world_))
     return false;
   undo_.Execute([] {},
-                [this, scene, subtree, root_world] {
+                [this, scene, subtree, root_world, root_index] {
                   auto *target = const_cast<Scene *>(world_.FindScene(scene));
                   if (target == nullptr || target->state == SceneState::Unloading ||
                       target->state == SceneState::Unloaded ||
@@ -219,6 +236,10 @@ bool SceneEditor::DestroyEntity(Id scene, Id entity) {
                     }
                     world_.next_id_ = std::max(world_.next_id_, restored.id + 1);
                   }
+                  // Back to the sibling position it had (it was appended last).
+                  WorldCommandBuffer place;
+                  place.SetSiblingIndex(subtree.front().id, root_index);
+                  (void)place.Apply(world_);
                 });
   ++depth_;
   return true;

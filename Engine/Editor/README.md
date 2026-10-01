@@ -54,7 +54,9 @@ into renderer or platform internals.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
   hierarchy use stable IDs, never component or container pointers. The hierarchy itself is the
   runtime's (`Entity::parent`, see the Runtime README's entity hierarchy section); the document keeps
-  only node names. `Reparent` is an undoable runtime `SetParent` that keeps the world pose, `Create`
+  only node names. `Reparent` is an undoable runtime `SetParent` that keeps the world pose, and
+  `Move` is a Hierarchy drag (reparent keeping the world pose, then place at a sibling index) as one
+  undo step. `Nodes()` lists nodes in runtime sibling order. `Create`
   with a parent starts the node at the parent's origin (and fails before creating anything if that
   parent is no longer a live entity of the scene, e.g. after its creation was undone), and `Paste`
   places the root copy at the source's world pose. Editor scene files still write a parent column in

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
+#include <limits>
 #include <locale>
 #include <queue>
 #include <sstream>
@@ -315,6 +316,49 @@ std::vector<Id> World::Children(Id entity) const {
   return children;
 }
 
+std::optional<std::size_t> World::SiblingIndex(Id entity) const {
+  for (const auto &scene : scenes_) {
+    if (scene.state == SceneState::Unloaded)
+      continue;
+    const auto found = std::ranges::find(scene.entities, entity, &Entity::id);
+    if (found == scene.entities.end())
+      continue;
+    return static_cast<std::size_t>(
+        std::count_if(scene.entities.begin(), found, [parent = found->parent](const Entity &other) {
+          return other.parent == parent;
+        }));
+  }
+  return std::nullopt;
+}
+
+namespace {
+// Moves `entity` (stored in `scene`) to position `index` among its siblings, keeping every other
+// entity's relative order; an index past the end makes it the last sibling.
+void MoveToSiblingIndex(Scene &scene, Id entity, std::size_t index) {
+  auto &entities = scene.entities;
+  const auto from = std::ranges::find(entities, entity, &Entity::id);
+  if (from == entities.end())
+    return;
+  const auto moved = *from;
+  entities.erase(from);
+  std::size_t seen = 0;
+  auto insert_at = entities.end();
+  std::optional<std::size_t> last_sibling;
+  for (std::size_t position = 0; position < entities.size(); ++position) {
+    if (entities[position].parent != moved.parent)
+      continue;
+    if (seen++ == index) {
+      insert_at = entities.begin() + static_cast<std::ptrdiff_t>(position);
+      break;
+    }
+    last_sibling = position;
+  }
+  if (insert_at == entities.end() && last_sibling)
+    insert_at = entities.begin() + static_cast<std::ptrdiff_t>(*last_sibling + 1);
+  entities.insert(insert_at, moved);
+}
+} // namespace
+
 std::vector<Id> World::Subtree(Id entity) const {
   std::vector<Id> subtree;
   for (const auto &scene : scenes_) {
@@ -400,6 +444,13 @@ void WorldCommandBuffer::SetParent(Id entity, Id parent, bool keep_world) {
   command.kind = Command::Kind::Parent;
   command.parent = parent;
   command.keep_world = keep_world;
+  commands_.push_back(command);
+}
+void WorldCommandBuffer::SetSiblingIndex(Id entity, std::size_t index) {
+  Command command{};
+  command.entity = entity;
+  command.kind = Command::Kind::SiblingIndex;
+  command.sibling_index = index;
   commands_.push_back(command);
 }
 void WorldCommandBuffer::SetCamera(Id entity, std::optional<CameraComponent> camera) {
@@ -520,7 +571,14 @@ bool WorldCommandBuffer::Apply(World &world) {
             return false;
           found->transform = *normalized;
         }
+        // Like Unity, a reparented entity becomes its new parent's last child. This moves it in the
+        // scene storage, so `found` must not be used afterwards.
+        const bool reparented = found->parent != command.parent;
         found->parent = command.parent;
+        if (reparented)
+          MoveToSiblingIndex(*scene, command.entity, std::numeric_limits<std::size_t>::max());
+      } else if (command.kind == Command::Kind::SiblingIndex) {
+        MoveToSiblingIndex(*scene, command.entity, command.sibling_index);
       } else if (command.kind == Command::Kind::Camera) {
         found->camera = command.camera.has_value();
         found->camera_data = command.camera.value_or(CameraComponent{});
