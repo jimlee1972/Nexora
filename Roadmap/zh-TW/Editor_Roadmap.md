@@ -1,6 +1,6 @@
 # Nexora 圖形化 Editor Roadmap
 
-> 版本：v1.2｜狀態：AI 可執行交付計畫｜更新：2026-09-24
+> 版本：v1.3｜狀態：AI 可執行交付計畫｜更新：2026-10-02
 
 > **進度：0%**（ED-M0～ED-M7 尚無任一 milestone 通過圖形化 Editor 驗收；
 > 已完成的 Runtime/Editor SDK 前置不向上取整為 Editor milestone。）
@@ -10,7 +10,7 @@
 workspace/document core。**待辦：** window/docking/UI shell、graphical views、authoring workflows
 與 production hardening。
 
-### Repository 完成度稽核（2026-09-24）
+### Repository 完成度稽核（2026-10-02）
 
 本稽核明確區分「已打勾的 implementation foundation」與「已驗收的 graphical milestone」。Source
 與 contract test 能確認下列已存在的 foundation；目前沒有任何 ED milestone 同時通過完整 automated
@@ -18,7 +18,7 @@ workspace/document core。**待辦：** window/docking/UI shell、graphical view
 
 | Scope | Repository 證據 | 已驗收 |
 | --- | --- | :---: |
-| ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Real-process recovery 與 Linux/Windows host evidence 仍待完成。 | [ ] |
+| ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Windows automated contract 已涵蓋 Unicode scalar 正規化、DPI event 與 frame-scoped IME candidate placement；physical-display Linux 與人工 Windows DPI／IME 證據仍待完成。 | [ ] |
 | ED-M1 project/assets | Portable create/open、deterministic indexing/search、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Graphical workflow 驗收仍待完成。 | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。Scene View、Inspector、renderer-backed picking、camera、gizmo 操作與 reflected graphical widget 仍待完成。 | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。Graphical Game View、Console UI 與 native debugger integration 仍待完成。 | [ ] |
@@ -79,8 +79,8 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 - ✅ 在 Vulkan host 上，圖形化 process 會將 ImGui draw data composite 至 public
   `RenderSurface` 已 acquire 的 swapchain backbuffer；Linux 與 Windows window event 也會正規化
   完整的 Editor 按鍵／modifier 集合。
-- 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及 Windows DPI／IME 證據；
-  target-host gate 通過之前 ED-M0 仍維持 open。
+- 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及人工 Windows DPI／IME 證據；
+  automated Windows contract 不取代 target-host gate，因此 ED-M0 仍維持 open。
 
 ### ED-M1 — Project 與 Asset workspace
 

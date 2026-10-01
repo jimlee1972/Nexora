@@ -310,10 +310,47 @@ private:
   void EraseQueued(WindowHandle h) {
     std::erase_if(pending_, [&](auto &e) { return e.window == h; });
     std::erase_if(pumped_, [&](auto &e) { return e.window == h; });
+    pendingHighSurrogates_.erase(h.value);
   }
+  std::uint64_t HandleId(HWND hwnd) const noexcept {
+    return static_cast<std::uint64_t>(
+        reinterpret_cast<std::uintptr_t>(GetPropW(hwnd, L"Nexora.Handle")));
+  }
+  void PushUnicodeScalar(HWND hwnd, std::uint32_t scalar) {
+    if (scalar > 0x10FFFFU || (scalar >= 0xD800U && scalar <= 0xDFFFU))
+      return;
+    Push(hwnd, WindowEventType::Text, static_cast<int>(scalar));
+  }
+  void PushUtf16CodeUnit(HWND hwnd, wchar_t codeUnit) {
+    const auto id = HandleId(hwnd);
+    if (!id)
+      return;
+    const auto value = static_cast<std::uint32_t>(codeUnit);
+    if (value >= 0xD800U && value <= 0xDBFFU) {
+      pendingHighSurrogates_[id] = codeUnit;
+      return;
+    }
+    const auto pending = pendingHighSurrogates_.find(id);
+    if (value >= 0xDC00U && value <= 0xDFFFU) {
+      if (pending == pendingHighSurrogates_.end())
+        return;
+      const auto high = static_cast<std::uint32_t>(pending->second);
+      pendingHighSurrogates_.erase(pending);
+      PushUnicodeScalar(hwnd, 0x10000U + ((high - 0xD800U) << 10U) + (value - 0xDC00U));
+      return;
+    }
+    if (pending != pendingHighSurrogates_.end())
+      pendingHighSurrogates_.erase(pending);
+    PushUnicodeScalar(hwnd, value);
+  }
+  void PushUtf16String(HWND hwnd, std::wstring_view text) {
+    for (const auto codeUnit : text)
+      PushUtf16CodeUnit(hwnd, codeUnit);
+  }
+  void ClearPendingText(HWND hwnd) { pendingHighSurrogates_.erase(HandleId(hwnd)); }
   void Push(HWND hwnd, WindowEventType type, int v0 = 0, int v1 = 0, uint32_t w = 0, uint32_t h = 0,
             float scale = 1, KeyModifiers modifiers = KeyModifiers::None) {
-    auto id = (uint64_t)(uintptr_t)GetPropW(hwnd, L"Nexora.Handle");
+    const auto id = HandleId(hwnd);
     if (id)
       pending_.push_back({{id}, type, Now(), w, h, scale, v0, v1, modifiers});
   }
@@ -341,6 +378,8 @@ private:
     }
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
+      if (m == WM_KILLFOCUS)
+        self->ClearPendingText(h);
       self->Push(h, WindowEventType::FocusChanged, m == WM_SETFOCUS);
       return 0;
     case WM_KEYDOWN:
@@ -351,7 +390,13 @@ private:
                  (m == WM_KEYDOWN || m == WM_SYSKEYDOWN) ? 1 : 0, 0, 0, 1.0F, CurrentModifiers());
       return 0;
     case WM_CHAR:
-      self->Push(h, WindowEventType::Text, (int)w);
+      self->PushUtf16CodeUnit(h, static_cast<wchar_t>(w));
+      return 0;
+    case WM_UNICHAR:
+      if (w == UNICODE_NOCHAR)
+        return TRUE;
+      self->ClearPendingText(h);
+      self->PushUnicodeScalar(h, static_cast<std::uint32_t>(w));
       return 0;
     case WM_IME_COMPOSITION:
       if (l & GCS_RESULTSTR) {
@@ -361,8 +406,7 @@ private:
           if (bytes > 0) {
             std::wstring text(static_cast<std::size_t>(bytes) / 2, L'\0');
             ImmGetCompositionStringW(imc, GCS_RESULTSTR, text.data(), bytes);
-            for (wchar_t c : text)
-              self->Push(h, WindowEventType::Text, c);
+            self->PushUtf16String(h, text);
           }
           ImmReleaseContext(h, imc);
         }
@@ -389,6 +433,7 @@ private:
                  m == WM_MOUSEHWHEEL ? GET_WHEEL_DELTA_WPARAM(w) : 0);
       return 0;
     case WM_NCDESTROY:
+      self->ClearPendingText(h);
       SetWindowLongPtrW(h, GWLP_USERDATA, 0);
       RemovePropW(h, L"Nexora.Handle");
       break;
@@ -403,6 +448,7 @@ private:
   std::unordered_map<uint64_t, HWND> windows_;
   std::unordered_map<uint64_t, bool> fullscreen_;
   std::unordered_map<uint64_t, RECT> windowedRects_;
+  std::unordered_map<uint64_t, wchar_t> pendingHighSurrogates_;
   std::vector<WindowEvent> pending_, pumped_;
 };
 } // namespace

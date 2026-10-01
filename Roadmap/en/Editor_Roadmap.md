@@ -1,6 +1,6 @@
 # Nexora Graphical Editor Roadmap
 
-> Version: v1.2 | Status: AI-executable delivery plan | Updated: 2026-09-24
+> Version: v1.3 | Status: AI-executable delivery plan | Updated: 2026-10-02
 
 > **Progress: 0%** (none of ED-M0 through ED-M7 has passed graphical Editor acceptance;
 > completed Runtime/Editor SDK prerequisites are not rounded up into an Editor milestone.)
@@ -10,7 +10,7 @@
 process and portable workspace/document core. **Open:** window/docking/UI shell,
 graphical views, authoring workflows, and production hardening.
 
-### Repository completion audit (2026-09-24)
+### Repository completion audit (2026-10-02)
 
 The audit distinguishes a checked implementation foundation from an accepted graphical milestone.
 Source and contract tests confirm the checked rows; no ED milestone currently satisfies its complete
@@ -18,7 +18,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 
 | Scope | Repository evidence | Accepted |
 | --- | --- | :---: |
-| ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Real-process recovery and Linux/Windows host evidence remain open. | [ ] |
+| ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Automated Windows contracts cover Unicode scalar normalization, DPI events, and frame-scoped IME candidate placement; physical-display Linux and manual Windows DPI/IME evidence remain open. | [ ] |
 | ED-M1 project/assets | Portable create/open, deterministic indexing/search, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. Graphical workflow acceptance remains open. | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. Scene View, Inspector, renderer-backed picking, cameras, gizmo manipulation, and reflected graphical widgets remain open. | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. Graphical Game View, Console UI, and native debugger integration remain open. | [ ] |
@@ -76,8 +76,8 @@ satisfy this milestone.
 - ✅ On Vulkan hosts, the graphical process composites ImGui draw data into the acquired public
   `RenderSurface` swapchain backbuffer; Linux and Windows window events normalize the complete
   Editor key/modifier set.
-- Open acceptance: real-display Linux visual/input/recovery evidence and Windows DPI/IME evidence.
-  ED-M0 remains open until those target-host gates pass.
+- Open acceptance: real-display Linux visual/input/recovery evidence and manual Windows DPI/IME
+  evidence. Automated Windows contracts do not replace those target-host gates; ED-M0 remains open.
 
 ### ED-M1 — Project and asset workspace
 

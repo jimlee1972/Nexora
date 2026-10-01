@@ -23,6 +23,7 @@ class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
   [[nodiscard]] static EditorImGuiTestState Inspect(const EditorImGuiHost &host) noexcept;
   static void SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept;
+  static void InvokeImeCallback(EditorImGuiHost &host, float x, float y, bool visible) noexcept;
   [[nodiscard]] static std::uint32_t OverrideDrawTexture(EditorImGuiHost &host,
                                                          std::uint64_t texture_id) noexcept;
 };
