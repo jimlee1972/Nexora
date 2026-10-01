@@ -4,6 +4,7 @@
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 
 namespace {
 void Require(bool value, const char *message) {
@@ -49,6 +50,18 @@ int RunTests() {
   if (!restored_scene)
     throw std::runtime_error("scene snapshot could not be loaded");
   Require(restored.SaveScene(*restored_scene) == saved, "scene save/load was not deterministic");
+  // An entity count far beyond what the text could hold must be rejected, not reserved.
+  Require(
+      !restored.LoadSceneSnapshot("NEXORA_SCENE 1 \"huge\" 0 18446744073709551615").has_value() &&
+          !restored.LoadSceneSnapshot("NEXORA_SCENE 1 \"huge\" 0 4611686018427387904").has_value(),
+      "a snapshot claiming an impossible entity count was accepted or threw");
+  // Padding the text to match the claimed count must not make it look plausible: an entity record
+  // needs at least 25 characters, so one million entities cannot fit in one mebibyte.
+  Require(!restored
+               .LoadSceneSnapshot("NEXORA_SCENE 1 \"padded\" 0 1000000 " +
+                                  std::string(1024 * 1024, ' '))
+               .has_value(),
+          "a padded snapshot with an implausible entity count was accepted");
   Require(!restored.LoadSceneSnapshot("NEXORA_SCENE 99 \"broken\" 0 0").has_value(),
           "unsupported scene version was accepted");
 
