@@ -3,6 +3,7 @@
 // updates, ownership of visibility, removal paths, overflow rejection, and linear cost on deep
 // chains.
 
+#include "Nexora/RHI/ShaderReflection.h"
 #include "Nexora/Runtime/RenderSync.h"
 #include "Nexora/Runtime/Runtime.h"
 
@@ -347,6 +348,168 @@ void TestDeepChainsMatchWorldMatrix() {
   Require(elapsed < std::chrono::seconds(2), "the sync must stay linear on a deep chain");
 }
 
+Id CreateCamera(runtime::World &world, Id scene, Transform transform) {
+  auto &entity = world.CreateEntity(scene);
+  entity.transform = transform;
+  entity.camera = true;
+  return entity.id;
+}
+
+// Clip-space position of a world point through a view.
+std::array<float, 4> Clip(const renderer::GPUDrivenView &view, float x, float y, float z) {
+  std::array<float, 4> result{};
+  for (std::size_t row = 0; row < 4; ++row)
+    result[row] = view.view_projection(row, 0) * x + view.view_projection(row, 1) * y +
+                  view.view_projection(row, 2) * z + view.view_projection(row, 3);
+  return result;
+}
+
+bool Inside(const renderer::GPUDrivenView &view, float x, float y, float z) {
+  const auto clip = Clip(view, x, y, z);
+  return clip[3] > 0.0F && std::abs(clip[0]) <= clip[3] && std::abs(clip[1]) <= clip[3] &&
+         clip[2] >= 0.0F && clip[2] <= clip[3];
+}
+
+void RequireSameView(const renderer::GPUDrivenView &actual, const math::Matrix4 &expected,
+                     const char *message) {
+  for (std::size_t index = 0; index < 16; ++index)
+    Require(std::abs(actual.view_projection.values[index] - expected.values[index]) < 1e-4F,
+            message);
+}
+
+void TestCameraView() {
+  runtime::World world;
+  const auto main_scene = world.LoadScene("Main");
+  const auto camera = CreateCamera(world, main_scene, {0.0, 0.0, 10.0});
+  const auto projection = math::PerspectiveRadians(math::Radians(60.0F), 2.0F, 0.1F, 1000.0F);
+  auto view = runtime::CameraView(world, camera, 2.0F);
+  Require(view.has_value(), "a camera entity must produce a view");
+  RequireSameView(*view, projection * math::LookAt({0, 0, 10}, {0, 0, 0}),
+                  "a root camera must look down its local -Z (right-handed), like LookAt");
+  Require(Inside(*view, 0.0F, 0.0F, 0.0F) && !Inside(*view, 0.0F, 0.0F, 20.0F),
+          "the origin is in front of the camera and z=20 is behind it");
+  Require(view->camera_position.z == 10.0F && view->maximum_distance == 1000.0F,
+          "the view must carry the camera position and far plane");
+
+  // Under a moved, rotated, and scaled parent the camera follows the parent (position through the
+  // exact matrix) and ignores scale, as Unity does.
+  Transform rig{100.0, 0.0, 0.0};
+  rig.qy = kHalfSqrt2; // 90 degrees about +Y: local -Z becomes world -X
+  rig.qw = kHalfSqrt2;
+  rig.sx = rig.sy = rig.sz = 3.0;
+  auto &parent = world.CreateEntity(main_scene);
+  parent.transform = rig;
+  const auto rig_id = parent.id;
+  Require(Reparent(world, camera, rig_id, false), "parenting the camera failed");
+  view = runtime::CameraView(world, camera, 2.0F);
+  Require(view.has_value(), "a parented camera must produce a view");
+  // Local (0, 0, 10) under the rig is world (130, 0, 0), looking toward -X.
+  RequireSameView(*view, projection * math::LookAt({130, 0, 0}, {0, 0, 0}),
+                  "a parented camera must use its world matrix, with scale ignored");
+  Require(Inside(*view, 100.0F, 0.0F, 0.0F) && !Inside(*view, 150.0F, 0.0F, 0.0F),
+          "the parented camera must see along the parent's rotated -Z");
+  Require(Move(world, rig_id, {0.0, 0.0, 0.0}), "moving the rig failed");
+  view = runtime::CameraView(world, camera, 2.0F);
+  Require(view->camera_position.z == 10.0F, "moving the parent must move the camera");
+
+  // Invalid inputs.
+  Require(!runtime::CameraView(world, camera, 0.0F) &&
+              !runtime::CameraView(world, camera, std::nanf("")) &&
+              !runtime::CameraView(world, rig_id, 1.0F) &&
+              !runtime::CameraView(world, 999'999, 1.0F),
+          "a bad aspect, a non-camera, or a missing entity must produce no view");
+  const auto set_camera = [&](runtime::CameraComponent data) {
+    runtime::WorldCommandBuffer commands;
+    commands.SetCamera(camera, data);
+    Require(commands.Apply(world), "setting camera data failed");
+  };
+  for (const auto &bad :
+       {runtime::CameraComponent{0.0, 0.1, 10.0}, runtime::CameraComponent{180.0, 0.1, 10.0},
+        runtime::CameraComponent{60.0, 0.0, 10.0}, runtime::CameraComponent{60.0, 1.0, 1.0}}) {
+    set_camera(bad);
+    Require(!runtime::CameraView(world, camera, 1.0F), "invalid camera data must produce no view");
+  }
+}
+
+void TestCulledSceneFrame() {
+  runtime::World world;
+  const auto main_scene = world.LoadScene("Main");
+  Require(world.Activate(main_scene), "activation failed");
+  auto &sun = world.CreateEntity(main_scene);
+  sun.light = true;
+  const auto sun_id = sun.id;
+  const auto rig = Create(world, main_scene, {}, false);
+  const auto camera = CreateCamera(world, main_scene, {0.0, 0.0, 10.0});
+  Require(Reparent(world, camera, rig, false), "parenting the camera failed");
+  const auto holder = Create(world, main_scene, {}, false);
+  const auto mesh = Create(world, main_scene);
+  Require(Reparent(world, mesh, holder, false), "parenting the mesh failed");
+
+  renderer::GPUScene gpu;
+  runtime::RenderSceneSync sync;
+  auto device = rhi::CreateValidationDevice();
+  const auto layout = rhi::TrianglePipelineLayout();
+  const auto pipeline = device->CreatePipeline(
+      {layout.layout_hash, 0x5253, rhi::TextureFormat::Rgba8Unorm, "Render sync"});
+  const rhi::TextureDescriptor descriptor{640, 320, rhi::TextureFormat::Rgba8Unorm,
+                                          rhi::ResourceState::Present, "Render sync target"};
+  const auto target = device->CreateTexture(descriptor);
+  const auto render = [&](std::uint64_t fence) {
+    return sync.RenderFrame(world, gpu, Resolve, fence, *device, target, descriptor, pipeline);
+  };
+
+  if (!runtime::SceneRenderingEnabled()) {
+    Require(!render(1) && sync.Handle(mesh), "a compiled-out frame must still sync");
+    return;
+  }
+  auto frame = render(1);
+  Require(frame && frame->camera == camera && frame->sync.created == 1 &&
+              frame->frame.visible_meshes == 1 && frame->culling.frustum_rejected == 0,
+          "a mesh in front of the camera must be submitted");
+  const auto draws_with_mesh = device->Diagnostics().draw_calls;
+  Require(draws_with_mesh == 3, "shadow, forward, and post-process must draw");
+
+  // Moving the mesh's parent behind the camera culls it; the frame still runs.
+  Require(Move(world, holder, {0.0, 0.0, 50.0}), "moving the holder failed");
+  frame = render(2);
+  Require(frame && frame->sync.updated == 1 && frame->frame.visible_meshes == 0 &&
+              frame->culling.frustum_rejected == 1,
+          "a mesh moved behind the camera through its parent must be culled");
+  Require(device->Diagnostics().draw_calls == draws_with_mesh + 1,
+          "a culled-empty frame must clear without zero-instance draws");
+
+  // Turning the camera's parent around brings it back into view.
+  Transform turned{};
+  turned.qy = 1.0; // 180 degrees about +Y
+  turned.qw = 0.0;
+  Require(Move(world, rig, turned), "turning the rig failed");
+  frame = render(3);
+  Require(frame && frame->frame.visible_meshes == 1,
+          "a camera turned by its parent must see what is now in front of it");
+
+  // Beyond the far plane is culled by distance.
+  {
+    runtime::WorldCommandBuffer commands;
+    commands.SetCamera(camera, runtime::CameraComponent{60.0, 0.1, 5.0});
+    Require(commands.Apply(world), "shortening the far plane failed");
+  }
+  frame = render(4);
+  Require(frame && frame->frame.visible_meshes == 0,
+          "a mesh beyond the far plane must not be submitted");
+
+  // No light: rejected, but the GPU scene is still kept in sync.
+  {
+    runtime::WorldCommandBuffer commands;
+    commands.SetLight(sun_id, std::nullopt);
+    commands.DestroyEntity(holder);
+    Require(commands.Apply(world), "removing the light failed");
+  }
+  Require(!render(5) && !sync.Handle(mesh) && gpu.GetStatistics().active_object_count == 0,
+          "a frame without a light must be rejected after syncing");
+  device->DestroyTexture(target);
+  device->DestroyPipeline(pipeline);
+}
+
 } // namespace
 
 int main() {
@@ -358,6 +521,8 @@ int main() {
     TestOverflowIsRejected();
     TestCorruptCycleIsBounded();
     TestDeepChainsMatchWorldMatrix();
+    TestCameraView();
+    TestCulledSceneFrame();
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

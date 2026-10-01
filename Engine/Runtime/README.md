@@ -311,8 +311,20 @@ mesh renderers of a `World`'s active scenes into a `renderer::GPUScene`, one GPU
   deterministic.
 - Ownership and threading: the sync owns only the objects it created and hands `retire_fence` to
   `GPUScene::Destroy`; `Release` destroys them all. The sync, the `World`, and the `GPUScene` are
-  externally synchronized on one thread, like the `GPUScene` itself. No application draw loop is
-  wired to it yet.
+  externally synchronized on one thread, like the `GPUScene` itself.
+- `CameraView` builds a camera entity's view the way Unity's Camera does: from its exact world
+  matrix, so a camera under a moving or turning parent follows it, with scale ignored (the matrix's
+  Z and Y axes are orthonormalized, keeping the basis right-handed even under a mirroring parent).
+  Nexora is right-handed, so the camera looks down its local -Z. The projection uses
+  `CameraComponent`'s vertical field of view and clip planes with `[0, 1]` depth, and the far plane
+  is the culling distance. Invalid camera data, a degenerate orientation, or a bad aspect ratio
+  produce no view.
+- `RenderSceneSync::RenderFrame` always syncs, then renders the GPU scene through the world's first
+  camera: `BuildGPUDrivenCommands` culls by frustum and distance, and only the kept objects reach
+  `ExecuteSceneFrame`. It needs a camera and a light, like `RenderSceneFrame`; a frame in which
+  everything is culled still clears its targets. Upload extraction and `GPUScene::CommitFrame` stay
+  with the caller that owns the GPU buffers. No application uses it yet; the Showcase keeps
+  `RenderSceneFrame`, whose evidence counts every mesh renderer.
 
 Limits: `PlaySession` apply-back copies transforms only and reports a conflict for an entity whose
 parent changed during play; rendering and physics do not consume entity transforms yet.
