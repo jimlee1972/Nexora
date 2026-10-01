@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstring>
+#include <exception>
 #include <limits>
 #include <optional>
 #include <ranges>
@@ -76,6 +77,15 @@ struct EditorImGuiHost::State final {
   bool project_writable = false;
   bool project_upgrade_required = false;
   std::uint32_t recent_projects = 0;
+  std::array<char, 1024> selector_root{};
+  std::array<char, 256> selector_name{};
+  std::optional<ProjectSelectorRequest> selector_request;
+  std::string selector_error;
+  bool selector_initialized = false;
+  bool selector_focus_root = true;
+  bool selector_read_only = false;
+  bool selector_visible = false;
+  std::uint32_t selector_recent_projects = 0;
 
   static void SetImeData(ImGuiContext *context, ImGuiViewport *, ImGuiPlatformImeData *data) {
     ImGui::SetCurrentContext(context);
@@ -130,6 +140,36 @@ std::string PathLabel(const std::filesystem::path &path) {
   for (const char8_t byte : encoded)
     result.push_back(static_cast<char>(byte));
   return result;
+}
+
+std::optional<std::filesystem::path> PathFromLabel(std::string_view label) {
+  if (label.empty())
+    return std::nullopt;
+  try {
+    std::u8string encoded;
+    encoded.reserve(label.size());
+    for (const char byte : label)
+      encoded.push_back(static_cast<char8_t>(static_cast<unsigned char>(byte)));
+    return std::filesystem::path(encoded);
+  } catch (const std::exception &) {
+    return std::nullopt;
+  }
+}
+
+template <typename StateT>
+void QueueProjectSelection(StateT &state, ProjectSelectorAction action,
+                           const std::filesystem::path &root, std::string name,
+                           ProjectAccess access) {
+  if (root.empty()) {
+    state.selector_error = "Choose a project root before continuing.";
+    return;
+  }
+  if (action == ProjectSelectorAction::Create && name.empty()) {
+    state.selector_error = "Enter a project name before creating it.";
+    return;
+  }
+  state.selector_error.clear();
+  state.selector_request = {action, root, std::move(name), access};
 }
 
 void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
@@ -485,6 +525,8 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
   io.BackendPlatformUserData = state_.get();
   io.Fonts->SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
   ImGui::GetPlatformIO().Platform_SetImeDataFn = &State::SetImeData;
+  constexpr std::string_view default_project_name = "New Project";
+  std::ranges::copy(default_project_name, state_->selector_name.begin());
   ApplyTheme();
 }
 
@@ -577,10 +619,105 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   ImGui::NewFrame();
 }
 
+void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_projects,
+                                          ProjectAccess default_access) {
+  Activate(state_->context);
+  state_->selector_visible = true;
+  state_->selector_recent_projects =
+      recent_projects == nullptr
+          ? 0
+          : static_cast<std::uint32_t>(std::min<std::size_t>(
+                recent_projects->Entries().size(), std::numeric_limits<std::uint32_t>::max()));
+  if (!state_->selector_initialized) {
+    state_->selector_read_only = default_access == ProjectAccess::ReadOnly;
+    state_->selector_initialized = true;
+  }
+
+  const auto *viewport = ImGui::GetMainViewport();
+  ImGui::SetNextWindowPos(viewport->WorkPos);
+  ImGui::SetNextWindowSize(viewport->WorkSize);
+  constexpr auto flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
+  if (!ImGui::Begin("Project Browser###nexora.project-selector", nullptr, flags)) {
+    ImGui::End();
+    return;
+  }
+
+  ImGui::TextUnformatted("Nexora Editor");
+  ImGui::SeparatorText("Create or open a project");
+  ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 720.0F));
+  if (state_->selector_focus_root) {
+    ImGui::SetKeyboardFocusHere();
+    state_->selector_focus_root = false;
+  }
+  ImGui::InputText("Project root", state_->selector_root.data(), state_->selector_root.size());
+  ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 420.0F));
+  ImGui::InputText("Project name", state_->selector_name.data(), state_->selector_name.size());
+  ImGui::Checkbox("Open read-only", &state_->selector_read_only);
+
+  const auto typed_root = PathFromLabel(state_->selector_root.data());
+  if (ImGui::Button("Open project")) {
+    if (typed_root)
+      QueueProjectSelection(*state_, ProjectSelectorAction::Open, *typed_root, {},
+                            state_->selector_read_only ? ProjectAccess::ReadOnly
+                                                       : ProjectAccess::ReadWrite);
+    else
+      state_->selector_error = "Project root must be non-empty valid UTF-8.";
+  }
+  ImGui::SameLine();
+  ImGui::BeginDisabled(state_->selector_read_only);
+  if (ImGui::Button("Create project")) {
+    if (typed_root)
+      QueueProjectSelection(*state_, ProjectSelectorAction::Create, *typed_root,
+                            state_->selector_name.data(), ProjectAccess::ReadWrite);
+    else
+      state_->selector_error = "Project root must be non-empty valid UTF-8.";
+  }
+  ImGui::EndDisabled();
+  if (state_->selector_read_only)
+    ImGui::TextDisabled("Creating a project requires read-write access.");
+  if (!state_->selector_error.empty())
+    ImGui::TextWrapped("%s", state_->selector_error.c_str());
+
+  ImGui::SeparatorText("Recent projects");
+  if (recent_projects == nullptr || recent_projects->Entries().empty()) {
+    ImGui::TextUnformatted("No recent projects.");
+  } else {
+    for (const auto &recent : recent_projects->Entries()) {
+      ImGui::PushID(recent.id.ToString().c_str());
+      if (ImGui::Button("Open"))
+        QueueProjectSelection(*state_, ProjectSelectorAction::Open, recent.root, {},
+                              state_->selector_read_only ? ProjectAccess::ReadOnly
+                                                         : ProjectAccess::ReadWrite);
+      ImGui::SameLine();
+      ImGui::Text("%s", recent.name.c_str());
+      ImGui::SameLine();
+      ImGui::TextDisabled("%s", PathLabel(recent.root).c_str());
+      ImGui::PopID();
+    }
+  }
+  ImGui::End();
+}
+
+std::optional<ProjectSelectorRequest> EditorImGuiHost::TakeProjectSelectorRequest() {
+  auto request = std::move(state_->selector_request);
+  state_->selector_request.reset();
+  return request;
+}
+
+void EditorImGuiHost::SetProjectSelectorError(std::string error) {
+  state_->selector_error = std::move(error);
+}
+
+std::string_view EditorImGuiHost::ProjectSelectorError() const noexcept {
+  return state_->selector_error;
+}
+
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
                                        RecentProjectStore *recent_projects) {
   Activate(state_->context);
+  state_->selector_visible = false;
   if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal))
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
   const auto *viewport = ImGui::GetMainViewport();
@@ -998,12 +1135,19 @@ EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host)
           host.state_->content_reverse_dependencies,
           host.state_->project_writable,
           host.state_->project_upgrade_required,
-          host.state_->recent_projects};
+          host.state_->recent_projects,
+          host.state_->selector_visible,
+          host.state_->selector_recent_projects};
 }
 
 void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept {
   Activate(host.state_->context);
   ImGui::GetIO().ConfigInputTrickleEventQueue = enabled;
+}
+
+void EditorImGuiTestAccess::QueueProjectSelection(EditorImGuiHost &host,
+                                                  ProjectSelectorRequest request) {
+  host.state_->selector_request = std::move(request);
 }
 
 std::uint32_t EditorImGuiTestAccess::OverrideDrawTexture(EditorImGuiHost &host,

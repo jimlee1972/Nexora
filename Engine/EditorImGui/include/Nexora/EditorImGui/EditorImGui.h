@@ -8,7 +8,9 @@
 #include "Nexora/Window/Window.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -18,6 +20,14 @@ namespace nexora::editor::imgui {
 class EditorImGuiTestAccess;
 
 enum class RecoveryChoice : std::uint8_t { None, Recover, Discard };
+enum class ProjectSelectorAction : std::uint8_t { Open, Create };
+
+struct ProjectSelectorRequest final {
+  ProjectSelectorAction action{ProjectSelectorAction::Open};
+  std::filesystem::path root;
+  std::string name;
+  ProjectAccess access{ProjectAccess::ReadWrite};
+};
 
 struct FrameMetrics final {
   std::uint32_t vertices = 0;
@@ -48,6 +58,13 @@ public:
   void SetDisplay(float width, float height, float dpi_scale);
   void ProcessEvents(std::span<const Nexora::Window::WindowEvent> events);
   void BeginFrame(float delta_seconds = 1.0F / 60.0F);
+  // Draws the startup project browser. It only emits a one-shot request; the application owns
+  // project creation/opening, indexing, lease acquisition, and activation on the authoring thread.
+  void DrawProjectSelector(const RecentProjectStore *recent_projects = nullptr,
+                           ProjectAccess default_access = ProjectAccess::ReadWrite);
+  [[nodiscard]] std::optional<ProjectSelectorRequest> TakeProjectSelectorRequest();
+  void SetProjectSelectorError(std::string error);
+  [[nodiscard]] std::string_view ProjectSelectorError() const noexcept;
   void DrawProductShell(ProductShell &shell, SceneDocument *scene = nullptr,
                         ProjectWorkspace *workspace = nullptr,
                         ProjectContentSession *content = nullptr,

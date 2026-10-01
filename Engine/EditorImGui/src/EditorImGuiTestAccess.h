@@ -25,12 +25,15 @@ struct EditorImGuiTestState final {
   bool project_writable = false;
   bool project_upgrade_required = false;
   std::uint32_t recent_projects = 0;
+  bool project_selector_visible = false;
+  std::uint32_t selector_recent_projects = 0;
 };
 
 class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
   [[nodiscard]] static EditorImGuiTestState Inspect(const EditorImGuiHost &host) noexcept;
   static void SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept;
+  static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   [[nodiscard]] static std::uint32_t OverrideDrawTexture(EditorImGuiHost &host,
                                                          std::uint64_t texture_id) noexcept;
 };

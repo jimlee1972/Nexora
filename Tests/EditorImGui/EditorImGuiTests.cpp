@@ -57,6 +57,24 @@ int main() {
   EditorImGuiTestAccess::SetInputTrickle(host, false);
   assert(!EditorImGuiTestAccess::Inspect(host).input_trickle_enabled);
   host.SetDisplay(1280.0F, 720.0F, 1.0F);
+  host.BeginFrame();
+  host.DrawProjectSelector(&recent_projects);
+  const auto selector_metrics = host.EndFrame();
+  const auto selector_state = EditorImGuiTestAccess::Inspect(host);
+  assert(selector_metrics.vertices > 0 && selector_metrics.indices > 0);
+  assert(selector_state.project_selector_visible && selector_state.selector_recent_projects == 1);
+  host.SetProjectSelectorError("project could not be opened");
+  assert(host.ProjectSelectorError() == "project could not be opened");
+  const auto selector_root = content_root / "selected";
+  EditorImGuiTestAccess::QueueProjectSelection(
+      host, {nexora::editor::imgui::ProjectSelectorAction::Create, selector_root, "Selected",
+             nexora::editor::ProjectAccess::ReadWrite});
+  const auto selector_request = host.TakeProjectSelectorRequest();
+  assert(selector_request &&
+         selector_request->action == nexora::editor::imgui::ProjectSelectorAction::Create &&
+         selector_request->root == selector_root && selector_request->name == "Selected" &&
+         selector_request->access == nexora::editor::ProjectAccess::ReadWrite);
+  assert(!host.TakeProjectSelectorRequest());
   nexora::editor::ProductShell shell;
   // Dear ImGui's Shortcut()/SetShortcutRouting() arbitrate routing one frame ahead: a route
   // registered during a frame only "wins" starting the *next* frame (see RoutingNext/RoutingCurr

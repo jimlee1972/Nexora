@@ -54,6 +54,10 @@ into renderer or platform internals.
   project. Entries are keyed by project UUID, deduplicated by UUID or canonical root, bounded to 12,
   and atomically replaced. The application chooses its storage path; read-only project access does
   not grant writes to project-owned files.
+- The graphical project selector is a UI request source, not a project owner. `NexoraEditor` stages
+  a candidate `ProjectWorkspace`, `AssetWorkspace`, and `ProjectContentSession`, then activates the
+  set only after create/open, identity validation, indexing, and content binding all succeed. A
+  failed request leaves the selector active and releases any candidate writer lease.
 - `AssetWorkspace` owns index entries. Pointers returned by `Find` and `Search` are borrowed until
   the next successful `ImportTree` call or destruction. The Editor executable uses
   `PersistentReadWrite`: every source asset has a sibling `<asset>.meta` with schema, UUID, and

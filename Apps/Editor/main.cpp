@@ -10,14 +10,40 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace {
+struct ProjectState final {
+  nexora::editor::ProjectWorkspace workspace;
+  nexora::editor::AssetWorkspace assets;
+};
+
+bool LoadProject(const std::filesystem::path &root, nexora::editor::ProjectAccess access,
+                 bool create, std::string name, ProjectState &destination, std::string *error) {
+  ProjectState candidate;
+  if (create) {
+    if (!candidate.workspace.Create(root, std::move(name), error))
+      return false;
+  } else if (!candidate.workspace.Open(root, access, error)) {
+    return false;
+  }
+  if (!candidate.assets.ImportTree(candidate.workspace.Root() / "Content", {}, {},
+                                   candidate.workspace.Writable()
+                                       ? nexora::editor::AssetIdentityMode::PersistentReadWrite
+                                       : nexora::editor::AssetIdentityMode::PersistentReadOnly,
+                                   error))
+    return false;
+  destination = std::move(candidate);
+  return true;
+}
+
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
-int RunGraphical(nexora::editor::ProjectWorkspace &workspace,
-                 const nexora::editor::AssetWorkspace &assets,
-                 nexora::editor::RecentProjectStore &recent_projects, std::uint32_t frame_limit) {
+int RunGraphical(std::optional<ProjectState> project,
+                 nexora::editor::RecentProjectStore &recent_projects,
+                 nexora::editor::ProjectAccess selector_access, std::uint32_t frame_limit) {
   auto created = Nexora::Presentation::CreateRenderSurface(
       {"Nexora Editor", 1280, 720, true, Nexora::Presentation::SurfaceBackend::Automatic});
   if (!created) {
@@ -27,15 +53,23 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace,
   nexora::editor::imgui::EditorImGuiHost ui;
   nexora::editor::ProjectContentSession content;
   std::string layout_error;
-  if (!content.Open(workspace, assets, 1, workspace.Writable(), &layout_error)) {
-    std::cerr << layout_error << '\n';
-    return 1;
+  const auto load_layout = [&](nexora::editor::ProjectWorkspace &workspace) {
+    layout_error.clear();
+    if (const auto layout = workspace.LoadEditorLayout(&layout_error);
+        layout && !ui.LoadLayout(*layout))
+      std::cerr << "ignored invalid editor layout\n";
+    else if (!layout_error.empty())
+      std::cerr << layout_error << '\n';
+  };
+  std::uint64_t project_generation = 1;
+  if (project) {
+    if (!content.Open(project->workspace, project->assets, project_generation,
+                      project->workspace.Writable(), &layout_error)) {
+      std::cerr << layout_error << '\n';
+      return 1;
+    }
+    load_layout(project->workspace);
   }
-  if (const auto layout = workspace.LoadEditorLayout(&layout_error);
-      layout && !ui.LoadLayout(*layout))
-    std::cerr << "ignored invalid editor layout\n";
-  else if (!layout_error.empty())
-    std::cerr << layout_error << '\n';
   nexora::editor::ProductShell shell;
   nexora::runtime::World world;
   const auto scene_id = world.LoadScene("Main");
@@ -48,6 +82,7 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace,
   std::uint32_t frames = 0;
   int result = 0;
   auto recovery_choice = nexora::editor::imgui::RecoveryChoice::None;
+  std::string selector_result = project ? "bypassed" : "none";
   while (!created.surface->CloseRequested() && (frame_limit == 0 || frames < frame_limit)) {
     const auto begin_frame_status = created.surface->BeginFrame();
     const auto action = Nexora::Presentation::RecoveryAction(begin_frame_status);
@@ -69,10 +104,40 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace,
                   dpi);
     ui.UpdateImeCandidate(*created.surface);
     ui.BeginFrame();
-    ui.DrawProductShell(shell, &scene, &workspace, &content, &recent_projects);
-    if (const auto choice = ui.TakeRecoveryChoice();
-        choice != nexora::editor::imgui::RecoveryChoice::None)
-      recovery_choice = choice;
+    if (project) {
+      ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects);
+      if (const auto choice = ui.TakeRecoveryChoice();
+          choice != nexora::editor::imgui::RecoveryChoice::None)
+        recovery_choice = choice;
+    } else {
+      ui.DrawProjectSelector(&recent_projects, selector_access);
+      if (auto request = ui.TakeProjectSelectorRequest()) {
+        ProjectState candidate;
+        std::string selector_error;
+        const bool create_project =
+            request->action == nexora::editor::imgui::ProjectSelectorAction::Create;
+        if (!LoadProject(request->root, request->access, create_project, std::move(request->name),
+                         candidate, &selector_error)) {
+          ui.SetProjectSelectorError(selector_error.empty() ? "Project activation failed."
+                                                            : std::move(selector_error));
+        } else {
+          nexora::editor::ProjectContentSession candidate_content;
+          if (!candidate_content.Open(candidate.workspace, candidate.assets, project_generation,
+                                      candidate.workspace.Writable(), &selector_error)) {
+            ui.SetProjectSelectorError(selector_error.empty() ? "Project content could not open."
+                                                              : std::move(selector_error));
+          } else {
+            project = std::move(candidate);
+            content = std::move(candidate_content);
+            selector_result = create_project ? "created" : "opened";
+            if (!recent_projects.Record(project->workspace, &selector_error))
+              std::cerr << "recent-project warning: " << selector_error << '\n';
+            load_layout(project->workspace);
+            ui.SetProjectSelectorError({});
+          }
+        }
+      }
+    }
     static_cast<void>(ui.EndFrame());
     // A surface-level loss (the window vanished, the swapchain went out of date) is recoverable and
     // is resolved by the next BeginFrame, which also pumps a pending close request. Anything else,
@@ -98,7 +163,8 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace,
     }
     ++frames;
   }
-  if (workspace.Writable() && !workspace.SaveEditorLayout(ui.SaveLayout(), &layout_error))
+  if (project && project->workspace.Writable() &&
+      !project->workspace.SaveEditorLayout(ui.SaveLayout(), &layout_error))
     std::cerr << layout_error << '\n';
   const auto diagnostics = created.surface->Diagnostics();
   std::cerr << "graphical evidence: acquired=" << diagnostics.acquiredFrames
@@ -109,10 +175,14 @@ int RunGraphical(nexora::editor::ProjectWorkspace &workspace,
             << (recovery_choice == nexora::editor::imgui::RecoveryChoice::Recover   ? "recover"
                 : recovery_choice == nexora::editor::imgui::RecoveryChoice::Discard ? "discard"
                                                                                     : "none")
-            << " access=" << (workspace.Writable() ? "read-write" : "read-only")
-            << " schema=" << workspace.Project().schema_version << " upgrade="
-            << (workspace.UpgradeState() == nexora::editor::ProjectUpgradeState::Applied ? "applied"
-                : workspace.UpgradeState() == nexora::editor::ProjectUpgradeState::Required
+            << " selector=" << selector_result << " access="
+            << (project ? (project->workspace.Writable() ? "read-write" : "read-only") : "none")
+            << " schema=" << (project ? project->workspace.Project().schema_version : 0)
+            << " upgrade="
+            << (!project ? "none"
+                : project->workspace.UpgradeState() == nexora::editor::ProjectUpgradeState::Applied
+                    ? "applied"
+                : project->workspace.UpgradeState() == nexora::editor::ProjectUpgradeState::Required
                     ? "required"
                     : "current")
             << " recents=" << recent_projects.Entries().size() << '\n';
@@ -144,7 +214,7 @@ int Run(int argc, char **argv) {
     else if (argument.starts_with("--frames="))
       frame_limit = static_cast<std::uint32_t>(std::stoul(std::string(argument.substr(9))));
     else if (argument == "--help") {
-      std::cout << "NexoraEditor --project=PATH [--read-only] [--report=PATH] [--graphical] "
+      std::cout << "NexoraEditor [--project=PATH] [--read-only] [--report=PATH] [--graphical] "
                    "[--frames=N] [--recent-projects=PATH]\n";
       return 0;
     } else {
@@ -152,37 +222,36 @@ int Run(int argc, char **argv) {
       return 2;
     }
   }
-  if (project.empty()) {
-    std::cerr << "--project is required\n";
+  if (project.empty() && !graphical) {
+    std::cerr << "--project is required unless --graphical opens the project selector\n";
     return 2;
   }
-  nexora::editor::ProjectWorkspace workspace;
   std::string error;
-  if (!workspace.Open(project,
-                      read_only ? nexora::editor::ProjectAccess::ReadOnly
-                                : nexora::editor::ProjectAccess::ReadWrite,
-                      &error)) {
-    std::cerr << error << '\n';
-    return 1;
-  }
-  nexora::editor::AssetWorkspace assets;
-  if (!assets.ImportTree(workspace.Root() / "Content", {}, {},
-                         workspace.Writable()
-                             ? nexora::editor::AssetIdentityMode::PersistentReadWrite
-                             : nexora::editor::AssetIdentityMode::PersistentReadOnly,
-                         &error)) {
-    std::cerr << "content indexing failed: " << error << '\n';
-    return 1;
-  }
   nexora::editor::RecentProjectStore recent_projects;
   if (recent_projects_path.empty())
     recent_projects_path = nexora::editor::RecentProjectStore::DefaultPath();
-  if (!recent_projects.Open(recent_projects_path, &error) ||
-      !recent_projects.Record(workspace, &error))
+  if (!recent_projects.Open(recent_projects_path, &error))
     std::cerr << "recent-project warning: " << error << '\n';
+  std::optional<ProjectState> project_state;
+  if (!project.empty()) {
+    ProjectState opened;
+    if (!LoadProject(project,
+                     read_only ? nexora::editor::ProjectAccess::ReadOnly
+                               : nexora::editor::ProjectAccess::ReadWrite,
+                     false, {}, opened, &error)) {
+      std::cerr << "content indexing or project open failed: " << error << '\n';
+      return 1;
+    }
+    project_state = std::move(opened);
+    if (!recent_projects.Record(project_state->workspace, &error))
+      std::cerr << "recent-project warning: " << error << '\n';
+  }
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
   if (graphical)
-    return RunGraphical(workspace, assets, recent_projects, frame_limit);
+    return RunGraphical(std::move(project_state), recent_projects,
+                        read_only ? nexora::editor::ProjectAccess::ReadOnly
+                                  : nexora::editor::ProjectAccess::ReadWrite,
+                        frame_limit);
 #else
   static_cast<void>(frame_limit);
   if (graphical) {
@@ -190,12 +259,18 @@ int Run(int argc, char **argv) {
     return 2;
   }
 #endif
+  if (!project_state) {
+    std::cerr << "--project is required\n";
+    return 2;
+  }
   const std::string json =
-      "{\n  \"application\": \"NexoraEditor\",\n  \"project\": \"" + workspace.Project().name +
+      "{\n  \"application\": \"NexoraEditor\",\n  \"project\": \"" +
+      project_state->workspace.Project().name +
       "\",\n  \"panels\": " + std::to_string(nexora::editor::ProductShell::Panels().size()) +
-      ",\n  \"assets\": " + std::to_string(assets.Entries().size()) + ",\n  \"access\": \"" +
-      (workspace.Writable() ? "read-write" : "read-only") +
-      "\",\n  \"schema\": " + std::to_string(workspace.Project().schema_version) + "\n}\n";
+      ",\n  \"assets\": " + std::to_string(project_state->assets.Entries().size()) +
+      ",\n  \"access\": \"" + (project_state->workspace.Writable() ? "read-write" : "read-only") +
+      "\",\n  \"schema\": " + std::to_string(project_state->workspace.Project().schema_version) +
+      "\n}\n";
   if (report.empty())
     std::cout << json;
   else {

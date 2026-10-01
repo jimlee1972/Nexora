@@ -64,7 +64,7 @@ def wait_for_window(xdotool: str, environment: dict[str, str]) -> str:
 
 def launch(
     editor: str,
-    root: Path,
+    root: Path | None,
     recent_projects: Path,
     environment: dict[str, str],
     frames: int = 0,
@@ -72,10 +72,11 @@ def launch(
 ):
     command = [
         editor,
-        f"--project={root}",
         f"--recent-projects={recent_projects}",
         "--graphical",
     ]
+    if root is not None:
+        command.append(f"--project={root}")
     if read_only:
         command.append("--read-only")
     if frames:
@@ -87,6 +88,62 @@ def launch(
         stderr=subprocess.PIPE,
         text=True,
     )
+
+
+def finish_project_selector(
+    editor: subprocess.Popen[str],
+    xdotool: str,
+    environment: dict[str, str],
+    root: Path,
+    name: str,
+    action: str,
+    expected_access: str,
+) -> str:
+    def press(*keys: str) -> None:
+        subprocess.run([xdotool, "key", *keys], env=environment, check=True)
+        time.sleep(0.15)
+
+    window = wait_for_window(xdotool, environment)
+    subprocess.run([xdotool, "windowfocus", window], env=environment, check=True)
+    time.sleep(0.5)
+    subprocess.run(
+        [xdotool, "type", "--clearmodifiers", "--delay", "1", str(root)],
+        env=environment,
+        check=True,
+    )
+    time.sleep(0.2)
+    press("Tab")
+    if action == "created":
+        press("ctrl+a")
+        subprocess.run(
+            [xdotool, "type", "--clearmodifiers", "--delay", "1", name],
+            env=environment,
+            check=True,
+        )
+        time.sleep(0.2)
+        # Project name -> read-only checkbox -> Open -> Create.
+        press("Tab")
+        press("Tab")
+        press("Tab")
+        press("Return")
+        deadline = time.monotonic() + 15
+        while time.monotonic() < deadline and not (root / "project.nexora").is_file():
+            time.sleep(0.1)
+        if not (root / "project.nexora").is_file():
+            raise RuntimeError("graphical selector did not create the project")
+    else:
+        # Project name -> read-only checkbox -> Open.
+        press("Tab")
+        press("Tab")
+        press("Return")
+        time.sleep(1.0)
+    subprocess.run([xdotool, "windowclose", window], env=environment, check=True)
+    _, stderr = editor.communicate(timeout=30)
+    if editor.returncode != 0 or "graphical evidence:" not in stderr:
+        raise RuntimeError(f"project selector {action} failed: {stderr}")
+    if f"selector={action}" not in stderr or f"access={expected_access}" not in stderr:
+        raise RuntimeError(f"project selector did not activate the requested project: {stderr}")
+    return stderr
 
 
 def finish_recovery_choice(
@@ -129,6 +186,41 @@ def main() -> int:
         if display is None:
             raise RuntimeError("Xvfb did not become ready")
         environment["DISPLAY"] = display
+
+        # Launch without --project and complete both graphical selector paths through real X11
+        # keyboard input. Creation owns the writer lease and persists the descriptor; the second
+        # launch opens the same project as an explicit read-only observer.
+        selector_root = root / "Created By Selector"
+        editor = launch(args.editor, None, recent_projects, environment)
+        finish_project_selector(
+            editor,
+            args.xdotool,
+            environment,
+            selector_root,
+            "Selector Acceptance",
+            "created",
+            "read-write",
+        )
+        editor = None
+        selector_descriptor = (selector_root / "project.nexora").read_text()
+        if not re.fullmatch(
+            r"schema=2\nuuid=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+            r"[0-9a-f]{4}-[0-9a-f]{12}\nname=Selector Acceptance\n",
+            selector_descriptor,
+        ):
+            raise RuntimeError(f"selector created an invalid project: {selector_descriptor!r}")
+        editor = launch(args.editor, None, recent_projects, environment, read_only=True)
+        finish_project_selector(
+            editor,
+            args.xdotool,
+            environment,
+            selector_root,
+            "",
+            "opened",
+            "read-only",
+        )
+        editor = None
+
         (root / "Content").mkdir()
         (root / ".nexora").mkdir()
         source_asset = root / "Content/Hero.mesh"

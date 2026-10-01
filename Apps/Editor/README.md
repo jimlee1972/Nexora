@@ -27,10 +27,16 @@ On a host with a display and native presentation support, launch the shell with:
 
 ```bash
 NexoraEditor --project=/path/to/project --graphical
+NexoraEditor --graphical
 ```
 
 `--frames=N` supplies a bounded native smoke run for target-host automation. A missing display or
 presentation backend is reported as an error rather than silently falling back to the CLI.
+When `--project` is omitted, the graphical Project Browser accepts a UTF-8 root and name, supports
+create, read-write open, read-only open, and recent-project shortcuts, and keeps actionable
+activation errors visible. Its one-shot request is executed by the application on the authoring
+thread; a candidate workspace/index/content session replaces the empty state only after every step
+succeeds.
 The shell tracks the surface's live client extent and DPI scale, rebuilds its bucketed font atlas,
 and submits backend-neutral textured/indexed UI draws directly into the acquired native GPU
 backbuffer. It also round-trips a versioned project layout and supplies a live `SceneDocument` to
@@ -46,6 +52,6 @@ shows the stable project UUID, schema and upgrade result, access mode, canonical
 recent-project list. Schema-1 projects upgrade atomically to schema 2 only while holding the writer
 lease; a read-only legacy open reports that an upgrade is required.
 
-This is an ED-M1 graphical foundation, not ED-M1 acceptance. A graphical create/open selector,
-cancellable background import and reimport, dirty external-change decisions, and a target-host
-fresh-project workflow remain open.
+This is an ED-M1 graphical foundation, not ED-M1 acceptance. Cancellable background import and
+reimport, dirty external-change decisions, and physical-display/Windows fresh-project workflow
+acceptance remain open.

@@ -12,6 +12,10 @@ authoring views on first launch.
 
 - `EditorImGuiHost` owns one ImGui context and destroys it with the host.
 - Draw data and frame metrics are valid only for the frame in which `EndFrame` returns them.
+- `DrawProjectSelector` owns only editable UTF-8 fields, the displayed error, and at most one
+  `ProjectSelectorRequest`. `TakeProjectSelectorRequest` transfers that request once. The host never
+  creates directories, acquires a writer lease, indexes content, or replaces the active project;
+  the application performs those steps and reports a failed activation back to the selector.
 - `ProductShell` and `SceneDocument` remain borrowed Editor Core models and outlive calls that
   present them. The Hierarchy reads nodes from the supplied live document and writes a clicked
   node back through `SceneDocument::Select`; the application owns that document and its `World`.
@@ -55,8 +59,10 @@ not merely in widgets. Content mutation errors remain on the session and are sho
 UI does not optimistically update around a failed filesystem transaction. Invalid display
 dimensions and delta times are clamped to safe values. The Window abstraction owns native IME
 candidate-window positioning; unsupported hosts report that result explicitly. Target-host visual
-acceptance remains a release-runner responsibility. A graphical create/open selector, background
-import progress/cancellation, and external dirty-conflict dialogs remain deferred ED-M1 work.
+acceptance remains a release-runner responsibility. Background import progress/cancellation and
+external dirty-conflict dialogs remain deferred ED-M1 work. The Xvfb acceptance launches without a
+project, drives create and read-only open through keyboard navigation, and verifies the resulting
+descriptor and active access mode in a real process.
 
 Window backends normalize navigation, editing, punctuation, keypad, function, alphanumeric, and
 left/right modifier keys before events reach the host. Each key event carries the complete

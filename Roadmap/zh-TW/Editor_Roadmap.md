@@ -19,7 +19,7 @@ workspace/document core。**待辦：** window/docking/UI shell、graphical view
 | Scope | Repository 證據 | 已驗收 |
 | --- | --- | :---: |
 | ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Real-process recovery 與 Linux/Windows host evidence 仍待完成。 | [ ] |
-| ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態，並將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation；圖形化 project selector、background job、conflict UX 與 target-host workflow 驗收仍待完成。 | [ ] |
+| ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態、提供圖形化 create/open/recent selector，並將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation；background job、conflict UX 與實體顯示／Windows workflow 驗收仍待完成。 | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。Scene View、Inspector、renderer-backed picking、camera、gizmo 操作與 reflected graphical widget 仍待完成。 | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。Graphical Game View、Console UI 與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
@@ -106,9 +106,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   project 使用有上限且版本化的 user-level store；docked Project panel 會顯示 canonical root、
   schema／upgrade、access 與 recent-project 狀態。Core、graphical contract 與 Linux real-process
   test 涵蓋第二 writer 拒絕及 read-only 共存。
-- 待辦：圖形化 create/open selector、具 bounded progress 與 structured diagnostic 的
-  cancellable background import/reimport、dirty-conflict reload／keep／compare UI，以及
-  target-host 新 project 全流程驗收。
+- ✅ 圖形化 Project Browser 只發出 one-shot create/open request，不擁有 project state；
+  application 會交易式啟用候選 workspace／index／content session，失敗時錯誤留在 selector。
+  Linux Xvfb 驗收會在沒有 `--project` 的情況下，以純鍵盤完成 create 與 read-only reopen，
+  再驗證 descriptor 與實際 access mode。
+- 待辦：具 bounded progress 與 structured diagnostic 的 cancellable background import/reimport、
+  dirty-conflict reload／keep／compare UI，以及實體顯示／Windows 新 project 全流程驗收。
 
 ### ED-M2 — Scene authoring core
 
