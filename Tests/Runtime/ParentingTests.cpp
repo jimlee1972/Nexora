@@ -430,16 +430,40 @@ void TestGameWorld() {
           "a deferred cascaded destroy must release the descendants' bindings");
 
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
-  const auto holder = world.SpawnEntity(scene);
-  const auto actor = world.SpawnEntity(scene);
-  Require(world.SetCharacter(actor, runtime::CharacterControllerConfig{}), "character failed");
-  Require(!world.SetParent(actor, holder) && world.GetParent(actor) == runtime::Id{0} &&
-              world.SetParent(actor, 0),
-          "a character-controlled entity must stay a root in this phase");
-  const auto attached = world.SpawnEntity(scene);
-  Require(world.SetParent(attached, holder) &&
-              !world.SetCharacter(attached, runtime::CharacterControllerConfig{}),
-          "a parented entity must not gain a character controller in this phase");
+  // A character controller works in world space, also under a parent (Unity's CharacterController
+  // on a child): it starts each move from the transform's current world position, so a moving
+  // parent carries it, and the result is stored relative to the parent.
+  EntitySpawnDescriptor platform_descriptor;
+  platform_descriptor.transform = ParentPose(); // turned 90 degrees about +Y, scale 2
+  const auto platform = world.SpawnEntity(scene, platform_descriptor);
+  EntitySpawnDescriptor rider_descriptor;
+  rider_descriptor.transform = {10.0, 1.0, -2.0};
+  const auto rider = world.SpawnEntity(scene, rider_descriptor);
+  Require(world.SetParent(rider, platform) &&
+              world.SetCharacter(rider, runtime::CharacterControllerConfig{}),
+          "a parented entity must accept a character controller");
+  Require(Near(world.GetCharacter(rider)->position.x, 10.0) &&
+              Near(world.GetCharacter(rider)->position.z, -2.0),
+          "a character must start from the world position, not the local one");
+  runtime::CharacterInput forward;
+  forward.move_x = 1.0;
+  Require(world.TickCharacter(rider, forward, 0.1).has_value(), "the rider failed to tick");
+  const auto state = *world.GetCharacter(rider);
+  const auto rider_world = *world.GetWorldTransform(rider);
+  Require(Near(rider_world.x, state.position.x) && Near(rider_world.y, state.position.y) &&
+              Near(rider_world.z, state.position.z) && world.GetParent(rider) == platform,
+          "the controller's world position must be stored relative to the parent");
+  // Raise the platform; the next (tiny) step starts from the carried position.
+  auto raised = ParentPose();
+  raised.y = 5.0;
+  Require(world.SetTransform(platform, raised), "moving the platform failed");
+  Require(world.TickCharacter(rider, {}, 0.001).has_value() &&
+              std::abs(world.GetWorldTransform(rider)->y - (rider_world.y + 5.0)) < 0.05,
+          "a moving parent must carry its character along");
+  // Detaching keeps the world pose and the controller keeps working.
+  Require(world.SetParent(rider, 0) && world.TickCharacter(rider, forward, 0.1).has_value() &&
+              world.GetParent(rider) == runtime::Id{0},
+          "a detached character must keep ticking as a root");
 #endif
 }
 } // namespace

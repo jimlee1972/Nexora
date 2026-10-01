@@ -147,9 +147,9 @@ typedef struct NexoraTransformV2 {
 } NexoraTransformV2;
 /*
  * "Nexora.Parent" (read/write): the parent entity, 0 for a root. A write reparents within the same
- * scene and is rejected for a cycle, a missing parent, another scene, or an entity with a character
- * controller. keep_local == 0 keeps the world pose (Unity's worldPositionStays, the default);
- * non-zero keeps the local values. reads return keep_local and reserved as 0.
+ * scene and is rejected for a cycle, a missing parent, or another scene. keep_local == 0 keeps the
+ * world pose (Unity's worldPositionStays, the default); non-zero keeps the local values. Reads
+ * return keep_local and reserved as 0.
  */
 typedef struct NexoraParent {
   uint64_t parent;

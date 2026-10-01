@@ -107,12 +107,6 @@ bool GameWorld::SetTransform(runtime::Id entity, runtime::Transform transform) {
 }
 
 bool GameWorld::SetParent(runtime::Id entity, runtime::Id parent, bool keep_world) {
-#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
-  // The character controller writes world positions into the entity transform, which is local
-  // under a parent; until that is resolved, character-controlled entities stay roots.
-  if (parent != 0 && characters_.contains(entity))
-    return false;
-#endif
   runtime::WorldCommandBuffer commands;
   commands.SetParent(entity, parent, keep_world);
   return commands.Apply(world_);
@@ -208,11 +202,12 @@ bool GameWorld::SetCharacter(runtime::Id entity,
     return false;
   if (!config)
     return characters_.erase(entity) != 0;
-  // See SetParent: a character-controlled entity must be a root in this phase.
-  if (world_.Parent(entity).value_or(0) != 0)
+  // The controller works in world space; under a parent the entity's transform is local.
+  const auto world_transform = world_.WorldTransform(entity);
+  if (!world_transform)
     return false;
   CharacterBinding binding(*config);
-  binding.state.position = {snapshot->transform.x, snapshot->transform.y, snapshot->transform.z};
+  binding.state.position = {world_transform->x, world_transform->y, world_transform->z};
   characters_.insert_or_assign(entity, std::move(binding));
   return true;
 }
@@ -231,13 +226,28 @@ GameWorld::TickCharacter(runtime::Id entity, const runtime::CharacterInput &inpu
   if (found == characters_.end() || !IsAlive(entity))
     return std::nullopt;
   auto &binding = found->second;
+  // Like Unity's CharacterController, start each move from where the transform is now in world
+  // space, so a moved parent (a moving platform) or a teleport carries the character along.
+  const auto before = world_.WorldTransform(entity);
+  if (!before)
+    return std::nullopt;
+  binding.state.position = {before->x, before->y, before->z};
   auto result =
       binding.motor.Tick(binding.state, input, seconds, physics_, binding.controller, ground_ready);
+  // The controller moved the world position; store it in the parent's space, changing only the
+  // local position.
   const auto *current = world_.FindEntity(entity);
-  if (current == nullptr ||
-      !SetTransform(entity,
-                    runtime::WithPosition(current->transform, binding.state.position.x,
-                                          binding.state.position.y, binding.state.position.z)))
+  if (current == nullptr)
+    return std::nullopt;
+  auto local = runtime::WithPosition(*before, binding.state.position.x, binding.state.position.y,
+                                     binding.state.position.z);
+  if (current->parent != 0) {
+    const auto parent_world = world_.WorldTransform(current->parent);
+    if (!parent_world)
+      return std::nullopt;
+    local = runtime::RelativeTransform(*parent_world, local);
+  }
+  if (!SetTransform(entity, runtime::WithPosition(current->transform, local.x, local.y, local.z)))
     return std::nullopt;
   return result;
 }

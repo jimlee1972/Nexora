@@ -269,11 +269,14 @@ no sibling ordering yet.
   then report failure, and validating a `SetParent` rejects the batch when the new parent's ancestor
   chain is dangling or cyclic.
 
-Phase 1 limits: a character-controlled entity must be a root (`GameWorld` rejects parenting one and
-attaching a character to a parented entity), because the controller writes world positions into the
-transform; `PlaySession` apply-back copies
-transforms only and reports a conflict for an entity whose parent changed during play; rendering and
-physics do not consume entity transforms yet.
+A character controller may sit under a parent, as Unity's CharacterController on a child does. It
+works in world space: `SetCharacter` starts it at the entity's world position. Each `TickCharacter`
+starts from the transform's current world position, so a moved parent (a moving platform) or a
+teleport carries the character. The resulting world position is stored relative to the parent,
+changing only the local position.
+
+Limits: `PlaySession` apply-back copies transforms only and reports a conflict for an entity whose
+parent changed during play; rendering and physics do not consume entity transforms yet.
 
 Gameplay modules reach the hierarchy through component wires in `nexora/nexora.h`, read and written
 with `read_component`/`write_component`:
