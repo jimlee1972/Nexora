@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -472,8 +473,9 @@ void TestCameraView() {
                   "a root camera must look down its local -Z (right-handed), like LookAt");
   Require(Inside(*view, 0.0F, 0.0F, 0.0F) && !Inside(*view, 0.0F, 0.0F, 20.0F),
           "the origin is in front of the camera and z=20 is behind it");
-  Require(view->camera_position.z == 10.0F && view->maximum_distance == 1000.0F,
-          "the view must carry the camera position and far plane");
+  Require(view->camera_position.z == 10.0F &&
+              view->maximum_distance == std::numeric_limits<float>::max(),
+          "the view must carry the camera position, and leave the far plane to the frustum");
 
   // Under a moved, rotated, and scaled parent the camera follows the parent (position through the
   // exact matrix) and ignores scale, as Unity does.
@@ -507,12 +509,82 @@ void TestCameraView() {
     commands.SetCamera(camera, data);
     Require(commands.Apply(world), "setting camera data failed");
   };
+  // The last three are valid doubles that degenerate as the renderer's floats.
   for (const auto &bad :
        {runtime::CameraComponent{0.0, 0.1, 10.0}, runtime::CameraComponent{180.0, 0.1, 10.0},
-        runtime::CameraComponent{60.0, 0.0, 10.0}, runtime::CameraComponent{60.0, 1.0, 1.0}}) {
+        runtime::CameraComponent{60.0, 0.0, 10.0}, runtime::CameraComponent{60.0, 1.0, 1.0},
+        runtime::CameraComponent{179.999999, 0.1, 10.0},
+        runtime::CameraComponent{60.0, 1e-50, 10.0},
+        runtime::CameraComponent{60.0, 1.0, 1.0 + 1e-12}}) {
     set_camera(bad);
     Require(!runtime::CameraView(world, camera, 1.0F), "invalid camera data must produce no view");
   }
+}
+
+void TestCameraIgnoresParentScale() {
+  // Codex's case: a parent stretched 2x along X, the camera turned 45 degrees about Y. The view
+  // must look along the world rotation (45 degrees), not the skewed matrix axis (~63 degrees).
+  runtime::World world;
+  const auto main_scene = world.LoadScene("Main");
+  Transform stretched{};
+  stretched.sx = 2.0;
+  auto &parent = world.CreateEntity(main_scene);
+  parent.transform = stretched;
+  const auto parent_id = parent.id;
+  Transform turned{};
+  turned.qy = std::sin(0.3926990816987241); // 45 degrees about +Y
+  turned.qw = std::cos(0.3926990816987241);
+  const auto camera = CreateCamera(world, main_scene, turned);
+  Require(Reparent(world, camera, parent_id, false), "parenting the camera failed");
+  const auto projection = math::PerspectiveRadians(math::Radians(60.0F), 1.0F, 0.1F, 1000.0F);
+  const float s = static_cast<float>(kHalfSqrt2);
+  auto view = runtime::CameraView(world, camera, 1.0F);
+  Require(view.has_value(), "a camera under a stretched parent must produce a view");
+  RequireSameView(*view, projection * math::LookAt({0, 0, 0}, {-s, 0, -s}),
+                  "non-uniform parent scale must not skew the view direction");
+
+  // A mirroring parent (negative Z scale) must not flip the view either.
+  Transform mirrored{};
+  mirrored.sz = -1.0;
+  Require(Move(world, parent_id, mirrored), "mirroring the parent failed");
+  view = runtime::CameraView(world, camera, 1.0F);
+  Require(view.has_value(), "a camera under a mirrored parent must produce a view");
+  RequireSameView(*view, projection * math::LookAt({0, 0, 0}, {-s, 0, -s}),
+                  "negative parent scale must not flip the view direction");
+}
+
+void TestFarCornersAreNotDistanceCulled() {
+  // Codex's case: fov 60, aspect 2, far 100. (80, 0, -90) lies inside the frustum near its far
+  // corner, yet 120 away from the camera; a radial limit at the far plane would cull it.
+  runtime::World world;
+  const auto main_scene = world.LoadScene("Main");
+  Require(world.Activate(main_scene), "activation failed");
+  world.CreateEntity(main_scene).light = true;
+  const auto camera = CreateCamera(world, main_scene, {});
+  {
+    runtime::WorldCommandBuffer commands;
+    commands.SetCamera(camera, runtime::CameraComponent{60.0, 0.1, 100.0});
+    Require(commands.Apply(world), "setting camera data failed");
+  }
+  Create(world, main_scene, {80.0, 0.0, -90.0});
+  if (!runtime::SceneRenderingEnabled())
+    return;
+  renderer::GPUScene gpu;
+  runtime::RenderSceneSync sync;
+  auto device = rhi::CreateValidationDevice();
+  const auto layout = rhi::TrianglePipelineLayout();
+  const auto pipeline = device->CreatePipeline(
+      {layout.layout_hash, 0x5254, rhi::TextureFormat::Rgba8Unorm, "Far corner"});
+  const rhi::TextureDescriptor descriptor{640, 320, rhi::TextureFormat::Rgba8Unorm,
+                                          rhi::ResourceState::Present, "Far corner target"};
+  const auto target = device->CreateTexture(descriptor);
+  const auto frame =
+      sync.RenderFrame(world, gpu, Resolve, 1, *device, target, descriptor, pipeline);
+  Require(frame && frame->frame.visible_meshes == 1 && frame->culling.distance_rejected == 0,
+          "an object inside the frustum's far corner must not be distance-culled");
+  Require(sync.Release(gpu, 2), "releasing failed");
+  device->DestroyTexture(target);
+  device->DestroyPipeline(pipeline);
 }
 
 void TestCulledSceneFrame() {
@@ -609,6 +681,8 @@ int main() {
     TestSceneBindingAndOwnership();
     TestDeepChainsMatchWorldMatrix();
     TestCameraView();
+    TestCameraIgnoresParentScale();
+    TestFarCornersAreNotDistanceCulled();
     TestCulledSceneFrame();
     return 0;
   } catch (const std::exception &error) {

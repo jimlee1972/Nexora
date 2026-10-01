@@ -5,10 +5,45 @@ import argparse
 import os
 from pathlib import Path
 import re
+import select
 import shutil
 import subprocess
 import tempfile
 import time
+
+
+def start_xvfb(xvfb: str, screen: str, timeout: float = 10.0):
+    """Start Xvfb on a display it picks itself; return (server, ":N") once it accepts clients.
+
+    `-displayfd` makes Xvfb choose a free display and write its number only when the server is
+    ready, so neither a fixed sleep nor a guessed display number (which parallel tests can share)
+    is involved. Returns (server, None) when it does not become ready within `timeout`.
+    """
+    read_fd, write_fd = os.pipe()
+    server = subprocess.Popen(
+        [xvfb, "-displayfd", str(write_fd), "-screen", "0", screen, "-nolisten", "tcp"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+        pass_fds=(write_fd,),
+    )
+    os.close(write_fd)
+    data = b""
+    deadline = time.monotonic() + timeout
+    try:
+        while not data.endswith(b"\n"):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or not select.select([read_fd], [], [], remaining)[0]:
+                break
+            chunk = os.read(read_fd, 64)
+            if not chunk:  # Xvfb exited before becoming ready.
+                break
+            data += chunk
+    finally:
+        os.close(read_fd)
+    if not data.endswith(b"\n"):
+        return server, None
+    return server, f":{int(data)}"
 
 
 def wait_for_window(xdotool: str, environment: dict[str, str]) -> str:
@@ -71,21 +106,13 @@ def main() -> int:
     parser.add_argument("--xdotool", required=True)
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix="nexora-display-acceptance-"))
-    display = f":{100 + os.getpid() % 400}"
+    xvfb, display = start_xvfb(args.xvfb, "1600x900x24")
     environment = os.environ.copy()
-    environment["DISPLAY"] = display
-    xvfb = subprocess.Popen(
-        [args.xvfb, display, "-screen", "0", "1600x900x24", "-nolisten", "tcp"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
     editor = None
     try:
-        deadline = time.monotonic() + 10
-        socket = Path(f"/tmp/.X11-unix/X{display[1:]}")
-        while not socket.exists() and time.monotonic() < deadline:
-            time.sleep(0.05)
+        if display is None:
+            raise RuntimeError("Xvfb did not become ready")
+        environment["DISPLAY"] = display
         (root / "Content").mkdir()
         (root / ".nexora").mkdir()
         (root / "project.nexora").write_text("schema=1\nname=Display Acceptance\n")

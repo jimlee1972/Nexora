@@ -4,6 +4,7 @@
 import json
 import os
 from pathlib import Path
+import select
 import shutil
 import subprocess
 import sys
@@ -20,6 +21,40 @@ def unavailable(message: str) -> int:
     return 77
 
 
+def start_xvfb(xvfb: str, screen: str, timeout: float = 10.0):
+    """Start Xvfb on a display it picks itself; return (server, ":N") once it accepts clients.
+
+    `-displayfd` makes Xvfb choose a free display and write its number only when the server is
+    ready, so neither a fixed sleep nor a guessed display number (which parallel tests can share)
+    is involved. Returns (server, None) when it does not become ready within `timeout`.
+    """
+    read_fd, write_fd = os.pipe()
+    server = subprocess.Popen(
+        [xvfb, "-displayfd", str(write_fd), "-screen", "0", screen, "-nolisten", "tcp"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+        pass_fds=(write_fd,),
+    )
+    os.close(write_fd)
+    data = b""
+    deadline = time.monotonic() + timeout
+    try:
+        while not data.endswith(b"\n"):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or not select.select([read_fd], [], [], remaining)[0]:
+                break
+            chunk = os.read(read_fd, 64)
+            if not chunk:  # Xvfb exited before becoming ready.
+                break
+            data += chunk
+    finally:
+        os.close(read_fd)
+    if not data.endswith(b"\n"):
+        return server, None
+    return server, f":{int(data)}"
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         raise SystemExit("usage: LinuxVirtualDisplaySmoke.py NEXORA_SHOWCASE")
@@ -29,17 +64,12 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory(prefix="nexora-showcase-") as temporary:
         report = Path(temporary) / "windowed.json"
-        display = f":{100 + os.getpid() % 500}"
-        server = subprocess.Popen(
-            [xvfb, display, "-screen", "0", "1280x720x24", "-nolisten", "tcp"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
+        server, display = start_xvfb(xvfb, "1280x720x24")
         try:
-            time.sleep(0.5)
-            if server.poll() is not None:
-                return unavailable(f"Xvfb failed to start: {server.stderr.read().strip()}")
+            if display is None:
+                server.terminate()
+                _, errors = server.communicate(timeout=3)
+                return unavailable(f"Xvfb failed to start: {errors.strip()}")
             environment = os.environ.copy()
             environment["DISPLAY"] = display
             completed = subprocess.run(
