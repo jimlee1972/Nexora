@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <unordered_set>
 
 namespace nexora::editor {
 namespace {
@@ -27,6 +28,44 @@ std::optional<Vec> Normalized(const Vec &a) {
   if (!std::isfinite(length) || length < kMinLength)
     return std::nullopt;
   return Scale(a, 1.0 / length);
+}
+
+struct Quat final {
+  double x{}, y{}, z{}, w{1.0};
+};
+Quat RotationOf(const runtime::Transform &t) { return {t.qx, t.qy, t.qz, t.qw}; }
+Quat Multiply(const Quat &a, const Quat &b) {
+  return {
+      a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y, a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+      a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w, a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z};
+}
+Vec Rotate(const Quat &q, const Vec &v) {
+  // v' = v + 2w(u x v) + 2u x (u x v), with u the vector part of the unit quaternion.
+  const Vec u{q.x, q.y, q.z};
+  const auto t = Scale(Cross(u, v), 2.0);
+  return Add(Add(v, Scale(t, q.w)), Cross(u, t));
+}
+std::optional<Quat> Normalized(const Quat &q) {
+  const auto length = std::sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+  if (!std::isfinite(length) || length < kMinLength)
+    return std::nullopt;
+  return Quat{q.x / length, q.y / length, q.z / length, q.w / length};
+}
+Vec PositionOf(const runtime::Transform &t) { return {t.x, t.y, t.z}; }
+
+// Where the ray meets the plane through `point` with unit normal `normal`; nullopt when the ray is
+// (nearly) parallel to it or meets it behind its origin.
+std::optional<Vec> PlaneHit(const ViewportRay &ray, const Vec &point, const Vec &normal) {
+  const auto direction = Normalized(ray.direction);
+  if (!direction || !Finite(ray.origin))
+    return std::nullopt;
+  const auto facing = Dot(*direction, normal);
+  if (std::abs(facing) < 1e-6)
+    return std::nullopt;
+  const auto t = Dot(Sub(point, ray.origin), normal) / facing;
+  if (!std::isfinite(t) || t < 0.0)
+    return std::nullopt;
+  return Add(ray.origin, Scale(*direction, t));
 }
 
 } // namespace
@@ -169,6 +208,208 @@ bool ViewportResizeFilter::Update(std::uint32_t width, std::uint32_t height) noe
     return true;
   }
   return false;
+}
+
+std::array<ViewportVector, 3> GizmoAxes(const runtime::Transform &world,
+                                        GizmoSpace space) noexcept {
+  std::array<ViewportVector, 3> axes{{{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}}};
+  if (space == GizmoSpace::World)
+    return axes;
+  const auto rotation = Normalized(RotationOf(world));
+  if (!rotation)
+    return axes;
+  for (auto &axis : axes)
+    axis = Rotate(*rotation, axis);
+  return axes;
+}
+
+std::optional<double> RotationDragAngle(const ViewportRay &start, const ViewportRay &current,
+                                        const ViewportVector &center, const ViewportVector &axis) {
+  const auto normal = Normalized(axis);
+  if (!normal || !Finite(center))
+    return std::nullopt;
+  const auto from = PlaneHit(start, center, *normal);
+  const auto to = PlaneHit(current, center, *normal);
+  if (!from || !to)
+    return std::nullopt;
+  const auto a = Sub(*from, center);
+  const auto b = Sub(*to, center);
+  // Relative to how far the camera is from the plane, a hit this close to the centre has no
+  // meaningful direction.
+  const auto scale =
+      std::max({1.0, Length(Sub(start.origin, center)), Length(Sub(current.origin, center))});
+  if (Length(a) < 1e-9 * scale || Length(b) < 1e-9 * scale)
+    return std::nullopt;
+  const auto angle = std::atan2(Dot(*normal, Cross(a, b)), Dot(a, b));
+  if (!std::isfinite(angle))
+    return std::nullopt;
+  return angle;
+}
+
+std::optional<double> ScaleDragFactor(double start_distance, double current_distance) {
+  if (!std::isfinite(start_distance) || !std::isfinite(current_distance) ||
+      std::abs(start_distance) < kMinLength)
+    return std::nullopt;
+  const auto factor = current_distance / start_distance;
+  if (!std::isfinite(factor))
+    return std::nullopt;
+  return std::max(factor, kMinGizmoScaleFactor);
+}
+
+std::optional<std::vector<runtime::Transform>> ApplyGizmo(std::span<const GizmoTarget> targets,
+                                                          const GizmoOperation &operation) {
+  using Kind = GizmoOperation::Kind;
+  const bool center = operation.pivot == GizmoPivot::Center;
+  if (center && !Finite(operation.center))
+    return std::nullopt;
+  std::optional<Quat> turn;
+  std::array<Vec, 3> axes{};
+  if (operation.kind == Kind::Translate) {
+    if (!Finite(operation.translation))
+      return std::nullopt;
+  } else if (operation.kind == Kind::Rotate) {
+    const auto axis = Normalized(operation.axis);
+    if (!axis || !std::isfinite(operation.angle))
+      return std::nullopt;
+    const auto half = operation.angle * 0.5;
+    turn = Quat{axis->x * std::sin(half), axis->y * std::sin(half), axis->z * std::sin(half),
+                std::cos(half)};
+  } else {
+    const auto &f = operation.factors;
+    if (!Finite(f) || !(f.x > 0.0) || !(f.y > 0.0) || !(f.z > 0.0))
+      return std::nullopt;
+    if (center) {
+      for (std::size_t index = 0; index < 3; ++index) {
+        const auto axis = Normalized(operation.axes[index]);
+        if (!axis)
+          return std::nullopt;
+        axes[index] = *axis;
+      }
+      // Offsets are split along the axes and rebuilt, which is only exact for orthogonal axes.
+      if (std::abs(Dot(axes[0], axes[1])) > 1e-6 || std::abs(Dot(axes[0], axes[2])) > 1e-6 ||
+          std::abs(Dot(axes[1], axes[2])) > 1e-6)
+        return std::nullopt;
+    }
+  }
+
+  std::vector<runtime::Transform> results;
+  results.reserve(targets.size());
+  for (const auto &target : targets) {
+    const auto world = runtime::ComposeTransforms(target.parent_world, target.local);
+    auto moved = world;
+    if (operation.kind == Kind::Translate) {
+      const auto position = Add(PositionOf(world), operation.translation);
+      moved = runtime::WithPosition(world, position.x, position.y, position.z);
+    } else if (operation.kind == Kind::Rotate) {
+      const auto rotation = Normalized(Multiply(*turn, RotationOf(world)));
+      if (!rotation)
+        return std::nullopt;
+      moved.qx = rotation->x;
+      moved.qy = rotation->y;
+      moved.qz = rotation->z;
+      moved.qw = rotation->w;
+      if (center) {
+        const auto position =
+            Add(operation.center, Rotate(*turn, Sub(PositionOf(world), operation.center)));
+        moved = runtime::WithPosition(moved, position.x, position.y, position.z);
+      }
+    } else if (center) {
+      // Scale the offset from the centre along the gizmo axes.
+      const auto offset = Sub(PositionOf(world), operation.center);
+      const double factors[3]{operation.factors.x, operation.factors.y, operation.factors.z};
+      auto position = operation.center;
+      for (std::size_t index = 0; index < 3; ++index)
+        position = Add(position, Scale(axes[index], Dot(offset, axes[index]) * factors[index]));
+      moved = runtime::WithPosition(world, position.x, position.y, position.z);
+    }
+    // Back into the parent's space, taking from the result only what this operation changes and
+    // keeping every other part exactly, so a round trip through the parent cannot drift it.
+    auto local = runtime::RelativeTransform(target.parent_world, moved);
+    // Rotating or scaling about each entity's own origin leaves its position where it was.
+    if (operation.kind != Kind::Translate && !center)
+      local = runtime::WithPosition(local, target.local.x, target.local.y, target.local.z);
+    if (operation.kind != Kind::Rotate) {
+      local.qx = target.local.qx;
+      local.qy = target.local.qy;
+      local.qz = target.local.qz;
+      local.qw = target.local.qw;
+    }
+    local.sx = target.local.sx;
+    local.sy = target.local.sy;
+    local.sz = target.local.sz;
+    if (operation.kind == Kind::Scale) {
+      local.sx *= operation.factors.x;
+      local.sy *= operation.factors.y;
+      local.sz *= operation.factors.z;
+    }
+    const auto normalized = runtime::NormalizedTransform(local);
+    if (!normalized)
+      return std::nullopt;
+    results.push_back(*normalized);
+  }
+  return results;
+}
+
+std::vector<runtime::Id> GizmoRoots(const runtime::World &world,
+                                    std::span<const runtime::Id> selection) {
+  const std::unordered_set<runtime::Id> selected(selection.begin(), selection.end());
+  std::unordered_set<runtime::Id> seen;
+  std::vector<runtime::Id> roots;
+  for (const auto id : selection) {
+    if (!world.FindEntity(id) || !seen.insert(id).second)
+      continue;
+    bool covered = false;
+    // Bounded like the runtime's own ancestor walks, in case of a corrupted hierarchy.
+    std::size_t steps = 0;
+    for (auto parent = world.Parent(id).value_or(0); parent != 0 && steps < 1'000'000;
+         parent = world.Parent(parent).value_or(0), ++steps)
+      if (selected.contains(parent)) {
+        covered = true;
+        break;
+      }
+    if (!covered)
+      roots.push_back(id);
+  }
+  return roots;
+}
+
+std::optional<std::vector<GizmoTarget>> GizmoTargets(const runtime::World &world,
+                                                     std::span<const runtime::Id> entities) {
+  std::vector<GizmoTarget> targets;
+  targets.reserve(entities.size());
+  for (const auto id : entities) {
+    const auto *entity = world.FindEntity(id);
+    if (!entity)
+      return std::nullopt;
+    GizmoTarget target{id, entity->transform, {}};
+    if (entity->parent != 0) {
+      const auto parent = world.WorldTransform(entity->parent);
+      if (!parent)
+        return std::nullopt;
+      target.parent_world = *parent;
+    }
+    targets.push_back(target);
+  }
+  return targets;
+}
+
+std::optional<ViewportVector> SelectionCenter(const runtime::World &world,
+                                              std::span<const runtime::Id> entities) {
+  if (entities.empty())
+    return std::nullopt;
+  // Each position is divided before it is added, so the partial sums stay within the largest
+  // coordinate and never overflow even when the positions are near the limit of a double.
+  const auto weight = 1.0 / static_cast<double>(entities.size());
+  Vec mean{};
+  for (const auto id : entities) {
+    const auto transform = world.WorldTransform(id);
+    if (!transform)
+      return std::nullopt;
+    mean = Add(mean, Scale(PositionOf(*transform), weight));
+  }
+  if (!Finite(mean))
+    return std::nullopt;
+  return mean;
 }
 
 } // namespace nexora::editor

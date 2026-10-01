@@ -1,7 +1,7 @@
 # Entity Parenting (Transform Hierarchy) — Plan
 
-> Version: v1.0 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
-> phase 1 in progress, later phases not started** | Updated: 2026-10-01 | Relates to:
+> Version: v1.1 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
+> ✅ phase 1 complete; phase 3 gizmo math done, the rest of phase 3 and phases 2 and 4 not started** | Updated: 2026-10-01 | Relates to:
 > `Transform_Rotation_Scale_Plan.md`, `Editor_Roadmap.md` §ED-M2
 
 ## 1. Purpose
@@ -45,14 +45,15 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
 
 ## 4. Phases
 
-1. **Runtime core and Editor unification (this change).** Parent field, `SetParent` with validation,
+1. ✅ **Runtime core and Editor unification.** Parent field, `SetParent` with validation,
    `Parent`/`Children`/`WorldTransform`/`WorldMatrix`, cascading destroy with the destroyed ids
    reported, snapshot v3, undoable `SceneEditor::SetParent` and subtree-restoring destroy undo,
    `GameWorld` wrappers, and `SceneDocument` reading parents from the runtime. Character-controlled
    entities must be roots in this phase (see §5).
 2. **Gameplay boundary.** Versioned Zig/C wire for parent and world transform; character controllers
    under a parent.
-3. **Editor tools.** World/local and pivot gizmo modes on top of `WorldMatrix`, Hierarchy drag
+3. **Editor tools.** World/local and pivot gizmo modes (math done: `GizmoAxes`, `ApplyGizmo`,
+   `GizmoRoots` in `ViewportMath.h`, working on the world TRS like Unity), Hierarchy drag
    reparenting, sibling order.
 4. **Rendering.** When renderers consume entity transforms, they must use `WorldMatrix`.
 

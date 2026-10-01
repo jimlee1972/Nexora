@@ -111,9 +111,27 @@ distance 0 from inside a box, and breaks distance ties by lowest entity id), `Ax
 (closest-point projection of a drag ray onto a gizmo axis; undefined for a parallel ray),
 `SnapToStep` (half-away-from-zero grid snapping that never launders NaN), and
 `ViewportResizeFilter` (dead-band plus stable-frame hysteresis so panel jitter does not reallocate
-render targets). These are CPU-only and covered by `editor.viewport_math`. `runtime::Transform`
-currently carries position only, so rotation/scale gizmo modes, world/local and pivot rules, and
-renderer-backed ID-buffer picking remain open.
+render targets). These are CPU-only and covered by `editor.viewport_math`.
+
+The same header carries the gizmo math, following Unity's tools. A gesture captures `GizmoTargets`
+(each root's local transform and its parent's world transform) and, for Center, `SelectionCenter`
+once at Begin. Every frame it applies the whole delta since Begin with `ApplyGizmo` and passes the
+resulting local transforms to `GizmoTransaction::Update`. Frames therefore never accumulate rounding,
+and Cancel restores the start exactly. The decision table:
+
+| Rule | Behavior |
+| --- | --- |
+| Global / Local (`GizmoAxes`) | World axes, or the axes of the entity's world rotation. A mirrored axis is shown unmirrored, as in Unity. |
+| Translate | World-space offset; only local positions change. |
+| Rotate | About a world axis, applied after the existing world rotation. Pivot turns each entity in place; Center also swings positions about the centre. Angle from `RotationDragAngle`, signed by the right-hand rule, in (-pi, pi]; sum per-frame angles for longer turns. |
+| Scale | Factors multiply each entity's local scale, as in Unity's scale tool: exact for the uniform handle and for entities aligned with the gizmo axes. Center also scales the offsets from the centre along the gizmo axes. |
+| Negative scale | `ScaleDragFactor` never crosses zero (minimum `kMinGizmoScaleFactor`), so a drag can neither create nor remove a mirror. An existing mirror is kept, since factors are positive. |
+| Parents | Results go back through each target's own parent, so a child under a rotated or scaled parent moves as dragged in world space. Under a non-uniformly scaled ancestor with rotation, the world pose is the lossy TRS, as with Unity's `lossyScale`. |
+| Multi-selection | `GizmoRoots` drops duplicates, missing entities, and any entity whose ancestor is also selected; that entity moves with its ancestor. Center is the mean of the selected world positions; the portable core has no bounds. |
+| Invalid frames | A malformed operation or an unrepresentable result makes `ApplyGizmo` return nullopt. The caller keeps the previous frame. |
+
+Snapping is the caller's choice with `SnapToStep` on the distance, angle (in degrees), or factor.
+Renderer-backed ID-buffer picking and the graphical gizmo handles remain open.
 
 `editor.parser_robustness` mutation-tests the parsers that read persisted or external data (trace and
 metric decoding, replay log, unknown-component store, scene snapshot, runtime blob, NXSHDR, shader
