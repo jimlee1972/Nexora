@@ -66,8 +66,10 @@ shown in the Content panel and continue to block artifact publication.
 The ED-M2 graphical Hierarchy foundation now renders a parent-aware expandable tree, filters by
 entity name, supports plain/Ctrl/Shift selection with a retained generation-keyed anchor, clips
 visible-row submission, and routes rename, sibling ordering, and drag/drop reparenting through the
-generation-safe, undoable `SceneDocument` contracts. Scene View, Inspector, and the ED-M2 visual
-exit gate remain open.
+generation-safe, undoable `SceneDocument` contracts. The docked Inspector also edits a single
+selection's local position, quaternion, and scale through the same generation-safe, undoable
+document boundary; invalid transforms are rejected by Runtime validation. Scene View, reflected
+component widgets, multi-edit, Euler presentation, and the ED-M2 visual exit gate remain open.
 
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows
 fresh-project workflow acceptance remain open.

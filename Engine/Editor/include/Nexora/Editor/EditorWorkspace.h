@@ -179,6 +179,7 @@ public:
   bool Move(runtime::Id entity, runtime::Id parent, std::size_t index);
   bool Move(NodeKey entity, std::optional<NodeKey> parent, std::size_t index);
   bool SetTransform(runtime::Id entity, runtime::Transform transform);
+  [[nodiscard]] std::optional<runtime::Transform> Transform(runtime::Id entity) const noexcept;
   bool CopySelection();
   bool Paste();
   bool Undo();

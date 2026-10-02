@@ -92,6 +92,10 @@ struct EditorImGuiHost::State final {
   std::optional<SceneDocument::NodeKey> hierarchy_rename_target;
   std::optional<std::pair<SceneDocument::NodeKey, std::string>> hierarchy_rename_request;
   std::string hierarchy_error;
+  std::optional<std::pair<SceneDocument::NodeKey, runtime::Transform>> inspector_transform_request;
+  std::uint32_t inspector_selection = 0;
+  bool inspector_transform_visible = false;
+  std::string inspector_error;
   std::array<char, 128> content_query{};
   std::array<char, 64> content_type{};
   std::array<char, 260> content_rename{};
@@ -669,6 +673,50 @@ template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scen
   }
   state.hierarchy_selection = static_cast<std::uint32_t>(
       std::min<std::size_t>(scene->Selection().size(), std::numeric_limits<std::uint32_t>::max()));
+}
+
+template <typename StateT> void DrawInspector(StateT &state, SceneDocument *scene) {
+  state.inspector_selection =
+      scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
+  state.inspector_transform_visible = false;
+  if (scene == nullptr || scene->Selection().empty()) {
+    ImGui::TextUnformatted("Select an entity to inspect it.");
+    return;
+  }
+  if (scene->Selection().size() != 1) {
+    ImGui::Text("%zu entities selected", scene->Selection().size());
+    ImGui::TextDisabled("Transform multi-edit is not available yet.");
+    return;
+  }
+
+  const auto entity = scene->Selection().front();
+  const auto key = scene->Key(entity);
+  auto transform = scene->Transform(entity);
+  if (!key || !transform) {
+    ImGui::TextUnformatted("The selected entity is no longer available.");
+    return;
+  }
+  state.inspector_transform_visible = true;
+  ImGui::Text("%.*s", static_cast<int>(scene->Name(entity).size()), scene->Name(entity).data());
+  ImGui::SeparatorText("Transform");
+  bool changed = false;
+  changed |= ImGui::InputScalarN("Position", ImGuiDataType_Double, &transform->x, 3);
+  changed |= ImGui::InputScalarN("Rotation (quaternion)", ImGuiDataType_Double, &transform->qx, 4);
+  changed |= ImGui::InputScalarN("Scale", ImGuiDataType_Double, &transform->sx, 3);
+  if (changed)
+    state.inspector_transform_request = std::pair{*key, *transform};
+
+  if (state.inspector_transform_request) {
+    const auto request = std::exchange(state.inspector_transform_request, std::nullopt);
+    if (scene->Key(request->first.id) != request->first ||
+        !scene->SetTransform(request->first.id, request->second))
+      state.inspector_error =
+          "Transform edit rejected because its values or entity generation are stale.";
+    else
+      state.inspector_error.clear();
+  }
+  if (!state.inspector_error.empty())
+    ImGui::TextWrapped("%s", state.inspector_error.c_str());
 }
 
 template <typename StateT>
@@ -1322,6 +1370,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (ImGui::Begin(hierarchy_window.c_str()))
     DrawHierarchy(*state_, scene);
   ImGui::End();
+  const auto inspector_window = PanelWindowName("nexora.inspector");
+  if (ImGui::Begin(inspector_window.c_str()))
+    DrawInspector(*state_, scene);
+  ImGui::End();
   const auto console_window = PanelWindowName("nexora.console");
   if (ImGui::Begin(console_window.c_str()))
     ImGui::Text("Last command: %.*s", static_cast<int>(shell.LastCommand().size()),
@@ -1709,6 +1761,8 @@ EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host)
           host.state_->hierarchy_rendered_rows,
           host.state_->hierarchy_selection,
           host.state_->hierarchy_selection_anchor.value_or(SceneDocument::NodeKey{}),
+          host.state_->inspector_selection,
+          host.state_->inspector_transform_visible,
           host.state_->content_visible_items,
           host.state_->content_visible_folders,
           host.state_->content_selection,
@@ -1773,6 +1827,12 @@ void EditorImGuiTestAccess::QueueHierarchyExpansion(EditorImGuiHost &host,
 void EditorImGuiTestAccess::QueueHierarchyRename(EditorImGuiHost &host,
                                                  SceneDocument::NodeKey entity, std::string name) {
   host.state_->hierarchy_rename_request = std::pair{entity, std::move(name)};
+}
+
+void EditorImGuiTestAccess::QueueInspectorTransform(EditorImGuiHost &host,
+                                                    SceneDocument::NodeKey entity,
+                                                    runtime::Transform transform) noexcept {
+  host.state_->inspector_transform_request = std::pair{entity, transform};
 }
 
 void EditorImGuiTestAccess::QueueProjectSelection(EditorImGuiHost &host,

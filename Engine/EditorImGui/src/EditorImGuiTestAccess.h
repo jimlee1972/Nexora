@@ -25,6 +25,8 @@ struct EditorImGuiTestState final {
   std::uint32_t hierarchy_rendered_rows = 0;
   std::uint32_t hierarchy_selection = 0;
   SceneDocument::NodeKey hierarchy_selection_anchor;
+  std::uint32_t inspector_selection = 0;
+  bool inspector_transform_visible = false;
   std::uint32_t content_visible_items = 0;
   std::uint32_t content_visible_folders = 0;
   std::uint32_t content_selection = 0;
@@ -64,6 +66,8 @@ public:
                                       bool expanded) noexcept;
   static void QueueHierarchyRename(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                    std::string name);
+  static void QueueInspectorTransform(EditorImGuiHost &host, SceneDocument::NodeKey entity,
+                                      runtime::Transform transform) noexcept;
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
   static void QueueContentConflictChoice(EditorImGuiHost &host, runtime::AssetUuid asset,
