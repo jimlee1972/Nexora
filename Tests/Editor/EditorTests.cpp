@@ -116,6 +116,25 @@ int Run() {
     Require(std::getline(descriptor, schema) && schema == "schema=2",
             "upgraded project descriptor was not persisted");
   }
+  {
+    // A schema-1 project that predates the .nexora directory must still open and upgrade.
+    const auto bare_root = root / "BareLegacyProject";
+    fs::create_directories(bare_root / "Content");
+    std::ofstream(bare_root / "project.nexora") << "schema=1\nname=Bare\n";
+    editor::ProjectWorkspace bare_writer;
+    Require(bare_writer.Open(bare_root, &error) &&
+                bare_writer.UpgradeState() == editor::ProjectUpgradeState::Applied,
+            "legacy project without a .nexora directory could not be opened for writing");
+    // A directory with no project descriptor must be rejected without being modified.
+    const auto empty_root = root / "NotAProject";
+    fs::create_directories(empty_root);
+    editor::ProjectWorkspace not_a_project;
+    Require(!not_a_project.Open(empty_root, &error) && !fs::exists(empty_root / ".nexora"),
+            "opening a non-project directory created project state");
+    editor::ProjectWorkspace nul_name;
+    Require(!nul_name.Create(root / "NulName", std::string("a\0b", 3), &error),
+            "project name containing NUL was accepted");
+  }
   const auto invalid_legacy_root = root / "InvalidLegacyProject";
   fs::create_directories(invalid_legacy_root / "Content");
   fs::create_directories(invalid_legacy_root / ".nexora");
