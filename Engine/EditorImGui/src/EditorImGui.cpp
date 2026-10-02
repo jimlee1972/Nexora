@@ -20,6 +20,7 @@
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -294,6 +295,10 @@ std::vector<HierarchyRow> BuildHierarchyRows(const StateT &state,
   children.reserve(nodes.size());
   for (const auto &node : nodes)
     by_id.emplace(node.id, &node);
+  std::unordered_set<runtime::Id> expanded;
+  expanded.reserve(state.hierarchy_expanded.size());
+  for (const auto &key : state.hierarchy_expanded)
+    expanded.insert(key.id);
   for (const auto &node : nodes) {
     const auto parent = node.parent != 0 && by_id.contains(node.parent) ? node.parent : 0;
     children[parent].push_back(&node);
@@ -307,8 +312,7 @@ std::vector<HierarchyRow> BuildHierarchyRows(const StateT &state,
       const auto child_group = children.find(node->id);
       const bool has_children = child_group != children.end() && !child_group->second.empty();
       rows.push_back({node, depth, has_children});
-      if (has_children && std::ranges::find(state.hierarchy_expanded, node->Key()) !=
-                              state.hierarchy_expanded.end())
+      if (has_children && expanded.contains(node->id))
         self(self, node->id, depth + 1);
     }
   };
@@ -745,15 +749,22 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     return;
   }
 
+  // SetFolder rebuilds the breadcrumb span being iterated, so defer navigation until the loop ends.
+  std::optional<std::filesystem::path> navigate_to;
+  int breadcrumb_index = 0;
   for (const auto &breadcrumb : browser.Breadcrumbs()) {
+    ImGui::PushID(breadcrumb_index++);
     if (ImGui::Button(breadcrumb.label.c_str()))
-      static_cast<void>(browser.SetFolder(breadcrumb.path));
+      navigate_to = breadcrumb.path;
     static_cast<void>(AcceptAssetDrop(content, breadcrumb.path));
+    ImGui::PopID();
     ImGui::SameLine();
     ImGui::TextUnformatted("/");
     ImGui::SameLine();
   }
   ImGui::NewLine();
+  if (navigate_to)
+    static_cast<void>(browser.SetFolder(*navigate_to));
 
   bool filter_changed = ImGui::InputTextWithHint(
       "##content-search", "Search assets", state.content_query.data(), state.content_query.size());
@@ -811,8 +822,11 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         if (ImGui::MenuItem("Rename", nullptr, false, content.Writable())) {
           state.content_rename.fill(0);
           const auto filename = item->path.filename().string();
-          std::memcpy(state.content_rename.data(), filename.data(),
-                      std::min(filename.size(), state.content_rename.size() - 1));
+          auto count = std::min(filename.size(), state.content_rename.size() - 1);
+          while (count > 0 && count < filename.size() &&
+                 (static_cast<unsigned char>(filename[count]) & 0xC0U) == 0x80U)
+            --count;
+          std::memcpy(state.content_rename.data(), filename.data(), count);
           state.content_rename_target = item->id;
           open_rename = true;
         }
