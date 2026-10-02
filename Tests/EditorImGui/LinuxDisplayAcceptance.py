@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import select
 import shutil
+import signal
 import subprocess
 import tempfile
 import time
@@ -152,6 +153,44 @@ def finish_project_selector(
     return stderr
 
 
+def crash_with_pending_recovery(
+    editor_path: str,
+    root: Path,
+    recent_projects: Path,
+    environment: dict[str, str],
+    xdotool: str,
+    payload: str,
+) -> None:
+    journal = root / ".nexora/workspace.recovery"
+    workspace = root / ".nexora/workspace"
+    committed_workspace = workspace.read_bytes()
+    with journal.open("wb") as output:
+        output.write(payload.encode("utf-8"))
+        output.flush()
+        os.fsync(output.fileno())
+    directory_fd = os.open(journal.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+
+    editor = launch(editor_path, root, recent_projects, environment)
+    try:
+        wait_for_window(xdotool, environment)
+        editor.kill()
+        _, stderr = editor.communicate(timeout=5)
+        if editor.returncode != -signal.SIGKILL:
+            raise RuntimeError(f"Editor did not terminate through SIGKILL: {stderr}")
+        if journal.read_bytes() != payload.encode("utf-8"):
+            raise RuntimeError("crashed Editor changed the pending recovery journal")
+        if workspace.read_bytes() != committed_workspace:
+            raise RuntimeError("crashed Editor changed the last committed workspace")
+    finally:
+        if editor.poll() is None:
+            editor.kill()
+            editor.communicate(timeout=5)
+
+
 def finish_recovery_choice(
     editor: subprocess.Popen[str],
     xdotool: str,
@@ -164,8 +203,8 @@ def finish_recovery_choice(
     time.sleep(0.5)
     subprocess.run([xdotool, *key_sequence], env=environment, check=True)
     _, stderr = editor.communicate(timeout=30)
-    if "graphical evidence:" not in stderr:
-        raise RuntimeError(f"missing graphical diagnostics: {stderr}")
+    if editor.returncode != 0 or "graphical evidence:" not in stderr:
+        raise RuntimeError(f"recovery process failed or omitted graphical diagnostics: {stderr}")
     match = re.search(
         r"presented=(\d+) ui_draws=(\d+) ui_uploads=(\d+) ui_rejected=(\d+)", stderr
     )
@@ -305,10 +344,11 @@ def main() -> int:
         if not (root / ".nexora/editor-layout.ini").read_text().startswith("schema=1\n"):
             raise RuntimeError("legacy layout was not migrated to the current schema")
 
-        # Leave behind a valid recovery journal, as a crashed session would. The relaunched
-        # process must discover it before normal editing and accept the keyboard-only choice.
-        (root / ".nexora/workspace.recovery").write_text(
-            "schema=1\ndocument=Recovered.scene\n"
+        # Durably stage a journal, then SIGKILL the real Editor before a recovery choice.
+        # Relaunch must reacquire the writer lease and accept the keyboard-only choice.
+        crash_with_pending_recovery(
+            args.editor, root, recent_projects, environment, args.xdotool,
+            "schema=1\ndocument=Recovered.scene\n",
         )
         editor = launch(args.editor, root, recent_projects, environment, frames=600)
         finish_recovery_choice(
@@ -323,8 +363,9 @@ def main() -> int:
         # Exercise the destructive branch separately. Discard must remove only the journal and
         # leave the last committed workspace untouched.
         committed_workspace = (root / ".nexora/workspace").read_text()
-        (root / ".nexora/workspace.recovery").write_text(
-            "schema=1\ndocument=Discarded.scene\n"
+        crash_with_pending_recovery(
+            args.editor, root, recent_projects, environment, args.xdotool,
+            "schema=1\ndocument=Discarded.scene\n",
         )
         editor = launch(args.editor, root, recent_projects, environment, frames=600)
         finish_recovery_choice(

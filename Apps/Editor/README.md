@@ -74,3 +74,10 @@ remain open.
 
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows
 fresh-project workflow acceptance remain open.
+
+The Linux virtual-display acceptance fsyncs a seeded workspace journal and its directory, launches
+the graphical process, and sends SIGKILL before a recovery choice. It verifies unchanged journal
+and committed workspace bytes, then relaunches with the writer lease and exercises keyboard-only
+Recover and Discard independently. Recovery runs must exit successfully as well as report native
+UI rendering. This covers abrupt termination with an existing journal; crash injection during a
+workspace write and physical-display/Windows acceptance remain separate gates.

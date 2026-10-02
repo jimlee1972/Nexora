@@ -57,6 +57,13 @@ Metal native draw recording。這些仍只是 foundation，因 real-display Linu
   `NexoraEditorImGui`）現在會建置並執行它，且在該測試未註冊時直接失敗，因此以它的最新結果為準；
   另有 Windows/DX12 開發機 smoke 實際開啟 Editor 視窗執行 240 frames，回報 acquired=240、presented=240、ui_draws=717、ui_uploads=1、ui_rejected=0、recovery=none；同一 configuration 的 CTest 為 59/59 通過。這些是 bounded 開發機檢查，尚未覆蓋實體顯示器 Linux 或 Windows per-monitor DPI／IME 驗收。此項維持未勾選。
 
+**Recovery 證據更新（2026-10-02）：**Xvfb 驗收現會對 seeded workspace journal 與其
+directory 執行 fsync，啟動真正的 graphical Editor，並在選擇 recovery 前發送 SIGKILL。
+測試要求 journal 與已提交 workspace 保持不變，再以 writer 身分重啟，分別驗證 keyboard-only
+Recover 與 Discard。即使有 graphical diagnostic，recovery process 非零退出也會讓驗收失敗。
+這證明已有 journal 時的突然終止／重啟恢復；它未在 workspace write transaction 中注入 crash，
+也不代表實體顯示器／Windows 驗收完成。ED-M0 仍保持 open。
+
 ### 「完成」的定義
 
 同一個 commit 必須同時滿足：
