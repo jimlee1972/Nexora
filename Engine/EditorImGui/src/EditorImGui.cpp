@@ -20,6 +20,7 @@
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -294,6 +295,10 @@ std::vector<HierarchyRow> BuildHierarchyRows(const StateT &state,
   children.reserve(nodes.size());
   for (const auto &node : nodes)
     by_id.emplace(node.id, &node);
+  std::unordered_set<runtime::Id> expanded;
+  expanded.reserve(state.hierarchy_expanded.size());
+  for (const auto &key : state.hierarchy_expanded)
+    expanded.insert(key.id);
   for (const auto &node : nodes) {
     const auto parent = node.parent != 0 && by_id.contains(node.parent) ? node.parent : 0;
     children[parent].push_back(&node);
@@ -307,8 +312,7 @@ std::vector<HierarchyRow> BuildHierarchyRows(const StateT &state,
       const auto child_group = children.find(node->id);
       const bool has_children = child_group != children.end() && !child_group->second.empty();
       rows.push_back({node, depth, has_children});
-      if (has_children && std::ranges::find(state.hierarchy_expanded, node->Key()) !=
-                              state.hierarchy_expanded.end())
+      if (has_children && expanded.contains(node->id))
         self(self, node->id, depth + 1);
     }
   };
