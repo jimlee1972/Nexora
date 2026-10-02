@@ -21,7 +21,7 @@ updated together and remain evidence-based.
 | ✅ Engine API Foundation Roadmap | **100%** | [Engine API Foundation Roadmap](en/Engine_API_Foundation_Roadmap.md) |
 | Zig Showcase Roadmap | **90%** | [Zig Showcase and Engine-owned Entry Point Roadmap](en/Zig_Showcase_Roadmap.md) |
 | ✅ Window and Native Presentation Roadmap | **100% implementation** | [Window and Native Presentation Roadmap](en/Window_Presentation_Roadmap.md) |
-| V1 Visual Showcase Long-Term Plan | **24%** | [V1 Visual Showcase Demo Long-Term Plan](en/V1-Visual-Showcase-Long-Term-Plan.md) |
+| V1 Visual Showcase Long-Term Plan | **Linux/Windows developer slices verified; final acceptance pending** | [V1 Visual Showcase Demo Long-Term Plan](en/V1-Visual-Showcase-Long-Term-Plan.md) |
 | Editor Roadmap | **0% graphical acceptance** | [Graphical Editor Roadmap](en/Editor_Roadmap.md) |
 | ✅ ADR-0001: Editor UI Framework | **Accepted** | [ADR-0001: Editor UI Framework](en/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui Integration Plan | **In progress; no WP exit gate accepted** | [Editor ED-M0 Dear ImGui Integration Plan](en/Editor_ImGui_Integration_Plan.md) |
@@ -74,7 +74,7 @@ Roadmap 狀態與 repository root [`README.md`](../README.md) 的進度／狀態
 | ✅ Engine API 基礎 Roadmap | **100%** | [Engine API 基礎 Roadmap](zh-TW/Engine_API_基礎_Roadmap.md) |
 | Zig Showcase Roadmap | **90%** | [Zig Showcase 與 Engine-owned Entry Point Roadmap](zh-TW/Zig_Showcase_Roadmap.md) |
 | ✅ Window 與 Native Presentation Roadmap | **100% 實作** | [Window 與 Native Presentation Roadmap](zh-TW/Window_Presentation_Roadmap.md) |
-| V1 可視化展示 Demo 長期規劃 | **10%** | [Nexora V1 可視化展示 Demo 長期規劃](zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) |
+| V1 可視化展示 Demo 長期規劃 | **Linux／Windows 開發機切片已驗證；最終驗收待完成** | [Nexora V1 可視化展示 Demo 長期規劃](zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) |
 | Editor Roadmap | **0% 圖形化驗收** | [圖形化 Editor Roadmap](zh-TW/Editor_Roadmap.md) |
 | ✅ ADR-0001：Editor UI Framework | **Accepted** | [ADR-0001：Editor UI Framework](zh-TW/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui 整合計畫 | **施工中；尚無 WP 通過 exit gate** | [Editor ED-M0 Dear ImGui 整合計畫](zh-TW/Editor_ImGui_Integration_Plan.md) |

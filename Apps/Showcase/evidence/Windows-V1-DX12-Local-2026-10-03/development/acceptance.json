@@ -1,0 +1,113 @@
+{
+    "schema":  "nexora.showcase.windows.acceptance.v1",
+    "status":  "PASS",
+    "scope":  "Windows isolated-copy native visual acceptance",
+    "physical_display_verified":  false,
+    "clean_host_verified":  false,
+    "physical_display_operator_attestation":  false,
+    "clean_host_operator_attestation":  false,
+    "recorded_utc":  "2026-10-02T19:58:37.9947701Z",
+    "checksums_verified":  22,
+    "screenshots":  [
+                        "hub.png",
+                        "rendering.png",
+                        "quad.png",
+                        "triangle.png",
+                        "scene.png",
+                        "input.png",
+                        "gameplay.png",
+                        "presentation.png",
+                        "streaming.png",
+                        "shipping.png",
+                        "rendering-orbit-zoom.png",
+                        "overlays-hidden.png",
+                        "scene-modified.png",
+                        "scene-undo.png",
+                        "scene-play.png",
+                        "scene-reloaded.png",
+                        "input-localized.png",
+                        "gameplay-crouched.png",
+                        "gameplay-teleported.png",
+                        "presentation-blend.png",
+                        "shipping-pressure.png",
+                        "tour-paused.png",
+                        "validation-lab.png",
+                        "resized.png"
+                    ],
+    "engine_module_locations":  {
+                                    "NexoraShowcase.exe":  "bin\\NexoraShowcase.exe",
+                                    "NexoraRHI.dll":  "bin\\NexoraRHI.dll",
+                                    "NexoraFoundation.dll":  "bin\\NexoraFoundation.dll",
+                                    "NexoraZigGameplay.dll":  "bin\\NexoraZigGameplay.dll",
+                                    "NexoraCore.dll":  "bin\\NexoraCore.dll",
+                                    "NexoraPresentation.dll":  "bin\\NexoraPresentation.dll",
+                                    "NexoraWindow.dll":  "bin\\NexoraWindow.dll",
+                                    "NexoraRenderer.dll":  "bin\\NexoraRenderer.dll",
+                                    "NexoraRuntime.dll":  "bin\\NexoraRuntime.dll"
+                                },
+    "issues":  [
+
+               ],
+    "interaction_checks":  [
+                               "pointer_orbit_wheel_zoom",
+                               "overview_profiler_toggles",
+                               "guided_tour_replay_pause",
+                               "scene_modify_undo_play_reload",
+                               "locale_switch",
+                               "held_character_input_crouch_teleport",
+                               "animation_blend",
+                               "lifecycle_pressure"
+                           ],
+    "complete_guided_tour_requested":  false,
+    "profile":  "Development",
+    "shipping_profile":  "Full",
+    "process_exit_code":  0,
+    "build":  {
+                  "engine_version":  "0.1.0",
+                  "build_id":  "3aa12995c09c",
+                  "abi_version":  1,
+                  "configuration":  "Development",
+                  "link_mode":  "Modular"
+              },
+    "native":  {
+                   "executed":  true,
+                   "backend":  "dx12",
+                   "backend_fallback":  false,
+                   "fallback_reason":  "",
+                   "recovery_action":  "render",
+                   "surface_acquires":  1970,
+                   "surface_presents":  1970,
+                   "resize_requests":  0,
+                   "resize_generations":  2,
+                   "composed_frames":  0,
+                   "scene_draws":  1970,
+                   "native_scene_draws":  1970,
+                   "native_scene_instances":  2723,
+                   "native_scene_texture_uploads":  2,
+                   "native_offscreen_draws":  1970,
+                   "native_scene_composites":  1970,
+                   "software_rasterizer":  false,
+                   "native_graph_frames":  1970,
+                   "native_graph_passes":  4,
+                   "native_graph_resource_transitions":  3,
+                   "native_graph_order":  [
+                                              "Offscreen",
+                                              "Main",
+                                              "UI",
+                                              "Present"
+                                          ],
+                   "native_ui_draws":  1970,
+                   "overlay_frames":  1970,
+                   "rendering_mode":  "gpu_scene",
+                   "clear_color":  true,
+                   "triangle":  false,
+                   "diagnostics_overlay":  true
+               },
+    "display_adapters":  [
+                             {
+                                 "Name":  "NVIDIA GeForce GTX 960",
+                                 "DriverVersion":  "32.0.15.8180"
+                             }
+                         ],
+    "os_version":  "Microsoft Windows NT 10.0.19045.0"
+}

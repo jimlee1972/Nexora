@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "NexoraExamplePlugin.dll",
+      "bytes": 10752,
+      "sha256": "f95e47ff19cfdeb33f03e9fe1e5066c28a890c0aa9b03c93b7893a0661a91e86"
+    },
+    {
+      "path": "NexoraShowcase.exe",
+      "bytes": 1879552,
+      "sha256": "a7ccfac223151978f2489374a33229619a85f645658f22123701f393d32e2121"
+    },
+    {
+      "path": "msvcp140.dll",
+      "bytes": 557728,
+      "sha256": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9"
+    },
+    {
+      "path": "vcruntime140.dll",
+      "bytes": 124544,
+      "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066"
+    },
+    {
+      "path": "vcruntime140_1.dll",
+      "bytes": 49792,
+      "sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f"
+    }
+  ],
+  "showcase_content": [
+    {
+      "path": "Content/Showcase/catalog.json",
+      "bytes": 2024,
+      "sha256": "9fc2f134312f5751649f773001b59f61a7bdcca9a4ab8c3dae7ded13b8534ca9"
+    }
+  ]
+}

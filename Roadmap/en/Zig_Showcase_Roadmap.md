@@ -109,3 +109,11 @@ held keyboard/pointer controls and a 210-second guided tour under Xvfb/lavapipe.
 includes content, deterministic ZIP/SHA-256 and isolated Linux shared-library resolution. These are
 V1 Visual Showcase integration results; they do not replace this roadmap's existing platform gates
 or establish the expanded Windows version's clean-machine graphical acceptance.
+
+✅ Windows DX12 local Development/Full and Shipping/Full native execution is recorded in
+[Windows-V1-DX12-Local-2026-10-03](../../Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
+The GTX 960 developer-machine run covers eight rooms, primitive/texture/instance rendering,
+native offscreen graph/UI/present, input/edit/reload/animation captures, Lab asset/plugin rejection
+and the complete 210-second guided tour. The explicit Development preset and stock PowerShell 5
+default-path fix make the documented local workflow reproducible. Clean-host and physical-display
+operator attestations remain pending; this does not complete V1's final acceptance.
