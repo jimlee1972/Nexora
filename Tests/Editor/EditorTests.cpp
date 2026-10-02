@@ -709,6 +709,7 @@ int Run() {
     Require(hinted.Save(hinted_path), "Euler hint save failed");
     std::ifstream saved(hinted_path, std::ios::binary);
     const std::string source{std::istreambuf_iterator<char>(saved), {}};
+    saved.close(); // Release the Windows read handle before atomic scene replacement.
     Require(source.starts_with("NEXORA_EDITOR_SCENE 2\n") &&
                 source.find("euler " + std::to_string(first) + " 450 -720 0\n") !=
                     std::string::npos,

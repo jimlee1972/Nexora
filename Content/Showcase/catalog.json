@@ -2,7 +2,7 @@
   "schema": "nexora.showcase.content.v1",
   "version": 1,
   "migration": "Reject unknown schema versions; procedural content is rebuilt from the matching application version.",
-  "license": "Repository LICENSE; original procedural geometry and bitmap glyphs",
+  "license": "Repository LICENSE; original procedural geometry, bitmap glyphs and checker texels",
   "rooms": [
     "hub",
     "rendering",
@@ -37,6 +37,8 @@
     "skin": "CPU weighted palette deformation / native GPU indexed drawing",
     "particles": "Runtime owning live-position snapshots / native GPU indexed drawing",
     "terrain": "Original deterministic height function; Full subdivision mesh, HLOD coarse proxy, unloaded map tile",
-    "memory_counters": "StreamingManager authored RAM/VRAM estimates; native allocations remain separate"
+    "memory_counters": "StreamingManager authored RAM/VRAM estimates; native allocations remain separate",
+    "material": "Original procedural 8x8 RGBA8 checker; native sampled texture / base color / instance tint / directional light",
+    "instances": "One indexed cube mesh shared by floor and three translation/axis-scale/tint hardware instances"
   }
 }

@@ -194,10 +194,74 @@ int main(int argc, char **argv) {
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
     Require(instancePixels, "independent instance transform/tint pixels failed");
+    const std::array<std::byte, 8> texels{std::byte{255}, std::byte{0},  std::byte{0},
+                                          std::byte{255}, std::byte{0},  std::byte{255},
+                                          std::byte{0},   std::byte{255}};
+    std::array<Presentation::UiTextureUpload, 1> uploads{{{7, 2, 1, 8, texels}}};
+    draw.instances = {};
+    draw.textureId = 7;
+    draw.textureUploads = uploads;
+    for (unsigned materialFrame = 0; materialFrame < 3; ++materialFrame) {
+      const bool green = materialFrame == 2;
+      if (green) {
+        width = 480;
+        height = 360;
+        Require(windows->Resize(created.handle, width, height) == Window::WindowError::None,
+                "material resize failed");
+        Require(surface->NotifyWindowExtent(width, height) == SurfaceStatus::Ready,
+                "material extent failed");
+      }
+      static_cast<void>(windows->PumpEvents());
+      for (auto &vertex : vertices) {
+        vertex.uv[0] = green ? 0.75F : 0.25F;
+        vertex.uv[1] = 0.5F;
+      }
+      Require(surface->Acquire() == SurfaceStatus::Ready, "material acquire failed");
+      if (materialFrame == 0) {
+        auto invalidTexture = draw;
+        invalidTexture.textureId = 99;
+        Require(surface->DrawScene(invalidTexture) == SurfaceStatus::InvalidDescriptor,
+                "unknown material texture accepted");
+        uploads[0].rowPitch = 4;
+        Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+                "malformed material row pitch accepted");
+        uploads[0].rowPitch = 8;
+        uploads[0].width = 1025;
+        Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+                "unbounded material extent accepted");
+        uploads[0].width = 2;
+        vertices[0].uv[0] = std::numeric_limits<float>::quiet_NaN();
+        Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+                "nonfinite UV accepted");
+        vertices[0].uv[0] = 0.25F;
+      }
+      const auto beforeUploads = surface->Diagnostics().sceneTextureUploads;
+      Require(surface->DrawScene(draw) == SurfaceStatus::Ready, "native material draw failed");
+      if (materialFrame == 1)
+        Require(surface->Diagnostics().sceneTextureUploads == beforeUploads,
+                "immutable material texture was reuploaded");
+      Require(surface->Present() == SurfaceStatus::Ready, "material present failed");
+      bool materialPixels = false;
+      const auto materialDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+      while (!materialPixels && std::chrono::steady_clock::now() < materialDeadline) {
+        XSync(display, False);
+        auto *image = XGetImage(display, native, 0, 0, width, height, AllPlanes, ZPixmap);
+        Require(image != nullptr, "material readback failed");
+        const auto center = XGetPixel(image, width / 2, height / 2);
+        const auto redChannel = Channel(center, image->red_mask);
+        const auto greenChannel = Channel(center, image->green_mask);
+        materialPixels =
+            green ? greenChannel > 150 && redChannel < 20 : redChannel > 150 && greenChannel < 20;
+        XDestroyImage(image);
+        if (!materialPixels)
+          std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      }
+      Require(materialPixels, "UV texture sampling/resize pixels failed");
+    }
     const auto diagnostics = surface->Diagnostics();
-    Require(diagnostics.sceneDrawCalls == 13 && diagnostics.sceneInstances == 14 &&
-                diagnostics.acquiredFrames == 13 && diagnostics.presentedFrames == 13 &&
-                diagnostics.resizeGenerations == 2,
+    Require(diagnostics.sceneDrawCalls == 16 && diagnostics.sceneInstances == 17 &&
+                diagnostics.acquiredFrames == 16 && diagnostics.presentedFrames == 16 &&
+                diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 5,
             "native scene counters or resize evidence mismatch");
     Require(surface->Acquire() == SurfaceStatus::Ready, "abandoned frame acquire failed");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "scene teardown failed");
@@ -209,9 +273,10 @@ int main(int argc, char **argv) {
     XCloseDisplay(display);
     Require(windows->Destroy(created.handle) == Window::WindowError::None,
             "window teardown failed");
-    std::cout << "PASS: 13 indexed draws including native instance transform/tint pixels, "
+    std::cout << "PASS: 16 indexed draws including native instance and UV texture pixels, "
                  "depth-order invariance, lighting, matrix translation, "
-                 "2 resize generations, invalid-input containment and ordered teardown\n";
+                 "3 resize generations, immutable texture reuse, invalid-input containment and "
+                 "ordered teardown\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';

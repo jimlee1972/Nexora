@@ -321,11 +321,48 @@ public:
         if (!std::isfinite(value))
           return SurfaceStatus::InvalidDescriptor;
     }
+    if (data.textureUploads.size() > 16)
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto &upload : data.textureUploads)
+      if (upload.textureId == 0 || upload.textureId == UINT64_MAX || upload.width == 0 ||
+          upload.height == 0 || upload.width > 1024 || upload.height > 1024 ||
+          upload.rowPitch != upload.width * 4U ||
+          upload.pixels.size() != static_cast<std::size_t>(upload.rowPitch) * upload.height)
+        return SurfaceStatus::InvalidDescriptor;
+    if (data.textureId == UINT64_MAX)
+      return SurfaceStatus::InvalidDescriptor;
+    const auto textureId = data.textureId ? data.textureId : UINT64_MAX;
+    if (data.textureId && !sceneTextures_.contains(textureId) &&
+        std::none_of(data.textureUploads.begin(), data.textureUploads.end(),
+                     [textureId](const auto &upload) { return upload.textureId == textureId; }))
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto &vertex : data.vertices)
+      for (const auto value : vertex.uv)
+        if (!std::isfinite(value))
+          return SurfaceStatus::InvalidDescriptor;
     const SceneInstance identity{};
     const auto instances =
         data.instances.empty() ? std::span<const SceneInstance>(&identity, 1) : data.instances;
     const auto instanceBytes = std::as_bytes(instances);
     auto &frame = frames_[frame_];
+    std::size_t additional = textureId == UINT64_MAX && !sceneTextures_.contains(textureId) ? 1 : 0;
+    for (std::size_t i = 0; i < data.textureUploads.size(); ++i) {
+      const auto id = data.textureUploads[i].textureId;
+      for (std::size_t j = 0; j < i; ++j)
+        if (data.textureUploads[j].textureId == id)
+          return SurfaceStatus::InvalidDescriptor;
+      additional += sceneTextures_.contains(id) ? 0 : 1;
+    }
+    if (sceneTextures_.size() + additional > 64)
+      return SurfaceStatus::Unsupported;
+    for (const auto &upload : data.textureUploads)
+      if (!sceneTextures_.contains(upload.textureId) && !UploadUiTexture(frame, upload, true))
+        return SurfaceStatus::DeviceLost;
+    const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
+                                         std::byte{255}};
+    if (!sceneTextures_.contains(textureId) &&
+        !UploadUiTexture(frame, {UINT64_MAX, 1, 1, 4, white}, true))
+      return SurfaceStatus::DeviceLost;
     // Acquire has waited this frame's fence. Never release another in-flight slot's resources.
     DestroySceneFrame(frame);
     const auto vertexBytes = std::as_bytes(data.vertices);
@@ -429,6 +466,9 @@ public:
     std::copy(std::begin(data.base_color), std::end(data.base_color), constants.begin() + 24);
     vkCmdPushConstants(frame.commands, scenePipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
                        sizeof(constants), constants.data());
+    const auto descriptor = sceneTextures_.at(textureId).descriptor;
+    vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, scenePipelineLayout_,
+                            0, 1, &descriptor, 0, nullptr);
     vkCmdDrawIndexed(frame.commands, static_cast<std::uint32_t>(data.indices.size()),
                      static_cast<std::uint32_t>(instances.size()), 0, 0, 0);
     vkCmdEndRenderPass(frame.commands);
@@ -719,7 +759,8 @@ private:
     ++diagnostics_.nativeUiBufferReallocations;
     return true;
   }
-  bool UploadUiTexture(Frame &frame, const UiTextureUpload &upload) {
+  bool UploadUiTexture(Frame &frame, const UiTextureUpload &upload, bool scene = false) {
+    auto &textures = scene ? sceneTextures_ : uiTextures_;
     if (upload.textureId == 0 || upload.width == 0 || upload.height == 0 ||
         upload.rowPitch != upload.width * 4U ||
         upload.pixels.size() != static_cast<std::size_t>(upload.rowPitch) * upload.height)
@@ -804,8 +845,8 @@ private:
                          &toRead);
     frame.retiredBuffers.push_back(staging);
     frame.retiredBufferMemory.push_back(stagingMemory);
-    const auto previous = uiTextures_.find(upload.textureId);
-    if (previous != uiTextures_.end()) {
+    const auto previous = textures.find(upload.textureId);
+    if (previous != textures.end()) {
       frame.retiredImages.push_back(previous->second.image);
       frame.retiredImageViews.push_back(previous->second.view);
       frame.retiredImageMemory.push_back(previous->second.memory);
@@ -825,8 +866,11 @@ private:
     write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     write.pImageInfo = &imageInfo;
     vkUpdateDescriptorSets(device_, 1, &write, 0, nullptr);
-    uiTextures_[upload.textureId] = next;
-    ++diagnostics_.nativeUiTextureUploads;
+    textures[upload.textureId] = next;
+    if (scene)
+      ++diagnostics_.sceneTextureUploads;
+    else
+      ++diagnostics_.nativeUiTextureUploads;
     return true;
   }
   void DestroyUpload(Frame &frame) {
@@ -856,6 +900,16 @@ private:
         vkFreeMemory(device_, texture.memory, nullptr);
     }
     uiTextures_.clear();
+    for (auto &[id, texture] : sceneTextures_) {
+      (void)id;
+      if (texture.view)
+        vkDestroyImageView(device_, texture.view, nullptr);
+      if (texture.image)
+        vkDestroyImage(device_, texture.image, nullptr);
+      if (texture.memory)
+        vkFreeMemory(device_, texture.memory, nullptr);
+    }
+    sceneTextures_.clear();
     if (uiPipeline_)
       vkDestroyPipeline(device_, uiPipeline_, nullptr);
     if (uiPipelineLayout_)
@@ -1033,6 +1087,8 @@ private:
     const VkPushConstantRange push{VK_SHADER_STAGE_VERTEX_BIT, 0, 112};
     VkPipelineLayoutCreateInfo layout{};
     layout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layout.setLayoutCount = 1;
+    layout.pSetLayouts = &uiDescriptorLayout_;
     layout.pushConstantRangeCount = 1;
     layout.pPushConstantRanges = &push;
     if (vkCreatePipelineLayout(device_, &layout, nullptr, &scenePipelineLayout_) != VK_SUCCESS)
@@ -1098,12 +1154,13 @@ private:
         {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneVertex, normal)},
         {2, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneInstance, translation)},
         {3, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneInstance, scale)},
-        {4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstance, color)}};
+        {4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstance, color)},
+        {5, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SceneVertex, uv)}};
     VkPipelineVertexInputStateCreateInfo vertexInput{};
     vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInput.vertexBindingDescriptionCount = 2;
     vertexInput.pVertexBindingDescriptions = vertexBindings;
-    vertexInput.vertexAttributeDescriptionCount = 5;
+    vertexInput.vertexAttributeDescriptionCount = 6;
     vertexInput.pVertexAttributeDescriptions = attributes;
     const VkPipelineInputAssemblyStateCreateInfo assembly{
         VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0,
@@ -1277,7 +1334,7 @@ private:
         return false;
     }
 #if defined(NEXORA_HAS_NATIVE_UI_SHADERS)
-    if (!CreateSceneResources() || !CreateUiResources())
+    if (!CreateUiResources() || !CreateSceneResources())
       return false;
 #endif
     frames_.resize(std::min<std::size_t>(kMaxFrames, images_.size()));
@@ -1329,6 +1386,7 @@ private:
   std::vector<VkImageView> imageViews_;
   std::vector<Frame> frames_;
   std::unordered_map<std::uint64_t, UiTexture> uiTextures_;
+  std::unordered_map<std::uint64_t, UiTexture> sceneTextures_;
   VkDescriptorSetLayout uiDescriptorLayout_{};
   VkDescriptorPool uiDescriptorPool_{};
   VkSampler uiSampler_{};

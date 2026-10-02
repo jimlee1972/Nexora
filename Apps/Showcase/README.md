@@ -208,4 +208,4 @@ Rendering now submits one shared indexed cube with four native instances (floor 
 using independent translation, axis scale and tint. Vulkan and DX12 use hardware instance input;
 Vulkan instance pixels have target-host acceptance, while DX12 execution awaits its host gate.
 The profiler and `native_scene_instances` report cumulative accepted instance counts independently
-of native scene draw counts. Textured materials and native RenderGraph scene binding remain pending.
+of native scene draw counts. Hub and Rendering use an original 8x8 checker sampled by native Vulkan/DX12 material pipelines. Native RenderGraph scene binding remains pending.

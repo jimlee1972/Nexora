@@ -76,3 +76,24 @@ indices, including odd triangle counts. No instance span survives the call. `sce
 accepted instances cumulatively, while `sceneDrawCalls` counts submissions. The retained Vulkan pixel
 gate verifies two independent instance positions/tints, rejected malformed inputs and identity
 compatibility with depth, resize and lighting. DX12 target-host execution is a separate acceptance gate.
+
+## Native sampled scene material
+
+`SceneVertex::uv` and `SceneDrawData::textureId/textureUploads` provide one RGBA8 sampled material
+per indexed batch, multiplied by directional lighting, base color and instance tint. Texture ID zero
+uses a private white fallback. Nonzero IDs belong to a scene-only table, separate from UI IDs;
+UINT64_MAX is reserved for the fallback. Each ID denotes immutable content: use a new generation ID
+for changed pixels. Resubmitting an existing ID does not upload it again. Applications may submit
+up to 16 tightly packed uploads per call, each at most 1,024 by 1,024; the cache accepts at most 64
+IDs including the fallback, then returns Unsupported. Unknown IDs, invalid pitch/size, duplicate IDs
+and nonfinite UVs return InvalidDescriptor. Upload spans last only for the call. Native textures stay
+owned by the surface; staging survives the protecting frame fence, and teardown waits for GPU work.
+Vulkan swapchain recreation clears the table, so the caller resubmits source uploads (DX12 retains
+its device-owned table). Linear clamp sampling uses the surface's native descriptor/sampler machinery,
+with separate scene upload diagnostics. No software image composite or native handle crosses the API.
+Linux pixel acceptance verifies UV-selected red/green texels, cached reuse and reupload after resize;
+DX12 implements matching UV/SRV/sampler bindings but requires its target-host execution evidence.
+
+The CI TSan gate disables native backends because the system Mesa library is not instrumented and
+reports driver-internal mutex races at teardown (run 37045590037). Portable engine concurrency remains
+instrumented. Development and ASan/UBSan retain native Vulkan gates and their lifecycle checks.

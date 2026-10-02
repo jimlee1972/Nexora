@@ -89,6 +89,8 @@ struct RoomSession::State final {
   std::vector<ProbeResult> probes{ProbeRegistry::CreateV1Registry().RunAll()};
   std::vector<Nexora::Presentation::SceneVertex> vertices;
   std::vector<Nexora::Presentation::SceneInstance> instances;
+  std::array<std::byte, 8 * 8 * 4> checker{};
+  std::vector<Nexora::Presentation::UiTextureUpload> sceneUploads;
   std::vector<std::uint16_t> indices;
   std::vector<Nexora::Presentation::UiVertex> uiVertices;
   std::vector<std::uint32_t> uiIndices;
@@ -158,6 +160,13 @@ struct RoomSession::State final {
 #endif
 
   State() {
+    for (std::size_t y = 0; y < 8; ++y)
+      for (std::size_t x = 0; x < 8; ++x) {
+        const auto offset = (y * 8 + x) * 4;
+        const auto shade = ((x / 2 + y / 2) % 2) ? std::byte{70} : std::byte{255};
+        checker[offset] = checker[offset + 1] = checker[offset + 2] = shade;
+        checker[offset + 3] = std::byte{255};
+      }
     for (std::size_t glyph = 0; glyph < glyphs.size(); ++glyph)
       for (std::size_t y = 0; y < 7; ++y)
         for (std::size_t x = 0; x < 5; ++x) {
@@ -579,13 +588,15 @@ struct RoomSession::State final {
         {{0, 1, 2, 3}, {1, 5, 6, 2}, {5, 4, 7, 6}, {4, 0, 3, 7}, {3, 2, 6, 7}, {4, 5, 1, 0}}};
     constexpr std::array<std::array<float, 3>, 6> normals{
         {{0, 0, 1}, {1, 0, 0}, {0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}}};
+    constexpr std::array<std::array<float, 2>, 4> uv{{{0, 0}, {1, 0}, {1, 1}, {0, 1}}};
     for (std::size_t face = 0; face < faces.size(); ++face) {
       const auto offset = static_cast<std::uint16_t>(vertices.size());
-      for (const auto index : faces[face]) {
-        const auto &point = points[index];
+      for (std::size_t corner = 0; corner < 4; ++corner) {
+        const auto &point = points[faces[face][corner]];
         const auto &normal = normals[face];
         vertices.push_back({{x + point[0] * sx, y + point[1] * sy, z + point[2] * sz},
-                            {normal[0], normal[1], normal[2]}});
+                            {normal[0], normal[1], normal[2]},
+                            {uv[corner][0], uv[corner][1]}});
       }
       for (const auto index : {0, 1, 2, 2, 3, 0})
         indices.push_back(static_cast<std::uint16_t>(offset + index));
@@ -735,11 +746,12 @@ struct RoomSession::State final {
                     "Green probe = integration only. F3 shows contract mapping",
                     "T starts a 3.5-minute tour / Space pauses / R replays"});
     if (selected == "rendering")
-      lines.insert(lines.end(), {"Camera / indexed cube / material / directional light / depth",
-                                 "Headless graph: Shadow / Depth / Forward+ / Post / Present",
-                                 "Native acquired image: depth-tested DrawScene then UI",
-                                 "Shadow display is a placeholder / texture path is a contract",
-                                 "Drag mouse to orbit / wheel zoom / WASD orbit"});
+      lines.insert(lines.end(),
+                   {"Camera / indexed cube / material / directional light / depth",
+                    "Headless graph: Shadow / Depth / Forward+ / Post / Present",
+                    "Native acquired image: depth-tested DrawScene then UI",
+                    "Original checker texture / hardware instances / shadow placeholder",
+                    "Drag mouse to orbit / wheel zoom / WASD orbit"});
     if (selected == "scene") {
       lines.push_back("Editor World / Play World / snapshots / deferred unload");
 #if NEXORA_EDITOR_SDK_ENABLED
@@ -1139,6 +1151,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   s.vertices.clear();
   s.indices.clear();
   s.instances.clear();
+  s.sceneUploads.clear();
   s.Cube(0, -0.3F, 0, 6, 0.3F, 6);
   if (s.selected == "hub") {
     s.Cube(0, 0.5F, 0, 1.5F, 0.5F, 1.5F);
@@ -1262,6 +1275,11 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   Nexora::Presentation::SceneDrawData data{};
   data.vertices = s.vertices;
   data.instances = s.instances;
+  if (s.selected == "rendering" || s.selected == "hub") {
+    s.sceneUploads.push_back({1, 8, 8, 32, s.checker});
+    data.textureId = 1;
+    data.textureUploads = s.sceneUploads;
+  }
   data.indices = s.indices;
   std::memcpy(data.model_view_projection, mvp.values.data(), sizeof(data.model_view_projection));
   data.base_color[0] = 0.15F;

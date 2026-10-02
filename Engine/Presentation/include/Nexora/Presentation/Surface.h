@@ -40,6 +40,7 @@ struct SurfaceDiagnostics final {
   std::uint64_t nativeUiRejectedTextures = 0;
   std::uint64_t sceneDrawCalls = 0;
   std::uint64_t sceneInstances = 0;
+  std::uint64_t sceneTextureUploads = 0;
 };
 
 struct UiVertex final {
@@ -59,9 +60,18 @@ struct UiDrawCommand final {
   std::int32_t vertexOffset{};
 };
 
+struct UiTextureUpload final {
+  std::uint64_t textureId{};
+  std::uint32_t width{};
+  std::uint32_t height{};
+  std::uint32_t rowPitch{};
+  std::span<const std::byte> pixels;
+};
+
 struct SceneVertex final {
   float position[3]{};
   float normal[3]{};
+  float uv[2]{};
 };
 
 // Translation and nonzero axis scale transform one shared mesh. Colors multiply base_color.
@@ -79,18 +89,12 @@ struct SceneDrawData final {
   std::span<const SceneVertex> vertices;
   std::span<const std::uint16_t> indices;
   std::span<const SceneInstance> instances{};
+  std::uint64_t textureId{};
+  std::span<const UiTextureUpload> textureUploads{};
   float model_view_projection[16]{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
   float light_direction[3]{-0.4F, -1.0F, -0.2F};
   float light_color[3]{1.0F, 0.95F, 0.85F};
   float base_color[4]{1.0F, 1.0F, 1.0F, 1.0F};
-};
-
-struct UiTextureUpload final {
-  std::uint64_t textureId{};
-  std::uint32_t width{};
-  std::uint32_t height{};
-  std::uint32_t rowPitch{};
-  std::span<const std::byte> pixels;
 };
 
 struct UiDrawData final {
