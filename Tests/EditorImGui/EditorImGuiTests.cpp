@@ -256,6 +256,22 @@ int main() {
   assert(!content_state.project_upgrade_required);
   assert(content_state.recent_projects == 1);
 
+  const std::array selected_root{*root_key};
+  assert(scene.Select(selected_root));
+  auto edited_transform = *scene.Transform(root);
+  edited_transform.x = 12.5;
+  edited_transform.sy = 2.0;
+  EditorImGuiTestAccess::QueueInspectorTransform(host, *root_key, edited_transform);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  const auto inspector_state = EditorImGuiTestAccess::Inspect(host);
+  assert(inspector_state.inspector_selection == 1);
+  assert(inspector_state.inspector_transform_visible);
+  assert(scene.Transform(root) == edited_transform);
+  assert(scene.Undo());
+  assert(scene.Transform(root)->x == 0.0 && scene.Transform(root)->sy == 1.0);
+
   EditorImGuiTestAccess::QueueContentConflictChoice(host, material->id,
                                                     nexora::editor::DirtyConflictChoice::Reload);
   host.BeginFrame();

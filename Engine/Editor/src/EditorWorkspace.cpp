@@ -401,6 +401,12 @@ bool SceneDocument::SetTransform(runtime::Id entity, runtime::Transform transfor
   undo_.push_back({});
   return true;
 }
+std::optional<runtime::Transform> SceneDocument::Transform(runtime::Id entity) const noexcept {
+  const auto *found = world_.FindEntity(entity);
+  if (found == nullptr || std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())
+    return std::nullopt;
+  return found->transform;
+}
 bool SceneDocument::CopySelection() {
   clipboard_.clear();
   for (const auto id : selection_) {
