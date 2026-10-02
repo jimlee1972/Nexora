@@ -159,7 +159,12 @@ provides docking, theme/DPI scaling, input/text forwarding, stable-panel present
 choice UX. Its Hierarchy filter, generation-keyed expansion/selection anchor, rename buffer, and
 row clipping are presentation state; selection, rename, and hierarchy edits still enter the core
 only through `SceneDocument::Select`, `SceneDocument::Rename`, and the undoable, cycle-safe
-`SceneDocument::Move`. Native renderer submission, platform IME candidate positioning,
+`SceneDocument::Move`. Its initial Inspector reads a selected node's borrowed local transform and
+routes position, quaternion, and scale changes through generation-keyed `SceneDocument` calls.
+Multi-selection fields display mixed state and apply one changed field to every selected entity as a
+single all-or-nothing Runtime transaction and undo step; malformed transforms roll back without a
+partial write. Reflected component widgets and Euler presentation remain open. Native renderer submission,
+platform IME candidate positioning,
 accessibility, viewport rendering, gizmos, and target-host visual validation remain UI-host
 responsibilities.
 The portable gizmo state machine and picking validator define transaction and asynchronous-result

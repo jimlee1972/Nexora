@@ -499,7 +499,8 @@ M4-M11 contract sweep, exercised by `runtime.v1_m4_m11_contracts`) is a lighter 
 bookkeeping structure that predates this milestone and does not itself load anything.
 
 `SceneEditor` composes `World`, `WorldCommandBuffer`, and `UndoStack` (from the M4 vertical slice)
-into Create/Modify/Undo operations. Undoing a destroyed entity restores both its component data and
+into Create/Modify/Undo operations. `SetTransforms` validates a non-empty unique-ID batch, applies
+every transform or none, and records the entire multi-selection edit as one undo operation. Undoing a destroyed entity restores both its component data and
 stable ID through the editor's privileged access to `World`; older transform and create undo cards
 therefore continue to target the same entity. Destroy cascades to descendants, and undoing it restores
 the whole subtree with its parents and local transforms (only when none of those IDs exists again);

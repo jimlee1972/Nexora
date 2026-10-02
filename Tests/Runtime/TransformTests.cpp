@@ -6,6 +6,7 @@
 #include "Nexora/Runtime/EditorSdk.h"
 #include "Nexora/Runtime/Runtime.h"
 
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -122,6 +123,28 @@ void TestUndoRestoresFullTransform() {
               world.FindEntity(entity)->transform.sy == -2.0,
           "undo did not restore the full rotation and scale");
 }
+
+void TestAtomicMultiTransformEdit() {
+  runtime::World world;
+  const auto scene = world.LoadScene("Multi edit");
+  runtime::SceneEditor editor(world);
+  const std::array entities{editor.CreateEntity(scene), editor.CreateEntity(scene)};
+  const std::array transforms{Transform{1.0, 2.0, 3.0}, Transform{4.0, 5.0, 6.0}};
+  Require(editor.SetTransforms(entities, transforms), "a valid multi-transform edit failed");
+  Require(world.FindEntity(entities[0])->transform == transforms[0] &&
+              world.FindEntity(entities[1])->transform == transforms[1],
+          "a multi-transform edit did not update every entity");
+  Require(editor.Undo() && world.FindEntity(entities[0])->transform == Transform{} &&
+              world.FindEntity(entities[1])->transform == Transform{},
+          "one undo did not restore the complete multi-transform edit");
+
+  auto invalid = transforms;
+  invalid[1].sx = 0.0;
+  Require(!editor.SetTransforms(entities, invalid), "an invalid multi-transform edit succeeded");
+  Require(world.FindEntity(entities[0])->transform == Transform{} &&
+              world.FindEntity(entities[1])->transform == Transform{},
+          "an invalid multi-transform edit partially changed the world");
+}
 #endif
 
 void TestSnapshotRoundTrip() {
@@ -230,6 +253,7 @@ int main() {
     TestCommandBuffer();
 #if NEXORA_EDITOR_SDK_ENABLED
     TestUndoRestoresFullTransform();
+    TestAtomicMultiTransformEdit();
 #endif
     TestSnapshotRoundTrip();
     TestVersion1StillLoads();

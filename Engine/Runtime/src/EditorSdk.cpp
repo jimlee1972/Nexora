@@ -3,8 +3,10 @@
 #include "Nexora/Foundation/PluginAbi.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
+#include <unordered_set>
 
 #if defined(_WIN32)
 #define NOMINMAX
@@ -142,18 +144,33 @@ Id SceneEditor::CreateEntity(Id scene) {
   return id;
 }
 bool SceneEditor::SetTransform(Id entity, Transform transform) {
-  const auto *existing = world_.FindEntity(entity);
-  if (!existing)
+  const std::array entities{entity};
+  const std::array transforms{transform};
+  return SetTransforms(entities, transforms);
+}
+bool SceneEditor::SetTransforms(std::span<const Id> entities,
+                                std::span<const Transform> transforms) {
+  if (entities.empty() || entities.size() != transforms.size())
     return false;
-  const auto previous = existing->transform;
+  std::vector<Transform> previous;
+  previous.reserve(entities.size());
+  std::unordered_set<Id> unique;
   WorldCommandBuffer apply;
-  apply.SetTransform(entity, transform);
+  for (std::size_t index = 0; index < entities.size(); ++index) {
+    const auto *existing = world_.FindEntity(entities[index]);
+    if (!existing || !unique.insert(entities[index]).second)
+      return false;
+    previous.push_back(existing->transform);
+    apply.SetTransform(entities[index], transforms[index]);
+  }
   if (!apply.Apply(world_))
     return false;
+  const std::vector<Id> owned_entities(entities.begin(), entities.end());
   undo_.Execute([] {},
-                [this, entity, previous] {
+                [this, owned_entities, previous] {
                   WorldCommandBuffer commands;
-                  commands.SetTransform(entity, previous);
+                  for (std::size_t index = 0; index < owned_entities.size(); ++index)
+                    commands.SetTransform(owned_entities[index], previous[index]);
                   (void)commands.Apply(world_);
                 });
   ++depth_;

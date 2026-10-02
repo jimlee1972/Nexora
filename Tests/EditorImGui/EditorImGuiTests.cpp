@@ -256,6 +256,38 @@ int main() {
   assert(!content_state.project_upgrade_required);
   assert(content_state.recent_projects == 1);
 
+  const std::array selected_root{*root_key};
+  assert(scene.Select(selected_root));
+  auto edited_transform = *scene.Transform(root);
+  edited_transform.x = 12.5;
+  edited_transform.sy = 2.0;
+  EditorImGuiTestAccess::QueueInspectorTransform(host, *root_key, edited_transform);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  const auto inspector_state = EditorImGuiTestAccess::Inspect(host);
+  assert(inspector_state.inspector_selection == 1);
+  assert(inspector_state.inspector_transform_visible);
+  assert(scene.Transform(root) == edited_transform);
+  assert(scene.Undo());
+  assert(scene.Transform(root)->x == 0.0 && scene.Transform(root)->sy == 1.0);
+
+  const std::array multi_selection{*root_key, *sibling_key};
+  assert(scene.Select(multi_selection));
+  auto root_transform = *scene.Transform(root);
+  auto sibling_transform = *scene.Transform(sibling);
+  root_transform.z = 7.0;
+  sibling_transform.z = 7.0;
+  const std::array multi_transforms{root_transform, sibling_transform};
+  EditorImGuiTestAccess::QueueInspectorTransforms(host, multi_selection, multi_transforms);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(EditorImGuiTestAccess::Inspect(host).inspector_selection == 2);
+  assert(scene.Transform(root)->z == 7.0 && scene.Transform(sibling)->z == 7.0);
+  assert(scene.Undo());
+  assert(scene.Transform(root)->z == 0.0 && scene.Transform(sibling)->z == 0.0);
+
   EditorImGuiTestAccess::QueueContentConflictChoice(host, material->id,
                                                     nexora::editor::DirtyConflictChoice::Reload);
   host.BeginFrame();

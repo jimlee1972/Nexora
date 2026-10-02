@@ -401,6 +401,28 @@ bool SceneDocument::SetTransform(runtime::Id entity, runtime::Transform transfor
   undo_.push_back({});
   return true;
 }
+bool SceneDocument::SetTransforms(std::span<const NodeKey> entities,
+                                  std::span<const runtime::Transform> transforms) {
+  if (entities.size() != transforms.size())
+    return false;
+  std::vector<runtime::Id> ids;
+  ids.reserve(entities.size());
+  for (const auto key : entities) {
+    if (Key(key.id) != key)
+      return false;
+    ids.push_back(key.id);
+  }
+  if (!editor_.SetTransforms(ids, transforms))
+    return false;
+  undo_.push_back({});
+  return true;
+}
+std::optional<runtime::Transform> SceneDocument::Transform(runtime::Id entity) const noexcept {
+  const auto *found = world_.FindEntity(entity);
+  if (found == nullptr || std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())
+    return std::nullopt;
+  return found->transform;
+}
 bool SceneDocument::CopySelection() {
   clipboard_.clear();
   for (const auto id : selection_) {

@@ -118,6 +118,9 @@ public:
   // external callers cannot be expected to know about.
   Id CreateEntity(Id scene);
   bool SetTransform(Id entity, Transform transform);
+  // Applies a multi-selection transform edit as one all-or-nothing, undoable transaction.
+  // Entity IDs must be unique and both spans must have the same non-zero size.
+  bool SetTransforms(std::span<const Id> entities, std::span<const Transform> transforms);
   // Undoable WorldCommandBuffer::SetParent. Undo restores the previous parent, local transform,
   // and sibling position.
   bool SetParent(Id entity, Id parent, bool keep_world = true);
