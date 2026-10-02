@@ -2,16 +2,40 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <set>
 #include <sstream>
+
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 namespace nexora::editor {
 namespace {
 void Error(std::string *error, std::string message) {
   if (error)
     *error = std::move(message);
+}
+
+bool ReplaceFile(const std::filesystem::path &temporary, const std::filesystem::path &path,
+                 std::error_code &error) {
+#if defined(_WIN32)
+  if (MoveFileExW(temporary.c_str(), path.c_str(),
+                  MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+    error.clear();
+    return true;
+  }
+  error = std::error_code(static_cast<int>(GetLastError()), std::system_category());
+  return false;
+#else
+  std::filesystem::rename(temporary, path, error);
+  return !error;
+#endif
 }
 } // namespace
 
@@ -148,8 +172,11 @@ bool GizmoTransaction::Update(std::span<const runtime::Transform> transforms, co
   if (state_ != GizmoState::Dragging || transforms.size() != entities_.size() || !apply)
     return false;
   for (std::size_t index = 0; index < entities_.size(); ++index)
-    if (!apply(entities_[index], transforms[index]))
+    if (!apply(entities_[index], transforms[index])) {
+      for (std::size_t rollback = 0; rollback < index; ++rollback)
+        static_cast<void>(apply(entities_[rollback], initial_[rollback]));
       return false;
+    }
   return true;
 }
 
@@ -191,6 +218,13 @@ bool AsyncPickingValidator::Accept(PickRequest request) const noexcept {
 
 bool CameraPersistence::Save(const std::filesystem::path &path, const SceneCameraState &camera,
                              std::string *error) {
+  if (!runtime::NormalizedTransform(camera.transform) || !std::isfinite(camera.pitch) ||
+      !std::isfinite(camera.yaw) || !std::isfinite(camera.movement_speed) ||
+      !std::isfinite(camera.orthographic_size) || !(camera.movement_speed > 0.0) ||
+      !(camera.orthographic_size > 0.0)) {
+    Error(error, "invalid camera state");
+    return false;
+  }
   const auto temporary = path.string() + ".tmp";
   std::ofstream output(temporary, std::ios::trunc);
   output << std::setprecision(17) << "NEXORA_SCENE_CAMERA 1\n"
@@ -203,12 +237,7 @@ bool CameraPersistence::Save(const std::filesystem::path &path, const SceneCamer
     return false;
   }
   std::error_code ec;
-  std::filesystem::rename(temporary, path, ec);
-  if (ec) {
-    std::filesystem::remove(path, ec);
-    ec.clear();
-    std::filesystem::rename(temporary, path, ec);
-  }
+  ReplaceFile(temporary, path, ec);
   if (ec) {
     Error(error, "failed to replace camera state: " + ec.message());
     return false;
@@ -224,7 +253,10 @@ std::optional<SceneCameraState> CameraPersistence::Load(const std::filesystem::p
   if (!std::getline(input, header) || header != "NEXORA_SCENE_CAMERA 1" ||
       !(input >> camera.transform.x >> camera.transform.y >> camera.transform.z >> camera.pitch >>
         camera.yaw >> camera.movement_speed >> camera.orthographic >> camera.orthographic_size) ||
-      camera.movement_speed <= 0.0 || camera.orthographic_size <= 0.0 || (input >> trailing)) {
+      !runtime::NormalizedTransform(camera.transform) || !std::isfinite(camera.pitch) ||
+      !std::isfinite(camera.yaw) || !std::isfinite(camera.movement_speed) ||
+      !std::isfinite(camera.orthographic_size) || camera.movement_speed <= 0.0 ||
+      camera.orthographic_size <= 0.0 || (input >> trailing)) {
     Error(error, "invalid camera state");
     return std::nullopt;
   }
@@ -347,12 +379,7 @@ bool AutosaveJournal::Write(const std::filesystem::path &path, std::uint64_t rev
     return false;
   }
   std::error_code ec;
-  std::filesystem::rename(temporary, path, ec);
-  if (ec) {
-    std::filesystem::remove(path, ec);
-    ec.clear();
-    std::filesystem::rename(temporary, path, ec);
-  }
+  ReplaceFile(temporary, path, ec);
   if (ec)
     Error(error, ec.message());
   return !ec;

@@ -257,6 +257,8 @@ std::string CacheKey(const ShaderCompileRequest &request) {
     key += "\nentry=" + entry;
   for (const auto &include : request.include_directories)
     key += "\ninclude=" + NormalizePath(include);
+  for (const auto &define : request.defines)
+    key += "\ndefine=" + define;
   for (const auto &dependency : request.dependencies)
     key += "\ndependency=" + NormalizePath(dependency);
   return key;
@@ -380,10 +382,21 @@ ShaderCompileResult CompileSlang(const ShaderCompileRequest &request,
     arguments.push_back("-fvk-use-entrypoint-name");
   for (const auto &include : request.include_directories)
     arguments.insert(arguments.end(), {"-I", include.string()});
+  for (const auto &define : request.defines)
+    arguments.insert(arguments.end(), {"-D", define});
   for (const auto &entry : request.entry_points)
     arguments.insert(arguments.end(), {"-entry", entry});
   arguments.insert(arguments.end(), {"-o", request.output_path.string()});
 
+  std::error_code remove_error;
+  std::filesystem::remove(request.output_path, remove_error);
+  if (remove_error) {
+    result.diagnostics.push_back(
+        {ShaderDiagnosticSeverity::Error, request.output_path.string(), 0, 0,
+         "unable to clear the previous shader artifact: " + remove_error.message(), request.backend,
+         request.variant});
+    return result;
+  }
   std::string process_output;
   const auto exit_code =
       runner ? runner(arguments, process_output) : RunProcess(arguments, process_output);

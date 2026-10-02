@@ -38,6 +38,7 @@ bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
   std::ranges::sort(items_, {}, [](const ContentItem &item) { return item.path.generic_string(); });
   selection_.clear();
   undo_.clear();
+  undo_selection_.clear();
   generation_ = project_generation;
   return true;
 }
@@ -144,6 +145,7 @@ bool ContentBrowserModel::ValidDestination(const std::filesystem::path &path,
 }
 bool ContentBrowserModel::Commit(std::vector<ContentItem> next, std::string *error) {
   undo_ = items_;
+  undo_selection_ = selection_;
   items_ = std::move(next);
   std::ranges::sort(items_, {}, [](const ContentItem &item) { return item.path.generic_string(); });
   if (error)
@@ -200,15 +202,19 @@ bool ContentBrowserModel::Delete(std::span<const runtime::AssetUuid> ids, std::s
       return false;
     next.erase(found);
   }
+  if (!Commit(std::move(next), error))
+    return false;
   for (const auto id : ids)
     selection_.erase(id);
-  return Commit(std::move(next), error);
+  return true;
 }
 bool ContentBrowserModel::Undo() {
   if (undo_.empty())
     return false;
   items_.swap(undo_);
   undo_.clear();
+  selection_.swap(undo_selection_);
+  undo_selection_.clear();
   return true;
 }
 bool ContentBrowserModel::PublishArtifact(runtime::AssetUuid id, std::string artifact_hash,

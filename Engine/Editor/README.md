@@ -114,6 +114,9 @@ into renderer or platform internals.
   after a complete payload validates, so unavailable plugins do not silently discard authoring
   data.
 - Gizmo transactions own their stable-ID and initial-transform snapshots until commit or cancel.
+  If an update callback rejects a target after earlier targets were applied, the transaction uses
+  that same callback to restore those earlier targets from the initial snapshot before reporting
+  failure, rather than leaving a partially previewed gesture.
   Picking results are accepted only for the latest request and matching scene/viewport generations.
   Scene camera files are atomically replaced, while undo/redo history owns its replay callbacks.
 - `PlaySession` remains the Runtime-owned PIE boundary. Play worlds are isolated and discarded by

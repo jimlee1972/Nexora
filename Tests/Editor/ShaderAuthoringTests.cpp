@@ -1,5 +1,6 @@
 #include "Nexora/Editor/ShaderAuthoring.h"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <filesystem>
@@ -110,11 +111,15 @@ int main() {
     request.reflection = rhi::TrianglePipelineLayout();
     request.backend = rhi::Backend::Vulkan;
     request.variant = "SKINNED=1";
+    request.defines = {"SKINNED=1", "QUALITY=2"};
     const auto compiler_result = editor::CompileSlang(
         request, {"slangc"},
         [&request](const std::vector<std::string> &arguments, std::string &output) {
           Require(arguments.size() >= 2 && arguments.back() == request.output_path.string(),
                   "Slang command did not preserve the requested output path");
+          Require(std::ranges::find(arguments, "SKINNED=1") != arguments.end() &&
+                      std::ranges::find(arguments, "QUALITY=2") != arguments.end(),
+                  "Slang command omitted preprocessor defines");
           std::ofstream compiled(request.output_path, std::ios::binary);
           const std::array<std::byte, 2> bytes{std::byte{0x11}, std::byte{0x22}};
           compiled.write(reinterpret_cast<const char *>(bytes.data()), bytes.size());
@@ -157,6 +162,22 @@ int main() {
     other_include.include_directories = {"Shaders/Other"};
     Require(cache.Find(other_include) == nullptr,
             "a request with different include directories reused a cached artifact");
+    auto other_defines = request;
+    other_defines.defines = {"SKINNED=0", "QUALITY=2"};
+    Require(cache.Find(other_defines) == nullptr,
+            "a request with different defines reused a cached artifact");
+
+    // A successful process exit must not make a stale artifact from an earlier compile look like
+    // fresh output.
+    {
+      std::ofstream stale(output_path, std::ios::binary | std::ios::trunc);
+      stale << "old artifact";
+      stale.close();
+      const auto missing_output = editor::CompileSlang(
+          request, {"slangc"}, [](const std::vector<std::string> &, std::string &) { return 0; });
+      Require(!missing_output.succeeded,
+              "a stale output file was accepted when slangc produced no artifact");
+    }
     // A save that lands while the compile runs must leave the entry stale: the snapshot taken
     // before compiling predates the new write time, so the next Find has to miss.
     {

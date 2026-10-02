@@ -7,6 +7,13 @@
 #include <sstream>
 #include <unordered_set>
 
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 namespace nexora::editor {
 namespace {
 bool SafePath(std::string_view path) {
@@ -40,6 +47,22 @@ std::string Escape(std::string_view value) {
     }
   }
   return result.str();
+}
+
+bool ReplaceFile(const std::filesystem::path &temporary, const std::filesystem::path &path,
+                 std::error_code &error) {
+#if defined(_WIN32)
+  if (MoveFileExW(temporary.c_str(), path.c_str(),
+                  MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+    error.clear();
+    return true;
+  }
+  error = std::error_code(static_cast<int>(GetLastError()), std::system_category());
+  return false;
+#else
+  std::filesystem::rename(temporary, path, error);
+  return !error;
+#endif
 }
 } // namespace
 
@@ -110,12 +133,7 @@ bool BuildFrontend::Write(const BuildManifest &manifest, const std::filesystem::
       *error = "could not write build manifest";
     return false;
   }
-  std::filesystem::rename(temporary, path, ec);
-  if (ec) {
-    std::filesystem::remove(path, ec);
-    ec.clear();
-    std::filesystem::rename(temporary, path, ec);
-  }
+  ReplaceFile(temporary, path, ec);
   if (ec && error)
     *error = ec.message();
   return !ec;

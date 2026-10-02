@@ -170,7 +170,11 @@ std::optional<double> AxisDragDistance(const ViewportRay &ray, const ViewportVec
 double SnapToStep(double value, double step) noexcept {
   if (!std::isfinite(value) || !std::isfinite(step) || !(step > 0.0))
     return value;
-  return std::round(value / step) * step;
+  const auto quotient = value / step;
+  if (!std::isfinite(quotient))
+    return value;
+  const auto snapped = std::round(quotient) * step;
+  return std::isfinite(snapped) ? snapped : value;
 }
 
 bool ViewportResizeFilter::Update(std::uint32_t width, std::uint32_t height) noexcept {
