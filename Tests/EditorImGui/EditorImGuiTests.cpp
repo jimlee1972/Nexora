@@ -1,5 +1,5 @@
 #include "EditorImGuiTestAccess.h"
-#include "InspectorRotation.h"
+#include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
 
 #include <array>
@@ -16,7 +16,7 @@
 
 namespace {
 void TestEulerRotation() {
-  using namespace nexora::editor::imgui;
+  using namespace nexora::editor;
   nexora::runtime::Transform original{3.0, 4.0, 5.0};
   original.sx = -2.0;
   for (const double x : {-180.0, -90.0, -89.999, -30.0, 0.0, 89.999, 90.0, 180.0, 450.0}) {
@@ -338,9 +338,9 @@ int main() {
 
   // Editing one Euler field keeps each target's other axes and all position/scale values.
   const auto initial_root =
-      *nexora::editor::imgui::WithEulerDegrees(*scene.Transform(root), {10.0, 20.0, 30.0});
+      *nexora::editor::WithEulerDegrees(*scene.Transform(root), {10.0, 20.0, 30.0});
   const auto initial_sibling =
-      *nexora::editor::imgui::WithEulerDegrees(*scene.Transform(sibling), {-15.0, 40.0, 60.0});
+      *nexora::editor::WithEulerDegrees(*scene.Transform(sibling), {-15.0, 40.0, 60.0});
   const std::array initial_rotations{initial_root, initial_sibling};
   assert(scene.SetTransforms(multi_selection, initial_rotations));
   EditorImGuiTestAccess::QueueInspectorEulerField(host, multi_selection, 0, 450.0);
@@ -358,9 +358,9 @@ int main() {
   assert(std::abs((*root_angles)[1] - 20.0) < 1e-9 && std::abs((*root_angles)[2] - 30.0) < 1e-9);
   assert(std::abs((*sibling_angles)[1] - 40.0) < 1e-9 &&
          std::abs((*sibling_angles)[2] - 60.0) < 1e-9);
-  assert(nexora::editor::imgui::SameRotation(
+  assert(nexora::editor::SameRotation(
       *scene.Transform(root),
-      *nexora::editor::imgui::WithEulerDegrees(initial_root, {450.0, 20.0, 30.0})));
+      *nexora::editor::WithEulerDegrees(initial_root, {450.0, 20.0, 30.0})));
   assert(scene.Transform(root)->x == initial_root.x &&
          scene.Transform(root)->sx == initial_root.sx);
   const std::array after_rotation{*scene.Transform(root), *scene.Transform(sibling)};
@@ -414,10 +414,32 @@ int main() {
   assert(scene.Transform(root) == before_text_edit);
   key_event(Nexora::Window::Key::Enter, true);
   key_event(Nexora::Window::Key::Enter, false);
-  assert(nexora::editor::imgui::SameRotation(
+  assert(nexora::editor::SameRotation(
       *scene.Transform(root),
-      *nexora::editor::imgui::WithEulerDegrees(before_text_edit, {0.0, 450.0, 0.0})));
+      *nexora::editor::WithEulerDegrees(before_text_edit, {0.0, 450.0, 0.0})));
   assert((*EditorImGuiTestAccess::InspectorEulerAngles(host, *root_key))[1] == 450.0);
+  const auto persisted_rotation = content_root / "InspectorRotation.scene";
+  assert(scene.Save(persisted_rotation));
+  assert(scene.Select(multi_selection));
+  draw_inspector();
+  assert((*EditorImGuiTestAccess::InspectorEulerAngles(host, *root_key))[1] == 450.0);
+  nexora::runtime::World reopened_rotation_world;
+  nexora::editor::SceneDocument reopened_rotation(reopened_rotation_world,
+                                                  reopened_rotation_world.LoadScene("Reopened"));
+  assert(reopened_rotation.Reload(persisted_rotation));
+  const std::array reopened_selection{*reopened_rotation.Key(root)};
+  assert(reopened_rotation.Select(reopened_selection));
+  {
+    nexora::editor::imgui::EditorImGuiHost reopened_host;
+    reopened_host.SetDisplay(1600.0F, 900.0F, 1.5F);
+    for (int frame = 0; frame < 2; ++frame) {
+      reopened_host.BeginFrame();
+      reopened_host.DrawProductShell(shell, &reopened_rotation);
+      static_cast<void>(reopened_host.EndFrame());
+    }
+    assert((*EditorImGuiTestAccess::InspectorEulerAngles(reopened_host,
+                                                         reopened_selection[0]))[1] == 450.0);
+  }
   assert(scene.Undo() && scene.Transform(root) == before_text_edit);
   assert(scene.Select(multi_selection));
 

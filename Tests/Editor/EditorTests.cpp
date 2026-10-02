@@ -675,6 +675,95 @@ int Run() {
             "whitespace-only or padded node names did not round-trip");
   }
 
+  {
+    runtime::World hinted_world;
+    const auto hinted_scene = hinted_world.LoadScene("Euler authoring");
+    editor::SceneDocument hinted(hinted_world, hinted_scene);
+    const auto first = hinted.Create("First");
+    const auto second = hinted.Create("Second");
+    const std::array targets{*hinted.Key(first), *hinted.Key(second)};
+    Require(hinted.SetEulerField(targets, 0, 450.0) && hinted.SetEulerField(targets, 1, -720.0),
+            "authoring Euler angles failed");
+    Require(hinted.SetEulerField(targets, 0, 810.0) && hinted.Undo() &&
+                hinted.EulerAngles(first) == editor::EulerDegrees{450.0, -720.0, 0.0} &&
+                hinted.EulerAngles(second) == editor::EulerDegrees{450.0, -720.0, 0.0},
+            "one undo must restore hints even when only the authored revolution changed");
+    const auto before_invalid = *hinted.Transform(first);
+    auto stale = targets[1];
+    ++stale.entity_generation;
+    const std::array stale_targets{targets[0], stale};
+    const std::array duplicate_targets{targets[0], targets[0]};
+    Require(!hinted.SetEulerField(stale_targets, 2, 45.0) &&
+                !hinted.SetEulerField(duplicate_targets, 2, 45.0) &&
+                !hinted.SetEulerField(targets, 3, 45.0) &&
+                !hinted.SetEulerField(targets, 2, std::numeric_limits<double>::infinity()) &&
+                hinted.Transform(first) == before_invalid &&
+                hinted.EulerAngles(first) == editor::EulerDegrees{450.0, -720.0, 0.0},
+            "invalid Euler transactions must preserve both transform and hint");
+    auto translated = before_invalid;
+    translated.x = 12.0;
+    Require(hinted.SetTransform(first, translated) && (*hinted.EulerAngles(first))[0] == 450.0 &&
+                hinted.Undo() && hinted.Transform(first) == before_invalid,
+            "position-only edits and undo must preserve the rotation hint");
+    const auto hinted_path = root / "Content/Hinted.scene";
+    Require(hinted.Save(hinted_path), "Euler hint save failed");
+    std::ifstream saved(hinted_path, std::ios::binary);
+    const std::string source{std::istreambuf_iterator<char>(saved), {}};
+    Require(source.starts_with("NEXORA_EDITOR_SCENE 2\n") &&
+                source.find("euler " + std::to_string(first) + " 450 -720 0\n") !=
+                    std::string::npos,
+            "scene v2 must serialize the authored angles rather than canonicalize them");
+    runtime::World reopened_world;
+    editor::SceneDocument reopened(reopened_world, reopened_world.LoadScene("Placeholder"));
+    Require(reopened.Reload(hinted_path) &&
+                reopened.EulerAngles(first) == editor::EulerDegrees{450.0, -720.0, 0.0} &&
+                reopened.EulerAngles(second) == editor::EulerDegrees{450.0, -720.0, 0.0},
+            "Euler hints must survive reopening in a separate World and document");
+    const auto generation = reopened.Generation();
+    const auto reopened_transform = *reopened.Transform(first);
+    const auto hint_start = source.find("euler ");
+    const auto world_start = source.find("world\n");
+    const std::string record = "euler " + std::to_string(first) + " 450 -720 0\n";
+    const std::array corrupt_records{"euler " + std::to_string(first) + " 0 0 0\n", record + record,
+                                     std::string{"euler 999999 450 -720 0\n"},
+                                     "euler " + std::to_string(first) + " nan 0 0\n",
+                                     "euler " + std::to_string(first) + " 450 -720 0 trailing\n"};
+    const auto corrupt_hint_path = root / "Content/CorruptHint.scene";
+    for (const auto &record_text : corrupt_records) {
+      auto corrupt = source;
+      corrupt.replace(hint_start, world_start - hint_start, record_text);
+      std::ofstream(corrupt_hint_path, std::ios::binary | std::ios::trunc) << corrupt;
+      Require(!reopened.Reload(corrupt_hint_path) && reopened.Generation() == generation &&
+                  reopened.Transform(first) == reopened_transform &&
+                  reopened.EulerAngles(first) == editor::EulerDegrees{450.0, -720.0, 0.0},
+              "corrupt/orphan/duplicate/mismatched hints must not replace the live document");
+    }
+    auto legacy = source;
+    legacy.erase(hint_start, world_start - hint_start);
+    legacy.replace(0, std::string("NEXORA_EDITOR_SCENE 2").size(), "NEXORA_EDITOR_SCENE 1");
+    const auto legacy_hint_path = root / "Content/LegacyHint.scene";
+    std::ofstream(legacy_hint_path, std::ios::binary) << legacy;
+    Require(reopened.Reload(legacy_hint_path) &&
+                editor::SameRotation(*reopened.Transform(first), reopened_transform) &&
+                std::abs((*reopened.EulerAngles(first))[0] - 90.0) < 1e-8 &&
+                reopened.Save(legacy_hint_path),
+            "v1 scenes must load canonical angles and upgrade on a normal save");
+    std::ifstream upgraded(legacy_hint_path);
+    std::string header;
+    Require(std::getline(upgraded, header) && header == "NEXORA_EDITOR_SCENE 2",
+            "normal save must upgrade the Editor scene header to v2");
+    runtime::WorldCommandBuffer external_rotation;
+    external_rotation.SetTransform(first, {});
+    Require(external_rotation.Apply(hinted_world) &&
+                hinted.EulerAngles(first) == editor::EulerDegrees{0.0, 0.0, 0.0},
+            "external quaternion changes must invalidate a stale hint");
+    Require(hinted.Save(hinted_path), "saving after an external rotation failed");
+    Require(reopened.Reload(hinted_path) &&
+                reopened.EulerAngles(first) == editor::EulerDegrees{0.0, 0.0, 0.0} &&
+                reopened.EulerAngles(second) == editor::EulerDegrees{450.0, -720.0, 0.0},
+            "saving must omit invalidated hints without losing unaffected ones");
+  }
+
   runtime::ReflectionRegistry reflection;
   const auto transform_type = runtime::HashTypeName("Transform");
   Require(reflection.Register({"Transform", transform_type, {{"x", 1, 0, sizeof(double)}}}),

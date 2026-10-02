@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <locale>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -410,27 +411,75 @@ bool SceneDocument::Move(NodeKey entity, std::optional<NodeKey> parent, std::siz
   return Move(entity.id, parent ? parent->id : 0, index);
 }
 bool SceneDocument::SetTransform(runtime::Id entity, runtime::Transform transform) {
-  if (!editor_.SetTransform(entity, transform))
+  const auto key = Key(entity);
+  if (!key)
     return false;
-  undo_.push_back({});
-  return true;
+  const std::array keys{*key};
+  const std::array transforms{transform};
+  return SetTransforms(keys, transforms);
 }
 bool SceneDocument::SetTransforms(std::span<const NodeKey> entities,
                                   std::span<const runtime::Transform> transforms) {
   if (entities.size() != transforms.size())
     return false;
   std::vector<runtime::Id> ids;
+  UndoEntry undo;
   ids.reserve(entities.size());
+  undo.previous_hints.reserve(entities.size());
   for (const auto key : entities) {
     if (Key(key.id) != key)
       return false;
     ids.push_back(key.id);
+    const auto node = std::ranges::find(nodes_, key.id, &Node::id);
+    undo.previous_hints.emplace_back(key, node->euler_hint);
   }
   if (!editor_.SetTransforms(ids, transforms))
     return false;
-  undo_.push_back({});
+  undo_.push_back(std::move(undo));
   return true;
 }
+
+bool SceneDocument::SetEulerField(std::span<const NodeKey> entities, std::size_t axis,
+                                  double degrees) {
+  if (axis >= 3 || entities.empty() || !std::isfinite(degrees))
+    return false;
+  std::vector<runtime::Transform> transforms;
+  std::vector<EulerDegrees> angles;
+  transforms.reserve(entities.size());
+  angles.reserve(entities.size());
+  for (const auto key : entities) {
+    if (Key(key.id) != key)
+      return false;
+    auto authored = EulerAngles(key.id);
+    const auto transform = Transform(key.id);
+    if (!authored || !transform)
+      return false;
+    (*authored)[axis] = degrees;
+    const auto changed = WithEulerDegrees(*transform, *authored);
+    if (!changed)
+      return false;
+    transforms.push_back(*changed);
+    angles.push_back(*authored);
+  }
+  if (!SetTransforms(entities, transforms))
+    return false;
+  for (std::size_t i = 0; i < entities.size(); ++i) {
+    const auto node = std::ranges::find(nodes_, entities[i].id, &Node::id);
+    node->euler_hint = EulerHint{*Transform(entities[i].id), angles[i]};
+  }
+  return true;
+}
+
+std::optional<EulerDegrees> SceneDocument::EulerAngles(runtime::Id entity) const noexcept {
+  const auto node = std::ranges::find(nodes_, entity, &Node::id);
+  const auto *live = world_.FindEntity(entity);
+  if (node == nodes_.end() || live == nullptr)
+    return std::nullopt;
+  if (node->euler_hint && SameRotation(node->euler_hint->transform, live->transform))
+    return node->euler_hint->degrees;
+  return ToEulerDegrees(live->transform);
+}
+
 std::optional<runtime::Transform> SceneDocument::Transform(runtime::Id entity) const noexcept {
   const auto *found = world_.FindEntity(entity);
   if (found == nullptr || std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())
@@ -468,6 +517,12 @@ bool SceneDocument::Undo() {
   if (entry.kind == UndoEntry::Kind::Runtime) {
     if (!editor_.Undo())
       return false;
+    for (const auto &[key, hint] : entry.previous_hints) {
+      const auto node = std::ranges::find(nodes_, key.id, &Node::id);
+      if (node != nodes_.end() && key.document_generation == document_generation_ &&
+          node->generation == key.entity_generation)
+        node->euler_hint = hint;
+    }
   } else {
     const auto found = std::ranges::find(nodes_, entry.entity.id, &Node::id);
     if (entry.entity.document_generation != document_generation_ || found == nodes_.end() ||
@@ -482,11 +537,21 @@ bool SceneDocument::Save(const std::filesystem::path &path) const {
   const auto snapshot = world_.SaveScene(scene_);
   if (!snapshot)
     return false;
-  std::string output = "NEXORA_EDITOR_SCENE 1\n";
+  std::string output = "NEXORA_EDITOR_SCENE 2\n";
   // The parent column duplicates the runtime hierarchy (snapshot version 3) for older readers.
   for (const auto &node : nodes_)
     output += "node " + std::to_string(node.id) + " " +
               std::to_string(world_.Parent(node.id).value_or(0)) + " " + node.name + "\n";
+  std::ostringstream hints;
+  hints.imbue(std::locale::classic());
+  hints << std::setprecision(std::numeric_limits<double>::max_digits10);
+  for (const auto &node : nodes_) {
+    const auto *entity = world_.FindEntity(node.id);
+    if (node.euler_hint && entity && SameRotation(node.euler_hint->transform, entity->transform))
+      hints << "euler " << node.id << ' ' << node.euler_hint->degrees[0] << ' '
+            << node.euler_hint->degrees[1] << ' ' << node.euler_hint->degrees[2] << '\n';
+  }
+  output += hints.str();
   output += "world\n" + *snapshot;
   return AtomicWrite(path, output, nullptr);
 }
@@ -498,9 +563,25 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
     std::string name;
   };
   std::vector<LoadedNode> loaded;
-  if (!input || !std::getline(input, line) || line != "NEXORA_EDITOR_SCENE 1")
+  std::unordered_map<runtime::Id, EulerDegrees> hints;
+  if (!input || !std::getline(input, line) ||
+      (line != "NEXORA_EDITOR_SCENE 1" && line != "NEXORA_EDITOR_SCENE 2"))
     return false;
+  const bool supports_hints = line == "NEXORA_EDITOR_SCENE 2";
   while (std::getline(input, line) && line != "world") {
+    if (supports_hints && line.starts_with("euler ")) {
+      std::istringstream parser(line.substr(6));
+      parser.imbue(std::locale::classic());
+      runtime::Id id{};
+      EulerDegrees degrees{};
+      if (!(parser >> id >> degrees[0] >> degrees[1] >> degrees[2]) || !id ||
+          !WithEulerDegrees({}, degrees) || !hints.emplace(id, degrees).second)
+        return false;
+      parser >> std::ws;
+      if (!parser.eof() || hints.size() > loaded.size())
+        return false;
+      continue;
+    }
     if (!line.starts_with("node "))
       return false;
     std::istringstream parser(line.substr(5));
@@ -554,24 +635,42 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
     return commands;
   };
   const bool migrate = migration().Size() != 0;
-  if (migrate) {
-    // Rehearse on a scratch world first so a failed migration never leaves a half-loaded scene.
+  std::string snapshot_to_load = world_data;
+  if (migrate || !hints.empty()) {
+    // Validate hints and migration before touching the live World or replacing its authoring state.
     runtime::World rehearsal{world_.Kind()};
-    if (!rehearsal.LoadSceneSnapshot(world_data) || !migration().Apply(rehearsal))
+    const auto staged_scene = rehearsal.LoadSceneSnapshot(world_data);
+    if (!staged_scene || (migrate && !migration().Apply(rehearsal)))
       return false;
+    if (migrate) {
+      const auto migrated_snapshot = rehearsal.SaveScene(*staged_scene);
+      if (!migrated_snapshot)
+        return false;
+      snapshot_to_load = *migrated_snapshot;
+    }
+    for (const auto &[id, degrees] : hints) {
+      const auto *entity = rehearsal.FindEntity(id);
+      const auto authored = WithEulerDegrees({}, degrees);
+      if (!ids.contains(id) || !entity || !authored || !SameRotation(*authored, entity->transform))
+        return false;
+    }
   }
-  const auto scene = world_.LoadSceneSnapshot(world_data);
-  if (!scene || (migrate && !migration().Apply(world_)))
-    return false;
-  scene_ = *scene;
-  document_generation_ = NextDocumentGeneration();
-  nodes_.clear();
+  std::vector<Node> staged_nodes;
+  staged_nodes.reserve(loaded.size());
+  auto next_generation = next_entity_generation_;
   for (auto &node : loaded) {
-    const auto generation = next_entity_generation_++;
-    if (next_entity_generation_ == 0)
-      ++next_entity_generation_;
-    nodes_.push_back({node.id, std::move(node.name), generation});
+    const auto generation = next_generation++;
+    if (next_generation == 0)
+      ++next_generation;
+    staged_nodes.push_back({node.id, std::move(node.name), generation});
+    if (const auto hint = hints.find(node.id); hint != hints.end())
+      staged_nodes.back().euler_hint = EulerHint{*WithEulerDegrees({}, hint->second), hint->second};
   }
+  if (!world_.ReplaceSceneSnapshot(scene_, snapshot_to_load))
+    return false;
+  document_generation_ = NextDocumentGeneration();
+  next_entity_generation_ = next_generation;
+  nodes_ = std::move(staged_nodes);
   selection_.clear();
   clipboard_.clear();
   undo_.clear();
