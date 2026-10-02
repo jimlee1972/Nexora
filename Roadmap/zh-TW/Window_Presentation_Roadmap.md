@@ -98,3 +98,5 @@ headless gate。Showcase command 的實際 Windows/DX12 執行仍屬 target-host
 ✅ Vulkan/DX12 的 Scene UV/RGBA8 材質已提供有界且不可變的 scene-only texture ID、white fallback 與 fence-protected upload lifetime。Linux 像素驗收確認 sampler selection、快取重用與 resize 重傳；DX12 目標主機材質執行仍待驗收。
 
 ✅ 原生 owner 的 Offscreen → Main → UI → Present 已使用 Vulkan/DX12 fence 持有的 scene color 與 GPU copy，並拒絕重複 acquire 及未完成 copy 的錯誤順序。Linux Vulkan 像素、互動及同步驗證 gate 共 75/75 通過。套件內 Windows `accept-v1.ps1` 記錄隔離副本截圖、checksum 與原生計數器；新版實體顯示／乾淨主機驗收由使用者本地執行。
+
+✅ 新版 Windows Full Shipping／DX12 隔離副本圖形驗收已在 [CI 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518) 通過：14 筆 checksum、12 張可見截圖、asset／plugin 拒絕案例、339 次原生 graph／copy／present 及退出碼 0。[版本化 Windows CI 證據](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md)。此 hosted VM 不代表實體顯示或獨立乾淨主機驗收；兩項仍由使用者本地完成。

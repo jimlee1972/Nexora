@@ -1,6 +1,6 @@
 # Nexora V1 可視化展示 Demo 長期規劃
 
-> **進度：Linux 可視化切片已驗證；完整 V1 目標主機驗收仍待完成。**
+> **進度：Linux 與 Windows CI 可視化切片已驗證；完整 V1 本地目標主機驗收仍待完成。**
 > 原百分比缺少可重現的加權清單，改以以下驗收證據追蹤。
 
 ## 0. 現況盤點
@@ -309,7 +309,7 @@ UI、headless report、CTest adapter 與 Guided Tour 都消費同一份結果。
 - ✅ Minimal/Full/Dedicated Packager preview、staged-update rollback 與 bounded crash breadcrumb。
 - ✅ Full profile preset、packaged content manifest、interactive script、可重現 ZIP／SHA-256 與 isolated-copy headless package smoke。
 - ✅ 版本化 Linux screenshot／native interaction artifact；CI 保存 screenshot、package 與 CTest log。
-- 待辦：新版 Full Windows executable 在乾淨主機執行、physical-display／version-tag evidence 與 Windows workflow 實際驗收。
+- 待辦：新版 Full Windows executable 在乾淨主機執行、physical-display／version-tag evidence。
 
 ## 9. 建置、執行與打包規格
 
@@ -448,3 +448,7 @@ Windows CI run 37044292214 在幾何警告修正後通過 Full Shipping 封裝�
 Windows 原生後續：CI 37052188209 已執行 DX12 graph 與所有房間截圖，應用程式報告 PASS（357 次 acquired／offscreen／copy／present）。stock PowerShell wrapper 讀取 process 退出碼時失敗，現已在退出前持有 process handle、記錄退出碼，並在失敗時保留啟動報告。修正版 wrapper CI 與本地乾淨主機／實體顯示驗收仍是各自待驗收 gate。
 
 Windows 驗收腳本在擷取前調整並置頂原生視窗，且避免開啟遮擋畫面的終端。目標主機驗收仍須檢視實際截圖。
+
+✅ 新版 Windows Full Shipping／DX12 隔離副本圖形驗收已在 [CI 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518) 通過：14 筆 checksum、12 張可見截圖、asset／plugin 拒絕案例、339 次原生 graph／copy／present 及退出碼 0。[版本化 Windows CI 證據](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md)。此 hosted VM 不代表實體顯示或獨立乾淨主機驗收；兩項仍由使用者本地完成。
+
+✅ source revision `ecf2277f07bc51ef09112c652a0ccbc0511d0a99` 的 Build 37053279518 所有 job 通過，包含 Windows／Linux／macOS Development、Windows 原生 Full 驗收、mimalloc 與 sanitizer contract。

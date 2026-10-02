@@ -1,0 +1,10 @@
+{
+  "workflow_run": 37053279518,
+  "artifact_id": 11247343194,
+  "head_commit": "ecf2277f07bc51ef09112c652a0ccbc0511d0a99",
+  "tested_pull_request_merge": "c05caaf14044d4bbdbc5d7bb731677a18c648981",
+  "artifact_sha256": "9e4f5a66492bc94fdb46ab216cf0bb9ea0103a694982cbbdfeb9957816dfbb41",
+  "verifier_matches_source_after_checkout_newline_normalization": true,
+  "scope": "Windows hosted CI native DX12; physical display and clean host NOT accepted",
+  "workflow_conclusion": "success"
+}

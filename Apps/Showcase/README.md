@@ -218,7 +218,7 @@ Build the Full package and run its stock-PowerShell verifier on a visible, unloc
 cmake --preset windows-showcase-shipping
 cmake --build --preset windows-showcase-shipping --target NexoraShowcasePackageShippingEvidence --parallel 4
 & ./build/windows-showcase-shipping/package/NexoraShowcase-Shipping/accept-v1.ps1 `
-  -EvidenceDirectory ./showcase-windows-v1-evidence -PhysicalDisplay -CleanHost
+  -EvidenceDirectory ./showcase-windows-v1-evidence
 ```
 
 Use `-PhysicalDisplay` only on the physical display/GPU under test and `-CleanHost` only on an
@@ -237,3 +237,5 @@ The Windows verifier retains the launched process handle before exit for Windows
 exit-code reliability and preserves launch JSON/Markdown even when an acceptance check fails.
 The verifier shares its launcher console, fits the outer window to the desktop and raises the
 Showcase before each screen capture, so a newly opened console cannot obscure visual evidence.
+
+✅ Windows Full/DX12 hosted-CI native acceptance and unobscured screenshots: [versioned evidence](evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md). On an independently provisioned physical target, add `-PhysicalDisplay -CleanHost` to record those operator attestations.
