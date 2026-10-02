@@ -88,4 +88,10 @@ Delivered evidence: Linux uses an X11 window implementation and Vulkan WSI swapc
 - Windowed shutdown produces no live GPU resources, queued callbacks, or native handles.
 - The Showcase and Editor consume only public window/presentation contracts.
 
-✅ The Linux/Vulkan scene boundary also passes native indexed/depth/light/transform pixel acceptance and 600-frame normalized camera-input integration under Xvfb/lavapipe (70/70 Development tests). See the [Phase B acceptance record](../../Apps/Showcase/evidence/V1-Phase-B-Linux-Vulkan-2026-10-02/acceptance.md). Physical-display and other-platform gates remain separate.
+## V1 Visual Showcase follow-through (2026-10-03)
+
+✅ The Linux/Vulkan application now presents eight live Runtime room views, readable native GPU UI,
+held keyboard/pointer controls and a 210-second guided tour under Xvfb/lavapipe. Full package tooling
+includes content, deterministic ZIP/SHA-256 and isolated Linux shared-library resolution. These are
+V1 Visual Showcase integration results; they do not replace this roadmap's existing platform gates
+or establish the expanded Windows version's clean-machine graphical acceptance.

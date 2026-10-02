@@ -224,6 +224,24 @@
         "lhs": "${hostSystemName}",
         "rhs": "Darwin"
       }
+    },
+    {
+      "name": "linux-showcase-shipping",
+      "inherits": "linux-shipping",
+      "cacheVariables": {
+        "NEXORA_SHIPPING_PROFILE": "Full",
+        "NEXORA_ENABLE_ZIG_GAMEPLAY": "ON"
+      }
+    },
+    {
+      "name": "windows-showcase-shipping",
+      "inherits": "windows-zig-showcase-shipping",
+      "cacheVariables": {
+        "NEXORA_SHIPPING_PROFILE": "Full",
+        "NEXORA_ENABLE_ZIG_GAMEPLAY": "ON",
+        "NEXORA_ENABLE_NATIVE_BACKENDS": "ON",
+        "NEXORA_ENABLE_VULKAN_BACKEND": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -281,6 +299,14 @@
       "name": "ios-development",
       "configurePreset": "ios-development",
       "configuration": "Development"
+    },
+    {
+      "name": "linux-showcase-shipping",
+      "configurePreset": "linux-showcase-shipping"
+    },
+    {
+      "name": "windows-showcase-shipping",
+      "configurePreset": "windows-showcase-shipping"
     }
   ],
   "testPresets": [

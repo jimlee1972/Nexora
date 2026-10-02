@@ -7,6 +7,7 @@ jobs:
   desktop:
     env:
       SLANG_VERSION: 2026.18
+      NEXORA_SHOWCASE_EVIDENCE_DIR: ${{ github.workspace }}/build/${{ matrix.preset }}/showcase-visual-evidence
     strategy:
       fail-fast: false
       matrix:
@@ -73,7 +74,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool
+          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool glslang-tools
       - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }}
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
@@ -99,7 +100,10 @@ jobs:
         if: runner.os != 'macOS'
         with:
           name: showcase-${{ matrix.preset }}-package-evidence
-          path: build/${{ matrix.preset }}/package/NexoraShowcase-Development/launch-evidence-*.json
+          path: |
+            build/${{ matrix.preset }}/package/NexoraShowcase-Development*
+            build/${{ matrix.preset }}/showcase-visual-evidence/
+            build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
 
   # Runs the graphical Editor against a real X11 server (Xvfb) with Mesa's software Vulkan. It is a
   # separate job so the feature-on build (Dear ImGui is fetched) cannot disturb the main matrix.
@@ -132,7 +136,7 @@ jobs:
       - name: Install Vulkan, X11, Xvfb and xdotool
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool
+          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool glslang-tools
       - run: cmake --preset linux-development -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON
       - run: cmake --build --preset linux-development
       - name: Require the display acceptance to be registered
@@ -176,12 +180,12 @@ jobs:
         with:
           version: 0.14.0
       - uses: ilammy/msvc-dev-cmd@v1
-      - run: cmake --preset windows-zig-showcase-shipping
-      - run: cmake --build --preset windows-zig-showcase-shipping --target NexoraShowcasePackageShippingEvidence --parallel 4
+      - run: cmake --preset windows-showcase-shipping
+      - run: cmake --build --preset windows-showcase-shipping --target NexoraShowcasePackageShippingEvidence --parallel 4
       - uses: actions/upload-artifact@v4
         with:
           name: showcase-windows-shipping-evidence
-          path: build/windows-zig-showcase-shipping/package/NexoraShowcase-Shipping/launch-evidence-windows.json
+          path: build/windows-showcase-shipping/package/NexoraShowcase-Shipping*
 
   mimalloc-smoke:
     name: mimalloc backend (${{ matrix.preset }})

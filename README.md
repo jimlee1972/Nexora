@@ -45,12 +45,12 @@ an unchecked or unmarked item remains incomplete.
 | ✅ [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **100%** | ✅ ZS-M0 through ✅ ZS-M5 are complete; the independently provisioned Windows clean-machine Development package acceptance is recorded with 16/16 checksums and a PASS launch report. |
 | [Graphical Editor](Roadmap/en/Editor_Roadmap.md) | **0% (0/8)** | Repository audit confirms portable foundations for every ED track and an in-progress Dear ImGui shell, but no graphical ED milestone has passed all automated and target-host gates. |
 | [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **60%** | Mean of API 100%, Zig Showcase 100%, and Editor 0%, rounded down to 10%. |
-| [V1 Visual Showcase](Roadmap/en/V1-Visual-Showcase-Long-Term-Plan.md) | **24%** | ✅ Phase A Linux/X11/Vulkan virtual-display acceptance passes without skips (67/67 Development tests); Phase B has a ✅ portable scene-frame/resource foundation and Windows/DX12 interactive Rendering Room binding verified on the developer host, and ✅ Linux/Vulkan Rendering Room binding, depth/light/transform pixels and normalized input now pass Xvfb/lavapipe acceptance (70/70 Development tests); Metal, clean-machine/CI, full Hub/room visuals and guided tour remain open. |
+| [V1 Visual Showcase](Roadmap/en/V1-Visual-Showcase-Long-Term-Plan.md) | **Linux slice verified** | ✅ Vulkan 3D/UI, eight Runtime rooms, guided tour, native keyboard/mouse/resize evidence, and Full package tooling; textured/instanced content, full probe controls, expanded Windows clean-host launch and physical-display acceptance remain open. |
 
 
 ### Repository status
 
-The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, API samples, a Zig gameplay consumer, and a headless `NexoraShowcase`. The milestone sections below describe the implemented portable contract foundations and explicitly call out platform or production backends that remain future work. Parsers for persisted or external data (for example scene snapshots) reject hostile size fields before allocating.
+The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, API samples, a Zig gameplay consumer, and `NexoraShowcase` with both deterministic headless and native Linux/Vulkan 3D modes. The milestone sections below describe the implemented portable contract foundations and explicitly call out platform or production backends that remain future work. Parsers for persisted or external data (for example scene snapshots) reject hostile size fields before allocating.
 
 #### V2 networking status
 

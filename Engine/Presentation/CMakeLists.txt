@@ -41,26 +41,4 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND
     target_link_libraries(NexoraPresentation PRIVATE X11::X11)
   endif()
   target_compile_definitions(NexoraPresentation PRIVATE NEXORA_HAS_VULKAN_PRESENTATION=1)
-  if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
-    file(READ "${nexora_imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp" _imgui_vulkan)
-    string(REGEX MATCH
-      "static uint32_t __glsl_shader_vert_spv\\[\\][^{]*\\{[^}]+\\};"
-      _imgui_vertex_spirv "${_imgui_vulkan}")
-    string(REGEX MATCH
-      "static uint32_t __glsl_shader_frag_spv\\[\\][^{]*\\{[^}]+\\};"
-      _imgui_fragment_spirv "${_imgui_vulkan}")
-    if(NOT _imgui_vertex_spirv OR NOT _imgui_fragment_spirv)
-      message(FATAL_ERROR "Pinned Dear ImGui Vulkan shaders could not be extracted")
-    endif()
-    string(REPLACE "static uint32_t" "inline constexpr std::uint32_t"
-      _imgui_vertex_spirv "${_imgui_vertex_spirv}")
-    string(REPLACE "static uint32_t" "inline constexpr std::uint32_t"
-      _imgui_fragment_spirv "${_imgui_fragment_spirv}")
-    set(_imgui_shader_header "${CMAKE_CURRENT_BINARY_DIR}/generated/EditorUiVulkanShaders.h")
-    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
-    file(WRITE "${_imgui_shader_header}"
-      "#pragma once\n#include <cstdint>\nnamespace Nexora::Presentation {\n${_imgui_vertex_spirv}\n${_imgui_fragment_spirv}\n}\n")
-    target_include_directories(NexoraPresentation PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
-    target_compile_definitions(NexoraPresentation PRIVATE NEXORA_HAS_NATIVE_UI_SHADERS=1)
-  endif()
 endif()

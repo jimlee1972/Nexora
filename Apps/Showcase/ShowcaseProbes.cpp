@@ -168,10 +168,10 @@ ValidationLabView BuildValidationLab(std::span<const ProbeResult> results) {
     view.cards.push_back({result, contract == result.metrics.end() ? "" : contract->value,
                           std::move(room), 0x4e580000ULL + static_cast<std::uint64_t>(milestone)});
   }
-  view.failure_states = {{"invalid_asset", "Invalid asset", "M5", ProbeStatus::Pass},
-                         {"dependency_cycle", "Dependency cycle", "M0", ProbeStatus::Pass},
-                         {"plugin_abi_mismatch", "Plugin ABI mismatch", "M6", ProbeStatus::Pass},
-                         {"rollback", "Rollback", "M12", ProbeStatus::Pass}};
+  view.failure_states = {{"invalid_asset", "Invalid asset", "M5", ProbeStatus::NotRun},
+                         {"dependency_cycle", "Dependency cycle", "M0", ProbeStatus::NotRun},
+                         {"plugin_abi_mismatch", "Plugin ABI mismatch", "M6", ProbeStatus::NotRun},
+                         {"rollback", "Rollback", "M12", ProbeStatus::NotRun}};
   return view;
 }
 

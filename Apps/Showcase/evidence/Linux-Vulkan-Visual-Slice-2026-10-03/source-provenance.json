@@ -1,0 +1,14 @@
+{
+  "base_commit": "c2298515481d34ed3386248095a9a85525d3a650",
+  "scope": "Working-tree Linux visual slice; build_id refers to base revision, source digests identify the tested changes",
+  "sources": {
+    "Apps/Showcase/main.cpp": "64bb92df8e272d5a0283e84e314e459dcb065818b4f0725a89266cae8579b8b9",
+    "Apps/Showcase/ShowcaseRooms.cpp": "1f8309b5a7f20af994c700df468f0241d7a0e1053e8fcaba90a19ceb2ca9c43e",
+    "Apps/Showcase/ShowcaseRooms.h": "3e5fa2fa7604fc3a3eeb6fe77e01b84b4b8948dd31f9367512e6f004193ef6f4",
+    "Engine/Presentation/src/VulkanSurface.cpp": "8a207f504c4369bda5e014126a23fa735654790cf3fe8932b9375d0785266074",
+    "Engine/Presentation/src/RenderSurface.cpp": "04590ade56569b9a706f9dadee0152e653c2c4a3bde2146366b855375dca4bb7",
+    "Engine/Presentation/src/SceneVulkanShaders.h": "787bd86b73d27f776e1f4d95b35dc1c115a41bac0fcb321b823af0834c28dc7c",
+    "Engine/Presentation/src/UiVulkanShaders.h": "d0170717f186b1027d12d561e4e2f075a4ec1857b338dca290e18f68bace0cca",
+    "Tests/Showcase/LinuxShowcaseInteraction.py": "d881d06d3698a2d95dda9ffd54a8a7e08e89beea93d6eec8281952161da1e662"
+  }
+}

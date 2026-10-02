@@ -12,7 +12,7 @@ bounded per-frame upload buffers below this boundary; resources replaced by a la
 are released only after the protecting frame fence/command buffer completes. No native image or
 device handle escapes. `DrawScene` similarly borrows one indexed `SceneDrawData` mesh, transform,
 light, and base color for the duration of the call and records a depth-tested native scene draw on
-the render thread. DX12 and Vulkan own the depth buffer, pipeline, and bounded per-frame upload storage;
+the render thread. DX12 and Vulkan own their depth buffers, pipelines, and bounded per-frame upload storage;
 backends without a native geometry path return `Unsupported` rather than silently compositing a
 fallback. `SurfaceDiagnostics::sceneDrawCalls` counts accepted native scene draws. `CompositeRgba8`
 remains a legacy full-frame upload for non-Editor clients; the production Editor does not call it.
@@ -40,28 +40,18 @@ window owner-thread rule and the resulting event publishes the new extent on a l
 This keeps resize requests above the native window abstraction while swapchain recreation remains
 private to Presentation.
 
-## Vulkan Rendering Room
+## Vulkan Showcase scene/UI ownership
 
-The native Vulkan scene path is independent of the graphical Editor and optional Slang toolchain.
-Its private GLSL sources are in `shaders/Scene.vert` and `shaders/Scene.frag`; checked-in SPIR-V keeps
-normal Development/Shipping builds reproducible without a runtime shader compiler. Regenerate with
-`python3 Engine/Presentation/shaders/GenerateSceneShaders.py` using glslangValidator 15.1.0,
-spirv-val 2025.1 and clang-format; `--check` recompiles, validates, and compares the generated header. These are private
-presentation shaders, separate from the shared Renderer Slang library.
+Vulkan accepts one indexed scene batch per acquired frame (up to 65,535 vertices and 1,048,576
+indices), rejects invalid indices/non-finite input and repeated scene batches, and keeps vertex/index
+uploads plus D32 depth/framebuffer resources in the owning fence-protected frame slot. Resize drains
+GPU work before destroying the scene/UI resources and releasing their command buffers. Native GLSL
+scene/UI sources and embedded SPIR-V are under `shaders/` and `src/*VulkanShaders.h`;
+`shaders/GenerateShaders.py --check` verifies deterministic regeneration with glslangValidator.
+Neither UI nor scene rendering requires the graphical Editor or a runtime shader compiler.
 
-`DrawScene` accepts one triangle-list submission per acquired frame, with 16-bit in-range indices,
-at most 65,536 vertices, finite attributes/constants, and a combined geometry upload limit of 4 MiB.
-Invalid or duplicate submissions and mixing scene, UI, or full-frame composition return
-`InvalidDescriptor` before recording. GPU allocation/creation failure reports `DeviceLost` and
-retains any partially-created resources for ordered teardown. The row-major MVP and padded light/
-material constants occupy 112 push-constant bytes. The vertex shader converts clip-space Y for
-Vulkan while preserving the Engine's [0,1] depth convention; the fragment shader uses bounded
-normalization, Lambert lighting and ambient color.
-
-Each frame slot owns its host-coherent vertex/index upload, D32 depth image and memory. An acquired
-frame's framebuffer stays alive until that slot's fence completes; resize drains the device and
-releases framebuffers, uploads, depth images, command buffers, pipelines and the old swapchain before
-recreation. No borrowed span survives the call. The target-host `window_presentation.vulkan_scene`
-gate reads X11 pixels only in the test executable, verifies near/far triangle order invariance,
-lighting, matrix translation, two resizes, rejected inputs and ordered teardown, and retains a
-frame capture. The Showcase Rendering Room and normalized keyboard-input gates run separately.
+UI loads a prior scene color target rather than erasing it; a UI-only frame explicitly clears its
+background. Atlas uploads must be resubmitted after swapchain recreation. RenderSurface stops before
+Acquire when a close request is pumped, leaving no newly acquired frame without presentation during
+normal shutdown. Xvfb/lavapipe acceptance covers native scene/UI, interaction and resize; it is not
+physical-GPU, Windows or Metal acceptance.

@@ -101,3 +101,11 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
 The engine must outlive the module. C++ and Zig consumers run identical ABI vectors. A headless scripted tour emits deterministic JSON; a native-window smoke proves real presentation, while screenshots are visual regression evidence rather than correctness oracles. Test missing symbols, version mismatch, callback errors, outstanding jobs, failed restore, device loss, and shutdown. Use host sanitizers, Zig safety checks, and allocation owner tags. Windows/DX12 is the first graphical gate; Linux headless remains the CI gate, and Vulkan/Metal advance only after execution on their hosts.
 
 Done means `NexoraShowcase` starts from C++ `main` and Zig visibly drives the scene through public APIs, with headless, failure, reload, and Shipping evidence. Zig cannot directly access RHI/native windows or own editor UI. This document complements [`V1-Visual-Showcase-Long-Term-Plan.md`](V1-Visual-Showcase-Long-Term-Plan.md) by defining the Zig consumer and engine-owned entry point specifically.
+
+## V1 Visual Showcase follow-through (2026-10-03)
+
+✅ The Linux/Vulkan application now presents eight live Runtime room views, readable native GPU UI,
+held keyboard/pointer controls and a 210-second guided tour under Xvfb/lavapipe. Full package tooling
+includes content, deterministic ZIP/SHA-256 and isolated Linux shared-library resolution. These are
+V1 Visual Showcase integration results; they do not replace this roadmap's existing platform gates
+or establish the expanded Windows version's clean-machine graphical acceptance.
