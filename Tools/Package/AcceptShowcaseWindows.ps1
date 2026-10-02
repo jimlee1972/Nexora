@@ -89,6 +89,9 @@ public static class NexoraAcceptanceWindow {
     $acceptance.shipping_profile = $build.shipping_profile
     $process = Start-Process -FilePath $binary -ArgumentList $arguments -WorkingDirectory $staged -PassThru `
         -RedirectStandardOutput (Join-Path $evidence 'stdout.log') -RedirectStandardError (Join-Path $evidence 'stderr.log')
+    # Retain the native process handle before exit: Windows PowerShell 5 otherwise
+    # can return a null ExitCode from a Start-Process -PassThru object after WaitForExit.
+    $null = $process.Handle
     $deadline = [DateTime]::UtcNow.AddSeconds(15)
     do {
         $process.Refresh()
@@ -159,7 +162,8 @@ public static class NexoraAcceptanceWindow {
     }
     [NexoraAcceptanceWindow]::PostMessage($window, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
     Require ($process.WaitForExit(15000)) 'Showcase did not close cleanly.'
-    Require ($process.ExitCode -eq 0) 'Showcase exit failed; see stderr.log.'
+    $acceptance.process_exit_code = $process.ExitCode
+    Require ($process.ExitCode -eq 0) "Showcase exit failed (code $($process.ExitCode)); see retained launch report and logs."
     $report = Get-Content -LiteralPath (Join-Path $staged 'acceptance-launch.json') -Raw | ConvertFrom-Json
     Copy-Item -LiteralPath (Join-Path $staged 'acceptance-launch.json') -Destination (Join-Path $evidence 'launch-report.json')
     Copy-Item -LiteralPath (Join-Path $staged 'acceptance-launch.md') -Destination (Join-Path $evidence 'launch-report.md')
@@ -189,8 +193,15 @@ finally {
         if (-not $process.HasExited) { $process.Kill(); $process.WaitForExit() }
         $process.Dispose()
     }
-    if ($null -ne $staged -and (Test-Path -LiteralPath $staged)) { Remove-Item -LiteralPath $staged -Recurse -Force }
+    if ($null -ne $staged -and (Test-Path -LiteralPath $staged)) {
+        foreach ($entry in @(@('acceptance-launch.json', 'launch-report.json'), @('acceptance-launch.md', 'launch-report.md'))) {
+            $source = Join-Path $staged $entry[0]
+            if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination (Join-Path $evidence $entry[1]) }
+        }
+        Remove-Item -LiteralPath $staged -Recurse -Force
+    }
     Write-Acceptance
 }
+foreach ($issue in $acceptance.issues) { Write-Output $issue }
 Write-Output (Join-Path $evidence 'acceptance.json')
 exit $exitCode
