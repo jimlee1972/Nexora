@@ -68,6 +68,9 @@ public:
                                    std::string name);
   static void QueueInspectorTransform(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                       runtime::Transform transform) noexcept;
+  static void QueueInspectorTransforms(EditorImGuiHost &host,
+                                       std::span<const SceneDocument::NodeKey> entities,
+                                       std::span<const runtime::Transform> transforms);
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
   static void QueueContentConflictChoice(EditorImGuiHost &host, runtime::AssetUuid asset,

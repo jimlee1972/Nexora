@@ -143,7 +143,7 @@ the authoring thread without direct UI filesystem access. Physical-display/Windo
 acceptance remains open, so milestone acceptance stays unchanged. The graphical Hierarchy now
 provides a parent-aware expandable tree, filtering, generation-keyed expansion and anchored
 multi-selection, clipped visible-row submission, undoable rename, sibling ordering, and cycle-safe
-drag/drop reparenting through Editor Core while rejecting stale entity/document generations. The docked Inspector now edits a single selection’s local position, quaternion, and scale through generation-safe, undoable SceneDocument transactions with Runtime validation; the complete reflected Inspector remains open. The
+drag/drop reparenting through Editor Core while rejecting stale entity/document generations. The docked Inspector now edits local position, quaternion, and scale for single or mixed-value multi-selection through one generation-safe, atomic, undoable SceneDocument transaction; the complete reflected Inspector remains open. The
 X11 window backend now owns one XIM input context per
 window, decodes committed UTF-8 into backend-neutral `Text` events, and keeps physical keys separate
 from text input.
@@ -283,7 +283,7 @@ create、read-write／read-only open 與 recent shortcut；project activation �
 驗收仍待完成，因此 milestone 驗收比例不變。圖形化 Hierarchy 現已有 parent-aware expandable
 tree、filter、以 generation 為 key 的 expansion 與 anchored multi-selection、可見列裁切提交、
 可復原 rename、兄弟排序，以及透過 Editor Core 執行且拒絕 stale entity／document generation
-的 cycle-safe drag/drop reparent。Docked Inspector 現可透過 generation-safe、可復原且經 Runtime validation 的 SceneDocument transaction，編輯單一選取項目的 local position、quaternion 與 scale；完整 reflected Inspector 仍待完成。X11 window backend 現會以每視窗 XIM input context 將
+的 cycle-safe drag/drop reparent。Docked Inspector 現可透過一個 generation-safe、atomic、可復原且經 Runtime validation 的 SceneDocument transaction，編輯單選或 mixed-value 多選的 local position、quaternion 與 scale；完整 reflected Inspector 仍待完成。X11 window backend 現會以每視窗 XIM input context 將
 committed UTF-8 解碼成
 backend-neutral `Text` event，physical key 與 text input 維持分離。
 

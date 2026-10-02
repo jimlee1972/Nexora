@@ -272,6 +272,22 @@ int main() {
   assert(scene.Undo());
   assert(scene.Transform(root)->x == 0.0 && scene.Transform(root)->sy == 1.0);
 
+  const std::array multi_selection{*root_key, *sibling_key};
+  assert(scene.Select(multi_selection));
+  auto root_transform = *scene.Transform(root);
+  auto sibling_transform = *scene.Transform(sibling);
+  root_transform.z = 7.0;
+  sibling_transform.z = 7.0;
+  const std::array multi_transforms{root_transform, sibling_transform};
+  EditorImGuiTestAccess::QueueInspectorTransforms(host, multi_selection, multi_transforms);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(EditorImGuiTestAccess::Inspect(host).inspector_selection == 2);
+  assert(scene.Transform(root)->z == 7.0 && scene.Transform(sibling)->z == 7.0);
+  assert(scene.Undo());
+  assert(scene.Transform(root)->z == 0.0 && scene.Transform(sibling)->z == 0.0);
+
   EditorImGuiTestAccess::QueueContentConflictChoice(host, material->id,
                                                     nexora::editor::DirtyConflictChoice::Reload);
   host.BeginFrame();
