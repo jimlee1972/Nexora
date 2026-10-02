@@ -29,13 +29,35 @@ GraphTexture RenderGraph::CreateTransientTexture(const rhi::TextureDescriptor &d
   compiled_ = false;
   return {static_cast<std::uint32_t>(textures_.size() - 1)};
 }
+GraphTexture RenderGraph::ImportExternalTexture(const rhi::TextureDescriptor &descriptor) {
+  if (descriptor.width == 0 || descriptor.height == 0)
+    throw std::invalid_argument("invalid external texture extent");
+  textures_.push_back({descriptor, {}, false, 0, 0, true});
+  compiled_ = false;
+  return {static_cast<std::uint32_t>(textures_.size() - 1)};
+}
+std::size_t RenderGraph::AddExternalPass(std::string name, std::vector<TextureUse> reads,
+                                         std::vector<TextureUse> writes,
+                                         std::function<void(const ExternalPassContext &)> execute) {
+  return AddPass({std::move(name),
+                  rhi::QueueType::Graphics,
+                  std::move(reads),
+                  std::move(writes),
+                  {},
+                  std::move(execute)});
+}
 std::size_t RenderGraph::AddPass(PassDescriptor descriptor) {
-  if (descriptor.name.empty() || !descriptor.execute)
+  if (descriptor.name.empty() ||
+      static_cast<bool>(descriptor.execute) == static_cast<bool>(descriptor.external_execute))
     throw std::invalid_argument("invalid render pass");
-  const auto validate = [this](const TextureUse &use) {
+  const auto validate = [this, &descriptor](const TextureUse &use) {
     if (use.texture.id >= textures_.size())
       throw std::invalid_argument("pass references unknown texture");
+    if (textures_[use.texture.id].external != static_cast<bool>(descriptor.external_execute))
+      throw std::invalid_argument("pass execution mode does not match texture ownership");
   };
+  if (descriptor.external_execute && descriptor.queue != rhi::QueueType::Graphics)
+    throw std::invalid_argument("external passes require the owner graphics queue");
   std::ranges::for_each(descriptor.reads, validate);
   std::ranges::for_each(descriptor.writes, validate);
   std::unordered_set<std::uint32_t> uses;
@@ -135,6 +157,11 @@ void RenderGraph::Compile() {
 void RenderGraph::Execute(rhi::Device &device) {
   if (!compiled_)
     throw std::logic_error("render graph must be compiled before execution");
+  if (std::ranges::any_of(textures_, [](const auto &texture) { return texture.external; }) ||
+      std::ranges::any_of(
+          passes_, [](const auto &pass) { return static_cast<bool>(pass.external_execute); }))
+    throw std::logic_error("external graph requires its owner executor");
+  statistics_.completed_pass_count = 0;
   std::vector<rhi::TextureHandle> handles(textures_.size());
   std::vector<rhi::ResourceState> states(textures_.size());
   std::vector<std::optional<rhi::QueueType>> owners(textures_.size());
@@ -179,6 +206,7 @@ void RenderGraph::Execute(rhi::Device &device) {
       std::ranges::for_each(pass.writes, transition);
       pass.execute(*commands, handles);
       device.Submit(*commands);
+      ++statistics_.completed_pass_count;
     }
     device.WaitIdle();
     release_transients();
@@ -188,4 +216,34 @@ void RenderGraph::Execute(rhi::Device &device) {
     throw;
   }
 }
+void RenderGraph::ExecuteExternal() {
+  if (!compiled_)
+    throw std::logic_error("render graph must be compiled before execution");
+  if (std::ranges::any_of(textures_, [](const auto &texture) { return !texture.external; }) ||
+      std::ranges::any_of(passes_, [](const auto &pass) { return !pass.external_execute; }))
+    throw std::logic_error("external executor cannot own RHI textures or passes");
+  std::vector<rhi::ResourceState> states;
+  for (const auto &texture : textures_)
+    states.push_back(texture.descriptor.initial_state);
+  statistics_.barrier_count = 0; // GPU barrier emission belongs to the external owner.
+  statistics_.queue_transfer_count = 0;
+  statistics_.external_transition_count = 0;
+  statistics_.completed_pass_count = 0;
+  for (const auto index : execution_order_) {
+    const auto &pass = passes_[index];
+    std::vector<ExternalTextureTransition> transitions;
+    const auto transition = [&](const TextureUse &use) {
+      if (states[use.texture.id] != use.state) {
+        transitions.push_back({use.texture, states[use.texture.id], use.state});
+        states[use.texture.id] = use.state;
+      }
+    };
+    std::ranges::for_each(pass.reads, transition);
+    std::ranges::for_each(pass.writes, transition);
+    pass.external_execute({pass.name, pass.reads, pass.writes, transitions});
+    statistics_.external_transition_count += transitions.size();
+    ++statistics_.completed_pass_count;
+  }
+}
+
 } // namespace nexora::renderer

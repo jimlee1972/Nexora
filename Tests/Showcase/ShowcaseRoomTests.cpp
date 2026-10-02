@@ -77,6 +77,15 @@ int main() {
   assert(instanced.vertices.size() == 24 && instanced.indices.size() == 36);
   assert(instanced.instances.size() == 4);
   assert(instanced.instances[0].scale[0] == 6 && instanced.instances[1].translation[1] == 1.5F);
+  Press(session, Key::P);
+  const auto quad = session.Scene(1280, 720);
+  assert(quad.vertices.size() == 28 && quad.indices.size() == 42 && quad.instances.empty());
+  Press(session, Key::P);
+  const auto triangle = session.Scene(1280, 720);
+  assert(triangle.vertices.size() == 27 && triangle.indices.size() == 39 &&
+         triangle.instances.empty());
+  Press(session, Key::P);
+  assert(session.Scene(1280, 720).instances.size() == 4);
   Press(session, Key::Digit3);
   assert(session.Selected() == "scene");
 #if NEXORA_EDITOR_SDK_ENABLED

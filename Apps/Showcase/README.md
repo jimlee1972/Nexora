@@ -208,4 +208,27 @@ Rendering now submits one shared indexed cube with four native instances (floor 
 using independent translation, axis scale and tint. Vulkan and DX12 use hardware instance input;
 Vulkan instance pixels have target-host acceptance, while DX12 execution awaits its host gate.
 The profiler and `native_scene_instances` report cumulative accepted instance counts independently
-of native scene draw counts. Hub and Rendering use an original 8x8 checker sampled by native Vulkan/DX12 material pipelines. Native RenderGraph scene binding remains pending.
+of native scene draw counts. Hub and Rendering use an original 8x8 checker sampled by native Vulkan/DX12 material pipelines. The native owner RenderGraph executes Offscreen -> Main -> UI -> Present; private scene color is copied on the GPU into the acquired image. P in Rendering cycles instanced cubes, quad and triangle.
+
+## Windows local visual acceptance
+
+Build the Full package and run its stock-PowerShell verifier on a visible, unlocked Windows desktop:
+
+```powershell
+cmake --preset windows-showcase-shipping
+cmake --build --preset windows-showcase-shipping --target NexoraShowcasePackageShippingEvidence --parallel 4
+& ./build/windows-showcase-shipping/package/NexoraShowcase-Shipping/accept-v1.ps1 `
+  -EvidenceDirectory ./showcase-windows-v1-evidence -PhysicalDisplay -CleanHost
+```
+
+Use `-PhysicalDisplay` only on the physical display/GPU under test and `-CleanHost` only on an
+independently provisioned target. These are recorded operator attestations, not inferred from an
+isolated copy. Add `-ExpectedBuildId <12-character-build-id>` to pin the version. The script verifies
+all package checksums in a temporary isolated copy, captures eight rooms, quad/triangle/Lab/resize,
+checks native graph/texture/lifecycle counters and Engine module locations, and preserves JSON/Markdown
+and logs. Keep the Showcase visible during capture. Review the images before versioning evidence.
+No Python or SDK is needed to run this verifier on the target; the built package's Windows runtime
+prerequisites still apply. CI attempts the same native script without physical/clean-host attestations;
+missing interactive desktops produce an explicit UNSUPPORTED artifact (77), never native PASS.
+The user is completing the physical/clean-host acceptance locally; those gates remain pending until
+its results are recorded. Audio/video/WebView adapters retain their stated unavailable/contract scope.

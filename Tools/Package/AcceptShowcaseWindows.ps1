@@ -1,0 +1,196 @@
+[CmdletBinding()]
+param(
+    [string]$PackageRoot = $PSScriptRoot,
+    [string]$EvidenceDirectory = (Join-Path (Get-Location) 'showcase-windows-v1-evidence'),
+    [ValidateSet('dx12', 'vulkan')][string]$Backend = 'dx12',
+    [string]$ExpectedBuildId = '',
+    [switch]$PhysicalDisplay,
+    [switch]$CleanHost,
+    [switch]$AllowUnavailableDisplay
+)
+$ErrorActionPreference = 'Stop'
+$evidence = [IO.Path]::GetFullPath($EvidenceDirectory)
+[IO.Directory]::CreateDirectory($evidence) | Out-Null
+$acceptance = [ordered]@{
+    schema = 'nexora.showcase.windows.acceptance.v1'; status = 'FAIL'
+    scope = 'Windows isolated-copy native visual acceptance'
+    physical_display_verified = $false; clean_host_verified = $false
+    physical_display_operator_attestation = [bool]$PhysicalDisplay
+    clean_host_operator_attestation = [bool]$CleanHost
+    recorded_utc = [DateTime]::UtcNow.ToString('o'); checksums_verified = 0
+    screenshots = @(); engine_module_locations = @{}; issues = @()
+}
+$process = $null
+$staged = $null
+$exitCode = 1
+function Write-Acceptance {
+    [IO.File]::WriteAllText((Join-Path $evidence 'acceptance.json'),
+        ($acceptance | ConvertTo-Json -Depth 20), [Text.UTF8Encoding]::new($false))
+}
+function Require([bool]$condition, [string]$message) {
+    if (-not $condition) { throw $message }
+}
+try {
+    Require ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) 'Windows is required.'
+    Add-Type -AssemblyName System.Drawing
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class NexoraAcceptanceWindow {
+    [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] public struct Point { public int X, Y; }
+    [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr w, out Rect r);
+    [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr w, ref Point p);
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr w);
+    [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr w, IntPtr after, int x, int y, int width, int height, uint flags);
+    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr w, uint message, IntPtr value, IntPtr flags);
+    [DllImport("user32.dll")] public static extern IntPtr OpenInputDesktop(uint flags, bool inherit, uint access);
+    [DllImport("user32.dll")] public static extern bool CloseDesktop(IntPtr desktop);
+    public static void Press(IntPtr w, uint key) {
+        PostMessage(w, 0x100, new IntPtr(key), new IntPtr(1));
+        PostMessage(w, 0x101, new IntPtr(key), new IntPtr(unchecked((int)0xc0000001)));
+    }
+}
+'@
+    $desktop = [NexoraAcceptanceWindow]::OpenInputDesktop(0, $false, 0x0001)
+    if ($desktop -eq [IntPtr]::Zero) {
+        $acceptance.status = 'UNSUPPORTED'
+        $acceptance.issues = @('No accessible interactive Windows desktop; unlock a local desktop and rerun.')
+        Write-Acceptance
+        if ($AllowUnavailableDisplay) { exit 77 }
+        throw $acceptance.issues[0]
+    }
+    [NexoraAcceptanceWindow]::CloseDesktop($desktop) | Out-Null
+    $root = [IO.Path]::GetFullPath($PackageRoot)
+    $staged = Join-Path ([IO.Path]::GetTempPath()) ('nexora-v1-' + [Guid]::NewGuid().ToString('N'))
+    Copy-Item -LiteralPath $root -Destination $staged -Recurse
+    $prefix = $staged.TrimEnd('\') + '\'
+    foreach ($line in [IO.File]::ReadAllLines((Join-Path $staged 'manifests/SHA256SUMS'))) {
+        Require ($line -match '^([0-9a-f]{64})  (.+)$') 'Malformed package checksum record.'
+        $expected = $Matches[1]
+        $path = [IO.Path]::GetFullPath((Join-Path $staged $Matches[2]))
+        Require ($path.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) 'Checksum path leaves the package.'
+        Require ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -eq $expected) "Checksum mismatch: $path"
+        $acceptance.checksums_verified++
+    }
+    $build = Get-Content -LiteralPath (Join-Path $staged 'manifests/build.json') -Raw | ConvertFrom-Json
+    Require ($build.application -eq 'NexoraShowcase') 'Unexpected packaged application.'
+    $binary = Join-Path $staged 'bin/NexoraShowcase.exe'
+    Require (Test-Path -LiteralPath $binary) 'Windows Showcase executable is missing.'
+    $arguments = @('--mode=interactive', '--scene=hub', "--backend=$Backend", '--no-reload',
+        '--report=acceptance-launch.json', '--markdown=acceptance-launch.md')
+    if ($build.gameplay_linkage -eq 'static') { $arguments += '--gameplay-module=static' }
+    else {
+        $module = @(Get-ChildItem -LiteralPath (Join-Path $staged 'bin') -Filter 'NexoraZigGameplay.dll')
+        Require ($module.Count -eq 1) 'Development Zig module is missing.'
+        $arguments += @('--gameplay-module=dynamic', '--gameplay-library=bin/NexoraZigGameplay.dll')
+    }
+    $acceptance.profile = $build.profile
+    $acceptance.shipping_profile = $build.shipping_profile
+    $process = Start-Process -FilePath $binary -ArgumentList $arguments -WorkingDirectory $staged -PassThru `
+        -RedirectStandardOutput (Join-Path $evidence 'stdout.log') -RedirectStandardError (Join-Path $evidence 'stderr.log')
+    $deadline = [DateTime]::UtcNow.AddSeconds(15)
+    do {
+        $process.Refresh()
+        Require (-not $process.HasExited) 'Showcase exited before publishing its window; see stderr.log.'
+        $window = $process.MainWindowHandle
+        if ($window -ne [IntPtr]::Zero) { break }
+        Start-Sleep -Milliseconds 50
+    } while ([DateTime]::UtcNow -lt $deadline)
+    Require ($window -ne [IntPtr]::Zero) 'Showcase did not publish its native window.'
+    [NexoraAcceptanceWindow]::SetForegroundWindow($window) | Out-Null
+    Start-Sleep -Milliseconds 400
+    function Capture([string]$name) {
+        $rect = [NexoraAcceptanceWindow+Rect]::new()
+        $point = [NexoraAcceptanceWindow+Point]::new()
+        Require ([NexoraAcceptanceWindow]::GetClientRect($window, [ref]$rect)) 'Client rectangle unavailable.'
+        Require ([NexoraAcceptanceWindow]::ClientToScreen($window, [ref]$point)) 'Window screen position unavailable.'
+        $width = $rect.Right - $rect.Left; $height = $rect.Bottom - $rect.Top
+        Require ($width -gt 0 -and $height -gt 0) 'Window client is empty.'
+        $bitmap = [Drawing.Bitmap]::new($width, $height)
+        $graphics = [Drawing.Graphics]::FromImage($bitmap)
+        try {
+            $graphics.CopyFromScreen($point.X, $point.Y, 0, 0, $bitmap.Size)
+            $colors = [Collections.Generic.HashSet[int]]::new()
+            for ($y = 0; $y -lt $height; $y += 13) {
+                for ($x = 0; $x -lt $width; $x += 13) { $colors.Add($bitmap.GetPixel($x, $y).ToArgb()) | Out-Null }
+            }
+            Require ($colors.Count -ge 8) 'Display capture is blank; keep the Showcase visible and rerun.'
+            $bitmap.Save((Join-Path $evidence $name), [Drawing.Imaging.ImageFormat]::Png)
+            $script:acceptance.screenshots += $name
+        } finally { $graphics.Dispose(); $bitmap.Dispose() }
+    }
+    $rooms = @('hub', 'rendering', 'scene', 'input', 'gameplay', 'presentation', 'streaming', 'shipping')
+    for ($i = 0; $i -lt $rooms.Count; $i++) {
+        [NexoraAcceptanceWindow]::Press($window, [uint32](49 + $i))
+        Start-Sleep -Milliseconds 250
+        Capture ($rooms[$i] + '.png')
+        if ($i -eq 1) {
+            [NexoraAcceptanceWindow]::Press($window, 80); Start-Sleep -Milliseconds 250; Capture 'quad.png'
+            [NexoraAcceptanceWindow]::Press($window, 80); Start-Sleep -Milliseconds 250; Capture 'triangle.png'
+            [NexoraAcceptanceWindow]::Press($window, 80)
+        }
+    }
+    [NexoraAcceptanceWindow]::Press($window, 114) # F3
+    for ($i = 0; $i -lt 5; $i++) { [NexoraAcceptanceWindow]::Press($window, 9) }
+    [NexoraAcceptanceWindow]::Press($window, 73); [NexoraAcceptanceWindow]::Press($window, 82)
+    [NexoraAcceptanceWindow]::Press($window, 9)
+    [NexoraAcceptanceWindow]::Press($window, 73); [NexoraAcceptanceWindow]::Press($window, 73)
+    [NexoraAcceptanceWindow]::Press($window, 82); [NexoraAcceptanceWindow]::Press($window, 88)
+    Start-Sleep -Milliseconds 300
+    Capture 'validation-lab.png'
+    $labPath = Join-Path $staged 'showcase-lab.json'
+    Require (Test-Path -LiteralPath $labPath) 'Validation Lab did not export its sampled results.'
+    $lab = Get-Content -LiteralPath $labPath -Raw | ConvertFrom-Json
+    if ($build.shipping_profile -eq 'Full') {
+        Require ($lab.integration_probes.probes[5].status -eq 'PASS') 'M5 sampled asset-error case failed.'
+        Require ($lab.integration_probes.probes[6].status -eq 'PASS') 'M6 sampled plugin ABI rejection failed.'
+    }
+    Copy-Item -LiteralPath $labPath -Destination (Join-Path $evidence 'showcase-lab.json')
+    [NexoraAcceptanceWindow]::Press($window, 114)
+    [NexoraAcceptanceWindow]::SetWindowPos($window, [IntPtr]::Zero, 0, 0, 960, 540, 6) | Out-Null
+    Start-Sleep -Milliseconds 300
+    Capture 'resized.png'
+    foreach ($module in $process.Modules) {
+        if ($module.ModuleName -like 'Nexora*') {
+            Require ($module.FileName.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) 'Engine module resolved outside the isolated copy.'
+            $acceptance.engine_module_locations[$module.ModuleName] = $module.FileName.Substring($prefix.Length)
+        }
+    }
+    [NexoraAcceptanceWindow]::PostMessage($window, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+    Require ($process.WaitForExit(15000)) 'Showcase did not close cleanly.'
+    Require ($process.ExitCode -eq 0) 'Showcase exit failed; see stderr.log.'
+    $report = Get-Content -LiteralPath (Join-Path $staged 'acceptance-launch.json') -Raw | ConvertFrom-Json
+    Copy-Item -LiteralPath (Join-Path $staged 'acceptance-launch.json') -Destination (Join-Path $evidence 'launch-report.json')
+    Copy-Item -LiteralPath (Join-Path $staged 'acceptance-launch.md') -Destination (Join-Path $evidence 'launch-report.md')
+    Require ($report.status -eq 'PASS' -and -not $report.headless_evidence.executed) 'Native launch scope failed.'
+    $native = $report.windowed_evidence
+    Require ($native.executed -and $native.backend -eq $Backend -and -not $native.backend_fallback) 'Requested native backend was not used.'
+    Require ($native.native_graph_frames -gt 0 -and $native.native_graph_frames -eq $native.scene_draws `
+        -and $native.native_offscreen_draws -eq $native.scene_draws -and $native.native_scene_composites -eq $native.scene_draws `
+        -and $native.native_graph_passes -eq 4 -and $native.native_graph_resource_transitions -eq 3 `
+        -and ($native.native_graph_order -join ',') -eq 'Offscreen,Main,UI,Present' `
+        -and $native.composed_frames -eq 0 -and $native.native_scene_texture_uploads -gt 0 `
+        -and $native.surface_acquires -eq $native.surface_presents -and $native.resize_generations -gt 0) 'Native graph/lifecycle counters failed.'
+    foreach ($room in $rooms) { Require ($report.runtime_rooms.visited -contains $room) "Room not visited: $room" }
+    if ($ExpectedBuildId) { Require ($report.build.build_id -eq $ExpectedBuildId) 'Build ID does not match the requested version.' }
+    if ($PhysicalDisplay) { Require (-not $native.software_rasterizer) 'Physical GPU acceptance cannot use a software rasterizer.' }
+    $acceptance.build = $report.build
+    $acceptance.native = $native
+    $acceptance.display_adapters = @(Get-CimInstance Win32_VideoController | Select-Object Name, DriverVersion)
+    $acceptance.os_version = [Environment]::OSVersion.VersionString
+    $acceptance.physical_display_verified = [bool]$PhysicalDisplay
+    $acceptance.clean_host_verified = [bool]$CleanHost
+    $acceptance.status = 'PASS'
+    $exitCode = 0
+} catch { $acceptance.issues = @($_.Exception.Message) }
+finally {
+    if ($null -ne $process) {
+        if (-not $process.HasExited) { $process.Kill(); $process.WaitForExit() }
+        $process.Dispose()
+    }
+    if ($null -ne $staged -and (Test-Path -LiteralPath $staged)) { Remove-Item -LiteralPath $staged -Recurse -Force }
+    Write-Acceptance
+}
+Write-Output (Join-Path $evidence 'acceptance.json')
+exit $exitCode

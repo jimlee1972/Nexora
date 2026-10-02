@@ -210,6 +210,97 @@ int RunTests() {
   Require(queues.GetStatistics().queue_transfer_count == 1,
           "render graph owns graphics/compute queue transfers");
 
+  renderer::RenderGraph external;
+  const auto sceneColor = external.ImportExternalTexture(
+      {16, 16, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::Undefined, "Native color"});
+  const auto acquiredColor = external.ImportExternalTexture(
+      {16, 16, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::RenderTarget, "Acquired color"});
+  std::vector<std::string> executed;
+  const auto record = [&](const renderer::ExternalPassContext &pass) {
+    executed.emplace_back(pass.name);
+    if (pass.name == "Offscreen")
+      Require(pass.transitions.size() == 1 && pass.transitions[0].texture == sceneColor &&
+                  pass.transitions[0].before == rhi::ResourceState::Undefined &&
+                  pass.transitions[0].after == rhi::ResourceState::RenderTarget,
+              "external draw must request the native scene color transition");
+    if (pass.name == "Main")
+      Require(pass.transitions.size() == 1 && pass.transitions[0].texture == sceneColor &&
+                  pass.transitions[0].after == rhi::ResourceState::CopySource,
+              "external composite must read the completed scene target");
+    if (pass.name == "UI")
+      Require(pass.transitions.empty(),
+              "same-state UI write must keep its dependency without a transition");
+    if (pass.name == "Present")
+      Require(pass.transitions.size() == 1 && pass.transitions[0].texture == acquiredColor &&
+                  pass.transitions[0].after == rhi::ResourceState::Present,
+              "presentation must follow the acquired image writer");
+  };
+  (void)external.AddExternalPass("Offscreen", {}, {{sceneColor, rhi::ResourceState::RenderTarget}},
+                                 record);
+  (void)external.AddExternalPass("Main", {{sceneColor, rhi::ResourceState::CopySource}},
+                                 {{acquiredColor, rhi::ResourceState::RenderTarget}}, record);
+  (void)external.AddExternalPass("UI", {}, {{acquiredColor, rhi::ResourceState::RenderTarget}},
+                                 record);
+  (void)external.AddExternalPass("Present", {{acquiredColor, rhi::ResourceState::Present}}, {},
+                                 record);
+  external.Compile();
+  external.ExecuteExternal();
+  Require(executed == std::vector<std::string>{"Offscreen", "Main", "UI", "Present"} &&
+              external.GetStatistics().completed_pass_count == 4 &&
+              external.GetStatistics().external_transition_count == 3 &&
+              external.GetStatistics().barrier_count == 0,
+          "external graph must schedule actual owner callbacks and distinguish requested states "
+          "from GPU barriers");
+  bool rejectedWrongExecutor = false;
+  try {
+    external.Execute(*device);
+  } catch (const std::logic_error &) {
+    rejectedWrongExecutor = true;
+  }
+  Require(rejectedWrongExecutor, "external graph must never fabricate RHI texture handles");
+  bool rejectedWrongOwner = false;
+  try {
+    (void)external.AddPass({"Wrong owner",
+                            rhi::QueueType::Graphics,
+                            {},
+                            {{sceneColor, rhi::ResourceState::RenderTarget}},
+                            [](rhi::CommandList &, auto) {}});
+  } catch (const std::invalid_argument &) {
+    rejectedWrongOwner = true;
+  }
+  Require(rejectedWrongOwner, "RHI callbacks cannot own native graph textures");
+  external.AddDependency(3, 0);
+  bool rejectedExternalCycle = false;
+  try {
+    external.Compile();
+  } catch (const std::logic_error &) {
+    rejectedExternalCycle = true;
+  }
+  Require(rejectedExternalCycle, "external dependency cycles must be rejected before native work");
+
+  renderer::RenderGraph failingExternal;
+  executed.clear();
+  (void)failingExternal.AddExternalPass(
+      "Begin", {}, {}, [&](const auto &pass) { executed.emplace_back(pass.name); });
+  (void)failingExternal.AddExternalPass("Fail", {}, {}, [&](const auto &pass) {
+    executed.emplace_back(pass.name);
+    throw std::runtime_error("owner rejected the native pass");
+  });
+  (void)failingExternal.AddExternalPass(
+      "Must not run", {}, {}, [&](const auto &pass) { executed.emplace_back(pass.name); });
+  failingExternal.AddDependency(0, 1);
+  failingExternal.AddDependency(1, 2);
+  failingExternal.Compile();
+  bool rejectedOwnerFailure = false;
+  try {
+    failingExternal.ExecuteExternal();
+  } catch (const std::runtime_error &) {
+    rejectedOwnerFailure = true;
+  }
+  Require(rejectedOwnerFailure && executed == std::vector<std::string>{"Begin", "Fail"} &&
+              failingExternal.GetStatistics().completed_pass_count == 1,
+          "external owner failure must stop successors and must not certify the failed pass");
+
   for (const auto backend :
        std::array{rhi::Backend::Direct3D12, rhi::Backend::Vulkan, rhi::Backend::Metal}) {
     VerifyNativeBackend(backend);

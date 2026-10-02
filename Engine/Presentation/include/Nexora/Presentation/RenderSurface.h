@@ -53,6 +53,7 @@ public:
                                              std::uint32_t height);
   [[nodiscard]] SurfaceStatus RenderUi(const UiDrawData &draw_data);
   [[nodiscard]] SurfaceStatus DrawScene(const SceneDrawData &draw_data);
+  [[nodiscard]] SurfaceStatus CompositeScene();
   [[nodiscard]] SurfaceStatus EndFrame();
   [[nodiscard]] bool CloseRequested() const noexcept;
   [[nodiscard]] const SurfaceInputSnapshot &Input() const noexcept;

@@ -114,6 +114,8 @@ int main(int argc, char **argv) {
       static_cast<void>(windows->PumpEvents());
       Require(surface->Acquire() == SurfaceStatus::Ready, "scene acquire failed");
       if (frame == 0) {
+        Require(surface->Acquire() == SurfaceStatus::InvalidDescriptor,
+                "duplicate acquire accepted");
         auto invalid = draw;
         invalid.model_view_projection[0] = std::numeric_limits<float>::quiet_NaN();
         Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
@@ -200,6 +202,7 @@ int main(int argc, char **argv) {
     std::array<Presentation::UiTextureUpload, 1> uploads{{{7, 2, 1, 8, texels}}};
     draw.instances = {};
     draw.textureId = 7;
+    draw.offscreen = true;
     draw.textureUploads = uploads;
     for (unsigned materialFrame = 0; materialFrame < 3; ++materialFrame) {
       const bool green = materialFrame == 2;
@@ -240,6 +243,14 @@ int main(int argc, char **argv) {
       if (materialFrame == 1)
         Require(surface->Diagnostics().sceneTextureUploads == beforeUploads,
                 "immutable material texture was reuploaded");
+      Require(surface->Present() == SurfaceStatus::InvalidDescriptor,
+              "uncomposited offscreen present accepted");
+      Require(surface->RenderUi({}) == SurfaceStatus::InvalidDescriptor,
+              "UI before offscreen composite accepted");
+      Require(surface->CompositeScene() == SurfaceStatus::Ready,
+              "native GPU scene composite failed");
+      Require(surface->CompositeScene() == SurfaceStatus::InvalidDescriptor,
+              "duplicate scene composite accepted");
       Require(surface->Present() == SurfaceStatus::Ready, "material present failed");
       bool materialPixels = false;
       const auto materialDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
@@ -261,7 +272,8 @@ int main(int argc, char **argv) {
     const auto diagnostics = surface->Diagnostics();
     Require(diagnostics.sceneDrawCalls == 16 && diagnostics.sceneInstances == 17 &&
                 diagnostics.acquiredFrames == 16 && diagnostics.presentedFrames == 16 &&
-                diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 5,
+                diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 5 &&
+                diagnostics.sceneOffscreenDrawCalls == 3 && diagnostics.sceneComposites == 3,
             "native scene counters or resize evidence mismatch");
     Require(surface->Acquire() == SurfaceStatus::Ready, "abandoned frame acquire failed");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "scene teardown failed");
@@ -273,7 +285,8 @@ int main(int argc, char **argv) {
     XCloseDisplay(display);
     Require(windows->Destroy(created.handle) == Window::WindowError::None,
             "window teardown failed");
-    std::cout << "PASS: 16 indexed draws including native instance and UV texture pixels, "
+    std::cout << "PASS: 16 indexed draws including native instances and offscreen-composited UV "
+                 "texture pixels, "
                  "depth-order invariance, lighting, matrix translation, "
                  "3 resize generations, immutable texture reuse, invalid-input containment and "
                  "ordered teardown\n";

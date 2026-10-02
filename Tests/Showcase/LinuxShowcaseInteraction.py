@@ -103,7 +103,15 @@ def main():
                 time.sleep(0.03)
             tool('key', '--window',window,'2')
             time.sleep(0.15)
-            screenshot(window,1280,720,output/'rendering.png')
+            cubes = screenshot(window,1280,720,output/'rendering.png')
+            tool('key', '--window',window,'p')
+            time.sleep(0.15)
+            quad = screenshot(window,1280,720,output/'rendering-quad.png')
+            tool('key', '--window',window,'p')
+            time.sleep(0.15)
+            triangle = screenshot(window,1280,720,output/'rendering-triangle.png')
+            assert cubes != quad and quad != triangle, 'Primitive controls did not change native pixels'
+            tool('key', '--window',window,'p')
             tool('key', '--window',window,'3','e','u','p','F5','F3','Tab','r','F3')
             time.sleep(0.2)
             scene = screenshot(window,1280,720,output/'scene.png')
@@ -171,7 +179,7 @@ def main():
             assert markdown.is_file() and 'M12' in markdown.read_text()
             (output/'acceptance.json').write_text(json.dumps({
                 'scope':'Linux Xvfb/lavapipe native interaction; no physical display or Windows claim',
-                'room_controls':True,'screenshots':['hub.png','rendering.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png'],
+                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png'],
                 'windowed_evidence':native,'build':evidence['build']},indent=2)+'\n')
             print(json.dumps({'native':native,'visited':rooms['visited'],'evidence_directory':str(output)},indent=2))
             return 0
