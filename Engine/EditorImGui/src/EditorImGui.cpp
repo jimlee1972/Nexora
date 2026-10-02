@@ -506,7 +506,11 @@ template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scen
   state.hierarchy_rendered_rows = 0;
 
   const auto begin_rename = [&](const SceneDocument::NodeView &node) {
-    const auto count = std::min(node.name.size(), state.hierarchy_rename.size() - 1);
+    auto count = std::min(node.name.size(), state.hierarchy_rename.size() - 1);
+    // Never cut a UTF-8 sequence in half: back up to a code point boundary.
+    while (count > 0 && count < node.name.size() &&
+           (static_cast<unsigned char>(node.name[count]) & 0xC0U) == 0x80U)
+      --count;
     std::memcpy(state.hierarchy_rename.data(), node.name.data(), count);
     state.hierarchy_rename[count] = {};
     state.hierarchy_rename_target = node.Key();
@@ -636,7 +640,11 @@ template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scen
     const bool submit = ImGui::Button("Rename") || ImGui::IsKeyPressed(ImGuiKey_Enter, false);
     ImGui::SameLine();
     const bool cancel = ImGui::Button("Cancel");
-    if (submit && state.hierarchy_rename_target) {
+    if (!state.hierarchy_rename_target) {
+      // The target went stale (entity or document replaced) while the modal was open.
+      state.hierarchy_error.clear();
+      ImGui::CloseCurrentPopup();
+    } else if (submit) {
       if (scene->Rename(*state.hierarchy_rename_target,
                         std::string(state.hierarchy_rename.data()))) {
         state.hierarchy_rename_target.reset();
