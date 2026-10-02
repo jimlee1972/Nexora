@@ -991,6 +991,7 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"composed_frames\": " << run.composed_frames << ",\n"
          << "    \"scene_draws\": " << run.scene_draws << ",\n"
          << "    \"native_scene_draws\": " << run.surface.sceneDrawCalls << ",\n"
+         << "    \"native_scene_instances\": " << run.surface.sceneInstances << ",\n"
          << "    \"native_ui_draws\": " << run.surface.nativeUiDrawCalls << ",\n"
          << "    \"overlay_frames\": " << run.overlay_frames << ",\n"
          << "    \"rendering_mode\": \"" << (run.scene_draws > 0 ? "gpu_scene" : "cpu_composite")

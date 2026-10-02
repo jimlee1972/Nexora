@@ -88,6 +88,7 @@ struct RoomSession::State final {
   std::size_t metricOffset{};
   std::vector<ProbeResult> probes{ProbeRegistry::CreateV1Registry().RunAll()};
   std::vector<Nexora::Presentation::SceneVertex> vertices;
+  std::vector<Nexora::Presentation::SceneInstance> instances;
   std::vector<std::uint16_t> indices;
   std::vector<Nexora::Presentation::UiVertex> uiVertices;
   std::vector<std::uint32_t> uiIndices;
@@ -1137,6 +1138,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   s.visualized.insert(s.selected);
   s.vertices.clear();
   s.indices.clear();
+  s.instances.clear();
   s.Cube(0, -0.3F, 0, 6, 0.3F, 6);
   if (s.selected == "hub") {
     s.Cube(0, 0.5F, 0, 1.5F, 0.5F, 1.5F);
@@ -1146,9 +1148,13 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       s.Cube(std::sin(angle) * 4, 1, std::cos(angle) * 4, 0.4F, 1, 0.4F);
     }
   } else if (s.selected == "rendering") {
-    s.Cube(0, 1.5F, 0, 1, 1, 1);
-    s.Cube(-3, 0.5F, 0, 0.5F, 0.5F, 0.5F);
-    s.Cube(3, 0.75F, 0, 0.75F, 0.75F, 0.75F);
+    s.vertices.clear();
+    s.indices.clear();
+    s.Cube(0, 0, 0, 1, 1, 1);
+    s.instances = {{{0, -0.3F, 0}, {6, 0.3F, 6}, {0.5F, 0.5F, 0.5F, 1}},
+                   {{0, 1.5F, 0}, {1, 1, 1}, {1, 1, 1, 1}},
+                   {{-3, 0.5F, 0}, {0.5F, 0.5F, 0.5F}, {1, 0.4F, 0.4F, 1}},
+                   {{3, 0.75F, 0}, {0.75F, 0.75F, 0.75F}, {0.4F, 1, 0.4F, 1}}};
   } else if (s.selected == "scene") {
     const auto *entity = s.editorWorld.FindEntity(s.editorEntity);
     s.Cube(entity ? static_cast<float>(entity->transform.x) : 0.0F, 1, 0, 0.6F, 1, 0.6F);
@@ -1255,6 +1261,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       math::LookAt(eye, {0, 0.8F, 0});
   Nexora::Presentation::SceneDrawData data{};
   data.vertices = s.vertices;
+  data.instances = s.instances;
   data.indices = s.indices;
   std::memcpy(data.model_view_projection, mvp.values.data(), sizeof(data.model_view_projection));
   data.base_color[0] = 0.15F;
@@ -1292,14 +1299,15 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     }
   }
   if (s.profiler) {
-    s.Rect(930, 126, 328, 192, 0xef241a10);
+    s.Rect(930, 126, 328, 217, 0xef241a10);
     s.Text(945, 140, "Live frame / " + std::string(backend));
     s.Text(945, 165, "Frame ms " + Number(frameMs));
     s.Text(945, 190, "Acquire " + std::to_string(d.acquiredFrames));
     s.Text(945, 215, "Present " + std::to_string(d.presentedFrames));
     s.Text(945, 240, "Scene draws " + std::to_string(d.sceneDrawCalls));
-    s.Text(945, 265, "UI draws " + std::to_string(d.nativeUiDrawCalls));
-    s.Text(945, 290, "Build " + std::string(foundation::GetBuildId()).substr(0, 12), 0xffa5cedd,
+    s.Text(945, 265, "Instances " + std::to_string(d.sceneInstances));
+    s.Text(945, 290, "UI draws " + std::to_string(d.nativeUiDrawCalls));
+    s.Text(945, 315, "Build " + std::string(foundation::GetBuildId()).substr(0, 12), 0xffa5cedd,
            1.5F);
   }
   if (s.matrix) {

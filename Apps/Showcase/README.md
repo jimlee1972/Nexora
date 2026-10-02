@@ -203,3 +203,9 @@ The Linux interaction gate operates these controls, checks real ABI rejection an
 `validation-lab.png`, `lab-export.json` and `lab-export.md`.
 
 Current lab/geometry and ground-contact acceptance: [Linux-V1-Lab-Geometry-2026-10-03](evidence/Linux-V1-Lab-Geometry-2026-10-03/acceptance.md).
+
+Rendering now submits one shared indexed cube with four native instances (floor and three cubes),
+using independent translation, axis scale and tint. Vulkan and DX12 use hardware instance input;
+Vulkan instance pixels have target-host acceptance, while DX12 execution awaits its host gate.
+The profiler and `native_scene_instances` report cumulative accepted instance counts independently
+of native scene draw counts. Textured materials and native RenderGraph scene binding remain pending.

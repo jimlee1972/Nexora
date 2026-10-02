@@ -92,3 +92,5 @@ headless gate。Showcase command 的實際 Windows/DX12 執行仍屬 target-host
 ## V1 Visual Showcase 後續整合（2026-10-03）
 
 ✅ Linux/Vulkan application 已在 Xvfb/lavapipe 呈現八個 live Runtime room、可讀原生 GPU UI、held keyboard／pointer control 與 210 秒導覽。Full package tooling 包含 content、可重現 ZIP／SHA-256 與 Linux shared-library isolated resolution。此為 V1 Visual Showcase 整合證據，不取代本 roadmap 既有平台 gate，也不代表新版 Windows clean-machine 圖形驗收。
+
+✅ Vulkan/DX12 已實作原生 SceneDrawData hardware instance 與有界 fence-owned upload；Linux Vulkan 像素驗收確認獨立 translation/scale/tint，DX12 目標主機執行仍待驗收。

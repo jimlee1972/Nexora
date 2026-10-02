@@ -714,13 +714,15 @@ int Run() {
                     std::string::npos,
             "scene v2 must serialize the authored angles rather than canonicalize them");
     runtime::World reopened_world;
-    editor::SceneDocument reopened(reopened_world, reopened_world.LoadScene("Placeholder"));
-    Require(reopened.Reload(hinted_path) &&
-                reopened.EulerAngles(first) == editor::EulerDegrees{450.0, -720.0, 0.0} &&
-                reopened.EulerAngles(second) == editor::EulerDegrees{450.0, -720.0, 0.0},
-            "Euler hints must survive reopening in a separate World and document");
-    const auto generation = reopened.Generation();
-    const auto reopened_transform = *reopened.Transform(first);
+    editor::SceneDocument reopened_hint_document(reopened_world,
+                                                 reopened_world.LoadScene("Placeholder"));
+    Require(
+        reopened_hint_document.Reload(hinted_path) &&
+            reopened_hint_document.EulerAngles(first) == editor::EulerDegrees{450.0, -720.0, 0.0} &&
+            reopened_hint_document.EulerAngles(second) == editor::EulerDegrees{450.0, -720.0, 0.0},
+        "Euler hints must survive reopening in a separate World and document");
+    const auto generation = reopened_hint_document.Generation();
+    const auto reopened_transform = *reopened_hint_document.Transform(first);
     const auto hint_start = source.find("euler ");
     const auto world_start = source.find("world\n");
     const std::string record = "euler " + std::to_string(first) + " 450 -720 0\n";
@@ -733,21 +735,25 @@ int Run() {
       auto corrupt = source;
       corrupt.replace(hint_start, world_start - hint_start, record_text);
       std::ofstream(corrupt_hint_path, std::ios::binary | std::ios::trunc) << corrupt;
-      Require(!reopened.Reload(corrupt_hint_path) && reopened.Generation() == generation &&
-                  reopened.Transform(first) == reopened_transform &&
-                  reopened.EulerAngles(first) == editor::EulerDegrees{450.0, -720.0, 0.0},
+      Require(!reopened_hint_document.Reload(corrupt_hint_path) &&
+                  reopened_hint_document.Generation() == generation &&
+                  reopened_hint_document.Transform(first) == reopened_transform &&
+                  reopened_hint_document.EulerAngles(first) ==
+                      editor::EulerDegrees{450.0, -720.0, 0.0},
               "corrupt/orphan/duplicate/mismatched hints must not replace the live document");
     }
-    auto legacy = source;
-    legacy.erase(hint_start, world_start - hint_start);
-    legacy.replace(0, std::string("NEXORA_EDITOR_SCENE 2").size(), "NEXORA_EDITOR_SCENE 1");
+    auto legacy_hint_source = source;
+    legacy_hint_source.erase(hint_start, world_start - hint_start);
+    legacy_hint_source.replace(0, std::string("NEXORA_EDITOR_SCENE 2").size(),
+                               "NEXORA_EDITOR_SCENE 1");
     const auto legacy_hint_path = root / "Content/LegacyHint.scene";
-    std::ofstream(legacy_hint_path, std::ios::binary) << legacy;
-    Require(reopened.Reload(legacy_hint_path) &&
-                editor::SameRotation(*reopened.Transform(first), reopened_transform) &&
-                std::abs((*reopened.EulerAngles(first))[0] - 90.0) < 1e-8 &&
-                reopened.Save(legacy_hint_path),
-            "v1 scenes must load canonical angles and upgrade on a normal save");
+    std::ofstream(legacy_hint_path, std::ios::binary) << legacy_hint_source;
+    Require(
+        reopened_hint_document.Reload(legacy_hint_path) &&
+            editor::SameRotation(*reopened_hint_document.Transform(first), reopened_transform) &&
+            std::abs((*reopened_hint_document.EulerAngles(first))[0] - 90.0) < 1e-8 &&
+            reopened_hint_document.Save(legacy_hint_path),
+        "v1 scenes must load canonical angles and upgrade on a normal save");
     std::ifstream upgraded(legacy_hint_path);
     std::string header;
     Require(std::getline(upgraded, header) && header == "NEXORA_EDITOR_SCENE 2",
@@ -758,9 +764,10 @@ int Run() {
                 hinted.EulerAngles(first) == editor::EulerDegrees{0.0, 0.0, 0.0},
             "external quaternion changes must invalidate a stale hint");
     Require(hinted.Save(hinted_path), "saving after an external rotation failed");
-    Require(reopened.Reload(hinted_path) &&
-                reopened.EulerAngles(first) == editor::EulerDegrees{0.0, 0.0, 0.0} &&
-                reopened.EulerAngles(second) == editor::EulerDegrees{450.0, -720.0, 0.0},
+    Require(reopened_hint_document.Reload(hinted_path) &&
+                reopened_hint_document.EulerAngles(first) == editor::EulerDegrees{0.0, 0.0, 0.0} &&
+                reopened_hint_document.EulerAngles(second) ==
+                    editor::EulerDegrees{450.0, -720.0, 0.0},
             "saving must omit invalidated hints without losing unaffected ones");
   }
 

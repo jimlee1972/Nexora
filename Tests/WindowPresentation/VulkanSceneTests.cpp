@@ -150,9 +150,54 @@ int main(int argc, char **argv) {
           argc == 2 && frame == 10 ? std::filesystem::path(argv[1]) : std::filesystem::path{};
       CheckPixels(display, native, width, height, translated, capture);
     }
+    // One triangle upload, two hardware instances, with independent transforms and tints.
+    // Three uint16 indices also exercise the instance-buffer's four-byte alignment.
+    std::array<Presentation::SceneInstance, 2> instances{
+        {{{-0.5F, 0, 0}, {0.4F, 0.8F, 1}, {1, 0, 0, 1}},
+         {{0.5F, 0, 0}, {0.4F, 0.8F, 1}, {0, 1, 0, 1}}}};
+    draw.vertices = std::span(vertices).first(3);
+    indices = {0, 1, 2, 3, 4, 5};
+    draw.indices = std::span(indices).first(3);
+    draw.instances = instances;
+    draw.model_view_projection[3] = 0;
+    draw.base_color[0] = draw.base_color[1] = draw.base_color[2] = 0.8F;
+    Require(surface->Acquire() == SurfaceStatus::Ready, "instance acquire failed");
+    instances[0].scale[0] = 0;
+    Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+            "zero instance scale accepted");
+    instances[0].scale[0] = 0.4F;
+    instances[0].translation[0] = std::numeric_limits<float>::infinity();
+    Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+            "nonfinite instance accepted");
+    instances[0].translation[0] = -0.5F;
+    const std::vector<Presentation::SceneInstance> excessive(4097);
+    auto invalidInstances = draw;
+    invalidInstances.instances = excessive;
+    Require(surface->DrawScene(invalidInstances) == SurfaceStatus::InvalidDescriptor,
+            "unbounded instances accepted");
+    Require(surface->DrawScene(draw) == SurfaceStatus::Ready,
+            "native hardware instance draw failed");
+    Require(surface->Present() == SurfaceStatus::Ready, "instance present failed");
+    bool instancePixels = false;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+    while (!instancePixels && std::chrono::steady_clock::now() < deadline) {
+      XSync(display, False);
+      auto *image = XGetImage(display, native, 0, 0, width, height, AllPlanes, ZPixmap);
+      Require(image != nullptr, "instance readback failed");
+      const auto left = XGetPixel(image, width / 4, height / 2);
+      const auto right = XGetPixel(image, width * 3 / 4, height / 2);
+      instancePixels =
+          Channel(left, image->red_mask) > 150 && Channel(left, image->green_mask) < 20 &&
+          Channel(right, image->green_mask) > 150 && Channel(right, image->red_mask) < 20;
+      XDestroyImage(image);
+      if (!instancePixels)
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    Require(instancePixels, "independent instance transform/tint pixels failed");
     const auto diagnostics = surface->Diagnostics();
-    Require(diagnostics.sceneDrawCalls == 12 && diagnostics.acquiredFrames == 12 &&
-                diagnostics.presentedFrames == 12 && diagnostics.resizeGenerations == 2,
+    Require(diagnostics.sceneDrawCalls == 13 && diagnostics.sceneInstances == 14 &&
+                diagnostics.acquiredFrames == 13 && diagnostics.presentedFrames == 13 &&
+                diagnostics.resizeGenerations == 2,
             "native scene counters or resize evidence mismatch");
     Require(surface->Acquire() == SurfaceStatus::Ready, "abandoned frame acquire failed");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "scene teardown failed");
@@ -164,7 +209,8 @@ int main(int argc, char **argv) {
     XCloseDisplay(display);
     Require(windows->Destroy(created.handle) == Window::WindowError::None,
             "window teardown failed");
-    std::cout << "PASS: 12 indexed draws, depth-order invariance, lighting, matrix translation, "
+    std::cout << "PASS: 13 indexed draws including native instance transform/tint pixels, "
+                 "depth-order invariance, lighting, matrix translation, "
                  "2 resize generations, invalid-input containment and ordered teardown\n";
     return 0;
   } catch (const std::exception &error) {
