@@ -587,10 +587,10 @@ struct RoomSession::State final {
                             {normal[0], normal[1], normal[2]}});
       }
       for (const auto index : {0, 1, 2, 2, 3, 0})
-        indices.push_back(offset + index);
+        indices.push_back(static_cast<std::uint16_t>(offset + index));
     }
   }
-  void Capsule(math::Vector3 center, float radius, float height) {
+  void Capsule(math::Vector3 center, float capsuleRadius, float height) {
     constexpr std::size_t sides = 16, hemisphereRings = 5;
     const auto base = static_cast<std::uint16_t>(vertices.size());
     for (std::size_t ring = 0; ring < hemisphereRings * 2; ++ring) {
@@ -598,14 +598,15 @@ struct RoomSession::State final {
       const float latitude =
           upper ? static_cast<float>(ring - hemisphereRings) / (hemisphereRings - 1) * math::kPi / 2
                 : -math::kPi / 2 + static_cast<float>(ring) / (hemisphereRings - 1) * math::kPi / 2;
-      const float offset = (upper ? 1 : -1) * std::max(0.0F, height * 0.5F - radius);
+      const float offset = (upper ? 1 : -1) * std::max(0.0F, height * 0.5F - capsuleRadius);
       for (std::size_t side = 0; side < sides; ++side) {
         const float angle = static_cast<float>(side) / sides * math::kPi * 2;
         const math::Vector3 normal{std::cos(latitude) * std::cos(angle), std::sin(latitude),
                                    std::cos(latitude) * std::sin(angle)};
-        vertices.push_back({{center.x + normal.x * radius, center.y + offset + normal.y * radius,
-                             center.z + normal.z * radius},
-                            {normal.x, normal.y, normal.z}});
+        vertices.push_back(
+            {{center.x + normal.x * capsuleRadius, center.y + offset + normal.y * capsuleRadius,
+              center.z + normal.z * capsuleRadius},
+             {normal.x, normal.y, normal.z}});
         if (ring + 1 < hemisphereRings * 2) {
           const auto a = static_cast<std::uint16_t>(base + ring * sides + side);
           const auto b = static_cast<std::uint16_t>(base + ring * sides + (side + 1) % sides);
@@ -617,7 +618,7 @@ struct RoomSession::State final {
       }
     }
   }
-  void Segment(math::Vector3 start, math::Vector3 end, float radius) {
+  void Segment(math::Vector3 start, math::Vector3 end, float tubeRadius) {
     const auto axis = math::NormalizeSafe(end - start);
     if (math::Length(end - start) < 0.0001F)
       return;
@@ -630,7 +631,7 @@ struct RoomSession::State final {
       for (std::size_t side = 0; side < sides; ++side) {
         const float angle = static_cast<float>(side) / sides * math::kPi * 2;
         const auto normal = tangent * std::cos(angle) + bitangent * std::sin(angle);
-        const auto point = center + normal * radius;
+        const auto point = center + normal * tubeRadius;
         vertices.push_back({{point.x, point.y, point.z}, {normal.x, normal.y, normal.z}});
       }
     for (std::size_t side = 0; side < sides; ++side) {
@@ -1150,11 +1151,11 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.Cube(3, 0.75F, 0, 0.75F, 0.75F, 0.75F);
   } else if (s.selected == "scene") {
     const auto *entity = s.editorWorld.FindEntity(s.editorEntity);
-    s.Cube(entity ? entity->transform.x : 0, 1, 0, 0.6F, 1, 0.6F);
+    s.Cube(entity ? static_cast<float>(entity->transform.x) : 0.0F, 1, 0, 0.6F, 1, 0.6F);
 #if NEXORA_EDITOR_SDK_ENABLED
     const auto inspection = s.play.Inspect();
     for (const auto &e : inspection.entities)
-      s.Cube(e.transform.x, 1, 3, 0.5F, 0.8F, 0.5F);
+      s.Cube(static_cast<float>(e.transform.x), 1, 3, 0.5F, 0.8F, 0.5F);
 #endif
 #if NEXORA_ASSET_PIPELINE_ENABLED
     const auto offset = static_cast<std::uint16_t>(s.vertices.size());
@@ -1163,7 +1164,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                              vertex.position[2] * 0.5F},
                             {vertex.normal[0], vertex.normal[1], vertex.normal[2]}});
     for (const auto index : s.assetMesh.indices)
-      s.indices.push_back(offset + index);
+      s.indices.push_back(static_cast<std::uint16_t>(offset + index));
 #endif
   } else if (s.selected == "gameplay") {
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
