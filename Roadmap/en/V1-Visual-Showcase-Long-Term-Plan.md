@@ -1,6 +1,6 @@
 # Nexora V1 Visual Showcase Demo Long-Term Plan
 
-> **Progress: Linux visual slice verified; complete V1 target-host acceptance remains open.**
+> **Progress: Linux and Windows CI visual slices verified; complete V1 local target-host acceptance remains open.**
 > The previous percentage had no reproducible weighting ledger and is superseded by the acceptance evidence below.
 
 ## 0. Current-state audit
@@ -309,7 +309,7 @@ This accepts the Linux virtual-display slice only; physical-display and Windows/
 - ✅ Minimal/Full/Dedicated Packager previews, staged-update rollback and bounded crash breadcrumbs.
 - ✅ Full profile presets, packaged content manifests, interactive scripts, deterministic ZIP/SHA-256 and isolated-copy headless package smoke.
 - ✅ Linux screenshot and native interaction artifacts are versioned; CI retains screenshots, packages and CTest logs.
-- Open: the expanded Full Windows executable on a clean target, physical-display/version-tag evidence and executed Windows workflow acceptance.
+- Open: the expanded Full Windows executable on a clean target, physical-display/version-tag evidence.
 
 ## 9. Build, run, and packaging specification
 
@@ -448,3 +448,7 @@ Windows CI run 37044292214 passed Full Shipping packaging after the geometry dia
 Windows native follow-up: CI run 37052188209 executed DX12 graph work and all room captures, with the application reporting PASS (357 acquired/offscreen/copied/presented frames). The stock-PowerShell wrapper failed while reading the process exit code. It now retains the process handle before exit, logs the observed exit code, and preserves launch reports on failure. Corrected wrapper CI and local clean-host/physical-display acceptance remain separate pending gates.
 
 The Windows verifier fits and raises its native window before capture and avoids opening a covering console. Captured images must be reviewed as part of target-host acceptance.
+
+✅ Expanded Windows Full Shipping/DX12 isolated-copy graphical acceptance passes in [CI run 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518): 14 checksums, 12 visible screenshots, sampled asset/plugin rejection, 339 native graph/copy/present frames and exit code 0. [Versioned Windows CI evidence](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md). The hosted VM does not accept physical-display or independently provisioned clean-host gates; these remain the user’s local work.
+
+✅ All jobs in Build run 37053279518 pass for source revision `ecf2277f07bc51ef09112c652a0ccbc0511d0a99`, including Windows/Linux/macOS Development, native Full Windows acceptance, mimalloc and sanitizer contracts.
