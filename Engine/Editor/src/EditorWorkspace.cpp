@@ -50,7 +50,10 @@ bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, s
   const auto temporary = path.string() + ".tmp";
   {
     std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
-    if (!output || !(output << contents)) {
+    // Close before checking so a failed flush (e.g. a full disk) is not renamed over a good file.
+    if (!output || !(output << contents) || (output.close(), output.fail())) {
+      output.close();
+      std::filesystem::remove(temporary, ec);
       if (error)
         *error = "could not write " + temporary;
       return false;
@@ -62,8 +65,12 @@ bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, s
     ec.clear();
     std::filesystem::rename(temporary, path, ec);
   }
-  if (ec && error)
-    *error = "could not replace " + path.string() + ": " + ec.message();
+  if (ec) {
+    std::error_code cleanup;
+    std::filesystem::remove(temporary, cleanup);
+    if (error)
+      *error = "could not replace " + path.string() + ": " + ec.message();
+  }
   return !ec;
 }
 std::string Lower(std::string_view value) {
@@ -244,6 +251,13 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
             return false;
           }
           id = DerivedAssetIdentity(relative, ++salt);
+        }
+        if (cancelled && cancelled()) {
+          // Do not create identity sidecars for a cancelled import; the result is discarded.
+          entries.push_back({id, relative, std::move(type), {}, ImportState::Cancelled, {}});
+          if (progress)
+            progress(index + 1, files.size());
+          continue;
         }
         std::string identity_error;
         if (!WriteAssetIdentity(IdentitySidecar(files[index]), id, type, identity_error)) {
@@ -491,8 +505,10 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
       return false;
     std::istringstream parser(line.substr(5));
     LoadedNode node;
-    if (!(parser >> node.id >> node.parent >> std::ws) || !std::getline(parser, node.name) ||
-        node.name.empty())
+    // Save writes exactly one space before the name, so consume only that one: skipping all
+    // whitespace would drop leading spaces and turn a whitespace-only name into an empty one.
+    if (!(parser >> node.id >> node.parent) || parser.get() != ' ' ||
+        !std::getline(parser, node.name) || node.name.empty())
       return false;
     loaded.push_back(std::move(node));
   }

@@ -116,6 +116,25 @@ int Run() {
     Require(std::getline(descriptor, schema) && schema == "schema=2",
             "upgraded project descriptor was not persisted");
   }
+  {
+    // A schema-1 project that predates the .nexora directory must still open and upgrade.
+    const auto bare_root = root / "BareLegacyProject";
+    fs::create_directories(bare_root / "Content");
+    std::ofstream(bare_root / "project.nexora") << "schema=1\nname=Bare\n";
+    editor::ProjectWorkspace bare_writer;
+    Require(bare_writer.Open(bare_root, &error) &&
+                bare_writer.UpgradeState() == editor::ProjectUpgradeState::Applied,
+            "legacy project without a .nexora directory could not be opened for writing");
+    // A directory with no project descriptor must be rejected without being modified.
+    const auto empty_root = root / "NotAProject";
+    fs::create_directories(empty_root);
+    editor::ProjectWorkspace not_a_project;
+    Require(!not_a_project.Open(empty_root, &error) && !fs::exists(empty_root / ".nexora"),
+            "opening a non-project directory created project state");
+    editor::ProjectWorkspace nul_name;
+    Require(!nul_name.Create(root / "NulName", std::string("a\0b", 3), &error),
+            "project name containing NUL was accepted");
+  }
   const auto invalid_legacy_root = root / "InvalidLegacyProject";
   fs::create_directories(invalid_legacy_root / "Content");
   fs::create_directories(invalid_legacy_root / ".nexora");
@@ -635,6 +654,24 @@ int Run() {
   Require(document.Create("Bad\nName") == 0 && document.Create("Bad\rName") == 0,
           "a node name containing a newline must be rejected, since Save()/Reload() use a "
           "line-oriented format that a newline would silently corrupt");
+  {
+    // Names with leading or only whitespace are legal and must survive a save/reload round trip
+    // instead of leaving a scene file that can never be loaded again.
+    runtime::World space_world;
+    const auto space_scene = space_world.LoadScene("Spaces");
+    editor::SceneDocument spaced(space_world, space_scene);
+    const auto blank = spaced.Create(" ");
+    const auto padded = spaced.Create("  padded");
+    const auto space_path = root / "Content/Spaces.scene";
+    Require(blank != 0 && padded != 0 && spaced.Save(space_path),
+            "whitespace-name scene save failed");
+    runtime::World space_reloaded_world;
+    const auto space_placeholder = space_reloaded_world.LoadScene("Placeholder");
+    editor::SceneDocument space_reloaded(space_reloaded_world, space_placeholder);
+    Require(space_reloaded.Reload(space_path) && space_reloaded.Name(blank) == " " &&
+                space_reloaded.Name(padded) == "  padded",
+            "whitespace-only or padded node names did not round-trip");
+  }
 
   runtime::ReflectionRegistry reflection;
   const auto transform_type = runtime::HashTypeName("Transform");

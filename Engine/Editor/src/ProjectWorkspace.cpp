@@ -4,6 +4,7 @@
 #include <array>
 #include <cerrno>
 #include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <fstream>
 #include <iomanip>
@@ -44,7 +45,8 @@ void StripCarriageReturn(std::string &line) {
 
 bool SafeLine(std::string_view value) {
   return !value.empty() && value.size() <= 1024 &&
-         value.find_first_of("\r\n\0") == std::string_view::npos && foundation::IsValidUtf8(value);
+         value.find_first_of(std::string_view("\r\n\0", 3)) == std::string_view::npos &&
+         foundation::IsValidUtf8(value);
 }
 
 std::string PathUtf8(const std::filesystem::path &path) {
@@ -71,7 +73,10 @@ bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, s
   temporary += ".tmp";
   {
     std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
-    if (!output || !(output << contents)) {
+    // Close before checking so a failed flush (e.g. a full disk) is not renamed over a good file.
+    if (!output || !(output << contents) || (output.close(), output.fail())) {
+      output.close();
+      std::filesystem::remove(temporary, ec);
       if (error)
         *error = "could not write " + PathUtf8(temporary);
       return false;
@@ -83,8 +88,12 @@ bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, s
     ec.clear();
     std::filesystem::rename(temporary, path, ec);
   }
-  if (ec && error)
-    *error = "could not replace " + PathUtf8(path) + ": " + ec.message();
+  if (ec) {
+    std::error_code cleanup;
+    std::filesystem::remove(temporary, cleanup);
+    if (error)
+      *error = "could not replace " + PathUtf8(path) + ": " + ec.message();
+  }
   return !ec;
 }
 
@@ -335,10 +344,12 @@ struct ProjectWorkspace::LockState final {
     lock->handle = open(path.c_str(), flags, 0600);
     if (lock->handle < 0) {
       if (error)
-        *error = errno == ELOOP ? "project lock is unavailable or unsafe" : LockedMessage(path);
+        *error = errno == ELOOP
+                     ? "project lock is unavailable or unsafe"
+                     : "project lock could not be opened: " + std::string(std::strerror(errno));
       return nullptr;
     }
-    struct stat information{};
+    struct stat information {};
     if (fstat(lock->handle, &information) != 0 || !S_ISREG(information.st_mode)) {
       if (error)
         *error = "project lock is unavailable or unsafe";
@@ -475,6 +486,10 @@ bool ProjectWorkspace::Open(const std::filesystem::path &root, ProjectAccess acc
   }
   std::unique_ptr<LockState> lock;
   if (access == ProjectAccess::ReadWrite) {
+    // Older (schema 1) projects may predate the .nexora directory. Create it only for a root that
+    // actually holds a project descriptor, so opening a random directory leaves it untouched.
+    if (std::filesystem::is_regular_file(canonical_root / "project.nexora", ec))
+      std::filesystem::create_directories(canonical_root / ".nexora", ec);
     lock = LockState::Acquire(canonical_root / ".nexora/editor.lock", error);
     if (!lock)
       return false;

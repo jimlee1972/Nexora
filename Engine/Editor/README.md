@@ -45,9 +45,11 @@ into renderer or platform internals.
   is metadata, not the lease: the kernel releases the actual lock on normal close or process death.
   Schema-1 descriptors remain readable; a read-write open atomically upgrades them to schema 2 and
   persists their derived UUID, while a read-only open reports `Required` without changing the
-  project. All project-owned writes reject read-only workspaces. Workspace files are atomically
-  replaced, a recovery journal is written before the primary workspace file, and successful
-  save/recovery removes that journal. The UI may query and explicitly discard a pending journal.
+  project. A read-write open of a schema-1 project that predates the `.nexora` directory creates it,
+  but only for a root that already holds a project descriptor. All project-owned writes reject
+  read-only workspaces. Workspace files are atomically replaced (the temporary file is flushed and
+  checked before it replaces the old one), a recovery journal is written before the primary
+  workspace file, and successful save/recovery removes that journal. The UI may query and explicitly discard a pending journal.
   Versioned Editor layout payloads are persisted separately and never use Dear ImGui's unmanaged
   global ini file.
 - `RecentProjectStore` owns user-level, schema-versioned recent-project state separately from the
