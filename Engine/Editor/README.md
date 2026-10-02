@@ -165,10 +165,10 @@ choice UX. Its Hierarchy filter, generation-keyed expansion/selection anchor, re
 row clipping are presentation state; selection, rename, and hierarchy edits still enter the core
 only through `SceneDocument::Select`, `SceneDocument::Rename`, and the undoable, cycle-safe
 `SceneDocument::Move`. Its initial Inspector reads a selected node's borrowed local transform and
-routes position, quaternion, and scale changes through generation-keyed `SceneDocument` calls.
+routes position, Euler-degree rotation, and scale changes through generation-keyed `SceneDocument` calls.
 Multi-selection fields display mixed state and apply one changed field to every selected entity as a
 single all-or-nothing Runtime transaction and undo step; malformed transforms roll back without a
-partial write. Reflected component widgets and Euler presentation remain open. Native renderer submission,
+partial write. Reflected component widgets and serialized Euler hints remain open. Native renderer submission,
 platform IME candidate positioning,
 accessibility, viewport rendering, gizmos, and target-host visual validation remain UI-host
 responsibilities.
