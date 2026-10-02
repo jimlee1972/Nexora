@@ -1,6 +1,6 @@
 # Transform 旋轉與縮放擴充 — 計畫
 
-> 版本：v1.2｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 所有階段皆已完成；圖形化度數編輯已實作；Euler 提示序列化（§9 第 3 題）仍待完成**｜更新：2026-10-01｜對應：
+> 版本：v1.2｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 所有階段皆已完成；圖形化度數編輯已實作；✅ Euler 提示序列化（§9 第 3 題）已實作**｜更新：2026-10-02｜對應：
 > `Editor_Roadmap.md` §ED-M2（gizmo）、`Engine_API_Foundation_Roadmap.md`
 
 ## 1. 目的與需要的決定
@@ -115,6 +115,8 @@
 3. Inspector 用 Euler 角、儲存用 quaternion？**是**，Euler 提示留在 Editor 層以保留輸入值。
 
 Graphical Inspector 更新（2026-10-02）：度數欄位現使用 Z-X-Y composition 與 atomic 多選編輯。
-目前 selection 的提示保留輸入圈數，quaternion 改變後重新計算；Editor-document 提示序列化尚未
-實作。`editor.imgui_contract` 涵蓋 gimbal-lock round trip、composition order、真正 key/text 提交、
-stale／非有限值拒絕與單步 multi-target undo。這不代表 ED-M2 target-host 驗收完成。
+✅ SceneDocument 提示跨 selection／save／reload 保留輸入圈數，並參與 undo。Scene format 2
+驗證提示並讀取 format 1；同 World reload 為 atomic。`editor.preview_contract`、
+`editor.parser_robustness` 與 `editor.imgui_contract` 涵蓋持久化、無效 record、gimbal-lock round trip、
+composition order、真正 key/text 提交、stale／非有限值拒絕與單步 multi-target undo。
+這不代表 ED-M2 target-host 驗收完成。

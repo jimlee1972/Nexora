@@ -69,7 +69,8 @@ visible-row submission, and routes rename, sibling ordering, and drag/drop repar
 generation-safe, undoable `SceneDocument` contracts. The docked Inspector also edits local position, Euler degrees (quaternion storage), and scale for single or multiple
 selections through the same generation-safe document boundary. Mixed fields are explicit, one field
 edit applies atomically to the entire selection, and invalid transforms roll back without a partial
-write. Scene View, reflected component widgets, serialized Euler hints, and the ED-M2 visual exit gate
+write. SceneDocument persists authored Euler hints through save/reload and restores them with undo.
+Scene View, reflected component widgets, the complete graphical save/restart workflow, and the ED-M2 visual exit gate
 remain open.
 
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows

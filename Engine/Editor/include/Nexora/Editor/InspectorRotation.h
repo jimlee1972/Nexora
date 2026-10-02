@@ -8,7 +8,7 @@
 #include <numbers>
 #include <optional>
 
-namespace nexora::editor::imgui {
+namespace nexora::editor {
 
 using EulerDegrees = std::array<double, 3>;
 
@@ -67,4 +67,4 @@ ToEulerDegrees(const runtime::Transform &transform) {
          std::abs(first->qw - sign * second->qw) < 1e-10;
 }
 
-} // namespace nexora::editor::imgui
+} // namespace nexora::editor

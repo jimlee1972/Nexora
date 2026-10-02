@@ -101,13 +101,14 @@ bridges remain ED-M7 work; plugins must not inspect the ImGui widget tree to sup
 
 Local rotation is presented in degrees using extrinsic Z-X-Y composition (`qY * qX * qZ`).
 Typing does not mutate the document; Enter validates a finite angle and commits one generation-safe
-`SceneDocument::SetTransforms` transaction. Multi-selection applies only that axis, retaining each
+`SceneDocument::SetEulerField` transaction. Multi-selection applies only that axis, retaining each
 target's other angles, position and scale. Invalid or stale input rejects the complete batch.
 
-Euler hints belong to the UI host and are bounded to the current selection. They retain authored
-revolutions (for example, 450 degrees) while the quaternion is unchanged, treat `q` and `-q` as the
-same rotation, and recalculate after undo or external rotation changes. Changing selection,
-closing/reloading the document, or restarting drops the hint; canonical quaternion storage and
-scene formats are unchanged. Serialized Editor-document hints remain open. At gimbal lock the
+Euler hints belong to `SceneDocument`; the host retains only current-selection display samples and
+active text buffers. Hints retain authored revolutions (for example, 450 degrees), treat `q` and `-q`
+as the same rotation, survive selection changes and document save/reload, and participate in undo
+including edits that produce the same quaternion. External rotation changes use canonical angles
+and stale hints are omitted from saves. Scene format version 2 stores hints in the Editor layer;
+version 1 remains readable. At gimbal lock the
 canonical display sets Z to zero and folds the combined rotation into Y. Partial numeric text is
 retained only while its field is active; Escape or leaving the field abandons unsubmitted input.

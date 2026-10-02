@@ -1,5 +1,5 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
-#include "InspectorRotation.h"
+#include "Nexora/Editor/InspectorRotation.h"
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
 #endif
@@ -699,18 +699,11 @@ template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scen
 }
 
 template <typename StateT>
-EulerDegrees InspectorAngles(StateT &state, SceneDocument::NodeKey key,
+EulerDegrees InspectorAngles(StateT &state, const SceneDocument &scene, SceneDocument::NodeKey key,
                              const runtime::Transform &transform) {
-  auto hint = state.inspector_euler_hints.find(key.id);
-  if (hint != state.inspector_euler_hints.end() && hint->second.entity == key &&
-      SameRotation(hint->second.transform, transform))
-    return hint->second.degrees;
-  const auto degrees = ToEulerDegrees(transform).value_or(EulerDegrees{});
-  if (hint == state.inspector_euler_hints.end())
-    state.inspector_euler_hints.emplace(
-        key.id, typename StateT::InspectorEulerHint{key, transform, degrees});
-  else
-    hint->second = {key, transform, degrees};
+  const auto degrees = scene.EulerAngles(key.id).value_or(EulerDegrees{});
+  state.inspector_euler_hints.insert_or_assign(
+      key.id, typename StateT::InspectorEulerHint{key, transform, degrees});
   return degrees;
 }
 
@@ -718,38 +711,13 @@ template <typename StateT> void ApplyInspectorEuler(StateT &state, SceneDocument
   if (!state.inspector_euler_request)
     return;
   const auto request = std::exchange(state.inspector_euler_request, std::nullopt);
-  std::vector<runtime::Transform> transforms;
-  std::vector<EulerDegrees> angles;
-  bool valid = request->axis < 3 && !request->entities.empty() && std::isfinite(request->degrees);
-  for (const auto key : request->entities) {
-    if (!valid || scene.Key(key.id) != key) {
-      valid = false;
-      break;
-    }
-    const auto transform = scene.Transform(key.id);
-    if (!transform) {
-      valid = false;
-      break;
-    }
-    auto degrees = InspectorAngles(state, key, *transform);
-    degrees[request->axis] = request->degrees;
-    const auto changed = WithEulerDegrees(*transform, degrees);
-    if (!changed) {
-      valid = false;
-      break;
-    }
-    transforms.push_back(*changed);
-    angles.push_back(degrees);
-  }
-  if (!valid || !scene.SetTransforms(request->entities, transforms)) {
+  if (!scene.SetEulerField(request->entities, request->axis, request->degrees)) {
     state.inspector_error =
         "Rotation edit rejected because its values or entity generation are stale.";
     return;
   }
-  for (std::size_t i = 0; i < request->entities.size(); ++i) {
-    auto hint = state.inspector_euler_hints.find(request->entities[i].id);
-    hint->second = {request->entities[i], *scene.Transform(request->entities[i].id), angles[i]};
-  }
+  for (const auto key : request->entities)
+    static_cast<void>(InspectorAngles(state, scene, key, *scene.Transform(key.id)));
   state.inspector_error.clear();
 }
 
@@ -820,7 +788,7 @@ template <typename StateT> void DrawInspector(StateT &state, SceneDocument *scen
   std::vector<EulerDegrees> angles;
   angles.reserve(keys.size());
   for (std::size_t i = 0; i < keys.size(); ++i)
-    angles.push_back(InspectorAngles(state, keys[i], transforms[i]));
+    angles.push_back(InspectorAngles(state, *scene, keys[i], transforms[i]));
   if (state.inspector_euler_selection != keys) {
     state.inspector_euler_selection = keys;
     state.inspector_euler_active = {};
