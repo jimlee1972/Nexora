@@ -123,6 +123,7 @@ private:
   std::uint64_t indirect_draws_{};
   id<MTLBuffer> indirect_buffer_{};
   std::uint64_t indirect_offset_{};
+  std::uint64_t indirect_size_{};
   std::uint32_t indirect_stride_{};
 };
 
@@ -555,6 +556,7 @@ void MetalCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t off
     throw std::logic_error("Metal indirect-buffer binding exceeds allocation");
   indirect_buffer_ = record.buffer;
   indirect_offset_ = offset;
+  indirect_size_ = record.descriptor.size;
   indirect_stride_ = stride;
 }
 
@@ -584,6 +586,8 @@ void MetalCommandList::DrawIndirect(std::uint32_t command_count) {
   if (submitted_ || !rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Graphics ||
       !indirect_buffer_ || indirect_stride_ != GPUDrivenIndirectCommandStride || command_count == 0)
     throw std::logic_error("invalid Metal indirect draw");
+  if (!IndirectDrawRangeFits(indirect_size_, indirect_offset_, indirect_stride_, command_count))
+    throw std::logic_error("Metal indirect draw reads past the bound indirect buffer");
   for (std::uint32_t command = 0; command < command_count; ++command) {
     [encoder_ drawPrimitives:MTLPrimitiveTypeTriangle
               indirectBuffer:indirect_buffer_

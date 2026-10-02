@@ -168,7 +168,11 @@ CPU draw for each object.
 Generated bins use the single RHI-owned `GPUDrivenIndirectCommand` ABI. The native draw prefix and
 classification suffix have a fixed 36-byte stride, and the compute shader imports the same word
 offset definitions as C++. Vulkan, D3D12, and Metal adapters may select their native submission API,
-but may not translate this buffer into backend-specific command layouts.
+but may not translate this buffer into backend-specific command layouts. Every backend checks the
+full range a `DrawIndirect(command_count)` reads against the bound buffer with the shared
+`rhi::IndirectDrawRangeFits` rule (`(command_count - 1) * stride + offset + 16 <= size`) and
+rejects an undersized buffer instead of reading past it; a buffer that cannot hold one draw does not
+bind.
 
 `RecordGPUDrivenCompute()` and `RecordGPUDrivenIndirect()` are the per-pass stage recorders for RenderGraph compute and graphics callbacks; `RecordGPUDrivenExecution()` delegates to those same functions for callers holding both command lists. Passes bind their own pipeline and buffers before recording. The stage recorders do not submit, allocate, synchronize, or read back resources. RenderGraph owns only resources declared to it; buffers captured by callbacks remain caller-owned and must stay valid through graph execution. Storage-buffer uses are not currently declared to RenderGraph, so it does not retain those buffers or emit per-buffer ownership barriers; callers must provide the required lifetime and synchronization. The focused Linux Vulkan gate runs these recorders with Slang 2026.18 on Mesa lavapipe and compares bounded readbacks against the CPU reference, ; the full development preset gate also passes in GitHub Actions (run 36609837931). Physical-GPU performance and other native backend parity require separate evidence.
 

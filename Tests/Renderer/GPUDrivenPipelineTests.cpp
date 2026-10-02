@@ -2,6 +2,8 @@
 #include "Nexora/Renderer/RenderGraph.h"
 
 #include <bit>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -9,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 using namespace nexora;
 using namespace nexora::renderer;
@@ -87,6 +90,86 @@ void TestReferenceComparison() {
   Require(!mismatch.matches && mismatch.first_command_mismatch == 0,
           "indirect argument mismatch identifies its first command");
 }
+void TestIndirectDrawRangeRule() {
+  using rhi::DrawIndirectArgumentSize;
+  using rhi::GPUDrivenIndirectCommandStride;
+  using rhi::IndirectDrawRangeFits;
+  constexpr std::uint64_t one = GPUDrivenIndirectCommandStride;
+  // The last command needs only its draw prefix: (n - 1) * stride + offset + 16 bytes.
+  static_assert(IndirectDrawRangeFits(one, 0, GPUDrivenIndirectCommandStride, 1));
+  static_assert(IndirectDrawRangeFits(GPUDrivenIndirectCommandStride + DrawIndirectArgumentSize, 0,
+                                      GPUDrivenIndirectCommandStride, 2));
+  static_assert(
+      !IndirectDrawRangeFits(GPUDrivenIndirectCommandStride + DrawIndirectArgumentSize - 1, 0,
+                             GPUDrivenIndirectCommandStride, 2));
+  static_assert(!IndirectDrawRangeFits(one, 0, GPUDrivenIndirectCommandStride, 2));
+  static_assert(IndirectDrawRangeFits(one + 4, 4, GPUDrivenIndirectCommandStride, 1));
+  static_assert(!IndirectDrawRangeFits(one, one - DrawIndirectArgumentSize + 1,
+                                       GPUDrivenIndirectCommandStride, 1));
+  static_assert(!IndirectDrawRangeFits(one, one + 1, GPUDrivenIndirectCommandStride, 1));
+  static_assert(!IndirectDrawRangeFits(one, 0, GPUDrivenIndirectCommandStride, 0));
+  // Extreme counts and strides cannot overflow into a false "fits".
+  // (2^32 - 2) * (2^32 - 1) + 16 bytes is just under 2^64, so this fits without wrapping...
+  static_assert(IndirectDrawRangeFits(UINT64_MAX, 0, UINT32_MAX, UINT32_MAX));
+  // ...and half that buffer does not, rather than wrapping into a false "fits".
+  static_assert(!IndirectDrawRangeFits(UINT64_MAX / 2, 0, UINT32_MAX, UINT32_MAX));
+  static_assert(
+      !IndirectDrawRangeFits(UINT64_MAX, UINT64_MAX - DrawIndirectArgumentSize + 1, 4, 1));
+}
+
+// Binds an indirect buffer sized for `capacity` canonical commands and checks that drawing more
+// than fit is rejected before anything reaches the driver, on any backend.
+void TestIndirectDrawRangeOn(const std::unique_ptr<rhi::Device> &device, std::string_view label) {
+  auto graphics = device->CreateCommandList(rhi::QueueType::Graphics);
+  const auto target = device->CreateTexture(
+      {1, 1, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::RenderTarget, "range target"});
+  const auto pipeline = device->CreatePipeline({1, 1, rhi::TextureFormat::Rgba8Unorm, "range"});
+  // Two commands: one full record plus the second one's draw prefix.
+  const std::uint64_t size = rhi::GPUDrivenIndirectCommandStride + rhi::DrawIndirectArgumentSize;
+  const auto indirect = device->CreateBuffer({size, "range indirect"});
+  const std::vector<std::byte> zeros(size);
+  device->WriteBuffer(indirect, 0, zeros);
+  const auto tiny = device->CreateBuffer({rhi::DrawIndirectArgumentSize - 4, "range tiny"});
+  graphics->BeginRendering({target, 1, 1});
+  graphics->BindPipeline(pipeline);
+  const auto throws = [](auto &&call) {
+    try {
+      call();
+    } catch (const std::logic_error &) {
+      return true;
+    }
+    return false;
+  };
+  Require(
+      throws([&] { graphics->BindIndirectBuffer(tiny, 0, rhi::GPUDrivenIndirectCommandStride); }),
+      std::string(label) + ": a buffer smaller than one draw must not bind");
+  graphics->BindIndirectBuffer(indirect, 0, rhi::GPUDrivenIndirectCommandStride);
+  Require(throws([&] { graphics->DrawIndirect(3); }),
+          std::string(label) + ": drawing past the bound buffer must be rejected");
+  graphics->DrawIndirect(2);
+  graphics->BindIndirectBuffer(indirect, 4, rhi::GPUDrivenIndirectCommandStride);
+  Require(throws([&] { graphics->DrawIndirect(2); }),
+          std::string(label) + ": the offset must count toward the range");
+  graphics->DrawIndirect(1);
+  graphics->EndRendering();
+  device->Submit(*graphics);
+  Require(device->Diagnostics().indirect_draw_calls == 2,
+          std::string(label) + ": only the in-range draws are recorded");
+  device->DestroyBuffer(tiny);
+  device->DestroyBuffer(indirect);
+  device->DestroyPipeline(pipeline);
+  device->DestroyTexture(target);
+}
+
+void TestIndirectDrawRange() {
+  TestIndirectDrawRangeRule();
+  TestIndirectDrawRangeOn(rhi::CreateValidationDevice(), "validation backend");
+#if !defined(_WIN32) && !defined(__APPLE__)
+  if (rhi::IsBackendAvailable(rhi::Backend::Vulkan))
+    TestIndirectDrawRangeOn(rhi::CreateDevice(rhi::Backend::Vulkan), "Vulkan backend");
+#endif
+}
+
 void TestNormalPathRecordsNoReadbackOn(const std::unique_ptr<rhi::Device> &device,
                                        std::string_view label) {
   auto compute = device->CreateCommandList(rhi::QueueType::Compute);
@@ -347,6 +430,12 @@ int main() {
   TestInvalidDepthInput();
   TestReferenceComparison();
   TestNormalPathRecordsNoReadback();
+  try {
+    TestIndirectDrawRange();
+  } catch (const std::exception &error) {
+    std::cerr << "FAIL: indirect draw range threw: " << error.what() << '\n';
+    return 1;
+  }
 #if defined(__APPLE__)
   TestMetalCommandRecording();
 #endif

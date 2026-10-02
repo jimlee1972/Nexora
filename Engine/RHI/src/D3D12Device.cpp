@@ -179,6 +179,7 @@ private:
   std::uint64_t indirect_draws_{};
   ID3D12Resource *indirect_buffer_{};
   std::uint64_t indirect_offset_{};
+  std::uint64_t indirect_size_{};
   std::uint32_t indirect_stride_{};
   std::array<D3D12_GPU_VIRTUAL_ADDRESS, 4> storage_buffers_{};
   std::array<bool, 4> storage_bound_{};
@@ -796,6 +797,7 @@ void D3D12CommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t off
   indirect_buffer_ = device_.PrepareBuffer(list_.Get(), buffer,
                                         D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
   indirect_offset_ = offset;
+  indirect_size_ = record.descriptor.size;
   indirect_stride_ = stride;
 }
 
@@ -820,6 +822,8 @@ void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
   if (submitted_ || !rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Graphics ||
       !indirect_buffer_ || indirect_stride_ != GPUDrivenIndirectCommandStride || draw_count == 0)
     throw std::logic_error("invalid D3D12 indirect draw");
+  if (!IndirectDrawRangeFits(indirect_size_, indirect_offset_, indirect_stride_, draw_count))
+    throw std::logic_error("D3D12 indirect draw reads past the bound indirect buffer");
   list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   list_->ExecuteIndirect(device_.draw_indirect_signature_.Get(), draw_count, indirect_buffer_,
                          indirect_offset_, nullptr, 0);
