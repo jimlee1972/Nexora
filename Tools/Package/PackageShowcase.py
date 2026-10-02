@@ -4,6 +4,8 @@
 import argparse
 import hashlib
 import json
+import platform
+import re
 import shutil
 import zipfile
 from pathlib import Path
@@ -22,6 +24,31 @@ def copy(source: Path, destination: Path) -> dict:
     shutil.copy2(source, destination)
     return {"path": destination.name, "bytes": destination.stat().st_size,
             "sha256": digest(destination)}
+
+
+def engine_runtime_libraries(binary: Path) -> list[Path]:
+    """Discover the transitive Engine ELF closure of a trusted built application."""
+    with binary.open("rb") as source:
+        elf = source.read(4) == b"\x7fELF"
+    if platform.system() != "Linux" or not elf:
+        return []
+    result = subprocess.run(["ldd", str(binary.resolve())], text=True, capture_output=True)
+    if result.returncode:
+        raise RuntimeError(f"could not inspect ELF dependencies: {result.stderr or result.stdout}")
+    libraries = []
+    for line in result.stdout.splitlines():
+        match = re.match(r"\s*(libNexora\S+)\s+=>\s+(.+?)\s+\(0x[0-9a-fA-F]+\)", line)
+        if "libNexora" in line and "not found" in line:
+            raise RuntimeError(f"missing Engine dependency: {line.strip()}")
+        absolute = re.match(r"\s*(/.*libNexora\S+)\s+\(0x[0-9a-fA-F]+\)", line)
+        if match or absolute:
+            library = Path(match.group(2) if match else absolute.group(1)).resolve()
+            if not library.is_file():
+                raise RuntimeError(f"missing Engine dependency: {library}")
+            if match and library.name != match.group(1):
+                raise RuntimeError(f"Engine dependency name mismatch: {line.strip()}")
+            libraries.append(library)
+    return sorted(set(libraries))
 
 
 def main() -> int:

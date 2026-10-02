@@ -554,21 +554,17 @@ void UpdateInteractiveCamera(ShowcaseHostContext &context) {
     return;
   auto transform = camera->transform;
   constexpr double step = 0.25;
-  switch (context.input.lastKey) {
-  case 'W':
-  case 'w':
+  switch (static_cast<Nexora::Window::Key>(context.input.lastKey)) {
+  case Nexora::Window::Key::W:
     transform.z -= step;
     break;
-  case 'S':
-  case 's':
+  case Nexora::Window::Key::S:
     transform.z += step;
     break;
-  case 'A':
-  case 'a':
+  case Nexora::Window::Key::A:
     transform.x -= step;
     break;
-  case 'D':
-  case 'd':
+  case Nexora::Window::Key::D:
     transform.x += step;
     break;
   default:

@@ -13,7 +13,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from PackageShowcase import digest
+from PackageShowcase import digest, engine_runtime_libraries
 
 
 def safe_join(base: Path, relative: str) -> Path:
@@ -34,6 +34,15 @@ def safe_join(base: Path, relative: str) -> Path:
     if candidate != base and base not in candidate.parents:
         raise RuntimeError(f"package path escapes the package root: {relative}")
     return candidate
+
+
+def verify_runtime_closure(executable: Path, package: Path) -> list[str]:
+    package = package.resolve()
+    libraries = engine_runtime_libraries(executable)
+    for library in libraries:
+        if package not in library.parents:
+            raise RuntimeError(f"Engine dependency resolves outside the staged package: {library}")
+    return [library.name for library in libraries]
 
 
 def main() -> int:

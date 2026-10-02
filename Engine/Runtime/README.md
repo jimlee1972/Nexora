@@ -676,3 +676,13 @@ known-good generation, corrupted-save rejection, thermal-throttle evidence, and 
 footprint tolerance. It does **not** claim the V2-M12 shipping gate: five complete reference
 projects, 24h+ streaming/network soaks, and real mobile thermal behavior still require target-host
 execution and release-lab evidence.
+
+## Editor snapshot replacement
+
+`World::ReplaceSceneSnapshot` is an Editor-only synchronous transaction. It validates a snapshot in
+a scratch World and rejects entity IDs owned by other scenes before replacing the target scene.
+Success preserves the target scene ID and lifecycle state, keeps ID allocation monotonic, and expires
+its entity/component borrows. Other scenes and their borrows remain valid. Gameplay Worlds and
+unloading/unloaded targets reject replacement. Malformed snapshots or cross-scene collisions leave
+the live World unchanged. The caller must clear authoring undo and invalidate document keys after
+success; this API does not own renderer resources or asynchronous work.

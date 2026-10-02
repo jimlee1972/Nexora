@@ -1,0 +1,150 @@
+Test project /workspace/Nexora/build/linux-development
+      Start  1: build.module_graph
+ 1/70 Test  #1: build.module_graph ............................   Passed    0.01 sec
+      Start  2: build.shader_contract
+ 2/70 Test  #2: build.shader_contract .........................   Passed    0.01 sec
+      Start  3: build.plugin_manifests
+ 3/70 Test  #3: build.plugin_manifests ........................   Passed    0.00 sec
+      Start  4: build.showcase_package
+ 4/70 Test  #4: build.showcase_package ........................   Passed    0.13 sec
+      Start  5: build.showcase_package_launch_safety
+ 5/70 Test  #5: build.showcase_package_launch_safety ..........   Passed    0.12 sec
+      Start  6: build.v2_migration_scanner
+ 6/70 Test  #6: build.v2_migration_scanner ....................   Passed    0.03 sec
+      Start  7: build.v2_production_toolchain
+ 7/70 Test  #7: build.v2_production_toolchain .................   Passed    0.32 sec
+      Start  8: gameplay.zig_abi_smoke
+ 8/70 Test  #8: gameplay.zig_abi_smoke ........................   Passed    0.00 sec
+      Start  9: showcase.v1_probe
+ 9/70 Test  #9: showcase.v1_probe .............................   Passed    0.00 sec
+      Start 10: showcase.zig_headless
+10/70 Test #10: showcase.zig_headless .........................   Passed    0.03 sec
+      Start 11: showcase.feature_gallery
+11/70 Test #11: showcase.feature_gallery ......................   Passed    0.00 sec
+      Start 12: showcase.zig_dynamic
+12/70 Test #12: showcase.zig_dynamic ..........................   Passed    0.03 sec
+      Start 13: showcase.capability_fallbacks
+13/70 Test #13: showcase.capability_fallbacks .................   Passed    0.00 sec
+      Start 14: showcase.linux_vulkan_evidence_policy
+14/70 Test #14: showcase.linux_vulkan_evidence_policy .........   Passed    0.10 sec
+      Start 15: showcase.linux_vulkan_virtual_display
+15/70 Test #15: showcase.linux_vulkan_virtual_display .........   Passed    0.25 sec
+      Start 16: showcase.linux_vulkan_rendering_room
+16/70 Test #16: showcase.linux_vulkan_rendering_room ..........   Passed    0.18 sec
+      Start 17: showcase.linux_vulkan_camera_input
+17/70 Test #17: showcase.linux_vulkan_camera_input ............   Passed    0.77 sec
+      Start 18: foundation.build_info
+18/70 Test #18: foundation.build_info .........................   Passed    0.00 sec
+      Start 19: foundation.gameplay_abi
+19/70 Test #19: foundation.gameplay_abi .......................   Passed    0.00 sec
+      Start 20: core.runtime
+20/70 Test #20: core.runtime ..................................   Passed    0.00 sec
+      Start 21: core.v2_m11_remote_diagnostics
+21/70 Test #21: core.v2_m11_remote_diagnostics ................   Passed    0.00 sec
+      Start 22: ai.v2_m7_navigation_crowd_policy
+22/70 Test #22: ai.v2_m7_navigation_crowd_policy ..............   Passed    0.01 sec
+      Start 23: network.v2_m5_transport
+23/70 Test #23: network.v2_m5_transport .......................   Passed    0.08 sec
+      Start 24: network.v2_m6_entity_mapping
+24/70 Test #24: network.v2_m6_entity_mapping ..................   Passed    0.09 sec
+      Start 25: network.v2_m6_replication_interest
+25/70 Test #25: network.v2_m6_replication_interest ............   Passed    0.09 sec
+      Start 26: network.v2_m6_dormancy
+26/70 Test #26: network.v2_m6_dormancy ........................   Passed    0.09 sec
+      Start 27: network.v2_m6_prediction_replay
+27/70 Test #27: network.v2_m6_prediction_replay ...............   Passed    0.08 sec
+      Start 28: network.server_runtime_contract
+28/70 Test #28: network.server_runtime_contract ...............   Passed    0.09 sec
+      Start 29: network.v2_m5_headless_dependency
+29/70 Test #29: network.v2_m5_headless_dependency .............   Passed    0.05 sec
+      Start 30: window_presentation.contracts
+30/70 Test #30: window_presentation.contracts .................   Passed    0.01 sec
+      Start 31: window_presentation.vulkan_scene
+31/70 Test #31: window_presentation.vulkan_scene ..............   Passed    0.22 sec
+      Start 32: api.foundation_math_types
+32/70 Test #32: api.foundation_math_types .....................   Passed    0.06 sec
+      Start 33: api.core_services_handle_and_vfs_contract
+33/70 Test #33: api.core_services_handle_and_vfs_contract .....   Passed    0.05 sec
+      Start 34: api.m6_c_consumer
+34/70 Test #34: api.m6_c_consumer .............................   Passed    0.00 sec
+      Start 35: api.m6_manifest_compatibility
+35/70 Test #35: api.m6_manifest_compatibility .................   Passed    0.02 sec
+      Start 36: samples.api_foundation
+36/70 Test #36: samples.api_foundation ........................   Passed    0.00 sec
+      Start 37: renderer.metal_source_contract
+37/70 Test #37: renderer.metal_source_contract ................   Passed    0.02 sec
+      Start 38: renderer.indirect_range_source_contract
+38/70 Test #38: renderer.indirect_range_source_contract .......   Passed    0.02 sec
+      Start 39: renderer.contracts
+39/70 Test #39: renderer.contracts ............................   Passed    0.00 sec
+      Start 40: renderer.scene_frame_contracts
+40/70 Test #40: renderer.scene_frame_contracts ................   Passed    0.00 sec
+      Start 41: renderer.material_contracts
+41/70 Test #41: renderer.material_contracts ...................   Passed    0.00 sec
+      Start 42: renderer.golden_image_acceptance
+42/70 Test #42: renderer.golden_image_acceptance ..............   Passed    0.00 sec
+      Start 43: renderer.v2_gpu_scene
+43/70 Test #43: renderer.v2_gpu_scene .........................   Passed    0.00 sec
+      Start 44: renderer.v2_gpu_driven
+44/70 Test #44: renderer.v2_gpu_driven ........................   Passed    0.00 sec
+      Start 45: runtime.shader_artifact_contracts
+45/70 Test #45: runtime.shader_artifact_contracts .............   Passed    0.00 sec
+      Start 46: runtime.v1_m4_m11_contracts
+46/70 Test #46: runtime.v1_m4_m11_contracts ...................   Passed    0.00 sec
+      Start 47: api.game_world_facade
+47/70 Test #47: api.game_world_facade .........................   Passed    0.00 sec
+      Start 48: runtime.transform_rotation_scale
+48/70 Test #48: runtime.transform_rotation_scale ..............   Passed    0.00 sec
+      Start 49: runtime.entity_parenting
+49/70 Test #49: runtime.entity_parenting ......................   Passed    0.52 sec
+      Start 50: runtime.render_sync
+50/70 Test #50: runtime.render_sync ...........................   Passed    0.66 sec
+      Start 51: api.gameplay_host_bridge
+51/70 Test #51: api.gameplay_host_bridge ......................   Passed    0.00 sec
+      Start 52: runtime.v1_m12_shipping
+52/70 Test #52: runtime.v1_m12_shipping .......................   Passed    0.09 sec
+      Start 53: runtime.v2_m12_hardening_reference_projects
+53/70 Test #53: runtime.v2_m12_hardening_reference_projects ...   Passed    0.05 sec
+      Start 54: runtime.v1_m7_input_ui_localization
+54/70 Test #54: runtime.v1_m7_input_ui_localization ...........   Passed    0.01 sec
+      Start 55: runtime.v1_m8_gameplay_simulation
+55/70 Test #55: runtime.v1_m8_gameplay_simulation .............   Passed    0.01 sec
+      Start 56: runtime.v2_m7_ai_character_intent_bridge
+56/70 Test #56: runtime.v2_m7_ai_character_intent_bridge ......   Passed    0.00 sec
+      Start 57: runtime.v1_m10_large_world
+57/70 Test #57: runtime.v1_m10_large_world ....................   Passed    0.01 sec
+      Start 58: runtime.v1_m11_platform
+58/70 Test #58: runtime.v1_m11_platform .......................   Passed    0.00 sec
+      Start 59: runtime.v1_m9_presentation
+59/70 Test #59: runtime.v1_m9_presentation ....................   Passed    0.00 sec
+      Start 60: runtime.v2_m9_timeline_ui_audio_media
+60/70 Test #60: runtime.v2_m9_timeline_ui_audio_media .........   Passed    0.00 sec
+      Start 61: runtime.v1_m4_vertical_slice
+61/70 Test #61: runtime.v1_m4_vertical_slice ..................   Passed    0.03 sec
+      Start 62: runtime.gameplay_module_host
+62/70 Test #62: runtime.gameplay_module_host ..................   Passed    0.00 sec
+      Start 63: runtime.dynamic_gameplay_module
+63/70 Test #63: runtime.dynamic_gameplay_module ...............   Passed    0.43 sec
+      Start 64: runtime.v1_m5_asset_pipeline
+64/70 Test #64: runtime.v1_m5_asset_pipeline ..................   Passed    0.06 sec
+      Start 65: api.bundle_mount
+65/70 Test #65: api.bundle_mount ..............................   Passed    0.00 sec
+      Start 66: runtime.v1_m6_editor_sdk
+66/70 Test #66: runtime.v1_m6_editor_sdk ......................   Passed    0.00 sec
+      Start 67: editor.shader_authoring_contracts
+67/70 Test #67: editor.shader_authoring_contracts .............   Passed    0.02 sec
+      Start 68: editor.preview_contract
+68/70 Test #68: editor.preview_contract .......................   Passed    0.01 sec
+      Start 69: editor.viewport_math
+69/70 Test #69: editor.viewport_math ..........................   Passed    0.00 sec
+      Start 70: editor.parser_robustness
+70/70 Test #70: editor.parser_robustness ......................   Passed    3.56 sec
+
+100% tests passed out of 70
+
+Label Time Summary:
+showcase           =   1.43 sec*proc (4 tests)
+virtual-display    =   1.43 sec*proc (4 tests)
+vulkan             =   1.43 sec*proc (4 tests)
+
+Total Test time (real) =   8.52 sec

@@ -134,6 +134,13 @@ cmake --build --preset linux-development --target NexoraShowcasePackageDevelopme
 cmake --build --preset linux-shipping --target NexoraShowcasePackageShipping
 ```
 
+Linux Development packaging discovers and includes all transitive `libNexora*.so` dependencies.
+Build-tree RPATHs are relative and include `$ORIGIN`, so bundled Engine libraries load from `bin/`.
+The evidence launcher verifies the staged ELF dependency closure and rejects any Engine library
+resolved outside that copy; system libraries and GPU drivers remain host requirements. A copied
+executable alone previously passed by resolving Engine DSOs from the original build tree, so that
+older checksum-only evidence did not establish Engine-library isolation.
+
 The generated `build.json` records the exact relocatable launch command, including the packaged Zig
 library path. On Linux, the evidence target verifies every packaged checksum, copies the package to
 a fresh temporary directory, launches only from that copy, and retains the embedded Showcase report

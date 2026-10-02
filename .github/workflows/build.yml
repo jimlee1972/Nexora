@@ -78,6 +78,21 @@ jobs:
       - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }}
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
+      - name: Retain Linux Showcase virtual-display evidence
+        if: always() && runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: showcase-linux-vulkan-windowed-evidence
+          path: build/${{ matrix.preset }}/artifacts/showcase-linux-vulkan/
+      - name: Retain Linux Showcase GPU scene evidence
+        if: always() && runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: showcase-linux-vulkan-scene-evidence
+          path: |
+            build/${{ matrix.preset }}/artifacts/showcase-linux-vulkan-scene/
+            build/${{ matrix.preset }}/artifacts/showcase-linux-vulkan-rendering-room/
+            build/${{ matrix.preset }}/artifacts/showcase-linux-vulkan-camera-input/
       - name: Verify Development Showcase package
         if: runner.os != 'macOS'
         run: cmake --build --preset ${{ matrix.preset }} --target NexoraShowcasePackageDevelopmentEvidence
