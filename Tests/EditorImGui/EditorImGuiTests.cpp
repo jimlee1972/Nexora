@@ -157,7 +157,17 @@ int main() {
          selector_request->root == selector_root && selector_request->name == "Selected" &&
          selector_request->access == nexora::editor::ProjectAccess::ReadWrite);
   assert(!host.TakeProjectSelectorRequest());
+  host.BeginFrame();
+  host.DrawProjectSelector(&recent_projects);
+  static_cast<void>(host.EndFrame());
   host.SetProjectSelectorStatus("Importing project content", true);
+  // Shortcuts must not queue a second request while an import is already running.
+  host.ProcessEvents(selector_shortcut);
+  host.BeginFrame();
+  host.DrawProjectSelector(&recent_projects);
+  static_cast<void>(host.EndFrame());
+  assert(!host.TakeProjectSelectorRequest());
+  host.ProcessEvents(selector_key_release);
   EditorImGuiTestAccess::QueueProjectImportCancellation(host);
   assert(host.TakeProjectSelectorCancel());
   assert(!host.TakeProjectSelectorCancel());

@@ -1224,8 +1224,11 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   ImGui::Checkbox("Open read-only", &state_->selector_read_only);
 
   const auto typed_root = PathFromLabel(state_->selector_root.data());
-  const bool open_requested = ImGui::Button("Open project (Ctrl+O)") ||
-                              ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_O);
+  // BeginDisabled does not suppress key chords, so gate the shortcuts on the same conditions that
+  // disable their buttons: no new request while an import runs, and no Create when read-only.
+  const bool open_requested =
+      ImGui::Button("Open project (Ctrl+O)") ||
+      (!state_->selector_busy && ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_O));
   if (open_requested) {
     if (typed_root)
       QueueProjectSelection(*state_, ProjectSelectorAction::Open, *typed_root, {},
@@ -1237,7 +1240,8 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   ImGui::SameLine();
   ImGui::BeginDisabled(state_->selector_read_only);
   const bool create_requested = ImGui::Button("Create project (Ctrl+N)") ||
-                                ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_N);
+                                (!state_->selector_busy && !state_->selector_read_only &&
+                                 ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_N));
   if (create_requested) {
     if (typed_root)
       QueueProjectSelection(*state_, ProjectSelectorAction::Create, *typed_root,
