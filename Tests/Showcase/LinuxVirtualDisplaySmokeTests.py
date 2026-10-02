@@ -57,8 +57,8 @@ class NativeEvidenceTests(unittest.TestCase):
             "windowed_evidence": {
                 "executed": True, "backend": "vulkan", "backend_fallback": False,
                 "surface_acquires": 4, "surface_presents": 4, "resize_requests": 1,
-                "resize_generations": 2, "composed_frames": 4,
-                "clear_color": True, "triangle": True, "diagnostics_overlay": True,
+                "resize_generations": 2, "composed_frames": 0, "scene_draws": 4, "overlay_frames": 4,
+                "clear_color": True, "triangle": False, "diagnostics_overlay": True,
             },
         }
 

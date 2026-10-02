@@ -1,5 +1,6 @@
 #include "ShowcaseRooms.h"
 #include <cassert>
+#include <cmath>
 #include <stdexcept>
 #include <string>
 
@@ -17,10 +18,43 @@ static void Press(RoomSession &session, Key key) {
   session.Event(event, 1280, 720);
 }
 int main() {
+#ifdef NEXORA_SHOWCASE_TEST_PLUGIN
+  RoomSession session("hub", false, false, NEXORA_SHOWCASE_TEST_PLUGIN);
+#else
   RoomSession session("hub");
+#endif
   session.Tick(1.0 / 60);
   assert(session.Healthy());
   assert(session.Probes().size() == 13);
+#if NEXORA_ASSET_PIPELINE_ENABLED
+  for (const auto error : {nexora::showcase::ErrorInjection::InvalidAsset,
+                           nexora::showcase::ErrorInjection::DependencyCycle,
+                           nexora::showcase::ErrorInjection::Rollback}) {
+    session.RerunProbe(5, error);
+    assert(session.Probes()[5].status == nexora::showcase::ProbeStatus::Pass);
+    assert(session.Probes()[5].issues.empty());
+  }
+#endif
+#if NEXORA_EDITOR_SDK_ENABLED && defined(NEXORA_SHOWCASE_TEST_PLUGIN)
+  session.RerunProbe(6, nexora::showcase::ErrorInjection::PluginAbiMismatch);
+  assert(session.Probes()[6].status == nexora::showcase::ProbeStatus::Pass);
+  assert(session.Report().find("Plugin ABI mismatch rejected before registration") !=
+         std::string::npos);
+  RoomSession missingPlugin("scene", false, false, "missing-lab-plugin.so");
+  missingPlugin.Tick(0.01);
+  missingPlugin.RerunProbe(6, nexora::showcase::ErrorInjection::PluginAbiMismatch);
+  assert(!missingPlugin.Healthy());
+  assert(missingPlugin.Probes()[6].status == nexora::showcase::ProbeStatus::Fail);
+#endif
+#if NEXORA_SHIPPING_ENABLED
+  session.RerunProbe(12, nexora::showcase::ErrorInjection::Rollback);
+  assert(session.Probes()[12].status == nexora::showcase::ProbeStatus::Pass);
+#endif
+  session.RerunProbe(0, nexora::showcase::ErrorInjection::DependencyCycle);
+  assert(session.Probes()[0].status == nexora::showcase::ProbeStatus::Unsupported);
+  assert(session.Healthy());
+  session.RerunProbe(0);
+  assert(session.Markdown().find("sample_tick") != std::string::npos);
   const auto scene = session.Scene(1280, 720);
   assert(!scene.vertices.empty() && !scene.indices.empty());
   for (const auto index : scene.indices)
@@ -59,6 +93,26 @@ int main() {
     assert(session.Healthy());
     assert(!session.Scene(960, 540).vertices.empty());
   }
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+  session.Select("gameplay");
+  const auto capsule = session.Scene(1280, 720);
+  assert(capsule.vertices.size() > 250);
+  assert(capsule.vertices[24].position[1] >= -0.0001F); // Feet-origin capsule stays above ground.
+  for (const auto &vertex : capsule.vertices) {
+    const float length =
+        std::sqrt(vertex.normal[0] * vertex.normal[0] + vertex.normal[1] * vertex.normal[1] +
+                  vertex.normal[2] * vertex.normal[2]);
+    assert(std::abs(length - 1) < 0.001F);
+  }
+#endif
+#if NEXORA_PRESENTATION_ENABLED
+  session.Select("presentation");
+  const auto before = session.Scene(1280, 720).vertices[96]; // After floor and 3 joint markers.
+  Press(session, Key::J);
+  session.Tick(0.3);
+  const auto after = session.Scene(1280, 720).vertices[96];
+  assert(before.position[0] != after.position[0] || before.position[1] != after.position[1]);
+#endif
   auto overlay = session.Overlay(1280, 720, "validation", {}, 16.67);
   assert(!overlay.vertices.empty() && overlay.textureUploads.size() == 1);
   overlay = session.Overlay(960, 540, "validation", {}, 16.67);

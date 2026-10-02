@@ -3,7 +3,6 @@
 #endif
 
 #include "Nexora/Presentation/Surface.h"
-#include "SceneVulkanShaders.h"
 
 #include "SceneVulkanShaders.h"
 #include "UiVulkanShaders.h"
@@ -201,7 +200,7 @@ public:
                                std::uint32_t height) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || sceneDrawn_ || transferTarget_ || frames_[frame_].uiFramebuffer ||
+    if (!acquired_ || sceneRendered_ || transferTarget_ || frames_[frame_].uiFramebuffer ||
         width != width_ || height != height_ ||
         pixels.size() != static_cast<std::size_t>(width) * height * 4U)
       return SurfaceStatus::InvalidDescriptor;
@@ -279,8 +278,9 @@ public:
     if (!OnThread())
       return SurfaceStatus::WrongThread;
     if (!acquired_ || !scenePipeline_ || sceneRendered_ || transferTarget_ ||
-        data.vertices.empty() || data.indices.empty() || data.vertices.size() > 65535 ||
-        data.indices.size() > 1048576 || data.indices.size() % 3 != 0)
+        frames_[frame_].uiFramebuffer || data.vertices.empty() || data.indices.empty() ||
+        data.vertices.size() > 65535 || data.indices.size() > 1048576 ||
+        data.indices.size() % 3 != 0)
       return SurfaceStatus::InvalidDescriptor;
     for (const auto index : data.indices)
       if (index >= data.vertices.size())
@@ -415,15 +415,14 @@ public:
     return SurfaceStatus::Ready;
   }
   SurfaceStatus RenderUi(const UiDrawData &drawData) override {
-    if (!OnThread())
-      return SurfaceStatus::WrongThread;
-    if (!acquired_ || sceneDrawn_ || transferTarget_ || frames_[frame_].uiFramebuffer)
-      return SurfaceStatus::InvalidDescriptor;
 #if !defined(NEXORA_HAS_NATIVE_UI_SHADERS)
     (void)drawData;
     return SurfaceStatus::Unsupported;
 #else
-    if (drawData.vertices.empty() || drawData.indices.empty())
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    if (!acquired_ || transferTarget_ || frames_[frame_].uiFramebuffer ||
+        drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
     auto &frame = frames_[frame_];
     for (const auto &upload : drawData.textureUploads)
@@ -498,92 +497,6 @@ public:
     transferTarget_ = false;
     return SurfaceStatus::Ready;
 #endif
-  }
-  SurfaceStatus DrawScene(const SceneDrawData &draw) override {
-    if (!OnThread())
-      return SurfaceStatus::WrongThread;
-    // One scene submission per acquired frame. Reject invalid geometry before recording or upload.
-    constexpr std::size_t kMaximumUpload = 4U * 1024U * 1024U;
-    if (!acquired_ || transferTarget_ || sceneDrawn_ || frames_[frame_].uiFramebuffer ||
-        draw.vertices.empty() || draw.vertices.size() > 65536 || draw.indices.empty() ||
-        draw.indices.size() % 3 != 0 || draw.indices.size_bytes() > kMaximumUpload ||
-        draw.vertices.size_bytes() > kMaximumUpload - draw.indices.size_bytes())
-      return SurfaceStatus::InvalidDescriptor;
-    for (const auto index : draw.indices)
-      if (index >= draw.vertices.size())
-        return SurfaceStatus::InvalidDescriptor;
-    const auto finite = [](const auto &values) {
-      return std::all_of(std::begin(values), std::end(values),
-                         [](float value) { return std::isfinite(value); });
-    };
-    if (!finite(draw.model_view_projection) || !finite(draw.light_direction) ||
-        !finite(draw.light_color) || !finite(draw.base_color))
-      return SurfaceStatus::InvalidDescriptor;
-    for (const auto &vertex : draw.vertices)
-      if (!finite(vertex.position) || !finite(vertex.normal))
-        return SurfaceStatus::InvalidDescriptor;
-    if (!scenePipeline_ && !CreateSceneResources())
-      return SurfaceStatus::DeviceLost;
-    auto &frame = frames_[frame_];
-    if (!EnsureSceneFrame(frame, draw.vertices.size_bytes() + draw.indices.size_bytes()))
-      return SurfaceStatus::DeviceLost;
-    void *mapped = nullptr;
-    if (vkMapMemory(device_, frame.sceneMemory, 0, VK_WHOLE_SIZE, 0, &mapped) != VK_SUCCESS)
-      return SurfaceStatus::DeviceLost;
-    std::memcpy(mapped, draw.vertices.data(), draw.vertices.size_bytes());
-    std::memcpy(static_cast<std::byte *>(mapped) + draw.vertices.size_bytes(), draw.indices.data(),
-                draw.indices.size_bytes());
-    vkUnmapMemory(device_, frame.sceneMemory);
-    const VkImageView attachments[] = {imageViews_[imageIndex_], frame.sceneDepthView};
-    VkFramebufferCreateInfo framebuffer{};
-    framebuffer.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebuffer.renderPass = sceneRenderPass_;
-    framebuffer.attachmentCount = 2;
-    framebuffer.pAttachments = attachments;
-    framebuffer.width = width_;
-    framebuffer.height = height_;
-    framebuffer.layers = 1;
-    if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.sceneFramebuffer) != VK_SUCCESS)
-      return SurfaceStatus::DeviceLost;
-    std::array<VkClearValue, 2> clear{};
-    clear[0].color = {{0.03F, 0.04F, 0.08F, 1.0F}};
-    clear[1].depthStencil = {1.0F, 0};
-    VkRenderPassBeginInfo begin{};
-    begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    begin.renderPass = sceneRenderPass_;
-    begin.framebuffer = frame.sceneFramebuffer;
-    begin.renderArea.extent = {width_, height_};
-    begin.clearValueCount = static_cast<std::uint32_t>(clear.size());
-    begin.pClearValues = clear.data();
-    struct Constants {
-      float mvp[16];
-      float direction[4]{};
-      float light[4]{};
-      float color[4];
-    } constants{};
-    static_assert(sizeof(Constants) == 112);
-    std::memcpy(constants.mvp, draw.model_view_projection, sizeof(constants.mvp));
-    std::memcpy(constants.direction, draw.light_direction, sizeof(draw.light_direction));
-    std::memcpy(constants.light, draw.light_color, sizeof(draw.light_color));
-    std::memcpy(constants.color, draw.base_color, sizeof(constants.color));
-    vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, scenePipeline_);
-    const VkViewport viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_), 0, 1};
-    const VkRect2D scissor{{0, 0}, {width_, height_}};
-    vkCmdSetViewport(frame.commands, 0, 1, &viewport);
-    vkCmdSetScissor(frame.commands, 0, 1, &scissor);
-    vkCmdPushConstants(frame.commands, scenePipelineLayout_,
-                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-                       sizeof(constants), &constants);
-    constexpr VkDeviceSize offset = 0;
-    vkCmdBindVertexBuffers(frame.commands, 0, 1, &frame.sceneUpload, &offset);
-    vkCmdBindIndexBuffer(frame.commands, frame.sceneUpload, draw.vertices.size_bytes(),
-                         VK_INDEX_TYPE_UINT16);
-    vkCmdDrawIndexed(frame.commands, static_cast<std::uint32_t>(draw.indices.size()), 1, 0, 0, 0);
-    vkCmdEndRenderPass(frame.commands);
-    sceneDrawn_ = true;
-    ++diagnostics_.sceneDrawCalls;
-    return SurfaceStatus::Ready;
   }
   SurfaceStatus Present() override {
     if (!OnThread())
@@ -728,9 +641,6 @@ private:
     frame.sceneMemory = VK_NULL_HANDLE;
   }
   void DestroyFrameRetirements(Frame &frame) {
-    if (frame.sceneFramebuffer)
-      vkDestroyFramebuffer(device_, frame.sceneFramebuffer, nullptr);
-    frame.sceneFramebuffer = VK_NULL_HANDLE;
     if (frame.uiFramebuffer)
       vkDestroyFramebuffer(device_, frame.uiFramebuffer, nullptr);
     frame.uiFramebuffer = VK_NULL_HANDLE;
@@ -911,16 +821,6 @@ private:
     frame.uiMemory = VK_NULL_HANDLE;
     frame.uiCapacity = 0;
     DestroyFrameRetirements(frame);
-    if (frame.sceneUpload)
-      vkDestroyBuffer(device_, frame.sceneUpload, nullptr);
-    if (frame.sceneMemory)
-      vkFreeMemory(device_, frame.sceneMemory, nullptr);
-    if (frame.sceneDepthView)
-      vkDestroyImageView(device_, frame.sceneDepthView, nullptr);
-    if (frame.sceneDepth)
-      vkDestroyImage(device_, frame.sceneDepth, nullptr);
-    if (frame.sceneDepthMemory)
-      vkFreeMemory(device_, frame.sceneDepthMemory, nullptr);
   }
   void DestroyUiResources() {
     for (auto &[id, texture] : uiTextures_) {
@@ -1250,8 +1150,6 @@ private:
         vkDestroySemaphore(device_, frame.available, nullptr);
       if (frame.finished)
         vkDestroySemaphore(device_, frame.finished, nullptr);
-      if (frame.commands)
-        vkFreeCommandBuffers(device_, commandPool_, 1, &frame.commands);
     }
     frames_.clear();
     if (scenePipeline_)
@@ -1264,15 +1162,6 @@ private:
     scenePipelineLayout_ = VK_NULL_HANDLE;
     sceneRenderPass_ = VK_NULL_HANDLE;
     DestroyUiResources();
-    if (scenePipeline_)
-      vkDestroyPipeline(device_, scenePipeline_, nullptr);
-    if (scenePipelineLayout_)
-      vkDestroyPipelineLayout(device_, scenePipelineLayout_, nullptr);
-    if (sceneRenderPass_)
-      vkDestroyRenderPass(device_, sceneRenderPass_, nullptr);
-    scenePipeline_ = VK_NULL_HANDLE;
-    scenePipelineLayout_ = VK_NULL_HANDLE;
-    sceneRenderPass_ = VK_NULL_HANDLE;
     for (const auto view : imageViews_)
       vkDestroyImageView(device_, view, nullptr);
     imageViews_.clear();

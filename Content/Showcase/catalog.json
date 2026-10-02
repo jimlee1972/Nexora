@@ -3,9 +3,40 @@
   "version": 1,
   "migration": "Reject unknown schema versions; procedural content is rebuilt from the matching application version.",
   "license": "Repository LICENSE; original procedural geometry and bitmap glyphs",
-  "rooms": ["hub", "rendering", "scene", "input", "gameplay", "presentation", "streaming", "shipping"],
-  "tour": {"duration_seconds": 210, "step_seconds": 30, "rooms": ["hub", "rendering", "scene", "gameplay", "presentation", "streaming", "shipping"]},
-  "native_adapters": {"audio_output": "unavailable", "video_decoder": "unavailable", "webview": "unavailable"},
-  "geometry": "Generated at runtime through Showcase room content; no downloaded artwork",
-  "evidence_scope": "Integration probes do not replace CTest or clean-host/physical-display acceptance"
+  "rooms": [
+    "hub",
+    "rendering",
+    "scene",
+    "input",
+    "gameplay",
+    "presentation",
+    "streaming",
+    "shipping"
+  ],
+  "tour": {
+    "duration_seconds": 210,
+    "step_seconds": 30,
+    "rooms": [
+      "hub",
+      "rendering",
+      "scene",
+      "gameplay",
+      "presentation",
+      "streaming",
+      "shipping"
+    ]
+  },
+  "native_adapters": {
+    "audio_output": "unavailable",
+    "video_decoder": "unavailable",
+    "webview": "unavailable"
+  },
+  "geometry": "Original procedural indexed meshes: capsule and collision-aligned stair ramp, navigation/query tubes, CPU palette-skinned column, live particle cubes, streamed heightfield tiles and coarse HLOD proxies",
+  "evidence_scope": "Integration probes do not replace CTest or clean-host/physical-display acceptance",
+  "render_contracts": {
+    "skin": "CPU weighted palette deformation / native GPU indexed drawing",
+    "particles": "Runtime owning live-position snapshots / native GPU indexed drawing",
+    "terrain": "Original deterministic height function; Full subdivision mesh, HLOD coarse proxy, unloaded map tile",
+    "memory_counters": "StreamingManager authored RAM/VRAM estimates; native allocations remain separate"
+  }
 }

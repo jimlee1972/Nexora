@@ -12,7 +12,7 @@
 - ✅ Development/Modular packaging includes the seven required Linux engine libraries. Isolated-copy launch evidence rejects a dependency resolved outside the package; Full/Monolithic and Minimal builds remain separate.
 - ✅ Full-profile package presets, original content catalog, interactive launch scripts, deterministic ZIP and SHA-256 output, and versioned Linux screenshots are available.
 - Existing Windows/DX12 developer-machine GPU evidence remains valid for its recorded version. The expanded rooms, Full Windows package and workflow changes have not been executed on Windows in this Linux session.
-- Open: native texture/material and instancing expansion, full probe input/output/error-injection UI, plugin ABI rejection in the live showcase, graphical capsule/ramp and full skin/particle rendering, clean Windows graphical launch, physical-display acceptance, and other native-backend parity. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
+- Open: native texture/material and instancing expansion, clean Windows graphical launch, physical-display acceptance, and other native-backend parity. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
 
 Evidence and exact validation results: [`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
 
@@ -291,7 +291,8 @@ This accepts the Linux virtual-display slice only; physical-display and Windows/
 - ✅ F3 matrix, Tab selection, R rerun, `--probe=v1.MN`, and `--markdown=PATH` provide live integration results.
 - ✅ Scene snapshot, Modify/Undo, isolated Play World, prefab override/rebase and a real cooked procedural mesh affect the displayed scene.
 - ✅ Empty asset, dependency cycle, asset-generation rollback and shipping-update rollback use public Runtime APIs.
-- Open: live plugin ABI mismatch injection and full per-probe input/output/error controls. Schema-fixture injection results are not accepted runtime observations.
+- ✅ Validation Lab shows sampled input/output metrics and issues, scrolls details, cycles error cases, and exports owning JSON/Markdown reports. Empty asset, dependency cycle, asset/update rollback and real dynamic-library ABI rejection execute through public Runtime APIs. Missing plugin files produce FAIL; unsupported case/milestone pairs remain UNSUPPORTED.
+- Schema-fixture injection metadata remains separate from these observed runtime runs.
 
 ### Phase D -- Gameplay / Presentation / World Rooms
 
@@ -299,7 +300,8 @@ This accepts the Linux virtual-display slice only; physical-display and Windows/
 - ✅ Animation translations, skin palette count, particle occupancy/drop count and audio/video queue/bus contracts update in the same application loop. Native audio/video playback is explicitly unavailable.
 - ✅ Streaming cells, occupied pins, portal prefetch, HLOD residency, procedural terrain/vegetation and RAM/VRAM budgets have visible state.
 - ✅ Seven tour steps run for 210 seconds with pause and replay, leaving readable results.
-- Open: capsule/ramp geometry, fuller collision/nav visualization, actual skin/particle position rendering, and complete terrain/HLOD assets. State visualizations are not full native content acceptance.
+- ✅ Native indexed capsule geometry and collision-aligned AABB stair ramp, actual collision-ray/path tubes, a CPU-weighted public-palette skin column, two-clip blend and live particle position meshes execute in the application.
+- ✅ Streamed Full terrain subdivision meshes, authored coarse HLOD proxies and vegetation geometry follow public cell residency. Memory counters are authored streaming estimates. Production GPU skinning, smooth-ramp physics adapters and high-resolution art remain beyond this procedural demonstration.
 
 ### Phase E -- Platform / Shipping / Distribution
 
@@ -420,3 +422,7 @@ The next implementation milestone should be named **V1-Showcase-M0 Windowed Demo
 7. Update the Windows VS Code/CMake usage instructions and this document's implementation-status section.
 
 Only once this ticket is complete should work move on to the 3D scene, probe registry, and each V1 showcase room -- so a genuinely runnable exe baseline is established first, and V1 capabilities are attached to it incrementally, rather than using not-yet-existing visual features to paper over an unfinished RHI/window boundary.
+
+Validation Lab follow-up: `Tab` selects M0-M12; `I` cycles None/Empty asset/Cycle/Plugin ABI/Rollback; `R` runs; PageUp/PageDown scroll results; `X` exports `showcase-lab.json` and `showcase-lab.md`. The example plugin is optional and packaged beside the executable when enabled. `--plugin-library=PATH` selects a real local library for the M6 gate. All records include the sample tick and exact input case.
+
+✅ Validation Lab/geometry follow-up and feet-origin ground-contact regression acceptance: [Linux-V1-Lab-Geometry-2026-10-03](../../Apps/Showcase/evidence/Linux-V1-Lab-Geometry-2026-10-03/acceptance.md), full Linux Development gate 75/75 with all five native gates executed under Khronos/synchronization validation.

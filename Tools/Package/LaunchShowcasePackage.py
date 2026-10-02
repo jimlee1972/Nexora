@@ -5,7 +5,6 @@ import argparse
 import json
 import platform
 import os
-import re
 import shlex
 import shutil
 import subprocess
@@ -36,9 +35,9 @@ def safe_join(base: Path, relative: str) -> Path:
     return candidate
 
 
-def verify_runtime_closure(executable: Path, package: Path) -> list[str]:
+def verify_runtime_closure(executable: Path, package: Path, environment: dict | None = None) -> list[str]:
     package = package.resolve()
-    libraries = engine_runtime_libraries(executable)
+    libraries = engine_runtime_libraries(executable, environment)
     for library in libraries:
         if package not in library.parents:
             raise RuntimeError(f"Engine dependency resolves outside the staged package: {library}")
@@ -86,12 +85,9 @@ def main() -> int:
         engine_libraries = {}
         if platform.system() == "Linux":
             environment["LD_LIBRARY_PATH"] = str(staged / "bin") + os.pathsep + environment.get("LD_LIBRARY_PATH", "")
-            dependencies = subprocess.run(["ldd", str(executable)], env=environment, capture_output=True, text=True, check=True)
-            for name, location in re.findall(r"(libNexora\w*\.so)\s+=>\s+(\S+)", dependencies.stdout):
-                resolved = Path(location).resolve()
-                if resolved.parent != (staged / "bin").resolve():
-                    raise RuntimeError(f"package uses an engine library outside the isolated copy: {name}: {location}")
-                engine_libraries[name] = resolved.relative_to(staged).as_posix()
+            verify_runtime_closure(executable, staged, environment)
+            for resolved in engine_runtime_libraries(executable, environment):
+                engine_libraries[resolved.name] = resolved.relative_to(staged).as_posix()
         completed = subprocess.run([str(executable), *command[1:]], cwd=staged, env=environment,
                                    text=True, capture_output=True, check=False)
         report = staged / "launch-report.json"

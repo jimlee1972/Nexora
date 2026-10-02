@@ -33,8 +33,11 @@ loaded from the active generation, and contributes visible geometry to the Scene
 acceptance remains PARTIAL; unknown contract gates and unexecuted failure-injection metadata remain
 NOT_RUN. `--probe=v1.M8 --markdown=probe.md --report=probe.json` reruns and exports one integration
 result. M9 audio/video and M11 WebView explicitly show contract-only/unavailable adapter state.
-Skeleton translations and particle occupancy visualize public counters; they are not full GPU
-skinning or native media playback. `visual_complete` is not inferred from these views.
+Skeleton translations and a weighted procedural column visualize the public skin palette through CPU
+deformation; live particles use owning Runtime position snapshots. J blends two clips. GPU skinning
+and native media playback remain separate capabilities. Gameplay uses a capsule mesh, collision-aligned
+AABB stair ramp and tubes for actual navigation/query results. Streaming meshes use terrain LOD and
+public cell residency, with authored coarse HLOD proxies and vegetation geometry. `visual_complete` is not inferred from these views.
 
 `showcase.linux_vulkan_virtual_display` verifies four genuine GPU frames and resize under Xvfb.
 `showcase.linux_vulkan_interaction` uses xdotool to exercise all eight rooms, editing/undo/play,
@@ -134,13 +137,6 @@ cmake --build --preset linux-development --target NexoraShowcasePackageDevelopme
 cmake --build --preset linux-shipping --target NexoraShowcasePackageShipping
 ```
 
-Linux Development packaging discovers and includes all transitive `libNexora*.so` dependencies.
-Build-tree RPATHs are relative and include `$ORIGIN`, so bundled Engine libraries load from `bin/`.
-The evidence launcher verifies the staged ELF dependency closure and rejects any Engine library
-resolved outside that copy; system libraries and GPU drivers remain host requirements. A copied
-executable alone previously passed by resolving Engine DSOs from the original build tree, so that
-older checksum-only evidence did not establish Engine-library isolation.
-
 The generated `build.json` records the exact relocatable launch command, including the packaged Zig
 library path. On Linux, the evidence target verifies every packaged checksum, copies the package to
 a fresh temporary directory, launches only from that copy, and retains the embedded Showcase report
@@ -187,3 +183,23 @@ The native Linux evidence is versioned at
 [`Linux-Vulkan-Visual-Slice-2026-10-03`](evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
 Expanded Windows rooms, clean-machine graphical launch, physical-display evidence, full texture/
 instancing/skin/particle content and plugin ABI injection remain open acceptance items.
+
+## Live Validation Lab
+
+F3 opens the matrix. Tab selects M0-M12, I cycles the error input (None, Empty asset,
+Dependency cycle, Plugin ABI, Rollback), R runs, and PageUp/PageDown scroll copied metrics.
+Every run records `input.milestone`, `input.error_case`, `sample_tick`, output and issues.
+M5 handles empty import/cyclic dependencies/generation rollback; M6 uses an actual dynamic
+library with a mismatched host ABI, verifying zero loaded handles and zero registrations;
+M12 stages and rolls back a fresh update. Each injection uses isolated Showcase-owned objects.
+Other case/milestone pairs remain UNSUPPORTED, and a provided missing plugin file is FAIL.
+The optional example plugin is placed beside the app and included in Development/Full packages.
+`--plugin-library=PATH` overrides it; disabled plugin builds do not fabricate ABI evidence.
+
+X writes `showcase-lab.json` and `showcase-lab.md` in the current directory and reports write
+failure on screen. JSON contains owning room/probe snapshots; Markdown includes all metrics
+and issues. These are runtime integration results and retain `contract_gate=NOT_RUN`.
+The Linux interaction gate operates these controls, checks real ABI rejection and captures
+`validation-lab.png`, `lab-export.json` and `lab-export.md`.
+
+Current lab/geometry and ground-contact acceptance: [Linux-V1-Lab-Geometry-2026-10-03](evidence/Linux-V1-Lab-Geometry-2026-10-03/acceptance.md).

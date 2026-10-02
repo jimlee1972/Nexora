@@ -32,6 +32,18 @@ int main() {
   Require(state.ground == CharacterGroundState::Unsupported && state.velocity == SimulationVector{},
           "teleport contract failed");
 
+  CharacterState grounded{{-5, 0, 0}, {}, CharacterGroundState::OnGround};
+  for (int tick = 0; tick < 240; ++tick) {
+    const auto stable = motor.Tick(grounded, {}, 1.0 / 60, physics, controller);
+    Require(std::abs(grounded.position.y) < 1e-9 &&
+                stable.ground == CharacterGroundState::OnGround && stable.ground_normal.y == 1,
+            "gravity penetrated a stationary ground contact");
+  }
+  controller.Teleport(grounded, {-5, 10, 0});
+  const auto landed = motor.Tick(grounded, {}, 1, physics, controller);
+  Require(landed.ground == CharacterGroundState::OnGround && std::abs(grounded.position.y) < 1e-9,
+          "a large downward step tunneled through the ground plane");
+
   CharacterState pending_state{{5, 0.1, 0}, {1, -2, 0}, CharacterGroundState::OnGround};
   auto pending_result =
       motor.Tick(pending_state, {1, 0, 0, {}, {}}, 0.1, physics, controller, false);
@@ -78,13 +90,11 @@ int main() {
   perception.Publish({7, StimulusKind::Hearing, {2, 0, 0}, 1});
   perception.Publish({8, StimulusKind::Sight, {3, 0, 0}, 1});
   Require(perception.Query({0, 0, 0}, 10, 1).size() == 1, "perception budget failed");
-  perception.Publish({9, StimulusKind::Sight,
-                      {std::numeric_limits<double>::quiet_NaN(), 0, 0}, 1});
+  perception.Publish({9, StimulusKind::Sight, {std::numeric_limits<double>::quiet_NaN(), 0, 0}, 1});
   Require(perception.Query({0, 0, 0}, std::numeric_limits<double>::quiet_NaN(), 1).empty(),
           "invalid perception input was accepted");
 
-  BehaviorProgram cycle({{BehaviorOp::Sequence, 1, 1, 0},
-                         {BehaviorOp::Sequence, 0, 1, 0}});
+  BehaviorProgram cycle({{BehaviorOp::Sequence, 1, 1, 0}, {BehaviorOp::Sequence, 0, 1, 0}});
   const auto cycle_trace = cycle.Tick(blackboard);
   Require(!cycle_trace.succeeded && cycle_trace.visited == std::vector<std::uint32_t>({0, 1}),
           "cyclic behavior program was not bounded");

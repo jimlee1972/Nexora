@@ -6,6 +6,7 @@ import hashlib
 import json
 import platform
 import re
+import subprocess
 import shutil
 import zipfile
 from pathlib import Path
@@ -26,13 +27,13 @@ def copy(source: Path, destination: Path) -> dict:
             "sha256": digest(destination)}
 
 
-def engine_runtime_libraries(binary: Path) -> list[Path]:
+def engine_runtime_libraries(binary: Path, environment: dict | None = None) -> list[Path]:
     """Discover the transitive Engine ELF closure of a trusted built application."""
     with binary.open("rb") as source:
         elf = source.read(4) == b"\x7fELF"
     if platform.system() != "Linux" or not elf:
         return []
-    result = subprocess.run(["ldd", str(binary.resolve())], text=True, capture_output=True)
+    result = subprocess.run(["ldd", str(binary.resolve())], text=True, capture_output=True, env=environment)
     if result.returncode:
         raise RuntimeError(f"could not inspect ELF dependencies: {result.stderr or result.stdout}")
     libraries = []

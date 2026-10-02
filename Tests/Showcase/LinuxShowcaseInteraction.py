@@ -54,7 +54,7 @@ def screenshot(window: int, width: int, height: int, output: Path) -> bytes:
 
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] != "--allow-unavailable-plugin"):
         raise SystemExit('usage: LinuxShowcaseInteraction.py NEXORA_SHOWCASE')
     xvfb, xdotool = shutil.which('Xvfb'), shutil.which('xdotool')
     if not xvfb or not xdotool:
@@ -74,7 +74,7 @@ def main():
             app = subprocess.Popen([executable, '--mode=interactive', '--backend=vulkan',
                 '--gameplay-module=static', '--no-reload', f'--report={report}',
                 f'--markdown={markdown}'], env=environment, stdout=subprocess.DEVNULL,
-                stderr=subprocess.PIPE, text=True)
+                stderr=subprocess.PIPE, text=True, cwd=temporary)
             def tool(*args):
                 return subprocess.run([xdotool, *map(str,args)], env=environment, check=True,
                     capture_output=True, text=True, timeout=5).stdout.strip()
@@ -119,11 +119,36 @@ def main():
             tool('mousedown',1); tool('mousemove','--window',window,460,420);tool('mouseup',1)
             time.sleep(0.2)
             gameplay = screenshot(window,1280,720,output/'gameplay.png')
+            tool('key','--window',window,'F1')
+            time.sleep(0.1)
+            screenshot(window,1280,720,output/'gameplay-geometry.png')
+            tool('key','--window',window,'F1')
             assert hub != scene and scene != gameplay, 'Room controls did not change native pixels'
             for key, room in [('6','presentation'), ('7','streaming'), ('8','shipping')]:
                 tool('key','--window',window,key)
                 time.sleep(0.15)
                 screenshot(window,1280,720,output/f'{room}.png')
+                if room == 'presentation':
+                    tool('key','--window',window,'j','F1')
+                    time.sleep(0.15)
+                    screenshot(window,1280,720,output/'presentation-blend.png')
+                    tool('key','--window',window,'F1')
+            # The previous matrix interaction selected M1. Drive real M5/M6/M12 errors.
+            tool('key','--window',window,'F3','Tab','Tab','Tab','Tab','i','r','i','r','Tab','i','r','x','Next')
+            time.sleep(0.15)
+            screenshot(window,1280,720,output/'validation-lab.png')
+            exported = Path(temporary) / 'showcase-lab.json'
+            lab = json.loads(exported.read_text())
+            plugin = lab['integration_probes']['probes'][6]
+            if len(sys.argv) == 2:
+                assert plugin['status'] == 'PASS', plugin
+                assert any(metric['name'] == 'output.registered' and metric['value'] == 'false'
+                           for metric in plugin['metrics']), plugin
+            else:
+                assert plugin['status'] == 'UNSUPPORTED', plugin
+            shutil.copy2(exported, output/'lab-export.json')
+            shutil.copy2(Path(temporary)/'showcase-lab.md', output/'lab-export.md')
+            tool('key','--window',window,'Tab','Tab','Tab','Tab','Tab','Tab','i','r','F3')
             tool('key','--window',window,'v','b','h','t','space','r')
             tool('windowsize',window,960,540)
             time.sleep(0.2)
@@ -146,7 +171,7 @@ def main():
             assert markdown.is_file() and 'M12' in markdown.read_text()
             (output/'acceptance.json').write_text(json.dumps({
                 'scope':'Linux Xvfb/lavapipe native interaction; no physical display or Windows claim',
-                'room_controls':True,'screenshots':['hub.png','rendering.png','scene.png','input.png','gameplay.png','presentation.png','streaming.png','shipping.png','resized-hub.png'],
+                'room_controls':True,'screenshots':['hub.png','rendering.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png'],
                 'windowed_evidence':native,'build':evidence['build']},indent=2)+'\n')
             print(json.dumps({'native':native,'visited':rooms['visited'],'evidence_directory':str(output)},indent=2))
             return 0
