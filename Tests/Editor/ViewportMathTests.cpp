@@ -160,6 +160,10 @@ void TestSnapping() {
               SnapToStep(1.26, std::nan("")) == 1.26,
           "a disabled step must leave the value unchanged");
   Require(std::isnan(SnapToStep(std::nan(""), 0.25)), "snapping must not launder NaN");
+  Require(
+      SnapToStep(std::numeric_limits<double>::max(), std::numeric_limits<double>::denorm_min()) ==
+          std::numeric_limits<double>::max(),
+      "snapping overflowed a finite value to infinity");
 }
 
 void TestResizeFilter() {

@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -459,8 +460,9 @@ int Run() {
   Require(!browser.Delete(invalid_delete, &error) && browser.Find(mesh_id),
           "failed delete did not roll back atomically");
   const std::vector<runtime::AssetUuid> delete_ids{material_id};
-  Require(browser.Delete(delete_ids, &error) && !browser.Find(material_id) && browser.Undo() &&
-              browser.Find(material_id),
+  Require(browser.Select(material_id) && browser.Delete(delete_ids, &error) &&
+              !browser.Find(material_id) && !browser.IsSelected(material_id) && browser.Undo() &&
+              browser.Find(material_id) && browser.IsSelected(material_id),
           "transactional delete/undo failed");
 
   editor::AssetDragPayload drag{std::string(editor::AssetDragPayload::kType), 7, mesh_id};
@@ -700,6 +702,24 @@ int Run() {
               gizmo.State() == editor::GizmoState::Idle,
           "gizmo cancellation did not restore the initial transform snapshot");
 
+  editor::GizmoTransaction failed_gizmo;
+  Require(failed_gizmo.Begin(inspect_entities,
+                             [&](runtime::Id id, runtime::Transform &value) {
+                               value = gizmo_transforms.at(id);
+                               return true;
+                             }),
+          "failed gizmo transaction did not begin");
+  std::size_t applied = 0;
+  Require(!failed_gizmo.Update(dragged,
+                               [&](runtime::Id id, runtime::Transform value) {
+                                 if (applied++ == 1)
+                                   return false;
+                                 gizmo_transforms[id] = value;
+                                 return true;
+                               }) &&
+              gizmo_transforms[parent] == runtime::Transform{1, 1, 1},
+          "failed gizmo update left an earlier entity half-applied");
+
   editor::AsyncPickingValidator picking;
   picking.Reset(4, 8);
   const auto stale_pick = picking.Request();
@@ -714,6 +734,16 @@ int Run() {
   Require(editor::CameraPersistence::Save(camera_path, camera, &error) &&
               editor::CameraPersistence::Load(camera_path, &error) == camera,
           "scene camera persistence failed");
+  auto invalid_camera = camera;
+  invalid_camera.yaw = std::numeric_limits<double>::quiet_NaN();
+  Require(!editor::CameraPersistence::Save(camera_path, invalid_camera, &error) &&
+              editor::CameraPersistence::Load(camera_path, &error) == camera,
+          "invalid camera state replaced the last readable camera file");
+  const auto camera_directory = root / ".nexora/camera-directory";
+  fs::create_directory(camera_directory);
+  Require(!editor::CameraPersistence::Save(camera_directory, camera, &error) &&
+              fs::is_directory(camera_directory),
+          "camera persistence deleted an existing destination directory");
 
   editor::UndoRedoHistory history;
   int replay_value = 1000;
@@ -765,6 +795,11 @@ int Run() {
   Require(editor::BuildFrontend::Write(manifest, manifest_path, &error) &&
               fs::file_size(manifest_path) > 0,
           "build manifest failed");
+  const auto manifest_directory = root / "manifest-directory";
+  fs::create_directory(manifest_directory);
+  Require(!editor::BuildFrontend::Write(manifest, manifest_directory, &error) &&
+              fs::is_directory(manifest_directory),
+          "build manifest replacement deleted an existing destination directory");
   manifest.artifacts.push_back({"../escape", "bad", 1});
   Require(!editor::BuildFrontend::Validate(manifest, &error), "unsafe build artifact accepted");
 #if defined(_WIN32)
@@ -821,6 +856,11 @@ int Run() {
                   std::optional<std::string>{"recoverable scene"} &&
               recovered_revision == 9,
           "autosave journal round trip failed");
+  const auto journal_directory = root / ".nexora/journal-directory";
+  fs::create_directory(journal_directory);
+  Require(!editor::AutosaveJournal::Write(journal_directory, 10, "payload", &error) &&
+              fs::is_directory(journal_directory),
+          "autosave replacement deleted an existing destination directory");
   std::ofstream(journal_path, std::ios::trunc) << "corrupt";
   Require(!editor::AutosaveJournal::Recover(journal_path, nullptr, &error),
           "corrupt autosave journal accepted");

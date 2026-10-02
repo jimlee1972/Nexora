@@ -66,6 +66,7 @@ private:
   std::vector<ContentItem> items_;
   std::vector<ContentItem> undo_;
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> selection_;
+  std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> undo_selection_;
   std::filesystem::path folder_;
   std::string query_, type_;
   std::vector<Breadcrumb> breadcrumbs_;

@@ -44,6 +44,7 @@ struct ShaderCompileRequest final {
   std::filesystem::path output_path;
   std::vector<std::string> entry_points;
   std::vector<std::filesystem::path> include_directories;
+  std::vector<std::string> defines;
   std::string profile;
   rhi::ShaderBinaryFormat format{rhi::ShaderBinaryFormat::SpirV};
   rhi::PipelineLayoutMetadata reflection;
