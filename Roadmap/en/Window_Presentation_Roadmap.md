@@ -105,3 +105,15 @@ or establish the expanded Windows version's clean-machine graphical acceptance.
 ✅ Native-owner Offscreen → Main → UI → Present now uses fence-owned scene color and GPU copy in Vulkan/DX12, with duplicate acquire and pending-copy ordering rejected. Linux Vulkan pixel, interaction and synchronization-validation gates pass 75/75. The packaged Windows `accept-v1.ps1` records isolated-copy screenshots, checksums and native counters; the user will perform expanded physical-display/clean-host acceptance locally.
 
 ✅ Expanded Windows Full Shipping/DX12 isolated-copy graphical acceptance passes in [CI run 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518): 14 checksums, 12 visible screenshots, sampled asset/plugin rejection, 339 native graph/copy/present frames and exit code 0. [Versioned Windows CI evidence](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md). The hosted VM does not accept physical-display or independently provisioned clean-host gates; these remain the user’s local work.
+
+✅ Windows DX12 local Development/Full and Shipping/Full native execution is recorded in
+[Windows-V1-DX12-Local-2026-10-03](../../Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
+The GTX 960 developer-machine run covers eight rooms, primitive/texture/instance rendering,
+native offscreen graph/UI/present, input/edit/reload/animation captures, Lab asset/plugin rejection
+and the complete 210-second guided tour. The explicit Development preset and stock PowerShell 5
+default-path fix make the documented local workflow reproducible. Clean-host and physical-display
+operator attestations remain pending; this does not complete V1's final acceptance.
+✅ The Windows local verifier now requires fresh exports, successful edited-scene snapshot round trip,
+reset tour progress and the exact sampled M5/M6 rejection inputs/outputs. Source/package hashes use
+pinned LF bytes. Baseline e4a140139189 passes Linux Development 77/77 and Shipping package CI;
+physical-display and clean-host final gates remain pending.

@@ -100,3 +100,14 @@ headless gate。Showcase command 的實際 Windows/DX12 執行仍屬 target-host
 ✅ 原生 owner 的 Offscreen → Main → UI → Present 已使用 Vulkan/DX12 fence 持有的 scene color 與 GPU copy，並拒絕重複 acquire 及未完成 copy 的錯誤順序。Linux Vulkan 像素、互動及同步驗證 gate 共 75/75 通過。套件內 Windows `accept-v1.ps1` 記錄隔離副本截圖、checksum 與原生計數器；新版實體顯示／乾淨主機驗收由使用者本地執行。
 
 ✅ 新版 Windows Full Shipping／DX12 隔離副本圖形驗收已在 [CI 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518) 通過：14 筆 checksum、12 張可見截圖、asset／plugin 拒絕案例、339 次原生 graph／copy／present 及退出碼 0。[版本化 Windows CI 證據](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md)。此 hosted VM 不代表實體顯示或獨立乾淨主機驗收；兩項仍由使用者本地完成。
+
+✅ Windows DX12 本地 Development/Full 與 Shipping/Full 原生執行已記錄於
+[Windows-V1-DX12-Local-2026-10-03](../../Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md)。
+GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance rendering、
+原生 offscreen graph/UI/present、輸入／編輯／reload／animation 截圖、Lab asset/plugin 拒絕
+以及完整 210 秒 guided tour。明確的 Development preset 與 stock PowerShell 5 預設路徑修正
+讓本地文件流程可重現。乾淨主機與實體顯示操作聲明仍待驗收；V1 最終驗收尚未完成。
+✅ Windows 本地驗收腳本現要求當次匯出、已修改場景的成功 snapshot round trip、
+導覽重播歸零與 M5／M6 指定拒絕案例的實際輸入／輸出。Source／package hash 採固定 LF 位元組。
+基底 e4a140139189 通過 Linux Development 77/77 與 Shipping package CI；
+實體顯示與乾淨主機最終 gate 仍待驗收。

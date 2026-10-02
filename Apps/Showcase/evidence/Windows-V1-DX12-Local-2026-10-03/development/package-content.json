@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "NexoraCore.dll",
+      "bytes": 1028608,
+      "sha256": "50b6bd7431c206f691f48aff4955dfe4e113a891660f3aed75f51a16fb7218c6"
+    },
+    {
+      "path": "NexoraExamplePlugin.dll",
+      "bytes": 33792,
+      "sha256": "6895b1e13faca05f50d2db64899a252844dcd269cfcbb22aa207b592438dbac4"
+    },
+    {
+      "path": "NexoraFoundation.dll",
+      "bytes": 51712,
+      "sha256": "7b6498056919adafa126bfdd6198ff3447605342e1abefeb7183c6b595bb50fc"
+    },
+    {
+      "path": "NexoraPresentation.dll",
+      "bytes": 193536,
+      "sha256": "1f7d6a3c7420fc78371339fb34287a8f8f7bc2213f79f12007177211f6857cf6"
+    },
+    {
+      "path": "NexoraRHI.dll",
+      "bytes": 412160,
+      "sha256": "dba9b059aaa330674930069ecb8435ff404b7c1772110b9dccc663a34f47721e"
+    },
+    {
+      "path": "NexoraRenderer.dll",
+      "bytes": 589312,
+      "sha256": "e345e7eec9da07885bea029683aa8c52c5d5496ed5fb1ca8f196d811e40502b0"
+    },
+    {
+      "path": "NexoraRuntime.dll",
+      "bytes": 3242496,
+      "sha256": "b858c10f22b03ce335841e42b3026adc2f4d092baab4fbb4fc394067f915b032"
+    },
+    {
+      "path": "NexoraShowcase.exe",
+      "bytes": 2518528,
+      "sha256": "765738aef69f1bc20ec38b7e6f823903921f42030ddb18af9aaa8c1085039b6b"
+    },
+    {
+      "path": "NexoraWindow.dll",
+      "bytes": 160768,
+      "sha256": "343ff993ec59ca8b9324dd3e5f4f60f661ca96e6f370ed00c69132bb997f8ad1"
+    },
+    {
+      "path": "NexoraZigGameplay.dll",
+      "bytes": 950272,
+      "sha256": "c3077dca7e34f100e5a9addf6e76cc7efb25b54c95e53c3cbfea784354b07a9f"
+    },
+    {
+      "path": "msvcp140.dll",
+      "bytes": 557728,
+      "sha256": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9"
+    },
+    {
+      "path": "vcruntime140.dll",
+      "bytes": 124544,
+      "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066"
+    },
+    {
+      "path": "vcruntime140_1.dll",
+      "bytes": 49792,
+      "sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f"
+    }
+  ],
+  "showcase_content": [
+    {
+      "path": "Content/Showcase/catalog.json",
+      "bytes": 2024,
+      "sha256": "9fc2f134312f5751649f773001b59f61a7bdcca9a4ab8c3dae7ded13b8534ca9"
+    }
+  ]
+}

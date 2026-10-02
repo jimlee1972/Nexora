@@ -45,7 +45,7 @@ an unchecked or unmarked item remains incomplete.
 | ✅ [Zig Showcase](Roadmap/en/Zig_Showcase_Roadmap.md) | **100%** | ✅ ZS-M0 through ✅ ZS-M5 are complete; the independently provisioned Windows clean-machine Development package acceptance is recorded with 16/16 checksums and a PASS launch report. |
 | [Graphical Editor](Roadmap/en/Editor_Roadmap.md) | **0% (0/8)** | Repository audit confirms portable foundations for every ED track and an in-progress Dear ImGui shell, but no graphical ED milestone has passed all automated and target-host gates. |
 | [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **60%** | Mean of API 100%, Zig Showcase 100%, and Editor 0%, rounded down to 10%. |
-| [V1 Visual Showcase](Roadmap/en/V1-Visual-Showcase-Long-Term-Plan.md) | **Linux/Windows CI verified** | ✅ Vulkan 3D/UI, eight Runtime rooms, guided tour, native keyboard/mouse/resize evidence, live Validation Lab error injection, capsule/skin/particle/terrain geometry, hardware instances, sampled checker materials and native offscreen RenderGraph with Vulkan pixel acceptance, and Full package tooling; ✅ Windows Full/DX12 CI isolated-copy visual acceptance; Windows clean-host launch and physical-display acceptance remain open for local verification. |
+| [V1 Visual Showcase](Roadmap/en/V1-Visual-Showcase-Long-Term-Plan.md) | **Linux/Windows developer slices verified** | ✅ Native 3D/UI, eight Runtime rooms, Validation Lab, sampled materials, hardware instances and offscreen RenderGraph; ✅ Windows DX12 Development/Full and Shipping/Full local screenshots, JSON and 210-second tour. Clean-host and physical-display attestations remain pending. |
 
 ✅ Build run [37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518) passes all jobs for source revision `ecf2277f07bc51ef09112c652a0ccbc0511d0a99`, including Windows Full/DX12 isolated-copy visual acceptance, desktop Development, mimalloc and sanitizer contracts. [Versioned Windows evidence](Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md) retains screenshots, native counters and provenance. Physical-display and independently provisioned clean-host acceptance remain the user’s local gates.
 
@@ -214,7 +214,7 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | ✅ [Zig Showcase](Roadmap/zh-TW/Zig_Showcase_Roadmap.md) | **100%** | ✅ ZS-M0 至 ✅ ZS-M5 已完成；獨立配置 Windows 乾淨機器的 Development package 已通過 16/16 checksum 並產出 PASS launch report。 |
 | [圖形化 Editor](Roadmap/zh-TW/Editor_Roadmap.md) | **0%（0/8）** | Repository 稽核確認各 ED track 已有 portable foundation，Dear ImGui shell 亦在施工中，但尚無 graphical ED milestone 通過全部 automated 與 target-host gate。 |
 | [聚焦 Roadmap AI 施工規劃](Roadmap/zh-TW/聚焦_Roadmap_AI施工技術與系統規劃.md) | **60%** | API 100%、Zig Showcase 100% 與 Editor 0% 的平均，向下取整至 10%。 |
-| [V1 可視化 Showcase](Roadmap/zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) | **Linux 切片已驗證** | ✅ Vulkan 3D/UI、八個 Runtime 房間、guided tour、原生鍵鼠／resize 證據、live Validation Lab 錯誤注入、capsule/skin/particle/terrain geometry 與 Full 套件工具；texture/instancing、Windows 擴充版乾淨機啟動與 physical-display 驗收仍待完成。 |
+| [V1 可視化 Showcase](Roadmap/zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) | **Linux／Windows 開發機切片已驗證** | ✅ 原生 3D/UI、八個 Runtime 房間、Validation Lab、sampled material、hardware instance 與 offscreen RenderGraph；✅ Windows DX12 Development/Full 與 Shipping/Full 本地截圖、JSON 及 210 秒導覽。乾淨主機與實體顯示操作聲明仍待驗收。 |
 
 ### Repository 狀態
 
@@ -319,3 +319,14 @@ Linux toolchain、CMake 與 Zig 版本，並預先 configure development preset�
 ### 授權
 
 Nexora 採用 [MIT License](LICENSE) 發布。
+
+Windows DX12 local delivery: [acceptance record](Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
+Use `windows-showcase-development` for Development/Full and `windows-showcase-shipping` for
+Shipping/Full. `-CompleteGuidedTour` verifies all 210 seconds. Developer-GPU evidence remains
+separate from clean-host and physical-display operator attestations. Fresh JSON verifies F5 snapshot
+round trips, tour replay resets and sampled Lab error cases; Linux baseline CI passes 77/77.
+
+Windows DX12 本地交付：[驗收紀錄](Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md)。
+Development/Full 使用 `windows-showcase-development`，Shipping/Full 使用 `windows-showcase-shipping`。
+`-CompleteGuidedTour` 驗證完整 210 秒；開發機 GPU 證據不代表乾淨主機或實體顯示操作聲明已驗收。
+當次 JSON 驗證 F5 snapshot round trip、導覽重播歸零與指定 Lab 錯誤案例；Linux 基底 CI 77/77 通過。

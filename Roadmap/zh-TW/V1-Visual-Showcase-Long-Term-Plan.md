@@ -1,6 +1,6 @@
 # Nexora V1 可視化展示 Demo 長期規劃
 
-> **進度：Linux 與 Windows CI 可視化切片已驗證；完整 V1 本地目標主機驗收仍待完成。**
+> **進度：Linux、Windows CI 與本地開發機 GPU 可視化切片已驗證；完整 V1 驗收仍待完成。**
 > 原百分比缺少可重現的加權清單，改以以下驗收證據追蹤。
 
 ## 0. 現況盤點
@@ -18,7 +18,7 @@
 
 > 文件版本：v1.1
 >
-> 文件狀態：Linux vertical slice 已實作；完整驗收待完成
+> 文件狀態：Linux 與 Windows 開發機 vertical slice 已實作；完整驗收待完成
 >
 > 更新日期：2026-10-03
 
@@ -236,19 +236,19 @@ Demo 不應為每個 milestone 建立互相孤立的測試視窗，而應建立�
 
 | Milestone | 現有/預期 Contract Gate | Showcase View | 第一階段狀態判定 | Owner |
 | --- | --- | --- | --- | --- |
-| M0 | CMake preset、module graph、build/CTest、Host startup | Build ID、module list、startup diagnostics | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Build |
-| M1 | core.runtime、Foundation/Gameplay ABI | frame time、job graph、allocator/log/VFS counters | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Core |
-| M2 | shader reflection、validation device、renderer contracts | shader/pass/resource overlay | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Renderer |
-| M3 | native DX12/Vulkan/Metal offscreen path | backend badge、native present counters、3D frame | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Presentation |
-| M4 | runtime.v1_m4_vertical_slice、scene snapshot/lifecycle | 可操作 scene、entity、undo、play/editor world | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Scene |
-| M5 | runtime.v1_m5_asset_pipeline | import/cook/bundle/progress/reload/rollback | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Assets |
-| M6 | runtime.v1_m6_editor_sdk、plugin ABI/prefab | reflection inspector、Undo、prefab rebase、plugin status | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Editor SDK |
-| M7 | runtime.v1_m7_input_ui_localization | key binding、UI widgets、locale switch、fallback | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Input/UI |
-| M8 | runtime.v1_m8_gameplay_simulation | character、collision、nav、AI trace | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Gameplay |
-| M9 | runtime.v1_m9_presentation | animation、particles、audio、video queue | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Presentation |
-| M10 | runtime.v1_m10_large_world | streaming map、HLOD、RAM/VRAM budget | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Large World |
-| M11 | runtime.v1_m11_platform | lifecycle/pressure/WebView ownership panel | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Platform |
-| M12 | runtime.v1_m12_shipping | package/profile/rollback/crash/device evidence | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Shipping |
+| M0 | CMake preset、module graph、build/CTest、Host startup | Build ID、module list、startup diagnostics | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Build |
+| M1 | core.runtime、Foundation/Gameplay ABI | frame time、job graph、allocator/log/VFS counters | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Core |
+| M2 | shader reflection、validation device、renderer contracts | shader/pass/resource overlay | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Renderer |
+| M3 | native DX12/Vulkan/Metal offscreen path | backend badge、native present counters、3D frame | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Presentation |
+| M4 | runtime.v1_m4_vertical_slice、scene snapshot/lifecycle | 可操作 scene、entity、undo、play/editor world | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Runtime Scene |
+| M5 | runtime.v1_m5_asset_pipeline | import/cook/bundle/progress/reload/rollback | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Runtime Assets |
+| M6 | runtime.v1_m6_editor_sdk、plugin ABI/prefab | reflection inspector、Undo、prefab rebase、plugin status | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Runtime Editor SDK |
+| M7 | runtime.v1_m7_input_ui_localization | key binding、UI widgets、locale switch、fallback | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Runtime Input/UI |
+| M8 | runtime.v1_m8_gameplay_simulation | character、collision、nav、AI trace | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Runtime Gameplay |
+| M9 | runtime.v1_m9_presentation | animation、particles、audio、video queue | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Runtime Presentation |
+| M10 | runtime.v1_m10_large_world | streaming map、HLOD、RAM/VRAM budget | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Runtime Large World |
+| M11 | runtime.v1_m11_platform | lifecycle/pressure/WebView ownership panel | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Runtime Platform |
+| M12 | runtime.v1_m12_shipping | package/profile/rollback/crash/device evidence | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨主機／實體顯示待驗收 | Runtime Shipping |
 
 ### 7.1 Probe 統一介面
 
@@ -452,3 +452,14 @@ Windows 驗收腳本在擷取前調整並置頂原生視窗，且避免開啟遮
 ✅ 新版 Windows Full Shipping／DX12 隔離副本圖形驗收已在 [CI 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518) 通過：14 筆 checksum、12 張可見截圖、asset／plugin 拒絕案例、339 次原生 graph／copy／present 及退出碼 0。[版本化 Windows CI 證據](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md)。此 hosted VM 不代表實體顯示或獨立乾淨主機驗收；兩項仍由使用者本地完成。
 
 ✅ source revision `ecf2277f07bc51ef09112c652a0ccbc0511d0a99` 的 Build 37053279518 所有 job 通過，包含 Windows／Linux／macOS Development、Windows 原生 Full 驗收、mimalloc 與 sanitizer contract。
+
+✅ Windows DX12 本地 Development/Full 與 Shipping/Full 原生執行已記錄於
+[Windows-V1-DX12-Local-2026-10-03](../../Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md)。
+GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance rendering、
+原生 offscreen graph/UI/present、輸入／編輯／reload／animation 截圖、Lab asset/plugin 拒絕
+以及完整 210 秒 guided tour。明確的 Development preset 與 stock PowerShell 5 預設路徑修正
+讓本地文件流程可重現。乾淨主機與實體顯示操作聲明仍待驗收；V1 最終驗收尚未完成。
+✅ Windows 本地驗收腳本現要求當次匯出、已修改場景的成功 snapshot round trip、
+導覽重播歸零與 M5／M6 指定拒絕案例的實際輸入／輸出。Source／package hash 採固定 LF 位元組。
+基底 e4a140139189 通過 Linux Development 77/77 與 Shipping package CI；
+實體顯示與乾淨主機最終 gate 仍待驗收。

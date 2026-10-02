@@ -242,6 +242,15 @@
         "NEXORA_ENABLE_NATIVE_BACKENDS": "ON",
         "NEXORA_ENABLE_VULKAN_BACKEND": "OFF"
       }
+    },
+    {
+      "name": "windows-showcase-development",
+      "inherits": "windows-zig-showcase",
+      "cacheVariables": {
+        "NEXORA_ENABLE_NATIVE_BACKENDS": "ON",
+        "NEXORA_ENABLE_VULKAN_BACKEND": "OFF",
+        "NEXORA_SHIPPING_PROFILE": "Full"
+      }
     }
   ],
   "buildPresets": [
@@ -306,7 +315,13 @@
     },
     {
       "name": "windows-showcase-shipping",
-      "configurePreset": "windows-showcase-shipping"
+      "configurePreset": "windows-showcase-shipping",
+      "configuration": "Shipping"
+    },
+    {
+      "name": "windows-showcase-development",
+      "configurePreset": "windows-showcase-development",
+      "configuration": "Development"
     }
   ],
   "testPresets": [
@@ -377,6 +392,14 @@
     {
       "name": "macos-development",
       "configurePreset": "macos-development",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-showcase-development",
+      "configurePreset": "windows-showcase-development",
+      "configuration": "Development",
       "output": {
         "outputOnFailure": true
       }

@@ -69,22 +69,22 @@ on `PATH`, use the ignored local tool installed at
 `.tools/zig-win-x86_64-0.14.0/zig.exe`:
 
 ```powershell
-cmake --preset windows-zig-showcase
-cmake --build --preset windows-zig-showcase --config Development --target NexoraShowcase
+cmake --preset windows-showcase-development
+cmake --build --preset windows-showcase-development --target NexoraShowcase
 ```
 
 The executable and its modular DLLs are written to:
 
 ```text
-build/windows-zig-showcase/bin/Development/NexoraShowcase.exe
+build/windows-showcase-development/bin/Development/NexoraShowcase.exe
 ```
 
 Run the verification report:
 
 ```powershell
-& .\build\windows-zig-showcase\bin\Development\NexoraShowcase.exe `
+& .\build\windows-showcase-development\bin\Development\NexoraShowcase.exe `
   --headless --validate-v1 --frames=4 `
-  --report=.\build\windows-zig-showcase\showcase-v1.json
+  --report=.\build\windows-showcase-development\showcase-v1.json
 ```
 
 The process exits with code `0` only when the C++-owned lifecycle, Zig
@@ -94,15 +94,15 @@ diagnostics, and transactional state migration all pass. `ctest` runs the
 same executable together with the ABI smoke test:
 
 ```powershell
-ctest --preset windows-zig-showcase -C Development -R `
+ctest --preset windows-showcase-development -R `
   "gameplay\.zig_abi_smoke|showcase\.zig_headless" --output-on-failure
 ```
 
 ## Visual Studio Code
 
-Open `Engine.code-workspace`, select the `windows-zig-showcase` CMake preset,
+Open `Engine.code-workspace`, select the `windows-showcase-development` CMake preset,
 and select `NexoraShowcase` as the launch target. The
-`Nexora Zig Showcase (Windows)` `cppvsdbg` configuration runs the same
+`Nexora Zig Showcase (Windows)` `cppvsdbg` configuration retains the older Zig ABI
 headless command from the Run and Debug panel. CMake Tools invokes MSVC; VS
 Code is the editor and task/debugger frontend, not a separate compiler.
 
@@ -206,7 +206,7 @@ Current lab/geometry and ground-contact acceptance: [Linux-V1-Lab-Geometry-2026-
 
 Rendering now submits one shared indexed cube with four native instances (floor and three cubes),
 using independent translation, axis scale and tint. Vulkan and DX12 use hardware instance input;
-Vulkan instance pixels have target-host acceptance, while DX12 execution awaits its host gate.
+Vulkan instance pixels have target-host acceptance; DX12 also has Windows CI and local developer-GPU evidence below.
 The profiler and `native_scene_instances` report cumulative accepted instance counts independently
 of native scene draw counts. Hub and Rendering use an original 8x8 checker sampled by native Vulkan/DX12 material pipelines. The native owner RenderGraph executes Offscreen -> Main -> UI -> Present; private scene color is copied on the GPU into the acquired image. P in Rendering cycles instanced cubes, quad and triangle.
 
@@ -239,3 +239,39 @@ The verifier shares its launcher console, fits the outer window to the desktop a
 Showcase before each screen capture, so a newly opened console cannot obscure visual evidence.
 
 ✅ Windows Full/DX12 hosted-CI native acceptance and unobscured screenshots: [versioned evidence](evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md). On an independently provisioned physical target, add `-PhysicalDisplay -CleanHost` to record those operator attestations.
+
+### Development/Full and complete tour
+
+The explicit `windows-showcase-development` preset enables DX12 and Full Runtime capabilities,
+using VS 2022 x64. Debug and Development are available; build/test presets default to Development.
+The older `windows-zig-showcase` preset remains available for ABI work.
+
+~~~powershell
+cmake --preset windows-showcase-development
+cmake --build --preset windows-showcase-development --parallel 4
+ctest --preset windows-showcase-development
+cmake --build --preset windows-showcase-development --target NexoraShowcasePackageDevelopmentEvidence --parallel 4
+& ./build/windows-showcase-development/package/NexoraShowcase-Development/accept-v1.ps1 -EvidenceDirectory ./build/windows-showcase-development/artifacts/v1-local
+~~~
+
+For Shipping from a regular PowerShell session with Visual Studio installed:
+
+~~~powershell
+cmake --preset windows-showcase-shipping -G "Visual Studio 17 2022" -A x64 -DCMAKE_CONFIGURATION_TYPES=Shipping
+cmake --build --preset windows-showcase-shipping --target NexoraShowcasePackageShippingEvidence --parallel 4
+& ./build/windows-showcase-shipping/package/NexoraShowcase-Shipping/accept-v1.ps1 -EvidenceDirectory ./build/windows-showcase-shipping/artifacts/v1-local-full-tour -CompleteGuidedTour
+~~~
+
+The verifier also captures pointer orbit/zoom, F1/F2, Modify/Undo/Play/reloaded Play, locale,
+character movement/crouch/teleport, clip blend, lifecycle/pressure and tour pause/replay.
+`-CompleteGuidedTour` waits for all seven real-time steps and checks the exported 210-second,
+final-step, paused Runtime state. Fresh scene-reload, pre-replay, replayed-tour and final-tour
+JSON/Markdown snapshots are retained. F5 must preserve the edited transform and clear Undo;
+R must reset elapsed time and tour step. Each export clears previous files, and the final Lab
+checks require the sampled M5 empty-asset and M6 ABI-rejection inputs and outputs.
+`interaction_checks` records the scripted controls and captures; these do not replace pixel tests,
+image review or CTest. Windows PowerShell 5 now resolves the default package root in the script
+body, so invoking the packaged script without `-PackageRoot` works.
+
+Local developer-machine evidence: [Windows-V1-DX12-Local-2026-10-03](evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
+Clean-host and physical-display operator attestations remain pending; V1 final acceptance is open.

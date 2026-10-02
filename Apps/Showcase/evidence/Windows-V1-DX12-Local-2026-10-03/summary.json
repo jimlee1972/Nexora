@@ -1,0 +1,31 @@
+{
+  "development": {
+    "status": "PASS",
+    "checksums_verified": 22,
+    "screenshots": 24,
+    "exit_code": 0,
+    "native_graph_frames": 2528,
+    "native_instances": 3452,
+    "replay_seconds_before": 1.98295,
+    "replay_seconds_after": 0.150219
+  },
+  "shipping": {
+    "status": "PASS",
+    "checksums_verified": 14,
+    "screenshots": 25,
+    "exit_code": 0,
+    "native_graph_frames": 15231,
+    "native_instances": 21399,
+    "replay_seconds_before": 1.98321,
+    "replay_seconds_after": 0.150294
+  },
+  "tour": {
+    "enabled": true,
+    "paused": true,
+    "seconds": 210.002,
+    "step": 6
+  },
+  "physical_display_verified": false,
+  "clean_host_verified": false,
+  "v1_final_acceptance": "PENDING"
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "nexora.showcase.windows.local.provenance.v1",
+  "application_source_commit": "e4a1401391896eaeb244c1efae7a91b873dc7cbd",
+  "application_build_id": "e4a140139189",
+  "scope": "Windows developer machine; no physical-display or clean-host operator attestation",
+  "acceptance_script_sha256": "88f318f205332fd3ddeebe3770e5fe4b601057b0d2a78d801f99ed235715ac4b",
+  "cmake_presets_sha256": "f0a39588eec94dc882ef3da63263b1b7abfdb791157c34aea4be02e05920d0d7",
+  "profiles": {
+    "development": {
+      "preset": "windows-showcase-development",
+      "binary_sha256": "765738aef69f1bc20ec38b7e6f823903921f42030ddb18af9aaa8c1085039b6b",
+      "archive_sha256": "bdd96f55d5237304411bf6d14c3b6da1f65c29781876f4190d3868fe7f9377cf",
+      "archive": "G:\\proj\\Nexora\\build\\windows-showcase-development\\package\\NexoraShowcase-Development.zip",
+      "packaged_verifier_sha256": "88f318f205332fd3ddeebe3770e5fe4b601057b0d2a78d801f99ed235715ac4b"
+    },
+    "shipping": {
+      "preset": "windows-showcase-shipping",
+      "binary_sha256": "491dbb49cf5becd2438560bd6d99a15fa9edd13f33018f110a4861def3b4bd97",
+      "archive_sha256": "09b0fda20980bf50e50c61991a41b45c3906d7f5e500fb63947b3d8eba1513b4",
+      "archive": "G:\\proj\\Nexora\\build\\windows-showcase-shipping\\package\\NexoraShowcase-Shipping.zip",
+      "packaged_verifier_sha256": "88f318f205332fd3ddeebe3770e5fe4b601057b0d2a78d801f99ed235715ac4b"
+    }
+  },
+  "application_cpp_baseline": "3aa12995c09cf2f36dced04b51a5fd79980f3b98",
+  "source_encoding": "UTF-8 LF; .gitattributes pins verifier/presets to identical Git/package bytes"
+}

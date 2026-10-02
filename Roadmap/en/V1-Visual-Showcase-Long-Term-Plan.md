@@ -1,6 +1,6 @@
 # Nexora V1 Visual Showcase Demo Long-Term Plan
 
-> **Progress: Linux and Windows CI visual slices verified; complete V1 local target-host acceptance remains open.**
+> **Progress: Linux, Windows CI and local developer-GPU visual slices verified; complete V1 acceptance remains open.**
 > The previous percentage had no reproducible weighting ledger and is superseded by the acceptance evidence below.
 
 ## 0. Current-state audit
@@ -18,7 +18,7 @@ Evidence and exact validation results: [`Linux-Vulkan-Visual-Slice-2026-10-03`](
 
 > Document version: v1.1
 >
-> Document status: implemented Linux vertical slice; full acceptance pending
+> Document status: implemented Linux and Windows developer vertical slices; full acceptance pending
 >
 > Updated: 2026-10-03
 
@@ -236,19 +236,19 @@ Every row needs two results: the Contract Gate is automated evidence, and the Sh
 
 | Milestone | Existing/expected contract gate | Showcase view | First-phase status | Owner |
 | --- | --- | --- | --- | --- |
-| M0 | CMake preset, module graph, build/CTest, Host startup | Build ID, module list, startup diagnostics | PARTIAL — Linux runtime view verified; complete target-host scope pending | Build |
-| M1 | `core.runtime`, Foundation/Gameplay ABI | Frame time, job graph, allocator/log/VFS counters | PARTIAL — Linux runtime view verified; complete target-host scope pending | Core |
-| M2 | Shader reflection, validation device, renderer contracts | Shader/pass/resource overlay | PARTIAL — Linux runtime view verified; complete target-host scope pending | Renderer |
-| M3 | Native DX12/Vulkan/Metal offscreen path | Backend badge, native present counters, 3D frame | PARTIAL — Linux runtime view verified; complete target-host scope pending | Presentation |
-| M4 | `runtime.v1_m4_vertical_slice`, scene snapshot/lifecycle | Operable scene, entity, undo, play/editor world | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Scene |
-| M5 | `runtime.v1_m5_asset_pipeline` | Import/cook/bundle/progress/reload/rollback | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Assets |
-| M6 | `runtime.v1_m6_editor_sdk`, plugin ABI/prefab | Reflection inspector, Undo, prefab rebase, plugin status | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Editor SDK |
-| M7 | `runtime.v1_m7_input_ui_localization` | Key binding, UI widgets, locale switch, fallback | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Input/UI |
-| M8 | `runtime.v1_m8_gameplay_simulation` | Character, collision, nav, AI trace | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Gameplay |
-| M9 | `runtime.v1_m9_presentation` | Animation, particles, audio, video queue | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Presentation |
-| M10 | `runtime.v1_m10_large_world` | Streaming map, HLOD, RAM/VRAM budget | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Large World |
-| M11 | `runtime.v1_m11_platform` | Lifecycle/pressure/WebView ownership panel | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Platform |
-| M12 | `runtime.v1_m12_shipping` | Package/profile/rollback/crash/device evidence | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Shipping |
+| M0 | CMake preset, module graph, build/CTest, Host startup | Build ID, module list, startup diagnostics | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Build |
+| M1 | `core.runtime`, Foundation/Gameplay ABI | Frame time, job graph, allocator/log/VFS counters | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Core |
+| M2 | Shader reflection, validation device, renderer contracts | Shader/pass/resource overlay | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Renderer |
+| M3 | Native DX12/Vulkan/Metal offscreen path | Backend badge, native present counters, 3D frame | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Presentation |
+| M4 | `runtime.v1_m4_vertical_slice`, scene snapshot/lifecycle | Operable scene, entity, undo, play/editor world | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Runtime Scene |
+| M5 | `runtime.v1_m5_asset_pipeline` | Import/cook/bundle/progress/reload/rollback | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Runtime Assets |
+| M6 | `runtime.v1_m6_editor_sdk`, plugin ABI/prefab | Reflection inspector, Undo, prefab rebase, plugin status | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Runtime Editor SDK |
+| M7 | `runtime.v1_m7_input_ui_localization` | Key binding, UI widgets, locale switch, fallback | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Runtime Input/UI |
+| M8 | `runtime.v1_m8_gameplay_simulation` | Character, collision, nav, AI trace | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Runtime Gameplay |
+| M9 | `runtime.v1_m9_presentation` | Animation, particles, audio, video queue | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Runtime Presentation |
+| M10 | `runtime.v1_m10_large_world` | Streaming map, HLOD, RAM/VRAM budget | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Runtime Large World |
+| M11 | `runtime.v1_m11_platform` | Lifecycle/pressure/WebView ownership panel | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Runtime Platform |
+| M12 | `runtime.v1_m12_shipping` | Package/profile/rollback/crash/device evidence | PARTIAL — Linux/Windows developer views verified; clean-host/physical gates pending | Runtime Shipping |
 
 ### 7.1 Unified probe interface
 
@@ -452,3 +452,15 @@ The Windows verifier fits and raises its native window before capture and avoids
 ✅ Expanded Windows Full Shipping/DX12 isolated-copy graphical acceptance passes in [CI run 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518): 14 checksums, 12 visible screenshots, sampled asset/plugin rejection, 339 native graph/copy/present frames and exit code 0. [Versioned Windows CI evidence](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md). The hosted VM does not accept physical-display or independently provisioned clean-host gates; these remain the user’s local work.
 
 ✅ All jobs in Build run 37053279518 pass for source revision `ecf2277f07bc51ef09112c652a0ccbc0511d0a99`, including Windows/Linux/macOS Development, native Full Windows acceptance, mimalloc and sanitizer contracts.
+
+✅ Windows DX12 local Development/Full and Shipping/Full native execution is recorded in
+[Windows-V1-DX12-Local-2026-10-03](../../Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
+The GTX 960 developer-machine run covers eight rooms, primitive/texture/instance rendering,
+native offscreen graph/UI/present, input/edit/reload/animation captures, Lab asset/plugin rejection
+and the complete 210-second guided tour. The explicit Development preset and stock PowerShell 5
+default-path fix make the documented local workflow reproducible. Clean-host and physical-display
+operator attestations remain pending; this does not complete V1's final acceptance.
+✅ The Windows local verifier now requires fresh exports, successful edited-scene snapshot round trip,
+reset tour progress and the exact sampled M5/M6 rejection inputs/outputs. Source/package hashes use
+pinned LF bytes. Baseline e4a140139189 passes Linux Development 77/77 and Shipping package CI;
+physical-display and clean-host final gates remain pending.

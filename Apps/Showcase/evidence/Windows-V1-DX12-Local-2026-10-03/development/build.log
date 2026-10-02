@@ -1,0 +1,288 @@
+.NET Framework 的 MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  1>Checking Build System
+  Building Custom Rule G:/proj/Nexora/Engine/Foundation/CMakeLists.txt
+  BuildInfo.cpp
+  DataAbi.cpp
+  正在產生程式碼...
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/Foundation/Development/NexoraFoundation.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/Foundation/Development/NexoraFoundation.exp
+  NexoraFoundation.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraFoundation.dll
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Plugins/Example/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  DynamicGameplayModule.cpp
+  DynamicGameplayModule.cpp
+  ExamplePlugin.cpp
+  DynamicGameplayModule.cpp
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Tests/Runtime/Development/NexoraDynamicGameplaySecond.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Tests/Runtime/Development/NexoraDynamicGameplaySecond.exp
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Tests/Runtime/Development/NexoraDynamicGameplayFailing.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Tests/Runtime/Development/NexoraDynamicGameplayFailing.exp
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Plugins/Example/Development/NexoraExamplePlugin.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Plugins/Example/Development/NexoraExamplePlugin.exp
+  NexoraDynamicGameplaySecond.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\Tests\Runtime\Development\NexoraDynamicGameplaySecond.dll
+  NexoraExamplePlugin.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\Plugins\Example\Development\NexoraExamplePlugin.dll
+  NexoraDynamicGameplayFailing.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\Tests\Runtime\Development\NexoraDynamicGameplayFailing.dll
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Tests/Runtime/Development/NexoraDynamicGameplayFirst.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Tests/Runtime/Development/NexoraDynamicGameplayFirst.exp
+  NexoraDynamicGameplayFirst.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\Tests\Runtime\Development\NexoraDynamicGameplayFirst.dll
+  Building Custom Rule G:/proj/Nexora/Engine/Core/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/API/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/API/CMakeLists.txt
+  Engine.cpp
+  ApiM6CConsumer.c
+  ApiFoundationTests.cpp
+  Building Custom Rule G:/proj/Nexora/Tests/Foundation/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Foundation/CMakeLists.txt
+  BuildInfoTests.cpp
+  GameplayAbiTests.cpp
+  NexoraApiM6CConsumer.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraApiM6CConsumer.exe
+  Building the Zig gameplay ABI sample
+  NexoraGameplayAbiTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraGameplayAbiTests.exe
+  Building Custom Rule G:/proj/Nexora/Apps/Showcase/CMakeLists.txt
+  Building the Zig gameplay Development shared library
+  ShowcaseProbes.cpp
+  JobSystem.cpp
+  NexoraApiFoundationTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraApiFoundationTests.exe
+  NexoraShowcaseProbes.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\Apps\Showcase\Development\NexoraShowcaseProbes.lib
+  Building Custom Rule G:/proj/Nexora/Apps/Showcase/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Gameplay/Zig/CMakeLists.txt
+  ShowcaseProbeTests.cpp
+  Log.cpp
+  NexoraFoundationTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraFoundationTests.exe
+  NexoraShowcaseProbeTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraShowcaseProbeTests.exe
+  Memory.cpp
+  Platform.cpp
+  Building Custom Rule G:/proj/Nexora/Gameplay/Zig/CMakeLists.txt
+  RemoteDiagnostics.cpp
+  Services.cpp
+  TaskGraph.cpp
+  Time.cpp
+  Timer.cpp
+  Vfs.cpp
+  正在產生程式碼...
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/Core/Development/NexoraCore.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/Core/Development/NexoraCore.exp
+  NexoraCore.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraCore.dll
+  Building Custom Rule G:/proj/Nexora/Engine/AI/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Engine/Window/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Engine/Network/CMakeLists.txt
+  AI.cpp
+  Dormancy.cpp
+  Building Custom Rule G:/proj/Nexora/Tests/Core/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Core/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Samples/Api/CMakeLists.txt
+  V2M11Tests.cpp
+  CoreTests.cpp
+  ApiFoundationSample.cpp
+  Building Custom Rule G:/proj/Nexora/Engine/RHI/CMakeLists.txt
+  ShaderReflection.cpp
+  EntityMapping.cpp
+  Window.cpp
+  Win32Window.cpp
+  Prediction.cpp
+  ValidationDevice.cpp
+  NexoraV2M11Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV2M11Tests.exe
+  Replication.cpp
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/AI/Development/NexoraAI.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/AI/Development/NexoraAI.exp
+  NexoraAI.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraAI.dll
+  Building Custom Rule G:/proj/Nexora/Tests/AI/CMakeLists.txt
+  NexoraApiFoundationSample.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraApiFoundationSample.exe
+  NexoraCoreTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraCoreTests.exe
+  Building Custom Rule G:/proj/Nexora/Tests/API/CMakeLists.txt
+  DeviceFactory.cpp
+  V2M7Tests.cpp
+  ServerRuntime.cpp
+  正在產生程式碼...
+  ApiCoreContractTests.cpp
+  D3D12Device.cpp
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/Window/Development/NexoraWindow.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/Window/Development/NexoraWindow.exp
+  NexoraWindow.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraWindow.dll
+  NexoraV2M7Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV2M7Tests.exe
+  SocketProvider.cpp
+  Transport.cpp
+  正在產生程式碼...
+  NexoraApiCoreContractTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraApiCoreContractTests.exe
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/RHI/Development/NexoraRHI.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/RHI/Development/NexoraRHI.exp
+  正在產生程式碼...
+  NexoraRHI.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraRHI.dll
+  Building Custom Rule G:/proj/Nexora/Engine/Renderer/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Engine/Presentation/CMakeLists.txt
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/Network/Development/NexoraNetwork.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/Network/Development/NexoraNetwork.exp
+  NexoraNetwork.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraNetwork.dll
+  Building Custom Rule G:/proj/Nexora/Tests/Network/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Apps/DedicatedServer/CMakeLists.txt
+  main.cpp
+  NetworkTests.cpp
+  FramePipeline.cpp
+  Presentation.cpp
+  RenderSurface.cpp
+  GPUDrivenPipeline.cpp
+  Dx12Surface.cpp
+  GPUScene.cpp
+  NexoraDedicatedServer.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraDedicatedServer.exe
+  正在產生程式碼...
+  NexoraNetworkTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraNetworkTests.exe
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/Presentation/Development/NexoraPresentation.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/Presentation/Development/NexoraPresentation.exp
+  Material.cpp
+  NexoraPresentation.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraPresentation.dll
+  Building Custom Rule G:/proj/Nexora/Tests/WindowPresentation/CMakeLists.txt
+  WindowPresentationTests.cpp
+  PipelineCache.cpp
+  RenderGraph.cpp
+  NexoraWindowPresentationTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraWindowPresentationTests.exe
+  SceneFrame.cpp
+  正在產生程式碼...
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/Renderer/Development/NexoraRenderer.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/Renderer/Development/NexoraRenderer.exp
+  NexoraRenderer.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraRenderer.dll
+  Building Custom Rule G:/proj/Nexora/Tests/Renderer/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Renderer/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Renderer/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Renderer/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Renderer/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Renderer/CMakeLists.txt
+  GPUDrivenPipelineTests.cpp
+  RendererTests.cpp
+  SceneFrameTests.cpp
+  GPUSceneTests.cpp
+  MaterialTests.cpp
+  GoldenImageTests.cpp
+  NexoraSceneFrameTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraSceneFrameTests.exe
+  Building Custom Rule G:/proj/Nexora/Engine/Runtime/CMakeLists.txt
+  NexoraRendererTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraRendererTests.exe
+  NexoraGPUDrivenTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraGPUDrivenTests.exe
+  InputUi.cpp
+  NexoraGPUSceneTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraGPUSceneTests.exe
+  NexoraMaterialTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraMaterialTests.exe
+  NexoraGoldenImageTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraGoldenImageTests.exe
+  GameplayModuleHost.cpp
+  GameWorld.cpp
+  GameplayHostBridge.cpp
+  ShaderRuntime.cpp
+  RenderSync.cpp
+  Runtime.cpp
+  GameplaySimulation.cpp
+  AssetPipeline.cpp
+  BundleMount.cpp
+  EditorSdk.cpp
+  Presentation.cpp
+  PresentationV2.cpp
+  LargeWorld.cpp
+  Platform.cpp
+  Shipping.cpp
+  HardeningV2.cpp
+  正在產生程式碼...
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/Runtime/Development/NexoraRuntime.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/Runtime/Development/NexoraRuntime.exp
+  NexoraRuntime.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraRuntime.dll
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Engine/Editor/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Engine/AIIntegration/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Apps/Host/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Gameplay/Zig/CMakeLists.txt
+  V1M8Tests.cpp
+  IntentAdapter.cpp
+  ShaderRuntimeTests.cpp
+  main.cpp
+  GameplayModuleHostTests.cpp
+  RuntimeTests.cpp
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/AIIntegration/Development/NexoraAIIntegration.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/AIIntegration/Development/NexoraAIIntegration.exp
+  NexoraAIIntegration.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraAIIntegration.dll
+  RenderSyncTests.cpp
+  V1M4Tests.cpp
+  V2M9Tests.cpp
+  V2M12Tests.cpp
+  NexoraRuntimeTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraRuntimeTests.exe
+  NexoraGameplayModuleHostTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraGameplayModuleHostTests.exe
+  NexoraShaderRuntimeTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraShaderRuntimeTests.exe
+  NexoraHost.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraHost.exe
+  NexoraV1M8Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV1M8Tests.exe
+  ParentingTests.cpp
+  GameplayHostBridgeTests.cpp
+  NexoraV2M12Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV2M12Tests.exe
+  AssetImport.cpp
+  NexoraV2M9Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV2M9Tests.exe
+  DynamicGameplayModuleTests.cpp
+  V1M9Tests.cpp
+  NexoraRenderSyncTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraRenderSyncTests.exe
+  NexoraV1M4Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV1M4Tests.exe
+  V1M7Tests.cpp
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  V1M5Tests.cpp
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  V1M12Tests.cpp
+  NexoraDynamicGameplayModuleTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraDynamicGameplayModuleTests.exe
+  NexoraParentingTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraParentingTests.exe
+  NexoraV1M9Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV1M9Tests.exe
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  ContentBrowser.cpp
+  NexoraGameplayHostBridgeTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraGameplayHostBridgeTests.exe
+  BundleMountTests.cpp
+  V1M11Tests.cpp
+  NexoraV1M7Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV1M7Tests.exe
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  V1M10Tests.cpp
+  Building Custom Rule G:/proj/Nexora/Apps/Showcase/CMakeLists.txt
+  ShowcaseRoomTests.cpp
+  NexoraV1M5Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV1M5Tests.exe
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Apps/Showcase/CMakeLists.txt
+  V1M6Tests.cpp
+  ShowcaseRooms.cpp
+  NexoraV1M11Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV1M11Tests.exe
+  EditorProduction.cpp
+  NexoraBundleMountTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraBundleMountTests.exe
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  main.cpp
+  ZigGameplayTests.cpp
+  NexoraV1M10Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV1M10Tests.exe
+  AIIntentAdapterTests.cpp
+  NexoraV1M6Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV1M6Tests.exe
+  NexoraV1M12Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV1M12Tests.exe
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  TransformTests.cpp
+  NexoraAIIntentAdapterTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraAIIntentAdapterTests.exe
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  ProjectContent.cpp
+  正在產生程式碼...
+  GameWorldTests.cpp
+  ShowcaseRooms.cpp
+  NexoraZigGameplayTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraZigGameplayTests.exe
+  NexoraShowcaseRoomTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraShowcaseRoomTests.exe
+  NexoraTransformTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraTransformTests.exe
+  NexoraGameWorldTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraGameWorldTests.exe
+  ProjectWorkspace.cpp
+  正在產生程式碼...
+  NexoraShowcase.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraShowcase.exe
+  EditorWorkspace.cpp
+  ShaderAuthoring.cpp
+  SceneAuthoring.cpp
+  ViewportMath.cpp
+  正在產生程式碼...
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/Editor/Development/NexoraEditorCore.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/Editor/Development/NexoraEditorCore.exp
+  NexoraEditorCore.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraEditorCore.dll
+  Building Custom Rule G:/proj/Nexora/Apps/Editor/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Editor/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Editor/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Editor/CMakeLists.txt
+  ViewportMathTests.cpp
+  EditorTests.cpp
+  ShaderAuthoringTests.cpp
+  Building Custom Rule G:/proj/Nexora/Tests/Editor/CMakeLists.txt
+  main.cpp
+  ParserRobustnessTests.cpp
+  NexoraEditorShaderTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraEditorShaderTests.exe
+  NexoraEditorViewportMathTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraEditorViewportMathTests.exe
+  NexoraEditor.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraEditor.exe
+  NexoraParserRobustnessTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraParserRobustnessTests.exe
+  NexoraEditorTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraEditorTests.exe
+  Building Custom Rule G:/proj/Nexora/CMakeLists.txt
