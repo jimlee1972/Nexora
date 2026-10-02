@@ -1,4 +1,5 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
+#include "InspectorRotation.h"
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
 #endif
@@ -9,8 +10,10 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <charconv>
 #include <cmath>
 #include <cstddef>
+#include <cstdio>
 #include <cstring>
 #include <exception>
 #include <limits>
@@ -96,6 +99,22 @@ struct EditorImGuiHost::State final {
     std::vector<SceneDocument::NodeKey> entities;
     std::vector<runtime::Transform> transforms;
   };
+  struct InspectorEulerHint final {
+    SceneDocument::NodeKey entity;
+    runtime::Transform transform;
+    EulerDegrees degrees;
+  };
+  struct InspectorEulerRequest final {
+    std::vector<SceneDocument::NodeKey> entities;
+    std::size_t axis;
+    double degrees;
+  };
+  std::unordered_map<runtime::Id, InspectorEulerHint> inspector_euler_hints;
+  std::vector<SceneDocument::NodeKey> inspector_euler_selection;
+  std::array<std::array<char, 64>, 3> inspector_euler_text{};
+  std::array<bool, 3> inspector_euler_active{};
+  std::optional<std::size_t> inspector_euler_focus_request;
+  std::optional<InspectorEulerRequest> inspector_euler_request;
   std::optional<InspectorTransformRequest> inspector_transform_request;
   std::uint32_t inspector_selection = 0;
   bool inspector_transform_visible = false;
@@ -679,10 +698,73 @@ template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scen
       std::min<std::size_t>(scene->Selection().size(), std::numeric_limits<std::uint32_t>::max()));
 }
 
+template <typename StateT>
+EulerDegrees InspectorAngles(StateT &state, SceneDocument::NodeKey key,
+                             const runtime::Transform &transform) {
+  auto hint = state.inspector_euler_hints.find(key.id);
+  if (hint != state.inspector_euler_hints.end() && hint->second.entity == key &&
+      SameRotation(hint->second.transform, transform))
+    return hint->second.degrees;
+  const auto degrees = ToEulerDegrees(transform).value_or(EulerDegrees{});
+  if (hint == state.inspector_euler_hints.end())
+    state.inspector_euler_hints.emplace(
+        key.id, typename StateT::InspectorEulerHint{key, transform, degrees});
+  else
+    hint->second = {key, transform, degrees};
+  return degrees;
+}
+
+template <typename StateT> void ApplyInspectorEuler(StateT &state, SceneDocument &scene) {
+  if (!state.inspector_euler_request)
+    return;
+  const auto request = std::exchange(state.inspector_euler_request, std::nullopt);
+  std::vector<runtime::Transform> transforms;
+  std::vector<EulerDegrees> angles;
+  bool valid = request->axis < 3 && !request->entities.empty() && std::isfinite(request->degrees);
+  for (const auto key : request->entities) {
+    if (!valid || scene.Key(key.id) != key) {
+      valid = false;
+      break;
+    }
+    const auto transform = scene.Transform(key.id);
+    if (!transform) {
+      valid = false;
+      break;
+    }
+    auto degrees = InspectorAngles(state, key, *transform);
+    degrees[request->axis] = request->degrees;
+    const auto changed = WithEulerDegrees(*transform, degrees);
+    if (!changed) {
+      valid = false;
+      break;
+    }
+    transforms.push_back(*changed);
+    angles.push_back(degrees);
+  }
+  if (!valid || !scene.SetTransforms(request->entities, transforms)) {
+    state.inspector_error =
+        "Rotation edit rejected because its values or entity generation are stale.";
+    return;
+  }
+  for (std::size_t i = 0; i < request->entities.size(); ++i) {
+    auto hint = state.inspector_euler_hints.find(request->entities[i].id);
+    hint->second = {request->entities[i], *scene.Transform(request->entities[i].id), angles[i]};
+  }
+  state.inspector_error.clear();
+}
+
 template <typename StateT> void DrawInspector(StateT &state, SceneDocument *scene) {
   state.inspector_selection =
       scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
   state.inspector_transform_visible = false;
+  std::unordered_set<runtime::Id> selected_entities;
+  if (scene != nullptr)
+    selected_entities.insert(scene->Selection().begin(), scene->Selection().end());
+  std::erase_if(state.inspector_euler_hints, [&](const auto &entry) {
+    const auto &hint = entry.second;
+    return scene == nullptr || scene->Key(hint.entity.id) != hint.entity ||
+           !selected_entities.contains(hint.entity.id);
+  });
   if (scene == nullptr || scene->Selection().empty()) {
     ImGui::TextUnformatted("Select an entity to inspect it.");
     return;
@@ -713,11 +795,9 @@ template <typename StateT> void DrawInspector(StateT &state, SceneDocument *scen
     double runtime::Transform::*member;
   };
   constexpr std::array fields{
-      Field{"Position X", &runtime::Transform::x},  Field{"Position Y", &runtime::Transform::y},
-      Field{"Position Z", &runtime::Transform::z},  Field{"Rotation X", &runtime::Transform::qx},
-      Field{"Rotation Y", &runtime::Transform::qy}, Field{"Rotation Z", &runtime::Transform::qz},
-      Field{"Rotation W", &runtime::Transform::qw}, Field{"Scale X", &runtime::Transform::sx},
-      Field{"Scale Y", &runtime::Transform::sy},    Field{"Scale Z", &runtime::Transform::sz}};
+      Field{"Position X", &runtime::Transform::x}, Field{"Position Y", &runtime::Transform::y},
+      Field{"Position Z", &runtime::Transform::z}, Field{"Scale X", &runtime::Transform::sx},
+      Field{"Scale Y", &runtime::Transform::sy},   Field{"Scale Z", &runtime::Transform::sz}};
   for (const auto &field : fields) {
     double value = transforms.front().*(field.member);
     const bool mixed = std::ranges::any_of(
@@ -735,6 +815,60 @@ template <typename StateT> void DrawInspector(StateT &state, SceneDocument *scen
     }
   }
 
+  ImGui::SeparatorText("Local rotation (degrees, Z-X-Y)");
+  ImGui::TextDisabled("Press Enter to apply a rotation.");
+  std::vector<EulerDegrees> angles;
+  angles.reserve(keys.size());
+  for (std::size_t i = 0; i < keys.size(); ++i)
+    angles.push_back(InspectorAngles(state, keys[i], transforms[i]));
+  if (state.inspector_euler_selection != keys) {
+    state.inspector_euler_selection = keys;
+    state.inspector_euler_active = {};
+  }
+  std::uint32_t selection_hash = 2166136261U;
+  for (const auto key : keys) {
+    for (const auto value :
+         {static_cast<std::uint64_t>(key.id), static_cast<std::uint64_t>(key.entity_generation),
+          static_cast<std::uint64_t>(key.document_generation)}) {
+      selection_hash = (selection_hash ^ static_cast<std::uint32_t>(value)) * 16777619U;
+      selection_hash = (selection_hash ^ static_cast<std::uint32_t>(value >> 32U)) * 16777619U;
+    }
+  }
+  ImGui::PushID(static_cast<int>(selection_hash));
+  constexpr std::array labels{"Rotation X", "Rotation Y", "Rotation Z"};
+  for (std::size_t axis = 0; axis < labels.size(); ++axis) {
+    double value = angles.front()[axis];
+    const bool mixed = std::ranges::any_of(
+        angles, [&](const auto &item) { return std::abs(item[axis] - value) > 1e-8; });
+    auto &text = state.inspector_euler_text[axis];
+    if (!state.inspector_euler_active[axis]) {
+      if (mixed)
+        text[0] = '\0';
+      else
+        std::snprintf(text.data(), text.size(), "%.6f", value);
+    }
+    if (state.inspector_euler_focus_request == axis) {
+      ImGui::SetKeyboardFocusHere();
+      state.inspector_euler_focus_request.reset();
+    }
+    const bool submit = ImGui::InputTextWithHint(
+        labels[axis], mixed ? "Mixed" : "Degrees", text.data(), text.size(),
+        ImGuiInputTextFlags_CharsScientific | ImGuiInputTextFlags_EnterReturnsTrue);
+    state.inspector_euler_active[axis] = ImGui::IsItemActive();
+    if (submit) {
+      const std::string_view entered{text.data()};
+      const auto number = entered.starts_with('+') ? entered.substr(1) : entered;
+      const auto parsed = std::from_chars(number.data(), number.data() + number.size(), value);
+      if (parsed.ec != std::errc{} || parsed.ptr != number.data() + number.size() ||
+          !std::isfinite(value))
+        state.inspector_error = "Enter a finite angle in degrees.";
+      else
+        state.inspector_euler_request.emplace(
+            typename StateT::InspectorEulerRequest{keys, axis, value});
+    }
+  }
+  ImGui::PopID();
+
   if (state.inspector_transform_request) {
     const auto request = std::exchange(state.inspector_transform_request, std::nullopt);
     if (!scene->SetTransforms(request->entities, request->transforms))
@@ -743,6 +877,7 @@ template <typename StateT> void DrawInspector(StateT &state, SceneDocument *scen
     else
       state.inspector_error.clear();
   }
+  ApplyInspectorEuler(state, *scene);
   if (!state.inspector_error.empty())
     ImGui::TextWrapped("%s", state.inspector_error.c_str());
 }
@@ -1874,6 +2009,27 @@ void EditorImGuiTestAccess::QueueInspectorTransforms(
   host.state_->inspector_transform_request.emplace(
       EditorImGuiHost::State::InspectorTransformRequest{{entities.begin(), entities.end()},
                                                         {transforms.begin(), transforms.end()}});
+}
+
+void EditorImGuiTestAccess::QueueInspectorEulerField(
+    EditorImGuiHost &host, std::span<const SceneDocument::NodeKey> entities, std::size_t axis,
+    double degrees) {
+  host.state_->inspector_euler_request.emplace(EditorImGuiHost::State::InspectorEulerRequest{
+      {entities.begin(), entities.end()}, axis, degrees});
+}
+
+void EditorImGuiTestAccess::FocusInspectorEulerField(EditorImGuiHost &host,
+                                                     std::size_t axis) noexcept {
+  host.state_->inspector_euler_focus_request = axis;
+}
+
+std::optional<std::array<double, 3>>
+EditorImGuiTestAccess::InspectorEulerAngles(const EditorImGuiHost &host,
+                                            SceneDocument::NodeKey entity) noexcept {
+  const auto hint = host.state_->inspector_euler_hints.find(entity.id);
+  if (hint == host.state_->inspector_euler_hints.end() || hint->second.entity != entity)
+    return std::nullopt;
+  return hint->second.degrees;
 }
 
 void EditorImGuiTestAccess::QueueProjectSelection(EditorImGuiHost &host,

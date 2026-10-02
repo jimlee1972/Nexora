@@ -2,6 +2,7 @@
 
 #include "Nexora/EditorImGui/EditorImGui.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -71,6 +72,12 @@ public:
   static void QueueInspectorTransforms(EditorImGuiHost &host,
                                        std::span<const SceneDocument::NodeKey> entities,
                                        std::span<const runtime::Transform> transforms);
+  static void QueueInspectorEulerField(EditorImGuiHost &host,
+                                       std::span<const SceneDocument::NodeKey> entities,
+                                       std::size_t axis, double degrees);
+  static void FocusInspectorEulerField(EditorImGuiHost &host, std::size_t axis) noexcept;
+  [[nodiscard]] static std::optional<std::array<double, 3>>
+  InspectorEulerAngles(const EditorImGuiHost &host, SceneDocument::NodeKey entity) noexcept;
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
   static void QueueContentConflictChoice(EditorImGuiHost &host, runtime::AssetUuid asset,
