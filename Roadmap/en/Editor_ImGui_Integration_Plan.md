@@ -66,6 +66,14 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
   the same configuration passes 59/59 CTest. These bounded developer-host checks do not cover
   physical-display Linux or Windows per-monitor DPI/IME acceptance. The box stays unchecked.
 
+**Recovery evidence update (2026-10-02):** the Xvfb acceptance now explicitly fsyncs a seeded
+workspace journal and its directory, launches the real graphical Editor, and sends SIGKILL before
+a recovery choice. It requires the journal and committed workspace to remain unchanged, then
+relaunches as a writer and checks keyboard-only Recover and Discard separately. A nonzero recovery
+process exit fails acceptance even if graphical diagnostics were emitted. This proves recovery from
+abrupt process termination with an existing journal; it does not inject a crash into the workspace
+write transaction or establish physical-display/Windows acceptance. ED-M0 remains open.
+
 ### Definition of "done"
 
 All of the following must be true at the same commit:
