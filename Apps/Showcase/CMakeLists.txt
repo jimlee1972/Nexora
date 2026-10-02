@@ -195,7 +195,8 @@ if(BUILD_TESTING)
       NAME showcase.linux_vulkan_virtual_display
       COMMAND "${Python3_EXECUTABLE}"
               "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVirtualDisplaySmoke.py"
-              "$<TARGET_FILE:NexoraShowcase>")
+              "$<TARGET_FILE:NexoraShowcase>"
+              --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/showcase-linux-vulkan")
     set_tests_properties(showcase.linux_vulkan_virtual_display PROPERTIES
       LABELS "showcase;vulkan;virtual-display"
       SKIP_RETURN_CODE 77
