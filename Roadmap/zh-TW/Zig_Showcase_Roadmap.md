@@ -84,6 +84,7 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
   - ✅ Math、Scene、Gameplay、Presentation 與 Streaming room 已有可 script 選擇及 deterministic
     capability／fallback 證據。
   - ✅ Native interaction 提供 WASD camera 移動，公開 Zig scene callback 則執行 selection raycast 與高階 query trace。
+  - ✅ 2026-10-02 Linux/Xvfb Rendering Room keyboard gate 已驗證 600 native Vulkan GPU frames 與 `Window::Key` event 驅動的 camera 移動，並修正先前的 ASCII 比對。參見 [Phase B 證據](../../Apps/Showcase/evidence/V1-Phase-B-Linux-Vulkan-2026-10-02/acceptance.md)。
   - ✅ Physics/navigation、animation/audio/VFX 與 cell/HLOD room overlay 依編譯進 Runtime capability 顯示狀態。
   - ✅ 每個 room 皆顯示 `IMPLEMENTED` / `CONTRACT ONLY` / `UNAVAILABLE`，minimal-capability CTest 固定 fallback matrix。
 - **✅ ZS-M4 Reload and failure**：transactional hot reload、state migration、錯誤 module/ABI rejection、舊版本 rollback。

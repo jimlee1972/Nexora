@@ -12,6 +12,7 @@ both sides of a transactional reload, rather than relying on Zig global state.
 Development builds a `NexoraZigGameplay` shared library and `NexoraShowcase` selects it by default; `--gameplay-module=static` retains the statically linked ABI path used by Shipping, while `dynamic` makes discovery failure explicit. The deterministic headless slice continues to use the validation RHI. On Linux, `--mode=interactive --backend=vulkan` owns an X11 window and Vulkan swapchain; on Windows, `--backend=dx12` uses Win32/DX12. Both paths display a clear-color background, software-rasterized triangle, and diagnostics panel through the existing presentation composition boundary. They pump normalized input and acquire/compose/present until the window closes. Supplying `--frames=N` bounds an interactive verification run. `--backend=auto` may fall back to the validation path on an unsupported host, but prints and records `fallback_reason`; explicit native requests fail rather than silently switching backends.
 
 The report deliberately separates `headless_evidence` from `windowed_evidence`. Linux CTest also registers `showcase.linux_vulkan_virtual_display`: it starts an isolated Xvfb server, runs four Vulkan frames, requests a 960x540 resize, and verifies startup/composition/present/shutdown evidence. A developer machine without Xvfb skips with code 77, while CI treats a missing or non-starting Xvfb server as a failure so the Linux native evidence cannot silently disappear.
+The acceptance runner retains `windowed.json`, `launch.json`, `stdout.log`, and `stderr.log` under `build/<preset>/artifacts/showcase-linux-vulkan/`; CI uploads this directory even after a failed test. It rejects fallback, missing lifecycle/shutdown evidence, incomplete frame counts, and absent resize evidence with checks that remain active under Python optimization. A rerun removes stale evidence before checking Xvfb availability. The [2026-10-02 Linux acceptance record](evidence/V1-Phase-A-Linux-Vulkan-2026-10-02/acceptance.md) establishes Phase A composition on Xvfb/lavapipe, with no claim of physical-display or native GPU-scene acceptance.
 The embedded `validation_lab` uses the versioned `nexora.showcase.validation.v1` schema. Its M0-M12 registry maps cards to CTest contract names without executing those tests. JSON and Markdown share one five-state model; portable tests cover invalid-asset, dependency-cycle, plugin-ABI-mismatch, and rollback injections. M7-M10 room records expose headless evidence only and keep `visual_complete: false`.
 The 3D Hub now builds a presentation-only view from those results: thirteen color-coded cards retain their CTest identity and carry stable room and world-object associations. The native software composition draws the same model without running correctness logic, and the report records the associations plus visible invalid-asset, dependency-cycle, plugin-ABI-mismatch, and rollback states. Card data is copied into the view, owned by the Showcase, and discarded during ordered process shutdown; drawing is synchronous on the presentation thread. `NOT_RUN` remains honest until an external authority supplies evidence, and unsupported native scope remains `UNSUPPORTED`.
 
@@ -106,6 +107,13 @@ cmake --build --preset linux-development --target NexoraShowcasePackageDevelopme
 cmake --build --preset linux-shipping --target NexoraShowcasePackageShipping
 ```
 
+Linux Development packaging discovers and includes all transitive `libNexora*.so` dependencies.
+Build-tree RPATHs are relative and include `$ORIGIN`, so bundled Engine libraries load from `bin/`.
+The evidence launcher verifies the staged ELF dependency closure and rejects any Engine library
+resolved outside that copy; system libraries and GPU drivers remain host requirements. A copied
+executable alone previously passed by resolving Engine DSOs from the original build tree, so that
+older checksum-only evidence did not establish Engine-library isolation.
+
 The generated `build.json` records the exact relocatable launch command, including the packaged Zig
 library path. On Linux, the evidence target verifies every packaged checksum, copies the package to
 a fresh temporary directory, launches only from that copy, and retains the embedded Showcase report
@@ -129,3 +137,19 @@ provisioned target machine, copy one complete package directory, verify `manifes
 the exact command in `manifests/build.json` from the package root, and retain `launch-report.json`
 alongside the command, exit status, and host details. CI and developer-machine isolated-copy evidence do
 not establish this final clean-machine acceptance gate.
+
+## Native Rendering Room (V1 Phase B)
+
+`--mode=interactive --scene=rendering --backend=vulkan` now submits the indexed procedural cube to
+a native depth-tested Lambert pipeline. WASD consumes `Window::Key` values and offsets the orbit
+camera through the public gameplay Transform; the previous ASCII comparison did not match native
+normalized key events. Reports expose both Showcase `scene_draws` and backend `native_scene_draws`.
+No software composition is used by this room.
+
+Linux CTest adds `showcase.linux_vulkan_rendering_room`, `showcase.linux_vulkan_camera_input` and
+`window_presentation.vulkan_scene`. Xvfb and lavapipe execute all three; xdotool sends native D
+key events in the input gate. Native pixel contracts test depth, light, matrix translation, invalid
+input, frame reuse and resize. Their reports/logs/capture live in the corresponding
+`build/<preset>/artifacts/showcase-linux-vulkan-*` directories, uploaded by Linux CI. This Linux
+acceptance does not establish physical-GPU performance, a full 3D Hub/room suite, overlays on the
+GPU room, a guided tour, Metal parity or Windows clean-machine acceptance.

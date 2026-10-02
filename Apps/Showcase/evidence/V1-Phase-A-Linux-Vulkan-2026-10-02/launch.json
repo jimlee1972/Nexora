@@ -1,0 +1,17 @@
+{
+  "command": [
+    "/workspace/Nexora/build/linux-development/Apps/Showcase/NexoraShowcase",
+    "--mode=interactive",
+    "--backend=vulkan",
+    "--gameplay-module=static",
+    "--frames=4",
+    "--resize=960x540",
+    "--no-reload",
+    "--report=/workspace/Nexora/build/linux-development/artifacts/showcase-linux-vulkan/windowed.json"
+  ],
+  "exit_code": 0,
+  "display": ":0",
+  "acceptance_scope": "Linux/X11/Vulkan virtual display",
+  "physical_display_verified": false,
+  "acceptance_passed": true
+}

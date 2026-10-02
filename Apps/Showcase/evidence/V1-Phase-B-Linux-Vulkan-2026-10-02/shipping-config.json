@@ -1,0 +1,7 @@
+{
+  "preset": "linux-shipping",
+  "NEXORA_SHIPPING_PROFILE": "Full",
+  "NEXORA_LINK_MODE": "Monolithic",
+  "NEXORA_ENABLE_ZIG_GAMEPLAY": true,
+  "BUILD_TESTING": false
+}

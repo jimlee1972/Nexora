@@ -1,8 +1,8 @@
 # Nexora Window 與 Native Presentation Roadmap
 
-> 版本：v1.0｜狀態：規劃基線｜更新：2026-09-28
+> 版本：v1.0｜狀態：規劃基線｜更新：2026-10-02
 
-> **進度：實作完成**（WP-M0 至 WP-M4 已實作；WP-M1/WP-M2 的 Windows/DX12 驗收已記錄，Linux/Windows Vulkan、macOS/Metal 與 Showcase runtime 驗收仍須通過各 target-host runner。）
+> **進度：實作完成**（WP-M0 至 WP-M4 已實作；WP-M1/WP-M2 的 Windows/DX12 驗收已記錄，Linux Showcase Vulkan composition 已通過未跳過的 Xvfb/lavapipe 驗收；physical-display、Windows/Vulkan 與 macOS/Metal 仍須各 target-host runner。）
 
 ## 1. 目的與 ownership
 
@@ -76,7 +76,7 @@ headless gate。Showcase command 的實際 Windows/DX12 執行仍屬 target-host
   與長時間 resize/device-loss stress。
 - 分開記錄 target-host evidence；cross-compilation 不等於 runtime validation。
 
-交付證據：Linux 使用 X11 window implementation 與 Vulkan WSI swapchain；Windows 可在 DX12 之外選擇 Vulkan；macOS 使用 Cocoa window 與 `CAMetalLayer`。Backend negotiation 會記錄選定的 present mode 與 color space；portable contract gate 覆蓋 fullscreen、multi-surface lifetime、2,048-cycle resize stress、zero extent、out-of-date、surface-loss 與 device-loss path。這些 source 與跨平台 contract 完成 implementation scope；WP-M1/WP-M2 Windows/DX12 runtime 驗收已記錄，Showcase 與其他平台 runtime 驗收仍明確屬於 target-host evidence，不會從 Linux compilation 推定。
+交付證據：Linux 使用 X11 window implementation 與 Vulkan WSI swapchain；Windows 可在 DX12 之外選擇 Vulkan；macOS 使用 Cocoa window 與 `CAMetalLayer`。Backend negotiation 會記錄選定的 present mode 與 color space；portable contract gate 覆蓋 fullscreen、multi-surface lifetime、2,048-cycle resize stress、zero extent、out-of-date、surface-loss 與 device-loss path。這些 source 與跨平台 contract 完成 implementation scope；WP-M1/WP-M2 Windows/DX12 runtime 驗收已記錄，✅ Linux Showcase Vulkan composition 在 2026-10-02 通過未跳過的 Xvfb/lavapipe 驗收（Development 67/67）；physical-display 與其他平台 runtime 驗收仍為獨立 target-host gate。參見[驗收紀錄](../../Apps/Showcase/evidence/V1-Phase-A-Linux-Vulkan-2026-10-02/acceptance.md)。
 
 ## 5. 驗證與 Definition of Done
 
@@ -86,3 +86,5 @@ headless gate。Showcase command 的實際 Windows/DX12 執行仍屬 target-host
 - Linux headless configure/build/test 不依賴 desktop display。
 - Windowed shutdown 後不可留下 GPU resource、queued callback 或 native handle。
 - Showcase 與 Editor 只使用 public window/presentation contract。
+
+✅ Linux/Vulkan scene boundary 也通過 Xvfb/lavapipe 的 native indexed/depth/light/transform pixel 驗收與 600-frame normalized camera-input integration（Development 70/70）。參見 [Phase B 驗收紀錄](../../Apps/Showcase/evidence/V1-Phase-B-Linux-Vulkan-2026-10-02/acceptance.md)。Physical-display 與其他平台 gate 仍為獨立驗收。

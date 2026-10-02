@@ -75,6 +75,7 @@ UI distinguishes `IMPLEMENTED`, `CONTRACT ONLY`, and `UNAVAILABLE`; placeholders
   - ✅ Scriptable room selection and deterministic capability/fallback evidence for the Math, Scene,
     Gameplay, Presentation, and Streaming rooms.
   - ✅ Native interaction adds WASD camera movement while the public Zig scene callback performs selection raycasts and high-level query traces.
+  - ✅ The 2026-10-02 Linux/Xvfb Rendering Room keyboard gate now verifies 600 native Vulkan GPU frames and camera movement from `Window::Key` events; the previous ASCII comparison is fixed. See the [Phase B evidence](../../Apps/Showcase/evidence/V1-Phase-B-Linux-Vulkan-2026-10-02/acceptance.md).
   - ✅ Physics/navigation, animation/audio/VFX, and cell/HLOD room overlays derive their state from compiled runtime capabilities.
   - ✅ Every room exposes `IMPLEMENTED` / `CONTRACT ONLY` / `UNAVAILABLE`, and the minimal-capability CTest locks the fallback matrix.
 - **✅ ZS-M4 Reload/failure:** transactional reload, state migration, bad ABI rejection, and rollback.

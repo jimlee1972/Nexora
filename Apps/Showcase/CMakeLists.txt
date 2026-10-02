@@ -195,10 +195,27 @@ if(BUILD_TESTING)
       NAME showcase.linux_vulkan_virtual_display
       COMMAND "${Python3_EXECUTABLE}"
               "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVirtualDisplaySmoke.py"
-              "$<TARGET_FILE:NexoraShowcase>")
+              "$<TARGET_FILE:NexoraShowcase>"
+              --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/showcase-linux-vulkan")
     set_tests_properties(showcase.linux_vulkan_virtual_display PROPERTIES
       LABELS "showcase;vulkan;virtual-display"
       SKIP_RETURN_CODE 77
       TIMEOUT 45)
+    if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+      add_test(NAME showcase.linux_vulkan_rendering_room
+        COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+          --showcase "$<TARGET_FILE:NexoraShowcase>"
+          --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/showcase-linux-vulkan-rendering-room")
+      set_tests_properties(showcase.linux_vulkan_rendering_room PROPERTIES
+        LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
+      add_test(NAME showcase.linux_vulkan_camera_input
+        COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+          --showcase "$<TARGET_FILE:NexoraShowcase>" --interactive
+          --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/showcase-linux-vulkan-camera-input")
+      set_tests_properties(showcase.linux_vulkan_camera_input PROPERTIES
+        LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
+    endif()
   endif()
 endif()
