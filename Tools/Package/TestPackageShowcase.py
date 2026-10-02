@@ -33,7 +33,7 @@ def main() -> int:
         assert {item["path"] for item in content["artifacts"]} == {
             "showcase", "gameplay.so", "NexoraRuntime.dll"}
         assert (output / "bin/NexoraRuntime.dll").read_bytes() == b"runtime"
-        assert (output / "manifests/SHA256SUMS").read_text().count("\n") == 11
+        assert (output / "manifests/SHA256SUMS").read_text().count("\n") == 12
         assert content["showcase_content"][0]["path"] == "Content/Showcase/catalog.json"
         assert "--mode=interactive" in build["interactive_launch"]
         assert (output / "run-showcase.ps1").is_file()

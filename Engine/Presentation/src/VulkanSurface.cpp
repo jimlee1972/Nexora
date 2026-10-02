@@ -98,6 +98,9 @@ public:
     }
     if (!physical_)
       return;
+    VkPhysicalDeviceProperties deviceProperties{};
+    vkGetPhysicalDeviceProperties(physical_, &deviceProperties);
+    diagnostics_.softwareRasterizer = deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
     constexpr float priority = 1.0F;
     VkDeviceQueueCreateInfo queueCreate{};
     queueCreate.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -137,6 +140,8 @@ public:
       return SurfaceStatus::SurfaceLost;
     if (!valid_)
       return SurfaceStatus::Unsupported;
+    if (acquired_)
+      return SurfaceStatus::InvalidDescriptor;
     if (dirty_.exchange(false)) {
       width_ = pendingWidth_.load();
       height_ = pendingHeight_.load();
@@ -190,6 +195,7 @@ public:
                          1, &toRender);
     transferTarget_ = false;
     sceneRendered_ = false;
+    sceneOffscreen_ = sceneComposited_ = false;
     acquired_ = true;
     ++diagnostics_.acquiredFrames;
     if (result == VK_SUBOPTIMAL_KHR)
@@ -425,7 +431,39 @@ public:
     view.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
     if (vkCreateImageView(device_, &view, nullptr, &frame.sceneDepthView) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
-    const VkImageView attachments[] = {imageViews_[imageIndex_], frame.sceneDepthView};
+    if (data.offscreen) {
+      image.format = swapchainFormat_;
+      image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+      if (vkCreateImage(device_, &image, nullptr, &frame.sceneColor) != VK_SUCCESS)
+        return SurfaceStatus::DeviceLost;
+      vkGetImageMemoryRequirements(device_, frame.sceneColor, &requirements);
+      allocate.allocationSize = requirements.size;
+      allocate.memoryTypeIndex =
+          FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+      if (allocate.memoryTypeIndex == UINT32_MAX)
+        return SurfaceStatus::Unsupported;
+      if (vkAllocateMemory(device_, &allocate, nullptr, &frame.sceneColorMemory) != VK_SUCCESS ||
+          vkBindImageMemory(device_, frame.sceneColor, frame.sceneColorMemory, 0) != VK_SUCCESS)
+        return SurfaceStatus::DeviceLost;
+      view.image = frame.sceneColor;
+      view.format = swapchainFormat_;
+      view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+      if (vkCreateImageView(device_, &view, nullptr, &frame.sceneColorView) != VK_SUCCESS)
+        return SurfaceStatus::DeviceLost;
+      VkImageMemoryBarrier color{};
+      color.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+      color.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      color.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+      color.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      color.srcQueueFamilyIndex = color.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      color.image = frame.sceneColor;
+      color.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+      vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                           VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr,
+                           1, &color);
+    }
+    const VkImageView attachments[] = {
+        data.offscreen ? frame.sceneColorView : imageViews_[imageIndex_], frame.sceneDepthView};
     VkFramebufferCreateInfo framebuffer{};
     framebuffer.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebuffer.renderPass = sceneRenderPass_;
@@ -473,8 +511,50 @@ public:
                      static_cast<std::uint32_t>(instances.size()), 0, 0, 0);
     vkCmdEndRenderPass(frame.commands);
     sceneRendered_ = true;
+    sceneOffscreen_ = data.offscreen;
+    diagnostics_.sceneOffscreenDrawCalls += data.offscreen ? 1 : 0;
     ++diagnostics_.sceneDrawCalls;
     diagnostics_.sceneInstances += instances.size();
+    return SurfaceStatus::Ready;
+  }
+  SurfaceStatus CompositeScene() override {
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    if (!acquired_ || !sceneRendered_ || !sceneOffscreen_ || sceneComposited_ || transferTarget_ ||
+        frames_[frame_].uiFramebuffer)
+      return SurfaceStatus::InvalidDescriptor;
+    auto &frame = frames_[frame_];
+    VkImageMemoryBarrier barriers[2]{};
+    for (auto &barrier : barriers) {
+      barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+      barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+      barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    }
+    barriers[0].image = frame.sceneColor;
+    barriers[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barriers[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    barriers[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    barriers[1].image = images_[imageIndex_];
+    barriers[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barriers[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 2, barriers);
+    VkImageCopy copy{};
+    copy.srcSubresource = copy.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    copy.extent = {width_, height_, 1};
+    vkCmdCopyImage(frame.commands, frame.sceneColor, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   images_[imageIndex_], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+    barriers[1].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barriers[1].dstAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barriers[1].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barriers[1].newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr,
+                         1, &barriers[1]);
+    sceneComposited_ = true;
+    ++diagnostics_.sceneComposites;
     return SurfaceStatus::Ready;
   }
   SurfaceStatus RenderUi(const UiDrawData &drawData) override {
@@ -484,8 +564,8 @@ public:
 #else
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || transferTarget_ || frames_[frame_].uiFramebuffer ||
-        drawData.vertices.empty() || drawData.indices.empty())
+    if ((sceneOffscreen_ && !sceneComposited_) || !acquired_ || transferTarget_ ||
+        frames_[frame_].uiFramebuffer || drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
     auto &frame = frames_[frame_];
     for (const auto &upload : drawData.textureUploads)
@@ -566,6 +646,8 @@ public:
       return SurfaceStatus::WrongThread;
     if (!acquired_)
       return SurfaceStatus::OutOfDate;
+    if (sceneOffscreen_ && !sceneComposited_)
+      return SurfaceStatus::InvalidDescriptor;
     auto &frame = frames_[frame_];
     VkImageMemoryBarrier toPresent{};
     toPresent.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -578,8 +660,12 @@ public:
     toPresent.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     toPresent.image = images_[imageIndex_];
     toPresent.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-    const auto sourceStage = transferTarget_ ? VK_PIPELINE_STAGE_TRANSFER_BIT
-                                             : VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    if (sceneComposited_)
+      toPresent.srcAccessMask |= VK_ACCESS_TRANSFER_WRITE_BIT;
+    const auto sourceStage = transferTarget_
+                                 ? VK_PIPELINE_STAGE_TRANSFER_BIT
+                                 : (VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                                    (sceneComposited_ ? VK_PIPELINE_STAGE_TRANSFER_BIT : 0));
     vkCmdPipelineBarrier(frame.commands, sourceStage, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0,
                          nullptr, 0, nullptr, 1, &toPresent);
     vkEndCommandBuffer(frame.commands);
@@ -659,6 +745,9 @@ private:
     VkDeviceMemory sceneDepthMemory{};
     VkImageView sceneDepthView{};
     VkFramebuffer sceneFramebuffer{};
+    VkImage sceneColor{};
+    VkDeviceMemory sceneColorMemory{};
+    VkImageView sceneColorView{};
     std::vector<VkBuffer> retiredBuffers;
     std::vector<VkDeviceMemory> retiredBufferMemory;
     std::vector<VkImage> retiredImages;
@@ -686,6 +775,15 @@ private:
   void DestroySceneFrame(Frame &frame) {
     if (frame.sceneFramebuffer)
       vkDestroyFramebuffer(device_, frame.sceneFramebuffer, nullptr);
+    if (frame.sceneColorView)
+      vkDestroyImageView(device_, frame.sceneColorView, nullptr);
+    if (frame.sceneColor)
+      vkDestroyImage(device_, frame.sceneColor, nullptr);
+    if (frame.sceneColorMemory)
+      vkFreeMemory(device_, frame.sceneColorMemory, nullptr);
+    frame.sceneColorView = VK_NULL_HANDLE;
+    frame.sceneColor = VK_NULL_HANDLE;
+    frame.sceneColorMemory = VK_NULL_HANDLE;
     if (frame.sceneDepthView)
       vkDestroyImageView(device_, frame.sceneDepthView, nullptr);
     if (frame.sceneDepth)
@@ -1397,6 +1495,7 @@ private:
   VkRenderPass sceneRenderPass_{};
   VkPipeline scenePipeline_{};
   bool sceneRendered_{};
+  bool sceneOffscreen_{}, sceneComposited_{};
   bool transferTarget_{};
   SurfaceDiagnostics diagnostics_{};
 };

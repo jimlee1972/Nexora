@@ -82,6 +82,12 @@ def main() -> int:
                           native["executed"] is True, native["backend"] == "vulkan",
                           native["backend_fallback"] is False, native["scene_draws"] == frames,
                           native["native_scene_draws"] == frames,
+                          native["native_offscreen_draws"] == frames,
+                          native["native_scene_composites"] == frames,
+                          native["native_graph_frames"] == frames,
+                          native["native_graph_passes"] == 4,
+                          native["native_graph_resource_transitions"] == 3,
+                          native["native_graph_order"] == ["Offscreen", "Main", "UI", "Present"],
                           native["surface_acquires"] == frames, native["surface_presents"] == frames,
                           native["composed_frames"] == 0, native["rendering_mode"] == "gpu_scene",
                           native["resize_requests"] == 1, native["resize_generations"] >= 1)

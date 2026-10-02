@@ -283,7 +283,7 @@ This accepts the Linux virtual-display slice only; physical-display and Windows/
 - ✅ Portable vertex/index/uniform/depth/sample-texture and frame-resource contracts remain covered by existing Renderer tests.
 - ✅ Linux Vulkan indexed geometry, directional lighting, depth and UI composition are native GPU work with per-frame fence ownership.
 - ✅ Hub and Rendering room procedural geometry and an interactive camera are visible; diagnostics show actual native counters and sample timing.
-- Open: richer primitive content and native RenderGraph scene binding. Existing Windows/DX12 evidence does not validate the expanded application version.
+- ✅ Linux native triangle/quad/instanced-cube content and native-owner RenderGraph scene binding are verified. The newest Windows/native and local target-host gates remain separate.
 
 ### Phase C -- Probe and V1 Validation Lab
 
@@ -429,12 +429,18 @@ Validation Lab follow-up: `Tab` selects M0-M12; `I` cycles None/Empty asset/Cycl
 
 Windows CI run 37043085582 built and tested Linux/macOS successfully, but Windows failed on MSVC `/WX` conversion and member-shadowing diagnostics in `ShowcaseRooms.cpp`. Explicit index/coordinate conversions and distinct geometry radius names address the reported diagnostics; Linux Development remains 75/75. The corrected Windows CI and clean-host acceptance remain pending.
 
-✅ Native hardware instance submission now reuses one 24-vertex cube for the Rendering room floor and three differently positioned/scaled/tinted cubes. Vulkan pixel acceptance checks two instances in one draw; DX12 implements the same input contract and awaits target-host execution. Native RenderGraph binding remains open.
+✅ Native hardware instance submission now reuses one 24-vertex cube for the Rendering room floor and three differently positioned/scaled/tinted cubes. Vulkan pixel acceptance checks two instances in one draw; DX12 implements the same input contract and awaits target-host execution. Local target-host acceptance remains open.
 
 ✅ [Linux native instancing acceptance](../../Apps/Showcase/evidence/Linux-V1-Instancing-2026-10-03/acceptance.md).
 
 Windows CI run 37044292214 passed Full Shipping packaging after the geometry diagnostic fixes. Development still failed on upstream Editor test variable shadowing, now addressed by distinct local names. Clean-host graphical acceptance remains pending.
 
-✅ Native Hub/Rendering sampled RGBA8 checker material now uses UV, lighting/base color and instance tint. Linux pixels verify texture selection, immutable cache reuse and resize reupload; DX12 provides matching source bindings and awaits target-host execution. Native RenderGraph scene binding and expanded Windows/physical-display acceptance remain open.
+✅ Native Hub/Rendering sampled RGBA8 checker material now uses UV, lighting/base color and instance tint. Linux pixels verify texture selection, immutable cache reuse and resize reupload; DX12 provides matching source bindings and awaits target-host execution. Expanded Windows/physical-display acceptance remains open.
 
 ✅ [Linux sampled-material acceptance](../../Apps/Showcase/evidence/Linux-V1-Textures-2026-10-03/acceptance.md).
+
+✅ Linux native-owner RenderGraph now schedules Offscreen -> Main -> UI -> Present against actual fence-owned scene color, GPU copy and swapchain/UI operations. Requested logical transitions and actual completed callback order are reported separately from RHI offscreen contracts. Rendering P cycles instanced cubes, quad and triangle. The packaged accept-v1.ps1 verifier captures Windows isolated-copy native screenshots/JSON; physical-display and clean-host attestations are delegated to the user locally and remain unaccepted until recorded.
+
+✅ Baseline sampled-material commit `36a178b6ec3d8406d5099952bdfc44a39840d5ce` passed all jobs in CI run [37047161660](https://github.com/jimlee1972/Nexora/actions/runs/37047161660), including Windows Development/Full Shipping, macOS/Linux and TSan/ASan contracts. This certifies the earlier baseline; the native-graph/local-verifier revision has separate CI and target-host evidence.
+
+✅ [Linux native-owner RenderGraph acceptance](../../Apps/Showcase/evidence/Linux-V1-Native-Graph-2026-10-03/acceptance.md).

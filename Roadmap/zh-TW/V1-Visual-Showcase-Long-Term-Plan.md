@@ -283,7 +283,7 @@ UI、headless report、CTest adapter 與 Guided Tour 都消費同一份結果。
 - ✅ Portable vertex/index/uniform/depth/sample-texture 與 frame-resource contract 持續由 Renderer 測試覆蓋。
 - ✅ Linux Vulkan indexed geometry、directional light、depth 與 UI composition 是原生 GPU 工作，由每幀 fence 保護資源。
 - ✅ Hub／Rendering 房間的 procedural geometry 與互動 camera 可見；diagnostics 顯示實際 native counter 與取樣時間。
-- 待辦：更完整 primitive content 與 native RenderGraph scene binding；既有 Windows/DX12 證據不代表新版 application 驗收。
+- ✅ Linux 原生 triangle/quad/instanced-cube 與 native-owner RenderGraph scene binding 已驗證；最新 Windows/native 與本地目標主機 gate 仍須分開驗收。
 
 ### Phase C — Probe 與 V1 Validation Lab
 
@@ -429,12 +429,18 @@ package 必須由 M12 Packager/manifest contract 產出或驗證，不允許靠�
 
 Windows CI run 37043085582 的 Linux/macOS 建置與測試通過，但 Windows 因 `ShowcaseRooms.cpp` 的 MSVC `/WX` 型別轉換及成員遮蔽警告失敗。已加入明確的索引／座標轉型並區分幾何半徑參數名稱，Linux Development 仍為 75/75；修正後的 Windows CI 與 clean-host 驗收仍待執行。
 
-✅ Rendering 房的地板及三個不同位置／尺寸／顏色的 cube 現在共用一份 24 頂點 mesh，由原生 hardware instance draw 繪製。Vulkan 像素驗收確認一次 draw 的兩個獨立 instance；DX12 已實作相同輸入契約，目標主機執行仍待驗收。Native RenderGraph binding 仍待完成。
+✅ Rendering 房的地板及三個不同位置／尺寸／顏色的 cube 現在共用一份 24 頂點 mesh，由原生 hardware instance draw 繪製。Vulkan 像素驗收確認一次 draw 的兩個獨立 instance；DX12 已實作相同輸入契約，目標主機執行仍待驗收。本地目標主機驗收仍待完成。
 
 ✅ [Linux native instancing acceptance](../../Apps/Showcase/evidence/Linux-V1-Instancing-2026-10-03/acceptance.md).
 
 Windows CI run 37044292214 在幾何警告修正後通過 Full Shipping 封裝；Development 仍因上游 Editor 測試區域變數遮蔽而失敗，目前已改用不同名稱。Clean-host 圖形驗收仍待執行。
 
-✅ Hub/Rendering 已使用原生 RGBA8 棋盤取樣材質，結合 UV、lighting/base color 與 instance tint。Linux 像素驗收確認 texture selection、不可變快取重用及 resize 後重傳；DX12 提供相同 source binding，仍待目標主機執行。Native RenderGraph scene binding 與新版 Windows／physical-display 驗收仍待完成。
+✅ Hub/Rendering 已使用原生 RGBA8 棋盤取樣材質，結合 UV、lighting/base color 與 instance tint。Linux 像素驗收確認 texture selection、不可變快取重用及 resize 後重傳；DX12 提供相同 source binding，仍待目標主機執行。新版 Windows／physical-display 驗收仍待完成。
 
 ✅ [Linux sampled-material acceptance](../../Apps/Showcase/evidence/Linux-V1-Textures-2026-10-03/acceptance.md).
+
+✅ Linux native-owner RenderGraph 已對實際 fence-owned scene color、GPU copy 與 swapchain/UI 操作排程 Offscreen -> Main -> UI -> Present；requested logical transition 與實際完成 callback order 和 RHI offscreen contract 分開報告。Rendering 的 P 可切換 instanced cubes、quad、triangle。套件的 accept-v1.ps1 可產生 Windows isolated-copy 原生截圖／JSON；physical-display 與 clean-host 驗收由使用者本地執行，結果記錄前仍未通過。
+
+✅ sampled-material 基底 commit `36a178b6ec3d8406d5099952bdfc44a39840d5ce` 的 CI [37047161660](https://github.com/jimlee1972/Nexora/actions/runs/37047161660) 全部 job 通過，包含 Windows Development／Full Shipping、macOS／Linux 與 TSan／ASan contract。此結果驗證前一版基底；原生 graph／本地驗收腳本版本仍以各自 CI 與目標主機證據為準。
+
+✅ [Linux native-owner RenderGraph acceptance](../../Apps/Showcase/evidence/Linux-V1-Native-Graph-2026-10-03/acceptance.md).

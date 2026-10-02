@@ -85,7 +85,7 @@ struct RoomSession::State final {
   std::uint64_t atlasGeneration{~std::uint64_t{0}};
   std::string lastAction{"Ready"}, pluginLibrary;
   ErrorInjection injection{ErrorInjection::None};
-  std::size_t metricOffset{};
+  std::size_t metricOffset{}, primitive{};
   std::vector<ProbeResult> probes{ProbeRegistry::CreateV1Registry().RunAll()};
   std::vector<Nexora::Presentation::SceneVertex> vertices;
   std::vector<Nexora::Presentation::SceneInstance> instances;
@@ -748,9 +748,10 @@ struct RoomSession::State final {
     if (selected == "rendering")
       lines.insert(lines.end(),
                    {"Camera / indexed cube / material / directional light / depth",
-                    "Headless graph: Shadow / Depth / Forward+ / Post / Present",
-                    "Native acquired image: depth-tested DrawScene then UI",
+                    "Native RenderGraph: Offscreen / Main / UI / Present",
+                    "Offscreen depth scene / GPU copy to acquired image / UI",
                     "Original checker texture / hardware instances / shadow placeholder",
+                    "P cycles instanced cubes / quad / triangle",
                     "Drag mouse to orbit / wheel zoom / WASD orbit"});
     if (selected == "scene") {
       lines.push_back("Editor World / Play World / snapshots / deferred unload");
@@ -1004,6 +1005,10 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
       s.lastAction = "Lab export failed";
     }
   }
+  if (s.selected == "rendering" && key == Key::P) {
+    s.primitive = (s.primitive + 1) % 3;
+    s.lastAction = "Changed native primitive";
+  }
 #if NEXORA_EDITOR_SDK_ENABLED
   if (s.selected == "scene" && key == Key::E) {
     auto transform = s.editorWorld.FindEntity(s.editorEntity)->transform;
@@ -1161,13 +1166,29 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       s.Cube(std::sin(angle) * 4, 1, std::cos(angle) * 4, 0.4F, 1, 0.4F);
     }
   } else if (s.selected == "rendering") {
-    s.vertices.clear();
-    s.indices.clear();
-    s.Cube(0, 0, 0, 1, 1, 1);
-    s.instances = {{{0, -0.3F, 0}, {6, 0.3F, 6}, {0.5F, 0.5F, 0.5F, 1}},
-                   {{0, 1.5F, 0}, {1, 1, 1}, {1, 1, 1, 1}},
-                   {{-3, 0.5F, 0}, {0.5F, 0.5F, 0.5F}, {1, 0.4F, 0.4F, 1}},
-                   {{3, 0.75F, 0}, {0.75F, 0.75F, 0.75F}, {0.4F, 1, 0.4F, 1}}};
+    if (s.primitive == 0) {
+      s.vertices.clear();
+      s.indices.clear();
+      s.Cube(0, 0, 0, 1, 1, 1);
+      s.instances = {{{0, -0.3F, 0}, {6, 0.3F, 6}, {0.5F, 0.5F, 0.5F, 1}},
+                     {{0, 1.5F, 0}, {1, 1, 1}, {1, 1, 1, 1}},
+                     {{-3, 0.5F, 0}, {0.5F, 0.5F, 0.5F}, {1, 0.4F, 0.4F, 1}},
+                     {{3, 0.75F, 0}, {0.75F, 0.75F, 0.75F}, {0.4F, 1, 0.4F, 1}}};
+    } else {
+      const auto base = static_cast<std::uint16_t>(s.vertices.size());
+      s.vertices.push_back({{-2, 0.25F, 0}, {0, 0, 1}, {0, 0}});
+      s.vertices.push_back({{2, 0.25F, 0}, {0, 0, 1}, {1, 0}});
+      s.vertices.push_back({{s.primitive == 1 ? 2.0F : 0.0F, 3.75F, 0},
+                            {0, 0, 1},
+                            {s.primitive == 1 ? 1.0F : 0.5F, 1}});
+      for (const auto index : {0, 1, 2})
+        s.indices.push_back(static_cast<std::uint16_t>(base + index));
+      if (s.primitive == 1) {
+        s.vertices.push_back({{-2, 3.75F, 0}, {0, 0, 1}, {0, 1}});
+        for (const auto index : {2, 3, 0})
+          s.indices.push_back(static_cast<std::uint16_t>(base + index));
+      }
+    }
   } else if (s.selected == "scene") {
     const auto *entity = s.editorWorld.FindEntity(s.editorEntity);
     s.Cube(entity ? static_cast<float>(entity->transform.x) : 0.0F, 1, 0, 0.6F, 1, 0.6F);
@@ -1317,15 +1338,16 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     }
   }
   if (s.profiler) {
-    s.Rect(930, 126, 328, 217, 0xef241a10);
+    s.Rect(930, 126, 328, 242, 0xef241a10);
     s.Text(945, 140, "Live frame / " + std::string(backend));
-    s.Text(945, 165, "Frame ms " + Number(frameMs));
-    s.Text(945, 190, "Acquire " + std::to_string(d.acquiredFrames));
-    s.Text(945, 215, "Present " + std::to_string(d.presentedFrames));
-    s.Text(945, 240, "Scene draws " + std::to_string(d.sceneDrawCalls));
-    s.Text(945, 265, "Instances " + std::to_string(d.sceneInstances));
-    s.Text(945, 290, "UI draws " + std::to_string(d.nativeUiDrawCalls));
-    s.Text(945, 315, "Build " + std::string(foundation::GetBuildId()).substr(0, 12), 0xffa5cedd,
+    s.Text(945, 165, d.softwareRasterizer ? "Rasterizer software" : "Rasterizer hardware");
+    s.Text(945, 190, "Frame ms " + Number(frameMs));
+    s.Text(945, 215, "Acquire " + std::to_string(d.acquiredFrames));
+    s.Text(945, 240, "Present " + std::to_string(d.presentedFrames));
+    s.Text(945, 265, "Scene draws " + std::to_string(d.sceneDrawCalls));
+    s.Text(945, 290, "Instances " + std::to_string(d.sceneInstances));
+    s.Text(945, 315, "UI draws " + std::to_string(d.nativeUiDrawCalls));
+    s.Text(945, 340, "Build " + std::string(foundation::GetBuildId()).substr(0, 12), 0xffa5cedd,
            1.5F);
   }
   if (s.matrix) {

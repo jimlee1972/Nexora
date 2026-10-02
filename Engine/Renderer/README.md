@@ -181,3 +181,27 @@ queue emits an ownership barrier even when the resource state is unchanged, and 
 those transfers separately from ordinary state transitions. The graph retains transient ownership
 until all submitted work is idle, then releases the resources; imported resources remain
 caller-owned. Vulkan's native gate is defined to execute the full frustum/distance/LOD/Hi-Z/compaction/classification/indirect-generation kernel through a RenderGraph compute pass, require an exact CPU/GPU result comparison, transfer ownership to a graphics pass, and issue native indirect drawing. Its four storage slots represent packed scene/view/Hi-Z input, compacted instances, indirect arguments, and statistics. The acceptance test waits for completion, reconstructs the backend result through the explicitly test-only readback seam, and requires an exact `CompareGPUDrivenResults()` match; normal recording performs no readback. The local Windows/DX12 gate now also passes this comparison through the same four-slot shader contract; native queue/timeline separation, Metal execution, and full target-host parity remain open gates. None of those open gates is inferred from Linux Vulkan coverage.
+
+## Native-owner RenderGraph execution
+
+`ImportExternalTexture` records a positive-extent logical color resource owned by a native adapter;
+it does not import a fabricated RHI handle, allocate storage or expose native devices/images.
+`AddExternalPass` declares its reads/writes and owner callback on the graphics queue. RHI and native
+ownership cannot be mixed within a pass; each execution method rejects the other resource/callback
+mode before dispatch. Both modes share dependency derivation, cycle rejection and topological order.
+`ExecuteExternal` borrows pass names, texture uses and requested before/after states only for each
+callback. The owner materializes these states in its native operations and retains physical storage,
+GPU barriers, fences and teardown. Logical format metadata describes shader-visible color; the owner
+negotiates its compatible native presentation format. No callback/context may escape the execution.
+Exceptions stop successors immediately; the external owner must drain or abandon its acquired frame
+safely. Graph destruction releases CPU declarations/captures without releasing owner GPU resources.
+`external_transition_count` counts successfully requested logical state changes, separate from the
+RHI executor's `barrier_count`; `completed_pass_count` counts successful callbacks/submissions and is
+not a GPU completion fence. Portable tests cover ordering, ownership mismatch, cycles and callback
+failure containment. Native pixel/interaction acceptance verifies the actual bound operations.
+
+Showcase binds Offscreen (private color/depth draw), Main (GPU color copy into the acquired image),
+UI (attachment load/native UI draw) and Present to this graph. Main briefly transitions its destination
+through copy state and restores RenderTarget internally; its logical write describes that output
+state. Vulkan/DX12 Presentation own and validate all physical transitions. The native graph counters
+and actual successful callback order are reported separately from the RHI offscreen contract graph.

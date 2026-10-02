@@ -8,6 +8,7 @@
 #include "Nexora/RHI/ShaderReflection.h"
 #include "Nexora/Renderer/FramePipeline.h"
 #include "Nexora/Renderer/PipelineCache.h"
+#include "Nexora/Renderer/RenderGraph.h"
 #include "Nexora/Renderer/SceneFrame.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
 #include "ShowcaseProbes.h"
@@ -127,6 +128,9 @@ struct ShowcaseRun final {
   std::uint32_t composed_frames{};
   std::uint32_t scene_draws{};
   std::uint32_t overlay_frames{};
+  std::uint32_t native_graph_frames{};
+  std::size_t native_graph_passes{}, native_graph_transitions{};
+  std::vector<std::string> native_graph_order;
   std::string runtime_rooms{"null"};
   std::string markdown;
   bool rooms_ok{};
@@ -713,29 +717,61 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     ++executedFrames;
     if (nativeSurface) {
       const auto frameInfo = nativeSurface->FrameInfo();
-      const auto draw = rooms.Scene(frameInfo.width, frameInfo.height);
-      const auto drawStatus = nativeSurface->DrawScene(draw);
-      if (drawStatus != Nexora::Presentation::SurfaceStatus::Ready) {
-        error = "showcase scene draw failed: " +
-                std::string(Nexora::Presentation::ToString(drawStatus));
-        device->DestroyTexture(output);
-        return false;
-      }
-      ++result.scene_draws;
-      const auto overlay = rooms.Overlay(frameInfo.width, frameInfo.height, result.windowed_backend,
-                                         nativeSurface->Diagnostics(), frameSeconds * 1000);
-      if (nativeSurface->RenderUi(overlay) != Nexora::Presentation::SurfaceStatus::Ready) {
-        error = "showcase native UI failed";
-        device->DestroyTexture(output);
-        return false;
-      }
-      ++result.overlay_frames;
-      const auto status = nativeSurface->EndFrame();
-      if (status != Nexora::Presentation::SurfaceStatus::Ready &&
-          status != Nexora::Presentation::SurfaceStatus::Occluded) {
-        result.presentation_recovery =
-            Nexora::Presentation::ToString(Nexora::Presentation::RecoveryAction(status));
-        error = "presentation failed: " + std::string(Nexora::Presentation::ToString(status));
+      renderer::RenderGraph graph;
+      std::vector<std::string> completedNames;
+      const auto offscreen = graph.ImportExternalTexture(
+          {frameInfo.width, frameInfo.height, rhi::TextureFormat::Rgba8Unorm,
+           rhi::ResourceState::Undefined, "NativeSceneColor"});
+      const auto presentation = graph.ImportExternalTexture(
+          {frameInfo.width, frameInfo.height, rhi::TextureFormat::Rgba8Unorm,
+           rhi::ResourceState::RenderTarget, "AcquiredPresentationColor"});
+      const auto requireReady = [](Nexora::Presentation::SurfaceStatus status, const char *pass) {
+        if (status != Nexora::Presentation::SurfaceStatus::Ready)
+          throw std::runtime_error(std::string("native graph ") + pass + " failed: " +
+                                   std::string(Nexora::Presentation::ToString(status)));
+      };
+      (void)graph.AddExternalPass("Offscreen", {}, {{offscreen, rhi::ResourceState::RenderTarget}},
+                                  [&](const renderer::ExternalPassContext &passInfo) {
+                                    auto draw = rooms.Scene(frameInfo.width, frameInfo.height);
+                                    draw.offscreen = true;
+                                    requireReady(nativeSurface->DrawScene(draw), "Offscreen");
+                                    ++result.scene_draws;
+                                    completedNames.emplace_back(passInfo.name);
+                                  });
+      (void)graph.AddExternalPass("Main", {{offscreen, rhi::ResourceState::CopySource}},
+                                  {{presentation, rhi::ResourceState::RenderTarget}},
+                                  [&](const renderer::ExternalPassContext &passInfo) {
+                                    requireReady(nativeSurface->CompositeScene(), "Main");
+                                    completedNames.emplace_back(passInfo.name);
+                                  });
+      (void)graph.AddExternalPass("UI", {}, {{presentation, rhi::ResourceState::RenderTarget}},
+                                  [&](const renderer::ExternalPassContext &passInfo) {
+                                    const auto overlay = rooms.Overlay(
+                                        frameInfo.width, frameInfo.height, result.windowed_backend,
+                                        nativeSurface->Diagnostics(), frameSeconds * 1000);
+                                    requireReady(nativeSurface->RenderUi(overlay), "UI");
+                                    ++result.overlay_frames;
+                                    completedNames.emplace_back(passInfo.name);
+                                  });
+      (void)graph.AddExternalPass("Present", {{presentation, rhi::ResourceState::Present}}, {},
+                                  [&](const renderer::ExternalPassContext &passInfo) {
+                                    const auto status = nativeSurface->EndFrame();
+                                    if (status != Nexora::Presentation::SurfaceStatus::Occluded) {
+                                      result.presentation_recovery = Nexora::Presentation::ToString(
+                                          Nexora::Presentation::RecoveryAction(status));
+                                      requireReady(status, "Present");
+                                    }
+                                    completedNames.emplace_back(passInfo.name);
+                                  });
+      try {
+        graph.Compile();
+        graph.ExecuteExternal();
+        result.native_graph_order = std::move(completedNames);
+        ++result.native_graph_frames;
+        result.native_graph_passes = graph.GetStatistics().completed_pass_count;
+        result.native_graph_transitions = graph.GetStatistics().external_transition_count;
+      } catch (const std::exception &failure) {
+        error = failure.what();
         device->DestroyTexture(output);
         return false;
       }
@@ -993,6 +1029,16 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"native_scene_draws\": " << run.surface.sceneDrawCalls << ",\n"
          << "    \"native_scene_instances\": " << run.surface.sceneInstances << ",\n"
          << "    \"native_scene_texture_uploads\": " << run.surface.sceneTextureUploads << ",\n"
+         << "    \"native_offscreen_draws\": " << run.surface.sceneOffscreenDrawCalls << ",\n"
+         << "    \"native_scene_composites\": " << run.surface.sceneComposites << ",\n"
+         << "    \"software_rasterizer\": " << run.surface.softwareRasterizer << ",\n"
+         << "    \"native_graph_frames\": " << run.native_graph_frames << ",\n"
+         << "    \"native_graph_passes\": " << run.native_graph_passes << ",\n"
+         << "    \"native_graph_resource_transitions\": " << run.native_graph_transitions << ",\n"
+         << "    \"native_graph_order\": [";
+  for (std::size_t i = 0; i < run.native_graph_order.size(); ++i)
+    report << (i ? "," : "") << "\"" << EscapeJson(run.native_graph_order[i]) << "\"";
+  report << "],\n"
          << "    \"native_ui_draws\": " << run.surface.nativeUiDrawCalls << ",\n"
          << "    \"overlay_frames\": " << run.overlay_frames << ",\n"
          << "    \"rendering_mode\": \"" << (run.scene_draws > 0 ? "gpu_scene" : "cpu_composite")

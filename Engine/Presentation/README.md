@@ -97,3 +97,19 @@ DX12 implements matching UV/SRV/sampler bindings but requires its target-host ex
 The CI TSan gate disables native backends because the system Mesa library is not instrumented and
 reports driver-internal mutex races at teardown (run 37045590037). Portable engine concurrency remains
 instrumented. Development and ASan/UBSan retain native Vulkan gates and their lifecycle checks.
+
+## Native offscreen scene composition
+
+`SceneDrawData::offscreen` selects a private backbuffer-compatible color attachment instead of the
+acquired image; false preserves direct-draw compatibility. Vulkan/DX12 retain color/depth/upload
+resources in the acquired frame slot protected by its fence. `CompositeScene` performs a native GPU
+copy to the acquired image, transitions the source to CopySource and restores the destination to
+RenderTarget for UI. It exports no pixels or native handles. A pending offscreen scene must be copied
+exactly once before UI/Present; repeated scene/UI/copy or incompatible full-frame composite calls
+return InvalidDescriptor. Resize drains prior work; destroying an abandoned acquired frame remains
+safe and idempotent. `sceneOffscreenDrawCalls` and `sceneComposites` count accepted operations, separate
+from legacy CPU RGBA8 composition. The Vulkan pixel gate checks the actual copied texture pixels,
+resize, rejected out-of-order/duplicate composition and teardown. Application graph lifetime does
+not determine GPU resource lifetime: the surface/fence owns submitted storage after callbacks return.
+`softwareRasterizer` reports DX12 WARP and Vulkan CPU-device selection explicitly, including in the
+Showcase profiler/report. Software-driver acceptance does not certify physical-GPU output.

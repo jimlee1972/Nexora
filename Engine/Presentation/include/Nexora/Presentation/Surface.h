@@ -41,6 +41,9 @@ struct SurfaceDiagnostics final {
   std::uint64_t sceneDrawCalls = 0;
   std::uint64_t sceneInstances = 0;
   std::uint64_t sceneTextureUploads = 0;
+  std::uint64_t sceneOffscreenDrawCalls = 0;
+  std::uint64_t sceneComposites = 0;
+  bool softwareRasterizer = false;
 };
 
 struct UiVertex final {
@@ -91,6 +94,7 @@ struct SceneDrawData final {
   std::span<const SceneInstance> instances{};
   std::uint64_t textureId{};
   std::span<const UiTextureUpload> textureUploads{};
+  bool offscreen = false;
   float model_view_projection[16]{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
   float light_direction[3]{-0.4F, -1.0F, -0.2F};
   float light_color[3]{1.0F, 0.95F, 0.85F};
@@ -133,10 +137,14 @@ public:
   // Records textured indexed UI geometry directly into the acquired presentation image. All spans
   // are borrowed for this call; texture IDs are generation-checked opaque values.
   virtual SurfaceStatus RenderUi(const UiDrawData &) { return SurfaceStatus::Unsupported; }
-  // Draws one indexed, depth-tested, lit mesh directly into the acquired presentation image and
-  // its depth buffer. Backends without a real geometry pipeline report Unsupported rather than
-  // silently falling back to a 2D composite.
+  // Draws one indexed, depth-tested, lit mesh into the acquired image or, when offscreen is
+  // requested, a fence-owned private color/depth target requiring CompositeScene. Backends without
+  // a real geometry pipeline report Unsupported rather than silently falling back to a 2D
+  // composite.
   virtual SurfaceStatus DrawScene(const SceneDrawData &) { return SurfaceStatus::Unsupported; }
+  // Copies a completed offscreen scene into the acquired image entirely on the GPU. A pending
+  // offscreen draw must be composited once before UI/Present; direct scene callers need no copy.
+  virtual SurfaceStatus CompositeScene() { return SurfaceStatus::Unsupported; }
   virtual SurfaceStatus Present() = 0;
   [[nodiscard]] virtual SurfaceDiagnostics Diagnostics() const noexcept = 0;
   // Waits for submitted GPU work and releases all swapchain resources. Idempotent and render-thread

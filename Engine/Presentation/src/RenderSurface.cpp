@@ -60,6 +60,11 @@ SurfaceStatus RenderSurface::BeginFrame() {
   return state_->surface->Acquire();
 }
 
+SurfaceStatus RenderSurface::CompositeScene() {
+  return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost
+                                      : state_->surface->CompositeScene();
+}
+
 SurfaceStatus RenderSurface::EndFrame() {
   return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost : state_->surface->Present();
 }

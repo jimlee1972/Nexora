@@ -96,3 +96,5 @@ headless gate。Showcase command 的實際 Windows/DX12 執行仍屬 target-host
 ✅ Vulkan/DX12 已實作原生 SceneDrawData hardware instance 與有界 fence-owned upload；Linux Vulkan 像素驗收確認獨立 translation/scale/tint，DX12 目標主機執行仍待驗收。
 
 ✅ Vulkan/DX12 的 Scene UV/RGBA8 材質已提供有界且不可變的 scene-only texture ID、white fallback 與 fence-protected upload lifetime。Linux 像素驗收確認 sampler selection、快取重用與 resize 重傳；DX12 目標主機材質執行仍待驗收。
+
+✅ 原生 owner 的 Offscreen → Main → UI → Present 已使用 Vulkan/DX12 fence 持有的 scene color 與 GPU copy，並拒絕重複 acquire 及未完成 copy 的錯誤順序。Linux Vulkan 像素、互動及同步驗證 gate 共 75/75 通過。套件內 Windows `accept-v1.ps1` 記錄隔離副本截圖、checksum 與原生計數器；新版實體顯示／乾淨主機驗收由使用者本地執行。

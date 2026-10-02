@@ -39,6 +39,8 @@
     "terrain": "Original deterministic height function; Full subdivision mesh, HLOD coarse proxy, unloaded map tile",
     "memory_counters": "StreamingManager authored RAM/VRAM estimates; native allocations remain separate",
     "material": "Original procedural 8x8 RGBA8 checker; native sampled texture / base color / instance tint / directional light",
-    "instances": "One indexed cube mesh shared by floor and three translation/axis-scale/tint hardware instances"
+    "instances": "One indexed cube mesh shared by floor and three translation/axis-scale/tint hardware instances",
+    "render_graph": "Native-owner Offscreen -> Main GPU color copy -> UI -> Present, with private fence-owned color/depth attachments",
+    "primitives": "Rendering P cycles shared instanced cube, indexed quad, indexed triangle"
   }
 }

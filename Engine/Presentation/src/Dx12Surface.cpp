@@ -51,6 +51,7 @@ public:
       adapter.Reset();
     }
     if (!device_ && factory_) {
+      diagnostics_.softwareRasterizer = true;
       factory_->EnumWarpAdapter(IID_PPV_ARGS(&adapter));
       D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device_));
     }
@@ -99,6 +100,8 @@ public:
       return SurfaceStatus::Unsupported;
     if (destroyed_)
       return SurfaceStatus::SurfaceLost;
+    if (acquired_)
+      return SurfaceStatus::InvalidDescriptor;
     if (auto s = ApplyResize(); s != SurfaceStatus::Ready)
       return s;
     frame_ = swapchain_->GetCurrentBackBufferIndex();
@@ -126,14 +129,15 @@ public:
     }
     ++diagnostics_.acquiredFrames;
     acquired_ = true;
+    sceneDrawn_ = sceneOffscreen_ = sceneComposited_ = uiDrawn_ = compositeDrawn_ = false;
     return SurfaceStatus::Ready;
   }
   SurfaceStatus CompositeRgba8(std::span<const std::byte> pixels, std::uint32_t width,
                                std::uint32_t height) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || width != width_ || height != height_ ||
-        pixels.size() != static_cast<std::size_t>(width) * height * 4U)
+    if (!acquired_ || sceneDrawn_ || uiDrawn_ || compositeDrawn_ || width != width_ ||
+        height != height_ || pixels.size() != static_cast<std::size_t>(width) * height * 4U)
       return SurfaceStatus::InvalidDescriptor;
     const UINT rowPitch = width * 4U;
     const UINT alignedPitch = (rowPitch + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) &
@@ -183,6 +187,7 @@ public:
                                  D3D12_RESOURCE_STATE_RENDER_TARGET};
     commands_->ResourceBarrier(1, &toRenderTarget);
     retired_[frame_].push_back(staging);
+    compositeDrawn_ = true;
     return SurfaceStatus::Ready;
   }
   SurfaceStatus Present() override {
@@ -190,6 +195,8 @@ public:
       return SurfaceStatus::WrongThread;
     if (!acquired_)
       return SurfaceStatus::OutOfDate;
+    if (sceneOffscreen_ && !sceneComposited_)
+      return SurfaceStatus::InvalidDescriptor;
     D3D12_RESOURCE_BARRIER b{};
     b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     b.Transition = {buffers_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
@@ -217,7 +224,8 @@ public:
   SurfaceStatus RenderUi(const UiDrawData &drawData) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || drawData.vertices.empty() || drawData.indices.empty())
+    if (!acquired_ || uiDrawn_ || compositeDrawn_ || (sceneOffscreen_ && !sceneComposited_) ||
+        drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
     for (const auto &upload : drawData.textureUploads)
       if (!UploadUiTexture(upload))
@@ -273,12 +281,14 @@ public:
                                       command.vertexOffset, 0);
       ++diagnostics_.nativeUiDrawCalls;
     }
+    uiDrawn_ = true;
     return SurfaceStatus::Ready;
   }
   SurfaceStatus DrawScene(const SceneDrawData &drawData) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || !scenePipeline_ || drawData.vertices.empty() || drawData.indices.empty())
+    if (!acquired_ || sceneDrawn_ || uiDrawn_ || compositeDrawn_ || !scenePipeline_ ||
+        drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
     if (drawData.instances.size() > 4096)
       return SurfaceStatus::InvalidDescriptor;
@@ -373,6 +383,27 @@ public:
     const auto geometryBase = base + kGeometryOffset;
     auto rtv = heap_->GetCPUDescriptorHandleForHeapStart();
     rtv.ptr += SIZE_T(frame_) * increment_;
+    if (drawData.offscreen) {
+      auto descriptor = buffers_[frame_]->GetDesc();
+      descriptor.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+      D3D12_HEAP_PROPERTIES heap{};
+      heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+      heap.CreationNodeMask = heap.VisibleNodeMask = 1;
+      D3D12_CLEAR_VALUE clear{};
+      clear.Format = descriptor.Format;
+      clear.Color[0] = 0.025F;
+      clear.Color[1] = 0.045F;
+      clear.Color[2] = 0.09F;
+      clear.Color[3] = 1;
+      if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
+                                                  D3D12_RESOURCE_STATE_RENDER_TARGET, &clear,
+                                                  IID_PPV_ARGS(&sceneColors_[frame_]))))
+        return SurfaceStatus::DeviceLost;
+      rtv = sceneRtvHeap_->GetCPUDescriptorHandleForHeapStart();
+      rtv.ptr += SIZE_T(frame_) * increment_;
+      device_->CreateRenderTargetView(sceneColors_[frame_].Get(), nullptr, rtv);
+      commands_->ClearRenderTargetView(rtv, clear.Color, 0, nullptr);
+    }
     auto dsv = dsvHeap_->GetCPUDescriptorHandleForHeapStart();
     dsv.ptr += SIZE_T(frame_) * dsvIncrement_;
     commands_->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
@@ -403,8 +434,33 @@ public:
     commands_->IASetIndexBuffer(&indexView);
     commands_->DrawIndexedInstanced(static_cast<UINT>(drawData.indices.size()),
                                     static_cast<UINT>(instances.size()), 0, 0, 0);
+    sceneDrawn_ = true;
+    sceneOffscreen_ = drawData.offscreen;
+    diagnostics_.sceneOffscreenDrawCalls += drawData.offscreen ? 1 : 0;
     ++diagnostics_.sceneDrawCalls;
     diagnostics_.sceneInstances += instances.size();
+    return SurfaceStatus::Ready;
+  }
+  SurfaceStatus CompositeScene() override {
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    if (!acquired_ || !sceneDrawn_ || !sceneOffscreen_ || sceneComposited_ || uiDrawn_ ||
+        compositeDrawn_)
+      return SurfaceStatus::InvalidDescriptor;
+    D3D12_RESOURCE_BARRIER barriers[2]{};
+    for (auto &barrier : barriers)
+      barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barriers[0].Transition = {sceneColors_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                              D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE};
+    barriers[1].Transition = {buffers_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                              D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST};
+    commands_->ResourceBarrier(2, barriers);
+    commands_->CopyResource(buffers_[frame_].Get(), sceneColors_[frame_].Get());
+    barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    commands_->ResourceBarrier(1, &barriers[1]);
+    sceneComposited_ = true;
+    ++diagnostics_.sceneComposites;
     return SurfaceStatus::Ready;
   }
   SurfaceDiagnostics Diagnostics() const noexcept override { return diagnostics_; }
@@ -418,6 +474,10 @@ public:
       fence_->SetEventOnCompletion(fenceValue_, event_);
       WaitForSingleObject(event_, INFINITE);
     }
+    acquired_ = false;
+    for (auto &color : sceneColors_)
+      color.Reset();
+    sceneRtvHeap_.Reset();
     for (auto &b : buffers_)
       b.Reset();
     for (auto &d : depthBuffers_)
@@ -570,6 +630,11 @@ private:
         FAILED(device_->CreateRootSignature(0, signature->GetBufferPointer(),
                                             signature->GetBufferSize(),
                                             IID_PPV_ARGS(&sceneRootSignature_))))
+      return false;
+    D3D12_DESCRIPTOR_HEAP_DESC sceneHeap{};
+    sceneHeap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    sceneHeap.NumDescriptors = frames_;
+    if (FAILED(device_->CreateDescriptorHeap(&sceneHeap, IID_PPV_ARGS(&sceneRtvHeap_))))
       return false;
     // Column-vector convention (row_major storage, mul(matrix, vector)) to match
     // Nexora::Math::Matrix4's documented "row-major storage, column vectors" layout -- uploaded
@@ -867,6 +932,7 @@ private:
   UINT frames_{}, frame_{};
   PresentMode mode_{};
   bool allowTearing_{}, valid_{}, destroyed_{}, acquired_{};
+  bool sceneDrawn_{}, sceneOffscreen_{}, sceneComposited_{}, uiDrawn_{}, compositeDrawn_{};
   std::atomic<uint32_t> pendingWidth_{}, pendingHeight_{};
   std::atomic_bool dirty_{};
   HANDLE event_{};
@@ -881,6 +947,8 @@ private:
   ComPtr<ID3D12CommandQueue> queue_;
   ComPtr<ID3D12Fence> fence_;
   ComPtr<ID3D12DescriptorHeap> heap_;
+  ComPtr<ID3D12DescriptorHeap> sceneRtvHeap_;
+  std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneColors_;
   ComPtr<ID3D12DescriptorHeap> uiDescriptors_;
   ComPtr<ID3D12RootSignature> uiRootSignature_;
   ComPtr<ID3D12PipelineState> uiPipeline_;

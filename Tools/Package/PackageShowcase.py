@@ -134,14 +134,16 @@ def main() -> int:
     content = {"schema_version": 1, "artifacts": artifacts, "showcase_content": content_artifacts}
     (args.output / "README.txt").write_text(
         "Nexora Visual Showcase\nRun run-showcase.ps1 on Windows or use interactive_launch in manifests/build.json.\n"
-        "Controls: 1-8 rooms; F1 overview; F2 profiler; F3 matrix; F5 reload; T tour; Space pause; R replay/probe.\n"
+        "Controls: 1-8 rooms; P Rendering primitive / Scene Play; F1 overview; F2 profiler; F3 matrix; F5 reload; T tour; Space pause; R replay/probe.\n"
         "Drag mouse to orbit; wheel zoom; WASD movement. Native media/WebView adapters are explicitly unavailable.\n"
-        "Verify manifests/SHA256SUMS before launching. Headless launch validates portable integration only.\n", encoding="utf-8")
+        "Verify manifests/SHA256SUMS before launching. Headless launch validates portable integration only.\n"
+        "Windows: run accept-v1.ps1 for isolated-copy native screenshots/report; -PhysicalDisplay/-CleanHost are operator attestations.\n", encoding="utf-8")
     (args.output / "run-showcase.ps1").write_text(
         "$ErrorActionPreference = 'Stop'\nPush-Location $PSScriptRoot\ntry {\n"
         f"  & './bin/{args.binary.name}' --mode=interactive --scene=hub --backend=auto"
         + (f" --gameplay-module=dynamic --gameplay-library='./bin/{args.gameplay_module.name}'" if args.gameplay_module else " --gameplay-module=static")
         + "\n  exit $LASTEXITCODE\n} finally { Pop-Location }\n", encoding="utf-8")
+    copy(Path(__file__).with_name("AcceptShowcaseWindows.ps1"), args.output / "accept-v1.ps1")
     manifest_dir.mkdir(parents=True, exist_ok=True)
     (manifest_dir / "build.json").write_text(json.dumps(build, indent=2) + "\n", encoding="utf-8")
     (manifest_dir / "content.json").write_text(json.dumps(content, indent=2) + "\n", encoding="utf-8")

@@ -168,10 +168,22 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
       - run: cmake --preset windows-showcase-shipping
       - run: cmake --build --preset windows-showcase-shipping --target NexoraShowcasePackageShippingEvidence --parallel 4
+      - name: Native Windows isolated-copy visual acceptance
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File Tools/Package/AcceptShowcaseWindows.ps1 -PackageRoot build/windows-showcase-shipping/package/NexoraShowcase-Shipping -EvidenceDirectory build/windows-showcase-shipping/artifacts/showcase-windows-v1 -ExpectedBuildId ($env:GITHUB_SHA.Substring(0, 12)) -AllowUnavailableDisplay
+          if ($LASTEXITCODE -eq 77) {
+            Write-Host "Native visual acceptance is UNSUPPORTED: runner has no interactive desktop."
+            exit 0
+          }
+          exit $LASTEXITCODE
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: showcase-windows-shipping-evidence
-          path: build/windows-showcase-shipping/package/NexoraShowcase-Shipping*
+          path: |
+            build/windows-showcase-shipping/package/NexoraShowcase-Shipping*
+            build/windows-showcase-shipping/artifacts/showcase-windows-v1/
 
   mimalloc-smoke:
     name: mimalloc backend (${{ matrix.preset }})
