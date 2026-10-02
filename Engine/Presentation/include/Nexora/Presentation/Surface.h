@@ -39,6 +39,7 @@ struct SurfaceDiagnostics final {
   std::uint64_t nativeUiTextureUploads = 0;
   std::uint64_t nativeUiRejectedTextures = 0;
   std::uint64_t sceneDrawCalls = 0;
+  std::uint64_t sceneInstances = 0;
 };
 
 struct UiVertex final {
@@ -63,12 +64,21 @@ struct SceneVertex final {
   float normal[3]{};
 };
 
+// Translation and nonzero axis scale transform one shared mesh. Colors multiply base_color.
+// Empty SceneDrawData::instances selects one identity instance. Spans are borrowed for the call.
+struct SceneInstance final {
+  float translation[3]{};
+  float scale[3]{1, 1, 1};
+  float color[4]{1, 1, 1, 1};
+};
+
 // A single indexed, lit mesh draw. Spans are borrowed for the call. The matrix is row-major,
 // matching Nexora::Math::Matrix4's storage, so backends that want row_major in HLSL need no
 // transpose; light/base_color give a minimal single-directional-light Lambertian material.
 struct SceneDrawData final {
   std::span<const SceneVertex> vertices;
   std::span<const std::uint16_t> indices;
+  std::span<const SceneInstance> instances{};
   float model_view_projection[16]{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
   float light_direction[3]{-0.4F, -1.0F, -0.2F};
   float light_color[3]{1.0F, 0.95F, 0.85F};

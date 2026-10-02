@@ -97,3 +97,5 @@ held keyboard/pointer controls and a 210-second guided tour under Xvfb/lavapipe.
 includes content, deterministic ZIP/SHA-256 and isolated Linux shared-library resolution. These are
 V1 Visual Showcase integration results; they do not replace this roadmap's existing platform gates
 or establish the expanded Windows version's clean-machine graphical acceptance.
+
+✅ Native SceneDrawData hardware instance records and bounded fence-owned uploads are implemented in Vulkan/DX12. Linux Vulkan pixel acceptance verifies independent translation/scale/tint; DX12 target-host execution remains pending.

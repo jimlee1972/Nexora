@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cmath>
 #include <cstring>
 #include <d3d12.h>
 #include <d3dcompiler.h>
@@ -178,7 +179,8 @@ public:
     D3D12_RESOURCE_BARRIER toRenderTarget{};
     toRenderTarget.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     toRenderTarget.Transition = {buffers_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-                                 D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET};
+                                 D3D12_RESOURCE_STATE_COPY_DEST,
+                                 D3D12_RESOURCE_STATE_RENDER_TARGET};
     commands_->ResourceBarrier(1, &toRenderTarget);
     retired_[frame_].push_back(staging);
     return SurfaceStatus::Ready;
@@ -278,8 +280,26 @@ public:
       return SurfaceStatus::WrongThread;
     if (!acquired_ || !scenePipeline_ || drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
+    if (drawData.instances.size() > 4096)
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto &instance : drawData.instances) {
+      for (const auto value : instance.translation)
+        if (!std::isfinite(value))
+          return SurfaceStatus::InvalidDescriptor;
+      for (const auto value : instance.scale)
+        if (!std::isfinite(value) || std::abs(value) < 0.00001F)
+          return SurfaceStatus::InvalidDescriptor;
+      for (const auto value : instance.color)
+        if (!std::isfinite(value))
+          return SurfaceStatus::InvalidDescriptor;
+    }
+    const SceneInstance identity{};
+    const auto instances = drawData.instances.empty() ? std::span<const SceneInstance>(&identity, 1)
+                                                      : drawData.instances;
+    const auto instanceBytes = std::as_bytes(instances);
     const auto vertexBytes = std::as_bytes(drawData.vertices);
     const auto indexBytes = std::as_bytes(drawData.indices);
+    const auto instanceOffset = (vertexBytes.size() + indexBytes.size() + 3) & ~std::size_t{3};
     struct SceneConstants final {
       float mvp[16];
       float lightDirection[3];
@@ -289,7 +309,8 @@ public:
       float baseColor[4];
     } constants{};
     std::memcpy(constants.mvp, drawData.model_view_projection, sizeof(constants.mvp));
-    std::memcpy(constants.lightDirection, drawData.light_direction, sizeof(constants.lightDirection));
+    std::memcpy(constants.lightDirection, drawData.light_direction,
+                sizeof(constants.lightDirection));
     std::memcpy(constants.lightColor, drawData.light_color, sizeof(constants.lightColor));
     std::memcpy(constants.baseColor, drawData.base_color, sizeof(constants.baseColor));
     // Constants live first, at offset 0 -- a committed resource's base GPU VA is always far more
@@ -297,7 +318,7 @@ public:
     // index data start at a fixed 256-byte boundary after it (comfortably past sizeof(constants)),
     // so neither section can ever overlap regardless of how large the mesh grows.
     constexpr std::size_t kGeometryOffset = 256;
-    const auto required = kGeometryOffset + vertexBytes.size() + indexBytes.size();
+    const auto required = kGeometryOffset + instanceOffset + instanceBytes.size();
     if (!EnsureSceneUpload(required))
       return SurfaceStatus::DeviceLost;
     void *mapped = nullptr;
@@ -309,6 +330,8 @@ public:
                 vertexBytes.size());
     std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset + vertexBytes.size(),
                 indexBytes.data(), indexBytes.size());
+    std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset + instanceOffset,
+                instanceBytes.data(), instanceBytes.size());
     sceneUploads_[frame_]->Unmap(0, nullptr);
     const auto base = sceneUploads_[frame_]->GetGPUVirtualAddress();
     const auto geometryBase = base + kGeometryOffset;
@@ -331,10 +354,16 @@ public:
                                             static_cast<UINT>(indexBytes.size()),
                                             DXGI_FORMAT_R16_UINT};
     commands_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    commands_->IASetVertexBuffers(0, 1, &vertexView);
+    const D3D12_VERTEX_BUFFER_VIEW views[]{vertexView,
+                                           {geometryBase + instanceOffset,
+                                            static_cast<UINT>(instanceBytes.size()),
+                                            sizeof(SceneInstance)}};
+    commands_->IASetVertexBuffers(0, 2, views);
     commands_->IASetIndexBuffer(&indexView);
-    commands_->DrawIndexedInstanced(static_cast<UINT>(drawData.indices.size()), 1, 0, 0, 0);
+    commands_->DrawIndexedInstanced(static_cast<UINT>(drawData.indices.size()),
+                                    static_cast<UINT>(instances.size()), 0, 0, 0);
     ++diagnostics_.sceneDrawCalls;
+    diagnostics_.sceneInstances += instances.size();
     return SurfaceStatus::Ready;
   }
   SurfaceDiagnostics Diagnostics() const noexcept override { return diagnostics_; }
@@ -496,12 +525,13 @@ private:
         float3 lightColor; float _pad1;
         float4 baseColor;
       };
-      struct VSInput { float3 position : POSITION; float3 normal : NORMAL; };
-      struct PSInput { float4 position : SV_Position; float3 normal : NORMAL; };
+      struct VSInput { float3 position : POSITION; float3 normal : NORMAL; float3 translation : INSTANCE_POSITION; float3 scale : INSTANCE_SCALE; float4 color : INSTANCE_COLOR; };
+      struct PSInput { float4 position : SV_Position; float3 normal : NORMAL; float4 color : COLOR; };
       PSInput VSMain(VSInput input) {
         PSInput output;
-        output.position = mul(mvp, float4(input.position, 1.0));
-        output.normal = input.normal;
+        output.position = mul(mvp, float4(input.position * input.scale + input.translation, 1.0));
+        output.normal = input.normal / input.scale;
+        output.color = input.color;
         return output;
       }
       float4 PSMain(PSInput input) : SV_Target {
@@ -509,7 +539,7 @@ private:
         float ndotl = saturate(dot(n, normalize(-lightDirection)));
         float3 ambient = baseColor.rgb * 0.15;
         float3 lit = baseColor.rgb * lightColor * ndotl;
-        return float4(ambient + lit, baseColor.a);
+        return float4((ambient + lit) * input.color.rgb, baseColor.a * input.color.a);
       }
     )";
     ComPtr<ID3DBlob> vertex, pixel;
@@ -522,7 +552,13 @@ private:
         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(SceneVertex, position),
          D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(SceneVertex, normal),
-         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
+         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"INSTANCE_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1,
+         offsetof(SceneInstance, translation), D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"INSTANCE_SCALE", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, offsetof(SceneInstance, scale),
+         D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"INSTANCE_COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, offsetof(SceneInstance, color),
+         D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1}};
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline{};
     pipeline.pRootSignature = sceneRootSignature_.Get();
     pipeline.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};
@@ -541,7 +577,8 @@ private:
     pipeline.NumRenderTargets = 1;
     pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     pipeline.SampleDesc.Count = 1;
-    return SUCCEEDED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePipeline_)));
+    return SUCCEEDED(
+        device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePipeline_)));
   }
   bool EnsureSceneUpload(std::size_t required) {
     if (sceneUploadCapacity_[frame_] >= required)
@@ -725,8 +762,8 @@ private:
     for (UINT i = 0; i < frames_; ++i) {
       depthBuffers_[i].Reset();
       if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc,
-                                                   D3D12_RESOURCE_STATE_DEPTH_WRITE, &clear,
-                                                   IID_PPV_ARGS(&depthBuffers_[i]))))
+                                                  D3D12_RESOURCE_STATE_DEPTH_WRITE, &clear,
+                                                  IID_PPV_ARGS(&depthBuffers_[i]))))
         return false;
       auto d = dsvHeap_->GetCPUDescriptorHandleForHeapStart();
       d.ptr += SIZE_T(i) * dsvIncrement_;

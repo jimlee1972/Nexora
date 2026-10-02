@@ -308,12 +308,30 @@ public:
     if (data.light_direction[0] == 0 && data.light_direction[1] == 0 &&
         data.light_direction[2] == 0)
       return SurfaceStatus::InvalidDescriptor;
+    if (data.instances.size() > 4096)
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto &instance : data.instances) {
+      for (const auto value : instance.translation)
+        if (!std::isfinite(value))
+          return SurfaceStatus::InvalidDescriptor;
+      for (const auto value : instance.scale)
+        if (!std::isfinite(value) || std::abs(value) < 0.00001F)
+          return SurfaceStatus::InvalidDescriptor;
+      for (const auto value : instance.color)
+        if (!std::isfinite(value))
+          return SurfaceStatus::InvalidDescriptor;
+    }
+    const SceneInstance identity{};
+    const auto instances =
+        data.instances.empty() ? std::span<const SceneInstance>(&identity, 1) : data.instances;
+    const auto instanceBytes = std::as_bytes(instances);
     auto &frame = frames_[frame_];
     // Acquire has waited this frame's fence. Never release another in-flight slot's resources.
     DestroySceneFrame(frame);
     const auto vertexBytes = std::as_bytes(data.vertices);
     const auto indexBytes = std::as_bytes(data.indices);
-    const auto bytes = vertexBytes.size() + indexBytes.size();
+    const auto instanceOffset = (vertexBytes.size() + indexBytes.size() + 3) & ~std::size_t{3};
+    const auto bytes = instanceOffset + instanceBytes.size();
     VkBufferCreateInfo buffer{};
     buffer.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     buffer.size = bytes;
@@ -338,6 +356,8 @@ public:
     std::memcpy(mapped, vertexBytes.data(), vertexBytes.size());
     std::memcpy(static_cast<std::byte *>(mapped) + vertexBytes.size(), indexBytes.data(),
                 indexBytes.size());
+    std::memcpy(static_cast<std::byte *>(mapped) + instanceOffset, instanceBytes.data(),
+                instanceBytes.size());
     vkUnmapMemory(device_, frame.sceneMemory);
     VkImageCreateInfo image{};
     image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -395,8 +415,9 @@ public:
     const VkRect2D scissor{{0, 0}, {width_, height_}};
     vkCmdSetViewport(frame.commands, 0, 1, &viewport);
     vkCmdSetScissor(frame.commands, 0, 1, &scissor);
-    const VkDeviceSize offset = 0;
-    vkCmdBindVertexBuffers(frame.commands, 0, 1, &frame.sceneUpload, &offset);
+    const VkBuffer buffers[]{frame.sceneUpload, frame.sceneUpload};
+    const VkDeviceSize offsets[]{0, instanceOffset};
+    vkCmdBindVertexBuffers(frame.commands, 0, 2, buffers, offsets);
     vkCmdBindIndexBuffer(frame.commands, frame.sceneUpload, vertexBytes.size(),
                          VK_INDEX_TYPE_UINT16);
     std::array<float, 28> constants{};
@@ -408,10 +429,12 @@ public:
     std::copy(std::begin(data.base_color), std::end(data.base_color), constants.begin() + 24);
     vkCmdPushConstants(frame.commands, scenePipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
                        sizeof(constants), constants.data());
-    vkCmdDrawIndexed(frame.commands, static_cast<std::uint32_t>(data.indices.size()), 1, 0, 0, 0);
+    vkCmdDrawIndexed(frame.commands, static_cast<std::uint32_t>(data.indices.size()),
+                     static_cast<std::uint32_t>(instances.size()), 0, 0, 0);
     vkCmdEndRenderPass(frame.commands);
     sceneRendered_ = true;
     ++diagnostics_.sceneDrawCalls;
+    diagnostics_.sceneInstances += instances.size();
     return SurfaceStatus::Ready;
   }
   SurfaceStatus RenderUi(const UiDrawData &drawData) override {
@@ -1067,16 +1090,20 @@ private:
          VK_SHADER_STAGE_VERTEX_BIT, vertex, "main", nullptr},
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
          VK_SHADER_STAGE_FRAGMENT_BIT, fragment, "main", nullptr}};
-    const VkVertexInputBindingDescription vertexBinding{0, sizeof(SceneVertex),
-                                                        VK_VERTEX_INPUT_RATE_VERTEX};
+    const VkVertexInputBindingDescription vertexBindings[]{
+        {0, sizeof(SceneVertex), VK_VERTEX_INPUT_RATE_VERTEX},
+        {1, sizeof(SceneInstance), VK_VERTEX_INPUT_RATE_INSTANCE}};
     const VkVertexInputAttributeDescription attributes[] = {
         {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneVertex, position)},
-        {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneVertex, normal)}};
+        {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneVertex, normal)},
+        {2, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneInstance, translation)},
+        {3, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneInstance, scale)},
+        {4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstance, color)}};
     VkPipelineVertexInputStateCreateInfo vertexInput{};
     vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInput.vertexBindingDescriptionCount = 1;
-    vertexInput.pVertexBindingDescriptions = &vertexBinding;
-    vertexInput.vertexAttributeDescriptionCount = 2;
+    vertexInput.vertexBindingDescriptionCount = 2;
+    vertexInput.pVertexBindingDescriptions = vertexBindings;
+    vertexInput.vertexAttributeDescriptionCount = 5;
     vertexInput.pVertexAttributeDescriptions = attributes;
     const VkPipelineInputAssemblyStateCreateInfo assembly{
         VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0,

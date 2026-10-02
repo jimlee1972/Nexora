@@ -72,6 +72,11 @@ int main() {
          originalMatrix[1] != movedScene.model_view_projection[2]);
   move.value1 = 0;
   session.Event(move, 1280, 720);
+  Press(session, Key::Digit2);
+  const auto instanced = session.Scene(1280, 720);
+  assert(instanced.vertices.size() == 24 && instanced.indices.size() == 36);
+  assert(instanced.instances.size() == 4);
+  assert(instanced.instances[0].scale[0] == 6 && instanced.instances[1].translation[1] == 1.5F);
   Press(session, Key::Digit3);
   assert(session.Selected() == "scene");
 #if NEXORA_EDITOR_SDK_ENABLED
