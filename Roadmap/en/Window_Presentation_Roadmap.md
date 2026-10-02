@@ -2,7 +2,7 @@
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-10-02
 
-> **Progress: implementation complete** (WP-M0 through WP-M4 are implemented. Windows/DX12 acceptance for WP-M1/WP-M2 is recorded; Linux Showcase Vulkan composition now has non-skip Xvfb/lavapipe acceptance; physical-display, GPU scene binding, Windows/Vulkan, and macOS/Metal still require target-host runners.)
+> **Progress: implementation complete** (WP-M0 through WP-M4 are implemented. Windows/DX12 acceptance for WP-M1/WP-M2 is recorded; Linux Showcase Vulkan composition now has non-skip Xvfb/lavapipe acceptance; physical-display, Windows/Vulkan, and macOS/Metal still require target-host runners.)
 
 ## 1. Purpose and ownership
 
@@ -77,7 +77,7 @@ Windows/DX12 execution of the Showcase command remains target-host acceptance ev
 - Validate multi-window/multi-surface lifetime, HDR/color-space negotiation, fullscreen, hot-plug, and long-run resize/device-loss stress.
 - Record target-host evidence separately; cross-compilation alone is not runtime validation.
 
-Delivered evidence: Linux uses an X11 window implementation and Vulkan WSI swapchain; Windows can select Vulkan alongside DX12; macOS uses a Cocoa window and `CAMetalLayer`. Backend negotiation records the selected present mode and color space, while fullscreen, multi-surface lifetime, 2,048-cycle resize stress, zero extent, out-of-date, surface-loss, and device-loss paths are covered by the portable contract gate. These sources and cross-platform contracts complete the implementation scope; WP-M1/WP-M2 Windows/DX12 runtime acceptance is recorded, and ✅ Linux Showcase Vulkan composition passes non-skip Xvfb/lavapipe acceptance on 2026-10-02 (67/67 Development tests). Physical-display, GPU scene binding, and other platform runtime acceptance remain explicitly separate target-host gates. See the [acceptance record](../../Apps/Showcase/evidence/V1-Phase-A-Linux-Vulkan-2026-10-02/acceptance.md).
+Delivered evidence: Linux uses an X11 window implementation and Vulkan WSI swapchain; Windows can select Vulkan alongside DX12; macOS uses a Cocoa window and `CAMetalLayer`. Backend negotiation records the selected present mode and color space, while fullscreen, multi-surface lifetime, 2,048-cycle resize stress, zero extent, out-of-date, surface-loss, and device-loss paths are covered by the portable contract gate. These sources and cross-platform contracts complete the implementation scope; WP-M1/WP-M2 Windows/DX12 runtime acceptance is recorded, and ✅ Linux Showcase Vulkan composition passes non-skip Xvfb/lavapipe acceptance on 2026-10-02 (67/67 Development tests). Physical-display and other platform runtime acceptance remain explicitly separate target-host gates. See the [acceptance record](../../Apps/Showcase/evidence/V1-Phase-A-Linux-Vulkan-2026-10-02/acceptance.md).
 
 ## 5. Validation and Definition of Done
 
@@ -87,3 +87,5 @@ Delivered evidence: Linux uses an X11 window implementation and Vulkan WSI swapc
 - Linux headless configure/build/test remains independent of desktop display availability.
 - Windowed shutdown produces no live GPU resources, queued callbacks, or native handles.
 - The Showcase and Editor consume only public window/presentation contracts.
+
+✅ The Linux/Vulkan scene boundary also passes native indexed/depth/light/transform pixel acceptance and 600-frame normalized camera-input integration under Xvfb/lavapipe (70/70 Development tests). See the [Phase B acceptance record](../../Apps/Showcase/evidence/V1-Phase-B-Linux-Vulkan-2026-10-02/acceptance.md). Physical-display and other-platform gates remain separate.

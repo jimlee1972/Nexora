@@ -3,6 +3,7 @@
 #endif
 
 #include "Nexora/Presentation/Surface.h"
+#include "SceneVulkanShaders.h"
 
 #include <vulkan/vulkan.h>
 #if defined(NEXORA_HAS_NATIVE_UI_SHADERS)
@@ -21,6 +22,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cmath>
 #include <cstring>
 #include <limits>
 #include <unordered_map>
@@ -188,6 +190,7 @@ public:
                          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr,
                          1, &toRender);
     transferTarget_ = false;
+    sceneDrawn_ = false;
     acquired_ = true;
     ++diagnostics_.acquiredFrames;
     if (result == VK_SUBOPTIMAL_KHR)
@@ -198,7 +201,8 @@ public:
                                std::uint32_t height) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || width != width_ || height != height_ ||
+    if (!acquired_ || sceneDrawn_ || transferTarget_ || frames_[frame_].uiFramebuffer ||
+        width != width_ || height != height_ ||
         pixels.size() != static_cast<std::size_t>(width) * height * 4U)
       return SurfaceStatus::InvalidDescriptor;
     auto &frame = frames_[frame_];
@@ -272,13 +276,15 @@ public:
     return SurfaceStatus::Ready;
   }
   SurfaceStatus RenderUi(const UiDrawData &drawData) override {
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    if (!acquired_ || sceneDrawn_ || transferTarget_ || frames_[frame_].uiFramebuffer)
+      return SurfaceStatus::InvalidDescriptor;
 #if !defined(NEXORA_HAS_NATIVE_UI_SHADERS)
     (void)drawData;
     return SurfaceStatus::Unsupported;
 #else
-    if (!OnThread())
-      return SurfaceStatus::WrongThread;
-    if (!acquired_ || drawData.vertices.empty() || drawData.indices.empty())
+    if (drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
     auto &frame = frames_[frame_];
     for (const auto &upload : drawData.textureUploads)
@@ -349,6 +355,92 @@ public:
     return SurfaceStatus::Ready;
 #endif
   }
+  SurfaceStatus DrawScene(const SceneDrawData &draw) override {
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    // One scene submission per acquired frame. Reject invalid geometry before recording or upload.
+    constexpr std::size_t kMaximumUpload = 4U * 1024U * 1024U;
+    if (!acquired_ || transferTarget_ || sceneDrawn_ || frames_[frame_].uiFramebuffer ||
+        draw.vertices.empty() || draw.vertices.size() > 65536 || draw.indices.empty() ||
+        draw.indices.size() % 3 != 0 || draw.indices.size_bytes() > kMaximumUpload ||
+        draw.vertices.size_bytes() > kMaximumUpload - draw.indices.size_bytes())
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto index : draw.indices)
+      if (index >= draw.vertices.size())
+        return SurfaceStatus::InvalidDescriptor;
+    const auto finite = [](const auto &values) {
+      return std::all_of(std::begin(values), std::end(values),
+                         [](float value) { return std::isfinite(value); });
+    };
+    if (!finite(draw.model_view_projection) || !finite(draw.light_direction) ||
+        !finite(draw.light_color) || !finite(draw.base_color))
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto &vertex : draw.vertices)
+      if (!finite(vertex.position) || !finite(vertex.normal))
+        return SurfaceStatus::InvalidDescriptor;
+    if (!scenePipeline_ && !CreateSceneResources())
+      return SurfaceStatus::DeviceLost;
+    auto &frame = frames_[frame_];
+    if (!EnsureSceneFrame(frame, draw.vertices.size_bytes() + draw.indices.size_bytes()))
+      return SurfaceStatus::DeviceLost;
+    void *mapped = nullptr;
+    if (vkMapMemory(device_, frame.sceneMemory, 0, VK_WHOLE_SIZE, 0, &mapped) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
+    std::memcpy(mapped, draw.vertices.data(), draw.vertices.size_bytes());
+    std::memcpy(static_cast<std::byte *>(mapped) + draw.vertices.size_bytes(), draw.indices.data(),
+                draw.indices.size_bytes());
+    vkUnmapMemory(device_, frame.sceneMemory);
+    const VkImageView attachments[] = {imageViews_[imageIndex_], frame.sceneDepthView};
+    VkFramebufferCreateInfo framebuffer{};
+    framebuffer.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebuffer.renderPass = sceneRenderPass_;
+    framebuffer.attachmentCount = 2;
+    framebuffer.pAttachments = attachments;
+    framebuffer.width = width_;
+    framebuffer.height = height_;
+    framebuffer.layers = 1;
+    if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.sceneFramebuffer) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
+    std::array<VkClearValue, 2> clear{};
+    clear[0].color = {{0.03F, 0.04F, 0.08F, 1.0F}};
+    clear[1].depthStencil = {1.0F, 0};
+    VkRenderPassBeginInfo begin{};
+    begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    begin.renderPass = sceneRenderPass_;
+    begin.framebuffer = frame.sceneFramebuffer;
+    begin.renderArea.extent = {width_, height_};
+    begin.clearValueCount = static_cast<std::uint32_t>(clear.size());
+    begin.pClearValues = clear.data();
+    struct Constants {
+      float mvp[16];
+      float direction[4]{};
+      float light[4]{};
+      float color[4];
+    } constants{};
+    static_assert(sizeof(Constants) == 112);
+    std::memcpy(constants.mvp, draw.model_view_projection, sizeof(constants.mvp));
+    std::memcpy(constants.direction, draw.light_direction, sizeof(draw.light_direction));
+    std::memcpy(constants.light, draw.light_color, sizeof(draw.light_color));
+    std::memcpy(constants.color, draw.base_color, sizeof(constants.color));
+    vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, scenePipeline_);
+    const VkViewport viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_), 0, 1};
+    const VkRect2D scissor{{0, 0}, {width_, height_}};
+    vkCmdSetViewport(frame.commands, 0, 1, &viewport);
+    vkCmdSetScissor(frame.commands, 0, 1, &scissor);
+    vkCmdPushConstants(frame.commands, scenePipelineLayout_,
+                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                       sizeof(constants), &constants);
+    constexpr VkDeviceSize offset = 0;
+    vkCmdBindVertexBuffers(frame.commands, 0, 1, &frame.sceneUpload, &offset);
+    vkCmdBindIndexBuffer(frame.commands, frame.sceneUpload, draw.vertices.size_bytes(),
+                         VK_INDEX_TYPE_UINT16);
+    vkCmdDrawIndexed(frame.commands, static_cast<std::uint32_t>(draw.indices.size()), 1, 0, 0, 0);
+    vkCmdEndRenderPass(frame.commands);
+    sceneDrawn_ = true;
+    ++diagnostics_.sceneDrawCalls;
+    return SurfaceStatus::Ready;
+  }
   SurfaceStatus Present() override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
@@ -410,6 +502,8 @@ public:
       return SurfaceStatus::WrongThread;
     if (device_)
       vkDeviceWaitIdle(device_);
+    acquired_ = false;
+    valid_ = false;
     DestroySwapchain();
     if (commandPool_)
       vkDestroyCommandPool(device_, commandPool_, nullptr);
@@ -439,6 +533,13 @@ private:
     VkDeviceMemory uiMemory{};
     VkDeviceSize uiCapacity{};
     VkFramebuffer uiFramebuffer{};
+    VkBuffer sceneUpload{};
+    VkDeviceMemory sceneMemory{};
+    VkDeviceSize sceneCapacity{};
+    VkImage sceneDepth{};
+    VkDeviceMemory sceneDepthMemory{};
+    VkImageView sceneDepthView{};
+    VkFramebuffer sceneFramebuffer{};
     std::vector<VkBuffer> retiredBuffers;
     std::vector<VkDeviceMemory> retiredBufferMemory;
     std::vector<VkImage> retiredImages;
@@ -464,6 +565,9 @@ private:
     return std::numeric_limits<std::uint32_t>::max();
   }
   void DestroyFrameRetirements(Frame &frame) {
+    if (frame.sceneFramebuffer)
+      vkDestroyFramebuffer(device_, frame.sceneFramebuffer, nullptr);
+    frame.sceneFramebuffer = VK_NULL_HANDLE;
     if (frame.uiFramebuffer)
       vkDestroyFramebuffer(device_, frame.uiFramebuffer, nullptr);
     frame.uiFramebuffer = VK_NULL_HANDLE;
@@ -644,6 +748,16 @@ private:
     frame.uiMemory = VK_NULL_HANDLE;
     frame.uiCapacity = 0;
     DestroyFrameRetirements(frame);
+    if (frame.sceneUpload)
+      vkDestroyBuffer(device_, frame.sceneUpload, nullptr);
+    if (frame.sceneMemory)
+      vkFreeMemory(device_, frame.sceneMemory, nullptr);
+    if (frame.sceneDepthView)
+      vkDestroyImageView(device_, frame.sceneDepthView, nullptr);
+    if (frame.sceneDepth)
+      vkDestroyImage(device_, frame.sceneDepth, nullptr);
+    if (frame.sceneDepthMemory)
+      vkFreeMemory(device_, frame.sceneDepthMemory, nullptr);
   }
   void DestroyUiResources() {
     for (auto &[id, texture] : uiTextures_) {
@@ -829,6 +943,214 @@ private:
     return result == VK_SUCCESS;
   }
 #endif
+  bool EnsureSceneFrame(Frame &frame, VkDeviceSize required) {
+    if (frame.sceneCapacity < required) {
+      if (frame.sceneUpload)
+        vkDestroyBuffer(device_, frame.sceneUpload, nullptr);
+      if (frame.sceneMemory)
+        vkFreeMemory(device_, frame.sceneMemory, nullptr);
+      frame.sceneUpload = VK_NULL_HANDLE;
+      frame.sceneMemory = VK_NULL_HANDLE;
+      frame.sceneCapacity = 0;
+      VkBufferCreateInfo create{};
+      create.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+      create.size = required;
+      create.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+      create.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+      if (vkCreateBuffer(device_, &create, nullptr, &frame.sceneUpload) != VK_SUCCESS)
+        return false;
+      VkMemoryRequirements requirements{};
+      vkGetBufferMemoryRequirements(device_, frame.sceneUpload, &requirements);
+      const auto type =
+          FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+      if (type == std::numeric_limits<std::uint32_t>::max())
+        return false;
+      VkMemoryAllocateInfo allocate{};
+      allocate.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+      allocate.allocationSize = requirements.size;
+      allocate.memoryTypeIndex = type;
+      if (vkAllocateMemory(device_, &allocate, nullptr, &frame.sceneMemory) != VK_SUCCESS ||
+          vkBindBufferMemory(device_, frame.sceneUpload, frame.sceneMemory, 0) != VK_SUCCESS)
+        return false;
+      frame.sceneCapacity = required;
+    }
+    if (frame.sceneDepth)
+      return frame.sceneDepthView != VK_NULL_HANDLE;
+    VkImageCreateInfo image{};
+    image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    image.imageType = VK_IMAGE_TYPE_2D;
+    image.format = VK_FORMAT_D32_SFLOAT;
+    image.extent = {width_, height_, 1};
+    image.mipLevels = 1;
+    image.arrayLayers = 1;
+    image.samples = VK_SAMPLE_COUNT_1_BIT;
+    image.tiling = VK_IMAGE_TILING_OPTIMAL;
+    image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    image.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    if (vkCreateImage(device_, &image, nullptr, &frame.sceneDepth) != VK_SUCCESS)
+      return false;
+    VkMemoryRequirements requirements{};
+    vkGetImageMemoryRequirements(device_, frame.sceneDepth, &requirements);
+    const auto type =
+        FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (type == std::numeric_limits<std::uint32_t>::max())
+      return false;
+    VkMemoryAllocateInfo allocate{};
+    allocate.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocate.allocationSize = requirements.size;
+    allocate.memoryTypeIndex = type;
+    if (vkAllocateMemory(device_, &allocate, nullptr, &frame.sceneDepthMemory) != VK_SUCCESS ||
+        vkBindImageMemory(device_, frame.sceneDepth, frame.sceneDepthMemory, 0) != VK_SUCCESS)
+      return false;
+    VkImageViewCreateInfo view{};
+    view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    view.image = frame.sceneDepth;
+    view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    view.format = image.format;
+    view.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
+    return vkCreateImageView(device_, &view, nullptr, &frame.sceneDepthView) == VK_SUCCESS;
+  }
+  bool CreateSceneResources() {
+    // Failed partial initialization stays owned until teardown; do not allocate it again on retry.
+    if (sceneRenderPass_ || scenePipelineLayout_)
+      return false;
+    VkFormatProperties depthProperties{};
+    vkGetPhysicalDeviceFormatProperties(physical_, VK_FORMAT_D32_SFLOAT, &depthProperties);
+    if (!(depthProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT))
+      return false;
+    VkPushConstantRange push{VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, 112};
+    VkPipelineLayoutCreateInfo layout{};
+    layout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layout.pushConstantRangeCount = 1;
+    layout.pPushConstantRanges = &push;
+    if (vkCreatePipelineLayout(device_, &layout, nullptr, &scenePipelineLayout_) != VK_SUCCESS)
+      return false;
+    std::array<VkAttachmentDescription, 2> attachments{};
+    attachments[0].format = swapchainFormat_;
+    attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+    attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachments[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    attachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    attachments[1].format = VK_FORMAT_D32_SFLOAT;
+    attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+    attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    const VkAttachmentReference color{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+    const VkAttachmentReference depth{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &color;
+    subpass.pDepthStencilAttachment = &depth;
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    dependency.dstStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.srcAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    dependency.dstAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    VkRenderPassCreateInfo pass{};
+    pass.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    pass.attachmentCount = static_cast<std::uint32_t>(attachments.size());
+    pass.pAttachments = attachments.data();
+    pass.subpassCount = 1;
+    pass.pSubpasses = &subpass;
+    pass.dependencyCount = 1;
+    pass.pDependencies = &dependency;
+    if (vkCreateRenderPass(device_, &pass, nullptr, &sceneRenderPass_) != VK_SUCCESS)
+      return false;
+    const auto shader = [&](const auto &code, VkShaderModule &module) {
+      VkShaderModuleCreateInfo create{};
+      create.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+      create.codeSize = sizeof(code);
+      create.pCode = code;
+      return vkCreateShaderModule(device_, &create, nullptr, &module) == VK_SUCCESS;
+    };
+    VkShaderModule vertex{}, fragment{};
+    const auto modulesReady = shader(SceneVertSpirv, vertex) && shader(SceneFragSpirv, fragment);
+    if (!modulesReady) {
+      if (vertex)
+        vkDestroyShaderModule(device_, vertex, nullptr);
+      return false;
+    }
+    std::array<VkPipelineShaderStageCreateInfo, 2> stages{};
+    stages[0].sType = stages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+    stages[0].module = vertex;
+    stages[0].pName = "main";
+    stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    stages[1].module = fragment;
+    stages[1].pName = "main";
+    const VkVertexInputBindingDescription binding{0, sizeof(SceneVertex),
+                                                  VK_VERTEX_INPUT_RATE_VERTEX};
+    const VkVertexInputAttributeDescription attributes[] = {
+        {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneVertex, position)},
+        {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneVertex, normal)}};
+    VkPipelineVertexInputStateCreateInfo input{};
+    input.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    input.vertexBindingDescriptionCount = 1;
+    input.pVertexBindingDescriptions = &binding;
+    input.vertexAttributeDescriptionCount = 2;
+    input.pVertexAttributeDescriptions = attributes;
+    VkPipelineInputAssemblyStateCreateInfo assembly{};
+    assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    VkPipelineViewportStateCreateInfo viewport{};
+    viewport.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewport.viewportCount = viewport.scissorCount = 1;
+    VkPipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.cullMode = VK_CULL_MODE_NONE;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.lineWidth = 1;
+    VkPipelineMultisampleStateCreateInfo multisample{};
+    multisample.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisample.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    VkPipelineDepthStencilStateCreateInfo depthState{};
+    depthState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthState.depthTestEnable = depthState.depthWriteEnable = VK_TRUE;
+    depthState.depthCompareOp = VK_COMPARE_OP_LESS;
+    VkPipelineColorBlendAttachmentState blend{};
+    blend.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                           VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    VkPipelineColorBlendStateCreateInfo blending{};
+    blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    blending.attachmentCount = 1;
+    blending.pAttachments = &blend;
+    const VkDynamicState dynamics[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    VkPipelineDynamicStateCreateInfo dynamic{};
+    dynamic.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamic.dynamicStateCount = 2;
+    dynamic.pDynamicStates = dynamics;
+    VkGraphicsPipelineCreateInfo pipeline{};
+    pipeline.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipeline.stageCount = 2;
+    pipeline.pStages = stages.data();
+    pipeline.pVertexInputState = &input;
+    pipeline.pInputAssemblyState = &assembly;
+    pipeline.pViewportState = &viewport;
+    pipeline.pRasterizationState = &rasterizer;
+    pipeline.pMultisampleState = &multisample;
+    pipeline.pDepthStencilState = &depthState;
+    pipeline.pColorBlendState = &blending;
+    pipeline.pDynamicState = &dynamic;
+    pipeline.layout = scenePipelineLayout_;
+    pipeline.renderPass = sceneRenderPass_;
+    const auto result =
+        vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr, &scenePipeline_);
+    vkDestroyShaderModule(device_, vertex, nullptr);
+    vkDestroyShaderModule(device_, fragment, nullptr);
+    return result == VK_SUCCESS;
+  }
   void DestroySwapchain() {
     for (auto &frame : frames_) {
       DestroyUpload(frame);
@@ -838,9 +1160,20 @@ private:
         vkDestroySemaphore(device_, frame.available, nullptr);
       if (frame.finished)
         vkDestroySemaphore(device_, frame.finished, nullptr);
+      if (frame.commands)
+        vkFreeCommandBuffers(device_, commandPool_, 1, &frame.commands);
     }
     frames_.clear();
     DestroyUiResources();
+    if (scenePipeline_)
+      vkDestroyPipeline(device_, scenePipeline_, nullptr);
+    if (scenePipelineLayout_)
+      vkDestroyPipelineLayout(device_, scenePipelineLayout_, nullptr);
+    if (sceneRenderPass_)
+      vkDestroyRenderPass(device_, sceneRenderPass_, nullptr);
+    scenePipeline_ = VK_NULL_HANDLE;
+    scenePipelineLayout_ = VK_NULL_HANDLE;
+    sceneRenderPass_ = VK_NULL_HANDLE;
     for (const auto view : imageViews_)
       vkDestroyImageView(device_, view, nullptr);
     imageViews_.clear();
@@ -987,6 +1320,10 @@ private:
   VkPipelineLayout uiPipelineLayout_{};
   VkRenderPass uiRenderPass_{};
   VkPipeline uiPipeline_{};
+  VkPipelineLayout scenePipelineLayout_{};
+  VkRenderPass sceneRenderPass_{};
+  VkPipeline scenePipeline_{};
+  bool sceneDrawn_{};
   bool transferTarget_{};
   SurfaceDiagnostics diagnostics_{};
 };

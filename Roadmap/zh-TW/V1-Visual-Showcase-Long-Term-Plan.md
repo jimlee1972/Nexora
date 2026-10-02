@@ -9,9 +9,10 @@
 - ✅ 已有 deterministic headless scene、validation RHI、scene extraction 與 JSON evidence report。
 - ✅ 已有 Zig static consumer 的 fixed/update、Transform read/write 與 transactional state migration。
 - ✅ Source/test audit 已確認 Window、Presentation 與 RHI buffer contract 均已存在；Showcase 重用 `RenderSurface`，沒有重建這些 boundary。
-- ✅ Linux/X11/Vulkan windowed startup、bounded resize、clear color、software-rasterized triangle、diagnostics panel、ordered shutdown 與未跳過的 Xvfb smoke 已在 Mesa lavapipe 通過。[2026-10-02 驗收紀錄](../../Apps/Showcase/evidence/V1-Phase-A-Linux-Vulkan-2026-10-02/acceptance.md) 保留 launch/report/CTest 證據；physical-display 與 GPU scene binding 仍為獨立 gate。
+- ✅ Linux/X11/Vulkan windowed startup、bounded resize、clear color、software-rasterized triangle、diagnostics panel、ordered shutdown 與未跳過的 Xvfb smoke 已在 Mesa lavapipe 通過。[2026-10-02 驗收紀錄](../../Apps/Showcase/evidence/V1-Phase-A-Linux-Vulkan-2026-10-02/acceptance.md) 保留 launch/report/CTest 證據；physical-display 驗收仍為獨立 gate；Linux GPU scene 證據見以下 Phase B 紀錄。
 - ✅ Windows/Win32/DX12 windowed compositing（`Dx12Surface::CompositeRgba8`）已實作：視窗能顯示真正的 clear color、software-rasterized triangle 與 diagnostics panel，並以開發機手動驗證為證據（`--mode=interactive --backend=dx12`，跑了 600 次 acquire/composite/present 循環，`backend_fallback=false`，並截取了實際視窗畫面）。此前這段是缺的——`Dx12Surface` 繼承了 `ISurface::CompositeRgba8` 的基底預設值（回傳 `Unsupported`），導致 `--backend=dx12` 直接失敗而非悄悄降級。Clean-machine 與 CI 的 windowed 驗收仍待完成；目前只有單一開發機的手動證據。
-- ✅ Windows/Win32/DX12 native GPU scene binding 現已驅動 Rendering Room 的 indexed、depth-tested procedural cube。Development dynamic package 與 Shipping static package 都在開發機執行 600 frames，得到 `scene_draws=600`、`surface_acquires=600`、`surface_presents=600`、`resize_generations=2`、`backend_fallback=false`，並截取到可見的 GPU scene 畫面。Clean-machine／CI windowed 驗收、其他 native backend 仍待完成。
+- ✅ Windows/Win32/DX12 native GPU scene binding 現已驅動 Rendering Room 的 indexed、depth-tested procedural cube。Development dynamic package 與 Shipping static package 都在開發機執行 600 frames，得到 `scene_draws=600`、`surface_acquires=600`、`surface_presents=600`、`resize_generations=2`、`backend_fallback=false`，並截取到可見的 GPU scene 畫面。Clean-machine/CI、Windows/Vulkan、macOS/Metal 與 physical-display 驗收仍待完成；Linux/Vulkan virtual-display scene 證據另記於下文。
+- ✅ Linux/Vulkan Rendering Room 已提交 native indexed、depth-tested、lit cube geometry。Xvfb/lavapipe 驗收涵蓋 12 GPU frames、native pixel test 的兩次 resize、triangle order 的 depth 不變性、material lighting、matrix translation、無效輸入隔離與 600 GPU frames 中的 normalized keyboard input。已保留[版本化 scene capture 與 report](../../Apps/Showcase/evidence/V1-Phase-B-Linux-Vulkan-2026-10-02/acceptance.md)；完整 Hub/room content 與 physical-display 驗收仍待完成。
 - ✅ 3D Hub 已呈現 M0～M12 Validation Lab 卡片、穩定 room/world-object 關聯與可見的受控失敗狀態；Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping 房間的 authored content 仍待完成。
 - ✅ M0～M12 probe registry、status model、版本化 JSON／Markdown serializer、CTest card mapping 與受控 error injection 已可攜。
 - ✅ M7～M10 capability-aware room state 會輸出 headless evidence 與 `visual_complete: false`；interactive／guided tour 與視覺內容仍待完成。
@@ -240,7 +241,7 @@ Demo 不應為每個 milestone 建立互相孤立的測試視窗，而應建立�
 | M0 | CMake preset、module graph、build/CTest、Host startup | Build ID、module list、startup diagnostics | Contract 已有；視覺入口待新增 |
 | M1 | core.runtime、Foundation/Gameplay ABI | frame time、job graph、allocator/log/VFS counters | Contract 已有；以 diagnostics 展示 |
 | M2 | shader reflection、validation device、renderer contracts | shader/pass/resource overlay | Offscreen 可驗證；window path 待施工 |
-| M3 | native DX12/Vulkan/Metal offscreen path | backend badge、native present counters、3D frame | Native offscreen 已有；Windows/DX12 windowed compositing 已實作並經開發機驗證；Linux/Vulkan windowed compositing 已在 Xvfb/lavapipe 驗收；macOS/Metal windowed compositing 以及各平台 clean-machine/CI 驗收仍待完成 |
+| M3 | native DX12/Vulkan/Metal offscreen path | backend badge、native present counters、3D frame | Native offscreen 已有；Windows/DX12 windowed compositing 已實作並經開發機驗證；Linux/Vulkan composition 與 Rendering Room GPU binding 已在 Xvfb/lavapipe 驗收；macOS/Metal windowed compositing 以及各平台 clean-machine/CI 驗收仍待完成 |
 | M4 | runtime.v1_m4_vertical_slice、scene snapshot/lifecycle | 可操作 scene、entity、undo、play/editor world | Runtime foundation 已有；內容與 UI 待施工 |
 | M5 | runtime.v1_m5_asset_pipeline | import/cook/bundle/progress/reload/rollback | Contract 已有；展示資產待施工 |
 | M6 | runtime.v1_m6_editor_sdk、plugin ABI/prefab | reflection inspector、Undo、prefab rebase、plugin status | Editor SDK 已有；graphical editor 不在現況 |
@@ -293,12 +294,11 @@ Linux/Vulkan 是 ✅ 已驗收的 Phase A cloud slice：2026-10-02 virtual-displ
 - 建立程序化 mesh/material，第一版不依賴大型外部資產。
 - 實作 Rendering Room 與 frame diagnostics。
 
-**Portable scene-frame foundation：✅ 完成；Windows/DX12 graphical binding 已在開發機 ✅ 驗證。**
+**Portable scene-frame foundation：✅ 完成；Windows/DX12 graphical binding 已在開發機 ✅ 驗證；Linux/Vulkan Rendering Room binding 已在 Xvfb/lavapipe ✅ 驗收。**
 camera、indexed mesh、material、light、procedural cube 與 deterministic frame-resource contract。
 Headless validation 涵蓋 buffer、depth 與 sampled texture、sampler-policy count、indexed
 submission、failure、lifetime 與 shutdown。Windows/DX12 windowed compositing 與互動式 Rendering
-Room GPU scene path 已以開發機手動驗證為證據；Native Vulkan scene binding 及其 Xvfb/lavapipe 3D evidence
-及各 backend 的 clean-machine/CI target-host evidence 仍待完成。
+Room GPU scene path 已以開發機手動驗證為證據。Linux/Vulkan 已記錄 12 scene frames、native pixel 的 depth/light/transform 測試、600-frame normalized keyboard input 與版本化可見 cube capture；完整 Linux Development suite 通過 70/70。Metal binding、完整 3D Hub/room content、GPU room overlay 及各 backend 的 clean-machine/CI target-host evidence 仍待完成。
 
 ### Phase C — Probe 與 V1 Validation Lab
 

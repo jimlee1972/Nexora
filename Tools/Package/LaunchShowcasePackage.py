@@ -11,7 +11,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from PackageShowcase import digest
+from PackageShowcase import digest, engine_runtime_libraries
 
 
 def safe_join(base: Path, relative: str) -> Path:
@@ -32,6 +32,15 @@ def safe_join(base: Path, relative: str) -> Path:
     if candidate != base and base not in candidate.parents:
         raise RuntimeError(f"package path escapes the package root: {relative}")
     return candidate
+
+
+def verify_runtime_closure(executable: Path, package: Path) -> list[str]:
+    package = package.resolve()
+    libraries = engine_runtime_libraries(executable)
+    for library in libraries:
+        if package not in library.parents:
+            raise RuntimeError(f"Engine dependency resolves outside the staged package: {library}")
+    return [library.name for library in libraries]
 
 
 def main() -> int:
@@ -71,6 +80,7 @@ def main() -> int:
         command = shlex.split(build["launch"])
         executable = safe_join(staged, command[0])
         executable.chmod(executable.stat().st_mode | 0o100)
+        runtime_libraries = verify_runtime_closure(executable, staged)
         completed = subprocess.run([str(executable), *command[1:]], cwd=staged,
                                    text=True, capture_output=True, check=False)
         report = staged / "launch-report.json"
@@ -85,6 +95,7 @@ def main() -> int:
         "profile": build["profile"],
         "isolated_copy": True,
         "checksums_verified": len(verified),
+        "runtime_libraries_verified": runtime_libraries,
         "command": build["launch"],
         "exit_code": completed.returncode,
         "launch_report": launch_report,

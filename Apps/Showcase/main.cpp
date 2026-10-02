@@ -292,23 +292,22 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
 }
 
 void PrintUsage() {
-  std::cout
-      << "NexoraShowcase - C++ engine-owned Zig gameplay showcase\n"
-         "Usage: NexoraShowcase.exe [options]\n\n"
-         "Options:\n"
-         "  --headless                 run the deterministic offscreen showcase\n"
-         "  --validate-v1              include the V1 validation label in the report\n"
-         "  --frames=N                 run N fixed/update frames (1..10000)\n"
-         "  --report=PATH              write the JSON report to PATH\n"
-         "  --resize=WIDTHxHEIGHT      request one native resize after startup\n"
-         "  --no-reload                skip the transactional Zig state reload\n"
-         "  --mode=headless|interactive select deterministic or native presentation\n"
-         "  --scene=ROOM               select hub, tour, rendering, math, scene, gameplay, "
-         "presentation, or streaming\n"
-         "  --backend=auto|validation|dx12|vulkan|metal select the presentation backend\n"
-         "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n"
-         "  --gameplay-library=PATH     override the dynamic Zig artifact path\n"
-         "  --capabilities=auto|minimal override the gallery capability probe\n";
+  std::cout << "NexoraShowcase - C++ engine-owned Zig gameplay showcase\n"
+               "Usage: NexoraShowcase.exe [options]\n\n"
+               "Options:\n"
+               "  --headless                 run the deterministic offscreen showcase\n"
+               "  --validate-v1              include the V1 validation label in the report\n"
+               "  --frames=N                 run N fixed/update frames (1..10000)\n"
+               "  --report=PATH              write the JSON report to PATH\n"
+               "  --resize=WIDTHxHEIGHT      request one native resize after startup\n"
+               "  --no-reload                skip the transactional Zig state reload\n"
+               "  --mode=headless|interactive select deterministic or native presentation\n"
+               "  --scene=ROOM               select hub, tour, rendering, math, scene, gameplay, "
+               "presentation, or streaming\n"
+               "  --backend=auto|validation|dx12|vulkan|metal select the presentation backend\n"
+               "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n"
+               "  --gameplay-library=PATH     override the dynamic Zig artifact path\n"
+               "  --capabilities=auto|minimal override the gallery capability probe\n";
 }
 
 std::vector<std::byte> BuildShowcaseFrame(std::uint32_t width, std::uint32_t height,
@@ -564,21 +563,17 @@ void UpdateInteractiveCamera(ShowcaseHostContext &context) {
     return;
   auto transform = camera->transform;
   constexpr double step = 0.25;
-  switch (context.input.lastKey) {
-  case 'W':
-  case 'w':
+  switch (static_cast<Nexora::Window::Key>(context.input.lastKey)) {
+  case Nexora::Window::Key::W:
     transform.z -= step;
     break;
-  case 'S':
-  case 's':
+  case Nexora::Window::Key::S:
     transform.z += step;
     break;
-  case 'A':
-  case 'a':
+  case Nexora::Window::Key::A:
     transform.x -= step;
     break;
-  case 'D':
-  case 'd':
+  case Nexora::Window::Key::D:
     transform.x += step;
     break;
   default:
@@ -675,10 +670,11 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   renderingRoomVertices.reserve(renderingRoomScene.mesh.vertices.size());
   for (const auto &vertex : renderingRoomScene.mesh.vertices)
     renderingRoomVertices.push_back({{vertex.position[0], vertex.position[1], vertex.position[2]},
-                                      {vertex.normal[0], vertex.normal[1], vertex.normal[2]}});
+                                     {vertex.normal[0], vertex.normal[1], vertex.normal[2]}});
   const float renderingRoomOrbitRadius =
       std::sqrt(renderingRoomScene.camera.position[0] * renderingRoomScene.camera.position[0] +
                 renderingRoomScene.camera.position[2] * renderingRoomScene.camera.position[2]);
+  const auto initialGalleryCamera = world.GetEntity(context.camera_entity);
   for (std::size_t frame = 0; frame < frameLimit; ++frame) {
     if (nativeSurface) {
       const auto status = nativeSurface->BeginFrame();
@@ -720,12 +716,19 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
       const auto frameInfo = nativeSurface->FrameInfo();
       if (command.scene == "rendering") {
         const float angle = static_cast<float>(frame) * 0.01F;
-        const math::Vector3 eye{renderingRoomOrbitRadius * std::sin(angle),
-                                renderingRoomScene.camera.position[1],
-                                renderingRoomOrbitRadius * std::cos(angle)};
+        math::Vector3 eye{renderingRoomOrbitRadius * std::sin(angle),
+                          renderingRoomScene.camera.position[1],
+                          renderingRoomOrbitRadius * std::cos(angle)};
+        // Keep the public gameplay camera input observable in the native Rendering Room.
+        if (const auto camera = world.GetEntity(context.camera_entity);
+            camera && initialGalleryCamera) {
+          eye.x += static_cast<float>(camera->transform.x - initialGalleryCamera->transform.x);
+          eye.y += static_cast<float>(camera->transform.y - initialGalleryCamera->transform.y);
+          eye.z += static_cast<float>(camera->transform.z - initialGalleryCamera->transform.z);
+        }
         const auto view = math::LookAt(eye, {0, 0, 0});
         const float aspect = frameInfo.height ? static_cast<float>(frameInfo.width) /
-                                                     static_cast<float>(frameInfo.height)
+                                                    static_cast<float>(frameInfo.height)
                                               : 1.0F;
         const auto projection = math::PerspectiveRadians(
             renderingRoomScene.camera.vertical_fov_radians, aspect,
@@ -991,6 +994,7 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"resize_generations\": " << run.surface.resizeGenerations << ",\n"
          << "    \"composed_frames\": " << run.composed_frames << ",\n"
          << "    \"scene_draws\": " << run.scene_draws << ",\n"
+         << "    \"native_scene_draws\": " << run.surface.sceneDrawCalls << ",\n"
          << "    \"rendering_mode\": \"" << (run.scene_draws > 0 ? "gpu_scene" : "cpu_composite")
          << "\",\n"
          << "    \"clear_color\": true,\n"

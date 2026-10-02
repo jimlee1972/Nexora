@@ -10,9 +10,10 @@
 - ✅ The Zig static consumer provides fixed/update, Transform read/write, and transactional state migration.
 - ✅ Source/test audit confirmed that Window, Presentation, and RHI buffer contracts already exist;
   the Showcase reuses `RenderSurface` rather than recreating those boundaries.
-- ✅ Linux/X11/Vulkan windowed startup, bounded resize, clear color, software-rasterized triangle, diagnostics panel, ordered shutdown, and non-skip Xvfb smoke pass on Mesa lavapipe. The [2026-10-02 acceptance record](../../Apps/Showcase/evidence/V1-Phase-A-Linux-Vulkan-2026-10-02/acceptance.md) retains launch/report/CTest evidence; physical-display and GPU scene binding are separate gates.
+- ✅ Linux/X11/Vulkan windowed startup, bounded resize, clear color, software-rasterized triangle, diagnostics panel, ordered shutdown, and non-skip Xvfb smoke pass on Mesa lavapipe. The [2026-10-02 acceptance record](../../Apps/Showcase/evidence/V1-Phase-A-Linux-Vulkan-2026-10-02/acceptance.md) retains launch/report/CTest evidence; physical-display acceptance remains separate; see the Phase B Linux GPU scene record below.
 - ✅ Windows/Win32/DX12 windowed compositing (`Dx12Surface::CompositeRgba8`) is implemented: the window opened a visible clear color, software-rasterized triangle, and diagnostics panel, confirmed by manual developer-machine evidence (`--mode=interactive --backend=dx12`, 600 acquire/composite/present cycles, `backend_fallback=false`, and a captured screenshot of the live window). This was previously missing -- `Dx12Surface` inherited the base `ISurface::CompositeRgba8` default (`Unsupported`), so `--backend=dx12` failed outright rather than silently degrading. Clean-machine and CI windowed acceptance are still open; this is single-developer-machine manual evidence only.
-- ✅ Windows/Win32/DX12 native GPU scene binding now drives the Rendering Room's indexed, depth-tested procedural cube. Both the Development dynamic package and Shipping static package were run on the developer host for 600 frames with `scene_draws=600`, `surface_acquires=600`, `surface_presents=600`, `resize_generations=2`, `backend_fallback=false`, and a captured visible GPU-scene frame. Clean-machine and CI windowed acceptance, plus the other native backends, remain open.
+- ✅ Windows/Win32/DX12 native GPU scene binding now drives the Rendering Room's indexed, depth-tested procedural cube. Both the Development dynamic package and Shipping static package were run on the developer host for 600 frames with `scene_draws=600`, `surface_acquires=600`, `surface_presents=600`, `resize_generations=2`, `backend_fallback=false`, and a captured visible GPU-scene frame. Clean-machine/CI, Windows/Vulkan, macOS/Metal and physical-display acceptance remain open; Linux/Vulkan virtual-display scene evidence is recorded separately below.
+- ✅ Linux/Vulkan Rendering Room now submits native indexed, depth-tested, lit cube geometry. Xvfb/lavapipe acceptance covers 12 GPU frames, two native pixel-test resizes, triangle-order depth invariance, material lighting, matrix translation, invalid-input containment, and normalized keyboard input during 600 GPU frames. A [versioned scene capture and report](../../Apps/Showcase/evidence/V1-Phase-B-Linux-Vulkan-2026-10-02/acceptance.md) are retained; full Hub/room content and physical-display acceptance remain open.
 - ✅ The 3D Hub presents M0-M12 Validation Lab cards with stable room/world-object associations and visible contained-failure states; authored Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping room content remains open.
 - ✅ M0-M12 probe registry, status model, versioned JSON/Markdown serializers, CTest card mapping, and contained error injections are portable.
 - ✅ M7-M10 capability-aware room states emit headless evidence with `visual_complete: false`; interactive/guided tour and visual content remain open.
@@ -241,7 +242,7 @@ Every row needs two results: the Contract Gate is automated evidence, and the Sh
 | M0 | CMake preset, module graph, build/CTest, Host startup | Build ID, module list, startup diagnostics | Contract exists; visual entry point pending |
 | M1 | `core.runtime`, Foundation/Gameplay ABI | Frame time, job graph, allocator/log/VFS counters | Contract exists; shown via diagnostics |
 | M2 | Shader reflection, validation device, renderer contracts | Shader/pass/resource overlay | Offscreen verifiable; window path pending |
-| M3 | Native DX12/Vulkan/Metal offscreen path | Backend badge, native present counters, 3D frame | Native offscreen exists; Windows/DX12 windowed compositing implemented and developer-machine verified; Linux/Vulkan windowed compositing accepted under Xvfb/lavapipe; macOS/Metal windowed compositing and clean-machine/CI acceptance pending |
+| M3 | Native DX12/Vulkan/Metal offscreen path | Backend badge, native present counters, 3D frame | Native offscreen exists; Windows/DX12 windowed compositing implemented and developer-machine verified; Linux/Vulkan composition and Rendering Room GPU binding accepted under Xvfb/lavapipe; macOS/Metal windowed compositing and clean-machine/CI acceptance pending |
 | M4 | `runtime.v1_m4_vertical_slice`, scene snapshot/lifecycle | Operable scene, entity, undo, play/editor world | Runtime foundation exists; content and UI pending |
 | M5 | `runtime.v1_m5_asset_pipeline` | Import/cook/bundle/progress/reload/rollback | Contract exists; showcase assets pending |
 | M6 | `runtime.v1_m6_editor_sdk`, plugin ABI/prefab | Reflection inspector, Undo, prefab rebase, plugin status | Editor SDK exists; graphical editor not in current state |
@@ -294,13 +295,11 @@ Goal: the Hub scene shows a genuinely interactive 3D frame.
 - Build procedural mesh/material content so the first version does not depend on large external assets.
 - Implement the Rendering Room and frame diagnostics.
 
-**Portable scene-frame foundation: ✅ complete; Windows/DX12 graphical binding is ✅ confirmed on the developer host.**
+**Portable scene-frame foundation: ✅ complete; Windows/DX12 graphical binding is ✅ confirmed on the developer host; Linux/Vulkan Rendering Room binding is ✅ accepted under Xvfb/lavapipe.**
 validated camera, indexed mesh, material, light, procedural cube, and deterministic frame-resource
 contracts. Headless validation covers buffers, depth and sampled textures, sampler-policy counts,
 indexed submission, failures, lifetime, and shutdown. Windows/DX12 windowed compositing and the
-interactive Rendering Room GPU scene path are confirmed by manual developer-machine evidence; native
-Vulkan scene binding and its Xvfb/lavapipe 3D evidence, and clean-machine/CI target-host evidence for every backend
-remain open.
+interactive Rendering Room GPU scene path are confirmed by manual developer-machine evidence. Linux/Vulkan now records 12 scene frames, native pixel depth/light/transform tests, 600-frame normalized keyboard input and a versioned visible cube capture; the full Linux Development suite passes 70/70. Metal binding, full 3D Hub/room content, GPU-room overlays and clean-machine/CI target-host evidence for every backend remain open.
 
 ### Phase C -- Probe and V1 Validation Lab
 

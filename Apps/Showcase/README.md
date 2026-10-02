@@ -107,6 +107,13 @@ cmake --build --preset linux-development --target NexoraShowcasePackageDevelopme
 cmake --build --preset linux-shipping --target NexoraShowcasePackageShipping
 ```
 
+Linux Development packaging discovers and includes all transitive `libNexora*.so` dependencies.
+Build-tree RPATHs are relative and include `$ORIGIN`, so bundled Engine libraries load from `bin/`.
+The evidence launcher verifies the staged ELF dependency closure and rejects any Engine library
+resolved outside that copy; system libraries and GPU drivers remain host requirements. A copied
+executable alone previously passed by resolving Engine DSOs from the original build tree, so that
+older checksum-only evidence did not establish Engine-library isolation.
+
 The generated `build.json` records the exact relocatable launch command, including the packaged Zig
 library path. On Linux, the evidence target verifies every packaged checksum, copies the package to
 a fresh temporary directory, launches only from that copy, and retains the embedded Showcase report
@@ -130,3 +137,19 @@ provisioned target machine, copy one complete package directory, verify `manifes
 the exact command in `manifests/build.json` from the package root, and retain `launch-report.json`
 alongside the command, exit status, and host details. CI and developer-machine isolated-copy evidence do
 not establish this final clean-machine acceptance gate.
+
+## Native Rendering Room (V1 Phase B)
+
+`--mode=interactive --scene=rendering --backend=vulkan` now submits the indexed procedural cube to
+a native depth-tested Lambert pipeline. WASD consumes `Window::Key` values and offsets the orbit
+camera through the public gameplay Transform; the previous ASCII comparison did not match native
+normalized key events. Reports expose both Showcase `scene_draws` and backend `native_scene_draws`.
+No software composition is used by this room.
+
+Linux CTest adds `showcase.linux_vulkan_rendering_room`, `showcase.linux_vulkan_camera_input` and
+`window_presentation.vulkan_scene`. Xvfb and lavapipe execute all three; xdotool sends native D
+key events in the input gate. Native pixel contracts test depth, light, matrix translation, invalid
+input, frame reuse and resize. Their reports/logs/capture live in the corresponding
+`build/<preset>/artifacts/showcase-linux-vulkan-*` directories, uploaded by Linux CI. This Linux
+acceptance does not establish physical-GPU performance, a full 3D Hub/room suite, overlays on the
+GPU room, a guided tour, Metal parity or Windows clean-machine acceptance.
