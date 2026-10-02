@@ -26,8 +26,8 @@ SimulationVector Normalize(SimulationVector a) {
 } // namespace
 
 bool PhysicsWorld::AddBody(PhysicsBody body) {
-  if (body.id == 0 || bodies_.contains(body.id) || !Finite(body.minimum) ||
-      !Finite(body.maximum) || !Finite(body.velocity) || body.minimum.x > body.maximum.x ||
+  if (body.id == 0 || bodies_.contains(body.id) || !Finite(body.minimum) || !Finite(body.maximum) ||
+      !Finite(body.velocity) || body.minimum.x > body.maximum.x ||
       body.minimum.y > body.maximum.y || body.minimum.z > body.maximum.z)
     return false;
   return bodies_.emplace(body.id, body).second;
@@ -134,11 +134,14 @@ CharacterMoveResult CharacterController::Move(CharacterState &state, SimulationV
     }
   }
   auto candidate = Add(state.position, actual);
-  const auto down =
-      physics.Raycast({candidate, {0, -1, 0}, config_.ground_snap_distance + config_.step_height});
-  if (down && request.y <= 0) {
-    actual.y -= down->distance;
-    candidate.y -= down->distance;
+  // Start above the swept feet, not inside the floor after gravity advances the candidate.
+  // An inside-AABB ray reports distance zero and cannot recover the actual contact plane.
+  const auto lift = config_.step_height + std::max(0.0, -request.y);
+  const auto down = physics.Raycast(
+      {Add(candidate, {0, lift, 0}), {0, -1, 0}, lift + config_.ground_snap_distance});
+  if (down && down->normal.y > 0 && request.y <= 0) {
+    actual.y += down->point.y - candidate.y;
+    candidate.y = down->point.y;
     state.ground = CharacterGroundState::OnGround;
     state.ground_body = down->body;
     out.ground_normal = down->normal;
@@ -289,8 +292,7 @@ const BlackboardValue *Blackboard::Get(std::size_t slot) const {
   return slot < slots_.size() ? &slots_[slot] : nullptr;
 }
 bool BehaviorProgram::Evaluate(std::uint32_t index, const Blackboard &blackboard,
-                               BehaviorTrace &trace,
-                               std::vector<std::uint8_t> &active) const {
+                               BehaviorTrace &trace, std::vector<std::uint8_t> &active) const {
   if (index >= nodes_.size() || active[index] != 0)
     return false;
   active[index] = 1;
@@ -331,8 +333,8 @@ BehaviorTrace BehaviorProgram::Tick(const Blackboard &blackboard) const {
   return trace;
 }
 void PerceptionSystem::Publish(Stimulus stimulus) {
-  if (stimulus.source != 0 && Finite(stimulus.position) &&
-      std::isfinite(stimulus.strength) && stimulus.strength >= 0)
+  if (stimulus.source != 0 && Finite(stimulus.position) && std::isfinite(stimulus.strength) &&
+      stimulus.strength >= 0)
     stimuli_.push_back(stimulus);
 }
 std::vector<Stimulus> PerceptionSystem::Query(SimulationVector observer, double range,

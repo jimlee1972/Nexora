@@ -126,7 +126,9 @@ this layer deliberately performs no device I/O.
 
 `ParticleSystem` uses separate position, velocity, age, and lifetime arrays with bounded capacity.
 Sprite, mesh, and trail renderer kinds share this CPU simulation contract; GPU simulation and draw
-expansion can consume the same spawn data without changing gameplay ownership.
+expansion can consume the same spawn data without changing gameplay ownership. `PositionSnapshot()`
+returns an owning copy of current live positions in simulation order, so render extraction does not
+retain private SoA pointers. Snapshot, Spawn and Update remain serialized on the simulation thread.
 
 Decoded video producers submit texture identities to a bounded `VideoPlayer` queue. `Tick()` only
 examines already decoded frames, drops superseded frames against the audio clock, and publishes a
@@ -141,7 +143,7 @@ gate, supporting dedicated/headless builds without Animation, Audio, VFX, or Med
 
 ## V1-M8 gameplay simulation
 
-`GameplaySimulation.h` is the public, backend-neutral boundary for Physics → Character → Navigation → AI. `PhysicsWorld` provides authoritative immediate and batch queries without exposing Jolt types. The standard motor owns desired locomotion, gravity, root motion, and external velocity; `CharacterController` owns collision resolution, ground snap, stepping, crouch clearance, and teleport semantics. Every result reports requested and actual motion separately. Objects are synchronous and caller-owned; none are thread-safe.
+`GameplaySimulation.h` is the public, backend-neutral boundary for Physics → Character → Navigation → AI. `PhysicsWorld` provides authoritative immediate and batch queries without exposing Jolt types. The standard motor owns desired locomotion, gravity, root motion, and external velocity; `CharacterController` owns collision resolution, ground snap, stepping, crouch clearance, and teleport semantics. Every result reports requested and actual motion separately. The portable motor position is a feet origin; ground snap sweeps downward from above the previous/candidate feet to the contact plane, avoiding the zero-distance inside-AABB ray that previously let gravity penetrate the floor. Centered rendering capsules add half their current height to this origin. Objects are synchronous and caller-owned; none are thread-safe.
 
 `Move()`/`Teleport()` also take a caller-supplied `ground_ready`/`destination_ready` readiness flag and report `CharacterGroundState::StreamingPending` when it is false: locomotion, gravity accrual, and ground snap/step evaluation are all suspended and the character holds its current position instead of free-falling through geometry that has not streamed in, per the V1-M10 large-world streaming contract. This header stays independent of `LargeWorld.h` by design (either can be stripped without the other), so the readiness flag is the full extent of the contract here; a caller that wants the M10 `StreamingManager` to drive it is expected to pin the character's cells with `SetOccupied()` and query `Status(cell)->residency == Residency::Full` itself — declaring the character a high-priority streaming source and any automatic bridging between the two systems is gameplay/application-layer wiring this foundation does not provide.
 
@@ -676,3 +678,13 @@ known-good generation, corrupted-save rejection, thermal-throttle evidence, and 
 footprint tolerance. It does **not** claim the V2-M12 shipping gate: five complete reference
 projects, 24h+ streaming/network soaks, and real mobile thermal behavior still require target-host
 execution and release-lab evidence.
+
+## Editor snapshot replacement
+
+`World::ReplaceSceneSnapshot` is an Editor-only synchronous transaction. It validates a snapshot in
+a scratch World and rejects entity IDs owned by other scenes before replacing the target scene.
+Success preserves the target scene ID and lifecycle state, keeps ID allocation monotonic, and expires
+its entity/component borrows. Other scenes and their borrows remain valid. Gameplay Worlds and
+unloading/unloaded targets reject replacement. Malformed snapshots or cross-scene collisions leave
+the live World unchanged. The caller must clear authoring undo and invalidate document keys after
+success; this API does not own renderer resources or asynchronous work.

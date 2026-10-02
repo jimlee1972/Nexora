@@ -37,6 +37,14 @@ else()
   target_compile_definitions(NexoraShowcase PRIVATE NEXORA_ZIG_SHARED_LIBRARY_PATH="")
 endif()
 
+if(TARGET NexoraExamplePlugin)
+  add_dependencies(NexoraShowcase NexoraExamplePlugin)
+  target_compile_definitions(NexoraShowcase PRIVATE
+    NEXORA_SHOWCASE_PLUGIN_FILENAME="$<TARGET_FILE_NAME:NexoraExamplePlugin>")
+  add_custom_command(TARGET NexoraShowcase POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "$<TARGET_FILE:NexoraExamplePlugin>"
+      "$<TARGET_FILE_DIR:NexoraShowcase>/$<TARGET_FILE_NAME:NexoraExamplePlugin>" VERBATIM)
+endif()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS)
 if(WIN32 AND NEXORA_LINK_MODE STREQUAL "Modular")
@@ -117,6 +125,12 @@ if(WIN32 AND MSVC)
          "${NEXORA_SHOWCASE_CRT_PATH}")
   endforeach()
 endif()
+if(TARGET NexoraExamplePlugin)
+  if(NOT NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS)
+    list(APPEND NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS --runtime-libraries)
+  endif()
+  list(APPEND NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS "$<TARGET_FILE:NexoraExamplePlugin>")
+endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32)
   string(TOLOWER "${CMAKE_SYSTEM_NAME}" NEXORA_SHOWCASE_EVIDENCE_PLATFORM)
 endif()
@@ -185,6 +199,11 @@ if(BUILD_TESTING)
     "${CMAKE_SOURCE_DIR}/Tests/Showcase/ShowcaseRoomTests.cpp" ShowcaseRooms.cpp)
   target_include_directories(NexoraShowcaseRoomTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
   target_link_libraries(NexoraShowcaseRoomTests PRIVATE NexoraShowcaseProbes Nexora::Runtime Nexora::Presentation)
+  if(TARGET NexoraExamplePlugin)
+    add_dependencies(NexoraShowcaseRoomTests NexoraExamplePlugin)
+    target_compile_definitions(NexoraShowcaseRoomTests PRIVATE
+      NEXORA_SHOWCASE_TEST_PLUGIN="$<TARGET_FILE:NexoraExamplePlugin>")
+  endif()
   nexora_apply_defaults(NexoraShowcaseRoomTests)
   add_test(NAME showcase.runtime_rooms COMMAND NexoraShowcaseRoomTests)
   add_test(NAME showcase.guided_tour_cli COMMAND NexoraShowcase --headless --tour=v1 --frames=4 --no-reload)
@@ -210,9 +229,13 @@ if(BUILD_TESTING)
     PASS_REGULAR_EXPRESSION
       "Gameplay Lab.*CONTRACT ONLY.*Presentation Lab.*CONTRACT ONLY.*Streaming Lab.*UNAVAILABLE")
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(NEXORA_SHOWCASE_PLUGIN_TEST_ARGS)
+    if(NOT TARGET NexoraExamplePlugin OR NOT NEXORA_ENABLE_EDITOR_SDK)
+      list(APPEND NEXORA_SHOWCASE_PLUGIN_TEST_ARGS --allow-unavailable-plugin)
+    endif()
     add_test(NAME showcase.linux_vulkan_interaction
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxShowcaseInteraction.py"
-        "$<TARGET_FILE:NexoraShowcase>")
+        "$<TARGET_FILE:NexoraShowcase>" ${NEXORA_SHOWCASE_PLUGIN_TEST_ARGS})
     set_tests_properties(showcase.linux_vulkan_interaction PROPERTIES
       LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
     add_test(
@@ -223,10 +246,27 @@ if(BUILD_TESTING)
       NAME showcase.linux_vulkan_virtual_display
       COMMAND "${Python3_EXECUTABLE}"
               "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVirtualDisplaySmoke.py"
-              "$<TARGET_FILE:NexoraShowcase>")
+              "$<TARGET_FILE:NexoraShowcase>"
+              --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/showcase-linux-vulkan")
     set_tests_properties(showcase.linux_vulkan_virtual_display PROPERTIES
       LABELS "showcase;vulkan;virtual-display"
       SKIP_RETURN_CODE 77
       TIMEOUT 45)
+    if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+      add_test(NAME showcase.linux_vulkan_rendering_room
+        COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+          --showcase "$<TARGET_FILE:NexoraShowcase>"
+          --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/showcase-linux-vulkan-rendering-room")
+      set_tests_properties(showcase.linux_vulkan_rendering_room PROPERTIES
+        LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
+      add_test(NAME showcase.linux_vulkan_camera_input
+        COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+          --showcase "$<TARGET_FILE:NexoraShowcase>" --interactive
+          --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/showcase-linux-vulkan-camera-input")
+      set_tests_properties(showcase.linux_vulkan_camera_input PROPERTIES
+        LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
+    endif()
   endif()
 endif()

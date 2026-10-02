@@ -248,6 +248,30 @@ std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
   return id;
 }
 
+bool World::ReplaceSceneSnapshot(Id scene, std::string_view snapshot) {
+  const auto current = std::ranges::find(scenes_, scene, &Scene::id);
+  if (kind_ != WorldKind::Editor || current == scenes_.end() ||
+      current->state == SceneState::Unloading || current->state == SceneState::Unloaded)
+    return false;
+  World staged{kind_};
+  if (!staged.LoadSceneSnapshot(snapshot))
+    return false;
+  std::unordered_set<Id> occupied;
+  for (const auto &other : scenes_)
+    if (other.id != scene)
+      for (const auto &entity : other.entities)
+        occupied.insert(entity.id);
+  for (const auto &entity : staged.scenes_.front().entities)
+    if (occupied.contains(entity.id))
+      return false;
+  auto replacement = std::move(staged.scenes_.front());
+  replacement.id = scene;
+  replacement.state = current->state;
+  *current = std::move(replacement);
+  next_id_ = std::max(next_id_, staged.next_id_);
+  return true;
+}
+
 bool World::Activate(Id id) {
   auto *scene = const_cast<Scene *>(FindScene(id));
   if (scene == nullptr || scene->state != SceneState::LoadedInactive)

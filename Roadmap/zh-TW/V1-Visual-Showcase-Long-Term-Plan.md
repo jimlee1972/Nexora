@@ -12,7 +12,7 @@
 - ✅ Development/Modular 封裝包含 Linux 所需的七個 engine library；isolated-copy launch evidence 會拒絕從封裝外解析 engine dependency，Full/Monolithic 與 Minimal build 分開驗證。
 - ✅ Full profile package preset、原創 content catalog、互動啟動腳本、可重現 ZIP／SHA-256 與版本化 Linux 截圖已提供。
 - 既有 Windows/DX12 開發機 GPU 證據仍只適用於其記錄版本；本次 Linux session 未在 Windows 執行新增房間、Full Windows package 或 workflow 變更。
-- 待辦：原生 texture/material 與 instancing 擴充、完整 probe input/output/error-injection UI、live Showcase 的 plugin ABI rejection、capsule/ramp 與完整 skin/particle 繪製、Windows 乾淨機圖形啟動、physical-display 驗收及其他 native backend parity。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
+- 待辦：原生 texture/material 與 instancing 擴充、Windows 乾淨機圖形啟動、physical-display 驗收及其他 native backend parity。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
 
 證據與精確驗證結果：[`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md)。
 
@@ -291,7 +291,8 @@ UI、headless report、CTest adapter 與 Guided Tour 都消費同一份結果。
 - ✅ F3 matrix、Tab 選取、R rerun、`--probe=v1.MN` 與 `--markdown=PATH` 提供 live integration result。
 - ✅ Scene snapshot、Modify/Undo、隔離 Play World、prefab override/rebase 與真正 cooked procedural mesh 會影響場景畫面。
 - ✅ Empty asset、dependency cycle、asset-generation rollback 與 shipping-update rollback 使用公開 Runtime API。
-- 待辦：live plugin ABI mismatch injection 與完整 per-probe input/output/error control；schema fixture 的 injection result 不算 runtime 觀察證據。
+- ✅ Validation Lab 顯示取樣時的輸入／輸出 metrics 與 issues，可捲動細節、切換錯誤案例並匯出 JSON／Markdown。空資產、相依循環、資產／更新回滾與真實動態函式庫的 ABI 拒絕皆透過公開 Runtime API 執行。缺少插件檔案為 FAIL；不支援的案例／milestone 組合為 UNSUPPORTED。
+- Schema fixture injection metadata 仍與這些實際 runtime 觀察結果分開。
 
 ### Phase D — Gameplay / Presentation / World Rooms
 
@@ -299,7 +300,8 @@ UI、headless report、CTest adapter 與 Guided Tour 都消費同一份結果。
 - ✅ 同一 application loop 更新 animation translation、skin palette count、particle occupancy/drop count 與 audio/video queue/bus contract；明確標示 native audio/video playback unavailable。
 - ✅ Streaming cell、occupied pin、portal prefetch、HLOD residency、procedural terrain/vegetation 與 RAM/VRAM budget 已有可見狀態。
 - ✅ 七步導覽共 210 秒，可 pause／replay，並保留可讀結果。
-- 待辦：capsule/ramp geometry、完整 collision/nav visualization、真正 skin/particle position rendering 與完整 terrain/HLOD asset；狀態可视化不代表完整 native content 驗收。
+- ✅ 原生 indexed capsule geometry、碰撞一致的 AABB 階梯坡道、實際 collision ray/path 管線網格、以公開 palette 做 CPU 權重蒙皮的 column、雙 clip blend 與 live particle position mesh 均在 application loop 執行。
+- ✅ Streamed Full terrain 細分網格、原創粗略 HLOD proxy 與 vegetation geometry 跟隨公開 cell residency。Memory counter 是 authored streaming estimate；production GPU skinning、平滑坡道 physics adapter 與高解析度美術不屬於此 procedural 展示範圍。
 
 ### Phase E — Platform / Shipping / Distribution
 
@@ -420,3 +422,7 @@ package 必須由 M12 Packager/manifest contract 產出或驗證，不允許靠�
 7. 更新 Windows VS Code/CMake 使用說明與本文件的實作狀態。
 
 這個 ticket 完成後，才進入 3D scene、probe registry 與各 V1 展示房間施工。這樣可以先取得真正能執行的 exe 基線，再逐步把 V1 能力接上去，而不會用尚未存在的畫面功能掩蓋 RHI/window boundary 尚未完成的事實。
+
+✅ Validation Lab 後續：`Tab` 選取 M0-M12；`I` 切換 None／空資產／循環相依／Plugin ABI／Rollback；`R` 執行；PageUp/PageDown 捲動輸入、輸出與錯誤；`X` 匯出 `showcase-lab.json` 與 `showcase-lab.md`。空資產、相依循環、資產／更新回滾與真正動態函式庫的 ABI 拒絕皆使用公開 Runtime API 執行，記錄 sample tick 與實際輸入。範例插件啟用時會放在可執行檔旁並納入套件；`--plugin-library=PATH` 指定 M6 的真實函式庫。缺少插件檔案顯示 FAIL；不支援的探針／錯誤組合顯示 UNSUPPORTED。原有 schema-fixture 注入 metadata 仍與實際執行結果分開。
+
+✅ Validation Lab／geometry 後續與 feet-origin ground-contact 回歸驗收：[Linux-V1-Lab-Geometry-2026-10-03](../../Apps/Showcase/evidence/Linux-V1-Lab-Geometry-2026-10-03/acceptance.md)，完整 Linux Development gate 75/75，五個 native gate 全數於 Khronos／synchronization validation 下執行。

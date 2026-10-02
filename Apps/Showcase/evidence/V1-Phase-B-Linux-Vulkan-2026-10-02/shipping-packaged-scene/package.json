@@ -1,0 +1,25 @@
+{
+  "isolated_copy": true,
+  "checksums_verified": 5,
+  "runtime_libraries_verified": [],
+  "package_profile": "Shipping",
+  "shipping_profile": "Full",
+  "native_launch": {
+    "command": [
+      "/tmp/nexora-packaged-native-g86k6oda/NexoraShowcase/bin/NexoraShowcase",
+      "--mode=interactive",
+      "--scene=rendering",
+      "--backend=vulkan",
+      "--frames=12",
+      "--resize=960x540",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/workspace/Nexora/build/linux-shipping/artifacts/showcase-linux-vulkan-packaged-scene/scene.json"
+    ],
+    "exit_code": 0,
+    "acceptance_passed": true,
+    "scope": "Linux/X11/Vulkan GPU scene on virtual display",
+    "physical_display_verified": false,
+    "validation_layer_requested": false
+  }
+}

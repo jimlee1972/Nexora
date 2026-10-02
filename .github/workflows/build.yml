@@ -82,12 +82,13 @@ jobs:
         if: runner.os != 'macOS'
         run: cmake --build --preset ${{ matrix.preset }} --target NexoraShowcasePackageDevelopmentEvidence
       - uses: actions/upload-artifact@v4
-        if: runner.os != 'macOS'
+        if: always() && runner.os != 'macOS'
         with:
           name: showcase-${{ matrix.preset }}-package-evidence
           path: |
             build/${{ matrix.preset }}/package/NexoraShowcase-Development*
             build/${{ matrix.preset }}/showcase-visual-evidence/
+            build/${{ matrix.preset }}/artifacts/showcase-linux-vulkan*/
             build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
 
   # Runs the graphical Editor against a real X11 server (Xvfb) with Mesa's software Vulkan. It is a

@@ -200,7 +200,8 @@ public:
                                std::uint32_t height) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || width != width_ || height != height_ ||
+    if (!acquired_ || sceneRendered_ || transferTarget_ || frames_[frame_].uiFramebuffer ||
+        width != width_ || height != height_ ||
         pixels.size() != static_cast<std::size_t>(width) * height * 4U)
       return SurfaceStatus::InvalidDescriptor;
     auto &frame = frames_[frame_];
@@ -277,8 +278,9 @@ public:
     if (!OnThread())
       return SurfaceStatus::WrongThread;
     if (!acquired_ || !scenePipeline_ || sceneRendered_ || transferTarget_ ||
-        data.vertices.empty() || data.indices.empty() || data.vertices.size() > 65535 ||
-        data.indices.size() > 1048576 || data.indices.size() % 3 != 0)
+        frames_[frame_].uiFramebuffer || data.vertices.empty() || data.indices.empty() ||
+        data.vertices.size() > 65535 || data.indices.size() > 1048576 ||
+        data.indices.size() % 3 != 0)
       return SurfaceStatus::InvalidDescriptor;
     for (const auto index : data.indices)
       if (index >= data.vertices.size())
@@ -419,7 +421,8 @@ public:
 #else
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || drawData.vertices.empty() || drawData.indices.empty())
+    if (!acquired_ || transferTarget_ || frames_[frame_].uiFramebuffer ||
+        drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
     auto &frame = frames_[frame_];
     for (const auto &upload : drawData.textureUploads)
@@ -556,6 +559,8 @@ public:
       return SurfaceStatus::WrongThread;
     if (device_)
       vkDeviceWaitIdle(device_);
+    acquired_ = false;
+    valid_ = false;
     DestroySwapchain();
     if (commandPool_)
       vkDestroyCommandPool(device_, commandPool_, nullptr);

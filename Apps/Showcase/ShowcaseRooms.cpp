@@ -15,6 +15,7 @@
 #include <array>
 #include <cmath>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 #include <set>
 #include <sstream>
@@ -82,7 +83,9 @@ struct RoomSession::State final {
   int pointerX{}, pointerY{};
   bool dragging{};
   std::uint64_t atlasGeneration{~std::uint64_t{0}};
-  std::string lastAction{"Ready"};
+  std::string lastAction{"Ready"}, pluginLibrary;
+  ErrorInjection injection{ErrorInjection::None};
+  std::size_t metricOffset{};
   std::vector<ProbeResult> probes{ProbeRegistry::CreateV1Registry().RunAll()};
   std::vector<Nexora::Presentation::SceneVertex> vertices;
   std::vector<std::uint16_t> indices;
@@ -139,6 +142,9 @@ struct RoomSession::State final {
   large_world::StreamingManager streaming{{4096, 2048}, 1};
   large_world::TerrainClipmap terrain;
   large_world::VegetationField vegetation;
+  large_world::OfflineHlodSet hlod;
+  const std::vector<large_world::VegetationInstance> trees{
+      {{-4, 0, -4}, 1}, {{0, 0, -4}, 1}, {{4, 0, 4}, 1}};
 #endif
 #if NEXORA_PLATFORM_ENABLED
   platform::Runtime platform;
@@ -268,7 +274,12 @@ struct RoomSession::State final {
     physics.AddBody({1, {-6, -1, -6}, {6, 0, 6}, false, false, {}});
     physics.AddBody({2, {1, 0, 1}, {2, 1.5, 2}, false, false, {}});
     physics.AddBody({3, {-2, 0, 1}, {-1, 0.25, 2}, false, false, {}});
-    character.position = {0, 0.9, 0};
+    for (std::uint64_t step = 0; step < 5; ++step) {
+      const double x = -4 + static_cast<double>(step) * 0.4;
+      const double height = 0.2 + static_cast<double>(step) * 0.2;
+      physics.AddBody({10 + step, {x, 0, 1}, {x + 0.4, height, 2}, false, false, {}});
+    }
+    character.position = {-2, 0, 0};
     navigation.LoadTile(
         1, {{1, 1, {-3, 0, -3}, {2}}, {2, 1, {0, 0, -3}, {1, 3}}, {3, 1, {3, 0, -3}, {2}}});
     path = navigation.FindPath(1, 3);
@@ -284,6 +295,12 @@ struct RoomSession::State final {
                        {{0, {{0, {0, 0, 0}}, {2, {1, 0, 0}}}},
                         {1, {{0, {0, 1, 0}}, {1, {0.6F, 1.5F, 0}}, {2, {0, 1, 0}}}},
                         {2, {{0, {0, 2, 0}}, {2, {0, 2.5F, 0}}}}}});
+    animation.AddClip({2,
+                       2,
+                       true,
+                       {{0, {{0, {0, 0, 0}}, {2, {-1, 0, 0}}}},
+                        {1, {{0, {0, 1, 0}}, {2, {0.4F, 1.2F, 0}}}},
+                        {2, {{0, {0, 2, 0}}, {2, {-0.4F, 2.8F, 0}}}}}});
     animation.Play(1);
     residency.Acquire(1);
     audio.SetBusGain("Master", 0.6F);
@@ -299,13 +316,14 @@ struct RoomSession::State final {
     for (std::uint64_t cell = 1; cell <= 9; ++cell) {
       const double x = static_cast<double>((cell - 1) % 3) * 4 - 6;
       const double z = static_cast<double>((cell - 1) / 3) * 4 - 6;
-      streaming.AddCell(
-          {cell, 100 + cell, 200 + cell, {{x, -1, z}, {x + 4, 1, z + 4}}, 512, 256, 64, 32});
+      const large_world::Bounds bounds{{x, -1, z}, {x + 4, 1, z + 4}};
+      streaming.AddCell({cell, 100 + cell, 200 + cell, bounds, 512, 256, 64, 32});
+      hlod.Add({200 + cell, cell, 300 + cell, 400 + cell, bounds});
     }
     streaming.AddPortal(5, 9);
     streaming.SetOccupied(5, true);
     terrain.Build(3, 4, 3);
-    vegetation.SetSpecies(1, {{{-4, 0, -4}, 1}, {{0, 0, -4}, 1}, {{4, 0, 4}, 1}});
+    vegetation.SetSpecies(1, trees);
 #endif
 #if NEXORA_SHIPPING_ENABLED
     for (const auto profile :
@@ -340,13 +358,17 @@ struct RoomSession::State final {
     visited.insert(selected);
     lastAction = "Entered " + selected;
   }
-  void Probe(std::size_t m) {
+  void Probe(std::size_t m, ErrorInjection error = ErrorInjection::None) {
     if (m >= probes.size())
       return;
     auto &probe = probes[m];
     bool available = true, success = true;
     probe.issues.clear();
-    probe.metrics = {{"scope", "runtime_integration"}, {"contract_gate", "NOT_RUN"}};
+    probe.metrics = {{"scope", "runtime_integration"},
+                     {"contract_gate", "NOT_RUN"},
+                     {"sample_tick", std::to_string(ticks)},
+                     {"input.milestone", std::to_string(m)},
+                     {"input.error_case", std::to_string(static_cast<unsigned>(error))}};
     // Integration probes compose public APIs in the running app. CTest remains the contract
     // authority.
     switch (m) {
@@ -422,7 +444,8 @@ struct RoomSession::State final {
     case 10:
 #if NEXORA_LARGE_WORLD_ENABLED
       available = !minimal;
-      success = streaming.Metrics().pinned_cells == 1 && terrain.PatchCount() == 9;
+      success = streaming.Metrics().pinned_cells == 1 && terrain.PatchCount() == 9 &&
+                hlod.Clusters().size() == 9;
       probe.metrics.push_back({"full_cells", std::to_string(streaming.Metrics().full_cells)});
       break;
 #else
@@ -452,6 +475,85 @@ struct RoomSession::State final {
       break;
 #endif
     }
+    if (error != ErrorInjection::None) {
+      // Each run uses fresh, Showcase-owned state; failure injection never corrupts the room.
+      available = !minimal;
+      success = false;
+      std::string observed;
+      if (m == 5) {
+#if NEXORA_ASSET_PIPELINE_ENABLED
+        if (error == ErrorInjection::InvalidAsset) {
+          ImporterRegistry importer;
+          importer.Register(".showcase",
+                            [](const SourceAsset &source) -> std::optional<CanonicalAsset> {
+                              if (source.bytes.empty())
+                                return {};
+                              return CanonicalAsset{source.id, source.type, {}, source.bytes};
+                            });
+          success = !importer.Import({{1, 1}, "mesh", "empty.showcase", {}});
+          observed = "Empty source rejected by ImporterRegistry";
+        } else if (error == ErrorInjection::DependencyCycle) {
+          success =
+              !BundleBuilder::ValidateDependencyDag({{"a", 1, {"b"}, {}}, {"b", 1, {"a"}, {}}});
+          observed = "Cyclic bundle dependencies rejected";
+        } else if (error == ErrorInjection::Rollback) {
+          AssetGenerationStore store;
+          DerivedDataCache cache;
+          const auto blob =
+              AssetCooker{}.Cook({{1, 1}, "mesh", {}, {std::byte{1}}}, "portable", "lab", cache);
+          const auto first = blob ? BundleBuilder::Build("lab", 1, {}, {*blob}) : std::nullopt;
+          const auto second = blob ? BundleBuilder::Build("lab", 2, {}, {*blob}) : std::nullopt;
+          success = first && second && store.Stage({*first}) && store.ActivateStaged() &&
+                    store.Stage({*second}) && store.ActivateStaged() && store.Rollback() &&
+                    store.ActiveGeneration() == 1;
+          observed = "Asset generation 2 rolled back to 1";
+        } else
+          available = false;
+#else
+        available = false;
+#endif
+      } else if (m == 6 && error == ErrorInjection::PluginAbiMismatch) {
+#if NEXORA_EDITOR_SDK_ENABLED
+        if (pluginLibrary.empty())
+          available = false;
+        else {
+          ServiceRegistry services;
+          PluginHost host(foundation::kEngineAbiVersion + 1);
+          const auto result = host.Load(pluginLibrary, &services);
+          success = !result.loaded && result.error == PluginLoadError::AbiMismatch &&
+                    result.reported_abi == foundation::kEngineAbiVersion && !result.registered &&
+                    host.LoadedCount() == 0 && services.Size() == 0;
+          probe.metrics.push_back(
+              {"input.host_abi", std::to_string(foundation::kEngineAbiVersion + 1)});
+          probe.metrics.push_back({"input.plugin_library", pluginLibrary});
+          probe.metrics.push_back({"output.reported_abi", std::to_string(result.reported_abi)});
+          probe.metrics.push_back({"output.loaded", result.loaded ? "true" : "false"});
+          probe.metrics.push_back({"output.registered", result.registered ? "true" : "false"});
+          observed = result.error == PluginLoadError::OpenFailed
+                         ? "Plugin file could not be opened"
+                         : "Plugin ABI mismatch rejected before registration";
+        }
+#else
+        available = false;
+#endif
+      } else if (m == 12 && error == ErrorInjection::Rollback) {
+#if NEXORA_SHIPPING_ENABLED
+        shipping::BundleUpdater manager{{1, "lab-v1"}};
+        success = manager.Stage({2, "lab-v2"}) && manager.Activate() && manager.Rollback() &&
+                  manager.Current().generation == 1;
+        observed = "Shipping update rolled back to generation 1";
+#else
+        available = false;
+#endif
+      } else
+        available = false;
+      probe.metrics.push_back(
+          {"output.error_observation",
+           observed.empty() ? "No matching error case / dependency unavailable" : observed});
+      if (available && !success)
+        probe.issues.push_back({"INJECTION_FAILED", observed});
+    }
+    probe.metrics.push_back({"output.accepted", available && success ? "true" : "false"});
     probe.status =
         available ? (success ? ProbeStatus::Pass : ProbeStatus::Fail) : ProbeStatus::Unsupported;
     if (m != 3)
@@ -487,6 +589,114 @@ struct RoomSession::State final {
       for (const auto index : {0, 1, 2, 2, 3, 0})
         indices.push_back(offset + index);
     }
+  }
+  void Capsule(math::Vector3 center, float radius, float height) {
+    constexpr std::size_t sides = 16, hemisphereRings = 5;
+    const auto base = static_cast<std::uint16_t>(vertices.size());
+    for (std::size_t ring = 0; ring < hemisphereRings * 2; ++ring) {
+      const bool upper = ring >= hemisphereRings;
+      const float latitude =
+          upper ? static_cast<float>(ring - hemisphereRings) / (hemisphereRings - 1) * math::kPi / 2
+                : -math::kPi / 2 + static_cast<float>(ring) / (hemisphereRings - 1) * math::kPi / 2;
+      const float offset = (upper ? 1 : -1) * std::max(0.0F, height * 0.5F - radius);
+      for (std::size_t side = 0; side < sides; ++side) {
+        const float angle = static_cast<float>(side) / sides * math::kPi * 2;
+        const math::Vector3 normal{std::cos(latitude) * std::cos(angle), std::sin(latitude),
+                                   std::cos(latitude) * std::sin(angle)};
+        vertices.push_back({{center.x + normal.x * radius, center.y + offset + normal.y * radius,
+                             center.z + normal.z * radius},
+                            {normal.x, normal.y, normal.z}});
+        if (ring + 1 < hemisphereRings * 2) {
+          const auto a = static_cast<std::uint16_t>(base + ring * sides + side);
+          const auto b = static_cast<std::uint16_t>(base + ring * sides + (side + 1) % sides);
+          for (const auto index :
+               {a, b, static_cast<std::uint16_t>(a + sides), b,
+                static_cast<std::uint16_t>(b + sides), static_cast<std::uint16_t>(a + sides)})
+            indices.push_back(index);
+        }
+      }
+    }
+  }
+  void Segment(math::Vector3 start, math::Vector3 end, float radius) {
+    const auto axis = math::NormalizeSafe(end - start);
+    if (math::Length(end - start) < 0.0001F)
+      return;
+    const auto tangent = math::NormalizeSafe(math::Cross(
+        axis, std::abs(axis.y) < 0.9F ? math::Vector3{0, 1, 0} : math::Vector3{1, 0, 0}));
+    const auto bitangent = math::Cross(axis, tangent);
+    const auto base = static_cast<std::uint16_t>(vertices.size());
+    constexpr std::size_t sides = 8;
+    for (const auto center : {start, end})
+      for (std::size_t side = 0; side < sides; ++side) {
+        const float angle = static_cast<float>(side) / sides * math::kPi * 2;
+        const auto normal = tangent * std::cos(angle) + bitangent * std::sin(angle);
+        const auto point = center + normal * radius;
+        vertices.push_back({{point.x, point.y, point.z}, {normal.x, normal.y, normal.z}});
+      }
+    for (std::size_t side = 0; side < sides; ++side) {
+      const auto a = static_cast<std::uint16_t>(base + side),
+                 b = static_cast<std::uint16_t>(base + (side + 1) % sides);
+      for (const auto index :
+           {a, b, static_cast<std::uint16_t>(a + sides), b, static_cast<std::uint16_t>(b + sides),
+            static_cast<std::uint16_t>(a + sides)})
+        indices.push_back(index);
+    }
+  }
+#if NEXORA_PRESENTATION_ENABLED
+  void SkinnedColumn() {
+    const auto palette = skin.Matrices();
+    if (palette.size() != 3)
+      return;
+    const auto base = static_cast<std::uint16_t>(vertices.size());
+    constexpr std::size_t rows = 9, sides = 8;
+    for (std::size_t row = 0; row < rows; ++row) {
+      const float y = static_cast<float>(row) / (rows - 1) * 2;
+      const auto joint = std::min<std::size_t>(1, static_cast<std::size_t>(y));
+      const float weight = y - static_cast<float>(joint);
+      for (std::size_t side = 0; side < sides; ++side) {
+        const float angle = static_cast<float>(side) / sides * math::kPi * 2;
+        const math::Vector3 normal{std::cos(angle), 0, std::sin(angle)};
+        const math::Vector3 rest{normal.x * 0.35F, y, normal.z * 0.35F};
+        // Translation-only demo rig: inverse bind subtracts each joint's rest height.
+        auto deform = [&](std::size_t id) {
+          const auto &m = palette[id];
+          return math::Vector3{m[0] * rest.x + m[1] * (rest.y - id) + m[2] * rest.z + m[3],
+                               m[4] * rest.x + m[5] * (rest.y - id) + m[6] * rest.z + m[7],
+                               m[8] * rest.x + m[9] * (rest.y - id) + m[10] * rest.z + m[11]};
+        };
+        const auto point = deform(joint) * (1 - weight) + deform(joint + 1) * weight;
+        vertices.push_back({{point.x - 2, point.y, point.z}, {normal.x, normal.y, normal.z}});
+        if (row + 1 < rows) {
+          const auto a = static_cast<std::uint16_t>(base + row * sides + side),
+                     b = static_cast<std::uint16_t>(base + row * sides + (side + 1) % sides);
+          for (const auto index :
+               {a, b, static_cast<std::uint16_t>(a + sides), b,
+                static_cast<std::uint16_t>(b + sides), static_cast<std::uint16_t>(a + sides)})
+            indices.push_back(index);
+        }
+      }
+    }
+  }
+#endif
+  void Terrain(float x, float z, float size, std::size_t subdivisions) {
+    const auto base = static_cast<std::uint16_t>(vertices.size());
+    for (std::size_t row = 0; row <= subdivisions; ++row)
+      for (std::size_t column = 0; column <= subdivisions; ++column) {
+        const float px = x + size * static_cast<float>(column) / subdivisions;
+        const float pz = z + size * static_cast<float>(row) / subdivisions;
+        const float y = 0.2F + 0.15F * std::sin(px) * std::cos(pz);
+        const auto normal = math::NormalizeSafe(math::Vector3{
+            -0.15F * std::cos(px) * std::cos(pz), 1, 0.15F * std::sin(px) * std::sin(pz)});
+        vertices.push_back({{px, y, pz}, {normal.x, normal.y, normal.z}});
+        if (row < subdivisions && column < subdivisions) {
+          const auto a = static_cast<std::uint16_t>(base + row * (subdivisions + 1) + column);
+          const auto b = static_cast<std::uint16_t>(a + 1),
+                     c = static_cast<std::uint16_t>(a + subdivisions + 1),
+                     d = static_cast<std::uint16_t>(c + 1);
+          for (const auto index : {a, c, b, b, c, d})
+            indices.push_back(index);
+        }
+      }
   }
   void Quad(float x, float y, float w, float h, std::uint32_t color, float u0, float v0, float u1,
             float v1) {
@@ -568,7 +778,7 @@ struct RoomSession::State final {
                       " / path points " + std::to_string(path ? path->points.size() : 0));
       lines.push_back("AI trace " + std::to_string(trace.visited.size()) +
                       " nodes / perception budget 4 / observed " + std::to_string(stimuli.size()));
-      lines.push_back("Portable CPU adapter / third-party physics SDK unavailable");
+      lines.push_back("Capsule / AABB step ramp / collision ray / nav path");
 #else
       lines.push_back("Gameplay adapter unavailable");
 #endif
@@ -577,6 +787,7 @@ struct RoomSession::State final {
 #if NEXORA_PRESENTATION_ENABLED
       lines.push_back("Animation joints " + std::to_string(pose.translations.size()) +
                       " / skin matrices " + std::to_string(skin.MatrixCount()));
+      lines.push_back("J clip blend / CPU skin deformation / live particles");
       lines.push_back("Root motion " + Number(pose.root_motion.x) + " / particle capacity 32");
       lines.push_back("Live particles " + std::to_string(particles.Count()) + " / dropped " +
                       std::to_string(droppedParticles));
@@ -596,6 +807,7 @@ struct RoomSession::State final {
                       std::to_string(m.hlod_cells) + " / pinned " + std::to_string(m.pinned_cells));
       lines.push_back("RAM " + std::to_string(m.usage.ram) + "/4096 / VRAM " +
                       std::to_string(m.usage.vram) + "/2048");
+      lines.push_back("Procedural terrain mesh / 9 authored HLOD proxies");
       lines.push_back("Terrain patches " + std::to_string(terrain.PatchCount()) + " / vegetation " +
                       std::to_string(vegetation.InstanceCount()));
       for (std::uint64_t id = 1; id <= 9; ++id) {
@@ -645,8 +857,9 @@ struct RoomSession::State final {
   }
 };
 
-RoomSession::RoomSession(std::string scene, bool tour, bool minimal)
+RoomSession::RoomSession(std::string scene, bool tour, bool minimal, std::string pluginLibrary)
     : state_(std::make_unique<State>()) {
+  state_->pluginLibrary = std::move(pluginLibrary);
   state_->minimal = minimal;
   state_->tour = tour;
   state_->SelectRoom(scene);
@@ -661,7 +874,9 @@ void RoomSession::ReplayTour() {
   state_->tourStep = 0;
   Select("hub");
 }
-void RoomSession::RerunProbe(std::size_t milestone) { state_->Probe(milestone); }
+void RoomSession::RerunProbe(std::size_t milestone, ErrorInjection injection) {
+  state_->Probe(milestone, injection);
+}
 std::vector<ProbeResult> RoomSession::Probes() const { return state_->probes; }
 bool RoomSession::Healthy() const {
   return std::none_of(state_->probes.begin(), state_->probes.end(),
@@ -746,12 +961,35 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     if (s.tour)
       ReplayTour();
     else
-      RerunProbe(s.selectedProbe);
+      RerunProbe(s.selectedProbe, s.injection);
   }
   if (key == Key::Space && s.tour)
     s.paused = !s.paused;
-  if (key == Key::Tab)
+  if (key == Key::Tab) {
     s.selectedProbe = (s.selectedProbe + 1) % 13;
+    s.metricOffset = 0;
+  }
+  if (s.matrix && key == Key::I) {
+    s.injection = static_cast<ErrorInjection>((static_cast<unsigned>(s.injection) + 1) % 5);
+    s.metricOffset = 0;
+  }
+  if (s.matrix && key == Key::PageDown)
+    ++s.metricOffset;
+  if (s.matrix && key == Key::PageUp && s.metricOffset > 0)
+    --s.metricOffset;
+  if (s.matrix && key == Key::X) {
+    try {
+      std::ofstream json("showcase-lab.json"), markdown("showcase-lab.md");
+      json << Report();
+      markdown << Markdown();
+      json.flush();
+      markdown.flush();
+      s.lastAction =
+          json && markdown ? "Exported showcase-lab.json / showcase-lab.md" : "Lab export failed";
+    } catch (const std::exception &) {
+      s.lastAction = "Lab export failed";
+    }
+  }
 #if NEXORA_EDITOR_SDK_ENABLED
   if (s.selected == "scene" && key == Key::E) {
     auto transform = s.editorWorld.FindEntity(s.editorEntity)->transform;
@@ -781,9 +1019,13 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
   if (s.selected == "gameplay" && key == Key::C)
     s.controller.SetCrouched(s.character, !s.character.crouched, s.physics);
   if (s.selected == "gameplay" && key == Key::G)
-    s.controller.Teleport(s.character, {0, 2, 0});
+    s.controller.Teleport(s.character, {-2, 2, 0});
 #endif
 #if NEXORA_PRESENTATION_ENABLED
+  if (s.selected == "presentation" && key == Key::J) {
+    s.animation.Play(s.animation.ActiveClip() == 1 ? 2 : 1, 0.5F);
+    s.lastAction = "Animation clip blend / 0.5 s";
+  }
   if (key == Key::V) {
     s.video.Seek(s.clock);
     s.lastAction = "Video seek invalidated queue";
@@ -871,7 +1113,10 @@ void RoomSession::Tick(double seconds) {
     palette.push_back(matrix.values);
   }
   s.skin.Upload(palette);
-  if (!s.particles.Spawn({{0, 0, 0}, {0, 1, 0}, 2}))
+  if (!s.particles.Spawn({{2, 0.1F, 0},
+                          {static_cast<float>(std::sin(s.clock * 3)), 1,
+                           static_cast<float>(std::cos(s.clock * 3))},
+                          2}))
     ++s.droppedParticles;
   s.particles.Update(static_cast<float>(seconds));
   s.video.SubmitDecoded({++s.videoSequence, s.clock, 100 + s.videoSequence});
@@ -891,7 +1136,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   s.visualized.insert(s.selected);
   s.vertices.clear();
   s.indices.clear();
-  s.Cube(0, -0.35F, 0, 6, 0.3F, 6);
+  s.Cube(0, -0.3F, 0, 6, 0.3F, 6);
   if (s.selected == "hub") {
     s.Cube(0, 0.5F, 0, 1.5F, 0.5F, 1.5F);
     s.Cube(0, 2, 0, 0.7F, 1, 0.7F);
@@ -922,40 +1167,79 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #endif
   } else if (s.selected == "gameplay") {
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
-    s.Cube(static_cast<float>(s.character.position.x), static_cast<float>(s.character.position.y),
-           static_cast<float>(s.character.position.z), 0.4F, s.character.crouched ? 0.5F : 0.9F,
-           0.4F);
+    s.Capsule({static_cast<float>(s.character.position.x),
+               static_cast<float>(s.character.position.y) + (s.character.crouched ? 0.5F : 0.9F),
+               static_cast<float>(s.character.position.z)},
+              0.4F, s.character.crouched ? 1.0F : 1.8F);
+    for (std::size_t step = 0; step < 5; ++step) {
+      const float h = 0.2F + static_cast<float>(step) * 0.2F;
+      s.Cube(-3.8F + static_cast<float>(step) * 0.4F, h * 0.5F, 1.5F, 0.2F, h * 0.5F, 0.5F);
+    }
     s.Cube(1.5F, 0.75F, 1.5F, 0.5F, 0.75F, 0.5F);
     s.Cube(-1.5F, 0.125F, 1.5F, 0.5F, 0.125F, 0.5F);
-    if (s.path)
+    if (s.path) {
       for (const auto &p : s.path->points)
         s.Cube(static_cast<float>(p.x), 0.1F, static_cast<float>(p.z), 0.15F, 0.1F, 0.15F);
-    if (s.hit)
-      s.Cube(static_cast<float>(s.hit->point.x), static_cast<float>(s.hit->point.y) + 0.05F,
-             static_cast<float>(s.hit->point.z), 0.15F, 0.05F, 0.15F);
+      for (std::size_t i = 1; i < s.path->points.size(); ++i) {
+        const auto &a = s.path->points[i - 1], &b = s.path->points[i];
+        s.Segment({static_cast<float>(a.x), 0.1F, static_cast<float>(a.z)},
+                  {static_cast<float>(b.x), 0.1F, static_cast<float>(b.z)}, 0.04F);
+      }
+    }
+    if (s.hit) {
+      const math::Vector3 contact{static_cast<float>(s.hit->point.x),
+                                  static_cast<float>(s.hit->point.y),
+                                  static_cast<float>(s.hit->point.z)};
+      s.Cube(contact.x, contact.y + 0.05F, contact.z, 0.15F, 0.05F, 0.15F);
+      s.Segment({static_cast<float>(s.character.position.x), 5,
+                 static_cast<float>(s.character.position.z)},
+                contact, 0.025F);
+    }
 #endif
   } else if (s.selected == "presentation") {
 #if NEXORA_PRESENTATION_ENABLED
     for (const auto &p : s.pose.translations)
       s.Cube(p.x, p.y + 1, p.z, 0.2F, 0.3F, 0.2F);
-    // The particle contract exposes count, not positions. Bars visualize actual bounded occupancy.
-    for (std::size_t i = 0; i < s.particles.Count(); ++i)
-      s.Cube(static_cast<float>(i % 8) * 0.3F - 1, 0.3F + static_cast<float>(i / 8) * 0.4F, 2,
-             0.08F, 0.08F, 0.08F);
+    s.SkinnedColumn();
+    for (const auto &p : s.particles.PositionSnapshot())
+      s.Cube(p.x, p.y, p.z, 0.06F, 0.06F, 0.06F);
 #endif
   } else if (s.selected == "streaming") {
 #if NEXORA_LARGE_WORLD_ENABLED
-    for (std::uint64_t id = 1; id <= 9; ++id) {
+    for (const auto &patch : s.terrain.Cull({{-8, -1, -8}, {8, 1, 8}}, {0, 0, 0})) {
+      const auto id =
+          static_cast<std::uint64_t>((patch.coordinate.z + 1) * 3 + patch.coordinate.x + 2);
       const auto status = s.streaming.Status(id);
-      const float h = status->residency == large_world::Residency::Full   ? 0.8F
-                      : status->residency == large_world::Residency::Hlod ? 0.3F
-                                                                          : 0.05F;
-      s.Cube(static_cast<float>((id - 1) % 3) * 3 - 3, h, static_cast<float>((id - 1) / 3) * 3 - 3,
-             1.3F, h, 1.3F);
+      const auto *cell = s.streaming.FindCell(id);
+      if (!status || !cell)
+        continue;
+      const float x = static_cast<float>(cell->bounds.minimum.x),
+                  z = static_cast<float>(cell->bounds.minimum.z);
+      if (status->residency == large_world::Residency::Full)
+        s.Terrain(x, z, 4, std::max<std::size_t>(1, 4U >> patch.lod));
+      else if (status->residency == large_world::Residency::Unloaded)
+        s.Cube(x + 2, 0.01F, z + 2, 1.95F, 0.01F, 1.95F); // Explicit unloaded map tile.
     }
-    s.Cube(-4, 1, -4, 0.15F, 1, 0.15F);
-    s.Cube(0, 1, -4, 0.15F, 1, 0.15F);
-    s.Cube(4, 1, 4, 0.15F, 1, 0.15F);
+    for (const auto &proxy : s.hlod.Clusters()) {
+      const auto status = s.streaming.Status(proxy.source_cell);
+      if (status && status->residency == large_world::Residency::Hlod)
+        s.Terrain(static_cast<float>(proxy.bounds.minimum.x),
+                  static_cast<float>(proxy.bounds.minimum.z), 4, 1);
+    }
+    for (const auto &tree : s.trees) {
+      const float x = static_cast<float>(tree.position.x), z = static_cast<float>(tree.position.z);
+      const auto id = static_cast<std::uint64_t>(static_cast<int>((z + 6) / 4) * 3 +
+                                                 static_cast<int>((x + 6) / 4) + 1);
+      const auto status = s.streaming.Status(id);
+      if (!status || status->residency == large_world::Residency::Unloaded)
+        continue;
+      const float ground = 0.2F + 0.15F * std::sin(x) * std::cos(z);
+      s.Cube(x, ground + 0.5F, z, 0.1F, 0.5F, 0.1F);
+      if (status->residency == large_world::Residency::Full)
+        s.Capsule({x, ground + 1.2F, z}, 0.45F, 1.2F);
+      else
+        s.Cube(x, ground + 1.2F, z, 0.4F, 0.5F, 0.4F);
+    }
 #endif
   } else {
     s.Cube(-2, 1, 0, 0.5F, 1, 0.5F);
@@ -1018,8 +1302,8 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
            1.5F);
   }
   if (s.matrix) {
-    s.Rect(18, 126, 890, 475, 0xf8241a10);
-    s.Text(30, 139, "Validation Lab / Tab select / R rerun integration probe");
+    s.Rect(18, 126, 1240, 475, 0xf8241a10);
+    s.Text(30, 139, "Lab / Tab select / R run / I error case / PgUp-PgDn details / X export");
     float y = 166;
     for (std::size_t m = 0; m < s.probes.size(); ++m) {
       const auto &p = s.probes[m];
@@ -1028,13 +1312,33 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
                                                          : 0xff8fd4ef;
       s.Text(30, y,
              (m == s.selectedProbe ? "> " : "  ") + p.milestone + " " +
-                 std::string(ToString(p.status)) + " / contract NOT_RUN / view PARTIAL",
+                 std::string(ToString(p.status)) + " / CTest NOT_RUN / PARTIAL",
              color, 1.5F);
       y += 23;
     }
     s.Text(30, y + 12, "Contract authority: CTest / green shows runtime integration only",
            0xff8fd4ef, 1.5F);
-    s.Text(30, y + 36, s.probes[s.selectedProbe].summary, 0xffe9ded4, 1.5F);
+    const auto &selected = s.probes[s.selectedProbe];
+    s.Text(30, y + 36, selected.summary.substr(0, 85), 0xffe9ded4, 1.5F);
+    constexpr std::array<std::string_view, 5> errorNames{"None", "Empty asset (M5)", "Cycle (M5)",
+                                                         "Plugin ABI (M6)", "Rollback (M5/M12)"};
+    s.Text(620, 169, "Input: " + std::string(errorNames[static_cast<unsigned>(s.injection)]),
+           0xffefdc80, 1.5F);
+    s.Text(620, 192, "Run uses fresh owned state / output sampled at run", 0xffa5cedd, 1.5F);
+    const auto offset = std::min(s.metricOffset, selected.metrics.size());
+    float detailY = 221;
+    for (std::size_t i = offset; i < selected.metrics.size() && i < offset + 10; ++i) {
+      const auto &metric = selected.metrics[i];
+      s.Text(620, detailY, (metric.name + " = " + metric.value).substr(0, 65), 0xffe9ded4, 1.5F);
+      detailY += 23;
+    }
+    for (const auto &issue : selected.issues) {
+      if (detailY > 519)
+        break;
+      s.Text(620, detailY, (issue.code + ": " + issue.message).substr(0, 65), 0xff7777ee, 1.5F);
+      detailY += 23;
+    }
+    s.Text(620, 552, s.lastAction.substr(0, 65), 0xffa5cedd, 1.5F);
   }
   if (s.tour) {
     s.Rect(18, 651, 1100, 50, 0xef241a10);

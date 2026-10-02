@@ -1,7 +1,7 @@
 # Transform Rotation and Scale Extension — Plan
 
 > Version: v1.2 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
-> ✅ all phases complete; the Euler Inspector hint (§9 Q3) remains for the graphical Inspector** | Updated: 2026-10-01 | Relates to: `Editor_Roadmap.md` §ED-M2 (gizmos),
+> ✅ all phases complete; graphical degree editing is implemented; ✅ serialized Euler hints (§9 Q3) are implemented** | Updated: 2026-10-02 | Relates to: `Editor_Roadmap.md` §ED-M2 (gizmos),
 > `Engine_API_Foundation_Roadmap.md`
 
 ## 1. Purpose and decision needed
@@ -127,3 +127,10 @@ graphical Scene View. Those need their own plans.
 2. Snapshot migration? **v2 on first save**; v1 stays readable.
 3. Euler angles in the Inspector, quaternion in storage? **Yes**, with the Euler hint kept in the Editor
    layer so typed values are preserved.
+
+Graphical Inspector update (2026-10-02): degree fields now use Z-X-Y composition and atomic
+multi-selection edits. ✅ SceneDocument hints retain typed revolutions across selection/save/reload
+and participate in undo. Scene format 2 validates hints and reads version 1; same-World reload is atomic.
+`editor.preview_contract`, `editor.parser_robustness`, and `editor.imgui_contract` cover persistence,
+invalid records, gimbal-lock round trips, composition order, real key/text submission, stale/non-finite rejection,
+and one-step multi-target undo. This does not close ED-M2 target-host acceptance.

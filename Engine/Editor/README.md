@@ -165,10 +165,15 @@ choice UX. Its Hierarchy filter, generation-keyed expansion/selection anchor, re
 row clipping are presentation state; selection, rename, and hierarchy edits still enter the core
 only through `SceneDocument::Select`, `SceneDocument::Rename`, and the undoable, cycle-safe
 `SceneDocument::Move`. Its initial Inspector reads a selected node's borrowed local transform and
-routes position, quaternion, and scale changes through generation-keyed `SceneDocument` calls.
+routes position, Euler-degree rotation, and scale changes through generation-keyed `SceneDocument` calls.
 Multi-selection fields display mixed state and apply one changed field to every selected entity as a
 single all-or-nothing Runtime transaction and undo step; malformed transforms roll back without a
-partial write. Reflected component widgets and Euler presentation remain open. Native renderer submission,
+partial write. `SceneDocument` owns authored Euler hints and restores them with undo, even when a changed angle
+has the same quaternion. Scene format version 2 persists finite, rotation-matching hints; version 1
+loads with canonical angles. Duplicate, orphaned, non-finite, or mismatched hints reject reload before
+live state changes. Reload atomically replaces the existing Editor scene, preserves its ID and state,
+advances document/entity generations, and clears selection and undo. Failed reload preserves them.
+External rotation changes invalidate hint display and serialization. Reflected component widgets remain open. Native renderer submission,
 platform IME candidate positioning,
 accessibility, viewport rendering, gizmos, and target-host visual validation remain UI-host
 responsibilities.

@@ -10,7 +10,8 @@ namespace nexora::showcase {
 // Runtime pointers survive mutations. Geometry and report snapshots own their returned storage.
 class RoomSession final {
 public:
-  explicit RoomSession(std::string scene, bool tour = false, bool minimal = false);
+  explicit RoomSession(std::string scene, bool tour = false, bool minimal = false,
+                       std::string pluginLibrary = {});
   ~RoomSession();
   RoomSession(const RoomSession &) = delete;
   RoomSession &operator=(const RoomSession &) = delete;
@@ -18,7 +19,7 @@ public:
   void Tick(double seconds);
   void Select(std::string_view room);
   void ReplayTour();
-  void RerunProbe(std::size_t milestone);
+  void RerunProbe(std::size_t milestone, ErrorInjection injection = ErrorInjection::None);
   [[nodiscard]] bool Healthy() const;
   [[nodiscard]] std::string_view Selected() const;
   [[nodiscard]] std::vector<ProbeResult> Probes() const;

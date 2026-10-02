@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/Editor/Api.h"
+#include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Foundation/Types.h"
 #include "Nexora/Runtime/AssetPipeline.h"
 #include "Nexora/Runtime/EditorSdk.h"
@@ -14,6 +15,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace nexora::editor {
@@ -181,6 +183,10 @@ public:
   bool SetTransform(runtime::Id entity, runtime::Transform transform);
   bool SetTransforms(std::span<const NodeKey> entities,
                      std::span<const runtime::Transform> transforms);
+  // Degrees use extrinsic Z-X-Y composition. One field edit is one atomic undo transaction.
+  bool SetEulerField(std::span<const NodeKey> entities, std::size_t axis, double degrees);
+  // Preserves authored revolutions while the local quaternion matches; otherwise canonical angles.
+  [[nodiscard]] std::optional<EulerDegrees> EulerAngles(runtime::Id entity) const noexcept;
   [[nodiscard]] std::optional<runtime::Transform> Transform(runtime::Id entity) const noexcept;
   bool CopySelection();
   bool Paste();
@@ -197,15 +203,21 @@ public:
   [[nodiscard]] std::vector<NodeView> Nodes() const;
 
 private:
+  struct EulerHint final {
+    runtime::Transform transform;
+    EulerDegrees degrees;
+  };
   struct Node final {
     runtime::Id id{};
     std::string name;
     std::uint64_t generation{};
+    std::optional<EulerHint> euler_hint{};
   };
   struct UndoEntry final {
     enum class Kind { Runtime, Rename } kind{Kind::Runtime};
     NodeKey entity;
     std::string previous_name;
+    std::vector<std::pair<NodeKey, std::optional<EulerHint>>> previous_hints{};
   };
   runtime::World &world_;
   runtime::Id scene_{};

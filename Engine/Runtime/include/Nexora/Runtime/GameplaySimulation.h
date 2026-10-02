@@ -75,6 +75,8 @@ struct CharacterInput final {
   SimulationVector root_motion{}, external_velocity{};
 };
 struct CharacterState final {
+  // Portable query motor origin at the feet: ground snap places position on the hit surface.
+  // A centered render capsule adds half its standing/crouching height to this position.
   SimulationVector position{}, velocity{};
   CharacterGroundState ground{CharacterGroundState::InAir};
   bool crouched{};
@@ -168,7 +170,7 @@ public:
 
 private:
   bool Evaluate(std::uint32_t node, const Blackboard &, BehaviorTrace &,
-                  std::vector<std::uint8_t> &active) const;
+                std::vector<std::uint8_t> &active) const;
   std::vector<BehaviorNode> nodes_;
 };
 enum class StimulusKind { Sight, Hearing };

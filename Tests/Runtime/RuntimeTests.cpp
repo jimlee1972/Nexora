@@ -23,6 +23,50 @@ int RunTests() {
   Require(world.FindScene(second)->state == SceneState::Unloaded,
           "M4 unload did not complete at frame boundary");
 
+  {
+    World authoring;
+    const auto target = authoring.LoadScene("Target");
+    const auto target_entity = authoring.CreateEntity(target).id;
+    const auto other = authoring.LoadScene("Other");
+    const auto other_entity = authoring.CreateEntity(other).id;
+    Require(authoring.Activate(target) && authoring.Activate(other), "replacement setup failed");
+    const auto *other_borrow = authoring.FindEntity(other_entity);
+    const auto *other_scene_borrow = authoring.FindScene(other);
+    World source;
+    const auto source_scene = source.LoadScene("Source");
+    auto &source_entity = source.CreateEntity(source_scene);
+    source_entity.transform.x = 42.0;
+    Require(source_entity.id == target_entity, "replacement fixture IDs differ");
+    const auto snapshot = *source.SaveScene(source_scene);
+    for (int iteration = 0; iteration < 3; ++iteration)
+      Require(authoring.ReplaceSceneSnapshot(target, snapshot) &&
+                  authoring.FindScene(target)->state == SceneState::Active &&
+                  authoring.FindScene(target)->name == "Source" &&
+                  authoring.FindEntity(target_entity)->transform.x == 42.0 &&
+                  authoring.ActiveSceneCount() == 2 &&
+                  authoring.FindEntity(other_entity) == other_borrow &&
+                  authoring.FindScene(other) == other_scene_borrow,
+              "replacement must preserve scene identity/state and unrelated borrows");
+    const auto last_good = *authoring.SaveScene(target);
+    const auto collision_scene = source.LoadScene("Collision");
+    Require(source.CreateEntity(collision_scene).id == other_entity,
+            "collision fixture IDs differ");
+    Require(!authoring.ReplaceSceneSnapshot(target, snapshot + " trailing") &&
+                !authoring.ReplaceSceneSnapshot(target, *source.SaveScene(collision_scene)) &&
+                authoring.SaveScene(target) == last_good &&
+                authoring.FindEntity(other_entity) == other_borrow,
+            "malformed/colliding snapshots must leave every scene unchanged");
+    const auto next_entity = authoring.CreateEntity(target).id;
+    Require(next_entity > other_entity, "replacement regressed the global entity allocator");
+    auto play = authoring.CloneForPlay();
+    Require(!play.ReplaceSceneSnapshot(target, snapshot), "Play Worlds cannot replace live scenes");
+    Require(authoring.RequestUnload(target) && !authoring.ReplaceSceneSnapshot(target, snapshot),
+            "an unloading scene cannot be replaced");
+    authoring.EndFrame();
+    Require(!authoring.ReplaceSceneSnapshot(target, snapshot),
+            "an unloaded scene cannot be replaced");
+  }
+
   AssetRegistry assets;
   Require(!assets.Stage({{1, "a", {2}, 1}, {2, "b", {1}, 1}}), "M5 accepted an asset cycle");
   Require(assets.Stage({{1, "a", {}, 1}}) && assets.ActivateStaged(),

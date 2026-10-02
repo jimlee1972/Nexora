@@ -304,6 +304,28 @@ std::string SerializeMarkdown(std::span<const ProbeResult> results,
   for (const auto &result : results)
     output << "| `" << result.id << "` | " << result.milestone << " | " << ToString(result.status)
            << " | " << result.summary << " |\n";
+  const auto cell = [](std::string_view value) {
+    std::string escaped;
+    for (const char c : value) {
+      if (c == '|')
+        escaped += "&#124;";
+      else if (c == '\n' || c == '\r')
+        escaped += ' ';
+      else
+        escaped += c;
+    }
+    return escaped;
+  };
+  for (const auto &result : results) {
+    if (result.metrics.empty() && result.issues.empty())
+      continue;
+    output << "\n## " << result.milestone << " run details\n\n"
+           << "| Input / output metric | Value |\n| --- | --- |\n";
+    for (const auto &metric : result.metrics)
+      output << "| " << cell(metric.name) << " | " << cell(metric.value) << " |\n";
+    for (const auto &issue : result.issues)
+      output << "| Issue: " << cell(issue.code) << " | " << cell(issue.message) << " |\n";
+  }
   output
       << "\n## Capability-aware rooms\n\n| Room | Status | Headless evidence | Visual complete |\n"
          "| --- | --- | --- | --- |\n";

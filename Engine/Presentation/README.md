@@ -55,3 +55,12 @@ background. Atlas uploads must be resubmitted after swapchain recreation. Render
 Acquire when a close request is pumped, leaving no newly acquired frame without presentation during
 normal shutdown. Xvfb/lavapipe acceptance covers native scene/UI, interaction and resize; it is not
 physical-GPU, Windows or Metal acceptance.
+
+`DrawScene` uses the row-major MVP, Vulkan clip-space Y conversion and padded 112-byte
+light/material push constants. The public scene format remains separate from Renderer Slang
+shaders. Full-frame composition cannot be combined with a scene or UI submission; the scene
+must precede its optional single UI submission. Duplicate submissions return InvalidDescriptor.
+Destroying an abandoned acquired frame clears acquisition/validity before releasing resources.
+The retained `window_presentation.vulkan_scene` target-host gate reads X11 pixels in the test,
+checking near/far depth-order invariance, lighting, matrix translation, two resizes, rejected
+inputs and idempotent teardown; it executes separately from the Showcase room/input gates.

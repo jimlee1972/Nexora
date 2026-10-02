@@ -32,6 +32,13 @@ function(nexora_configure_build)
     set(NEXORA_MODULE_LIBRARY_TYPE STATIC PARENT_SCOPE)
   endif()
 
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # Build-tree relative paths retain local execution; $ORIGIN also supports all Engine DSOs
+    # beside the executable in a relocated Showcase package, without a build-tree fallback.
+    set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE PARENT_SCOPE)
+    set(CMAKE_BUILD_RPATH "$ORIGIN" PARENT_SCOPE)
+  endif()
+
   if(WIN32)
     # Each module and test executable otherwise lands in its own per-target
     # build directory (Engine/Foundation/, Tests/Core/, ...). Windows has no

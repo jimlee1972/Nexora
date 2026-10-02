@@ -292,6 +292,25 @@ int Run() {
                        }});
   }
   {
+    const auto path = root / "editor-scene";
+    runtime::World world;
+    const auto scene = world.LoadScene("Euler robustness");
+    editor::SceneDocument document(world, scene);
+    const auto entity = document.Create("Entity");
+    const std::array keys{*document.Key(entity)};
+    if (!document.SetEulerField(keys, 0, 450.0) || !document.Save(path))
+      throw std::runtime_error("could not create the Euler scene seed");
+    const auto current = ReadFile(path);
+    const auto legacy = ToBytes("NEXORA_EDITOR_SCENE 1\nnode " + std::to_string(entity) +
+                                " 0 Entity\nworld\n" + *world.SaveScene(scene));
+    targets.push_back({"editor_scene", {current, legacy, {}}, [path](const Bytes &b) {
+                         WriteFile(path, b);
+                         runtime::World scratch;
+                         editor::SceneDocument document(scratch, scratch.LoadScene("Placeholder"));
+                         static_cast<void>(document.Reload(path));
+                       }});
+  }
+  {
     const auto path = root / "camera";
     editor::SceneCameraState camera;
     camera.pitch = 1.5;

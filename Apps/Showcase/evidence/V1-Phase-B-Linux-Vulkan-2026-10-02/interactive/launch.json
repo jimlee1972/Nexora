@@ -1,0 +1,16 @@
+{
+  "command": [
+    "/workspace/Nexora/build/linux-development/Apps/Showcase/NexoraShowcase",
+    "--mode=interactive",
+    "--scene=rendering",
+    "--backend=vulkan",
+    "--frames=600",
+    "--no-reload",
+    "--gameplay-module=static",
+    "--report=/workspace/Nexora/build/linux-development/artifacts/showcase-linux-vulkan-interactive/scene.json"
+  ],
+  "exit_code": 0,
+  "camera_moves": 33,
+  "capture": "rendering-room.png",
+  "scope": "Xvfb/lavapipe; physical display unverified"
+}

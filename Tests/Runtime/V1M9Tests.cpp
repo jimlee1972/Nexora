@@ -24,9 +24,11 @@ int RunTests() {
           "walk clip was rejected");
   Require(graph.AddClip({2, 1.0F, true, {{0, {{0.0F, {}}, {1.0F, {6.0F, 0.0F, 0.0F}}}}}}),
           "run clip was rejected");
-  Require(!graph.AddClip({3, 1.0F, true,
-                                  {{0, {{0.0F, {}}, {1.0F, {1.0F, 0.0F, 0.0F}}}},
-                                   {0, {{0.0F, {}}, {1.0F, {2.0F, 0.0F, 0.0F}}}}}}),
+  Require(!graph.AddClip({3,
+                          1.0F,
+                          true,
+                          {{0, {{0.0F, {}}, {1.0F, {1.0F, 0.0F, 0.0F}}}},
+                           {0, {{0.0F, {}}, {1.0F, {2.0F, 0.0F, 0.0F}}}}}}),
           "animation accepted duplicate joint tracks");
   Require(graph.Play(1), "animation state did not start");
   const auto walk = graph.Update(0.25F);
@@ -62,6 +64,14 @@ int RunTests() {
   Require(particles.Count() == 1 && particles.Renderer() == ParticleRenderer::Trail,
           "particle SoA lifetime update failed");
 
+  auto positions = particles.PositionSnapshot();
+  Require(positions == std::vector<Vec3>{{0, 1, 0}},
+          "particle position snapshot disagrees with integration");
+  particles.Update(0.25F);
+  Require(positions[0] == Vec3{0, 1, 0} && particles.PositionSnapshot()[0] == Vec3{0, 1.25F, 0},
+          "particle snapshot lifetime was coupled to simulation storage");
+  particles.Update(0.75F);
+  Require(particles.PositionSnapshot().empty(), "expired particles remained in render snapshot");
   VideoPlayer video{2};
   Require(video.AddSubtitle({0.0, 1.0, "Hello"}) && video.Subtitle(0.5) == "Hello",
           "subtitle timing failed");
@@ -81,8 +91,7 @@ int RunTests() {
           "looped animation root motion did not preserve cycle displacement");
 
   VideoPlayer ordered{3};
-  Require(ordered.SubmitDecoded({1, 0.2, 300}) &&
-              !ordered.SubmitDecoded({2, 0.1, 301}),
+  Require(ordered.SubmitDecoded({1, 0.2, 300}) && !ordered.SubmitDecoded({2, 0.1, 301}),
           "video accepted out-of-order presentation timestamps");
 
   ParticleSystem baseline{10000, ParticleRenderer::Sprite};

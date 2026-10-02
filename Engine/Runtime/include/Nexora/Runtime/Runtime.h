@@ -111,6 +111,9 @@ public:
   explicit World(WorldKind kind = WorldKind::Editor) noexcept : kind_(kind) {}
   Id LoadScene(std::string name, bool persistent = false);
   [[nodiscard]] std::optional<Id> LoadSceneSnapshot(std::string_view snapshot);
+  // Editor-only atomic replacement. Preserves scene ID and lifecycle state; rejects corrupt data,
+  // unloading scenes and entity-ID collisions with other scenes. Only target entity borrows expire.
+  [[nodiscard]] bool ReplaceSceneSnapshot(Id scene, std::string_view snapshot);
   [[nodiscard]] std::optional<std::string> SaveScene(Id scene) const;
   bool Activate(Id scene);
   bool RequestUnload(Id scene);

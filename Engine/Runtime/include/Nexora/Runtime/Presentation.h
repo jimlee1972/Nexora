@@ -134,6 +134,9 @@ public:
   void Update(float seconds);
   [[nodiscard]] std::size_t Count() const noexcept { return ages_.size(); }
   [[nodiscard]] ParticleRenderer Renderer() const noexcept { return renderer_; }
+  // Owning snapshot in simulation order; mutations never invalidate returned positions.
+  // Calls remain serialized with Spawn/Update on the caller's simulation thread.
+  [[nodiscard]] std::vector<Vec3> PositionSnapshot() const { return positions_; }
 
 private:
   std::size_t capacity_{};

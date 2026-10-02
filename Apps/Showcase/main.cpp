@@ -56,6 +56,7 @@ struct CommandLine final {
   std::string backend{"auto"};
   std::string gameplay_module{"auto"};
   std::filesystem::path gameplay_library;
+  std::filesystem::path plugin_library;
   std::string capabilities{"auto"};
   std::filesystem::path report;
   std::filesystem::path markdown;
@@ -224,12 +225,22 @@ bool ParseExtent(std::string_view text, std::uint32_t &width, std::uint32_t &hei
 }
 
 bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &error) {
+#ifdef NEXORA_SHOWCASE_PLUGIN_FILENAME
+  command.plugin_library =
+      std::filesystem::absolute(argv[0]).parent_path() / NEXORA_SHOWCASE_PLUGIN_FILENAME;
+#endif
   for (int index = 1; index < argc; ++index) {
     const std::string_view argument{argv[index]};
     command.arguments.emplace_back(argument);
     if (argument == "--headless") {
       command.headless = true;
       command.mode = "headless";
+    } else if (argument.starts_with("--plugin-library=")) {
+      command.plugin_library = argument.substr(17);
+      if (command.plugin_library.empty()) {
+        error = "--plugin-library requires a path";
+        return false;
+      }
     } else if (argument == "--validate-v1") {
       command.validate_v1 = true;
     } else if (argument == "--no-reload") {
@@ -554,21 +565,17 @@ void UpdateInteractiveCamera(ShowcaseHostContext &context) {
     return;
   auto transform = camera->transform;
   constexpr double step = 0.25;
-  switch (context.input.lastKey) {
-  case 'W':
-  case 'w':
+  switch (static_cast<Nexora::Window::Key>(context.input.lastKey)) {
+  case Nexora::Window::Key::W:
     transform.z -= step;
     break;
-  case 'S':
-  case 's':
+  case Nexora::Window::Key::S:
     transform.z += step;
     break;
-  case 'A':
-  case 'a':
+  case Nexora::Window::Key::A:
     transform.x -= step;
     break;
-  case 'D':
-  case 'd':
+  case Nexora::Window::Key::D:
     transform.x += step;
     break;
   default:
@@ -659,7 +666,7 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
                               : command.frames;
   std::size_t executedFrames = 0;
   showcase::RoomSession rooms(command.scene, command.mode == "tour" || command.tour == "v1",
-                              command.capabilities == "minimal");
+                              command.capabilities == "minimal", command.plugin_library.string());
   auto previousTime = std::chrono::steady_clock::now();
   for (std::size_t frame = 0; frame < frameLimit; ++frame) {
     if (nativeSurface) {
@@ -983,6 +990,7 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"resize_generations\": " << run.surface.resizeGenerations << ",\n"
          << "    \"composed_frames\": " << run.composed_frames << ",\n"
          << "    \"scene_draws\": " << run.scene_draws << ",\n"
+         << "    \"native_scene_draws\": " << run.surface.sceneDrawCalls << ",\n"
          << "    \"native_ui_draws\": " << run.surface.nativeUiDrawCalls << ",\n"
          << "    \"overlay_frames\": " << run.overlay_frames << ",\n"
          << "    \"rendering_mode\": \"" << (run.scene_draws > 0 ? "gpu_scene" : "cpu_composite")
