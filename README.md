@@ -47,6 +47,7 @@ an unchecked or unmarked item remains incomplete.
 | [Focused Roadmaps AI Plan](Roadmap/en/Focused_Roadmaps_AI_Implementation_Plan.md) | **60%** | Mean of API 100%, Zig Showcase 100%, and Editor 0%, rounded down to 10%. |
 | [V1 Visual Showcase](Roadmap/en/V1-Visual-Showcase-Long-Term-Plan.md) | **Linux slice verified** | ✅ Vulkan 3D/UI, eight Runtime rooms, guided tour, native keyboard/mouse/resize evidence, live Validation Lab error injection, capsule/skin/particle/terrain geometry, and Full package tooling; textured/instanced content, expanded Windows clean-host launch and physical-display acceptance remain open. |
 
+Windows CI run 37043085582 exposed MSVC `/WX` conversion and member-shadowing errors in the expanded Showcase geometry. Explicit index/coordinate conversions and distinct geometry radius names address those diagnostics; the Linux Development gate remains 75/75. Windows acceptance awaits the corrected CI run.
 
 ### Repository status
 

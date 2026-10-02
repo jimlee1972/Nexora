@@ -426,3 +426,5 @@ package 必須由 M12 Packager/manifest contract 產出或驗證，不允許靠�
 ✅ Validation Lab 後續：`Tab` 選取 M0-M12；`I` 切換 None／空資產／循環相依／Plugin ABI／Rollback；`R` 執行；PageUp/PageDown 捲動輸入、輸出與錯誤；`X` 匯出 `showcase-lab.json` 與 `showcase-lab.md`。空資產、相依循環、資產／更新回滾與真正動態函式庫的 ABI 拒絕皆使用公開 Runtime API 執行，記錄 sample tick 與實際輸入。範例插件啟用時會放在可執行檔旁並納入套件；`--plugin-library=PATH` 指定 M6 的真實函式庫。缺少插件檔案顯示 FAIL；不支援的探針／錯誤組合顯示 UNSUPPORTED。原有 schema-fixture 注入 metadata 仍與實際執行結果分開。
 
 ✅ Validation Lab／geometry 後續與 feet-origin ground-contact 回歸驗收：[Linux-V1-Lab-Geometry-2026-10-03](../../Apps/Showcase/evidence/Linux-V1-Lab-Geometry-2026-10-03/acceptance.md)，完整 Linux Development gate 75/75，五個 native gate 全數於 Khronos／synchronization validation 下執行。
+
+Windows CI run 37043085582 的 Linux/macOS 建置與測試通過，但 Windows 因 `ShowcaseRooms.cpp` 的 MSVC `/WX` 型別轉換及成員遮蔽警告失敗。已加入明確的索引／座標轉型並區分幾何半徑參數名稱，Linux Development 仍為 75/75；修正後的 Windows CI 與 clean-host 驗收仍待執行。
