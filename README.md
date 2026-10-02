@@ -323,8 +323,10 @@ Nexora 採用 [MIT License](LICENSE) 發布。
 Windows DX12 local delivery: [acceptance record](Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
 Use `windows-showcase-development` for Development/Full and `windows-showcase-shipping` for
 Shipping/Full. `-CompleteGuidedTour` verifies all 210 seconds. Developer-GPU evidence remains
-separate from clean-host and physical-display operator attestations.
+separate from clean-host and physical-display operator attestations. Fresh JSON verifies F5 snapshot
+round trips, tour replay resets and sampled Lab error cases; Linux baseline CI passes 77/77.
 
 Windows DX12 本地交付：[驗收紀錄](Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md)。
 Development/Full 使用 `windows-showcase-development`，Shipping/Full 使用 `windows-showcase-shipping`。
 `-CompleteGuidedTour` 驗證完整 210 秒；開發機 GPU 證據不代表乾淨主機或實體顯示操作聲明已驗收。
+當次 JSON 驗證 F5 snapshot round trip、導覽重播歸零與指定 Lab 錯誤案例；Linux 基底 CI 77/77 通過。

@@ -85,7 +85,7 @@ Schema: `nexora.showcase.validation.v1`
 | --- | --- |
 | scope | runtime_integration |
 | contract_gate | NOT_RUN |
-| sample_tick | 1838 |
+| sample_tick | 2368 |
 | input.milestone | 5 |
 | input.error_case | 1 |
 | hash | ba85a5f7c46a16fe |
@@ -101,13 +101,13 @@ Schema: `nexora.showcase.validation.v1`
 | --- | --- |
 | scope | runtime_integration |
 | contract_gate | NOT_RUN |
-| sample_tick | 1838 |
+| sample_tick | 2368 |
 | input.milestone | 6 |
 | input.error_case | 3 |
 | editor_sdk | available |
 | graphical_editor | separate application |
 | input.host_abi | 2 |
-| input.plugin_library | C:\Users\Jim-PC\AppData\Local\Temp\nexora-v1-a3dfa31f46724c72be0f46817d3fe9e5\bin\NexoraExamplePlugin.dll |
+| input.plugin_library | C:\Users\Jim-PC\AppData\Local\Temp\nexora-v1-37da9936e9464f0381ef12b3b013b800\bin\NexoraExamplePlugin.dll |
 | output.reported_abi | 1 |
 | output.loaded | false |
 | output.registered | false |

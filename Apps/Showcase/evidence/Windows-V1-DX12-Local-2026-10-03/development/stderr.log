@@ -1,1 +1,1 @@
-NexoraShowcase build=3aa12995c09c --mode=interactive --scene=hub --backend=dx12 --no-reload --report=acceptance-launch.json --markdown=acceptance-launch.md --gameplay-module=dynamic --gameplay-library=bin/NexoraZigGameplay.dll
+NexoraShowcase build=e4a140139189 --mode=interactive --scene=hub --backend=dx12 --no-reload --report=acceptance-launch.json --markdown=acceptance-launch.md --gameplay-module=dynamic --gameplay-library=bin/NexoraZigGameplay.dll

@@ -4,12 +4,12 @@
     {
       "path": "NexoraExamplePlugin.dll",
       "bytes": 10752,
-      "sha256": "f95e47ff19cfdeb33f03e9fe1e5066c28a890c0aa9b03c93b7893a0661a91e86"
+      "sha256": "f7d21fa9e6476473b4a9af091081c3ed7f34ab675b8f33c55379f5352b6772a2"
     },
     {
       "path": "NexoraShowcase.exe",
       "bytes": 1879552,
-      "sha256": "a7ccfac223151978f2489374a33229619a85f645658f22123701f393d32e2121"
+      "sha256": "491dbb49cf5becd2438560bd6d99a15fa9edd13f33018f110a4861def3b4bd97"
     },
     {
       "path": "msvcp140.dll",

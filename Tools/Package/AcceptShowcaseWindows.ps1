@@ -151,6 +151,33 @@ public static class NexoraAcceptanceWindow {
         [NexoraAcceptanceWindow]::Press($window, $key)
         Start-Sleep -Milliseconds 150
     }
+    function Clear-StateOutput {
+        foreach ($name in @('showcase-lab.json', 'showcase-lab.md')) {
+            $path = Join-Path $staged $name
+            if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
+        }
+    }
+    function Export-State([string]$name) {
+        # Each X must publish a fresh owning snapshot; an earlier export is not evidence.
+        Clear-StateOutput
+        Press-Key 114; Press-Key 88
+        $jsonPath = Join-Path $staged 'showcase-lab.json'
+        $markdownPath = Join-Path $staged 'showcase-lab.md'
+        $deadline = [DateTime]::UtcNow.AddSeconds(5)
+        while (-not ((Test-Path -LiteralPath $jsonPath) -and (Test-Path -LiteralPath $markdownPath))) {
+            Require ([DateTime]::UtcNow -lt $deadline) 'Fresh Runtime state export is missing.'
+            Start-Sleep -Milliseconds 50
+        }
+        $snapshot = Get-Content -LiteralPath $jsonPath -Raw | ConvertFrom-Json
+        Copy-Item -LiteralPath $jsonPath -Destination (Join-Path $evidence ($name + '.json'))
+        Copy-Item -LiteralPath $markdownPath -Destination (Join-Path $evidence ($name + '.md'))
+        Press-Key 114
+        return $snapshot
+    }
+    function Require-Metric($probe, [string]$name, [string]$expected) {
+        $metric = @($probe.metrics | Where-Object { $_.name -eq $name })
+        Require ($metric.Count -eq 1 -and $metric[0].value -eq $expected) "Unexpected sampled metric: $name"
+    }
     Press-Key 50 # Rendering: exercise the actual Win32 pointer/wheel route
     [NexoraAcceptanceWindow]::PostMessage($window, 0x200, [IntPtr]::Zero, [IntPtr]::new(400 -bor (350 -shl 16))) | Out-Null
     [NexoraAcceptanceWindow]::PostMessage($window, 0x201, [IntPtr]::new(1), [IntPtr]::Zero) | Out-Null
@@ -165,8 +192,13 @@ public static class NexoraAcceptanceWindow {
     Press-Key 51 # Scene
     Press-Key 69; Capture 'scene-modified.png'
     Press-Key 85; Capture 'scene-undo.png'
+    Press-Key 69 # F5 must round-trip the changed Editor World and clear its Undo history
     Press-Key 80; Start-Sleep -Milliseconds 300; Capture 'scene-play.png'
     Press-Key 116; Capture 'scene-reloaded.png' # F5 stops Play and reloads the snapshot
+    $reloaded = Export-State 'scene-reload-state'
+    Require ($reloaded.selected -eq 'scene' -and $reloaded.reloads -ge 1 -and
+        $reloaded.lines -contains 'Last action: Scene snapshot reload' -and
+        $reloaded.lines -contains 'Inspector Transform.x = 0.50 / Undo depth 0') 'Scene snapshot restore or editor state failed.'
     Press-Key 80; Press-Key 80 # Verify the reloaded editor can start/stop Play
     Press-Key 52; Press-Key 76; Capture 'input-localized.png'
     Press-Key 53
@@ -177,9 +209,18 @@ public static class NexoraAcceptanceWindow {
     Press-Key 71; Capture 'gameplay-teleported.png'
     Press-Key 54; Press-Key 74; Start-Sleep -Milliseconds 600; Capture 'presentation-blend.png'
     Press-Key 56; Press-Key 66; Press-Key 66; Press-Key 72; Capture 'shipping-pressure.png'
-    Press-Key 84; Press-Key 32; Capture 'tour-paused.png'
-    Press-Key 82 # Replay while paused; replay resumes the tour
+    Press-Key 84; Start-Sleep -Milliseconds 1800; Press-Key 32; Capture 'tour-paused.png'
+    $beforeReplay = Export-State 'tour-before-replay'
+    Require ($beforeReplay.tour.enabled -and $beforeReplay.tour.paused -and
+        $beforeReplay.tour.seconds -ge 1.5) 'Tour did not advance before pause/replay.'
+    Press-Key 82; Press-Key 32 # Replay resets elapsed time and step, then pause the fresh tour
+    $replayed = Export-State 'tour-replayed'
+    Require ($replayed.tour.enabled -and $replayed.tour.paused -and
+        $replayed.tour.step -eq 0 -and $replayed.tour.seconds -lt 1 -and
+        $replayed.tour.seconds -lt $beforeReplay.tour.seconds) 'Tour replay did not reset progress.'
+    $acceptance.interaction_checks += 'guided_tour_replay_pause'
     if ($CompleteGuidedTour) {
+        Press-Key 32
         # Keep rendering all seven steps; do not fabricate elapsed simulation time.
         $tourDeadline = [DateTime]::UtcNow.AddSeconds(215)
         while ([DateTime]::UtcNow -lt $tourDeadline) {
@@ -187,29 +228,27 @@ public static class NexoraAcceptanceWindow {
             Start-Sleep -Milliseconds 500
         }
         Capture 'tour-completed.png'
-    } else {
-        Press-Key 32
     }
-    Press-Key 114; Press-Key 88 # Export the sampled tour state independently of later Lab runs
-    $tourPath = Join-Path $staged 'showcase-lab.json'
-    Require (Test-Path -LiteralPath $tourPath) 'Tour state export is missing.'
-    $tourState = Get-Content -LiteralPath $tourPath -Raw | ConvertFrom-Json
+    $tourState = Export-State 'tour-state'
     if ($CompleteGuidedTour) {
-        Require ($tourState.tour.seconds -ge 210 -and $tourState.tour.step -eq 6 -and $tourState.tour.enabled -and $tourState.tour.paused) 'Seven-step guided tour did not complete.'
+        Require ($tourState.tour.seconds -ge 210 -and $tourState.tour.step -eq 6 -and
+            $tourState.tour.enabled -and $tourState.tour.paused) 'Seven-step guided tour did not complete.'
         $acceptance.interaction_checks += 'guided_tour_210_seconds'
-    } else {
-        Require ($tourState.tour.enabled -and $tourState.tour.paused) 'Tour replay/pause state failed.'
-        $acceptance.interaction_checks += 'guided_tour_replay_pause'
     }
-    Copy-Item -LiteralPath $tourPath -Destination (Join-Path $evidence 'tour-state.json')
-    Press-Key 114; Press-Key 56 # Close matrix and leave tour before Lab reruns
+    Press-Key 56 # Leave tour before Lab reruns
+    Clear-StateOutput
     $acceptance.interaction_checks += @('scene_modify_undo_play_reload', 'locale_switch', 'held_character_input_crouch_teleport', 'animation_blend', 'lifecycle_pressure')
     [NexoraAcceptanceWindow]::Press($window, 114) # F3
     for ($i = 0; $i -lt 5; $i++) { [NexoraAcceptanceWindow]::Press($window, 9) }
     [NexoraAcceptanceWindow]::Press($window, 73); [NexoraAcceptanceWindow]::Press($window, 82)
     [NexoraAcceptanceWindow]::Press($window, 9)
     [NexoraAcceptanceWindow]::Press($window, 73); [NexoraAcceptanceWindow]::Press($window, 73)
-    [NexoraAcceptanceWindow]::Press($window, 82); [NexoraAcceptanceWindow]::Press($window, 88)
+    [NexoraAcceptanceWindow]::Press($window, 82); Press-Key 88
+    $labDeadline = [DateTime]::UtcNow.AddSeconds(5)
+    while (-not (Test-Path -LiteralPath (Join-Path $staged 'showcase-lab.json'))) {
+        Require ([DateTime]::UtcNow -lt $labDeadline) 'Fresh sampled Lab results are missing.'
+        Start-Sleep -Milliseconds 50
+    }
     Start-Sleep -Milliseconds 300
     Capture 'validation-lab.png'
     $labPath = Join-Path $staged 'showcase-lab.json'
@@ -218,6 +257,14 @@ public static class NexoraAcceptanceWindow {
     if ($build.shipping_profile -eq 'Full') {
         Require ($lab.integration_probes.probes[5].status -eq 'PASS') 'M5 sampled asset-error case failed.'
         Require ($lab.integration_probes.probes[6].status -eq 'PASS') 'M6 sampled plugin ABI rejection failed.'
+        Require-Metric $lab.integration_probes.probes[5] 'input.milestone' '5'
+        Require-Metric $lab.integration_probes.probes[5] 'input.error_case' '1'
+        Require-Metric $lab.integration_probes.probes[5] 'output.accepted' 'true'
+        Require-Metric $lab.integration_probes.probes[6] 'input.milestone' '6'
+        Require-Metric $lab.integration_probes.probes[6] 'input.error_case' '3'
+        Require-Metric $lab.integration_probes.probes[6] 'output.accepted' 'true'
+        Require-Metric $lab.integration_probes.probes[6] 'output.loaded' 'false'
+        Require-Metric $lab.integration_probes.probes[6] 'output.registered' 'false'
     }
     Copy-Item -LiteralPath $labPath -Destination (Join-Path $evidence 'showcase-lab.json')
     Copy-Item -LiteralPath (Join-Path $staged 'showcase-lab.md') -Destination (Join-Path $evidence 'showcase-lab.md')

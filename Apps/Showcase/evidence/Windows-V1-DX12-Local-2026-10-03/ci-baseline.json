@@ -1,0 +1,101 @@
+{
+  "run_url": "https://github.com/jimlee1972/Nexora/actions/runs/37058473283",
+  "source_commit": "e4a1401391896eaeb244c1efae7a91b873dc7cbd",
+  "scope": "GitHub Actions Linux; not local Windows or Codex Cloud",
+  "jobs": [
+    {
+      "id": 111008904823,
+      "name": "Editor Linux display acceptance (Xvfb)",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905029,
+      "name": "build-contract",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905041,
+      "name": "desktop (windows-latest, windows-development)",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905114,
+      "name": "mimalloc backend (linux-development)",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905128,
+      "name": "desktop (macos-latest, macos-development)",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905133,
+      "name": "CMake configure smoke (android-development)",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905167,
+      "name": "mimalloc backend (windows-development)",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905190,
+      "name": "Zig object smoke (aarch64-linux-android)",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905193,
+      "name": "desktop (ubuntu-latest, linux-development)",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905205,
+      "name": "CMake configure smoke (ios-development)",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905239,
+      "name": "showcase-windows-shipping-package",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905243,
+      "name": "mimalloc backend (macos-development)",
+      "conclusion": "success"
+    },
+    {
+      "id": 111008905411,
+      "name": "Zig object smoke (aarch64-ios)",
+      "conclusion": "success"
+    }
+  ],
+  "linux_development_excerpt": [
+    "2026-10-02T20:08:00.3899885Z ##[group]Run cmake --preset linux-development -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=ON",
+    "2026-10-02T20:08:12.4174126Z ##[group]Run cmake --build --preset linux-development",
+    "2026-10-02T20:09:17.4518254Z ##[group]Run ctest --preset linux-development",
+    "2026-10-02T20:10:06.8895608Z 100% tests passed out of 77",
+    "2026-10-02T20:10:06.8900190Z Total Test time (real) =  49.42 sec",
+    "2026-10-02T20:10:06.8962548Z ##[group]Run cmake --build --preset linux-development --target NexoraShowcasePackageDevelopmentEvidence"
+  ],
+  "build_contract_excerpt": [
+    "2026-10-02T20:06:54.2682076Z ##[group]Run lukka/get-cmake@latest",
+    "2026-10-02T20:07:23.8016222Z ##[group]Run cmake --preset linux-shipping -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON",
+    "2026-10-02T20:07:48.5988901Z ##[group]Run cmake --build --preset linux-shipping",
+    "2026-10-02T20:08:23.7890112Z ##[group]Run cmake --build --preset linux-shipping --target NexoraShowcasePackageShippingEvidence",
+    "2026-10-02T20:08:24.9604216Z ##[group]Run cmake -S . -B build/feature-off -G Ninja -DCMAKE_BUILD_TYPE=Development -DNEXORA_FEATURE_EXAMPLE_PLUGIN=OFF",
+    "2026-10-02T20:08:41.8179662Z ##[group]Run cmake --build build/feature-off",
+    "2026-10-02T20:09:22.7503602Z ##[group]Run cmake -DROOT=$PWD -P Tools/Build/ValidateModuleGraph.cmake",
+    "2026-10-02T20:09:22.7715206Z ##[group]Run cmake -DROOT=$PWD -P Tools/Build/ValidatePluginManifests.cmake",
+    "2026-10-02T20:09:22.7890992Z ##[group]Run cmake -DROOT=$PWD -P Tools/Build/ValidateShaderContract.cmake",
+    "2026-10-02T20:09:22.8141148Z ##[group]Run cmake --preset linux-sanitizers",
+    "2026-10-02T20:09:31.8192871Z ##[group]Run cmake --build --preset linux-sanitizers",
+    "2026-10-02T20:10:41.3157049Z ##[group]Run ctest --preset linux-sanitizers",
+    "2026-10-02T20:11:27.0041518Z 100% tests passed out of 60",
+    "2026-10-02T20:11:27.0045142Z Total Test time (real) =  45.67 sec",
+    "2026-10-02T20:11:27.0083266Z ##[group]Run cmake --preset linux-thread-sanitizer -DNEXORA_ENABLE_NATIVE_BACKENDS=OFF",
+    "2026-10-02T20:11:28.3083831Z ##[group]Run cmake --build --preset linux-thread-sanitizer",
+    "2026-10-02T20:12:16.7863428Z ##[group]Run ctest --preset linux-thread-sanitizer",
+    "2026-10-02T20:12:42.7507579Z 100% tests passed out of 59",
+    "2026-10-02T20:12:42.7507869Z Total Test time (real) =  25.95 sec"
+  ]
+}

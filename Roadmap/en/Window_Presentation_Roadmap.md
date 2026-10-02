@@ -113,3 +113,7 @@ native offscreen graph/UI/present, input/edit/reload/animation captures, Lab ass
 and the complete 210-second guided tour. The explicit Development preset and stock PowerShell 5
 default-path fix make the documented local workflow reproducible. Clean-host and physical-display
 operator attestations remain pending; this does not complete V1's final acceptance.
+✅ The Windows local verifier now requires fresh exports, successful edited-scene snapshot round trip,
+reset tour progress and the exact sampled M5/M6 rejection inputs/outputs. Source/package hashes use
+pinned LF bytes. Baseline e4a140139189 passes Linux Development 77/77 and Shipping package CI;
+physical-display and clean-host final gates remain pending.

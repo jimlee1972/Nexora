@@ -1,0 +1,3 @@
+# Keep verifier and preset provenance identical in Git and Windows packages.
+Tools/Package/AcceptShowcaseWindows.ps1 text eol=lf
+CMakePresets.json text eol=lf

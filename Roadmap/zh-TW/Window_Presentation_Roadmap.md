@@ -107,3 +107,7 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 原生 offscreen graph/UI/present、輸入／編輯／reload／animation 截圖、Lab asset/plugin 拒絕
 以及完整 210 秒 guided tour。明確的 Development preset 與 stock PowerShell 5 預設路徑修正
 讓本地文件流程可重現。乾淨主機與實體顯示操作聲明仍待驗收；V1 最終驗收尚未完成。
+✅ Windows 本地驗收腳本現要求當次匯出、已修改場景的成功 snapshot round trip、
+導覽重播歸零與 M5／M6 指定拒絕案例的實際輸入／輸出。Source／package hash 採固定 LF 位元組。
+基底 e4a140139189 通過 Linux Development 77/77 與 Shipping package CI；
+實體顯示與乾淨主機最終 gate 仍待驗收。

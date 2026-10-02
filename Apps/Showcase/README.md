@@ -265,7 +265,10 @@ cmake --build --preset windows-showcase-shipping --target NexoraShowcasePackageS
 The verifier also captures pointer orbit/zoom, F1/F2, Modify/Undo/Play/reloaded Play, locale,
 character movement/crouch/teleport, clip blend, lifecycle/pressure and tour pause/replay.
 `-CompleteGuidedTour` waits for all seven real-time steps and checks the exported 210-second,
-final-step, paused Runtime state. `tour-state.json` and Lab JSON/Markdown are retained.
+final-step, paused Runtime state. Fresh scene-reload, pre-replay, replayed-tour and final-tour
+JSON/Markdown snapshots are retained. F5 must preserve the edited transform and clear Undo;
+R must reset elapsed time and tour step. Each export clears previous files, and the final Lab
+checks require the sampled M5 empty-asset and M6 ABI-rejection inputs and outputs.
 `interaction_checks` records the scripted controls and captures; these do not replace pixel tests,
 image review or CTest. Windows PowerShell 5 now resolves the default package root in the script
 body, so invoking the packaged script without `-PackageRoot` works.
