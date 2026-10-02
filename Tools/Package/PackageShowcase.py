@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import zipfile
 from pathlib import Path
 
 
@@ -27,6 +28,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", required=True, choices=("Development", "Shipping"))
     parser.add_argument("--build-configuration", choices=("Development", "Shipping"))
+    parser.add_argument("--shipping-profile", choices=("Minimal", "Full", "Dedicated"), default="Minimal")
+    parser.add_argument("--content", type=Path)
+    parser.add_argument("--archive", action="store_true")
     parser.add_argument("--binary", required=True, type=Path)
     parser.add_argument("--gameplay-module", type=Path)
     parser.add_argument("--runtime-libraries", nargs="*", type=Path, default=[])
@@ -45,6 +49,8 @@ def main() -> int:
                  *args.runtime_libraries):
         if path is not None and not path.is_file():
             parser.error(f"input does not exist: {path}")
+    if args.content is not None and not args.content.is_dir():
+        parser.error("--content must be a directory")
     package_binaries = [args.binary, *args.runtime_libraries]
     if args.gameplay_module:
         package_binaries.append(args.gameplay_module)
@@ -64,6 +70,22 @@ def main() -> int:
     copy(args.license, args.output / "LICENSE")
     copy(args.api_manifest, manifest_dir / "api.json")
 
+    content_artifacts = []
+    if args.content:
+        for source in sorted(args.content.rglob("*")):
+            if source.is_file():
+                relative = source.relative_to(args.content)
+                destination = args.output / "Content" / "Showcase" / relative
+                item = copy(source, destination)
+                item["path"] = destination.relative_to(args.output).as_posix()
+                content_artifacts.append(item)
+    (args.output / "run-showcase.sh").write_text(
+        '#!/bin/sh\nset -eu\nshowcase_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\n'
+        'cd "$showcase_root"\nexport LD_LIBRARY_PATH="$showcase_root/bin${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\n'
+        + f'exec "./bin/{args.binary.name}" --mode=interactive --scene=hub --backend=auto'
+        + (f' --gameplay-module=dynamic --gameplay-library="./bin/{args.gameplay_module.name}"' if args.gameplay_module else ' --gameplay-module=static')
+        + ' "$@"\n', encoding="utf-8")
+    (args.output / "run-showcase.sh").chmod(0o755)
     artifacts.sort(key=lambda item: item["path"])
     module_argument = ""
     if args.gameplay_module:
@@ -75,11 +97,23 @@ def main() -> int:
         "schema_version": 1,
         "application": "NexoraShowcase",
         "profile": args.profile,
+        "shipping_profile": args.shipping_profile if args.profile == "Shipping" else "Full",
         "gameplay_linkage": "dynamic" if args.gameplay_module else "static",
-        "launch": (f"bin/{args.binary.name} --headless --scene=tour --frames=1 --no-reload"
+        "launch": (f"bin/{args.binary.name} --headless --validate-v1 --scene=tour --frames=4 --no-reload"
                    f"{module_argument} --report=launch-report.json"),
     }
-    content = {"schema_version": 1, "artifacts": artifacts}
+    build["interactive_launch"] = f"bin/{args.binary.name} --mode=interactive --scene=hub --backend=auto{module_argument}"
+    content = {"schema_version": 1, "artifacts": artifacts, "showcase_content": content_artifacts}
+    (args.output / "README.txt").write_text(
+        "Nexora Visual Showcase\nRun run-showcase.ps1 on Windows or use interactive_launch in manifests/build.json.\n"
+        "Controls: 1-8 rooms; F1 overview; F2 profiler; F3 matrix; F5 reload; T tour; Space pause; R replay/probe.\n"
+        "Drag mouse to orbit; wheel zoom; WASD movement. Native media/WebView adapters are explicitly unavailable.\n"
+        "Verify manifests/SHA256SUMS before launching. Headless launch validates portable integration only.\n", encoding="utf-8")
+    (args.output / "run-showcase.ps1").write_text(
+        "$ErrorActionPreference = 'Stop'\nPush-Location $PSScriptRoot\ntry {\n"
+        f"  & './bin/{args.binary.name}' --mode=interactive --scene=hub --backend=auto"
+        + (f" --gameplay-module=dynamic --gameplay-library='./bin/{args.gameplay_module.name}'" if args.gameplay_module else " --gameplay-module=static")
+        + "\n  exit $LASTEXITCODE\n} finally { Pop-Location }\n", encoding="utf-8")
     manifest_dir.mkdir(parents=True, exist_ok=True)
     (manifest_dir / "build.json").write_text(json.dumps(build, indent=2) + "\n", encoding="utf-8")
     (manifest_dir / "content.json").write_text(json.dumps(content, indent=2) + "\n", encoding="utf-8")
@@ -88,6 +122,15 @@ def main() -> int:
     for path in sorted(p for p in args.output.rglob("*") if p.is_file()):
         checksums.append(f"{digest(path)}  {path.relative_to(args.output).as_posix()}")
     (manifest_dir / "SHA256SUMS").write_text("\n".join(checksums) + "\n", encoding="utf-8")
+    if args.archive:
+        archive = args.output.with_suffix(".zip")
+        with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as target:
+            for path in sorted(p for p in args.output.rglob("*") if p.is_file()):
+                info = zipfile.ZipInfo(path.relative_to(args.output.parent).as_posix(), (1980, 1, 1, 0, 0, 0))
+                info.external_attr = (0o100755 if path.parent == bin_dir or path.name == "run-showcase.sh" else 0o100644) << 16
+                info.compress_type = zipfile.ZIP_DEFLATED
+                target.writestr(info, path.read_bytes())
+        archive.with_suffix(".zip.sha256").write_text(f"{digest(archive)}  {archive.name}\n", encoding="utf-8")
     return 0
 
 

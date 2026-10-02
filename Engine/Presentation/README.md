@@ -12,7 +12,7 @@ bounded per-frame upload buffers below this boundary; resources replaced by a la
 are released only after the protecting frame fence/command buffer completes. No native image or
 device handle escapes. `DrawScene` similarly borrows one indexed `SceneDrawData` mesh, transform,
 light, and base color for the duration of the call and records a depth-tested native scene draw on
-the render thread. DX12 owns the depth buffer, pipeline, and bounded per-frame upload storage;
+the render thread. DX12 and Vulkan own their depth buffers, pipelines, and bounded per-frame upload storage;
 backends without a native geometry path return `Unsupported` rather than silently compositing a
 fallback. `SurfaceDiagnostics::sceneDrawCalls` counts accepted native scene draws. `CompositeRgba8`
 remains a legacy full-frame upload for non-Editor clients; the production Editor does not call it.
@@ -39,3 +39,19 @@ Application owners may request a client resize through `RenderSurface::Resize`; 
 window owner-thread rule and the resulting event publishes the new extent on a later `BeginFrame`.
 This keeps resize requests above the native window abstraction while swapchain recreation remains
 private to Presentation.
+
+## Vulkan Showcase scene/UI ownership
+
+Vulkan accepts one indexed scene batch per acquired frame (up to 65,535 vertices and 1,048,576
+indices), rejects invalid indices/non-finite input and repeated scene batches, and keeps vertex/index
+uploads plus D32 depth/framebuffer resources in the owning fence-protected frame slot. Resize drains
+GPU work before destroying the scene/UI resources and releasing their command buffers. Native GLSL
+scene/UI sources and embedded SPIR-V are under `shaders/` and `src/*VulkanShaders.h`;
+`shaders/GenerateShaders.py --check` verifies deterministic regeneration with glslangValidator.
+Neither UI nor scene rendering requires the graphical Editor or a runtime shader compiler.
+
+UI loads a prior scene color target rather than erasing it; a UI-only frame explicitly clears its
+background. Atlas uploads must be resubmitted after swapchain recreation. RenderSurface stops before
+Acquire when a close request is pumped, leaving no newly acquired frame without presentation during
+normal shutdown. Xvfb/lavapipe acceptance covers native scene/UI, interaction and resize; it is not
+physical-GPU, Windows or Metal acceptance.

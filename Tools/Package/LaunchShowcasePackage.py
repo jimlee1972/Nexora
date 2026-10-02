@@ -4,6 +4,8 @@
 import argparse
 import json
 import platform
+import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -71,7 +73,17 @@ def main() -> int:
         command = shlex.split(build["launch"])
         executable = safe_join(staged, command[0])
         executable.chmod(executable.stat().st_mode | 0o100)
-        completed = subprocess.run([str(executable), *command[1:]], cwd=staged,
+        environment = os.environ.copy()
+        engine_libraries = {}
+        if platform.system() == "Linux":
+            environment["LD_LIBRARY_PATH"] = str(staged / "bin") + os.pathsep + environment.get("LD_LIBRARY_PATH", "")
+            dependencies = subprocess.run(["ldd", str(executable)], env=environment, capture_output=True, text=True, check=True)
+            for name, location in re.findall(r"(libNexora\w*\.so)\s+=>\s+(\S+)", dependencies.stdout):
+                resolved = Path(location).resolve()
+                if resolved.parent != (staged / "bin").resolve():
+                    raise RuntimeError(f"package uses an engine library outside the isolated copy: {name}: {location}")
+                engine_libraries[name] = resolved.relative_to(staged).as_posix()
+        completed = subprocess.run([str(executable), *command[1:]], cwd=staged, env=environment,
                                    text=True, capture_output=True, check=False)
         report = staged / "launch-report.json"
         if completed.returncode != 0 or not report.is_file():
@@ -85,6 +97,7 @@ def main() -> int:
         "profile": build["profile"],
         "isolated_copy": True,
         "checksums_verified": len(verified),
+        "engine_library_locations": engine_libraries,
         "command": build["launch"],
         "exit_code": completed.returncode,
         "launch_report": launch_report,

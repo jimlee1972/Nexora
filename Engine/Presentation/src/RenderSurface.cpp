@@ -55,6 +55,8 @@ SurfaceStatus RenderSurface::BeginFrame() {
       break;
     }
   }
+  if (state_->closeRequested)
+    return SurfaceStatus::SurfaceLost;
   return state_->surface->Acquire();
 }
 

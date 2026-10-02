@@ -93,6 +93,7 @@ def main() -> int:
                 print(completed.stdout)
                 print(completed.stderr, file=sys.stderr)
                 return completed.returncode
+            assert "Validation Error" not in completed.stderr and "SYNC-HAZARD" not in completed.stderr, completed.stderr
             evidence = json.loads(report.read_text(encoding="utf-8"))
             windowed = evidence["windowed_evidence"]
             assert evidence["headless_evidence"]["executed"] is False
@@ -102,9 +103,13 @@ def main() -> int:
             assert windowed["surface_presents"] == 4
             assert windowed["resize_requests"] == 1
             assert windowed["resize_generations"] >= 1
-            assert windowed["composed_frames"] == 4
+            assert windowed["composed_frames"] == 0
+            assert windowed["scene_draws"] == 4
+            assert windowed["native_ui_draws"] == 4
+            assert windowed["rendering_mode"] == "gpu_scene"
+            assert evidence["runtime_rooms"]["healthy"] is True
             assert windowed["clear_color"] is True
-            assert windowed["triangle"] is True
+            assert windowed["triangle"] is False
             assert windowed["diagnostics_overlay"] is True
             print(json.dumps(windowed, indent=2))
             return 0

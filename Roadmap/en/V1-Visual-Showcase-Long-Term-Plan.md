@@ -1,28 +1,26 @@
 # Nexora V1 Visual Showcase Demo Long-Term Plan
 
-> **Progress: 24%** (as of 2026-09-26; weighted across the Phase A-E acceptance items;
-> Linux/Vulkan Phase A implementation awaits native virtual-display acceptance.)
+> **Progress: Linux visual slice verified; complete V1 target-host acceptance remains open.**
+> The previous percentage had no reproducible weighting ledger and is superseded by the acceptance evidence below.
 
 ## 0. Current-state audit
 
-- ✅ C++-owned `NexoraShowcase` entry point, CLI, and ordered Engine/module shutdown exist.
-- ✅ A deterministic headless scene, validation RHI, scene extraction, and JSON evidence report exist.
-- ✅ The Zig static consumer provides fixed/update, Transform read/write, and transactional state migration.
-- ✅ Source/test audit confirmed that Window, Presentation, and RHI buffer contracts already exist;
-  the Showcase reuses `RenderSurface` rather than recreating those boundaries.
-- Implemented pending native acceptance: Linux/X11/Vulkan windowed startup, bounded resize, clear color, triangle, diagnostics panel, shutdown, and Xvfb smoke.
-- ✅ Windows/Win32/DX12 windowed compositing (`Dx12Surface::CompositeRgba8`) is implemented: the window opened a visible clear color, software-rasterized triangle, and diagnostics panel, confirmed by manual developer-machine evidence (`--mode=interactive --backend=dx12`, 600 acquire/composite/present cycles, `backend_fallback=false`, and a captured screenshot of the live window). This was previously missing -- `Dx12Surface` inherited the base `ISurface::CompositeRgba8` default (`Unsupported`), so `--backend=dx12` failed outright rather than silently degrading. Clean-machine and CI windowed acceptance are still open; this is single-developer-machine manual evidence only.
-- ✅ Windows/Win32/DX12 native GPU scene binding now drives the Rendering Room's indexed, depth-tested procedural cube. Both the Development dynamic package and Shipping static package were run on the developer host for 600 frames with `scene_draws=600`, `surface_acquires=600`, `surface_presents=600`, `resize_generations=2`, `backend_fallback=false`, and a captured visible GPU-scene frame. Clean-machine and CI windowed acceptance, plus the other native backends, remain open.
-- ✅ The 3D Hub presents M0-M12 Validation Lab cards with stable room/world-object associations and visible contained-failure states; authored Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping room content remains open.
-- ✅ M0-M12 probe registry, status model, versioned JSON/Markdown serializers, CTest card mapping, and contained error injections are portable.
-- ✅ M7-M10 capability-aware room states emit headless evidence with `visual_complete: false`; interactive/guided tour and visual content remain open.
-- Open: physical-display target-host acceptance and versioned screenshot evidence.
+- ✅ Linux/X11/Vulkan native indexed, lit, depth-tested 3D drawing and readable GPU UI run under Xvfb/lavapipe; resize, ordered shutdown, and real keyboard/mouse interaction execute without skips.
+- ✅ Eight navigable rooms, F1/F2/F3 overlays, F5 snapshot reload, mouse orbit/zoom, input routing, locale switching/fallback, and a pausable/replayable 210-second guided tour are implemented.
+- ✅ Live public-API integration demonstrations cover scene snapshots, Editor/Play isolation, Modify/Undo, prefab override/rebase, procedural mesh import/cook/bundle/load and rollback, character/collision/navigation/AI, animation/skin occupancy, particle capacity, audio/video contracts, cell/HLOD budgets, and lifecycle/shipping simulations.
+- ✅ Integration probe scope is explicit: `runtime_rooms.integration_probes` does not certify CTest or clean-host visual acceptance. The original CTest mapping remains a separate authority; synthetic error-injection metadata stays `NOT_RUN` until observed.
+- ✅ Development/Modular packaging includes the seven required Linux engine libraries. Isolated-copy launch evidence rejects a dependency resolved outside the package; Full/Monolithic and Minimal builds remain separate.
+- ✅ Full-profile package presets, original content catalog, interactive launch scripts, deterministic ZIP and SHA-256 output, and versioned Linux screenshots are available.
+- Existing Windows/DX12 developer-machine GPU evidence remains valid for its recorded version. The expanded rooms, Full Windows package and workflow changes have not been executed on Windows in this Linux session.
+- Open: native texture/material and instancing expansion, full probe input/output/error-injection UI, plugin ABI rejection in the live showcase, graphical capsule/ramp and full skin/particle rendering, clean Windows graphical launch, physical-display acceptance, and other native-backend parity. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
 
-> Document version: v1.0
+Evidence and exact validation results: [`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
+
+> Document version: v1.1
 >
-> Document status: planning baseline (Draft)
+> Document status: implemented Linux vertical slice; full acceptance pending
 >
-> Updated: 2026-10-01
+> Updated: 2026-10-03
 
 ## 1. Purpose
 
@@ -236,21 +234,21 @@ The Demo should not build a mutually isolated test window per milestone; instead
 
 Every row needs two results: the Contract Gate is automated evidence, and the Showcase View is the human-visible integration result. If either is missing, that item cannot be marked as a complete showcase.
 
-| Milestone | Existing/expected contract gate | Showcase view | First-phase status |
-| --- | --- | --- | --- |
-| M0 | CMake preset, module graph, build/CTest, Host startup | Build ID, module list, startup diagnostics | Contract exists; visual entry point pending |
-| M1 | `core.runtime`, Foundation/Gameplay ABI | Frame time, job graph, allocator/log/VFS counters | Contract exists; shown via diagnostics |
-| M2 | Shader reflection, validation device, renderer contracts | Shader/pass/resource overlay | Offscreen verifiable; window path pending |
-| M3 | Native DX12/Vulkan/Metal offscreen path | Backend badge, native present counters, 3D frame | Native offscreen exists; Windows/DX12 windowed compositing implemented and developer-machine verified; Linux/Vulkan and macOS/Metal windowed compositing and clean-machine/CI acceptance pending |
-| M4 | `runtime.v1_m4_vertical_slice`, scene snapshot/lifecycle | Operable scene, entity, undo, play/editor world | Runtime foundation exists; content and UI pending |
-| M5 | `runtime.v1_m5_asset_pipeline` | Import/cook/bundle/progress/reload/rollback | Contract exists; showcase assets pending |
-| M6 | `runtime.v1_m6_editor_sdk`, plugin ABI/prefab | Reflection inspector, Undo, prefab rebase, plugin status | Editor SDK exists; graphical editor not in current state |
-| M7 | `runtime.v1_m7_input_ui_localization` | Key binding, UI widgets, locale switch, fallback | Contract exists; window input/UI pending |
-| M8 | `runtime.v1_m8_gameplay_simulation` | Character, collision, nav, AI trace | Contract exists; 3D gameplay scene pending |
-| M9 | `runtime.v1_m9_presentation` | Animation, particles, audio, video queue | Portable foundation; native media adapters pending |
-| M10 | `runtime.v1_m10_large_world` | Streaming map, HLOD, RAM/VRAM budget | Contract exists; visual world pending |
-| M11 | `runtime.v1_m11_platform` | Lifecycle/pressure/WebView ownership panel | Portable contract; platform adapter pending |
-| M12 | `runtime.v1_m12_shipping` | Package/profile/rollback/crash/device evidence | Contract exists; distributable exe pending |
+| Milestone | Existing/expected contract gate | Showcase view | First-phase status | Owner |
+| --- | --- | --- | --- | --- |
+| M0 | CMake preset, module graph, build/CTest, Host startup | Build ID, module list, startup diagnostics | PARTIAL — Linux runtime view verified; complete target-host scope pending | Build |
+| M1 | `core.runtime`, Foundation/Gameplay ABI | Frame time, job graph, allocator/log/VFS counters | PARTIAL — Linux runtime view verified; complete target-host scope pending | Core |
+| M2 | Shader reflection, validation device, renderer contracts | Shader/pass/resource overlay | PARTIAL — Linux runtime view verified; complete target-host scope pending | Renderer |
+| M3 | Native DX12/Vulkan/Metal offscreen path | Backend badge, native present counters, 3D frame | PARTIAL — Linux runtime view verified; complete target-host scope pending | Presentation |
+| M4 | `runtime.v1_m4_vertical_slice`, scene snapshot/lifecycle | Operable scene, entity, undo, play/editor world | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Scene |
+| M5 | `runtime.v1_m5_asset_pipeline` | Import/cook/bundle/progress/reload/rollback | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Assets |
+| M6 | `runtime.v1_m6_editor_sdk`, plugin ABI/prefab | Reflection inspector, Undo, prefab rebase, plugin status | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Editor SDK |
+| M7 | `runtime.v1_m7_input_ui_localization` | Key binding, UI widgets, locale switch, fallback | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Input/UI |
+| M8 | `runtime.v1_m8_gameplay_simulation` | Character, collision, nav, AI trace | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Gameplay |
+| M9 | `runtime.v1_m9_presentation` | Animation, particles, audio, video queue | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Presentation |
+| M10 | `runtime.v1_m10_large_world` | Streaming map, HLOD, RAM/VRAM budget | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Large World |
+| M11 | `runtime.v1_m11_platform` | Lifecycle/pressure/WebView ownership panel | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Platform |
+| M12 | `runtime.v1_m12_shipping` | Package/profile/rollback/crash/device evidence | PARTIAL — Linux runtime view verified; complete target-host scope pending | Runtime Shipping |
 
 ### 7.1 Unified probe interface
 
@@ -271,67 +269,45 @@ The UI, headless report, CTest adapter, and Guided Tour all consume the same res
 
 ## 8. Phased build order
 
-### Phase A -- Windowed App Shell
+### Phase A -- ✅ Linux Windowed App Shell
 
-Goal: produce a first `NexoraShowcase.exe` that can open a window, close it, resize, and show a clear color plus a diagnostics overlay.
+- ✅ Reuse `NexoraShowcase`, Window and RenderSurface; `NEXORA_BUILD_SHOWCASE` is an explicit feature gate requiring Zig gameplay and Window Presentation.
+- ✅ Native startup, resize, shutdown, clear color, indexed triangles and readable diagnostics execute under Xvfb/lavapipe.
+- ✅ `showcase.linux_vulkan_virtual_display` and `showcase.linux_vulkan_interaction` run without skips. CI provisions Xvfb/xdotool and fails on missing native evidence.
+- ✅ Separate headless and windowed report objects remain intact. Close requests stop acquisition before another frame is opened.
 
-- ✅ Reuse the existing `Apps/Showcase` target, CLI, Window abstraction, and `RenderSurface` presentation boundary after auditing their source and tests.
-- Implemented pending native acceptance: Linux/X11/Vulkan windowed startup and bounded shutdown.
-- Implemented pending native acceptance: clear color, triangle, and diagnostics panel through `CompositeRgba8`.
-- Implemented pending native acceptance: `showcase.linux_vulkan_virtual_display` exercises resize/swapchain recreation and startup/present/shutdown under Xvfb.
-- ✅ The Linux CI gate provisions Xvfb and fails, rather than skips, when the virtual display is unavailable; a passing non-skip run is still required before accepting Phase A.
-- ✅ Keep validation-RHI headless execution unchanged and report headless/windowed evidence in separate JSON objects.
-
-Linux/Vulkan is the Phase A cloud implementation slice; it becomes accepted only after the virtual-display test executes rather than skips. Existing Windows/DX12 and macOS/Metal adapters are not claimed as target-host acceptance by this Linux run.
+This accepts the Linux virtual-display slice only; physical-display and Windows/macOS target-host acceptance are separate.
 
 ### Phase B -- First 3D Vertical Slice
 
-Goal: the Hub scene shows a genuinely interactive 3D frame.
-
-- Add the minimum vertex/index/uniform/depth/texture RHI contract needed.
-- Establish camera, mesh, material, light, and frame-resource ownership.
-- Expand `FramePipeline` from a fixed triangle to the minimum path that can submit a scene frame.
-- Build procedural mesh/material content so the first version does not depend on large external assets.
-- Implement the Rendering Room and frame diagnostics.
-
-**Portable scene-frame foundation: ✅ complete; Windows/DX12 graphical binding is ✅ confirmed on the developer host.**
-validated camera, indexed mesh, material, light, procedural cube, and deterministic frame-resource
-contracts. Headless validation covers buffers, depth and sampled textures, sampler-policy counts,
-indexed submission, failures, lifetime, and shutdown. Windows/DX12 windowed compositing and the
-interactive Rendering Room GPU scene path are confirmed by manual developer-machine evidence; native
-Vulkan binding, Xvfb/lavapipe evidence, and clean-machine/CI target-host evidence for every backend
-remain open.
+- ✅ Portable vertex/index/uniform/depth/sample-texture and frame-resource contracts remain covered by existing Renderer tests.
+- ✅ Linux Vulkan indexed geometry, directional lighting, depth and UI composition are native GPU work with per-frame fence ownership.
+- ✅ Hub and Rendering room procedural geometry and an interactive camera are visible; diagnostics show actual native counters and sample timing.
+- Open: textured native materials, hardware instancing, richer primitive content and native RenderGraph scene binding. Existing Windows/DX12 evidence does not validate the expanded application version.
 
 ### Phase C -- Probe and V1 Validation Lab
 
-Goal: the Demo can trigger each M0-M12 probe individually and emit a JSON/Markdown report.
-
-- Build the ShowcaseProbe registry, status model, and report schema.
-- Map existing CTest contracts onto showcase cards, without duplicating their correctness implementation.
-- Implement the M4/M5/M6 scene/asset/editor foundation demos.
-- Add error injection: invalid assets, dependency cycles, plugin ABI mismatch, rollback.
-
-**Portable registry slice: ✅ complete.** Stable M0-M12 descriptors, the five-state model, versioned JSON/Markdown serialization, CTest card identities, and four contained error-injection results are implemented without replacing CTest.
+- ✅ Stable M0-M12 registry and versioned JSON/Markdown exports, with separate CTest and runtime-integration authorities.
+- ✅ F3 matrix, Tab selection, R rerun, `--probe=v1.MN`, and `--markdown=PATH` provide live integration results.
+- ✅ Scene snapshot, Modify/Undo, isolated Play World, prefab override/rebase and a real cooked procedural mesh affect the displayed scene.
+- ✅ Empty asset, dependency cycle, asset-generation rollback and shipping-update rollback use public Runtime APIs.
+- Open: live plugin ABI mismatch injection and full per-probe input/output/error controls. Schema-fixture injection results are not accepted runtime observations.
 
 ### Phase D -- Gameplay / Presentation / World Rooms
 
-Goal: connect the M7-M10 Runtime contracts into the same 3D scene loop.
-
-- Input/UI/localization overlay.
-- Character/physics/navigation/AI visualization.
-- Capability-aware animation/particle/audio/video demos.
-- Streaming cell/HLOD/procedural terrain/vegetation demo.
-
-**Headless room-state slice: ✅ complete; visuals remain open.** M7-M10 have capability-aware room records and headless evidence descriptions. Every record keeps `visual_complete: false`.
+- ✅ Normalized held-key and pointer input, Runtime UI hit testing, locale/fallback demonstration, character motion/crouch/teleport, collision hits, navigation points, AI/perception counters.
+- ✅ Animation translations, skin palette count, particle occupancy/drop count and audio/video queue/bus contracts update in the same application loop. Native audio/video playback is explicitly unavailable.
+- ✅ Streaming cells, occupied pins, portal prefetch, HLOD residency, procedural terrain/vegetation and RAM/VRAM budgets have visible state.
+- ✅ Seven tour steps run for 210 seconds with pause and replay, leaving readable results.
+- Open: capsule/ramp geometry, fuller collision/nav visualization, actual skin/particle position rendering, and complete terrain/HLOD assets. State visualizations are not full native content acceptance.
 
 ### Phase E -- Platform / Shipping / Distribution
 
-Goal: double-clicking a clean package's exe demonstrates the product, and proves the package's content and profile are correct.
-
-- M11 lifecycle/pressure/WebView adapter status.
-- M12 Full showcase package, manifest, update/rollback, crash breadcrumbs.
-- `NexoraShowcase.exe --headless --validate-v1` package smoke.
-- Windows artifact ZIP and SHA-256 manifest.
+- ✅ Lifecycle/pressure simulation and WebView ownership/unavailable status.
+- ✅ Minimal/Full/Dedicated Packager previews, staged-update rollback and bounded crash breadcrumbs.
+- ✅ Full profile presets, packaged content manifests, interactive scripts, deterministic ZIP/SHA-256 and isolated-copy headless package smoke.
+- ✅ Linux screenshot and native interaction artifacts are versioned; CI retains screenshots, packages and CTest logs.
+- Open: the expanded Full Windows executable on a clean target, physical-display/version-tag evidence and executed Windows workflow acceptance.
 
 ## 9. Build, run, and packaging specification
 

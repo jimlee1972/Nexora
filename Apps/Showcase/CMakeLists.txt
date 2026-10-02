@@ -10,6 +10,7 @@ nexora_apply_defaults(NexoraShowcaseProbes)
 
 add_executable(NexoraShowcase
   main.cpp
+  ShowcaseRooms.cpp
   "${NEXORA_ZIG_SAMPLE_OBJECT}")
 add_dependencies(NexoraShowcase NexoraZigGameplayBuild)
 target_link_libraries(NexoraShowcase PRIVATE
@@ -41,6 +42,11 @@ set(NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS)
 if(WIN32 AND NEXORA_LINK_MODE STREQUAL "Modular")
   list(APPEND NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS
        --runtime-libraries "$<TARGET_RUNTIME_DLLS:NexoraShowcase>")
+elseif(UNIX AND NOT APPLE AND NEXORA_LINK_MODE STREQUAL "Modular")
+  list(APPEND NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS --runtime-libraries
+    "$<TARGET_FILE:NexoraRuntime>" "$<TARGET_FILE:NexoraRenderer>" "$<TARGET_FILE:NexoraRHI>"
+    "$<TARGET_FILE:NexoraCore>" "$<TARGET_FILE:NexoraFoundation>"
+    "$<TARGET_FILE:NexoraPresentation>" "$<TARGET_FILE:NexoraWindow>")
 elseif(WIN32 AND MSVC)
   list(APPEND NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS --runtime-libraries)
 endif()
@@ -123,6 +129,7 @@ if(NEXORA_LINK_MODE STREQUAL "Modular")
             ${NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS}
             --api-manifest "${CMAKE_SOURCE_DIR}/Engine/API/abi_manifest.json"
             --license "${CMAKE_SOURCE_DIR}/LICENSE"
+            --content "${CMAKE_SOURCE_DIR}/Content/Showcase" --archive
             --output "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development"
     DEPENDS NexoraShowcase
     COMMAND_EXPAND_LISTS
@@ -139,11 +146,12 @@ endif()
 if(NEXORA_LINK_MODE STREQUAL "Monolithic")
   add_custom_target(NexoraShowcasePackageShipping
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/PackageShowcase.py"
-            --profile Shipping --build-configuration "$<CONFIG>"
+            --profile Shipping --shipping-profile "${NEXORA_SHIPPING_PROFILE}" --build-configuration "$<CONFIG>"
             --binary "$<TARGET_FILE:NexoraShowcase>"
             ${NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS}
             --api-manifest "${CMAKE_SOURCE_DIR}/Engine/API/abi_manifest.json"
             --license "${CMAKE_SOURCE_DIR}/LICENSE"
+            --content "${CMAKE_SOURCE_DIR}/Content/Showcase" --archive
             --output "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Shipping"
     DEPENDS NexoraShowcase
     COMMAND_EXPAND_LISTS
@@ -160,6 +168,12 @@ endif()
 
 if(BUILD_TESTING)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  find_program(NEXORA_SHOWCASE_GLSLANG NAMES glslangValidator)
+  if(NEXORA_SHOWCASE_GLSLANG)
+    add_test(NAME showcase.embedded_vulkan_shaders COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_SOURCE_DIR}/Engine/Presentation/shaders/GenerateShaders.py"
+      --compiler "${NEXORA_SHOWCASE_GLSLANG}" --check)
+  endif()
   add_test(
     NAME showcase.v1_probe
     COMMAND NexoraShowcaseProbeTests)
@@ -167,6 +181,15 @@ if(BUILD_TESTING)
     "${CMAKE_SOURCE_DIR}/Tests/Showcase/ShowcaseProbeTests.cpp")
   target_link_libraries(NexoraShowcaseProbeTests PRIVATE NexoraShowcaseProbes)
   nexora_apply_defaults(NexoraShowcaseProbeTests)
+  add_executable(NexoraShowcaseRoomTests
+    "${CMAKE_SOURCE_DIR}/Tests/Showcase/ShowcaseRoomTests.cpp" ShowcaseRooms.cpp)
+  target_include_directories(NexoraShowcaseRoomTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+  target_link_libraries(NexoraShowcaseRoomTests PRIVATE NexoraShowcaseProbes Nexora::Runtime Nexora::Presentation)
+  nexora_apply_defaults(NexoraShowcaseRoomTests)
+  add_test(NAME showcase.runtime_rooms COMMAND NexoraShowcaseRoomTests)
+  add_test(NAME showcase.guided_tour_cli COMMAND NexoraShowcase --headless --tour=v1 --frames=4 --no-reload)
+  add_test(NAME showcase.probe_export COMMAND NexoraShowcase --headless --probe=v1.M8 --frames=2
+    --report=${CMAKE_CURRENT_BINARY_DIR}/probe-export.json --markdown=${CMAKE_CURRENT_BINARY_DIR}/probe-export.md)
   add_test(
     NAME showcase.zig_headless
     COMMAND NexoraShowcase --headless --validate-v1 --frames=4)
@@ -187,6 +210,11 @@ if(BUILD_TESTING)
     PASS_REGULAR_EXPRESSION
       "Gameplay Lab.*CONTRACT ONLY.*Presentation Lab.*CONTRACT ONLY.*Streaming Lab.*UNAVAILABLE")
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_test(NAME showcase.linux_vulkan_interaction
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxShowcaseInteraction.py"
+        "$<TARGET_FILE:NexoraShowcase>")
+    set_tests_properties(showcase.linux_vulkan_interaction PROPERTIES
+      LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
     add_test(
       NAME showcase.linux_vulkan_evidence_policy
       COMMAND "${Python3_EXECUTABLE}"

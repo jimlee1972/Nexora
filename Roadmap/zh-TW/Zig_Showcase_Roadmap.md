@@ -115,3 +115,7 @@ UI 必須標示 `IMPLEMENTED`、`CONTRACT ONLY`、`UNAVAILABLE`，不得以 plac
 完成代表 clone/build 後由 `NexoraShowcase` 啟動，明確證明 C++ 擁有 `main`，Zig gameplay 經公開 API 驅動畫面，且 headless、錯誤、reload 與 Shipping profile 有證據。第一版不允許 Zig 直接呼叫 RHI/native window，不要求 Zig 編寫 editor UI，也不把缺少平台 SDK 的功能標成完成。
 
 本文件與既有 [`V1-Visual-Showcase-Long-Term-Plan.md`](V1-Visual-Showcase-Long-Term-Plan.md) 互補：該文件描述整體展示產品，本文件專門約束 Zig consumer 與 Engine-owned entry point。
+
+## V1 Visual Showcase 後續整合（2026-10-03）
+
+✅ Linux/Vulkan application 已在 Xvfb/lavapipe 呈現八個 live Runtime room、可讀原生 GPU UI、held keyboard／pointer control 與 210 秒導覽。Full package tooling 包含 content、可重現 ZIP／SHA-256 與 Linux shared-library isolated resolution。此為 V1 Visual Showcase 整合證據，不取代本 roadmap 既有平台 gate，也不代表新版 Windows clean-machine 圖形驗收。

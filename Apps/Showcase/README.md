@@ -9,11 +9,39 @@ real C++ world mutation rather than only an isolated counter. Its state is
 created and destroyed through the paired host allocator callbacks, including
 both sides of a transactional reload, rather than relying on Zig global state.
 
-Development builds a `NexoraZigGameplay` shared library and `NexoraShowcase` selects it by default; `--gameplay-module=static` retains the statically linked ABI path used by Shipping, while `dynamic` makes discovery failure explicit. The deterministic headless slice continues to use the validation RHI. On Linux, `--mode=interactive --backend=vulkan` owns an X11 window and Vulkan swapchain; on Windows, `--backend=dx12` uses Win32/DX12. Both paths display a clear-color background, software-rasterized triangle, and diagnostics panel through the existing presentation composition boundary. They pump normalized input and acquire/compose/present until the window closes. Supplying `--frames=N` bounds an interactive verification run. `--backend=auto` may fall back to the validation path on an unsupported host, but prints and records `fallback_reason`; explicit native requests fail rather than silently switching backends.
+Development builds a dynamic Zig module; Shipping links it statically. Interactive startup now
+opens the Hub by default (`--mode=interactive --scene=hub --backend=auto`). Linux/Vulkan and the
+existing Windows/DX12 geometry path use `DrawScene` for indexed, lit, depth-tested room geometry,
+then `RenderUi` for the original bitmap font and panels. UI shaders are embedded independently of
+the graphical Editor feature. Metal scene geometry remains unsupported and is not claimed as verified.
 
-The report deliberately separates `headless_evidence` from `windowed_evidence`. Linux CTest also registers `showcase.linux_vulkan_virtual_display`: it starts an isolated Xvfb server, runs four Vulkan frames, requests a 960x540 resize, and verifies startup/composition/present/shutdown evidence. A developer machine without Xvfb skips with code 77, while CI treats a missing or non-starting Xvfb server as a failure so the Linux native evidence cannot silently disappear.
-The embedded `validation_lab` uses the versioned `nexora.showcase.validation.v1` schema. Its M0-M12 registry maps cards to CTest contract names without executing those tests. JSON and Markdown share one five-state model; portable tests cover invalid-asset, dependency-cycle, plugin-ABI-mismatch, and rollback injections. M7-M10 room records expose headless evidence only and keep `visual_complete: false`.
-The 3D Hub now builds a presentation-only view from those results: thirteen color-coded cards retain their CTest identity and carry stable room and world-object associations. The native software composition draws the same model without running correctness logic, and the report records the associations plus visible invalid-asset, dependency-cycle, plugin-ABI-mismatch, and rollback states. Card data is copied into the view, owned by the Showcase, and discarded during ordered process shutdown; drawing is synchronous on the presentation thread. `NOT_RUN` remains honest until an external authority supplies evidence, and unsupported native scope remains `UNSUPPORTED`.
+The eight room controls are `1`–`8`; mouse drag orbits, wheel zooms, and held WASD controls the camera
+or gameplay character. F1/F2/F3 toggle overview/profiler/matrix; F5 reloads an owned scene snapshot
+after ending Play and undo history. Scene room E/U/P performs Modify/Undo/isolated Play; Gameplay C/G
+crouches/teleports; L changes locale; T/Space/R starts, pauses or replays a 210-second guided tour.
+`--mode=tour --tour=v1` starts that tour directly. `--vsync=off` requests immediate presentation.
+
+`RoomSession` owns a separate demonstration Editor World and public Runtime subsystems. Its scalar
+state and returned report/mesh/UI snapshots are owned by the Showcase, serialized on the application
+thread and destroyed before Engine shutdown. Borrowed geometry/UI spans last until the next
+corresponding build call. Input focus loss clears held keys and pointer drag; pointer coordinates map
+to the logical UI viewport. The source mesh uses `nexora.showcase.mesh.v1`, is imported/cooked/bundled,
+loaded from the active generation, and contributes visible geometry to the Scene room.
+
+`runtime_rooms.integration_probes` records live public-API checks separately from the original
+`validation_lab` CTest mapping. PASS here certifies integration scope only. Native/clean-host visual
+acceptance remains PARTIAL; unknown contract gates and unexecuted failure-injection metadata remain
+NOT_RUN. `--probe=v1.M8 --markdown=probe.md --report=probe.json` reruns and exports one integration
+result. M9 audio/video and M11 WebView explicitly show contract-only/unavailable adapter state.
+Skeleton translations and particle occupancy visualize public counters; they are not full GPU
+skinning or native media playback. `visual_complete` is not inferred from these views.
+
+`showcase.linux_vulkan_virtual_display` verifies four genuine GPU frames and resize under Xvfb.
+`showcase.linux_vulkan_interaction` uses xdotool to exercise all eight rooms, editing/undo/play,
+reload, locale, character movement, pointer orbit, tour and resizing. It retains screenshots and
+JSON/Markdown evidence when `NEXORA_SHOWCASE_EVIDENCE_DIR` is set. Both fail in CI if their native
+prerequisites are missing; local missing-tool runs skip with code 77. `showcase.runtime_rooms`
+checks pause/replay timing, world isolation, reloaded editor lifetime, input and geometry ownership.
 
 
 ## Feature gallery
@@ -129,3 +157,26 @@ provisioned target machine, copy one complete package directory, verify `manifes
 the exact command in `manifests/build.json` from the package root, and retain `launch-report.json`
 alongside the command, exit status, and host details. CI and developer-machine isolated-copy evidence do
 not establish this final clean-machine acceptance gate.
+
+## Full visual distribution
+
+`NEXORA_BUILD_SHOWCASE` controls the application independently of the Zig ABI sample; enabling it
+requires Zig gameplay and Window Presentation. Default configuration preserves the existing
+feature-off build; enable Zig to enable Showcase, or explicitly disable Showcase to build only Zig.
+
+```bash
+cmake --preset linux-showcase-shipping
+cmake --build --preset linux-showcase-shipping --target NexoraShowcasePackageShippingEvidence
+```
+
+Windows uses `windows-showcase-shipping` for Shipping/Full with DX12 enabled. The older
+`windows-zig-showcase-shipping` Minimal preset remains a headless strip gate. Packages now include
+`Content/Showcase/catalog.json`, `run-showcase.ps1`, `run-showcase.sh`, interactive/headless launch
+commands, deterministic ZIP and its SHA-256 sidecar. Linux Development includes all seven engine
+shared libraries; the evidence launcher puts the isolated `bin` first and checks that every linked
+Nexora library resolves inside it. Platform Vulkan/graphics drivers remain host dependencies.
+
+The native Linux evidence is versioned at
+[`Linux-Vulkan-Visual-Slice-2026-10-03`](evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
+Expanded Windows rooms, clean-machine graphical launch, physical-display evidence, full texture/
+instancing/skin/particle content and plugin ABI injection remain open acceptance items.

@@ -1,27 +1,26 @@
 # Nexora V1 可視化展示 Demo 長期規劃
 
-> **進度：24%**（截至 2026-09-26；依 Phase A～E 驗收項目加權計算；
-> Linux/Vulkan Phase A implementation 尚待 native virtual-display 驗收。）
+> **進度：Linux 可視化切片已驗證；完整 V1 目標主機驗收仍待完成。**
+> 原百分比缺少可重現的加權清單，改以以下驗收證據追蹤。
 
 ## 0. 現況盤點
 
-- ✅ 已有 C++-owned `NexoraShowcase` entry point、CLI 與 ordered Engine/module shutdown。
-- ✅ 已有 deterministic headless scene、validation RHI、scene extraction 與 JSON evidence report。
-- ✅ 已有 Zig static consumer 的 fixed/update、Transform read/write 與 transactional state migration。
-- ✅ Source/test audit 已確認 Window、Presentation 與 RHI buffer contract 均已存在；Showcase 重用 `RenderSurface`，沒有重建這些 boundary。
-- 已實作、待 native 驗收：Linux/X11/Vulkan windowed startup、bounded resize、clear color、triangle、diagnostics panel、shutdown 與 Xvfb smoke。
-- ✅ Windows/Win32/DX12 windowed compositing（`Dx12Surface::CompositeRgba8`）已實作：視窗能顯示真正的 clear color、software-rasterized triangle 與 diagnostics panel，並以開發機手動驗證為證據（`--mode=interactive --backend=dx12`，跑了 600 次 acquire/composite/present 循環，`backend_fallback=false`，並截取了實際視窗畫面）。此前這段是缺的——`Dx12Surface` 繼承了 `ISurface::CompositeRgba8` 的基底預設值（回傳 `Unsupported`），導致 `--backend=dx12` 直接失敗而非悄悄降級。Clean-machine 與 CI 的 windowed 驗收仍待完成；目前只有單一開發機的手動證據。
-- ✅ Windows/Win32/DX12 native GPU scene binding 現已驅動 Rendering Room 的 indexed、depth-tested procedural cube。Development dynamic package 與 Shipping static package 都在開發機執行 600 frames，得到 `scene_draws=600`、`surface_acquires=600`、`surface_presents=600`、`resize_generations=2`、`backend_fallback=false`，並截取到可見的 GPU scene 畫面。Clean-machine／CI windowed 驗收、其他 native backend 仍待完成。
-- ✅ 3D Hub 已呈現 M0～M12 Validation Lab 卡片、穩定 room/world-object 關聯與可見的受控失敗狀態；Rendering/Scene/Gameplay/Presentation/Large World/Platform/Shipping 房間的 authored content 仍待完成。
-- ✅ M0～M12 probe registry、status model、版本化 JSON／Markdown serializer、CTest card mapping 與受控 error injection 已可攜。
-- ✅ M7～M10 capability-aware room state 會輸出 headless evidence 與 `visual_complete: false`；interactive／guided tour 與視覺內容仍待完成。
-- 待辦：physical-display target-host 驗收與版本化 screenshot evidence。
+- ✅ Linux/X11/Vulkan 原生 indexed、lit、depth-tested 3D 與可讀 GPU UI 已在 Xvfb/lavapipe 執行；resize、有序關閉與實際鍵鼠互動測試通過且未 skip。
+- ✅ 八個可切換房間、F1/F2/F3 overlay、F5 snapshot reload、滑鼠 orbit/zoom、輸入路由、locale 切換／fallback 與可暫停／重播的 210 秒導覽已實作。
+- ✅ 公開 API 整合展示涵蓋 scene snapshot、Editor/Play 隔離、Modify/Undo、prefab override/rebase、procedural mesh import/cook/bundle/load 與 rollback、character/collision/navigation/AI、animation/skin 狀態、particle capacity、audio/video contract、cell/HLOD budget 與 lifecycle/shipping 模擬。
+- ✅ 整合探針範圍明確：`runtime_rooms.integration_probes` 不代表 CTest 或 clean-host 視覺驗收通過；原 CTest mapping 保留獨立權威，未觀察的 synthetic error-injection metadata 維持 `NOT_RUN`。
+- ✅ Development/Modular 封裝包含 Linux 所需的七個 engine library；isolated-copy launch evidence 會拒絕從封裝外解析 engine dependency，Full/Monolithic 與 Minimal build 分開驗證。
+- ✅ Full profile package preset、原創 content catalog、互動啟動腳本、可重現 ZIP／SHA-256 與版本化 Linux 截圖已提供。
+- 既有 Windows/DX12 開發機 GPU 證據仍只適用於其記錄版本；本次 Linux session 未在 Windows 執行新增房間、Full Windows package 或 workflow 變更。
+- 待辦：原生 texture/material 與 instancing 擴充、完整 probe input/output/error-injection UI、live Showcase 的 plugin ABI rejection、capsule/ramp 與完整 skin/particle 繪製、Windows 乾淨機圖形啟動、physical-display 驗收及其他 native backend parity。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
 
-> 文件版本：v1.0
+證據與精確驗證結果：[`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md)。
+
+> 文件版本：v1.1
 >
-> 文件狀態：規畫基線（Draft）
+> 文件狀態：Linux vertical slice 已實作；完整驗收待完成
 >
-> 更新日期：2026-10-01
+> 更新日期：2026-10-03
 
 ## 1. 文件目的
 
@@ -235,21 +234,21 @@ Demo 不應為每個 milestone 建立互相孤立的測試視窗，而應建立�
 
 每一列都要有兩個結果：Contract Gate 是自動化證據，Showcase View 是人可以看到的整合結果。兩者任一缺少，都不能把該項目標成完整展示。
 
-| Milestone | 現有/預期 Contract Gate | Showcase View | 第一階段狀態判定 |
-| --- | --- | --- | --- |
-| M0 | CMake preset、module graph、build/CTest、Host startup | Build ID、module list、startup diagnostics | Contract 已有；視覺入口待新增 |
-| M1 | core.runtime、Foundation/Gameplay ABI | frame time、job graph、allocator/log/VFS counters | Contract 已有；以 diagnostics 展示 |
-| M2 | shader reflection、validation device、renderer contracts | shader/pass/resource overlay | Offscreen 可驗證；window path 待施工 |
-| M3 | native DX12/Vulkan/Metal offscreen path | backend badge、native present counters、3D frame | Native offscreen 已有；Windows/DX12 windowed compositing 已實作並經開發機驗證；Linux/Vulkan 與 macOS/Metal 的 windowed compositing 以及各平台 clean-machine/CI 驗收仍待完成 |
-| M4 | runtime.v1_m4_vertical_slice、scene snapshot/lifecycle | 可操作 scene、entity、undo、play/editor world | Runtime foundation 已有；內容與 UI 待施工 |
-| M5 | runtime.v1_m5_asset_pipeline | import/cook/bundle/progress/reload/rollback | Contract 已有；展示資產待施工 |
-| M6 | runtime.v1_m6_editor_sdk、plugin ABI/prefab | reflection inspector、Undo、prefab rebase、plugin status | Editor SDK 已有；graphical editor 不在現況 |
-| M7 | runtime.v1_m7_input_ui_localization | key binding、UI widgets、locale switch、fallback | Contract 已有；window input/UI 待施工 |
-| M8 | runtime.v1_m8_gameplay_simulation | character、collision、nav、AI trace | Contract 已有；3D gameplay scene 待施工 |
-| M9 | runtime.v1_m9_presentation | animation、particles、audio、video queue | Portable foundation；native media adapters 待施工 |
-| M10 | runtime.v1_m10_large_world | streaming map、HLOD、RAM/VRAM budget | Contract 已有；visual world 待施工 |
-| M11 | runtime.v1_m11_platform | lifecycle/pressure/WebView ownership panel | Portable contract；platform adapter 待施工 |
-| M12 | runtime.v1_m12_shipping | package/profile/rollback/crash/device evidence | Contract 已有；可分發 exe 待施工 |
+| Milestone | 現有/預期 Contract Gate | Showcase View | 第一階段狀態判定 | Owner |
+| --- | --- | --- | --- | --- |
+| M0 | CMake preset、module graph、build/CTest、Host startup | Build ID、module list、startup diagnostics | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Build |
+| M1 | core.runtime、Foundation/Gameplay ABI | frame time、job graph、allocator/log/VFS counters | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Core |
+| M2 | shader reflection、validation device、renderer contracts | shader/pass/resource overlay | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Renderer |
+| M3 | native DX12/Vulkan/Metal offscreen path | backend badge、native present counters、3D frame | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Presentation |
+| M4 | runtime.v1_m4_vertical_slice、scene snapshot/lifecycle | 可操作 scene、entity、undo、play/editor world | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Scene |
+| M5 | runtime.v1_m5_asset_pipeline | import/cook/bundle/progress/reload/rollback | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Assets |
+| M6 | runtime.v1_m6_editor_sdk、plugin ABI/prefab | reflection inspector、Undo、prefab rebase、plugin status | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Editor SDK |
+| M7 | runtime.v1_m7_input_ui_localization | key binding、UI widgets、locale switch、fallback | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Input/UI |
+| M8 | runtime.v1_m8_gameplay_simulation | character、collision、nav、AI trace | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Gameplay |
+| M9 | runtime.v1_m9_presentation | animation、particles、audio、video queue | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Presentation |
+| M10 | runtime.v1_m10_large_world | streaming map、HLOD、RAM/VRAM budget | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Large World |
+| M11 | runtime.v1_m11_platform | lifecycle/pressure/WebView ownership panel | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Platform |
+| M12 | runtime.v1_m12_shipping | package/profile/rollback/crash/device evidence | PARTIAL — Linux runtime view 已驗證；完整 target-host 範圍待驗收 | Runtime Shipping |
 
 ### 7.1 Probe 統一介面
 
@@ -270,66 +269,45 @@ UI、headless report、CTest adapter 與 Guided Tour 都消費同一份結果。
 
 ## 8. 分階段施工順序
 
-### Phase A — Windowed App Shell
+### Phase A — ✅ Linux Windowed App Shell
 
-目標：產出第一個能開窗、關窗、resize、顯示 clear color 與 diagnostics overlay 的 NexoraShowcase.exe。
+- ✅ 重用 `NexoraShowcase`、Window 與 RenderSurface；新增 `NEXORA_BUILD_SHOWCASE` feature gate，要求 Zig gameplay 與 Window Presentation。
+- ✅ Native startup、resize、shutdown、clear color、indexed triangle 與可讀 diagnostics 已在 Xvfb/lavapipe 執行。
+- ✅ `showcase.linux_vulkan_virtual_display` 與 `showcase.linux_vulkan_interaction` 通過且未 skip；CI 配置 Xvfb/xdotool，缺少 native evidence 會 fail。
+- ✅ Headless/windowed report object 維持分離；close request 會在下一次 acquire 前停止。
 
-- ✅ Audit 既有 source/test 後，重用 `Apps/Showcase` target、CLI、Window abstraction 與 `RenderSurface` presentation boundary。
-- 已實作、待 native 驗收：Linux/X11/Vulkan windowed startup 與 bounded shutdown。
-- 已實作、待 native 驗收：透過 `CompositeRgba8` 顯示 clear color、triangle 與 diagnostics panel。
-- 已實作、待 native 驗收：以 `showcase.linux_vulkan_virtual_display` 在 Xvfb 下驗證 resize/swapchain recreation，以及 startup/present/shutdown。
-- ✅ Linux CI gate 會配置 Xvfb，且 virtual display 不可用時會 fail 而非 skip；Phase A 仍須有一次通過且非 skip 的執行才能驗收。
-- ✅ 維持 validation-RHI headless execution不變，並將 headless/windowed evidence 分成不同 JSON object。
-
-Linux/Vulkan 是 Phase A cloud implementation slice；只有 virtual-display test 實際執行而非 skip 後才算驗收；本次 Linux 執行不宣稱既有 Windows/DX12 與 macOS/Metal adapter 已通過 target-host 驗收。
+此處只驗收 Linux virtual-display 切片；physical display 與 Windows/macOS target-host 驗收仍獨立追蹤。
 
 ### Phase B — First 3D Vertical Slice
 
-目標：Hub 場景出現真正可互動的 3D 畫面。
-
-- 增加 vertex/index/uniform/depth/texture 所需的最小 RHI contract。
-- 建立 camera、mesh、material、light 與 frame resource ownership。
-- 將 FramePipeline 從固定 triangle 擴成可提交 scene frame 的最小路徑。
-- 建立程序化 mesh/material，第一版不依賴大型外部資產。
-- 實作 Rendering Room 與 frame diagnostics。
-
-**Portable scene-frame foundation：✅ 完成；Windows/DX12 graphical binding 已在開發機 ✅ 驗證。**
-camera、indexed mesh、material、light、procedural cube 與 deterministic frame-resource contract。
-Headless validation 涵蓋 buffer、depth 與 sampled texture、sampler-policy count、indexed
-submission、failure、lifetime 與 shutdown。Windows/DX12 windowed compositing 與互動式 Rendering
-Room GPU scene path 已以開發機手動驗證為證據；Native Vulkan binding、Xvfb/lavapipe evidence
-及各 backend 的 clean-machine/CI target-host evidence 仍待完成。
+- ✅ Portable vertex/index/uniform/depth/sample-texture 與 frame-resource contract 持續由 Renderer 測試覆蓋。
+- ✅ Linux Vulkan indexed geometry、directional light、depth 與 UI composition 是原生 GPU 工作，由每幀 fence 保護資源。
+- ✅ Hub／Rendering 房間的 procedural geometry 與互動 camera 可見；diagnostics 顯示實際 native counter 與取樣時間。
+- 待辦：原生 textured material、hardware instancing、更完整 primitive content 與 native RenderGraph scene binding；既有 Windows/DX12 證據不代表新版 application 驗收。
 
 ### Phase C — Probe 與 V1 Validation Lab
 
-目標：Demo 可以逐一觸發 M0～M12 probe，並輸出 JSON/Markdown 報告。
-
-- 建立 ShowcaseProbe registry、status model 與 report schema。
-- 將既有 CTest 契約映射到展示卡片，但不複製其 correctness implementation。
-- 實作 M4/M5/M6 的 scene/asset/editor foundation 展示。
-- 加入 error injection：無效 asset、dependency cycle、plugin ABI mismatch、rollback。
-
-**Portable registry slice：✅ 完成。** 穩定 M0～M12 descriptor、五態 model、版本化 JSON／Markdown serialization、CTest card identity 與四種受控 error-injection result 已實作，且不會取代 CTest。
+- ✅ M0～M12 registry、版本化 JSON／Markdown export，並區分 CTest 與 runtime-integration 權威。
+- ✅ F3 matrix、Tab 選取、R rerun、`--probe=v1.MN` 與 `--markdown=PATH` 提供 live integration result。
+- ✅ Scene snapshot、Modify/Undo、隔離 Play World、prefab override/rebase 與真正 cooked procedural mesh 會影響場景畫面。
+- ✅ Empty asset、dependency cycle、asset-generation rollback 與 shipping-update rollback 使用公開 Runtime API。
+- 待辦：live plugin ABI mismatch injection 與完整 per-probe input/output/error control；schema fixture 的 injection result 不算 runtime 觀察證據。
 
 ### Phase D — Gameplay / Presentation / World Rooms
 
-目標：把 M7～M10 的 Runtime contract 接到同一個 3D scene loop。
-
-- Input/UI/localization overlay。
-- Character/physics/navigation/AI 可視化。
-- Animation/particle/audio/video 的 capability-aware demo。
-- Streaming cell/HLOD/procedural terrain/vegetation demo。
-
-**Headless room-state slice：✅ 完成；視覺仍待完成。** M7～M10 已有 capability-aware room record 與 headless evidence 描述，每筆 record 均維持 `visual_complete: false`。
+- ✅ Normalized held-key／pointer input、Runtime UI hit testing、locale/fallback、character motion/crouch/teleport、collision hit、navigation point 與 AI/perception counter。
+- ✅ 同一 application loop 更新 animation translation、skin palette count、particle occupancy/drop count 與 audio/video queue/bus contract；明確標示 native audio/video playback unavailable。
+- ✅ Streaming cell、occupied pin、portal prefetch、HLOD residency、procedural terrain/vegetation 與 RAM/VRAM budget 已有可見狀態。
+- ✅ 七步導覽共 210 秒，可 pause／replay，並保留可讀結果。
+- 待辦：capsule/ramp geometry、完整 collision/nav visualization、真正 skin/particle position rendering 與完整 terrain/HLOD asset；狀態可视化不代表完整 native content 驗收。
 
 ### Phase E — Platform / Shipping / Distribution
 
-目標：雙擊一個乾淨 package 的 exe 即可展示，並能證明 package 的內容與 profile 正確。
-
-- M11 lifecycle/pressure/WebView adapter status。
-- M12 Full showcase package、manifest、update/rollback、crash breadcrumbs。
-- NexoraShowcase.exe --headless --validate-v1 package smoke。
-- Windows artifact ZIP 與 SHA-256 manifest。
+- ✅ Lifecycle/pressure simulation 與 WebView ownership／unavailable status。
+- ✅ Minimal/Full/Dedicated Packager preview、staged-update rollback 與 bounded crash breadcrumb。
+- ✅ Full profile preset、packaged content manifest、interactive script、可重現 ZIP／SHA-256 與 isolated-copy headless package smoke。
+- ✅ 版本化 Linux screenshot／native interaction artifact；CI 保存 screenshot、package 與 CTest log。
+- 待辦：新版 Full Windows executable 在乾淨主機執行、physical-display／version-tag evidence 與 Windows workflow 實際驗收。
 
 ## 9. 建置、執行與打包規格
 

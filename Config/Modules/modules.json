@@ -133,7 +133,7 @@
     },
     {
       "name": "ZigShowcase",
-      "feature": "NEXORA_ENABLE_ZIG_GAMEPLAY",
+      "feature": "NEXORA_BUILD_SHOWCASE",
       "dependencies": [
         "GameplayZig",
         "Runtime",

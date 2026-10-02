@@ -86,3 +86,7 @@ headless gate。Showcase command 的實際 Windows/DX12 執行仍屬 target-host
 - Linux headless configure/build/test 不依賴 desktop display。
 - Windowed shutdown 後不可留下 GPU resource、queued callback 或 native handle。
 - Showcase 與 Editor 只使用 public window/presentation contract。
+
+## V1 Visual Showcase 後續整合（2026-10-03）
+
+✅ Linux/Vulkan application 已在 Xvfb/lavapipe 呈現八個 live Runtime room、可讀原生 GPU UI、held keyboard／pointer control 與 210 秒導覽。Full package tooling 包含 content、可重現 ZIP／SHA-256 與 Linux shared-library isolated resolution。此為 V1 Visual Showcase 整合證據，不取代本 roadmap 既有平台 gate，也不代表新版 Windows clean-machine 圖形驗收。

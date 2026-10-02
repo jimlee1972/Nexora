@@ -11,6 +11,8 @@
 #include "Nexora/Renderer/SceneFrame.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
 #include "ShowcaseProbes.h"
+#include "ShowcaseRooms.h"
+#include <chrono>
 
 #include <array>
 #include <charconv>
@@ -44,18 +46,23 @@ constexpr double kFixedDeltaSeconds = 1.0 / 60.0;
 constexpr std::uint64_t kPrimaryEntityToken = 0;
 
 struct CommandLine final {
-  bool headless{true};
+  bool headless{false};
   bool validate_v1{};
   bool reload{true};
   bool frames_explicit{};
   std::size_t frames{4};
-  std::string mode{"headless"};
+  std::string mode{"interactive"};
   std::string scene{"hub"};
-  std::string backend{"validation"};
+  std::string backend{"auto"};
   std::string gameplay_module{"auto"};
   std::filesystem::path gameplay_library;
   std::string capabilities{"auto"};
   std::filesystem::path report;
+  std::filesystem::path markdown;
+  std::string tour;
+  std::string probe;
+  std::string vsync{"on"};
+  std::vector<std::string> arguments;
   std::uint32_t resize_width{};
   std::uint32_t resize_height{};
 };
@@ -118,6 +125,10 @@ struct ShowcaseRun final {
   std::uint32_t resize_requests{};
   std::uint32_t composed_frames{};
   std::uint32_t scene_draws{};
+  std::uint32_t overlay_frames{};
+  std::string runtime_rooms{"null"};
+  std::string markdown;
+  bool rooms_ok{};
 };
 
 enum class CapabilityState { Implemented, ContractOnly, Unavailable };
@@ -181,7 +192,8 @@ constexpr std::string_view ToString(CapabilityState state) {
 }
 
 const GalleryRoom *FindGalleryRoom(std::string_view id) {
-  for (const auto &room : GalleryRooms()) {
+  static constexpr auto rooms = GalleryRooms();
+  for (const auto &room : rooms) {
     if (room.id == id)
       return &room;
   }
@@ -214,6 +226,7 @@ bool ParseExtent(std::string_view text, std::uint32_t &width, std::uint32_t &hei
 bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &error) {
   for (int index = 1; index < argc; ++index) {
     const std::string_view argument{argv[index]};
+    command.arguments.emplace_back(argument);
     if (argument == "--headless") {
       command.headless = true;
       command.mode = "headless";
@@ -237,6 +250,30 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
         error = "--report requires a path";
         return false;
       }
+    } else if (argument.starts_with("--markdown=")) {
+      command.markdown = argument.substr(11);
+      if (command.markdown.empty()) {
+        error = "--markdown requires a path";
+        return false;
+      }
+    } else if (argument.starts_with("--tour=")) {
+      command.tour = argument.substr(7);
+      if (command.tour != "v1") {
+        error = "--tour must be v1";
+        return false;
+      }
+    } else if (argument.starts_with("--vsync=")) {
+      command.vsync = argument.substr(8);
+      if (command.vsync != "on" && command.vsync != "off") {
+        error = "--vsync must be on or off";
+        return false;
+      }
+    } else if (argument.starts_with("--probe=")) {
+      command.probe = argument.substr(8);
+      if (!showcase::ProbeRegistry::CreateV1Registry().Find(command.probe)) {
+        error = "unknown V1 probe";
+        return false;
+      }
     } else if (argument.starts_with("--resize=")) {
       if (!ParseExtent(argument.substr(9), command.resize_width, command.resize_height)) {
         error = "--resize must be WIDTHxHEIGHT with dimensions from 1 to 8192";
@@ -244,15 +281,16 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       }
     } else if (argument.starts_with("--mode=")) {
       command.mode = std::string(argument.substr(7));
-      if (command.mode != "headless" && command.mode != "interactive") {
-        error = "--mode must be headless or interactive";
+      if (command.mode != "headless" && command.mode != "interactive" && command.mode != "tour") {
+        error = "--mode must be headless, interactive, or tour";
         return false;
       }
       command.headless = command.mode == "headless";
     } else if (argument.starts_with("--scene=")) {
       command.scene = std::string(argument.substr(8));
       if (command.scene != "hub" && command.scene != "tour" && command.scene != "rendering" &&
-          FindGalleryRoom(command.scene) == nullptr) {
+          command.scene != "input" && command.scene != "shipping" && command.scene != "platform" &&
+          command.scene != "world" && FindGalleryRoom(command.scene) == nullptr) {
         error = "--scene must be hub, tour, rendering, math, scene, gameplay, presentation, or "
                 "streaming";
         return false;
@@ -292,74 +330,26 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
 }
 
 void PrintUsage() {
-  std::cout
-      << "NexoraShowcase - C++ engine-owned Zig gameplay showcase\n"
-         "Usage: NexoraShowcase.exe [options]\n\n"
-         "Options:\n"
-         "  --headless                 run the deterministic offscreen showcase\n"
-         "  --validate-v1              include the V1 validation label in the report\n"
-         "  --frames=N                 run N fixed/update frames (1..10000)\n"
-         "  --report=PATH              write the JSON report to PATH\n"
-         "  --resize=WIDTHxHEIGHT      request one native resize after startup\n"
-         "  --no-reload                skip the transactional Zig state reload\n"
-         "  --mode=headless|interactive select deterministic or native presentation\n"
-         "  --scene=ROOM               select hub, tour, rendering, math, scene, gameplay, "
-         "presentation, or streaming\n"
-         "  --backend=auto|validation|dx12|vulkan|metal select the presentation backend\n"
-         "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n"
-         "  --gameplay-library=PATH     override the dynamic Zig artifact path\n"
-         "  --capabilities=auto|minimal override the gallery capability probe\n";
-}
-
-std::vector<std::byte> BuildShowcaseFrame(std::uint32_t width, std::uint32_t height,
-                                          const showcase::ValidationLabView &validationLab) {
-  std::vector<std::byte> pixels(static_cast<std::size_t>(width) * height * 4U);
-  auto setPixel = [&](std::uint32_t x, std::uint32_t y, std::uint8_t r, std::uint8_t g,
-                      std::uint8_t b) {
-    const auto offset = (static_cast<std::size_t>(y) * width + x) * 4U;
-    pixels[offset] = static_cast<std::byte>(r);
-    pixels[offset + 1] = static_cast<std::byte>(g);
-    pixels[offset + 2] = static_cast<std::byte>(b);
-    pixels[offset + 3] = std::byte{255};
-  };
-  for (std::uint32_t y = 0; y < height; ++y)
-    for (std::uint32_t x = 0; x < width; ++x)
-      setPixel(x, y, 13, static_cast<std::uint8_t>(24 + (24U * y) / height), 48);
-
-  const float ax = width * 0.50F;
-  const float ay = height * 0.16F;
-  const float bx = width * 0.20F;
-  const float by = height * 0.80F;
-  const float cx = width * 0.80F;
-  const float cy = height * 0.80F;
-  const auto edge = [](float x0, float y0, float x1, float y1, float x, float y) {
-    return (x - x0) * (y1 - y0) - (y - y0) * (x1 - x0);
-  };
-  for (std::uint32_t y = 0; y < height; ++y) {
-    for (std::uint32_t x = 0; x < width; ++x) {
-      const float w0 = edge(bx, by, cx, cy, static_cast<float>(x), static_cast<float>(y));
-      const float w1 = edge(cx, cy, ax, ay, static_cast<float>(x), static_cast<float>(y));
-      const float w2 = edge(ax, ay, bx, by, static_cast<float>(x), static_cast<float>(y));
-      if ((w0 >= 0 && w1 >= 0 && w2 >= 0) || (w0 <= 0 && w1 <= 0 && w2 <= 0))
-        setPixel(x, y, static_cast<std::uint8_t>(70 + 150 * y / height),
-                 static_cast<std::uint8_t>(210 - 100 * x / width), 245);
-    }
-  }
-
-  const auto panelWidth = std::min<std::uint32_t>(width / 3U, 300U);
-  const auto panelHeight = std::min<std::uint32_t>(height / 4U, 120U);
-  for (std::uint32_t y = 12; y < 12 + panelHeight && y < height; ++y)
-    for (std::uint32_t x = 12; x < 12 + panelWidth && x < width; ++x)
-      setPixel(x, y, 20, 29, 43);
-  for (std::uint32_t row = 0; row < 4; ++row) {
-    const auto y0 = 25U + row * 20U;
-    const auto barWidth = panelWidth > 40 ? panelWidth - 28U - row * 18U : 0U;
-    for (std::uint32_t y = y0; y < y0 + 6U && y < height; ++y)
-      for (std::uint32_t x = 26; x < 26 + barWidth && x < width; ++x)
-        setPixel(x, y, row == 0 ? 74 : 148, row == 0 ? 222 : 163, row == 0 ? 128 : 184);
-  }
-  showcase::DrawValidationLab(pixels, width, height, validationLab);
-  return pixels;
+  std::cout << "NexoraShowcase - C++ engine-owned Zig gameplay showcase\n"
+               "Usage: NexoraShowcase.exe [options]\n\n"
+               "Options:\n"
+               "  --headless                 run the deterministic offscreen showcase\n"
+               "  --validate-v1              include the V1 validation label in the report\n"
+               "  --frames=N                 run N fixed/update frames (1..10000)\n"
+               "  --report=PATH              write the JSON report to PATH\n"
+               "  --resize=WIDTHxHEIGHT      request one native resize after startup\n"
+               "  --no-reload                skip the transactional Zig state reload\n"
+               "  --mode=headless|interactive|tour select deterministic, native, or guided tour\n"
+               "  --scene=ROOM               select hub, tour, rendering, math, scene, gameplay, "
+               "presentation, or streaming\n"
+               "  --backend=auto|validation|dx12|vulkan|metal select the presentation backend\n"
+               "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n"
+               "  --gameplay-library=PATH     override the dynamic Zig artifact path\n"
+               "  --capabilities=auto|minimal override the gallery capability probe\n"
+               "  --tour=v1                  select the 210-second pausable guided tour\n"
+               "  --probe=v1.M0..v1.M12      rerun one live integration probe\n"
+               "  --markdown=PATH            export the live probe results as Markdown\n"
+               "  --vsync=on|off             request synchronized or immediate presentation\n";
 }
 
 void Log(void *opaque_context, std::uint32_t level, const char *message,
@@ -620,7 +610,9 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     else if (command.backend == "metal")
       backend = Nexora::Presentation::SurfaceBackend::Metal;
     auto created = Nexora::Presentation::CreateRenderSurface(
-        {"Nexora Showcase", 1280, 720, true, backend, Nexora::Presentation::PresentMode::VSync});
+        {"Nexora Showcase", 1280, 720, true, backend,
+         command.vsync == "off" ? Nexora::Presentation::PresentMode::Immediate
+                                : Nexora::Presentation::PresentMode::VSync});
     if (created) {
       nativeSurface = std::move(created.surface);
       result.native_presentation = true;
@@ -666,19 +658,9 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
                               ? std::numeric_limits<std::size_t>::max()
                               : command.frames;
   std::size_t executedFrames = 0;
-  const auto validationLab =
-      showcase::BuildValidationLab(showcase::ProbeRegistry::CreateV1Registry().RunAll());
-  // Built once: the Rendering Room's procedural cube geometry never changes between frames, only
-  // the camera orbit below does.
-  const auto renderingRoomScene = renderer::MakeProceduralRenderingRoom();
-  std::vector<Nexora::Presentation::SceneVertex> renderingRoomVertices;
-  renderingRoomVertices.reserve(renderingRoomScene.mesh.vertices.size());
-  for (const auto &vertex : renderingRoomScene.mesh.vertices)
-    renderingRoomVertices.push_back({{vertex.position[0], vertex.position[1], vertex.position[2]},
-                                      {vertex.normal[0], vertex.normal[1], vertex.normal[2]}});
-  const float renderingRoomOrbitRadius =
-      std::sqrt(renderingRoomScene.camera.position[0] * renderingRoomScene.camera.position[0] +
-                renderingRoomScene.camera.position[2] * renderingRoomScene.camera.position[2]);
+  showcase::RoomSession rooms(command.scene, command.mode == "tour" || command.tour == "v1",
+                              command.capabilities == "minimal");
+  auto previousTime = std::chrono::steady_clock::now();
   for (std::size_t frame = 0; frame < frameLimit; ++frame) {
     if (nativeSurface) {
       const auto status = nativeSurface->BeginFrame();
@@ -697,6 +679,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
       }
       context.input = nativeSurface->Input();
       UpdateInteractiveCamera(context);
+      for (const auto &event : nativeSurface->Events())
+        rooms.Event(event, nativeSurface->FrameInfo().width, nativeSurface->FrameInfo().height);
       if (frame == 0 && command.resize_width != 0) {
         if (nativeSurface->Resize(command.resize_width, command.resize_height) !=
             Nexora::Window::WindowError::None) {
@@ -707,6 +691,10 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
         ++result.resize_requests;
       }
     }
+    const auto now = std::chrono::steady_clock::now();
+    const double frameSeconds = std::chrono::duration<double>(now - previousTime).count();
+    previousTime = now;
+    rooms.Tick(nativeSurface ? std::clamp(frameSeconds, 0.0001, 0.1) : kFixedDeltaSeconds);
     context.frame = frame + 1;
     engine.BeginFrame();
     if (!module.FixedUpdate(kFixedDeltaSeconds) || !module.Update(kFixedDeltaSeconds)) {
@@ -718,50 +706,23 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     ++executedFrames;
     if (nativeSurface) {
       const auto frameInfo = nativeSurface->FrameInfo();
-      if (command.scene == "rendering") {
-        const float angle = static_cast<float>(frame) * 0.01F;
-        const math::Vector3 eye{renderingRoomOrbitRadius * std::sin(angle),
-                                renderingRoomScene.camera.position[1],
-                                renderingRoomOrbitRadius * std::cos(angle)};
-        const auto view = math::LookAt(eye, {0, 0, 0});
-        const float aspect = frameInfo.height ? static_cast<float>(frameInfo.width) /
-                                                     static_cast<float>(frameInfo.height)
-                                              : 1.0F;
-        const auto projection = math::PerspectiveRadians(
-            renderingRoomScene.camera.vertical_fov_radians, aspect,
-            renderingRoomScene.camera.near_plane, renderingRoomScene.camera.far_plane);
-        const auto mvp = projection * view;
-        Nexora::Presentation::SceneDrawData draw{};
-        draw.vertices = renderingRoomVertices;
-        draw.indices = renderingRoomScene.mesh.indices;
-        std::memcpy(draw.model_view_projection, mvp.values.data(),
-                    sizeof(draw.model_view_projection));
-        std::memcpy(draw.light_direction, renderingRoomScene.light.direction.data(),
-                    sizeof(draw.light_direction));
-        std::memcpy(draw.light_color, renderingRoomScene.light.color.data(),
-                    sizeof(draw.light_color));
-        std::memcpy(draw.base_color, renderingRoomScene.material.base_color.data(),
-                    sizeof(draw.base_color));
-        const auto drawStatus = nativeSurface->DrawScene(draw);
-        if (drawStatus != Nexora::Presentation::SurfaceStatus::Ready) {
-          error = "showcase scene draw failed: " +
-                  std::string(Nexora::Presentation::ToString(drawStatus));
-          device->DestroyTexture(output);
-          return false;
-        }
-        ++result.scene_draws;
-      } else {
-        const auto pixels = BuildShowcaseFrame(frameInfo.width, frameInfo.height, validationLab);
-        const auto composite =
-            nativeSurface->CompositeRgba8(pixels, frameInfo.width, frameInfo.height);
-        if (composite != Nexora::Presentation::SurfaceStatus::Ready) {
-          error = "showcase frame composition failed: " +
-                  std::string(Nexora::Presentation::ToString(composite));
-          device->DestroyTexture(output);
-          return false;
-        }
-        ++result.composed_frames;
+      const auto draw = rooms.Scene(frameInfo.width, frameInfo.height);
+      const auto drawStatus = nativeSurface->DrawScene(draw);
+      if (drawStatus != Nexora::Presentation::SurfaceStatus::Ready) {
+        error = "showcase scene draw failed: " +
+                std::string(Nexora::Presentation::ToString(drawStatus));
+        device->DestroyTexture(output);
+        return false;
       }
+      ++result.scene_draws;
+      const auto overlay = rooms.Overlay(frameInfo.width, frameInfo.height, result.windowed_backend,
+                                         nativeSurface->Diagnostics(), frameSeconds * 1000);
+      if (nativeSurface->RenderUi(overlay) != Nexora::Presentation::SurfaceStatus::Ready) {
+        error = "showcase native UI failed";
+        device->DestroyTexture(output);
+        return false;
+      }
+      ++result.overlay_frames;
       const auto status = nativeSurface->EndFrame();
       if (status != Nexora::Presentation::SurfaceStatus::Ready &&
           status != Nexora::Presentation::SurfaceStatus::Occluded) {
@@ -774,6 +735,13 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     }
   }
 
+  if (!command.probe.empty()) {
+    const auto milestone = static_cast<std::size_t>(std::stoi(command.probe.substr(4)));
+    rooms.RerunProbe(milestone);
+  }
+  result.runtime_rooms = rooms.Report();
+  result.markdown = rooms.Markdown();
+  result.rooms_ok = rooms.Healthy();
   const auto scene = context.scene;
   const auto primary_entity = context.primary_entity;
   const auto snapshot_before_reload = world.GetEntity(primary_entity);
@@ -860,9 +828,25 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
             ", validation_errors=" + std::to_string(diagnostics.validation_errors) + ")";
   else if (!migration_ok)
     error = "gameplay state migration did not complete";
+  else if (!result.rooms_ok)
+    error = "a live Runtime room integration probe failed";
   else if (!shutdown_ok)
     error = "gameplay module remained loaded after shutdown";
-  return lifecycle_ok && scene_ok && render_ok && migration_ok && shutdown_ok;
+  return lifecycle_ok && scene_ok && render_ok && migration_ok && shutdown_ok && result.rooms_ok;
+}
+
+std::string EscapeJson(std::string_view value) {
+  std::ostringstream out;
+  for (const unsigned char c : value) {
+    if (c == '\\' || c == '"')
+      out << '\\' << c;
+    else if (c < 32)
+      out << "\\u" << std::hex << std::setw(4) << std::setfill('0') << static_cast<unsigned>(c)
+          << std::dec;
+    else
+      out << c;
+  }
+  return out.str();
 }
 
 std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
@@ -894,7 +878,8 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
   report << "{\n"
          << "  \"schema\": \"nexora.zig_showcase.v1\",\n"
          << "  \"status\": \""
-         << (run.lifecycle_ok && run.scene_ok && run.render_ok && run.reload_ok && run.shutdown_ok
+         << (run.lifecycle_ok && run.scene_ok && run.render_ok && run.reload_ok &&
+                     run.shutdown_ok && run.rooms_ok
                  ? "PASS"
                  : "FAIL")
          << "\",\n"
@@ -902,6 +887,13 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "  \"scene\": \"" << command.scene << "\",\n"
          << "  \"backend\": \"" << command.backend << "\",\n"
          << "  \"validate_v1\": " << command.validate_v1 << ",\n"
+         << "  \"startup_arguments\": [";
+  for (std::size_t i = 0; i < command.arguments.size(); ++i) {
+    if (i)
+      report << ",";
+    report << "\"" << EscapeJson(command.arguments[i]) << "\"";
+  }
+  report << "],\n"
          << "  \"build\": {\n"
          << "    \"engine_version\": \"" << build.engine_version << "\",\n"
          << "    \"build_id\": \"" << foundation::GetBuildId() << "\",\n"
@@ -983,7 +975,7 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"executed\": " << run.native_presentation << ",\n"
          << "    \"backend\": \"" << run.windowed_backend << "\",\n"
          << "    \"backend_fallback\": " << run.backend_fallback << ",\n"
-         << "    \"fallback_reason\": \"" << run.fallback_reason << "\",\n"
+         << "    \"fallback_reason\": \"" << EscapeJson(run.fallback_reason) << "\",\n"
          << "    \"recovery_action\": \"" << run.presentation_recovery << "\",\n"
          << "    \"surface_acquires\": " << run.surface.acquiredFrames << ",\n"
          << "    \"surface_presents\": " << run.surface.presentedFrames << ",\n"
@@ -991,12 +983,15 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"resize_generations\": " << run.surface.resizeGenerations << ",\n"
          << "    \"composed_frames\": " << run.composed_frames << ",\n"
          << "    \"scene_draws\": " << run.scene_draws << ",\n"
+         << "    \"native_ui_draws\": " << run.surface.nativeUiDrawCalls << ",\n"
+         << "    \"overlay_frames\": " << run.overlay_frames << ",\n"
          << "    \"rendering_mode\": \"" << (run.scene_draws > 0 ? "gpu_scene" : "cpu_composite")
          << "\",\n"
          << "    \"clear_color\": true,\n"
          << "    \"triangle\": " << (run.composed_frames > 0) << ",\n"
-         << "    \"diagnostics_overlay\": " << (run.composed_frames > 0) << "\n"
+         << "    \"diagnostics_overlay\": " << (run.overlay_frames > 0) << "\n"
          << "  },\n"
+         << "  \"runtime_rooms\": " << run.runtime_rooms << ",\n"
          << "  \"validation_lab\": " << validationLab << ",\n"
          << "  \"validation_lab_presentation\": "
          << showcase::SerializeValidationLabView(validationLabView) << ",\n"
@@ -1035,6 +1030,10 @@ int main(int argc, char **argv) {
   }
 
   try {
+    std::cerr << "NexoraShowcase build=" << foundation::GetBuildId();
+    for (const auto &argument : command.arguments)
+      std::cerr << ' ' << argument;
+    std::cerr << '\n';
     core::Engine engine;
     core::EngineConfiguration configuration;
     configuration.content_root = std::filesystem::current_path();
@@ -1043,6 +1042,8 @@ int main(int argc, char **argv) {
     ShowcaseRun run;
     const bool success = RunShowcase(command, engine, run, error);
     const auto report = BuildReport(command, run);
+    if (!command.markdown.empty())
+      WriteReport(command.markdown, run.markdown);
     std::cout << report;
     if (!command.report.empty())
       WriteReport(command.report, report);
