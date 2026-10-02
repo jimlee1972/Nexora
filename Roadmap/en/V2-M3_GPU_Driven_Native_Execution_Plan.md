@@ -290,6 +290,14 @@ dependency or CI change. **Completed with a backend-neutral compute pipeline kin
 - Async/queue-ownership behavior is the one area where the portable contract's "logical tracking"
   and real hardware queues can diverge; Phase 2's RenderGraph integration step exists specifically
   to catch that before D3D12/Metal work begins on top of an unverified assumption.
+- **Resolved (2026-10-02):** every backend (Validation, Vulkan, D3D12, Metal) now checks the full
+  range at `DrawIndirect`, where `command_count` is known, through one shared rule,
+  `rhi::IndirectDrawRangeFits` (`IndirectCommand.h`): `(command_count - 1) * stride + offset +
+  DrawIndirectArgumentSize <= size`, overflow-safe. `renderer.v2_gpu_driven` exercises it on the
+  Validation device and, with Slang enabled, on real Vulkan (mutation-checked: removing either
+  check fails the test). The D3D12 and Metal checks are source-only on Linux and guarded by
+  `renderer.indirect_range_source_contract`; they still need Windows and macOS execution. The
+  original finding follows for the record.
 - **Flagged, not fixed (found 2026-09-27):** `BindIndirectBuffer` on all three native backends
   (`VulkanDevice.cpp`, `D3D12Device.cpp`, `MetalDevice.mm`) validates only that the *first* indirect
   command's bytes fit the bound buffer (`offset + DrawIndirectArgumentSize <= size`), not that the

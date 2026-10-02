@@ -254,6 +254,13 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
 - Async/queue-ownership 行為是 portable contract 的「邏輯追蹤」跟真實硬體 queue 最可能出現落差的
   地方；Phase 2 的 RenderGraph 整合步驟就是為了在 D3D12/Metal 的工作疊上一個沒驗證過的假設之前，
   先把這個抓出來。
+- **已修正（2026-10-02）：** 所有 backend（Validation、Vulkan、D3D12、Metal）現在都在
+  `DrawIndirect`（`command_count` 已知之處）透過同一條共用規則 `rhi::IndirectDrawRangeFits`
+  （`IndirectCommand.h`）驗證完整範圍：`(command_count - 1) * stride + offset +
+  DrawIndirectArgumentSize <= size`，且不會溢位。`renderer.v2_gpu_driven` 在 Validation device
+  上，以及啟用 Slang 時在真實 Vulkan 上驗證它（已做 mutation 檢查：拿掉任一處檢查測試就會失敗）。
+  D3D12 與 Metal 的檢查在 Linux 上只做 source 層驗證，由 `renderer.indirect_range_source_contract`
+  守住，仍需在 Windows 與 macOS 上實際執行。以下保留原始發現作為紀錄。
 - **已標記、尚未修正（2026-09-27 發現）：** 三個 native backend（`VulkanDevice.cpp`、
   `D3D12Device.cpp`、`MetalDevice.mm`）的 `BindIndirectBuffer` 都只驗證「第一個」indirect
   command 的 bytes 是否落在綁定的 buffer 內（`offset + DrawIndirectArgumentSize <= size`），

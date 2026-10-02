@@ -4,6 +4,12 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME renderer.metal_source_contract
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/MetalSourceContract.py"
           "${CMAKE_SOURCE_DIR}/Engine/RHI/src/MetalDevice.mm")
+add_test(NAME renderer.indirect_range_source_contract
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/IndirectRangeSourceContract.py"
+          "${CMAKE_SOURCE_DIR}/Engine/RHI/src/ValidationDevice.cpp"
+          "${CMAKE_SOURCE_DIR}/Engine/RHI/src/VulkanDevice.cpp"
+          "${CMAKE_SOURCE_DIR}/Engine/RHI/src/D3D12Device.cpp"
+          "${CMAKE_SOURCE_DIR}/Engine/RHI/src/MetalDevice.mm")
 add_executable(NexoraRendererTests RendererTests.cpp)
 target_link_libraries(NexoraRendererTests PRIVATE Nexora::Renderer)
 if(WIN32)

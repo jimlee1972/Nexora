@@ -290,6 +290,7 @@ private:
   VkDeviceMemory indirect_memory_{VK_NULL_HANDLE};
   VkBuffer bound_indirect_buffer_{VK_NULL_HANDLE};
   VkDeviceSize bound_indirect_offset_{};
+  VkDeviceSize bound_indirect_size_{};
   std::uint32_t bound_indirect_stride_{DrawIndirectArgumentSize};
 };
 
@@ -1590,6 +1591,7 @@ void VulkanCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t of
     throw std::logic_error("indirect-buffer binding is out of bounds");
   bound_indirect_buffer_ = record.buffer;
   bound_indirect_offset_ = offset;
+  bound_indirect_size_ = record.descriptor.size;
   bound_indirect_stride_ = stride == 0 ? DrawIndirectArgumentSize : stride;
 }
 
@@ -1605,6 +1607,9 @@ void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
       (bound_indirect_buffer_ == VK_NULL_HANDLE && indirect_buffer_ != VK_NULL_HANDLE))
     throw std::logic_error("invalid Vulkan indirect draw");
   if (bound_indirect_buffer_ != VK_NULL_HANDLE) {
+    if (!IndirectDrawRangeFits(bound_indirect_size_, bound_indirect_offset_, bound_indirect_stride_,
+                               command_count))
+      throw std::logic_error("Vulkan indirect draw reads past the bound indirect buffer");
     device_.functions_.CmdDrawIndirect(command_buffer_, bound_indirect_buffer_,
                                        bound_indirect_offset_, command_count,
                                        bound_indirect_stride_);

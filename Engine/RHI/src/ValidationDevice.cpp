@@ -53,6 +53,11 @@ private:
   bool storage_buffer_bound_{false};
   bool scissor_set_{false};
   bool submitted_{false};
+  // The bound indirect buffer's extent, checked at DrawIndirect like every native backend.
+  bool indirect_buffer_bound_{false};
+  std::uint64_t indirect_size_{};
+  std::uint64_t indirect_offset_{};
+  std::uint32_t indirect_stride_{DrawIndirectArgumentSize};
   std::uint64_t barriers_{};
   std::uint64_t draws_{};
   std::uint64_t dispatches_{};
@@ -196,6 +201,11 @@ public:
     Require(pipelines_.Contains(pipeline), "binding invalid pipeline");
     return pipeline_types_.at(Key(pipeline));
   }
+  [[nodiscard]] std::uint64_t BufferSize(BufferHandle buffer) {
+    std::lock_guard lock{mutex_};
+    Require(buffers_.Contains(buffer), "binding invalid buffer");
+    return buffer_sizes_.at(Key(buffer));
+  }
   void ValidateBuffer(BufferHandle buffer, std::uint64_t offset) {
     std::lock_guard lock{mutex_};
     Require(buffers_.Contains(buffer), "binding invalid buffer");
@@ -285,9 +295,15 @@ void ValidationCommandList::BindStorageBuffer(std::uint32_t, BufferHandle buffer
 }
 void ValidationCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset,
                                                std::uint32_t stride) {
-  if (submitted_ || !rendering_ || (stride != 0 && stride < sizeof(std::uint32_t) * 4))
+  if (submitted_ || !rendering_ || (stride != 0 && stride < DrawIndirectArgumentSize))
     throw std::logic_error("indirect-buffer binding requires rendering");
-  device_.ValidateBuffer(buffer, offset);
+  const auto size = device_.BufferSize(buffer);
+  if (offset > size || size - offset < DrawIndirectArgumentSize)
+    throw std::logic_error("indirect-buffer binding is out of bounds");
+  indirect_buffer_bound_ = true;
+  indirect_size_ = size;
+  indirect_offset_ = offset;
+  indirect_stride_ = stride == 0 ? DrawIndirectArgumentSize : stride;
 }
 void ValidationCommandList::SetScissor(const ScissorRect &rect) {
   if (submitted_ || !rendering_ || rect.width == 0 || rect.height == 0)
@@ -328,6 +344,11 @@ void ValidationCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t group
 void ValidationCommandList::DrawIndirect(std::uint32_t command_count) {
   if (submitted_ || !rendering_ || !pipeline_bound_ || command_count == 0)
     throw std::logic_error("invalid indirect draw");
+  // Without a bound buffer the backend supplies its own one-command arguments (FramePipeline's
+  // triangle path); with one, the whole range must fit, as on every native backend.
+  if (indirect_buffer_bound_ &&
+      !IndirectDrawRangeFits(indirect_size_, indirect_offset_, indirect_stride_, command_count))
+    throw std::logic_error("indirect draw reads past the bound indirect buffer");
   ++indirect_draws_;
   ++draws_;
 }
