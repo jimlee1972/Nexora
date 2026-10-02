@@ -9,6 +9,7 @@
 #endif
 
 #include <algorithm>
+#include <charconv>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -292,9 +293,15 @@ int Run(int argc, char **argv) {
       graphical = true;
     else if (argument == "--read-only")
       read_only = true;
-    else if (argument.starts_with("--frames="))
-      frame_limit = static_cast<std::uint32_t>(std::stoul(std::string(argument.substr(9))));
-    else if (argument == "--help") {
+    else if (argument.starts_with("--frames=")) {
+      const auto digits = argument.substr(9);
+      const auto [end, status] =
+          std::from_chars(digits.data(), digits.data() + digits.size(), frame_limit);
+      if (digits.empty() || status != std::errc{} || end != digits.data() + digits.size()) {
+        std::cerr << "--frames expects a non-negative 32-bit integer\n";
+        return 2;
+      }
+    } else if (argument == "--help") {
       std::cout << "NexoraEditor [--project=PATH] [--read-only] [--report=PATH] [--graphical] "
                    "[--frames=N] [--recent-projects=PATH]\n";
       return 0;

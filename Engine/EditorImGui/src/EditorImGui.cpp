@@ -749,15 +749,22 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     return;
   }
 
+  // SetFolder rebuilds the breadcrumb span being iterated, so defer navigation until the loop ends.
+  std::optional<std::filesystem::path> navigate_to;
+  int breadcrumb_index = 0;
   for (const auto &breadcrumb : browser.Breadcrumbs()) {
+    ImGui::PushID(breadcrumb_index++);
     if (ImGui::Button(breadcrumb.label.c_str()))
-      static_cast<void>(browser.SetFolder(breadcrumb.path));
+      navigate_to = breadcrumb.path;
     static_cast<void>(AcceptAssetDrop(content, breadcrumb.path));
+    ImGui::PopID();
     ImGui::SameLine();
     ImGui::TextUnformatted("/");
     ImGui::SameLine();
   }
   ImGui::NewLine();
+  if (navigate_to)
+    static_cast<void>(browser.SetFolder(*navigate_to));
 
   bool filter_changed = ImGui::InputTextWithHint(
       "##content-search", "Search assets", state.content_query.data(), state.content_query.size());
@@ -815,8 +822,11 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         if (ImGui::MenuItem("Rename", nullptr, false, content.Writable())) {
           state.content_rename.fill(0);
           const auto filename = item->path.filename().string();
-          std::memcpy(state.content_rename.data(), filename.data(),
-                      std::min(filename.size(), state.content_rename.size() - 1));
+          auto count = std::min(filename.size(), state.content_rename.size() - 1);
+          while (count > 0 && count < filename.size() &&
+                 (static_cast<unsigned char>(filename[count]) & 0xC0U) == 0x80U)
+            --count;
+          std::memcpy(state.content_rename.data(), filename.data(), count);
           state.content_rename_target = item->id;
           open_rename = true;
         }
