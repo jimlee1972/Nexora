@@ -293,6 +293,25 @@ public:
         if (!std::isfinite(value))
           return SurfaceStatus::InvalidDescriptor;
     }
+    if (drawData.textureUploads.size() > 16)
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto &upload : drawData.textureUploads)
+      if (upload.textureId == 0 || upload.textureId == UINT64_MAX || upload.width == 0 ||
+          upload.height == 0 || upload.width > 1024 || upload.height > 1024 ||
+          upload.rowPitch != upload.width * 4U ||
+          upload.pixels.size() != static_cast<std::size_t>(upload.rowPitch) * upload.height)
+        return SurfaceStatus::InvalidDescriptor;
+    if (drawData.textureId == UINT64_MAX)
+      return SurfaceStatus::InvalidDescriptor;
+    const auto textureId = drawData.textureId ? drawData.textureId : UINT64_MAX;
+    if (drawData.textureId && !sceneTextures_.contains(textureId) &&
+        std::none_of(drawData.textureUploads.begin(), drawData.textureUploads.end(),
+                     [textureId](const auto &upload) { return upload.textureId == textureId; }))
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto &vertex : drawData.vertices)
+      for (const auto value : vertex.uv)
+        if (!std::isfinite(value))
+          return SurfaceStatus::InvalidDescriptor;
     const SceneInstance identity{};
     const auto instances = drawData.instances.empty() ? std::span<const SceneInstance>(&identity, 1)
                                                       : drawData.instances;
@@ -333,6 +352,23 @@ public:
     std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset + instanceOffset,
                 instanceBytes.data(), instanceBytes.size());
     sceneUploads_[frame_]->Unmap(0, nullptr);
+    std::size_t additional = textureId == UINT64_MAX && !sceneTextures_.contains(textureId) ? 1 : 0;
+    for (std::size_t i = 0; i < drawData.textureUploads.size(); ++i) {
+      const auto id = drawData.textureUploads[i].textureId;
+      for (std::size_t j = 0; j < i; ++j)
+        if (drawData.textureUploads[j].textureId == id)
+          return SurfaceStatus::InvalidDescriptor;
+      additional += sceneTextures_.contains(id) ? 0 : 1;
+    }
+    if (sceneTextures_.size() + additional > 64)
+      return SurfaceStatus::Unsupported;
+    for (const auto &upload : drawData.textureUploads)
+      if (!sceneTextures_.contains(upload.textureId) && !UploadUiTexture(upload, true))
+        return SurfaceStatus::DeviceLost;
+    const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
+                                         std::byte{255}};
+    if (!sceneTextures_.contains(textureId) && !UploadUiTexture({UINT64_MAX, 1, 1, 4, white}, true))
+      return SurfaceStatus::DeviceLost;
     const auto base = sceneUploads_[frame_]->GetGPUVirtualAddress();
     const auto geometryBase = base + kGeometryOffset;
     auto rtv = heap_->GetCPUDescriptorHandleForHeapStart();
@@ -342,6 +378,11 @@ public:
     commands_->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
     commands_->SetGraphicsRootSignature(sceneRootSignature_.Get());
     commands_->SetPipelineState(scenePipeline_.Get());
+    ID3D12DescriptorHeap *heaps[]{uiDescriptors_.Get()};
+    commands_->SetDescriptorHeaps(1, heaps);
+    auto textureHandle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
+    textureHandle.ptr += UINT64(sceneTextures_.at(textureId).descriptor) * uiDescriptorIncrement_;
+    commands_->SetGraphicsRootDescriptorTable(1, textureHandle);
     commands_->SetGraphicsRootConstantBufferView(0, base);
     const D3D12_VIEWPORT viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_),
                                   0, 1};
@@ -386,6 +427,7 @@ public:
     for (auto &upload : sceneUploads_)
       upload.Reset();
     uiTextures_.clear();
+    sceneTextures_.clear();
     for (auto &retired : retired_)
       retired.clear();
     uiPipeline_.Reset();
@@ -499,13 +541,28 @@ private:
   // 2D CreateUiResources() pipeline above and of the offscreen rhi::Device (which this surface does
   // not use at all -- see Dx12Surface's own constructor for its own independent ID3D12Device).
   bool CreateSceneResources() {
-    D3D12_ROOT_PARAMETER parameter{};
-    parameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-    parameter.Descriptor.ShaderRegister = 0;
-    parameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    D3D12_DESCRIPTOR_RANGE range{};
+    range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    range.NumDescriptors = 1;
+    D3D12_ROOT_PARAMETER parameters[2]{};
+    parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+    parameters[0].Descriptor.ShaderRegister = 0;
+    parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    parameters[1].DescriptorTable = {1, &range};
+    parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    D3D12_STATIC_SAMPLER_DESC sampler{};
+    sampler.MaxAnisotropy = 1;
+    sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+    sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+    sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+    sampler.MaxLOD = D3D12_FLOAT32_MAX;
+    sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     D3D12_ROOT_SIGNATURE_DESC root{};
-    root.NumParameters = 1;
-    root.pParameters = &parameter;
+    root.NumParameters = 2;
+    root.pParameters = parameters;
+    root.NumStaticSamplers = 1;
+    root.pStaticSamplers = &sampler;
     root.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     ComPtr<ID3DBlob> signature, errors;
     if (FAILED(D3D12SerializeRootSignature(&root, D3D_ROOT_SIGNATURE_VERSION_1, &signature,
@@ -525,13 +582,16 @@ private:
         float3 lightColor; float _pad1;
         float4 baseColor;
       };
-      struct VSInput { float3 position : POSITION; float3 normal : NORMAL; float3 translation : INSTANCE_POSITION; float3 scale : INSTANCE_SCALE; float4 color : INSTANCE_COLOR; };
-      struct PSInput { float4 position : SV_Position; float3 normal : NORMAL; float4 color : COLOR; };
+      Texture2D materialTexture : register(t0);
+      SamplerState materialSampler : register(s0);
+      struct VSInput { float3 position : POSITION; float2 uv : TEXCOORD; float3 normal : NORMAL; float3 translation : INSTANCE_POSITION; float3 scale : INSTANCE_SCALE; float4 color : INSTANCE_COLOR; };
+      struct PSInput { float4 position : SV_Position; float2 uv : TEXCOORD; float3 normal : NORMAL; float4 color : COLOR; };
       PSInput VSMain(VSInput input) {
         PSInput output;
         output.position = mul(mvp, float4(input.position * input.scale + input.translation, 1.0));
         output.normal = input.normal / input.scale;
         output.color = input.color;
+        output.uv = input.uv;
         return output;
       }
       float4 PSMain(PSInput input) : SV_Target {
@@ -539,7 +599,7 @@ private:
         float ndotl = saturate(dot(n, normalize(-lightDirection)));
         float3 ambient = baseColor.rgb * 0.15;
         float3 lit = baseColor.rgb * lightColor * ndotl;
-        return float4((ambient + lit) * input.color.rgb, baseColor.a * input.color.a);
+        return float4((ambient + lit) * input.color.rgb, baseColor.a * input.color.a) * materialTexture.Sample(materialSampler, input.uv);
       }
     )";
     ComPtr<ID3DBlob> vertex, pixel;
@@ -549,6 +609,8 @@ private:
                           "ps_5_0", 0, 0, &pixel, &errors)))
       return false;
     const D3D12_INPUT_ELEMENT_DESC inputs[] = {
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(SceneVertex, uv),
+         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(SceneVertex, position),
          D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(SceneVertex, normal),
@@ -627,7 +689,8 @@ private:
     ++diagnostics_.nativeUiBufferReallocations;
     return true;
   }
-  bool UploadUiTexture(const UiTextureUpload &upload) {
+  bool UploadUiTexture(const UiTextureUpload &upload, bool scene = false) {
+    auto &textures = scene ? sceneTextures_ : uiTextures_;
     if (upload.textureId == 0 || upload.width == 0 || upload.height == 0 ||
         upload.rowPitch != upload.width * 4U ||
         upload.pixels.size() != static_cast<std::size_t>(upload.rowPitch) * upload.height)
@@ -695,7 +758,7 @@ private:
     if (nextUiDescriptor_ >= 4096)
       return false;
     const UINT descriptor = nextUiDescriptor_++;
-    if (const auto previous = uiTextures_.find(upload.textureId); previous != uiTextures_.end()) {
+    if (const auto previous = textures.find(upload.textureId); previous != textures.end()) {
       retired_[frame_].push_back(previous->second.resource);
     }
     auto cpu = uiDescriptors_->GetCPUDescriptorHandleForHeapStart();
@@ -706,9 +769,12 @@ private:
     view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     view.Texture2D.MipLevels = 1;
     device_->CreateShaderResourceView(resource.Get(), &view, cpu);
-    uiTextures_[upload.textureId] = {resource, descriptor};
+    textures[upload.textureId] = {resource, descriptor};
     retired_[frame_].push_back(staging);
-    ++diagnostics_.nativeUiTextureUploads;
+    if (scene)
+      ++diagnostics_.sceneTextureUploads;
+    else
+      ++diagnostics_.nativeUiTextureUploads;
     return true;
   }
   bool CreateSwapchain(UINT w, UINT h) {
@@ -825,6 +891,7 @@ private:
   std::array<std::size_t, kMaximumFrames> uiUploadCapacity_{};
   std::array<std::vector<ComPtr<ID3D12Resource>>, kMaximumFrames> retired_;
   std::unordered_map<std::uint64_t, UiTexture> uiTextures_;
+  std::unordered_map<std::uint64_t, UiTexture> sceneTextures_;
   ComPtr<IDXGISwapChain3> swapchain_;
   ComPtr<ID3D12DescriptorHeap> dsvHeap_;
   UINT dsvIncrement_{};

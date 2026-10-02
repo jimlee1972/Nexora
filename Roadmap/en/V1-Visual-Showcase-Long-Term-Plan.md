@@ -12,7 +12,7 @@
 - ✅ Development/Modular packaging includes the seven required Linux engine libraries. Isolated-copy launch evidence rejects a dependency resolved outside the package; Full/Monolithic and Minimal builds remain separate.
 - ✅ Full-profile package presets, original content catalog, interactive launch scripts, deterministic ZIP and SHA-256 output, and versioned Linux screenshots are available.
 - Existing Windows/DX12 developer-machine GPU evidence remains valid for its recorded version. The expanded rooms, Full Windows package and workflow changes have not been executed on Windows in this Linux session.
-- Open: native texture/material expansion, clean Windows graphical launch, physical-display acceptance, and other native-backend parity. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
+- Open: clean Windows graphical launch, physical-display acceptance, and other native-backend parity. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
 
 Evidence and exact validation results: [`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
 
@@ -283,7 +283,7 @@ This accepts the Linux virtual-display slice only; physical-display and Windows/
 - ✅ Portable vertex/index/uniform/depth/sample-texture and frame-resource contracts remain covered by existing Renderer tests.
 - ✅ Linux Vulkan indexed geometry, directional lighting, depth and UI composition are native GPU work with per-frame fence ownership.
 - ✅ Hub and Rendering room procedural geometry and an interactive camera are visible; diagnostics show actual native counters and sample timing.
-- Open: textured native materials, richer primitive content and native RenderGraph scene binding. Existing Windows/DX12 evidence does not validate the expanded application version.
+- Open: richer primitive content and native RenderGraph scene binding. Existing Windows/DX12 evidence does not validate the expanded application version.
 
 ### Phase C -- Probe and V1 Validation Lab
 
@@ -429,8 +429,12 @@ Validation Lab follow-up: `Tab` selects M0-M12; `I` cycles None/Empty asset/Cycl
 
 Windows CI run 37043085582 built and tested Linux/macOS successfully, but Windows failed on MSVC `/WX` conversion and member-shadowing diagnostics in `ShowcaseRooms.cpp`. Explicit index/coordinate conversions and distinct geometry radius names address the reported diagnostics; Linux Development remains 75/75. The corrected Windows CI and clean-host acceptance remain pending.
 
-✅ Native hardware instance submission now reuses one 24-vertex cube for the Rendering room floor and three differently positioned/scaled/tinted cubes. Vulkan pixel acceptance checks two instances in one draw; DX12 implements the same input contract and awaits target-host execution. Textured materials and native RenderGraph binding remain open.
+✅ Native hardware instance submission now reuses one 24-vertex cube for the Rendering room floor and three differently positioned/scaled/tinted cubes. Vulkan pixel acceptance checks two instances in one draw; DX12 implements the same input contract and awaits target-host execution. Native RenderGraph binding remains open.
 
 ✅ [Linux native instancing acceptance](../../Apps/Showcase/evidence/Linux-V1-Instancing-2026-10-03/acceptance.md).
 
 Windows CI run 37044292214 passed Full Shipping packaging after the geometry diagnostic fixes. Development still failed on upstream Editor test variable shadowing, now addressed by distinct local names. Clean-host graphical acceptance remains pending.
+
+✅ Native Hub/Rendering sampled RGBA8 checker material now uses UV, lighting/base color and instance tint. Linux pixels verify texture selection, immutable cache reuse and resize reupload; DX12 provides matching source bindings and awaits target-host execution. Native RenderGraph scene binding and expanded Windows/physical-display acceptance remain open.
+
+✅ [Linux sampled-material acceptance](../../Apps/Showcase/evidence/Linux-V1-Textures-2026-10-03/acceptance.md).

@@ -4,7 +4,9 @@ layout(location=1) in vec3 normal;
 layout(location=2) in vec3 instanceTranslation;
 layout(location=3) in vec3 instanceScale;
 layout(location=4) in vec4 instanceColor;
+layout(location=5) in vec2 uv;
 layout(location=0) out vec3 illumination;
+layout(location=1) out vec2 textureUv;
 layout(push_constant, row_major) uniform Scene {
   mat4 mvp;
   vec4 lightDirection;
@@ -12,6 +14,7 @@ layout(push_constant, row_major) uniform Scene {
   vec4 baseColor;
 } scene;
 void main() {
+  textureUv = uv;
   gl_Position = scene.mvp * vec4(position * instanceScale + instanceTranslation, 1.0);
   gl_Position.y = -gl_Position.y;
   float diffuse = max(dot(normalize(normal / instanceScale), normalize(-scene.lightDirection.xyz)), 0.0);
