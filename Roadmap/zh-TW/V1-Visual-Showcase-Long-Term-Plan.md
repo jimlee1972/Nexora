@@ -446,3 +446,5 @@ Windows CI run 37044292214 在幾何警告修正後通過 Full Shipping 封裝�
 ✅ [Linux native-owner RenderGraph acceptance](../../Apps/Showcase/evidence/Linux-V1-Native-Graph-2026-10-03/acceptance.md).
 
 Windows 原生後續：CI 37052188209 已執行 DX12 graph 與所有房間截圖，應用程式報告 PASS（357 次 acquired／offscreen／copy／present）。stock PowerShell wrapper 讀取 process 退出碼時失敗，現已在退出前持有 process handle、記錄退出碼，並在失敗時保留啟動報告。修正版 wrapper CI 與本地乾淨主機／實體顯示驗收仍是各自待驗收 gate。
+
+Windows 驗收腳本在擷取前調整並置頂原生視窗，且避免開啟遮擋畫面的終端。目標主機驗收仍須檢視實際截圖。

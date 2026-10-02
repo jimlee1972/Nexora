@@ -446,3 +446,5 @@ Windows CI run 37044292214 passed Full Shipping packaging after the geometry dia
 ✅ [Linux native-owner RenderGraph acceptance](../../Apps/Showcase/evidence/Linux-V1-Native-Graph-2026-10-03/acceptance.md).
 
 Windows native follow-up: CI run 37052188209 executed DX12 graph work and all room captures, with the application reporting PASS (357 acquired/offscreen/copied/presented frames). The stock-PowerShell wrapper failed while reading the process exit code. It now retains the process handle before exit, logs the observed exit code, and preserves launch reports on failure. Corrected wrapper CI and local clean-host/physical-display acceptance remain separate pending gates.
+
+The Windows verifier fits and raises its native window before capture and avoids opening a covering console. Captured images must be reviewed as part of target-host acceptance.

@@ -235,3 +235,5 @@ its results are recorded. Audio/video/WebView adapters retain their stated unava
 
 The Windows verifier retains the launched process handle before exit for Windows PowerShell 5
 exit-code reliability and preserves launch JSON/Markdown even when an acceptance check fails.
+The verifier shares its launcher console, fits the outer window to the desktop and raises the
+Showcase before each screen capture, so a newly opened console cannot obscure visual evidence.

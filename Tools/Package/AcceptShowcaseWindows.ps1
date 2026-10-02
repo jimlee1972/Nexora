@@ -39,6 +39,7 @@ using System.Runtime.InteropServices;
 public static class NexoraAcceptanceWindow {
     [StructLayout(LayoutKind.Sequential)] public struct Rect { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)] public struct Point { public int X, Y; }
+    [DllImport("user32.dll")] public static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr w, out Rect r);
     [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr w, ref Point p);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr w);
@@ -87,7 +88,7 @@ public static class NexoraAcceptanceWindow {
     }
     $acceptance.profile = $build.profile
     $acceptance.shipping_profile = $build.shipping_profile
-    $process = Start-Process -FilePath $binary -ArgumentList $arguments -WorkingDirectory $staged -PassThru `
+    $process = Start-Process -FilePath $binary -ArgumentList $arguments -WorkingDirectory $staged -PassThru -NoNewWindow `
         -RedirectStandardOutput (Join-Path $evidence 'stdout.log') -RedirectStandardError (Join-Path $evidence 'stderr.log')
     # Retain the native process handle before exit: Windows PowerShell 5 otherwise
     # can return a null ExitCode from a Start-Process -PassThru object after WaitForExit.
@@ -101,9 +102,17 @@ public static class NexoraAcceptanceWindow {
         Start-Sleep -Milliseconds 50
     } while ([DateTime]::UtcNow -lt $deadline)
     Require ($window -ne [IntPtr]::Zero) 'Showcase did not publish its native window.'
+    # Fit the outer window on the primary desktop and keep the client unobscured by
+    # the launcher's console. Screen captures must show the native scene, not other windows.
+    $outerWidth = [Math]::Min(1300, [NexoraAcceptanceWindow]::GetSystemMetrics(0))
+    $outerHeight = [Math]::Min(780, [NexoraAcceptanceWindow]::GetSystemMetrics(1) - 40)
+    Require ([NexoraAcceptanceWindow]::SetWindowPos($window, [IntPtr]::new(-1), 0, 0,
+        $outerWidth, $outerHeight, 0x0040)) 'Could not expose the Showcase on the desktop.'
     [NexoraAcceptanceWindow]::SetForegroundWindow($window) | Out-Null
     Start-Sleep -Milliseconds 400
     function Capture([string]$name) {
+        Require ([NexoraAcceptanceWindow]::SetWindowPos($window, [IntPtr]::new(-1), 0, 0,
+            0, 0, 3)) 'Could not bring the Showcase above other windows.'
         $rect = [NexoraAcceptanceWindow+Rect]::new()
         $point = [NexoraAcceptanceWindow+Point]::new()
         Require ([NexoraAcceptanceWindow]::GetClientRect($window, [ref]$rect)) 'Client rectangle unavailable.'
