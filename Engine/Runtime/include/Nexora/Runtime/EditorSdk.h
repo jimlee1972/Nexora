@@ -116,7 +116,7 @@ public:
   // before any other call that can mutate the owning scene's entity
   // storage (see Engine/Runtime/README.md), a discipline this class's own
   // external callers cannot be expected to know about.
-  Id CreateEntity(Id scene);
+  Id CreateEntity(Id scene, Id parent = 0);
   bool SetTransform(Id entity, Transform transform);
   // Validates camera clipping and records its previous presence/values for Undo.
   bool SetCamera(Id entity, std::optional<CameraComponent> camera);
@@ -136,6 +136,7 @@ public:
   // Destroys the entity and its descendants; undo restores the whole subtree.
   bool DestroyEntity(Id scene, Id entity);
   bool Undo();
+  bool Redo();
   void ClearUndo() noexcept;
   [[nodiscard]] std::size_t UndoDepth() const noexcept { return depth_; }
 

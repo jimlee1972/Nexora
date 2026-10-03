@@ -124,6 +124,14 @@ int Run() {
   Require(world.FindEntity(entity_id) == nullptr,
           "undoing entity creation did not remove the restored stable entity");
   Require(!editor.Undo(), "undo succeeded past the bottom of the stack");
+  Require(editor.Redo() && world.FindEntity(entity_id) != nullptr && editor.UndoDepth() == 1 &&
+              editor.Redo() && world.FindEntity(entity_id)->transform.x == 7.0 && editor.Redo() &&
+              world.FindEntity(entity_id) == nullptr && !editor.Redo(),
+          "redo must restore stable entity identity, transform, and destruction in order");
+  Require(editor.Undo() && world.FindEntity(entity_id) != nullptr,
+          "undo after redo must restore the destroyed entity");
+  Require(editor.Redo() && world.FindEntity(entity_id) == nullptr,
+          "redoing destruction must restore the original scene for later PIE checks");
 
   // ---- Play-in-Editor: isolated world / pause / step / focus / apply-back ----
   const auto pie_entity_id = editor.CreateEntity(scene);

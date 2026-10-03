@@ -782,14 +782,33 @@ void UndoStack::Execute(const std::function<void()> &apply, std::function<void()
   if (!apply || !undo)
     throw std::invalid_argument("transaction callbacks must be valid");
   apply();
-  undo_.push_back(std::move(undo));
+  Record(
+      [undo = std::move(undo)] {
+        undo();
+        return true;
+      },
+      [apply] {
+        apply();
+        return true;
+      });
+}
+void UndoStack::Record(std::function<bool()> undo, std::function<bool()> redo) {
+  if (!undo || !redo)
+    throw std::invalid_argument("transaction callbacks must be valid");
+  operations_.erase(operations_.begin() + static_cast<std::ptrdiff_t>(cursor_), operations_.end());
+  operations_.push_back({std::move(undo), std::move(redo)});
+  ++cursor_;
 }
 bool UndoStack::Undo() {
-  if (undo_.empty())
+  if (cursor_ == 0 || !operations_[cursor_ - 1].undo())
     return false;
-  auto operation = std::move(undo_.back());
-  undo_.pop_back();
-  operation();
+  --cursor_;
+  return true;
+}
+bool UndoStack::Redo() {
+  if (cursor_ == operations_.size() || !operations_[cursor_].redo())
+    return false;
+  ++cursor_;
   return true;
 }
 

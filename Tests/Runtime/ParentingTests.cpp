@@ -420,6 +420,10 @@ void TestSceneEditorUndo() {
               world.FindEntity(child)->transform == Transform{3.0, 0.0, 0.0} &&
               (world.Children(parent) == std::vector<Id>{first, second}),
           "undoing Move must restore the parent, transform, and order");
+  Require(editor.Redo() && world.Parent(child) == parent &&
+              (world.Children(parent) == std::vector<Id>{child, first, second}) && editor.Undo() &&
+              world.Parent(child) == Id{0},
+          "redoing Move must restore the parent and sibling order as one operation");
   Require(editor.SetParent(first, 0, true) && editor.Undo() &&
               (world.Children(parent) == std::vector<Id>{first, second}),
           "undoing a reparent must restore the sibling position");

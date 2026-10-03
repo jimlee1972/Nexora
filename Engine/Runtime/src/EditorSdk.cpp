@@ -132,14 +132,41 @@ void *ServiceRegistry::Find(std::string_view name) const {
   return found == services_.end() ? nullptr : found->second;
 }
 
-Id SceneEditor::CreateEntity(Id scene) {
+Id SceneEditor::CreateEntity(Id scene, Id parent) {
+  const auto *target_scene = world_.FindScene(scene);
+  if (target_scene == nullptr ||
+      (parent != 0 && std::ranges::find(target_scene->entities, parent, &Entity::id) ==
+                          target_scene->entities.end()))
+    return 0;
   const auto id = world_.CreateEntity(scene).id;
-  undo_.Execute([] {},
-                [this, id] {
-                  WorldCommandBuffer commands;
-                  commands.DestroyEntity(id);
-                  (void)commands.Apply(world_);
-                });
+  if (parent != 0) {
+    WorldCommandBuffer attach;
+    attach.SetParent(id, parent, false);
+    if (!attach.Apply(world_)) {
+      WorldCommandBuffer discard;
+      discard.DestroyEntity(id);
+      static_cast<void>(discard.Apply(world_));
+      return 0;
+    }
+  }
+  const Entity created = *world_.FindEntity(id);
+  undo_.Record(
+      [this, id] {
+        WorldCommandBuffer commands;
+        commands.DestroyEntity(id);
+        return commands.Apply(world_);
+      },
+      [this, scene, created] {
+        auto *target = const_cast<Scene *>(world_.FindScene(scene));
+        if (target == nullptr || target->state == SceneState::Unloading ||
+            target->state == SceneState::Unloaded || world_.FindEntity(created.id) != nullptr ||
+            (created.parent != 0 && std::ranges::find(target->entities, created.parent,
+                                                      &Entity::id) == target->entities.end()))
+          return false;
+        target->entities.push_back(created);
+        world_.next_id_ = std::max(world_.next_id_, created.id + 1);
+        return true;
+      });
   ++depth_;
   return id;
 }
@@ -163,12 +190,17 @@ bool SceneEditor::SetCamera(Id entity, std::optional<CameraComponent> camera) {
   apply.SetCamera(entity, camera);
   if (!apply.Apply(world_))
     return false;
-  undo_.Execute([] {},
-                [this, entity, previous] {
-                  WorldCommandBuffer commands;
-                  commands.SetCamera(entity, previous);
-                  (void)commands.Apply(world_);
-                });
+  undo_.Record(
+      [this, entity, previous] {
+        WorldCommandBuffer commands;
+        commands.SetCamera(entity, previous);
+        return commands.Apply(world_);
+      },
+      [this, entity, camera] {
+        WorldCommandBuffer commands;
+        commands.SetCamera(entity, camera);
+        return commands.Apply(world_);
+      });
   ++depth_;
   return true;
 }
@@ -182,12 +214,17 @@ bool SceneEditor::SetLight(Id entity, std::optional<LightComponent> light) {
   apply.SetLight(entity, light);
   if (!apply.Apply(world_))
     return false;
-  undo_.Execute([] {},
-                [this, entity, previous] {
-                  WorldCommandBuffer commands;
-                  commands.SetLight(entity, previous);
-                  (void)commands.Apply(world_);
-                });
+  undo_.Record(
+      [this, entity, previous] {
+        WorldCommandBuffer commands;
+        commands.SetLight(entity, previous);
+        return commands.Apply(world_);
+      },
+      [this, entity, light] {
+        WorldCommandBuffer commands;
+        commands.SetLight(entity, light);
+        return commands.Apply(world_);
+      });
   ++depth_;
   return true;
 }
@@ -209,13 +246,20 @@ bool SceneEditor::SetTransforms(std::span<const Id> entities,
   if (!apply.Apply(world_))
     return false;
   const std::vector<Id> owned_entities(entities.begin(), entities.end());
-  undo_.Execute([] {},
-                [this, owned_entities, previous] {
-                  WorldCommandBuffer commands;
-                  for (std::size_t index = 0; index < owned_entities.size(); ++index)
-                    commands.SetTransform(owned_entities[index], previous[index]);
-                  (void)commands.Apply(world_);
-                });
+  const std::vector<Transform> next(transforms.begin(), transforms.end());
+  undo_.Record(
+      [this, owned_entities, previous] {
+        WorldCommandBuffer commands;
+        for (std::size_t index = 0; index < owned_entities.size(); ++index)
+          commands.SetTransform(owned_entities[index], previous[index]);
+        return commands.Apply(world_);
+      },
+      [this, owned_entities, next] {
+        WorldCommandBuffer commands;
+        for (std::size_t index = 0; index < owned_entities.size(); ++index)
+          commands.SetTransform(owned_entities[index], next[index]);
+        return commands.Apply(world_);
+      });
   ++depth_;
   return true;
 }
@@ -247,14 +291,24 @@ bool SceneEditor::ApplyHierarchyEdit(Id entity, WorldCommandBuffer &apply) {
   const auto previous_index = *world_.SiblingIndex(entity);
   if (!apply.Apply(world_))
     return false;
-  undo_.Execute([] {},
-                [this, entity, previous_parent, previous_transform, previous_index] {
-                  WorldCommandBuffer commands;
-                  commands.SetParent(entity, previous_parent, false);
-                  commands.SetTransform(entity, previous_transform);
-                  commands.SetSiblingIndex(entity, previous_index);
-                  (void)commands.Apply(world_);
-                });
+  const auto *changed = world_.FindEntity(entity);
+  const auto next_parent = changed->parent;
+  const auto next_transform = changed->transform;
+  const auto next_index = *world_.SiblingIndex(entity);
+  const auto place = [this, entity](Id parent, Transform transform, std::size_t index) {
+    WorldCommandBuffer commands;
+    commands.SetParent(entity, parent, false);
+    commands.SetTransform(entity, transform);
+    commands.SetSiblingIndex(entity, index);
+    return commands.Apply(world_);
+  };
+  undo_.Record(
+      [place, previous_parent, previous_transform, previous_index] {
+        return place(previous_parent, previous_transform, previous_index);
+      },
+      [place, next_parent, next_transform, next_index] {
+        return place(next_parent, next_transform, next_index);
+      });
   ++depth_;
   return true;
 }
@@ -277,33 +331,42 @@ bool SceneEditor::DestroyEntity(Id scene, Id entity) {
   apply.DestroyEntity(entity);
   if (!apply.Apply(world_))
     return false;
-  undo_.Execute([] {},
-                [this, scene, subtree, root_world, root_index] {
-                  auto *target = const_cast<Scene *>(world_.FindScene(scene));
-                  if (target == nullptr || target->state == SceneState::Unloading ||
-                      target->state == SceneState::Unloaded ||
-                      std::ranges::any_of(subtree, [this](const Entity &restored) {
-                        return world_.FindEntity(restored.id) != nullptr;
-                      }))
-                    return;
-                  const auto parent = subtree.front().parent;
-                  const bool orphaned =
-                      parent != 0 && std::ranges::find(target->entities, parent, &Entity::id) ==
-                                         target->entities.end();
-                  for (const auto &restored : subtree) {
-                    target->entities.push_back(restored);
-                    if (orphaned && restored.id == subtree.front().id) {
-                      target->entities.back().parent = 0;
-                      if (const auto normalized = NormalizedTransform(root_world))
-                        target->entities.back().transform = *normalized;
-                    }
-                    world_.next_id_ = std::max(world_.next_id_, restored.id + 1);
-                  }
-                  // Back to the sibling position it had (it was appended last).
-                  WorldCommandBuffer place;
-                  place.SetSiblingIndex(subtree.front().id, root_index);
-                  (void)place.Apply(world_);
-                });
+  undo_.Record(
+      [this, scene, subtree, root_world, root_index] {
+        auto *target = const_cast<Scene *>(world_.FindScene(scene));
+        if (target == nullptr || target->state == SceneState::Unloading ||
+            target->state == SceneState::Unloaded ||
+            std::ranges::any_of(subtree, [this](const Entity &restored) {
+              return world_.FindEntity(restored.id) != nullptr;
+            }))
+          return false;
+        const auto parent = subtree.front().parent;
+        const bool orphaned =
+            parent != 0 &&
+            std::ranges::find(target->entities, parent, &Entity::id) == target->entities.end();
+        for (const auto &restored : subtree) {
+          target->entities.push_back(restored);
+          if (orphaned && restored.id == subtree.front().id) {
+            target->entities.back().parent = 0;
+            if (const auto normalized = NormalizedTransform(root_world))
+              target->entities.back().transform = *normalized;
+          }
+          world_.next_id_ = std::max(world_.next_id_, restored.id + 1);
+        }
+        // Back to the sibling position it had (it was appended last).
+        WorldCommandBuffer place;
+        place.SetSiblingIndex(subtree.front().id, root_index);
+        return place.Apply(world_);
+      },
+      [this, scene, entity] {
+        const auto *target = world_.FindScene(scene);
+        if (target == nullptr ||
+            std::ranges::find(target->entities, entity, &Entity::id) == target->entities.end())
+          return false;
+        WorldCommandBuffer commands;
+        commands.DestroyEntity(entity);
+        return commands.Apply(world_);
+      });
   ++depth_;
   return true;
 }
@@ -311,6 +374,12 @@ bool SceneEditor::Undo() {
   if (!undo_.Undo())
     return false;
   --depth_;
+  return true;
+}
+bool SceneEditor::Redo() {
+  if (!undo_.Redo())
+    return false;
+  ++depth_;
   return true;
 }
 void SceneEditor::ClearUndo() noexcept {

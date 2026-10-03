@@ -671,6 +671,41 @@ int Run() {
             "dragging a child under a scaled parent must keep world-space motion and undo");
   }
   {
+    runtime::World redo_world;
+    const auto redo_scene = redo_world.LoadScene("Redo contract");
+    Require(redo_world.Activate(redo_scene), "redo scene activation failed");
+    editor::SceneDocument redo_document(redo_world, redo_scene);
+    const auto redo_parent = redo_document.Create("Parent");
+    const auto redo_child = redo_document.Create("Child", redo_parent);
+    const auto redo_key = *redo_document.Key(redo_child);
+    const std::array selected_child{redo_child};
+    Require(redo_document.SetTransform(redo_child, {2.0, 0.0, 0.0}) &&
+                redo_document.SetCamera(redo_key, runtime::CameraComponent{75.0, 0.2, 500.0}) &&
+                redo_document.SetLight(redo_key, runtime::LightComponent{3.0F}) &&
+                redo_document.Rename(redo_key, "Renamed") && redo_document.Select(selected_child) &&
+                redo_document.DeleteSelection(),
+            "redo scene setup failed");
+    Require(redo_document.Undo() && redo_document.Key(redo_child) &&
+                redo_document.Selection().size() == 1 &&
+                redo_document.Name(redo_child) == "Renamed" && redo_document.Undo() &&
+                redo_document.Name(redo_child) == "Child" && redo_document.Undo() &&
+                !redo_document.Light(redo_key) && redo_document.Undo() &&
+                !redo_document.Camera(redo_key) && redo_document.Undo() &&
+                redo_document.Transform(redo_child)->x == 0.0 && redo_document.Undo() &&
+                !redo_document.Key(redo_child),
+            "undo chain must restore scene data and node metadata");
+    Require(redo_document.Redo() && redo_document.Parent(redo_child) == redo_parent &&
+                redo_document.Redo() && redo_document.Transform(redo_child)->x == 2.0 &&
+                redo_document.Redo() && redo_document.Camera(redo_key) && redo_document.Redo() &&
+                redo_document.Light(redo_key)->intensity == 3.0F && redo_document.Redo() &&
+                redo_document.Name(redo_child) == "Renamed" && redo_document.Redo() &&
+                !redo_document.Key(redo_child) && !redo_document.Redo(),
+            "redo chain must replay stable creation, transform, components, rename, and delete");
+    Require(redo_document.Undo() && redo_document.Key(redo_child) &&
+                redo_document.SetTransform(redo_child, {5.0, 0.0, 0.0}) && !redo_document.Redo(),
+            "a new scene edit must discard the redo branch");
+  }
+  {
     runtime::World dirty_world;
     const auto dirty_scene = dirty_world.LoadScene("Dirty contract");
     Require(dirty_world.Activate(dirty_scene), "dirty scene activation failed");
@@ -871,6 +906,10 @@ int Run() {
                 hinted.EulerAngles(first) == editor::EulerDegrees{450.0, -720.0, 0.0} &&
                 hinted.EulerAngles(second) == editor::EulerDegrees{450.0, -720.0, 0.0},
             "one undo must restore hints even when only the authored revolution changed");
+    Require(
+        hinted.Redo() && hinted.EulerAngles(first) == editor::EulerDegrees{810.0, -720.0, 0.0} &&
+            hinted.Undo() && hinted.EulerAngles(first) == editor::EulerDegrees{450.0, -720.0, 0.0},
+        "redo must restore authored Euler revolutions even when the quaternion is unchanged");
     const auto before_invalid = *hinted.Transform(first);
     auto stale = targets[1];
     ++stale.entity_generation;

@@ -85,9 +85,10 @@ authoring views on first launch.
   `TakeCloseChoice` transfers Save and Exit, Discard and Exit, or Cancel once to the application.
   The application owns the final save and exit decision; a failed save leaves the modal visible.
 - The Scene panel's Undo button and Ctrl+Z call `SceneDocument::Undo` on the authoring thread.
-  Ctrl+Z leaves an active text input's own undo alone. A successful document undo clears the
-  retained Hierarchy selection anchor, and the Scene panel reports an empty history. Scene save
-  and undo actions are disabled while a recovery journal awaits a choice.
+  Redo, Ctrl+Y, and Ctrl+Shift+Z call `SceneDocument::Redo`. Shortcuts leave an active text input's
+  own history alone. A successful document replay clears the retained Hierarchy selection anchor;
+  empty histories are reported in the Scene panel. Save and history actions are disabled while a
+  recovery journal awaits a choice.
 - The project selector displays background content-index progress and exposes a one-shot cancel
   request. The application owns the candidate workspace and import operation, consumes the staged
   `AssetWorkspace` on the window/authoring thread, and keeps the selector open after cancellation or
