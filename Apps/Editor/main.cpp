@@ -432,7 +432,9 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     Nexora::Presentation::SceneViewport viewport, nexora::editor::imgui::SceneOverviewCamera camera,
     nexora::editor::imgui::NativeSceneOrbit orbit, bool local_axes,
     nexora::editor::imgui::NativeSceneTool tool,
-    std::optional<std::array<double, 3>> drag_preview = std::nullopt) {
+    std::optional<std::array<double, 3>> drag_preview = std::nullopt,
+    std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview =
+        std::nullopt) {
   static const NativeSceneProxyMesh mesh;
   const auto candidates = NativeSceneProxyCandidates(scene);
   const auto handles = tool == nexora::editor::imgui::NativeSceneTool::Rotate
@@ -440,26 +442,37 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
                            : NativeSceneAxisHandles(scene, candidates, local_axes);
   const std::unordered_set<nexora::runtime::Id> selected(scene.Selection().begin(),
                                                          scene.Selection().end());
-  std::unordered_map<nexora::runtime::Id, bool> moved_cache;
-  const auto moves_with_selection = [&](nexora::runtime::Id entity) {
+  std::unordered_map<nexora::runtime::Id, nexora::runtime::Id> root_cache;
+  const auto selected_root = [&](nexora::runtime::Id entity) {
     std::vector<nexora::runtime::Id> chain;
-    bool moves = false;
+    nexora::runtime::Id root = 0;
     while (entity != 0 && chain.size() <= candidates.size()) {
-      if (selected.contains(entity)) {
-        moves = true;
-        break;
-      }
-      if (const auto cached = moved_cache.find(entity); cached != moved_cache.end()) {
-        moves = cached->second;
+      if (const auto cached = root_cache.find(entity); cached != root_cache.end()) {
+        if (cached->second != 0)
+          root = cached->second;
         break;
       }
       chain.push_back(entity);
+      if (selected.contains(entity))
+        root = entity;
       const auto parent = scene.Parent(entity);
       entity = parent.value_or(0);
     }
     for (const auto id : chain)
-      moved_cache[id] = moves;
-    return moves;
+      root_cache[id] = root;
+    return root;
+  };
+  const auto rotate = [](nexora::editor::ViewportVector point, nexora::editor::ViewportVector axis,
+                         double angle) {
+    const double cosine = std::cos(angle), sine = std::sin(angle);
+    const double dot = axis.x * point.x + axis.y * point.y + axis.z * point.z;
+    return nexora::editor::ViewportVector{
+        point.x * cosine + (axis.y * point.z - axis.z * point.y) * sine +
+            axis.x * dot * (1 - cosine),
+        point.y * cosine + (axis.z * point.x - axis.x * point.z) * sine +
+            axis.y * dot * (1 - cosine),
+        point.z * cosine + (axis.x * point.y - axis.y * point.x) * sine +
+            axis.z * dot * (1 - cosine)};
   };
   camera.x = std::clamp(camera.x, -100000.0, 100000.0);
   camera.z = std::clamp(camera.z, -100000.0, 100000.0);
@@ -475,12 +488,14 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   ground.color[1] = 0.28F;
   ground.color[2] = 0.34F;
   instances.push_back(ground);
+  std::unordered_map<nexora::runtime::Id, std::optional<nexora::runtime::Transform>> root_poses;
   for (const auto &candidate : candidates) {
     const auto pose = scene.WorldTransform(candidate.entity);
     if (!pose)
       continue;
     Nexora::Presentation::SceneInstance instance{};
-    const bool preview_moved = drag_preview && moves_with_selection(candidate.entity);
+    const auto root = selected_root(candidate.entity);
+    const bool preview_moved = drag_preview && root != 0;
     instance.translation[0] = static_cast<float>((candidate.min.x + candidate.max.x) * 0.5 +
                                                  (preview_moved ? (*drag_preview)[0] : 0.0));
     instance.translation[1] = static_cast<float>((candidate.min.y + candidate.max.y) * 0.5 +
@@ -494,6 +509,33 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     instance.rotation[1] = static_cast<float>(pose->qy);
     instance.rotation[2] = static_cast<float>(pose->qz);
     instance.rotation[3] = static_cast<float>(pose->qw);
+    if (rotation_preview && root != 0) {
+      const auto [found, inserted] = root_poses.try_emplace(root);
+      if (inserted)
+        found->second = scene.WorldTransform(root);
+      if (const auto &root_pose = found->second) {
+        const nexora::editor::ViewportVector pivot{root_pose->x, root_pose->y + 0.5, root_pose->z};
+        const nexora::editor::ViewportVector center{
+            instance.translation[0], instance.translation[1], instance.translation[2]};
+        const auto rotated = rotate({center.x - pivot.x, center.y - pivot.y, center.z - pivot.z},
+                                    rotation_preview->first, rotation_preview->second);
+        instance.translation[0] = static_cast<float>(pivot.x + rotated.x);
+        instance.translation[1] = static_cast<float>(pivot.y + rotated.y);
+        instance.translation[2] = static_cast<float>(pivot.z + rotated.z);
+        const auto axis = rotation_preview->first;
+        const double sine = std::sin(rotation_preview->second * 0.5);
+        const double dx = axis.x * sine, dy = axis.y * sine, dz = axis.z * sine;
+        const double dw = std::cos(rotation_preview->second * 0.5);
+        instance.rotation[0] =
+            static_cast<float>(dw * pose->qx + dx * pose->qw + dy * pose->qz - dz * pose->qy);
+        instance.rotation[1] =
+            static_cast<float>(dw * pose->qy - dx * pose->qz + dy * pose->qw + dz * pose->qx);
+        instance.rotation[2] =
+            static_cast<float>(dw * pose->qz + dx * pose->qy - dy * pose->qx + dz * pose->qw);
+        instance.rotation[3] =
+            static_cast<float>(dw * pose->qw - dx * pose->qx - dy * pose->qy - dz * pose->qz);
+      }
+    }
     const bool is_selected = selected.contains(candidate.entity);
     instance.color[0] = is_selected ? 1.0F : 0.35F;
     instance.color[1] = is_selected ? 0.75F : 0.65F;
@@ -941,19 +983,26 @@ int RunGraphical(std::optional<ProjectState> project,
           native_scene_drag_rotate = false;
         }
         std::optional<std::array<double, 3>> drag_preview;
-        if (const auto drag = ui.NativeSceneDragPreview();
-            drag && !scene.Selection().empty() && !native_scene_drag_rotate &&
-            ui.GetNativeSceneTool() == nexora::editor::imgui::NativeSceneTool::Move) {
+        std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview;
+        if (const auto drag = ui.NativeSceneDragPreview(); drag && !scene.Selection().empty()) {
           const auto pose = scene.WorldTransform(scene.Selection().front());
-          if (pose)
-            drag_preview = NativeSceneDragDelta(*viewport, ui.GetSceneOverviewCamera(),
-                                                ui.GetNativeSceneOrbit(), *drag, *pose,
-                                                native_scene_drag_axis);
+          if (pose) {
+            if (native_scene_drag_rotate && native_scene_drag_axis) {
+              if (const auto angle = NativeSceneDragAngle(*viewport, ui.GetSceneOverviewCamera(),
+                                                          ui.GetNativeSceneOrbit(), *drag, *pose,
+                                                          *native_scene_drag_axis))
+                rotation_preview = std::pair{*native_scene_drag_axis, *angle};
+            } else if (ui.GetNativeSceneTool() == nexora::editor::imgui::NativeSceneTool::Move) {
+              drag_preview = NativeSceneDragDelta(*viewport, ui.GetSceneOverviewCamera(),
+                                                  ui.GetNativeSceneOrbit(), *drag, *pose,
+                                                  native_scene_drag_axis);
+            }
+          }
         }
         const auto scene_status =
             DrawNativeScenePreview(*created.surface, scene, *viewport, ui.GetSceneOverviewCamera(),
                                    ui.GetNativeSceneOrbit(), ui.NativeSceneLocalAxes(),
-                                   ui.GetNativeSceneTool(), drag_preview);
+                                   ui.GetNativeSceneTool(), drag_preview, rotation_preview);
         ui.SetNativeScenePreviewAvailable(scene_status !=
                                           Nexora::Presentation::SurfaceStatus::Unsupported);
         if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&

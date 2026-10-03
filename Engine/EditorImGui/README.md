@@ -65,7 +65,8 @@ authoring views on first launch.
   hit bounds enclose the rendered boxes, and a click captures the same axis for the whole drag. The application reserves
   three instance slots for these handles in the native draw. The Rotate tool (E over the canvas;
   W returns to Move) shows X/Y/Z ring handles and commits a selected-root turn on release as one
-  Undo step. Rotation preview and scale handles remain open. Escape cancels; optional 0.25–4
+  Undo step. Selected roots and descendants visibly rotate during the drag; Escape cancels the
+  preview. Scale handles remain open. Optional 0.25–4
   world-unit snap steps apply to movement preview and commit.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.

@@ -81,6 +81,43 @@ def scene_pixels(display_name: str, window: int, viewport: tuple[int, int, int, 
         x11.XCloseDisplay(display)
 
 
+def scene_region_pixels(display_name: str, window: int,
+                        viewport: tuple[int, int, int, int]):
+    x11 = ctypes.CDLL("libX11.so.6")
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XGetImage.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                              ctypes.c_uint, ctypes.c_uint, ctypes.c_ulong, ctypes.c_int]
+    x11.XGetImage.restype = ctypes.POINTER(XImage)
+    x11.XGetPixel.argtypes = [ctypes.POINTER(XImage), ctypes.c_int, ctypes.c_int]
+    x11.XGetPixel.restype = ctypes.c_ulong
+    x11.XDestroyImage.argtypes = [ctypes.POINTER(XImage)]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    display = x11.XOpenDisplay(display_name.encode())
+    if not display:
+        raise RuntimeError("Xvfb preview reader could not connect")
+    try:
+        image = x11.XGetImage(display, window, 0, 0, 1280, 720,
+                              ctypes.c_ulong(-1).value, 2)
+        if not image:
+            raise RuntimeError("native rotation preview readback failed")
+        try:
+            x, y, width, height = viewport
+            center_x, center_y = x + width // 2, y + height // 2
+            pixels = []
+            for py in range(max(y, center_y - 110), min(y + height, center_y + 90), 3):
+                for px in range(max(x, center_x - 90), min(x + width, center_x + 90), 3):
+                    pixel = x11.XGetPixel(image, px, py)
+                    pixels.extend(channel(pixel, mask) for mask in
+                                  (image.contents.red_mask, image.contents.green_mask,
+                                   image.contents.blue_mask))
+            return pixels
+        finally:
+            x11.XDestroyImage(image)
+    finally:
+        x11.XCloseDisplay(display)
+
+
 def first_entity_position(scene_text: str) -> tuple[float, float, float]:
     lines = scene_text.splitlines()
     header = next((index for index, line in enumerate(lines)
@@ -366,11 +403,23 @@ def main() -> int:
         subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                         str(handle_x), str(handle_y)], env=environment, check=True)
         time.sleep(0.2)
+        before_rotation_pixels = scene_region_pixels(display, window, viewport)
         subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
         time.sleep(0.1)
         subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                         str(handle_x + 28), str(handle_y + 20)], env=environment, check=True)
-        time.sleep(0.15)
+        deadline = time.monotonic() + 3
+        rotation_visible = False
+        while time.monotonic() < deadline and not rotation_visible:
+            preview_pixels = scene_region_pixels(display, window, viewport)
+            rotation_visible = sum(abs(a - b) for a, b in
+                                   zip(before_rotation_pixels, preview_pixels)) > 400
+            if not rotation_visible:
+                time.sleep(0.05)
+        if not rotation_visible:
+            raise RuntimeError("rotation ring did not visibly preview before mouse release")
+        if scene_file.read_text() != before_rotation:
+            raise RuntimeError("rotation preview committed before mouse release")
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
