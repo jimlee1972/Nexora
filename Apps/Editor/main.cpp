@@ -7,10 +7,12 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/Device.h"
+#include "Nexora/Runtime/EditorSdk.h"
 #endif
 
 #include <algorithm>
 #include <charconv>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -101,6 +103,17 @@ int RunGraphical(std::optional<ProjectState> project,
     return 1;
   }
   nexora::editor::SceneDocument scene(world, scene_id);
+  nexora::runtime::RuntimeConsole console{1024};
+  const auto log = [&](nexora::runtime::RuntimeLogSeverity severity, std::string category,
+                       std::string message) {
+    const auto timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                               std::chrono::system_clock::now().time_since_epoch())
+                               .count();
+    static_cast<void>(
+        console.Push({0, severity, std::move(category), static_cast<std::uint64_t>(timestamp),
+                      "NexoraEditor", std::move(message)}));
+  };
+  log(nexora::runtime::RuntimeLogSeverity::Info, "Editor", "Graphical session started.");
   const auto scene_path = [](const nexora::editor::ProjectWorkspace &workspace) {
     return workspace.Root() / ".nexora" / "scenes" / "Main.scene";
   };
@@ -118,11 +131,15 @@ int RunGraphical(std::optional<ProjectState> project,
     if (error || (exists && !scene.Reload(path))) {
       scene_load_failed = true;
       ui.SetSceneSaveResult("Scene could not be loaded: " + path.string(), false);
+      log(nexora::runtime::RuntimeLogSeverity::Error, "Scene",
+          "Scene could not be loaded: " + path.string());
       return;
     }
     scene_load_failed = false;
     if (!exists && scene.Nodes().empty())
       scene.Create("Scene Root");
+    log(nexora::runtime::RuntimeLogSeverity::Info, "Scene",
+        exists ? "Opened saved scene." : "Created starter scene.");
     static_cast<void>(ui.SetSceneOverviewCamera({}));
     overview_load_failed = false;
     const auto camera_path = overview_path(project->workspace);
@@ -154,17 +171,22 @@ int RunGraphical(std::optional<ProjectState> project,
   const auto save_scene = [&] {
     if (scene_load_failed) {
       ui.SetSceneSaveResult("Scene load failed. Resolve the scene file before saving.", false);
+      log(nexora::runtime::RuntimeLogSeverity::Error, "Scene", "Save blocked by failed load.");
       return false;
     }
     if (!project || !project->workspace.Writable()) {
       ui.SetSceneSaveResult("Scene is read-only. Reopen the project for writing.", false);
+      log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene",
+          "Save blocked by read-only access.");
       return false;
     }
     if (!scene.Save(scene_path(project->workspace))) {
       ui.SetSceneSaveResult("Scene could not be saved. Check the project directory.", false);
+      log(nexora::runtime::RuntimeLogSeverity::Error, "Scene", "Scene save failed.");
       return false;
     }
     ui.SetSceneSaveResult("Scene saved.", true);
+    log(nexora::runtime::RuntimeLogSeverity::Info, "Scene", "Scene saved.");
     return true;
   };
   while (!exit_requested && !created.surface->CloseRequested() &&
@@ -247,7 +269,8 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     }
     if (project) {
-      ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports);
+      ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports,
+                          &console);
       if (ui.TakeSceneSaveRequest())
         static_cast<void>(save_scene());
       const auto close_choice = ui.TakeCloseChoice();

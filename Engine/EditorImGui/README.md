@@ -66,6 +66,9 @@ authoring views on first launch.
   applied/required upgrade state, and the bounded recent-project list. It never acquires a lock,
   upgrades a descriptor, or writes recent state; the application completes those operations before
   drawing.
+- `RuntimeConsole` is borrowed for the frame. The Console panel takes an owning, bounded snapshot,
+  filters severity and text, clips visible rows, and reports the producer's dropped-record count.
+  It does not retain record references after drawing. The application owns ingress and timestamps.
 - The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes
   it after drawing, checks project write access and scene load state, and calls `SceneDocument::Save`.
   The host retains only the result text; it never chooses the path or writes the scene file.

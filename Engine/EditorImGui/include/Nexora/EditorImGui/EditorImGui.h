@@ -5,6 +5,7 @@
 #include "Nexora/EditorImGui/Api.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/Device.h"
+#include "Nexora/Runtime/EditorSdk.h"
 #include "Nexora/Window/Window.h"
 
 #include <cstdint>
@@ -77,7 +78,8 @@ public:
                         ProjectWorkspace *workspace = nullptr,
                         ProjectContentSession *content = nullptr,
                         RecentProjectStore *recent_projects = nullptr,
-                        AssetImportQueue *imports = nullptr);
+                        AssetImportQueue *imports = nullptr,
+                        runtime::RuntimeConsole *console = nullptr);
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
   void RequestCloseConfirmation() noexcept;
