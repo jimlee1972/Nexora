@@ -63,7 +63,8 @@ commits it when the left button is released as one undoable transform transactio
 (or E while hovering the canvas) draws X/Y/Z ring handles in world or local space and commits an
 in-place rotation of selected roots on release as one Undo step. W returns to Move. Selected roots
 and descendants show the prospective rotation while dragging; Escape restores the starting view.
-Scale handles remain open. The shared
+The Scale tool (R over the canvas) shows local X/Y/Z cubes and commits one axis's local scale on
+release as an undoable transaction. Live scale preview and a uniform handle remain open. The shared
 Snap movement setting applies the chosen 0.25–4 world-unit step to movement preview and commit.
 The X/Z overview retains its axis handles.
 `--native-scene-preview` selects this mode on startup for display acceptance.

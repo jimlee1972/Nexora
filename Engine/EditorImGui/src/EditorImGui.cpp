@@ -2231,16 +2231,25 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::SameLine();
         ImGui::TextDisabled("F: frame | Right: orbit | Wheel: zoom");
         if (state_->native_scene_tool == NativeSceneTool::Rotate)
-          ImGui::TextDisabled("Drag colored rings: rotate | W: move");
+          ImGui::TextDisabled("Drag colored rings: rotate | W: move | R: scale");
+        else if (state_->native_scene_tool == NativeSceneTool::Scale)
+          ImGui::TextDisabled("Drag colored cubes: local scale | W: move | E: rotate");
         else
-          ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y | E: rotate");
+          ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y | E: rotate | R: scale");
         ImGui::TextDisabled("Middle: pan X/Z | Shift+middle: pan Y");
         if (ImGui::RadioButton("Move", state_->native_scene_tool == NativeSceneTool::Move))
           state_->native_scene_tool = NativeSceneTool::Move;
         ImGui::SameLine();
         if (ImGui::RadioButton("Rotate", state_->native_scene_tool == NativeSceneTool::Rotate))
           state_->native_scene_tool = NativeSceneTool::Rotate;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Scale", state_->native_scene_tool == NativeSceneTool::Scale)) {
+          state_->native_scene_tool = NativeSceneTool::Scale;
+          state_->native_scene_local_axes = true;
+        }
+        ImGui::BeginDisabled(state_->native_scene_tool == NativeSceneTool::Scale);
         ImGui::Checkbox("Local axes", &state_->native_scene_local_axes);
+        ImGui::EndDisabled();
         ImGui::SameLine();
         constexpr std::array snap_steps{0.25, 0.5, 1.0, 2.0, 4.0};
         ImGui::Checkbox("Snap movement", &state_->scene_snap_to_grid);
@@ -2315,6 +2324,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             state_->native_scene_tool = NativeSceneTool::Move;
           if (ImGui::IsKeyPressed(ImGuiKey_E, false))
             state_->native_scene_tool = NativeSceneTool::Rotate;
+          if (ImGui::IsKeyPressed(ImGuiKey_R, false)) {
+            state_->native_scene_tool = NativeSceneTool::Scale;
+            state_->native_scene_local_axes = true;
+          }
           if (io.MouseWheel != 0.0F)
             state_->native_scene_orbit.distance =
                 std::clamp(state_->native_scene_orbit.distance *

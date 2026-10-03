@@ -699,6 +699,19 @@ int Run() {
     Require(!drag_document.ApplySelectionGizmo(drag_both, turn) &&
                 drag_document.WorldTransform(drag_child)->x == 11.0,
             "an invalid graphical rotation changed the scene");
+    editor::GizmoOperation scale;
+    scale.kind = editor::GizmoOperation::Kind::Scale;
+    scale.factors = {1.5, 1.0, 1.0};
+    Require(drag_document.ApplySelectionGizmo(drag_both, scale) &&
+                drag_document.Transform(drag_parent)->sx == 3.0 &&
+                drag_document.WorldTransform(drag_child)->x == 14.0 && drag_document.Undo() &&
+                drag_document.Transform(drag_parent)->sx == 2.0 &&
+                drag_document.WorldTransform(drag_child)->x == 11.0,
+            "scaling a selected parent must scale its subtree once and undo atomically");
+    scale.factors.x = 0.0;
+    Require(!drag_document.ApplySelectionGizmo(drag_both, scale) &&
+                drag_document.Transform(drag_parent)->sx == 2.0,
+            "an invalid graphical scale changed the scene");
   }
   {
     runtime::World redo_world;
