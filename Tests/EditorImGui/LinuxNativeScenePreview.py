@@ -161,6 +161,20 @@ def main() -> int:
                 time.sleep(0.05)
         if not pixels_changed:
             raise RuntimeError("native proxy did not visibly move before mouse release")
+        subprocess.run([args.xdotool, "key", "Escape"], env=environment, check=True)
+        time.sleep(0.1)
+        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        time.sleep(0.2)
+        if scene_file.read_text() != initial_scene:
+            raise RuntimeError("Escape did not cancel the native proxy drag")
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y)], env=environment, check=True)
+        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        time.sleep(0.1)
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x + 48), str(center_y + 24)], env=environment, check=True)
+        time.sleep(0.15)
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
         time.sleep(0.15)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)

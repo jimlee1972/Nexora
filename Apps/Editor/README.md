@@ -57,7 +57,8 @@ box; Ctrl-click toggles it, and an empty click clears selection. Hierarchy and I
 that selection. Picking authored mesh triangles remains open.
 Dragging a selected proxy previews a world X/Z move of selected roots and their descendants, then
 commits it when the left button is released as one undoable transform transaction. Full 3D gizmo
-handles remain open; the X/Z overview retains its axis handles.
+handles remain open; Escape cancels a drag, and the shared Snap movement setting applies the
+chosen 0.25–4 world-unit step to preview and commit. The X/Z overview retains its axis handles.
 `--native-scene-preview` selects this mode on startup for display acceptance.
 Project-selector activation now indexes content through an application-owned `AssetImportQueue`;
 the selector shows bounded progress and can cancel without activating a partial project. Content

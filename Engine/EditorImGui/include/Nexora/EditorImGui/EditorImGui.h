@@ -58,6 +58,7 @@ struct NativeScenePickRequest final {
 
 struct NativeSceneDragRequest final {
   std::int32_t start_x{}, start_y{}, end_x{}, end_y{}; // framebuffer pixels
+  double snap_step{};
 };
 
 struct RendererMetrics final {
