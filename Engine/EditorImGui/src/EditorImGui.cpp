@@ -118,6 +118,7 @@ struct EditorImGuiHost::State final {
   bool native_scene_preview = false;
   bool native_scene_preview_available = true;
   NativeSceneOrbit native_scene_orbit{};
+  bool native_scene_local_axes{};
   std::optional<NativeScenePickRequest> native_scene_pick;
   std::optional<std::array<std::int32_t, 2>> native_scene_drag_origin;
   double native_scene_drag_snap_step{};
@@ -2207,6 +2208,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::TextDisabled("F: frame | Right: orbit | Wheel: zoom");
         ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y");
         ImGui::TextDisabled("Middle: pan X/Z | Shift+middle: pan Y");
+        ImGui::Checkbox("Local axes", &state_->native_scene_local_axes);
+        ImGui::SameLine();
         constexpr std::array snap_steps{0.25, 0.5, 1.0, 2.0, 4.0};
         ImGui::Checkbox("Snap movement", &state_->scene_snap_to_grid);
         ImGui::SameLine();
@@ -2801,6 +2804,10 @@ void EditorImGuiHost::SetNativeScenePreviewAvailable(bool available) noexcept {
 
 NativeSceneOrbit EditorImGuiHost::GetNativeSceneOrbit() const noexcept {
   return state_->native_scene_orbit;
+}
+
+bool EditorImGuiHost::NativeSceneLocalAxes() const noexcept {
+  return state_->native_scene_local_axes;
 }
 
 bool EditorImGuiHost::SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept {

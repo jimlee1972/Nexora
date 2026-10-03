@@ -191,7 +191,8 @@ selected to center its X/Y/Z target; orbit angle, distance, and target height pe
 Clicking a visible 3D proxy now selects its scene node in Hierarchy and Inspector; Ctrl-click
 toggles selection. Authored mesh picking remains open.
 Dragging a proxy previews its world X/Z move, while Shift-drag moves along world Y. Selected
-proxies show colored X/Y/Z handles that constrain a drag to one world axis. Release commits one
+proxies show colored X/Y/Z handles that constrain a drag to one axis; Local axes rotates the
+handles with the first selected node. Release commits one
 undoable transaction; Escape cancels and optional world-unit steps snap preview and commit.
 Rotation and scale gizmos remain open.
 
@@ -376,7 +377,7 @@ Editor 的 3D Preview 切換現會在 UI 提交後於該矩形繪製原生有深
 點選可見的 3D 代理現會同步選取 Hierarchy 與 Inspector 中的場景節點；Ctrl 點選可切換選取。
 已建立 mesh 的 picking 仍待完成。
 拖曳代理會即時預覽世界 X/Z 位移；按住 Shift 起始拖曳可沿世界 Y 軸移動。選取的代理現有彩色
-X/Y/Z 把手，可限制拖曳於單一世界軸。放開左鍵時提交單次可復原 transaction；Escape 可取消，
+X/Y/Z 把手，可限制拖曳於單一軸；Local axes 可讓把手跟隨第一個選取節點的世界旋轉。放開左鍵時提交單次可復原 transaction；Escape 可取消，
 可選世界單位吸附同時套用於預覽與提交。旋轉及縮放 gizmo 仍待完成。
 
 ### 重要說明

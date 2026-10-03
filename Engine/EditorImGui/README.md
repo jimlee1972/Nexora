@@ -59,8 +59,9 @@ authoring views on first launch.
   application projects both onto the selected node's horizontal plane for X/Z movement, or
   onto its world Y axis when Shift was held at drag start. It draws selected proxies and their
   descendants at the prospective position and commits one undoable world move on release.
-  Selected proxies show colored X/Y/Z handles at the first selected node. Their hit bounds match
-  the rendered boxes; clicking one constrains the drag to that world axis. The application reserves
+  Selected proxies show colored X/Y/Z handles at the first selected node. The Local axes
+  checkbox rotates them with that node's world rotation; otherwise they follow world axes. Their
+  hit bounds enclose the rendered boxes, and a click captures the same axis for the whole drag. The application reserves
   three instance slots for these handles in the native draw. Escape cancels; optional 0.25–4
   world-unit snap steps apply to preview and commit. Rotation and scale handles remain open.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
