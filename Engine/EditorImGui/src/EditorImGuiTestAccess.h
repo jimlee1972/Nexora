@@ -60,6 +60,8 @@ public:
   static void FocusHierarchy(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneMarkerPosition(const EditorImGuiHost &host, SceneDocument::NodeKey entity) noexcept;
+  [[nodiscard]] static std::array<float, 2>
+  SceneOverviewCenter(const EditorImGuiHost &host) noexcept;
   static void QueueHierarchySelection(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                       bool additive, bool range) noexcept;
   static void QueueHierarchyMove(EditorImGuiHost &host, SceneDocument::NodeKey entity,

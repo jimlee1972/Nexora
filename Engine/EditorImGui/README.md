@@ -41,6 +41,8 @@ authoring views on first launch.
   The Scene panel has a top-down X/Z overview with a world grid, composed entity positions,
   middle-button pan, wheel zoom, and click selection synchronized with Hierarchy. It is an
   authoring overview; renderer-backed 3D scene output and gizmos remain open.
+  Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
+  Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
 - `ProjectContentSession` is also borrowed for each `DrawProductShell` call. The Content panel reads
   virtualized ranges from its UUID-keyed model, emits generation-tagged POD drag payloads, and routes
   rename/move/delete/undo/reimport back through the session. Reimport submits to the borrowed
