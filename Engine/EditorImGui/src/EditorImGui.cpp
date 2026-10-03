@@ -114,6 +114,7 @@ struct EditorImGuiHost::State final {
     ImVec2 position;
   };
   std::vector<SceneMarker> scene_markers;
+  std::optional<Nexora::Presentation::SceneViewport> scene_canvas_viewport;
   ImVec2 scene_center_world{};
   float scene_pixels_per_unit = 32.0F;
   bool scene_snap_to_grid = false;
@@ -993,6 +994,27 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
                          ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonMiddle);
   const auto min = ImGui::GetItemRectMin();
   const auto max = ImGui::GetItemRectMax();
+  const auto clip_min = ImGui::GetWindowDrawList()->GetClipRectMin();
+  const auto clip_max = ImGui::GetWindowDrawList()->GetClipRectMax();
+  const auto &framebuffer = ImGui::GetIO();
+  const auto pixel_width = framebuffer.DisplaySize.x * framebuffer.DisplayFramebufferScale.x;
+  const auto pixel_height = framebuffer.DisplaySize.y * framebuffer.DisplayFramebufferScale.y;
+  const auto left =
+      std::clamp(std::floor(std::max(min.x, clip_min.x) * framebuffer.DisplayFramebufferScale.x),
+                 0.0F, pixel_width);
+  const auto top =
+      std::clamp(std::floor(std::max(min.y, clip_min.y) * framebuffer.DisplayFramebufferScale.y),
+                 0.0F, pixel_height);
+  const auto right =
+      std::clamp(std::ceil(std::min(max.x, clip_max.x) * framebuffer.DisplayFramebufferScale.x),
+                 0.0F, pixel_width);
+  const auto bottom =
+      std::clamp(std::ceil(std::min(max.y, clip_max.y) * framebuffer.DisplayFramebufferScale.y),
+                 0.0F, pixel_height);
+  if (right > left && bottom > top)
+    state.scene_canvas_viewport = {
+        static_cast<std::uint32_t>(left), static_cast<std::uint32_t>(top),
+        static_cast<std::uint32_t>(right - left), static_cast<std::uint32_t>(bottom - top)};
   const ImVec2 center{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
   const auto &io = ImGui::GetIO();
   if (state.scene_drag) {
@@ -1894,6 +1916,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
 
 void EditorImGuiHost::BeginFrame(float delta_seconds) {
   Activate(state_->context);
+  state_->scene_canvas_viewport.reset();
   ImGui::GetIO().DeltaTime = std::max(delta_seconds, 0.0001F);
   ImGui::NewFrame();
 }
@@ -2603,6 +2626,11 @@ bool EditorImGuiHost::SetSceneOverviewCamera(SceneOverviewCamera camera) noexcep
   state_->scene_center_world = {static_cast<float>(camera.x), static_cast<float>(camera.z)};
   state_->scene_pixels_per_unit = static_cast<float>(camera.pixels_per_unit);
   return true;
+}
+
+std::optional<Nexora::Presentation::SceneViewport>
+EditorImGuiHost::SceneCanvasViewport() const noexcept {
+  return state_->scene_canvas_viewport;
 }
 
 Nexora::Presentation::SurfaceStatus

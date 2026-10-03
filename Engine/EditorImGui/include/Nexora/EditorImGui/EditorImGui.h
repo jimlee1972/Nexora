@@ -103,6 +103,10 @@ public:
   [[nodiscard]] bool LoadLayout(std::string_view layout);
   [[nodiscard]] SceneOverviewCamera GetSceneOverviewCamera() const noexcept;
   bool SetSceneOverviewCamera(SceneOverviewCamera camera) noexcept;
+  // Current frame's visible Scene canvas in framebuffer pixels, after docking and DPI scaling.
+  // Empty when the panel is not drawn; the value resets at BeginFrame().
+  [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
+  SceneCanvasViewport() const noexcept;
   // Flattens the current ImGui draw data into backend-neutral indexed geometry that RenderSurface
   // records directly into its acquired native GPU image. The RHI overload remains a headless
   // contract-test path.
