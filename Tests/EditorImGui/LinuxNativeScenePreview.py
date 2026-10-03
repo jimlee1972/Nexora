@@ -127,7 +127,9 @@ def axis_handle_pixels(display_name: str, window: int,
                         if rgb[axis] > 80 and all(rgb[other] < 60 for other in range(3)
                                                    if other != axis):
                             found[axis].append((px, py))
-            return [pixels[len(pixels) // 2] if pixels else None for pixels in found]
+            return [sorted(pixels, key=lambda pixel: (pixel[0] - center_x) ** 2 +
+                    (pixel[1] - center_y) ** 2)[int(len(pixels) * 0.8)] if pixels else None
+                    for pixels in found]
         finally:
             x11.XDestroyImage(image)
     finally:
