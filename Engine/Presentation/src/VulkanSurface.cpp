@@ -14,8 +14,8 @@
 #else
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
-#include <vulkan/vulkan_win32.h>
 #include <windows.h>
+#include <vulkan/vulkan_win32.h>
 #endif
 
 #include <algorithm>

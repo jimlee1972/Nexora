@@ -24,7 +24,9 @@ if(WIN32)
 endif()
 if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND
    (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
-  find_library(NEXORA_VULKAN_LIBRARY NAMES vulkan vulkan.so.1 REQUIRED)
+  find_library(NEXORA_VULKAN_LIBRARY NAMES vulkan vulkan.so.1 vulkan-1
+               HINTS ENV VULKAN_SDK
+               PATH_SUFFIXES Lib lib REQUIRED)
   target_sources(NexoraPresentation PRIVATE src/VulkanSurface.cpp)
   target_include_directories(NexoraPresentation PRIVATE "${NEXORA_VULKAN_INCLUDE_DIR}")
   target_link_libraries(NexoraPresentation PRIVATE "${NEXORA_VULKAN_LIBRARY}")
