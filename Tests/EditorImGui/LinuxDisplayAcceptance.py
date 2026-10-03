@@ -343,6 +343,9 @@ def main() -> int:
                        check=True)
         subprocess.run([args.xdotool, "mousemove", "200", "160", "click", "1"],
                        env=environment, check=True)
+        subprocess.run([args.xdotool, "mousemove", "640", "300", "click", "4"],
+                       env=environment, check=True)
+        time.sleep(0.5)
         # The initial Scene Root is unsaved. Native close must keep the window alive until the
         # user decides; Escape cancels the prompt and permits subsequent editing and saving.
         request_window_close(window, environment)
@@ -361,10 +364,6 @@ def main() -> int:
             time.sleep(0.1)
         if not scene_file.is_file():
             raise RuntimeError("scene save after cancelling close did not finish")
-        subprocess.run([args.xdotool, "mousemove", "640", "300", "click", "4"],
-                       env=environment, check=True)
-        time.sleep(0.5)
-
         # A real close event must stop the unbounded loop and still drain/persist cleanly.
         subprocess.run([args.xdotool, "windowclose", window], env=environment, check=True)
         _, stderr = editor.communicate(timeout=30)
