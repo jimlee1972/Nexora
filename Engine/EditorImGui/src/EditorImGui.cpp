@@ -298,12 +298,14 @@ void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
   const auto project_window = PanelWindowName("nexora.project");
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
   const auto console_window = PanelWindowName("nexora.console");
+  const auto profiler_window = PanelWindowName("nexora.profiler");
   const auto content_window = PanelWindowName("nexora.content");
   const auto scene_window = PanelWindowName("nexora.scene");
   const auto game_window = PanelWindowName("nexora.game");
   ImGui::DockBuilderDockWindow(project_window.c_str(), hierarchy);
   ImGui::DockBuilderDockWindow(hierarchy_window.c_str(), hierarchy);
   ImGui::DockBuilderDockWindow(console_window.c_str(), console);
+  ImGui::DockBuilderDockWindow(profiler_window.c_str(), console);
   ImGui::DockBuilderDockWindow(content_window.c_str(), console);
   ImGui::DockBuilderDockWindow(scene_window.c_str(), center);
   ImGui::DockBuilderDockWindow(game_window.c_str(), center);
@@ -2024,7 +2026,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
                                        RecentProjectStore *recent_projects,
                                        AssetImportQueue *imports, runtime::RuntimeConsole *console,
-                                       runtime::PlaySession *play) {
+                                       runtime::PlaySession *play, ProfileSession *profile) {
   Activate(state_->context);
   state_->selector_visible = false;
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
@@ -2241,6 +2243,43 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         }
       }
       ImGui::EndChild();
+    }
+  }
+  ImGui::End();
+  const auto profiler_window = PanelWindowName("nexora.profiler");
+  if (ImGui::Begin(profiler_window.c_str())) {
+    if (profile == nullptr) {
+      ImGui::TextDisabled("Frame capture unavailable.");
+    } else {
+      bool capturing = profile->Capturing();
+      if (ImGui::Checkbox("Capture", &capturing))
+        profile->SetCapturing(capturing);
+      ImGui::SameLine();
+      if (ImGui::Button("Clear"))
+        profile->Clear();
+      const auto samples = profile->Samples();
+      ImGui::Text("%zu frames retained | %llu older frames dropped", samples.size(),
+                  static_cast<unsigned long long>(profile->DroppedCount()));
+      ImGui::TextDisabled("Editor frame processing: wall time after BeginFrame, before Present.");
+      ImGui::TextDisabled("GPU time and process memory are not instrumented.");
+      if (!samples.empty()) {
+        std::vector<float> values;
+        values.reserve(samples.size());
+        double sum = 0.0;
+        double peak = 0.0;
+        float maximum = 1.0F;
+        for (const auto &sample : samples) {
+          values.push_back(static_cast<float>(
+              std::min(sample.cpu_ms, static_cast<double>(std::numeric_limits<float>::max()))));
+          sum += sample.cpu_ms;
+          peak = std::max(peak, sample.cpu_ms);
+          maximum = std::max(maximum, values.back());
+        }
+        ImGui::Text("Latest %.2f ms | Average %.2f ms | Peak %.2f ms", samples.back().cpu_ms,
+                    sum / static_cast<double>(samples.size()), peak);
+        ImGui::PlotLines("Frame processing (ms)", values.data(), static_cast<int>(values.size()), 0,
+                         nullptr, 0.0F, maximum, ImVec2(-1.0F, 120.0F));
+      }
     }
   }
   ImGui::End();

@@ -1172,6 +1172,20 @@ int Run() {
   Require(profile.Add({1, 2.0, 3.0, 100}) && profile.Add({2, 8.0, 4.0, 200}) &&
               !profile.Add({2, 1.0, 1.0, 1}) && profile.Peak()->frame == 2,
           "profile session failed");
+  editor::ProfileSession bounded_profile{2};
+  Require(bounded_profile.Add({1, 2.0, 0.0, 0}) && bounded_profile.Add({2, 4.0, 0.0, 0}) &&
+              bounded_profile.Add({3, 1.0, 0.0, 0}) && bounded_profile.Samples().size() == 2 &&
+              bounded_profile.Samples().front().frame == 2 && bounded_profile.DroppedCount() == 1 &&
+              bounded_profile.Peak()->frame == 2,
+          "bounded profiler must evict the oldest frame and count dropped samples");
+  bounded_profile.SetCapturing(false);
+  Require(!bounded_profile.Add({4, 8.0, 0.0, 0}) && bounded_profile.DroppedCount() == 1,
+          "paused profiler must not ingest or count frames");
+  bounded_profile.Clear();
+  bounded_profile.SetCapturing(true);
+  Require(bounded_profile.Samples().empty() && bounded_profile.DroppedCount() == 0 &&
+              bounded_profile.Add({5, 3.0, 0.0, 0}),
+          "cleared profiler must resume with an empty bounded history");
   editor::VirtualHierarchy hierarchy(100000);
   Require(hierarchy.Visible(99990, 50) == std::pair<std::size_t, std::size_t>{99990, 10},
           "virtual hierarchy bounds failed");

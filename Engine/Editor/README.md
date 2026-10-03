@@ -133,6 +133,10 @@ into renderer or platform internals.
   explicit mixed state. Unknown component stores own opaque bytes and replace their state only
   after a complete payload validates, so unavailable plugins do not silently discard authoring
   data.
+- `ProfileSession` retains a bounded, monotonic frame history. Invalid or out-of-order samples are
+  rejected; capacity evictions increment a dropped count. Capture can be paused and cleared without
+  changing project files. The graphical host currently supplies Editor frame processing wall time
+  after BeginFrame and before Present; GPU timing and process memory are not instrumented.
 - Gizmo transactions own their stable-ID and initial-transform snapshots until commit or cancel.
   If an update callback rejects a target after earlier targets were applied, the transaction uses
   that same callback to restore those earlier targets from the initial snapshot before reporting

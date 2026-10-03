@@ -140,11 +140,21 @@ bool BuildFrontend::Write(const BuildManifest &manifest, const std::filesystem::
 }
 
 bool ProfileSession::Add(FrameSample sample) {
-  if (!std::isfinite(sample.cpu_ms) || !std::isfinite(sample.gpu_ms) || sample.cpu_ms < 0 ||
-      sample.gpu_ms < 0 || (!samples_.empty() && sample.frame <= samples_.back().frame))
+  if (!capturing_ || capacity_ == 0 || !std::isfinite(sample.cpu_ms) ||
+      !std::isfinite(sample.gpu_ms) || sample.cpu_ms < 0 || sample.gpu_ms < 0 ||
+      (!samples_.empty() && sample.frame <= samples_.back().frame))
     return false;
+  if (samples_.size() == capacity_) {
+    samples_.erase(samples_.begin());
+    ++dropped_;
+  }
   samples_.push_back(sample);
   return true;
+}
+
+void ProfileSession::Clear() noexcept {
+  samples_.clear();
+  dropped_ = 0;
 }
 
 std::optional<FrameSample> ProfileSession::Peak() const noexcept {
