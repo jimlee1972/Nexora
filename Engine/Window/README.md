@@ -12,7 +12,8 @@ pump or system destruction. Destroy removes queued events and no callback or def
 
 Win32 provides per-monitor DPI, keyboard/text/IME, pointer-button and wheel translation, including
 native IME candidate positioning. X11 provides close, configure, focus, physical-key, XIM-backed
-UTF-8 text, pointer-button and two-axis wheel translation plus EWMH fullscreen; each committed Unicode
+UTF-8 text, pointer-button and two-axis wheel translation plus EWMH fullscreen; X11 buttons 2 and 3
+map to the shared right-button index 1 and middle-button index 2 respectively. Each committed Unicode
 scalar is a separate `Text` event, while candidate positioning reports `Unsupported`. An X11 input
 context is owned per window and is destroyed before that window or the display connection. A window
 destroyed by the server or another client (no `WM_DELETE_WINDOW` is ever sent) is reported as
