@@ -170,6 +170,57 @@ void TestHierarchyDeleteShortcut() {
   assert(scene.Undo() && scene.Nodes().size() == 2 && scene.Parent(child) == root);
 }
 
+void TestHierarchyCreateShortcut() {
+  nexora::runtime::World world;
+  const auto scene_id = world.LoadScene("Create shortcut");
+  assert(world.Activate(scene_id));
+  nexora::editor::SceneDocument scene(world, scene_id);
+  nexora::editor::ProductShell shell;
+  nexora::editor::imgui::EditorImGuiHost host;
+  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  host.SetDisplay(1280.0F, 720.0F, 1.0F);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  const std::array events{
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 1, 0},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::LeftControl),
+                                  1,
+                                  Nexora::Window::KeyModifiers::Control},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::LeftShift),
+                                  1,
+                                  static_cast<Nexora::Window::KeyModifiers>(3)},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::N),
+                                  1,
+                                  static_cast<Nexora::Window::KeyModifiers>(3)}};
+  host.ProcessEvents(events);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  assert(shell.LastCommand() == "editor.scene.create" && scene.Nodes().size() == 1 &&
+         scene.Nodes().front().name == "Entity");
+  assert(scene.Undo() && scene.Nodes().empty());
+}
+
 void TestHierarchyDuplicateShortcut() {
   nexora::runtime::World world;
   const auto scene_id = world.LoadScene("Duplicate shortcut");
@@ -423,6 +474,7 @@ int main() {
   TestSceneUndoShortcut();
   TestSceneClipboardShortcuts();
   TestHierarchyDeleteShortcut();
+  TestHierarchyCreateShortcut();
   TestHierarchyDuplicateShortcut();
   TestSceneOverviewSelection();
   TestSceneOverviewDrag();
@@ -783,8 +835,7 @@ int main() {
   };
   key_event(Nexora::Window::Key::Z, true, true);
   key_event(Nexora::Window::Key::Z, false);
-  assert(shell.LastCommand() != "editor.scene.undo" &&
-         scene.Transform(root) == before_text_edit);
+  assert(shell.LastCommand() != "editor.scene.undo" && scene.Transform(root) == before_text_edit);
   key_event(Nexora::Window::Key::A, true, true);
   key_event(Nexora::Window::Key::A, false);
   for (const char character : std::string_view{"450"}) {

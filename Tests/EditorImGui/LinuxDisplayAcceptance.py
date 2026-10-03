@@ -346,6 +346,8 @@ def main() -> int:
         subprocess.run([args.xdotool, "mousemove", "640", "300", "click", "4"],
                        env=environment, check=True)
         time.sleep(0.5)
+        subprocess.run([args.xdotool, "key", "ctrl+shift+n"], env=environment, check=True)
+        time.sleep(0.2)
         # The initial Scene Root is unsaved. Native close must keep the window alive until the
         # user decides; Escape cancels the prompt and permits subsequent editing and saving.
         request_window_close(window, environment)
@@ -364,6 +366,9 @@ def main() -> int:
             time.sleep(0.1)
         if not scene_file.is_file():
             raise RuntimeError("scene save after cancelling close did not finish")
+        saved_scene = scene_file.read_text()
+        if not re.search(r"^node [0-9]+ 0 Entity$", saved_scene, re.MULTILINE):
+            raise RuntimeError("Hierarchy shortcut did not save the created root")
         # A real close event must stop the unbounded loop and still drain/persist cleanly.
         subprocess.run([args.xdotool, "windowclose", window], env=environment, check=True)
         _, stderr = editor.communicate(timeout=30)
@@ -400,7 +405,8 @@ def main() -> int:
         (root / ".nexora/editor-layout.ini").write_text("schema=999\ncorrupt\n")
         editor = launch(args.editor, root, recent_projects, environment, frames=8)
         _, stderr = editor.communicate(timeout=30)
-        if editor.returncode != 0 or "invalid or unsupported editor layout" not in stderr:
+        if (editor.returncode != 0 or "invalid or unsupported editor layout" not in stderr or
+                "scene_nodes=2" not in stderr):
             raise RuntimeError(f"corrupt-layout recovery failed: {stderr}")
         editor = None
         if not (root / ".nexora/editor-layout.ini").read_text().startswith("schema=1\n"):

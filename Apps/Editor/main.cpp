@@ -384,7 +384,8 @@ int RunGraphical(std::optional<ProjectState> project,
                 : project->workspace.UpgradeState() == nexora::editor::ProjectUpgradeState::Required
                     ? "required"
                     : "current")
-            << " recents=" << recent_projects.Entries().size() << '\n';
+            << " recents=" << recent_projects.Entries().size()
+            << " scene_nodes=" << scene.Nodes().size() << '\n';
   if (created.surface->DrainAndDestroy() != Nexora::Presentation::SurfaceStatus::Ready)
     result = 1;
   return result;

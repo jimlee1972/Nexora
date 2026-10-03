@@ -30,7 +30,8 @@ authoring views on first launch.
   Create root/child queues a name and optional generation-keyed parent; the authoring thread
   applies the request even if the dock tab is hidden on the next frame. Success selects the new
   entity, expands its parent, and clears a filter that would hide it. Invalid names or stale parents
-  leave the document unchanged and show an error.
+  leave the document unchanged and show an error. Ctrl+Shift+N queues a root with the current
+  create-name field outside text input and recovery.
   Copy and Paste buttons, plus Ctrl+C and Ctrl+V outside text inputs, route to the scene document's
   snapshot clipboard. Paste selects and reveals the new roots; failures appear in the Hierarchy.
   Shortcuts are disabled while a recovery journal awaits a choice.
