@@ -206,32 +206,35 @@ def main() -> int:
                 time.sleep(0.05)
         if any(handle is None for handle in handles):
             raise RuntimeError(f"selected proxy lacks visible XYZ axis handles: {handles}")
-        handle_x, handle_y = handles[0]
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(handle_x), str(handle_y)], env=environment, check=True)
-        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
-        time.sleep(0.1)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(handle_x + 40), str(handle_y)], env=environment, check=True)
-        time.sleep(0.15)
-        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
         before = first_entity_position(initial_scene)
-        after = before
-        deadline = time.monotonic() + 5
-        while time.monotonic() < deadline and abs(after[0] - before[0]) < 0.1:
-            time.sleep(0.05)
-            after = first_entity_position(scene_file.read_text())
-        if (abs(after[0] - before[0]) < 0.1 or abs(after[1] - before[1]) > 1e-6 or
-                abs(after[2] - before[2]) > 1e-6):
-            raise RuntimeError(f"X handle drag did not constrain movement: {before} -> {after}")
-        subprocess.run([args.xdotool, "key", "ctrl+z"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
-        deadline = time.monotonic() + 5
-        while time.monotonic() < deadline and scene_file.read_text() != initial_scene:
-            time.sleep(0.05)
-        if scene_file.read_text() != initial_scene:
-            raise RuntimeError("axis handle drag did not undo atomically")
+        for axis, (dx, dy) in enumerate(((40, 0), (0, -40), (-30, 25))):
+            handle_x, handle_y = handles[axis]
+            subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                            str(handle_x), str(handle_y)], env=environment, check=True)
+            subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+            time.sleep(0.1)
+            subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                            str(handle_x + dx), str(handle_y + dy)], env=environment, check=True)
+            time.sleep(0.15)
+            subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+            subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+            after = before
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline and abs(after[axis] - before[axis]) < 0.1:
+                time.sleep(0.05)
+                after = first_entity_position(scene_file.read_text())
+            if (abs(after[axis] - before[axis]) < 0.1 or
+                    any(abs(after[other] - before[other]) > 1e-6 for other in range(3)
+                        if other != axis)):
+                raise RuntimeError(f"XYZ handle {axis} did not constrain movement: "
+                                   f"{before} -> {after}")
+            subprocess.run([args.xdotool, "key", "ctrl+z"], env=environment, check=True)
+            subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline and scene_file.read_text() != initial_scene:
+                time.sleep(0.05)
+            if scene_file.read_text() != initial_scene:
+                raise RuntimeError(f"axis handle {axis} drag did not undo atomically")
         subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                         str(center_x), str(center_y)], env=environment, check=True)
         _, before_drag_pixels = scene_pixels(display, window, viewport)
