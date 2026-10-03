@@ -177,8 +177,10 @@ creates property widgets; unknown components retain raw data instead of being si
   checks that wheel zoom survives a project reopen. Full 3D camera controls remain open.
 - ✅ The graphical Scene panel now shows an exact unsaved-content indicator. The baseline advances
   only after successful save/reload, and Undo back to that content clears the marker; contract tests
-  include subtree deletion, failed save, and external Runtime edits. A close-time dirty prompt
-  remains open.
+  include subtree deletion, failed save, and external Runtime edits.
+- ✅ A native close request now opens an unsaved-scene confirmation with Save and Exit, Discard and
+  Exit, and Cancel. Failed or read-only saves keep the dialog open. External native-window destruction
+  still stops rendering; graphical close/reopen acceptance remains open.
 - Open: graphical Scene View, the complete reflected Inspector, renderer-backed picking, camera
   controls, gizmos, reflected widgets,
   and unknown-component visual workflows. ED-M2 exit still requires UI

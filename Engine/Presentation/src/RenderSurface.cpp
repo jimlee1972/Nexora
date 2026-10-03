@@ -13,6 +13,7 @@ struct RenderSurface::State final {
   SurfaceFrameInfo frame;
   std::vector<Window::WindowEvent> events;
   bool closeRequested = false;
+  bool windowDestroyed = false;
   bool destroyed = false;
 };
 
@@ -31,6 +32,10 @@ SurfaceStatus RenderSurface::BeginFrame() {
     switch (event.type) {
     case Window::WindowEventType::CloseRequested:
       state_->closeRequested = true;
+      break;
+    case Window::WindowEventType::WindowDestroyed:
+      state_->closeRequested = true;
+      state_->windowDestroyed = true;
       break;
     case Window::WindowEventType::Resized:
       state_->frame.width = event.width;
@@ -86,6 +91,13 @@ SurfaceStatus RenderSurface::DrawScene(const SceneDrawData &draw_data) {
 }
 
 bool RenderSurface::CloseRequested() const noexcept { return !state_ || state_->closeRequested; }
+
+bool RenderSurface::CancelCloseRequest() noexcept {
+  if (!state_ || state_->destroyed || state_->windowDestroyed || !state_->closeRequested)
+    return false;
+  state_->closeRequested = false;
+  return true;
+}
 
 const SurfaceInputSnapshot &RenderSurface::Input() const noexcept {
   static const SurfaceInputSnapshot empty;

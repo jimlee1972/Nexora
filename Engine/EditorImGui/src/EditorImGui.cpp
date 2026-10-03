@@ -81,6 +81,8 @@ struct EditorImGuiHost::State final {
   std::uint32_t surface_font_generation = 0;
   RendererMetrics renderer_metrics;
   RecoveryChoice recovery_choice = RecoveryChoice::None;
+  CloseChoice close_choice = CloseChoice::None;
+  bool close_prompt_requested = false;
   bool recovery_prompt_opened = false;
   bool initial_dock_layout_built = false;
   bool focus_initial_content = false;
@@ -1364,7 +1366,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Cancel")) {
+    if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
       state.content_rename_target.reset();
       ImGui::CloseCurrentPopup();
     }
@@ -1937,6 +1939,27 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     }
     ImGui::EndPopup();
   }
+  if (state_->close_prompt_requested) {
+    ImGui::OpenPopup("Unsaved scene###editor.close");
+    state_->close_prompt_requested = false;
+  }
+  if (ImGui::BeginPopupModal("Unsaved scene###editor.close", nullptr,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    ImGui::TextUnformatted("Save scene changes before closing?");
+    if (ImGui::Button("Save and Exit"))
+      state_->close_choice = CloseChoice::SaveAndExit;
+    ImGui::SameLine();
+    if (ImGui::Button("Discard and Exit"))
+      state_->close_choice = CloseChoice::DiscardAndExit;
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel")) {
+      state_->close_choice = CloseChoice::Cancel;
+      ImGui::CloseCurrentPopup();
+    }
+    if (!state_->scene_save_success && !state_->scene_save_message.empty())
+      ImGui::TextWrapped("%s", state_->scene_save_message.c_str());
+    ImGui::EndPopup();
+  }
 }
 
 bool EditorImGuiHost::TakeSceneSaveRequest() noexcept {
@@ -1946,6 +1969,12 @@ bool EditorImGuiHost::TakeSceneSaveRequest() noexcept {
 void EditorImGuiHost::SetSceneSaveResult(std::string message, bool success) {
   state_->scene_save_message = std::move(message);
   state_->scene_save_success = success;
+}
+
+void EditorImGuiHost::RequestCloseConfirmation() noexcept { state_->close_prompt_requested = true; }
+
+CloseChoice EditorImGuiHost::TakeCloseChoice() noexcept {
+  return std::exchange(state_->close_choice, CloseChoice::None);
 }
 
 std::uint32_t EditorImGuiHost::Render(nexora::rhi::Device &device,

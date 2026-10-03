@@ -27,6 +27,7 @@ struct WindowDescriptor final {
 
 enum class WindowEventType : std::uint8_t {
   CloseRequested,
+  WindowDestroyed,
   Resized,
   DpiChanged,
   FocusChanged,

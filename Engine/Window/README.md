@@ -15,9 +15,11 @@ native IME candidate positioning. X11 provides close, configure, focus, physical
 UTF-8 text, pointer-button and two-axis wheel translation plus EWMH fullscreen; each committed Unicode
 scalar is a separate `Text` event, while candidate positioning reports `Unsupported`. An X11 input
 context is owned per window and is destroyed before that window or the display connection. A window
-destroyed by the server or another client (no `WM_DELETE_WINDOW` is ever sent) is reported as a close
-request, and the system does not destroy it a second time. Cocoa
-provides native window lifetime, resize observation, visibility, and Spaces fullscreen. Display/DPI
+destroyed by the server or another client (no `WM_DELETE_WINDOW` is ever sent) is reported as
+`WindowDestroyed`, and the system does not destroy it a second time. Ordinary close requests leave
+the native window alive for application confirmation. Cocoa intercepts its native close action through
+a delegate and reports it once; programmatic destruction bypasses that veto. Cocoa also provides
+native window lifetime, resize observation, visibility, and Spaces fullscreen. Display/DPI
 changes are represented by backend-neutral `DisplayChanged` and `DpiChanged` events where a host
 reports them.
 

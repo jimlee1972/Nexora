@@ -56,6 +56,9 @@ public:
   [[nodiscard]] SurfaceStatus CompositeScene();
   [[nodiscard]] SurfaceStatus EndFrame();
   [[nodiscard]] bool CloseRequested() const noexcept;
+  // Cancels a user close request while the native window still exists. A destroyed window cannot
+  // be revived; callers should stop rendering when this returns false.
+  [[nodiscard]] bool CancelCloseRequest() noexcept;
   [[nodiscard]] const SurfaceInputSnapshot &Input() const noexcept;
   [[nodiscard]] const SurfaceFrameInfo &FrameInfo() const noexcept;
   [[nodiscard]] std::span<const Window::WindowEvent> Events() const noexcept;

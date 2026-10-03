@@ -324,6 +324,7 @@ public:
         // no WM_DELETE_WINDOW will ever arrive. Report it as a close request so the owner stops.
         emit = native.xdestroywindow.event == native.xdestroywindow.window;
         if (emit) {
+          event.type = WindowEventType::WindowDestroyed;
           gone_.insert(native.xdestroywindow.window);
           DestroyInputContext(native.xdestroywindow.window);
         }
