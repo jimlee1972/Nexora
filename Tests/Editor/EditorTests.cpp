@@ -584,6 +584,39 @@ int Run() {
   Require(pasted_child != child && document.Transform(pasted_child)->x == 1.0 && document.Undo() &&
               !document.Key(pasted_child) && document.Selection().empty(),
           "pasted pose or single-step creation undo failed");
+  {
+    runtime::World deletion_world;
+    const auto deletion_scene = deletion_world.LoadScene("Delete contract");
+    Require(deletion_world.Activate(deletion_scene), "delete scene activation failed");
+    editor::SceneDocument deletions(deletion_world, deletion_scene);
+    const auto delete_parent = deletions.Create("Parent");
+    const auto nested = deletions.Create("Nested", delete_parent);
+    const auto delete_sibling = deletions.Create("Sibling");
+    const std::array nested_selection{delete_parent, nested};
+    Require(delete_parent && nested && delete_sibling && deletions.Select(nested_selection) &&
+                deletions.DeleteSelection() && deletions.Nodes().size() == 1 &&
+                !deletions.Key(delete_parent) && !deletions.Key(nested) &&
+                deletions.Selection().empty(),
+            "deleting a selected ancestor must remove its subtree once");
+    const auto deleted_scene_path = root / "Content/Deleted.scene";
+    runtime::World reloaded_deletion_world;
+    editor::SceneDocument reloaded_deletion(reloaded_deletion_world,
+                                            reloaded_deletion_world.LoadScene("Placeholder"));
+    Require(deletions.Save(deleted_scene_path) && reloaded_deletion.Reload(deleted_scene_path) &&
+                reloaded_deletion.Nodes().size() == 1 &&
+                reloaded_deletion.Name(delete_sibling) == "Sibling" &&
+                !reloaded_deletion.Key(delete_parent),
+            "saved deletion must not resurrect removed node metadata");
+    Require(deletions.Undo() && deletions.Nodes().size() == 3 &&
+                deletions.Parent(nested) == delete_parent && deletions.Name(nested) == "Nested" &&
+                deletions.Selection().size() == 2,
+            "undoing subtree deletion must restore node metadata and selection");
+    const std::array root_selection{delete_parent, delete_sibling};
+    Require(deletions.Select(root_selection) && deletions.DeleteSelection() &&
+                deletions.Nodes().empty() && deletions.Undo() && deletions.Nodes().size() == 1 &&
+                deletions.Undo() && deletions.Nodes().size() == 3,
+            "multi-root deletion must restore one selected root per undo step");
+  }
   const auto scene_path = root / "Content/Main.scene";
   Require(document.Save(scene_path), "scene atomic save failed");
   runtime::World loaded_world;

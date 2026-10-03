@@ -190,6 +190,9 @@ public:
   [[nodiscard]] std::optional<runtime::Transform> Transform(runtime::Id entity) const noexcept;
   bool CopySelection();
   bool Paste();
+  // Deletes selected subtrees. Each selected root is one undo step; descendants are not deleted
+  // twice.
+  bool DeleteSelection();
   bool Undo();
   bool Save(const std::filesystem::path &path) const;
   bool Reload(const std::filesystem::path &path);
@@ -222,6 +225,8 @@ private:
     NodeKey entity;
     std::string previous_name;
     std::vector<std::pair<NodeKey, std::optional<EulerHint>>> previous_hints{};
+    std::vector<Node> deleted_nodes{};
+    std::vector<runtime::Id> previous_selection{};
   };
   runtime::World &world_;
   runtime::Id scene_{};

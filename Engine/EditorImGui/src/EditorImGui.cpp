@@ -572,7 +572,20 @@ template <typename StateT> void PasteHierarchySelection(StateT &state, SceneDocu
   state.hierarchy_error.clear();
 }
 
-template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scene) {
+template <typename StateT> void DeleteHierarchySelection(StateT &state, SceneDocument &scene) {
+  if (!scene.DeleteSelection()) {
+    state.hierarchy_error = "Delete failed because the selection is empty or stale.";
+    state.hierarchy_status.clear();
+    return;
+  }
+  state.hierarchy_selection_anchor.reset();
+  state.hierarchy_status = "Deleted selected entities. Undo restores them.";
+  state.hierarchy_error.clear();
+}
+
+template <typename StateT>
+void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
+                   bool recovery_available) {
   ImGui::SetNextItemWidth(-1.0F);
   ImGui::InputTextWithHint("##hierarchy-filter", "Filter entities...",
                            state.hierarchy_filter.data(), state.hierarchy_filter.size());
@@ -598,6 +611,18 @@ template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scen
       state.hierarchy_error = "Create rejected because the selected parent is stale.";
   }
   ImGui::EndDisabled();
+  ImGui::SameLine();
+  ImGui::BeginDisabled(recovery_available || scene->Selection().empty());
+  if (ImGui::SmallButton("Delete selected")) {
+    static_cast<void>(shell.RouteCommand("editor.scene.delete"));
+    DeleteHierarchySelection(state, *scene);
+  }
+  ImGui::EndDisabled();
+  if (!recovery_available && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+      !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+    static_cast<void>(shell.RouteCommand("editor.scene.delete"));
+    DeleteHierarchySelection(state, *scene);
+  }
   if (!state.hierarchy_error.empty())
     ImGui::TextWrapped("%s", state.hierarchy_error.c_str());
   if (!state.hierarchy_status.empty())
@@ -1610,7 +1635,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
   ApplyPendingHierarchyRequests(*state_, scene);
   if (ImGui::Begin(hierarchy_window.c_str()))
-    DrawHierarchy(*state_, scene);
+    DrawHierarchy(*state_, scene, shell, recovery_available);
   ImGui::End();
   const auto inspector_window = PanelWindowName("nexora.inspector");
   if (ImGui::Begin(inspector_window.c_str()))
@@ -2076,6 +2101,12 @@ void EditorImGuiTestAccess::SetHierarchyFilter(EditorImGuiHost &host,
   const auto count = std::min(filter.size(), host.state_->hierarchy_filter.size() - 1);
   std::memcpy(host.state_->hierarchy_filter.data(), filter.data(), count);
   host.state_->hierarchy_filter[count] = '\0';
+}
+
+void EditorImGuiTestAccess::FocusHierarchy(EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto name = PanelWindowName("nexora.hierarchy");
+  ImGui::SetWindowFocus(name.c_str());
 }
 
 void EditorImGuiTestAccess::QueueHierarchySelection(EditorImGuiHost &host,
