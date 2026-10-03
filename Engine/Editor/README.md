@@ -238,7 +238,7 @@ and Cancel restores the start exactly. The decision table:
 | Invalid frames | A malformed operation or an unrepresentable result makes `ApplyGizmo` return nullopt. The caller keeps the previous frame. |
 
 Snapping is the caller's choice with `SnapToStep` on the distance, angle (in degrees), or factor.
-Renderer-backed ID-buffer picking, live scale preview, and a uniform scale handle remain open. The
+Renderer-backed ID-buffer picking and a uniform scale handle remain open. The
 Editor native proxy preview now draws and picks X/Y/Z translation bars, rotation rings, or local
 scale cubes. The local basis uses the first selected node's world rotation without mirroring axes.
 `PickOrientedBox` tests a viewport ray against a rotated proxy or handle box after a conservative

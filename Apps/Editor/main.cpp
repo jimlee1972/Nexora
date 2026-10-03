@@ -497,7 +497,8 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     nexora::editor::imgui::NativeSceneTool tool,
     std::optional<std::array<double, 3>> drag_preview = std::nullopt,
     std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview =
-        std::nullopt) {
+        std::nullopt,
+    std::optional<std::pair<std::size_t, double>> scale_preview = std::nullopt) {
   static const NativeSceneProxyMesh mesh;
   const auto candidates = NativeSceneProxyCandidates(scene);
   const auto handles = tool == nexora::editor::imgui::NativeSceneTool::Rotate
@@ -599,6 +600,24 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
             static_cast<float>(dw * pose->qz + dx * pose->qy - dy * pose->qx + dz * pose->qw);
         instance.rotation[3] =
             static_cast<float>(dw * pose->qw - dx * pose->qx - dy * pose->qy - dz * pose->qz);
+      }
+    }
+    if (scale_preview && root != 0) {
+      const auto [found, inserted] = root_poses.try_emplace(root);
+      if (inserted)
+        found->second = scene.WorldTransform(root);
+      if (const auto &root_pose = found->second) {
+        const auto basis = nexora::editor::GizmoAxes(*root_pose, nexora::editor::GizmoSpace::Local);
+        const auto axis = basis[scale_preview->first];
+        const double factor = scale_preview->second;
+        const nexora::editor::ViewportVector pivot{root_pose->x, root_pose->y + 0.5, root_pose->z};
+        const double offset = (instance.translation[0] - pivot.x) * axis.x +
+                              (instance.translation[1] - pivot.y) * axis.y +
+                              (instance.translation[2] - pivot.z) * axis.z;
+        instance.translation[0] += static_cast<float>(axis.x * offset * (factor - 1.0));
+        instance.translation[1] += static_cast<float>(axis.y * offset * (factor - 1.0));
+        instance.translation[2] += static_cast<float>(axis.z * offset * (factor - 1.0));
+        instance.scale[scale_preview->first] *= static_cast<float>(factor);
       }
     }
     const bool is_selected = selected.contains(candidate.entity);
@@ -1070,10 +1089,16 @@ int RunGraphical(std::optional<ProjectState> project,
         }
         std::optional<std::array<double, 3>> drag_preview;
         std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview;
+        std::optional<std::pair<std::size_t, double>> scale_preview;
         if (const auto drag = ui.NativeSceneDragPreview(); drag && !scene.Selection().empty()) {
           const auto pose = scene.WorldTransform(scene.Selection().front());
           if (pose) {
-            if (native_scene_drag_rotate && native_scene_drag_axis) {
+            if (native_scene_drag_scale_axis && native_scene_drag_axis) {
+              if (const auto factor = NativeSceneDragScaleFactor(
+                      *viewport, ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(), *drag,
+                      *pose, *native_scene_drag_axis))
+                scale_preview = std::pair{*native_scene_drag_scale_axis, *factor};
+            } else if (native_scene_drag_rotate && native_scene_drag_axis) {
               if (const auto angle = NativeSceneDragAngle(*viewport, ui.GetSceneOverviewCamera(),
                                                           ui.GetNativeSceneOrbit(), *drag, *pose,
                                                           *native_scene_drag_axis))
@@ -1085,10 +1110,10 @@ int RunGraphical(std::optional<ProjectState> project,
             }
           }
         }
-        const auto scene_status =
-            DrawNativeScenePreview(*created.surface, scene, *viewport, ui.GetSceneOverviewCamera(),
-                                   ui.GetNativeSceneOrbit(), ui.NativeSceneLocalAxes(),
-                                   ui.GetNativeSceneTool(), drag_preview, rotation_preview);
+        const auto scene_status = DrawNativeScenePreview(
+            *created.surface, scene, *viewport, ui.GetSceneOverviewCamera(),
+            ui.GetNativeSceneOrbit(), ui.NativeSceneLocalAxes(), ui.GetNativeSceneTool(),
+            drag_preview, rotation_preview, scale_preview);
         ui.SetNativeScenePreviewAvailable(scene_status !=
                                           Nexora::Presentation::SurfaceStatus::Unsupported);
         if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&

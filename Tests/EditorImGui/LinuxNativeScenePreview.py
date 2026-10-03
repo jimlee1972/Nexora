@@ -462,11 +462,23 @@ def main() -> int:
             subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                             str(handle_x), str(handle_y)], env=environment, check=True)
             time.sleep(0.2)
+            before_scale_pixels = scene_region_pixels(display, window, viewport)
             subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
             time.sleep(0.1)
             subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                             str(handle_x + dx), str(handle_y + dy)], env=environment, check=True)
-            time.sleep(0.15)
+            deadline = time.monotonic() + 3
+            scale_visible = False
+            while time.monotonic() < deadline and not scale_visible:
+                preview_pixels = scene_region_pixels(display, window, viewport)
+                scale_visible = sum(abs(a - b) for a, b in zip(before_scale_pixels,
+                                                                preview_pixels)) > 400
+                if not scale_visible:
+                    time.sleep(0.05)
+            if not scale_visible:
+                raise RuntimeError(f"axis {axis} scale drag did not redraw before release")
+            if scene_file.read_text() != before_rotation:
+                raise RuntimeError("Scale preview changed saved scene before release")
             subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
             subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
             deadline = time.monotonic() + 5
