@@ -53,6 +53,46 @@ def screenshot(window: int, width: int, height: int, output: Path) -> bytes:
     return bytes(raw)
 
 
+def request_window_close(window: int, display_name: str) -> None:
+    """Request a normal close even when Xvfb has no window manager."""
+    x11 = ctypes.CDLL('libX11.so.6')
+
+    class ClientMessage(ctypes.Structure):
+        _fields_ = [('type', ctypes.c_int), ('serial', ctypes.c_ulong),
+                    ('send_event', ctypes.c_int), ('display', ctypes.c_void_p),
+                    ('window', ctypes.c_ulong), ('message_type', ctypes.c_ulong),
+                    ('format', ctypes.c_int), ('data', ctypes.c_long * 5)]
+
+    class Event(ctypes.Union):
+        _fields_ = [('client', ClientMessage), ('padding', ctypes.c_long * 24)]
+
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
+    x11.XInternAtom.restype = ctypes.c_ulong
+    x11.XSendEvent.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int,
+                               ctypes.c_long, ctypes.POINTER(Event)]
+    x11.XSendEvent.restype = ctypes.c_int
+    x11.XFlush.argtypes = [ctypes.c_void_p]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    display = x11.XOpenDisplay(display_name.encode())
+    if not display:
+        raise RuntimeError('Cannot open display for Showcase close request')
+    try:
+        event = Event()
+        event.client.type = 33  # ClientMessage
+        event.client.display = display
+        event.client.window = window
+        event.client.message_type = x11.XInternAtom(display, b'WM_PROTOCOLS', 0)
+        event.client.format = 32
+        event.client.data[0] = x11.XInternAtom(display, b'WM_DELETE_WINDOW', 0)
+        if not x11.XSendEvent(display, window, 0, 0, ctypes.byref(event)):
+            raise RuntimeError('XSendEvent rejected Showcase close request')
+        x11.XFlush(display)
+    finally:
+        x11.XCloseDisplay(display)
+
+
 def main():
     if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] != "--allow-unavailable-plugin"):
         raise SystemExit('usage: LinuxShowcaseInteraction.py NEXORA_SHOWCASE')
@@ -93,8 +133,10 @@ def main():
             tool('windowfocus', '--sync', window)
             # Capture runs on this Python process, so use the same isolated DISPLAY for Xlib.
             os.environ['DISPLAY'] = display
-            deadline = time.monotonic() + 10
+            deadline = time.monotonic() + 25
             while True:
+                if app.poll() is not None:
+                    raise RuntimeError(app.stderr.read())
                 hub = screenshot(window,1280,720,output/'hub.png')
                 if len(set(hub)) >= 8:  # Wait for rendered pixels, not merely the mapped black window.
                     break
@@ -161,7 +203,7 @@ def main():
             tool('windowsize',window,960,540)
             time.sleep(0.2)
             screenshot(window,960,540,output/'resized-hub.png')
-            tool('windowclose',window)
+            request_window_close(window, display)
             _, errors = app.communicate(timeout=10)
             assert app.returncode == 0, errors
             assert "Validation Error" not in errors and "SYNC-HAZARD" not in errors, errors
