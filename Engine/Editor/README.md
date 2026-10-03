@@ -120,8 +120,9 @@ into renderer or platform internals.
   clipboard. Like Paste, each created root has its own Undo step.
   `WorldTransform` exposes a live node's composed world pose to Editor views, so children can be
   drawn at their actual world position without exposing mutable Runtime entity storage.
-  `TranslateSelectionXZ` validates generation-keyed targets, filters selected descendants, and
-  applies a world-space X/Z delta through the portable gizmo math and one atomic transform Undo.
+  `TranslateSelectionXZ` and `TranslateSelection` validate generation-keyed targets, filter
+  selected descendants, and apply world-space X/Z or X/Y/Z deltas through the portable gizmo
+  math and one atomic transform Undo.
   `Dirty` compares the live serializable scene to the last successful Save or Reload. Its signature
   preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.

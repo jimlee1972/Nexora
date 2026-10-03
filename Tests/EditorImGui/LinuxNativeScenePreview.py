@@ -81,6 +81,18 @@ def scene_pixels(display_name: str, window: int, viewport: tuple[int, int, int, 
         x11.XCloseDisplay(display)
 
 
+def first_entity_position(scene_text: str) -> tuple[float, float, float]:
+    lines = scene_text.splitlines()
+    header = next((index for index, line in enumerate(lines)
+                   if line.startswith("NEXORA_SCENE 3 ")), None)
+    if header is None or header + 1 >= len(lines):
+        raise RuntimeError("saved scene has no runtime entity")
+    fields = lines[header + 1].split()
+    if len(fields) < 5:
+        raise RuntimeError("saved scene has a malformed runtime entity")
+    return tuple(float(value) for value in fields[2:5])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--editor", required=True)
@@ -183,6 +195,33 @@ def main() -> int:
             time.sleep(0.05)
         if scene_file.read_text() == initial_scene:
             raise RuntimeError("native proxy drag did not change the saved scene")
+        subprocess.run([args.xdotool, "key", "ctrl+z"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and scene_file.read_text() != initial_scene:
+            time.sleep(0.05)
+        if scene_file.read_text() != initial_scene:
+            raise RuntimeError("native proxy drag did not undo before vertical movement")
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y)], env=environment, check=True)
+        subprocess.run([args.xdotool, "keydown", "Shift_L"], env=environment, check=True)
+        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        time.sleep(0.1)
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y - 48)], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+        subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        before = first_entity_position(initial_scene)
+        after = before
+        while time.monotonic() < deadline and abs(after[1] - before[1]) < 0.1:
+            time.sleep(0.05)
+            after = first_entity_position(scene_file.read_text())
+        if (abs(after[1] - before[1]) < 0.1 or abs(after[0] - before[0]) > 1e-6 or
+                abs(after[2] - before[2]) > 1e-6):
+            raise RuntimeError(f"Shift-drag did not move only world Y: {before} -> {after}")
         subprocess.run([args.xdotool, "click", "4"], env=environment, check=True)
         subprocess.run([args.xdotool, "mousedown", "3"], env=environment, check=True)
         time.sleep(0.1)

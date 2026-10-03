@@ -56,9 +56,9 @@ authoring views on first launch.
   the same proxy boxes it draws and updates the shared Hierarchy selection; Ctrl-click toggles a
   proxy and an empty click clears the selection.
   Dragging a selected proxy emits start and release positions in framebuffer pixels. The
-  application projects both onto the selected node's horizontal plane, draws selected proxies and
-  their descendants at the prospective position during the drag, and commits one undoable world
-  X/Z move on release. Escape cancels the drag; optional 0.25–4 world-unit snap steps apply to
+  application projects both onto the selected node's horizontal plane for X/Z movement, or
+  onto its world Y axis when Shift was held at drag start. It draws selected proxies and their
+  descendants at the prospective position and commits one undoable world move on release. Escape cancels the drag; optional 0.25–4 world-unit snap steps apply to
   both preview and commit. Full 3D gizmo handles remain open.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.

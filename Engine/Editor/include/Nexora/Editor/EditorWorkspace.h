@@ -187,6 +187,7 @@ public:
                      std::span<const runtime::Transform> transforms);
   // Moves generation-checked selection roots by a world X/Z delta as one atomic undo step.
   bool TranslateSelectionXZ(std::span<const NodeKey> entities, double dx, double dz);
+  bool TranslateSelection(std::span<const NodeKey> entities, double dx, double dy, double dz);
   // Degrees use extrinsic Z-X-Y composition. One field edit is one atomic undo transaction.
   bool SetEulerField(std::span<const NodeKey> entities, std::size_t axis, double degrees);
   // Preserves authored revolutions while the local quaternion matches; otherwise canonical angles.

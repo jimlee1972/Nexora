@@ -121,6 +121,7 @@ struct EditorImGuiHost::State final {
   std::optional<NativeScenePickRequest> native_scene_pick;
   std::optional<std::array<std::int32_t, 2>> native_scene_drag_origin;
   double native_scene_drag_snap_step{};
+  bool native_scene_drag_vertical{};
   std::optional<NativeSceneDragRequest> native_scene_drag;
   std::optional<NativeSceneDragRequest> native_scene_drag_preview;
   ImVec2 scene_center_world{};
@@ -2198,8 +2199,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (scene != nullptr) {
       if (state_->native_scene_preview) {
         state_->scene_markers.clear();
-        ImGui::TextDisabled(
-            "Left drag: move X/Z | Right: orbit | Middle: pan | Wheel: zoom | F: frame");
+        ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y | Right: orbit | Middle: pan "
+                            "| Wheel: zoom | F: frame");
         ImGui::SameLine();
         ImGui::BeginDisabled(scene->Selection().empty());
         if (ImGui::SmallButton("Frame selected"))
@@ -2237,6 +2238,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                   std::array{static_cast<std::int32_t>(x), static_cast<std::int32_t>(y)};
             state_->native_scene_drag_snap_step =
                 state_->scene_snap_to_grid ? snap_steps[state_->scene_snap_step_index] : 0.0;
+            state_->native_scene_drag_vertical = io.KeyShift;
           }
         }
         if (state_->native_scene_drag_origin && ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
@@ -2250,8 +2252,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           const auto end_y =
               static_cast<std::int32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
           if (std::abs(end_x - start[0]) >= 4 || std::abs(end_y - start[1]) >= 4)
-            state_->native_scene_drag = {start[0], start[1], end_x, end_y,
-                                         state_->native_scene_drag_snap_step};
+            state_->native_scene_drag = {start[0],
+                                         start[1],
+                                         end_x,
+                                         end_y,
+                                         state_->native_scene_drag_snap_step,
+                                         state_->native_scene_drag_vertical};
           state_->native_scene_drag_origin.reset();
         }
         if (state_->native_scene_drag_origin && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
@@ -2261,8 +2267,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           const auto end_y =
               static_cast<std::int32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
           if (std::abs(end_x - start[0]) >= 4 || std::abs(end_y - start[1]) >= 4)
-            state_->native_scene_drag_preview = {start[0], start[1], end_x, end_y,
-                                                 state_->native_scene_drag_snap_step};
+            state_->native_scene_drag_preview = {start[0],
+                                                 start[1],
+                                                 end_x,
+                                                 end_y,
+                                                 state_->native_scene_drag_snap_step,
+                                                 state_->native_scene_drag_vertical};
         }
         if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
           if (io.MouseWheel != 0.0F)
