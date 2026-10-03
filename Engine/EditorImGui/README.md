@@ -47,6 +47,9 @@ authoring views on first launch.
   reset at `BeginFrame`. The 3D Preview toggle publishes this rectangle to the application for
   a bounded direct native scene draw after UI; the X/Z overview remains available for editing. Backends
   without native scene geometry support show an unavailable message.
+  In 3D Preview, right drag orbits the proxy camera, middle drag pans its X/Z target, the wheel
+  zooms, and F or Frame selected centers the target on selected nodes. Orbit angle and distance
+  are validated session state; the target shares the overview's persisted X/Z center.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
   Dragging a selected marker previews an X/Z move and commits one document transform transaction
