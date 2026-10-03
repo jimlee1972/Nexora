@@ -39,6 +39,10 @@ struct EditorImGuiHost::State final {
     std::optional<SceneDocument::NodeKey> parent;
     std::size_t index{};
   };
+  struct HierarchyCreateRequest final {
+    std::string name;
+    std::optional<SceneDocument::NodeKey> parent;
+  };
   struct Renderer final {
     struct UploadSlot final {
       nexora::rhi::BufferHandle vertices;
@@ -82,6 +86,7 @@ struct EditorImGuiHost::State final {
   bool focus_initial_content = false;
   std::string recovery_error;
   std::array<char, 128> hierarchy_filter{};
+  std::array<char, 128> hierarchy_create_name{'E', 'n', 't', 'i', 't', 'y'};
   std::array<char, 256> hierarchy_rename{};
   std::uint32_t hierarchy_visible_rows = 0;
   std::uint32_t hierarchy_rendered_rows = 0;
@@ -90,6 +95,7 @@ struct EditorImGuiHost::State final {
   std::vector<SceneDocument::NodeKey> hierarchy_expanded;
   std::optional<HierarchySelectionRequest> hierarchy_selection_request;
   std::optional<HierarchyMoveRequest> hierarchy_move_request;
+  std::optional<HierarchyCreateRequest> hierarchy_create_request;
   std::optional<int> hierarchy_reorder_request;
   std::optional<std::pair<SceneDocument::NodeKey, bool>> hierarchy_expansion_request;
   std::optional<SceneDocument::NodeKey> hierarchy_rename_target;
@@ -458,6 +464,7 @@ template <typename StateT> void ApplyPendingHierarchyRequests(StateT &state, Sce
     state.hierarchy_selection_anchor.reset();
     state.hierarchy_expanded.clear();
     state.hierarchy_selection_request.reset();
+    state.hierarchy_create_request.reset();
     state.hierarchy_move_request.reset();
     state.hierarchy_reorder_request.reset();
     state.hierarchy_expansion_request.reset();
@@ -517,6 +524,26 @@ template <typename StateT> void ApplyPendingHierarchyRequests(StateT &state, Sce
     else
       state.hierarchy_error.clear();
   }
+  if (state.hierarchy_create_request) {
+    auto request = std::exchange(state.hierarchy_create_request, std::nullopt);
+    const bool stale_parent = request->parent && scene->Key(request->parent->id) != request->parent;
+    const auto created = stale_parent ? runtime::Id{}
+                                      : scene->Create(std::move(request->name),
+                                                      request->parent ? request->parent->id : 0);
+    if (created == 0) {
+      state.hierarchy_error =
+          "Create rejected. Use a non-empty single-line name and a current parent.";
+    } else {
+      const std::array selection{created};
+      static_cast<void>(scene->Select(selection));
+      state.hierarchy_selection_anchor = scene->Key(created);
+      if (request->parent && std::ranges::find(state.hierarchy_expanded, *request->parent) ==
+                                 state.hierarchy_expanded.end())
+        state.hierarchy_expanded.push_back(*request->parent);
+      state.hierarchy_filter.fill({});
+      state.hierarchy_error.clear();
+    }
+  }
   state.hierarchy_selection = static_cast<std::uint32_t>(
       std::min<std::size_t>(scene->Selection().size(), std::numeric_limits<std::uint32_t>::max()));
 }
@@ -529,6 +556,26 @@ template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scen
     ImGui::TextUnformatted("No scene is open.");
     return;
   }
+
+  ImGui::SetNextItemWidth(-1.0F);
+  ImGui::InputTextWithHint("##hierarchy-create-name", "New entity name...",
+                           state.hierarchy_create_name.data(), state.hierarchy_create_name.size());
+  if (ImGui::SmallButton("Create root"))
+    state.hierarchy_create_request = typename StateT::HierarchyCreateRequest{
+        std::string(state.hierarchy_create_name.data()), std::nullopt};
+  ImGui::SameLine();
+  const bool one_selected = scene->Selection().size() == 1;
+  ImGui::BeginDisabled(!one_selected);
+  if (ImGui::SmallButton("Create child") && one_selected) {
+    if (const auto parent = scene->Key(scene->Selection().front()))
+      state.hierarchy_create_request = typename StateT::HierarchyCreateRequest{
+          std::string(state.hierarchy_create_name.data()), parent};
+    else
+      state.hierarchy_error = "Create rejected because the selected parent is stale.";
+  }
+  ImGui::EndDisabled();
+  if (!state.hierarchy_error.empty())
+    ImGui::TextWrapped("%s", state.hierarchy_error.c_str());
 
   const auto nodes = scene->Nodes();
   const std::string_view filter(state.hierarchy_filter.data());
@@ -1997,6 +2044,12 @@ void EditorImGuiTestAccess::QueueHierarchyMove(EditorImGuiHost &host, SceneDocum
                                                std::optional<SceneDocument::NodeKey> parent,
                                                std::size_t index) noexcept {
   host.state_->hierarchy_move_request = {entity, parent, index};
+}
+
+void EditorImGuiTestAccess::QueueHierarchyCreate(EditorImGuiHost &host, std::string name,
+                                                 std::optional<SceneDocument::NodeKey> parent) {
+  host.state_->hierarchy_create_request.emplace(
+      EditorImGuiHost::State::HierarchyCreateRequest{std::move(name), parent});
 }
 
 void EditorImGuiTestAccess::QueueHierarchyReorder(EditorImGuiHost &host, int direction) noexcept {

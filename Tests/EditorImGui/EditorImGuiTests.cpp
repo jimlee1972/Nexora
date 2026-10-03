@@ -629,6 +629,37 @@ int main() {
   assert(hierarchy_state.hierarchy_visible_rows == 259);
   assert(hierarchy_state.hierarchy_rendered_rows < hierarchy_state.hierarchy_visible_rows);
 
+  EditorImGuiTestAccess::QueueHierarchyCreate(host, "Created Child", *root_key);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(scene.Nodes().size() == 260 && scene.Selection().size() == 1);
+  const auto created_child = scene.Selection().front();
+  assert(scene.Name(created_child) == "Created Child" && scene.Parent(created_child) == root);
+  assert(EditorImGuiTestAccess::Inspect(host).hierarchy_selection_anchor ==
+         *scene.Key(created_child));
+  auto stale_parent = *root_key;
+  ++stale_parent.document_generation;
+  EditorImGuiTestAccess::QueueHierarchyCreate(host, "Rejected Child", stale_parent);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(scene.Nodes().size() == 260);
+  EditorImGuiTestAccess::QueueHierarchyCreate(host, "Created Root");
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  const auto created_root = scene.Selection().front();
+  assert(scene.Nodes().size() == 261 && scene.Name(created_root) == "Created Root" &&
+         scene.Parent(created_root) == 0);
+  assert(scene.Undo() && scene.Nodes().size() == 260 && scene.Selection().empty());
+  const auto created_scene_path = content_root / "Created.scene";
+  assert(scene.Save(created_scene_path));
+  nexora::runtime::World reopened_world;
+  nexora::editor::SceneDocument reopened(reopened_world, reopened_world.LoadScene("Placeholder"));
+  assert(reopened.Reload(created_scene_path) && reopened.Name(created_child) == "Created Child" &&
+         reopened.Name(created_root).empty());
+
   auto device = nexora::rhi::CreateValidationDevice();
   const auto target =
       device->CreateTexture({1280, 720, nexora::rhi::TextureFormat::Rgba8Unorm,

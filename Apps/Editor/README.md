@@ -70,6 +70,8 @@ generation-safe, undoable `SceneDocument` contracts. The docked Inspector also e
 selections through the same generation-safe document boundary. Mixed fields are explicit, one field
 edit applies atomically to the entire selection, and invalid transforms roll back without a partial
 write. SceneDocument persists authored Euler hints through save/reload and restores them with undo.
+The Hierarchy can create root entities and children of the single selected entity, then selects the
+new node. Invalid names and stale parents are rejected, while creation participates in scene Undo.
 Scene View, reflected component widgets, the complete graphical save/restart workflow, and the ED-M2 visual exit gate
 remain open.
 

@@ -153,6 +153,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   save／restart 驗收仍待完成。
 - ✅ Scene panel 現可透過按鈕及文字輸入欄位以外的 Ctrl+Z 執行 Undo。撤銷新建實體會清除
   失效的節點資料與選取，並已有場景 save／reload 迴歸測試。Redo 與完整視覺工作流程仍待完成。
+- ✅ 圖形化 Hierarchy 可透過檢查 generation 的請求建立具名稱的根節點與子節點，選取新實體
+  並在樹狀清單中顯示。Contract test 涵蓋過期 parent、Undo 與 save／reload；Scene View 和
+  完整 ED-M2 驗收仍待完成。
 - 待辦：圖形化 Scene View、完整 reflected Inspector、renderer-backed picking、camera control、
   gizmo、reflected widget
   與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成 select／edit／undo／save／restart
