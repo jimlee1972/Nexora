@@ -128,6 +128,7 @@ public:
   void SetNativeScenePreview(bool enabled) noexcept;
   void SetNativeScenePreviewAvailable(bool available) noexcept;
   [[nodiscard]] NativeSceneOrbit GetNativeSceneOrbit() const noexcept;
+  [[nodiscard]] bool NativeSceneLocalAxes() const noexcept;
   bool SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept;
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   NativeScenePreviewViewport() const noexcept;

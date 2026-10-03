@@ -237,7 +237,8 @@ and Cancel restores the start exactly. The decision table:
 
 Snapping is the caller's choice with `SnapToStep` on the distance, angle (in degrees), or factor.
 Renderer-backed ID-buffer picking and rotation/scale graphical handles remain open. The
-Editor native proxy preview now draws and picks world X/Y/Z translation handles.
+Editor native proxy preview now draws and picks X/Y/Z translation handles in world or local
+space. The local basis uses the first selected node's world rotation without mirroring axes.
 
 `editor.parser_robustness` mutation-tests the parsers that read persisted or external data (trace and
 metric decoding, replay log, unknown-component store, scene snapshot, runtime blob, NXSHDR, shader

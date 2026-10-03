@@ -187,8 +187,8 @@ creates property widgets; unknown components retain raw data instead of being si
   its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Proxy instances now show
   composed world rotation and scale, and picking bounds enclose their transformed cube. Authored
   meshes, exact sheared matrices, mesh picking, and rotation/scale gizmos remain open. Selected
-  proxies show colored world X/Y/Z translation handles; picking a handle constrains the drag to
-  that axis. Dragging previews selected roots and descendants in world X/Z, along world Y with
+  proxies show colored X/Y/Z translation handles in world or local space; Local axes uses
+  the first selected node's world rotation, and picking a handle captures its axis for the drag. Dragging previews selected roots and descendants in world X/Z, along world Y with
   Shift-drag, or along the picked handle, then commits one undoable move on release. Escape cancels;
   optional 0.25–4 world-unit steps snap both preview and commit. Full Scene View acceptance is still
   open.
