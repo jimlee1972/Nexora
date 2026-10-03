@@ -120,6 +120,7 @@ struct EditorImGuiHost::State final {
   NativeSceneOrbit native_scene_orbit{};
   std::optional<NativeScenePickRequest> native_scene_pick;
   std::optional<std::array<std::int32_t, 2>> native_scene_drag_origin;
+  double native_scene_drag_snap_step{};
   std::optional<NativeSceneDragRequest> native_scene_drag;
   std::optional<NativeSceneDragRequest> native_scene_drag_preview;
   ImVec2 scene_center_world{};
@@ -2204,6 +2205,18 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         if (ImGui::SmallButton("Frame selected"))
           static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
         ImGui::EndDisabled();
+        constexpr std::array snap_steps{0.25, 0.5, 1.0, 2.0, 4.0};
+        ImGui::Checkbox("Snap movement", &state_->scene_snap_to_grid);
+        ImGui::SameLine();
+        ImGui::BeginDisabled(!state_->scene_snap_to_grid);
+        ImGui::SetNextItemWidth(140.0F);
+        ImGui::Combo("Step (world units)", &state_->scene_snap_step_index,
+                     "0.25\0"
+                     "0.5\0"
+                     "1\0"
+                     "2\0"
+                     "4\0");
+        ImGui::EndDisabled();
         if (!state_->native_scene_preview_available)
           ImGui::TextUnformatted("Native 3D preview is unavailable on this backend.");
         const auto available = ImGui::GetContentRegionAvail();
@@ -2222,7 +2235,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             if (!io.KeyCtrl)
               state_->native_scene_drag_origin =
                   std::array{static_cast<std::int32_t>(x), static_cast<std::int32_t>(y)};
+            state_->native_scene_drag_snap_step =
+                state_->scene_snap_to_grid ? snap_steps[state_->scene_snap_step_index] : 0.0;
           }
+        }
+        if (state_->native_scene_drag_origin && ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+          state_->native_scene_drag_origin.reset();
+          state_->native_scene_drag_preview.reset();
         }
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && state_->native_scene_drag_origin) {
           const auto start = *state_->native_scene_drag_origin;
@@ -2231,7 +2250,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           const auto end_y =
               static_cast<std::int32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
           if (std::abs(end_x - start[0]) >= 4 || std::abs(end_y - start[1]) >= 4)
-            state_->native_scene_drag = {start[0], start[1], end_x, end_y};
+            state_->native_scene_drag = {start[0], start[1], end_x, end_y,
+                                         state_->native_scene_drag_snap_step};
           state_->native_scene_drag_origin.reset();
         }
         if (state_->native_scene_drag_origin && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
@@ -2241,7 +2261,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           const auto end_y =
               static_cast<std::int32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
           if (std::abs(end_x - start[0]) >= 4 || std::abs(end_y - start[1]) >= 4)
-            state_->native_scene_drag_preview = {start[0], start[1], end_x, end_y};
+            state_->native_scene_drag_preview = {start[0], start[1], end_x, end_y,
+                                                 state_->native_scene_drag_snap_step};
         }
         if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
           if (io.MouseWheel != 0.0F)

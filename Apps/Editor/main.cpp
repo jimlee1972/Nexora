@@ -182,8 +182,8 @@ NativeSceneDragDelta(Nexora::Presentation::SceneViewport viewport,
   const auto end = point_on_plane(request.end_x, request.end_y);
   if (!start || !end)
     return std::nullopt;
-  const auto dx = end->x - start->x;
-  const auto dz = end->z - start->z;
+  const auto dx = nexora::editor::SnapToStep(end->x - start->x, request.snap_step);
+  const auto dz = nexora::editor::SnapToStep(end->z - start->z, request.snap_step);
   if (!std::isfinite(dx) || !std::isfinite(dz) || std::abs(dx) > 100000.0 ||
       std::abs(dz) > 100000.0)
     return std::nullopt;
