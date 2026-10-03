@@ -184,7 +184,8 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   右鍵拖曳可旋轉預覽鏡頭，中鍵拖曳可平移 X/Z 目標，滾輪可縮放，F 或 Frame selected
   可將 X/Y/Z 目標對準選取節點；旋轉角度、距離與目標高度現會逐場景保存。
   點選可見的位置代理可同步選取 Scene、Hierarchy 與 Inspector 中的節點；Ctrl 點選可切換選取。
-  拖曳代理會即時預覽選取根節點及其後代的世界 X/Z 位移，放開左鍵時以單次可復原 transaction 提交。
+  拖曳代理會即時預覽選取根節點及其後代的世界 X/Z 位移；按住 Shift 起始拖曳則沿世界 Y 軸
+  移動。放開左鍵時以單次可復原 transaction 提交。
   Escape 可取消拖曳；可選 0.25–4 世界單位吸附同時作用於預覽與提交。
 - ✅ Scene 概覽現共用 Hierarchy 的 Ctrl／Shift 多選錨點，並可透過 F 或 Frame selected
   將檢視中心移至選取物件的世界位置。輸入事件測試涵蓋這兩項操作。

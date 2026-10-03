@@ -187,7 +187,8 @@ creates property widgets; unknown components retain raw data instead of being si
   its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Proxy instances now show
   composed world rotation and scale, and picking bounds enclose their transformed cube. Authored
   meshes, exact sheared matrices, mesh picking, and gizmos remain open. Dragging previews selected
-  roots and descendants in world X/Z, then commits one undoable move on release. Escape cancels;
+  roots and descendants in world X/Z, or along world Y with Shift-drag, then commits one
+  undoable move on release. Escape cancels;
   optional 0.25–4 world-unit steps snap both preview and commit. Full Scene View acceptance is still
   open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on

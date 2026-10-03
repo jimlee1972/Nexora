@@ -651,6 +651,7 @@ int Run() {
     const auto drag_child = drag_document.Create("Drag child", drag_parent);
     runtime::Transform parent_pose{5.0, 0.0, 0.0};
     parent_pose.sx = 2.0;
+    parent_pose.sy = 2.0;
     parent_pose.sz = 2.0;
     Require(drag_parent && drag_child && drag_document.SetTransform(drag_parent, parent_pose) &&
                 drag_document.SetTransform(drag_child, {3.0, 0.0, 1.0}),
@@ -669,6 +670,19 @@ int Run() {
                 drag_document.WorldTransform(drag_child)->x == 11.0 &&
                 !drag_document.TranslateSelectionXZ(drag_one, 0.0, 0.0),
             "dragging a child under a scaled parent must keep world-space motion and undo");
+    Require(drag_document.TranslateSelection(drag_both, 0.0, 3.0, 0.0) &&
+                drag_document.WorldTransform(drag_parent)->y == 3.0 &&
+                drag_document.WorldTransform(drag_child)->y == 3.0 && drag_document.Undo() &&
+                drag_document.WorldTransform(drag_parent)->y == 0.0 &&
+                drag_document.WorldTransform(drag_child)->y == 0.0 &&
+                !drag_document.TranslateSelection(drag_both, 0.0,
+                                                  std::numeric_limits<double>::infinity(), 0.0),
+            "vertical drag must move a selected hierarchy once and undo atomically");
+    Require(drag_document.TranslateSelection(drag_one, 0.0, 3.0, 0.0) &&
+                drag_document.WorldTransform(drag_child)->y == 3.0 &&
+                drag_document.Transform(drag_child)->y == 1.5 && drag_document.Undo() &&
+                drag_document.WorldTransform(drag_child)->y == 0.0,
+            "vertical drag under a scaled parent must preserve world-space distance");
   }
   {
     runtime::World redo_world;
