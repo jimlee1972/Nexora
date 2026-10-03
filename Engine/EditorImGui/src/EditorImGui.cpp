@@ -116,9 +116,11 @@ struct EditorImGuiHost::State final {
   ImVec2 scene_center_world{};
   float scene_pixels_per_unit = 32.0F;
   struct SceneDrag final {
+    enum class Axis { Free, X, Z };
     std::vector<SceneDocument::NodeKey> entities;
     ImVec2 start_mouse;
     float pixels_per_unit{};
+    Axis axis{Axis::Free};
   };
   std::optional<SceneDrag> scene_drag;
   struct InspectorTransformRequest final {
@@ -942,8 +944,8 @@ void DrawPlayOverview(const runtime::RuntimeInspectionSnapshot &snapshot) {
 }
 
 template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &scene) {
-  ImGui::TextUnformatted(
-      "Top-down X/Z | Middle drag: pan | Wheel: zoom | Ctrl/Shift click: select");
+  ImGui::TextUnformatted("Top-down X/Z | Drag marker: free move | Drag red X/blue Z: axis move | "
+                         "Middle: pan | Wheel: zoom");
   ImGui::SameLine();
   ImGui::BeginDisabled(scene.Selection().empty());
   if (ImGui::SmallButton("Frame selected"))
@@ -966,8 +968,10 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
     } else if (!io.MouseDown[ImGuiMouseButton_Left]) {
       if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
         const auto &drag = *state.scene_drag;
-        const float dx = io.MousePos.x - drag.start_mouse.x;
-        const float dy = io.MousePos.y - drag.start_mouse.y;
+        const float dx =
+            drag.axis == StateT::SceneDrag::Axis::Z ? 0.0F : io.MousePos.x - drag.start_mouse.x;
+        const float dy =
+            drag.axis == StateT::SceneDrag::Axis::X ? 0.0F : io.MousePos.y - drag.start_mouse.y;
         if (dx * dx + dy * dy >= 36.0F &&
             !scene.TranslateSelectionXZ(drag.entities, dx / drag.pixels_per_unit,
                                         dy / drag.pixels_per_unit))
@@ -1019,8 +1023,15 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
   if (state.scene_drag && io.MouseDown[ImGuiMouseButton_Left]) {
     preview_pixels = {io.MousePos.x - state.scene_drag->start_mouse.x,
                       io.MousePos.y - state.scene_drag->start_mouse.y};
+    if (state.scene_drag->axis == StateT::SceneDrag::Axis::X)
+      preview_pixels.y = 0.0F;
+    else if (state.scene_drag->axis == StateT::SceneDrag::Axis::Z)
+      preview_pixels.x = 0.0F;
     if (preview_pixels.x * preview_pixels.x + preview_pixels.y * preview_pixels.y >= 36.0F)
-      draw->AddLine(state.scene_drag->start_mouse, io.MousePos, IM_COL32(255, 199, 87, 255), 2.0F);
+      draw->AddLine(state.scene_drag->start_mouse,
+                    {state.scene_drag->start_mouse.x + preview_pixels.x,
+                     state.scene_drag->start_mouse.y + preview_pixels.y},
+                    IM_COL32(255, 199, 87, 255), 2.0F);
     else
       preview_pixels = {};
   }
@@ -1057,11 +1068,42 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
       draw->AddText({position.x + 11.0F, position.y - 8.0F}, IM_COL32(224, 230, 239, 255),
                     node.name.data(), node.name.data() + node.name.size());
   }
+  const auto handle = std::ranges::find_if(state.scene_markers, [&](const auto &marker) {
+    return std::ranges::find(scene.Selection(), marker.entity.id) != scene.Selection().end();
+  });
+  if (handle != state.scene_markers.end()) {
+    const auto position = handle->position;
+    draw->AddLine({position.x + 12.0F, position.y}, {position.x + 42.0F, position.y},
+                  IM_COL32(225, 99, 99, 255), 3.0F);
+    draw->AddTriangleFilled({position.x + 48.0F, position.y},
+                            {position.x + 39.0F, position.y - 5.0F},
+                            {position.x + 39.0F, position.y + 5.0F}, IM_COL32(225, 99, 99, 255));
+    draw->AddLine({position.x, position.y + 12.0F}, {position.x, position.y + 42.0F},
+                  IM_COL32(99, 150, 225, 255), 3.0F);
+    draw->AddTriangleFilled({position.x, position.y + 48.0F},
+                            {position.x - 5.0F, position.y + 39.0F},
+                            {position.x + 5.0F, position.y + 39.0F}, IM_COL32(99, 150, 225, 255));
+  }
   draw->PopClipRect();
   if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
     std::optional<SceneDocument::NodeKey> picked;
+    auto axis = StateT::SceneDrag::Axis::Free;
+    if (handle != state.scene_markers.end()) {
+      const auto position = handle->position;
+      const float x = io.MousePos.x - position.x;
+      const float z = io.MousePos.y - position.y;
+      if (x >= 12.0F && x <= 48.0F && std::abs(z) <= 6.0F) {
+        picked = handle->entity;
+        axis = StateT::SceneDrag::Axis::X;
+      } else if (z >= 12.0F && z <= 48.0F && std::abs(x) <= 6.0F) {
+        picked = handle->entity;
+        axis = StateT::SceneDrag::Axis::Z;
+      }
+    }
     float nearest = 100.0F;
     for (const auto &marker : state.scene_markers) {
+      if (picked)
+        break;
       const float dx = marker.position.x - io.MousePos.x;
       const float dy = marker.position.y - io.MousePos.y;
       const float distance = dx * dx + dy * dy;
@@ -1088,8 +1130,8 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
             keys.push_back(*key);
         }
         if (!keys.empty())
-          state.scene_drag =
-              typename StateT::SceneDrag{std::move(keys), io.MousePos, state.scene_pixels_per_unit};
+          state.scene_drag = typename StateT::SceneDrag{std::move(keys), io.MousePos,
+                                                        state.scene_pixels_per_unit, axis};
       }
     } else if (!io.KeyCtrl && !io.KeyShift) {
       static_cast<void>(scene.Select(std::span<const runtime::Id>{}));

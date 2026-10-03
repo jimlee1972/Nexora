@@ -41,11 +41,12 @@ authoring views on first launch.
   clipboard. Paste and Duplicate run before Hierarchy rows borrow node names for the frame.
   The Scene panel has a top-down X/Z overview with a world grid, composed entity positions,
   middle-button pan, wheel zoom, and click selection synchronized with Hierarchy. It is an
-  authoring overview; renderer-backed 3D scene output and gizmos remain open.
+  authoring overview; renderer-backed 3D scene output and full 3D gizmos remain open.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
   Dragging a selected marker previews an X/Z move and commits one document transform transaction
-  on release. Escape cancels the preview without changing the scene.
+  on release. Red X and blue Z handles constrain a drag to one world axis. Escape cancels the
+  preview without changing the scene.
   The host exposes the overview center and zoom as a validated, backend-neutral camera state.
   The application loads and saves it per scene through Editor Core `CameraPersistence`; the UI
   never chooses a project file path.
