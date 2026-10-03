@@ -533,6 +533,49 @@ bool SceneDocument::Paste() {
   selection_ = std::move(pasted);
   return true;
 }
+bool SceneDocument::DeleteSelection() {
+  if (selection_.empty())
+    return false;
+  const auto *scene = world_.FindScene(scene_);
+  if (scene == nullptr)
+    return false;
+  std::unordered_set<runtime::Id> selected(selection_.begin(), selection_.end());
+  if (selected.size() != selection_.size())
+    return false;
+  for (const auto id : selection_)
+    if (!Key(id) ||
+        std::ranges::find(scene->entities, id, &runtime::Entity::id) == scene->entities.end())
+      return false;
+
+  std::vector<runtime::Id> roots;
+  for (const auto id : selection_) {
+    auto ancestor = world_.Parent(id).value_or(0);
+    while (ancestor != 0 && !selected.contains(ancestor))
+      ancestor = world_.Parent(ancestor).value_or(0);
+    if (ancestor == 0)
+      roots.push_back(id);
+  }
+  std::size_t deleted = 0;
+  for (const auto root : roots) {
+    const auto subtree = world_.Subtree(root);
+    std::unordered_set<runtime::Id> subtree_ids(subtree.begin(), subtree.end());
+    UndoEntry entry;
+    entry.previous_selection = selection_;
+    for (const auto &node : nodes_)
+      if (subtree_ids.contains(node.id))
+        entry.deleted_nodes.push_back(node);
+    if (!editor_.DestroyEntity(scene_, root)) {
+      for (std::size_t index = 0; index < deleted; ++index)
+        static_cast<void>(Undo());
+      return false;
+    }
+    undo_.push_back(std::move(entry));
+    std::erase_if(nodes_, [&](const Node &node) { return subtree_ids.contains(node.id); });
+    std::erase_if(selection_, [&](runtime::Id id) { return subtree_ids.contains(id); });
+    ++deleted;
+  }
+  return deleted != 0;
+}
 bool SceneDocument::Undo() {
   if (undo_.empty())
     return false;
@@ -550,6 +593,14 @@ bool SceneDocument::Undo() {
       if (node != nodes_.end() && key.document_generation == document_generation_ &&
           node->generation == key.entity_generation)
         node->euler_hint = hint;
+    }
+    if (!entry.deleted_nodes.empty()) {
+      for (const auto &node : entry.deleted_nodes)
+        if (world_.FindEntity(node.id) != nullptr)
+          nodes_.push_back(node);
+      selection_ = entry.previous_selection;
+      std::erase_if(selection_,
+                    [this](runtime::Id id) { return world_.FindEntity(id) == nullptr; });
     }
   } else {
     const auto found = std::ranges::find(nodes_, entry.entity.id, &Node::id);

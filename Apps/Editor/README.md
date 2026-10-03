@@ -75,6 +75,8 @@ new node. Invalid names and stale parents are rejected, while creation participa
 The Hierarchy also offers Copy and Paste buttons and Ctrl+C/Ctrl+V outside text inputs. Copies retain
 the source's captured world pose even after the source moves; Paste selects the new root entity,
 and one Undo removes a single pasted copy.
+Delete selected, or press Delete while the Hierarchy is focused, to remove selected subtrees.
+Undo restores the deleted entities and their names; multiple selected roots undo one at a time.
 Scene View, reflected component widgets, the complete graphical save/restart workflow, and the ED-M2 visual exit gate
 remain open.
 

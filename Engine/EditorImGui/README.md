@@ -34,6 +34,8 @@ authoring views on first launch.
   Copy and Paste buttons, plus Ctrl+C and Ctrl+V outside text inputs, route to the scene document's
   snapshot clipboard. Paste selects and reveals the new roots; failures appear in the Hierarchy.
   Shortcuts are disabled while a recovery journal awaits a choice.
+  Delete selected and the Delete key in the focused Hierarchy remove selected subtrees through the
+  document. The action is disabled during recovery; Undo restores deleted entities and names.
 - `ProjectContentSession` is also borrowed for each `DrawProductShell` call. The Content panel reads
   virtualized ranges from its UUID-keyed model, emits generation-tagged POD drag payloads, and routes
   rename/move/delete/undo/reimport back through the session. Reimport submits to the borrowed

@@ -134,12 +134,48 @@ void TestSceneClipboardShortcuts() {
   assert(copy != source && pose && pose->x == 1.0 && pose->y == 2.0 && pose->z == 3.0);
   assert(scene.Undo() && scene.Nodes().size() == 1 && scene.Selection().empty());
 }
+
+void TestHierarchyDeleteShortcut() {
+  nexora::runtime::World world;
+  const auto scene_id = world.LoadScene("Delete shortcut");
+  assert(world.Activate(scene_id));
+  nexora::editor::SceneDocument scene(world, scene_id);
+  const auto root = scene.Create("Root");
+  const auto child = scene.Create("Child", root);
+  const std::array selected{root};
+  assert(root && child && scene.Select(selected));
+  nexora::editor::ProductShell shell;
+  nexora::editor::imgui::EditorImGuiHost host;
+  host.SetDisplay(1280.0F, 720.0F, 1.0F);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  const std::array events{
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 1, 0},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::Delete),
+                                  1}};
+  host.ProcessEvents(events);
+  host.BeginFrame();
+  nexora::editor::imgui::EditorImGuiTestAccess::FocusHierarchy(host);
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  assert(shell.LastCommand() == "editor.scene.delete" && scene.Nodes().empty());
+  assert(scene.Undo() && scene.Nodes().size() == 2 && scene.Parent(child) == root);
+}
 } // namespace
 
 int main() {
   TestEulerRotation();
   TestSceneUndoShortcut();
   TestSceneClipboardShortcuts();
+  TestHierarchyDeleteShortcut();
   using nexora::editor::imgui::EditorImGuiTestAccess;
   nexora::editor::imgui::EditorImGuiHost host;
   const auto initial_state = EditorImGuiTestAccess::Inspect(host);

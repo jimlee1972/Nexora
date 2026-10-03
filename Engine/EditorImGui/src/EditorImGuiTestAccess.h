@@ -57,6 +57,7 @@ public:
   [[nodiscard]] static std::string_view ProjectSelectorRoot(const EditorImGuiHost &host) noexcept;
   static void SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept;
   static void SetHierarchyFilter(EditorImGuiHost &host, std::string_view filter) noexcept;
+  static void FocusHierarchy(EditorImGuiHost &host) noexcept;
   static void QueueHierarchySelection(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                       bool additive, bool range) noexcept;
   static void QueueHierarchyMove(EditorImGuiHost &host, SceneDocument::NodeKey entity,
