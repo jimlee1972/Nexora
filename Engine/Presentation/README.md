@@ -33,6 +33,8 @@ committed only after replacement resources succeed. `OutOfDate`, `SurfaceLost`, 
 `Occluded`, and `Unsupported` distinguish recovery scopes; recovery and resize generations are
 observable diagnostics. `RecoveryAction()` is the application policy boundary: zero extent/occlusion suspend, out-of-date or surface loss recreate the surface, and device loss requires device recreation rather than an unsafe surface-only retry.
 
+`Present` may report `OutOfDate` (including Vulkan `SUBOPTIMAL`) for a frame that was already submitted; the surface schedules swapchain replacement for the next `Acquire`, and callers drop that frame rather than treating it as fatal.
+
 `DrainAndDestroy()` is idempotent, waits for submitted GPU work, and releases all backend objects before
 the source window. Portable tests cover multi-surface lifetime, 2,048 resize cycles, zero extent,
 failure injection, ordering, and idempotent teardown. Real acquire/render/present acceptance remains
