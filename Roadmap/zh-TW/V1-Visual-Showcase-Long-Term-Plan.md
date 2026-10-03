@@ -15,13 +15,13 @@
 - ✅ Windows hosted CI 的 Full Shipping／DX12 isolated-copy 圖形驗收已通過（[CI 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518)，證據：[`Windows-V1-Native-Graph-CI-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md)）。
 - ✅ 乾淨 Windows 10 VM（VirtualBox、無開發工具）以 `-CleanHost -CompleteGuidedTour` 通過 Shipping/Full 套件驗收：`status=PASS`、14 個 checksum、25 張截圖、DX12 無 fallback、3861 次原生 graph/present（[紀錄](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)）。該 GPU 為 VirtualBox 虛擬顯示卡，不代表實體顯示器驗收。
 - ✅ GTX 960 開發機實體顯示驗收：Shipping/Full 套件通過 `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour`（`status=PASS`、`physical_display_verified=true`、DX12 無 fallback 且非軟體 rasterizer、15649 次原生 graph/present、25 張截圖；[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)）。操作聲明旗標由 Claude 依使用者指示提供，使用者未另外全程目視，詳見紀錄。
-- 待辦（V1 最終驗收仍為 PENDING）：Vulkan/Metal 於各自 target host 的 native backend parity（Windows preset 的 Vulkan backend 為 OFF），以及每個 tag 的 release artifact 流程。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
+- 待辦（V1 最終驗收仍為 PENDING）：Vulkan/Metal 於各自 target host 的 native backend parity（Windows preset 的 Vulkan backend 為 OFF），（每個 tag 的 release 流程 `.github/workflows/release.yml` 已加入，workflow_dispatch 乾跑已在 hosted CI 通過；尚未在真實 `v*` tag 上執行）。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
 
 證據與精確驗證結果：[`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md)。
 
 > 文件版本：v1.2
 >
-> 文件狀態：Linux、Windows 開發機、乾淨 VM 與實體顯示切片已實作並驗證；Vulkan/Metal parity、每個 tag 的 release 流程與 V1 最終驗收待完成
+> 文件狀態：Linux、Windows 開發機、乾淨 VM 與實體顯示切片已實作並驗證；Vulkan/Metal parity 與 V1 最終驗收待完成；每個 tag 的 release 流程已加入（乾跑已驗證，首次真實 tag 執行待完成）
 >
 > 更新日期：2026-10-03
 
@@ -432,7 +432,7 @@ package 必須由 M12 Packager/manifest contract 產出或驗證，不允許靠�
 | M9/M11 第三方 adapter 缺失時仍可 contract-only 展示 | ✅ | audio/video/WebView 標示 contract-only／unavailable |
 | 乾淨 Windows 主機啟動 Shipping/Full package | ✅（VM） | 乾淨 Windows 10 VirtualBox VM、`-CleanHost` PASS（[紀錄](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)）；虛擬 GPU，非實體 |
 | 實體顯示驗收 | ✅ | GTX 960、`-PhysicalDisplay` PASS（[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)）；聲明旗標由 Claude 依使用者指示提供 |
-| 每個 tag 自動產出 executable／manifest／report／screenshot | 待驗收 | 版本化證據目錄已有，tag 流程尚未宣告完成 |
+| 每個 tag 自動產出 executable／manifest／report／screenshot | 已加入流程，待首次 tag 驗收 | `release.yml` 乾跑於 hosted CI 通過，產出 draft release；尚未在真實 tag 上執行 |
 
 ## 13. 第一個施工 ticket 建議
 

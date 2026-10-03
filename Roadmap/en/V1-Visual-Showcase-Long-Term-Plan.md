@@ -15,13 +15,13 @@
 - ✅ Windows hosted-CI Full Shipping/DX12 isolated-copy graphical acceptance passes ([CI 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518); evidence: [`Windows-V1-Native-Graph-CI-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md)).
 - ✅ Clean Windows 10 VM (VirtualBox, no dev tools) passed the Shipping/Full package verifier with `-CleanHost -CompleteGuidedTour`: `status=PASS`, 14 checksums, 25 screenshots, DX12 with no fallback, 3861 native graph/present frames ([record](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)). The adapter is a VirtualBox virtual GPU, so this is not physical-display acceptance.
 - ✅ Physical-display acceptance on the GTX 960 developer machine: the Shipping/Full package passed `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour` (`status=PASS`, `physical_display_verified=true`, DX12 without fallback or software rasterizer, 15649 native graph/present frames, 25 screenshots; [record](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)). The operator attestation flag was supplied by Claude on the user's instruction and the user did not separately watch the run; see the record.
-- Open (final V1 acceptance remains PENDING): Vulkan/Metal native-backend parity on their target hosts (Windows presets build with the Vulkan backend OFF) and the per-tag release artifact workflow. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
+- Open (final V1 acceptance remains PENDING): Vulkan/Metal native-backend parity on their target hosts (Windows presets build with the Vulkan backend OFF) (the per-tag release workflow `.github/workflows/release.yml` now exists and its workflow_dispatch dry run passed on hosted CI; it has not yet run on a real `v*` tag). Audio/video/WebView adapters remain explicitly contract-only/unavailable.
 
 Evidence and exact validation results: [`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
 
 > Document version: v1.2
 >
-> Document status: Linux, Windows developer-machine, clean-VM and physical-display slices implemented and verified; Vulkan/Metal parity, per-tag release workflow and final V1 acceptance pending
+> Document status: Linux, Windows developer-machine, clean-VM and physical-display slices implemented and verified; Vulkan/Metal parity and final V1 acceptance pending; per-tag release workflow added (dry run verified, first real tag run pending)
 >
 > Updated: 2026-10-03
 
