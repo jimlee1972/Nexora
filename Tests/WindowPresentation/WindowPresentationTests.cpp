@@ -10,8 +10,8 @@
 #if defined(_WIN32)
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <imm.h>
+#include <windows.h>
 #endif
 
 namespace {
@@ -153,6 +153,12 @@ private:
 } // namespace
 
 int main() {
+  const auto full_viewport = Presentation::ResolveSceneViewport({}, 640, 480);
+  const auto inset_viewport = Presentation::ResolveSceneViewport({160, 120, 320, 240}, 640, 480);
+  assert(full_viewport && full_viewport->width == 640 && full_viewport->height == 480 &&
+         inset_viewport && inset_viewport->x == 160 && inset_viewport->height == 240 &&
+         !Presentation::ResolveSceneViewport({630, 0, 20, 480}, 640, 480) &&
+         !Presentation::ResolveSceneViewport({0, 0, 0, 240}, 640, 480));
   assert(Presentation::ToString(Presentation::SurfaceBackend::Dx12) == "dx12");
   assert(Presentation::ToString(Presentation::SurfaceBackend::Vulkan) == "vulkan");
   assert(Presentation::ToString(Presentation::SurfaceBackend::Metal) == "metal");

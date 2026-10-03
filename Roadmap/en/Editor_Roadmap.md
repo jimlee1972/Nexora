@@ -175,6 +175,9 @@ creates property widgets; unknown components retain raw data instead of being si
 - ✅ The central Scene panel now has an interactive top-down X/Z overview: parent-composed entity
   positions, grid, wheel zoom, middle-button pan, and click selection shared with Hierarchy.
   Renderer-backed 3D output and full 3D gizmos remain open.
+- ✅ The native Vulkan/DX12 scene draw contract now accepts a bounded physical-pixel viewport.
+  Portable bounds checks and Vulkan Xvfb pixel readback cover clipping. The Editor Scene panel
+  has not yet wired this draw path, so renderer-backed Scene View acceptance remains open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on
   selected world positions with F or Frame selected. Input-event tests cover both interactions.
 - ✅ Scene overview marker dragging previews a world X/Z move; visible X and Z handles constrain

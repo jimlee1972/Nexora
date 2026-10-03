@@ -290,6 +290,11 @@ public:
     if (!acquired_ || sceneDrawn_ || uiDrawn_ || compositeDrawn_ || !scenePipeline_ ||
         drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
+    const auto viewport = ResolveSceneViewport(drawData.viewport, width_, height_);
+    if (!viewport ||
+        (drawData.offscreen && (drawData.viewport.x != 0 || drawData.viewport.y != 0 ||
+                                drawData.viewport.width != 0 || drawData.viewport.height != 0)))
+      return SurfaceStatus::InvalidDescriptor;
     if (drawData.instances.size() > 4096)
       return SurfaceStatus::InvalidDescriptor;
     for (const auto &instance : drawData.instances) {
@@ -415,10 +420,16 @@ public:
     textureHandle.ptr += UINT64(sceneTextures_.at(textureId).descriptor) * uiDescriptorIncrement_;
     commands_->SetGraphicsRootDescriptorTable(1, textureHandle);
     commands_->SetGraphicsRootConstantBufferView(0, base);
-    const D3D12_VIEWPORT viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_),
-                                  0, 1};
-    commands_->RSSetViewports(1, &viewport);
-    const D3D12_RECT scissor{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
+    const D3D12_VIEWPORT nativeViewport{static_cast<float>(viewport->x),
+                                        static_cast<float>(viewport->y),
+                                        static_cast<float>(viewport->width),
+                                        static_cast<float>(viewport->height),
+                                        0,
+                                        1};
+    commands_->RSSetViewports(1, &nativeViewport);
+    const D3D12_RECT scissor{static_cast<LONG>(viewport->x), static_cast<LONG>(viewport->y),
+                             static_cast<LONG>(viewport->x + viewport->width),
+                             static_cast<LONG>(viewport->y + viewport->height)};
     commands_->RSSetScissorRects(1, &scissor);
     const D3D12_VERTEX_BUFFER_VIEW vertexView{geometryBase, static_cast<UINT>(vertexBytes.size()),
                                               sizeof(SceneVertex)};
