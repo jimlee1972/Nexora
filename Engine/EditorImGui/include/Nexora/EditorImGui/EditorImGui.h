@@ -20,6 +20,7 @@ namespace nexora::editor::imgui {
 class EditorImGuiTestAccess;
 
 enum class RecoveryChoice : std::uint8_t { None, Recover, Discard };
+enum class CloseChoice : std::uint8_t { None, SaveAndExit, DiscardAndExit, Cancel };
 enum class ProjectSelectorAction : std::uint8_t { Open, Create };
 
 struct ProjectSelectorRequest final {
@@ -79,6 +80,8 @@ public:
                         AssetImportQueue *imports = nullptr);
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
+  void RequestCloseConfirmation() noexcept;
+  [[nodiscard]] CloseChoice TakeCloseChoice() noexcept;
   [[nodiscard]] FrameMetrics EndFrame();
   // The validation/offscreen renderer retains its pipeline, font texture, and geometrically sized
   // upload buffers. ReleaseRenderer must be called before the supplied Device is destroyed.

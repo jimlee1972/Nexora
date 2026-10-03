@@ -148,12 +148,35 @@ int RunGraphical(std::optional<ProjectState> project,
     open_scene();
   std::uint32_t frames = 0;
   int result = 0;
+  bool exit_requested = false;
   auto recovery_choice = nexora::editor::imgui::RecoveryChoice::None;
   std::string selector_result = project ? "bypassed" : "none";
-  while (!created.surface->CloseRequested() && (frame_limit == 0 || frames < frame_limit)) {
+  const auto save_scene = [&] {
+    if (scene_load_failed) {
+      ui.SetSceneSaveResult("Scene load failed. Resolve the scene file before saving.", false);
+      return false;
+    }
+    if (!project || !project->workspace.Writable()) {
+      ui.SetSceneSaveResult("Scene is read-only. Reopen the project for writing.", false);
+      return false;
+    }
+    if (!scene.Save(scene_path(project->workspace))) {
+      ui.SetSceneSaveResult("Scene could not be saved. Check the project directory.", false);
+      return false;
+    }
+    ui.SetSceneSaveResult("Scene saved.", true);
+    return true;
+  };
+  while (!exit_requested && !created.surface->CloseRequested() &&
+         (frame_limit == 0 || frames < frame_limit)) {
     const auto begin_frame_status = created.surface->BeginFrame();
     const auto action = Nexora::Presentation::RecoveryAction(begin_frame_status);
     if (action == Nexora::Presentation::SurfaceAction::Abort) {
+      if (created.surface->CloseRequested() && project && scene.Dirty() &&
+          created.surface->CancelCloseRequest()) {
+        ui.RequestCloseConfirmation();
+        continue;
+      }
       // A window closed during startup can no longer back a swapchain, so BeginFrame reports a
       // failure caused by the close itself. When the user already asked to quit, that is a clean
       // exit, not an error.
@@ -226,16 +249,13 @@ int RunGraphical(std::optional<ProjectState> project,
     }
     if (project) {
       ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports);
-      if (ui.TakeSceneSaveRequest()) {
-        if (scene_load_failed)
-          ui.SetSceneSaveResult("Scene load failed. Resolve the scene file before saving.", false);
-        else if (!project->workspace.Writable())
-          ui.SetSceneSaveResult("Scene is read-only. Reopen the project for writing.", false);
-        else if (!scene.Save(scene_path(project->workspace)))
-          ui.SetSceneSaveResult("Scene could not be saved. Check the project directory.", false);
-        else
-          ui.SetSceneSaveResult("Scene saved.", true);
-      }
+      if (ui.TakeSceneSaveRequest())
+        static_cast<void>(save_scene());
+      const auto close_choice = ui.TakeCloseChoice();
+      if (close_choice == nexora::editor::imgui::CloseChoice::SaveAndExit)
+        exit_requested = save_scene();
+      else if (close_choice == nexora::editor::imgui::CloseChoice::DiscardAndExit)
+        exit_requested = true;
       if (const auto choice = ui.TakeRecoveryChoice();
           choice != nexora::editor::imgui::RecoveryChoice::None)
         recovery_choice = choice;

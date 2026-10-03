@@ -12,6 +12,20 @@
 #include <utility>
 #include <vector>
 
+@interface NexoraCloseDelegate : NSObject <NSWindowDelegate> {
+@public
+  BOOL requested;
+}
+@end
+
+@implementation NexoraCloseDelegate
+- (BOOL)windowShouldClose:(id)sender {
+  (void)sender;
+  requested = YES;
+  return NO;
+}
+@end
+
 namespace Nexora::Window {
 namespace {
 std::uint64_t Now() noexcept {
@@ -26,8 +40,11 @@ public:
     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
   }
   ~CocoaWindowSystem() override {
-    for (const auto &[id, window] : windows_)
+    for (const auto &[id, window] : windows_) {
+      [window setDelegate:nil];
       [window close];
+      [delegates_.at(id) release];
+    }
   }
   std::thread::id OwnerThread() const noexcept override { return owner_; }
   WindowResult Create(const WindowDescriptor &descriptor) override {
@@ -52,6 +69,9 @@ public:
       [window makeKeyAndOrderFront:nil];
     const WindowHandle handle{next_++};
     windows_[handle.value] = window;
+    auto *delegate = [[NexoraCloseDelegate alloc] init];
+    [window setDelegate:delegate];
+    delegates_[handle.value] = delegate;
     return {handle, WindowError::None};
   }
   WindowError Destroy(WindowHandle handle) override {
@@ -60,7 +80,11 @@ public:
     const auto found = windows_.find(handle.value);
     if (found == windows_.end())
       return WindowError::InvalidHandle;
+    [found->second setDelegate:nil];
     [found->second close];
+    [delegates_.at(handle.value) release];
+    delegates_.erase(handle.value);
+    extents_.erase(handle.value);
     windows_.erase(found);
     return WindowError::None;
   }
@@ -113,8 +137,10 @@ public:
         extents_[id] = extent;
         events_.push_back({{id}, WindowEventType::Resized, Now(), extent.first, extent.second});
       }
-      if (![window isVisible])
+      if (delegates_.at(id)->requested) {
         events_.push_back({{id}, WindowEventType::CloseRequested, Now()});
+        delegates_.at(id)->requested = NO;
+      }
     }
     return events_;
   }
@@ -132,6 +158,7 @@ private:
   std::thread::id owner_;
   std::uint64_t next_ = 1;
   std::unordered_map<std::uint64_t, NSWindow *> windows_;
+  std::unordered_map<std::uint64_t, NexoraCloseDelegate *> delegates_;
   std::unordered_map<std::uint64_t, std::pair<std::uint32_t, std::uint32_t>> extents_;
   std::vector<WindowEvent> events_;
 };

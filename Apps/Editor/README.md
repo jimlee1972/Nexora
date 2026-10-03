@@ -89,6 +89,9 @@ On normal shutdown, writable projects save the overview center and zoom to
 reported and preserved; read-only projects never write camera state.
 The Scene panel marks unsaved changes from live scene content. Undoing an edit back to the saved
 content clears the marker; a failed save leaves it visible.
+On a native close request with unsaved scene content, the Editor keeps the window alive and offers
+Save and Exit, Discard and Exit, or Cancel. A failed or read-only save leaves the dialog open.
+External window destruction cannot be canceled and stops rendering.
 Scene View, reflected component widgets, the complete graphical save/restart workflow, and the ED-M2 visual exit gate
 remain open.
 

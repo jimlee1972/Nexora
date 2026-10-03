@@ -175,7 +175,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   開啟 project 後維持。完整 3D camera control 仍待完成。
 - ✅ 圖形化 Scene panel 現顯示依實際內容計算的未儲存標記。僅成功 save／reload 會更新基準，
   Undo 回到該內容時會清除標記；contract test 涵蓋 subtree 刪除、儲存失敗及外部 Runtime
-  修改。關閉時的 dirty prompt 仍待完成。
+  修改。
+- ✅ 原生關閉要求遇到未儲存場景時，會顯示儲存後離開、捨棄後離開與取消選項；儲存失敗或
+  唯讀時保留對話框。外部視窗銷毀仍會停止繪製；圖形化關閉／重開驗收仍待完成。
 - 待辦：圖形化 Scene View、完整 reflected Inspector、renderer-backed picking、camera control、
   gizmo、reflected widget
   與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成 select／edit／undo／save／restart

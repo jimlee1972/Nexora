@@ -295,7 +295,21 @@ def main() -> int:
                        check=True)
         subprocess.run([args.xdotool, "mousemove", "200", "160", "click", "1"],
                        env=environment, check=True)
+        # The initial Scene Root is unsaved. Native close must keep the window alive until the
+        # user decides; Escape cancels the prompt and permits subsequent editing and saving.
+        subprocess.run([args.xdotool, "windowclose", window], env=environment, check=True)
+        time.sleep(0.5)
+        if editor.poll() is not None or (root / ".nexora/scenes/Main.scene").exists():
+            raise RuntimeError("unsaved close dismissed the Editor or wrote the scene")
+        subprocess.run([args.xdotool, "key", "Escape"], env=environment, check=True)
+        time.sleep(0.2)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        scene_file = root / ".nexora/scenes/Main.scene"
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not scene_file.is_file():
+            time.sleep(0.1)
+        if not scene_file.is_file():
+            raise RuntimeError("scene save after cancelling close did not finish")
         subprocess.run([args.xdotool, "mousemove", "640", "300", "click", "4"],
                        env=environment, check=True)
         time.sleep(0.5)

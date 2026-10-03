@@ -50,6 +50,11 @@ scene/UI sources and embedded SPIR-V are under `shaders/` and `src/*VulkanShader
 `shaders/GenerateShaders.py --check` verifies deterministic regeneration with glslangValidator.
 Neither UI nor scene rendering requires the graphical Editor or a runtime shader compiler.
 
+An application with unsaved work may call `CancelCloseRequest()` after `BeginFrame()` reports a user
+close and before the next frame, then render its confirmation dialog. The call fails when the native
+window was destroyed externally, or the surface has been drained. Existing consumers that do not
+cancel keep the stop-before-Acquire close behavior.
+
 UI loads a prior scene color target rather than erasing it; a UI-only frame explicitly clears its
 background. Atlas uploads must be resubmitted after swapchain recreation. RenderSurface stops before
 Acquire when a close request is pumped, leaving no newly acquired frame without presentation during
