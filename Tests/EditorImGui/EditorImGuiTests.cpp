@@ -775,6 +775,14 @@ int main() {
   assert(scene.Undo());
   assert(scene.Transform(root)->x == 0.0 && scene.Transform(root)->sy == 1.0);
 
+  EditorImGuiTestAccess::QueueInspectorCamera(host, *root_key,
+                                              nexora::runtime::CameraComponent{70.0, 0.25, 800.0});
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(scene.Camera(*root_key) && scene.Camera(*root_key)->vertical_field_of_view == 70.0);
+  assert(scene.Undo() && !scene.Camera(*root_key));
+
   const std::array multi_selection{*root_key, *sibling_key};
   assert(scene.Select(multi_selection));
   auto root_transform = *scene.Transform(root);

@@ -707,6 +707,36 @@ int Run() {
             "external runtime changes must mark the document dirty");
   }
   const auto scene_path = root / "Content/Main.scene";
+  {
+    runtime::World camera_world;
+    const auto camera_scene = camera_world.LoadScene("Camera inspector");
+    Require(camera_world.Activate(camera_scene), "camera scene activation failed");
+    editor::SceneDocument cameras(camera_world, camera_scene);
+    const auto camera_entity = cameras.Create("Camera");
+    const auto key = *cameras.Key(camera_entity);
+    const auto path = root / "Content/Camera.scene";
+    Require(cameras.Save(path) && !cameras.Dirty(), "camera baseline save failed");
+    Require(cameras.SetCamera(key, runtime::CameraComponent{75.0, 0.2, 500.0}) && cameras.Dirty() &&
+                cameras.Camera(key)->vertical_field_of_view == 75.0,
+            "camera edit did not update the document");
+    Require(!cameras.SetCamera(key, runtime::CameraComponent{180.0, 0.2, 500.0}) &&
+                !cameras.SetCamera(key, runtime::CameraComponent{75.0, 2.0, 1.0}) &&
+                cameras.Camera(key)->vertical_field_of_view == 75.0,
+            "invalid camera fields changed the scene");
+    Require(cameras.Undo() && !cameras.Camera(key) && !cameras.Dirty(),
+            "camera undo did not restore component presence and saved state");
+    Require(cameras.SetCamera(key, runtime::CameraComponent{75.0, 0.2, 500.0}) &&
+                cameras.Save(path),
+            "camera save failed");
+    runtime::World reopened_world;
+    editor::SceneDocument reopened_camera_document(reopened_world,
+                                                   reopened_world.LoadScene("Placeholder"));
+    Require(reopened_camera_document.Reload(path) &&
+                reopened_camera_document.Camera(*reopened_camera_document.Key(camera_entity))
+                        ->vertical_field_of_view == 75.0 &&
+                !reopened_camera_document.SetCamera(key, std::nullopt),
+            "camera reload lost values or accepted a stale document key");
+  }
   Require(document.Save(scene_path), "scene atomic save failed");
   runtime::World loaded_world;
   const auto placeholder = loaded_world.LoadScene("Placeholder");

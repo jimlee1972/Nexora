@@ -139,6 +139,9 @@ creates property widgets; unknown components retain raw data instead of being si
 - ✅ The docked graphical Inspector presents local position, Euler degrees (quaternion storage), and scale for single or
   mixed-value multi-selection. A field edit routes generation-keyed transforms through one atomic
   Runtime transaction and undo step; invalid input leaves every selected entity unchanged.
+- ✅ The Inspector's single-selection Camera section adds/removes the component and edits validated
+  vertical field of view and clipping planes through generation-keyed Undo. Scene save/reload retains
+  the values; the complete reflected Inspector remains open.
 - ✅ Graphical rotation fields use degrees with explicit Z-X-Y composition and finite-value validation.
   Enter submits one atomic multi-selection transaction while preserving each target's other axes,
   position, and scale. Contract tests drive the real text widget with public key/text events.

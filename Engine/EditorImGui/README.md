@@ -141,6 +141,12 @@ accessibility tree. Widget labels use those stable IDs and never become the data
 Dear ImGui does not provide a native accessibility tree, so keyboard traversal and screen-reader
 bridges remain ED-M7 work; plugins must not inspect the ImGui widget tree to supply semantics.
 
+## Camera Inspector
+
+The single-selection Camera section toggles component presence and edits vertical field of view,
+near plane, and far plane on Enter. Requests use the selected document generation and go through
+`SceneDocument::SetCamera`; rejected values show an error without changing the scene.
+
 ## Inspector rotation
 
 Local rotation is presented in degrees using extrinsic Z-X-Y composition (`qY * qX * qZ`).
