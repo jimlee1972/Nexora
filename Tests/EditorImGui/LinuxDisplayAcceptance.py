@@ -296,6 +296,9 @@ def main() -> int:
         subprocess.run([args.xdotool, "mousemove", "200", "160", "click", "1"],
                        env=environment, check=True)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "mousemove", "640", "300", "click", "4"],
+                       env=environment, check=True)
+        time.sleep(0.5)
 
         # A real close event must stop the unbounded loop and still drain/persist cleanly.
         subprocess.run([args.xdotool, "windowclose", window], env=environment, check=True)
@@ -303,6 +306,12 @@ def main() -> int:
         if editor.returncode != 0 or "graphical evidence:" not in stderr:
             raise RuntimeError(f"close-event shutdown failed: {stderr}")
         editor = None
+        camera_path = root / ".nexora/scenes/Main.overview.camera"
+        camera_lines = camera_path.read_text().splitlines()
+        if (len(camera_lines) != 2 or camera_lines[0] != "NEXORA_SCENE_CAMERA 1" or
+                float(camera_lines[1].split()[-1]) >= 10.0):
+            raise RuntimeError(f"Scene overview zoom was not persisted: {camera_lines!r}")
+        saved_orthographic_size = float(camera_lines[1].split()[-1])
         project_descriptor = (root / "project.nexora").read_text()
         if not re.fullmatch(
             r"schema=2\nuuid=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
@@ -332,6 +341,9 @@ def main() -> int:
         editor = None
         if not (root / ".nexora/editor-layout.ini").read_text().startswith("schema=1\n"):
             raise RuntimeError("corrupt layout was not replaced with the current schema")
+        reloaded_orthographic_size = float(camera_path.read_text().splitlines()[1].split()[-1])
+        if abs(reloaded_orthographic_size - saved_orthographic_size) > 1e-5:
+            raise RuntimeError("Scene overview zoom did not survive project reopen")
 
         # The legacy schema remains readable and is migrated by the normal shutdown save.
         current_layout = (root / ".nexora/editor-layout.ini").read_text().split("\n", 1)[1]

@@ -35,6 +35,11 @@ struct FrameMetrics final {
   std::uint32_t command_lists = 0;
 };
 
+struct SceneOverviewCamera final {
+  double x{}, z{};
+  double pixels_per_unit{32.0};
+};
+
 struct RendererMetrics final {
   std::uint64_t frames = 0;
   std::uint64_t draw_calls = 0;
@@ -87,6 +92,8 @@ public:
   [[nodiscard]] bool UnregisterTexture(std::uint64_t texture_id) noexcept;
   [[nodiscard]] std::string SaveLayout() const;
   [[nodiscard]] bool LoadLayout(std::string_view layout);
+  [[nodiscard]] SceneOverviewCamera GetSceneOverviewCamera() const noexcept;
+  bool SetSceneOverviewCamera(SceneOverviewCamera camera) noexcept;
   // Flattens the current ImGui draw data into backend-neutral indexed geometry that RenderSurface
   // records directly into its acquired native GPU image. The RHI overload remains a headless
   // contract-test path.

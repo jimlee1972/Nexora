@@ -2158,6 +2158,23 @@ bool EditorImGuiHost::LoadLayout(std::string_view layout) {
   return true;
 }
 
+SceneOverviewCamera EditorImGuiHost::GetSceneOverviewCamera() const noexcept {
+  return {state_->scene_center_world.x, state_->scene_center_world.y,
+          state_->scene_pixels_per_unit};
+}
+
+bool EditorImGuiHost::SetSceneOverviewCamera(SceneOverviewCamera camera) noexcept {
+  if (!std::isfinite(camera.x) || !std::isfinite(camera.z) ||
+      !std::isfinite(camera.pixels_per_unit) ||
+      std::abs(camera.x) > std::numeric_limits<float>::max() ||
+      std::abs(camera.z) > std::numeric_limits<float>::max() || camera.pixels_per_unit < 4.0 ||
+      camera.pixels_per_unit > 256.0)
+    return false;
+  state_->scene_center_world = {static_cast<float>(camera.x), static_cast<float>(camera.z)};
+  state_->scene_pixels_per_unit = static_cast<float>(camera.pixels_per_unit);
+  return true;
+}
+
 Nexora::Presentation::SurfaceStatus
 EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint32_t width,
                         std::uint32_t height) {
