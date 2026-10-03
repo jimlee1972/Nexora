@@ -93,6 +93,47 @@ def first_entity_position(scene_text: str) -> tuple[float, float, float]:
     return tuple(float(value) for value in fields[2:5])
 
 
+def axis_handle_pixels(display_name: str, window: int,
+                       viewport: tuple[int, int, int, int]):
+    x11 = ctypes.CDLL("libX11.so.6")
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XGetImage.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                              ctypes.c_uint, ctypes.c_uint, ctypes.c_ulong, ctypes.c_int]
+    x11.XGetImage.restype = ctypes.POINTER(XImage)
+    x11.XGetPixel.argtypes = [ctypes.POINTER(XImage), ctypes.c_int, ctypes.c_int]
+    x11.XGetPixel.restype = ctypes.c_ulong
+    x11.XDestroyImage.argtypes = [ctypes.POINTER(XImage)]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    display = x11.XOpenDisplay(display_name.encode())
+    if not display:
+        raise RuntimeError("Xvfb axis pixel reader could not connect")
+    try:
+        image = x11.XGetImage(display, window, 0, 0, 1280, 720,
+                              ctypes.c_ulong(-1).value, 2)
+        if not image:
+            raise RuntimeError("axis handle pixel readback failed")
+        try:
+            x, y, width, height = viewport
+            center_x, center_y = x + width // 2, y + height // 2
+            found = [[], [], []]
+            for py in range(max(y, center_y - 70), min(y + height, center_y + 70)):
+                for px in range(max(x, center_x - 100), min(x + width, center_x + 100)):
+                    pixel = x11.XGetPixel(image, px, py)
+                    rgb = [channel(pixel, mask) for mask in
+                           (image.contents.red_mask, image.contents.green_mask,
+                            image.contents.blue_mask)]
+                    for axis in range(3):
+                        if rgb[axis] > 80 and all(rgb[other] < 60 for other in range(3)
+                                                   if other != axis):
+                            found[axis].append((px, py))
+            return [pixels[len(pixels) // 2] if pixels else None for pixels in found]
+        finally:
+            x11.XDestroyImage(image)
+    finally:
+        x11.XCloseDisplay(display)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--editor", required=True)
@@ -157,6 +198,45 @@ def main() -> int:
         if not scene_file.is_file():
             raise RuntimeError("native Scene could not save before proxy drag")
         initial_scene = scene_file.read_text()
+        handles = [None, None, None]
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline and any(handle is None for handle in handles):
+            handles = axis_handle_pixels(display, window, viewport)
+            if any(handle is None for handle in handles):
+                time.sleep(0.05)
+        if any(handle is None for handle in handles):
+            raise RuntimeError(f"selected proxy lacks visible XYZ axis handles: {handles}")
+        before = first_entity_position(initial_scene)
+        for axis, (dx, dy) in enumerate(((40, 0), (0, -40), (-30, 25))):
+            handle_x, handle_y = handles[axis]
+            subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                            str(handle_x), str(handle_y)], env=environment, check=True)
+            subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+            time.sleep(0.1)
+            subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                            str(handle_x + dx), str(handle_y + dy)], env=environment, check=True)
+            time.sleep(0.15)
+            subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+            subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+            after = before
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline and abs(after[axis] - before[axis]) < 0.1:
+                time.sleep(0.05)
+                after = first_entity_position(scene_file.read_text())
+            if (abs(after[axis] - before[axis]) < 0.1 or
+                    any(abs(after[other] - before[other]) > 1e-6 for other in range(3)
+                        if other != axis)):
+                raise RuntimeError(f"XYZ handle {axis} did not constrain movement: "
+                                   f"{before} -> {after}")
+            subprocess.run([args.xdotool, "key", "ctrl+z"], env=environment, check=True)
+            subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline and scene_file.read_text() != initial_scene:
+                time.sleep(0.05)
+            if scene_file.read_text() != initial_scene:
+                raise RuntimeError(f"axis handle {axis} drag did not undo atomically")
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y)], env=environment, check=True)
         _, before_drag_pixels = scene_pixels(display, window, viewport)
         subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
         time.sleep(0.1)

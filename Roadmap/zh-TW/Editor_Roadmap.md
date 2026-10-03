@@ -178,15 +178,15 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   並於每幀重設。
 - ✅ Scene panel 現提供 Vulkan／DX12 原生 3D 代理預覽，在 UI 提交後於該 canvas 繪製有深度測試的
   地面與 live scene 節點位置代理，保留 canvas 外的控制項。X/Z 編輯概覽仍可切回。已建立的 mesh、
-  精確 shear 矩陣、mesh picking 與 gizmo 仍待完成，完整 renderer-backed
+  精確 shear 矩陣、mesh picking 與旋轉／縮放 gizmo 仍待完成，完整 renderer-backed
   Scene View 驗收因此仍未通過。
   代理 instance 現反映合成後的世界旋轉與縮放，picking 範圍包住旋轉／縮放後的立方體。
   右鍵拖曳可旋轉預覽鏡頭，中鍵拖曳可平移 X/Z 目標，Shift 加中鍵拖曳可平移目標高度，滾輪可縮放，F 或 Frame selected
   可將 X/Y/Z 目標對準選取節點；旋轉角度、距離與目標高度現會逐場景保存。
   點選可見的位置代理可同步選取 Scene、Hierarchy 與 Inspector 中的節點；Ctrl 點選可切換選取。
   拖曳代理會即時預覽選取根節點及其後代的世界 X/Z 位移；按住 Shift 起始拖曳則沿世界 Y 軸
-  移動。放開左鍵時以單次可復原 transaction 提交。
-  Escape 可取消拖曳；可選 0.25–4 世界單位吸附同時作用於預覽與提交。
+  移動。選取代理會顯示彩色世界 X/Y/Z 位移把手，點擊把手後拖曳會限制在該軸。
+  放開左鍵時以單次可復原 transaction 提交。Escape 可取消拖曳；可選 0.25–4 世界單位吸附同時作用於預覽與提交。
 - ✅ Scene 概覽現共用 Hierarchy 的 Ctrl／Shift 多選錨點，並可透過 F 或 Frame selected
   將檢視中心移至選取物件的世界位置。輸入事件測試涵蓋這兩項操作。
 - ✅ Scene 概覽標記拖曳會預覽世界 X/Z 位移；可見的 X 與 Z 把手可將位移限制於單一世界軸，
