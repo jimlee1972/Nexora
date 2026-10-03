@@ -72,6 +72,9 @@ edit applies atomically to the entire selection, and invalid transforms roll bac
 write. SceneDocument persists authored Euler hints through save/reload and restores them with undo.
 The Hierarchy can create root entities and children of the single selected entity, then selects the
 new node. Invalid names and stale parents are rejected, while creation participates in scene Undo.
+The Hierarchy also offers Copy and Paste buttons and Ctrl+C/Ctrl+V outside text inputs. Copies retain
+the source's captured world pose even after the source moves; Paste selects the new root entity,
+and one Undo removes a single pasted copy.
 Scene View, reflected component widgets, the complete graphical save/restart workflow, and the ED-M2 visual exit gate
 remain open.
 

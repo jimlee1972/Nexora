@@ -92,11 +92,54 @@ void TestSceneUndoShortcut() {
   assert(scene.Nodes().size() == 1 && scene.Nodes().front().id == root);
   assert(scene.Selection().empty());
 }
+
+void TestSceneClipboardShortcuts() {
+  nexora::runtime::World world;
+  const auto scene_id = world.LoadScene("Clipboard shortcuts");
+  assert(world.Activate(scene_id));
+  nexora::editor::SceneDocument scene(world, scene_id);
+  const auto source = scene.Create("Source");
+  const std::array selected{source};
+  assert(source && scene.SetTransform(source, {1.0, 2.0, 3.0}) && scene.Select(selected));
+  nexora::editor::ProductShell shell;
+  nexora::editor::imgui::EditorImGuiHost host;
+  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  host.SetDisplay(1280.0F, 720.0F, 1.0F);
+  const auto draw = [&] {
+    host.BeginFrame();
+    host.DrawProductShell(shell, &scene);
+    static_cast<void>(host.EndFrame());
+  };
+  const auto key = [](Nexora::Window::Key code, int down) {
+    return Nexora::Window::WindowEvent{
+        {},   Nexora::Window::WindowEventType::Key, 0, 0, 0, 1.0F, static_cast<std::int32_t>(code),
+        down, Nexora::Window::KeyModifiers::Control};
+  };
+  draw();
+  const std::array copy_events{
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 1, 0},
+      key(Nexora::Window::Key::LeftControl, 1), key(Nexora::Window::Key::C, 1)};
+  host.ProcessEvents(copy_events);
+  draw();
+  assert(shell.LastCommand() == "editor.scene.copy");
+  assert(scene.SetTransform(source, {12.0, 0.0, 0.0}));
+  const std::array paste_events{key(Nexora::Window::Key::C, 0), key(Nexora::Window::Key::V, 1)};
+  host.ProcessEvents(paste_events);
+  draw();
+  assert(shell.LastCommand() == "editor.scene.paste");
+  assert(scene.Nodes().size() == 2 && scene.Selection().size() == 1);
+  const auto copy = scene.Selection().front();
+  const auto pose = scene.Transform(copy);
+  assert(copy != source && pose && pose->x == 1.0 && pose->y == 2.0 && pose->z == 3.0);
+  assert(scene.Undo() && scene.Nodes().size() == 1 && scene.Selection().empty());
+}
 } // namespace
 
 int main() {
   TestEulerRotation();
   TestSceneUndoShortcut();
+  TestSceneClipboardShortcuts();
   using nexora::editor::imgui::EditorImGuiTestAccess;
   nexora::editor::imgui::EditorImGuiHost host;
   const auto initial_state = EditorImGuiTestAccess::Inspect(host);

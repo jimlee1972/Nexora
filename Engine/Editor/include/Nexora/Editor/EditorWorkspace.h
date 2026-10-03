@@ -213,6 +213,10 @@ private:
     std::uint64_t generation{};
     std::optional<EulerHint> euler_hint{};
   };
+  struct ClipboardNode final {
+    std::string name;
+    runtime::Transform world_transform;
+  };
   struct UndoEntry final {
     enum class Kind { Runtime, Rename } kind{Kind::Runtime};
     NodeKey entity;
@@ -224,7 +228,7 @@ private:
   runtime::SceneEditor editor_;
   std::vector<Node> nodes_;
   std::vector<runtime::Id> selection_;
-  std::vector<Node> clipboard_;
+  std::vector<ClipboardNode> clipboard_;
   std::vector<UndoEntry> undo_;
   std::uint64_t document_generation_{};
   std::uint64_t next_entity_generation_{1};

@@ -574,6 +574,16 @@ int Run() {
               document.Name(document.Selection().front()) == "Child Copy",
           "clipboard did not create a stable selection");
   Require(document.Undo(), "scene undo failed");
+  // Copy captures a pose at copy time. Editing the source later must not move the pasted root,
+  // and one Undo removes the paste rather than merely resetting its transform.
+  const std::array copied_source{child};
+  Require(document.Select(copied_source) && document.CopySelection() &&
+              document.SetTransform(child, {12, 0, 0}) && document.Paste(),
+          "scene clipboard snapshot setup failed");
+  const auto pasted_child = document.Selection().front();
+  Require(pasted_child != child && document.Transform(pasted_child)->x == 1.0 && document.Undo() &&
+              !document.Key(pasted_child) && document.Selection().empty(),
+          "pasted pose or single-step creation undo failed");
   const auto scene_path = root / "Content/Main.scene";
   Require(document.Save(scene_path), "scene atomic save failed");
   runtime::World loaded_world;
