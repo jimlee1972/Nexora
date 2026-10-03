@@ -49,9 +49,9 @@ docked canvas after UI submission, preserving controls outside the canvas. Selec
 tint. This preview does not yet draw
 authored mesh assets or apply node rotation/scale; the full renderer-backed Scene View remains open.
 Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel zooms, and F or
-Frame selected centers on selected nodes. The target persists with the overview camera; orbit
-angle and distance persist in a separate per-scene camera file on writable shutdown. Invalid
-camera files are preserved for inspection.
+Frame selected centers on selected nodes in X/Y/Z. The X/Z target persists with the overview
+camera; target height, orbit angle, and distance persist in a separate per-scene camera file on
+writable shutdown. Invalid camera files are preserved for inspection.
 Left click selects the nearest visible position proxy using a viewport ray against its drawn
 box; Ctrl-click toggles it, and an empty click clears selection. Hierarchy and Inspector share
 that selection. Picking authored mesh triangles remains open.

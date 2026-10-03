@@ -186,7 +186,7 @@ scaling. The Editor's 3D Preview toggle now draws native depth-tested ground and
 position proxies in that rectangle after UI submission. Authored meshes, full 3D editing, and graphical
 Scene View acceptance remain open.
 The preview camera supports right-drag orbit, middle-drag X/Z pan, wheel zoom, and F or Frame
-selected to center its target; orbit angle and distance now persist per scene.
+selected to center its X/Y/Z target; orbit angle, distance, and target height persist per scene.
 Clicking a visible 3D proxy now selects its scene node in Hierarchy and Inspector; Ctrl-click
 toggles selection. Authored mesh picking remains open.
 
@@ -366,7 +366,7 @@ Docked Scene canvas 現會在 layout 與 DPI 縮放後提供可見的 framebuffe
 Editor 的 3D Preview 切換現會在 UI 提交後於該矩形繪製原生有深度測試的地面與 live entity
 位置代理。已建立的 mesh、完整 3D 編輯與圖形化 Scene View 驗收仍待完成。
 預覽鏡頭現支援右鍵拖曳旋轉、中鍵拖曳 X/Z 平移、滾輪縮放，以及 F 或 Frame selected
-將目標對準選取節點；旋轉角度與距離現會逐場景保存。
+將 X/Y/Z 目標對準選取節點；旋轉角度、距離與目標高度現會逐場景保存。
 點選可見的 3D 代理現會同步選取 Hierarchy 與 Inspector 中的場景節點；Ctrl 點選可切換選取。
 已建立 mesh 的 picking 仍待完成。
 
