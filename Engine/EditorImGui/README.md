@@ -51,6 +51,9 @@ authoring views on first launch.
   zooms, and F or Frame selected centers the target on selected nodes. Orbit angle and distance
   are validated state; the target shares the overview's persisted X/Z center. The application
   saves the orbit angle and distance per scene through Editor Core `CameraPersistence`.
+  A left click sends a framebuffer-pixel pick request to the application. The application tests
+  the same proxy boxes it draws and updates the shared Hierarchy selection; Ctrl-click toggles a
+  proxy and an empty click clears the selection.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
   Dragging a selected marker previews an X/Z move and commits one document transform transaction

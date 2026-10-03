@@ -134,6 +134,8 @@ def main() -> int:
         subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                         str(center_x), str(center_y)], env=environment, check=True)
         time.sleep(0.15)
+        subprocess.run([args.xdotool, "click", "1"], env=environment, check=True)
+        time.sleep(0.15)
         subprocess.run([args.xdotool, "click", "4"], env=environment, check=True)
         subprocess.run([args.xdotool, "mousedown", "3"], env=environment, check=True)
         time.sleep(0.1)
@@ -152,7 +154,8 @@ def main() -> int:
         _, remaining = editor.communicate(timeout=15)
         evidence = captured + remaining
         match = re.search(rb"scene_draws=(\d+)", evidence)
-        if editor.returncode != 0 or not match or int(match[1]) == 0 or b"ui_draws=" not in evidence:
+        if (editor.returncode != 0 or not match or int(match[1]) == 0 or
+                b"ui_draws=" not in evidence or b"scene_selected=1" not in evidence):
             raise RuntimeError(f"native Scene/UI presentation failed: {evidence.decode(errors='replace')}")
         editor = None
         camera_path = root / ".nexora/scenes/Main.preview.camera"

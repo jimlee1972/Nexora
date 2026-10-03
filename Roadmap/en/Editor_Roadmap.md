@@ -183,7 +183,8 @@ creates property widgets; unknown components retain raw data instead of being si
   depth-tested ground and position proxies for live scene nodes after UI submission. The X/Z
   editing overview remains available. Right drag orbits the preview camera, middle drag pans its
   X/Z target, the wheel zooms, and F or Frame selected centers on selected nodes. Orbit angle and
-  distance persist per scene. Authored meshes, full world transforms,
+  distance persist per scene. Clicking a visible position proxy selects its node across Scene,
+  Hierarchy, and Inspector; Ctrl-click toggles. Authored meshes, full world transforms, mesh
   picking, and gizmos remain open, so full renderer-backed Scene View acceptance is still open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on
   selected world positions with F or Frame selected. Input-event tests cover both interactions.

@@ -50,6 +50,11 @@ struct NativeSceneOrbit final {
   double distance{17.55};
 };
 
+struct NativeScenePickRequest final {
+  std::uint32_t x{}, y{}; // framebuffer pixels
+  bool additive{};
+};
+
 struct RendererMetrics final {
   std::uint64_t frames = 0;
   std::uint64_t draw_calls = 0;
@@ -119,6 +124,7 @@ public:
   bool SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept;
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   NativeScenePreviewViewport() const noexcept;
+  [[nodiscard]] std::optional<NativeScenePickRequest> NativeScenePick() const noexcept;
   // Flattens the current ImGui draw data into backend-neutral indexed geometry that RenderSurface
   // records directly into its acquired native GPU image. The RHI overload remains a headless
   // contract-test path.
