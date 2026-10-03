@@ -541,10 +541,10 @@ int RunGraphical(std::optional<ProjectState> project,
   const auto diagnostics = created.surface->Diagnostics();
   std::cerr << "graphical evidence: acquired=" << diagnostics.acquiredFrames
             << " presented=" << diagnostics.presentedFrames
-            << " scene_draws=" << diagnostics.sceneDrawCalls
             << " ui_draws=" << diagnostics.nativeUiDrawCalls
             << " ui_uploads=" << diagnostics.nativeUiTextureUploads
-            << " ui_rejected=" << diagnostics.nativeUiRejectedTextures << " recovery="
+            << " ui_rejected=" << diagnostics.nativeUiRejectedTextures
+            << " scene_draws=" << diagnostics.sceneDrawCalls << " recovery="
             << (recovery_choice == nexora::editor::imgui::RecoveryChoice::Recover   ? "recover"
                 : recovery_choice == nexora::editor::imgui::RecoveryChoice::Discard ? "discard"
                                                                                     : "none")

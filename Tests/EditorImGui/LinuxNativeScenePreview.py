@@ -35,7 +35,7 @@ def channel(pixel: int, mask: int) -> int:
     return value * 255 // maximum
 
 
-def scene_pixels(display_name: str, window: int, viewport: tuple[int, int, int, int]) -> bool:
+def scene_pixels(display_name: str, window: int, viewport: tuple[int, int, int, int]):
     x11 = ctypes.CDLL("libX11.so.6")
     x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
     x11.XOpenDisplay.restype = ctypes.c_void_p
@@ -61,6 +61,7 @@ def scene_pixels(display_name: str, window: int, viewport: tuple[int, int, int, 
             if not (0 <= x < 1280 and 0 <= y < 720 and
                     0 < width <= 1280 - x and 0 < height <= 720 - y):
                 raise RuntimeError(f"invalid native Scene viewport: {viewport}")
+            samples = []
             for dy in range(-3, 4):
                 for dx in range(-3, 4):
                     sx = x + width // 2 + dx * min(width // 16, 16)
@@ -69,9 +70,10 @@ def scene_pixels(display_name: str, window: int, viewport: tuple[int, int, int, 
                     red = channel(pixel, image.contents.red_mask)
                     green = channel(pixel, image.contents.green_mask)
                     blue = channel(pixel, image.contents.blue_mask)
+                    samples.append((red, green, blue))
                     if blue >= 105 and blue >= red + 35 and blue >= green + 10:
-                        return True
-            return False
+                        return True, samples
+            return False, samples
         finally:
             x11.XDestroyImage(image)
     finally:
@@ -117,13 +119,15 @@ def main() -> int:
         if viewport is None:
             raise RuntimeError(f"native Scene draw did not start: {captured.decode(errors='replace')}")
         pixels_visible = False
+        samples = []
         deadline = time.monotonic() + 6
         while time.monotonic() < deadline and not pixels_visible:
-            pixels_visible = scene_pixels(display, window, viewport)
+            pixels_visible, samples = scene_pixels(display, window, viewport)
             if not pixels_visible:
                 time.sleep(0.05)
         if not pixels_visible:
-            raise RuntimeError(f"native Scene pixels were hidden inside viewport {viewport}")
+            raise RuntimeError(f"native Scene pixels were hidden inside viewport {viewport}; "
+                               f"samples={samples}")
         subprocess.run([args.xdotool, "windowfocus", str(window)], env=environment, check=True)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
         scene_file = root / ".nexora/scenes/Main.scene"
