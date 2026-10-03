@@ -128,10 +128,10 @@ PickNativeSceneProxy(const nexora::editor::SceneDocument &scene,
       request.x >= viewport.x + viewport.width || request.y >= viewport.y + viewport.height)
     return std::nullopt;
   nexora::editor::ViewportCamera view;
-  view.target = {std::clamp(camera.x, -100000.0, 100000.0), 0.0,
+  view.target = {std::clamp(camera.x, -100000.0, 100000.0), orbit.target_y,
                  std::clamp(camera.z, -100000.0, 100000.0)};
   view.position = {view.target.x + orbit.distance * std::sin(orbit.yaw) * std::cos(orbit.pitch),
-                   orbit.distance * std::sin(orbit.pitch),
+                   view.target.y + orbit.distance * std::sin(orbit.pitch),
                    view.target.z + orbit.distance * std::cos(orbit.yaw) * std::cos(orbit.pitch)};
   view.vertical_fov_degrees = 0.85 * 180.0 / std::numbers::pi;
   const auto ray =
@@ -178,11 +178,12 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     instance.color[2] = is_selected ? 0.2F : 1.0F;
     instances.push_back(instance);
   }
-  const nexora::math::Vector3 target{static_cast<float>(camera.x), 0.0F,
+  const nexora::math::Vector3 target{static_cast<float>(camera.x),
+                                     static_cast<float>(orbit.target_y),
                                      static_cast<float>(camera.z)};
   const nexora::math::Vector3 eye{
       target.x + static_cast<float>(orbit.distance * std::sin(orbit.yaw) * std::cos(orbit.pitch)),
-      static_cast<float>(orbit.distance * std::sin(orbit.pitch)),
+      target.y + static_cast<float>(orbit.distance * std::sin(orbit.pitch)),
       target.z + static_cast<float>(orbit.distance * std::cos(orbit.yaw) * std::cos(orbit.pitch))};
   const auto mvp = nexora::math::PerspectiveRadians(
                        0.85F, static_cast<float>(viewport.width) / viewport.height, 0.1F, 500.0F) *
@@ -323,7 +324,8 @@ int RunGraphical(std::optional<ProjectState> project,
       std::string load_error;
       const auto camera = nexora::editor::CameraPersistence::Load(preview_path, &load_error);
       if (!camera || camera->orthographic ||
-          !ui.SetNativeSceneOrbit({camera->yaw, camera->pitch, camera->movement_speed})) {
+          !ui.SetNativeSceneOrbit(
+              {camera->yaw, camera->pitch, camera->movement_speed, camera->transform.y})) {
         preview_camera_load_failed = true;
         std::cerr << "ignored invalid scene preview camera: " << preview_path << ' ' << load_error
                   << '\n';
@@ -627,6 +629,7 @@ int RunGraphical(std::optional<ProjectState> project,
         const auto orbit = ui.GetNativeSceneOrbit();
         nexora::editor::SceneCameraState camera;
         camera.transform.x = view.x;
+        camera.transform.y = orbit.target_y;
         camera.transform.z = view.z;
         camera.pitch = orbit.pitch;
         camera.yaw = orbit.yaw;

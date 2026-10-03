@@ -48,6 +48,7 @@ struct NativeSceneOrbit final {
   double yaw{0.588};
   double pitch{0.585};
   double distance{17.55};
+  double target_y{};
 };
 
 struct NativeScenePickRequest final {

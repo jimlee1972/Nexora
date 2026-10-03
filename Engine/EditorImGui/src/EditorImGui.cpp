@@ -896,6 +896,26 @@ template <typename StateT> bool FrameSceneSelection(StateT &state, const SceneDo
   return true;
 }
 
+template <typename StateT>
+bool FrameNativeSceneSelection(StateT &state, const SceneDocument &scene) {
+  if (!FrameSceneSelection(state, scene))
+    return false;
+  double min_y = std::numeric_limits<double>::infinity();
+  double max_y = -min_y;
+  for (const auto id : scene.Selection()) {
+    const auto pose = scene.WorldTransform(id);
+    if (!pose)
+      return false;
+    min_y = std::min(min_y, pose->y);
+    max_y = std::max(max_y, pose->y);
+  }
+  const double y = min_y * 0.5 + max_y * 0.5;
+  if (!std::isfinite(y) || std::abs(y) > 100000.0)
+    return false;
+  state.native_scene_orbit.target_y = y;
+  return true;
+}
+
 void DrawPlayOverview(const runtime::RuntimeInspectionSnapshot &snapshot) {
   ImGui::TextDisabled("Play World top-down X/Z (inspection snapshot)");
   const ImVec2 available = ImGui::GetContentRegionAvail();
@@ -2176,7 +2196,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::SameLine();
         ImGui::BeginDisabled(scene->Selection().empty());
         if (ImGui::SmallButton("Frame selected"))
-          static_cast<void>(FrameSceneSelection(*state_, *scene));
+          static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
         ImGui::EndDisabled();
         if (!state_->native_scene_preview_available)
           ImGui::TextUnformatted("Native 3D preview is unavailable on this backend.");
@@ -2223,7 +2243,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         }
         if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !io.WantTextInput &&
             ImGui::IsKeyPressed(ImGuiKey_F, false))
-          static_cast<void>(FrameSceneSelection(*state_, *scene));
+          static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
       } else {
         DrawSceneOverview(*state_, *scene);
       }
@@ -2714,7 +2734,8 @@ NativeSceneOrbit EditorImGuiHost::GetNativeSceneOrbit() const noexcept {
 
 bool EditorImGuiHost::SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept {
   if (!std::isfinite(orbit.yaw) || !std::isfinite(orbit.pitch) || !std::isfinite(orbit.distance) ||
-      orbit.pitch < 0.1 || orbit.pitch > 1.45 || orbit.distance < 2.0 || orbit.distance > 100.0)
+      !std::isfinite(orbit.target_y) || std::abs(orbit.target_y) > 100000.0 || orbit.pitch < 0.1 ||
+      orbit.pitch > 1.45 || orbit.distance < 2.0 || orbit.distance > 100.0)
     return false;
   orbit.yaw = std::remainder(orbit.yaw, 6.283185307179586);
   state_->native_scene_orbit = orbit;
