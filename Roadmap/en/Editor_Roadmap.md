@@ -186,7 +186,8 @@ creates property widgets; unknown components retain raw data instead of being si
   centers on selected nodes in X/Y/Z and adjusts orbit distance to their conservative proxy
   bounds (2–100 world units). Orbit angle, distance, and target height persist per scene. Clicking a visible position proxy selects
   its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Proxy instances now show
-  composed world rotation and scale, and picking bounds enclose their transformed cube. Authored
+  composed world rotation and scale; a conservative bound filters candidates before an exact
+  rotated-box pick, including translation handles. Authored
   meshes, exact sheared matrices, mesh picking, and rotation/scale gizmos remain open. Selected
   proxies show colored X/Y/Z translation handles in world or local space; Local axes uses
   the first selected node's world rotation, and picking a handle captures its axis for the drag. Dragging previews selected roots and descendants in world X/Z, along world Y with

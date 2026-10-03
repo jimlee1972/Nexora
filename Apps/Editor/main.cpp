@@ -235,13 +235,36 @@ NativeScenePickHit PickNativeSceneProxy(const nexora::editor::SceneDocument &sce
   if (!ray)
     return {};
   const auto candidates = NativeSceneProxyCandidates(scene);
-  const auto proxy = nexora::editor::PickNearest(*ray, candidates, 500.0);
+  std::optional<nexora::editor::PickHit> proxy;
+  for (const auto &candidate : candidates) {
+    if (!nexora::editor::PickNearest(*ray, std::span(&candidate, 1), 500.0))
+      continue;
+    const auto pose = scene.WorldTransform(candidate.entity);
+    if (!pose)
+      continue;
+    const auto distance = nexora::editor::PickOrientedBox(
+        *ray, {pose->x, pose->y + 0.5, pose->z},
+        {std::abs(pose->sx) * 0.45, std::abs(pose->sy) * 0.45, std::abs(pose->sz) * 0.45},
+        {pose->qx, pose->qy, pose->qz, pose->qw}, 500.0);
+    if (distance && (!proxy || *distance < proxy->distance ||
+                     (*distance == proxy->distance && candidate.entity < proxy->entity)))
+      proxy = nexora::editor::PickHit{candidate.entity, *distance};
+  }
   const auto handles = NativeSceneAxisHandles(scene, candidates, local_axes);
-  std::vector<nexora::editor::PickCandidate> bounds;
-  bounds.reserve(handles.size());
-  for (const auto &handle : handles)
-    bounds.push_back(handle.bounds);
-  const auto gizmo = nexora::editor::PickNearest(*ray, bounds, 500.0);
+  std::optional<nexora::editor::PickHit> gizmo;
+  for (const auto &handle : handles) {
+    if (!nexora::editor::PickNearest(*ray, std::span(&handle.bounds, 1), 500.0))
+      continue;
+    const auto &instance = handle.instance;
+    const auto distance = nexora::editor::PickOrientedBox(
+        *ray, {instance.translation[0], instance.translation[1], instance.translation[2]},
+        {std::abs(instance.scale[0]), std::abs(instance.scale[1]), std::abs(instance.scale[2])},
+        {instance.rotation[0], instance.rotation[1], instance.rotation[2], instance.rotation[3]},
+        500.0);
+    if (distance && (!gizmo || *distance < gizmo->distance ||
+                     (*distance == gizmo->distance && handle.bounds.entity < gizmo->entity)))
+      gizmo = nexora::editor::PickHit{handle.bounds.entity, *distance};
+  }
   if (gizmo && (!proxy || gizmo->distance < proxy->distance))
     return {.entity = std::nullopt, .axis = handles[gizmo->entity - 1].axis};
   return {.entity = proxy ? std::optional{proxy->entity} : std::nullopt, .axis = std::nullopt};

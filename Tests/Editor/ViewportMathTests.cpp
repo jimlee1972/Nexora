@@ -128,6 +128,25 @@ void TestPicking() {
   hit = PickNearest(*pixel_ray, std::array{Box(5, -1.0, 1.0)});
   Require(pixel_ray && hit && hit->entity == 5 && Near(hit->distance, 4.0),
           "pixel ray picking did not reach the box");
+
+  const std::array yaw_45{0.0, std::sin(std::numbers::pi / 8.0), 0.0,
+                          std::cos(std::numbers::pi / 8.0)};
+  const ViewportVector slender{1.0, 0.2, 0.2};
+  const auto rotated_hit =
+      PickOrientedBox({{0.0, 0.0, 3.0}, {0.0, 0.0, -1.0}}, {0.0, 0.0, 0.0}, slender, yaw_45);
+  Require(rotated_hit && *rotated_hit > 2.0 && *rotated_hit < 3.0,
+          "rotated visible box was not picked at its actual surface");
+  const ViewportRay empty_corner{{0.75, 0.0, 0.75}, {0.0, 0.0, 1.0}};
+  PickCandidate conservative;
+  conservative.entity = 1;
+  conservative.min = {-0.85, -0.2, -0.85};
+  conservative.max = {0.85, 0.2, 0.85};
+  Require(PickNearest(empty_corner, std::array{conservative}) &&
+              !PickOrientedBox(empty_corner, {0.0, 0.0, 0.0}, slender, yaw_45),
+          "a conservative AABB corner selected empty space outside a rotated box");
+  Require(!PickOrientedBox(ray, {0.0, 0.0, 0.0}, {1.0, 0.0, 1.0}, yaw_45) &&
+              !PickOrientedBox(ray, {0.0, 0.0, 0.0}, slender, {0.0, 0.0, 0.0, 2.0}),
+          "an invalid oriented box was pickable");
 }
 
 void TestAxisDrag() {

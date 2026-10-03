@@ -239,6 +239,8 @@ Snapping is the caller's choice with `SnapToStep` on the distance, angle (in deg
 Renderer-backed ID-buffer picking and rotation/scale graphical handles remain open. The
 Editor native proxy preview now draws and picks X/Y/Z translation handles in world or local
 space. The local basis uses the first selected node's world rotation without mirroring axes.
+`PickOrientedBox` tests a viewport ray against a rotated proxy or handle box after a conservative
+AABB filter, so empty corners of a rotated bound do not select the object.
 
 `editor.parser_robustness` mutation-tests the parsers that read persisted or external data (trace and
 metric decoding, replay log, unknown-component store, scene snapshot, runtime blob, NXSHDR, shader
