@@ -178,7 +178,8 @@ creates property widgets; unknown components retain raw data instead of being si
   selected world positions with F or Frame selected. Input-event tests cover both interactions.
 - ✅ Scene overview marker dragging previews a world X/Z move; visible X and Z handles constrain
   the preview to one world axis. Release commits selected roots through one atomic, undoable
-  transform transaction. Escape cancels; tests cover axis constraints, parent scale, and subtree roots.
+  transform transaction. Optional 0.25–4 world-unit steps snap the preview and commit together.
+  Escape cancels; tests cover axis constraints, parent scale, subtree roots, and snapped descendants.
   Full 3D gizmo handles and renderer-backed Scene View remain open.
 - ✅ The Scene overview center and zoom now use validated per-scene `CameraPersistence` on project
   open and normal writable shutdown. A corrupt camera file is preserved; Linux Xvfb acceptance

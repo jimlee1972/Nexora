@@ -46,7 +46,8 @@ authoring views on first launch.
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
   Dragging a selected marker previews an X/Z move and commits one document transform transaction
   on release. Red X and blue Z handles constrain a drag to one world axis. Escape cancels the
-  preview without changing the scene.
+  preview without changing the scene. Snap movement optionally rounds the whole drag delta to
+  0.25, 0.5, 1, 2, or 4 world units; the preview and committed move use the same snapped delta.
   The host exposes the overview center and zoom as a validated, backend-neutral camera state.
   The application loads and saves it per scene through Editor Core `CameraPersistence`; the UI
   never chooses a project file path.

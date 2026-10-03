@@ -102,7 +102,8 @@ Ctrl-click toggles selection, Shift-click selects a visible range, and F or Fram
 the view on the current selection.
 Drag a selected marker to move selected objects in X/Z, or drag its red X or blue Z handle for a
 single-axis move. The move commits when released, Escape
-cancels it, and one Undo restores the previous positions.
+cancels it, and one Undo restores the previous positions. Snap movement optionally rounds the
+whole drag to a selected world-unit step (0.25, 0.5, 1, 2, or 4).
 On normal shutdown, writable projects save the overview center and zoom to
 `.nexora/scenes/Main.overview.camera`. Reopening restores the view. Invalid camera files are
 reported and preserved; read-only projects never write camera state.

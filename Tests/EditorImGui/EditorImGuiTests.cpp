@@ -478,6 +478,38 @@ void TestSceneOverviewDrag() {
   drag_axis(reset_x, reset_y + 28);
   assert(scene.WorldTransform(drag_entity)->x == 0.0 &&
          scene.WorldTransform(drag_entity)->z == 1.0 && scene.Undo());
+
+  const auto child = scene.Create("Snap child", drag_entity);
+  assert(child && scene.SetTransform(child, {1.0, 0.0, 2.0}));
+  assert(host.SetSceneOverviewCamera({0.0, 0.0, 64.0}));
+  nexora::editor::imgui::EditorImGuiTestAccess::SetSceneSnap(host, true, 1);
+  draw();
+  const auto snap_marker = nexora::editor::imgui::EditorImGuiTestAccess::SceneMarkerPosition(
+      host, *scene.Key(drag_entity));
+  assert(snap_marker);
+  const auto snap_x = static_cast<std::int32_t>((*snap_marker)[0]);
+  const auto snap_y = static_cast<std::int32_t>((*snap_marker)[1]);
+  const std::array snap_press{
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, snap_x, snap_y},
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 1}};
+  host.ProcessEvents(snap_press);
+  draw();
+  const std::array snap_move{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, snap_x + 80, snap_y + 50}};
+  host.ProcessEvents(snap_move);
+  draw();
+  const auto snap_preview = nexora::editor::imgui::EditorImGuiTestAccess::SceneMarkerPosition(
+      host, *scene.Key(drag_entity));
+  assert(snap_preview && std::abs((*snap_preview)[0] - (*snap_marker)[0] - 96.0F) < 1.0F &&
+         std::abs((*snap_preview)[1] - (*snap_marker)[1] - 64.0F) < 1.0F);
+  host.ProcessEvents(release);
+  draw();
+  assert(scene.WorldTransform(drag_entity)->x == 1.5 &&
+         scene.WorldTransform(drag_entity)->z == 1.0 && scene.WorldTransform(child)->x == 2.5 &&
+         scene.WorldTransform(child)->z == 3.0 && scene.Undo() &&
+         scene.WorldTransform(drag_entity)->x == 0.0 && scene.WorldTransform(child)->x == 1.0);
 }
 
 void TestSceneOverviewCameraState() {

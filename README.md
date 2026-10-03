@@ -162,6 +162,9 @@ The docked Console now shows bounded Runtime records
 with text/severity filters, source, timestamps, and dropped-record count; startup and scene save
 diagnostics are routed through it. Game View and complete log routing remain open.
 
+The graphical Scene overview now offers optional 0.25–4 world-unit movement snapping; its drag
+preview matches the committed, undoable move even for parented entities.
+
 Linux Xvfb acceptance now creates a Hierarchy root with Ctrl+Shift+N, saves the scene, restarts
 the graphical Editor, and checks that the authored root reloads. Full ED-M2 visual acceptance
 remains open.
@@ -314,6 +317,9 @@ backend-neutral `Text` event，physical key 與 text input 維持分離。
 圖形化 Hierarchy 現可刪除及復原選取的 subtree，也能在不改變剪貼簿的情況下複製目前選取。
 中央 Scene panel 現有可點選物件的 X/Z 俯視概覽、Ctrl／Shift 多選、F 聚焦、平移、縮放及可單步復原的標記拖曳及可見的單軸把手，且逐場景保留概覽 camera 中心與縮放；Scene panel 也會標示未儲存內容，成功儲存或 Undo 回原狀後清除；原生關閉要求遇到未儲存內容時提供儲存後離開、捨棄後離開或取消；正式 3D renderer 輸出與 gizmo
 仍待完成。
+
+圖形化 Scene 概覽現可選擇 0.25 至 4 世界單位的移動吸附；拖曳預覽與可復原的提交位移一致，
+包含有父節點的物件。
 
 Portable Editor Core 現亦會在 delete/undo 間保留 Content Browser selection、回復局部套用的
 gizmo preview、拒絕無效 camera state，且 camera／autosave／build file 替換不會刪除不相容的

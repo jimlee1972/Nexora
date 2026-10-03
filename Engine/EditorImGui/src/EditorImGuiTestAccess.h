@@ -62,6 +62,7 @@ public:
   SceneMarkerPosition(const EditorImGuiHost &host, SceneDocument::NodeKey entity) noexcept;
   [[nodiscard]] static std::array<float, 2>
   SceneOverviewCenter(const EditorImGuiHost &host) noexcept;
+  static void SetSceneSnap(EditorImGuiHost &host, bool enabled, int step_index) noexcept;
   static void QueueHierarchySelection(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                       bool additive, bool range) noexcept;
   static void QueueHierarchyMove(EditorImGuiHost &host, SceneDocument::NodeKey entity,
