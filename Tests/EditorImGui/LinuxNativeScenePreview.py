@@ -136,6 +136,27 @@ def main() -> int:
         time.sleep(0.15)
         subprocess.run([args.xdotool, "click", "1"], env=environment, check=True)
         time.sleep(0.15)
+        scene_file = root / ".nexora/scenes/Main.scene"
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not scene_file.is_file():
+            time.sleep(0.05)
+        if not scene_file.is_file():
+            raise RuntimeError("native Scene could not save before proxy drag")
+        initial_scene = scene_file.read_text()
+        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        time.sleep(0.1)
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x + 48), str(center_y + 24)], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and scene_file.read_text() == initial_scene:
+            time.sleep(0.05)
+        if scene_file.read_text() == initial_scene:
+            raise RuntimeError("native proxy drag did not change the saved scene")
         subprocess.run([args.xdotool, "click", "4"], env=environment, check=True)
         subprocess.run([args.xdotool, "mousedown", "3"], env=environment, check=True)
         time.sleep(0.1)
@@ -144,7 +165,6 @@ def main() -> int:
         time.sleep(0.15)
         subprocess.run([args.xdotool, "mouseup", "3"], env=environment, check=True)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
-        scene_file = root / ".nexora/scenes/Main.scene"
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and not scene_file.is_file():
             time.sleep(0.05)
