@@ -2,6 +2,7 @@
 """Exercise rendering and crash-relaunch recovery in a real X11 server."""
 
 import argparse
+import ctypes
 import os
 from pathlib import Path
 import re
@@ -61,6 +62,53 @@ def wait_for_window(xdotool: str, environment: dict[str, str]) -> str:
             return found.stdout.splitlines()[0]
         time.sleep(0.1)
     raise RuntimeError("Nexora Editor window did not appear")
+
+
+def request_window_close(window: str, environment: dict[str, str]) -> None:
+    """Send WM_DELETE_WINDOW directly; xdotool windowclose may destroy an unowned Xvfb window."""
+    x11 = ctypes.CDLL("libX11.so.6")
+
+    class ClientMessage(ctypes.Structure):
+        _fields_ = [
+            ("type", ctypes.c_int),
+            ("serial", ctypes.c_ulong),
+            ("send_event", ctypes.c_int),
+            ("display", ctypes.c_void_p),
+            ("window", ctypes.c_ulong),
+            ("message_type", ctypes.c_ulong),
+            ("format", ctypes.c_int),
+            ("data", ctypes.c_long * 5),
+        ]
+
+    class Event(ctypes.Union):
+        _fields_ = [("client", ClientMessage), ("padding", ctypes.c_long * 24)]
+
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XInternAtom.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int]
+    x11.XInternAtom.restype = ctypes.c_ulong
+    x11.XSendEvent.argtypes = [
+        ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_long, ctypes.POINTER(Event)
+    ]
+    x11.XSendEvent.restype = ctypes.c_int
+    x11.XFlush.argtypes = [ctypes.c_void_p]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    display = x11.XOpenDisplay(environment["DISPLAY"].encode())
+    if not display:
+        raise RuntimeError("could not connect to Xvfb for close request")
+    try:
+        event = Event()
+        event.client.type = 33  # ClientMessage
+        event.client.display = display
+        event.client.window = int(window)
+        event.client.message_type = x11.XInternAtom(display, b"WM_PROTOCOLS", 0)
+        event.client.format = 32
+        event.client.data[0] = x11.XInternAtom(display, b"WM_DELETE_WINDOW", 0)
+        if not x11.XSendEvent(display, int(window), 0, 0, ctypes.byref(event)):
+            raise RuntimeError("XSendEvent rejected WM_DELETE_WINDOW")
+        x11.XFlush(display)
+    finally:
+        x11.XCloseDisplay(display)
 
 
 def launch(
@@ -297,7 +345,7 @@ def main() -> int:
                        env=environment, check=True)
         # The initial Scene Root is unsaved. Native close must keep the window alive until the
         # user decides; Escape cancels the prompt and permits subsequent editing and saving.
-        subprocess.run([args.xdotool, "windowclose", window], env=environment, check=True)
+        request_window_close(window, environment)
         time.sleep(0.5)
         if editor.poll() is not None or (root / ".nexora/scenes/Main.scene").exists():
             raise RuntimeError(
