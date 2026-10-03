@@ -147,6 +147,10 @@ creates property widgets; unknown components retain raw data instead of being si
   finite, unique, rotation-matching hints and reads legacy version 1. Atomic same-World reload preserves
   scene ID/state and rejects malformed data or cross-scene ID collisions without changing live state.
   Target-host acceptance and the complete graphical save/restart workflow remain open.
+- ✅ The graphical Scene panel now routes Ctrl+S and Save Scene through a one-shot application
+  request. The application saves `.nexora/scenes/Main.scene`, reloads it on project open, rejects
+  read-only saves, and preserves unreadable scene files instead of overwriting them. This is a
+  single-scene persistence slice; the graphical save/restart acceptance workflow remains open.
 - Open: graphical Scene View, the complete reflected Inspector, renderer-backed picking, camera
   controls, gizmos, reflected widgets,
   and unknown-component visual workflows. ED-M2 exit still requires UI

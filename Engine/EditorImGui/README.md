@@ -43,6 +43,9 @@ authoring views on first launch.
   applied/required upgrade state, and the bounded recent-project list. It never acquires a lock,
   upgrades a descriptor, or writes recent state; the application completes those operations before
   drawing.
+- The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes
+  it after drawing, checks project write access and scene load state, and calls `SceneDocument::Save`.
+  The host retains only the result text; it never chooses the path or writes the scene file.
 - The project selector displays background content-index progress and exposes a one-shot cancel
   request. The application owns the candidate workspace and import operation, consumes the staged
   `AssetWorkspace` on the window/authoring thread, and keeps the selector open after cancellation or
