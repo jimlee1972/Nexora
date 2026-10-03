@@ -167,6 +167,8 @@ creates property widgets; unknown components retain raw data instead of being si
 - ✅ The central Scene panel now has an interactive top-down X/Z overview: parent-composed entity
   positions, grid, wheel zoom, middle-button pan, and click selection shared with Hierarchy.
   Renderer-backed 3D output and gizmos remain open.
+- ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on
+  selected world positions with F or Frame selected. Input-event tests cover both interactions.
 - Open: graphical Scene View, the complete reflected Inspector, renderer-backed picking, camera
   controls, gizmos, reflected widgets,
   and unknown-component visual workflows. ED-M2 exit still requires UI

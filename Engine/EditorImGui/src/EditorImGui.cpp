@@ -838,8 +838,42 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
       std::min<std::size_t>(scene->Selection().size(), std::numeric_limits<std::uint32_t>::max()));
 }
 
+template <typename StateT> bool FrameSceneSelection(StateT &state, const SceneDocument &scene) {
+  double min_x = std::numeric_limits<double>::infinity();
+  double max_x = -min_x;
+  double min_z = min_x;
+  double max_z = -min_x;
+  for (const auto id : scene.Selection()) {
+    const auto pose = scene.WorldTransform(id);
+    if (!pose)
+      return false;
+    min_x = std::min(min_x, pose->x);
+    max_x = std::max(max_x, pose->x);
+    min_z = std::min(min_z, pose->z);
+    max_z = std::max(max_z, pose->z);
+  }
+  if (min_x == std::numeric_limits<double>::infinity())
+    return false;
+  const double x = min_x * 0.5 + max_x * 0.5;
+  const double z = min_z * 0.5 + max_z * 0.5;
+  if (!std::isfinite(x) || !std::isfinite(z) || std::abs(x) > std::numeric_limits<float>::max() ||
+      std::abs(z) > std::numeric_limits<float>::max())
+    return false;
+  state.scene_center_world = {static_cast<float>(x), static_cast<float>(z)};
+  return true;
+}
+
 template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &scene) {
-  ImGui::TextUnformatted("Top-down X/Z overview | Middle drag: pan | Wheel: zoom | Click: select");
+  ImGui::TextUnformatted(
+      "Top-down X/Z | Middle drag: pan | Wheel: zoom | Ctrl/Shift click: select");
+  ImGui::SameLine();
+  ImGui::BeginDisabled(scene.Selection().empty());
+  if (ImGui::SmallButton("Frame selected"))
+    static_cast<void>(FrameSceneSelection(state, scene));
+  ImGui::EndDisabled();
+  if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+      !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_F, false))
+    static_cast<void>(FrameSceneSelection(state, scene));
   const auto available = ImGui::GetContentRegionAvail();
   const ImVec2 size{std::max(available.x, 1.0F), std::max(available.y, 160.0F)};
   ImGui::InvisibleButton("##scene-overview", size,
@@ -920,10 +954,13 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
       }
     }
     if (picked) {
-      const std::array selected{*picked};
-      if (scene.Select(selected))
-        state.hierarchy_selection_anchor = picked;
-    } else {
+      std::vector<SceneDocument::NodeKey> visible;
+      visible.reserve(state.scene_markers.size());
+      for (const auto &marker : state.scene_markers)
+        visible.push_back(marker.entity);
+      static_cast<void>(
+          ApplyHierarchySelection(state, scene, visible, *picked, io.KeyCtrl, io.KeyShift));
+    } else if (!io.KeyCtrl && !io.KeyShift) {
       static_cast<void>(scene.Select(std::span<const runtime::Id>{}));
       state.hierarchy_selection_anchor.reset();
     }
@@ -2243,6 +2280,11 @@ EditorImGuiTestAccess::SceneMarkerPosition(const EditorImGuiHost &host,
   if (found == host.state_->scene_markers.end())
     return std::nullopt;
   return std::array{found->position.x, found->position.y};
+}
+
+std::array<float, 2>
+EditorImGuiTestAccess::SceneOverviewCenter(const EditorImGuiHost &host) noexcept {
+  return {host.state_->scene_center_world.x, host.state_->scene_center_world.y};
 }
 
 void EditorImGuiTestAccess::QueueHierarchySelection(EditorImGuiHost &host,

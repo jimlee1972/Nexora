@@ -275,6 +275,56 @@ void TestSceneOverviewSelection() {
       host, *scene.Key(overview_child));
   assert(zoomed_parent && zoomed_child &&
          (*zoomed_child)[0] - (*zoomed_parent)[0] > (*child_position)[0] - (*parent_position)[0]);
+  const std::array additive_events{
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::LeftControl),
+                                  1,
+                                  Nexora::Window::KeyModifiers::Control},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Pointer,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>((*zoomed_parent)[0]),
+                                  static_cast<std::int32_t>((*zoomed_parent)[1])},
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 1}};
+  host.ProcessEvents(additive_events);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  assert(scene.Selection().size() == 2);
+  const std::array frame_events{
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 0},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::LeftControl),
+                                  0},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::F),
+                                  1}};
+  host.ProcessEvents(frame_events);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  const auto framed = nexora::editor::imgui::EditorImGuiTestAccess::SceneOverviewCenter(host);
+  assert(std::abs(framed[0] - 6.5F) < 0.01F && std::abs(framed[1] - 1.0F) < 0.01F);
 }
 } // namespace
 
