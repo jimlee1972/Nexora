@@ -863,7 +863,7 @@ struct RoomSession::State final {
       lines.push_back("Crash breadcrumb snapshot " +
                       std::to_string(report ? report->breadcrumbs.size() : 0));
 #endif
-      lines.push_back("Clean Windows launch / physical display acceptance pending");
+      lines.push_back("V1 final acceptance pending / Vulkan and Metal parity open");
     }
     if (minimal)
       lines.push_back("Minimal capability override / optional rooms unavailable");
