@@ -167,6 +167,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   中鍵平移，以及與 Hierarchy 同步的點選。正式 3D renderer 輸出與 gizmo 仍待完成。
 - ✅ Scene 概覽現共用 Hierarchy 的 Ctrl／Shift 多選錨點，並可透過 F 或 Frame selected
   將檢視中心移至選取物件的世界位置。輸入事件測試涵蓋這兩項操作。
+- ✅ Scene 概覽標記拖曳會預覽世界 X/Z 位移，放開後以單一可復原的 atomic transform
+  transaction 移動選取的根節點。Escape 可取消；測試涵蓋父節點縮放及 subtree 根節點。
+  完整 3D gizmo 操作把手與 renderer-backed Scene View 仍待完成。
 - 待辦：圖形化 Scene View、完整 reflected Inspector、renderer-backed picking、camera control、
   gizmo、reflected widget
   與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成 select／edit／undo／save／restart

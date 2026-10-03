@@ -117,6 +117,8 @@ into renderer or platform internals.
   clipboard. Like Paste, each created root has its own Undo step.
   `WorldTransform` exposes a live node's composed world pose to Editor views, so children can be
   drawn at their actual world position without exposing mutable Runtime entity storage.
+  `TranslateSelectionXZ` validates generation-keyed targets, filters selected descendants, and
+  applies a world-space X/Z delta through the portable gizmo math and one atomic transform Undo.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
   from references, and rejects cycles or unsafe removal atomically. Migration dry-runs never mutate
   source text; bounded autosave journals reject corruption; stable-path three-way records retain

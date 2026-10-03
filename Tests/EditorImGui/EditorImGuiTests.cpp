@@ -326,6 +326,85 @@ void TestSceneOverviewSelection() {
   const auto framed = nexora::editor::imgui::EditorImGuiTestAccess::SceneOverviewCenter(host);
   assert(std::abs(framed[0] - 6.5F) < 0.01F && std::abs(framed[1] - 1.0F) < 0.01F);
 }
+
+void TestSceneOverviewDrag() {
+  nexora::runtime::World world;
+  const auto scene_id = world.LoadScene("Scene drag");
+  assert(world.Activate(scene_id));
+  nexora::editor::SceneDocument scene(world, scene_id);
+  const auto drag_entity = scene.Create("Drag entity");
+  assert(drag_entity);
+  nexora::editor::ProductShell shell;
+  nexora::editor::imgui::EditorImGuiHost host;
+  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  host.SetDisplay(1280.0F, 720.0F, 1.0F);
+  const auto draw = [&] {
+    host.BeginFrame();
+    host.DrawProductShell(shell, &scene);
+    static_cast<void>(host.EndFrame());
+  };
+  draw();
+  draw();
+  const auto marker = nexora::editor::imgui::EditorImGuiTestAccess::SceneMarkerPosition(
+      host, *scene.Key(drag_entity));
+  assert(marker);
+  const auto px = static_cast<std::int32_t>((*marker)[0]);
+  const auto py = static_cast<std::int32_t>((*marker)[1]);
+  const std::array press{
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 1, 0},
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, px, py},
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 1}};
+  host.ProcessEvents(press);
+  draw();
+  const std::array move{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, px + 64, py + 32}};
+  host.ProcessEvents(move);
+  draw();
+  assert(scene.WorldTransform(drag_entity)->x == 0.0);
+  const std::array release{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 0}};
+  host.ProcessEvents(release);
+  draw();
+  const auto moved = scene.WorldTransform(drag_entity);
+  assert(moved && moved->x == 2.0 && moved->z == 1.0 && scene.Undo() &&
+         scene.WorldTransform(drag_entity)->x == 0.0 &&
+         scene.WorldTransform(drag_entity)->z == 0.0);
+  draw();
+  const auto reset_marker = nexora::editor::imgui::EditorImGuiTestAccess::SceneMarkerPosition(
+      host, *scene.Key(drag_entity));
+  assert(reset_marker);
+  const auto reset_x = static_cast<std::int32_t>((*reset_marker)[0]);
+  const auto reset_y = static_cast<std::int32_t>((*reset_marker)[1]);
+  const std::array cancel_press{
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, reset_x, reset_y},
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 1}};
+  host.ProcessEvents(cancel_press);
+  draw();
+  const std::array cancel_move{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, reset_x + 64, reset_y}};
+  host.ProcessEvents(cancel_move);
+  draw();
+  const std::array escape{
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::Escape),
+                                  1}};
+  host.ProcessEvents(escape);
+  draw();
+  host.ProcessEvents(release);
+  draw();
+  assert(scene.WorldTransform(drag_entity)->x == 0.0 &&
+         scene.WorldTransform(drag_entity)->z == 0.0);
+}
 } // namespace
 
 int main() {
@@ -335,6 +414,7 @@ int main() {
   TestHierarchyDeleteShortcut();
   TestHierarchyDuplicateShortcut();
   TestSceneOverviewSelection();
+  TestSceneOverviewDrag();
   using nexora::editor::imgui::EditorImGuiTestAccess;
   nexora::editor::imgui::EditorImGuiHost host;
   const auto initial_state = EditorImGuiTestAccess::Inspect(host);

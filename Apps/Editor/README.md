@@ -82,6 +82,8 @@ The central Scene panel also shows a top-down X/Z grid and entity markers at the
 Click a marker to select it, use the wheel to zoom, or drag with the middle button to pan.
 Ctrl-click toggles selection, Shift-click selects a visible range, and F or Frame selected centers
 the view on the current selection.
+Drag a selected marker to move selected objects in X/Z. The move commits when released, Escape
+cancels it, and one Undo restores the previous positions.
 Scene View, reflected component widgets, the complete graphical save/restart workflow, and the ED-M2 visual exit gate
 remain open.
 

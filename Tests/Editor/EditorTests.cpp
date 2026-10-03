@@ -642,6 +642,34 @@ int Run() {
                 duplicates.Undo() && duplicates.Nodes().size() == 2,
             "duplicate must preserve the clipboard and remain undoable");
   }
+  {
+    runtime::World drag_world;
+    const auto drag_scene = drag_world.LoadScene("Overview drag contract");
+    Require(drag_world.Activate(drag_scene), "drag scene activation failed");
+    editor::SceneDocument drag_document(drag_world, drag_scene);
+    const auto drag_parent = drag_document.Create("Drag parent");
+    const auto drag_child = drag_document.Create("Drag child", drag_parent);
+    runtime::Transform parent_pose{5.0, 0.0, 0.0};
+    parent_pose.sx = 2.0;
+    parent_pose.sz = 2.0;
+    Require(drag_parent && drag_child && drag_document.SetTransform(drag_parent, parent_pose) &&
+                drag_document.SetTransform(drag_child, {3.0, 0.0, 1.0}),
+            "drag hierarchy setup failed");
+    const std::array drag_both{*drag_document.Key(drag_parent), *drag_document.Key(drag_child)};
+    Require(drag_document.TranslateSelectionXZ(drag_both, 4.0, 6.0) &&
+                drag_document.WorldTransform(drag_parent)->x == 9.0 &&
+                drag_document.WorldTransform(drag_child)->x == 15.0 &&
+                drag_document.WorldTransform(drag_child)->z == 8.0 && drag_document.Undo() &&
+                drag_document.WorldTransform(drag_child)->x == 11.0,
+            "dragging a selected parent must move the subtree once and undo atomically");
+    const std::array drag_one{*drag_document.Key(drag_child)};
+    Require(drag_document.TranslateSelectionXZ(drag_one, 2.0, 4.0) &&
+                drag_document.WorldTransform(drag_child)->x == 13.0 &&
+                drag_document.WorldTransform(drag_child)->z == 6.0 && drag_document.Undo() &&
+                drag_document.WorldTransform(drag_child)->x == 11.0 &&
+                !drag_document.TranslateSelectionXZ(drag_one, 0.0, 0.0),
+            "dragging a child under a scaled parent must keep world-space motion and undo");
+  }
   const auto scene_path = root / "Content/Main.scene";
   Require(document.Save(scene_path), "scene atomic save failed");
   runtime::World loaded_world;
