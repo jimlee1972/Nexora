@@ -487,28 +487,51 @@ std::optional<runtime::Transform> SceneDocument::Transform(runtime::Id entity) c
   return found->transform;
 }
 bool SceneDocument::CopySelection() {
-  clipboard_.clear();
+  std::vector<ClipboardNode> captured;
+  captured.reserve(selection_.size());
   for (const auto id : selection_) {
     const auto found = std::ranges::find(nodes_, id, &Node::id);
-    if (found != nodes_.end())
-      clipboard_.push_back(*found);
+    const auto pose = world_.WorldTransform(id);
+    if (found == nodes_.end() || !pose)
+      return false;
+    captured.push_back({found->name, *pose});
   }
+  if (captured.empty())
+    return false;
+  clipboard_ = std::move(captured);
   return !clipboard_.empty();
 }
 bool SceneDocument::Paste() {
   if (clipboard_.empty())
     return false;
-  selection_.clear();
+  const auto previous_selection = selection_;
+  std::vector<runtime::Id> pasted;
+  pasted.reserve(clipboard_.size());
+  bool placed_all = true;
   for (const auto &source : clipboard_) {
     const auto id = Create(source.name + " Copy");
-    // The copy is a root, so give it the source's world pose to make it appear in the same place.
-    if (id != 0) {
-      if (const auto world = world_.WorldTransform(source.id))
-        static_cast<void>(SetTransform(id, *world));
-      selection_.push_back(id);
+    if (id == 0) {
+      placed_all = false;
+      break;
+    }
+    pasted.push_back(id);
+    // Create owns this undo step. Applying the copied world pose directly makes one Undo remove
+    // the pasted entity, rather than first resetting its transform and leaving it behind.
+    runtime::WorldCommandBuffer place;
+    place.SetTransform(id, source.world_transform);
+    if (!place.Apply(world_)) {
+      placed_all = false;
+      break;
     }
   }
-  return !selection_.empty();
+  if (!placed_all) {
+    for (std::size_t index = 0; index < pasted.size(); ++index)
+      static_cast<void>(Undo());
+    selection_ = previous_selection;
+    return false;
+  }
+  selection_ = std::move(pasted);
+  return true;
 }
 bool SceneDocument::Undo() {
   if (undo_.empty())

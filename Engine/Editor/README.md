@@ -100,7 +100,9 @@ into renderer or platform internals.
   undo step. `Nodes()` lists nodes in runtime sibling order. `Create`
   with a parent starts the node at the parent's origin (and fails before creating anything if that
   parent is no longer a live entity of the scene, e.g. after its creation was undone), and `Paste`
-  places the root copy at the source's world pose. Editor scene files still write a parent column in
+  places the root copy at the world pose captured by `CopySelection`, even if the source later moves
+  or is deleted. An invalid selection leaves the previous clipboard intact; one Undo removes a
+  single pasted entity with its copied pose. Editor scene files still write a parent column in
   each node line, but from world snapshot version 3 on the snapshot is authoritative and that column
   is not validated, so a node whose runtime parent is not itself a node still reloads. A file whose world snapshot is version 1
   or 2 is migrated on `Reload` by applying the node-line parents with the world pose kept, so nothing

@@ -31,6 +31,9 @@ authoring views on first launch.
   applies the request even if the dock tab is hidden on the next frame. Success selects the new
   entity, expands its parent, and clears a filter that would hide it. Invalid names or stale parents
   leave the document unchanged and show an error.
+  Copy and Paste buttons, plus Ctrl+C and Ctrl+V outside text inputs, route to the scene document's
+  snapshot clipboard. Paste selects and reveals the new roots; failures appear in the Hierarchy.
+  Shortcuts are disabled while a recovery journal awaits a choice.
 - `ProjectContentSession` is also borrowed for each `DrawProductShell` call. The Content panel reads
   virtualized ranges from its UUID-keyed model, emits generation-tagged POD drag payloads, and routes
   rename/move/delete/undo/reimport back through the session. Reimport submits to the borrowed

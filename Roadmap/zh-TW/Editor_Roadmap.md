@@ -156,6 +156,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 - ✅ 圖形化 Hierarchy 可透過檢查 generation 的請求建立具名稱的根節點與子節點，選取新實體
   並在樹狀清單中顯示。Contract test 涵蓋過期 parent、Undo 與 save／reload；Scene View 和
   完整 ED-M2 驗收仍待完成。
+- ✅ 圖形化 Hierarchy 的 Copy／Paste 按鈕與 Ctrl+C／Ctrl+V 現使用世界姿態快照剪貼簿，
+  並選取及顯示貼上的根節點；文字輸入欄位保留自身的剪貼簿快捷鍵。Contract test 涵蓋
+  快捷鍵、複製後移動來源，以及單一貼上物件的 Undo。
 - 待辦：圖形化 Scene View、完整 reflected Inspector、renderer-backed picking、camera control、
   gizmo、reflected widget
   與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成 select／edit／undo／save／restart

@@ -101,6 +101,7 @@ struct EditorImGuiHost::State final {
   std::optional<SceneDocument::NodeKey> hierarchy_rename_target;
   std::optional<std::pair<SceneDocument::NodeKey, std::string>> hierarchy_rename_request;
   std::string hierarchy_error;
+  std::string hierarchy_status;
   struct InspectorTransformRequest final {
     std::vector<SceneDocument::NodeKey> entities;
     std::vector<runtime::Transform> transforms;
@@ -548,6 +549,29 @@ template <typename StateT> void ApplyPendingHierarchyRequests(StateT &state, Sce
       std::min<std::size_t>(scene->Selection().size(), std::numeric_limits<std::uint32_t>::max()));
 }
 
+template <typename StateT> void CopyHierarchySelection(StateT &state, SceneDocument &scene) {
+  if (!scene.CopySelection()) {
+    state.hierarchy_error = "Copy rejected because the selection is empty or stale.";
+    state.hierarchy_status.clear();
+    return;
+  }
+  state.hierarchy_status = "Copied " + std::to_string(scene.Selection().size()) + " entities.";
+  state.hierarchy_error.clear();
+}
+
+template <typename StateT> void PasteHierarchySelection(StateT &state, SceneDocument &scene) {
+  if (!scene.Paste()) {
+    state.hierarchy_error = "Paste failed. Copy a valid scene selection first.";
+    state.hierarchy_status.clear();
+    return;
+  }
+  state.hierarchy_selection_anchor =
+      scene.Selection().size() == 1 ? scene.Key(scene.Selection().front()) : std::nullopt;
+  state.hierarchy_filter.fill({});
+  state.hierarchy_status = "Pasted " + std::to_string(scene.Selection().size()) + " entities.";
+  state.hierarchy_error.clear();
+}
+
 template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scene) {
   ImGui::SetNextItemWidth(-1.0F);
   ImGui::InputTextWithHint("##hierarchy-filter", "Filter entities...",
@@ -576,6 +600,8 @@ template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scen
   ImGui::EndDisabled();
   if (!state.hierarchy_error.empty())
     ImGui::TextWrapped("%s", state.hierarchy_error.c_str());
+  if (!state.hierarchy_status.empty())
+    ImGui::TextUnformatted(state.hierarchy_status.c_str());
 
   const auto nodes = scene->Nodes();
   const std::string_view filter(state.hierarchy_filter.data());
@@ -622,6 +648,14 @@ template <typename StateT> void DrawHierarchy(StateT &state, SceneDocument *scen
     static_cast<void>(scene->Select(std::span<const runtime::Id>{}));
     state.hierarchy_selection_anchor.reset();
   }
+  ImGui::SameLine();
+  ImGui::BeginDisabled(scene->Selection().empty());
+  if (ImGui::SmallButton("Copy"))
+    CopyHierarchySelection(state, *scene);
+  ImGui::EndDisabled();
+  ImGui::SameLine();
+  if (ImGui::SmallButton("Paste"))
+    PasteHierarchySelection(state, *scene);
   ImGui::Separator();
 
   const auto handle_selection = [&](SceneDocument::NodeKey entity) {
@@ -1554,6 +1588,16 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->scene_save_message = scene->Undo() ? "Undo complete." : "Nothing to undo.";
     state_->scene_save_success = true;
     state_->hierarchy_selection_anchor.reset();
+  }
+  if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput) {
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C, ImGuiInputFlags_RouteGlobal)) {
+      static_cast<void>(shell.RouteCommand("editor.scene.copy"));
+      CopyHierarchySelection(*state_, *scene);
+    }
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V, ImGuiInputFlags_RouteGlobal)) {
+      static_cast<void>(shell.RouteCommand("editor.scene.paste"));
+      PasteHierarchySelection(*state_, *scene);
+    }
   }
   const auto *viewport = ImGui::GetMainViewport();
   const ImGuiID dockspace =
