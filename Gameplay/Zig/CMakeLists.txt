@@ -36,7 +36,11 @@ set(NEXORA_ZIG_BUILD_OBJ_ARGS
   # stack-check safety instrumentation it emits by default is left calling
   # an undefined `__zig_probe_stack` on Linux/macOS.
   # See https://github.com/ziglang/zig/issues/6817.
-  -fno-stack-check)
+  -fno-stack-check
+  # Without an explicit CPU, Zig targets the *build machine's* native CPU, so a package built on a
+  # CI runner can fault with an illegal instruction on older or different CPUs. Ship a portable
+  # baseline instead.
+  -mcpu=baseline)
 if(WIN32)
   # -fno-stack-check above covers __zig_probe_stack, but large-stack-frame
   # functions still need a stack-probe thunk regardless of that safety
@@ -90,6 +94,7 @@ else()
     build-lib
     --dep nexora
     -O Debug
+    -mcpu=baseline
     -Mroot=${CMAKE_CURRENT_SOURCE_DIR}/src/game_module.zig
     -Mnexora=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig
     -dynamic -femit-bin=${NEXORA_ZIG_SHARED_LIBRARY})
