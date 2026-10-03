@@ -759,7 +759,11 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
                                     if (status != Nexora::Presentation::SurfaceStatus::Occluded) {
                                       result.presentation_recovery = Nexora::Presentation::ToString(
                                           Nexora::Presentation::RecoveryAction(status));
-                                      requireReady(status, "Present");
+                                      // OutOfDate at present time is a recoverable swapchain
+                                      // replacement (RecreateSurface): the surface rebuilds on the
+                                      // next BeginFrame, so drop this frame instead of failing.
+                                      if (status != Nexora::Presentation::SurfaceStatus::OutOfDate)
+                                        requireReady(status, "Present");
                                     }
                                     completedNames.emplace_back(passInfo.name);
                                   });

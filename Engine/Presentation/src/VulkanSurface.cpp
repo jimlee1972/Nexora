@@ -703,8 +703,12 @@ public:
     const auto result = vkQueuePresentKHR(queue_, &present);
     diagnostics_.lastPlatformResult = result;
     acquired_ = false;
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+      // Schedule swapchain replacement for the next Acquire() so the OutOfDate recovery action
+      // (RecreateSurface) actually has something to act on.
+      dirty_.store(true);
       return SurfaceStatus::OutOfDate;
+    }
     if (result == VK_ERROR_SURFACE_LOST_KHR)
       return SurfaceStatus::SurfaceLost;
     if (result != VK_SUCCESS)
