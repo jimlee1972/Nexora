@@ -70,6 +70,10 @@ authoring views on first launch.
 - `RuntimeConsole` is borrowed for the frame. The Console panel takes an owning, bounded snapshot,
   filters severity and text, clips visible rows, and reports the producer's dropped-record count.
   It does not retain record references after drawing. The application owns ingress and timestamps.
+- `PlaySession` is borrowed for the frame. The docked Game panel reads an owning inspection
+  snapshot and emits one-shot Start, Pause, Resume, Step, or Stop commands. F5 toggles Start/Stop,
+  F6 toggles Pause/Resume, and F10 steps a paused session. The application owns the cloned World,
+  fixed tick schedule, and discard policy; the UI never mutates the Play World directly.
 - The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes
   it after drawing, checks project write access and scene load state, and calls `SceneDocument::Save`.
   The host retains only the result text; it never chooses the path or writes the scene file.

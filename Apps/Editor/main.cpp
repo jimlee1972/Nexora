@@ -103,6 +103,7 @@ int RunGraphical(std::optional<ProjectState> project,
     return 1;
   }
   nexora::editor::SceneDocument scene(world, scene_id);
+  nexora::runtime::PlaySession play(world);
   nexora::runtime::RuntimeConsole console{1024};
   const auto log = [&](nexora::runtime::RuntimeLogSeverity severity, std::string category,
                        std::string message) {
@@ -166,6 +167,8 @@ int RunGraphical(std::optional<ProjectState> project,
   std::uint32_t frames = 0;
   int result = 0;
   bool exit_requested = false;
+  auto last_play_frame = std::chrono::steady_clock::now();
+  double play_accumulator = 0.0;
   auto recovery_choice = nexora::editor::imgui::RecoveryChoice::None;
   std::string selector_result = project ? "bypassed" : "none";
   const auto save_scene = [&] {
@@ -270,7 +273,48 @@ int RunGraphical(std::optional<ProjectState> project,
     }
     if (project) {
       ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports,
-                          &console);
+                          &console, &play);
+      switch (ui.TakePlayCommand()) {
+      case nexora::editor::imgui::PlayCommand::Start:
+        if (play.Start(1.0 / 60.0, [](nexora::runtime::World &, double) { return true; })) {
+          play_accumulator = 0.0;
+          last_play_frame = std::chrono::steady_clock::now();
+          log(nexora::runtime::RuntimeLogSeverity::Info, "PIE", "Isolated Play World started.");
+        }
+        break;
+      case nexora::editor::imgui::PlayCommand::Pause:
+        static_cast<void>(play.Pause());
+        break;
+      case nexora::editor::imgui::PlayCommand::Resume:
+        last_play_frame = std::chrono::steady_clock::now();
+        static_cast<void>(play.Resume());
+        break;
+      case nexora::editor::imgui::PlayCommand::Step:
+        static_cast<void>(play.Step());
+        break;
+      case nexora::editor::imgui::PlayCommand::Stop:
+        static_cast<void>(play.Stop());
+        play_accumulator = 0.0;
+        log(nexora::runtime::RuntimeLogSeverity::Info, "PIE", "Play World discarded.");
+        break;
+      case nexora::editor::imgui::PlayCommand::None:
+        break;
+      }
+      const auto play_now = std::chrono::steady_clock::now();
+      const double elapsed =
+          std::clamp(std::chrono::duration<double>(play_now - last_play_frame).count(), 0.0, 0.25);
+      last_play_frame = play_now;
+      if (play.State() == nexora::runtime::PlayState::Playing) {
+        play_accumulator += elapsed;
+        for (int tick = 0; tick < 4 && play_accumulator >= 1.0 / 60.0; ++tick) {
+          if (!play.Tick())
+            break;
+          play_accumulator -= 1.0 / 60.0;
+        }
+        play_accumulator = std::min(play_accumulator, 4.0 / 60.0);
+      } else {
+        play_accumulator = 0.0;
+      }
       if (ui.TakeSceneSaveRequest())
         static_cast<void>(save_scene());
       const auto close_choice = ui.TakeCloseChoice();
@@ -365,6 +409,8 @@ int RunGraphical(std::optional<ProjectState> project,
         std::cerr << "scene overview camera could not be saved: " << camera_error << '\n';
     }
   }
+  if (play.State() != nexora::runtime::PlayState::Stopped)
+    static_cast<void>(play.Stop());
   const auto diagnostics = created.surface->Diagnostics();
   std::cerr << "graphical evidence: acquired=" << diagnostics.acquiredFrames
             << " presented=" << diagnostics.presentedFrames
@@ -385,7 +431,8 @@ int RunGraphical(std::optional<ProjectState> project,
                     ? "required"
                     : "current")
             << " recents=" << recent_projects.Entries().size()
-            << " scene_nodes=" << scene.Nodes().size() << '\n';
+            << " scene_nodes=" << scene.Nodes().size() << " pie_ticks=" << play.Stats().fixed_ticks
+            << " pie_steps=" << play.Stats().manual_steps << '\n';
   if (created.surface->DrainAndDestroy() != Nexora::Presentation::SurfaceStatus::Ready)
     result = 1;
   return result;

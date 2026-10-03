@@ -348,6 +348,14 @@ def main() -> int:
         time.sleep(0.5)
         subprocess.run([args.xdotool, "key", "ctrl+shift+n"], env=environment, check=True)
         time.sleep(0.2)
+        subprocess.run([args.xdotool, "key", "F5"], env=environment, check=True)
+        time.sleep(0.3)
+        subprocess.run([args.xdotool, "key", "F6"], env=environment, check=True)
+        time.sleep(0.2)
+        subprocess.run([args.xdotool, "key", "F10"], env=environment, check=True)
+        time.sleep(0.2)
+        subprocess.run([args.xdotool, "key", "F5"], env=environment, check=True)
+        time.sleep(0.2)
         # The initial Scene Root is unsaved. Native close must keep the window alive until the
         # user decides; Escape cancels the prompt and permits subsequent editing and saving.
         request_window_close(window, environment)
@@ -374,6 +382,8 @@ def main() -> int:
         _, stderr = editor.communicate(timeout=30)
         if editor.returncode != 0 or "graphical evidence:" not in stderr:
             raise RuntimeError(f"close-event shutdown failed: {stderr}")
+        if "pie_steps=1" not in stderr:
+            raise RuntimeError(f"PIE play/pause/step/stop did not complete: {stderr}")
         editor = None
         camera_path = root / ".nexora/scenes/Main.overview.camera"
         camera_lines = camera_path.read_text().splitlines()

@@ -22,6 +22,7 @@ class EditorImGuiTestAccess;
 
 enum class RecoveryChoice : std::uint8_t { None, Recover, Discard };
 enum class CloseChoice : std::uint8_t { None, SaveAndExit, DiscardAndExit, Cancel };
+enum class PlayCommand : std::uint8_t { None, Start, Pause, Resume, Step, Stop };
 enum class ProjectSelectorAction : std::uint8_t { Open, Create };
 
 struct ProjectSelectorRequest final {
@@ -79,7 +80,9 @@ public:
                         ProjectContentSession *content = nullptr,
                         RecentProjectStore *recent_projects = nullptr,
                         AssetImportQueue *imports = nullptr,
-                        runtime::RuntimeConsole *console = nullptr);
+                        runtime::RuntimeConsole *console = nullptr,
+                        runtime::PlaySession *play = nullptr);
+  [[nodiscard]] PlayCommand TakePlayCommand() noexcept;
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
   void RequestCloseConfirmation() noexcept;
