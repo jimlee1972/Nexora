@@ -47,8 +47,8 @@ authoring views on first launch.
   reset at `BeginFrame`. The 3D Preview toggle publishes this rectangle to the application for
   a bounded direct native scene draw after UI; the X/Z overview remains available for editing. Backends
   without native scene geometry support show an unavailable message.
-  In 3D Preview, right drag orbits the proxy camera, middle drag pans its X/Z target, the wheel
-  zooms, and F or Frame selected centers the target on selected nodes in X/Y/Z. Orbit angle,
+  In 3D Preview, right drag orbits the proxy camera, middle drag pans its X/Z target, Shift+middle
+  drag pans target height, and the wheel zooms, and F or Frame selected centers the target on selected nodes in X/Y/Z. Orbit angle,
   distance, and target height are validated state; the target shares the overview's persisted X/Z
   center. The application saves the orbit angle, distance, and target height per scene through
   Editor Core `CameraPersistence`.
