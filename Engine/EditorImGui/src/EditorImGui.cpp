@@ -82,10 +82,12 @@ struct EditorImGuiHost::State final {
   RendererMetrics renderer_metrics;
   RecoveryChoice recovery_choice = RecoveryChoice::None;
   CloseChoice close_choice = CloseChoice::None;
+  PlayCommand play_command = PlayCommand::None;
   bool close_prompt_requested = false;
   bool recovery_prompt_opened = false;
   bool initial_dock_layout_built = false;
   bool focus_initial_content = false;
+  bool focus_initial_scene = false;
   ImGuiTextFilter console_filter;
   int console_min_severity = 0;
   std::string recovery_error;
@@ -288,11 +290,13 @@ void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
   const auto console_window = PanelWindowName("nexora.console");
   const auto content_window = PanelWindowName("nexora.content");
   const auto scene_window = PanelWindowName("nexora.scene");
+  const auto game_window = PanelWindowName("nexora.game");
   ImGui::DockBuilderDockWindow(project_window.c_str(), hierarchy);
   ImGui::DockBuilderDockWindow(hierarchy_window.c_str(), hierarchy);
   ImGui::DockBuilderDockWindow(console_window.c_str(), console);
   ImGui::DockBuilderDockWindow(content_window.c_str(), console);
   ImGui::DockBuilderDockWindow(scene_window.c_str(), center);
+  ImGui::DockBuilderDockWindow(game_window.c_str(), center);
   ImGui::DockBuilderFinish(dockspace);
   // DockBuilderFinish binds existing windows and may replace the pre-finish selection. Set the
   // selected tabs after that bind so first-frame submission order cannot hide authoring views.
@@ -300,6 +304,8 @@ void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
     node->SelectedTabId = ImHashStr(hierarchy_window.c_str());
   if (auto *node = ImGui::DockBuilderGetNode(console))
     node->SelectedTabId = ImHashStr(content_window.c_str());
+  if (auto *node = ImGui::DockBuilderGetNode(center))
+    node->SelectedTabId = ImHashStr(scene_window.c_str());
 }
 
 struct AssetDragData final {
@@ -1819,8 +1825,8 @@ std::string_view EditorImGuiHost::ProjectSelectorError() const noexcept {
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
                                        RecentProjectStore *recent_projects,
-                                       AssetImportQueue *imports,
-                                       runtime::RuntimeConsole *console) {
+                                       AssetImportQueue *imports, runtime::RuntimeConsole *console,
+                                       runtime::PlaySession *play) {
   Activate(state_->context);
   state_->selector_visible = false;
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
@@ -1828,6 +1834,18 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
     state_->scene_save_requested = true;
+  }
+  if (play != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput) {
+    if (ImGui::Shortcut(ImGuiKey_F5, ImGuiInputFlags_RouteGlobal))
+      state_->play_command =
+          play->State() == runtime::PlayState::Stopped ? PlayCommand::Start : PlayCommand::Stop;
+    else if (play->State() != runtime::PlayState::Stopped &&
+             ImGui::Shortcut(ImGuiKey_F6, ImGuiInputFlags_RouteGlobal))
+      state_->play_command =
+          play->State() == runtime::PlayState::Playing ? PlayCommand::Pause : PlayCommand::Resume;
+    else if (ImGui::Shortcut(ImGuiKey_F10, ImGuiInputFlags_RouteGlobal) &&
+             play->State() == runtime::PlayState::Paused)
+      state_->play_command = PlayCommand::Step;
   }
   if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput &&
       ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N, ImGuiInputFlags_RouteGlobal)) {
@@ -1863,6 +1881,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     BuildInitialDockLayout(dockspace, *viewport);
     state_->initial_dock_layout_built = true;
     state_->focus_initial_content = true;
+    state_->focus_initial_scene = true;
   }
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
   ApplyPendingHierarchyRequests(*state_, scene);
@@ -1904,6 +1923,50 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     }
     if (scene != nullptr)
       DrawSceneOverview(*state_, *scene);
+  }
+  ImGui::End();
+  const auto game_window = PanelWindowName("nexora.game");
+  if (ImGui::Begin(game_window.c_str())) {
+    if (play == nullptr) {
+      ImGui::TextDisabled("Play session unavailable.");
+    } else {
+      const auto state = play->State();
+      if (state == runtime::PlayState::Stopped) {
+        if (ImGui::Button("Play"))
+          state_->play_command = PlayCommand::Start;
+      } else {
+        if (ImGui::Button("Stop"))
+          state_->play_command = PlayCommand::Stop;
+        ImGui::SameLine();
+        if (state == runtime::PlayState::Playing) {
+          if (ImGui::Button("Pause"))
+            state_->play_command = PlayCommand::Pause;
+        } else {
+          if (ImGui::Button("Resume"))
+            state_->play_command = PlayCommand::Resume;
+          ImGui::SameLine();
+          if (ImGui::Button("Step"))
+            state_->play_command = PlayCommand::Step;
+        }
+      }
+      ImGui::Text("State: %s", state == runtime::PlayState::Stopped   ? "Stopped"
+                               : state == runtime::PlayState::Playing ? "Playing"
+                                                                      : "Paused");
+      ImGui::Text("Fixed ticks: %llu | Manual steps: %llu",
+                  static_cast<unsigned long long>(play->Stats().fixed_ticks),
+                  static_cast<unsigned long long>(play->Stats().manual_steps));
+      const auto snapshot = play->Inspect();
+      ImGui::Text("Play World entities: %zu", snapshot.entities.size());
+      ImGui::Separator();
+      ImGuiListClipper clipper;
+      clipper.Begin(static_cast<int>(snapshot.entities.size()));
+      while (clipper.Step())
+        for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index) {
+          const auto &entity = snapshot.entities[static_cast<std::size_t>(index)];
+          ImGui::Text("#%llu  (%.2f, %.2f, %.2f)", static_cast<unsigned long long>(entity.id),
+                      entity.transform.x, entity.transform.y, entity.transform.z);
+        }
+    }
   }
   ImGui::End();
   const auto console_window = PanelWindowName("nexora.console");
@@ -1970,6 +2033,16 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (content != nullptr)
     DrawContentBrowser(*state_, *content, imports);
   DrawProjectPanel(*state_, workspace, recent_projects);
+  if (state_->focus_initial_scene) {
+    auto *scene_window = ImGui::FindWindowByName(PanelWindowName("nexora.scene").c_str());
+    if (scene_window != nullptr && scene_window->DockNode != nullptr &&
+        scene_window->DockNode->TabBar != nullptr) {
+      scene_window->DockNode->SelectedTabId = scene_window->TabId;
+      scene_window->DockNode->TabBar->SelectedTabId = scene_window->TabId;
+      scene_window->DockNode->TabBar->NextSelectedTabId = scene_window->TabId;
+      state_->focus_initial_scene = false;
+    }
+  }
   if (state_->focus_initial_content) {
     const auto content_window_name = PanelWindowName("nexora.content");
     auto *content_window = ImGui::FindWindowByName(content_window_name.c_str());
@@ -2040,6 +2113,10 @@ void EditorImGuiHost::RequestCloseConfirmation() noexcept { state_->close_prompt
 
 CloseChoice EditorImGuiHost::TakeCloseChoice() noexcept {
   return std::exchange(state_->close_choice, CloseChoice::None);
+}
+
+PlayCommand EditorImGuiHost::TakePlayCommand() noexcept {
+  return std::exchange(state_->play_command, PlayCommand::None);
 }
 
 std::uint32_t EditorImGuiHost::Render(nexora::rhi::Device &device,

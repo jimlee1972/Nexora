@@ -67,6 +67,12 @@ The docked Console now shows bounded structured records with text and severity f
 source, and a dropped-record counter. The Editor records graphical startup and scene open/save
 results through the Runtime console; broader gameplay and build log routing remains open.
 
+The docked Game panel now controls an isolated `PlaySession`: F5 starts or stops, F6 pauses or
+resumes, and F10 advances one paused fixed tick. The panel inspects copied Play World entity
+positions and tick counts. Stop discards the cloned World; the Editor World is not applied back.
+The fixed callback currently advances no gameplay systems, and renderer-backed Game View output
+remains open.
+
 The ED-M2 graphical Hierarchy foundation now renders a parent-aware expandable tree, filters by
 entity name, supports plain/Ctrl/Shift selection with a retained generation-keyed anchor, clips
 visible-row submission, and routes rename, sibling ordering, and drag/drop reparenting through the
