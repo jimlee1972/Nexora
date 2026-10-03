@@ -119,6 +119,9 @@ struct EditorImGuiHost::State final {
   std::uint32_t inspector_selection = 0;
   bool inspector_transform_visible = false;
   std::string inspector_error;
+  bool scene_save_requested = false;
+  std::string scene_save_message;
+  bool scene_save_success = false;
   std::array<char, 128> content_query{};
   std::array<char, 64> content_type{};
   std::array<char, 260> content_rename{};
@@ -260,10 +263,12 @@ void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
   const auto console_window = PanelWindowName("nexora.console");
   const auto content_window = PanelWindowName("nexora.content");
+  const auto scene_window = PanelWindowName("nexora.scene");
   ImGui::DockBuilderDockWindow(project_window.c_str(), hierarchy);
   ImGui::DockBuilderDockWindow(hierarchy_window.c_str(), hierarchy);
   ImGui::DockBuilderDockWindow(console_window.c_str(), console);
   ImGui::DockBuilderDockWindow(content_window.c_str(), console);
+  ImGui::DockBuilderDockWindow(scene_window.c_str(), center);
   ImGui::DockBuilderFinish(dockspace);
   // DockBuilderFinish binds existing windows and may replace the pre-finish selection. Set the
   // selected tabs after that bind so first-frame submission order cannot hide authoring views.
@@ -1490,8 +1495,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                        AssetImportQueue *imports) {
   Activate(state_->context);
   state_->selector_visible = false;
-  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal))
+  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
+    state_->scene_save_requested = true;
+  }
   const auto *viewport = ImGui::GetMainViewport();
   const ImGuiID dockspace =
       ImGui::DockSpaceOverViewport(0, viewport, ImGuiDockNodeFlags_PassthruCentralNode);
@@ -1508,6 +1515,22 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const auto inspector_window = PanelWindowName("nexora.inspector");
   if (ImGui::Begin(inspector_window.c_str()))
     DrawInspector(*state_, scene);
+  ImGui::End();
+  const auto scene_window = PanelWindowName("nexora.scene");
+  if (ImGui::Begin(scene_window.c_str())) {
+    if (ImGui::Button("Save Scene") && scene != nullptr) {
+      static_cast<void>(shell.RouteCommand("editor.scene.save"));
+      state_->scene_save_requested = true;
+    }
+    if (!state_->scene_save_message.empty()) {
+      if (!state_->scene_save_success)
+        ImGui::TextColored(ImVec4(1.0F, 0.4F, 0.4F, 1.0F), "%s",
+                           state_->scene_save_message.c_str());
+      else
+        ImGui::TextUnformatted(state_->scene_save_message.c_str());
+    }
+    ImGui::TextUnformatted("Scene rendering and gizmos are in development.");
+  }
   ImGui::End();
   const auto console_window = PanelWindowName("nexora.console");
   if (ImGui::Begin(console_window.c_str()))
@@ -1552,6 +1575,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     }
     ImGui::EndPopup();
   }
+}
+
+bool EditorImGuiHost::TakeSceneSaveRequest() noexcept {
+  return std::exchange(state_->scene_save_requested, false);
+}
+
+void EditorImGuiHost::SetSceneSaveResult(std::string message, bool success) {
+  state_->scene_save_message = std::move(message);
+  state_->scene_save_success = success;
 }
 
 std::uint32_t EditorImGuiHost::Render(nexora::rhi::Device &device,

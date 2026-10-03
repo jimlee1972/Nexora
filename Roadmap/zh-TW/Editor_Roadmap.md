@@ -147,6 +147,10 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   提示，即使 quaternion 未改變。Editor scene format 2 驗證有限值、唯一性與旋轉一致性，並讀取
   舊版 format 1。Atomic 同 World reload 保留 scene ID／state；損壞資料與跨 scene ID 衝突
   會被拒絕且不改變 live state。Target-host 驗收與完整圖形化 save／restart workflow 仍待完成。
+- ✅ 圖形化 Scene panel 現透過一次性 application request 處理 Ctrl+S 與 Save Scene。
+  Application 將場景存至 `.nexora/scenes/Main.scene`，開啟 project 時重新載入；唯讀 project
+  拒絕儲存，無法讀取的場景檔也會保留原狀而不覆寫。這只是單一場景持久化切片，完整圖形化
+  save／restart 驗收仍待完成。
 - 待辦：圖形化 Scene View、完整 reflected Inspector、renderer-backed picking、camera control、
   gizmo、reflected widget
   與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成 select／edit／undo／save／restart

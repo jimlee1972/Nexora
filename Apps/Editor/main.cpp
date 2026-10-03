@@ -100,7 +100,25 @@ int RunGraphical(std::optional<ProjectState> project,
     return 1;
   }
   nexora::editor::SceneDocument scene(world, scene_id);
-  scene.Create("Scene Root");
+  const auto scene_path = [](const nexora::editor::ProjectWorkspace &workspace) {
+    return workspace.Root() / ".nexora" / "scenes" / "Main.scene";
+  };
+  bool scene_load_failed = false;
+  const auto open_scene = [&] {
+    const auto path = scene_path(project->workspace);
+    std::error_code error;
+    const bool exists = std::filesystem::exists(path, error);
+    if (error || (exists && !scene.Reload(path))) {
+      scene_load_failed = true;
+      ui.SetSceneSaveResult("Scene could not be loaded: " + path.string(), false);
+      return;
+    }
+    scene_load_failed = false;
+    if (!exists && scene.Nodes().empty())
+      scene.Create("Scene Root");
+  };
+  if (project)
+    open_scene();
   std::uint32_t frames = 0;
   int result = 0;
   auto recovery_choice = nexora::editor::imgui::RecoveryChoice::None;
@@ -172,6 +190,7 @@ int RunGraphical(std::optional<ProjectState> project,
             if (!recent_projects.Record(project->workspace, &selector_error))
               std::cerr << "recent-project warning: " << selector_error << '\n';
             load_layout(project->workspace);
+            open_scene();
             ui.SetProjectSelectorError({});
             ui.SetProjectSelectorStatus({}, false);
           }
@@ -180,6 +199,16 @@ int RunGraphical(std::optional<ProjectState> project,
     }
     if (project) {
       ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports);
+      if (ui.TakeSceneSaveRequest()) {
+        if (scene_load_failed)
+          ui.SetSceneSaveResult("Scene load failed. Resolve the scene file before saving.", false);
+        else if (!project->workspace.Writable())
+          ui.SetSceneSaveResult("Scene is read-only. Reopen the project for writing.", false);
+        else if (!scene.Save(scene_path(project->workspace)))
+          ui.SetSceneSaveResult("Scene could not be saved. Check the project directory.", false);
+        else
+          ui.SetSceneSaveResult("Scene saved.", true);
+      }
       if (const auto choice = ui.TakeRecoveryChoice();
           choice != nexora::editor::imgui::RecoveryChoice::None)
         recovery_choice = choice;

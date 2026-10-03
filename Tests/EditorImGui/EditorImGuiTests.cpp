@@ -282,6 +282,9 @@ int main() {
   host.BeginFrame();
   host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
   assert(shell.LastCommand() == "editor.scene.save");
+  assert(host.TakeSceneSaveRequest());
+  assert(!host.TakeSceneSaveRequest());
+  host.SetSceneSaveResult("Scene saved.", true);
   const auto metrics = host.EndFrame();
   assert(metrics.command_lists > 0);
   assert(metrics.vertices > 0);

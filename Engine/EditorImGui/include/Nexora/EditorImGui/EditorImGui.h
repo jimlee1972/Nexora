@@ -72,6 +72,8 @@ public:
                         ProjectContentSession *content = nullptr,
                         RecentProjectStore *recent_projects = nullptr,
                         AssetImportQueue *imports = nullptr);
+  [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
+  void SetSceneSaveResult(std::string message, bool success);
   [[nodiscard]] FrameMetrics EndFrame();
   // The validation/offscreen renderer retains its pipeline, font texture, and geometrically sized
   // upload buffers. ReleaseRenderer must be called before the supplied Device is destroyed.

@@ -73,6 +73,13 @@ write. SceneDocument persists authored Euler hints through save/reload and resto
 Scene View, reflected component widgets, the complete graphical save/restart workflow, and the ED-M2 visual exit gate
 remain open.
 
+The graphical shell now saves the active scene with Ctrl+S or the Scene panel's Save Scene button
+to `.nexora/scenes/Main.scene` under the project root. It reloads that scene when the project
+opens and creates a starter root only when no saved scene exists. Read-only projects reject saves;
+a corrupt or unreadable saved scene remains untouched and blocks saving until repaired. The Scene
+panel reports save and load failures. This is one-scene persistence, not the complete Scene View or
+the ED-M2 save/restart acceptance workflow.
+
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows
 fresh-project workflow acceptance remain open.
 
