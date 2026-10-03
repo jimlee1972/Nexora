@@ -350,9 +350,29 @@ void TestSceneOverviewSelection() {
       host, *scene.Key(overview_parent));
   const auto child_position = nexora::editor::imgui::EditorImGuiTestAccess::SceneMarkerPosition(
       host, *scene.Key(overview_child));
+  const auto canvas = host.SceneCanvasViewport();
+  assert(canvas && canvas->width > 0 && canvas->height > 0 && canvas->x + canvas->width <= 1280 &&
+         canvas->y + canvas->height <= 720 && parent_position &&
+         (*parent_position)[0] >= canvas->x && (*parent_position)[0] < canvas->x + canvas->width &&
+         (*parent_position)[1] >= canvas->y && (*parent_position)[1] < canvas->y + canvas->height);
   assert(parent_position && child_position &&
          std::abs((*child_position)[0] - (*parent_position)[0] - 96.0F) < 1.0F &&
          std::abs((*child_position)[1] - (*parent_position)[1] - 64.0F) < 1.0F);
+  nexora::editor::imgui::EditorImGuiHost scaled_host;
+  scaled_host.SetDisplay(640.0F, 360.0F, 2.0F);
+  for (int frame = 0; frame < 2; ++frame) {
+    scaled_host.BeginFrame();
+    scaled_host.DrawProductShell(shell, &scene);
+    static_cast<void>(scaled_host.EndFrame());
+  }
+  const auto scaled_canvas = scaled_host.SceneCanvasViewport();
+  const auto scaled_parent = nexora::editor::imgui::EditorImGuiTestAccess::SceneMarkerPosition(
+      scaled_host, *scene.Key(overview_parent));
+  assert(scaled_canvas && scaled_parent && scaled_canvas->width > 0 &&
+         scaled_canvas->x + scaled_canvas->width <= 1280 &&
+         scaled_canvas->y + scaled_canvas->height <= 720 &&
+         (*scaled_parent)[0] * 2.0F >= scaled_canvas->x &&
+         (*scaled_parent)[0] * 2.0F < scaled_canvas->x + scaled_canvas->width);
   const std::array events{
       Nexora::Window::WindowEvent{
           {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 1, 0},
@@ -368,6 +388,7 @@ void TestSceneOverviewSelection() {
           {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 1}};
   host.ProcessEvents(events);
   host.BeginFrame();
+  assert(!host.SceneCanvasViewport());
   host.DrawProductShell(shell, &scene);
   static_cast<void>(host.EndFrame());
   assert(scene.Selection().size() == 1 && scene.Selection().front() == overview_child);

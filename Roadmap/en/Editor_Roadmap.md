@@ -178,6 +178,8 @@ creates property widgets; unknown components retain raw data instead of being si
 - ✅ The native Vulkan/DX12 scene draw contract now accepts a bounded physical-pixel viewport.
   Portable bounds checks and Vulkan Xvfb pixel readback cover clipping. The Editor Scene panel
   has not yet wired this draw path, so renderer-backed Scene View acceptance remains open.
+- ✅ The docked Scene canvas now publishes its visible framebuffer-pixel bounds after layout and
+  DPI scaling, resetting them each frame. Native scene drawing into that canvas remains open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on
   selected world positions with F or Frame selected. Input-event tests cover both interactions.
 - ✅ Scene overview marker dragging previews a world X/Z move; visible X and Z handles constrain

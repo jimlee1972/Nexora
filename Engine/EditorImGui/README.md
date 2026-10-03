@@ -42,6 +42,9 @@ authoring views on first launch.
   The Scene panel has a top-down X/Z overview with a world grid, composed entity positions,
   middle-button pan, wheel zoom, and click selection synchronized with Hierarchy. It is an
   authoring overview; renderer-backed 3D scene output and full 3D gizmos remain open.
+  `SceneCanvasViewport()` exposes its visible, clipped canvas rectangle in framebuffer pixels
+  after each frame's dock layout and DPI scale. It is empty when the panel is not drawn and is
+  reset at `BeginFrame`; the application has not yet connected native scene draws to this area.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
   Dragging a selected marker previews an X/Z move and commits one document transform transaction

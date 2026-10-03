@@ -175,6 +175,8 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 - ✅ 原生 Vulkan／DX12 場景繪製 contract 現可指定有界的實體像素 viewport。
   Portable 邊界檢查與 Vulkan Xvfb 像素讀回涵蓋裁切。Editor Scene panel 尚未接上此繪製路徑，
   因此 renderer-backed Scene View 驗收仍待完成。
+- ✅ Docked Scene canvas 現會在 layout 與 DPI 縮放後提供可見的 framebuffer 像素邊界，
+  並於每幀重設；將原生場景繪製接進此區域仍待完成。
 - ✅ Scene 概覽現共用 Hierarchy 的 Ctrl／Shift 多選錨點，並可透過 F 或 Frame selected
   將檢視中心移至選取物件的世界位置。輸入事件測試涵蓋這兩項操作。
 - ✅ Scene 概覽標記拖曳會預覽世界 X/Z 位移；可見的 X 與 Z 把手可將位移限制於單一世界軸，
