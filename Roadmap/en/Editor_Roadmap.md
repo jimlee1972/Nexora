@@ -185,8 +185,8 @@ creates property widgets; unknown components retain raw data instead of being si
   X/Z target, the wheel zooms, and F or Frame selected centers on selected nodes in X/Y/Z. Orbit
   angle, distance, and target height persist per scene. Clicking a visible position proxy selects
   its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Authored meshes, full world
-  transforms, mesh picking, and gizmos remain open. Dragging a proxy commits an undoable world X/Z
-  move on release; a live 3D drag ghost remains open. Full renderer-backed Scene View acceptance
+  transforms, mesh picking, and gizmos remain open. Dragging a proxy previews selected roots and
+  descendants in world X/Z, then commits one undoable move on release. Full Scene View acceptance
   is still open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on
   selected world positions with F or Frame selected. Input-event tests cover both interactions.

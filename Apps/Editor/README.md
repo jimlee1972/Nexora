@@ -55,9 +55,9 @@ writable shutdown. Invalid camera files are preserved for inspection.
 Left click selects the nearest visible position proxy using a viewport ray against its drawn
 box; Ctrl-click toggles it, and an empty click clears selection. Hierarchy and Inspector share
 that selection. Picking authored mesh triangles remains open.
-Dragging a selected proxy moves the selected roots in world X/Z when the left button is released,
-as one undoable transform transaction. The 3D preview currently has no live drag ghost or axis
-gizmo; the X/Z overview retains its live move preview and axis handles.
+Dragging a selected proxy previews a world X/Z move of selected roots and their descendants, then
+commits it when the left button is released as one undoable transform transaction. Full 3D gizmo
+handles remain open; the X/Z overview retains its axis handles.
 `--native-scene-preview` selects this mode on startup for display acceptance.
 Project-selector activation now indexes content through an application-owned `AssetImportQueue`;
 the selector shows bounded progress and can cancel without activating a partial project. Content
