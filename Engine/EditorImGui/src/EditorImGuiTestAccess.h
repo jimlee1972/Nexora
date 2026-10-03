@@ -62,6 +62,8 @@ public:
   static void QueueHierarchyMove(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                  std::optional<SceneDocument::NodeKey> parent,
                                  std::size_t index) noexcept;
+  static void QueueHierarchyCreate(EditorImGuiHost &host, std::string name,
+                                   std::optional<SceneDocument::NodeKey> parent = std::nullopt);
   static void QueueHierarchyReorder(EditorImGuiHost &host, int direction) noexcept;
   static void QueueHierarchyExpansion(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                       bool expanded) noexcept;
