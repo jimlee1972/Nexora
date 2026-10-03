@@ -172,6 +172,25 @@ bool SceneEditor::SetCamera(Id entity, std::optional<CameraComponent> camera) {
   ++depth_;
   return true;
 }
+bool SceneEditor::SetLight(Id entity, std::optional<LightComponent> light) {
+  const auto *existing = world_.FindEntity(entity);
+  if (!existing || (light && (!std::isfinite(light->intensity) || light->intensity < 0.0F)))
+    return false;
+  const std::optional<LightComponent> previous =
+      existing->light ? std::optional(existing->light_data) : std::nullopt;
+  WorldCommandBuffer apply;
+  apply.SetLight(entity, light);
+  if (!apply.Apply(world_))
+    return false;
+  undo_.Execute([] {},
+                [this, entity, previous] {
+                  WorldCommandBuffer commands;
+                  commands.SetLight(entity, previous);
+                  (void)commands.Apply(world_);
+                });
+  ++depth_;
+  return true;
+}
 bool SceneEditor::SetTransforms(std::span<const Id> entities,
                                 std::span<const Transform> transforms) {
   if (entities.empty() || entities.size() != transforms.size())

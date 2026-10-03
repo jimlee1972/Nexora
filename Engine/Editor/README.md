@@ -186,6 +186,8 @@ routes position, Euler-degree rotation, and scale changes through generation-key
 The single-selection Camera component toggle and field edits use the same generation key and undo
 boundary; invalid clipping and stale keys leave the scene unchanged. Camera values persist in the
 runtime scene snapshot, so Save and Reload retain them.
+The single-selection Light toggle and intensity field follow the same generation and undo rules;
+intensity must be finite and nonnegative.
 Multi-selection fields display mixed state and apply one changed field to every selected entity as a
 single all-or-nothing Runtime transaction and undo step; malformed transforms roll back without a
 partial write. `SceneDocument` owns authored Euler hints and restores them with undo, even when a changed angle

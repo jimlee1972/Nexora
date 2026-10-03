@@ -182,6 +182,7 @@ public:
   bool Move(NodeKey entity, std::optional<NodeKey> parent, std::size_t index);
   bool SetTransform(runtime::Id entity, runtime::Transform transform);
   bool SetCamera(NodeKey entity, std::optional<runtime::CameraComponent> camera);
+  bool SetLight(NodeKey entity, std::optional<runtime::LightComponent> light);
   bool SetTransforms(std::span<const NodeKey> entities,
                      std::span<const runtime::Transform> transforms);
   // Moves generation-checked selection roots by a world X/Z delta as one atomic undo step.
@@ -192,6 +193,7 @@ public:
   [[nodiscard]] std::optional<EulerDegrees> EulerAngles(runtime::Id entity) const noexcept;
   [[nodiscard]] std::optional<runtime::Transform> Transform(runtime::Id entity) const noexcept;
   [[nodiscard]] std::optional<runtime::CameraComponent> Camera(NodeKey entity) const noexcept;
+  [[nodiscard]] std::optional<runtime::LightComponent> Light(NodeKey entity) const noexcept;
   [[nodiscard]] std::optional<runtime::Transform> WorldTransform(runtime::Id entity) const noexcept;
   bool CopySelection();
   bool Paste();

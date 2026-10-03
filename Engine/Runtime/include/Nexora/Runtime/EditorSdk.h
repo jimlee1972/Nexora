@@ -120,6 +120,8 @@ public:
   bool SetTransform(Id entity, Transform transform);
   // Validates camera clipping and records its previous presence/values for Undo.
   bool SetCamera(Id entity, std::optional<CameraComponent> camera);
+  // Validates nonnegative finite intensity and records the previous component for Undo.
+  bool SetLight(Id entity, std::optional<LightComponent> light);
   // Applies a multi-selection transform edit as one all-or-nothing, undoable transaction.
   // Entity IDs must be unique and both spans must have the same non-zero size.
   bool SetTransforms(std::span<const Id> entities, std::span<const Transform> transforms);

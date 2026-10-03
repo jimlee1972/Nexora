@@ -146,6 +146,8 @@ bridges remain ED-M7 work; plugins must not inspect the ImGui widget tree to sup
 The single-selection Camera section toggles component presence and edits vertical field of view,
 near plane, and far plane on Enter. Requests use the selected document generation and go through
 `SceneDocument::SetCamera`; rejected values show an error without changing the scene.
+The Light section uses the same one-shot document path for component presence and finite,
+nonnegative intensity, with Undo and scene persistence.
 
 ## Inspector rotation
 

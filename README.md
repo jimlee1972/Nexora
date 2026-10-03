@@ -147,7 +147,7 @@ the authoring thread without direct UI filesystem access. Physical-display/Windo
 acceptance remains open, so milestone acceptance stays unchanged. The graphical Hierarchy now
 provides a parent-aware expandable tree, filtering, generation-keyed expansion and anchored
 multi-selection, clipped visible-row submission, undoable rename, sibling ordering, and cycle-safe
-drag/drop reparenting through Editor Core while rejecting stale entity/document generations. The docked Inspector now edits local position, quaternion, and scale for single or mixed-value multi-selection through one generation-safe, atomic, undoable SceneDocument transaction; the single-selection Camera section now edits validated field of view and clipping planes with Undo and scene persistence; the complete reflected Inspector remains open. The
+drag/drop reparenting through Editor Core while rejecting stale entity/document generations. The docked Inspector now edits local position, quaternion, and scale for single or mixed-value multi-selection through one generation-safe, atomic, undoable SceneDocument transaction; the single-selection Camera and Light sections now edit validated field of view, clipping planes, and nonnegative intensity with Undo and scene persistence; the complete reflected Inspector remains open. The
 X11 window backend now owns one XIM input context per
 window, decodes committed UTF-8 into backend-neutral `Text` events, and keeps physical keys separate
 from text input.
@@ -308,7 +308,7 @@ create、read-write／read-only open 與 recent shortcut；project activation �
 驗收仍待完成，因此 milestone 驗收比例不變。圖形化 Hierarchy 現已有 parent-aware expandable
 tree、filter、以 generation 為 key 的 expansion 與 anchored multi-selection、可見列裁切提交、
 可復原 rename、兄弟排序，以及透過 Editor Core 執行且拒絕 stale entity／document generation
-的 cycle-safe drag/drop reparent。Docked Inspector 現可透過一個 generation-safe、atomic、可復原且經 Runtime validation 的 SceneDocument transaction，編輯單選或 mixed-value 多選的 local position、quaternion 與 scale；單選 Camera 區也可新增／移除元件並編輯經驗證的視角與裁切面，支援 Undo 與場景持久化；完整 reflected Inspector 仍待完成。X11 window backend 現會以每視窗 XIM input context 將
+的 cycle-safe drag/drop reparent。Docked Inspector 現可透過一個 generation-safe、atomic、可復原且經 Runtime validation 的 SceneDocument transaction，編輯單選或 mixed-value 多選的 local position、quaternion 與 scale；單選 Camera 與 Light 區也可新增／移除元件並編輯經驗證的視角、裁切面與非負亮度，支援 Undo 與場景持久化；完整 reflected Inspector 仍待完成。X11 window backend 現會以每視窗 XIM input context 將
 committed UTF-8 解碼成
 backend-neutral `Text` event，physical key 與 text input 維持分離。
 圖形化 Hierarchy 現可刪除及復原選取的 subtree，也能在不改變剪貼簿的情況下複製目前選取。

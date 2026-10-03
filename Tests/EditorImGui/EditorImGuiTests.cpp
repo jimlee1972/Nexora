@@ -782,6 +782,13 @@ int main() {
   static_cast<void>(host.EndFrame());
   assert(scene.Camera(*root_key) && scene.Camera(*root_key)->vertical_field_of_view == 70.0);
   assert(scene.Undo() && !scene.Camera(*root_key));
+  EditorImGuiTestAccess::QueueInspectorLight(host, *root_key,
+                                             nexora::runtime::LightComponent{3.0F});
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene, &content_workspace, &content, &recent_projects, &imports);
+  static_cast<void>(host.EndFrame());
+  assert(scene.Light(*root_key) && scene.Light(*root_key)->intensity == 3.0F);
+  assert(scene.Undo() && !scene.Light(*root_key));
 
   const std::array multi_selection{*root_key, *sibling_key};
   assert(scene.Select(multi_selection));
