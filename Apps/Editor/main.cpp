@@ -5,6 +5,7 @@
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/SceneAuthoring.h"
+#include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "Nexora/Math/Math.h"
 #include "Nexora/Presentation/RenderSurface.h"
@@ -21,6 +22,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <numbers>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -96,18 +98,64 @@ struct NativeSceneProxyMesh final {
   }
 };
 
+std::vector<nexora::editor::PickCandidate>
+NativeSceneProxyCandidates(const nexora::editor::SceneDocument &scene) {
+  std::vector<nexora::editor::PickCandidate> candidates;
+  const auto nodes = scene.Nodes();
+  candidates.reserve(std::min<std::size_t>(nodes.size(), 4095));
+  for (const auto &node : nodes) {
+    if (candidates.size() == 4095)
+      break;
+    const auto pose = scene.WorldTransform(node.id);
+    if (!pose || !std::isfinite(pose->x) || !std::isfinite(pose->y) || !std::isfinite(pose->z) ||
+        std::abs(pose->x) > 100000.0 || std::abs(pose->y) > 100000.0 ||
+        std::abs(pose->z) > 100000.0)
+      continue;
+    candidates.push_back({node.id,
+                          {pose->x - 0.45, pose->y + 0.05, pose->z - 0.45},
+                          {pose->x + 0.45, pose->y + 0.95, pose->z + 0.45}});
+  }
+  return candidates;
+}
+
+std::optional<nexora::runtime::Id>
+PickNativeSceneProxy(const nexora::editor::SceneDocument &scene,
+                     Nexora::Presentation::SceneViewport viewport,
+                     nexora::editor::imgui::SceneOverviewCamera camera,
+                     nexora::editor::imgui::NativeSceneOrbit orbit,
+                     nexora::editor::imgui::NativeScenePickRequest request) {
+  if (request.x < viewport.x || request.y < viewport.y ||
+      request.x >= viewport.x + viewport.width || request.y >= viewport.y + viewport.height)
+    return std::nullopt;
+  nexora::editor::ViewportCamera view;
+  view.target = {std::clamp(camera.x, -100000.0, 100000.0), 0.0,
+                 std::clamp(camera.z, -100000.0, 100000.0)};
+  view.position = {view.target.x + orbit.distance * std::sin(orbit.yaw) * std::cos(orbit.pitch),
+                   orbit.distance * std::sin(orbit.pitch),
+                   view.target.z + orbit.distance * std::cos(orbit.yaw) * std::cos(orbit.pitch)};
+  view.vertical_fov_degrees = 0.85 * 180.0 / std::numbers::pi;
+  const auto ray =
+      nexora::editor::ViewportPickRay(view, viewport.width, viewport.height,
+                                      request.x - viewport.x + 0.5, request.y - viewport.y + 0.5);
+  if (!ray)
+    return std::nullopt;
+  const auto candidates = NativeSceneProxyCandidates(scene);
+  const auto hit = nexora::editor::PickNearest(*ray, candidates, 500.0);
+  return hit ? std::optional{hit->entity} : std::nullopt;
+}
+
 Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     Nexora::Presentation::RenderSurface &surface, const nexora::editor::SceneDocument &scene,
     Nexora::Presentation::SceneViewport viewport, nexora::editor::imgui::SceneOverviewCamera camera,
     nexora::editor::imgui::NativeSceneOrbit orbit) {
   static const NativeSceneProxyMesh mesh;
-  const auto nodes = scene.Nodes();
+  const auto candidates = NativeSceneProxyCandidates(scene);
   const std::unordered_set<nexora::runtime::Id> selected(scene.Selection().begin(),
                                                          scene.Selection().end());
   camera.x = std::clamp(camera.x, -100000.0, 100000.0);
   camera.z = std::clamp(camera.z, -100000.0, 100000.0);
   std::vector<Nexora::Presentation::SceneInstance> instances;
-  instances.reserve(std::min<std::size_t>(nodes.size() + 1, 4096));
+  instances.reserve(candidates.size() + 1);
   Nexora::Presentation::SceneInstance ground{};
   ground.translation[0] = static_cast<float>(camera.x);
   ground.translation[1] = -0.35F;
@@ -118,20 +166,13 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   ground.color[1] = 0.28F;
   ground.color[2] = 0.34F;
   instances.push_back(ground);
-  for (const auto &node : nodes) {
-    if (instances.size() == 4096)
-      break;
-    const auto pose = scene.WorldTransform(node.id);
-    if (!pose || !std::isfinite(pose->x) || !std::isfinite(pose->y) || !std::isfinite(pose->z) ||
-        std::abs(pose->x) > 100000.0 || std::abs(pose->y) > 100000.0 ||
-        std::abs(pose->z) > 100000.0)
-      continue;
+  for (const auto &candidate : candidates) {
     Nexora::Presentation::SceneInstance instance{};
-    instance.translation[0] = static_cast<float>(pose->x);
-    instance.translation[1] = static_cast<float>(pose->y) + 0.5F;
-    instance.translation[2] = static_cast<float>(pose->z);
+    instance.translation[0] = static_cast<float>((candidate.min.x + candidate.max.x) * 0.5);
+    instance.translation[1] = static_cast<float>((candidate.min.y + candidate.max.y) * 0.5);
+    instance.translation[2] = static_cast<float>((candidate.min.z + candidate.max.z) * 0.5);
     instance.scale[0] = instance.scale[1] = instance.scale[2] = 0.45F;
-    const bool is_selected = selected.contains(node.id);
+    const bool is_selected = selected.contains(candidate.entity);
     instance.color[0] = is_selected ? 1.0F : 0.35F;
     instance.color[1] = is_selected ? 0.75F : 0.65F;
     instance.color[2] = is_selected ? 0.2F : 1.0F;
@@ -508,6 +549,23 @@ int RunGraphical(std::optional<ProjectState> project,
     }
     if (project) {
       if (const auto viewport = ui.NativeScenePreviewViewport()) {
+        if (const auto request = ui.NativeScenePick()) {
+          const auto hit = PickNativeSceneProxy(scene, *viewport, ui.GetSceneOverviewCamera(),
+                                                ui.GetNativeSceneOrbit(), *request);
+          if (hit) {
+            std::vector<nexora::runtime::Id> selection;
+            if (request->additive)
+              selection.assign(scene.Selection().begin(), scene.Selection().end());
+            const auto existing = std::find(selection.begin(), selection.end(), *hit);
+            if (existing == selection.end())
+              selection.push_back(*hit);
+            else
+              selection.erase(existing);
+            static_cast<void>(scene.Select(selection));
+          } else if (!request->additive) {
+            static_cast<void>(scene.Select(std::span<const nexora::runtime::Id>{}));
+          }
+        }
         const auto scene_status =
             DrawNativeScenePreview(*created.surface, scene, *viewport, ui.GetSceneOverviewCamera(),
                                    ui.GetNativeSceneOrbit());
@@ -603,7 +661,9 @@ int RunGraphical(std::optional<ProjectState> project,
                     ? "required"
                     : "current")
             << " recents=" << recent_projects.Entries().size()
-            << " scene_nodes=" << scene.Nodes().size() << " pie_ticks=" << play.Stats().fixed_ticks
+            << " scene_nodes=" << scene.Nodes().size()
+            << " scene_selected=" << scene.Selection().size()
+            << " pie_ticks=" << play.Stats().fixed_ticks
             << " pie_steps=" << play.Stats().manual_steps << '\n';
   if (created.surface->DrainAndDestroy() != Nexora::Presentation::SurfaceStatus::Ready)
     result = 1;

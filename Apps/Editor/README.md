@@ -52,6 +52,9 @@ Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel
 Frame selected centers on selected nodes. The target persists with the overview camera; orbit
 angle and distance persist in a separate per-scene camera file on writable shutdown. Invalid
 camera files are preserved for inspection.
+Left click selects the nearest visible position proxy using a viewport ray against its drawn
+box; Ctrl-click toggles it, and an empty click clears selection. Hierarchy and Inspector share
+that selection. Picking authored mesh triangles remains open.
 `--native-scene-preview` selects this mode on startup for display acceptance.
 Project-selector activation now indexes content through an application-owned `AssetImportQueue`;
 the selector shows bounded progress and can cancel without activating a partial project. Content

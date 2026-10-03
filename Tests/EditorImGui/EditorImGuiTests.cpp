@@ -650,6 +650,18 @@ void TestNativeSceneCameraControls() {
           {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, px, py}};
   host.ProcessEvents(hover);
   draw();
+  const std::array pick_press{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 1}};
+  host.ProcessEvents(pick_press);
+  draw();
+  const auto pick = host.NativeScenePick();
+  assert(pick && pick->x == static_cast<std::uint32_t>(px) &&
+         pick->y == static_cast<std::uint32_t>(py) && !pick->additive);
+  const std::array pick_release{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 0}};
+  host.ProcessEvents(pick_release);
+  draw();
+  assert(!host.NativeScenePick());
   const auto distance = host.GetNativeSceneOrbit().distance;
   const std::array wheel{Nexora::Window::WindowEvent{
       {}, Nexora::Window::WindowEventType::Wheel, 0, 0, 0, 1.0F, 0, 120}};
