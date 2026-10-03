@@ -451,7 +451,7 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::runtime::PlaySession play(world);
   nexora::runtime::RuntimeConsole console{1024};
   nexora::editor::ProfileSession profile{240};
-  bool native_scene_viewport_reported = false;
+  std::optional<Nexora::Presentation::SceneViewport> native_scene_viewport_reported;
   std::optional<nexora::editor::ViewportVector> native_scene_drag_axis;
   const auto log = [&](nexora::runtime::RuntimeLogSeverity severity, std::string category,
                        std::string message) {
@@ -810,10 +810,13 @@ int RunGraphical(std::optional<ProjectState> project,
         ui.SetNativeScenePreviewAvailable(scene_status !=
                                           Nexora::Presentation::SurfaceStatus::Unsupported);
         if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&
-            !native_scene_viewport_reported) {
+            (!native_scene_viewport_reported || native_scene_viewport_reported->x != viewport->x ||
+             native_scene_viewport_reported->y != viewport->y ||
+             native_scene_viewport_reported->width != viewport->width ||
+             native_scene_viewport_reported->height != viewport->height)) {
           std::cerr << "native scene viewport: " << viewport->x << ' ' << viewport->y << ' '
                     << viewport->width << ' ' << viewport->height << '\n';
-          native_scene_viewport_reported = true;
+          native_scene_viewport_reported = *viewport;
         }
         if (scene_status != Nexora::Presentation::SurfaceStatus::Ready &&
             scene_status != Nexora::Presentation::SurfaceStatus::Unsupported) {
