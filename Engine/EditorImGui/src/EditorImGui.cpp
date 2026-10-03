@@ -109,6 +109,12 @@ struct EditorImGuiHost::State final {
   std::vector<SceneMarker> scene_markers;
   ImVec2 scene_center_world{};
   float scene_pixels_per_unit = 32.0F;
+  struct SceneDrag final {
+    std::vector<SceneDocument::NodeKey> entities;
+    ImVec2 start_mouse;
+    float pixels_per_unit{};
+  };
+  std::optional<SceneDrag> scene_drag;
   struct InspectorTransformRequest final {
     std::vector<SceneDocument::NodeKey> entities;
     std::vector<runtime::Transform> transforms;
@@ -882,12 +888,29 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
   const auto max = ImGui::GetItemRectMax();
   const ImVec2 center{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
   const auto &io = ImGui::GetIO();
+  if (state.scene_drag) {
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+      state.scene_drag.reset();
+    } else if (!io.MouseDown[ImGuiMouseButton_Left]) {
+      if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+        const auto &drag = *state.scene_drag;
+        const float dx = io.MousePos.x - drag.start_mouse.x;
+        const float dy = io.MousePos.y - drag.start_mouse.y;
+        if (dx * dx + dy * dy >= 36.0F &&
+            !scene.TranslateSelectionXZ(drag.entities, dx / drag.pixels_per_unit,
+                                        dy / drag.pixels_per_unit))
+          state.hierarchy_error =
+              "Scene drag rejected because an entity changed or the pose is invalid.";
+      }
+      state.scene_drag.reset();
+    }
+  }
   if (ImGui::IsItemHovered()) {
-    if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0F)) {
+    if (!state.scene_drag && ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0F)) {
       state.scene_center_world.x -= io.MouseDelta.x / state.scene_pixels_per_unit;
       state.scene_center_world.y -= io.MouseDelta.y / state.scene_pixels_per_unit;
     }
-    if (io.MouseWheel != 0.0F) {
+    if (!state.scene_drag && io.MouseWheel != 0.0F) {
       const auto old_scale = state.scene_pixels_per_unit;
       const auto new_scale = std::clamp(old_scale * std::pow(1.15F, io.MouseWheel), 4.0F, 256.0F);
       state.scene_center_world.x +=
@@ -920,13 +943,35 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
   if (origin.x >= min.x && origin.x <= max.x)
     draw->AddLine({origin.x, min.y}, {origin.x, max.y}, IM_COL32(80, 123, 185, 255), 1.5F);
 
+  ImVec2 preview_pixels{};
+  if (state.scene_drag && io.MouseDown[ImGuiMouseButton_Left]) {
+    preview_pixels = {io.MousePos.x - state.scene_drag->start_mouse.x,
+                      io.MousePos.y - state.scene_drag->start_mouse.y};
+    if (preview_pixels.x * preview_pixels.x + preview_pixels.y * preview_pixels.y >= 36.0F)
+      draw->AddLine(state.scene_drag->start_mouse, io.MousePos, IM_COL32(255, 199, 87, 255), 2.0F);
+    else
+      preview_pixels = {};
+  }
+
   state.scene_markers.clear();
   for (const auto &node : scene.Nodes()) {
     const auto pose = scene.WorldTransform(node.id);
     if (!pose)
       continue;
-    const ImVec2 position{origin.x + static_cast<float>(pose->x) * state.scene_pixels_per_unit,
-                          origin.y + static_cast<float>(pose->z) * state.scene_pixels_per_unit};
+    ImVec2 position{origin.x + static_cast<float>(pose->x) * state.scene_pixels_per_unit,
+                    origin.y + static_cast<float>(pose->z) * state.scene_pixels_per_unit};
+    if (state.scene_drag) {
+      auto ancestor = node.id;
+      while (ancestor != 0) {
+        if (std::ranges::find(state.scene_drag->entities, ancestor, &SceneDocument::NodeKey::id) !=
+            state.scene_drag->entities.end()) {
+          position.x += preview_pixels.x;
+          position.y += preview_pixels.y;
+          break;
+        }
+        ancestor = scene.Parent(ancestor).value_or(0);
+      }
+    }
     if (!std::isfinite(position.x) || !std::isfinite(position.y) || position.x < min.x - 10.0F ||
         position.x > max.x + 10.0F || position.y < min.y - 10.0F || position.y > max.y + 10.0F)
       continue;
@@ -954,12 +999,26 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
       }
     }
     if (picked) {
+      const bool already_selected =
+          std::ranges::find(scene.Selection(), picked->id) != scene.Selection().end();
       std::vector<SceneDocument::NodeKey> visible;
       visible.reserve(state.scene_markers.size());
       for (const auto &marker : state.scene_markers)
         visible.push_back(marker.entity);
-      static_cast<void>(
-          ApplyHierarchySelection(state, scene, visible, *picked, io.KeyCtrl, io.KeyShift));
+      if (!already_selected || io.KeyCtrl || io.KeyShift)
+        static_cast<void>(
+            ApplyHierarchySelection(state, scene, visible, *picked, io.KeyCtrl, io.KeyShift));
+      if (!io.KeyCtrl && !io.KeyShift) {
+        std::vector<SceneDocument::NodeKey> keys;
+        for (const auto id : scene.Selection()) {
+          const auto key = scene.Key(id);
+          if (key)
+            keys.push_back(*key);
+        }
+        if (!keys.empty())
+          state.scene_drag =
+              typename StateT::SceneDrag{std::move(keys), io.MousePos, state.scene_pixels_per_unit};
+      }
     } else if (!io.KeyCtrl && !io.KeyShift) {
       static_cast<void>(scene.Select(std::span<const runtime::Id>{}));
       state.hierarchy_selection_anchor.reset();

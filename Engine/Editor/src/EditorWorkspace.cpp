@@ -1,10 +1,12 @@
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/ViewportMath.h"
 
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cctype>
 #include <charconv>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <limits>
@@ -437,6 +439,34 @@ bool SceneDocument::SetTransforms(std::span<const NodeKey> entities,
     return false;
   undo_.push_back(std::move(undo));
   return true;
+}
+
+bool SceneDocument::TranslateSelectionXZ(std::span<const NodeKey> entities, double dx, double dz) {
+  if (entities.empty() || !std::isfinite(dx) || !std::isfinite(dz) || (dx == 0.0 && dz == 0.0))
+    return false;
+  std::vector<runtime::Id> ids;
+  std::unordered_set<runtime::Id> unique;
+  ids.reserve(entities.size());
+  for (const auto key : entities) {
+    if (Key(key.id) != key || !unique.insert(key.id).second)
+      return false;
+    ids.push_back(key.id);
+  }
+  const auto roots = GizmoRoots(world_, ids);
+  const auto targets = GizmoTargets(world_, roots);
+  if (!targets || targets->size() != roots.size())
+    return false;
+  GizmoOperation translation;
+  translation.kind = GizmoOperation::Kind::Translate;
+  translation.translation = {dx, 0.0, dz};
+  const auto transforms = ApplyGizmo(*targets, translation);
+  if (!transforms)
+    return false;
+  std::vector<NodeKey> root_keys;
+  root_keys.reserve(roots.size());
+  for (const auto id : roots)
+    root_keys.push_back(*Key(id));
+  return SetTransforms(root_keys, *transforms);
 }
 
 bool SceneDocument::SetEulerField(std::span<const NodeKey> entities, std::size_t axis,

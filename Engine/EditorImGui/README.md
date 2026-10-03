@@ -43,6 +43,8 @@ authoring views on first launch.
   authoring overview; renderer-backed 3D scene output and gizmos remain open.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
+  Dragging a selected marker previews an X/Z move and commits one document transform transaction
+  on release. Escape cancels the preview without changing the scene.
 - `ProjectContentSession` is also borrowed for each `DrawProductShell` call. The Content panel reads
   virtualized ranges from its UUID-keyed model, emits generation-tagged POD drag payloads, and routes
   rename/move/delete/undo/reimport back through the session. Reimport submits to the borrowed
