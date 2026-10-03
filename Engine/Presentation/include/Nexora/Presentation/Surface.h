@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <thread>
 
@@ -85,6 +86,29 @@ struct SceneInstance final {
   float color[4]{1, 1, 1, 1};
 };
 
+// Physical pixel rectangle within the acquired surface. All zero selects the whole surface.
+// Nonzero rectangles must fit completely; offscreen scene copies always use the whole surface.
+struct SceneViewport final {
+  std::uint32_t x{};
+  std::uint32_t y{};
+  std::uint32_t width{};
+  std::uint32_t height{};
+};
+
+[[nodiscard]] constexpr std::optional<SceneViewport>
+ResolveSceneViewport(SceneViewport viewport, std::uint32_t surface_width,
+                     std::uint32_t surface_height) noexcept {
+  if (surface_width == 0 || surface_height == 0)
+    return std::nullopt;
+  if (viewport.x == 0 && viewport.y == 0 && viewport.width == 0 && viewport.height == 0)
+    return SceneViewport{0, 0, surface_width, surface_height};
+  if (viewport.width == 0 || viewport.height == 0 || viewport.x >= surface_width ||
+      viewport.y >= surface_height || viewport.width > surface_width - viewport.x ||
+      viewport.height > surface_height - viewport.y)
+    return std::nullopt;
+  return viewport;
+}
+
 // A single indexed, lit mesh draw. Spans are borrowed for the call. The matrix is row-major,
 // matching Nexora::Math::Matrix4's storage, so backends that want row_major in HLSL need no
 // transpose; light/base_color give a minimal single-directional-light Lambertian material.
@@ -95,6 +119,7 @@ struct SceneDrawData final {
   std::uint64_t textureId{};
   std::span<const UiTextureUpload> textureUploads{};
   bool offscreen = false;
+  SceneViewport viewport{};
   float model_view_projection[16]{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
   float light_direction[3]{-0.4F, -1.0F, -0.2F};
   float light_color[3]{1.0F, 0.95F, 0.85F};

@@ -15,6 +15,7 @@
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
 #include <vulkan/vulkan_win32.h>
 #endif
 
@@ -288,6 +289,10 @@ public:
         data.vertices.size() > 65535 || data.indices.size() > 1048576 ||
         data.indices.size() % 3 != 0)
       return SurfaceStatus::InvalidDescriptor;
+    const auto viewport = ResolveSceneViewport(data.viewport, width_, height_);
+    if (!viewport || (data.offscreen && (data.viewport.x != 0 || data.viewport.y != 0 ||
+                                         data.viewport.width != 0 || data.viewport.height != 0)))
+      return SurfaceStatus::InvalidDescriptor;
     for (const auto index : data.indices)
       if (index >= data.vertices.size())
         return SurfaceStatus::InvalidDescriptor;
@@ -486,9 +491,16 @@ public:
     begin.pClearValues = clears.data();
     vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, scenePipeline_);
-    const VkViewport viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_), 0, 1};
-    const VkRect2D scissor{{0, 0}, {width_, height_}};
-    vkCmdSetViewport(frame.commands, 0, 1, &viewport);
+    const VkViewport nativeViewport{static_cast<float>(viewport->x),
+                                    static_cast<float>(viewport->y),
+                                    static_cast<float>(viewport->width),
+                                    static_cast<float>(viewport->height),
+                                    0,
+                                    1};
+    const VkRect2D scissor{
+        {static_cast<std::int32_t>(viewport->x), static_cast<std::int32_t>(viewport->y)},
+        {viewport->width, viewport->height}};
+    vkCmdSetViewport(frame.commands, 0, 1, &nativeViewport);
     vkCmdSetScissor(frame.commands, 0, 1, &scissor);
     const VkBuffer buffers[]{frame.sceneUpload, frame.sceneUpload};
     const VkDeviceSize offsets[]{0, instanceOffset};

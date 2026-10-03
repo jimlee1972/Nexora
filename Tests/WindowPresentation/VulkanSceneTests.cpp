@@ -63,6 +63,23 @@ void CheckPixels(Display *display, ::Window window, unsigned width, unsigned hei
   }
   throw std::runtime_error("scene pixels failed depth/material/transform acceptance");
 }
+void CheckViewportPixels(Display *display, ::Window window, unsigned width, unsigned height) {
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+  while (std::chrono::steady_clock::now() < deadline) {
+    XSync(display, False);
+    auto *image = XGetImage(display, window, 0, 0, width, height, AllPlanes, ZPixmap);
+    Require(image != nullptr, "viewport readback failed");
+    const auto inside = XGetPixel(image, width / 2, height / 2);
+    const auto outside = XGetPixel(image, width / 8, height / 2);
+    const bool valid =
+        Channel(inside, image->green_mask) > 180 && Channel(outside, image->green_mask) < 80;
+    XDestroyImage(image);
+    if (valid)
+      return;
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
+  throw std::runtime_error("scene viewport draw escaped its clipped render rectangle");
+}
 } // namespace
 
 int main(int argc, char **argv) {
@@ -146,12 +163,31 @@ int main(int argc, char **argv) {
       Require(surface->CompositeRgba8(composite, width, height) == SurfaceStatus::InvalidDescriptor,
               "scene/composite mixing accepted");
       Require(surface->RenderUi({}) == SurfaceStatus::InvalidDescriptor,
-              "scene/UI mixing accepted");
+              "empty UI geometry accepted");
       Require(surface->Present() == SurfaceStatus::Ready, "scene present failed");
       const auto capture =
           argc == 2 && frame == 10 ? std::filesystem::path(argv[1]) : std::filesystem::path{};
       CheckPixels(display, native, width, height, translated, capture);
     }
+    draw.model_view_projection[3] = 0;
+    draw.viewport = {width / 4, height / 4, width / 2, height / 2};
+    Require(surface->Acquire() == SurfaceStatus::Ready, "viewport acquire failed");
+    auto invalidViewport = draw;
+    invalidViewport.viewport = {width - 10, 0, 20, height};
+    Require(surface->DrawScene(invalidViewport) == SurfaceStatus::InvalidDescriptor,
+            "out-of-bounds scene viewport accepted");
+    invalidViewport.viewport = {0, 0, 0, height};
+    Require(surface->DrawScene(invalidViewport) == SurfaceStatus::InvalidDescriptor,
+            "zero-width scene viewport accepted");
+    invalidViewport = draw;
+    invalidViewport.offscreen = true;
+    Require(surface->DrawScene(invalidViewport) == SurfaceStatus::InvalidDescriptor,
+            "partial offscreen scene viewport accepted");
+    Require(surface->DrawScene(draw) == SurfaceStatus::Ready,
+            "bounded native scene viewport draw failed");
+    Require(surface->Present() == SurfaceStatus::Ready, "viewport present failed");
+    CheckViewportPixels(display, native, width, height);
+    draw.viewport = {};
     // One triangle upload, two hardware instances, with independent transforms and tints.
     // Three uint16 indices also exercise the instance-buffer's four-byte alignment.
     std::array<Presentation::SceneInstance, 2> instances{
@@ -270,8 +306,8 @@ int main(int argc, char **argv) {
       Require(materialPixels, "UV texture sampling/resize pixels failed");
     }
     const auto diagnostics = surface->Diagnostics();
-    Require(diagnostics.sceneDrawCalls == 16 && diagnostics.sceneInstances == 17 &&
-                diagnostics.acquiredFrames == 16 && diagnostics.presentedFrames == 16 &&
+    Require(diagnostics.sceneDrawCalls == 17 && diagnostics.sceneInstances == 18 &&
+                diagnostics.acquiredFrames == 17 && diagnostics.presentedFrames == 17 &&
                 diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 5 &&
                 diagnostics.sceneOffscreenDrawCalls == 3 && diagnostics.sceneComposites == 3,
             "native scene counters or resize evidence mismatch");

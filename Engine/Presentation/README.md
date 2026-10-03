@@ -13,6 +13,9 @@ are released only after the protecting frame fence/command buffer completes. No 
 device handle escapes. `DrawScene` similarly borrows one indexed `SceneDrawData` mesh, transform,
 light, and base color for the duration of the call and records a depth-tested native scene draw on
 the render thread. DX12 and Vulkan own their depth buffers, pipelines, and bounded per-frame upload storage;
+`SceneDrawData::viewport` optionally bounds that draw to a physical-pixel rectangle of the acquired
+surface (all zero means full surface). Invalid or out-of-bounds rectangles are rejected. Offscreen
+scene copies require the full surface; a direct scene draw may be followed by one UI submission.
 backends without a native geometry path return `Unsupported` rather than silently compositing a
 fallback. `SurfaceDiagnostics::sceneDrawCalls` counts accepted native scene draws. `CompositeRgba8`
 remains a legacy full-frame upload for non-Editor clients; the production Editor does not call it.
@@ -68,7 +71,8 @@ must precede its optional single UI submission. Duplicate submissions return Inv
 Destroying an abandoned acquired frame clears acquisition/validity before releasing resources.
 The retained `window_presentation.vulkan_scene` target-host gate reads X11 pixels in the test,
 checking near/far depth-order invariance, lighting, matrix translation, two resizes, rejected
-inputs and idempotent teardown; it executes separately from the Showcase room/input gates.
+inputs, clipped viewport pixels, and idempotent teardown; it executes separately from the Showcase
+room/input gates.
 
 ## Native scene instances
 

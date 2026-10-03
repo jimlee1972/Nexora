@@ -100,6 +100,8 @@ or establish the expanded Windows version's clean-machine graphical acceptance.
 
 ✅ Native SceneDrawData hardware instance records and bounded fence-owned uploads are implemented in Vulkan/DX12. Linux Vulkan pixel acceptance verifies independent translation/scale/tint; DX12 target-host execution remains pending.
 
+✅ Native Vulkan/DX12 SceneDrawData draws now accept an in-bounds physical-pixel viewport for a docked Scene View. Portable bounds checks and Linux Vulkan pixel readback verify clipping; Editor integration and DX12 target-host viewport evidence remain open.
+
 ✅ Scene UV/RGBA8 material binding now has bounded immutable scene-only texture IDs, white fallback and fence-protected upload lifetime in Vulkan/DX12. Linux pixels verify sampler selection, cache reuse and resize resubmission; target-host DX12 material execution remains pending.
 
 ✅ Native-owner Offscreen → Main → UI → Present now uses fence-owned scene color and GPU copy in Vulkan/DX12, with duplicate acquire and pending-copy ordering rejected. Linux Vulkan pixel, interaction and synchronization-validation gates pass 75/75. The packaged Windows `accept-v1.ps1` records isolated-copy screenshots, checksums and native counters; the user will perform expanded physical-display/clean-host acceptance locally.
