@@ -62,6 +62,7 @@ def scene_pixels(display_name: str, window: int, viewport: tuple[int, int, int, 
                     0 < width <= 1280 - x and 0 < height <= 720 - y):
                 raise RuntimeError(f"invalid native Scene viewport: {viewport}")
             samples = []
+            visible = False
             for dy in range(-3, 4):
                 for dx in range(-3, 4):
                     sx = x + width // 2 + dx * min(width // 16, 16)
@@ -72,8 +73,8 @@ def scene_pixels(display_name: str, window: int, viewport: tuple[int, int, int, 
                     blue = channel(pixel, image.contents.blue_mask)
                     samples.append((red, green, blue))
                     if blue >= 105 and blue >= red + 35 and blue >= green + 10:
-                        return True, samples
-            return False, samples
+                        visible = True
+            return visible, samples
         finally:
             x11.XDestroyImage(image)
     finally:
@@ -144,11 +145,22 @@ def main() -> int:
         if not scene_file.is_file():
             raise RuntimeError("native Scene could not save before proxy drag")
         initial_scene = scene_file.read_text()
+        _, before_drag_pixels = scene_pixels(display, window, viewport)
         subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
         time.sleep(0.1)
         subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                         str(center_x + 48), str(center_y + 24)], env=environment, check=True)
-        time.sleep(0.15)
+        deadline = time.monotonic() + 3
+        pixels_changed = False
+        while time.monotonic() < deadline and not pixels_changed:
+            _, preview_pixels = scene_pixels(display, window, viewport)
+            pixels_changed = sum(abs(a - b) for before, after in
+                                 zip(before_drag_pixels, preview_pixels)
+                                 for a, b in zip(before, after)) > 100
+            if not pixels_changed:
+                time.sleep(0.05)
+        if not pixels_changed:
+            raise RuntimeError("native proxy did not visibly move before mouse release")
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
         time.sleep(0.15)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)

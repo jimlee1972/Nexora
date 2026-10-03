@@ -671,14 +671,18 @@ void TestNativeSceneCameraControls() {
       {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, px + 48, py + 24}};
   host.ProcessEvents(pick_move);
   draw();
+  const auto preview_request = host.NativeSceneDragPreview();
+  assert(preview_request && preview_request->start_x == px && preview_request->start_y == py &&
+         preview_request->end_x == px + 48 && preview_request->end_y == py + 24);
   host.ProcessEvents(pick_release);
   draw();
+  assert(!host.NativeSceneDragPreview());
   const auto move_request = host.NativeSceneDrag();
   assert(move_request && move_request->start_x == px && move_request->start_y == py &&
          move_request->end_x == px + 48 && move_request->end_y == py + 24);
   host.ProcessEvents(hover);
   draw();
-  assert(!host.NativeSceneDrag());
+  assert(!host.NativeSceneDrag() && !host.NativeSceneDragPreview());
   const auto distance = host.GetNativeSceneOrbit().distance;
   const std::array wheel{Nexora::Window::WindowEvent{
       {}, Nexora::Window::WindowEventType::Wheel, 0, 0, 0, 1.0F, 0, 120}};

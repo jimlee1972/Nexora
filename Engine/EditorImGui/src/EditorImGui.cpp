@@ -121,6 +121,7 @@ struct EditorImGuiHost::State final {
   std::optional<NativeScenePickRequest> native_scene_pick;
   std::optional<std::array<std::int32_t, 2>> native_scene_drag_origin;
   std::optional<NativeSceneDragRequest> native_scene_drag;
+  std::optional<NativeSceneDragRequest> native_scene_drag_preview;
   ImVec2 scene_center_world{};
   float scene_pixels_per_unit = 32.0F;
   bool scene_snap_to_grid = false;
@@ -1949,6 +1950,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->scene_canvas_viewport.reset();
   state_->native_scene_pick.reset();
   state_->native_scene_drag.reset();
+  state_->native_scene_drag_preview.reset();
   ImGui::GetIO().DeltaTime = std::max(delta_seconds, 0.0001F);
   ImGui::NewFrame();
 }
@@ -2195,7 +2197,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (scene != nullptr) {
       if (state_->native_scene_preview) {
         state_->scene_markers.clear();
-        ImGui::TextDisabled("Right drag: orbit | Middle drag: pan | Wheel: zoom | F: frame");
+        ImGui::TextDisabled(
+            "Left drag: move X/Z | Right: orbit | Middle: pan | Wheel: zoom | F: frame");
         ImGui::SameLine();
         ImGui::BeginDisabled(scene->Selection().empty());
         if (ImGui::SmallButton("Frame selected"))
@@ -2230,6 +2233,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           if (std::abs(end_x - start[0]) >= 4 || std::abs(end_y - start[1]) >= 4)
             state_->native_scene_drag = {start[0], start[1], end_x, end_y};
           state_->native_scene_drag_origin.reset();
+        }
+        if (state_->native_scene_drag_origin && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+          const auto start = *state_->native_scene_drag_origin;
+          const auto end_x =
+              static_cast<std::int32_t>(io.MousePos.x * io.DisplayFramebufferScale.x);
+          const auto end_y =
+              static_cast<std::int32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
+          if (std::abs(end_x - start[0]) >= 4 || std::abs(end_y - start[1]) >= 4)
+            state_->native_scene_drag_preview = {start[0], start[1], end_x, end_y};
         }
         if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
           if (io.MouseWheel != 0.0F)
@@ -2773,6 +2785,10 @@ std::optional<NativeScenePickRequest> EditorImGuiHost::NativeScenePick() const n
 
 std::optional<NativeSceneDragRequest> EditorImGuiHost::NativeSceneDrag() const noexcept {
   return state_->native_scene_drag;
+}
+
+std::optional<NativeSceneDragRequest> EditorImGuiHost::NativeSceneDragPreview() const noexcept {
+  return state_->native_scene_drag_preview;
 }
 
 Nexora::Presentation::SurfaceStatus

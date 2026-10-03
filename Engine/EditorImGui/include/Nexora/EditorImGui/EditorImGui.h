@@ -131,6 +131,7 @@ public:
   NativeScenePreviewViewport() const noexcept;
   [[nodiscard]] std::optional<NativeScenePickRequest> NativeScenePick() const noexcept;
   [[nodiscard]] std::optional<NativeSceneDragRequest> NativeSceneDrag() const noexcept;
+  [[nodiscard]] std::optional<NativeSceneDragRequest> NativeSceneDragPreview() const noexcept;
   // Flattens the current ImGui draw data into backend-neutral indexed geometry that RenderSurface
   // records directly into its acquired native GPU image. The RHI overload remains a headless
   // contract-test path.

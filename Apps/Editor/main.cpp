@@ -26,6 +26,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -192,11 +193,33 @@ NativeSceneDragDelta(Nexora::Presentation::SceneViewport viewport,
 Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     Nexora::Presentation::RenderSurface &surface, const nexora::editor::SceneDocument &scene,
     Nexora::Presentation::SceneViewport viewport, nexora::editor::imgui::SceneOverviewCamera camera,
-    nexora::editor::imgui::NativeSceneOrbit orbit) {
+    nexora::editor::imgui::NativeSceneOrbit orbit,
+    std::optional<std::array<double, 2>> drag_preview = std::nullopt) {
   static const NativeSceneProxyMesh mesh;
   const auto candidates = NativeSceneProxyCandidates(scene);
   const std::unordered_set<nexora::runtime::Id> selected(scene.Selection().begin(),
                                                          scene.Selection().end());
+  std::unordered_map<nexora::runtime::Id, bool> moved_cache;
+  const auto moves_with_selection = [&](nexora::runtime::Id entity) {
+    std::vector<nexora::runtime::Id> chain;
+    bool moves = false;
+    while (entity != 0 && chain.size() <= candidates.size()) {
+      if (selected.contains(entity)) {
+        moves = true;
+        break;
+      }
+      if (const auto cached = moved_cache.find(entity); cached != moved_cache.end()) {
+        moves = cached->second;
+        break;
+      }
+      chain.push_back(entity);
+      const auto parent = scene.Parent(entity);
+      entity = parent.value_or(0);
+    }
+    for (const auto id : chain)
+      moved_cache[id] = moves;
+    return moves;
+  };
   camera.x = std::clamp(camera.x, -100000.0, 100000.0);
   camera.z = std::clamp(camera.z, -100000.0, 100000.0);
   std::vector<Nexora::Presentation::SceneInstance> instances;
@@ -213,9 +236,12 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   instances.push_back(ground);
   for (const auto &candidate : candidates) {
     Nexora::Presentation::SceneInstance instance{};
-    instance.translation[0] = static_cast<float>((candidate.min.x + candidate.max.x) * 0.5);
+    const bool preview_moved = drag_preview && moves_with_selection(candidate.entity);
+    instance.translation[0] = static_cast<float>((candidate.min.x + candidate.max.x) * 0.5 +
+                                                 (preview_moved ? (*drag_preview)[0] : 0.0));
     instance.translation[1] = static_cast<float>((candidate.min.y + candidate.max.y) * 0.5);
-    instance.translation[2] = static_cast<float>((candidate.min.z + candidate.max.z) * 0.5);
+    instance.translation[2] = static_cast<float>((candidate.min.z + candidate.max.z) * 0.5 +
+                                                 (preview_moved ? (*drag_preview)[1] : 0.0));
     instance.scale[0] = instance.scale[1] = instance.scale[2] = 0.45F;
     const bool is_selected = selected.contains(candidate.entity);
     instance.color[0] = is_selected ? 1.0F : 0.35F;
@@ -632,9 +658,16 @@ int RunGraphical(std::optional<ProjectState> project,
             }
           }
         }
+        std::optional<std::array<double, 2>> drag_preview;
+        if (const auto drag = ui.NativeSceneDragPreview(); drag && !scene.Selection().empty()) {
+          const auto pose = scene.WorldTransform(scene.Selection().front());
+          if (pose)
+            drag_preview = NativeSceneDragDelta(*viewport, ui.GetSceneOverviewCamera(),
+                                                ui.GetNativeSceneOrbit(), *drag, pose->y);
+        }
         const auto scene_status =
             DrawNativeScenePreview(*created.surface, scene, *viewport, ui.GetSceneOverviewCamera(),
-                                   ui.GetNativeSceneOrbit());
+                                   ui.GetNativeSceneOrbit(), drag_preview);
         ui.SetNativeScenePreviewAvailable(scene_status !=
                                           Nexora::Presentation::SurfaceStatus::Unsupported);
         if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&
