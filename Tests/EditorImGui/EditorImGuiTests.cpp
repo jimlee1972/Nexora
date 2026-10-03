@@ -611,6 +611,76 @@ void TestSceneOverviewCameraState() {
   assert(!host.SetSceneOverviewCamera({std::numeric_limits<double>::infinity(), 0.0, 32.0}) &&
          !host.SetSceneOverviewCamera({0.0, 0.0, 0.0}));
   assert(host.GetSceneOverviewCamera().x == 12.5);
+  const auto initial_orbit = host.GetNativeSceneOrbit();
+  assert(initial_orbit.distance > 0.0);
+  assert(host.SetNativeSceneOrbit({1.25, 0.7, 25.0}));
+  const auto orbit = host.GetNativeSceneOrbit();
+  assert(orbit.yaw == 1.25 && orbit.pitch == 0.7 && orbit.distance == 25.0);
+  assert(!host.SetNativeSceneOrbit({0.0, 0.0, 25.0}) &&
+         !host.SetNativeSceneOrbit({0.0, 0.7, std::numeric_limits<double>::infinity()}));
+  assert(host.GetNativeSceneOrbit().distance == 25.0);
+}
+
+void TestNativeSceneCameraControls() {
+  nexora::runtime::World world;
+  const auto scene_id = world.LoadScene("Native camera controls");
+  assert(world.Activate(scene_id));
+  nexora::editor::SceneDocument scene(world, scene_id);
+  assert(scene.Create("Camera target"));
+  nexora::editor::ProductShell shell;
+  nexora::editor::imgui::EditorImGuiHost host;
+  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  host.SetDisplay(1280.0F, 720.0F, 1.0F);
+  host.SetNativeScenePreview(true);
+  const auto draw = [&] {
+    host.BeginFrame();
+    host.DrawProductShell(shell, &scene);
+    static_cast<void>(host.EndFrame());
+  };
+  draw();
+  draw();
+  const auto canvas = host.NativeScenePreviewViewport();
+  assert(canvas && canvas->width > 100 && canvas->height > 100);
+  const auto px = static_cast<std::int32_t>(canvas->x + canvas->width / 2);
+  const auto py = static_cast<std::int32_t>(canvas->y + canvas->height / 2);
+  const std::array hover{
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 1, 0},
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, px, py}};
+  host.ProcessEvents(hover);
+  draw();
+  const auto distance = host.GetNativeSceneOrbit().distance;
+  const std::array wheel{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::Wheel, 0, 0, 0, 1.0F, 0, 120}};
+  host.ProcessEvents(wheel);
+  draw();
+  assert(host.GetNativeSceneOrbit().distance < distance);
+
+  const auto drag = [&](std::int32_t button) {
+    const std::array press{Nexora::Window::WindowEvent{
+        {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, button, 1}};
+    host.ProcessEvents(press);
+    draw();
+    const std::array move{Nexora::Window::WindowEvent{
+        {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, px + 40, py + 30}};
+    host.ProcessEvents(move);
+    draw();
+    const std::array release{Nexora::Window::WindowEvent{
+        {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, button, 0}};
+    host.ProcessEvents(release);
+    draw();
+    host.ProcessEvents(hover);
+    draw();
+  };
+  const auto orbit = host.GetNativeSceneOrbit();
+  drag(1);
+  assert(host.GetNativeSceneOrbit().yaw != orbit.yaw &&
+         host.GetNativeSceneOrbit().pitch != orbit.pitch);
+  const auto camera = host.GetSceneOverviewCamera();
+  drag(2);
+  assert(host.GetSceneOverviewCamera().x != camera.x &&
+         host.GetSceneOverviewCamera().z != camera.z);
 }
 } // namespace
 
@@ -624,6 +694,7 @@ int main() {
   TestSceneOverviewSelection();
   TestSceneOverviewDrag();
   TestSceneOverviewCameraState();
+  TestNativeSceneCameraControls();
   using nexora::editor::imgui::EditorImGuiTestAccess;
   nexora::editor::imgui::EditorImGuiHost host;
   const auto initial_state = EditorImGuiTestAccess::Inspect(host);

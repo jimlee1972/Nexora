@@ -96,11 +96,10 @@ struct NativeSceneProxyMesh final {
   }
 };
 
-Nexora::Presentation::SurfaceStatus
-DrawNativeScenePreview(Nexora::Presentation::RenderSurface &surface,
-                       const nexora::editor::SceneDocument &scene,
-                       Nexora::Presentation::SceneViewport viewport,
-                       nexora::editor::imgui::SceneOverviewCamera camera) {
+Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
+    Nexora::Presentation::RenderSurface &surface, const nexora::editor::SceneDocument &scene,
+    Nexora::Presentation::SceneViewport viewport, nexora::editor::imgui::SceneOverviewCamera camera,
+    nexora::editor::imgui::NativeSceneOrbit orbit) {
   static const NativeSceneProxyMesh mesh;
   const auto nodes = scene.Nodes();
   const std::unordered_set<nexora::runtime::Id> selected(scene.Selection().begin(),
@@ -140,7 +139,10 @@ DrawNativeScenePreview(Nexora::Presentation::RenderSurface &surface,
   }
   const nexora::math::Vector3 target{static_cast<float>(camera.x), 0.0F,
                                      static_cast<float>(camera.z)};
-  const nexora::math::Vector3 eye{target.x + 8.0F, 10.0F, target.z + 12.0F};
+  const nexora::math::Vector3 eye{
+      target.x + static_cast<float>(orbit.distance * std::sin(orbit.yaw) * std::cos(orbit.pitch)),
+      static_cast<float>(orbit.distance * std::sin(orbit.pitch)),
+      target.z + static_cast<float>(orbit.distance * std::cos(orbit.yaw) * std::cos(orbit.pitch))};
   const auto mvp = nexora::math::PerspectiveRadians(
                        0.85F, static_cast<float>(viewport.width) / viewport.height, 0.1F, 500.0F) *
                    nexora::math::LookAt(eye, target);
@@ -482,7 +484,8 @@ int RunGraphical(std::optional<ProjectState> project,
     if (project) {
       if (const auto viewport = ui.NativeScenePreviewViewport()) {
         const auto scene_status =
-            DrawNativeScenePreview(*created.surface, scene, *viewport, ui.GetSceneOverviewCamera());
+            DrawNativeScenePreview(*created.surface, scene, *viewport, ui.GetSceneOverviewCamera(),
+                                   ui.GetNativeSceneOrbit());
         ui.SetNativeScenePreviewAvailable(scene_status !=
                                           Nexora::Presentation::SurfaceStatus::Unsupported);
         if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&

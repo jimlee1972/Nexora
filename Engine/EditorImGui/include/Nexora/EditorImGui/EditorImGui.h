@@ -44,6 +44,12 @@ struct SceneOverviewCamera final {
   double pixels_per_unit{32.0};
 };
 
+struct NativeSceneOrbit final {
+  double yaw{0.588};
+  double pitch{0.585};
+  double distance{17.55};
+};
+
 struct RendererMetrics final {
   std::uint64_t frames = 0;
   std::uint64_t draw_calls = 0;
@@ -109,6 +115,8 @@ public:
   SceneCanvasViewport() const noexcept;
   void SetNativeScenePreview(bool enabled) noexcept;
   void SetNativeScenePreviewAvailable(bool available) noexcept;
+  [[nodiscard]] NativeSceneOrbit GetNativeSceneOrbit() const noexcept;
+  bool SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept;
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   NativeScenePreviewViewport() const noexcept;
   // Flattens the current ImGui draw data into backend-neutral indexed geometry that RenderSurface

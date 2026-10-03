@@ -181,7 +181,9 @@ creates property widgets; unknown components retain raw data instead of being si
   DPI scaling, resetting them each frame.
 - ✅ The Scene panel now offers a Vulkan/DX12 native 3D proxy preview inside that canvas, drawing
   depth-tested ground and position proxies for live scene nodes after UI submission. The X/Z
-  editing overview remains available. Authored meshes, full world transforms, 3D camera controls,
+  editing overview remains available. Right drag orbits the preview camera, middle drag pans its
+  X/Z target, the wheel zooms, and F or Frame selected centers on selected nodes. Orbit angle and
+  distance are session state. Authored meshes, full world transforms, persistent 3D camera state,
   picking, and gizmos remain open, so full renderer-backed Scene View acceptance is still open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on
   selected world positions with F or Frame selected. Input-event tests cover both interactions.
@@ -192,7 +194,8 @@ creates property widgets; unknown components retain raw data instead of being si
   Full 3D gizmo handles and renderer-backed Scene View remain open.
 - ✅ The Scene overview center and zoom now use validated per-scene `CameraPersistence` on project
   open and normal writable shutdown. A corrupt camera file is preserved; Linux Xvfb acceptance
-  checks that wheel zoom survives a project reopen. Full 3D camera controls remain open.
+  checks that wheel zoom survives a project reopen. The proxy preview now has basic 3D camera
+  controls; persistence for its orbit angle and distance remains open.
 - ✅ The graphical Scene panel now shows an exact unsaved-content indicator. The baseline advances
   only after successful save/reload, and Undo back to that content clears the marker; contract tests
   include subtree deletion, failed save, and external Runtime edits.

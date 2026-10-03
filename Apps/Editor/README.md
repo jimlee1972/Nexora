@@ -48,6 +48,9 @@ preview. Vulkan and DX12 draw an instanced ground and one position proxy per sce
 docked canvas after UI submission, preserving controls outside the canvas. Selection changes proxy
 tint. This preview does not yet draw
 authored mesh assets or apply node rotation/scale; the full renderer-backed Scene View remains open.
+Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel zooms, and F or
+Frame selected centers on selected nodes. The target persists with the overview camera; orbit
+angle and distance currently last for the Editor session.
 `--native-scene-preview` selects this mode on startup for display acceptance.
 Project-selector activation now indexes content through an application-owned `AssetImportQueue`;
 the selector shows bounded progress and can cancel without activating a partial project. Content

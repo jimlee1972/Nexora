@@ -117,6 +117,7 @@ struct EditorImGuiHost::State final {
   std::optional<Nexora::Presentation::SceneViewport> scene_canvas_viewport;
   bool native_scene_preview = false;
   bool native_scene_preview_available = true;
+  NativeSceneOrbit native_scene_orbit{};
   ImVec2 scene_center_world{};
   float scene_pixels_per_unit = 32.0F;
   bool scene_snap_to_grid = false;
@@ -2169,13 +2170,51 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (scene != nullptr) {
       if (state_->native_scene_preview) {
         state_->scene_markers.clear();
-        ImGui::TextDisabled("Native depth-tested entity proxies | Switch off to edit in X/Z");
+        ImGui::TextDisabled("Right drag: orbit | Middle drag: pan | Wheel: zoom | F: frame");
+        ImGui::SameLine();
+        ImGui::BeginDisabled(scene->Selection().empty());
+        if (ImGui::SmallButton("Frame selected"))
+          static_cast<void>(FrameSceneSelection(*state_, *scene));
+        ImGui::EndDisabled();
         if (!state_->native_scene_preview_available)
           ImGui::TextUnformatted("Native 3D preview is unavailable on this backend.");
         const auto available = ImGui::GetContentRegionAvail();
-        ImGui::InvisibleButton("##scene-native-preview",
-                               {std::max(available.x, 1.0F), std::max(available.y, 160.0F)});
+        ImGui::InvisibleButton(
+            "##scene-native-preview", {std::max(available.x, 1.0F), std::max(available.y, 160.0F)},
+            ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight |
+                ImGuiButtonFlags_MouseButtonMiddle);
         CaptureSceneCanvasViewport(*state_, ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+        const auto &io = ImGui::GetIO();
+        if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+          if (io.MouseWheel != 0.0F)
+            state_->native_scene_orbit.distance =
+                std::clamp(state_->native_scene_orbit.distance *
+                               std::pow(0.85, static_cast<double>(io.MouseWheel)),
+                           2.0, 100.0);
+          if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0F)) {
+            state_->native_scene_orbit.yaw = std::remainder(
+                state_->native_scene_orbit.yaw + io.MouseDelta.x * 0.01, 6.283185307179586);
+            state_->native_scene_orbit.pitch =
+                std::clamp(state_->native_scene_orbit.pitch - io.MouseDelta.y * 0.01, 0.1, 1.45);
+          }
+          if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0F)) {
+            const auto yaw = state_->native_scene_orbit.yaw;
+            const auto speed = state_->native_scene_orbit.distance * 0.003;
+            const auto dx = static_cast<double>(io.MouseDelta.x) * speed;
+            const auto dz = static_cast<double>(io.MouseDelta.y) * speed;
+            state_->scene_center_world.x =
+                static_cast<float>(std::clamp(static_cast<double>(state_->scene_center_world.x) -
+                                                  std::cos(yaw) * dx + std::sin(yaw) * dz,
+                                              -100000.0, 100000.0));
+            state_->scene_center_world.y =
+                static_cast<float>(std::clamp(static_cast<double>(state_->scene_center_world.y) +
+                                                  std::sin(yaw) * dx + std::cos(yaw) * dz,
+                                              -100000.0, 100000.0));
+          }
+        }
+        if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !io.WantTextInput &&
+            ImGui::IsKeyPressed(ImGuiKey_F, false))
+          static_cast<void>(FrameSceneSelection(*state_, *scene));
       } else {
         DrawSceneOverview(*state_, *scene);
       }
@@ -2658,6 +2697,19 @@ void EditorImGuiHost::SetNativeScenePreview(bool enabled) noexcept {
 
 void EditorImGuiHost::SetNativeScenePreviewAvailable(bool available) noexcept {
   state_->native_scene_preview_available = available;
+}
+
+NativeSceneOrbit EditorImGuiHost::GetNativeSceneOrbit() const noexcept {
+  return state_->native_scene_orbit;
+}
+
+bool EditorImGuiHost::SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept {
+  if (!std::isfinite(orbit.yaw) || !std::isfinite(orbit.pitch) || !std::isfinite(orbit.distance) ||
+      orbit.pitch < 0.1 || orbit.pitch > 1.45 || orbit.distance < 2.0 || orbit.distance > 100.0)
+    return false;
+  orbit.yaw = std::remainder(orbit.yaw, 6.283185307179586);
+  state_->native_scene_orbit = orbit;
+  return true;
 }
 
 std::optional<Nexora::Presentation::SceneViewport>

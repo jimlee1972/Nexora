@@ -178,8 +178,10 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   並於每幀重設。
 - ✅ Scene panel 現提供 Vulkan／DX12 原生 3D 代理預覽，在 UI 提交後於該 canvas 繪製有深度測試的
   地面與 live scene 節點位置代理，保留 canvas 外的控制項。X/Z 編輯概覽仍可切回。已建立的 mesh、
-  完整世界 transform、3D camera control、picking 與 gizmo 仍待完成，完整 renderer-backed
+  完整世界 transform、持久化 3D camera 狀態、picking 與 gizmo 仍待完成，完整 renderer-backed
   Scene View 驗收因此仍未通過。
+  右鍵拖曳可旋轉預覽鏡頭，中鍵拖曳可平移 X/Z 目標，滾輪可縮放，F 或 Frame selected
+  可將目標對準選取節點；旋轉角度與距離目前只保留於本次工作階段。
 - ✅ Scene 概覽現共用 Hierarchy 的 Ctrl／Shift 多選錨點，並可透過 F 或 Frame selected
   將檢視中心移至選取物件的世界位置。輸入事件測試涵蓋這兩項操作。
 - ✅ Scene 概覽標記拖曳會預覽世界 X/Z 位移；可見的 X 與 Z 把手可將位移限制於單一世界軸，
@@ -189,7 +191,7 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   完整 3D gizmo 操作把手與 renderer-backed Scene View 仍待完成。
 - ✅ Scene 概覽中心與縮放現透過經驗證的逐場景 `CameraPersistence`，在開啟 project 與正常的可寫
   關閉流程中載入／儲存。損壞的 camera 檔案會保留原狀；Linux Xvfb 驗收檢查滾輪縮放在重新
-  開啟 project 後維持。完整 3D camera control 仍待完成。
+  開啟 project 後維持。代理預覽現已有基本 3D camera 操作；旋轉角度與距離的持久化仍待完成。
 - ✅ 圖形化 Scene panel 現顯示依實際內容計算的未儲存標記。僅成功 save／reload 會更新基準，
   Undo 回到該內容時會清除標記；contract test 涵蓋 subtree 刪除、儲存失敗及外部 Runtime
   修改。
