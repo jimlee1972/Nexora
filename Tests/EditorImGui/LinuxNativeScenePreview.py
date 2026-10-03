@@ -302,6 +302,8 @@ def main() -> int:
         if (abs(after[1] - before[1]) < 0.1 or abs(after[0] - before[0]) > 1e-6 or
                 abs(after[2] - before[2]) > 1e-6):
             raise RuntimeError(f"Shift-drag did not move only world Y: {before} -> {after}")
+        subprocess.run([args.xdotool, "key", "f"], env=environment, check=True)
+        time.sleep(0.15)
         subprocess.run([args.xdotool, "click", "4"], env=environment, check=True)
         subprocess.run([args.xdotool, "mousedown", "3"], env=environment, check=True)
         time.sleep(0.1)
@@ -339,7 +341,7 @@ def main() -> int:
             raise RuntimeError(f"native preview camera was not saved: {camera_lines!r}")
         camera_values = [float(value) for value in camera_lines[1].split()]
         if (len(camera_values) != 8 or abs(camera_values[4] - 0.588) < 0.01 or
-                camera_values[5] >= 17.55 or camera_values[1] < 0.1 or
+                camera_values[5] >= 5.0 or camera_values[1] < 0.1 or
                 camera_values[6] != 0 or abs(camera_values[0]) > 1e-6 or
                 abs(camera_values[2]) > 1e-6):
             raise RuntimeError(f"native preview gestures were not saved: {camera_values!r}")

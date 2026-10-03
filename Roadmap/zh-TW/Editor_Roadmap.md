@@ -181,8 +181,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   精確 shear 矩陣、mesh picking 與旋轉／縮放 gizmo 仍待完成，完整 renderer-backed
   Scene View 驗收因此仍未通過。
   代理 instance 現反映合成後的世界旋轉與縮放，picking 範圍包住旋轉／縮放後的立方體。
-  右鍵拖曳可旋轉預覽鏡頭，中鍵拖曳可平移 X/Z 目標，Shift 加中鍵拖曳可平移目標高度，滾輪可縮放，F 或 Frame selected
-  可將 X/Y/Z 目標對準選取節點；旋轉角度、距離與目標高度現會逐場景保存。
+  右鍵拖曳可旋轉預覽鏡頭，中鍵拖曳可平移 X/Z 目標，Shift 加中鍵拖曳可平移目標高度，
+  滾輪可縮放；F 或 Frame selected 會將 X/Y/Z 目標對準選取範圍，並依代理邊界調整距離
+  （限制在 2–100 世界單位）。旋轉角度、距離與目標高度現會逐場景保存。
   點選可見的位置代理可同步選取 Scene、Hierarchy 與 Inspector 中的節點；Ctrl 點選可切換選取。
   拖曳代理會即時預覽選取根節點及其後代的世界 X/Z 位移；按住 Shift 起始拖曳則沿世界 Y 軸
   移動。選取代理會顯示彩色 X/Y/Z 位移把手；Local axes 可讓把手依第一個選取節點的世界旋轉，
