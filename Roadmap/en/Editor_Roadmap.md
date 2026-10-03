@@ -157,6 +157,8 @@ creates property widgets; unknown components retain raw data instead of being si
 - ✅ The graphical Hierarchy can create named roots and children through generation-checked
   requests, select the new entity, and reveal it in the tree. Contract coverage includes stale
   parents, Undo, and save/reload; the Scene View and full ED-M2 acceptance remain open.
+- ✅ Ctrl+Shift+N creates a Hierarchy root outside text input. Linux Xvfb now exercises a graphical
+  create, save, process restart, and scene reload, verifying the authored root survives.
 - ✅ Graphical Hierarchy Copy/Paste buttons and Ctrl+C/Ctrl+V now use a world-pose snapshot clipboard,
   select and reveal pasted roots, and leave text inputs' clipboard shortcuts alone. Contract tests
   cover shortcut routing, source movement after copy, and single-copy Undo.

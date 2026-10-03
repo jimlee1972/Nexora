@@ -1830,6 +1830,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->scene_save_requested = true;
   }
   if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput &&
+      ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N, ImGuiInputFlags_RouteGlobal)) {
+    static_cast<void>(shell.RouteCommand("editor.scene.create"));
+    state_->hierarchy_create_request = State::HierarchyCreateRequest{
+        std::string(state_->hierarchy_create_name.data()), std::nullopt};
+  }
+  if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput &&
       ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) {
     static_cast<void>(shell.RouteCommand("editor.scene.undo"));
     state_->scene_save_message = scene->Undo() ? "Undo complete." : "Nothing to undo.";
