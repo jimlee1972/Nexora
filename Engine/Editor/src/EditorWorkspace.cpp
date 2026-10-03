@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <ranges>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -318,6 +319,7 @@ const AssetEntry *AssetWorkspace::Find(runtime::AssetUuid id) const {
 
 SceneDocument::SceneDocument(runtime::World &world, runtime::Id scene)
     : world_(world), scene_(scene), editor_(world), document_generation_(NextDocumentGeneration()) {
+  saved_signature_ = StateSignature().value_or(std::string{});
 }
 runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
   // Save() persists each node as a single "node <id> <parent> <name>\n" line and
@@ -653,7 +655,72 @@ bool SceneDocument::Undo() {
   undo_.pop_back();
   return true;
 }
+
+std::optional<std::string> SceneDocument::StateSignature() const {
+  const auto snapshot = world_.SaveScene(scene_);
+  const auto *scene = world_.FindScene(scene_);
+  if (!snapshot || scene == nullptr)
+    return std::nullopt;
+  std::istringstream input(*snapshot);
+  std::string header, line;
+  if (!std::getline(input, header))
+    return std::nullopt;
+  std::unordered_map<runtime::Id, std::string> entity_lines;
+  std::unordered_map<runtime::Id, std::vector<runtime::Id>> children;
+  for (const auto &entity : scene->entities) {
+    if (!std::getline(input, line))
+      return std::nullopt;
+    entity_lines.emplace(entity.id, std::move(line));
+    children[entity.parent].push_back(entity.id);
+  }
+  if (std::getline(input, line))
+    return std::nullopt;
+  std::string signature = header + '\n';
+  std::vector<runtime::Id> pending;
+  for (const auto id : std::views::reverse(children[0]))
+    pending.push_back(id);
+  std::unordered_set<runtime::Id> visited;
+  while (!pending.empty()) {
+    const auto id = pending.back();
+    pending.pop_back();
+    const auto found = entity_lines.find(id);
+    if (!visited.insert(id).second || found == entity_lines.end())
+      return std::nullopt;
+    signature += found->second + '\n';
+    for (const auto child : std::views::reverse(children[id]))
+      pending.push_back(child);
+  }
+  if (visited.size() != scene->entities.size())
+    return std::nullopt;
+
+  std::vector<const Node *> ordered_nodes;
+  ordered_nodes.reserve(nodes_.size());
+  for (const auto &node : nodes_)
+    ordered_nodes.push_back(&node);
+  std::ranges::sort(ordered_nodes, {}, [](const Node *node) { return node->id; });
+  std::ostringstream metadata;
+  metadata.imbue(std::locale::classic());
+  metadata << std::setprecision(std::numeric_limits<double>::max_digits10);
+  for (const auto *node : ordered_nodes) {
+    metadata << "node " << node->id << ' ' << node->name.size() << ':' << node->name << '\n';
+    const auto *entity = world_.FindEntity(node->id);
+    if (node->euler_hint && entity && SameRotation(node->euler_hint->transform, entity->transform))
+      metadata << "euler " << node->id << ' ' << node->euler_hint->degrees[0] << ' '
+               << node->euler_hint->degrees[1] << ' ' << node->euler_hint->degrees[2] << '\n';
+  }
+  signature += metadata.str();
+  return signature;
+}
+
+bool SceneDocument::Dirty() const {
+  const auto signature = StateSignature();
+  return !signature || *signature != saved_signature_;
+}
+
 bool SceneDocument::Save(const std::filesystem::path &path) const {
+  const auto signature = StateSignature();
+  if (!signature)
+    return false;
   const auto snapshot = world_.SaveScene(scene_);
   if (!snapshot)
     return false;
@@ -673,7 +740,10 @@ bool SceneDocument::Save(const std::filesystem::path &path) const {
   }
   output += hints.str();
   output += "world\n" + *snapshot;
-  return AtomicWrite(path, output, nullptr);
+  if (!AtomicWrite(path, output, nullptr))
+    return false;
+  saved_signature_ = *signature;
+  return true;
 }
 bool SceneDocument::Reload(const std::filesystem::path &path) {
   std::ifstream input(path, std::ios::binary);
@@ -795,6 +865,7 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
   clipboard_.clear();
   undo_.clear();
   editor_.ClearUndo();
+  saved_signature_ = StateSignature().value_or(std::string{});
   return true;
 }
 std::optional<SceneDocument::NodeKey> SceneDocument::Key(runtime::Id entity) const noexcept {

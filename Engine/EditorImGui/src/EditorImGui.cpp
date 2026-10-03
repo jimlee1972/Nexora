@@ -1878,6 +1878,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->scene_save_requested = true;
     }
     ImGui::EndDisabled();
+    if (scene != nullptr) {
+      if (scene->Dirty())
+        ImGui::TextColored(ImVec4(1.0F, 0.72F, 0.28F, 1.0F), "Unsaved scene changes");
+      else
+        ImGui::TextDisabled("Scene saved");
+    }
     if (!state_->scene_save_message.empty()) {
       if (!state_->scene_save_success)
         ImGui::TextColored(ImVec4(1.0F, 0.4F, 0.4F, 1.0F), "%s",

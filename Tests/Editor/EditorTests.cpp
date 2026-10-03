@@ -670,6 +670,42 @@ int Run() {
                 !drag_document.TranslateSelectionXZ(drag_one, 0.0, 0.0),
             "dragging a child under a scaled parent must keep world-space motion and undo");
   }
+  {
+    runtime::World dirty_world;
+    const auto dirty_scene = dirty_world.LoadScene("Dirty contract");
+    Require(dirty_world.Activate(dirty_scene), "dirty scene activation failed");
+    editor::SceneDocument dirty_document(dirty_world, dirty_scene);
+    Require(!dirty_document.Dirty(), "new empty scene should start clean");
+    const auto dirty_parent = dirty_document.Create("Parent");
+    Require(dirty_parent && dirty_document.Dirty() && dirty_document.Undo() &&
+                !dirty_document.Dirty(),
+            "undoing a creation must restore the clean scene state");
+    const auto dirty_root = dirty_document.Create("Root");
+    const auto dirty_child = dirty_document.Create("Child", dirty_root);
+    const auto dirty_sibling = dirty_document.Create("Sibling");
+    const auto dirty_path = root / "Content/Dirty.scene";
+    Require(dirty_root && dirty_child && dirty_sibling && dirty_document.Save(dirty_path) &&
+                !dirty_document.Dirty(),
+            "saving a scene must establish a clean baseline");
+    Require(dirty_document.Rename(*dirty_document.Key(dirty_child), "Renamed") &&
+                dirty_document.Dirty() && dirty_document.Undo() && !dirty_document.Dirty(),
+            "undoing a rename must restore the clean baseline");
+    Require(dirty_document.SetTransform(dirty_child, {3, 0, 0}) && dirty_document.Dirty() &&
+                dirty_document.Undo() && !dirty_document.Dirty(),
+            "undoing a transform must restore the clean baseline");
+    const std::array dirty_selection{dirty_root};
+    Require(dirty_document.Select(dirty_selection) && dirty_document.DeleteSelection() &&
+                dirty_document.Dirty() && dirty_document.Undo() && !dirty_document.Dirty(),
+            "undoing a subtree deletion must restore the clean baseline");
+    Require(dirty_document.SetTransform(dirty_sibling, {1, 0, 0}) && dirty_document.Dirty() &&
+                !dirty_document.Save(root / "Content") && dirty_document.Dirty() &&
+                dirty_document.Reload(dirty_path) && !dirty_document.Dirty(),
+            "failed save must stay dirty and reload must restore the saved baseline");
+    runtime::WorldCommandBuffer external_edit;
+    external_edit.SetTransform(dirty_child, {7, 0, 0});
+    Require(external_edit.Apply(dirty_world) && dirty_document.Dirty(),
+            "external runtime changes must mark the document dirty");
+  }
   const auto scene_path = root / "Content/Main.scene";
   Require(document.Save(scene_path), "scene atomic save failed");
   runtime::World loaded_world;

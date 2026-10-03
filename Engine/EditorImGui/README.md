@@ -48,6 +48,8 @@ authoring views on first launch.
   The host exposes the overview center and zoom as a validated, backend-neutral camera state.
   The application loads and saves it per scene through Editor Core `CameraPersistence`; the UI
   never chooses a project file path.
+  The Scene panel displays `SceneDocument::Dirty` beside its save controls. The indicator clears
+  only when live serializable content matches the last successful save or reload.
 - `ProjectContentSession` is also borrowed for each `DrawProductShell` call. The Content panel reads
   virtualized ranges from its UUID-keyed model, emits generation-tagged POD drag payloads, and routes
   rename/move/delete/undo/reimport back through the session. Reimport submits to the borrowed
