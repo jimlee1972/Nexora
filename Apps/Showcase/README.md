@@ -45,6 +45,8 @@ reload, locale, character movement, pointer orbit, tour and resizing. It retains
 JSON/Markdown evidence when `NEXORA_SHOWCASE_EVIDENCE_DIR` is set. Both fail in CI if their native
 prerequisites are missing; local missing-tool runs skip with code 77. `showcase.runtime_rooms`
 checks pause/replay timing, world isolation, reloaded editor lifetime, input and geometry ownership.
+The interaction gate allows up to 25 seconds for the first software Vulkan frame and sends
+`WM_DELETE_WINDOW` for graceful shutdown under Xvfb without a window manager.
 
 
 ## Feature gallery
