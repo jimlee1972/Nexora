@@ -84,6 +84,7 @@ edit applies atomically to the entire selection, and invalid transforms roll bac
 write. SceneDocument persists authored Euler hints through save/reload and restores them with undo.
 For one selected entity, the Inspector can add/remove a Camera component and edit its field of view
 and clipping planes. Invalid values are rejected; Save, Reload, and Undo retain the camera contract.
+The single-selection Light section likewise adds/removes a Light and edits nonnegative intensity.
 The Hierarchy can create root entities and children of the single selected entity, then selects the
 new node. Invalid names and stale parents are rejected, while creation participates in scene Undo.
 Ctrl+Shift+N creates a root with the current Hierarchy name outside text input. The Linux Xvfb

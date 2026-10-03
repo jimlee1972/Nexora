@@ -142,6 +142,7 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   step；無效輸入不會改變任何所選 entity。
 - ✅ Inspector 的單選 Camera 區可新增／移除元件，並以 generation-keyed Undo 編輯經驗證的
   垂直視角與遠近裁切面。場景儲存／重新載入會保留數值；完整 reflected Inspector 仍待完成。
+- ✅ 單選 Light 區也可新增／移除元件、編輯經驗證的非負亮度，並具同樣的 Undo 與場景持久化。
 - ✅ 圖形化旋轉欄位使用度數、明確的 Z-X-Y composition 與有限值驗證。
   Enter 將多選變更提交為一個 atomic transaction，保留各 target 的其他軸、position 與 scale。
   Contract test 以公開 key/text event 驅動真正的文字欄位。

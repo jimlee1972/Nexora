@@ -438,6 +438,20 @@ bool SceneDocument::SetCamera(NodeKey entity, std::optional<runtime::CameraCompo
   undo_.push_back({});
   return true;
 }
+bool SceneDocument::SetLight(NodeKey entity, std::optional<runtime::LightComponent> light) {
+  if (Key(entity.id) != entity)
+    return false;
+  const auto *existing = world_.FindEntity(entity.id);
+  if (existing == nullptr)
+    return false;
+  if (existing->light == light.has_value() &&
+      (!light || existing->light_data.intensity == light->intensity))
+    return true;
+  if (!editor_.SetLight(entity.id, light))
+    return false;
+  undo_.push_back({});
+  return true;
+}
 bool SceneDocument::SetTransforms(std::span<const NodeKey> entities,
                                   std::span<const runtime::Transform> transforms) {
   if (entities.size() != transforms.size())
@@ -539,6 +553,12 @@ std::optional<runtime::CameraComponent> SceneDocument::Camera(NodeKey entity) co
     return std::nullopt;
   const auto *found = world_.FindEntity(entity.id);
   return found != nullptr && found->camera ? std::optional(found->camera_data) : std::nullopt;
+}
+std::optional<runtime::LightComponent> SceneDocument::Light(NodeKey entity) const noexcept {
+  if (Key(entity.id) != entity)
+    return std::nullopt;
+  const auto *found = world_.FindEntity(entity.id);
+  return found != nullptr && found->light ? std::optional(found->light_data) : std::nullopt;
 }
 std::optional<runtime::Transform> SceneDocument::WorldTransform(runtime::Id entity) const noexcept {
   if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())

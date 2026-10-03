@@ -736,6 +736,19 @@ int Run() {
                         ->vertical_field_of_view == 75.0 &&
                 !reopened_camera_document.SetCamera(key, std::nullopt),
             "camera reload lost values or accepted a stale document key");
+    Require(cameras.SetLight(key, runtime::LightComponent{2.5F}) && cameras.Dirty() &&
+                cameras.Light(key)->intensity == 2.5F &&
+                !cameras.SetLight(key, runtime::LightComponent{-1.0F}) &&
+                !cameras.SetLight(
+                    key, runtime::LightComponent{std::numeric_limits<float>::quiet_NaN()}) &&
+                cameras.Light(key)->intensity == 2.5F,
+            "light edit or validation failed");
+    Require(cameras.Undo() && !cameras.Light(key) && !cameras.Dirty() &&
+                cameras.SetLight(key, runtime::LightComponent{2.5F}) && cameras.Save(path) &&
+                reopened_camera_document.Reload(path) &&
+                reopened_camera_document.Light(*reopened_camera_document.Key(camera_entity))
+                        ->intensity == 2.5F,
+            "light Undo or scene persistence failed");
   }
   Require(document.Save(scene_path), "scene atomic save failed");
   runtime::World loaded_world;

@@ -146,6 +146,8 @@ struct EditorImGuiHost::State final {
   std::optional<InspectorTransformRequest> inspector_transform_request;
   std::optional<std::pair<SceneDocument::NodeKey, std::optional<runtime::CameraComponent>>>
       inspector_camera_request;
+  std::optional<std::pair<SceneDocument::NodeKey, std::optional<runtime::LightComponent>>>
+      inspector_light_request;
   std::uint32_t inspector_selection = 0;
   bool inspector_transform_visible = false;
   std::string inspector_error;
@@ -1322,6 +1324,30 @@ template <typename StateT> void DrawInspector(StateT &state, SceneDocument *scen
     if (!scene->SetCamera(request->first, request->second))
       state.inspector_error =
           "Camera edit rejected because values or entity generation are invalid.";
+    else
+      state.inspector_error.clear();
+  }
+  if (keys.size() == 1) {
+    auto light = scene->Light(keys.front());
+    ImGui::SeparatorText("Light");
+    bool enabled = light.has_value();
+    if (ImGui::Checkbox("Enabled###editor.inspector.light.enabled", &enabled))
+      state.inspector_light_request =
+          std::pair{keys.front(), enabled ? std::optional(runtime::LightComponent{})
+                                          : std::optional<runtime::LightComponent>{}};
+    if (light) {
+      float intensity = light->intensity;
+      if (ImGui::InputFloat("Intensity", &intensity, 0.0F, 0.0F, "%.3f",
+                            ImGuiInputTextFlags_EnterReturnsTrue))
+        state.inspector_light_request =
+            std::pair{keys.front(), std::optional(runtime::LightComponent{intensity})};
+    }
+  }
+  if (state.inspector_light_request) {
+    const auto request = std::exchange(state.inspector_light_request, std::nullopt);
+    if (!scene->SetLight(request->first, request->second))
+      state.inspector_error =
+          "Light edit rejected because intensity or entity generation is invalid.";
     else
       state.inspector_error.clear();
   }
@@ -2726,6 +2752,12 @@ void EditorImGuiTestAccess::QueueInspectorCamera(
     EditorImGuiHost &host, SceneDocument::NodeKey entity,
     std::optional<runtime::CameraComponent> camera) noexcept {
   host.state_->inspector_camera_request = std::pair{entity, camera};
+}
+
+void EditorImGuiTestAccess::QueueInspectorLight(
+    EditorImGuiHost &host, SceneDocument::NodeKey entity,
+    std::optional<runtime::LightComponent> light) noexcept {
+  host.state_->inspector_light_request = std::pair{entity, light};
 }
 
 void EditorImGuiTestAccess::QueueInspectorTransforms(
