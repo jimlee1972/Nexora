@@ -78,6 +78,19 @@ jobs:
       - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }}
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
+      # Job logs are not readable from every client, so surface failing test names (and the first
+      # error-looking lines of the CTest log) as annotations.
+      - name: Annotate failed tests
+        if: failure() && runner.os != 'Windows'
+        shell: bash
+        run: |
+          dir="build/${{ matrix.preset }}/Testing/Temporary"
+          if [ -f "$dir/LastTestsFailed.log" ]; then
+            while IFS= read -r line; do echo "::error::ctest failed: $line"; done < "$dir/LastTestsFailed.log"
+          fi
+          if [ -f "$dir/LastTest.log" ]; then
+            grep -n -i -E "fail|error|timeout|assert|exception" "$dir/LastTest.log" | head -12 | while IFS= read -r line; do echo "::warning::${line:0:300}"; done
+          fi
       - name: Verify Development Showcase package
         if: runner.os != 'macOS'
         run: cmake --build --preset ${{ matrix.preset }} --target NexoraShowcasePackageDevelopmentEvidence
