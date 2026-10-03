@@ -422,6 +422,22 @@ bool SceneDocument::SetTransform(runtime::Id entity, runtime::Transform transfor
   const std::array transforms{transform};
   return SetTransforms(keys, transforms);
 }
+bool SceneDocument::SetCamera(NodeKey entity, std::optional<runtime::CameraComponent> camera) {
+  if (Key(entity.id) != entity)
+    return false;
+  const auto *existing = world_.FindEntity(entity.id);
+  if (existing == nullptr)
+    return false;
+  if (existing->camera == camera.has_value() &&
+      (!camera || (existing->camera_data.vertical_field_of_view == camera->vertical_field_of_view &&
+                   existing->camera_data.near_plane == camera->near_plane &&
+                   existing->camera_data.far_plane == camera->far_plane)))
+    return true;
+  if (!editor_.SetCamera(entity.id, camera))
+    return false;
+  undo_.push_back({});
+  return true;
+}
 bool SceneDocument::SetTransforms(std::span<const NodeKey> entities,
                                   std::span<const runtime::Transform> transforms) {
   if (entities.size() != transforms.size())
@@ -517,6 +533,12 @@ std::optional<runtime::Transform> SceneDocument::Transform(runtime::Id entity) c
   if (found == nullptr || std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())
     return std::nullopt;
   return found->transform;
+}
+std::optional<runtime::CameraComponent> SceneDocument::Camera(NodeKey entity) const noexcept {
+  if (Key(entity.id) != entity)
+    return std::nullopt;
+  const auto *found = world_.FindEntity(entity.id);
+  return found != nullptr && found->camera ? std::optional(found->camera_data) : std::nullopt;
 }
 std::optional<runtime::Transform> SceneDocument::WorldTransform(runtime::Id entity) const noexcept {
   if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())

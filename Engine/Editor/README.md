@@ -183,6 +183,9 @@ row clipping are presentation state; selection, rename, and hierarchy edits stil
 only through `SceneDocument::Select`, `SceneDocument::Rename`, and the undoable, cycle-safe
 `SceneDocument::Move`. Its initial Inspector reads a selected node's borrowed local transform and
 routes position, Euler-degree rotation, and scale changes through generation-keyed `SceneDocument` calls.
+The single-selection Camera component toggle and field edits use the same generation key and undo
+boundary; invalid clipping and stale keys leave the scene unchanged. Camera values persist in the
+runtime scene snapshot, so Save and Reload retain them.
 Multi-selection fields display mixed state and apply one changed field to every selected entity as a
 single all-or-nothing Runtime transaction and undo step; malformed transforms roll back without a
 partial write. `SceneDocument` owns authored Euler hints and restores them with undo, even when a changed angle

@@ -82,6 +82,8 @@ generation-safe, undoable `SceneDocument` contracts. The docked Inspector also e
 selections through the same generation-safe document boundary. Mixed fields are explicit, one field
 edit applies atomically to the entire selection, and invalid transforms roll back without a partial
 write. SceneDocument persists authored Euler hints through save/reload and restores them with undo.
+For one selected entity, the Inspector can add/remove a Camera component and edit its field of view
+and clipping planes. Invalid values are rejected; Save, Reload, and Undo retain the camera contract.
 The Hierarchy can create root entities and children of the single selected entity, then selects the
 new node. Invalid names and stale parents are rejected, while creation participates in scene Undo.
 Ctrl+Shift+N creates a root with the current Hierarchy name outside text input. The Linux Xvfb

@@ -148,6 +148,30 @@ bool SceneEditor::SetTransform(Id entity, Transform transform) {
   const std::array transforms{transform};
   return SetTransforms(entities, transforms);
 }
+bool SceneEditor::SetCamera(Id entity, std::optional<CameraComponent> camera) {
+  const auto *existing = world_.FindEntity(entity);
+  if (!existing ||
+      (camera &&
+       (!std::isfinite(camera->vertical_field_of_view) || !std::isfinite(camera->near_plane) ||
+        !std::isfinite(camera->far_plane) || camera->vertical_field_of_view <= 0.0 ||
+        camera->vertical_field_of_view >= 180.0 || camera->near_plane <= 0.0 ||
+        camera->far_plane <= camera->near_plane)))
+    return false;
+  const std::optional<CameraComponent> previous =
+      existing->camera ? std::optional(existing->camera_data) : std::nullopt;
+  WorldCommandBuffer apply;
+  apply.SetCamera(entity, camera);
+  if (!apply.Apply(world_))
+    return false;
+  undo_.Execute([] {},
+                [this, entity, previous] {
+                  WorldCommandBuffer commands;
+                  commands.SetCamera(entity, previous);
+                  (void)commands.Apply(world_);
+                });
+  ++depth_;
+  return true;
+}
 bool SceneEditor::SetTransforms(std::span<const Id> entities,
                                 std::span<const Transform> transforms) {
   if (entities.empty() || entities.size() != transforms.size())

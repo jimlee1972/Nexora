@@ -508,6 +508,8 @@ therefore continue to target the same entity. Destroy cascades to descendants, a
 the whole subtree with its parents and local transforms (only when none of those IDs exists again);
 if the subtree root's outside parent no longer exists by then, the root is restored as a root at the
 world pose it had.
+`SetCamera` validates finite field of view and clipping planes, then records the previous component
+presence and values for Undo. Invalid edits leave the World untouched.
 `SetParent` is undoable and restores the previous parent and the exact previous local transform.
 Destroy also validates that the entity belongs to the supplied scene before mutating the world. `CreateEntity` returns the new entity's stable `Id`, not a
 reference into `World`'s storage: unlike `World::CreateEntity` (consumed immediately, within this

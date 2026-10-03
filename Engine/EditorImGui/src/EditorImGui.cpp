@@ -144,6 +144,8 @@ struct EditorImGuiHost::State final {
   std::optional<std::size_t> inspector_euler_focus_request;
   std::optional<InspectorEulerRequest> inspector_euler_request;
   std::optional<InspectorTransformRequest> inspector_transform_request;
+  std::optional<std::pair<SceneDocument::NodeKey, std::optional<runtime::CameraComponent>>>
+      inspector_camera_request;
   std::uint32_t inspector_selection = 0;
   bool inspector_transform_visible = false;
   std::string inspector_error;
@@ -1288,6 +1290,41 @@ template <typename StateT> void DrawInspector(StateT &state, SceneDocument *scen
       state.inspector_error.clear();
   }
   ApplyInspectorEuler(state, *scene);
+  if (keys.size() == 1) {
+    auto camera = scene->Camera(keys.front());
+    ImGui::SeparatorText("Camera");
+    bool enabled = camera.has_value();
+    if (ImGui::Checkbox("Enabled###editor.inspector.camera.enabled", &enabled))
+      state.inspector_camera_request =
+          std::pair{keys.front(), enabled ? std::optional(runtime::CameraComponent{})
+                                          : std::optional<runtime::CameraComponent>{}};
+    if (camera) {
+      struct CameraField final {
+        const char *label;
+        double runtime::CameraComponent::*member;
+      };
+      constexpr std::array camera_fields{
+          CameraField{"Vertical FOV", &runtime::CameraComponent::vertical_field_of_view},
+          CameraField{"Near plane", &runtime::CameraComponent::near_plane},
+          CameraField{"Far plane", &runtime::CameraComponent::far_plane}};
+      for (const auto &field : camera_fields) {
+        double value = (*camera).*(field.member);
+        if (ImGui::InputDouble(field.label, &value, 0.0, 0.0, "%.3f",
+                               ImGuiInputTextFlags_EnterReturnsTrue)) {
+          (*camera).*(field.member) = value;
+          state.inspector_camera_request = std::pair{keys.front(), camera};
+        }
+      }
+    }
+  }
+  if (state.inspector_camera_request) {
+    const auto request = std::exchange(state.inspector_camera_request, std::nullopt);
+    if (!scene->SetCamera(request->first, request->second))
+      state.inspector_error =
+          "Camera edit rejected because values or entity generation are invalid.";
+    else
+      state.inspector_error.clear();
+  }
   if (!state.inspector_error.empty())
     ImGui::TextWrapped("%s", state.inspector_error.c_str());
 }
@@ -2683,6 +2720,12 @@ void EditorImGuiTestAccess::QueueInspectorTransform(EditorImGuiHost &host,
                                                     runtime::Transform transform) noexcept {
   host.state_->inspector_transform_request.emplace(
       EditorImGuiHost::State::InspectorTransformRequest{{entity}, {transform}});
+}
+
+void EditorImGuiTestAccess::QueueInspectorCamera(
+    EditorImGuiHost &host, SceneDocument::NodeKey entity,
+    std::optional<runtime::CameraComponent> camera) noexcept {
+  host.state_->inspector_camera_request = std::pair{entity, camera};
 }
 
 void EditorImGuiTestAccess::QueueInspectorTransforms(
