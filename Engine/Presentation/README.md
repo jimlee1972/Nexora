@@ -15,8 +15,10 @@ light, and base color for the duration of the call and records a depth-tested na
 the render thread. DX12 and Vulkan own their depth buffers, pipelines, and bounded per-frame upload storage;
 `SceneDrawData::viewport` optionally bounds that draw to a physical-pixel rectangle of the acquired
 surface (all zero means full surface). Invalid or out-of-bounds rectangles are rejected. Offscreen
-scene copies require the full surface; a direct scene draw may be followed by one UI submission.
-backends without a native geometry path return `Unsupported` rather than silently compositing a
+scene copies require the full surface. A direct scene draw may precede one UI submission, or an
+explicit bounded direct draw may follow UI to replace only the selected viewport pixels. Vulkan
+loads the UI color target for that later draw; DX12 preserves the existing render target.
+Backends without a native geometry path return `Unsupported` rather than silently compositing a
 fallback. `SurfaceDiagnostics::sceneDrawCalls` counts accepted native scene draws. `CompositeRgba8`
 remains a legacy full-frame upload for non-Editor clients; the production Editor does not call it.
 
@@ -68,8 +70,9 @@ physical-GPU, Windows or Metal acceptance.
 
 `DrawScene` uses the row-major MVP, Vulkan clip-space Y conversion and padded 112-byte
 light/material push constants. The public scene format remains separate from Renderer Slang
-shaders. Full-frame composition cannot be combined with a scene or UI submission; the scene
-must precede its optional single UI submission. Duplicate submissions return InvalidDescriptor.
+shaders. Full-frame composition cannot be combined with a scene or UI submission. A full-surface
+or offscreen scene must precede its optional single UI submission; a bounded direct scene may
+follow UI. Duplicate submissions return InvalidDescriptor.
 Destroying an abandoned acquired frame clears acquisition/validity before releasing resources.
 The retained `window_presentation.vulkan_scene` target-host gate reads X11 pixels in the test,
 checking near/far depth-order invariance, lighting, matrix translation, two resizes, rejected

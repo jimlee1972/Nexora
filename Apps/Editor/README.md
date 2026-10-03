@@ -15,8 +15,8 @@ upgrades or writes project-owned files. `--recent-projects=PATH` overrides the u
 project store for isolated automation.
 
 This command is a headless workflow/evidence entry point, not the graphical acceptance gate. The
-native docking host and visual Scene/Game views must use the public Window and Presentation
-contracts when implemented.
+native docking host and its Scene proxy preview use public Window and Presentation contracts;
+the complete Scene and Game views remain open.
 
 Configure with `NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON` to build the optional
 `NexoraEditorImGui` host and its headless draw-data contract test. The option fetches a pinned
@@ -43,6 +43,12 @@ backbuffer. It also round-trips a versioned project layout and supplies a live `
 the Hierarchy panel. The same process binds its deterministic `AssetWorkspace` index to a live
 Content panel with breadcrumbs, folder navigation, search/type filtering, virtualized UUID-keyed
 rows, thumbnail state, selection, typed drag/drop, dependency inspection, and background reimport.
+The Scene panel can switch from its editable X/Z overview to a native depth-tested 3D proxy
+preview. Vulkan and DX12 draw an instanced ground and one position proxy per scene node inside the
+docked canvas after UI submission, preserving controls outside the canvas. Selection changes proxy
+tint. This preview does not yet draw
+authored mesh assets or apply node rotation/scale; the full renderer-backed Scene View remains open.
+`--native-scene-preview` selects this mode on startup for display acceptance.
 Project-selector activation now indexes content through an application-owned `AssetImportQueue`;
 the selector shows bounded progress and can cancel without activating a partial project. Content
 reimport uses the same queue, keeps source/settings hashes and dependency context in its staging

@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Check the real Editor's docked native Scene pixels and draw submission under Xvfb."""
+
+import argparse
+import ctypes
+import os
+from pathlib import Path
+import re
+import select
+import shutil
+import subprocess
+import tempfile
+import time
+
+from LinuxDisplayAcceptance import start_xvfb, wait_for_window
+
+
+class XImage(ctypes.Structure):
+    _fields_ = [
+        ("width", ctypes.c_int), ("height", ctypes.c_int),
+        ("xoffset", ctypes.c_int), ("format", ctypes.c_int),
+        ("data", ctypes.c_void_p), ("byte_order", ctypes.c_int),
+        ("bitmap_unit", ctypes.c_int), ("bitmap_bit_order", ctypes.c_int),
+        ("bitmap_pad", ctypes.c_int), ("depth", ctypes.c_int),
+        ("bytes_per_line", ctypes.c_int), ("bits_per_pixel", ctypes.c_int),
+        ("red_mask", ctypes.c_ulong), ("green_mask", ctypes.c_ulong),
+        ("blue_mask", ctypes.c_ulong),
+    ]
+
+
+def channel(pixel: int, mask: int) -> int:
+    shift = (mask & -mask).bit_length() - 1
+    value = (pixel & mask) >> shift
+    maximum = mask >> shift
+    return value * 255 // maximum
+
+
+def scene_pixels(display_name: str, window: int, viewport: tuple[int, int, int, int]):
+    x11 = ctypes.CDLL("libX11.so.6")
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XGetImage.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                              ctypes.c_uint, ctypes.c_uint, ctypes.c_ulong, ctypes.c_int]
+    x11.XGetImage.restype = ctypes.POINTER(XImage)
+    x11.XGetPixel.argtypes = [ctypes.POINTER(XImage), ctypes.c_int, ctypes.c_int]
+    x11.XGetPixel.restype = ctypes.c_ulong
+    x11.XDestroyImage.argtypes = [ctypes.POINTER(XImage)]
+    x11.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    display = x11.XOpenDisplay(display_name.encode())
+    if not display:
+        raise RuntimeError("Xvfb pixel reader could not connect")
+    try:
+        x11.XSync(display, 0)
+        image = x11.XGetImage(display, window, 0, 0, 1280, 720,
+                              ctypes.c_ulong(-1).value, 2)
+        if not image:
+            raise RuntimeError("Editor window pixel readback failed")
+        try:
+            x, y, width, height = viewport
+            if not (0 <= x < 1280 and 0 <= y < 720 and
+                    0 < width <= 1280 - x and 0 < height <= 720 - y):
+                raise RuntimeError(f"invalid native Scene viewport: {viewport}")
+            samples = []
+            for dy in range(-3, 4):
+                for dx in range(-3, 4):
+                    sx = x + width // 2 + dx * min(width // 16, 16)
+                    sy = y + height // 2 + dy * min(height // 16, 16)
+                    pixel = x11.XGetPixel(image, sx, sy)
+                    red = channel(pixel, image.contents.red_mask)
+                    green = channel(pixel, image.contents.green_mask)
+                    blue = channel(pixel, image.contents.blue_mask)
+                    samples.append((red, green, blue))
+                    if blue >= 105 and blue >= red + 35 and blue >= green + 10:
+                        return True, samples
+            return False, samples
+        finally:
+            x11.XDestroyImage(image)
+    finally:
+        x11.XCloseDisplay(display)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--editor", required=True)
+    parser.add_argument("--xvfb", required=True)
+    parser.add_argument("--xdotool", required=True)
+    args = parser.parse_args()
+    root = Path(tempfile.mkdtemp(prefix="nexora-native-scene-"))
+    user_state = Path(tempfile.mkdtemp(prefix="nexora-native-scene-state-"))
+    (root / "Content").mkdir()
+    (root / ".nexora").mkdir()
+    (root / "project.nexora").write_text("schema=1\nname=Native Scene Acceptance\n")
+    (root / ".nexora/workspace").write_text("schema=1\n")
+    xvfb, display = start_xvfb(args.xvfb, "1280x720x24")
+    editor = None
+    try:
+        if display is None:
+            raise RuntimeError("Xvfb did not become ready")
+        environment = os.environ.copy()
+        environment["DISPLAY"] = display
+        environment["XDG_STATE_HOME"] = str(user_state)
+        editor = subprocess.Popen(
+            [args.editor, f"--project={root}", "--graphical", "--native-scene-preview",
+             "--frames=10000", f"--recent-projects={user_state / 'recent-projects'}"],
+            env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        window = int(wait_for_window(args.xdotool, environment))
+        deadline = time.monotonic() + 12
+        captured = b""
+        viewport = None
+        while time.monotonic() < deadline and viewport is None:
+            if not select.select([editor.stderr], [], [], 0.5)[0]:
+                continue
+            captured += os.read(editor.stderr.fileno(), 4096)
+            match = re.search(rb"native scene viewport: (\d+) (\d+) (\d+) (\d+)", captured)
+            if match:
+                viewport = tuple(map(int, match.groups()))
+        if viewport is None:
+            raise RuntimeError(f"native Scene draw did not start: {captured.decode(errors='replace')}")
+        pixels_visible = False
+        samples = []
+        deadline = time.monotonic() + 6
+        while time.monotonic() < deadline and not pixels_visible:
+            pixels_visible, samples = scene_pixels(display, window, viewport)
+            if not pixels_visible:
+                time.sleep(0.05)
+        if not pixels_visible:
+            raise RuntimeError(f"native Scene pixels were hidden inside viewport {viewport}; "
+                               f"samples={samples}")
+        subprocess.run([args.xdotool, "windowfocus", str(window)], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        scene_file = root / ".nexora/scenes/Main.scene"
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not scene_file.is_file():
+            time.sleep(0.05)
+        if not scene_file.is_file():
+            raise RuntimeError("native Scene smoke could not save the starter scene")
+        subprocess.run([args.xdotool, "windowclose", str(window)], env=environment, check=True)
+        _, remaining = editor.communicate(timeout=15)
+        evidence = captured + remaining
+        match = re.search(rb"scene_draws=(\d+)", evidence)
+        if editor.returncode != 0 or not match or int(match[1]) == 0 or b"ui_draws=" not in evidence:
+            raise RuntimeError(f"native Scene/UI presentation failed: {evidence.decode(errors='replace')}")
+        editor = None
+        return 0
+    finally:
+        if editor is not None and editor.poll() is None:
+            editor.kill()
+            editor.wait(timeout=5)
+        xvfb.terminate()
+        xvfb.wait(timeout=5)
+        shutil.rmtree(root, ignore_errors=True)
+        shutil.rmtree(user_state, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

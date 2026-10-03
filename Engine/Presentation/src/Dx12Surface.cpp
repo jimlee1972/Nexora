@@ -287,11 +287,14 @@ public:
   SurfaceStatus DrawScene(const SceneDrawData &drawData) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || sceneDrawn_ || uiDrawn_ || compositeDrawn_ || !scenePipeline_ ||
+    if (!acquired_ || sceneDrawn_ || compositeDrawn_ || !scenePipeline_ ||
         drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
     const auto viewport = ResolveSceneViewport(drawData.viewport, width_, height_);
     if (!viewport ||
+        (uiDrawn_ &&
+         (drawData.offscreen || (drawData.viewport.x == 0 && drawData.viewport.y == 0 &&
+                                 drawData.viewport.width == 0 && drawData.viewport.height == 0))) ||
         (drawData.offscreen && (drawData.viewport.x != 0 || drawData.viewport.y != 0 ||
                                 drawData.viewport.width != 0 || drawData.viewport.height != 0)))
       return SurfaceStatus::InvalidDescriptor;

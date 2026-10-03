@@ -285,13 +285,16 @@ public:
     if (!OnThread())
       return SurfaceStatus::WrongThread;
     if (!acquired_ || !scenePipeline_ || sceneRendered_ || transferTarget_ ||
-        frames_[frame_].uiFramebuffer || data.vertices.empty() || data.indices.empty() ||
-        data.vertices.size() > 65535 || data.indices.size() > 1048576 ||
-        data.indices.size() % 3 != 0)
+        data.vertices.empty() || data.indices.empty() || data.vertices.size() > 65535 ||
+        data.indices.size() > 1048576 || data.indices.size() % 3 != 0)
       return SurfaceStatus::InvalidDescriptor;
     const auto viewport = ResolveSceneViewport(data.viewport, width_, height_);
-    if (!viewport || (data.offscreen && (data.viewport.x != 0 || data.viewport.y != 0 ||
-                                         data.viewport.width != 0 || data.viewport.height != 0)))
+    const bool afterUi = frames_[frame_].uiFramebuffer != VK_NULL_HANDLE;
+    if (!viewport ||
+        (afterUi && (data.offscreen || (data.viewport.x == 0 && data.viewport.y == 0 &&
+                                        data.viewport.width == 0 && data.viewport.height == 0))) ||
+        (data.offscreen && (data.viewport.x != 0 || data.viewport.y != 0 ||
+                            data.viewport.width != 0 || data.viewport.height != 0)))
       return SurfaceStatus::InvalidDescriptor;
     for (const auto index : data.indices)
       if (index >= data.vertices.size())
@@ -471,7 +474,7 @@ public:
         data.offscreen ? frame.sceneColorView : imageViews_[imageIndex_], frame.sceneDepthView};
     VkFramebufferCreateInfo framebuffer{};
     framebuffer.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebuffer.renderPass = sceneRenderPass_;
+    framebuffer.renderPass = afterUi ? sceneOverlayRenderPass_ : sceneRenderPass_;
     framebuffer.attachmentCount = 2;
     framebuffer.pAttachments = attachments;
     framebuffer.width = width_;
@@ -484,7 +487,7 @@ public:
     clears[1].depthStencil = {1.0F, 0};
     VkRenderPassBeginInfo begin{};
     begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    begin.renderPass = sceneRenderPass_;
+    begin.renderPass = afterUi ? sceneOverlayRenderPass_ : sceneRenderPass_;
     begin.framebuffer = frame.sceneFramebuffer;
     begin.renderArea.extent = {width_, height_};
     begin.clearValueCount = 2;
@@ -1246,6 +1249,12 @@ private:
     pass.pDependencies = &dependency;
     if (vkCreateRenderPass(device_, &pass, nullptr, &sceneRenderPass_) != VK_SUCCESS)
       return false;
+    attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    auto overlayDependency = dependency;
+    overlayDependency.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+    pass.pDependencies = &overlayDependency;
+    if (vkCreateRenderPass(device_, &pass, nullptr, &sceneOverlayRenderPass_) != VK_SUCCESS)
+      return false;
     const auto makeShader = [&](const std::uint32_t *code, std::size_t bytes, VkShaderModule &out) {
       const VkShaderModuleCreateInfo create{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr, 0,
                                             bytes, code};
@@ -1356,9 +1365,12 @@ private:
       vkDestroyPipelineLayout(device_, scenePipelineLayout_, nullptr);
     if (sceneRenderPass_)
       vkDestroyRenderPass(device_, sceneRenderPass_, nullptr);
+    if (sceneOverlayRenderPass_)
+      vkDestroyRenderPass(device_, sceneOverlayRenderPass_, nullptr);
     scenePipeline_ = VK_NULL_HANDLE;
     scenePipelineLayout_ = VK_NULL_HANDLE;
     sceneRenderPass_ = VK_NULL_HANDLE;
+    sceneOverlayRenderPass_ = VK_NULL_HANDLE;
     DestroyUiResources();
     for (const auto view : imageViews_)
       vkDestroyImageView(device_, view, nullptr);
@@ -1509,6 +1521,7 @@ private:
   VkPipeline uiPipeline_{};
   VkPipelineLayout scenePipelineLayout_{};
   VkRenderPass sceneRenderPass_{};
+  VkRenderPass sceneOverlayRenderPass_{};
   VkPipeline scenePipeline_{};
   bool sceneRendered_{};
   bool sceneOffscreen_{}, sceneComposited_{};
