@@ -121,8 +121,9 @@ opens and creates a starter root only when no saved scene exists. Read-only proj
 a corrupt or unreadable saved scene remains untouched and blocks saving until repaired. The Scene
 panel reports save and load failures. This is one-scene persistence, not the complete Scene View or
 the ED-M2 save/restart acceptance workflow.
-The Scene panel also exposes Undo (Ctrl+Z outside text inputs). Undoing entity creation removes
-stale node metadata and selection, allowing the resulting scene to save and reload cleanly.
+The Scene panel exposes Undo (Ctrl+Z) and Redo (Ctrl+Y or Ctrl+Shift+Z) outside text inputs.
+Undoing entity creation removes stale node metadata and selection; Redo restores them with the
+stable entity ID. New scene edits discard the redo branch.
 
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows
 fresh-project workflow acceptance remain open.

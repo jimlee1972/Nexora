@@ -321,6 +321,10 @@ SceneDocument::SceneDocument(runtime::World &world, runtime::Id scene)
     : world_(world), scene_(scene), editor_(world), document_generation_(NextDocumentGeneration()) {
   saved_signature_ = StateSignature().value_or(std::string{});
 }
+void SceneDocument::PushUndo(UndoEntry entry) {
+  redo_.clear();
+  undo_.push_back(std::move(entry));
+}
 runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
   // Save() persists each node as a single "node <id> <parent> <name>\n" line and
   // Reload() parses strictly line-by-line, so an embedded newline would split one
@@ -337,19 +341,14 @@ runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
         std::ranges::find(scene->entities, parent, &runtime::Entity::id) == scene->entities.end())
       return 0;
   }
-  const auto entity_id = editor_.CreateEntity(scene_);
-  if (parent != 0) {
-    // Part of creating the node rather than a separate undo step: undoing the creation removes it.
-    runtime::WorldCommandBuffer attach;
-    attach.SetParent(entity_id, parent, false);
-    if (!attach.Apply(world_))
-      return 0;
-  }
+  const auto entity_id = editor_.CreateEntity(scene_, parent);
+  if (entity_id == 0)
+    return 0;
   const auto generation = next_entity_generation_++;
   if (next_entity_generation_ == 0)
     ++next_entity_generation_;
   nodes_.push_back({entity_id, std::move(name), generation});
-  undo_.push_back({});
+  PushUndo({});
   return entity_id;
 }
 bool SceneDocument::Select(std::span<const runtime::Id> entities) {
@@ -381,7 +380,7 @@ bool SceneDocument::Rename(NodeKey entity, std::string name) {
     return false;
   if (found->name == name)
     return true;
-  undo_.push_back({UndoEntry::Kind::Rename, entity, std::exchange(found->name, std::move(name))});
+  PushUndo({UndoEntry::Kind::Rename, entity, std::exchange(found->name, std::move(name))});
   return true;
 }
 bool SceneDocument::Reparent(runtime::Id entity, runtime::Id parent) {
@@ -391,7 +390,7 @@ bool SceneDocument::Reparent(runtime::Id entity, runtime::Id parent) {
   // The runtime rejects self-parenting and cycles.
   if (!editor_.SetParent(entity, parent, true))
     return false;
-  undo_.push_back({});
+  PushUndo({});
   return true;
 }
 bool SceneDocument::Move(runtime::Id entity, runtime::Id parent, std::size_t index) {
@@ -400,7 +399,7 @@ bool SceneDocument::Move(runtime::Id entity, runtime::Id parent, std::size_t ind
     return false;
   if (!editor_.Move(entity, parent, index, true))
     return false;
-  undo_.push_back({});
+  PushUndo({});
   return true;
 }
 bool SceneDocument::Move(NodeKey entity, std::optional<NodeKey> parent, std::size_t index) {
@@ -435,7 +434,7 @@ bool SceneDocument::SetCamera(NodeKey entity, std::optional<runtime::CameraCompo
     return true;
   if (!editor_.SetCamera(entity.id, camera))
     return false;
-  undo_.push_back({});
+  PushUndo({});
   return true;
 }
 bool SceneDocument::SetLight(NodeKey entity, std::optional<runtime::LightComponent> light) {
@@ -449,7 +448,7 @@ bool SceneDocument::SetLight(NodeKey entity, std::optional<runtime::LightCompone
     return true;
   if (!editor_.SetLight(entity.id, light))
     return false;
-  undo_.push_back({});
+  PushUndo({});
   return true;
 }
 bool SceneDocument::SetTransforms(std::span<const NodeKey> entities,
@@ -469,7 +468,7 @@ bool SceneDocument::SetTransforms(std::span<const NodeKey> entities,
   }
   if (!editor_.SetTransforms(ids, transforms))
     return false;
-  undo_.push_back(std::move(undo));
+  PushUndo(std::move(undo));
   return true;
 }
 
@@ -652,9 +651,10 @@ bool SceneDocument::DeleteSelection() {
     if (!editor_.DestroyEntity(scene_, root)) {
       for (std::size_t index = 0; index < deleted; ++index)
         static_cast<void>(Undo());
+      redo_.clear();
       return false;
     }
-    undo_.push_back(std::move(entry));
+    PushUndo(std::move(entry));
     std::erase_if(nodes_, [&](const Node &node) { return subtree_ids.contains(node.id); });
     std::erase_if(selection_, [&](runtime::Id id) { return subtree_ids.contains(id); });
     ++deleted;
@@ -664,7 +664,9 @@ bool SceneDocument::DeleteSelection() {
 bool SceneDocument::Undo() {
   if (undo_.empty())
     return false;
-  const auto &entry = undo_.back();
+  auto &entry = undo_.back();
+  entry.redo_nodes = nodes_;
+  entry.redo_selection = selection_;
   if (entry.kind == UndoEntry::Kind::Runtime) {
     if (!editor_.Undo())
       return false;
@@ -694,7 +696,28 @@ bool SceneDocument::Undo() {
       return false;
     found->name = entry.previous_name;
   }
+  redo_.push_back(std::move(entry));
   undo_.pop_back();
+  return true;
+}
+bool SceneDocument::Redo() {
+  if (redo_.empty())
+    return false;
+  auto &entry = redo_.back();
+  if (entry.kind == UndoEntry::Kind::Runtime && !editor_.Redo())
+    return false;
+  if (entry.kind == UndoEntry::Kind::Rename) {
+    const auto found = std::ranges::find(nodes_, entry.entity.id, &Node::id);
+    if (entry.entity.document_generation != document_generation_ || found == nodes_.end() ||
+        found->generation != entry.entity.entity_generation)
+      return false;
+  }
+  nodes_ = entry.redo_nodes;
+  selection_ = entry.redo_selection;
+  std::erase_if(nodes_, [this](const Node &node) { return world_.FindEntity(node.id) == nullptr; });
+  std::erase_if(selection_, [this](runtime::Id id) { return world_.FindEntity(id) == nullptr; });
+  undo_.push_back(std::move(entry));
+  redo_.pop_back();
   return true;
 }
 
@@ -906,6 +929,7 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
   selection_.clear();
   clipboard_.clear();
   undo_.clear();
+  redo_.clear();
   editor_.ClearUndo();
   saved_signature_ = StateSignature().value_or(std::string{});
   return true;

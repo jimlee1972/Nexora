@@ -2051,12 +2051,19 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->hierarchy_create_request = State::HierarchyCreateRequest{
         std::string(state_->hierarchy_create_name.data()), std::nullopt};
   }
-  if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput &&
-      ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) {
-    static_cast<void>(shell.RouteCommand("editor.scene.undo"));
-    state_->scene_save_message = scene->Undo() ? "Undo complete." : "Nothing to undo.";
-    state_->scene_save_success = true;
-    state_->hierarchy_selection_anchor.reset();
+  if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput) {
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal) ||
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, ImGuiInputFlags_RouteGlobal)) {
+      static_cast<void>(shell.RouteCommand("editor.scene.redo"));
+      state_->scene_save_message = scene->Redo() ? "Redo complete." : "Nothing to redo.";
+      state_->scene_save_success = true;
+      state_->hierarchy_selection_anchor.reset();
+    } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) {
+      static_cast<void>(shell.RouteCommand("editor.scene.undo"));
+      state_->scene_save_message = scene->Undo() ? "Undo complete." : "Nothing to undo.";
+      state_->scene_save_success = true;
+      state_->hierarchy_selection_anchor.reset();
+    }
   }
   if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput) {
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C, ImGuiInputFlags_RouteGlobal)) {
@@ -2097,6 +2104,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       static_cast<void>(shell.RouteCommand("editor.scene.undo"));
       state_->scene_save_message =
           scene != nullptr && scene->Undo() ? "Undo complete." : "Nothing to undo.";
+      state_->scene_save_success = true;
+      state_->hierarchy_selection_anchor.reset();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Redo")) {
+      static_cast<void>(shell.RouteCommand("editor.scene.redo"));
+      state_->scene_save_message =
+          scene != nullptr && scene->Redo() ? "Redo complete." : "Nothing to redo.";
       state_->scene_save_success = true;
       state_->hierarchy_selection_anchor.reset();
     }

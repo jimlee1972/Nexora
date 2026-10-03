@@ -91,6 +91,66 @@ void TestSceneUndoShortcut() {
   assert(shell.LastCommand() == "editor.scene.undo");
   assert(scene.Nodes().size() == 1 && scene.Nodes().front().id == root);
   assert(scene.Selection().empty());
+  const std::array redo_events{
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::Z),
+                                  0,
+                                  Nexora::Window::KeyModifiers::Control},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::Y),
+                                  1,
+                                  Nexora::Window::KeyModifiers::Control}};
+  host.ProcessEvents(redo_events);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  assert(shell.LastCommand() == "editor.scene.redo" && scene.Nodes().size() == 2 &&
+         scene.Nodes()[1].id == added);
+  assert(scene.Undo());
+  const auto control_shift = static_cast<Nexora::Window::KeyModifiers>(3);
+  const std::array alternate_redo{
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::Y),
+                                  0,
+                                  Nexora::Window::KeyModifiers::Control},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::LeftShift),
+                                  1,
+                                  control_shift},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::Z),
+                                  1,
+                                  control_shift}};
+  host.ProcessEvents(alternate_redo);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  assert(shell.LastCommand() == "editor.scene.redo" && scene.Nodes().size() == 2);
 }
 
 void TestSceneClipboardShortcuts() {

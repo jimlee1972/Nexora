@@ -259,10 +259,19 @@ private:
 class NEXORA_RUNTIME_API UndoStack final {
 public:
   void Execute(const std::function<void()> &apply, std::function<void()> undo);
+  // Records a transaction already applied by its owner. A failed callback leaves the cursor in
+  // place, so callers can report a rejected Undo or Redo without losing the history entry.
+  void Record(std::function<bool()> undo, std::function<bool()> redo);
   bool Undo();
+  bool Redo();
 
 private:
-  std::vector<std::function<void()>> undo_;
+  struct Operation final {
+    std::function<bool()> undo;
+    std::function<bool()> redo;
+  };
+  std::vector<Operation> operations_;
+  std::size_t cursor_{};
 };
 
 enum class InputKind { Keyboard, Mouse, Gamepad, Touch, Virtual };

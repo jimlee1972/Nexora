@@ -113,6 +113,9 @@ into renderer or platform internals.
   `DeleteSelection` validates the selected nodes before deleting, removes each selected subtree
   once, and drops its node metadata and selection immediately. Undo restores the subtree's stable
   IDs, names, Euler hints, and selection; separate selected roots are separate Undo steps.
+  Redo replays Runtime transactions and restores the matching authoring metadata, including
+  names, selection, and authored Euler revolutions. A new edit discards the redo branch; Reload
+  clears both histories.
   `DuplicateSelection` captures and pastes the current selection while preserving the user's prior
   clipboard. Like Paste, each created root has its own Undo step.
   `WorldTransform` exposes a live node's composed world pose to Editor views, so children can be

@@ -203,6 +203,7 @@ public:
   // twice.
   bool DeleteSelection();
   bool Undo();
+  bool Redo();
   bool Save(const std::filesystem::path &path) const;
   bool Reload(const std::filesystem::path &path);
   // Compares the live, serializable scene with the last successful Save or Reload.
@@ -239,7 +240,10 @@ private:
     std::vector<std::pair<NodeKey, std::optional<EulerHint>>> previous_hints{};
     std::vector<Node> deleted_nodes{};
     std::vector<runtime::Id> previous_selection{};
+    std::vector<Node> redo_nodes{};
+    std::vector<runtime::Id> redo_selection{};
   };
+  void PushUndo(UndoEntry entry);
   runtime::World &world_;
   runtime::Id scene_{};
   runtime::SceneEditor editor_;
@@ -247,6 +251,7 @@ private:
   std::vector<runtime::Id> selection_;
   std::vector<ClipboardNode> clipboard_;
   std::vector<UndoEntry> undo_;
+  std::vector<UndoEntry> redo_;
   std::uint64_t document_generation_{};
   std::uint64_t next_entity_generation_{1};
   mutable std::string saved_signature_;

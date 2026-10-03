@@ -164,6 +164,9 @@ diagnostics are routed through it. Game View and complete log routing remain ope
 
 The graphical Scene overview now offers optional 0.25–4 world-unit movement snapping; its drag
 preview matches the committed, undoable move even for parented entities.
+Scene Undo and Redo now replay stable entity IDs, hierarchy and components while preserving node
+names, selection, and authored Euler revolutions. The Scene panel exposes both by button and
+keyboard shortcut; a new edit discards the undone branch.
 
 Linux Xvfb acceptance now creates a Hierarchy root with Ctrl+Shift+N, saves the scene, restarts
 the graphical Editor, and checks that the authored root reloads. Full ED-M2 visual acceptance
@@ -320,6 +323,8 @@ backend-neutral `Text` event，physical key 與 text input 維持分離。
 
 圖形化 Scene 概覽現可選擇 0.25 至 4 世界單位的移動吸附；拖曳預覽與可復原的提交位移一致，
 包含有父節點的物件。
+Scene 的 Undo／Redo 現會重播穩定 entity ID、階層與元件，並保留節點名稱、選取及輸入的 Euler
+圈數。Scene panel 有按鈕與快捷鍵；新編輯會清除已撤銷的分支。
 
 Portable Editor Core 現亦會在 delete/undo 間保留 Content Browser selection、回復局部套用的
 gizmo preview、拒絕無效 camera state，且 camera／autosave／build file 替換不會刪除不相容的

@@ -84,6 +84,24 @@ int RunTests() {
   UndoStack undo;
   undo.Execute([&] { value = 10; }, [&] { value = 0; });
   Require(value == 10 && undo.Undo() && value == 0, "M6 undo transaction failed");
+  Require(undo.Redo() && value == 10 && undo.Undo() && value == 0,
+          "M6 redo must replay an undone transaction");
+  value = 20;
+  undo.Record(
+      [&] {
+        value = 0;
+        return true;
+      },
+      [&] {
+        value = 20;
+        return true;
+      });
+  Require(!undo.Redo() && undo.Undo() && value == 0,
+          "M6 new transaction must discard the redo branch");
+  UndoStack rejected;
+  rejected.Record([] { return false; }, [] { return true; });
+  Require(!rejected.Undo() && !rejected.Undo(),
+          "a rejected Undo must retain its history entry for retry");
 
   InputRouter input;
   Require(input.Route({InputKind::Touch, 42, false}) && !input.Route({InputKind::Touch, 42, false}),

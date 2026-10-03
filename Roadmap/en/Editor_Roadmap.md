@@ -156,9 +156,10 @@ creates property widgets; unknown components retain raw data instead of being si
   request. The application saves `.nexora/scenes/Main.scene`, reloads it on project open, rejects
   read-only saves, and preserves unreadable scene files instead of overwriting them. This is a
   single-scene persistence slice; the graphical save/restart acceptance workflow remains open.
-- ✅ The Scene panel now exposes Undo by button and Ctrl+Z outside text input. Undoing a created
-  entity removes stale node metadata and selection, and a save/reload regression test covers the
-  resulting scene. Redo and the complete visual workflow remain open.
+- ✅ The Scene panel exposes Undo/Redo by button and Ctrl+Z/Ctrl+Y/Ctrl+Shift+Z outside text input.
+  Runtime replay restores stable IDs, hierarchy, transforms, and Camera/Light components; document
+  replay restores names, selection, and authored Euler revolutions. New edits discard Redo; tests
+  cover replay and saving after undone creation. The complete visual workflow remains open.
 - ✅ The graphical Hierarchy can create named roots and children through generation-checked
   requests, select the new entity, and reveal it in the tree. Contract coverage includes stale
   parents, Undo, and save/reload; the Scene View and full ED-M2 acceptance remain open.
