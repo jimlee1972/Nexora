@@ -1,0 +1,121 @@
+name: Release
+
+# Builds the Windows Shipping/Full Showcase package for a version tag, runs the packaged
+# isolated-copy verifier, requires the repository's Build workflow to pass for the same commit,
+# and prepares a DRAFT GitHub Release. Nothing is published automatically; a person publishes the
+# draft after reviewing it. workflow_dispatch is a dry run: it builds and uploads the bundle as a
+# workflow artifact but never creates a release.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows-package:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
+      - uses: ilammy/msvc-dev-cmd@v1
+      - run: cmake --preset windows-showcase-shipping
+      - run: cmake --build --preset windows-showcase-shipping --target NexoraShowcasePackageShippingEvidence --parallel 4
+      - name: Native Windows isolated-copy visual acceptance
+        shell: pwsh
+        run: |
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File Tools/Package/AcceptShowcaseWindows.ps1 -PackageRoot build/windows-showcase-shipping/package/NexoraShowcase-Shipping -EvidenceDirectory build/windows-showcase-shipping/artifacts/showcase-windows-v1 -ExpectedBuildId ($env:GITHUB_SHA.Substring(0, 12)) -AllowUnavailableDisplay
+          if ($LASTEXITCODE -eq 77) {
+            Write-Host "Native visual acceptance is UNSUPPORTED: runner has no interactive desktop."
+            exit 0
+          }
+          exit $LASTEXITCODE
+      - name: Assemble release bundle
+        shell: pwsh
+        run: |
+          $out = "release-bundle"
+          New-Item -ItemType Directory $out | Out-Null
+          Copy-Item build/windows-showcase-shipping/package/NexoraShowcase-Shipping.zip $out/
+          Copy-Item build/windows-showcase-shipping/package/NexoraShowcase-Shipping.zip.sha256 $out/
+          Copy-Item build/windows-showcase-shipping/artifacts/showcase-windows-v1 "$out/windows-acceptance" -Recurse
+          $info = [ordered]@{
+            git_commit = $env:GITHUB_SHA
+            git_ref = $env:GITHUB_REF
+            workflow_run = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+            runner_os = $env:RUNNER_OS
+            note = "Hosted-runner evidence only. Physical-display and Vulkan/Metal acceptance are recorded separately under Apps/Showcase/evidence."
+          }
+          $info | ConvertTo-Json | Set-Content "$out/release-info.json" -Encoding utf8
+          Get-ChildItem $out -File | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } | Set-Content "$out/RELEASE-SHA256SUMS" -Encoding ascii
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: release-bundle/
+
+  require-passing-build:
+    # The Build workflow runs on the same tag push; wait for it and require success.
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Wait for the Build workflow on this commit
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 6600))
+          while true; do
+            run="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?head_sha=${GITHUB_SHA}&event=push" \
+              --jq '.workflow_runs | sort_by(.created_at) | last | [.status, (.conclusion // "")] | @tsv')"
+            echo "Build workflow: ${run:-not found yet}"
+            status="$(cut -f1 <<<"${run}")"
+            conclusion="$(cut -f2 <<<"${run}")"
+            if [[ "${status}" == "completed" ]]; then
+              [[ "${conclusion}" == "success" ]] || { echo "Build did not succeed (${conclusion})" >&2; exit 1; }
+              break
+            fi
+            (( SECONDS < deadline )) || { echo "Timed out waiting for the Build workflow" >&2; exit 1; }
+            sleep 60
+          done
+      - name: Dry run
+        if: github.event_name != 'push'
+        run: echo "workflow_dispatch dry run - Build gate skipped and no release will be created."
+
+  draft-release:
+    if: github.event_name == 'push'
+    needs: [windows-package, require-passing-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-bundle
+          path: release-bundle
+      - name: Create DRAFT release (a person publishes it)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tar -C release-bundle -czf release-bundle/windows-acceptance.tar.gz windows-acceptance
+          gh release create "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" --draft --verify-tag --generate-notes \
+            --title "${GITHUB_REF_NAME}" \
+            release-bundle/NexoraShowcase-Shipping.zip \
+            release-bundle/NexoraShowcase-Shipping.zip.sha256 \
+            release-bundle/windows-acceptance.tar.gz \
+            release-bundle/release-info.json \
+            release-bundle/RELEASE-SHA256SUMS
