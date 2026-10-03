@@ -165,7 +165,8 @@ public:
   // Draws one indexed, depth-tested, lit mesh into the acquired image or, when offscreen is
   // requested, a fence-owned private color/depth target requiring CompositeScene. Backends without
   // a real geometry pipeline report Unsupported rather than silently falling back to a 2D
-  // composite.
+  // composite. A bounded direct scene draw may follow UI to replace only its viewport pixels;
+  // offscreen and default full-surface draws must precede UI.
   virtual SurfaceStatus DrawScene(const SceneDrawData &) { return SurfaceStatus::Unsupported; }
   // Copies a completed offscreen scene into the acquired image entirely on the GPU. A pending
   // offscreen draw must be composited once before UI/Present; direct scene callers need no copy.

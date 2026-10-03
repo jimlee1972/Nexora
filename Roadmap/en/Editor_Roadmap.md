@@ -180,7 +180,7 @@ creates property widgets; unknown components retain raw data instead of being si
 - ✅ The docked Scene canvas now publishes its visible framebuffer-pixel bounds after layout and
   DPI scaling, resetting them each frame.
 - ✅ The Scene panel now offers a Vulkan/DX12 native 3D proxy preview inside that canvas, drawing
-  depth-tested ground and position proxies for live scene nodes before the ImGui overlay. The X/Z
+  depth-tested ground and position proxies for live scene nodes after UI submission. The X/Z
   editing overview remains available. Authored meshes, full world transforms, 3D camera controls,
   picking, and gizmos remain open, so full renderer-backed Scene View acceptance is still open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on

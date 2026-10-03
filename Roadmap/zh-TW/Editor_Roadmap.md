@@ -176,8 +176,8 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   Portable 邊界檢查與 Vulkan Xvfb 像素讀回涵蓋裁切。
 - ✅ Docked Scene canvas 現會在 layout 與 DPI 縮放後提供可見的 framebuffer 像素邊界，
   並於每幀重設。
-- ✅ Scene panel 現提供 Vulkan／DX12 原生 3D 代理預覽，在該 canvas 中先繪製有深度測試的
-  地面與 live scene 節點位置代理，再疊上 ImGui。X/Z 編輯概覽仍可切回。已建立的 mesh、
+- ✅ Scene panel 現提供 Vulkan／DX12 原生 3D 代理預覽，在 UI 提交後於該 canvas 繪製有深度測試的
+  地面與 live scene 節點位置代理，保留 canvas 外的控制項。X/Z 編輯概覽仍可切回。已建立的 mesh、
   完整世界 transform、3D camera control、picking 與 gizmo 仍待完成，完整 renderer-backed
   Scene View 驗收因此仍未通過。
 - ✅ Scene 概覽現共用 Hierarchy 的 Ctrl／Shift 多選錨點，並可透過 F 或 Frame selected

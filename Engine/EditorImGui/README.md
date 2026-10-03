@@ -45,7 +45,7 @@ authoring views on first launch.
   `SceneCanvasViewport()` exposes its visible, clipped canvas rectangle in framebuffer pixels
   after each frame's dock layout and DPI scale. It is empty when the panel is not drawn and is
   reset at `BeginFrame`. The 3D Preview toggle publishes this rectangle to the application for
-  a direct native scene draw before UI; the X/Z overview remains available for editing. Backends
+  a bounded direct native scene draw after UI; the X/Z overview remains available for editing. Backends
   without native scene geometry support show an unavailable message.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.

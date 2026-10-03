@@ -45,7 +45,8 @@ Content panel with breadcrumbs, folder navigation, search/type filtering, virtua
 rows, thumbnail state, selection, typed drag/drop, dependency inspection, and background reimport.
 The Scene panel can switch from its editable X/Z overview to a native depth-tested 3D proxy
 preview. Vulkan and DX12 draw an instanced ground and one position proxy per scene node inside the
-docked canvas before UI submission. Selection changes proxy tint. This preview does not yet draw
+docked canvas after UI submission, preserving controls outside the canvas. Selection changes proxy
+tint. This preview does not yet draw
 authored mesh assets or apply node rotation/scale; the full renderer-backed Scene View remains open.
 `--native-scene-preview` selects this mode on startup for display acceptance.
 Project-selector activation now indexes content through an application-owned `AssetImportQueue`;

@@ -2129,8 +2129,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     DrawInspector(*state_, scene);
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
-  if (ImGui::Begin(scene_window.c_str(), nullptr,
-                   state_->native_scene_preview ? ImGuiWindowFlags_NoBackground : 0)) {
+  if (ImGui::Begin(scene_window.c_str())) {
     ImGui::BeginDisabled(scene == nullptr || recovery_available);
     if (ImGui::Button("Undo")) {
       static_cast<void>(shell.RouteCommand("editor.scene.undo"));

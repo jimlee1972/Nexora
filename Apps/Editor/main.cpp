@@ -472,6 +472,13 @@ int RunGraphical(std::optional<ProjectState> project,
       return recovery == Nexora::Presentation::SurfaceAction::RecreateSurface ||
              recovery == Nexora::Presentation::SurfaceAction::Suspend;
     };
+    if (const auto render_status = ui.Render(*created.surface, frame.width, frame.height);
+        render_status != Nexora::Presentation::SurfaceStatus::Ready) {
+      if (surface_recoverable(render_status))
+        continue;
+      result = created.surface->CloseRequested() ? 0 : 1;
+      break;
+    }
     if (project) {
       if (const auto viewport = ui.NativeScenePreviewViewport()) {
         const auto scene_status =
@@ -492,13 +499,6 @@ int RunGraphical(std::optional<ProjectState> project,
           break;
         }
       }
-    }
-    if (const auto render_status = ui.Render(*created.surface, frame.width, frame.height);
-        render_status != Nexora::Presentation::SurfaceStatus::Ready) {
-      if (surface_recoverable(render_status))
-        continue;
-      result = created.surface->CloseRequested() ? 0 : 1;
-      break;
     }
     const auto frame_processed = std::chrono::steady_clock::now();
     if (const auto end_status = created.surface->EndFrame();
