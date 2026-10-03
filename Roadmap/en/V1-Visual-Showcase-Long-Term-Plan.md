@@ -14,13 +14,14 @@
 - ✅ Windows DX12 local developer machine (GTX 960): the stock PowerShell 5 verifier passed the current Development/Full package (22 checksums, 24 screenshots, 2528 native graph/copy/present frames) and Shipping/Full package (14 checksums, 25 screenshots, 15231 native graph/copy/present frames, complete 210-second tour). Windows Development CTest 68/68; Linux Development CTest 77/77. Evidence: [`Windows-V1-DX12-Local-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
 - ✅ Windows hosted-CI Full Shipping/DX12 isolated-copy graphical acceptance passes ([CI 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518); evidence: [`Windows-V1-Native-Graph-CI-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md)).
 - ✅ Clean Windows 10 VM (VirtualBox, no dev tools) passed the Shipping/Full package verifier with `-CleanHost -CompleteGuidedTour`: `status=PASS`, 14 checksums, 25 screenshots, DX12 with no fallback, 3861 native graph/present frames ([record](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)). The adapter is a VirtualBox virtual GPU, so this is not physical-display acceptance.
-- Open (final V1 acceptance remains PENDING): the physical-display operator attestation (`-PhysicalDisplay`; `physical_display_verified` is false everywhere), Vulkan/Metal native-backend parity on their target hosts, and the per-tag release artifact workflow. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
+- ✅ Physical-display acceptance on the GTX 960 developer machine: the Shipping/Full package passed `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour` (`status=PASS`, `physical_display_verified=true`, DX12 without fallback or software rasterizer, 15649 native graph/present frames, 25 screenshots; [record](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)). The operator attestation flag was supplied by Claude on the user's instruction and the user did not separately watch the run; see the record.
+- Open (final V1 acceptance remains PENDING): Vulkan/Metal native-backend parity on their target hosts (Windows presets build with the Vulkan backend OFF) and the per-tag release artifact workflow. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
 
 Evidence and exact validation results: [`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
 
 > Document version: v1.2
 >
-> Document status: Linux, Windows developer-machine and clean-VM slices implemented and verified; physical-display acceptance and final V1 acceptance pending
+> Document status: Linux, Windows developer-machine, clean-VM and physical-display slices implemented and verified; Vulkan/Metal parity, per-tag release workflow and final V1 acceptance pending
 >
 > Updated: 2026-10-03
 
@@ -242,19 +243,19 @@ Every row needs two results: the Contract Gate is automated evidence, and the Sh
 
 | Milestone | Existing/expected contract gate | Showcase view | First-phase status | Owner |
 | --- | --- | --- | --- | --- |
-| M0 | CMake preset, module graph, build/CTest, Host startup | Build ID, module list, startup diagnostics | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Build |
-| M1 | `core.runtime`, Foundation/Gameplay ABI | Frame time, job graph, allocator/log/VFS counters | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Core |
-| M2 | Shader reflection, validation device, renderer contracts | Shader/pass/resource overlay | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Renderer |
-| M3 | Native DX12/Vulkan/Metal offscreen path | Backend badge, native present counters, 3D frame | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Presentation |
-| M4 | `runtime.v1_m4_vertical_slice`, scene snapshot/lifecycle | Operable scene, entity, undo, play/editor world | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Runtime Scene |
-| M5 | `runtime.v1_m5_asset_pipeline` | Import/cook/bundle/progress/reload/rollback | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Runtime Assets |
-| M6 | `runtime.v1_m6_editor_sdk`, plugin ABI/prefab | Reflection inspector, Undo, prefab rebase, plugin status | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Runtime Editor SDK |
-| M7 | `runtime.v1_m7_input_ui_localization` | Key binding, UI widgets, locale switch, fallback | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Runtime Input/UI |
-| M8 | `runtime.v1_m8_gameplay_simulation` | Character, collision, nav, AI trace | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Runtime Gameplay |
-| M9 | `runtime.v1_m9_presentation` | Animation, particles, audio, video queue | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Runtime Presentation |
-| M10 | `runtime.v1_m10_large_world` | Streaming map, HLOD, RAM/VRAM budget | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Runtime Large World |
-| M11 | `runtime.v1_m11_platform` | Lifecycle/pressure/WebView ownership panel | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Runtime Platform |
-| M12 | `runtime.v1_m12_shipping` | Package/profile/rollback/crash/device evidence | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM verified; physical-display gate pending | Runtime Shipping |
+| M0 | CMake preset, module graph, build/CTest, Host startup | Build ID, module list, startup diagnostics | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Build |
+| M1 | `core.runtime`, Foundation/Gameplay ABI | Frame time, job graph, allocator/log/VFS counters | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Core |
+| M2 | Shader reflection, validation device, renderer contracts | Shader/pass/resource overlay | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Renderer |
+| M3 | Native DX12/Vulkan/Metal offscreen path | Backend badge, native present counters, 3D frame | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Presentation |
+| M4 | `runtime.v1_m4_vertical_slice`, scene snapshot/lifecycle | Operable scene, entity, undo, play/editor world | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Runtime Scene |
+| M5 | `runtime.v1_m5_asset_pipeline` | Import/cook/bundle/progress/reload/rollback | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Runtime Assets |
+| M6 | `runtime.v1_m6_editor_sdk`, plugin ABI/prefab | Reflection inspector, Undo, prefab rebase, plugin status | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Runtime Editor SDK |
+| M7 | `runtime.v1_m7_input_ui_localization` | Key binding, UI widgets, locale switch, fallback | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Runtime Input/UI |
+| M8 | `runtime.v1_m8_gameplay_simulation` | Character, collision, nav, AI trace | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Runtime Gameplay |
+| M9 | `runtime.v1_m9_presentation` | Animation, particles, audio, video queue | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Runtime Presentation |
+| M10 | `runtime.v1_m10_large_world` | Streaming map, HLOD, RAM/VRAM budget | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Runtime Large World |
+| M11 | `runtime.v1_m11_platform` | Lifecycle/pressure/WebView ownership panel | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Runtime Platform |
+| M12 | `runtime.v1_m12_shipping` | Package/profile/rollback/crash/device evidence | PARTIAL — Linux/Windows developer views verified; clean Windows 10 VM and GTX 960 physical-display verified; Vulkan/Metal parity pending | Runtime Shipping |
 
 ### 7.1 Unified probe interface
 
@@ -315,7 +316,7 @@ This accepts the Linux virtual-display slice only; physical-display and Windows/
 - ✅ Minimal/Full/Dedicated Packager previews, staged-update rollback and bounded crash breadcrumbs.
 - ✅ Full profile presets, packaged content manifests, interactive scripts, deterministic ZIP/SHA-256 and isolated-copy headless package smoke.
 - ✅ Linux screenshot and native interaction artifacts are versioned; CI retains screenshots, packages and CTest logs.
-- Open: physical-display/version-tag evidence (the Full Windows executable now also passes on a clean Windows 10 VM).
+- Open: version-tag evidence (the Full Windows executable now also passes on a clean Windows 10 VM and on the GTX 960 physical display).
 
 ## 9. Build, run, and packaging specification
 
@@ -430,7 +431,7 @@ Required gates:
 | M6 separates Editor SDK from graphical editor | ✅ | §6.3 scope statement |
 | M9/M11 run contract-only when adapters are missing | ✅ | Audio/video/WebView marked contract-only/unavailable |
 | Shipping/Full package launches on a clean Windows host | ✅ (VM) | Clean Windows 10 VirtualBox VM, `-CleanHost`, PASS ([record](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)); virtual GPU, not physical |
-| Physical-display operator attestation | Pending | Corresponding acceptance-JSON field is still false |
+| Physical-display acceptance | ✅ | GTX 960, `-PhysicalDisplay` PASS ([record](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)); attestation flag supplied by Claude on the user's instruction |
 | Every tag produces executable/manifest/report/screenshots | Pending | Versioned evidence directories exist; tag workflow not declared complete |
 
 ## 13. Suggested first build ticket
@@ -496,3 +497,5 @@ pinned LF bytes. Baseline e4a140139189 passes Linux Development 77/77 and Shippi
 physical-display and clean-host final gates remain pending.
 
 ✅ Clean Windows 10 VM acceptance: the Shipping/Full package (SHA-256 `09b0fda2…13b4`, build `e4a140139189`) passed `accept-v1.ps1 -CleanHost -CompleteGuidedTour` in the independently provisioned VirtualBox guest `Nexora-ZS-M5-CleanMachine-Win10`: 14 checksums, 25 screenshots, DX12 without fallback, 3861 graph/present frames, no issues. `physical_display_verified` stays false because the adapter is a VirtualBox virtual GPU; V1 final acceptance remains pending. [Record](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md).
+
+✅ Physical-display acceptance: on the GTX 960 developer machine the Shipping/Full package (build `e4a140139189`) passed `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour`: `status=PASS`, `physical_display_verified=true`, DX12 without fallback or software rasterizer, 15649 graph/present frames, 25 screenshots, 210-second tour completed. The attestation flag was supplied by Claude on the user's instruction (a first attempt failed because Claude's own screenshots hid the window). Vulkan/Metal parity and the per-tag release workflow remain open, so V1 final acceptance is still pending. [Record](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md).

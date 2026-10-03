@@ -1,0 +1,1 @@
+NexoraShowcase build=e4a140139189 --mode=interactive --scene=hub --backend=dx12 --no-reload --report=acceptance-launch.json --markdown=acceptance-launch.md --gameplay-module=static
