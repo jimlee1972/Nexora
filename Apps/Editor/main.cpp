@@ -22,6 +22,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <numbers>
 #include <optional>
 #include <string>
@@ -108,13 +109,37 @@ NativeSceneProxyCandidates(const nexora::editor::SceneDocument &scene) {
     if (candidates.size() == 4095)
       break;
     const auto pose = scene.WorldTransform(node.id);
-    if (!pose || !std::isfinite(pose->x) || !std::isfinite(pose->y) || !std::isfinite(pose->z) ||
-        std::abs(pose->x) > 100000.0 || std::abs(pose->y) > 100000.0 ||
-        std::abs(pose->z) > 100000.0)
+    if (!pose || !nexora::runtime::IsValidTransform(*pose) || std::abs(pose->x) > 100000.0 ||
+        std::abs(pose->y) > 100000.0 || std::abs(pose->z) > 100000.0 ||
+        std::abs(pose->sx) < 0.0001 || std::abs(pose->sy) < 0.0001 || std::abs(pose->sz) < 0.0001 ||
+        std::abs(pose->sx) > 100000.0 || std::abs(pose->sy) > 100000.0 ||
+        std::abs(pose->sz) > 100000.0)
       continue;
-    candidates.push_back({node.id,
-                          {pose->x - 0.45, pose->y + 0.05, pose->z - 0.45},
-                          {pose->x + 0.45, pose->y + 0.95, pose->z + 0.45}});
+    const auto matrix = nexora::runtime::ToMatrix(*pose);
+    nexora::editor::PickCandidate candidate;
+    candidate.entity = node.id;
+    candidate.min = {std::numeric_limits<double>::infinity(),
+                     std::numeric_limits<double>::infinity(),
+                     std::numeric_limits<double>::infinity()};
+    candidate.max = {-candidate.min.x, -candidate.min.y, -candidate.min.z};
+    for (const double x : {-0.45, 0.45})
+      for (const double y : {-0.45, 0.45})
+        for (const double z : {-0.45, 0.45}) {
+          const double px = matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12];
+          const double py = matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13] + 0.5;
+          const double pz = matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14];
+          candidate.min.x = std::min(candidate.min.x, px);
+          candidate.min.y = std::min(candidate.min.y, py);
+          candidate.min.z = std::min(candidate.min.z, pz);
+          candidate.max.x = std::max(candidate.max.x, px);
+          candidate.max.y = std::max(candidate.max.y, py);
+          candidate.max.z = std::max(candidate.max.z, pz);
+        }
+    if (!std::isfinite(candidate.min.x) || !std::isfinite(candidate.min.y) ||
+        !std::isfinite(candidate.min.z) || !std::isfinite(candidate.max.x) ||
+        !std::isfinite(candidate.max.y) || !std::isfinite(candidate.max.z))
+      continue;
+    candidates.push_back(candidate);
   }
   return candidates;
 }
@@ -235,6 +260,9 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   ground.color[2] = 0.34F;
   instances.push_back(ground);
   for (const auto &candidate : candidates) {
+    const auto pose = scene.WorldTransform(candidate.entity);
+    if (!pose)
+      continue;
     Nexora::Presentation::SceneInstance instance{};
     const bool preview_moved = drag_preview && moves_with_selection(candidate.entity);
     instance.translation[0] = static_cast<float>((candidate.min.x + candidate.max.x) * 0.5 +
@@ -242,7 +270,13 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     instance.translation[1] = static_cast<float>((candidate.min.y + candidate.max.y) * 0.5);
     instance.translation[2] = static_cast<float>((candidate.min.z + candidate.max.z) * 0.5 +
                                                  (preview_moved ? (*drag_preview)[1] : 0.0));
-    instance.scale[0] = instance.scale[1] = instance.scale[2] = 0.45F;
+    instance.scale[0] = static_cast<float>(pose->sx * 0.45);
+    instance.scale[1] = static_cast<float>(pose->sy * 0.45);
+    instance.scale[2] = static_cast<float>(pose->sz * 0.45);
+    instance.rotation[0] = static_cast<float>(pose->qx);
+    instance.rotation[1] = static_cast<float>(pose->qy);
+    instance.rotation[2] = static_cast<float>(pose->qz);
+    instance.rotation[3] = static_cast<float>(pose->qw);
     const bool is_selected = selected.contains(candidate.entity);
     instance.color[0] = is_selected ? 1.0F : 0.35F;
     instance.color[1] = is_selected ? 0.75F : 0.65F;

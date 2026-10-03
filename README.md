@@ -183,7 +183,8 @@ The native Vulkan/DX12 scene draw contract now supports a clipped physical-pixel
 portable bounds checks and Vulkan Xvfb pixel evidence.
 The docked Scene canvas now exposes its visible framebuffer-pixel rectangle after layout and DPI
 scaling. The Editor's 3D Preview toggle now draws native depth-tested ground and live entity
-position proxies in that rectangle after UI submission. Authored meshes, full 3D editing, and graphical
+position proxies in that rectangle after UI submission. Proxies now reflect composed world rotation
+and scale. Authored meshes, exact sheared transforms, full 3D editing, and graphical
 Scene View acceptance remain open.
 The preview camera supports right-drag orbit, middle-drag X/Z pan, wheel zoom, and F or Frame
 selected to center its X/Y/Z target; orbit angle, distance, and target height persist per scene.
@@ -366,7 +367,8 @@ Game View 輸出仍待完成。
 Vulkan Xvfb 像素證據已涵蓋此功能。
 Docked Scene canvas 現會在 layout 與 DPI 縮放後提供可見的 framebuffer 像素矩形；
 Editor 的 3D Preview 切換現會在 UI 提交後於該矩形繪製原生有深度測試的地面與 live entity
-位置代理。已建立的 mesh、完整 3D 編輯與圖形化 Scene View 驗收仍待完成。
+位置代理；代理現會反映合成後的世界旋轉與縮放。已建立的 mesh、精確的 shear transform、完整 3D
+編輯與圖形化 Scene View 驗收仍待完成。
 預覽鏡頭現支援右鍵拖曳旋轉、中鍵拖曳 X/Z 平移、滾輪縮放，以及 F 或 Frame selected
 將 X/Y/Z 目標對準選取節點；旋轉角度、距離與目標高度現會逐場景保存。
 點選可見的 3D 代理現會同步選取 Hierarchy 與 Inspector 中的場景節點；Ctrl 點選可切換選取。

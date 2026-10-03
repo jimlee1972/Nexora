@@ -132,6 +132,8 @@ jobs:
           ctest --preset linux-development -N -R '^editor\.linux_display_acceptance$' | grep -q 'Total Tests: 1'
       - name: Editor tests (includes the Xvfb display acceptance)
         run: ctest --preset linux-development -R '^editor\.' --output-on-failure
+      - name: Native Vulkan scene rotation pixels (Xvfb)
+        run: ctest --preset linux-development -R '^window_presentation\.vulkan_scene$' --output-on-failure
 
   zig-mobile-cross-build:
     name: Zig object smoke (${{ matrix.target }})

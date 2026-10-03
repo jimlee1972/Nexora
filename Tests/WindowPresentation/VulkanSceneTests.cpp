@@ -208,6 +208,10 @@ int main(int argc, char **argv) {
     Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
             "nonfinite instance accepted");
     instances[0].translation[0] = -0.5F;
+    instances[0].rotation[3] = 0.0F;
+    Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+            "non-unit instance rotation accepted");
+    instances[0].rotation[3] = 1.0F;
     const std::vector<Presentation::SceneInstance> excessive(4097);
     auto invalidInstances = draw;
     invalidInstances.instances = excessive;
@@ -232,6 +236,26 @@ int main(int argc, char **argv) {
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
     Require(instancePixels, "independent instance transform/tint pixels failed");
+    instances[0].rotation[1] = 1.0F;
+    instances[0].rotation[3] = 0.0F;
+    Require(surface->Acquire() == SurfaceStatus::Ready, "rotation acquire failed");
+    Require(surface->DrawScene(draw) == SurfaceStatus::Ready, "rotated instance draw failed");
+    Require(surface->Present() == SurfaceStatus::Ready, "rotation present failed");
+    bool rotationPixels = false;
+    const auto rotationDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+    while (!rotationPixels && std::chrono::steady_clock::now() < rotationDeadline) {
+      XSync(display, False);
+      auto *image = XGetImage(display, native, 0, 0, width, height, AllPlanes, ZPixmap);
+      Require(image != nullptr, "rotation readback failed");
+      const auto left = XGetPixel(image, width / 4, height / 2);
+      const auto right = XGetPixel(image, width * 3 / 4, height / 2);
+      rotationPixels =
+          Channel(left, image->red_mask) < 80 && Channel(right, image->green_mask) > 150;
+      XDestroyImage(image);
+      if (!rotationPixels)
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    Require(rotationPixels, "rotated instance pixels did not change lighting");
     const std::array<std::byte, 8> texels{std::byte{255}, std::byte{0},  std::byte{0},
                                           std::byte{255}, std::byte{0},  std::byte{255},
                                           std::byte{0},   std::byte{255}};

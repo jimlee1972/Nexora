@@ -334,6 +334,14 @@ public:
       for (const auto value : instance.color)
         if (!std::isfinite(value))
           return SurfaceStatus::InvalidDescriptor;
+      float rotation_length_squared = 0.0F;
+      for (const auto value : instance.rotation) {
+        if (!std::isfinite(value))
+          return SurfaceStatus::InvalidDescriptor;
+        rotation_length_squared += value * value;
+      }
+      if (std::abs(rotation_length_squared - 1.0F) > 0.01F)
+        return SurfaceStatus::InvalidDescriptor;
     }
     if (data.textureUploads.size() > 16)
       return SurfaceStatus::InvalidDescriptor;
@@ -1278,12 +1286,13 @@ private:
         {2, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneInstance, translation)},
         {3, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneInstance, scale)},
         {4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstance, color)},
-        {5, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SceneVertex, uv)}};
+        {5, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SceneVertex, uv)},
+        {6, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstance, rotation)}};
     VkPipelineVertexInputStateCreateInfo vertexInput{};
     vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInput.vertexBindingDescriptionCount = 2;
     vertexInput.pVertexBindingDescriptions = vertexBindings;
-    vertexInput.vertexAttributeDescriptionCount = 6;
+    vertexInput.vertexAttributeDescriptionCount = 7;
     vertexInput.pVertexAttributeDescriptions = attributes;
     const VkPipelineInputAssemblyStateCreateInfo assembly{
         VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0,
