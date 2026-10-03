@@ -174,12 +174,15 @@ creates property widgets; unknown components retain raw data instead of being si
   clipboard. Hierarchy row views are built after paste and duplicate actions mutate the document.
 - ✅ The central Scene panel now has an interactive top-down X/Z overview: parent-composed entity
   positions, grid, wheel zoom, middle-button pan, and click selection shared with Hierarchy.
-  Renderer-backed 3D output and full 3D gizmos remain open.
+  Authored 3D mesh output and full 3D gizmos remain open.
 - ✅ The native Vulkan/DX12 scene draw contract now accepts a bounded physical-pixel viewport.
-  Portable bounds checks and Vulkan Xvfb pixel readback cover clipping. The Editor Scene panel
-  has not yet wired this draw path, so renderer-backed Scene View acceptance remains open.
+  Portable bounds checks and Vulkan Xvfb pixel readback cover clipping.
 - ✅ The docked Scene canvas now publishes its visible framebuffer-pixel bounds after layout and
-  DPI scaling, resetting them each frame. Native scene drawing into that canvas remains open.
+  DPI scaling, resetting them each frame.
+- ✅ The Scene panel now offers a Vulkan/DX12 native 3D proxy preview inside that canvas, drawing
+  depth-tested ground and position proxies for live scene nodes before the ImGui overlay. The X/Z
+  editing overview remains available. Authored meshes, full world transforms, 3D camera controls,
+  picking, and gizmos remain open, so full renderer-backed Scene View acceptance is still open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on
   selected world positions with F or Frame selected. Input-event tests cover both interactions.
 - ✅ Scene overview marker dragging previews a world X/Z move; visible X and Z handles constrain

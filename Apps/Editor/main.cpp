@@ -6,21 +6,27 @@
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
+#include "Nexora/Math/Math.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/Device.h"
 #include "Nexora/Runtime/EditorSdk.h"
 #endif
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <chrono>
+#include <cmath>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace {
 struct ProjectState final {
@@ -58,9 +64,99 @@ bool LoadProject(const std::filesystem::path &root, nexora::editor::ProjectAcces
 }
 
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
+struct NativeSceneProxyMesh final {
+  std::array<Nexora::Presentation::SceneVertex, 24> vertices{};
+  std::array<std::uint16_t, 36> indices{};
+
+  NativeSceneProxyMesh() {
+    constexpr std::array<std::array<float, 3>, 8> corners{{{-1, -1, 1},
+                                                           {1, -1, 1},
+                                                           {1, 1, 1},
+                                                           {-1, 1, 1},
+                                                           {-1, -1, -1},
+                                                           {1, -1, -1},
+                                                           {1, 1, -1},
+                                                           {-1, 1, -1}}};
+    constexpr std::array<std::array<std::uint16_t, 4>, 6> faces{
+        {{0, 1, 2, 3}, {1, 5, 6, 2}, {5, 4, 7, 6}, {4, 0, 3, 7}, {3, 2, 6, 7}, {4, 5, 1, 0}}};
+    constexpr std::array<std::array<float, 3>, 6> normals{
+        {{0, 0, 1}, {1, 0, 0}, {0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}}};
+    for (std::size_t face = 0; face < faces.size(); ++face) {
+      const auto base = face * 4;
+      for (std::size_t corner = 0; corner < 4; ++corner) {
+        const auto &point = corners[faces[face][corner]];
+        const auto &normal = normals[face];
+        vertices[base + corner] = {
+            {point[0], point[1], point[2]}, {normal[0], normal[1], normal[2]}, {0, 0}};
+      }
+      for (std::size_t index = 0; index < 6; ++index)
+        indices[face * 6 + index] = static_cast<std::uint16_t>(
+            base + std::array<std::uint16_t, 6>{0, 1, 2, 2, 3, 0}[index]);
+    }
+  }
+};
+
+Nexora::Presentation::SurfaceStatus
+DrawNativeScenePreview(Nexora::Presentation::RenderSurface &surface,
+                       const nexora::editor::SceneDocument &scene,
+                       Nexora::Presentation::SceneViewport viewport,
+                       nexora::editor::imgui::SceneOverviewCamera camera) {
+  static const NativeSceneProxyMesh mesh;
+  const auto nodes = scene.Nodes();
+  const std::unordered_set<nexora::runtime::Id> selected(scene.Selection().begin(),
+                                                         scene.Selection().end());
+  camera.x = std::clamp(camera.x, -100000.0, 100000.0);
+  camera.z = std::clamp(camera.z, -100000.0, 100000.0);
+  std::vector<Nexora::Presentation::SceneInstance> instances;
+  instances.reserve(std::min<std::size_t>(nodes.size() + 1, 4096));
+  Nexora::Presentation::SceneInstance ground{};
+  ground.translation[0] = static_cast<float>(camera.x);
+  ground.translation[1] = -0.35F;
+  ground.translation[2] = static_cast<float>(camera.z);
+  ground.scale[0] = ground.scale[2] = 12.0F;
+  ground.scale[1] = 0.1F;
+  ground.color[0] = 0.24F;
+  ground.color[1] = 0.28F;
+  ground.color[2] = 0.34F;
+  instances.push_back(ground);
+  for (const auto &node : nodes) {
+    if (instances.size() == 4096)
+      break;
+    const auto pose = scene.WorldTransform(node.id);
+    if (!pose || !std::isfinite(pose->x) || !std::isfinite(pose->y) || !std::isfinite(pose->z) ||
+        std::abs(pose->x) > 100000.0 || std::abs(pose->y) > 100000.0 ||
+        std::abs(pose->z) > 100000.0)
+      continue;
+    Nexora::Presentation::SceneInstance instance{};
+    instance.translation[0] = static_cast<float>(pose->x);
+    instance.translation[1] = static_cast<float>(pose->y) + 0.5F;
+    instance.translation[2] = static_cast<float>(pose->z);
+    instance.scale[0] = instance.scale[1] = instance.scale[2] = 0.45F;
+    const bool is_selected = selected.contains(node.id);
+    instance.color[0] = is_selected ? 1.0F : 0.35F;
+    instance.color[1] = is_selected ? 0.75F : 0.65F;
+    instance.color[2] = is_selected ? 0.2F : 1.0F;
+    instances.push_back(instance);
+  }
+  const nexora::math::Vector3 target{static_cast<float>(camera.x), 0.0F,
+                                     static_cast<float>(camera.z)};
+  const nexora::math::Vector3 eye{target.x + 8.0F, 10.0F, target.z + 12.0F};
+  const auto mvp = nexora::math::PerspectiveRadians(
+                       0.85F, static_cast<float>(viewport.width) / viewport.height, 0.1F, 500.0F) *
+                   nexora::math::LookAt(eye, target);
+  Nexora::Presentation::SceneDrawData draw{};
+  draw.vertices = mesh.vertices;
+  draw.indices = mesh.indices;
+  draw.instances = instances;
+  draw.viewport = viewport;
+  std::memcpy(draw.model_view_projection, mvp.values.data(), sizeof(draw.model_view_projection));
+  return surface.DrawScene(draw);
+}
+
 int RunGraphical(std::optional<ProjectState> project,
                  nexora::editor::RecentProjectStore &recent_projects,
-                 nexora::editor::ProjectAccess selector_access, std::uint32_t frame_limit) {
+                 nexora::editor::ProjectAccess selector_access, std::uint32_t frame_limit,
+                 bool native_scene_preview) {
   auto created = Nexora::Presentation::CreateRenderSurface(
       {"Nexora Editor", 1280, 720, true, Nexora::Presentation::SurfaceBackend::Automatic});
   if (!created) {
@@ -68,6 +164,7 @@ int RunGraphical(std::optional<ProjectState> project,
     return 1;
   }
   nexora::editor::imgui::EditorImGuiHost ui;
+  ui.SetNativeScenePreview(native_scene_preview);
   nexora::core::JobSystem import_jobs{1};
   import_jobs.Start();
   nexora::editor::AssetImportQueue imports{import_jobs};
@@ -107,6 +204,7 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::runtime::PlaySession play(world);
   nexora::runtime::RuntimeConsole console{1024};
   nexora::editor::ProfileSession profile{240};
+  bool native_scene_viewport_reported = false;
   const auto log = [&](nexora::runtime::RuntimeLogSeverity severity, std::string category,
                        std::string message) {
     const auto timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -374,6 +472,27 @@ int RunGraphical(std::optional<ProjectState> project,
       return recovery == Nexora::Presentation::SurfaceAction::RecreateSurface ||
              recovery == Nexora::Presentation::SurfaceAction::Suspend;
     };
+    if (project) {
+      if (const auto viewport = ui.NativeScenePreviewViewport()) {
+        const auto scene_status =
+            DrawNativeScenePreview(*created.surface, scene, *viewport, ui.GetSceneOverviewCamera());
+        ui.SetNativeScenePreviewAvailable(scene_status !=
+                                          Nexora::Presentation::SurfaceStatus::Unsupported);
+        if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&
+            !native_scene_viewport_reported) {
+          std::cerr << "native scene viewport: " << viewport->x << ' ' << viewport->y << ' '
+                    << viewport->width << ' ' << viewport->height << '\n';
+          native_scene_viewport_reported = true;
+        }
+        if (scene_status != Nexora::Presentation::SurfaceStatus::Ready &&
+            scene_status != Nexora::Presentation::SurfaceStatus::Unsupported) {
+          if (surface_recoverable(scene_status))
+            continue;
+          result = 1;
+          break;
+        }
+      }
+    }
     if (const auto render_status = ui.Render(*created.surface, frame.width, frame.height);
         render_status != Nexora::Presentation::SurfaceStatus::Ready) {
       if (surface_recoverable(render_status))
@@ -422,6 +541,7 @@ int RunGraphical(std::optional<ProjectState> project,
   const auto diagnostics = created.surface->Diagnostics();
   std::cerr << "graphical evidence: acquired=" << diagnostics.acquiredFrames
             << " presented=" << diagnostics.presentedFrames
+            << " scene_draws=" << diagnostics.sceneDrawCalls
             << " ui_draws=" << diagnostics.nativeUiDrawCalls
             << " ui_uploads=" << diagnostics.nativeUiTextureUploads
             << " ui_rejected=" << diagnostics.nativeUiRejectedTextures << " recovery="
@@ -453,6 +573,7 @@ int Run(int argc, char **argv) {
   std::filesystem::path recent_projects_path;
   bool graphical = false;
   bool read_only = false;
+  bool native_scene_preview = false;
   std::uint32_t frame_limit = 0;
   for (int index = 1; index < argc; ++index) {
     const std::string_view argument(argv[index]);
@@ -466,6 +587,8 @@ int Run(int argc, char **argv) {
       graphical = true;
     else if (argument == "--read-only")
       read_only = true;
+    else if (argument == "--native-scene-preview")
+      native_scene_preview = true;
     else if (argument.starts_with("--frames=")) {
       const auto digits = argument.substr(9);
       const auto [end, status] =
@@ -476,7 +599,7 @@ int Run(int argc, char **argv) {
       }
     } else if (argument == "--help") {
       std::cout << "NexoraEditor [--project=PATH] [--read-only] [--report=PATH] [--graphical] "
-                   "[--frames=N] [--recent-projects=PATH]\n";
+                   "[--frames=N] [--recent-projects=PATH] [--native-scene-preview]\n";
       return 0;
     } else {
       std::cerr << "unknown argument: " << argument << '\n';
@@ -485,6 +608,10 @@ int Run(int argc, char **argv) {
   }
   if (project.empty() && !graphical) {
     std::cerr << "--project is required unless --graphical opens the project selector\n";
+    return 2;
+  }
+  if (native_scene_preview && !graphical) {
+    std::cerr << "--native-scene-preview requires --graphical\n";
     return 2;
   }
   std::string error;
@@ -512,9 +639,10 @@ int Run(int argc, char **argv) {
     return RunGraphical(std::move(project_state), recent_projects,
                         read_only ? nexora::editor::ProjectAccess::ReadOnly
                                   : nexora::editor::ProjectAccess::ReadWrite,
-                        frame_limit);
+                        frame_limit, native_scene_preview);
 #else
   static_cast<void>(frame_limit);
+  static_cast<void>(native_scene_preview);
   if (graphical) {
     std::cerr << "graphical shell was not enabled at build time\n";
     return 2;

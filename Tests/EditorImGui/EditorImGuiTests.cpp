@@ -373,6 +373,15 @@ void TestSceneOverviewSelection() {
          scaled_canvas->y + scaled_canvas->height <= 720 &&
          (*scaled_parent)[0] * 2.0F >= scaled_canvas->x &&
          (*scaled_parent)[0] * 2.0F < scaled_canvas->x + scaled_canvas->width);
+  scaled_host.SetNativeScenePreview(true);
+  scaled_host.BeginFrame();
+  scaled_host.DrawProductShell(shell, &scene);
+  static_cast<void>(scaled_host.EndFrame());
+  assert(scaled_host.NativeScenePreviewViewport() &&
+         !nexora::editor::imgui::EditorImGuiTestAccess::SceneMarkerPosition(
+             scaled_host, *scene.Key(overview_parent)));
+  scaled_host.SetNativeScenePreview(false);
+  assert(!scaled_host.NativeScenePreviewViewport());
   const std::array events{
       Nexora::Window::WindowEvent{
           {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 1, 0},

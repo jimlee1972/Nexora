@@ -41,10 +41,12 @@ authoring views on first launch.
   clipboard. Paste and Duplicate run before Hierarchy rows borrow node names for the frame.
   The Scene panel has a top-down X/Z overview with a world grid, composed entity positions,
   middle-button pan, wheel zoom, and click selection synchronized with Hierarchy. It is an
-  authoring overview; renderer-backed 3D scene output and full 3D gizmos remain open.
+  authoring overview; authored 3D mesh output and full 3D gizmos remain open.
   `SceneCanvasViewport()` exposes its visible, clipped canvas rectangle in framebuffer pixels
   after each frame's dock layout and DPI scale. It is empty when the panel is not drawn and is
-  reset at `BeginFrame`; the application has not yet connected native scene draws to this area.
+  reset at `BeginFrame`. The 3D Preview toggle publishes this rectangle to the application for
+  a direct native scene draw before UI; the X/Z overview remains available for editing. Backends
+  without native scene geometry support show an unavailable message.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
   Dragging a selected marker previews an X/Z move and commits one document transform transaction

@@ -107,6 +107,10 @@ public:
   // Empty when the panel is not drawn; the value resets at BeginFrame().
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   SceneCanvasViewport() const noexcept;
+  void SetNativeScenePreview(bool enabled) noexcept;
+  void SetNativeScenePreviewAvailable(bool available) noexcept;
+  [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
+  NativeScenePreviewViewport() const noexcept;
   // Flattens the current ImGui draw data into backend-neutral indexed geometry that RenderSurface
   // records directly into its acquired native GPU image. The RHI overload remains a headless
   // contract-test path.

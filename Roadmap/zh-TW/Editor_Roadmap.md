@@ -171,12 +171,15 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 - ✅ Duplicate 按鈕與 Ctrl+D 現可複製圖形化選取，同時保留使用者原本的剪貼簿。
   Hierarchy 會在 Paste 或 Duplicate 修改文件後才建立當幀的節點檢視。
 - ✅ 中央 Scene panel 現有可互動的 X/Z 俯視概覽：含父節點合成後的世界位置、網格、滾輪縮放、
-  中鍵平移，以及與 Hierarchy 同步的點選。正式 3D renderer 輸出與完整 3D gizmo 仍待完成。
+  中鍵平移，以及與 Hierarchy 同步的點選。已建立 mesh 的 3D 輸出與完整 3D gizmo 仍待完成。
 - ✅ 原生 Vulkan／DX12 場景繪製 contract 現可指定有界的實體像素 viewport。
-  Portable 邊界檢查與 Vulkan Xvfb 像素讀回涵蓋裁切。Editor Scene panel 尚未接上此繪製路徑，
-  因此 renderer-backed Scene View 驗收仍待完成。
+  Portable 邊界檢查與 Vulkan Xvfb 像素讀回涵蓋裁切。
 - ✅ Docked Scene canvas 現會在 layout 與 DPI 縮放後提供可見的 framebuffer 像素邊界，
-  並於每幀重設；將原生場景繪製接進此區域仍待完成。
+  並於每幀重設。
+- ✅ Scene panel 現提供 Vulkan／DX12 原生 3D 代理預覽，在該 canvas 中先繪製有深度測試的
+  地面與 live scene 節點位置代理，再疊上 ImGui。X/Z 編輯概覽仍可切回。已建立的 mesh、
+  完整世界 transform、3D camera control、picking 與 gizmo 仍待完成，完整 renderer-backed
+  Scene View 驗收因此仍未通過。
 - ✅ Scene 概覽現共用 Hierarchy 的 Ctrl／Shift 多選錨點，並可透過 F 或 Frame selected
   將檢視中心移至選取物件的世界位置。輸入事件測試涵蓋這兩項操作。
 - ✅ Scene 概覽標記拖曳會預覽世界 X/Z 位移；可見的 X 與 Z 把手可將位移限制於單一世界軸，
