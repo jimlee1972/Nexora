@@ -51,7 +51,7 @@ struct NativeSceneOrbit final {
   double target_y{};
 };
 
-enum class NativeSceneTool { Move, Rotate };
+enum class NativeSceneTool { Move, Rotate, Scale };
 
 struct NativeScenePickRequest final {
   std::uint32_t x{}, y{}; // framebuffer pixels

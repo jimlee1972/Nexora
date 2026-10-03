@@ -137,6 +137,13 @@ def first_entity_rotation(scene_text: str) -> tuple[float, float, float, float]:
     return tuple(float(value) for value in lines[header + 1].split()[5:9])
 
 
+def first_entity_scale(scene_text: str) -> tuple[float, float, float]:
+    lines = scene_text.splitlines()
+    header = next(index for index, line in enumerate(lines)
+                  if line.startswith("NEXORA_SCENE 3 "))
+    return tuple(float(value) for value in lines[header + 1].split()[9:12])
+
+
 def latest_viewport(stream, viewport: tuple[int, int, int, int]):
     while select.select([stream], [], [], 0)[0]:
         output = os.read(stream.fileno(), 4096)
@@ -160,7 +167,7 @@ def settled_viewport(stream, viewport: tuple[int, int, int, int]):
 
 
 def axis_handle_pixels(display_name: str, window: int,
-                       viewport: tuple[int, int, int, int]):
+                       viewport: tuple[int, int, int, int], vertical_radius: int = 70):
     x11 = ctypes.CDLL("libX11.so.6")
     x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
     x11.XOpenDisplay.restype = ctypes.c_void_p
@@ -183,7 +190,8 @@ def axis_handle_pixels(display_name: str, window: int,
             x, y, width, height = viewport
             center_x, center_y = x + width // 2, y + height // 2
             found = [[], [], []]
-            for py in range(max(y, center_y - 70), min(y + height, center_y + 70)):
+            for py in range(max(y, center_y - vertical_radius),
+                            min(y + height, center_y + vertical_radius)):
                 for px in range(max(x, center_x - 100), min(x + width, center_x + 100)):
                     pixel = x11.XGetPixel(image, px, py)
                     rgb = [channel(pixel, mask) for mask in
@@ -437,6 +445,49 @@ def main() -> int:
             time.sleep(0.05)
         if scene_file.read_text() != before_rotation:
             raise RuntimeError("Y rotation ring did not undo atomically")
+        viewport = settled_viewport(editor.stderr, viewport)
+        center_x = viewport[0] + viewport[2] // 2
+        center_y = viewport[1] + viewport[3] // 2
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y)], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "key", "r"], env=environment, check=True)
+        time.sleep(0.2)
+        for axis, (dx, dy) in enumerate(((30, 0), (0, -30), (-25, 15))):
+            viewport = settled_viewport(editor.stderr, viewport)
+            scale_handle = axis_handle_pixels(display, window, viewport, 130)[axis]
+            if scale_handle is None:
+                raise RuntimeError(f"Scale tool lacks visible axis {axis} cube")
+            handle_x, handle_y = scale_handle
+            subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                            str(handle_x), str(handle_y)], env=environment, check=True)
+            time.sleep(0.2)
+            subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+            time.sleep(0.1)
+            subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                            str(handle_x + dx), str(handle_y + dy)], env=environment, check=True)
+            time.sleep(0.15)
+            subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+            subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+            deadline = time.monotonic() + 5
+            scaled = before_rotation
+            while time.monotonic() < deadline and scaled == before_rotation:
+                time.sleep(0.05)
+                scaled = scene_file.read_text()
+            factors = first_entity_scale(scaled)
+            if (factors[axis] < 1.1 or
+                    any(abs(factors[other] - 1.0) > 1e-6 for other in range(3)
+                        if other != axis) or first_entity_position(scaled) != after):
+                raise RuntimeError(f"axis {axis} scale cube did not constrain scale: {factors}")
+            subprocess.run([args.xdotool, "key", "ctrl+z"], env=environment, check=True)
+            subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline and scene_file.read_text() != before_rotation:
+                time.sleep(0.05)
+            if scene_file.read_text() != before_rotation:
+                raise RuntimeError(f"axis {axis} scale cube did not undo atomically")
+        center_x = viewport[0] + viewport[2] // 2
+        center_y = viewport[1] + viewport[3] // 2
         subprocess.run([args.xdotool, "key", "f"], env=environment, check=True)
         time.sleep(0.15)
         subprocess.run([args.xdotool, "click", "4"], env=environment, check=True)
