@@ -182,7 +182,7 @@ creates property widgets; unknown components retain raw data instead of being si
 - ✅ The Scene panel now offers a Vulkan/DX12 native 3D proxy preview inside that canvas, drawing
   depth-tested ground and position proxies for live scene nodes after UI submission. The X/Z
   editing overview remains available. Right drag orbits the preview camera, middle drag pans its
-  X/Z target, the wheel zooms, and F or Frame selected centers on selected nodes in X/Y/Z. Orbit
+  X/Z target, Shift+middle drag pans target height, the wheel zooms, and F or Frame selected centers on selected nodes in X/Y/Z. Orbit
   angle, distance, and target height persist per scene. Clicking a visible position proxy selects
   its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Proxy instances now show
   composed world rotation and scale, and picking bounds enclose their transformed cube. Authored

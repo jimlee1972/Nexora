@@ -229,6 +229,16 @@ def main() -> int:
                         str(center_x + 40), str(center_y + 30)], env=environment, check=True)
         time.sleep(0.15)
         subprocess.run([args.xdotool, "mouseup", "3"], env=environment, check=True)
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y)], env=environment, check=True)
+        subprocess.run([args.xdotool, "keydown", "Shift_L"], env=environment, check=True)
+        subprocess.run([args.xdotool, "mousedown", "2"], env=environment, check=True)
+        time.sleep(0.1)
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y + 48)], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "mouseup", "2"], env=environment, check=True)
+        subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and not scene_file.is_file():
@@ -249,7 +259,9 @@ def main() -> int:
             raise RuntimeError(f"native preview camera was not saved: {camera_lines!r}")
         camera_values = [float(value) for value in camera_lines[1].split()]
         if (len(camera_values) != 8 or abs(camera_values[4] - 0.588) < 0.01 or
-                camera_values[5] >= 17.55 or camera_values[6] != 0):
+                camera_values[5] >= 17.55 or camera_values[1] < 0.1 or
+                camera_values[6] != 0 or abs(camera_values[0]) > 1e-6 or
+                abs(camera_values[2]) > 1e-6):
             raise RuntimeError(f"native preview gestures were not saved: {camera_values!r}")
         editor = subprocess.Popen(
             [args.editor, f"--project={root}", "--graphical", "--native-scene-preview",

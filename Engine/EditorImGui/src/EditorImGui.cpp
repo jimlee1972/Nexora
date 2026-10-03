@@ -2199,13 +2199,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (scene != nullptr) {
       if (state_->native_scene_preview) {
         state_->scene_markers.clear();
-        ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y | Right: orbit | Middle: pan "
-                            "| Wheel: zoom | F: frame");
-        ImGui::SameLine();
         ImGui::BeginDisabled(scene->Selection().empty());
         if (ImGui::SmallButton("Frame selected"))
           static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
         ImGui::EndDisabled();
+        ImGui::SameLine();
+        ImGui::TextDisabled("F: frame | Right: orbit | Wheel: zoom");
+        ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y");
+        ImGui::TextDisabled("Middle: pan X/Z | Shift+middle: pan Y");
         constexpr std::array snap_steps{0.25, 0.5, 1.0, 2.0, 4.0};
         ImGui::Checkbox("Snap movement", &state_->scene_snap_to_grid);
         ImGui::SameLine();
@@ -2289,16 +2290,23 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0F)) {
             const auto yaw = state_->native_scene_orbit.yaw;
             const auto speed = state_->native_scene_orbit.distance * 0.003;
-            const auto dx = static_cast<double>(io.MouseDelta.x) * speed;
-            const auto dz = static_cast<double>(io.MouseDelta.y) * speed;
-            state_->scene_center_world.x =
-                static_cast<float>(std::clamp(static_cast<double>(state_->scene_center_world.x) -
-                                                  std::cos(yaw) * dx + std::sin(yaw) * dz,
-                                              -100000.0, 100000.0));
-            state_->scene_center_world.y =
-                static_cast<float>(std::clamp(static_cast<double>(state_->scene_center_world.y) +
-                                                  std::sin(yaw) * dx + std::cos(yaw) * dz,
-                                              -100000.0, 100000.0));
+            if (io.KeyShift) {
+              state_->native_scene_orbit.target_y =
+                  std::clamp(state_->native_scene_orbit.target_y +
+                                 static_cast<double>(io.MouseDelta.y) * speed,
+                             -100000.0, 100000.0);
+            } else {
+              const auto dx = static_cast<double>(io.MouseDelta.x) * speed;
+              const auto dz = static_cast<double>(io.MouseDelta.y) * speed;
+              state_->scene_center_world.x =
+                  static_cast<float>(std::clamp(static_cast<double>(state_->scene_center_world.x) -
+                                                    std::cos(yaw) * dx + std::sin(yaw) * dz,
+                                                -100000.0, 100000.0));
+              state_->scene_center_world.y =
+                  static_cast<float>(std::clamp(static_cast<double>(state_->scene_center_world.y) +
+                                                    std::sin(yaw) * dx + std::cos(yaw) * dz,
+                                                -100000.0, 100000.0));
+            }
           }
         }
         if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !io.WantTextInput &&
