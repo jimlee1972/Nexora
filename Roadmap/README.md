@@ -19,7 +19,7 @@ updated together and remain evidence-based.
 | V3 Complete Plan | **0%** | [Cross-platform 3D Engine — V3 Complete Plan](en/Cross-platform_3D_Engine_V3_Complete_Plan_v1_4.md) |
 | V3 AI Implementation Technology and System Plan | **0%** | [Cross-platform 3D Engine — V3 AI Implementation Technology and System Plan](en/Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md) |
 | ✅ Engine API Foundation Roadmap | **100%** | [Engine API Foundation Roadmap](en/Engine_API_Foundation_Roadmap.md) |
-| Zig Showcase Roadmap | **90%** | [Zig Showcase and Engine-owned Entry Point Roadmap](en/Zig_Showcase_Roadmap.md) |
+| ✅ Zig Showcase Roadmap | **100%** | [Zig Showcase and Engine-owned Entry Point Roadmap](en/Zig_Showcase_Roadmap.md) |
 | ✅ Window and Native Presentation Roadmap | **100% implementation** | [Window and Native Presentation Roadmap](en/Window_Presentation_Roadmap.md) |
 | V1 Visual Showcase Long-Term Plan | **Linux/Windows developer slices verified; final acceptance pending** | [V1 Visual Showcase Demo Long-Term Plan](en/V1-Visual-Showcase-Long-Term-Plan.md) |
 | Editor Roadmap | **0% graphical acceptance** | [Graphical Editor Roadmap](en/Editor_Roadmap.md) |
@@ -72,7 +72,7 @@ Roadmap 狀態與 repository root [`README.md`](../README.md) 的進度／狀態
 | V3 完整規劃書 | **0%** | [跨平台 3D Engine — V3 完整規劃書](zh-TW/跨平台3D_Engine_V3_完整規劃書_v1_4.md) |
 | V3 AI 施工技術與系統規劃 | **0%** | [跨平台 3D Engine — V3 AI 施工技術與系統規劃](zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) |
 | ✅ Engine API 基礎 Roadmap | **100%** | [Engine API 基礎 Roadmap](zh-TW/Engine_API_基礎_Roadmap.md) |
-| Zig Showcase Roadmap | **90%** | [Zig Showcase 與 Engine-owned Entry Point Roadmap](zh-TW/Zig_Showcase_Roadmap.md) |
+| ✅ Zig Showcase Roadmap | **100%** | [Zig Showcase 與 Engine-owned Entry Point Roadmap](zh-TW/Zig_Showcase_Roadmap.md) |
 | ✅ Window 與 Native Presentation Roadmap | **100% 實作** | [Window 與 Native Presentation Roadmap](zh-TW/Window_Presentation_Roadmap.md) |
 | V1 可視化展示 Demo 長期規劃 | **Linux／Windows 開發機切片已驗證；最終驗收待完成** | [Nexora V1 可視化展示 Demo 長期規劃](zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) |
 | Editor Roadmap | **0% 圖形化驗收** | [圖形化 Editor Roadmap](zh-TW/Editor_Roadmap.md) |
