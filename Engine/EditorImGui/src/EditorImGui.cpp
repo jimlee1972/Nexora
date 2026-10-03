@@ -1,5 +1,6 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "Nexora/Editor/InspectorRotation.h"
+#include "Nexora/Editor/ViewportMath.h"
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
 #endif
@@ -115,12 +116,15 @@ struct EditorImGuiHost::State final {
   std::vector<SceneMarker> scene_markers;
   ImVec2 scene_center_world{};
   float scene_pixels_per_unit = 32.0F;
+  bool scene_snap_to_grid = false;
+  int scene_snap_step_index = 2;
   struct SceneDrag final {
     enum class Axis { Free, X, Z };
     std::vector<SceneDocument::NodeKey> entities;
     ImVec2 start_mouse;
     float pixels_per_unit{};
     Axis axis{Axis::Free};
+    float snap_step{};
   };
   std::optional<SceneDrag> scene_drag;
   struct InspectorTransformRequest final {
@@ -947,6 +951,17 @@ void DrawPlayOverview(const runtime::RuntimeInspectionSnapshot &snapshot) {
   ImGui::TextDisabled("Blue: camera  Yellow: light  Green: mesh  Gray: entity");
 }
 
+template <typename DragT>
+std::array<double, 2> SceneDragWorldDelta(const DragT &drag, ImVec2 mouse) {
+  const double dx =
+      drag.axis == DragT::Axis::Z ? 0.0 : (mouse.x - drag.start_mouse.x) / drag.pixels_per_unit;
+  const double dz =
+      drag.axis == DragT::Axis::X ? 0.0 : (mouse.y - drag.start_mouse.y) / drag.pixels_per_unit;
+  if (drag.snap_step <= 0.0F)
+    return {dx, dz};
+  return {SnapToStep(dx, drag.snap_step), SnapToStep(dz, drag.snap_step)};
+}
+
 template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &scene) {
   ImGui::TextUnformatted("Top-down X/Z | Drag marker: free move | Drag red X/blue Z: axis move | "
                          "Middle: pan | Wheel: zoom");
@@ -958,6 +973,18 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
   if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
       !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_F, false))
     static_cast<void>(FrameSceneSelection(state, scene));
+  constexpr std::array snap_steps{0.25F, 0.5F, 1.0F, 2.0F, 4.0F};
+  ImGui::Checkbox("Snap movement", &state.scene_snap_to_grid);
+  ImGui::SameLine();
+  ImGui::BeginDisabled(!state.scene_snap_to_grid);
+  ImGui::SetNextItemWidth(100.0F);
+  ImGui::Combo("Step (world units)", &state.scene_snap_step_index,
+               "0.25\0"
+               "0.5\0"
+               "1\0"
+               "2\0"
+               "4\0");
+  ImGui::EndDisabled();
   const auto available = ImGui::GetContentRegionAvail();
   const ImVec2 size{std::max(available.x, 1.0F), std::max(available.y, 160.0F)};
   ImGui::InvisibleButton("##scene-overview", size,
@@ -972,15 +999,16 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
     } else if (!io.MouseDown[ImGuiMouseButton_Left]) {
       if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
         const auto &drag = *state.scene_drag;
-        const float dx =
+        const float raw_dx =
             drag.axis == StateT::SceneDrag::Axis::Z ? 0.0F : io.MousePos.x - drag.start_mouse.x;
-        const float dy =
+        const float raw_dz =
             drag.axis == StateT::SceneDrag::Axis::X ? 0.0F : io.MousePos.y - drag.start_mouse.y;
-        if (dx * dx + dy * dy >= 36.0F &&
-            !scene.TranslateSelectionXZ(drag.entities, dx / drag.pixels_per_unit,
-                                        dy / drag.pixels_per_unit))
-          state.hierarchy_error =
-              "Scene drag rejected because an entity changed or the pose is invalid.";
+        if (raw_dx * raw_dx + raw_dz * raw_dz >= 36.0F) {
+          const auto [dx, dz] = SceneDragWorldDelta(drag, io.MousePos);
+          if ((dx != 0.0 || dz != 0.0) && !scene.TranslateSelectionXZ(drag.entities, dx, dz))
+            state.hierarchy_error =
+                "Scene drag rejected because an entity changed or the pose is invalid.";
+        }
       }
       state.scene_drag.reset();
     }
@@ -1025,19 +1053,21 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
 
   ImVec2 preview_pixels{};
   if (state.scene_drag && io.MouseDown[ImGuiMouseButton_Left]) {
-    preview_pixels = {io.MousePos.x - state.scene_drag->start_mouse.x,
-                      io.MousePos.y - state.scene_drag->start_mouse.y};
-    if (state.scene_drag->axis == StateT::SceneDrag::Axis::X)
-      preview_pixels.y = 0.0F;
-    else if (state.scene_drag->axis == StateT::SceneDrag::Axis::Z)
-      preview_pixels.x = 0.0F;
-    if (preview_pixels.x * preview_pixels.x + preview_pixels.y * preview_pixels.y >= 36.0F)
-      draw->AddLine(state.scene_drag->start_mouse,
-                    {state.scene_drag->start_mouse.x + preview_pixels.x,
-                     state.scene_drag->start_mouse.y + preview_pixels.y},
-                    IM_COL32(255, 199, 87, 255), 2.0F);
-    else
-      preview_pixels = {};
+    const auto &drag = *state.scene_drag;
+    const auto raw_dx =
+        drag.axis == StateT::SceneDrag::Axis::Z ? 0.0F : io.MousePos.x - drag.start_mouse.x;
+    const auto raw_dz =
+        drag.axis == StateT::SceneDrag::Axis::X ? 0.0F : io.MousePos.y - drag.start_mouse.y;
+    if (raw_dx * raw_dx + raw_dz * raw_dz >= 36.0F) {
+      const auto [dx, dz] = SceneDragWorldDelta(drag, io.MousePos);
+      preview_pixels = {static_cast<float>(dx * drag.pixels_per_unit),
+                        static_cast<float>(dz * drag.pixels_per_unit)};
+      if (dx != 0.0 || dz != 0.0)
+        draw->AddLine(
+            drag.start_mouse,
+            {drag.start_mouse.x + preview_pixels.x, drag.start_mouse.y + preview_pixels.y},
+            IM_COL32(255, 199, 87, 255), 2.0F);
+    }
   }
 
   state.scene_markers.clear();
@@ -1134,8 +1164,9 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
             keys.push_back(*key);
         }
         if (!keys.empty())
-          state.scene_drag = typename StateT::SceneDrag{std::move(keys), io.MousePos,
-                                                        state.scene_pixels_per_unit, axis};
+          state.scene_drag = typename StateT::SceneDrag{
+              std::move(keys), io.MousePos, state.scene_pixels_per_unit, axis,
+              state.scene_snap_to_grid ? snap_steps[state.scene_snap_step_index] : 0.0F};
       }
     } else if (!io.KeyCtrl && !io.KeyShift) {
       static_cast<void>(scene.Select(std::span<const runtime::Id>{}));
@@ -2706,6 +2737,12 @@ EditorImGuiTestAccess::SceneMarkerPosition(const EditorImGuiHost &host,
 std::array<float, 2>
 EditorImGuiTestAccess::SceneOverviewCenter(const EditorImGuiHost &host) noexcept {
   return {host.state_->scene_center_world.x, host.state_->scene_center_world.y};
+}
+
+void EditorImGuiTestAccess::SetSceneSnap(EditorImGuiHost &host, bool enabled,
+                                         int step_index) noexcept {
+  host.state_->scene_snap_to_grid = enabled;
+  host.state_->scene_snap_step_index = std::clamp(step_index, 0, 4);
 }
 
 void EditorImGuiTestAccess::QueueHierarchySelection(EditorImGuiHost &host,

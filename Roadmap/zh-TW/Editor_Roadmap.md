@@ -173,8 +173,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 - ✅ Scene 概覽現共用 Hierarchy 的 Ctrl／Shift 多選錨點，並可透過 F 或 Frame selected
   將檢視中心移至選取物件的世界位置。輸入事件測試涵蓋這兩項操作。
 - ✅ Scene 概覽標記拖曳會預覽世界 X/Z 位移；可見的 X 與 Z 把手可將位移限制於單一世界軸，
-  放開後以單一可復原的 atomic transform transaction 移動選取的根節點。Escape 可取消；
-  測試涵蓋單軸約束、父節點縮放及 subtree 根節點。
+  放開後以單一可復原的 atomic transform transaction 移動選取的根節點。可選 0.25、0.5、
+  1、2 或 4 世界單位吸附，預覽與提交使用相同位移。Escape 可取消；測試涵蓋單軸約束、
+  父節點縮放、subtree 根節點及吸附後的子節點位置。
   完整 3D gizmo 操作把手與 renderer-backed Scene View 仍待完成。
 - ✅ Scene 概覽中心與縮放現透過經驗證的逐場景 `CameraPersistence`，在開啟 project 與正常的可寫
   關閉流程中載入／儲存。損壞的 camera 檔案會保留原狀；Linux Xvfb 驗收檢查滾輪縮放在重新
