@@ -86,6 +86,8 @@ struct EditorImGuiHost::State final {
   bool recovery_prompt_opened = false;
   bool initial_dock_layout_built = false;
   bool focus_initial_content = false;
+  ImGuiTextFilter console_filter;
+  int console_min_severity = 0;
   std::string recovery_error;
   std::array<char, 128> hierarchy_filter{};
   std::array<char, 128> hierarchy_create_name{'E', 'n', 't', 'i', 't', 'y'};
@@ -1817,7 +1819,8 @@ std::string_view EditorImGuiHost::ProjectSelectorError() const noexcept {
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
                                        RecentProjectStore *recent_projects,
-                                       AssetImportQueue *imports) {
+                                       AssetImportQueue *imports,
+                                       runtime::RuntimeConsole *console) {
   Activate(state_->context);
   state_->selector_visible = false;
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
@@ -1898,9 +1901,65 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
   ImGui::End();
   const auto console_window = PanelWindowName("nexora.console");
-  if (ImGui::Begin(console_window.c_str()))
-    ImGui::Text("Last command: %.*s", static_cast<int>(shell.LastCommand().size()),
-                shell.LastCommand().data());
+  if (ImGui::Begin(console_window.c_str())) {
+    if (console == nullptr) {
+      ImGui::Text("Last command: %.*s", static_cast<int>(shell.LastCommand().size()),
+                  shell.LastCommand().data());
+    } else {
+      state_->console_filter.Draw("Filter###editor.console.filter", 220.0F);
+      ImGui::SameLine();
+      constexpr const char *levels[] = {"All", "Info+", "Warning+", "Error+"};
+      ImGui::SetNextItemWidth(110.0F);
+      ImGui::Combo("Severity###editor.console.severity", &state_->console_min_severity, levels, 4);
+      const auto records = console->Snapshot();
+      ImGui::Text("%zu records | %llu dropped", records.size(),
+                  static_cast<unsigned long long>(console->DroppedCount()));
+      std::vector<const runtime::RuntimeLogRecord *> visible;
+      visible.reserve(records.size());
+      const auto minimum = static_cast<runtime::RuntimeLogSeverity>(state_->console_min_severity);
+      for (const auto &record : records) {
+        if (record.severity < minimum)
+          continue;
+        const std::string searchable = record.category + " " + record.source + " " + record.message;
+        if (state_->console_filter.PassFilter(searchable.c_str()))
+          visible.push_back(&record);
+      }
+      ImGui::BeginChild("Records###editor.console.records", ImVec2(0, 0), ImGuiChildFlags_Borders);
+      ImGuiListClipper clipper;
+      clipper.Begin(static_cast<int>(visible.size()));
+      while (clipper.Step()) {
+        for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index) {
+          const auto &record = *visible[static_cast<std::size_t>(index)];
+          const char *label = "Info";
+          if (record.severity == runtime::RuntimeLogSeverity::Trace)
+            label = "Trace";
+          else if (record.severity == runtime::RuntimeLogSeverity::Warning)
+            label = "Warning";
+          else if (record.severity == runtime::RuntimeLogSeverity::Error)
+            label = "Error";
+          else if (record.severity == runtime::RuntimeLogSeverity::Fatal)
+            label = "Fatal";
+          std::string row = "[" + std::to_string(record.timestamp_nanoseconds / 1000000) + " ms] " +
+                            label + " " + record.category + " (" + record.source +
+                            "): " + record.message;
+          std::replace(row.begin(), row.end(), '\n', ' ');
+          std::replace(row.begin(), row.end(), '\r', ' ');
+          ImGui::PushID(static_cast<int>(record.sequence));
+          if (record.severity >= runtime::RuntimeLogSeverity::Error)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0F, 0.45F, 0.45F, 1.0F));
+          else if (record.severity == runtime::RuntimeLogSeverity::Warning)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0F, 0.75F, 0.35F, 1.0F));
+          ImGui::Selectable(row.c_str());
+          if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", row.c_str());
+          if (record.severity >= runtime::RuntimeLogSeverity::Warning)
+            ImGui::PopStyleColor();
+          ImGui::PopID();
+        }
+      }
+      ImGui::EndChild();
+    }
+  }
   ImGui::End();
   if (content != nullptr)
     DrawContentBrowser(*state_, *content, imports);

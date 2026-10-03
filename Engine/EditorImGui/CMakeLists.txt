@@ -28,7 +28,7 @@ add_library(Nexora::EditorImGui ALIAS NexoraEditorImGui)
 target_include_directories(NexoraEditorImGui
   PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_link_libraries(NexoraEditorImGui
-  PUBLIC Nexora::Editor Nexora::Presentation Nexora::Window
+  PUBLIC Nexora::Editor Nexora::Runtime Nexora::Presentation Nexora::Window
   PRIVATE NexoraDearImGui)
 target_compile_definitions(NexoraEditorImGui PRIVATE NEXORA_EDITOR_IMGUI_EXPORTS)
 if(BUILD_TESTING)

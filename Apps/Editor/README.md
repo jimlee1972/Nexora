@@ -63,6 +63,10 @@ shows the retained editor/disk hashes and keeps the conflict open; Reload or Kee
 terminal authoring-thread choice without direct UI filesystem access. Dependency cycles are also
 shown in the Content panel and continue to block artifact publication.
 
+The docked Console now shows bounded structured records with text and severity filters, timestamps,
+source, and a dropped-record counter. The Editor records graphical startup and scene open/save
+results through the Runtime console; broader gameplay and build log routing remains open.
+
 The ED-M2 graphical Hierarchy foundation now renders a parent-aware expandable tree, filters by
 entity name, supports plain/Ctrl/Shift selection with a retained generation-keyed anchor, clips
 visible-row submission, and routes rename, sibling ordering, and drag/drop reparenting through the
