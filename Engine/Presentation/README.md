@@ -81,14 +81,18 @@ room/input gates.
 
 ## Native scene instances
 
-`SceneDrawData::instances` borrows up to 4,096 translation/axis-scale/color records; an empty span
-selects one identity instance for existing callers. Vulkan and DX12 copy records into the acquired
-frame's fence-protected upload and submit one indexed hardware instance draw. Scale components must
-be finite and have magnitude at least 0.00001; translation/color must also be finite. Normals use the
-inverse axis scale before normalization. Instance bytes begin at a four-byte aligned offset after
-indices, including odd triangle counts. No instance span survives the call. `sceneInstances` counts
+`SceneDrawData::instances` borrows up to 4,096 translation/axis-scale/color/unit-quaternion
+records; an empty span selects one identity instance for existing callers. Vulkan and DX12 copy
+records into the acquired frame's fence-protected upload and submit one indexed hardware instance
+draw. Scale components must
+be finite and have magnitude at least 0.00001; translation/color must also be finite, and the
+rotation quaternion must have finite components and squared length within 0.01 of one. The shader
+rotates scaled positions and inverse-scaled normals before normalization. Instance bytes begin at
+a four-byte aligned offset after indices, including odd triangle counts. No instance span survives
+the call. `sceneInstances` counts
 accepted instances cumulatively, while `sceneDrawCalls` counts submissions. The retained Vulkan pixel
-gate verifies two independent instance positions/tints, rejected malformed inputs and identity
+gate verifies two independent instance positions/tints, a rotated instance's changed lighting,
+rejected malformed inputs and identity
 compatibility with depth, resize and lighting. DX12 target-host execution is a separate acceptance gate.
 
 ## Native sampled scene material

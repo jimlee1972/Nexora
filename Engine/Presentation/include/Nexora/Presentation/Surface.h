@@ -78,12 +78,14 @@ struct SceneVertex final {
   float uv[2]{};
 };
 
-// Translation and nonzero axis scale transform one shared mesh. Colors multiply base_color.
+// Translation, nonzero axis scale, and a unit quaternion transform one shared mesh. Colors
+// multiply base_color. Rotation defaults to identity for existing instance users.
 // Empty SceneDrawData::instances selects one identity instance. Spans are borrowed for the call.
 struct SceneInstance final {
   float translation[3]{};
   float scale[3]{1, 1, 1};
   float color[4]{1, 1, 1, 1};
+  float rotation[4]{0, 0, 0, 1}; // x, y, z, w
 };
 
 // Physical pixel rectangle within the acquired surface. All zero selects the whole surface.

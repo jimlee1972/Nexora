@@ -310,6 +310,14 @@ public:
       for (const auto value : instance.color)
         if (!std::isfinite(value))
           return SurfaceStatus::InvalidDescriptor;
+      float rotation_length_squared = 0.0F;
+      for (const auto value : instance.rotation) {
+        if (!std::isfinite(value))
+          return SurfaceStatus::InvalidDescriptor;
+        rotation_length_squared += value * value;
+      }
+      if (std::abs(rotation_length_squared - 1.0F) > 0.01F)
+        return SurfaceStatus::InvalidDescriptor;
     }
     if (drawData.textureUploads.size() > 16)
       return SurfaceStatus::InvalidDescriptor;
@@ -663,12 +671,16 @@ private:
       };
       Texture2D materialTexture : register(t0);
       SamplerState materialSampler : register(s0);
-      struct VSInput { float3 position : POSITION; float2 uv : TEXCOORD; float3 normal : NORMAL; float3 translation : INSTANCE_POSITION; float3 scale : INSTANCE_SCALE; float4 color : INSTANCE_COLOR; };
+      struct VSInput { float3 position : POSITION; float2 uv : TEXCOORD; float3 normal : NORMAL; float3 translation : INSTANCE_POSITION; float3 scale : INSTANCE_SCALE; float4 color : INSTANCE_COLOR; float4 rotation : INSTANCE_ROTATION; };
       struct PSInput { float4 position : SV_Position; float2 uv : TEXCOORD; float3 normal : NORMAL; float4 color : COLOR; };
+      float3 Rotate(float3 v, float4 q) {
+        float3 t = 2.0 * cross(q.xyz, v);
+        return v + q.w * t + cross(q.xyz, t);
+      }
       PSInput VSMain(VSInput input) {
         PSInput output;
-        output.position = mul(mvp, float4(input.position * input.scale + input.translation, 1.0));
-        output.normal = input.normal / input.scale;
+        output.position = mul(mvp, float4(Rotate(input.position * input.scale, input.rotation) + input.translation, 1.0));
+        output.normal = Rotate(input.normal / input.scale, input.rotation);
         output.color = input.color;
         output.uv = input.uv;
         return output;
@@ -699,7 +711,9 @@ private:
         {"INSTANCE_SCALE", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, offsetof(SceneInstance, scale),
          D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
         {"INSTANCE_COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, offsetof(SceneInstance, color),
-         D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1}};
+         D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"INSTANCE_ROTATION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,
+         offsetof(SceneInstance, rotation), D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1}};
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline{};
     pipeline.pRootSignature = sceneRootSignature_.Get();
     pipeline.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};

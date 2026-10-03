@@ -178,8 +178,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   並於每幀重設。
 - ✅ Scene panel 現提供 Vulkan／DX12 原生 3D 代理預覽，在 UI 提交後於該 canvas 繪製有深度測試的
   地面與 live scene 節點位置代理，保留 canvas 外的控制項。X/Z 編輯概覽仍可切回。已建立的 mesh、
-  完整世界 transform、mesh picking 與 gizmo 仍待完成，完整 renderer-backed
+  精確 shear 矩陣、mesh picking 與 gizmo 仍待完成，完整 renderer-backed
   Scene View 驗收因此仍未通過。
+  代理 instance 現反映合成後的世界旋轉與縮放，picking 範圍包住旋轉／縮放後的立方體。
   右鍵拖曳可旋轉預覽鏡頭，中鍵拖曳可平移 X/Z 目標，滾輪可縮放，F 或 Frame selected
   可將 X/Y/Z 目標對準選取節點；旋轉角度、距離與目標高度現會逐場景保存。
   點選可見的位置代理可同步選取 Scene、Hierarchy 與 Inspector 中的節點；Ctrl 點選可切換選取。

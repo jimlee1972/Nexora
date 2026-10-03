@@ -46,8 +46,9 @@ rows, thumbnail state, selection, typed drag/drop, dependency inspection, and ba
 The Scene panel can switch from its editable X/Z overview to a native depth-tested 3D proxy
 preview. Vulkan and DX12 draw an instanced ground and one position proxy per scene node inside the
 docked canvas after UI submission, preserving controls outside the canvas. Selection changes proxy
-tint. This preview does not yet draw
-authored mesh assets or apply node rotation/scale; the full renderer-backed Scene View remains open.
+tint. Each proxy now uses the node's composed world rotation and scale; its pick AABB encloses the
+transformed cube. Authored mesh assets and exact sheared world matrices are still open, so the full
+renderer-backed Scene View remains open.
 Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel zooms, and F or
 Frame selected centers on selected nodes in X/Y/Z. The X/Z target persists with the overview
 camera; target height, orbit angle, and distance persist in a separate per-scene camera file on

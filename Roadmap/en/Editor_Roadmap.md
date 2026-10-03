@@ -184,11 +184,12 @@ creates property widgets; unknown components retain raw data instead of being si
   editing overview remains available. Right drag orbits the preview camera, middle drag pans its
   X/Z target, the wheel zooms, and F or Frame selected centers on selected nodes in X/Y/Z. Orbit
   angle, distance, and target height persist per scene. Clicking a visible position proxy selects
-  its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Authored meshes, full world
-  transforms, mesh picking, and gizmos remain open. Dragging a proxy previews selected roots and
-  descendants in world X/Z, then commits one undoable move on release. Escape cancels; optional
-  0.25–4 world-unit steps snap both preview and commit. Full Scene View acceptance
-  is still open.
+  its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Proxy instances now show
+  composed world rotation and scale, and picking bounds enclose their transformed cube. Authored
+  meshes, exact sheared matrices, mesh picking, and gizmos remain open. Dragging previews selected
+  roots and descendants in world X/Z, then commits one undoable move on release. Escape cancels;
+  optional 0.25–4 world-unit steps snap both preview and commit. Full Scene View acceptance is still
+  open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on
   selected world positions with F or Frame selected. Input-event tests cover both interactions.
 - ✅ Scene overview marker dragging previews a world X/Z move; visible X and Z handles constrain
