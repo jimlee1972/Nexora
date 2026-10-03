@@ -330,8 +330,8 @@ int main(int argc, char **argv) {
       Require(materialPixels, "UV texture sampling/resize pixels failed");
     }
     const auto diagnostics = surface->Diagnostics();
-    Require(diagnostics.sceneDrawCalls == 17 && diagnostics.sceneInstances == 18 &&
-                diagnostics.acquiredFrames == 17 && diagnostics.presentedFrames == 17 &&
+    Require(diagnostics.sceneDrawCalls == 18 && diagnostics.sceneInstances == 20 &&
+                diagnostics.acquiredFrames == 18 && diagnostics.presentedFrames == 18 &&
                 diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 5 &&
                 diagnostics.sceneOffscreenDrawCalls == 3 && diagnostics.sceneComposites == 3,
             "native scene counters or resize evidence mismatch");
@@ -345,7 +345,7 @@ int main(int argc, char **argv) {
     XCloseDisplay(display);
     Require(windows->Destroy(created.handle) == Window::WindowError::None,
             "window teardown failed");
-    std::cout << "PASS: 16 indexed draws including native instances and offscreen-composited UV "
+    std::cout << "PASS: 18 indexed draws including rotated native instances and offscreen-composited UV "
                  "texture pixels, "
                  "depth-order invariance, lighting, matrix translation, "
                  "3 resize generations, immutable texture reuse, invalid-input containment and "
