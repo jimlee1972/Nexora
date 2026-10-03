@@ -170,6 +170,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 - ✅ Scene 概覽標記拖曳會預覽世界 X/Z 位移，放開後以單一可復原的 atomic transform
   transaction 移動選取的根節點。Escape 可取消；測試涵蓋父節點縮放及 subtree 根節點。
   完整 3D gizmo 操作把手與 renderer-backed Scene View 仍待完成。
+- ✅ Scene 概覽中心與縮放現透過經驗證的逐場景 `CameraPersistence`，在開啟 project 與正常的可寫
+  關閉流程中載入／儲存。損壞的 camera 檔案會保留原狀；Linux Xvfb 驗收檢查滾輪縮放在重新
+  開啟 project 後維持。完整 3D camera control 仍待完成。
 - 待辦：圖形化 Scene View、完整 reflected Inspector、renderer-backed picking、camera control、
   gizmo、reflected widget
   與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成 select／edit／undo／save／restart

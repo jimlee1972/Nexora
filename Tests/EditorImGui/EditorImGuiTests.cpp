@@ -405,6 +405,17 @@ void TestSceneOverviewDrag() {
   assert(scene.WorldTransform(drag_entity)->x == 0.0 &&
          scene.WorldTransform(drag_entity)->z == 0.0);
 }
+
+void TestSceneOverviewCameraState() {
+  nexora::editor::imgui::EditorImGuiHost host;
+  assert(host.GetSceneOverviewCamera().pixels_per_unit == 32.0);
+  assert(host.SetSceneOverviewCamera({12.5, -3.25, 64.0}));
+  const auto camera = host.GetSceneOverviewCamera();
+  assert(camera.x == 12.5 && camera.z == -3.25 && camera.pixels_per_unit == 64.0);
+  assert(!host.SetSceneOverviewCamera({std::numeric_limits<double>::infinity(), 0.0, 32.0}) &&
+         !host.SetSceneOverviewCamera({0.0, 0.0, 0.0}));
+  assert(host.GetSceneOverviewCamera().x == 12.5);
+}
 } // namespace
 
 int main() {
@@ -415,6 +426,7 @@ int main() {
   TestHierarchyDuplicateShortcut();
   TestSceneOverviewSelection();
   TestSceneOverviewDrag();
+  TestSceneOverviewCameraState();
   using nexora::editor::imgui::EditorImGuiTestAccess;
   nexora::editor::imgui::EditorImGuiHost host;
   const auto initial_state = EditorImGuiTestAccess::Inspect(host);

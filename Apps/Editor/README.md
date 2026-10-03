@@ -84,6 +84,9 @@ Ctrl-click toggles selection, Shift-click selects a visible range, and F or Fram
 the view on the current selection.
 Drag a selected marker to move selected objects in X/Z. The move commits when released, Escape
 cancels it, and one Undo restores the previous positions.
+On normal shutdown, writable projects save the overview center and zoom to
+`.nexora/scenes/Main.overview.camera`. Reopening restores the view. Invalid camera files are
+reported and preserved; read-only projects never write camera state.
 Scene View, reflected component widgets, the complete graphical save/restart workflow, and the ED-M2 visual exit gate
 remain open.
 
