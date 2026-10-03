@@ -232,8 +232,8 @@ and logs. Keep the Showcase visible during capture. Review the images before ver
 No Python or SDK is needed to run this verifier on the target; the built package's Windows runtime
 prerequisites still apply. CI attempts the same native script without physical/clean-host attestations;
 missing interactive desktops produce an explicit UNSUPPORTED artifact (77), never native PASS.
-Clean-host acceptance passed on a clean Windows 10 VirtualBox VM (virtual GPU); the physical-display gate
-remains pending until its operator attestation is recorded. Audio/video/WebView adapters retain their stated unavailable/contract scope.
+Clean-host acceptance passed on a clean Windows 10 VirtualBox VM (virtual GPU) and a `-PhysicalDisplay` run
+passed on the GTX 960 developer machine; Vulkan/Metal parity and the per-tag release workflow remain open. Audio/video/WebView adapters retain their stated unavailable/contract scope.
 
 The Windows verifier retains the launched process handle before exit for Windows PowerShell 5
 exit-code reliability and preserves launch JSON/Markdown even when an acceptance check fails.
@@ -277,4 +277,5 @@ body, so invoking the packaged script without `-PackageRoot` works.
 
 Local developer-machine evidence: [Windows-V1-DX12-Local-2026-10-03](evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
 Clean Windows 10 VM evidence: [Windows-V1-CleanVM-VirtualBox-2026-10-03](evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md) (virtual GPU).
-The physical-display operator attestation remains pending; V1 final acceptance is open.
+Physical-display evidence: [Windows-V1-PhysicalDisplay-GTX960-2026-10-03](evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md).
+V1 final acceptance is open (Vulkan/Metal parity, per-tag release workflow).

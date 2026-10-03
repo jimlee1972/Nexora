@@ -14,13 +14,14 @@
 - ✅ Windows DX12 本地開發機（GTX 960）已以 stock PowerShell 5 驗證器執行新版 Development/Full（22 checksum、24 張截圖、2528 次原生 graph/copy/present）與 Shipping/Full（14 checksum、25 張截圖、15231 次原生 graph/copy/present、完整 210 秒導覽）；Windows Development CTest 68/68、Linux Development CTest 77/77。證據：[`Windows-V1-DX12-Local-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md)。
 - ✅ Windows hosted CI 的 Full Shipping／DX12 isolated-copy 圖形驗收已通過（[CI 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518)，證據：[`Windows-V1-Native-Graph-CI-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md)）。
 - ✅ 乾淨 Windows 10 VM（VirtualBox、無開發工具）以 `-CleanHost -CompleteGuidedTour` 通過 Shipping/Full 套件驗收：`status=PASS`、14 個 checksum、25 張截圖、DX12 無 fallback、3861 次原生 graph/present（[紀錄](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)）。該 GPU 為 VirtualBox 虛擬顯示卡，不代表實體顯示器驗收。
-- 待辦（V1 最終驗收仍為 PENDING）：physical-display 操作聲明（`-PhysicalDisplay`，各處 `physical_display_verified` 仍為 false）、Vulkan/Metal 於各自 target host 的 native backend parity，以及每個 tag 的 release artifact 流程。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
+- ✅ GTX 960 開發機實體顯示驗收：Shipping/Full 套件通過 `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour`（`status=PASS`、`physical_display_verified=true`、DX12 無 fallback 且非軟體 rasterizer、15649 次原生 graph/present、25 張截圖；[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)）。操作聲明旗標由 Claude 依使用者指示提供，使用者未另外全程目視，詳見紀錄。
+- 待辦（V1 最終驗收仍為 PENDING）：Vulkan/Metal 於各自 target host 的 native backend parity（Windows preset 的 Vulkan backend 為 OFF），以及每個 tag 的 release artifact 流程。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
 
 證據與精確驗證結果：[`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md)。
 
 > 文件版本：v1.2
 >
-> 文件狀態：Linux、Windows 開發機與乾淨 VM 切片已實作並驗證；實體顯示驗收與 V1 最終驗收待完成
+> 文件狀態：Linux、Windows 開發機、乾淨 VM 與實體顯示切片已實作並驗證；Vulkan/Metal parity、每個 tag 的 release 流程與 V1 最終驗收待完成
 >
 > 更新日期：2026-10-03
 
@@ -242,19 +243,19 @@ Demo 不應為每個 milestone 建立互相孤立的測試視窗，而應建立�
 
 | Milestone | 現有/預期 Contract Gate | Showcase View | 第一階段狀態判定 | Owner |
 | --- | --- | --- | --- | --- |
-| M0 | CMake preset、module graph、build/CTest、Host startup | Build ID、module list、startup diagnostics | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Build |
-| M1 | core.runtime、Foundation/Gameplay ABI | frame time、job graph、allocator/log/VFS counters | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Core |
-| M2 | shader reflection、validation device、renderer contracts | shader/pass/resource overlay | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Renderer |
-| M3 | native DX12/Vulkan/Metal offscreen path | backend badge、native present counters、3D frame | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Presentation |
-| M4 | runtime.v1_m4_vertical_slice、scene snapshot/lifecycle | 可操作 scene、entity、undo、play/editor world | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Runtime Scene |
-| M5 | runtime.v1_m5_asset_pipeline | import/cook/bundle/progress/reload/rollback | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Runtime Assets |
-| M6 | runtime.v1_m6_editor_sdk、plugin ABI/prefab | reflection inspector、Undo、prefab rebase、plugin status | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Runtime Editor SDK |
-| M7 | runtime.v1_m7_input_ui_localization | key binding、UI widgets、locale switch、fallback | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Runtime Input/UI |
-| M8 | runtime.v1_m8_gameplay_simulation | character、collision、nav、AI trace | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Runtime Gameplay |
-| M9 | runtime.v1_m9_presentation | animation、particles、audio、video queue | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Runtime Presentation |
-| M10 | runtime.v1_m10_large_world | streaming map、HLOD、RAM/VRAM budget | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Runtime Large World |
-| M11 | runtime.v1_m11_platform | lifecycle/pressure/WebView ownership panel | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Runtime Platform |
-| M12 | runtime.v1_m12_shipping | package/profile/rollback/crash/device evidence | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 已驗證；實體顯示待驗收 | Runtime Shipping |
+| M0 | CMake preset、module graph、build/CTest、Host startup | Build ID、module list、startup diagnostics | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Build |
+| M1 | core.runtime、Foundation/Gameplay ABI | frame time、job graph、allocator/log/VFS counters | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Core |
+| M2 | shader reflection、validation device、renderer contracts | shader/pass/resource overlay | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Renderer |
+| M3 | native DX12/Vulkan/Metal offscreen path | backend badge、native present counters、3D frame | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Presentation |
+| M4 | runtime.v1_m4_vertical_slice、scene snapshot/lifecycle | 可操作 scene、entity、undo、play/editor world | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Runtime Scene |
+| M5 | runtime.v1_m5_asset_pipeline | import/cook/bundle/progress/reload/rollback | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Runtime Assets |
+| M6 | runtime.v1_m6_editor_sdk、plugin ABI/prefab | reflection inspector、Undo、prefab rebase、plugin status | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Runtime Editor SDK |
+| M7 | runtime.v1_m7_input_ui_localization | key binding、UI widgets、locale switch、fallback | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Runtime Input/UI |
+| M8 | runtime.v1_m8_gameplay_simulation | character、collision、nav、AI trace | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Runtime Gameplay |
+| M9 | runtime.v1_m9_presentation | animation、particles、audio、video queue | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Runtime Presentation |
+| M10 | runtime.v1_m10_large_world | streaming map、HLOD、RAM/VRAM budget | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Runtime Large World |
+| M11 | runtime.v1_m11_platform | lifecycle/pressure/WebView ownership panel | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Runtime Platform |
+| M12 | runtime.v1_m12_shipping | package/profile/rollback/crash/device evidence | PARTIAL — Linux／Windows 開發機 view 已驗證；乾淨 Windows 10 VM 與 GTX 960 實體顯示已驗證；Vulkan/Metal parity 待驗收 | Runtime Shipping |
 
 ### 7.1 Probe 統一介面
 
@@ -315,7 +316,7 @@ UI、headless report、CTest adapter 與 Guided Tour 都消費同一份結果。
 - ✅ Minimal/Full/Dedicated Packager preview、staged-update rollback 與 bounded crash breadcrumb。
 - ✅ Full profile preset、packaged content manifest、interactive script、可重現 ZIP／SHA-256 與 isolated-copy headless package smoke。
 - ✅ 版本化 Linux screenshot／native interaction artifact；CI 保存 screenshot、package 與 CTest log。
-- 待辦：physical-display／version-tag evidence（新版 Full Windows executable 已另在乾淨 Windows 10 VM 通過）。
+- 待辦：version-tag evidence（新版 Full Windows executable 已另在乾淨 Windows 10 VM 與 GTX 960 實體顯示通過）。
 
 ## 9. 建置、執行與打包規格
 
@@ -430,7 +431,7 @@ package 必須由 M12 Packager/manifest contract 產出或驗證，不允許靠�
 | M6 區分 Editor SDK 與圖形化 Editor | ✅ | §6.3 範圍聲明 |
 | M9/M11 第三方 adapter 缺失時仍可 contract-only 展示 | ✅ | audio/video/WebView 標示 contract-only／unavailable |
 | 乾淨 Windows 主機啟動 Shipping/Full package | ✅（VM） | 乾淨 Windows 10 VirtualBox VM、`-CleanHost` PASS（[紀錄](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)）；虛擬 GPU，非實體 |
-| physical-display 操作聲明 | 待驗收 | acceptance JSON 的對應欄位仍為 false |
+| 實體顯示驗收 | ✅ | GTX 960、`-PhysicalDisplay` PASS（[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)）；聲明旗標由 Claude 依使用者指示提供 |
 | 每個 tag 自動產出 executable／manifest／report／screenshot | 待驗收 | 版本化證據目錄已有，tag 流程尚未宣告完成 |
 
 ## 13. 第一個施工 ticket 建議
@@ -495,3 +496,5 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 實體顯示與乾淨主機最終 gate 仍待驗收。
 
 ✅ 乾淨 Windows 10 VM 驗收：Shipping/Full 套件（SHA-256 `09b0fda2…13b4`、build `e4a140139189`）在獨立配置的 VirtualBox guest `Nexora-ZS-M5-CleanMachine-Win10` 通過 `accept-v1.ps1 -CleanHost -CompleteGuidedTour`：14 個 checksum、25 張截圖、DX12 無 fallback、3861 次 graph/present、無 issues。因 adapter 為 VirtualBox 虛擬 GPU，`physical_display_verified` 維持 false；V1 最終驗收仍待完成。[紀錄](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)。
+
+✅ 實體顯示驗收：Shipping/Full 套件（build `e4a140139189`）於 GTX 960 開發機通過 `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour`：`status=PASS`、`physical_display_verified=true`、DX12 無 fallback 且非軟體 rasterizer、15649 次 graph/present、25 張截圖、完整 210 秒導覽。聲明旗標由 Claude 依使用者指示提供（首次嘗試因 Claude 自己的截圖遮蔽視窗而失敗）。Vulkan/Metal parity 與每個 tag 的 release 流程仍待完成，V1 最終驗收尚未完成。[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)。
