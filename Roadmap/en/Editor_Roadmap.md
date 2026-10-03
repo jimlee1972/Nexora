@@ -188,13 +188,14 @@ creates property widgets; unknown components retain raw data instead of being si
   its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Proxy instances now show
   composed world rotation and scale; a conservative bound filters candidates before an exact
   rotated-box pick, including translation handles. Authored
-  meshes, exact sheared matrices, mesh picking, live rotation preview, and scale gizmos remain open. Selected
+  meshes, exact sheared matrices, mesh picking, and scale gizmos remain open. Selected
   proxies show colored X/Y/Z translation handles in world or local space; Local axes uses
   the first selected node's world rotation, and picking a handle captures its axis for the drag. Dragging previews selected roots and descendants in world X/Z, along world Y with
   Shift-drag, or along the picked handle, then commits one undoable move on release. Escape cancels;
   optional 0.25–4 world-unit steps snap both preview and commit. The Rotate tool (E over the canvas;
   W returns to Move) draws X/Y/Z rings in world or local space and commits an in-place rotation of
-  selected roots as one Undo step on release; it does not yet preview the turn. Full Scene View acceptance is still
+  selected roots as one Undo step on release; the native proxy draw previews the turn of selected
+  roots and descendants while dragging. Full Scene View acceptance is still
   open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on
   selected world positions with F or Frame selected. Input-event tests cover both interactions.

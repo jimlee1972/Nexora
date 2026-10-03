@@ -61,8 +61,9 @@ that selection. Picking authored mesh triangles remains open.
 Dragging a selected proxy previews a world X/Z move of selected roots and their descendants, then
 commits it when the left button is released as one undoable transform transaction. The Rotate tool
 (or E while hovering the canvas) draws X/Y/Z ring handles in world or local space and commits an
-in-place rotation of selected roots on release as one Undo step. W returns to Move. Rotation does
-not yet preview before release; scale handles remain open. Escape cancels a drag, and the shared
+in-place rotation of selected roots on release as one Undo step. W returns to Move. Selected roots
+and descendants show the prospective rotation while dragging; Escape restores the starting view.
+Scale handles remain open. The shared
 Snap movement setting applies the chosen 0.25–4 world-unit step to movement preview and commit.
 The X/Z overview retains its axis handles.
 `--native-scene-preview` selects this mode on startup for display acceptance.
