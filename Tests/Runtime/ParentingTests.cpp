@@ -477,6 +477,14 @@ void TestPlayApplyBack() {
   // Reparenting keeps the world pose but changes the local values; applying those local values
   // to the editor entity, which is still a root, would move it.
   Require(Reparent(*play.PlayWorld(), child, parent, true), "play reparent failed");
+  const auto inspection = play.Inspect();
+  const auto inspected_child =
+      std::ranges::find(inspection.entities, child, &runtime::RuntimeEntitySnapshot::id);
+  Require(
+      inspected_child != inspection.entities.end() &&
+          SamePose(inspected_child->world_transform, *play.PlayWorld()->WorldTransform(child)) &&
+          !SamePose(inspected_child->transform, inspected_child->world_transform),
+      "play inspection must copy the parented entity's world pose");
   Require(!play.Stop(runtime::ApplyBackPolicy::Transforms) &&
               play.LastApplyBackStatus() == runtime::ApplyBackStatus::Conflict &&
               world.Parent(child) == Id{0} &&

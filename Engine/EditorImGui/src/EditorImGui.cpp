@@ -879,6 +879,68 @@ template <typename StateT> bool FrameSceneSelection(StateT &state, const SceneDo
   return true;
 }
 
+void DrawPlayOverview(const runtime::RuntimeInspectionSnapshot &snapshot) {
+  ImGui::TextDisabled("Play World top-down X/Z (inspection snapshot)");
+  const ImVec2 available = ImGui::GetContentRegionAvail();
+  const ImVec2 size{std::max(available.x, 1.0F), 180.0F};
+  ImGui::InvisibleButton("##play-overview", size);
+  const ImVec2 min = ImGui::GetItemRectMin();
+  const ImVec2 max = ImGui::GetItemRectMax();
+  auto *draw = ImGui::GetWindowDrawList();
+  draw->AddRectFilled(min, max, IM_COL32(22, 26, 33, 255));
+  draw->PushClipRect(min, max, true);
+  constexpr std::size_t max_markers = 4096;
+  double min_x = 0.0, max_x = 0.0, min_z = 0.0, max_z = 0.0;
+  std::size_t valid = 0;
+  for (const auto &entity : snapshot.entities) {
+    const auto &pose = entity.world_transform;
+    if (!std::isfinite(pose.x) || !std::isfinite(pose.z) || std::abs(pose.x) > 1.0e9 ||
+        std::abs(pose.z) > 1.0e9)
+      continue;
+    min_x = std::min(min_x, pose.x);
+    max_x = std::max(max_x, pose.x);
+    min_z = std::min(min_z, pose.z);
+    max_z = std::max(max_z, pose.z);
+    ++valid;
+  }
+  const double center_x = (min_x + max_x) * 0.5;
+  const double center_z = (min_z + max_z) * 0.5;
+  const double units_x = std::max(max_x - min_x, 1.0);
+  const double units_z = std::max(max_z - min_z, 1.0);
+  const float scale = static_cast<float>(
+      std::clamp(std::min((size.x - 32.0F) / units_x, (size.y - 32.0F) / units_z), 0.001, 64.0));
+  const ImVec2 center{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
+  const float axis_x = center.x + static_cast<float>(-center_x * scale);
+  const float axis_z = center.y + static_cast<float>(-center_z * scale);
+  if (axis_x >= min.x && axis_x <= max.x)
+    draw->AddLine({axis_x, min.y}, {axis_x, max.y}, IM_COL32(80, 123, 185, 255));
+  if (axis_z >= min.y && axis_z <= max.y)
+    draw->AddLine({min.x, axis_z}, {max.x, axis_z}, IM_COL32(170, 79, 79, 255));
+  std::size_t drawn = 0;
+  for (const auto &entity : snapshot.entities) {
+    if (drawn >= max_markers)
+      break;
+    const auto &pose = entity.world_transform;
+    if (!std::isfinite(pose.x) || !std::isfinite(pose.z) || std::abs(pose.x) > 1.0e9 ||
+        std::abs(pose.z) > 1.0e9)
+      continue;
+    const ImVec2 point{center.x + static_cast<float>((pose.x - center_x) * scale),
+                       center.y + static_cast<float>((pose.z - center_z) * scale)};
+    if (point.x < min.x || point.x > max.x || point.y < min.y || point.y > max.y)
+      continue;
+    const ImU32 color = entity.camera          ? IM_COL32(110, 170, 255, 255)
+                        : entity.light         ? IM_COL32(255, 222, 135, 255)
+                        : entity.mesh_renderer ? IM_COL32(139, 202, 185, 255)
+                                               : IM_COL32(180, 181, 191, 255);
+    draw->AddCircleFilled(point, 5.0F, color);
+    ++drawn;
+  }
+  draw->PopClipRect();
+  if (valid > max_markers)
+    ImGui::TextDisabled("Showing at most %zu of %zu valid entities", max_markers, valid);
+  ImGui::TextDisabled("Blue: camera  Yellow: light  Green: mesh  Gray: entity");
+}
+
 template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &scene) {
   ImGui::TextUnformatted(
       "Top-down X/Z | Middle drag: pan | Wheel: zoom | Ctrl/Shift click: select");
@@ -1958,13 +2020,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       const auto snapshot = play->Inspect();
       ImGui::Text("Play World entities: %zu", snapshot.entities.size());
       ImGui::Separator();
+      DrawPlayOverview(snapshot);
       ImGuiListClipper clipper;
       clipper.Begin(static_cast<int>(snapshot.entities.size()));
       while (clipper.Step())
         for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index) {
           const auto &entity = snapshot.entities[static_cast<std::size_t>(index)];
-          ImGui::Text("#%llu  (%.2f, %.2f, %.2f)", static_cast<unsigned long long>(entity.id),
-                      entity.transform.x, entity.transform.y, entity.transform.z);
+          ImGui::Text("#%llu  world (%.2f, %.2f, %.2f)", static_cast<unsigned long long>(entity.id),
+                      entity.world_transform.x, entity.world_transform.y, entity.world_transform.z);
         }
     }
   }

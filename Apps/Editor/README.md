@@ -70,6 +70,8 @@ results through the Runtime console; broader gameplay and build log routing rema
 The docked Game panel now controls an isolated `PlaySession`: F5 starts or stops, F6 pauses or
 resumes, and F10 advances one paused fixed tick. The panel inspects copied Play World entity
 positions and tick counts. Stop discards the cloned World; the Editor World is not applied back.
+An X/Z inspection map draws copied Play World positions, including parented entities, and caps
+marker submission at 4096. It does not render the gameplay camera or scene geometry.
 The fixed callback currently advances no gameplay systems, and renderer-backed Game View output
 remains open.
 

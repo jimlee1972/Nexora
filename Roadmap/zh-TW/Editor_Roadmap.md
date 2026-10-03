@@ -197,7 +197,7 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 - ✅ Docked Console 現顯示有界 Runtime 紀錄，提供文字／嚴重度篩選、來源、時間戳與丟棄數；
   Editor 會記錄啟動及場景開啟／儲存診斷。
 - ✅ Docked Game panel 現可操作隔離的 PlaySession：Play／Stop、Pause／Resume 與單一步進；
-  顯示複製的 entity 檢視資料和 fixed tick 計數，F5／F6／F10 提供鍵盤操作，Linux Xvfb
+  顯示複製的 entity 檢視資料、有界的 X/Z 世界座標俯視預覽與 fixed tick 計數，F5／F6／F10 提供鍵盤操作，Linux Xvfb
   會執行整段流程。固定更新回呼目前尚未執行 gameplay system，Stop 會捨棄 clone。
 - 待辦：renderer-backed Game View、gameplay system 回呼與輸入路由、完整 Runtime／build log
   路由，以及 native debugger/IDE 整合。

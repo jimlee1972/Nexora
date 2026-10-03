@@ -175,10 +175,12 @@ private:
 struct RuntimeEntitySnapshot final {
   Id id{};
   Id scene{};
+  // Local and world poses are copied together so editor views need no Play World borrow.
   Transform transform{};
   bool camera{};
   bool light{};
   bool mesh_renderer{};
+  Transform world_transform{};
 };
 
 struct RuntimeInspectionSnapshot final {

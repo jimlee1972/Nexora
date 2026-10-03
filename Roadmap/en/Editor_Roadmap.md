@@ -197,8 +197,8 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ A docked Console now displays bounded Runtime records with text/severity filtering, source,
     timestamps, and dropped-record count; the Editor feeds startup and scene open/save diagnostics.
   - ✅ A docked Game panel now controls an isolated PlaySession through Play/Stop, Pause/Resume,
-    and one fixed Step, with a copied entity inspection list and bounded tick scheduling. F5/F6/F10
-    are keyboard routes; Linux Xvfb exercises the sequence. The fixed callback has no gameplay
+    and one fixed Step, with a copied entity inspection list, bounded X/Z world-pose preview, and
+    bounded tick scheduling. F5/F6/F10 are keyboard routes; Linux Xvfb exercises the sequence. The fixed callback has no gameplay
     system yet and Stop discards the clone.
   - Open: renderer-backed Game View, gameplay-system callback and input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
