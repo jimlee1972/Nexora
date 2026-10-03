@@ -1,0 +1,1 @@
+NexoraShowcase build=ecac94d8f9ca --mode=interactive --scene=hub --backend=vulkan --no-reload --report=acceptance-launch.json --markdown=acceptance-launch.md --gameplay-module=static
