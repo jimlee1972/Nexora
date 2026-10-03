@@ -386,7 +386,10 @@ public:
           emit = native.type == ButtonPress;
         } else {
           event.type = WindowEventType::PointerButton;
-          event.value0 = static_cast<std::int32_t>(native.xbutton.button - 1U);
+          event.value0 = native.xbutton.button == 2 ? 2
+                         : native.xbutton.button == 3
+                             ? 1
+                             : static_cast<std::int32_t>(native.xbutton.button - 1U);
           event.value1 = native.type == ButtonPress;
         }
         break;

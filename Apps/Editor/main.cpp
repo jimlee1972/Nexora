@@ -225,8 +225,14 @@ int RunGraphical(std::optional<ProjectState> project,
     path.replace_extension(".overview.camera");
     return path;
   };
+  const auto preview_camera_path = [&](const nexora::editor::ProjectWorkspace &workspace) {
+    auto path = scene_path(workspace);
+    path.replace_extension(".preview.camera");
+    return path;
+  };
   bool scene_load_failed = false;
   bool overview_load_failed = false;
+  bool preview_camera_load_failed = false;
   const auto open_scene = [&] {
     const auto path = scene_path(project->workspace);
     std::error_code error;
@@ -244,7 +250,9 @@ int RunGraphical(std::optional<ProjectState> project,
     log(nexora::runtime::RuntimeLogSeverity::Info, "Scene",
         exists ? "Opened saved scene." : "Created starter scene.");
     static_cast<void>(ui.SetSceneOverviewCamera({}));
+    static_cast<void>(ui.SetNativeSceneOrbit({}));
     overview_load_failed = false;
+    preview_camera_load_failed = false;
     const auto camera_path = overview_path(project->workspace);
     std::error_code camera_error;
     const bool camera_exists = std::filesystem::exists(camera_path, camera_error);
@@ -260,6 +268,23 @@ int RunGraphical(std::optional<ProjectState> project,
                                       std::clamp(320.0 / camera->orthographic_size, 4.0, 256.0)})) {
         overview_load_failed = true;
         std::cerr << "ignored invalid scene overview camera: " << camera_path << ' ' << load_error
+                  << '\n';
+      }
+    }
+    const auto preview_path = preview_camera_path(project->workspace);
+    camera_error.clear();
+    const bool preview_exists = std::filesystem::exists(preview_path, camera_error);
+    if (camera_error) {
+      preview_camera_load_failed = true;
+      std::cerr << "scene preview camera could not be inspected: " << camera_error.message()
+                << '\n';
+    } else if (preview_exists) {
+      std::string load_error;
+      const auto camera = nexora::editor::CameraPersistence::Load(preview_path, &load_error);
+      if (!camera || camera->orthographic ||
+          !ui.SetNativeSceneOrbit({camera->yaw, camera->pitch, camera->movement_speed})) {
+        preview_camera_load_failed = true;
+        std::cerr << "ignored invalid scene preview camera: " << preview_path << ' ' << load_error
                   << '\n';
       }
     }
@@ -520,7 +545,8 @@ int RunGraphical(std::optional<ProjectState> project,
   if (project && project->workspace.Writable() &&
       !project->workspace.SaveEditorLayout(ui.SaveLayout(), &layout_error))
     std::cerr << layout_error << '\n';
-  if (project && project->workspace.Writable() && !scene_load_failed && !overview_load_failed) {
+  if (project && project->workspace.Writable() && !scene_load_failed &&
+      (!overview_load_failed || !preview_camera_load_failed)) {
     const auto camera_path = overview_path(project->workspace);
     std::error_code directory_error;
     std::filesystem::create_directories(camera_path.parent_path(), directory_error);
@@ -529,14 +555,29 @@ int RunGraphical(std::optional<ProjectState> project,
                 << directory_error.message() << '\n';
     } else {
       const auto view = ui.GetSceneOverviewCamera();
-      nexora::editor::SceneCameraState camera;
-      camera.transform.x = view.x;
-      camera.transform.z = view.z;
-      camera.orthographic = true;
-      camera.orthographic_size = 320.0 / view.pixels_per_unit;
-      std::string camera_error;
-      if (!nexora::editor::CameraPersistence::Save(camera_path, camera, &camera_error))
-        std::cerr << "scene overview camera could not be saved: " << camera_error << '\n';
+      if (!overview_load_failed) {
+        nexora::editor::SceneCameraState camera;
+        camera.transform.x = view.x;
+        camera.transform.z = view.z;
+        camera.orthographic = true;
+        camera.orthographic_size = 320.0 / view.pixels_per_unit;
+        std::string camera_error;
+        if (!nexora::editor::CameraPersistence::Save(camera_path, camera, &camera_error))
+          std::cerr << "scene overview camera could not be saved: " << camera_error << '\n';
+      }
+      if (!preview_camera_load_failed) {
+        const auto orbit = ui.GetNativeSceneOrbit();
+        nexora::editor::SceneCameraState camera;
+        camera.transform.x = view.x;
+        camera.transform.z = view.z;
+        camera.pitch = orbit.pitch;
+        camera.yaw = orbit.yaw;
+        camera.movement_speed = orbit.distance;
+        std::string camera_error;
+        if (!nexora::editor::CameraPersistence::Save(preview_camera_path(project->workspace),
+                                                     camera, &camera_error))
+          std::cerr << "scene preview camera could not be saved: " << camera_error << '\n';
+      }
     }
   }
   if (play.State() != nexora::runtime::PlayState::Stopped)
