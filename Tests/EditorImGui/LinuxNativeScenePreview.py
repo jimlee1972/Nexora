@@ -93,6 +93,17 @@ def first_entity_position(scene_text: str) -> tuple[float, float, float]:
     return tuple(float(value) for value in fields[2:5])
 
 
+def latest_viewport(stream, viewport: tuple[int, int, int, int]):
+    while select.select([stream], [], [], 0)[0]:
+        output = os.read(stream.fileno(), 4096)
+        if not output:
+            break
+        reports = re.findall(rb"native scene viewport: (\d+) (\d+) (\d+) (\d+)", output)
+        if reports:
+            viewport = tuple(map(int, reports[-1]))
+    return viewport
+
+
 def axis_handle_pixels(display_name: str, window: int,
                        viewport: tuple[int, int, int, int]):
     x11 = ctypes.CDLL("libX11.so.6")
@@ -127,7 +138,9 @@ def axis_handle_pixels(display_name: str, window: int,
                         if rgb[axis] > 80 and all(rgb[other] < 60 for other in range(3)
                                                    if other != axis):
                             found[axis].append((px, py))
-            return [pixels[len(pixels) // 2] if pixels else None for pixels in found]
+            return [sorted(pixels, key=lambda pixel: (pixel[0] - center_x) ** 2 +
+                    (pixel[1] - center_y) ** 2)[int(len(pixels) * 0.8)] if pixels else None
+                    for pixels in found]
         finally:
             x11.XDestroyImage(image)
     finally:
@@ -198,6 +211,17 @@ def main() -> int:
         if not scene_file.is_file():
             raise RuntimeError("native Scene could not save before proxy drag")
         initial_scene = scene_file.read_text()
+        # Selection changes the docked panel layout. Wait for the new physical-pixel
+        # viewport before sampling handle pixels or sending mouse input.
+        stable_since = time.monotonic()
+        while time.monotonic() - stable_since < 0.4:
+            updated = latest_viewport(editor.stderr, viewport)
+            if updated != viewport:
+                viewport = updated
+                stable_since = time.monotonic()
+            time.sleep(0.05)
+        center_x = viewport[0] + viewport[2] // 2
+        center_y = viewport[1] + viewport[3] // 2
         handles = [None, None, None]
         deadline = time.monotonic() + 3
         while time.monotonic() < deadline and any(handle is None for handle in handles):
@@ -211,6 +235,7 @@ def main() -> int:
             handle_x, handle_y = handles[axis]
             subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                             str(handle_x), str(handle_y)], env=environment, check=True)
+            time.sleep(0.2)
             subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
             time.sleep(0.1)
             subprocess.run([args.xdotool, "mousemove", "--window", str(window),
@@ -227,7 +252,10 @@ def main() -> int:
                     any(abs(after[other] - before[other]) > 1e-6 for other in range(3)
                         if other != axis)):
                 raise RuntimeError(f"XYZ handle {axis} did not constrain movement: "
-                                   f"{before} -> {after}")
+                                   f"{before} -> {after}; handle={handles[axis]}, "
+                                   f"viewport={viewport}; "
+                                   f"visible={axis_handle_pixels(display, window, viewport)}; "
+                                   f"latest={latest_viewport(editor.stderr, viewport)}")
             subprocess.run([args.xdotool, "key", "ctrl+z"], env=environment, check=True)
             subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
             deadline = time.monotonic() + 5
@@ -302,6 +330,8 @@ def main() -> int:
         if (abs(after[1] - before[1]) < 0.1 or abs(after[0] - before[0]) > 1e-6 or
                 abs(after[2] - before[2]) > 1e-6):
             raise RuntimeError(f"Shift-drag did not move only world Y: {before} -> {after}")
+        subprocess.run([args.xdotool, "key", "f"], env=environment, check=True)
+        time.sleep(0.15)
         subprocess.run([args.xdotool, "click", "4"], env=environment, check=True)
         subprocess.run([args.xdotool, "mousedown", "3"], env=environment, check=True)
         time.sleep(0.1)
@@ -339,7 +369,7 @@ def main() -> int:
             raise RuntimeError(f"native preview camera was not saved: {camera_lines!r}")
         camera_values = [float(value) for value in camera_lines[1].split()]
         if (len(camera_values) != 8 or abs(camera_values[4] - 0.588) < 0.01 or
-                camera_values[5] >= 17.55 or camera_values[1] < 0.1 or
+                camera_values[5] >= 5.0 or camera_values[1] < 0.1 or
                 camera_values[6] != 0 or abs(camera_values[0]) > 1e-6 or
                 abs(camera_values[2]) > 1e-6):
             raise RuntimeError(f"native preview gestures were not saved: {camera_values!r}")

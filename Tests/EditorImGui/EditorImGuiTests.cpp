@@ -752,8 +752,19 @@ void TestNativeSceneCameraControls() {
                                   1}};
   host.ProcessEvents(frame_key);
   draw();
-  assert(host.GetNativeSceneOrbit().target_y == 7.0 && host.GetSceneOverviewCamera().x == 0.0 &&
+  assert(host.GetNativeSceneOrbit().target_y == 7.0 && host.GetNativeSceneOrbit().distance >= 2.0 &&
+         host.GetNativeSceneOrbit().distance < 5.0 && host.GetSceneOverviewCamera().x == 0.0 &&
          host.GetSceneOverviewCamera().z == 0.0);
+  const auto distant = scene.Create("Distant camera target");
+  assert(distant && scene.SetTransform(distant, {20.0, 7.0, 0.0}) &&
+         scene.Select(std::array{target, distant}));
+  auto frame_release = frame_key;
+  frame_release[0].value1 = 0;
+  host.ProcessEvents(frame_release);
+  draw();
+  host.ProcessEvents(frame_key);
+  draw();
+  assert(host.GetSceneOverviewCamera().x == 10.0 && host.GetNativeSceneOrbit().distance > 25.0);
 }
 } // namespace
 

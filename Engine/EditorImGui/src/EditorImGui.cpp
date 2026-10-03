@@ -904,21 +904,44 @@ template <typename StateT> bool FrameSceneSelection(StateT &state, const SceneDo
 
 template <typename StateT>
 bool FrameNativeSceneSelection(StateT &state, const SceneDocument &scene) {
-  if (!FrameSceneSelection(state, scene))
-    return false;
+  double min_x = std::numeric_limits<double>::infinity();
+  double max_x = -min_x;
   double min_y = std::numeric_limits<double>::infinity();
   double max_y = -min_y;
+  double min_z = min_y;
+  double max_z = -min_y;
   for (const auto id : scene.Selection()) {
     const auto pose = scene.WorldTransform(id);
     if (!pose)
       return false;
+    min_x = std::min(min_x, pose->x);
+    max_x = std::max(max_x, pose->x);
     min_y = std::min(min_y, pose->y);
     max_y = std::max(max_y, pose->y);
+    min_z = std::min(min_z, pose->z);
+    max_z = std::max(max_z, pose->z);
   }
-  const double y = min_y * 0.5 + max_y * 0.5;
-  if (!std::isfinite(y) || std::abs(y) > 100000.0)
+  if (min_x == std::numeric_limits<double>::infinity())
     return false;
+  const double x = min_x * 0.5 + max_x * 0.5;
+  const double y = min_y * 0.5 + max_y * 0.5;
+  const double z = min_z * 0.5 + max_z * 0.5;
+  if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) || std::abs(x) > 100000.0 ||
+      std::abs(y) > 100000.0 || std::abs(z) > 100000.0)
+    return false;
+  double radius = 0.0;
+  for (const auto id : scene.Selection()) {
+    const auto pose = *scene.WorldTransform(id);
+    const auto proxy_radius = 0.45 * std::hypot(pose.sx, pose.sy, pose.sz);
+    radius = std::max(radius, std::hypot(pose.x - x, pose.y + 0.5 - y, pose.z - z) + proxy_radius);
+  }
+  if (!std::isfinite(radius))
+    return false;
+  constexpr double kHalfVerticalFov = 0.425;
+  const double distance = std::clamp(1.5 * radius / std::sin(kHalfVerticalFov), 2.0, 100.0);
   state.native_scene_orbit.target_y = y;
+  state.native_scene_orbit.distance = distance;
+  state.scene_center_world = {static_cast<float>(x), static_cast<float>(z)};
   return true;
 }
 
