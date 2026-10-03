@@ -46,10 +46,57 @@ void TestEulerRotation() {
   original.qw = 0.0;
   assert(!ToEulerDegrees(original));
 }
+
+void TestSceneUndoShortcut() {
+  nexora::runtime::World world;
+  const auto scene_id = world.LoadScene("Undo shortcut");
+  assert(world.Activate(scene_id));
+  nexora::editor::SceneDocument scene(world, scene_id);
+  const auto root = scene.Create("Root");
+  const auto added = scene.Create("Added");
+  const std::array selected{added};
+  assert(root && added && scene.Select(selected));
+  nexora::editor::ProductShell shell;
+  nexora::editor::imgui::EditorImGuiHost host;
+  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  host.SetDisplay(1280.0F, 720.0F, 1.0F);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  const std::array events{
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 1, 0},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::LeftControl),
+                                  1,
+                                  Nexora::Window::KeyModifiers::Control},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::Z),
+                                  1,
+                                  Nexora::Window::KeyModifiers::Control}};
+  host.ProcessEvents(events);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  assert(shell.LastCommand() == "editor.scene.undo");
+  assert(scene.Nodes().size() == 1 && scene.Nodes().front().id == root);
+  assert(scene.Selection().empty());
+}
 } // namespace
 
 int main() {
   TestEulerRotation();
+  TestSceneUndoShortcut();
   using nexora::editor::imgui::EditorImGuiTestAccess;
   nexora::editor::imgui::EditorImGuiHost host;
   const auto initial_state = EditorImGuiTestAccess::Inspect(host);
@@ -404,6 +451,10 @@ int main() {
     host.ProcessEvents(events);
     draw_inspector();
   };
+  key_event(Nexora::Window::Key::Z, true, true);
+  key_event(Nexora::Window::Key::Z, false);
+  assert(shell.LastCommand() != "editor.scene.undo" &&
+         scene.Transform(root) == before_text_edit);
   key_event(Nexora::Window::Key::A, true, true);
   key_event(Nexora::Window::Key::A, false);
   for (const char character : std::string_view{"450"}) {

@@ -46,6 +46,10 @@ authoring views on first launch.
 - The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes
   it after drawing, checks project write access and scene load state, and calls `SceneDocument::Save`.
   The host retains only the result text; it never chooses the path or writes the scene file.
+- The Scene panel's Undo button and Ctrl+Z call `SceneDocument::Undo` on the authoring thread.
+  Ctrl+Z leaves an active text input's own undo alone. A successful document undo clears the
+  retained Hierarchy selection anchor, and the Scene panel reports an empty history. Scene save
+  and undo actions are disabled while a recovery journal awaits a choice.
 - The project selector displays background content-index progress and exposes a one-shot cancel
   request. The application owns the candidate workspace and import operation, consumes the staged
   `AssetWorkspace` on the window/authoring thread, and keeps the selector open after cancellation or

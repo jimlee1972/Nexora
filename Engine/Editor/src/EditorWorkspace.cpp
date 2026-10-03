@@ -517,6 +517,11 @@ bool SceneDocument::Undo() {
   if (entry.kind == UndoEntry::Kind::Runtime) {
     if (!editor_.Undo())
       return false;
+    // Runtime undo can destroy a newly created entity. Remove its authoring metadata and
+    // selection before a later save serializes nodes that no longer exist in the snapshot.
+    std::erase_if(nodes_,
+                  [this](const Node &node) { return world_.FindEntity(node.id) == nullptr; });
+    std::erase_if(selection_, [this](runtime::Id id) { return world_.FindEntity(id) == nullptr; });
     for (const auto &[key, hint] : entry.previous_hints) {
       const auto node = std::ranges::find(nodes_, key.id, &Node::id);
       if (node != nodes_.end() && key.document_generation == document_generation_ &&

@@ -151,6 +151,9 @@ creates property widgets; unknown components retain raw data instead of being si
   request. The application saves `.nexora/scenes/Main.scene`, reloads it on project open, rejects
   read-only saves, and preserves unreadable scene files instead of overwriting them. This is a
   single-scene persistence slice; the graphical save/restart acceptance workflow remains open.
+- ✅ The Scene panel now exposes Undo by button and Ctrl+Z outside text input. Undoing a created
+  entity removes stale node metadata and selection, and a save/reload regression test covers the
+  resulting scene. Redo and the complete visual workflow remain open.
 - Open: graphical Scene View, the complete reflected Inspector, renderer-backed picking, camera
   controls, gizmos, reflected widgets,
   and unknown-component visual workflows. ED-M2 exit still requires UI
