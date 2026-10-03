@@ -56,6 +56,14 @@ struct PickHit final {
 PickNearest(const ViewportRay &ray, std::span<const PickCandidate> candidates,
             double max_distance = std::numeric_limits<double>::infinity());
 
+// Exact ray hit on a rotated box. The center and positive half-extents are in world units;
+// rotation is a unit quaternion (x,y,z,w). The returned distance is measured along the ray in
+// world units, including zero when the ray begins inside the box. Invalid inputs miss.
+[[nodiscard]] NEXORA_EDITOR_API std::optional<double>
+PickOrientedBox(const ViewportRay &ray, const ViewportVector &center,
+                const ViewportVector &half_extents, const std::array<double, 4> &rotation,
+                double max_distance = std::numeric_limits<double>::infinity());
+
 // Signed distance along `axis_direction` (from `axis_origin`) of the point on the gizmo axis line
 // closest to the ray. Returns nullopt when the ray is parallel to the axis or an input is
 // degenerate, so a drag has no defined motion rather than a huge or NaN one.

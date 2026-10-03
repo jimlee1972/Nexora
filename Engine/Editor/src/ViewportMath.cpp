@@ -68,6 +68,32 @@ std::optional<Vec> PlaneHit(const ViewportRay &ray, const Vec &point, const Vec 
   return Add(ray.origin, Scale(*direction, t));
 }
 
+std::optional<double> SlabDistance(const Vec &origin, const Vec &direction, const Vec &low,
+                                   const Vec &high, double max_distance) {
+  double t_near = 0.0;
+  double t_far = std::numeric_limits<double>::infinity();
+  const double starts[3]{origin.x, origin.y, origin.z};
+  const double rays[3]{direction.x, direction.y, direction.z};
+  const double minimum[3]{low.x, low.y, low.z};
+  const double maximum[3]{high.x, high.y, high.z};
+  for (std::size_t axis = 0; axis < 3; ++axis) {
+    if (rays[axis] == 0.0) {
+      if (starts[axis] < minimum[axis] || starts[axis] > maximum[axis])
+        return std::nullopt;
+      continue;
+    }
+    auto t0 = (minimum[axis] - starts[axis]) / rays[axis];
+    auto t1 = (maximum[axis] - starts[axis]) / rays[axis];
+    if (t0 > t1)
+      std::swap(t0, t1);
+    t_near = std::max(t_near, t0);
+    t_far = std::min(t_far, t1);
+    if (t_near > t_far)
+      return std::nullopt;
+  }
+  return std::isfinite(t_near) && t_near <= max_distance ? std::optional{t_near} : std::nullopt;
+}
+
 } // namespace
 
 std::optional<ViewportRay> ViewportPickRay(const ViewportCamera &camera, double viewport_width,
@@ -112,35 +138,39 @@ std::optional<PickHit> PickNearest(const ViewportRay &ray,
         candidate.min.y > candidate.max.y || candidate.min.z > candidate.max.z) {
       continue;
     }
-    // Slab test. A zero direction component either always or never lies inside its slab.
-    double t_near = 0.0;
-    double t_far = std::numeric_limits<double>::infinity();
-    bool hit = true;
-    const double origin[3]{ray.origin.x, ray.origin.y, ray.origin.z};
-    const double direction[3]{ray.direction.x, ray.direction.y, ray.direction.z};
-    const double low[3]{candidate.min.x, candidate.min.y, candidate.min.z};
-    const double high[3]{candidate.max.x, candidate.max.y, candidate.max.z};
-    for (int axis = 0; axis < 3 && hit; ++axis) {
-      if (direction[axis] == 0.0) {
-        hit = origin[axis] >= low[axis] && origin[axis] <= high[axis];
-        continue;
-      }
-      auto t0 = (low[axis] - origin[axis]) / direction[axis];
-      auto t1 = (high[axis] - origin[axis]) / direction[axis];
-      if (t0 > t1)
-        std::swap(t0, t1);
-      t_near = std::max(t_near, t0);
-      t_far = std::min(t_far, t1);
-      hit = t_near <= t_far;
-    }
-    if (!hit || t_near > max_distance)
+    const auto distance =
+        SlabDistance(ray.origin, ray.direction, candidate.min, candidate.max, max_distance);
+    if (!distance)
       continue;
-    if (!best || t_near < best->distance ||
-        (t_near == best->distance && candidate.entity < best->entity)) {
-      best = PickHit{candidate.entity, t_near};
+    if (!best || *distance < best->distance ||
+        (*distance == best->distance && candidate.entity < best->entity)) {
+      best = PickHit{candidate.entity, *distance};
     }
   }
   return best;
+}
+
+std::optional<double> PickOrientedBox(const ViewportRay &ray, const ViewportVector &center,
+                                      const ViewportVector &half_extents,
+                                      const std::array<double, 4> &rotation, double max_distance) {
+  if (!Finite(ray.origin) || !Finite(ray.direction) || !Finite(center) || !Finite(half_extents) ||
+      !(half_extents.x > 0.0) || !(half_extents.y > 0.0) || !(half_extents.z > 0.0) ||
+      std::isnan(max_distance) || max_distance < 0.0)
+    return std::nullopt;
+  const auto direction = Normalized(ray.direction);
+  const Quat q{rotation[0], rotation[1], rotation[2], rotation[3]};
+  const double length_squared = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
+  if (!direction || !std::isfinite(length_squared) || std::abs(length_squared - 1.0) > 0.01)
+    return std::nullopt;
+  const auto unit = *Normalized(q);
+  const Quat inverse{-unit.x, -unit.y, -unit.z, unit.w};
+  const auto local_origin = Rotate(inverse, Sub(ray.origin, center));
+  const auto local_direction = Rotate(inverse, *direction);
+  if (!Finite(local_origin) || !Finite(local_direction))
+    return std::nullopt;
+  return SlabDistance(local_origin, local_direction,
+                      {-half_extents.x, -half_extents.y, -half_extents.z}, half_extents,
+                      max_distance);
 }
 
 std::optional<double> AxisDragDistance(const ViewportRay &ray, const ViewportVector &axis_origin,

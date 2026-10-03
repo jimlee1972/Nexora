@@ -180,7 +180,8 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   地面與 live scene 節點位置代理，保留 canvas 外的控制項。X/Z 編輯概覽仍可切回。已建立的 mesh、
   精確 shear 矩陣、mesh picking 與旋轉／縮放 gizmo 仍待完成，完整 renderer-backed
   Scene View 驗收因此仍未通過。
-  代理 instance 現反映合成後的世界旋轉與縮放，picking 範圍包住旋轉／縮放後的立方體。
+  代理 instance 現反映合成後的世界旋轉與縮放；保守包圍範圍先篩選候選物件，再精確點選
+  旋轉盒體及位移把手，避免點到包圍範圍的空角落。
   右鍵拖曳可旋轉預覽鏡頭，中鍵拖曳可平移 X/Z 目標，Shift 加中鍵拖曳可平移目標高度，
   滾輪可縮放；F 或 Frame selected 會將 X/Y/Z 目標對準選取範圍，並依代理邊界調整距離
   （限制在 2–100 世界單位）。旋轉角度、距離與目標高度現會逐場景保存。

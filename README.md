@@ -191,6 +191,8 @@ wheel zoom, and F or Frame selected to center X/Y/Z and adjust distance for the 
 (clamped to 2–100 world units). Orbit angle, distance, and target height persist per scene.
 Clicking a visible 3D proxy now selects its scene node in Hierarchy and Inspector; Ctrl-click
 toggles selection. Authored mesh picking remains open.
+Picking now tests the rotated proxy and translation-handle boxes after a conservative bounds
+filter, so empty corners of their bounds do not select them.
 Dragging a proxy previews its world X/Z move, while Shift-drag moves along world Y. Selected
 proxies show colored X/Y/Z handles that constrain a drag to one axis; Local axes rotates the
 handles with the first selected node. Release commits one
@@ -378,6 +380,7 @@ F 或 Frame selected 會將 X/Y/Z 目標對準選取範圍，並依其大小調�
 旋轉角度、距離與目標高度現會逐場景保存。
 點選可見的 3D 代理現會同步選取 Hierarchy 與 Inspector 中的場景節點；Ctrl 點選可切換選取。
 已建立 mesh 的 picking 仍待完成。
+點選現會在保守包圍範圍篩選後，精確檢測旋轉代理與位移把手的盒體，避免點到包圍範圍的空角落。
 拖曳代理會即時預覽世界 X/Z 位移；按住 Shift 起始拖曳可沿世界 Y 軸移動。選取的代理現有彩色
 X/Y/Z 把手，可限制拖曳於單一軸；Local axes 可讓把手跟隨第一個選取節點的世界旋轉。放開左鍵時提交單次可復原 transaction；Escape 可取消，
 可選世界單位吸附同時套用於預覽與提交。旋轉及縮放 gizmo 仍待完成。
