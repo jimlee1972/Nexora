@@ -168,11 +168,12 @@ creates property widgets; unknown components retain raw data instead of being si
   clipboard. Hierarchy row views are built after paste and duplicate actions mutate the document.
 - ✅ The central Scene panel now has an interactive top-down X/Z overview: parent-composed entity
   positions, grid, wheel zoom, middle-button pan, and click selection shared with Hierarchy.
-  Renderer-backed 3D output and gizmos remain open.
+  Renderer-backed 3D output and full 3D gizmos remain open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on
   selected world positions with F or Frame selected. Input-event tests cover both interactions.
-- ✅ Scene overview marker dragging previews a world X/Z move and commits selected roots through one
-  atomic, undoable transform transaction. Escape cancels; tests cover parent scale and subtree roots.
+- ✅ Scene overview marker dragging previews a world X/Z move; visible X and Z handles constrain
+  the preview to one world axis. Release commits selected roots through one atomic, undoable
+  transform transaction. Escape cancels; tests cover axis constraints, parent scale, and subtree roots.
   Full 3D gizmo handles and renderer-backed Scene View remain open.
 - ✅ The Scene overview center and zoom now use validated per-scene `CameraPersistence` on project
   open and normal writable shutdown. A corrupt camera file is preserved; Linux Xvfb acceptance

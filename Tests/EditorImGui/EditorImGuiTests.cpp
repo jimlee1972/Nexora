@@ -455,6 +455,29 @@ void TestSceneOverviewDrag() {
   draw();
   assert(scene.WorldTransform(drag_entity)->x == 0.0 &&
          scene.WorldTransform(drag_entity)->z == 0.0);
+
+  const auto drag_axis = [&](std::int32_t start_x, std::int32_t start_y) {
+    const std::array axis_press{
+        Nexora::Window::WindowEvent{
+            {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, start_x, start_y},
+        Nexora::Window::WindowEvent{
+            {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 1}};
+    host.ProcessEvents(axis_press);
+    draw();
+    const std::array axis_move{Nexora::Window::WindowEvent{
+        {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, start_x + 64, start_y + 32}};
+    host.ProcessEvents(axis_move);
+    draw();
+    host.ProcessEvents(release);
+    draw();
+  };
+  drag_axis(reset_x + 28, reset_y);
+  assert(scene.WorldTransform(drag_entity)->x == 2.0 &&
+         scene.WorldTransform(drag_entity)->z == 0.0 && scene.Undo());
+  draw();
+  drag_axis(reset_x, reset_y + 28);
+  assert(scene.WorldTransform(drag_entity)->x == 0.0 &&
+         scene.WorldTransform(drag_entity)->z == 1.0 && scene.Undo());
 }
 
 void TestSceneOverviewCameraState() {

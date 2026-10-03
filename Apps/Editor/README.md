@@ -97,7 +97,8 @@ The central Scene panel also shows a top-down X/Z grid and entity markers at the
 Click a marker to select it, use the wheel to zoom, or drag with the middle button to pan.
 Ctrl-click toggles selection, Shift-click selects a visible range, and F or Frame selected centers
 the view on the current selection.
-Drag a selected marker to move selected objects in X/Z. The move commits when released, Escape
+Drag a selected marker to move selected objects in X/Z, or drag its red X or blue Z handle for a
+single-axis move. The move commits when released, Escape
 cancels it, and one Undo restores the previous positions.
 On normal shutdown, writable projects save the overview center and zoom to
 `.nexora/scenes/Main.overview.camera`. Reopening restores the view. Invalid camera files are
