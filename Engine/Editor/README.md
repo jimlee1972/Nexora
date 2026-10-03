@@ -115,6 +115,8 @@ into renderer or platform internals.
   IDs, names, Euler hints, and selection; separate selected roots are separate Undo steps.
   `DuplicateSelection` captures and pastes the current selection while preserving the user's prior
   clipboard. Like Paste, each created root has its own Undo step.
+  `WorldTransform` exposes a live node's composed world pose to Editor views, so children can be
+  drawn at their actual world position without exposing mutable Runtime entity storage.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
   from references, and rejects cycles or unsafe removal atomically. Migration dry-runs never mutate
   source text; bounded autosave journals reject corruption; stable-path three-way records retain

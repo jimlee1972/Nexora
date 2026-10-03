@@ -163,6 +163,8 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   Undo 會還原節點資料與選取；同時選取的子孫節點不會重複刪除。
 - ✅ Duplicate 按鈕與 Ctrl+D 現可複製圖形化選取，同時保留使用者原本的剪貼簿。
   Hierarchy 會在 Paste 或 Duplicate 修改文件後才建立當幀的節點檢視。
+- ✅ 中央 Scene panel 現有可互動的 X/Z 俯視概覽：含父節點合成後的世界位置、網格、滾輪縮放、
+  中鍵平移，以及與 Hierarchy 同步的點選。正式 3D renderer 輸出與 gizmo 仍待完成。
 - 待辦：圖形化 Scene View、完整 reflected Inspector、renderer-backed picking、camera control、
   gizmo、reflected widget
   與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成 select／edit／undo／save／restart

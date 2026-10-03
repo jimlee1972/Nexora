@@ -38,6 +38,9 @@ authoring views on first launch.
   document. The action is disabled during recovery; Undo restores deleted entities and names.
   Duplicate and Ctrl+D outside text inputs copy the current selection without changing the scene
   clipboard. Paste and Duplicate run before Hierarchy rows borrow node names for the frame.
+  The Scene panel has a top-down X/Z overview with a world grid, composed entity positions,
+  middle-button pan, wheel zoom, and click selection synchronized with Hierarchy. It is an
+  authoring overview; renderer-backed 3D scene output and gizmos remain open.
 - `ProjectContentSession` is also borrowed for each `DrawProductShell` call. The Content panel reads
   virtualized ranges from its UUID-keyed model, emits generation-tagged POD drag payloads, and routes
   rename/move/delete/undo/reimport back through the session. Reimport submits to the borrowed
