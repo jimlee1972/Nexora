@@ -87,6 +87,7 @@ struct EditorImGuiHost::State final {
   bool recovery_prompt_opened = false;
   bool initial_dock_layout_built = false;
   bool focus_initial_content = false;
+  bool focus_initial_scene = false;
   ImGuiTextFilter console_filter;
   int console_min_severity = 0;
   std::string recovery_error;
@@ -1880,6 +1881,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     BuildInitialDockLayout(dockspace, *viewport);
     state_->initial_dock_layout_built = true;
     state_->focus_initial_content = true;
+    state_->focus_initial_scene = true;
   }
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
   ApplyPendingHierarchyRequests(*state_, scene);
@@ -2031,6 +2033,16 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (content != nullptr)
     DrawContentBrowser(*state_, *content, imports);
   DrawProjectPanel(*state_, workspace, recent_projects);
+  if (state_->focus_initial_scene) {
+    auto *scene_window = ImGui::FindWindowByName(PanelWindowName("nexora.scene").c_str());
+    if (scene_window != nullptr && scene_window->DockNode != nullptr &&
+        scene_window->DockNode->TabBar != nullptr) {
+      scene_window->DockNode->SelectedTabId = scene_window->TabId;
+      scene_window->DockNode->TabBar->SelectedTabId = scene_window->TabId;
+      scene_window->DockNode->TabBar->NextSelectedTabId = scene_window->TabId;
+      state_->focus_initial_scene = false;
+    }
+  }
   if (state_->focus_initial_content) {
     const auto content_window_name = PanelWindowName("nexora.content");
     auto *content_window = ImGui::FindWindowByName(content_window_name.c_str());

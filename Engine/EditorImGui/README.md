@@ -4,7 +4,7 @@
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
 and presents panels using the stable IDs owned by `NexoraEditorCore`. On the first frame it builds
 the default workspace with Project and Hierarchy on the left, Console and Content along the bottom,
-and an open center area for the upcoming Scene/Game views. Hierarchy and Content are selected
+and Scene and Game tabs in the center, with Scene selected initially. Hierarchy and Content are selected
 deterministically after their dock nodes settle, so adding a sibling tab cannot hide the primary
 authoring views on first launch.
 
