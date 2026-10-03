@@ -118,6 +118,18 @@ NativeSceneProxyCandidates(const nexora::editor::SceneDocument &scene) {
   return candidates;
 }
 
+nexora::editor::ViewportCamera NativeSceneCamera(nexora::editor::imgui::SceneOverviewCamera camera,
+                                                 nexora::editor::imgui::NativeSceneOrbit orbit) {
+  nexora::editor::ViewportCamera view;
+  view.target = {std::clamp(camera.x, -100000.0, 100000.0), orbit.target_y,
+                 std::clamp(camera.z, -100000.0, 100000.0)};
+  view.position = {view.target.x + orbit.distance * std::sin(orbit.yaw) * std::cos(orbit.pitch),
+                   view.target.y + orbit.distance * std::sin(orbit.pitch),
+                   view.target.z + orbit.distance * std::cos(orbit.yaw) * std::cos(orbit.pitch)};
+  view.vertical_fov_degrees = 0.85 * 180.0 / std::numbers::pi;
+  return view;
+}
+
 std::optional<nexora::runtime::Id>
 PickNativeSceneProxy(const nexora::editor::SceneDocument &scene,
                      Nexora::Presentation::SceneViewport viewport,
@@ -127,13 +139,7 @@ PickNativeSceneProxy(const nexora::editor::SceneDocument &scene,
   if (request.x < viewport.x || request.y < viewport.y ||
       request.x >= viewport.x + viewport.width || request.y >= viewport.y + viewport.height)
     return std::nullopt;
-  nexora::editor::ViewportCamera view;
-  view.target = {std::clamp(camera.x, -100000.0, 100000.0), orbit.target_y,
-                 std::clamp(camera.z, -100000.0, 100000.0)};
-  view.position = {view.target.x + orbit.distance * std::sin(orbit.yaw) * std::cos(orbit.pitch),
-                   view.target.y + orbit.distance * std::sin(orbit.pitch),
-                   view.target.z + orbit.distance * std::cos(orbit.yaw) * std::cos(orbit.pitch)};
-  view.vertical_fov_degrees = 0.85 * 180.0 / std::numbers::pi;
+  const auto view = NativeSceneCamera(camera, orbit);
   const auto ray =
       nexora::editor::ViewportPickRay(view, viewport.width, viewport.height,
                                       request.x - viewport.x + 0.5, request.y - viewport.y + 0.5);
@@ -142,6 +148,45 @@ PickNativeSceneProxy(const nexora::editor::SceneDocument &scene,
   const auto candidates = NativeSceneProxyCandidates(scene);
   const auto hit = nexora::editor::PickNearest(*ray, candidates, 500.0);
   return hit ? std::optional{hit->entity} : std::nullopt;
+}
+
+std::optional<std::array<double, 2>>
+NativeSceneDragDelta(Nexora::Presentation::SceneViewport viewport,
+                     nexora::editor::imgui::SceneOverviewCamera camera,
+                     nexora::editor::imgui::NativeSceneOrbit orbit,
+                     nexora::editor::imgui::NativeSceneDragRequest request, double plane_y) {
+  if (request.start_x < static_cast<std::int64_t>(viewport.x) ||
+      request.start_y < static_cast<std::int64_t>(viewport.y) ||
+      request.start_x >= static_cast<std::int64_t>(viewport.x) + viewport.width ||
+      request.start_y >= static_cast<std::int64_t>(viewport.y) + viewport.height)
+    return std::nullopt;
+  const auto view = NativeSceneCamera(camera, orbit);
+  const auto point_on_plane = [&](std::int32_t x,
+                                  std::int32_t y) -> std::optional<nexora::editor::ViewportVector> {
+    const auto pixel_x = std::clamp(static_cast<double>(x) - viewport.x + 0.5, 0.0,
+                                    static_cast<double>(viewport.width));
+    const auto pixel_y = std::clamp(static_cast<double>(y) - viewport.y + 0.5, 0.0,
+                                    static_cast<double>(viewport.height));
+    const auto ray =
+        nexora::editor::ViewportPickRay(view, viewport.width, viewport.height, pixel_x, pixel_y);
+    if (!ray || std::abs(ray->direction.y) < 1e-6)
+      return std::nullopt;
+    const auto distance = (plane_y - ray->origin.y) / ray->direction.y;
+    if (!std::isfinite(distance) || distance < 0.0 || distance > 500.0)
+      return std::nullopt;
+    return nexora::editor::ViewportVector{ray->origin.x + ray->direction.x * distance, plane_y,
+                                          ray->origin.z + ray->direction.z * distance};
+  };
+  const auto start = point_on_plane(request.start_x, request.start_y);
+  const auto end = point_on_plane(request.end_x, request.end_y);
+  if (!start || !end)
+    return std::nullopt;
+  const auto dx = end->x - start->x;
+  const auto dz = end->z - start->z;
+  if (!std::isfinite(dx) || !std::isfinite(dz) || std::abs(dx) > 100000.0 ||
+      std::abs(dz) > 100000.0)
+    return std::nullopt;
+  return std::array{dx, dz};
 }
 
 Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
@@ -556,16 +601,35 @@ int RunGraphical(std::optional<ProjectState> project,
                                                 ui.GetNativeSceneOrbit(), *request);
           if (hit) {
             std::vector<nexora::runtime::Id> selection;
-            if (request->additive)
+            const bool already_selected =
+                std::find(scene.Selection().begin(), scene.Selection().end(), *hit) !=
+                scene.Selection().end();
+            if (request->additive || already_selected)
               selection.assign(scene.Selection().begin(), scene.Selection().end());
             const auto existing = std::find(selection.begin(), selection.end(), *hit);
             if (existing == selection.end())
               selection.push_back(*hit);
-            else
+            else if (request->additive)
               selection.erase(existing);
             static_cast<void>(scene.Select(selection));
           } else if (!request->additive) {
             static_cast<void>(scene.Select(std::span<const nexora::runtime::Id>{}));
+          }
+        }
+        if (const auto drag = ui.NativeSceneDrag(); drag && !scene.Selection().empty()) {
+          const auto pose = scene.WorldTransform(scene.Selection().front());
+          if (pose) {
+            const auto delta = NativeSceneDragDelta(*viewport, ui.GetSceneOverviewCamera(),
+                                                    ui.GetNativeSceneOrbit(), *drag, pose->y);
+            if (delta) {
+              std::vector<nexora::editor::SceneDocument::NodeKey> keys;
+              for (const auto id : scene.Selection()) {
+                if (const auto key = scene.Key(id))
+                  keys.push_back(*key);
+              }
+              if (keys.size() == scene.Selection().size())
+                static_cast<void>(scene.TranslateSelectionXZ(keys, (*delta)[0], (*delta)[1]));
+            }
           }
         }
         const auto scene_status =

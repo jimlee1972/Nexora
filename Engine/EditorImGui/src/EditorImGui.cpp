@@ -119,6 +119,8 @@ struct EditorImGuiHost::State final {
   bool native_scene_preview_available = true;
   NativeSceneOrbit native_scene_orbit{};
   std::optional<NativeScenePickRequest> native_scene_pick;
+  std::optional<std::array<std::int32_t, 2>> native_scene_drag_origin;
+  std::optional<NativeSceneDragRequest> native_scene_drag;
   ImVec2 scene_center_world{};
   float scene_pixels_per_unit = 32.0F;
   bool scene_snap_to_grid = false;
@@ -1946,6 +1948,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   Activate(state_->context);
   state_->scene_canvas_viewport.reset();
   state_->native_scene_pick.reset();
+  state_->native_scene_drag.reset();
   ImGui::GetIO().DeltaTime = std::max(delta_seconds, 0.0001F);
   ImGui::NewFrame();
 }
@@ -2211,8 +2214,22 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           const auto x = static_cast<std::uint32_t>(io.MousePos.x * io.DisplayFramebufferScale.x);
           const auto y = static_cast<std::uint32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
           const auto &view = *state_->scene_canvas_viewport;
-          if (x >= view.x && y >= view.y && x < view.x + view.width && y < view.y + view.height)
+          if (x >= view.x && y >= view.y && x < view.x + view.width && y < view.y + view.height) {
             state_->native_scene_pick = NativeScenePickRequest{x, y, io.KeyCtrl};
+            if (!io.KeyCtrl)
+              state_->native_scene_drag_origin =
+                  std::array{static_cast<std::int32_t>(x), static_cast<std::int32_t>(y)};
+          }
+        }
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && state_->native_scene_drag_origin) {
+          const auto start = *state_->native_scene_drag_origin;
+          const auto end_x =
+              static_cast<std::int32_t>(io.MousePos.x * io.DisplayFramebufferScale.x);
+          const auto end_y =
+              static_cast<std::int32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
+          if (std::abs(end_x - start[0]) >= 4 || std::abs(end_y - start[1]) >= 4)
+            state_->native_scene_drag = {start[0], start[1], end_x, end_y};
+          state_->native_scene_drag_origin.reset();
         }
         if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
           if (io.MouseWheel != 0.0F)
@@ -2245,6 +2262,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             ImGui::IsKeyPressed(ImGuiKey_F, false))
           static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
       } else {
+        state_->native_scene_drag_origin.reset();
         DrawSceneOverview(*state_, *scene);
       }
     }
@@ -2722,6 +2740,8 @@ EditorImGuiHost::SceneCanvasViewport() const noexcept {
 
 void EditorImGuiHost::SetNativeScenePreview(bool enabled) noexcept {
   state_->native_scene_preview = enabled;
+  if (!enabled)
+    state_->native_scene_drag_origin.reset();
 }
 
 void EditorImGuiHost::SetNativeScenePreviewAvailable(bool available) noexcept {
@@ -2749,6 +2769,10 @@ EditorImGuiHost::NativeScenePreviewViewport() const noexcept {
 
 std::optional<NativeScenePickRequest> EditorImGuiHost::NativeScenePick() const noexcept {
   return state_->native_scene_pick;
+}
+
+std::optional<NativeSceneDragRequest> EditorImGuiHost::NativeSceneDrag() const noexcept {
+  return state_->native_scene_drag;
 }
 
 Nexora::Presentation::SurfaceStatus
