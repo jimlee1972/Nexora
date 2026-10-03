@@ -87,6 +87,8 @@ cancels it, and one Undo restores the previous positions.
 On normal shutdown, writable projects save the overview center and zoom to
 `.nexora/scenes/Main.overview.camera`. Reopening restores the view. Invalid camera files are
 reported and preserved; read-only projects never write camera state.
+The Scene panel marks unsaved changes from live scene content. Undoing an edit back to the saved
+content clears the marker; a failed save leaves it visible.
 Scene View, reflected component widgets, the complete graphical save/restart workflow, and the ED-M2 visual exit gate
 remain open.
 

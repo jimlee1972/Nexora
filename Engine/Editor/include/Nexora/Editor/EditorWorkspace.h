@@ -201,6 +201,8 @@ public:
   bool Undo();
   bool Save(const std::filesystem::path &path) const;
   bool Reload(const std::filesystem::path &path);
+  // Compares the live, serializable scene with the last successful Save or Reload.
+  [[nodiscard]] bool Dirty() const;
   [[nodiscard]] std::span<const runtime::Id> Selection() const noexcept { return selection_; }
   [[nodiscard]] std::optional<NodeKey> Key(runtime::Id entity) const noexcept;
   [[nodiscard]] std::uint64_t Generation() const noexcept { return document_generation_; }
@@ -211,6 +213,7 @@ public:
   [[nodiscard]] std::vector<NodeView> Nodes() const;
 
 private:
+  [[nodiscard]] std::optional<std::string> StateSignature() const;
   struct EulerHint final {
     runtime::Transform transform;
     EulerDegrees degrees;
@@ -242,6 +245,7 @@ private:
   std::vector<UndoEntry> undo_;
   std::uint64_t document_generation_{};
   std::uint64_t next_entity_generation_{1};
+  mutable std::string saved_signature_;
 };
 
 } // namespace nexora::editor

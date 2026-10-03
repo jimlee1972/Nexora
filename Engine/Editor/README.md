@@ -119,6 +119,9 @@ into renderer or platform internals.
   drawn at their actual world position without exposing mutable Runtime entity storage.
   `TranslateSelectionXZ` validates generation-keyed targets, filters selected descendants, and
   applies a world-space X/Z delta through the portable gizmo math and one atomic transform Undo.
+  `Dirty` compares the live serializable scene to the last successful Save or Reload. Its signature
+  preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
+  return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
   from references, and rejects cycles or unsafe removal atomically. Migration dry-runs never mutate
   source text; bounded autosave journals reject corruption; stable-path three-way records retain
