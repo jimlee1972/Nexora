@@ -4,6 +4,7 @@
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneAuthoring.h"
+#include "Nexora/Editor/ViewportMath.h"
 
 #include <atomic>
 #include <chrono>
@@ -12,6 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <numbers>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -683,6 +685,20 @@ int Run() {
                 drag_document.Transform(drag_child)->y == 1.5 && drag_document.Undo() &&
                 drag_document.WorldTransform(drag_child)->y == 0.0,
             "vertical drag under a scaled parent must preserve world-space distance");
+    editor::GizmoOperation turn;
+    turn.kind = editor::GizmoOperation::Kind::Rotate;
+    turn.axis = {0.0, 1.0, 0.0};
+    turn.angle = std::numbers::pi / 2.0;
+    Require(drag_document.ApplySelectionGizmo(drag_both, turn) &&
+                std::abs(drag_document.WorldTransform(drag_child)->x - 7.0) < 1e-9 &&
+                std::abs(drag_document.WorldTransform(drag_child)->z + 6.0) < 1e-9 &&
+                drag_document.Undo() && drag_document.WorldTransform(drag_child)->x == 11.0 &&
+                drag_document.WorldTransform(drag_child)->z == 2.0,
+            "rotating a selected parent must turn its subtree once and undo atomically");
+    turn.axis = {};
+    Require(!drag_document.ApplySelectionGizmo(drag_both, turn) &&
+                drag_document.WorldTransform(drag_child)->x == 11.0,
+            "an invalid graphical rotation changed the scene");
   }
   {
     runtime::World redo_world;

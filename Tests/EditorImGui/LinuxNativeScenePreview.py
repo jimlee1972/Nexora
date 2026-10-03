@@ -93,6 +93,13 @@ def first_entity_position(scene_text: str) -> tuple[float, float, float]:
     return tuple(float(value) for value in fields[2:5])
 
 
+def first_entity_rotation(scene_text: str) -> tuple[float, float, float, float]:
+    lines = scene_text.splitlines()
+    header = next(index for index, line in enumerate(lines)
+                  if line.startswith("NEXORA_SCENE 3 "))
+    return tuple(float(value) for value in lines[header + 1].split()[5:9])
+
+
 def latest_viewport(stream, viewport: tuple[int, int, int, int]):
     while select.select([stream], [], [], 0)[0]:
         output = os.read(stream.fileno(), 4096)
@@ -101,6 +108,17 @@ def latest_viewport(stream, viewport: tuple[int, int, int, int]):
         reports = re.findall(rb"native scene viewport: (\d+) (\d+) (\d+) (\d+)", output)
         if reports:
             viewport = tuple(map(int, reports[-1]))
+    return viewport
+
+
+def settled_viewport(stream, viewport: tuple[int, int, int, int]):
+    stable_since = time.monotonic()
+    while time.monotonic() - stable_since < 0.4:
+        updated = latest_viewport(stream, viewport)
+        if updated != viewport:
+            viewport = updated
+            stable_since = time.monotonic()
+        time.sleep(0.05)
     return viewport
 
 
@@ -138,9 +156,7 @@ def axis_handle_pixels(display_name: str, window: int,
                         if rgb[axis] > 80 and all(rgb[other] < 60 for other in range(3)
                                                    if other != axis):
                             found[axis].append((px, py))
-            return [sorted(pixels, key=lambda pixel: (pixel[0] - center_x) ** 2 +
-                    (pixel[1] - center_y) ** 2)[int(len(pixels) * 0.8)] if pixels else None
-                    for pixels in found]
+            return [pixels[len(pixels) // 2] if pixels else None for pixels in found]
         finally:
             x11.XDestroyImage(image)
     finally:
@@ -213,13 +229,7 @@ def main() -> int:
         initial_scene = scene_file.read_text()
         # Selection changes the docked panel layout. Wait for the new physical-pixel
         # viewport before sampling handle pixels or sending mouse input.
-        stable_since = time.monotonic()
-        while time.monotonic() - stable_since < 0.4:
-            updated = latest_viewport(editor.stderr, viewport)
-            if updated != viewport:
-                viewport = updated
-                stable_since = time.monotonic()
-            time.sleep(0.05)
+        viewport = settled_viewport(editor.stderr, viewport)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
         handles = [None, None, None]
@@ -232,6 +242,10 @@ def main() -> int:
             raise RuntimeError(f"selected proxy lacks visible XYZ axis handles: {handles}")
         before = first_entity_position(initial_scene)
         for axis, (dx, dy) in enumerate(((40, 0), (0, -40), (-30, 25))):
+            viewport = settled_viewport(editor.stderr, viewport)
+            handles = axis_handle_pixels(display, window, viewport)
+            if handles[axis] is None:
+                raise RuntimeError(f"axis handle {axis} disappeared after layout update")
             handle_x, handle_y = handles[axis]
             subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                             str(handle_x), str(handle_y)], env=environment, check=True)
@@ -263,6 +277,9 @@ def main() -> int:
                 time.sleep(0.05)
             if scene_file.read_text() != initial_scene:
                 raise RuntimeError(f"axis handle {axis} drag did not undo atomically")
+        viewport = settled_viewport(editor.stderr, viewport)
+        center_x = viewport[0] + viewport[2] // 2
+        center_y = viewport[1] + viewport[3] // 2
         subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                         str(center_x), str(center_y)], env=environment, check=True)
         _, before_drag_pixels = scene_pixels(display, window, viewport)
@@ -310,6 +327,9 @@ def main() -> int:
             time.sleep(0.05)
         if scene_file.read_text() != initial_scene:
             raise RuntimeError("native proxy drag did not undo before vertical movement")
+        viewport = settled_viewport(editor.stderr, viewport)
+        center_x = viewport[0] + viewport[2] // 2
+        center_y = viewport[1] + viewport[3] // 2
         subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                         str(center_x), str(center_y)], env=environment, check=True)
         subprocess.run([args.xdotool, "keydown", "Shift_L"], env=environment, check=True)
@@ -330,6 +350,44 @@ def main() -> int:
         if (abs(after[1] - before[1]) < 0.1 or abs(after[0] - before[0]) > 1e-6 or
                 abs(after[2] - before[2]) > 1e-6):
             raise RuntimeError(f"Shift-drag did not move only world Y: {before} -> {after}")
+        before_rotation = scene_file.read_text()
+        viewport = settled_viewport(editor.stderr, viewport)
+        center_x = viewport[0] + viewport[2] // 2
+        center_y = viewport[1] + viewport[3] // 2
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y)], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "key", "e"], env=environment, check=True)
+        time.sleep(0.2)
+        rotation_handle = axis_handle_pixels(display, window, viewport)[1]
+        if rotation_handle is None:
+            raise RuntimeError("Rotate tool did not show a visible Y ring")
+        handle_x, handle_y = rotation_handle
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(handle_x), str(handle_y)], env=environment, check=True)
+        time.sleep(0.2)
+        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        time.sleep(0.1)
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(handle_x + 28), str(handle_y + 20)], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        rotated = before_rotation
+        while time.monotonic() < deadline and rotated == before_rotation:
+            time.sleep(0.05)
+            rotated = scene_file.read_text()
+        quaternion = first_entity_rotation(rotated)
+        if (abs(quaternion[1]) < 0.03 or first_entity_position(rotated) != after):
+            raise RuntimeError(f"Y rotation ring did not commit an in-place turn: {quaternion}")
+        subprocess.run([args.xdotool, "key", "ctrl+z"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and scene_file.read_text() != before_rotation:
+            time.sleep(0.05)
+        if scene_file.read_text() != before_rotation:
+            raise RuntimeError("Y rotation ring did not undo atomically")
         subprocess.run([args.xdotool, "key", "f"], env=environment, check=True)
         time.sleep(0.15)
         subprocess.run([args.xdotool, "click", "4"], env=environment, check=True)

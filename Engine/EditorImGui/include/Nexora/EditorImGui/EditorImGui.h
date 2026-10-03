@@ -51,6 +51,8 @@ struct NativeSceneOrbit final {
   double target_y{};
 };
 
+enum class NativeSceneTool { Move, Rotate };
+
 struct NativeScenePickRequest final {
   std::uint32_t x{}, y{}; // framebuffer pixels
   bool additive{};
@@ -128,6 +130,7 @@ public:
   void SetNativeScenePreview(bool enabled) noexcept;
   void SetNativeScenePreviewAvailable(bool available) noexcept;
   [[nodiscard]] NativeSceneOrbit GetNativeSceneOrbit() const noexcept;
+  [[nodiscard]] NativeSceneTool GetNativeSceneTool() const noexcept;
   [[nodiscard]] bool NativeSceneLocalAxes() const noexcept;
   bool SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept;
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>

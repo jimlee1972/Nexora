@@ -481,6 +481,16 @@ bool SceneDocument::TranslateSelection(std::span<const NodeKey> entities, double
   if (entities.empty() || !std::isfinite(dx) || !std::isfinite(dy) || !std::isfinite(dz) ||
       (dx == 0.0 && dy == 0.0 && dz == 0.0))
     return false;
+  GizmoOperation translation;
+  translation.kind = GizmoOperation::Kind::Translate;
+  translation.translation = {dx, dy, dz};
+  return ApplySelectionGizmo(entities, translation);
+}
+
+bool SceneDocument::ApplySelectionGizmo(std::span<const NodeKey> entities,
+                                        const GizmoOperation &operation) {
+  if (entities.empty())
+    return false;
   std::vector<runtime::Id> ids;
   std::unordered_set<runtime::Id> unique;
   ids.reserve(entities.size());
@@ -493,10 +503,7 @@ bool SceneDocument::TranslateSelection(std::span<const NodeKey> entities, double
   const auto targets = GizmoTargets(world_, roots);
   if (!targets || targets->size() != roots.size())
     return false;
-  GizmoOperation translation;
-  translation.kind = GizmoOperation::Kind::Translate;
-  translation.translation = {dx, dy, dz};
-  const auto transforms = ApplyGizmo(*targets, translation);
+  const auto transforms = ApplyGizmo(*targets, operation);
   if (!transforms)
     return false;
   std::vector<NodeKey> root_keys;

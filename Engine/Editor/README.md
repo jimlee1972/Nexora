@@ -123,6 +123,8 @@ into renderer or platform internals.
   `TranslateSelectionXZ` and `TranslateSelection` validate generation-keyed targets, filter
   selected descendants, and apply world-space X/Z or X/Y/Z deltas through the portable gizmo
   math and one atomic transform Undo.
+  `ApplySelectionGizmo` applies validated world-space rotate, translate, or scale operations to
+  those same selection roots with one atomic transform Undo; the native Rotate tool uses it.
   `Dirty` compares the live serializable scene to the last successful Save or Reload. Its signature
   preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.
@@ -236,8 +238,8 @@ and Cancel restores the start exactly. The decision table:
 | Invalid frames | A malformed operation or an unrepresentable result makes `ApplyGizmo` return nullopt. The caller keeps the previous frame. |
 
 Snapping is the caller's choice with `SnapToStep` on the distance, angle (in degrees), or factor.
-Renderer-backed ID-buffer picking and rotation/scale graphical handles remain open. The
-Editor native proxy preview now draws and picks X/Y/Z translation handles in world or local
+Renderer-backed ID-buffer picking and scale graphical handles remain open. The Editor native
+proxy preview now draws and picks X/Y/Z translation bars or rotation rings in world or local
 space. The local basis uses the first selected node's world rotation without mirroring axes.
 `PickOrientedBox` tests a viewport ray against a rotated proxy or handle box after a conservative
 AABB filter, so empty corners of a rotated bound do not select the object.

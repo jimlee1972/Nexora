@@ -63,8 +63,10 @@ authoring views on first launch.
   Selected proxies show colored X/Y/Z handles at the first selected node. The Local axes
   checkbox rotates them with that node's world rotation; otherwise they follow world axes. Their
   hit bounds enclose the rendered boxes, and a click captures the same axis for the whole drag. The application reserves
-  three instance slots for these handles in the native draw. Escape cancels; optional 0.25–4
-  world-unit snap steps apply to preview and commit. Rotation and scale handles remain open.
+  three instance slots for these handles in the native draw. The Rotate tool (E over the canvas;
+  W returns to Move) shows X/Y/Z ring handles and commits a selected-root turn on release as one
+  Undo step. Rotation preview and scale handles remain open. Escape cancels; optional 0.25–4
+  world-unit snap steps apply to movement preview and commit.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
   Dragging a selected marker previews an X/Z move and commits one document transform transaction
