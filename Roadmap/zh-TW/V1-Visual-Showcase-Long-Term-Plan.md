@@ -11,14 +11,15 @@
 - ✅ 整合探針範圍明確：`runtime_rooms.integration_probes` 不代表 CTest 或 clean-host 視覺驗收通過；原 CTest mapping 保留獨立權威，未觀察的 synthetic error-injection metadata 維持 `NOT_RUN`。
 - ✅ Development/Modular 封裝包含 Linux 所需的七個 engine library；isolated-copy launch evidence 會拒絕從封裝外解析 engine dependency，Full/Monolithic 與 Minimal build 分開驗證。
 - ✅ Full profile package preset、原創 content catalog、互動啟動腳本、可重現 ZIP／SHA-256 與版本化 Linux 截圖已提供。
-- 既有 Windows/DX12 開發機 GPU 證據仍只適用於其記錄版本；本次 Linux session 未在 Windows 執行新增房間、Full Windows package 或 workflow 變更。
-- 待辦：Windows 乾淨機圖形啟動、physical-display 驗收及其他 native backend parity。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
+- ✅ Windows DX12 本地開發機（GTX 960）已以 stock PowerShell 5 驗證器執行新版 Development/Full（22 checksum、24 張截圖、2528 次原生 graph/copy/present）與 Shipping/Full（14 checksum、25 張截圖、15231 次原生 graph/copy/present、完整 210 秒導覽）；Windows Development CTest 68/68、Linux Development CTest 77/77。證據：[`Windows-V1-DX12-Local-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md)。
+- ✅ Windows hosted CI 的 Full Shipping／DX12 isolated-copy 圖形驗收已通過（[CI 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518)，證據：[`Windows-V1-Native-Graph-CI-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md)）。
+- 待辦（V1 最終驗收仍為 PENDING）：獨立配置的 Windows 乾淨主機圖形啟動、physical-display 操作聲明（`-PhysicalDisplay -CleanHost`，目前 acceptance JSON 兩欄皆為 false）、Vulkan/Metal 其他 native backend parity。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
 
 證據與精確驗證結果：[`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md)。
 
-> 文件版本：v1.1
+> 文件版本：v1.2
 >
-> 文件狀態：Linux 與 Windows 開發機 vertical slice 已實作；完整驗收待完成
+> 文件狀態：Linux 與 Windows 開發機 vertical slice 已實作並驗證；乾淨主機與實體顯示的最終驗收待完成
 >
 > 更新日期：2026-10-03
 
@@ -32,6 +33,8 @@
 Demo 不取代 CTest。CTest 負責 deterministic、headless、錯誤路徑與效能基線；NexoraShowcase 負責可觀察的跨模組整合、視覺結果與人工展示。
 
 ## 2. 現況與必要邊界
+
+> 本節為立項時的基線盤點（歷史紀錄）；目前實作狀態以 §0 與 §14 為準。
 
 目前 repository 已有 V1 Runtime、RHI、Renderer 與多個 milestone contract，但還不是完整的視窗化 3D Engine：
 
@@ -130,6 +133,8 @@ NexoraShowcase
 現有 NexoraRHI::Device 的 offscreen contract 必須保留。視窗化能力應增加獨立的 WindowSurface/swapchain 邊界，而不是把 Win32 型別放進 public backend-neutral header。
 
 ### 5.2 建議目錄
+
+> 實際落地的結構：`Apps/Showcase/` 內含 `CMakeLists.txt`、`main.cpp`、`ShowcaseProbes.cpp/.h`、`ShowcaseRooms.cpp/.h` 與 `evidence/`（版本化驗收證據）；下列為原始提案。
 
 以下是目標結構，標記為 proposed，不代表本次文件建立時已存在：
 
@@ -329,6 +334,8 @@ Visual Studio generator 的多組態 build 使用：
 cmake --build build\windows-development --config Development --target NexoraShowcase --parallel 4
 ~~~
 
+實際使用的 Windows preset：Development/Full 為 `windows-showcase-development`，Shipping/Full 為 `windows-showcase-shipping`；打包與驗收腳本為套件內的 `accept-v1.ps1`（`-CompleteGuidedTour` 驗證完整 210 秒導覽）。完整指令見 [`Windows-V1-DX12-Local-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md)。
+
 ### 9.2 執行參數
 
 ~~~text
@@ -409,7 +416,25 @@ package 必須由 M12 Packager/manifest contract 產出或驗證，不允許靠�
 - Shipping / Full package 可在乾淨 Windows 環境啟動，並由 manifest 驗證內容。
 - 每次 tag 都能產出 executable、package manifest、probe report、CTest report 與版本化 screenshot。
 
+### 12.1 目前達成狀況
+
+| 項目 | 狀態 | 依據 |
+| --- | --- | --- |
+| Hub 有真正的 3D camera、mesh、材質與可見輸出 | ✅ | Linux Vulkan 像素驗收；Windows DX12 本地截圖 |
+| 八個展示房間（含 Rendering、Scene/Asset/Editor、Gameplay） | ✅ | 房間切換與截圖驗收 |
+| F1/F2/F3 overlay、F5 reload、210 秒導覽 | ✅ | Linux／Windows 互動驗收；Shipping 導覽 210.002 秒 |
+| `--headless --validate-v1` 可解析 JSON、Validation Lab 匯出 | ✅ | showcase probe 測試與匯出 JSON／Markdown |
+| 既有 CTest 不退化並新增 showcase gate | ✅ | Linux Development 77/77；Windows Development 68/68 |
+| M0～M12 皆有 Contract Gate／Showcase View／Status／Owner | ✅ | §7 矩陣（狀態皆為 PARTIAL，非 PASS） |
+| M6 區分 Editor SDK 與圖形化 Editor | ✅ | §6.3 範圍聲明 |
+| M9/M11 第三方 adapter 缺失時仍可 contract-only 展示 | ✅ | audio/video/WebView 標示 contract-only／unavailable |
+| 乾淨 Windows 主機啟動 Shipping/Full package | 待驗收 | 目前僅有 hosted VM 與開發機證據 |
+| physical-display 操作聲明 | 待驗收 | acceptance JSON 的對應欄位仍為 false |
+| 每個 tag 自動產出 executable／manifest／report／screenshot | 待驗收 | 版本化證據目錄已有，tag 流程尚未宣告完成 |
+
 ## 13. 第一個施工 ticket 建議
+
+> ✅ 此 ticket 範圍已完成並被後續 Phase A～E 超越（Linux 與 Windows 視窗化、3D、probe、房間與打包皆已實作）；以下保留為歷史規劃。
 
 建議將下一個實作 milestone 命名為 V1-Showcase-M0 Windowed Demo Shell，只做以下範圍：
 
@@ -422,6 +447,10 @@ package 必須由 M12 Packager/manifest contract 產出或驗證，不允許靠�
 7. 更新 Windows VS Code/CMake 使用說明與本文件的實作狀態。
 
 這個 ticket 完成後，才進入 3D scene、probe registry 與各 V1 展示房間施工。這樣可以先取得真正能執行的 exe 基線，再逐步把 V1 能力接上去，而不會用尚未存在的畫面功能掩蓋 RHI/window boundary 尚未完成的事實。
+
+## 14. 實作後續與驗收紀錄
+
+以下依時間順序保留各切片的驗收紀錄；最新狀態請見 §0 與 §12.1。
 
 ✅ Validation Lab 後續：`Tab` 選取 M0-M12；`I` 切換 None／空資產／循環相依／Plugin ABI／Rollback；`R` 執行；PageUp/PageDown 捲動輸入、輸出與錯誤；`X` 匯出 `showcase-lab.json` 與 `showcase-lab.md`。空資產、相依循環、資產／更新回滾與真正動態函式庫的 ABI 拒絕皆使用公開 Runtime API 執行，記錄 sample tick 與實際輸入。範例插件啟用時會放在可執行檔旁並納入套件；`--plugin-library=PATH` 指定 M6 的真實函式庫。缺少插件檔案顯示 FAIL；不支援的探針／錯誤組合顯示 UNSUPPORTED。原有 schema-fixture 注入 metadata 仍與實際執行結果分開。
 

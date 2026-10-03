@@ -11,14 +11,15 @@
 - ✅ Integration probe scope is explicit: `runtime_rooms.integration_probes` does not certify CTest or clean-host visual acceptance. The original CTest mapping remains a separate authority; synthetic error-injection metadata stays `NOT_RUN` until observed.
 - ✅ Development/Modular packaging includes the seven required Linux engine libraries. Isolated-copy launch evidence rejects a dependency resolved outside the package; Full/Monolithic and Minimal builds remain separate.
 - ✅ Full-profile package presets, original content catalog, interactive launch scripts, deterministic ZIP and SHA-256 output, and versioned Linux screenshots are available.
-- Existing Windows/DX12 developer-machine GPU evidence remains valid for its recorded version. The expanded rooms, Full Windows package and workflow changes have not been executed on Windows in this Linux session.
-- Open: clean Windows graphical launch, physical-display acceptance, and other native-backend parity. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
+- ✅ Windows DX12 local developer machine (GTX 960): the stock PowerShell 5 verifier passed the current Development/Full package (22 checksums, 24 screenshots, 2528 native graph/copy/present frames) and Shipping/Full package (14 checksums, 25 screenshots, 15231 native graph/copy/present frames, complete 210-second tour). Windows Development CTest 68/68; Linux Development CTest 77/77. Evidence: [`Windows-V1-DX12-Local-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
+- ✅ Windows hosted-CI Full Shipping/DX12 isolated-copy graphical acceptance passes ([CI 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518); evidence: [`Windows-V1-Native-Graph-CI-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md)).
+- Open (final V1 acceptance remains PENDING): graphical launch on an independently provisioned clean Windows host, the physical-display operator attestation (`-PhysicalDisplay -CleanHost`; both fields are currently false in the acceptance JSON), and Vulkan/Metal native-backend parity elsewhere. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
 
 Evidence and exact validation results: [`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
 
-> Document version: v1.1
+> Document version: v1.2
 >
-> Document status: implemented Linux and Windows developer vertical slices; full acceptance pending
+> Document status: Linux and Windows developer vertical slices implemented and verified; final clean-host and physical-display acceptance pending
 >
 > Updated: 2026-10-03
 
@@ -32,6 +33,8 @@ This document plans a long-term-maintainable NexoraShowcase, giving Nexora both:
 The Demo does not replace CTest. CTest owns deterministic, headless, error-path, and performance-baseline coverage; NexoraShowcase owns observable cross-module integration, visual results, and manual demonstration.
 
 ## 2. Current state and necessary boundaries
+
+> This section is the original baseline audit made when the plan was created (historical). Current implementation status is in §0 and §14.
 
 The repository already has V1 Runtime, RHI, Renderer, and several milestone contracts, but is not yet a complete windowed 3D engine:
 
@@ -130,6 +133,8 @@ NexoraShowcase
 The existing `NexoraRHI::Device` offscreen contract must be preserved. Windowing capability should add an independent WindowSurface/swapchain boundary rather than putting Win32 types into the public backend-neutral header.
 
 ### 5.2 Proposed layout
+
+> Actual layout: `Apps/Showcase/` contains `CMakeLists.txt`, `main.cpp`, `ShowcaseProbes.cpp/.h`, `ShowcaseRooms.cpp/.h` and `evidence/` (versioned acceptance evidence). The tree below is the original proposal.
 
 The following is a target structure, marked as proposed -- it does not represent what already exists at the time this document was written:
 
@@ -329,6 +334,8 @@ For the Visual Studio generator's multi-config build:
 cmake --build build\windows-development --config Development --target NexoraShowcase --parallel 4
 ~~~
 
+Presets actually used on Windows: `windows-showcase-development` (Development/Full) and `windows-showcase-shipping` (Shipping/Full); the packaged verifier is `accept-v1.ps1` (`-CompleteGuidedTour` checks the full 210 seconds). Exact commands: [`Windows-V1-DX12-Local-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
+
 ### 9.2 Launch arguments
 
 ~~~text
@@ -409,7 +416,25 @@ Required gates:
 - The Shipping / Full package can launch on a clean Windows environment, with its content verified by the manifest.
 - Every tag can produce an executable, package manifest, probe report, CTest report, and versioned screenshots.
 
+### 12.1 Current status
+
+| Item | Status | Basis |
+| --- | --- | --- |
+| Hub has a real 3D camera, mesh, material and visible output | ✅ | Linux Vulkan pixel acceptance; Windows DX12 local screenshots |
+| Eight rooms (including Rendering, Scene/Asset/Editor, Gameplay) | ✅ | Room switching and screenshot acceptance |
+| F1/F2/F3 overlays, F5 reload, 210-second tour | ✅ | Linux/Windows interaction acceptance; Shipping tour 210.002 s |
+| `--headless --validate-v1` parseable JSON, Validation Lab export | ✅ | Showcase probe tests and exported JSON/Markdown |
+| Existing CTest not regressed, showcase gates added | ✅ | Linux Development 77/77; Windows Development 68/68 |
+| Every M0-M12 row has Contract Gate / Showcase View / Status / Owner | ✅ | §7 matrix (statuses are PARTIAL, not PASS) |
+| M6 separates Editor SDK from graphical editor | ✅ | §6.3 scope statement |
+| M9/M11 run contract-only when adapters are missing | ✅ | Audio/video/WebView marked contract-only/unavailable |
+| Shipping/Full package launches on a clean Windows host | Pending | Only hosted-VM and developer-machine evidence so far |
+| Physical-display operator attestation | Pending | Corresponding acceptance-JSON field is still false |
+| Every tag produces executable/manifest/report/screenshots | Pending | Versioned evidence directories exist; tag workflow not declared complete |
+
 ## 13. Suggested first build ticket
+
+> ✅ This ticket's scope is complete and has been superseded by Phases A-E (windowed Linux and Windows execution, 3D, probes, rooms and packaging are implemented); kept below as historical planning.
 
 The next implementation milestone should be named **V1-Showcase-M0 Windowed Demo Shell**, scoped to only:
 
@@ -422,6 +447,10 @@ The next implementation milestone should be named **V1-Showcase-M0 Windowed Demo
 7. Update the Windows VS Code/CMake usage instructions and this document's implementation-status section.
 
 Only once this ticket is complete should work move on to the 3D scene, probe registry, and each V1 showcase room -- so a genuinely runnable exe baseline is established first, and V1 capabilities are attached to it incrementally, rather than using not-yet-existing visual features to paper over an unfinished RHI/window boundary.
+
+## 14. Implementation follow-ups and acceptance records
+
+Per-slice acceptance records are kept below in chronological order; the latest status is in §0 and §12.1.
 
 Validation Lab follow-up: `Tab` selects M0-M12; `I` cycles None/Empty asset/Cycle/Plugin ABI/Rollback; `R` runs; PageUp/PageDown scroll results; `X` exports `showcase-lab.json` and `showcase-lab.md`. The example plugin is optional and packaged beside the executable when enabled. `--plugin-library=PATH` selects a real local library for the M6 gate. All records include the sample tick and exact input case.
 
