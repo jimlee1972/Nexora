@@ -58,8 +58,11 @@ authoring views on first launch.
   Dragging a selected proxy emits start and release positions in framebuffer pixels. The
   application projects both onto the selected node's horizontal plane for X/Z movement, or
   onto its world Y axis when Shift was held at drag start. It draws selected proxies and their
-  descendants at the prospective position and commits one undoable world move on release. Escape cancels the drag; optional 0.25–4 world-unit snap steps apply to
-  both preview and commit. Full 3D gizmo handles remain open.
+  descendants at the prospective position and commits one undoable world move on release.
+  Selected proxies show colored X/Y/Z handles at the first selected node. Their hit bounds match
+  the rendered boxes; clicking one constrains the drag to that world axis. The application reserves
+  three instance slots for these handles in the native draw. Escape cancels; optional 0.25–4
+  world-unit snap steps apply to preview and commit. Rotation and scale handles remain open.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
   Dragging a selected marker previews an X/Z move and commits one document transform transaction
