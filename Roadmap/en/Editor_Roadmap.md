@@ -24,7 +24,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. The graphical Console shows bounded records and Editor diagnostics; a docked Game panel controls an isolated clone and copied inspection snapshot. Renderer-backed Game View, gameplay callbacks, complete log routing, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
 | ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
-| ED-M6 build/profile/extensions | Portable build manifests/checksums and monotonic profile capture exist. Graphical build/deploy/log/profile/plugin-manager workflows remain open. | [ ] |
+| ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts. Build/deploy/log, GPU/memory profiling, export, and plugin-manager workflows remain open. | [ ] |
 | ED-M7 hardening | Portable virtual hierarchy, trust/signature policy, and telemetry opt-in tests exist. Graphical scale/soak, migration/corruption, keyboard, and screen-reader audits remain open. | [ ] |
 
 The focused [Dear ImGui plan](Editor_ImGui_Integration_Plan.md) contains the granular checked ED-M0
@@ -222,8 +222,12 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
   - ✅ Portable build frontend validates and atomically writes target/configuration/command and
-    checksummed artifact manifests; monotonic CPU/GPU/memory frame capture is implemented.
-  - Open: graphical frontend, remote deployment/logs, live profiler integration, and plugin manager.
+    checksummed artifact manifests; bounded monotonic CPU/GPU/memory frame capture is implemented.
+  - ✅ The graphical Profiler shows a live, bounded Editor frame processing wall-time trace with
+    pause/clear, latest/average/peak, and evicted-frame count. GPU time and memory are labelled
+    unavailable until instrumented.
+  - Open: graphical build frontend, remote deployment/logs, GPU/memory profiling, versioned
+    export, and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
   - ✅ 100k-item virtual hierarchy ranges, trusted-publisher/signature policy, and telemetry that
     drops events until explicit opt-in are covered by portable tests.

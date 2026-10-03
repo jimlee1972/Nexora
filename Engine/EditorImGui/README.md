@@ -89,6 +89,9 @@ authoring views on first launch.
   own history alone. A successful document replay clears the retained Hierarchy selection anchor;
   empty histories are reported in the Scene panel. Save and history actions are disabled while a
   recovery journal awaits a choice.
+- The docked Profiler reads an application-owned bounded `ProfileSession`. It can pause and clear
+  capture, plots retained Editor frame processing times, and reports the latest, average, peak, and
+  evicted-frame count. GPU time and memory remain explicitly unavailable until instrumented.
 - The project selector displays background content-index progress and exposes a one-shot cancel
   request. The application owns the candidate workspace and import operation, consumes the staged
   `AssetWorkspace` on the window/authoring thread, and keeps the selector open after cancellation or

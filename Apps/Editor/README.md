@@ -124,6 +124,9 @@ the ED-M2 save/restart acceptance workflow.
 The Scene panel exposes Undo (Ctrl+Z) and Redo (Ctrl+Y or Ctrl+Shift+Z) outside text inputs.
 Undoing entity creation removes stale node metadata and selection; Redo restores them with the
 stable entity ID. New scene edits discard the redo branch.
+The docked Profiler shows a bounded history of Editor frame processing wall time measured after
+BeginFrame and before Present. Capture can be paused or cleared; the panel reports evicted frames
+and labels GPU timing and process memory as unavailable.
 
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows
 fresh-project workflow acceptance remain open.

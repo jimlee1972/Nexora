@@ -68,11 +68,19 @@ struct FrameSample final {
 
 class NEXORA_EDITOR_API ProfileSession final {
 public:
+  explicit ProfileSession(std::size_t capacity = 600) : capacity_(capacity) {}
   bool Add(FrameSample sample);
+  void Clear() noexcept;
+  void SetCapturing(bool enabled) noexcept { capturing_ = enabled; }
+  [[nodiscard]] bool Capturing() const noexcept { return capturing_; }
+  [[nodiscard]] std::uint64_t DroppedCount() const noexcept { return dropped_; }
   [[nodiscard]] std::span<const FrameSample> Samples() const noexcept { return samples_; }
   [[nodiscard]] std::optional<FrameSample> Peak() const noexcept;
 
 private:
+  std::size_t capacity_{};
+  std::uint64_t dropped_{};
+  bool capturing_{true};
   std::vector<FrameSample> samples_;
 };
 

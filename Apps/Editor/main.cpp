@@ -3,6 +3,7 @@
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/ProjectContent.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
+#include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "Nexora/Presentation/RenderSurface.h"
@@ -105,6 +106,7 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::SceneDocument scene(world, scene_id);
   nexora::runtime::PlaySession play(world);
   nexora::runtime::RuntimeConsole console{1024};
+  nexora::editor::ProfileSession profile{240};
   const auto log = [&](nexora::runtime::RuntimeLogSeverity severity, std::string category,
                        std::string message) {
     const auto timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -213,6 +215,7 @@ int RunGraphical(std::optional<ProjectState> project,
     const auto &frame = created.surface->FrameInfo();
     if (frame.width == 0 || frame.height == 0)
       continue;
+    const auto frame_started = std::chrono::steady_clock::now();
     const auto dpi = std::max(frame.dpiScale, 0.25F);
     ui.SetDisplay(static_cast<float>(frame.width) / dpi, static_cast<float>(frame.height) / dpi,
                   dpi);
@@ -273,7 +276,7 @@ int RunGraphical(std::optional<ProjectState> project,
     }
     if (project) {
       ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports,
-                          &console, &play);
+                          &console, &play, &profile);
       switch (ui.TakePlayCommand()) {
       case nexora::editor::imgui::PlayCommand::Start:
         if (play.Start(1.0 / 60.0, [](nexora::runtime::World &, double) { return true; })) {
@@ -378,6 +381,7 @@ int RunGraphical(std::optional<ProjectState> project,
       result = created.surface->CloseRequested() ? 0 : 1;
       break;
     }
+    const auto frame_processed = std::chrono::steady_clock::now();
     if (const auto end_status = created.surface->EndFrame();
         end_status != Nexora::Presentation::SurfaceStatus::Ready) {
       if (surface_recoverable(end_status))
@@ -385,6 +389,10 @@ int RunGraphical(std::optional<ProjectState> project,
       result = created.surface->CloseRequested() ? 0 : 1;
       break;
     }
+    static_cast<void>(profile.Add(
+        {static_cast<std::uint64_t>(frames) + 1,
+         std::chrono::duration<double, std::milli>(frame_processed - frame_started).count(), 0.0,
+         0}));
     ++frames;
   }
   if (project && project->workspace.Writable() &&
