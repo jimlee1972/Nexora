@@ -161,6 +161,8 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   快捷鍵、複製後移動來源，以及單一貼上物件的 Undo。
 - ✅ 圖形化 Hierarchy 現可透過按鈕或視窗取得焦點時的 Delete 鍵刪除選取的 subtree。
   Undo 會還原節點資料與選取；同時選取的子孫節點不會重複刪除。
+- ✅ Duplicate 按鈕與 Ctrl+D 現可複製圖形化選取，同時保留使用者原本的剪貼簿。
+  Hierarchy 會在 Paste 或 Duplicate 修改文件後才建立當幀的節點檢視。
 - 待辦：圖形化 Scene View、完整 reflected Inspector、renderer-backed picking、camera control、
   gizmo、reflected widget
   與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成 select／edit／undo／save／restart

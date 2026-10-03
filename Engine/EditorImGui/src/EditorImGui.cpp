@@ -583,6 +583,19 @@ template <typename StateT> void DeleteHierarchySelection(StateT &state, SceneDoc
   state.hierarchy_error.clear();
 }
 
+template <typename StateT> void DuplicateHierarchySelection(StateT &state, SceneDocument &scene) {
+  if (!scene.DuplicateSelection()) {
+    state.hierarchy_error = "Duplicate failed because the selection is empty or stale.";
+    state.hierarchy_status.clear();
+    return;
+  }
+  state.hierarchy_selection_anchor =
+      scene.Selection().size() == 1 ? scene.Key(scene.Selection().front()) : std::nullopt;
+  state.hierarchy_filter.fill({});
+  state.hierarchy_status = "Duplicated " + std::to_string(scene.Selection().size()) + " entities.";
+  state.hierarchy_error.clear();
+}
+
 template <typename StateT>
 void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
                    bool recovery_available) {
@@ -623,6 +636,23 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
     static_cast<void>(shell.RouteCommand("editor.scene.delete"));
     DeleteHierarchySelection(state, *scene);
   }
+  ImGui::Separator();
+  ImGui::BeginDisabled(scene->Selection().empty() || recovery_available);
+  if (ImGui::SmallButton("Copy"))
+    CopyHierarchySelection(state, *scene);
+  ImGui::EndDisabled();
+  ImGui::SameLine();
+  ImGui::BeginDisabled(recovery_available);
+  if (ImGui::SmallButton("Paste"))
+    PasteHierarchySelection(state, *scene);
+  ImGui::EndDisabled();
+  ImGui::SameLine();
+  ImGui::BeginDisabled(scene->Selection().empty() || recovery_available);
+  if (ImGui::SmallButton("Duplicate")) {
+    static_cast<void>(shell.RouteCommand("editor.scene.duplicate"));
+    DuplicateHierarchySelection(state, *scene);
+  }
+  ImGui::EndDisabled();
   if (!state.hierarchy_error.empty())
     ImGui::TextWrapped("%s", state.hierarchy_error.c_str());
   if (!state.hierarchy_status.empty())
@@ -673,14 +703,6 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
     static_cast<void>(scene->Select(std::span<const runtime::Id>{}));
     state.hierarchy_selection_anchor.reset();
   }
-  ImGui::SameLine();
-  ImGui::BeginDisabled(scene->Selection().empty());
-  if (ImGui::SmallButton("Copy"))
-    CopyHierarchySelection(state, *scene);
-  ImGui::EndDisabled();
-  ImGui::SameLine();
-  if (ImGui::SmallButton("Paste"))
-    PasteHierarchySelection(state, *scene);
   ImGui::Separator();
 
   const auto handle_selection = [&](SceneDocument::NodeKey entity) {
@@ -1622,6 +1644,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V, ImGuiInputFlags_RouteGlobal)) {
       static_cast<void>(shell.RouteCommand("editor.scene.paste"));
       PasteHierarchySelection(*state_, *scene);
+    }
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D, ImGuiInputFlags_RouteGlobal)) {
+      static_cast<void>(shell.RouteCommand("editor.scene.duplicate"));
+      DuplicateHierarchySelection(*state_, *scene);
     }
   }
   const auto *viewport = ImGui::GetMainViewport();

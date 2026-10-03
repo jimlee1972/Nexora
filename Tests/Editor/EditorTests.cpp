@@ -617,6 +617,31 @@ int Run() {
                 deletions.Undo() && deletions.Nodes().size() == 3,
             "multi-root deletion must restore one selected root per undo step");
   }
+  {
+    runtime::World duplicate_world;
+    const auto duplicate_scene = duplicate_world.LoadScene("Duplicate contract");
+    Require(duplicate_world.Activate(duplicate_scene), "duplicate scene activation failed");
+    editor::SceneDocument duplicates(duplicate_world, duplicate_scene);
+    const auto clipboard_source = duplicates.Create("Clipboard source");
+    const auto duplicate_source = duplicates.Create("Duplicate source");
+    const std::array copied_selection{clipboard_source};
+    const std::array duplicated_selection{duplicate_source};
+    Require(clipboard_source && duplicate_source &&
+                duplicates.SetTransform(clipboard_source, {1, 0, 0}) &&
+                duplicates.SetTransform(duplicate_source, {5, 0, 0}) &&
+                duplicates.Select(copied_selection) && duplicates.CopySelection() &&
+                duplicates.Select(duplicated_selection) && duplicates.DuplicateSelection(),
+            "duplicate setup failed");
+    const auto duplicate_id = duplicates.Selection().front();
+    Require(duplicates.Name(duplicate_id) == "Duplicate source Copy" &&
+                duplicates.Transform(duplicate_id)->x == 5 && duplicates.Paste(),
+            "duplicate must copy the selected entity's captured pose");
+    const auto clipboard_paste = duplicates.Selection().front();
+    Require(duplicates.Name(clipboard_paste) == "Clipboard source Copy" &&
+                duplicates.Transform(clipboard_paste)->x == 1 && duplicates.Undo() &&
+                duplicates.Undo() && duplicates.Nodes().size() == 2,
+            "duplicate must preserve the clipboard and remain undoable");
+  }
   const auto scene_path = root / "Content/Main.scene";
   Require(document.Save(scene_path), "scene atomic save failed");
   runtime::World loaded_world;

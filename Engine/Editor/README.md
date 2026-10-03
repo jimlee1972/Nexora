@@ -113,6 +113,8 @@ into renderer or platform internals.
   `DeleteSelection` validates the selected nodes before deleting, removes each selected subtree
   once, and drops its node metadata and selection immediately. Undo restores the subtree's stable
   IDs, names, Euler hints, and selection; separate selected roots are separate Undo steps.
+  `DuplicateSelection` captures and pastes the current selection while preserving the user's prior
+  clipboard. Like Paste, each created root has its own Undo step.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
   from references, and rejects cycles or unsafe removal atomically. Migration dry-runs never mutate
   source text; bounded autosave journals reject corruption; stable-path three-way records retain

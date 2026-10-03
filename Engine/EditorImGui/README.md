@@ -36,6 +36,8 @@ authoring views on first launch.
   Shortcuts are disabled while a recovery journal awaits a choice.
   Delete selected and the Delete key in the focused Hierarchy remove selected subtrees through the
   document. The action is disabled during recovery; Undo restores deleted entities and names.
+  Duplicate and Ctrl+D outside text inputs copy the current selection without changing the scene
+  clipboard. Paste and Duplicate run before Hierarchy rows borrow node names for the frame.
 - `ProjectContentSession` is also borrowed for each `DrawProductShell` call. The Content panel reads
   virtualized ranges from its UUID-keyed model, emits generation-tagged POD drag payloads, and routes
   rename/move/delete/undo/reimport back through the session. Reimport submits to the borrowed
