@@ -47,7 +47,8 @@ The Scene panel can switch from its editable X/Z overview to a native depth-test
 preview. Vulkan and DX12 draw an instanced ground and one position proxy per scene node inside the
 docked canvas after UI submission, preserving controls outside the canvas. Selection changes proxy
 tint. Each proxy now uses the node's composed world rotation and scale; a conservative pick AABB
-filters candidates before an exact ray test against the rotated proxy or translation handle box.
+filters candidates before a ray test against the rotated proxy or handle box. Thin handles have a
+small hit margin so visible edge pixels can be clicked.
 Authored mesh assets and exact sheared world matrices are still open, so the full
 renderer-backed Scene View remains open.
 Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel zooms, and F or
@@ -58,9 +59,12 @@ Left click selects the nearest visible position proxy using a viewport ray again
 box; Ctrl-click toggles it, and an empty click clears selection. Hierarchy and Inspector share
 that selection. Picking authored mesh triangles remains open.
 Dragging a selected proxy previews a world X/Z move of selected roots and their descendants, then
-commits it when the left button is released as one undoable transform transaction. Full 3D gizmo
-handles remain open; Escape cancels a drag, and the shared Snap movement setting applies the
-chosen 0.25–4 world-unit step to preview and commit. The X/Z overview retains its axis handles.
+commits it when the left button is released as one undoable transform transaction. The Rotate tool
+(or E while hovering the canvas) draws X/Y/Z ring handles in world or local space and commits an
+in-place rotation of selected roots on release as one Undo step. W returns to Move. Rotation does
+not yet preview before release; scale handles remain open. Escape cancels a drag, and the shared
+Snap movement setting applies the chosen 0.25–4 world-unit step to movement preview and commit.
+The X/Z overview retains its axis handles.
 `--native-scene-preview` selects this mode on startup for display acceptance.
 Project-selector activation now indexes content through an application-owned `AssetImportQueue`;
 the selector shows bounded progress and can cancel without activating a partial project. Content

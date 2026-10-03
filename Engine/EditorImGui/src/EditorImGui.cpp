@@ -118,6 +118,7 @@ struct EditorImGuiHost::State final {
   bool native_scene_preview = false;
   bool native_scene_preview_available = true;
   NativeSceneOrbit native_scene_orbit{};
+  NativeSceneTool native_scene_tool{NativeSceneTool::Move};
   bool native_scene_local_axes{};
   std::optional<NativeScenePickRequest> native_scene_pick;
   std::optional<std::array<std::int32_t, 2>> native_scene_drag_origin;
@@ -2229,8 +2230,16 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::EndDisabled();
         ImGui::SameLine();
         ImGui::TextDisabled("F: frame | Right: orbit | Wheel: zoom");
-        ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y");
+        if (state_->native_scene_tool == NativeSceneTool::Rotate)
+          ImGui::TextDisabled("Drag colored rings: rotate | W: move");
+        else
+          ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y | E: rotate");
         ImGui::TextDisabled("Middle: pan X/Z | Shift+middle: pan Y");
+        if (ImGui::RadioButton("Move", state_->native_scene_tool == NativeSceneTool::Move))
+          state_->native_scene_tool = NativeSceneTool::Move;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Rotate", state_->native_scene_tool == NativeSceneTool::Rotate))
+          state_->native_scene_tool = NativeSceneTool::Rotate;
         ImGui::Checkbox("Local axes", &state_->native_scene_local_axes);
         ImGui::SameLine();
         constexpr std::array snap_steps{0.25, 0.5, 1.0, 2.0, 4.0};
@@ -2302,6 +2311,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                                  state_->native_scene_drag_vertical};
         }
         if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+          if (ImGui::IsKeyPressed(ImGuiKey_W, false))
+            state_->native_scene_tool = NativeSceneTool::Move;
+          if (ImGui::IsKeyPressed(ImGuiKey_E, false))
+            state_->native_scene_tool = NativeSceneTool::Rotate;
           if (io.MouseWheel != 0.0F)
             state_->native_scene_orbit.distance =
                 std::clamp(state_->native_scene_orbit.distance *
@@ -2827,6 +2840,10 @@ void EditorImGuiHost::SetNativeScenePreviewAvailable(bool available) noexcept {
 
 NativeSceneOrbit EditorImGuiHost::GetNativeSceneOrbit() const noexcept {
   return state_->native_scene_orbit;
+}
+
+NativeSceneTool EditorImGuiHost::GetNativeSceneTool() const noexcept {
+  return state_->native_scene_tool;
 }
 
 bool EditorImGuiHost::NativeSceneLocalAxes() const noexcept {
