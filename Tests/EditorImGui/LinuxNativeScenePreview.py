@@ -129,6 +129,18 @@ def main() -> int:
             raise RuntimeError(f"native Scene pixels were hidden inside viewport {viewport}; "
                                f"samples={samples}")
         subprocess.run([args.xdotool, "windowfocus", str(window)], env=environment, check=True)
+        center_x = viewport[0] + viewport[2] // 2
+        center_y = viewport[1] + viewport[3] // 2
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y)], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "click", "4"], env=environment, check=True)
+        subprocess.run([args.xdotool, "mousedown", "3"], env=environment, check=True)
+        time.sleep(0.1)
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x + 40), str(center_y + 30)], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "mouseup", "3"], env=environment, check=True)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
         scene_file = root / ".nexora/scenes/Main.scene"
         deadline = time.monotonic() + 5
@@ -143,6 +155,26 @@ def main() -> int:
         if editor.returncode != 0 or not match or int(match[1]) == 0 or b"ui_draws=" not in evidence:
             raise RuntimeError(f"native Scene/UI presentation failed: {evidence.decode(errors='replace')}")
         editor = None
+        camera_path = root / ".nexora/scenes/Main.preview.camera"
+        camera_lines = camera_path.read_text().splitlines()
+        if len(camera_lines) != 2 or camera_lines[0] != "NEXORA_SCENE_CAMERA 1":
+            raise RuntimeError(f"native preview camera was not saved: {camera_lines!r}")
+        camera_values = [float(value) for value in camera_lines[1].split()]
+        if (len(camera_values) != 8 or abs(camera_values[4] - 0.588) < 0.01 or
+                camera_values[5] >= 17.55 or camera_values[6] != 0):
+            raise RuntimeError(f"native preview gestures were not saved: {camera_values!r}")
+        editor = subprocess.Popen(
+            [args.editor, f"--project={root}", "--graphical", "--native-scene-preview",
+             "--frames=8", f"--recent-projects={user_state / 'recent-projects'}"],
+            env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        _, reopened_stderr = editor.communicate(timeout=30)
+        if editor.returncode != 0 or b"scene_draws=" not in reopened_stderr:
+            raise RuntimeError(f"native preview reopen failed: {reopened_stderr.decode(errors='replace')}")
+        editor = None
+        reopened_values = [float(value) for value in camera_path.read_text().splitlines()[1].split()]
+        if reopened_values != camera_values:
+            raise RuntimeError("native preview orbit did not survive project reopen")
         return 0
     finally:
         if editor is not None and editor.poll() is None:

@@ -49,7 +49,8 @@ authoring views on first launch.
   without native scene geometry support show an unavailable message.
   In 3D Preview, right drag orbits the proxy camera, middle drag pans its X/Z target, the wheel
   zooms, and F or Frame selected centers the target on selected nodes. Orbit angle and distance
-  are validated session state; the target shares the overview's persisted X/Z center.
+  are validated state; the target shares the overview's persisted X/Z center. The application
+  saves the orbit angle and distance per scene through Editor Core `CameraPersistence`.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
   Dragging a selected marker previews an X/Z move and commits one document transform transaction
