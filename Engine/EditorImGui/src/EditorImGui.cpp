@@ -1495,9 +1495,18 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                        AssetImportQueue *imports) {
   Activate(state_->context);
   state_->selector_visible = false;
-  if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
+  const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
+  if (!recovery_available &&
+      ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
     state_->scene_save_requested = true;
+  }
+  if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput &&
+      ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) {
+    static_cast<void>(shell.RouteCommand("editor.scene.undo"));
+    state_->scene_save_message = scene->Undo() ? "Undo complete." : "Nothing to undo.";
+    state_->scene_save_success = true;
+    state_->hierarchy_selection_anchor.reset();
   }
   const auto *viewport = ImGui::GetMainViewport();
   const ImGuiID dockspace =
@@ -1518,10 +1527,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
   if (ImGui::Begin(scene_window.c_str())) {
+    ImGui::BeginDisabled(scene == nullptr || recovery_available);
+    if (ImGui::Button("Undo")) {
+      static_cast<void>(shell.RouteCommand("editor.scene.undo"));
+      state_->scene_save_message =
+          scene != nullptr && scene->Undo() ? "Undo complete." : "Nothing to undo.";
+      state_->scene_save_success = true;
+      state_->hierarchy_selection_anchor.reset();
+    }
+    ImGui::SameLine();
     if (ImGui::Button("Save Scene") && scene != nullptr) {
       static_cast<void>(shell.RouteCommand("editor.scene.save"));
       state_->scene_save_requested = true;
     }
+    ImGui::EndDisabled();
     if (!state_->scene_save_message.empty()) {
       if (!state_->scene_save_success)
         ImGui::TextColored(ImVec4(1.0F, 0.4F, 0.4F, 1.0F), "%s",
@@ -1552,7 +1571,6 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     }
   }
 
-  const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
   if (recovery_available && !state_->recovery_prompt_opened) {
     ImGui::OpenPopup("Recover workspace###editor.recovery");
     state_->recovery_prompt_opened = true;

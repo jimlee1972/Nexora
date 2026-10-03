@@ -105,6 +105,9 @@ into renderer or platform internals.
   is not validated, so a node whose runtime parent is not itself a node still reloads. A file whose world snapshot is version 1
   or 2 is migrated on `Reload` by applying the node-line parents with the world pose kept, so nothing
   moves; the migration is rehearsed on a scratch `World` first, so a failure leaves no scene loaded.
+  After a runtime undo destroys an entity, `SceneDocument::Undo` drops its node metadata and
+  selection before a later save, so the scene file cannot name an entity absent from the world
+  snapshot.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
   from references, and rejects cycles or unsafe removal atomically. Migration dry-runs never mutate
   source text; bounded autosave journals reject corruption; stable-path three-way records retain

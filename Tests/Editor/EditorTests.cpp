@@ -647,8 +647,16 @@ int Run() {
   // A node whose entity was undone cannot become a parent: creation must fail without leaving an
   // entity behind.
   const auto ghost = mixed.Create("Ghost");
-  Require(ghost != 0 && mixed.Undo() && mixed_world.FindEntity(ghost) == nullptr,
+  const std::array selected_ghost{ghost};
+  Require(ghost != 0 && mixed.Select(selected_ghost) && mixed.Undo() &&
+              mixed_world.FindEntity(ghost) == nullptr && mixed.Selection().empty() &&
+              mixed.Name(ghost).empty(),
           "undoing a node creation failed");
+  Require(mixed.Save(mixed_path), "saving after undoing creation failed");
+  runtime::World undone_world;
+  editor::SceneDocument undone(undone_world, undone_world.LoadScene("Placeholder"));
+  Require(undone.Reload(mixed_path) && undone.Nodes().size() == 1 && undone.Name(ghost).empty(),
+          "an undone entity must not leave an unloadable scene node");
   const auto entity_count = mixed_world.FindScene(mixed_scene)->entities.size();
   Require(mixed.Create("Orphan", ghost) == 0 &&
               mixed_world.FindScene(mixed_scene)->entities.size() == entity_count,

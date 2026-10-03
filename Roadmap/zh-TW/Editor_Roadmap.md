@@ -151,6 +151,8 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   Application 將場景存至 `.nexora/scenes/Main.scene`，開啟 project 時重新載入；唯讀 project
   拒絕儲存，無法讀取的場景檔也會保留原狀而不覆寫。這只是單一場景持久化切片，完整圖形化
   save／restart 驗收仍待完成。
+- ✅ Scene panel 現可透過按鈕及文字輸入欄位以外的 Ctrl+Z 執行 Undo。撤銷新建實體會清除
+  失效的節點資料與選取，並已有場景 save／reload 迴歸測試。Redo 與完整視覺工作流程仍待完成。
 - 待辦：圖形化 Scene View、完整 reflected Inspector、renderer-backed picking、camera control、
   gizmo、reflected widget
   與 unknown-component visual workflow。ED-M2 exit 仍需 UI 中完成 select／edit／undo／save／restart
