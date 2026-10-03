@@ -552,7 +552,8 @@ before `Stop` returns, including after conflicts and contained update failures.
 `RuntimeConsole` is a bounded, mutex-protected multi-producer ingress for owning structured records
 (sequence, severity, category, timestamp, source, and message). Old records are evicted in sequence
 order and the cumulative dropped count is observable. `PlaySession::Inspect` similarly returns an
-owning, stable-ID-sorted entity/component snapshot rather than pointers into relocatable World storage.
+owning, stable-ID-sorted entity/component snapshot with both local and world poses rather than
+pointers into relocatable World storage.
 Failed fixed updates pause the session, revoke input, and expose `RuntimeFailure`, allowing the editor
 to inspect, resume, or stop the still-owned Play World. User, step-complete, debugger-break, and failure
 pause reasons are distinct. Native IDE/debugger integration stays behind the caller-owned

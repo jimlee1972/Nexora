@@ -427,8 +427,9 @@ RuntimeInspectionSnapshot PlaySession::Inspect() const {
     return snapshot;
   for (const auto &scene : play_world_->scenes_)
     for (const auto &entity : scene.entities)
-      snapshot.entities.push_back({entity.id, scene.id, entity.transform, entity.camera,
-                                   entity.light, entity.mesh_renderer});
+      snapshot.entities.push_back(
+          {entity.id, scene.id, entity.transform, entity.camera, entity.light, entity.mesh_renderer,
+           play_world_->WorldTransform(entity.id).value_or(entity.transform)});
   std::ranges::sort(snapshot.entities, {}, &RuntimeEntitySnapshot::id);
   return snapshot;
 }
