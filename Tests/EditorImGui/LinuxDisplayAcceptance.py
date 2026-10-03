@@ -300,7 +300,10 @@ def main() -> int:
         subprocess.run([args.xdotool, "windowclose", window], env=environment, check=True)
         time.sleep(0.5)
         if editor.poll() is not None or (root / ".nexora/scenes/Main.scene").exists():
-            raise RuntimeError("unsaved close dismissed the Editor or wrote the scene")
+            raise RuntimeError(
+                f"unsaved close dismissed the Editor ({editor.poll()}) or wrote the scene "
+                f"({(root / '.nexora/scenes/Main.scene').exists()})"
+            )
         subprocess.run([args.xdotool, "key", "Escape"], env=environment, check=True)
         time.sleep(0.2)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)

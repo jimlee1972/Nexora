@@ -170,17 +170,16 @@ int RunGraphical(std::optional<ProjectState> project,
   while (!exit_requested && !created.surface->CloseRequested() &&
          (frame_limit == 0 || frames < frame_limit)) {
     const auto begin_frame_status = created.surface->BeginFrame();
-    const auto action = Nexora::Presentation::RecoveryAction(begin_frame_status);
-    if (action == Nexora::Presentation::SurfaceAction::Abort) {
-      if (created.surface->CloseRequested() && project && scene.Dirty() &&
-          created.surface->CancelCloseRequest()) {
+    if (created.surface->CloseRequested()) {
+      if (project && scene.Dirty() && created.surface->CancelCloseRequest()) {
         ui.RequestCloseConfirmation();
         continue;
       }
-      // A window closed during startup can no longer back a swapchain, so BeginFrame reports a
-      // failure caused by the close itself. When the user already asked to quit, that is a clean
-      // exit, not an error.
-      result = created.surface->CloseRequested() ? 0 : 1;
+      break;
+    }
+    const auto action = Nexora::Presentation::RecoveryAction(begin_frame_status);
+    if (action == Nexora::Presentation::SurfaceAction::Abort) {
+      result = 1;
       break;
     }
     if (action != Nexora::Presentation::SurfaceAction::Render)
