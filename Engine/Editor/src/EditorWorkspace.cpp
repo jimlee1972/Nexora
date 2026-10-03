@@ -533,6 +533,12 @@ bool SceneDocument::Paste() {
   selection_ = std::move(pasted);
   return true;
 }
+bool SceneDocument::DuplicateSelection() {
+  auto previous_clipboard = std::move(clipboard_);
+  const bool duplicated = CopySelection() && Paste();
+  clipboard_ = std::move(previous_clipboard);
+  return duplicated;
+}
 bool SceneDocument::DeleteSelection() {
   if (selection_.empty())
     return false;

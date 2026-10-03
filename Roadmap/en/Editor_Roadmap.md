@@ -162,6 +162,8 @@ creates property widgets; unknown components retain raw data instead of being si
   cover shortcut routing, source movement after copy, and single-copy Undo.
 - ✅ The graphical Hierarchy now deletes selected subtrees with its button or a focused Delete key.
   Node metadata and selection are restored by Undo; selected descendants are not deleted twice.
+- ✅ Duplicate and Ctrl+D copy the current graphical selection while retaining the user's previous
+  clipboard. Hierarchy row views are built after paste and duplicate actions mutate the document.
 - Open: graphical Scene View, the complete reflected Inspector, renderer-backed picking, camera
   controls, gizmos, reflected widgets,
   and unknown-component visual workflows. ED-M2 exit still requires UI
