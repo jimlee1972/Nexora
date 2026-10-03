@@ -306,8 +306,8 @@ int main(int argc, char **argv) {
       Require(materialPixels, "UV texture sampling/resize pixels failed");
     }
     const auto diagnostics = surface->Diagnostics();
-    Require(diagnostics.sceneDrawCalls == 16 && diagnostics.sceneInstances == 17 &&
-                diagnostics.acquiredFrames == 16 && diagnostics.presentedFrames == 16 &&
+    Require(diagnostics.sceneDrawCalls == 17 && diagnostics.sceneInstances == 18 &&
+                diagnostics.acquiredFrames == 17 && diagnostics.presentedFrames == 17 &&
                 diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 5 &&
                 diagnostics.sceneOffscreenDrawCalls == 3 && diagnostics.sceneComposites == 3,
             "native scene counters or resize evidence mismatch");
