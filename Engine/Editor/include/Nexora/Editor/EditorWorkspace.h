@@ -188,6 +188,7 @@ public:
   // Preserves authored revolutions while the local quaternion matches; otherwise canonical angles.
   [[nodiscard]] std::optional<EulerDegrees> EulerAngles(runtime::Id entity) const noexcept;
   [[nodiscard]] std::optional<runtime::Transform> Transform(runtime::Id entity) const noexcept;
+  [[nodiscard]] std::optional<runtime::Transform> WorldTransform(runtime::Id entity) const noexcept;
   bool CopySelection();
   bool Paste();
   // Duplicates the current selection without replacing the user's copied clipboard.

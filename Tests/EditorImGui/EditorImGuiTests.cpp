@@ -214,6 +214,68 @@ void TestHierarchyDuplicateShortcut() {
          scene.Selection().size() == 1 && scene.Name(scene.Selection().front()) == "Source Copy");
   assert(scene.Undo() && scene.Nodes().size() == 1);
 }
+
+void TestSceneOverviewSelection() {
+  nexora::runtime::World world;
+  const auto scene_id = world.LoadScene("Scene overview");
+  assert(world.Activate(scene_id));
+  nexora::editor::SceneDocument scene(world, scene_id);
+  const auto overview_parent = scene.Create("Parent");
+  const auto overview_child = scene.Create("Child", overview_parent);
+  assert(overview_parent && overview_child &&
+         scene.SetTransform(overview_parent, {5.0, 0.0, 0.0}) &&
+         scene.SetTransform(overview_child, {3.0, 0.0, 2.0}));
+  nexora::editor::ProductShell shell;
+  nexora::editor::imgui::EditorImGuiHost host;
+  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  host.SetDisplay(1280.0F, 720.0F, 1.0F);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  const auto parent_position = nexora::editor::imgui::EditorImGuiTestAccess::SceneMarkerPosition(
+      host, *scene.Key(overview_parent));
+  const auto child_position = nexora::editor::imgui::EditorImGuiTestAccess::SceneMarkerPosition(
+      host, *scene.Key(overview_child));
+  assert(parent_position && child_position &&
+         std::abs((*child_position)[0] - (*parent_position)[0] - 96.0F) < 1.0F &&
+         std::abs((*child_position)[1] - (*parent_position)[1] - 64.0F) < 1.0F);
+  const std::array events{
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 1, 0},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Pointer,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>((*child_position)[0]),
+                                  static_cast<std::int32_t>((*child_position)[1])},
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 1}};
+  host.ProcessEvents(events);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  assert(scene.Selection().size() == 1 && scene.Selection().front() == overview_child);
+  const std::array zoom_events{
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 0},
+      Nexora::Window::WindowEvent{
+          {}, Nexora::Window::WindowEventType::Wheel, 0, 0, 0, 1.0F, 0, 120}};
+  host.ProcessEvents(zoom_events);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &scene);
+  static_cast<void>(host.EndFrame());
+  const auto zoomed_parent = nexora::editor::imgui::EditorImGuiTestAccess::SceneMarkerPosition(
+      host, *scene.Key(overview_parent));
+  const auto zoomed_child = nexora::editor::imgui::EditorImGuiTestAccess::SceneMarkerPosition(
+      host, *scene.Key(overview_child));
+  assert(zoomed_parent && zoomed_child &&
+         (*zoomed_child)[0] - (*zoomed_parent)[0] > (*child_position)[0] - (*parent_position)[0]);
+}
 } // namespace
 
 int main() {
@@ -222,6 +284,7 @@ int main() {
   TestSceneClipboardShortcuts();
   TestHierarchyDeleteShortcut();
   TestHierarchyDuplicateShortcut();
+  TestSceneOverviewSelection();
   using nexora::editor::imgui::EditorImGuiTestAccess;
   nexora::editor::imgui::EditorImGuiHost host;
   const auto initial_state = EditorImGuiTestAccess::Inspect(host);

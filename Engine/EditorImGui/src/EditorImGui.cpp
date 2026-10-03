@@ -102,6 +102,13 @@ struct EditorImGuiHost::State final {
   std::optional<std::pair<SceneDocument::NodeKey, std::string>> hierarchy_rename_request;
   std::string hierarchy_error;
   std::string hierarchy_status;
+  struct SceneMarker final {
+    SceneDocument::NodeKey entity;
+    ImVec2 position;
+  };
+  std::vector<SceneMarker> scene_markers;
+  ImVec2 scene_center_world{};
+  float scene_pixels_per_unit = 32.0F;
   struct InspectorTransformRequest final {
     std::vector<SceneDocument::NodeKey> entities;
     std::vector<runtime::Transform> transforms;
@@ -829,6 +836,98 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   }
   state.hierarchy_selection = static_cast<std::uint32_t>(
       std::min<std::size_t>(scene->Selection().size(), std::numeric_limits<std::uint32_t>::max()));
+}
+
+template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &scene) {
+  ImGui::TextUnformatted("Top-down X/Z overview | Middle drag: pan | Wheel: zoom | Click: select");
+  const auto available = ImGui::GetContentRegionAvail();
+  const ImVec2 size{std::max(available.x, 1.0F), std::max(available.y, 160.0F)};
+  ImGui::InvisibleButton("##scene-overview", size,
+                         ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonMiddle);
+  const auto min = ImGui::GetItemRectMin();
+  const auto max = ImGui::GetItemRectMax();
+  const ImVec2 center{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
+  const auto &io = ImGui::GetIO();
+  if (ImGui::IsItemHovered()) {
+    if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0F)) {
+      state.scene_center_world.x -= io.MouseDelta.x / state.scene_pixels_per_unit;
+      state.scene_center_world.y -= io.MouseDelta.y / state.scene_pixels_per_unit;
+    }
+    if (io.MouseWheel != 0.0F) {
+      const auto old_scale = state.scene_pixels_per_unit;
+      const auto new_scale = std::clamp(old_scale * std::pow(1.15F, io.MouseWheel), 4.0F, 256.0F);
+      state.scene_center_world.x +=
+          (io.MousePos.x - center.x) * (1.0F / old_scale - 1.0F / new_scale);
+      state.scene_center_world.y +=
+          (io.MousePos.y - center.y) * (1.0F / old_scale - 1.0F / new_scale);
+      state.scene_pixels_per_unit = new_scale;
+    }
+  }
+
+  auto *draw = ImGui::GetWindowDrawList();
+  draw->AddRectFilled(min, max, IM_COL32(22, 26, 33, 255));
+  draw->PushClipRect(min, max, true);
+  const ImVec2 origin{center.x - state.scene_center_world.x * state.scene_pixels_per_unit,
+                      center.y - state.scene_center_world.y * state.scene_pixels_per_unit};
+  float grid_units = 1.0F;
+  while (grid_units * state.scene_pixels_per_unit < 24.0F)
+    grid_units *= 2.0F;
+  const float spacing = grid_units * state.scene_pixels_per_unit;
+  const auto first_line = [spacing](float offset) {
+    const auto remainder = std::fmod(offset, spacing);
+    return remainder < 0.0F ? remainder + spacing : remainder;
+  };
+  for (float x = min.x + first_line(origin.x - min.x); x < max.x; x += spacing)
+    draw->AddLine({x, min.y}, {x, max.y}, IM_COL32(49, 56, 67, 255));
+  for (float y = min.y + first_line(origin.y - min.y); y < max.y; y += spacing)
+    draw->AddLine({min.x, y}, {max.x, y}, IM_COL32(49, 56, 67, 255));
+  if (origin.y >= min.y && origin.y <= max.y)
+    draw->AddLine({min.x, origin.y}, {max.x, origin.y}, IM_COL32(170, 79, 79, 255), 1.5F);
+  if (origin.x >= min.x && origin.x <= max.x)
+    draw->AddLine({origin.x, min.y}, {origin.x, max.y}, IM_COL32(80, 123, 185, 255), 1.5F);
+
+  state.scene_markers.clear();
+  for (const auto &node : scene.Nodes()) {
+    const auto pose = scene.WorldTransform(node.id);
+    if (!pose)
+      continue;
+    const ImVec2 position{origin.x + static_cast<float>(pose->x) * state.scene_pixels_per_unit,
+                          origin.y + static_cast<float>(pose->z) * state.scene_pixels_per_unit};
+    if (!std::isfinite(position.x) || !std::isfinite(position.y) || position.x < min.x - 10.0F ||
+        position.x > max.x + 10.0F || position.y < min.y - 10.0F || position.y > max.y + 10.0F)
+      continue;
+    state.scene_markers.push_back({node.Key(), position});
+    const bool selected = std::ranges::find(scene.Selection(), node.id) != scene.Selection().end();
+    draw->AddCircleFilled(position, selected ? 7.0F : 5.0F,
+                          selected ? IM_COL32(255, 199, 87, 255) : IM_COL32(139, 202, 185, 255));
+    if (selected)
+      draw->AddCircle(position, 9.0F, IM_COL32(255, 223, 148, 255));
+    if (state.scene_pixels_per_unit >= 12.0F)
+      draw->AddText({position.x + 11.0F, position.y - 8.0F}, IM_COL32(224, 230, 239, 255),
+                    node.name.data(), node.name.data() + node.name.size());
+  }
+  draw->PopClipRect();
+  if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+    std::optional<SceneDocument::NodeKey> picked;
+    float nearest = 100.0F;
+    for (const auto &marker : state.scene_markers) {
+      const float dx = marker.position.x - io.MousePos.x;
+      const float dy = marker.position.y - io.MousePos.y;
+      const float distance = dx * dx + dy * dy;
+      if (distance <= nearest) {
+        picked = marker.entity;
+        nearest = distance;
+      }
+    }
+    if (picked) {
+      const std::array selected{*picked};
+      if (scene.Select(selected))
+        state.hierarchy_selection_anchor = picked;
+    } else {
+      static_cast<void>(scene.Select(std::span<const runtime::Id>{}));
+      state.hierarchy_selection_anchor.reset();
+    }
+  }
 }
 
 template <typename StateT>
@@ -1690,7 +1789,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       else
         ImGui::TextUnformatted(state_->scene_save_message.c_str());
     }
-    ImGui::TextUnformatted("Scene rendering and gizmos are in development.");
+    if (scene != nullptr)
+      DrawSceneOverview(*state_, *scene);
   }
   ImGui::End();
   const auto console_window = PanelWindowName("nexora.console");
@@ -2133,6 +2233,16 @@ void EditorImGuiTestAccess::FocusHierarchy(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.hierarchy");
   ImGui::SetWindowFocus(name.c_str());
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneMarkerPosition(const EditorImGuiHost &host,
+                                           SceneDocument::NodeKey entity) noexcept {
+  const auto found = std::ranges::find(host.state_->scene_markers, entity,
+                                       &EditorImGuiHost::State::SceneMarker::entity);
+  if (found == host.state_->scene_markers.end())
+    return std::nullopt;
+  return std::array{found->position.x, found->position.y};
 }
 
 void EditorImGuiTestAccess::QueueHierarchySelection(EditorImGuiHost &host,

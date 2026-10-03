@@ -78,6 +78,8 @@ and one Undo removes a single pasted copy.
 Delete selected, or press Delete while the Hierarchy is focused, to remove selected subtrees.
 Undo restores the deleted entities and their names; multiple selected roots undo one at a time.
 Duplicate or Ctrl+D copies the current selection without replacing an earlier Copy selection.
+The central Scene panel also shows a top-down X/Z grid and entity markers at their world positions.
+Click a marker to select it, use the wheel to zoom, or drag with the middle button to pan.
 Scene View, reflected component widgets, the complete graphical save/restart workflow, and the ED-M2 visual exit gate
 remain open.
 

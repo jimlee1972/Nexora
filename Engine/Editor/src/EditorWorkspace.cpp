@@ -486,6 +486,11 @@ std::optional<runtime::Transform> SceneDocument::Transform(runtime::Id entity) c
     return std::nullopt;
   return found->transform;
 }
+std::optional<runtime::Transform> SceneDocument::WorldTransform(runtime::Id entity) const noexcept {
+  if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())
+    return std::nullopt;
+  return world_.WorldTransform(entity);
+}
 bool SceneDocument::CopySelection() {
   std::vector<ClipboardNode> captured;
   captured.reserve(selection_.size());
