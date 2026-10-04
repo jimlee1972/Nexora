@@ -64,6 +64,11 @@ not change existing V1 contract progress or final platform acceptance.
 
 ### Repository status
 
+Build CI now routes Markdown-only changes through documentation validation and retains the full
+matrix for code, shaders, build/CI settings, protected Markdown paths and tags. A fixed `CI result`
+aggregates selected jobs; see [Build CI routing](Tools/Build/README.md). This does not change engine
+milestone acceptance or repository branch-protection settings.
+
 The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, API samples, a Zig gameplay consumer, and `NexoraShowcase` with both deterministic headless and native Linux/Vulkan 3D modes. The milestone sections below describe the implemented portable contract foundations and explicitly call out platform or production backends that remain future work. Parsers for persisted or external data (for example scene snapshots) reject hostile size fields before allocating.
 
 #### V2 networking status
@@ -390,6 +395,10 @@ Windows DX12 本地交付：[驗收紀錄](Apps/Showcase/evidence/Windows-V1-DX1
 尚未實作或驗收（0/7）；獨立視覺里程碑不改變既有 V1 contract 進度或最終平台驗收狀態。
 
 ### Repository 狀態
+
+Build CI 現依變更範圍分流：純 Markdown 執行文件檢查；程式、shader、建置／CI 設定、受保護
+Markdown 路徑與 tag 保留完整矩陣。固定 `CI result` 彙總應執行工作；詳見
+[Build CI 分流](Tools/Build/README.md)。此變更不改變引擎里程碑驗收或 repository branch protection。
 
 目前已可建置及測試 Foundation、Core、RHI、Renderer、Runtime、API sample、Zig gameplay consumer 與 headless `NexoraShowcase`。下方里程碑章節會列出已實作的 portable contract foundation，並明確標示仍待完成的平台或 production backend。讀取持久化或外部資料的 parser（例如場景快照）會在配置記憶體前先拒絕惡意的大小欄位。
 
