@@ -322,3 +322,9 @@ removed cameras fall back to Automatic; frame preparation rechecks the live Runt
 commands and fixed ticks. Read-only projects can choose previews, while modal prompts disable the
 chooser. Real UI clicks and Runtime fallback tests cover removal, unloading, invalid native-float
 projection and restart with an open chooser.
+
+To place an authored Camera from the Scene 3D view, select one enabled Camera and click Use Scene
+view pose in its Inspector. It updates only position/rotation, retaining FOV/clipping, local scale
+and parent. One Undo restores the previous pose; Save/Reload retains it. Parent-aware inversion
+matches Runtime camera matrices even under sheared/mirrored ancestor transforms. The operation
+requires a writable workspace with no modal prompt and cancels Inspector drafts/Scene gestures.

@@ -132,6 +132,7 @@ struct EditorImGuiHost::State final {
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
   bool native_game_available = true;
   bool game_was_running = false;
+  std::optional<std::array<float, 2>> camera_align_position;
   runtime::Id game_camera_selection{};
   std::uint64_t game_camera_generation{};
   std::optional<std::array<float, 2>> game_camera_combo_position;
@@ -1681,6 +1682,39 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     state.inspector_camera_request = typename StateT::InspectorCameraRequest{keys, cameras};
   }
   if (!camera_presence_mixed && camera_enabled) {
+    ImGui::BeginDisabled(keys.size() != 1 || !state.native_scene_preview ||
+                         !state.native_scene_preview_available);
+    if (ImGui::SmallButton("Use Scene view pose")) {
+      CancelSceneGestures(state);
+      CancelInspectorDrafts(state);
+      const auto &orbit = state.native_scene_orbit;
+      // Mirror the native preview's float eye calculation. Scene view uses a right-handed -Z
+      // camera: its back vector is (sin(yaw)*cos(pitch), sin(pitch), cos(yaw)*cos(pitch)).
+      const float center_x = std::clamp(state.scene_center_world.x, -100000.0F, 100000.0F);
+      const float center_z = std::clamp(state.scene_center_world.y, -100000.0F, 100000.0F);
+      runtime::Transform world_pose;
+      world_pose.x = center_x + static_cast<float>(orbit.distance * std::sin(orbit.yaw) *
+                                                   std::cos(orbit.pitch));
+      world_pose.y = static_cast<float>(orbit.target_y) +
+                     static_cast<float>(orbit.distance * std::sin(orbit.pitch));
+      world_pose.z = center_z + static_cast<float>(orbit.distance * std::cos(orbit.yaw) *
+                                                   std::cos(orbit.pitch));
+      constexpr double degrees = 180.0 / std::numbers::pi;
+      const auto oriented =
+          WithEulerDegrees(world_pose, {-orbit.pitch * degrees, orbit.yaw * degrees, 0});
+      if (!oriented || !scene->AlignCameraToWorldPose(keys.front(), *oriented))
+        state.inspector_error =
+            "Camera alignment rejected because its pose or generation is stale.";
+      else
+        state.inspector_error.clear();
+    }
+    const auto align_min = ImGui::GetItemRectMin(), align_max = ImGui::GetItemRectMax();
+    state.camera_align_position =
+        std::array{(align_min.x + align_max.x) * 0.5F, (align_min.y + align_max.y) * 0.5F};
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+      ImGui::SetTooltip(
+          "Select one Camera and enable Scene 3D. Aligns position/rotation; keeps lens and scale.");
+    ImGui::EndDisabled();
     struct CameraField final {
       const char *label;
       double runtime::CameraComponent::*member;
@@ -2615,6 +2649,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         std::ranges::find(game_cameras, state_->game_camera_selection) == game_cameras.end())
       state_->game_camera_selection = 0;
   }
+  state_->camera_align_position.reset();
   state_->play_inspector_rendered = 0;
   state_->inspector_opaque_info.clear();
   state_->profile_export_position.reset();
@@ -4101,6 +4136,10 @@ std::string_view EditorImGuiTestAccess::InspectorComponentText(const EditorImGui
   if (field < host.state_->inspector_camera_text.size())
     return host.state_->inspector_camera_text[field].data();
   return field == 3 ? host.state_->inspector_light_text.data() : "";
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::CameraAlignPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->camera_align_position;
 }
 std::array<bool, 6>
 EditorImGuiTestAccess::InspectorTransformMixed(const EditorImGuiHost &host) noexcept {

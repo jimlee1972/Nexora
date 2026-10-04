@@ -385,3 +385,14 @@ inactive or unrenderable choices return to Automatic, and Stop/new Start clear t
 preparation after commands/ticks, where current scene lifecycle and CameraView are rechecked; stale
 snapshots cannot retain a removed camera or draw an unloading scene. Automatic remains ordered by
 entity ID. No borrowed World data survives frame preparation.
+
+## Camera alignment from Scene view
+
+With one enabled Camera selected, Use Scene view pose copies the stored native Scene orbit's eye
+and right-handed -Z orientation (using the same +/-100,000 clamped X/Z center as the native preview) through `SceneDocument::AlignCameraToWorldPose`. Scene 3D must be
+enabled and available. Lens/FOV/clipping, local scale and parent are retained; this is pose alignment,
+so a different camera FOV still produces a different framing. Draft Inspector inputs and Scene
+motions cancel before the one-step Undo transaction. Read-only/recovery/review/close gates disable
+it, and multiple selections require choosing one camera. The core inverts every ancestor's local
+TRS for exact positions under shear/mirrors; it rejects invalid/stale targets and preserves Redo
+for equivalent world poses. Real UI clicks, Runtime camera matrices and save/reload verify the path.
