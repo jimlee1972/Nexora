@@ -313,4 +313,6 @@ Windows developers; the DX12-only Showcase presets remain available without the 
 ✅ macOS hosted Shipping/Full eight-room native graph/resize smoke (96 frames) and native
 pixel/input/depth/lifecycle CTest (Development 73/73; mimalloc 63/63) pass; see
 [the hosted Metal record](evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md). Full real-input/screenshots,
-clean-host deployment and a new multi-platform tag run remain separate acceptance tasks.
+clean-host deployment remain separate Mac acceptance tasks. ✅ The expanded desktop tag workflow
+passes `v0.0.0-rc.3`, retaining four ZIPs, native archives and three CTest logs in an unpublished
+16-attachment draft; [release record](evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md).

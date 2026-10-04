@@ -16,16 +16,17 @@
 - ✅ 乾淨 Windows 10 VM（VirtualBox、無開發工具）以 `-CleanHost -CompleteGuidedTour` 通過 Shipping/Full 套件驗收：`status=PASS`、14 個 checksum、25 張截圖、DX12 無 fallback、3861 次原生 graph/present（[紀錄](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)）。該 GPU 為 VirtualBox 虛擬顯示卡，不代表實體顯示器驗收。
 - ✅ GTX 960 開發機實體顯示驗收：Shipping/Full 套件通過 `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour`（`status=PASS`、`physical_display_verified=true`、DX12 無 fallback 且非軟體 rasterizer、15649 次原生 graph/present、25 張截圖；[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)）。操作聲明旗標由 Claude 依使用者指示提供，使用者未另外全程目視，詳見紀錄。
 - ✅ Windows Vulkan 實體顯示已於 GTX 960 驗收通過（CI 套件，build `ecac94d8f9ca`）；過程中發現並修正 baseline CPU 崩潰與 present 時 out-of-date 中止。現已提供 `windows-showcase-vulkan-shipping` preset。
-- ✅ 每個 tag 的 release 流程 `.github/workflows/release.yml` 已在真實測試 tag `v0.0.0-rc.1`、`v0.0.0-rc.2` 上執行；rc.1 抓出漏傳 Vulkan 套件（已於 #267 修正），rc.2 產出完整 draft：DX12 與 Vulkan Windows 套件、checksum、release info 與 verifier 輸出。Draft 不會自動發佈，且目前只產出 Windows 套件。
+- ✅ 每個 tag 的 release 流程 `.github/workflows/release.yml` 已在真實測試 tag `v0.0.0-rc.1`、`v0.0.0-rc.2` 上執行；rc.1 抓出漏傳 Vulkan 套件（已於 #267 修正），rc.2 產出完整 draft：DX12 與 Vulkan Windows 套件、checksum、release info 與 verifier 輸出。那些較早的 tag 產出 Windows 套件，Draft 不會自動發佈。
 - ✅ Linux Shipping/Full 隔離封裝已通過原生房間／輸入／Lab／resize 驗收；Linux Development 80/80，五個 Vulkan/Xvfb gate 全數執行。[證據](../../Apps/Showcase/evidence/V1-Distribution-Linux-2026-10-04/acceptance.md)。
-- ✅ macOS hosted Shipping/Full 封裝編譯、重定位／ad-hoc signing 與隔離副本八房間 Metal scene／copy／UI／present／resize smoke 已通過（96 個原生幀）；[證據](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md)。✅ 原生像素／輸入／depth／lifecycle CTest 已通過 macOS Development（73/73）與 mimalloc（63/63）；實體 Mac 畫面與擴充 tag 流程仍待驗收。Metal scene／instance／材質／depth／GPU copy 原始碼、Cocoa 控制／Retina 座標與 Linux／macOS release job 已實作。Windows 現有明確的 Vulkan Development／Shipping preset；無 SDK 仍可使用 DX12 preset。
-- 待辦（V1 最終驗收仍為 PENDING）：Metal 實體畫面與完整互動驗收；其他 GPU／驅動上的 Vulkan；Mac 乾淨主機發佈套件與新版跨平台 tag 執行。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
+- ✅ macOS hosted Shipping/Full 封裝編譯、重定位／ad-hoc signing 與隔離副本八房間 Metal scene／copy／UI／present／resize smoke 已通過（96 個原生幀）；[證據](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md)。✅ 原生像素／輸入／depth／lifecycle CTest 已通過 macOS Development（73/73）與 mimalloc（63/63）；實體 Mac 畫面與乾淨主機部署仍待驗收。Metal scene／instance／材質／depth／GPU copy 原始碼、Cocoa 控制／Retina 座標與 Linux／macOS release job 已實作。Windows 現有明確的 Vulkan Development／Shipping preset；無 SDK 仍可使用 DX12 preset。
+- ✅ 測試 tag `v0.0.0-rc.3` 已通過 Build（16 jobs）與 Release（5 jobs），draft 保留四個桌面 ZIP、checksum、原生證據與三平台 CTest log，共 16 個附件，涵蓋 Windows DX12／Windows Vulkan、Linux x64 與 macOS ARM64。[紀錄](../../Apps/Showcase/evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md) 保存 Linux startup／Build gate 的指定重跑與上傳 digest 核對。
+- 待辦（V1 最終驗收仍為 PENDING）：Metal 實體畫面與完整互動驗收；其他 GPU／驅動上的 Vulkan；Mac 乾淨主機發佈套件與完整互動／導覽 capture。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
 
 證據與精確驗證結果：[`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md)。
 
 > 文件版本：v1.2
 >
-> 文件狀態：Linux、Windows 開發機、乾淨 VM 與實體顯示切片已實作並驗證；Windows Vulkan 已於 GTX 960 驗證；Metal parity 與 V1 最終驗收待完成；每個 tag 的 release 流程已在真實測試 tag 驗證（僅 Windows 套件）
+> 文件狀態：Linux、Windows 開發機、乾淨 VM 與實體顯示切片已實作並驗證；Windows Vulkan 已於 GTX 960 驗證；Metal parity 與 V1 最終驗收待完成；桌面 release 流程已在真實測試 tag 驗證，rc.3 涵蓋 Windows／Linux／macOS
 >
 > 更新日期：2026-10-04
 
@@ -322,7 +323,7 @@ UI、headless report、CTest adapter 與 Guided Tour 都消費同一份結果。
 - ✅ 版本化 Linux screenshot／native interaction artifact；CI 保存 screenshot、package 與 CTest log。
 - ✅ Windows version-tag evidence 已記錄於 `v0.0.0-rc.1`／`rc.2`；乾淨 Windows VM 與 GTX 960 驗收見 §0。
 - ✅ Linux Full 隔離副本原生發佈套件已於本地驗收。
-- Linux／macOS release job 現會附上平台套件、checksum、headless／native evidence 與桌面 CTest log；擴充流程與 Mac 交付仍待執行證據。
+- ✅ 擴充 Windows／Linux／macOS tag 流程已於 `v0.0.0-rc.3` 執行，包含套件、checksum、headless／native archive 與三平台 CTest log；draft 已上傳 16 個附件。[證據](../../Apps/Showcase/evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md)。實體／乾淨主機 Mac 驗收仍待完成。
 
 ## 9. 建置、執行與打包規格
 
@@ -438,7 +439,7 @@ package 必須由 M12 Packager/manifest contract 產出或驗證，不允許靠�
 | M9/M11 第三方 adapter 缺失時仍可 contract-only 展示 | ✅ | audio/video/WebView 標示 contract-only／unavailable |
 | 乾淨 Windows 主機啟動 Shipping/Full package | ✅（VM） | 乾淨 Windows 10 VirtualBox VM、`-CleanHost` PASS（[紀錄](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)）；虛擬 GPU，非實體 |
 | 實體顯示驗收 | ✅ | GTX 960、`-PhysicalDisplay` PASS（[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)）；聲明旗標由 Claude 依使用者指示提供 |
-| 每個 tag 自動產出 executable／manifest／report／screenshot | 部分完成 | tag 流程會產出含 Windows DX12／Vulkan 套件、checksum 與 verifier 輸出的 draft release（沒有互動桌面的 runner 回報 UNSUPPORTED，不是 PASS）；Linux／macOS job 已實作但仍待 tag 執行；Mac 截圖仍待完成 |
+| 每個 tag 自動產出 executable／manifest／report／screenshot | 部分完成 | rc.3 draft 包含 Windows DX12／Vulkan、Linux x64、macOS ARM64 ZIP、manifest／report、三平台 CTest log 與 Linux／Windows 截圖；完整 Mac application 截圖仍待完成，缺少 display 回報 UNSUPPORTED |
 
 ## 13. 第一個施工 ticket 建議
 
@@ -503,7 +504,7 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 
 ✅ 乾淨 Windows 10 VM 驗收：Shipping/Full 套件（SHA-256 `09b0fda2…13b4`、build `e4a140139189`）在獨立配置的 VirtualBox guest `Nexora-ZS-M5-CleanMachine-Win10` 通過 `accept-v1.ps1 -CleanHost -CompleteGuidedTour`：14 個 checksum、25 張截圖、DX12 無 fallback、3861 次 graph/present、無 issues。因 adapter 為 VirtualBox 虛擬 GPU，`physical_display_verified` 維持 false；V1 最終驗收仍待完成。[紀錄](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)。
 
-✅ 實體顯示驗收：Shipping/Full 套件（build `e4a140139189`）於 GTX 960 開發機通過 `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour`：`status=PASS`、`physical_display_verified=true`、DX12 無 fallback 且非軟體 rasterizer、15649 次 graph/present、25 張截圖、完整 210 秒導覽。聲明旗標由 Claude 依使用者指示提供（首次嘗試因 Claude 自己的截圖遮蔽視窗而失敗）。Vulkan/Metal parity 與每個 tag 的 release 流程仍待完成，V1 最終驗收尚未完成。[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)。
+✅ 實體顯示驗收：Shipping/Full 套件（build `e4a140139189`）於 GTX 960 開發機通過 `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour`：`status=PASS`、`physical_display_verified=true`、DX12 無 fallback 且非軟體 rasterizer、15649 次 graph/present、25 張截圖、完整 210 秒導覽。聲明旗標由 Claude 依使用者指示提供（首次嘗試因 Claude 自己的截圖遮蔽視窗而失敗）。此 DX12 紀錄建立時，Vulkan/Metal parity 與每個 tag 的 release 流程仍待完成；後續 Vulkan 與 rc.3 證據另記於下方。V1 最終驗收仍待剩餘 Mac gate。[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)。
 
 ✅ Windows Vulkan 實體顯示驗收：開啟 Vulkan 後端、由 CI 建置的 Shipping/Full 套件（build `ecac94d8f9ca`）於 GTX 960 通過 `accept-v1.ps1 -Backend vulkan -PhysicalDisplay -CompleteGuidedTour`：`status=PASS`、Vulkan 無 fallback 且非軟體 rasterizer、15794 次 graph/present、25 張截圖、9/9 互動檢查、完整 210 秒導覽。聲明旗標由 Claude 依使用者指示提供。過程中發現並修正兩個缺陷（Zig baseline CPU，PR #229；present 時 out-of-date 復原，PR #231）。Metal parity 與其他 GPU 仍待完成，V1 最終驗收尚未完成。[紀錄](../../Apps/Showcase/evidence/Windows-V1-Vulkan-PhysicalDisplay-GTX960-2026-10-04/acceptance.md)
 
@@ -516,9 +517,12 @@ Development 80/80，無 skip；Minimal 與 Full Monolithic build；Full checksum
 Metal 原始碼現支援 indexed geometry、bounded instance／batch、不可變 sampled material、D32 depth、
 私有 offscreen color 與 GPU blit 後接 UI。Cocoa 提供 physical control、focus、wheel 與 backing-pixel
 座標。`window_presentation.metal_scene` 提供 test-only GPU readback、像素斷言與 PPM 證據；
-缺少 Metal／display 回報 UNSUPPORTED。Mac 編譯、真實輸入與實體截圖仍須目標主機驗收。
+缺少 Metal／display 回報 UNSUPPORTED。✅ Hosted Mac 編譯、原生像素／輸入／depth／lifecycle
+CTest（Development 73/73、mimalloc 63/63）與 Shipping 隔離副本八房間 smoke 已於
+[Metal 紀錄](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md) 驗收；完整真實輸入／導覽與實體截圖仍為目標主機 gate。
 `macos-showcase-shipping` 與 Development package evidence 會重定位 Engine install name 並作 ad-hoc signing。
 
 Release 與一般 PR Build job 現會準備 Linux/Full、macOS/Full 套件，並分開原生與 headless 證據。
-Draft release 會附上通過 Build run 的桌面 CTest log。這些 CI 變更與新版跨平台 tag 仍待執行，
-V1 最終驗收維持 PENDING。原生媒體／WebView 與其他 GPU／驅動覆蓋維持既有邊界。
+Draft release 會附上通過 Build run 的桌面 CTest log。✅ 擴充流程已通過測試 tag `v0.0.0-rc.3`；
+[release 證據](../../Apps/Showcase/evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md) 核對 16 個 draft 附件與平台／checksum／CTest scope。
+V1 最終驗收仍因實體／乾淨 Mac 主機與完整互動／導覽 gate 維持 PENDING。原生媒體／WebView 與其他 GPU／驅動覆蓋維持既有邊界。
