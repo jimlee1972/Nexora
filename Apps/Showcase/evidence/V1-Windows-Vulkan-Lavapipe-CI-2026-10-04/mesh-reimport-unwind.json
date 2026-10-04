@@ -1,0 +1,13 @@
+{
+  "before": {
+    "exit_code": -11,
+    "stderr": ""
+  },
+  "after": {
+    "exit_code": 1,
+    "stderr": "injected waiter timeout"
+  },
+  "before_fixture_commit": "bff62773d593b95de918f670795b8076dc89224c",
+  "after_fixture_sha256": "1efded89aea2a11ddd5f4c7022652cbdd9e5f802e406e383a1b71a93510db436",
+  "scope": "Linux fault injection: throw injected waiter timeout from AwaitWorker after BeginReimport; retain five-second deadlines and verify destruction order"
+}

@@ -1,0 +1,26 @@
+{
+  "tag": "v0.0.0-rc.4",
+  "source_commit": "bff62773d593b95de918f670795b8076dc89224c",
+  "draft": true,
+  "uploaded_assets": 17,
+  "windows_workflow_bundle_sha256": "524ca8c62b421f141ce79027c34ae7efc4db62ac6f3a03fd4fb16ea7e90f5b99",
+  "uploaded_asset_digests_compared_to_downloaded_bytes": [
+    "NexoraShowcase-Shipping.zip",
+    "NexoraShowcase-Shipping.zip.sha256",
+    "NexoraShowcase-Shipping-Vulkan.zip",
+    "NexoraShowcase-Shipping-Vulkan.zip.sha256",
+    "release-info.json"
+  ],
+  "windows_zip_sidecars_verified": 2,
+  "checksum_manifest_entries": 12,
+  "checksum_manifest_sha256": "3c4bd4751f05b1bd4f061402c2144e05724284f805b4203d40496b9c1e0219bc",
+  "checksums": 14,
+  "screenshots": 25,
+  "interaction_checks": 9,
+  "native_graph_frames": 41737,
+  "tour_seconds": 210.006,
+  "driver_dll_sha256": "0b33e35d4eabfdd16b6ecb12ef7f2c87467c0baed0925ed291ce5496e58bf1db",
+  "physical_display_verified": false,
+  "clean_host_verified": false,
+  "archive_scope": "Uploaded Windows Vulkan tarball digest and manifest inclusion verified via GitHub asset metadata; individual acceptance files inspected in downloaded Windows workflow bundle."
+}

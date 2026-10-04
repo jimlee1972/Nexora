@@ -47,6 +47,34 @@ jobs:
           cache: true
       - run: cmake --preset windows-showcase-vulkan-shipping
       - run: cmake --build --preset windows-showcase-vulkan-shipping --target NexoraShowcasePackageShippingEvidence --parallel 4
+      - name: Set up checksum-verified Windows lavapipe
+        shell: pwsh
+        run: ./Tools/Build/SetupWindowsVulkanLavapipe.ps1 -Directory "$env:RUNNER_TEMP/nexora-mesa"
+      - name: Native Vulkan isolated-copy screenshots and full guided tour
+        shell: pwsh
+        run: |
+          $evidence = 'build/windows-showcase-vulkan-shipping/artifacts/showcase-windows-v1'
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File Tools/Package/AcceptShowcaseWindows.ps1 -PackageRoot build/windows-showcase-vulkan-shipping/package/NexoraShowcase-Shipping -EvidenceDirectory $evidence -ExpectedBuildId ($env:GITHUB_SHA.Substring(0, 12)) -Backend vulkan -CompleteGuidedTour -ExpectedVulkanDriverLibrary $env:NEXORA_CI_VULKAN_DRIVER_LIBRARY
+          $code = $LASTEXITCODE
+          Copy-Item "$env:RUNNER_TEMP/nexora-mesa/driver-provenance.json" "$evidence/driver-provenance.json"
+          if ($code -ne 0) {
+            Get-Content "$evidence/stderr.log" -ErrorAction SilentlyContinue
+            Get-Content "$evidence/acceptance.json" -ErrorAction SilentlyContinue
+            exit $code
+          }
+          $accepted = Get-Content "$evidence/acceptance.json" -Raw | ConvertFrom-Json
+          if ($accepted.status -ne 'PASS' -or -not $accepted.native.software_rasterizer -or $accepted.physical_display_verified -or $accepted.clean_host_verified) {
+            throw 'Expected native Vulkan software-driver acceptance without target-host attestations.'
+          }
+      - name: Remove hosted-runner lavapipe registration
+        if: always()
+        shell: pwsh
+        run: ./Tools/Build/SetupWindowsVulkanLavapipe.ps1 -Directory "$env:RUNNER_TEMP/nexora-mesa" -RemoveRegistration
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-evidence-windows-vulkan
+          path: build/windows-showcase-vulkan-shipping/artifacts/showcase-windows-v1/
       - name: Assemble release bundle
         shell: pwsh
         run: |
@@ -54,17 +82,18 @@ jobs:
           New-Item -ItemType Directory $out | Out-Null
           Copy-Item build/windows-showcase-shipping/package/NexoraShowcase-Shipping.zip $out/
           Copy-Item build/windows-showcase-shipping/package/NexoraShowcase-Shipping.zip.sha256 $out/
-          # Vulkan-backend package (hosted runners have no GPU: build/link/package evidence only).
+          # Vulkan package and native Win32 lavapipe acceptance remain distinct from DX12 evidence.
           Copy-Item build/windows-showcase-vulkan-shipping/package/NexoraShowcase-Shipping.zip "$out/NexoraShowcase-Shipping-Vulkan.zip"
           $vkHash = (Get-FileHash "$out/NexoraShowcase-Shipping-Vulkan.zip" -Algorithm SHA256).Hash.ToLower()
           "$vkHash  NexoraShowcase-Shipping-Vulkan.zip" | Set-Content "$out/NexoraShowcase-Shipping-Vulkan.zip.sha256" -Encoding ascii
           Copy-Item build/windows-showcase-shipping/artifacts/showcase-windows-v1 "$out/windows-acceptance" -Recurse
+          Copy-Item build/windows-showcase-vulkan-shipping/artifacts/showcase-windows-v1 "$out/windows-vulkan-acceptance" -Recurse
           $info = [ordered]@{
             git_commit = $env:GITHUB_SHA
             git_ref = $env:GITHUB_REF
             workflow_run = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
             runner_os = $env:RUNNER_OS
-            note = "Hosted-runner evidence only. The Vulkan package is build/link/package evidence (no GPU on the runner). Physical-display and Vulkan/Metal acceptance are recorded separately under Apps/Showcase/evidence."
+            note = "Hosted-runner evidence only. Vulkan native screenshots, interactions and the complete guided tour use checksum-verified Mesa lavapipe, explicitly a software driver. Physical-GPU/clean-host and Mac full-interactive acceptance remain separate."
           }
           $info | ConvertTo-Json | Set-Content "$out/release-info.json" -Encoding utf8
           Get-ChildItem $out -File | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } | Set-Content "$out/RELEASE-SHA256SUMS" -Encoding ascii
@@ -204,6 +233,7 @@ jobs:
         run: |
           set -euo pipefail
           tar -C release-bundle -czf release-bundle/windows-acceptance.tar.gz windows-acceptance
+          tar -C release-bundle -czf release-bundle/windows-vulkan-acceptance.tar.gz windows-vulkan-acceptance
           sha256sum release-bundle/*.zip release-bundle/*.tar.gz release-bundle/*info*.json | sed 's#release-bundle/##' > release-bundle/RELEASE-SHA256SUMS
           gh release create "${GITHUB_REF_NAME}" \
             --repo "${GITHUB_REPOSITORY}" --draft --verify-tag --generate-notes \
@@ -213,6 +243,7 @@ jobs:
             release-bundle/NexoraShowcase-Shipping-Vulkan.zip \
             release-bundle/NexoraShowcase-Shipping-Vulkan.zip.sha256 \
             release-bundle/windows-acceptance.tar.gz \
+            release-bundle/windows-vulkan-acceptance.tar.gz \
             release-bundle/release-info.json \
             release-bundle/RELEASE-SHA256SUMS \
             release-bundle/build-contract-evidence.tar.gz \

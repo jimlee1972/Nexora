@@ -1,0 +1,53 @@
+{
+  "source_commit": "bff62773d593b95de918f670795b8076dc89224c",
+  "pr": {
+    "url": "https://github.com/jimlee1972/Nexora/pull/284",
+    "build_run": 37207624121,
+    "conclusion": "success",
+    "jobs": 16,
+    "tested_merge_commit": "ec5e758db6d56b06490b437b50f90c077efa17b8",
+    "native_job": 111452039592,
+    "native_frames": 38851,
+    "tour_seconds": 210.002,
+    "artifact": 11305682330,
+    "artifact_sha256": "c32b8d02b1f36b4c287d1a6756e5b84180e38398bfb807edb0bf4efea2b1dbf4"
+  },
+  "tag": {
+    "name": "v0.0.0-rc.4",
+    "build_run": 37208176403,
+    "build_attempt": 1,
+    "build_jobs": 16,
+    "build_conclusion": "success",
+    "release_run": 37208176483,
+    "release_attempt": 1,
+    "release_jobs": 5,
+    "release_conclusion": "success",
+    "native_job": 111453681629,
+    "artifact": 11305673497,
+    "artifact_sha256": "524ca8c62b421f141ce79027c34ae7efc4db62ac6f3a03fd4fb16ea7e90f5b99"
+  },
+  "initial_failure": {
+    "runs": [
+      37206437083,
+      37206832361,
+      37207267952
+    ],
+    "vk_result": -9,
+    "operation": "vkCreateInstance",
+    "diagnosis": "Hosted elevated Windows loader used registry discovery and ignored environment ICD selection; temporary hosted-only registration enabled the exact verified driver."
+  },
+  "separate_fixture_failure": {
+    "run": 37207621222,
+    "job": 111452031489,
+    "test": "editor.mesh_reimport",
+    "observed": "SegFault after 5.91 seconds",
+    "targeted_retry_job": 111454188103,
+    "retry_conclusion": "success",
+    "follow_up": "Subsequent PR fixture change makes the content session destruct before its borrowed import queue, uses cooperative polling without extending five-second deadlines, and preserves a deterministic exception-unwind probe."
+  },
+  "mac": {
+    "status": "INCOMPLETE",
+    "deferred": true,
+    "reason": "User requested skipping Mac; no physical/clean-host/full-interactive acceptance is claimed."
+  }
+}

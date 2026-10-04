@@ -1,0 +1,112 @@
+{
+    "schema":  "nexora.showcase.windows.acceptance.v1",
+    "status":  "PASS",
+    "scope":  "Windows isolated-copy native visual acceptance",
+    "physical_display_verified":  false,
+    "clean_host_verified":  false,
+    "physical_display_operator_attestation":  false,
+    "clean_host_operator_attestation":  false,
+    "recorded_utc":  "2026-10-04T14:12:07.7519901Z",
+    "checksums_verified":  14,
+    "screenshots":  [
+                        "hub.png",
+                        "rendering.png",
+                        "quad.png",
+                        "triangle.png",
+                        "scene.png",
+                        "input.png",
+                        "gameplay.png",
+                        "presentation.png",
+                        "streaming.png",
+                        "shipping.png",
+                        "rendering-orbit-zoom.png",
+                        "overlays-hidden.png",
+                        "scene-modified.png",
+                        "scene-undo.png",
+                        "scene-play.png",
+                        "scene-reloaded.png",
+                        "input-localized.png",
+                        "gameplay-crouched.png",
+                        "gameplay-teleported.png",
+                        "presentation-blend.png",
+                        "shipping-pressure.png",
+                        "tour-paused.png",
+                        "tour-completed.png",
+                        "validation-lab.png",
+                        "resized.png"
+                    ],
+    "engine_module_locations":  {
+                                    "NexoraShowcase.exe":  "bin\\NexoraShowcase.exe"
+                                },
+    "issues":  [
+
+               ],
+    "interaction_checks":  [
+                               "pointer_orbit_wheel_zoom",
+                               "overview_profiler_toggles",
+                               "guided_tour_replay_pause",
+                               "guided_tour_210_seconds",
+                               "scene_modify_undo_play_reload",
+                               "locale_switch",
+                               "held_character_input_crouch_teleport",
+                               "animation_blend",
+                               "lifecycle_pressure"
+                           ],
+    "complete_guided_tour_requested":  true,
+    "profile":  "Shipping",
+    "shipping_profile":  "Full",
+    "vulkan_driver_library":  {
+                                  "name":  "vulkan_lvp.dll",
+                                  "sha256":  "0b33e35d4eabfdd16b6ecb12ef7f2c87467c0baed0925ed291ce5496e58bf1db",
+                                  "loaded_from_expected_path":  true
+                              },
+    "process_exit_code":  0,
+    "build":  {
+                  "engine_version":  "0.1.0",
+                  "build_id":  "bff62773d593",
+                  "abi_version":  1,
+                  "configuration":  "Shipping",
+                  "link_mode":  "Monolithic"
+              },
+    "native":  {
+                   "executed":  true,
+                   "backend":  "vulkan",
+                   "backend_fallback":  false,
+                   "fallback_reason":  "",
+                   "recovery_action":  "render",
+                   "surface_acquires":  41737,
+                   "surface_presents":  41737,
+                   "resize_requests":  0,
+                   "resize_generations":  2,
+                   "composed_frames":  0,
+                   "scene_draws":  41737,
+                   "native_scene_draws":  41737,
+                   "native_scene_instances":  58882,
+                   "native_scene_texture_uploads":  3,
+                   "native_offscreen_draws":  41737,
+                   "native_scene_composites":  41737,
+                   "software_rasterizer":  true,
+                   "native_graph_frames":  41737,
+                   "native_graph_passes":  4,
+                   "native_graph_resource_transitions":  3,
+                   "native_graph_order":  [
+                                              "Offscreen",
+                                              "Main",
+                                              "UI",
+                                              "Present"
+                                          ],
+                   "native_ui_draws":  41737,
+                   "overlay_frames":  41737,
+                   "rendering_mode":  "gpu_scene",
+                   "clear_color":  true,
+                   "triangle":  false,
+                   "diagnostics_overlay":  true
+               },
+    "display_adapters":  [
+                             {
+                                 "Name":  "Microsoft Hyper-V Video",
+                                 "DriverVersion":  "10.0.26100.1150"
+                             }
+                         ],
+    "os_version":  "Microsoft Windows NT 10.0.26100.0"
+}

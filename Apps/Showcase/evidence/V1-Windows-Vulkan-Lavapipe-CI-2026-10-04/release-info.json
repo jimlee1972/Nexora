@@ -1,0 +1,7 @@
+{
+  "git_commit": "bff62773d593b95de918f670795b8076dc89224c",
+  "git_ref": "refs/tags/v0.0.0-rc.4",
+  "workflow_run": "https://github.com/jimlee1972/Nexora/actions/runs/37208176483",
+  "runner_os": "Windows",
+  "note": "Hosted-runner evidence only. Vulkan native screenshots, interactions and the complete guided tour use checksum-verified Mesa lavapipe, explicitly a software driver. Physical-GPU/clean-host and Mac full-interactive acceptance remain separate."
+}
