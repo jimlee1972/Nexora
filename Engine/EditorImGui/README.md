@@ -201,3 +201,8 @@ The application now obtains prospective world poses from `SceneDocument::Preview
 for Move, Rotate, and Scale. Preview and release share the validated root edits and Runtime hierarchy
 composition, so transformed descendants match the committed poses. Escape drops the snapshot without
 writing the document or changing Undo/Redo history.
+
+The native canvas offers Center pivot (P). Pivot rotates/scales each selected root in place;
+Center places handles at the mean selected-root origin and rotates/scales root offsets around that
+point. Selected descendants do not weight the center twice, and local axes follow the first selected
+root rotation. Tool, axes, pivot, and camera controls stay fixed during a left-button gesture.

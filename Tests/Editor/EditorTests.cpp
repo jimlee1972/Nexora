@@ -719,8 +719,8 @@ int Run() {
     const auto preview_scene = preview_world.LoadScene("Gizmo preview contract");
     Require(preview_world.Activate(preview_scene), "preview scene activation failed");
     editor::SceneDocument preview_document(preview_world, preview_scene);
-    const auto preview_parent = preview_document.Create("Nonuniform preview_parent");
-    const auto preview_child = preview_document.Create("Rotated preview_child", preview_parent);
+    const auto preview_parent = preview_document.Create("Nonuniform parent");
+    const auto preview_child = preview_document.Create("Rotated child", preview_parent);
     const auto descendant = preview_document.Create("Unselected descendant", preview_child);
     const auto other = preview_document.Create("Other root");
     auto parent_pose = runtime::Transform{2, 3, -1};
@@ -751,7 +751,13 @@ int Run() {
           return false;
       return true;
     };
-    std::array<editor::GizmoOperation, 5> operations;
+    const auto pivot_frame = preview_document.SelectionGizmoFrame(editor::GizmoPivot::Pivot);
+    const auto center_frame = preview_document.SelectionGizmoFrame(editor::GizmoPivot::Center);
+    Require(pivot_frame && center_frame && pivot_frame->x == 2 && pivot_frame->y == 3 &&
+                center_frame->x == -1 && center_frame->y == 2 && center_frame->z == 0.5 &&
+                std::abs(center_frame->qy - parent_pose.qy) < 1e-12,
+            "selection frame must use root origins and retain the first root's rotation");
+    std::array<editor::GizmoOperation, 6> operations;
     operations[0].translation = {2, -3, 4};
     operations[1].kind = editor::GizmoOperation::Kind::Rotate;
     operations[1].axis = {1, 0, 0};
@@ -763,6 +769,10 @@ int Run() {
     operations[4] = operations[1];
     operations[4].pivot = editor::GizmoPivot::Center;
     operations[4].center = {1, 2, 3};
+    operations[5] = operations[2];
+    operations[5].pivot = editor::GizmoPivot::Center;
+    operations[5].center = {center_frame->x, center_frame->y, center_frame->z};
+    operations[5].axes = editor::GizmoAxes(*center_frame, editor::GizmoSpace::Local);
     for (const auto &operation : operations) {
       for (const auto targets : {std::span<const editor::SceneDocument::NodeKey>(keys),
                                  std::span<const editor::SceneDocument::NodeKey>(child_keys)}) {
@@ -798,6 +808,9 @@ int Run() {
                 !preview_document.PreviewSelectionGizmo({}, operations[0]) &&
                 !preview_document.Dirty(),
             "invalid or stale gizmo preview was accepted");
+    Require(preview_document.Select(std::span<const runtime::Id>{}) &&
+                !preview_document.SelectionGizmoFrame(editor::GizmoPivot::Center),
+            "an empty selection must have no gizmo frame");
     std::filesystem::remove(path);
   }
   {

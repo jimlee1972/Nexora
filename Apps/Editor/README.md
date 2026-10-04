@@ -167,3 +167,8 @@ Move, Rotate, and Scale previews now use the same SceneDocument root-edit calcul
 hierarchy composition as commit. Rotated and nonuniform ancestors therefore produce matching
 prospective and committed proxy poses, including unselected descendants; Escape only discards the
 preview snapshot.
+
+The native canvas offers Center pivot (P). Pivot rotates/scales each selected root in place;
+Center places handles at the mean selected-root origin and rotates/scales root offsets around that
+point. Selected descendants do not weight the center twice, and local axes follow the first selected
+root rotation. Tool, axes, pivot, and camera controls stay fixed during a left-button gesture.

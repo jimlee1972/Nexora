@@ -144,6 +144,23 @@ NativeSceneProxyCandidates(const nexora::editor::SceneDocument &scene) {
   return candidates;
 }
 
+std::optional<nexora::runtime::Transform>
+NativeSceneGizmoFrame(const nexora::editor::SceneDocument &scene, bool center_pivot) {
+  return scene.SelectionGizmoFrame(center_pivot ? nexora::editor::GizmoPivot::Center
+                                                : nexora::editor::GizmoPivot::Pivot);
+}
+
+void NativeSceneOperationPivot(const nexora::editor::SceneDocument &scene, bool center_pivot,
+                               nexora::editor::GizmoOperation &operation) {
+  if (center_pivot) {
+    if (const auto frame = NativeSceneGizmoFrame(scene, true)) {
+      operation.pivot = nexora::editor::GizmoPivot::Center;
+      operation.center = {frame->x, frame->y, frame->z};
+      operation.axes = nexora::editor::GizmoAxes(*frame, nexora::editor::GizmoSpace::Local);
+    }
+  }
+}
+
 struct NativeSceneAxisHandle final {
   nexora::editor::ViewportVector axis{};
   nexora::editor::PickCandidate bounds{};
@@ -152,7 +169,8 @@ struct NativeSceneAxisHandle final {
 
 std::vector<NativeSceneAxisHandle>
 NativeSceneAxisHandles(const nexora::editor::SceneDocument &scene,
-                       std::span<const nexora::editor::PickCandidate> candidates, bool local_axes) {
+                       std::span<const nexora::editor::PickCandidate> candidates, bool local_axes,
+                       bool center_pivot) {
   if (scene.Selection().empty())
     return {};
   const auto selected = scene.Selection().front();
@@ -161,7 +179,7 @@ NativeSceneAxisHandles(const nexora::editor::SceneDocument &scene,
                    [selected](const auto &candidate) { return candidate.entity == selected; });
   if (found == candidates.end())
     return {};
-  const auto pose = scene.WorldTransform(selected);
+  const auto pose = NativeSceneGizmoFrame(scene, center_pivot);
   if (!pose)
     return {};
   const std::array<double, 3> pivot{pose->x, pose->y + 0.5, pose->z};
@@ -205,14 +223,14 @@ NativeSceneAxisHandles(const nexora::editor::SceneDocument &scene,
 std::vector<NativeSceneAxisHandle>
 NativeSceneRotationHandles(const nexora::editor::SceneDocument &scene,
                            std::span<const nexora::editor::PickCandidate> candidates,
-                           bool local_axes) {
+                           bool local_axes, bool center_pivot) {
   if (scene.Selection().empty())
     return {};
   const auto selected = scene.Selection().front();
   if (std::none_of(candidates.begin(), candidates.end(),
                    [selected](const auto &candidate) { return candidate.entity == selected; }))
     return {};
-  const auto pose = scene.WorldTransform(selected);
+  const auto pose = NativeSceneGizmoFrame(scene, center_pivot);
   if (!pose)
     return {};
   const auto axes = nexora::editor::GizmoAxes(
@@ -249,8 +267,8 @@ NativeSceneRotationHandles(const nexora::editor::SceneDocument &scene,
 std::vector<NativeSceneAxisHandle>
 NativeSceneScaleHandles(const nexora::editor::SceneDocument &scene,
                         std::span<const nexora::editor::PickCandidate> candidates,
-                        nexora::editor::imgui::NativeSceneOrbit orbit) {
-  auto handles = NativeSceneAxisHandles(scene, candidates, true);
+                        nexora::editor::imgui::NativeSceneOrbit orbit, bool center_pivot) {
+  auto handles = NativeSceneAxisHandles(scene, candidates, true, center_pivot);
   for (auto &handle : handles) {
     for (std::size_t coordinate = 0; coordinate < 3; ++coordinate) {
       handle.instance.scale[coordinate] = 0.16F;
@@ -271,7 +289,7 @@ NativeSceneScaleHandles(const nexora::editor::SceneDocument &scene,
     }
   }
   if (handles.size() == 3) {
-    const auto pose = scene.WorldTransform(scene.Selection().front());
+    const auto pose = NativeSceneGizmoFrame(scene, center_pivot);
     if (pose) {
       NativeSceneAxisHandle uniform;
       uniform.bounds.entity = 4;
@@ -318,7 +336,7 @@ NativeScenePickHit PickNativeSceneProxy(const nexora::editor::SceneDocument &sce
                                         nexora::editor::imgui::SceneOverviewCamera camera,
                                         nexora::editor::imgui::NativeSceneOrbit orbit,
                                         nexora::editor::imgui::NativeScenePickRequest request,
-                                        bool local_axes,
+                                        bool local_axes, bool center_pivot,
                                         nexora::editor::imgui::NativeSceneTool tool) {
   if (request.x < viewport.x || request.y < viewport.y ||
       request.x >= viewport.x + viewport.width || request.y >= viewport.y + viewport.height)
@@ -346,10 +364,10 @@ NativeScenePickHit PickNativeSceneProxy(const nexora::editor::SceneDocument &sce
       proxy = nexora::editor::PickHit{candidate.entity, *distance};
   }
   const auto handles = tool == nexora::editor::imgui::NativeSceneTool::Rotate
-                           ? NativeSceneRotationHandles(scene, candidates, local_axes)
+                           ? NativeSceneRotationHandles(scene, candidates, local_axes, center_pivot)
                        : tool == nexora::editor::imgui::NativeSceneTool::Scale
-                           ? NativeSceneScaleHandles(scene, candidates, orbit)
-                           : NativeSceneAxisHandles(scene, candidates, local_axes);
+                           ? NativeSceneScaleHandles(scene, candidates, orbit, center_pivot)
+                           : NativeSceneAxisHandles(scene, candidates, local_axes, center_pivot);
   std::optional<nexora::editor::PickHit> exact_gizmo;
   std::optional<nexora::editor::PickHit> padded_gizmo;
   for (const auto &handle : handles) {
@@ -538,7 +556,7 @@ double NativeSceneRotationAngleWithSnap(double angle, bool snap) {
 Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     Nexora::Presentation::RenderSurface &surface, const nexora::editor::SceneDocument &scene,
     Nexora::Presentation::SceneViewport viewport, nexora::editor::imgui::SceneOverviewCamera camera,
-    nexora::editor::imgui::NativeSceneOrbit orbit, bool local_axes,
+    nexora::editor::imgui::NativeSceneOrbit orbit, bool local_axes, bool center_pivot,
     nexora::editor::imgui::NativeSceneTool tool,
     std::optional<std::array<double, 3>> drag_preview = std::nullopt,
     std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview =
@@ -547,10 +565,10 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   static const NativeSceneProxyMesh mesh;
   const auto candidates = NativeSceneProxyCandidates(scene);
   const auto handles = tool == nexora::editor::imgui::NativeSceneTool::Rotate
-                           ? NativeSceneRotationHandles(scene, candidates, local_axes)
+                           ? NativeSceneRotationHandles(scene, candidates, local_axes, center_pivot)
                        : tool == nexora::editor::imgui::NativeSceneTool::Scale
-                           ? NativeSceneScaleHandles(scene, candidates, orbit)
-                           : NativeSceneAxisHandles(scene, candidates, local_axes);
+                           ? NativeSceneScaleHandles(scene, candidates, orbit, center_pivot)
+                           : NativeSceneAxisHandles(scene, candidates, local_axes, center_pivot);
   const std::unordered_set<nexora::runtime::Id> selected(scene.Selection().begin(),
                                                          scene.Selection().end());
   std::optional<nexora::editor::GizmoOperation> operation;
@@ -582,6 +600,7 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
       if (const auto key = scene.Key(id))
         keys.push_back(*key);
     }
+    NativeSceneOperationPivot(scene, center_pivot, *operation);
     preview = scene.PreviewSelectionGizmo(keys, *operation);
   }
   camera.x = std::clamp(camera.x, -100000.0, 100000.0);
@@ -1004,9 +1023,9 @@ int RunGraphical(std::optional<ProjectState> project,
     if (project) {
       if (const auto viewport = ui.NativeScenePreviewViewport()) {
         if (const auto request = ui.NativeScenePick()) {
-          const auto hit = PickNativeSceneProxy(scene, *viewport, ui.GetSceneOverviewCamera(),
-                                                ui.GetNativeSceneOrbit(), *request,
-                                                ui.NativeSceneLocalAxes(), ui.GetNativeSceneTool());
+          const auto hit = PickNativeSceneProxy(
+              scene, *viewport, ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(), *request,
+              ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(), ui.GetNativeSceneTool());
           native_scene_drag_axis = request->additive ? std::nullopt : hit.axis;
           native_scene_drag_rotate =
               native_scene_drag_axis &&
@@ -1033,7 +1052,7 @@ int RunGraphical(std::optional<ProjectState> project,
           }
         }
         if (const auto drag = ui.NativeSceneDrag(); drag && !scene.Selection().empty()) {
-          const auto pose = scene.WorldTransform(scene.Selection().front());
+          const auto pose = NativeSceneGizmoFrame(scene, ui.NativeSceneCenterPivot());
           if (pose) {
             std::vector<nexora::editor::SceneDocument::NodeKey> keys;
             for (const auto id : scene.Selection()) {
@@ -1061,6 +1080,7 @@ int RunGraphical(std::optional<ProjectState> project,
                       scale.factors.z = snapped;
                     else
                       scale.factors = {snapped, snapped, snapped};
+                    NativeSceneOperationPivot(scene, ui.NativeSceneCenterPivot(), scale);
                     static_cast<void>(scene.ApplySelectionGizmo(keys, scale));
                   }
                 }
@@ -1075,6 +1095,7 @@ int RunGraphical(std::optional<ProjectState> project,
                     rotation.kind = nexora::editor::GizmoOperation::Kind::Rotate;
                     rotation.axis = *native_scene_drag_axis;
                     rotation.angle = snapped;
+                    NativeSceneOperationPivot(scene, ui.NativeSceneCenterPivot(), rotation);
                     static_cast<void>(scene.ApplySelectionGizmo(keys, rotation));
                   }
                 }
@@ -1096,7 +1117,7 @@ int RunGraphical(std::optional<ProjectState> project,
         std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview;
         std::optional<std::pair<std::size_t, double>> scale_preview;
         if (const auto drag = ui.NativeSceneDragPreview(); drag && !scene.Selection().empty()) {
-          const auto pose = scene.WorldTransform(scene.Selection().front());
+          const auto pose = NativeSceneGizmoFrame(scene, ui.NativeSceneCenterPivot());
           if (pose) {
             if (native_scene_drag_scale_axis && native_scene_drag_axis) {
               const auto factor =
@@ -1124,8 +1145,8 @@ int RunGraphical(std::optional<ProjectState> project,
         }
         const auto scene_status = DrawNativeScenePreview(
             *created.surface, scene, *viewport, ui.GetSceneOverviewCamera(),
-            ui.GetNativeSceneOrbit(), ui.NativeSceneLocalAxes(), ui.GetNativeSceneTool(),
-            drag_preview, rotation_preview, scale_preview);
+            ui.GetNativeSceneOrbit(), ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(),
+            ui.GetNativeSceneTool(), drag_preview, rotation_preview, scale_preview);
         ui.SetNativeScenePreviewAvailable(scene_status !=
                                           Nexora::Presentation::SurfaceStatus::Unsupported);
         if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&

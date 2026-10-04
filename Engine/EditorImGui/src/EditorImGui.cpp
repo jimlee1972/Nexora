@@ -119,6 +119,7 @@ struct EditorImGuiHost::State final {
   bool native_scene_preview_available = true;
   NativeSceneOrbit native_scene_orbit{};
   NativeSceneTool native_scene_tool{NativeSceneTool::Move};
+  bool native_scene_center_pivot{};
   bool native_scene_local_axes{};
   std::optional<NativeScenePickRequest> native_scene_pick;
   std::optional<std::array<std::int32_t, 2>> native_scene_drag_origin;
@@ -2224,7 +2225,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (scene != nullptr) {
       if (state_->native_scene_preview) {
         state_->scene_markers.clear();
-        ImGui::BeginDisabled(scene->Selection().empty());
+        ImGui::BeginDisabled(scene->Selection().empty() ||
+                             state_->native_scene_drag_origin.has_value());
         if (ImGui::SmallButton("Frame selected"))
           static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
         ImGui::EndDisabled();
@@ -2239,6 +2241,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         else
           ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y | E: rotate | R: scale");
         ImGui::TextDisabled("Middle: pan X/Z | Shift+middle: pan Y | Delete: selected");
+        ImGui::BeginDisabled(state_->native_scene_drag_origin.has_value());
         if (ImGui::RadioButton("Move", state_->native_scene_tool == NativeSceneTool::Move))
           state_->native_scene_tool = NativeSceneTool::Move;
         ImGui::SameLine();
@@ -2251,6 +2254,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         }
         ImGui::BeginDisabled(state_->native_scene_tool == NativeSceneTool::Scale);
         ImGui::Checkbox("Local axes", &state_->native_scene_local_axes);
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        ImGui::Checkbox("Center pivot (P)", &state_->native_scene_center_pivot);
         ImGui::EndDisabled();
         ImGui::SameLine();
         constexpr std::array snap_steps{0.25, 0.5, 1.0, 2.0, 4.0};
@@ -2330,7 +2336,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                                  state_->native_scene_drag_snap_step,
                                                  state_->native_scene_drag_vertical};
         }
-        if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+        if (!recovery_available && (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
+            !state_->native_scene_drag_origin && !io.WantTextInput) {
           if (ImGui::IsKeyPressed(ImGuiKey_W, false))
             state_->native_scene_tool = NativeSceneTool::Move;
           if (ImGui::IsKeyPressed(ImGuiKey_E, false))
@@ -2339,6 +2346,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             state_->native_scene_tool = NativeSceneTool::Scale;
             state_->native_scene_local_axes = true;
           }
+          if (ImGui::IsKeyPressed(ImGuiKey_P, false))
+            state_->native_scene_center_pivot = !state_->native_scene_center_pivot;
           if (io.MouseWheel != 0.0F)
             state_->native_scene_orbit.distance =
                 std::clamp(state_->native_scene_orbit.distance *
@@ -2372,7 +2381,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             }
           }
         }
-        if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !io.WantTextInput &&
+        if (!state_->native_scene_drag_origin &&
+            ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !io.WantTextInput &&
             ImGui::IsKeyPressed(ImGuiKey_F, false))
           static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
       } else {
@@ -2872,6 +2882,10 @@ NativeSceneTool EditorImGuiHost::GetNativeSceneTool() const noexcept {
 
 bool EditorImGuiHost::NativeSceneLocalAxes() const noexcept {
   return state_->native_scene_local_axes;
+}
+
+bool EditorImGuiHost::NativeSceneCenterPivot() const noexcept {
+  return state_ && state_->native_scene_center_pivot;
 }
 
 bool EditorImGuiHost::SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept {

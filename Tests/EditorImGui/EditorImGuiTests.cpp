@@ -653,6 +653,35 @@ void TestNativeSceneCameraControls() {
           {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, px, py}};
   host.ProcessEvents(hover);
   draw();
+  const auto press_pivot_key = [&] {
+    const std::array down{
+        Nexora::Window::WindowEvent{{},
+                                    Nexora::Window::WindowEventType::Key,
+                                    0,
+                                    0,
+                                    0,
+                                    1.0F,
+                                    static_cast<std::int32_t>(Nexora::Window::Key::P),
+                                    1}};
+    const std::array up{
+        Nexora::Window::WindowEvent{{},
+                                    Nexora::Window::WindowEventType::Key,
+                                    0,
+                                    0,
+                                    0,
+                                    1.0F,
+                                    static_cast<std::int32_t>(Nexora::Window::Key::P),
+                                    0}};
+    host.ProcessEvents(down);
+    draw();
+    host.ProcessEvents(up);
+    draw();
+  };
+  assert(!host.NativeSceneCenterPivot());
+  press_pivot_key();
+  assert(host.NativeSceneCenterPivot());
+  press_pivot_key();
+  assert(!host.NativeSceneCenterPivot());
   const std::array pick_press{Nexora::Window::WindowEvent{
       {}, Nexora::Window::WindowEventType::PointerButton, 0, 0, 0, 1.0F, 0, 1}};
   host.ProcessEvents(pick_press);
@@ -672,6 +701,8 @@ void TestNativeSceneCameraControls() {
       {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, px + 48, py + 24}};
   host.ProcessEvents(pick_move);
   draw();
+  press_pivot_key();
+  assert(!host.NativeSceneCenterPivot()); // A gesture keeps the pivot captured at its start.
   const auto preview_request = host.NativeSceneDragPreview();
   assert(preview_request && preview_request->start_x == px && preview_request->start_y == py &&
          preview_request->end_x == px + 48 && preview_request->end_y == py + 24 &&
