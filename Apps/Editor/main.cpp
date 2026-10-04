@@ -14,6 +14,7 @@
 #include "Nexora/RHI/Device.h"
 #include "Nexora/Runtime/EditorSdk.h"
 #include "PlayGameplayModule.h"
+#include "PlayInputForwarding.h"
 #include "SceneMeshPreview.h"
 #endif
 
@@ -957,21 +958,23 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       break;
     }
+    const auto &frame = created.surface->FrameInfo();
+    const auto frame_started = std::chrono::steady_clock::now();
+    const auto dpi = std::isfinite(frame.dpiScale) ? std::max(frame.dpiScale, 0.25F) : 1.0F;
+    ui.SetDisplay(static_cast<float>(frame.width) / dpi, static_cast<float>(frame.height) / dpi,
+                  dpi);
+    ui.ProcessEvents(created.surface->Events());
     const auto action = Nexora::Presentation::RecoveryAction(begin_frame_status);
     if (action == Nexora::Presentation::SurfaceAction::Abort) {
       result = 1;
       break;
     }
-    if (action != Nexora::Presentation::SurfaceAction::Render)
+    if (action != Nexora::Presentation::SurfaceAction::Render || frame.width == 0 ||
+        frame.height == 0) {
+      nexora::editor::preview::ForwardPlayInput(play, gameplay, ui.GameInputFocused(),
+                                                created.surface->Events());
       continue;
-    ui.ProcessEvents(created.surface->Events());
-    const auto &frame = created.surface->FrameInfo();
-    if (frame.width == 0 || frame.height == 0)
-      continue;
-    const auto frame_started = std::chrono::steady_clock::now();
-    const auto dpi = std::max(frame.dpiScale, 0.25F);
-    ui.SetDisplay(static_cast<float>(frame.width) / dpi, static_cast<float>(frame.height) / dpi,
-                  dpi);
+    }
     ui.UpdateImeCandidate(*created.surface);
     ui.BeginFrame();
     if (!project && pending_project) {
@@ -1112,10 +1115,8 @@ int RunGraphical(std::optional<ProjectState> project,
       case nexora::editor::imgui::PlayCommand::None:
         break;
       }
-      play.SetInputFocus(ui.GameInputFocused() &&
-                         play.State() == nexora::runtime::PlayState::Playing);
-      gameplay.SetInputFocus(play.AcceptsInput());
-      gameplay.ProcessInput(created.surface->Events());
+      nexora::editor::preview::ForwardPlayInput(play, gameplay, ui.GameInputFocused(),
+                                                created.surface->Events());
       const auto play_now = std::chrono::steady_clock::now();
       const double elapsed =
           std::clamp(std::chrono::duration<double>(play_now - last_play_frame).count(), 0.0, 0.25);

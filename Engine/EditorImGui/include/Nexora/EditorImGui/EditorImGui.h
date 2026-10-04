@@ -87,6 +87,8 @@ public:
   EditorImGuiHost &operator=(const EditorImGuiHost &) = delete;
 
   void SetDisplay(float width, float height, float dpi_scale);
+  // Pointer events use native client pixels. SetDisplay supplies logical dimensions/frame DPI
+  // before forwarding the current native batch; the host converts pointer positions exactly once.
   void ProcessEvents(std::span<const Nexora::Window::WindowEvent> events);
   void BeginFrame(float delta_seconds = 1.0F / 60.0F);
   // Draws the startup project browser. It only emits a one-shot request; the application owns

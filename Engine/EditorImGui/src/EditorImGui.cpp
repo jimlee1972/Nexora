@@ -73,6 +73,7 @@ struct EditorImGuiHost::State final {
   ImGuiContext *context = nullptr;
   Nexora::Presentation::RenderSurface *surface = nullptr;
   float dpi_scale = 1.0F;
+  std::optional<std::array<std::int32_t, 2>> native_pointer;
   // Sentinel below every real DpiBucket() result ({1.0, 1.25, 1.5, 2.0}) so the first SetDisplay()
   // call always builds the font atlas, even when the initial DPI resolves to the 1.0 bucket; a
   // default of 1.0F here would make that common case a no-op and leave the atlas unbuilt, which
@@ -2053,7 +2054,12 @@ EditorImGuiHost &EditorImGuiHost::operator=(EditorImGuiHost &&) noexcept = defau
 void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
   Activate(state_->context);
   ImGui::GetIO().DisplaySize = {std::max(width, 1.0F), std::max(height, 1.0F)};
-  dpi_scale = std::max(dpi_scale, 0.25F);
+  dpi_scale = std::isfinite(dpi_scale) ? std::max(dpi_scale, 0.25F) : 1.0F;
+  if (dpi_scale != state_->dpi_scale)
+    CancelSceneGestures(*state_);
+  if (state_->native_pointer && dpi_scale != state_->dpi_scale)
+    ImGui::GetIO().AddMousePosEvent(static_cast<float>((*state_->native_pointer)[0]) / dpi_scale,
+                                    static_cast<float>((*state_->native_pointer)[1]) / dpi_scale);
   ImGui::GetIO().DisplayFramebufferScale = {dpi_scale, dpi_scale};
   const float bucket = DpiBucket(dpi_scale);
   if (bucket != state_->dpi_bucket) {
@@ -2078,7 +2084,9 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
   for (const auto &event : events) {
     switch (event.type) {
     case Nexora::Window::WindowEventType::Pointer:
-      io.AddMousePosEvent(static_cast<float>(event.value0), static_cast<float>(event.value1));
+      state_->native_pointer = std::array{event.value0, event.value1};
+      io.AddMousePosEvent(static_cast<float>(event.value0) / state_->dpi_scale,
+                          static_cast<float>(event.value1) / state_->dpi_scale);
       break;
     case Nexora::Window::WindowEventType::Wheel:
       io.AddMouseWheelEvent(static_cast<float>(event.value0) / 120.0F,
@@ -2125,6 +2133,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
       // Dear ImGui releases held inputs on focus loss. Cancel before that synthetic release
       // can be interpreted as a completed authoring gesture.
       if (!state_->app_focused) {
+        state_->native_pointer.reset();
         state_->game_input_focused = false;
         CancelSceneGestures(*state_);
       }
@@ -3517,6 +3526,12 @@ void EditorImGuiTestAccess::SetHierarchyFilter(EditorImGuiHost &host,
   const auto count = std::min(filter.size(), host.state_->hierarchy_filter.size() - 1);
   std::memcpy(host.state_->hierarchy_filter.data(), filter.data(), count);
   host.state_->hierarchy_filter[count] = '\0';
+}
+
+std::array<float, 2> EditorImGuiTestAccess::PointerPosition(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto position = ImGui::GetIO().MousePos;
+  return {position.x, position.y};
 }
 
 std::optional<std::array<float, 2>>

@@ -80,6 +80,13 @@ satisfy this milestone.
   A bounded Windows/DX12 developer-host shell smoke is recorded, but ED-M0 remains open until the
   complete target-host gates pass.
 
+- ✅ Native client-pixel pointer events now convert once through the current frame DPI before UI
+  hit testing. Cached positions reproject across scale changes; focus loss clears the cache and DPI
+  changes cancel interrupted Scene gestures. Tests cover 100/125/150/175/200%, fractional/negative
+  coordinates, event ordering, stationary pointers, invalid scale fallback, and 200% Apply dialog clicks.
+  Deferred/zero-extent frames also forward gameplay key releases and focus loss without ticking
+  Play or rendering a GUI frame. Target-host physical-display DPI evidence remains open.
+
 ### ED-M1 — Project and asset workspace
 
 Create, open, and upgrade projects. Deliver a Content Browser with search/filter, folder/UUID,

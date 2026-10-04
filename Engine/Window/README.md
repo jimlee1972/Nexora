@@ -10,6 +10,9 @@ on `OwnerThread()`. Events use steady-clock timestamps and consecutive resize no
 window are coalesced. Zero extent means minimization. A returned event span is borrowed until the next
 pump or system destruction. Destroy removes queued events and no callback or deferred work survives it.
 
+Pointer `value0`/`value1` are native client pixels. UI consumers convert with the current
+frame DPI; Window and RenderSurface keep native coordinates for other consumers.
+
 Win32 provides per-monitor DPI, keyboard/text/IME, pointer-button and wheel translation, including
 native IME candidate positioning. X11 provides close, configure, focus, physical-key, XIM-backed
 UTF-8 text, pointer-button and two-axis wheel translation plus EWMH fullscreen; X11 buttons 2 and 3

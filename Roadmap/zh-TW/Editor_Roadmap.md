@@ -83,6 +83,12 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   已記錄 bounded Windows/DX12 開發機 shell smoke，但完整 target-host gate 通過之前 ED-M0
   仍維持 open。
 
+- ✅ 原生 client-pixel pointer event 現會先依當前 frame DPI 轉成 UI 邏輯座標，再做 hit test。
+  scale 改變會重新投影快取位置，失焦會清除快取，DPI 改變會取消中斷的 Scene gesture。測試涵蓋
+  100／125／150／175／200%、小數／負座標、事件排序、靜止 pointer、無效 scale fallback，
+  以及 200% Apply dialog 點擊；render deferred／zero-extent frame 也會轉送 gameplay 按鍵釋放與失焦，
+  不需 GUI frame 或 Play tick；target-host 實體顯示器 DPI 證據仍待完成。
+
 ### ED-M1 — Project 與 Asset workspace
 
 建立、開啟與升級 project；Content Browser 支援 search/filter、folder/UUID、drag/drop、import
