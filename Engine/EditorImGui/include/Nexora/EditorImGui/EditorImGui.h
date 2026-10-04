@@ -129,6 +129,10 @@ public:
   // Empty when the panel is not drawn; the value resets at BeginFrame().
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   SceneCanvasViewport() const noexcept;
+  // Current frame's Game canvas. Only published during Play when the native Scene canvas is hidden.
+  [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
+  NativeGameViewport() const noexcept;
+  void SetNativeGameStatus(std::string message, bool available = true);
   void SetNativeScenePreview(bool enabled) noexcept;
   void SetNativeScenePreviewAvailable(bool available) noexcept;
   [[nodiscard]] NativeSceneOrbit GetNativeSceneOrbit() const noexcept;
