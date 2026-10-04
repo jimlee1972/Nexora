@@ -2238,7 +2238,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
               "Drag cubes: local/uniform scale | Shift: 0.25 snap | W: move | E: rotate");
         else
           ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y | E: rotate | R: scale");
-        ImGui::TextDisabled("Middle: pan X/Z | Shift+middle: pan Y");
+        ImGui::TextDisabled("Middle: pan X/Z | Shift+middle: pan Y | Delete: selected");
         if (ImGui::RadioButton("Move", state_->native_scene_tool == NativeSceneTool::Move))
           state_->native_scene_tool = NativeSceneTool::Move;
         ImGui::SameLine();
@@ -2274,6 +2274,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                 ImGuiButtonFlags_MouseButtonMiddle);
         CaptureSceneCanvasViewport(*state_, ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
         const auto &io = ImGui::GetIO();
+        if (!recovery_available && !scene->Selection().empty() && !io.WantTextInput &&
+            (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
+            !ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
+            ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+          static_cast<void>(shell.RouteCommand("editor.scene.delete"));
+          DeleteHierarchySelection(*state_, *scene);
+          state_->native_scene_drag_origin.reset();
+          state_->native_scene_drag_preview.reset();
+        }
         if (state_->scene_canvas_viewport && ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
           const auto x = static_cast<std::uint32_t>(io.MousePos.x * io.DisplayFramebufferScale.x);
           const auto y = static_cast<std::uint32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);

@@ -118,7 +118,7 @@ the starter and created node reload.
 The Hierarchy also offers Copy and Paste buttons and Ctrl+C/Ctrl+V outside text inputs. Copies retain
 the source's captured world pose even after the source moves; Paste selects the new root entity,
 and one Undo removes a single pasted copy.
-Delete selected, or press Delete while the Hierarchy is focused, to remove selected subtrees.
+Delete selected, or press Delete while the Hierarchy is focused or the native 3D canvas is hovered, to remove selected subtrees.
 Undo restores the deleted entities and their names; multiple selected roots undo one at a time.
 Duplicate or Ctrl+D copies the current selection without replacing an earlier Copy selection.
 The central Scene panel also shows a top-down X/Z grid and entity markers at their world positions.

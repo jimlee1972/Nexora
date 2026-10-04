@@ -651,6 +651,30 @@ def main() -> int:
             time.sleep(0.05)
         if scene_file.read_text() != before_rotation:
             raise RuntimeError("snapped uniform scale did not undo atomically")
+        viewport = settled_viewport(editor.stderr, viewport)
+        center_x = viewport[0] + viewport[2] // 2
+        center_y = viewport[1] + viewport[3] // 2
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y)], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "key", "Delete"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
+            time.sleep(0.05)
+        deleted = scene_file.read_text()
+        runtime_header = next((line for line in deleted.splitlines()
+                               if line.startswith("NEXORA_SCENE 3 ")), "")
+        if not runtime_header or runtime_header.split()[-1] != "0":
+            raise RuntimeError(f"Delete over native canvas did not remove selection: "
+                               f"{runtime_header!r}")
+        subprocess.run([args.xdotool, "key", "ctrl+z"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and scene_file.read_text() != before_rotation:
+            time.sleep(0.05)
+        if scene_file.read_text() != before_rotation:
+            raise RuntimeError("native canvas Delete did not restore scene with Undo")
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
         subprocess.run([args.xdotool, "key", "f"], env=environment, check=True)

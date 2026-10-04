@@ -166,7 +166,7 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 - ✅ 圖形化 Hierarchy 的 Copy／Paste 按鈕與 Ctrl+C／Ctrl+V 現使用世界姿態快照剪貼簿，
   並選取及顯示貼上的根節點；文字輸入欄位保留自身的剪貼簿快捷鍵。Contract test 涵蓋
   快捷鍵、複製後移動來源，以及單一貼上物件的 Undo。
-- ✅ 圖形化 Hierarchy 現可透過按鈕或視窗取得焦點時的 Delete 鍵刪除選取的 subtree。
+- ✅ 圖形化 Hierarchy 現可透過按鈕或視窗取得焦點時的 Delete 鍵刪除選取的 subtree；游標停在原生 3D 畫布時按 Delete 也會使用同一個可復原的場景動作。
   Undo 會還原節點資料與選取；同時選取的子孫節點不會重複刪除。
 - ✅ Duplicate 按鈕與 Ctrl+D 現可複製圖形化選取，同時保留使用者原本的剪貼簿。
   Hierarchy 會在 Paste 或 Duplicate 修改文件後才建立當幀的節點檢視。

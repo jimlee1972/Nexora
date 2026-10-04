@@ -168,7 +168,7 @@ creates property widgets; unknown components retain raw data instead of being si
 - ✅ Graphical Hierarchy Copy/Paste buttons and Ctrl+C/Ctrl+V now use a world-pose snapshot clipboard,
   select and reveal pasted roots, and leave text inputs' clipboard shortcuts alone. Contract tests
   cover shortcut routing, source movement after copy, and single-copy Undo.
-- ✅ The graphical Hierarchy now deletes selected subtrees with its button or a focused Delete key.
+- ✅ The graphical Hierarchy now deletes selected subtrees with its button or a focused Delete key; Delete while hovering the native 3D canvas uses the same undoable document action.
   Node metadata and selection are restored by Undo; selected descendants are not deleted twice.
 - ✅ Duplicate and Ctrl+D copy the current graphical selection while retaining the user's previous
   clipboard. Hierarchy row views are built after paste and duplicate actions mutate the document.

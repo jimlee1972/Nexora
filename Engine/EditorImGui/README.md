@@ -35,7 +35,7 @@ authoring views on first launch.
   Copy and Paste buttons, plus Ctrl+C and Ctrl+V outside text inputs, route to the scene document's
   snapshot clipboard. Paste selects and reveals the new roots; failures appear in the Hierarchy.
   Shortcuts are disabled while a recovery journal awaits a choice.
-  Delete selected and the Delete key in the focused Hierarchy remove selected subtrees through the
+  Delete selected and the Delete key in the focused Hierarchy or hovered native 3D canvas remove selected subtrees through the
   document. The action is disabled during recovery; Undo restores deleted entities and names.
   Duplicate and Ctrl+D outside text inputs copy the current selection without changing the scene
   clipboard. Paste and Duplicate run before Hierarchy rows borrow node names for the frame.
