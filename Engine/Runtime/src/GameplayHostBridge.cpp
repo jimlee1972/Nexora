@@ -96,11 +96,11 @@ std::uint64_t WorldTransformComponentType() noexcept {
 }
 std::uint64_t ParentComponentType() noexcept { return foundation::Name("Nexora.Parent").Value(); }
 
-int32_t ReadGameplayComponent(const GameWorld &world, runtime::Id entity,
+int32_t ReadGameplayComponent(const runtime::World &world, runtime::Id entity,
                               std::uint64_t component_type, void *data, std::uint32_t data_size) {
   if (data == nullptr)
     return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
-  const auto snapshot = world.GetEntity(entity);
+  const auto snapshot = world.FindEntity(entity);
   if (!snapshot)
     return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
   const auto copy = [&](const auto &wire) {
@@ -115,30 +115,38 @@ int32_t ReadGameplayComponent(const GameWorld &world, runtime::Id entity,
   if (component_type == TransformV2ComponentType())
     return copy(ToWire(snapshot->transform));
   if (component_type == WorldTransformComponentType()) {
-    const auto world_transform = world.GetWorldTransform(entity);
+    const auto world_transform = world.WorldTransform(entity);
     if (!world_transform)
       return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
     return copy(ToWire(*world_transform));
   }
   if (component_type == ParentComponentType())
-    return copy(NexoraParent{world.GetParent(entity).value_or(0), 0, 0});
+    return copy(NexoraParent{world.Parent(entity).value_or(0), 0, 0});
   if (component_type == CameraComponentType())
-    return snapshot->has_camera
-               ? copy(GameplayCameraWire{snapshot->camera.vertical_field_of_view,
-                                         snapshot->camera.near_plane, snapshot->camera.far_plane})
-               : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+    return snapshot->camera ? copy(GameplayCameraWire{snapshot->camera_data.vertical_field_of_view,
+                                                      snapshot->camera_data.near_plane,
+                                                      snapshot->camera_data.far_plane})
+                            : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
   if (component_type == LightComponentType())
-    return snapshot->has_light ? copy(GameplayLightWire{snapshot->light.intensity})
-                               : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+    return snapshot->light ? copy(GameplayLightWire{snapshot->light_data.intensity})
+                           : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
   if (component_type == MeshRendererComponentType())
-    return snapshot->has_mesh_renderer
-               ? copy(GameplayMeshRendererWire{snapshot->mesh.mesh, snapshot->mesh.material.shader})
+    return snapshot->mesh_renderer
+               ? copy(GameplayMeshRendererWire{snapshot->mesh_data.mesh,
+                                               snapshot->mesh_data.material.shader})
                : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
   return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
 }
 
-int32_t WriteGameplayComponent(GameWorld &world, runtime::Id entity, std::uint64_t component_type,
-                               const void *data, std::uint32_t data_size) {
+int32_t ReadGameplayComponent(const GameWorld &world, runtime::Id entity,
+                              std::uint64_t component_type, void *data, std::uint32_t data_size) {
+  return ReadGameplayComponent(world.InternalWorld(), entity, component_type, data, data_size);
+}
+
+namespace {
+template <typename WorldT>
+int32_t WriteComponentWire(WorldT &world, runtime::Id entity, std::uint64_t component_type,
+                           const void *data, std::uint32_t data_size) {
   if (data == nullptr)
     return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
   const auto read = [&](auto &wire) {
@@ -206,6 +214,49 @@ int32_t WriteGameplayComponent(GameWorld &world, runtime::Id entity, std::uint64
         entity, runtime::MeshComponent{wire.mesh, runtime::MaterialComponent{wire.shader}}));
   }
   return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+}
+
+// A narrow adapter reuses the wire decoder with the same validated command operations as
+// GameWorld. It never owns or caches an Entity borrow across a mutation.
+struct WorldWrites final {
+  runtime::World &world;
+  const runtime::Entity *GetEntity(runtime::Id entity) const { return world.FindEntity(entity); }
+  bool SetTransform(runtime::Id entity, runtime::Transform value) {
+    runtime::WorldCommandBuffer commands;
+    commands.SetTransform(entity, value);
+    return commands.Apply(world);
+  }
+  bool SetParent(runtime::Id entity, runtime::Id parent, bool keep_world) {
+    runtime::WorldCommandBuffer commands;
+    commands.SetParent(entity, parent, keep_world);
+    return commands.Apply(world);
+  }
+  bool SetCamera(runtime::Id entity, runtime::CameraComponent value) {
+    runtime::WorldCommandBuffer commands;
+    commands.SetCamera(entity, value);
+    return commands.Apply(world);
+  }
+  bool SetLight(runtime::Id entity, runtime::LightComponent value) {
+    runtime::WorldCommandBuffer commands;
+    commands.SetLight(entity, value);
+    return commands.Apply(world);
+  }
+  bool SetMeshRenderer(runtime::Id entity, runtime::MeshComponent value) {
+    runtime::WorldCommandBuffer commands;
+    commands.SetMeshRenderer(entity, value);
+    return commands.Apply(world);
+  }
+};
+} // namespace
+int32_t WriteGameplayComponent(GameWorld &world, runtime::Id entity, std::uint64_t component_type,
+                               const void *data, std::uint32_t data_size) {
+  return WriteComponentWire(world, entity, component_type, data, data_size);
+}
+int32_t WriteGameplayComponent(runtime::World &world, runtime::Id entity,
+                               std::uint64_t component_type, const void *data,
+                               std::uint32_t data_size) {
+  WorldWrites writes{world};
+  return WriteComponentWire(writes, entity, component_type, data, data_size);
 }
 
 NexoraGameplayHostV2 MakeHost(GameplayHostContext &context) noexcept {

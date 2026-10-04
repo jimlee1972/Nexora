@@ -297,6 +297,10 @@ creates property widgets; unknown components retain raw data instead of being si
     ticks. Tests cover shared geometry, inactive scenes, reimport isolation, Pause/Step/Stop, and
     Xvfb/lavapipe camera pixels with an unchanged editor scene. Scene and Game share one native 3D
     submission per window; simultaneous visible canvases fall back to the Game inspection map.
+  - ✅ Runtime component wire read/write now accepts the isolated PlaySession World directly,
+    sharing decoding and atomic command validation with GameWorld. Fixed/Step callback tests
+    prove Editor isolation, parented world poses, component payloads, and failed-write rollback;
+    graphical gameplay-module loading and input routing still need their embedding adapter.
   - Open: complete Game View materials/multiple native canvases, gameplay-system callback and input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.

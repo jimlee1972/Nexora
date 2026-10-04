@@ -283,6 +283,9 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   Start 會凍結資產版本，fixed tick 後的 frame 擁有 upload 資料。測試涵蓋共用 geometry、
   inactive scene、reimport 隔離、Pause／Step／Stop，以及 Xvfb/lavapipe 攝影機像素與未變動
   的 Editor 場景。同視窗每幀共用一次原生 3D submission；兩個 canvas 同時顯示時 Game 保留檢視圖。
+- ✅ Runtime component wire 讀寫現可直接接受隔離的 PlaySession World，與 GameWorld 共用
+  解碼及原子 command 驗證。Fixed／Step 回呼測試涵蓋 Editor 隔離、父階層世界姿態、component
+  payload 與失敗寫入 rollback；圖形化 gameplay module 載入與輸入路由仍待 embedding adapter。
 - 待辦：完整 Game View 材質／多個原生 canvas、gameplay system 回呼與輸入路由、完整 Runtime／build log
   路由，以及 native debugger/IDE 整合。
 

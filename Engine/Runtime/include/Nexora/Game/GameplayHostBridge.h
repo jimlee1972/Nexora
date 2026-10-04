@@ -62,12 +62,26 @@ namespace nexora::game {
                                                                 const void *data,
                                                                 std::uint32_t data_size);
 
+// The same copied component wires can target a borrowed Runtime World (for example an isolated
+// PlaySession clone). Call on its owner thread; no pointer or borrow escapes. Writes use atomic
+// WorldCommandBuffer validation. The embedding module must detach before the World is destroyed.
+[[nodiscard]] NEXORA_RUNTIME_API int32_t ReadGameplayComponent(const runtime::World &world,
+                                                               runtime::Id entity,
+                                                               std::uint64_t component_type,
+                                                               void *data, std::uint32_t data_size);
+[[nodiscard]] NEXORA_RUNTIME_API int32_t WriteGameplayComponent(runtime::World &world,
+                                                                runtime::Id entity,
+                                                                std::uint64_t component_type,
+                                                                const void *data,
+                                                                std::uint32_t data_size);
+
 // The wire format read_component/write_component exchange for
 // TransformComponentType(): three tightly packed doubles, the local position. This is
 // deliberately not nexora::runtime::Transform's in-memory layout (which
 // carries no ABI-stability guarantee of its own) -- the bridge copies field
 // by field in both directions, so it keeps working even if Transform gains
 // a member; only this struct's own shape is the actual wire contract.
+
 struct GameplayTransformWire final {
   double x{}, y{}, z{};
 };

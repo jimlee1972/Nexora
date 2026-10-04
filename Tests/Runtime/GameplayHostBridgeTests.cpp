@@ -4,6 +4,7 @@
 // the `log` callback's real core::AsyncLogService wiring.
 #include "Nexora/Foundation/GameplayABI.h"
 #include "Nexora/Game/GameplayHostBridge.h"
+#include "Nexora/Runtime/EditorSdk.h"
 
 #include <cstring>
 #include <iostream>
@@ -257,11 +258,82 @@ void TestHierarchyWires() {
                                    sizeof(world_pose)) == -1,
           "the V2 bridge must serve the new wires and report failures as -1");
 }
+#if NEXORA_EDITOR_SDK_ENABLED
+void TestPlayWorldWires() {
+  World editor;
+  const auto scene = editor.LoadScene("Play wires");
+  Require(editor.Activate(scene), "activate failed");
+  const auto parent = editor.CreateEntity(scene).id;
+  const auto child = editor.CreateEntity(scene).id;
+  WorldCommandBuffer setup;
+  setup.SetTransform(parent, {3, 0, 0});
+  setup.SetParent(child, parent, false);
+  Require(setup.Apply(editor), "setup failed");
+  PlaySession play(editor);
+  Require(play.Start(1.0 / 60.0,
+                     [child](World &world, double) {
+                       GameplayTransformWire position{};
+                       if (ReadGameplayComponent(world, child, TransformComponentType(), &position,
+                                                 sizeof(position)) != NEXORA_GAMEPLAY_OK)
+                         return false;
+                       position.x += 1;
+                       return WriteGameplayComponent(world, child, TransformComponentType(),
+                                                     &position,
+                                                     sizeof(position)) == NEXORA_GAMEPLAY_OK;
+                     }),
+          "start failed");
+  Require(play.Tick() && play.Pause() && play.Step(), "fixed/step callback failed");
+  auto &clone = *play.PlayWorld();
+  Require(clone.FindEntity(child)->transform.x == 2 && editor.FindEntity(child)->transform.x == 0,
+          "component callback escaped Play clone");
+  NexoraTransformV2 pose{};
+  Require(ReadGameplayComponent(clone, child, WorldTransformComponentType(), &pose, sizeof(pose)) ==
+                  NEXORA_GAMEPLAY_OK &&
+              pose.position.x == 5,
+          "borrowed World did not resolve parent pose");
+  const auto before = clone.SaveScene(scene);
+  const NexoraParent cycle{child, 0, 0};
+  Require(WriteGameplayComponent(clone, parent, ParentComponentType(), &cycle, sizeof(cycle)) ==
+                  NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT &&
+              clone.SaveScene(scene) == before,
+          "failed wire reparent partially mutated Play clone");
+  const GameplayCameraWire camera{80, 0.25, 200};
+  const GameplayLightWire light{3};
+  const GameplayMeshRendererWire mesh{UINT64_MAX, UINT64_MAX};
+  Require(WriteGameplayComponent(clone, child, CameraComponentType(), &camera, sizeof(camera)) ==
+                  NEXORA_GAMEPLAY_OK &&
+              WriteGameplayComponent(clone, child, LightComponentType(), &light, sizeof(light)) ==
+                  NEXORA_GAMEPLAY_OK &&
+              WriteGameplayComponent(clone, child, MeshRendererComponentType(), &mesh,
+                                     sizeof(mesh)) == NEXORA_GAMEPLAY_OK,
+          "Play component writes failed");
+  GameplayCameraWire read_camera{};
+  GameplayLightWire read_light{};
+  GameplayMeshRendererWire read_mesh{};
+  Require(ReadGameplayComponent(clone, child, CameraComponentType(), &read_camera,
+                                sizeof(read_camera)) == NEXORA_GAMEPLAY_OK &&
+              read_camera.vertical_field_of_view == 80 &&
+              ReadGameplayComponent(clone, child, LightComponentType(), &read_light,
+                                    sizeof(read_light)) == NEXORA_GAMEPLAY_OK &&
+              read_light.intensity == 3 &&
+              ReadGameplayComponent(clone, child, MeshRendererComponentType(), &read_mesh,
+                                    sizeof(read_mesh)) == NEXORA_GAMEPLAY_OK &&
+              read_mesh.mesh == UINT64_MAX && read_mesh.shader == UINT64_MAX,
+          "Play component wire payload differed");
+  Require(!editor.FindEntity(child)->camera && !editor.FindEntity(child)->mesh_renderer &&
+              play.Stop(),
+          "Play wire edits leaked back to Editor");
+}
+#endif
+
 } // namespace
 
 int main() {
   try {
     TestHierarchyWires();
+#if NEXORA_EDITOR_SDK_ENABLED
+    TestPlayWorldWires();
+#endif
     return Run();
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
