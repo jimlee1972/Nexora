@@ -115,6 +115,10 @@ struct EditorImGuiHost::State final {
   };
   std::vector<SceneMarker> scene_markers;
   std::optional<Nexora::Presentation::SceneViewport> scene_canvas_viewport;
+  std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
+  bool native_game_available = true;
+  bool game_was_running = false;
+  std::string native_game_status;
   bool native_scene_preview = false;
   bool native_scene_preview_available = true;
   NativeSceneOrbit native_scene_orbit{};
@@ -1039,7 +1043,8 @@ std::array<double, 2> SceneDragWorldDelta(const DragT &drag, ImVec2 mouse) {
   return {SnapToStep(dx, drag.snap_step), SnapToStep(dz, drag.snap_step)};
 }
 
-template <typename StateT> void CaptureSceneCanvasViewport(StateT &state, ImVec2 min, ImVec2 max) {
+void CaptureCanvasViewport(std::optional<Nexora::Presentation::SceneViewport> &rectangle,
+                           ImVec2 min, ImVec2 max) {
   const auto clip_min = ImGui::GetWindowDrawList()->GetClipRectMin();
   const auto clip_max = ImGui::GetWindowDrawList()->GetClipRectMax();
   const auto &framebuffer = ImGui::GetIO();
@@ -1058,9 +1063,9 @@ template <typename StateT> void CaptureSceneCanvasViewport(StateT &state, ImVec2
       std::clamp(std::ceil(std::min(max.y, clip_max.y) * framebuffer.DisplayFramebufferScale.y),
                  0.0F, pixel_height);
   if (right > left && bottom > top)
-    state.scene_canvas_viewport = {
-        static_cast<std::uint32_t>(left), static_cast<std::uint32_t>(top),
-        static_cast<std::uint32_t>(right - left), static_cast<std::uint32_t>(bottom - top)};
+    rectangle = {static_cast<std::uint32_t>(left), static_cast<std::uint32_t>(top),
+                 static_cast<std::uint32_t>(right - left),
+                 static_cast<std::uint32_t>(bottom - top)};
 }
 
 template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &scene) {
@@ -1092,7 +1097,7 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
                          ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonMiddle);
   const auto min = ImGui::GetItemRectMin();
   const auto max = ImGui::GetItemRectMax();
-  CaptureSceneCanvasViewport(state, min, max);
+  CaptureCanvasViewport(state.scene_canvas_viewport, min, max);
   const ImVec2 center{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
   const auto &io = ImGui::GetIO();
   if (state.scene_drag) {
@@ -2059,6 +2064,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
 void EditorImGuiHost::BeginFrame(float delta_seconds) {
   Activate(state_->context);
   state_->scene_canvas_viewport.reset();
+  state_->native_game_viewport.reset();
   state_->native_scene_pick.reset();
   state_->native_scene_drag.reset();
   state_->native_scene_drag_preview.reset();
@@ -2378,7 +2384,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             "##scene-native-preview", {std::max(available.x, 1.0F), std::max(available.y, 160.0F)},
             ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight |
                 ImGuiButtonFlags_MouseButtonMiddle);
-        CaptureSceneCanvasViewport(*state_, ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+        CaptureCanvasViewport(state_->scene_canvas_viewport, ImGui::GetItemRectMin(),
+                              ImGui::GetItemRectMax());
         const auto &io = ImGui::GetIO();
         if (!recovery_available && !scene->Selection().empty() && !io.WantTextInput &&
             (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
@@ -2494,7 +2501,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   ImGui::End();
   if (!state_->scene_canvas_viewport)
     CancelSceneGestures(*state_);
+  const bool game_running = play && play->State() != runtime::PlayState::Stopped;
   const auto game_window = PanelWindowName("nexora.game");
+  if (game_running && !state_->game_was_running)
+    ImGui::SetNextWindowFocus();
+  state_->game_was_running = game_running;
   if (ImGui::Begin(game_window.c_str())) {
     if (play == nullptr) {
       ImGui::TextDisabled("Play session unavailable.");
@@ -2527,7 +2538,22 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       const auto snapshot = play->Inspect();
       ImGui::Text("Play World entities: %zu", snapshot.entities.size());
       ImGui::Separator();
-      DrawPlayOverview(snapshot);
+      if (game_running && state_->native_game_available && !NativeScenePreviewViewport()) {
+        ImGui::TextDisabled("Play camera | Assets frozen at Play start");
+        if (!state_->native_game_status.empty())
+          ImGui::TextWrapped("%s", state_->native_game_status.c_str());
+        const auto available = ImGui::GetContentRegionAvail();
+        ImGui::InvisibleButton("##game-native-preview", {std::max(available.x, 1.0F), 180.0F});
+        CaptureCanvasViewport(state_->native_game_viewport, ImGui::GetItemRectMin(),
+                              ImGui::GetItemRectMax());
+      } else {
+        if (game_running)
+          ImGui::TextWrapped("%s",
+                             !state_->native_game_available
+                                 ? "Native Game View is unavailable on this backend."
+                                 : "Hide the Scene 3D canvas to render Game View in this window.");
+        DrawPlayOverview(snapshot);
+      }
       ImGuiListClipper clipper;
       clipper.Begin(static_cast<int>(snapshot.entities.size()));
       while (clipper.Step())
@@ -2641,7 +2667,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     DrawContentBrowser(*state_, *content, imports);
   DrawProjectPanel(*state_, workspace, recent_projects);
   if (state_->focus_initial_scene) {
-    auto *scene_window = ImGui::FindWindowByName(PanelWindowName("nexora.scene").c_str());
+    auto *scene_window = ImGui::FindWindowByName(
+        PanelWindowName(game_running ? "nexora.game" : "nexora.scene").c_str());
     if (scene_window != nullptr && scene_window->DockNode != nullptr &&
         scene_window->DockNode->TabBar != nullptr) {
       scene_window->DockNode->SelectedTabId = scene_window->TabId;
@@ -2961,6 +2988,15 @@ bool EditorImGuiHost::SetSceneOverviewCamera(SceneOverviewCamera camera) noexcep
   state_->scene_center_world = {static_cast<float>(camera.x), static_cast<float>(camera.z)};
   state_->scene_pixels_per_unit = static_cast<float>(camera.pixels_per_unit);
   return true;
+}
+
+std::optional<Nexora::Presentation::SceneViewport>
+EditorImGuiHost::NativeGameViewport() const noexcept {
+  return state_->native_game_viewport;
+}
+void EditorImGuiHost::SetNativeGameStatus(std::string message, bool available) {
+  state_->native_game_status = std::move(message);
+  state_->native_game_available = available;
 }
 
 std::optional<Nexora::Presentation::SceneViewport>

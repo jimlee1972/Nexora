@@ -104,7 +104,16 @@ authoring views on first launch.
   F6 toggles Pause/Resume, and F10 steps a paused session. The application owns the cloned World,
   fixed tick schedule, and discard policy; the UI never mutates the Play World directly. A bounded
   top-down X/Z map draws copied world poses, including entities under parents. It is an inspection
-  preview, not a rendered Game View.
+  preview. While Play is running, the Game tab publishes `NativeGameViewport()` in clipped
+  framebuffer pixels for a camera-driven native OBJ draw owned by the application. Start focuses
+  the Game tab. The application builds owning geometry/instance/matrix data after Play commands and
+  fixed ticks, using Runtime's first valid active camera and a CPU mesh catalog frozen at Start;
+  editor reimport/deletion cannot change Play assets. Stop releases that catalog and discards the
+  clone. No World borrow survives frame preparation. Missing cameras/geometry show an actionable
+  status. Unsupported backends retain the X/Z map. One native 3D draw is available per window/frame:
+  a simultaneously visible native Scene canvas takes precedence and Game falls back to its map.
+  Game uses the existing bounded Lambertian preview and composed TRS, without editor proxies or
+  gizmos; material shader execution, exact hierarchy shear, and simultaneous 3D views remain open.
 - The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes
   it after drawing, checks project write access and scene load state, and calls `SceneDocument::Save`.
   The host retains only the result text; it never chooses the path or writes the scene file.

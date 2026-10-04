@@ -3,6 +3,7 @@
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/ProjectContent.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
+#include "GameViewPreview.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/SceneAuthoring.h"
@@ -802,6 +803,8 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::ProfileSession profile{240};
   std::optional<Nexora::Presentation::SceneViewport> native_scene_viewport_reported;
   std::optional<NativeSceneMeshes> native_scene_meshes;
+  std::optional<nexora::editor::MeshAssetCatalog> play_meshes;
+  std::optional<Nexora::Presentation::SceneViewport> native_game_viewport_reported;
   std::size_t unavailable_meshes = 0;
   std::optional<std::array<std::size_t, 3>> native_mesh_geometry_reported;
   std::optional<nexora::editor::ViewportVector> native_scene_drag_axis;
@@ -1008,6 +1011,7 @@ int RunGraphical(std::optional<ProjectState> project,
       switch (ui.TakePlayCommand()) {
       case nexora::editor::imgui::PlayCommand::Start:
         if (play.Start(1.0 / 60.0, [](nexora::runtime::World &, double) { return true; })) {
+          play_meshes = meshes;
           play_accumulator = 0.0;
           last_play_frame = std::chrono::steady_clock::now();
           log(nexora::runtime::RuntimeLogSeverity::Info, "PIE", "Isolated Play World started.");
@@ -1025,6 +1029,9 @@ int RunGraphical(std::optional<ProjectState> project,
         break;
       case nexora::editor::imgui::PlayCommand::Stop:
         static_cast<void>(play.Stop());
+        play_meshes.reset();
+        native_game_viewport_reported.reset();
+        ui.SetNativeGameStatus({});
         play_accumulator = 0.0;
         log(nexora::runtime::RuntimeLogSeverity::Info, "PIE", "Play World discarded.");
         break;
@@ -1281,6 +1288,40 @@ int RunGraphical(std::optional<ProjectState> project,
         if (scene_status != Nexora::Presentation::SurfaceStatus::Ready &&
             scene_status != Nexora::Presentation::SurfaceStatus::Unsupported) {
           if (surface_recoverable(scene_status))
+            continue;
+          result = 1;
+          break;
+        }
+      }
+    }
+    if (const auto viewport = ui.NativeGameViewport();
+        viewport && play.PlayWorld() && play_meshes && !ui.NativeScenePreviewViewport()) {
+      const auto game = nexora::editor::preview::BuildGameFrame(
+          *play.PlayWorld(), play.Inspect(), *play_meshes,
+          static_cast<float>(viewport->width) / viewport->height);
+      if (!game.camera || game.instances.empty()) {
+        ui.SetNativeGameStatus(!game.camera
+                                   ? "Add an active camera to the scene before Play."
+                                   : "No resolved mesh geometry in the active Play scenes.");
+      } else {
+        const auto status = created.surface->DrawScene(game.DrawData(*viewport));
+        ui.SetNativeGameStatus(game.unavailable
+                                   ? std::to_string(game.unavailable) +
+                                         " mesh renderers unavailable or over the preview budget."
+                                   : "",
+                               status != Nexora::Presentation::SurfaceStatus::Unsupported);
+        if (status == Nexora::Presentation::SurfaceStatus::Ready &&
+            (!native_game_viewport_reported || native_game_viewport_reported->x != viewport->x ||
+             native_game_viewport_reported->y != viewport->y ||
+             native_game_viewport_reported->width != viewport->width ||
+             native_game_viewport_reported->height != viewport->height)) {
+          std::cerr << "native game viewport: " << viewport->x << ' ' << viewport->y << ' '
+                    << viewport->width << ' ' << viewport->height << '\n';
+          native_game_viewport_reported = *viewport;
+        }
+        if (status != Nexora::Presentation::SurfaceStatus::Ready &&
+            status != Nexora::Presentation::SurfaceStatus::Unsupported) {
+          if (surface_recoverable(status))
             continue;
           result = 1;
           break;
