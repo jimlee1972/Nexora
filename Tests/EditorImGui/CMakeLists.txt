@@ -211,3 +211,9 @@ target_include_directories(NexoraCutClipboardTests PRIVATE "${PROJECT_SOURCE_DIR
 target_link_libraries(NexoraCutClipboardTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraCutClipboardTests)
 add_test(NAME editor.cut_clipboard_lifecycle COMMAND NexoraCutClipboardTests)
+
+add_executable(NexoraInspectorMeshDropTests InspectorMeshDropTests.cpp)
+target_include_directories(NexoraInspectorMeshDropTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraInspectorMeshDropTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraInspectorMeshDropTests)
+add_test(NAME editor.inspector_mesh_drop COMMAND NexoraInspectorMeshDropTests)

@@ -142,6 +142,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Typed Content mesh 拖曳現可指派 Inspector Mesh field 的顯示選取。Hover 只預覽，
+  放開後以一次 generation-checked batch 保留既有材質並補上缺少的 MeshRenderer。真正
+  1x／2x pointer 測試涵蓋初始化 Undo／Redo、save／reload、非 mesh／stale catalog／project
+  拒絕、取消 input 與 workspace／modal gate；拒絕保留 Redo。完整材質及 reflected Inspector
+  流程仍待完成。
+
 - ✅ Hierarchy Cut 與 Ctrl+X 現先擷取完整選取 forest，再以一次 atomic transaction 刪除。
   Undo 還原原始 ID 與選取；首次成功 Paste 保留 root 名稱並建立新 ID，之後保留的 clipboard
   資料改用 Copy 命名。失敗 Cut／Paste 與 Duplicate 保留 pending clipboard state。真正

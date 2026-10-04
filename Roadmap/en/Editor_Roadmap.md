@@ -145,6 +145,12 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Typed Content mesh drags now assign the Inspector Mesh field for the displayed selection.
+  Hover only previews; release uses one generation-checked batch, retaining existing materials and
+  adding missing MeshRenderer components. Real 1x/2x pointer tests cover initialized Undo/Redo,
+  save/reload, non-mesh/stale catalog/project rejection, canceled input and workspace/modal gates.
+  Rejected drops retain Redo; complete material/reflected Inspector workflows remain open.
+
 - ✅ Hierarchy Cut and Ctrl+X now capture complete selected forests before one atomic deletion.
   Undo restores original IDs and selection; first successful Paste keeps root names with new IDs,
   then retained clipboard data uses Copy naming. Failed Cut/Paste and Duplicate preserve pending

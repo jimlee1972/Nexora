@@ -452,3 +452,15 @@ workspace/modal/text-input rejection, replay, retained clipboard state and save/
 
 Game Apply Changes wraps to another row when its button does not fit, keeping the Play review
 action reachable in a narrow dock after a DPI/extent change.
+
+
+## Content mesh assignment by drag
+
+The closed Inspector Mesh field accepts the owning Content UUID/project-generation payload.
+Hover only shows an assignment tooltip; release captures the currently displayed generation-keyed
+selection into the existing owning mesh request. The authoring thread rechecks selection, writable
+workspace/content, modal/focus gates, browser membership and the current CPU mesh catalog before
+one SetMeshRenderers batch. Existing material shader references survive; missing components are
+added with default material data. Invalid/non-mesh/stale/canceled drops preserve history. Successful
+delivery cancels Inspector drafts and Scene gestures. No source IO or GPU upload occurs in the drop
+handler. The asset chooser remains available alongside drag assignment.
