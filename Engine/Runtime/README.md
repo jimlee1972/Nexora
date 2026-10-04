@@ -739,3 +739,18 @@ wrappers. Undo/Redo own immutable command templates and replay fresh copies beca
 a command buffer; failed replay keeps the history cursor. Inputs are borrowed only for the call,
 no Entity pointer survives a mutation, and methods remain serialized on the World authoring thread.
 These C++ Editor operations do not alter the stable gameplay C ABI or scene snapshot format.
+
+## Atomic selected-subtree deletion
+
+`SceneEditor::DestroyEntities(scene, ids)` validates a unique nonempty selection in one live scene,
+collapses selected descendants, and applies the selected root deletions through one World command
+batch and one Undo entry. `DestroyEntity` delegates to it. The entry owns removed entity payloads,
+original order, root sibling indexes and fallback world poses. Undo rejects ID collisions or expired
+scene lifecycle before touching the live World, rehearses restoration/sibling placement in a scratch
+World, then publishes only the target scene's entity storage. Existing unrelated entities survive;
+normal replay retains original serialized order. Missing outside parents restore roots at their
+captured world poses, as in the single-subtree contract. Roots from different missing parents
+join a common sibling group in merged storage order, preserving existing unrelated roots. Redo requires the current removed-ID set to match the recorded subtrees; external expansion or
+contraction rejects without deleting unrecorded entities. Failed initial edits or replay preserve history.
+Calls remain synchronous on the serialized authoring thread; no borrowed entity/scene storage is
+retained in history, and successful restoration invalidates target-scene entity borrows.

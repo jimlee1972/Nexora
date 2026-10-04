@@ -144,7 +144,8 @@ into renderer or platform internals.
   snapshot.
   `DeleteSelection` validates the selected nodes before deleting, removes each selected subtree
   once, and drops its node metadata and selection immediately. Undo restores the subtree's stable
-  IDs, names, Euler hints, and selection; separate selected roots are separate Undo steps.
+  IDs, names, Euler hints, opaque payloads and the complete selection as one atomic Undo step,
+  including separate selected roots. Rejected deletion leaves Runtime/document history untouched.
   Redo replays Runtime transactions and restores the matching authoring metadata, including
   names, selection, and authored Euler revolutions. A new edit discards the redo branch; Reload
   clears both histories.

@@ -421,3 +421,10 @@ Add mesh to Scene's initialized creation/selection and one-step Undo path. Escap
 blocking prompts or write-access loss discard the asset drag and active source, so a later held-button
 release cannot revive it. Rejected deliveries retain Redo. Native geometry ghosts and mesh-surface
 placement are deferred; the tooltip is the current placement preview.
+
+## Multi-selection deletion
+
+Hierarchy Delete and the hovered native Scene shortcut use the document's atomic selected-subtree
+batch. All selected roots are one Undo entry, with descendant filtering, exact component/metadata
+retention and prior selection restoration. Existing workspace/modal gates and gesture cancellation
+apply to the whole selection; the UI retains no Runtime entity borrow across deletion or replay.

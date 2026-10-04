@@ -639,9 +639,9 @@ int Run() {
             "undoing subtree deletion must restore node metadata and selection");
     const std::array root_selection{delete_parent, delete_sibling};
     Require(deletions.Select(root_selection) && deletions.DeleteSelection() &&
-                deletions.Nodes().empty() && deletions.Undo() && deletions.Nodes().size() == 1 &&
-                deletions.Undo() && deletions.Nodes().size() == 3,
-            "multi-root deletion must restore one selected root per undo step");
+                deletions.Nodes().empty() && deletions.Undo() && deletions.Nodes().size() == 3 &&
+                deletions.Selection().size() == 2 && deletions.Redo() && deletions.Nodes().empty(),
+            "multi-root deletion must restore the complete selection in one undo step");
   }
   {
     runtime::World duplicate_world;

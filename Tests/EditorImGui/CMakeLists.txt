@@ -193,3 +193,9 @@ target_include_directories(NexoraMeshDropTests PRIVATE "${PROJECT_SOURCE_DIR}/En
 target_link_libraries(NexoraMeshDropTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraMeshDropTests)
 add_test(NAME editor.mesh_scene_drop COMMAND NexoraMeshDropTests)
+
+add_executable(NexoraSelectionDeleteTests SelectionDeleteTests.cpp)
+target_include_directories(NexoraSelectionDeleteTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraSelectionDeleteTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraSelectionDeleteTests)
+add_test(NAME editor.selection_delete_transaction COMMAND NexoraSelectionDeleteTests)

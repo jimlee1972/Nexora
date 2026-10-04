@@ -346,3 +346,9 @@ and project generation remain fixed for the drag, and delivery rechecks the curr
 Read-only workspace/content, modal prompts, Escape and focus loss discard the drag. Native ground
 points outside the current projection or preview position budget reject without consuming history.
 This places on the ground plane; mesh-surface snapping and geometry ghost previews remain open.
+
+Deleting a multi-selection now commits all selected subtrees as one transaction. One Undo restores
+all roots/descendants, sibling order, component data, names, authored Euler hints, opaque payloads
+and the complete prior selection; one Redo removes them again. Selected descendants are collapsed,
+and invalid/rejected deletion or replay leaves history intact. The Hierarchy button, focused Delete
+key and hovered native Scene Delete shortcut share this document action.

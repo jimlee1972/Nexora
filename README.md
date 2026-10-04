@@ -260,6 +260,10 @@ Real UI clicks verify generation/access/modal gates, native center bounds and re
 with one Undo. Real 1x/2x DPI pointer tests cover release, persistence and rejected/canceled drags;
 preview tooltips do not mutate the World. Surface snapping and geometry ghosts remain open.
 
+✅ Multi-selection Delete now records all selected subtrees as one atomic Undo. Keyboard replay
+restores hierarchy, components, authoring metadata and the full selection; collision/lifecycle
+rejections, unrelated-entity preservation and 1,000 replay cycles are covered.
+
 Scene/Hierarchy controls, shortcuts and queued edits now share workspace write access and modal
 gates. Read-only selection, Copy and camera navigation remain available; pointer tests verify
 interrupted overview/native drags cannot commit after access changes, and Undo/Redo history survives.
@@ -596,6 +600,10 @@ Undo，Redo 與 save／reload 保留 stable ID、名稱、pose 與 mesh／materi
 ✅ Typed Content mesh 拖曳現能以一次 Undo 在 overview 游標或 native Scene ground 落點建立
 root。真正 1x／2x DPI pointer 測試涵蓋放開、持久化及拒絕／取消拖曳；tooltip 預覽不改動
 World。表面吸附及 geometry ghost 仍待完成。
+
+✅ 多選 Delete 現將全部選取 subtree 記為一次 atomic Undo。鍵盤重播還原 hierarchy、
+元件、authoring metadata 及完整選取；測試涵蓋 collision／lifecycle 拒絕、無關 entity 保留
+及 1,000 次 replay cycle。
 
 Scene／Hierarchy 控制項、快捷鍵與 queued 編輯現共用 workspace 可寫及 modal gate。
 唯讀選取、Copy 與鏡頭導航仍可用；pointer 測試驗證權限切換後，已中斷的 overview／native
