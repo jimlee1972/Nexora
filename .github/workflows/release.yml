@@ -127,6 +127,8 @@ jobs:
             --title "${GITHUB_REF_NAME}" \
             release-bundle/NexoraShowcase-Shipping.zip \
             release-bundle/NexoraShowcase-Shipping.zip.sha256 \
+            release-bundle/NexoraShowcase-Shipping-Vulkan.zip \
+            release-bundle/NexoraShowcase-Shipping-Vulkan.zip.sha256 \
             release-bundle/windows-acceptance.tar.gz \
             release-bundle/release-info.json \
             release-bundle/RELEASE-SHA256SUMS
