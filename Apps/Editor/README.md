@@ -286,3 +286,9 @@ so key releases and focus loss cannot leave held controls behind while rendering
 EditorImGui converts native client pixels to logical coordinates once and reprojects cached positions across DPI transitions.
 Scene gestures cancel on scale changes. The tests drive client-pixel clicks at 200% DPI; native
 Windows/physical-display DPI and IME acceptance remain separate target-host gates.
+
+Missing-plugin opaque metadata stays in SceneDocument, participates in the normal dirty/save/close
+workflow, and is exposed only as bounded read-only Inspector rows. Opening a version 3 scene does
+not load plugin code or transfer opaque authoring bytes into the gameplay clone. Project writer and
+recovery checks remain application-owned; format 1/2 scenes remain readable and opaque-free saves
+retain format 2. Plugin rehydration is not implemented by this fallback.

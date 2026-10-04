@@ -20,7 +20,7 @@ workspace/document core。**待辦：** 其餘 graphical view、authoring workfl
 | --- | --- | :---: |
 | ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Linux 虛擬顯示 recovery 現會以 durable seeded journal 驗證 SIGKILL、已提交 workspace 不變、重新取得 writer lease，以及 keyboard-only Recover／Discard；實體顯示器 Linux 與 Windows DPI／IME host evidence 仍待完成；已記錄 bounded Windows/DX12 開發機 shell smoke。 | [ ] |
 | ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態、提供圖形化 create/open/recent selector、將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation，執行具 bounded progress 與 structured diagnostic 的 cancellable background import/reimport、顯示 dependency cycle，並提供阻塞式 reload／keep／compare conflict UX；實體顯示／Windows workflow 驗收仍待完成。 | [ ] |
-| ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware expandable tree、filter、以 generation 為 key 的 expansion／selection、可見列裁切提交、可復原 rename、兄弟排序與 cycle-safe reparent，且會拒絕 stale entity／document generation。Docked Inspector 已提供 generation-safe 的 position、Euler 度數（quaternion storage）與 scale 單選／mixed-value 多選編輯，並具 atomic Runtime validation 與單步 undo。完整的 authored-mesh Scene View、reflected Inspector、material shader workflow、camera authoring 與 unknown-component visual workflow 仍待完成；原生代理預覽已提供 Move／Rotate／Scale 把手。 | [ ] |
+| ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware expandable tree、filter、以 generation 為 key 的 expansion／selection、可見列裁切提交、可復原 rename、兄弟排序與 cycle-safe reparent，且會拒絕 stale entity／document generation。Docked Inspector 已提供 generation-safe 的 position、Euler 度數（quaternion storage）與 scale 單選／mixed-value 多選編輯，並具 atomic Runtime validation 與單步 undo。完整的 authored-mesh Scene View、reflected Inspector、material shader workflow、camera authoring 與 missing-plugin 還原仍待完成；有界唯讀 opaque component Inspector 與 persistence 已實作；原生代理預覽已提供 Move／Rotate／Scale 把手。 | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。圖形化 Console 會顯示有界紀錄與 Editor 診斷；docked Game panel 可控制隔離 clone 並顯示複製的檢視資料。有界原生 camera／OBJ Game View 已實作；完整材質／多個 canvas、完整 gameplay 服務／擴充 input、完整 log 路由與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
 | ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
@@ -142,6 +142,13 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 Hierarchy、Scene View、Inspector、camera controls、selection/picking、translate/rotate/scale gizmo、
 parent/reorder、multi-selection、copy/paste、undo/redo 與 save/reload。Reflection 產生 property
 widgets；未知 component 保留 raw data，不靜默遺失。
+
+- ✅ 缺少外掛的元件現有有界唯讀 Inspector，顯示 owning 名稱、完整 entity／type ID、bytes
+  與最多 64-byte 預覽。Scene format 3 會在保存／重載、clipboard 複製、刪除及獨立 metadata
+  Undo／Redo 中保留 opaque data；無 opaque 資料仍寫 format 2，reader 相容 format 1／2。
+  Generation 與每元件 1 MiB、總 payload 16 MiB、每 entity 64、總 4096 records 限制會拒絕過期／
+  超限匯入。損壞、重複、orphan 與缺失 entity 紀錄在修改 live state 前拒絕。外掛還原／執行
+  及完整 reflected 編輯仍待完成。
 
 - ✅ 原生 picking／放開拖曳的編輯命令現先於 Save、Save-and-exit 及 GPU 提交完成。
   真正的 Xvfb XYZ 拖曳放開後立即 Save，並驗證已完成的姿態；仍按住手勢時的 Save

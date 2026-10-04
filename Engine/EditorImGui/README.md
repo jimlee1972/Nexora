@@ -318,3 +318,11 @@ Scene gestures before synthetic pointer motion can commit a source edit. Invalid
 fall back to 100%, finite scales clamp to the existing 25% minimum. DpiChanged events update the
 same path in event order. ImGui floors its consumed logical mouse position during NewFrame.
 No scene input normalization changes Window/RenderSurface's native coordinate snapshots.
+
+The Inspector groups missing-plugin components in a clipped read-only child region with horizontal
+scrolling. Each row names its entity, component name, full-width type ID, exact byte count and up to
+64 hex preview bytes; empty/truncated payloads are explicit. It never interprets bytes as editable
+properties and exposes no remove/write controls. Multi-selection shows per-entity rows; snapshots
+are owning and bounded, cleared when selection/Inspector mode changes. Missing plugins preserve data
+through SceneDocument save/reload and Undo. Restoring/loading a plugin and reflected editing remain
+separate work; the UI does not execute preserved bytes.

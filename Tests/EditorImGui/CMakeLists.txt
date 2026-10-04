@@ -139,3 +139,9 @@ target_include_directories(NexoraPointerDpiTests PRIVATE "${PROJECT_SOURCE_DIR}/
 target_link_libraries(NexoraPointerDpiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPointerDpiTests)
 add_test(NAME editor.pointer_dpi COMMAND NexoraPointerDpiTests)
+
+add_executable(NexoraUnknownInspectorTests UnknownInspectorTests.cpp)
+target_include_directories(NexoraUnknownInspectorTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraUnknownInspectorTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraUnknownInspectorTests)
+add_test(NAME editor.unknown_component_inspector COMMAND NexoraUnknownInspectorTests)
