@@ -13,7 +13,7 @@ import tempfile
 import time
 
 from LinuxNativeScenePreview import (XImage, axis_handle_pixels, channel,
-                                    scene_region_pixels, settled_viewport,
+                                    scene_region_pixels, settled_viewport, settled_scene_preview,
                                     uniform_handle_pixel, undo_and_save)
 from LinuxDisplayAcceptance import request_window_close, start_xvfb, wait_for_window
 
@@ -117,7 +117,7 @@ def main():
             time.sleep(0.15)
 
         def save_changed(previous):
-            send("key", "ctrl+s")
+            send("key", "--delay", "80", "ctrl+s")
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline and scene_file.read_text() == previous:
                 time.sleep(0.05)
@@ -150,7 +150,7 @@ def main():
         send("key", "p", "r", "f")
         time.sleep(0.2)
         viewport = settled_viewport(editor.stderr, viewport)
-        send("key", "ctrl+s")
+        send("key", "--delay", "80", "ctrl+s")
         time.sleep(0.15)
         baseline = scene_file.read_text()
         point = uniform_handle_pixel(display, window, viewport)
@@ -160,9 +160,9 @@ def main():
         send("keydown", "Shift_L")
         send("mousedown", 1)
         time.sleep(0.1)
+        before_preview = scene_region_pixels(display, window, viewport)
         move((point[0], point[1] - 40))
-        time.sleep(0.2)
-        preview = scene_region_pixels(display, window, viewport)
+        preview = settled_scene_preview(display, window, viewport, before_preview)
         if scene_file.read_text() != baseline:
             raise RuntimeError("center scale committed before release")
         send("mouseup", 1)
@@ -173,9 +173,14 @@ def main():
             if (abs(pose[0] - expected_x) > 1e-6 or abs(pose[1] - 1) > 1e-6 or
                     abs(pose[2]) > 1e-6 or any(abs(value - 1.5) > 1e-6 for value in pose[7:10])):
                 raise RuntimeError(f"center scale failed to move and scale both roots: {scaled}")
-        time.sleep(0.15)
-        released = scene_region_pixels(display, window, viewport)
-        if sum(abs(a - b) for a, b in zip(preview, released)) >= 100:
+        deadline = time.monotonic() + 3
+        release_matches = False
+        while time.monotonic() < deadline and not release_matches:
+            released = scene_region_pixels(display, window, viewport)
+            release_matches = sum(abs(a - b) for a, b in zip(preview, released)) < 100
+            if not release_matches:
+                time.sleep(0.05)
+        if not release_matches:
             raise RuntimeError("center scale geometry jumped on release")
         undo_to(baseline)
         move((viewport[0] + viewport[2] // 2, viewport[1] + viewport[3] // 2))

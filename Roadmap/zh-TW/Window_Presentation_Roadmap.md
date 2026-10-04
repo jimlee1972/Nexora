@@ -13,6 +13,9 @@ backend-neutral surface event。Zig gameplay 不得取得 native window、device
 
 ## 2. 現有基線
 
+- ✅ X11 修飾鍵事件現回報 transition 後的 flags、保留仍按下的左右配對鍵，並在失焦／銷毀時
+  清除追蹤狀態。原生 Xvfb gate 驗證四組修飾鍵。
+
 - ✅ Validation 與 native RHI device 可執行 deterministic offscreen workload。
 - ✅ Renderer scene extraction 與 offscreen `Present` state validation 已有測試。
 - ✅ `NexoraShowcase` 保留 headless lifecycle，並可擁有可重用的 native render surface。

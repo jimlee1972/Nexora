@@ -2639,6 +2639,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
 }
 
 bool EditorImGuiHost::TakeSceneSaveRequest() noexcept {
+  // ImGui can trickle a queued mouse release into a later frame than a shortcut.
+  // Retain Save until the authoring gesture has committed or been cancelled.
+  if (state_->native_scene_drag_origin || state_->scene_drag)
+    return false;
   return std::exchange(state_->scene_save_requested, false);
 }
 

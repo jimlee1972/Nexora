@@ -15,8 +15,12 @@ native IME candidate positioning. X11 provides close, configure, focus, physical
 UTF-8 text, pointer-button and two-axis wheel translation plus EWMH fullscreen; X11 buttons 2 and 3
 map to the shared right-button index 1 and middle-button index 2 respectively. Each committed Unicode
 scalar is a separate `Text` event, while candidate positioning reports `Unsupported`. An X11 input
-context is owned per window and is destroyed before that window or the display connection. A window
-destroyed by the server or another client (no `WM_DELETE_WINDOW` is ever sent) is reported as
+context is owned per window and is destroyed before that window or the display connection.
+X11 reports modifier flags after the key transition and tracks paired left/right modifier keys so
+releasing one preserves the other, and releasing the last clears the family immediately. Focus loss
+and window destruction clear that tracking state. The Linux Xvfb native gate injects real X11 key
+events for Control, Shift, Alt, and Super to verify press/release ordering and paired-key behavior.
+A window destroyed by the server or another client (no `WM_DELETE_WINDOW` is ever sent) is reported as
 `WindowDestroyed`, and the system does not destroy it a second time. Ordinary close requests leave
 the native window alive for application confirmation. Cocoa intercepts its native close action through
 a delegate and reports it once; programmatic destruction bypasses that veto. Cocoa also provides

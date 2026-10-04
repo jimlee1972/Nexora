@@ -451,6 +451,21 @@ bool SceneDocument::SetLight(NodeKey entity, std::optional<runtime::LightCompone
   PushUndo({});
   return true;
 }
+bool SceneDocument::SetMeshRenderer(NodeKey entity, std::optional<runtime::MeshComponent> mesh) {
+  if (Key(entity.id) != entity)
+    return false;
+  const auto *existing = world_.FindEntity(entity.id);
+  if (existing == nullptr)
+    return false;
+  if (existing->mesh_renderer == mesh.has_value() &&
+      (!mesh || (existing->mesh_data.mesh == mesh->mesh &&
+                 existing->mesh_data.material.shader == mesh->material.shader)))
+    return true;
+  if (!editor_.SetMeshRenderer(entity.id, mesh))
+    return false;
+  PushUndo({});
+  return true;
+}
 bool SceneDocument::SetTransforms(std::span<const NodeKey> entities,
                                   std::span<const runtime::Transform> transforms) {
   if (entities.size() != transforms.size())
@@ -634,6 +649,12 @@ std::optional<runtime::LightComponent> SceneDocument::Light(NodeKey entity) cons
     return std::nullopt;
   const auto *found = world_.FindEntity(entity.id);
   return found != nullptr && found->light ? std::optional(found->light_data) : std::nullopt;
+}
+std::optional<runtime::MeshComponent> SceneDocument::MeshRenderer(NodeKey entity) const noexcept {
+  if (Key(entity.id) != entity)
+    return std::nullopt;
+  const auto *found = world_.FindEntity(entity.id);
+  return found != nullptr && found->mesh_renderer ? std::optional(found->mesh_data) : std::nullopt;
 }
 std::optional<runtime::Transform> SceneDocument::WorldTransform(runtime::Id entity) const noexcept {
   if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())

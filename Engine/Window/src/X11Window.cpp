@@ -251,6 +251,7 @@ public:
       return WindowError::InvalidHandle;
     reverse_.erase(found->second);
     DestroyInputContext(found->second);
+    heldModifiers_.erase(found->second);
     // A window the server already destroyed (see DestroyNotify below) must not be destroyed again:
     // XDestroyWindow on it raises a BadWindow protocol error that aborts the process.
     if (!gone_.erase(found->second))
@@ -327,6 +328,7 @@ public:
           event.type = WindowEventType::WindowDestroyed;
           gone_.insert(native.xdestroywindow.window);
           DestroyInputContext(native.xdestroywindow.window);
+          heldModifiers_.erase(native.xdestroywindow.window);
         }
         break;
       case ConfigureNotify:
@@ -336,6 +338,8 @@ public:
         break;
       case FocusIn:
       case FocusOut:
+        if (native.type == FocusOut)
+          heldModifiers_.erase(native.xfocus.window);
         event.type = WindowEventType::FocusChanged;
         event.value0 = native.type == FocusIn;
         if (const auto input = inputContexts_.find(native.xfocus.window);
@@ -352,18 +356,27 @@ public:
         event.value0 = static_cast<std::int32_t>(TranslateKey(XLookupKeysym(&native.xkey, 0)));
         event.value1 = native.type == KeyPress;
         event.modifiers = TranslateModifiers(native.xkey.state);
-        if (event.value1) {
+        {
+          // XKeyEvent.state describes the state BEFORE this transition. Report the state
+          // after it, retaining a family while its other physical key is still held.
+          constexpr std::array keys{Key::LeftControl, Key::RightControl, Key::LeftShift,
+                                    Key::RightShift,  Key::LeftAlt,      Key::RightAlt,
+                                    Key::LeftSuper,   Key::RightSuper};
+          constexpr std::array families{KeyModifiers::Control, KeyModifiers::Shift,
+                                        KeyModifiers::Alt, KeyModifiers::Super};
           const auto key = static_cast<Key>(event.value0);
-          unsigned modifiers = static_cast<unsigned>(event.modifiers);
-          if (key == Key::LeftControl || key == Key::RightControl)
-            modifiers |= static_cast<unsigned>(KeyModifiers::Control);
-          if (key == Key::LeftShift || key == Key::RightShift)
-            modifiers |= static_cast<unsigned>(KeyModifiers::Shift);
-          if (key == Key::LeftAlt || key == Key::RightAlt)
-            modifiers |= static_cast<unsigned>(KeyModifiers::Alt);
-          if (key == Key::LeftSuper || key == Key::RightSuper)
-            modifiers |= static_cast<unsigned>(KeyModifiers::Super);
-          event.modifiers = static_cast<KeyModifiers>(modifiers);
+          const auto slot = std::ranges::find(keys, key);
+          if (slot != keys.end()) {
+            const auto index = static_cast<std::size_t>(slot - keys.begin());
+            const auto family = index / 2;
+            auto &held = heldModifiers_[native.xkey.window];
+            held[index] = event.value1 != 0;
+            auto modifiers = static_cast<unsigned>(event.modifiers);
+            modifiers &= ~static_cast<unsigned>(families[family]);
+            if (held[family * 2] || held[family * 2 + 1])
+              modifiers |= static_cast<unsigned>(families[family]);
+            event.modifiers = static_cast<KeyModifiers>(modifiers);
+          }
         }
         if (native.type == KeyPress) {
           pending_.push_back(event);
@@ -463,6 +476,7 @@ private:
   std::unordered_map<std::uint64_t, ::Window> windows_;
   std::unordered_map<::Window, WindowHandle> reverse_;
   std::unordered_map<::Window, XIC> inputContexts_;
+  std::unordered_map<::Window, std::array<bool, 8>> heldModifiers_;
   std::unordered_set<::Window> gone_; // destroyed by the server before our own Destroy
   std::vector<WindowEvent> pending_;
   std::vector<WindowEvent> pumped_;

@@ -133,6 +133,11 @@ into renderer or platform internals.
   `SelectionGizmoFrame` uses the first selected root rotation with either that root origin or
   the mean selected-root origin. Selected descendants are excluded from the mean; an empty
   selection has no frame. Native handle placement and Center operations share this frame.
+  `SetMeshRenderer` and the owning `MeshRenderer` snapshot validate entity/document generations.
+  Component attachment, replacement of mesh/material shader resource IDs, and removal each record
+  one Runtime Undo step; equal values are a no-op that preserves Redo. Unresolved resource IDs are
+  retained in scene persistence, and Undo can return to the saved clean baseline. These synchronous
+  authoring APIs do not perform asset lookup, I/O, residency, or GPU work.
   `Dirty` compares the live serializable scene to the last successful Save or Reload. Its signature
   preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.

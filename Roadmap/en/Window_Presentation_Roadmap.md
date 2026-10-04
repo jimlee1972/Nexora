@@ -14,6 +14,9 @@ receives a native window, device, queue, or swapchain pointer.
 
 ## 2. Current baseline
 
+- ✅ X11 modifier events report post-transition flags, preserve held left/right partners, and
+  clear tracking on focus loss/destruction. The native Xvfb gate verifies all four modifier families.
+
 - ✅ Validation and native RHI devices execute deterministic offscreen workloads.
 - ✅ Renderer scene extraction and offscreen `Present` state validation are covered by tests.
 - ✅ `NexoraShowcase` preserves its headless lifecycle and can own a reusable native render surface.

@@ -228,6 +228,30 @@ bool SceneEditor::SetLight(Id entity, std::optional<LightComponent> light) {
   ++depth_;
   return true;
 }
+bool SceneEditor::SetMeshRenderer(Id entity, std::optional<MeshComponent> mesh) {
+  const auto *existing = world_.FindEntity(entity);
+  if (!existing)
+    return false;
+  const std::optional<MeshComponent> previous =
+      existing->mesh_renderer ? std::optional(existing->mesh_data) : std::nullopt;
+  WorldCommandBuffer apply;
+  apply.SetMeshRenderer(entity, mesh);
+  if (!apply.Apply(world_))
+    return false;
+  undo_.Record(
+      [this, entity, previous] {
+        WorldCommandBuffer commands;
+        commands.SetMeshRenderer(entity, previous);
+        return commands.Apply(world_);
+      },
+      [this, entity, mesh] {
+        WorldCommandBuffer commands;
+        commands.SetMeshRenderer(entity, mesh);
+        return commands.Apply(world_);
+      });
+  ++depth_;
+  return true;
+}
 bool SceneEditor::SetTransforms(std::span<const Id> entities,
                                 std::span<const Transform> transforms) {
   if (entities.empty() || entities.size() != transforms.size())

@@ -957,70 +957,7 @@ int RunGraphical(std::optional<ProjectState> project,
       } else {
         play_accumulator = 0.0;
       }
-      if (ui.TakeSceneSaveRequest())
-        static_cast<void>(save_scene());
-      const auto close_choice = ui.TakeCloseChoice();
-      if (close_choice == nexora::editor::imgui::CloseChoice::SaveAndExit)
-        exit_requested = save_scene();
-      else if (close_choice == nexora::editor::imgui::CloseChoice::DiscardAndExit)
-        exit_requested = true;
-      if (const auto choice = ui.TakeRecoveryChoice();
-          choice != nexora::editor::imgui::RecoveryChoice::None)
-        recovery_choice = choice;
-    } else {
-      ui.DrawProjectSelector(&recent_projects, selector_access);
-      if (ui.TakeProjectSelectorCancel() && pending_project) {
-        static_cast<void>(imports.Cancel(pending_project->import));
-        ui.SetProjectSelectorStatus("Cancelling project import", true);
-      }
-      if (auto request = ui.TakeProjectSelectorRequest()) {
-        if (pending_project) {
-          ui.SetProjectSelectorError("A project import is already running.");
-        } else {
-          ProjectState candidate;
-          std::string selector_error;
-          const bool create_project =
-              request->action == nexora::editor::imgui::ProjectSelectorAction::Create;
-          if (!OpenProjectWorkspace(request->root, request->access, create_project,
-                                    std::move(request->name), candidate, &selector_error)) {
-            ui.SetProjectSelectorError(selector_error.empty() ? "Project activation failed."
-                                                              : std::move(selector_error));
-          } else {
-            const auto import =
-                imports.Start({project_generation, candidate.workspace.Root() / "Content",
-                               candidate.workspace.Writable()
-                                   ? nexora::editor::AssetIdentityMode::PersistentReadWrite
-                                   : nexora::editor::AssetIdentityMode::PersistentReadOnly},
-                              &selector_error);
-            if (import == 0) {
-              ui.SetProjectSelectorError(selector_error.empty() ? "Project import could not start."
-                                                                : std::move(selector_error));
-            } else {
-              ui.SetProjectSelectorError({});
-              ui.SetProjectSelectorStatus("Importing project content", true);
-              pending_project = PendingProject{std::move(candidate), import, create_project};
-            }
-          }
-        }
-      }
-    }
-    static_cast<void>(ui.EndFrame());
-    // A surface-level loss (the window vanished, the swapchain went out of date) is recoverable and
-    // is resolved by the next BeginFrame, which also pumps a pending close request. Anything else,
-    // device loss included, is a real failure.
-    const auto surface_recoverable = [](Nexora::Presentation::SurfaceStatus status) {
-      const auto recovery = Nexora::Presentation::RecoveryAction(status);
-      return recovery == Nexora::Presentation::SurfaceAction::RecreateSurface ||
-             recovery == Nexora::Presentation::SurfaceAction::Suspend;
-    };
-    if (const auto render_status = ui.Render(*created.surface, frame.width, frame.height);
-        render_status != Nexora::Presentation::SurfaceStatus::Ready) {
-      if (surface_recoverable(render_status))
-        continue;
-      result = created.surface->CloseRequested() ? 0 : 1;
-      break;
-    }
-    if (project) {
+      // Commit this frame's native authoring input before Save or Save-and-exit.
       if (const auto viewport = ui.NativeScenePreviewViewport()) {
         if (const auto request = ui.NativeScenePick()) {
           const auto hit = PickNativeSceneProxy(
@@ -1113,6 +1050,72 @@ int RunGraphical(std::optional<ProjectState> project,
           native_scene_drag_rotate = false;
           native_scene_drag_scale_axis.reset();
         }
+      }
+      if (ui.TakeSceneSaveRequest())
+        static_cast<void>(save_scene());
+      const auto close_choice = ui.TakeCloseChoice();
+      if (close_choice == nexora::editor::imgui::CloseChoice::SaveAndExit)
+        exit_requested = save_scene();
+      else if (close_choice == nexora::editor::imgui::CloseChoice::DiscardAndExit)
+        exit_requested = true;
+      if (const auto choice = ui.TakeRecoveryChoice();
+          choice != nexora::editor::imgui::RecoveryChoice::None)
+        recovery_choice = choice;
+    } else {
+      ui.DrawProjectSelector(&recent_projects, selector_access);
+      if (ui.TakeProjectSelectorCancel() && pending_project) {
+        static_cast<void>(imports.Cancel(pending_project->import));
+        ui.SetProjectSelectorStatus("Cancelling project import", true);
+      }
+      if (auto request = ui.TakeProjectSelectorRequest()) {
+        if (pending_project) {
+          ui.SetProjectSelectorError("A project import is already running.");
+        } else {
+          ProjectState candidate;
+          std::string selector_error;
+          const bool create_project =
+              request->action == nexora::editor::imgui::ProjectSelectorAction::Create;
+          if (!OpenProjectWorkspace(request->root, request->access, create_project,
+                                    std::move(request->name), candidate, &selector_error)) {
+            ui.SetProjectSelectorError(selector_error.empty() ? "Project activation failed."
+                                                              : std::move(selector_error));
+          } else {
+            const auto import =
+                imports.Start({project_generation, candidate.workspace.Root() / "Content",
+                               candidate.workspace.Writable()
+                                   ? nexora::editor::AssetIdentityMode::PersistentReadWrite
+                                   : nexora::editor::AssetIdentityMode::PersistentReadOnly},
+                              &selector_error);
+            if (import == 0) {
+              ui.SetProjectSelectorError(selector_error.empty() ? "Project import could not start."
+                                                                : std::move(selector_error));
+            } else {
+              ui.SetProjectSelectorError({});
+              ui.SetProjectSelectorStatus("Importing project content", true);
+              pending_project = PendingProject{std::move(candidate), import, create_project};
+            }
+          }
+        }
+      }
+    }
+    static_cast<void>(ui.EndFrame());
+    // A surface-level loss (the window vanished, the swapchain went out of date) is recoverable and
+    // is resolved by the next BeginFrame, which also pumps a pending close request. Anything else,
+    // device loss included, is a real failure.
+    const auto surface_recoverable = [](Nexora::Presentation::SurfaceStatus status) {
+      const auto recovery = Nexora::Presentation::RecoveryAction(status);
+      return recovery == Nexora::Presentation::SurfaceAction::RecreateSurface ||
+             recovery == Nexora::Presentation::SurfaceAction::Suspend;
+    };
+    if (const auto render_status = ui.Render(*created.surface, frame.width, frame.height);
+        render_status != Nexora::Presentation::SurfaceStatus::Ready) {
+      if (surface_recoverable(render_status))
+        continue;
+      result = created.surface->CloseRequested() ? 0 : 1;
+      break;
+    }
+    if (project) {
+      if (const auto viewport = ui.NativeScenePreviewViewport()) {
         std::optional<std::array<double, 3>> drag_preview;
         std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview;
         std::optional<std::pair<std::size_t, double>> scale_preview;

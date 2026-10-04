@@ -119,17 +119,54 @@ def scene_region_pixels(display_name: str, window: int,
         x11.XCloseDisplay(display)
 
 
-def undo_and_save(xdotool, environment, scene_file, expected, failure):
+def undo_and_save(xdotool, environment, scene_file, expected, failure, render=None):
     # Issue Undo exactly once. On a busy host a Save can precede the queued Undo;
     # repeat only Save while waiting for the committed baseline, never Undo.
-    subprocess.run([xdotool, "key", "ctrl+z"], env=environment, check=True)
+    subprocess.run([xdotool, "key", "--delay", "80", "ctrl+z"],
+                   env=environment, check=True)
+    time.sleep(0.15)
     deadline = time.monotonic() + 5
     while time.monotonic() < deadline:
-        subprocess.run([xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         time.sleep(0.1)
         if scene_file.read_text() == expected:
+            if render is not None:
+                display, window, viewport, baseline = render
+                render_deadline = time.monotonic() + 3
+                while time.monotonic() < render_deadline:
+                    pixels = scene_region_pixels(display, window, viewport)
+                    if sum(abs(a - b) for a, b in zip(baseline, pixels)) < 100:
+                        return
+                    time.sleep(0.05)
+                raise RuntimeError(f"{failure}; restored scene was not presented")
             return
     raise RuntimeError(f"{failure}; saved={scene_file.read_text()!r}; expected={expected!r}")
+
+
+def settled_scene_preview(display, window, viewport, before):
+    deadline = time.monotonic() + 3
+    previous = None
+    stable = 0
+    while time.monotonic() < deadline:
+        pixels = scene_region_pixels(display, window, viewport)
+        if sum(abs(a - b) for a, b in zip(before, pixels)) > 2000:
+            stable = stable + 1 if pixels == previous else 0
+            if stable >= 2:
+                return pixels
+        previous = pixels
+        time.sleep(0.05)
+    raise RuntimeError("native gesture preview did not change and settle before release")
+
+
+def wait_axis_handles(display, window, viewport, expected, vertical_radius=70):
+    deadline = time.monotonic() + 3
+    while time.monotonic() < deadline:
+        handles = axis_handle_pixels(display, window, viewport, vertical_radius)
+        if handles == expected:
+            return handles
+        time.sleep(0.05)
+    raise RuntimeError(f"native handles did not return to the committed baseline: "
+                       f"{handles}; expected={expected}")
 
 
 def focus_root_window(display_name: str):
@@ -339,7 +376,7 @@ def main() -> int:
         scene_file = root / ".nexora/scenes/Main.scene"
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and not scene_file.is_file():
-            subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+            subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
             time.sleep(0.1)
         if not scene_file.is_file():
             raise RuntimeError("native Scene could not save before proxy drag")
@@ -357,10 +394,12 @@ def main() -> int:
                 time.sleep(0.05)
         if any(handle is None for handle in handles):
             raise RuntimeError(f"selected proxy lacks visible XYZ axis handles: {handles}")
+        baseline_move_handles = handles
+        baseline_move_pixels = scene_region_pixels(display, window, viewport)
         before = first_entity_position(initial_scene)
         for axis, (dx, dy) in enumerate(((40, 0), (0, -40), (-30, 25))):
             viewport = settled_viewport(editor.stderr, viewport)
-            handles = axis_handle_pixels(display, window, viewport)
+            handles = wait_axis_handles(display, window, viewport, baseline_move_handles)
             if handles[axis] is None:
                 raise RuntimeError(f"axis handle {axis} disappeared after layout update")
             handle_x, handle_y = handles[axis]
@@ -373,7 +412,7 @@ def main() -> int:
                             str(handle_x + dx), str(handle_y + dy)], env=environment, check=True)
             time.sleep(0.15)
             subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-            subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+            subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
             after = before
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline and abs(after[axis] - before[axis]) < 0.1:
@@ -388,7 +427,8 @@ def main() -> int:
                                    f"visible={axis_handle_pixels(display, window, viewport)}; "
                                    f"latest={latest_viewport(editor.stderr, viewport)}")
             undo_and_save(args.xdotool, environment, scene_file, initial_scene,
-                          f"axis handle {axis} drag did not undo atomically")
+                          f"axis handle {axis} drag did not undo atomically",
+                          (display, window, viewport, baseline_move_pixels))
         viewport = settled_viewport(editor.stderr, viewport)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
@@ -413,7 +453,7 @@ def main() -> int:
         subprocess.run([args.xdotool, "key", "Escape"], env=environment, check=True)
         time.sleep(0.1)
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         time.sleep(0.2)
         if scene_file.read_text() != initial_scene:
             raise RuntimeError("Escape did not cancel the native proxy drag")
@@ -432,7 +472,7 @@ def main() -> int:
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
         subprocess.run([args.xdotool, "windowfocus", str(window)], env=environment, check=True)
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         time.sleep(0.2)
         if scene_file.read_text() != initial_scene:
             raise RuntimeError("focus loss committed the prospective native proxy move")
@@ -445,14 +485,15 @@ def main() -> int:
         time.sleep(0.15)
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and scene_file.read_text() == initial_scene:
             time.sleep(0.05)
         if scene_file.read_text() == initial_scene:
             raise RuntimeError("native proxy drag did not change the saved scene")
         undo_and_save(args.xdotool, environment, scene_file, initial_scene,
-                      "native proxy drag did not undo before vertical movement")
+                      "native proxy drag did not undo before vertical movement",
+                          (display, window, viewport, baseline_move_pixels))
         viewport = settled_viewport(editor.stderr, viewport)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
@@ -466,7 +507,7 @@ def main() -> int:
         time.sleep(0.15)
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
         subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
         before = first_entity_position(initial_scene)
         after = before
@@ -510,7 +551,7 @@ def main() -> int:
         if scene_file.read_text() != before_rotation:
             raise RuntimeError("rotation preview committed before mouse release")
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
         rotated = before_rotation
         while time.monotonic() < deadline and rotated == before_rotation:
@@ -520,7 +561,8 @@ def main() -> int:
         if (abs(quaternion[1]) < 0.03 or first_entity_position(rotated) != after):
             raise RuntimeError(f"Y rotation ring did not commit an in-place turn: {quaternion}")
         undo_and_save(args.xdotool, environment, scene_file, before_rotation,
-                      "Y rotation ring did not undo atomically")
+                      "Y rotation ring did not undo atomically",
+                          (display, window, viewport, before_rotation_pixels))
         viewport = settled_viewport(editor.stderr, viewport)
         snapped_ring = axis_handle_pixels(display, window, viewport)[1]
         if snapped_ring is None:
@@ -536,7 +578,7 @@ def main() -> int:
         time.sleep(0.2)
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
         subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
             time.sleep(0.05)
@@ -548,7 +590,8 @@ def main() -> int:
             raise RuntimeError(f"Shift rotation did not snap to 15 degrees: "
                                f"{snapped_rotation}")
         undo_and_save(args.xdotool, environment, scene_file, before_rotation,
-                      "snapped Y rotation did not undo atomically")
+                      "snapped Y rotation did not undo atomically",
+                          (display, window, viewport, before_rotation_pixels))
         viewport = settled_viewport(editor.stderr, viewport)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
@@ -556,10 +599,14 @@ def main() -> int:
                         str(center_x), str(center_y)], env=environment, check=True)
         time.sleep(0.15)
         subprocess.run([args.xdotool, "key", "r"], env=environment, check=True)
-        time.sleep(0.2)
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline and uniform_handle_pixel(display, window, viewport) is None:
+            time.sleep(0.05)
+        baseline_scale_handles = axis_handle_pixels(display, window, viewport, 130)
         for axis, (dx, dy) in enumerate(((30, 0), (0, -30), (-25, 15))):
             viewport = settled_viewport(editor.stderr, viewport)
-            scale_handle = axis_handle_pixels(display, window, viewport, 130)[axis]
+            scale_handle = wait_axis_handles(display, window, viewport,
+                                             baseline_scale_handles, 130)[axis]
             if scale_handle is None:
                 raise RuntimeError(f"Scale tool lacks visible axis {axis} cube")
             handle_x, handle_y = scale_handle
@@ -584,7 +631,7 @@ def main() -> int:
             if scene_file.read_text() != before_rotation:
                 raise RuntimeError("Scale preview changed saved scene before release")
             subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-            subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+            subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
             deadline = time.monotonic() + 5
             scaled = before_rotation
             while time.monotonic() < deadline and scaled == before_rotation:
@@ -596,7 +643,8 @@ def main() -> int:
                         if other != axis) or first_entity_position(scaled) != after):
                 raise RuntimeError(f"axis {axis} scale cube did not constrain scale: {factors}")
             undo_and_save(args.xdotool, environment, scene_file, before_rotation,
-                          f"axis {axis} scale cube did not undo atomically")
+                          f"axis {axis} scale cube did not undo atomically",
+                          (display, window, viewport, before_scale_pixels))
         viewport = settled_viewport(editor.stderr, viewport)
         uniform_handle = uniform_handle_pixel(display, window, viewport)
         if uniform_handle is None:
@@ -627,7 +675,7 @@ def main() -> int:
         time.sleep(0.15)
         final_uniform_preview = scene_region_pixels(display, window, viewport)
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
             time.sleep(0.05)
@@ -647,7 +695,8 @@ def main() -> int:
                                f"handle={uniform_handle}; viewport={viewport}; "
                                f"axis_handles={axis_handle_pixels(display, window, viewport, 130)}")
         undo_and_save(args.xdotool, environment, scene_file, before_rotation,
-                      "uniform scale cube did not undo atomically")
+                      "uniform scale cube did not undo atomically",
+                          (display, window, viewport, before_uniform_pixels))
         viewport = settled_viewport(editor.stderr, viewport)
         snapped_handle = uniform_handle_pixel(display, window, viewport)
         if snapped_handle is None:
@@ -663,7 +712,7 @@ def main() -> int:
         time.sleep(0.2)
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
         subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
             time.sleep(0.05)
@@ -671,7 +720,8 @@ def main() -> int:
         if any(abs(factor - 1.5) > 1e-6 for factor in snapped):
             raise RuntimeError(f"Shift uniform scale did not snap to 0.25 increments: {snapped}")
         undo_and_save(args.xdotool, environment, scene_file, before_rotation,
-                      "snapped uniform scale did not undo atomically")
+                      "snapped uniform scale did not undo atomically",
+                          (display, window, viewport, before_uniform_pixels))
         viewport = settled_viewport(editor.stderr, viewport)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
@@ -679,7 +729,7 @@ def main() -> int:
                         str(center_x), str(center_y)], env=environment, check=True)
         time.sleep(0.15)
         subprocess.run([args.xdotool, "key", "Delete"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
             time.sleep(0.05)
@@ -712,7 +762,7 @@ def main() -> int:
         time.sleep(0.15)
         subprocess.run([args.xdotool, "mouseup", "2"], env=environment, check=True)
         subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and not scene_file.is_file():
             time.sleep(0.05)

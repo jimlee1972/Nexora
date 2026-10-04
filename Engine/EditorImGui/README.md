@@ -211,7 +211,8 @@ Scene gestures cancel before focus loss synthesizes input releases, before Undo/
 Paste or Duplicate shortcuts, and when the document generation changes, the canvas is hidden,
 recovery is active, or preview mode changes. These cancellation paths drop prospective state; a later
 mouse release cannot commit the abandoned gesture. The X/Z overview shares the focus/history
-cancellation behavior. Save during a drag serializes only committed scene content.
+cancellation behavior. Save during a drag waits for the gesture to commit or cancel, then serializes committed scene content.
+This retains the request when ImGui processes a queued release in a later frame than Ctrl+S.
 
 The Xvfb workflows issue Undo once per gesture and retry only Save until the expected committed
 scene bytes appear, with a bounded deadline. This accommodates queued event delivery on a loaded
