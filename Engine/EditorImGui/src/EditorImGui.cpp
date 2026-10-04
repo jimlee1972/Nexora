@@ -84,6 +84,9 @@ struct EditorImGuiHost::State final {
   RecoveryChoice recovery_choice = RecoveryChoice::None;
   CloseChoice close_choice = CloseChoice::None;
   PlayCommand play_command = PlayCommand::None;
+  bool profile_export_requested = false;
+  std::string profile_export_status;
+  std::optional<std::array<float, 2>> profile_export_position;
   std::array<char, 1024> gameplay_library{};
   std::string gameplay_status;
   std::uint64_t gameplay_project_generation{};
@@ -2275,6 +2278,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool game_running = play && play->State() != runtime::PlayState::Stopped;
   const auto play_snapshot = play ? play->Inspect() : runtime::RuntimeInspectionSnapshot{};
   state_->play_inspector_rendered = 0;
+  state_->profile_export_position.reset();
   if (!game_running) {
     state_->play_inspection_entity = 0;
     state_->inspect_play_selection = false;
@@ -2784,6 +2788,18 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (ImGui::Button("Clear"))
         profile->Clear();
       const auto samples = profile->Samples();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(samples.empty() || !workspace || !workspace->Writable() ||
+                           recovery_available || state_->close_prompt_requested);
+      if (ImGui::Button("Export CSV"))
+        state_->profile_export_requested = true;
+      const auto export_min = ImGui::GetItemRectMin();
+      const auto export_max = ImGui::GetItemRectMax();
+      state_->profile_export_position =
+          std::array{(export_min.x + export_max.x) * 0.5F, (export_min.y + export_max.y) * 0.5F};
+      ImGui::EndDisabled();
+      if (!state_->profile_export_status.empty())
+        ImGui::TextWrapped("%s", state_->profile_export_status.c_str());
       ImGui::Text("%zu frames retained | %llu older frames dropped", samples.size(),
                   static_cast<unsigned long long>(profile->DroppedCount()));
       ImGui::TextDisabled("Editor frame processing: wall time after BeginFrame, before Present.");
@@ -2919,6 +2935,13 @@ void EditorImGuiHost::SetGameplayLibrary(std::string_view library,
 }
 void EditorImGuiHost::SetGameplayStatus(std::string message) {
   state_->gameplay_status = std::move(message);
+}
+
+bool EditorImGuiHost::TakeProfileExportRequest() noexcept {
+  return std::exchange(state_->profile_export_requested, false);
+}
+void EditorImGuiHost::SetProfileExportStatus(std::string message) {
+  state_->profile_export_status = std::move(message);
 }
 
 PlayCommand EditorImGuiHost::TakePlayCommand() noexcept {
@@ -3390,6 +3413,16 @@ void EditorImGuiTestAccess::SetHierarchyFilter(EditorImGuiHost &host,
   const auto count = std::min(filter.size(), host.state_->hierarchy_filter.size() - 1);
   std::memcpy(host.state_->hierarchy_filter.data(), filter.data(), count);
   host.state_->hierarchy_filter[count] = '\0';
+}
+
+void EditorImGuiTestAccess::FocusProfiler(EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto name = PanelWindowName("nexora.profiler");
+  ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProfileExportPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_export_position;
 }
 
 void EditorImGuiTestAccess::FocusHierarchy(EditorImGuiHost &host) noexcept {

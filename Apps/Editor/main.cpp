@@ -1033,6 +1033,15 @@ int RunGraphical(std::optional<ProjectState> project,
     if (project) {
       ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports,
                           &console, &play, &profile, &meshes);
+      if (ui.TakeProfileExportRequest()) {
+        std::string error;
+        const bool exported = project->workspace.ExportEditorFrameProcessing(
+            profile.Samples(), profile.DroppedCount(), &error);
+        ui.SetProfileExportStatus(exported ? "Saved .nexora/frame-processing.csv" : error);
+        log(exported ? nexora::runtime::RuntimeLogSeverity::Info
+                     : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", exported ? "Frame processing CSV exported." : error);
+      }
       switch (ui.TakePlayCommand()) {
       case nexora::editor::imgui::PlayCommand::Start:
         if (play.Start(1.0 / 60.0, [&](nexora::runtime::World &, double seconds) {

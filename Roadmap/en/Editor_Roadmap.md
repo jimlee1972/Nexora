@@ -339,6 +339,10 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ The graphical Profiler shows a live, bounded Editor frame processing wall-time trace with
     pause/clear, latest/average/peak, and evicted-frame count. GPU time and memory are labelled
     unavailable until instrumented.
+  - ✅ The Profiler now exports retained Editor frame-processing wall times to project CSV with
+    full double precision and an evicted-frame count. GPU/memory cells stay empty. The synchronous
+    writer validates 1-600 ordered finite samples, rejects read-only/recovery writes, and atomically
+    preserves the previous file on validation failure; real UI clicks emit one-shot requests.
   - Open: graphical build frontend, remote deployment/logs, GPU/memory profiling, versioned
     export, and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.

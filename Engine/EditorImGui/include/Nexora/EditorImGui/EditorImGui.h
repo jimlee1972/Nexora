@@ -110,6 +110,8 @@ public:
   void SetGameplayStatus(std::string message);
   void SetGameplayLibrary(std::string_view library, std::uint64_t project_generation = 0);
   [[nodiscard]] bool GameInputFocused() const noexcept;
+  [[nodiscard]] bool TakeProfileExportRequest() noexcept;
+  void SetProfileExportStatus(std::string message);
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
   void RequestCloseConfirmation() noexcept;
