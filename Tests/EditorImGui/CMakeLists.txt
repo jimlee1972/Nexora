@@ -205,3 +205,9 @@ target_include_directories(NexoraClipboardForestTests PRIVATE "${PROJECT_SOURCE_
 target_link_libraries(NexoraClipboardForestTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraClipboardForestTests)
 add_test(NAME editor.clipboard_initialized_forest COMMAND NexoraClipboardForestTests)
+
+add_executable(NexoraCutClipboardTests CutClipboardTests.cpp)
+target_include_directories(NexoraCutClipboardTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraCutClipboardTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraCutClipboardTests)
+add_test(NAME editor.cut_clipboard_lifecycle COMMAND NexoraCutClipboardTests)

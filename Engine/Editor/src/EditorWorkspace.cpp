@@ -925,6 +925,18 @@ bool SceneDocument::CopySelection() {
   if (captured.empty())
     return false;
   clipboard_ = std::move(captured);
+  clipboard_cut_pending_ = false;
+  return true;
+}
+bool SceneDocument::CutSelection() {
+  auto previous_clipboard = std::move(clipboard_);
+  const auto previous_cut = clipboard_cut_pending_;
+  if (!CopySelection() || !DeleteSelection()) {
+    clipboard_ = std::move(previous_clipboard);
+    clipboard_cut_pending_ = previous_cut;
+    return false;
+  }
+  clipboard_cut_pending_ = true;
   return true;
 }
 bool SceneDocument::Paste() {
@@ -961,19 +973,23 @@ bool SceneDocument::Paste() {
     if (next_entity_generation_ == 0)
       ++next_entity_generation_;
     const bool root = source.entity.parent == 0;
-    nodes_.push_back({created[index], root ? source.name + " Copy" : source.name, generation,
-                      source.euler_hint, source.opaque});
+    nodes_.push_back({created[index],
+                      root && !clipboard_cut_pending_ ? source.name + " Copy" : source.name,
+                      generation, source.euler_hint, source.opaque});
     if (root)
       pasted_roots.push_back(created[index]);
   }
   PushUndo(std::move(entry));
   selection_ = std::move(pasted_roots);
+  clipboard_cut_pending_ = false;
   return true;
 }
 bool SceneDocument::DuplicateSelection() {
   auto previous_clipboard = std::move(clipboard_);
+  const auto previous_cut = clipboard_cut_pending_;
   const bool duplicated = CopySelection() && Paste();
   clipboard_ = std::move(previous_clipboard);
+  clipboard_cut_pending_ = previous_cut;
   return duplicated;
 }
 bool SceneDocument::DeleteSelection() {
@@ -1340,6 +1356,7 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
   nodes_ = std::move(staged_nodes);
   selection_.clear();
   clipboard_.clear();
+  clipboard_cut_pending_ = false;
   undo_.clear();
   redo_.clear();
   editor_.ClearUndo();

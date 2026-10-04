@@ -3,7 +3,7 @@
 `NexoraEditorImGui` is an optional UI-host module. It owns the Dear ImGui context, translates
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
 and presents panels using the stable IDs owned by `NexoraEditorCore`. On the first frame it builds
-the default workspace with Project and Hierarchy on the left, Console and Content along the bottom,
+the default workspace with Project and Hierarchy on the left, Inspector on the right, Console and Content along the bottom,
 and Scene and Game tabs in the center, with Scene selected initially. Hierarchy and Content are selected
 deterministically after their dock nodes settle, so adding a sibling tab cannot hide the primary
 authoring views on first launch.
@@ -207,7 +207,7 @@ bridges remain ED-M7 work; plugins must not inspect the ImGui widget tree to sup
 
 An attached workspace must be writable before Scene/Hierarchy authoring. Read-only projects retain
 filtering, selection, Copy, camera navigation and isolated Play; create, rename, reparent/reorder,
-delete, Paste/Duplicate, Undo/Redo, Save requests and gizmo/overview drag commits are blocked.
+delete, Cut/Paste/Duplicate, Undo/Redo, Save requests and gizmo/overview drag commits are blocked.
 Recovery, Play review and close confirmation share the same mutation gate. Queued Hierarchy writes
 and rename targets are discarded while blocked; interrupted overview/native gestures cancel before
 synthetic or physical release and cannot revive when access returns. The Scene panel identifies
@@ -436,3 +436,19 @@ complete-subtree capture and one initialized creation transaction. Copies retain
 child local poses, Euler hints and opaque bytes; one Undo restores prior selection, and Redo retains
 initialized values and stable IDs. Existing read-only/modal/input-focus gates apply. The UI never
 borrows live entity data across the operation, and Duplicate leaves the previous clipboard intact.
+
+
+## Graphical Cut
+
+The Hierarchy Cut button and Ctrl+X outside text input share the owning CutSelection workflow.
+Writable workspace and recovery/Play-review/close-modal gates apply before clipboard mutation.
+Cut cancels Scene gestures and Inspector drafts, clears selection, and shows a Paste/Undo status.
+Paste and Duplicate also cancel pending drafts and show the Editor Inspector after successful
+creation. One Cut Undo restores all selected subtrees; first successful Cut Paste keeps root names
+with new IDs, and later Paste uses Copy naming. Clipboard state itself is not document history.
+Fresh layouts dock Inspector on the right so a default floating Inspector cannot cover Hierarchy
+buttons. Existing saved layouts retain their placement. Real key/pointer tests cover 1x/2x input,
+workspace/modal/text-input rejection, replay, retained clipboard state and save/reload.
+
+Game Apply Changes wraps to another row when its button does not fit, keeping the Play review
+action reachable in a narrow dock after a DPI/extent change.

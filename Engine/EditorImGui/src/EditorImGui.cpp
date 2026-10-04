@@ -132,6 +132,7 @@ struct EditorImGuiHost::State final {
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
   bool native_game_available = true;
   bool game_was_running = false;
+  std::optional<std::array<float, 2>> hierarchy_cut_position;
   std::optional<std::array<float, 2>> content_add_mesh_position;
   std::string content_scene_error;
   std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>> content_asset_positions;
@@ -396,10 +397,13 @@ void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
   ImGuiID center = dockspace;
   const ImGuiID hierarchy =
       ImGui::DockBuilderSplitNode(center, ImGuiDir_Left, 0.22F, nullptr, &center);
+  const ImGuiID inspector =
+      ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.28F, nullptr, &center);
   const ImGuiID console =
       ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.25F, nullptr, &center);
   const auto project_window = PanelWindowName("nexora.project");
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
+  const auto inspector_window = PanelWindowName("nexora.inspector");
   const auto console_window = PanelWindowName("nexora.console");
   const auto profiler_window = PanelWindowName("nexora.profiler");
   const auto content_window = PanelWindowName("nexora.content");
@@ -407,6 +411,7 @@ void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
   const auto game_window = PanelWindowName("nexora.game");
   ImGui::DockBuilderDockWindow(project_window.c_str(), hierarchy);
   ImGui::DockBuilderDockWindow(hierarchy_window.c_str(), hierarchy);
+  ImGui::DockBuilderDockWindow(inspector_window.c_str(), inspector);
   ImGui::DockBuilderDockWindow(console_window.c_str(), console);
   ImGui::DockBuilderDockWindow(profiler_window.c_str(), console);
   ImGui::DockBuilderDockWindow(content_window.c_str(), console);
@@ -701,11 +706,27 @@ template <typename StateT> void CopyHierarchySelection(StateT &state, SceneDocum
     state.hierarchy_status.clear();
     return;
   }
-  state.hierarchy_status = "Copied " + std::to_string(scene.Selection().size()) + " entities.";
+  state.hierarchy_status = "Copied selected subtrees.";
+  state.hierarchy_error.clear();
+}
+
+template <typename StateT> void CutHierarchySelection(StateT &state, SceneDocument &scene) {
+  CancelSceneGestures(state);
+  CancelInspectorDrafts(state);
+  if (!scene.CutSelection()) {
+    state.hierarchy_error = "Cut failed. Select existing Scene entities.";
+    state.hierarchy_status.clear();
+    return;
+  }
+  state.hierarchy_selection_anchor.reset();
+  state.inspect_play_selection = false;
+  state.hierarchy_status = "Cut selected subtrees. Paste or Undo.";
   state.hierarchy_error.clear();
 }
 
 template <typename StateT> void PasteHierarchySelection(StateT &state, SceneDocument &scene) {
+  CancelSceneGestures(state);
+  CancelInspectorDrafts(state);
   if (!scene.Paste()) {
     state.hierarchy_error = "Paste failed. Copy a valid scene selection first.";
     state.hierarchy_status.clear();
@@ -714,7 +735,8 @@ template <typename StateT> void PasteHierarchySelection(StateT &state, SceneDocu
   state.hierarchy_selection_anchor =
       scene.Selection().size() == 1 ? scene.Key(scene.Selection().front()) : std::nullopt;
   state.hierarchy_filter.fill({});
-  state.hierarchy_status = "Pasted " + std::to_string(scene.Selection().size()) + " entities.";
+  state.inspect_play_selection = false;
+  state.hierarchy_status = "Pasted " + std::to_string(scene.Selection().size()) + " roots.";
   state.hierarchy_error.clear();
 }
 
@@ -730,6 +752,8 @@ template <typename StateT> void DeleteHierarchySelection(StateT &state, SceneDoc
 }
 
 template <typename StateT> void DuplicateHierarchySelection(StateT &state, SceneDocument &scene) {
+  CancelSceneGestures(state);
+  CancelInspectorDrafts(state);
   if (!scene.DuplicateSelection()) {
     state.hierarchy_error = "Duplicate failed because the selection is empty or stale.";
     state.hierarchy_status.clear();
@@ -738,7 +762,8 @@ template <typename StateT> void DuplicateHierarchySelection(StateT &state, Scene
   state.hierarchy_selection_anchor =
       scene.Selection().size() == 1 ? scene.Key(scene.Selection().front()) : std::nullopt;
   state.hierarchy_filter.fill({});
-  state.hierarchy_status = "Duplicated " + std::to_string(scene.Selection().size()) + " entities.";
+  state.inspect_play_selection = false;
+  state.hierarchy_status = "Duplicated " + std::to_string(scene.Selection().size()) + " roots.";
   state.hierarchy_error.clear();
 }
 
@@ -788,6 +813,16 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   ImGui::BeginDisabled(scene->Selection().empty() || interaction_blocked);
   if (ImGui::SmallButton("Copy"))
     CopyHierarchySelection(state, *scene);
+  ImGui::EndDisabled();
+  ImGui::SameLine();
+  ImGui::BeginDisabled(scene->Selection().empty() || !editable);
+  if (ImGui::SmallButton("Cut")) {
+    static_cast<void>(shell.RouteCommand("editor.scene.cut"));
+    CutHierarchySelection(state, *scene);
+  }
+  const auto cut_min = ImGui::GetItemRectMin(), cut_max = ImGui::GetItemRectMax();
+  state.hierarchy_cut_position =
+      std::array{(cut_min.x + cut_max.x) * 0.5F, (cut_min.y + cut_max.y) * 0.5F};
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(!editable);
@@ -2792,6 +2827,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         std::ranges::find(game_cameras, state_->game_camera_selection) == game_cameras.end())
       state_->game_camera_selection = 0;
   }
+  state_->hierarchy_cut_position.reset();
   state_->content_add_mesh_position.reset();
   state_->content_asset_positions.clear();
   state_->camera_align_position.reset();
@@ -2880,6 +2916,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C, ImGuiInputFlags_RouteGlobal)) {
       static_cast<void>(shell.RouteCommand("editor.scene.copy"));
       CopyHierarchySelection(*state_, *scene);
+    }
+    if (scene_editable &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_X, ImGuiInputFlags_RouteGlobal)) {
+      static_cast<void>(shell.RouteCommand("editor.scene.cut"));
+      CutHierarchySelection(*state_, *scene);
     }
     if (scene_editable &&
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V, ImGuiInputFlags_RouteGlobal)) {
@@ -3197,7 +3238,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           if (ImGui::Button("Step"))
             state_->play_command = PlayCommand::Step;
         }
-        ImGui::SameLine();
+        const float apply_width =
+            ImGui::CalcTextSize("Apply Changes").x + ImGui::GetStyle().FramePadding.x * 2;
+        const float same_line_end =
+            ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + apply_width;
+        if (same_line_end <= ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x)
+          ImGui::SameLine();
         ImGui::BeginDisabled(scene == nullptr || workspace == nullptr || !workspace->Writable() ||
                              interaction_blocked || state_->close_prompt_requested);
         if (ImGui::Button("Apply Changes")) {
@@ -4143,6 +4189,10 @@ EditorImGuiTestAccess::ProfileExportPosition(const EditorImGuiHost &host) noexce
   return host.state_->profile_export_position;
 }
 
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::HierarchyCutPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->hierarchy_cut_position;
+}
 void EditorImGuiTestAccess::FocusHierarchy(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.hierarchy");
@@ -4289,6 +4339,10 @@ void EditorImGuiTestAccess::FocusInspector(EditorImGuiHost &host) noexcept {
 void EditorImGuiTestAccess::CollapseInspector(EditorImGuiHost &host, bool collapsed) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.inspector");
+  // Docked tabs cannot collapse; this hook exercises the supported floating-window lifecycle.
+  if (collapsed)
+    if (auto *window = ImGui::FindWindowByName(name.c_str()))
+      ImGui::SetWindowDock(window, 0, ImGuiCond_Always);
   ImGui::SetWindowCollapsed(name.c_str(), collapsed);
 }
 std::optional<std::array<float, 2>>
