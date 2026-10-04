@@ -145,6 +145,13 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Focused Hierarchy F2 now opens Rename with focused/select-all name input; Enter commits one
+  metadata Undo and Escape cancels. The dialog blocks other authoring/clipboard/Undo/Save/Play
+  shortcuts and queued Hierarchy writes. Real 1x/2x input verifies UTF-8 CJK/supplementary characters,
+  retryable empty names, clipboard/history retention, save/reload and cancellation on write loss,
+  external modal, focus loss or stale document. ImGui/library consumers share 32-bit Unicode text;
+  font coverage and physical Windows IME acceptance remain open.
+
 - ✅ Focused Hierarchy Ctrl+A now selects all filtered/expanded visible rows, including clipped
   rows, through generation-keyed selection. Empty matches clear selection; read-only projects retain
   the action. Keyboard tests verify collapsed descendants, filter order, foreign-panel/text-input

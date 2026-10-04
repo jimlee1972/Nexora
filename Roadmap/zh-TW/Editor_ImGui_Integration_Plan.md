@@ -28,6 +28,9 @@ Metal native draw recording。這些仍只是 foundation，因 real-display Linu
 
 ### 已確認實作 checklist
 
+- ✅ Dear ImGui 與 direct consumer 共用 32-bit Unicode text storage。真正 Rename input 經
+  UTF-8 metadata replay 與持久化保留 supplementary scalar value；default font 涵蓋與
+  target-host DPI／IME 驗收仍待完成。
 - ✅ Graphical shell 是 optional 且隔離於 `NexoraEditorImGui`；Editor Core 不相依 Dear ImGui。
 - ✅ Dear ImGui 固定為 `v1.91.9b-docking`、已啟用 docking，並停用 unmanaged `imgui.ini`
   persistence。

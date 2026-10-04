@@ -142,6 +142,13 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Hierarchy 有焦點時，F2 現開啟 Rename 並聚焦／全選名稱；Enter 提交一次 metadata Undo，
+  Escape 取消。Dialog 阻擋其他 authoring／clipboard／Undo／Save／Play 快捷鍵及 queued
+  Hierarchy 寫入。真正 1x／2x input 驗證 UTF-8 CJK／supplementary 字元、空名稱重試、
+  clipboard／history 保留、save／reload，以及 write loss、外部 modal、失焦或 stale document
+  的取消。ImGui／library consumer 共用 32-bit Unicode text；字型涵蓋及實體 Windows IME
+  驗收仍待完成。
+
 - ✅ Hierarchy 有焦點時，Ctrl+A 現經 generation-keyed selection 選取全部 filter／expansion
   可見列，包含被裁切的列。空結果清除選取，唯讀 project 仍可使用。鍵盤測試驗證 collapsed
   descendant、filter 順序、其他 panel／text-input 焦點、recovery／close gate，以及 World／

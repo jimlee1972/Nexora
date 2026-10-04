@@ -260,6 +260,13 @@ Real UI clicks verify generation/access/modal gates, native center bounds and re
 with one Undo. Real 1x/2x DPI pointer tests cover release, persistence and rejected/canceled drags;
 preview tooltips do not mutate the World. Surface snapping and geometry ghosts remain open.
 
+✅ Focused Hierarchy F2 now opens Rename with focused/select-all name input; Enter commits one
+  metadata Undo and Escape cancels. The dialog blocks other authoring/clipboard/Undo/Save/Play
+  shortcuts and queued Hierarchy writes. Real 1x/2x input verifies UTF-8 CJK/supplementary characters,
+  retryable empty names, clipboard/history retention, save/reload and cancellation on write loss,
+  external modal, focus loss or stale document. ImGui/library consumers share 32-bit Unicode text;
+  font coverage and physical Windows IME acceptance remain open.
+
 ✅ Focused Hierarchy Ctrl+A now selects all filtered/expanded visible rows, including clipped
   rows, through generation-keyed selection. Empty matches clear selection; read-only projects retain
   the action. Keyboard tests verify collapsed descendants, filter order, foreign-panel/text-input
@@ -621,6 +628,13 @@ Undo，Redo 與 save／reload 保留 stable ID、名稱、pose 與 mesh／materi
 ✅ Typed Content mesh 拖曳現能以一次 Undo 在 overview 游標或 native Scene ground 落點建立
 root。真正 1x／2x DPI pointer 測試涵蓋放開、持久化及拒絕／取消拖曳；tooltip 預覽不改動
 World。表面吸附及 geometry ghost 仍待完成。
+
+✅ Hierarchy 有焦點時，F2 現開啟 Rename 並聚焦／全選名稱；Enter 提交一次 metadata Undo，
+  Escape 取消。Dialog 阻擋其他 authoring／clipboard／Undo／Save／Play 快捷鍵及 queued
+  Hierarchy 寫入。真正 1x／2x input 驗證 UTF-8 CJK／supplementary 字元、空名稱重試、
+  clipboard／history 保留、save／reload，以及 write loss、外部 modal、失焦或 stale document
+  的取消。ImGui／library consumer 共用 32-bit Unicode text；字型涵蓋及實體 Windows IME
+  驗收仍待完成。
 
 ✅ Hierarchy 有焦點時，Ctrl+A 現經 generation-keyed selection 選取全部 filter／expansion
   可見列，包含被裁切的列。空結果清除選取，唯讀 project 仍可使用。鍵盤測試驗證 collapsed

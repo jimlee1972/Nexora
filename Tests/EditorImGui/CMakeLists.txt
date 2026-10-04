@@ -223,3 +223,9 @@ target_include_directories(NexoraHierarchySelectAllTests PRIVATE "${PROJECT_SOUR
 target_link_libraries(NexoraHierarchySelectAllTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraHierarchySelectAllTests)
 add_test(NAME editor.hierarchy_select_all COMMAND NexoraHierarchySelectAllTests)
+
+add_executable(NexoraKeyboardRenameTests KeyboardRenameTests.cpp)
+target_include_directories(NexoraKeyboardRenameTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraKeyboardRenameTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraKeyboardRenameTests)
+add_test(NAME editor.keyboard_rename_lifecycle COMMAND NexoraKeyboardRenameTests)

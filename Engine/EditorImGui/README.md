@@ -475,3 +475,22 @@ unfiltered. An empty result clears selection. Read-only projects retain the acti
 prospective Scene gestures and resets the range anchor to the first selected row; no World edit,
 clipboard replacement or Undo/Redo consumption occurs. Inspector/text-input and other-panel focus
 keep their own Ctrl+A behavior. Large-scene scale/soak acceptance remains open.
+
+
+## Keyboard Rename and Unicode text
+
+F2 in the focused Hierarchy starts Rename for one current selected entity outside text input. The
+Rename button and double click share the same generation-keyed action. Opening cancels Scene
+and Inspector drafts, focuses/selects the name, and routes editor.scene.rename. Enter commits one
+metadata Undo; Escape cancels without consuming history. Rename is a blocking authoring modal:
+Scene/Inspector writes, clipboard/Undo/Save/Play shortcuts and queued Hierarchy writes wait or are
+discarded until it closes. Its own input/submit remains writable; external recovery/Play-review/close
+modals and workspace write loss clear the target. Focus loss or stale entity/document generation
+also cancels the draft, which cannot revive on restored access. Empty names remain retryable.
+
+Dear ImGui and direct consumers share the PUBLIC IMGUI_USE_WCHAR32 definition. WindowEvent text
+contains Unicode scalar values, so InputText must retain supplementary characters instead of
+replacing values above U+FFFF. The host asserts the 32-bit text profile; UTF-8 Rename tests retain
+CJK and U+1F642 through real input, metadata Undo/Redo and save/reload. Default font glyph coverage
+and physical Windows IME acceptance are separate requirements and remain open. No public Window,
+Editor or plugin wire ABI changes.
