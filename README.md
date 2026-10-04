@@ -57,6 +57,11 @@ an unchecked or unmarked item remains incomplete.
 
 Windows DX12 local delivery: [acceptance record](Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md). Use `windows-showcase-development` for Development/Full and `windows-showcase-shipping` for Shipping/Full; `-CompleteGuidedTour` verifies all 210 seconds. Developer-GPU evidence remains separate from clean-host and physical-display operator attestations. Fresh JSON verifies F5 snapshot round trips, tour replay resets and sampled Lab error cases. Clean-VM record: [acceptance](Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md) (virtual GPU, not a physical display). Physical-display record: [acceptance](Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md).
 
+The [V1 Visual Identity Showcase Roadmap](Roadmap/en/V1-Visual-Identity-Roadmap.md)
+is a planning draft for a stylized ruins courtyard focused on materials, lighting, and environmental
+motion. VIS-M0–VIS-M6 are not implemented or accepted (0/7); these separate visual milestones do
+not change existing V1 contract progress or final platform acceptance.
+
 ### Repository status
 
 The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, API samples, a Zig gameplay consumer, and `NexoraShowcase` with both deterministic headless and native Linux/Vulkan 3D modes. The milestone sections below describe the implemented portable contract foundations and explicitly call out platform or production backends that remain future work. Parsers for persisted or external data (for example scene snapshots) reject hostile size fields before allocating.
@@ -374,6 +379,10 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 ✅ [桌面 tag rc.3 驗收](Apps/Showcase/evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md)：Build 16/16 與 Release 5/5 於紀錄的指定重跑後通過；未發佈 draft 保留 16 個附件、四個已驗證 ZIP 與桌面 CTest log（Linux 80/80、macOS 73/73、Windows 72/72）。
 
 Windows DX12 本地交付：[驗收紀錄](Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md)。Development/Full 使用 `windows-showcase-development`，Shipping/Full 使用 `windows-showcase-shipping`；`-CompleteGuidedTour` 驗證完整 210 秒。開發機 GPU 證據不代表乾淨主機或實體顯示操作聲明已驗收。當次 JSON 驗證 F5 snapshot round trip、導覽重播歸零與指定 Lab 錯誤案例。乾淨 VM 紀錄：[驗收](Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)（虛擬 GPU，非實體顯示器）。實體顯示紀錄：[驗收](Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)。
+
+[V1 視覺特色 Showcase Roadmap](Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md)
+為以材質、光影與環境動態為主軸的風格化遺跡庭院規劃草案。VIS-M0～VIS-M6
+尚未實作或驗收（0/7）；獨立視覺里程碑不改變既有 V1 contract 進度或最終平台驗收狀態。
 
 ### Repository 狀態
 
