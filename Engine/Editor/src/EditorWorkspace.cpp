@@ -947,35 +947,28 @@ bool SceneDocument::DeleteSelection() {
         std::ranges::find(scene->entities, id, &runtime::Entity::id) == scene->entities.end())
       return false;
 
-  std::vector<runtime::Id> roots;
-  for (const auto id : selection_) {
-    auto ancestor = world_.Parent(id).value_or(0);
-    while (ancestor != 0 && !selected.contains(ancestor))
-      ancestor = world_.Parent(ancestor).value_or(0);
-    if (ancestor == 0)
-      roots.push_back(id);
-  }
-  std::size_t deleted = 0;
-  for (const auto root : roots) {
-    const auto subtree = world_.Subtree(root);
-    std::unordered_set<runtime::Id> subtree_ids(subtree.begin(), subtree.end());
-    UndoEntry entry;
-    entry.previous_selection = selection_;
-    for (const auto &node : nodes_)
-      if (subtree_ids.contains(node.id))
-        entry.deleted_nodes.push_back(node);
-    if (!editor_.DestroyEntity(scene_, root)) {
-      for (std::size_t index = 0; index < deleted; ++index)
-        static_cast<void>(Undo());
-      redo_.clear();
-      return false;
-    }
-    PushUndo(std::move(entry));
-    std::erase_if(nodes_, [&](const Node &node) { return subtree_ids.contains(node.id); });
-    std::erase_if(selection_, [&](runtime::Id id) { return subtree_ids.contains(id); });
-    ++deleted;
-  }
-  return deleted != 0;
+  std::unordered_map<runtime::Id, std::vector<runtime::Id>> children;
+  for (const auto &entity : scene->entities)
+    if (entity.parent != 0)
+      children[entity.parent].push_back(entity.id);
+  auto subtree_ids = selected;
+  auto pending = selection_;
+  for (std::size_t index = 0; index < pending.size(); ++index)
+    if (const auto found = children.find(pending[index]); found != children.end())
+      for (const auto child : found->second)
+        if (subtree_ids.insert(child).second)
+          pending.push_back(child);
+  UndoEntry entry;
+  entry.previous_selection = selection_;
+  for (const auto &node : nodes_)
+    if (subtree_ids.contains(node.id))
+      entry.deleted_nodes.push_back(node);
+  if (!editor_.DestroyEntities(scene_, selection_))
+    return false;
+  PushUndo(std::move(entry));
+  std::erase_if(nodes_, [&](const Node &node) { return subtree_ids.contains(node.id); });
+  selection_.clear();
+  return true;
 }
 bool SceneDocument::Undo() {
   if (undo_.empty())

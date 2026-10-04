@@ -148,6 +148,9 @@ public:
   bool Move(Id entity, Id parent, std::size_t index, bool keep_world = true);
   // Destroys the entity and its descendants; undo restores the whole subtree.
   bool DestroyEntity(Id scene, Id entity);
+  // Deletes a unique nonempty selection as one atomic Undo, collapsing selected descendants.
+  // Undo owns all removed entities and restores sibling order; invalid/rejected replay is atomic.
+  bool DestroyEntities(Id scene, std::span<const Id> entities);
   bool Undo();
   bool Redo();
   void ClearUndo() noexcept;

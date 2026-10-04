@@ -142,6 +142,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ 多選 Delete 現以一次 atomic Runtime／document transaction 刪除全部選取 subtree。
+  一次 Undo 還原 stable ID、sibling order、元件、名稱、Euler hint、opaque payload 與完整
+  選取。真正 Delete／Ctrl+Z／Ctrl+Y 測試驗證流程；ID collision／lifecycle 及外部擴展
+  subtree 拒絕保留 history，無關 entity 保留，orphan root 保留已擷取世界 pose，且 1,000 次
+  replay cycle 維持 snapshot。
+
 - ✅ Typed Content asset 拖曳現能將已解析 mesh 放到 overview X/Z 游標位置或 native Scene
   的 Y=0 ground 交點；owning UUID／generation payload 在拖曳開始時固定。Tooltip 預覽落點
   不修改 World，放開後以一次初始化 Undo 建立／選取具名稱 root。真正 pointer 測試涵蓋

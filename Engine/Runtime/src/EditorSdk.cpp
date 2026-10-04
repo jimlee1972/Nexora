@@ -25,6 +25,21 @@ template <typename Function, typename Pointer> Function FunctionCast(Pointer poi
   return function;
 }
 
+std::unordered_set<Id> SelectedSubtrees(const Scene &scene, const std::unordered_set<Id> &roots) {
+  std::unordered_map<Id, std::vector<Id>> children;
+  for (const auto &entity : scene.entities)
+    if (entity.parent != 0)
+      children[entity.parent].push_back(entity.id);
+  auto selected = roots;
+  std::vector<Id> pending(roots.begin(), roots.end());
+  for (std::size_t index = 0; index < pending.size(); ++index)
+    if (const auto found = children.find(pending[index]); found != children.end())
+      for (const auto child : found->second)
+        if (selected.insert(child).second)
+          pending.push_back(child);
+  return selected;
+}
+
 #if defined(_WIN32)
 void *OpenLibrary(const std::string &path) {
   return FunctionCast<void *>(LoadLibraryA(path.c_str()));
@@ -374,58 +389,139 @@ bool SceneEditor::ApplyHierarchyEdit(Id entity, WorldCommandBuffer &apply) {
   return true;
 }
 bool SceneEditor::DestroyEntity(Id scene, Id entity) {
-  const auto *target_scene = world_.FindScene(scene);
-  const auto *existing = world_.FindEntity(entity);
-  if (!target_scene || !existing ||
-      std::ranges::find(target_scene->entities, entity, &Entity::id) ==
-          target_scene->entities.end())
+  return DestroyEntities(scene, std::array{entity});
+}
+bool SceneEditor::DestroyEntities(Id scene, std::span<const Id> entities) {
+  const auto *target = world_.FindScene(scene);
+  if (!target || entities.empty() || target->state == SceneState::Unloading ||
+      target->state == SceneState::Unloaded)
     return false;
-  // Destruction cascades to descendants, so undo must restore the whole subtree.
-  std::vector<Entity> subtree;
-  for (const auto id : world_.Subtree(entity))
-    subtree.push_back(*world_.FindEntity(id));
-  const auto root_index = *world_.SiblingIndex(entity);
-  // If the subtree root's parent is gone by the time this is undone, the root comes back as a root
-  // at the world pose it had, rather than under a dangling parent.
-  const auto root_world = world_.WorldTransform(entity).value_or(existing->transform);
+  std::unordered_map<Id, Id> parents;
+  for (const auto &entity : target->entities)
+    parents.emplace(entity.id, entity.parent);
+  const std::unordered_set<Id> selected(entities.begin(), entities.end());
+  if (selected.size() != entities.size())
+    return false;
+  std::unordered_set<Id> root_ids;
+  for (const auto id : entities) {
+    if (!parents.contains(id))
+      return false;
+    bool selected_ancestor = false;
+    std::size_t steps = 0;
+    for (auto ancestor = parents.at(id); ancestor != 0; ancestor = parents.at(ancestor)) {
+      if (!parents.contains(ancestor) || ++steps > parents.size())
+        return false;
+      selected_ancestor |= selected.contains(ancestor);
+    }
+    if (!selected_ancestor)
+      root_ids.insert(id);
+  }
+  struct Root final {
+    Id id;
+    std::size_t sibling_index;
+    Transform world_pose;
+  };
+  std::vector<Root> roots;
+  std::unordered_map<Id, std::size_t> sibling_counts;
+  // Capture roots in original storage/sibling order, independent of selection order.
+  for (const auto &entity : target->entities) {
+    const auto index = sibling_counts[entity.parent]++;
+    if (!root_ids.contains(entity.id))
+      continue;
+    roots.push_back({entity.id, index,
+                     entity.parent == 0
+                         ? entity.transform
+                         : world_.WorldTransform(entity.id).value_or(entity.transform)});
+  }
+  const auto removed_ids = SelectedSubtrees(*target, root_ids);
+  std::vector<Entity> removed;
+  std::vector<Id> original_order;
+  for (const auto &entity : target->entities) {
+    original_order.push_back(entity.id);
+    if (removed_ids.contains(entity.id))
+      removed.push_back(entity);
+  }
   WorldCommandBuffer apply;
-  apply.DestroyEntity(entity);
+  for (const auto &root : roots)
+    apply.DestroyEntity(root.id);
   if (!apply.Apply(world_))
     return false;
   undo_.Record(
-      [this, scene, subtree, root_world, root_index] {
-        auto *target = const_cast<Scene *>(world_.FindScene(scene));
-        if (target == nullptr || target->state == SceneState::Unloading ||
-            target->state == SceneState::Unloaded ||
-            std::ranges::any_of(subtree, [this](const Entity &restored) {
-              return world_.FindEntity(restored.id) != nullptr;
+      [this, scene, removed, roots, original_order] {
+        auto *current = const_cast<Scene *>(world_.FindScene(scene));
+        if (!current || current->state == SceneState::Unloading ||
+            current->state == SceneState::Unloaded ||
+            std::ranges::any_of(removed, [this](const Entity &entity) {
+              return world_.FindEntity(entity.id) != nullptr;
             }))
           return false;
-        const auto parent = subtree.front().parent;
-        const bool orphaned =
-            parent != 0 &&
-            std::ranges::find(target->entities, parent, &Entity::id) == target->entities.end();
-        for (const auto &restored : subtree) {
-          target->entities.push_back(restored);
-          if (orphaned && restored.id == subtree.front().id) {
-            target->entities.back().parent = 0;
-            if (const auto normalized = NormalizedTransform(root_world))
-              target->entities.back().transform = *normalized;
+        // Rehearse restoration and sibling placement before publishing any restored entity.
+        World staged{world_.kind_};
+        staged.scenes_ = world_.scenes_;
+        staged.next_id_ = world_.next_id_;
+        auto *restored = const_cast<Scene *>(staged.FindScene(scene));
+        // Insert removed records before their next surviving original neighbor. Preserve current
+        // survivors and unrelated new entities, without needlessly changing stable snapshot order.
+        std::unordered_map<Id, Entity> payloads;
+        for (const auto &entity : removed)
+          payloads.emplace(entity.id, entity);
+        std::unordered_set<Id> survivors;
+        for (const auto &entity : current->entities)
+          survivors.insert(entity.id);
+        std::unordered_map<Id, std::vector<Entity>> preceding;
+        std::vector<Entity> pending, merged;
+        for (const auto id : original_order) {
+          if (const auto found = payloads.find(id); found != payloads.end())
+            pending.push_back(found->second);
+          else if (survivors.contains(id) && !pending.empty()) {
+            preceding.emplace(id, std::move(pending));
+            pending.clear();
           }
-          world_.next_id_ = std::max(world_.next_id_, restored.id + 1);
         }
-        // Back to the sibling position it had (it was appended last).
+        merged.reserve(current->entities.size() + removed.size());
+        for (const auto &entity : current->entities) {
+          if (const auto found = preceding.find(entity.id); found != preceding.end())
+            merged.insert(merged.end(), found->second.begin(), found->second.end());
+          merged.push_back(entity);
+        }
+        merged.insert(merged.end(), pending.begin(), pending.end());
+        restored->entities = std::move(merged);
         WorldCommandBuffer place;
-        place.SetSiblingIndex(subtree.front().id, root_index);
-        return place.Apply(world_);
+        for (const auto &root : roots) {
+          auto entity = std::ranges::find(restored->entities, root.id, &Entity::id);
+          if (entity->parent != 0 && std::ranges::find(restored->entities, entity->parent,
+                                                       &Entity::id) == restored->entities.end()) {
+            const auto pose = NormalizedTransform(root.world_pose);
+            if (!pose)
+              return false;
+            entity->parent = 0;
+            entity->transform = *pose;
+          }
+          if (staged.SiblingIndex(root.id) != root.sibling_index)
+            place.SetSiblingIndex(root.id, root.sibling_index);
+        }
+        if (!place.Apply(staged))
+          return false;
+        for (const auto &entity : removed)
+          staged.next_id_ = std::max(staged.next_id_, entity.id + 1);
+        current->entities = std::move(restored->entities);
+        world_.next_id_ = staged.next_id_;
+        return true;
       },
-      [this, scene, entity] {
-        const auto *target = world_.FindScene(scene);
-        if (target == nullptr ||
-            std::ranges::find(target->entities, entity, &Entity::id) == target->entities.end())
+      [this, scene, roots, root_ids, removed_ids] {
+        const auto *current = world_.FindScene(scene);
+        if (!current || current->state == SceneState::Unloading ||
+            current->state == SceneState::Unloaded)
           return false;
         WorldCommandBuffer commands;
-        commands.DestroyEntity(entity);
+        for (const auto &root : roots) {
+          if (std::ranges::find(current->entities, root.id, &Entity::id) == current->entities.end())
+            return false;
+          commands.DestroyEntity(root.id);
+        }
+        // External additions/reparenting may not silently expand the recorded deletion.
+        if (SelectedSubtrees(*current, root_ids) != removed_ids)
+          return false;
         return commands.Apply(world_);
       });
   ++depth_;

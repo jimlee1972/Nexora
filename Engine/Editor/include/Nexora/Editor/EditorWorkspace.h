@@ -249,8 +249,7 @@ public:
   bool Paste();
   // Duplicates the current selection without replacing the user's copied clipboard.
   bool DuplicateSelection();
-  // Deletes selected subtrees. Each selected root is one undo step; descendants are not deleted
-  // twice.
+  // Deletes selected subtrees as one atomic Undo; selected descendants are not deleted twice.
   bool DeleteSelection();
   bool Undo();
   bool Redo();
