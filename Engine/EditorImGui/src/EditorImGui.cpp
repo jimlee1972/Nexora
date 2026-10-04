@@ -200,11 +200,13 @@ struct EditorImGuiHost::State final {
   std::array<bool, 3> inspector_camera_mixed{};
   bool inspector_camera_presence_mixed{}, inspector_light_presence_mixed{}, inspector_light_mixed{};
   struct InspectorMeshRequest final {
-    SceneDocument::NodeKey entity;
+    std::vector<SceneDocument::NodeKey> entities;
     std::optional<runtime::AssetUuid> asset;
     std::uint64_t generation{};
   };
   std::optional<InspectorMeshRequest> inspector_mesh_request;
+  std::string inspector_mesh_label;
+  std::array<std::optional<std::array<float, 2>>, 3> inspector_mesh_positions{};
   std::uint32_t inspector_selection = 0;
   std::vector<OpaqueComponentInfo> inspector_opaque_info;
   bool inspector_transform_visible = false;
@@ -1392,6 +1394,8 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   state.inspector_camera_presence_mixed = state.inspector_light_presence_mixed = false;
   state.inspector_camera_mixed = {};
   state.inspector_light_mixed = false;
+  state.inspector_mesh_label.clear();
+  state.inspector_mesh_positions = {};
   state.inspector_opaque_info.clear();
   std::unordered_set<runtime::Id> selected_entities;
   if (scene != nullptr)
@@ -1714,61 +1718,97 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       state.inspector_error.clear();
   }
   ImGui::PopID();
-  if (keys.size() == 1) {
-    const auto mesh = scene->MeshRenderer(keys.front());
-    ImGui::SeparatorText("Mesh Renderer");
+  {
+    const auto first = scene->MeshRenderer(keys.front());
+    bool mixed = false;
+    bool any_mesh = false;
+    bool missing_mesh = false;
     const auto generation = content ? content->Browser().ProjectGeneration() : 0;
+    for (const auto key : keys) {
+      const auto mesh = scene->MeshRenderer(key);
+      any_mesh |= mesh.has_value();
+      mixed |=
+          mesh.has_value() != first.has_value() || (mesh && first && mesh->mesh != first->mesh);
+      const auto resolved =
+          mesh && meshes ? meshes->ResolveResource(mesh->mesh, generation) : std::nullopt;
+      missing_mesh |= mesh && (!resolved || !content || !content->Browser().Find(resolved->asset));
+    }
     const auto resolved =
-        mesh && meshes ? meshes->ResolveResource(mesh->mesh, generation) : std::nullopt;
+        first && meshes ? meshes->ResolveResource(first->mesh, generation) : std::nullopt;
     const auto *item = resolved && content ? content->Browser().Find(resolved->asset) : nullptr;
-    const auto label = item ? PathLabel(item->path) : mesh ? "Missing mesh" : "None";
+    state.inspector_mesh_label = mixed   ? "Mixed"
+                                 : item  ? PathLabel(item->path)
+                                 : first ? "Missing mesh"
+                                         : "None";
+    ImGui::SeparatorText("Mesh Renderer");
     ImGui::BeginDisabled(!editable || content == nullptr || !content->Writable() ||
                          meshes == nullptr);
-    if (ImGui::BeginCombo("Mesh###editor.inspector.mesh.asset", label.c_str())) {
+    const bool mesh_combo_open =
+        ImGui::BeginCombo("Mesh###editor.inspector.mesh.asset", state.inspector_mesh_label.c_str());
+    const auto combo_min = ImGui::GetItemRectMin();
+    const auto combo_max = ImGui::GetItemRectMax();
+    state.inspector_mesh_positions[0] =
+        std::array{(combo_min.x + combo_max.x) * 0.5F, (combo_min.y + combo_max.y) * 0.5F};
+    if (mesh_combo_open) {
       for (const auto &candidate : content->Browser().Items()) {
         if (!meshes->ResolveAsset(candidate.id, generation))
           continue;
         const auto identity = candidate.id.ToString();
         ImGui::PushID(identity.c_str());
         if (ImGui::Selectable(PathLabel(candidate.path).c_str(),
-                              resolved && resolved->asset == candidate.id))
+                              !mixed && resolved && resolved->asset == candidate.id))
           state.inspector_mesh_request =
-              typename StateT::InspectorMeshRequest{keys.front(), candidate.id, generation};
+              typename StateT::InspectorMeshRequest{keys, candidate.id, generation};
+        if (!state.inspector_mesh_positions[1]) {
+          const auto item_min = ImGui::GetItemRectMin();
+          const auto item_max = ImGui::GetItemRectMax();
+          state.inspector_mesh_positions[1] =
+              std::array{(item_min.x + item_max.x) * 0.5F, (item_min.y + item_max.y) * 0.5F};
+        }
         ImGui::PopID();
       }
       ImGui::EndCombo();
     }
     ImGui::EndDisabled();
-    ImGui::BeginDisabled(!editable || !mesh || content == nullptr || !content->Writable());
+    ImGui::BeginDisabled(!editable || !any_mesh || content == nullptr || !content->Writable());
     if (ImGui::Button("Remove Mesh Renderer###editor.inspector.mesh.remove"))
       state.inspector_mesh_request =
-          typename StateT::InspectorMeshRequest{keys.front(), std::nullopt, generation};
+          typename StateT::InspectorMeshRequest{keys, std::nullopt, generation};
+    const auto remove_min = ImGui::GetItemRectMin();
+    const auto remove_max = ImGui::GetItemRectMax();
+    state.inspector_mesh_positions[2] =
+        std::array{(remove_min.x + remove_max.x) * 0.5F, (remove_min.y + remove_max.y) * 0.5F};
     ImGui::EndDisabled();
-    if (mesh && item == nullptr)
-      ImGui::TextWrapped("The referenced mesh is unavailable. Its reference is preserved.");
+    if (missing_mesh)
+      ImGui::TextWrapped("Some referenced meshes are unavailable. Their references are preserved.");
   }
   if (state.inspector_mesh_request) {
     const auto request = std::exchange(state.inspector_mesh_request, std::nullopt);
-    auto component = scene->MeshRenderer(request->entity);
     const auto resolved = request->asset && meshes
                               ? meshes->ResolveAsset(*request->asset, request->generation)
                               : std::nullopt;
-    const bool valid = editable && content && content->Writable() &&
+    const bool valid = editable && content && content->Writable() && request->entities == keys &&
                        content->Browser().ProjectGeneration() == request->generation &&
                        (!request->asset || (resolved && content->Browser().Find(*request->asset)));
+    std::vector<std::optional<runtime::MeshComponent>> components;
     if (valid) {
-      CancelSceneGestures(state);
-      if (request->asset) {
-        if (!component)
-          component.emplace();
-        component->mesh = resolved->resource;
-      } else {
-        component.reset();
+      components.reserve(request->entities.size());
+      for (const auto key : request->entities) {
+        auto component = scene->MeshRenderer(key);
+        if (request->asset) {
+          if (!component)
+            component.emplace();
+          component->mesh = resolved->resource;
+        } else {
+          component.reset();
+        }
+        components.push_back(component);
       }
+      CancelSceneGestures(state);
     }
-    if (!valid || !scene->SetMeshRenderer(request->entity, component))
+    if (!valid || !scene->SetMeshRenderers(request->entities, components))
       state.inspector_error =
-          "Mesh edit rejected because its asset, project or entity is unavailable.";
+          "Mesh edit rejected because its selection, asset, project or entity is unavailable.";
     else
       state.inspector_error.clear();
   }
@@ -3828,7 +3868,31 @@ void EditorImGuiTestAccess::QueueInspectorMesh(EditorImGuiHost &host, SceneDocum
                                                std::optional<runtime::AssetUuid> asset,
                                                std::uint64_t generation) noexcept {
   host.state_->inspector_mesh_request =
-      EditorImGuiHost::State::InspectorMeshRequest{entity, asset, generation};
+      EditorImGuiHost::State::InspectorMeshRequest{{entity}, asset, generation};
+}
+
+void EditorImGuiTestAccess::QueueInspectorMeshes(EditorImGuiHost &host,
+                                                 std::span<const SceneDocument::NodeKey> entities,
+                                                 std::optional<runtime::AssetUuid> asset,
+                                                 std::uint64_t generation) {
+  host.state_->inspector_mesh_request = EditorImGuiHost::State::InspectorMeshRequest{
+      {entities.begin(), entities.end()}, asset, generation};
+}
+std::string_view EditorImGuiTestAccess::InspectorMeshLabel(const EditorImGuiHost &host) noexcept {
+  return host.state_->inspector_mesh_label;
+}
+
+void EditorImGuiTestAccess::FocusInspector(EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto name = PanelWindowName("nexora.inspector");
+  ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::InspectorMeshPosition(const EditorImGuiHost &host,
+                                             std::size_t control) noexcept {
+  return control < host.state_->inspector_mesh_positions.size()
+             ? host.state_->inspector_mesh_positions[control]
+             : std::nullopt;
 }
 
 void EditorImGuiTestAccess::QueueInspectorLight(

@@ -176,8 +176,10 @@ Native Scene preview now draws and triangle-picks resolved OBJ geometry through 
 mesh batches. Distinct triangle/quad Xvfb pixels cover Center preview/commit and Undo; missing or
 oversized meshes warn and retain proxies. Material shaders, exact shear and full acceptance remain open.
 
-The Inspector now assigns imported OBJ mesh assets with Undo/Redo, preserves material references,
-and rejects stale project/document requests. Full Scene View acceptance remains open.
+The Inspector now assigns imported OBJ meshes or removes MeshRenderer across mixed multi-selection
+as one atomic Undo/Redo step, preserves each entity's material, and rejects stale selection/project/
+document requests. Actual combo/remove clicks, repeated replay and save/reload are contract-tested.
+Full Scene View acceptance remains open.
 
 Imported mesh geometry now has an owning, generation-checked CPU catalog with stable UUID-derived
 64-bit scene resource IDs and atomic collision rejection. Persistent per-asset GPU caching and full Scene View acceptance remain open.
@@ -462,7 +464,8 @@ OBJ reimport 現在 revision 與記憶體預算檢查通過後一併發布不可
 不同 triangle／quad 的 Xvfb 像素驗證 Center 預覽／提交及 Undo；缺失或超限 mesh 會警告並
 保留代理。Material shader、精確 shear 與完整驗收仍待完成。
 
-Inspector 現支援以 Undo／Redo 指派匯入 OBJ mesh 資產、保留 material 參照，並拒絕過期專案／
+Inspector 現支援對 mixed 多選以一個 atomic Undo／Redo 指派匯入 OBJ mesh 或移除 MeshRenderer，
+保留各 entity 的 material，並以真正 combo／remove 點擊、重複 replay 與 save／reload 驗證；拒絕過期選取／專案／
 文件請求；完整 Scene View 驗收仍待完成。
 
 匯入 mesh geometry 現有 owning、具 generation 檢查的 CPU catalog，以 UUID 穩定衍生 64-bit

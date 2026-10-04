@@ -239,24 +239,38 @@ bool SceneEditor::SetLights(std::span<const Id> entities,
   return ApplyComponentEdit(std::move(apply), std::move(restore));
 }
 bool SceneEditor::SetMeshRenderer(Id entity, std::optional<MeshComponent> mesh) {
-  const auto *existing = world_.FindEntity(entity);
-  if (!existing)
+  return SetMeshRenderers(std::array{entity}, std::array{mesh});
+}
+bool SceneEditor::SetMeshRenderers(std::span<const Id> entities,
+                                   std::span<const std::optional<MeshComponent>> meshes) {
+  if (entities.empty() || entities.size() != meshes.size())
     return false;
-  const std::optional<MeshComponent> previous =
-      existing->mesh_renderer ? std::optional(existing->mesh_data) : std::nullopt;
+  std::vector<std::optional<MeshComponent>> previous;
+  previous.reserve(entities.size());
+  std::unordered_set<Id> unique;
   WorldCommandBuffer apply;
-  apply.SetMeshRenderer(entity, mesh);
+  for (std::size_t index = 0; index < entities.size(); ++index) {
+    const auto *existing = world_.FindEntity(entities[index]);
+    if (!existing || !unique.insert(entities[index]).second)
+      return false;
+    previous.push_back(existing->mesh_renderer ? std::optional(existing->mesh_data) : std::nullopt);
+    apply.SetMeshRenderer(entities[index], meshes[index]);
+  }
   if (!apply.Apply(world_))
     return false;
+  const std::vector<Id> owned_entities(entities.begin(), entities.end());
+  const std::vector<std::optional<MeshComponent>> next(meshes.begin(), meshes.end());
   undo_.Record(
-      [this, entity, previous] {
+      [this, owned_entities, previous] {
         WorldCommandBuffer commands;
-        commands.SetMeshRenderer(entity, previous);
+        for (std::size_t index = 0; index < owned_entities.size(); ++index)
+          commands.SetMeshRenderer(owned_entities[index], previous[index]);
         return commands.Apply(world_);
       },
-      [this, entity, mesh] {
+      [this, owned_entities, next] {
         WorldCommandBuffer commands;
-        commands.SetMeshRenderer(entity, mesh);
+        for (std::size_t index = 0; index < owned_entities.size(); ++index)
+          commands.SetMeshRenderer(owned_entities[index], next[index]);
         return commands.Apply(world_);
       });
   ++depth_;

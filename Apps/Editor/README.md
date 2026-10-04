@@ -297,3 +297,7 @@ The Inspector edits Camera/Light multi-selection through generation-checked atom
 batches. Mixed values/presence are explicit, Enter commits one field, and one Undo restores all prior
 per-entity presence/values. Project read-only and blocking recovery/review/close states reject pending
 edits. Mesh resource assignment retains its additional writable-content/project-generation checks.
+
+The Mesh Renderer Inspector supports mixed multi-selection. Assigning an imported OBJ preserves each
+entity's material reference; removing components affects the selection in one Undo step. Stale
+selection/project/document requests and read-only/recovery edits reject the complete operation.
