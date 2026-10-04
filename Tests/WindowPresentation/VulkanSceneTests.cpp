@@ -2,6 +2,7 @@
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/keysym.h>
 #undef None
 
 #include <array>
@@ -29,6 +30,78 @@ unsigned Channel(unsigned long pixel, unsigned long mask) {
     pixel >>= 1;
   }
   return static_cast<unsigned>((pixel & mask) * 255 / mask);
+}
+void CheckModifierTransitions(Display *display, ::Window native, Window::IWindowSystem &windows,
+                              Window::WindowHandle handle) {
+  struct Expected final {
+    Window::Key key;
+    bool down;
+    Window::KeyModifiers modifiers;
+  };
+  std::vector<Expected> expected;
+  const auto send = [&](KeySym symbol, Window::Key key, bool down, unsigned state,
+                        Window::KeyModifiers modifiers) {
+    XEvent event{};
+    event.xkey.type = down ? KeyPress : KeyRelease;
+    event.xkey.display = display;
+    event.xkey.window = native;
+    event.xkey.root = DefaultRootWindow(display);
+    event.xkey.same_screen = True;
+    event.xkey.keycode = XKeysymToKeycode(display, symbol);
+    event.xkey.state = state;
+    Require(XSendEvent(display, native, False, down ? KeyPressMask : KeyReleaseMask, &event) != 0,
+            "X11 modifier event injection failed");
+    expected.push_back({key, down, modifiers});
+  };
+  struct Family final {
+    KeySym left, right;
+    Window::Key leftKey, rightKey;
+    unsigned mask;
+    Window::KeyModifiers modifier;
+  };
+  const std::array families{Family{XK_Control_L, XK_Control_R, Window::Key::LeftControl,
+                                   Window::Key::RightControl, ControlMask,
+                                   Window::KeyModifiers::Control},
+                            Family{XK_Shift_L, XK_Shift_R, Window::Key::LeftShift,
+                                   Window::Key::RightShift, ShiftMask, Window::KeyModifiers::Shift},
+                            Family{XK_Alt_L, XK_Alt_R, Window::Key::LeftAlt, Window::Key::RightAlt,
+                                   Mod1Mask, Window::KeyModifiers::Alt},
+                            Family{XK_Super_L, XK_Super_R, Window::Key::LeftSuper,
+                                   Window::Key::RightSuper, Mod4Mask, Window::KeyModifiers::Super}};
+  for (const auto &family : families) {
+    send(family.left, family.leftKey, true, 0, family.modifier);
+    send(family.right, family.rightKey, true, family.mask, family.modifier);
+    send(family.left, family.leftKey, false, family.mask, family.modifier);
+    send(family.right, family.rightKey, false, family.mask, Window::KeyModifiers::None);
+  }
+  send(XK_Shift_R, Window::Key::RightShift, true, 0, Window::KeyModifiers::Shift);
+  XEvent focus{};
+  focus.xfocus.type = FocusOut;
+  focus.xfocus.display = display;
+  focus.xfocus.window = native;
+  focus.xfocus.mode = NotifyNormal;
+  focus.xfocus.detail = NotifyNonlinear;
+  Require(XSendEvent(display, native, False, FocusChangeMask, &focus) != 0,
+          "X11 focus-loss injection failed");
+  send(XK_Shift_L, Window::Key::LeftShift, true, 0, Window::KeyModifiers::Shift);
+  send(XK_Shift_L, Window::Key::LeftShift, false, ShiftMask, Window::KeyModifiers::None);
+  XSync(display, False);
+  std::size_t received{};
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+  while (received < expected.size() && std::chrono::steady_clock::now() < deadline) {
+    for (const auto &event : windows.PumpEvents()) {
+      if (event.window != handle || event.type != Window::WindowEventType::Key)
+        continue;
+      Require(received < expected.size(), "unexpected X11 key event");
+      const auto &value = expected[received++];
+      Require(event.value0 == static_cast<std::int32_t>(value.key) &&
+                  (event.value1 != 0) == value.down && event.modifiers == value.modifiers,
+              "X11 modifier transition kept a released key or dropped its held partner");
+    }
+    if (received < expected.size())
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
+  Require(received == expected.size(), "X11 modifier transition events did not arrive");
 }
 // Pixel readback belongs exclusively to this target-host test, never the render path.
 void CheckPixels(Display *display, ::Window window, unsigned width, unsigned height,
@@ -92,6 +165,7 @@ int main(int argc, char **argv) {
     auto *display = XOpenDisplay(nullptr);
     Require(display != nullptr, "X11 readback display unavailable");
     const auto native = reinterpret_cast<::Window>(windows->NativeHandle(created.handle));
+    CheckModifierTransitions(display, native, *windows, created.handle);
     Presentation::SurfaceDescriptor descriptor{};
     descriptor.window = created.handle;
     descriptor.width = 640;

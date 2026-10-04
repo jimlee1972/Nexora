@@ -163,6 +163,11 @@ with text/severity filters, source, timestamps, and dropped-record count; startu
 diagnostics are routed through it. Game View and complete log routing remain open.
 
 Xvfb Undo checks now retry only Save after a single Undo until committed scene bytes match.
+X11 modifier releases now clear the released family immediately while preserving a held paired key;
+native X11 event tests cover Control, Shift, Alt, and Super. Center preview pixels wait for a changed,
+settled frame before release comparison.
+Native authoring input now commits before Save/Save-and-exit and GPU submission, so an immediate
+Save after mouse release includes that completed edit.
 Scene drags now cancel on focus loss, Undo/Redo and Create/Paste/Duplicate shortcuts, document replacement, and hidden
 canvas or recovery. Real Xvfb FocusOut and UI contracts verify that abandoned previews do not commit.
 
@@ -369,6 +374,10 @@ backend-neutral `Text` event，physical key 與 text input 維持分離。
 仍待完成。
 
 Xvfb Undo 檢查現只在單次 Undo 後重試 Save，直到已提交的場景位元組相符。
+X11 修飾鍵放開事件現會立即清除該組 flags，另一側仍按下時保留；原生 X11 事件測試涵蓋
+Control、Shift、Alt 及 Super。Center 預覽像素先等待已變更且穩定的畫面，再比較放開後的結果。
+原生編輯輸入現先於 Save／Save-and-exit 及 GPU 提交完成，因此放開拖曳後立即 Save 會包含
+該次已完成的編輯。
 Scene 拖曳現會在失焦、Undo／Redo 與建立／貼上／複製物件快捷鍵、文件替換、畫布隱藏或復原提示時取消；
 真正的 Xvfb FocusOut 與 UI contract 驗證被放棄的預覽不會提交。
 

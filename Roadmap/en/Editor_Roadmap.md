@@ -126,6 +126,10 @@ Deliver Hierarchy, Scene View, Inspector, camera controls, selection/picking, tr
 gizmos, parenting/reordering, multi-selection, clipboard, undo/redo, and save/reload. Reflection
 creates property widgets; unknown components retain raw data instead of being silently discarded.
 
+- ✅ Native pick/release authoring commands commit before Save, Save-and-exit, and GPU submission.
+  Real Xvfb XYZ drags save immediately after release and verify the completed pose; saves while
+  a gesture is held wait for commit or cancellation before serializing.
+
 - ✅ SceneDocument now exposes generation-safe MeshRenderer attachment, mesh/material resource
   replacement, removal, and owning reads through Runtime Undo/Redo. Tests retain full 64-bit and
   unresolved IDs across scene save/reload, preserve Redo on no-op edits, and reject stale keys.

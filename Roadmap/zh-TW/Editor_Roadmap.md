@@ -127,6 +127,10 @@ Hierarchy、Scene View、Inspector、camera controls、selection/picking、trans
 parent/reorder、multi-selection、copy/paste、undo/redo 與 save/reload。Reflection 產生 property
 widgets；未知 component 保留 raw data，不靜默遺失。
 
+- ✅ 原生 picking／放開拖曳的編輯命令現先於 Save、Save-and-exit 及 GPU 提交完成。
+  真正的 Xvfb XYZ 拖曳放開後立即 Save，並驗證已完成的姿態；仍按住手勢時的 Save
+  會等待提交或取消後才儲存。
+
 - ✅ SceneDocument 現透過 Runtime Undo／Redo 提供 generation-safe MeshRenderer 新增、mesh／
   material 資源參照替換、移除及 owning 查詢。測試驗證完整 64-bit 與尚未解析的 ID 可場景儲存／
   重載、無變更編輯保留 Redo，並拒絕過期 key。圖形化 mesh 資產指派、residency 及實際 mesh
