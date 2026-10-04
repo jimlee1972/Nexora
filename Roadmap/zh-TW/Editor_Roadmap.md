@@ -217,7 +217,7 @@ parent/reorder、multi-selection、copy/paste、undo/redo 與 save/reload。Refl
 widgets；未知 component 保留 raw data，不靜默遺失。
 
 - ✅ Inspector 現提供多選 Reset Transform、Reset Camera 及 Reset Light。Transform 重設會
-  清除 local TRS 與 Euler 圈數；Camera／Light 重設保留缺少元件的狀態。變更 batch 以原子
+  清除 local TRS 與可見／過期的 Euler 圈數；Camera／Light 重設保留缺少元件的狀態。變更 batch 以原子
   單步 Undo／Redo 提交，no-op 保留 Redo。重設取消未提交草稿及 Scene 手勢，並遵守 workspace／
   modal gate。Portable 與 1x／2x 真正 UI 輸入測試涵蓋 metadata-only Undo、mixed presence、
   無關 payload 保留及 save／reload。完整 reflected Inspector 與 target-host 驗收仍待完成。

@@ -126,5 +126,6 @@ composition order、真正 key/text 提交、stale／非有限值拒絕與單步
 ✅ Inspector Reset Transform 現以原子多選的單步 Undo／Redo 清除 local TRS 與 Euler 圈數。
 Identity quaternion 搭配 720 度提示仍建立相符的 Runtime／metadata history；
 `editor.component_reset_contract` 驗證重複 replay。已為預設的重設保留 Redo。
+隱藏的過期提示也會重設以防止再次出現，Undo 會還原原本狀態。
 `editor.inspector_component_reset` 涵蓋 1x／2x 真正輸入、草稿取消、access gate 與提交後
 save／reload。完整圖形化驗收仍待完成。

@@ -236,7 +236,7 @@ values, Undo/Redo and committed-only scene persistence retain the existing contr
 ## Inspector component reset
 
 Reset Transform restores local identity position/rotation/scale and zero authored Euler revolutions
-for the displayed selection. Reset Camera and Reset Light restore existing components to their
+for the displayed selection, including hidden stale hints. Reset Camera and Reset Light restore existing components to their
 Runtime defaults without adding missing components; controls disable when all targets lack that
 component. Each changed selection resets atomically as one Undo/Redo step; already-default clicks
 retain Redo. Parent, selection, names, opaque payloads and unrelated components remain intact.

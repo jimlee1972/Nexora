@@ -194,6 +194,23 @@ void Run(float dpi, std::size_t component) {
   f.Click(component);
   Require(f.world.SaveScene(f.id) == protected_world, "close modal admitted reset");
 }
+void RunStaleHint(float dpi) {
+  Fixture f(dpi);
+  Require(f.scene.SetEulerField(f.Keys(), 0, 450), "latent Inspector hint fixture failed");
+  const auto quarter_turn = *f.scene.Transform(f.first);
+  Require(f.scene.SetTransforms(f.Keys(), std::array{runtime::Transform{}, runtime::Transform{}}),
+          "latent Inspector identity fixture failed");
+  const auto identity = f.world.SaveScene(f.id);
+  f.Draw();
+  f.Click(0);
+  Require(f.world.SaveScene(f.id) == identity && f.scene.SetTransform(f.first, quarter_turn) &&
+              f.scene.EulerAngles(f.first)->at(0) > 89 && f.scene.EulerAngles(f.first)->at(0) < 91,
+          "Reset Transform click revived a hidden authored hint");
+  Require(f.scene.Undo() && f.scene.Undo() && f.world.SaveScene(f.id) == identity &&
+              f.scene.SetTransform(f.first, quarter_turn) &&
+              f.scene.EulerAngles(f.first)->at(0) == 450,
+          "Reset Transform click lost latent metadata Undo");
+}
 void RunMixedPresence(float dpi, std::size_t component) {
   Fixture f(dpi);
   Require(component == 1 ? f.scene.SetCamera(f.Keys()[1], std::nullopt)
@@ -228,6 +245,7 @@ int main() {
     for (const auto dpi : {1.0F, 2.0F}) {
       for (std::size_t component = 0; component < 3; ++component)
         Run(dpi, component);
+      RunStaleHint(dpi);
       RunMixedPresence(dpi, 1);
       RunMixedPresence(dpi, 2);
     }

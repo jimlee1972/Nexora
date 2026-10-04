@@ -115,7 +115,8 @@ write. SceneDocument persists authored Euler hints through save/reload and resto
 For one selected entity, the Inspector can add/remove a Camera component and edit its field of view
 and clipping planes. Invalid values are rejected; Save, Reload, and Undo retain the camera contract.
 The single-selection Light section likewise adds/removes a Light and edits nonnegative intensity.
-Reset Transform clears local TRS and authored Euler revolutions across the selection as one Undo.
+Reset Transform clears local TRS and visible/stale authored Euler revolutions across the selection
+as one Undo.
 Reset Camera/Light restores existing components to defaults without adding missing components.
 Reset cancels pending Inspector drafts and Scene gestures, preserves unrelated payloads and parents,
 and follows the workspace/modal authoring gate. Already-default clicks retain Redo; Save/Reload

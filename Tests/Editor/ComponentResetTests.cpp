@@ -16,6 +16,31 @@ bool DefaultCamera(const std::optional<runtime::CameraComponent> &camera) {
   return camera && camera->vertical_field_of_view == 60 && camera->near_plane == 0.1 &&
          camera->far_plane == 1000;
 }
+void RunStaleHint() {
+  runtime::World world;
+  const auto id = world.LoadScene("Latent Euler reset");
+  editor::SceneDocument scene(world, id);
+  const auto entity = scene.Create("Previously rotated");
+  const std::array keys{*scene.Key(entity)};
+  Require(scene.SetEulerField(keys, 0, 450), "latent hint fixture failed");
+  const auto quarter_turn = *scene.Transform(entity);
+  Require(scene.SetTransform(entity, {}) && scene.EulerAngles(entity) == editor::EulerDegrees{},
+          "latent hint was not hidden at identity");
+  const auto identity = world.SaveScene(id);
+  Require(scene.ResetTransforms(keys) && world.SaveScene(id) == identity &&
+              scene.SetTransform(entity, quarter_turn) && scene.EulerAngles(entity)->at(0) > 89 &&
+              scene.EulerAngles(entity)->at(0) < 91,
+          "Reset revived latent 450-degree revolutions after another rotation");
+  Require(scene.Undo() && scene.Undo() && world.SaveScene(id) == identity &&
+              scene.SetTransform(entity, quarter_turn) && scene.EulerAngles(entity)->at(0) == 450,
+          "metadata-only reset Undo did not restore the previous latent hint");
+  Require(scene.Undo() && scene.ResetTransforms(keys), "latent reset replay fixture failed");
+  for (int cycle = 0; cycle < 100; ++cycle)
+    Require(scene.Undo() && scene.Redo() && world.SaveScene(id) == identity,
+            "latent reset desynchronized Runtime and metadata replay");
+  Require(scene.SetTransform(entity, quarter_turn) && scene.EulerAngles(entity)->at(0) < 91,
+          "latent hint survived repeated reset replay");
+}
 void Run(const std::filesystem::path &root) {
   runtime::World world;
   const auto id = world.LoadScene("Reset components");
@@ -125,6 +150,7 @@ int main() {
                     ("nexora-component-reset-" +
                      std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   try {
+    RunStaleHint();
     Run(root);
     std::filesystem::remove_all(root);
     std::cout << "Atomic component reset contracts passed\n";

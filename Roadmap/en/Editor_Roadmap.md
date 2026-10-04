@@ -224,7 +224,7 @@ gizmos, parenting/reordering, multi-selection, clipboard, undo/redo, and save/re
 creates property widgets; unknown components retain raw data instead of being silently discarded.
 
 - ✅ Inspector now exposes Reset Transform, Reset Camera and Reset Light for multi-selection.
-  Transform reset clears local TRS and Euler revolutions; Camera/Light reset preserves missing
+  Transform reset clears local TRS and visible/stale Euler revolutions; Camera/Light reset preserves missing
   components. Changed batches are atomic single-step Undo/Redo, and no-ops retain Redo. Reset cancels
   unsubmitted drafts and Scene gestures; workspace/modal gates apply. Portable and 1x/2x real UI
   input tests cover metadata-only Undo, mixed presence, unrelated payloads and save/reload.

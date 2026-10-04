@@ -270,7 +270,8 @@ batch of generation-checked keys on the authoring thread. Stale or duplicate key
 batch. Transform reset restores local identity TRS and zero authored Euler hints, preserving parent,
 selection and unrelated components. Camera/Light reset restores defaults only where that component
 already exists; absent components remain absent. Each changed batch owns one Undo step. Metadata-only
-Euler resets still record matching Runtime history; already-default batches preserve Undo/Redo.
+Euler resets clear visible and stale hints so old revolutions cannot revive on a later rotation,
+and still record matching Runtime history; already-default batches preserve Undo/Redo.
 Save/Reload retains committed defaults through the existing schema. These additive Editor C++ APIs
 require consumers to rebuild; stable C/Zig contracts and scene formats do not change. Workspace
 write permissions remain the caller's responsibility.

@@ -141,5 +141,6 @@ and one-step multi-target undo. This does not close ED-M2 target-host acceptance
 ✅ Inspector Reset Transform now clears local TRS and authored Euler revolutions as one atomic
 multi-target Undo/Redo step. An identity quaternion with a 720-degree hint still gets matching
 Runtime/metadata history; repeated replay is covered by `editor.component_reset_contract`.
+Hidden stale hints also reset, preventing later revival; Undo restores their original state.
 Already-default reset retains Redo. `editor.inspector_component_reset` covers 1x/2x real input,
 abandoned drafts, access gates and committed save/reload. Full graphical acceptance remains open.

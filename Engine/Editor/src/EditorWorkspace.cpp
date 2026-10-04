@@ -661,7 +661,12 @@ bool SceneDocument::ResetTransforms(std::span<const NodeKey> entities) {
     const auto angles = EulerAngles(key.id);
     if (!transform || !angles)
       return false;
-    changed |= *transform != runtime::Transform{} || *angles != EulerDegrees{};
+    const auto &hint = std::ranges::find(nodes_, key.id, &Node::id)->euler_hint;
+    // A mismatched hint is hidden by EulerAngles(), but can revive when a later pose matches it.
+    // Reset must clear that latent authored state through the same Runtime/metadata Undo step.
+    changed |=
+        *transform != runtime::Transform{} || *angles != EulerDegrees{} ||
+        (hint && (hint->degrees != EulerDegrees{} || !SameRotation(hint->transform, *transform)));
   }
   if (!changed)
     return true;
