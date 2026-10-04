@@ -18,6 +18,7 @@
 
 namespace nexora::editor {
 namespace {
+constexpr std::size_t kMaximumSceneFileBytes = 64 * 1024 * 1024;
 constexpr std::array kPanels{PanelDescriptor{"nexora.project", "Project"},
                              PanelDescriptor{"nexora.hierarchy", "Hierarchy"},
                              PanelDescriptor{"nexora.scene", "Scene"},
@@ -26,6 +27,23 @@ constexpr std::array kPanels{PanelDescriptor{"nexora.project", "Project"},
                              PanelDescriptor{"nexora.content", "Content"},
                              PanelDescriptor{"nexora.console", "Console"},
                              PanelDescriptor{"nexora.profiler", "Profiler"}};
+
+template <typename Nodes> std::optional<UnknownComponentStore> CaptureOpaque(const Nodes &nodes) {
+  UnknownComponentStore result;
+  for (const auto &node : nodes)
+    for (const auto &component : node.opaque)
+      if (!result.Set(node.id, component))
+        return std::nullopt;
+  return result;
+}
+std::string OpaqueRecords(const UnknownComponentStore &store) {
+  std::istringstream input(store.Serialize());
+  std::string line, result;
+  std::getline(input, line); // standalone store header is replaced by scene's versioned header
+  while (std::getline(input, line))
+    result += "opaque " + line + '\n';
+  return result;
+}
 
 std::uint64_t NextDocumentGeneration() noexcept {
   static std::atomic_uint64_t next{1};
@@ -372,6 +390,7 @@ SceneDocument::SceneDocument(runtime::World &world, runtime::Id scene)
   saved_signature_ = StateSignature().value_or(std::string{});
 }
 void SceneDocument::PushUndo(UndoEntry entry) {
+  opaque_dirty_.reset();
   redo_.clear();
   undo_.push_back(std::move(entry));
 }
@@ -706,6 +725,48 @@ std::optional<runtime::MeshComponent> SceneDocument::MeshRenderer(NodeKey entity
   const auto *found = world_.FindEntity(entity.id);
   return found != nullptr && found->mesh_renderer ? std::optional(found->mesh_data) : std::nullopt;
 }
+bool SceneDocument::SetOpaqueComponent(NodeKey entity, OpaqueComponent component) {
+  if (Key(entity.id) != entity)
+    return false;
+  auto staged = CaptureOpaque(nodes_);
+  if (!staged || !staged->Set(entity.id, component))
+    return false;
+  auto &node = *std::ranges::find(nodes_, entity.id, &Node::id);
+  const auto found = std::ranges::find(node.opaque, component.type, &OpaqueComponent::type);
+  if (found != node.opaque.end() && *found == component)
+    return true;
+  UndoEntry entry;
+  entry.kind = UndoEntry::Kind::Opaque;
+  entry.entity = entity;
+  entry.previous_opaque = node.opaque;
+  if (found == node.opaque.end())
+    node.opaque.push_back(std::move(component));
+  else
+    *found = std::move(component);
+  PushUndo(std::move(entry));
+  return true;
+}
+std::optional<std::vector<OpaqueComponent>> SceneDocument::OpaqueComponents(NodeKey entity) const {
+  if (Key(entity.id) != entity)
+    return std::nullopt;
+  return std::ranges::find(nodes_, entity.id, &Node::id)->opaque;
+}
+std::optional<std::vector<OpaqueComponentInfo>>
+SceneDocument::InspectOpaqueComponents(NodeKey entity) const {
+  if (Key(entity.id) != entity)
+    return std::nullopt;
+  std::vector<OpaqueComponentInfo> result;
+  for (const auto &component : std::ranges::find(nodes_, entity.id, &Node::id)->opaque) {
+    const auto count = std::min<std::size_t>(64, component.data.size());
+    result.push_back({component.type,
+                      component.type_name,
+                      component.data.size(),
+                      {component.data.begin(), component.data.begin() + count},
+                      entity.id});
+  }
+  std::ranges::sort(result, {}, &OpaqueComponentInfo::type);
+  return result;
+}
 std::optional<runtime::Transform> SceneDocument::WorldTransform(runtime::Id entity) const noexcept {
   if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())
     return std::nullopt;
@@ -719,7 +780,7 @@ bool SceneDocument::CopySelection() {
     const auto pose = world_.WorldTransform(id);
     if (found == nodes_.end() || !pose)
       return false;
-    captured.push_back({found->name, *pose});
+    captured.push_back({found->name, *pose, found->opaque});
   }
   if (captured.empty())
     return false;
@@ -729,6 +790,20 @@ bool SceneDocument::CopySelection() {
 bool SceneDocument::Paste() {
   if (clipboard_.empty())
     return false;
+  // Validate the complete prospective payload budget before creating any entities. Synthetic
+  // IDs are used only for staging capacity; the copied bytes attach to the actual new IDs below.
+  auto staged_opaque = CaptureOpaque(nodes_);
+  if (!staged_opaque)
+    return false;
+  auto staging_id = std::numeric_limits<runtime::Id>::max();
+  for (const auto &source : clipboard_) {
+    while (world_.FindEntity(staging_id))
+      --staging_id;
+    for (const auto &component : source.opaque)
+      if (!staged_opaque->Set(staging_id, component))
+        return false;
+    --staging_id;
+  }
   const auto previous_selection = selection_;
   std::vector<runtime::Id> pasted;
   pasted.reserve(clipboard_.size());
@@ -740,6 +815,7 @@ bool SceneDocument::Paste() {
       break;
     }
     pasted.push_back(id);
+    std::ranges::find(nodes_, id, &Node::id)->opaque = source.opaque;
     // Create owns this undo step. Applying the copied world pose directly makes one Undo remove
     // the pasted entity, rather than first resetting its transform and leaving it behind.
     runtime::WorldCommandBuffer place;
@@ -841,10 +917,14 @@ bool SceneDocument::Undo() {
     if (entry.entity.document_generation != document_generation_ || found == nodes_.end() ||
         found->generation != entry.entity.entity_generation)
       return false;
-    found->name = entry.previous_name;
+    if (entry.kind == UndoEntry::Kind::Rename)
+      found->name = entry.previous_name;
+    else
+      found->opaque = entry.previous_opaque;
   }
   redo_.push_back(std::move(entry));
   undo_.pop_back();
+  opaque_dirty_.reset();
   return true;
 }
 bool SceneDocument::Redo() {
@@ -853,7 +933,7 @@ bool SceneDocument::Redo() {
   auto &entry = redo_.back();
   if (entry.kind == UndoEntry::Kind::Runtime && !editor_.Redo())
     return false;
-  if (entry.kind == UndoEntry::Kind::Rename) {
+  if (entry.kind != UndoEntry::Kind::Runtime) {
     const auto found = std::ranges::find(nodes_, entry.entity.id, &Node::id);
     if (entry.entity.document_generation != document_generation_ || found == nodes_.end() ||
         found->generation != entry.entity.entity_generation)
@@ -865,6 +945,7 @@ bool SceneDocument::Redo() {
   std::erase_if(selection_, [this](runtime::Id id) { return world_.FindEntity(id) == nullptr; });
   undo_.push_back(std::move(entry));
   redo_.pop_back();
+  opaque_dirty_.reset();
   return true;
 }
 
@@ -916,6 +997,10 @@ std::optional<std::string> SceneDocument::StateSignature() const {
   for (const auto *node : ordered_nodes) {
     metadata << "node " << node->id << ' ' << node->name.size() << ':' << node->name << '\n';
     const auto *entity = world_.FindEntity(node->id);
+    if (!node->opaque.empty() &&
+        (!entity || std::ranges::find(scene->entities, node->id, &runtime::Entity::id) ==
+                        scene->entities.end()))
+      return std::nullopt;
     if (node->euler_hint && entity && SameRotation(node->euler_hint->transform, entity->transform))
       metadata << "euler " << node->id << ' ' << node->euler_hint->degrees[0] << ' '
                << node->euler_hint->degrees[1] << ' ' << node->euler_hint->degrees[2] << '\n';
@@ -926,7 +1011,13 @@ std::optional<std::string> SceneDocument::StateSignature() const {
 
 bool SceneDocument::Dirty() const {
   const auto signature = StateSignature();
-  return !signature || *signature != saved_signature_;
+  if (!opaque_dirty_) {
+    const auto opaque = CaptureOpaque(nodes_);
+    if (!opaque)
+      return true;
+    opaque_dirty_ = OpaqueRecords(*opaque) != saved_opaque_records_;
+  }
+  return !signature || *signature != saved_signature_ || *opaque_dirty_;
 }
 
 bool SceneDocument::Save(const std::filesystem::path &path) const {
@@ -936,7 +1027,12 @@ bool SceneDocument::Save(const std::filesystem::path &path) const {
   const auto snapshot = world_.SaveScene(scene_);
   if (!snapshot)
     return false;
-  std::string output = "NEXORA_EDITOR_SCENE 2\n";
+  const auto opaque = CaptureOpaque(nodes_);
+  if (!opaque)
+    return false;
+  const auto opaque_records = OpaqueRecords(*opaque);
+  std::string output =
+      opaque_records.empty() ? "NEXORA_EDITOR_SCENE 2\n" : "NEXORA_EDITOR_SCENE 3\n";
   // The parent column duplicates the runtime hierarchy (snapshot version 3) for older readers.
   for (const auto &node : nodes_)
     output += "node " + std::to_string(node.id) + " " +
@@ -950,15 +1046,30 @@ bool SceneDocument::Save(const std::filesystem::path &path) const {
       hints << "euler " << node.id << ' ' << node.euler_hint->degrees[0] << ' '
             << node.euler_hint->degrees[1] << ' ' << node.euler_hint->degrees[2] << '\n';
   }
-  output += hints.str();
+  output += hints.str() + opaque_records;
   output += "world\n" + *snapshot;
-  if (!AtomicWrite(path, output, nullptr))
+  if (output.size() > kMaximumSceneFileBytes || !AtomicWrite(path, output, nullptr))
     return false;
   saved_signature_ = *signature;
+  saved_opaque_records_ = opaque_records;
+  opaque_dirty_ = false;
   return true;
 }
 bool SceneDocument::Reload(const std::filesystem::path &path) {
-  std::ifstream input(path, std::ios::binary);
+  std::ifstream file(path, std::ios::binary);
+  if (!file)
+    return false;
+  std::string staged_file;
+  std::array<char, 16384> chunk;
+  while (file.read(chunk.data(), static_cast<std::streamsize>(chunk.size())) || file.gcount() > 0) {
+    const auto count = static_cast<std::size_t>(file.gcount());
+    if (count > kMaximumSceneFileBytes - staged_file.size())
+      return false;
+    staged_file.append(chunk.data(), count);
+  }
+  if (!file.eof())
+    return false;
+  std::istringstream input(std::move(staged_file));
   std::string line, world_data;
   struct LoadedNode final {
     runtime::Id id{}, parent{};
@@ -967,10 +1078,28 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
   std::vector<LoadedNode> loaded;
   std::unordered_map<runtime::Id, EulerDegrees> hints;
   if (!input || !std::getline(input, line) ||
-      (line != "NEXORA_EDITOR_SCENE 1" && line != "NEXORA_EDITOR_SCENE 2"))
+      (line != "NEXORA_EDITOR_SCENE 1" && line != "NEXORA_EDITOR_SCENE 2" &&
+       line != "NEXORA_EDITOR_SCENE 3"))
     return false;
-  const bool supports_hints = line == "NEXORA_EDITOR_SCENE 2";
+  const bool supports_opaque = line == "NEXORA_EDITOR_SCENE 3";
+  const bool supports_hints = supports_opaque || line == "NEXORA_EDITOR_SCENE 2";
+  std::string opaque_data = "NEXORA_OPAQUE_COMPONENTS 1\n";
+  std::unordered_set<runtime::Id> opaque_entities;
+  UnknownComponentStore opaque;
+
   while (std::getline(input, line) && line != "world") {
+    if (supports_opaque && line.starts_with("opaque ")) {
+      if (line.size() > UnknownComponentStore::kMaximumSerializedBytes - opaque_data.size())
+        return false;
+      std::istringstream parser(line.substr(7));
+      parser.imbue(std::locale::classic());
+      runtime::Id id{};
+      if (!(parser >> id) || !id)
+        return false;
+      opaque_entities.insert(id);
+      opaque_data += line.substr(7) + '\n';
+      continue;
+    }
     if (supports_hints && line.starts_with("euler ")) {
       std::istringstream parser(line.substr(6));
       parser.imbue(std::locale::classic());
@@ -995,7 +1124,7 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
       return false;
     loaded.push_back(std::move(node));
   }
-  if (line != "world")
+  if (line != "world" || !opaque.Deserialize(opaque_data))
     return false;
   world_data.assign(std::istreambuf_iterator<char>(input), {});
   std::istringstream header(world_data);
@@ -1038,12 +1167,15 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
   };
   const bool migrate = migration().Size() != 0;
   std::string snapshot_to_load = world_data;
-  if (migrate || !hints.empty()) {
+  if (migrate || !hints.empty() || !opaque_entities.empty()) {
     // Validate hints and migration before touching the live World or replacing its authoring state.
     runtime::World rehearsal{world_.Kind()};
     const auto staged_scene = rehearsal.LoadSceneSnapshot(world_data);
     if (!staged_scene || (migrate && !migration().Apply(rehearsal)))
       return false;
+    for (const auto id : opaque_entities)
+      if (!ids.contains(id) || !rehearsal.FindEntity(id))
+        return false;
     if (migrate) {
       const auto migrated_snapshot = rehearsal.SaveScene(*staged_scene);
       if (!migrated_snapshot)
@@ -1065,6 +1197,8 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
     if (next_generation == 0)
       ++next_generation;
     staged_nodes.push_back({node.id, std::move(node.name), generation});
+    const auto payloads = opaque.Find(node.id);
+    staged_nodes.back().opaque.assign(payloads.begin(), payloads.end());
     if (const auto hint = hints.find(node.id); hint != hints.end())
       staged_nodes.back().euler_hint = EulerHint{*WithEulerDegrees({}, hint->second), hint->second};
   }
@@ -1078,6 +1212,8 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
   undo_.clear();
   redo_.clear();
   editor_.ClearUndo();
+  saved_opaque_records_ = OpaqueRecords(opaque);
+  opaque_dirty_ = false;
   saved_signature_ = StateSignature().value_or(std::string{});
   return true;
 }

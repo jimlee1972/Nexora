@@ -212,6 +212,14 @@ Scene Undo and Redo now replay stable entity IDs, hierarchy and components while
 names, selection, and authored Euler revolutions. The Scene panel exposes both by button and
 keyboard shortcut; a new edit discards the undone branch.
 
+✅ Missing-plugin components now have a bounded read-only Inspector showing owning names, full-width
+entity/type IDs, byte counts, and at most 64 preview bytes. Scene format 3 retains opaque data through
+save/reload, clone-by-clipboard, deletion, and independent metadata Undo/Redo; opaque-free scenes retain
+format 2 and readers accept formats 1/2. Generation checks and 1 MiB/component, 16 MiB total payload,
+64/entity, and 4096-record limits reject stale/oversized imports. Corrupt, duplicate, orphan and missing
+entity records reject reload before live mutation. Plugin restoration/execution and full reflected
+editing remain open.
+
 ✅ Native client-pixel pointer events now convert once through the current frame DPI before UI
 hit testing. Cached positions reproject across scale changes; focus loss clears the cache and DPI
 changes cancel interrupted Scene gestures. Tests cover 100/125/150/175/200%, fractional/negative
@@ -488,6 +496,13 @@ Docked Profiler 現會繪製有界的 Editor frame processing wall-time 即時�
 ✅ Profiler 現可把保留的 Editor frame-processing wall time 匯出為專案 CSV，保留 double
 精度與丟棄 frame 數，GPU／memory 欄保持空白。同步 writer 驗證 1-600 筆有序且有限的 sample，
 拒絕唯讀／recovery 寫入，驗證失敗會保留舊檔；實際 UI 點擊會送出一次性 request。
+
+✅ 缺少外掛的元件現有有界唯讀 Inspector，顯示 owning 名稱、完整 entity／type ID、bytes
+與最多 64-byte 預覽。Scene format 3 會在保存／重載、clipboard 複製、刪除及獨立 metadata
+Undo／Redo 中保留 opaque data；無 opaque 資料仍寫 format 2，reader 相容 format 1／2。
+Generation 與每元件 1 MiB、總 payload 16 MiB、每 entity 64、總 4096 records 限制會拒絕過期／
+超限匯入。損壞、重複、orphan 與缺失 entity 紀錄在修改 live state 前拒絕。外掛還原／執行
+及完整 reflected 編輯仍待完成。
 
 ✅ 原生 client-pixel pointer event 現會先依當前 frame DPI 轉成 UI 邏輯座標，再做 hit test。
 scale 改變會重新投影快取位置，失焦會清除快取，DPI 改變會取消中斷的 Scene gesture。測試涵蓋

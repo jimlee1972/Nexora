@@ -3,6 +3,7 @@
 #include "Nexora/Editor/Api.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/MeshImport.h"
+#include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/Foundation/Types.h"
 #include "Nexora/Runtime/AssetPipeline.h"
 #include "Nexora/Runtime/EditorSdk.h"
@@ -201,6 +202,12 @@ public:
   bool SetCamera(NodeKey entity, std::optional<runtime::CameraComponent> camera);
   bool SetLight(NodeKey entity, std::optional<runtime::LightComponent> light);
   bool SetMeshRenderer(NodeKey entity, std::optional<runtime::MeshComponent> mesh);
+  // Editor-owned missing-plugin payloads. Writes are generation checked and undoable;
+  // inspection returns an owning copy, never a pointer into node storage.
+  bool SetOpaqueComponent(NodeKey entity, OpaqueComponent component);
+  [[nodiscard]] std::optional<std::vector<OpaqueComponent>> OpaqueComponents(NodeKey entity) const;
+  [[nodiscard]] std::optional<std::vector<OpaqueComponentInfo>>
+  InspectOpaqueComponents(NodeKey entity) const;
   bool SetTransforms(std::span<const NodeKey> entities,
                      std::span<const runtime::Transform> transforms);
   // Moves generation-checked selection roots by a world X/Z delta as one atomic undo step.
@@ -259,13 +266,15 @@ private:
     std::string name;
     std::uint64_t generation{};
     std::optional<EulerHint> euler_hint{};
+    std::vector<OpaqueComponent> opaque{};
   };
   struct ClipboardNode final {
     std::string name;
     runtime::Transform world_transform;
+    std::vector<OpaqueComponent> opaque{};
   };
   struct UndoEntry final {
-    enum class Kind { Runtime, Rename } kind{Kind::Runtime};
+    enum class Kind { Runtime, Rename, Opaque } kind{Kind::Runtime};
     NodeKey entity;
     std::string previous_name;
     std::vector<std::pair<NodeKey, std::optional<EulerHint>>> previous_hints{};
@@ -273,6 +282,7 @@ private:
     std::vector<runtime::Id> previous_selection{};
     std::vector<Node> redo_nodes{};
     std::vector<runtime::Id> redo_selection{};
+    std::vector<OpaqueComponent> previous_opaque{};
   };
   void PushUndo(UndoEntry entry);
   runtime::World &world_;
@@ -286,6 +296,8 @@ private:
   std::uint64_t document_generation_{};
   std::uint64_t next_entity_generation_{1};
   mutable std::string saved_signature_;
+  mutable std::string saved_opaque_records_;
+  mutable std::optional<bool> opaque_dirty_{false};
 };
 
 } // namespace nexora::editor

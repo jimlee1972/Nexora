@@ -301,9 +301,13 @@ int Run() {
     if (!document.SetEulerField(keys, 0, 450.0) || !document.Save(path))
       throw std::runtime_error("could not create the Euler scene seed");
     const auto current = ReadFile(path);
+    if (!document.SetOpaqueComponent(keys.front(), {42, "Plugin.Missing", {0, 127, 255}}) ||
+        !document.Save(path))
+      throw std::runtime_error("could not create the opaque scene seed");
+    const auto opaque = ReadFile(path);
     const auto legacy = ToBytes("NEXORA_EDITOR_SCENE 1\nnode " + std::to_string(entity) +
                                 " 0 Entity\nworld\n" + *world.SaveScene(scene));
-    targets.push_back({"editor_scene", {current, legacy, {}}, [path](const Bytes &b) {
+    targets.push_back({"editor_scene", {current, opaque, legacy, {}}, [path](const Bytes &b) {
                          WriteFile(path, b);
                          runtime::World scratch;
                          editor::SceneDocument document(scratch, scratch.LoadScene("Placeholder"));

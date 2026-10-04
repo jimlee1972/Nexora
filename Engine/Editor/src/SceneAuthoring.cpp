@@ -5,8 +5,10 @@
 #include <cmath>
 #include <fstream>
 #include <iomanip>
+#include <locale>
 #include <set>
 #include <sstream>
+#include <utility>
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -82,15 +84,46 @@ bool InspectorPropertyAdapter::Apply(std::span<const runtime::Id> entities,
   });
 }
 
+UnknownComponentStore::UnknownComponentStore(UnknownComponentStore &&other) noexcept
+    : components_(std::move(other.components_)),
+      payload_bytes_(std::exchange(other.payload_bytes_, 0)),
+      component_count_(std::exchange(other.component_count_, 0)) {
+  other.components_.clear();
+}
+UnknownComponentStore &UnknownComponentStore::operator=(UnknownComponentStore &&other) noexcept {
+  if (this != &other) {
+    components_ = std::move(other.components_);
+    payload_bytes_ = std::exchange(other.payload_bytes_, 0);
+    component_count_ = std::exchange(other.component_count_, 0);
+    other.components_.clear();
+  }
+  return *this;
+}
+
 bool UnknownComponentStore::Set(runtime::Id entity, OpaqueComponent component) {
-  if (!entity || !component.type || component.type_name.empty())
+  if (!entity || !component.type || component.type_name.empty() ||
+      component.type_name.size() > kMaximumNameBytes ||
+      component.type_name.find_first_of("\r\n") != std::string::npos ||
+      component.type_name.find('\0') != std::string::npos ||
+      component.data.size() > kMaximumComponentBytes)
+    return false;
+  const auto current = Find(entity);
+  const auto found = std::ranges::find(current, component.type, &OpaqueComponent::type);
+  const bool replacing = found != current.end();
+  const auto previous_bytes = replacing ? found->data.size() + found->type_name.size() : 0;
+  const auto required = component.data.size() + component.type_name.size();
+  if (required > kMaximumPayloadBytes - (payload_bytes_ - previous_bytes) ||
+      (!replacing &&
+       (component_count_ == kMaximumComponents || current.size() == kMaximumComponentsPerEntity)))
     return false;
   auto &components = components_[entity];
-  const auto found = std::ranges::find(components, component.type, &OpaqueComponent::type);
-  if (found == components.end())
+  if (!replacing) {
     components.push_back(std::move(component));
-  else
-    *found = std::move(component);
+    ++component_count_;
+  } else {
+    *std::ranges::find(components, component.type, &OpaqueComponent::type) = std::move(component);
+  }
+  payload_bytes_ = payload_bytes_ - previous_bytes + required;
   return true;
 }
 
@@ -101,44 +134,55 @@ std::span<const OpaqueComponent> UnknownComponentStore::Find(runtime::Id entity)
 
 std::string UnknownComponentStore::Serialize() const {
   std::ostringstream output;
+  output.imbue(std::locale::classic());
   output << "NEXORA_OPAQUE_COMPONENTS 1\n";
   std::vector<runtime::Id> entities;
   entities.reserve(components_.size());
   for (const auto &[entity, unused] : components_)
     entities.push_back(entity);
   std::ranges::sort(entities);
-  for (const auto entity : entities)
-    for (const auto &component : components_.at(entity)) {
-      output << entity << ' ' << component.type << ' ' << std::quoted(component.type_name) << ' ';
-      if (component.data.empty())
+  for (const auto entity : entities) {
+    std::vector<const OpaqueComponent *> ordered;
+    for (const auto &component : components_.at(entity))
+      ordered.push_back(&component);
+    std::ranges::sort(ordered, {}, [](const auto *component) { return component->type; });
+    for (const auto *component : ordered) {
+      output << entity << ' ' << component->type << ' ' << std::quoted(component->type_name) << ' ';
+      if (component->data.empty())
         output << '-';
       else
-        for (const auto byte : component.data)
+        for (const auto byte : component->data)
           output << "0123456789abcdef"[byte >> 4] << "0123456789abcdef"[byte & 15];
       output << '\n';
     }
+  }
   return output.str();
 }
 
 bool UnknownComponentStore::Deserialize(std::string_view serialized) {
+  if (serialized.size() > kMaximumSerializedBytes)
+    return false;
   std::istringstream input{std::string(serialized)};
+  input.imbue(std::locale::classic());
   std::string line;
-  std::unordered_map<runtime::Id, std::vector<OpaqueComponent>> loaded;
+  UnknownComponentStore loaded;
   if (!std::getline(input, line) || line != "NEXORA_OPAQUE_COMPONENTS 1")
     return false;
   while (std::getline(input, line)) {
     if (line.empty())
       continue;
     std::istringstream parser(line);
+    parser.imbue(std::locale::classic());
     runtime::Id entity{};
     OpaqueComponent component;
     std::string hex, trailing;
     if (!(parser >> entity >> component.type >> std::quoted(component.type_name) >> hex) ||
-        !entity || !component.type || component.type_name.empty() ||
-        (hex != "-" && hex.size() % 2 != 0) || (parser >> trailing))
+        hex.size() > 2 * kMaximumComponentBytes || (hex != "-" && hex.size() % 2 != 0) ||
+        (parser >> trailing))
       return false;
     if (hex == "-")
       hex.clear();
+    component.data.reserve(hex.size() / 2);
     for (std::size_t index = 0; index < hex.size(); index += 2) {
       unsigned value{};
       const auto parsed = std::from_chars(hex.data() + index, hex.data() + index + 2, value, 16);
@@ -146,12 +190,14 @@ bool UnknownComponentStore::Deserialize(std::string_view serialized) {
         return false;
       component.data.push_back(static_cast<std::uint8_t>(value));
     }
-    auto &components = loaded[entity];
-    if (std::ranges::find(components, component.type, &OpaqueComponent::type) != components.end())
+    const auto existing = loaded.Find(entity);
+    if (std::ranges::find(existing, component.type, &OpaqueComponent::type) != existing.end() ||
+        !loaded.Set(entity, std::move(component)))
       return false;
-    components.push_back(std::move(component));
   }
-  components_ = std::move(loaded);
+  if (input.bad())
+    return false;
+  *this = std::move(loaded);
   return true;
 }
 

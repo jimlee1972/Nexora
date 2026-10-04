@@ -194,6 +194,7 @@ struct EditorImGuiHost::State final {
   };
   std::optional<InspectorMeshRequest> inspector_mesh_request;
   std::uint32_t inspector_selection = 0;
+  std::vector<OpaqueComponentInfo> inspector_opaque_info;
   bool inspector_transform_visible = false;
   std::string inspector_error;
   bool scene_save_requested = false;
@@ -1376,6 +1377,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   state.inspector_selection =
       scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
   state.inspector_transform_visible = false;
+  state.inspector_opaque_info.clear();
   std::unordered_set<runtime::Id> selected_entities;
   if (scene != nullptr)
     selected_entities.insert(scene->Selection().begin(), scene->Selection().end());
@@ -1409,6 +1411,37 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
                 scene->Name(keys.front().id).data());
   else
     ImGui::Text("%zu entities selected", keys.size());
+  for (const auto key : keys)
+    if (auto info = scene->InspectOpaqueComponents(key))
+      state.inspector_opaque_info.insert(state.inspector_opaque_info.end(),
+                                         std::make_move_iterator(info->begin()),
+                                         std::make_move_iterator(info->end()));
+  if (!state.inspector_opaque_info.empty() &&
+      ImGui::CollapsingHeader("Missing plugin components", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::TextWrapped("Read-only: component data is preserved. Install its plugin to edit it.");
+    ImGui::BeginChild("##opaque-components", {0, 140}, ImGuiChildFlags_Borders,
+                      ImGuiWindowFlags_HorizontalScrollbar);
+    ImGuiListClipper clipper;
+    clipper.Begin(static_cast<int>(state.inspector_opaque_info.size()),
+                  3 * ImGui::GetTextLineHeightWithSpacing());
+    while (clipper.Step())
+      for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
+        const auto &info = state.inspector_opaque_info[static_cast<std::size_t>(row)];
+        ImGui::TextUnformatted(info.type_name.c_str());
+        ImGui::Text("Entity %llu | Type %llu | %zu bytes",
+                    static_cast<unsigned long long>(info.entity),
+                    static_cast<unsigned long long>(info.type), info.byte_count);
+        std::string hex;
+        for (const auto byte : info.preview) {
+          hex += "0123456789abcdef"[byte >> 4];
+          hex += "0123456789abcdef"[byte & 15];
+        }
+        if (info.byte_count > info.preview.size())
+          hex += "...";
+        ImGui::TextDisabled("%s", hex.empty() ? "(empty payload)" : hex.c_str());
+      }
+    ImGui::EndChild();
+  }
   ImGui::SeparatorText("Transform");
   struct Field final {
     const char *label;
@@ -2293,6 +2326,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool game_running = play && play->State() != runtime::PlayState::Stopped;
   const auto play_snapshot = play ? play->Inspect() : runtime::RuntimeInspectionSnapshot{};
   state_->play_inspector_rendered = 0;
+  state_->inspector_opaque_info.clear();
   state_->profile_export_position.reset();
   state_->play_apply_position.reset();
   state_->play_apply_confirm_position.reset();
@@ -3526,6 +3560,11 @@ void EditorImGuiTestAccess::SetHierarchyFilter(EditorImGuiHost &host,
   const auto count = std::min(filter.size(), host.state_->hierarchy_filter.size() - 1);
   std::memcpy(host.state_->hierarchy_filter.data(), filter.data(), count);
   host.state_->hierarchy_filter[count] = '\0';
+}
+
+std::vector<OpaqueComponentInfo>
+EditorImGuiTestAccess::InspectorOpaqueInfo(const EditorImGuiHost &host) {
+  return host.state_->inspector_opaque_info;
 }
 
 std::array<float, 2> EditorImGuiTestAccess::PointerPosition(const EditorImGuiHost &host) noexcept {

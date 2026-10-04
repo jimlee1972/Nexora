@@ -335,3 +335,30 @@ application unload the gameplay module before Stop(Discard); component and entit
 isolated. Failure leaves Play paused and reports the reason. Default Stop/F5 always discards.
 Portable PlaySession's own Stop(Transforms)/applied_transforms counters are a separate Runtime path;
 graphical apply uses document Undo ownership and Console diagnostics instead.
+
+### Missing-plugin component ownership
+
+SceneDocument owns opaque components in authoring node metadata; Runtime scenes and Play clones do
+not execute or decode these plugin bytes. SetOpaqueComponent validates the full prospective store,
+checks document/entity generations, and records a separate metadata Undo entry without consuming
+Runtime SceneEditor history. Equal values are a no-op. Delete/Undo and clipboard/duplicate/create
+Undo/Redo retain exact bytes; failed paste capacity checks occur before any entities are created.
+OpaqueComponents returns owning complete payloads. InspectOpaqueComponents returns owning names,
+full-width type/entity IDs, byte counts and only the first 64 bytes, avoiding full-payload copies each
+GUI frame. Inspection does not grant project write permission.
+
+UnknownComponentStore accepts nonzero IDs and bounded nonempty single-line names without NUL;
+limits are 256-byte names, 1 MiB/component, 64/entity, 4096 records and 16 MiB of bytes plus names.
+Replacement and failed deserialize retain previous state. Deterministic classic-locale serialization
+sorts entity/type IDs and hex-encodes binary bytes (empty payload is `-`). Serialized stores are
+bounded to 34 MiB. Move transfers ownership/budget counters and leaves a reusable empty source.
+
+Scene format 3 adds `opaque <entity> <type> "name" <hex-or-dash>` metadata before `world`; scenes
+without opaque records still write format 2. Reload accepts formats 1/2/3, bounds the file to 64 MiB,
+stages all records and world validation, and rejects duplicate/malformed/oversized/orphan records
+before replacing live state. Every opaque owner must be both an authoring node and a staged Runtime
+entity. Successful reload invalidates old keys and clears history; failed reload preserves live data,
+selection, generations, history and the saved baseline. Opaque metadata participates in Dirty and
+atomic scene writes. Its exact saved comparison is cached between authoring mutations, avoiding
+full payload serialization on every GUI frame; Undo/Redo invalidate that cache. Both saves and
+chunked reads enforce the 64 MiB scene-file bound. Runtime snapshot and stable gameplay C ABI formats do not change.

@@ -54,10 +54,31 @@ struct OpaqueComponent final {
   runtime::TypeId type{};
   std::string type_name;
   std::vector<std::uint8_t> data;
+  bool operator==(const OpaqueComponent &) const = default;
+};
+
+struct OpaqueComponentInfo final {
+  runtime::TypeId type{};
+  std::string type_name;
+  std::size_t byte_count{};
+  // Owning, bounded prefix for inspection; never a borrowed plugin/runtime allocation.
+  std::vector<std::uint8_t> preview;
+  runtime::Id entity{};
 };
 
 class NEXORA_EDITOR_API UnknownComponentStore final {
 public:
+  UnknownComponentStore() = default;
+  UnknownComponentStore(const UnknownComponentStore &) = default;
+  UnknownComponentStore &operator=(const UnknownComponentStore &) = default;
+  UnknownComponentStore(UnknownComponentStore &&other) noexcept;
+  UnknownComponentStore &operator=(UnknownComponentStore &&other) noexcept;
+  static constexpr std::size_t kMaximumComponentBytes = 1024 * 1024;
+  static constexpr std::size_t kMaximumPayloadBytes = 16 * 1024 * 1024;
+  static constexpr std::size_t kMaximumComponents = 4096;
+  static constexpr std::size_t kMaximumComponentsPerEntity = 64;
+  static constexpr std::size_t kMaximumNameBytes = 256;
+  static constexpr std::size_t kMaximumSerializedBytes = 34 * 1024 * 1024;
   bool Set(runtime::Id entity, OpaqueComponent component);
   [[nodiscard]] std::span<const OpaqueComponent> Find(runtime::Id entity) const;
   [[nodiscard]] std::string Serialize() const;
@@ -65,6 +86,7 @@ public:
 
 private:
   std::unordered_map<runtime::Id, std::vector<OpaqueComponent>> components_;
+  std::size_t payload_bytes_{}, component_count_{};
 };
 
 enum class GizmoState { Idle, Dragging };
