@@ -3,6 +3,7 @@
 
 import argparse
 import ctypes
+import math
 import os
 from pathlib import Path
 import re
@@ -494,6 +495,39 @@ def main() -> int:
         if scene_file.read_text() != before_rotation:
             raise RuntimeError("Y rotation ring did not undo atomically")
         viewport = settled_viewport(editor.stderr, viewport)
+        snapped_ring = axis_handle_pixels(display, window, viewport)[1]
+        if snapped_ring is None:
+            raise RuntimeError("Y rotation ring disappeared before snapped drag")
+        handle_x, handle_y = snapped_ring
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(handle_x), str(handle_y)], env=environment, check=True)
+        subprocess.run([args.xdotool, "keydown", "Shift_L"], env=environment, check=True)
+        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        time.sleep(0.1)
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(handle_x + 28), str(handle_y + 20)], env=environment, check=True)
+        time.sleep(0.2)
+        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+        subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
+            time.sleep(0.05)
+        snapped_rotation = first_entity_rotation(scene_file.read_text())
+        snapped_angle = 2.0 * math.atan2(abs(snapped_rotation[1]),
+                                         abs(snapped_rotation[3]))
+        snap_units = snapped_angle / (math.pi / 12.0)
+        if snap_units < 0.5 or abs(snap_units - round(snap_units)) > 1e-5:
+            raise RuntimeError(f"Shift rotation did not snap to 15 degrees: "
+                               f"{snapped_rotation}")
+        subprocess.run([args.xdotool, "key", "ctrl+z"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and scene_file.read_text() != before_rotation:
+            time.sleep(0.05)
+        if scene_file.read_text() != before_rotation:
+            raise RuntimeError("snapped Y rotation did not undo atomically")
+        viewport = settled_viewport(editor.stderr, viewport)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
         subprocess.run([args.xdotool, "mousemove", "--window", str(window),
@@ -588,6 +622,35 @@ def main() -> int:
             time.sleep(0.05)
         if scene_file.read_text() != before_rotation:
             raise RuntimeError("uniform scale cube did not undo atomically")
+        viewport = settled_viewport(editor.stderr, viewport)
+        snapped_handle = uniform_handle_pixel(display, window, viewport)
+        if snapped_handle is None:
+            raise RuntimeError("uniform cube disappeared before snapped drag")
+        handle_x, handle_y = snapped_handle
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(handle_x), str(handle_y)], env=environment, check=True)
+        subprocess.run([args.xdotool, "keydown", "Shift_L"], env=environment, check=True)
+        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        time.sleep(0.1)
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(handle_x), str(handle_y - 40)], env=environment, check=True)
+        time.sleep(0.2)
+        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+        subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
+            time.sleep(0.05)
+        snapped = first_entity_scale(scene_file.read_text())
+        if any(abs(factor - 1.5) > 1e-6 for factor in snapped):
+            raise RuntimeError(f"Shift uniform scale did not snap to 0.25 increments: {snapped}")
+        subprocess.run([args.xdotool, "key", "ctrl+z"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and scene_file.read_text() != before_rotation:
+            time.sleep(0.05)
+        if scene_file.read_text() != before_rotation:
+            raise RuntimeError("snapped uniform scale did not undo atomically")
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
         subprocess.run([args.xdotool, "key", "f"], env=environment, check=True)

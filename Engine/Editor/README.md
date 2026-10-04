@@ -240,7 +240,7 @@ and Cancel restores the start exactly. The decision table:
 Snapping is the caller's choice with `SnapToStep` on the distance, angle (in degrees), or factor.
 Renderer-backed ID-buffer picking remains open. The
 Editor native proxy preview now draws and picks X/Y/Z translation bars, rotation rings, or local
-scale cubes and a camera-facing white uniform cube. The local basis uses the first selected node's world rotation without mirroring axes.
+scale cubes and a camera-facing white uniform cube. Shift held at drag start snaps rotation in 15-degree steps and scale deltas in 0.25-factor steps; preview and commit use the same result. The local basis uses the first selected node's world rotation without mirroring axes.
 `PickOrientedBox` tests a viewport ray against a rotated proxy or handle box after a conservative
 AABB filter, so empty corners of a rotated bound do not select the object.
 
