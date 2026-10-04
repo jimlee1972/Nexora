@@ -7,6 +7,7 @@
 
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -385,6 +386,76 @@ int main(int argc, char **argv) {
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
     Require(rotationPixels, "rotated instance pixels did not change lighting");
+    // Mirrored/sheared instance versus independently baked geometry and normals. Both halves
+    // must have identical interior pixels; a TRS approximation or A*n normal fails this oracle.
+    std::array<Presentation::SceneVertex, 6> affineVertices;
+    for (std::size_t i = 0; i < 3; ++i) {
+      affineVertices[i] = vertices[i];
+      for (auto &value : affineVertices[i].normal)
+        value = 1;
+      const auto &p = vertices[i].position;
+      affineVertices[i + 3] = {
+          {-0.4F * p[0] + 0.2F * p[1] + 0.5F, 0.6F * p[1], 0.15F * p[0] + p[2] + 0.2F},
+          {-2.125F, 2.375F, 1}};
+    }
+    std::array<Presentation::SceneInstance, 2> affineInstances;
+    affineInstances[0].model_transform =
+        std::array<float, 16>{-0.4F, 0.2F, 0, -0.5F, 0, 0.6F, 0, 0, 0.15F, 0, 1, 0.2F, 0, 0, 0, 1};
+    affineInstances[0].translation[0] = std::numeric_limits<float>::quiet_NaN();
+    affineInstances[0].scale[0] = 0; // The exact affine override owns the transform.
+    const std::array affineBatches{Presentation::SceneMeshBatch{0, 3, 0, 1},
+                                   Presentation::SceneMeshBatch{3, 3, 1, 1}};
+    auto affineDraw = draw;
+    affineDraw.vertices = affineVertices;
+    affineDraw.indices = indices;
+    affineDraw.instances = affineInstances;
+    affineDraw.batches = affineBatches;
+    for (const auto normalScale : {1.0F, 1e-25F, 1e25F}) {
+      // Scale only normal inputs so geometry remains visible; compare tiny and huge normals
+      // with the same baked reference to catch normalization overflow/underflow on the GPU.
+      for (std::size_t i = 0; i < 3; ++i)
+        for (auto &value : affineVertices[i].normal)
+          value = normalScale;
+      Require(surface->Acquire() == SurfaceStatus::Ready, "affine acquire failed");
+      const auto validMatrix = *affineInstances[0].model_transform;
+      for (const auto badIndex : {0, 12, 15}) {
+        (*affineInstances[0].model_transform)[badIndex] = std::numeric_limits<float>::infinity();
+        Require(surface->DrawScene(affineDraw) == SurfaceStatus::InvalidDescriptor,
+                "malformed affine matrix consumed a scene submission");
+        affineInstances[0].model_transform = validMatrix;
+      }
+      (*affineInstances[0].model_transform)[5] = 0;
+      Require(surface->DrawScene(affineDraw) == SurfaceStatus::InvalidDescriptor,
+              "singular affine matrix accepted");
+      affineInstances[0].model_transform = validMatrix;
+      Require(surface->DrawScene(affineDraw) == SurfaceStatus::Ready &&
+                  surface->Present() == SurfaceStatus::Ready,
+              "valid affine draw failed after rejected matrices");
+      bool affinePixels = false;
+      const auto affineDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+      while (!affinePixels && std::chrono::steady_clock::now() < affineDeadline) {
+        XSync(display, False);
+        auto *image = XGetImage(display, native, 0, 0, width, height, AllPlanes, ZPixmap);
+        Require(image != nullptr, "affine pixel readback failed");
+        affinePixels = true;
+        for (const int dy : {-1, 0, 1})
+          for (const int dx : {-1, 0, 1}) {
+            const auto left = XGetPixel(image, width / 4 + dx * int(width / 40),
+                                        height / 2 + dy * int(height / 20));
+            const auto right = XGetPixel(image, width * 3 / 4 + dx * int(width / 40),
+                                         height / 2 + dy * int(height / 20));
+            for (const auto mask : {image->red_mask, image->green_mask, image->blue_mask}) {
+              const auto a = Channel(left, mask), b = Channel(right, mask);
+              affinePixels &= a > 100 && a < 190 && std::abs(int(a) - int(b)) <= 2;
+            }
+          }
+        XDestroyImage(image);
+        if (!affinePixels)
+          std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      }
+      Require(affinePixels,
+              "affine instance differs from baked geometry or inverse-transpose lighting");
+    }
     const std::array<std::byte, 8> texels{std::byte{255}, std::byte{0},  std::byte{0},
                                           std::byte{255}, std::byte{0},  std::byte{255},
                                           std::byte{0},   std::byte{255}};
@@ -459,8 +530,8 @@ int main(int argc, char **argv) {
       Require(materialPixels, "UV texture sampling/resize pixels failed");
     }
     const auto diagnostics = surface->Diagnostics();
-    Require(diagnostics.sceneDrawCalls == 19 && diagnostics.sceneInstances == 22 &&
-                diagnostics.acquiredFrames == 19 && diagnostics.presentedFrames == 19 &&
+    Require(diagnostics.sceneDrawCalls == 22 && diagnostics.sceneInstances == 28 &&
+                diagnostics.acquiredFrames == 22 && diagnostics.presentedFrames == 22 &&
                 diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 5 &&
                 diagnostics.sceneOffscreenDrawCalls == 3 && diagnostics.sceneComposites == 3,
             "native scene counters or resize evidence mismatch");
@@ -474,12 +545,12 @@ int main(int argc, char **argv) {
     XCloseDisplay(display);
     Require(windows->Destroy(created.handle) == Window::WindowError::None,
             "window teardown failed");
-    std::cout
-        << "PASS: 19 scene submissions including mesh batches, rotated native instances and UV "
-           "texture pixels, "
-           "depth-order invariance, lighting, matrix translation, "
-           "3 resize generations, immutable texture reuse, invalid-input containment and "
-           "ordered teardown\n";
+    std::cout << "PASS: 22 scene submissions including affine mesh/normal oracles, mesh batches, "
+                 "rotated native instances and UV "
+                 "texture pixels, "
+                 "depth-order invariance, lighting, matrix translation, "
+                 "3 resize generations, immutable texture reuse, invalid-input containment and "
+                 "ordered teardown\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';

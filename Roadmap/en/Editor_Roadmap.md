@@ -287,6 +287,11 @@ creates property widgets; unknown components retain raw data instead of being si
   do not weight the center twice; gesture-time tool/pivot/camera changes are disabled. Linux Xvfb
   drives two-root selection, snapped Center scale, Center rotation, and atomic Undo.
 
+- ✅ Public Presentation instances now accept exact affine model matrices with common private
+  inverse-transpose normal packing for Vulkan/DX12/Metal. Portable and native Vulkan pixel tests
+  cover mirrored/sheared matrices and invalid-then-valid draws; Scene/Game authored-mesh
+  consumption and graphical acceptance remain open ([ADR-0003](ADR-0003-Presentation-Affine-Instances.md)).
+
 - ✅ Deep mirrored/sheared hierarchy origins and gizmo position conversion are affine-exact.
   SceneDocument owns exact world and prospective matrix snapshots; translation and Center
   rotate/scale positions match commit, with one Undo/Redo and save/reload coverage in

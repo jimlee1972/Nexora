@@ -3,6 +3,7 @@
 #endif
 
 #include "Nexora/Presentation/Surface.h"
+#include "SceneInstanceUpload.h"
 
 #include "SceneVulkanShaders.h"
 #include "UiVulkanShaders.h"
@@ -340,25 +341,9 @@ public:
         !ValidateSceneMeshBatches(data.batches, data.indices.size(),
                                   std::max<std::size_t>(data.instances.size(), 1)))
       return SurfaceStatus::InvalidDescriptor;
-    for (const auto &instance : data.instances) {
-      for (const auto value : instance.translation)
-        if (!std::isfinite(value))
-          return SurfaceStatus::InvalidDescriptor;
-      for (const auto value : instance.scale)
-        if (!std::isfinite(value) || std::abs(value) < 0.00001F)
-          return SurfaceStatus::InvalidDescriptor;
-      for (const auto value : instance.color)
-        if (!std::isfinite(value))
-          return SurfaceStatus::InvalidDescriptor;
-      float rotation_length_squared = 0.0F;
-      for (const auto value : instance.rotation) {
-        if (!std::isfinite(value))
-          return SurfaceStatus::InvalidDescriptor;
-        rotation_length_squared += value * value;
-      }
-      if (std::abs(rotation_length_squared - 1.0F) > 0.01F)
-        return SurfaceStatus::InvalidDescriptor;
-    }
+    const auto packedInstances = PackSceneInstances(data.instances);
+    if (!packedInstances)
+      return SurfaceStatus::InvalidDescriptor;
     if (data.textureUploads.size() > 16)
       return SurfaceStatus::InvalidDescriptor;
     for (const auto &upload : data.textureUploads)
@@ -381,7 +366,8 @@ public:
     const SceneInstance identity{};
     const auto instances =
         data.instances.empty() ? std::span<const SceneInstance>(&identity, 1) : data.instances;
-    const auto instanceBytes = std::as_bytes(instances);
+    const auto instanceBytes =
+        std::as_bytes(std::span<const SceneInstanceUpload>(*packedInstances));
     auto &frame = frames_[frame_];
     std::size_t additional = textureId == UINT64_MAX && !sceneTextures_.contains(textureId) ? 1 : 0;
     for (std::size_t i = 0; i < data.textureUploads.size(); ++i) {
@@ -1301,20 +1287,23 @@ private:
          VK_SHADER_STAGE_FRAGMENT_BIT, fragment, "main", nullptr}};
     const VkVertexInputBindingDescription vertexBindings[]{
         {0, sizeof(SceneVertex), VK_VERTEX_INPUT_RATE_VERTEX},
-        {1, sizeof(SceneInstance), VK_VERTEX_INPUT_RATE_INSTANCE}};
+        {1, sizeof(SceneInstanceUpload), VK_VERTEX_INPUT_RATE_INSTANCE}};
     const VkVertexInputAttributeDescription attributes[] = {
         {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneVertex, position)},
         {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneVertex, normal)},
-        {2, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneInstance, translation)},
-        {3, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SceneInstance, scale)},
-        {4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstance, color)},
-        {5, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SceneVertex, uv)},
-        {6, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstance, rotation)}};
+        {2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SceneVertex, uv)},
+        {3, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstanceUpload, model) + 0},
+        {4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstanceUpload, model) + 16},
+        {5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstanceUpload, model) + 32},
+        {6, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstanceUpload, normal) + 0},
+        {7, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstanceUpload, normal) + 16},
+        {8, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstanceUpload, normal) + 32},
+        {9, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneInstanceUpload, color)}};
     VkPipelineVertexInputStateCreateInfo vertexInput{};
     vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInput.vertexBindingDescriptionCount = 2;
     vertexInput.pVertexBindingDescriptions = vertexBindings;
-    vertexInput.vertexAttributeDescriptionCount = 7;
+    vertexInput.vertexAttributeDescriptionCount = 10;
     vertexInput.pVertexAttributeDescriptions = attributes;
     const VkPipelineInputAssemblyStateCreateInfo assembly{
         VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0,
