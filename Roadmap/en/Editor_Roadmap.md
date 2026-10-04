@@ -196,7 +196,7 @@ creates property widgets; unknown components retain raw data instead of being si
   W returns to Move) draws X/Y/Z rings in world or local space and commits an in-place rotation of
   selected roots as one Undo step on release; the native proxy draw previews the turn of selected
   roots and descendants while dragging. The Scale tool (R over the canvas) draws local X/Y/Z
-  cubes plus a white uniform cube, previews selected roots and descendants during drag, and commits an axis's or all three local scale components as one Undo step on release. Full Scene View acceptance
+  cubes plus a white uniform cube, previews selected roots and descendants during drag, and commits an axis's or all three local scale components as one Undo step on release. Holding Shift at drag start snaps rotation to 15-degree steps or local scale deltas to 0.25-factor steps in both preview and commit. Full Scene View acceptance
   is still open.
 - ✅ The Scene overview now shares Hierarchy's Ctrl/Shift multi-selection anchor and centers on
   selected world positions with F or Frame selected. Input-event tests cover both interactions.

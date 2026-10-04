@@ -192,7 +192,7 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   放開左鍵時以單次可復原 transaction 提交。Escape 可取消拖曳；可選 0.25–4 世界單位吸附同時作用於預覽與提交。
   Rotate 工具（游標位於畫布時按 E；W 回到 Move）顯示世界或 Local X/Y/Z 旋轉環；放開滑鼠
   時以單次 Undo 提交選取根節點的原地旋轉；拖曳時即時預覽選取根節點及其後代。
-  Scale 工具（游標位於畫布時按 R）顯示 Local X/Y/Z 立方把手及白色等比例把手；拖曳期間即時顯示選取根節點與子節點的縮放，Escape 可取消預覽；放開滑鼠時以單次 Undo 提交單軸或三軸 local scale。
+  Scale 工具（游標位於畫布時按 R）顯示 Local X/Y/Z 立方把手及白色等比例把手；拖曳期間即時顯示選取根節點與子節點的縮放，Escape 可取消預覽；放開滑鼠時以單次 Undo 提交單軸或三軸 local scale。起始拖曳時按住 Shift 可將旋轉吸附至每 15 度、local scale 增量吸附至每 0.25 倍；預覽與提交使用相同結果。
 - ✅ Scene 概覽現共用 Hierarchy 的 Ctrl／Shift 多選錨點，並可透過 F 或 Frame selected
   將檢視中心移至選取物件的世界位置。輸入事件測試涵蓋這兩項操作。
 - ✅ Scene 概覽標記拖曳會預覽世界 X/Z 位移；可見的 X 與 Z 把手可將位移限制於單一世界軸，

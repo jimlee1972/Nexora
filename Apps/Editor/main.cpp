@@ -525,6 +525,16 @@ NativeSceneDragUniformScaleFactor(Nexora::Presentation::SceneViewport viewport,
       std::clamp((static_cast<double>(request.start_y) - request.end_y) / 100.0, -4.0, 4.0));
 }
 
+double NativeSceneScaleFactorWithSnap(double factor, bool snap) {
+  return snap ? std::max(nexora::editor::kMinGizmoScaleFactor,
+                         1.0 + nexora::editor::SnapToStep(factor - 1.0, 0.25))
+              : factor;
+}
+
+double NativeSceneRotationAngleWithSnap(double angle, bool snap) {
+  return snap ? nexora::editor::SnapToStep(angle, std::numbers::pi / 12.0) : angle;
+}
+
 Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     Nexora::Presentation::RenderSurface &surface, const nexora::editor::SceneDocument &scene,
     Nexora::Presentation::SceneViewport viewport, nexora::editor::imgui::SceneOverviewCamera camera,
@@ -1101,29 +1111,35 @@ int RunGraphical(std::optional<ProjectState> project,
                         : NativeSceneDragScaleFactor(*viewport, ui.GetSceneOverviewCamera(),
                                                      ui.GetNativeSceneOrbit(), *drag, *pose,
                                                      *native_scene_drag_axis);
-                if (factor && std::abs(*factor - 1.0) > 1e-6) {
-                  nexora::editor::GizmoOperation scale;
-                  scale.kind = nexora::editor::GizmoOperation::Kind::Scale;
-                  if (*native_scene_drag_scale_axis == 0)
-                    scale.factors.x = *factor;
-                  else if (*native_scene_drag_scale_axis == 1)
-                    scale.factors.y = *factor;
-                  else if (*native_scene_drag_scale_axis == 2)
-                    scale.factors.z = *factor;
-                  else
-                    scale.factors = {*factor, *factor, *factor};
-                  static_cast<void>(scene.ApplySelectionGizmo(keys, scale));
+                if (factor) {
+                  const double snapped = NativeSceneScaleFactorWithSnap(*factor, drag->vertical);
+                  if (std::abs(snapped - 1.0) > 1e-6) {
+                    nexora::editor::GizmoOperation scale;
+                    scale.kind = nexora::editor::GizmoOperation::Kind::Scale;
+                    if (*native_scene_drag_scale_axis == 0)
+                      scale.factors.x = snapped;
+                    else if (*native_scene_drag_scale_axis == 1)
+                      scale.factors.y = snapped;
+                    else if (*native_scene_drag_scale_axis == 2)
+                      scale.factors.z = snapped;
+                    else
+                      scale.factors = {snapped, snapped, snapped};
+                    static_cast<void>(scene.ApplySelectionGizmo(keys, scale));
+                  }
                 }
               } else if (native_scene_drag_rotate && native_scene_drag_axis) {
                 const auto angle = NativeSceneDragAngle(*viewport, ui.GetSceneOverviewCamera(),
                                                         ui.GetNativeSceneOrbit(), *drag, *pose,
                                                         *native_scene_drag_axis);
-                if (angle && std::abs(*angle) > 1e-6) {
-                  nexora::editor::GizmoOperation rotation;
-                  rotation.kind = nexora::editor::GizmoOperation::Kind::Rotate;
-                  rotation.axis = *native_scene_drag_axis;
-                  rotation.angle = *angle;
-                  static_cast<void>(scene.ApplySelectionGizmo(keys, rotation));
+                if (angle) {
+                  const double snapped = NativeSceneRotationAngleWithSnap(*angle, drag->vertical);
+                  if (std::abs(snapped) > 1e-6) {
+                    nexora::editor::GizmoOperation rotation;
+                    rotation.kind = nexora::editor::GizmoOperation::Kind::Rotate;
+                    rotation.axis = *native_scene_drag_axis;
+                    rotation.angle = snapped;
+                    static_cast<void>(scene.ApplySelectionGizmo(keys, rotation));
+                  }
                 }
               } else if (ui.GetNativeSceneTool() == nexora::editor::imgui::NativeSceneTool::Move) {
                 const auto delta = NativeSceneDragDelta(*viewport, ui.GetSceneOverviewCamera(),
@@ -1153,12 +1169,15 @@ int RunGraphical(std::optional<ProjectState> project,
                                                    ui.GetNativeSceneOrbit(), *drag, *pose,
                                                    *native_scene_drag_axis);
               if (factor)
-                scale_preview = std::pair{*native_scene_drag_scale_axis, *factor};
+                scale_preview = std::pair{*native_scene_drag_scale_axis,
+                                          NativeSceneScaleFactorWithSnap(*factor, drag->vertical)};
             } else if (native_scene_drag_rotate && native_scene_drag_axis) {
               if (const auto angle = NativeSceneDragAngle(*viewport, ui.GetSceneOverviewCamera(),
                                                           ui.GetNativeSceneOrbit(), *drag, *pose,
                                                           *native_scene_drag_axis))
-                rotation_preview = std::pair{*native_scene_drag_axis, *angle};
+                rotation_preview =
+                    std::pair{*native_scene_drag_axis,
+                              NativeSceneRotationAngleWithSnap(*angle, drag->vertical)};
             } else if (ui.GetNativeSceneTool() == nexora::editor::imgui::NativeSceneTool::Move) {
               drag_preview = NativeSceneDragDelta(*viewport, ui.GetSceneOverviewCamera(),
                                                   ui.GetNativeSceneOrbit(), *drag, *pose,

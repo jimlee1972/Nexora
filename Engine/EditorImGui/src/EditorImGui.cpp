@@ -2231,9 +2231,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::SameLine();
         ImGui::TextDisabled("F: frame | Right: orbit | Wheel: zoom");
         if (state_->native_scene_tool == NativeSceneTool::Rotate)
-          ImGui::TextDisabled("Drag colored rings: rotate | W: move | R: scale");
+          ImGui::TextDisabled(
+              "Drag colored rings: rotate | Shift: 15 deg snap | W: move | R: scale");
         else if (state_->native_scene_tool == NativeSceneTool::Scale)
-          ImGui::TextDisabled("Drag colored cubes: local scale | W: move | E: rotate");
+          ImGui::TextDisabled(
+              "Drag cubes: local/uniform scale | Shift: 0.25 snap | W: move | E: rotate");
         else
           ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y | E: rotate | R: scale");
         ImGui::TextDisabled("Middle: pan X/Z | Shift+middle: pan Y");
