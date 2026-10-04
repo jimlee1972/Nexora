@@ -196,3 +196,8 @@ and stale hints are omitted from saves. Scene format version 2 stores hints in t
 version 1 remains readable. At gimbal lock the
 canonical display sets Z to zero and folds the combined rotation into Y. Partial numeric text is
 retained only while its field is active; Escape or leaving the field abandons unsubmitted input.
+
+The application now obtains prospective world poses from `SceneDocument::PreviewSelectionGizmo`
+for Move, Rotate, and Scale. Preview and release share the validated root edits and Runtime hierarchy
+composition, so transformed descendants match the committed poses. Escape drops the snapshot without
+writing the document or changing Undo/Redo history.

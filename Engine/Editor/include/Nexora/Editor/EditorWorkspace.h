@@ -15,6 +15,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -192,6 +193,10 @@ public:
   bool TranslateSelection(std::span<const NodeKey> entities, double dx, double dy, double dz);
   // Applies one validated world-space gizmo operation to selection roots as one Undo step.
   bool ApplySelectionGizmo(std::span<const NodeKey> entities, const GizmoOperation &operation);
+  // Owning world poses for a prospective gesture, including descendants. Uses the same root
+  // validation and local edits as commit; does not change scene state, selection, or history.
+  [[nodiscard]] std::optional<std::unordered_map<runtime::Id, runtime::Transform>>
+  PreviewSelectionGizmo(std::span<const NodeKey> entities, const GizmoOperation &operation) const;
   // Degrees use extrinsic Z-X-Y composition. One field edit is one atomic undo transaction.
   bool SetEulerField(std::span<const NodeKey> entities, std::size_t axis, double degrees);
   // Preserves authored revolutions while the local quaternion matches; otherwise canonical angles.
@@ -223,6 +228,8 @@ public:
   [[nodiscard]] std::vector<NodeView> Nodes() const;
 
 private:
+  [[nodiscard]] std::optional<std::vector<std::pair<NodeKey, runtime::Transform>>>
+  SelectionGizmoEdits(std::span<const NodeKey> entities, const GizmoOperation &operation) const;
   [[nodiscard]] std::optional<std::string> StateSignature() const;
   struct EulerHint final {
     runtime::Transform transform;

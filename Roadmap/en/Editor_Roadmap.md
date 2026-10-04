@@ -132,6 +132,11 @@ creates property widgets; unknown components retain raw data instead of being si
   round trips, a cancel-safe gizmo transaction state machine, generation-safe asynchronous picking,
   atomic camera persistence, 1,000-step undo/redo replay, and corrupt-scene state preservation are
   implemented and tested.
+- ✅ Native Move/Rotate/Scale previews and commit share SceneDocument root edits and Runtime
+  hierarchy composition. Owning prospective world-pose snapshots preserve dirty state, selection,
+  and Undo/Redo; tests cover rotated, mirrored, nonuniform ancestors, selected descendants,
+  stale keys, invalid factors, one-step Undo, and no visual jump on uniform-scale release.
+
 - ✅ The graphical Hierarchy now renders a parent-aware expandable tree, filters by entity name,
   applies plain/Ctrl/Shift selection with a retained generation-keyed anchor, clips visible-row
   submission, and routes rename, sibling ordering, and drag/drop reparenting through generation-safe,

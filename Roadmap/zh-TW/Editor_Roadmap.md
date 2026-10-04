@@ -127,6 +127,10 @@ Hierarchy、Scene View、Inspector、camera controls、selection/picking、trans
 parent/reorder、multi-selection、copy/paste、undo/redo 與 save/reload。Reflection 產生 property
 widgets；未知 component 保留 raw data，不靜默遺失。
 
+- ✅ 原生 Move／Rotate／Scale 預覽與提交共用 SceneDocument 根節點編輯及 Runtime 階層組合。
+  預期世界姿態快照不改動 dirty 狀態、選取或 Undo／Redo；測試涵蓋旋轉、鏡像、非均勻縮放祖先、
+  選取子節點、過期 key、無效倍率、單次 Undo，以及等比例縮放放開後畫面不跳動。
+
 - ✅ Editor Core 已實作 stable-ID hierarchy/selection、cycle-safe reparenting、multi-selection、
   clipboard duplication、transform transaction、undo 與 atomic scene save/reload。
 - ✅ 已實作並測試 portable Inspector property adapter 與 mixed-value multi-selection、opaque
