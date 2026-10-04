@@ -352,3 +352,10 @@ all roots/descendants, sibling order, component data, names, authored Euler hint
 and the complete prior selection; one Redo removes them again. Selected descendants are collapsed,
 and invalid/rejected deletion or replay leaves history intact. The Hierarchy button, focused Delete
 key and hovered native Scene Delete shortcut share this document action.
+
+Copy/Paste and Duplicate now retain selected roots with their complete child hierarchies and
+Camera/Light/MeshRenderer data. Pasted roots use the captured world pose, children keep local poses
+and names, and internal parents map to new stable IDs. Euler revolutions and opaque payloads survive.
+All pasted roots are selected; one Undo removes the entire forest and restores prior selection, and
+Redo restores initialized values. Duplicate retains the previous clipboard. Source changes after
+Copy cannot change the snapshot, and save/reload retains the created forest and resource references.

@@ -145,6 +145,13 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Graphical Copy/Paste/Duplicate now captures complete selected-root forests with owned
+  copy-time world root poses, child local transforms, Camera/Light/MeshRenderer payloads, authored
+  Euler hints and opaque bytes. Parents map to new stable IDs, and selected descendants copy once.
+  One initialized creation Undo removes the whole forest and restores prior selection; Redo retains
+  initialized values. Real Ctrl+C/Ctrl+V/Ctrl+D/replay and persistence tests cover copy-time isolation,
+  clipboard preservation, forward parents, validation/collision/lifecycle rejection and 1,000 cycles.
+
 - ✅ Multi-selection Delete now removes all selected subtrees as one atomic Runtime/document
   transaction. One Undo restores stable IDs, sibling order, components, names, Euler hints,
   opaque payloads and the full selection. Real Delete/Ctrl+Z/Ctrl+Y tests verify the workflow;

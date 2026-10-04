@@ -142,6 +142,13 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ 圖形化 Copy／Paste／Duplicate 現以 owning snapshot 擷取完整選取 root forest，保留
+  copy-time 世界 root pose、child local transform、Camera／Light／MeshRenderer payload、
+  authored Euler hint 及 opaque bytes。Parent 對應新 stable ID，已選 descendant 僅複製一次。
+  一次初始化建立 Undo 移除整個 forest 並還原 prior selection，Redo 保留初始化值。真正
+  Ctrl+C／Ctrl+V／Ctrl+D／replay 及持久化測試涵蓋 copy-time 隔離、clipboard 保留、forward
+  parent、validation／collision／lifecycle 拒絕與 1,000 次 cycle。
+
 - ✅ 多選 Delete 現以一次 atomic Runtime／document transaction 刪除全部選取 subtree。
   一次 Undo 還原 stable ID、sibling order、元件、名稱、Euler hint、opaque payload 與完整
   選取。真正 Delete／Ctrl+Z／Ctrl+Y 測試驗證流程；ID collision／lifecycle 及外部擴展

@@ -866,65 +866,108 @@ std::optional<runtime::Transform> SceneDocument::WorldTransform(runtime::Id enti
   return world_.WorldTransform(entity);
 }
 bool SceneDocument::CopySelection() {
-  std::vector<ClipboardNode> captured;
-  captured.reserve(selection_.size());
+  const auto *scene = world_.FindScene(scene_);
+  if (!scene || selection_.empty())
+    return false;
+  std::unordered_map<runtime::Id, runtime::Id> parents;
+  std::unordered_map<runtime::Id, std::vector<runtime::Id>> children;
+  for (const auto &entity : scene->entities) {
+    parents.emplace(entity.id, entity.parent);
+    if (entity.parent)
+      children[entity.parent].push_back(entity.id);
+  }
+  const std::unordered_set<runtime::Id> selected(selection_.begin(), selection_.end());
+  std::unordered_set<runtime::Id> roots;
   for (const auto id : selection_) {
-    const auto found = std::ranges::find(nodes_, id, &Node::id);
-    const auto pose = world_.WorldTransform(id);
-    if (found == nodes_.end() || !pose)
+    if (!Key(id) || !parents.contains(id))
       return false;
-    captured.push_back({found->name, *pose, found->opaque});
+    bool selected_ancestor = false;
+    std::size_t steps = 0;
+    for (auto ancestor = parents.at(id); ancestor; ancestor = parents.at(ancestor)) {
+      if (!parents.contains(ancestor) || ++steps > parents.size())
+        return false;
+      selected_ancestor |= selected.contains(ancestor);
+    }
+    if (!selected_ancestor)
+      roots.insert(id);
+  }
+  auto captured_ids = roots;
+  std::vector<runtime::Id> pending(roots.begin(), roots.end());
+  for (std::size_t index = 0; index < pending.size(); ++index)
+    if (const auto found = children.find(pending[index]); found != children.end())
+      for (const auto child : found->second)
+        if (captured_ids.insert(child).second)
+          pending.push_back(child);
+  std::unordered_map<runtime::Id, const Node *> metadata;
+  for (const auto &node : nodes_)
+    metadata.emplace(node.id, &node);
+  std::vector<ClipboardNode> captured;
+  captured.reserve(captured_ids.size());
+  for (const auto &entity : scene->entities) {
+    if (!captured_ids.contains(entity.id))
+      continue;
+    const auto found = metadata.find(entity.id);
+    if (found == metadata.end())
+      return false;
+    const auto &node = *found->second;
+    ClipboardNode source{node.name, entity, node.euler_hint, node.opaque};
+    if (roots.contains(entity.id)) {
+      const auto pose = world_.WorldTransform(entity.id);
+      if (!pose)
+        return false;
+      source.entity.parent = 0;
+      source.entity.transform = *pose;
+      if (source.euler_hint && !SameRotation(source.euler_hint->transform, *pose))
+        source.euler_hint.reset();
+    }
+    captured.push_back(std::move(source));
   }
   if (captured.empty())
     return false;
   clipboard_ = std::move(captured);
-  return !clipboard_.empty();
+  return true;
 }
 bool SceneDocument::Paste() {
   if (clipboard_.empty())
     return false;
-  // Validate the complete prospective payload budget before creating any entities. Synthetic
-  // IDs are used only for staging capacity; the copied bytes attach to the actual new IDs below.
+  // Validate every prospective opaque payload before Runtime allocates any new identities.
   auto staged_opaque = CaptureOpaque(nodes_);
   if (!staged_opaque)
     return false;
   auto staging_id = std::numeric_limits<runtime::Id>::max();
+  std::vector<runtime::Entity> prototypes;
   for (const auto &source : clipboard_) {
+    if (source.name.empty() || source.name.find('\n') != std::string::npos ||
+        source.name.find('\r') != std::string::npos)
+      return false;
     while (world_.FindEntity(staging_id))
       --staging_id;
     for (const auto &component : source.opaque)
       if (!staged_opaque->Set(staging_id, component))
         return false;
     --staging_id;
+    prototypes.push_back(source.entity);
   }
-  const auto previous_selection = selection_;
-  std::vector<runtime::Id> pasted;
-  pasted.reserve(clipboard_.size());
-  bool placed_all = true;
-  for (const auto &source : clipboard_) {
-    const auto id = Create(source.name + " Copy");
-    if (id == 0) {
-      placed_all = false;
-      break;
-    }
-    pasted.push_back(id);
-    std::ranges::find(nodes_, id, &Node::id)->opaque = source.opaque;
-    // Create owns this undo step. Applying the copied world pose directly makes one Undo remove
-    // the pasted entity, rather than first resetting its transform and leaving it behind.
-    runtime::WorldCommandBuffer place;
-    place.SetTransform(id, source.world_transform);
-    if (!place.Apply(world_)) {
-      placed_all = false;
-      break;
-    }
-  }
-  if (!placed_all) {
-    for (std::size_t index = 0; index < pasted.size(); ++index)
-      static_cast<void>(Undo());
-    selection_ = previous_selection;
+  UndoEntry entry;
+  entry.previous_selection = selection_;
+  entry.restore_selection = true;
+  const auto created = editor_.CloneEntityForest(scene_, prototypes);
+  if (created.empty())
     return false;
+  std::vector<runtime::Id> pasted_roots;
+  for (std::size_t index = 0; index < created.size(); ++index) {
+    const auto &source = clipboard_[index];
+    const auto generation = next_entity_generation_++;
+    if (next_entity_generation_ == 0)
+      ++next_entity_generation_;
+    const bool root = source.entity.parent == 0;
+    nodes_.push_back({created[index], root ? source.name + " Copy" : source.name, generation,
+                      source.euler_hint, source.opaque});
+    if (root)
+      pasted_roots.push_back(created[index]);
   }
-  selection_ = std::move(pasted);
+  PushUndo(std::move(entry));
+  selection_ = std::move(pasted_roots);
   return true;
 }
 bool SceneDocument::DuplicateSelection() {
@@ -994,6 +1037,8 @@ bool SceneDocument::Undo() {
       for (const auto &node : entry.deleted_nodes)
         if (world_.FindEntity(node.id) != nullptr)
           nodes_.push_back(node);
+    }
+    if (entry.restore_selection || !entry.deleted_nodes.empty()) {
       selection_ = entry.previous_selection;
       std::erase_if(selection_,
                     [this](runtime::Id id) { return world_.FindEntity(id) == nullptr; });

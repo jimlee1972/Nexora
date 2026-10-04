@@ -754,3 +754,16 @@ join a common sibling group in merged storage order, preserving existing unrelat
 contraction rejects without deleting unrecorded entities. Failed initial edits or replay preserve history.
 Calls remain synchronous on the serialized authoring thread; no borrowed entity/scene storage is
 retained in history, and successful restoration invalidates target-scene entity borrows.
+
+## Initialized forest cloning
+
+`SceneEditor::CloneEntityForest(scene, prototypes)` treats prototype IDs as source identities and
+remaps every internal parent to a new entity ID. The owning prototypes may include forward parent
+references; unique nonzero IDs, a rooted acyclic forest, normalized valid local poses, enabled Camera
+clipping and nonnegative Light values are validated before publication. Invalid inputs preserve the
+World, allocation counter and history. Returned IDs follow prototype order. Creation and Undo/Redo
+share one owning initialized payload batch; replay retains transform/component data and stable IDs.
+Undo rejects a changed descendant-ID set, while Redo rejects collisions and expired lifecycle without
+partial publication. Unrelated entities survive. Calls are synchronous on the authoring thread;
+prototype spans are borrowed only for the call, successful publication invalidates target entity
+borrows, and this API performs no IO or asset resolution.

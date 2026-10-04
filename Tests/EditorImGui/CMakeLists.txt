@@ -199,3 +199,9 @@ target_include_directories(NexoraSelectionDeleteTests PRIVATE "${PROJECT_SOURCE_
 target_link_libraries(NexoraSelectionDeleteTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraSelectionDeleteTests)
 add_test(NAME editor.selection_delete_transaction COMMAND NexoraSelectionDeleteTests)
+
+add_executable(NexoraClipboardForestTests ClipboardForestTests.cpp)
+target_include_directories(NexoraClipboardForestTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraClipboardForestTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraClipboardForestTests)
+add_test(NAME editor.clipboard_initialized_forest COMMAND NexoraClipboardForestTests)

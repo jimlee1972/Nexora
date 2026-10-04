@@ -133,8 +133,10 @@ into renderer or platform internals.
   with a parent starts the node at the parent's origin (and fails before creating anything if that
   parent is no longer a live entity of the scene, e.g. after its creation was undone), and `Paste`
   places the root copy at the world pose captured by `CopySelection`, even if the source later moves
-  or is deleted. An invalid selection leaves the previous clipboard intact; one Undo removes a
-  single pasted entity with its copied pose. Editor scene files still write a parent column in
+  or is deleted. Copy captures each selected root's complete subtree, Camera/Light/MeshRenderer
+  data, child local poses, Euler hints and opaque payloads in owning storage. Selected descendants
+  are copied once, and invalid selection leaves the prior clipboard intact. One Undo removes the
+  complete pasted forest and restores the previous selection; Redo retains initialized payloads. Editor scene files still write a parent column in
   each node line, but from world snapshot version 3 on the snapshot is authoritative and that column
   is not validated, so a node whose runtime parent is not itself a node still reloads. A file whose world snapshot is version 1
   or 2 is migrated on `Reload` by applying the node-line parents with the world pose kept, so nothing
@@ -150,7 +152,7 @@ into renderer or platform internals.
   names, selection, and authored Euler revolutions. A new edit discards the redo branch; Reload
   clears both histories.
   `DuplicateSelection` captures and pastes the current selection while preserving the user's prior
-  clipboard. Like Paste, each created root has its own Undo step.
+  clipboard. Like Paste, the entire initialized forest is one Undo step.
   `WorldTransform` exposes a live node's composed world pose to Editor views, so children can be
   drawn at their actual world position without exposing mutable Runtime entity storage.
   `TranslateSelectionXZ` and `TranslateSelection` validate generation-keyed targets, filter
@@ -397,3 +399,16 @@ are retained in Undo/Redo and scene persistence. Single-entity setters delegate 
 Camera/Light edit access is independent of Content Browser resource access; project read-only and
 recovery/modal guards reject pending component requests. Mesh assignment separately requires a
 writable content session and matching project generation.
+
+## Clipboard forest creation
+
+CopySelection captures a complete owned forest at copy time: roots use their world TRS while
+children retain local transforms and remapped internal parents. Root names gain ` Copy`; descendants
+retain their names. All Camera/Light/MeshRenderer payloads, full-width unresolved resource IDs and
+opaque bytes survive. Euler hints retain authored revolutions when their rotation matches the copied
+pose; detaching a root with a differently rotated outside parent uses its world orientation.
+Paste prevalidates the complete opaque budget/names, invokes one Runtime CloneEntityForest and
+publishes one metadata Undo entry. One Undo removes all created entities and restores prior selection;
+Redo restores initialized pose/component data, stable IDs, names and metadata. Duplicate preserves
+the prior clipboard even on failure. The serialized authoring thread retains no live World borrow in
+clipboard/history, and no source IO or GPU residency work occurs during Copy/Paste/Duplicate.

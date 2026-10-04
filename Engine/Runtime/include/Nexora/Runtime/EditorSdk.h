@@ -120,6 +120,10 @@ public:
   // Creates a root with initialized pose and a nonzero mesh reference as one Undo transaction.
   // Undo/Redo own the complete entity and retain its stable ID, transform and material reference.
   Id CreateMeshEntity(Id scene, MeshComponent mesh, Transform transform = {});
+  // Clones an owning forest as one initialized Undo. Prototype IDs are unique nonzero source
+  // identities; parents refer only to prototypes (zero means root). Returned IDs match input order.
+  // Invalid poses/components/parents reject before mutation, and Redo retains initialized payloads.
+  [[nodiscard]] std::vector<Id> CloneEntityForest(Id scene, std::span<const Entity> prototypes);
   bool SetTransform(Id entity, Transform transform);
   // Validates camera clipping and records its previous presence/values for Undo.
   bool SetCamera(Id entity, std::optional<CameraComponent> camera);

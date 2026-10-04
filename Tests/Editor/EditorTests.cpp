@@ -608,7 +608,8 @@ int Run() {
           "scene clipboard snapshot setup failed");
   const auto pasted_child = document.Selection().front();
   Require(pasted_child != child && document.Transform(pasted_child)->x == 1.0 && document.Undo() &&
-              !document.Key(pasted_child) && document.Selection().empty(),
+              !document.Key(pasted_child) &&
+              std::ranges::equal(document.Selection(), copied_source),
           "pasted pose or single-step creation undo failed");
   {
     runtime::World deletion_world;

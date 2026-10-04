@@ -192,7 +192,8 @@ void TestSceneClipboardShortcuts() {
   const auto copy = scene.Selection().front();
   const auto pose = scene.Transform(copy);
   assert(copy != source && pose && pose->x == 1.0 && pose->y == 2.0 && pose->z == 3.0);
-  assert(scene.Undo() && scene.Nodes().size() == 1 && scene.Selection().empty());
+  assert(scene.Undo() && scene.Nodes().size() == 1 && scene.Selection().size() == 1 &&
+         scene.Selection().front() == source);
 }
 
 void TestHierarchyDeleteShortcut() {
