@@ -57,6 +57,9 @@ public:
   [[nodiscard]] static std::string_view ProjectSelectorRoot(const EditorImGuiHost &host) noexcept;
   static void SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept;
   static void SetHierarchyFilter(EditorImGuiHost &host, std::string_view filter) noexcept;
+  static void FocusProfiler(EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ProfileExportPosition(const EditorImGuiHost &host) noexcept;
   static void FocusHierarchy(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneMarkerPosition(const EditorImGuiHost &host, SceneDocument::NodeKey entity) noexcept;

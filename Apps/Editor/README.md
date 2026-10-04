@@ -253,3 +253,15 @@ settings are preserved. Missing settings select inspection-only Play. Invalid/ov
 relative paths report diagnostics, and actual Start still validates canonical containment/existence.
 Linux Xvfb closes and reopens without the CLI path, then verifies the saved module moves native
 Game pixels while the authored scene stays unchanged.
+
+The initial Profiler Export CSV action saves `.nexora/frame-processing.csv` through ProjectWorkspace's
+writer lease and atomic replacement. The application passes completed Editor frame samples after UI
+commands and before adding the current frame; the call borrows them synchronously, retaining only
+serialized CSV data. `cpu_ms` at this call is Editor frame processing wall time after BeginFrame and
+before Present, not whole-frame CPU utilization. CSV uses locale-independent full double precision,
+columns `frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes`, and empty GPU/memory
+cells because those measurements are unavailable. Export requires 1-600 strictly increasing nonzero
+frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
+replacing the last good file. UI emits a one-shot request, disables export without samples/write
+access or during recovery/close confirmation, and shows the application's result; UI never writes a
+file itself. Comprehensive versioned capture/import, GPU timing and memory instrumentation remain open.

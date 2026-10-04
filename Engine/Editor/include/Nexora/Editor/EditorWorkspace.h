@@ -22,6 +22,7 @@
 
 namespace nexora::editor {
 
+struct FrameSample;
 struct GizmoOperation;
 enum class GizmoPivot;
 
@@ -70,6 +71,10 @@ public:
   // inspection-only Play; reading never loads a module or grants project write access.
   bool SaveGameplayLibrary(std::string_view relative_path, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadGameplayLibrary(std::string *error = nullptr) const;
+  // Export completed Editor-frame wall timing (FrameSample::cpu_ms) to a project-owned CSV.
+  // Samples are borrowed only for this synchronous call; GPU/memory cells stay empty.
+  bool ExportEditorFrameProcessing(std::span<const FrameSample> samples,
+                                   std::uint64_t dropped_frames, std::string *error = nullptr);
   bool SaveEditorLayout(std::string_view layout, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadEditorLayout(std::string *error = nullptr) const;
   [[nodiscard]] bool HasRecoveryJournal() const;

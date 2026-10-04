@@ -333,6 +333,9 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   的 artifact manifest；有界的 monotonic CPU/GPU/memory frame capture 已實作。
 - ✅ 圖形化 Profiler 現顯示即時且有界的 Editor frame processing wall-time 曲線，支援暫停／
   清除、最新／平均／峰值與丟棄數。GPU 時間與記憶體在量測接線完成前會明示為不可用。
+- ✅ Profiler 現可把保留的 Editor frame-processing wall time 匯出為專案 CSV，保留 double
+  精度與丟棄 frame 數，GPU／memory 欄保持空白。同步 writer 驗證 1-600 筆有序且有限的 sample，
+  拒絕唯讀／recovery 寫入，驗證失敗會保留舊檔；實際 UI 點擊會送出一次性 request。
 - 待辦：圖形化 build frontend、remote deployment/log、GPU／memory profiling、版本化 export
   與 plugin manager。
 

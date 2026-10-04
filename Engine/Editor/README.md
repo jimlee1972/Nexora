@@ -310,3 +310,15 @@ this revision monotonic while clearing its navigation/filter state. MeshAssetCat
 retains owning snapshots and validates stable identities. The application refreshes the catalog
 from the live content revision before native drawing; delete removes geometry from live resolution
 and Undo restores it. Source IO stays in explicit import/reimport work, outside rendering/picking.
+
+The initial Profiler Export CSV action saves `.nexora/frame-processing.csv` through ProjectWorkspace's
+writer lease and atomic replacement. The application passes completed Editor frame samples after UI
+commands and before adding the current frame; the call borrows them synchronously, retaining only
+serialized CSV data. `cpu_ms` at this call is Editor frame processing wall time after BeginFrame and
+before Present, not whole-frame CPU utilization. CSV uses locale-independent full double precision,
+columns `frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes`, and empty GPU/memory
+cells because those measurements are unavailable. Export requires 1-600 strictly increasing nonzero
+frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
+replacing the last good file. UI emits a one-shot request, disables export without samples/write
+access or during recovery/close confirmation, and shows the application's result; UI never writes a
+file itself. Comprehensive versioned capture/import, GPU timing and memory instrumentation remain open.

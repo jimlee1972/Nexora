@@ -1,13 +1,17 @@
+#include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 
 #include <algorithm>
 #include <array>
 #include <cerrno>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <fstream>
 #include <iomanip>
+#include <limits>
+#include <locale>
 #include <sstream>
 #include <system_error>
 #include <unordered_set>
@@ -695,6 +699,36 @@ std::optional<std::string> ProjectWorkspace::LoadGameplayLibrary(std::string *er
     return std::nullopt;
   }
   return std::string(library);
+}
+
+bool ProjectWorkspace::ExportEditorFrameProcessing(std::span<const FrameSample> samples,
+                                                   std::uint64_t dropped_frames,
+                                                   std::string *error) {
+  if (error)
+    error->clear();
+  if (!EnsureWritable(access_, error))
+    return false;
+  if (root_.empty() || HasRecoveryJournal() || samples.empty() || samples.size() > 600) {
+    if (error)
+      *error = "frame export requires 1-600 samples and a resolved project recovery journal";
+    return false;
+  }
+  std::ostringstream csv;
+  csv.imbue(std::locale::classic());
+  csv << std::setprecision(std::numeric_limits<double>::max_digits10);
+  csv << "frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes\n";
+  std::uint64_t previous = 0;
+  for (const auto &sample : samples) {
+    if (sample.frame == 0 || sample.frame <= previous || !std::isfinite(sample.cpu_ms) ||
+        sample.cpu_ms < 0) {
+      if (error)
+        *error = "invalid or unordered Editor frame processing samples";
+      return false;
+    }
+    previous = sample.frame;
+    csv << sample.frame << ',' << sample.cpu_ms << ',' << dropped_frames << ",,\n";
+  }
+  return AtomicWrite(root_ / ".nexora/frame-processing.csv", csv.str(), error);
 }
 
 bool ProjectWorkspace::SaveEditorLayout(std::string_view layout, std::string *error) {

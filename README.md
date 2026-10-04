@@ -242,6 +242,11 @@ that the saved library still drives the Play mesh; reopening alone does not load
 The docked Profiler now plots a bounded live trace of Editor frame processing wall time, with
 pause/clear, latest/average/peak values, and a dropped-frame count. GPU timing and process memory
 remain explicitly unavailable.
+✅ The Profiler now exports retained Editor frame-processing wall times to project CSV with
+full double precision and an evicted-frame count. GPU/memory cells stay empty. The synchronous
+writer validates 1-600 ordered finite samples, rejects read-only/recovery writes, and atomically
+preserves the previous file on validation failure; real UI clicks emit one-shot requests.
+
 
 The native Vulkan/DX12 scene draw contract now supports a clipped physical-pixel viewport, with
 portable bounds checks and Vulkan Xvfb pixel evidence.
@@ -464,6 +469,9 @@ Docked Console 現會顯示有界 Runtime 紀錄，提供文字／嚴重度篩�
 丟棄數；啟動與場景儲存診斷已接入。完整 Game View 材質與 log 路由仍待完成。
 Docked Profiler 現會繪製有界的 Editor frame processing wall-time 即時曲線，支援暫停／
 清除並顯示最新／平均／峰值與丟棄數；GPU 時間及 process memory 會明示為尚無量測。
+✅ Profiler 現可把保留的 Editor frame-processing wall time 匯出為專案 CSV，保留 double
+精度與丟棄 frame 數，GPU／memory 欄保持空白。同步 writer 驗證 1-600 筆有序且有限的 sample，
+拒絕唯讀／recovery 寫入，驗證失敗會保留舊檔；實際 UI 點擊會送出一次性 request。
 
 Linux Xvfb 驗收現會透過 Ctrl+Shift+N 建立 Hierarchy 根節點、儲存場景並重啟圖形化 Editor，
 檢查新增節點重新載入後仍存在；完整 ED-M2 視覺驗收仍待完成。
