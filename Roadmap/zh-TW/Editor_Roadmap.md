@@ -21,7 +21,7 @@ workspace/document core。**待辦：** 其餘 graphical view、authoring workfl
 | ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Linux 虛擬顯示 recovery 現會以 durable seeded journal 驗證 SIGKILL、已提交 workspace 不變、重新取得 writer lease，以及 keyboard-only Recover／Discard；實體顯示器 Linux 與 Windows DPI／IME host evidence 仍待完成；已記錄 bounded Windows/DX12 開發機 shell smoke。 | [ ] |
 | ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態、提供圖形化 create/open/recent selector、將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation，執行具 bounded progress 與 structured diagnostic 的 cancellable background import/reimport、顯示 dependency cycle，並提供阻塞式 reload／keep／compare conflict UX；實體顯示／Windows workflow 驗收仍待完成。 | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware expandable tree、filter、以 generation 為 key 的 expansion／selection、可見列裁切提交、可復原 rename、兄弟排序與 cycle-safe reparent，且會拒絕 stale entity／document generation。Docked Inspector 已提供 generation-safe 的 position、Euler 度數（quaternion storage）與 scale 單選／mixed-value 多選編輯，並具 atomic Runtime validation 與單步 undo。完整的 authored-mesh Scene View、reflected Inspector、material shader workflow、camera authoring 與 unknown-component visual workflow 仍待完成；原生代理預覽已提供 Move／Rotate／Scale 把手。 | [ ] |
-| ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。圖形化 Console 會顯示有界紀錄與 Editor 診斷；docked Game panel 可控制隔離 clone 並顯示複製的檢視資料。有界原生 camera／OBJ Game View 已實作；完整材質／多個 canvas、gameplay 回呼、完整 log 路由與 native debugger integration 仍待完成。 | [ ] |
+| ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。圖形化 Console 會顯示有界紀錄與 Editor 診斷；docked Game panel 可控制隔離 clone 並顯示複製的檢視資料。有界原生 camera／OBJ Game View 已實作；完整材質／多個 canvas、完整 gameplay 服務／input routing、完整 log 路由與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
 | ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
 | ED-M6 build/profile/extensions | Portable build manifest/checksum 與有界的 monotonic profile capture 已存在。Docked Profiler 可繪出即時 Editor frame processing 時間，具暫停／清除與丟棄數。Build/deploy/log、GPU／memory profiling、export 與 plugin manager workflow 仍待完成。 | [ ] |
@@ -278,15 +278,20 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   Editor 會記錄啟動及場景開啟／儲存診斷。
 - ✅ Docked Game panel 現可操作隔離的 PlaySession：Play／Stop、Pause／Resume 與單一步進；
   顯示複製的 entity 檢視資料、有界的 X/Z 世界座標俯視預覽與 fixed tick 計數，F5／F6／F10 提供鍵盤操作，Linux Xvfb
-  會執行整段流程。固定更新回呼目前尚未執行 gameplay system，Stop 會捨棄 clone。
+  會執行整段流程。可選 gameplay library 現提供回呼，Stop 會捨棄 clone。
 - ✅ 有界原生 Game View 透過隔離 Play World 的第一個有效 active camera 繪製匯入 OBJ。
   Start 會凍結資產版本，fixed tick 後的 frame 擁有 upload 資料。測試涵蓋共用 geometry、
   inactive scene、reimport 隔離、Pause／Step／Stop，以及 Xvfb/lavapipe 攝影機像素與未變動
   的 Editor 場景。同視窗每幀共用一次原生 3D submission；兩個 canvas 同時顯示時 Game 保留檢視圖。
 - ✅ Runtime component wire 讀寫現可直接接受隔離的 PlaySession World，與 GameWorld 共用
   解碼及原子 command 驗證。Fixed／Step 回呼測試涵蓋 Editor 隔離、父階層世界姿態、component
-  payload 與失敗寫入 rollback；圖形化 gameplay module 載入與輸入路由仍待 embedding adapter。
-- 待辦：完整 Game View 材質／多個原生 canvas、gameplay system 回呼與輸入路由、完整 Runtime／build log
+  payload 與失敗寫入 rollback；圖形化 gameplay 輸入路由仍待完成。
+- ✅ Game panel 現可選擇 project-relative V3 gameplay library。Start 會綁定隔離 clone；
+  optional FixedUpdate 在 tick／Step 執行，Update 每個 playing frame 執行一次。有界訊息進入
+  Console，失敗會拒絕 Start／暫停 Play，Stop／視窗關閉會先卸載再銷毀 clone。Static lifecycle
+  測試與 Xvfb 真實動態 library 已驗證 mesh 移動、Pause／Step／Stop、Editor 場景未變動。
+  初版 host 支援 component，未宣告 scene／physics 服務；input routing 與 hot reload 仍待完成。
+- 待辦：完整 Game View 材質／多個原生 canvas、完整 gameplay 服務與輸入路由、完整 Runtime／build log
   路由，以及 native debugger/IDE 整合。
 
 ### ED-M4 — Prefab、場景與 collaboration safety

@@ -316,6 +316,12 @@ bool GameplayModuleHost::IsLoaded() const noexcept {
   return loaded_;
 }
 
+bool GameplayModuleHost::SupportsFixedUpdate() const noexcept {
+  std::scoped_lock lock(mutex_);
+  return loaded_ && module_.fixed_update &&
+         (module_.capabilities & NEXORA_GAMEPLAY_CAPABILITY_FIXED_UPDATE) != 0;
+}
+
 std::uint64_t GameplayModuleHost::Generation() const noexcept {
   std::scoped_lock lock(mutex_);
   return generation_;

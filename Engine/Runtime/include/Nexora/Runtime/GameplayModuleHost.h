@@ -57,6 +57,8 @@ public:
   [[nodiscard]] bool Update(double delta_seconds);
   void Unload() noexcept;
   [[nodiscard]] bool IsLoaded() const noexcept;
+  // True only for a loaded module advertising a non-null optional fixed_update callback.
+  [[nodiscard]] bool SupportsFixedUpdate() const noexcept;
   [[nodiscard]] std::uint64_t Generation() const noexcept;
   [[nodiscard]] ReloadStats GetReloadStats() const noexcept;
   [[nodiscard]] FailureState GetFailureState() const noexcept;

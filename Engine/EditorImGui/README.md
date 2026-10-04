@@ -112,6 +112,14 @@ authoring views on first launch.
   clone. No World borrow survives frame preparation. Missing cameras/geometry show an actionable
   status. Unsupported backends retain the X/Z map. One native 3D draw is available per window/frame:
   a simultaneously visible native Scene canvas takes precedence and Game falls back to its map.
+  The Game panel's optional UTF-8 gameplay-library field emits a project-relative path and is
+  disabled during Play. It is session-local and resets on project generation changes. The application
+  validates the canonical library remains inside the project, loads its V3 module into the clone,
+  runs optional FixedUpdate on ticks/Step and Update once per playing frame, and routes bounded
+  module messages to Console. Failure pauses Play or rejects Start with status. It unloads before
+  destroying the clone, including on window shutdown. Blank paths provide inspection-only Play.
+  The initial component-oriented host supports shared component wires and bounded owner-checked
+  allocation, without advertising scene/physics services or input routing.
   Game uses the existing bounded Lambertian preview and composed TRS, without editor proxies or
   gizmos; material shader execution, exact hierarchy shear, and simultaneous 3D views remain open.
 - The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes

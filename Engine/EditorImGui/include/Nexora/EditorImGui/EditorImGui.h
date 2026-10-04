@@ -106,6 +106,9 @@ public:
                         runtime::PlaySession *play = nullptr, ProfileSession *profile = nullptr,
                         const MeshAssetCatalog *meshes = nullptr);
   [[nodiscard]] PlayCommand TakePlayCommand() noexcept;
+  [[nodiscard]] std::string_view GameplayLibrary() const noexcept;
+  void SetGameplayStatus(std::string message);
+  void SetGameplayLibrary(std::string_view library);
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
   void RequestCloseConfirmation() noexcept;
