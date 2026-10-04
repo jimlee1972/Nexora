@@ -130,7 +130,7 @@ public:
   [[nodiscard]] std::optional<std::size_t> SiblingIndex(Id entity) const;
   // The entity and all its descendants, parents before children.
   [[nodiscard]] std::vector<Id> Subtree(Id entity) const;
-  // World pose composed along the parent chain. Lossy under shear; see ComposeTransforms.
+  // Exact world origin; composed rotation and component-wise scale are lossy under shear.
   [[nodiscard]] std::optional<Transform> WorldTransform(Id entity) const;
   // Exact world matrix (product of the chain's matrices), including any shear.
   [[nodiscard]] std::optional<TransformMatrix> WorldMatrix(Id entity) const;

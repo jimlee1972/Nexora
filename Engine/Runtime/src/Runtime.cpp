@@ -428,9 +428,13 @@ std::optional<Transform> World::WorldTransform(Id entity) const {
   if (chain.empty())
     return std::nullopt;
   auto result = chain.back()->transform;
-  for (auto it = chain.rbegin() + 1; it != chain.rend(); ++it)
+  auto matrix = ToMatrix(result);
+  for (auto it = chain.rbegin() + 1; it != chain.rend(); ++it) {
     result = ComposeTransforms(result, (*it)->transform);
-  return result;
+    matrix = MultiplyMatrices(matrix, ToMatrix((*it)->transform));
+  }
+  // Rotation and component-wise scale remain TRS approximations; the origin is affine-exact.
+  return WithPosition(result, matrix[12], matrix[13], matrix[14]);
 }
 
 std::optional<TransformMatrix> World::WorldMatrix(Id entity) const {
@@ -589,8 +593,14 @@ bool WorldCommandBuffer::Apply(World &world) {
         if (command.keep_world) {
           // Keep the world pose (Unity's worldPositionStays): re-express it under the new parent.
           auto local = *target.WorldTransform(command.entity);
-          if (command.parent != 0)
+          if (command.parent != 0) {
+            auto position = local;
             local = RelativeTransform(*target.WorldTransform(command.parent), local);
+            const auto ancestors = Ancestry(target, command.parent);
+            for (auto it = ancestors.rbegin(); it != ancestors.rend(); ++it)
+              position = RelativeTransform((*it)->transform, position);
+            local = WithPosition(local, position.x, position.y, position.z);
+          }
           const auto normalized = NormalizedTransform(local);
           if (!normalized)
             return false;

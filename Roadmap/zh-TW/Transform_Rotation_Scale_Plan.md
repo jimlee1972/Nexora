@@ -92,6 +92,8 @@
 3. ✅ **邊界。**新增有版本的 Zig／C wire component；ABI layout 測試；既有 Zig module 不變且仍通過。
    Gate：Zig gameplay 測試與 ABI layout gate。
 4. ✅ **Editor 數學。**旋轉／縮放 gizmo 數學，含 world／local／pivot 與負縮放規則，以及多選 pivot。
+   深層鏡像／剪切 ancestry 現以精確 matrix 原點及捕捉的 local inverse 換算位置；owning affine
+   preview 與 commit 一致，rotation／scale 維持 TRS 語意（`editor.affine_gizmo_contract`）。
    Gate：決定性測試與書面決策表。
 5. ✅ **文件與狀態。**更新 contract README 與雙語 roadmap／README 文字。圖形 Editor 仍為未驗收。
 

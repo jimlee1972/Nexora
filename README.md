@@ -229,7 +229,10 @@ center scale, center rotation, and release pixels; full Scene View acceptance re
 
 Native gizmo previews now share SceneDocument root edits and Runtime hierarchy composition with
 commit; rotated, mirrored, and nonuniform ancestors produce matching descendant poses. Prospective
-snapshots leave scene content and Undo/Redo untouched. Graphical milestone acceptance remains 0/8.
+snapshots leave scene content and Undo/Redo untouched. Deep mirrored/sheared ancestry now retains
+exact world origins and gizmo position conversion, with owning world/preview matrices and
+closed-form translation/Center rotation/scale, Undo/Redo and save/reload tests. Native authored-mesh
+affine rendering/picking remains open. Graphical milestone acceptance remains 0/8.
 
 The graphical Scene overview now offers optional 0.25–4 world-unit movement snapping; its drag
 preview matches the committed, undoable move even for parented entities.
@@ -585,7 +588,10 @@ Editor SceneDocument 現提供 generation-safe MeshRenderer 交易及查詢，me
 預覽與提交一致並可單次 Undo。雙根節點 Xvfb 流程驗證共同中心縮放、旋轉與放開後的畫面；完整 Scene View 驗收仍未完成。
 
 原生 gizmo 預覽與提交現共用 SceneDocument 根節點編輯及 Runtime 階層組合；旋轉、鏡像與
-非均勻縮放祖先下的子節點姿態一致。預期姿態快照不改動場景內容及 Undo／Redo，圖形化里程碑驗收仍為 0/8。
+非均勻縮放祖先下的子節點姿態一致。預期姿態快照不改動場景內容及 Undo／Redo。深層鏡像／剪切
+ancestry 現保留精確世界原點與 gizmo 位置換算，提供 owning world／preview matrix，並以 closed-form
+位移／Center 旋轉／縮放、Undo／Redo 及 save／reload 測試驗證。原生 authored-mesh affine
+繪製／picking 仍待完成，圖形化里程碑驗收仍為 0/8。
 
 圖形化 Scene 概覽現可選擇 0.25 至 4 世界單位的移動吸附；拖曳預覽與可復原的提交位移一致，
 包含有父節點的物件。

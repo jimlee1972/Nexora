@@ -233,6 +233,10 @@ public:
   // validation and local edits as commit; does not change scene state, selection, or history.
   [[nodiscard]] std::optional<std::unordered_map<runtime::Id, runtime::Transform>>
   PreviewSelectionGizmo(std::span<const NodeKey> entities, const GizmoOperation &operation) const;
+  // Owning exact affine matrices for the same prospective local edits, without mutation.
+  [[nodiscard]] std::optional<std::unordered_map<runtime::Id, runtime::TransformMatrix>>
+  PreviewSelectionGizmoMatrices(std::span<const NodeKey> entities,
+                                const GizmoOperation &operation) const;
   // First selected root's rotation, at its origin (Pivot) or the mean selected-root origin
   // (Center). Selected descendants do not weight the center twice.
   [[nodiscard]] std::optional<runtime::Transform> SelectionGizmoFrame(GizmoPivot pivot) const;
@@ -245,6 +249,8 @@ public:
   [[nodiscard]] std::optional<runtime::LightComponent> Light(NodeKey entity) const noexcept;
   [[nodiscard]] std::optional<runtime::MeshComponent> MeshRenderer(NodeKey entity) const noexcept;
   [[nodiscard]] std::optional<runtime::Transform> WorldTransform(runtime::Id entity) const noexcept;
+  [[nodiscard]] std::optional<runtime::TransformMatrix>
+  WorldMatrix(runtime::Id entity) const noexcept;
   // Copies selected-root forests, initialized components and authoring metadata into owned storage.
   // Paste/Duplicate create the complete forest as one Undo, preserving copy-time world root poses.
   bool CopySelection();

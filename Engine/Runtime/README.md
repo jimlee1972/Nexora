@@ -245,17 +245,19 @@ meaningful.
 
 - Reads: `World::Parent` (nullopt for a missing entity), `Children` (direct children in storage
   order), `Subtree` (the entity first, every parent before its children), `WorldTransform`, and
-  `WorldMatrix`. `WorldTransform` composes position, rotation, and per-axis scale down the chain and
-  is exact unless a non-uniformly scaled ancestor has a rotated descendant, where the true world
-  transform contains shear that a position/rotation/scale triple cannot hold; like Unity's
-  `lossyScale`, it is then an approximation. `WorldMatrix` (column-major 4x4, `ToMatrix` per level)
-  is always exact and is what rendering consumes (see "Render sync" below). `ComposeTransforms` and `RelativeTransform` are
-  the public building blocks.
+  `WorldMatrix`. `WorldTransform` takes its position from the exact matrix origin, including deep
+  rotated, mirrored, and nonuniform ancestry. Its composed rotation and component-wise scale
+  remain a TRS approximation when the affine linear part cannot be represented by those values;
+  it is not a matrix decomposition or a nearest-TRS fit. `WorldMatrix` (column-major 4x4, `ToMatrix`
+  per level) is always exact and is what rendering consumes (see "Render sync" below).
+  `ComposeTransforms` and `RelativeTransform` are the public TRS building blocks.
 - Writes: `WorldCommandBuffer::SetParent(entity, parent, keep_world = true)`, with parent 0 to
   detach. `keep_world` is Unity's `worldPositionStays`: the local transform is recomputed so the
   entity does not move; with `false` the local values are kept and the entity moves with its new
   parent. Self-parenting, a parent that is the entity's own descendant, a missing parent, and a parent
-  in another scene are rejected.
+  in another scene are rejected. Under shear, keep-world reparenting uses each ancestor's local
+  inverse to preserve the exact origin; rotation/scale retain the existing TRS approximation.
+  `runtime.entity_parenting` checks closed-form three-level mirrored origins and save/load.
 - Batches are validated against the hierarchy as the earlier commands of the same batch leave it, so
   "detach, then destroy the old parent" is valid while "destroy the parent, then move the child" is
   rejected whole, with nothing applied. A keep-world reparent whose re-expressed local transform is

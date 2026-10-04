@@ -287,6 +287,11 @@ creates property widgets; unknown components retain raw data instead of being si
   do not weight the center twice; gesture-time tool/pivot/camera changes are disabled. Linux Xvfb
   drives two-root selection, snapped Center scale, Center rotation, and atomic Undo.
 
+- ✅ Deep mirrored/sheared hierarchy origins and gizmo position conversion are affine-exact.
+  SceneDocument owns exact world and prospective matrix snapshots; translation and Center
+  rotate/scale positions match commit, with one Undo/Redo and save/reload coverage in
+  `editor.affine_gizmo_contract`. Native authored-mesh affine rendering/picking remains open.
+
 - ✅ Native Move/Rotate/Scale previews and commit share SceneDocument root edits and Runtime
   hierarchy composition. Owning prospective world-pose snapshots preserve dirty state, selection,
   and Undo/Redo; tests cover rotated, mirrored, nonuniform ancestors, selected descendants,

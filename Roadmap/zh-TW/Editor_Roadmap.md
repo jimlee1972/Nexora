@@ -267,6 +267,11 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   的平均原點及首個根節點的 local 軸；選取子節點不重複加權，拖曳期間鎖定工具、pivot 及相機。
   Linux Xvfb 驗證雙根節點選取、Center 縮放吸附、Center 旋轉及單次 Undo。
 
+- ✅ 深層鏡像／剪切階層的原點與 gizmo 位置換算現為 affine-exact。SceneDocument 擁有精確
+  world 及預期 matrix snapshot；位移與 Center 旋轉／縮放的位置與 commit 一致，
+  `editor.affine_gizmo_contract` 驗證單次 Undo／Redo 及 save／reload。原生 authored-mesh affine
+  繪製／picking 仍待完成。
+
 - ✅ 原生 Move／Rotate／Scale 預覽與提交共用 SceneDocument 根節點編輯及 Runtime 階層組合。
   預期世界姿態快照不改動 dirty 狀態、選取或 Undo／Redo；測試涵蓋旋轉、鏡像、非均勻縮放祖先、
   選取子節點、過期 key、無效倍率、單次 Undo，以及等比例縮放放開後畫面不跳動。

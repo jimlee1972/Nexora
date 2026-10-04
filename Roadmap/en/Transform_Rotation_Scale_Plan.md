@@ -103,7 +103,10 @@ scale ambiguity) and makes the editor fields lossy. Not recommended.
 3. ✅ **Boundary.** New versioned Zig/C wire component; ABI layout tests; existing Zig module unchanged
    and still passing. Gate: the Zig gameplay tests and the ABI layout gate.
 4. ✅ **Editor math.** Rotation/scale gizmo math with world/local/pivot and negative-scale rules, and
-   multi-selection pivots. Gate: deterministic tests plus a documented decision table.
+   multi-selection pivots. Deep mirrored/sheared ancestry now uses exact matrix origins and
+   captured local inverses for position conversion; owning affine previews match commit, while
+   rotation/scale retain TRS semantics (`editor.affine_gizmo_contract`).
+   Gate: deterministic tests plus a documented decision table.
 5. ✅ **Docs and status.** Update contract READMEs and the bilingual roadmap/README text. The graphical
    Editor remains unaccepted.
 
