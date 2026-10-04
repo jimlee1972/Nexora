@@ -70,7 +70,7 @@ aggregates selected jobs; see [Build CI routing](Tools/Build/README.md). This do
 milestone acceptance or repository branch-protection settings.
 
 ✅ [Hosted CI routing record](Tools/Build/evidence/DocumentationRouting-2026-10-05.md):
-the full-build route passed 18/18 jobs; the Markdown-only follow-up verifies the lightweight route.
+the full-build route passed 18/18 jobs; the Markdown-only route passed two lightweight jobs and skipped all nine expensive job groups.
 
 The repository now builds and tests Foundation, Core, RHI, Renderer, Runtime, API samples, a Zig gameplay consumer, and `NexoraShowcase` with both deterministic headless and native Linux/Vulkan 3D modes. The milestone sections below describe the implemented portable contract foundations and explicitly call out platform or production backends that remain future work. Parsers for persisted or external data (for example scene snapshots) reject hostile size fields before allocating.
 
@@ -404,7 +404,7 @@ Markdown 路徑與 tag 保留完整矩陣。固定 `CI result` 彙總應執行�
 [Build CI 分流](Tools/Build/README.md)。此變更不改變引擎里程碑驗收或 repository branch protection。
 
 ✅ [Hosted CI 分流紀錄](Tools/Build/evidence/DocumentationRouting-2026-10-05.md)：
-完整建置路線通過 18/18 工作；純 Markdown 後續變更用來驗證輕量路線。
+完整建置路線通過 18/18 工作；純 Markdown 路線只執行兩個輕量工作且通過，九個昂貴工作群組全部跳過。
 
 目前已可建置及測試 Foundation、Core、RHI、Renderer、Runtime、API sample、Zig gameplay consumer 與 headless `NexoraShowcase`。下方里程碑章節會列出已實作的 portable contract foundation，並明確標示仍待完成的平台或 production backend。讀取持久化或外部資料的 parser（例如場景快照）會在配置記憶體前先拒絕惡意的大小欄位。
 
