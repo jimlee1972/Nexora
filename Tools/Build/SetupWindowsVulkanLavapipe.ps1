@@ -29,11 +29,18 @@ $icd.ICD.library_path = $library
 $manifest = Join-Path $root 'nexora-lvp-icd.json'
 [IO.File]::WriteAllText($manifest, ($icd | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
 $env:VK_DRIVER_FILES = $manifest
+$env:VK_ICD_FILENAMES = $manifest
+$env:VK_LOADER_DEBUG = 'error,warn,driver'
 $env:NEXORA_CI_VULKAN_DRIVER_LIBRARY = $library
 if ($env:GITHUB_ENV) {
     Add-Content -LiteralPath $env:GITHUB_ENV -Value "VK_DRIVER_FILES=$manifest"
+    # Older host loaders predate VK_DRIVER_FILES; select the same ICD for both interfaces.
+    Add-Content -LiteralPath $env:GITHUB_ENV -Value "VK_ICD_FILENAMES=$manifest"
+    Add-Content -LiteralPath $env:GITHUB_ENV -Value 'VK_LOADER_DEBUG=error,warn,driver'
     Add-Content -LiteralPath $env:GITHUB_ENV -Value "NEXORA_CI_VULKAN_DRIVER_LIBRARY=$library"
 }
+& dumpbin.exe /dependents $library
+if ($LASTEXITCODE -ne 0) { throw 'Could not inspect lavapipe DLL dependencies.' }
 $provenance = [ordered]@{
     schema = 'nexora.showcase.ci.vulkan_driver.v1'
     driver = 'Mesa lavapipe'; version = $version; software_rasterizer = $true

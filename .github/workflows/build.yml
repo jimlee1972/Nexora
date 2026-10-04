@@ -226,7 +226,11 @@ jobs:
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File Tools/Package/AcceptShowcaseWindows.ps1 -PackageRoot build/windows-showcase-vulkan-shipping/package/NexoraShowcase-Shipping -EvidenceDirectory $evidence -ExpectedBuildId ($env:GITHUB_SHA.Substring(0, 12)) -Backend vulkan -CompleteGuidedTour -ExpectedVulkanDriverLibrary $env:NEXORA_CI_VULKAN_DRIVER_LIBRARY
           $code = $LASTEXITCODE
           Copy-Item "$env:RUNNER_TEMP/nexora-mesa/driver-provenance.json" "$evidence/driver-provenance.json"
-          if ($code -ne 0) { exit $code }
+          if ($code -ne 0) {
+            Get-Content "$evidence/stderr.log" -ErrorAction SilentlyContinue
+            Get-Content "$evidence/acceptance.json" -ErrorAction SilentlyContinue
+            exit $code
+          }
           $accepted = Get-Content "$evidence/acceptance.json" -Raw | ConvertFrom-Json
           if ($accepted.status -ne 'PASS' -or -not $accepted.native.software_rasterizer -or $accepted.physical_display_verified -or $accepted.clean_host_verified) {
             throw 'Expected native Vulkan software-driver acceptance without target-host attestations.'
