@@ -314,3 +314,11 @@ Inspector collapse and Play inspection discard both typing and queued requests b
 Read-only projects now retain Scene/Hierarchy inspection, picking, Copy and camera navigation while
 disabling authoring controls, write shortcuts and drag commits. Recovery, Play review and close
 confirmation also discard queued Hierarchy writes; interrupted gestures never commit on later release.
+
+The Game panel's Preview camera chooser selects a renderable active Play camera or Automatic
+(first valid camera in entity-ID order). Selection is temporary, resets on Stop/new Play, and leaves
+Editor/Play components, scene selection, Undo and saved project settings unchanged. Invalid or
+removed cameras fall back to Automatic; frame preparation rechecks the live Runtime camera after
+commands and fixed ticks. Read-only projects can choose previews, while modal prompts disable the
+chooser. Real UI clicks and Runtime fallback tests cover removal, unloading, invalid native-float
+projection and restart with an open chooser.

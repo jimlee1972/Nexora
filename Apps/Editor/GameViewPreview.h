@@ -34,25 +34,40 @@ struct GameFrame final {
 };
 
 // Call only after commands and fixed ticks, serialized on the authoring thread. Borrowed World
-// data never escapes. Inspect is owning and ordered by entity ID; the first valid active camera
-// wins deterministically. Unresolved/budget-rejected meshes are omitted rather than drawn as boxes.
+// data never escapes. Inspect is owning and ordered by entity ID. A valid preferred camera wins;
+// otherwise the first valid active camera is the deterministic fallback. Recheck the live World
+// after ticks even when the owning snapshot or UI selection is stale. Unresolved/budget-rejected
+// meshes are omitted rather than drawn as boxes.
 [[nodiscard]] inline GameFrame BuildGameFrame(const runtime::World &world,
                                               const runtime::RuntimeInspectionSnapshot &snapshot,
-                                              const MeshAssetCatalog &assets, float aspect) {
+                                              const MeshAssetCatalog &assets, float aspect,
+                                              runtime::Id preferred_camera = 0) {
   GameFrame frame;
   const auto active = [&](runtime::Id id) {
     const auto *scene = world.FindScene(id);
     return scene && scene->state == runtime::SceneState::Active;
   };
-  for (const auto &entity : snapshot.entities) {
-    if (!entity.camera || !active(entity.scene))
-      continue;
+  const auto choose = [&](const runtime::RuntimeEntitySnapshot &entity) {
+    const auto *live = world.FindEntity(entity.id);
+    if (!entity.camera || !live || !active(entity.scene))
+      return false;
     if (const auto view = runtime::CameraView(world, entity.id, aspect)) {
       frame.camera = entity.id;
       frame.view_projection = view->view_projection;
-      break;
+      return true;
     }
+    return false;
+  };
+  if (preferred_camera) {
+    const auto preferred =
+        std::ranges::find(snapshot.entities, preferred_camera, &runtime::RuntimeEntitySnapshot::id);
+    if (preferred != snapshot.entities.end())
+      static_cast<void>(choose(*preferred));
   }
+  if (!frame.camera)
+    for (const auto &entity : snapshot.entities)
+      if (choose(entity))
+        break;
   if (!frame.camera)
     return frame;
   std::unordered_map<std::uint64_t, std::optional<MeshRange>> ranges;

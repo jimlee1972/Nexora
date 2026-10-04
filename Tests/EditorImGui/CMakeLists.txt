@@ -169,3 +169,9 @@ target_include_directories(NexoraSceneAccessTests PRIVATE "${PROJECT_SOURCE_DIR}
 target_link_libraries(NexoraSceneAccessTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraSceneAccessTests)
 add_test(NAME editor.scene_authoring_access COMMAND NexoraSceneAccessTests)
+
+add_executable(NexoraGameCameraTests GameCameraTests.cpp)
+target_include_directories(NexoraGameCameraTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor" "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraGameCameraTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraGameCameraTests)
+add_test(NAME editor.game_camera_selection COMMAND NexoraGameCameraTests)

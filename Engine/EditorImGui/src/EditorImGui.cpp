@@ -1,6 +1,7 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/ViewportMath.h"
+#include "Nexora/Runtime/RenderSync.h"
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
 #endif
@@ -131,6 +132,10 @@ struct EditorImGuiHost::State final {
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
   bool native_game_available = true;
   bool game_was_running = false;
+  runtime::Id game_camera_selection{};
+  std::uint64_t game_camera_generation{};
+  std::optional<std::array<float, 2>> game_camera_combo_position;
+  std::vector<std::pair<runtime::Id, std::array<float, 2>>> game_camera_positions;
   bool game_input_focused = false;
   runtime::Id play_inspection_entity{};
   runtime::Id play_inspector_rendered{};
@@ -2595,6 +2600,21 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   Activate(state_->context);
   const bool game_running = play && play->State() != runtime::PlayState::Stopped;
   const auto play_snapshot = play ? play->Inspect() : runtime::RuntimeInspectionSnapshot{};
+  state_->game_camera_combo_position.reset();
+  state_->game_camera_positions.clear();
+  if (!game_running || state_->game_camera_generation != play->Generation())
+    state_->game_camera_selection = 0;
+  state_->game_camera_generation = play ? play->Generation() : 0;
+  std::vector<runtime::Id> game_cameras;
+  if (game_running) {
+    for (const auto &entity : play_snapshot.entities)
+      if (entity.camera && entity.scene_state == runtime::SceneState::Active &&
+          runtime::CameraView(*play->PlayWorld(), entity.id, 1.0F))
+        game_cameras.push_back(entity.id);
+    if (state_->game_camera_selection &&
+        std::ranges::find(game_cameras, state_->game_camera_selection) == game_cameras.end())
+      state_->game_camera_selection = 0;
+  }
   state_->play_inspector_rendered = 0;
   state_->inspector_opaque_info.clear();
   state_->profile_export_position.reset();
@@ -3015,6 +3035,38 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                   static_cast<unsigned long long>(play->Stats().fixed_ticks),
                   static_cast<unsigned long long>(play->Stats().manual_steps),
                   static_cast<unsigned long long>(play->Stats().crashes));
+      if (game_running) {
+        const auto label = [](runtime::Id camera) {
+          return camera ? "Camera #" + std::to_string(camera) : std::string("Automatic");
+        };
+        ImGui::BeginDisabled(interaction_blocked);
+        ImGui::PushID(std::to_string(state_->game_camera_generation).c_str());
+        ImGui::SetNextItemWidth(200.0F);
+        const bool open = ImGui::BeginCombo("Preview camera###game.camera",
+                                            label(state_->game_camera_selection).c_str());
+        const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+        state_->game_camera_combo_position =
+            std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
+        if (open) {
+          ImGuiListClipper cameras;
+          cameras.Begin(static_cast<int>(game_cameras.size() + 1));
+          while (cameras.Step())
+            for (int index = cameras.DisplayStart; index < cameras.DisplayEnd; ++index) {
+              const auto camera =
+                  index == 0 ? 0 : game_cameras[static_cast<std::size_t>(index - 1)];
+              ImGui::PushID(std::to_string(camera).c_str());
+              if (ImGui::Selectable(label(camera).c_str(), state_->game_camera_selection == camera))
+                state_->game_camera_selection = camera;
+              const auto item_min = ImGui::GetItemRectMin(), item_max = ImGui::GetItemRectMax();
+              state_->game_camera_positions.push_back(
+                  {camera, {(item_min.x + item_max.x) * 0.5F, (item_min.y + item_max.y) * 0.5F}});
+              ImGui::PopID();
+            }
+          ImGui::EndCombo();
+        }
+        ImGui::PopID();
+        ImGui::EndDisabled();
+      }
       const auto &snapshot = play_snapshot;
       ImGui::Text("Play World entities: %zu", snapshot.entities.size());
       ImGui::Separator();
@@ -3615,6 +3667,9 @@ std::optional<Nexora::Presentation::SceneViewport>
 EditorImGuiHost::NativeGameViewport() const noexcept {
   return state_->native_game_viewport;
 }
+runtime::Id EditorImGuiHost::GameCameraSelection() const noexcept {
+  return state_->game_camera_selection;
+}
 void EditorImGuiHost::SetNativeGameStatus(std::string message, bool available) {
   state_->native_game_status = std::move(message);
   state_->native_game_available = available;
@@ -3944,6 +3999,17 @@ void EditorImGuiTestAccess::QueueInspectorTransform(EditorImGuiHost &host,
 void EditorImGuiTestAccess::SelectPlayEntity(EditorImGuiHost &host, runtime::Id entity) noexcept {
   host.state_->play_inspection_entity = entity;
   host.state_->inspect_play_selection = true;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::GameCameraPosition(const EditorImGuiHost &host,
+                                          std::optional<runtime::Id> camera) noexcept {
+  if (!camera)
+    return host.state_->game_camera_combo_position;
+  const auto found =
+      std::ranges::find(host.state_->game_camera_positions, *camera,
+                        &decltype(host.state_->game_camera_positions)::value_type::first);
+  return found == host.state_->game_camera_positions.end() ? std::nullopt
+                                                           : std::optional{found->second};
 }
 runtime::Id EditorImGuiTestAccess::PlayInspectorEntity(const EditorImGuiHost &host) noexcept {
   return host.state_->play_inspector_rendered;

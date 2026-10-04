@@ -99,6 +99,9 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   // Control 0: combo; 1: first available asset in its popup; 2: removal button.
   InspectorMeshPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  // nullopt: combo; zero: Automatic; nonzero: visible candidate in the open popup.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  GameCameraPosition(const EditorImGuiHost &host, std::optional<runtime::Id> camera) noexcept;
   static void SelectPlayEntity(EditorImGuiHost &host, runtime::Id entity) noexcept;
   [[nodiscard]] static runtime::Id PlayInspectorEntity(const EditorImGuiHost &host) noexcept;
   static void
