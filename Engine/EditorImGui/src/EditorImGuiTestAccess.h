@@ -114,6 +114,11 @@ public:
                                    std::optional<runtime::CameraComponent> camera) noexcept;
   static void QueueInspectorLight(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                   std::optional<runtime::LightComponent> light) noexcept;
+  static void FocusInspectorTransformField(EditorImGuiHost &host, std::size_t axis) noexcept;
+  [[nodiscard]] static std::array<bool, 6>
+  InspectorTransformMixed(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::string_view InspectorTransformText(const EditorImGuiHost &host,
+                                                               std::size_t axis) noexcept;
   static void QueueInspectorTransforms(EditorImGuiHost &host,
                                        std::span<const SceneDocument::NodeKey> entities,
                                        std::span<const runtime::Transform> transforms);

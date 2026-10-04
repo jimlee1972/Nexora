@@ -211,6 +211,23 @@ near plane, and far plane on Enter. Requests use the selected document generatio
 The Light section uses the same one-shot document path for component presence and finite,
 nonnegative intensity, with Undo and scene persistence.
 
+## Inspector Position and Scale input
+
+Position/Scale fields keep bounded text drafts; typing never writes SceneDocument or Undo history.
+Mixed values show an empty field with a Mixed hint. Enter parses one finite double and applies only
+that field to fresh per-entity transforms in one generation-checked `SetTransforms` transaction.
+Rotation and unrelated fields, including changes made while typing, remain intact. Zero scale rejects
+the batch; negative scale is valid. Full-precision, locale-independent formatting and scientific input
+avoid silent decimal truncation. Equal-value Enter produces no request and preserves Redo.
+
+Escape or leaving the field abandons unsubmitted input. Selection/document changes, application focus
+loss, leaving Editor inspection for Play, and hiding the Inspector invalidate drafts; a later Enter
+cannot revive them. Read-only/recovery/Play-review/close confirmation disable Position/Scale/Euler
+controls and discard pending transform/rotation requests. Close-modal state is queried in the root
+scope that opens it, so its later frames retain the same gate. Accepted Transform/Euler requests check
+current selection and access, then cancel prospective Scene gestures before mutation. UI drafts never
+participate in scene persistence; Save stores committed values.
+
 ## Inspector rotation
 
 Local rotation is presented in degrees using extrinsic Z-X-Y composition (`qY * qX * qZ`).

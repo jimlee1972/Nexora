@@ -301,3 +301,8 @@ edits. Mesh resource assignment retains its additional writable-content/project-
 The Mesh Renderer Inspector supports mixed multi-selection. Assigning an imported OBJ preserves each
 entity's material reference; removing components affects the selection in one Undo step. Stale
 selection/project/document requests and read-only/recovery edits reject the complete operation.
+
+Position/Scale typing is now a cancelable draft. Enter commits one validated field for the current
+selection as one Undo step, preserving per-entity rotation and other values; invalid input rejects the
+batch. Read-only/recovery/close and Editor-to-Play inspection transitions abandon uncommitted input.
+The application continues saving only committed SceneDocument content.

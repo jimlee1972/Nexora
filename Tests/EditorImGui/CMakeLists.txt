@@ -151,3 +151,9 @@ target_include_directories(NexoraComponentMultiEditTests PRIVATE "${PROJECT_SOUR
 target_link_libraries(NexoraComponentMultiEditTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraComponentMultiEditTests)
 add_test(NAME editor.component_multi_edit COMMAND NexoraComponentMultiEditTests)
+
+add_executable(NexoraTransformInputTests TransformInputTests.cpp)
+target_include_directories(NexoraTransformInputTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraTransformInputTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraTransformInputTests)
+add_test(NAME editor.transform_input COMMAND NexoraTransformInputTests)

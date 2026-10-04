@@ -209,9 +209,12 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   generation-keyed 的 anchor 處理 plain／Ctrl／Shift selection、裁切可見列提交，並把 rename、
   兄弟排序與 drag/drop reparent 送進 generation-safe、可復原的 `SceneDocument` contract；stale
   entity／document generation 會被拒絕。
-- ✅ Docked 圖形化 Inspector 會呈現單選或 mixed-value 多選的 local position、Euler 度數（quaternion storage）與
-  scale。欄位編輯會把 generation-keyed transform 送入一個 atomic Runtime transaction 與 undo
-  step；無效輸入不會改變任何所選 entity。
+- ✅ Docked 圖形化 Inspector 會呈現單選或 mixed 多選的 local position、Euler 度數
+  （quaternion storage）與 scale。Position／Scale 現保留有界數值草稿，僅在 Enter 時提交為一個
+  atomic Undo step，保留最新的其他欄位與各 entity 的旋轉。完整精度科學記號及負縮放可用；
+  無效／零縮放輸入拒絕整批操作，相同值 Enter 保留 Redo。真正鍵盤測試涵蓋輸入、Escape、
+  失焦、selection／reload、Play Inspector、唯讀／復原／關閉確認與 save／reopen。
+  草稿不會儲存；完整 reflected Inspector 及 target-host 驗收仍待完成。
 - ✅ Inspector 的單選 Camera 區可新增／移除元件，並以 generation-keyed Undo 編輯經驗證的
   垂直視角與遠近裁切面。場景儲存／重新載入會保留數值；完整 reflected Inspector 仍待完成。
 - ✅ 單選 Light 區也可新增／移除元件、編輯經驗證的非負亮度，並具同樣的 Undo 與場景持久化。
