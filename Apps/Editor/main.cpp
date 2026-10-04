@@ -1083,7 +1083,7 @@ int RunGraphical(std::optional<ProjectState> project,
         }
         play_accumulator = std::min(play_accumulator, 4.0 / 60.0);
         if (play.State() == nexora::runtime::PlayState::Playing && !gameplay.Update(elapsed)) {
-          static_cast<void>(play.Pause());
+          static_cast<void>(play.ReportRuntimeFailure());
           ui.SetGameplayStatus("Gameplay update failed; Play paused. Stop to reload the module.");
           log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", "Gameplay update failed.");
         }
@@ -1092,8 +1092,7 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       if (play.State() == nexora::runtime::PlayState::Paused &&
           play.LastPauseReason() == nexora::runtime::PauseReason::RuntimeFailure)
-        ui.SetGameplayStatus(
-            "Gameplay fixed update failed; Play paused. Stop to reload the module.");
+        ui.SetGameplayStatus("Gameplay callback failed; Play paused. Stop to reload the module.");
       if (mesh_content_revision != content.Browser().Revision() ||
           mesh_content_generation != content.Browser().ProjectGeneration()) {
         std::string mesh_error;

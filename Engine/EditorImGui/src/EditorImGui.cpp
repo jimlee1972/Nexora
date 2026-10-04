@@ -122,6 +122,9 @@ struct EditorImGuiHost::State final {
   bool native_game_available = true;
   bool game_was_running = false;
   bool game_input_focused = false;
+  runtime::Id play_inspection_entity{};
+  runtime::Id play_inspector_rendered{};
+  bool inspect_play_selection{};
   std::string native_game_status;
   bool native_scene_preview = false;
   bool native_scene_preview_available = true;
@@ -972,6 +975,54 @@ bool FrameNativeSceneSelection(StateT &state, const SceneDocument &scene) {
   state.native_scene_orbit.distance = distance;
   state.scene_center_world = {static_cast<float>(x), static_cast<float>(z)};
   return true;
+}
+
+const char *PauseReasonLabel(runtime::PauseReason reason) {
+  switch (reason) {
+  case runtime::PauseReason::None:
+    return "None";
+  case runtime::PauseReason::User:
+    return "User pause";
+  case runtime::PauseReason::StepComplete:
+    return "Step complete";
+  case runtime::PauseReason::DebuggerBreak:
+    return "Debugger break";
+  case runtime::PauseReason::RuntimeFailure:
+    return "Runtime callback failed";
+  }
+  return "Unknown";
+}
+void DrawPlayEntityInspector(const runtime::RuntimeEntitySnapshot &entity) {
+  ImGui::TextUnformatted("Play World (read-only)");
+  ImGui::Text("Entity #%llu | Scene #%llu | %s", static_cast<unsigned long long>(entity.id),
+              static_cast<unsigned long long>(entity.scene),
+              entity.scene_state == runtime::SceneState::Active ? "Active" : "Inactive");
+  ImGui::Text("Parent: #%llu", static_cast<unsigned long long>(entity.parent));
+  const auto transform = [](const char *label, const runtime::Transform &pose) {
+    ImGui::SeparatorText(label);
+    ImGui::Text("Position: %.3f, %.3f, %.3f", pose.x, pose.y, pose.z);
+    ImGui::Text("Rotation (quaternion): %.3f, %.3f, %.3f, %.3f", pose.qx, pose.qy, pose.qz,
+                pose.qw);
+    ImGui::Text("Scale: %.3f, %.3f, %.3f", pose.sx, pose.sy, pose.sz);
+  };
+  transform("Local Transform", entity.transform);
+  transform("World Transform", entity.world_transform);
+  if (entity.camera_data) {
+    const auto &camera = *entity.camera_data;
+    ImGui::SeparatorText("Camera");
+    ImGui::Text("Vertical FOV: %.3f", camera.vertical_field_of_view);
+    ImGui::Text("Near / Far: %.3f / %.3f", camera.near_plane, camera.far_plane);
+  }
+  if (entity.light_data) {
+    ImGui::SeparatorText("Light");
+    ImGui::Text("Intensity: %.3f", entity.light_data->intensity);
+  }
+  if (entity.mesh_data) {
+    ImGui::SeparatorText("Mesh Renderer");
+    ImGui::Text("Mesh: #%llu", static_cast<unsigned long long>(entity.mesh_data->mesh));
+    ImGui::Text("Material shader: #%llu",
+                static_cast<unsigned long long>(entity.mesh_data->material.shader));
+  }
 }
 
 void DrawPlayOverview(const runtime::RuntimeInspectionSnapshot &snapshot) {
@@ -2221,6 +2272,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                        runtime::PlaySession *play, ProfileSession *profile,
                                        const MeshAssetCatalog *meshes) {
   Activate(state_->context);
+  const bool game_running = play && play->State() != runtime::PlayState::Stopped;
+  const auto play_snapshot = play ? play->Inspect() : runtime::RuntimeInspectionSnapshot{};
+  state_->play_inspector_rendered = 0;
+  if (!game_running) {
+    state_->play_inspection_entity = 0;
+    state_->inspect_play_selection = false;
+  }
   const auto scene_generation = scene == nullptr ? 0 : scene->Generation();
   if (scene_generation != state_->scene_gesture_document_generation)
     CancelSceneGestures(*state_);
@@ -2302,10 +2360,31 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     DrawHierarchy(*state_, scene, shell, recovery_available);
   ImGui::End();
   const auto inspector_window = PanelWindowName("nexora.inspector");
-  if (ImGui::Begin(inspector_window.c_str()))
-    DrawInspector(*state_, scene, content, meshes,
-                  workspace && workspace->Writable() && content && content->Writable() &&
-                      !recovery_available);
+  if (ImGui::Begin(inspector_window.c_str())) {
+    if (game_running) {
+      if (ImGui::RadioButton("Editor", !state_->inspect_play_selection))
+        state_->inspect_play_selection = false;
+      ImGui::SameLine();
+      if (ImGui::RadioButton("Play (read-only)", state_->inspect_play_selection))
+        state_->inspect_play_selection = true;
+    }
+    if (state_->inspect_play_selection) {
+      const auto selected =
+          std::ranges::find(play_snapshot.entities, state_->play_inspection_entity,
+                            &runtime::RuntimeEntitySnapshot::id);
+      if (selected == play_snapshot.entities.end()) {
+        state_->play_inspection_entity = 0;
+        ImGui::TextDisabled("Select a Play entity in the Game panel.");
+      } else {
+        state_->play_inspector_rendered = selected->id;
+        DrawPlayEntityInspector(*selected);
+      }
+    } else {
+      DrawInspector(*state_, scene, content, meshes,
+                    workspace && workspace->Writable() && content && content->Writable() &&
+                        !recovery_available);
+    }
+  }
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
   if (ImGui::Begin(scene_window.c_str())) {
@@ -2521,7 +2600,6 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   ImGui::End();
   if (!state_->scene_canvas_viewport)
     CancelSceneGestures(*state_);
-  const bool game_running = play && play->State() != runtime::PlayState::Stopped;
   bool game_canvas_visible = false;
   if (!play || play->State() != runtime::PlayState::Playing || !state_->app_focused)
     state_->game_input_focused = false;
@@ -2569,10 +2647,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::Text("State: %s", state == runtime::PlayState::Stopped   ? "Stopped"
                                : state == runtime::PlayState::Playing ? "Playing"
                                                                       : "Paused");
-      ImGui::Text("Fixed ticks: %llu | Manual steps: %llu",
+      if (state == runtime::PlayState::Paused) {
+        ImGui::SameLine();
+        ImGui::Text("| %s", PauseReasonLabel(play->LastPauseReason()));
+      }
+      ImGui::Text("Fixed ticks: %llu | Steps: %llu | Callback failures: %llu",
                   static_cast<unsigned long long>(play->Stats().fixed_ticks),
-                  static_cast<unsigned long long>(play->Stats().manual_steps));
-      const auto snapshot = play->Inspect();
+                  static_cast<unsigned long long>(play->Stats().manual_steps),
+                  static_cast<unsigned long long>(play->Stats().crashes));
+      const auto &snapshot = play_snapshot;
       ImGui::Text("Play World entities: %zu", snapshot.entities.size());
       ImGui::Separator();
       if (game_running)
@@ -2609,8 +2692,19 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       while (clipper.Step())
         for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index) {
           const auto &entity = snapshot.entities[static_cast<std::size_t>(index)];
-          ImGui::Text("#%llu  world (%.2f, %.2f, %.2f)", static_cast<unsigned long long>(entity.id),
-                      entity.world_transform.x, entity.world_transform.y, entity.world_transform.z);
+          char text[192];
+          std::snprintf(text, sizeof(text), "#%llu  world (%.2f, %.2f, %.2f)%s%s%s",
+                        static_cast<unsigned long long>(entity.id), entity.world_transform.x,
+                        entity.world_transform.y, entity.world_transform.z,
+                        entity.camera ? " Camera" : "", entity.light ? " Light" : "",
+                        entity.mesh_renderer ? " Mesh" : "");
+          const auto label = std::string(text) + "###play.entity";
+          ImGui::PushID(std::to_string(entity.id).c_str());
+          if (ImGui::Selectable(label.c_str(), state_->play_inspection_entity == entity.id)) {
+            state_->play_inspection_entity = entity.id;
+            state_->inspect_play_selection = true;
+          }
+          ImGui::PopID();
         }
     }
   }
@@ -3360,6 +3454,14 @@ void EditorImGuiTestAccess::QueueInspectorTransform(EditorImGuiHost &host,
                                                     runtime::Transform transform) noexcept {
   host.state_->inspector_transform_request.emplace(
       EditorImGuiHost::State::InspectorTransformRequest{{entity}, {transform}});
+}
+
+void EditorImGuiTestAccess::SelectPlayEntity(EditorImGuiHost &host, runtime::Id entity) noexcept {
+  host.state_->play_inspection_entity = entity;
+  host.state_->inspect_play_selection = true;
+}
+runtime::Id EditorImGuiTestAccess::PlayInspectorEntity(const EditorImGuiHost &host) noexcept {
+  return host.state_->play_inspector_rendered;
 }
 
 void EditorImGuiTestAccess::QueueInspectorCamera(

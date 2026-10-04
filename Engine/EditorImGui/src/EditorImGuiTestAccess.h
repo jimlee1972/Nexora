@@ -80,6 +80,8 @@ public:
   static void QueueInspectorMesh(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                  std::optional<runtime::AssetUuid> asset,
                                  std::uint64_t generation) noexcept;
+  static void SelectPlayEntity(EditorImGuiHost &host, runtime::Id entity) noexcept;
+  [[nodiscard]] static runtime::Id PlayInspectorEntity(const EditorImGuiHost &host) noexcept;
   static void QueueInspectorCamera(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                    std::optional<runtime::CameraComponent> camera) noexcept;
   static void QueueInspectorLight(EditorImGuiHost &host, SceneDocument::NodeKey entity,

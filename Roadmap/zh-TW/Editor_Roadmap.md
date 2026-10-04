@@ -296,6 +296,10 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   Pause／Stop、提示視窗與 native 失焦會清除擷取及 held state。擷取中的按鍵不會觸發 authoring
   快捷鍵；F5／F6／F10 保留控制。測試涵蓋狀態轉移、owning snapshot、callback，以及 Xvfb
   input-only mesh 移動／釋放。Gamepad、pointer look、rebinding 與多使用者仍待完成。
+- ✅ 選取 Game entity 現會開啟唯讀 Play Inspector，顯示複製的 local／world pose、parent、
+  scene state、Camera／Light 與完整寬度的 mesh／shader ID。Game panel 顯示暫停原因及 callback
+  失敗次數；每 frame 與 fixed callback 失敗皆會釋放 input。快照在元件移除與 Stop 後仍有效，
+  Editor selection 與編輯狀態保持獨立。
 - 待辦：完整 Game View 材質／多個原生 canvas、完整 gameplay 服務與擴充輸入路由、完整 Runtime／build log
   路由，以及 native debugger/IDE 整合。
 

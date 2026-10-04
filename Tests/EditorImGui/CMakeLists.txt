@@ -19,7 +19,7 @@ nexora_apply_defaults(NexoraSceneMeshPreviewTests)
 add_test(NAME editor.scene_mesh_preview_geometry COMMAND NexoraSceneMeshPreviewTests)
 
 add_executable(NexoraGameViewPreviewTests GameViewPreviewTests.cpp)
-target_include_directories(NexoraGameViewPreviewTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_include_directories(NexoraGameViewPreviewTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor" "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraGameViewPreviewTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraGameViewPreviewTests)
 add_test(NAME editor.game_view_preview COMMAND NexoraGameViewPreviewTests)

@@ -1,3 +1,4 @@
+#include "EditorImGuiTestAccess.h"
 #include "GameViewPreview.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include <iostream>
@@ -39,8 +40,12 @@ int main() {
     runtime::WorldCommandBuffer commands;
     commands.SetCamera(camera, runtime::CameraComponent{});
     commands.SetTransform(camera, {0, 0, 5});
+    commands.SetLight(camera, runtime::LightComponent{2.5F});
+    commands.SetParent(duplicate, camera, false);
     commands.SetMeshRenderer(mesh, runtime::MeshComponent{MeshResourceId(uuid), {}});
-    commands.SetMeshRenderer(duplicate, runtime::MeshComponent{MeshResourceId(uuid), {}});
+    commands.SetMeshRenderer(
+        duplicate,
+        runtime::MeshComponent{MeshResourceId(uuid), {std::numeric_limits<runtime::Id>::max()}});
     commands.SetMeshRenderer(missing, runtime::MeshComponent{99, {}});
     Require(commands.Apply(world), "components failed");
     runtime::PlaySession play(world);
@@ -53,6 +58,21 @@ int main() {
                          return move.Apply(clone);
                        }),
             "Play start failed");
+    const auto owning = play.Inspect();
+    Require(owning.entities.front().id == camera && owning.entities.front().camera_data &&
+                owning.entities.front().camera_data->vertical_field_of_view == 60 &&
+                owning.entities.front().scene_state == runtime::SceneState::Active &&
+                owning.entities.front().parent == 0 && owning.entities.front().light_data &&
+                owning.entities.front().light_data->intensity == 2.5F &&
+                owning.entities[2].parent == camera && owning.entities[2].world_transform.z == 5 &&
+                owning.entities[2].mesh_data->material.shader ==
+                    std::numeric_limits<runtime::Id>::max() &&
+                owning.entities.back().scene_state == runtime::SceneState::LoadedInactive &&
+                owning.entities[1].mesh_data &&
+                owning.entities[1].mesh_data->mesh == MeshResourceId(uuid) &&
+                !owning.entities[1].camera_data &&
+                owning.entities.back().light_data == std::nullopt,
+            "owning component payloads or scene metadata failed");
     const MeshAssetCatalog frozen = assets;
     auto frame = preview::BuildGameFrame(*play.PlayWorld(), play.Inspect(), frozen, 2);
     Require(frame.camera == camera && frame.instances.size() == 2 && frame.unavailable == 1 &&
@@ -105,6 +125,24 @@ int main() {
                 viewport->x + viewport->width <= 1280 && viewport->y + viewport->height <= 720 &&
                 !host.NativeScenePreviewViewport(),
             "Game tab focus or framebuffer-clipped viewport failed");
+    imgui::EditorImGuiTestAccess::SelectPlayEntity(host, mesh);
+    host.BeginFrame();
+    host.DrawProductShell(shell, &document, nullptr, nullptr, nullptr, nullptr, nullptr, &play);
+    static_cast<void>(host.EndFrame());
+    Require(imgui::EditorImGuiTestAccess::PlayInspectorEntity(host) == mesh &&
+                world.FindEntity(mesh)->transform.x == 0,
+            "read-only Play selection changed the Editor World");
+    imgui::EditorImGuiTestAccess::SelectPlayEntity(host, std::numeric_limits<runtime::Id>::max());
+    host.BeginFrame();
+    host.DrawProductShell(shell, &document, nullptr, nullptr, nullptr, nullptr, nullptr, &play);
+    static_cast<void>(host.EndFrame());
+    Require(imgui::EditorImGuiTestAccess::PlayInspectorEntity(host) == 0,
+            "missing Play entity retained stale inspection");
+    play.SetInputFocus(true);
+    Require(play.ReportRuntimeFailure() && play.State() == runtime::PlayState::Paused &&
+                play.LastPauseReason() == runtime::PauseReason::RuntimeFailure &&
+                !play.AcceptsInput() && play.Stats().crashes == 1,
+            "embedding callback failure did not pause and revoke input");
     host.SetNativeGameStatus("unsupported", false);
     host.BeginFrame();
     host.DrawProductShell(shell, &document, nullptr, nullptr, nullptr, nullptr, nullptr, &play);
@@ -116,6 +154,15 @@ int main() {
     auto no_camera = preview::BuildGameFrame(*play.PlayWorld(), play.Inspect(), frozen, 2);
     Require(!no_camera.camera && no_camera.instances.empty(), "missing camera did not fail closed");
     Require(play.Stop() && !play.PlayWorld(), "Stop retained the clone");
+    Require(owning.entities.front().camera_data &&
+                owning.entities[1].mesh_data->mesh == MeshResourceId(uuid) &&
+                !play.ReportRuntimeFailure(),
+            "snapshot did not survive component removal/Stop or stopped failure accepted");
+    host.BeginFrame();
+    host.DrawProductShell(shell, &document, nullptr, nullptr, nullptr, nullptr, nullptr, &play);
+    static_cast<void>(host.EndFrame());
+    Require(imgui::EditorImGuiTestAccess::PlayInspectorEntity(host) == 0,
+            "Stop retained Play inspector state");
     const auto draw = stepped.DrawData({1, 2, 400, 200});
     Require(draw.vertices.size() == 3 && draw.instances[0].translation[0] == 2 &&
                 Nexora::Presentation::ValidateSceneMeshBatches(draw.batches, draw.indices.size(),

@@ -263,3 +263,11 @@ refreshes its CPU catalog when the live Content Browser revision changes, before
 geometry. Failed/cancelled/stale results keep the prior mesh; rename/move Undo keeps a newer
 published geometry and delete/Undo removes/restores live resolution. UI borrows snapshots for the
 frame and performs no mesh source IO while rendering or picking.
+
+Play inspection uses one owning Runtime snapshot per UI frame. Selecting a Game entity switches
+Inspector to read-only Play mode: local/world transforms, parent/scene state, Camera/Light payloads,
+and full 64-bit mesh/material shader IDs are displayed as text. Editor mode remains available;
+Play selection never changes the scene document's selection. Missing entities clear the inspected ID,
+and Stop returns Inspector to Editor mode. Pause reasons and callback failure counts are visible in
+Game. Fixed and per-frame gameplay callback failures share RuntimeFailure pause/input-release policy;
+native debugger attachment and generic reflected component inspection remain open.

@@ -97,9 +97,9 @@ The docked Game panel now controls an isolated `PlaySession`: F5 starts or stops
 resumes, and F10 advances one paused fixed tick. The panel inspects copied Play World entity
 positions and tick counts. Stop discards the cloned World; the Editor World is not applied back.
 An X/Z inspection map draws copied Play World positions, including parented entities, and caps
-marker submission at 4096. It does not render the gameplay camera or scene geometry.
-The fixed callback currently advances no gameplay systems, and renderer-backed Game View output
-remains open.
+marker submission at 4096. This is the fallback for unavailable native Game rendering. Native Game
+camera/OBJ rendering and optional gameplay callbacks are described below; blank library paths
+provide inspection-only Play.
 
 The ED-M2 graphical Hierarchy foundation now renders a parent-aware expandable tree, filters by
 entity name, supports plain/Ctrl/Shift selection with a retained generation-keyed anchor, clips
@@ -236,3 +236,11 @@ controls; other captured keys/text do not reach authoring shortcuts. The initial
 snapshot maps WASD/arrows to movement axes and Space/left mouse/right mouse/Shift/Ctrl to button
 bits 1/2/4/8/16, with one frame sequence and no borrowed input data. Gamepad, pointer motion/look,
 rebinding, multiple users, module hot reload, and persisted module configuration remain open.
+
+Play inspection uses one owning Runtime snapshot per UI frame. Selecting a Game entity switches
+Inspector to read-only Play mode: local/world transforms, parent/scene state, Camera/Light payloads,
+and full 64-bit mesh/material shader IDs are displayed as text. Editor mode remains available;
+Play selection never changes the scene document's selection. Missing entities clear the inspected ID,
+and Stop returns Inspector to Editor mode. Pause reasons and callback failure counts are visible in
+Game. Fixed and per-frame gameplay callback failures share RuntimeFailure pause/input-release policy;
+native debugger attachment and generic reflected component inspection remain open.

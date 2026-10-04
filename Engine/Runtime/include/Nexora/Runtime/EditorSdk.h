@@ -189,6 +189,13 @@ struct RuntimeEntitySnapshot final {
   bool light{};
   bool mesh_renderer{};
   Transform world_transform{};
+  Id parent{};
+  SceneState scene_state{SceneState::LoadedInactive};
+  // Optional component payloads are owning copies. Presence flags above retain source
+  // compatibility.
+  std::optional<CameraComponent> camera_data{};
+  std::optional<LightComponent> light_data{};
+  std::optional<MeshComponent> mesh_data{};
 };
 
 struct RuntimeInspectionSnapshot final {
@@ -251,6 +258,9 @@ public:
   explicit PlaySession(World &editor_world) noexcept : editor_world_(editor_world) {}
   bool Start(double fixed_delta_seconds, FixedUpdate fixed_update);
   bool Pause() noexcept;
+  // Report one failed embedding callback: pause, release input, and increment crashes. False
+  // without an active clone. Fixed tick failures use this same path.
+  bool ReportRuntimeFailure() noexcept;
   bool Resume() noexcept;
   bool Tick();
   bool Step();
