@@ -183,6 +183,11 @@ struct EditorImGuiHost::State final {
   std::optional<std::size_t> inspector_euler_focus_request;
   std::optional<InspectorEulerRequest> inspector_euler_request;
   std::optional<InspectorTransformRequest> inspector_transform_request;
+  std::vector<SceneDocument::NodeKey> inspector_transform_selection;
+  std::array<std::array<char, 64>, 6> inspector_transform_text{};
+  std::array<bool, 6> inspector_transform_active{}, inspector_transform_mixed{};
+  std::optional<std::size_t> inspector_transform_focus_request;
+  std::uint32_t inspector_transform_draft_generation{};
   template <typename Component> struct InspectorComponentRequest final {
     std::vector<SceneDocument::NodeKey> entities;
     std::vector<std::optional<Component>> values;
@@ -274,6 +279,19 @@ template <typename StateT> void CancelNativeSceneGesture(StateT &state) {
 template <typename StateT> void CancelSceneGestures(StateT &state) {
   CancelNativeSceneGesture(state);
   state.scene_drag.reset();
+}
+
+template <typename StateT> void CancelInspectorTransformDrafts(StateT &state) {
+  if (std::ranges::any_of(state.inspector_transform_active, [](bool active) { return active; }) ||
+      std::ranges::any_of(state.inspector_euler_active, [](bool active) { return active; }) ||
+      state.inspector_transform_request || state.inspector_euler_request)
+    ++state.inspector_transform_draft_generation;
+  state.inspector_transform_selection.clear();
+  state.inspector_euler_selection.clear();
+  state.inspector_transform_active = {};
+  state.inspector_euler_active = {};
+  state.inspector_transform_request.reset();
+  state.inspector_euler_request.reset();
 }
 
 void ApplyTheme() {
@@ -1371,10 +1389,17 @@ EulerDegrees InspectorAngles(StateT &state, const SceneDocument &scene, SceneDoc
   return degrees;
 }
 
-template <typename StateT> void ApplyInspectorEuler(StateT &state, SceneDocument &scene) {
+template <typename StateT>
+void ApplyInspectorEuler(StateT &state, SceneDocument &scene,
+                         std::span<const SceneDocument::NodeKey> selection, bool editable) {
   if (!state.inspector_euler_request)
     return;
   const auto request = std::exchange(state.inspector_euler_request, std::nullopt);
+  if (!editable || !std::ranges::equal(request->entities, selection)) {
+    state.inspector_error = "Rotation edit rejected because access or selection changed.";
+    return;
+  }
+  CancelSceneGestures(state);
   if (!scene.SetEulerField(request->entities, request->axis, request->degrees)) {
     state.inspector_error =
         "Rotation edit rejected because its values or entity generation are stale.";
@@ -1406,6 +1431,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
            !selected_entities.contains(hint.entity.id);
   });
   if (scene == nullptr || scene->Selection().empty()) {
+    CancelInspectorTransformDrafts(state);
     state.inspector_mesh_request.reset();
     state.inspector_camera_request.reset();
     state.inspector_light_request.reset();
@@ -1420,6 +1446,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     const auto key = scene->Key(entity);
     const auto transform = scene->Transform(entity);
     if (!key || !transform) {
+      CancelInspectorTransformDrafts(state);
       ImGui::TextUnformatted("A selected entity is no longer available.");
       return;
     }
@@ -1463,41 +1490,11 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       }
     ImGui::EndChild();
   }
-  ImGui::SeparatorText("Transform");
-  struct Field final {
-    const char *label;
-    double runtime::Transform::*member;
-  };
-  constexpr std::array fields{
-      Field{"Position X", &runtime::Transform::x}, Field{"Position Y", &runtime::Transform::y},
-      Field{"Position Z", &runtime::Transform::z}, Field{"Scale X", &runtime::Transform::sx},
-      Field{"Scale Y", &runtime::Transform::sy},   Field{"Scale Z", &runtime::Transform::sz}};
-  for (const auto &field : fields) {
-    double value = transforms.front().*(field.member);
-    const bool mixed = std::ranges::any_of(
-        transforms, [&](const auto &transform) { return transform.*(field.member) != value; });
-    if (mixed)
-      ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, true);
-    const bool changed = ImGui::InputScalar(field.label, ImGuiDataType_Double, &value);
-    if (mixed)
-      ImGui::PopItemFlag();
-    if (changed) {
-      for (auto &transform : transforms)
-        transform.*(field.member) = value;
-      state.inspector_transform_request.emplace(
-          typename StateT::InspectorTransformRequest{keys, transforms});
-    }
-  }
-
-  ImGui::SeparatorText("Local rotation (degrees, Z-X-Y)");
-  ImGui::TextDisabled("Press Enter to apply a rotation.");
-  std::vector<EulerDegrees> angles;
-  angles.reserve(keys.size());
-  for (std::size_t i = 0; i < keys.size(); ++i)
-    angles.push_back(InspectorAngles(state, *scene, keys[i], transforms[i]));
-  if (state.inspector_euler_selection != keys) {
-    state.inspector_euler_selection = keys;
-    state.inspector_euler_active = {};
+  if (!editable)
+    CancelInspectorTransformDrafts(state);
+  if (state.inspector_transform_selection != keys) {
+    state.inspector_transform_selection = keys;
+    state.inspector_transform_active = {};
   }
   std::uint32_t selection_hash = 2166136261U;
   for (const auto key : keys) {
@@ -1509,6 +1506,71 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     }
   }
   ImGui::PushID(static_cast<int>(selection_hash));
+  ImGui::PushID(static_cast<int>(state.inspector_transform_draft_generation));
+  ImGui::SeparatorText("Transform");
+  ImGui::TextDisabled("Enter applies; Escape cancels.");
+  ImGui::BeginDisabled(!editable);
+  struct Field final {
+    const char *label;
+    double runtime::Transform::*member;
+  };
+  constexpr std::array fields{
+      Field{"Position X", &runtime::Transform::x}, Field{"Position Y", &runtime::Transform::y},
+      Field{"Position Z", &runtime::Transform::z}, Field{"Scale X", &runtime::Transform::sx},
+      Field{"Scale Y", &runtime::Transform::sy},   Field{"Scale Z", &runtime::Transform::sz}};
+  for (std::size_t axis = 0; axis < fields.size(); ++axis) {
+    const auto &field = fields[axis];
+    double value = transforms.front().*(field.member);
+    const bool mixed = std::ranges::any_of(
+        transforms, [&](const auto &transform) { return transform.*(field.member) != value; });
+    state.inspector_transform_mixed[axis] = mixed;
+    auto &text = state.inspector_transform_text[axis];
+    if (!state.inspector_transform_active[axis]) {
+      if (mixed)
+        text[0] = '\0';
+      else {
+        const auto formatted = std::to_chars(text.data(), text.data() + text.size() - 1, value,
+                                             std::chars_format::general, 17);
+        *formatted.ptr = '\0';
+      }
+    }
+    if (state.inspector_transform_focus_request == axis) {
+      ImGui::SetKeyboardFocusHere();
+      state.inspector_transform_focus_request.reset();
+    }
+    const bool submit = ImGui::InputTextWithHint(
+        field.label, mixed ? "Mixed" : "Value", text.data(), text.size(),
+        ImGuiInputTextFlags_CharsScientific | ImGuiInputTextFlags_EnterReturnsTrue);
+    state.inspector_transform_active[axis] = ImGui::IsItemActive();
+    if (submit) {
+      const std::string_view entered{text.data()};
+      const auto number = entered.starts_with('+') ? entered.substr(1) : entered;
+      double next{};
+      const auto parsed = std::from_chars(number.data(), number.data() + number.size(), next);
+      if (parsed.ec != std::errc{} || parsed.ptr != number.data() + number.size() ||
+          !std::isfinite(next))
+        state.inspector_error = "Enter a finite position or nonzero scale.";
+      else if (mixed || next != value) {
+        auto edits = transforms;
+        for (auto &transform : edits)
+          transform.*(field.member) = next;
+        state.inspector_transform_request.emplace(
+            typename StateT::InspectorTransformRequest{keys, std::move(edits)});
+      } else {
+        state.inspector_error.clear();
+      }
+    }
+  }
+
+  ImGui::SeparatorText("Local rotation (degrees, Z-X-Y)");
+  std::vector<EulerDegrees> angles;
+  angles.reserve(keys.size());
+  for (std::size_t i = 0; i < keys.size(); ++i)
+    angles.push_back(InspectorAngles(state, *scene, keys[i], transforms[i]));
+  if (state.inspector_euler_selection != keys) {
+    state.inspector_euler_selection = keys;
+    state.inspector_euler_active = {};
+  }
   constexpr std::array labels{"Rotation X", "Rotation Y", "Rotation Z"};
   for (std::size_t axis = 0; axis < labels.size(); ++axis) {
     double value = angles.front()[axis];
@@ -1541,17 +1603,22 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
             typename StateT::InspectorEulerRequest{keys, axis, value});
     }
   }
+  ImGui::EndDisabled();
+  ImGui::PopID();
   ImGui::PopID();
 
   if (state.inspector_transform_request) {
     const auto request = std::exchange(state.inspector_transform_request, std::nullopt);
-    if (!scene->SetTransforms(request->entities, request->transforms))
+    if (editable && request->entities == keys)
+      CancelSceneGestures(state);
+    if (!editable || request->entities != keys ||
+        !scene->SetTransforms(request->entities, request->transforms))
       state.inspector_error =
           "Transform edit rejected because its values or entity generation are stale.";
     else
       state.inspector_error.clear();
   }
-  ApplyInspectorEuler(state, *scene);
+  ApplyInspectorEuler(state, *scene, keys, editable);
   if (state.inspector_component_selection != keys) {
     state.inspector_component_selection = keys;
     state.inspector_camera_active = {};
@@ -2334,6 +2401,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
         state_->native_pointer.reset();
         state_->game_input_focused = false;
         CancelSceneGestures(*state_);
+        CancelInspectorTransformDrafts(*state_);
       }
       io.AddFocusEvent(event.value0 != 0);
       break;
@@ -2509,6 +2577,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->scene_gesture_document_generation = scene_generation;
   state_->selector_visible = false;
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
+  // Query from the same root ID scope that opens the modal, before entering a panel window.
+  const bool close_confirmation_open =
+      state_->close_prompt_requested || ImGui::IsPopupOpen("Unsaved scene###editor.close");
   const bool interaction_blocked = recovery_available || state_->play_apply_open;
   if (interaction_blocked) {
     state_->game_input_focused = false;
@@ -2594,6 +2665,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->inspect_play_selection = true;
     }
     if (state_->inspect_play_selection) {
+      CancelInspectorTransformDrafts(*state_);
       const auto selected =
           std::ranges::find(play_snapshot.entities, state_->play_inspection_entity,
                             &runtime::RuntimeEntitySnapshot::id);
@@ -2606,8 +2678,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       }
     } else {
       DrawInspector(*state_, scene, content, meshes,
-                    (!workspace || workspace->Writable()) && !interaction_blocked);
+                    (!workspace || workspace->Writable()) && !interaction_blocked &&
+                        !close_confirmation_open);
     }
+  } else {
+    CancelInspectorTransformDrafts(*state_);
   }
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
@@ -3900,6 +3975,21 @@ void EditorImGuiTestAccess::QueueInspectorLight(
     std::optional<runtime::LightComponent> light) noexcept {
   host.state_->inspector_light_request =
       EditorImGuiHost::State::InspectorLightRequest{{entity}, {light}};
+}
+
+void EditorImGuiTestAccess::FocusInspectorTransformField(EditorImGuiHost &host,
+                                                         std::size_t axis) noexcept {
+  host.state_->inspector_transform_focus_request = axis;
+}
+std::array<bool, 6>
+EditorImGuiTestAccess::InspectorTransformMixed(const EditorImGuiHost &host) noexcept {
+  return host.state_->inspector_transform_mixed;
+}
+std::string_view EditorImGuiTestAccess::InspectorTransformText(const EditorImGuiHost &host,
+                                                               std::size_t axis) noexcept {
+  return axis < host.state_->inspector_transform_text.size()
+             ? host.state_->inspector_transform_text[axis].data()
+             : "";
 }
 
 void EditorImGuiTestAccess::QueueInspectorTransforms(

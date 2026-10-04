@@ -176,6 +176,11 @@ Native Scene preview now draws and triangle-picks resolved OBJ geometry through 
 mesh batches. Distinct triangle/quad Xvfb pixels cover Center preview/commit and Undo; missing or
 oversized meshes warn and retain proxies. Material shaders, exact shear and full acceptance remain open.
 
+Position/Scale Inspector fields now commit on Enter as one Undo step. Mixed-value drafts support
+negative/scientific input and preserve each entity's current unrelated values; Escape, focus loss,
+selection/reload, Play inspection and read-only/recovery/close transitions cancel pending edits.
+Real keyboard tests verify no mutation while typing and persistence after committed edits.
+
 The Inspector now assigns imported OBJ meshes or removes MeshRenderer across mixed multi-selection
 as one atomic Undo/Redo step, preserves each entity's material, and rejects stale selection/project/
 document requests. Actual combo/remove clicks, repeated replay and save/reload are contract-tested.
@@ -463,6 +468,10 @@ OBJ reimport 現在 revision 與記憶體預算檢查通過後一併發布不可
 原生 Scene 預覽現透過有界 shared mesh batch 繪製並以 triangle picking 選取解析後的 OBJ。
 不同 triangle／quad 的 Xvfb 像素驗證 Center 預覽／提交及 Undo；缺失或超限 mesh 會警告並
 保留代理。Material shader、精確 shear 與完整驗收仍待完成。
+
+Position／Scale Inspector 現僅在 Enter 時提交為一個 Undo step。Mixed 草稿支援負數及科學
+記號，保留各 entity 最新的其他欄位；Escape、失焦、selection／reload、Play Inspector 及
+唯讀／復原／關閉確認會取消待提交編輯。真正鍵盤測試驗證輸入過程不修改場景及提交後持久化。
 
 Inspector 現支援對 mixed 多選以一個 atomic Undo／Redo 指派匯入 OBJ mesh 或移除 MeshRenderer，
 保留各 entity 的 material，並以真正 combo／remove 點擊、重複 replay 與 save／reload 驗證；拒絕過期選取／專案／

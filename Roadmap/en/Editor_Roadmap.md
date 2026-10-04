@@ -219,9 +219,13 @@ creates property widgets; unknown components retain raw data instead of being si
   applies plain/Ctrl/Shift selection with a retained generation-keyed anchor, clips visible-row
   submission, and routes rename, sibling ordering, and drag/drop reparenting through generation-safe,
   undoable `SceneDocument` contracts. Stale entity/document generations are rejected.
-- ✅ The docked graphical Inspector presents local position, Euler degrees (quaternion storage), and scale for single or
-  mixed-value multi-selection. A field edit routes generation-keyed transforms through one atomic
-  Runtime transaction and undo step; invalid input leaves every selected entity unchanged.
+- ✅ The docked graphical Inspector presents local position, Euler degrees (quaternion storage), and
+  scale for single or mixed multi-selection. Position/Scale now retain bounded numeric drafts and
+  commit only on Enter as one atomic Undo step, preserving current unrelated fields and each entity's
+  rotation. Full-precision scientific input and negative scale work; invalid/zero-scale input rejects
+  the batch and equal-value Enter preserves Redo. Real keyboard tests cover typing, Escape, focus loss,
+  selection/reload, Play inspection, read-only/recovery/close gates and save/reopen. Drafts never save;
+  full reflected Inspector and target-host acceptance remain open.
 - ✅ The Inspector's single-selection Camera section adds/removes the component and edits validated
   vertical field of view and clipping planes through generation-keyed Undo. Scene save/reload retains
   the values; the complete reflected Inspector remains open.
