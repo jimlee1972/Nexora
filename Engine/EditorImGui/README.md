@@ -119,7 +119,17 @@ authoring views on first launch.
   module messages to Console. Failure pauses Play or rejects Start with status. It unloads before
   destroying the clone, including on window shutdown. Blank paths provide inspection-only Play.
   The initial component-oriented host supports shared component wires and bounded owner-checked
-  allocation, without advertising scene/physics services or input routing.
+  allocation, without advertising scene/physics services.
+  Clicking a playing Game canvas captures keyboard input; Escape, pointer exit, hiding Game,
+  Pause/Stop, recovery/close prompts, and native focus loss release it. Captured keys/text do not
+  reach authoring shortcuts; F5/F6/F10 remain Editor controls. Acquisition discards that frame's
+  input batch and clears ImGui keyboard state, preventing the capture click or old held keys from
+  becoming gameplay actions. The application applies the UI focus snapshot to PlaySession, then
+  publishes an owning, held `NexoraInputSnapshot` before fixed ticks. User 0 maps WASD/arrows to
+  [-1,1] move_x/move_y and buttons to Space=1, left mouse=2, right mouse=4, Shift=8, Ctrl=16;
+  sequence advances once per processed frame and reserved is zero. Repeated capture_input calls
+  return the same copied frame value. Pause/hide/blur clears held controls, including before Step.
+  Gamepad, pointer motion/look, rebinding, and multiple input users remain open.
   Game uses the existing bounded Lambertian preview and composed TRS, without editor proxies or
   gizmos; material shader execution, exact hierarchy shear, and simultaneous 3D views remain open.
 - The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes

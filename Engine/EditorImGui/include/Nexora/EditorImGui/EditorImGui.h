@@ -109,6 +109,7 @@ public:
   [[nodiscard]] std::string_view GameplayLibrary() const noexcept;
   void SetGameplayStatus(std::string message);
   void SetGameplayLibrary(std::string_view library);
+  [[nodiscard]] bool GameInputFocused() const noexcept;
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
   void RequestCloseConfirmation() noexcept;
