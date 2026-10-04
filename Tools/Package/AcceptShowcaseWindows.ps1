@@ -4,6 +4,7 @@ param(
     [string]$EvidenceDirectory = (Join-Path (Get-Location) 'showcase-windows-v1-evidence'),
     [ValidateSet('dx12', 'vulkan')][string]$Backend = 'dx12',
     [string]$ExpectedBuildId = '',
+    [string]$ExpectedVulkanDriverLibrary = '',
     [switch]$CompleteGuidedTour,
     [switch]$PhysicalDisplay,
     [switch]$CleanHost,
@@ -276,6 +277,19 @@ public static class NexoraAcceptanceWindow {
         if ($module.ModuleName -like 'Nexora*') {
             Require ($module.FileName.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) 'Engine module resolved outside the isolated copy.'
             $acceptance.engine_module_locations[$module.ModuleName] = $module.FileName.Substring($prefix.Length)
+        }
+    }
+    if ($ExpectedVulkanDriverLibrary) {
+        Require ($Backend -eq 'vulkan') 'An expected Vulkan driver requires the Vulkan backend.'
+        $expectedDriver = [IO.Path]::GetFullPath($ExpectedVulkanDriverLibrary)
+        $loadedDriver = @($process.Modules | Where-Object {
+            [string]::Equals($_.FileName, $expectedDriver, [StringComparison]::OrdinalIgnoreCase)
+        })
+        Require ($loadedDriver.Count -eq 1) 'The requested Vulkan driver DLL was not loaded.'
+        $acceptance.vulkan_driver_library = [ordered]@{
+            name = [IO.Path]::GetFileName($expectedDriver)
+            sha256 = (Get-FileHash -LiteralPath $expectedDriver -Algorithm SHA256).Hash.ToLowerInvariant()
+            loaded_from_expected_path = $true
         }
     }
     [NexoraAcceptanceWindow]::PostMessage($window, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null

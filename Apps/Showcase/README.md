@@ -282,7 +282,7 @@ body, so invoking the packaged script without `-PackageRoot` works.
 Local developer-machine evidence: [Windows-V1-DX12-Local-2026-10-03](evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
 Clean Windows 10 VM evidence: [Windows-V1-CleanVM-VirtualBox-2026-10-03](evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md) (virtual GPU).
 Physical-display evidence: [Windows-V1-PhysicalDisplay-GTX960-2026-10-03](evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md).
-V1 final acceptance is open (Metal parity).
+**Mac remains incomplete and is deferred at the user's request.** Full real-input/screenshots, the guided tour and physical/clean-host Mac acceptance remain open. V1 final acceptance is open.
 
 ## POSIX release completion work
 
@@ -316,3 +316,15 @@ pixel/input/depth/lifecycle CTest (Development 73/73; mimalloc 63/63) pass; see
 clean-host deployment remain separate Mac acceptance tasks. ✅ The expanded desktop tag workflow
 passes `v0.0.0-rc.3`, retaining four ZIPs, native archives and three CTest logs in an unpublished
 16-attachment draft; [release record](evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md).
+
+## Windows Vulkan hosted software-driver gate
+
+The Build and Release workflows now provision Mesa lavapipe 26.2.4 from a pinned, SHA-256-verified
+`mesa-dist-win` archive. The ICD/DLL remain host dependencies outside the isolated Showcase package;
+no system driver registration or package redistribution is required. Native Win32 Vulkan acceptance
+exercises eight rooms, interaction/resize, screenshots and the full 210-second guided tour.
+`-ExpectedVulkanDriverLibrary` requires the process to load the exact selected DLL and records its
+SHA-256, alongside archive provenance. The gate requires `software_rasterizer=true`, with physical
+display and clean-host attestations false. A missing desktop or failed native run fails this gate.
+Execution acceptance is pending the first hosted run; this does not complete additional physical-GPU
+coverage. Release bundles retain Vulkan evidence separately in `windows-vulkan-acceptance.tar.gz`.

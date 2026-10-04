@@ -189,9 +189,11 @@ jobs:
 
   # Windows Vulkan parity: same Full Shipping package, but with the Vulkan backend ON so the
   # packaged app can be accepted with `accept-v1.ps1 -Backend vulkan` on a machine with a Vulkan GPU.
-  # Hosted runners have no GPU, so this job proves build/link/package only, not visual parity.
+  # A pinned lavapipe CPU driver executes native Win32 Vulkan acceptance on hosted runners.
+  # This is software-driver coverage; physical GPU acceptance remains separate.
   showcase-windows-vulkan-package:
     runs-on: windows-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: lukka/get-cmake@latest
@@ -214,6 +216,21 @@ jobs:
             Select-String -Path vulkan-build.log -Pattern 'error' | Select-Object -First 10 | ForEach-Object { Write-Host "::error::$($_.Line.Trim())" }
           }
           exit $code
+      - name: Set up checksum-verified Windows lavapipe
+        shell: pwsh
+        run: ./Tools/Build/SetupWindowsVulkanLavapipe.ps1 -Directory "$env:RUNNER_TEMP/nexora-mesa"
+      - name: Native Vulkan isolated-copy screenshots and full guided tour
+        shell: pwsh
+        run: |
+          $evidence = 'build/windows-showcase-vulkan-shipping/artifacts/showcase-windows-v1'
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File Tools/Package/AcceptShowcaseWindows.ps1 -PackageRoot build/windows-showcase-vulkan-shipping/package/NexoraShowcase-Shipping -EvidenceDirectory $evidence -ExpectedBuildId ($env:GITHUB_SHA.Substring(0, 12)) -Backend vulkan -CompleteGuidedTour -ExpectedVulkanDriverLibrary $env:NEXORA_CI_VULKAN_DRIVER_LIBRARY
+          $code = $LASTEXITCODE
+          Copy-Item "$env:RUNNER_TEMP/nexora-mesa/driver-provenance.json" "$evidence/driver-provenance.json"
+          if ($code -ne 0) { exit $code }
+          $accepted = Get-Content "$evidence/acceptance.json" -Raw | ConvertFrom-Json
+          if ($accepted.status -ne 'PASS' -or -not $accepted.native.software_rasterizer -or $accepted.physical_display_verified -or $accepted.clean_host_verified) {
+            throw 'Expected native Vulkan software-driver acceptance without target-host attestations.'
+          }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -131,6 +131,10 @@ resize, rejected out-of-order/duplicate composition and teardown. Application gr
 not determine GPU resource lifetime: the surface/fence owns submitted storage after callbacks return.
 `softwareRasterizer` reports DX12 WARP and Vulkan CPU-device selection explicitly, including in the
 Showcase profiler/report. Software-driver acceptance does not certify physical-GPU output.
+The Windows package verifier optionally checks `-ExpectedVulkanDriverLibrary` against the running
+process module paths and records that DLL's SHA-256. The hosted Vulkan gate selects a checksum-verified
+Mesa lavapipe ICD outside the package and requires software-driver diagnostics, preserving distinct
+physical-display/clean-host attestations.
 
 ## Native mesh batches
 

@@ -5,6 +5,8 @@
 
 ## 0. Current-state audit
 
+**Mac remains incomplete and is deferred at the user's request.** Hosted Metal tests do not complete physical/clean-host operation, full interactive screenshots or the guided tour. Current work prioritizes the remaining non-Mac items.
+
 - ✅ Linux/X11/Vulkan native indexed, lit, depth-tested 3D drawing and readable GPU UI run under Xvfb/lavapipe; resize, ordered shutdown, and real keyboard/mouse interaction execute without skips.
 - ✅ Eight navigable rooms, F1/F2/F3 overlays, F5 snapshot reload, mouse orbit/zoom, input routing, locale switching/fallback, and a pausable/replayable 210-second guided tour are implemented.
 - ✅ Live public-API integration demonstrations cover scene snapshots, Editor/Play isolation, Modify/Undo, prefab override/rebase, procedural mesh import/cook/bundle/load and rollback, character/collision/navigation/AI, animation/skin occupancy, particle capacity, audio/video contracts, cell/HLOD budgets, and lifecycle/shipping simulations.
@@ -20,6 +22,7 @@
 - ✅ Linux Shipping/Full isolated distribution passes native room/input/Lab/resize acceptance; Linux Development is 80/80 with all five Vulkan/Xvfb gates executed. [Evidence](../../Apps/Showcase/evidence/V1-Distribution-Linux-2026-10-04/acceptance.md).
 - ✅ macOS hosted Shipping/Full package compilation, relocation/ad-hoc signing and isolated eight-room Metal scene/copy/UI/present/resize smoke pass (96 native frames); [evidence](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md). ✅ Native pixel/input/depth/lifecycle CTest passes macOS Development (73/73) and mimalloc (63/63); physical Mac visuals and clean-host deployment remain pending. Metal scene/instance/material/depth/GPU-copy source, Cocoa controls/Retina coordinates and Linux/macOS release jobs are implemented. Windows now has explicit Vulkan Development and Shipping presets; DX12-only presets remain available without an SDK.
 - ✅ Test tag `v0.0.0-rc.3` completes Build (16 jobs) and Release (5 jobs), retaining four desktop ZIPs, checksums, native evidence and three CTest logs in a 16-attachment draft. Windows DX12/Windows Vulkan, Linux x64 and macOS ARM64 distributions are included. [Record](../../Apps/Showcase/evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md) preserves the targeted Linux startup/Build-gate retries and upload-digest verification.
+- Windows hosted Vulkan lavapipe native acceptance is implemented: pinned driver provenance, exact loaded-DLL verification, isolated-copy screenshots/interactions and full guided tour. First hosted execution remains pending; additional physical GPU/driver coverage remains open.
 - Open (final V1 acceptance remains PENDING): Metal physical screen and full interactive acceptance; Vulkan on other GPUs/drivers; Mac clean-host distribution and full interactive/tour capture. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
 
 Evidence and exact validation results: [`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
