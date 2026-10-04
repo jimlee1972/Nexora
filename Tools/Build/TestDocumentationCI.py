@@ -122,6 +122,43 @@ class DocumentationCITests(unittest.TestCase):
         self.assertEqual(ci.validate_documents(self.root, paths), [])
         (self.root / paths[0]).unlink()
         self.assertTrue(ci.validate_documents(self.root, paths[:1]))
+        self.assertTrue(ci.validate_documents(self.root, paths))
+        (self.root / paths[1]).unlink()
+        self.assertEqual(ci.validate_documents(self.root, paths), [])
+
+    def test_new_single_language_roadmap_is_rejected(self):
+        path = "Roadmap/en/NewPlan.md"
+        self.write(path, "# Plan\n")
+        self.assertTrue(ci.validate_documents(self.root, [path]))
+
+    def test_differently_named_bilingual_pairs(self):
+        paths = ["Roadmap/en/Engine_API_Foundation_Roadmap.md",
+                 "Roadmap/zh-TW/Engine_API_基礎_Roadmap.md"]
+        for path in paths:
+            self.write(path, "# Plan\n")
+        self.assertTrue(ci.validate_documents(self.root, paths[:1]))
+        self.assertTrue(ci.validate_documents(self.root, paths[1:]))
+        self.assertEqual(ci.validate_documents(self.root, paths), [])
+
+    def test_repository_roadmaps_all_have_unique_counterparts(self):
+        root = Path(ci.__file__).parents[2]
+        self.assertEqual(len(ci.ROADMAP_LANGUAGE_PAIRS), len(set(ci.ROADMAP_LANGUAGE_PAIRS.values())))
+        for language in ("en", "zh-TW"):
+            for path in (root / "Roadmap" / language).rglob("*.md"):
+                relative = str(path.relative_to(root))
+                counterpart = ci.roadmap_counterpart(relative)
+                self.assertTrue((root / counterpart).exists(), relative)
+                self.assertEqual(ci.roadmap_counterpart(counterpart), relative)
+
+    def test_commonmark_links_with_parentheses_references_and_list_continuations(self):
+        self.write("doc(v1).md", "# Document\n")
+        self.write("README.md", '# Title\n\n[target](doc(v1).md)\n'
+                   '[escaped](doc\\(v1\\).md)\n[reference][version]\n\n'
+                   '[version]: doc(v1).md "Version"\n\n'
+                   '- List item\n\n    [continuation](doc(v1).md)\n')
+        self.assertEqual(ci.markdown_errors(self.root, "README.md"), [])
+        self.write("README.md", "# Title\n\n- List item\n\n    [broken](missing.md)\n")
+        self.assertTrue(ci.markdown_errors(self.root, "README.md"))
 
     def test_command_outputs_docs_route_and_fails_on_broken_links(self):
         self.write("README.md", "# Updated\n")

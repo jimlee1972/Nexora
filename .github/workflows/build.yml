@@ -13,6 +13,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Install pinned Markdown parser
+        run: python3 -m pip install --requirement Tools/Build/documentation-requirements.txt
       - name: Test documentation routing
         run: python3 Tools/Build/TestDocumentationCI.py
       - name: Validate changed documentation and select build scope

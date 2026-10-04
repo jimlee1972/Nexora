@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Route Build jobs and validate changed Markdown using only Python and Git."""
+"""Route Build jobs and validate changed Markdown with Git and CommonMark parsing."""
 
 import argparse
 import json
@@ -7,6 +7,20 @@ from pathlib import Path, PurePosixPath
 import re
 import subprocess
 from urllib.parse import unquote, urlsplit
+
+from markdown_it import MarkdownIt
+
+
+ROADMAP_LANGUAGE_PAIRS = {
+    "Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md": "跨平台3D_Engine_V1_完整規劃書_v1_2.md",
+    "Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md": "跨平台3D_Engine_V2_完整規劃書_v1_4.md",
+    "Cross-platform_3D_Engine_V3_Complete_Plan_v1_4.md": "跨平台3D_Engine_V3_完整規劃書_v1_4.md",
+    "Cross-platform_3D_Engine_V1_AI_Implementation_Technology_and_System_Plan_v1_2.md": "跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_2.md",
+    "Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md": "跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md",
+    "Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md": "跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md",
+    "Engine_API_Foundation_Roadmap.md": "Engine_API_基礎_Roadmap.md",
+    "Focused_Roadmaps_AI_Implementation_Plan.md": "聚焦_Roadmap_AI施工技術與系統規劃.md",
+}
 
 
 def git(root, *args):
@@ -72,33 +86,32 @@ def markdown_errors(root, path):
         errors.append(f"{path}: missing final newline")
     if not content.strip():
         errors.append(f"{path}: empty Markdown document")
-    fence = None
-    for number, line in enumerate(content.splitlines(), 1):
-        line = re.sub(r"^(?: {0,3}> ?)+", "", line)
-        marker = re.match(r"^\s{0,3}(`{3,}|~{3,})(.*)$", line)
-        if marker:
-            run, rest = marker.groups()
-            if fence is None:
-                fence = run
-            elif run[0] == fence[0] and len(run) >= len(fence) and not rest.strip():
-                fence = None
-            continue
-        if fence is not None:
-            continue
-        if line.startswith(("    ", "\t")):
-            continue
-        # Ignore code examples. Check local inline links/images, not remote URLs or heading anchors.
-        line = re.sub(r"(`+).*?\1", "", line)
-        for match in re.finditer(r"!?\[[^\]\n]*\]\((<[^>]+>|[^\s)]+)(?:\s+[^)]*)?\)", line):
-            target = match.group(1).strip("<>")
+    for token in MarkdownIt("commonmark").parse(content):
+        number = token.map[0] + 1 if token.map else 1
+        if token.type == "fence" and token.map[1] - token.map[0] != token.content.count("\n") + 2:
+            errors.append(f"{path}:{number}: unclosed fenced code block")
+        for child in token.children or []:
+            target = child.attrGet("href") if child.type == "link_open" else (
+                child.attrGet("src") if child.type == "image" else None)
+            if target is None:
+                continue
             if target.startswith(("#", "/")) or re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", target):
                 continue
             local = unquote(urlsplit(target).path)
             if local and not (file.parent / local).exists():
                 errors.append(f"{path}:{number}: missing local link target {target!r}")
-    if fence is not None:
-        errors.append(f"{path}: unclosed fenced code block")
     return errors
+
+
+def roadmap_counterpart(path):
+    parts = PurePosixPath(path).parts
+    if len(parts) < 3 or parts[:2] not in {("Roadmap", "en"), ("Roadmap", "zh-TW")}:
+        return None
+    other = "zh-TW" if parts[1] == "en" else "en"
+    relative = str(PurePosixPath(*parts[2:]))
+    pairs = ROADMAP_LANGUAGE_PAIRS if parts[1] == "en" else {
+        zh: en for en, zh in ROADMAP_LANGUAGE_PAIRS.items()}
+    return str(PurePosixPath("Roadmap", other, pairs.get(relative, relative)))
 
 
 def validate_documents(root, paths):
@@ -108,12 +121,12 @@ def validate_documents(root, paths):
         if PurePosixPath(path).suffix.lower() != ".md":
             continue
         errors.extend(markdown_errors(root, path))
-        parts = PurePosixPath(path).parts
-        if len(parts) >= 3 and parts[:2] in {("Roadmap", "en"), ("Roadmap", "zh-TW")}:
-            other = "zh-TW" if parts[1] == "en" else "en"
-            counterpart = str(PurePosixPath("Roadmap", other, *parts[2:]))
-            if (root / counterpart).exists() and counterpart not in changed:
-                errors.append(f"{path}: update matching bilingual roadmap {counterpart}")
+        counterpart = roadmap_counterpart(path)
+        if counterpart:
+            if (root / path).exists() != (root / counterpart).exists():
+                errors.append(f"{path}: bilingual roadmap must exist or be deleted as a pair: {counterpart}")
+            if counterpart not in changed:
+                errors.append(f"{path}: update bilingual roadmap {counterpart} in the same change")
     return errors
 
 
