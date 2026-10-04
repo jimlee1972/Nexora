@@ -260,6 +260,12 @@ Real UI clicks verify generation/access/modal gates, native center bounds and re
 with one Undo. Real 1x/2x DPI pointer tests cover release, persistence and rejected/canceled drags;
 preview tooltips do not mutate the World. Surface snapping and geometry ghosts remain open.
 
+✅ Typed Content mesh drags now assign the Inspector Mesh field for the displayed selection.
+  Hover only previews; release uses one generation-checked batch, retaining existing materials and
+  adding missing MeshRenderer components. Real 1x/2x pointer tests cover initialized Undo/Redo,
+  save/reload, non-mesh/stale catalog/project rejection, canceled input and workspace/modal gates.
+  Rejected drops retain Redo; complete material/reflected Inspector workflows remain open.
+
 ✅ Hierarchy Cut and Ctrl+X now capture complete selected forests before one atomic deletion.
   Undo restores original IDs and selection; first successful Paste keeps root names with new IDs,
   then retained clipboard data uses Copy naming. Failed Cut/Paste and Duplicate preserve pending
@@ -610,6 +616,12 @@ Undo，Redo 與 save／reload 保留 stable ID、名稱、pose 與 mesh／materi
 ✅ Typed Content mesh 拖曳現能以一次 Undo 在 overview 游標或 native Scene ground 落點建立
 root。真正 1x／2x DPI pointer 測試涵蓋放開、持久化及拒絕／取消拖曳；tooltip 預覽不改動
 World。表面吸附及 geometry ghost 仍待完成。
+
+✅ Typed Content mesh 拖曳現可指派 Inspector Mesh field 的顯示選取。Hover 只預覽，
+  放開後以一次 generation-checked batch 保留既有材質並補上缺少的 MeshRenderer。真正
+  1x／2x pointer 測試涵蓋初始化 Undo／Redo、save／reload、非 mesh／stale catalog／project
+  拒絕、取消 input 與 workspace／modal gate；拒絕保留 Redo。完整材質及 reflected Inspector
+  流程仍待完成。
 
 ✅ Hierarchy Cut 與 Ctrl+X 現先擷取完整選取 forest，再以一次 atomic transaction 刪除。
   Undo 還原原始 ID 與選取；首次成功 Paste 保留 root 名稱並建立新 ID，之後保留的 clipboard

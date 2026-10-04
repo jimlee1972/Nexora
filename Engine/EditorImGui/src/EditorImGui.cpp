@@ -1583,6 +1583,40 @@ void ApplyInspectorEuler(StateT &state, SceneDocument &scene,
 }
 
 template <typename StateT>
+void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
+                             const MeshAssetCatalog *meshes, bool editable,
+                             const std::vector<SceneDocument::NodeKey> &keys) {
+  if (!ImGui::BeginDragDropTarget())
+    return;
+  if (const auto *payload = ImGui::AcceptDragDropPayload(AssetDragPayload::kType.data(),
+                                                         ImGuiDragDropFlags_AcceptBeforeDelivery);
+      payload && payload->DataSize == sizeof(AssetDragData)) {
+    AssetDragData copied;
+    std::memcpy(&copied, payload->Data, sizeof(copied));
+    const auto *item = content ? content->Browser().Find(copied.asset) : nullptr;
+    const bool resolved = item && meshes &&
+                          content->Browser().ProjectGeneration() == copied.project_generation &&
+                          meshes->ResolveAsset(copied.asset, copied.project_generation).has_value();
+    const bool allowed = editable && state.app_focused && content && content->Writable();
+    if (payload->IsPreview()) {
+      if (!allowed)
+        ImGui::SetTooltip("Mesh editing is currently unavailable.");
+      else if (!resolved)
+        ImGui::SetTooltip("This mesh is no longer available.");
+      else
+        ImGui::SetTooltip("Assign %s to %zu selected entities",
+                          PathLabel(item->path.filename()).c_str(), keys.size());
+    }
+    if (payload->IsDelivery() && allowed && resolved) {
+      CancelInspectorDrafts(state);
+      state.inspector_mesh_request =
+          typename StateT::InspectorMeshRequest{keys, copied.asset, copied.project_generation};
+    }
+  }
+  ImGui::EndDragDropTarget();
+}
+
+template <typename StateT>
 void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
                    const MeshAssetCatalog *meshes, bool editable) {
   state.inspector_selection =
@@ -2037,6 +2071,8 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     const auto combo_max = ImGui::GetItemRectMax();
     state.inspector_mesh_positions[0] =
         std::array{(combo_min.x + combo_max.x) * 0.5F, (combo_min.y + combo_max.y) * 0.5F};
+    if (!mesh_combo_open)
+      AcceptInspectorMeshDrop(state, content, meshes, editable, keys);
     if (mesh_combo_open) {
       for (const auto &candidate : content->Browser().Items()) {
         if (!meshes->ResolveAsset(candidate.id, generation))

@@ -370,3 +370,10 @@ the right so it cannot cover the Hierarchy's authoring controls.
 
 Game Apply Changes wraps to another row when its button does not fit, keeping the Play review
 action reachable in a narrow dock after a DPI/extent change.
+
+
+Content mesh drags can also assign the Inspector Mesh field for the current selection. Hover leaves
+the World unchanged; delivery resolves CPU catalog data and commits one atomic mesh batch, preserving
+existing material references and adding missing MeshRenderer components. UUID/project and target
+generations, browser membership, writable workspace/content, focus and modal gates reject stale or
+blocked deliveries. Undo/Redo and save/reload retain the resulting mesh references.
