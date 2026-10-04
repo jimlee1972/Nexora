@@ -14,6 +14,10 @@ using namespace Nexora;
 using namespace Nexora::Presentation;
 
 int main(int argc, char **argv) {
+  const auto fail = [](int line) {
+    std::cerr << "Metal scene contract failed at line " << line << '\n';
+    return 1;
+  };
   @autoreleasepool {
     if (!MTLCreateSystemDefaultDevice() || NSScreen.screens.count == 0) {
       std::cout << "UNSUPPORTED: Metal device or WindowServer display unavailable\n";
@@ -22,7 +26,7 @@ int main(int argc, char **argv) {
     auto windows = Window::CreateWindowSystem();
     const auto window = windows->Create({"Nexora Metal scene contracts", 640, 360, true, true});
     if (!window)
-      return 1;
+      return fail(__LINE__);
     // Synthetic Cocoa events verify native physical-key and top-left pixel pointer translation.
     auto *nativeWindow = (__bridge NSWindow *)windows->NativeHandle(window.handle);
     [NSApp postEvent:[NSEvent keyEventWithType:NSEventTypeKeyDown
@@ -58,8 +62,11 @@ int main(int argc, char **argv) {
       if (event.type == Window::WindowEventType::PointerButton)
         buttonSeen |= event.value0 == 0 && event.value1 == 1;
     }
-    if (!keySeen || !pointerSeen || !buttonSeen)
-      return 1;
+    if (!keySeen || !pointerSeen || !buttonSeen) {
+      std::cerr << "Cocoa input: key=" << keySeen << " pointer=" << pointerSeen
+                << " button=" << buttonSeen << '\n';
+      return fail(__LINE__);
+    }
     auto surface = std::make_unique<MetalSurface>(
         SurfaceDescriptor{window.handle, 640, 360, 2, PresentMode::VSync, ColorSpace::Srgb,
                           SurfaceBackend::Metal},
@@ -73,7 +80,7 @@ int main(int argc, char **argv) {
       return true;
     };
     if (!surface || !require(surface->Acquire(), SurfaceStatus::Ready))
-      return 1;
+      return fail(__LINE__);
     const std::array<SceneVertex, 3> vertices{{{{-0.5F, -0.5F, 0.5F}, {0, 0, 1}, {0, 0}},
                                                {{0.5F, -0.5F, 0.5F}, {0, 0, 1}, {1, 0}},
                                                {{0, 0.5F, 0.5F}, {0, 0, 1}, {0.5F, 1}}}};
@@ -91,21 +98,21 @@ int main(int argc, char **argv) {
     draw.batches = batches;
     if (!require(surface->Acquire(), SurfaceStatus::InvalidDescriptor) ||
         !require(surface->CompositeScene(), SurfaceStatus::InvalidDescriptor))
-      return 1;
+      return fail(__LINE__);
     auto malformed = draw;
     malformed.model_view_projection[0] = std::numeric_limits<float>::quiet_NaN();
     if (!require(surface->DrawScene(malformed), SurfaceStatus::InvalidDescriptor))
-      return 1;
+      return fail(__LINE__);
     instances[0].scale[0] = 0;
     if (!require(surface->DrawScene(draw), SurfaceStatus::InvalidDescriptor))
-      return 1;
+      return fail(__LINE__);
     instances[0].scale[0] = 1;
     if (!require(surface->DrawScene(draw), SurfaceStatus::Ready) ||
         !require(surface->DrawScene(draw), SurfaceStatus::InvalidDescriptor) ||
         !require(surface->Present(), SurfaceStatus::InvalidDescriptor) ||
         !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
         !require(surface->CompositeScene(), SurfaceStatus::InvalidDescriptor))
-      return 1;
+      return fail(__LINE__);
     const std::array<UiVertex, 3> ui{{{{0, 0}, {0, 0}, 0xffffffff},
                                       {{30, 0}, {1, 0}, 0xffffffff},
                                       {{0, 30}, {0, 1}, 0xffffffff}}};
@@ -115,7 +122,7 @@ int main(int argc, char **argv) {
     if (!require(surface->RenderUi(uiDraw), SurfaceStatus::Ready) ||
         !require(surface->RenderUi(uiDraw), SurfaceStatus::InvalidDescriptor) ||
         !require(surface->Present(), SurfaceStatus::Ready))
-      return 1;
+      return fail(__LINE__);
     // Reuse immutable scene textures and each fence-protected frame slot; GPU failures must
     // surface.
     for (int i = 0; i < 6; ++i) {
@@ -123,11 +130,11 @@ int main(int argc, char **argv) {
           !require(surface->DrawScene(draw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
-        return 1;
+        return fail(__LINE__);
     }
     const auto captured = surface->ReadScenePixelsForTesting();
     if (captured.size() != 640U * 360U * 4U)
-      return 1;
+      return fail(__LINE__);
     const auto channel = [&](std::size_t x, std::size_t y, std::size_t c) {
       return std::to_integer<int>(captured[(y * 640 + x) * 4 + c]);
     };
@@ -137,10 +144,10 @@ int main(int argc, char **argv) {
         channel(230, 200, 1) <= channel(230, 200, 2) + 10 ||
         channel(10, 10, 0) <= channel(10, 10, 2)) {
       std::cerr << "Metal instance/texture/clear pixels mismatch\n";
-      return 1;
+      return fail(__LINE__);
     }
     if (surface->Diagnostics().sceneTextureUploads != 1)
-      return 1;
+      return fail(__LINE__);
     if (argc > 1) {
       std::ofstream image(argv[1], std::ios::binary);
       image << "P6\n640 360\n255\n";
@@ -150,7 +157,7 @@ int main(int argc, char **argv) {
         image.write(rgb, 3);
       }
       if (!image)
-        return 1;
+        return fail(__LINE__);
     }
     // Depth must select the bright near triangle regardless of index order.
     std::array<SceneVertex, 6> layered{};
@@ -175,16 +182,16 @@ int main(int argc, char **argv) {
           !require(surface->DrawScene(depthDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
-        return 1;
+        return fail(__LINE__);
       auto image = surface->ReadScenePixelsForTesting();
       if (image.size() != captured.size() ||
           std::to_integer<int>(image[(180 * 640 + 320) * 4 + 2]) < 200)
-        return 1;
+        return fail(__LINE__);
       if (nearImage.empty())
         nearImage = std::move(image);
       else if (image != nearImage) {
         std::cerr << "Metal depth pixels depend on draw order\n";
-        return 1;
+        return fail(__LINE__);
       }
     }
     if (!require(surface->NotifyWindowExtent(0, 0), SurfaceStatus::ZeroExtent) ||
@@ -192,14 +199,14 @@ int main(int argc, char **argv) {
         !require(surface->Acquire(), SurfaceStatus::ZeroExtent) ||
         !require(surface->NotifyWindowExtent(800, 450), SurfaceStatus::Ready) ||
         !require(surface->Acquire(), SurfaceStatus::Ready))
-      return 1;
+      return fail(__LINE__);
     draw.offscreen = false;
     draw.viewport = {100, 100, 400, 200};
     if (!require(surface->DrawScene(draw), SurfaceStatus::Ready) ||
         !require(surface->Present(), SurfaceStatus::Ready) ||
         !require(surface->DrainAndDestroy(), SurfaceStatus::Ready) ||
         !require(surface->DrainAndDestroy(), SurfaceStatus::Ready))
-      return 1;
+      return fail(__LINE__);
     // An abandoned recording must be dropped safely, without submitting it at destruction.
     auto abandoned = std::make_unique<MetalSurface>(
         SurfaceDescriptor{window.handle, 800, 450, 2, PresentMode::VSync, ColorSpace::Srgb,
@@ -208,11 +215,11 @@ int main(int argc, char **argv) {
     if (!abandoned || !require(abandoned->Acquire(), SurfaceStatus::Ready) ||
         !require(abandoned->DrawScene(draw), SurfaceStatus::Ready) ||
         !require(abandoned->DrainAndDestroy(), SurfaceStatus::Ready))
-      return 1;
+      return fail(__LINE__);
     abandoned.reset();
     surface.reset();
     if (windows->Destroy(window.handle) != Window::WindowError::None)
-      return 1;
+      return fail(__LINE__);
     std::cout << "PASS: Metal native scene/UI/copy, instancing, textures, rejection, resize and "
                  "teardown\n";
     return 0;
