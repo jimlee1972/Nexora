@@ -245,6 +245,8 @@ public:
   [[nodiscard]] std::optional<runtime::LightComponent> Light(NodeKey entity) const noexcept;
   [[nodiscard]] std::optional<runtime::MeshComponent> MeshRenderer(NodeKey entity) const noexcept;
   [[nodiscard]] std::optional<runtime::Transform> WorldTransform(runtime::Id entity) const noexcept;
+  // Copies selected-root forests, initialized components and authoring metadata into owned storage.
+  // Paste/Duplicate create the complete forest as one Undo, preserving copy-time world root poses.
   bool CopySelection();
   bool Paste();
   // Duplicates the current selection without replacing the user's copied clipboard.
@@ -284,7 +286,8 @@ private:
   };
   struct ClipboardNode final {
     std::string name;
-    runtime::Transform world_transform;
+    runtime::Entity entity;
+    std::optional<EulerHint> euler_hint{};
     std::vector<OpaqueComponent> opaque{};
   };
   struct UndoEntry final {
@@ -297,6 +300,7 @@ private:
     std::vector<Node> redo_nodes{};
     std::vector<runtime::Id> redo_selection{};
     std::vector<OpaqueComponent> previous_opaque{};
+    bool restore_selection{};
   };
   void PushUndo(UndoEntry entry);
   runtime::World &world_;

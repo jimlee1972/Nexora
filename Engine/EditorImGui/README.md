@@ -428,3 +428,11 @@ Hierarchy Delete and the hovered native Scene shortcut use the document's atomic
 batch. All selected roots are one Undo entry, with descendant filtering, exact component/metadata
 retention and prior selection restoration. Existing workspace/modal gates and gesture cancellation
 apply to the whole selection; the UI retains no Runtime entity borrow across deletion or replay.
+
+## Complete clipboard forests
+
+The Hierarchy Copy/Paste/Duplicate controls and Ctrl+C/Ctrl+V/Ctrl+D shortcuts now share owning
+complete-subtree capture and one initialized creation transaction. Copies retain component data,
+child local poses, Euler hints and opaque bytes; one Undo restores prior selection, and Redo retains
+initialized values and stable IDs. Existing read-only/modal/input-focus gates apply. The UI never
+borrows live entity data across the operation, and Duplicate leaves the previous clipboard intact.

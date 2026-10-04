@@ -6,6 +6,7 @@
 #include <array>
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <unordered_set>
 
 #if defined(_WIN32)
@@ -197,6 +198,96 @@ Id SceneEditor::CreateInitializedEntity(Id scene, Id parent, Transform transform
       });
   ++depth_;
   return id;
+}
+std::vector<Id> SceneEditor::CloneEntityForest(Id scene, std::span<const Entity> prototypes) {
+  const auto *target = world_.FindScene(scene);
+  if (!target || !world_.next_id_ || prototypes.empty() || target->state == SceneState::Unloading ||
+      target->state == SceneState::Unloaded ||
+      prototypes.size() > std::numeric_limits<Id>::max() - world_.next_id_)
+    return {};
+  std::unordered_map<Id, Id> parents, mapped;
+  std::vector<Entity> created(prototypes.begin(), prototypes.end());
+  std::vector<Id> ids, roots;
+  auto next_id = world_.next_id_;
+  for (auto &entity : created) {
+    const auto pose = NormalizedTransform(entity.transform);
+    const auto &camera = entity.camera_data;
+    if (!entity.id || !parents.emplace(entity.id, entity.parent).second || !pose ||
+        (entity.camera &&
+         (!std::isfinite(camera.vertical_field_of_view) || !std::isfinite(camera.near_plane) ||
+          !std::isfinite(camera.far_plane) || camera.vertical_field_of_view <= 0 ||
+          camera.vertical_field_of_view >= 180 || camera.near_plane <= 0 ||
+          camera.far_plane <= camera.near_plane)) ||
+        (entity.light &&
+         (!std::isfinite(entity.light_data.intensity) || entity.light_data.intensity < 0)))
+      return {};
+    entity.transform = *pose;
+    mapped.emplace(entity.id, next_id);
+    ids.push_back(next_id++);
+  }
+  // Prove all prototype chains reach a root once, including forward parent references.
+  enum class Mark { Walking, Rooted };
+  std::unordered_map<Id, Mark> marks;
+  std::vector<Id> path;
+  for (const auto &entity : created) {
+    path.clear();
+    for (auto id = entity.id; id != 0 && !marks.contains(id); id = parents.at(id)) {
+      const auto parent = parents.at(id);
+      if (parent && !parents.contains(parent))
+        return {};
+      marks.emplace(id, Mark::Walking);
+      path.push_back(id);
+      if (const auto found = marks.find(parent);
+          found != marks.end() && found->second == Mark::Walking)
+        return {};
+    }
+    for (const auto id : path)
+      marks[id] = Mark::Rooted;
+  }
+  for (auto &entity : created) {
+    entity.id = mapped.at(entity.id);
+    if (entity.parent)
+      entity.parent = mapped.at(entity.parent);
+    else
+      roots.push_back(entity.id);
+  }
+  std::unordered_set<Id> created_ids(ids.begin(), ids.end()), root_ids(roots.begin(), roots.end());
+  auto published = target->entities;
+  published.insert(published.end(), created.begin(), created.end());
+  undo_.Record(
+      [this, scene, roots, root_ids, created_ids] {
+        const auto *current = world_.FindScene(scene);
+        if (!current || current->state == SceneState::Unloading ||
+            current->state == SceneState::Unloaded ||
+            SelectedSubtrees(*current, root_ids) != created_ids)
+          return false;
+        WorldCommandBuffer discard;
+        for (const auto root : roots) {
+          if (std::ranges::find(current->entities, root, &Entity::id) == current->entities.end())
+            return false;
+          discard.DestroyEntity(root);
+        }
+        return discard.Apply(world_);
+      },
+      [this, scene, created] {
+        auto *current = const_cast<Scene *>(world_.FindScene(scene));
+        if (!current || current->state == SceneState::Unloading ||
+            current->state == SceneState::Unloaded ||
+            std::ranges::any_of(created, [this](const Entity &entity) {
+              return world_.FindEntity(entity.id) != nullptr;
+            }))
+          return false;
+        auto restored = current->entities;
+        restored.insert(restored.end(), created.begin(), created.end());
+        current->entities = std::move(restored);
+        for (const auto &entity : created)
+          world_.next_id_ = std::max(world_.next_id_, entity.id + 1);
+        return true;
+      });
+  const_cast<Scene *>(target)->entities = std::move(published);
+  world_.next_id_ = next_id;
+  ++depth_;
+  return ids;
 }
 bool SceneEditor::SetTransform(Id entity, Transform transform) {
   const std::array entities{entity};
