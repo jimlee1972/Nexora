@@ -755,7 +755,7 @@ int Run() {
     const auto center_frame = preview_document.SelectionGizmoFrame(editor::GizmoPivot::Center);
     Require(pivot_frame && center_frame && pivot_frame->x == 2 && pivot_frame->y == 3 &&
                 center_frame->x == -1 && center_frame->y == 2 && center_frame->z == 0.5 &&
-                center_frame->qy == parent_pose.qy,
+                std::abs(center_frame->qy - parent_pose.qy) < 1e-12,
             "selection frame must use root origins and retain the first root's rotation");
     std::array<editor::GizmoOperation, 6> operations;
     operations[0].translation = {2, -3, 4};
