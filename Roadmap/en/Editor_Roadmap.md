@@ -136,6 +136,11 @@ creates property widgets; unknown components retain raw data instead of being si
   Real Xvfb XYZ drags save immediately after release and verify the completed pose; saves while
   a gesture is held wait for commit or cancellation before serializing.
 
+- ✅ MeshAssetCatalog now publishes owning imported geometry with stable UUID-derived 64-bit
+  resource IDs and project-generation checks. Tests freeze persisted IDs, preserve references
+  across rename/reopen, reject collisions atomically, and retain snapshots across unload.
+  Graphical assignment and native mesh residency/rendering remain open.
+
 - ✅ SceneDocument now exposes generation-safe MeshRenderer attachment, mesh/material resource
   replacement, removal, and owning reads through Runtime Undo/Redo. Tests retain full 64-bit and
   unresolved IDs across scene save/reload, preserve Redo on no-op edits, and reject stale keys.

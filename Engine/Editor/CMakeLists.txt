@@ -7,6 +7,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/ProjectWorkspace.cpp
   src/EditorWorkspace.cpp
   src/MeshImport.cpp
+  src/MeshAssetCatalog.cpp
   src/ShaderAuthoring.cpp
   src/SceneAuthoring.cpp
   src/ViewportMath.cpp)

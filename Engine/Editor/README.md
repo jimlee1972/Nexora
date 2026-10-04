@@ -106,6 +106,17 @@ into renderer or platform internals.
   dependency revision before committing. The staging result itself carries deterministic
   source/settings hashes. The queue must be destroyed before its `JobSystem`; `Shutdown` stops intake,
   requests cancellation, and waits for every retained job.
+- `MeshAssetCatalog` atomically publishes owning CPU geometry snapshots from imported assets on the
+  authoring thread. Both UUID and resource lookup require the current nonzero project generation;
+  failed imports and missing payloads remain unresolved. Retained snapshots survive replacement
+  and unload. No scene mutation, I/O, or GPU residency occurs in this catalog.
+  Saved mesh resource IDs derive from the persistent UUID: rotate the high half left by 23 bits,
+  XOR the low half, then apply the fixed 64-bit avalanche constants in `MeshResourceId`; a zero
+  result maps to 1 and a zero UUID is invalid. The golden ID test freezes this persistence contract.
+  Changing it requires migrating saved references. Collisions (including duplicate UUIDs) reject
+  the entire candidate publication and preserve the previous catalog; lookup also verifies UUID.
+  Paths and source bytes never enter this derivation. GUI assignment and native mesh rendering
+  remain separate work.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
   hierarchy use stable IDs, never component or container pointers. The hierarchy itself is the
   runtime's (`Entity::parent`, see the Runtime README's entity hierarchy section); the document keeps

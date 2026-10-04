@@ -136,6 +136,10 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   真正的 Xvfb XYZ 拖曳放開後立即 Save，並驗證已完成的姿態；仍按住手勢時的 Save
   會等待提交或取消後才儲存。
 
+- ✅ MeshAssetCatalog 現以 UUID 穩定衍生 64-bit resource ID，並依專案 generation 發布 owning
+  匯入 geometry。測試固定保存 ID、驗證重新命名／重新開啟後的參照、原子拒絕碰撞，並在卸載後
+  保留 snapshot。圖形介面指派與原生 mesh residency／rendering 仍待完成。
+
 - ✅ SceneDocument 現透過 Runtime Undo／Redo 提供 generation-safe MeshRenderer 新增、mesh／
   material 資源參照替換、移除及 owning 查詢。測試驗證完整 64-bit 與尚未解析的 ID 可場景儲存／
   重載、無變更編輯保留 Redo，並拒絕過期 key。圖形化 mesh 資產指派、residency 及實際 mesh

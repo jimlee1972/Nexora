@@ -162,6 +162,9 @@ The docked Console now shows bounded Runtime records
 with text/severity filters, source, timestamps, and dropped-record count; startup and scene save
 diagnostics are routed through it. Game View and complete log routing remain open.
 
+Imported mesh geometry now has an owning, generation-checked CPU catalog with stable UUID-derived
+64-bit scene resource IDs and atomic collision rejection. GUI assignment and authored-mesh rendering remain open.
+
 Xvfb Undo checks now retry only Save after a single Undo until committed scene bytes match.
 X11 modifier releases now clear the released family immediately while preserving a held paired key;
 native X11 event tests cover Control, Shift, Alt, and Super. Center preview pixels wait for a changed,
@@ -376,6 +379,9 @@ backend-neutral `Text` event，physical key 與 text input 維持分離。
 圖形化 Hierarchy 或游標停留的原生 3D 畫布現可透過 Delete 刪除選取的 subtree，Undo 可復原；Hierarchy 也能在不改變剪貼簿的情況下複製目前選取。
 中央 Scene panel 現有可點選物件的 X/Z 俯視概覽、Ctrl／Shift 多選、F 聚焦、平移、縮放及可單步復原的標記拖曳及可見的單軸把手，且逐場景保留概覽 camera 中心與縮放；Scene panel 也會標示未儲存內容，成功儲存或 Undo 回原狀後清除；原生關閉要求遇到未儲存內容時提供儲存後離開、捨棄後離開或取消；正式 3D renderer 輸出與 gizmo
 仍待完成。
+
+匯入 mesh geometry 現有 owning、具 generation 檢查的 CPU catalog，以 UUID 穩定衍生 64-bit
+場景資源 ID，並原子拒絕碰撞；圖形介面指派與 authored-mesh rendering 仍待完成。
 
 Xvfb Undo 檢查現只在單次 Undo 後重試 Save，直到已提交的場景位元組相符。
 X11 修飾鍵放開事件現會立即清除該組 flags，另一側仍按下時保留；原生 X11 事件測試涵蓋
