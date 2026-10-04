@@ -40,3 +40,8 @@ endif()
 nexora_apply_defaults(NexoraParserRobustnessTests)
 add_test(NAME editor.parser_robustness COMMAND NexoraParserRobustnessTests)
 set_tests_properties(editor.parser_robustness PROPERTIES TIMEOUT 300)
+
+add_executable(NexoraEditorAffineGizmoTests AffineGizmoTests.cpp)
+target_link_libraries(NexoraEditorAffineGizmoTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraEditorAffineGizmoTests)
+add_test(NAME editor.affine_gizmo_contract COMMAND NexoraEditorAffineGizmoTests)

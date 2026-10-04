@@ -158,6 +158,45 @@ void TestWorldMatrixAndShear() {
           "a missing entity must have no world transform");
 }
 
+void TestExactWorldOrigins() {
+  runtime::World world;
+  const auto scene = world.LoadScene("Affine origins");
+  Transform stretched{10, -3, 4};
+  stretched.sx = -2;
+  stretched.sy = 3;
+  const auto root = Create(world, scene, stretched);
+  Transform turned{};
+  turned.qz = std::sin(std::acos(-1.0) / 8);
+  turned.qw = std::cos(std::acos(-1.0) / 8);
+  const auto parent = Create(world, scene, turned);
+  const auto child = Create(world, scene, {1, 0, 2});
+  Require(Reparent(world, parent, root, false) && Reparent(world, child, parent, false),
+          "affine hierarchy setup failed");
+  const auto pose = *world.WorldTransform(child);
+  const auto matrix = *world.WorldMatrix(child);
+  Require(Near(pose.x, 10 - 2 * kHalfSqrt2) && Near(pose.y, -3 + 3 * kHalfSqrt2) &&
+              Near(pose.z, 6) && Near(pose.x, matrix[12]) && Near(pose.y, matrix[13]) &&
+              Near(pose.z, matrix[14]),
+          "WorldTransform origin must be exact through mirrored sheared ancestors");
+  const auto approximation =
+      runtime::ComposeTransforms(*world.WorldTransform(parent), world.FindEntity(child)->transform);
+  Require(!Near(approximation.y, pose.y), "fixture must distinguish affine origin from TRS");
+  const auto detached = Create(world, scene, pose);
+  Require(Reparent(world, detached, parent, true) &&
+              SamePose(*world.WorldTransform(detached), pose) &&
+              Near(world.FindEntity(detached)->transform.x, 1) &&
+              Near(world.FindEntity(detached)->transform.y, 0) &&
+              Near(world.FindEntity(detached)->transform.z, 2),
+          "keep-world reparent must preserve exact position under sheared ancestry");
+  Require(Reparent(world, detached, 0, true) && SamePose(*world.WorldTransform(detached), pose),
+          "detaching from sheared ancestry must preserve the exact origin");
+  const auto snapshot = world.SaveScene(scene);
+  runtime::World restored;
+  const auto loaded = restored.LoadSceneSnapshot(*snapshot);
+  Require(loaded && SamePose(*restored.WorldTransform(child), pose),
+          "save/load must preserve exact hierarchical origins");
+}
+
 void TestBatchesAndCascade() {
   runtime::World world;
   const auto scene = world.LoadScene("Main");
@@ -587,8 +626,8 @@ void TestGameWorld() {
               world.SetCharacter(sheared, runtime::CharacterControllerConfig{}),
           "sheared hierarchy setup failed");
   Require(Near(world.GetCharacter(sheared)->position.y, 1.0) &&
-              Near(world.GetWorldTransform(sheared)->y, 2.0),
-          "a character under shear must start at the exact matrix position, not the lossy TRS");
+              Near(world.GetWorldTransform(sheared)->y, 1.0),
+          "character and GameWorld world-transform reads must share the exact matrix origin");
   Require(world.TickCharacter(sheared, {}, 0.01).has_value(), "the sheared character failed");
   const auto exact = *world.InternalWorld().WorldMatrix(sheared);
   Require(Near(exact[12], world.GetCharacter(sheared)->position.x) &&
@@ -645,6 +684,7 @@ int main() {
     TestMath();
     TestReparenting();
     TestWorldMatrixAndShear();
+    TestExactWorldOrigins();
     TestBatchesAndCascade();
     TestSnapshotVersion3();
     TestSiblingOrder();

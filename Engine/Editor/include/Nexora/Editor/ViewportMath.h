@@ -119,6 +119,9 @@ struct GizmoTarget final {
   runtime::Id entity{};
   runtime::Transform local{};        // the entity's local transform
   runtime::Transform parent_world{}; // its parent's world transform; identity for a root
+  // Owning root-to-parent local poses for affine-exact positions. GizmoTargets always captures
+  // this (empty for a root); manually supplied targets without it retain the parent_world path.
+  std::optional<std::vector<runtime::Transform>> parent_chain{};
 };
 
 struct GizmoOperation final {

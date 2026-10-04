@@ -155,6 +155,8 @@ into renderer or platform internals.
   clipboard. Like Paste, the entire initialized forest is one Undo step.
   `WorldTransform` exposes a live node's composed world pose to Editor views, so children can be
   drawn at their actual world position without exposing mutable Runtime entity storage.
+  `WorldMatrix` returns an owning exact affine matrix for a live document node, including shear;
+  missing or foreign nodes return no matrix.
   `TranslateSelectionXZ` and `TranslateSelection` validate generation-keyed targets, filter
   selected descendants, and apply world-space X/Z or X/Y/Z deltas through the portable gizmo
   math and one atomic transform Undo.
@@ -162,9 +164,10 @@ into renderer or platform internals.
   those same selection roots with one atomic transform Undo; the native Rotate tool uses it.
   `PreviewSelectionGizmo` returns owning prospective world poses for nodes and descendants using
   the same generation checks, selected-root filtering, and local edits as commit. Iterative cached
-  ancestry composition matches Runtime TRS semantics, including rotated, mirrored, and nonuniform
-  ancestors. It changes no selection, dirty state, or Undo/Redo history; invalid input returns no
-  preview. The authoring thread consumes the snapshot for the current frame only.
+  ancestry composition retains exact matrix origins and the Runtime rotation/scale approximation,
+  including rotated, mirrored, and nonuniform ancestors. `PreviewSelectionGizmoMatrices` returns
+  owning exact affine matrices for those same prospective local edits. Neither snapshot changes
+  selection, dirty state, or Undo/Redo history; invalid input returns no preview. The authoring thread consumes the snapshot for the current frame only.
   `SelectionGizmoFrame` uses the first selected root rotation with either that root origin or
   the mean selected-root origin. Selected descendants are excluded from the mean; an empty
   selection has no frame. Native handle placement and Center operations share this frame.
@@ -292,8 +295,8 @@ distance 0 from inside a box, and breaks distance ties by lowest entity id), `Ax
 render targets). These are CPU-only and covered by `editor.viewport_math`.
 
 The same header carries the gizmo math, following Unity's tools. A gesture captures `GizmoTargets`
-(each root's local transform and its parent's world transform) and, for Center, `SelectionCenter`
-once at Begin. Every frame it applies the whole delta since Begin with `ApplyGizmo` and passes the
+(each root's local transform, its parent's world transform, and owning root-to-parent local poses)
+and, for Center, `SelectionCenter` once at Begin. Every frame it applies the whole delta since Begin with `ApplyGizmo` and passes the
 resulting local transforms to `GizmoTransaction::Update`. Frames therefore never accumulate rounding,
 and Cancel restores the start exactly. The decision table:
 
@@ -304,7 +307,7 @@ and Cancel restores the start exactly. The decision table:
 | Rotate | About a world axis, applied after the existing world rotation. Pivot turns each entity in place; Center also swings positions about the centre. Angle from `RotationDragAngle`, signed by the right-hand rule, in (-pi, pi]; sum per-frame angles for longer turns. |
 | Scale | Factors multiply each entity's local scale, as in Unity's scale tool: exact for the uniform handle and for entities aligned with the gizmo axes. Center also scales the offsets from the centre along the gizmo axes. |
 | Negative scale | `ScaleDragFactor` never crosses zero (minimum `kMinGizmoScaleFactor`), so a drag can neither create nor remove a mirror. An existing mirror is kept, since factors are positive. |
-| Parents | Results go back through each target's own parent, so a child under a rotated or scaled parent moves as dragged in world space. Under a non-uniformly scaled ancestor with rotation, the world pose is the lossy TRS, as with Unity's `lossyScale`. |
+| Parents | Captured ancestor matrices give exact origins, and individual local inverses convert translated or Center-operated positions back to local space, including shear and mirrors. Rotation and scale retain composed TRS semantics. Manually constructed targets without `parent_chain` retain the `parent_world` path. |
 | Multi-selection | `GizmoRoots` drops duplicates, missing entities, and any entity whose ancestor is also selected; that entity moves with its ancestor. Center is the mean of the selected world positions; the portable core has no bounds. |
 | Invalid frames | A malformed operation or an unrepresentable result makes `ApplyGizmo` return nullopt. The caller keeps the previous frame. |
 
@@ -424,3 +427,10 @@ Rejected Paste does not consume this pending state. Copy replaces it, Duplicate 
 Reload clears it. Clipboard state is transient and independent of document Undo/Redo: undoing Cut
 or Paste does not reverse the clipboard's last successful action. All operations stay on the
 serialized authoring thread; no scene format or C ABI changes are required.
+
+`editor.affine_gizmo_contract` checks independent closed-form world translation, Center rotation
+and Center scale through three-level mirrored/sheared ancestry, owning pose/matrix previews,
+selected-descendant filtering, one-step Undo/Redo, stale/invalid rejection and scene save/reload.
+The native mesh renderer still submits TRS instances; exact affine rendering and picking remain
+separate work. Editor C++ consumers rebuild for the added owning target field and matrix getters;
+stable C/Zig wire layouts and scene formats are unchanged.

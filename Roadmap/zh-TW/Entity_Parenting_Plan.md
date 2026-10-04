@@ -2,7 +2,7 @@
 
 > 版本：v1.1｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 階段 1、2、3（資料模型）與
 > 4（GPU scene 同步）已完成；Editor roadmap 現已有圖形化 tree／filter／selection／reparent／reorder
-> foundation，rename、virtualization 與 gizmo 仍待完成**｜更新：2026-10-02｜對應：
+> foundation，另已有 rename、裁切列與 gizmo 基礎；完整圖形化驗收仍待完成**｜更新：2026-10-04｜對應：
 > `Transform_Rotation_Scale_Plan.md`、`Editor_Roadmap.md` §ED-M2
 
 ## 1. 目的
@@ -30,8 +30,9 @@ entity 沒有階層，所以每個 `runtime::Transform` 都是世界座標，而
 - **刪除 entity 會一併刪除子孫**（Unity 對 GameObject 的 `Destroy`）。所有被刪 entity 的綁定都會釋放，
   Editor 的復原會還原整棵子樹。
 - **旋轉的子物件位於非等比縮放的父物件底下會產生剪切（shear）**，平移／旋轉／縮放的 transform 無法表示。
-  如同 Unity 的 `lossyScale`，`WorldTransform` 回傳最接近的 TRS（逐分量縮放），`WorldMatrix` 回傳精確的 4x4
-  仿射矩陣。在這類父物件底下以 `keep_world` 重新掛接也有同樣限制。
+  `WorldTransform` 保留精確的矩陣原點並回傳組合後的 rotation／逐分量 scale；linear part 仍是近似，
+  並非最接近的 TRS fitting。`WorldMatrix` 回傳精確的 4x4 仿射矩陣。`keep_world` 重新掛接透過
+  每層祖先的 inverse 保留精確原點，rotation／scale 仍有上述限制。
 - **快照升級為 `NEXORA_SCENE 3`**，在 entity id 之後加入 parent id；v1 與 v2 載入時所有 entity 都是根物件。
 - **Editor 以 runtime 階層為唯一資料來源。**舊的 Editor 場景檔會以 `keep_world = true` 套用原本只供顯示的
   parent 來遷移，因此不會有物件移位。
@@ -64,3 +65,9 @@ entity 沒有階層，所以每個 `runtime::Transform` 都是世界座標，而
 | 快照中過深或損壞的階層 | 載入時拒絕不存在的 parent、以自己為父與循環 |
 | 舊場景遷移失敗時留下載入一半的場景 | 載入前先在暫存 world 上預演遷移 |
 | Play apply-back 跨 parent 變更照抄 local 值 | 將這類 entity 回報為衝突 |
+
+- ✅ 世界原點與 gizmo 位置換算現可跨深層鏡像／剪切 ancestry 保持精確。SceneDocument 的 owning
+  world／preview matrix 與 commit 一致，不改動選取或 history。`runtime.entity_parenting` 與
+  `editor.affine_gizmo_contract` 涵蓋 closed-form 原點、世界位移、Center 旋轉／縮放、atomic
+  Undo／Redo 及 save／reload。原生 authored-mesh affine 繪製／picking 與完整 graphical milestone
+  驗收仍待完成。

@@ -329,7 +329,17 @@ std::optional<std::vector<runtime::Transform>> ApplyGizmo(std::span<const GizmoT
   std::vector<runtime::Transform> results;
   results.reserve(targets.size());
   for (const auto &target : targets) {
-    const auto world = runtime::ComposeTransforms(target.parent_world, target.local);
+    auto world = runtime::ComposeTransforms(target.parent_world, target.local);
+    if (target.parent_chain) {
+      auto matrix = runtime::ToMatrix(runtime::Transform{});
+      for (const auto &ancestor : *target.parent_chain) {
+        if (!runtime::IsValidTransform(ancestor))
+          return std::nullopt;
+        matrix = runtime::MultiplyMatrices(matrix, runtime::ToMatrix(ancestor));
+      }
+      matrix = runtime::MultiplyMatrices(matrix, runtime::ToMatrix(target.local));
+      world = runtime::WithPosition(world, matrix[12], matrix[13], matrix[14]);
+    }
     auto moved = world;
     if (operation.kind == Kind::Translate) {
       const auto position = Add(PositionOf(world), operation.translation);
@@ -359,6 +369,12 @@ std::optional<std::vector<runtime::Transform>> ApplyGizmo(std::span<const GizmoT
     // Back into the parent's space, taking from the result only what this operation changes and
     // keeping every other part exactly, so a round trip through the parent cannot drift it.
     auto local = runtime::RelativeTransform(target.parent_world, moved);
+    if (target.parent_chain && (operation.kind == Kind::Translate || center)) {
+      auto position = moved;
+      for (const auto &ancestor : *target.parent_chain)
+        position = runtime::RelativeTransform(ancestor, position);
+      local = runtime::WithPosition(local, position.x, position.y, position.z);
+    }
     // Rotating or scaling about each entity's own origin leaves its position where it was.
     if (operation.kind != Kind::Translate && !center)
       local = runtime::WithPosition(local, target.local.x, target.local.y, target.local.z);
@@ -415,7 +431,16 @@ std::optional<std::vector<GizmoTarget>> GizmoTargets(const runtime::World &world
     const auto *entity = world.FindEntity(id);
     if (!entity)
       return std::nullopt;
-    GizmoTarget target{id, entity->transform, {}};
+    GizmoTarget target{id, entity->transform, {}, std::vector<runtime::Transform>{}};
+    std::unordered_set<runtime::Id> visited;
+    for (auto parent = entity->parent; parent != 0;) {
+      const auto *ancestor = world.FindEntity(parent);
+      if (!ancestor || !visited.insert(parent).second)
+        return std::nullopt;
+      target.parent_chain->push_back(ancestor->transform);
+      parent = ancestor->parent;
+    }
+    std::ranges::reverse(*target.parent_chain);
     if (entity->parent != 0) {
       const auto parent = world.WorldTransform(entity->parent);
       if (!parent)

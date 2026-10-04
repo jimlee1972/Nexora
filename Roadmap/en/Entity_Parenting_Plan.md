@@ -2,8 +2,8 @@
 
 > Version: v1.1 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
 > ✅ phases 1, 2, 3 (data model), and 4 (GPU scene sync) complete; the Editor roadmap now has a
-> graphical tree/filter/selection/reparent/reorder foundation, while rename, virtualization, and
-> gizmos remain open** | Updated: 2026-10-02 | Relates to:
+> graphical tree/filter/selection/reparent/reorder/rename, clipped rows, and gizmo foundations;
+> full graphical acceptance remains open** | Updated: 2026-10-04 | Relates to:
 > `Transform_Rotation_Scale_Plan.md`, `Editor_Roadmap.md` §ED-M2
 
 ## 1. Purpose
@@ -37,9 +37,10 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
 - **Destroying an entity destroys its descendants** (Unity `Destroy` on a GameObject). Bindings of
   every destroyed entity are released, and Editor undo restores the whole subtree.
 - **Non-uniform scale under a rotated child produces shear**, which a translation/rotation/scale
-  transform cannot represent. Like Unity's `lossyScale`, `WorldTransform` returns the nearest TRS
-  (component-wise scale), and `WorldMatrix` returns the exact 4x4 affine matrix. The same limitation
-  applies to `keep_world` reparenting under such parents.
+  transform cannot represent. `WorldTransform` preserves the exact matrix origin and returns
+  composed rotation/component-wise scale; the linear part remains an approximation, not a nearest-TRS
+  fit. `WorldMatrix` returns the exact 4x4 affine matrix. `keep_world` reparenting preserves the exact
+  origin using individual ancestor inverses, while rotation/scale retain that limitation.
 - **Snapshots become `NEXORA_SCENE 3`** with the parent id after the entity id; versions 1 and 2 load
   with every entity as a root.
 - **Editor uses the runtime hierarchy as the single source of truth.** Old Editor scene files are
@@ -96,3 +97,9 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
 | Deep or corrupt hierarchies in snapshots | Reject unknown parents, self-parents, and cycles at load time |
 | A failed legacy migration leaves a half-loaded scene | Rehearse the migration on a scratch world before loading |
 | Play apply-back copies local values across a parent change | Report such entities as a conflict |
+
+- ✅ Exact world origins and gizmo position conversion now survive deep mirrored/sheared ancestry.
+  Owning SceneDocument world/preview matrices match commit without touching selection or history.
+  `runtime.entity_parenting` and `editor.affine_gizmo_contract` cover closed-form origins, world
+  translation, Center rotation/scale, atomic Undo/Redo and save/reload. Native authored-mesh affine
+  rendering/picking and complete graphical milestone acceptance remain open.

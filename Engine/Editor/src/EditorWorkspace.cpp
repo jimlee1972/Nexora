@@ -704,40 +704,74 @@ SceneDocument::SelectionGizmoEdits(std::span<const NodeKey> entities,
   return edits;
 }
 
+namespace {
+struct GizmoPreview final {
+  std::unordered_map<runtime::Id, runtime::Transform> poses;
+  std::unordered_map<runtime::Id, runtime::TransformMatrix> matrices;
+};
+template <typename Nodes, typename Edits>
+std::optional<GizmoPreview> ComposeGizmoPreview(const runtime::World &world, const Nodes &nodes,
+                                                const Edits &edits) {
+  GizmoPreview preview;
+  std::unordered_map<runtime::Id, runtime::Transform> overrides;
+  for (const auto &[key, transform] : edits)
+    overrides.emplace(key.id, transform);
+  preview.poses.reserve(nodes.size());
+  preview.matrices.reserve(nodes.size());
+  // Memoized, iterative ancestry traversal avoids recursion and recomputing shared parents.
+  for (const auto &node : nodes) {
+    std::vector<runtime::Id> chain;
+    std::unordered_set<runtime::Id> visiting;
+    auto id = node.id;
+    while (id != 0 && !preview.poses.contains(id)) {
+      const auto *entity = world.FindEntity(id);
+      if (!entity || !visiting.insert(id).second)
+        return std::nullopt;
+      chain.push_back(id);
+      id = entity->parent;
+    }
+    runtime::Transform parent = id == 0 ? runtime::Transform{} : preview.poses.at(id);
+    auto matrix = id == 0 ? runtime::ToMatrix(runtime::Transform{}) : preview.matrices.at(id);
+    for (auto it = chain.rbegin(); it != chain.rend(); ++it) {
+      const auto replacement = overrides.find(*it);
+      const auto local =
+          replacement == overrides.end() ? world.FindEntity(*it)->transform : replacement->second;
+      parent = runtime::ComposeTransforms(parent, local);
+      matrix = runtime::MultiplyMatrices(matrix, runtime::ToMatrix(local));
+      parent = runtime::WithPosition(parent, matrix[12], matrix[13], matrix[14]);
+      if (!runtime::IsValidTransform(parent) ||
+          !std::ranges::all_of(matrix, [](double value) { return std::isfinite(value); }))
+        return std::nullopt;
+      preview.poses.emplace(*it, parent);
+      preview.matrices.emplace(*it, matrix);
+    }
+  }
+  return preview;
+}
+} // namespace
+
 std::optional<std::unordered_map<runtime::Id, runtime::Transform>>
 SceneDocument::PreviewSelectionGizmo(std::span<const NodeKey> entities,
                                      const GizmoOperation &operation) const {
   const auto edits = SelectionGizmoEdits(entities, operation);
   if (!edits)
     return std::nullopt;
-  std::unordered_map<runtime::Id, runtime::Transform> overrides, poses;
-  for (const auto &[key, transform] : *edits)
-    overrides.emplace(key.id, transform);
-  poses.reserve(nodes_.size());
-  // Memoized, iterative ancestry traversal avoids recursion and recomputing shared parents.
-  for (const auto &node : nodes_) {
-    std::vector<runtime::Id> chain;
-    std::unordered_set<runtime::Id> visiting;
-    auto id = node.id;
-    while (id != 0 && !poses.contains(id)) {
-      const auto *entity = world_.FindEntity(id);
-      if (!entity || !visiting.insert(id).second)
-        return std::nullopt;
-      chain.push_back(id);
-      id = entity->parent;
-    }
-    runtime::Transform parent = id == 0 ? runtime::Transform{} : poses.at(id);
-    for (auto it = chain.rbegin(); it != chain.rend(); ++it) {
-      const auto replacement = overrides.find(*it);
-      const auto local =
-          replacement == overrides.end() ? world_.FindEntity(*it)->transform : replacement->second;
-      parent = runtime::ComposeTransforms(parent, local);
-      if (!runtime::IsValidTransform(parent))
-        return std::nullopt;
-      poses.emplace(*it, parent);
-    }
-  }
-  return poses;
+  auto preview = ComposeGizmoPreview(world_, nodes_, *edits);
+  if (!preview)
+    return std::nullopt;
+  return std::move(preview->poses);
+}
+
+std::optional<std::unordered_map<runtime::Id, runtime::TransformMatrix>>
+SceneDocument::PreviewSelectionGizmoMatrices(std::span<const NodeKey> entities,
+                                             const GizmoOperation &operation) const {
+  const auto edits = SelectionGizmoEdits(entities, operation);
+  if (!edits)
+    return std::nullopt;
+  auto preview = ComposeGizmoPreview(world_, nodes_, *edits);
+  if (!preview)
+    return std::nullopt;
+  return std::move(preview->matrices);
 }
 
 std::optional<runtime::Transform> SceneDocument::SelectionGizmoFrame(GizmoPivot pivot) const {
@@ -864,6 +898,12 @@ std::optional<runtime::Transform> SceneDocument::WorldTransform(runtime::Id enti
   if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())
     return std::nullopt;
   return world_.WorldTransform(entity);
+}
+std::optional<runtime::TransformMatrix>
+SceneDocument::WorldMatrix(runtime::Id entity) const noexcept {
+  if (std::ranges::find(nodes_, entity, &Node::id) == nodes_.end())
+    return std::nullopt;
+  return world_.WorldMatrix(entity);
 }
 bool SceneDocument::CopySelection() {
   const auto *scene = world_.FindScene(scene_);
