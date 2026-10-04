@@ -131,6 +131,11 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   改變、畫布隱藏、復原提示及預覽模式切換時取消。Contract 測試涵蓋概覽／原生失焦、Undo 及
   文件替換；Xvfb 在移動預覽途中觸發真正的 FocusOut，驗證已儲存場景位元組不變。
 
+- ✅ 公共 Presentation SceneDrawData 邊界支援在同一個原生 depth pass 繪製有界的 geometry／
+  instance 批次，保留完整 mesh 預設行為，具 portable 範圍拒絕及不同 geometry 的 Vulkan 像素證據。
+  [ADR-0002](ADR-0002-Editor-Scene-Mesh-Batches.md) 記錄契約；Editor 實際 mesh 資產 residency
+  及完整 Scene View 驗收仍待完成。
+
 - ✅ 原生 3D gizmo 提供 Pivot／Center（P）切換。Center 把手、旋轉／縮放預覽與提交共用選取根節點
   的平均原點及首個根節點的 local 軸；選取子節點不重複加權，拖曳期間鎖定工具、pivot 及相機。
   Linux Xvfb 驗證雙根節點選取、Center 縮放吸附、Center 旋轉及單次 Undo。

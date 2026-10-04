@@ -236,6 +236,61 @@ int main(int argc, char **argv) {
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
     Require(instancePixels, "independent instance transform/tint pixels failed");
+    // Distinct geometry ranges use distinct instance ranges in the same native depth pass.
+    // Drawing every triangle with every instance would color both shapes alike; ignoring either
+    // offset therefore fails the actual pixel check below.
+    std::array<Presentation::SceneVertex, 6> batchVertices{};
+    for (std::size_t i = 0; i < batchVertices.size(); ++i) {
+      batchVertices[i] = vertices[i % 3];
+      const auto corner = i % 3;
+      batchVertices[i].position[0] = (i < 3 ? -0.5F : 0.5F) + (corner == 0   ? -0.3F
+                                                               : corner == 1 ? 0.3F
+                                                                             : 0.0F);
+      batchVertices[i].position[1] = corner == 2 ? 0.8F : -0.8F;
+    }
+    std::array<Presentation::SceneInstance, 2> batchInstances{};
+    batchInstances[0].color[1] = batchInstances[0].color[2] = 0;
+    batchInstances[1].color[0] = batchInstances[1].color[2] = 0;
+    std::array batchRanges{Presentation::SceneMeshBatch{0, 3, 0, 1},
+                           Presentation::SceneMeshBatch{3, 3, 1, 1}};
+    draw.vertices = batchVertices;
+    draw.indices = indices;
+    draw.instances = batchInstances;
+    draw.batches = batchRanges;
+    Require(surface->Acquire() == SurfaceStatus::Ready, "mesh batches acquire failed");
+    batchRanges[1].firstIndex = UINT32_MAX;
+    Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+            "overflowing mesh index range accepted");
+    batchRanges[1].firstIndex = 3;
+    batchRanges[1].firstInstance = 2;
+    Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+            "out-of-range mesh instances accepted");
+    batchRanges[1].firstInstance = 1;
+    batchRanges[1].indexCount = 2;
+    Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+            "incomplete batch triangle accepted");
+    batchRanges[1].indexCount = 3;
+    Require(surface->DrawScene(draw) == SurfaceStatus::Ready, "native mesh batches draw failed");
+    Require(surface->Present() == SurfaceStatus::Ready, "mesh batches present failed");
+    bool batchPixels = false;
+    const auto batchDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+    while (!batchPixels && std::chrono::steady_clock::now() < batchDeadline) {
+      XSync(display, False);
+      auto *image = XGetImage(display, native, 0, 0, width, height, AllPlanes, ZPixmap);
+      Require(image != nullptr, "mesh batches readback failed");
+      const auto left = XGetPixel(image, width / 4, height / 2);
+      const auto right = XGetPixel(image, width * 3 / 4, height / 2);
+      batchPixels = Channel(left, image->red_mask) > 150 && Channel(left, image->green_mask) < 20 &&
+                    Channel(right, image->green_mask) > 150 && Channel(right, image->red_mask) < 20;
+      XDestroyImage(image);
+      if (!batchPixels)
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    Require(batchPixels, "mesh geometry/instance ranges did not produce independent pixels");
+    draw.vertices = std::span(vertices).first(3);
+    draw.indices = std::span(indices).first(3);
+    draw.instances = instances;
+    draw.batches = {};
     instances[0].rotation[1] = 1.0F;
     instances[0].rotation[3] = 0.0F;
     Require(surface->Acquire() == SurfaceStatus::Ready, "rotation acquire failed");
@@ -330,8 +385,8 @@ int main(int argc, char **argv) {
       Require(materialPixels, "UV texture sampling/resize pixels failed");
     }
     const auto diagnostics = surface->Diagnostics();
-    Require(diagnostics.sceneDrawCalls == 18 && diagnostics.sceneInstances == 20 &&
-                diagnostics.acquiredFrames == 18 && diagnostics.presentedFrames == 18 &&
+    Require(diagnostics.sceneDrawCalls == 19 && diagnostics.sceneInstances == 22 &&
+                diagnostics.acquiredFrames == 19 && diagnostics.presentedFrames == 19 &&
                 diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 5 &&
                 diagnostics.sceneOffscreenDrawCalls == 3 && diagnostics.sceneComposites == 3,
             "native scene counters or resize evidence mismatch");
@@ -345,11 +400,12 @@ int main(int argc, char **argv) {
     XCloseDisplay(display);
     Require(windows->Destroy(created.handle) == Window::WindowError::None,
             "window teardown failed");
-    std::cout << "PASS: 18 indexed draws including rotated native instances and offscreen-composited UV "
-                 "texture pixels, "
-                 "depth-order invariance, lighting, matrix translation, "
-                 "3 resize generations, immutable texture reuse, invalid-input containment and "
-                 "ordered teardown\n";
+    std::cout
+        << "PASS: 19 scene submissions including mesh batches, rotated native instances and UV "
+           "texture pixels, "
+           "depth-order invariance, lighting, matrix translation, "
+           "3 resize generations, immutable texture reuse, invalid-input containment and "
+           "ordered teardown\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';

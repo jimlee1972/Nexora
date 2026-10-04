@@ -119,3 +119,7 @@ operator attestations remain pending; this does not complete V1's final acceptan
 reset tour progress and the exact sampled M5/M6 rejection inputs/outputs. Source/package hashes use
 pinned LF bytes. Baseline e4a140139189 passes Linux Development 77/77 and Shipping package CI;
 physical-display and clean-host final gates remain pending.
+
+✅ SceneDrawData now supports bounded index/instance mesh batches inside one Vulkan/DX12 depth
+pass. Empty batches preserve the existing draw. Portable overflow/bounds checks and Vulkan distinct-
+geometry pixels cover range offsets and invalid-then-valid recovery; DX12 execution remains a target gate.

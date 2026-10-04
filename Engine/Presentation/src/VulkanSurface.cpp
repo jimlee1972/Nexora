@@ -322,7 +322,9 @@ public:
     if (data.light_direction[0] == 0 && data.light_direction[1] == 0 &&
         data.light_direction[2] == 0)
       return SurfaceStatus::InvalidDescriptor;
-    if (data.instances.size() > 4096)
+    if (data.instances.size() > 4096 ||
+        !ValidateSceneMeshBatches(data.batches, data.indices.size(),
+                                  std::max<std::size_t>(data.instances.size(), 1)))
       return SurfaceStatus::InvalidDescriptor;
     for (const auto &instance : data.instances) {
       for (const auto value : instance.translation)
@@ -530,8 +532,14 @@ public:
     const auto descriptor = sceneTextures_.at(textureId).descriptor;
     vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, scenePipelineLayout_,
                             0, 1, &descriptor, 0, nullptr);
-    vkCmdDrawIndexed(frame.commands, static_cast<std::uint32_t>(data.indices.size()),
-                     static_cast<std::uint32_t>(instances.size()), 0, 0, 0);
+    if (data.batches.empty()) {
+      vkCmdDrawIndexed(frame.commands, static_cast<std::uint32_t>(data.indices.size()),
+                       static_cast<std::uint32_t>(instances.size()), 0, 0, 0);
+    } else {
+      for (const auto &batch : data.batches)
+        vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
+                         batch.firstInstance);
+    }
     vkCmdEndRenderPass(frame.commands);
     sceneRendered_ = true;
     sceneOffscreen_ = data.offscreen;

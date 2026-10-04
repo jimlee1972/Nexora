@@ -166,6 +166,10 @@ Xvfb Undo checks now retry only Save after a single Undo until committed scene b
 Scene drags now cancel on focus loss, Undo/Redo and Create/Paste/Duplicate shortcuts, document replacement, and hidden
 canvas or recovery. Real Xvfb FocusOut and UI contracts verify that abandoned previews do not commit.
 
+The public native SceneDrawData now supports multiple bounded indexed geometry/instance ranges
+inside one depth pass in Vulkan/DX12. Portable range checks and distinct-geometry Vulkan pixels cover
+the new boundary; authored-mesh Editor residency and full Scene View acceptance remain open.
+
 The native 3D gizmo now exposes Pivot/Center (P), including common-center rotation and scale of
 multiple selected roots, with matching previews and one-step Undo. A two-root Xvfb workflow checks
 center scale, center rotation, and release pixels; full Scene View acceptance remains open.
@@ -363,6 +367,10 @@ backend-neutral `Text` event，physical key 與 text input 維持分離。
 Xvfb Undo 檢查現只在單次 Undo 後重試 Save，直到已提交的場景位元組相符。
 Scene 拖曳現會在失焦、Undo／Redo 與建立／貼上／複製物件快捷鍵、文件替換、畫布隱藏或復原提示時取消；
 真正的 Xvfb FocusOut 與 UI contract 驗證被放棄的預覽不會提交。
+
+公共原生 SceneDrawData 現支援 Vulkan／DX12 同一個 depth pass 內的多組有界 indexed geometry／
+instance 範圍。Portable 範圍檢查與不同幾何的 Vulkan 像素驗證涵蓋新邊界；Editor 實際 mesh 資產
+residency 與完整 Scene View 驗收仍待完成。
 
 原生 3D gizmo 現提供 Pivot／Center（P），支援多個選取根節點繞共同中心旋轉與縮放，
 預覽與提交一致並可單次 Undo。雙根節點 Xvfb 流程驗證共同中心縮放、旋轉與放開後的畫面；完整 Scene View 驗收仍未完成。

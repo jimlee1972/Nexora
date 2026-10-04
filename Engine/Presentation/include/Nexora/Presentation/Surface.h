@@ -88,6 +88,31 @@ struct SceneInstance final {
   float rotation[4]{0, 0, 0, 1}; // x, y, z, w
 };
 
+// Shared-upload ranges for one indexed mesh draw. Indices address the whole vertex upload;
+// transforms/tints come from the selected instance range. Triangle starts/counts are multiples
+// of three. Borrowed for DrawScene; overlapping ranges are supported.
+struct SceneMeshBatch final {
+  std::uint32_t firstIndex{};
+  std::uint32_t indexCount{};
+  std::uint32_t firstInstance{};
+  std::uint32_t instanceCount{};
+};
+
+[[nodiscard]] inline bool ValidateSceneMeshBatches(std::span<const SceneMeshBatch> batches,
+                                                   std::size_t indexCount,
+                                                   std::size_t instanceCount) noexcept {
+  if (batches.size() > 4096)
+    return false;
+  for (const auto &batch : batches) {
+    if (batch.indexCount == 0 || batch.instanceCount == 0 || batch.firstIndex % 3 != 0 ||
+        batch.indexCount % 3 != 0 || batch.firstIndex > indexCount ||
+        batch.indexCount > indexCount - batch.firstIndex || batch.firstInstance > instanceCount ||
+        batch.instanceCount > instanceCount - batch.firstInstance)
+      return false;
+  }
+  return true;
+}
+
 // Physical pixel rectangle within the acquired surface. All zero selects the whole surface.
 // Nonzero rectangles must fit completely; offscreen scene copies always use the whole surface.
 struct SceneViewport final {
@@ -111,7 +136,7 @@ ResolveSceneViewport(SceneViewport viewport, std::uint32_t surface_width,
   return viewport;
 }
 
-// A single indexed, lit mesh draw. Spans are borrowed for the call. The matrix is row-major,
+// An indexed, lit mesh submission. Spans are borrowed for the call. The matrix is row-major,
 // matching Nexora::Math::Matrix4's storage, so backends that want row_major in HLSL need no
 // transpose; light/base_color give a minimal single-directional-light Lambertian material.
 struct SceneDrawData final {
@@ -126,6 +151,8 @@ struct SceneDrawData final {
   float light_direction[3]{-0.4F, -1.0F, -0.2F};
   float light_color[3]{1.0F, 0.95F, 0.85F};
   float base_color[4]{1.0F, 1.0F, 1.0F, 1.0F};
+  // Empty selects the entire index upload and all instances, preserving existing draws.
+  std::span<const SceneMeshBatch> batches{};
 };
 
 struct UiDrawData final {
