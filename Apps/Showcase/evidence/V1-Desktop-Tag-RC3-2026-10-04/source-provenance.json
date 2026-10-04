@@ -1,0 +1,54 @@
+{
+  "tag": "v0.0.0-rc.3",
+  "commit": "0e6b29cc6fb7b6b15b8cc33324ead0bcec8ded44",
+  "build": {
+    "url": "https://github.com/jimlee1972/Nexora/actions/runs/37195056712",
+    "attempt": 2,
+    "conclusion": "success",
+    "jobs": 16
+  },
+  "release": {
+    "url": "https://github.com/jimlee1972/Nexora/actions/runs/37195056792",
+    "attempt": 2,
+    "conclusion": "success",
+    "jobs": 5
+  },
+  "draft_release": {
+    "id": 402966104,
+    "url": "https://github.com/jimlee1972/Nexora/releases/tag/untagged-854ae580fd0d9c539fe7",
+    "draft": true,
+    "assets": 16
+  },
+  "workflow_artifacts": [
+    {
+      "id": 11301010569,
+      "name": "release-bundle-macos-arm64",
+      "digest": "sha256:9f8841f4d2c3a4e46aacb2b099e04c6737285d4ed5fb773f415575254151222e"
+    },
+    {
+      "id": 11300432060,
+      "name": "release-bundle-windows",
+      "digest": "sha256:542aaa69a036df96b862c275553828b2066b703586f6b178a4e9f8e933b73894"
+    },
+    {
+      "id": 11300249402,
+      "name": "release-bundle-linux-x64",
+      "digest": "sha256:cf1249ad973d2adc62c66519fee830c0c738685cefc463b9328c5f592861a90f"
+    },
+    {
+      "id": 11301146097,
+      "name": "release-bundle-contracts",
+      "digest": "sha256:772c74416f91141b9bbfaa9e44fd59a74d0c7be2fc89d6de0f4a2f6773f427f2"
+    }
+  ],
+  "retry": {
+    "initial_build_job": 111415088289,
+    "initial_failure": "X11 native window creation failed before rendering",
+    "initial_failure_artifact": 11300671179,
+    "retry_job": 111416241923,
+    "source_changed": false,
+    "result": "PASS",
+    "release_gate_retry_job": 111416689612,
+    "note": "The original tag Build failure also stopped the release gate; both completed on targeted rerun. This record does not claim a root-cause fix."
+  }
+}

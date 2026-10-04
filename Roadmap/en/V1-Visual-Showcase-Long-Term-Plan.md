@@ -16,16 +16,17 @@
 - ✅ Clean Windows 10 VM (VirtualBox, no dev tools) passed the Shipping/Full package verifier with `-CleanHost -CompleteGuidedTour`: `status=PASS`, 14 checksums, 25 screenshots, DX12 with no fallback, 3861 native graph/present frames ([record](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)). The adapter is a VirtualBox virtual GPU, so this is not physical-display acceptance.
 - ✅ Physical-display acceptance on the GTX 960 developer machine: the Shipping/Full package passed `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour` (`status=PASS`, `physical_display_verified=true`, DX12 without fallback or software rasterizer, 15649 native graph/present frames, 25 screenshots; [record](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)). The operator attestation flag was supplied by Claude on the user's instruction and the user did not separately watch the run; see the record.
 - ✅ Windows Vulkan physical-display acceptance passed on the GTX 960 (CI-built package, build `ecac94d8f9ca`); it exposed and fixed a baseline-CPU crash and a present-time out-of-date abort. A `windows-showcase-vulkan-shipping` preset now exists.
-- ✅ The per-tag release workflow `.github/workflows/release.yml` ran on real test tags `v0.0.0-rc.1` and `v0.0.0-rc.2`; rc.1 exposed a missing Vulkan upload (fixed in #267) and rc.2 produced a complete draft with the DX12 and Vulkan Windows packages, checksums, release info and verifier output. Drafts are never auto-published, and only Windows packages are produced.
+- ✅ The per-tag release workflow `.github/workflows/release.yml` ran on real test tags `v0.0.0-rc.1` and `v0.0.0-rc.2`; rc.1 exposed a missing Vulkan upload (fixed in #267) and rc.2 produced a complete draft with the DX12 and Vulkan Windows packages, checksums, release info and verifier output. Those earlier tags produced Windows packages; drafts are never auto-published.
 - ✅ Linux Shipping/Full isolated distribution passes native room/input/Lab/resize acceptance; Linux Development is 80/80 with all five Vulkan/Xvfb gates executed. [Evidence](../../Apps/Showcase/evidence/V1-Distribution-Linux-2026-10-04/acceptance.md).
-- ✅ macOS hosted Shipping/Full package compilation, relocation/ad-hoc signing and isolated eight-room Metal scene/copy/UI/present/resize smoke pass (96 native frames); [evidence](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md). ✅ Native pixel/input/depth/lifecycle CTest passes macOS Development (73/73) and mimalloc (63/63); physical Mac visuals and the expanded tag workflow remain pending. Metal scene/instance/material/depth/GPU-copy source, Cocoa controls/Retina coordinates and Linux/macOS release jobs are implemented. Windows now has explicit Vulkan Development and Shipping presets; DX12-only presets remain available without an SDK.
-- Open (final V1 acceptance remains PENDING): Metal physical screen and full interactive acceptance; Vulkan on other GPUs/drivers; Mac clean-host distribution and a new multi-platform tag run. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
+- ✅ macOS hosted Shipping/Full package compilation, relocation/ad-hoc signing and isolated eight-room Metal scene/copy/UI/present/resize smoke pass (96 native frames); [evidence](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md). ✅ Native pixel/input/depth/lifecycle CTest passes macOS Development (73/73) and mimalloc (63/63); physical Mac visuals and clean-host deployment remain pending. Metal scene/instance/material/depth/GPU-copy source, Cocoa controls/Retina coordinates and Linux/macOS release jobs are implemented. Windows now has explicit Vulkan Development and Shipping presets; DX12-only presets remain available without an SDK.
+- ✅ Test tag `v0.0.0-rc.3` completes Build (16 jobs) and Release (5 jobs), retaining four desktop ZIPs, checksums, native evidence and three CTest logs in a 16-attachment draft. Windows DX12/Windows Vulkan, Linux x64 and macOS ARM64 distributions are included. [Record](../../Apps/Showcase/evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md) preserves the targeted Linux startup/Build-gate retries and upload-digest verification.
+- Open (final V1 acceptance remains PENDING): Metal physical screen and full interactive acceptance; Vulkan on other GPUs/drivers; Mac clean-host distribution and full interactive/tour capture. Audio/video/WebView adapters remain explicitly contract-only/unavailable.
 
 Evidence and exact validation results: [`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
 
 > Document version: v1.2
 >
-> Document status: Linux, Windows developer-machine, clean-VM and physical-display slices implemented and verified; Windows Vulkan GTX 960 verified; Metal parity and final V1 acceptance pending; per-tag release workflow verified on real test tags (Windows packages only)
+> Document status: Linux, Windows developer-machine, clean-VM and physical-display slices implemented and verified; Windows Vulkan GTX 960 verified; Metal parity and final V1 acceptance pending; desktop release workflow verified on real test tags, including Windows/Linux/macOS rc.3
 >
 > Updated: 2026-10-04
 
@@ -322,7 +323,7 @@ This accepts the Linux virtual-display slice only; physical-display and Windows/
 - ✅ Linux screenshot and native interaction artifacts are versioned; CI retains screenshots, packages and CTest logs.
 - ✅ Windows version-tag evidence is recorded for `v0.0.0-rc.1`/`rc.2`; clean Windows VM and GTX 960 acceptance remain linked in §0.
 - ✅ Linux Full isolated native distribution is accepted locally.
-- Linux/macOS release jobs now attach platform packages, checksums, headless/native evidence and desktop CTest logs; the expanded workflow and Mac delivery await execution evidence.
+- ✅ The expanded Windows/Linux/macOS tag workflow executed on `v0.0.0-rc.3`, including packages, checksums, headless/native archives and three desktop CTest logs; the draft has 16 uploaded attachments. [Evidence](../../Apps/Showcase/evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md). Physical/clean-host Mac acceptance remains open.
 
 ## 9. Build, run, and packaging specification
 
@@ -438,7 +439,7 @@ Required gates:
 | M9/M11 run contract-only when adapters are missing | ✅ | Audio/video/WebView marked contract-only/unavailable |
 | Shipping/Full package launches on a clean Windows host | ✅ (VM) | Clean Windows 10 VirtualBox VM, `-CleanHost`, PASS ([record](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)); virtual GPU, not physical |
 | Physical-display acceptance | ✅ | GTX 960, `-PhysicalDisplay` PASS ([record](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)); attestation flag supplied by Claude on the user's instruction |
-| Every tag produces executable/manifest/report/screenshots | Partial | The tag workflow produces a draft release with Windows DX12/Vulkan packages, checksums and verifier output (a runner without an interactive desktop reports UNSUPPORTED, not PASS); no Linux/macOS packages or screenshots yet |
+| Every tag produces executable/manifest/report/screenshots | Partial | The rc.3 draft includes Windows DX12/Vulkan, Linux x64 and macOS ARM64 ZIPs, manifests/reports, three CTest logs and Linux/Windows screenshots. Full Mac application screenshots remain open; missing displays report UNSUPPORTED |
 
 ## 13. Suggested first build ticket
 
@@ -517,11 +518,14 @@ native room/input/Lab/resize run, 964 graph/copy/present operations and retained
 Metal source now supports indexed geometry, bounded instancing/batches, immutable sampled materials,
 D32 depth, private offscreen color and GPU blit followed by UI. Cocoa supplies physical controls,
 focus, wheel and backing-pixel coordinates. `window_presentation.metal_scene` provides test-only GPU
-readback, pixel assertions and PPM evidence; missing Metal/display reports UNSUPPORTED. Mac compilation,
-real input and physical screenshots remain unaccepted until run on the target. `macos-showcase-shipping`
+readback, pixel assertions and PPM evidence; missing Metal/display reports UNSUPPORTED. ✅ Hosted Mac
+compilation, native pixel/input/depth/lifecycle CTest (73/73 Development, 63/63 mimalloc) and isolated
+Shipping eight-room smoke are accepted in the [Metal record](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md).
+Full real-input/tour and physical screenshots remain target-host gates. `macos-showcase-shipping`
 and Development package evidence use relocated Engine install names and ad-hoc signing.
 
 Release and ordinary PR Build jobs now prepare Linux/Full and macOS/Full archives and isolate native
 verification from headless evidence. Draft releases include desktop CTest logs from the passing Build
-run. These CI changes and a new multi-platform tag are pending execution; V1 final acceptance stays
-PENDING. Native media/WebView and additional GPU/driver coverage retain their existing boundaries.
+run. ✅ The expanded workflow passes test tag `v0.0.0-rc.3`; [release evidence](../../Apps/Showcase/evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md)
+verifies 16 draft attachments and their platform/checksum/CTest scope. V1 final acceptance stays PENDING
+for the remaining physical/clean-host Mac and full interactive/tour gates. Native media/WebView and additional GPU/driver coverage retain their existing boundaries.

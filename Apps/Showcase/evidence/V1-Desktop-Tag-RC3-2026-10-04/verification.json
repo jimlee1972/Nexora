@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "tag": "v0.0.0-rc.3",
+  "draft": true,
+  "uploaded_asset_count": 16,
+  "uploaded_files_compared_to_downloaded_workflow_bytes": [
+    "NexoraShowcase-Shipping-Vulkan.zip",
+    "NexoraShowcase-Shipping-Vulkan.zip.sha256",
+    "NexoraShowcase-Shipping-linux-x64.zip",
+    "NexoraShowcase-Shipping-linux-x64.zip.sha256",
+    "NexoraShowcase-Shipping-macos-arm64.zip",
+    "NexoraShowcase-Shipping-macos-arm64.zip.sha256",
+    "NexoraShowcase-Shipping.zip",
+    "NexoraShowcase-Shipping.zip.sha256",
+    "build-contract-evidence.tar.gz",
+    "linux-x64-acceptance.tar.gz",
+    "macos-arm64-acceptance.tar.gz",
+    "release-info-linux-x64.json",
+    "release-info-macos-arm64.json",
+    "release-info.json"
+  ],
+  "release_checksum_rollup_reconstructed_from_uploaded_asset_digests": true,
+  "desktop_ctest_logs": [
+    {
+      "path": "showcase-linux-development-package-evidence/Testing/Temporary/LastTest.log",
+      "sha256": "b7c4b24d5c84777d15891995daa09e4b798ced9328ac85b338a69149cfd4d2a9",
+      "passed": 80,
+      "skipped": 0,
+      "executed": 80
+    },
+    {
+      "path": "showcase-macos-development-package-evidence/Testing/Temporary/LastTest.log",
+      "sha256": "3d6f0bb58220b665fe6274ada0ed84965800d6e379cbaedb364ba63ee58ae45a",
+      "passed": 73,
+      "skipped": 0,
+      "executed": 73
+    },
+    {
+      "path": "showcase-windows-development-package-evidence/Testing/Temporary/LastTest.log",
+      "sha256": "76784f06e3c032227fcc1e2b4548467f8adbb96f14efdedf76e7b8b03a7e46f1",
+      "passed": 72,
+      "skipped": 0,
+      "executed": 72
+    }
+  ],
+  "windows_acceptance_archive": "Upload digest and pipeline composition recorded; individual Windows evidence was inspected in the downloaded workflow bundle."
+}
