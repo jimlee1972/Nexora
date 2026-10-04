@@ -10,6 +10,10 @@
 process and portable workspace/document core. **Open:** remaining graphical views, authoring
 workflows, target-host acceptance, and production hardening.
 
+Platform-only acceptance is deferred when a required host is unavailable. Continue independent
+implementation and automated validation; preserve unverified evidence rows and do not mark the
+corresponding milestone accepted until its host gate passes.
+
 ### Repository completion audit (2026-10-02)
 
 The audit distinguishes a checked implementation foundation from an accepted graphical milestone.
@@ -150,6 +154,12 @@ creates property widgets; unknown components retain raw data instead of being si
   only the edited field as one generation-checked atomic Undo/Redo transaction. Invalid/stale/duplicate
   batches and read-only/recovery writes reject the whole edit. Real keyboard tests cover Camera FOV and
   Light intensity, unchanged fields, repeated Undo/Redo and save/reopen. Full reflected editing remains open.
+
+- ✅ Camera/Light controls now disable and discard drafts/pending requests during read-only, recovery,
+  Play review and close confirmation. Real keyboard tests cover Escape, focus loss, deselection/reload,
+  Play inspection and Inspector collapse, preventing stale input from reviving when access returns.
+  Pending batches recheck current selection and cancel prospective Scene gestures; locale-independent
+  numeric formatting preserves full precision. Full reflected editing remains open.
 
 - ✅ Missing-plugin components now have a bounded read-only Inspector showing owning names, full-width
   entity/type IDs, byte counts, and at most 64 preview bytes. Scene format 3 retains opaque data through

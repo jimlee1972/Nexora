@@ -10,6 +10,9 @@
 workspace/document core。**待辦：** 其餘 graphical view、authoring workflow、target-host 驗收
 與 production hardening。
 
+所需主機不可用時，先暫緩純平台驗收，繼續獨立實作與自動化驗證。未驗證的證據列保持待辦，
+對應 milestone 仍須通過主機 gate 才能標記已驗收。
+
 ### Repository 完成度稽核（2026-10-02）
 
 本稽核明確區分「已打勾的 implementation foundation」與「已驗收的 graphical milestone」。Source
@@ -148,6 +151,11 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   完成單步 Undo／Redo。無效／過期／重複 batch 與唯讀／復原寫入會整批拒絕。真實鍵盤測試
   涵蓋 Camera FOV、Light intensity、未編輯欄位保留、重複 Undo／Redo 及保存／重開；完整
   reflected 編輯仍待完成。
+
+- ✅ Camera／Light 控制項現在於唯讀、復原、Play review 與關閉確認時停用，並丟棄草稿及
+  pending request。真正鍵盤測試涵蓋 Escape、失焦、取消選取／reload、Play Inspector 與
+  Inspector 收合，防止恢復可用後復活舊輸入。Pending batch 重新核對當前選取並取消待提交
+  Scene 手勢；locale-independent 數值格式保留完整精度。完整 reflected 編輯仍待完成。
 
 - ✅ 缺少外掛的元件現有有界唯讀 Inspector，顯示 owning 名稱、完整 entity／type ID、bytes
   與最多 64-byte 預覽。Scene format 3 會在保存／重載、clipboard 複製、刪除及獨立 metadata
