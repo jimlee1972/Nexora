@@ -158,24 +158,32 @@ int main() {
       f.Verify(desired);
       Require(!f.scene.AlignCameraToWorldPose(key, {}), "reload retained a stale document key");
     }
-    for (int gate = 0; gate < 3; ++gate) {
+    for (int gate = 0; gate < 5; ++gate) {
       Fixture f(true);
       if (gate == 1)
         f.active = &f.observer;
       if (gate == 2)
         f.ui.SetNativeScenePreview(false);
-      Require(f.ui.SetSceneOverviewCamera({4, -3, 32}) &&
+      const double center_x = gate == 3   ? 200000.0
+                              : gate == 4 ? std::numeric_limits<float>::max() * 0.5
+                                          : 4;
+      const double center_z = gate == 3   ? -300000.0
+                              : gate == 4 ? -std::numeric_limits<float>::max() * 0.5
+                                          : -3;
+      Require(f.ui.SetSceneOverviewCamera({center_x, center_z, 32}) &&
                   f.ui.SetNativeSceneOrbit({0.7, 0.4, 12, 2}),
               "Scene view setup failed");
       f.Draw();
       f.ClickAlign();
-      if (gate != 0) {
+      if (gate == 1 || gate == 2) {
         Require(f.world.SaveScene(f.scene_id) == f.original && !f.scene.Dirty(),
                 "blocked Camera align button mutated the scene");
       } else {
-        const float x = 4.0F + static_cast<float>(12 * std::sin(0.7) * std::cos(0.4));
+        const float x = static_cast<float>(std::clamp(center_x, -100000.0, 100000.0)) +
+                        static_cast<float>(12 * std::sin(0.7) * std::cos(0.4));
         const float y = 2.0F + static_cast<float>(12 * std::sin(0.4));
-        const float z = -3.0F + static_cast<float>(12 * std::cos(0.7) * std::cos(0.4));
+        const float z = static_cast<float>(std::clamp(center_z, -100000.0, 100000.0)) +
+                        static_cast<float>(12 * std::cos(0.7) * std::cos(0.4));
         const auto target = *editor::WithEulerDegrees(
             {x, y, z}, {-0.4 * 180 / std::numbers::pi, 0.7 * 180 / std::numbers::pi, 0});
         f.Verify(target);

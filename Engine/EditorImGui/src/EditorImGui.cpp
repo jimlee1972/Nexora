@@ -1690,15 +1690,15 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       const auto &orbit = state.native_scene_orbit;
       // Mirror the native preview's float eye calculation. Scene view uses a right-handed -Z
       // camera: its back vector is (sin(yaw)*cos(pitch), sin(pitch), cos(yaw)*cos(pitch)).
+      const float center_x = std::clamp(state.scene_center_world.x, -100000.0F, 100000.0F);
+      const float center_z = std::clamp(state.scene_center_world.y, -100000.0F, 100000.0F);
       runtime::Transform world_pose;
-      world_pose.x =
-          state.scene_center_world.x +
-          static_cast<float>(orbit.distance * std::sin(orbit.yaw) * std::cos(orbit.pitch));
+      world_pose.x = center_x + static_cast<float>(orbit.distance * std::sin(orbit.yaw) *
+                                                   std::cos(orbit.pitch));
       world_pose.y = static_cast<float>(orbit.target_y) +
                      static_cast<float>(orbit.distance * std::sin(orbit.pitch));
-      world_pose.z =
-          state.scene_center_world.y +
-          static_cast<float>(orbit.distance * std::cos(orbit.yaw) * std::cos(orbit.pitch));
+      world_pose.z = center_z + static_cast<float>(orbit.distance * std::cos(orbit.yaw) *
+                                                   std::cos(orbit.pitch));
       constexpr double degrees = 180.0 / std::numbers::pi;
       const auto oriented =
           WithEulerDegrees(world_pose, {-orbit.pitch * degrees, orbit.yaw * degrees, 0});

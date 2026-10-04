@@ -250,7 +250,8 @@ Unavailable target-host acceptance is deferred while independent Editor implemen
 
 ✅ Camera Inspector now aligns one Camera to the stored Scene 3D pose with one Undo, retaining
 lens, scale and parent. Runtime matrices verify sheared/mirrored ancestry; equivalent poses keep
-Redo, while read-only/unavailable views and stale targets reject edits. Save/reload retains alignment.
+Redo, while read-only/unavailable views and stale targets reject edits. Extreme finite centers share
+the native preview's +/-100,000 clamp. Save/reload retains alignment.
 
 Scene/Hierarchy controls, shortcuts and queued edits now share workspace write access and modal
 gates. Read-only selection, Copy and camera navigation remain available; pointer tests verify
@@ -579,7 +580,8 @@ Inspector 與唯讀／復原／關閉確認時取消。阻擋期間停用控制�
 
 ✅ Camera Inspector 現可將單一 Camera 對齊已儲存的 Scene 3D pose，保留 lens、scale 及
 parent，並以一次 Undo 還原。Runtime matrix 驗證 shear／mirrored 父鏈；等價 pose 保留
-Redo，唯讀／不可用 view 與 stale 目標拒絕編輯；save／reload 保留對齊結果。
+Redo，唯讀／不可用 view 與 stale 目標拒絕編輯；極端有限 center 共用 native preview 的
++/-100,000 限制；save／reload 保留對齊結果。
 
 Scene／Hierarchy 控制項、快捷鍵與 queued 編輯現共用 workspace 可寫及 modal gate。
 唯讀選取、Copy 與鏡頭導航仍可用；pointer 測試驗證權限切換後，已中斷的 overview／native

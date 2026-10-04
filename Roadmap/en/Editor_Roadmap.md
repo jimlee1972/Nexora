@@ -149,7 +149,8 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   with one Undo, retaining lens, local scale and parent. Root-to-parent TRS inversion handles
   sheared/mirrored ancestry; invalid/stale/non-Camera targets reject before mutation. Equivalent
   poses preserve Redo. Real UI clicks, Runtime camera matrices and save/reload verify root/parented
-  cameras plus read-only/unavailable view gates. Full camera-authoring acceptance remains open.
+  cameras plus read-only/unavailable view gates. Extreme finite centers use the native preview's
+  +/-100,000 clamp before alignment. Full camera-authoring acceptance remains open.
 
 - ✅ Scene/Hierarchy authoring now requires a writable attached workspace and no recovery, Play review
   or close modal. Controls, shortcuts and queued create/rename/reparent/reorder edits share the gate;

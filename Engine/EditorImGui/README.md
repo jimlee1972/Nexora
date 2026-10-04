@@ -389,7 +389,7 @@ entity ID. No borrowed World data survives frame preparation.
 ## Camera alignment from Scene view
 
 With one enabled Camera selected, Use Scene view pose copies the stored native Scene orbit's eye
-and right-handed -Z orientation through `SceneDocument::AlignCameraToWorldPose`. Scene 3D must be
+and right-handed -Z orientation (using the same +/-100,000 clamped X/Z center as the native preview) through `SceneDocument::AlignCameraToWorldPose`. Scene 3D must be
 enabled and available. Lens/FOV/clipping, local scale and parent are retained; this is pose alignment,
 so a different camera FOV still produces a different framing. Draft Inspector inputs and Scene
 motions cancel before the one-step Undo transaction. Read-only/recovery/review/close gates disable

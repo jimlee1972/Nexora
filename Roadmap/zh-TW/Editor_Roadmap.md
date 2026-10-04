@@ -146,7 +146,8 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   Undo 還原，保留 lens、local scale 及 parent。逐一反轉 root 至 parent 的 local TRS，正確
   處理 shear／mirrored 父鏈；無效、stale 或非 Camera 目標會在修改前拒絕。等價 pose 保留
   Redo。真正 UI 點擊、Runtime camera matrix 及 save／reload 驗證 root／parented Camera、
-  唯讀及不可用 view gate。完整 camera authoring 驗收仍待完成。
+  唯讀及不可用 view gate。極端有限 center 會在對齊前套用與 native preview 相同的
+  +/-100,000 限制。完整 camera authoring 驗收仍待完成。
 
 - ✅ Scene／Hierarchy 編輯現在要求所附 workspace 可寫，且沒有復原、Play review 或關閉
   對話框。控制項、快捷鍵與 queued create／rename／reparent／reorder 共用此 gate；唯讀
