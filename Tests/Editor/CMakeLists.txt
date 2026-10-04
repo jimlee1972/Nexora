@@ -45,3 +45,8 @@ add_executable(NexoraEditorAffineGizmoTests AffineGizmoTests.cpp)
 target_link_libraries(NexoraEditorAffineGizmoTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraEditorAffineGizmoTests)
 add_test(NAME editor.affine_gizmo_contract COMMAND NexoraEditorAffineGizmoTests)
+
+add_executable(NexoraEditorComponentResetTests ComponentResetTests.cpp)
+target_link_libraries(NexoraEditorComponentResetTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraEditorComponentResetTests)
+add_test(NAME editor.component_reset_contract COMMAND NexoraEditorComponentResetTests)

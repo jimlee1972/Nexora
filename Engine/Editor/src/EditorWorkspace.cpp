@@ -649,6 +649,46 @@ bool SceneDocument::SetTransforms(std::span<const NodeKey> entities,
   return true;
 }
 
+bool SceneDocument::ResetTransforms(std::span<const NodeKey> entities) {
+  if (entities.empty())
+    return false;
+  std::unordered_set<runtime::Id> unique;
+  bool changed = false;
+  for (const auto key : entities) {
+    if (Key(key.id) != key || !unique.insert(key.id).second)
+      return false;
+    const auto transform = Transform(key.id);
+    const auto angles = EulerAngles(key.id);
+    if (!transform || !angles)
+      return false;
+    changed |= *transform != runtime::Transform{} || *angles != EulerDegrees{};
+  }
+  if (!changed)
+    return true;
+  const std::vector<runtime::Transform> defaults(entities.size());
+  if (!SetTransforms(entities, defaults))
+    return false;
+  for (const auto key : entities)
+    std::ranges::find(nodes_, key.id, &Node::id)->euler_hint = EulerHint{runtime::Transform{}, {}};
+  return true;
+}
+
+bool SceneDocument::ResetCameras(std::span<const NodeKey> entities) {
+  std::vector<std::optional<runtime::CameraComponent>> values;
+  values.reserve(entities.size());
+  for (const auto key : entities)
+    values.push_back(Camera(key) ? std::optional{runtime::CameraComponent{}} : std::nullopt);
+  return SetCameras(entities, values);
+}
+
+bool SceneDocument::ResetLights(std::span<const NodeKey> entities) {
+  std::vector<std::optional<runtime::LightComponent>> values;
+  values.reserve(entities.size());
+  for (const auto key : entities)
+    values.push_back(Light(key) ? std::optional{runtime::LightComponent{}} : std::nullopt);
+  return SetLights(entities, values);
+}
+
 bool SceneDocument::TranslateSelectionXZ(std::span<const NodeKey> entities, double dx, double dz) {
   return TranslateSelection(entities, dx, 0.0, dz);
 }

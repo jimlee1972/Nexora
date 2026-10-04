@@ -11,6 +11,12 @@ target_link_libraries(NexoraEditorSceneFrameTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraEditorSceneFrameTests)
 add_test(NAME editor.scene_mesh_frame_selection COMMAND NexoraEditorSceneFrameTests)
 
+add_executable(NexoraInspectorComponentResetTests ComponentResetTests.cpp)
+target_include_directories(NexoraInspectorComponentResetTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraInspectorComponentResetTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraInspectorComponentResetTests)
+add_test(NAME editor.inspector_component_reset COMMAND NexoraInspectorComponentResetTests)
+
 add_executable(NexoraMeshInspectorTests MeshInspectorTests.cpp)
 target_include_directories(NexoraMeshInspectorTests
   PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")

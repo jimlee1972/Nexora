@@ -115,6 +115,11 @@ write. SceneDocument persists authored Euler hints through save/reload and resto
 For one selected entity, the Inspector can add/remove a Camera component and edit its field of view
 and clipping planes. Invalid values are rejected; Save, Reload, and Undo retain the camera contract.
 The single-selection Light section likewise adds/removes a Light and edits nonnegative intensity.
+Reset Transform clears local TRS and authored Euler revolutions across the selection as one Undo.
+Reset Camera/Light restores existing components to defaults without adding missing components.
+Reset cancels pending Inspector drafts and Scene gestures, preserves unrelated payloads and parents,
+and follows the workspace/modal authoring gate. Already-default clicks retain Redo; Save/Reload
+stores committed defaults. Real ImGui input tests cover 1x/2x scale and mixed component presence.
 The Hierarchy can create root entities and children of the single selected entity, then selects the
 new node. Invalid names and stale parents are rejected, while creation participates in scene Undo.
 Ctrl+Shift+N creates a root with the current Hierarchy name outside text input. The Linux Xvfb

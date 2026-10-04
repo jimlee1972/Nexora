@@ -223,6 +223,13 @@ Deliver Hierarchy, Scene View, Inspector, camera controls, selection/picking, tr
 gizmos, parenting/reordering, multi-selection, clipboard, undo/redo, and save/reload. Reflection
 creates property widgets; unknown components retain raw data instead of being silently discarded.
 
+- ✅ Inspector now exposes Reset Transform, Reset Camera and Reset Light for multi-selection.
+  Transform reset clears local TRS and Euler revolutions; Camera/Light reset preserves missing
+  components. Changed batches are atomic single-step Undo/Redo, and no-ops retain Redo. Reset cancels
+  unsubmitted drafts and Scene gestures; workspace/modal gates apply. Portable and 1x/2x real UI
+  input tests cover metadata-only Undo, mixed presence, unrelated payloads and save/reload.
+  Complete reflected Inspector and target-host acceptance remain open.
+
 - ✅ Camera and Light Inspector fields now support multi-selection with mixed presence/value states.
   Enabling a mixed component adds it to missing entities while preserving existing values; Enter applies
   only the edited field as one generation-checked atomic Undo/Redo transaction. Invalid/stale/duplicate

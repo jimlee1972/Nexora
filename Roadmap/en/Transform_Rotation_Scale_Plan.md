@@ -137,3 +137,9 @@ and participate in undo. Scene format 2 validates hints and reads version 1; sam
 `editor.preview_contract`, `editor.parser_robustness`, and `editor.imgui_contract` cover persistence,
 invalid records, gimbal-lock round trips, composition order, real key/text submission, stale/non-finite rejection,
 and one-step multi-target undo. This does not close ED-M2 target-host acceptance.
+
+✅ Inspector Reset Transform now clears local TRS and authored Euler revolutions as one atomic
+multi-target Undo/Redo step. An identity quaternion with a 720-degree hint still gets matching
+Runtime/metadata history; repeated replay is covered by `editor.component_reset_contract`.
+Already-default reset retains Redo. `editor.inspector_component_reset` covers 1x/2x real input,
+abandoned drafts, access gates and committed save/reload. Full graphical acceptance remains open.
