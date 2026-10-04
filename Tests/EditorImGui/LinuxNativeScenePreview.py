@@ -119,6 +119,25 @@ def scene_region_pixels(display_name: str, window: int,
         x11.XCloseDisplay(display)
 
 
+def focus_root_window(display_name: str):
+    x11 = ctypes.CDLL("libX11.so.6")
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+    x11.XDefaultRootWindow.restype = ctypes.c_ulong
+    x11.XSetInputFocus.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong]
+    x11.XFlush.argtypes = [ctypes.c_void_p]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    display = x11.XOpenDisplay(display_name.encode())
+    if not display:
+        raise RuntimeError("focus-loss reader could not connect")
+    try:
+        x11.XSetInputFocus(display, x11.XDefaultRootWindow(display), 1, 0)
+        x11.XFlush(display)
+    finally:
+        x11.XCloseDisplay(display)
+
+
 def first_entity_position(scene_text: str) -> tuple[float, float, float]:
     lines = scene_text.splitlines()
     header = next((index for index, line in enumerate(lines)
@@ -399,6 +418,25 @@ def main() -> int:
         time.sleep(0.2)
         if scene_file.read_text() != initial_scene:
             raise RuntimeError("Escape did not cancel the native proxy drag")
+        # A real FocusOut while the mouse is held must cancel, including the input
+        # releases synthesized by Dear ImGui on the next frame.
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y)], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        time.sleep(0.1)
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x + 48), str(center_y + 24)], env=environment, check=True)
+        time.sleep(0.2)
+        focus_root_window(display)
+        time.sleep(0.2)
+        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+        subprocess.run([args.xdotool, "windowfocus", str(window)], env=environment, check=True)
+        time.sleep(0.15)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        time.sleep(0.2)
+        if scene_file.read_text() != initial_scene:
+            raise RuntimeError("focus loss committed the prospective native proxy move")
         subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                         str(center_x), str(center_y)], env=environment, check=True)
         subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)

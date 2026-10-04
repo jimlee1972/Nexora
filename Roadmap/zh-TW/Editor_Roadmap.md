@@ -127,6 +127,10 @@ Hierarchy、Scene View、Inspector、camera controls、selection/picking、trans
 parent/reorder、multi-selection、copy/paste、undo/redo 與 save/reload。Reflection 產生 property
 widgets；未知 component 保留 raw data，不靜默遺失。
 
+- ✅ 原生與概覽拖曳在應用程式失焦時先於合成放開事件取消，並在 Undo／Redo、建立／貼上／複製物件快捷鍵、文件世代
+  改變、畫布隱藏、復原提示及預覽模式切換時取消。Contract 測試涵蓋概覽／原生失焦、Undo 及
+  文件替換；Xvfb 在移動預覽途中觸發真正的 FocusOut，驗證已儲存場景位元組不變。
+
 - ✅ 原生 3D gizmo 提供 Pivot／Center（P）切換。Center 把手、旋轉／縮放預覽與提交共用選取根節點
   的平均原點及首個根節點的 local 軸；選取子節點不重複加權，拖曳期間鎖定工具、pivot 及相機。
   Linux Xvfb 驗證雙根節點選取、Center 縮放吸附、Center 旋轉及單次 Undo。

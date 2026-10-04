@@ -140,6 +140,7 @@ struct EditorImGuiHost::State final {
     float snap_step{};
   };
   std::optional<SceneDrag> scene_drag;
+  std::uint64_t scene_gesture_document_generation{};
   struct InspectorTransformRequest final {
     std::vector<SceneDocument::NodeKey> entities;
     std::vector<runtime::Transform> transforms;
@@ -220,6 +221,18 @@ struct EditorImGuiHost::State final {
 
 namespace {
 void Activate(ImGuiContext *context) { ImGui::SetCurrentContext(context); }
+
+template <typename StateT> void CancelNativeSceneGesture(StateT &state) {
+  state.native_scene_drag_origin.reset();
+  state.native_scene_drag_preview.reset();
+  state.native_scene_drag.reset();
+  state.native_scene_pick.reset();
+}
+
+template <typename StateT> void CancelSceneGestures(StateT &state) {
+  CancelNativeSceneGesture(state);
+  state.scene_drag.reset();
+}
 
 void ApplyTheme() {
   ImGui::StyleColorsDark();
@@ -1962,6 +1975,10 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
       break;
     case Nexora::Window::WindowEventType::FocusChanged:
       state_->app_focused = event.value0 != 0;
+      // Dear ImGui releases held inputs on focus loss. Cancel before that synthetic release
+      // can be interpreted as a completed authoring gesture.
+      if (!state_->app_focused)
+        CancelSceneGestures(*state_);
       io.AddFocusEvent(event.value0 != 0);
       break;
     case Nexora::Window::WindowEventType::DpiChanged:
@@ -2113,8 +2130,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                        AssetImportQueue *imports, runtime::RuntimeConsole *console,
                                        runtime::PlaySession *play, ProfileSession *profile) {
   Activate(state_->context);
+  const auto scene_generation = scene == nullptr ? 0 : scene->Generation();
+  if (scene_generation != state_->scene_gesture_document_generation)
+    CancelSceneGestures(*state_);
+  state_->scene_gesture_document_generation = scene_generation;
   state_->selector_visible = false;
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
+  if (recovery_available)
+    CancelSceneGestures(*state_);
   if (!recovery_available &&
       ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
@@ -2134,6 +2157,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
   if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput &&
       ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N, ImGuiInputFlags_RouteGlobal)) {
+    CancelSceneGestures(*state_);
     static_cast<void>(shell.RouteCommand("editor.scene.create"));
     state_->hierarchy_create_request = State::HierarchyCreateRequest{
         std::string(state_->hierarchy_create_name.data()), std::nullopt};
@@ -2141,11 +2165,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput) {
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal) ||
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, ImGuiInputFlags_RouteGlobal)) {
+      CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.redo"));
       state_->scene_save_message = scene->Redo() ? "Redo complete." : "Nothing to redo.";
       state_->scene_save_success = true;
       state_->hierarchy_selection_anchor.reset();
     } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) {
+      CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.undo"));
       state_->scene_save_message = scene->Undo() ? "Undo complete." : "Nothing to undo.";
       state_->scene_save_success = true;
@@ -2158,10 +2184,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       CopyHierarchySelection(*state_, *scene);
     }
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V, ImGuiInputFlags_RouteGlobal)) {
+      CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.paste"));
       PasteHierarchySelection(*state_, *scene);
     }
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D, ImGuiInputFlags_RouteGlobal)) {
+      CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.duplicate"));
       DuplicateHierarchySelection(*state_, *scene);
     }
@@ -2188,6 +2216,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (ImGui::Begin(scene_window.c_str())) {
     ImGui::BeginDisabled(scene == nullptr || recovery_available);
     if (ImGui::Button("Undo")) {
+      CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.undo"));
       state_->scene_save_message =
           scene != nullptr && scene->Undo() ? "Undo complete." : "Nothing to undo.";
@@ -2196,6 +2225,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     }
     ImGui::SameLine();
     if (ImGui::Button("Redo")) {
+      CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.redo"));
       state_->scene_save_message =
           scene != nullptr && scene->Redo() ? "Redo complete." : "Nothing to redo.";
@@ -2221,7 +2251,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       else
         ImGui::TextUnformatted(state_->scene_save_message.c_str());
     }
-    ImGui::Checkbox("3D Preview", &state_->native_scene_preview);
+    if (ImGui::Checkbox("3D Preview", &state_->native_scene_preview))
+      CancelSceneGestures(*state_);
     if (scene != nullptr) {
       if (state_->native_scene_preview) {
         state_->scene_markers.clear();
@@ -2289,7 +2320,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           state_->native_scene_drag_origin.reset();
           state_->native_scene_drag_preview.reset();
         }
-        if (state_->scene_canvas_viewport && ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+        if (!recovery_available && state_->scene_canvas_viewport &&
+            ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
           const auto x = static_cast<std::uint32_t>(io.MousePos.x * io.DisplayFramebufferScale.x);
           const auto y = static_cast<std::uint32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
           const auto &view = *state_->scene_canvas_viewport;
@@ -2304,8 +2336,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           }
         }
         if (state_->native_scene_drag_origin && ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
-          state_->native_scene_drag_origin.reset();
-          state_->native_scene_drag_preview.reset();
+          CancelSceneGestures(*state_);
         }
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && state_->native_scene_drag_origin) {
           const auto start = *state_->native_scene_drag_origin;
@@ -2386,12 +2417,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             ImGui::IsKeyPressed(ImGuiKey_F, false))
           static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
       } else {
-        state_->native_scene_drag_origin.reset();
+        CancelNativeSceneGesture(*state_);
         DrawSceneOverview(*state_, *scene);
       }
     }
   }
   ImGui::End();
+  if (!state_->scene_canvas_viewport)
+    CancelSceneGestures(*state_);
   const auto game_window = PanelWindowName("nexora.game");
   if (ImGui::Begin(game_window.c_str())) {
     if (play == nullptr) {
@@ -2863,9 +2896,9 @@ EditorImGuiHost::SceneCanvasViewport() const noexcept {
 }
 
 void EditorImGuiHost::SetNativeScenePreview(bool enabled) noexcept {
+  if (state_->native_scene_preview != enabled)
+    CancelSceneGestures(*state_);
   state_->native_scene_preview = enabled;
-  if (!enabled)
-    state_->native_scene_drag_origin.reset();
 }
 
 void EditorImGuiHost::SetNativeScenePreviewAvailable(bool available) noexcept {

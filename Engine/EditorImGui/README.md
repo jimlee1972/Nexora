@@ -206,3 +206,9 @@ The native canvas offers Center pivot (P). Pivot rotates/scales each selected ro
 Center places handles at the mean selected-root origin and rotates/scales root offsets around that
 point. Selected descendants do not weight the center twice, and local axes follow the first selected
 root rotation. Tool, axes, pivot, and camera controls stay fixed during a left-button gesture.
+
+Scene gestures cancel before focus loss synthesizes input releases, before Undo/Redo, root creation,
+Paste or Duplicate shortcuts, and when the document generation changes, the canvas is hidden,
+recovery is active, or preview mode changes. These cancellation paths drop prospective state; a later
+mouse release cannot commit the abandoned gesture. The X/Z overview shares the focus/history
+cancellation behavior. Save during a drag serializes only committed scene content.

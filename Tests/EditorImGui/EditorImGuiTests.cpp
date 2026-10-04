@@ -546,6 +546,23 @@ void TestSceneOverviewDrag() {
   assert(scene.WorldTransform(drag_entity)->x == 0.0 &&
          scene.WorldTransform(drag_entity)->z == 0.0);
 
+  host.ProcessEvents(cancel_press);
+  draw();
+  host.ProcessEvents(cancel_move);
+  draw();
+  const std::array lose_focus{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 0, 0}};
+  host.ProcessEvents(lose_focus);
+  draw();
+  host.ProcessEvents(release);
+  draw();
+  assert(scene.WorldTransform(drag_entity)->x == 0.0 &&
+         scene.WorldTransform(drag_entity)->z == 0.0);
+  const std::array regain_focus{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 1, 0}};
+  host.ProcessEvents(regain_focus);
+  draw();
+
   const auto drag_axis = [&](std::int32_t start_x, std::int32_t start_y) {
     const std::array axis_press{
         Nexora::Window::WindowEvent{
@@ -739,6 +756,93 @@ void TestNativeSceneCameraControls() {
   assert(!host.NativeSceneDrag());
   host.ProcessEvents(hover);
   draw();
+  host.ProcessEvents(pick_press);
+  draw();
+  host.ProcessEvents(pick_move);
+  draw();
+  assert(host.NativeSceneDragPreview());
+  const std::array lose_focus{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::FocusChanged, 0, 0, 0, 1.0F, 0, 0}};
+  host.ProcessEvents(lose_focus);
+  draw();
+  assert(!host.NativeSceneDrag() && !host.NativeSceneDragPreview());
+  host.ProcessEvents(pick_release);
+  draw();
+  assert(!host.NativeSceneDrag());
+  host.ProcessEvents(hover);
+  draw();
+
+  host.ProcessEvents(pick_press);
+  draw();
+  host.ProcessEvents(pick_move);
+  draw();
+  assert(host.NativeSceneDragPreview());
+  const std::array undo_key{
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::LeftControl),
+                                  1,
+                                  Nexora::Window::KeyModifiers::Control},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::Z),
+                                  1,
+                                  Nexora::Window::KeyModifiers::Control}};
+  host.ProcessEvents(undo_key);
+  draw();
+  assert(!host.NativeSceneDragPreview() && scene.WorldTransform(target)->y == 0.0);
+  const std::array undo_release{
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::Z),
+                                  0,
+                                  Nexora::Window::KeyModifiers::Control},
+      Nexora::Window::WindowEvent{{},
+                                  Nexora::Window::WindowEventType::Key,
+                                  0,
+                                  0,
+                                  0,
+                                  1.0F,
+                                  static_cast<std::int32_t>(Nexora::Window::Key::LeftControl),
+                                  0}};
+  host.ProcessEvents(undo_release);
+  draw();
+  host.ProcessEvents(pick_release);
+  draw();
+  assert(!host.NativeSceneDrag() && scene.Redo() && scene.WorldTransform(target)->y == 7.0);
+  host.ProcessEvents(hover);
+  draw();
+
+  host.ProcessEvents(pick_press);
+  draw();
+  host.ProcessEvents(pick_move);
+  draw();
+  assert(host.NativeSceneDragPreview());
+  const auto replacement_id = world.LoadScene("Replacement document");
+  assert(world.Activate(replacement_id));
+  nexora::editor::SceneDocument replacement_document(world, replacement_id);
+  host.BeginFrame();
+  host.DrawProductShell(shell, &replacement_document);
+  static_cast<void>(host.EndFrame());
+  assert(!host.NativeSceneDrag() && !host.NativeSceneDragPreview());
+  host.ProcessEvents(pick_release);
+  draw();
+  assert(!host.NativeSceneDrag());
+  host.ProcessEvents(hover);
+  draw();
+
   nexora::editor::imgui::EditorImGuiTestAccess::SetSceneSnap(host, false, 1);
   const auto distance = host.GetNativeSceneOrbit().distance;
   const std::array wheel{Nexora::Window::WindowEvent{
