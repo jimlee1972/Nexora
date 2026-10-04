@@ -172,10 +172,12 @@ creates property widgets; unknown components retain raw data instead of being si
   proxies. Persistent per-asset GPU caching, material shaders, exact shear and
   full Scene View acceptance remain open.
 
-- ✅ The single-selection Inspector now assigns imported OBJ mesh assets and removes MeshRenderer
-  through generation-safe SceneDocument Undo/Redo. Contract tests verify material preservation,
-  scene save/reload resolution, one-step removal Undo, and stale asset/project/document rejection.
-  Read-only/recovery disable edits; unavailable references remain preserved. Full Scene View acceptance remains open.
+- ✅ The Inspector now assigns imported OBJ mesh assets and removes MeshRenderer for single and
+  mixed multi-selection as one atomic generation-safe Undo/Redo operation. Each entity retains its
+  material reference; mixed presence adds defaults only where absent. Runtime/document batches reject
+  duplicate, missing and stale targets before mutation; no-op batches retain Redo. Contract tests
+  drive actual combo/remove clicks, repeated replay, read-only rejection, selection/project/document
+  staleness and save/reload. Missing references remain preserved; full Scene View acceptance stays open.
 
 - ✅ MeshAssetCatalog now publishes owning imported geometry with stable UUID-derived 64-bit
   resource IDs and project-generation checks. Tests freeze persisted IDs, preserve references

@@ -548,16 +548,33 @@ bool SceneDocument::SetLights(std::span<const NodeKey> entities,
   return true;
 }
 bool SceneDocument::SetMeshRenderer(NodeKey entity, std::optional<runtime::MeshComponent> mesh) {
-  if (Key(entity.id) != entity)
+  return SetMeshRenderers(std::array{entity}, std::array{mesh});
+}
+bool SceneDocument::SetMeshRenderers(
+    std::span<const NodeKey> entities,
+    std::span<const std::optional<runtime::MeshComponent>> meshes) {
+  if (entities.empty() || entities.size() != meshes.size())
     return false;
-  const auto *existing = world_.FindEntity(entity.id);
-  if (existing == nullptr)
-    return false;
-  if (existing->mesh_renderer == mesh.has_value() &&
-      (!mesh || (existing->mesh_data.mesh == mesh->mesh &&
-                 existing->mesh_data.material.shader == mesh->material.shader)))
+  std::vector<runtime::Id> ids;
+  ids.reserve(entities.size());
+  std::unordered_set<runtime::Id> unique;
+  bool changed = false;
+  for (std::size_t index = 0; index < entities.size(); ++index) {
+    const auto key = entities[index];
+    if (Key(key.id) != key || !unique.insert(key.id).second)
+      return false;
+    const auto *existing = world_.FindEntity(key.id);
+    if (existing == nullptr)
+      return false;
+    ids.push_back(key.id);
+    const auto &mesh = meshes[index];
+    changed |= existing->mesh_renderer != mesh.has_value() ||
+               (mesh && (existing->mesh_data.mesh != mesh->mesh ||
+                         existing->mesh_data.material.shader != mesh->material.shader));
+  }
+  if (!changed)
     return true;
-  if (!editor_.SetMeshRenderer(entity.id, mesh))
+  if (!editor_.SetMeshRenderers(ids, meshes))
     return false;
   PushUndo({});
   return true;

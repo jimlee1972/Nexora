@@ -167,10 +167,12 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   預覽／放開像素及單步 Undo。缺失／刪除／超限資產保留參照、顯示代理並警告。持續的每資產
   GPU cache、material shader、精確 shear 與完整 Scene View 驗收仍待完成。
 
-- ✅ 單選 Inspector 現能指派匯入 OBJ mesh 資產及移除 MeshRenderer，透過 generation-safe
-  SceneDocument Undo／Redo。Contract 測試驗證 material 保留、場景保存／重新載入解析、單步
-  移除復原與過期 asset／project／document 拒絕。唯讀／復原時停用編輯，缺失參照仍保留。
-  完整 Scene View 驗收仍待完成。
+- ✅ Inspector 現能為單選及 mixed 多選指派匯入 OBJ mesh 資產及移除 MeshRenderer，以一個
+  atomic、generation-safe Undo／Redo 操作完成。各 entity 保留自己的 material 參照；混合有無
+  元件時僅對缺少者新增預設值。Runtime／document batch 在修改前拒絕重複、缺失及過期 target；
+  無變更 batch 保留 Redo。Contract 測試以真正 combo／remove 點擊驗證整批操作、重複 replay、
+  唯讀拒絕、selection／project／document 過期及 save／reload。缺失參照仍保留；完整 Scene View
+  驗收仍待完成。
 
 - ✅ MeshAssetCatalog 現以 UUID 穩定衍生 64-bit resource ID，並依專案 generation 發布 owning
   匯入 geometry。測試固定保存 ID、驗證重新命名／重新開啟後的參照、原子拒絕碰撞，並在卸載後

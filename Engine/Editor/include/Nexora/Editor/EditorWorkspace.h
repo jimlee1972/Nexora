@@ -206,6 +206,8 @@ public:
   bool SetLights(std::span<const NodeKey> entities,
                  std::span<const std::optional<runtime::LightComponent>> lights);
   bool SetMeshRenderer(NodeKey entity, std::optional<runtime::MeshComponent> mesh);
+  bool SetMeshRenderers(std::span<const NodeKey> entities,
+                        std::span<const std::optional<runtime::MeshComponent>> meshes);
   // Editor-owned missing-plugin payloads. Writes are generation checked and undoable;
   // inspection returns an owning copy, never a pointer into node storage.
   bool SetOpaqueComponent(NodeKey entity, OpaqueComponent component);

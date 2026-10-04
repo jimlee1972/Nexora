@@ -250,11 +250,14 @@ host while retaining the one-step Undo assertion; failures report both actual an
 
 ### Mesh asset assignment
 
-The single-selection Inspector offers imported OBJ assets from the current project in its Mesh
-Renderer selector and can remove the component. It borrows the application-owned MeshAssetCatalog
-and ProjectContentSession for the frame; a queued edit carries the entity/document key, asset UUID
-and project generation. Publication checks both the live content item and catalog, preserving an
-existing material reference when replacing the mesh. Read-only projects and recovery disable edits.
+The Inspector offers imported OBJ assets from the current project in its Mesh Renderer selector
+for single or multiple selections and can remove components from the whole selection. Different mesh
+IDs or mixed component presence show Mixed; differing materials do not mix the mesh label. It borrows
+the application-owned MeshAssetCatalog and ProjectContentSession for the frame; a queued edit owns
+all entity/document keys, the asset UUID and project generation. Selection changes reject abandoned requests; every target validates before
+a single atomic Undo transaction. Publication checks both the live content item and catalog, preserving
+each existing material reference when replacing meshes and adding a default component only where
+absent. Read-only projects and recovery disable edits.
 Missing/unresolved mesh references are retained and displayed honestly. Each accepted edit uses
 SceneDocument Undo/Redo and cancels prospective scene gestures before mutation. The application
 publishes the CPU catalog after project activation. The application now submits resolved OBJ

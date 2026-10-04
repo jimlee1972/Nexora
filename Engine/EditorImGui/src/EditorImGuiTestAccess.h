@@ -89,6 +89,15 @@ public:
   static void QueueInspectorMesh(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                  std::optional<runtime::AssetUuid> asset,
                                  std::uint64_t generation) noexcept;
+  static void QueueInspectorMeshes(EditorImGuiHost &host,
+                                   std::span<const SceneDocument::NodeKey> entities,
+                                   std::optional<runtime::AssetUuid> asset,
+                                   std::uint64_t generation);
+  [[nodiscard]] static std::string_view InspectorMeshLabel(const EditorImGuiHost &host) noexcept;
+  static void FocusInspector(EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  // Control 0: combo; 1: first available asset in its popup; 2: removal button.
+  InspectorMeshPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   static void SelectPlayEntity(EditorImGuiHost &host, runtime::Id entity) noexcept;
   [[nodiscard]] static runtime::Id PlayInspectorEntity(const EditorImGuiHost &host) noexcept;
   static void

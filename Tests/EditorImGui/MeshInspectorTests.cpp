@@ -95,6 +95,142 @@ int main() {
     draw();
     Require(scene.MeshRenderer(reopened) && !scene.Dirty(),
             "stale entity request removed a reloaded component");
+    const auto other = scene.Create("Other mesh");
+    const auto empty = scene.Create("No mesh");
+    const std::array batch{reopened, *scene.Key(other), *scene.Key(empty)};
+    const auto original = *scene.MeshRenderer(reopened);
+    const runtime::MeshComponent unresolved{123456789, {0x123456789abcdef0ULL}};
+    Require(scene.SetMeshRenderer(batch[1], unresolved) && scene.Select(batch),
+            "mixed fixture failed");
+    Require(scene.Save(path), "batch baseline save failed");
+    draw();
+    Require(Access::InspectorMeshLabel(ui) == "Mixed", "mixed meshes/presence not displayed");
+    const std::array<std::optional<runtime::MeshComponent>, 3> originals{original, unresolved,
+                                                                         std::nullopt};
+    const std::array<std::optional<runtime::MeshComponent>, 3> assigned{
+        original, runtime::MeshComponent{original.mesh, unresolved.material},
+        runtime::MeshComponent{original.mesh, {}}};
+    auto invalid = batch;
+    ++invalid.back().entity_generation;
+    Require(!scene.SetMeshRenderers(invalid, assigned) && !scene.Dirty(),
+            "invalid last key partially committed");
+    const std::array duplicate{batch[0], batch[0], batch[2]};
+    Require(!scene.SetMeshRenderers(duplicate, assigned) && !scene.Dirty(),
+            "duplicate key batch accepted");
+    Require(!scene.SetMeshRenderers({}, {}) &&
+                !scene.SetMeshRenderers(batch, std::span(assigned).first(2)),
+            "invalid batch shape accepted");
+    Access::QueueInspectorMeshes(ui, invalid, asset, 7);
+    draw();
+    Require(!scene.Dirty(), "stale queued key partially committed");
+    Access::QueueInspectorMeshes(ui, batch, asset, 6);
+    draw();
+    Require(!scene.Dirty(), "stale project batch committed");
+    Require(content.Open(workspace, assets, 7, false, &error), "batch read-only fixture failed");
+    Access::QueueInspectorMeshes(ui, batch, asset, 7);
+    draw();
+    Require(!scene.Dirty(), "read-only batch committed");
+    Require(content.Open(workspace, assets, 7, true, &error), "batch writable fixture failed");
+    std::ofstream(root / ".nexora/workspace.recovery") << "schema=1\n";
+    Access::QueueInspectorMeshes(ui, batch, std::nullopt, 7);
+    draw();
+    Require(!scene.Dirty() && scene.MeshRenderer(batch[1]) && workspace.DiscardRecovery(&error),
+            "recovery allowed a queued mesh batch");
+    Access::QueueInspectorMeshes(ui, batch, asset, 7);
+    Require(scene.Select(std::array{entity}), "changed selection failed");
+    draw();
+    Require(!scene.Dirty(), "abandoned selection request committed");
+    Require(scene.Select(batch), "batch reselection failed");
+    Access::QueueInspectorMeshes(ui, batch, asset, 7);
+    draw();
+    for (const auto key : batch)
+      Require(scene.MeshRenderer(key) && scene.MeshRenderer(key)->mesh == original.mesh,
+              "batch assignment failed");
+    Require(scene.MeshRenderer(batch[0])->material.shader == original.material.shader &&
+                scene.MeshRenderer(batch[1])->material.shader == unresolved.material.shader &&
+                scene.MeshRenderer(batch[2])->material.shader == 0,
+            "batch assignment copied another material");
+    for (int replay = 0; replay < 3; ++replay) {
+      Require(scene.Undo() && !scene.Dirty() && !scene.MeshRenderer(batch[2]) &&
+                  scene.MeshRenderer(batch[1])->mesh == unresolved.mesh && scene.Redo(),
+              "batch Undo/Redo lost immutable state");
+    }
+    Require(scene.Undo() && scene.SetMeshRenderers(batch, originals) && scene.Redo(),
+            "no-op batch discarded Redo");
+    draw();
+    Require(Access::InspectorMeshLabel(ui) != "Mixed", "different materials mixed the mesh label");
+    Require(scene.Save(path), "assigned batch save failed");
+    Access::SetInputTrickle(ui, false);
+    Nexora::Window::WindowEvent focus;
+    focus.type = Nexora::Window::WindowEventType::FocusChanged;
+    focus.value0 = 1;
+    ui.ProcessEvents(std::array{focus});
+    Access::FocusInspector(ui);
+    draw();
+    draw();
+    const auto click = [&](std::size_t control) {
+      const auto point = Access::InspectorMeshPosition(ui, control);
+      if (!point)
+        throw std::runtime_error("mesh control unavailable: " + std::to_string(control));
+      Nexora::Window::WindowEvent pointer;
+      pointer.type = Nexora::Window::WindowEventType::Pointer;
+      pointer.value0 = static_cast<int>((*point)[0]);
+      pointer.value1 = static_cast<int>((*point)[1]);
+      Nexora::Window::WindowEvent button;
+      button.type = Nexora::Window::WindowEventType::PointerButton;
+      button.value0 = 0;
+      button.value1 = 1;
+      ui.ProcessEvents(std::array{pointer, button});
+      draw();
+      button.value1 = 0;
+      ui.ProcessEvents(std::array{button});
+      draw();
+    };
+    click(2);
+    for (const auto key : batch)
+      Require(!scene.MeshRenderer(key), "Remove button did not remove the entire selection");
+    Require(scene.Undo() && !scene.Dirty() && scene.Redo(), "batch removal was not one Undo step");
+    draw();
+    Require(Access::InspectorMeshLabel(ui) == "None", "absent batch not displayed as None");
+    click(0);
+    draw();
+    click(1);
+    for (const auto key : batch)
+      Require(scene.MeshRenderer(key) && scene.MeshRenderer(key)->mesh == original.mesh,
+              "combo click did not assign to all entities");
+    Require(scene.Undo() && !scene.MeshRenderer(batch[0]) && !scene.MeshRenderer(batch[1]) &&
+                !scene.MeshRenderer(batch[2]) && scene.Redo(),
+            "combo batch was not one Undo step");
+    Require(scene.Save(path) && scene.Reload(path), "batch persistence failed");
+    for (const auto key : batch)
+      Require(scene.MeshRenderer(*scene.Key(key.id))->mesh == original.mesh,
+              "reopened batch lost mesh reference");
+    Access::QueueInspectorMeshes(ui, batch, std::nullopt, 7);
+    Require(scene.Select(std::array{entity, other, empty}), "reopened batch selection failed");
+    draw();
+    Require(!scene.Dirty(), "stale document batch committed after reload");
+
+    runtime::World runtime_world;
+    const auto runtime_scene = runtime_world.LoadScene("Batch");
+    runtime::SceneEditor runtime_editor(runtime_world);
+    const auto ra = runtime_editor.CreateEntity(runtime_scene);
+    const auto rb = runtime_editor.CreateEntity(runtime_scene);
+    const std::array runtime_ids{ra, rb};
+    const std::array<std::optional<runtime::MeshComponent>, 2> runtime_meshes{original, unresolved};
+    Require(!runtime_editor.SetMeshRenderers(std::array{ra, runtime::Id{0}}, runtime_meshes) &&
+                !runtime_world.FindEntity(ra)->mesh_renderer,
+            "Runtime partially committed missing last entity");
+    Require(!runtime_editor.SetMeshRenderers(std::array{ra, ra}, runtime_meshes) &&
+                !runtime_editor.SetMeshRenderers({}, {}) &&
+                !runtime_editor.SetMeshRenderers(runtime_ids, std::span(runtime_meshes).first(1)),
+            "Runtime accepted invalid batch");
+    Require(runtime_editor.SetMeshRenderers(runtime_ids, runtime_meshes), "Runtime batch failed");
+    for (int replay = 0; replay < 3; ++replay)
+      Require(runtime_editor.Undo() && !runtime_world.FindEntity(ra)->mesh_renderer &&
+                  !runtime_world.FindEntity(rb)->mesh_renderer && runtime_editor.Redo() &&
+                  runtime_world.FindEntity(rb)->mesh_data.material.shader ==
+                      unresolved.material.shader,
+              "Runtime batch replay failed");
     workspace = {};
     std::filesystem::remove_all(root);
     std::cout << "Mesh Inspector contracts passed\n";

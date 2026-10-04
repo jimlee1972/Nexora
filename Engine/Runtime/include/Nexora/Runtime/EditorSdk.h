@@ -130,6 +130,8 @@ public:
   // Owns component presence and mesh/material resource IDs in Undo/Redo. Resource residency is
   // resolved separately; zero or currently unavailable resource IDs remain serializable.
   bool SetMeshRenderer(Id entity, std::optional<MeshComponent> mesh);
+  bool SetMeshRenderers(std::span<const Id> entities,
+                        std::span<const std::optional<MeshComponent>> meshes);
   // Applies a multi-selection transform edit as one all-or-nothing, undoable transaction.
   // Entity IDs must be unique and both spans must have the same non-zero size.
   bool SetTransforms(std::span<const Id> entities, std::span<const Transform> transforms);
