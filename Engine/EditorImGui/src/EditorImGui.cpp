@@ -134,6 +134,7 @@ struct EditorImGuiHost::State final {
   bool game_was_running = false;
   std::optional<std::array<float, 2>> content_add_mesh_position;
   std::string content_scene_error;
+  std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>> content_asset_positions;
   std::optional<std::array<float, 2>> camera_align_position;
   runtime::Id game_camera_selection{};
   std::uint64_t game_camera_generation{};
@@ -1195,7 +1196,108 @@ void CaptureCanvasViewport(std::optional<Nexora::Presentation::SceneViewport> &r
 }
 
 template <typename StateT>
-void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable) {
+bool PlaceContentMesh(StateT &state, SceneDocument &scene, ProjectContentSession *content,
+                      const MeshAssetCatalog *meshes, runtime::AssetUuid asset,
+                      std::uint64_t generation, runtime::Transform pose, bool editable) {
+  const auto *item = content ? content->Browser().Find(asset) : nullptr;
+  const auto resolved =
+      item && meshes ? meshes->ResolveAsset(asset, generation) : std::optional<MeshAssetSnapshot>{};
+  if (!editable || !content || !content->Writable() ||
+      content->Browser().ProjectGeneration() != generation || !resolved)
+    return false;
+  CancelSceneGestures(state);
+  CancelInspectorDrafts(state);
+  const auto created = scene.CreateMesh(PathLabel(item->path.stem()),
+                                        runtime::MeshComponent{resolved->resource, {}}, pose);
+  if (!created) {
+    state.content_scene_error =
+        "Mesh placement rejected because the name, scene or pose is invalid.";
+    return false;
+  }
+  static_cast<void>(scene.Select(std::array{created}));
+  state.inspect_play_selection = false;
+  state.content_scene_error.clear();
+  return true;
+}
+
+template <typename StateT>
+std::optional<runtime::Transform> NativeMeshDropPose(const StateT &state) {
+  if (!state.scene_canvas_viewport)
+    return std::nullopt;
+  const auto &viewport = *state.scene_canvas_viewport;
+  const auto &io = ImGui::GetIO();
+  const auto &orbit = state.native_scene_orbit;
+  const float x = std::clamp(state.scene_center_world.x, -100000.0F, 100000.0F);
+  const float z = std::clamp(state.scene_center_world.y, -100000.0F, 100000.0F);
+  const float y = static_cast<float>(orbit.target_y);
+  ViewportCamera camera;
+  camera.target = {x, y, z};
+  camera.position = {
+      x + static_cast<float>(orbit.distance * std::sin(orbit.yaw) * std::cos(orbit.pitch)),
+      y + static_cast<float>(orbit.distance * std::sin(orbit.pitch)),
+      z + static_cast<float>(orbit.distance * std::cos(orbit.yaw) * std::cos(orbit.pitch))};
+  camera.vertical_fov_degrees = static_cast<double>(0.85F) * 180.0 / std::numbers::pi;
+  const auto ray = ViewportPickRay(camera, viewport.width, viewport.height,
+                                   io.MousePos.x * io.DisplayFramebufferScale.x - viewport.x,
+                                   io.MousePos.y * io.DisplayFramebufferScale.y - viewport.y);
+  if (!ray || std::abs(ray->direction.y) < 1e-6)
+    return std::nullopt;
+  const double distance = -ray->origin.y / ray->direction.y;
+  if (!std::isfinite(distance) || distance < 0)
+    return std::nullopt;
+  runtime::Transform pose{ray->origin.x + distance * ray->direction.x, 0,
+                          ray->origin.z + distance * ray->direction.z};
+  if (!runtime::IsValidTransform(pose) || std::abs(pose.x) > 100000 || std::abs(pose.z) > 100000)
+    return std::nullopt;
+  const auto dx = camera.target.x - camera.position.x;
+  const auto dy = camera.target.y - camera.position.y;
+  const auto dz = camera.target.z - camera.position.z;
+  const auto depth = ((pose.x - camera.position.x) * dx - camera.position.y * dy +
+                      (pose.z - camera.position.z) * dz) /
+                     std::hypot(dx, dy, dz);
+  // Use the native Scene projection's near/far planes, rather than placing outside its view.
+  if (!std::isfinite(depth) || depth < 0.1 || depth > 500)
+    return std::nullopt;
+  return pose;
+}
+
+template <typename StateT>
+void AcceptSceneMeshDrop(StateT &state, SceneDocument &scene, ProjectContentSession *content,
+                         const MeshAssetCatalog *meshes, bool editable,
+                         std::optional<runtime::Transform> pose) {
+  if (!ImGui::BeginDragDropTarget())
+    return;
+  if (const auto *payload = ImGui::AcceptDragDropPayload(AssetDragPayload::kType.data(),
+                                                         ImGuiDragDropFlags_AcceptBeforeDelivery);
+      payload && payload->DataSize == sizeof(AssetDragData)) {
+    AssetDragData copied;
+    std::memcpy(&copied, payload->Data, sizeof(copied));
+    const auto *item = content ? content->Browser().Find(copied.asset) : nullptr;
+    const bool resolved = item && meshes &&
+                          content->Browser().ProjectGeneration() == copied.project_generation &&
+                          meshes->ResolveAsset(copied.asset, copied.project_generation).has_value();
+    const bool allowed = editable && state.app_focused && content && content->Writable();
+    if (payload->IsPreview()) {
+      if (!allowed)
+        ImGui::SetTooltip("Scene editing is currently unavailable.");
+      else if (!resolved)
+        ImGui::SetTooltip("This mesh is no longer available.");
+      else if (!pose)
+        ImGui::SetTooltip("No supported ground placement at this point.");
+      else
+        ImGui::SetTooltip("Place %s at (%.2f, %.2f, %.2f)",
+                          PathLabel(item->path.filename()).c_str(), pose->x, pose->y, pose->z);
+    }
+    if (payload->IsDelivery() && allowed && resolved && pose)
+      static_cast<void>(PlaceContentMesh(state, scene, content, meshes, copied.asset,
+                                         copied.project_generation, *pose, editable));
+  }
+  ImGui::EndDragDropTarget();
+}
+
+template <typename StateT>
+void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
+                       ProjectContentSession *content, const MeshAssetCatalog *meshes) {
   ImGui::TextUnformatted("Top-down X/Z | Drag marker: free move | Drag red X/blue Z: axis move | "
                          "Middle: pan | Wheel: zoom");
   ImGui::SameLine();
@@ -1407,6 +1509,12 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable) {
       state.hierarchy_selection_anchor.reset();
     }
   }
+  const runtime::Transform drop_pose{
+      state.scene_center_world.x + (io.MousePos.x - center.x) / state.scene_pixels_per_unit, 0,
+      state.scene_center_world.y + (io.MousePos.y - center.y) / state.scene_pixels_per_unit};
+  AcceptSceneMeshDrop(state, scene, content, meshes, editable,
+                      runtime::IsValidTransform(drop_pose) ? std::optional{drop_pose}
+                                                           : std::nullopt);
 }
 
 template <typename StateT>
@@ -2079,8 +2187,6 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
                               : std::optional<MeshAssetSnapshot>{};
   ImGui::BeginDisabled(!scene || !scene_editable || !content.Writable() || !resolved_mesh);
   if (ImGui::SmallButton("Add mesh to Scene")) {
-    CancelSceneGestures(state);
-    CancelInspectorDrafts(state);
     const bool native_placement =
         state.native_scene_preview && state.native_scene_preview_available;
     const runtime::Transform position{
@@ -2089,16 +2195,8 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         native_placement ? state.native_scene_orbit.target_y : 0,
         native_placement ? std::clamp(state.scene_center_world.y, -100000.0F, 100000.0F)
                          : state.scene_center_world.y};
-    const auto created =
-        scene->CreateMesh(PathLabel(selected_mesh->path.stem()),
-                          runtime::MeshComponent{resolved_mesh->resource, {}}, position);
-    if (!created)
-      state.content_scene_error =
-          "Mesh creation rejected because the name, scene or pose is invalid.";
-    else {
-      static_cast<void>(scene->Select(std::array{created}));
-      state.content_scene_error.clear();
-    }
+    static_cast<void>(PlaceContentMesh(state, *scene, &content, meshes, selected_mesh->id,
+                                       browser.ProjectGeneration(), position, scene_editable));
   }
   const auto add_min = ImGui::GetItemRectMin(), add_max = ImGui::GetItemRectMax();
   state.content_add_mesh_position =
@@ -2141,9 +2239,13 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         else
           static_cast<void>(browser.Select(item->id));
       }
+      const auto asset_min = ImGui::GetItemRectMin(), asset_max = ImGui::GetItemRectMax();
+      state.content_asset_positions.push_back(
+          {item->id, {(asset_min.x + asset_max.x) * 0.5F, (asset_min.y + asset_max.y) * 0.5F}});
       if (ImGui::BeginDragDropSource()) {
         const AssetDragData payload{browser.ProjectGeneration(), item->id};
-        ImGui::SetDragDropPayload(AssetDragPayload::kType.data(), &payload, sizeof(payload));
+        ImGui::SetDragDropPayload(AssetDragPayload::kType.data(), &payload, sizeof(payload),
+                                  ImGuiCond_Once);
         ImGui::TextUnformatted(item->path.filename().string().c_str());
         ImGui::EndDragDropSource();
       }
@@ -2691,6 +2793,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->game_camera_selection = 0;
   }
   state_->content_add_mesh_position.reset();
+  state_->content_asset_positions.clear();
   state_->camera_align_position.reset();
   state_->play_inspector_rendered = 0;
   state_->inspector_opaque_info.clear();
@@ -2717,6 +2820,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool interaction_blocked =
       recovery_available || state_->play_apply_open || close_confirmation_open;
   const bool scene_editable = (!workspace || workspace->Writable()) && !interaction_blocked;
+  if (const auto *payload = ImGui::GetDragDropPayload();
+      payload && payload->IsDataType(AssetDragPayload::kType.data()) &&
+      (!state_->app_focused || !scene_editable || (content && !content->Writable()) ||
+       ImGui::IsKeyPressed(ImGuiKey_Escape, false))) {
+    ImGui::ClearDragDrop();
+    ImGui::ClearActiveID(); // Held mouse buttons cannot recreate the canceled source on later
+                            // frames.
+  }
+
   if (!scene_editable) {
     CancelSceneGestures(*state_);
     state_->scene_save_requested = false;
@@ -3031,9 +3143,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !io.WantTextInput &&
             ImGui::IsKeyPressed(ImGuiKey_F, false))
           static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
+        AcceptSceneMeshDrop(*state_, *scene, content, meshes, scene_editable,
+                            NativeMeshDropPose(*state_));
       } else {
         CancelNativeSceneGesture(*state_);
-        DrawSceneOverview(*state_, *scene, scene_editable);
+        DrawSceneOverview(*state_, *scene, scene_editable, content, meshes);
       }
     }
   }
@@ -4004,6 +4118,20 @@ void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentAddMeshPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->content_add_mesh_position;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentAssetPosition(const EditorImGuiHost &host,
+                                            runtime::AssetUuid asset) noexcept {
+  const auto found =
+      std::ranges::find(host.state_->content_asset_positions, asset,
+                        &decltype(host.state_->content_asset_positions)::value_type::first);
+  return found == host.state_->content_asset_positions.end() ? std::nullopt
+                                                             : std::optional{found->second};
+}
+bool EditorImGuiTestAccess::ContentDragActive(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto *payload = ImGui::GetDragDropPayload();
+  return payload && payload->IsDataType(AssetDragPayload::kType.data());
 }
 void EditorImGuiTestAccess::FocusProfiler(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);

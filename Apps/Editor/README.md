@@ -338,3 +338,11 @@ and records initialized creation as one Undo. Redo retains stable ID, name, tran
 Save/Reload retains the resource reference. Existing Scene/Game frame preparation resolves the
 created mesh into real geometry. Creation targets the Editor Scene and does not change an active
 isolated Play clone; unavailable/stale/non-mesh or multiple selections cannot create placeholders.
+
+Drag a resolved mesh row from Content onto Scene to place it at the pointer's overview X/Z point
+or the Scene 3D ray's Y=0 ground intersection. A tooltip shows the prospective placement; only
+release authors/selects the named root, with one Undo and stable-ID Redo/Save/Reload. The source UUID
+and project generation remain fixed for the drag, and delivery rechecks the current CPU catalog.
+Read-only workspace/content, modal prompts, Escape and focus loss discard the drag. Native ground
+points outside the current projection or preview position budget reject without consuming history.
+This places on the ground plane; mesh-surface snapping and geometry ghost previews remain open.
