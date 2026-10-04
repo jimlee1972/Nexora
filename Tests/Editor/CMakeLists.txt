@@ -18,6 +18,11 @@ target_link_libraries(NexoraMeshImportTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraMeshImportTests)
 add_test(NAME editor.mesh_import COMMAND NexoraMeshImportTests)
 
+add_executable(NexoraMeshAssetCatalogTests MeshAssetCatalogTests.cpp)
+target_link_libraries(NexoraMeshAssetCatalogTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraMeshAssetCatalogTests)
+add_test(NAME editor.mesh_asset_catalog COMMAND NexoraMeshAssetCatalogTests)
+
 add_executable(NexoraParserRobustnessTests ParserRobustnessTests.cpp)
 target_link_libraries(NexoraParserRobustnessTests PRIVATE Nexora::Editor)
 if(NEXORA_ENABLE_NETWORK)
