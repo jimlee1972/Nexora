@@ -200,7 +200,11 @@ public:
   bool Move(NodeKey entity, std::optional<NodeKey> parent, std::size_t index);
   bool SetTransform(runtime::Id entity, runtime::Transform transform);
   bool SetCamera(NodeKey entity, std::optional<runtime::CameraComponent> camera);
+  bool SetCameras(std::span<const NodeKey> entities,
+                  std::span<const std::optional<runtime::CameraComponent>> cameras);
   bool SetLight(NodeKey entity, std::optional<runtime::LightComponent> light);
+  bool SetLights(std::span<const NodeKey> entities,
+                 std::span<const std::optional<runtime::LightComponent>> lights);
   bool SetMeshRenderer(NodeKey entity, std::optional<runtime::MeshComponent> mesh);
   // Editor-owned missing-plugin payloads. Writes are generation checked and undoable;
   // inspection returns an owning copy, never a pointer into node storage.

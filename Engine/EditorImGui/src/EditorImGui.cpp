@@ -183,10 +183,22 @@ struct EditorImGuiHost::State final {
   std::optional<std::size_t> inspector_euler_focus_request;
   std::optional<InspectorEulerRequest> inspector_euler_request;
   std::optional<InspectorTransformRequest> inspector_transform_request;
-  std::optional<std::pair<SceneDocument::NodeKey, std::optional<runtime::CameraComponent>>>
-      inspector_camera_request;
-  std::optional<std::pair<SceneDocument::NodeKey, std::optional<runtime::LightComponent>>>
-      inspector_light_request;
+  template <typename Component> struct InspectorComponentRequest final {
+    std::vector<SceneDocument::NodeKey> entities;
+    std::vector<std::optional<Component>> values;
+  };
+  using InspectorCameraRequest = InspectorComponentRequest<runtime::CameraComponent>;
+  using InspectorLightRequest = InspectorComponentRequest<runtime::LightComponent>;
+  std::optional<InspectorCameraRequest> inspector_camera_request;
+  std::optional<InspectorLightRequest> inspector_light_request;
+  std::optional<std::size_t> inspector_camera_focus_request;
+  std::vector<SceneDocument::NodeKey> inspector_component_selection;
+  std::array<std::array<char, 64>, 3> inspector_camera_text{};
+  std::array<bool, 3> inspector_camera_active{};
+  std::array<char, 64> inspector_light_text{};
+  bool inspector_light_active{}, inspector_light_focus_request{};
+  std::array<bool, 3> inspector_camera_mixed{};
+  bool inspector_camera_presence_mixed{}, inspector_light_presence_mixed{}, inspector_light_mixed{};
   struct InspectorMeshRequest final {
     SceneDocument::NodeKey entity;
     std::optional<runtime::AssetUuid> asset;
@@ -1377,6 +1389,9 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   state.inspector_selection =
       scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
   state.inspector_transform_visible = false;
+  state.inspector_camera_presence_mixed = state.inspector_light_presence_mixed = false;
+  state.inspector_camera_mixed = {};
+  state.inspector_light_mixed = false;
   state.inspector_opaque_info.clear();
   std::unordered_set<runtime::Id> selected_entities;
   if (scene != nullptr)
@@ -1388,6 +1403,8 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   });
   if (scene == nullptr || scene->Selection().empty()) {
     state.inspector_mesh_request.reset();
+    state.inspector_camera_request.reset();
+    state.inspector_light_request.reset();
     ImGui::TextUnformatted("Select an entity to inspect it.");
     return;
   }
@@ -1531,65 +1548,172 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       state.inspector_error.clear();
   }
   ApplyInspectorEuler(state, *scene);
-  if (keys.size() == 1) {
-    auto camera = scene->Camera(keys.front());
-    ImGui::SeparatorText("Camera");
-    bool enabled = camera.has_value();
-    if (ImGui::Checkbox("Enabled###editor.inspector.camera.enabled", &enabled))
-      state.inspector_camera_request =
-          std::pair{keys.front(), enabled ? std::optional(runtime::CameraComponent{})
-                                          : std::optional<runtime::CameraComponent>{}};
-    if (camera) {
-      struct CameraField final {
-        const char *label;
-        double runtime::CameraComponent::*member;
-      };
-      constexpr std::array camera_fields{
-          CameraField{"Vertical FOV", &runtime::CameraComponent::vertical_field_of_view},
-          CameraField{"Near plane", &runtime::CameraComponent::near_plane},
-          CameraField{"Far plane", &runtime::CameraComponent::far_plane}};
-      for (const auto &field : camera_fields) {
-        double value = (*camera).*(field.member);
-        if (ImGui::InputDouble(field.label, &value, 0.0, 0.0, "%.3f",
-                               ImGuiInputTextFlags_EnterReturnsTrue)) {
-          (*camera).*(field.member) = value;
-          state.inspector_camera_request = std::pair{keys.front(), camera};
+  if (state.inspector_component_selection != keys) {
+    state.inspector_component_selection = keys;
+    state.inspector_camera_active = {};
+    state.inspector_light_active = false;
+  }
+  ImGui::PushID(static_cast<int>(selection_hash));
+  std::vector<std::optional<runtime::CameraComponent>> cameras;
+  std::vector<std::optional<runtime::LightComponent>> lights;
+  for (const auto key : keys) {
+    cameras.push_back(scene->Camera(key));
+    lights.push_back(scene->Light(key));
+  }
+  ImGui::SeparatorText("Camera");
+  bool camera_enabled = cameras.front().has_value();
+  const bool camera_presence_mixed = std::ranges::any_of(
+      cameras, [&](const auto &camera) { return camera.has_value() != camera_enabled; });
+  state.inspector_camera_presence_mixed = camera_presence_mixed;
+  state.inspector_camera_mixed = {};
+  if (camera_presence_mixed)
+    ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, true);
+  const bool camera_toggle =
+      ImGui::Checkbox("Enabled###editor.inspector.camera.enabled", &camera_enabled);
+  if (camera_presence_mixed)
+    ImGui::PopItemFlag();
+  if (camera_toggle) {
+    state.inspector_camera_active = {};
+    if (camera_presence_mixed)
+      camera_enabled = true; // first click on mixed presence adds to the whole selection
+    for (auto &camera : cameras)
+      camera = camera_enabled ? camera.value_or(runtime::CameraComponent{})
+                              : std::optional<runtime::CameraComponent>{};
+    state.inspector_camera_request = typename StateT::InspectorCameraRequest{keys, cameras};
+  }
+  if (!camera_presence_mixed && camera_enabled) {
+    struct CameraField final {
+      const char *label;
+      double runtime::CameraComponent::*member;
+    };
+    constexpr std::array camera_fields{
+        CameraField{"Vertical FOV", &runtime::CameraComponent::vertical_field_of_view},
+        CameraField{"Near plane", &runtime::CameraComponent::near_plane},
+        CameraField{"Far plane", &runtime::CameraComponent::far_plane}};
+    for (std::size_t axis = 0; axis < camera_fields.size(); ++axis) {
+      const auto &field = camera_fields[axis];
+      double value = (*cameras.front()).*(field.member);
+      const bool mixed = std::ranges::any_of(
+          cameras, [&](const auto &camera) { return (*camera).*(field.member) != value; });
+      state.inspector_camera_mixed[axis] = mixed;
+      if (mixed)
+        ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, true);
+      if (state.inspector_camera_focus_request == axis) {
+        ImGui::SetKeyboardFocusHere();
+        state.inspector_camera_focus_request.reset();
+      }
+      auto &text = state.inspector_camera_text[axis];
+      if (!state.inspector_camera_active[axis]) {
+        if (mixed)
+          text[0] = '\0';
+        else
+          std::snprintf(text.data(), text.size(), "%.17g", value);
+      }
+      const bool submit = ImGui::InputTextWithHint(
+          field.label, mixed ? "Mixed" : "Value", text.data(), text.size(),
+          ImGuiInputTextFlags_CharsScientific | ImGuiInputTextFlags_EnterReturnsTrue);
+      state.inspector_camera_active[axis] = ImGui::IsItemActive();
+      if (mixed)
+        ImGui::PopItemFlag();
+      if (submit) {
+        const std::string_view entered{text.data()};
+        const auto number = entered.starts_with('+') ? entered.substr(1) : entered;
+        const auto parsed = std::from_chars(number.data(), number.data() + number.size(), value);
+        if (parsed.ec != std::errc{} || parsed.ptr != number.data() + number.size() ||
+            !std::isfinite(value))
+          state.inspector_error = "Enter a finite camera value.";
+        else {
+          for (auto &camera : cameras)
+            (*camera).*(field.member) = value;
+          state.inspector_camera_request = typename StateT::InspectorCameraRequest{keys, cameras};
         }
       }
     }
+  } else {
+    state.inspector_camera_active = {};
+    if (camera_presence_mixed)
+      ImGui::TextDisabled("Enable Camera for all selected entities to edit its fields.");
   }
   if (state.inspector_camera_request) {
     const auto request = std::exchange(state.inspector_camera_request, std::nullopt);
-    if (!scene->SetCamera(request->first, request->second))
+    if (!editable || !scene->SetCameras(request->entities, request->values))
       state.inspector_error =
-          "Camera edit rejected because values or entity generation are invalid.";
+          "Camera edit rejected because values, access or entity generations are invalid.";
     else
       state.inspector_error.clear();
   }
-  if (keys.size() == 1) {
-    auto light = scene->Light(keys.front());
-    ImGui::SeparatorText("Light");
-    bool enabled = light.has_value();
-    if (ImGui::Checkbox("Enabled###editor.inspector.light.enabled", &enabled))
-      state.inspector_light_request =
-          std::pair{keys.front(), enabled ? std::optional(runtime::LightComponent{})
-                                          : std::optional<runtime::LightComponent>{}};
-    if (light) {
-      float intensity = light->intensity;
-      if (ImGui::InputFloat("Intensity", &intensity, 0.0F, 0.0F, "%.3f",
-                            ImGuiInputTextFlags_EnterReturnsTrue))
-        state.inspector_light_request =
-            std::pair{keys.front(), std::optional(runtime::LightComponent{intensity})};
+  ImGui::SeparatorText("Light");
+  bool light_enabled = lights.front().has_value();
+  const bool light_presence_mixed = std::ranges::any_of(
+      lights, [&](const auto &light) { return light.has_value() != light_enabled; });
+  state.inspector_light_presence_mixed = light_presence_mixed;
+  state.inspector_light_mixed = false;
+  if (light_presence_mixed)
+    ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, true);
+  const bool light_toggle =
+      ImGui::Checkbox("Enabled###editor.inspector.light.enabled", &light_enabled);
+  if (light_presence_mixed)
+    ImGui::PopItemFlag();
+  if (light_toggle) {
+    state.inspector_light_active = false;
+    if (light_presence_mixed)
+      light_enabled = true;
+    for (auto &light : lights)
+      light = light_enabled ? light.value_or(runtime::LightComponent{})
+                            : std::optional<runtime::LightComponent>{};
+    state.inspector_light_request = typename StateT::InspectorLightRequest{keys, lights};
+  }
+  if (!light_presence_mixed && light_enabled) {
+    float intensity = lights.front()->intensity;
+    const bool mixed = std::ranges::any_of(
+        lights, [&](const auto &light) { return light->intensity != intensity; });
+    state.inspector_light_mixed = mixed;
+    if (mixed)
+      ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, true);
+    auto &text = state.inspector_light_text;
+    if (!state.inspector_light_active) {
+      if (mixed)
+        text[0] = '\0';
+      else
+        std::snprintf(text.data(), text.size(), "%.9g", static_cast<double>(intensity));
     }
+    if (state.inspector_light_focus_request) {
+      ImGui::SetKeyboardFocusHere();
+      state.inspector_light_focus_request = false;
+    }
+    const bool submit = ImGui::InputTextWithHint(
+        "Intensity", mixed ? "Mixed" : "Value", text.data(), text.size(),
+        ImGuiInputTextFlags_CharsScientific | ImGuiInputTextFlags_EnterReturnsTrue);
+    state.inspector_light_active = ImGui::IsItemActive();
+    if (mixed)
+      ImGui::PopItemFlag();
+    if (submit) {
+      const std::string_view entered{text.data()};
+      const auto number = entered.starts_with('+') ? entered.substr(1) : entered;
+      const auto parsed = std::from_chars(number.data(), number.data() + number.size(), intensity);
+      if (parsed.ec != std::errc{} || parsed.ptr != number.data() + number.size() ||
+          !std::isfinite(intensity))
+        state.inspector_error = "Enter a finite light intensity.";
+      else {
+        for (auto &light : lights)
+          light->intensity = intensity;
+        state.inspector_light_request = typename StateT::InspectorLightRequest{keys, lights};
+      }
+    }
+  } else {
+    state.inspector_light_active = false;
+    if (light_presence_mixed)
+      ImGui::TextDisabled("Enable Light for all selected entities to edit intensity.");
   }
   if (state.inspector_light_request) {
     const auto request = std::exchange(state.inspector_light_request, std::nullopt);
-    if (!scene->SetLight(request->first, request->second))
+    if (!editable || !scene->SetLights(request->entities, request->values))
       state.inspector_error =
-          "Light edit rejected because intensity or entity generation is invalid.";
+          "Light edit rejected because intensity, access or entity generations are invalid.";
     else
       state.inspector_error.clear();
   }
+  ImGui::PopID();
   if (keys.size() == 1) {
     const auto mesh = scene->MeshRenderer(keys.front());
     ImGui::SeparatorText("Mesh Renderer");
@@ -1598,7 +1722,8 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
         mesh && meshes ? meshes->ResolveResource(mesh->mesh, generation) : std::nullopt;
     const auto *item = resolved && content ? content->Browser().Find(resolved->asset) : nullptr;
     const auto label = item ? PathLabel(item->path) : mesh ? "Missing mesh" : "None";
-    ImGui::BeginDisabled(!editable || content == nullptr || meshes == nullptr);
+    ImGui::BeginDisabled(!editable || content == nullptr || !content->Writable() ||
+                         meshes == nullptr);
     if (ImGui::BeginCombo("Mesh###editor.inspector.mesh.asset", label.c_str())) {
       for (const auto &candidate : content->Browser().Items()) {
         if (!meshes->ResolveAsset(candidate.id, generation))
@@ -1614,7 +1739,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       ImGui::EndCombo();
     }
     ImGui::EndDisabled();
-    ImGui::BeginDisabled(!editable || !mesh || content == nullptr);
+    ImGui::BeginDisabled(!editable || !mesh || content == nullptr || !content->Writable());
     if (ImGui::Button("Remove Mesh Renderer###editor.inspector.mesh.remove"))
       state.inspector_mesh_request =
           typename StateT::InspectorMeshRequest{keys.front(), std::nullopt, generation};
@@ -1628,7 +1753,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     const auto resolved = request->asset && meshes
                               ? meshes->ResolveAsset(*request->asset, request->generation)
                               : std::nullopt;
-    const bool valid = editable && content &&
+    const bool valid = editable && content && content->Writable() &&
                        content->Browser().ProjectGeneration() == request->generation &&
                        (!request->asset || (resolved && content->Browser().Find(*request->asset)));
     if (valid) {
@@ -2441,8 +2566,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       }
     } else {
       DrawInspector(*state_, scene, content, meshes,
-                    workspace && workspace->Writable() && content && content->Writable() &&
-                        !interaction_blocked);
+                    (!workspace || workspace->Writable()) && !interaction_blocked);
     }
   }
   ImGui::End();
@@ -3669,7 +3793,35 @@ runtime::Id EditorImGuiTestAccess::PlayInspectorEntity(const EditorImGuiHost &ho
 void EditorImGuiTestAccess::QueueInspectorCamera(
     EditorImGuiHost &host, SceneDocument::NodeKey entity,
     std::optional<runtime::CameraComponent> camera) noexcept {
-  host.state_->inspector_camera_request = std::pair{entity, camera};
+  host.state_->inspector_camera_request =
+      EditorImGuiHost::State::InspectorCameraRequest{{entity}, {camera}};
+}
+
+void EditorImGuiTestAccess::QueueInspectorCameras(
+    EditorImGuiHost &host, std::span<const SceneDocument::NodeKey> entities,
+    std::span<const std::optional<runtime::CameraComponent>> cameras) {
+  host.state_->inspector_camera_request = EditorImGuiHost::State::InspectorCameraRequest{
+      {entities.begin(), entities.end()}, {cameras.begin(), cameras.end()}};
+}
+void EditorImGuiTestAccess::QueueInspectorLights(
+    EditorImGuiHost &host, std::span<const SceneDocument::NodeKey> entities,
+    std::span<const std::optional<runtime::LightComponent>> lights) {
+  host.state_->inspector_light_request = EditorImGuiHost::State::InspectorLightRequest{
+      {entities.begin(), entities.end()}, {lights.begin(), lights.end()}};
+}
+std::array<bool, 6>
+EditorImGuiTestAccess::InspectorComponentMixed(const EditorImGuiHost &host) noexcept {
+  return {host.state_->inspector_camera_presence_mixed, host.state_->inspector_camera_mixed[0],
+          host.state_->inspector_camera_mixed[1],       host.state_->inspector_camera_mixed[2],
+          host.state_->inspector_light_presence_mixed,  host.state_->inspector_light_mixed};
+}
+void EditorImGuiTestAccess::FocusInspectorCameraField(EditorImGuiHost &host,
+                                                      std::size_t axis) noexcept {
+  host.state_->inspector_camera_focus_request = axis;
+}
+
+void EditorImGuiTestAccess::FocusInspectorLightField(EditorImGuiHost &host) noexcept {
+  host.state_->inspector_light_focus_request = true;
 }
 
 void EditorImGuiTestAccess::QueueInspectorMesh(EditorImGuiHost &host, SceneDocument::NodeKey entity,
@@ -3682,7 +3834,8 @@ void EditorImGuiTestAccess::QueueInspectorMesh(EditorImGuiHost &host, SceneDocum
 void EditorImGuiTestAccess::QueueInspectorLight(
     EditorImGuiHost &host, SceneDocument::NodeKey entity,
     std::optional<runtime::LightComponent> light) noexcept {
-  host.state_->inspector_light_request = std::pair{entity, light};
+  host.state_->inspector_light_request =
+      EditorImGuiHost::State::InspectorLightRequest{{entity}, {light}};
 }
 
 void EditorImGuiTestAccess::QueueInspectorTransforms(

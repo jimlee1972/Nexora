@@ -292,3 +292,8 @@ workflow, and is exposed only as bounded read-only Inspector rows. Opening a ver
 not load plugin code or transfer opaque authoring bytes into the gameplay clone. Project writer and
 recovery checks remain application-owned; format 1/2 scenes remain readable and opaque-free saves
 retain format 2. Plugin rehydration is not implemented by this fallback.
+
+The Inspector edits Camera/Light multi-selection through generation-checked atomic SceneDocument
+batches. Mixed values/presence are explicit, Enter commits one field, and one Undo restores all prior
+per-entity presence/values. Project read-only and blocking recovery/review/close states reject pending
+edits. Mesh resource assignment retains its additional writable-content/project-generation checks.

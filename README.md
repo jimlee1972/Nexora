@@ -212,6 +212,12 @@ Scene Undo and Redo now replay stable entity IDs, hierarchy and components while
 names, selection, and authored Euler revolutions. The Scene panel exposes both by button and
 keyboard shortcut; a new edit discards the undone branch.
 
+✅ Camera and Light Inspector fields now support multi-selection with mixed presence/value states.
+Enabling a mixed component adds it to missing entities while preserving existing values; Enter applies
+only the edited field as one generation-checked atomic Undo/Redo transaction. Invalid/stale/duplicate
+batches and read-only/recovery writes reject the whole edit. Real keyboard tests cover Camera FOV and
+Light intensity, unchanged fields, repeated Undo/Redo and save/reopen. Full reflected editing remains open.
+
 ✅ Missing-plugin components now have a bounded read-only Inspector showing owning names, full-width
 entity/type IDs, byte counts, and at most 64 preview bytes. Scene format 3 retains opaque data through
 save/reload, clone-by-clipboard, deletion, and independent metadata Undo/Redo; opaque-free scenes retain
@@ -496,6 +502,12 @@ Docked Profiler 現會繪製有界的 Editor frame processing wall-time 即時�
 ✅ Profiler 現可把保留的 Editor frame-processing wall time 匯出為專案 CSV，保留 double
 精度與丟棄 frame 數，GPU／memory 欄保持空白。同步 writer 驗證 1-600 筆有序且有限的 sample，
 拒絕唯讀／recovery 寫入，驗證失敗會保留舊檔；實際 UI 點擊會送出一次性 request。
+
+✅ Camera／Light Inspector 現支援多選及 mixed presence／value。Mixed component 的 Enable
+會補到缺少的 entity 並保留現有值；Enter 只套用編輯欄位，以 generation-checked 原子交易
+完成單步 Undo／Redo。無效／過期／重複 batch 與唯讀／復原寫入會整批拒絕。真實鍵盤測試
+涵蓋 Camera FOV、Light intensity、未編輯欄位保留、重複 Undo／Redo 及保存／重開；完整
+reflected 編輯仍待完成。
 
 ✅ 缺少外掛的元件現有有界唯讀 Inspector，顯示 owning 名稱、完整 entity／type ID、bytes
 與最多 64-byte 預覽。Scene format 3 會在保存／重載、clipboard 複製、刪除及獨立 metadata

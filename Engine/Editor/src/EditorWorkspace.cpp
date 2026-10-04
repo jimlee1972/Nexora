@@ -491,31 +491,58 @@ bool SceneDocument::SetTransform(runtime::Id entity, runtime::Transform transfor
   return SetTransforms(keys, transforms);
 }
 bool SceneDocument::SetCamera(NodeKey entity, std::optional<runtime::CameraComponent> camera) {
-  if (Key(entity.id) != entity)
+  return SetCameras(std::array{entity}, std::array{camera});
+}
+bool SceneDocument::SetCameras(std::span<const NodeKey> entities,
+                               std::span<const std::optional<runtime::CameraComponent>> cameras) {
+  if (entities.empty() || entities.size() != cameras.size())
     return false;
-  const auto *existing = world_.FindEntity(entity.id);
-  if (existing == nullptr)
-    return false;
-  if (existing->camera == camera.has_value() &&
-      (!camera || (existing->camera_data.vertical_field_of_view == camera->vertical_field_of_view &&
-                   existing->camera_data.near_plane == camera->near_plane &&
-                   existing->camera_data.far_plane == camera->far_plane)))
+  std::vector<runtime::Id> ids;
+  std::unordered_set<runtime::Id> unique;
+  bool changed = false;
+  for (std::size_t i = 0; i < entities.size(); ++i) {
+    const auto key = entities[i];
+    if (Key(key.id) != key || !unique.insert(key.id).second)
+      return false;
+    ids.push_back(key.id);
+    const auto previous = Camera(key);
+    const auto &next = cameras[i];
+    changed =
+        changed || previous.has_value() != next.has_value() ||
+        (previous && next &&
+         (previous->vertical_field_of_view != next->vertical_field_of_view ||
+          previous->near_plane != next->near_plane || previous->far_plane != next->far_plane));
+  }
+  if (!changed)
     return true;
-  if (!editor_.SetCamera(entity.id, camera))
+  if (!editor_.SetCameras(ids, cameras))
     return false;
   PushUndo({});
   return true;
 }
 bool SceneDocument::SetLight(NodeKey entity, std::optional<runtime::LightComponent> light) {
-  if (Key(entity.id) != entity)
+  return SetLights(std::array{entity}, std::array{light});
+}
+bool SceneDocument::SetLights(std::span<const NodeKey> entities,
+                              std::span<const std::optional<runtime::LightComponent>> lights) {
+  if (entities.empty() || entities.size() != lights.size())
     return false;
-  const auto *existing = world_.FindEntity(entity.id);
-  if (existing == nullptr)
-    return false;
-  if (existing->light == light.has_value() &&
-      (!light || existing->light_data.intensity == light->intensity))
+  std::vector<runtime::Id> ids;
+  std::unordered_set<runtime::Id> unique;
+  bool changed = false;
+  for (std::size_t i = 0; i < entities.size(); ++i) {
+    const auto key = entities[i];
+    if (Key(key.id) != key || !unique.insert(key.id).second)
+      return false;
+    ids.push_back(key.id);
+    const auto previous = Light(key);
+    const auto &next = lights[i];
+    changed = changed || previous.has_value() != next.has_value() ||
+              (previous && next && previous->intensity != next->intensity);
+  }
+  if (!changed)
     return true;
-  if (!editor_.SetLight(entity.id, light))
+  if (!editor_.SetLights(ids, lights))
     return false;
   PushUndo({});
   return true;

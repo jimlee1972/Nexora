@@ -326,3 +326,13 @@ properties and exposes no remove/write controls. Multi-selection shows per-entit
 are owning and bounded, cleared when selection/Inspector mode changes. Missing plugins preserve data
 through SceneDocument save/reload and Undo. Restoring/loading a plugin and reflected editing remain
 separate work; the UI does not execute preserved bytes.
+
+Camera and Light Inspector controls support mixed multi-selection presence and values. The first
+click on mixed presence enables the component for all selected entities, preserving present values
+and adding defaults only where missing; disabling removes all in one undoable transaction. Fields
+require presence on the whole selection. Camera FOV/near/far and Light intensity use generation-keyed
+owning text drafts and commit only on Enter. Typing, Escape, focus loss or selection changes do not
+write a partially parsed value. The entered field applies to every selected entity while retaining
+its unrelated fields. Finite/clip/intensity and stale/duplicate validation is all-or-nothing; UI
+requests also check project write/recovery access. InputText drafts avoid unsupported EnterReturnsTrue
+flags on ImGui numeric widgets. Full generic reflected component editors remain separate work.

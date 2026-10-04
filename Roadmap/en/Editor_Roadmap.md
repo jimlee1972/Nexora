@@ -145,6 +145,12 @@ Deliver Hierarchy, Scene View, Inspector, camera controls, selection/picking, tr
 gizmos, parenting/reordering, multi-selection, clipboard, undo/redo, and save/reload. Reflection
 creates property widgets; unknown components retain raw data instead of being silently discarded.
 
+- ✅ Camera and Light Inspector fields now support multi-selection with mixed presence/value states.
+  Enabling a mixed component adds it to missing entities while preserving existing values; Enter applies
+  only the edited field as one generation-checked atomic Undo/Redo transaction. Invalid/stale/duplicate
+  batches and read-only/recovery writes reject the whole edit. Real keyboard tests cover Camera FOV and
+  Light intensity, unchanged fields, repeated Undo/Redo and save/reopen. Full reflected editing remains open.
+
 - ✅ Missing-plugin components now have a bounded read-only Inspector showing owning names, full-width
   entity/type IDs, byte counts, and at most 64 preview bytes. Scene format 3 retains opaque data through
   save/reload, clone-by-clipboard, deletion, and independent metadata Undo/Redo; opaque-free scenes retain
