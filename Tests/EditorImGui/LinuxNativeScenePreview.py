@@ -208,6 +208,45 @@ def axis_handle_pixels(display_name: str, window: int,
         x11.XCloseDisplay(display)
 
 
+def uniform_handle_pixel(display_name: str, window: int,
+                         viewport: tuple[int, int, int, int]):
+    x11 = ctypes.CDLL("libX11.so.6")
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XGetImage.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                              ctypes.c_uint, ctypes.c_uint, ctypes.c_ulong, ctypes.c_int]
+    x11.XGetImage.restype = ctypes.POINTER(XImage)
+    x11.XGetPixel.argtypes = [ctypes.POINTER(XImage), ctypes.c_int, ctypes.c_int]
+    x11.XGetPixel.restype = ctypes.c_ulong
+    x11.XDestroyImage.argtypes = [ctypes.POINTER(XImage)]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    display = x11.XOpenDisplay(display_name.encode())
+    if not display:
+        raise RuntimeError("Xvfb uniform-handle reader could not connect")
+    try:
+        image = x11.XGetImage(display, window, 0, 0, 1280, 720,
+                              ctypes.c_ulong(-1).value, 2)
+        if not image:
+            raise RuntimeError("uniform-handle pixel readback failed")
+        try:
+            x, y, width, height = viewport
+            center_x, center_y = x + width // 2, y + height // 2
+            found = []
+            for py in range(max(y, center_y - 100), min(y + height, center_y + 100)):
+                for px in range(max(x, center_x - 100), min(x + width, center_x + 100)):
+                    pixel = x11.XGetPixel(image, px, py)
+                    rgb = [channel(pixel, mask) for mask in
+                           (image.contents.red_mask, image.contents.green_mask,
+                            image.contents.blue_mask)]
+                    if min(rgb) > 180 and max(rgb) - min(rgb) < 35:
+                        found.append((px, py))
+            return found[len(found) // 2] if found else None
+        finally:
+            x11.XDestroyImage(image)
+    finally:
+        x11.XCloseDisplay(display)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--editor", required=True)
@@ -498,6 +537,48 @@ def main() -> int:
                 time.sleep(0.05)
             if scene_file.read_text() != before_rotation:
                 raise RuntimeError(f"axis {axis} scale cube did not undo atomically")
+        viewport = settled_viewport(editor.stderr, viewport)
+        uniform_handle = uniform_handle_pixel(display, window, viewport)
+        if uniform_handle is None:
+            raise RuntimeError("Scale tool lacks a visible uniform cube")
+        center_x, center_y = uniform_handle
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y)], env=environment, check=True)
+        time.sleep(0.2)
+        before_uniform_pixels = scene_region_pixels(display, window, viewport)
+        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        time.sleep(0.1)
+        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
+                        str(center_x), str(center_y - 40)], env=environment, check=True)
+        deadline = time.monotonic() + 3
+        uniform_visible = False
+        while time.monotonic() < deadline and not uniform_visible:
+            preview_pixels = scene_region_pixels(display, window, viewport)
+            uniform_visible = sum(abs(a - b) for a, b in zip(before_uniform_pixels,
+                                                              preview_pixels)) > 400
+            if not uniform_visible:
+                time.sleep(0.05)
+        if not uniform_visible:
+            raise RuntimeError("uniform scale cube did not redraw before release")
+        if scene_file.read_text() != before_rotation:
+            raise RuntimeError("uniform scale preview changed saved scene before release")
+        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
+            time.sleep(0.05)
+        uniform = first_entity_scale(scene_file.read_text())
+        if any(factor < 1.3 for factor in uniform) or max(uniform) - min(uniform) > 1e-6:
+            raise RuntimeError(f"uniform cube did not scale all axes equally: {uniform}; "
+                               f"handle={uniform_handle}; viewport={viewport}; "
+                               f"axis_handles={axis_handle_pixels(display, window, viewport, 130)}")
+        subprocess.run([args.xdotool, "key", "ctrl+z"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and scene_file.read_text() != before_rotation:
+            time.sleep(0.05)
+        if scene_file.read_text() != before_rotation:
+            raise RuntimeError("uniform scale cube did not undo atomically")
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
         subprocess.run([args.xdotool, "key", "f"], env=environment, check=True)

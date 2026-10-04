@@ -248,7 +248,8 @@ NativeSceneRotationHandles(const nexora::editor::SceneDocument &scene,
 
 std::vector<NativeSceneAxisHandle>
 NativeSceneScaleHandles(const nexora::editor::SceneDocument &scene,
-                        std::span<const nexora::editor::PickCandidate> candidates) {
+                        std::span<const nexora::editor::PickCandidate> candidates,
+                        nexora::editor::imgui::NativeSceneOrbit orbit) {
   auto handles = NativeSceneAxisHandles(scene, candidates, true);
   for (auto &handle : handles) {
     for (std::size_t coordinate = 0; coordinate < 3; ++coordinate) {
@@ -267,6 +268,28 @@ NativeSceneScaleHandles(const nexora::editor::SceneDocument &scene,
         handle.bounds.min.z = low;
         handle.bounds.max.z = high;
       }
+    }
+  }
+  if (handles.size() == 3) {
+    const auto pose = scene.WorldTransform(scene.Selection().front());
+    if (pose) {
+      NativeSceneAxisHandle uniform;
+      uniform.bounds.entity = 4;
+      const double direction[3]{std::sin(orbit.yaw) * std::cos(orbit.pitch), std::sin(orbit.pitch),
+                                std::cos(orbit.yaw) * std::cos(orbit.pitch)};
+      const double pivot[3]{pose->x, pose->y + 0.5, pose->z};
+      for (std::size_t coordinate = 0; coordinate < 3; ++coordinate) {
+        uniform.instance.translation[coordinate] =
+            static_cast<float>(pivot[coordinate] + 0.7 * direction[coordinate]);
+        uniform.instance.scale[coordinate] = 0.13F;
+      }
+      uniform.instance.color[0] = 0.95F;
+      uniform.instance.color[1] = 0.95F;
+      uniform.instance.color[2] = 0.95F;
+      const auto &center = uniform.instance.translation;
+      uniform.bounds.min = {center[0] - 0.13, center[1] - 0.13, center[2] - 0.13};
+      uniform.bounds.max = {center[0] + 0.13, center[1] + 0.13, center[2] + 0.13};
+      handles.push_back(uniform);
     }
   }
   return handles;
@@ -325,7 +348,7 @@ NativeScenePickHit PickNativeSceneProxy(const nexora::editor::SceneDocument &sce
   const auto handles = tool == nexora::editor::imgui::NativeSceneTool::Rotate
                            ? NativeSceneRotationHandles(scene, candidates, local_axes)
                        : tool == nexora::editor::imgui::NativeSceneTool::Scale
-                           ? NativeSceneScaleHandles(scene, candidates)
+                           ? NativeSceneScaleHandles(scene, candidates, orbit)
                            : NativeSceneAxisHandles(scene, candidates, local_axes);
   std::optional<nexora::editor::PickHit> exact_gizmo;
   std::optional<nexora::editor::PickHit> padded_gizmo;
@@ -490,6 +513,18 @@ std::optional<double> NativeSceneDragScaleFactor(
   return start && end ? nexora::editor::ScaleDragFactor(*start, *end) : std::nullopt;
 }
 
+std::optional<double>
+NativeSceneDragUniformScaleFactor(Nexora::Presentation::SceneViewport viewport,
+                                  nexora::editor::imgui::NativeSceneDragRequest request) {
+  if (request.start_x < static_cast<std::int64_t>(viewport.x) ||
+      request.start_y < static_cast<std::int64_t>(viewport.y) ||
+      request.start_x >= static_cast<std::int64_t>(viewport.x) + viewport.width ||
+      request.start_y >= static_cast<std::int64_t>(viewport.y) + viewport.height)
+    return std::nullopt;
+  return std::exp(
+      std::clamp((static_cast<double>(request.start_y) - request.end_y) / 100.0, -4.0, 4.0));
+}
+
 Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     Nexora::Presentation::RenderSurface &surface, const nexora::editor::SceneDocument &scene,
     Nexora::Presentation::SceneViewport viewport, nexora::editor::imgui::SceneOverviewCamera camera,
@@ -504,7 +539,7 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   const auto handles = tool == nexora::editor::imgui::NativeSceneTool::Rotate
                            ? NativeSceneRotationHandles(scene, candidates, local_axes)
                        : tool == nexora::editor::imgui::NativeSceneTool::Scale
-                           ? NativeSceneScaleHandles(scene, candidates)
+                           ? NativeSceneScaleHandles(scene, candidates, orbit)
                            : NativeSceneAxisHandles(scene, candidates, local_axes);
   const std::unordered_set<nexora::runtime::Id> selected(scene.Selection().begin(),
                                                          scene.Selection().end());
@@ -607,17 +642,29 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
       if (inserted)
         found->second = scene.WorldTransform(root);
       if (const auto &root_pose = found->second) {
-        const auto basis = nexora::editor::GizmoAxes(*root_pose, nexora::editor::GizmoSpace::Local);
-        const auto axis = basis[scale_preview->first];
         const double factor = scale_preview->second;
         const nexora::editor::ViewportVector pivot{root_pose->x, root_pose->y + 0.5, root_pose->z};
-        const double offset = (instance.translation[0] - pivot.x) * axis.x +
-                              (instance.translation[1] - pivot.y) * axis.y +
-                              (instance.translation[2] - pivot.z) * axis.z;
-        instance.translation[0] += static_cast<float>(axis.x * offset * (factor - 1.0));
-        instance.translation[1] += static_cast<float>(axis.y * offset * (factor - 1.0));
-        instance.translation[2] += static_cast<float>(axis.z * offset * (factor - 1.0));
-        instance.scale[scale_preview->first] *= static_cast<float>(factor);
+        if (scale_preview->first == 3) {
+          instance.translation[0] =
+              static_cast<float>(pivot.x + (instance.translation[0] - pivot.x) * factor);
+          instance.translation[1] =
+              static_cast<float>(pivot.y + (instance.translation[1] - pivot.y) * factor);
+          instance.translation[2] =
+              static_cast<float>(pivot.z + (instance.translation[2] - pivot.z) * factor);
+          for (auto &component : instance.scale)
+            component *= static_cast<float>(factor);
+        } else {
+          const auto basis =
+              nexora::editor::GizmoAxes(*root_pose, nexora::editor::GizmoSpace::Local);
+          const auto axis = basis[scale_preview->first];
+          const double offset = (instance.translation[0] - pivot.x) * axis.x +
+                                (instance.translation[1] - pivot.y) * axis.y +
+                                (instance.translation[2] - pivot.z) * axis.z;
+          instance.translation[0] += static_cast<float>(axis.x * offset * (factor - 1.0));
+          instance.translation[1] += static_cast<float>(axis.y * offset * (factor - 1.0));
+          instance.translation[2] += static_cast<float>(axis.z * offset * (factor - 1.0));
+          instance.scale[scale_preview->first] *= static_cast<float>(factor);
+        }
       }
     }
     const bool is_selected = selected.contains(candidate.entity);
@@ -1048,9 +1095,12 @@ int RunGraphical(std::optional<ProjectState> project,
             }
             if (keys.size() == scene.Selection().size()) {
               if (native_scene_drag_scale_axis && native_scene_drag_axis) {
-                const auto factor = NativeSceneDragScaleFactor(
-                    *viewport, ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(), *drag, *pose,
-                    *native_scene_drag_axis);
+                const auto factor =
+                    *native_scene_drag_scale_axis == 3
+                        ? NativeSceneDragUniformScaleFactor(*viewport, *drag)
+                        : NativeSceneDragScaleFactor(*viewport, ui.GetSceneOverviewCamera(),
+                                                     ui.GetNativeSceneOrbit(), *drag, *pose,
+                                                     *native_scene_drag_axis);
                 if (factor && std::abs(*factor - 1.0) > 1e-6) {
                   nexora::editor::GizmoOperation scale;
                   scale.kind = nexora::editor::GizmoOperation::Kind::Scale;
@@ -1058,8 +1108,10 @@ int RunGraphical(std::optional<ProjectState> project,
                     scale.factors.x = *factor;
                   else if (*native_scene_drag_scale_axis == 1)
                     scale.factors.y = *factor;
-                  else
+                  else if (*native_scene_drag_scale_axis == 2)
                     scale.factors.z = *factor;
+                  else
+                    scale.factors = {*factor, *factor, *factor};
                   static_cast<void>(scene.ApplySelectionGizmo(keys, scale));
                 }
               } else if (native_scene_drag_rotate && native_scene_drag_axis) {
@@ -1094,9 +1146,13 @@ int RunGraphical(std::optional<ProjectState> project,
           const auto pose = scene.WorldTransform(scene.Selection().front());
           if (pose) {
             if (native_scene_drag_scale_axis && native_scene_drag_axis) {
-              if (const auto factor = NativeSceneDragScaleFactor(
-                      *viewport, ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(), *drag,
-                      *pose, *native_scene_drag_axis))
+              const auto factor =
+                  *native_scene_drag_scale_axis == 3
+                      ? NativeSceneDragUniformScaleFactor(*viewport, *drag)
+                      : NativeSceneDragScaleFactor(*viewport, ui.GetSceneOverviewCamera(),
+                                                   ui.GetNativeSceneOrbit(), *drag, *pose,
+                                                   *native_scene_drag_axis);
+              if (factor)
                 scale_preview = std::pair{*native_scene_drag_scale_axis, *factor};
             } else if (native_scene_drag_rotate && native_scene_drag_axis) {
               if (const auto angle = NativeSceneDragAngle(*viewport, ui.GetSceneOverviewCamera(),

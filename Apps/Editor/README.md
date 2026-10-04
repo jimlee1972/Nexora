@@ -64,7 +64,7 @@ commits it when the left button is released as one undoable transform transactio
 in-place rotation of selected roots on release as one Undo step. W returns to Move. Selected roots
 and descendants show the prospective rotation while dragging; Escape restores the starting view.
 The Scale tool (R over the canvas) shows local X/Y/Z cubes and commits one axis's local scale on
-release as an undoable transaction. Selected roots and descendants visibly scale during drag, and Escape cancels the preview. A uniform handle remains open. The shared
+release as an undoable transaction. Selected roots and descendants visibly scale during drag, and Escape cancels the preview. A white camera-facing cube scales all three local components together with a vertical drag; its preview and commit share one Undo step. The shared
 Snap movement setting applies the chosen 0.25–4 world-unit step to movement preview and commit.
 The X/Z overview retains its axis handles.
 `--native-scene-preview` selects this mode on startup for display acceptance.
