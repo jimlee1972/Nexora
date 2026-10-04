@@ -888,7 +888,7 @@ void TestNativeSceneCameraControls() {
                                   1}};
   host.ProcessEvents(frame_key);
   draw();
-  assert(host.GetNativeSceneOrbit().target_y == 7.0 && host.GetNativeSceneOrbit().distance >= 2.0 &&
+  assert(host.GetNativeSceneOrbit().target_y == 7.5 && host.GetNativeSceneOrbit().distance >= 2.0 &&
          host.GetNativeSceneOrbit().distance < 5.0 && host.GetSceneOverviewCamera().x == 0.0 &&
          host.GetSceneOverviewCamera().z == 0.0);
   const auto distant = scene.Create("Distant camera target");

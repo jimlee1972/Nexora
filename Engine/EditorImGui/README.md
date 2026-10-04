@@ -49,9 +49,15 @@ authoring views on first launch.
   without native scene geometry support show an unavailable message.
   In 3D Preview, right drag orbits the proxy camera, middle drag pans its X/Z target, Shift+middle
   drag pans target height, and the wheel zooms. F or Frame selected centers the target on
-  selected nodes in X/Y/Z and adjusts distance from their conservative proxy bounds, clamped to
-  2–100 world units. Orbit angle, distance, and target height are validated state; the target shares the overview's persisted X/Z
-  center. The application saves the orbit angle, distance, and target height per scene through
+  selected forests in X/Y/Z from the union of exact world-transformed CPU mesh bounds and rotated
+  proxy bounds, including descendants once. Both inputs use the current clipped framebuffer aspect
+  and the narrower horizontal/vertical FOV, with distance clamped to 2–100 world units.
+  Generation-checked catalog snapshots are borrowed only during the action; framing does not read
+  source files or consume the native upload budget. Source geometry can be framed even when its
+  GPU upload falls back to a proxy; submission budgets remain application-owned. Invalid world
+  bounds or centers outside +/-100,000 preserve the previous camera. Read-only navigation retains
+  scene content, dirty state and history. Close/recovery/gesture gates block the action. Orbit angle,
+  distance, and target height are validated state; the target shares the overview's persisted X/Z center. The application saves the orbit angle, distance, and target height per scene through
   Editor Core `CameraPersistence`.
   A left click sends a framebuffer-pixel pick request to the application. The application tests
   the same proxy boxes it draws and updates the shared Hierarchy selection; Ctrl-click toggles a
