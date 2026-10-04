@@ -132,6 +132,11 @@ creates property widgets; unknown components retain raw data instead of being si
   round trips, a cancel-safe gizmo transaction state machine, generation-safe asynchronous picking,
   atomic camera persistence, 1,000-step undo/redo replay, and corrupt-scene state preservation are
   implemented and tested.
+- ✅ Native and overview gestures cancel on application focus loss before synthesized input
+  releases, on Undo/Redo and Create/Paste/Duplicate shortcuts, document-generation changes, hidden canvas, recovery,
+  and preview-mode changes. Contract tests cover overview/native focus loss, Undo, and document
+  replacement; a real Xvfb FocusOut during a prospective move preserves saved scene bytes.
+
 - ✅ The native 3D gizmo exposes Pivot/Center (P). Center handle placement, rotate/scale preview,
   and commit share the mean selected-root origin and first root local axes. Selected descendants
   do not weight the center twice; gesture-time tool/pivot/camera changes are disabled. Linux Xvfb
