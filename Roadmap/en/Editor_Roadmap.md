@@ -145,6 +145,13 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Scene/Hierarchy authoring now requires a writable attached workspace and no recovery, Play review
+  or close modal. Controls, shortcuts and queued create/rename/reparent/reorder edits share the gate;
+  read-only selection, Copy and camera navigation remain usable. Real keyboard/pointer tests cover
+  preserved Undo/Redo, resumed Paste/Duplicate, readonly picking and canceled overview/native drags
+  across access changes. Full graphical scene authoring acceptance remains open.
+  Escape now explicitly cancels close confirmation before subsequent Save; Xvfb verifies that path.
+
 Deliver Hierarchy, Scene View, Inspector, camera controls, selection/picking, translate/rotate/scale
 gizmos, parenting/reordering, multi-selection, clipboard, undo/redo, and save/reload. Reflection
 creates property widgets; unknown components retain raw data instead of being silently discarded.

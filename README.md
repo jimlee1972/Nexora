@@ -247,6 +247,10 @@ collapse and Play inspection, plus read-only/recovery/close gates. Controls disa
 queued batches must match the current selection. Real keyboard lifecycle tests prevent revived edits.
 Unavailable target-host acceptance is deferred while independent Editor implementation continues.
 
+Scene/Hierarchy controls, shortcuts and queued edits now share workspace write access and modal
+gates. Read-only selection, Copy and camera navigation remain available; pointer tests verify
+interrupted overview/native drags cannot commit after access changes, and Undo/Redo history survives.
+
 ✅ Missing-plugin components now have a bounded read-only Inspector showing owning names, full-width
 entity/type IDs, byte counts, and at most 64 preview bytes. Scene format 3 retains opaque data through
 save/reload, clone-by-clipboard, deletion, and independent metadata Undo/Redo; opaque-free scenes retain
@@ -562,6 +566,10 @@ Camera／Light 草稿及 pending request 現於失焦、取消選取／reload、
 Inspector 與唯讀／復原／關閉確認時取消。阻擋期間停用控制項，queued batch 必須符合當前
 選取；真正鍵盤生命週期測試防止舊編輯復活。不可用的 target-host 驗收暫緩，其他 Editor
 實作繼續進行。
+
+Scene／Hierarchy 控制項、快捷鍵與 queued 編輯現共用 workspace 可寫及 modal gate。
+唯讀選取、Copy 與鏡頭導航仍可用；pointer 測試驗證權限切換後，已中斷的 overview／native
+拖曳不會提交，且 Undo／Redo 歷史保持完整。
 
 ✅ 缺少外掛的元件現有有界唯讀 Inspector，顯示 owning 名稱、完整 entity／type ID、bytes
 與最多 64-byte 預覽。Scene format 3 會在保存／重載、clipboard 複製、刪除及獨立 metadata

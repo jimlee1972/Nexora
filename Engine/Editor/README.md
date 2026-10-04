@@ -247,6 +247,10 @@ intensity must be finite and nonnegative.
 The graphical Camera/Light host also supports mixed multi-selection and rechecks current selection
 and access before each batch. Its canceled drafts never enter SceneDocument or scene persistence;
 returning from read-only/recovery, application focus loss or Play inspection cannot revive them.
+The host now applies workspace write access to Scene/Hierarchy controls, shortcuts and pending
+mutation requests as well. Read-only selection, Copy and view navigation remain available; access
+changes cancel prospective gestures before release. SceneDocument remains independent of workspace
+permissions; its caller owns this access policy.
 Multi-selection fields display mixed state and apply one changed field to every selected entity as a
 single all-or-nothing Runtime transaction and undo step; malformed transforms roll back without a
 partial write. `SceneDocument` owns authored Euler hints and restores them with undo, even when a changed angle

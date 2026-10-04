@@ -163,3 +163,9 @@ target_include_directories(NexoraComponentDraftTests PRIVATE "${PROJECT_SOURCE_D
 target_link_libraries(NexoraComponentDraftTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraComponentDraftTests)
 add_test(NAME editor.component_draft_lifecycle COMMAND NexoraComponentDraftTests)
+
+add_executable(NexoraSceneAccessTests SceneAccessTests.cpp)
+target_include_directories(NexoraSceneAccessTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraSceneAccessTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraSceneAccessTests)
+add_test(NAME editor.scene_authoring_access COMMAND NexoraSceneAccessTests)

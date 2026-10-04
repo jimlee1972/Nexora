@@ -310,3 +310,7 @@ The application continues saving only committed SceneDocument content.
 Camera/Light drafts now use the same cancellation lifecycle and disabled controls. Pending component
 requests must still match the current selection; read-only, recovery, close confirmation, focus loss,
 Inspector collapse and Play inspection discard both typing and queued requests before access returns.
+
+Read-only projects now retain Scene/Hierarchy inspection, picking, Copy and camera navigation while
+disabling authoring controls, write shortcuts and drag commits. Recovery, Play review and close
+confirmation also discard queued Hierarchy writes; interrupted gestures never commit on later release.
