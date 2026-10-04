@@ -300,6 +300,10 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   scene state、Camera／Light 與完整寬度的 mesh／shader ID。Game panel 顯示暫停原因及 callback
   失敗次數；每 frame 與 fixed callback 失敗皆會釋放 input。快照在元件移除與 Stop 後仍有效，
   Editor selection 與編輯狀態保持獨立。
+- ✅ Gameplay library 選擇現會存入有界 schema-1 專案設定，與場景及 recovery journal 分開。
+  唯讀存取不會寫入；無效設定會保留至明確替換，未處理的 recovery journal 會阻擋關閉時儲存。
+  明確 CLI 路徑（含空字串）優先於已存設定。Xvfb 已驗證不帶 CLI 路徑重新開啟後，已存 library
+  仍可驅動 Play mesh；單純重新開啟不會載入模組。
 - 待辦：完整 Game View 材質／多個原生 canvas、完整 gameplay 服務與擴充輸入路由、完整 Runtime／build log
   路由，以及 native debugger/IDE 整合。
 

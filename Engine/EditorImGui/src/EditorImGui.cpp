@@ -2906,9 +2906,12 @@ bool EditorImGuiHost::GameInputFocused() const noexcept { return state_->game_in
 std::string_view EditorImGuiHost::GameplayLibrary() const noexcept {
   return state_->gameplay_library.data();
 }
-void EditorImGuiHost::SetGameplayLibrary(std::string_view library) {
+void EditorImGuiHost::SetGameplayLibrary(std::string_view library,
+                                         std::uint64_t project_generation) {
   if (state_->game_was_running)
     return;
+  if (project_generation != 0)
+    state_->gameplay_project_generation = project_generation;
   const auto count = std::min(library.size(), state_->gameplay_library.size() - 1);
   if (count)
     std::memcpy(state_->gameplay_library.data(), library.data(), count);

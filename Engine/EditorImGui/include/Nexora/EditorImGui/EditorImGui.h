@@ -108,7 +108,7 @@ public:
   [[nodiscard]] PlayCommand TakePlayCommand() noexcept;
   [[nodiscard]] std::string_view GameplayLibrary() const noexcept;
   void SetGameplayStatus(std::string message);
-  void SetGameplayLibrary(std::string_view library);
+  void SetGameplayLibrary(std::string_view library, std::uint64_t project_generation = 0);
   [[nodiscard]] bool GameInputFocused() const noexcept;
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
