@@ -145,6 +145,11 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Focused Hierarchy Ctrl+A now selects all filtered/expanded visible rows, including clipped
+  rows, through generation-keyed selection. Empty matches clear selection; read-only projects retain
+  the action. Keyboard tests verify collapsed descendants, filter order, foreign-panel/text-input
+  focus, recovery/close gates and unchanged World/Redo. Large-scene scale/soak acceptance stays open.
+
 - ✅ Typed Content mesh drags now assign the Inspector Mesh field for the displayed selection.
   Hover only previews; release uses one generation-checked batch, retaining existing materials and
   adding missing MeshRenderer components. Real 1x/2x pointer tests cover initialized Undo/Redo,

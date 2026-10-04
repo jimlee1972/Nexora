@@ -142,6 +142,11 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Hierarchy 有焦點時，Ctrl+A 現經 generation-keyed selection 選取全部 filter／expansion
+  可見列，包含被裁切的列。空結果清除選取，唯讀 project 仍可使用。鍵盤測試驗證 collapsed
+  descendant、filter 順序、其他 panel／text-input 焦點、recovery／close gate，以及 World／
+  Redo 不變。大型 scene 的 scale／soak 驗收仍待完成。
+
 - ✅ Typed Content mesh 拖曳現可指派 Inspector Mesh field 的顯示選取。Hover 只預覽，
   放開後以一次 generation-checked batch 保留既有材質並補上缺少的 MeshRenderer。真正
   1x／2x pointer 測試涵蓋初始化 Undo／Redo、save／reload、非 mesh／stale catalog／project
