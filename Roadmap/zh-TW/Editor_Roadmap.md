@@ -304,6 +304,10 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   唯讀存取不會寫入；無效設定會保留至明確替換，未處理的 recovery journal 會阻擋關閉時儲存。
   明確 CLI 路徑（含空字串）優先於已存設定。Xvfb 已驗證不帶 CLI 路徑重新開啟後，已存 library
   仍可驅動 Play mesh；單純重新開啟不會載入模組。
+- ✅ Game Apply Changes 現會先暫停並顯示 owning transform diff。確認時重新檢查 Play、document
+  與 entity generation，以及 original／Editor／Play 值，再用單次 atomic SceneDocument transaction
+  套用並停止、捨棄 clone。衝突／重新掛接／其他場景會拒絕整批；Undo 會還原所有套用值。
+  元件／建立／刪除不會複製；modal 會阻擋 authoring／Play 快捷鍵，預設 Stop 仍捨棄變更。
 - 待辦：完整 Game View 材質／多個原生 canvas、完整 gameplay 服務與擴充輸入路由、完整 Runtime／build log
   路由，以及 native debugger/IDE 整合。
 

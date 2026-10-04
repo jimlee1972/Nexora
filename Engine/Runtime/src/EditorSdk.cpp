@@ -455,6 +455,8 @@ bool PlaySession::Start(double fixed_delta_seconds, FixedUpdate fixed_update) {
     }
   pause_reason_ = PauseReason::None;
   apply_status_ = ApplyBackStatus::Discarded;
+  if (++generation_ == 0)
+    ++generation_;
   return true;
 }
 

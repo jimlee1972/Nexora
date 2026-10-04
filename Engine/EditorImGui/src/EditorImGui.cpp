@@ -84,6 +84,12 @@ struct EditorImGuiHost::State final {
   RecoveryChoice recovery_choice = RecoveryChoice::None;
   CloseChoice close_choice = CloseChoice::None;
   PlayCommand play_command = PlayCommand::None;
+  bool play_apply_open = false;
+  bool play_apply_popup_pending = false;
+  PlayTransformReview play_apply_review;
+  std::optional<PlayTransformReview> play_apply_requested;
+  std::optional<std::array<float, 2>> play_apply_position;
+  std::optional<std::array<float, 2>> play_apply_confirm_position;
   bool profile_export_requested = false;
   std::string profile_export_status;
   std::optional<std::array<float, 2>> profile_export_position;
@@ -2279,7 +2285,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const auto play_snapshot = play ? play->Inspect() : runtime::RuntimeInspectionSnapshot{};
   state_->play_inspector_rendered = 0;
   state_->profile_export_position.reset();
+  state_->play_apply_position.reset();
+  state_->play_apply_confirm_position.reset();
   if (!game_running) {
+    state_->play_apply_open = false;
+    state_->play_apply_popup_pending = false;
+    state_->play_apply_review = {};
+    state_->play_apply_requested.reset();
     state_->play_inspection_entity = 0;
     state_->inspect_play_selection = false;
   }
@@ -2289,16 +2301,17 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->scene_gesture_document_generation = scene_generation;
   state_->selector_visible = false;
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
-  if (recovery_available) {
+  const bool interaction_blocked = recovery_available || state_->play_apply_open;
+  if (interaction_blocked) {
     state_->game_input_focused = false;
     CancelSceneGestures(*state_);
   }
-  if (!recovery_available &&
+  if (!interaction_blocked &&
       ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
     state_->scene_save_requested = true;
   }
-  if (play != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput) {
+  if (play != nullptr && !interaction_blocked && !ImGui::GetIO().WantTextInput) {
     if (ImGui::Shortcut(ImGuiKey_F5, ImGuiInputFlags_RouteGlobal))
       state_->play_command =
           play->State() == runtime::PlayState::Stopped ? PlayCommand::Start : PlayCommand::Stop;
@@ -2310,14 +2323,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
              play->State() == runtime::PlayState::Paused)
       state_->play_command = PlayCommand::Step;
   }
-  if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput &&
+  if (scene != nullptr && !interaction_blocked && !ImGui::GetIO().WantTextInput &&
       ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N, ImGuiInputFlags_RouteGlobal)) {
     CancelSceneGestures(*state_);
     static_cast<void>(shell.RouteCommand("editor.scene.create"));
     state_->hierarchy_create_request = State::HierarchyCreateRequest{
         std::string(state_->hierarchy_create_name.data()), std::nullopt};
   }
-  if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput) {
+  if (scene != nullptr && !interaction_blocked && !ImGui::GetIO().WantTextInput) {
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal) ||
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, ImGuiInputFlags_RouteGlobal)) {
       CancelSceneGestures(*state_);
@@ -2333,7 +2346,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->hierarchy_selection_anchor.reset();
     }
   }
-  if (scene != nullptr && !recovery_available && !ImGui::GetIO().WantTextInput) {
+  if (scene != nullptr && !interaction_blocked && !ImGui::GetIO().WantTextInput) {
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C, ImGuiInputFlags_RouteGlobal)) {
       static_cast<void>(shell.RouteCommand("editor.scene.copy"));
       CopyHierarchySelection(*state_, *scene);
@@ -2361,7 +2374,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
   ApplyPendingHierarchyRequests(*state_, scene);
   if (ImGui::Begin(hierarchy_window.c_str()))
-    DrawHierarchy(*state_, scene, shell, recovery_available);
+    DrawHierarchy(*state_, scene, shell, interaction_blocked);
   ImGui::End();
   const auto inspector_window = PanelWindowName("nexora.inspector");
   if (ImGui::Begin(inspector_window.c_str())) {
@@ -2386,13 +2399,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     } else {
       DrawInspector(*state_, scene, content, meshes,
                     workspace && workspace->Writable() && content && content->Writable() &&
-                        !recovery_available);
+                        !interaction_blocked);
     }
   }
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
   if (ImGui::Begin(scene_window.c_str())) {
-    ImGui::BeginDisabled(scene == nullptr || recovery_available);
+    ImGui::BeginDisabled(scene == nullptr || interaction_blocked);
     if (ImGui::Button("Undo")) {
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.undo"));
@@ -2490,7 +2503,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         CaptureCanvasViewport(state_->scene_canvas_viewport, ImGui::GetItemRectMin(),
                               ImGui::GetItemRectMax());
         const auto &io = ImGui::GetIO();
-        if (!recovery_available && !scene->Selection().empty() && !io.WantTextInput &&
+        if (!interaction_blocked && !scene->Selection().empty() && !io.WantTextInput &&
             (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
             !ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
             ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
@@ -2499,7 +2512,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           state_->native_scene_drag_origin.reset();
           state_->native_scene_drag_preview.reset();
         }
-        if (!recovery_available && state_->scene_canvas_viewport &&
+        if (!interaction_blocked && state_->scene_canvas_viewport &&
             ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
           const auto x = static_cast<std::uint32_t>(io.MousePos.x * io.DisplayFramebufferScale.x);
           const auto y = static_cast<std::uint32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
@@ -2546,7 +2559,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                                  state_->native_scene_drag_snap_step,
                                                  state_->native_scene_drag_vertical};
         }
-        if (!recovery_available && (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
+        if (!interaction_blocked && (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
             !state_->native_scene_drag_origin && !io.WantTextInput) {
           if (ImGui::IsKeyPressed(ImGuiKey_W, false))
             state_->native_scene_tool = NativeSceneTool::Move;
@@ -2647,6 +2660,23 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           if (ImGui::Button("Step"))
             state_->play_command = PlayCommand::Step;
         }
+        ImGui::SameLine();
+        ImGui::BeginDisabled(scene == nullptr || workspace == nullptr || !workspace->Writable() ||
+                             interaction_blocked || state_->close_prompt_requested);
+        if (ImGui::Button("Apply Changes")) {
+          state_->play_apply_review = CapturePlayTransformReview(*scene, *play);
+          state_->play_apply_open = true;
+          state_->game_input_focused = false;
+          CancelSceneGestures(*state_);
+          state_->play_command =
+              state == runtime::PlayState::Playing ? PlayCommand::Pause : PlayCommand::None;
+          state_->play_apply_popup_pending = true;
+        }
+        const auto apply_min = ImGui::GetItemRectMin();
+        const auto apply_max = ImGui::GetItemRectMax();
+        state_->play_apply_position =
+            std::array{(apply_min.x + apply_max.x) * 0.5F, (apply_min.y + apply_max.y) * 0.5F};
+        ImGui::EndDisabled();
       }
       ImGui::Text("State: %s", state == runtime::PlayState::Stopped   ? "Stopped"
                                : state == runtime::PlayState::Playing ? "Playing"
@@ -2683,7 +2713,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       }
       game_canvas_visible = game_running;
       if (play->State() == runtime::PlayState::Playing && state_->app_focused &&
-          !recovery_available && !state_->close_prompt_requested) {
+          !interaction_blocked && !state_->close_prompt_requested) {
         if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
           state_->game_input_focused = true;
           ImGui::GetIO().ClearInputKeys();
@@ -2790,7 +2820,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       const auto samples = profile->Samples();
       ImGui::SameLine();
       ImGui::BeginDisabled(samples.empty() || !workspace || !workspace->Writable() ||
-                           recovery_available || state_->close_prompt_requested);
+                           interaction_blocked || state_->close_prompt_requested);
       if (ImGui::Button("Export CSV"))
         state_->profile_export_requested = true;
       const auto export_min = ImGui::GetItemRectMin();
@@ -2849,6 +2879,74 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       content_window->DockNode->TabBar->NextSelectedTabId = content_window->TabId;
       state_->focus_initial_content = false;
     }
+  }
+
+  if (state_->play_apply_popup_pending) {
+    ImGui::OpenPopup("Apply Play transforms###editor.play-apply");
+    state_->play_apply_popup_pending = false;
+  }
+  const auto review_work_size = ImGui::GetMainViewport()->WorkSize;
+  if (ImGui::IsPopupOpen("Apply Play transforms###editor.play-apply"))
+    ImGui::SetNextWindowSizeConstraints({0, 0}, {std::max(review_work_size.x - 24.0F, 1.0F),
+                                                 std::max(review_work_size.y - 24.0F, 1.0F)});
+  if (ImGui::BeginPopupModal("Apply Play transforms###editor.play-apply", nullptr,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (!game_running || !state_->play_apply_open || recovery_available) {
+      state_->play_apply_open = false;
+      state_->play_apply_review = {};
+      ImGui::CloseCurrentPopup();
+    } else {
+      const auto &review = state_->play_apply_review;
+      const bool conflicts =
+          std::ranges::any_of(review.diffs, &runtime::TransformApplyDiff::conflict);
+      ImGui::Text("%zu changed transforms", review.diffs.size());
+      ImGui::TextWrapped("%s", conflicts ? "Conflicts must be resolved before applying"
+                                         : "Review before applying");
+      ImGui::TextWrapped("Only transforms are copied. Apply stops Play and creates one Undo step.");
+      ImGui::BeginChild("##play-transform-diffs",
+                        {std::max(1.0F, std::min(700.0F, review_work_size.x - 64.0F)),
+                         std::max(40.0F, std::min(300.0F, review_work_size.y - 170.0F))},
+                        true, ImGuiWindowFlags_HorizontalScrollbar);
+      ImGuiListClipper clipper;
+      clipper.Begin(static_cast<int>(review.diffs.size()),
+                    ImGui::GetTextLineHeightWithSpacing() * 10);
+      while (clipper.Step())
+        for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index) {
+          const auto &diff = review.diffs[static_cast<std::size_t>(index)];
+          ImGui::Text("Entity #%llu%s", static_cast<unsigned long long>(diff.entity),
+                      diff.conflict ? " | CONFLICT" : "");
+          const auto pose = [](const char *label, const runtime::Transform &value) {
+            ImGui::Text("%s position: %.17g, %.17g, %.17g", label, value.x, value.y, value.z);
+            ImGui::Text("%s rotation: %.17g, %.17g, %.17g, %.17g", label, value.qx, value.qy,
+                        value.qz, value.qw);
+            ImGui::Text("%s scale: %.17g, %.17g, %.17g", label, value.sx, value.sy, value.sz);
+          };
+          pose("Original", diff.original);
+          pose("Editor", diff.editor);
+          pose("Play", diff.runtime);
+        }
+      ImGui::EndChild();
+      ImGui::BeginDisabled(conflicts || review.diffs.empty() ||
+                           play->State() != runtime::PlayState::Paused || !workspace ||
+                           !workspace->Writable() || state_->close_prompt_requested);
+      if (ImGui::Button("Apply and Stop")) {
+        state_->play_apply_requested = state_->play_apply_review;
+        state_->play_apply_open = false;
+        ImGui::CloseCurrentPopup();
+      }
+      const auto confirm_min = ImGui::GetItemRectMin();
+      const auto confirm_max = ImGui::GetItemRectMax();
+      state_->play_apply_confirm_position = std::array{(confirm_min.x + confirm_max.x) * 0.5F,
+                                                       (confirm_min.y + confirm_max.y) * 0.5F};
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        state_->play_apply_open = false;
+        state_->play_apply_review = {};
+        ImGui::CloseCurrentPopup();
+      }
+    }
+    ImGui::EndPopup();
   }
 
   if (recovery_available && !state_->recovery_prompt_opened) {
@@ -2910,6 +3008,8 @@ void EditorImGuiHost::SetSceneSaveResult(std::string message, bool success) {
 }
 
 void EditorImGuiHost::RequestCloseConfirmation() noexcept {
+  state_->play_apply_open = false;
+  state_->play_apply_popup_pending = false;
   state_->game_input_focused = false;
   state_->close_prompt_requested = true;
 }
@@ -2935,6 +3035,10 @@ void EditorImGuiHost::SetGameplayLibrary(std::string_view library,
 }
 void EditorImGuiHost::SetGameplayStatus(std::string message) {
   state_->gameplay_status = std::move(message);
+}
+
+std::optional<PlayTransformReview> EditorImGuiHost::TakePlayApplyRequest() {
+  return std::exchange(state_->play_apply_requested, std::nullopt);
 }
 
 bool EditorImGuiHost::TakeProfileExportRequest() noexcept {
@@ -3413,6 +3517,14 @@ void EditorImGuiTestAccess::SetHierarchyFilter(EditorImGuiHost &host,
   const auto count = std::min(filter.size(), host.state_->hierarchy_filter.size() - 1);
   std::memcpy(host.state_->hierarchy_filter.data(), filter.data(), count);
   host.state_->hierarchy_filter[count] = '\0';
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PlayApplyPosition(const EditorImGuiHost &host, bool confirm) noexcept {
+  return confirm ? host.state_->play_apply_confirm_position : host.state_->play_apply_position;
+}
+bool EditorImGuiTestAccess::PlayApplyOpen(const EditorImGuiHost &host) noexcept {
+  return host.state_->play_apply_open;
 }
 
 void EditorImGuiTestAccess::FocusProfiler(EditorImGuiHost &host) noexcept {

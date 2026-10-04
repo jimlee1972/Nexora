@@ -1042,6 +1042,29 @@ int RunGraphical(std::optional<ProjectState> project,
                      : nexora::runtime::RuntimeLogSeverity::Error,
             "Profiler", exported ? "Frame processing CSV exported." : error);
       }
+      if (auto review = ui.TakePlayApplyRequest()) {
+        std::string error;
+        const auto status =
+            project->workspace.Writable() && !project->workspace.HasRecoveryJournal()
+                ? nexora::editor::ApplyReviewedPlayTransforms(scene, play, *review, &error)
+                : nexora::editor::PlayTransformApplyStatus::Failed;
+        if (status == nexora::editor::PlayTransformApplyStatus::Applied) {
+          gameplay.Unload();
+          static_cast<void>(play.Stop());
+          play_meshes.reset();
+          native_game_viewport_reported.reset();
+          ui.SetNativeGameStatus({});
+          play_accumulator = 0;
+          ui.SetGameplayStatus("Play transforms applied. Undo restores the Editor values.");
+          log(nexora::runtime::RuntimeLogSeverity::Info, "PIE",
+              "Play transforms applied as one Undo step.");
+        } else {
+          if (error.empty())
+            error = "Project write access or recovery prevents applying Play transforms.";
+          ui.SetGameplayStatus(error);
+          log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", error);
+        }
+      }
       switch (ui.TakePlayCommand()) {
       case nexora::editor::imgui::PlayCommand::Start:
         if (play.Start(1.0 / 60.0, [&](nexora::runtime::World &, double seconds) {

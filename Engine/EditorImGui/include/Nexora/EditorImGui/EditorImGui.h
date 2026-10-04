@@ -3,6 +3,7 @@
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
+#include "Nexora/Editor/PlayApply.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/EditorImGui/Api.h"
 #include "Nexora/Presentation/RenderSurface.h"
@@ -106,6 +107,7 @@ public:
                         runtime::PlaySession *play = nullptr, ProfileSession *profile = nullptr,
                         const MeshAssetCatalog *meshes = nullptr);
   [[nodiscard]] PlayCommand TakePlayCommand() noexcept;
+  [[nodiscard]] std::optional<PlayTransformReview> TakePlayApplyRequest();
   [[nodiscard]] std::string_view GameplayLibrary() const noexcept;
   void SetGameplayStatus(std::string message);
   void SetGameplayLibrary(std::string_view library, std::uint64_t project_generation = 0);

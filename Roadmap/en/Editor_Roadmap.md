@@ -321,6 +321,11 @@ creates property widgets; unknown components retain raw data instead of being si
     an explicit replacement, and an unresolved recovery journal blocks shutdown saves. Explicit CLI
     paths (including empty) override the saved selection. Xvfb reopens without a CLI path and verifies
     that the saved library still drives the Play mesh; reopening alone does not load a module.
+  - ✅ Game Apply Changes now pauses for an owning transform-diff review. Confirm rechecks Play,
+    document and entity generations plus every original/Editor/Play value, then applies one atomic
+    SceneDocument transaction and stops with clone discard. Conflicts/reparenting/unsupported scenes
+    reject the complete batch. Undo restores all applied values; component/create/delete changes are
+    never copied. Modal input blocks authoring/Play shortcuts; default Stop still discards.
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.

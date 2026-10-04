@@ -714,3 +714,10 @@ its entity/component borrows. Other scenes and their borrows remain valid. Gamep
 unloading/unloaded targets reject replacement. Malformed snapshots or cross-scene collisions leave
 the live World unchanged. The caller must clear authoring undo and invalidate document keys after
 success; this API does not own renderer resources or asynchronous work.
+
+`PlaySession::Generation()` starts at zero and advances to a nonzero value on each successful Start;
+Stop retains it. It distinguishes owning reviews across new clones even when entity IDs/poses are
+identical. Runtime's direct Stop(Transforms) remains separate from the graphical Editor's reviewed,
+undoable SceneDocument transaction followed by Stop(Discard); applied_transforms counts only the
+direct Runtime path. Editor's owning review also revalidates document/entity generations, supported
+scene membership, and all copied original/Editor/Play values before mutation.
