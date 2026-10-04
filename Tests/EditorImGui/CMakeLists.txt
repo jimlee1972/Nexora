@@ -181,3 +181,9 @@ target_include_directories(NexoraCameraAlignmentTests PRIVATE "${PROJECT_SOURCE_
 target_link_libraries(NexoraCameraAlignmentTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraCameraAlignmentTests)
 add_test(NAME editor.camera_scene_view_alignment COMMAND NexoraCameraAlignmentTests)
+
+add_executable(NexoraMeshCreationTests MeshCreationTests.cpp)
+target_include_directories(NexoraMeshCreationTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor" "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraMeshCreationTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraMeshCreationTests)
+add_test(NAME editor.mesh_scene_instantiation COMMAND NexoraMeshCreationTests)

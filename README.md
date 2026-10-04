@@ -253,6 +253,10 @@ lens, scale and parent. Runtime matrices verify sheared/mirrored ancestry; equiv
 Redo, while read-only/unavailable views and stale targets reject edits. Extreme finite centers share
 the native preview's +/-100,000 clamp. Save/reload retains alignment.
 
+✅ Content now adds one resolved mesh to the Scene center and selects the new root. Initialized
+creation has one Undo; Redo and Save/Reload retain stable ID, name, pose and mesh/material data.
+Real UI clicks verify generation/access/modal gates, native center bounds and real Game geometry.
+
 Scene/Hierarchy controls, shortcuts and queued edits now share workspace write access and modal
 gates. Read-only selection, Copy and camera navigation remain available; pointer tests verify
 interrupted overview/native drags cannot commit after access changes, and Undo/Redo history survives.
@@ -582,6 +586,10 @@ Inspector 與唯讀／復原／關閉確認時取消。阻擋期間停用控制�
 parent，並以一次 Undo 還原。Runtime matrix 驗證 shear／mirrored 父鏈；等價 pose 保留
 Redo，唯讀／不可用 view 與 stale 目標拒絕編輯；極端有限 center 共用 native preview 的
 +/-100,000 限制；save／reload 保留對齊結果。
+
+✅ Content 現可將單一已解析 mesh 放到 Scene center 並選取新 root；初始化建立共用一次
+Undo，Redo 與 save／reload 保留 stable ID、名稱、pose 與 mesh／material 資料。真正 UI 點擊
+驗證 generation／access／modal gate、native center 限制，以及真實 Game geometry。
 
 Scene／Hierarchy 控制項、快捷鍵與 queued 編輯現共用 workspace 可寫及 modal gate。
 唯讀選取、Copy 與鏡頭導航仍可用；pointer 測試驗證權限切換後，已中斷的 overview／native

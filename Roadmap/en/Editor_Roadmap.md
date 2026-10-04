@@ -145,6 +145,13 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Content now creates/selects one resolved mesh root at the Scene center through Add mesh to
+  Scene, with one initialized-entity Undo and stable-ID/name/pose/component Redo. Project-generation
+  catalog checks and writable workspace/content/modal gates reject stale, missing, non-mesh or
+  multiple selections. Native placement shares the preview's center clamp and target height.
+  Real UI clicks, Game geometry preparation and Save/Reload verify the path; source IO stays outside
+  the action. Typed mesh placement drag/drop and complete materials remain open.
+
 - ✅ The single-camera Inspector now aligns world position/rotation to the stored Scene 3D view
   with one Undo, retaining lens, local scale and parent. Root-to-parent TRS inversion handles
   sheared/mirrored ancestry; invalid/stale/non-Camera targets reject before mutation. Equivalent

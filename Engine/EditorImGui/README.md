@@ -396,3 +396,14 @@ motions cancel before the one-step Undo transaction. Read-only/recovery/review/c
 it, and multiple selections require choosing one camera. The core inverts every ancestor's local
 TRS for exact positions under shear/mirrors; it rejects invalid/stale targets and preserves Redo
 for equivalent world poses. Real UI clicks, Runtime camera matrices and save/reload verify the path.
+
+## Add a content mesh to the Scene
+
+Add mesh to Scene resolves exactly one selected content asset against the current project-generation
+CPU mesh catalog. A writable workspace/content session with no recovery, review or close modal is
+required. Missing/unresolved assets, non-mesh/multiple selections and stale catalogs disable the
+operation. The action cancels Scene gestures/Inspector drafts, creates a named root at the overview
+X/Z center (Y=0) or the enabled/available Scene 3D target (the same +/-100,000 X/Z clamp as preview), and selects it. It changes the Editor Scene,
+not the isolated Play clone. `SceneDocument::CreateMesh` and Runtime's initialized creation record
+one Undo, retaining the pose, component and stable identity on Redo. No source IO or GPU allocation
+occurs inside the UI action. Save/Reload retains the existing mesh resource reference and metadata.

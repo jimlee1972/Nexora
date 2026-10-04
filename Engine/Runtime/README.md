@@ -522,6 +522,13 @@ world pose it had.
 The same history now replays Redo for create, transform, Camera/Light/MeshRenderer, hierarchy edits, and subtree
 delete. A new operation discards the undone branch; failed callbacks keep the history cursor in
 place. Creation records its parent in the transaction so Redo restores the stable ID and hierarchy.
+`CreateMeshEntity` creates one root with a validated/normalized transform and nonzero mesh reference.
+Initialization uses one World command buffer before recording creation, so Undo removes the whole
+entity and Redo restores the same stable ID, pose, component presence and full-width material ID.
+Invalid poses, missing/unloading/unloaded scenes and zero mesh references reject before allocation
+or history changes. `CreateEntity` shares the initializer and keeps identity-local child semantics.
+Existing mesh component edits still allow zero/unresolved IDs as authoring data; this nonzero check
+is specific to initialized mesh creation. Neither method resolves assets or manages GPU residency.
 `SetCamera` validates finite field of view and clipping planes, then records the previous component
 presence and values for Undo. Invalid edits leave the World untouched.
 `SetLight` applies the same undo ownership to finite, nonnegative light intensity.

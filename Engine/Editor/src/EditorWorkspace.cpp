@@ -410,7 +410,15 @@ runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
         std::ranges::find(scene->entities, parent, &runtime::Entity::id) == scene->entities.end())
       return 0;
   }
-  const auto entity_id = editor_.CreateEntity(scene_, parent);
+  return AdoptCreatedEntity(editor_.CreateEntity(scene_, parent), std::move(name));
+}
+runtime::Id SceneDocument::CreateMesh(std::string name, runtime::MeshComponent mesh,
+                                      runtime::Transform transform) {
+  if (name.empty() || name.find('\n') != std::string::npos || name.find('\r') != std::string::npos)
+    return 0;
+  return AdoptCreatedEntity(editor_.CreateMeshEntity(scene_, mesh, transform), std::move(name));
+}
+runtime::Id SceneDocument::AdoptCreatedEntity(runtime::Id entity_id, std::string name) {
   if (entity_id == 0)
     return 0;
   const auto generation = next_entity_generation_++;

@@ -132,6 +132,8 @@ struct EditorImGuiHost::State final {
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
   bool native_game_available = true;
   bool game_was_running = false;
+  std::optional<std::array<float, 2>> content_add_mesh_position;
+  std::string content_scene_error;
   std::optional<std::array<float, 2>> camera_align_position;
   runtime::Id game_camera_selection{};
   std::uint64_t game_camera_generation{};
@@ -2008,7 +2010,8 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
 }
 
 template <typename StateT>
-void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImportQueue *imports) {
+void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImportQueue *imports,
+                        SceneDocument *scene, const MeshAssetCatalog *meshes, bool scene_editable) {
   static_cast<void>(content.PollReimport());
   auto &browser = content.Browser();
   state.content_visible_items = 0;
@@ -2067,6 +2070,44 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   if (ImGui::Button("Undo content"))
     static_cast<void>(content.Undo());
   ImGui::EndDisabled();
+
+  const auto selected_assets = browser.Selection();
+  const auto *selected_mesh =
+      selected_assets.size() == 1 ? browser.Find(selected_assets.front()) : nullptr;
+  const auto resolved_mesh =
+      selected_mesh && meshes ? meshes->ResolveAsset(selected_mesh->id, browser.ProjectGeneration())
+                              : std::optional<MeshAssetSnapshot>{};
+  ImGui::BeginDisabled(!scene || !scene_editable || !content.Writable() || !resolved_mesh);
+  if (ImGui::SmallButton("Add mesh to Scene")) {
+    CancelSceneGestures(state);
+    CancelInspectorDrafts(state);
+    const bool native_placement =
+        state.native_scene_preview && state.native_scene_preview_available;
+    const runtime::Transform position{
+        native_placement ? std::clamp(state.scene_center_world.x, -100000.0F, 100000.0F)
+                         : state.scene_center_world.x,
+        native_placement ? state.native_scene_orbit.target_y : 0,
+        native_placement ? std::clamp(state.scene_center_world.y, -100000.0F, 100000.0F)
+                         : state.scene_center_world.y};
+    const auto created =
+        scene->CreateMesh(PathLabel(selected_mesh->path.stem()),
+                          runtime::MeshComponent{resolved_mesh->resource, {}}, position);
+    if (!created)
+      state.content_scene_error =
+          "Mesh creation rejected because the name, scene or pose is invalid.";
+    else {
+      static_cast<void>(scene->Select(std::array{created}));
+      state.content_scene_error.clear();
+    }
+  }
+  const auto add_min = ImGui::GetItemRectMin(), add_max = ImGui::GetItemRectMax();
+  state.content_add_mesh_position =
+      std::array{(add_min.x + add_max.x) * 0.5F, (add_min.y + add_max.y) * 0.5F};
+  if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+    ImGui::SetTooltip("Select one resolved mesh in a writable project. One Scene Undo removes it.");
+  ImGui::EndDisabled();
+  if (!state.content_scene_error.empty())
+    ImGui::TextWrapped("%s", state.content_scene_error.c_str());
 
   std::optional<runtime::AssetUuid> delete_asset;
   std::optional<runtime::AssetUuid> reimport_asset;
@@ -2649,6 +2690,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         std::ranges::find(game_cameras, state_->game_camera_selection) == game_cameras.end())
       state_->game_camera_selection = 0;
   }
+  state_->content_add_mesh_position.reset();
   state_->camera_align_position.reset();
   state_->play_inspector_rendered = 0;
   state_->inspector_opaque_info.clear();
@@ -3269,7 +3311,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
   ImGui::End();
   if (content != nullptr)
-    DrawContentBrowser(*state_, *content, imports);
+    DrawContentBrowser(*state_, *content, imports, scene, meshes, scene_editable);
   DrawProjectPanel(*state_, workspace, recent_projects);
   if (state_->focus_initial_scene) {
     auto *scene_window = ImGui::FindWindowByName(
@@ -3954,6 +3996,15 @@ bool EditorImGuiTestAccess::PlayApplyOpen(const EditorImGuiHost &host) noexcept 
   return host.state_->play_apply_open;
 }
 
+void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto name = PanelWindowName("nexora.content");
+  ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentAddMeshPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->content_add_mesh_position;
+}
 void EditorImGuiTestAccess::FocusProfiler(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.profiler");

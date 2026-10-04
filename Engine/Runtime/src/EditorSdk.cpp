@@ -133,21 +133,34 @@ void *ServiceRegistry::Find(std::string_view name) const {
 }
 
 Id SceneEditor::CreateEntity(Id scene, Id parent) {
+  return CreateInitializedEntity(scene, parent, {}, std::nullopt);
+}
+Id SceneEditor::CreateMeshEntity(Id scene, MeshComponent mesh, Transform transform) {
+  if (mesh.mesh == 0)
+    return 0;
+  return CreateInitializedEntity(scene, 0, transform, mesh);
+}
+Id SceneEditor::CreateInitializedEntity(Id scene, Id parent, Transform transform,
+                                        std::optional<MeshComponent> mesh) {
   const auto *target_scene = world_.FindScene(scene);
-  if (target_scene == nullptr ||
+  const auto normalized = NormalizedTransform(transform);
+  if (!normalized || !target_scene || target_scene->state == SceneState::Unloading ||
+      target_scene->state == SceneState::Unloaded ||
       (parent != 0 && std::ranges::find(target_scene->entities, parent, &Entity::id) ==
                           target_scene->entities.end()))
     return 0;
   const auto id = world_.CreateEntity(scene).id;
-  if (parent != 0) {
-    WorldCommandBuffer attach;
-    attach.SetParent(id, parent, false);
-    if (!attach.Apply(world_)) {
-      WorldCommandBuffer discard;
-      discard.DestroyEntity(id);
-      static_cast<void>(discard.Apply(world_));
-      return 0;
-    }
+  WorldCommandBuffer initialize;
+  initialize.SetTransform(id, *normalized);
+  if (mesh)
+    initialize.SetMeshRenderer(id, mesh);
+  if (parent != 0)
+    initialize.SetParent(id, parent, false);
+  if (!initialize.Apply(world_)) {
+    WorldCommandBuffer discard;
+    discard.DestroyEntity(id);
+    static_cast<void>(discard.Apply(world_));
+    return 0;
   }
   const Entity created = *world_.FindEntity(id);
   undo_.Record(
