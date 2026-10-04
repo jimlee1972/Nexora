@@ -749,7 +749,8 @@ original order, root sibling indexes and fallback world poses. Undo rejects ID c
 scene lifecycle before touching the live World, rehearses restoration/sibling placement in a scratch
 World, then publishes only the target scene's entity storage. Existing unrelated entities survive;
 normal replay retains original serialized order. Missing outside parents restore roots at their
-captured world poses, as in the single-subtree contract. Redo requires the current removed-ID set to match the recorded subtrees; external expansion or
+captured world poses, as in the single-subtree contract. Roots from different missing parents
+join a common sibling group in merged storage order, preserving existing unrelated roots. Redo requires the current removed-ID set to match the recorded subtrees; external expansion or
 contraction rejects without deleting unrecorded entities. Failed initial edits or replay preserve history.
 Calls remain synchronous on the serialized authoring thread; no borrowed entity/scene storage is
 retained in history, and successful restoration invalidates target-scene entity borrows.

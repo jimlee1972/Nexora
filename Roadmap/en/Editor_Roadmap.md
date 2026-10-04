@@ -149,7 +149,8 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   transaction. One Undo restores stable IDs, sibling order, components, names, Euler hints,
   opaque payloads and the full selection. Real Delete/Ctrl+Z/Ctrl+Y tests verify the workflow;
   ID-collision/lifecycle and externally expanded-subtree rejection preserve history, unrelated
-  entities survive, orphan roots retain captured world poses, and 1,000 replay cycles keep snapshots.
+  entities survive, orphan roots retain captured world poses and a common merged sibling order even
+  after different outside parents disappear, and 1,000 replay cycles keep snapshots.
 
 - ✅ Typed Content asset drags now place resolved meshes on the overview X/Z point or native
   Scene Y=0 ground intersection, with an owning UUID/generation payload frozen at drag start.

@@ -486,7 +486,7 @@ bool SceneEditor::DestroyEntities(Id scene, std::span<const Id> entities) {
         }
         merged.insert(merged.end(), pending.begin(), pending.end());
         restored->entities = std::move(merged);
-        WorldCommandBuffer place;
+        bool orphaned_roots = false;
         for (const auto &root : roots) {
           auto entity = std::ranges::find(restored->entities, root.id, &Entity::id);
           if (entity->parent != 0 && std::ranges::find(restored->entities, entity->parent,
@@ -496,9 +496,23 @@ bool SceneEditor::DestroyEntities(Id scene, std::span<const Id> entities) {
               return false;
             entity->parent = 0;
             entity->transform = *pose;
+            orphaned_roots = true;
           }
-          if (staged.SiblingIndex(root.id) != root.sibling_index)
-            place.SetSiblingIndex(root.id, root.sibling_index);
+        }
+        // Different missing parents had independent indexes. Once roots join the same group,
+        // retain its merged order (including existing unrelated roots), rather than reusing them.
+        std::unordered_map<Id, std::size_t> merged_root_indexes;
+        if (orphaned_roots)
+          for (const auto &entity : restored->entities)
+            if (entity.parent == 0)
+              merged_root_indexes.emplace(entity.id, merged_root_indexes.size());
+        WorldCommandBuffer place;
+        for (const auto &root : roots) {
+          const auto entity = std::ranges::find(restored->entities, root.id, &Entity::id);
+          const auto index = orphaned_roots && entity->parent == 0 ? merged_root_indexes.at(root.id)
+                                                                   : root.sibling_index;
+          if (staged.SiblingIndex(root.id) != index)
+            place.SetSiblingIndex(root.id, index);
         }
         if (!place.Apply(staged))
           return false;

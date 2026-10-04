@@ -106,6 +106,35 @@ void OrphanRestoration() {
               world.SiblingIndex(b) == 1,
           "orphan batch lost captured world poses or sibling order");
 }
+void OrphansFromDifferentParents() {
+  runtime::World world;
+  const auto scene = world.LoadScene("Independent orphan groups");
+  const auto parent_a = world.CreateEntity(scene).id;
+  const auto a = world.CreateEntity(scene).id;
+  const auto parent_b = world.CreateEntity(scene).id;
+  const auto b = world.CreateEntity(scene).id;
+  const auto survivor = world.CreateEntity(scene).id;
+  runtime::WorldCommandBuffer setup;
+  setup.SetTransform(parent_a, {10, 0, 0});
+  setup.SetTransform(parent_b, {-10, 0, 0});
+  setup.SetParent(a, parent_a, false);
+  setup.SetParent(b, parent_b, false);
+  Require(setup.Apply(world) && world.SiblingIndex(a) == 0 && world.SiblingIndex(b) == 0,
+          "independent sibling fixture failed");
+  const auto pose_a = world.WorldTransform(a), pose_b = world.WorldTransform(b);
+  runtime::SceneEditor history(world);
+  Require(history.DestroyEntities(scene, std::array{b, a}), "independent orphan delete failed");
+  runtime::WorldCommandBuffer remove_parents;
+  remove_parents.DestroyEntity(parent_a);
+  remove_parents.DestroyEntity(parent_b);
+  Require(remove_parents.Apply(world) && history.Undo() && world.WorldTransform(a) == pose_a &&
+              world.WorldTransform(b) == pose_b && world.SiblingIndex(survivor) == 0 &&
+              world.SiblingIndex(a) == 1 && world.SiblingIndex(b) == 2,
+          "independent orphan indexes reversed restored or unrelated roots");
+  const auto restored = world.SaveScene(scene);
+  Require(history.Redo() && history.Undo() && world.SaveScene(scene) == restored,
+          "independent orphan replay changed merged root order");
+}
 void UnrelatedCreation() {
   runtime::World world;
   const auto scene = world.LoadScene("Unrelated creation");
@@ -208,6 +237,7 @@ int main() {
   try {
     RuntimeBatch();
     OrphanRestoration();
+    OrphansFromDifferentParents();
     UnrelatedCreation();
     GraphicalDelete();
     std::cout << "Atomic selected-subtree deletion contracts passed\n";
