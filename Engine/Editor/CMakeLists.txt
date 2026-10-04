@@ -5,6 +5,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/EditorProduction.cpp
   src/ProjectContent.cpp
   src/ProjectWorkspace.cpp
+  src/PlayApply.cpp
   src/EditorWorkspace.cpp
   src/MeshImport.cpp
   src/MeshAssetCatalog.cpp

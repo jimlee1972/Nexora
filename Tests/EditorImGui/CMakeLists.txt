@@ -127,3 +127,9 @@ target_include_directories(NexoraProfilerExportTests PRIVATE "${PROJECT_SOURCE_D
 target_link_libraries(NexoraProfilerExportTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraProfilerExportTests)
 add_test(NAME editor.profiler_export COMMAND NexoraProfilerExportTests)
+
+add_executable(NexoraPlayApplyTests PlayApplyTests.cpp)
+target_include_directories(NexoraPlayApplyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraPlayApplyTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPlayApplyTests)
+add_test(NAME editor.play_apply_changes COMMAND NexoraPlayApplyTests)

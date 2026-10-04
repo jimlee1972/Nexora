@@ -248,8 +248,9 @@ struct PlaySessionStats final {
   std::uint64_t crashes{};
 };
 
-// Owns an isolated Play World cloned from the Editor World. Simulation mutations never reach the
-// Editor World until Stop(Transforms) explicitly applies stable-ID transform changes. Input focus
+// Owns an isolated Play World cloned from the Editor World. This class writes Editor transforms
+// only through Stop(Transforms). An embedding may separately apply reviewed values through its
+// undoable document transaction, then Stop(Discard). Input focus
 // is session policy only; platform events remain owned and routed by the embedding editor.
 class NEXORA_RUNTIME_API PlaySession final {
 public:
@@ -272,6 +273,8 @@ public:
   [[nodiscard]] bool AcceptsInput() const noexcept {
     return input_focused_ && state_ != PlayState::Stopped;
   }
+  // Nonzero after first successful Start; changes on each new isolated session, not on Stop.
+  [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }
   [[nodiscard]] PlayState State() const noexcept { return state_; }
   [[nodiscard]] PauseReason LastPauseReason() const noexcept { return pause_reason_; }
   [[nodiscard]] ApplyBackStatus LastApplyBackStatus() const noexcept { return apply_status_; }
@@ -287,6 +290,7 @@ private:
   PlayState state_{PlayState::Stopped};
   bool input_focused_{};
   PlaySessionStats stats_{};
+  std::uint64_t generation_{};
   std::unordered_map<Id, Transform> source_transforms_;
   std::unordered_map<Id, Id> source_parents_;
   PauseReason pause_reason_{PauseReason::None};

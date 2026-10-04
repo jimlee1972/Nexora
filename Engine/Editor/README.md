@@ -322,3 +322,16 @@ frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery e
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
 file itself. Comprehensive versioned capture/import, GPU timing and memory instrumentation remain open.
+
+Game Apply Changes is an explicit transform-only review. Opening it emits Pause when needed and
+releases Game input. The modal owns original/Editor/Play transforms and session/document/entity
+generations, clips visible diff rows, blocks authoring/Play shortcuts, and supports Cancel/Escape
+while retaining paused Play. Confirm emits an owning one-shot request. Application write/recovery
+checks precede `ApplyReviewedPlayTransforms`, which requires paused Play and exact current review
+identity/values. Reparenting, Editor edits, reload, new Play sessions, missing/recreated entities,
+and entities outside the current SceneDocument reject the entire batch. Success is one atomic,
+undoable `SceneDocument::SetTransforms` operation, preserving metadata/selection. Only then does the
+application unload the gameplay module before Stop(Discard); component and entity changes remain
+isolated. Failure leaves Play paused and reports the reason. Default Stop/F5 always discards.
+Portable PlaySession's own Stop(Transforms)/applied_transforms counters are a separate Runtime path;
+graphical apply uses document Undo ownership and Console diagnostics instead.

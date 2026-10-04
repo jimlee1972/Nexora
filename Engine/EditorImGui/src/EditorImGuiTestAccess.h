@@ -57,6 +57,9 @@ public:
   [[nodiscard]] static std::string_view ProjectSelectorRoot(const EditorImGuiHost &host) noexcept;
   static void SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept;
   static void SetHierarchyFilter(EditorImGuiHost &host, std::string_view filter) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PlayApplyPosition(const EditorImGuiHost &host, bool confirm) noexcept;
+  [[nodiscard]] static bool PlayApplyOpen(const EditorImGuiHost &host) noexcept;
   static void FocusProfiler(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProfileExportPosition(const EditorImGuiHost &host) noexcept;
