@@ -15,13 +15,13 @@
 - ✅ Windows hosted CI 的 Full Shipping／DX12 isolated-copy 圖形驗收已通過（[CI 37053279518](https://github.com/jimlee1972/Nexora/actions/runs/37053279518)，證據：[`Windows-V1-Native-Graph-CI-2026-10-03`](../../Apps/Showcase/evidence/Windows-V1-Native-Graph-CI-2026-10-03/acceptance.md)）。
 - ✅ 乾淨 Windows 10 VM（VirtualBox、無開發工具）以 `-CleanHost -CompleteGuidedTour` 通過 Shipping/Full 套件驗收：`status=PASS`、14 個 checksum、25 張截圖、DX12 無 fallback、3861 次原生 graph/present（[紀錄](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)）。該 GPU 為 VirtualBox 虛擬顯示卡，不代表實體顯示器驗收。
 - ✅ GTX 960 開發機實體顯示驗收：Shipping/Full 套件通過 `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour`（`status=PASS`、`physical_display_verified=true`、DX12 無 fallback 且非軟體 rasterizer、15649 次原生 graph/present、25 張截圖；[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)）。操作聲明旗標由 Claude 依使用者指示提供，使用者未另外全程目視，詳見紀錄。
-- 待辦（V1 最終驗收仍為 PENDING）：Windows Vulkan 實體顯示已於 GTX 960 驗收通過（CI 套件，build `ecac94d8f9ca`；過程中發現並修正 baseline CPU 崩潰與 present 時 out-of-date 中止）。仍待辦（V1 最終驗收仍為 PENDING）：Metal native backend parity（需 Mac）、其他 GPU 上的 Vulkan、Windows preset 預設仍為 Vulkan OFF（每個 tag 的 release 流程 `.github/workflows/release.yml` 已加入，workflow_dispatch 乾跑已在 hosted CI 通過；尚未在真實 `v*` tag 上執行）。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
+- 待辦（V1 最終驗收仍為 PENDING）：Windows Vulkan 實體顯示已於 GTX 960 驗收通過（CI 套件，build `ecac94d8f9ca`；過程中發現並修正 baseline CPU 崩潰與 present 時 out-of-date 中止）。仍待辦（V1 最終驗收仍為 PENDING）：Metal native backend parity（需 Mac）、其他 GPU 上的 Vulkan、Windows preset 預設仍為 Vulkan OFF（每個 tag 的 release 流程 `.github/workflows/release.yml` 已在真實測試 tag `v0.0.0-rc.1`、`v0.0.0-rc.2` 上執行；rc.1 抓出漏傳 Vulkan 套件的問題並於 #267 修正，rc.2 產出完整 draft：DX12 與 Vulkan Windows 套件、checksum、release info 與驗收輸出。Draft 不會自動發佈，且僅含 Windows 套件）。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
 
 證據與精確驗證結果：[`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md)。
 
 > 文件版本：v1.2
 >
-> 文件狀態：Linux、Windows 開發機、乾淨 VM 與實體顯示切片已實作並驗證；Windows Vulkan 已於 GTX 960 驗證；Metal parity 與 V1 最終驗收待完成；每個 tag 的 release 流程已加入（乾跑已驗證，首次真實 tag 執行待完成）
+> 文件狀態：Linux、Windows 開發機、乾淨 VM 與實體顯示切片已實作並驗證；Windows Vulkan 已於 GTX 960 驗證；Metal parity 與 V1 最終驗收待完成；每個 tag 的 release 流程已在真實測試 tag 驗證（僅 Windows 套件）
 >
 > 更新日期：2026-10-03
 
@@ -432,7 +432,7 @@ package 必須由 M12 Packager/manifest contract 產出或驗證，不允許靠�
 | M9/M11 第三方 adapter 缺失時仍可 contract-only 展示 | ✅ | audio/video/WebView 標示 contract-only／unavailable |
 | 乾淨 Windows 主機啟動 Shipping/Full package | ✅（VM） | 乾淨 Windows 10 VirtualBox VM、`-CleanHost` PASS（[紀錄](../../Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)）；虛擬 GPU，非實體 |
 | 實體顯示驗收 | ✅ | GTX 960、`-PhysicalDisplay` PASS（[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)）；聲明旗標由 Claude 依使用者指示提供 |
-| 每個 tag 自動產出 executable／manifest／report／screenshot | 已加入流程，待首次 tag 驗收 | `release.yml` 乾跑於 hosted CI 通過，產出 draft release；尚未在真實 tag 上執行 |
+| 每個 tag 自動產出 executable／manifest／report／screenshot | 部分完成 | tag 流程會產出含 Windows DX12／Vulkan 套件、checksum 與 verifier 輸出的 draft release（沒有互動桌面的 runner 回報 UNSUPPORTED，不是 PASS）；尚無 Linux／macOS 套件與截圖 |
 
 ## 13. 第一個施工 ticket 建議
 
@@ -499,4 +499,4 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 
 ✅ 實體顯示驗收：Shipping/Full 套件（build `e4a140139189`）於 GTX 960 開發機通過 `accept-v1.ps1 -PhysicalDisplay -CompleteGuidedTour`：`status=PASS`、`physical_display_verified=true`、DX12 無 fallback 且非軟體 rasterizer、15649 次 graph/present、25 張截圖、完整 210 秒導覽。聲明旗標由 Claude 依使用者指示提供（首次嘗試因 Claude 自己的截圖遮蔽視窗而失敗）。Vulkan/Metal parity 與每個 tag 的 release 流程仍待完成，V1 最終驗收尚未完成。[紀錄](../../Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)。
 
-✅ Windows Vulkan 實體顯示驗收：開啟 Vulkan 後端、由 CI 建置的 Shipping/Full 套件（build `ecac94d8f9ca`）於 GTX 960 通過 `accept-v1.ps1 -Backend vulkan -PhysicalDisplay -CompleteGuidedTour`：`status=PASS`、Vulkan 無 fallback 且非軟體 rasterizer、15794 次 graph/present、25 張截圖、9/9 互動檢查、完整 210 秒導覽。聲明旗標由 Claude 依使用者指示提供。過程中發現並修正兩個缺陷（Zig baseline CPU，PR #229；present 時 out-of-date 復原，PR #231）。Metal parity、其他 GPU 與首次真實 tag release 仍待完成，V1 最終驗收尚未完成。[紀錄](../../Apps/Showcase/evidence/Windows-V1-Vulkan-PhysicalDisplay-GTX960-2026-10-04/acceptance.md)
+✅ Windows Vulkan 實體顯示驗收：開啟 Vulkan 後端、由 CI 建置的 Shipping/Full 套件（build `ecac94d8f9ca`）於 GTX 960 通過 `accept-v1.ps1 -Backend vulkan -PhysicalDisplay -CompleteGuidedTour`：`status=PASS`、Vulkan 無 fallback 且非軟體 rasterizer、15794 次 graph/present、25 張截圖、9/9 互動檢查、完整 210 秒導覽。聲明旗標由 Claude 依使用者指示提供。過程中發現並修正兩個缺陷（Zig baseline CPU，PR #229；present 時 out-of-date 復原，PR #231）。Metal parity 與其他 GPU 仍待完成，V1 最終驗收尚未完成。[紀錄](../../Apps/Showcase/evidence/Windows-V1-Vulkan-PhysicalDisplay-GTX960-2026-10-04/acceptance.md)

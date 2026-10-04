@@ -235,7 +235,7 @@ No Python or SDK is needed to run this verifier on the target; the built package
 prerequisites still apply. CI attempts the same native script without physical/clean-host attestations;
 missing interactive desktops produce an explicit UNSUPPORTED artifact (77), never native PASS.
 Clean-host acceptance passed on a clean Windows 10 VirtualBox VM (virtual GPU) and a `-PhysicalDisplay` run
-passed on the GTX 960 developer machine; a Windows Vulkan `-Backend vulkan -PhysicalDisplay` run also passed on the GTX 960 with a CI-built package; Metal parity remains open; the per-tag release workflow exists (dry run verified, first real tag run pending). Audio/video/WebView adapters retain their stated unavailable/contract scope.
+passed on the GTX 960 developer machine; a Windows Vulkan `-Backend vulkan -PhysicalDisplay` run also passed on the GTX 960 with a CI-built package; Metal parity remains open; the per-tag release workflow ran on real test tags `v0.0.0-rc.1`/`rc.2` and produced draft releases (never auto-published). Audio/video/WebView adapters retain their stated unavailable/contract scope.
 
 The Windows verifier retains the launched process handle before exit for Windows PowerShell 5
 exit-code reliability and preserves launch JSON/Markdown even when an acceptance check fails.
@@ -280,4 +280,4 @@ body, so invoking the packaged script without `-PackageRoot` works.
 Local developer-machine evidence: [Windows-V1-DX12-Local-2026-10-03](evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md).
 Clean Windows 10 VM evidence: [Windows-V1-CleanVM-VirtualBox-2026-10-03](evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md) (virtual GPU).
 Physical-display evidence: [Windows-V1-PhysicalDisplay-GTX960-2026-10-03](evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md).
-V1 final acceptance is open (Metal parity; first real-tag release run pending).
+V1 final acceptance is open (Metal parity).
