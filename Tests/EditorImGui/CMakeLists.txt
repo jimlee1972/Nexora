@@ -157,3 +157,9 @@ target_include_directories(NexoraTransformInputTests PRIVATE "${PROJECT_SOURCE_D
 target_link_libraries(NexoraTransformInputTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraTransformInputTests)
 add_test(NAME editor.transform_input COMMAND NexoraTransformInputTests)
+
+add_executable(NexoraComponentDraftTests ComponentDraftTests.cpp)
+target_include_directories(NexoraComponentDraftTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraComponentDraftTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraComponentDraftTests)
+add_test(NAME editor.component_draft_lifecycle COMMAND NexoraComponentDraftTests)

@@ -187,7 +187,7 @@ struct EditorImGuiHost::State final {
   std::array<std::array<char, 64>, 6> inspector_transform_text{};
   std::array<bool, 6> inspector_transform_active{}, inspector_transform_mixed{};
   std::optional<std::size_t> inspector_transform_focus_request;
-  std::uint32_t inspector_transform_draft_generation{};
+  std::uint32_t inspector_draft_generation{};
   template <typename Component> struct InspectorComponentRequest final {
     std::vector<SceneDocument::NodeKey> entities;
     std::vector<std::optional<Component>> values;
@@ -281,17 +281,25 @@ template <typename StateT> void CancelSceneGestures(StateT &state) {
   state.scene_drag.reset();
 }
 
-template <typename StateT> void CancelInspectorTransformDrafts(StateT &state) {
+template <typename StateT> void CancelInspectorDrafts(StateT &state) {
   if (std::ranges::any_of(state.inspector_transform_active, [](bool active) { return active; }) ||
       std::ranges::any_of(state.inspector_euler_active, [](bool active) { return active; }) ||
-      state.inspector_transform_request || state.inspector_euler_request)
-    ++state.inspector_transform_draft_generation;
+      std::ranges::any_of(state.inspector_camera_active, [](bool active) { return active; }) ||
+      state.inspector_light_active || state.inspector_transform_request ||
+      state.inspector_euler_request || state.inspector_camera_request ||
+      state.inspector_light_request)
+    ++state.inspector_draft_generation;
   state.inspector_transform_selection.clear();
   state.inspector_euler_selection.clear();
   state.inspector_transform_active = {};
   state.inspector_euler_active = {};
   state.inspector_transform_request.reset();
   state.inspector_euler_request.reset();
+  state.inspector_component_selection.clear();
+  state.inspector_camera_active = {};
+  state.inspector_light_active = false;
+  state.inspector_camera_request.reset();
+  state.inspector_light_request.reset();
 }
 
 void ApplyTheme() {
@@ -1431,7 +1439,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
            !selected_entities.contains(hint.entity.id);
   });
   if (scene == nullptr || scene->Selection().empty()) {
-    CancelInspectorTransformDrafts(state);
+    CancelInspectorDrafts(state);
     state.inspector_mesh_request.reset();
     state.inspector_camera_request.reset();
     state.inspector_light_request.reset();
@@ -1446,7 +1454,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     const auto key = scene->Key(entity);
     const auto transform = scene->Transform(entity);
     if (!key || !transform) {
-      CancelInspectorTransformDrafts(state);
+      CancelInspectorDrafts(state);
       ImGui::TextUnformatted("A selected entity is no longer available.");
       return;
     }
@@ -1491,7 +1499,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     ImGui::EndChild();
   }
   if (!editable)
-    CancelInspectorTransformDrafts(state);
+    CancelInspectorDrafts(state);
   if (state.inspector_transform_selection != keys) {
     state.inspector_transform_selection = keys;
     state.inspector_transform_active = {};
@@ -1506,7 +1514,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     }
   }
   ImGui::PushID(static_cast<int>(selection_hash));
-  ImGui::PushID(static_cast<int>(state.inspector_transform_draft_generation));
+  ImGui::PushID(static_cast<int>(state.inspector_draft_generation));
   ImGui::SeparatorText("Transform");
   ImGui::TextDisabled("Enter applies; Escape cancels.");
   ImGui::BeginDisabled(!editable);
@@ -1625,6 +1633,8 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     state.inspector_light_active = false;
   }
   ImGui::PushID(static_cast<int>(selection_hash));
+  ImGui::PushID(static_cast<int>(state.inspector_draft_generation));
+  ImGui::BeginDisabled(!editable);
   std::vector<std::optional<runtime::CameraComponent>> cameras;
   std::vector<std::optional<runtime::LightComponent>> lights;
   for (const auto key : keys) {
@@ -1677,8 +1687,11 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       if (!state.inspector_camera_active[axis]) {
         if (mixed)
           text[0] = '\0';
-        else
-          std::snprintf(text.data(), text.size(), "%.17g", value);
+        else {
+          const auto formatted = std::to_chars(text.data(), text.data() + text.size() - 1, value,
+                                               std::chars_format::general, 17);
+          *formatted.ptr = '\0';
+        }
       }
       const bool submit = ImGui::InputTextWithHint(
           field.label, mixed ? "Mixed" : "Value", text.data(), text.size(),
@@ -1707,7 +1720,10 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   }
   if (state.inspector_camera_request) {
     const auto request = std::exchange(state.inspector_camera_request, std::nullopt);
-    if (!editable || !scene->SetCameras(request->entities, request->values))
+    if (editable && request->entities == keys)
+      CancelSceneGestures(state);
+    if (!editable || request->entities != keys ||
+        !scene->SetCameras(request->entities, request->values))
       state.inspector_error =
           "Camera edit rejected because values, access or entity generations are invalid.";
     else
@@ -1745,8 +1761,11 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     if (!state.inspector_light_active) {
       if (mixed)
         text[0] = '\0';
-      else
-        std::snprintf(text.data(), text.size(), "%.9g", static_cast<double>(intensity));
+      else {
+        const auto formatted = std::to_chars(text.data(), text.data() + text.size() - 1, intensity,
+                                             std::chars_format::general, 9);
+        *formatted.ptr = '\0';
+      }
     }
     if (state.inspector_light_focus_request) {
       ImGui::SetKeyboardFocusHere();
@@ -1778,12 +1797,17 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   }
   if (state.inspector_light_request) {
     const auto request = std::exchange(state.inspector_light_request, std::nullopt);
-    if (!editable || !scene->SetLights(request->entities, request->values))
+    if (editable && request->entities == keys)
+      CancelSceneGestures(state);
+    if (!editable || request->entities != keys ||
+        !scene->SetLights(request->entities, request->values))
       state.inspector_error =
           "Light edit rejected because intensity, access or entity generations are invalid.";
     else
       state.inspector_error.clear();
   }
+  ImGui::EndDisabled();
+  ImGui::PopID();
   ImGui::PopID();
   {
     const auto first = scene->MeshRenderer(keys.front());
@@ -2401,7 +2425,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
         state_->native_pointer.reset();
         state_->game_input_focused = false;
         CancelSceneGestures(*state_);
-        CancelInspectorTransformDrafts(*state_);
+        CancelInspectorDrafts(*state_);
       }
       io.AddFocusEvent(event.value0 != 0);
       break;
@@ -2665,7 +2689,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->inspect_play_selection = true;
     }
     if (state_->inspect_play_selection) {
-      CancelInspectorTransformDrafts(*state_);
+      CancelInspectorDrafts(*state_);
       const auto selected =
           std::ranges::find(play_snapshot.entities, state_->play_inspection_entity,
                             &runtime::RuntimeEntitySnapshot::id);
@@ -2682,7 +2706,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                         !close_confirmation_open);
     }
   } else {
-    CancelInspectorTransformDrafts(*state_);
+    CancelInspectorDrafts(*state_);
   }
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
@@ -3962,6 +3986,11 @@ void EditorImGuiTestAccess::FocusInspector(EditorImGuiHost &host) noexcept {
   const auto name = PanelWindowName("nexora.inspector");
   ImGui::SetWindowFocus(name.c_str());
 }
+void EditorImGuiTestAccess::CollapseInspector(EditorImGuiHost &host, bool collapsed) noexcept {
+  Activate(host.state_->context);
+  const auto name = PanelWindowName("nexora.inspector");
+  ImGui::SetWindowCollapsed(name.c_str(), collapsed);
+}
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::InspectorMeshPosition(const EditorImGuiHost &host,
                                              std::size_t control) noexcept {
@@ -3980,6 +4009,12 @@ void EditorImGuiTestAccess::QueueInspectorLight(
 void EditorImGuiTestAccess::FocusInspectorTransformField(EditorImGuiHost &host,
                                                          std::size_t axis) noexcept {
   host.state_->inspector_transform_focus_request = axis;
+}
+std::string_view EditorImGuiTestAccess::InspectorComponentText(const EditorImGuiHost &host,
+                                                               std::size_t field) noexcept {
+  if (field < host.state_->inspector_camera_text.size())
+    return host.state_->inspector_camera_text[field].data();
+  return field == 3 ? host.state_->inspector_light_text.data() : "";
 }
 std::array<bool, 6>
 EditorImGuiTestAccess::InspectorTransformMixed(const EditorImGuiHost &host) noexcept {

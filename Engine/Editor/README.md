@@ -244,6 +244,9 @@ boundary; invalid clipping and stale keys leave the scene unchanged. Camera valu
 runtime scene snapshot, so Save and Reload retain them.
 The single-selection Light toggle and intensity field follow the same generation and undo rules;
 intensity must be finite and nonnegative.
+The graphical Camera/Light host also supports mixed multi-selection and rechecks current selection
+and access before each batch. Its canceled drafts never enter SceneDocument or scene persistence;
+returning from read-only/recovery, application focus loss or Play inspection cannot revive them.
 Multi-selection fields display mixed state and apply one changed field to every selected entity as a
 single all-or-nothing Runtime transaction and undo step; malformed transforms roll back without a
 partial write. `SceneDocument` owns authored Euler hints and restores them with undo, even when a changed angle

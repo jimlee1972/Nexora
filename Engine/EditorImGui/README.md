@@ -203,13 +203,17 @@ accessibility tree. Widget labels use those stable IDs and never become the data
 Dear ImGui does not provide a native accessibility tree, so keyboard traversal and screen-reader
 bridges remain ED-M7 work; plugins must not inspect the ImGui widget tree to supply semantics.
 
-## Camera Inspector
+## Camera and Light Inspector
 
-The single-selection Camera section toggles component presence and edits vertical field of view,
-near plane, and far plane on Enter. Requests use the selected document generation and go through
-`SceneDocument::SetCamera`; rejected values show an error without changing the scene.
-The Light section uses the same one-shot document path for component presence and finite,
-nonnegative intensity, with Undo and scene persistence.
+Camera and Light sections support single and mixed multi-selection. Camera edits vertical field of
+view and clipping planes; Light edits finite, nonnegative intensity. Enter commits through one
+`SceneDocument::SetCameras` or `SetLights` batch; rejected input leaves the scene unchanged.
+Controls disable during read-only, recovery, Play review and close confirmation. Both active drafts
+and pending requests are abandoned on these gates, application focus loss, empty selection, Inspector
+collapse and Play inspection. Widget IDs include a shared cancellation generation, so returning to
+the same selection cannot revive ImGui's old input buffer. Requests recheck the current selection and
+cancel prospective Scene gestures before mutation. Numeric formatting is locale independent; mixed
+values, Undo/Redo and committed-only scene persistence retain the existing contract.
 
 ## Inspector Position and Scale input
 

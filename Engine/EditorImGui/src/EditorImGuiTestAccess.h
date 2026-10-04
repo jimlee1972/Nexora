@@ -95,6 +95,7 @@ public:
                                    std::uint64_t generation);
   [[nodiscard]] static std::string_view InspectorMeshLabel(const EditorImGuiHost &host) noexcept;
   static void FocusInspector(EditorImGuiHost &host) noexcept;
+  static void CollapseInspector(EditorImGuiHost &host, bool collapsed) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   // Control 0: combo; 1: first available asset in its popup; 2: removal button.
   InspectorMeshPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
@@ -110,6 +111,8 @@ public:
   InspectorComponentMixed(const EditorImGuiHost &host) noexcept;
   static void FocusInspectorLightField(EditorImGuiHost &host) noexcept;
   static void FocusInspectorCameraField(EditorImGuiHost &host, std::size_t axis) noexcept;
+  [[nodiscard]] static std::string_view InspectorComponentText(const EditorImGuiHost &host,
+                                                               std::size_t field) noexcept;
   static void QueueInspectorCamera(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                    std::optional<runtime::CameraComponent> camera) noexcept;
   static void QueueInspectorLight(EditorImGuiHost &host, SceneDocument::NodeKey entity,

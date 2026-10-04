@@ -234,6 +234,11 @@ only the edited field as one generation-checked atomic Undo/Redo transaction. In
 batches and read-only/recovery writes reject the whole edit. Real keyboard tests cover Camera FOV and
 Light intensity, unchanged fields, repeated Undo/Redo and save/reopen. Full reflected editing remains open.
 
+Camera/Light drafts and pending requests now cancel on focus loss, deselection/reload, Inspector
+collapse and Play inspection, plus read-only/recovery/close gates. Controls disable while blocked;
+queued batches must match the current selection. Real keyboard lifecycle tests prevent revived edits.
+Unavailable target-host acceptance is deferred while independent Editor implementation continues.
+
 ✅ Missing-plugin components now have a bounded read-only Inspector showing owning names, full-width
 entity/type IDs, byte counts, and at most 64 preview bytes. Scene format 3 retains opaque data through
 save/reload, clone-by-clipboard, deletion, and independent metadata Undo/Redo; opaque-free scenes retain
@@ -537,6 +542,11 @@ Docked Profiler 現會繪製有界的 Editor frame processing wall-time 即時�
 完成單步 Undo／Redo。無效／過期／重複 batch 與唯讀／復原寫入會整批拒絕。真實鍵盤測試
 涵蓋 Camera FOV、Light intensity、未編輯欄位保留、重複 Undo／Redo 及保存／重開；完整
 reflected 編輯仍待完成。
+
+Camera／Light 草稿及 pending request 現於失焦、取消選取／reload、Inspector 收合、Play
+Inspector 與唯讀／復原／關閉確認時取消。阻擋期間停用控制項，queued batch 必須符合當前
+選取；真正鍵盤生命週期測試防止舊編輯復活。不可用的 target-host 驗收暫緩，其他 Editor
+實作繼續進行。
 
 ✅ 缺少外掛的元件現有有界唯讀 Inspector，顯示 owning 名稱、完整 entity／type ID、bytes
 與最多 64-byte 預覽。Scene format 3 會在保存／重載、clipboard 複製、刪除及獨立 metadata

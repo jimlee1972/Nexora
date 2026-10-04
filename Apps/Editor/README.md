@@ -306,3 +306,7 @@ Position/Scale typing is now a cancelable draft. Enter commits one validated fie
 selection as one Undo step, preserving per-entity rotation and other values; invalid input rejects the
 batch. Read-only/recovery/close and Editor-to-Play inspection transitions abandon uncommitted input.
 The application continues saving only committed SceneDocument content.
+
+Camera/Light drafts now use the same cancellation lifecycle and disabled controls. Pending component
+requests must still match the current selection; read-only, recovery, close confirmation, focus loss,
+Inspector collapse and Play inspection discard both typing and queued requests before access returns.
