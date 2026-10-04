@@ -349,7 +349,7 @@ struct ProjectWorkspace::LockState final {
                      : "project lock could not be opened: " + std::string(std::strerror(errno));
       return nullptr;
     }
-    struct stat information {};
+    struct stat information{};
     if (fstat(lock->handle, &information) != 0 || !S_ISREG(information.st_mode)) {
       if (error)
         *error = "project lock is unavailable or unsafe";
@@ -631,6 +631,70 @@ bool ProjectWorkspace::DiscardRecovery(std::string *error) {
   else if (!removed && error)
     *error = "recovery journal does not exist";
   return !ec && removed;
+}
+
+namespace {
+bool GameplayLibraryPath(std::string_view value) {
+  if (value.empty())
+    return true;
+  if (value.size() >= 1024 || !SafeLine(value) ||
+      value.find_first_of("\\:") != std::string_view::npos)
+    return false;
+  const std::filesystem::path path(std::u8string(value.begin(), value.end()));
+  if (path.is_absolute() || path.has_root_path())
+    return false;
+  for (const auto &part : path)
+    if (part == ".." || part == "." || part.empty())
+      return false;
+  return true;
+}
+} // namespace
+
+bool ProjectWorkspace::SaveGameplayLibrary(std::string_view relative_path, std::string *error) {
+  if (error)
+    error->clear();
+  if (!EnsureWritable(access_, error))
+    return false;
+  if (root_.empty() || !GameplayLibraryPath(relative_path)) {
+    if (error)
+      *error = "gameplay library must be a relative UTF-8 file path shorter than 1024 bytes";
+    return false;
+  }
+  return AtomicWrite(root_ / ".nexora/gameplay-library.ini",
+                     "schema=1\nlibrary=" + std::string(relative_path) + "\n", error);
+}
+
+std::optional<std::string> ProjectWorkspace::LoadGameplayLibrary(std::string *error) const {
+  if (error)
+    error->clear();
+  if (root_.empty())
+    return std::nullopt;
+  const auto settings_path = root_ / ".nexora/gameplay-library.ini";
+  std::ifstream input(settings_path, std::ios::binary);
+  if (!input) {
+    std::error_code ec;
+    const bool exists = std::filesystem::exists(settings_path, ec);
+    if (error && (exists || ec))
+      *error = "could not read gameplay library settings";
+    return std::nullopt;
+  }
+  std::array<char, 1100> buffer{};
+  input.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+  const auto count = static_cast<std::size_t>(input.gcount());
+  const std::string_view text(buffer.data(), count);
+  constexpr std::string_view prefix = "schema=1\nlibrary=";
+  if (input.bad() || count == buffer.size() || !text.starts_with(prefix) || !text.ends_with('\n')) {
+    if (error)
+      *error = "invalid or unsupported gameplay library settings";
+    return std::nullopt;
+  }
+  const auto library = text.substr(prefix.size(), text.size() - prefix.size() - 1);
+  if (!GameplayLibraryPath(library)) {
+    if (error)
+      *error = "invalid gameplay library path in project settings";
+    return std::nullopt;
+  }
+  return std::string(library);
 }
 
 bool ProjectWorkspace::SaveEditorLayout(std::string_view layout, std::string *error) {

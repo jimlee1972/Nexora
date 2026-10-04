@@ -131,6 +131,47 @@ def main():
         if editor.returncode != 0 or b'pie_steps=1' not in captured:
             raise RuntimeError(f'Game View shutdown/step failed: {captured!r}')
         editor = None
+        if args.module and not args.input_routing:
+            expected = f'schema=1\nlibrary=Content/{filename}\n'
+            if (root / '.nexora/gameplay-library.ini').read_text() != expected:
+                raise RuntimeError('Gameplay library path was not persisted')
+            captured = b''
+            editor = subprocess.Popen([args.editor, f'--project={root}', '--graphical',
+                '--native-scene-preview', '--frames=10000',
+                f'--recent-projects={state / "recent"}'], env=env,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            window = int(wait_for_window(args.xdotool, env))
+            time.sleep(0.3)
+            send('windowfocus', window)
+            send('key', '--delay', '80', 'F5')
+            viewport = wait_view(b'native game viewport')
+            time.sleep(0.2)
+            first = scene_region_pixels(display, window, viewport)
+            time.sleep(0.6)
+            if scene_region_pixels(display, window, viewport) == first:
+                raise RuntimeError('Reopened project did not load its persisted gameplay library')
+            send('key', '--delay', '80', 'F5')
+            time.sleep(0.2)
+            request_window_close(str(window), env)
+            _, stderr = editor.communicate(timeout=15)
+            if editor.returncode != 0 or scene.read_bytes() != baseline:
+                raise RuntimeError(f'Reopened gameplay project failed: {stderr!r}')
+            editor = None
+            settings = root / '.nexora/gameplay-library.ini'
+            corrupt = 'schema=999\nlibrary=Content/old.so\n'
+            settings.write_text(corrupt)
+            checked = subprocess.run([args.editor, f'--project={root}', '--graphical',
+                '--frames=4', f'--recent-projects={state / "recent"}'], env=env,
+                capture_output=True, timeout=15)
+            if checked.returncode != 0 or settings.read_text() != corrupt:
+                raise RuntimeError('Opening corrupt settings overwrote the saved file')
+            settings.write_text(expected)
+            checked = subprocess.run([args.editor, f'--project={root}', '--graphical',
+                '--read-only', '--gameplay-library=', '--frames=4',
+                f'--recent-projects={state / "recent"}'], env=env,
+                capture_output=True, timeout=15)
+            if checked.returncode != 0 or settings.read_text() != expected:
+                raise RuntimeError('Read-only CLI override wrote project settings')
         return 0
     finally:
         if editor is not None and editor.poll() is None:

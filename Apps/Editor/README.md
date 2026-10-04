@@ -223,7 +223,7 @@ published geometry and delete/Undo removes/restores live resolution. UI borrows 
 frame and performs no mesh source IO while rendering or picking.
 
 The Game panel accepts an optional UTF-8 gameplay-library path relative to the project root;
-`--gameplay-library=Content/libGame.so` seeds that session-local field for automation. Start loads
+`--gameplay-library=Content/libGame.so` overrides the saved project setting for automation. Start loads
 its V3 library only after cloning the World. Component wires read/write the clone, FixedUpdate is
 optional and runs on fixed ticks/manual Step, and Update runs once per playing frame. Blank paths
 retain inspection-only Play. Canonical paths outside the project and failed ABI/lifecycle loads
@@ -235,7 +235,7 @@ recovery/close prompts, and window blur release it and clear held controls. F5/F
 controls; other captured keys/text do not reach authoring shortcuts. The initial user-zero input
 snapshot maps WASD/arrows to movement axes and Space/left mouse/right mouse/Shift/Ctrl to button
 bits 1/2/4/8/16, with one frame sequence and no borrowed input data. Gamepad, pointer motion/look,
-rebinding, multiple users, module hot reload, and persisted module configuration remain open.
+rebinding, multiple users, and module hot reload remain open.
 
 Play inspection uses one owning Runtime snapshot per UI frame. Selecting a Game entity switches
 Inspector to read-only Play mode: local/world transforms, parent/scene state, Camera/Light payloads,
@@ -244,3 +244,12 @@ Play selection never changes the scene document's selection. Missing entities cl
 and Stop returns Inspector to Editor mode. Pause reasons and callback failure counts are visible in
 Game. Fixed and per-frame gameplay callback failures share RuntimeFailure pause/input-release policy;
 native debugger attachment and generic reflected component inspection remain open.
+
+Gameplay library selection persists separately in `.nexora/gameplay-library.ini` (schema 1), using
+ProjectWorkspace's writer lease and atomic replacement. Project open reads the setting; Start loads
+the module. An explicit `--gameplay-library` (including empty for inspection-only Play) overrides the
+saved path. Shutdown saves only for writable projects without pending recovery; unchanged invalid
+settings are preserved. Missing settings select inspection-only Play. Invalid/oversized schemas or
+relative paths report diagnostics, and actual Start still validates canonical containment/existence.
+Linux Xvfb closes and reopens without the CLI path, then verifies the saved module moves native
+Game pixels while the authored scene stays unchanged.

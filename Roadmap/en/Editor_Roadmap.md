@@ -316,6 +316,11 @@ creates property widgets; unknown components retain raw data instead of being si
     parent and scene state, Camera/Light values, and full-width mesh/shader IDs. The Game panel shows
     pause reasons and callback failure counts; per-frame and fixed callback failures both release input.
     Snapshots remain valid after component removal and Stop; Editor selection and authoring stay separate.
+  - ✅ Gameplay library selection now persists in bounded schema-1 project settings, independently
+    of scenes and recovery journals. Read-only access never writes; invalid settings are preserved until
+    an explicit replacement, and an unresolved recovery journal blocks shutdown saves. Explicit CLI
+    paths (including empty) override the saved selection. Xvfb reopens without a CLI path and verifies
+    that the saved library still drives the Play mesh; reopening alone does not load a module.
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.

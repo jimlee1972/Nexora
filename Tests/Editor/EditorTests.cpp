@@ -73,6 +73,10 @@ int Run() {
                 !error.empty(),
             "read-only project access was not isolated from the writer");
 
+    Require(project.SaveGameplayLibrary("Content/Game module.so", &error) &&
+                observer.LoadGameplayLibrary(&error) == "Content/Game module.so" &&
+                !observer.SaveGameplayLibrary("", &error) && !error.empty(),
+            "gameplay settings allowed writes from read-only observers");
     editor::RecentProjectStore recents;
     Require(recents.Open(recent_path, &error) && recents.Record(project, &error) &&
                 recents.Record(observer, &error) && recents.Entries().size() == 1 &&
@@ -178,6 +182,25 @@ int Run() {
   Require(!reopened.RecoverWorkspace(&error) && reopened.HasRecoveryJournal() && !error.empty(),
           "corrupt recovery journal was not preserved with an actionable error");
   Require(reopened.DiscardRecovery(&error), "corrupt recovery journal could not be discarded");
+  Require(reopened.LoadGameplayLibrary(&error) == "Content/Game module.so",
+          "gameplay library did not survive project reopen");
+  Require(!reopened.SaveGameplayLibrary("../outside.so", &error) &&
+              !reopened.SaveGameplayLibrary("/outside.so", &error) &&
+              !reopened.SaveGameplayLibrary("Content/a\nother.so", &error) &&
+              !reopened.SaveGameplayLibrary(std::string(1024, 'a'), &error) &&
+              reopened.LoadGameplayLibrary(&error) == "Content/Game module.so",
+          "invalid gameplay paths replaced the last valid settings");
+  Require(reopened.SaveGameplayLibrary("", &error) && reopened.LoadGameplayLibrary(&error) == "",
+          "inspection-only settings were not persisted");
+  std::ofstream(root / ".nexora/gameplay-library.ini", std::ios::trunc)
+      << "schema=999\nlibrary=x\n";
+  Require(!reopened.LoadGameplayLibrary(&error) && !error.empty(),
+          "unsupported gameplay settings schema accepted");
+  std::ofstream(root / ".nexora/gameplay-library.ini", std::ios::trunc) << std::string(1100, 'a');
+  Require(!reopened.LoadGameplayLibrary(&error) && !error.empty(),
+          "oversized gameplay settings accepted");
+  Require(reopened.SaveGameplayLibrary("Content/Game module.so", &error),
+          "settings restore failed");
   const std::string layout = "[Window][Hierarchy###nexora.hierarchy]\nPos=0,0\n";
   Require(reopened.SaveEditorLayout(layout, &error) && reopened.LoadEditorLayout(&error) == layout,
           "editor layout round-trip failed");

@@ -51,7 +51,13 @@ into renderer or platform internals.
   checked before it replaces the old one), a recovery journal is written before the primary
   workspace file, and successful save/recovery removes that journal. The UI may query and explicitly discard a pending journal.
   Versioned Editor layout payloads are persisted separately and never use Dear ImGui's unmanaged
-  global ini file.
+  global ini file. Gameplay library selection is an independent `.nexora/gameplay-library.ini`
+  schema-1 payload, capped below 1100 bytes on read. Empty selects inspection-only Play. UTF-8
+  relative paths are limited to 1023 bytes; roots, traversal, backslashes, colons, control separators,
+  unknown schemas, and extra records are rejected. Missing files return no setting; corrupt files
+  return an error without mutation. Saves require the writer lease and use the existing atomic
+  replacement path. A saved selection never loads executable code during project open; the Play
+  owner separately validates canonical containment/existence when the user starts Play.
 - `RecentProjectStore` owns user-level, schema-versioned recent-project state separately from the
   project. Entries are keyed by project UUID, deduplicated by UUID or canonical root, bounded to 12,
   and atomically replaced. The application chooses its storage path; read-only project access does

@@ -113,7 +113,8 @@ authoring views on first launch.
   status. Unsupported backends retain the X/Z map. One native 3D draw is available per window/frame:
   a simultaneously visible native Scene canvas takes precedence and Game falls back to its map.
   The Game panel's optional UTF-8 gameplay-library field emits a project-relative path and is
-  disabled during Play. It is session-local and resets on project generation changes. The application
+  disabled during Play. The application restores the project setting with its generation; otherwise
+  project generation changes reset the field. The application
   validates the canonical library remains inside the project, loads its V3 module into the clone,
   runs optional FixedUpdate on ticks/Step and Update once per playing frame, and routes bounded
   module messages to Console. Failure pauses Play or rejects Start with status. It unloads before
@@ -271,3 +272,8 @@ Play selection never changes the scene document's selection. Missing entities cl
 and Stop returns Inspector to Editor mode. Pause reasons and callback failure counts are visible in
 Game. Fixed and per-frame gameplay callback failures share RuntimeFailure pause/input-release policy;
 native debugger attachment and generic reflected component inspection remain open.
+
+The application loads the bounded project gameplay setting without loading the module. Explicit
+`--gameplay-library` values, including an empty value, override it. Normal shutdown saves only for a
+writable project without a recovery journal; unchanged invalid settings are preserved. The UI setter
+accepts the project generation so a restored setting survives that generation's first draw.

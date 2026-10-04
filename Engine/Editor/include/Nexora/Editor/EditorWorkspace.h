@@ -66,6 +66,10 @@ public:
   bool SaveWorkspace(std::span<const std::string> open_documents, std::string *error = nullptr);
   bool RecoverWorkspace(std::string *error = nullptr);
   bool DiscardRecovery(std::string *error = nullptr);
+  // Editor Play setting persisted independently from scene/workspace recovery. Empty means
+  // inspection-only Play; reading never loads a module or grants project write access.
+  bool SaveGameplayLibrary(std::string_view relative_path, std::string *error = nullptr);
+  [[nodiscard]] std::optional<std::string> LoadGameplayLibrary(std::string *error = nullptr) const;
   bool SaveEditorLayout(std::string_view layout, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadEditorLayout(std::string *error = nullptr) const;
   [[nodiscard]] bool HasRecoveryJournal() const;

@@ -749,7 +749,8 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
 int RunGraphical(std::optional<ProjectState> project,
                  nexora::editor::RecentProjectStore &recent_projects,
                  nexora::editor::ProjectAccess selector_access, std::uint32_t frame_limit,
-                 bool native_scene_preview, std::string_view initial_gameplay_library) {
+                 bool native_scene_preview,
+                 const std::optional<std::string> &initial_gameplay_library) {
   auto created = Nexora::Presentation::CreateRenderSurface(
       {"Nexora Editor", 1280, 720, true, Nexora::Presentation::SurfaceBackend::Automatic});
   if (!created) {
@@ -758,7 +759,8 @@ int RunGraphical(std::optional<ProjectState> project,
   }
   nexora::editor::imgui::EditorImGuiHost ui;
   ui.SetNativeScenePreview(native_scene_preview);
-  ui.SetGameplayLibrary(initial_gameplay_library);
+  if (initial_gameplay_library)
+    ui.SetGameplayLibrary(*initial_gameplay_library);
   nexora::core::JobSystem import_jobs{1};
   import_jobs.Start();
   nexora::editor::AssetImportQueue imports{import_jobs};
@@ -778,6 +780,18 @@ int RunGraphical(std::optional<ProjectState> project,
     else if (!layout_error.empty())
       std::cerr << layout_error << '\n';
   };
+  bool gameplay_settings_invalid = false;
+  std::string loaded_gameplay_library;
+  const auto load_gameplay_settings = [&](nexora::editor::ProjectWorkspace &workspace) {
+    std::string error;
+    const auto saved = workspace.LoadGameplayLibrary(&error);
+    gameplay_settings_invalid = !error.empty();
+    loaded_gameplay_library = saved.value_or("");
+    if (!error.empty())
+      std::cerr << "ignored gameplay settings: " << error << '\n';
+    ui.SetGameplayLibrary(initial_gameplay_library.value_or(loaded_gameplay_library),
+                          content.Browser().ProjectGeneration());
+  };
   std::uint64_t project_generation = 1;
   if (project) {
     if (!content.Open(project->workspace, project->assets, project_generation,
@@ -786,6 +800,7 @@ int RunGraphical(std::optional<ProjectState> project,
       return 1;
     }
     load_layout(project->workspace);
+    load_gameplay_settings(project->workspace);
   }
   nexora::editor::MeshAssetCatalog meshes;
   if (project && !meshes.PublishContent(content.Browser(), &layout_error))
@@ -1007,6 +1022,7 @@ int RunGraphical(std::optional<ProjectState> project,
             if (!recent_projects.Record(project->workspace, &selector_error))
               std::cerr << "recent-project warning: " << selector_error << '\n';
             load_layout(project->workspace);
+            load_gameplay_settings(project->workspace);
             open_scene();
             ui.SetProjectSelectorError({});
             ui.SetProjectSelectorStatus({}, false);
@@ -1382,6 +1398,14 @@ int RunGraphical(std::optional<ProjectState> project,
          0}));
     ++frames;
   }
+  if (result == 0 && project && project->workspace.Writable() &&
+      !project->workspace.HasRecoveryJournal() &&
+      (!gameplay_settings_invalid || initial_gameplay_library ||
+       ui.GameplayLibrary() != loaded_gameplay_library)) {
+    std::string error;
+    if (!project->workspace.SaveGameplayLibrary(ui.GameplayLibrary(), &error))
+      std::cerr << "gameplay settings were not saved: " << error << '\n';
+  }
   if (project && project->workspace.Writable() &&
       !project->workspace.SaveEditorLayout(ui.SaveLayout(), &layout_error))
     std::cerr << layout_error << '\n';
@@ -1462,7 +1486,7 @@ int Run(int argc, char **argv) {
   bool graphical = false;
   bool read_only = false;
   bool native_scene_preview = false;
-  std::string gameplay_library;
+  std::optional<std::string> gameplay_library;
   std::uint32_t frame_limit = 0;
   for (int index = 1; index < argc; ++index) {
     const std::string_view argument(argv[index]);
@@ -1502,11 +1526,11 @@ int Run(int argc, char **argv) {
     std::cerr << "--project is required unless --graphical opens the project selector\n";
     return 2;
   }
-  if (gameplay_library.size() >= 1024) {
+  if (gameplay_library && gameplay_library->size() >= 1024) {
     std::cerr << "--gameplay-library must be shorter than 1024 UTF-8 bytes\n";
     return 2;
   }
-  if (!gameplay_library.empty() && !graphical) {
+  if (gameplay_library && !graphical) {
     std::cerr << "--gameplay-library requires --graphical\n";
     return 2;
   }
