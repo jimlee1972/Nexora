@@ -312,6 +312,10 @@ creates property widgets; unknown components retain raw data instead of being si
     cannot trigger authoring shortcuts; F5/F6/F10 remain controls. Tests cover state transitions,
     owning snapshots, callback delivery, and native Xvfb input-only mesh movement/release.
     Gamepad, pointer look, rebinding, and multiple users remain open.
+  - ✅ Selecting a Game entity now opens a read-only Play Inspector with copied local/world poses,
+    parent and scene state, Camera/Light values, and full-width mesh/shader IDs. The Game panel shows
+    pause reasons and callback failure counts; per-frame and fixed callback failures both release input.
+    Snapshots remain valid after component removal and Stop; Editor selection and authoring stay separate.
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.

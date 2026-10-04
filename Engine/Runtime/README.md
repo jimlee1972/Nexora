@@ -551,11 +551,11 @@ configuration runs a dedicated feature-strip test. The enabled test additionally
 `NEXORA_FEATURE_EXAMPLE_PLUGIN` is on, proving both the ABI gate and service registration against an
 artifact built from nothing but the public plugin contract, not a mock.
 
-**Scope note:** this milestone's graphical surfaces -- Hierarchy, Scene View, Game View, Inspector,
-Property Drawer, Asset Browser, Gizmo, and Profiler UI -- are not implemented here. They need a
-windowing/rendering front end this repository does not have yet (`Apps/Host/NexoraHost` is a
-headless CLI); `SceneEditor` and `PrefabInstance` are the data-model and command layer such a
-front end would eventually drive, exercised here through CTest rather than through any UI.
+**Scope note:** Runtime implements the data and command contracts, without graphical dependencies.
+The optional `Apps/Editor` and `Engine/EditorImGui` front end drives these contracts for its
+Hierarchy, Scene/Game views, Inspector, Content Browser, gizmos, and Profiler. Graphical milestone
+acceptance is tracked separately in the Editor roadmap; the Runtime tests validate portable
+`SceneEditor`, `PrefabInstance`, and Play contracts.
 
 `PlaySession` is the portable PIE ownership contract. It owns an isolated `WorldKind::Play` clone;
 `Tick` runs only while playing, `Step` runs exactly one fixed update while paused, and input focus
@@ -574,7 +574,11 @@ before `Stop` returns, including after conflicts and contained update failures.
 (sequence, severity, category, timestamp, source, and message). Old records are evicted in sequence
 order and the cumulative dropped count is observable. `PlaySession::Inspect` similarly returns an
 owning, stable-ID-sorted entity/component snapshot with both local and world poses rather than
-pointers into relocatable World storage.
+pointers into relocatable World storage. It includes copied parent/scene state and optional
+Camera/Light/Mesh payloads; these remain valid after component mutation/removal and Stop.
+`ReportRuntimeFailure` lets embedding per-frame callbacks use the same failure policy as fixed ticks:
+pause the owned clone, release input, record `RuntimeFailure`, and increment the crash count once per
+reported failure. It rejects reports without an active clone and does not perform World rollback.
 Failed fixed updates pause the session, revoke input, and expose `RuntimeFailure`, allowing the editor
 to inspect, resume, or stop the still-owned Play World. User, step-complete, debugger-break, and failure
 pause reasons are distinct. Native IDE/debugger integration stays behind the caller-owned
