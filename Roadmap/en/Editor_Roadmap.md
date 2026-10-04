@@ -145,6 +145,13 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Native F and Frame selected now center selected forests on exact world-transformed CPU mesh
+  and rotated proxy bounds, including descendants once. Current clipped framebuffer aspect and the
+  narrower viewport FOV set bounded distance; invalid/out-of-range bounds preserve the camera.
+  Real 1x/2x keyboard/button tests cover offset mirrored/sheared geometry, portrait viewports,
+  catalog replacement/stale fallback, read-only navigation, modal/panel gates and retained World/Redo.
+  Framing owns no GPU data and performs no source IO; full Scene View acceptance remains open.
+
 - ✅ Focused Hierarchy F2 now opens Rename with focused/select-all name input; Enter commits one
   metadata Undo and Escape cancels. The dialog blocks other authoring/clipboard/Undo/Save/Play
   shortcuts and queued Hierarchy writes. Real 1x/2x input verifies UTF-8 CJK/supplementary characters,
@@ -363,8 +370,8 @@ creates property widgets; unknown components retain raw data instead of being si
   depth-tested ground and position proxies for live scene nodes after UI submission. The X/Z
   editing overview remains available. Right drag orbits the preview camera, middle drag pans its
   X/Z target, Shift+middle drag pans target height, and the wheel zooms. F or Frame selected
-  centers on selected nodes in X/Y/Z and adjusts orbit distance to their conservative proxy
-  bounds (2–100 world units). Orbit angle, distance, and target height persist per scene. Clicking a visible position proxy selects
+  centers on selected forests in X/Y/Z using exact world-transformed CPU mesh and rotated proxy
+  bounds, including descendants once. The narrower viewport FOV adjusts orbit distance (2–100 world units). Orbit angle, distance, and target height persist per scene. Clicking a visible position proxy selects
   its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Proxy instances now show
   composed world rotation and scale; a conservative bound filters candidates before an exact
   rotated-box pick, including translation handles. Authored meshes now use exact sheared matrices;

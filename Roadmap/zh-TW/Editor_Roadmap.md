@@ -142,6 +142,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Native F 與 Frame selected 現依精確世界換算 CPU mesh 及旋轉 proxy bounds 對準選取
+  forest，子節點不重複計入。使用目前裁切 framebuffer aspect 及較窄的 viewport FOV 設定
+  有界距離；無效／超出範圍的 bounds 保留原相機。真正 1x／2x 鍵盤／按鈕測試涵蓋偏移與
+  鏡像／剪切 geometry、portrait viewport、catalog 替換／stale fallback、唯讀導航、modal／
+  panel gate，以及保留 World／Redo。Framing 不擁有 GPU data 且不做 source IO；完整 Scene View 驗收仍待完成。
+
 - ✅ Hierarchy 有焦點時，F2 現開啟 Rename 並聚焦／全選名稱；Enter 提交一次 metadata Undo，
   Escape 取消。Dialog 阻擋其他 authoring／clipboard／Undo／Save／Play 快捷鍵及 queued
   Hierarchy 寫入。真正 1x／2x input 驗證 UTF-8 CJK／supplementary 字元、空名稱重試、
@@ -345,8 +351,8 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   代理 instance 現反映合成後的世界旋轉與縮放；保守包圍範圍先篩選候選物件，再精確點選
   旋轉盒體及位移把手，避免點到包圍範圍的空角落。
   右鍵拖曳可旋轉預覽鏡頭，中鍵拖曳可平移 X/Z 目標，Shift 加中鍵拖曳可平移目標高度，
-  滾輪可縮放；F 或 Frame selected 會將 X/Y/Z 目標對準選取範圍，並依代理邊界調整距離
-  （限制在 2–100 世界單位）。旋轉角度、距離與目標高度現會逐場景保存。
+  滾輪可縮放；F 或 Frame selected 依精確世界換算 CPU mesh 與旋轉 proxy bounds 將 X/Y/Z
+  目標對準選取 forest，子節點不重複計入，並依較窄的 viewport FOV 調整距離（2–100 世界單位）。旋轉角度、距離與目標高度現會逐場景保存。
   點選可見的位置代理可同步選取 Scene、Hierarchy 與 Inspector 中的節點；Ctrl 點選可切換選取。
   拖曳代理會即時預覽選取根節點及其後代的世界 X/Z 位移；按住 Shift 起始拖曳則沿世界 Y 軸
   移動。選取代理會顯示彩色 X/Y/Z 位移把手；Local axes 可讓把手依第一個選取節點的世界旋轉，

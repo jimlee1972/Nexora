@@ -132,6 +132,7 @@ struct EditorImGuiHost::State final {
   };
   std::vector<SceneMarker> scene_markers;
   std::optional<Nexora::Presentation::SceneViewport> scene_canvas_viewport;
+  std::optional<std::array<float, 2>> scene_frame_position;
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
   bool native_game_available = true;
   bool game_was_running = false;
@@ -1083,45 +1084,86 @@ template <typename StateT> bool FrameSceneSelection(StateT &state, const SceneDo
 }
 
 template <typename StateT>
-bool FrameNativeSceneSelection(StateT &state, const SceneDocument &scene) {
-  double min_x = std::numeric_limits<double>::infinity();
-  double max_x = -min_x;
-  double min_y = std::numeric_limits<double>::infinity();
-  double max_y = -min_y;
-  double min_z = min_y;
-  double max_z = -min_y;
-  for (const auto id : scene.Selection()) {
+bool FrameNativeSceneSelection(StateT &state, const SceneDocument &scene,
+                               const ProjectContentSession *content, const MeshAssetCatalog *meshes,
+                               double aspect) {
+  if (scene.Selection().empty() || !std::isfinite(aspect) || aspect <= 0)
+    return false;
+  // Frame selected forests once, including authored children of an empty parent. Source geometry
+  // is CPU-owned; framing does not perform IO, publish assets, or consume the native upload budget.
+  std::unordered_map<runtime::Id, std::vector<runtime::Id>> children;
+  for (const auto &node : scene.Nodes())
+    children[node.parent].push_back(node.id);
+  std::vector<runtime::Id> pending(scene.Selection().begin(), scene.Selection().end());
+  std::unordered_set<runtime::Id> visited;
+  const auto infinity = std::numeric_limits<double>::infinity();
+  std::array<double, 3> minimum{infinity, infinity, infinity};
+  std::array<double, 3> maximum{-infinity, -infinity, -infinity};
+  for (std::size_t index = 0; index < pending.size(); ++index) {
+    const auto id = pending[index];
+    if (!visited.insert(id).second)
+      continue;
+    if (const auto found = children.find(id); found != children.end())
+      pending.insert(pending.end(), found->second.begin(), found->second.end());
+    const auto key = scene.Key(id);
     const auto pose = scene.WorldTransform(id);
-    if (!pose)
+    if (!key || !pose || !runtime::IsValidTransform(*pose))
       return false;
-    min_x = std::min(min_x, pose->x);
-    max_x = std::max(max_x, pose->x);
-    min_y = std::min(min_y, pose->y);
-    max_y = std::max(max_y, pose->y);
-    min_z = std::min(min_z, pose->z);
-    max_z = std::max(max_z, pose->z);
+    std::array<double, 3> low{-0.45, -0.45, -0.45}, high{0.45, 0.45, 0.45};
+    auto matrix = runtime::ToMatrix(*pose);
+    double offset_y = 0.5;
+    if (content && meshes) {
+      const auto component = scene.MeshRenderer(*key);
+      const auto asset = component ? meshes->ResolveResource(component->mesh,
+                                                             content->Browser().ProjectGeneration())
+                                   : std::nullopt;
+      if (asset && asset->geometry && content->Browser().Find(asset->asset)) {
+        const auto exact = scene.WorldMatrix(id);
+        bool valid = exact.has_value();
+        for (std::size_t axis = 0; axis < 3; ++axis)
+          valid = valid && std::isfinite(asset->geometry->minimum[axis]) &&
+                  std::isfinite(asset->geometry->maximum[axis]) &&
+                  asset->geometry->minimum[axis] <= asset->geometry->maximum[axis];
+        if (valid) {
+          matrix = *exact;
+          std::ranges::copy(asset->geometry->minimum, low.begin());
+          std::ranges::copy(asset->geometry->maximum, high.begin());
+          offset_y = 0;
+        }
+      }
+    }
+    for (const double x : {low[0], high[0]})
+      for (const double y : {low[1], high[1]})
+        for (const double z : {low[2], high[2]}) {
+          const std::array point{matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12],
+                                 matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13] +
+                                     offset_y,
+                                 matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14]};
+          for (std::size_t axis = 0; axis < 3; ++axis) {
+            if (!std::isfinite(point[axis]))
+              return false;
+            minimum[axis] = std::min(minimum[axis], point[axis]);
+            maximum[axis] = std::max(maximum[axis], point[axis]);
+          }
+        }
   }
-  if (min_x == std::numeric_limits<double>::infinity())
-    return false;
-  const double x = min_x * 0.5 + max_x * 0.5;
-  const double y = min_y * 0.5 + max_y * 0.5;
-  const double z = min_z * 0.5 + max_z * 0.5;
-  if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) || std::abs(x) > 100000.0 ||
-      std::abs(y) > 100000.0 || std::abs(z) > 100000.0)
-    return false;
-  double radius = 0.0;
-  for (const auto id : scene.Selection()) {
-    const auto pose = *scene.WorldTransform(id);
-    const auto proxy_radius = 0.45 * std::hypot(pose.sx, pose.sy, pose.sz);
-    radius = std::max(radius, std::hypot(pose.x - x, pose.y + 0.5 - y, pose.z - z) + proxy_radius);
+  std::array<double, 3> center{}, extent{};
+  for (std::size_t axis = 0; axis < 3; ++axis) {
+    center[axis] = minimum[axis] * 0.5 + maximum[axis] * 0.5;
+    extent[axis] = maximum[axis] * 0.5 - minimum[axis] * 0.5;
+    if (!std::isfinite(center[axis]) || std::abs(center[axis]) > 100000.0)
+      return false;
   }
+  const double radius = std::hypot(extent[0], extent[1], extent[2]);
   if (!std::isfinite(radius))
     return false;
   constexpr double kHalfVerticalFov = 0.425;
-  const double distance = std::clamp(1.5 * radius / std::sin(kHalfVerticalFov), 2.0, 100.0);
-  state.native_scene_orbit.target_y = y;
+  const double half_fov =
+      std::min(kHalfVerticalFov, std::atan(std::tan(kHalfVerticalFov) * aspect));
+  const double distance = std::clamp(1.5 * radius / std::sin(half_fov), 2.0, 100.0);
+  state.native_scene_orbit.target_y = center[1];
   state.native_scene_orbit.distance = distance;
-  state.scene_center_world = {static_cast<float>(x), static_cast<float>(z)};
+  state.scene_center_world = {static_cast<float>(center[0]), static_cast<float>(center[2])};
   return true;
 }
 
@@ -2750,6 +2792,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
 void EditorImGuiHost::BeginFrame(float delta_seconds) {
   Activate(state_->context);
   state_->scene_canvas_viewport.reset();
+  state_->scene_frame_position.reset();
   state_->native_game_viewport.reset();
   state_->native_scene_pick.reset();
   state_->native_scene_drag.reset();
@@ -3108,8 +3151,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->scene_markers.clear();
         ImGui::BeginDisabled(scene->Selection().empty() ||
                              state_->native_scene_drag_origin.has_value());
-        if (ImGui::SmallButton("Frame selected"))
-          static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
+        const bool frame_clicked = ImGui::SmallButton("Frame selected");
+        const auto frame_min = ImGui::GetItemRectMin(), frame_max = ImGui::GetItemRectMax();
+        state_->scene_frame_position =
+            std::array{(frame_min.x + frame_max.x) * 0.5F, (frame_min.y + frame_max.y) * 0.5F};
         ImGui::EndDisabled();
         ImGui::SameLine();
         ImGui::TextDisabled("F: frame | Right: orbit | Wheel: zoom");
@@ -3263,10 +3308,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             }
           }
         }
-        if (!state_->native_scene_drag_origin &&
-            ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !io.WantTextInput &&
-            ImGui::IsKeyPressed(ImGuiKey_F, false))
-          static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
+        if (!interaction_blocked && !state_->native_scene_drag_origin &&
+            state_->scene_canvas_viewport &&
+            (frame_clicked ||
+             (!io.WantTextInput && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+              ImGui::IsKeyPressed(ImGuiKey_F, false)))) {
+          const auto &view = *state_->scene_canvas_viewport;
+          static_cast<void>(FrameNativeSceneSelection(
+              *state_, *scene, content, meshes, static_cast<double>(view.width) / view.height));
+        }
         AcceptSceneMeshDrop(*state_, *scene, content, meshes, scene_editable,
                             NativeMeshDropPose(*state_));
       } else {
@@ -4291,6 +4341,16 @@ void EditorImGuiTestAccess::FocusHierarchy(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.hierarchy");
   ImGui::SetWindowFocus(name.c_str());
+}
+
+void EditorImGuiTestAccess::FocusScene(EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto name = PanelWindowName("nexora.scene");
+  ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneFramePosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->scene_frame_position;
 }
 
 std::optional<std::array<float, 2>>

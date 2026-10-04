@@ -379,8 +379,10 @@ position proxies in that rectangle after UI submission. Proxies now reflect comp
 and scale. Resolved OBJ geometry now uses native mesh batches with exact affine world matrices;
 material shaders and full graphical Scene View acceptance remain open.
 The preview camera supports right-drag orbit, middle-drag X/Z pan, Shift+middle height pan,
-wheel zoom, and F or Frame selected to center X/Y/Z and adjust distance for the selected bounds
-(clamped to 2–100 world units). Orbit angle, distance, and target height persist per scene.
+wheel zoom, and F or Frame selected to center selected forests using exact world-transformed
+mesh/proxy bounds. Descendants count once; the narrower viewport FOV adjusts distance (2–100
+world units). Real 1x/2x input verifies offset/sheared geometry, catalog replacement, read-only
+navigation, portrait viewports and unchanged World/Redo. Orbit angle, distance, and target height persist per scene.
 Clicking a visible 3D proxy now selects its scene node in Hierarchy and Inspector; Ctrl-click
 toggles selection. Resolved meshes now use transformed bounds and two-sided triangle picking.
 Picking now tests the rotated proxy and translation-handle boxes after a conservative bounds
@@ -748,7 +750,9 @@ Editor 的 3D Preview 切換現會在 UI 提交後於該矩形繪製原生有深
 位置代理；代理現會反映合成後的世界旋轉與縮放。解析後的 OBJ 現以原生 mesh batch 與
 精確 affine world matrix 繪製；material shader、完整 3D 編輯與圖形化 Scene View 驗收仍待完成。
 預覽鏡頭現支援右鍵拖曳旋轉、中鍵拖曳 X/Z 平移、Shift 加中鍵拖曳平移高度及滾輪縮放；
-F 或 Frame selected 會將 X/Y/Z 目標對準選取範圍，並依其大小調整距離（限制在 2–100 世界單位）。
+F 或 Frame selected 以精確世界換算 mesh／proxy bounds 將 X/Y/Z 目標對準選取 forest，
+子節點不重複計入，依較窄的 viewport FOV 調整距離（2–100 世界單位）。真正 1x／2x input
+驗證偏移／剪切 geometry、catalog 替換、唯讀導航、portrait viewport 及不改動 World／Redo。
 旋轉角度、距離與目標高度現會逐場景保存。
 點選可見的 3D 代理現會同步選取 Hierarchy 與 Inspector 中的場景節點；Ctrl 點選可切換選取。
 解析後的 mesh 現使用 transformed bounds 與雙面 triangle picking。

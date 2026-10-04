@@ -52,8 +52,12 @@ small hit margin so visible edge pixels can be clicked.
 Authored geometry uses exact sheared world matrices; material shader execution, persistent per-asset
 GPU caching and full Scene View acceptance remain open.
 Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel zooms, and F or
-Frame selected centers on selected nodes in X/Y/Z. The X/Z target persists with the overview
-camera; target height, orbit angle, and distance persist in a separate per-scene camera file on
+Frame selected centers on selected forests in X/Y/Z, using exact world-transformed mesh bounds
+and rotated proxy bounds, including descendants once. The narrower horizontal/vertical viewport
+FOV determines distance (2–100 world units); F and the button use the same current framebuffer
+rectangle. Framing uses generation-checked CPU snapshots without source IO and does not consume
+GPU upload budgets. Read-only navigation preserves scene/history. The X/Z target persists with the
+overview camera; target height, orbit angle, and distance persist in a separate per-scene camera file on
 writable shutdown. Invalid camera files are preserved for inspection.
 Left click selects the nearest visible position proxy using a viewport ray against its drawn
 box; Ctrl-click toggles it, and an empty click clears selection. Hierarchy and Inspector share
