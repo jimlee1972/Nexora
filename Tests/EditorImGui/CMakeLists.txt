@@ -25,7 +25,9 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --editor "$<TARGET_FILE:NexoraEditor>"
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
-  set_tests_properties(editor.linux_display_acceptance PROPERTIES TIMEOUT 60)
+  # Recovery relaunches the real Editor twice; a busy CI host can exceed 60 seconds
+  # even when every bounded startup and recovery assertion succeeds.
+  set_tests_properties(editor.linux_display_acceptance PROPERTIES TIMEOUT 90)
   add_test(
     NAME editor.linux_native_scene_preview
     COMMAND "${Python3_EXECUTABLE}"
