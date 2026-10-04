@@ -188,7 +188,10 @@ and rename/delete Undo retains the newest payload.
 
 Native Scene preview now draws and triangle-picks resolved OBJ geometry through bounded shared
 mesh batches. Distinct triangle/quad Xvfb pixels cover Center preview/commit and Undo; missing or
-oversized meshes warn and retain proxies. Material shaders, exact shear and full acceptance remain open.
+oversized meshes warn and retain proxies. Authored Scene/Game geometry now uses exact world
+matrices through mirrored/sheared ancestry, including Scene bounds/picking and prospective gestures.
+Game uses live post-tick matrices and owns them after Stop. Materials, GPU caching and full
+acceptance remain open.
 
 Position/Scale Inspector fields now commit on Enter as one Undo step. Mixed-value drafts support
 negative/scientific input and preserve each entity's current unrelated values; Escape, focus loss,
@@ -232,13 +235,14 @@ commit; rotated, mirrored, and nonuniform ancestors produce matching descendant 
 snapshots leave scene content and Undo/Redo untouched. Deep mirrored/sheared ancestry now retains
 exact world origins and gizmo position conversion, with owning world/preview matrices and
 closed-form translation/Center rotation/scale, Undo/Redo and save/reload tests. Native authored-mesh
-affine rendering/picking remains open. Graphical milestone acceptance remains 0/8.
+affine rendering/picking now consumes those matrices. Graphical milestone acceptance remains 0/8.
 
 Presentation instances now support exact row-major affine model matrices and shared native
 inverse-transpose normal packing. Exact binary32 determinant classification prevents cancellation
 errors; portable contracts and Vulkan pixels compare mirrored/sheared geometry against an
-independently baked reference. Scene/Game authored-mesh consumption remains
-follow-up work; no graphical milestone is accepted by this boundary extension.
+independently baked reference. Scene/Game authored meshes now consume exact matrices through the
+CPU validator, with closed-form picking and stale-snapshot/Stop ownership tests; graphical
+milestones remain unaccepted.
 
 The graphical Scene overview now offers optional 0.25–4 world-unit movement snapping; its drag
 preview matches the committed, undoable move even for parented entities.
@@ -372,8 +376,8 @@ portable bounds checks and Vulkan Xvfb pixel evidence.
 The docked Scene canvas now exposes its visible framebuffer-pixel rectangle after layout and DPI
 scaling. The Editor's 3D Preview toggle now draws native depth-tested ground and live entity
 position proxies in that rectangle after UI submission. Proxies now reflect composed world rotation
-and scale. Resolved OBJ geometry now uses native mesh batches; exact shear, material shaders and
-full graphical Scene View acceptance remain open.
+and scale. Resolved OBJ geometry now uses native mesh batches with exact affine world matrices;
+material shaders and full graphical Scene View acceptance remain open.
 The preview camera supports right-drag orbit, middle-drag X/Z pan, Shift+middle height pan,
 wheel zoom, and F or Frame selected to center X/Y/Z and adjust distance for the selected bounds
 (clamped to 2–100 world units). Orbit angle, distance, and target height persist per scene.
@@ -559,7 +563,9 @@ OBJ reimport 現在 revision 與記憶體預算檢查通過後一併發布不可
 
 原生 Scene 預覽現透過有界 shared mesh batch 繪製並以 triangle picking 選取解析後的 OBJ。
 不同 triangle／quad 的 Xvfb 像素驗證 Center 預覽／提交及 Undo；缺失或超限 mesh 會警告並
-保留代理。Material shader、精確 shear 與完整驗收仍待完成。
+保留代理。Authored Scene／Game geometry 現跨鏡像／剪切 ancestry 使用精確 world matrix，包含
+Scene bounds／picking 及預期 gesture；Game 使用 live post-tick matrix 並在 Stop 後保持 ownership。
+Material、GPU cache 與完整驗收仍待完成。
 
 Position／Scale Inspector 現僅在 Enter 時提交為一個 Undo step。Mixed 草稿支援負數及科學
 記號，保留各 entity 最新的其他欄位；Escape、失焦、selection／reload、Play Inspector 及
@@ -597,12 +603,13 @@ Editor SceneDocument 現提供 generation-safe MeshRenderer 交易及查詢，me
 非均勻縮放祖先下的子節點姿態一致。預期姿態快照不改動場景內容及 Undo／Redo。深層鏡像／剪切
 ancestry 現保留精確世界原點與 gizmo 位置換算，提供 owning world／preview matrix，並以 closed-form
 位移／Center 旋轉／縮放、Undo／Redo 及 save／reload 測試驗證。原生 authored-mesh affine
-繪製／picking 仍待完成，圖形化里程碑驗收仍為 0/8。
+繪製／picking 現已使用這些 matrix，圖形化里程碑驗收仍為 0/8。
 
 Presentation instance 現支援精確 row-major affine model matrix 與共用 native inverse-transpose
 normal packing。精確 binary32 determinant 判定避免相消錯誤；portable contract 與 Vulkan pixel
-比較鏡像／剪切 geometry 與獨立烘焙的參考結果。
-Scene／Game authored-mesh 使用流程仍待接續；此 boundary extension 不代表 graphical milestone 驗收。
+比較鏡像／剪切 geometry 與獨立烘焙的參考結果。Scene／Game authored mesh 現透過 CPU validator
+使用精確 matrix，並以 closed-form picking 及 stale-snapshot／Stop ownership 測試驗證；
+graphical milestone 仍未驗收。
 
 圖形化 Scene 概覽現可選擇 0.25 至 4 世界單位的移動吸附；拖曳預覽與可復原的提交位移一致，
 包含有父節點的物件。
@@ -738,9 +745,8 @@ Linux 虛擬顯示驗收現允許忙碌 CI 主機上的 recovery 重啟在 90 �
 Vulkan Xvfb 像素證據已涵蓋此功能。
 Docked Scene canvas 現會在 layout 與 DPI 縮放後提供可見的 framebuffer 像素矩形；
 Editor 的 3D Preview 切換現會在 UI 提交後於該矩形繪製原生有深度測試的地面與 live entity
-位置代理；代理現會反映合成後的世界旋轉與縮放。解析後的 OBJ 現以原生 mesh batch 繪製；
-精確 shear、material shader、完整 3D
-編輯與圖形化 Scene View 驗收仍待完成。
+位置代理；代理現會反映合成後的世界旋轉與縮放。解析後的 OBJ 現以原生 mesh batch 與
+精確 affine world matrix 繪製；material shader、完整 3D 編輯與圖形化 Scene View 驗收仍待完成。
 預覽鏡頭現支援右鍵拖曳旋轉、中鍵拖曳 X/Z 平移、Shift 加中鍵拖曳平移高度及滾輪縮放；
 F 或 Frame selected 會將 X/Y/Z 目標對準選取範圍，並依其大小調整距離（限制在 2–100 世界單位）。
 旋轉角度、距離與目標高度現會逐場景保存。

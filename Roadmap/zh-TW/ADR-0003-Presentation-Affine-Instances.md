@@ -31,9 +31,10 @@ lighting 與 UV／material binding 保留原本慣例。Normal row 可共用正�
 ## 影響與證據
 
 既有 aggregate caller 保留 identity／TRS 行為。C++ consumer 需重新建置；stable C／Zig ABI、
-scene format、module graph 與 native handle ownership 不變。Editor caller 提交前必須明確將
-owning Runtime column-major matrix 轉置；此 boundary change 本身並未接上 Scene／Game authored mesh，
-也不代表 ED-M2 完成。
+scene format、module graph 與 native handle ownership 不變。Editor Scene／Game caller 現透過
+SceneMeshPreview CPU gate 明確轉置 owning Runtime column-major matrix。Scene bounds／picking 與
+預期 matrix 共用精確 ancestry；Game mesh 重新讀取 live post-tick matrix，且 World borrow 結束後
+仍擁有資料。Closed-form picking 與 stale-snapshot／Stop 測試涵蓋使用流程；ED-M2 仍未驗收。
 
 Portable test 驗證 closed-form point、normal／tangent 正交、鏡像 transform、無效 affine data、
 override 語意、legacy TRS 與 upload budget。Vulkan X11 pixel 比較 affine instance 與獨立烘焙的

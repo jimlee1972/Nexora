@@ -35,8 +35,10 @@ without consuming the scene submission. `ValidateSceneInstance` exposes the same
 
 Existing aggregate callers retain identity/TRS behavior. C++ consumers rebuild for the appended
 field; stable C/Zig ABI, scene formats, module graph and native handle ownership are unchanged.
-Editor callers must transpose owning Runtime column-major matrices explicitly before submission;
-this boundary change does not itself connect Scene/Game authored meshes or complete ED-M2.
+Editor Scene/Game callers now explicitly transpose owning Runtime column-major matrices through
+SceneMeshPreview's CPU gate. Scene bounds/picking and prospective matrices follow the same exact
+ancestry; Game meshes recheck live post-tick matrices and own them after the World borrow ends.
+Closed-form picking and stale-snapshot/Stop tests cover the consumer path; ED-M2 remains unaccepted.
 
 Portable tests check closed-form points, normal/tangent orthogonality, mirrored transforms,
 invalid affine data, override semantics, legacy TRS and upload budgets. Vulkan X11 pixels compare

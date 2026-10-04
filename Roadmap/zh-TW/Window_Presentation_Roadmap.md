@@ -128,4 +128,4 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 驗證精確 point、normal、override 語意、determinant 相消的精確判定與無效輸入；Vulkan pixel
 比較鏡像／剪切 instance 與獨立
 烘焙的 geometry／normal。Legacy TRS、empty identity、batch budget 與 fence ownership 維持相容；
-Editor 使用流程及 physical-display／GPU 驗收仍為獨立項目。
+Editor Scene／Game 現透過 CPU gate 使用精確 matrix；physical-display／GPU 驗收仍為獨立項目。

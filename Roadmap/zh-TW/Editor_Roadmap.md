@@ -233,11 +233,11 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   會等待提交或取消後才儲存。
 
 - ✅ 原生 Scene 預覽現以有界 Presentation batch 繪製解析後的 OBJ vertices／indices，shared
-  resource 只打包一次，使用絕對 16-bit index 與 world TRS instance。解析 mesh 以 transformed
+  resource 只打包一次，使用絕對 16-bit index 與精確 affine world instance。解析 mesh 以 transformed
   bounds 與雙面 triangle picking 取代代理選取。Portable 測試涵蓋範圍回復、幾何／座標預算、
   負縮放／旋轉 picking 及輪廓 miss；Xvfb 不同 triangle／quad 資產驗證選取、Center 縮放／旋轉、
   預覽／放開像素及單步 Undo。缺失／刪除／超限資產保留參照、顯示代理並警告。持續的每資產
-  GPU cache、material shader、精確 shear 與完整 Scene View 驗收仍待完成。
+  GPU cache、material shader 與完整 Scene View 驗收仍待完成。
 
 - ✅ Inspector 現能為單選及 mixed 多選指派匯入 OBJ mesh 資產及移除 MeshRenderer，以一個
   atomic、generation-safe Undo／Redo 操作完成。各 entity 保留自己的 material 參照；混合有無
@@ -267,15 +267,20 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   的平均原點及首個根節點的 local 軸；選取子節點不重複加權，拖曳期間鎖定工具、pivot 及相機。
   Linux Xvfb 驗證雙根節點選取、Center 縮放吸附、Center 旋轉及單次 Undo。
 
+- ✅ Authored Scene geometry、保守 bounds 與 triangle picking 現跨鏡像／剪切 ancestry 使用精確
+  WorldMatrix；preview 使用與 commit 一致的 owning 預期 matrix。Native Game mesh 採用 fixed tick
+  後的 live Play matrix，即使 inspection metadata 較舊亦然。測試以 closed-form affine hit 區別
+  lossy TRS miss，保留 Stop 後的 frame matrix、逐物件拒絕無法表示的換算，並維持 frozen asset／
+  clone isolation。Proxy／gizmo 維持 TRS policy；material workflow、GPU cache 與完整驗收仍待完成。
+
 - ✅ Public Presentation instance 現可接收精確 affine model matrix，Vulkan／DX12／Metal 共用
   private inverse-transpose normal packing。Portable 與 native Vulkan pixel test 涵蓋鏡像／剪切
-  matrix 及 invalid-then-valid draw；Scene／Game authored-mesh 使用流程與 graphical 驗收仍待完成
+  matrix 及 invalid-then-valid draw；Scene／Game authored mesh 現使用 owning 精確 matrix，graphical 驗收仍待完成
   （[ADR-0003](ADR-0003-Presentation-Affine-Instances.md)）。
 
 - ✅ 深層鏡像／剪切階層的原點與 gizmo 位置換算現為 affine-exact。SceneDocument 擁有精確
   world 及預期 matrix snapshot；位移與 Center 旋轉／縮放的位置與 commit 一致，
-  `editor.affine_gizmo_contract` 驗證單次 Undo／Redo 及 save／reload。原生 authored-mesh affine
-  繪製／picking 仍待完成。
+  `editor.affine_gizmo_contract` 驗證單次 Undo／Redo 及 save／reload。原生 authored mesh 現使用這些精確 matrix。
 
 - ✅ 原生 Move／Rotate／Scale 預覽與提交共用 SceneDocument 根節點編輯及 Runtime 階層組合。
   預期世界姿態快照不改動 dirty 狀態、選取或 Undo／Redo；測試涵蓋旋轉、鏡像、非均勻縮放祖先、
@@ -335,8 +340,8 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   並於每幀重設。
 - ✅ Scene panel 現提供 Vulkan／DX12 原生 3D 代理預覽，在 UI 提交後於該 canvas 繪製有深度測試的
   地面與 live scene 節點位置代理，保留 canvas 外的控制項。X/Z 編輯概覽仍可切回。解析後的 OBJ 現以原生 batch 繪製及 triangle picking；
-  material shader 與精確 shear 矩陣仍待完成，完整 renderer-backed
-  Scene View 驗收因此仍未通過。
+  authored mesh 現使用精確 shear 矩陣；material shader 仍待完成，完整 renderer-backed
+  Scene View 驗收仍未通過。
   代理 instance 現反映合成後的世界旋轉與縮放；保守包圍範圍先篩選候選物件，再精確點選
   旋轉盒體及位移把手，避免點到包圍範圍的空角落。
   右鍵拖曳可旋轉預覽鏡頭，中鍵拖曳可平移 X/Z 目標，Shift 加中鍵拖曳可平移目標高度，

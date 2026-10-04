@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace nexora::editor::preview {
 
@@ -55,16 +56,34 @@ struct Geometry final {
   }
 };
 
-// Two-sided triangle picking of the same TRS geometry submitted to the native preview. No proxy
-// offset/scale is applied. The caller performs the world-bounds broad phase before this work.
+// Runtime matrices are owning column-major doubles; Presentation consumes row-major floats.
+// Validate the complete conversion before publishing an instance or selecting native geometry.
+[[nodiscard]] inline std::optional<Nexora::Presentation::SceneInstance>
+AffineInstance(const runtime::TransformMatrix &matrix) {
+  Nexora::Presentation::SceneInstance instance;
+  std::array<float, 16> converted;
+  for (std::size_t row = 0; row < 4; ++row)
+    for (std::size_t column = 0; column < 4; ++column) {
+      const auto value = matrix[column * 4 + row];
+      if (!std::isfinite(value) || std::abs(value) > std::numeric_limits<float>::max())
+        return std::nullopt;
+      converted[row * 4 + column] = static_cast<float>(value);
+    }
+  instance.model_transform = converted;
+  if (!Nexora::Presentation::ValidateSceneInstance(instance))
+    return std::nullopt;
+  return instance;
+}
+
+// Two-sided triangle picking of the same exact affine geometry submitted to the native preview. No
+// proxy offset/scale is applied. The caller performs the world-bounds broad phase before this work.
 [[nodiscard]] inline std::optional<double> PickMesh(const ViewportRay &ray,
                                                     const MeshGeometry &mesh,
-                                                    const runtime::Transform &pose,
+                                                    const runtime::TransformMatrix &matrix,
                                                     double maximum = 500.0) {
-  if (!runtime::IsValidTransform(pose) || !std::isfinite(maximum) || maximum < 0 ||
+  if (!AffineInstance(matrix) || !std::isfinite(maximum) || maximum < 0 ||
       mesh.indices.size() % 3 != 0)
     return std::nullopt;
-  const auto matrix = runtime::ToMatrix(pose);
   const auto point = [&](std::uint16_t index) {
     const auto &p = mesh.vertices[index].position;
     return std::array<double, 3>{
@@ -113,6 +132,16 @@ struct Geometry final {
       nearest = distance;
   }
   return nearest;
+}
+
+// Compatibility for standalone TRS callers; the native authored path supplies WorldMatrix.
+[[nodiscard]] inline std::optional<double> PickMesh(const ViewportRay &ray,
+                                                    const MeshGeometry &mesh,
+                                                    const runtime::Transform &pose,
+                                                    double maximum = 500.0) {
+  if (!runtime::IsValidTransform(pose))
+    return std::nullopt;
+  return PickMesh(ray, mesh, runtime::ToMatrix(pose), maximum);
 }
 
 } // namespace nexora::editor::preview

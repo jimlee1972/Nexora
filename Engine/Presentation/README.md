@@ -121,8 +121,9 @@ mirrors, singular/nonaffine/nonfinite rejection, unused TRS override, identity a
 The native Vulkan pixel gate compares sheared/mirrored instances against independently baked
 geometry/normals, including invalid-then-valid submission. Windows/DX12 and macOS/Metal runtime
 evidence depends on their CI/target hosts. Source consumers rebuild for the appended C++ field;
-stable C/Zig wires and serialized scene formats are unchanged. The Editor's Scene/Game affine
-consumption and persistent GPU mesh caching remain follow-up work.
+stable C/Zig wires and serialized scene formats are unchanged. The Editor's Scene/Game authored
+meshes now consume exact matrices through the CPU validator; persistent GPU mesh caching and full
+graphical acceptance remain open.
 
 ## Native sampled scene material
 

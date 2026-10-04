@@ -241,13 +241,12 @@ creates property widgets; unknown components retain raw data instead of being si
   a gesture is held wait for commit or cancellation before serializing.
 
 - ✅ Native Scene preview now draws resolved OBJ vertices/indices through bounded Presentation
-  batches, packing shared resources once with absolute 16-bit indices and world TRS instances.
+  batches, packing shared resources once with absolute 16-bit indices and exact affine world instances.
   Transformed bounds and two-sided triangles replace proxy picking for resolved meshes. Portable
   tests cover range rollback, geometry/coordinate budgets, mirrored/rotated picking and silhouette
   misses; Xvfb distinct triangle/quad assets verify picking, Center scale/rotation, preview/release
   pixels, and one-step Undo. Missing/deleted/oversized assets retain references and warn while using
-  proxies. Persistent per-asset GPU caching, material shaders, exact shear and
-  full Scene View acceptance remain open.
+  proxies. Persistent per-asset GPU caching, material shaders and full Scene View acceptance remain open.
 
 - ✅ The Inspector now assigns imported OBJ mesh assets and removes MeshRenderer for single and
   mixed multi-selection as one atomic generation-safe Undo/Redo operation. Each entity retains its
@@ -287,15 +286,22 @@ creates property widgets; unknown components retain raw data instead of being si
   do not weight the center twice; gesture-time tool/pivot/camera changes are disabled. Linux Xvfb
   drives two-root selection, snapped Center scale, Center rotation, and atomic Undo.
 
+- ✅ Authored Scene geometry, conservative bounds and triangle picking now use exact WorldMatrix
+  through mirrored/sheared ancestry; previews use owning prospective matrices matching commit.
+  Native Game meshes use live post-tick Play matrices, even with older inspection metadata. Tests
+  distinguish closed-form affine hits from lossy TRS misses and retain frame matrices through Stop,
+  reject unrepresentable conversions per object and preserve frozen assets/clone isolation.
+  Proxies/gizmos keep their TRS policy; material workflows, GPU caching and full acceptance remain open.
+
 - ✅ Public Presentation instances now accept exact affine model matrices with common private
   inverse-transpose normal packing for Vulkan/DX12/Metal. Portable and native Vulkan pixel tests
-  cover mirrored/sheared matrices and invalid-then-valid draws; Scene/Game authored-mesh
-  consumption and graphical acceptance remain open ([ADR-0003](ADR-0003-Presentation-Affine-Instances.md)).
+  cover mirrored/sheared matrices and invalid-then-valid draws; Scene/Game authored meshes now
+  consume owning exact matrices, while graphical acceptance remains open ([ADR-0003](ADR-0003-Presentation-Affine-Instances.md)).
 
 - ✅ Deep mirrored/sheared hierarchy origins and gizmo position conversion are affine-exact.
   SceneDocument owns exact world and prospective matrix snapshots; translation and Center
   rotate/scale positions match commit, with one Undo/Redo and save/reload coverage in
-  `editor.affine_gizmo_contract`. Native authored-mesh affine rendering/picking remains open.
+  `editor.affine_gizmo_contract`. Native authored meshes now consume these exact matrices.
 
 - ✅ Native Move/Rotate/Scale previews and commit share SceneDocument root edits and Runtime
   hierarchy composition. Owning prospective world-pose snapshots preserve dirty state, selection,
@@ -361,8 +367,8 @@ creates property widgets; unknown components retain raw data instead of being si
   bounds (2–100 world units). Orbit angle, distance, and target height persist per scene. Clicking a visible position proxy selects
   its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Proxy instances now show
   composed world rotation and scale; a conservative bound filters candidates before an exact
-  rotated-box pick, including translation handles. Authored
-  material shaders and exact sheared matrices remain open. Selected
+  rotated-box pick, including translation handles. Authored meshes now use exact sheared matrices;
+  material shaders remain open. Selected
   proxies show colored X/Y/Z translation handles in world or local space; Local axes uses
   the first selected node's world rotation, and picking a handle captures its axis for the drag. Dragging previews selected roots and descendants in world X/Z, along world Y with
   Shift-drag, or along the picked handle, then commits one undoable move on release. Escape cancels;

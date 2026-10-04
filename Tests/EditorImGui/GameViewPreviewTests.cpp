@@ -3,6 +3,7 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include <iostream>
 #include <limits>
+#include <numbers>
 #include <stdexcept>
 
 namespace {
@@ -84,10 +85,14 @@ int main() {
             "Game camera did not use the runtime camera contract");
     Require(play.Tick() && play.Pause(), "tick/pause failed");
     auto paused = preview::BuildGameFrame(*play.PlayWorld(), play.Inspect(), frozen, 2);
-    Require(paused.instances[0].translation[0] == 1 && !play.Tick(), "paused pose failed");
+    Require(paused.instances[0].model_transform &&
+                paused.instances[0].model_transform->at(3) == 1 && !play.Tick(),
+            "paused pose failed");
     Require(play.Step(), "manual step failed");
     auto stepped = preview::BuildGameFrame(*play.PlayWorld(), play.Inspect(), frozen, 2);
-    Require(stepped.instances[0].translation[0] == 2 && world.FindEntity(mesh)->transform.x == 0,
+    Require(stepped.instances[0].model_transform &&
+                stepped.instances[0].model_transform->at(3) == 2 &&
+                world.FindEntity(mesh)->transform.x == 0,
             "step escaped the isolated Play World");
     auto replacement = *geometry;
     replacement.vertices[0].position[0] = 9;
@@ -100,16 +105,25 @@ int main() {
     Require(retained.geometry.vertices[0].position[0] == 0 &&
                 changed.geometry.vertices[0].position[0] == 9,
             "editor reimport changed frozen Play geometry");
-    // A valid runtime double scale can fall below the native float minimum. Omit it instead of
-    // rejecting the entire acquired frame in Presentation.
+    // Exact affine instances retain representable scales below the legacy TRS minimum;
+    // unrepresentable double matrices are omitted without rejecting the whole acquired frame.
     runtime::WorldCommandBuffer tiny;
     auto tiny_pose = play.PlayWorld()->FindEntity(mesh)->transform;
     tiny_pose.sx = 0.000001;
     tiny.SetTransform(mesh, tiny_pose);
     Require(tiny.Apply(*play.PlayWorld()), "small scale fixture failed");
     const auto bounded = preview::BuildGameFrame(*play.PlayWorld(), play.Inspect(), frozen, 2);
-    Require(bounded.instances.size() == 1 && bounded.unavailable == 2,
-            "unsupported scale reached the native surface");
+    Require(bounded.instances.size() == 2 && bounded.unavailable == 1 &&
+                bounded.instances[0].model_transform &&
+                Nexora::Presentation::ValidateSceneInstance(bounded.instances[0]),
+            "representable small affine scale was dropped");
+    tiny_pose.sx = 1e-300;
+    runtime::WorldCommandBuffer unrepresentable;
+    unrepresentable.SetTransform(mesh, tiny_pose);
+    Require(unrepresentable.Apply(*play.PlayWorld()), "unrepresentable matrix fixture failed");
+    const auto omitted = preview::BuildGameFrame(*play.PlayWorld(), play.Inspect(), frozen, 2);
+    Require(omitted.instances.size() == 1 && omitted.unavailable == 2,
+            "unrepresentable affine matrix rejected the whole native Game frame");
     imgui::EditorImGuiHost host;
     host.SetDisplay(640, 360, 2);
     ProductShell shell;
@@ -164,10 +178,64 @@ int main() {
     Require(imgui::EditorImGuiTestAccess::PlayInspectorEntity(host) == 0,
             "Stop retained Play inspector state");
     const auto draw = stepped.DrawData({1, 2, 400, 200});
-    Require(draw.vertices.size() == 3 && draw.instances[0].translation[0] == 2 &&
+    Require(draw.vertices.size() == 3 && draw.instances[0].model_transform &&
+                draw.instances[0].model_transform->at(3) == 2 &&
                 Nexora::Presentation::ValidateSceneMeshBatches(draw.batches, draw.indices.size(),
                                                                draw.instances.size()),
             "frame data borrowed destroyed Play World or invalid ranges");
+    runtime::World sheared_world;
+    const auto sheared_scene = sheared_world.LoadScene("Sheared Game meshes");
+    Require(sheared_world.Activate(sheared_scene), "sheared Game scene activation failed");
+    const auto view_camera = sheared_world.CreateEntity(sheared_scene).id;
+    const auto stretch_root = sheared_world.CreateEntity(sheared_scene).id;
+    const auto turn_parent = sheared_world.CreateEntity(sheared_scene).id;
+    const auto rendered_leaf = sheared_world.CreateEntity(sheared_scene).id;
+    runtime::Transform stretch{10, -3, 4};
+    stretch.sx = -2;
+    stretch.sy = 3;
+    stretch.sz = 0.5;
+    runtime::Transform turn;
+    turn.qz = std::sin(std::numbers::pi / 8);
+    turn.qw = std::cos(std::numbers::pi / 8);
+    runtime::WorldCommandBuffer setup;
+    setup.SetCamera(view_camera, runtime::CameraComponent{});
+    setup.SetTransform(view_camera, {0, 0, 10});
+    setup.SetTransform(stretch_root, stretch);
+    setup.SetTransform(turn_parent, turn);
+    setup.SetTransform(rendered_leaf, {1, 0, 2});
+    setup.SetParent(turn_parent, stretch_root, false);
+    setup.SetParent(rendered_leaf, turn_parent, false);
+    setup.SetMeshRenderer(rendered_leaf, runtime::MeshComponent{MeshResourceId(uuid), {}});
+    Require(setup.Apply(sheared_world), "sheared Game hierarchy setup failed");
+    runtime::PlaySession sheared_play(sheared_world);
+    Require(sheared_play.Start(1.0 / 60.0,
+                               [stretch_root](runtime::World &clone, double) {
+                                 auto pose = clone.FindEntity(stretch_root)->transform;
+                                 ++pose.x;
+                                 runtime::WorldCommandBuffer move;
+                                 move.SetTransform(stretch_root, pose);
+                                 return move.Apply(clone);
+                               }),
+            "sheared Game Start failed");
+    const auto stale_snapshot = sheared_play.Inspect();
+    Require(sheared_play.Tick() && sheared_play.Pause(), "sheared Game tick failed");
+    const auto exact_frame =
+        preview::BuildGameFrame(*sheared_play.PlayWorld(), stale_snapshot, frozen, 2);
+    Require(exact_frame.instances.size() == 1 && exact_frame.instances.front().model_transform,
+            "sheared mesh did not produce an owning affine instance");
+    const auto model = *exact_frame.instances.front().model_transform;
+    const double c = std::sqrt(0.5);
+    Require(std::abs(model[0] + 2 * c) < 1e-6 && std::abs(model[1] - 2 * c) < 1e-6 &&
+                std::abs(model[4] - 3 * c) < 1e-6 && std::abs(model[5] - 3 * c) < 1e-6 &&
+                std::abs(model[3] - (11 - 2 * c)) < 1e-6 &&
+                std::abs(model[7] - (-3 + 3 * c)) < 1e-6 && model[11] == 5 &&
+                sheared_world.FindEntity(stretch_root)->transform.x == 10,
+            "Game geometry used stale snapshot TRS instead of the exact post-tick Play matrix");
+    Require(sheared_play.Stop() &&
+                exact_frame.DrawData({0, 0, 640, 360}).instances[0].model_transform ==
+                    exact_frame.instances[0].model_transform &&
+                exact_frame.geometry.vertices.size() == 3,
+            "Game affine frame did not survive destruction of its borrowed Play World");
     std::cout << "Native Game View isolation contracts passed\n";
     return 0;
   } catch (const std::exception &error) {

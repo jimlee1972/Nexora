@@ -431,6 +431,7 @@ serialized authoring thread; no scene format or C ABI changes are required.
 `editor.affine_gizmo_contract` checks independent closed-form world translation, Center rotation
 and Center scale through three-level mirrored/sheared ancestry, owning pose/matrix previews,
 selected-descendant filtering, one-step Undo/Redo, stale/invalid rejection and scene save/reload.
-The native mesh renderer still submits TRS instances; exact affine rendering and picking remain
-separate work. Editor C++ consumers rebuild for the added owning target field and matrix getters;
+The application now consumes owning exact world/preview matrices for authored Scene meshes and
+bounds/triangle picking, with live post-tick matrices for Game meshes; proxies/gizmos retain TRS.
+Editor C++ consumers rebuild for the added owning target field and matrix getters;
 stable C/Zig wire layouts and scene formats are unchanged.

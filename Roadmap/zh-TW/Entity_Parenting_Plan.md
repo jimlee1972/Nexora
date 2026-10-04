@@ -69,5 +69,5 @@ entity 沒有階層，所以每個 `runtime::Transform` 都是世界座標，而
 - ✅ 世界原點與 gizmo 位置換算現可跨深層鏡像／剪切 ancestry 保持精確。SceneDocument 的 owning
   world／preview matrix 與 commit 一致，不改動選取或 history。`runtime.entity_parenting` 與
   `editor.affine_gizmo_contract` 涵蓋 closed-form 原點、世界位移、Center 旋轉／縮放、atomic
-  Undo／Redo 及 save／reload。原生 authored-mesh affine 繪製／picking 與完整 graphical milestone
-  驗收仍待完成。
+  Undo／Redo 及 save／reload。原生 authored Scene／Game mesh 現以精確 matrix 繪製 geometry 與
+  Scene picking；material、持續 GPU cache 與 graphical milestone 驗收仍待完成。

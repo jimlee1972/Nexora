@@ -83,23 +83,9 @@ struct GameFrame final {
       ++frame.unavailable;
       continue;
     }
-    const auto &pose = copied.world_transform;
-    Nexora::Presentation::SceneInstance instance;
-    instance.translation[0] = static_cast<float>(pose.x);
-    instance.translation[1] = static_cast<float>(pose.y);
-    instance.translation[2] = static_cast<float>(pose.z);
-    instance.scale[0] = static_cast<float>(pose.sx);
-    instance.scale[1] = static_cast<float>(pose.sy);
-    instance.scale[2] = static_cast<float>(pose.sz);
-    instance.rotation[0] = static_cast<float>(pose.qx);
-    instance.rotation[1] = static_cast<float>(pose.qy);
-    instance.rotation[2] = static_cast<float>(pose.qz);
-    instance.rotation[3] = static_cast<float>(pose.qw);
-    // Mirror Presentation's finite and nonzero float transform boundary before submission.
-    if (!runtime::IsValidTransform(pose) ||
-        !std::ranges::all_of(instance.translation, [](float v) { return std::isfinite(v); }) ||
-        !std::ranges::all_of(instance.scale,
-                             [](float v) { return std::isfinite(v) && std::abs(v) >= 0.00001F; })) {
+    const auto matrix = world.WorldMatrix(entity->id);
+    const auto instance = matrix ? AffineInstance(*matrix) : std::nullopt;
+    if (!instance) {
       ++frame.unavailable;
       continue;
     }
@@ -112,7 +98,7 @@ struct GameFrame final {
     }
     frame.batches.push_back({range->second->firstIndex, range->second->indexCount,
                              static_cast<std::uint32_t>(frame.instances.size()), 1});
-    frame.instances.push_back(instance);
+    frame.instances.push_back(*instance);
   }
   return frame;
 }

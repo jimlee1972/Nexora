@@ -134,5 +134,5 @@ packing are implemented for Vulkan/DX12/Metal ([ADR-0003](ADR-0003-Presentation-
 Portable tests check exact points, normals, override semantics, exact determinant cancellation
 classification and malformed input; Vulkan pixels
 compare mirrored/sheared instances against independently baked geometry/normals. Legacy TRS,
-empty identity, batch budgets and fence ownership remain compatible. Editor consumption and
-physical-display/GPU acceptance remain separate.
+empty identity, batch budgets and fence ownership remain compatible. Editor Scene/Game now
+consume exact matrices through the CPU gate; physical-display/GPU acceptance remains separate.

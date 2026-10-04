@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <limits>
+#include <numbers>
 #include <stdexcept>
 
 namespace {
@@ -61,6 +62,60 @@ int main() {
     mesh = triangle;
     mesh.indices[2] = 8;
     Require(!preview::PickMesh(ray, mesh, pose), "invalid triangle index was dereferenced");
+    nexora::runtime::World world;
+    const auto scene = world.LoadScene("Exact authored mesh");
+    const auto root = world.CreateEntity(scene).id;
+    const auto parent = world.CreateEntity(scene).id;
+    const auto leaf = world.CreateEntity(scene).id;
+    nexora::runtime::Transform stretch;
+    stretch.sx = -2;
+    stretch.sy = 3;
+    nexora::runtime::Transform turn;
+    turn.qz = std::sin(std::numbers::pi / 8);
+    turn.qw = std::cos(std::numbers::pi / 8);
+    nexora::runtime::WorldCommandBuffer ancestry;
+    ancestry.SetTransform(root, stretch);
+    ancestry.SetTransform(parent, turn);
+    ancestry.SetTransform(leaf, {1, 0, 2});
+    ancestry.SetParent(parent, root, false);
+    ancestry.SetParent(leaf, parent, false);
+    Require(ancestry.Apply(world), "authored affine hierarchy fixture failed");
+    const auto matrix = *world.WorldMatrix(leaf);
+    const auto instance = preview::AffineInstance(matrix);
+    Require(instance && instance->model_transform &&
+                Nexora::Presentation::ValidateSceneInstance(*instance),
+            "exact Runtime matrix did not reach the affine Presentation boundary");
+    const double c = std::sqrt(0.5);
+    const double x = -3.4 * c, y = 5.7 * c;
+    const auto &m = *instance->model_transform;
+    Require(std::abs(m[0] * 0.8 + m[1] * 0.1 + m[3] - x) < 1e-6 &&
+                std::abs(m[4] * 0.8 + m[5] * 0.1 + m[7] - y) < 1e-6 && m[11] == 2,
+            "column-major Runtime matrix was not explicitly transposed for Presentation");
+    const ViewportRay affine_ray{{x, y, 7}, {0, 0, -1}};
+    const auto affine_hit = preview::PickMesh(affine_ray, triangle, matrix);
+    Require(affine_hit && std::abs(*affine_hit - 5) < 1e-10 &&
+                !preview::PickMesh(affine_ray, triangle, *world.WorldTransform(leaf)) &&
+                preview::PickMesh({{x, y, -3}, {0, 0, 1}}, triangle, matrix) &&
+                !preview::PickMesh(affine_ray, triangle, matrix, 4.99),
+            "affine silhouette picking fell back to lossy TRS or rejected the mirrored back face");
+    auto invalid_matrix = matrix;
+    invalid_matrix[3] = 0.1;
+    Require(!preview::AffineInstance(invalid_matrix) &&
+                !preview::PickMesh(affine_ray, triangle, invalid_matrix),
+            "nonaffine matrix reached drawing or picking");
+    invalid_matrix = matrix;
+    invalid_matrix[0] = std::numeric_limits<double>::max();
+    Require(!preview::AffineInstance(invalid_matrix), "double-to-float overflow reached drawing");
+    invalid_matrix = matrix;
+    invalid_matrix[0] = invalid_matrix[1] = invalid_matrix[2] = 0;
+    Require(!preview::AffineInstance(invalid_matrix), "singular authored matrix reached drawing");
+    stretch.x = 100;
+    nexora::runtime::WorldCommandBuffer move_root;
+    move_root.SetTransform(root, stretch);
+    Require(move_root.Apply(world) && std::abs(instance->model_transform->at(3) + 2 * c) < 1e-6 &&
+                preview::PickMesh(affine_ray, triangle, matrix) &&
+                !preview::PickMesh(affine_ray, triangle, *world.WorldMatrix(leaf)),
+            "owning native matrix borrowed mutable Runtime storage");
     std::cout << "Native mesh preview geometry contracts passed\n";
     return 0;
   } catch (const std::exception &failure) {
