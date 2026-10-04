@@ -142,6 +142,13 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Scene／Hierarchy 編輯現在要求所附 workspace 可寫，且沒有復原、Play review 或關閉
+  對話框。控制項、快捷鍵與 queued create／rename／reparent／reorder 共用此 gate；唯讀
+  選取、Copy 與鏡頭導航仍可用。真正鍵盤／pointer 測試驗證保留 Undo／Redo、恢復後的
+  Paste／Duplicate、唯讀 picking，以及權限切換取消 overview／native 拖曳。
+  完整圖形化 scene authoring 驗收仍待完成。
+  Escape 現會明確取消關閉確認，之後才恢復 Save；Xvfb 驗證此路徑。
+
 Hierarchy、Scene View、Inspector、camera controls、selection/picking、translate/rotate/scale gizmo、
 parent/reorder、multi-selection、copy/paste、undo/redo 與 save/reload。Reflection 產生 property
 widgets；未知 component 保留 raw data，不靜默遺失。

@@ -586,7 +586,8 @@ bool AcceptAssetDrop(ProjectContentSession &content, const std::filesystem::path
   return moved;
 }
 
-template <typename StateT> void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene) {
+template <typename StateT>
+void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool editable) {
   state.hierarchy_visible_rows = 0;
   state.hierarchy_rendered_rows = 0;
   state.hierarchy_selection = 0;
@@ -602,6 +603,13 @@ template <typename StateT> void ApplyPendingHierarchyRequests(StateT &state, Sce
     state.hierarchy_rename_request.reset();
     state.hierarchy_error.clear();
     return;
+  }
+  if (!editable) {
+    state.hierarchy_create_request.reset();
+    state.hierarchy_move_request.reset();
+    state.hierarchy_reorder_request.reset();
+    state.hierarchy_rename_request.reset();
+    state.hierarchy_rename_target.reset();
   }
   const auto nodes = scene->Nodes();
   std::erase_if(state.hierarchy_expanded, [scene](const auto key) {
@@ -727,7 +735,7 @@ template <typename StateT> void DuplicateHierarchySelection(StateT &state, Scene
 
 template <typename StateT>
 void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
-                   bool recovery_available) {
+                   bool interaction_blocked, bool editable) {
   ImGui::SetNextItemWidth(-1.0F);
   ImGui::InputTextWithHint("##hierarchy-filter", "Filter entities...",
                            state.hierarchy_filter.data(), state.hierarchy_filter.size());
@@ -739,6 +747,7 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   ImGui::SetNextItemWidth(-1.0F);
   ImGui::InputTextWithHint("##hierarchy-create-name", "New entity name...",
                            state.hierarchy_create_name.data(), state.hierarchy_create_name.size());
+  ImGui::BeginDisabled(!editable);
   if (ImGui::SmallButton("Create root"))
     state.hierarchy_create_request = typename StateT::HierarchyCreateRequest{
         std::string(state.hierarchy_create_name.data()), std::nullopt};
@@ -754,29 +763,30 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   }
   ImGui::EndDisabled();
   ImGui::SameLine();
-  ImGui::BeginDisabled(recovery_available || scene->Selection().empty());
+  ImGui::BeginDisabled(scene->Selection().empty());
   if (ImGui::SmallButton("Delete selected")) {
     static_cast<void>(shell.RouteCommand("editor.scene.delete"));
     DeleteHierarchySelection(state, *scene);
   }
   ImGui::EndDisabled();
-  if (!recovery_available && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+  ImGui::EndDisabled();
+  if (editable && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
       !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
     static_cast<void>(shell.RouteCommand("editor.scene.delete"));
     DeleteHierarchySelection(state, *scene);
   }
   ImGui::Separator();
-  ImGui::BeginDisabled(scene->Selection().empty() || recovery_available);
+  ImGui::BeginDisabled(scene->Selection().empty() || interaction_blocked);
   if (ImGui::SmallButton("Copy"))
     CopyHierarchySelection(state, *scene);
   ImGui::EndDisabled();
   ImGui::SameLine();
-  ImGui::BeginDisabled(recovery_available);
+  ImGui::BeginDisabled(!editable);
   if (ImGui::SmallButton("Paste"))
     PasteHierarchySelection(state, *scene);
   ImGui::EndDisabled();
   ImGui::SameLine();
-  ImGui::BeginDisabled(scene->Selection().empty() || recovery_available);
+  ImGui::BeginDisabled(scene->Selection().empty() || !editable);
   if (ImGui::SmallButton("Duplicate")) {
     static_cast<void>(shell.RouteCommand("editor.scene.duplicate"));
     DuplicateHierarchySelection(state, *scene);
@@ -817,7 +827,7 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
       selected_node = &*selected;
   }
 
-  ImGui::BeginDisabled(selected_node == nullptr);
+  ImGui::BeginDisabled(selected_node == nullptr || !editable);
   if (ImGui::SmallButton("Rename") && selected_node != nullptr)
     begin_rename(*selected_node);
   ImGui::SameLine();
@@ -840,6 +850,8 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
         ApplyHierarchySelection(state, *scene, visible, entity, io.KeyCtrl, io.KeyShift));
   };
   const auto handle_drag = [&](const SceneDocument::NodeView &node) {
+    if (!editable)
+      return;
     if (ImGui::BeginDragDropSource()) {
       const HierarchyDragData drag{node.id, node.entity_generation, node.document_generation};
       ImGui::SetDragDropPayload(kHierarchyDragType.data(), &drag, sizeof(drag));
@@ -892,7 +904,7 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
       const bool toggled = ImGui::IsItemToggledOpen();
       if (ImGui::IsItemClicked() && !toggled)
         handle_selection(key);
-      if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+      if (editable && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
         begin_rename(node);
       if (filter.empty() && row.has_children && toggled) {
         if (open && !is_expanded)
@@ -909,7 +921,7 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   clipper.End();
 
   ImGui::Selectable("Drop here to move to scene root", false, ImGuiSelectableFlags_AllowOverlap);
-  if (ImGui::BeginDragDropTarget()) {
+  if (editable && ImGui::BeginDragDropTarget()) {
     if (const auto *payload = ImGui::AcceptDragDropPayload(kHierarchyDragType.data());
         payload != nullptr && payload->DataSize == sizeof(HierarchyDragData)) {
       const auto &drag = *static_cast<const HierarchyDragData *>(payload->Data);
@@ -1174,7 +1186,8 @@ void CaptureCanvasViewport(std::optional<Nexora::Presentation::SceneViewport> &r
                  static_cast<std::uint32_t>(bottom - top)};
 }
 
-template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &scene) {
+template <typename StateT>
+void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable) {
   ImGui::TextUnformatted("Top-down X/Z | Drag marker: free move | Drag red X/blue Z: axis move | "
                          "Middle: pan | Wheel: zoom");
   ImGui::SameLine();
@@ -1369,7 +1382,7 @@ template <typename StateT> void DrawSceneOverview(StateT &state, SceneDocument &
       if (!already_selected || io.KeyCtrl || io.KeyShift)
         static_cast<void>(
             ApplyHierarchySelection(state, scene, visible, *picked, io.KeyCtrl, io.KeyShift));
-      if (!io.KeyCtrl && !io.KeyShift) {
+      if (editable && !io.KeyCtrl && !io.KeyShift) {
         std::vector<SceneDocument::NodeKey> keys;
         for (const auto id : scene.Selection()) {
           const auto key = scene.Key(id);
@@ -2604,13 +2617,18 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   // Query from the same root ID scope that opens the modal, before entering a panel window.
   const bool close_confirmation_open =
       state_->close_prompt_requested || ImGui::IsPopupOpen("Unsaved scene###editor.close");
-  const bool interaction_blocked = recovery_available || state_->play_apply_open;
+  const bool interaction_blocked =
+      recovery_available || state_->play_apply_open || close_confirmation_open;
+  const bool scene_editable = (!workspace || workspace->Writable()) && !interaction_blocked;
+  if (!scene_editable) {
+    CancelSceneGestures(*state_);
+    state_->scene_save_requested = false;
+  }
   if (interaction_blocked) {
     state_->game_input_focused = false;
     CancelSceneGestures(*state_);
   }
-  if (!interaction_blocked &&
-      ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
+  if (scene_editable && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
     state_->scene_save_requested = true;
   }
@@ -2626,14 +2644,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
              play->State() == runtime::PlayState::Paused)
       state_->play_command = PlayCommand::Step;
   }
-  if (scene != nullptr && !interaction_blocked && !ImGui::GetIO().WantTextInput &&
+  if (scene != nullptr && scene_editable && !ImGui::GetIO().WantTextInput &&
       ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N, ImGuiInputFlags_RouteGlobal)) {
     CancelSceneGestures(*state_);
     static_cast<void>(shell.RouteCommand("editor.scene.create"));
     state_->hierarchy_create_request = State::HierarchyCreateRequest{
         std::string(state_->hierarchy_create_name.data()), std::nullopt};
   }
-  if (scene != nullptr && !interaction_blocked && !ImGui::GetIO().WantTextInput) {
+  if (scene != nullptr && scene_editable && !ImGui::GetIO().WantTextInput) {
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal) ||
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, ImGuiInputFlags_RouteGlobal)) {
       CancelSceneGestures(*state_);
@@ -2654,12 +2672,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       static_cast<void>(shell.RouteCommand("editor.scene.copy"));
       CopyHierarchySelection(*state_, *scene);
     }
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V, ImGuiInputFlags_RouteGlobal)) {
+    if (scene_editable &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_V, ImGuiInputFlags_RouteGlobal)) {
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.paste"));
       PasteHierarchySelection(*state_, *scene);
     }
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D, ImGuiInputFlags_RouteGlobal)) {
+    if (scene_editable &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_D, ImGuiInputFlags_RouteGlobal)) {
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.duplicate"));
       DuplicateHierarchySelection(*state_, *scene);
@@ -2675,9 +2695,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->focus_initial_scene = true;
   }
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
-  ApplyPendingHierarchyRequests(*state_, scene);
+  ApplyPendingHierarchyRequests(*state_, scene, scene_editable);
   if (ImGui::Begin(hierarchy_window.c_str()))
-    DrawHierarchy(*state_, scene, shell, interaction_blocked);
+    DrawHierarchy(*state_, scene, shell, interaction_blocked, scene_editable);
   ImGui::End();
   const auto inspector_window = PanelWindowName("nexora.inspector");
   if (ImGui::Begin(inspector_window.c_str())) {
@@ -2701,9 +2721,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         DrawPlayEntityInspector(*selected);
       }
     } else {
-      DrawInspector(*state_, scene, content, meshes,
-                    (!workspace || workspace->Writable()) && !interaction_blocked &&
-                        !close_confirmation_open);
+      DrawInspector(*state_, scene, content, meshes, scene_editable);
     }
   } else {
     CancelInspectorDrafts(*state_);
@@ -2711,7 +2729,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
   if (ImGui::Begin(scene_window.c_str())) {
-    ImGui::BeginDisabled(scene == nullptr || interaction_blocked);
+    if (workspace && !workspace->Writable())
+      ImGui::TextDisabled("Read-only project: scene editing disabled.");
+    ImGui::BeginDisabled(scene == nullptr || !scene_editable);
     if (ImGui::Button("Undo")) {
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.undo"));
@@ -2809,7 +2829,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         CaptureCanvasViewport(state_->scene_canvas_viewport, ImGui::GetItemRectMin(),
                               ImGui::GetItemRectMax());
         const auto &io = ImGui::GetIO();
-        if (!interaction_blocked && !scene->Selection().empty() && !io.WantTextInput &&
+        if (scene_editable && !scene->Selection().empty() && !io.WantTextInput &&
             (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
             !ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
             ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
@@ -2825,7 +2845,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           const auto &view = *state_->scene_canvas_viewport;
           if (x >= view.x && y >= view.y && x < view.x + view.width && y < view.y + view.height) {
             state_->native_scene_pick = NativeScenePickRequest{x, y, io.KeyCtrl};
-            if (!io.KeyCtrl)
+            if (scene_editable && !io.KeyCtrl)
               state_->native_scene_drag_origin =
                   std::array{static_cast<std::int32_t>(x), static_cast<std::int32_t>(y)};
             state_->native_scene_drag_snap_step =
@@ -2916,7 +2936,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           static_cast<void>(FrameNativeSceneSelection(*state_, *scene));
       } else {
         CancelNativeSceneGesture(*state_);
-        DrawSceneOverview(*state_, *scene);
+        DrawSceneOverview(*state_, *scene, scene_editable);
       }
     }
   }
@@ -3290,7 +3310,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (ImGui::Button("Discard and Exit"))
       state_->close_choice = CloseChoice::DiscardAndExit;
     ImGui::SameLine();
-    if (ImGui::Button("Cancel")) {
+    if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
       state_->close_choice = CloseChoice::Cancel;
       ImGui::CloseCurrentPopup();
     }

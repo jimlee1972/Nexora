@@ -203,6 +203,18 @@ accessibility tree. Widget labels use those stable IDs and never become the data
 Dear ImGui does not provide a native accessibility tree, so keyboard traversal and screen-reader
 bridges remain ED-M7 work; plugins must not inspect the ImGui widget tree to supply semantics.
 
+## Scene and Hierarchy authoring access
+
+An attached workspace must be writable before Scene/Hierarchy authoring. Read-only projects retain
+filtering, selection, Copy, camera navigation and isolated Play; create, rename, reparent/reorder,
+delete, Paste/Duplicate, Undo/Redo, Save requests and gizmo/overview drag commits are blocked.
+Recovery, Play review and close confirmation share the same mutation gate. Queued Hierarchy writes
+and rename targets are discarded while blocked; interrupted overview/native gestures cancel before
+synthetic or physical release and cannot revive when access returns. The Scene panel identifies
+read-only projects. Hosts without an attached workspace keep their portable authoring behavior.
+Escape explicitly reports Cancel and closes the unsaved-scene modal; subsequent editing and Save
+resume through the normal gate instead of bypassing an open modal.
+
 ## Camera and Light Inspector
 
 Camera and Light sections support single and mixed multi-selection. Camera edits vertical field of
