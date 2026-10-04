@@ -244,6 +244,13 @@
       }
     },
     {
+      "name": "windows-showcase-vulkan-shipping",
+      "inherits": "windows-showcase-shipping",
+      "cacheVariables": {
+        "NEXORA_ENABLE_VULKAN_BACKEND": "ON"
+      }
+    },
+    {
       "name": "windows-showcase-development",
       "inherits": "windows-zig-showcase",
       "cacheVariables": {
@@ -316,6 +323,11 @@
     {
       "name": "windows-showcase-shipping",
       "configurePreset": "windows-showcase-shipping",
+      "configuration": "Shipping"
+    },
+    {
+      "name": "windows-showcase-vulkan-shipping",
+      "configurePreset": "windows-showcase-vulkan-shipping",
       "configuration": "Shipping"
     },
     {
