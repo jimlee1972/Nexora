@@ -202,6 +202,11 @@ public:
   bool SetCamera(NodeKey entity, std::optional<runtime::CameraComponent> camera);
   bool SetCameras(std::span<const NodeKey> entities,
                   std::span<const std::optional<runtime::CameraComponent>> cameras);
+  // Sets one Camera's world position/rotation as one Undo step, preserving its lens, local scale
+  // and parent. Inverts each ancestor TRS, so positions remain exact under shear/mirrored parents.
+  // Stale/missing/non-Camera targets and unrepresentable poses fail before mutation; no-ops keep
+  // Redo.
+  bool AlignCameraToWorldPose(NodeKey entity, runtime::Transform world_pose);
   bool SetLight(NodeKey entity, std::optional<runtime::LightComponent> light);
   bool SetLights(std::span<const NodeKey> entities,
                  std::span<const std::optional<runtime::LightComponent>> lights);

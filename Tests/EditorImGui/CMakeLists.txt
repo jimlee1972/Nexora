@@ -175,3 +175,9 @@ target_include_directories(NexoraGameCameraTests PRIVATE "${PROJECT_SOURCE_DIR}/
 target_link_libraries(NexoraGameCameraTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraGameCameraTests)
 add_test(NAME editor.game_camera_selection COMMAND NexoraGameCameraTests)
+
+add_executable(NexoraCameraAlignmentTests CameraAlignmentTests.cpp)
+target_include_directories(NexoraCameraAlignmentTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraCameraAlignmentTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraCameraAlignmentTests)
+add_test(NAME editor.camera_scene_view_alignment COMMAND NexoraCameraAlignmentTests)

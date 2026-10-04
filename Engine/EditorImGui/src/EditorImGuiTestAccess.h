@@ -112,6 +112,8 @@ public:
                                    std::span<const std::optional<runtime::LightComponent>> lights);
   [[nodiscard]] static std::array<bool, 6>
   InspectorComponentMixed(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  CameraAlignPosition(const EditorImGuiHost &host) noexcept;
   static void FocusInspectorLightField(EditorImGuiHost &host) noexcept;
   static void FocusInspectorCameraField(EditorImGuiHost &host, std::size_t axis) noexcept;
   [[nodiscard]] static std::string_view InspectorComponentText(const EditorImGuiHost &host,

@@ -579,6 +579,47 @@ bool SceneDocument::SetMeshRenderers(
   PushUndo({});
   return true;
 }
+bool SceneDocument::AlignCameraToWorldPose(NodeKey key, runtime::Transform world_pose) {
+  if (Key(key.id) != key || !Camera(key))
+    return false;
+  const auto original = Transform(key.id);
+  auto pose = runtime::NormalizedTransform(world_pose);
+  if (!original || !pose)
+    return false;
+  if (const auto world_matrix = world_.WorldMatrix(key.id))
+    if (const auto world_transform = WorldTransform(key.id);
+        world_transform && std::abs((*world_matrix)[12] - pose->x) <= 1e-10 &&
+        std::abs((*world_matrix)[13] - pose->y) <= 1e-10 &&
+        std::abs((*world_matrix)[14] - pose->z) <= 1e-10 && SameRotation(*world_transform, *pose))
+      return true;
+  pose->sx = pose->sy = pose->sz = 1;
+  std::vector<runtime::Transform> ancestors;
+  std::unordered_set<runtime::Id> visited;
+  for (auto parent = Parent(key.id).value_or(0); parent != 0;) {
+    const auto *ancestor = world_.FindEntity(parent);
+    if (!ancestor || !visited.insert(parent).second)
+      return false;
+    ancestors.push_back(ancestor->transform);
+    parent = ancestor->parent;
+  }
+  // Inverse(root * ... * parent) applies the root inverse first, then each child's inverse.
+  // Using individual local TRS avoids the lossy world-TRS decomposition under scaled parents.
+  for (auto it = ancestors.rbegin(); it != ancestors.rend(); ++it) {
+    *pose = runtime::RelativeTransform(*it, *pose);
+    pose->sx = pose->sy = pose->sz = 1; // Camera orientation ignores scale, including mirrors.
+    pose = runtime::NormalizedTransform(*pose);
+    if (!pose)
+      return false;
+  }
+  pose->sx = original->sx;
+  pose->sy = original->sy;
+  pose->sz = original->sz;
+  if (pose->x == original->x && pose->y == original->y && pose->z == original->z &&
+      SameRotation(*pose, *original))
+    return true;
+  return SetTransforms(std::array{key}, std::array{*pose});
+}
+
 bool SceneDocument::SetTransforms(std::span<const NodeKey> entities,
                                   std::span<const runtime::Transform> transforms) {
   if (entities.size() != transforms.size())

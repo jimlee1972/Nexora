@@ -242,6 +242,14 @@ routes position, Euler-degree rotation, and scale changes through generation-key
 The single-selection Camera component toggle and field edits use the same generation key and undo
 boundary; invalid clipping and stale keys leave the scene unchanged. Camera values persist in the
 runtime scene snapshot, so Save and Reload retain them.
+`SceneDocument::AlignCameraToWorldPose` sets one generation-checked Camera's world position and
+rotation as one transform Undo step. It preserves lens values, local scale, parent, selection and
+other components. Each ancestor's local TRS is inverted from root to immediate parent, retaining
+exact camera translation under sheared and mirrored chains instead of using lossy world scale.
+Invalid/stale/non-Camera targets or non-finite local results reject before mutation. Equivalent
+world positions within 1e-10 and equivalent quaternion rotations keep Undo/Redo unchanged.
+The graphical Camera Inspector exposes this as Use Scene view pose when one Camera is selected and
+native Scene 3D is enabled/available; workspace/modal gates apply and existing drafts are canceled.
 The single-selection Light toggle and intensity field follow the same generation and undo rules;
 intensity must be finite and nonnegative.
 The graphical Camera/Light host also supports mixed multi-selection and rechecks current selection
