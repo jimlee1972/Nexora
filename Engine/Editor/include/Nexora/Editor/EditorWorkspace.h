@@ -2,6 +2,7 @@
 
 #include "Nexora/Editor/Api.h"
 #include "Nexora/Editor/InspectorRotation.h"
+#include "Nexora/Editor/MeshImport.h"
 #include "Nexora/Foundation/Types.h"
 #include "Nexora/Runtime/AssetPipeline.h"
 #include "Nexora/Runtime/EditorSdk.h"
@@ -123,6 +124,9 @@ struct AssetEntry final {
   std::string artifact_hash;
   ImportState state{ImportState::Pending};
   std::string error;
+  // Immutable CPU geometry for successfully imported triangulated .obj assets; owning across
+  // workspace copies. GPU residency and reimport publication are separate contracts.
+  std::shared_ptr<const MeshGeometry> mesh{};
 };
 
 class NEXORA_EDITOR_API AssetWorkspace final {

@@ -68,6 +68,20 @@ into renderer or platform internals.
   oversized, symlinked, or duplicate-UUID metadata fails without replacing the last good index.
   `PersistentReadOnly` never creates missing sidecars and rejects incomplete identity state.
   `DerivedFromPath` remains an explicitly non-persistent compatibility mode.
+  Triangulated `.obj` entries additionally retain immutable, shared owning CPU `MeshGeometry`
+  snapshots (positions, normals, UVs, uint16 indices, and local bounds). `ImportObjMesh` is a
+  synchronous parser with no I/O or publication; workspace jobs invoke it off the UI thread.
+  Positive and relative negative OBJ indices are supported, missing normals become flat face
+  normals, and material/group declarations never open referenced files. Unsupported records,
+  non-triangular/degenerate faces, malformed indices, and nonfinite coordinates fail with a line
+  diagnostic and no partial geometry. Other asset types retain their existing indexing behavior.
+  OBJ reads and parser input are capped at 16 MiB, coordinate/expanded vertex records at 65,535,
+  and indices at 1,048,576. Cancellation is checked during chunk reads and at each parser line.
+  A workspace retains at most 128 MiB of CPU mesh vector capacity; assets exceeding the sorted
+  import budget fail individually. Failed entries remain indexed with their UUID/path/error;
+  background workspace jobs emit bounded `asset.import_failed` diagnostics. Existing typed
+  reimport only publishes hashes: geometry refresh, renderer residency, and graphical assignment
+  remain separate work. Old shared geometry snapshots survive index replacement/destruction.
 - `ContentBrowserModel` owns its sorted item snapshot, breadcrumb and stable-ID selection state.
   Virtual ranges borrow item pointers until the next mutation. Rename, multi-item move, and delete
   validate a complete replacement snapshot before committing and retain one undo snapshot.

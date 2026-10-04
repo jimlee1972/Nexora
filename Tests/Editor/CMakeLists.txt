@@ -13,6 +13,11 @@ target_link_libraries(NexoraEditorViewportMathTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraEditorViewportMathTests)
 add_test(NAME editor.viewport_math COMMAND NexoraEditorViewportMathTests)
 
+add_executable(NexoraMeshImportTests MeshImportTests.cpp)
+target_link_libraries(NexoraMeshImportTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraMeshImportTests)
+add_test(NAME editor.mesh_import COMMAND NexoraMeshImportTests)
+
 add_executable(NexoraParserRobustnessTests ParserRobustnessTests.cpp)
 target_link_libraries(NexoraParserRobustnessTests PRIVATE Nexora::Editor)
 if(NEXORA_ENABLE_NETWORK)
