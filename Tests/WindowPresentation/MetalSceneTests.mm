@@ -29,27 +29,30 @@ int main(int argc, char **argv) {
       return fail(__LINE__);
     // Synthetic Cocoa events verify native physical-key and top-left pixel pointer translation.
     auto *nativeWindow = (__bridge NSWindow *)windows->NativeHandle(window.handle);
-    [NSApp postEvent:[NSEvent keyEventWithType:NSEventTypeKeyDown
-                                            location:NSMakePoint(0, 0)
-                                       modifierFlags:0
-                                           timestamp:0
-                                        windowNumber:nativeWindow.windowNumber
-                                             context:nil
-                                          characters:@"1"
-                         charactersIgnoringModifiers:@"1"
-                                           isARepeat:NO
-                                             keyCode:18]
-             atStart:NO];
-    [NSApp postEvent:[NSEvent mouseEventWithType:NSEventTypeLeftMouseDown
-                                        location:NSMakePoint(20, 20)
-                                   modifierFlags:0
-                                       timestamp:0
-                                    windowNumber:nativeWindow.windowNumber
-                                         context:nil
-                                     eventNumber:1
-                                      clickCount:1
-                                        pressure:1]
-             atStart:NO];
+    // Initialize AppKit's event queue before posting synthetic events; its first dequeue can
+    // perform launch processing and discard events queued before that initialization.
+    static_cast<void>(windows->PumpEvents());
+    auto *keyEvent = [NSEvent keyEventWithType:NSEventTypeKeyDown
+                                      location:NSMakePoint(0, 0)
+                                 modifierFlags:0
+                                     timestamp:0
+                                  windowNumber:nativeWindow.windowNumber
+                                       context:nil
+                                    characters:@"1"
+                   charactersIgnoringModifiers:@"1"
+                                     isARepeat:NO
+                                       keyCode:18];
+    [NSApp postEvent:keyEvent atStart:NO];
+    auto *mouseEvent = [NSEvent mouseEventWithType:NSEventTypeLeftMouseDown
+                                          location:NSMakePoint(20, 20)
+                                     modifierFlags:0
+                                         timestamp:0
+                                      windowNumber:nativeWindow.windowNumber
+                                           context:nil
+                                       eventNumber:1
+                                        clickCount:1
+                                          pressure:1];
+    [NSApp postEvent:mouseEvent atStart:NO];
     bool keySeen = false, pointerSeen = false, buttonSeen = false;
     for (const auto &event : windows->PumpEvents()) {
       if (event.type == Window::WindowEventType::Key)
@@ -64,7 +67,9 @@ int main(int argc, char **argv) {
     }
     if (!keySeen || !pointerSeen || !buttonSeen) {
       std::cerr << "Cocoa input: key=" << keySeen << " pointer=" << pointerSeen
-                << " button=" << buttonSeen << '\n';
+                << " button=" << buttonSeen << " window=" << nativeWindow.windowNumber
+                << " keyWindow=" << keyEvent.window.windowNumber
+                << " mouseWindow=" << mouseEvent.window.windowNumber << '\n';
       return fail(__LINE__);
     }
     auto surface = std::make_unique<MetalSurface>(
