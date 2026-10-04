@@ -4,7 +4,26 @@ on:
   pull_request:
 
 jobs:
+  changes:
+    name: Documentation and change detection
+    runs-on: ubuntu-latest
+    outputs:
+      full_build: ${{ steps.route.outputs.full_build }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Test documentation routing
+        run: python3 Tools/Build/TestDocumentationCI.py
+      - name: Validate changed documentation and select build scope
+        id: route
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: python3 Tools/Build/DocumentationCI.py --event "$GITHUB_EVENT_PATH" --event-name "$EVENT_NAME" --github-output "$GITHUB_OUTPUT"
+
   desktop:
+    needs: changes
+    if: needs.changes.outputs.full_build == 'true'
     env:
       SLANG_VERSION: 2026.18
       NEXORA_SHOWCASE_EVIDENCE_DIR: ${{ github.workspace }}/build/${{ matrix.preset }}/showcase-visual-evidence
@@ -94,6 +113,8 @@ jobs:
   # Runs the graphical Editor against a real X11 server (Xvfb) with Mesa's software Vulkan. It is a
   # separate job so the feature-on build (Dear ImGui is fetched) cannot disturb the main matrix.
   editor-linux-display:
+    needs: changes
+    if: needs.changes.outputs.full_build == 'true'
     name: Editor Linux display acceptance (Xvfb)
     runs-on: ubuntu-latest
     env:
@@ -136,6 +157,8 @@ jobs:
         run: ctest --preset linux-development -R '^window_presentation\.vulkan_scene$' --output-on-failure
 
   zig-mobile-cross-build:
+    needs: changes
+    if: needs.changes.outputs.full_build == 'true'
     name: Zig object smoke (${{ matrix.target }})
     strategy:
       fail-fast: false
@@ -160,6 +183,8 @@ jobs:
           -femit-bin=${{ runner.temp }}/nexora-${{ matrix.target }}.o
 
   showcase-windows-shipping-package:
+    needs: changes
+    if: needs.changes.outputs.full_build == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -192,6 +217,8 @@ jobs:
   # A pinned lavapipe CPU driver executes native Win32 Vulkan acceptance on hosted runners.
   # This is software-driver coverage; physical GPU acceptance remains separate.
   showcase-windows-vulkan-package:
+    needs: changes
+    if: needs.changes.outputs.full_build == 'true'
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
@@ -248,6 +275,8 @@ jobs:
             build/windows-showcase-vulkan-shipping/artifacts/showcase-windows-v1/
 
   showcase-posix-shipping-package:
+    needs: changes
+    if: needs.changes.outputs.full_build == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -294,6 +323,8 @@ jobs:
             build/${{ matrix.preset }}/artifacts/release-native/
 
   mimalloc-smoke:
+    needs: changes
+    if: needs.changes.outputs.full_build == 'true'
     name: mimalloc backend (${{ matrix.preset }})
     strategy:
       fail-fast: false
@@ -322,6 +353,8 @@ jobs:
       - run: ctest --preset ${{ matrix.preset }}
 
   mobile-configure-smoke:
+    needs: changes
+    if: needs.changes.outputs.full_build == 'true'
     name: CMake configure smoke (${{ matrix.preset }})
     strategy:
       fail-fast: false
@@ -347,6 +380,8 @@ jobs:
         run: cmake --preset ${{ matrix.preset }}
 
   build-contract:
+    needs: changes
+    if: needs.changes.outputs.full_build == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -381,3 +416,35 @@ jobs:
       - run: cmake --preset linux-thread-sanitizer -DNEXORA_ENABLE_NATIVE_BACKENDS=OFF
       - run: cmake --build --preset linux-thread-sanitizer
       - run: ctest --preset linux-thread-sanitizer
+
+  ci-result:
+    name: CI result
+    if: always()
+    needs:
+      - changes
+      - desktop
+      - editor-linux-display
+      - zig-mobile-cross-build
+      - showcase-windows-shipping-package
+      - showcase-windows-vulkan-package
+      - showcase-posix-shipping-package
+      - mimalloc-smoke
+      - mobile-configure-smoke
+      - build-contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all jobs selected by the route to succeed
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, sys
+          jobs = json.loads(os.environ["JOB_RESULTS"])
+          route = jobs.pop("changes")
+          full = route["outputs"].get("full_build")
+          expected = "success" if full == "true" else "skipped"
+          failed = [name for name, job in jobs.items() if job["result"] != expected]
+          if route["result"] != "success" or full not in {"true", "false"} or failed:
+              sys.exit(f"CI failed: route={route['result']}, full_build={full}, unexpected jobs={failed}")
+          print("PASS: " + ("full build" if full == "true" else "documentation only"))
+          PYTHON

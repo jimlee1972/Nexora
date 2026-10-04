@@ -8,6 +8,10 @@ Completed items use the green `✅` marker. After every repository content chang
 status and the progress/status summary in the repository-root [`README.md`](../README.md) must be
 updated together and remain evidence-based.
 
+Markdown-only edits use the [documentation CI route](../Tools/Build/README.md), including changed
+local-link checks and paired updates for existing same-name bilingual roadmaps. CI/configuration,
+code and tag changes retain full validation; roadmap implementation acceptance remains separate.
+
 ### Document index
 
 | Document | Progress | English edition |
@@ -62,6 +66,9 @@ The documents are planning artifacts. They do not themselves authorize commands,
 
 已完成項目統一使用綠色 `✅` 標記。每次 repository 內容更新後，必須一併更新受影響的
 Roadmap 狀態與 repository root [`README.md`](../README.md) 的進度／狀態摘要，且所有完成標記都必須有驗收證據。
+
+純 Markdown 變更使用[文件 CI 分流](../Tools/Build/README.md)，檢查變動文件的本地連結，並要求
+現有同名中英文 roadmap 同批更新。CI／設定、程式與 tag 仍執行完整驗證；引擎里程碑驗收獨立追蹤。
 
 ### 文件索引
 
