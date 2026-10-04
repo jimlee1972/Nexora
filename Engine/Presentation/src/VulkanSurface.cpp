@@ -23,6 +23,7 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <limits>
 #include <unordered_map>
@@ -30,6 +31,13 @@
 
 namespace Nexora::Presentation {
 namespace {
+bool Initialized(VkResult result, const char *operation) {
+  if (result == VK_SUCCESS)
+    return true;
+  std::fprintf(stderr, "Vulkan presentation initialization failed: %s (VkResult=%d)\n", operation,
+               static_cast<int>(result));
+  return false;
+}
 class VulkanSurface final : public ISurface {
 public:
   VulkanSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows)
@@ -59,21 +67,23 @@ public:
     create.pApplicationInfo = &app;
     create.enabledExtensionCount = 2;
     create.ppEnabledExtensionNames = extensions;
-    if (vkCreateInstance(&create, nullptr, &instance_) != VK_SUCCESS)
+    if (!Initialized(vkCreateInstance(&create, nullptr, &instance_), "vkCreateInstance"))
       return;
 #if defined(__linux__)
     VkXlibSurfaceCreateInfoKHR surfaceCreate{};
     surfaceCreate.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
     surfaceCreate.dpy = display_;
     surfaceCreate.window = nativeWindow_;
-    if (vkCreateXlibSurfaceKHR(instance_, &surfaceCreate, nullptr, &surface_) != VK_SUCCESS)
+    if (!Initialized(vkCreateXlibSurfaceKHR(instance_, &surfaceCreate, nullptr, &surface_),
+                     "vkCreateXlibSurfaceKHR"))
       return;
 #else
     VkWin32SurfaceCreateInfoKHR surfaceCreate{};
     surfaceCreate.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceCreate.hinstance = GetModuleHandleW(nullptr);
     surfaceCreate.hwnd = nativeWindow_;
-    if (vkCreateWin32SurfaceKHR(instance_, &surfaceCreate, nullptr, &surface_) != VK_SUCCESS)
+    if (!Initialized(vkCreateWin32SurfaceKHR(instance_, &surfaceCreate, nullptr, &surface_),
+                     "vkCreateWin32SurfaceKHR"))
       return;
 #endif
     std::uint32_t count = 0;
@@ -97,8 +107,11 @@ public:
       if (physical_)
         break;
     }
-    if (!physical_)
+    if (!physical_) {
+      std::fprintf(stderr,
+                   "Vulkan presentation initialization failed: no graphics/present queue\n");
       return;
+    }
     VkPhysicalDeviceProperties deviceProperties{};
     vkGetPhysicalDeviceProperties(physical_, &deviceProperties);
     diagnostics_.softwareRasterizer = deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
@@ -115,14 +128,15 @@ public:
     deviceCreate.pQueueCreateInfos = &queueCreate;
     deviceCreate.enabledExtensionCount = 1;
     deviceCreate.ppEnabledExtensionNames = deviceExtensions;
-    if (vkCreateDevice(physical_, &deviceCreate, nullptr, &device_) != VK_SUCCESS)
+    if (!Initialized(vkCreateDevice(physical_, &deviceCreate, nullptr, &device_), "vkCreateDevice"))
       return;
     vkGetDeviceQueue(device_, queueFamily_, 0, &queue_);
     VkCommandPoolCreateInfo poolCreate{};
     poolCreate.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolCreate.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolCreate.queueFamilyIndex = queueFamily_;
-    if (vkCreateCommandPool(device_, &poolCreate, nullptr, &commandPool_) != VK_SUCCESS)
+    if (!Initialized(vkCreateCommandPool(device_, &poolCreate, nullptr, &commandPool_),
+                     "vkCreateCommandPool"))
       return;
     valid_ = Recreate();
   }
@@ -1213,7 +1227,7 @@ private:
         vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr, &uiPipeline_);
     vkDestroyShaderModule(device_, fragment, nullptr);
     vkDestroyShaderModule(device_, vertex, nullptr);
-    return result == VK_SUCCESS;
+    return Initialized(result, "vkCreateGraphicsPipelines (UI)");
   }
 #endif
   bool CreateSceneResources() {
@@ -1360,7 +1374,7 @@ private:
         vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr, &scenePipeline_);
     vkDestroyShaderModule(device_, fragment, nullptr);
     vkDestroyShaderModule(device_, vertex, nullptr);
-    return result == VK_SUCCESS;
+    return Initialized(result, "vkCreateGraphicsPipelines (scene)");
   }
   void DestroySwapchain() {
     for (auto &frame : frames_) {
@@ -1399,14 +1413,17 @@ private:
   }
   bool Recreate() {
     VkSurfaceCapabilitiesKHR capabilities{};
-    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_, surface_, &capabilities) != VK_SUCCESS)
+    if (!Initialized(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_, surface_, &capabilities),
+                     "vkGetPhysicalDeviceSurfaceCapabilitiesKHR"))
       return false;
     std::uint32_t formatCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physical_, surface_, &formatCount, nullptr);
     std::vector<VkSurfaceFormatKHR> formats(formatCount);
     vkGetPhysicalDeviceSurfaceFormatsKHR(physical_, surface_, &formatCount, formats.data());
-    if (formats.empty())
+    if (formats.empty()) {
+      std::fprintf(stderr, "Vulkan presentation initialization failed: no surface formats\n");
       return false;
+    }
     auto selected = formats.front();
     if (const auto rgba = std::find_if(formats.begin(), formats.end(),
                                        [](const auto &format) {
@@ -1458,7 +1475,8 @@ private:
     create.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     create.presentMode = mode;
     create.clipped = VK_TRUE;
-    if (vkCreateSwapchainKHR(device_, &create, nullptr, &swapchain_) != VK_SUCCESS)
+    if (!Initialized(vkCreateSwapchainKHR(device_, &create, nullptr, &swapchain_),
+                     "vkCreateSwapchainKHR"))
       return false;
     swapchainFormat_ = selected.format;
     std::uint32_t imageCount = 0;
@@ -1473,7 +1491,8 @@ private:
       view.viewType = VK_IMAGE_VIEW_TYPE_2D;
       view.format = swapchainFormat_;
       view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-      if (vkCreateImageView(device_, &view, nullptr, &imageViews_[index]) != VK_SUCCESS)
+      if (!Initialized(vkCreateImageView(device_, &view, nullptr, &imageViews_[index]),
+                       "vkCreateImageView"))
         return false;
     }
 #if defined(NEXORA_HAS_NATIVE_UI_SHADERS)
@@ -1487,7 +1506,8 @@ private:
     allocate.commandPool = commandPool_;
     allocate.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocate.commandBufferCount = static_cast<std::uint32_t>(commands.size());
-    if (vkAllocateCommandBuffers(device_, &allocate, commands.data()) != VK_SUCCESS)
+    if (!Initialized(vkAllocateCommandBuffers(device_, &allocate, commands.data()),
+                     "vkAllocateCommandBuffers"))
       return false;
     VkSemaphoreCreateInfo semaphore{};
     semaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
