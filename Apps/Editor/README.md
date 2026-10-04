@@ -383,3 +383,11 @@ Hierarchy Ctrl+A now selects its complete filtered/expanded visible row set, inc
 rows, while excluding unfiltered collapsed descendants. It works in read-only projects and clears
 selection when no row matches. Text inputs and other focused panels retain Ctrl+A; recovery, Play
 review and close confirmation block the command. Selection leaves scene content and history intact.
+
+
+Focused Hierarchy F2 now opens a generation-keyed Rename dialog for one selected entity, focuses
+its name and commits on Enter as one metadata Undo; Escape cancels. Rename blocks other authoring,
+clipboard/Undo/Save/Play shortcuts and queued Hierarchy writes. External modals, write-access loss,
+focus loss and stale entity/document generations cancel the draft. Empty names remain retryable.
+Dear ImGui uses a shared 32-bit Unicode text profile so supplementary characters survive InputText,
+Undo/Redo and scene persistence; this does not establish default-font glyph or native IME acceptance.

@@ -31,6 +31,9 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
 
 ### Verified implementation checklist
 
+- ✅ Dear ImGui and direct consumers share 32-bit Unicode text storage. Real Rename input retains
+  supplementary scalar values through UTF-8 metadata replay and persistence; default font coverage
+  and target-host DPI/IME acceptance remain open.
 - ✅ The graphical shell is optional and isolated in `NexoraEditorImGui`; Editor Core has no
   Dear ImGui dependency.
 - ✅ Dear ImGui is pinned to `v1.91.9b-docking`, docking is enabled, and unmanaged `imgui.ini`

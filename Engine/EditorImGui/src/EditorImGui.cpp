@@ -30,6 +30,7 @@
 #include <vector>
 
 namespace nexora::editor::imgui {
+static_assert(sizeof(ImWchar) == 4, "Editor text input must preserve all Unicode scalar values");
 struct EditorImGuiHost::State final {
   struct HierarchySelectionRequest final {
     SceneDocument::NodeKey entity;
@@ -120,6 +121,8 @@ struct EditorImGuiHost::State final {
   std::optional<int> hierarchy_reorder_request;
   std::optional<std::pair<SceneDocument::NodeKey, bool>> hierarchy_expansion_request;
   std::optional<SceneDocument::NodeKey> hierarchy_rename_target;
+  bool hierarchy_rename_focus_pending = false;
+  std::optional<std::array<float, 2>> hierarchy_rename_position;
   std::optional<std::pair<SceneDocument::NodeKey, std::string>> hierarchy_rename_request;
   std::string hierarchy_error;
   std::string hierarchy_status;
@@ -601,7 +604,8 @@ bool AcceptAssetDrop(ProjectContentSession &content, const std::filesystem::path
 }
 
 template <typename StateT>
-void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool editable) {
+void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool editable,
+                                   bool retain_rename) {
   state.hierarchy_visible_rows = 0;
   state.hierarchy_rendered_rows = 0;
   state.hierarchy_selection = 0;
@@ -623,7 +627,8 @@ void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool edi
     state.hierarchy_move_request.reset();
     state.hierarchy_reorder_request.reset();
     state.hierarchy_rename_request.reset();
-    state.hierarchy_rename_target.reset();
+    if (!retain_rename)
+      state.hierarchy_rename_target.reset();
   }
   const auto nodes = scene->Nodes();
   std::erase_if(state.hierarchy_expanded, [scene](const auto key) {
@@ -769,7 +774,7 @@ template <typename StateT> void DuplicateHierarchySelection(StateT &state, Scene
 
 template <typename StateT>
 void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
-                   bool interaction_blocked, bool editable) {
+                   bool interaction_blocked, bool editable, bool rename_editable) {
   ImGui::SetNextItemWidth(-1.0F);
   ImGui::InputTextWithHint("##hierarchy-filter", "Filter entities...",
                            state.hierarchy_filter.data(), state.hierarchy_filter.size());
@@ -877,7 +882,11 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
       --count;
     std::memcpy(state.hierarchy_rename.data(), node.name.data(), count);
     state.hierarchy_rename[count] = {};
+    CancelSceneGestures(state);
+    CancelInspectorDrafts(state);
     state.hierarchy_rename_target = node.Key();
+    state.hierarchy_rename_focus_pending = true;
+    static_cast<void>(shell.RouteCommand("editor.scene.rename"));
     state.hierarchy_error.clear();
   };
   const SceneDocument::NodeView *selected_node = nullptr;
@@ -888,6 +897,9 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
       selected_node = &*selected;
   }
 
+  if (selected_node && editable && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+      !ImGui::GetIO().WantTextInput && ImGui::Shortcut(ImGuiKey_F2, ImGuiInputFlags_RouteFocused))
+    begin_rename(*selected_node);
   ImGui::BeginDisabled(selected_node == nullptr || !editable);
   if (ImGui::SmallButton("Rename") && selected_node != nullptr)
     begin_rename(*selected_node);
@@ -1001,16 +1013,28 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
     ImGui::OpenPopup("Rename entity###editor.hierarchy.rename");
   if (ImGui::BeginPopupModal("Rename entity###editor.hierarchy.rename", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
+    ImGui::BeginDisabled(!rename_editable);
     ImGui::SetNextItemWidth(320.0F);
-    ImGui::InputText("Name", state.hierarchy_rename.data(), state.hierarchy_rename.size());
-    const bool submit = ImGui::Button("Rename") || ImGui::IsKeyPressed(ImGuiKey_Enter, false);
+    if (state.hierarchy_rename_focus_pending) {
+      ImGui::SetKeyboardFocusHere();
+      state.hierarchy_rename_focus_pending = false;
+    }
+    const bool entered =
+        ImGui::InputText("Name", state.hierarchy_rename.data(), state.hierarchy_rename.size(),
+                         ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue);
+    const bool clicked = ImGui::Button("Rename");
+    const auto rename_min = ImGui::GetItemRectMin(), rename_max = ImGui::GetItemRectMax();
+    state.hierarchy_rename_position =
+        std::array{(rename_min.x + rename_max.x) * 0.5F, (rename_min.y + rename_max.y) * 0.5F};
+    const bool submit = entered || clicked || ImGui::IsKeyPressed(ImGuiKey_Enter, false);
+    ImGui::EndDisabled();
     ImGui::SameLine();
-    const bool cancel = ImGui::Button("Cancel");
+    const bool cancel = ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false);
     if (!state.hierarchy_rename_target) {
       // The target went stale (entity or document replaced) while the modal was open.
       state.hierarchy_error.clear();
       ImGui::CloseCurrentPopup();
-    } else if (submit) {
+    } else if (submit && rename_editable && !cancel) {
       if (scene->Rename(*state.hierarchy_rename_target,
                         std::string(state.hierarchy_rename.data()))) {
         state.hierarchy_rename_target.reset();
@@ -2709,6 +2733,8 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
         state_->game_input_focused = false;
         CancelSceneGestures(*state_);
         CancelInspectorDrafts(*state_);
+        state_->hierarchy_rename_target.reset();
+        state_->hierarchy_rename_focus_pending = false;
       }
       io.AddFocusEvent(event.value0 != 0);
       break;
@@ -2881,6 +2907,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->game_camera_selection = 0;
   }
   state_->hierarchy_cut_position.reset();
+  state_->hierarchy_rename_position.reset();
   state_->content_add_mesh_position.reset();
   state_->content_asset_positions.clear();
   state_->camera_align_position.reset();
@@ -2906,9 +2933,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   // Query from the same root ID scope that opens the modal, before entering a panel window.
   const bool close_confirmation_open =
       state_->close_prompt_requested || ImGui::IsPopupOpen("Unsaved scene###editor.close");
-  const bool interaction_blocked =
+  const bool external_modal_open =
       recovery_available || state_->play_apply_open || close_confirmation_open;
-  const bool scene_editable = (!workspace || workspace->Writable()) && !interaction_blocked;
+  const bool rename_editable = (!workspace || workspace->Writable()) && !external_modal_open;
+  const bool rename_open = state_->hierarchy_rename_target.has_value();
+  const bool interaction_blocked = external_modal_open || rename_open;
+  const bool scene_editable = rename_editable && !rename_open;
   if (const auto *payload = ImGui::GetDragDropPayload();
       payload && payload->IsDataType(AssetDragPayload::kType.data()) &&
       (!state_->app_focused || !scene_editable || (content && !content->Writable()) ||
@@ -2998,9 +3028,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->focus_initial_scene = true;
   }
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
-  ApplyPendingHierarchyRequests(*state_, scene, scene_editable);
+  ApplyPendingHierarchyRequests(*state_, scene, scene_editable, rename_open && rename_editable);
   if (ImGui::Begin(hierarchy_window.c_str()))
-    DrawHierarchy(*state_, scene, shell, interaction_blocked, scene_editable);
+    DrawHierarchy(*state_, scene, shell, interaction_blocked, scene_editable, rename_editable);
   ImGui::End();
   const auto inspector_window = PanelWindowName("nexora.inspector");
   if (ImGui::Begin(inspector_window.c_str())) {
@@ -4181,6 +4211,17 @@ std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHos
 void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept {
   Activate(host.state_->context);
   ImGui::GetIO().ConfigInputTrickleEventQueue = enabled;
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::HierarchyRenamePosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->hierarchy_rename_position;
+}
+bool EditorImGuiTestAccess::HierarchyRenameOpen(const EditorImGuiHost &host) noexcept {
+  return host.state_->hierarchy_rename_target.has_value();
+}
+std::string_view EditorImGuiTestAccess::HierarchyRenameText(const EditorImGuiHost &host) noexcept {
+  return host.state_->hierarchy_rename.data();
 }
 
 void EditorImGuiTestAccess::SetHierarchyFilter(EditorImGuiHost &host,

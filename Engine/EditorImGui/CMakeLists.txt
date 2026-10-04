@@ -13,6 +13,9 @@ add_library(NexoraDearImGui ${NEXORA_DEAR_IMGUI_LIBRARY_TYPE}
   "${nexora_imgui_SOURCE_DIR}/imgui_tables.cpp"
   "${nexora_imgui_SOURCE_DIR}/imgui_widgets.cpp")
 target_include_directories(NexoraDearImGui SYSTEM PUBLIC "${nexora_imgui_SOURCE_DIR}")
+# WindowEvent carries Unicode scalar values; keep supplementary characters across InputText.
+# This changes ImWchar-dependent layouts, so every direct consumer needs the same definition.
+target_compile_definitions(NexoraDearImGui PUBLIC IMGUI_USE_WCHAR32=1)
 set_target_properties(NexoraDearImGui PROPERTIES POSITION_INDEPENDENT_CODE ON)
 if(NEXORA_LINK_MODE STREQUAL "Modular")
   if(WIN32)
