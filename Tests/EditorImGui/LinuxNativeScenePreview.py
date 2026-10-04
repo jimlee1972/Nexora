@@ -337,10 +337,10 @@ def main() -> int:
         subprocess.run([args.xdotool, "click", "1"], env=environment, check=True)
         time.sleep(0.15)
         scene_file = root / ".nexora/scenes/Main.scene"
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and not scene_file.is_file():
-            time.sleep(0.05)
+            subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+            time.sleep(0.1)
         if not scene_file.is_file():
             raise RuntimeError("native Scene could not save before proxy drag")
         initial_scene = scene_file.read_text()
