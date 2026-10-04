@@ -267,6 +267,11 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   的平均原點及首個根節點的 local 軸；選取子節點不重複加權，拖曳期間鎖定工具、pivot 及相機。
   Linux Xvfb 驗證雙根節點選取、Center 縮放吸附、Center 旋轉及單次 Undo。
 
+- ✅ Public Presentation instance 現可接收精確 affine model matrix，Vulkan／DX12／Metal 共用
+  private inverse-transpose normal packing。Portable 與 native Vulkan pixel test 涵蓋鏡像／剪切
+  matrix 及 invalid-then-valid draw；Scene／Game authored-mesh 使用流程與 graphical 驗收仍待完成
+  （[ADR-0003](ADR-0003-Presentation-Affine-Instances.md)）。
+
 - ✅ 深層鏡像／剪切階層的原點與 gizmo 位置換算現為 affine-exact。SceneDocument 擁有精確
   world 及預期 matrix snapshot；位移與 Center 旋轉／縮放的位置與 commit 一致，
   `editor.affine_gizmo_contract` 驗證單次 Undo／Redo 及 save／reload。原生 authored-mesh affine

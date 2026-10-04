@@ -4,6 +4,7 @@
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include "Nexora/Presentation/Surface.h"
+#include "SceneInstanceUpload.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -306,25 +307,9 @@ public:
     for (const auto index : drawData.indices)
       if (index >= drawData.vertices.size())
         return SurfaceStatus::InvalidDescriptor;
-    for (const auto &instance : drawData.instances) {
-      for (const auto value : instance.translation)
-        if (!std::isfinite(value))
-          return SurfaceStatus::InvalidDescriptor;
-      for (const auto value : instance.scale)
-        if (!std::isfinite(value) || std::abs(value) < 0.00001F)
-          return SurfaceStatus::InvalidDescriptor;
-      for (const auto value : instance.color)
-        if (!std::isfinite(value))
-          return SurfaceStatus::InvalidDescriptor;
-      float rotation_length_squared = 0.0F;
-      for (const auto value : instance.rotation) {
-        if (!std::isfinite(value))
-          return SurfaceStatus::InvalidDescriptor;
-        rotation_length_squared += value * value;
-      }
-      if (std::abs(rotation_length_squared - 1.0F) > 0.01F)
-        return SurfaceStatus::InvalidDescriptor;
-    }
+    const auto packedInstances = PackSceneInstances(drawData.instances);
+    if (!packedInstances)
+      return SurfaceStatus::InvalidDescriptor;
     if (drawData.textureUploads.size() > 16)
       return SurfaceStatus::InvalidDescriptor;
     for (const auto &upload : drawData.textureUploads)
@@ -347,7 +332,8 @@ public:
     const SceneInstance identity{};
     const auto instances = drawData.instances.empty() ? std::span<const SceneInstance>(&identity, 1)
                                                       : drawData.instances;
-    const auto instanceBytes = std::as_bytes(instances);
+    const auto instanceBytes =
+        std::as_bytes(std::span<const SceneInstanceUpload>(*packedInstances));
     const auto vertexBytes = std::as_bytes(drawData.vertices);
     const auto indexBytes = std::as_bytes(drawData.indices);
     const auto instanceOffset = (vertexBytes.size() + indexBytes.size() + 3) & ~std::size_t{3};
@@ -457,7 +443,7 @@ public:
     const D3D12_VERTEX_BUFFER_VIEW views[]{vertexView,
                                            {geometryBase + instanceOffset,
                                             static_cast<UINT>(instanceBytes.size()),
-                                            sizeof(SceneInstance)}};
+                                            sizeof(SceneInstanceUpload)}};
     commands_->IASetVertexBuffers(0, 2, views);
     commands_->IASetIndexBuffer(&indexView);
     if (drawData.batches.empty()) {
@@ -683,23 +669,26 @@ private:
       };
       Texture2D materialTexture : register(t0);
       SamplerState materialSampler : register(s0);
-      struct VSInput { float3 position : POSITION; float2 uv : TEXCOORD; float3 normal : NORMAL; float3 translation : INSTANCE_POSITION; float3 scale : INSTANCE_SCALE; float4 color : INSTANCE_COLOR; float4 rotation : INSTANCE_ROTATION; };
+      struct VSInput { float3 position : POSITION; float2 uv : TEXCOORD; float3 normal : NORMAL; float4 model0 : INSTANCE_MODEL0; float4 model1 : INSTANCE_MODEL1; float4 model2 : INSTANCE_MODEL2; float4 normal0 : INSTANCE_NORMAL0; float4 normal1 : INSTANCE_NORMAL1; float4 normal2 : INSTANCE_NORMAL2; float4 color : INSTANCE_COLOR; };
       struct PSInput { float4 position : SV_Position; float2 uv : TEXCOORD; float3 normal : NORMAL; float4 color : COLOR; };
-      float3 Rotate(float3 v, float4 q) {
-        float3 t = 2.0 * cross(q.xyz, v);
-        return v + q.w * t + cross(q.xyz, t);
+      float3 SafeNormal(float3 value) {
+        float magnitude = max(max(abs(value.x), abs(value.y)), abs(value.z));
+        return magnitude > 0.0 ? normalize(value / magnitude) : float3(0, 0, 0);
       }
       PSInput VSMain(VSInput input) {
         PSInput output;
-        output.position = mul(mvp, float4(Rotate(input.position * input.scale, input.rotation) + input.translation, 1.0));
-        output.normal = Rotate(input.normal / input.scale, input.rotation);
+        float4 p = float4(input.position, 1.0);
+        float3 world = float3(dot(input.model0, p), dot(input.model1, p), dot(input.model2, p));
+        output.position = mul(mvp, float4(world, 1.0));
+        float3 normal = SafeNormal(input.normal);
+        output.normal = float3(dot(input.normal0.xyz, normal), dot(input.normal1.xyz, normal), dot(input.normal2.xyz, normal));
         output.color = input.color;
         output.uv = input.uv;
         return output;
       }
       float4 PSMain(PSInput input) : SV_Target {
-        float3 n = normalize(input.normal);
-        float ndotl = saturate(dot(n, normalize(-lightDirection)));
+        float3 n = SafeNormal(input.normal);
+        float ndotl = saturate(dot(n, SafeNormal(-lightDirection)));
         float3 ambient = baseColor.rgb * 0.15;
         float3 lit = baseColor.rgb * lightColor * ndotl;
         return float4((ambient + lit) * input.color.rgb, baseColor.a * input.color.a) * materialTexture.Sample(materialSampler, input.uv);
@@ -718,14 +707,25 @@ private:
          D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(SceneVertex, normal),
          D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"INSTANCE_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1,
-         offsetof(SceneInstance, translation), D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
-        {"INSTANCE_SCALE", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, offsetof(SceneInstance, scale),
-         D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
-        {"INSTANCE_COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, offsetof(SceneInstance, color),
-         D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
-        {"INSTANCE_ROTATION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,
-         offsetof(SceneInstance, rotation), D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1}};
+        {"INSTANCE_MODEL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,
+         offsetof(SceneInstanceUpload, model) + 0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"INSTANCE_MODEL", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,
+         offsetof(SceneInstanceUpload, model) + 16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA,
+         1},
+        {"INSTANCE_MODEL", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,
+         offsetof(SceneInstanceUpload, model) + 32, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA,
+         1},
+        {"INSTANCE_NORMAL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,
+         offsetof(SceneInstanceUpload, normal) + 0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA,
+         1},
+        {"INSTANCE_NORMAL", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,
+         offsetof(SceneInstanceUpload, normal) + 16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA,
+         1},
+        {"INSTANCE_NORMAL", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,
+         offsetof(SceneInstanceUpload, normal) + 32, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA,
+         1},
+        {"INSTANCE_COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,
+         offsetof(SceneInstanceUpload, color), D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1}};
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline{};
     pipeline.pRootSignature = sceneRootSignature_.Get();
     pipeline.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};

@@ -2,6 +2,7 @@
 #error "MetalSurface.mm is only built on Apple platforms"
 #endif
 #include "Nexora/Presentation/Surface.h"
+#include "SceneInstanceUpload.h"
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -242,7 +243,11 @@ public:
                                  : drawData.instances;
       const auto vertices = std::as_bytes(drawData.vertices);
       const auto indices = std::as_bytes(drawData.indices);
-      const auto instanceBytes = std::as_bytes(instances);
+      const auto packedInstances = PackSceneInstances(instances);
+      if (!packedInstances)
+        return SurfaceStatus::InvalidDescriptor;
+      const auto instanceBytes =
+          std::as_bytes(std::span<const SceneInstanceUpload>(*packedInstances));
       const auto instanceOffset = (vertices.size() + indices.size() + 3) & ~std::size_t{3};
       const auto required = instanceOffset + instanceBytes.size();
       if (sceneCapacity_[frame_] < required) {
@@ -448,16 +453,8 @@ private:
         !finite(data.light_color) || !finite(data.base_color))
       return false;
     for (const auto &instance : data.instances) {
-      if (!finite(instance.translation) || !finite(instance.scale) || !finite(instance.color) ||
-          !finite(instance.rotation))
-        return false;
-      for (const auto value : instance.scale)
-        if (std::abs(value) < 0.00001F)
-          return false;
-      float length = 0;
-      for (const auto value : instance.rotation)
-        length += value * value;
-      if (std::abs(length - 1.0F) > 0.01F)
+      SceneInstanceUpload packed;
+      if (!PackSceneInstance(instance, packed))
         return false;
     }
     for (std::size_t i = 0; i < data.textureUploads.size(); ++i) {
@@ -547,19 +544,25 @@ private:
       using namespace metal;
       struct Input {
         float3 position [[attribute(0)]]; float3 normal [[attribute(1)]]; float2 uv [[attribute(2)]];
-        float3 translation [[attribute(3)]]; float3 scale [[attribute(4)]];
-        float4 color [[attribute(5)]]; float4 rotation [[attribute(6)]];
+        float4 model0 [[attribute(3)]]; float4 model1 [[attribute(4)]]; float4 model2 [[attribute(5)]];
+        float4 normal0 [[attribute(6)]]; float4 normal1 [[attribute(7)]]; float4 normal2 [[attribute(8)]];
+        float4 color [[attribute(9)]];
       };
       struct Scene { float4 rows[4]; float4 direction; float4 light; float4 color; };
       struct Output { float4 position [[position]]; float3 illumination; float2 uv; };
-      float3 rotate(float3 v, float4 q) { float3 c = 2.0 * cross(q.xyz, v); return v + q.w * c + cross(q.xyz, c); }
+      float3 safeNormal(float3 value) {
+        float magnitude = max(max(abs(value.x), abs(value.y)), abs(value.z));
+        return magnitude > 0.0 ? normalize(value / magnitude) : float3(0);
+      }
       vertex Output sceneVertex(Input input [[stage_in]], constant Scene &scene [[buffer(2)]]) {
-        float4 p = float4(rotate(input.position * input.scale, input.rotation) + input.translation, 1.0);
+        float4 local = float4(input.position, 1.0);
+        float4 p = float4(dot(input.model0, local), dot(input.model1, local), dot(input.model2, local), 1.0);
         Output output;
         // Explicit row dot products preserve the public row-major matrix; Metal's Y axis matches DX12.
         output.position = float4(dot(scene.rows[0], p), dot(scene.rows[1], p), dot(scene.rows[2], p), dot(scene.rows[3], p));
-        float3 n = rotate(input.normal / input.scale, input.rotation);
-        float diffuse = max(dot(normalize(n), normalize(-scene.direction.xyz)), 0.0);
+        float3 localNormal = safeNormal(input.normal);
+        float3 n = float3(dot(input.normal0.xyz, localNormal), dot(input.normal1.xyz, localNormal), dot(input.normal2.xyz, localNormal));
+        float diffuse = max(dot(safeNormal(n), safeNormal(-scene.direction.xyz)), 0.0);
         output.illumination = scene.color.rgb * input.color.rgb * (float3(0.18) + scene.light.rgb * diffuse * 0.82);
         output.uv = input.uv; return output;
       }
@@ -580,20 +583,26 @@ private:
     pipeline.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
     auto *vertices = [MTLVertexDescriptor vertexDescriptor];
     const MTLVertexFormat formats[]{
-        MTLVertexFormatFloat3, MTLVertexFormatFloat3, MTLVertexFormatFloat2, MTLVertexFormatFloat3,
-        MTLVertexFormatFloat3, MTLVertexFormatFloat4, MTLVertexFormatFloat4};
-    const NSUInteger offsets[]{
-        offsetof(SceneVertex, position),  offsetof(SceneVertex, normal),
-        offsetof(SceneVertex, uv),        offsetof(SceneInstance, translation),
-        offsetof(SceneInstance, scale),   offsetof(SceneInstance, color),
-        offsetof(SceneInstance, rotation)};
-    for (NSUInteger i = 0; i < 7; ++i) {
+        MTLVertexFormatFloat3, MTLVertexFormatFloat3, MTLVertexFormatFloat2, MTLVertexFormatFloat4,
+        MTLVertexFormatFloat4, MTLVertexFormatFloat4, MTLVertexFormatFloat4, MTLVertexFormatFloat4,
+        MTLVertexFormatFloat4, MTLVertexFormatFloat4};
+    const NSUInteger offsets[]{offsetof(SceneVertex, position),
+                               offsetof(SceneVertex, normal),
+                               offsetof(SceneVertex, uv),
+                               offsetof(SceneInstanceUpload, model),
+                               offsetof(SceneInstanceUpload, model) + 16,
+                               offsetof(SceneInstanceUpload, model) + 32,
+                               offsetof(SceneInstanceUpload, normal),
+                               offsetof(SceneInstanceUpload, normal) + 16,
+                               offsetof(SceneInstanceUpload, normal) + 32,
+                               offsetof(SceneInstanceUpload, color)};
+    for (NSUInteger i = 0; i < 10; ++i) {
       vertices.attributes[i].format = formats[i];
       vertices.attributes[i].offset = offsets[i];
       vertices.attributes[i].bufferIndex = i < 3 ? 0 : 1;
     }
     vertices.layouts[0].stride = sizeof(SceneVertex);
-    vertices.layouts[1].stride = sizeof(SceneInstance);
+    vertices.layouts[1].stride = sizeof(SceneInstanceUpload);
     vertices.layouts[1].stepFunction = MTLVertexStepFunctionPerInstance;
     vertices.layouts[1].stepRate = 1;
     pipeline.vertexDescriptor = vertices;

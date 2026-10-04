@@ -1,5 +1,10 @@
 #include "Nexora/Presentation/Surface.h"
+#include "SceneInstanceUpload.h"
 namespace Nexora::Presentation {
+bool ValidateSceneInstance(const SceneInstance &instance) noexcept {
+  SceneInstanceUpload packed;
+  return PackSceneInstance(instance, packed);
+}
 std::unique_ptr<ISurface> CreateVulkanSurface(const SurfaceDescriptor &, Window::IWindowSystem &);
 std::unique_ptr<ISurface> CreateMetalSurface(const SurfaceDescriptor &, Window::IWindowSystem &);
 static_assert(sizeof(SurfaceDescriptor::width) == sizeof(std::uint32_t));

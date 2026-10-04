@@ -95,6 +95,35 @@ gate verifies two independent instance positions/tints, a rotated instance's cha
 rejected malformed inputs and identity
 compatibility with depth, resize and lighting. DX12 target-host execution is a separate acceptance gate.
 
+## Exact affine scene instances
+
+`SceneInstance::model_transform` optionally supplies a row-major 4x4 affine model matrix with
+last row `[0, 0, 0, 1]`. It overrides translation/scale/rotation (unused TRS values are ignored),
+while tint is always checked. `ValidateSceneInstance` is a pure CPU validator shared with native
+packing. Reject nonfinite, nonaffine or singular matrices, and inverse-transpose coefficients
+outside the finite float range. Error-free binary64 product/sum expansions classify the determinant
+of binary32 inputs exactly, rejecting dependent rows despite large-term cancellation and retaining
+invertible cancellation cases. Legacy TRS retains the existing nonzero scale and quaternion
+validation. Empty instances still select one identity. See [ADR-0003](../../Roadmap/en/ADR-0003-Presentation-Affine-Instances.md).
+
+Vulkan/DX12/Metal convert descriptors into private 112-byte model/normal/tint records. Geometry
+uses exact affine rows; normals use the inverse-transpose linear part. Normal rows may share a positive rescale, preserving direction while bounding GPU arithmetic.
+Shaders normalize finite input/output normals and light vectors with magnitude scaling, including
+zero normals (ambient only), to avoid overflow or underflow during length calculation.
+The public optional C++
+descriptor is never uploaded directly. DrawScene borrows source spans for the call and copies packed
+bytes into fence-owned frame storage before returning; no CPU descriptor or backend handle escapes.
+Malformed instances return InvalidDescriptor before recording, leaving the scene submission available
+for a later valid draw. Existing instance/batch budgets and frame ordering remain unchanged.
+
+`window_presentation.scene_instance_contract` checks exact points, normal/tangent orthogonality,
+mirrors, singular/nonaffine/nonfinite rejection, unused TRS override, identity and bounded uploads.
+The native Vulkan pixel gate compares sheared/mirrored instances against independently baked
+geometry/normals, including invalid-then-valid submission. Windows/DX12 and macOS/Metal runtime
+evidence depends on their CI/target hosts. Source consumers rebuild for the appended C++ field;
+stable C/Zig wires and serialized scene formats are unchanged. The Editor's Scene/Game affine
+consumption and persistent GPU mesh caching remain follow-up work.
+
 ## Native sampled scene material
 
 `SceneVertex::uv` and `SceneDrawData::textureId/textureUploads` provide one RGBA8 sampled material

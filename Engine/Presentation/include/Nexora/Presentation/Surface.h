@@ -3,6 +3,7 @@
 #include "Nexora/Presentation/Api.h"
 #include "Nexora/Window/Window.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -79,14 +80,21 @@ struct SceneVertex final {
 };
 
 // Translation, nonzero axis scale, and a unit quaternion transform one shared mesh. Colors
-// multiply base_color. Rotation defaults to identity for existing instance users.
+// multiply base_color. Rotation defaults to identity for existing instance users. An affine
+// override supplies exact model/normal transforms for sheared or mirrored hierarchies.
 // Empty SceneDrawData::instances selects one identity instance. Spans are borrowed for the call.
 struct SceneInstance final {
   float translation[3]{};
   float scale[3]{1, 1, 1};
   float color[4]{1, 1, 1, 1};
   float rotation[4]{0, 0, 0, 1}; // x, y, z, w
+  // Optional row-major affine model matrix, overriding translation/scale/rotation. Its last
+  // row must be [0, 0, 0, 1]; the linear part must be invertible with finite float normal data.
+  std::optional<std::array<float, 16>> model_transform{};
 };
+
+// Pure CPU validation shared with native packing. Invalid descriptors do not consume a draw.
+[[nodiscard]] NEXORA_PRESENTATION_API bool ValidateSceneInstance(const SceneInstance &) noexcept;
 
 // Shared-upload ranges for one indexed mesh draw. Indices address the whole vertex upload;
 // transforms/tints come from the selected instance range. Triangle starts/counts are multiples
