@@ -1,0 +1,2115 @@
+Start testing: Oct 04 09:58 UTC
+----------------------------------------------------------
+1/73 Testing: build.module_graph
+1/73 Test: build.module_graph
+Command: "/Users/runner/work/_temp/-1240556199/cmake-4.4.2-macos-universal/CMake.app/Contents/bin/cmake" "-DROOT=/Users/runner/work/Nexora/Nexora" "-P" "/Users/runner/work/Nexora/Nexora/Tools/Build/ValidateModuleGraph.cmake"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development
+"build.module_graph" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+-- Validated 20 modules: no dependency cycles
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"build.module_graph" end time: Oct 04 09:58 UTC
+"build.module_graph" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/73 Testing: build.shader_contract
+2/73 Test: build.shader_contract
+Command: "/Users/runner/work/_temp/-1240556199/cmake-4.4.2-macos-universal/CMake.app/Contents/bin/cmake" "-DROOT=/Users/runner/work/Nexora/Nexora" "-P" "/Users/runner/work/Nexora/Nexora/Tools/Build/ValidateShaderContract.cmake"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development
+"build.shader_contract" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+-- Validated canonical triangle shader contract
+-- Validated GPU-driven compute shader contract
+-- Validated PBR, stylized, anime, vegetation, water, post, geometry, Forward+, UI, Unlit, and variant shader contracts
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"build.shader_contract" end time: Oct 04 09:58 UTC
+"build.shader_contract" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/73 Testing: build.plugin_manifests
+3/73 Test: build.plugin_manifests
+Command: "/Users/runner/work/_temp/-1240556199/cmake-4.4.2-macos-universal/CMake.app/Contents/bin/cmake" "-DROOT=/Users/runner/work/Nexora/Nexora" "-P" "/Users/runner/work/Nexora/Nexora/Tools/Build/ValidatePluginManifests.cmake"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development
+"build.plugin_manifests" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+-- Validated 1 plugin manifest(s)
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"build.plugin_manifests" end time: Oct 04 09:58 UTC
+"build.plugin_manifests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/73 Testing: build.showcase_package
+4/73 Test: build.showcase_package
+Command: "/opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14" "/Users/runner/work/Nexora/Nexora/Tools/Package/TestPackageShowcase.py"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development
+"build.showcase_package" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.59 sec
+----------------------------------------------------------
+Test Passed.
+"build.showcase_package" end time: Oct 04 09:58 UTC
+"build.showcase_package" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/73 Testing: build.showcase_package_launch_safety
+5/73 Test: build.showcase_package_launch_safety
+Command: "/opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14" "/Users/runner/work/Nexora/Nexora/Tools/Package/TestLaunchShowcasePackage.py"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development
+"build.showcase_package_launch_safety" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+/var/folders/36/tjdph2t965j8snz9_vkdnw0r0000gn/T/tmpdq6z9fqs/native-staged/bin/fixture: replacing existing signature
+/var/folders/36/tjdph2t965j8snz9_vkdnw0r0000gn/T/tmpdq6z9fqs/native-staged/bin/libNexoraNativeFixture.dylib: replacing existing signature
+<end of output>
+Test time =   4.03 sec
+----------------------------------------------------------
+Test Passed.
+"build.showcase_package_launch_safety" end time: Oct 04 09:58 UTC
+"build.showcase_package_launch_safety" time elapsed: 00:00:04
+----------------------------------------------------------
+
+6/73 Testing: build.v2_migration_scanner
+6/73 Test: build.v2_migration_scanner
+Command: "/opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14" "/Users/runner/work/Nexora/Nexora/Tools/Migration/TestScanV1Project.py"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development
+"build.v2_migration_scanner" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"build.v2_migration_scanner" end time: Oct 04 09:58 UTC
+"build.v2_migration_scanner" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/73 Testing: build.v2_production_toolchain
+7/73 Test: build.v2_production_toolchain
+Command: "/opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14" "/Users/runner/work/Nexora/Nexora/Tools/Production/TestNexoraTool.py"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development
+"build.v2_production_toolchain" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.83 sec
+----------------------------------------------------------
+Test Passed.
+"build.v2_production_toolchain" end time: Oct 04 09:58 UTC
+"build.v2_production_toolchain" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/73 Testing: gameplay.zig_abi_smoke
+8/73 Test: gameplay.zig_abi_smoke
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Gameplay/Zig/NexoraZigGameplayTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Gameplay/Zig
+"gameplay.zig_abi_smoke" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"gameplay.zig_abi_smoke" end time: Oct 04 09:58 UTC
+"gameplay.zig_abi_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/73 Testing: showcase.v1_probe
+9/73 Test: showcase.v1_probe
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/NexoraShowcaseProbeTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase
+"showcase.v1_probe" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"showcase.v1_probe" end time: Oct 04 09:58 UTC
+"showcase.v1_probe" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/73 Testing: showcase.runtime_rooms
+10/73 Test: showcase.runtime_rooms
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/NexoraShowcaseRoomTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase
+"showcase.runtime_rooms" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"showcase.runtime_rooms" end time: Oct 04 09:58 UTC
+"showcase.runtime_rooms" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/73 Testing: showcase.guided_tour_cli
+11/73 Test: showcase.guided_tour_cli
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/NexoraShowcase" "--headless" "--tour=v1" "--frames=4" "--no-reload"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase
+"showcase.guided_tour_cli" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+NexoraShowcase build=a38510a2baac --headless --tour=v1 --frames=4 --no-reload
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "hub",
+  "backend": "auto",
+  "validate_v1": false,
+  "startup_arguments": ["--headless","--tour=v1","--frames=4","--no-reload"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "a38510a2baac",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "NOT EXECUTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "hub",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ray/AABB diagnostics"},
+      {"id": "scene", "title": "Scene Lab", "status": "IMPLEMENTED", "fallback": "public scene/entity/component callbacks"},
+      {"id": "gameplay", "title": "Gameplay Lab", "status": "IMPLEMENTED", "fallback": "deterministic physics raycast"},
+      {"id": "presentation", "title": "Presentation Lab", "status": "IMPLEMENTED", "fallback": "portable animation, audio, VFX, and media simulation"},
+      {"id": "streaming", "title": "Streaming Lab", "status": "IMPLEMENTED", "fallback": "cell residency, budgets, and HLOD fallback"}
+    ]
+  },
+  "lifecycle": {
+    "engine_initialized": true,
+    "module_callbacks": true,
+    "module_unloaded_before_engine_shutdown": true,
+    "frames": 4,
+    "start_count": 1,
+    "fixed_update_count": 4,
+    "update_count": 4,
+    "elapsed_seconds": 0.066666666666666666
+  },
+  "scene_evidence": {
+    "scene_id": 1,
+    "entity_count": 5,
+    "primary_entity": 4,
+    "primary_transform": {
+      "x": 0.066666666666666666,
+      "y": 0,
+      "z": 0
+    },
+    "zig_read_callbacks": 4,
+    "zig_write_callbacks": 4,
+    "zig_log_received": true,
+    "high_level_debug_lines": 4,
+    "public_api_errors": 0
+  },
+  "interaction_overlay": {
+    "camera_controls": "WASD",
+    "camera_moves": 0,
+    "camera_position": [0, 2, 6],
+    "raycasts": 4,
+    "selected_entity": 4
+  },
+  "headless_evidence": {
+    "executed": true,
+    "backend": "Validation",
+    "visible_meshes": 3,
+    "passes": 5,
+    "barriers": 6,
+    "submitted_command_lists": 5,
+    "draw_calls": 3,
+    "presents": 1,
+    "validation_errors": 0
+  },
+  "windowed_evidence": {
+    "executed": false,
+    "backend": "none",
+    "backend_fallback": false,
+    "fallback_reason": "",
+    "recovery_action": "render",
+    "surface_acquires": 0,
+    "surface_presents": 0,
+    "resize_requests": 0,
+    "resize_generations": 0,
+    "composed_frames": 0,
+    "scene_draws": 0,
+    "native_scene_draws": 0,
+    "native_scene_instances": 0,
+    "native_scene_texture_uploads": 0,
+    "native_offscreen_draws": 0,
+    "native_scene_composites": 0,
+    "software_rasterizer": false,
+    "native_graph_frames": 0,
+    "native_graph_passes": 0,
+    "native_graph_resource_transitions": 0,
+    "native_graph_order": [],
+    "native_ui_draws": 0,
+    "overlay_frames": 0,
+    "rendering_mode": "cpu_composite",
+    "clear_color": true,
+    "triangle": false,
+    "diagnostics_overlay": false
+  },
+  "runtime_rooms": {"schema":"nexora.showcase.rooms.v1","selected":"hub","ticks":4,"reloads":0,"probe_runs":13,"healthy":true,"tour":{"enabled":true,"paused":false,"seconds":0.0666667,"step":0},"visited":["hub"],"visualized":[],"sample_source":"public Runtime APIs","native_media":"CONTRACT_ONLY","native_webview":"UNAVAILABLE","visual_acceptance":"pending target-host evidence","lines":["Public Runtime state sampled at tick 4","Eight rooms / central 3D display stand","Choose a portal above or press 1-8","Green probe = integration only. F3 shows contract mapping","T starts a 3.5-minute tour / Space pauses / R replays","Last action: Entered hub"],"integration_probes":{
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "0"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "1"}, {"name": "input.error_case", "value": "0"}, {"name": "fixed_ticks", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "2"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Native counters are reported separately in windowed_evidence", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "3"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "4"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "5"}, {"name": "input.error_case", "value": "0"}, {"name": "hash", "value": "ba85a5f7c46a16fe"}, {"name": "resident_bytes", "value": "253"}, {"name": "generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "6"}, {"name": "input.error_case", "value": "0"}, {"name": "editor_sdk", "value": "available"}, {"name": "graphical_editor", "value": "separate application"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "7"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "8"}, {"name": "input.error_case", "value": "0"}, {"name": "adapter", "value": "portable CPU / no third-party physics SDK"}, {"name": "character_x", "value": "-2.00"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "9"}, {"name": "input.error_case", "value": "0"}, {"name": "native_audio_video", "value": "adapter unavailable / contract only"}, {"name": "particles", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "10"}, {"name": "input.error_case", "value": "0"}, {"name": "full_cells", "value": "3"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "11"}, {"name": "input.error_case", "value": "0"}, {"name": "webview", "value": "adapter unavailable"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "12"}, {"name": "input.error_case", "value": "0"}, {"name": "rollback_generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+  ]
+}
+},
+  "validation_lab": {
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "NOT_RUN", "summary": "Mapped to CTest contract build.module_graph", "metrics": [{"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "NOT_RUN", "summary": "Mapped to CTest contract core.runtime", "metrics": [{"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "NOT_RUN", "summary": "Mapped to CTest contract renderer.contracts", "metrics": [{"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Mapped to CTest contract renderer.native_backend", "metrics": [{"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m4_vertical_slice", "metrics": [{"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m5_asset_pipeline", "metrics": [{"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m6_editor_sdk", "metrics": [{"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m7_input_ui_localization", "metrics": [{"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m8_gameplay_simulation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m9_presentation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m10_large_world", "metrics": [{"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m11_platform", "metrics": [{"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m12_shipping", "metrics": [{"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+    {"id": "input-ui-localization", "status": "NOT_RUN", "headless_evidence": "headless input routing, UI model, and locale fallback", "visual_complete": false},
+    {"id": "gameplay", "status": "NOT_RUN", "headless_evidence": "headless character, physics, navigation, and AI counters", "visual_complete": false},
+    {"id": "presentation", "status": "NOT_RUN", "headless_evidence": "headless animation, particle, audio, and video capability counters", "visual_complete": false},
+    {"id": "world", "status": "NOT_RUN", "headless_evidence": "headless cell, HLOD, procedural terrain, and vegetation state", "visual_complete": false}
+  ]
+},
+  "validation_lab_presentation": {"cards": [{"id": "v1.M0", "status": "NOT_RUN", "contract_test": "build.module_graph", "room": "hub", "world_object": 1314390016}, {"id": "v1.M1", "status": "NOT_RUN", "contract_test": "core.runtime", "room": "hub", "world_object": 1314390017}, {"id": "v1.M2", "status": "NOT_RUN", "contract_test": "renderer.contracts", "room": "hub", "world_object": 1314390018}, {"id": "v1.M3", "status": "UNSUPPORTED", "contract_test": "renderer.native_backend", "room": "hub", "world_object": 1314390019}, {"id": "v1.M4", "status": "NOT_RUN", "contract_test": "runtime.v1_m4_vertical_slice", "room": "scene", "world_object": 1314390020}, {"id": "v1.M5", "status": "NOT_RUN", "contract_test": "runtime.v1_m5_asset_pipeline", "room": "scene", "world_object": 1314390021}, {"id": "v1.M6", "status": "NOT_RUN", "contract_test": "runtime.v1_m6_editor_sdk", "room": "scene", "world_object": 1314390022}, {"id": "v1.M7", "status": "NOT_RUN", "contract_test": "runtime.v1_m7_input_ui_localization", "room": "input-ui-localization", "world_object": 1314390023}, {"id": "v1.M8", "status": "NOT_RUN", "contract_test": "runtime.v1_m8_gameplay_simulation", "room": "gameplay", "world_object": 1314390024}, {"id": "v1.M9", "status": "NOT_RUN", "contract_test": "runtime.v1_m9_presentation", "room": "presentation", "world_object": 1314390025}, {"id": "v1.M10", "status": "NOT_RUN", "contract_test": "runtime.v1_m10_large_world", "room": "world", "world_object": 1314390026}, {"id": "v1.M11", "status": "NOT_RUN", "contract_test": "runtime.v1_m11_platform", "room": "shipping", "world_object": 1314390027}, {"id": "v1.M12", "status": "NOT_RUN", "contract_test": "runtime.v1_m12_shipping", "room": "shipping", "world_object": 1314390028}], "status_legend": ["PASS", "FAIL", "UNSUPPORTED", "NOT_RUN", "BLOCKED"], "failure_states": [{"code": "invalid_asset", "label": "Invalid asset", "milestone": "M5", "status": "NOT_RUN"}, {"code": "dependency_cycle", "label": "Dependency cycle", "milestone": "M0", "status": "NOT_RUN"}, {"code": "plugin_abi_mismatch", "label": "Plugin ABI mismatch", "milestone": "M6", "status": "NOT_RUN"}, {"code": "rollback", "label": "Rollback", "milestone": "M12", "status": "NOT_RUN"}]},
+  "reload": {
+    "requested": false,
+    "successful_reloads": 0,
+    "migrated_bytes": 0
+  }
+}
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"showcase.guided_tour_cli" end time: Oct 04 09:58 UTC
+"showcase.guided_tour_cli" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/73 Testing: showcase.probe_export
+12/73 Test: showcase.probe_export
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/NexoraShowcase" "--headless" "--probe=v1.M8" "--frames=2" "--report=/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/probe-export.json" "--markdown=/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/probe-export.md"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase
+"showcase.probe_export" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+NexoraShowcase build=a38510a2baac --headless --probe=v1.M8 --frames=2 --report=/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/probe-export.json --markdown=/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/probe-export.md
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "hub",
+  "backend": "auto",
+  "validate_v1": false,
+  "startup_arguments": ["--headless","--probe=v1.M8","--frames=2","--report=/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/probe-export.json","--markdown=/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/probe-export.md"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "a38510a2baac",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "NOT EXECUTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "hub",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ray/AABB diagnostics"},
+      {"id": "scene", "title": "Scene Lab", "status": "IMPLEMENTED", "fallback": "public scene/entity/component callbacks"},
+      {"id": "gameplay", "title": "Gameplay Lab", "status": "IMPLEMENTED", "fallback": "deterministic physics raycast"},
+      {"id": "presentation", "title": "Presentation Lab", "status": "IMPLEMENTED", "fallback": "portable animation, audio, VFX, and media simulation"},
+      {"id": "streaming", "title": "Streaming Lab", "status": "IMPLEMENTED", "fallback": "cell residency, budgets, and HLOD fallback"}
+    ]
+  },
+  "lifecycle": {
+    "engine_initialized": true,
+    "module_callbacks": true,
+    "module_unloaded_before_engine_shutdown": true,
+    "frames": 2,
+    "start_count": 1,
+    "fixed_update_count": 2,
+    "update_count": 2,
+    "elapsed_seconds": 0.033333333333333333
+  },
+  "scene_evidence": {
+    "scene_id": 1,
+    "entity_count": 5,
+    "primary_entity": 4,
+    "primary_transform": {
+      "x": 0.033333333333333333,
+      "y": 0,
+      "z": 0
+    },
+    "zig_read_callbacks": 2,
+    "zig_write_callbacks": 2,
+    "zig_log_received": true,
+    "high_level_debug_lines": 2,
+    "public_api_errors": 0
+  },
+  "interaction_overlay": {
+    "camera_controls": "WASD",
+    "camera_moves": 0,
+    "camera_position": [0, 2, 6],
+    "raycasts": 2,
+    "selected_entity": 4
+  },
+  "headless_evidence": {
+    "executed": true,
+    "backend": "Validation",
+    "visible_meshes": 3,
+    "passes": 5,
+    "barriers": 6,
+    "submitted_command_lists": 5,
+    "draw_calls": 3,
+    "presents": 1,
+    "validation_errors": 0
+  },
+  "windowed_evidence": {
+    "executed": false,
+    "backend": "none",
+    "backend_fallback": false,
+    "fallback_reason": "",
+    "recovery_action": "render",
+    "surface_acquires": 0,
+    "surface_presents": 0,
+    "resize_requests": 0,
+    "resize_generations": 0,
+    "composed_frames": 0,
+    "scene_draws": 0,
+    "native_scene_draws": 0,
+    "native_scene_instances": 0,
+    "native_scene_texture_uploads": 0,
+    "native_offscreen_draws": 0,
+    "native_scene_composites": 0,
+    "software_rasterizer": false,
+    "native_graph_frames": 0,
+    "native_graph_passes": 0,
+    "native_graph_resource_transitions": 0,
+    "native_graph_order": [],
+    "native_ui_draws": 0,
+    "overlay_frames": 0,
+    "rendering_mode": "cpu_composite",
+    "clear_color": true,
+    "triangle": false,
+    "diagnostics_overlay": false
+  },
+  "runtime_rooms": {"schema":"nexora.showcase.rooms.v1","selected":"hub","ticks":2,"reloads":0,"probe_runs":14,"healthy":true,"tour":{"enabled":false,"paused":false,"seconds":0,"step":0},"visited":["hub"],"visualized":[],"sample_source":"public Runtime APIs","native_media":"CONTRACT_ONLY","native_webview":"UNAVAILABLE","visual_acceptance":"pending target-host evidence","lines":["Public Runtime state sampled at tick 2","Eight rooms / central 3D display stand","Choose a portal above or press 1-8","Green probe = integration only. F3 shows contract mapping","T starts a 3.5-minute tour / Space pauses / R replays","Last action: Entered hub"],"integration_probes":{
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "0"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "1"}, {"name": "input.error_case", "value": "0"}, {"name": "fixed_ticks", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "2"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Native counters are reported separately in windowed_evidence", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "3"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "4"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "5"}, {"name": "input.error_case", "value": "0"}, {"name": "hash", "value": "ba85a5f7c46a16fe"}, {"name": "resident_bytes", "value": "253"}, {"name": "generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "6"}, {"name": "input.error_case", "value": "0"}, {"name": "editor_sdk", "value": "available"}, {"name": "graphical_editor", "value": "separate application"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "7"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "2"}, {"name": "input.milestone", "value": "8"}, {"name": "input.error_case", "value": "0"}, {"name": "adapter", "value": "portable CPU / no third-party physics SDK"}, {"name": "character_x", "value": "-2.00"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "9"}, {"name": "input.error_case", "value": "0"}, {"name": "native_audio_video", "value": "adapter unavailable / contract only"}, {"name": "particles", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "10"}, {"name": "input.error_case", "value": "0"}, {"name": "full_cells", "value": "3"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "11"}, {"name": "input.error_case", "value": "0"}, {"name": "webview", "value": "adapter unavailable"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "12"}, {"name": "input.error_case", "value": "0"}, {"name": "rollback_generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+  ]
+}
+},
+  "validation_lab": {
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "NOT_RUN", "summary": "Mapped to CTest contract build.module_graph", "metrics": [{"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "NOT_RUN", "summary": "Mapped to CTest contract core.runtime", "metrics": [{"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "NOT_RUN", "summary": "Mapped to CTest contract renderer.contracts", "metrics": [{"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Mapped to CTest contract renderer.native_backend", "metrics": [{"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m4_vertical_slice", "metrics": [{"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m5_asset_pipeline", "metrics": [{"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m6_editor_sdk", "metrics": [{"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m7_input_ui_localization", "metrics": [{"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m8_gameplay_simulation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m9_presentation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m10_large_world", "metrics": [{"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m11_platform", "metrics": [{"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m12_shipping", "metrics": [{"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+    {"id": "input-ui-localization", "status": "NOT_RUN", "headless_evidence": "headless input routing, UI model, and locale fallback", "visual_complete": false},
+    {"id": "gameplay", "status": "NOT_RUN", "headless_evidence": "headless character, physics, navigation, and AI counters", "visual_complete": false},
+    {"id": "presentation", "status": "NOT_RUN", "headless_evidence": "headless animation, particle, audio, and video capability counters", "visual_complete": false},
+    {"id": "world", "status": "NOT_RUN", "headless_evidence": "headless cell, HLOD, procedural terrain, and vegetation state", "visual_complete": false}
+  ]
+},
+  "validation_lab_presentation": {"cards": [{"id": "v1.M0", "status": "NOT_RUN", "contract_test": "build.module_graph", "room": "hub", "world_object": 1314390016}, {"id": "v1.M1", "status": "NOT_RUN", "contract_test": "core.runtime", "room": "hub", "world_object": 1314390017}, {"id": "v1.M2", "status": "NOT_RUN", "contract_test": "renderer.contracts", "room": "hub", "world_object": 1314390018}, {"id": "v1.M3", "status": "UNSUPPORTED", "contract_test": "renderer.native_backend", "room": "hub", "world_object": 1314390019}, {"id": "v1.M4", "status": "NOT_RUN", "contract_test": "runtime.v1_m4_vertical_slice", "room": "scene", "world_object": 1314390020}, {"id": "v1.M5", "status": "NOT_RUN", "contract_test": "runtime.v1_m5_asset_pipeline", "room": "scene", "world_object": 1314390021}, {"id": "v1.M6", "status": "NOT_RUN", "contract_test": "runtime.v1_m6_editor_sdk", "room": "scene", "world_object": 1314390022}, {"id": "v1.M7", "status": "NOT_RUN", "contract_test": "runtime.v1_m7_input_ui_localization", "room": "input-ui-localization", "world_object": 1314390023}, {"id": "v1.M8", "status": "NOT_RUN", "contract_test": "runtime.v1_m8_gameplay_simulation", "room": "gameplay", "world_object": 1314390024}, {"id": "v1.M9", "status": "NOT_RUN", "contract_test": "runtime.v1_m9_presentation", "room": "presentation", "world_object": 1314390025}, {"id": "v1.M10", "status": "NOT_RUN", "contract_test": "runtime.v1_m10_large_world", "room": "world", "world_object": 1314390026}, {"id": "v1.M11", "status": "NOT_RUN", "contract_test": "runtime.v1_m11_platform", "room": "shipping", "world_object": 1314390027}, {"id": "v1.M12", "status": "NOT_RUN", "contract_test": "runtime.v1_m12_shipping", "room": "shipping", "world_object": 1314390028}], "status_legend": ["PASS", "FAIL", "UNSUPPORTED", "NOT_RUN", "BLOCKED"], "failure_states": [{"code": "invalid_asset", "label": "Invalid asset", "milestone": "M5", "status": "NOT_RUN"}, {"code": "dependency_cycle", "label": "Dependency cycle", "milestone": "M0", "status": "NOT_RUN"}, {"code": "plugin_abi_mismatch", "label": "Plugin ABI mismatch", "milestone": "M6", "status": "NOT_RUN"}, {"code": "rollback", "label": "Rollback", "milestone": "M12", "status": "NOT_RUN"}]},
+  "reload": {
+    "requested": true,
+    "successful_reloads": 1,
+    "migrated_bytes": 40
+  }
+}
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"showcase.probe_export" end time: Oct 04 09:58 UTC
+"showcase.probe_export" time elapsed: 00:00:00
+----------------------------------------------------------
+
+13/73 Testing: showcase.zig_headless
+13/73 Test: showcase.zig_headless
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/NexoraShowcase" "--headless" "--validate-v1" "--frames=4"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase
+"showcase.zig_headless" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+NexoraShowcase build=a38510a2baac --headless --validate-v1 --frames=4
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "hub",
+  "backend": "auto",
+  "validate_v1": true,
+  "startup_arguments": ["--headless","--validate-v1","--frames=4"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "a38510a2baac",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "NOT EXECUTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "hub",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ray/AABB diagnostics"},
+      {"id": "scene", "title": "Scene Lab", "status": "IMPLEMENTED", "fallback": "public scene/entity/component callbacks"},
+      {"id": "gameplay", "title": "Gameplay Lab", "status": "IMPLEMENTED", "fallback": "deterministic physics raycast"},
+      {"id": "presentation", "title": "Presentation Lab", "status": "IMPLEMENTED", "fallback": "portable animation, audio, VFX, and media simulation"},
+      {"id": "streaming", "title": "Streaming Lab", "status": "IMPLEMENTED", "fallback": "cell residency, budgets, and HLOD fallback"}
+    ]
+  },
+  "lifecycle": {
+    "engine_initialized": true,
+    "module_callbacks": true,
+    "module_unloaded_before_engine_shutdown": true,
+    "frames": 4,
+    "start_count": 1,
+    "fixed_update_count": 4,
+    "update_count": 4,
+    "elapsed_seconds": 0.066666666666666666
+  },
+  "scene_evidence": {
+    "scene_id": 1,
+    "entity_count": 5,
+    "primary_entity": 4,
+    "primary_transform": {
+      "x": 0.066666666666666666,
+      "y": 0,
+      "z": 0
+    },
+    "zig_read_callbacks": 4,
+    "zig_write_callbacks": 4,
+    "zig_log_received": true,
+    "high_level_debug_lines": 4,
+    "public_api_errors": 0
+  },
+  "interaction_overlay": {
+    "camera_controls": "WASD",
+    "camera_moves": 0,
+    "camera_position": [0, 2, 6],
+    "raycasts": 4,
+    "selected_entity": 4
+  },
+  "headless_evidence": {
+    "executed": true,
+    "backend": "Validation",
+    "visible_meshes": 3,
+    "passes": 5,
+    "barriers": 6,
+    "submitted_command_lists": 5,
+    "draw_calls": 3,
+    "presents": 1,
+    "validation_errors": 0
+  },
+  "windowed_evidence": {
+    "executed": false,
+    "backend": "none",
+    "backend_fallback": false,
+    "fallback_reason": "",
+    "recovery_action": "render",
+    "surface_acquires": 0,
+    "surface_presents": 0,
+    "resize_requests": 0,
+    "resize_generations": 0,
+    "composed_frames": 0,
+    "scene_draws": 0,
+    "native_scene_draws": 0,
+    "native_scene_instances": 0,
+    "native_scene_texture_uploads": 0,
+    "native_offscreen_draws": 0,
+    "native_scene_composites": 0,
+    "software_rasterizer": false,
+    "native_graph_frames": 0,
+    "native_graph_passes": 0,
+    "native_graph_resource_transitions": 0,
+    "native_graph_order": [],
+    "native_ui_draws": 0,
+    "overlay_frames": 0,
+    "rendering_mode": "cpu_composite",
+    "clear_color": true,
+    "triangle": false,
+    "diagnostics_overlay": false
+  },
+  "runtime_rooms": {"schema":"nexora.showcase.rooms.v1","selected":"hub","ticks":4,"reloads":0,"probe_runs":13,"healthy":true,"tour":{"enabled":false,"paused":false,"seconds":0,"step":0},"visited":["hub"],"visualized":[],"sample_source":"public Runtime APIs","native_media":"CONTRACT_ONLY","native_webview":"UNAVAILABLE","visual_acceptance":"pending target-host evidence","lines":["Public Runtime state sampled at tick 4","Eight rooms / central 3D display stand","Choose a portal above or press 1-8","Green probe = integration only. F3 shows contract mapping","T starts a 3.5-minute tour / Space pauses / R replays","Last action: Entered hub"],"integration_probes":{
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "0"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "1"}, {"name": "input.error_case", "value": "0"}, {"name": "fixed_ticks", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "2"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Native counters are reported separately in windowed_evidence", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "3"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "4"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "5"}, {"name": "input.error_case", "value": "0"}, {"name": "hash", "value": "ba85a5f7c46a16fe"}, {"name": "resident_bytes", "value": "253"}, {"name": "generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "6"}, {"name": "input.error_case", "value": "0"}, {"name": "editor_sdk", "value": "available"}, {"name": "graphical_editor", "value": "separate application"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "7"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "8"}, {"name": "input.error_case", "value": "0"}, {"name": "adapter", "value": "portable CPU / no third-party physics SDK"}, {"name": "character_x", "value": "-2.00"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "9"}, {"name": "input.error_case", "value": "0"}, {"name": "native_audio_video", "value": "adapter unavailable / contract only"}, {"name": "particles", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "10"}, {"name": "input.error_case", "value": "0"}, {"name": "full_cells", "value": "3"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "11"}, {"name": "input.error_case", "value": "0"}, {"name": "webview", "value": "adapter unavailable"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "12"}, {"name": "input.error_case", "value": "0"}, {"name": "rollback_generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+  ]
+}
+},
+  "validation_lab": {
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "NOT_RUN", "summary": "Mapped to CTest contract build.module_graph", "metrics": [{"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "NOT_RUN", "summary": "Mapped to CTest contract core.runtime", "metrics": [{"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "NOT_RUN", "summary": "Mapped to CTest contract renderer.contracts", "metrics": [{"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Mapped to CTest contract renderer.native_backend", "metrics": [{"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m4_vertical_slice", "metrics": [{"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m5_asset_pipeline", "metrics": [{"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m6_editor_sdk", "metrics": [{"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m7_input_ui_localization", "metrics": [{"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m8_gameplay_simulation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m9_presentation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m10_large_world", "metrics": [{"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m11_platform", "metrics": [{"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m12_shipping", "metrics": [{"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+    {"id": "input-ui-localization", "status": "NOT_RUN", "headless_evidence": "headless input routing, UI model, and locale fallback", "visual_complete": false},
+    {"id": "gameplay", "status": "NOT_RUN", "headless_evidence": "headless character, physics, navigation, and AI counters", "visual_complete": false},
+    {"id": "presentation", "status": "NOT_RUN", "headless_evidence": "headless animation, particle, audio, and video capability counters", "visual_complete": false},
+    {"id": "world", "status": "NOT_RUN", "headless_evidence": "headless cell, HLOD, procedural terrain, and vegetation state", "visual_complete": false}
+  ]
+},
+  "validation_lab_presentation": {"cards": [{"id": "v1.M0", "status": "NOT_RUN", "contract_test": "build.module_graph", "room": "hub", "world_object": 1314390016}, {"id": "v1.M1", "status": "NOT_RUN", "contract_test": "core.runtime", "room": "hub", "world_object": 1314390017}, {"id": "v1.M2", "status": "NOT_RUN", "contract_test": "renderer.contracts", "room": "hub", "world_object": 1314390018}, {"id": "v1.M3", "status": "UNSUPPORTED", "contract_test": "renderer.native_backend", "room": "hub", "world_object": 1314390019}, {"id": "v1.M4", "status": "NOT_RUN", "contract_test": "runtime.v1_m4_vertical_slice", "room": "scene", "world_object": 1314390020}, {"id": "v1.M5", "status": "NOT_RUN", "contract_test": "runtime.v1_m5_asset_pipeline", "room": "scene", "world_object": 1314390021}, {"id": "v1.M6", "status": "NOT_RUN", "contract_test": "runtime.v1_m6_editor_sdk", "room": "scene", "world_object": 1314390022}, {"id": "v1.M7", "status": "NOT_RUN", "contract_test": "runtime.v1_m7_input_ui_localization", "room": "input-ui-localization", "world_object": 1314390023}, {"id": "v1.M8", "status": "NOT_RUN", "contract_test": "runtime.v1_m8_gameplay_simulation", "room": "gameplay", "world_object": 1314390024}, {"id": "v1.M9", "status": "NOT_RUN", "contract_test": "runtime.v1_m9_presentation", "room": "presentation", "world_object": 1314390025}, {"id": "v1.M10", "status": "NOT_RUN", "contract_test": "runtime.v1_m10_large_world", "room": "world", "world_object": 1314390026}, {"id": "v1.M11", "status": "NOT_RUN", "contract_test": "runtime.v1_m11_platform", "room": "shipping", "world_object": 1314390027}, {"id": "v1.M12", "status": "NOT_RUN", "contract_test": "runtime.v1_m12_shipping", "room": "shipping", "world_object": 1314390028}], "status_legend": ["PASS", "FAIL", "UNSUPPORTED", "NOT_RUN", "BLOCKED"], "failure_states": [{"code": "invalid_asset", "label": "Invalid asset", "milestone": "M5", "status": "NOT_RUN"}, {"code": "dependency_cycle", "label": "Dependency cycle", "milestone": "M0", "status": "NOT_RUN"}, {"code": "plugin_abi_mismatch", "label": "Plugin ABI mismatch", "milestone": "M6", "status": "NOT_RUN"}, {"code": "rollback", "label": "Rollback", "milestone": "M12", "status": "NOT_RUN"}]},
+  "reload": {
+    "requested": true,
+    "successful_reloads": 1,
+    "migrated_bytes": 40
+  }
+}
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"showcase.zig_headless" end time: Oct 04 09:58 UTC
+"showcase.zig_headless" time elapsed: 00:00:00
+----------------------------------------------------------
+
+14/73 Testing: showcase.feature_gallery
+14/73 Test: showcase.feature_gallery
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/NexoraShowcase" "--headless" "--scene=tour" "--frames=1" "--no-reload"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase
+"showcase.feature_gallery" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+NexoraShowcase build=a38510a2baac --headless --scene=tour --frames=1 --no-reload
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "tour",
+  "backend": "auto",
+  "validate_v1": false,
+  "startup_arguments": ["--headless","--scene=tour","--frames=1","--no-reload"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "a38510a2baac",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "NOT EXECUTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "tour",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ray/AABB diagnostics"},
+      {"id": "scene", "title": "Scene Lab", "status": "IMPLEMENTED", "fallback": "public scene/entity/component callbacks"},
+      {"id": "gameplay", "title": "Gameplay Lab", "status": "IMPLEMENTED", "fallback": "deterministic physics raycast"},
+      {"id": "presentation", "title": "Presentation Lab", "status": "IMPLEMENTED", "fallback": "portable animation, audio, VFX, and media simulation"},
+      {"id": "streaming", "title": "Streaming Lab", "status": "IMPLEMENTED", "fallback": "cell residency, budgets, and HLOD fallback"}
+    ]
+  },
+  "lifecycle": {
+    "engine_initialized": true,
+    "module_callbacks": true,
+    "module_unloaded_before_engine_shutdown": true,
+    "frames": 1,
+    "start_count": 1,
+    "fixed_update_count": 1,
+    "update_count": 1,
+    "elapsed_seconds": 0.016666666666666666
+  },
+  "scene_evidence": {
+    "scene_id": 1,
+    "entity_count": 5,
+    "primary_entity": 4,
+    "primary_transform": {
+      "x": 0.016666666666666666,
+      "y": 0,
+      "z": 0
+    },
+    "zig_read_callbacks": 1,
+    "zig_write_callbacks": 1,
+    "zig_log_received": true,
+    "high_level_debug_lines": 1,
+    "public_api_errors": 0
+  },
+  "interaction_overlay": {
+    "camera_controls": "WASD",
+    "camera_moves": 0,
+    "camera_position": [0, 2, 6],
+    "raycasts": 1,
+    "selected_entity": 4
+  },
+  "headless_evidence": {
+    "executed": true,
+    "backend": "Validation",
+    "visible_meshes": 3,
+    "passes": 5,
+    "barriers": 6,
+    "submitted_command_lists": 5,
+    "draw_calls": 3,
+    "presents": 1,
+    "validation_errors": 0
+  },
+  "windowed_evidence": {
+    "executed": false,
+    "backend": "none",
+    "backend_fallback": false,
+    "fallback_reason": "",
+    "recovery_action": "render",
+    "surface_acquires": 0,
+    "surface_presents": 0,
+    "resize_requests": 0,
+    "resize_generations": 0,
+    "composed_frames": 0,
+    "scene_draws": 0,
+    "native_scene_draws": 0,
+    "native_scene_instances": 0,
+    "native_scene_texture_uploads": 0,
+    "native_offscreen_draws": 0,
+    "native_scene_composites": 0,
+    "software_rasterizer": false,
+    "native_graph_frames": 0,
+    "native_graph_passes": 0,
+    "native_graph_resource_transitions": 0,
+    "native_graph_order": [],
+    "native_ui_draws": 0,
+    "overlay_frames": 0,
+    "rendering_mode": "cpu_composite",
+    "clear_color": true,
+    "triangle": false,
+    "diagnostics_overlay": false
+  },
+  "runtime_rooms": {"schema":"nexora.showcase.rooms.v1","selected":"hub","ticks":1,"reloads":0,"probe_runs":13,"healthy":true,"tour":{"enabled":false,"paused":false,"seconds":0,"step":0},"visited":["hub"],"visualized":[],"sample_source":"public Runtime APIs","native_media":"CONTRACT_ONLY","native_webview":"UNAVAILABLE","visual_acceptance":"pending target-host evidence","lines":["Public Runtime state sampled at tick 1","Eight rooms / central 3D display stand","Choose a portal above or press 1-8","Green probe = integration only. F3 shows contract mapping","T starts a 3.5-minute tour / Space pauses / R replays","Last action: Entered hub"],"integration_probes":{
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "0"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "1"}, {"name": "input.error_case", "value": "0"}, {"name": "fixed_ticks", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "2"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Native counters are reported separately in windowed_evidence", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "3"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "4"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "5"}, {"name": "input.error_case", "value": "0"}, {"name": "hash", "value": "ba85a5f7c46a16fe"}, {"name": "resident_bytes", "value": "253"}, {"name": "generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "6"}, {"name": "input.error_case", "value": "0"}, {"name": "editor_sdk", "value": "available"}, {"name": "graphical_editor", "value": "separate application"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "7"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "8"}, {"name": "input.error_case", "value": "0"}, {"name": "adapter", "value": "portable CPU / no third-party physics SDK"}, {"name": "character_x", "value": "-2.00"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "9"}, {"name": "input.error_case", "value": "0"}, {"name": "native_audio_video", "value": "adapter unavailable / contract only"}, {"name": "particles", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "10"}, {"name": "input.error_case", "value": "0"}, {"name": "full_cells", "value": "3"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "11"}, {"name": "input.error_case", "value": "0"}, {"name": "webview", "value": "adapter unavailable"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "12"}, {"name": "input.error_case", "value": "0"}, {"name": "rollback_generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+  ]
+}
+},
+  "validation_lab": {
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "NOT_RUN", "summary": "Mapped to CTest contract build.module_graph", "metrics": [{"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "NOT_RUN", "summary": "Mapped to CTest contract core.runtime", "metrics": [{"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "NOT_RUN", "summary": "Mapped to CTest contract renderer.contracts", "metrics": [{"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Mapped to CTest contract renderer.native_backend", "metrics": [{"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m4_vertical_slice", "metrics": [{"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m5_asset_pipeline", "metrics": [{"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m6_editor_sdk", "metrics": [{"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m7_input_ui_localization", "metrics": [{"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m8_gameplay_simulation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m9_presentation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m10_large_world", "metrics": [{"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m11_platform", "metrics": [{"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m12_shipping", "metrics": [{"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+    {"id": "input-ui-localization", "status": "NOT_RUN", "headless_evidence": "headless input routing, UI model, and locale fallback", "visual_complete": false},
+    {"id": "gameplay", "status": "NOT_RUN", "headless_evidence": "headless character, physics, navigation, and AI counters", "visual_complete": false},
+    {"id": "presentation", "status": "NOT_RUN", "headless_evidence": "headless animation, particle, audio, and video capability counters", "visual_complete": false},
+    {"id": "world", "status": "NOT_RUN", "headless_evidence": "headless cell, HLOD, procedural terrain, and vegetation state", "visual_complete": false}
+  ]
+},
+  "validation_lab_presentation": {"cards": [{"id": "v1.M0", "status": "NOT_RUN", "contract_test": "build.module_graph", "room": "hub", "world_object": 1314390016}, {"id": "v1.M1", "status": "NOT_RUN", "contract_test": "core.runtime", "room": "hub", "world_object": 1314390017}, {"id": "v1.M2", "status": "NOT_RUN", "contract_test": "renderer.contracts", "room": "hub", "world_object": 1314390018}, {"id": "v1.M3", "status": "UNSUPPORTED", "contract_test": "renderer.native_backend", "room": "hub", "world_object": 1314390019}, {"id": "v1.M4", "status": "NOT_RUN", "contract_test": "runtime.v1_m4_vertical_slice", "room": "scene", "world_object": 1314390020}, {"id": "v1.M5", "status": "NOT_RUN", "contract_test": "runtime.v1_m5_asset_pipeline", "room": "scene", "world_object": 1314390021}, {"id": "v1.M6", "status": "NOT_RUN", "contract_test": "runtime.v1_m6_editor_sdk", "room": "scene", "world_object": 1314390022}, {"id": "v1.M7", "status": "NOT_RUN", "contract_test": "runtime.v1_m7_input_ui_localization", "room": "input-ui-localization", "world_object": 1314390023}, {"id": "v1.M8", "status": "NOT_RUN", "contract_test": "runtime.v1_m8_gameplay_simulation", "room": "gameplay", "world_object": 1314390024}, {"id": "v1.M9", "status": "NOT_RUN", "contract_test": "runtime.v1_m9_presentation", "room": "presentation", "world_object": 1314390025}, {"id": "v1.M10", "status": "NOT_RUN", "contract_test": "runtime.v1_m10_large_world", "room": "world", "world_object": 1314390026}, {"id": "v1.M11", "status": "NOT_RUN", "contract_test": "runtime.v1_m11_platform", "room": "shipping", "world_object": 1314390027}, {"id": "v1.M12", "status": "NOT_RUN", "contract_test": "runtime.v1_m12_shipping", "room": "shipping", "world_object": 1314390028}], "status_legend": ["PASS", "FAIL", "UNSUPPORTED", "NOT_RUN", "BLOCKED"], "failure_states": [{"code": "invalid_asset", "label": "Invalid asset", "milestone": "M5", "status": "NOT_RUN"}, {"code": "dependency_cycle", "label": "Dependency cycle", "milestone": "M0", "status": "NOT_RUN"}, {"code": "plugin_abi_mismatch", "label": "Plugin ABI mismatch", "milestone": "M6", "status": "NOT_RUN"}, {"code": "rollback", "label": "Rollback", "milestone": "M12", "status": "NOT_RUN"}]},
+  "reload": {
+    "requested": false,
+    "successful_reloads": 0,
+    "migrated_bytes": 0
+  }
+}
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Pass Reason:
+Required regular expression found. Regex=["id": "math".*"id": "scene".*"id": "gameplay".*"id": "presentation".*"id": "streaming"]
+"showcase.feature_gallery" end time: Oct 04 09:58 UTC
+"showcase.feature_gallery" time elapsed: 00:00:00
+----------------------------------------------------------
+
+15/73 Testing: showcase.zig_dynamic
+15/73 Test: showcase.zig_dynamic
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/NexoraShowcase" "--headless" "--frames=4" "--gameplay-module=dynamic"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase
+"showcase.zig_dynamic" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+NexoraShowcase build=a38510a2baac --headless --frames=4 --gameplay-module=dynamic
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "hub",
+  "backend": "auto",
+  "validate_v1": false,
+  "startup_arguments": ["--headless","--frames=4","--gameplay-module=dynamic"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "a38510a2baac",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "NOT EXECUTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "hub",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ray/AABB diagnostics"},
+      {"id": "scene", "title": "Scene Lab", "status": "IMPLEMENTED", "fallback": "public scene/entity/component callbacks"},
+      {"id": "gameplay", "title": "Gameplay Lab", "status": "IMPLEMENTED", "fallback": "deterministic physics raycast"},
+      {"id": "presentation", "title": "Presentation Lab", "status": "IMPLEMENTED", "fallback": "portable animation, audio, VFX, and media simulation"},
+      {"id": "streaming", "title": "Streaming Lab", "status": "IMPLEMENTED", "fallback": "cell residency, budgets, and HLOD fallback"}
+    ]
+  },
+  "lifecycle": {
+    "engine_initialized": true,
+    "module_callbacks": true,
+    "module_unloaded_before_engine_shutdown": true,
+    "frames": 4,
+    "start_count": 1,
+    "fixed_update_count": 4,
+    "update_count": 4,
+    "elapsed_seconds": 0.066666666666666666
+  },
+  "scene_evidence": {
+    "scene_id": 1,
+    "entity_count": 5,
+    "primary_entity": 4,
+    "primary_transform": {
+      "x": 0.066666666666666666,
+      "y": 0,
+      "z": 0
+    },
+    "zig_read_callbacks": 4,
+    "zig_write_callbacks": 4,
+    "zig_log_received": true,
+    "high_level_debug_lines": 4,
+    "public_api_errors": 0
+  },
+  "interaction_overlay": {
+    "camera_controls": "WASD",
+    "camera_moves": 0,
+    "camera_position": [0, 2, 6],
+    "raycasts": 4,
+    "selected_entity": 4
+  },
+  "headless_evidence": {
+    "executed": true,
+    "backend": "Validation",
+    "visible_meshes": 3,
+    "passes": 5,
+    "barriers": 6,
+    "submitted_command_lists": 5,
+    "draw_calls": 3,
+    "presents": 1,
+    "validation_errors": 0
+  },
+  "windowed_evidence": {
+    "executed": false,
+    "backend": "none",
+    "backend_fallback": false,
+    "fallback_reason": "",
+    "recovery_action": "render",
+    "surface_acquires": 0,
+    "surface_presents": 0,
+    "resize_requests": 0,
+    "resize_generations": 0,
+    "composed_frames": 0,
+    "scene_draws": 0,
+    "native_scene_draws": 0,
+    "native_scene_instances": 0,
+    "native_scene_texture_uploads": 0,
+    "native_offscreen_draws": 0,
+    "native_scene_composites": 0,
+    "software_rasterizer": false,
+    "native_graph_frames": 0,
+    "native_graph_passes": 0,
+    "native_graph_resource_transitions": 0,
+    "native_graph_order": [],
+    "native_ui_draws": 0,
+    "overlay_frames": 0,
+    "rendering_mode": "cpu_composite",
+    "clear_color": true,
+    "triangle": false,
+    "diagnostics_overlay": false
+  },
+  "runtime_rooms": {"schema":"nexora.showcase.rooms.v1","selected":"hub","ticks":4,"reloads":0,"probe_runs":13,"healthy":true,"tour":{"enabled":false,"paused":false,"seconds":0,"step":0},"visited":["hub"],"visualized":[],"sample_source":"public Runtime APIs","native_media":"CONTRACT_ONLY","native_webview":"UNAVAILABLE","visual_acceptance":"pending target-host evidence","lines":["Public Runtime state sampled at tick 4","Eight rooms / central 3D display stand","Choose a portal above or press 1-8","Green probe = integration only. F3 shows contract mapping","T starts a 3.5-minute tour / Space pauses / R replays","Last action: Entered hub"],"integration_probes":{
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "0"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "1"}, {"name": "input.error_case", "value": "0"}, {"name": "fixed_ticks", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "2"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Native counters are reported separately in windowed_evidence", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "3"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "4"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "5"}, {"name": "input.error_case", "value": "0"}, {"name": "hash", "value": "ba85a5f7c46a16fe"}, {"name": "resident_bytes", "value": "253"}, {"name": "generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "6"}, {"name": "input.error_case", "value": "0"}, {"name": "editor_sdk", "value": "available"}, {"name": "graphical_editor", "value": "separate application"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "7"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "8"}, {"name": "input.error_case", "value": "0"}, {"name": "adapter", "value": "portable CPU / no third-party physics SDK"}, {"name": "character_x", "value": "-2.00"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "9"}, {"name": "input.error_case", "value": "0"}, {"name": "native_audio_video", "value": "adapter unavailable / contract only"}, {"name": "particles", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "10"}, {"name": "input.error_case", "value": "0"}, {"name": "full_cells", "value": "3"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "11"}, {"name": "input.error_case", "value": "0"}, {"name": "webview", "value": "adapter unavailable"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "12"}, {"name": "input.error_case", "value": "0"}, {"name": "rollback_generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+  ]
+}
+},
+  "validation_lab": {
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "NOT_RUN", "summary": "Mapped to CTest contract build.module_graph", "metrics": [{"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "NOT_RUN", "summary": "Mapped to CTest contract core.runtime", "metrics": [{"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "NOT_RUN", "summary": "Mapped to CTest contract renderer.contracts", "metrics": [{"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Mapped to CTest contract renderer.native_backend", "metrics": [{"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m4_vertical_slice", "metrics": [{"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m5_asset_pipeline", "metrics": [{"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m6_editor_sdk", "metrics": [{"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m7_input_ui_localization", "metrics": [{"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m8_gameplay_simulation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m9_presentation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m10_large_world", "metrics": [{"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m11_platform", "metrics": [{"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m12_shipping", "metrics": [{"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+    {"id": "input-ui-localization", "status": "NOT_RUN", "headless_evidence": "headless input routing, UI model, and locale fallback", "visual_complete": false},
+    {"id": "gameplay", "status": "NOT_RUN", "headless_evidence": "headless character, physics, navigation, and AI counters", "visual_complete": false},
+    {"id": "presentation", "status": "NOT_RUN", "headless_evidence": "headless animation, particle, audio, and video capability counters", "visual_complete": false},
+    {"id": "world", "status": "NOT_RUN", "headless_evidence": "headless cell, HLOD, procedural terrain, and vegetation state", "visual_complete": false}
+  ]
+},
+  "validation_lab_presentation": {"cards": [{"id": "v1.M0", "status": "NOT_RUN", "contract_test": "build.module_graph", "room": "hub", "world_object": 1314390016}, {"id": "v1.M1", "status": "NOT_RUN", "contract_test": "core.runtime", "room": "hub", "world_object": 1314390017}, {"id": "v1.M2", "status": "NOT_RUN", "contract_test": "renderer.contracts", "room": "hub", "world_object": 1314390018}, {"id": "v1.M3", "status": "UNSUPPORTED", "contract_test": "renderer.native_backend", "room": "hub", "world_object": 1314390019}, {"id": "v1.M4", "status": "NOT_RUN", "contract_test": "runtime.v1_m4_vertical_slice", "room": "scene", "world_object": 1314390020}, {"id": "v1.M5", "status": "NOT_RUN", "contract_test": "runtime.v1_m5_asset_pipeline", "room": "scene", "world_object": 1314390021}, {"id": "v1.M6", "status": "NOT_RUN", "contract_test": "runtime.v1_m6_editor_sdk", "room": "scene", "world_object": 1314390022}, {"id": "v1.M7", "status": "NOT_RUN", "contract_test": "runtime.v1_m7_input_ui_localization", "room": "input-ui-localization", "world_object": 1314390023}, {"id": "v1.M8", "status": "NOT_RUN", "contract_test": "runtime.v1_m8_gameplay_simulation", "room": "gameplay", "world_object": 1314390024}, {"id": "v1.M9", "status": "NOT_RUN", "contract_test": "runtime.v1_m9_presentation", "room": "presentation", "world_object": 1314390025}, {"id": "v1.M10", "status": "NOT_RUN", "contract_test": "runtime.v1_m10_large_world", "room": "world", "world_object": 1314390026}, {"id": "v1.M11", "status": "NOT_RUN", "contract_test": "runtime.v1_m11_platform", "room": "shipping", "world_object": 1314390027}, {"id": "v1.M12", "status": "NOT_RUN", "contract_test": "runtime.v1_m12_shipping", "room": "shipping", "world_object": 1314390028}], "status_legend": ["PASS", "FAIL", "UNSUPPORTED", "NOT_RUN", "BLOCKED"], "failure_states": [{"code": "invalid_asset", "label": "Invalid asset", "milestone": "M5", "status": "NOT_RUN"}, {"code": "dependency_cycle", "label": "Dependency cycle", "milestone": "M0", "status": "NOT_RUN"}, {"code": "plugin_abi_mismatch", "label": "Plugin ABI mismatch", "milestone": "M6", "status": "NOT_RUN"}, {"code": "rollback", "label": "Rollback", "milestone": "M12", "status": "NOT_RUN"}]},
+  "reload": {
+    "requested": true,
+    "successful_reloads": 1,
+    "migrated_bytes": 40
+  }
+}
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Passed.
+"showcase.zig_dynamic" end time: Oct 04 09:58 UTC
+"showcase.zig_dynamic" time elapsed: 00:00:00
+----------------------------------------------------------
+
+16/73 Testing: showcase.capability_fallbacks
+16/73 Test: showcase.capability_fallbacks
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase/NexoraShowcase" "--headless" "--scene=tour" "--frames=1" "--no-reload" "--capabilities=minimal"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Apps/Showcase
+"showcase.capability_fallbacks" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+NexoraShowcase build=a38510a2baac --headless --scene=tour --frames=1 --no-reload --capabilities=minimal
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "tour",
+  "backend": "auto",
+  "validate_v1": false,
+  "startup_arguments": ["--headless","--scene=tour","--frames=1","--no-reload","--capabilities=minimal"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "a38510a2baac",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "NOT EXECUTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "tour",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ray/AABB diagnostics"},
+      {"id": "scene", "title": "Scene Lab", "status": "IMPLEMENTED", "fallback": "public scene/entity/component callbacks"},
+      {"id": "gameplay", "title": "Gameplay Lab", "status": "CONTRACT ONLY", "fallback": "physics/navigation capability was not advertised"},
+      {"id": "presentation", "title": "Presentation Lab", "status": "CONTRACT ONLY", "fallback": "animation/audio/VFX capability was not advertised"},
+      {"id": "streaming", "title": "Streaming Lab", "status": "UNAVAILABLE", "fallback": "large-world capability was not advertised"}
+    ]
+  },
+  "lifecycle": {
+    "engine_initialized": true,
+    "module_callbacks": true,
+    "module_unloaded_before_engine_shutdown": true,
+    "frames": 1,
+    "start_count": 1,
+    "fixed_update_count": 1,
+    "update_count": 1,
+    "elapsed_seconds": 0.016666666666666666
+  },
+  "scene_evidence": {
+    "scene_id": 1,
+    "entity_count": 5,
+    "primary_entity": 4,
+    "primary_transform": {
+      "x": 0.016666666666666666,
+      "y": 0,
+      "z": 0
+    },
+    "zig_read_callbacks": 1,
+    "zig_write_callbacks": 1,
+    "zig_log_received": true,
+    "high_level_debug_lines": 1,
+    "public_api_errors": 0
+  },
+  "interaction_overlay": {
+    "camera_controls": "WASD",
+    "camera_moves": 0,
+    "camera_position": [0, 2, 6],
+    "raycasts": 1,
+    "selected_entity": 4
+  },
+  "headless_evidence": {
+    "executed": true,
+    "backend": "Validation",
+    "visible_meshes": 3,
+    "passes": 5,
+    "barriers": 6,
+    "submitted_command_lists": 5,
+    "draw_calls": 3,
+    "presents": 1,
+    "validation_errors": 0
+  },
+  "windowed_evidence": {
+    "executed": false,
+    "backend": "none",
+    "backend_fallback": false,
+    "fallback_reason": "",
+    "recovery_action": "render",
+    "surface_acquires": 0,
+    "surface_presents": 0,
+    "resize_requests": 0,
+    "resize_generations": 0,
+    "composed_frames": 0,
+    "scene_draws": 0,
+    "native_scene_draws": 0,
+    "native_scene_instances": 0,
+    "native_scene_texture_uploads": 0,
+    "native_offscreen_draws": 0,
+    "native_scene_composites": 0,
+    "software_rasterizer": false,
+    "native_graph_frames": 0,
+    "native_graph_passes": 0,
+    "native_graph_resource_transitions": 0,
+    "native_graph_order": [],
+    "native_ui_draws": 0,
+    "overlay_frames": 0,
+    "rendering_mode": "cpu_composite",
+    "clear_color": true,
+    "triangle": false,
+    "diagnostics_overlay": false
+  },
+  "runtime_rooms": {"schema":"nexora.showcase.rooms.v1","selected":"hub","ticks":1,"reloads":0,"probe_runs":13,"healthy":true,"tour":{"enabled":false,"paused":false,"seconds":0,"step":0},"visited":["hub"],"visualized":[],"sample_source":"public Runtime APIs","native_media":"CONTRACT_ONLY","native_webview":"UNAVAILABLE","visual_acceptance":"pending target-host evidence","lines":["Public Runtime state sampled at tick 1","Eight rooms / central 3D display stand","Choose a portal above or press 1-8","Green probe = integration only. F3 shows contract mapping","T starts a 3.5-minute tour / Space pauses / R replays","Minimal capability override / optional rooms unavailable","Last action: Entered hub"],"integration_probes":{
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "0"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "1"}, {"name": "input.error_case", "value": "0"}, {"name": "fixed_ticks", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "2"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Native counters are reported separately in windowed_evidence", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "3"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "4"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "UNSUPPORTED", "summary": "Feature disabled or native adapter unavailable", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "5"}, {"name": "input.error_case", "value": "0"}, {"name": "hash", "value": "ba85a5f7c46a16fe"}, {"name": "resident_bytes", "value": "253"}, {"name": "generation", "value": "1"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "UNSUPPORTED", "summary": "Feature disabled or native adapter unavailable", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "6"}, {"name": "input.error_case", "value": "0"}, {"name": "editor_sdk", "value": "available"}, {"name": "graphical_editor", "value": "separate application"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "7"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "UNSUPPORTED", "summary": "Feature disabled or native adapter unavailable", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "8"}, {"name": "input.error_case", "value": "0"}, {"name": "adapter", "value": "portable CPU / no third-party physics SDK"}, {"name": "character_x", "value": "-2.00"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "UNSUPPORTED", "summary": "Feature disabled or native adapter unavailable", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "9"}, {"name": "input.error_case", "value": "0"}, {"name": "native_audio_video", "value": "adapter unavailable / contract only"}, {"name": "particles", "value": "1"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "UNSUPPORTED", "summary": "Feature disabled or native adapter unavailable", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "10"}, {"name": "input.error_case", "value": "0"}, {"name": "full_cells", "value": "3"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "UNSUPPORTED", "summary": "Feature disabled or native adapter unavailable", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "11"}, {"name": "input.error_case", "value": "0"}, {"name": "webview", "value": "adapter unavailable"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "UNSUPPORTED", "summary": "Feature disabled or native adapter unavailable", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "12"}, {"name": "input.error_case", "value": "0"}, {"name": "rollback_generation", "value": "1"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+  ]
+}
+},
+  "validation_lab": {
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "NOT_RUN", "summary": "Mapped to CTest contract build.module_graph", "metrics": [{"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "NOT_RUN", "summary": "Mapped to CTest contract core.runtime", "metrics": [{"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "NOT_RUN", "summary": "Mapped to CTest contract renderer.contracts", "metrics": [{"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Mapped to CTest contract renderer.native_backend", "metrics": [{"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m4_vertical_slice", "metrics": [{"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m5_asset_pipeline", "metrics": [{"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m6_editor_sdk", "metrics": [{"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m7_input_ui_localization", "metrics": [{"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m8_gameplay_simulation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m9_presentation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m10_large_world", "metrics": [{"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m11_platform", "metrics": [{"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m12_shipping", "metrics": [{"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+    {"id": "input-ui-localization", "status": "NOT_RUN", "headless_evidence": "headless input routing, UI model, and locale fallback", "visual_complete": false},
+    {"id": "gameplay", "status": "NOT_RUN", "headless_evidence": "headless character, physics, navigation, and AI counters", "visual_complete": false},
+    {"id": "presentation", "status": "NOT_RUN", "headless_evidence": "headless animation, particle, audio, and video capability counters", "visual_complete": false},
+    {"id": "world", "status": "NOT_RUN", "headless_evidence": "headless cell, HLOD, procedural terrain, and vegetation state", "visual_complete": false}
+  ]
+},
+  "validation_lab_presentation": {"cards": [{"id": "v1.M0", "status": "NOT_RUN", "contract_test": "build.module_graph", "room": "hub", "world_object": 1314390016}, {"id": "v1.M1", "status": "NOT_RUN", "contract_test": "core.runtime", "room": "hub", "world_object": 1314390017}, {"id": "v1.M2", "status": "NOT_RUN", "contract_test": "renderer.contracts", "room": "hub", "world_object": 1314390018}, {"id": "v1.M3", "status": "UNSUPPORTED", "contract_test": "renderer.native_backend", "room": "hub", "world_object": 1314390019}, {"id": "v1.M4", "status": "NOT_RUN", "contract_test": "runtime.v1_m4_vertical_slice", "room": "scene", "world_object": 1314390020}, {"id": "v1.M5", "status": "NOT_RUN", "contract_test": "runtime.v1_m5_asset_pipeline", "room": "scene", "world_object": 1314390021}, {"id": "v1.M6", "status": "NOT_RUN", "contract_test": "runtime.v1_m6_editor_sdk", "room": "scene", "world_object": 1314390022}, {"id": "v1.M7", "status": "NOT_RUN", "contract_test": "runtime.v1_m7_input_ui_localization", "room": "input-ui-localization", "world_object": 1314390023}, {"id": "v1.M8", "status": "NOT_RUN", "contract_test": "runtime.v1_m8_gameplay_simulation", "room": "gameplay", "world_object": 1314390024}, {"id": "v1.M9", "status": "NOT_RUN", "contract_test": "runtime.v1_m9_presentation", "room": "presentation", "world_object": 1314390025}, {"id": "v1.M10", "status": "NOT_RUN", "contract_test": "runtime.v1_m10_large_world", "room": "world", "world_object": 1314390026}, {"id": "v1.M11", "status": "NOT_RUN", "contract_test": "runtime.v1_m11_platform", "room": "shipping", "world_object": 1314390027}, {"id": "v1.M12", "status": "NOT_RUN", "contract_test": "runtime.v1_m12_shipping", "room": "shipping", "world_object": 1314390028}], "status_legend": ["PASS", "FAIL", "UNSUPPORTED", "NOT_RUN", "BLOCKED"], "failure_states": [{"code": "invalid_asset", "label": "Invalid asset", "milestone": "M5", "status": "NOT_RUN"}, {"code": "dependency_cycle", "label": "Dependency cycle", "milestone": "M0", "status": "NOT_RUN"}, {"code": "plugin_abi_mismatch", "label": "Plugin ABI mismatch", "milestone": "M6", "status": "NOT_RUN"}, {"code": "rollback", "label": "Rollback", "milestone": "M12", "status": "NOT_RUN"}]},
+  "reload": {
+    "requested": false,
+    "successful_reloads": 0,
+    "migrated_bytes": 0
+  }
+}
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Pass Reason:
+Required regular expression found. Regex=[Gameplay Lab.*CONTRACT ONLY.*Presentation Lab.*CONTRACT ONLY.*Streaming Lab.*UNAVAILABLE]
+"showcase.capability_fallbacks" end time: Oct 04 09:58 UTC
+"showcase.capability_fallbacks" time elapsed: 00:00:00
+----------------------------------------------------------
+
+17/73 Testing: foundation.build_info
+17/73 Test: foundation.build_info
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Foundation/NexoraFoundationTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Foundation
+"foundation.build_info" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"foundation.build_info" end time: Oct 04 09:58 UTC
+"foundation.build_info" time elapsed: 00:00:00
+----------------------------------------------------------
+
+18/73 Testing: foundation.gameplay_abi
+18/73 Test: foundation.gameplay_abi
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Foundation/NexoraGameplayAbiTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Foundation
+"foundation.gameplay_abi" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"foundation.gameplay_abi" end time: Oct 04 09:58 UTC
+"foundation.gameplay_abi" time elapsed: 00:00:00
+----------------------------------------------------------
+
+19/73 Testing: core.runtime
+19/73 Test: core.runtime
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Core/NexoraCoreTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Core
+"core.runtime" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"core.runtime" end time: Oct 04 09:58 UTC
+"core.runtime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+20/73 Testing: core.v2_m11_remote_diagnostics
+20/73 Test: core.v2_m11_remote_diagnostics
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Core/NexoraV2M11Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Core
+"core.v2_m11_remote_diagnostics" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"core.v2_m11_remote_diagnostics" end time: Oct 04 09:58 UTC
+"core.v2_m11_remote_diagnostics" time elapsed: 00:00:00
+----------------------------------------------------------
+
+21/73 Testing: ai.v2_m7_navigation_crowd_policy
+21/73 Test: ai.v2_m7_navigation_crowd_policy
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/AI/NexoraV2M7Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/AI
+"ai.v2_m7_navigation_crowd_policy" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"ai.v2_m7_navigation_crowd_policy" end time: Oct 04 09:58 UTC
+"ai.v2_m7_navigation_crowd_policy" time elapsed: 00:00:00
+----------------------------------------------------------
+
+22/73 Testing: network.v2_m5_transport
+22/73 Test: network.v2_m5_transport
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network/NexoraNetworkTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network
+"network.v2_m5_transport" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"network.v2_m5_transport" end time: Oct 04 09:58 UTC
+"network.v2_m5_transport" time elapsed: 00:00:00
+----------------------------------------------------------
+
+23/73 Testing: network.v2_m6_entity_mapping
+23/73 Test: network.v2_m6_entity_mapping
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network/NexoraNetworkTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network
+"network.v2_m6_entity_mapping" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"network.v2_m6_entity_mapping" end time: Oct 04 09:58 UTC
+"network.v2_m6_entity_mapping" time elapsed: 00:00:00
+----------------------------------------------------------
+
+24/73 Testing: network.v2_m6_replication_interest
+24/73 Test: network.v2_m6_replication_interest
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network/NexoraNetworkTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network
+"network.v2_m6_replication_interest" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"network.v2_m6_replication_interest" end time: Oct 04 09:58 UTC
+"network.v2_m6_replication_interest" time elapsed: 00:00:00
+----------------------------------------------------------
+
+25/73 Testing: network.v2_m6_dormancy
+25/73 Test: network.v2_m6_dormancy
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network/NexoraNetworkTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network
+"network.v2_m6_dormancy" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"network.v2_m6_dormancy" end time: Oct 04 09:58 UTC
+"network.v2_m6_dormancy" time elapsed: 00:00:00
+----------------------------------------------------------
+
+26/73 Testing: network.v2_m6_prediction_replay
+26/73 Test: network.v2_m6_prediction_replay
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network/NexoraNetworkTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network
+"network.v2_m6_prediction_replay" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"network.v2_m6_prediction_replay" end time: Oct 04 09:58 UTC
+"network.v2_m6_prediction_replay" time elapsed: 00:00:00
+----------------------------------------------------------
+
+27/73 Testing: network.server_runtime_contract
+27/73 Test: network.server_runtime_contract
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network/NexoraNetworkTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network
+"network.server_runtime_contract" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Passed.
+"network.server_runtime_contract" end time: Oct 04 09:58 UTC
+"network.server_runtime_contract" time elapsed: 00:00:00
+----------------------------------------------------------
+
+28/73 Testing: network.v2_m5_headless_dependency
+28/73 Test: network.v2_m5_headless_dependency
+Command: "/opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14" "/Users/runner/work/Nexora/Nexora/Tests/Network/VerifyHeadlessDependency.py" "/Users/runner/work/Nexora/Nexora/Config/Modules/modules.json" "/Users/runner/work/Nexora/Nexora/build/macos-development" "0"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Network
+"network.v2_m5_headless_dependency" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.06 sec
+----------------------------------------------------------
+Test Passed.
+"network.v2_m5_headless_dependency" end time: Oct 04 09:58 UTC
+"network.v2_m5_headless_dependency" time elapsed: 00:00:00
+----------------------------------------------------------
+
+29/73 Testing: window_presentation.contracts
+29/73 Test: window_presentation.contracts
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/WindowPresentation/NexoraWindowPresentationTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/WindowPresentation
+"window_presentation.contracts" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"window_presentation.contracts" end time: Oct 04 09:58 UTC
+"window_presentation.contracts" time elapsed: 00:00:00
+----------------------------------------------------------
+
+30/73 Testing: window_presentation.metal_scene
+30/73 Test: window_presentation.metal_scene
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/WindowPresentation/NexoraMetalSceneTests" "/Users/runner/work/Nexora/Nexora/build/macos-development/artifacts/metal-scene.ppm"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/WindowPresentation
+"window_presentation.metal_scene" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+PASS: Metal native scene/UI/copy, instancing, textures, rejection, resize and teardown
+<end of output>
+Test time =   2.33 sec
+----------------------------------------------------------
+Test Passed.
+"window_presentation.metal_scene" end time: Oct 04 09:58 UTC
+"window_presentation.metal_scene" time elapsed: 00:00:02
+----------------------------------------------------------
+
+31/73 Testing: api.foundation_math_types
+31/73 Test: api.foundation_math_types
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/API/NexoraApiFoundationTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/API
+"api.foundation_math_types" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.15 sec
+----------------------------------------------------------
+Test Passed.
+"api.foundation_math_types" end time: Oct 04 09:58 UTC
+"api.foundation_math_types" time elapsed: 00:00:00
+----------------------------------------------------------
+
+32/73 Testing: api.core_services_handle_and_vfs_contract
+32/73 Test: api.core_services_handle_and_vfs_contract
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/API/NexoraApiCoreContractTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/API
+"api.core_services_handle_and_vfs_contract" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.31 sec
+----------------------------------------------------------
+Test Passed.
+"api.core_services_handle_and_vfs_contract" end time: Oct 04 09:58 UTC
+"api.core_services_handle_and_vfs_contract" time elapsed: 00:00:00
+----------------------------------------------------------
+
+33/73 Testing: api.m6_c_consumer
+33/73 Test: api.m6_c_consumer
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/API/NexoraApiM6CConsumer"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/API
+"api.m6_c_consumer" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"api.m6_c_consumer" end time: Oct 04 09:58 UTC
+"api.m6_c_consumer" time elapsed: 00:00:00
+----------------------------------------------------------
+
+34/73 Testing: api.m6_manifest_compatibility
+34/73 Test: api.m6_manifest_compatibility
+Command: "/opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14" "/Users/runner/work/Nexora/Nexora/Tools/Build/ValidateApiM6.py" "/Users/runner/work/Nexora/Nexora"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/API
+"api.m6_manifest_compatibility" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+API-M6 ABI 3 validated: 35 documented exports
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"api.m6_manifest_compatibility" end time: Oct 04 09:58 UTC
+"api.m6_manifest_compatibility" time elapsed: 00:00:00
+----------------------------------------------------------
+
+35/73 Testing: samples.api_foundation
+35/73 Test: samples.api_foundation
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Samples/Api/NexoraApiFoundationSample"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/API
+"samples.api_foundation" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+-- Math --
+  translation round trip: (1.000, 2.000, 3.000)
+  origin sphere visible in camera frustum: yes
+-- Types --
+  Uuid round trip: 01234567-89ab-cdef-0123-456789abcdef
+  IsValidUtf8: true
+  C ABI owned UTF-8 buffer: ok
+-- VFS --
+  read/stream/map memory-mounted 43 bytes: ok
+-- Services --
+  RandomStream replay match: yes
+  [profiling] sample.services took 20125 ns
+-- Handle (Core) --
+  fresh handle valid and contained: yes
+Nexora API foundation sample: PASS
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"samples.api_foundation" end time: Oct 04 09:58 UTC
+"samples.api_foundation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+36/73 Testing: renderer.metal_source_contract
+36/73 Test: renderer.metal_source_contract
+Command: "/opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14" "/Users/runner/work/Nexora/Nexora/Tests/Renderer/MetalSourceContract.py" "/Users/runner/work/Nexora/Nexora/Engine/RHI/src/MetalDevice.mm"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer
+"renderer.metal_source_contract" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+Metal source contracts present: newComputePipelineStateWithFunction, BindStorageBuffer, dispatchThreadgroups, GPUDrivenIndirectCommandStride, drawPrimitives:MTLPrimitiveTypeTriangle, indirectBufferOffset:
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"renderer.metal_source_contract" end time: Oct 04 09:58 UTC
+"renderer.metal_source_contract" time elapsed: 00:00:00
+----------------------------------------------------------
+
+37/73 Testing: renderer.indirect_range_source_contract
+37/73 Test: renderer.indirect_range_source_contract
+Command: "/opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14" "/Users/runner/work/Nexora/Nexora/Tests/Renderer/IndirectRangeSourceContract.py" "/Users/runner/work/Nexora/Nexora/Engine/RHI/src/ValidationDevice.cpp" "/Users/runner/work/Nexora/Nexora/Engine/RHI/src/VulkanDevice.cpp" "/Users/runner/work/Nexora/Nexora/Engine/RHI/src/D3D12Device.cpp" "/Users/runner/work/Nexora/Nexora/Engine/RHI/src/MetalDevice.mm"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer
+"renderer.indirect_range_source_contract" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+indirect-range checks present in ValidationDevice.cpp, VulkanDevice.cpp, D3D12Device.cpp, MetalDevice.mm
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"renderer.indirect_range_source_contract" end time: Oct 04 09:58 UTC
+"renderer.indirect_range_source_contract" time elapsed: 00:00:00
+----------------------------------------------------------
+
+38/73 Testing: renderer.contracts
+38/73 Test: renderer.contracts
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer/NexoraRendererTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer
+"renderer.contracts" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.32 sec
+----------------------------------------------------------
+Test Passed.
+"renderer.contracts" end time: Oct 04 09:58 UTC
+"renderer.contracts" time elapsed: 00:00:00
+----------------------------------------------------------
+
+39/73 Testing: renderer.scene_frame_contracts
+39/73 Test: renderer.scene_frame_contracts
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer/NexoraSceneFrameTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer
+"renderer.scene_frame_contracts" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"renderer.scene_frame_contracts" end time: Oct 04 09:58 UTC
+"renderer.scene_frame_contracts" time elapsed: 00:00:00
+----------------------------------------------------------
+
+40/73 Testing: renderer.material_contracts
+40/73 Test: renderer.material_contracts
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer/NexoraMaterialTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer
+"renderer.material_contracts" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"renderer.material_contracts" end time: Oct 04 09:58 UTC
+"renderer.material_contracts" time elapsed: 00:00:00
+----------------------------------------------------------
+
+41/73 Testing: renderer.golden_image_acceptance
+41/73 Test: renderer.golden_image_acceptance
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer/NexoraGoldenImageTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer
+"renderer.golden_image_acceptance" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+Golden image acceptance contracts passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"renderer.golden_image_acceptance" end time: Oct 04 09:58 UTC
+"renderer.golden_image_acceptance" time elapsed: 00:00:00
+----------------------------------------------------------
+
+42/73 Testing: renderer.v2_gpu_scene
+42/73 Test: renderer.v2_gpu_scene
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer/NexoraGPUSceneTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer
+"renderer.v2_gpu_scene" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+GPUScene tests passed
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"renderer.v2_gpu_scene" end time: Oct 04 09:58 UTC
+"renderer.v2_gpu_scene" time elapsed: 00:00:00
+----------------------------------------------------------
+
+43/73 Testing: renderer.v2_gpu_driven
+43/73 Test: renderer.v2_gpu_driven
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer/NexoraGPUDrivenTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer
+"renderer.v2_gpu_driven" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+GPU-driven pipeline tests passed
+<end of output>
+Test time =   0.21 sec
+----------------------------------------------------------
+Test Passed.
+"renderer.v2_gpu_driven" end time: Oct 04 09:58 UTC
+"renderer.v2_gpu_driven" time elapsed: 00:00:00
+----------------------------------------------------------
+
+44/73 Testing: build.shader_crosscompile
+44/73 Test: build.shader_crosscompile
+Command: "/Users/runner/work/_temp/-1240556199/cmake-4.4.2-macos-universal/CMake.app/Contents/bin/cmake" "-DROOT=/Users/runner/work/Nexora/Nexora" "-DCANONICAL_REFLECTION=/Users/runner/work/Nexora/Nexora/build/macos-development/Shaders/Triangle.reflection.json" "-DSPIRV_ARTIFACT=/Users/runner/work/Nexora/Nexora/build/macos-development/Shaders/Triangle.spv" "-DMETAL_ARTIFACT=/Users/runner/work/Nexora/Nexora/build/macos-development/Shaders/Triangle.metal" "-DCOMMON_SPIRV_ARTIFACT=/Users/runner/work/Nexora/Nexora/build/macos-development/Shaders/CommonSmoke.spv" "-DCOMMON_METAL_ARTIFACT=/Users/runner/work/Nexora/Nexora/build/macos-development/Shaders/CommonSmoke.metal" "-DSHADER_LIBRARY_SPIRV_ARTIFACT=/Users/runner/work/Nexora/Nexora/build/macos-development/Shaders/ShaderLibrarySmoke.spv" "-DSHADER_LIBRARY_METAL_ARTIFACT=/Users/runner/work/Nexora/Nexora/build/macos-development/Shaders/ShaderLibrarySmoke.metal" "-DPBR_SPIRV_ARTIFACT=/Users/runner/work/Nexora/Nexora/build/macos-development/Shaders/PbrSmoke.spv" "-DPBR_METAL_ARTIFACT=/Users/runner/work/Nexora/Nexora/build/macos-development/Shaders/PbrSmoke.metal" "-DUI_SPIRV_ARTIFACT=/Users/runner/work/Nexora/Nexora/build/macos-development/Shaders/UiSmoke.spv" "-DUI_METAL_ARTIFACT=/Users/runner/work/Nexora/Nexora/build/macos-development/Shaders/UiSmoke.metal" "-DREFLECTION_VERIFIER=/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer/NexoraShaderReflectionContractTests" "-P" "/Users/runner/work/Nexora/Nexora/Tools/Build/ValidateShaderCrossCompile.cmake"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Renderer
+"build.shader_crosscompile" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+-- Validated Slang SPIR-V/MSL cross-compile and canonical reflection layout (DXIL is Windows-only)
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"build.shader_crosscompile" end time: Oct 04 09:58 UTC
+"build.shader_crosscompile" time elapsed: 00:00:00
+----------------------------------------------------------
+
+45/73 Testing: runtime.shader_artifact_contracts
+45/73 Test: runtime.shader_artifact_contracts
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraShaderRuntimeTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.shader_artifact_contracts" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+Shader runtime artifact contracts passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.shader_artifact_contracts" end time: Oct 04 09:58 UTC
+"runtime.shader_artifact_contracts" time elapsed: 00:00:00
+----------------------------------------------------------
+
+46/73 Testing: runtime.v1_m4_m11_contracts
+46/73 Test: runtime.v1_m4_m11_contracts
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraRuntimeTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v1_m4_m11_contracts" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v1_m4_m11_contracts" end time: Oct 04 09:58 UTC
+"runtime.v1_m4_m11_contracts" time elapsed: 00:00:00
+----------------------------------------------------------
+
+47/73 Testing: api.game_world_facade
+47/73 Test: api.game_world_facade
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraGameWorldTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"api.game_world_facade" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"api.game_world_facade" end time: Oct 04 09:58 UTC
+"api.game_world_facade" time elapsed: 00:00:00
+----------------------------------------------------------
+
+48/73 Testing: runtime.transform_rotation_scale
+48/73 Test: runtime.transform_rotation_scale
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraTransformTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.transform_rotation_scale" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+Transform rotation/scale contracts passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.transform_rotation_scale" end time: Oct 04 09:58 UTC
+"runtime.transform_rotation_scale" time elapsed: 00:00:00
+----------------------------------------------------------
+
+49/73 Testing: runtime.entity_parenting
+49/73 Test: runtime.entity_parenting
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraParentingTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.entity_parenting" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.76 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.entity_parenting" end time: Oct 04 09:58 UTC
+"runtime.entity_parenting" time elapsed: 00:00:00
+----------------------------------------------------------
+
+50/73 Testing: runtime.render_sync
+50/73 Test: runtime.render_sync
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraRenderSyncTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.render_sync" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.29 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.render_sync" end time: Oct 04 09:58 UTC
+"runtime.render_sync" time elapsed: 00:00:00
+----------------------------------------------------------
+
+51/73 Testing: api.gameplay_host_bridge
+51/73 Test: api.gameplay_host_bridge
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraGameplayHostBridgeTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"api.gameplay_host_bridge" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"api.gameplay_host_bridge" end time: Oct 04 09:58 UTC
+"api.gameplay_host_bridge" time elapsed: 00:00:00
+----------------------------------------------------------
+
+52/73 Testing: runtime.v1_m12_shipping
+52/73 Test: runtime.v1_m12_shipping
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraV1M12Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v1_m12_shipping" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.06 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v1_m12_shipping" end time: Oct 04 09:58 UTC
+"runtime.v1_m12_shipping" time elapsed: 00:00:00
+----------------------------------------------------------
+
+53/73 Testing: runtime.v2_m12_hardening_reference_projects
+53/73 Test: runtime.v2_m12_hardening_reference_projects
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraV2M12Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v2_m12_hardening_reference_projects" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v2_m12_hardening_reference_projects" end time: Oct 04 09:58 UTC
+"runtime.v2_m12_hardening_reference_projects" time elapsed: 00:00:00
+----------------------------------------------------------
+
+54/73 Testing: runtime.v1_m7_input_ui_localization
+54/73 Test: runtime.v1_m7_input_ui_localization
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraV1M7Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v1_m7_input_ui_localization" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.02 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v1_m7_input_ui_localization" end time: Oct 04 09:58 UTC
+"runtime.v1_m7_input_ui_localization" time elapsed: 00:00:00
+----------------------------------------------------------
+
+55/73 Testing: runtime.v1_m8_gameplay_simulation
+55/73 Test: runtime.v1_m8_gameplay_simulation
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraV1M8Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v1_m8_gameplay_simulation" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v1_m8_gameplay_simulation" end time: Oct 04 09:58 UTC
+"runtime.v1_m8_gameplay_simulation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+56/73 Testing: runtime.v2_m7_ai_character_intent_bridge
+56/73 Test: runtime.v2_m7_ai_character_intent_bridge
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraAIIntentAdapterTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v2_m7_ai_character_intent_bridge" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+AI CharacterIntent adapter tests passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v2_m7_ai_character_intent_bridge" end time: Oct 04 09:58 UTC
+"runtime.v2_m7_ai_character_intent_bridge" time elapsed: 00:00:00
+----------------------------------------------------------
+
+57/73 Testing: runtime.v1_m10_large_world
+57/73 Test: runtime.v1_m10_large_world
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraV1M10Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v1_m10_large_world" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v1_m10_large_world" end time: Oct 04 09:58 UTC
+"runtime.v1_m10_large_world" time elapsed: 00:00:00
+----------------------------------------------------------
+
+58/73 Testing: runtime.v1_m11_platform
+58/73 Test: runtime.v1_m11_platform
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraV1M11Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v1_m11_platform" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v1_m11_platform" end time: Oct 04 09:58 UTC
+"runtime.v1_m11_platform" time elapsed: 00:00:00
+----------------------------------------------------------
+
+59/73 Testing: runtime.v1_m9_presentation
+59/73 Test: runtime.v1_m9_presentation
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraV1M9Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v1_m9_presentation" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v1_m9_presentation" end time: Oct 04 09:58 UTC
+"runtime.v1_m9_presentation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+60/73 Testing: runtime.v2_m9_timeline_ui_audio_media
+60/73 Test: runtime.v2_m9_timeline_ui_audio_media
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraV2M9Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v2_m9_timeline_ui_audio_media" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v2_m9_timeline_ui_audio_media" end time: Oct 04 09:58 UTC
+"runtime.v2_m9_timeline_ui_audio_media" time elapsed: 00:00:00
+----------------------------------------------------------
+
+61/73 Testing: runtime.v1_m4_vertical_slice
+61/73 Test: runtime.v1_m4_vertical_slice
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraV1M4Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v1_m4_vertical_slice" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v1_m4_vertical_slice" end time: Oct 04 09:58 UTC
+"runtime.v1_m4_vertical_slice" time elapsed: 00:00:00
+----------------------------------------------------------
+
+62/73 Testing: runtime.gameplay_module_host
+62/73 Test: runtime.gameplay_module_host
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraGameplayModuleHostTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.gameplay_module_host" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.gameplay_module_host" end time: Oct 04 09:58 UTC
+"runtime.gameplay_module_host" time elapsed: 00:00:00
+----------------------------------------------------------
+
+63/73 Testing: runtime.dynamic_gameplay_module
+63/73 Test: runtime.dynamic_gameplay_module
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraDynamicGameplayModuleTests" "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/libNexoraDynamicGameplayFirst.so" "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/libNexoraDynamicGameplaySecond.so" "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/libNexoraDynamicGameplayFailing.so"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.dynamic_gameplay_module" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   1.00 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.dynamic_gameplay_module" end time: Oct 04 09:58 UTC
+"runtime.dynamic_gameplay_module" time elapsed: 00:00:00
+----------------------------------------------------------
+
+64/73 Testing: runtime.v1_m5_asset_pipeline
+64/73 Test: runtime.v1_m5_asset_pipeline
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraV1M5Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v1_m5_asset_pipeline" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+V1-M5 baseline: 10000 cached runtime blobs in 41 ms
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v1_m5_asset_pipeline" end time: Oct 04 09:58 UTC
+"runtime.v1_m5_asset_pipeline" time elapsed: 00:00:00
+----------------------------------------------------------
+
+65/73 Testing: api.bundle_mount
+65/73 Test: api.bundle_mount
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraBundleMountTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"api.bundle_mount" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"api.bundle_mount" end time: Oct 04 09:58 UTC
+"api.bundle_mount" time elapsed: 00:00:00
+----------------------------------------------------------
+
+66/73 Testing: runtime.v1_m6_editor_sdk
+66/73 Test: runtime.v1_m6_editor_sdk
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime/NexoraV1M6Tests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Runtime
+"runtime.v1_m6_editor_sdk" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"runtime.v1_m6_editor_sdk" end time: Oct 04 09:58 UTC
+"runtime.v1_m6_editor_sdk" time elapsed: 00:00:00
+----------------------------------------------------------
+
+67/73 Testing: editor.shader_authoring_contracts
+67/73 Test: editor.shader_authoring_contracts
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor/NexoraEditorShaderTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor
+"editor.shader_authoring_contracts" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+Editor shader authoring contracts passed
+<end of output>
+Test time =   0.03 sec
+----------------------------------------------------------
+Test Passed.
+"editor.shader_authoring_contracts" end time: Oct 04 09:58 UTC
+"editor.shader_authoring_contracts" time elapsed: 00:00:00
+----------------------------------------------------------
+
+68/73 Testing: editor.preview_contract
+68/73 Test: editor.preview_contract
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor/NexoraEditorTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor
+"editor.preview_contract" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"editor.preview_contract" end time: Oct 04 09:58 UTC
+"editor.preview_contract" time elapsed: 00:00:00
+----------------------------------------------------------
+
+69/73 Testing: editor.viewport_math
+69/73 Test: editor.viewport_math
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor/NexoraEditorViewportMathTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor
+"editor.viewport_math" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+Editor viewport math contracts passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"editor.viewport_math" end time: Oct 04 09:58 UTC
+"editor.viewport_math" time elapsed: 00:00:00
+----------------------------------------------------------
+
+70/73 Testing: editor.mesh_import
+70/73 Test: editor.mesh_import
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor/NexoraMeshImportTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor
+"editor.mesh_import" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+PASS: bounded OBJ geometry, rejection, cancellation and background workspace import
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"editor.mesh_import" end time: Oct 04 09:58 UTC
+"editor.mesh_import" time elapsed: 00:00:00
+----------------------------------------------------------
+
+71/73 Testing: editor.mesh_asset_catalog
+71/73 Test: editor.mesh_asset_catalog
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor/NexoraMeshAssetCatalogTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor
+"editor.mesh_asset_catalog" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+Mesh asset catalog contracts passed
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"editor.mesh_asset_catalog" end time: Oct 04 09:58 UTC
+"editor.mesh_asset_catalog" time elapsed: 00:00:00
+----------------------------------------------------------
+
+72/73 Testing: editor.mesh_reimport
+72/73 Test: editor.mesh_reimport
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor/NexoraMeshReimportTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor
+"editor.mesh_reimport" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+Mesh reimport publication contracts passed
+<end of output>
+Test time =   0.06 sec
+----------------------------------------------------------
+Test Passed.
+"editor.mesh_reimport" end time: Oct 04 09:58 UTC
+"editor.mesh_reimport" time elapsed: 00:00:00
+----------------------------------------------------------
+
+73/73 Testing: editor.parser_robustness
+73/73 Test: editor.parser_robustness
+Command: "/Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor/NexoraParserRobustnessTests"
+Directory: /Users/runner/work/Nexora/Nexora/build/macos-development/Tests/Editor
+"editor.parser_robustness" start time: Oct 04 09:58 UTC
+Output:
+----------------------------------------------------------
+Parser robustness: 17 parsers x 2000 mutations passed
+<end of output>
+Test time =   2.95 sec
+----------------------------------------------------------
+Test Passed.
+"editor.parser_robustness" end time: Oct 04 09:58 UTC
+"editor.parser_robustness" time elapsed: 00:00:02
+----------------------------------------------------------
+
+End testing: Oct 04 09:58 UTC
+
+metal =   2.54 sec*proc
+
+native-acceptance =   0.21 sec*proc
+
+native-display =   2.33 sec*proc
+
+showcase =   2.33 sec*proc
+

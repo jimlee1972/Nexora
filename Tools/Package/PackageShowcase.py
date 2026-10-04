@@ -213,7 +213,7 @@ def main() -> int:
     build["interactive_launch"] = f"bin/{args.binary.name} --mode=interactive --scene=hub --backend=auto{module_argument}"
     content = {"schema_version": 1, "artifacts": artifacts, "showcase_content": content_artifacts}
     (args.output / "README.txt").write_text(
-        "Nexora Visual Showcase\nRun run-showcase.ps1 on Windows or use interactive_launch in manifests/build.json.\n"
+        "Nexora Visual Showcase\nRun run-showcase.ps1 on Windows or ./run-showcase.sh on Linux/macOS.\n"
         "Controls: 1-8 rooms; P Rendering primitive / Scene Play; F1 overview; F2 profiler; F3 matrix; F5 reload; T tour; Space pause; R replay/probe.\n"
         "Drag mouse to orbit; wheel zoom; WASD movement. Native media/WebView adapters are explicitly unavailable.\n"
         "Verify manifests/SHA256SUMS before launching. Headless launch validates portable integration only.\n"

@@ -18,8 +18,8 @@
 - ✅ Windows Vulkan 實體顯示已於 GTX 960 驗收通過（CI 套件，build `ecac94d8f9ca`）；過程中發現並修正 baseline CPU 崩潰與 present 時 out-of-date 中止。現已提供 `windows-showcase-vulkan-shipping` preset。
 - ✅ 每個 tag 的 release 流程 `.github/workflows/release.yml` 已在真實測試 tag `v0.0.0-rc.1`、`v0.0.0-rc.2` 上執行；rc.1 抓出漏傳 Vulkan 套件（已於 #267 修正），rc.2 產出完整 draft：DX12 與 Vulkan Windows 套件、checksum、release info 與 verifier 輸出。Draft 不會自動發佈，且目前只產出 Windows 套件。
 - ✅ Linux Shipping/Full 隔離封裝已通過原生房間／輸入／Lab／resize 驗收；Linux Development 80/80，五個 Vulkan/Xvfb gate 全數執行。[證據](../../Apps/Showcase/evidence/V1-Distribution-Linux-2026-10-04/acceptance.md)。
-- Metal scene／instance／材質／depth／GPU copy 原始碼、Cocoa 控制／Retina 座標、Metal 原生像素 CTest、Mac 封裝重定位與 Linux／macOS release job 已實作，但仍待 Mac／CI／tag 驗收。Windows 現有明確的 Vulkan Development／Shipping preset；無 SDK 仍可使用 DX12 preset。
-- 待辦（V1 最終驗收仍為 PENDING）：Metal 目標主機編譯／runtime／輸入／畫面驗收；其他 GPU／驅動上的 Vulkan；Mac 發佈套件與新版跨平台 tag 執行。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
+- ✅ macOS hosted Shipping/Full 封裝編譯、重定位／ad-hoc signing 與隔離副本八房間 Metal scene／copy／UI／present／resize smoke 已通過（96 個原生幀）；[證據](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md)。✅ 原生像素／輸入／depth／lifecycle CTest 已通過 macOS Development（73/73）與 mimalloc（63/63）；實體 Mac 畫面與擴充 tag 流程仍待驗收。Metal scene／instance／材質／depth／GPU copy 原始碼、Cocoa 控制／Retina 座標與 Linux／macOS release job 已實作。Windows 現有明確的 Vulkan Development／Shipping preset；無 SDK 仍可使用 DX12 preset。
+- 待辦（V1 最終驗收仍為 PENDING）：Metal 實體畫面與完整互動驗收；其他 GPU／驅動上的 Vulkan；Mac 乾淨主機發佈套件與新版跨平台 tag 執行。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
 
 證據與精確驗證結果：[`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md)。
 

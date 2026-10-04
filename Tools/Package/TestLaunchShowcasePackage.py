@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import sys
+import os
+import json
 import platform
 import shutil
 import subprocess
@@ -8,7 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from LaunchShowcasePackage import safe_join, verify_runtime_closure  # noqa: E402
-from PackageShowcase import engine_runtime_libraries, macho_engine_libraries, relocate_macos_binaries  # noqa: E402
+from PackageShowcase import digest, engine_runtime_libraries, macho_engine_libraries, relocate_macos_binaries  # noqa: E402
 
 
 def expect_rejected(base: Path, relative: str, label: str) -> None:
@@ -17,6 +19,31 @@ def expect_rejected(base: Path, relative: str, label: str) -> None:
     except RuntimeError:
         return
     raise AssertionError(f"{label} was not rejected: {relative}")
+
+
+def verify_launch_through_temporary_alias(package: Path, base: Path, library_name: str) -> None:
+    # macOS /var points to /private/var. Exercise the same noncanonical TMPDIR on Linux too.
+    real_temporary = base / "real-temporary"
+    real_temporary.mkdir()
+    alias = base / "temporary-alias"
+    alias.symlink_to(real_temporary, target_is_directory=True)
+    manifests = package / "manifests"
+    manifests.mkdir()
+    (manifests / "build.json").write_text(json.dumps({
+        "profile": "Development", "launch": "bin/fixture --emit-report"}))
+    files = sorted(path for path in package.rglob("*") if path.is_file())
+    (manifests / "SHA256SUMS").write_text("\n".join(
+        f"{digest(path)}  {path.relative_to(package).as_posix()}" for path in files) + "\n")
+    evidence = base / "alias-launch.json"
+    environment = os.environ.copy()
+    environment["TMPDIR"] = str(alias)
+    completed = subprocess.run([sys.executable, str(Path(__file__).with_name("LaunchShowcasePackage.py")),
+                                "--package", str(package), "--evidence", str(evidence)],
+                               env=environment, capture_output=True, text=True)
+    assert completed.returncode == 0, completed.stderr
+    report = json.loads(evidence.read_text())
+    assert report["isolated_copy"] is True
+    assert report["engine_library_locations"][library_name] == f"bin/{library_name}"
 
 
 def main() -> int:
@@ -67,7 +94,9 @@ def main() -> int:
             source.write_text('extern "C" int fixture() { return 42; }\n')
             subprocess.run(["c++", "-dynamiclib", str(source),
                             "-Wl,-install_name,@rpath/libNexoraNativeFixture.dylib", "-o", str(library)], check=True)
-            source.write_text('extern "C" int fixture(); int main() { return fixture() == 42 ? 0 : 1; }\n')
+            source.write_text('#include <fstream>\nextern "C" int fixture(); int main(int argc, char**) {'
+                              ' if (fixture() != 42) return 1;'
+                              ' if (argc > 1) std::ofstream("launch-report.json") << "{}"; return 0; }\n')
             binary = base / "fixture"
             subprocess.run(["c++", str(source), str(library), f"-Wl,-rpath,{base}", "-o", str(binary)], check=True)
             staged = base / "native-staged"
@@ -84,6 +113,7 @@ def main() -> int:
             relocate_macos_binaries(staged / "bin")
             assert verify_runtime_closure(executable, staged) == [library.name]
             subprocess.run([str(executable)], check=True)
+            verify_launch_through_temporary_alias(staged, base, library.name)
         if platform.system() == "Linux":
             # A real ELF fixture demonstrates the hidden build-tree fallback that a copied
             # executable and checksum-only launch could previously certify as isolated.
@@ -92,7 +122,9 @@ def main() -> int:
             source.write_text('extern "C" int fixture() { return 42; }\n')
             subprocess.run(["c++", "-shared", "-fPIC", str(source),
                             "-Wl,-soname,libNexoraFixture.so", "-o", str(library)], check=True)
-            source.write_text('extern "C" int fixture(); int main() { return fixture() == 42 ? 0 : 1; }\n')
+            source.write_text('#include <fstream>\nextern "C" int fixture(); int main(int argc, char**) {'
+                              ' if (fixture() != 42) return 1;'
+                              ' if (argc > 1) std::ofstream("launch-report.json") << "{}"; return 0; }\n')
             binary = base / "fixture"
             subprocess.run(["c++", str(source), f"-L{base}", "-lNexoraFixture",
                             f"-Wl,-rpath,$ORIGIN:{base}", "-o", str(binary)], check=True)
@@ -114,6 +146,7 @@ def main() -> int:
             if verify_runtime_closure(executable, staged) != ["libNexoraFixture.so"]:
                 raise AssertionError("relocated Engine runtime closure was not verified")
             subprocess.run([str(executable)], check=True)
+            verify_launch_through_temporary_alias(staged, base, library.name)
     return 0
 
 

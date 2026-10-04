@@ -121,4 +121,4 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 空批次維持既有繪製行為。Portable 溢位／範圍檢查與不同幾何的 Vulkan 像素驗證涵蓋 offset 及
 錯誤後仍可成功提交；DX12 執行仍屬目標主機 gate。
 
-2026-10-04 補齊 Metal Showcase scene／instance／材質／depth／copy 與 Cocoa 控制／Retina 原始碼，並提供 Metal 原生像素 CTest 與 Mac 封裝 gate；Mac 執行驗收仍待完成。Linux 發佈套件回歸已通過 80/80，原生 gate 無 skip。見[發佈證據](../../Apps/Showcase/evidence/V1-Distribution-Linux-2026-10-04/acceptance.md)。
+2026-10-04 補齊 Metal Showcase scene／instance／材質／depth／copy 與 Cocoa 控制／Retina 原始碼，✅ macOS hosted Shipping/Full 隔離封裝已以 Metal scene／copy／UI／present 與 resize 執行八房間（96 幀；[紀錄](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md)）；✅ 原生像素／輸入／depth／lifecycle CTest 已通過 macOS Development（73/73）與 mimalloc（63/63）；實體 Mac 畫面仍待驗收。Linux 發佈套件回歸已通過 80/80，原生 gate 無 skip。見[發佈證據](../../Apps/Showcase/evidence/V1-Distribution-Linux-2026-10-04/acceptance.md)。

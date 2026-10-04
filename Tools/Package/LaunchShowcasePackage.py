@@ -65,7 +65,7 @@ def main() -> int:
         verified.append(relative)
 
     with tempfile.TemporaryDirectory(prefix="nexora-clean-package-") as temporary:
-        staged = Path(temporary) / "NexoraShowcase"
+        staged = (Path(temporary) / "NexoraShowcase").resolve()
         shutil.copytree(source, staged)
         # Re-verify against the staged copy actually about to be chmod'd/executed,
         # not just the original `source` -- otherwise a change to `source` between

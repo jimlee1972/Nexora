@@ -14,7 +14,7 @@ opens the Hub by default (`--mode=interactive --scene=hub --backend=auto`). Linu
 existing Windows/DX12 geometry path use `DrawScene` for indexed, lit, depth-tested room geometry,
 then `RenderUi` for the original bitmap font and panels. UI shaders are embedded independently of
 the graphical Editor feature. Metal scene geometry, sampled materials, instances and GPU copy are now implemented in source;
-Mac native acceptance is still required.
+Hosted macOS native graph and pixel/input/depth/lifecycle gates pass; physical Mac visuals remain a separate acceptance task.
 
 The eight room controls are `1`–`8`; mouse drag orbits, wheel zooms, and held WASD controls the camera
 or gameplay character. F1/F2/F3 toggle overview/profiler/matrix; F5 reloads an owned scene snapshot
@@ -310,5 +310,7 @@ Use `sh run-showcase.sh` on the target. Drivers and desktop services remain host
 
 `windows-showcase-vulkan-development` complements the Vulkan Shipping preset for SDK-equipped
 Windows developers; the DX12-only Showcase presets remain available without the Vulkan SDK.
-Mac compilation, native pixels, real-input/screenshots, clean-host deployment and a new multi-platform
-tag run remain separate acceptance tasks until their target-host evidence is recorded.
+✅ macOS hosted Shipping/Full eight-room native graph/resize smoke (96 frames) and native
+pixel/input/depth/lifecycle CTest (Development 73/73; mimalloc 63/63) pass; see
+[the hosted Metal record](evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md). Full real-input/screenshots,
+clean-host deployment and a new multi-platform tag run remain separate acceptance tasks.

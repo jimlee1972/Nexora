@@ -168,5 +168,7 @@ unit to read GPU pixels without adding native handles to the public API. It exer
 invariance, sampled texels, instance/batch offsets, UI/copy ordering, rejected descriptors, resize,
 zero extent and abandoned recording teardown; a PPM capture is retained. Cocoa synthetic key/pointer
 translation is checked separately from human input acceptance. A missing Metal device or WindowServer
-screen returns UNSUPPORTED (77), never PASS. This Linux change does not certify Mac compilation or
-runtime parity; run the gate on a Mac and retain its output before claiming acceptance.
+screen returns UNSUPPORTED (77), never PASS. ✅ The hosted macOS gate passes Development (73/73) and mimalloc (63/63) CTest, including native pixels,
+Cocoa input, depth and lifecycle. Shipping/Full isolated packages also pass eight-room Metal graph
+smoke (96 frames); see [the record](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md).
+These commands ran on GitHub macOS runners; physical Mac visuals and full interactive parity remain open.
