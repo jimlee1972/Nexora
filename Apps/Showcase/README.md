@@ -321,7 +321,9 @@ passes `v0.0.0-rc.3`, retaining four ZIPs, native archives and three CTest logs 
 
 The Build and Release workflows now provision Mesa lavapipe 26.2.4 from a pinned, SHA-256-verified
 `mesa-dist-win` archive. The ICD/DLL remain host dependencies outside the isolated Showcase package;
-no system driver registration or package redistribution is required. Native Win32 Vulkan acceptance
+a temporary ICD registry entry is created only on disposable GitHub-hosted Windows runners and
+removed in an always-run cleanup step. The setup script rejects local and self-hosted execution;
+no driver bytes are redistributed with the package. Native Win32 Vulkan acceptance
 exercises eight rooms, interaction/resize, screenshots and the full 210-second guided tour.
 `-ExpectedVulkanDriverLibrary` requires the process to load the exact selected DLL and records its
 SHA-256, alongside archive provenance. The gate requires `software_rasterizer=true`, with physical

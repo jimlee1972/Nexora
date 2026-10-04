@@ -66,6 +66,10 @@ jobs:
           if ($accepted.status -ne 'PASS' -or -not $accepted.native.software_rasterizer -or $accepted.physical_display_verified -or $accepted.clean_host_verified) {
             throw 'Expected native Vulkan software-driver acceptance without target-host attestations.'
           }
+      - name: Remove hosted-runner lavapipe registration
+        if: always()
+        shell: pwsh
+        run: ./Tools/Build/SetupWindowsVulkanLavapipe.ps1 -Directory "$env:RUNNER_TEMP/nexora-mesa" -RemoveRegistration
       - uses: actions/upload-artifact@v4
         if: always()
         with:
