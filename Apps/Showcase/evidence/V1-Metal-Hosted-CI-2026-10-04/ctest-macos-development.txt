@@ -2112,4 +2112,3 @@ native-acceptance =   0.21 sec*proc
 native-display =   2.33 sec*proc
 
 showcase =   2.33 sec*proc
-
