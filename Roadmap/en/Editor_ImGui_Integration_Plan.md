@@ -249,7 +249,7 @@ remains.**
    left/right modifiers). Add table-driven tests for press/release and modifier snapshots.
 2. Test pointer leave/focus loss so stuck buttons/keys cannot survive deactivation. Wheel values
    remain horizontal=`value0`, vertical=`value1`, normalized once and only once.
-3. Keep the initial dock layout deterministic: Hierarchy left, Console bottom, center reserved.
+3. Keep the initial dock layout deterministic: Hierarchy left, Inspector right, Console bottom, center reserved.
    Build it only for a new workspace/layout schema; after that restore a versioned Editor-owned
    layout. Unknown/missing panel IDs are ignored with diagnostics, not crashes.
 4. Route shortcuts through `ProductShell` command IDs before panel-specific behavior. Respect

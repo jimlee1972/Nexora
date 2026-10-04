@@ -359,3 +359,14 @@ and names, and internal parents map to new stable IDs. Euler revolutions and opa
 All pasted roots are selected; one Undo removes the entire forest and restores prior selection, and
 Redo restores initialized values. Duplicate retains the previous clipboard. Source changes after
 Copy cannot change the snapshot, and save/reload retains the created forest and resource references.
+
+
+Hierarchy Cut and Ctrl+X now capture selected forests before one atomic deletion. Undo restores
+original IDs and selection; the first successful Paste preserves root names with new IDs, then the
+retained snapshot behaves as Copy. Failed operations preserve the previous clipboard; Duplicate
+preserves pending Cut state. Workspace/modal/text-input gates apply to authoring shortcuts, and
+Cut/Paste/Duplicate cancel Scene gestures and Inspector drafts. Fresh layouts dock Inspector on
+the right so it cannot cover the Hierarchy's authoring controls.
+
+Game Apply Changes wraps to another row when its button does not fit, keeping the Play review
+action reachable in a narrow dock after a DPI/extent change.

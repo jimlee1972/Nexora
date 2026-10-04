@@ -145,6 +145,12 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Hierarchy Cut and Ctrl+X now capture complete selected forests before one atomic deletion.
+  Undo restores original IDs and selection; first successful Paste keeps root names with new IDs,
+  then retained clipboard data uses Copy naming. Failed Cut/Paste and Duplicate preserve pending
+  clipboard state. Real 1x/2x key/pointer, workspace/modal/text-input gates, replay and persistence
+  tests cover this lifecycle. Fresh layouts dock Inspector on the right to keep Hierarchy usable.
+
 - ✅ Graphical Copy/Paste/Duplicate now captures complete selected-root forests with owned
   copy-time world root poses, child local transforms, Camera/Light/MeshRenderer payloads, authored
   Euler hints and opaque bytes. Parents map to new stable IDs, and selected descendants copy once.

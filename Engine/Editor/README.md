@@ -411,4 +411,16 @@ Paste prevalidates the complete opaque budget/names, invokes one Runtime CloneEn
 publishes one metadata Undo entry. One Undo removes all created entities and restores prior selection;
 Redo restores initialized pose/component data, stable IDs, names and metadata. Duplicate preserves
 the prior clipboard even on failure. The serialized authoring thread retains no live World borrow in
-clipboard/history, and no source IO or GPU residency work occurs during Copy/Paste/Duplicate.
+clipboard/history, and no source IO or GPU residency work occurs during Copy/Cut/Paste/Duplicate.
+
+
+## Cut clipboard lifecycle
+
+`CutSelection` first captures the complete owning forest, then invokes atomic `DeleteSelection`.
+A rejected capture or deletion restores the previous clipboard and its pending-cut state. One Undo
+restores the original IDs, payloads, metadata and selection. The next successful Paste creates new
+IDs at the captured poses while preserving root names; subsequent Paste uses normal ` Copy` names.
+Rejected Paste does not consume this pending state. Copy replaces it, Duplicate preserves it, and
+Reload clears it. Clipboard state is transient and independent of document Undo/Redo: undoing Cut
+or Paste does not reverse the clipboard's last successful action. All operations stay on the
+serialized authoring thread; no scene format or C ABI changes are required.

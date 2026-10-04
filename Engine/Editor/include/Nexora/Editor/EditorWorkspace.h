@@ -248,6 +248,9 @@ public:
   // Copies selected-root forests, initialized components and authoring metadata into owned storage.
   // Paste/Duplicate create the complete forest as one Undo, preserving copy-time world root poses.
   bool CopySelection();
+  // Copies then atomically deletes the selection; failure preserves the previous clipboard.
+  // The next successful Paste preserves root names, then the retained snapshot becomes a copy.
+  bool CutSelection();
   bool Paste();
   // Duplicates the current selection without replacing the user's copied clipboard.
   bool DuplicateSelection();
@@ -309,6 +312,7 @@ private:
   std::vector<Node> nodes_;
   std::vector<runtime::Id> selection_;
   std::vector<ClipboardNode> clipboard_;
+  bool clipboard_cut_pending_{};
   std::vector<UndoEntry> undo_;
   std::vector<UndoEntry> redo_;
   std::uint64_t document_generation_{};

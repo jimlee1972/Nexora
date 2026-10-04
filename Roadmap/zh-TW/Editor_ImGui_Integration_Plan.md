@@ -229,7 +229,7 @@ full-screen CPU RGBA buffer 或 readback/upload round trip。
    加入 press/release 與 modifier snapshot 的 table-driven test。
 2. 測試 pointer leave/focus loss，確保 deactivation 後不殘留 stuck button/key。Wheel 固定
    horizontal=`value0`、vertical=`value1`，且只 normalize 一次。
-3. Initial dock layout 固定為 Hierarchy 左、Console 下、center reserved。只在新 workspace/layout schema
+3. Initial dock layout 固定為 Hierarchy 左、Inspector 右、Console 下、center reserved。只在新 workspace/layout schema
    建立；之後 restore Editor-owned versioned layout。未知／缺少 panel ID 只診斷並忽略，不 crash。
 4. Shortcut 先經 `ProductShell` command ID routing，再進 panel behavior。依 ImGui capture flag 決定
    gameplay/scene tool 是否收到 pointer/keyboard；不得以 visible label 當 command identity。

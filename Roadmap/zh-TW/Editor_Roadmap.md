@@ -142,6 +142,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Hierarchy Cut 與 Ctrl+X 現先擷取完整選取 forest，再以一次 atomic transaction 刪除。
+  Undo 還原原始 ID 與選取；首次成功 Paste 保留 root 名稱並建立新 ID，之後保留的 clipboard
+  資料改用 Copy 命名。失敗 Cut／Paste 與 Duplicate 保留 pending clipboard state。真正
+  1x／2x key／pointer、workspace／modal／text-input gate、replay 與持久化測試涵蓋生命週期。
+  新 layout 將 Inspector dock 在右側，保持 Hierarchy 可操作。
+
 - ✅ 圖形化 Copy／Paste／Duplicate 現以 owning snapshot 擷取完整選取 root forest，保留
   copy-time 世界 root pose、child local transform、Camera／Light／MeshRenderer payload、
   authored Euler hint 及 opaque bytes。Parent 對應新 stable ID，已選 descendant 僅複製一次。

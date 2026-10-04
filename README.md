@@ -260,6 +260,12 @@ Real UI clicks verify generation/access/modal gates, native center bounds and re
 with one Undo. Real 1x/2x DPI pointer tests cover release, persistence and rejected/canceled drags;
 preview tooltips do not mutate the World. Surface snapping and geometry ghosts remain open.
 
+✅ Hierarchy Cut and Ctrl+X now capture complete selected forests before one atomic deletion.
+  Undo restores original IDs and selection; first successful Paste keeps root names with new IDs,
+  then retained clipboard data uses Copy naming. Failed Cut/Paste and Duplicate preserve pending
+  clipboard state. Real 1x/2x key/pointer, workspace/modal/text-input gates, replay and persistence
+  tests cover this lifecycle. Fresh layouts dock Inspector on the right to keep Hierarchy usable.
+
 ✅ Copy/Paste/Duplicate now retains complete root forests, components, Euler hints and opaque
 payloads in an owning copy-time snapshot. One Undo removes the whole created forest and restores
 selection; Redo keeps initialized poses and stable IDs. Keyboard/persistence and 1,000-cycle tests cover it.
@@ -604,6 +610,12 @@ Undo，Redo 與 save／reload 保留 stable ID、名稱、pose 與 mesh／materi
 ✅ Typed Content mesh 拖曳現能以一次 Undo 在 overview 游標或 native Scene ground 落點建立
 root。真正 1x／2x DPI pointer 測試涵蓋放開、持久化及拒絕／取消拖曳；tooltip 預覽不改動
 World。表面吸附及 geometry ghost 仍待完成。
+
+✅ Hierarchy Cut 與 Ctrl+X 現先擷取完整選取 forest，再以一次 atomic transaction 刪除。
+  Undo 還原原始 ID 與選取；首次成功 Paste 保留 root 名稱並建立新 ID，之後保留的 clipboard
+  資料改用 Copy 命名。失敗 Cut／Paste 與 Duplicate 保留 pending clipboard state。真正
+  1x／2x key／pointer、workspace／modal／text-input gate、replay 與持久化測試涵蓋生命週期。
+  新 layout 將 Inspector dock 在右側，保持 Hierarchy 可操作。
 
 ✅ Copy／Paste／Duplicate 現以 owning copy-time snapshot 保留完整 root forest、元件、Euler
 hint 與 opaque payload。一次 Undo 移除全部新 forest 並還原選取，Redo 保留初始化 pose 及

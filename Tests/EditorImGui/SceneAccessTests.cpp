@@ -122,7 +122,7 @@ int main() {
       f.Draw();
       f.Requests();
       f.Unchanged("blocked Hierarchy requests mutated the scene");
-      for (const auto key : {Key::D, Key::V, Key::Z, Key::Y, Key::S}) {
+      for (const auto key : {Key::D, Key::X, Key::V, Key::Z, Key::Y, Key::S}) {
         f.Tap(key, Modifiers::Control);
         f.Unchanged("blocked authoring shortcut mutated the scene");
         Require(!f.ui.TakeSceneSaveRequest(), "blocked shortcut requested Save");
