@@ -239,6 +239,13 @@ row clipping are presentation state; selection, rename, and hierarchy edits stil
 only through `SceneDocument::Select`, `SceneDocument::Rename`, and the undoable, cycle-safe
 `SceneDocument::Move`. Its initial Inspector reads a selected node's borrowed local transform and
 routes position, Euler-degree rotation, and scale changes through generation-keyed `SceneDocument` calls.
+`SceneDocument::CreateMesh` creates a named mesh root with initialized pose/component as one Undo.
+Metadata and Runtime history retain the same stable ID, name, mesh/material values and pose across
+Undo/Redo; Save/Reload uses the existing scene schema. Empty/newline names and invalid poses reject
+before creation; missing/unloading scenes and zero mesh references reject in the Runtime initializer.
+The caller owns workspace permissions and asset-generation/residency checks. The graphical Content
+Browser resolves exactly one selected mesh against its project-generation CPU catalog, places the
+root at the Scene center, and selects it; it performs no source reads during the action.
 The single-selection Camera component toggle and field edits use the same generation key and undo
 boundary; invalid clipping and stale keys leave the scene unchanged. Camera values persist in the
 runtime scene snapshot, so Save and Reload retain them.

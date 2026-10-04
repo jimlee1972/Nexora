@@ -189,6 +189,9 @@ public:
   SceneDocument(runtime::World &world, runtime::Id scene);
   // Creates a node; with a parent the new entity starts at the parent's origin (identity local).
   runtime::Id Create(std::string name, runtime::Id parent = 0);
+  // Creates one initialized mesh root with one Undo; caller owns asset generation/access checks.
+  runtime::Id CreateMesh(std::string name, runtime::MeshComponent mesh,
+                         runtime::Transform transform = {});
   bool Select(std::span<const runtime::Id> entities);
   bool Select(std::span<const NodeKey> entities);
   bool Rename(NodeKey entity, std::string name);
@@ -265,6 +268,7 @@ public:
   [[nodiscard]] std::vector<NodeView> Nodes() const;
 
 private:
+  runtime::Id AdoptCreatedEntity(runtime::Id entity, std::string name);
   [[nodiscard]] std::optional<std::vector<std::pair<NodeKey, runtime::Transform>>>
   SelectionGizmoEdits(std::span<const NodeKey> entities, const GizmoOperation &operation) const;
   [[nodiscard]] std::optional<std::string> StateSignature() const;

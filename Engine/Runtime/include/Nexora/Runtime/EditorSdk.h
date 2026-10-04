@@ -117,6 +117,9 @@ public:
   // storage (see Engine/Runtime/README.md), a discipline this class's own
   // external callers cannot be expected to know about.
   Id CreateEntity(Id scene, Id parent = 0);
+  // Creates a root with initialized pose and a nonzero mesh reference as one Undo transaction.
+  // Undo/Redo own the complete entity and retain its stable ID, transform and material reference.
+  Id CreateMeshEntity(Id scene, MeshComponent mesh, Transform transform = {});
   bool SetTransform(Id entity, Transform transform);
   // Validates camera clipping and records its previous presence/values for Undo.
   bool SetCamera(Id entity, std::optional<CameraComponent> camera);
@@ -151,6 +154,8 @@ public:
   [[nodiscard]] std::size_t UndoDepth() const noexcept { return depth_; }
 
 private:
+  Id CreateInitializedEntity(Id scene, Id parent, Transform transform,
+                             std::optional<MeshComponent> mesh);
   bool ApplyHierarchyEdit(Id entity, WorldCommandBuffer &apply);
   bool ApplyComponentEdit(WorldCommandBuffer apply, WorldCommandBuffer restore);
   World &world_;

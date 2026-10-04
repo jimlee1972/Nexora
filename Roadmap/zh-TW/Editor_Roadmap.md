@@ -142,6 +142,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Content 現可透過 Add mesh to Scene 在 Scene center 建立／選取單一已解析 mesh root；
+  初始化 entity 共用一次 Undo，Redo 保留 stable ID、名稱、pose 與 component。Project-generation
+  catalog 檢查及 workspace／content 可寫、modal gate 拒絕 stale、缺失、非 mesh 或多選資產。
+  Native 放置共用 preview 的 center 限制與 target 高度。真正 UI 點擊、Game geometry 準備與
+  save／reload 驗證此路徑；action 不讀 source。Typed mesh 放置拖放與完整材質仍待完成。
+
 - ✅ 單一 Camera 的 Inspector 現可將世界位置／旋轉對齊已儲存的 Scene 3D 視角，並以一次
   Undo 還原，保留 lens、local scale 及 parent。逐一反轉 root 至 parent 的 local TRS，正確
   處理 shear／mirrored 父鏈；無效、stale 或非 Camera 目標會在修改前拒絕。等價 pose 保留

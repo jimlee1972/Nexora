@@ -328,3 +328,13 @@ view pose in its Inspector. It updates only position/rotation, retaining FOV/cli
 and parent. One Undo restores the previous pose; Save/Reload retains it. Parent-aware inversion
 matches Runtime camera matrices even under sheared/mirrored ancestor transforms. The operation
 requires a writable workspace with no modal prompt and cancels Inspector drafts/Scene gestures.
+
+Select one resolved mesh in Content and use Add mesh to Scene to create/select a named mesh root at
+the Scene view center. Overview placement uses Y=0; enabled/available Scene 3D uses its target height and the native
++/-100,000 X/Z center clamp.
+The action requires writable workspace/content access and no modal prompt. It checks the asset UUID
+and project generation against the published CPU catalog, cancels pending view/Inspector gestures,
+and records initialized creation as one Undo. Redo retains stable ID, name, transform and component;
+Save/Reload retains the resource reference. Existing Scene/Game frame preparation resolves the
+created mesh into real geometry. Creation targets the Editor Scene and does not change an active
+isolated Play clone; unavailable/stale/non-mesh or multiple selections cannot create placeholders.
