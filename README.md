@@ -220,6 +220,9 @@ fixed Step, plus a copied entity inspection list and bounded X/Z world-pose prev
 Start, and owns frame uploads after fixed ticks. Xvfb/lavapipe checks camera pixels,
 Pause/Step/Stop, and the unchanged editor scene. Complete materials, multiple native canvases,
 gameplay callbacks, and input routing remain open.
+✅ Runtime component wires now also target the isolated PlaySession World through shared decoding
+and atomic command validation; Fixed/Step tests prove that writes never reach the Editor World.
+The graphical module-loading/input adapter remains open.
 The docked Profiler now plots a bounded live trace of Editor frame processing wall time, with
 pause/clear, latest/average/peak values, and a dropped-frame count. GPU timing and process memory
 remain explicitly unavailable.
@@ -454,6 +457,8 @@ Docked Game panel 現可控制隔離的 Play World，提供 Play／Stop、Pause�
 ✅ 有界原生 Game View 已透過 Play camera 繪製 OBJ，Start 凍結資產，fixed tick 後 frame
 擁有資料；Xvfb/lavapipe 已驗證像素與 Pause／Step／Stop、Editor 場景未變動。
 完整材質、同視窗多個原生 canvas、gameplay 回呼與 input routing 仍待完成。
+✅ Runtime component wire 現可透過共用解碼與原子 command 驗證直接讀寫隔離的 PlaySession
+World；Fixed／Step 測試證明寫入不會回流 Editor。圖形化 module 載入／input adapter 仍待完成。
 
 [圖形化 Editor Roadmap](Roadmap/zh-TW/Editor_Roadmap.md) 的**圖形化 milestone 驗收仍為 0/8（0%）**。Portable foundation 除既有 ED-M1 至 ED-M3 contract 外，現已加入 ED-M4 additive-scene ownership 與 dependency ordering、migration dry-run、bounded autosave recovery，以及 source-control-neutral three-way conflict，另有與 UI 無關的 viewport pick ray、AABB picking、軸向拖曳、snapping 與 resize hysteresis 數學。[旋轉與縮放計畫](Roadmap/zh-TW/Transform_Rotation_Scale_Plan.md)的 ✅ 所有階段皆已完成：`runtime::Transform` 含 quaternion 旋轉與逐軸縮放（沿用 Unity／Unreal 慣例），只寫位置的寫入者會保留它們，`ViewportMath.h` 提供 Unity 式的移動／旋轉／縮放 gizmo 數學（Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定，由 `editor.viewport_math` 涵蓋），gameplay module 可透過 append-only 的 C／Zig wire 讀寫 `"Nexora.TransformV2"`、`"Nexora.WorldTransform"` 與 `"Nexora.Parent"`，其 layout 由 C11、ABI baseline 與 Zig 檢查固定；圖形化旋轉欄位現使用度數、Z-X-Y composition 與單次 atomic 多選 transaction；✅ SceneDocument 提示跨 selection／save／reload 與 undo 保留輸入圈數，並具已驗證的 version-2 metadata、version-1 相容性與 atomic 同 World reload。[Entity parenting 計畫](Roadmap/zh-TW/Entity_Parenting_Plan.md)第 1、2 階段 ✅ 已完成：entity 形成 Unity 式階層，具 local transform、world transform 與精確的 world matrix、保留世界姿態的重新掛接，以及連帶刪除；場景快照為 v3（v1、v2 仍可載入），Editor 的場景文件以 runtime 階層為準，角色控制器也能像 Unity 一樣掛在父物件底下（移動中的父物件會帶著它走）。階層批次全有或全無、快照驗證與連帶刪除與場景大小成線性，PIE apply-back 會拒絕遊玩期間被重新掛接的 entity（`runtime.entity_parenting`、`editor.preview_contract`；Linux development、全功能、Shipping、ASan/UBSan 與關閉 Editor SDK 的組態，合併後也通過完整 CI）。Unity 式的兄弟順序（`SetSiblingIndex`、重新掛接後成為最後一個子物件）與可復原的 Hierarchy 拖曳模型（`SceneDocument::Move`）已就緒；`RenderSceneSync` 會以每個 entity 精確的 world matrix 與保守的包圍球，把 mesh renderer 同步到 `GPUScene`，移動父物件時整棵子樹的渲染資料都會更新，攝影機也會跟著父物件走（`CameraView`，以及經視錐剔除的 `RenderSceneSync::RenderFrame`；`runtime.render_sync`）；目前還沒有應用程式的繪製迴圈使用它。以上是 portable 的數學與資料 contract；圖形化旋轉把手已有原生環狀操作，Local X/Y/Z 縮放立方把手及白色等比例把手也已可操作；原生代理預覽已有世界 X/Y/Z 位移把手。Linux Editor 顯示驗收在修正它暴露的三個真實缺陷後，已能在虛擬顯示器（Xvfb 搭配 Mesa lavapipe）上於本機通過；已由專用 CI job（`editor-linux-display`）執行，另有 Windows/DX12 開發機 bounded shell smoke 通過；實體顯示器 Linux 與 Windows DPI／IME 證據仍待完成。虛擬顯示 recovery gate 現會 fsync seeded journal、SIGKILL 真正的 Editor，確認 journal 與已提交 workspace 保留，再重啟並重新取得 writer lease，執行 keyboard-only Recover／Discard；recovery process 失敗不會只憑 diagnostic 就通過。Focused [ED-M0 Dear ImGui 計畫](Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md) 仍為**施工中**；圖形化 workflow、native debugger integration、physical-display evidence 與 UI 驗收仍待完成。因此 ED-M0 至 ED-M7 都不打勾；portable prerequisite 不會向上取整為已驗收的 graphical milestone。
 Linux 虛擬顯示驗收現允許忙碌 CI 主機上的 recovery 重啟在 90 秒內完成；原生 Scene 的 Undo 驗收會於判定不符前再次儲存已穩定的狀態。

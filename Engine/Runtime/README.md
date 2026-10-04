@@ -362,6 +362,13 @@ with `read_component`/`write_component`:
 `ReadGameplayComponent`/`WriteGameplayComponent` in `GameplayHostBridge.h` implement every wire
 once. The V2 bridge and the V3 Showcase host both call them, so the two cannot drift. The V3 host
 used to reset rotation and scale on a position write, a defect the shared path removes.
+The same functions also accept a borrowed `runtime::World`, so an embedding Editor can serve
+an isolated PlaySession clone without constructing a second GameWorld or duplicating wire decoding.
+Calls are serialized on the World's owner thread, reads copy into caller-owned buffers, and writes
+use the same atomic WorldCommandBuffer validation as GameWorld. No Entity pointer escapes or
+survives a write. Stop/module teardown must end callbacks before the clone is destroyed. The V2
+host table and stable C wire layouts are unchanged; a V3 module adapter remains embedding-owned.
+
 
 ## Zig gameplay bridge
 
