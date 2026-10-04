@@ -377,3 +377,9 @@ the World unchanged; delivery resolves CPU catalog data and commits one atomic m
 existing material references and adding missing MeshRenderer components. UUID/project and target
 generations, browser membership, writable workspace/content, focus and modal gates reject stale or
 blocked deliveries. Undo/Redo and save/reload retain the resulting mesh references.
+
+
+Hierarchy Ctrl+A now selects its complete filtered/expanded visible row set, including clipped
+rows, while excluding unfiltered collapsed descendants. It works in read-only projects and clears
+selection when no row matches. Text inputs and other focused panels retain Ctrl+A; recovery, Play
+review and close confirmation block the command. Selection leaves scene content and history intact.

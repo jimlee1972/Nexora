@@ -464,3 +464,14 @@ one SetMeshRenderers batch. Existing material shader references survive; missing
 added with default material data. Invalid/non-mesh/stale/canceled drops preserve history. Successful
 delivery cancels Inspector drafts and Scene gestures. No source IO or GPU upload occurs in the drop
 handler. The asset chooser remains available alongside drag assignment.
+
+
+## Hierarchy Select All
+
+Ctrl+A in the focused Hierarchy, outside text input and recovery/Play-review/close modals, selects
+its complete visible row set through generation-keyed SceneDocument selection. The row set includes
+clipped rows, follows the current filter and expansion, and excludes collapsed descendants when
+unfiltered. An empty result clears selection. Read-only projects retain the action. It cancels
+prospective Scene gestures and resets the range anchor to the first selected row; no World edit,
+clipboard replacement or Undo/Redo consumption occurs. Inspector/text-input and other-panel focus
+keep their own Ctrl+A behavior. Large-scene scale/soak acceptance remains open.

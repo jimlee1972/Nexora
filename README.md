@@ -260,6 +260,11 @@ Real UI clicks verify generation/access/modal gates, native center bounds and re
 with one Undo. Real 1x/2x DPI pointer tests cover release, persistence and rejected/canceled drags;
 preview tooltips do not mutate the World. Surface snapping and geometry ghosts remain open.
 
+✅ Focused Hierarchy Ctrl+A now selects all filtered/expanded visible rows, including clipped
+  rows, through generation-keyed selection. Empty matches clear selection; read-only projects retain
+  the action. Keyboard tests verify collapsed descendants, filter order, foreign-panel/text-input
+  focus, recovery/close gates and unchanged World/Redo. Large-scene scale/soak acceptance stays open.
+
 ✅ Typed Content mesh drags now assign the Inspector Mesh field for the displayed selection.
   Hover only previews; release uses one generation-checked batch, retaining existing materials and
   adding missing MeshRenderer components. Real 1x/2x pointer tests cover initialized Undo/Redo,
@@ -616,6 +621,11 @@ Undo，Redo 與 save／reload 保留 stable ID、名稱、pose 與 mesh／materi
 ✅ Typed Content mesh 拖曳現能以一次 Undo 在 overview 游標或 native Scene ground 落點建立
 root。真正 1x／2x DPI pointer 測試涵蓋放開、持久化及拒絕／取消拖曳；tooltip 預覽不改動
 World。表面吸附及 geometry ghost 仍待完成。
+
+✅ Hierarchy 有焦點時，Ctrl+A 現經 generation-keyed selection 選取全部 filter／expansion
+  可見列，包含被裁切的列。空結果清除選取，唯讀 project 仍可使用。鍵盤測試驗證 collapsed
+  descendant、filter 順序、其他 panel／text-input 焦點、recovery／close gate，以及 World／
+  Redo 不變。大型 scene 的 scale／soak 驗收仍待完成。
 
 ✅ Typed Content mesh 拖曳現可指派 Inspector Mesh field 的顯示選取。Hover 只預覽，
   放開後以一次 generation-checked batch 保留既有材質並補上缺少的 MeshRenderer。真正

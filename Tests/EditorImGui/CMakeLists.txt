@@ -217,3 +217,9 @@ target_include_directories(NexoraInspectorMeshDropTests PRIVATE "${PROJECT_SOURC
 target_link_libraries(NexoraInspectorMeshDropTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraInspectorMeshDropTests)
 add_test(NAME editor.inspector_mesh_drop COMMAND NexoraInspectorMeshDropTests)
+
+add_executable(NexoraHierarchySelectAllTests HierarchySelectAllTests.cpp)
+target_include_directories(NexoraHierarchySelectAllTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraHierarchySelectAllTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraHierarchySelectAllTests)
+add_test(NAME editor.hierarchy_select_all COMMAND NexoraHierarchySelectAllTests)

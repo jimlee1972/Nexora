@@ -773,6 +773,8 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   ImGui::SetNextItemWidth(-1.0F);
   ImGui::InputTextWithHint("##hierarchy-filter", "Filter entities...",
                            state.hierarchy_filter.data(), state.hierarchy_filter.size());
+  if (ImGui::IsItemHovered())
+    ImGui::SetTooltip("Filter entities. Ctrl+A selects all visible Hierarchy rows.");
   if (scene == nullptr) {
     ImGui::TextUnformatted("No scene is open.");
     return;
@@ -851,6 +853,21 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   state.hierarchy_visible_rows = static_cast<std::uint32_t>(
       std::min<std::size_t>(rows.size(), std::numeric_limits<std::uint32_t>::max()));
   state.hierarchy_rendered_rows = 0;
+  if (!interaction_blocked && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+      !ImGui::GetIO().WantTextInput &&
+      ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_A, ImGuiInputFlags_RouteFocused)) {
+    CancelSceneGestures(state);
+    if (scene->Select(visible)) {
+      static_cast<void>(shell.RouteCommand("editor.scene.select-all"));
+      state.hierarchy_selection_anchor =
+          visible.empty() ? std::nullopt : std::optional{visible.front()};
+      state.hierarchy_status = "Selected " + std::to_string(visible.size()) + " visible rows.";
+      state.hierarchy_error.clear();
+    } else {
+      state.hierarchy_error = "Selection rejected because entity generations changed.";
+      state.hierarchy_status.clear();
+    }
+  }
 
   const auto begin_rename = [&](const SceneDocument::NodeView &node) {
     auto count = std::min(node.name.size(), state.hierarchy_rename.size() - 1);
