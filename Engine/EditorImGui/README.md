@@ -41,7 +41,7 @@ authoring views on first launch.
   clipboard. Paste and Duplicate run before Hierarchy rows borrow node names for the frame.
   The Scene panel has a top-down X/Z overview with a world grid, composed entity positions,
   middle-button pan, wheel zoom, and click selection synchronized with Hierarchy. It is an
-  authoring overview; authored 3D mesh output and full 3D gizmos remain open.
+  authoring overview; native OBJ geometry submission is application-owned and full Scene View acceptance remains open.
   `SceneCanvasViewport()` exposes its visible, clipped canvas rectangle in framebuffer pixels
   after each frame's dock layout and DPI scale. It is empty when the panel is not drawn and is
   reset at `BeginFrame`. The 3D Preview toggle publishes this rectangle to the application for
@@ -227,5 +227,5 @@ and project generation. Publication checks both the live content item and catalo
 existing material reference when replacing the mesh. Read-only projects and recovery disable edits.
 Missing/unresolved mesh references are retained and displayed honestly. Each accepted edit uses
 SceneDocument Undo/Redo and cancels prospective scene gestures before mutation. The application
-publishes the CPU catalog after project activation. Native authored geometry rendering and geometry
-reimport publication remain open; assignment alone does not replace the existing proxy rendering.
+publishes the CPU catalog after project activation. The application now submits resolved OBJ
+geometry through native Presentation batches; geometry reimport publication remains open.

@@ -162,11 +162,15 @@ The docked Console now shows bounded Runtime records
 with text/severity filters, source, timestamps, and dropped-record count; startup and scene save
 diagnostics are routed through it. Game View and complete log routing remain open.
 
+Native Scene preview now draws and triangle-picks resolved OBJ geometry through bounded shared
+mesh batches. Distinct triangle/quad Xvfb pixels cover Center preview/commit and Undo; missing or
+oversized meshes warn and retain proxies. Material shaders, exact shear and full acceptance remain open.
+
 The Inspector now assigns imported OBJ mesh assets with Undo/Redo, preserves material references,
-and rejects stale project/document requests. Native authored geometry rendering remains open.
+and rejects stale project/document requests. Full Scene View acceptance remains open.
 
 Imported mesh geometry now has an owning, generation-checked CPU catalog with stable UUID-derived
-64-bit scene resource IDs and atomic collision rejection. Authored-mesh rendering remains open.
+64-bit scene resource IDs and atomic collision rejection. Persistent per-asset GPU caching and full Scene View acceptance remain open.
 
 Xvfb Undo checks now retry only Save after a single Undo until committed scene bytes match.
 X11 modifier releases now clear the released family immediately while preserving a held paired key;
@@ -179,14 +183,14 @@ canvas or recovery. Real Xvfb FocusOut and UI contracts verify that abandoned pr
 
 The public native SceneDrawData now supports multiple bounded indexed geometry/instance ranges
 inside one depth pass in Vulkan/DX12. Portable range checks and distinct-geometry Vulkan pixels cover
-the new boundary; authored-mesh Editor residency and full Scene View acceptance remain open.
+the new boundary; persistent per-asset GPU caching and full Scene View acceptance remain open.
 
 Editor SceneDocument now owns generation-safe MeshRenderer transactions and reads, with mesh/material
-resource IDs retained across Undo/Redo and scene persistence. Native authored-mesh rendering remains open.
+resource IDs retained across Undo/Redo and scene persistence. Full Scene View acceptance remains open.
 
 Background workspace imports now stage immutable triangulated OBJ geometry with bounded source/
-memory use, UVs, normal generation, local bounds, cancellation, and source-line diagnostics. Native
-mesh rendering and typed geometry reimport publication remain open.
+memory use, UVs, normal generation, local bounds, cancellation, and source-line diagnostics.
+Typed geometry reimport publication and full Scene View acceptance remain open.
 
 The native 3D gizmo now exposes Pivot/Center (P), including common-center rotation and scale of
 multiple selected roots, with matching previews and one-step Undo. A two-root Xvfb workflow checks
@@ -218,13 +222,13 @@ portable bounds checks and Vulkan Xvfb pixel evidence.
 The docked Scene canvas now exposes its visible framebuffer-pixel rectangle after layout and DPI
 scaling. The Editor's 3D Preview toggle now draws native depth-tested ground and live entity
 position proxies in that rectangle after UI submission. Proxies now reflect composed world rotation
-and scale. Authored meshes, exact sheared transforms, full 3D editing, and graphical
-Scene View acceptance remain open.
+and scale. Resolved OBJ geometry now uses native mesh batches; exact shear, material shaders and
+full graphical Scene View acceptance remain open.
 The preview camera supports right-drag orbit, middle-drag X/Z pan, Shift+middle height pan,
 wheel zoom, and F or Frame selected to center X/Y/Z and adjust distance for the selected bounds
 (clamped to 2–100 world units). Orbit angle, distance, and target height persist per scene.
 Clicking a visible 3D proxy now selects its scene node in Hierarchy and Inspector; Ctrl-click
-toggles selection. Authored mesh picking remains open.
+toggles selection. Resolved meshes now use transformed bounds and two-sided triangle picking.
 Picking now tests the rotated proxy and translation-handle boxes after a conservative bounds
 filter, so empty corners of their bounds do not select them.
 Dragging a proxy previews its world X/Z move, while Shift-drag moves along world Y. Selected
@@ -382,11 +386,15 @@ backend-neutral `Text` event，physical key 與 text input 維持分離。
 中央 Scene panel 現有可點選物件的 X/Z 俯視概覽、Ctrl／Shift 多選、F 聚焦、平移、縮放及可單步復原的標記拖曳及可見的單軸把手，且逐場景保留概覽 camera 中心與縮放；Scene panel 也會標示未儲存內容，成功儲存或 Undo 回原狀後清除；原生關閉要求遇到未儲存內容時提供儲存後離開、捨棄後離開或取消；正式 3D renderer 輸出與 gizmo
 仍待完成。
 
+原生 Scene 預覽現透過有界 shared mesh batch 繪製並以 triangle picking 選取解析後的 OBJ。
+不同 triangle／quad 的 Xvfb 像素驗證 Center 預覽／提交及 Undo；缺失或超限 mesh 會警告並
+保留代理。Material shader、精確 shear 與完整驗收仍待完成。
+
 Inspector 現支援以 Undo／Redo 指派匯入 OBJ mesh 資產、保留 material 參照，並拒絕過期專案／
-文件請求；原生 authored geometry rendering 仍待完成。
+文件請求；完整 Scene View 驗收仍待完成。
 
 匯入 mesh geometry 現有 owning、具 generation 檢查的 CPU catalog，以 UUID 穩定衍生 64-bit
-場景資源 ID，並原子拒絕碰撞；authored-mesh rendering 仍待完成。
+場景資源 ID，並原子拒絕碰撞；持續的每資產 GPU cache 與完整 Scene View 驗收仍待完成。
 
 Xvfb Undo 檢查現只在單次 Undo 後重試 Save，直到已提交的場景位元組相符。
 X11 修飾鍵放開事件現會立即清除該組 flags，另一側仍按下時保留；原生 X11 事件測試涵蓋
@@ -401,10 +409,10 @@ instance 範圍。Portable 範圍檢查與不同幾何的 Vulkan 像素驗證涵
 residency 與完整 Scene View 驗收仍待完成。
 
 Editor SceneDocument 現提供 generation-safe MeshRenderer 交易及查詢，mesh／material 資源 ID
-可保留於 Undo／Redo 與場景儲存。原生實際 mesh 繪製仍待完成。
+可保留於 Undo／Redo 與場景儲存。完整 Scene View 驗收仍待完成。
 
 背景 workspace 匯入現可 staging 不可變的已三角化 OBJ 幾何，包含有界來源／記憶體使用、UV、
-法線產生、局部 bounds、取消及來源行號診斷。原生 mesh 繪製與 typed geometry reimport
+法線產生、局部 bounds、取消及來源行號診斷。持續的每資產 GPU cache 與 typed geometry reimport
 發布仍待完成。
 
 原生 3D gizmo 現提供 Pivot／Center（P），支援多個選取根節點繞共同中心旋轉與縮放，
@@ -443,13 +451,14 @@ Linux 虛擬顯示驗收現允許忙碌 CI 主機上的 recovery 重啟在 90 �
 Vulkan Xvfb 像素證據已涵蓋此功能。
 Docked Scene canvas 現會在 layout 與 DPI 縮放後提供可見的 framebuffer 像素矩形；
 Editor 的 3D Preview 切換現會在 UI 提交後於該矩形繪製原生有深度測試的地面與 live entity
-位置代理；代理現會反映合成後的世界旋轉與縮放。已建立的 mesh、精確的 shear transform、完整 3D
+位置代理；代理現會反映合成後的世界旋轉與縮放。解析後的 OBJ 現以原生 mesh batch 繪製；
+精確 shear、material shader、完整 3D
 編輯與圖形化 Scene View 驗收仍待完成。
 預覽鏡頭現支援右鍵拖曳旋轉、中鍵拖曳 X/Z 平移、Shift 加中鍵拖曳平移高度及滾輪縮放；
 F 或 Frame selected 會將 X/Y/Z 目標對準選取範圍，並依其大小調整距離（限制在 2–100 世界單位）。
 旋轉角度、距離與目標高度現會逐場景保存。
 點選可見的 3D 代理現會同步選取 Hierarchy 與 Inspector 中的場景節點；Ctrl 點選可切換選取。
-已建立 mesh 的 picking 仍待完成。
+解析後的 mesh 現使用 transformed bounds 與雙面 triangle picking。
 點選現會在保守包圍範圍篩選後，精確檢測旋轉代理與位移把手的盒體，避免點到包圍範圍的空角落。
 拖曳代理會即時預覽世界 X/Z 位移；按住 Shift 起始拖曳可沿世界 Y 軸移動。選取的代理現有彩色
 X/Y/Z 把手，可限制拖曳於單一軸；Local axes 可讓把手跟隨第一個選取節點的世界旋轉。放開左鍵時提交單次可復原 transaction；Escape 可取消，

@@ -43,21 +43,22 @@ backbuffer. It also round-trips a versioned project layout and supplies a live `
 the Hierarchy panel. The same process binds its deterministic `AssetWorkspace` index to a live
 Content panel with breadcrumbs, folder navigation, search/type filtering, virtualized UUID-keyed
 rows, thumbnail state, selection, typed drag/drop, dependency inspection, and background reimport.
-The Scene panel can switch from its editable X/Z overview to a native depth-tested 3D proxy
-preview. Vulkan and DX12 draw an instanced ground and one position proxy per scene node inside the
-docked canvas after UI submission, preserving controls outside the canvas. Selection changes proxy
-tint. Each proxy now uses the node's composed world rotation and scale; a conservative pick AABB
+The Scene panel can switch from its editable X/Z overview to a native depth-tested 3D preview.
+Vulkan and DX12 draw the ground, resolved OBJ mesh geometry, and proxies for unresolved/unassigned
+nodes inside the docked canvas after UI submission, preserving controls outside it. Selection changes
+object tint. Each proxy now uses the node's composed world rotation and scale; a conservative pick AABB
 filters candidates before a ray test against the rotated proxy or handle box. Thin handles have a
 small hit margin so visible edge pixels can be clicked.
-Authored mesh assets and exact sheared world matrices are still open, so the full
-renderer-backed Scene View remains open.
+Exact sheared world matrices, material shader execution, persistent per-asset GPU caching, and full
+Scene View acceptance remain open.
 Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel zooms, and F or
 Frame selected centers on selected nodes in X/Y/Z. The X/Z target persists with the overview
 camera; target height, orbit angle, and distance persist in a separate per-scene camera file on
 writable shutdown. Invalid camera files are preserved for inspection.
 Left click selects the nearest visible position proxy using a viewport ray against its drawn
 box; Ctrl-click toggles it, and an empty click clears selection. Hierarchy and Inspector share
-that selection. Picking authored mesh triangles remains open.
+that selection. Resolved authored meshes use transformed local bounds followed by two-sided triangle
+picking of the same world TRS geometry submitted to Presentation.
 Dragging a selected proxy previews a world X/Z move of selected roots and their descendants, then
 commits it when the left button is released as one undoable transform transaction. The Rotate tool
 (or E while hovering the canvas) draws X/Y/Z ring handles in world or local space and commits an
@@ -192,5 +193,24 @@ and project generation. Publication checks both the live content item and catalo
 existing material reference when replacing the mesh. Read-only projects and recovery disable edits.
 Missing/unresolved mesh references are retained and displayed honestly. Each accepted edit uses
 SceneDocument Undo/Redo and cancels prospective scene gestures before mutation. The application
-publishes the CPU catalog after project activation. Native authored geometry rendering and geometry
-reimport publication remain open; assignment alone does not replace the existing proxy rendering.
+publishes the CPU catalog after project activation. Resolved meshes now replace proxy geometry in
+the native preview; geometry reimport publication remains open.
+
+### Native OBJ geometry submission
+
+The application builds frame-owned shared vertices/indices from immutable catalog snapshots,
+packing each resource once and rebasing its 16-bit indices. Ground/proxies/gizmos share the initial
+cube range; authored objects use bounded Presentation batches in the same native depth pass.
+Authored mesh vertices use the world TRS directly, without the proxy's fixed offset/size. Prospective
+and committed geometry share SceneDocument gizmo math. The frame keeps owning geometry snapshots
+through submission, and Presentation copies borrowed uploads before returning.
+
+The shared preview upload is limited to 65,535 vertices and 1,048,576 indices, including the initial
+24-vertex/36-index cube. Local positions are limited to +/-100,000 to keep bounded world TRS inputs
+representable by the GPU. Up to 3,999 scene nodes leave room for ground and 96 Rotate handle cubes
+within the 4,096-instance contract. Missing/deleted assets and meshes exceeding preview limits use
+proxies, retain saved references, and emit a Console warning when the unavailable count changes.
+No source IO occurs in rendering or picking. Portable append/picking tests and an Xvfb fixture with
+distinct triangle/quad OBJ assets verify geometry ranges, actual silhouette selection, Center scale/
+rotation, preview/release pixel equality, and one-step Undo. Material shaders, exact sheared poses,
+persistent per-resource GPU caching, and geometry reimport publication remain open.

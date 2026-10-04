@@ -20,7 +20,7 @@ workspace/document core。**待辦：** 其餘 graphical view、authoring workfl
 | --- | --- | :---: |
 | ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Linux 虛擬顯示 recovery 現會以 durable seeded journal 驗證 SIGKILL、已提交 workspace 不變、重新取得 writer lease，以及 keyboard-only Recover／Discard；實體顯示器 Linux 與 Windows DPI／IME host evidence 仍待完成；已記錄 bounded Windows/DX12 開發機 shell smoke。 | [ ] |
 | ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態、提供圖形化 create/open/recent selector、將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation，執行具 bounded progress 與 structured diagnostic 的 cancellable background import/reimport、顯示 dependency cycle，並提供阻塞式 reload／keep／compare conflict UX；實體顯示／Windows workflow 驗收仍待完成。 | [ ] |
-| ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware expandable tree、filter、以 generation 為 key 的 expansion／selection、可見列裁切提交、可復原 rename、兄弟排序與 cycle-safe reparent，且會拒絕 stale entity／document generation。Docked Inspector 已提供 generation-safe 的 position、Euler 度數（quaternion storage）與 scale 單選／mixed-value 多選編輯，並具 atomic Runtime validation 與單步 undo。完整的 authored-mesh Scene View、reflected Inspector、mesh picking、camera authoring 與 unknown-component visual workflow 仍待完成；原生代理預覽已提供 Move／Rotate／Scale 把手。 | [ ] |
+| ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware expandable tree、filter、以 generation 為 key 的 expansion／selection、可見列裁切提交、可復原 rename、兄弟排序與 cycle-safe reparent，且會拒絕 stale entity／document generation。Docked Inspector 已提供 generation-safe 的 position、Euler 度數（quaternion storage）與 scale 單選／mixed-value 多選編輯，並具 atomic Runtime validation 與單步 undo。完整的 authored-mesh Scene View、reflected Inspector、material shader workflow、camera authoring 與 unknown-component visual workflow 仍待完成；原生代理預覽已提供 Move／Rotate／Scale 把手。 | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。圖形化 Console 會顯示有界紀錄與 Editor 診斷；docked Game panel 可控制隔離 clone 並顯示複製的檢視資料。Renderer-backed Game View、gameplay 回呼、完整 log 路由與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
 | ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
@@ -92,7 +92,7 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 - ✅ 背景 workspace 匯入現保留有界、不可變的已三角化 OBJ CPU 幾何，包含 UV、指定／產生的
   法線、index 及局部 bounds。Portable 測試涵蓋格式錯誤／溢位、取消、vertex 上限、移動／重開
   後 UUID／hash 穩定性、owning snapshot 及 worker 結構化診斷。Mesh reimport 發布、
-  GPU residency 及原生實際 mesh 繪製仍待完成。
+  持續的每資產 GPU cache 與完整 Scene View 驗收仍待完成。
 
 - ✅ 已實作 project create/open、deterministic content-tree indexing、UUID/path search/filter、
   cancellation、progress、可檢查錯誤與 deterministic artifact hash。
@@ -136,19 +136,25 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   真正的 Xvfb XYZ 拖曳放開後立即 Save，並驗證已完成的姿態；仍按住手勢時的 Save
   會等待提交或取消後才儲存。
 
+- ✅ 原生 Scene 預覽現以有界 Presentation batch 繪製解析後的 OBJ vertices／indices，shared
+  resource 只打包一次，使用絕對 16-bit index 與 world TRS instance。解析 mesh 以 transformed
+  bounds 與雙面 triangle picking 取代代理選取。Portable 測試涵蓋範圍回復、幾何／座標預算、
+  負縮放／旋轉 picking 及輪廓 miss；Xvfb 不同 triangle／quad 資產驗證選取、Center 縮放／旋轉、
+  預覽／放開像素及單步 Undo。缺失／刪除／超限資產保留參照、顯示代理並警告。持續的每資產
+  GPU cache、material shader、精確 shear、geometry reimport 與完整 Scene View 驗收仍待完成。
+
 - ✅ 單選 Inspector 現能指派匯入 OBJ mesh 資產及移除 MeshRenderer，透過 generation-safe
   SceneDocument Undo／Redo。Contract 測試驗證 material 保留、場景保存／重新載入解析、單步
   移除復原與過期 asset／project／document 拒絕。唯讀／復原時停用編輯，缺失參照仍保留。
-  原生 authored geometry rendering 與 geometry reimport 發布仍待完成。
+  Geometry reimport 發布與完整 Scene View 驗收仍待完成。
 
 - ✅ MeshAssetCatalog 現以 UUID 穩定衍生 64-bit resource ID，並依專案 generation 發布 owning
   匯入 geometry。測試固定保存 ID、驗證重新命名／重新開啟後的參照、原子拒絕碰撞，並在卸載後
-  保留 snapshot。原生 mesh residency／rendering 仍待完成。
+  保留 snapshot。持續的每資產 GPU cache 與完整 Scene View 驗收仍待完成。
 
 - ✅ SceneDocument 現透過 Runtime Undo／Redo 提供 generation-safe MeshRenderer 新增、mesh／
   material 資源參照替換、移除及 owning 查詢。測試驗證完整 64-bit 與尚未解析的 ID 可場景儲存／
-  重載、無變更編輯保留 Redo，並拒絕過期 key。原生 mesh residency 及實際 mesh
-  的 Scene 繪製仍待完成。
+  重載、無變更編輯保留 Redo，並拒絕過期 key。持續的每資產 GPU cache 與完整 Scene View 驗收仍待完成。
 
 - ✅ 原生與概覽拖曳在應用程式失焦時先於合成放開事件取消，並在 Undo／Redo、建立／貼上／複製物件快捷鍵、文件世代
   改變、畫布隱藏、復原提示及預覽模式切換時取消。Contract 測試涵蓋概覽／原生失焦、Undo 及
@@ -156,7 +162,7 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 
 - ✅ 公共 Presentation SceneDrawData 邊界支援在同一個原生 depth pass 繪製有界的 geometry／
   instance 批次，保留完整 mesh 預設行為，具 portable 範圍拒絕及不同 geometry 的 Vulkan 像素證據。
-  [ADR-0002](ADR-0002-Editor-Scene-Mesh-Batches.md) 記錄契約；Editor 實際 mesh 資產 residency
+  [ADR-0002](ADR-0002-Editor-Scene-Mesh-Batches.md) 記錄契約；Editor 持續的每資產 GPU cache
   及完整 Scene View 驗收仍待完成。
 
 - ✅ 原生 3D gizmo 提供 Pivot／Center（P）切換。Center 把手、旋轉／縮放預覽與提交共用選取根節點
@@ -211,14 +217,14 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 - ✅ Duplicate 按鈕與 Ctrl+D 現可複製圖形化選取，同時保留使用者原本的剪貼簿。
   Hierarchy 會在 Paste 或 Duplicate 修改文件後才建立當幀的節點檢視。
 - ✅ 中央 Scene panel 現有可互動的 X/Z 俯視概覽：含父節點合成後的世界位置、網格、滾輪縮放、
-  中鍵平移，以及與 Hierarchy 同步的點選。已建立 mesh 的 3D 輸出與完整 3D gizmo 仍待完成。
+  中鍵平移，以及與 Hierarchy 同步的點選。原生 OBJ 輸出現已提供，完整 Scene View 驗收仍待完成。
 - ✅ 原生 Vulkan／DX12 場景繪製 contract 現可指定有界的實體像素 viewport。
   Portable 邊界檢查與 Vulkan Xvfb 像素讀回涵蓋裁切。
 - ✅ Docked Scene canvas 現會在 layout 與 DPI 縮放後提供可見的 framebuffer 像素邊界，
   並於每幀重設。
 - ✅ Scene panel 現提供 Vulkan／DX12 原生 3D 代理預覽，在 UI 提交後於該 canvas 繪製有深度測試的
-  地面與 live scene 節點位置代理，保留 canvas 外的控制項。X/Z 編輯概覽仍可切回。已建立的 mesh、
-  精確 shear 矩陣、mesh picking 仍待完成，完整 renderer-backed
+  地面與 live scene 節點位置代理，保留 canvas 外的控制項。X/Z 編輯概覽仍可切回。解析後的 OBJ 現以原生 batch 繪製及 triangle picking；
+  material shader 與精確 shear 矩陣仍待完成，完整 renderer-backed
   Scene View 驗收因此仍未通過。
   代理 instance 現反映合成後的世界旋轉與縮放；保守包圍範圍先篩選候選物件，再精確點選
   旋轉盒體及位移把手，避免點到包圍範圍的空角落。
