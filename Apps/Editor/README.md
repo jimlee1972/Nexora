@@ -221,3 +221,13 @@ refreshes its CPU catalog when the live Content Browser revision changes, before
 geometry. Failed/cancelled/stale results keep the prior mesh; rename/move Undo keeps a newer
 published geometry and delete/Undo removes/restores live resolution. UI borrows snapshots for the
 frame and performs no mesh source IO while rendering or picking.
+
+The Game panel accepts an optional UTF-8 gameplay-library path relative to the project root;
+`--gameplay-library=Content/libGame.so` seeds that session-local field for automation. Start loads
+its V3 library only after cloning the World. Component wires read/write the clone, FixedUpdate is
+optional and runs on fixed ticks/manual Step, and Update runs once per playing frame. Blank paths
+retain inspection-only Play. Canonical paths outside the project and failed ABI/lifecycle loads
+are rejected visibly. Module logs enter the bounded Console; failed callbacks pause Play.
+Stop/window shutdown unload the module before destroying the clone. The host bounds allocation
+and message sizes, supports the shared component wire set, and advertises no scene/physics
+capability. Game input routing, module hot reload, and persisted module configuration remain open.

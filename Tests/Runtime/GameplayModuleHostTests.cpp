@@ -164,6 +164,7 @@ int main() {
   assert(!host.Load(LoadFirst));
   fail_start = false;
   assert(host.Load(LoadFirst));
+  assert(host.SupportsFixedUpdate());
   assert(first_state.started);
   assert(!host.Load(LoadFirst));
   assert(nexora::test::RunGameplayConformanceVectors(host));
@@ -213,7 +214,7 @@ int main() {
 
   host.Unload();
   assert(second_state.stopped);
-  assert(!host.IsLoaded());
+  assert(!host.IsLoaded() && !host.SupportsFixedUpdate());
   host.Unload();
 
   auto undersized_api = api;

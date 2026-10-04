@@ -84,6 +84,9 @@ struct EditorImGuiHost::State final {
   RecoveryChoice recovery_choice = RecoveryChoice::None;
   CloseChoice close_choice = CloseChoice::None;
   PlayCommand play_command = PlayCommand::None;
+  std::array<char, 1024> gameplay_library{};
+  std::string gameplay_status;
+  std::uint64_t gameplay_project_generation{};
   bool close_prompt_requested = false;
   bool recovery_prompt_opened = false;
   bool initial_dock_layout_built = false;
@@ -2510,6 +2513,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (play == nullptr) {
       ImGui::TextDisabled("Play session unavailable.");
     } else {
+      if (content &&
+          state_->gameplay_project_generation != content->Browser().ProjectGeneration()) {
+        if (state_->gameplay_project_generation != 0) {
+          state_->gameplay_library.fill(0);
+          state_->gameplay_status.clear();
+        }
+        state_->gameplay_project_generation = content->Browser().ProjectGeneration();
+      }
+      ImGui::BeginDisabled(game_running);
+      ImGui::InputTextWithHint("Gameplay library", "Optional path within this project",
+                               state_->gameplay_library.data(), state_->gameplay_library.size());
+      ImGui::EndDisabled();
+      if (!state_->gameplay_status.empty())
+        ImGui::TextWrapped("%s", state_->gameplay_status.c_str());
       const auto state = play->State();
       if (state == runtime::PlayState::Stopped) {
         if (ImGui::Button("Play"))
@@ -2751,6 +2768,21 @@ void EditorImGuiHost::RequestCloseConfirmation() noexcept { state_->close_prompt
 
 CloseChoice EditorImGuiHost::TakeCloseChoice() noexcept {
   return std::exchange(state_->close_choice, CloseChoice::None);
+}
+
+std::string_view EditorImGuiHost::GameplayLibrary() const noexcept {
+  return state_->gameplay_library.data();
+}
+void EditorImGuiHost::SetGameplayLibrary(std::string_view library) {
+  if (state_->game_was_running)
+    return;
+  const auto count = std::min(library.size(), state_->gameplay_library.size() - 1);
+  if (count)
+    std::memcpy(state_->gameplay_library.data(), library.data(), count);
+  state_->gameplay_library[count] = 0;
+}
+void EditorImGuiHost::SetGameplayStatus(std::string message) {
+  state_->gameplay_status = std::move(message);
 }
 
 PlayCommand EditorImGuiHost::TakePlayCommand() noexcept {

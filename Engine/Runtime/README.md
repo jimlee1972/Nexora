@@ -372,6 +372,10 @@ host table and stable C wire layouts are unchanged; a V3 module adapter remains 
 
 ## Zig gameplay bridge
 
+`GameplayModuleHost::SupportsFixedUpdate` reports the loaded module's advertised optional fixed
+callback without invoking it, under the same mutex as load/unload. Embedders can tick a module
+that only has per-frame Update without interpreting an absent fixed callback as a runtime failure.
+
 `GameplayModuleHost` executes the versioned `NexoraGameModuleV3` C ABI while the V1 and V2 layouts
 remain declared for source compatibility. V3 separates state creation/destruction from
 `on_start`/`on_stop`, makes update failures observable through `NexoraGameplayResult`, adds an

@@ -13,6 +13,7 @@
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/Device.h"
 #include "Nexora/Runtime/EditorSdk.h"
+#include "PlayGameplayModule.h"
 #include "SceneMeshPreview.h"
 #endif
 
@@ -748,7 +749,7 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
 int RunGraphical(std::optional<ProjectState> project,
                  nexora::editor::RecentProjectStore &recent_projects,
                  nexora::editor::ProjectAccess selector_access, std::uint32_t frame_limit,
-                 bool native_scene_preview) {
+                 bool native_scene_preview, std::string_view initial_gameplay_library) {
   auto created = Nexora::Presentation::CreateRenderSurface(
       {"Nexora Editor", 1280, 720, true, Nexora::Presentation::SurfaceBackend::Automatic});
   if (!created) {
@@ -757,6 +758,7 @@ int RunGraphical(std::optional<ProjectState> project,
   }
   nexora::editor::imgui::EditorImGuiHost ui;
   ui.SetNativeScenePreview(native_scene_preview);
+  ui.SetGameplayLibrary(initial_gameplay_library);
   nexora::core::JobSystem import_jobs{1};
   import_jobs.Start();
   nexora::editor::AssetImportQueue imports{import_jobs};
@@ -819,6 +821,13 @@ int RunGraphical(std::optional<ProjectState> project,
         console.Push({0, severity, std::move(category), static_cast<std::uint64_t>(timestamp),
                       "NexoraEditor", std::move(message)}));
   };
+  nexora::editor::preview::PlayGameplayModule gameplay(
+      [&](std::uint32_t level, std::string message) {
+        const auto severity = level >= 3   ? nexora::runtime::RuntimeLogSeverity::Error
+                              : level == 2 ? nexora::runtime::RuntimeLogSeverity::Warning
+                                           : nexora::runtime::RuntimeLogSeverity::Info;
+        log(severity, "Gameplay", std::move(message));
+      });
   log(nexora::runtime::RuntimeLogSeverity::Info, "Editor", "Graphical session started.");
   const auto scene_path = [](const nexora::editor::ProjectWorkspace &workspace) {
     return workspace.Root() / ".nexora" / "scenes" / "Main.scene";
@@ -1010,7 +1019,21 @@ int RunGraphical(std::optional<ProjectState> project,
                           &console, &play, &profile, &meshes);
       switch (ui.TakePlayCommand()) {
       case nexora::editor::imgui::PlayCommand::Start:
-        if (play.Start(1.0 / 60.0, [](nexora::runtime::World &, double) { return true; })) {
+        if (play.Start(1.0 / 60.0, [&](nexora::runtime::World &, double seconds) {
+              return gameplay.FixedUpdate(seconds);
+            })) {
+          std::string gameplay_error;
+          if (!ui.GameplayLibrary().empty() &&
+              !gameplay.LoadRelative(*play.PlayWorld(), project->workspace.Root(),
+                                     ui.GameplayLibrary(), gameplay_error)) {
+            static_cast<void>(play.Stop());
+            ui.SetGameplayStatus(gameplay_error);
+            log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", gameplay_error);
+            break;
+          }
+          ui.SetGameplayStatus(gameplay.IsLoaded()
+                                   ? "Gameplay module running."
+                                   : "Inspection only: no gameplay library selected.");
           play_meshes = meshes;
           play_accumulator = 0.0;
           last_play_frame = std::chrono::steady_clock::now();
@@ -1025,10 +1048,13 @@ int RunGraphical(std::optional<ProjectState> project,
         static_cast<void>(play.Resume());
         break;
       case nexora::editor::imgui::PlayCommand::Step:
-        static_cast<void>(play.Step());
+        if (!play.Step() && play.LastPauseReason() == nexora::runtime::PauseReason::RuntimeFailure)
+          log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", "Gameplay fixed step failed.");
         break;
       case nexora::editor::imgui::PlayCommand::Stop:
+        gameplay.Unload();
         static_cast<void>(play.Stop());
+        ui.SetGameplayStatus("Play stopped.");
         play_meshes.reset();
         native_game_viewport_reported.reset();
         ui.SetNativeGameStatus({});
@@ -1045,14 +1071,25 @@ int RunGraphical(std::optional<ProjectState> project,
       if (play.State() == nexora::runtime::PlayState::Playing) {
         play_accumulator += elapsed;
         for (int tick = 0; tick < 4 && play_accumulator >= 1.0 / 60.0; ++tick) {
-          if (!play.Tick())
+          if (!play.Tick()) {
+            log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", "Gameplay fixed update failed.");
             break;
+          }
           play_accumulator -= 1.0 / 60.0;
         }
         play_accumulator = std::min(play_accumulator, 4.0 / 60.0);
+        if (play.State() == nexora::runtime::PlayState::Playing && !gameplay.Update(elapsed)) {
+          static_cast<void>(play.Pause());
+          ui.SetGameplayStatus("Gameplay update failed; Play paused. Stop to reload the module.");
+          log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", "Gameplay update failed.");
+        }
       } else {
         play_accumulator = 0.0;
       }
+      if (play.State() == nexora::runtime::PlayState::Paused &&
+          play.LastPauseReason() == nexora::runtime::PauseReason::RuntimeFailure)
+        ui.SetGameplayStatus(
+            "Gameplay fixed update failed; Play paused. Stop to reload the module.");
       if (mesh_content_revision != content.Browser().Revision() ||
           mesh_content_generation != content.Browser().ProjectGeneration()) {
         std::string mesh_error;
@@ -1381,6 +1418,7 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     }
   }
+  gameplay.Unload();
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());
   const auto diagnostics = created.surface->Diagnostics();
@@ -1421,6 +1459,7 @@ int Run(int argc, char **argv) {
   bool graphical = false;
   bool read_only = false;
   bool native_scene_preview = false;
+  std::string gameplay_library;
   std::uint32_t frame_limit = 0;
   for (int index = 1; index < argc; ++index) {
     const std::string_view argument(argv[index]);
@@ -1434,6 +1473,8 @@ int Run(int argc, char **argv) {
       graphical = true;
     else if (argument == "--read-only")
       read_only = true;
+    else if (argument.starts_with("--gameplay-library="))
+      gameplay_library = argument.substr(19);
     else if (argument == "--native-scene-preview")
       native_scene_preview = true;
     else if (argument.starts_with("--frames=")) {
@@ -1446,7 +1487,8 @@ int Run(int argc, char **argv) {
       }
     } else if (argument == "--help") {
       std::cout << "NexoraEditor [--project=PATH] [--read-only] [--report=PATH] [--graphical] "
-                   "[--frames=N] [--recent-projects=PATH] [--native-scene-preview]\n";
+                   "[--frames=N] [--recent-projects=PATH] [--native-scene-preview] "
+                   "[--gameplay-library=RELATIVE_PATH]\n";
       return 0;
     } else {
       std::cerr << "unknown argument: " << argument << '\n';
@@ -1455,6 +1497,14 @@ int Run(int argc, char **argv) {
   }
   if (project.empty() && !graphical) {
     std::cerr << "--project is required unless --graphical opens the project selector\n";
+    return 2;
+  }
+  if (gameplay_library.size() >= 1024) {
+    std::cerr << "--gameplay-library must be shorter than 1024 UTF-8 bytes\n";
+    return 2;
+  }
+  if (!gameplay_library.empty() && !graphical) {
+    std::cerr << "--gameplay-library requires --graphical\n";
     return 2;
   }
   if (native_scene_preview && !graphical) {
@@ -1486,7 +1536,7 @@ int Run(int argc, char **argv) {
     return RunGraphical(std::move(project_state), recent_projects,
                         read_only ? nexora::editor::ProjectAccess::ReadOnly
                                   : nexora::editor::ProjectAccess::ReadWrite,
-                        frame_limit, native_scene_preview);
+                        frame_limit, native_scene_preview, gameplay_library);
 #else
   static_cast<void>(frame_limit);
   static_cast<void>(native_scene_preview);

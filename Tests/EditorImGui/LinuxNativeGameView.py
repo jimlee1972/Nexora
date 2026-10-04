@@ -16,6 +16,7 @@ def main():
     parser = argparse.ArgumentParser()
     for argument in ('editor', 'xvfb', 'xdotool'):
         parser.add_argument('--' + argument, required=True)
+    parser.add_argument('--module')
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix='nexora-game-view-'))
     state = Path(tempfile.mkdtemp(prefix='nexora-game-state-'))
@@ -32,6 +33,11 @@ def main():
         'NEXORA_SCENE 3 "Game scene" 0 2\n'
         '10 0 0 0 5 0 0 0 1 1 1 1 1 0 0 60 0.1 1000 1 0 0\n'
         '20 0 0 0 0 0 0 0 1 1 1 1 0 0 1 60 0.1 1000 1 12751791000609863510 0\n')
+    library_argument = []
+    if args.module:
+        filename = Path(args.module).name
+        shutil.copy2(args.module, root / 'Content' / filename)
+        library_argument = [f'--gameplay-library=Content/{filename}']
     baseline = scene.read_bytes()
     xvfb, display = start_xvfb(args.xvfb, '1280x720x24')
     editor = None
@@ -43,7 +49,7 @@ def main():
         env['DISPLAY'] = display
         env['XDG_STATE_HOME'] = str(state)
         editor = subprocess.Popen([args.editor, f'--project={root}', '--graphical',
-            '--native-scene-preview', '--frames=10000', f'--recent-projects={state / "recent"}'],
+            '--native-scene-preview', '--frames=10000', f'--recent-projects={state / "recent"}', *library_argument],
             env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         window = int(wait_for_window(args.xdotool, env))
 
@@ -77,6 +83,11 @@ def main():
             time.sleep(0.1)
         else:
             raise RuntimeError('Play camera did not rasterize imported OBJ pixels')
+        if args.module:
+            first = scene_region_pixels(display, window, viewport)
+            time.sleep(0.6)
+            if scene_region_pixels(display, window, viewport) == first:
+                raise RuntimeError('Loaded gameplay fixed callback did not move the native mesh')
         send('key', '--delay', '80', 'F6')
         time.sleep(0.3)
         paused = scene_region_pixels(display, window, viewport)
