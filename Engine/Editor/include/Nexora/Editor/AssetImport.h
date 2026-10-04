@@ -80,6 +80,8 @@ struct ReimportJobRequest final {
   std::string previous_artifact;
   std::string settings_hash{"default-v1"};
   std::vector<runtime::AssetUuid> dependencies;
+  // Persistent importer type; empty derives it from the source extension.
+  std::string type{};
 };
 
 struct ImportOperationResult final {

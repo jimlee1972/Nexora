@@ -6,6 +6,22 @@
 
 namespace nexora::editor {
 namespace {
+bool WithinMeshBudget(std::span<const ContentItem> items, runtime::AssetUuid replacement = {},
+                      const std::shared_ptr<const MeshGeometry> &mesh = {}) {
+  std::size_t remaining = kMaximumWorkspaceMeshBytes;
+  for (const auto &item : items) {
+    const auto &geometry = item.id == replacement && mesh ? mesh : item.mesh;
+    if (!geometry)
+      continue;
+    if (geometry->vertices.capacity() > remaining / sizeof(MeshVertex))
+      return false;
+    remaining -= geometry->vertices.capacity() * sizeof(MeshVertex);
+    if (geometry->indices.capacity() > remaining / sizeof(std::uint16_t))
+      return false;
+    remaining -= geometry->indices.capacity() * sizeof(std::uint16_t);
+  }
+  return true;
+}
 std::string Lower(std::string_view value) {
   std::string result(value);
   std::ranges::transform(result, result.begin(),
@@ -28,6 +44,8 @@ ContentBrowserModel::ContentBrowserModel(std::uint64_t project_generation)
 }
 bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
                                 std::uint64_t project_generation) {
+  if (!WithinMeshBudget(items))
+    return false;
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> ids;
   std::unordered_set<std::string> paths;
   for (const auto &item : items)
@@ -40,6 +58,7 @@ bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
   undo_.clear();
   undo_selection_.clear();
   generation_ = project_generation;
+  ++revision_;
   return true;
 }
 bool ContentBrowserModel::SetFolder(const std::filesystem::path &folder) {
@@ -144,6 +163,7 @@ bool ContentBrowserModel::ValidDestination(const std::filesystem::path &path,
          });
 }
 bool ContentBrowserModel::Commit(std::vector<ContentItem> next, std::string *error) {
+  ++revision_;
   undo_ = items_;
   undo_selection_ = selection_;
   items_ = std::move(next);
@@ -211,6 +231,7 @@ bool ContentBrowserModel::Delete(std::span<const runtime::AssetUuid> ids, std::s
 bool ContentBrowserModel::Undo() {
   if (undo_.empty())
     return false;
+  ++revision_;
   items_.swap(undo_);
   undo_.clear();
   selection_.swap(undo_selection_);
@@ -218,19 +239,29 @@ bool ContentBrowserModel::Undo() {
   return true;
 }
 bool ContentBrowserModel::PublishArtifact(runtime::AssetUuid id, std::string artifact_hash,
-                                          ThumbnailState thumbnail, std::string *error) {
+                                          ThumbnailState thumbnail, std::string *error,
+                                          std::shared_ptr<const MeshGeometry> mesh) {
   const auto found = std::ranges::find(items_, id, &ContentItem::id);
   if (found == items_.end() || artifact_hash.empty()) {
     if (error)
       *error = "asset or artifact hash is invalid";
     return false;
   }
+  if (!WithinMeshBudget(items_, id, mesh)) {
+    if (error)
+      *error = "Live mesh geometry exceeds the 128 MiB workspace budget.";
+    return false;
+  }
+  ++revision_;
+  if (mesh)
+    found->mesh = std::move(mesh);
   found->artifact_hash = std::move(artifact_hash);
   found->thumbnail = thumbnail;
   const auto undo = std::ranges::find(undo_, id, &ContentItem::id);
   if (undo != undo_.end()) {
     undo->artifact_hash = found->artifact_hash;
     undo->thumbnail = thumbnail;
+    undo->mesh = found->mesh;
   }
   if (error)
     error->clear();

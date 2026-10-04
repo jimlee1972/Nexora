@@ -1,4 +1,5 @@
 #include "Nexora/Editor/ProjectContent.h"
+#include "ReimportSource.h"
 
 #include <algorithm>
 #include <array>
@@ -116,10 +117,12 @@ bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetW
     if (!ContentPath(path) || entry.id == runtime::AssetUuid{} || !dependencies.Set(entry.id, {}))
       return Fail("asset index contains an invalid entry", error);
     items.push_back({entry.id, path.lexically_normal(), entry.type, entry.artifact_hash,
-                     ThumbnailFor(entry.state)});
+                     ThumbnailFor(entry.state), entry.mesh});
   }
 
-  ContentBrowserModel browser(project_generation);
+  auto browser = browser_;
+  browser.SetFilter({}, {});
+  static_cast<void>(browser.SetFolder("Content"));
   if (!browser.Reset(items, project_generation))
     return Fail("asset index could not initialize the content browser", error);
 
@@ -379,14 +382,15 @@ bool ProjectContentSession::Reimport(runtime::AssetUuid asset, std::string *erro
   const auto source = ExistingPath(item->path, &path_error);
   if (source.empty())
     return Fail(path_error, error);
-  std::ifstream input(source, std::ios::binary);
-  std::ostringstream bytes;
-  bytes << input.rdbuf();
-  if (!input.good() && !input.eof())
-    return Fail("asset source could not be read", error);
-
-  const auto source_hash = Hex(Hash(bytes.str(), 1469598103934665603ULL));
-  const auto artifact_hash = Hex(Hash(bytes.str(), Hash(asset.ToString(), 1469598103934665603ULL)));
+  auto imported = detail::ReadReimportSource(source, item->type);
+  if (!imported.error.empty())
+    return Fail(imported.error, error);
+  const auto source_hash = Hex(Hash(imported.bytes, 1469598103934665603ULL));
+  const auto artifact_hash =
+      Hex(Hash(imported.bytes, Hash(asset.ToString(), 1469598103934665603ULL)));
+  auto candidate = browser_;
+  if (!candidate.PublishArtifact(asset, artifact_hash, ThumbnailState::Ready, error, imported.mesh))
+    return Fail(error && !error->empty() ? *error : "reimport geometry publication failed", error);
   ReimportTransaction transaction(browser_.ProjectGeneration(), asset, item->artifact_hash);
   const auto dependencies = dependencies_.Forward(asset);
   if (!transaction.Stage({browser_.ProjectGeneration(),
@@ -399,9 +403,7 @@ bool ProjectContentSession::Reimport(runtime::AssetUuid asset, std::string *erro
                           false}) ||
       !transaction.Commit(browser_.ProjectGeneration(), dependencies_))
     return Fail(std::string(transaction.Diagnostic()), error);
-  if (!browser_.PublishArtifact(asset, std::string(transaction.Artifact()), ThumbnailState::Ready,
-                                error))
-    return Fail(error && !error->empty() ? *error : "reimport publication failed", error);
+  browser_ = std::move(candidate);
   ClearError(error);
   return true;
 }
@@ -428,8 +430,8 @@ bool ProjectContentSession::BeginReimport(AssetImportQueue &imports, runtime::As
   if (revision_error)
     return Fail("asset source revision could not be inspected: " + revision_error.message(), error);
   ReimportJobRequest request{
-      browser_.ProjectGeneration(), asset,        source,
-      item->artifact_hash,          "default-v1", dependencies_.Forward(asset)};
+      browser_.ProjectGeneration(), asset,     source, item->artifact_hash, "default-v1",
+      dependencies_.Forward(asset), item->type};
   std::string start_error;
   const auto operation = imports.Start(request, &start_error);
   if (operation == 0)
@@ -509,6 +511,12 @@ bool ProjectContentSession::PollReimport(std::string *error) {
                   error);
   }
 
+  auto candidate = browser_;
+  std::string publish_error;
+  if (!candidate.PublishArtifact(pending_reimport_->asset, result->reimport->artifact_hash,
+                                 ThumbnailState::Ready, &publish_error, result->reimport->mesh))
+    return finish(ImportOperationState::Failed, ImportDiagnosticSeverity::Error,
+                  "reimport.publish_failed", publish_error, error);
   ReimportTransaction transaction(pending_reimport_->project_generation, pending_reimport_->asset,
                                   pending_reimport_->previous_artifact);
   if (!transaction.Stage(std::move(*result->reimport)) ||
@@ -516,13 +524,7 @@ bool ProjectContentSession::PollReimport(std::string *error) {
     return finish(ImportOperationState::Failed, ImportDiagnosticSeverity::Error,
                   "reimport.publish_failed", std::string(transaction.Diagnostic()), error);
   }
-  std::string publish_error;
-  if (!browser_.PublishArtifact(pending_reimport_->asset, std::string(transaction.Artifact()),
-                                ThumbnailState::Ready, &publish_error)) {
-    return finish(ImportOperationState::Failed, ImportDiagnosticSeverity::Error,
-                  "reimport.publish_failed",
-                  publish_error.empty() ? "reimport publication failed" : publish_error, error);
-  }
+  browser_ = std::move(candidate);
   if (last_reimport_->progress.size() >= last_reimport_->progress_capacity) {
     last_reimport_->progress.erase(last_reimport_->progress.begin());
     ++last_reimport_->dropped_progress;

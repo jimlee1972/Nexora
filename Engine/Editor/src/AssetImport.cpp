@@ -1,6 +1,7 @@
 #include "Nexora/Editor/AssetImport.h"
 
 #include "Nexora/Core/Cancellation.h"
+#include "ReimportSource.h"
 
 #include <algorithm>
 #include <deque>
@@ -249,20 +250,20 @@ ImportOperationId AssetImportQueue::Start(ReimportJobRequest request, std::strin
              return;
            }
            implementation->Progress(operation, ImportStage::Reading, 1, 4);
-           std::ifstream input(source, std::ios::binary);
-           std::ostringstream bytes;
-           bytes << input.rdbuf();
-           if (!input.good() && !input.eof()) {
-             implementation->FinishFailed(operation, "reimport.read_failed",
-                                          "Asset source could not be read.", source, request.asset);
-             return;
-           }
-           if (token.IsCancellationRequested()) {
+           auto imported = detail::ReadReimportSource(
+               source, request.type, [&token] { return token.IsCancellationRequested(); });
+           if (imported.cancelled || token.IsCancellationRequested()) {
              implementation->FinishCancelled(operation);
              return;
            }
+           if (!imported.error.empty()) {
+             implementation->FinishFailed(
+                 operation, imported.read_failed ? "reimport.read_failed" : "reimport.mesh_failed",
+                 imported.error, source, request.asset);
+             return;
+           }
            implementation->Progress(operation, ImportStage::Staging, 2, 4);
-           const auto contents = bytes.str();
+           const auto &contents = imported.bytes;
            ReimportResult result{
                request.project_generation,
                request.asset,
@@ -271,7 +272,8 @@ ImportOperationId AssetImportQueue::Start(ReimportJobRequest request, std::strin
                Hex(Hash(contents, Hash(request.asset.ToString(), 1469598103934665603ULL))),
                std::move(request.dependencies),
                {},
-               false};
+               false,
+               std::move(imported.mesh)};
            if (token.IsCancellationRequested()) {
              implementation->FinishCancelled(operation);
              return;

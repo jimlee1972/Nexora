@@ -162,6 +162,10 @@ The docked Console now shows bounded Runtime records
 with text/severity filters, source, timestamps, and dropped-record count; startup and scene save
 diagnostics are routed through it. Game View and complete log routing remain open.
 
+OBJ reimport now publishes immutable geometry with its hash after revision and memory-budget checks;
+failed/cancelled/stale results preserve the previous mesh. Content revisions refresh native geometry,
+and rename/delete Undo retains the newest payload.
+
 Native Scene preview now draws and triangle-picks resolved OBJ geometry through bounded shared
 mesh batches. Distinct triangle/quad Xvfb pixels cover Center preview/commit and Undo; missing or
 oversized meshes warn and retain proxies. Material shaders, exact shear and full acceptance remain open.
@@ -190,7 +194,7 @@ resource IDs retained across Undo/Redo and scene persistence. Full Scene View ac
 
 Background workspace imports now stage immutable triangulated OBJ geometry with bounded source/
 memory use, UVs, normal generation, local bounds, cancellation, and source-line diagnostics.
-Typed geometry reimport publication and full Scene View acceptance remain open.
+Typed OBJ geometry reimport now publishes atomically; full Scene View acceptance remains open.
 
 The native 3D gizmo now exposes Pivot/Center (P), including common-center rotation and scale of
 multiple selected roots, with matching previews and one-step Undo. A two-root Xvfb workflow checks
@@ -386,6 +390,9 @@ backend-neutral `Text` event，physical key 與 text input 維持分離。
 中央 Scene panel 現有可點選物件的 X/Z 俯視概覽、Ctrl／Shift 多選、F 聚焦、平移、縮放及可單步復原的標記拖曳及可見的單軸把手，且逐場景保留概覽 camera 中心與縮放；Scene panel 也會標示未儲存內容，成功儲存或 Undo 回原狀後清除；原生關閉要求遇到未儲存內容時提供儲存後離開、捨棄後離開或取消；正式 3D renderer 輸出與 gizmo
 仍待完成。
 
+OBJ reimport 現在 revision 與記憶體預算檢查通過後一併發布不可變幾何及 hash；失敗／取消／過期
+會保留舊 mesh。Content revision 會更新原生幾何，重新命名／刪除 Undo 也保留最新 payload。
+
 原生 Scene 預覽現透過有界 shared mesh batch 繪製並以 triangle picking 選取解析後的 OBJ。
 不同 triangle／quad 的 Xvfb 像素驗證 Center 預覽／提交及 Undo；缺失或超限 mesh 會警告並
 保留代理。Material shader、精確 shear 與完整驗收仍待完成。
@@ -412,8 +419,7 @@ Editor SceneDocument 現提供 generation-safe MeshRenderer 交易及查詢，me
 可保留於 Undo／Redo 與場景儲存。完整 Scene View 驗收仍待完成。
 
 背景 workspace 匯入現可 staging 不可變的已三角化 OBJ 幾何，包含有界來源／記憶體使用、UV、
-法線產生、局部 bounds、取消及來源行號診斷。持續的每資產 GPU cache 與 typed geometry reimport
-發布仍待完成。
+法線產生、局部 bounds、取消及來源行號診斷。Typed OBJ geometry reimport 現可原子發布；持續的每資產 GPU cache 仍待完成。
 
 原生 3D gizmo 現提供 Pivot／Center（P），支援多個選取根節點繞共同中心旋轉與縮放，
 預覽與提交一致並可單次 Undo。雙根節點 Xvfb 流程驗證共同中心縮放、旋轉與放開後的畫面；完整 Scene View 驗收仍未完成。

@@ -31,6 +31,21 @@ bool MeshAssetCatalog::Publish(std::span<const AssetEntry> assets, std::uint64_t
   return true;
 }
 
+bool MeshAssetCatalog::PublishContent(const ContentBrowserModel &content, std::string *error) {
+  std::vector<AssetEntry> assets;
+  for (const auto &item : content.Items()) {
+    if (!item.mesh)
+      continue;
+    AssetEntry entry;
+    entry.id = item.id;
+    entry.relative_path = item.path.generic_string();
+    entry.state = ImportState::Imported;
+    entry.mesh = item.mesh;
+    assets.push_back(std::move(entry));
+  }
+  return Publish(assets, content.ProjectGeneration(), error);
+}
+
 void MeshAssetCatalog::Clear() noexcept {
   meshes_.clear();
   generation_ = 0;

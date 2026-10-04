@@ -228,4 +228,11 @@ existing material reference when replacing the mesh. Read-only projects and reco
 Missing/unresolved mesh references are retained and displayed honestly. Each accepted edit uses
 SceneDocument Undo/Redo and cancels prospective scene gestures before mutation. The application
 publishes the CPU catalog after project activation. The application now submits resolved OBJ
-geometry through native Presentation batches; geometry reimport publication remains open.
+geometry through native Presentation batches; OBJ geometry reimport publishes atomically through the live content model.
+
+OBJ reimport now publishes an owning geometry payload together with the artifact hash, after its
+source/project/dependency revisions and live geometry budget pass validation. The application
+refreshes its CPU catalog when the live Content Browser revision changes, before drawing native
+geometry. Failed/cancelled/stale results keep the prior mesh; rename/move Undo keeps a newer
+published geometry and delete/Undo removes/restores live resolution. UI borrows snapshots for the
+frame and performs no mesh source IO while rendering or picking.

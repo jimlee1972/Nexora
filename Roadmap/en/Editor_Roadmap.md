@@ -86,10 +86,17 @@ Create, open, and upgrade projects. Deliver a Content Browser with search/filter
 drag/drop, import status, dependency inspection, and reimport. Background import must expose
 cancellation, progress, and actionable errors, and must produce deterministic artifacts.
 
+- ✅ Typed OBJ reimport now stages immutable geometry and hashes, then atomically publishes through
+  the live content model after project/asset/source/settings/dependency and 128 MiB mesh-budget checks.
+  Tests verify synchronous/background updates, stable resource identity, owning older snapshots,
+  failure/cancellation/staleness/oversize preservation, newer geometry across rename Undo and
+  delete/Undo, and budget rollback. A monotonic content revision refreshes the native mesh catalog
+  before drawing; rendering/picking perform no source IO.
+
 - ✅ Background workspace imports now retain bounded immutable CPU geometry for triangulated OBJ
   assets, including UVs, explicit/generated normals, indices, and local bounds. Portable tests cover
   malformed/overflowing input, cancellation, vertex limits, UUID/hash stability after move/reopen,
-  owning snapshots, and structured worker diagnostics. Mesh reimport publication, persistent per-asset GPU caching and full Scene View acceptance remain open.
+  owning snapshots, and structured worker diagnostics. Persistent per-asset GPU caching and full Scene View acceptance remain open.
 
 - ✅ Project create/open, deterministic content-tree indexing, UUID/path search and filtering,
   cancellation, progress, inspectable errors, and deterministic artifact hashes are implemented.
@@ -141,13 +148,13 @@ creates property widgets; unknown components retain raw data instead of being si
   tests cover range rollback, geometry/coordinate budgets, mirrored/rotated picking and silhouette
   misses; Xvfb distinct triangle/quad assets verify picking, Center scale/rotation, preview/release
   pixels, and one-step Undo. Missing/deleted/oversized assets retain references and warn while using
-  proxies. Persistent per-asset GPU caching, material shaders, exact shear, geometry reimport and
+  proxies. Persistent per-asset GPU caching, material shaders, exact shear and
   full Scene View acceptance remain open.
 
 - ✅ The single-selection Inspector now assigns imported OBJ mesh assets and removes MeshRenderer
   through generation-safe SceneDocument Undo/Redo. Contract tests verify material preservation,
   scene save/reload resolution, one-step removal Undo, and stale asset/project/document rejection.
-  Read-only/recovery disable edits; unavailable references remain preserved. Geometry reimport publication and full Scene View acceptance remain open.
+  Read-only/recovery disable edits; unavailable references remain preserved. Full Scene View acceptance remains open.
 
 - ✅ MeshAssetCatalog now publishes owning imported geometry with stable UUID-derived 64-bit
   resource IDs and project-generation checks. Tests freeze persisted IDs, preserve references
