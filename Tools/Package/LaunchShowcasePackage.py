@@ -65,7 +65,7 @@ def main() -> int:
         verified.append(relative)
 
     with tempfile.TemporaryDirectory(prefix="nexora-clean-package-") as temporary:
-        staged = Path(temporary) / "NexoraShowcase"
+        staged = (Path(temporary) / "NexoraShowcase").resolve()
         shutil.copytree(source, staged)
         # Re-verify against the staged copy actually about to be chmod'd/executed,
         # not just the original `source` -- otherwise a change to `source` between
@@ -85,9 +85,15 @@ def main() -> int:
         engine_libraries = {}
         if platform.system() == "Linux":
             environment["LD_LIBRARY_PATH"] = str(staged / "bin") + os.pathsep + environment.get("LD_LIBRARY_PATH", "")
+        if platform.system() in ("Linux", "Darwin"):
             verify_runtime_closure(executable, staged, environment)
-            for resolved in engine_runtime_libraries(executable, environment):
-                engine_libraries[resolved.name] = resolved.relative_to(staged).as_posix()
+            binaries = [executable]
+            if platform.system() == "Darwin":
+                binaries.extend(path for path in (staged / "bin").iterdir() if path != executable)
+            for binary in binaries:
+                verify_runtime_closure(binary, staged, environment)
+                for resolved in engine_runtime_libraries(binary, environment):
+                    engine_libraries[resolved.name] = resolved.relative_to(staged).as_posix()
         completed = subprocess.run([str(executable), *command[1:]], cwd=staged, env=environment,
                                    text=True, capture_output=True, check=False)
         report = staged / "launch-report.json"

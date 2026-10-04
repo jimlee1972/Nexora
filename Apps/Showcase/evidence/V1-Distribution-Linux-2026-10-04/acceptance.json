@@ -1,0 +1,61 @@
+{
+  "scope": "Linux Xvfb/lavapipe native interaction; no physical display or Windows claim",
+  "room_controls": true,
+  "screenshots": [
+    "hub.png",
+    "rendering.png",
+    "rendering-quad.png",
+    "rendering-triangle.png",
+    "scene.png",
+    "input.png",
+    "gameplay.png",
+    "gameplay-geometry.png",
+    "presentation.png",
+    "streaming.png",
+    "shipping.png",
+    "presentation-blend.png",
+    "validation-lab.png",
+    "resized-hub.png"
+  ],
+  "windowed_evidence": {
+    "executed": true,
+    "backend": "vulkan",
+    "backend_fallback": false,
+    "fallback_reason": "",
+    "recovery_action": "render",
+    "surface_acquires": 964,
+    "surface_presents": 964,
+    "resize_requests": 0,
+    "resize_generations": 1,
+    "composed_frames": 0,
+    "scene_draws": 964,
+    "native_scene_draws": 964,
+    "native_scene_instances": 1156,
+    "native_scene_texture_uploads": 3,
+    "native_offscreen_draws": 964,
+    "native_scene_composites": 964,
+    "software_rasterizer": true,
+    "native_graph_frames": 964,
+    "native_graph_passes": 4,
+    "native_graph_resource_transitions": 3,
+    "native_graph_order": [
+      "Offscreen",
+      "Main",
+      "UI",
+      "Present"
+    ],
+    "native_ui_draws": 964,
+    "overlay_frames": 964,
+    "rendering_mode": "gpu_scene",
+    "clear_color": true,
+    "triangle": false,
+    "diagnostics_overlay": true
+  },
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "c4c17bd34df9",
+    "abi_version": 1,
+    "configuration": "Shipping",
+    "link_mode": "Monolithic"
+  }
+}

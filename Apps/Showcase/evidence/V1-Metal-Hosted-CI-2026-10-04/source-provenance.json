@@ -1,0 +1,27 @@
+{
+  "head_commit": "eb8719b108039823b3271a2f23a210ee4c564245",
+  "build_run": "https://github.com/jimlee1972/Nexora/actions/runs/37192940930",
+  "job_id": 111408777243,
+  "artifact_id": 11298999040,
+  "artifact_sha256": "5dd095519170acaf363290276f97a6496556c55c5780489b286416a045cea221",
+  "runner_image": "macos-26-arm64",
+  "scope": "Shipping/Full isolated native smoke and independent pixel/input/depth/lifecycle CTest",
+  "native_pixel_ctest": {
+    "head_commit": "606bcf827bda8fc15674f262c363c8a1160cfeee",
+    "build_run": "https://github.com/jimlee1972/Nexora/actions/runs/37193636581",
+    "job_id": 111410847239,
+    "configuration": "macos-development, NEXORA_ENABLE_MIMALLOC=ON",
+    "result": "63/63 PASS; window_presentation.metal_scene executed, not skipped"
+  },
+  "standard_development": {
+    "head_commit": "606bcf827bda8fc15674f262c363c8a1160cfeee",
+    "build_run": "https://github.com/jimlee1972/Nexora/actions/runs/37193636581",
+    "job_id": 111410847266,
+    "artifact_id": 11300301797,
+    "artifact_sha256": "385c1cad352f487adaa9580942de1691eca6b640301bdd4fead27c3ec35aad11",
+    "ctest_result": "73/73 PASS; Metal native test executed, not skipped",
+    "package_result": "serialization failed on /var path alias; fixed afterward with a reproducing regression",
+    "original_ppm_sha256": "ff8ef5e63fee864c235795700b2243ec2a3235524ab0e5f59080a6c944310a32",
+    "retained_png_sha256": "6b932695212d58500b7dd8f952b8649397a6a2567ec61570043203690f6211f7"
+  }
+}

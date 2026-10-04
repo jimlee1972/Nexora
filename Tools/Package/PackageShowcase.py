@@ -27,8 +27,83 @@ def copy(source: Path, destination: Path) -> dict:
             "sha256": digest(destination)}
 
 
+def is_macho(binary: Path) -> bool:
+    with binary.open("rb") as source:
+        return source.read(4) in (b"\xfe\xed\xfa\xce", b"\xce\xfa\xed\xfe", b"\xfe\xed\xfa\xcf",
+                                  b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca")
+
+
+def macho_dependencies(binary: Path) -> tuple[list[str], list[str]]:
+    """Read install names and LC_RPATH without executing the trusted Mach-O file."""
+    linked = subprocess.run(["otool", "-L", str(binary)], text=True, capture_output=True, check=True)
+    dependencies = [line.strip().split(" (", 1)[0] for line in linked.stdout.splitlines()[1:]]
+    loads = subprocess.run(["otool", "-l", str(binary)], text=True, capture_output=True, check=True)
+    rpaths = re.findall(r"cmd LC_RPATH\s+cmdsize \d+\s+path (.+?) \(offset", loads.stdout)
+    return dependencies, rpaths
+
+
+def macho_engine_libraries(binary: Path, executable: Path | None = None,
+                           visited: set[Path] | None = None) -> list[Path]:
+    binary = binary.resolve()
+    executable = executable or binary
+    visited = visited if visited is not None else set()
+    if binary in visited:
+        return []
+    visited.add(binary)
+    dependencies, rpaths = macho_dependencies(binary)
+    libraries = set()
+
+    def expand(path: str) -> Path:
+        return Path(path.replace("@loader_path", str(binary.parent))
+                        .replace("@executable_path", str(executable.parent)))
+
+    for dependency in dependencies:
+        if not Path(dependency).name.startswith("libNexora"):
+            continue
+        # A dylib's first otool entry is its own install name, not a dependency.
+        if Path(dependency).name == binary.name:
+            continue
+        if dependency.startswith("@rpath/"):
+            candidates = [expand(root) / dependency.removeprefix("@rpath/") for root in rpaths]
+        else:
+            candidates = [expand(dependency)]
+        library = next((path.resolve() for path in candidates if path.is_file()), None)
+        if library is None:
+            raise RuntimeError(f"missing Engine Mach-O dependency: {dependency} in {binary.name}")
+        libraries.add(library)
+        libraries.update(macho_engine_libraries(library, executable, visited))
+    return sorted(libraries)
+
+
+def relocate_macos_binaries(bin_dir: Path) -> None:
+    """Replace build-tree Engine install names before hashing and ad-hoc sign modified files."""
+    if platform.system() != "Darwin":
+        return
+    for binary in sorted(bin_dir.iterdir()):
+        if not is_macho(binary):
+            continue
+        dependencies, _ = macho_dependencies(binary)
+        edits = []
+        for dependency in dependencies:
+            name = Path(dependency).name
+            if not name.startswith("libNexora"):
+                continue
+            if name == binary.name:
+                edits.extend(["-id", f"@rpath/{name}"])
+            elif (bin_dir / name).is_file():
+                edits.extend(["-change", dependency, f"@loader_path/{name}"])
+            else:
+                raise RuntimeError(f"Engine dependency missing from package: {dependency}")
+        if edits:
+            subprocess.run(["install_name_tool", *edits, str(binary)], check=True)
+        # install_name_tool invalidates existing signatures on arm64. No developer identity is used.
+        subprocess.run(["codesign", "--force", "--sign", "-", "--timestamp=none", str(binary)], check=True)
+
+
 def engine_runtime_libraries(binary: Path, environment: dict | None = None) -> list[Path]:
-    """Discover the transitive Engine ELF closure of a trusted built application."""
+    """Discover the transitive Engine closure of a trusted built application."""
+    if platform.system() == "Darwin":
+        return macho_engine_libraries(binary) if is_macho(binary) else []
     with binary.open("rb") as source:
         elf = source.read(4) == b"\x7fELF"
     if platform.system() != "Linux" or not elf:
@@ -95,6 +170,11 @@ def main() -> int:
         artifacts.append(copy(args.gameplay_module, bin_dir / args.gameplay_module.name))
     for library in args.runtime_libraries:
         artifacts.append(copy(library, bin_dir / library.name))
+    relocate_macos_binaries(bin_dir)
+    # Mach-O relocation/signing changes bytes; manifests describe the final runnable copies.
+    for artifact in artifacts:
+        path = bin_dir / artifact["path"]
+        artifact.update(bytes=path.stat().st_size, sha256=digest(path))
     copy(args.license, args.output / "LICENSE")
     copy(args.api_manifest, manifest_dir / "api.json")
 
@@ -133,7 +213,7 @@ def main() -> int:
     build["interactive_launch"] = f"bin/{args.binary.name} --mode=interactive --scene=hub --backend=auto{module_argument}"
     content = {"schema_version": 1, "artifacts": artifacts, "showcase_content": content_artifacts}
     (args.output / "README.txt").write_text(
-        "Nexora Visual Showcase\nRun run-showcase.ps1 on Windows or use interactive_launch in manifests/build.json.\n"
+        "Nexora Visual Showcase\nRun run-showcase.ps1 on Windows or ./run-showcase.sh on Linux/macOS.\n"
         "Controls: 1-8 rooms; P Rendering primitive / Scene Play; F1 overview; F2 profiler; F3 matrix; F5 reload; T tour; Space pause; R replay/probe.\n"
         "Drag mouse to orbit; wheel zoom; WASD movement. Native media/WebView adapters are explicitly unavailable.\n"
         "Verify manifests/SHA256SUMS before launching. Headless launch validates portable integration only.\n"

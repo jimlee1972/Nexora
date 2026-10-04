@@ -258,6 +258,25 @@
         "NEXORA_ENABLE_VULKAN_BACKEND": "OFF",
         "NEXORA_SHIPPING_PROFILE": "Full"
       }
+    },
+    {
+      "name": "macos-showcase-shipping",
+      "inherits": "macos-development",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Shipping",
+        "NEXORA_LINK_MODE": "Monolithic",
+        "NEXORA_SHIPPING_PROFILE": "Full",
+        "NEXORA_ENABLE_ZIG_GAMEPLAY": "ON",
+        "NEXORA_ENABLE_VULKAN_BACKEND": "OFF",
+        "BUILD_TESTING": "OFF"
+      }
+    },
+    {
+      "name": "windows-showcase-vulkan-development",
+      "inherits": "windows-showcase-development",
+      "cacheVariables": {
+        "NEXORA_ENABLE_VULKAN_BACKEND": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -333,6 +352,15 @@
     {
       "name": "windows-showcase-development",
       "configurePreset": "windows-showcase-development",
+      "configuration": "Development"
+    },
+    {
+      "name": "macos-showcase-shipping",
+      "configurePreset": "macos-showcase-shipping"
+    },
+    {
+      "name": "windows-showcase-vulkan-development",
+      "configurePreset": "windows-showcase-vulkan-development",
       "configuration": "Development"
     }
   ],
@@ -411,6 +439,14 @@
     {
       "name": "windows-showcase-development",
       "configurePreset": "windows-showcase-development",
+      "configuration": "Development",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-showcase-vulkan-development",
+      "configurePreset": "windows-showcase-vulkan-development",
       "configuration": "Development",
       "output": {
         "outputOnFailure": true

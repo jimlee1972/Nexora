@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "platform": "Darwin",
+  "isolated_copy": true,
+  "physical_display_verified": false,
+  "issues": [],
+  "scope": "macOS Metal eight-room native graph/report smoke; no screenshots or physical-display attestation"
+}

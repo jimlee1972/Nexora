@@ -12,7 +12,7 @@ bounded per-frame upload buffers below this boundary; resources replaced by a la
 are released only after the protecting frame fence/command buffer completes. No native image or
 device handle escapes. `DrawScene` similarly borrows indexed `SceneDrawData` geometry, transform,
 light, and base color for the duration of the call and records a depth-tested native scene draw on
-the render thread. DX12 and Vulkan own their depth buffers, pipelines, and bounded per-frame upload storage;
+the render thread. DX12, Vulkan and Metal own their depth buffers, pipelines, and bounded per-frame upload storage;
 `SceneDrawData::viewport` optionally bounds that draw to a physical-pixel rectangle of the acquired
 surface (all zero means full surface). Invalid or out-of-bounds rectangles are rejected. Offscreen
 scene copies require the full surface. A direct scene draw may precede one UI submission, or an
@@ -149,3 +149,26 @@ is referenced more than once. The descriptor is a C++ boundary requiring consume
 serialized asset format or stable C ABI changed. See [ADR-0002](../../Roadmap/en/ADR-0002-Editor-Scene-Mesh-Batches.md).
 Portable range tests and Vulkan X11 pixels verify distinct geometry/instance offsets and rejection
 followed by a successful draw. DX12 execution acceptance and authored-mesh Editor residency remain open.
+
+## Metal Showcase scene and frame ownership
+
+Metal now implements the same indexed/lit/depth-tested scene, hardware instance, sampled material,
+mesh-batch and offscreen-copy source contracts. It uses a BGRA8 private color attachment and D32
+texture in each command-buffer-protected slot; `CompositeScene` blits on the GPU into a
+non-framebuffer-only CAMetalLayer drawable. UI loads existing scene color. Row-major MVPs use explicit
+row dot products, preserving the DX12/Metal clip-space Y convention. Scene and UI texture tables
+remain separate; scene IDs are immutable and cached through resize, with shared/managed texture
+storage selected for unified/discrete Macs. Upload bounds and submission-order errors are rejected
+before encoding. Zero extent remains suspended until a nonzero resize; submitted work is drained
+before resize and teardown, and command-buffer failures return DeviceLost. Per-call autorelease pools
+bound temporary Objective-C objects in applications without an outer Cocoa run loop.
+
+`window_presentation.metal_scene` compiles the actual private adapter into a test-only translation
+unit to read GPU pixels without adding native handles to the public API. It exercises depth-order
+invariance, sampled texels, instance/batch offsets, UI/copy ordering, rejected descriptors, resize,
+zero extent and abandoned recording teardown; a PPM capture is retained. Cocoa synthetic key/pointer
+translation is checked separately from human input acceptance. A missing Metal device or WindowServer
+screen returns UNSUPPORTED (77), never PASS. ✅ The hosted macOS gate passes Development (73/73) and mimalloc (63/63) CTest, including native pixels,
+Cocoa input, depth and lifecycle. Shipping/Full isolated packages also pass eight-room Metal graph
+smoke (96 frames); see [the record](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md).
+These commands ran on GitHub macOS runners; physical Mac visuals and full interactive parity remain open.

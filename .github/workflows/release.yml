@@ -1,6 +1,6 @@
 name: Release
 
-# Builds the Windows Shipping/Full Showcase package for a version tag, runs the packaged
+# Builds desktop Shipping/Full Showcase packages for a version tag, runs the packaged
 # isolated-copy verifier, requires the repository's Build workflow to pass for the same commit,
 # and prepares a DRAFT GitHub Release. Nothing is published automatically; a person publishes the
 # draft after reviewing it. workflow_dispatch is a dry run: it builds and uploads the bundle as a
@@ -70,7 +70,68 @@ jobs:
           Get-ChildItem $out -File | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } | Set-Content "$out/RELEASE-SHA256SUMS" -Encoding ascii
       - uses: actions/upload-artifact@v4
         with:
-          name: release-bundle
+          name: release-bundle-windows
+          path: release-bundle/
+
+  posix-package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            preset: linux-showcase-shipping
+            platform: linux-x64
+          - os: macos-latest
+            preset: macos-showcase-shipping
+            platform: macos-arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
+      - name: Install Linux native prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool
+      - run: cmake --preset ${{ matrix.preset }}
+      - run: cmake --build --preset ${{ matrix.preset }} --target NexoraShowcasePackageShippingEvidence --parallel 4
+      - name: Verify native isolated-copy package
+        shell: bash
+        run: |
+          set +e
+          python3 Tools/Package/VerifyShowcaseRelease.py \
+            --package build/${{ matrix.preset }}/package/NexoraShowcase-Shipping \
+            --evidence-directory build/${{ matrix.preset }}/artifacts/release-native \
+            ${{ runner.os == 'macOS' && '--allow-unavailable-display' || '' }}
+          code=$?
+          if [[ $code == 77 ]]; then
+            echo "Native display acceptance UNSUPPORTED; retained separately from headless PASS."
+            exit 0
+          fi
+          exit "$code"
+      - name: Assemble platform release bundle
+        shell: bash
+        env:
+          RELEASE_PLATFORM: ${{ matrix.platform }}
+          RELEASE_PRESET: ${{ matrix.preset }}
+        run: |
+          set -euo pipefail
+          mkdir release-bundle
+          cp "build/${RELEASE_PRESET}/package/NexoraShowcase-Shipping.zip" "release-bundle/NexoraShowcase-Shipping-${RELEASE_PLATFORM}.zip"
+          python3 Tools/Package/AssemblePosixRelease.py --bundle release-bundle \
+            --platform "${RELEASE_PLATFORM}" --preset "${RELEASE_PRESET}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-evidence-${{ matrix.platform }}
+          path: build/${{ matrix.preset }}/artifacts/release-native/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle-${{ matrix.platform }}
           path: release-bundle/
 
   require-passing-build:
@@ -90,10 +151,11 @@ jobs:
           deadline=$((SECONDS + 6600))
           while true; do
             run="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?head_sha=${GITHUB_SHA}&event=push" \
-              --jq '.workflow_runs | sort_by(.created_at) | last | [.status, (.conclusion // "")] | @tsv')"
+              --jq '.workflow_runs | sort_by(.created_at) | last | [.id, .status, (.conclusion // "")] | @tsv')"
             echo "Build workflow: ${run:-not found yet}"
-            status="$(cut -f1 <<<"${run}")"
-            conclusion="$(cut -f2 <<<"${run}")"
+            build_run_id="$(cut -f1 <<<"${run}")"
+            status="$(cut -f2 <<<"${run}")"
+            conclusion="$(cut -f3 <<<"${run}")"
             if [[ "${status}" == "completed" ]]; then
               [[ "${conclusion}" == "success" ]] || { echo "Build did not succeed (${conclusion})" >&2; exit 1; }
               break
@@ -101,20 +163,40 @@ jobs:
             (( SECONDS < deadline )) || { echo "Timed out waiting for the Build workflow" >&2; exit 1; }
             sleep 60
           done
+          gh run download "${build_run_id}" --repo "${GITHUB_REPOSITORY}" \
+            --pattern 'showcase-*-package-evidence' --dir build-contract-evidence
+          mkdir release-bundle
+          python3 - <<'PYLOGS'
+          from pathlib import Path
+          import tarfile
+          root = Path("build-contract-evidence")
+          logs = sorted(root.rglob("LastTest.log"))
+          if len(logs) != 3:
+              raise SystemExit(f"Expected desktop CTest logs for Linux, Windows and macOS, got {len(logs)}")
+          with tarfile.open("release-bundle/build-contract-evidence.tar.gz", "w:gz") as archive:
+              for log in logs:
+                  archive.add(log, arcname=log.relative_to(root).as_posix())
+          PYLOGS
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
+        with:
+          name: release-bundle-contracts
+          path: release-bundle/
       - name: Dry run
         if: github.event_name != 'push'
         run: echo "workflow_dispatch dry run - Build gate skipped and no release will be created."
 
   draft-release:
     if: github.event_name == 'push'
-    needs: [windows-package, require-passing-build]
+    needs: [windows-package, posix-package, require-passing-build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: release-bundle
+          pattern: release-bundle-*
+          merge-multiple: true
           path: release-bundle
       - name: Create DRAFT release (a person publishes it)
         env:
@@ -122,6 +204,7 @@ jobs:
         run: |
           set -euo pipefail
           tar -C release-bundle -czf release-bundle/windows-acceptance.tar.gz windows-acceptance
+          sha256sum release-bundle/*.zip release-bundle/*.tar.gz release-bundle/*info*.json | sed 's#release-bundle/##' > release-bundle/RELEASE-SHA256SUMS
           gh release create "${GITHUB_REF_NAME}" \
             --repo "${GITHUB_REPOSITORY}" --draft --verify-tag --generate-notes \
             --title "${GITHUB_REF_NAME}" \
@@ -131,4 +214,13 @@ jobs:
             release-bundle/NexoraShowcase-Shipping-Vulkan.zip.sha256 \
             release-bundle/windows-acceptance.tar.gz \
             release-bundle/release-info.json \
-            release-bundle/RELEASE-SHA256SUMS
+            release-bundle/RELEASE-SHA256SUMS \
+            release-bundle/build-contract-evidence.tar.gz \
+            release-bundle/NexoraShowcase-Shipping-linux-x64.zip \
+            release-bundle/NexoraShowcase-Shipping-linux-x64.zip.sha256 \
+            release-bundle/NexoraShowcase-Shipping-macos-arm64.zip \
+            release-bundle/NexoraShowcase-Shipping-macos-arm64.zip.sha256 \
+            release-bundle/linux-x64-acceptance.tar.gz \
+            release-bundle/macos-arm64-acceptance.tar.gz \
+            release-bundle/release-info-linux-x64.json \
+            release-bundle/release-info-macos-arm64.json
