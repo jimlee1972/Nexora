@@ -182,3 +182,15 @@ This retains the request when ImGui processes a queued release in a later frame 
 Native pick and mouse-release authoring commands run before Save/Save-and-exit and GPU submission.
 Releasing a drag and saving in the same frame therefore persists that completed edit, rather than
 the preceding pose. Xvfb XYZ workflows issue Save immediately after release to check this ordering.
+
+### Mesh asset assignment
+
+The single-selection Inspector offers imported OBJ assets from the current project in its Mesh
+Renderer selector and can remove the component. It borrows the application-owned MeshAssetCatalog
+and ProjectContentSession for the frame; a queued edit carries the entity/document key, asset UUID
+and project generation. Publication checks both the live content item and catalog, preserving an
+existing material reference when replacing the mesh. Read-only projects and recovery disable edits.
+Missing/unresolved mesh references are retained and displayed honestly. Each accepted edit uses
+SceneDocument Undo/Redo and cancels prospective scene gestures before mutation. The application
+publishes the CPU catalog after project activation. Native authored geometry rendering and geometry
+reimport publication remain open; assignment alone does not replace the existing proxy rendering.

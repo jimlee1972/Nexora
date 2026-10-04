@@ -217,3 +217,15 @@ This retains the request when ImGui processes a queued release in a later frame 
 The Xvfb workflows issue Undo once per gesture and retry only Save until the expected committed
 scene bytes appear, with a bounded deadline. This accommodates queued event delivery on a loaded
 host while retaining the one-step Undo assertion; failures report both actual and expected bytes.
+
+### Mesh asset assignment
+
+The single-selection Inspector offers imported OBJ assets from the current project in its Mesh
+Renderer selector and can remove the component. It borrows the application-owned MeshAssetCatalog
+and ProjectContentSession for the frame; a queued edit carries the entity/document key, asset UUID
+and project generation. Publication checks both the live content item and catalog, preserving an
+existing material reference when replacing the mesh. Read-only projects and recovery disable edits.
+Missing/unresolved mesh references are retained and displayed honestly. Each accepted edit uses
+SceneDocument Undo/Redo and cancels prospective scene gestures before mutation. The application
+publishes the CPU catalog after project activation. Native authored geometry rendering and geometry
+reimport publication remain open; assignment alone does not replace the existing proxy rendering.

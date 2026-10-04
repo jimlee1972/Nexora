@@ -162,8 +162,11 @@ The docked Console now shows bounded Runtime records
 with text/severity filters, source, timestamps, and dropped-record count; startup and scene save
 diagnostics are routed through it. Game View and complete log routing remain open.
 
+The Inspector now assigns imported OBJ mesh assets with Undo/Redo, preserves material references,
+and rejects stale project/document requests. Native authored geometry rendering remains open.
+
 Imported mesh geometry now has an owning, generation-checked CPU catalog with stable UUID-derived
-64-bit scene resource IDs and atomic collision rejection. GUI assignment and authored-mesh rendering remain open.
+64-bit scene resource IDs and atomic collision rejection. Authored-mesh rendering remains open.
 
 Xvfb Undo checks now retry only Save after a single Undo until committed scene bytes match.
 X11 modifier releases now clear the released family immediately while preserving a held paired key;
@@ -179,12 +182,11 @@ inside one depth pass in Vulkan/DX12. Portable range checks and distinct-geometr
 the new boundary; authored-mesh Editor residency and full Scene View acceptance remain open.
 
 Editor SceneDocument now owns generation-safe MeshRenderer transactions and reads, with mesh/material
-resource IDs retained across Undo/Redo and scene persistence. Graphical asset assignment and native
-authored-mesh rendering remain open.
+resource IDs retained across Undo/Redo and scene persistence. Native authored-mesh rendering remains open.
 
 Background workspace imports now stage immutable triangulated OBJ geometry with bounded source/
 memory use, UVs, normal generation, local bounds, cancellation, and source-line diagnostics. Native
-mesh assignment/rendering and typed geometry reimport publication remain open.
+mesh rendering and typed geometry reimport publication remain open.
 
 The native 3D gizmo now exposes Pivot/Center (P), including common-center rotation and scale of
 multiple selected roots, with matching previews and one-step Undo. A two-root Xvfb workflow checks
@@ -380,8 +382,11 @@ backend-neutral `Text` event，physical key 與 text input 維持分離。
 中央 Scene panel 現有可點選物件的 X/Z 俯視概覽、Ctrl／Shift 多選、F 聚焦、平移、縮放及可單步復原的標記拖曳及可見的單軸把手，且逐場景保留概覽 camera 中心與縮放；Scene panel 也會標示未儲存內容，成功儲存或 Undo 回原狀後清除；原生關閉要求遇到未儲存內容時提供儲存後離開、捨棄後離開或取消；正式 3D renderer 輸出與 gizmo
 仍待完成。
 
+Inspector 現支援以 Undo／Redo 指派匯入 OBJ mesh 資產、保留 material 參照，並拒絕過期專案／
+文件請求；原生 authored geometry rendering 仍待完成。
+
 匯入 mesh geometry 現有 owning、具 generation 檢查的 CPU catalog，以 UUID 穩定衍生 64-bit
-場景資源 ID，並原子拒絕碰撞；圖形介面指派與 authored-mesh rendering 仍待完成。
+場景資源 ID，並原子拒絕碰撞；authored-mesh rendering 仍待完成。
 
 Xvfb Undo 檢查現只在單次 Undo 後重試 Save，直到已提交的場景位元組相符。
 X11 修飾鍵放開事件現會立即清除該組 flags，另一側仍按下時保留；原生 X11 事件測試涵蓋
@@ -396,10 +401,10 @@ instance 範圍。Portable 範圍檢查與不同幾何的 Vulkan 像素驗證涵
 residency 與完整 Scene View 驗收仍待完成。
 
 Editor SceneDocument 現提供 generation-safe MeshRenderer 交易及查詢，mesh／material 資源 ID
-可保留於 Undo／Redo 與場景儲存。圖形化資產指派及原生實際 mesh 繪製仍待完成。
+可保留於 Undo／Redo 與場景儲存。原生實際 mesh 繪製仍待完成。
 
 背景 workspace 匯入現可 staging 不可變的已三角化 OBJ 幾何，包含有界來源／記憶體使用、UV、
-法線產生、局部 bounds、取消及來源行號診斷。原生 mesh 指派／繪製與 typed geometry reimport
+法線產生、局部 bounds、取消及來源行號診斷。原生 mesh 繪製與 typed geometry reimport
 發布仍待完成。
 
 原生 3D gizmo 現提供 Pivot／Center（P），支援多個選取根節點繞共同中心旋轉與縮放，

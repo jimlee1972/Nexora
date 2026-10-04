@@ -89,8 +89,7 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 - ✅ Background workspace imports now retain bounded immutable CPU geometry for triangulated OBJ
   assets, including UVs, explicit/generated normals, indices, and local bounds. Portable tests cover
   malformed/overflowing input, cancellation, vertex limits, UUID/hash stability after move/reopen,
-  owning snapshots, and structured worker diagnostics. Mesh reimport publication, graphical
-  assignment, GPU residency, and native authored-mesh rendering remain open.
+  owning snapshots, and structured worker diagnostics. Mesh reimport publication, GPU residency, and native authored-mesh rendering remain open.
 
 - ✅ Project create/open, deterministic content-tree indexing, UUID/path search and filtering,
   cancellation, progress, inspectable errors, and deterministic artifact hashes are implemented.
@@ -136,15 +135,21 @@ creates property widgets; unknown components retain raw data instead of being si
   Real Xvfb XYZ drags save immediately after release and verify the completed pose; saves while
   a gesture is held wait for commit or cancellation before serializing.
 
+- ✅ The single-selection Inspector now assigns imported OBJ mesh assets and removes MeshRenderer
+  through generation-safe SceneDocument Undo/Redo. Contract tests verify material preservation,
+  scene save/reload resolution, one-step removal Undo, and stale asset/project/document rejection.
+  Read-only/recovery disable edits; unavailable references remain preserved. Native authored
+  geometry rendering and geometry reimport publication remain open.
+
 - ✅ MeshAssetCatalog now publishes owning imported geometry with stable UUID-derived 64-bit
   resource IDs and project-generation checks. Tests freeze persisted IDs, preserve references
   across rename/reopen, reject collisions atomically, and retain snapshots across unload.
-  Graphical assignment and native mesh residency/rendering remain open.
+  Native mesh residency/rendering remain open.
 
 - ✅ SceneDocument now exposes generation-safe MeshRenderer attachment, mesh/material resource
   replacement, removal, and owning reads through Runtime Undo/Redo. Tests retain full 64-bit and
   unresolved IDs across scene save/reload, preserve Redo on no-op edits, and reject stale keys.
-  Graphical mesh asset assignment, residency, and authored-mesh Scene rendering remain open.
+  Native mesh residency and authored-mesh Scene rendering remain open.
 
 - ✅ Stable-ID hierarchy/selection, cycle-safe reparenting, multi-selection, clipboard duplication,
   transform transactions, undo, and atomic scene save/reload are implemented in Editor Core.

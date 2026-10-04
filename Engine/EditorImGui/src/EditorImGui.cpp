@@ -166,6 +166,12 @@ struct EditorImGuiHost::State final {
       inspector_camera_request;
   std::optional<std::pair<SceneDocument::NodeKey, std::optional<runtime::LightComponent>>>
       inspector_light_request;
+  struct InspectorMeshRequest final {
+    SceneDocument::NodeKey entity;
+    std::optional<runtime::AssetUuid> asset;
+    std::uint64_t generation{};
+  };
+  std::optional<InspectorMeshRequest> inspector_mesh_request;
   std::uint32_t inspector_selection = 0;
   bool inspector_transform_visible = false;
   std::string inspector_error;
@@ -1294,7 +1300,9 @@ template <typename StateT> void ApplyInspectorEuler(StateT &state, SceneDocument
   state.inspector_error.clear();
 }
 
-template <typename StateT> void DrawInspector(StateT &state, SceneDocument *scene) {
+template <typename StateT>
+void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
+                   const MeshAssetCatalog *meshes, bool editable) {
   state.inspector_selection =
       scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
   state.inspector_transform_visible = false;
@@ -1307,6 +1315,7 @@ template <typename StateT> void DrawInspector(StateT &state, SceneDocument *scen
            !selected_entities.contains(hint.entity.id);
   });
   if (scene == nullptr || scene->Selection().empty()) {
+    state.inspector_mesh_request.reset();
     ImGui::TextUnformatted("Select an entity to inspect it.");
     return;
   }
@@ -1475,6 +1484,63 @@ template <typename StateT> void DrawInspector(StateT &state, SceneDocument *scen
     if (!scene->SetLight(request->first, request->second))
       state.inspector_error =
           "Light edit rejected because intensity or entity generation is invalid.";
+    else
+      state.inspector_error.clear();
+  }
+  if (keys.size() == 1) {
+    const auto mesh = scene->MeshRenderer(keys.front());
+    ImGui::SeparatorText("Mesh Renderer");
+    const auto generation = content ? content->Browser().ProjectGeneration() : 0;
+    const auto resolved =
+        mesh && meshes ? meshes->ResolveResource(mesh->mesh, generation) : std::nullopt;
+    const auto *item = resolved && content ? content->Browser().Find(resolved->asset) : nullptr;
+    const auto label = item ? PathLabel(item->path) : mesh ? "Missing mesh" : "None";
+    ImGui::BeginDisabled(!editable || content == nullptr || meshes == nullptr);
+    if (ImGui::BeginCombo("Mesh###editor.inspector.mesh.asset", label.c_str())) {
+      for (const auto &candidate : content->Browser().Items()) {
+        if (!meshes->ResolveAsset(candidate.id, generation))
+          continue;
+        const auto identity = candidate.id.ToString();
+        ImGui::PushID(identity.c_str());
+        if (ImGui::Selectable(PathLabel(candidate.path).c_str(),
+                              resolved && resolved->asset == candidate.id))
+          state.inspector_mesh_request =
+              typename StateT::InspectorMeshRequest{keys.front(), candidate.id, generation};
+        ImGui::PopID();
+      }
+      ImGui::EndCombo();
+    }
+    ImGui::EndDisabled();
+    ImGui::BeginDisabled(!editable || !mesh || content == nullptr);
+    if (ImGui::Button("Remove Mesh Renderer###editor.inspector.mesh.remove"))
+      state.inspector_mesh_request =
+          typename StateT::InspectorMeshRequest{keys.front(), std::nullopt, generation};
+    ImGui::EndDisabled();
+    if (mesh && item == nullptr)
+      ImGui::TextWrapped("The referenced mesh is unavailable. Its reference is preserved.");
+  }
+  if (state.inspector_mesh_request) {
+    const auto request = std::exchange(state.inspector_mesh_request, std::nullopt);
+    auto component = scene->MeshRenderer(request->entity);
+    const auto resolved = request->asset && meshes
+                              ? meshes->ResolveAsset(*request->asset, request->generation)
+                              : std::nullopt;
+    const bool valid = editable && content &&
+                       content->Browser().ProjectGeneration() == request->generation &&
+                       (!request->asset || (resolved && content->Browser().Find(*request->asset)));
+    if (valid) {
+      CancelSceneGestures(state);
+      if (request->asset) {
+        if (!component)
+          component.emplace();
+        component->mesh = resolved->resource;
+      } else {
+        component.reset();
+      }
+    }
+    if (!valid || !scene->SetMeshRenderer(request->entity, component))
+      state.inspector_error =
+          "Mesh edit rejected because its asset, project or entity is unavailable.";
     else
       state.inspector_error.clear();
   }
@@ -2128,7 +2194,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
                                        RecentProjectStore *recent_projects,
                                        AssetImportQueue *imports, runtime::RuntimeConsole *console,
-                                       runtime::PlaySession *play, ProfileSession *profile) {
+                                       runtime::PlaySession *play, ProfileSession *profile,
+                                       const MeshAssetCatalog *meshes) {
   Activate(state_->context);
   const auto scene_generation = scene == nullptr ? 0 : scene->Generation();
   if (scene_generation != state_->scene_gesture_document_generation)
@@ -2210,7 +2277,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   ImGui::End();
   const auto inspector_window = PanelWindowName("nexora.inspector");
   if (ImGui::Begin(inspector_window.c_str()))
-    DrawInspector(*state_, scene);
+    DrawInspector(*state_, scene, content, meshes,
+                  workspace && workspace->Writable() && content && content->Writable() &&
+                      !recovery_available);
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
   if (ImGui::Begin(scene_window.c_str())) {
@@ -3190,6 +3259,13 @@ void EditorImGuiTestAccess::QueueInspectorCamera(
     EditorImGuiHost &host, SceneDocument::NodeKey entity,
     std::optional<runtime::CameraComponent> camera) noexcept {
   host.state_->inspector_camera_request = std::pair{entity, camera};
+}
+
+void EditorImGuiTestAccess::QueueInspectorMesh(EditorImGuiHost &host, SceneDocument::NodeKey entity,
+                                               std::optional<runtime::AssetUuid> asset,
+                                               std::uint64_t generation) noexcept {
+  host.state_->inspector_mesh_request =
+      EditorImGuiHost::State::InspectorMeshRequest{entity, asset, generation};
 }
 
 void EditorImGuiTestAccess::QueueInspectorLight(
