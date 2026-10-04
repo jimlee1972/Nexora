@@ -721,3 +721,11 @@ identical. Runtime's direct Stop(Transforms) remains separate from the graphical
 undoable SceneDocument transaction followed by Stop(Discard); applied_transforms counts only the
 direct Runtime path. Editor's owning review also revalidates document/entity generations, supported
 scene membership, and all copied original/Editor/Play values before mutation.
+
+SceneEditor SetCameras/SetLights validate nonempty, equally-sized unique-ID batches and every proposed
+presence/value before mutation, then apply all entries through one WorldCommandBuffer and one Undo
+operation. Camera clipping and finite nonnegative Light intensity rules match their single-entity
+wrappers. Undo/Redo own immutable command templates and replay fresh copies because Apply consumes
+a command buffer; failed replay keeps the history cursor. Inputs are borrowed only for the call,
+no Entity pointer survives a mutation, and methods remain serialized on the World authoring thread.
+These C++ Editor operations do not alter the stable gameplay C ABI or scene snapshot format.

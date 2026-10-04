@@ -175,58 +175,68 @@ bool SceneEditor::SetTransform(Id entity, Transform transform) {
   const std::array transforms{transform};
   return SetTransforms(entities, transforms);
 }
-bool SceneEditor::SetCamera(Id entity, std::optional<CameraComponent> camera) {
-  const auto *existing = world_.FindEntity(entity);
-  if (!existing ||
-      (camera &&
-       (!std::isfinite(camera->vertical_field_of_view) || !std::isfinite(camera->near_plane) ||
-        !std::isfinite(camera->far_plane) || camera->vertical_field_of_view <= 0.0 ||
-        camera->vertical_field_of_view >= 180.0 || camera->near_plane <= 0.0 ||
-        camera->far_plane <= camera->near_plane)))
-    return false;
-  const std::optional<CameraComponent> previous =
-      existing->camera ? std::optional(existing->camera_data) : std::nullopt;
-  WorldCommandBuffer apply;
-  apply.SetCamera(entity, camera);
-  if (!apply.Apply(world_))
+bool SceneEditor::ApplyComponentEdit(WorldCommandBuffer apply, WorldCommandBuffer restore) {
+  // Apply consumes the buffer. Keep owning immutable templates and replay a fresh copy each time.
+  auto initial = apply;
+  if (!initial.Apply(world_))
     return false;
   undo_.Record(
-      [this, entity, previous] {
-        WorldCommandBuffer commands;
-        commands.SetCamera(entity, previous);
+      [this, restore = std::move(restore)] {
+        auto commands = restore;
         return commands.Apply(world_);
       },
-      [this, entity, camera] {
-        WorldCommandBuffer commands;
-        commands.SetCamera(entity, camera);
+      [this, apply = std::move(apply)] {
+        auto commands = apply;
         return commands.Apply(world_);
       });
   ++depth_;
   return true;
 }
+bool SceneEditor::SetCamera(Id entity, std::optional<CameraComponent> camera) {
+  return SetCameras(std::array{entity}, std::array{camera});
+}
+bool SceneEditor::SetCameras(std::span<const Id> entities,
+                             std::span<const std::optional<CameraComponent>> cameras) {
+  if (entities.empty() || entities.size() != cameras.size())
+    return false;
+  WorldCommandBuffer apply, restore;
+  std::unordered_set<Id> unique;
+  for (std::size_t i = 0; i < entities.size(); ++i) {
+    const auto *existing = world_.FindEntity(entities[i]);
+    const auto &camera = cameras[i];
+    if (!existing || !unique.insert(entities[i]).second ||
+        (camera &&
+         (!std::isfinite(camera->vertical_field_of_view) || !std::isfinite(camera->near_plane) ||
+          !std::isfinite(camera->far_plane) || camera->vertical_field_of_view <= 0.0 ||
+          camera->vertical_field_of_view >= 180.0 || camera->near_plane <= 0.0 ||
+          camera->far_plane <= camera->near_plane)))
+      return false;
+    apply.SetCamera(entities[i], camera);
+    restore.SetCamera(entities[i],
+                      existing->camera ? std::optional(existing->camera_data) : std::nullopt);
+  }
+  return ApplyComponentEdit(std::move(apply), std::move(restore));
+}
 bool SceneEditor::SetLight(Id entity, std::optional<LightComponent> light) {
-  const auto *existing = world_.FindEntity(entity);
-  if (!existing || (light && (!std::isfinite(light->intensity) || light->intensity < 0.0F)))
+  return SetLights(std::array{entity}, std::array{light});
+}
+bool SceneEditor::SetLights(std::span<const Id> entities,
+                            std::span<const std::optional<LightComponent>> lights) {
+  if (entities.empty() || entities.size() != lights.size())
     return false;
-  const std::optional<LightComponent> previous =
-      existing->light ? std::optional(existing->light_data) : std::nullopt;
-  WorldCommandBuffer apply;
-  apply.SetLight(entity, light);
-  if (!apply.Apply(world_))
-    return false;
-  undo_.Record(
-      [this, entity, previous] {
-        WorldCommandBuffer commands;
-        commands.SetLight(entity, previous);
-        return commands.Apply(world_);
-      },
-      [this, entity, light] {
-        WorldCommandBuffer commands;
-        commands.SetLight(entity, light);
-        return commands.Apply(world_);
-      });
-  ++depth_;
-  return true;
+  WorldCommandBuffer apply, restore;
+  std::unordered_set<Id> unique;
+  for (std::size_t i = 0; i < entities.size(); ++i) {
+    const auto *existing = world_.FindEntity(entities[i]);
+    const auto &light = lights[i];
+    if (!existing || !unique.insert(entities[i]).second ||
+        (light && (!std::isfinite(light->intensity) || light->intensity < 0.0F)))
+      return false;
+    apply.SetLight(entities[i], light);
+    restore.SetLight(entities[i],
+                     existing->light ? std::optional(existing->light_data) : std::nullopt);
+  }
+  return ApplyComponentEdit(std::move(apply), std::move(restore));
 }
 bool SceneEditor::SetMeshRenderer(Id entity, std::optional<MeshComponent> mesh) {
   const auto *existing = world_.FindEntity(entity);

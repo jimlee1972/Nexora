@@ -365,3 +365,11 @@ selection, generations, history and the saved baseline. Opaque metadata particip
 atomic scene writes. Its exact saved comparison is cached between authoring mutations, avoiding
 full payload serialization on every GUI frame; Undo/Redo invalidate that cache. Both saves and
 chunked reads enforce the 64 MiB scene-file bound. Runtime snapshot and stable gameplay C ABI formats do not change.
+
+SceneDocument SetCameras/SetLights check every document/entity generation and duplicate ID before
+committing one Runtime batch and one document Undo entry. Invalid batches preserve all components,
+selection and history; equal batches add no undo step. Presence and each entity's unrelated fields
+are retained in Undo/Redo and scene persistence. Single-entity setters delegate to the same boundary.
+Camera/Light edit access is independent of Content Browser resource access; project read-only and
+recovery/modal guards reject pending component requests. Mesh assignment separately requires a
+writable content session and matching project generation.

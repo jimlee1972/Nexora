@@ -91,6 +91,16 @@ public:
                                  std::uint64_t generation) noexcept;
   static void SelectPlayEntity(EditorImGuiHost &host, runtime::Id entity) noexcept;
   [[nodiscard]] static runtime::Id PlayInspectorEntity(const EditorImGuiHost &host) noexcept;
+  static void
+  QueueInspectorCameras(EditorImGuiHost &host, std::span<const SceneDocument::NodeKey> entities,
+                        std::span<const std::optional<runtime::CameraComponent>> cameras);
+  static void QueueInspectorLights(EditorImGuiHost &host,
+                                   std::span<const SceneDocument::NodeKey> entities,
+                                   std::span<const std::optional<runtime::LightComponent>> lights);
+  [[nodiscard]] static std::array<bool, 6>
+  InspectorComponentMixed(const EditorImGuiHost &host) noexcept;
+  static void FocusInspectorLightField(EditorImGuiHost &host) noexcept;
+  static void FocusInspectorCameraField(EditorImGuiHost &host, std::size_t axis) noexcept;
   static void QueueInspectorCamera(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                    std::optional<runtime::CameraComponent> camera) noexcept;
   static void QueueInspectorLight(EditorImGuiHost &host, SceneDocument::NodeKey entity,

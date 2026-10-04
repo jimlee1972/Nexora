@@ -120,8 +120,13 @@ public:
   bool SetTransform(Id entity, Transform transform);
   // Validates camera clipping and records its previous presence/values for Undo.
   bool SetCamera(Id entity, std::optional<CameraComponent> camera);
+  // Unique nonempty IDs and equally-sized presence/value spans; one atomic Undo transaction.
+  bool SetCameras(std::span<const Id> entities,
+                  std::span<const std::optional<CameraComponent>> cameras);
   // Validates nonnegative finite intensity and records the previous component for Undo.
   bool SetLight(Id entity, std::optional<LightComponent> light);
+  bool SetLights(std::span<const Id> entities,
+                 std::span<const std::optional<LightComponent>> lights);
   // Owns component presence and mesh/material resource IDs in Undo/Redo. Resource residency is
   // resolved separately; zero or currently unavailable resource IDs remain serializable.
   bool SetMeshRenderer(Id entity, std::optional<MeshComponent> mesh);
@@ -145,6 +150,7 @@ public:
 
 private:
   bool ApplyHierarchyEdit(Id entity, WorldCommandBuffer &apply);
+  bool ApplyComponentEdit(WorldCommandBuffer apply, WorldCommandBuffer restore);
   World &world_;
   UndoStack undo_;
   std::size_t depth_{};
