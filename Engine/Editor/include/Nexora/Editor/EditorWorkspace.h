@@ -22,6 +22,7 @@
 namespace nexora::editor {
 
 struct GizmoOperation;
+enum class GizmoPivot;
 
 struct PanelDescriptor final {
   std::string_view id;
@@ -197,6 +198,9 @@ public:
   // validation and local edits as commit; does not change scene state, selection, or history.
   [[nodiscard]] std::optional<std::unordered_map<runtime::Id, runtime::Transform>>
   PreviewSelectionGizmo(std::span<const NodeKey> entities, const GizmoOperation &operation) const;
+  // First selected root's rotation, at its origin (Pivot) or the mean selected-root origin
+  // (Center). Selected descendants do not weight the center twice.
+  [[nodiscard]] std::optional<runtime::Transform> SelectionGizmoFrame(GizmoPivot pivot) const;
   // Degrees use extrinsic Z-X-Y composition. One field edit is one atomic undo transaction.
   bool SetEulerField(std::span<const NodeKey> entities, std::size_t axis, double degrees);
   // Preserves authored revolutions while the local quaternion matches; otherwise canonical angles.

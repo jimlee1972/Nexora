@@ -127,6 +127,10 @@ Hierarchy、Scene View、Inspector、camera controls、selection/picking、trans
 parent/reorder、multi-selection、copy/paste、undo/redo 與 save/reload。Reflection 產生 property
 widgets；未知 component 保留 raw data，不靜默遺失。
 
+- ✅ 原生 3D gizmo 提供 Pivot／Center（P）切換。Center 把手、旋轉／縮放預覽與提交共用選取根節點
+  的平均原點及首個根節點的 local 軸；選取子節點不重複加權，拖曳期間鎖定工具、pivot 及相機。
+  Linux Xvfb 驗證雙根節點選取、Center 縮放吸附、Center 旋轉及單次 Undo。
+
 - ✅ 原生 Move／Rotate／Scale 預覽與提交共用 SceneDocument 根節點編輯及 Runtime 階層組合。
   預期世界姿態快照不改動 dirty 狀態、選取或 Undo／Redo；測試涵蓋旋轉、鏡像、非均勻縮放祖先、
   選取子節點、過期 key、無效倍率、單次 Undo，以及等比例縮放放開後畫面不跳動。

@@ -162,6 +162,10 @@ The docked Console now shows bounded Runtime records
 with text/severity filters, source, timestamps, and dropped-record count; startup and scene save
 diagnostics are routed through it. Game View and complete log routing remain open.
 
+The native 3D gizmo now exposes Pivot/Center (P), including common-center rotation and scale of
+multiple selected roots, with matching previews and one-step Undo. A two-root Xvfb workflow checks
+center scale, center rotation, and release pixels; full Scene View acceptance remains open.
+
 Native gizmo previews now share SceneDocument root edits and Runtime hierarchy composition with
 commit; rotated, mirrored, and nonuniform ancestors produce matching descendant poses. Prospective
 snapshots leave scene content and Undo/Redo untouched. Graphical milestone acceptance remains 0/8.
@@ -351,6 +355,9 @@ backend-neutral `Text` event，physical key 與 text input 維持分離。
 圖形化 Hierarchy 或游標停留的原生 3D 畫布現可透過 Delete 刪除選取的 subtree，Undo 可復原；Hierarchy 也能在不改變剪貼簿的情況下複製目前選取。
 中央 Scene panel 現有可點選物件的 X/Z 俯視概覽、Ctrl／Shift 多選、F 聚焦、平移、縮放及可單步復原的標記拖曳及可見的單軸把手，且逐場景保留概覽 camera 中心與縮放；Scene panel 也會標示未儲存內容，成功儲存或 Undo 回原狀後清除；原生關閉要求遇到未儲存內容時提供儲存後離開、捨棄後離開或取消；正式 3D renderer 輸出與 gizmo
 仍待完成。
+
+原生 3D gizmo 現提供 Pivot／Center（P），支援多個選取根節點繞共同中心旋轉與縮放，
+預覽與提交一致並可單次 Undo。雙根節點 Xvfb 流程驗證共同中心縮放、旋轉與放開後的畫面；完整 Scene View 驗收仍未完成。
 
 原生 gizmo 預覽與提交現共用 SceneDocument 根節點編輯及 Runtime 階層組合；旋轉、鏡像與
 非均勻縮放祖先下的子節點姿態一致。預期姿態快照不改動場景內容及 Undo／Redo，圖形化里程碑驗收仍為 0/8。

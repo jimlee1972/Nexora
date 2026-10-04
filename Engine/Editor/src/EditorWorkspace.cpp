@@ -563,6 +563,19 @@ SceneDocument::PreviewSelectionGizmo(std::span<const NodeKey> entities,
   return poses;
 }
 
+std::optional<runtime::Transform> SceneDocument::SelectionGizmoFrame(GizmoPivot pivot) const {
+  const auto roots = GizmoRoots(world_, selection_);
+  if (roots.empty())
+    return std::nullopt;
+  const auto pose = world_.WorldTransform(roots.front());
+  if (!pose || pivot == GizmoPivot::Pivot)
+    return pose;
+  const auto center = SelectionCenter(world_, roots);
+  if (!center)
+    return std::nullopt;
+  return runtime::WithPosition(*pose, center->x, center->y, center->z);
+}
+
 bool SceneDocument::SetEulerField(std::span<const NodeKey> entities, std::size_t axis,
                                   double degrees) {
   if (axis >= 3 || entities.empty() || !std::isfinite(degrees))

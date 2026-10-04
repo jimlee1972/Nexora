@@ -132,6 +132,7 @@ public:
   [[nodiscard]] NativeSceneOrbit GetNativeSceneOrbit() const noexcept;
   [[nodiscard]] NativeSceneTool GetNativeSceneTool() const noexcept;
   [[nodiscard]] bool NativeSceneLocalAxes() const noexcept;
+  [[nodiscard]] bool NativeSceneCenterPivot() const noexcept;
   bool SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept;
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   NativeScenePreviewViewport() const noexcept;

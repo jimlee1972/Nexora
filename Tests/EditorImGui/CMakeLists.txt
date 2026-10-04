@@ -36,4 +36,12 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_scene_preview PROPERTIES TIMEOUT 45)
+  add_test(
+    NAME editor.linux_native_scene_center
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeSceneCenter.py"
+            --editor "$<TARGET_FILE:NexoraEditor>"
+            --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+            --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_scene_center PROPERTIES TIMEOUT 45)
 endif()

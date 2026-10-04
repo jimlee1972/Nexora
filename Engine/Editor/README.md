@@ -130,6 +130,9 @@ into renderer or platform internals.
   ancestry composition matches Runtime TRS semantics, including rotated, mirrored, and nonuniform
   ancestors. It changes no selection, dirty state, or Undo/Redo history; invalid input returns no
   preview. The authoring thread consumes the snapshot for the current frame only.
+  `SelectionGizmoFrame` uses the first selected root rotation with either that root origin or
+  the mean selected-root origin. Selected descendants are excluded from the mean; an empty
+  selection has no frame. Native handle placement and Center operations share this frame.
   `Dirty` compares the live serializable scene to the last successful Save or Reload. Its signature
   preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.
