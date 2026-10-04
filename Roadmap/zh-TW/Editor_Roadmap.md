@@ -89,10 +89,15 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 status、dependency 檢視與 reimport；background import 必須提供取消、進度與可採取行動的錯誤，
 並產生 deterministic artifact。
 
+- ✅ Typed OBJ reimport 現 staging 不可變 geometry 及 hash，通過 project／asset／source／settings／
+  dependency 與 128 MiB mesh 預算後，透過 live content model 原子發布。測試驗證同步／背景更新、
+  穩定 resource ID、舊 owning snapshot、失敗／取消／過期／超限保留、重新命名 Undo 與刪除／Undo
+  保留最新幾何，以及預算回復。單調 content revision 會在原生繪製前更新 mesh catalog；rendering／
+  picking 不讀取來源檔案。
+
 - ✅ 背景 workspace 匯入現保留有界、不可變的已三角化 OBJ CPU 幾何，包含 UV、指定／產生的
   法線、index 及局部 bounds。Portable 測試涵蓋格式錯誤／溢位、取消、vertex 上限、移動／重開
-  後 UUID／hash 穩定性、owning snapshot 及 worker 結構化診斷。Mesh reimport 發布、
-  持續的每資產 GPU cache 與完整 Scene View 驗收仍待完成。
+  後 UUID／hash 穩定性、owning snapshot 及 worker 結構化診斷。持續的每資產 GPU cache 與完整 Scene View 驗收仍待完成。
 
 - ✅ 已實作 project create/open、deterministic content-tree indexing、UUID/path search/filter、
   cancellation、progress、可檢查錯誤與 deterministic artifact hash。
@@ -141,12 +146,12 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   bounds 與雙面 triangle picking 取代代理選取。Portable 測試涵蓋範圍回復、幾何／座標預算、
   負縮放／旋轉 picking 及輪廓 miss；Xvfb 不同 triangle／quad 資產驗證選取、Center 縮放／旋轉、
   預覽／放開像素及單步 Undo。缺失／刪除／超限資產保留參照、顯示代理並警告。持續的每資產
-  GPU cache、material shader、精確 shear、geometry reimport 與完整 Scene View 驗收仍待完成。
+  GPU cache、material shader、精確 shear 與完整 Scene View 驗收仍待完成。
 
 - ✅ 單選 Inspector 現能指派匯入 OBJ mesh 資產及移除 MeshRenderer，透過 generation-safe
   SceneDocument Undo／Redo。Contract 測試驗證 material 保留、場景保存／重新載入解析、單步
   移除復原與過期 asset／project／document 拒絕。唯讀／復原時停用編輯，缺失參照仍保留。
-  Geometry reimport 發布與完整 Scene View 驗收仍待完成。
+  完整 Scene View 驗收仍待完成。
 
 - ✅ MeshAssetCatalog 現以 UUID 穩定衍生 64-bit resource ID，並依專案 generation 發布 owning
   匯入 geometry。測試固定保存 ID、驗證重新命名／重新開啟後的參照、原子拒絕碰撞，並在卸載後

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Nexora/Editor/ContentBrowser.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 
 #include <bit>
@@ -33,6 +34,7 @@ class NEXORA_EDITOR_API MeshAssetCatalog final {
 public:
   bool Publish(std::span<const AssetEntry> assets, std::uint64_t generation,
                std::string *error = nullptr);
+  bool PublishContent(const ContentBrowserModel &content, std::string *error = nullptr);
   void Clear() noexcept;
   [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }
   [[nodiscard]] std::optional<MeshAssetSnapshot> ResolveAsset(runtime::AssetUuid asset,

@@ -79,9 +79,8 @@ into renderer or platform internals.
   and indices at 1,048,576. Cancellation is checked during chunk reads and at each parser line.
   A workspace retains at most 128 MiB of CPU mesh vector capacity; assets exceeding the sorted
   import budget fail individually. Failed entries remain indexed with their UUID/path/error;
-  background workspace jobs emit bounded `asset.import_failed` diagnostics. Existing typed
-  reimport only publishes hashes: geometry refresh and renderer residency
-  remain separate work. Old shared geometry snapshots survive index replacement/destruction.
+  background workspace jobs emit bounded `asset.import_failed` diagnostics. Typed OBJ reimport
+  stages bounded geometry together with hashes; persistent per-asset GPU caching remains separate work. Old shared geometry snapshots survive index replacement/destruction.
 - `ContentBrowserModel` owns its sorted item snapshot, breadcrumb and stable-ID selection state.
   Virtual ranges borrow item pointers until the next mutation. Rename, multi-item move, and delete
   validate a complete replacement snapshot before committing and retain one undo snapshot.
@@ -288,3 +287,20 @@ fixed seeds. It
 requires every parser to return normally on corrupted input; under the ASan/UBSan presets memory and
 undefined-behavior errors fail it too. Set `NEXORA_PARSER_ROBUSTNESS_ITERATIONS` for a longer local soak.
 It is a robustness check, not a proof that no malformed input can fail.
+
+### Mesh reimport publication
+
+ContentItem and ReimportResult own immutable shared mesh payloads. Synchronous and background OBJ
+reimport share the bounded chunk reader/parser; importer type survives rename and is carried in
+the job request. A worker only stages geometry. ProjectContentSession checks project/asset/source/
+settings/dependency revisions, validates a candidate ContentBrowserModel including its 128 MiB
+live mesh capacity budget, then commits dependency/hash/geometry publication. Failed, cancelled,
+stale or oversized results preserve the previous payload, artifact and model revision. New payloads
+also update the pending rename/move Undo snapshot, so undo cannot resurrect stale geometry.
+
+ContentBrowserModel Revision advances on successful Reset, file-model edits, Undo and artifact/
+geometry publication; failed publications do not advance it. Reopening ProjectContentSession keeps
+this revision monotonic while clearing its navigation/filter state. MeshAssetCatalog PublishContent
+retains owning snapshots and validates stable identities. The application refreshes the catalog
+from the live content revision before native drawing; delete removes geometry from live resolution
+and Undo restores it. Source IO stays in explicit import/reimport work, outside rendering/picking.

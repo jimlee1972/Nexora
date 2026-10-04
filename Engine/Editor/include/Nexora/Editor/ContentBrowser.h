@@ -1,10 +1,12 @@
 #pragma once
 
 #include "Nexora/Editor/Api.h"
+#include "Nexora/Editor/MeshImport.h"
 #include "Nexora/Runtime/AssetPipeline.h"
 
 #include <chrono>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -23,6 +25,8 @@ struct ContentItem final {
   std::string type;
   std::string artifact_hash;
   ThumbnailState thumbnail{ThumbnailState::Loading};
+  // Owning immutable geometry, preserved across model/Undo copies.
+  std::shared_ptr<const MeshGeometry> mesh{};
 };
 
 struct Breadcrumb final {
@@ -43,6 +47,7 @@ public:
   [[nodiscard]] std::span<const Breadcrumb> Breadcrumbs() const noexcept { return breadcrumbs_; }
   [[nodiscard]] std::span<const ContentItem> Items() const noexcept { return items_; }
   [[nodiscard]] std::uint64_t ProjectGeneration() const noexcept { return generation_; }
+  [[nodiscard]] std::uint64_t Revision() const noexcept { return revision_; }
   [[nodiscard]] const ContentItem *Find(runtime::AssetUuid id) const;
 
   bool Select(runtime::AssetUuid id, bool additive = false);
@@ -57,7 +62,8 @@ public:
   bool Delete(std::span<const runtime::AssetUuid> ids, std::string *error = nullptr);
   bool Undo();
   bool PublishArtifact(runtime::AssetUuid id, std::string artifact_hash, ThumbnailState thumbnail,
-                       std::string *error = nullptr);
+                       std::string *error = nullptr,
+                       std::shared_ptr<const MeshGeometry> mesh = nullptr);
 
 private:
   bool Commit(std::vector<ContentItem> next, std::string *error);
@@ -71,6 +77,7 @@ private:
   std::string query_, type_;
   std::vector<Breadcrumb> breadcrumbs_;
   std::uint64_t generation_{};
+  std::uint64_t revision_{};
 };
 
 struct AssetDragPayload final {
@@ -107,6 +114,7 @@ struct ReimportResult final {
   std::vector<runtime::AssetUuid> dependencies;
   std::string diagnostic;
   bool cancelled{};
+  std::shared_ptr<const MeshGeometry> mesh{};
 };
 
 class NEXORA_EDITOR_API ReimportTransaction final {

@@ -194,7 +194,7 @@ existing material reference when replacing the mesh. Read-only projects and reco
 Missing/unresolved mesh references are retained and displayed honestly. Each accepted edit uses
 SceneDocument Undo/Redo and cancels prospective scene gestures before mutation. The application
 publishes the CPU catalog after project activation. Resolved meshes now replace proxy geometry in
-the native preview; geometry reimport publication remains open.
+the native preview; OBJ geometry reimport publishes atomically through the live content model.
 
 ### Native OBJ geometry submission
 
@@ -213,4 +213,11 @@ proxies, retain saved references, and emit a Console warning when the unavailabl
 No source IO occurs in rendering or picking. Portable append/picking tests and an Xvfb fixture with
 distinct triangle/quad OBJ assets verify geometry ranges, actual silhouette selection, Center scale/
 rotation, preview/release pixel equality, and one-step Undo. Material shaders, exact sheared poses,
-persistent per-resource GPU caching, and geometry reimport publication remain open.
+and persistent per-resource GPU caching remain open.
+
+OBJ reimport now publishes an owning geometry payload together with the artifact hash, after its
+source/project/dependency revisions and live geometry budget pass validation. The application
+refreshes its CPU catalog when the live Content Browser revision changes, before drawing native
+geometry. Failed/cancelled/stale results keep the prior mesh; rename/move Undo keeps a newer
+published geometry and delete/Undo removes/restores live resolution. UI borrows snapshots for the
+frame and performs no mesh source IO while rendering or picking.

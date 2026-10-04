@@ -785,8 +785,10 @@ int RunGraphical(std::optional<ProjectState> project,
     load_layout(project->workspace);
   }
   nexora::editor::MeshAssetCatalog meshes;
-  if (project && !meshes.Publish(project->assets.Entries(), project_generation, &layout_error))
+  if (project && !meshes.PublishContent(content.Browser(), &layout_error))
     std::cerr << "mesh catalog warning: " << layout_error << '\n';
+  std::uint64_t mesh_content_revision = content.Browser().Revision();
+  std::uint64_t mesh_content_generation = content.Browser().ProjectGeneration();
   nexora::editor::ProductShell shell;
   nexora::runtime::World world;
   const auto scene_id = world.LoadScene("Main");
@@ -986,7 +988,7 @@ int RunGraphical(std::optional<ProjectState> project,
             const bool was_created = pending_project->created;
             project = std::move(pending_project->candidate);
             content = std::move(candidate_content);
-            if (!meshes.Publish(project->assets.Entries(), project_generation, &selector_error))
+            if (!meshes.PublishContent(content.Browser(), &selector_error))
               std::cerr << "mesh catalog warning: " << selector_error << '\n';
             pending_project.reset();
             selector_result = was_created ? "created" : "opened";
@@ -1043,6 +1045,14 @@ int RunGraphical(std::optional<ProjectState> project,
         play_accumulator = std::min(play_accumulator, 4.0 / 60.0);
       } else {
         play_accumulator = 0.0;
+      }
+      if (mesh_content_revision != content.Browser().Revision() ||
+          mesh_content_generation != content.Browser().ProjectGeneration()) {
+        std::string mesh_error;
+        if (!meshes.PublishContent(content.Browser(), &mesh_error))
+          log(nexora::runtime::RuntimeLogSeverity::Error, "Content", mesh_error);
+        mesh_content_revision = content.Browser().Revision();
+        mesh_content_generation = content.Browser().ProjectGeneration();
       }
       // Commit this frame's native authoring input before Save or Save-and-exit.
       if (const auto viewport = ui.NativeScenePreviewViewport()) {
