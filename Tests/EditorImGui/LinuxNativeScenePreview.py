@@ -360,7 +360,16 @@ def main() -> int:
             while time.monotonic() < deadline and scene_file.read_text() != initial_scene:
                 time.sleep(0.05)
             if scene_file.read_text() != initial_scene:
-                raise RuntimeError(f"axis handle {axis} drag did not undo atomically")
+                # On a loaded virtual display the first save can run before the queued
+                # Undo command is applied. Save the settled document once more, without
+                # issuing another Undo that could change an earlier transaction.
+                subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline and scene_file.read_text() != initial_scene:
+                    time.sleep(0.05)
+            if scene_file.read_text() != initial_scene:
+                raise RuntimeError(f"axis handle {axis} drag did not undo atomically; "
+                                   f"saved={scene_file.read_text()!r}; expected={initial_scene!r}")
         viewport = settled_viewport(editor.stderr, viewport)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
