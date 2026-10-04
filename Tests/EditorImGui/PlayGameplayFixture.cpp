@@ -41,7 +41,14 @@ int32_t Fixed(void *opaque, double seconds) {
   const auto read = host.read_component(host.context, 20, TransformType(), &pose, sizeof(pose));
   if (read != NEXORA_GAMEPLAY_OK)
     return read;
+#if defined(NEXORA_FIXTURE_INPUT_ONLY)
+  NexoraInputSnapshot input{};
+  if (!host.capture_input || host.capture_input(host.context, 0, &input) != NEXORA_GAMEPLAY_OK)
+    return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+  pose.x += seconds * input.move_x * 2;
+#else
   pose.x += seconds * 0.5;
+#endif
   return host.write_component(host.context, 20, TransformType(), &pose, sizeof(pose));
 }
 int32_t Update(void *, double) { return NEXORA_GAMEPLAY_OK; }

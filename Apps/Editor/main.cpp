@@ -1064,6 +1064,10 @@ int RunGraphical(std::optional<ProjectState> project,
       case nexora::editor::imgui::PlayCommand::None:
         break;
       }
+      play.SetInputFocus(ui.GameInputFocused() &&
+                         play.State() == nexora::runtime::PlayState::Playing);
+      gameplay.SetInputFocus(play.AcceptsInput());
+      gameplay.ProcessInput(created.surface->Events());
       const auto play_now = std::chrono::steady_clock::now();
       const double elapsed =
           std::clamp(std::chrono::duration<double>(play_now - last_play_frame).count(), 0.0, 0.25);

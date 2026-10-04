@@ -2,6 +2,7 @@
 
 #include "Nexora/Game/GameplayHostBridge.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
+#include "PlayInputState.h"
 #include <algorithm>
 #include <bit>
 #include <filesystem>
@@ -65,12 +66,17 @@ public:
     Unload();
     return false;
   }
+  void SetInputFocus(bool focused) noexcept { input_.SetFocused(focused); }
+  void ProcessInput(std::span<const Nexora::Window::WindowEvent> events) noexcept {
+    input_.Process(events);
+  }
   [[nodiscard]] bool IsLoaded() const noexcept { return module_.IsLoaded(); }
   bool FixedUpdate(double seconds) {
     return !IsLoaded() || !module_.SupportsFixedUpdate() || module_.FixedUpdate(seconds);
   }
   bool Update(double seconds) { return !IsLoaded() || module_.Update(seconds); }
   void Unload() noexcept {
+    input_.SetFocused(false);
     module_.Unload();
     world_ = nullptr;
     for (const auto &[pointer, allocation] : allocations_)
@@ -151,11 +157,19 @@ private:
       ::operator delete(pointer, std::align_val_t(found->second.alignment));
       self.allocations_.erase(found);
     };
+    host.capture_input = [](void *context, std::uint32_t user,
+                            NexoraInputSnapshot *snapshot) -> int32_t {
+      if (!snapshot || user != 0)
+        return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+      *snapshot = Self(context).input_.Snapshot();
+      return NEXORA_GAMEPLAY_OK;
+    };
     // No scene/physics capability is advertised: modules operate on cloned authored entities.
     return host;
   }
   runtime::World *world_{};
   LogSink log_;
+  PlayInputState input_;
   std::unordered_map<void *, Allocation> allocations_;
   std::uint64_t bytes_{};
   runtime::GameplayModuleHost module_;

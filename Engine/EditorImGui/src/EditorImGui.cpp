@@ -121,6 +121,7 @@ struct EditorImGuiHost::State final {
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
   bool native_game_available = true;
   bool game_was_running = false;
+  bool game_input_focused = false;
   std::string native_game_status;
   bool native_scene_preview = false;
   bool native_scene_preview_available = true;
@@ -2028,6 +2029,16 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
         io.AddMouseButtonEvent(event.value0, event.value1 != 0);
       break;
     case Nexora::Window::WindowEventType::Key: {
+      const auto physical_key = static_cast<Nexora::Window::Key>(event.value0);
+      if (state_->game_input_focused) {
+        if (physical_key == Nexora::Window::Key::Escape) {
+          state_->game_input_focused = false;
+          break;
+        }
+        if (physical_key != Nexora::Window::Key::F5 && physical_key != Nexora::Window::Key::F6 &&
+            physical_key != Nexora::Window::Key::F10)
+          break;
+      }
       const auto modifiers = static_cast<unsigned>(event.modifiers);
       io.AddKeyEvent(ImGuiMod_Ctrl, (modifiers & static_cast<unsigned>(
                                                      Nexora::Window::KeyModifiers::Control)) != 0);
@@ -2043,6 +2054,8 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
       break;
     }
     case Nexora::Window::WindowEventType::Text:
+      if (state_->game_input_focused)
+        break;
       if (event.value0 > 0 && event.value0 <= 0x10ffff &&
           !(event.value0 >= 0xd800 && event.value0 <= 0xdfff))
         io.AddInputCharacter(static_cast<unsigned int>(event.value0));
@@ -2051,8 +2064,10 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
       state_->app_focused = event.value0 != 0;
       // Dear ImGui releases held inputs on focus loss. Cancel before that synthetic release
       // can be interpreted as a completed authoring gesture.
-      if (!state_->app_focused)
+      if (!state_->app_focused) {
+        state_->game_input_focused = false;
         CancelSceneGestures(*state_);
+      }
       io.AddFocusEvent(event.value0 != 0);
       break;
     case Nexora::Window::WindowEventType::DpiChanged:
@@ -2212,8 +2227,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->scene_gesture_document_generation = scene_generation;
   state_->selector_visible = false;
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
-  if (recovery_available)
+  if (recovery_available) {
+    state_->game_input_focused = false;
     CancelSceneGestures(*state_);
+  }
   if (!recovery_available &&
       ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
@@ -2505,6 +2522,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (!state_->scene_canvas_viewport)
     CancelSceneGestures(*state_);
   const bool game_running = play && play->State() != runtime::PlayState::Stopped;
+  bool game_canvas_visible = false;
+  if (!play || play->State() != runtime::PlayState::Playing || !state_->app_focused)
+    state_->game_input_focused = false;
   const auto game_window = PanelWindowName("nexora.game");
   if (game_running && !state_->game_was_running)
     ImGui::SetNextWindowFocus();
@@ -2555,6 +2575,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       const auto snapshot = play->Inspect();
       ImGui::Text("Play World entities: %zu", snapshot.entities.size());
       ImGui::Separator();
+      if (game_running)
+        ImGui::TextDisabled(state_->game_input_focused ? "Game input captured | Escape releases"
+                                                       : "Click Game canvas to capture input");
       if (game_running && state_->native_game_available && !NativeScenePreviewViewport()) {
         ImGui::TextDisabled("Play camera | Assets frozen at Play start");
         if (!state_->native_game_status.empty())
@@ -2571,6 +2594,16 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                  : "Hide the Scene 3D canvas to render Game View in this window.");
         DrawPlayOverview(snapshot);
       }
+      game_canvas_visible = game_running;
+      if (play->State() == runtime::PlayState::Playing && state_->app_focused &&
+          !recovery_available && !state_->close_prompt_requested) {
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+          state_->game_input_focused = true;
+          ImGui::GetIO().ClearInputKeys();
+        } else if (!ImGui::IsItemHovered()) {
+          state_->game_input_focused = false;
+        }
+      }
       ImGuiListClipper clipper;
       clipper.Begin(static_cast<int>(snapshot.entities.size()));
       while (clipper.Step())
@@ -2582,6 +2615,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     }
   }
   ImGui::End();
+  if (!game_canvas_visible)
+    state_->game_input_focused = false;
   const auto console_window = PanelWindowName("nexora.console");
   if (ImGui::Begin(console_window.c_str())) {
     if (console == nullptr) {
@@ -2764,12 +2799,16 @@ void EditorImGuiHost::SetSceneSaveResult(std::string message, bool success) {
   state_->scene_save_success = success;
 }
 
-void EditorImGuiHost::RequestCloseConfirmation() noexcept { state_->close_prompt_requested = true; }
+void EditorImGuiHost::RequestCloseConfirmation() noexcept {
+  state_->game_input_focused = false;
+  state_->close_prompt_requested = true;
+}
 
 CloseChoice EditorImGuiHost::TakeCloseChoice() noexcept {
   return std::exchange(state_->close_choice, CloseChoice::None);
 }
 
+bool EditorImGuiHost::GameInputFocused() const noexcept { return state_->game_input_focused; }
 std::string_view EditorImGuiHost::GameplayLibrary() const noexcept {
   return state_->gameplay_library.data();
 }

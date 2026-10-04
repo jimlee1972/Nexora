@@ -85,6 +85,24 @@ int main() {
     Require(extra, "allocation failed");
     host.deallocate(host.context, 9, extra, 32, 16);
     host.deallocate(host.context, 8, extra, 32, 16);
+    module.SetInputFocus(true);
+    module.ProcessInput({});
+    Nexora::Window::WindowEvent right;
+    right.type = Nexora::Window::WindowEventType::Key;
+    right.value0 = static_cast<int>(Nexora::Window::Key::D);
+    right.value1 = 1;
+    module.ProcessInput(std::array{right});
+    NexoraInputSnapshot snapshot{};
+    Require(host.capture_input &&
+                host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 1 &&
+                host.capture_input(host.context, 1, &snapshot) ==
+                    NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT,
+            "gameplay input callback did not return the owned user-zero snapshot");
+    module.SetInputFocus(false);
+    Require(host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 0,
+            "input callback retained a pressed key after focus loss");
     fail_fixed = true;
     Require(!play.Step() && play.LastPauseReason() == runtime::PauseReason::RuntimeFailure &&
                 play.Stats().crashes == 1,

@@ -34,6 +34,17 @@ add_library(NexoraPlayGameplayFixture MODULE PlayGameplayFixture.cpp)
 target_link_libraries(NexoraPlayGameplayFixture PRIVATE Nexora::Foundation)
 nexora_apply_defaults(NexoraPlayGameplayFixture)
 
+add_executable(NexoraPlayInputStateTests PlayInputStateTests.cpp)
+target_include_directories(NexoraPlayInputStateTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraPlayInputStateTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPlayInputStateTests)
+add_test(NAME editor.play_input_state COMMAND NexoraPlayInputStateTests)
+
+add_library(NexoraPlayInputFixture MODULE PlayGameplayFixture.cpp)
+target_compile_definitions(NexoraPlayInputFixture PRIVATE NEXORA_FIXTURE_INPUT_ONLY=1)
+target_link_libraries(NexoraPlayInputFixture PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraPlayInputFixture)
+
 if(WIN32)
   add_executable(NexoraEditorWindowsDpiImeTests WindowsDpiImeTests.cpp)
   target_include_directories(NexoraEditorWindowsDpiImeTests
@@ -99,4 +110,14 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_gameplay_module PROPERTIES TIMEOUT 45)
+  add_test(
+    NAME editor.linux_native_game_input
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
+            --input-routing
+            --module "$<TARGET_FILE:NexoraPlayInputFixture>"
+            --editor "$<TARGET_FILE:NexoraEditor>"
+            --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+            --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_game_input PROPERTIES TIMEOUT 45)
 endif()

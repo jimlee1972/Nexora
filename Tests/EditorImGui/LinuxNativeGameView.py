@@ -17,6 +17,7 @@ def main():
     for argument in ('editor', 'xvfb', 'xdotool'):
         parser.add_argument('--' + argument, required=True)
     parser.add_argument('--module')
+    parser.add_argument('--input-routing', action='store_true')
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix='nexora-game-view-'))
     state = Path(tempfile.mkdtemp(prefix='nexora-game-state-'))
@@ -83,11 +84,35 @@ def main():
             time.sleep(0.1)
         else:
             raise RuntimeError('Play camera did not rasterize imported OBJ pixels')
-        if args.module:
+        if args.module and not args.input_routing:
             first = scene_region_pixels(display, window, viewport)
             time.sleep(0.6)
             if scene_region_pixels(display, window, viewport) == first:
                 raise RuntimeError('Loaded gameplay fixed callback did not move the native mesh')
+        if args.input_routing:
+            first = scene_region_pixels(display, window, viewport)
+            send('keydown', 'd')
+            time.sleep(0.3)
+            send('keyup', 'd')
+            if scene_region_pixels(display, window, viewport) != first:
+                raise RuntimeError('Uncaptured Game input reached the module')
+            x, y, width, height = viewport
+            send('mousemove', '--window', window, x + width // 2, y + height // 2)
+            send('click', 1)
+            time.sleep(0.2)
+            send('keydown', 'd')
+            time.sleep(0.45)
+            if scene_region_pixels(display, window, viewport) == first:
+                raise RuntimeError('Captured D did not drive the native mesh')
+            send('key', '--delay', '80', 'Escape')
+            time.sleep(0.2)
+            released = scene_region_pixels(display, window, viewport)
+            time.sleep(0.3)
+            if scene_region_pixels(display, window, viewport) != released:
+                raise RuntimeError('Escape retained a held movement key')
+            send('keyup', 'd')
+            send('click', 1)
+            time.sleep(0.2)
         send('key', '--delay', '80', 'F6')
         time.sleep(0.3)
         paused = scene_region_pixels(display, window, viewport)

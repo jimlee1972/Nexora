@@ -230,4 +230,9 @@ retain inspection-only Play. Canonical paths outside the project and failed ABI/
 are rejected visibly. Module logs enter the bounded Console; failed callbacks pause Play.
 Stop/window shutdown unload the module before destroying the clone. The host bounds allocation
 and message sizes, supports the shared component wire set, and advertises no scene/physics
-capability. Game input routing, module hot reload, and persisted module configuration remain open.
+capability. Click a playing Game canvas to capture input; Escape, pointer exit, hiding Game, Pause/Stop,
+recovery/close prompts, and window blur release it and clear held controls. F5/F6/F10 remain Play
+controls; other captured keys/text do not reach authoring shortcuts. The initial user-zero input
+snapshot maps WASD/arrows to movement axes and Space/left mouse/right mouse/Shift/Ctrl to button
+bits 1/2/4/8/16, with one frame sequence and no borrowed input data. Gamepad, pointer motion/look,
+rebinding, multiple users, module hot reload, and persisted module configuration remain open.
