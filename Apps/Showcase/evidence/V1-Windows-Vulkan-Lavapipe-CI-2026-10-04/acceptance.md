@@ -23,7 +23,8 @@ has 17 uploaded assets, including the separate `windows-vulkan-acceptance.tar.gz
 against actual downloaded bytes, both Windows ZIP sidecars, and a reconstructed 12-entry checksum
 manifest matching the uploaded manifest's digest. The Vulkan tarball's upload digest/inclusion are
 verified through GitHub metadata; individual native files were inspected in the downloaded workflow
-bundle. This does not claim direct byte verification of every release asset.
+bundle. Checked-in JSON uses LF line endings with unchanged parsed payloads; original bytes remain
+in the identified workflow artifact. This does not claim direct byte verification of every release asset.
 
 The PR's hosted acceptance also passes on merge source `ec5e758db6d56b06490b437b50f90c077efa17b8`
 (38,851 frames, 210.002 seconds). Initial runs exposed `vkCreateInstance` result -9: the hosted
