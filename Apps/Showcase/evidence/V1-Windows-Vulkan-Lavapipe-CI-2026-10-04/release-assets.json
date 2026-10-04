@@ -1,0 +1,128 @@
+{
+  "id": 403052522,
+  "url": "https://github.com/jimlee1972/Nexora/releases/tag/untagged-a02a6dd81d23af98f447",
+  "tag": "v0.0.0-rc.4",
+  "draft": true,
+  "source_commit": "bff62773d593b95de918f670795b8076dc89224c",
+  "assets": [
+    {
+      "name": "build-contract-evidence.tar.gz",
+      "size": 31167,
+      "digest": "sha256:8646a29ff427fc3495c1ac780190e8097c0641a2f82e698777679559f8c1e643",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/build-contract-evidence.tar.gz"
+    },
+    {
+      "name": "linux-x64-acceptance.tar.gz",
+      "size": 969442,
+      "digest": "sha256:f369bf9d72c0ba571f3d4a80ed1383a7adbef51127e650be4f7e53fc35b87724",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/linux-x64-acceptance.tar.gz"
+    },
+    {
+      "name": "macos-arm64-acceptance.tar.gz",
+      "size": 15350,
+      "digest": "sha256:089c0a623677d98cb765c998a1b61ac79f55904c60ec547ad4ab1347c19b664a",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/macos-arm64-acceptance.tar.gz"
+    },
+    {
+      "name": "NexoraShowcase-Shipping-linux-x64.zip",
+      "size": 1946552,
+      "digest": "sha256:d7f52c63a436126da3fcae2edcfc3754945f1b3152399efaf122c13c782ef98f",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/NexoraShowcase-Shipping-linux-x64.zip"
+    },
+    {
+      "name": "NexoraShowcase-Shipping-linux-x64.zip.sha256",
+      "size": 104,
+      "digest": "sha256:05eaec3650d4fce8cff87aad8d54d7674dbaeb9eeb0b2ef8ac2000616088c1ef",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/NexoraShowcase-Shipping-linux-x64.zip.sha256"
+    },
+    {
+      "name": "NexoraShowcase-Shipping-macos-arm64.zip",
+      "size": 929398,
+      "digest": "sha256:3a14d5d8894e3cfb9ded5bab4383fc84ba92497863e3048d8d7e7b1feeccfa8d",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/NexoraShowcase-Shipping-macos-arm64.zip"
+    },
+    {
+      "name": "NexoraShowcase-Shipping-macos-arm64.zip.sha256",
+      "size": 106,
+      "digest": "sha256:795ff128b99261f1e04b6be4b78dd0a830329c18f3998bacafa7f3883e4f5d0e",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/NexoraShowcase-Shipping-macos-arm64.zip.sha256"
+    },
+    {
+      "name": "NexoraShowcase-Shipping-Vulkan.zip",
+      "size": 966659,
+      "digest": "sha256:d5d5c78485e03ddfef2b967c4fc4744f14b7cb5d2839baed9b92f40e0a63176f",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/NexoraShowcase-Shipping-Vulkan.zip"
+    },
+    {
+      "name": "NexoraShowcase-Shipping-Vulkan.zip.sha256",
+      "size": 102,
+      "digest": "sha256:ca5b557c4e3fc6484e1acbb9b417e1a2548b84f5a034f9f249889ce4fad736db",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/NexoraShowcase-Shipping-Vulkan.zip.sha256"
+    },
+    {
+      "name": "NexoraShowcase-Shipping.zip",
+      "size": 940470,
+      "digest": "sha256:a2755661222f5915cbc9764010779c3af006112b92ba35da1a214ab1d99f2ed4",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/NexoraShowcase-Shipping.zip"
+    },
+    {
+      "name": "NexoraShowcase-Shipping.zip.sha256",
+      "size": 95,
+      "digest": "sha256:33025f2d83fe11d61213d6cdcd2d75023072fcc2a4d42cae892c8d1b9b82d8b7",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/NexoraShowcase-Shipping.zip.sha256"
+    },
+    {
+      "name": "release-info-linux-x64.json",
+      "size": 653,
+      "digest": "sha256:e4bb27ea4dda176fd373a935865f082f133e45cdd379c029b2d1bc91c519213b",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/release-info-linux-x64.json"
+    },
+    {
+      "name": "release-info-macos-arm64.json",
+      "size": 659,
+      "digest": "sha256:b4f87e69a7a2d8ad365c774f60fa24dc4a848098c43c3f7ba4a218e62769d0ba",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/release-info-macos-arm64.json"
+    },
+    {
+      "name": "release-info.json",
+      "size": 472,
+      "digest": "sha256:51411b3f97f96d86d68175ae116d5a7d46d4388ee240d813b3caa527286f80f9",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/release-info.json"
+    },
+    {
+      "name": "RELEASE-SHA256SUMS",
+      "size": 1157,
+      "digest": "sha256:3c4bd4751f05b1bd4f061402c2144e05724284f805b4203d40496b9c1e0219bc",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/RELEASE-SHA256SUMS"
+    },
+    {
+      "name": "windows-acceptance.tar.gz",
+      "size": 2628366,
+      "digest": "sha256:70e0d3014e4e6c9830406e9f91b12eade4aeebee99b1e1b36defb20e2251a35a",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/windows-acceptance.tar.gz"
+    },
+    {
+      "name": "windows-vulkan-acceptance.tar.gz",
+      "size": 2628468,
+      "digest": "sha256:10462ff70754c2f5ddfd331b9af107df8d3c0dce468d75d17b76374ed5cb931c",
+      "state": "uploaded",
+      "url": "https://github.com/jimlee1972/Nexora/releases/download/untagged-a02a6dd81d23af98f447/windows-vulkan-acceptance.tar.gz"
+    }
+  ]
+}

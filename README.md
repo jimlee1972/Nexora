@@ -49,7 +49,7 @@ an unchecked or unmarked item remains incomplete.
 
 ✅ [Linux Full distribution acceptance](Apps/Showcase/evidence/V1-Distribution-Linux-2026-10-04/acceptance.md): Development 80/80 with five non-skipped native gates, Minimal/Full Monolithic builds and checksum-verified isolated native package screenshots. Metal scene/input source, Mac package relocation and Linux/macOS release/CTest evidence jobs are now implemented; ✅ [macOS hosted Shipping/Full acceptance](Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md) now verifies Metal compilation and eight-room native graph/resize execution from isolated packages (96 frames). The native pixel/input/depth/lifecycle gate also passes macOS CTest (73/73 Development; 63/63 mimalloc); physical Mac visuals and clean-host deployment remain pending, so full V1 acceptance stays open.
 
-Windows Vulkan hosted lavapipe native acceptance is implemented (driver provenance, exact DLL verification, screenshots and full tour); execution evidence remains pending. Mac remains incomplete and deferred.
+✅ [Windows Vulkan hosted-driver acceptance](Apps/Showcase/evidence/V1-Windows-Vulkan-Lavapipe-CI-2026-10-04/acceptance.md): Mesa lavapipe 26.2.4 passes 14 checksums, 25 screenshots, nine interaction checks and the complete 210.006-second tour. Test tag rc.4 passes Build 16/16 and Release 5/5, retaining a separate Vulkan archive in the 17-asset unpublished draft. This is software-driver coverage; Mac remains incomplete and deferred.
 
 ✅ [Desktop tag rc.3 acceptance](Apps/Showcase/evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md): Build 16/16 and Release 5/5 pass after recorded targeted retries; the unpublished draft retains 16 attachments, four verified ZIPs and desktop CTest logs (Linux 80/80, macOS 73/73, Windows 72/72).
 
@@ -361,7 +361,7 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 
 ✅ [Linux Full 發佈套件驗收](Apps/Showcase/evidence/V1-Distribution-Linux-2026-10-04/acceptance.md)：Development 80/80，五個原生 gate 無 skip，Minimal／Full Monolithic build 與 checksum 驗證隔離副本原生截圖。Metal scene／input 原始碼、Mac 封裝重定位與 Linux／macOS release／CTest 證據流程已實作；✅ [macOS hosted Shipping/Full 驗收](Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md) 已確認 Metal 編譯與隔離封裝八房間原生 graph／resize 執行（96 幀）；原生像素／輸入／depth／lifecycle gate 亦已通過 macOS CTest（Development 73/73、mimalloc 63/63）；實體 Mac 畫面與乾淨主機部署仍待驗收，完整 V1 驗收維持未完成。
 
-Windows Vulkan hosted lavapipe 原生驗收已實作（驅動來源、精確 DLL 核對、截圖與完整導覽），執行證據仍待完成；Mac 尚未完成且暫緩處理。
+✅ [Windows Vulkan hosted 驅動驗收](Apps/Showcase/evidence/V1-Windows-Vulkan-Lavapipe-CI-2026-10-04/acceptance.md)：Mesa lavapipe 26.2.4 通過 14 個 checksum、25 張截圖、九個互動檢查及完整 210.006 秒導覽。測試 tag rc.4 的 Build 16/16、Release 5/5 通過，未發佈 draft 的 17 個附件包含獨立 Vulkan archive；此為軟體驅動覆蓋，Mac 尚未完成且暫緩處理。
 
 ✅ [桌面 tag rc.3 驗收](Apps/Showcase/evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md)：Build 16/16 與 Release 5/5 於紀錄的指定重跑後通過；未發佈 draft 保留 16 個附件、四個已驗證 ZIP 與桌面 CTest log（Linux 80/80、macOS 73/73、Windows 72/72）。
 

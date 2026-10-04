@@ -22,8 +22,8 @@
 - ✅ Linux Shipping/Full 隔離封裝已通過原生房間／輸入／Lab／resize 驗收；Linux Development 80/80，五個 Vulkan/Xvfb gate 全數執行。[證據](../../Apps/Showcase/evidence/V1-Distribution-Linux-2026-10-04/acceptance.md)。
 - ✅ macOS hosted Shipping/Full 封裝編譯、重定位／ad-hoc signing 與隔離副本八房間 Metal scene／copy／UI／present／resize smoke 已通過（96 個原生幀）；[證據](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md)。✅ 原生像素／輸入／depth／lifecycle CTest 已通過 macOS Development（73/73）與 mimalloc（63/63）；實體 Mac 畫面與乾淨主機部署仍待驗收。Metal scene／instance／材質／depth／GPU copy 原始碼、Cocoa 控制／Retina 座標與 Linux／macOS release job 已實作。Windows 現有明確的 Vulkan Development／Shipping preset；無 SDK 仍可使用 DX12 preset。
 - ✅ 測試 tag `v0.0.0-rc.3` 已通過 Build（16 jobs）與 Release（5 jobs），draft 保留四個桌面 ZIP、checksum、原生證據與三平台 CTest log，共 16 個附件，涵蓋 Windows DX12／Windows Vulkan、Linux x64 與 macOS ARM64。[紀錄](../../Apps/Showcase/evidence/V1-Desktop-Tag-RC3-2026-10-04/acceptance.md) 保存 Linux startup／Build gate 的指定重跑與上傳 digest 核對。
-- Windows hosted Vulkan lavapipe 原生驗收已實作：固定驅動來源、精確載入 DLL 核對、隔離副本截圖／互動與完整導覽；首次 hosted 執行仍待完成，其他實體 GPU／驅動覆蓋仍未完成。
-- 待辦（V1 最終驗收仍為 PENDING）：Metal 實體畫面與完整互動驗收；其他 GPU／驅動上的 Vulkan；Mac 乾淨主機發佈套件與完整互動／導覽 capture。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
+- ✅ [Windows hosted Vulkan lavapipe 驗收](../../Apps/Showcase/evidence/V1-Windows-Vulkan-Lavapipe-CI-2026-10-04/acceptance.md)：Mesa 26.2.4、精確載入 DLL 核對、14 個 checksum、25 張截圖、九個互動檢查與完整 210.006 秒導覽；rc.4 Build 16/16、Release 5/5 通過，17 個附件的 draft 保留獨立 Vulkan archive。此為軟體驅動覆蓋，其他實體 GPU／驅動仍待驗收。
+- 待辦（V1 最終驗收仍為 PENDING）：Metal 實體畫面與完整互動驗收；其他實體 GPU／驅動上的 Vulkan；Mac 乾淨主機發佈套件與完整互動／導覽 capture。Audio/video/WebView adapter 持續明確標示 contract-only／unavailable。
 
 證據與精確驗證結果：[`Linux-Vulkan-Visual-Slice-2026-10-03`](../../Apps/Showcase/evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md)。
 

@@ -1,0 +1,13 @@
+{
+  "schema": "nexora.showcase.ci.vulkan_driver.v1",
+  "driver": "Mesa lavapipe",
+  "version": "26.2.4",
+  "software_rasterizer": true,
+  "source_url": "https://github.com/pal1000/mesa-dist-win/releases/download/26.2.4/mesa3d-26.2.4-release-msvc.7z",
+  "archive_sha256": "351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695",
+  "library": "vulkan_lvp.dll",
+  "library_sha256": "0b33e35d4eabfdd16b6ecb12ef7f2c87467c0baed0925ed291ce5496e58bf1db",
+  "api_version": "1.4.354",
+  "icd_registration": "Temporary HKLM driver entry on a disposable GitHub-hosted runner; removed after acceptance",
+  "scope": "Hosted Windows software-driver coverage; no physical GPU or clean-host attestation"
+}

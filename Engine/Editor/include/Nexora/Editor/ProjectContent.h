@@ -49,6 +49,8 @@ public:
   bool Delete(std::span<const runtime::AssetUuid> assets, std::string *error = nullptr);
   bool Undo(std::string *error = nullptr);
   bool Reimport(runtime::AssetUuid asset, std::string *error = nullptr);
+  // The borrowed queue must outlive the session while a reimport is pending, including during
+  // exception unwinding. PollReimport publishes the result; cancellation alone retains the borrow.
   bool BeginReimport(AssetImportQueue &imports, runtime::AssetUuid asset,
                      std::string *error = nullptr);
   bool PollReimport(std::string *error = nullptr);

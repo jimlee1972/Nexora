@@ -22,7 +22,7 @@ void AwaitWorker(editor::ProjectContentSession &content) {
     const auto status = content.ReimportStatus();
     if (status && status->state == editor::ImportOperationState::AwaitingPublish)
       return;
-    std::this_thread::yield();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
   throw std::runtime_error("mesh worker did not stage its result");
 }
@@ -30,7 +30,7 @@ void AwaitPublication(editor::ProjectContentSession &content) {
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
   while (content.ReimportBusy() && std::chrono::steady_clock::now() < deadline) {
     static_cast<void>(content.PollReimport());
-    std::this_thread::yield();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
   Require(!content.ReimportBusy(), "mesh reimport did not finish");
 }
@@ -85,6 +85,10 @@ int main() {
                               editor::AssetIdentityMode::PersistentReadWrite, &error),
             "mesh import failed");
     const auto asset = assets.Entries().front().id;
+    // Pending reimports borrow this queue, including during exception unwinding.
+    core::JobSystem jobs{1};
+    jobs.Start();
+    editor::AssetImportQueue imports{jobs};
     editor::ProjectContentSession content;
     Require(content.Open(workspace, assets, 7, true, &error), "content opening failed");
     const auto opened_revision = content.Browser().Revision();
@@ -107,9 +111,6 @@ int main() {
                 catalog.ResolveAsset(asset, 7)->resource == original.resource &&
                 original.geometry->maximum[0] == 1,
             "reimport changed persistent identity or invalidated a retained snapshot");
-    core::JobSystem jobs{1};
-    jobs.Start();
-    editor::AssetImportQueue imports{jobs};
     Require(content.Rename(asset, "Worker.mesh", &error), "worker mesh rename failed");
     source = root / "Content/Worker.mesh";
     WriteTriangle(source, 3);

@@ -110,7 +110,10 @@ into renderer or platform internals.
   generation, asset path, previous artifact, settings identity, source-file revision/size, and
   dependency revision before committing. The staging result itself carries deterministic
   source/settings hashes. The queue must be destroyed before its `JobSystem`; `Shutdown` stops intake,
-  requests cancellation, and waits for every retained job.
+  requests cancellation, and waits for every retained job. A content session with a pending reimport
+  borrows its queue; destroy the session before the queue, including during exception unwinding.
+  Cancellation requests do not release that borrow; PollReimport must consume the result, or the
+  session must be destroyed before the queue.
 - `MeshAssetCatalog` atomically publishes owning CPU geometry snapshots from imported assets on the
   authoring thread. Both UUID and resource lookup require the current nonzero project generation;
   failed imports and missing payloads remain unresolved. Retained snapshots survive replacement

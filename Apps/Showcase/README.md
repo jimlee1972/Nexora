@@ -328,5 +328,6 @@ exercises eight rooms, interaction/resize, screenshots and the full 210-second g
 `-ExpectedVulkanDriverLibrary` requires the process to load the exact selected DLL and records its
 SHA-256, alongside archive provenance. The gate requires `software_rasterizer=true`, with physical
 display and clean-host attestations false. A missing desktop or failed native run fails this gate.
-Execution acceptance is pending the first hosted run; this does not complete additional physical-GPU
-coverage. Release bundles retain Vulkan evidence separately in `windows-vulkan-acceptance.tar.gz`.
+✅ [Hosted execution acceptance](evidence/V1-Windows-Vulkan-Lavapipe-CI-2026-10-04/acceptance.md)
+passes 14 checksums, 25 screenshots, nine interaction checks and a 210.006-second tour. The rc.4
+tag Build/Release pass and the unpublished draft has 17 assets. Additional physical-GPU coverage remains open. Release bundles retain Vulkan evidence separately in `windows-vulkan-acceptance.tar.gz`.
