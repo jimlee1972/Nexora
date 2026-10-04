@@ -68,6 +68,7 @@ def root_poses(text):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--authored-meshes", action="store_true")
     parser.add_argument("--editor", required=True)
     parser.add_argument("--xvfb", required=True)
     parser.add_argument("--xdotool", required=True)
@@ -78,12 +79,24 @@ def main():
     (root / ".nexora/scenes").mkdir(parents=True)
     (root / "project.nexora").write_text("schema=1\nname=Center Acceptance\n")
     (root / ".nexora/workspace").write_text("schema=1\n")
+    mesh_ids = (0, 0)
+    if args.authored_meshes:
+        # Persistent ID golden values shared with the C++ catalog contract, not path hashes.
+        mesh_ids = (12751791000609863510, 10105597576554272692)
+        (root / "Content/Triangle.obj").write_text(
+            "v -0.8 0 0\nv 0.8 0 0\nv 0 1.6 0\nvn 0 1 1\nf 1//1 2//1 3//1\n")
+        (root / "Content/Quad.obj").write_text(
+            "v -0.55 0 0\nv 0.55 0 0\nv 0.55 1 0\nv -0.55 1 0\nvn 0 1 1\n"
+            "f 1//1 2//1 3//1\nf 1//1 3//1 4//1\n")
+        for filename, suffix in (("Triangle.obj", "0"), ("Quad.obj", "1")):
+            (root / ("Content/" + filename + ".meta")).write_text(
+                "schema=1\nuuid=12345678-9abc-def0-fedc-ba987654321" + suffix + "\ntype=.obj\n")
     scene_file = root / ".nexora/scenes/Main.scene"
     scene_file.write_text(
         'NEXORA_EDITOR_SCENE 2\nnode 10 0 Left\nnode 20 0 Right\nworld\n'
         'NEXORA_SCENE 3 "Center scene" 0 2\n'
-        '10 0 -2 1 0 0 0 0 1 1 1 1 0 0 0 60 0.1 1000 1 0 0\n'
-        '20 0 2 1 0 0 0 0 1 1 1 1 0 0 0 60 0.1 1000 1 0 0\n')
+        f'10 0 -2 1 0 0 0 0 1 1 1 1 0 0 {int(args.authored_meshes)} 60 0.1 1000 1 {mesh_ids[0]} 0\n'
+        f'20 0 2 1 0 0 0 0 1 1 1 1 0 0 {int(args.authored_meshes)} 60 0.1 1000 1 {mesh_ids[1]} 0\n')
     xvfb, display = start_xvfb(args.xvfb, "1280x720x24")
     editor = None
     try:
@@ -130,6 +143,8 @@ def main():
             undo_and_save(args.xdotool, environment, scene_file, previous,
                           "center gesture did not undo in one step")
 
+        if args.authored_meshes and b"native mesh geometry: meshes=2 vertices=31 indices=45" not in captured:
+            raise RuntimeError(f"distinct OBJ geometry was not submitted: {captured!r}")
         send("windowfocus", window)
         viewport = settled_viewport(editor.stderr, viewport)
         point = blue_proxy_pixel(display, window, viewport, first=True)

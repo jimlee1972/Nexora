@@ -20,7 +20,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | --- | --- | :---: |
 | ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Linux virtual-display recovery now verifies SIGKILL with a durable seeded journal, unchanged committed workspace, writer-lease reacquisition, and keyboard-only Recover/Discard; physical-display Linux and Windows DPI/IME host evidence remain open; a bounded Windows/DX12 developer-host shell smoke is recorded. | [ ] |
 | ED-M1 project/assets | Portable create/open, schema upgrade, single-writer/read-only access, recent-project state, deterministic indexing/search, persistent sidecar UUIDs, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. The native shell exposes project status, provides a graphical create/open/recent selector, binds the real index to a graphical Content panel with recoverable project-local mutations, runs cancellable background import/reimport with bounded progress and structured diagnostics, shows dependency cycles, and presents blocking reload/keep/compare conflict UX; physical-display/Windows workflow acceptance remains open. | [ ] |
-| ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. The graphical Hierarchy now presents a parent-aware expandable tree, filtering, generation-keyed expansion/selection, clipped visible rows, undoable rename, sibling ordering, and cycle-safe reparenting while rejecting stale entity/document generations. A docked Inspector exposes generation-safe position, Euler degrees (quaternion storage), and scale editing for single and mixed-value multi-selection, with atomic Runtime validation and one-step undo. Full authored-mesh Scene View, the complete reflected Inspector, mesh picking, camera authoring, and unknown-component visual workflows remain open. The native proxy preview already has Move, Rotate, and Scale handles. | [ ] |
+| ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. The graphical Hierarchy now presents a parent-aware expandable tree, filtering, generation-keyed expansion/selection, clipped visible rows, undoable rename, sibling ordering, and cycle-safe reparenting while rejecting stale entity/document generations. A docked Inspector exposes generation-safe position, Euler degrees (quaternion storage), and scale editing for single and mixed-value multi-selection, with atomic Runtime validation and one-step undo. Full authored-mesh Scene View, the complete reflected Inspector, material shader workflows, camera authoring, and unknown-component visual workflows remain open. The native proxy preview already has Move, Rotate, and Scale handles. | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. The graphical Console shows bounded records and Editor diagnostics; a docked Game panel controls an isolated clone and copied inspection snapshot. Renderer-backed Game View, gameplay callbacks, complete log routing, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
 | ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
@@ -89,7 +89,7 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 - ✅ Background workspace imports now retain bounded immutable CPU geometry for triangulated OBJ
   assets, including UVs, explicit/generated normals, indices, and local bounds. Portable tests cover
   malformed/overflowing input, cancellation, vertex limits, UUID/hash stability after move/reopen,
-  owning snapshots, and structured worker diagnostics. Mesh reimport publication, GPU residency, and native authored-mesh rendering remain open.
+  owning snapshots, and structured worker diagnostics. Mesh reimport publication, persistent per-asset GPU caching and full Scene View acceptance remain open.
 
 - ✅ Project create/open, deterministic content-tree indexing, UUID/path search and filtering,
   cancellation, progress, inspectable errors, and deterministic artifact hashes are implemented.
@@ -135,21 +135,29 @@ creates property widgets; unknown components retain raw data instead of being si
   Real Xvfb XYZ drags save immediately after release and verify the completed pose; saves while
   a gesture is held wait for commit or cancellation before serializing.
 
+- ✅ Native Scene preview now draws resolved OBJ vertices/indices through bounded Presentation
+  batches, packing shared resources once with absolute 16-bit indices and world TRS instances.
+  Transformed bounds and two-sided triangles replace proxy picking for resolved meshes. Portable
+  tests cover range rollback, geometry/coordinate budgets, mirrored/rotated picking and silhouette
+  misses; Xvfb distinct triangle/quad assets verify picking, Center scale/rotation, preview/release
+  pixels, and one-step Undo. Missing/deleted/oversized assets retain references and warn while using
+  proxies. Persistent per-asset GPU caching, material shaders, exact shear, geometry reimport and
+  full Scene View acceptance remain open.
+
 - ✅ The single-selection Inspector now assigns imported OBJ mesh assets and removes MeshRenderer
   through generation-safe SceneDocument Undo/Redo. Contract tests verify material preservation,
   scene save/reload resolution, one-step removal Undo, and stale asset/project/document rejection.
-  Read-only/recovery disable edits; unavailable references remain preserved. Native authored
-  geometry rendering and geometry reimport publication remain open.
+  Read-only/recovery disable edits; unavailable references remain preserved. Geometry reimport publication and full Scene View acceptance remain open.
 
 - ✅ MeshAssetCatalog now publishes owning imported geometry with stable UUID-derived 64-bit
   resource IDs and project-generation checks. Tests freeze persisted IDs, preserve references
   across rename/reopen, reject collisions atomically, and retain snapshots across unload.
-  Native mesh residency/rendering remain open.
+  Persistent per-asset GPU caching and full Scene View acceptance remain open.
 
 - ✅ SceneDocument now exposes generation-safe MeshRenderer attachment, mesh/material resource
   replacement, removal, and owning reads through Runtime Undo/Redo. Tests retain full 64-bit and
   unresolved IDs across scene save/reload, preserve Redo on no-op edits, and reject stale keys.
-  Native mesh residency and authored-mesh Scene rendering remain open.
+  Persistent per-asset GPU caching and full Scene View acceptance remain open.
 
 - ✅ Stable-ID hierarchy/selection, cycle-safe reparenting, multi-selection, clipboard duplication,
   transform transactions, undo, and atomic scene save/reload are implemented in Editor Core.
@@ -165,7 +173,7 @@ creates property widgets; unknown components retain raw data instead of being si
 - ✅ The public Presentation SceneDrawData boundary supports bounded geometry/instance batches
   in one native depth pass, with compatible whole-mesh defaults, portable range rejection, and
   distinct-geometry Vulkan pixels. [ADR-0002](ADR-0002-Editor-Scene-Mesh-Batches.md) records the
-  contract; Editor authored-mesh residency and full Scene View acceptance remain open.
+  contract; Editor persistent per-asset GPU caching and full Scene View acceptance remain open.
 
 - ✅ The native 3D gizmo exposes Pivot/Center (P). Center handle placement, rotate/scale preview,
   and commit share the mean selected-root origin and first root local axes. Selected descendants
@@ -219,7 +227,7 @@ creates property widgets; unknown components retain raw data instead of being si
   clipboard. Hierarchy row views are built after paste and duplicate actions mutate the document.
 - ✅ The central Scene panel now has an interactive top-down X/Z overview: parent-composed entity
   positions, grid, wheel zoom, middle-button pan, and click selection shared with Hierarchy.
-  Authored 3D mesh output and full 3D gizmos remain open.
+  Native OBJ output is now available; full Scene View acceptance remains open.
 - ✅ The native Vulkan/DX12 scene draw contract now accepts a bounded physical-pixel viewport.
   Portable bounds checks and Vulkan Xvfb pixel readback cover clipping.
 - ✅ The docked Scene canvas now publishes its visible framebuffer-pixel bounds after layout and
@@ -233,7 +241,7 @@ creates property widgets; unknown components retain raw data instead of being si
   its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Proxy instances now show
   composed world rotation and scale; a conservative bound filters candidates before an exact
   rotated-box pick, including translation handles. Authored
-  meshes, exact sheared matrices, and mesh picking remain open. Selected
+  material shaders and exact sheared matrices remain open. Selected
   proxies show colored X/Y/Z translation handles in world or local space; Local axes uses
   the first selected node's world rotation, and picking a handle captures its axis for the drag. Dragging previews selected roots and descendants in world X/Z, along world Y with
   Shift-drag, or along the picked handle, then commits one undoable move on release. Escape cancels;

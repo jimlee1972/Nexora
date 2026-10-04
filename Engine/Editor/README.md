@@ -115,7 +115,7 @@ into renderer or platform internals.
   result maps to 1 and a zero UUID is invalid. The golden ID test freezes this persistence contract.
   Changing it requires migrating saved references. Collisions (including duplicate UUIDs) reject
   the entire candidate publication and preserve the previous catalog; lookup also verifies UUID.
-  Paths and source bytes never enter this derivation. GUI assignment is handled by the optional Inspector; native mesh rendering remains open.
+  Paths and source bytes never enter this derivation. GUI assignment is handled by the optional Inspector; the application submits resolved OBJ geometry through bounded native batches. Persistent GPU caching remains open.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
   hierarchy use stable IDs, never component or container pointers. The hierarchy itself is the
   runtime's (`Entity::parent`, see the Runtime README's entity hierarchy section); the document keeps
