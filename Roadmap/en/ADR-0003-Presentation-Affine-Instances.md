@@ -16,7 +16,9 @@ Append optional `SceneInstance::model_transform`, a row-major float 4x4 affine o
 it owns the transform and unused TRS fields are ignored. Tint remains required and finite. Require
 finite matrix values, canonical last row `[0, 0, 0, 1]`, an invertible linear part, and derived normal
 coefficients within finite float range. Keep the existing TRS validation when absent, empty-instance
-identity, bounded mesh ranges, one-scene-submission rule and completion ownership.
+identity, bounded mesh ranges, one-scene-submission rule and completion ownership. Classify the
+binary32 determinant with error-free binary64 product/sum expansions, so cancellation cannot
+accept singular matrices or reject an exactly invertible one.
 
 One common CPU packer validates and creates private 112-byte records: three float4 model rows,
 three padded float4 inverse-transpose normal rows, and float4 tint. Vulkan, DX12 and Metal upload

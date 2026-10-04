@@ -235,8 +235,9 @@ closed-form translation/Center rotation/scale, Undo/Redo and save/reload tests. 
 affine rendering/picking remains open. Graphical milestone acceptance remains 0/8.
 
 Presentation instances now support exact row-major affine model matrices and shared native
-inverse-transpose normal packing. Portable contracts and Vulkan pixels compare mirrored/sheared
-geometry against an independently baked reference. Scene/Game authored-mesh consumption remains
+inverse-transpose normal packing. Exact binary32 determinant classification prevents cancellation
+errors; portable contracts and Vulkan pixels compare mirrored/sheared geometry against an
+independently baked reference. Scene/Game authored-mesh consumption remains
 follow-up work; no graphical milestone is accepted by this boundary extension.
 
 The graphical Scene overview now offers optional 0.25–4 world-unit movement snapping; its drag
@@ -599,7 +600,8 @@ ancestry 現保留精確世界原點與 gizmo 位置換算，提供 owning world
 繪製／picking 仍待完成，圖形化里程碑驗收仍為 0/8。
 
 Presentation instance 現支援精確 row-major affine model matrix 與共用 native inverse-transpose
-normal packing。Portable contract 與 Vulkan pixel 比較鏡像／剪切 geometry 與獨立烘焙的參考結果。
+normal packing。精確 binary32 determinant 判定避免相消錯誤；portable contract 與 Vulkan pixel
+比較鏡像／剪切 geometry 與獨立烘焙的參考結果。
 Scene／Game authored-mesh 使用流程仍待接續；此 boundary extension 不代表 graphical milestone 驗收。
 
 圖形化 Scene 概覽現可選擇 0.25 至 4 世界單位的移動吸附；拖曳預覽與可復原的提交位移一致，

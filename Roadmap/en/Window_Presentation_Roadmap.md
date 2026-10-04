@@ -131,7 +131,8 @@ Metal Showcase scene/instance/material/depth/copy and Cocoa control/Retina sourc
 
 ✅ Optional row-major affine SceneInstance matrices and common private model/inverse-transpose
 packing are implemented for Vulkan/DX12/Metal ([ADR-0003](ADR-0003-Presentation-Affine-Instances.md)).
-Portable tests check exact points, normals, override semantics and malformed input; Vulkan pixels
+Portable tests check exact points, normals, override semantics, exact determinant cancellation
+classification and malformed input; Vulkan pixels
 compare mirrored/sheared instances against independently baked geometry/normals. Legacy TRS,
 empty identity, batch budgets and fence ownership remain compatible. Editor consumption and
 physical-display/GPU acceptance remain separate.

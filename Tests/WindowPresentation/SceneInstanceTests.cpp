@@ -71,6 +71,34 @@ void Run() {
   (*singular.model_transform)[5] = (*singular.model_transform)[1];
   (*singular.model_transform)[6] = (*singular.model_transform)[2];
   rejects(singular);
+  // All entries are exact binary32 integers, and row 3 is exactly row 1 + row 2.
+  // A rounded double cofactor expansion incorrectly produces determinant -32768.
+  singular.model_transform =
+      std::array<float, 16>{7985202, -7733472,  -2128495, 0, -3315472, -2593841, -4390545, 0,
+                            4669730, -10327313, -6519040, 0, 0,        0,        0,        1};
+  rejects(singular);
+  SceneInstance cancellation;
+  // Integer row additions from identity give determinant exactly 1. Rounded double
+  // cofactor summation produces zero; rejecting it would discard a valid affine instance.
+  cancellation.model_transform =
+      std::array<float, 16>{-103399, -1557824, 519658,   0, 319990, 3082953, -1028862, 0,
+                            208866,  3146810,  -1049711, 0, 0,      0,       0,        1};
+  SceneInstanceUpload cancellation_upload;
+  Require(AffineDeterminant(*cancellation.model_transform) == 1 &&
+              PackSceneInstance(cancellation, cancellation_upload) &&
+              ValidateSceneInstance(cancellation),
+          "exactly invertible cancellation matrix rejected");
+  // The cofactor direction remains orthogonal despite the nearly dependent integer rows.
+  for (std::size_t tangent = 0; tangent < 2; ++tangent) {
+    double dot = 0, magnitude = 0;
+    for (std::size_t row = 0; row < 3; ++row) {
+      const double term = static_cast<double>(cancellation_upload.normal[row][2]) *
+                          cancellation_upload.model[row][tangent];
+      dot += term;
+      magnitude += std::abs(term);
+    }
+    Require(std::abs(dot) <= magnitude * 1e-6, "cancellation matrix normal lost orthogonality");
+  }
   auto bad_color = valid;
   bad_color.color[2] = std::numeric_limits<float>::quiet_NaN();
   rejects(bad_color);

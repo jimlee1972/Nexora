@@ -101,7 +101,9 @@ compatibility with depth, resize and lighting. DX12 target-host execution is a s
 last row `[0, 0, 0, 1]`. It overrides translation/scale/rotation (unused TRS values are ignored),
 while tint is always checked. `ValidateSceneInstance` is a pure CPU validator shared with native
 packing. Reject nonfinite, nonaffine or singular matrices, and inverse-transpose coefficients
-outside the finite float range. Legacy TRS retains the existing nonzero scale and quaternion
+outside the finite float range. Error-free binary64 product/sum expansions classify the determinant
+of binary32 inputs exactly, rejecting dependent rows despite large-term cancellation and retaining
+invertible cancellation cases. Legacy TRS retains the existing nonzero scale and quaternion
 validation. Empty instances still select one identity. See [ADR-0003](../../Roadmap/en/ADR-0003-Presentation-Affine-Instances.md).
 
 Vulkan/DX12/Metal convert descriptors into private 112-byte model/normal/tint records. Geometry

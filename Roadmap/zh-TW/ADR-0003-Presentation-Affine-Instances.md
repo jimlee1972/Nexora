@@ -16,7 +16,8 @@ SceneDocument 也擁有相符的預期 matrix。Presentation 必須維持不相�
 有設定時由它決定 transform，忽略未使用的 TRS field；tint 仍必須有限。Matrix 必須所有值有限，
 最後一列為 `[0, 0, 0, 1]`、linear part 可逆，推導的 normal coefficient 在有限 float 範圍內。
 未設定時維持既有 TRS validation、empty-instance identity、有界 mesh range、單次 scene submission
-規則與 completion ownership。
+規則與 completion ownership。以 error-free binary64 product／sum expansion 判定 binary32
+determinant，避免相消誤接受奇異 matrix，或誤拒絕精確可逆的 matrix。
 
 共用 CPU packer 驗證並產生 private 112-byte record：三列 float4 model、三列 padded float4
 inverse-transpose normal，以及 float4 tint。Vulkan、DX12 與 Metal 上傳此 record，不直接上傳

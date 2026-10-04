@@ -125,6 +125,7 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 
 ✅ Optional row-major affine SceneInstance matrix 與共用 private model／inverse-transpose packing
 已實作於 Vulkan／DX12／Metal（[ADR-0003](ADR-0003-Presentation-Affine-Instances.md)）。Portable test
-驗證精確 point、normal、override 語意與無效輸入；Vulkan pixel 比較鏡像／剪切 instance 與獨立
+驗證精確 point、normal、override 語意、determinant 相消的精確判定與無效輸入；Vulkan pixel
+比較鏡像／剪切 instance 與獨立
 烘焙的 geometry／normal。Legacy TRS、empty identity、batch budget 與 fence ownership 維持相容；
 Editor 使用流程及 physical-display／GPU 驗收仍為獨立項目。

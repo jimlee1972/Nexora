@@ -21,6 +21,48 @@ static_assert(std::is_standard_layout_v<SceneInstanceUpload> &&
 static_assert(sizeof(SceneInstanceUpload) == 112 && offsetof(SceneInstanceUpload, normal) == 48 &&
               offsetof(SceneInstanceUpload, color) == 96);
 
+// Each pair of finite binary32 inputs multiplies exactly in binary64. Split the third
+// multiplication with fma and accumulate its error using error-free TwoSum expansions.
+// All possible binary32 triple products fit binary64's exponent range, including subnormals.
+// This preserves exact singularity even when rounded determinant terms cancel catastrophically.
+inline double AffineDeterminant(const std::array<float, 16> &m) noexcept {
+  std::array<double, 12> expansion{};
+  std::size_t size = 0;
+  const auto add = [&](double term) {
+    std::array<double, 12> next{};
+    std::size_t count = 0;
+    for (std::size_t index = 0; index < size; ++index) {
+      const auto value = expansion[index];
+      const auto sum = term + value;
+      const auto recovered = sum - term;
+      const auto error = (term - (sum - recovered)) + (value - recovered);
+      if (error != 0)
+        next[count++] = error;
+      term = sum;
+    }
+    if (term != 0)
+      next[count++] = term;
+    expansion = next;
+    size = count;
+  };
+  const auto product = [&](float a, float b, float c) {
+    const double pair = static_cast<double>(a) * b;
+    const double rounded = pair * c;
+    add(std::fma(pair, static_cast<double>(c), -rounded));
+    add(rounded);
+  };
+  product(m[0], m[5], m[10]);
+  product(m[1], m[6], m[8]);
+  product(m[2], m[4], m[9]);
+  product(-m[0], m[6], m[9]);
+  product(-m[1], m[4], m[10]);
+  product(-m[2], m[5], m[8]);
+  double result = 0;
+  for (std::size_t index = 0; index < size; ++index)
+    result += expansion[index];
+  return result;
+}
+
 inline bool PackSceneInstance(const SceneInstance &instance, SceneInstanceUpload &output) noexcept {
   SceneInstanceUpload packed;
   for (std::size_t i = 0; i < 4; ++i) {
@@ -44,7 +86,7 @@ inline bool PackSceneInstance(const SceneInstance &instance, SceneInstanceUpload
     const double cofactors[3][3]{{e * i - f * h, f * g - d * i, d * h - e * g},
                                  {c * h - b * i, a * i - c * g, b * g - a * h},
                                  {b * f - c * e, c * d - a * f, a * e - b * d}};
-    const double determinant = a * cofactors[0][0] + b * cofactors[0][1] + c * cofactors[0][2];
+    const double determinant = AffineDeterminant(m);
     if (!std::isfinite(determinant) || determinant == 0)
       return false;
     for (std::size_t row = 0; row < 3; ++row)
