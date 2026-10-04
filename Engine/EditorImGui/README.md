@@ -67,7 +67,7 @@ authoring views on first launch.
   W returns to Move) shows X/Y/Z ring handles and commits a selected-root turn on release as one
   Undo step. Selected roots and descendants visibly rotate during the drag; Escape cancels the
   preview. The Scale tool (R over the canvas) draws local X/Y/Z cubes and commits an axis's scale
-  as one Undo step on release. Selected roots and descendants visibly scale during the drag; Escape cancels the preview. A uniform scale handle remains open. Optional 0.25–4
+  as one Undo step on release. Selected roots and descendants visibly scale during the drag; Escape cancels the preview. A camera-facing white cube previews and commits uniform scaling across all three local components; upward drags enlarge and downward drags shrink. Optional 0.25–4
   world-unit snap steps apply to movement preview and commit.
   Ctrl-click toggles a marker in the selection, Shift-click selects a visible range using the
   Hierarchy anchor, and Frame selected or F centers the overview on the selected world bounds.
