@@ -181,6 +181,8 @@ commands, deterministic ZIP and its SHA-256 sidecar. Linux Development includes 
 shared libraries; the evidence launcher puts the isolated `bin` first and checks that every linked
 Nexora library resolves inside it. Platform Vulkan/graphics drivers remain host dependencies.
 
+`windows-showcase-vulkan-shipping` is the same Shipping/Full package with the Vulkan backend ON (it needs the Vulkan SDK's `vulkan-1` import library; set `VULKAN_SDK`). Run the packaged verifier with `-Backend vulkan` on a machine with a Vulkan GPU. The tag-triggered Release workflow attaches this package next to the DX12 one; hosted runners only prove it builds, links and packages.
+
 The native Linux evidence is versioned at
 [`Linux-Vulkan-Visual-Slice-2026-10-03`](evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
 Expanded Windows rooms, clean-machine graphical launch, physical-display evidence, full texture/
