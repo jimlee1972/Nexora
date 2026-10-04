@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from LaunchShowcasePackage import safe_join, verify_runtime_closure  # noqa: E402
-from PackageShowcase import engine_runtime_libraries  # noqa: E402
+from PackageShowcase import engine_runtime_libraries, macho_engine_libraries, relocate_macos_binaries  # noqa: E402
 
 
 def expect_rejected(base: Path, relative: str, label: str) -> None:
@@ -41,6 +41,49 @@ def main() -> int:
         expect_rejected(base, "bin/../../escape", "a nested parent-directory traversal")
         expect_rejected(base, "/etc/passwd", "a POSIX absolute path")
         expect_rejected(base, "", "an empty path")
+        # Exercise Mach-O closure resolution on every host; these are parser fixtures, not Mac execution evidence.
+        from unittest.mock import patch
+        mac_lib = base / "libNexoraFixture.dylib"
+        mac_lib.write_bytes(b"fixture")
+        staged = base / "mac-staged"
+        (staged / "bin").mkdir(parents=True)
+        mac_exe = staged / "bin/showcase"
+        mac_exe.write_bytes(b"fixture")
+        with patch("PackageShowcase.macho_dependencies", return_value=(["@rpath/libNexoraFixture.dylib"], [str(base)])):
+            assert macho_engine_libraries(mac_exe) == [mac_lib.resolve()]
+        shutil.copy2(mac_lib, staged / "bin/libNexoraFixture.dylib")
+        with patch("PackageShowcase.macho_dependencies", return_value=(["@loader_path/libNexoraFixture.dylib"], [])):
+            assert macho_engine_libraries(mac_exe) == [(staged / "bin/libNexoraFixture.dylib").resolve()]
+        with patch("PackageShowcase.macho_dependencies", return_value=(["@loader_path/libNexoraMissing.dylib"], [])):
+            try:
+                macho_engine_libraries(mac_exe)
+            except RuntimeError:
+                pass
+            else:
+                raise AssertionError("missing Mach-O Engine dependency was accepted")
+        if platform.system() == "Darwin":
+            library = base / "libNexoraNativeFixture.dylib"
+            source = base / "fixture.cpp"
+            source.write_text('extern "C" int fixture() { return 42; }\n')
+            subprocess.run(["c++", "-dynamiclib", str(source),
+                            "-Wl,-install_name,@rpath/libNexoraNativeFixture.dylib", "-o", str(library)], check=True)
+            source.write_text('extern "C" int fixture(); int main() { return fixture() == 42 ? 0 : 1; }\n')
+            binary = base / "fixture"
+            subprocess.run(["c++", str(source), str(library), f"-Wl,-rpath,{base}", "-o", str(binary)], check=True)
+            staged = base / "native-staged"
+            (staged / "bin").mkdir(parents=True)
+            executable = staged / "bin/fixture"
+            shutil.copy2(binary, executable)
+            try:
+                verify_runtime_closure(executable, staged)
+            except RuntimeError as error:
+                assert "outside the staged package" in str(error)
+            else:
+                raise AssertionError("Mach-O build-tree fallback was accepted")
+            shutil.copy2(library, staged / "bin" / library.name)
+            relocate_macos_binaries(staged / "bin")
+            assert verify_runtime_closure(executable, staged) == [library.name]
+            subprocess.run([str(executable)], check=True)
         if platform.system() == "Linux":
             # A real ELF fixture demonstrates the hidden build-tree fallback that a copied
             # executable and checksum-only launch could previously certify as isolated.

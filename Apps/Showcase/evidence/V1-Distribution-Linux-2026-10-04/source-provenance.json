@@ -1,0 +1,21 @@
+{
+  "base_commit": "c4c17bd34df9662b8c140ce13eeafc0be93da0f6",
+  "working_tree": true,
+  "source_sha256": {
+    "Engine/Presentation/src/MetalSurface.mm": "b7cbeca7e8b0e1d98cfa5d61782cf555cbc28297ff3ebb10666437101eeee49f",
+    "Engine/Window/src/CocoaWindow.mm": "e9bcbd411ce799d9656c3225fd3cd20d2cf72cc092c7f1631e1edb63747b0e6e",
+    "Apps/Showcase/CMakeLists.txt": "ba4745556f722ebd76371c1cdbec4efc8d8a22571a65ea21c0180038b4190b79",
+    "Tools/Package/PackageShowcase.py": "1d582448b71f1f58d52aaa28a17f76bc9e5f624317b8322140ffab3f33ef4bb5",
+    "Tools/Package/LaunchShowcasePackage.py": "dd12a55d746e6fd8e4333dc2b230ced4b5ee7eeaad2d8a800a35e19114340e6e",
+    "Tools/Package/VerifyShowcaseRelease.py": "61d6a8d4b02c1352b5c4b6a61449f71f4c9ea14e0aed3318325983fee7891d31",
+    "Tools/Package/AssemblePosixRelease.py": "84e141b8fc3f65ce6fa0f1c931771cfe3c8f7029d23a54fc8219d6c548d66251",
+    ".github/workflows/build.yml": "465ec2bd4765ef8a8185029dda871fddfc5ba3b0b514da65d0050d5252997506",
+    ".github/workflows/release.yml": "52770fa2fc111400872374d56e9a8885ff23c3059c6b86bd35c2e87653027076",
+    "CMakePresets.json": "b74c9be328b1e4b04be167fe71e16111e642366461f2bee782b34c9108924d2c",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "4c8d1012d98449dd2555e862b006e3a586ef949ba644c2f018d890f2c1115500",
+    "Tests/WindowPresentation/CMakeLists.txt": "864e2a0acaad4080388ce3b66b07f31d6fc235ad5dfb09800420fdda7ccb3e37",
+    "Tools/Package/TestLaunchShowcasePackage.py": "1ab97c05d3560a35544ee2b9f9ed12f728992b0791d471fe2aa1681264e5a654"
+  },
+  "package_sha256": "3b7ebcb5644a4303af1fe579cf245b0c98870298573793504bbabda0bcfe721f",
+  "acceptance_scope": "Linux only; Metal files are implementation source, not Mac execution evidence"
+}

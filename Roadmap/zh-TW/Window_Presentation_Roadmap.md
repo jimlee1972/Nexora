@@ -120,3 +120,5 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 ✅ SceneDrawData 現支援在單次 Vulkan／DX12 depth pass 中繪製有界 index／instance mesh 批次。
 空批次維持既有繪製行為。Portable 溢位／範圍檢查與不同幾何的 Vulkan 像素驗證涵蓋 offset 及
 錯誤後仍可成功提交；DX12 執行仍屬目標主機 gate。
+
+2026-10-04 補齊 Metal Showcase scene／instance／材質／depth／copy 與 Cocoa 控制／Retina 原始碼，並提供 Metal 原生像素 CTest 與 Mac 封裝 gate；Mac 執行驗收仍待完成。Linux 發佈套件回歸已通過 80/80，原生 gate 無 skip。見[發佈證據](../../Apps/Showcase/evidence/V1-Distribution-Linux-2026-10-04/acceptance.md)。

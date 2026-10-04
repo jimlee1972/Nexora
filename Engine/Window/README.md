@@ -24,7 +24,10 @@ A window destroyed by the server or another client (no `WM_DELETE_WINDOW` is eve
 `WindowDestroyed`, and the system does not destroy it a second time. Ordinary close requests leave
 the native window alive for application confirmation. Cocoa intercepts its native close action through
 a delegate and reports it once; programmatic destruction bypasses that veto. Cocoa also provides
-native window lifetime, resize observation, visibility, and Spaces fullscreen. Display/DPI
+native window lifetime, physical-key/button/wheel translation, focus, backing-pixel extent and pointer
+coordinates, DPI observation, visibility, and Spaces fullscreen. Repeated key-down events are
+suppressed so held controls do not retrigger actions; modifier events preserve physical left/right
+keys and focus loss clears modifier tracking. Cocoa text/IME composition remains unsupported. Display/DPI
 changes are represented by backend-neutral `DisplayChanged` and `DpiChanged` events where a host
 reports them.
 

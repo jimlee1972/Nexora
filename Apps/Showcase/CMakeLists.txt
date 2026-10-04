@@ -50,7 +50,7 @@ set(NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS)
 if(WIN32 AND NEXORA_LINK_MODE STREQUAL "Modular")
   list(APPEND NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS
        --runtime-libraries "$<TARGET_RUNTIME_DLLS:NexoraShowcase>")
-elseif(UNIX AND NOT APPLE AND NEXORA_LINK_MODE STREQUAL "Modular")
+elseif(UNIX AND NEXORA_LINK_MODE STREQUAL "Modular")
   list(APPEND NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS --runtime-libraries
     "$<TARGET_FILE:NexoraRuntime>" "$<TARGET_FILE:NexoraRenderer>" "$<TARGET_FILE:NexoraRHI>"
     "$<TARGET_FILE:NexoraCore>" "$<TARGET_FILE:NexoraFoundation>"
@@ -131,8 +131,12 @@ if(TARGET NexoraExamplePlugin)
   endif()
   list(APPEND NEXORA_SHOWCASE_RUNTIME_LIBRARY_ARGS "$<TARGET_FILE:NexoraExamplePlugin>")
 endif()
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32)
-  string(TOLOWER "${CMAKE_SYSTEM_NAME}" NEXORA_SHOWCASE_EVIDENCE_PLATFORM)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32 OR APPLE)
+  if(APPLE)
+    set(NEXORA_SHOWCASE_EVIDENCE_PLATFORM "macos")
+  else()
+    string(TOLOWER "${CMAKE_SYSTEM_NAME}" NEXORA_SHOWCASE_EVIDENCE_PLATFORM)
+  endif()
 endif()
 if(NEXORA_LINK_MODE STREQUAL "Modular")
   add_custom_target(NexoraShowcasePackageDevelopment
@@ -148,7 +152,7 @@ if(NEXORA_LINK_MODE STREQUAL "Modular")
     DEPENDS NexoraShowcase
     COMMAND_EXPAND_LISTS
     VERBATIM)
-  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32 OR APPLE)
     add_custom_target(NexoraShowcasePackageDevelopmentEvidence
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/LaunchShowcasePackage.py"
               --package "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Development"
@@ -170,7 +174,7 @@ if(NEXORA_LINK_MODE STREQUAL "Monolithic")
     DEPENDS NexoraShowcase
     COMMAND_EXPAND_LISTS
     VERBATIM)
-  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR WIN32 OR APPLE)
     add_custom_target(NexoraShowcasePackageShippingEvidence
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/LaunchShowcasePackage.py"
               --package "${CMAKE_BINARY_DIR}/package/NexoraShowcase-Shipping"

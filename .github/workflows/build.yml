@@ -79,16 +79,16 @@ jobs:
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
       - name: Verify Development Showcase package
-        if: runner.os != 'macOS'
         run: cmake --build --preset ${{ matrix.preset }} --target NexoraShowcasePackageDevelopmentEvidence
       - uses: actions/upload-artifact@v4
-        if: always() && runner.os != 'macOS'
+        if: always()
         with:
           name: showcase-${{ matrix.preset }}-package-evidence
           path: |
             build/${{ matrix.preset }}/package/NexoraShowcase-Development*
             build/${{ matrix.preset }}/showcase-visual-evidence/
             build/${{ matrix.preset }}/artifacts/showcase-linux-vulkan*/
+            build/${{ matrix.preset }}/artifacts/metal-scene.ppm
             build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
 
   # Runs the graphical Editor against a real X11 server (Xvfb) with Mesa's software Vulkan. It is a
@@ -221,6 +221,52 @@ jobs:
           path: |
             build/windows-showcase-vulkan-shipping/package/NexoraShowcase-Shipping*
             build/windows-showcase-vulkan-shipping/artifacts/showcase-windows-v1/
+
+  showcase-posix-shipping-package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            preset: linux-showcase-shipping
+          - os: macos-latest
+            preset: macos-showcase-shipping
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
+      - name: Install Linux native prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool
+      - run: cmake --preset ${{ matrix.preset }}
+      - run: cmake --build --preset ${{ matrix.preset }} --target NexoraShowcasePackageShippingEvidence --parallel 4
+      - name: Verify native isolated-copy package
+        shell: bash
+        run: |
+          set +e
+          python3 Tools/Package/VerifyShowcaseRelease.py \
+            --package build/${{ matrix.preset }}/package/NexoraShowcase-Shipping \
+            --evidence-directory build/${{ matrix.preset }}/artifacts/release-native \
+            ${{ runner.os == 'macOS' && '--allow-unavailable-display' || '' }}
+          code=$?
+          if [[ $code == 77 ]]; then
+            echo "Native display acceptance UNSUPPORTED; headless/package evidence retained."
+            exit 0
+          fi
+          exit "$code"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: showcase-${{ matrix.preset }}-evidence
+          path: |
+            build/${{ matrix.preset }}/package/NexoraShowcase-Shipping*
+            build/${{ matrix.preset }}/artifacts/release-native/
 
   mimalloc-smoke:
     name: mimalloc backend (${{ matrix.preset }})

@@ -85,9 +85,15 @@ def main() -> int:
         engine_libraries = {}
         if platform.system() == "Linux":
             environment["LD_LIBRARY_PATH"] = str(staged / "bin") + os.pathsep + environment.get("LD_LIBRARY_PATH", "")
+        if platform.system() in ("Linux", "Darwin"):
             verify_runtime_closure(executable, staged, environment)
-            for resolved in engine_runtime_libraries(executable, environment):
-                engine_libraries[resolved.name] = resolved.relative_to(staged).as_posix()
+            binaries = [executable]
+            if platform.system() == "Darwin":
+                binaries.extend(path for path in (staged / "bin").iterdir() if path != executable)
+            for binary in binaries:
+                verify_runtime_closure(binary, staged, environment)
+                for resolved in engine_runtime_libraries(binary, environment):
+                    engine_libraries[resolved.name] = resolved.relative_to(staged).as_posix()
         completed = subprocess.run([str(executable), *command[1:]], cwd=staged, env=environment,
                                    text=True, capture_output=True, check=False)
         report = staged / "launch-report.json"

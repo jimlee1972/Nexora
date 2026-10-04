@@ -13,7 +13,8 @@ Development builds a dynamic Zig module; Shipping links it statically. Interacti
 opens the Hub by default (`--mode=interactive --scene=hub --backend=auto`). Linux/Vulkan and the
 existing Windows/DX12 geometry path use `DrawScene` for indexed, lit, depth-tested room geometry,
 then `RenderUi` for the original bitmap font and panels. UI shaders are embedded independently of
-the graphical Editor feature. Metal scene geometry remains unsupported and is not claimed as verified.
+the graphical Editor feature. Metal scene geometry, sampled materials, instances and GPU copy are now implemented in source;
+Mac native acceptance is still required.
 
 The eight room controls are `1`–`8`; mouse drag orbits, wheel zooms, and held WASD controls the camera
 or gameplay character. F1/F2/F3 toggle overview/profiler/matrix; F5 reloads an owned scene snapshot
@@ -185,8 +186,9 @@ Nexora library resolves inside it. Platform Vulkan/graphics drivers remain host 
 
 The native Linux evidence is versioned at
 [`Linux-Vulkan-Visual-Slice-2026-10-03`](evidence/Linux-Vulkan-Visual-Slice-2026-10-03/acceptance.md).
-Expanded Windows rooms, clean-machine graphical launch, physical-display evidence, full texture/
-instancing/skin/particle content and plugin ABI injection remain open acceptance items.
+Windows rooms, clean-VM launch, GTX 960 physical-display evidence, procedural texture/
+instancing/skin/particle content and Lab ABI rejection are recorded below. Metal and additional GPU
+acceptance remain open.
 
 ## Live Validation Lab
 
@@ -281,3 +283,32 @@ Local developer-machine evidence: [Windows-V1-DX12-Local-2026-10-03](evidence/Wi
 Clean Windows 10 VM evidence: [Windows-V1-CleanVM-VirtualBox-2026-10-03](evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md) (virtual GPU).
 Physical-display evidence: [Windows-V1-PhysicalDisplay-GTX960-2026-10-03](evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md).
 V1 final acceptance is open (Metal parity).
+
+## POSIX release completion work
+
+Linux and macOS now have Shipping/Full release jobs, with distinct archive names, checksum sidecars,
+commit/run provenance and separate headless/native evidence. Pull-request Build jobs exercise the
+same package gates before a tag. The release still creates a draft. Linux executes the existing
+Xvfb interaction/screenshot gate from a verified isolated package; macOS performs an eight-room
+Metal graph/report smoke when its device and display are available, otherwise preserving an explicit
+UNSUPPORTED artifact. The Mac smoke does not claim screenshots or operator physical-display review.
+
+```bash
+cmake --preset macos-showcase-shipping
+cmake --build --preset macos-showcase-shipping --target NexoraShowcasePackageShippingEvidence
+python3 Tools/Package/VerifyShowcaseRelease.py \
+  --package build/macos-showcase-shipping/package/NexoraShowcase-Shipping \
+  --evidence-directory build/macos-showcase-shipping/artifacts/release-native
+```
+
+`macos-development` also provides `window_presentation.metal_scene`, retaining a GPU pixel PPM.
+Development packages include all seven Engine dylibs. The packager rewrites Engine install names to
+`@loader_path` within packaged binaries, applies ad-hoc signatures after relocation, then computes
+checksums. Isolated launch rejects Engine dependencies resolving outside the package, including
+plugin/gameplay dylibs. This is a runnable developer distribution, without Developer ID notarization.
+Use `sh run-showcase.sh` on the target. Drivers and desktop services remain host dependencies.
+
+`windows-showcase-vulkan-development` complements the Vulkan Shipping preset for SDK-equipped
+Windows developers; the DX12-only Showcase presets remain available without the Vulkan SDK.
+Mac compilation, native pixels, real-input/screenshots, clean-host deployment and a new multi-platform
+tag run remain separate acceptance tasks until their target-host evidence is recorded.

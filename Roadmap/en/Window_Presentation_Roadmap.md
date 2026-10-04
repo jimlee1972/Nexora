@@ -126,3 +126,5 @@ physical-display and clean-host final gates remain pending.
 ✅ SceneDrawData now supports bounded index/instance mesh batches inside one Vulkan/DX12 depth
 pass. Empty batches preserve the existing draw. Portable overflow/bounds checks and Vulkan distinct-
 geometry pixels cover range offsets and invalid-then-valid recovery; DX12 execution remains a target gate.
+
+Metal Showcase scene/instance/material/depth/copy and Cocoa control/Retina source were extended on 2026-10-04. A native Metal pixel CTest and Mac package gates are provided; their Mac execution acceptance is pending. Linux distribution regression remains accepted at 80/80 with no skipped native gates. See [distribution evidence](../../Apps/Showcase/evidence/V1-Distribution-Linux-2026-10-04/acceptance.md).
