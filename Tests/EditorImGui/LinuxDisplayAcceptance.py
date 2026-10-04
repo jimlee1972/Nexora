@@ -147,11 +147,14 @@ def finish_project_selector(
     name: str,
     action: str,
     expected_access: str,
+    recent_projects: Path,
 ) -> str:
     def press(*keys: str) -> None:
         subprocess.run([xdotool, "key", *keys], env=environment, check=True)
         time.sleep(0.15)
 
+    previous_recent_revision = (recent_projects.stat().st_mtime_ns
+                                if recent_projects.is_file() else None)
     window = wait_for_window(xdotool, environment)
     subprocess.run([xdotool, "windowfocus", window], env=environment, check=True)
     time.sleep(0.5)
@@ -191,7 +194,23 @@ def finish_project_selector(
             raise RuntimeError(f"graphical selector did not create the project: {stderr}")
     else:
         press("ctrl+o")
-        time.sleep(1.0)
+    # The descriptor exists before background content import finishes. Recent projects are
+    # atomically recorded only after activation; wait for that publication before closing.
+    deadline = time.monotonic() + 15
+    activated = False
+    while time.monotonic() < deadline:
+        if (recent_projects.is_file() and
+                recent_projects.stat().st_mtime_ns != previous_recent_revision and
+                str(root.resolve()) in recent_projects.read_text()):
+            activated = True
+            break
+        if editor.poll() is not None:
+            break
+        time.sleep(0.05)
+    if not activated:
+        subprocess.run([xdotool, "windowclose", window], env=environment, check=False)
+        _, stderr = editor.communicate(timeout=30)
+        raise RuntimeError(f"project selector did not publish activation: {stderr}")
     subprocess.run([xdotool, "windowclose", window], env=environment, check=True)
     _, stderr = editor.communicate(timeout=30)
     if editor.returncode != 0 or "graphical evidence:" not in stderr:
@@ -293,6 +312,7 @@ def main() -> int:
             "Selector Acceptance",
             "created",
             "read-write",
+            recent_projects,
         )
         editor = None
         selector_descriptor = (selector_root / "project.nexora").read_text()
@@ -311,6 +331,7 @@ def main() -> int:
             "",
             "opened",
             "read-only",
+            recent_projects,
         )
         editor = None
 
