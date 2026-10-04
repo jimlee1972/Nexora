@@ -113,3 +113,7 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 導覽重播歸零與 M5／M6 指定拒絕案例的實際輸入／輸出。Source／package hash 採固定 LF 位元組。
 基底 e4a140139189 通過 Linux Development 77/77 與 Shipping package CI；
 實體顯示與乾淨主機最終 gate 仍待驗收。
+
+✅ SceneDrawData 現支援在單次 Vulkan／DX12 depth pass 中繪製有界 index／instance mesh 批次。
+空批次維持既有繪製行為。Portable 溢位／範圍檢查與不同幾何的 Vulkan 像素驗證涵蓋 offset 及
+錯誤後仍可成功提交；DX12 執行仍屬目標主機 gate。

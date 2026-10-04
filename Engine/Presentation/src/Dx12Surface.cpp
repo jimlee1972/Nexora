@@ -298,8 +298,14 @@ public:
         (drawData.offscreen && (drawData.viewport.x != 0 || drawData.viewport.y != 0 ||
                                 drawData.viewport.width != 0 || drawData.viewport.height != 0)))
       return SurfaceStatus::InvalidDescriptor;
-    if (drawData.instances.size() > 4096)
+    if (drawData.vertices.size() > 65535 || drawData.indices.size() > 1048576 ||
+        drawData.indices.size() % 3 != 0 || drawData.instances.size() > 4096 ||
+        !ValidateSceneMeshBatches(drawData.batches, drawData.indices.size(),
+                                  std::max<std::size_t>(drawData.instances.size(), 1)))
       return SurfaceStatus::InvalidDescriptor;
+    for (const auto index : drawData.indices)
+      if (index >= drawData.vertices.size())
+        return SurfaceStatus::InvalidDescriptor;
     for (const auto &instance : drawData.instances) {
       for (const auto value : instance.translation)
         if (!std::isfinite(value))
@@ -454,8 +460,14 @@ public:
                                             sizeof(SceneInstance)}};
     commands_->IASetVertexBuffers(0, 2, views);
     commands_->IASetIndexBuffer(&indexView);
-    commands_->DrawIndexedInstanced(static_cast<UINT>(drawData.indices.size()),
-                                    static_cast<UINT>(instances.size()), 0, 0, 0);
+    if (drawData.batches.empty()) {
+      commands_->DrawIndexedInstanced(static_cast<UINT>(drawData.indices.size()),
+                                      static_cast<UINT>(instances.size()), 0, 0, 0);
+    } else {
+      for (const auto &batch : drawData.batches)
+        commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
+                                        batch.firstInstance);
+    }
     sceneDrawn_ = true;
     sceneOffscreen_ = drawData.offscreen;
     diagnostics_.sceneOffscreenDrawCalls += drawData.offscreen ? 1 : 0;

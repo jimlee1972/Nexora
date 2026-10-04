@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <deque>
+#include <limits>
 #include <ranges>
 #include <thread>
 #include <vector>
@@ -151,9 +152,34 @@ private:
   bool destroyed_ = false;
   Presentation::SurfaceStatus nextStatus_ = Presentation::SurfaceStatus::Ready;
 };
+void TestSceneMeshBatchRanges() {
+  using Presentation::SceneMeshBatch;
+  using Presentation::ValidateSceneMeshBatches;
+  const std::array valid{SceneMeshBatch{0, 3, 0, 1}, SceneMeshBatch{3, 6, 1, 2}};
+  assert(ValidateSceneMeshBatches({}, 9, 3));
+  assert(ValidateSceneMeshBatches(valid, 9, 3));
+  const std::array overlapping{valid[0], valid[0]};
+  assert(ValidateSceneMeshBatches(overlapping, 9, 3));
+  const std::array identity{SceneMeshBatch{0, 3, 0, 1}};
+  assert(ValidateSceneMeshBatches(identity, 3, 1));
+  for (const auto invalid :
+       {SceneMeshBatch{0, 0, 0, 1}, SceneMeshBatch{0, 3, 0, 0}, SceneMeshBatch{1, 3, 0, 1},
+        SceneMeshBatch{0, 2, 0, 1}, SceneMeshBatch{9, 3, 0, 1}, SceneMeshBatch{6, 6, 0, 1},
+        SceneMeshBatch{0, 3, 3, 1}, SceneMeshBatch{0, 3, 2, 2},
+        SceneMeshBatch{std::numeric_limits<std::uint32_t>::max(), 3, 0, 1},
+        SceneMeshBatch{0, 3, std::numeric_limits<std::uint32_t>::max(), 1},
+        SceneMeshBatch{3, std::numeric_limits<std::uint32_t>::max(), 0, 1},
+        SceneMeshBatch{0, 3, 1, std::numeric_limits<std::uint32_t>::max()}})
+    assert(!ValidateSceneMeshBatches(std::span(&invalid, 1), 9, 3));
+  const std::vector<SceneMeshBatch> maximum(4096, identity[0]);
+  assert(ValidateSceneMeshBatches(maximum, 3, 1));
+  const std::vector<SceneMeshBatch> excessive(4097, identity[0]);
+  assert(!ValidateSceneMeshBatches(excessive, 3, 1));
+}
 } // namespace
 
 int main() {
+  TestSceneMeshBatchRanges();
   const auto full_viewport = Presentation::ResolveSceneViewport({}, 640, 480);
   const auto inset_viewport = Presentation::ResolveSceneViewport({160, 120, 320, 240}, 640, 480);
   assert(full_viewport && full_viewport->width == 640 && full_viewport->height == 480 &&

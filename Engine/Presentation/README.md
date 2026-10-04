@@ -10,7 +10,7 @@ scissors, offsets, and generation-checked texture uploads and records native GPU
 the acquired image. Vulkan, DX12, and Metal keep their pipeline, sampler, texture descriptors, and
 bounded per-frame upload buffers below this boundary; resources replaced by a later atlas generation
 are released only after the protecting frame fence/command buffer completes. No native image or
-device handle escapes. `DrawScene` similarly borrows one indexed `SceneDrawData` mesh, transform,
+device handle escapes. `DrawScene` similarly borrows indexed `SceneDrawData` geometry, transform,
 light, and base color for the duration of the call and records a depth-tested native scene draw on
 the render thread. DX12 and Vulkan own their depth buffers, pipelines, and bounded per-frame upload storage;
 `SceneDrawData::viewport` optionally bounds that draw to a physical-pixel rectangle of the acquired
@@ -131,3 +131,21 @@ resize, rejected out-of-order/duplicate composition and teardown. Application gr
 not determine GPU resource lifetime: the surface/fence owns submitted storage after callbacks return.
 `softwareRasterizer` reports DX12 WARP and Vulkan CPU-device selection explicitly, including in the
 Showcase profiler/report. Software-driver acceptance does not certify physical-GPU output.
+
+## Native mesh batches
+
+`SceneDrawData::batches` optionally selects up to 4,096 `SceneMeshBatch` index/instance ranges.
+Each range starts on a triangle boundary and contains complete triangles and at least one instance.
+Indices address the complete shared vertex upload; ranges may overlap for submeshes or repeated
+geometry. Vulkan and DX12 validate every range, including arithmetic overflow, before GPU allocation
+or recording. Invalid descriptors leave the frame available for a corrected submission.
+Empty batches retain the existing whole-mesh/all-instances draw; empty instances still select one
+identity transform. Total upload limits remain 65,535 vertices, 1,048,576 indices, and 4,096 instances.
+The MVP, lighting, texture, and base material remain common, with per-instance transform/tint.
+All draws share one depth attachment and fence-owned upload allocation. Clipping, offscreen copy,
+UI order, resize/recovery, and one Scene submission per frame keep their existing rules.
+`sceneDrawCalls` counts submissions, and `sceneInstances` counts uploaded records even when a range
+is referenced more than once. The descriptor is a C++ boundary requiring consumer rebuild; no
+serialized asset format or stable C ABI changed. See [ADR-0002](../../Roadmap/en/ADR-0002-Editor-Scene-Mesh-Batches.md).
+Portable range tests and Vulkan X11 pixels verify distinct geometry/instance offsets and rejection
+followed by a successful draw. DX12 execution acceptance and authored-mesh Editor residency remain open.

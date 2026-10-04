@@ -137,6 +137,11 @@ creates property widgets; unknown components retain raw data instead of being si
   and preview-mode changes. Contract tests cover overview/native focus loss, Undo, and document
   replacement; a real Xvfb FocusOut during a prospective move preserves saved scene bytes.
 
+- ✅ The public Presentation SceneDrawData boundary supports bounded geometry/instance batches
+  in one native depth pass, with compatible whole-mesh defaults, portable range rejection, and
+  distinct-geometry Vulkan pixels. [ADR-0002](ADR-0002-Editor-Scene-Mesh-Batches.md) records the
+  contract; Editor authored-mesh residency and full Scene View acceptance remain open.
+
 - ✅ The native 3D gizmo exposes Pivot/Center (P). Center handle placement, rotate/scale preview,
   and commit share the mean selected-root origin and first root local axes. Selected descendants
   do not weight the center twice; gesture-time tool/pivot/camera changes are disabled. Linux Xvfb
