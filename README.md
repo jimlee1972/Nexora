@@ -58,8 +58,9 @@ an unchecked or unmarked item remains incomplete.
 Windows DX12 local delivery: [acceptance record](Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md). Use `windows-showcase-development` for Development/Full and `windows-showcase-shipping` for Shipping/Full; `-CompleteGuidedTour` verifies all 210 seconds. Developer-GPU evidence remains separate from clean-host and physical-display operator attestations. Fresh JSON verifies F5 snapshot round trips, tour replay resets and sampled Lab error cases. Clean-VM record: [acceptance](Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md) (virtual GPU, not a physical display). Physical-display record: [acceptance](Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md).
 
 The [V1 Visual Identity Showcase Roadmap](Roadmap/en/V1-Visual-Identity-Roadmap.md)
-is a planning draft for a stylized ruins courtyard focused on materials, lighting, and environmental
-motion. VIS-M0–VIS-M6 are not implemented or accepted (0/7); these separate visual milestones do
+records the ✅ user-confirmed art direction and retained concept preview for a stylized ruins courtyard,
+with warm sunlight, cool shadows, turquoise runes, and a [free-model/texture shortlist](Roadmap/art/Free-Asset-Sourcing.md).
+VIS-M0–VIS-M6 remain planned and unaccepted (0/7); these separate visual milestones do
 not change existing V1 contract progress or final platform acceptance.
 
 ### Repository status
@@ -394,8 +395,9 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 Windows DX12 本地交付：[驗收紀錄](Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md)。Development/Full 使用 `windows-showcase-development`，Shipping/Full 使用 `windows-showcase-shipping`；`-CompleteGuidedTour` 驗證完整 210 秒。開發機 GPU 證據不代表乾淨主機或實體顯示操作聲明已驗收。當次 JSON 驗證 F5 snapshot round trip、導覽重播歸零與指定 Lab 錯誤案例。乾淨 VM 紀錄：[驗收](Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md)（虛擬 GPU，非實體顯示器）。實體顯示紀錄：[驗收](Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md)。
 
 [V1 視覺特色 Showcase Roadmap](Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md)
-為以材質、光影與環境動態為主軸的風格化遺跡庭院規劃草案。VIS-M0～VIS-M6
-尚未實作或驗收（0/7）；獨立視覺里程碑不改變既有 V1 contract 進度或最終平台驗收狀態。
+已記錄 ✅ 使用者確認的美術方向並保存概念預覽：風格化遺跡庭院、暖陽、冷色陰影與青綠符文，
+以及 [免費模型／貼圖候選](Roadmap/art/Free-Asset-Sourcing.md)。VIS-M0～VIS-M6 仍為規劃中、
+尚未驗收（0/7）；獨立視覺里程碑不改變既有 V1 contract 進度或最終平台驗收狀態。
 
 ### Repository 狀態
 

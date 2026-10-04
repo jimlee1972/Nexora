@@ -1,10 +1,10 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
-> Version: v0.1
+> Version: v0.2
 >
 > Date: 2026-10-04
 >
-> Status: planning draft; VIS-M0 through VIS-M6 have not been implemented or accepted (0/7).
+> Status: art direction confirmed by the user; VIS-M0 through VIS-M6 remain planned and unaccepted (0/7).
 >
 > Theme: a stylized ruins courtyard.
 >
@@ -48,6 +48,23 @@ Use a courtyard with a central statue/rune device, surrounded by stone walls, me
 | Motion finale | Camera approaches the device; vegetation moves, runes activate, particles flow | Environmental motion, effect timing, and replayability |
 
 VIS-M0 records asset authors, sources, licenses, redistribution conditions, and production cost. Track engineering models separately from final art assets.
+
+### Confirmed art direction
+
+✅ The user approved the following generated preview in this conversation on 2026-10-04. Use it as the art-direction reference for asset selection, composition, materials, and lighting.
+
+![Approved stylized ruins courtyard concept; AI-generated, not an engine screenshot](../art/V1-Visual-Identity-Concept.png)
+
+- **Mood and palette:** a calm, mysterious sanctuary; golden late-afternoon sunlight, warm ochre sandstone, cool blue shadows, muted green foliage, and one turquoise rune accent.
+- **Focal point:** a weathered stone ring with aged-bronze fittings around a floating faceted crystal, raised on a carved pedestal. The central rune mechanism defines the scene's identity.
+- **Architecture and composition:** modular broken arches, thick columns, worn paving, and ceramic props; a readable foreground, central device in the midground, and ruins behind it.
+- **Material treatment:** stylized PBR with intentional silhouettes, stone surface detail, varied roughness, restrained metal highlights, and matte ceramics. Free assets must be adapted to this look rather than dictate a different style.
+- **Motion and effects:** gentle foliage wind, vegetation backlighting, rune activation, sparse floating particles, and controlled emissive bloom.
+- **V1 scope:** start with one compact courtyard and reduced architecture/foliage density. The concept's reflective puddles, distant waterfall, extensive background, and camera blur are not initial acceptance requirements; water/reflections remain later extensions.
+
+The preview was created with the image-generation tool and is a visual target, not a rendered Nexora scene, production model, texture map, or performance result. The original PNG is retained unchanged; SHA-256: `ad4cd12a0331e9c30b4a2e54d2773ee0718a63bdf2791a65743f38e1bd7a9b3b`.
+
+The user also requested free online models and textures. Prioritize freely downloadable assets with redistribution permission, preferably CC0; avoid paid packs. See the bilingual [free-asset shortlist and source checks](../art/Free-Asset-Sourcing.md). Art-direction confirmation alone does not complete VIS-M0: asset inventory, greybox, pipeline loading, fixed shots, and baseline capture remain open.
 
 ## 4. Milestones
 
