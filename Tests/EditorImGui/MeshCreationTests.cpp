@@ -198,9 +198,9 @@ int main() {
         const auto frame =
             editor::preview::BuildGameFrame(*play.PlayWorld(), play.Inspect(), f.meshes, 2);
         Require(frame.instances.size() == 1 && frame.geometry.vertices.size() == 3 &&
-                    frame.geometry.indices.size() == 3 &&
-                    frame.instances.front().translation[0] == expected_x &&
-                    frame.instances.front().translation[2] == expected_z,
+                    frame.geometry.indices.size() == 3 && frame.instances.front().model_transform &&
+                    frame.instances.front().model_transform->at(3) == expected_x &&
+                    frame.instances.front().model_transform->at(11) == expected_z,
                 "created mesh did not resolve into Game geometry");
         Require(f.scene.Undo(), "UI Add mesh Undo failed");
         f.Unchanged();

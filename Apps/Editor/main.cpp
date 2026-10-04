@@ -128,7 +128,13 @@ NativeSceneProxyCandidates(const nexora::editor::SceneDocument &scene,
         std::abs(pose->sx) > 100000.0 || std::abs(pose->sy) > 100000.0 ||
         std::abs(pose->sz) > 100000.0)
       continue;
-    const auto matrix = nexora::runtime::ToMatrix(*pose);
+    auto matrix = nexora::runtime::ToMatrix(*pose);
+    if (meshes && meshes->entities.contains(node.id)) {
+      const auto exact = scene.WorldMatrix(node.id);
+      if (!exact || !nexora::editor::preview::AffineInstance(*exact))
+        continue;
+      matrix = *exact;
+    }
     nexora::editor::PickCandidate candidate;
     candidate.entity = node.id;
     candidate.min = {std::numeric_limits<double>::infinity(),
@@ -186,6 +192,11 @@ NativeSceneMeshes PrepareNativeSceneMeshes(const nexora::editor::SceneDocument &
     const auto component = key ? scene.MeshRenderer(*key) : std::nullopt;
     if (!component)
       continue;
+    const auto matrix = scene.WorldMatrix(candidate.entity);
+    if (!matrix || !nexora::editor::preview::AffineInstance(*matrix)) {
+      ++result.unavailable;
+      continue;
+    }
     const auto mesh = catalog.ResolveResource(component->mesh, generation);
     if (!mesh || !content.Browser().Find(mesh->asset) || rejected.contains(mesh->resource)) {
       ++result.unavailable;
@@ -418,9 +429,11 @@ NativeScenePickHit PickNativeSceneProxy(const nexora::editor::SceneDocument &sce
     if (!pose)
       continue;
     const auto authored = meshes.entities.find(candidate.entity);
+    const auto matrix = scene.WorldMatrix(candidate.entity);
     const auto distance =
         authored != meshes.entities.end()
-            ? nexora::editor::preview::PickMesh(*ray, *authored->second.geometry, *pose)
+            ? (matrix ? nexora::editor::preview::PickMesh(*ray, *authored->second.geometry, *matrix)
+                      : std::nullopt)
             : nexora::editor::PickOrientedBox(
                   *ray, {pose->x, pose->y + 0.5, pose->z},
                   {std::abs(pose->sx) * 0.45, std::abs(pose->sy) * 0.45, std::abs(pose->sz) * 0.45},
@@ -657,6 +670,8 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
       operation->factors = {factor, factor, factor};
   }
   std::optional<std::unordered_map<nexora::runtime::Id, nexora::runtime::Transform>> preview;
+  std::optional<std::unordered_map<nexora::runtime::Id, nexora::runtime::TransformMatrix>>
+      matrix_preview;
   if (operation) {
     std::vector<nexora::editor::SceneDocument::NodeKey> keys;
     for (const auto id : scene.Selection()) {
@@ -665,6 +680,7 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     }
     NativeSceneOperationPivot(scene, center_pivot, *operation);
     preview = scene.PreviewSelectionGizmo(keys, *operation);
+    matrix_preview = scene.PreviewSelectionGizmoMatrices(keys, *operation);
   }
   camera.x = std::clamp(camera.x, -100000.0, 100000.0);
   camera.z = std::clamp(camera.z, -100000.0, 100000.0);
@@ -703,11 +719,13 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     instance.color[2] = is_selected ? 0.2F : 1.0F;
     if (const auto authored = meshes.entities.find(candidate.entity);
         authored != meshes.entities.end()) {
-      instance.translation[1] = static_cast<float>(pose->y);
-      instance.scale[0] = static_cast<float>(pose->sx);
-      instance.scale[1] = static_cast<float>(pose->sy);
-      instance.scale[2] = static_cast<float>(pose->sz);
-      authored_instances.emplace_back(authored->second.resource, instance);
+      const auto matrix = matrix_preview ? std::optional{matrix_preview->at(candidate.entity)}
+                                         : scene.WorldMatrix(candidate.entity);
+      auto exact = matrix ? nexora::editor::preview::AffineInstance(*matrix) : std::nullopt;
+      if (!exact)
+        continue;
+      std::ranges::copy(instance.color, exact->color);
+      authored_instances.emplace_back(authored->second.resource, *exact);
     } else {
       instances.push_back(instance);
     }
@@ -1167,8 +1185,9 @@ int RunGraphical(std::optional<ProjectState> project,
           if (unavailable_meshes != 0)
             log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene",
                 std::to_string(unavailable_meshes) +
-                    " mesh objects use proxies because their assets are unavailable or exceed the "
-                    "shared preview geometry budget.");
+                    " mesh objects use proxies because their assets are unavailable, exceed "
+                    "preview "
+                    "limits, or their transforms cannot be displayed.");
         }
         if (const auto request = ui.NativeScenePick()) {
           const auto hit = PickNativeSceneProxy(
@@ -1394,11 +1413,12 @@ int RunGraphical(std::optional<ProjectState> project,
                                    : "No resolved mesh geometry in the active Play scenes.");
       } else {
         const auto status = created.surface->DrawScene(game.DrawData(*viewport));
-        ui.SetNativeGameStatus(game.unavailable
-                                   ? std::to_string(game.unavailable) +
-                                         " mesh renderers unavailable or over the preview budget."
-                                   : "",
-                               status != Nexora::Presentation::SurfaceStatus::Unsupported);
+        ui.SetNativeGameStatus(
+            game.unavailable
+                ? std::to_string(game.unavailable) +
+                      " mesh renderers could not be displayed (asset, budget, or transform)."
+                : "",
+            status != Nexora::Presentation::SurfaceStatus::Unsupported);
         if (status == Nexora::Presentation::SurfaceStatus::Ready &&
             (!native_game_viewport_reported || native_game_viewport_reported->x != viewport->x ||
              native_game_viewport_reported->y != viewport->y ||

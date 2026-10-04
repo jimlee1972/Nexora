@@ -101,5 +101,5 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
 - ✅ Exact world origins and gizmo position conversion now survive deep mirrored/sheared ancestry.
   Owning SceneDocument world/preview matrices match commit without touching selection or history.
   `runtime.entity_parenting` and `editor.affine_gizmo_contract` cover closed-form origins, world
-  translation, Center rotation/scale, atomic Undo/Redo and save/reload. Native authored-mesh affine
-  rendering/picking and complete graphical milestone acceptance remain open.
+  translation, Center rotation/scale, atomic Undo/Redo and save/reload. Native authored Scene/Game meshes now consume exact matrices for geometry and
+  Scene picking; materials, persistent GPU caching and graphical milestone acceptance remain open.
