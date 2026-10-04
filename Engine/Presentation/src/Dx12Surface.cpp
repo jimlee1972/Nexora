@@ -577,10 +577,6 @@ private:
       cbuffer Transform : register(b0) { float2 scale; float2 translate; };
       struct VSInput { float2 position : POSITION; float2 uv : TEXCOORD0; float4 color : COLOR0; };
       struct PSInput { float4 position : SV_Position; float2 uv : TEXCOORD0; float4 color : COLOR0; };
-      float3 SafeNormal(float3 value) {
-        float magnitude = max(max(abs(value.x), abs(value.y)), abs(value.z));
-        return magnitude > 0.0 ? normalize(value / magnitude) : float3(0, 0, 0);
-      }
       PSInput VSMain(VSInput input) { PSInput output; output.position = float4(input.position * scale + translate, 0, 1); output.uv = input.uv; output.color = input.color; return output; }
       Texture2D texture0 : register(t0); SamplerState sampler0 : register(s0);
       float4 PSMain(PSInput input) : SV_Target { return input.color * texture0.Sample(sampler0, input.uv); }
@@ -675,6 +671,10 @@ private:
       SamplerState materialSampler : register(s0);
       struct VSInput { float3 position : POSITION; float2 uv : TEXCOORD; float3 normal : NORMAL; float4 model0 : INSTANCE_MODEL0; float4 model1 : INSTANCE_MODEL1; float4 model2 : INSTANCE_MODEL2; float4 normal0 : INSTANCE_NORMAL0; float4 normal1 : INSTANCE_NORMAL1; float4 normal2 : INSTANCE_NORMAL2; float4 color : INSTANCE_COLOR; };
       struct PSInput { float4 position : SV_Position; float2 uv : TEXCOORD; float3 normal : NORMAL; float4 color : COLOR; };
+      float3 SafeNormal(float3 value) {
+        float magnitude = max(max(abs(value.x), abs(value.y)), abs(value.z));
+        return magnitude > 0.0 ? normalize(value / magnitude) : float3(0, 0, 0);
+      }
       PSInput VSMain(VSInput input) {
         PSInput output;
         float4 p = float4(input.position, 1.0);
