@@ -86,6 +86,12 @@ Create, open, and upgrade projects. Deliver a Content Browser with search/filter
 drag/drop, import status, dependency inspection, and reimport. Background import must expose
 cancellation, progress, and actionable errors, and must produce deterministic artifacts.
 
+- ✅ Background workspace imports now retain bounded immutable CPU geometry for triangulated OBJ
+  assets, including UVs, explicit/generated normals, indices, and local bounds. Portable tests cover
+  malformed/overflowing input, cancellation, vertex limits, UUID/hash stability after move/reopen,
+  owning snapshots, and structured worker diagnostics. Mesh reimport publication, graphical
+  assignment, GPU residency, and native authored-mesh rendering remain open.
+
 - ✅ Project create/open, deterministic content-tree indexing, UUID/path search and filtering,
   cancellation, progress, inspectable errors, and deterministic artifact hashes are implemented.
 - ✅ Portable virtualized Content Browser/breadcrumb/selection models, transactional rename/move/

@@ -179,6 +179,10 @@ Editor SceneDocument now owns generation-safe MeshRenderer transactions and read
 resource IDs retained across Undo/Redo and scene persistence. Graphical asset assignment and native
 authored-mesh rendering remain open.
 
+Background workspace imports now stage immutable triangulated OBJ geometry with bounded source/
+memory use, UVs, normal generation, local bounds, cancellation, and source-line diagnostics. Native
+mesh assignment/rendering and typed geometry reimport publication remain open.
+
 The native 3D gizmo now exposes Pivot/Center (P), including common-center rotation and scale of
 multiple selected roots, with matching previews and one-step Undo. A two-root Xvfb workflow checks
 center scale, center rotation, and release pixels; full Scene View acceptance remains open.
@@ -387,6 +391,10 @@ residency 與完整 Scene View 驗收仍待完成。
 
 Editor SceneDocument 現提供 generation-safe MeshRenderer 交易及查詢，mesh／material 資源 ID
 可保留於 Undo／Redo 與場景儲存。圖形化資產指派及原生實際 mesh 繪製仍待完成。
+
+背景 workspace 匯入現可 staging 不可變的已三角化 OBJ 幾何，包含有界來源／記憶體使用、UV、
+法線產生、局部 bounds、取消及來源行號診斷。原生 mesh 指派／繪製與 typed geometry reimport
+發布仍待完成。
 
 原生 3D gizmo 現提供 Pivot／Center（P），支援多個選取根節點繞共同中心旋轉與縮放，
 預覽與提交一致並可單次 Undo。雙根節點 Xvfb 流程驗證共同中心縮放、旋轉與放開後的畫面；完整 Scene View 驗收仍未完成。

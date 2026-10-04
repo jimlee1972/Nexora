@@ -89,6 +89,11 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 status、dependency 檢視與 reimport；background import 必須提供取消、進度與可採取行動的錯誤，
 並產生 deterministic artifact。
 
+- ✅ 背景 workspace 匯入現保留有界、不可變的已三角化 OBJ CPU 幾何，包含 UV、指定／產生的
+  法線、index 及局部 bounds。Portable 測試涵蓋格式錯誤／溢位、取消、vertex 上限、移動／重開
+  後 UUID／hash 穩定性、owning snapshot 及 worker 結構化診斷。Mesh reimport 發布、圖形化指派、
+  GPU residency 及原生實際 mesh 繪製仍待完成。
+
 - ✅ 已實作 project create/open、deterministic content-tree indexing、UUID/path search/filter、
   cancellation、progress、可檢查錯誤與 deterministic artifact hash。
 - ✅ 已實作並測試 portable virtualized Content Browser／breadcrumb／selection model、

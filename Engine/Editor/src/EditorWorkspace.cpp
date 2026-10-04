@@ -226,6 +226,7 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
 
   std::vector<AssetEntry> entries;
   entries.reserve(files.size());
+  std::size_t mesh_bytes{};
   for (std::size_t index = 0; index < files.size(); ++index) {
     const auto relative = std::filesystem::relative(files[index], root, ec).generic_string();
     if (ec) {
@@ -282,14 +283,63 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
     }
     std::ifstream input(files[index], std::ios::binary);
     std::ostringstream bytes;
-    bytes << input.rdbuf();
-    if (!input.good() && !input.eof()) {
+    bool oversized = false;
+    bool read_cancelled = false;
+    if (entry.type == ".obj") {
+      std::array<char, 8192> block{};
+      std::size_t total{};
+      while (input && total <= kMaximumObjSourceBytes) {
+        if (cancelled && cancelled()) {
+          read_cancelled = true;
+          break;
+        }
+        const auto count = std::min(block.size(), kMaximumObjSourceBytes + 1 - total);
+        input.read(block.data(), static_cast<std::streamsize>(count));
+        const auto read = input.gcount();
+        total += static_cast<std::size_t>(read);
+        if (total > kMaximumObjSourceBytes) {
+          oversized = true;
+          break;
+        }
+        bytes.write(block.data(), read);
+      }
+    } else {
+      bytes << input.rdbuf();
+    }
+    if (read_cancelled) {
+      entry.state = ImportState::Cancelled;
+    } else if (oversized) {
+      entry.state = ImportState::Failed;
+      entry.error = "OBJ source exceeds the 16 MiB limit.";
+    } else if (!input.is_open() || (!input.good() && !input.eof())) {
       entry.state = ImportState::Failed;
       entry.error = "read failed";
     } else {
-      entry.artifact_hash =
-          Hex(Hash(bytes.str(), Hash(entry.id.ToString(), 1469598103934665603ULL)));
-      entry.state = ImportState::Imported;
+      const auto source = bytes.str();
+      if (entry.type == ".obj") {
+        auto imported = ImportObjMesh(source, cancelled);
+        if (imported.cancelled) {
+          entry.state = ImportState::Cancelled;
+        } else if (!imported.geometry) {
+          entry.state = ImportState::Failed;
+          entry.error = "OBJ line " + std::to_string(imported.line) + ": " + imported.error;
+        } else {
+          const auto required = imported.geometry->vertices.capacity() * sizeof(MeshVertex) +
+                                imported.geometry->indices.capacity() * sizeof(std::uint16_t);
+          if (required > kMaximumWorkspaceMeshBytes - mesh_bytes) {
+            entry.state = ImportState::Failed;
+            entry.error = "Workspace CPU mesh geometry exceeds the 128 MiB budget.";
+          } else {
+            mesh_bytes += required;
+            entry.mesh = std::make_shared<const MeshGeometry>(std::move(*imported.geometry));
+            entry.state = ImportState::Imported;
+          }
+        }
+      } else {
+        entry.state = ImportState::Imported;
+      }
+      if (entry.state == ImportState::Imported)
+        entry.artifact_hash = Hex(Hash(source, Hash(entry.id.ToString(), 1469598103934665603ULL)));
     }
     entries.push_back(std::move(entry));
     if (progress)
