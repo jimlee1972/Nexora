@@ -125,6 +125,11 @@ into renderer or platform internals.
   math and one atomic transform Undo.
   `ApplySelectionGizmo` applies validated world-space rotate, translate, or scale operations to
   those same selection roots with one atomic transform Undo; the native Rotate tool uses it.
+  `PreviewSelectionGizmo` returns owning prospective world poses for nodes and descendants using
+  the same generation checks, selected-root filtering, and local edits as commit. Iterative cached
+  ancestry composition matches Runtime TRS semantics, including rotated, mirrored, and nonuniform
+  ancestors. It changes no selection, dirty state, or Undo/Redo history; invalid input returns no
+  preview. The authoring thread consumes the snapshot for the current frame only.
   `Dirty` compares the live serializable scene to the last successful Save or Reload. Its signature
   preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.

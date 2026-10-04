@@ -162,3 +162,8 @@ and committed workspace bytes, then relaunches with the writer lease and exercis
 Recover and Discard independently. Recovery runs must exit successfully as well as report native
 UI rendering. This covers abrupt termination with an existing journal; crash injection during a
 workspace write and physical-display/Windows acceptance remain separate gates.
+
+Move, Rotate, and Scale previews now use the same SceneDocument root-edit calculation and Runtime
+hierarchy composition as commit. Rotated and nonuniform ancestors therefore produce matching
+prospective and committed proxy poses, including unselected descendants; Escape only discards the
+preview snapshot.

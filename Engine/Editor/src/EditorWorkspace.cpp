@@ -489,28 +489,78 @@ bool SceneDocument::TranslateSelection(std::span<const NodeKey> entities, double
 
 bool SceneDocument::ApplySelectionGizmo(std::span<const NodeKey> entities,
                                         const GizmoOperation &operation) {
-  if (entities.empty())
+  const auto edits = SelectionGizmoEdits(entities, operation);
+  if (!edits)
     return false;
+  std::vector<NodeKey> keys;
+  std::vector<runtime::Transform> transforms;
+  for (const auto &[key, transform] : *edits) {
+    keys.push_back(key);
+    transforms.push_back(transform);
+  }
+  return SetTransforms(keys, transforms);
+}
+
+std::optional<std::vector<std::pair<SceneDocument::NodeKey, runtime::Transform>>>
+SceneDocument::SelectionGizmoEdits(std::span<const NodeKey> entities,
+                                   const GizmoOperation &operation) const {
+  if (entities.empty())
+    return std::nullopt;
   std::vector<runtime::Id> ids;
   std::unordered_set<runtime::Id> unique;
   ids.reserve(entities.size());
   for (const auto key : entities) {
     if (Key(key.id) != key || !unique.insert(key.id).second)
-      return false;
+      return std::nullopt;
     ids.push_back(key.id);
   }
   const auto roots = GizmoRoots(world_, ids);
   const auto targets = GizmoTargets(world_, roots);
   if (!targets || targets->size() != roots.size())
-    return false;
+    return std::nullopt;
   const auto transforms = ApplyGizmo(*targets, operation);
   if (!transforms)
-    return false;
-  std::vector<NodeKey> root_keys;
-  root_keys.reserve(roots.size());
-  for (const auto id : roots)
-    root_keys.push_back(*Key(id));
-  return SetTransforms(root_keys, *transforms);
+    return std::nullopt;
+  std::vector<std::pair<NodeKey, runtime::Transform>> edits;
+  for (std::size_t i = 0; i < roots.size(); ++i)
+    edits.emplace_back(*Key(roots[i]), (*transforms)[i]);
+  return edits;
+}
+
+std::optional<std::unordered_map<runtime::Id, runtime::Transform>>
+SceneDocument::PreviewSelectionGizmo(std::span<const NodeKey> entities,
+                                     const GizmoOperation &operation) const {
+  const auto edits = SelectionGizmoEdits(entities, operation);
+  if (!edits)
+    return std::nullopt;
+  std::unordered_map<runtime::Id, runtime::Transform> overrides, poses;
+  for (const auto &[key, transform] : *edits)
+    overrides.emplace(key.id, transform);
+  poses.reserve(nodes_.size());
+  // Memoized, iterative ancestry traversal avoids recursion and recomputing shared parents.
+  for (const auto &node : nodes_) {
+    std::vector<runtime::Id> chain;
+    std::unordered_set<runtime::Id> visiting;
+    auto id = node.id;
+    while (id != 0 && !poses.contains(id)) {
+      const auto *entity = world_.FindEntity(id);
+      if (!entity || !visiting.insert(id).second)
+        return std::nullopt;
+      chain.push_back(id);
+      id = entity->parent;
+    }
+    runtime::Transform parent = id == 0 ? runtime::Transform{} : poses.at(id);
+    for (auto it = chain.rbegin(); it != chain.rend(); ++it) {
+      const auto replacement = overrides.find(*it);
+      const auto local =
+          replacement == overrides.end() ? world_.FindEntity(*it)->transform : replacement->second;
+      parent = runtime::ComposeTransforms(parent, local);
+      if (!runtime::IsValidTransform(parent))
+        return std::nullopt;
+      poses.emplace(*it, parent);
+    }
+  }
+  return poses;
 }
 
 bool SceneDocument::SetEulerField(std::span<const NodeKey> entities, std::size_t axis,

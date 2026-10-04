@@ -6,6 +6,7 @@
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/Editor/ViewportMath.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -712,6 +713,88 @@ int Run() {
     Require(!drag_document.ApplySelectionGizmo(drag_both, scale) &&
                 drag_document.Transform(drag_parent)->sx == 2.0,
             "an invalid graphical scale changed the scene");
+  }
+  {
+    runtime::World preview_world;
+    const auto preview_scene = preview_world.LoadScene("Gizmo preview contract");
+    Require(preview_world.Activate(preview_scene), "preview scene activation failed");
+    editor::SceneDocument document(preview_world, preview_scene);
+    const auto parent = document.Create("Nonuniform parent");
+    const auto child = document.Create("Rotated child", parent);
+    const auto descendant = document.Create("Unselected descendant", child);
+    const auto other = document.Create("Other root");
+    auto parent_pose = runtime::Transform{2, 3, -1};
+    parent_pose.sx = -2;
+    parent_pose.sy = 3;
+    parent_pose.sz = 0.5;
+    parent_pose.qy = std::sin(0.35);
+    parent_pose.qw = std::cos(0.35);
+    auto child_pose = runtime::Transform{1, 2, 3};
+    child_pose.qx = std::sin(0.2);
+    child_pose.qw = std::cos(0.2);
+    Require(document.SetTransform(parent, parent_pose) &&
+                document.SetTransform(child, child_pose) &&
+                document.SetTransform(descendant, {2, -1, 1}) &&
+                document.SetTransform(other, {-4, 1, 2}),
+            "preview hierarchy setup failed");
+    const std::array selection{parent, child, other};
+    const std::array keys{*document.Key(parent), *document.Key(child), *document.Key(other)};
+    const std::array child_keys{*document.Key(child)};
+    Require(document.Select(selection), "preview selection setup failed");
+    const auto path = root / "gizmo-preview.scene";
+    Require(document.Save(path), "preview scene baseline save failed");
+    const auto matches = [](const runtime::Transform &a, const runtime::Transform &b) {
+      const auto am = runtime::ToMatrix(a), bm = runtime::ToMatrix(b);
+      for (std::size_t i = 0; i < am.size(); ++i)
+        if (std::abs(am[i] - bm[i]) > 1e-9)
+          return false;
+      return true;
+    };
+    std::array<editor::GizmoOperation, 5> operations;
+    operations[0].translation = {2, -3, 4};
+    operations[1].kind = editor::GizmoOperation::Kind::Rotate;
+    operations[1].axis = {1, 0, 0};
+    operations[1].angle = 0.6;
+    operations[2].kind = editor::GizmoOperation::Kind::Scale;
+    operations[2].factors = {1.5, 1, 1};
+    operations[3] = operations[2];
+    operations[3].factors = {0.75, 0.75, 0.75};
+    operations[4] = operations[1];
+    operations[4].pivot = editor::GizmoPivot::Center;
+    operations[4].center = {1, 2, 3};
+    for (const auto &operation : operations) {
+      for (const auto targets : {std::span<const editor::SceneDocument::NodeKey>(keys),
+                                 std::span<const editor::SceneDocument::NodeKey>(child_keys)}) {
+        const auto before = document.WorldTransform(descendant);
+        const auto preview = document.PreviewSelectionGizmo(targets, operation);
+        Require(preview && preview->size() == 4 && !document.Dirty() &&
+                    matches(*before, *document.WorldTransform(descendant)) &&
+                    std::ranges::equal(document.Selection(), selection),
+                "gizmo preview changed live state or omitted descendants");
+        Require(document.ApplySelectionGizmo(targets, operation),
+                "preview operation commit failed");
+        for (const auto &[id, pose] : *preview)
+          Require(matches(pose, *document.WorldTransform(id)),
+                  "gizmo preview differs from committed world pose");
+        Require(document.Undo() && !document.Dirty() &&
+                    matches(*before, *document.WorldTransform(descendant)),
+                "gizmo preview added an undo entry or commit did not undo atomically");
+        Require(document.PreviewSelectionGizmo(targets, operation) && document.Redo(),
+                "preview discarded the existing redo branch");
+        Require(document.Undo() && !document.Dirty(), "preview replay did not restore baseline");
+      }
+    }
+    auto stale = keys;
+    ++stale[0].document_generation;
+    auto invalid = operations[2];
+    invalid.factors.x = 0;
+    const std::array duplicate_keys{keys[0], keys[0]};
+    Require(!document.PreviewSelectionGizmo(stale, operations[0]) &&
+                !document.PreviewSelectionGizmo(duplicate_keys, operations[0]) &&
+                !document.PreviewSelectionGizmo(keys, invalid) &&
+                !document.PreviewSelectionGizmo({}, operations[0]) && !document.Dirty(),
+            "invalid or stale gizmo preview was accepted");
+    std::filesystem::remove(path);
   }
   {
     runtime::World redo_world;

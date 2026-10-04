@@ -605,11 +605,25 @@ def main() -> int:
             raise RuntimeError("uniform scale cube did not redraw before release")
         if scene_file.read_text() != before_rotation:
             raise RuntimeError("uniform scale preview changed saved scene before release")
+        # Sample the settled preview at the final cursor position. Uniform scaling must
+        # render the same geometry on release, including the proxy's fixed Y offset.
+        time.sleep(0.15)
+        final_uniform_preview = scene_region_pixels(display, window, viewport)
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
         subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
             time.sleep(0.05)
+        deadline = time.monotonic() + 3
+        release_matches = False
+        while time.monotonic() < deadline and not release_matches:
+            released_pixels = scene_region_pixels(display, window, viewport)
+            release_matches = sum(abs(a - b) for a, b in
+                                  zip(final_uniform_preview, released_pixels)) < 100
+            if not release_matches:
+                time.sleep(0.05)
+        if not release_matches:
+            raise RuntimeError("uniform scale geometry jumped between preview and commit")
         uniform = first_entity_scale(scene_file.read_text())
         if any(factor < 1.3 for factor in uniform) or max(uniform) - min(uniform) > 1e-6:
             raise RuntimeError(f"uniform cube did not scale all axes equally: {uniform}; "
