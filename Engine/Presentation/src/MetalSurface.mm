@@ -508,7 +508,7 @@ private:
     return true;
   }
   bool EnsureSceneTargets(bool offscreen) {
-    const auto ensure = [&](id<MTLTexture> &texture, MTLPixelFormat format) {
+    const auto ensure = [&](id<MTLTexture> __strong &texture, MTLPixelFormat format) {
       if (texture && texture.width == width_ && texture.height == height_)
         return true;
       auto *descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:format
