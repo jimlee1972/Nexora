@@ -127,8 +127,9 @@ int main() {
       Require(point.has_value(), "Apply button absent");
       Nexora::Window::WindowEvent pointer;
       pointer.type = Nexora::Window::WindowEventType::Pointer;
-      pointer.value0 = static_cast<int>((*point)[0]);
-      pointer.value1 = static_cast<int>((*point)[1]);
+      const auto scale = imgui::EditorImGuiTestAccess::Inspect(host).framebuffer_scale;
+      pointer.value0 = static_cast<int>((*point)[0] * scale);
+      pointer.value1 = static_cast<int>((*point)[1] * scale);
       Nexora::Window::WindowEvent button;
       button.type = Nexora::Window::WindowEventType::PointerButton;
       button.value0 = 0;

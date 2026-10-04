@@ -212,6 +212,13 @@ Scene Undo and Redo now replay stable entity IDs, hierarchy and components while
 names, selection, and authored Euler revolutions. The Scene panel exposes both by button and
 keyboard shortcut; a new edit discards the undone branch.
 
+✅ Native client-pixel pointer events now convert once through the current frame DPI before UI
+hit testing. Cached positions reproject across scale changes; focus loss clears the cache and DPI
+changes cancel interrupted Scene gestures. Tests cover 100/125/150/175/200%, fractional/negative
+coordinates, event ordering, stationary pointers, invalid scale fallback, and 200% Apply dialog clicks.
+Deferred/zero-extent frames also forward gameplay key releases and focus loss without ticking
+Play or rendering a GUI frame. Target-host physical-display DPI evidence remains open.
+
 Linux Xvfb acceptance now creates a Hierarchy root with Ctrl+Shift+N, saves the scene, restarts
 the graphical Editor, and checks that the authored root reloads. Full ED-M2 visual acceptance
 remains open.
@@ -481,6 +488,12 @@ Docked Profiler 現會繪製有界的 Editor frame processing wall-time 即時�
 ✅ Profiler 現可把保留的 Editor frame-processing wall time 匯出為專案 CSV，保留 double
 精度與丟棄 frame 數，GPU／memory 欄保持空白。同步 writer 驗證 1-600 筆有序且有限的 sample，
 拒絕唯讀／recovery 寫入，驗證失敗會保留舊檔；實際 UI 點擊會送出一次性 request。
+
+✅ 原生 client-pixel pointer event 現會先依當前 frame DPI 轉成 UI 邏輯座標，再做 hit test。
+scale 改變會重新投影快取位置，失焦會清除快取，DPI 改變會取消中斷的 Scene gesture。測試涵蓋
+100／125／150／175／200%、小數／負座標、事件排序、靜止 pointer、無效 scale fallback，
+以及 200% Apply dialog 點擊；render deferred／zero-extent frame 也會轉送 gameplay 按鍵釋放與失焦，
+不需 GUI frame 或 Play tick；target-host 實體顯示器 DPI 證據仍待完成。
 
 Linux Xvfb 驗收現會透過 Ctrl+Shift+N 建立 Hierarchy 根節點、儲存場景並重啟圖形化 Editor，
 檢查新增節點重新載入後仍存在；完整 ED-M2 視覺驗收仍待完成。

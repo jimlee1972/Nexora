@@ -1,5 +1,6 @@
 #include "Nexora/Runtime/EditorSdk.h"
 #include "PlayGameplayModule.h"
+#include "PlayInputForwarding.h"
 #include <iostream>
 #include <stdexcept>
 
@@ -103,6 +104,29 @@ int main() {
     Require(host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
                 snapshot.move_x == 0,
             "input callback retained a pressed key after focus loss");
+    Require(play.Resume(), "deferred input fixture resume failed");
+    editor::preview::ForwardPlayInput(play, module, true, {});
+    editor::preview::ForwardPlayInput(play, module, true, std::array{right});
+    Require(host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 1,
+            "native input forwarding did not capture the movement key");
+    right.value1 = 0;
+    editor::preview::ForwardPlayInput(play, module, true, std::array{right});
+    Require(host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 0,
+            "keyup without a rendered GUI frame retained movement");
+    right.value1 = 1;
+    editor::preview::ForwardPlayInput(play, module, true, std::array{right});
+    editor::preview::ForwardPlayInput(play, module, false, {});
+    Require(!play.AcceptsInput() &&
+                host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 0 && play.Pause(),
+            "deferred focus loss retained a held key");
+    editor::preview::ForwardPlayInput(play, module, true, std::array{right});
+    Require(!play.AcceptsInput() &&
+                host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 0,
+            "paused forwarding admitted gameplay movement");
     fail_fixed = true;
     Require(!play.Step() && play.LastPauseReason() == runtime::PauseReason::RuntimeFailure &&
                 play.Stats().crashes == 1,

@@ -159,6 +159,7 @@ struct WindowEvent final {
   std::uint32_t width = 0;
   std::uint32_t height = 0;
   float scale = 1.0F;
+  // Pointer value0/value1 are native client pixels; UI consumers convert with the frame DPI.
   std::int32_t value0 = 0;
   std::int32_t value1 = 0;
   KeyModifiers modifiers = KeyModifiers::None;

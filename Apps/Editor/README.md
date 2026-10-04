@@ -278,3 +278,11 @@ application unload the gameplay module before Stop(Discard); component and entit
 isolated. Failure leaves Play paused and reports the reason. Default Stop/F5 always discards.
 Portable PlaySession's own Stop(Transforms)/applied_transforms counters are a separate Runtime path;
 graphical apply uses document Undo ownership and Console diagnostics instead.
+
+The graphical loop sets logical display size and current frame DPI before forwarding native events,
+including for deferred and zero-extent frames that still have input to process. Each native batch
+also reaches the owning gameplay input snapshot once, even without an ImGui frame or Play tick,
+so key releases and focus loss cannot leave held controls behind while rendering is suspended.
+EditorImGui converts native client pixels to logical coordinates once and reprojects cached positions across DPI transitions.
+Scene gestures cancel on scale changes. The tests drive client-pixel clicks at 200% DPI; native
+Windows/physical-display DPI and IME acceptance remain separate target-host gates.

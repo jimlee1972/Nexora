@@ -133,3 +133,9 @@ target_include_directories(NexoraPlayApplyTests PRIVATE "${PROJECT_SOURCE_DIR}/E
 target_link_libraries(NexoraPlayApplyTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPlayApplyTests)
 add_test(NAME editor.play_apply_changes COMMAND NexoraPlayApplyTests)
+
+add_executable(NexoraPointerDpiTests PointerDpiTests.cpp)
+target_include_directories(NexoraPointerDpiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraPointerDpiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPointerDpiTests)
+add_test(NAME editor.pointer_dpi COMMAND NexoraPointerDpiTests)

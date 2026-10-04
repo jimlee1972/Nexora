@@ -130,7 +130,9 @@ authoring views on first launch.
   [-1,1] move_x/move_y and buttons to Space=1, left mouse=2, right mouse=4, Shift=8, Ctrl=16;
   sequence advances once per processed frame and reserved is zero. Repeated capture_input calls
   return the same copied frame value. Pause/hide/blur clears held controls, including before Step.
-  Gamepad, pointer motion/look, rebinding, and multiple input users remain open.
+  The application forwards release/focus events into the owning gameplay snapshot even when
+  rendering is deferred or the client extent is zero; these batches do not tick Play or need an
+  ImGui frame. Gamepad, pointer motion/look, rebinding, and multiple input users remain open.
   Game uses the existing bounded Lambertian preview and composed TRS, without editor proxies or
   gizmos; material shader execution, exact hierarchy shear, and simultaneous 3D views remain open.
 - The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes
@@ -305,5 +307,14 @@ graphical apply uses document Undo ownership and Console diagnostics instead.
 
 The Play review modal constrains its dimensions to the logical main viewport and scales its child
 region to available space, keeping confirmation reachable in a 640x360 logical viewport at 200% DPI.
-Pose values use full double precision with horizontal scrolling. UI tests exercise logical layout and
-button routing; target-host native DPI evidence remains a separate acceptance gate.
+Pose values use full double precision with horizontal scrolling. UI tests exercise layout and
+client-pixel button routing; target-host native DPI evidence remains a separate acceptance gate.
+
+Pointer events arrive in native client pixels. `SetDisplay` supplies logical dimensions and the
+actual frame scale before `ProcessEvents`; conversion uses that scale once, independently of the
+font DPI bucket. The host retains an owning integer coordinate pair and reprojects it when scale
+changes, even without a mouse-move event. Focus loss clears the pair. Scale changes cancel pending
+Scene gestures before synthetic pointer motion can commit a source edit. Invalid nonfinite scales
+fall back to 100%, finite scales clamp to the existing 25% minimum. DpiChanged events update the
+same path in event order. ImGui floors its consumed logical mouse position during NewFrame.
+No scene input normalization changes Window/RenderSurface's native coordinate snapshots.
