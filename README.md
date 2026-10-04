@@ -162,6 +162,7 @@ The docked Console now shows bounded Runtime records
 with text/severity filters, source, timestamps, and dropped-record count; startup and scene save
 diagnostics are routed through it. Game View and complete log routing remain open.
 
+Xvfb Undo checks now retry only Save after a single Undo until committed scene bytes match.
 Scene drags now cancel on focus loss, Undo/Redo and Create/Paste/Duplicate shortcuts, document replacement, and hidden
 canvas or recovery. Real Xvfb FocusOut and UI contracts verify that abandoned previews do not commit.
 
@@ -359,6 +360,7 @@ backend-neutral `Text` event，physical key 與 text input 維持分離。
 中央 Scene panel 現有可點選物件的 X/Z 俯視概覽、Ctrl／Shift 多選、F 聚焦、平移、縮放及可單步復原的標記拖曳及可見的單軸把手，且逐場景保留概覽 camera 中心與縮放；Scene panel 也會標示未儲存內容，成功儲存或 Undo 回原狀後清除；原生關閉要求遇到未儲存內容時提供儲存後離開、捨棄後離開或取消；正式 3D renderer 輸出與 gizmo
 仍待完成。
 
+Xvfb Undo 檢查現只在單次 Undo 後重試 Save，直到已提交的場景位元組相符。
 Scene 拖曳現會在失焦、Undo／Redo 與建立／貼上／複製物件快捷鍵、文件替換、畫布隱藏或復原提示時取消；
 真正的 Xvfb FocusOut 與 UI contract 驗證被放棄的預覽不會提交。
 

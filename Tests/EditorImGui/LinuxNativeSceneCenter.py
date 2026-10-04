@@ -14,7 +14,7 @@ import time
 
 from LinuxNativeScenePreview import (XImage, axis_handle_pixels, channel,
                                     scene_region_pixels, settled_viewport,
-                                    uniform_handle_pixel)
+                                    uniform_handle_pixel, undo_and_save)
 from LinuxDisplayAcceptance import request_window_close, start_xvfb, wait_for_window
 
 
@@ -127,14 +127,8 @@ def main():
             return result
 
         def undo_to(previous):
-            send("key", "ctrl+z")
-            time.sleep(0.15)
-            send("key", "ctrl+s")
-            deadline = time.monotonic() + 5
-            while time.monotonic() < deadline and scene_file.read_text() != previous:
-                time.sleep(0.05)
-            if scene_file.read_text() != previous:
-                raise RuntimeError("center gesture did not undo in one step")
+            undo_and_save(args.xdotool, environment, scene_file, previous,
+                          "center gesture did not undo in one step")
 
         send("windowfocus", window)
         viewport = settled_viewport(editor.stderr, viewport)
