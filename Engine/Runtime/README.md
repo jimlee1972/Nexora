@@ -508,12 +508,16 @@ therefore continue to target the same entity. Destroy cascades to descendants, a
 the whole subtree with its parents and local transforms (only when none of those IDs exists again);
 if the subtree root's outside parent no longer exists by then, the root is restored as a root at the
 world pose it had.
-The same history now replays Redo for create, transform, Camera/Light, hierarchy edits, and subtree
+The same history now replays Redo for create, transform, Camera/Light/MeshRenderer, hierarchy edits, and subtree
 delete. A new operation discards the undone branch; failed callbacks keep the history cursor in
 place. Creation records its parent in the transaction so Redo restores the stable ID and hierarchy.
 `SetCamera` validates finite field of view and clipping planes, then records the previous component
 presence and values for Undo. Invalid edits leave the World untouched.
 `SetLight` applies the same undo ownership to finite, nonnegative light intensity.
+`SetMeshRenderer` records component presence and owning copies of both mesh and material shader
+resource IDs. Missing entities reject without recording history. Zero and currently unavailable
+resource IDs remain valid authoring data; asset resolution and GPU residency are separate concerns.
+Removal, replacement, and replay use the same public World command boundary and stable entity IDs.
 `SetParent` is undoable and restores the previous parent and the exact previous local transform.
 Destroy also validates that the entity belongs to the supplied scene before mutating the world. `CreateEntity` returns the new entity's stable `Id`, not a
 reference into `World`'s storage: unlike `World::CreateEntity` (consumed immediately, within this

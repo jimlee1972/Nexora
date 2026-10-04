@@ -127,6 +127,11 @@ Hierarchy、Scene View、Inspector、camera controls、selection/picking、trans
 parent/reorder、multi-selection、copy/paste、undo/redo 與 save/reload。Reflection 產生 property
 widgets；未知 component 保留 raw data，不靜默遺失。
 
+- ✅ SceneDocument 現透過 Runtime Undo／Redo 提供 generation-safe MeshRenderer 新增、mesh／
+  material 資源參照替換、移除及 owning 查詢。測試驗證完整 64-bit 與尚未解析的 ID 可場景儲存／
+  重載、無變更編輯保留 Redo，並拒絕過期 key。圖形化 mesh 資產指派、residency 及實際 mesh
+  的 Scene 繪製仍待完成。
+
 - ✅ 原生與概覽拖曳在應用程式失焦時先於合成放開事件取消，並在 Undo／Redo、建立／貼上／複製物件快捷鍵、文件世代
   改變、畫布隱藏、復原提示及預覽模式切換時取消。Contract 測試涵蓋概覽／原生失焦、Undo 及
   文件替換；Xvfb 在移動預覽途中觸發真正的 FocusOut，驗證已儲存場景位元組不變。

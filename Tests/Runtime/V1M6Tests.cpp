@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string_view>
 
@@ -132,6 +133,43 @@ int Run() {
           "undo after redo must restore the destroyed entity");
   Require(editor.Redo() && world.FindEntity(entity_id) == nullptr,
           "redoing destruction must restore the original scene for later PIE checks");
+
+  // Mesh edits own both resource identifiers and component presence across replay. Unavailable
+  // resources are retained; residency is a separate renderer/asset concern.
+  {
+    World mesh_world;
+    const auto mesh_scene = mesh_world.LoadScene("Mesh transactions");
+    SceneEditor mesh_editor(mesh_world);
+    const auto mesh_entity = mesh_editor.CreateEntity(mesh_scene);
+    mesh_editor.ClearUndo();
+    const auto maximum_id = std::numeric_limits<Id>::max();
+    MeshComponent authored_mesh{maximum_id, {maximum_id - 1}};
+    Require(mesh_editor.SetMeshRenderer(mesh_entity, authored_mesh) && mesh_editor.UndoDepth() == 1,
+            "mesh attachment did not record one undo step");
+    authored_mesh = {7, {8}};
+    Require(mesh_world.FindEntity(mesh_entity)->mesh_data.mesh == maximum_id &&
+                mesh_world.FindEntity(mesh_entity)->mesh_data.material.shader == maximum_id - 1 &&
+                !mesh_editor.SetMeshRenderer(0, authored_mesh) && mesh_editor.UndoDepth() == 1,
+            "mesh transaction borrowed its input or accepted a missing entity");
+    Require(mesh_editor.SetMeshRenderer(mesh_entity, authored_mesh) && mesh_editor.Undo() &&
+                mesh_world.FindEntity(mesh_entity)->mesh_data.mesh == maximum_id &&
+                mesh_world.FindEntity(mesh_entity)->mesh_data.material.shader == maximum_id - 1 &&
+                mesh_editor.Redo() && mesh_world.FindEntity(mesh_entity)->mesh_data.mesh == 7 &&
+                mesh_world.FindEntity(mesh_entity)->mesh_data.material.shader == 8,
+            "mesh reference replacement replay lost either identifier");
+    Require(mesh_editor.SetMeshRenderer(mesh_entity, std::nullopt) &&
+                !mesh_world.FindEntity(mesh_entity)->mesh_renderer && mesh_editor.Undo() &&
+                mesh_world.FindEntity(mesh_entity)->mesh_renderer &&
+                mesh_world.FindEntity(mesh_entity)->mesh_data.mesh == 7 && mesh_editor.Redo() &&
+                !mesh_world.FindEntity(mesh_entity)->mesh_renderer && mesh_editor.Undo(),
+            "mesh removal replay lost presence or references");
+    Require(mesh_editor.DestroyEntity(mesh_scene, mesh_entity) && mesh_editor.Undo() &&
+                mesh_world.FindEntity(mesh_entity)->mesh_data.mesh == 7 && mesh_editor.Undo() &&
+                mesh_world.FindEntity(mesh_entity)->mesh_data.mesh == maximum_id &&
+                mesh_editor.Undo() && !mesh_world.FindEntity(mesh_entity)->mesh_renderer &&
+                !mesh_editor.Undo(),
+            "restored stable entity could not replay older mesh transactions");
+  }
 
   // ---- Play-in-Editor: isolated world / pause / step / focus / apply-back ----
   const auto pie_entity_id = editor.CreateEntity(scene);

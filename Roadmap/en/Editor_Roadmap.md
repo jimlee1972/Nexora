@@ -126,6 +126,11 @@ Deliver Hierarchy, Scene View, Inspector, camera controls, selection/picking, tr
 gizmos, parenting/reordering, multi-selection, clipboard, undo/redo, and save/reload. Reflection
 creates property widgets; unknown components retain raw data instead of being silently discarded.
 
+- ✅ SceneDocument now exposes generation-safe MeshRenderer attachment, mesh/material resource
+  replacement, removal, and owning reads through Runtime Undo/Redo. Tests retain full 64-bit and
+  unresolved IDs across scene save/reload, preserve Redo on no-op edits, and reject stale keys.
+  Graphical mesh asset assignment, residency, and authored-mesh Scene rendering remain open.
+
 - ✅ Stable-ID hierarchy/selection, cycle-safe reparenting, multi-selection, clipboard duplication,
   transform transactions, undo, and atomic scene save/reload are implemented in Editor Core.
 - ✅ Portable Inspector property adapters and mixed-value multi-selection, opaque unknown-component

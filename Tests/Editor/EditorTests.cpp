@@ -928,6 +928,55 @@ int Run() {
                         ->intensity == 2.5F,
             "light Undo or scene persistence failed");
   }
+  {
+    runtime::World mesh_world;
+    const auto mesh_scene = mesh_world.LoadScene("Mesh document");
+    editor::SceneDocument meshes(mesh_world, mesh_scene);
+    const auto mesh_entity = meshes.Create("Mesh");
+    const auto mesh_key = *meshes.Key(mesh_entity);
+    const auto mesh_path = root / "Content/Mesh.scene";
+    const auto maximum_id = std::numeric_limits<runtime::Id>::max();
+    const runtime::MeshComponent original_mesh{maximum_id, {maximum_id - 1}};
+    const runtime::MeshComponent replacement_mesh{7, {8}};
+    Require(meshes.Save(mesh_path) && !meshes.Dirty() &&
+                meshes.SetMeshRenderer(mesh_key, original_mesh) && meshes.Dirty() &&
+                meshes.MeshRenderer(mesh_key)->mesh == maximum_id && meshes.Undo() &&
+                !meshes.MeshRenderer(mesh_key) && !meshes.Dirty() && meshes.Redo() &&
+                meshes.Save(mesh_path),
+            "mesh attachment Undo/Redo or dirty state failed");
+    Require(meshes.SetMeshRenderer(mesh_key, replacement_mesh) && meshes.Undo() &&
+                !meshes.Dirty() && meshes.SetMeshRenderer(mesh_key, original_mesh) &&
+                meshes.Redo() && meshes.MeshRenderer(mesh_key)->mesh == 7 &&
+                meshes.MeshRenderer(mesh_key)->material.shader == 8 && meshes.Undo(),
+            "mesh reference replacement or no-op preservation of Redo failed");
+    Require(meshes.SetMeshRenderer(mesh_key, std::nullopt) && !meshes.MeshRenderer(mesh_key) &&
+                meshes.Dirty() && meshes.Undo() && !meshes.Dirty() &&
+                meshes.MeshRenderer(mesh_key)->material.shader == maximum_id - 1,
+            "mesh removal did not restore references and clean state");
+    const editor::SceneDocument::NodeKey stale_mesh_key{mesh_key.id, mesh_key.entity_generation + 1,
+                                                        mesh_key.document_generation};
+    Require(!meshes.MeshRenderer(stale_mesh_key) &&
+                !meshes.SetMeshRenderer(stale_mesh_key, std::nullopt) && !meshes.Dirty(),
+            "stale mesh generation changed the document");
+    runtime::World reopened_mesh_world;
+    editor::SceneDocument reopened_meshes(reopened_mesh_world,
+                                          reopened_mesh_world.LoadScene("Placeholder"));
+    Require(reopened_meshes.Reload(mesh_path) && !reopened_meshes.Dirty() &&
+                reopened_meshes.MeshRenderer(*reopened_meshes.Key(mesh_entity))->mesh ==
+                    maximum_id &&
+                reopened_meshes.MeshRenderer(*reopened_meshes.Key(mesh_entity))->material.shader ==
+                    maximum_id - 1 &&
+                !reopened_meshes.MeshRenderer(mesh_key) &&
+                !reopened_meshes.SetMeshRenderer(mesh_key, std::nullopt),
+            "mesh persistence lost 64-bit references or accepted an old document key");
+    const auto reopened_mesh_key = *reopened_meshes.Key(mesh_entity);
+    Require(reopened_meshes.SetMeshRenderer(reopened_mesh_key, runtime::MeshComponent{}) &&
+                reopened_meshes.Save(mesh_path) && reopened_meshes.Reload(mesh_path) &&
+                reopened_meshes.MeshRenderer(*reopened_meshes.Key(mesh_entity))->mesh == 0 &&
+                reopened_meshes.MeshRenderer(*reopened_meshes.Key(mesh_entity))->material.shader ==
+                    0,
+            "unresolved zero mesh resources were discarded");
+  }
   Require(document.Save(scene_path), "scene atomic save failed");
   runtime::World loaded_world;
   const auto placeholder = loaded_world.LoadScene("Placeholder");
