@@ -407,3 +407,17 @@ X/Z center (Y=0) or the enabled/available Scene 3D target (the same +/-100,000 X
 not the isolated Play clone. `SceneDocument::CreateMesh` and Runtime's initialized creation record
 one Undo, retaining the pose, component and stable identity on Redo. No source IO or GPU allocation
 occurs inside the UI action. Save/Reload retains the existing mesh resource reference and metadata.
+
+## Content mesh drag placement
+
+Content rows publish an owning typed UUID/project-generation payload once at drag start; switching
+projects cannot refresh an old drag into a new operation. Only the Scene canvas accepts placement.
+The overview maps the logical pointer to X/Z with Y=0. Native Scene converts the pointer once to
+its published physical viewport, builds a ray from the preview's clamped float orbit camera, and
+intersects Y=0. Parallel/behind-camera, out-of-budget and out-of-projection ground points reject.
+A tooltip reports the prospective point; hover performs no document mutation or source IO.
+Delivery rechecks the current browser/catalog, workspace/content access and modal state, then shares
+Add mesh to Scene's initialized creation/selection and one-step Undo path. Escape, focus loss,
+blocking prompts or write-access loss discard the asset drag and active source, so a later held-button
+release cannot revive it. Rejected deliveries retain Redo. Native geometry ghosts and mesh-surface
+placement are deferred; the tooltip is the current placement preview.

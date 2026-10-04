@@ -145,12 +145,20 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Typed Content asset drags now place resolved meshes on the overview X/Z point or native
+  Scene Y=0 ground intersection, with an owning UUID/generation payload frozen at drag start.
+  A tooltip previews the point without mutating the World; release creates/selects a named root
+  with one initialized Undo. Real pointer tests cover 1x/2x DPI, Undo/Redo, save/reload and access,
+  generation, modal, Escape/blur and unsupported-ground rejection without consuming Redo.
+  Native placement shares the clamped preview camera and clipping limits. Surface snapping,
+  geometry ghost previews, complete materials and target-host acceptance remain open.
+
 - ✅ Content now creates/selects one resolved mesh root at the Scene center through Add mesh to
   Scene, with one initialized-entity Undo and stable-ID/name/pose/component Redo. Project-generation
   catalog checks and writable workspace/content/modal gates reject stale, missing, non-mesh or
   multiple selections. Native placement shares the preview's center clamp and target height.
   Real UI clicks, Game geometry preparation and Save/Reload verify the path; source IO stays outside
-  the action. Typed mesh placement drag/drop and complete materials remain open.
+  the action. Complete materials remain open.
 
 - ✅ The single-camera Inspector now aligns world position/rotation to the stored Scene 3D view
   with one Undo, retaining lens, local scale and parent. Root-to-parent TRS inversion handles

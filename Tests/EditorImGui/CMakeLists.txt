@@ -187,3 +187,9 @@ target_include_directories(NexoraMeshCreationTests PRIVATE "${PROJECT_SOURCE_DIR
 target_link_libraries(NexoraMeshCreationTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraMeshCreationTests)
 add_test(NAME editor.mesh_scene_instantiation COMMAND NexoraMeshCreationTests)
+
+add_executable(NexoraMeshDropTests MeshDropTests.cpp)
+target_include_directories(NexoraMeshDropTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraMeshDropTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraMeshDropTests)
+add_test(NAME editor.mesh_scene_drop COMMAND NexoraMeshDropTests)

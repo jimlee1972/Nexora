@@ -256,6 +256,9 @@ the native preview's +/-100,000 clamp. Save/reload retains alignment.
 ✅ Content now adds one resolved mesh to the Scene center and selects the new root. Initialized
 creation has one Undo; Redo and Save/Reload retain stable ID, name, pose and mesh/material data.
 Real UI clicks verify generation/access/modal gates, native center bounds and real Game geometry.
+✅ Typed Content mesh drags now place a root at the overview pointer or native Scene ground point
+with one Undo. Real 1x/2x DPI pointer tests cover release, persistence and rejected/canceled drags;
+preview tooltips do not mutate the World. Surface snapping and geometry ghosts remain open.
 
 Scene/Hierarchy controls, shortcuts and queued edits now share workspace write access and modal
 gates. Read-only selection, Copy and camera navigation remain available; pointer tests verify
@@ -590,6 +593,9 @@ Redo，唯讀／不可用 view 與 stale 目標拒絕編輯；極端有限 cente
 ✅ Content 現可將單一已解析 mesh 放到 Scene center 並選取新 root；初始化建立共用一次
 Undo，Redo 與 save／reload 保留 stable ID、名稱、pose 與 mesh／material 資料。真正 UI 點擊
 驗證 generation／access／modal gate、native center 限制，以及真實 Game geometry。
+✅ Typed Content mesh 拖曳現能以一次 Undo 在 overview 游標或 native Scene ground 落點建立
+root。真正 1x／2x DPI pointer 測試涵蓋放開、持久化及拒絕／取消拖曳；tooltip 預覽不改動
+World。表面吸附及 geometry ghost 仍待完成。
 
 Scene／Hierarchy 控制項、快捷鍵與 queued 編輯現共用 workspace 可寫及 modal gate。
 唯讀選取、Copy 與鏡頭導航仍可用；pointer 測試驗證權限切換後，已中斷的 overview／native
