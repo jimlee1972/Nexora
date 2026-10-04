@@ -77,6 +77,9 @@ public:
                                    std::string name);
   static void QueueInspectorTransform(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                       runtime::Transform transform) noexcept;
+  static void QueueInspectorMesh(EditorImGuiHost &host, SceneDocument::NodeKey entity,
+                                 std::optional<runtime::AssetUuid> asset,
+                                 std::uint64_t generation) noexcept;
   static void QueueInspectorCamera(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                    std::optional<runtime::CameraComponent> camera) noexcept;
   static void QueueInspectorLight(EditorImGuiHost &host, SceneDocument::NodeKey entity,

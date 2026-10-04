@@ -5,6 +5,13 @@ target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
 
+add_executable(NexoraMeshInspectorTests MeshInspectorTests.cpp)
+target_include_directories(NexoraMeshInspectorTests
+  PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraMeshInspectorTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraMeshInspectorTests)
+add_test(NAME editor.mesh_inspector COMMAND NexoraMeshInspectorTests)
+
 if(WIN32)
   add_executable(NexoraEditorWindowsDpiImeTests WindowsDpiImeTests.cpp)
   target_include_directories(NexoraEditorWindowsDpiImeTests

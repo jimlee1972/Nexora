@@ -4,6 +4,7 @@
 #include "Nexora/Editor/ProjectContent.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
 #include "Nexora/Editor/EditorProduction.h"
+#include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
@@ -705,6 +706,9 @@ int RunGraphical(std::optional<ProjectState> project,
     }
     load_layout(project->workspace);
   }
+  nexora::editor::MeshAssetCatalog meshes;
+  if (project && !meshes.Publish(project->assets.Entries(), project_generation, &layout_error))
+    std::cerr << "mesh catalog warning: " << layout_error << '\n';
   nexora::editor::ProductShell shell;
   nexora::runtime::World world;
   const auto scene_id = world.LoadScene("Main");
@@ -901,6 +905,8 @@ int RunGraphical(std::optional<ProjectState> project,
             const bool was_created = pending_project->created;
             project = std::move(pending_project->candidate);
             content = std::move(candidate_content);
+            if (!meshes.Publish(project->assets.Entries(), project_generation, &selector_error))
+              std::cerr << "mesh catalog warning: " << selector_error << '\n';
             pending_project.reset();
             selector_result = was_created ? "created" : "opened";
             if (!recent_projects.Record(project->workspace, &selector_error))
@@ -915,7 +921,7 @@ int RunGraphical(std::optional<ProjectState> project,
     }
     if (project) {
       ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports,
-                          &console, &play, &profile);
+                          &console, &play, &profile, &meshes);
       switch (ui.TakePlayCommand()) {
       case nexora::editor::imgui::PlayCommand::Start:
         if (play.Start(1.0 / 60.0, [](nexora::runtime::World &, double) { return true; })) {

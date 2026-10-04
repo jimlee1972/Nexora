@@ -91,7 +91,7 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 - ✅ 背景 workspace 匯入現保留有界、不可變的已三角化 OBJ CPU 幾何，包含 UV、指定／產生的
   法線、index 及局部 bounds。Portable 測試涵蓋格式錯誤／溢位、取消、vertex 上限、移動／重開
-  後 UUID／hash 穩定性、owning snapshot 及 worker 結構化診斷。Mesh reimport 發布、圖形化指派、
+  後 UUID／hash 穩定性、owning snapshot 及 worker 結構化診斷。Mesh reimport 發布、
   GPU residency 及原生實際 mesh 繪製仍待完成。
 
 - ✅ 已實作 project create/open、deterministic content-tree indexing、UUID/path search/filter、
@@ -136,13 +136,18 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   真正的 Xvfb XYZ 拖曳放開後立即 Save，並驗證已完成的姿態；仍按住手勢時的 Save
   會等待提交或取消後才儲存。
 
+- ✅ 單選 Inspector 現能指派匯入 OBJ mesh 資產及移除 MeshRenderer，透過 generation-safe
+  SceneDocument Undo／Redo。Contract 測試驗證 material 保留、場景保存／重新載入解析、單步
+  移除復原與過期 asset／project／document 拒絕。唯讀／復原時停用編輯，缺失參照仍保留。
+  原生 authored geometry rendering 與 geometry reimport 發布仍待完成。
+
 - ✅ MeshAssetCatalog 現以 UUID 穩定衍生 64-bit resource ID，並依專案 generation 發布 owning
   匯入 geometry。測試固定保存 ID、驗證重新命名／重新開啟後的參照、原子拒絕碰撞，並在卸載後
-  保留 snapshot。圖形介面指派與原生 mesh residency／rendering 仍待完成。
+  保留 snapshot。原生 mesh residency／rendering 仍待完成。
 
 - ✅ SceneDocument 現透過 Runtime Undo／Redo 提供 generation-safe MeshRenderer 新增、mesh／
   material 資源參照替換、移除及 owning 查詢。測試驗證完整 64-bit 與尚未解析的 ID 可場景儲存／
-  重載、無變更編輯保留 Redo，並拒絕過期 key。圖形化 mesh 資產指派、residency 及實際 mesh
+  重載、無變更編輯保留 Redo，並拒絕過期 key。原生 mesh residency 及實際 mesh
   的 Scene 繪製仍待完成。
 
 - ✅ 原生與概覽拖曳在應用程式失焦時先於合成放開事件取消，並在 Undo／Redo、建立／貼上／複製物件快捷鍵、文件世代

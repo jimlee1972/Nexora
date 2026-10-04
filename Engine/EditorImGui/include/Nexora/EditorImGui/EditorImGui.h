@@ -2,6 +2,7 @@
 
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/EditorImGui/Api.h"
 #include "Nexora/Presentation/RenderSurface.h"
@@ -102,7 +103,8 @@ public:
                         RecentProjectStore *recent_projects = nullptr,
                         AssetImportQueue *imports = nullptr,
                         runtime::RuntimeConsole *console = nullptr,
-                        runtime::PlaySession *play = nullptr, ProfileSession *profile = nullptr);
+                        runtime::PlaySession *play = nullptr, ProfileSession *profile = nullptr,
+                        const MeshAssetCatalog *meshes = nullptr);
   [[nodiscard]] PlayCommand TakePlayCommand() noexcept;
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
