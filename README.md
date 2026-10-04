@@ -277,6 +277,10 @@ fixed Step, plus a copied entity inspection list and bounded X/Z world-pose prev
 Start, and owns frame uploads after fixed ticks. Xvfb/lavapipe checks camera pixels,
 Pause/Step/Stop, and the unchanged editor scene. Complete materials, multiple native canvases,
 complete gameplay services, and expanded input routing remain open.
+✅ Game View now offers an active-camera preview chooser and Automatic fallback. Choices are
+Play-session scoped; removal, unloading, unrenderable projection and restart reset safely. Real UI
+clicks verify read-only previews and unchanged Editor/Play data and Undo; frames revalidate after ticks.
+
 ✅ Runtime component wires now also target the isolated PlaySession World through shared decoding
 and atomic command validation; Fixed/Step tests prove that writes never reach the Editor World.
 ✅ The Game panel loads optional project-relative V3 gameplay libraries into the clone, runs
@@ -594,6 +598,9 @@ Docked Game panel 現可控制隔離的 Play World，提供 Play／Stop、Pause�
 ✅ 有界原生 Game View 已透過 Play camera 繪製 OBJ，Start 凍結資產，fixed tick 後 frame
 擁有資料；Xvfb/lavapipe 已驗證像素與 Pause／Step／Stop、Editor 場景未變動。
 完整材質、同視窗多個原生 canvas、完整 gameplay 服務與擴充 input routing 仍待完成。
+✅ Game View 現有 active-camera 預覽選單與 Automatic 回退；選擇只屬於目前 Play session。
+移除、scene 卸載、無效投影或新 Play 會安全重設。真正 UI 點擊驗證唯讀預覽可用，且 Editor／
+Play 資料與 Undo 未變動；frame 會在 tick 後重新驗證。
 ✅ Runtime component wire 現可透過共用解碼與原子 command 驗證直接讀寫隔離的 PlaySession
 World；Fixed／Step 測試證明寫入不會回流 Editor。
 ✅ Game panel 可載入 project-relative V3 gameplay library 到 clone，執行 FixedUpdate／Update、

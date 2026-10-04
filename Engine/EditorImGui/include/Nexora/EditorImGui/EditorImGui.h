@@ -142,6 +142,9 @@ public:
   // Current frame's Game canvas. Only published during Play when the native Scene canvas is hidden.
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   NativeGameViewport() const noexcept;
+  // Preview-only choice for the current Play session; zero requests the automatic active camera.
+  // The application revalidates it against the live World after commands and fixed ticks.
+  [[nodiscard]] runtime::Id GameCameraSelection() const noexcept;
   void SetNativeGameStatus(std::string message, bool available = true);
   void SetNativeScenePreview(bool enabled) noexcept;
   void SetNativeScenePreviewAvailable(bool available) noexcept;

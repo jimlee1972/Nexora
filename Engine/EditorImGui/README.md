@@ -107,8 +107,8 @@ authoring views on first launch.
   preview. While Play is running, the Game tab publishes `NativeGameViewport()` in clipped
   framebuffer pixels for a camera-driven native OBJ draw owned by the application. Start focuses
   the Game tab. The application builds owning geometry/instance/matrix data after Play commands and
-  fixed ticks, using Runtime's first valid active camera and a CPU mesh catalog frozen at Start;
-  editor reimport/deletion cannot change Play assets. Stop releases that catalog and discards the
+  fixed ticks, using the preview camera choice (Automatic selects Runtime's first valid active camera)
+  and a CPU mesh catalog frozen at Start; editor reimport/deletion cannot change Play assets. Stop releases that catalog and discards the
   clone. No World borrow survives frame preparation. Missing cameras/geometry show an actionable
   status. Unsupported backends retain the X/Z map. One native 3D draw is available per window/frame:
   a simultaneously visible native Scene canvas takes precedence and Game falls back to its map.
@@ -372,3 +372,16 @@ write a partially parsed value. The entered field applies to every selected enti
 its unrelated fields. Finite/clip/intensity and stale/duplicate validation is all-or-nothing; UI
 requests also check project write/recovery access. InputText drafts avoid unsupported EnterReturnsTrue
 flags on ImGui numeric widgets. Full generic reflected component editors remain separate work.
+
+## Game preview camera selection
+
+Game camera selection is preview-only and stores an entity ID scoped to the PlaySession generation.
+The clipped chooser offers Automatic and renderable cameras in active scenes, using owning snapshot
+IDs and a temporary Runtime CameraView validation on the serialized authoring thread. Read-only
+projects can choose previews; recovery/Play-review/close modals disable the chooser. It does not
+change World components, SceneDocument selection, Undo history or project persistence. Missing,
+inactive or unrenderable choices return to Automatic, and Stop/new Start clear the choice and popup.
+`GameCameraSelection()` returns zero for Automatic. The application passes that value into frame
+preparation after commands/ticks, where current scene lifecycle and CameraView are rechecked; stale
+snapshots cannot retain a removed camera or draw an unloading scene. Automatic remains ordered by
+entity ID. No borrowed World data survives frame preparation.

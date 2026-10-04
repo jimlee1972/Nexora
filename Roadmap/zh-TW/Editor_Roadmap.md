@@ -322,6 +322,10 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   Start 會凍結資產版本，fixed tick 後的 frame 擁有 upload 資料。測試涵蓋共用 geometry、
   inactive scene、reimport 隔離、Pause／Step／Stop，以及 Xvfb/lavapipe 攝影機像素與未變動
   的 Editor 場景。同視窗每幀共用一次原生 3D submission；兩個 canvas 同時顯示時 Game 保留檢視圖。
+- ✅ Game View 現提供 clipped Preview camera 選單，預設 Automatic，可選有效 active camera。
+  選擇只作用於目前 Play session 的預覽；唯讀專案仍可操作，modal 提示會停用選單，Stop／
+  新 Start 會清除選擇。真正 UI 點擊與 Runtime 測試涵蓋元件移除、無效 native-float 投影、
+  scene 卸載、確定性回退，以及 Editor／Play 資料和 Undo 未變動；frame 在 tick 後重新驗證。
 - ✅ Runtime component wire 讀寫現可直接接受隔離的 PlaySession World，與 GameWorld 共用
   解碼及原子 command 驗證。Fixed／Step 回呼測試涵蓋 Editor 隔離、父階層世界姿態、component
   payload 與失敗寫入 rollback；初版圖形化 input adapter 現已實作。

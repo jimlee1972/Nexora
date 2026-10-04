@@ -1387,7 +1387,7 @@ int RunGraphical(std::optional<ProjectState> project,
         viewport && play.PlayWorld() && play_meshes && !ui.NativeScenePreviewViewport()) {
       const auto game = nexora::editor::preview::BuildGameFrame(
           *play.PlayWorld(), play.Inspect(), *play_meshes,
-          static_cast<float>(viewport->width) / viewport->height);
+          static_cast<float>(viewport->width) / viewport->height, ui.GameCameraSelection());
       if (!game.camera || game.instances.empty()) {
         ui.SetNativeGameStatus(!game.camera
                                    ? "Add an active camera to the scene before Play."

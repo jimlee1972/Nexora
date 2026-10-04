@@ -340,6 +340,11 @@ creates property widgets; unknown components retain raw data instead of being si
     ticks. Tests cover shared geometry, inactive scenes, reimport isolation, Pause/Step/Stop, and
     Xvfb/lavapipe camera pixels with an unchanged editor scene. Scene and Game share one native 3D
     submission per window; simultaneous visible canvases fall back to the Game inspection map.
+  - ✅ Game View now offers a clipped Preview camera chooser with Automatic as the default and
+    renderable active-camera choices. Selection is Play-session scoped and preview-only; read-only
+    projects retain it, modal prompts disable it, and Stop/new Start discard it. Real UI clicks and
+    Runtime tests cover removal, invalid native-float projection, unloading scenes, deterministic
+    fallback and unchanged Editor/Play data and Undo. Frame preparation revalidates after ticks.
   - ✅ Runtime component wire read/write now accepts the isolated PlaySession World directly,
     sharing decoding and atomic command validation with GameWorld. Fixed/Step callback tests
     prove Editor isolation, parented world poses, component payloads, and failed-write rollback;
