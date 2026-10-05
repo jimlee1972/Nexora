@@ -49,15 +49,17 @@ std::array<Rgb, 4> Read(
     unsigned width, unsigned height, const std::filesystem::path &capture) {
 #if defined(_WIN32)
   (void)display;
-  auto source = GetDC(window);
+  POINT origin{};
+  Require(ClientToScreen(window, &origin), "PBR client origin unavailable");
+  auto source = GetDC(nullptr);
   auto dc = source ? CreateCompatibleDC(source) : nullptr;
   auto bitmap =
       source ? CreateCompatibleBitmap(source, static_cast<int>(width), static_cast<int>(height))
              : nullptr;
   Require(source && dc && bitmap, "PBR GDI capture unavailable");
   auto previous = SelectObject(dc, bitmap);
-  const auto copied =
-      BitBlt(dc, 0, 0, static_cast<int>(width), static_cast<int>(height), source, 0, 0, SRCCOPY);
+  const auto copied = BitBlt(dc, 0, 0, static_cast<int>(width), static_cast<int>(height), source,
+                             origin.x, origin.y, SRCCOPY);
   SelectObject(dc, previous);
   BITMAPINFO info{};
   info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -70,7 +72,7 @@ std::array<Rgb, 4> Read(
   const auto rows = GetDIBits(dc, bitmap, 0, height, capturedBytes.data(), &info, DIB_RGB_COLORS);
   DeleteObject(bitmap);
   DeleteDC(dc);
-  ReleaseDC(window, source);
+  ReleaseDC(nullptr, source);
   Require(copied && rows == static_cast<int>(height), "PBR GDI capture failed");
   const auto rgb = [&](unsigned x, unsigned y) {
     const auto index = (static_cast<std::size_t>(y) * width + x) * 4;
@@ -117,6 +119,7 @@ int main(int argc, char **argv) {
 #if defined(_WIN32)
     const std::nullptr_t display = nullptr;
     const auto native = reinterpret_cast<HWND>(windows->NativeHandle(window.handle));
+    SetForegroundWindow(native);
 #else
     auto *display = XOpenDisplay(nullptr);
     Require(display != nullptr, "PBR readback display unavailable");

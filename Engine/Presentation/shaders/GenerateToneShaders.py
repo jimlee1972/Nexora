@@ -48,6 +48,13 @@ def generate(compiler: str, check: bool) -> None:
             path = root / f'Engine/Presentation/src/SceneTone{label}Shaders.h'
             if check:
                 if not path.is_file() or path.read_text() != text:
+                    if path.is_file():
+                        old = path.read_text().splitlines()
+                        new = text.splitlines()
+                        differences = [(i+1, a, b) for i, (a, b) in enumerate(zip(old, new)) if a != b]
+                        print(f'Embedded lines expected={len(old)} actual={len(new)}')
+                        for line, expected, actual in differences[:8]:
+                            print(f'line {line}: expected {expected} / actual {actual}')
                     raise SystemExit(f'Embedded tone-map shader differs: {path}')
             else:
                 path.write_text(text)
