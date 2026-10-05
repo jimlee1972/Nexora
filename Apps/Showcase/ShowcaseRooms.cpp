@@ -929,9 +929,36 @@ struct RoomSession::State final {
     };
     for (const auto tier : {std::array{2.65F, 0.0F, 0.24F}, std::array{1.7F, 0.24F, 0.60F},
                             std::array{1.05F, 0.60F, 1.05F}}) {
-      const std::array<std::array<float, 2>, 4> profile{
-          {{0, tier[1]}, {tier[0], tier[1]}, {tier[0], tier[2]}, {0, tier[2]}}};
+      const float lip = std::min(0.09F, (tier[2] - tier[1]) * 0.2F);
+      const std::array<std::array<float, 2>, 8> profile{{{0, tier[1]},
+                                                         {tier[0] - 0.05F, tier[1]},
+                                                         {tier[0], tier[1] + lip},
+                                                         {tier[0] - 0.025F, tier[1] + lip * 1.8F},
+                                                         {tier[0] - 0.025F, tier[2] - lip * 1.8F},
+                                                         {tier[0], tier[2] - lip},
+                                                         {tier[0] - 0.05F, tier[2]},
+                                                         {0, tier[2]}}};
       Lathe({0, 0, 0}, profile);
+    }
+    finish(0);
+    // Original sculpted basin and radial buttresses support the floating hero crystal.
+    const std::array<std::array<float, 2>, 8> basin{{{0, 1.04F},
+                                                     {0.48F, 1.04F},
+                                                     {0.34F, 1.22F},
+                                                     {0.42F, 1.6F},
+                                                     {0.78F, 1.75F},
+                                                     {0.8F, 1.87F},
+                                                     {0.62F, 1.87F},
+                                                     {0, 1.76F}}};
+    Lathe({0, 0, 0}, basin);
+    for (unsigned rib = 0; rib < 12; ++rib) {
+      const float angle = rib * 2 * math::kPi / 12;
+      const auto point = [&](float r, float y) {
+        return math::Vector3{r * std::cos(angle), y, r * std::sin(angle)};
+      };
+      Segment(point(0.54F, 1.08F), point(0.39F, 1.3F), 0.045F);
+      Segment(point(0.39F, 1.3F), point(0.47F, 1.57F), 0.04F);
+      Segment(point(0.47F, 1.57F), point(0.73F, 1.76F), 0.045F);
     }
     finish(0);
     // Original shallow stone relief around the middle pedestal tier.
@@ -977,13 +1004,6 @@ struct RoomSession::State final {
       finish(1);
     }
     courtyardReflectionDeviceIndexEnd = indices.size();
-    // Individually bevelled paving continues beyond the foreground; original surface UVs
-    // retain the sandstone detail rather than reusing a prop's gradient-palette coordinates.
-    for (int z = -10; z <= 10; ++z)
-      for (int x = -10; x <= 10; ++x)
-        if (std::abs(x) > 1 || std::abs(z) > 1)
-          CourtyardPaving(x, z);
-    finish(0);
     const std::array<std::array<float, 2>, 10> column{{{0, 0},
                                                        {0.7F, 0},
                                                        {0.7F, 0.22F},
@@ -1017,6 +1037,39 @@ struct RoomSession::State final {
     finish(8);
     batches.back().firstInstance = 1;
     batches.back().instanceCount = 4;
+    // Eight original chipped tile meshes share native instances. World-space maps and
+    // inverse-transpose normals retain consistent scale and lighting on every stone.
+    constexpr unsigned pavingVariants = 8;
+    for (unsigned variant = 0; variant < pavingVariants; ++variant) {
+      const auto tileVertex = vertices.size();
+      CourtyardPaving(static_cast<int>(variant), 0);
+      for (std::size_t v = tileVertex; v < vertices.size(); ++v)
+        vertices[v].position[0] -= variant * 1.2F;
+      const auto prototypeSeed = (variant + 11U) * 73856093U ^ 11U * 19349663U;
+      const float prototypeX = 0.575F - static_cast<float>(prototypeSeed % 5) * 0.005F;
+      const float prototypeZ = 0.575F - static_cast<float>((prototypeSeed >> 4) % 5) * 0.005F;
+      const float prototypeTop = 0.13F + static_cast<float>(prototypeSeed % 7) * 0.003F;
+      const auto pavingFirst = static_cast<std::uint32_t>(instances.size());
+      for (int z = -10; z <= 10; ++z)
+        for (int x = -10; x <= 10; ++x) {
+          if (std::abs(x) <= 1 && std::abs(z) <= 1)
+            continue;
+          const auto seed = static_cast<std::uint32_t>(x + 11) * 73856093U ^
+                            static_cast<std::uint32_t>(z + 11) * 19349663U;
+          if (seed % pavingVariants != variant)
+            continue;
+          Nexora::Presentation::SceneInstance tile{};
+          tile.translation[0] = x * 1.2F;
+          tile.translation[2] = z * 1.2F;
+          tile.scale[0] = (0.575F - static_cast<float>(seed % 5) * 0.005F) / prototypeX;
+          tile.scale[1] = (0.13F + static_cast<float>(seed % 7) * 0.003F) / prototypeTop;
+          tile.scale[2] = (0.575F - static_cast<float>((seed >> 4) % 5) * 0.005F) / prototypeZ;
+          instances.push_back(tile);
+        }
+      finish(0);
+      batches.back().firstInstance = pavingFirst;
+      batches.back().instanceCount = static_cast<std::uint32_t>(instances.size()) - pavingFirst;
+    }
 #if NEXORA_ASSET_PIPELINE_ENABLED
     AdoptedMesh(2, {-3.8F, 0, -2.5F}, {0.22F, 0.22F, 0.22F});
     AdoptedMesh(2, {3.8F, 0, -2.5F}, {0.22F, 0.22F, 0.22F});
@@ -1169,9 +1222,30 @@ struct RoomSession::State final {
     // Side arcades frame the device, with hanging leaves driven by the shared wind shader.
     for (const float x : {-7.5F, 7.5F}) {
       for (const float z : {-7.0F, -1.0F, 5.0F}) {
-        Cube(x, 2.8F, z, 0.55F, 2.8F, 0.55F);
-        Cube(x, 0.3F, z, 0.85F, 0.3F, 0.85F);
-        Cube(x, 5.7F, z, 0.85F, 0.3F, 0.85F);
+        for (unsigned course = 0; course < 7; ++course) {
+          const float stagger = static_cast<float>((course * 13) % 5) * 0.012F;
+          Cube(x + stagger - 0.024F, 0.4F + course * 0.8F, z, 0.55F - stagger * 0.25F, 0.39F,
+               0.55F);
+        }
+        Cube(x, 0.18F, z, 0.85F, 0.18F, 0.85F);
+        Cube(x, 0.43F, z, 0.7F, 0.08F, 0.7F);
+        Cube(x, 5.53F, z, 0.68F, 0.12F, 0.68F);
+        Cube(x, 5.75F, z, 0.85F, 0.10F, 0.85F);
+        Cube(x, 5.92F, z, 0.74F, 0.06F, 0.74F);
+        // Original raised geometric relief on the front face, with carved side rails.
+        const auto point = [&](float dx, float y) { return math::Vector3{x + dx, y, z + 0.565F}; };
+        for (const float dx : {-0.34F, 0.34F})
+          Segment(point(dx, 0.9F), point(dx, 5.1F), 0.025F);
+        const std::array<math::Vector3, 4> emblem{
+            {point(0, 4.8F), point(0.23F, 4.45F), point(0, 4.1F), point(-0.23F, 4.45F)}};
+        for (unsigned edge = 0; edge < emblem.size(); ++edge)
+          Segment(emblem[edge], emblem[(edge + 1) % emblem.size()], 0.03F);
+        Segment(point(0, 1.0F), point(0, 3.95F), 0.022F);
+        for (const float sign : {-1.0F, 1.0F})
+          for (const float y : {1.1F, 2.1F, 3.1F}) {
+            Segment(point(0, y), point(sign * 0.2F, y + 0.35F), 0.022F);
+            Segment(point(sign * 0.2F, y + 0.35F), point(sign * 0.2F, y + 0.75F), 0.022F);
+          }
       }
       for (const float z : {-4.0F, 2.0F})
         for (unsigned i = 0; i < 20; ++i) {
@@ -1257,13 +1331,23 @@ struct RoomSession::State final {
       }
     finish(5);
     for (const float x : {-12.0F, 12.0F})
-      for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F}) {
-        Cube(x, 1, z, 0.18F, 1, 0.18F);
-        const std::array<std::array<float, 2>, 5> crown{
-            {{0, 1}, {0.9F, 1.1F}, {0.7F, 3}, {0.35F, 5}, {0, 6}}};
-        Lathe({x, 0, z}, crown);
-      }
+      for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F})
+        Cube(x, 2, z, 0.12F, 2, 0.12F);
     finish(10);
+    // Layered cutout foliage replaces smooth cones; it shares leaf lighting and wind.
+    for (const float x : {-12.0F, 12.0F})
+      for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F})
+        for (unsigned layer = 0; layer < 18; ++layer) {
+          const float y = 0.7F + layer * 0.29F;
+          const float crownRadius = 0.85F * (1 - std::pow(layer / 18.0F, 1.35F));
+          for (unsigned branch = 0; branch < 3; ++branch) {
+            const float angle = layer * 2.399963F + branch * 2 * math::kPi / 3;
+            LeafQuad({x + std::cos(angle) * crownRadius * 0.22F, y,
+                      z + std::sin(angle) * crownRadius * 0.22F},
+                     crownRadius, 0.7F, angle);
+          }
+        }
+    finish(5);
     // Ground-cover patches and climbing ivy use the existing original leaf mask and GPU wind.
     for (unsigned patch = 0; patch < 112; ++patch) {
       const auto seed = patch * 747796405U + 2891336453U;

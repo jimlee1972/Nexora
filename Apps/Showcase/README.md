@@ -524,3 +524,13 @@ perturb the geometric normal without UV streaking across columns, paving or refl
 Stone strengths use 0.35/0.2 for hero/background surfaces. Existing linear HDR lighting, shadows,
 focus and bloom consume the perturbed normals; four native fixtures verify projection strength
 and exact restoration (69 PBR frames).
+
+
+Eight original chipped paving meshes now share 432 native affine instances. Deterministic
+stone heights/widths and source-world PBR maps remain coherent; identity/column/paving/mirror
+ranges are retained across cached frames and quality changes. The reclaimed vertex budget
+supports a sculpted central basin/ribs, bevelled pedestal lips, staggered arcade masonry and
+raised geometric column relief. Layered cutout tree crowns share GPU wind and leaf lighting.
+The fixed activated Standard shot contains 51,790 vertices and 1,338 source foliage quads.
+Linux full validation passes 97/97 (95.21 seconds), including all three vertex budgets and native
+instance/wind/effect replay. Shipping evidence and final reference parity remain open (VIS 5/7).
