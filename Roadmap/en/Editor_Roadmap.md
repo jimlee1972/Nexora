@@ -152,6 +152,15 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Scene Home and Frame all navigate without changing selection, World,
+  dirty state or history. An owning token applies once using actual 3,999-bounded native submission
+  candidates, upload/proxy fallback, exact affine mesh/proxy bounds and
+  bounded FOV distance; overview fits all world origins to its logical canvas within zoom limits.
+  Real 1x/2x tests verify empty selection/scene, read-only, button/keyboard parity, modal/panel gates,
+  rejected/stale/one-shot bounds and retained Redo, including release/Home and 4,001-node limits.
+  No extra idle-frame node snapshot is built to enable the button. Linux Xvfb restores native pixels for proxy and
+  authored OBJ scenes. Full Scene View and physical-display acceptance remain open.
+
 - ✅ Native F and Frame selected now center selected forests on exact world-transformed CPU mesh
   and rotated proxy bounds, including descendants once. Current clipped framebuffer aspect and the
   narrower viewport FOV set bounded distance; invalid/out-of-range bounds preserve the camera.

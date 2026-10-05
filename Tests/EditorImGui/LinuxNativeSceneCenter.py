@@ -147,6 +147,28 @@ def main():
             raise RuntimeError(f"distinct OBJ geometry was not submitted: {captured!r}")
         send("windowfocus", window)
         viewport = settled_viewport(editor.stderr, viewport)
+        # Focus the Scene panel and clear selection by clicking empty canvas, not either root.
+        move((viewport[0] + 10, viewport[1] + 10))
+        send("click", 1)
+        time.sleep(0.2)
+        # No selection yet: Home fits both roots, then restores the same view after a pan.
+        move((viewport[0] + viewport[2] // 2, viewport[1] + viewport[3] // 2))
+        send("key", "--delay", "100", "Home")
+        time.sleep(0.2)
+        all_pixels = scene_region_pixels(display, window, viewport)
+        send("mousedown", 2)
+        move((viewport[0] + viewport[2] // 2 + 40, viewport[1] + viewport[3] // 2 + 20))
+        time.sleep(0.2)
+        send("mouseup", 2)
+        settled_scene_preview(display, window, viewport, all_pixels)
+        send("key", "--delay", "100", "Home")
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            if scene_region_pixels(display, window, viewport) == all_pixels:
+                break
+            time.sleep(0.05)
+        else:
+            raise RuntimeError("Home did not restore all-scene framing without selection")
         point = blue_proxy_pixel(display, window, viewport, first=True)
         if point is None:
             raise RuntimeError("first root proxy is not visible")

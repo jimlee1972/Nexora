@@ -420,6 +420,26 @@ preparation after commands/ticks, where current scene lifecycle and CameraView a
 snapshots cannot retain a removed camera or draw an unloading scene. Automatic remains ordered by
 entity ID. No borrowed World data survives frame preparation.
 
+## Frame all Scene view
+
+Focused Scene Home and Frame all navigate without changing selection, World, dirty state, clipboard
+or document history. Native input emits one owning project/document token. The application consumes
+`TakeNativeSceneFrameAllRequest` after widgets, revalidates its current session, and supplies the same
+bounded candidates used by native drawing/picking to `ApplyNativeSceneFrameAll`. Drawing and framing
+share the 3,999-candidate budget, transform eligibility and actual upload/proxy fallback. Invisible
+budget tails cannot pull the camera away. The GUI borrows only numeric bounds during that call;
+application geometry remains CPU-owned. Intent applies once in its issuing GUI frame and is discarded
+on BeginFrame, focus loss or gesture cancellation. Stale scope, empty/oversized/malformed packets and
+invalid/out-of-range world bounds preserve every camera field. No source IO or GPU publication occurs.
+The current clipped framebuffer aspect and narrower FOV retain the 2–100 distance limits. Overview
+centers all entity world origins and fits the logical canvas with 24-pixel margins and 4–256 zoom.
+Read-only navigation works. Other panels/text input, blocking modals and active or pending native drag
+commits cannot invoke framing. The empty-scene button safely no-ops without polling `Nodes()` merely
+to enable it. Real 1x/2x tests cover affine unions, empty selection/scene, parity, gates, release/Home,
+retained World/Redo and one-shot/stale packets. A 4,001-node fixture excludes an invalid transform and
+an invisible distant tail using the shared submission builder. Linux Xvfb verifies Home/pan/Home pixel
+restoration for proxy and authored OBJ scenes. Full graphical Scene View acceptance remains open.
+
 ## Camera alignment from Scene view
 
 With one enabled Camera selected, Use Scene view pose copies the stored native Scene orbit's eye
