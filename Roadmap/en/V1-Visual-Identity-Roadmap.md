@@ -4,7 +4,7 @@
 >
 > Date: 2026-10-04
 >
-> Status: art direction confirmed by the user; VIS-M0 through VIS-M6 remain planned and unaccepted (0/7).
+> Status: VIS-M0 engineering greybox in progress; VIS-M0 through VIS-M6 remain unaccepted (0/7).
 >
 > Theme: a stylized ruins courtyard.
 >
@@ -68,7 +68,7 @@ The user also requested free online models and textures. Prioritize freely downl
 
 ## 4. Milestones
 
-All milestones are planned. Mark them complete only after their acceptance gates pass and evidence is retained.
+VIS-M0 is in progress; the remaining milestones are planned. Mark milestones complete only after their acceptance gates pass and evidence is retained.
 
 | ID | Work | Visible outcome | Acceptance |
 | --- | --- | --- | --- |
@@ -147,3 +147,19 @@ Water, SSR, volumetric fog, complete characters, GPU skinning, large worlds, and
 - Visuals and performance come from the delivered native executable version.
 - The package launches in isolation and includes asset sources and licensing information.
 - Every completed milestone has traceable acceptance evidence; unaccepted platforms and effects retain explicit status.
+
+## 10. VIS-M0 first implementation slice (2026-10-05)
+
+The native Showcase now accepts `--scene=courtyard` / `9`, with an original engineering blockout
+for paving, broken architecture, the central ring device, and ceramic/vegetation placeholders.
+`B` cycles three deterministic shot framings; `F4` hides all diagnostic UI while preserving the
+Offscreen → Main → UI → Present schedule. The crystal placeholder uses the existing active
+cooked/bundled mesh, with a procedural fallback when the asset pipeline is compiled out.
+The report retains shot/UI state and representative asset provenance.
+
+Inventory: [engineering sources and replacements](../../Apps/Showcase/content/Courtyard-Greybox.md).
+This begins VIS-M0; final free-asset adoption, art review and target-hardware acceptance remain open.
+Material/motion shot names describe intended future demonstrations, not delivered PBR or wind.
+
+✅ First-slice Linux validation: 84/84 Development tests with no skips; native fixed-shot replay,
+UI hiding/restoration and representative asset loading verified. [Baseline evidence](../../Apps/Showcase/evidence/VIS-M0-Linux-Greybox-2026-10-05/acceptance.md).

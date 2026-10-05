@@ -1,0 +1,6 @@
+{
+  "Apps/Showcase/ShowcaseRooms.cpp": "23675d47cf7a8b1d40f6ca66ccc53fa9dd02638101c9e4ae61b4c0a9ed42f49d",
+  "Apps/Showcase/main.cpp": "6e81120b19631341b44573fa0614c8ad29c461fd737225244e90edecbe81a02a",
+  "Tests/Showcase/ShowcaseRoomTests.cpp": "072af6a18419273091d5359252b60d40f365dbe43c4612c042cff692594ed656",
+  "Tests/Showcase/LinuxShowcaseInteraction.py": "13cdfe14114beda3da6cc19153a5ab72322d2de8e1dea63e98853544b3f3f406"
+}

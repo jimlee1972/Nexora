@@ -50,6 +50,27 @@ The interaction gate allows up to 25 seconds for the first software Vulkan frame
 `WM_DELETE_WINDOW` for graceful shutdown under Xvfb without a window manager.
 
 
+## Visual identity courtyard greybox
+
+`--scene=courtyard` (or `9` from any room) opens the first VIS-M0 engineering blockout:
+paving, broken architecture, a central stone-ring mechanism and ceramic/vegetation placeholders.
+`B` cycles reproducible wide, material-close-up and motion-finale camera framings; mouse/WASD
+orbit and wheel zoom remain available. Re-entering the courtyard resets the wide camera.
+`F4` toggles a completely diagnostic-free screenshot view in any room; the RenderGraph UI stage
+still completes, but submits no UI draw while hidden. Press `F4` again to restore the controls.
+The eight-room V1 tour remains available through `T`.
+
+The crystal placeholder uses the original mesh read from the active Import → Cook → Bundle →
+Runtime generation when the asset pipeline is enabled; disabled builds use an explicit procedural
+cube fallback and report `representative_asset_loaded=false`. Reports retain the fixed-shot index,
+UI visibility and representative asset hash. Geometry/report snapshots retain existing ownership.
+
+This is an engineering greybox with one basic sandstone-colored material. Three camera framings
+prepare later demonstrations; PBR, real shadows, emission, wind and finished third-party art remain
+pending. See the [visual roadmap](../../Roadmap/en/V1-Visual-Identity-Roadmap.md) and
+[blockout inventory](content/Courtyard-Greybox.md). Native baseline capture and VIS-M0 acceptance
+are tracked separately from final target-hardware visual/performance acceptance.
+
 ## Feature gallery
 
 `--scene=tour` emits the complete gallery capability matrix. Individual `math`, `scene`,
