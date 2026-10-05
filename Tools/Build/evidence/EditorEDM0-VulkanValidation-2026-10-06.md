@@ -50,12 +50,19 @@ The retained full-suite output contained no `Validation Error`, `VUID-*`, or `SY
 diagnostics. Shipping configure/build passed (testing is OFF by that preset).
 Changed Markdown validation reported zero errors; documentation CI regression tests passed 16/16.
 
-CI installs the validation layer, enables synchronization validation, requires loader evidence
+CI installs the validation layer, enables synchronization validation in focused shell/native passes,
+requires loader evidence
 of device-layer insertion, retains verbose Editor
 and native logs as `editor-linux-validation-logs`, and fails on diagnostics even when the
 native RHI test exits zero. Native coverage includes offscreen RHI, scene rotation pixels,
 PBR, and GPU-driven indirect submission; the Editor harness covers startup, resize,
 layout repair/migration, and recovery.
+
+The first hosted CI run exposed fixed-delay gesture/Play failures under validation overhead,
+without Vulkan diagnostics. The complete Editor interaction suite remains required in its normal
+configuration; a separate core/synchronization pass repeats the ED-M0 display/recovery gate.
+Both configurations retain logs. This does not claim synchronization validation for every hosted
+Scene/Game interaction; the local full-suite layer-enabled result above remains separate.
 
 ## Acceptance limits
 
