@@ -7,3 +7,8 @@ The retained 100-second video captures the actual Vulkan window at 1280×720, 15
 Scope: Xvfb / lavapipe software GPU, not physical Windows target-hardware acceptance. No GPU timing or GTX 960 performance claim. Offline ffmpeg is an evidence tool only.
 
 Living effects PR #327 passed all 18 jobs in run 37288122626 at head 9040f0c7644db448f5c0e819dc7d1fc15f315f3d and merged as 38a02b28707e2c4727084f557372961b4037b43b.
+
+Build 1460 exposed a capture race: inequality against the UI frame accepted changing diagnostic
+text before F4 had reached the presented frame. The clean baseline now requires three consecutive
+identical native images before the unchanged exact comparisons run. Supplemental full Linux
+configure/build/CTest passes 97/97 (46.55s), preserving every effect/restoration assertion.
