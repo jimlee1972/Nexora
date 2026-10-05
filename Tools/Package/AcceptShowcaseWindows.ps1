@@ -152,6 +152,19 @@ public static class NexoraAcceptanceWindow {
         [NexoraAcceptanceWindow]::Press($window, $key)
         Start-Sleep -Milliseconds 150
     }
+    function Capture-Settled([string]$name) {
+        $deadline = [DateTime]::UtcNow.AddSeconds(5)
+        $previous = ''; $repeats = 0
+        do {
+            Capture $name
+            $current = (Get-FileHash (Join-Path $evidence $name)).Hash
+            if ($current -eq $previous) { $repeats++ } else { $repeats = 0 }
+            if ($repeats -ge 2) { return }
+            $previous = $current
+            Start-Sleep -Milliseconds 150
+        } while ([DateTime]::UtcNow -lt $deadline)
+        throw "Native clean baseline did not settle: $name"
+    }
     function Capture-Compared([string]$name, [string]$reference, [bool]$equal) {
         $deadline = [DateTime]::UtcNow.AddSeconds(5)
         do {
@@ -170,7 +183,9 @@ public static class NexoraAcceptanceWindow {
     Press-Key 82 # Replay to time zero.
     Capture 'courtyard-ui.png'
     Press-Key 115 # F4: remove the overlay from fixed visual evidence.
-    Capture-Compared 'courtyard-wide.png' 'courtyard-ui.png' $false
+    Capture-Settled 'courtyard-wide.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
+        (Get-FileHash (Join-Path $evidence 'courtyard-ui.png')).Hash) 'Screenshot mode did not remove the UI.'
     Press-Key 75 # K: restrained GPU bloom comparison.
     Capture-Compared 'courtyard-bloom-off.png' 'courtyard-wide.png' $false
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
