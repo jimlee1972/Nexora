@@ -390,6 +390,14 @@ creates property widgets; unknown components retain raw data instead of being si
   is allowed; Play/modal/token gates reject replacement. Real 1x/2x pointer/key tests cover Unicode
   paths, single/double clicks, non-scene/multiple selection rejection, dirty decisions and stale
   requests. Additive scene tabs and full ED-M4 acceptance remain open.
+- ✅ Active Content scenes follow stable UUIDs through rename/move and Content Undo, retaining
+  document generation, dirty content, selection, history and live view state. Committed relocation
+  also updates startup filename without saving dirty World state, so Discard
+  and Exit/restart reloads the relocated committed source. Missing/deleted,
+  unsafe or stale tracked assets block ordinary Save; restoration resumes it, while a different UUID
+  at the old filename cannot replace the association. Saved-scene indexing retargets stale moved
+  entries only when old source and sidecar are absent. Portable Unicode/read-only/failure contracts
+  and Linux Xvfb context rename/delete/Save/Undo verify the workflow; full ED-M4 remains open.
 - ✅ The Scene panel exposes Undo/Redo by button and Ctrl+Z/Ctrl+Y/Ctrl+Shift+Z outside text input.
   Runtime replay restores stable IDs, hierarchy, transforms, and Camera/Light components; document
   replay restores names, selection, and authored Euler revolutions. New edits discard Redo; tests

@@ -2,6 +2,7 @@
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneFiles.h"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <fstream>
@@ -131,6 +132,152 @@ void RunSavedSceneImport(const std::filesystem::path &content) {
               browser.Undo() && std::filesystem::exists(content / unicode),
           "Unicode content move or Undo lost the native path");
 }
+void RunContentLocation(const std::filesystem::path &root) {
+  editor::ProjectWorkspace workspace, reader;
+  Require(workspace.Create(root, "Tracked scenes") &&
+              reader.Open(root, editor::ProjectAccess::ReadOnly),
+          "Tracked scene workspace failed");
+  runtime::World world;
+  const auto id = world.LoadScene("Tracked");
+  editor::SceneDocument scene(world, id);
+  editor::SceneFileSession files(workspace, scene);
+  const auto original = std::filesystem::path("Content/Original.scene");
+  Require(files.RestoreStartup(files.Token()).status == Status::NeedsPath &&
+              scene.CreateCamera("Camera") && files.SaveAs(files.Token(), original).Applied(),
+          "Tracked scene source failed");
+  editor::AssetWorkspace assets;
+  editor::ProjectContentSession content;
+  Require(
+      assets.ImportTree(root / "Content", {}, {}, editor::AssetIdentityMode::PersistentReadWrite) &&
+          content.Open(workspace, assets, 9),
+      "Tracked scene Content failed");
+  const auto asset = content.Browser().Items().front().id;
+  const auto identity = Read(root / "Content/Original.scene.meta");
+  const auto token = files.Token();
+  const auto clean = world.SaveScene(id);
+  Require(files.SynchronizeContent(token, content).Applied() &&
+              files.RememberCurrent(token).Applied(),
+          "Tracked scene association failed");
+  const std::string renamed_name = "Renamed.scene";
+  const auto renamed = std::filesystem::path("Content/Renamed.scene");
+  Require(content.Rename(asset, renamed_name) &&
+              files.SynchronizeContent(token, content).Applied() &&
+              files.CurrentPath() == renamed && files.Token() == token && !scene.Dirty() &&
+              world.SaveScene(id) == clean && files.RememberCurrent(token).Applied() &&
+              Read(root / ".nexora/scene-session.ini").find("scene=Content/Renamed.scene\n") !=
+                  std::string::npos &&
+              Read(root / "Content/Renamed.scene.meta") == identity,
+          "Clean rename changed the document, identity or startup association");
+  Require(content.Undo() && files.SynchronizeContent(token, content).Applied() &&
+              files.CurrentPath() == original && world.SaveScene(id) == clean &&
+              files.RememberCurrent(token).Applied(),
+          "Rename Undo lost the active scene association");
+  Require(content.Rename(asset, renamed_name) && assets.ImportSavedScene("Renamed.scene") &&
+              assets.Entries().size() == 1 &&
+              assets.Find(asset)->relative_path == "Renamed.scene" && content.Undo() &&
+              assets.ImportSavedScene("Original.scene") && assets.Entries().size() == 1 &&
+              assets.Find(asset)->relative_path == "Original.scene",
+          "Saved-scene import did not retarget the stale UUID index through rename/Undo");
+  Require(scene.CreateLight("Pending") != 0, "Dirty relocation fixture failed");
+  Require(files.RememberCurrent(token).status == Status::Rejected,
+          "An ordinary dirty document was recorded without relocation");
+  const auto dirty = world.SaveScene(id);
+  const std::vector<runtime::Id> selection(scene.Selection().begin(), scene.Selection().end());
+  const auto unicode_name = std::u8string(u8"場景.scene");
+  const auto unicode = std::filesystem::path(u8"Content/場景.scene");
+  Require(content.Rename(asset, std::string(unicode_name.begin(), unicode_name.end())) &&
+              files.SynchronizeContent(token, content).Applied() &&
+              files.CurrentPath() == unicode && world.SaveScene(id) == dirty && scene.Dirty() &&
+              files.RememberCurrent(token).Applied() && scene.Dirty() &&
+              Read(root / ".nexora/scene-session.ini")
+                  .ends_with("scene=Content/" +
+                             std::string(unicode_name.begin(), unicode_name.end()) + "\n") &&
+              std::ranges::equal(scene.Selection(), selection) && scene.Undo() &&
+              world.SaveScene(id) == clean && scene.Redo() && world.SaveScene(id) == dirty &&
+              files.Save(token).Applied() &&
+              assets.ImportSavedScene(std::filesystem::path(u8"場景.scene")) &&
+              !std::filesystem::exists(root / original) &&
+              Read(root / unicode).find("Pending") != std::string::npos,
+          "Dirty rename lost scene state or Save recreated the old source");
+  std::filesystem::create_directories(root / std::filesystem::path(u8"Content/移動"));
+  const auto moved = std::filesystem::path(u8"Content/移動/場景.scene");
+  // Ordinary Save must retain the tracked UUID; a subsequent move must not need re-association.
+  Require(content.Move(std::array{asset}, std::filesystem::path(u8"Content/移動")) &&
+              files.SynchronizeContent(token, content).Applied() && files.CurrentPath() == moved &&
+              world.SaveScene(id) == dirty && files.Save(token).Applied() &&
+              assets.ImportSavedScene(std::filesystem::path(u8"移動/場景.scene")) &&
+              !std::filesystem::exists(root / unicode) && content.Undo() &&
+              files.SynchronizeContent(token, content).Applied() && files.CurrentPath() == unicode,
+          "Move, Save or move Undo lost the stable scene identity");
+  Require(assets.ImportSavedScene(std::filesystem::path(u8"場景.scene")) &&
+              assets.Entries().size() == 1 && assets.Find(asset),
+          "Move Undo duplicated or lost the saved-scene index entry");
+  Require(content.Delete(std::array{asset}) &&
+              files.SynchronizeContent(token, content).status == Status::Rejected &&
+              files.SaveBlocked() && files.Save(token).status == Status::Rejected &&
+              files.RememberCurrent(token).status == Status::Rejected &&
+              !std::filesystem::exists(root / unicode) && world.SaveScene(id) == dirty &&
+              content.Undo() && files.SynchronizeContent(token, content).Applied() &&
+              !files.SaveBlocked() && files.CurrentPath() == unicode && files.Save(token).Applied(),
+          "Deleted source was recreated, or Content Undo did not restore Save");
+  const std::vector<editor::ContentItem> retained(content.Browser().Items().begin(),
+                                                  content.Browser().Items().end());
+  Require(content.Browser().Reset(retained, 10) &&
+              files.SynchronizeContent(token, content).status == Status::Rejected &&
+              files.SaveBlocked() && content.Browser().Reset(retained, 9) &&
+              files.SynchronizeContent(token, content).Applied() && !files.SaveBlocked(),
+          "A foreign Content generation hijacked the association");
+  const auto invalid = root / "Content/Alias.scene";
+  std::filesystem::create_directory(invalid);
+  Require(content.Browser().Rename(asset, "Alias.scene") &&
+              files.SynchronizeContent(token, content).status == Status::Rejected &&
+              files.CurrentPath() == unicode && files.SaveBlocked() &&
+              files.Save(token).status == Status::Rejected && content.Browser().Undo() &&
+              files.SynchronizeContent(token, content).Applied() && !files.SaveBlocked(),
+          "An invalid tracked destination changed the path or allowed Save");
+  std::filesystem::remove(invalid);
+  editor::ProjectWorkspace foreign_workspace;
+  editor::AssetWorkspace foreign_assets;
+  editor::ProjectContentSession foreign_content;
+  Require(foreign_workspace.Create(root / "Foreign", "Foreign") &&
+              foreign_assets.ImportTree(root / "Foreign/Content") &&
+              foreign_content.Open(foreign_workspace, foreign_assets, 9) &&
+              files.SynchronizeContent(token, foreign_content).status == Status::Rejected &&
+              files.CurrentPath() == unicode && !files.SaveBlocked() &&
+              world.SaveScene(id) == dirty,
+          "A foreign Content root changed the scene association");
+  editor::SceneFileSession observer(reader, scene);
+  Require(observer.BindCurrent(unicode) &&
+              observer.SynchronizeContent(observer.Token(), content).Applied() &&
+              content.Rename(asset, "Observer.scene") &&
+              observer.SynchronizeContent(observer.Token(), content).Applied() &&
+              observer.CurrentPath() == "Content/Observer.scene" &&
+              observer.Save(observer.Token()).status == Status::Rejected &&
+              files.SynchronizeContent(token, content).Applied() && content.Undo() &&
+              files.SynchronizeContent(token, content).Applied(),
+          "Read-only scene location tracking allowed writes or lost the active asset");
+  Require(content.Delete(std::array{asset}), "Replacement deletion failed");
+  runtime::World replacement;
+  const auto replacement_id = replacement.LoadScene("Replacement");
+  editor::SceneDocument replacement_scene(replacement, replacement_id);
+  Require(replacement_scene.Create("Other") && replacement_scene.Save(root / unicode),
+          "Replacement source failed");
+  const auto replacement_source = Read(root / unicode);
+  auto replacement_item = retained.front();
+  replacement_item.id = {99, 99};
+  Require(content.Browser().Reset(std::array{replacement_item}, 9) &&
+              files.SynchronizeContent(token, content).status == Status::Rejected &&
+              files.SaveBlocked() && files.Save(token).status == Status::Rejected &&
+              Read(root / unicode) == replacement_source &&
+              files.SaveAs(token, unicode).status == Status::NeedsOverwrite &&
+              files.SaveAs(token, unicode, true).Applied() && !files.SaveBlocked() &&
+              files.SynchronizeContent(token, content).Applied(),
+          "A different UUID at the old path was overwritten without explicit approval");
+  Require(files.New(token).Applied() &&
+              files.SynchronizeContent(token, content).status == Status::Rejected &&
+              !files.CurrentPath() && !files.SaveBlocked(),
+          "A stale association crossed a new document boundary");
+}
 void RunStartup(const std::filesystem::path &root) {
   editor::ProjectWorkspace workspace, observer;
   Require(workspace.Create(root, "Startup scenes") &&
@@ -231,6 +378,7 @@ void RunStartup(const std::filesystem::path &root) {
   std::filesystem::remove(outside);
 }
 void Run(const std::filesystem::path &root) {
+  RunContentLocation(root / std::filesystem::path(u8"位置專案"));
   RunDiscovery();
   RunStartup(root / std::filesystem::path(u8"啟動專案"));
   RunSavedSceneImport(root / "SingleImport/Content");

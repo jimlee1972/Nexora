@@ -392,8 +392,21 @@ bool AssetWorkspace::ImportSavedScene(const std::filesystem::path &relative, std
       return fail(message.empty() ? "Saved scene identity has the wrong type."
                                   : std::move(message));
     for (const auto &entry : entries_)
-      if (entry.id == id && entry.relative_path != key)
-        return fail("Saved scene identity duplicates another indexed asset.");
+      if (entry.id == id && entry.relative_path != key) {
+        const auto absent = [](const std::filesystem::path &old_path) {
+          std::error_code error;
+          const auto old_status = std::filesystem::symlink_status(old_path, error);
+          return error == std::errc::no_such_file_or_directory ||
+                 (!error && old_status.type() == std::filesystem::file_type::not_found);
+        };
+        const auto old_path =
+            content_root_ / std::filesystem::path(std::u8string(entry.relative_path.begin(),
+                                                                entry.relative_path.end()));
+        // A Content rename moves both source and identity. Retarget only that stale scene entry;
+        // existing sources, aliases, sidecars or other importer types still indicate a collision.
+        if (entry.type != ".scene" || !absent(old_path) || !absent(IdentitySidecar(old_path)))
+          return fail("Saved scene identity duplicates another indexed asset.");
+      }
   } else {
     std::uint64_t salt{};
     while (id == runtime::AssetUuid{} ||
@@ -425,13 +438,13 @@ bool AssetWorkspace::ImportSavedScene(const std::filesystem::path &relative, std
       return fail(std::move(message));
   }
   AssetEntry saved{id, key, ".scene", Hex(hash), ImportState::Imported, {}};
-  const auto existing = std::ranges::find(entries_, key, &AssetEntry::relative_path);
-  if (existing != entries_.end())
-    *existing = std::move(saved);
-  else {
-    entries_.push_back(std::move(saved));
-    std::ranges::sort(entries_, {}, &AssetEntry::relative_path);
-  }
+  auto updated = entries_;
+  std::erase_if(updated, [&](const AssetEntry &entry) {
+    return entry.id == id || entry.relative_path == key;
+  });
+  updated.push_back(std::move(saved));
+  std::ranges::sort(updated, {}, &AssetEntry::relative_path);
+  entries_.swap(updated);
   if (error)
     error->clear();
   return true;

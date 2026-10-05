@@ -182,6 +182,15 @@ case variants cannot bypass reserved metadata policy or save a scene over anothe
 Content paths, folder/asset labels, search and rename input use UTF-8 with native filesystem paths;
 Unicode scene discovery, folder navigation, rename/move and Undo avoid system code-page conversion.
 
+The active Content scene follows its stable UUID through rename/move and Content Undo. Refresh runs
+at authoring mutation boundaries and before Save; unchanged frames use a token/path/browser-revision
+cache rather than filesystem polling. It retains document history, dirty edits, selection and the
+live view state at the new path. Committed Content relocation updates startup selection even with
+dirty document edits; it does not save those edits. Discard and Exit then reopens the relocated
+committed source. Deleting or losing the tracked asset blocks ordinary Save until
+Content Undo restores it or the user explicitly uses New/Open/Save As. A different UUID at the old
+path stays protected. Linux Xvfb drives actual context rename/delete, Save and both Undo workflows.
+
 Saving a Content scene streams only that saved scene and its identity metadata, retaining an 8 KiB
 read buffer and 64 MiB limit, then publishes the saved source to the live Content browser without clearing earlier content Undo or reimport state. An import failure is
 a Console warning after the scene has successfully saved, never a claim that its save rolled back.
@@ -190,7 +199,8 @@ Editor view states remain separate from scene content: the legacy Main scene kee
 with camera extensions. Switching retains owning CPU view state for previously opened files and
 shutdown persists it only for writable projects and valid, readable view metadata. Untitled view state
 has no file destination. Startup selection lives in bounded project/UTF-8 metadata at
-`.nexora/scene-session.ini`. Only successful Open/Save/Save As records a clean associated file;
+`.nexora/scene-session.ini`. Successful Open/Save/Save As records a clean associated file, and
+committed same-UUID Content relocation updates its existing filename without saving document edits;
 New/failed operations/Discard do not replace the previous choice. Read-only startup restores it
 without writing. Malformed, foreign, aliased or unavailable startup data is reported and preserved
 for the session while the application falls back to Main. A later metadata write failure warns without
