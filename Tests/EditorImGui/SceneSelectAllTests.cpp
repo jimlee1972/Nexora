@@ -51,7 +51,7 @@ struct Fixture final {
     baseline = world.SaveScene(scene_id);
     ui.SetDisplay(1600, 1000, dpi);
     ui.SetNativeScenePreview(true);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Focus(true);
     for (int i = 0; i < 4; ++i)
       Draw();

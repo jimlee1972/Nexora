@@ -49,7 +49,7 @@ struct Fixture final {
             "component fixture failed");
     baseline = world.SaveScene(scene_id);
     ui.SetDisplay(1280, 900, 1);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Focus(true);
     Draw();
     Draw();

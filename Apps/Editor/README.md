@@ -42,6 +42,9 @@ Feature-off isolation remains covered by the separate build-contract/mimalloc co
 The pinned third-party ImGui target retains AppleClang's zero-length text-replacement warning
 without promoting it to an error when that diagnostic is supported; engine/Editor targets keep
 strict warnings. MSVC's newly exposed local-shadowing errors are fixed with distinct variable names.
+Synthetic Editor tests explicitly choose portable Ctrl semantics and disable event trickling;
+production retains ImGui's native macOS Cmd mapping. The undo/redo contract also runs with macOS
+behavior enabled and physical Super/Cmd events, preventing a passing fixture from masking that path.
 
 On a host with a display and native presentation support, launch the shell with:
 

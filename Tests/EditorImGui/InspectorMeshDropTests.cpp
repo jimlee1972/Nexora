@@ -60,7 +60,7 @@ struct Fixture final {
             "mesh fixture failed");
     baseline = world.SaveScene(scene_id);
     ui.SetDisplay(1280, 900, scale);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;

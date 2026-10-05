@@ -39,7 +39,7 @@ void Run(float dpi) {
   editor::imgui::EditorImGuiHost ui;
   ui.SetDisplay(1600, 1000, dpi);
   ui.SetNativeScenePreview(true);
-  Access::SetInputTrickle(ui, false);
+  Access::ConfigureSyntheticInput(ui);
   editor::ProjectWorkspace *workspace = &writer;
   const auto draw = [&] {
     ui.BeginFrame();

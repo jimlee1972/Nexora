@@ -34,7 +34,7 @@ struct Fixture final {
                 scene.Select(std::array{*scene.Key(parent)}) && scene.Save(Path()),
             "Builtin UI parent fixture failed");
     ui.SetDisplay(1600, 1000, dpi);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;

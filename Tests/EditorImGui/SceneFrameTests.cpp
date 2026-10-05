@@ -77,7 +77,7 @@ struct Fixture final {
     original = world.SaveScene(scene_id);
     ui.SetDisplay(1600, 1000, scale);
     ui.SetNativeScenePreview(true);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;

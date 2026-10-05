@@ -44,7 +44,7 @@ struct Fixture final {
     files = std::make_unique<editor::SceneFileSession>(writer, scene);
     Require(files->SaveAs(files->Token(), "Content/Original.scene").Applied(), "UI save failed");
     ui.SetDisplay(1600, 1000, dpi);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;
