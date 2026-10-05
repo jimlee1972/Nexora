@@ -31,7 +31,7 @@ struct MaterialConstants
   float4 reflectionRegion0; // center x/z, radius x/z
   float4 reflectionRegion1;
   float4 transparency; // coverage, linear RGB transmission attenuation
-  float4 worldMapping; // base/ORM triplanar repeats per world unit; shoreline variation; two reserved
+  float4 worldMapping; // base/ORM triplanar repeats per world unit; shoreline variation; front-only refraction; reserved
   float4 atmosphereColor; // linear RGB, maximum haze strength
   float4 atmosphereRange; // start/end camera distance, two reserved
   float4 refraction; // index, slab thickness, inverse target width/height
@@ -256,6 +256,7 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   float3 shadingEye = material.cameraPosition.xyz;
   if (reflected) shadingEye.y = 2 * material.reflection.x - shadingEye.y;
   float3 viewDirection = geometryDirection(shadingEye - input.worldPosition);
+  if (material.worldMapping.z > 0.5 && dot(n, viewDirection) <= 0) discard;
   if (material.environment.x > 0) {
     float3 n = geometryDirection(surface.normal);
     float roughness = saturate(surface.roughness);

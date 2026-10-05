@@ -191,7 +191,8 @@ struct SceneMaterial final {
   SceneReflectionRole reflectionRole{}; // Horizontal planar mirror mask; opt-in PBR only.
   float refractionIndex{1};    // [1,2.5]; above 1 enables bounded opaque-HDR background refraction.
   float refractionThickness{}; // [0,1] world units; requires non-casting translucent HDR PBR.
-  float opacity{1};            // Linear HDR blend coverage; below 1 requires non-casting HDR PBR.
+  bool refractionFrontSurfaceOnly{}; // Closed glass: reject rear geometric facets before shading.
+  float opacity{1}; // Linear HDR blend coverage; below 1 requires non-casting HDR PBR.
   std::array<float, 3> transparencyTint{1, 1, 1}; // Linear attenuation of the transmitted scene.
   float
       worldTextureScale{}; // Base/normal/ORM triplanar repeats per world unit; zero keeps mesh UVs.

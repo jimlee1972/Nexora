@@ -65,7 +65,9 @@ namespace Nexora::Presentation {
     }
   }
   for (const auto &material : draw.materials)
-    if (((material.refractionIndex > 1 || material.refractionThickness > 0) &&
+    if ((material.refractionFrontSurfaceOnly &&
+         (material.refractionIndex <= 1 || material.refractionThickness <= 0)) ||
+        ((material.refractionIndex > 1 || material.refractionThickness > 0) &&
          (!draw.hdr || material.opacity >= 1 || material.castsShadow || material.unlit)) ||
         (material.opacity < 1 && (!draw.hdr || material.castsShadow)) ||
         (material.reflectionRole != SceneReflectionRole::None &&
@@ -77,7 +79,7 @@ namespace Nexora::Presentation {
     for (const auto &material : draw.materials)
       if (material.alphaCutoff || material.windAmplitude || material.transmissionThickness ||
           material.unlit || material.worldTextureScale || material.refractionIndex > 1 ||
-          material.refractionThickness)
+          material.refractionThickness || material.refractionFrontSurfaceOnly)
         return false;
   if (!draw.pbr)
     return draw.linearTextureUploads.empty() && !draw.environment && !draw.shadow &&
@@ -265,6 +267,7 @@ PackPbrMaterial(const SceneDrawData &draw, const SceneMaterial &material, bool m
   std::copy(material.transparencyTint.begin(), material.transparencyTint.end(),
             parameters.begin() + 73);
   parameters[76] = material.worldTextureScale;
+  parameters[78] = material.refractionFrontSurfaceOnly ? 1.0F : 0.0F;
   if (draw.planarReflection)
     parameters[77] = draw.planarReflection->shorelineVariation;
   if (draw.atmosphere) {
