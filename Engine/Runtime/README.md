@@ -781,3 +781,11 @@ Undo removes the entity; Redo restores the same stable ID, parent, pose and comp
 The caller serializes all calls on the World authoring thread, retains no Entity borrow across a
 mutation and owns workspace write policy. These additive Editor-SDK C++ methods require rebuilding
 consumers, without changing stable gameplay C/Zig wires or scene snapshot formats.
+
+The Showcase courtyard's `courtyard-ibl-rgba16f-v1` assets use the same generic NXAB pipeline:
+bounded offline HDRI conversion produces canonical linear RGBA16F payloads, each depending on a
+`courtyard-ibl-metadata-v1` asset containing source/distribution identity, CC0 license evidence,
+source/derived/converter hashes and integration parameters. The verified bundle closes those
+dependencies before activation. Showcase owns decoded bytes and adapts them to borrowed native
+Presentation uploads; Runtime stores no native handles and reads no source HDRI at render time.
+This adds application-owned payload types without changing NXAB schema 1 or stable gameplay ABI.

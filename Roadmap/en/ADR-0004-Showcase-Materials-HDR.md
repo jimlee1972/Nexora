@@ -47,4 +47,7 @@ material validation, native independent material pixels, normal/roughness/orbit 
 fallbacks, resize/reload/lifetime and backend comparisons are acceptance evidence; shader compilation
 alone is insufficient. Hardware visuals and the final GTX 960 budget remain separate VIS-M3/M6 gates.
 
-Direct-light PBR is now integrated with pinned embedded shader artifacts and shared native material packing. IBL/HDR remain subsequent slices.
+Shared direct-light PBR and hardware sRGB filtering are integrated. The IBL slice adds bounded
+linear RGBA16F resources, source/license/conversion metadata dependencies in the Runtime bundle,
+seven native sampled resources and an 80-byte private material packet. Public C++ consumers rebuild;
+NXAB and stable C/Zig schemas remain unchanged. Floating HDR scene targets/composition remain open.

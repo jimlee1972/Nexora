@@ -158,6 +158,15 @@ public static class NexoraAcceptanceWindow {
     Capture 'courtyard-ui.png'
     Press-Key 115 # F4: remove the overlay from fixed visual evidence.
     Capture 'courtyard-wide.png'
+    Press-Key 79 # O: compare actual environment lighting with direct light.
+    Capture 'courtyard-direct.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
+        (Get-FileHash (Join-Path $evidence 'courtyard-direct.png')).Hash) 'Courtyard IBL comparison pixels did not change.'
+    Press-Key 79
+    Capture 'courtyard-ibl-restored.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
+        (Get-FileHash (Join-Path $evidence 'courtyard-ibl-restored.png')).Hash) 'Courtyard IBL restoration pixels differ.'
+    $acceptance.courtyard_ibl_comparison = $true
     Press-Key 80
     Capture 'courtyard-lambert.png'
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne

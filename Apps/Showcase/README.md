@@ -72,9 +72,15 @@ Runtime generation when the asset pipeline is enabled; disabled builds use an ex
 cube fallback and report `representative_asset_loaded=false`. Reports retain the fixed-shot index,
 UI visibility and representative asset hash. Geometry/report snapshots retain existing ownership.
 
-This remains an engineering blockout with one basic sandstone-colored material. Three camera framings
-prepare later demonstrations; PBR, real shadows, emission, wind and finished art integration remain
-pending. See the [visual roadmap](../../Roadmap/en/V1-Visual-Identity-Roadmap.md) and
+Geometry remains an engineering blockout. Six material slots now use shared PBR, generated tangents,
+normal/ORM/emission bindings and hardware sRGB filtering. `P` switches to the Lambert comparison;
+`O` toggles IBL. The CC0 Forest Slope HDRI, deterministic irradiance/GGX prefilter/BRDF LUT,
+licenses and source/derived hashes ship under `Courtyard/Environment`. Cooked float resources depend
+on cooked source/license/conversion metadata in the same verified Runtime bundle. Full builds load
+that bundle before submitting their bytes; asset-disabled builds explicitly retain direct light.
+
+Three reproducible camera framings and comparison restoration have native tests. Floating-point HDR
+composition, real shadows, wind and finished art remain pending. See the [visual roadmap](../../Roadmap/en/V1-Visual-Identity-Roadmap.md) and
 [blockout inventory](content/Courtyard-Greybox.md). Native baseline capture and VIS-M0 acceptance
 are tracked separately from final target-hardware visual/performance acceptance.
 

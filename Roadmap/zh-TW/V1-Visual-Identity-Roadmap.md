@@ -214,3 +214,22 @@ X11 舊影格像素。Vulkan 在記錄貼圖複製前完成候選資源配置，
 三次保留軟體光柵基準約 47–48 FPS；硬體效能仍待驗收。
 [Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-LinearColor-2026-10-05/acceptance.md).
 IBL 與浮點 HDR 仍開放，里程碑維持 1/7。
+
+## 15. VIS-M1 cooked IBL 資源（2026-10-05）
+
+固定 CC0 Forest Slope HDRI 經 deterministic 128-sample Hammersley 積分，產生有界線性
+RGBA16F irradiance、七層 GGX prefilter 及 split-sum BRDF LUT。來源、授權、attribution、
+converter 與 derived hash 均保留。各 cooked 浮點資產相依於同一 verified Runtime generation
+內的 cooked 來源／授權／轉換 metadata。Vulkan、DX12、Metal 透過七個 explicit 取樣資源與
+80-byte 私有材質 packet 綁定實際浮點環境資源。公開 C++ consumer 重建；NXAB／穩定 C／Zig 相容。
+
+原生 fixture 驗證超過 1.0 的亮度、漫反射／金屬分離、roughness 層級、反射旋轉／視角／
+接縫、IBL 關閉及 resize 重送；descriptor 拒絕錯誤 mip count、half 值、缺圖與貼圖型別別名。
+`O` 比較 IBL／直接光照並還原固定鏡頭。
+
+✅ Linux IBL 切片：94/94 無 skip、Monolithic Shipping build、隔離 headless 套件啟動、
+九房間互動、固定鏡頭與精確 PBR／IBL 比較還原通過。三次保留 lavapipe 基準約 35–37 FPS；
+實體效能仍待驗收。
+[Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-IBL-2026-10-05/acceptance.md).
+Windows／Metal 原生執行由 PR CI 驗證。target 仍為 RGBA8；浮點 HDR 合成與最終 VIS-M1
+材質驗收仍開放。里程碑維持 1/7。

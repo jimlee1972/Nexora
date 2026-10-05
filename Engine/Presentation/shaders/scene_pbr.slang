@@ -19,12 +19,22 @@ struct MaterialConstants
   float4 baseColor;      // linear factors
   float4 emissionRoughness; // xyz linear emission factor; w perceptual roughness
   float4 properties;    // x metallic; y AO; z normal scale; w reserved
+  float4 environment;   // x intensity; y rotation radians; z maximum prefilter LOD; w reserved
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
 [[vk::binding(0, 0)]] Sampler2D<float4> baseMap : register(t0);
 [[vk::binding(1, 0)]] Sampler2D<float4> normalMap : register(t1);
 [[vk::binding(2, 0)]] Sampler2D<float4> ormMap : register(t2);
 [[vk::binding(3, 0)]] Sampler2D<float4> emissionMap : register(t3);
+[[vk::binding(5, 0)]] Sampler2D<float4> diffuseEnvironment : register(t4);
+[[vk::binding(6, 0)]] Sampler2D<float4> specularEnvironment : register(t5);
+[[vk::binding(7, 0)]] Sampler2D<float4> brdfIntegration : register(t6);
+
+float2 environmentUv(float3 direction) {
+  float angle = atan2(direction.z, direction.x) + material.environment.y;
+  return float2(angle / (6.283185307179586) + 0.5,
+                acos(clamp(direction.y, -1.0, 1.0)) / 3.141592653589793);
+}
 
 struct VertexInput
 {
@@ -94,16 +104,28 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   surface.baseColor = baseMap.Sample(input.uv).rgb * material.baseColor.rgb * input.color.rgb;
   surface.normal = NexoraDecodeTangentNormal(encoded, t, b, n);
   surface.metallic = saturate(orm.b * material.properties.x);
-  surface.roughness = max(0.05, saturate(orm.g * material.emissionRoughness.w));
+  surface.roughness = saturate(orm.g * material.emissionRoughness.w);
   surface.ao = saturate(orm.r * material.properties.y);
   surface.emission = emissionMap.Sample(input.uv).rgb * material.emissionRoughness.xyz;
   surface.alpha = 1;
-  // Direct-light integration slice: no environment sample is fabricated as IBL evidence.
+  // A missing environment contributes zero; actual float IBL resources come from native bindings.
   NexoraPbrEnvironment environment;
   environment.diffuseIrradiance = float3(0, 0, 0);
   environment.prefilteredSpecular = float3(0, 0, 0);
   environment.brdfLut = float2(0, 0);
-  float3 color = NexoraEvaluatePbr(surface, material.cameraPosition.xyz - input.worldPosition,
+  float3 viewDirection = geometryDirection(material.cameraPosition.xyz - input.worldPosition);
+  if (material.environment.x > 0) {
+    float3 n = geometryDirection(surface.normal);
+    float roughness = saturate(surface.roughness);
+    environment.diffuseIrradiance = diffuseEnvironment.SampleLevel(environmentUv(n), 0).rgb *
+                                   material.environment.x;
+    environment.prefilteredSpecular = specularEnvironment.SampleLevel(
+        environmentUv(reflect(-viewDirection, n)), roughness * material.environment.z).rgb *
+        material.environment.x;
+    environment.brdfLut = brdfIntegration.SampleLevel(
+        float2(saturate(dot(n, viewDirection)), roughness), 0).rg;
+  }
+  float3 color = NexoraEvaluatePbr(surface, viewDirection,
                                  -scene.lightDirection.xyz, scene.lightColor.rgb, environment);
   color = NexoraAcesApproximate(color);
   if (material.cameraPosition.w > 0.5)

@@ -195,6 +195,10 @@ if(BUILD_TESTING)
   endif()
   add_test(NAME showcase.courtyard_asset_generation COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_SOURCE_DIR}/Tools/Build/PrepareCourtyardAssets.py" --check)
+  add_test(NAME showcase.courtyard_environment_generation COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_SOURCE_DIR}/Tools/Build/PrepareCourtyardEnvironment.py" --check)
+  add_test(NAME showcase.courtyard_environment_contracts COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_SOURCE_DIR}/Tests/Showcase/CourtyardEnvironmentTests.py")
   add_test(NAME showcase.courtyard_asset_conversion COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_SOURCE_DIR}/Tests/Showcase/CourtyardAssetTests.py")
   add_executable(NexoraShowcasePerformanceTests "${CMAKE_SOURCE_DIR}/Tests/Showcase/ShowcasePerformanceTests.cpp"
