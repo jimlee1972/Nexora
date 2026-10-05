@@ -227,10 +227,20 @@ int main(int argc, char **argv) {
                                             std::byte{255}};
     const std::array<std::byte, 4> dielectricOrm{std::byte{255}, std::byte{128}, std::byte{0},
                                                  std::byte{255}};
+    const std::array<std::byte, 8> blackWhite{std::byte{0},   std::byte{0},   std::byte{0},
+                                              std::byte{255}, std::byte{255}, std::byte{255},
+                                              std::byte{255}, std::byte{255}};
+    // Fixed midpoint UV gives a linear 0.5 color after hardware sRGB filtering.
+    auto filterVertices = vertices;
+    for (auto &vertex : filterVertices) {
+      vertex.uv[0] = vertex.uv[1] = 0.5F;
+    }
+    const auto originalVertices = materialDraw.vertices;
+    const UiTextureUpload filterUpload{46, 2, 1, 8, blackWhite};
     const std::array pbrUploads{
         UiTextureUpload{41, 1, 1, 4, sideNormal}, UiTextureUpload{42, 1, 1, 4, gray},
         UiTextureUpload{43, 1, 1, 4, metalOrm}, UiTextureUpload{44, 1, 1, 4, dielectricOrm}};
-    for (int frame = 0; frame < 8; ++frame) {
+    for (int frame = 0; frame < 12; ++frame) {
       materialSlots = {};
       materialDraw.textureUploads = frame == 0 ? std::span<const UiTextureUpload>(pbrUploads)
                                                : std::span<const UiTextureUpload>{};
@@ -252,6 +262,32 @@ int main(int argc, char **argv) {
         const auto linear = static_cast<float>(std::pow((128.0 / 255.0 + 0.055) / 1.055, 2.4));
         materialSlots[0].baseColor = {linear, linear, linear, 1};
         materialSlots[1].textureId = 42;
+      }
+      if (frame >= 8) {
+        materialDraw.vertices = filterVertices;
+        materialSlots = {};
+        materialDraw.light_color[0] = materialDraw.light_color[1] = materialDraw.light_color[2] = 1;
+        if (frame == 8) {
+          materialDraw.textureUploads = {&filterUpload, 1};
+          materialSlots[0].baseColor = {0.5F, 0.5F, 0.5F, 1};
+          materialSlots[1].textureId = 46;
+        } else if (frame == 9) {
+          materialDraw.light_color[0] = materialDraw.light_color[1] = materialDraw.light_color[2] =
+              0;
+          materialSlots[0].emission = {0.5F, 0.5F, 0.5F};
+          materialSlots[1].emission = {1, 1, 1};
+          materialSlots[1].emissionTextureId = 46;
+        } else if (frame == 10) {
+          materialDraw.pbr = false;
+          materialSlots[0].textureId = 46;
+          materialSlots[1].textureId = 42;
+        } else {
+          materialDraw.pbr = true;
+          materialSlots[0].occlusion = materialSlots[0].roughness = materialSlots[0].metallic =
+              0.5F;
+          materialSlots[1].metallic = materialSlots[1].roughness = 1;
+          materialSlots[1].ormTextureId = 46;
+        }
       }
       if (!require(surface->Acquire(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -275,7 +311,8 @@ int main(int argc, char **argv) {
       const auto rr = std::to_integer<int>(pbrPixels[right + 2]);
       const auto rg = std::to_integer<int>(pbrPixels[right + 1]);
       const bool valid =
-          mode == 0   ? std::abs(lr - 232) <= 2 && lg < 10 && std::abs(rg - 232) <= 2 && rr < 10
+          frame >= 8  ? lr > 40 && std::abs(lr - rr) <= 2
+          : mode == 0 ? std::abs(lr - 232) <= 2 && lg < 10 && std::abs(rg - 232) <= 2 && rr < 10
           : mode == 1 ? lr < 30 && rr > 100
           : mode == 2 ? std::abs(lr - rr) > 10
                       : lr > 80 && std::abs(lr - rr) <= 2;
@@ -285,6 +322,7 @@ int main(int argc, char **argv) {
         return fail(__LINE__);
       }
     }
+    materialDraw.vertices = originalVertices;
     const std::array<std::byte, 4> upNormal{std::byte{128}, std::byte{255}, std::byte{128},
                                             std::byte{255}};
     const UiTextureUpload upUpload{45, 1, 1, 4, upNormal};

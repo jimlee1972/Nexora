@@ -91,12 +91,12 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   encoded.xy = (encoded.xy - 0.5) * material.properties.z + 0.5;
   float3 orm = ormMap.Sample(input.uv).xyz;
   NexoraPbrMaterial surface;
-  surface.baseColor = NexoraSrgbToLinear(baseMap.Sample(input.uv).rgb) * material.baseColor.rgb * input.color.rgb;
+  surface.baseColor = baseMap.Sample(input.uv).rgb * material.baseColor.rgb * input.color.rgb;
   surface.normal = NexoraDecodeTangentNormal(encoded, t, b, n);
   surface.metallic = saturate(orm.b * material.properties.x);
   surface.roughness = max(0.05, saturate(orm.g * material.emissionRoughness.w));
   surface.ao = saturate(orm.r * material.properties.y);
-  surface.emission = NexoraSrgbToLinear(emissionMap.Sample(input.uv).rgb) * material.emissionRoughness.xyz;
+  surface.emission = emissionMap.Sample(input.uv).rgb * material.emissionRoughness.xyz;
   surface.alpha = 1;
   // Direct-light integration slice: no environment sample is fabricated as IBL evidence.
   NexoraPbrEnvironment environment;

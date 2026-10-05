@@ -29,7 +29,7 @@ unsigned Channel(unsigned long pixel, unsigned long mask) {
   return static_cast<unsigned>((pixel & mask) * 255 / mask);
 }
 using Rgb = std::array<unsigned, 3>;
-std::array<Rgb, 2> Read(Display *display, ::Window window, unsigned width, unsigned height,
+std::array<Rgb, 3> Read(Display *display, ::Window window, unsigned width, unsigned height,
                         const std::filesystem::path &capture) {
   XSync(display, False);
   auto *image = XGetImage(display, window, 0, 0, width, height, AllPlanes, ZPixmap);
@@ -39,7 +39,8 @@ std::array<Rgb, 2> Read(Display *display, ::Window window, unsigned width, unsig
     return Rgb{Channel(pixel, image->red_mask), Channel(pixel, image->green_mask),
                Channel(pixel, image->blue_mask)};
   };
-  const std::array result{rgb(width / 4, height / 2), rgb(width * 3 / 4, height / 2)};
+  const std::array result{rgb(width / 4, height / 2), rgb(width * 3 / 4, height / 2),
+                          rgb(width / 2, height * 3 / 20)};
   if (!capture.empty()) {
     std::ofstream file(capture, std::ios::binary);
     file << "P6\n" << width << ' ' << height << "\n255\n";
@@ -74,8 +75,8 @@ int main(int argc, char **argv) {
     descriptor.backend = SurfaceBackend::Vulkan;
     auto surface = CreateSurface(descriptor, *windows);
     Require(surface != nullptr, "PBR surface unavailable");
-    std::array<SceneVertex, 6> vertices{};
-    for (std::size_t i = 0; i < vertices.size(); ++i) {
+    std::array<SceneVertex, 9> vertices{};
+    for (std::size_t i = 0; i < 6; ++i) {
       const auto corner = i % 3;
       vertices[i] = {{(i < 3 ? -0.5F : 0.5F) + (corner == 0   ? -0.3F
                                                 : corner == 1 ? 0.3F
@@ -85,9 +86,13 @@ int main(int argc, char **argv) {
                      {0.5F, 0.5F},
                      {1, 0, 0, 1}};
     }
-    const std::array<std::uint16_t, 6> indices{0, 1, 2, 3, 4, 5};
-    const std::array batches{SceneMeshBatch{0, 3, 0, 1, 0}, SceneMeshBatch{3, 3, 0, 1, 1}};
-    std::array<SceneMaterial, 2> materials{};
+    vertices[6] = {{-0.1F, 0.6F, 0.2F}, {0, 0, 1}, {0.5F, 0.5F}, {1, 0, 0, 1}};
+    vertices[7] = {{0.1F, 0.6F, 0.2F}, {0, 0, 1}, {0.5F, 0.5F}, {1, 0, 0, 1}};
+    vertices[8] = {{0, 0.9F, 0.2F}, {0, 0, 1}, {0.5F, 0.5F}, {1, 0, 0, 1}};
+    const std::array<std::uint16_t, 9> indices{0, 1, 2, 3, 4, 5, 6, 7, 8};
+    const std::array batches{SceneMeshBatch{0, 3, 0, 1, 0}, SceneMeshBatch{3, 3, 0, 1, 1},
+                             SceneMeshBatch{6, 3, 0, 1, 2}};
+    std::array<SceneMaterial, 3> materials{};
     SceneDrawData draw{};
     draw.vertices = vertices;
     draw.indices = indices;
@@ -118,10 +123,20 @@ int main(int argc, char **argv) {
                                             std::byte{255}};
     const UiTextureUpload upUpload{37, 1, 1, 4, upNormal};
     std::array<SceneInstance, 2> mirroredInstances{};
-    const std::array mirroredBatches{SceneMeshBatch{0, 3, 0, 1, 0}, SceneMeshBatch{3, 3, 1, 1, 1}};
+    const std::array mirroredBatches{SceneMeshBatch{0, 3, 0, 1, 0}, SceneMeshBatch{3, 3, 1, 1, 1},
+                                     SceneMeshBatch{6, 3, 1, 1, 2}};
+    const std::array<std::byte, 8> blackWhite{std::byte{0},   std::byte{0},   std::byte{0},
+                                              std::byte{255}, std::byte{255}, std::byte{255},
+                                              std::byte{255}, std::byte{255}};
+    const UiTextureUpload filterUpload{38, 2, 1, 8, blackWhite};
     unsigned width = 640, height = 480;
-    for (unsigned frame = 0; frame < 9; ++frame) {
+    for (unsigned frame = 0; frame < 13; ++frame) {
       materials = {};
+      draw.pbr = true;
+      draw.instances = {};
+      draw.batches = batches;
+      draw.light_direction[1] = 0;
+      draw.light_direction[2] = -1;
       draw.offscreen = frame % 2 == 0;
       draw.textureUploads = (frame == 0 || frame == 4) ? std::span<const UiTextureUpload>(uploads)
                                                        : std::span<const UiTextureUpload>{};
@@ -156,6 +171,47 @@ int main(int argc, char **argv) {
         draw.light_direction[2] = 0;
         draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 1;
       }
+      if (frame >= 9) {
+        materials = {};
+        draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 1;
+        if (frame == 9) {
+          draw.textureUploads = {&filterUpload, 1};
+          materials[0].baseColor = {0.5F, 0.5F, 0.5F, 1};
+          materials[1].textureId = 38;
+        } else if (frame == 10) {
+          draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 0;
+          materials[0].emission = {0.5F, 0.5F, 0.5F};
+          materials[1].emission = {1, 1, 1};
+          materials[1].emissionTextureId = 38;
+        } else if (frame == 11) {
+          // Legacy maps continue sampling UNORM: midpoint equals encoded gray 128.
+          draw.pbr = false;
+          materials[0].textureId = 38;
+          materials[1].textureId = 34;
+        } else {
+          // ORM stays linear: midpoint gives AO, roughness and metallic of 0.5.
+          materials[0].occlusion = materials[0].roughness = materials[0].metallic = 0.5F;
+          materials[1].metallic = materials[1].roughness = 1;
+          materials[1].ormTextureId = 38;
+        }
+      }
+      // Require a unique marker from this submission before accepting asynchronously presented
+      // X11 pixels. Equality alone could otherwise match the preceding frame's material pair.
+      const float marker = 0.02F * static_cast<float>(frame + 1);
+      materials[2].baseColor =
+          draw.pbr ? std::array<float, 4>{0, 0, 0, 1} : std::array<float, 4>{marker, 0, 0, 1};
+      materials[2].emission = {marker, 0, 0};
+      materials[2].metallic =
+          1; // Zero albedo metal has zero direct specular; marker is emission only.
+      const auto toSrgb = [](float linear) {
+        return linear <= 0.0031308F ? 12.92F * linear
+                                    : 1.055F * std::pow(linear, 1.0F / 2.4F) - 0.055F;
+      };
+      const auto mappedMarker =
+          marker * (2.51F * marker + 0.03F) / (marker * (2.43F * marker + 0.59F) + 0.14F);
+      const auto markerCode =
+          static_cast<int>(std::lround(255.0F * (draw.pbr ? toSrgb(mappedMarker) : marker)));
+      const auto srgbLegacyMarker = static_cast<int>(std::lround(255.0F * toSrgb(marker)));
       if (frame == 4) {
         width = 480;
         height = 360;
@@ -190,7 +246,10 @@ int main(int argc, char **argv) {
         const auto pixels = Read(display, native, width, height, {});
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame == 8)
+        if (frame >= 9)
+          valid =
+              left[0] > 40 && std::abs(static_cast<int>(left[0]) - static_cast<int>(right[0])) <= 2;
+        else if (frame == 8)
           valid = left[0] > 100 && right[0] > 100 &&
                   std::abs(static_cast<int>(left[0]) - static_cast<int>(right[0])) <= 2;
         else if (mode == 0)
@@ -203,6 +262,12 @@ int main(int argc, char **argv) {
         else
           valid =
               left[0] > 80 && std::abs(static_cast<int>(left[0]) - static_cast<int>(right[0])) <= 2;
+        const auto observedMarker = static_cast<int>(pixels[2][0]);
+        const bool currentFrame =
+            (std::abs(observedMarker - markerCode) <= 2 ||
+             (!draw.pbr && std::abs(observedMarker - srgbLegacyMarker) <= 2)) &&
+            pixels[2][1] < 5 && pixels[2][2] < 5;
+        valid = valid && currentFrame;
         if (!valid)
           std::this_thread::sleep_for(std::chrono::milliseconds(2));
       }
@@ -210,14 +275,15 @@ int main(int argc, char **argv) {
         const auto values = Read(display, native, width, height, argc == 2 ? argv[1] : "");
         std::cerr << "PBR frame=" << frame << " left=" << values[0][0] << ',' << values[0][1] << ','
                   << values[0][2] << " right=" << values[1][0] << ',' << values[1][1] << ','
-                  << values[1][2] << '\n';
+                  << values[1][2] << " marker=" << values[2][0] << " expected=" << markerCode
+                  << '\n';
       }
       Require(valid, "PBR emission/normal/ORM/sRGB native pixels mismatch");
-      if (argc == 2 && frame == 4)
+      if (argc == 2 && frame == 9)
         static_cast<void>(Read(display, native, width, height, argv[1]));
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 9 &&
-                surface->Diagnostics().sceneComposites == 5,
+    Require(surface->Diagnostics().sceneDrawCalls == 13 &&
+                surface->Diagnostics().sceneComposites == 7,
             "PBR counters mismatch");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "PBR teardown failed");
     surface.reset();
@@ -225,7 +291,7 @@ int main(int argc, char **argv) {
     Require(windows->Destroy(window.handle) == Window::WindowError::None,
             "PBR window teardown failed");
     std::cout << "PASS: shared Slang PBR emission, normal, mirrored tangent handedness, ORM, "
-                 "single sRGB decoding, missing-map "
+                 "linear-space sRGB filtering, linear ORM/legacy filtering, missing-map "
                  "defaults, "
                  "invalid descriptors, frame reuse, direct/offscreen draws and resize pixels\n";
   } catch (const std::exception &error) {

@@ -1,0 +1,12 @@
+{
+  "Engine/Presentation/shaders/GeneratePbrShaders.py": "c7159023192c059fe0e5f85cf7168a9097e4b4411f9c99dfc5080dc5e8806734",
+  "Engine/Presentation/shaders/scene_pbr.slang": "a3d94c62e2d4a5b958dbc126c9d469d7dab1d56fc3aa608494147a192a36b8de",
+  "Engine/Presentation/src/Dx12Surface.cpp": "b438ef38d2c63c8ee72391b7179bc1bdba4625eef3879fbc38915935a03ba4b4",
+  "Engine/Presentation/src/MetalSurface.mm": "47e922e9ea6cabb3d222ddad8d1f512f479e4c9416db6850eb88a6bcb1aebea0",
+  "Engine/Presentation/src/ScenePbrHlslShaders.h": "3c0b80a702af1f78e4fb7700abf0b9488719448569aaa0b638c34f0749eadd06",
+  "Engine/Presentation/src/ScenePbrMetalShaders.h": "2f4a79620b996c72109c29b778cfdf4cc20fb9c8da1be371cabf19bcb5270090",
+  "Engine/Presentation/src/ScenePbrVulkanShaders.h": "28c0d54440e786828f26d80d65d50f8cdf2043e8a2b06c9a6ea4ef3e7b76eba5",
+  "Engine/Presentation/src/VulkanSurface.cpp": "498c83eed463a85ae3b3766f3a12f82e21b335df8f27c3fb1412f0ea6f6bc5c5",
+  "Tests/WindowPresentation/MetalSceneTests.mm": "2ce38d2844f2df954ae20c54a4fd4a5ebcd3e0fad8642415afff279877b23d63",
+  "Tests/WindowPresentation/VulkanPbrTests.cpp": "286857f4afd9b43fbcf8ac8c689e941bad0f81acc7eed3dce111171dc22e98c3"
+}

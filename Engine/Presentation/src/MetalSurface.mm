@@ -229,27 +229,39 @@ public:
         return SurfaceStatus::Unsupported;
       for (const auto &upload : drawData.textureUploads)
         if (!sceneTextures_.contains(upload.textureId)) {
-          const auto texture = CreateTexture(upload);
+          const auto texture = CreateTexture(upload, true);
           if (!texture)
             return SurfaceStatus::DeviceLost;
+          const auto srgb = [texture newTextureViewWithPixelFormat:MTLPixelFormatRGBA8Unorm_sRGB];
+          if (!srgb)
+            return SurfaceStatus::DeviceLost;
+          sceneSrgbTextures_[upload.textureId] = srgb;
           sceneTextures_[upload.textureId] = texture;
           ++diagnostics_.sceneTextureUploads;
         }
       const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
                                            std::byte{255}};
       if (needsWhite && !sceneTextures_.contains(UINT64_MAX)) {
-        const auto texture = CreateTexture({UINT64_MAX, 1, 1, 4, white});
+        const auto texture = CreateTexture({UINT64_MAX, 1, 1, 4, white}, true);
         if (!texture)
           return SurfaceStatus::DeviceLost;
+        const auto srgb = [texture newTextureViewWithPixelFormat:MTLPixelFormatRGBA8Unorm_sRGB];
+        if (!srgb)
+          return SurfaceStatus::DeviceLost;
+        sceneSrgbTextures_[UINT64_MAX] = srgb;
         sceneTextures_[UINT64_MAX] = texture;
         ++diagnostics_.sceneTextureUploads;
       }
       const std::array<std::byte, 4> flatNormal{std::byte{128}, std::byte{128}, std::byte{255},
                                                 std::byte{255}};
       if (drawData.pbr && !sceneTextures_.contains(UINT64_MAX - 1)) {
-        const auto texture = CreateTexture({UINT64_MAX - 1, 1, 1, 4, flatNormal});
+        const auto texture = CreateTexture({UINT64_MAX - 1, 1, 1, 4, flatNormal}, true);
         if (!texture)
           return SurfaceStatus::DeviceLost;
+        const auto srgb = [texture newTextureViewWithPixelFormat:MTLPixelFormatRGBA8Unorm_sRGB];
+        if (!srgb)
+          return SurfaceStatus::DeviceLost;
+        sceneSrgbTextures_[UINT64_MAX - 1] = srgb;
         sceneTextures_[UINT64_MAX - 1] = texture;
         ++diagnostics_.sceneTextureUploads;
       }
@@ -338,14 +350,16 @@ public:
                                material.emissionTextureId ? material.emissionTextureId
                                                           : UINT64_MAX};
           for (NSUInteger map = 0; map < ids.size(); ++map) {
-            [encoder setFragmentTexture:sceneTextures_.at(ids[map]) atIndex:map];
+            const auto texture = (map == 0 || map == 3) ? sceneSrgbTextures_.at(ids[map])
+                                                        : sceneTextures_.at(ids[map]);
+            [encoder setFragmentTexture:texture atIndex:map];
             [encoder setFragmentSamplerState:uiSampler_ atIndex:map];
           }
         } else {
           [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:2];
+          const auto id = material.textureId ? material.textureId : UINT64_MAX;
+          [encoder setFragmentTexture:sceneTextures_.at(id) atIndex:0];
         }
-        const auto id = material.textureId ? material.textureId : UINT64_MAX;
-        [encoder setFragmentTexture:sceneTextures_.at(id) atIndex:0];
         [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                             indexCount:batch.indexCount
                              indexType:MTLIndexTypeUInt16
@@ -439,6 +453,7 @@ public:
         sceneColors_[i] = nil;
       }
       uiTextures_.clear();
+      sceneSrgbTextures_.clear();
       sceneTextures_.clear();
       uiPipeline_ = nil;
       scenePipeline_ = nil;
@@ -578,7 +593,7 @@ private:
     return ensure(sceneDepths_[frame_], MTLPixelFormatDepth32Float) &&
            (!offscreen || ensure(sceneColors_[frame_], MTLPixelFormatBGRA8Unorm));
   }
-  id<MTLTexture> CreateTexture(const UiTextureUpload &upload) {
+  id<MTLTexture> CreateTexture(const UiTextureUpload &upload, bool scene = false) {
     auto *descriptor =
         [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
                                                            width:upload.width
@@ -587,7 +602,7 @@ private:
     // Managed storage supports discrete Intel/AMD Macs as well as Apple Silicon's shared storage.
     descriptor.storageMode =
         device_.hasUnifiedMemory ? MTLStorageModeShared : MTLStorageModeManaged;
-    descriptor.usage = MTLTextureUsageShaderRead;
+    descriptor.usage = MTLTextureUsageShaderRead | (scene ? MTLTextureUsagePixelFormatView : 0);
     id<MTLTexture> texture = [device_ newTextureWithDescriptor:descriptor];
     if (texture)
       [texture replaceRegion:MTLRegionMake2D(0, 0, upload.width, upload.height)
@@ -783,6 +798,7 @@ private:
   std::array<id<MTLTexture>, kFrames> sceneDepths_{};
   std::array<id<MTLTexture>, kFrames> sceneColors_{};
   std::unordered_map<std::uint64_t, id<MTLTexture>> sceneTextures_;
+  std::unordered_map<std::uint64_t, id<MTLTexture>> sceneSrgbTextures_;
   std::array<id<MTLCommandBuffer>, kFrames> inflight_{};
   std::array<id<MTLBuffer>, kFrames> uiUploads_{};
   std::array<std::size_t, kFrames> uiCapacity_{};
