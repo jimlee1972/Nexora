@@ -205,7 +205,8 @@ public:
     VkImageMemoryBarrier toRender{};
     toRender.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     toRender.srcAccessMask = 0;
-    toRender.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    toRender.dstAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     toRender.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     toRender.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     toRender.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -1821,6 +1822,7 @@ private:
       std::swap(barrier.oldLayout, barrier.newLayout);
       std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
     }
+    barriers[0].dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
     barriers[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TRANSFER_BIT,
                          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
@@ -2148,7 +2150,10 @@ private:
     }
     attachments[0].format = VK_FORMAT_R16G16B16A16_SFLOAT;
     attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    pass.pDependencies = &dependency;
+    auto hdrDependency = dependency;
+    hdrDependency.dstAccessMask |=
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+    pass.pDependencies = &hdrDependency;
     attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     if (vkCreateRenderPass(device_, &pass, nullptr, &sceneHdrRenderPass_) != VK_SUCCESS)
       return false;

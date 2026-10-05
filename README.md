@@ -1034,6 +1034,13 @@ change/exact restoration. Shipping/reference validation remains open (VIS 5/7). 
 excludes offscreen and multiple transparent layers.
 
 
+Vulkan synchronization validation now covers opaque-HDR refraction. Swapchain acquisition and
+the copied HDR color transition include attachment-load reads; compatible HDR clear/load
+passes share color/depth read dependencies. This preserves pipeline/framebuffer compatibility
+while loading opaque depth and color for the glass phase. Khronos core/synchronization validation
+passes all 75 native PBR frames. The full Linux configure/build/test rerun passes 97/97
+(95.08 seconds) with validation layers enabled. Release rerun remains pending.
+
 Lit scene texture generations now build bounded native mip chains: linear-light sRGB colors,
 linear ORM data and normalized-vector normal maps. Cutout masks, unlit atlases, ambiguous
 roles and UI remain single-level. Vulkan/DX12/Metal upload the same private CPU chain into

@@ -1,16 +1,16 @@
 {
-  "source_freeze": "174b822f4df8cab7c1f34508371bec5a6b0f2d2c",
+  "source_freeze": "0c9513a2a3e7968e9c97e342dddba7a01c8ad3a2",
   "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
   "source_sha256": {
-    "Apps/Showcase/README.md": "df8a5c3233505fdd4ecd0d35d268b4d6b181a4cc633ff4a5ed243bb26a481dff",
-    "Engine/Presentation/README.md": "f509ffa7a598444819025c0d852d8e53de532c1828de0b23e07d8f328bc5fcbe",
+    "Apps/Showcase/README.md": "fe2e822a91285e1aff89982b110fc4047862dc64b80dc651cd08b3e8a7a15e87",
+    "Engine/Presentation/README.md": "fe21da382b6d83d04f27261754eea201668ecd1257d201bad73fab60c9f794e6",
     "Engine/Presentation/src/Dx12Surface.cpp": "aeffe00a96b72300391dc3c6d7edea57af890619e09a62373ef1e1eb5ff6b8b9",
     "Engine/Presentation/src/MetalSurface.mm": "ae810aa3ac8bf85075863a89544e23f15848a8c4c252be432cb5062c605907a0",
     "Engine/Presentation/src/SceneTextureMipmaps.h": "6f5554c12c64648cf15e9b1e4e1ed629e64a9639296c5161e35a707502ae35c7",
-    "Engine/Presentation/src/VulkanSurface.cpp": "c668de319219283dc6d003912c84cff0e8da8b94ff38f3aae27d7d3561f1d52c",
-    "README.md": "2fc033fc8dcf2ae4edec12a53acf73d201d173e753bfe3e839f930d4ff98e17e",
-    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "8b4564d2ead85520918f2b74e590db92ae4910d83622180f527720d13e9485f1",
-    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "e14d5ed8b1b5ce57d21d1d3402f85afe71a39f53e7692e622f65cc7e2ee49023",
+    "Engine/Presentation/src/VulkanSurface.cpp": "6db647289a97e3ced5df96b8446f5e1934e074a74a1db82d968bbf489b72c5c7",
+    "README.md": "61489c09e42b211ca3d9b4b8fff0e9f0b356c33d6109b71d192ecd6d58addb8d",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "e835e0f20eefa87254ff3a4d386438fbf66d52f0d5a0fbb1ccb3e1949b78f6da",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "93142bb29e80b8c6913b050aacdef25311a2084338ff12de82b02592ad8af801",
     "Tests/WindowPresentation/MetalSceneTests.mm": "423f161d973f454d56317efa54039c72ce4993e774b6bcce6d77367e4d3eaefa",
     "Tests/WindowPresentation/PbrMipFixtures.h": "e9632e8d411fdc94ed21f2d2b3fca61d585b94f566f08f92ac8e7647bd9dfb6f",
     "Tests/WindowPresentation/SceneInstanceTests.cpp": "eb112457abb35dfeea7e530503f8252a2b6cb754a7229e2d3907d9b14cdfac87",
@@ -26,17 +26,17 @@
       "--vsync=off",
       "--no-reload",
       "--gameplay-module=static",
-      "--report=/tmp/mipmap-shipping-tour/tour.json",
+      "--report=/tmp/mipmap-sync-shipping-tour/tour.json",
       "--quality=standard"
     ],
     "build": {
       "engine_version": "0.1.0",
-      "build_id": "174b822f4df8",
+      "build_id": "0c9513a2a3e7",
       "abi_version": 1,
       "configuration": "Shipping",
       "link_mode": "Monolithic"
     },
-    "wall_seconds": 100.79140709900093,
+    "wall_seconds": 100.63716926200141,
     "video": {
       "programs": [],
       "stream_groups": [],
@@ -48,17 +48,17 @@
         }
       ],
       "format": {
-        "duration": "100.266667"
+        "duration": "100.333333"
       }
     },
     "software_rasterizer": true,
     "physical_display_verified": false,
-    "executable_sha256": "375dd99af9d33174d91ddab960b666c8397985266be347bfec7aa627b89542d8",
-    "video_sha256": "506d78ca5cad601e3cb9ae7e5931de1e9eede67fe82735d7d77f673b7218312c",
+    "executable_sha256": "0ecf329d26c1a9b8355a61d734db47411c00b6c8b8bf97317c60a8c3064336d0",
+    "video_sha256": "d9d15a760958a74929f193852907d69d4b38afb3eab327a117d83d38fec6142e",
     "tour_seconds": 100,
     "overlay_frames": 0
   },
-  "workspace_package_sha256": "bf156bdaa8206d783f75f60e1901a1f61accb03b7a5b3600e3e663e7ffcf496e",
+  "workspace_package_sha256": "fb24b72c698b10ac15afdfe37f2a613dc8edb0e8052fcdc79e3fc7346b641a71",
   "reference_parity_accepted": false,
   "physical_display_verified": false
 }

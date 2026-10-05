@@ -1,3 +1,11 @@
+[1/8] Building CXX object Engine/Foundation/CMakeFiles/NexoraFoundation.dir/src/BuildInfo.cpp.o
+[2/8] Linking CXX static library Engine/Foundation/libNexoraFoundation.a
+[3/8] Linking CXX shared module Plugins/Example/libNexoraExamplePlugin.so
+[4/8] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/VulkanSurface.cpp.o
+[5/8] Linking CXX static library Engine/Presentation/libNexoraPresentation.a
+[6/8] Linking CXX executable Apps/Showcase/NexoraShowcase
+[7/8] cd /workspace/Nexora-vis-stone-mipmaps/build/linux-showcase-shipping/Apps/Showcase && /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 /workspace/Nexora-vis-stone-mipmaps/Tools/Package/PackageShowcase.py --profile Shipping --shipping-profile Full --build-configuration Shipping --binary /workspace/Nexora-vis-stone-mipmaps/build/linux-showcase-shipping/Apps/Showcase/NexoraShowcase --runtime-libraries /workspace/Nexora-vis-stone-mipmaps/build/linux-showcase-shipping/Plugins/Example/libNexoraExamplePlugin.so --api-manifest /workspace/Nexora-vis-stone-mipmaps/Engine/API/abi_manifest.json --license /workspace/Nexora-vis-stone-mipmaps/LICENSE --content /workspace/Nexora-vis-stone-mipmaps/Content/Showcase --archive --output /workspace/Nexora-vis-stone-mipmaps/build/linux-showcase-shipping/package/NexoraShowcase-Shipping
+[8/8] cd /workspace/Nexora-vis-stone-mipmaps/build/linux-showcase-shipping/Apps/Showcase && /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12 /workspace/Nexora-vis-stone-mipmaps/Tools/Package/LaunchShowcasePackage.py --package /workspace/Nexora-vis-stone-mipmaps/build/linux-showcase-shipping/package/NexoraShowcase-Shipping --evidence /workspace/Nexora-vis-stone-mipmaps/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/launch-evidence-linux.json
 {
   "schema_version": 1,
   "platform": "linux",
@@ -25,7 +33,7 @@
     ],
     "build": {
       "engine_version": "0.1.0",
-      "build_id": "7de378f24240",
+      "build_id": "0c9513a2a3e7",
       "abi_version": 1,
       "configuration": "Shipping",
       "link_mode": "Monolithic"
@@ -131,7 +139,7 @@
       "gpu_timing_ms": null,
       "gpu_timing_status": "UNAVAILABLE: no GPU timestamps",
       "cpu_scope": "process-wide user+kernel CPU time; includes all threads",
-      "peak_resident_bytes": 24317952,
+      "peak_resident_bytes": 24170496,
       "status": "INSUFFICIENT_SAMPLES",
       "average_fps": null,
       "p95_frame_ms": null,
@@ -1159,5 +1167,5 @@
       "migrated_bytes": 0
     }
   },
-  "recorded_utc": "2026-10-05T19:03:43.258636+00:00"
+  "recorded_utc": "2026-10-05T19:08:50.351712+00:00"
 }

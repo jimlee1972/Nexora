@@ -521,7 +521,10 @@ then renders caller-ordered transparent batches against preserved opaque depth. 
 a compatible load render pass after explicit color/copy/sample and depth dependencies; DX12
 uses fence-owned copy transitions/reserved SRVs; Metal ends the encoder, blits and resumes color
 and depth loads. Resize/destruction and the frame fence own snapshot lifetime. There is no
-same-image sampling feedback or host readback in production.
+same-image sampling feedback or host readback in production. Swapchain acquisition and HDR
+copy-to-color transitions permit attachment-load reads. HDR clear/load passes use identical
+color/depth read dependencies to preserve framebuffer/pipeline compatibility; Khronos core and
+synchronization validation verify the native refraction cases.
 
 Shared Slang refracts a camera ray through an authored slab, projects bent/straight endpoints,
 and bounds the sample displacement to 24 pixels per axis and the viewport. A sample in front
