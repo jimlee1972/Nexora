@@ -166,6 +166,9 @@ int main(int argc, char **argv) {
     }
     // Material slots override the legacy texture/color independently per batch.
     auto materialDraw = draw;
+    materialDraw.light_direction[0] = materialDraw.light_direction[1] = 0;
+    materialDraw.light_direction[2] = -1;
+    materialDraw.light_color[0] = materialDraw.light_color[1] = materialDraw.light_color[2] = 1;
     std::array<SceneMaterial, 2> materialSlots{{{{0.8F, 0, 0, 1}, 0}, {{0, 0.8F, 0, 1}, 0}}};
     std::array materialRanges{SceneMeshBatch{0, 3, 0, 1, 0}, SceneMeshBatch{0, 3, 1, 1, 1}};
     materialDraw.materials = materialSlots;

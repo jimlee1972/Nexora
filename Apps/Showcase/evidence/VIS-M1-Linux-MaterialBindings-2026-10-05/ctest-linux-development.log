@@ -8,25 +8,25 @@ Test project /workspace/Nexora-vis-m1/build/linux-development
       Start  4: build.showcase_package
  4/87 Test  #4: build.showcase_package ..........................   Passed    0.18 sec
       Start  5: build.showcase_package_launch_safety
- 5/87 Test  #5: build.showcase_package_launch_safety ............   Passed    0.44 sec
+ 5/87 Test  #5: build.showcase_package_launch_safety ............   Passed    0.47 sec
       Start  6: build.v2_migration_scanner
  6/87 Test  #6: build.v2_migration_scanner ......................   Passed    0.03 sec
       Start  7: build.v2_production_toolchain
- 7/87 Test  #7: build.v2_production_toolchain ...................   Passed    0.31 sec
+ 7/87 Test  #7: build.v2_production_toolchain ...................   Passed    0.33 sec
       Start  8: gameplay.zig_abi_smoke
  8/87 Test  #8: gameplay.zig_abi_smoke ..........................   Passed    0.00 sec
       Start  9: showcase.embedded_vulkan_shaders
  9/87 Test  #9: showcase.embedded_vulkan_shaders ................   Passed    0.35 sec
       Start 10: showcase.courtyard_asset_generation
-10/87 Test #10: showcase.courtyard_asset_generation .............   Passed    2.19 sec
+10/87 Test #10: showcase.courtyard_asset_generation .............   Passed    2.34 sec
       Start 11: showcase.courtyard_asset_conversion
-11/87 Test #11: showcase.courtyard_asset_conversion .............   Passed    2.11 sec
+11/87 Test #11: showcase.courtyard_asset_conversion .............   Passed    2.14 sec
       Start 12: showcase.performance_statistics
 12/87 Test #12: showcase.performance_statistics .................   Passed    0.01 sec
       Start 13: showcase.v1_probe
 13/87 Test #13: showcase.v1_probe ...............................   Passed    0.00 sec
       Start 14: showcase.runtime_rooms
-14/87 Test #14: showcase.runtime_rooms ..........................   Passed    0.10 sec
+14/87 Test #14: showcase.runtime_rooms ..........................   Passed    0.11 sec
       Start 15: showcase.guided_tour_cli
 15/87 Test #15: showcase.guided_tour_cli ........................   Passed    0.03 sec
       Start 16: showcase.probe_export
@@ -40,15 +40,15 @@ Test project /workspace/Nexora-vis-m1/build/linux-development
       Start 20: showcase.capability_fallbacks
 20/87 Test #20: showcase.capability_fallbacks ...................   Passed    0.03 sec
       Start 21: showcase.linux_vulkan_interaction
-21/87 Test #21: showcase.linux_vulkan_interaction ...............   Passed   15.48 sec
+21/87 Test #21: showcase.linux_vulkan_interaction ...............   Passed   15.06 sec
       Start 22: showcase.linux_vulkan_evidence_policy
 22/87 Test #22: showcase.linux_vulkan_evidence_policy ...........   Passed    0.10 sec
       Start 23: showcase.linux_vulkan_virtual_display
-23/87 Test #23: showcase.linux_vulkan_virtual_display ...........   Passed    0.21 sec
+23/87 Test #23: showcase.linux_vulkan_virtual_display ...........   Passed    0.23 sec
       Start 24: showcase.linux_vulkan_rendering_room
-24/87 Test #24: showcase.linux_vulkan_rendering_room ............   Passed    0.24 sec
+24/87 Test #24: showcase.linux_vulkan_rendering_room ............   Passed    0.25 sec
       Start 25: showcase.linux_vulkan_camera_input
-25/87 Test #25: showcase.linux_vulkan_camera_input ..............   Passed    3.22 sec
+25/87 Test #25: showcase.linux_vulkan_camera_input ..............   Passed    3.23 sec
       Start 26: foundation.build_info
 26/87 Test #26: foundation.build_info ...........................   Passed    0.00 sec
       Start 27: foundation.gameplay_abi
@@ -66,9 +66,9 @@ Test project /workspace/Nexora-vis-m1/build/linux-development
       Start 33: network.v2_m6_replication_interest
 33/87 Test #33: network.v2_m6_replication_interest ..............   Passed    0.08 sec
       Start 34: network.v2_m6_dormancy
-34/87 Test #34: network.v2_m6_dormancy ..........................   Passed    0.09 sec
+34/87 Test #34: network.v2_m6_dormancy ..........................   Passed    0.08 sec
       Start 35: network.v2_m6_prediction_replay
-35/87 Test #35: network.v2_m6_prediction_replay .................   Passed    0.08 sec
+35/87 Test #35: network.v2_m6_prediction_replay .................   Passed    0.09 sec
       Start 36: network.server_runtime_contract
 36/87 Test #36: network.server_runtime_contract .................   Passed    0.08 sec
       Start 37: network.v2_m5_headless_dependency
@@ -78,9 +78,9 @@ Test project /workspace/Nexora-vis-m1/build/linux-development
       Start 39: window_presentation.scene_instance_contract
 39/87 Test #39: window_presentation.scene_instance_contract .....   Passed    0.00 sec
       Start 40: window_presentation.vulkan_scene
-40/87 Test #40: window_presentation.vulkan_scene ................   Passed    0.29 sec
+40/87 Test #40: window_presentation.vulkan_scene ................   Passed    0.30 sec
       Start 41: window_presentation.vulkan_scene_upload_reuse
-41/87 Test #41: window_presentation.vulkan_scene_upload_reuse ...   Passed    1.05 sec
+41/87 Test #41: window_presentation.vulkan_scene_upload_reuse ...   Passed    1.11 sec
       Start 42: api.foundation_math_types
 42/87 Test #42: api.foundation_math_types .......................   Passed    0.06 sec
       Start 43: api.core_services_handle_and_vfs_contract
@@ -116,9 +116,9 @@ Test project /workspace/Nexora-vis-m1/build/linux-development
       Start 58: runtime.transform_rotation_scale
 58/87 Test #58: runtime.transform_rotation_scale ................   Passed    0.00 sec
       Start 59: runtime.entity_parenting
-59/87 Test #59: runtime.entity_parenting ........................   Passed    0.49 sec
+59/87 Test #59: runtime.entity_parenting ........................   Passed    0.48 sec
       Start 60: runtime.render_sync
-60/87 Test #60: runtime.render_sync .............................   Passed    0.56 sec
+60/87 Test #60: runtime.render_sync .............................   Passed    0.60 sec
       Start 61: api.gameplay_host_bridge
 61/87 Test #61: api.gameplay_host_bridge ........................   Passed    0.00 sec
       Start 62: runtime.v1_m12_shipping
@@ -164,9 +164,9 @@ Test project /workspace/Nexora-vis-m1/build/linux-development
       Start 82: editor.mesh_reimport
 82/87 Test #82: editor.mesh_reimport ............................   Passed    0.03 sec
       Start 83: editor.parser_robustness
-83/87 Test #83: editor.parser_robustness ........................   Passed    3.58 sec
+83/87 Test #83: editor.parser_robustness ........................   Passed    3.75 sec
       Start 84: editor.affine_gizmo_contract
-84/87 Test #84: editor.affine_gizmo_contract ....................   Passed    0.00 sec
+84/87 Test #84: editor.affine_gizmo_contract ....................   Passed    0.01 sec
       Start 85: editor.component_reset_contract
 85/87 Test #85: editor.component_reset_contract .................   Passed    0.01 sec
       Start 86: editor.transform_value_contract
@@ -177,8 +177,8 @@ Test project /workspace/Nexora-vis-m1/build/linux-development
 100% tests passed out of 87
 
 Label Time Summary:
-showcase           =  19.45 sec*proc (5 tests)
-virtual-display    =  20.50 sec*proc (6 tests)
-vulkan             =  20.50 sec*proc (6 tests)
+showcase           =  19.07 sec*proc (5 tests)
+virtual-display    =  20.17 sec*proc (6 tests)
+vulkan             =  20.17 sec*proc (6 tests)
 
-Total Test time (real) =  32.84 sec
+Total Test time (real) =  32.94 sec

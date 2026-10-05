@@ -5,7 +5,7 @@
   "Engine/Presentation/src/Dx12Surface.cpp": "15af746b567f65c6d520766c47d69d2769805c5a3d3dc43a926cc33ab69d7185",
   "Engine/Presentation/src/MetalSurface.mm": "f8de2b99cada00cad6b9ba409622f597d088f5cfb098a2bb345cc4d3e8948ad8",
   "Tests/WindowPresentation/VulkanSceneTests.cpp": "1cb1a284621ebb9eadc279e2f3347605fb9603273b9fed9e9bdd4e09df302e81",
-  "Tests/WindowPresentation/MetalSceneTests.mm": "1cfedfcd504663d987e04ba270ddee87889bb6a8f11b3d2ca3385100468bfc13",
+  "Tests/WindowPresentation/MetalSceneTests.mm": "6010f32d11ca4090d0e40027f3e5bca02e185097b8e424ced158ab9c430aade9",
   "Tests/WindowPresentation/SceneInstanceTests.cpp": "2bb51a7caee59c2cd7943b290c85009a7d7570fd6376bfc1d6caed638706c962",
   "Tests/Showcase/ShowcaseRoomTests.cpp": "4c7c09cd9ed402c0a6f14541192181df98b23dfa653bb9855ddab854ae0ca590"
 }
