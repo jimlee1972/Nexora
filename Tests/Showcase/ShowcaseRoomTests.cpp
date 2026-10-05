@@ -367,6 +367,7 @@ int main() {
     assert(draw.hdr && draw.pbr && draw.shadow && draw.shadow->resolution == (512U << tier));
     assert(draw.vegetationTime == 0 && quality.QualityName() == name);
     assert(draw.bloom.has_value() == (tier != 0));
+    assert(draw.atmosphere.has_value() == (tier != 0));
 #if NEXORA_ASSET_PIPELINE_ENABLED
     assert(draw.environment.has_value() == (tier != 0));
 #endif
@@ -380,6 +381,10 @@ int main() {
     assert(draw.instances.size() == (tier != 0 ? 2 : 0));
     qualityVertices[tier] = draw.vertices.size();
   }
+  Press(quality, Key::F7);
+  assert(!quality.Scene(1280, 720).atmosphere);
+  Press(quality, Key::F7);
+  assert(quality.Scene(1280, 720).atmosphere);
   // Basic retains the standalone ripple mesh; Standard/High use shared mirror instances.
   // Compare quality geometry under the same reflection setting to retain the strict budget check.
   Press(quality, Key::V);

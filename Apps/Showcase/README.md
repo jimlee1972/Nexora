@@ -498,3 +498,11 @@ Subdivided teal pennants and gold motifs share the wind clock, with fixed top an
 vessels now include handles, rings and geometric paint. Cloth is bounded shader bending, not a
 cloth simulation. Crystal refraction and scene-reflected puddles remain separate work, and these
 changes do not establish reference-image parity or physical target performance.
+
+
+The shared linear HDR distance atmosphere adds far-background depth in Standard/High. F7
+compares haze using the same paused camera; Basic omits it. Sky/unlit emitters retain authored
+radiance. Six analytical native PBR cases verify disabled/half/full haze, restoration, unlit
+exclusion and near-field clarity (65 total). The private material packet grows to 352 bytes,
+with unchanged borrowed scene/frame ownership and stable C/Zig contracts. The effect precedes
+transparency, focus, bloom and ACES; it is distance haze, not volumetric scattering.

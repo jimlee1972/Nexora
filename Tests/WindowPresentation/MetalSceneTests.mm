@@ -2,6 +2,7 @@
 // Compile the real private adapter into this test to read back GPU output without adding public
 // handles.
 #include "../../Engine/Presentation/src/MetalSurface.mm"
+#include "PbrAtmosphereFixtures.h"
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
 #include "PbrReflectionFixtures.h"
@@ -491,6 +492,31 @@ int main(int argc, char **argv) {
                                        std::to_integer<unsigned>(pixels[index])};
       };
       if (!PbrBloomFixtures::Pixels(mode, read(640 * 58 / 100, 180), read(320, 180)))
+        return fail(__LINE__);
+    }
+    std::array<unsigned, 3> fogReference{};
+    for (unsigned mode = 0; mode < 6; ++mode) {
+      PbrAtmosphereFixtures::Fixture fixture(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(fixture.Draw(mode)), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto center = read(320);
+      if (!PbrAtmosphereFixtures::Pixels(mode, read(160), center))
+        return fail(__LINE__);
+      if (mode == 1)
+        fogReference = center;
+      if (mode == 3 && center != fogReference)
         return fail(__LINE__);
     }
     std::array<unsigned, 3> mappedReference{};

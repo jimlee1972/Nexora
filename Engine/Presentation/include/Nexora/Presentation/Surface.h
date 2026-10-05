@@ -316,6 +316,13 @@ struct ScenePlanarReflection final {
   std::uint32_t regionCount{1}; // One or two bounded non-recursive water regions.
   float shorelineVariation{};   // Inward contour variation [0,0.2]; zero preserves ellipses.
 };
+// Distance haze in linear HDR; sky/unlit emitters retain their authored radiance.
+struct SceneAtmosphere final {
+  std::array<float, 3> color{0.65F, 0.7F, 0.8F};
+  float strength{0.6F};
+  float startDistance{12};
+  float endDistance{60};
+};
 struct SceneDepthOfField final {
   float focusDistance = 10.0F; // World units, measured from cameraPosition.
   float strength = 1.0F;
@@ -350,6 +357,7 @@ struct SceneDrawData final {
   std::optional<SceneColorGrade> colorGrade{};
   float vegetationTime{}; // Finite bounded seconds [0,3600]; caller controls pause/replay.
   std::optional<SceneDepthOfField> depthOfField{}; // HDR PBR only; absent preserves sharp output.
+  std::optional<SceneAtmosphere> atmosphere{};     // Finite bounded HDR distance haze.
   std::optional<ScenePlanarReflection> planarReflection{}; // Borrowed geometry, scalar mask copy.
 };
 

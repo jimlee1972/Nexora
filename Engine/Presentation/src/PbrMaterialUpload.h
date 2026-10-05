@@ -27,6 +27,17 @@ namespace Nexora::Presentation {
        draw.depthOfField->strength > 4 || !std::isfinite(draw.depthOfField->radiusPixels) ||
        draw.depthOfField->radiusPixels < 1 || draw.depthOfField->radiusPixels > 32))
     return false;
+  if (draw.atmosphere) {
+    const auto &fog = *draw.atmosphere;
+    if (!draw.hdr || !std::isfinite(fog.strength) || fog.strength < 0 || fog.strength > 1 ||
+        !std::isfinite(fog.startDistance) || fog.startDistance < 0 ||
+        !std::isfinite(fog.endDistance) || fog.endDistance <= fog.startDistance ||
+        fog.endDistance > 10000)
+      return false;
+    for (const auto value : fog.color)
+      if (!std::isfinite(value) || value < 0 || value > 32)
+        return false;
+  }
   if (!std::isfinite(draw.vegetationTime) || draw.vegetationTime < 0 || draw.vegetationTime > 3600)
     return false;
   if (draw.planarReflection) {
@@ -182,10 +193,10 @@ template <typename Lookup>
          resolveLevels(draw.environment->brdfTextureId) == 1;
 }
 
-// Matches MaterialConstants in scene_pbr.slang: twenty float4s, independent of native UBO
+// Matches MaterialConstants in scene_pbr.slang: twenty-two float4s, independent of native UBO
 // alignment.
-using PbrMaterialUpload = std::array<float, 80>;
-static_assert(sizeof(PbrMaterialUpload) == 320);
+using PbrMaterialUpload = std::array<float, 88>;
+static_assert(sizeof(PbrMaterialUpload) == 352);
 [[nodiscard]] inline PbrMaterialUpload PackPbrMaterial(const SceneDrawData &draw,
                                                        const SceneMaterial &material,
                                                        bool manualSrgbTransfer,
@@ -249,6 +260,13 @@ static_assert(sizeof(PbrMaterialUpload) == 320);
   parameters[76] = material.worldTextureScale;
   if (draw.planarReflection)
     parameters[77] = draw.planarReflection->shorelineVariation;
+  if (draw.atmosphere) {
+    std::copy(draw.atmosphere->color.begin(), draw.atmosphere->color.end(),
+              parameters.begin() + 80);
+    parameters[83] = draw.atmosphere->strength;
+    parameters[84] = draw.atmosphere->startDistance;
+    parameters[85] = draw.atmosphere->endDistance;
+  }
   return parameters;
 }
 } // namespace Nexora::Presentation

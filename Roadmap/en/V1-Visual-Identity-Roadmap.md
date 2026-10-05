@@ -417,3 +417,13 @@ Four additional native fixtures verify mesh UVs, source-world movement and resto
 Bounded water contours, thinner bronze straps, camera framing and pedestal relief refine the
 reference composition. Linux Development passes 97/97 tests (89.18 seconds) and all 59 native PBR frames.
 Shipping/cross-platform evidence and concept parity remain open; VIS stays 5/7.
+
+
+### Distance atmosphere iteration
+
+Shared linear HDR distance haze gives the upper ruins and landscape depth, with F7 comparison.
+Sky/unlit emitters retain original radiance; reflection distance remains coherent. Six native
+fixtures check disabled/half/full haze, restoration, unlit exclusion and a clear near-field
+range (65 PBR frames). Sun direction and sky panorama orientation move together to refine the
+reference lighting. Linux Development passes 97/97 tests (88.81 seconds), including native F7 change/restoration;
+all 65 PBR frames pass. Shipping/cross-platform evidence and concept parity remain open; VIS stays 5/7.

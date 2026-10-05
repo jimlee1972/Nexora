@@ -32,6 +32,8 @@ struct MaterialConstants
   float4 reflectionRegion1;
   float4 transparency; // coverage, linear RGB transmission attenuation
   float4 worldMapping; // base/ORM triplanar repeats per world unit; shoreline variation; two reserved
+  float4 atmosphereColor; // linear RGB, maximum haze strength
+  float4 atmosphereRange; // start/end camera distance, two reserved
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
 [[vk::binding(0, 0)]] Sampler2D<float4> baseMap : register(t0);
@@ -155,6 +157,12 @@ float shadowVisibility(float3 position, float3 normal, float3 light) {
 }
 float4 outputSceneColor(float3 color, float3 worldPosition)
 {
+  if (material.atmosphereColor.w > 0 && material.transmission.w < 0.5) {
+    float distance = length(worldPosition - material.cameraPosition.xyz);
+    float amount = smoothstep(material.atmosphereRange.x, material.atmosphereRange.y, distance) *
+        material.atmosphereColor.w;
+    color = lerp(color, material.atmosphereColor.xyz, amount);
+  }
   if (material.properties.w > 0.5)
     return float4(clamp(color * material.transparency.x, float3(0), float3(65504)),
         min(65504.0, length(worldPosition - material.cameraPosition.xyz)));
