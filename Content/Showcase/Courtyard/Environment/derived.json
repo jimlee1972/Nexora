@@ -3,7 +3,37 @@
   "source_sha256": "926a6bb81897919b2924f42407162b8d54be91eab2da3fe7fe19daf308cfa09a",
   "samples": 128,
   "sequence": "Hammersley",
-  "converter_sha256": "4777321a9b2a62af058955c4c2ed07fc48ea38bdfb48b77ea8d982b11dbacf95",
+  "sky_source_sha256": "9673e48d96851cc0f611c63d52790dd97ba582c9947cf9deb14d9b0b00001003",
+  "sky_authoring": {
+    "description": "Original continuous golden-hour directional sky; atlas, solar disc, key light and floating HDR IBL share the same direction.",
+    "sun_direction": [
+      -12,
+      3,
+      -16
+    ],
+    "sun_radiance": [
+      12,
+      8,
+      3
+    ],
+    "horizon_srgb": [
+      244,
+      191,
+      117
+    ],
+    "zenith_srgb": [
+      92,
+      149,
+      203
+    ],
+    "key_radiance": [
+      5.5,
+      3.6,
+      1.8
+    ]
+  },
+  "radiance_mix": "90% original golden sky / 10% bounded adopted HDRI",
+  "converter_sha256": "8d8590dfcc660ea1c8c6925847cf0bd19af2b09b12d61be7ee8420251329172b",
   "format": "RGBA16F little-endian",
   "orientation": "latlong +Y up, atan2(z,x); U wrap/V clamp",
   "diffuse": "cosine-weighted irradiance integral including pi",
@@ -17,7 +47,7 @@
       "height": 8,
       "mip_levels": 1,
       "bytes": 1024,
-      "sha256": "6eddd29182db70cd3b5b6066013932f9975ba17598d4e87d0b513dae4b00c99b"
+      "sha256": "128e8e82848b5a2e121b366bc7a5544621ce240871c83076b05902c05f670803"
     },
     {
       "name": "specular",
@@ -26,7 +56,7 @@
       "height": 32,
       "mip_levels": 7,
       "bytes": 21848,
-      "sha256": "732c2f3738715adace60fb5302cdaccdd01661323f1ef9998fd89bb324d0d96b"
+      "sha256": "3f03ec1d999ac59637a1fb62005f7380288f67513e72212e7ca9d8ba9e4d73ca"
     },
     {
       "name": "brdf",

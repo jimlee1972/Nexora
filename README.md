@@ -57,6 +57,14 @@ an unchecked or unmarked item remains incomplete.
 
 Windows DX12 local delivery: [acceptance record](Apps/Showcase/evidence/Windows-V1-DX12-Local-2026-10-03/acceptance.md). Use `windows-showcase-development` for Development/Full and `windows-showcase-shipping` for Shipping/Full; `-CompleteGuidedTour` verifies all 210 seconds. Developer-GPU evidence remains separate from clean-host and physical-display operator attestations. Fresh JSON verifies F5 snapshot round trips, tour replay resets and sampled Lab error cases. Clean-VM record: [acceptance](Apps/Showcase/evidence/Windows-V1-CleanVM-VirtualBox-2026-10-03/acceptance.md) (virtual GPU, not a physical display). Physical-display record: [acceptance](Apps/Showcase/evidence/Windows-V1-PhysicalDisplay-GTX960-2026-10-03/acceptance.md).
 
+The courtyard is being expanded toward the approved concept: a golden-hour six-face skybox,
+layered original background ruins/mountains, rooted vine wind, live crystal/splinter/water motion,
+256x256 detail maps, HDR bloom and depth-aware focus. Reference art parity remains open;
+implementation evidence does not establish pixel-identical concept matching or physical target acceptance.
+The incremental golden-hour version passes Linux 97/97, both Shipping profiles, isolated native
+launch and 45 PBR frames; its 100.27-second actual movie and nine same-executable quality runs
+are retained in [background/HDR evidence](Apps/Showcase/evidence/VIS-Background-HDR-Linux-2026-10-05/README.md).
+
 The [V1 Visual Identity Showcase Roadmap](Roadmap/en/V1-Visual-Identity-Roadmap.md)
 records the ✅ user-confirmed art direction and retained concept preview for a stylized ruins courtyard,
 with warm sunlight, cool shadows, turquoise runes, and a [free-model/texture shortlist](Roadmap/art/Free-Asset-Sourcing.md).

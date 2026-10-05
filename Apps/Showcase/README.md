@@ -454,3 +454,34 @@ are retained together before VIS-M6 acceptance; Windows DX12/Vulkan target-host 
 the confirmed hardware budget remain required.
 
 Packaged interactive launchers also open the compact courtyard; use `--scene=hub` explicitly for the engineering portal.
+
+## Golden-hour environment and reference matching
+
+The courtyard now includes original bevelled/fluted stone architecture, upper ruins and stairs,
+a continuous mountain ridge, cypresses, hanging vines, two rippling reflective puddles and two
+animated distant falls. A camera-centred six-face skybox replaces the gradient sphere. Its
+384x256 atlas contains original cloud/sky authoring; the separate solar disc emits linear
+radiance (12,8,3), aligned with the low-angle key light. The same directional sky drives the
+floating RGBA16F IBL bake (90% original sky / 10% bounded pinned CC0 environment), so lighting
+and reflections agree with the visible sky. Original authoring, converters and generated assets
+retain reproducible hashes and their separate licenses. Detail maps are now 256x256; masks
+remain 64x64. Larger byte payloads are checked against the active asset generation before upload.
+
+`J` compares depth-aware focus; `K` compares bloom. Both are off in Basic quality and enabled
+in Standard/High. HDR ACES/transfer remain enabled in every tier. Focus follows the device from
+the current camera position, with bounded pixel radii; it never blurs the UI. Crystal rotation,
+hovering splinters, cutout vine wind, motes, water ripples and fall ribbons share the replayable
+courtyard time. Hanging UV root weights fix the upper attachment. Pausing freezes the actual
+geometry/shader time; replay reconstructs from the immutable static cache.
+
+The approved concept in `Roadmap/art/V1-Visual-Identity-Concept.png` is the visual target. These
+are actual engine assets and native renders, but reference art parity is still under review:
+procedural stone/crystal/environment detail is not yet identical to the concept. Reflective
+puddles use PBR direct/IBL reflections, not planar scene reflection/refraction; falls and thin
+crystal back lighting are bounded approximations. Do not mark full visual acceptance based on
+feature switches, software Vulkan, or an attractive generated concept image.
+
+Native courtyard animation consumes wall-clock delta up to the RoomSession one-second bound,
+so software rendering below ten FPS does not stretch the 100-second tour. Engineering rooms
+retain their prior 0.1-second cap; the engine/gameplay fixed-update loop is unchanged. The
+recording tool still requires an actual native 90–120-second capture and never retimes video.

@@ -748,7 +748,10 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     const auto now = std::chrono::steady_clock::now();
     const double frameSeconds = std::chrono::duration<double>(now - previousTime).count();
     previousTime = now;
-    rooms.Tick(nativeSurface ? std::clamp(frameSeconds, 0.0001, 0.1) : kFixedDeltaSeconds);
+    // Courtyard camera/effect animation uses wall time even below ten frames per second.
+    // Keep the existing engineering-room cap; gameplay fixed updates remain independent.
+    const double roomDeltaCap = rooms.Selected() == "courtyard" ? 1.0 : 0.1;
+    rooms.Tick(nativeSurface ? std::clamp(frameSeconds, 0.0001, roomDeltaCap) : kFixedDeltaSeconds);
     context.frame = frame + 1;
     engine.BeginFrame();
     if (!module.FixedUpdate(kFixedDeltaSeconds) || !module.Update(kFixedDeltaSeconds)) {

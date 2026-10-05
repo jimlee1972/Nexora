@@ -1,5 +1,5 @@
 import Nexora.Common;
-struct ToneParameters { float4 settings; float4 bloom; }; // x exposure; y manual output transfer
+struct ToneParameters { float4 settings; float4 bloom; float4 focus; }; // x exposure; y manual output transfer
 #ifdef NEXORA_VULKAN
 [[vk::push_constant]] ConstantBuffer<ToneParameters> tone;
 #else
@@ -22,7 +22,26 @@ ToneVertex toneVertexMain(
 }
 [shader("fragment")]
 float4 toneFragmentMain(ToneVertex input) : SV_Target {
-  float3 hdr = hdrScene.SampleLevel(input.uv, 0).rgb;
+  float4 center = hdrScene.SampleLevel(input.uv, 0);
+  float3 hdr = center.rgb;
+  if (tone.focus.y > 0 && center.a > 0) {
+    float coc = saturate(abs(center.a - tone.focus.x) / max(center.a, 0.001) * tone.focus.y);
+    if (coc > 0.05) {
+      const float2 offsets[12] = {float2(-1,0),float2(1,0),float2(0,-1),float2(0,1),
+        float2(-0.707,-0.707),float2(0.707,-0.707),float2(-0.707,0.707),float2(0.707,0.707),
+        float2(-0.35,-0.35),float2(0.35,-0.35),float2(-0.35,0.35),float2(0.35,0.35)};
+      float3 sum = hdr;
+      float weights = 1;
+      [unroll] for (uint i=0; i<12; ++i) {
+        float4 tap = hdrScene.SampleLevel(input.uv + offsets[i] * tone.focus.zw * coc, 0);
+        // Reject different depth layers to limit foreground/background color bleeding.
+        float weight = saturate(1 - abs(tap.a - center.a) / max(1.0, center.a * 0.25));
+        sum += tap.rgb * weight;
+        weights += weight;
+      }
+      hdr = sum / weights;
+    }
+  }
   if (tone.bloom.x > 0) {
     float2 texel = tone.bloom.zw; // Radius normalized by the acquired physical extent.
     // Fixed bounded twelve-tap two-scale bloom. No temporal history or CPU readback.

@@ -351,3 +351,30 @@ CPU and memory are retained; GPU timestamps are unavailable. Evidence and physic
 deliverable; hashes/manifests are tracked. The production sources are unchanged by later evidence
 commits. Progress is 5/7: physical hero/material art review and the confirmed DX12/Vulkan hardware
 budget remain open. Earlier physical GTX 960 reports do not accept the new effects.
+
+## 25. Golden-hour background, HDR and reference parity
+
+The user expanded the approved concept target to include background scenery, a skybox,
+matching light direction, visible HDR bloom/glow, wind and animation. The earlier reduced
+background scope no longer bounds this work. Actual native geometry now includes mountain
+ridges, upper ruins, arcades, cypresses, rooted hanging vines, rippling reflective puddles and
+animated falls. A six-face camera-centred skybox and HDR solar disc share golden-hour authoring
+with the key light and linear IBL. Bevelled/fluted original stone and 256x256 detail maps replace
+the simpler shapes; emissive rune rails, crystal hover/rotation and orbiting splinters are live.
+
+The shared HDR compositor now supports bounded depth-aware focus before bloom/ACES, preserving
+sharp post-composite UI. Native tests require visible focus/bloom differences, exact restoration
+and deterministic animation pause/replay. Shipping and exact-head DX12/Vulkan/Metal CI remain
+required before merging. This is implementation progress, not concept-image parity acceptance.
+The procedural art is not identical to the reference; planar reflections/refraction and richer
+asset detail remain unresolved. Keep VIS-M3/M6 open and progress at 5/7 until reference art and
+target hardware/budget acceptance are supported by matching-version evidence.
+
+✅ Linux Development passes 97/97 (54.23s, no skips), including 45 native PBR frames with
+depth-aware focus/UI checks and exact focus/bloom/wind/pause/replay input captures.
+
+✅ Golden-hour source `97b20cdeb1a6e6ea035d639d2752fc9daa8c4144` passes full Linux 97/97
+(53.10s), Shipping/Full and Minimal, isolated native launch, 45 PBR frames and a real 100.27s
+movie with nine same-executable quality runs. Evidence: `Apps/Showcase/evidence/VIS-Background-HDR-Linux-2026-10-05`.
+Software FPS: Basic 11.94–12.16; Standard 7.31–7.59; High 6.47–6.78. These are neither GPU
+timestamps nor physical target acceptance. The user goal/reference parity remains open.

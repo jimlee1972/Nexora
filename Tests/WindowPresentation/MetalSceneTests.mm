@@ -470,7 +470,7 @@ int main(int argc, char **argv) {
         return fail(__LINE__);
       }
     }
-    for (unsigned mode = 0; mode < 4; ++mode) {
+    for (unsigned mode = 0; mode < 5; ++mode) {
       PbrBloomFixtures::Fixture fixture;
       auto bloomDraw = fixture.Draw(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||

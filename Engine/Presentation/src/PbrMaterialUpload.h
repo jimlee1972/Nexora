@@ -20,6 +20,13 @@ namespace Nexora::Presentation {
                      draw.bloom->threshold > 32 || !std::isfinite(draw.bloom->radiusPixels) ||
                      draw.bloom->radiusPixels < 1 || draw.bloom->radiusPixels > 32))
     return false;
+  if (draw.depthOfField &&
+      (!draw.hdr || !std::isfinite(draw.depthOfField->focusDistance) ||
+       draw.depthOfField->focusDistance <= 0 || draw.depthOfField->focusDistance > 10000 ||
+       !std::isfinite(draw.depthOfField->strength) || draw.depthOfField->strength < 0 ||
+       draw.depthOfField->strength > 4 || !std::isfinite(draw.depthOfField->radiusPixels) ||
+       draw.depthOfField->radiusPixels < 1 || draw.depthOfField->radiusPixels > 32))
+    return false;
   if (!std::isfinite(draw.vegetationTime) || draw.vegetationTime < 0 || draw.vegetationTime > 3600)
     return false;
   if (!draw.pbr)

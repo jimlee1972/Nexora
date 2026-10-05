@@ -152,12 +152,15 @@ public static class NexoraAcceptanceWindow {
         [NexoraAcceptanceWindow]::Press($window, $key)
         Start-Sleep -Milliseconds 150
     }
+    # Cold complex HDR frames on hosted software adapters can take several seconds.
+    # Keep exact three-capture stability and restoration checks, with bounded startup headroom.
     function Capture-Settled([string]$name) {
-        $deadline = [DateTime]::UtcNow.AddSeconds(5)
+        $deadline = [DateTime]::UtcNow.AddSeconds(30)
         $previous = ''; $repeats = 0
         do {
             Capture $name
             $current = (Get-FileHash (Join-Path $evidence $name)).Hash
+            Add-Content -LiteralPath (Join-Path $evidence 'capture-stability.log') -Value ([DateTime]::UtcNow.ToString('o') + ' ' + $name + ' ' + $current)
             if ($current -eq $previous) { $repeats++ } else { $repeats = 0 }
             if ($repeats -ge 2) { return }
             $previous = $current
@@ -166,7 +169,7 @@ public static class NexoraAcceptanceWindow {
         throw "Native clean baseline did not settle: $name"
     }
     function Capture-Compared([string]$name, [string]$reference, [bool]$equal) {
-        $deadline = [DateTime]::UtcNow.AddSeconds(5)
+        $deadline = [DateTime]::UtcNow.AddSeconds(15)
         do {
             Capture $name
             $same = (Get-FileHash (Join-Path $evidence $reference)).Hash -eq
@@ -174,7 +177,7 @@ public static class NexoraAcceptanceWindow {
             if ($same -eq $equal) { return }
             Start-Sleep -Milliseconds 100
         } while ([DateTime]::UtcNow -lt $deadline)
-        throw "Native comparison did not settle within five seconds: $name"
+        throw "Native comparison did not settle within fifteen seconds: $name"
     }
     # Exercise the same shared PBR scene and comparison path on each requested native backend.
     $rooms += 'courtyard'
@@ -240,7 +243,7 @@ public static class NexoraAcceptanceWindow {
     Capture-Compared 'courtyard-pbr-restored.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-pbr-restored.png')).Hash) 'Courtyard PBR restoration pixels differ.'
-    foreach ($effect in @(@(78, 'wind'), @(77, 'transmission'))) {
+    foreach ($effect in @(@(78, 'wind'), @(77, 'transmission'), @(75, 'bloom'), @(74, 'depth-of-field'))) {
         Press-Key $effect[0]
         Capture-Compared "courtyard-$($effect[1])-off.png" 'courtyard-wide.png' $false
         Press-Key $effect[0]
@@ -248,6 +251,8 @@ public static class NexoraAcceptanceWindow {
     }
     $acceptance.courtyard_wind_comparison = $true
     $acceptance.courtyard_transmission_comparison = $true
+    $acceptance.courtyard_bloom_comparison = $true
+    $acceptance.courtyard_depth_of_field_comparison = $true
     Press-Key 66; Capture 'courtyard-material.png'
     Press-Key 66; Capture 'courtyard-motion.png'
     Press-Key 66

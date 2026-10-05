@@ -500,7 +500,7 @@ public:
       clear.Color[0] = 0.025F;
       clear.Color[1] = 0.045F;
       clear.Color[2] = 0.09F;
-      clear.Color[3] = 1;
+      clear.Color[3] = drawData.hdr ? 65504.0F : 1.0F;
       if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
                                                   D3D12_RESOURCE_STATE_RENDER_TARGET, &clear,
                                                   IID_PPV_ARGS(&sceneColors_[frame_]))))
@@ -615,6 +615,7 @@ public:
     sceneExposure_ = drawData.exposure;
     sceneBloom_ = drawData.bloom.value_or(SceneBloom{0, 1, 12});
     sceneColorGrade_ = drawData.colorGrade.value_or(SceneColorGrade{});
+    sceneDepthOfField_ = drawData.depthOfField.value_or(SceneDepthOfField{10, 0, 12});
     diagnostics_.sceneOffscreenDrawCalls += drawData.offscreen ? 1 : 0;
     ++diagnostics_.sceneDrawCalls;
     diagnostics_.sceneInstances += instances.size();
@@ -640,9 +641,10 @@ public:
       commands_->SetPipelineState(tonePipeline_.Get());
       ID3D12DescriptorHeap *heaps[]{uiDescriptors_.Get()};
       commands_->SetDescriptorHeaps(1, heaps);
-      const auto settings =
-          PackToneParameters(sceneExposure_, true, sceneBloom_, sceneColorGrade_, width_, height_);
-      commands_->SetGraphicsRoot32BitConstants(0, 8, settings.data(), 0);
+      const auto settings = PackToneParameters(sceneExposure_, true, sceneBloom_, sceneColorGrade_,
+                                               width_, height_, sceneDepthOfField_);
+      commands_->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(settings.size()),
+                                               settings.data(), 0);
       auto handle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
       handle.ptr += UINT64(frame_) * uiDescriptorIncrement_;
       commands_->SetGraphicsRootDescriptorTable(1, handle);
@@ -1030,7 +1032,7 @@ private:
     toneRange.NumDescriptors = 1;
     D3D12_ROOT_PARAMETER toneParameters[2]{};
     toneParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-    toneParameters[0].Constants = {0, 0, 8};
+    toneParameters[0].Constants = {0, 0, sizeof(ToneParametersUpload) / sizeof(float)};
     toneParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     toneParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
     toneParameters[1].DescriptorTable = {1, &toneRange};
@@ -1456,6 +1458,7 @@ private:
   float sceneExposure_ = 1.0F;
   SceneBloom sceneBloom_{0, 1, 12};
   SceneColorGrade sceneColorGrade_{};
+  SceneDepthOfField sceneDepthOfField_{10, 0, 12};
   ComPtr<ID3D12RootSignature> scenePbrRootSignature_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneUploads_;
   std::array<std::size_t, kMaximumFrames> sceneUploadCapacity_{};

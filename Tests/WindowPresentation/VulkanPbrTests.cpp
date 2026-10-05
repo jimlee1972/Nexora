@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
     unsigned width = 640, height = 480;
     Rgb uiBaseline{};
     std::uint64_t windReference{}, windMoved{};
-    for (unsigned frame = 0; frame < 43; ++frame) {
+    for (unsigned frame = 0; frame < 45; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
       PbrVegetationFixtures::Fixture vegetationFixture(frame >= 34 ? frame - 34 : 0);
@@ -323,6 +323,11 @@ int main(int argc, char **argv) {
       if (frame >= 34) {
         draw = vegetationFixture.Draw(frame - 34);
         materials = vegetationFixture.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 43) {
+        draw = bloomFixture.Draw(frame == 44 ? 4 : 0);
+        materials = bloomFixture.geometry.materials;
         draw.materials = materials;
       }
       materials[2].emission = {marker, 0, 0};
@@ -440,13 +445,24 @@ int main(int argc, char **argv) {
         Require(surface->CompositeScene() == SurfaceStatus::Ready, "PBR composite failed");
       if (frame >= 19) {
         const float y = static_cast<float>(height) * 0.85F;
-        const std::array<UiVertex, 4> uiVertices{
+        std::vector<UiVertex> uiVertices{
             {{{0, y}, {0, 0}, 0xff808080U},
              {{static_cast<float>(width), y}, {0, 0}, 0xff808080U},
              {{static_cast<float>(width), static_cast<float>(height)}, {0, 0}, 0xff808080U},
              {{0, static_cast<float>(height)}, {0, 0}, 0xff808080U}}};
-        const std::array<std::uint16_t, 6> uiIndices{0, 1, 2, 0, 2, 3};
-        const std::array uiCommands{UiDrawCommand{0, 0, width, height, 901, 6, 0, 0}};
+        std::vector<std::uint16_t> uiIndices{0, 1, 2, 0, 2, 3};
+        if (frame >= 43) {
+          // Focus intentionally blurs the scene marker. A unique post-composite UI marker
+          // identifies these frames without assuming that an HDR pixel stays sharp.
+          const auto color = 0xff000000U | static_cast<std::uint32_t>(std::lround(marker * 255));
+          for (const auto point : {std::array{0.48F, 0.13F}, std::array{0.52F, 0.13F},
+                                   std::array{0.52F, 0.17F}, std::array{0.48F, 0.17F}})
+            uiVertices.push_back({{point[0] * width, point[1] * height}, {0, 0}, color});
+          for (const auto index : {4, 5, 6, 4, 6, 7})
+            uiIndices.push_back(static_cast<std::uint16_t>(index));
+        }
+        const std::array uiCommands{UiDrawCommand{
+            0, 0, width, height, 901, static_cast<std::uint32_t>(uiIndices.size()), 0, 0}};
         const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
                                              std::byte{255}};
         const std::array uiUploads{UiTextureUpload{901, 1, 1, 4, white}};
@@ -465,7 +481,12 @@ int main(int argc, char **argv) {
         const auto pixels = Read(display, native, width, height, {}, &region);
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 34) {
+        if (frame >= 43) {
+          valid = PbrBloomFixtures::Pixels(frame == 44 ? 4 : 0, pixels[5], pixels[6]);
+          for (std::size_t channel = 0; channel < 3; ++channel)
+            valid = valid && std::abs(static_cast<int>(pixels[3][channel]) -
+                                      static_cast<int>(uiBaseline[channel])) <= 2;
+        } else if (frame >= 34) {
           valid = PbrVegetationFixtures::Pixels(frame - 34, pixels[0], pixels[6]);
           if (frame == 37)
             windReference = region;
@@ -517,8 +538,17 @@ int main(int argc, char **argv) {
           valid =
               left[0] > 80 && std::abs(static_cast<int>(left[0]) - static_cast<int>(right[0])) <= 2;
         const auto observedMarker = static_cast<int>(pixels[2][0]);
+        const auto uiMarker = static_cast<float>(std::lround(marker * 255)) / 255;
+#if defined(_WIN32)
+        // DX12 UI submits encoded byte colors directly to its UNORM swapchain.
+        const auto uiMarkerCode = static_cast<int>(std::lround(255 * uiMarker));
+#else
+        // Vulkan's sRGB swapchain performs the UI output transfer in hardware.
+        const auto uiMarkerCode = static_cast<int>(std::lround(255 * toSrgb(uiMarker)));
+#endif
+        const auto expectedPhaseMarker = frame >= 43 ? uiMarkerCode : markerCode;
         const bool currentFrame =
-            (std::abs(observedMarker - markerCode) <= 2 ||
+            (std::abs(observedMarker - expectedPhaseMarker) <= 2 ||
              (!draw.pbr && std::abs(observedMarker - srgbLegacyMarker) <= 2)) &&
             pixels[2][1] < 5 && pixels[2][2] < 5;
         if (frame == 33) {
@@ -539,20 +569,26 @@ int main(int argc, char **argv) {
         std::cerr << "PBR frame=" << frame << " left=" << values[0][0] << ',' << values[0][1] << ','
                   << values[0][2] << " right=" << values[1][0] << ',' << values[1][1] << ','
                   << values[1][2] << " marker=" << values[2][0] << " expected=" << markerCode
-                  << " ui=" << values[3][0] << " pcf=" << values[4][0] << '\n';
+                  << " ui=" << values[3][0] << " pcf=" << values[4][0] << " halo=" << values[5][0]
+                  << " center=" << values[6][0] << '\n';
       }
       Require(valid, "PBR emission/normal/ORM/sRGB native pixels mismatch");
       if (argc == 2 && frame == 9)
         static_cast<void>(Read(display, native, width, height, argv[1]));
       if (argc == 2 && frame >= 30) {
         auto capture = std::filesystem::path(argv[1]);
-        capture.replace_filename((frame < 34 ? "bloom-" : "vegetation-") +
-                                 std::to_string(frame < 34 ? frame - 30 : frame - 34) + ".ppm");
+        capture.replace_filename((frame >= 43  ? "depth-of-field-"
+                                  : frame < 34 ? "bloom-"
+                                               : "vegetation-") +
+                                 std::to_string(frame >= 43  ? frame - 43
+                                                : frame < 34 ? frame - 30
+                                                             : frame - 34) +
+                                 ".ppm");
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 43 &&
-                surface->Diagnostics().sceneComposites == 33 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 45 &&
+                surface->Diagnostics().sceneComposites == 35 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
@@ -570,7 +606,8 @@ int main(int argc, char **argv) {
            "invalid descriptors, HDR IBL radiance, roughness mips, metal/diffuse separation, "
            "reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws "
            "and resize pixels; directional shadow movement, XY projection, PCF edge, map reuse, "
-           "shadow disable, stylized tint and thresholded HDR bloom/UI invariance, alpha "
+           "shadow disable, stylized tint and thresholded HDR bloom, depth-aware focus and UI "
+           "invariance, alpha "
            "cutout/shadow agreement, GPU wind/replay and leaf transmission\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
