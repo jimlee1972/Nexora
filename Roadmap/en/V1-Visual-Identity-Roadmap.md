@@ -406,3 +406,14 @@ opaque geometry and retaining nearest-layer camera distance for focus. U switche
 for native comparisons. Six extra PBR fixtures check opaque/half/zero coverage, restoration,
 focus and colored transmission (55 total). Full Shipping and cross-platform gates must pass
 before merge. Refraction and final visual fidelity remain open; VIS acceptance remains 5/7.
+
+
+### Sky and surface projection iteration
+
+Retained original cloud-panorama authoring now drives the visible sky and linear HDR IBL,
+with aligned azimuth/elevation and the existing above-one sun radiance. World-projected base/ORM
+maps remove stretched stone detail; shared shadow cutout preserves visible-mask agreement.
+Four additional native fixtures verify mesh UVs, source-world movement and restoration (59 total).
+Bounded water contours, thinner bronze straps, camera framing and pedestal relief refine the
+reference composition. Linux Development passes 97/97 tests (89.18 seconds) and all 59 native PBR frames.
+Shipping/cross-platform evidence and concept parity remain open; VIS stays 5/7.

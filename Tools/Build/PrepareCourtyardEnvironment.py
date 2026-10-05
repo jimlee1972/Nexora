@@ -5,6 +5,8 @@ No third-party Python or runtime image library is needed. The original HDRI, lic
 conversion parameters and derived hashes travel with the Showcase content package.
 """
 import argparse
+from functools import lru_cache
+from CourtyardImageCook import area_filter, decode_png
 from array import array
 import hashlib
 import json
@@ -202,6 +204,24 @@ def half_pixel(color):
     return struct.pack('<4e', *canonical, 1.0)
 
 
+@lru_cache(maxsize=1)
+def authored_sky(path, expected_hash):
+    hero = ROOT / 'Content/Showcase/Courtyard/Hero'
+    data = (hero / path).read_bytes()
+    if hashlib.sha256(data).hexdigest() != expected_hash:
+        raise ValueError('Authored sky source hash mismatch')
+    image = decode_png(data)
+    if any(image[2][i] != 255 for i in range(3, len(image[2]), 4)):
+        raise ValueError('Authored sky panorama must be opaque')
+    rgba = area_filter(image, 512, 256)
+    pixels = array('f')
+    for i in range(0, len(rgba), 4):
+        for channel in rgba[i:i+3]:
+            value = channel / 255
+            pixels.append(value / 12.92 if value <= 0.04045 else ((value+0.055)/1.055)**2.4)
+    return 512, 256, pixels
+
+
 def golden_sky(vector, authoring, include_sun=False):
     """Original linear radiance shared by the visible six-face sky and the IBL bake."""
     dx, dy, dz = normalize(vector)
@@ -213,6 +233,18 @@ def golden_sky(vector, authoring, include_sun=False):
     cloud *= max(0,min(1,(dy-0.03)*5))*max(0,1-dy)
     rgb = [min(255, c+(255-c)*min(0.9,glow*0.6+cloud*0.7))/255 for c in rgb]
     linear = [c/12.92 if c<=0.04045 else ((c+0.055)/1.055)**2.4 for c in rgb]
+    if 'panorama' in authoring:
+        panorama = authoring['panorama']
+        rotation = panorama['rotation_radians']
+        # The panorama's bright central horizon faces the same azimuth as the HDR sun.
+        rotated = (dx*math.cos(rotation)+dz*math.sin(rotation), dy,
+                   dz*math.cos(rotation)-dx*math.sin(rotation))
+        elevation = max(-PI/2,min(PI/2,math.asin(dy)*panorama.get('elevation_scale',1)))
+        horizontal = math.sqrt(rotated[0]**2+rotated[2]**2)
+        rotated = (rotated[0]*math.cos(elevation)/max(0.00001,horizontal), math.sin(elevation),
+                   rotated[2]*math.cos(elevation)/max(0.00001,horizontal))
+        authored = sample(authored_sky(panorama['path'], panorama['sha256']), rotated)
+        linear = [a*0.9+b*0.1 for a,b in zip(authored,linear)]
     if include_sun and sun > math.cos(0.016):
         linear = list(authoring['sun_radiance'])
     return tuple(linear)
@@ -261,6 +293,7 @@ def bake(check):
     derived = {'schema': 'nexora.showcase.ibl-derived.v1', 'source_sha256': meta['source_sha256'],
                'samples': SAMPLES, 'sequence': 'Hammersley',
                'sky_source_sha256': hashlib.sha256(hero_source.read_bytes()).hexdigest(),
+               'image_cook_sha256': hashlib.sha256((ROOT/'Tools/Build/CourtyardImageCook.py').read_bytes()).hexdigest(),
                'sky_authoring': sky, 'radiance_mix': '90% original golden sky / 10% bounded adopted HDRI',
                'converter_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), 'format': 'RGBA16F little-endian',
                'orientation': 'latlong +Y up, atan2(z,x); U wrap/V clamp',

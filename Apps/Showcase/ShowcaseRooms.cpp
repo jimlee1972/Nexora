@@ -586,9 +586,9 @@ struct RoomSession::State final {
   void CourtyardCamera(std::size_t shot) {
     courtyardFreeCamera = false;
     courtyardShot = shot % 3;
-    constexpr std::array<float, 3> yaws{-0.22F, -0.35F, 0.12F};
-    constexpr std::array<float, 3> pitches{0.38F, 0.20F, 0.13F};
-    constexpr std::array<float, 3> radii{10.5F, 9.0F, 11.0F};
+    constexpr std::array<float, 3> yaws{0.12F, -0.35F, 0.12F};
+    constexpr std::array<float, 3> pitches{0.20F, 0.20F, 0.13F};
+    constexpr std::array<float, 3> radii{9.0F, 9.0F, 11.0F};
     yaw = yaws[courtyardShot];
     pitch = pitches[courtyardShot];
     radius = radii[courtyardShot];
@@ -646,13 +646,13 @@ struct RoomSession::State final {
             indices.push_back(static_cast<std::uint16_t>(base + index));
       }
   }
-  void RingStone(float a, float b) {
+  void RingStone(float a, float b, float radialHalfWidth = 0.24F, float depthHalfWidth = 0.25F) {
     constexpr float middleRadius = 1.66F;
     const float middleAngle = (a + b) * 0.5F;
     const auto firstVertex = vertices.size();
     // Bend an original bevelled block into an annular wedge. Each chamfer retains a
     // correct transformed normal; the curve's differential is not a rigid rotation.
-    CourtyardBlock(0, 0, 0, (b - a) * middleRadius * 0.5F, 0.24F, 0.25F);
+    CourtyardBlock(0, 0, 0, (b - a) * middleRadius * 0.5F, radialHalfWidth, depthHalfWidth);
     for (std::size_t i = firstVertex; i < vertices.size(); ++i) {
       auto &vertex = vertices[i];
       const float radiusAtVertex = middleRadius + vertex.position[1];
@@ -670,12 +670,12 @@ struct RoomSession::State final {
     }
   }
   void VisualTourCamera() {
-    constexpr std::array<std::array<float, 4>, 6> route{{{0, -.22F, .38F, 10.5F},
+    constexpr std::array<std::array<float, 4>, 6> route{{{0, .12F, .20F, 9.0F},
                                                          {25, .05F, .35F, 15},
                                                          {45, -.35F, .26F, 9},
                                                          {65, .12F, .20F, 11},
                                                          {80, -.45F, .32F, 13},
-                                                         {100, -.22F, .38F, 10.5F}}};
+                                                         {100, .12F, .20F, 9.0F}}};
     std::size_t segment = 0;
     while (segment + 2 < route.size() && tourSeconds >= route[segment + 1][0])
       ++segment;
@@ -721,7 +721,8 @@ struct RoomSession::State final {
   Nexora::Presentation::ScenePlanarReflection CourtyardReflectionSettings() const {
     Nexora::Presentation::ScenePlanarReflection planar;
     planar.planeHeight = 0.16F + 0.003F * std::sin(static_cast<float>(courtyardSeconds) * 0.8F);
-    planar.regions[0] = {-0.9F, 4.0F, 1.4F, 1.0F};
+    planar.regions[0] = {0.6F, 5.1F, 0.9F, 0.8F};
+    planar.shorelineVariation = 0.18F;
     planar.regions[1] = {3.1F, 3.0F, 0.85F, 0.65F};
     planar.regionCount = 2;
     return planar;
@@ -927,6 +928,18 @@ struct RoomSession::State final {
       Lathe({0, 0, 0}, profile);
     }
     finish(0);
+    // Original shallow stone relief around the middle pedestal tier.
+    for (unsigned ornament = 0; ornament < 16; ++ornament) {
+      const float angle = 2 * math::kPi * ornament / 16;
+      const auto center = math::Vector3{1.71F * std::cos(angle), 0.42F, 1.71F * std::sin(angle)};
+      const auto tangent = math::Vector3{-std::sin(angle), 0, std::cos(angle)};
+      const std::array<math::Vector3, 4> corners{
+          center + math::Vector3{0, 0.12F, 0}, center + tangent * 0.14F,
+          center - math::Vector3{0, 0.12F, 0}, center - tangent * 0.14F};
+      for (unsigned edge = 0; edge < corners.size(); ++edge)
+        Segment(corners[edge], corners[(edge + 1) % corners.size()], 0.012F);
+    }
+    finish(8);
     constexpr std::size_t sides = 20;
     for (std::size_t i = 0; i < sides; ++i) {
       const float a = static_cast<float>(i) / sides * math::kPi * 2;
@@ -936,7 +949,7 @@ struct RoomSession::State final {
       RingStone(a + 0.008F, b - 0.008F);
       finish(0);
       if (i % 4 == 0) {
-        Cube(1.65F * std::cos(a), 2.9F + 1.65F * std::sin(a), 0, 0.22F, 0.16F, 0.34F);
+        RingStone(a - 0.035F, a + 0.035F, 0.265F, 0.275F);
         finish(1);
       }
       const float mid = (a + b) * 0.5F;
@@ -966,17 +979,20 @@ struct RoomSession::State final {
           CourtyardPaving(x, z);
     for (const float x : {-4.5F, 4.5F})
       for (const float z : {-4.0F, 1.5F}) {
-        const std::array<std::array<float, 2>, 10> column{{{0, 0},
-                                                           {0.7F, 0},
-                                                           {0.7F, 0.22F},
-                                                           {0.5F, 0.35F},
-                                                           {0.43F, 0.55F},
-                                                           {0.4F, 2.8F},
-                                                           {0.55F, 3},
-                                                           {0.7F, 3.12F},
-                                                           {0.7F, 3.35F},
-                                                           {0, 3.35F}}};
-        Lathe({x, 0, z}, column, true);
+        std::array<std::array<float, 2>, 10> column{{{0, 0},
+                                                     {0.7F, 0},
+                                                     {0.7F, 0.22F},
+                                                     {0.5F, 0.35F},
+                                                     {0.43F, 0.55F},
+                                                     {0.4F, 2.8F},
+                                                     {0.55F, 3},
+                                                     {0.7F, 3.12F},
+                                                     {0.7F, 3.35F},
+                                                     {0, 3.35F}}};
+        if (z > 0)
+          for (auto &point : column)
+            point[1] *= 0.7F;
+        Lathe({x + (z > 0 ? (x < 0 ? -1.0F : 1.0F) : 0.0F), 0, z}, column, true);
       }
     finish(0);
 #if NEXORA_ASSET_PIPELINE_ENABLED
@@ -2309,7 +2325,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[4].textureId = 2;
 #endif
     s.materials[0].roughness = 0.85F;
-    s.materials[0].normalScale = 0.25F;
+    s.materials[0].normalScale = 0;
+    s.materials[0].worldTextureScale = s.courtyardPbr ? 0.3F : 0;
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[0].textureId = 10;
     s.materials[0].normalTextureId = 11;
@@ -2320,13 +2337,17 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #endif
     s.materials[4].baseColor = {0.52F, 0.44F, 0.31F, 1};
     s.materials[1].metallic = 1;
-    s.materials[1].roughness = 0.4F;
-    s.materials[1].baseColor = {0.7F, 0.67F, 0.5F, 1};
+    s.materials[1].roughness = 0.65F;
+    s.materials[1].baseColor = {0.6F, 0.78F, 0.6F, 1};
     s.materials[2].roughness = 0.15F;
     s.materials[2].emission = {0.05F, 1.8F, 2.4F};
     s.materials[3].roughness = 0.35F;
     s.materials[4].roughness = 0.8F;
     s.materials[5].roughness = 0.9F;
+    s.materials[5].emission = {0.4F, 0.5F, 0.25F};
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    s.materials[5].emissionTextureId = 16;
+#endif
     if (s.courtyardPbr) {
       s.materials[5].alphaCutoff = 0.5F;
       s.materials[5].windAmplitude = s.courtyardWind ? 0.22F : 0;
@@ -2372,6 +2393,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       s.materials.push_back(background);
     }
 #if NEXORA_ASSET_PIPELINE_ENABLED
+    s.materials[8].worldTextureScale = s.courtyardPbr ? 0.3F : 0;
+    s.materials[8].normalScale = 0;
     s.materials[8].textureId = 10;
     s.materials[8].normalTextureId = 11;
     s.materials[8].ormTextureId = 12;
@@ -2563,8 +2586,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   }
   math::Vector3 eye{s.radius * std::sin(s.yaw) * std::cos(s.pitch), s.radius * std::sin(s.pitch),
                     s.radius * std::cos(s.yaw) * std::cos(s.pitch)};
-  math::Vector3 target{s.selected == "courtyard" ? -0.85F : 0.0F,
-                       s.selected == "courtyard" ? 1.3F : 0.8F, 0};
+  math::Vector3 target{s.selected == "courtyard" ? -1.65F : 0.0F,
+                       s.selected == "courtyard" ? 1.7F : 0.8F, 0};
   if (s.selected == "courtyard" && s.courtyardFreeCamera) {
     eye = s.freeEye;
     target = eye + math::Vector3{-std::sin(s.yaw) * std::cos(s.pitch), -std::sin(s.pitch),
@@ -2849,6 +2872,10 @@ std::string RoomSession::Report() const {
       << ",\"transmission_enabled\":" << (s.courtyardPbr && s.courtyardTransmission)
       << ",\"transparency_enabled\":" << (s.courtyardPbr && s.courtyardTransparency)
       << ",\"device_active\":" << s.courtyardActive
+      << ",\"geometry_vertex_count\":" << s.vertices.size()
+      << ",\"geometry_index_count\":" << s.indices.size()
+      << ",\"geometry_batch_count\":" << s.batches.size()
+      << ",\"geometry_material_count\":" << s.materials.size()
       << ",\"particle_budget\":" << (24U << s.courtyardQuality)
       << ",\"particle_count\":" << s.courtyardParticleCount
       << ",\"foliage_quad_count\":" << ((32U << s.courtyardQuality) + 192U) << ",\"quality\":\""

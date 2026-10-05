@@ -1,11 +1,11 @@
 # Editor ED-M0 Dear ImGui 整合計畫
 
-> 版本：v1.4｜狀態：施工中；target-host 證據待完成｜
-> 更新：2026-10-05｜對應：`Editor_Roadmap.md`（ED-M0）、
+> 版本：v1.3｜狀態：施工中；target-host 證據待完成｜
+> 更新：2026-09-25｜對應：`Editor_Roadmap.md`（ED-M0）、
 > `ADR-0001-Editor-UI-Framework.md`、`Window_Presentation_Roadmap.md`
 
-> **Repository 稽核（2026-10-05）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
-> source 與 contract test，且 **✅ WP0 已通過 baseline exit gate；WP1～WP8 仍待驗收**。Retained GPU resource、
+> **Repository 稽核（2026-09-25）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
+> source 與 contract test，但 **WP0～WP8 尚無任何一包通過 exit gate**。Retained GPU resource、
 > 直接渲染至 borrowed presentation target、project-owned layout persistence、DPI font-atlas rebuild
 > 與 recovery failure contract 已實作。自動化 X11 coverage 現已涵蓋 startup、resize、close、
 > corrupt-layout replacement、legacy-layout migration，以及 recover／destructive discard 兩條
@@ -149,11 +149,7 @@ AI agent 必須依順序執行 work package。每個 package 都要以 focused t
 
 ### WP0 — Baseline 與 reproducibility audit
 
-**狀態：✅ baseline exit gate 通過（2026-10-05）。**
-
-[驗證紀錄](../../Tools/Build/evidence/EditorEDM0-Linux-2026-10-05.md)：feature OFF 71/71、
-ON 加 Slang 115/115，皆無 skipped；Shipping engine build 通過。§6 驗收對照明列仍缺的
-target-host 證據。此處僅完成 WP0，ED-M0 尚未完成。
+**狀態：部分完成。**
 
 1. 讀 `CLAUDE.md`、Editor、EditorImGui、RHI、Window、Presentation README、ADR-0001 與兩份相關
    roadmap；編輯前先記錄 contract 衝突。
@@ -302,11 +298,8 @@ coverage 已有；physical-display 證據仍待完成。**
 1. Clean tree 執行 §6 完整 Linux gate。WP1/WP3 更動 linkage/API boundary，因此也跑 `linux-shipping`。
 2. Real X11 display 執行 launch、font/text 可見、Hierarchy selection、docking、各類 input、resize/
    minimize/restore、recovery checklist；記錄 command、commit、backend/device、result、artifact location。
-3. Windows 以 graphical feature build Development，再執行 DPI/IME checklist。Shipping 另驗證 engine
-   build：目前產品政策在 Shipping 強制 `NEXORA_ENABLE_EDITOR=OFF`，因此 Shipping 加 graphical
-   shell 會在 configure 被拒絕。Shipping Editor 必須另有產品／build-policy 決策；不可繞過 guard，
-   也不可把 Shipping engine build 當成圖形驗收。只有 surface 真正選擇 DX12 時才能宣稱 DX12，
-   Vulkan result 不可代替。
+3. Windows 以 graphical feature build Development/Shipping，再執行 DPI/IME checklist。只有 surface 真正
+   選擇 DX12 時才能宣稱 DX12，Vulkan result 不可代替。
 4. 只有宣告 macOS Editor support 時 macOS/Metal 才成為必需 supported-backend parity；macOS target host
    實跑前只能列 unverified，不可列 passed。
 5. 移除 production CPU compositor/dead scaffold、更新 contract README、同步雙語 roadmap、review final
@@ -370,39 +363,6 @@ notes: <validation messages or limitation>
 dock/layout ID、各 recovery outcome、draw-list conversion、texture generation、clip/offset/index-width golden、
 resize/recreate、resource retirement、重複 frame 且 allocation 有界。必要 human evidence 包括 output 可讀、
 真實互動、docking、focus、DPI、IME、crash recovery；screenshot 本身無法證明 input/lifetime 行為。
-
-### 驗收對照與 target-host 交接
-
-自動化結果與實際操作觀察必須分列證據。Xvfb 通過不會完成 physical-display 項目。各待驗項目由
-指定 target host 的操作者負責；使用上述格式記錄確切 commit、configuration、device、driver、
-command、result 與 artifact。任何失敗項目維持 open，並阻擋 ED-M0 驗收。
-
-| 工作包 | 自動化證據 | 尚待 target-host gate |
-| --- | --- | --- |
-| WP0 | 完整 Development OFF/ON gate、Shipping engine build、相依 revision 與 feature isolation | 明確缺口盤點，包含不支援的 host/configuration |
-| WP1 | `window_presentation.contracts`、`renderer.contracts` | Native graphics validation 與 supported-backend parity；portable trace 不證明實體 GPU 行為 |
-| WP2 | `editor.imgui_contract` 的 draw conversion、texture generation、completion retirement、DPI rebuild 與 512-frame soak | Native output 可讀、resize/font rebuild 與 GPU resource lifetime |
-| WP3 | `editor.linux_display_acceptance`；native Vulkan scene/PBR/upload test | Linux physical-display render、resize、minimize/restore、close 與 recovery |
-| WP4 | `editor.imgui_contract`、`editor.pointer_dpi`、Linux display acceptance | 真實 typing/shortcut、drag docking 與 layout 還原、雙軸 wheel、按住 input 時 focus loss |
-| WP5 | DPI bucket 與 pointer test | Windows 100/125/150/200% text/hit target、反覆跨螢幕、同 frame resize/DPI、minimize/restore |
-| WP6 | Unicode Rename contract；Windows-only `editor.windows_dpi_ime_contract` | Windows 已安裝 IME 的 composition/update/commit/cancel 與多 DPI candidate placement |
-| WP7 | Recovery success/failure/exactly-once contract 與 Linux durable-journal SIGKILL/relaunch | Physical-display keyboard-only Recover/Discard、visible focus 與可處理的 failure/retry |
-| WP8 | 完整 gate log 與本盤點 | 所有 required row 通過且附 artifact；macOS 未於 target host 實跑即維持 unverified |
-
-Linux physical-display 驗收使用可拋棄的 project，在真實 X11 desktop 執行一般
-`NexoraEditor --graphical --project=<path>`。記錄 typing、Hierarchy selection、dock panel 並 restart
-確認位置、水平／垂直 wheel、按住 key/button 時切換 focus，再執行 resize/minimize/restore 與 close。
-使用 project 副本，在 SIGKILL 前寫入並 fsync 合法 workspace journal，relaunch 後分別僅以鍵盤操作
-Recover 與 Discard。比較各選擇前後 committed workspace/journal，保留 corrupt-journal failure 證據。
-不可對操作者正在工作的 project 注入演練。既有 Xvfb script 是自動化參考演練，不是實體顯示觀察。
-
-Windows 使用 graphical Development build 與實際選用的 backend。在 100/125/150/200% 記錄可讀
-text、吻合的 pointer hit target、反覆跨螢幕、resize/minimize/restore，以及沒有累積放大的 style。
-在 Hierarchy Rename 以已安裝 IME 執行 start/update/commit/cancel composition、移動 caret，再於
-另一 DPI/monitor 重複。確認 committed text 恰好出現一次，candidate 跟隨 caret。執行
-`editor.windows_dpi_ime_contract` 作為輔助自動化；其 injected callback 不證明真實 IME composition
-或跨螢幕移動。Screenshot/recording 與 checklist 一起保存 host metadata。Basic keyboard shell
-證據不會完成 ED-M7 screen-reader 工作。
 
 ## 7. AI 施工與變更紀律
 

@@ -1,11 +1,11 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
-> Version: v1.4 | Status: implementation in progress; target-host evidence pending |
-> Updated: 2026-10-05 | Relates to: `Editor_Roadmap.md` (ED-M0),
+> Version: v1.3 | Status: implementation in progress; target-host evidence pending |
+> Updated: 2026-09-25 | Relates to: `Editor_Roadmap.md` (ED-M0),
 > `ADR-0001-Editor-UI-Framework.md`, `Window_Presentation_Roadmap.md`
 
-> **Repository audit (2026-10-05):** implementation is **in progress**. The checked foundations
-> below are present in source and contract tests, and **✅ WP0 has passed its baseline exit gate; WP1–WP8 remain open**.
+> **Repository audit (2026-09-25):** implementation is **in progress**. The checked foundations
+> below are present in source and contract tests, but **none of WP0–WP8 has passed its exit gate**.
 > Retained GPU resources, direct rendering to the borrowed presentation target, project-owned
 > layout persistence, DPI font-atlas rebuilding, and recovery failure contracts are implemented.
 > Automated X11 coverage now includes startup, resize, close, corrupt-layout replacement, legacy-layout
@@ -164,11 +164,7 @@ report repository truth, not intent.
 
 ### WP0 — Baseline and reproducibility audit
 
-**Status: ✅ baseline exit gate passed (2026-10-05).**
-
-[Validation record](../../Tools/Build/evidence/EditorEDM0-Linux-2026-10-05.md): feature OFF
-71/71 and feature ON with Slang 115/115, no skips; Shipping engine build passed. The acceptance
-map in §6 records the remaining target-host gaps. This closes WP0 only, not ED-M0.
+**Status: partially complete.**
 
 1. Read `CLAUDE.md`, the Editor, EditorImGui, RHI, Window, and Presentation READMEs, ADR-0001, and
    the two related roadmaps. Record any contract conflict before editing code.
@@ -333,12 +329,8 @@ evidence remain.**
 2. Under a real X11 display, run a scripted/manual checklist covering launch, visible font/text,
    Hierarchy selection, docking, all input classes, resize/minimize/restore, and recovery. Capture
    command, commit, backend/device, result, and artifact location.
-3. On Windows, build Development with the graphical feature, then execute the DPI and IME
-   checklists. Validate Shipping separately as an engine build: current product policy forces
-   `NEXORA_ENABLE_EDITOR=OFF` in Shipping, so Shipping plus graphical shell is rejected at configure.
-   A Shipping Editor requires a separate product/build-policy decision; do not bypass that guard
-   or report a Shipping engine build as graphical acceptance. Run DX12 only if the surface selects
-   DX12; do not claim it from Vulkan results.
+3. On Windows, build Development and Shipping with the graphical feature, then execute the DPI and
+   IME checklists. Run DX12 only if the surface selects DX12; do not claim it from Vulkan results.
 4. macOS/Metal is a required supported-backend parity item only when Editor support is declared for
    macOS. Until a macOS target host runs it, list it as unverified rather than passed.
 5. Remove the production CPU compositor and dead scaffold code, update contract READMEs, synchronize
@@ -405,44 +397,6 @@ event/key tables, dock/layout IDs, recovery outcomes, draw-list conversion, text
 clip/offset/index-width goldens, resize/recreate, resource retirement, and repeated frames with
 bounded allocation. Required human evidence includes legible output, actual interaction, docking,
 focus, DPI, IME, and crash recovery; screenshots alone cannot prove input or lifetime behavior.
-
-### Acceptance map and target-host handoff
-
-Keep automated results and observed interaction in separate evidence rows. A passing Xvfb test
-does not close a physical-display row. The owner of each open row is the operator of the named
-target host; record the exact commit, configuration, device, driver, command, result, and artifacts
-using the schema above. A failed row stays open and blocks ED-M0 acceptance.
-
-| Package | Automated evidence | Remaining target-host gate |
-| --- | --- | --- |
-| WP0 | Full Development OFF/ON gates; Shipping engine build; dependency revision and feature isolation | Explicit gap inventory, including unsupported host/configuration rows |
-| WP1 | `window_presentation.contracts`, `renderer.contracts` | Native graphics validation and supported-backend parity; portable traces do not prove physical GPU behavior |
-| WP2 | `editor.imgui_contract` draw conversion, texture generations, completion retirement, DPI rebuild and 512-frame soak | Legible native output, resize/font rebuild and GPU resource lifetime |
-| WP3 | `editor.linux_display_acceptance`; native Vulkan scene/PBR/upload tests | Linux physical-display render, resize, minimize/restore, close and recovery |
-| WP4 | `editor.imgui_contract`, `editor.pointer_dpi`, Linux display acceptance | Real typing/shortcuts, drag docking and restored layout, both wheel axes, focus loss with held input |
-| WP5 | DPI buckets and pointer tests | Windows 100/125/150/200% text and hit targets, repeated monitor moves, same-frame resize/DPI, minimize/restore |
-| WP6 | Unicode Rename contracts; Windows-only `editor.windows_dpi_ime_contract` | Installed Windows IME composition/update/commit/cancel, candidate placement at multiple DPI values |
-| WP7 | Recovery success/failure/exactly-once contracts and Linux durable-journal SIGKILL/relaunch | Physical-display keyboard-only Recover and Discard, visible focus and actionable failure/retry |
-| WP8 | Complete gate logs and this inventory | Every required row passed with artifacts; macOS remains unverified unless exercised on a target host |
-
-For Linux physical-display acceptance, use a disposable project and the normal
-`NexoraEditor --graphical --project=<path>` on the real X11 desktop. Record typing and Hierarchy
-selection, dock a panel and restart to verify its placement, exercise horizontal/vertical wheels,
-hold a key/button while changing focus, then resize/minimize/restore and close. On copies of the
-project, stage and fsync a valid workspace journal before SIGKILL, relaunch, and operate Recover and
-Discard separately using only the keyboard. Compare the committed workspace and journal before
-and after each choice; preserve corrupt-journal failure evidence. Never inject these drills into
-the operator's working project. The existing Xvfb script supplies an automated reference drill,
-not the physical-display observation.
-
-For Windows, use a graphical Development build with the actual selected backend. At
-100/125/150/200%, record readable text and matching pointer hit targets, repeated monitor moves,
-resize/minimize/restore and non-cumulative style scaling. In Hierarchy Rename, use an installed
-IME to start/update/commit and cancel composition, move the caret, then repeat on another DPI/
-monitor. Verify that committed text appears exactly once and that candidates follow the caret.
-Run `editor.windows_dpi_ime_contract` as supporting automation; its injected callback does not
-prove a real IME composition or per-monitor move. Keep screenshots/recordings and the checklist
-alongside the host metadata. Basic keyboard shell evidence does not close ED-M7 screen-reader work.
 
 ## 7. AI execution and change discipline
 

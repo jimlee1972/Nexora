@@ -181,10 +181,10 @@
     ]
   ],
   "sky": {
-    "description": "Original continuous golden-hour directional sky; atlas, solar disc, key light and floating HDR IBL share the same direction.",
+    "description": "Original authored golden-hour cloud panorama; visible six-face sky and HDR IBL share the panorama orientation, geometric solar disc and key-light direction.",
     "sun_direction": [
       -12,
-      3,
+      6,
       -16
     ],
     "sun_radiance": [
@@ -206,7 +206,13 @@
       5.5,
       3.6,
       1.8
-    ]
+    ],
+    "panorama": {
+      "path": "Source/golden-sky.png",
+      "sha256": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+      "rotation_radians": -2.214297435588181,
+      "elevation_scale": 2.3
+    }
   },
   "detail_size": 256,
   "leaf_size": 256,
@@ -234,6 +240,13 @@
       "authoring_brief": "Natural green ivy sprig with eight lobed leaves, visible veins, stem rooted at bottom, transparent background",
       "license": "Repository LICENSE",
       "reference": "Roadmap/art/V1-Visual-Identity-Concept.png"
+    },
+    "golden_sky": {
+      "path": "Source/golden-sky.png",
+      "sha256": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+      "origin": "OpenAI image generation in this authorized showcase art session",
+      "authoring_brief": "Original seamless 2:1 equirectangular golden-hour sky using the repository concept sky as a style reference; peach cloud edges, lavender blue zenith, pale gold horizon; no sun disc, objects or terrain",
+      "license": "Repository LICENSE"
     }
   }
 }

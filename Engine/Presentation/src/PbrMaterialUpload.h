@@ -35,7 +35,8 @@ namespace Nexora::Presentation {
         std::abs(reflection.planeHeight) > 10000 || !std::isfinite(reflection.reflectance) ||
         reflection.reflectance < 0 || reflection.reflectance > 1 || reflection.regionCount < 1 ||
         reflection.regionCount > reflection.regions.size() ||
-        !std::isfinite(draw.cameraPosition[1]) ||
+        !std::isfinite(reflection.shorelineVariation) || reflection.shorelineVariation < 0 ||
+        reflection.shorelineVariation > 0.2F || !std::isfinite(draw.cameraPosition[1]) ||
         draw.cameraPosition[1] <= reflection.planeHeight + 0.0001F)
       return false;
     for (std::size_t i = 0; i < reflection.regions.size(); ++i) {
@@ -57,7 +58,7 @@ namespace Nexora::Presentation {
   if (!draw.pbr)
     for (const auto &material : draw.materials)
       if (material.alphaCutoff || material.windAmplitude || material.transmissionThickness ||
-          material.unlit)
+          material.unlit || material.worldTextureScale)
         return false;
   if (!draw.pbr)
     return draw.linearTextureUploads.empty() && !draw.environment && !draw.shadow &&
@@ -181,10 +182,10 @@ template <typename Lookup>
          resolveLevels(draw.environment->brdfTextureId) == 1;
 }
 
-// Matches MaterialConstants in scene_pbr.slang: nineteen float4s, independent of native UBO
+// Matches MaterialConstants in scene_pbr.slang: twenty float4s, independent of native UBO
 // alignment.
-using PbrMaterialUpload = std::array<float, 76>;
-static_assert(sizeof(PbrMaterialUpload) == 304);
+using PbrMaterialUpload = std::array<float, 80>;
+static_assert(sizeof(PbrMaterialUpload) == 320);
 [[nodiscard]] inline PbrMaterialUpload PackPbrMaterial(const SceneDrawData &draw,
                                                        const SceneMaterial &material,
                                                        bool manualSrgbTransfer,
@@ -245,6 +246,9 @@ static_assert(sizeof(PbrMaterialUpload) == 304);
   parameters[72] = material.opacity;
   std::copy(material.transparencyTint.begin(), material.transparencyTint.end(),
             parameters.begin() + 73);
+  parameters[76] = material.worldTextureScale;
+  if (draw.planarReflection)
+    parameters[77] = draw.planarReflection->shorelineVariation;
   return parameters;
 }
 } // namespace Nexora::Presentation
