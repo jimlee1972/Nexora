@@ -9,7 +9,7 @@ inline constexpr char scene_tonemap_metal_vert[] = R"NEXORA_TONE(
 #include <metal_texture>
 using namespace metal;
 
-#line 9 "Engine/Presentation/shaders/scene_tonemap.slang"
+#line 11 "Engine/Presentation/shaders/scene_tonemap.slang"
 struct toneVertexMain_Result_0
 {
     float4 position_0 [[position]];
@@ -17,44 +17,46 @@ struct toneVertexMain_Result_0
 };
 
 
-#line 9
-struct ToneVertex_0
+#line 11
+struct vertexInput_0
 {
-    float4 position_1;
-    float2 uv_1;
+    float2 position_1 [[attribute(0)]];
+    float2 uv_1 [[attribute(1)]];
 };
 
 
 #line 9
-[[vertex]] toneVertexMain_Result_0 toneVertexMain(uint index_0 [[vertex_id]])
+struct ToneVertex_0
+{
+    float4 position_2;
+    float2 uv_2;
+};
+
+
+#line 9
+[[vertex]] toneVertexMain_Result_0 toneVertexMain(vertexInput_0 _S1 [[stage_in]])
 {
 
 
-    float _S1 = float((index_0 << 1U) & 2U);
 
-#line 13
-    float _S2 = float(index_0 & 2U);
-
-#line 12
     thread ToneVertex_0 output_0;
-
-    (&output_0)->position_1 = float4(float2(_S1, _S2) * float2(2.0f)  - float2(1.0f) , 0.0f, 1.0f);
-
+    (&output_0)->position_2 = float4(_S1.position_1, 0.0f, 1.0f);
 
 
-    (&output_0)->uv_1 = float2(_S1, 1.0f - _S2);
 
-#line 18
-    thread toneVertexMain_Result_0 _S3;
+    (&output_0)->uv_2 = _S1.uv_1;
 
-#line 18
-    (&_S3)->position_0 = output_0.position_1;
+#line 19
+    thread toneVertexMain_Result_0 _S2;
 
-#line 18
-    (&_S3)->uv_0 = output_0.uv_1;
+#line 19
+    (&_S2)->position_0 = output_0.position_2;
 
-#line 18
-    return _S3;
+#line 19
+    (&_S2)->uv_0 = output_0.uv_2;
+
+#line 19
+    return _S2;
 }
 
 )NEXORA_TONE";
@@ -112,43 +114,43 @@ struct KernelContext_0
 };
 
 
-#line 23
+#line 24
 [[fragment]] pixelOutput_0 toneFragmentMain(pixelInput_0 _S1 [[stage_in]], float4 position_0 [[position]], texture2d<float, access::sample> hdrScene_texture_1 [[texture(0)]], sampler hdrScene_sampler_1 [[sampler(0)]], ToneParameters_0 constant* tone_1 [[buffer(0)]])
 {
 
-#line 23
+#line 24
     thread KernelContext_0 kernelContext_0;
 
-#line 23
+#line 24
     (&kernelContext_0)->hdrScene_texture_0 = hdrScene_texture_1;
 
-#line 23
+#line 24
     (&kernelContext_0)->hdrScene_sampler_0 = hdrScene_sampler_1;
 
-#line 23
+#line 24
     (&kernelContext_0)->tone_0 = tone_1;
     float3 color_2 = NexoraAcesApproximate_0(((hdrScene_texture_1).sample((hdrScene_sampler_1), (_S1.uv_0), level((0.0f)))).xyz * float3(tone_1->settings_0.x) );
 
-#line 24
+#line 25
     float3 color_3;
     if((tone_1->settings_0.y) > 0.5f)
     {
 
-#line 25
+#line 26
         color_3 = NexoraLinearToSrgb_0(color_2);
 
-#line 25
+#line 26
     }
     else
     {
 
-#line 25
+#line 26
         color_3 = color_2;
 
-#line 25
+#line 26
     }
 
-#line 25
+#line 26
     pixelOutput_0 _S2 = { float4(color_3, 1.0f) };
     return _S2;
 }

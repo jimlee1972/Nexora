@@ -6,6 +6,7 @@
 #include "SceneInstanceUpload.h"
 #include "ScenePbrMetalShaders.h"
 #include "SceneToneMetalShaders.h"
+#include "ToneVertexUpload.h"
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -438,6 +439,7 @@ public:
         [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
         const std::array<float, 4> settings{sceneExposure_, 1, 0, 0};
         [encoder setFragmentBytes:settings.data() length:sizeof(settings) atIndex:0];
+        [encoder setVertexBytes:toneVertices.data() length:sizeof(toneVertices) atIndex:0];
         [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
         [encoder endEncoding];
 #if defined(NEXORA_METAL_SCENE_TESTING)
@@ -839,7 +841,13 @@ private:
       return false;
     pipeline.vertexFunction = [toneVertex newFunctionWithName:@"toneVertexMain"];
     pipeline.fragmentFunction = [toneFragment newFunctionWithName:@"toneFragmentMain"];
-    pipeline.vertexDescriptor = nil;
+    auto *toneDescriptor = [MTLVertexDescriptor vertexDescriptor];
+    toneDescriptor.attributes[0].format = toneDescriptor.attributes[1].format =
+        MTLVertexFormatFloat2;
+    toneDescriptor.attributes[0].bufferIndex = toneDescriptor.attributes[1].bufferIndex = 0;
+    toneDescriptor.attributes[1].offset = 2 * sizeof(float);
+    toneDescriptor.layouts[0].stride = 4 * sizeof(float);
+    pipeline.vertexDescriptor = toneDescriptor;
     pipeline.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
     pipeline.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
     tonePipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];

@@ -8,14 +8,15 @@ struct ToneParameters { float4 settings; }; // x exposure; y manual output trans
 [[vk::binding(0, 0)]] Sampler2D<float4> hdrScene : register(t0);
 struct ToneVertex { float4 position : SV_Position; float2 uv : TEXCOORD0; };
 [shader("vertex")]
-ToneVertex toneVertexMain(uint index : SV_VertexID) {
+ToneVertex toneVertexMain(
+  [[vk::location(0)]] float2 position : POSITION,
+  [[vk::location(1)]] float2 uv : TEXCOORD0) {
   ToneVertex output;
-  float2 uv = float2((index << 1) & 2, index & 2);
-  output.position = float4(uv * 2 - 1, 0, 1);
+  output.position = float4(position, 0, 1);
 #ifdef NEXORA_VULKAN
-  output.uv = uv;
-#else
   output.uv = float2(uv.x, 1 - uv.y);
+#else
+  output.uv = uv;
 #endif
   return output;
 }
