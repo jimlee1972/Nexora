@@ -71,6 +71,13 @@ retain the view. Modal/focus/text/drag gates apply; native Linux pixel restorati
 real 1x/2x tests verify the workflow. The X/Z target persists with the
 overview camera; target height, orbit angle, and distance persist in a separate per-scene camera file on
 writable shutdown. Invalid camera files are preserved for inspection.
+
+Native Scene X toggles existing Global/Local axes (Scale keeps Local); P toggles Pivot/Center.
+Focused canvas shortcuts resolve before same-frame click/drag setup and wait during held or pending
+gestures. Modifier/text/modal/focus gates preserve authoring; read-only mode navigation is available.
+Home/P center gestures now share Q/W/E/R's real-hover guard. Real 1x/2x input and Linux Xvfb proxy/OBJ
+center gestures verify unchanged history and one-step Undo; full gizmo target-host acceptance stays open.
+
 Focused Scene Ctrl+A and Select all change selection only. Overview uses current scene NodeKeys;
 native input emits one owning token consumed after widgets and revalidated against SceneFileSession.
 `SelectNativeSceneCandidates` borrows the actual drawing/picking packet during the call, omits hidden
