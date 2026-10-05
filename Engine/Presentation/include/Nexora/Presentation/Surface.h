@@ -290,6 +290,11 @@ struct SceneBloom final {
   float threshold = 1.0F;
   float radiusPixels = 12.0F;
 };
+struct SceneDepthOfField final {
+  float focusDistance = 10.0F; // World units, measured from cameraPosition.
+  float strength = 1.0F;
+  float radiusPixels = 12.0F;
+};
 struct SceneDrawData final {
   std::span<const SceneVertex> vertices;
   std::span<const std::uint16_t> indices;
@@ -318,6 +323,7 @@ struct SceneDrawData final {
   std::optional<SceneBloom> bloom{};
   std::optional<SceneColorGrade> colorGrade{};
   float vegetationTime{}; // Finite bounded seconds [0,3600]; caller controls pause/replay.
+  std::optional<SceneDepthOfField> depthOfField{}; // HDR PBR only; absent preserves sharp output.
 };
 
 // Call only after material/batch validation. Returned values own their scalar storage.

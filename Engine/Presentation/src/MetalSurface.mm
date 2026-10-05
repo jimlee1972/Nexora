@@ -336,7 +336,8 @@ public:
           drawData.offscreen ? sceneColors_[frame_] : drawable_.texture;
       pass.colorAttachments[0].loadAction = uiRendered_ ? MTLLoadActionLoad : MTLLoadActionClear;
       pass.colorAttachments[0].storeAction = MTLStoreActionStore;
-      pass.colorAttachments[0].clearColor = MTLClearColorMake(0.025, 0.045, 0.09, 1);
+      pass.colorAttachments[0].clearColor =
+          MTLClearColorMake(0.025, 0.045, 0.09, drawData.hdr ? 65504.0 : 1.0);
       pass.depthAttachment.texture = sceneDepths_[frame_];
       pass.depthAttachment.loadAction = MTLLoadActionClear;
       pass.depthAttachment.storeAction = MTLStoreActionDontCare;
@@ -420,6 +421,7 @@ public:
       sceneExposure_ = drawData.exposure;
       sceneBloom_ = drawData.bloom.value_or(SceneBloom{0, 1, 12});
       sceneColorGrade_ = drawData.colorGrade.value_or(SceneColorGrade{});
+      sceneDepthOfField_ = drawData.depthOfField.value_or(SceneDepthOfField{10, 0, 12});
       ++diagnostics_.sceneDrawCalls;
       diagnostics_.sceneInstances += instances.size();
       if (drawData.offscreen)
@@ -447,8 +449,9 @@ public:
                                          static_cast<double>(height_), 0, 1}];
         [encoder setFragmentTexture:sceneColors_[frame_] atIndex:0];
         [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
-        const auto settings = PackToneParameters(sceneExposure_, true, sceneBloom_,
-                                                 sceneColorGrade_, width_, height_);
+        const auto settings =
+            PackToneParameters(sceneExposure_, true, sceneBloom_, sceneColorGrade_, width_, height_,
+                               sceneDepthOfField_);
         [encoder setFragmentBytes:settings.data() length:sizeof(settings) atIndex:0];
         [encoder setVertexBytes:toneVertices.data() length:sizeof(toneVertices) atIndex:0];
         [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
@@ -1043,6 +1046,7 @@ private:
   float sceneExposure_ = 1.0F;
   SceneBloom sceneBloom_{0, 1, 12};
   SceneColorGrade sceneColorGrade_{};
+  SceneDepthOfField sceneDepthOfField_{10, 0, 12};
 #if defined(NEXORA_METAL_SCENE_TESTING)
   id<MTLTexture> compositedTesting_ = nil;
 #endif

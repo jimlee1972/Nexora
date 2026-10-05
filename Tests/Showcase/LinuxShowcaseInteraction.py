@@ -290,7 +290,7 @@ def main():
             restored_pbr = compared_screenshot(window,1280,720,output/'courtyard-pbr-restored.png',courtyard_wide,True)
             assert restored_pbr == courtyard_wide, 'PBR material restoration changed the fixed shot'
 
-            for key,effect in [('n','wind'),('m','transmission')]:
+            for key,effect in [('n','wind'),('m','transmission'),('k','bloom'),('j','depth-of-field')]:
                 tool('key','--window',window,key)
                 compared_screenshot(window,1280,720,output/f'courtyard-{effect}-off.png',courtyard_wide,False)
                 tool('key','--window',window,key)

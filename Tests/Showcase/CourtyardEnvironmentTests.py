@@ -3,6 +3,7 @@
 from array import array
 import importlib.util
 import math
+import json
 from pathlib import Path
 import unittest
 
@@ -49,6 +50,19 @@ class EnvironmentContracts(unittest.TestCase):
         self.assertEqual(ibl.sample(image, (0,0,1)), [0,1,0])
         self.assertEqual(ibl.sample(image, (0,0,-1)), [1,0,0])
         self.assertEqual(ibl.sample(image, (-1,0,0)), [0.5,0.5,0])
+
+    def test_golden_sky_hdr_and_solar_direction(self):
+        sky = json.loads((ROOT/'Content/Showcase/Courtyard/Hero/source.json').read_text())['sky']
+        sun = ibl.normalize(sky['sun_direction'])
+        self.assertEqual(ibl.golden_sky(sun,sky,True),tuple(sky['sun_radiance']))
+        self.assertGreater(max(ibl.golden_sky(sun,sky,True)),1)
+        self.assertLessEqual(max(ibl.golden_sky(sun,sky,False)),1)
+        away = tuple(-d for d in sun)
+        self.assertLessEqual(max(ibl.golden_sky(away,sky,True)),1)
+        # A face boundary has the same world direction/radiance from either side.
+        edge = ibl.normalize((1,0.4,1))
+        for a,b in zip(ibl.golden_sky(edge,sky),ibl.golden_sky((1,0.4,1),sky)):
+            self.assertAlmostEqual(a,b,places=12)
 
     def test_brdf_is_bounded(self):
         for n_dot_v in [0.02, 0.2, 0.5, 0.99]:

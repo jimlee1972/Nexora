@@ -109,6 +109,22 @@ void Run() {
   Require(!ValidatePbrData(pbr), "direct HDR accepted");
   pbr.offscreen = true;
   Require(ValidatePbrData(pbr), "offscreen HDR rejected");
+  pbr.depthOfField = SceneDepthOfField{3, 1, 12};
+  Require(ValidatePbrData(pbr), "valid HDR focus rejected");
+  for (const float invalid : {0.0F, -1.0F, std::numeric_limits<float>::infinity(),
+                              std::numeric_limits<float>::quiet_NaN()}) {
+    pbr.depthOfField->focusDistance = invalid;
+    Require(!ValidatePbrData(pbr), "invalid focus distance accepted");
+  }
+  pbr.depthOfField = SceneDepthOfField{3, 5, 12};
+  Require(!ValidatePbrData(pbr), "unbounded focus strength accepted");
+  pbr.depthOfField = SceneDepthOfField{3, 1, 33};
+  Require(!ValidatePbrData(pbr), "unbounded focus radius accepted");
+  pbr.depthOfField = SceneDepthOfField{3, 1, 12};
+  pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "non-HDR focus accepted");
+  pbr.hdr = true;
+  pbr.depthOfField.reset();
   pbr.shadow = SceneDirectionalShadow{};
   Require(ValidatePbrData(pbr), "valid shadow rejected");
   pbr.shadow->resolution = 300;

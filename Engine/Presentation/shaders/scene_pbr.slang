@@ -126,10 +126,11 @@ float shadowVisibility(float3 position, float3 normal, float3 light) {
       material.shadowSettings.y, saturate(dot(normal, light)));
   return NexoraEvaluatePcf4(receiver, depths, 0);
 }
-float4 outputSceneColor(float3 color)
+float4 outputSceneColor(float3 color, float3 worldPosition)
 {
   if (material.properties.w > 0.5)
-    return float4(clamp(color, float3(0), float3(65504)), 1);
+    return float4(clamp(color, float3(0), float3(65504)),
+        min(65504.0, length(worldPosition - material.cameraPosition.xyz)));
   color = NexoraAcesApproximate(color);
   if (material.cameraPosition.w > 0.5)
     color = NexoraLinearToSrgb(color);
@@ -142,7 +143,7 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   if (material.vegetation.z > 0 &&
       NexoraEvaluateVegetationAlpha(baseSample.a, material.vegetation.z) == 0) discard;
   if (material.transmission.w > 0.5)
-    return outputSceneColor(emissionMap.Sample(input.uv).rgb * material.emissionRoughness.xyz);
+    return outputSceneColor(emissionMap.Sample(input.uv).rgb * material.emissionRoughness.xyz, input.worldPosition);
   float3 n = NexoraSafeNormalize(input.normal);
   float3 t = NexoraSafeNormalize(input.tangent.xyz - n * dot(n, input.tangent.xyz));
   float3 b = NexoraSafeNormalize(cross(n, t)) * input.tangent.w;
@@ -190,5 +191,5 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   float3 transmitted = NexoraEvaluateVegetationTransmission(surface.normal, light,
       material.transmission.rgb * scene.lightColor.rgb, material.vegetation.w, 1-visibility);
   float3 color = direct * visibility + ambient + transmitted + max(surface.emission, float3(0));
-  return outputSceneColor(color);
+  return outputSceneColor(color, input.worldPosition);
 }

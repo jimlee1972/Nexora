@@ -15,12 +15,16 @@ struct Fixture final {
       draw.bloom = Nexora::Presentation::SceneBloom{0.4F, mode == 2 ? 32.0F : 1.0F, 32};
     if (mode == 3)
       draw.colorGrade = Nexora::Presentation::SceneColorGrade{0, 1};
+    if (mode == 4)
+      draw.depthOfField = Nexora::Presentation::SceneDepthOfField{1, 4, 32};
     return draw;
   }
 };
 template <typename Rgb> bool Pixels(unsigned mode, const Rgb &halo, const Rgb &center) {
   return center[0] > 230 && center[1] > 200 &&
          (mode != 3 || std::abs(static_cast<int>(center[0]) - static_cast<int>(center[2])) <= 2) &&
-         (mode == 1 ? halo[0] > 30 && halo[0] > halo[2] + 10 : halo[0] < 5);
+         (mode == 1   ? halo[0] > 30 && halo[0] > halo[2] + 10
+          : mode == 4 ? halo[0] > 30
+                      : halo[0] < 5);
 }
 } // namespace PbrBloomFixtures

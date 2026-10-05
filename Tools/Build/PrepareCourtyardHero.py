@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+from PrepareCourtyardEnvironment import golden_sky
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTENT = ROOT / 'Content/Showcase/Courtyard/Hero'
@@ -36,11 +37,11 @@ def generate():
         value=((x*73856093)^(y*19349663)^source['seed'])&0xffffffff
         value=((value^(value>>13))*1274126177)&0xffffffff
         return (value^(value>>16))&255
-    size=source['texture_size']
-    assert size==64
+    size=source['detail_size']
+    assert size==256
     def height(x,y):
         x%=size;y%=size
-        joint=y%16==0 or (x+((y//16)&1)*13)%32==0
+        joint=y%64<2 or (x+((y//64)&1)*37)%128<2
         return 18 if joint else 112+noise(x,y)//12
     for material in ('stone','bronze'):
         color,normal,orm=bytearray(),bytearray(),bytearray()
@@ -49,8 +50,8 @@ def generate():
                 n=noise(x,y);h=height(x,y);joint=h==18
                 if material=='stone':
                     delta=n//16-8
-                    rgb=(max(0,190+delta-(55 if joint else 0)),max(0,163+delta-(48 if joint else 0)),max(0,116+delta-(34 if joint else 0)))
-                    ao,rough,metal=(150 if joint else 235),210+n//12,0
+                    rgb=(max(0,224+delta-(35 if joint else 0)),max(0,205+delta-(32 if joint else 0)),max(0,170+delta-(28 if joint else 0)))
+                    ao,rough,metal=(200 if joint else 245),210+n//12,0
                 else:
                     patina=(noise(x//4,y//4)<60)
                     rgb=(55+n//12,107+n//16,88+n//16) if patina else (155+n//9,100+n//12,38+n//14)
@@ -61,6 +62,8 @@ def generate():
                 length=math.sqrt(dx*dx+dy*dy+1)
                 normal.extend((round(127.5-127.5*dx/length),round(127.5-127.5*dy/length),round(127.5+127.5/length),255))
         for name,data in [('color',color),('normal',normal),('orm',orm)]:outputs[f'{material}-{name}.rgba']=bytes(data)
+    size=source['texture_size']
+    assert size==64
     for name in ('leaf','mote'):
         data=bytearray()
         for y in range(size):
@@ -70,9 +73,22 @@ def generate():
                 rgb=(65+noise(x,y)//12,135+noise(x,y)//8,30+noise(x,y)//16) if name=='leaf' else (255,255,255)
                 data.extend((*rgb,255 if mask else 0))
         outputs[name+'.rgba']=bytes(data)
-    outputs['sky.rgba']=bytes(channel for y in range(size) for x in range(size)
-                              for channel in (*source['sky_srgb_bands'][min(23,y*24//size)],255))
-    metadata={'schema' :'nexora.courtyard.hero-manifest.v1','source':'source.json','author':source['author'],'license':source['license'],'source_sha256':hashlib.sha256((CONTENT/'source.json').read_bytes()).hexdigest(),'license_sha256':hashlib.sha256((ROOT/'LICENSE').read_bytes()).hexdigest(),'converter_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'derived':{name:hashlib.sha256(data).hexdigest() for name,data in outputs.items()}}
+    # Six-face atlas; evaluate one continuous directional sky across all face boundaries.
+    normals=((1,0,0),(-1,0,0),(0,1,0),(0,-1,0),(0,0,1),(0,0,-1))
+    rights=((0,0,-1),(0,0,1),(1,0,0),(1,0,0),(1,0,0),(-1,0,0))
+    ups=((0,1,0),(0,1,0),(0,0,-1),(0,0,1),(0,1,0),(0,1,0))
+    sky=bytearray()
+    for y in range(256):
+        for x in range(384):
+            face=(y//128)*3+x//128
+            u,v=2*(x%128)/127-1,2*(y%128)/127-1
+            direction=[normals[face][i]+u*rights[face][i]+v*ups[face][i] for i in range(3)]
+            length=math.sqrt(sum(d*d for d in direction)); dx,dy,dz=[d/length for d in direction]
+            linear=golden_sky((dx,dy,dz),source['sky'])
+            rgb=[round(255*(12.92*c if c<=0.0031308 else 1.055*c**(1/2.4)-0.055)) for c in linear]
+            sky.extend((*rgb,255))
+    outputs['sky.rgba']=bytes(sky)
+    metadata={'schema' :'nexora.courtyard.hero-manifest.v1','source':'source.json','author':source['author'],'license':source['license'],'source_sha256':hashlib.sha256((CONTENT/'source.json').read_bytes()).hexdigest(),'license_sha256':hashlib.sha256((ROOT/'LICENSE').read_bytes()).hexdigest(),'converter_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'sky_converter_sha256':hashlib.sha256((ROOT/'Tools/Build/PrepareCourtyardEnvironment.py').read_bytes()).hexdigest(),'derived':{name:hashlib.sha256(data).hexdigest() for name,data in outputs.items()}}
     outputs['manifest.json']=(json.dumps(metadata,indent=2)+'\n').encode()
     header='// Generated original courtyard art by PrepareCourtyardHero.py.\n// clang-format off\n#pragma once\n#include <array>\n#include <cstdint>\nnamespace nexora::showcase::courtyard_hero {\n'
     header+='inline constexpr char mesh[] = R"NEXORA_ART('+mesh+')NEXORA_ART";\n'

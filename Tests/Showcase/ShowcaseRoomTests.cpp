@@ -60,7 +60,7 @@ int main() {
   for (const auto index : wide.indices)
     assert(index < wide.vertices.size());
   assert(wide.pbr);
-  assert(wide.materials.size() == 8 && !wide.batches.empty());
+  assert(wide.materials.size() == 15 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   std::size_t covered = 0;
   std::vector<bool> selectedMaterials(wide.materials.size());
@@ -73,6 +73,26 @@ int main() {
   assert(covered == wide.indices.size());
   for (std::size_t i = 0; i < 7; ++i)
     assert(selectedMaterials[i]);
+  for (std::size_t i = 8; i < 11; ++i) {
+    assert(selectedMaterials[i] && !wide.materials[i].castsShadow);
+  }
+  assert(wide.batches[wide.batches.size() - 2].materialIndex == 6 &&
+         wide.batches[wide.batches.size() - 2].indexCount == 36);
+  assert(wide.batches.back().materialIndex == 11 && wide.materials[11].emission[0] > 1);
+  const auto &skybox = wide.batches[wide.batches.size() - 2];
+  std::array<float, 3> skyCenter{};
+  for (std::size_t i = 0; i < 24; ++i) {
+    const auto &vertex = wide.vertices[wide.indices[skybox.firstIndex] + i];
+    for (std::size_t axis = 0; axis < 3; ++axis) {
+      assert(std::abs(std::abs(vertex.position[axis] - wide.cameraPosition[axis]) - 120) < 1e-4F);
+      skyCenter[axis] += vertex.position[axis] / 24;
+    }
+  }
+  for (std::size_t axis = 0; axis < 3; ++axis)
+    assert(std::abs(skyCenter[axis] - wide.cameraPosition[axis]) < 1e-4F);
+  assert(wide.materials[13].metallic == 1 && !wide.materials[13].castsShadow);
+  assert(!wide.materials[14].castsShadow);
+  assert(wide.materials[6].unlit && !wide.materials[6].castsShadow);
   for (const auto &vertex : wide.vertices) {
     float orthogonal = 0, length = 0;
     for (std::size_t axis = 0; axis < 3; ++axis) {
@@ -93,7 +113,11 @@ int main() {
   assert(courtyard.Scene(1280, 720).environment);
   assert(courtyard.Report().find("\"environment_loaded\":true") != std::string::npos);
 #endif
-  assert(wide.hdr && wide.offscreen && wide.exposure == 1 && wide.bloom);
+  assert(wide.hdr && wide.offscreen && wide.exposure == 1 && wide.bloom && wide.depthOfField);
+  Press(courtyard, Key::J);
+  assert(!courtyard.Scene(1280, 720).depthOfField);
+  Press(courtyard, Key::J);
+  assert(courtyard.Scene(1280, 720).depthOfField);
   Press(courtyard, Key::K);
   assert(!courtyard.Scene(1280, 720).bloom);
   Press(courtyard, Key::K);
@@ -150,6 +174,10 @@ int main() {
   assert(adopted.textureId == 2 && adopted.textureUploads.size() == 10);
   assert(adopted.materials[0].normalTextureId == 11 && adopted.materials[1].ormTextureId == 15);
   assert(adopted.textureUploads[0].pixels.size() == 64 * 64 * 4);
+  assert(adopted.textureUploads[1].width == 256 && adopted.textureUploads[1].height == 256);
+  assert(adopted.textureUploads[1].pixels.size() == 256 * 256 * 4);
+  assert(adopted.textureUploads.back().width == 384 && adopted.textureUploads.back().height == 256);
+  assert(adopted.textureUploads.back().pixels.size() == 384 * 256 * 4);
 #endif
   assert(courtyard.Scene(1280, 720).materials[5].alphaCutoff == 0.5F);
   courtyard.Tick(0.5);
@@ -275,9 +303,12 @@ int main() {
     static_cast<void>(visualTour.Scene(1280, 720));
   }
   assert(visualTour.TourComplete());
+  Press(visualTour, Key::J);
+  assert(!visualTour.Scene(1280, 720).depthOfField);
   assert(visualTour.Report().find("\"duration_seconds\":100") != std::string::npos);
   visualTour.ReplayTour();
   assert(!visualTour.TourComplete() && visualTour.Scene(1280, 720).vegetationTime == 0);
+  assert(visualTour.Scene(1280, 720).depthOfField);
   assert(std::to_array(visualTour.Scene(1280, 720).model_view_projection) == initialTourMatrix);
   RoomSession quality("courtyard");
   quality.SetAnimationPaused(true);
@@ -288,6 +319,7 @@ int main() {
     quality.SetQuality(name);
     quality.Tick(0.1);
     const auto draw = quality.Scene(1280, 720);
+    assert(draw.vertices.size() < 65536);
     assert(draw.hdr && draw.pbr && draw.shadow && draw.shadow->resolution == (512U << tier));
     assert(draw.vegetationTime == 0 && quality.QualityName() == name);
     assert(draw.bloom.has_value() == (tier != 0));
@@ -296,8 +328,10 @@ int main() {
 #endif
     assert(draw.materials[6].unlit && !draw.materials[6].castsShadow);
     assert(draw.materials[7].unlit && !draw.materials[7].castsShadow);
-    assert(draw.batches.back().materialIndex == 7 &&
-           draw.batches.back().indexCount == (24U << tier) * 6);
+    const auto particleBatch =
+        std::find_if(draw.batches.begin(), draw.batches.end(),
+                     [](const auto &batch) { return batch.materialIndex == 7; });
+    assert(particleBatch != draw.batches.end() && particleBatch->indexCount == (24U << tier) * 6);
     qualityVertices[tier] = draw.vertices.size();
   }
   assert(qualityVertices[0] < qualityVertices[1] && qualityVertices[1] < qualityVertices[2]);

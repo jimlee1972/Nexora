@@ -662,7 +662,7 @@ public:
     if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.sceneFramebuffer) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
     std::array<VkClearValue, 2> clears{};
-    clears[0].color = {{0.025F, 0.045F, 0.09F, 1.0F}};
+    clears[0].color = {{0.025F, 0.045F, 0.09F, data.hdr ? 65504.0F : 1.0F}};
     clears[1].depthStencil = {1.0F, 0};
     VkRenderPassBeginInfo begin{};
     begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -728,6 +728,7 @@ public:
     sceneExposure_ = data.exposure;
     sceneBloom_ = data.bloom.value_or(SceneBloom{0, 1, 12});
     sceneColorGrade_ = data.colorGrade.value_or(SceneColorGrade{});
+    sceneDepthOfField_ = data.depthOfField.value_or(SceneDepthOfField{10, 0, 12});
     diagnostics_.sceneOffscreenDrawCalls += data.offscreen ? 1 : 0;
     ++diagnostics_.sceneDrawCalls;
     diagnostics_.sceneInstances += instances.size();
@@ -1739,10 +1740,10 @@ private:
     vkCmdSetScissor(frame.commands, 0, 1, &scissor);
     vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, tonePipelineLayout_, 0,
                             1, &frame.toneDescriptor, 0, nullptr);
-    const auto settings = PackToneParameters(sceneExposure_,
-                                             swapchainFormat_ != VK_FORMAT_B8G8R8A8_SRGB &&
-                                                 swapchainFormat_ != VK_FORMAT_R8G8B8A8_SRGB,
-                                             sceneBloom_, sceneColorGrade_, width_, height_);
+    const auto settings = PackToneParameters(
+        sceneExposure_,
+        swapchainFormat_ != VK_FORMAT_B8G8R8A8_SRGB && swapchainFormat_ != VK_FORMAT_R8G8B8A8_SRGB,
+        sceneBloom_, sceneColorGrade_, width_, height_, sceneDepthOfField_);
     vkCmdPushConstants(frame.commands, tonePipelineLayout_, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                        sizeof(settings), settings.data());
     vkCmdBindVertexBuffers(frame.commands, 0, 1, &frame.sceneUpload, &frame.toneVertexOffset);
@@ -2001,7 +2002,8 @@ private:
     vkDestroyShaderModule(device_, vertex, nullptr);
     if (!Initialized(hdrResult, "vkCreateGraphicsPipelines (HDR)"))
       return false;
-    const VkPushConstantRange tonePush{VK_SHADER_STAGE_FRAGMENT_BIT, 0, 32};
+    const VkPushConstantRange tonePush{VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                                       sizeof(ToneParametersUpload)};
     layout.pSetLayouts = &uiDescriptorLayout_;
     layout.pPushConstantRanges = &tonePush;
     if (vkCreatePipelineLayout(device_, &layout, nullptr, &tonePipelineLayout_) != VK_SUCCESS ||
@@ -2255,6 +2257,7 @@ private:
   float sceneExposure_ = 1.0F;
   SceneBloom sceneBloom_{0, 1, 12};
   SceneColorGrade sceneColorGrade_{};
+  SceneDepthOfField sceneDepthOfField_{10, 0, 12};
   VkSampler shadowSampler_{};
   VkRenderPass shadowRenderPass_{};
   VkPipeline shadowPipeline_{};

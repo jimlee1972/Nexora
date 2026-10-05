@@ -345,9 +345,10 @@ remains independent. Shadow diagnostics count actual successfully recorded passe
 
 Optional `SceneBloom` requires HDR; intensity is finite [0,1], linear threshold [0,32],
 and radius [1,32] pixels. Optional `SceneColorGrade` also requires HDR with finite saturation
-and contrast in [0,2]. Defaults preserve the prior HDR output. Tone constants are now two
-float4s (32 bytes), packed identically by all adapters and copied into the recording frame.
-The tone entry samples the retained HDR image once plus twelve bounded neighboring taps,
+and contrast in [0,2]. Defaults preserve the prior HDR output. Tone constants use three
+float4s (48 bytes), packed identically by all adapters and copied into the recording frame;
+the first two carry exposure/color/bloom and the third carries optional depth-aware focus.
+After optional focus filtering, the tone entry uses twelve bounded neighboring bloom taps,
 extracts thresholded radiance with shared math, adds shared bloom before exposure/ACES, then
 applies shared color grade and exactly one display transfer. This is a compact two-scale
 neighborhood filter, not a separable Gaussian or temporal bloom implementation. UI still follows
@@ -388,3 +389,22 @@ counts instances actually submitted per shadow batch, including repeated geometr
 The private packet stays 240 bytes; its previously reserved final float carries unlit. Public C++
 consumers rebuild; stable C/Zig and NXAB contracts remain unchanged. Native GPU fixtures check an
 emissive non-caster remains visible while the receiver becomes lit.
+
+## Depth-aware HDR focus
+
+Optional `SceneDepthOfField` requires offscreen HDR PBR. Focus distance is finite (0,10000]
+world units measured from `cameraPosition`; strength is [0,4] and radius [1,32] physical pixels.
+Absence or zero strength preserves sharp composition. The existing RGBA16F scene target stores
+linear radiance in RGB and bounded camera distance in alpha; untouched pixels use 65504 as a
+far-distance sentinel. Alpha is internal distance data, not blended transparency. Non-HDR scene
+output and the final composite still have alpha 1. Cutout discard remains before depth/color writes.
+
+The private tone packet is now three float4s / 48 bytes, copied into the protecting frame by
+DX12, Vulkan and Metal. A bounded twelve-tap depth-aware neighborhood filter rejects samples
+from different depth layers and filters linear radiance before bloom/exposure/ACES. This is an
+approximate spatial focus filter, with no temporal history, additional target, depth descriptor or
+production readback. UI is drawn after composition and remains sharp. Clients of the public C++
+header rebuild; stable C/Zig and persistent asset schemas remain unchanged. Native fixtures verify
+an out-of-focus emissive edge changes pixels while UI stays unchanged; input acceptance requires
+exact focus off/on restoration. The depth-aware filter also keeps camera-centred skybox radiance
+in the same HDR composition as foreground objects.

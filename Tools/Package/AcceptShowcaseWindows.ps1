@@ -240,7 +240,7 @@ public static class NexoraAcceptanceWindow {
     Capture-Compared 'courtyard-pbr-restored.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-pbr-restored.png')).Hash) 'Courtyard PBR restoration pixels differ.'
-    foreach ($effect in @(@(78, 'wind'), @(77, 'transmission'))) {
+    foreach ($effect in @(@(78, 'wind'), @(77, 'transmission'), @(75, 'bloom'), @(74, 'depth-of-field'))) {
         Press-Key $effect[0]
         Capture-Compared "courtyard-$($effect[1])-off.png" 'courtyard-wide.png' $false
         Press-Key $effect[0]
@@ -248,6 +248,8 @@ public static class NexoraAcceptanceWindow {
     }
     $acceptance.courtyard_wind_comparison = $true
     $acceptance.courtyard_transmission_comparison = $true
+    $acceptance.courtyard_bloom_comparison = $true
+    $acceptance.courtyard_depth_of_field_comparison = $true
     Press-Key 66; Capture 'courtyard-material.png'
     Press-Key 66; Capture 'courtyard-motion.png'
     Press-Key 66

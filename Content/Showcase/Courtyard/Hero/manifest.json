@@ -3,19 +3,20 @@
   "source": "source.json",
   "author": "Nexora repository contributors",
   "license": "Repository LICENSE",
-  "source_sha256": "9f4b57bb7bf3615e01e02a172226641d21f1011bd46e8b6c28d66b29babc4300",
+  "source_sha256": "8ce3a8d2d3bd68243fc6be9effe2d9d6df3c218d966d220c9da259f1d4594cf7",
   "license_sha256": "1efea8712186f4d30e3a444bb709213b33a8706e371ddd2a9c6be38ce83f40e1",
-  "converter_sha256": "ba2233d6468ae446ae72ce486ea9445f25d19d9f38449453496a67f19c2fb4da",
+  "converter_sha256": "35e107200a29c64bce7d4058fc92476387d986a99d4e29acdcd013a47c9f9144",
+  "sky_converter_sha256": "8d8590dfcc660ea1c8c6925847cf0bd19af2b09b12d61be7ee8420251329172b",
   "derived": {
     "crystal.showcase": "af5fed81ff97bae9f545987ed93a792311a626496673d1d5c9aa112a2cd5de8f",
-    "stone-color.rgba": "cc98a985d73d7ab7e5fd800fcb189bf5798b18fb5f22cb7c08eb83f6a5aa83b5",
-    "stone-normal.rgba": "1f5f9b6f6cb2ee24c2022e6e17d9c40e63dd43b122093951bc97588975d99647",
-    "stone-orm.rgba": "5a79b534cf889b380ad7efd30b529d1cab14a81643f8e3407def7b77ea0aa375",
-    "bronze-color.rgba": "99146e0832a4069b60d889d7e5b2a84dfc00e4cf83130a09b8d6d5d2f258bf7a",
-    "bronze-normal.rgba": "54b3704f0ecadb7da7d9de66746d75433bd4a3578dc1fa32696d2735e98c42b4",
-    "bronze-orm.rgba": "8f42359fc4c8e7022fd5600ac79a07d90c7e46554ef6bee9492bd4837e7273e8",
+    "stone-color.rgba": "d9e2ed9bfaf20dd0e0a4b778cad042bf05596c245c982663172d2eb0febc35be",
+    "stone-normal.rgba": "4dd49423dc6d6fbed98ed70312337ff84ba4ec3b6910c012ec2e1aceb4261c09",
+    "stone-orm.rgba": "8eec4eebb828def239f7e3010f0aabac2464474944db930b394b59785b98d551",
+    "bronze-color.rgba": "a946e07d0bc98cdf986b022f02af25cbc5c90d0a3de049d5b21e44f045e9e58c",
+    "bronze-normal.rgba": "d3103a1bb21a650982c73039ba5ad475f94968f2ec73974a0ab7964600ed1c50",
+    "bronze-orm.rgba": "9774b5df26be749264dea97f1d8829b8d2a3e1adbf3797d3a4e43178c79b134a",
     "leaf.rgba": "db7ef2ab8fb5392b6f4384c1dcc9ad2b5d8b795b50f6dd7f4d0c49790d2a552a",
     "mote.rgba": "0cd9c6c3b9b1ed5b4754c0b6042c94f2740a2ca6725c49c15be4b7c75499a9ca",
-    "sky.rgba": "46ce7bbccaa1efa238d2be2508c6a0348633e6d1692ba2a6cad0bd0e0d7760a0"
+    "sky.rgba": "6e739a85566dafdbcfa655263a6be95183c0cf90e1fd3130f710386e904e6c21"
   }
 }

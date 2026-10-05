@@ -144,6 +144,7 @@ struct ToneParameters_0
 {
     float4 settings_0;
     float4 bloom_0;
+    float4 focus_0;
 };
 
 
@@ -171,91 +172,191 @@ struct KernelContext_0
 
 #line 24
     (&kernelContext_0)->tone_0 = tone_1;
-    float3 hdr_0 = ((hdrScene_texture_1).sample((hdrScene_sampler_1), (_S5.uv_0), level((0.0f)))).xyz;
+    float4 _S6 = ((hdrScene_texture_1).sample((hdrScene_sampler_1), (_S5.uv_0), level((0.0f))));
+    float3 hdr_0 = _S6.xyz;
 
-#line 25
-    float3 hdr_1;
-    if((tone_1->bloom_0.x) > 0.0f)
+#line 26
+    bool _S7;
+    if((tone_1->focus_0.y) > 0.0f)
     {
 
 #line 27
-        float2 _S6 = tone_1->bloom_0.zw;
+        _S7 = (_S6.w) > 0.0f;
 
-        array<float2, int(12)> _S7 = { { float2(-1.0f, 0.0f), float2(1.0f, 0.0f), float2(0.0f, -1.0f), float2(0.0f, 1.0f), float2(-0.5f, -0.5f), float2(0.5f, -0.5f), float2(-0.5f, 0.5f), float2(0.5f, 0.5f), float2(-0.25f, 0.0f), float2(0.25f, 0.0f), float2(0.0f, -0.25f), float2(0.0f, 0.25f) } };
+#line 27
+    }
+    else
+    {
+
+#line 27
+        _S7 = false;
+
+#line 27
+    }
+
+#line 27
+    uint i_0;
+
+#line 27
+    float3 hdr_1;
+
+#line 27
+    if(_S7)
+    {
+
+#line 28
+        float _S8 = _S6.w;
+
+#line 28
+        float coc_0 = saturate(abs(_S8 - tone_1->focus_0.x) / max(_S8, 0.00100000004749745f) * tone_1->focus_0.y);
+        if(coc_0 > 0.05000000074505806f)
+        {
+
+#line 30
+            array<float2, int(12)> _S9 = { { float2(-1.0f, 0.0f), float2(1.0f, 0.0f), float2(0.0f, -1.0f), float2(0.0f, 1.0f), float2(-0.7070000171661377f, -0.7070000171661377f), float2(0.7070000171661377f, -0.7070000171661377f), float2(-0.7070000171661377f, 0.7070000171661377f), float2(0.7070000171661377f, 0.7070000171661377f), float2(-0.34999999403953552f, -0.34999999403953552f), float2(0.34999999403953552f, -0.34999999403953552f), float2(-0.34999999403953552f, 0.34999999403953552f), float2(0.34999999403953552f, 0.34999999403953552f) } };
+
+#line 30
+            i_0 = 0U;
+
+#line 30
+            hdr_1 = hdr_0;
+
+#line 30
+            float weights_0 = 1.0f;
+
+#line 35
+            for(;;)
+            {
+
+#line 35
+                if(i_0 < 12U)
+                {
+                }
+                else
+                {
+
+#line 35
+                    break;
+                }
+
+#line 36
+                float4 _S10 = (((&kernelContext_0)->hdrScene_texture_0).sample(((&kernelContext_0)->hdrScene_sampler_0), (_S5.uv_0 + _S9[i_0] * tone_1->focus_0.zw * float2(coc_0) ), level((0.0f))));
+
+                float weight_0 = saturate(1.0f - abs(_S10.w - _S8) / max(1.0f, _S8 * 0.25f));
+                float3 sum_0 = hdr_1 + _S10.xyz * float3(weight_0) ;
+                float weights_1 = weights_0 + weight_0;
+
+#line 35
+                i_0 = i_0 + 1U;
+
+#line 35
+                hdr_1 = sum_0;
+
+#line 35
+                weights_0 = weights_1;
+
+#line 35
+            }
+
+#line 35
+            hdr_1 = hdr_1 / float3(weights_0) ;
+
+#line 29
+        }
+        else
+        {
+
+#line 29
+            hdr_1 = hdr_0;
+
+#line 29
+        }
+
+#line 27
+    }
+    else
+    {
+
+#line 27
+        hdr_1 = hdr_0;
+
+#line 27
+    }
+
+#line 27
+    float3 color_4;
+
+#line 45
+    if(((&kernelContext_0)->tone_0->bloom_0.x) > 0.0f)
+    {
+
+#line 46
+        float2 _S11 = (&kernelContext_0)->tone_0->bloom_0.zw;
+
+        array<float2, int(12)> _S12 = { { float2(-1.0f, 0.0f), float2(1.0f, 0.0f), float2(0.0f, -1.0f), float2(0.0f, 1.0f), float2(-0.5f, -0.5f), float2(0.5f, -0.5f), float2(-0.5f, 0.5f), float2(0.5f, 0.5f), float2(-0.25f, 0.0f), float2(0.25f, 0.0f), float2(0.0f, -0.25f), float2(0.0f, 0.25f) } };
 
 
-        float3 _S8 = float3(0.0f, 0.0f, 0.0f);
+        float3 _S13 = float3(0.0f, 0.0f, 0.0f);
 
-#line 32
-        uint i_0 = 0U;
+#line 51
+        i_0 = 0U;
 
-#line 32
-        hdr_1 = _S8;
+#line 51
+        color_4 = _S13;
         for(;;)
         {
 
-#line 33
+#line 52
             if(i_0 < 12U)
             {
             }
             else
             {
 
-#line 33
+#line 52
                 break;
             }
 
-#line 34
-            float3 glow_0 = hdr_1 + NexoraExtractBloom_0((((&kernelContext_0)->hdrScene_texture_0).sample(((&kernelContext_0)->hdrScene_sampler_0), (_S5.uv_0 + _S7[i_0] * _S6), level((0.0f)))).xyz, tone_1->bloom_0.y) / float3(12.0f) ;
+#line 53
+            float3 glow_0 = color_4 + NexoraExtractBloom_0((((&kernelContext_0)->hdrScene_texture_0).sample(((&kernelContext_0)->hdrScene_sampler_0), (_S5.uv_0 + _S12[i_0] * _S11), level((0.0f)))).xyz, (&kernelContext_0)->tone_0->bloom_0.y) / float3(12.0f) ;
 
-#line 33
+#line 52
             i_0 = i_0 + 1U;
 
-#line 33
-            hdr_1 = glow_0;
+#line 52
+            color_4 = glow_0;
 
-#line 33
+#line 52
         }
 
-#line 33
-        hdr_1 = NexoraApplyBloom_0(hdr_0, hdr_1, tone_1->bloom_0.x);
+#line 52
+        hdr_1 = NexoraApplyBloom_0(hdr_1, color_4, (&kernelContext_0)->tone_0->bloom_0.x);
 
-#line 26
-    }
-    else
-    {
-
-#line 26
-        hdr_1 = hdr_0;
-
-#line 26
+#line 45
     }
 
-#line 39
-    float3 color_4 = saturate(NexoraApplyColorGrade_0(NexoraAcesApproximate_0(hdr_1 * float3((&kernelContext_0)->tone_0->settings_0.x) ), float3(int3(int(0)) ), float3(int3(int(1)) ), (&kernelContext_0)->tone_0->settings_0.z, (&kernelContext_0)->tone_0->settings_0.w));
-
-#line 39
-    float3 color_5;
+#line 58
+    float3 color_5 = saturate(NexoraApplyColorGrade_0(NexoraAcesApproximate_0(hdr_1 * float3((&kernelContext_0)->tone_0->settings_0.x) ), float3(int3(int(0)) ), float3(int3(int(1)) ), (&kernelContext_0)->tone_0->settings_0.z, (&kernelContext_0)->tone_0->settings_0.w));
     if(((&kernelContext_0)->tone_0->settings_0.y) > 0.5f)
     {
 
-#line 40
-        color_5 = NexoraLinearToSrgb_0(color_4);
+#line 59
+        color_4 = NexoraLinearToSrgb_0(color_5);
 
-#line 40
+#line 59
     }
     else
     {
 
-#line 40
-        color_5 = color_4;
+#line 59
+        color_4 = color_5;
 
-#line 40
+#line 59
     }
 
-#line 40
-    pixelOutput_0 _S9 = { float4(color_5, 1.0f) };
-    return _S9;
+#line 59
+    pixelOutput_0 _S14 = { float4(color_4, 1.0f) };
+    return _S14;
 }
 
 )NEXORA_TONE";
