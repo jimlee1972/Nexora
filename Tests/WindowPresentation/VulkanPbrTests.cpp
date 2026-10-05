@@ -459,7 +459,7 @@ int main(int argc, char **argv) {
                                    std::array{0.52F, 0.17F}, std::array{0.48F, 0.17F}})
             uiVertices.push_back({{point[0] * width, point[1] * height}, {0, 0}, color});
           for (const auto index : {4, 5, 6, 4, 6, 7})
-            uiIndices.push_back(index);
+            uiIndices.push_back(static_cast<std::uint16_t>(index));
         }
         const std::array uiCommands{UiDrawCommand{
             0, 0, width, height, 901, static_cast<std::uint32_t>(uiIndices.size()), 0, 0}};

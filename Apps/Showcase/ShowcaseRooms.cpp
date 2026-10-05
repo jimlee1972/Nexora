@@ -624,13 +624,14 @@ struct RoomSession::State final {
           const float dr = next[0] - previous[0], dy = next[1] - previous[1];
           const auto normal =
               math::NormalizeSafe(math::Vector3{dy * std::cos(angle), -dr, dy * std::sin(angle)});
-          const float radius =
+          const float columnRadius =
               profile[row][0] * (fluted ? 0.97F + 0.03F * std::cos(angle * 12) : 1);
-          vertices.push_back({{center.x + radius * std::cos(angle), center.y + profile[row][1],
-                               center.z + radius * std::sin(angle)},
-                              {normal.x, normal.y, normal.z},
-                              {static_cast<float>(side + corner[0]) / sides,
-                               static_cast<float>(row) / (profile.size() - 1)}});
+          vertices.push_back(
+              {{center.x + columnRadius * std::cos(angle), center.y + profile[row][1],
+                center.z + columnRadius * std::sin(angle)},
+               {normal.x, normal.y, normal.z},
+               {static_cast<float>(side + corner[0]) / sides,
+                static_cast<float>(row) / (profile.size() - 1)}});
         }
         if (profile[layer][0] > 0)
           for (const auto index : {0, 1, 2})
@@ -742,7 +743,7 @@ struct RoomSession::State final {
         vertices.push_back(vertex);
       }
       for (const auto index : courtyardCrystal.indices)
-        indices.push_back(base + index);
+        indices.push_back(static_cast<std::uint16_t>(base + index));
     }
     batches.push_back({first, static_cast<std::uint32_t>(indices.size()) - first, 0, 1, 12});
 #endif
@@ -767,7 +768,7 @@ struct RoomSession::State final {
             vertices.push_back(vertex);
           }
           for (const auto index : {0, 1, 2, 0, 2, 3})
-            indices.push_back(base + index);
+            indices.push_back(static_cast<std::uint16_t>(base + index));
         }
     batches.push_back({first, static_cast<std::uint32_t>(indices.size()) - first, 0, 1, 14});
   }
@@ -780,9 +781,9 @@ struct RoomSession::State final {
       for (unsigned ring = 0; ring <= rings; ++ring)
         for (unsigned side = 0; side <= sides; ++side) {
           const float angle = 2 * math::kPi * side / sides;
-          const float radius = location[2] * ring / rings;
-          const float x = location[0] + std::cos(angle) * radius;
-          const float z = location[1] + std::sin(angle) * radius * 0.65F;
+          const float rippleRadius = location[2] * ring / rings;
+          const float x = location[0] + std::cos(angle) * rippleRadius;
+          const float z = location[1] + std::sin(angle) * rippleRadius * 0.65F;
           const float phase = 4 * x + 3 * z + time * 1.3F;
           const float ripple = 0.004F * std::sin(phase);
           const auto normal = math::NormalizeSafe(
@@ -858,7 +859,7 @@ struct RoomSession::State final {
         vertices.push_back(vertex);
       }
       for (unsigned corner = 0; corner < 3; ++corner)
-        indices.push_back(base + corner);
+        indices.push_back(static_cast<std::uint16_t>(base + corner));
     }
     batches.push_back({sunFirst, 96, 0, 1, 11});
   }
@@ -987,13 +988,13 @@ struct RoomSession::State final {
     courtyardCrystalFirst = vertices.size();
 #if NEXORA_ASSET_PIPELINE_ENABLED
     // The original faceted hero crystal is read from the active cooked/bundled generation.
-    const auto base = static_cast<std::uint16_t>(vertices.size());
+    const auto crystalBase = static_cast<std::uint16_t>(vertices.size());
     for (const auto &v : courtyardCrystal.vertices)
       vertices.push_back({{v.position[0], v.position[1] + 2.9F, v.position[2]},
                           {v.normal[0], v.normal[1], v.normal[2]},
                           {v.uv[0], v.uv[1]}});
     for (const auto index : courtyardCrystal.indices)
-      indices.push_back(static_cast<std::uint16_t>(base + index));
+      indices.push_back(static_cast<std::uint16_t>(crystalBase + index));
 #else
     Cube(0, 2.9F, 0, 0.35F, 0.55F, 0.35F);
 #endif
@@ -1038,7 +1039,7 @@ struct RoomSession::State final {
       Cube(x + 4.4F, 2, -16, 0.35F, 2, 0.4F);
     }
     for (unsigned tower = 0; tower < 5; ++tower) {
-      const float x = -4 + tower * 5.0F, height = 7 + (tower * 7 % 6);
+      const float x = -4 + tower * 5.0F, height = 7.0F + static_cast<float>(tower * 7 % 6);
       Cube(x, height * 0.5F + 2, -23, 1.0F, height * 0.5F, 1.0F);
       Cube(x, height + 2.2F, -23, 1.3F, 0.3F, 1.3F);
       for (const float dx : {-0.9F, 0.9F})
@@ -1348,7 +1349,7 @@ struct RoomSession::State final {
       }
       for (unsigned i = 1; i + 1 < points.size(); ++i)
         for (const auto index : {0U, i, i + 1})
-          indices.push_back(base + index);
+          indices.push_back(static_cast<std::uint16_t>(base + index));
     };
     for (unsigned axis = 0; axis < 3; ++axis)
       for (const float sign : {-1.0F, 1.0F}) {
