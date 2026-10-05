@@ -28,3 +28,5 @@ motion, final art and target-hardware visual/performance acceptance remain open.
 precision does not establish an HDR10 monitor/swapchain.
 
 MSVC warning corrections rename the Win32 capture buffer to avoid local shadowing and use float light literals. The repeated 95/95 Linux gate (45.77 seconds) and supplemental exact test-source hash are retained as `ctest-linux-development-msvc.log` and `source-hashes-msvc.json`; original benchmark/capture evidence is unchanged.
+
+The first native Metal CI rejected the HDR UI test clip because this fixture is 640×360, whereas its new UI rectangle assumed 640×480. The rectangle and sample now use the actual fixture extent; native rerun is required. `source-hashes-metal-ui.json` retains the corrected test source. Production rendering is unchanged by this correction.

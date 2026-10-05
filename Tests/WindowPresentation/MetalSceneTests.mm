@@ -398,12 +398,12 @@ int main(int argc, char **argv) {
     materialSlots[0].baseColor = materialSlots[1].baseColor = {0, 0, 0, 1};
     materialSlots[0].emission = {4, 0, 0};
     materialSlots[1].emission = {1, 0, 0};
-    const std::array<UiVertex, 4> hdrUiVertices{{{{0, 400}, {0, 0}, 0xff808080U},
-                                                 {{640, 400}, {0, 0}, 0xff808080U},
-                                                 {{640, 480}, {0, 0}, 0xff808080U},
-                                                 {{0, 480}, {0, 0}, 0xff808080U}}};
+    const std::array<UiVertex, 4> hdrUiVertices{{{{0, 300}, {0, 0}, 0xff808080U},
+                                                 {{640, 300}, {0, 0}, 0xff808080U},
+                                                 {{640, 360}, {0, 0}, 0xff808080U},
+                                                 {{0, 360}, {0, 0}, 0xff808080U}}};
     const std::array<std::uint16_t, 6> hdrUiIndices{0, 1, 2, 0, 2, 3};
-    const std::array hdrUiCommands{UiDrawCommand{0, 0, 640, 480, 901, 6, 0, 0}};
+    const std::array hdrUiCommands{UiDrawCommand{0, 0, 640, 360, 901, 6, 0, 0}};
     const std::array<std::byte, 4> hdrUiWhite{std::byte{255}, std::byte{255}, std::byte{255},
                                               std::byte{255}};
     const std::array hdrUiUploads{UiTextureUpload{901, 1, 1, 4, hdrUiWhite}};
@@ -437,7 +437,7 @@ int main(int argc, char **argv) {
       if (std::abs(left - expected(4)) > 2 || std::abs(right - expected(1)) > 2)
         return fail(__LINE__);
       for (std::size_t channel = 0; channel < 3; ++channel)
-        if (std::abs(std::to_integer<int>(hdrPixels[(440 * 640 + 320) * 4 + channel]) - 128) > 2)
+        if (std::abs(std::to_integer<int>(hdrPixels[(330 * 640 + 320) * 4 + channel]) - 128) > 2)
           return fail(__LINE__);
     }
     materialDraw.hdr = false;
