@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
       PbrVegetationFixtures::Fixture vegetationFixture(frame >= 34 ? frame - 34 : 0);
       PbrTransparencyFixtures::Fixture transparencyFixture(frame >= 49 ? frame - 49 : 0);
       PbrWorldMappingFixtures::Fixture mappingFixture(frame >= 55 ? frame - 55 : 0);
-      PbrAtmosphereFixtures::Fixture fogFixture(frame >= 59 ? frame - 59 : 0);
+      PbrAtmosphereFixtures::Fixture atmosphereFixture(frame >= 59 ? frame - 59 : 0);
       materials = {};
       draw.shadow.reset();
       draw.lightingStyle.reset();
@@ -253,7 +253,6 @@ int main(int argc, char **argv) {
         materials[1].textureId = 34;
       }
       if (frame == 8) {
-        PbrAtmosphereFixtures::Fixture fogFixture(frame >= 59 ? frame - 59 : 0);
         materials = {};
         draw.shadow.reset();
         draw.lightingStyle.reset();
@@ -268,7 +267,6 @@ int main(int argc, char **argv) {
         draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 1;
       }
       if (frame >= 9) {
-        PbrAtmosphereFixtures::Fixture fogFixture(frame >= 59 ? frame - 59 : 0);
         materials = {};
         draw.shadow.reset();
         draw.lightingStyle.reset();
@@ -307,7 +305,6 @@ int main(int argc, char **argv) {
         draw.environment.reset();
         draw.linearTextureUploads = {};
         draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 0;
-        PbrAtmosphereFixtures::Fixture fogFixture(frame >= 59 ? frame - 59 : 0);
         materials = {};
         draw.shadow.reset();
         draw.lightingStyle.reset();
@@ -357,8 +354,8 @@ int main(int argc, char **argv) {
         draw.materials = materials;
       }
       if (frame >= 59) {
-        draw = fogFixture.Draw(frame - 59);
-        materials = fogFixture.geometry.materials;
+        draw = atmosphereFixture.Draw(frame - 59);
+        materials = atmosphereFixture.geometry.materials;
         draw.materials = materials;
       }
       materials[2].emission = {marker, 0, 0};
