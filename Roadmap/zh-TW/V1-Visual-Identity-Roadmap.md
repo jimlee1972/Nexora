@@ -436,3 +436,10 @@ Vulkan／DX12／Metal adapter 保留不透明深度，以 frame fence／resize �
 六個原生檢查驗證偏移、反向、精確重播、零厚度與前景排除（共 75 個 PBR 案例）。
 Linux 全套 97/97（92.94 秒）與 75 個 PBR 案例通過，包含原生 F8 畫面變化／精確還原。
 Shipping／預覽圖驗證持續進行，VIS 維持 5/7；此模型不包含畫面外與多個透明層的折射。
+
+
+Vulkan 折射現以 Khronos 同步驗證檢查：swapchain acquire 與 HDR 複製後的轉換允許附件載入
+讀取；相容的 HDR clear／load pass 共用 color／depth read dependency，保留 pipeline 與
+framebuffer 相容性。75 個原生 PBR 畫面已通過 core／synchronization validation，
+完整 Linux configure／build／test 已在 validation layers 啟用時通過 97/97（95.08 秒）；
+發行重新驗證待完成。
