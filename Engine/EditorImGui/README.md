@@ -541,6 +541,23 @@ names are preserved. Read-only/recovery/close and stale-parent requests cannot c
 Requests borrow no World/entity storage and perform no source IO. Complete reflected component
 creation and target-host graphical acceptance remain open.
 
+## Content asset Rename
+
+Focused Content F2 opens Rename for one selected asset outside text input. Context Rename uses the
+same owning UUID/project-generation/root/path draft, focuses/selects the complete UTF-8 filename,
+and accepts Enter or Apply. Escape/Cancel abandons it; unchanged names close without consuming
+Content Undo. Invalid names retain the modal, show the error and restore input focus for retry.
+The 1024-byte buffer retains supplementary Unicode input without truncating a portable basename.
+Rename blocks Scene/Inspector, File/Undo/clipboard/Play commands even with an inactive name field.
+Application focus loss, write loss, hidden Content, external blocking modals, stale project generation,
+root, missing asset or changed captured path cancels the draft. Access restoration cannot revive it.
+Focus loss cancels immediately in event processing, including loss/regain without a renderable frame;
+submitting the unchanged filename clears prior errors while preserving Content Undo.
+Successful `ProjectContentSession::Rename` transacts source and sidecar with one Content Undo and
+retains document history. Widgets keep no ContentItem/World borrows across frames. Real 1x/2x tests
+cover Unicode, retry, cancellation, unchanged names, File/authoring gates and stale scopes; Linux
+Xvfb drives F2/Enter followed by scene Save/Undo and restart. Physical IME/font coverage remains open.
+
 ## Scene file requests
 
 The File menu and Ctrl+N/Ctrl+O/Ctrl+Shift+S drive New Scene/Open Scene/Save As outside text input;
