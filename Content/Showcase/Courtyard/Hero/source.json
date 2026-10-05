@@ -3,7 +3,7 @@
   "author": "Nexora repository contributors",
   "license": "Repository LICENSE",
   "geometry": "Original eight-sided faceted crystal with bevel waist, not a downloaded model",
-  "surfaces": "Original deterministic carved sandstone and aged bronze detail maps",
+  "surfaces": "Authored sandstone albedo and matched height, original procedural aged bronze; image-assisted ivy alpha card",
   "sides": [
     [
       1,
@@ -208,5 +208,32 @@
       1.8
     ]
   },
-  "detail_size": 256
+  "detail_size": 256,
+  "leaf_size": 256,
+  "authored_images": {
+    "stone_color": {
+      "path": "Source/sandstone-albedo.png",
+      "sha256": "76a80009a88c8b6e342987f181bac9bb7afa270902c16d049a08d95b97799270",
+      "origin": "OpenAI image generation in this authorized showcase art session",
+      "authoring_brief": "Neutral unlit pale weathered sandstone albedo, natural hairline fractures and sparse lichen; no regular brick grid",
+      "license": "Repository LICENSE",
+      "reference": "Roadmap/art/V1-Visual-Identity-Concept.png"
+    },
+    "stone_height": {
+      "path": "Source/sandstone-height.png",
+      "sha256": "397869c1b8b7b6162382a2fdc9eacb8cc4f3de032795746dd871efdb33fc7817",
+      "origin": "OpenAI image generation in this authorized showcase art session",
+      "authoring_brief": "Matched grayscale height map derived with image generation from the retained sandstone albedo; same fractures and spatial layout",
+      "license": "Repository LICENSE",
+      "reference": "Roadmap/art/V1-Visual-Identity-Concept.png"
+    },
+    "leaf": {
+      "path": "Source/ivy.png",
+      "sha256": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+      "origin": "OpenAI image generation in this authorized showcase art session",
+      "authoring_brief": "Natural green ivy sprig with eight lobed leaves, visible veins, stem rooted at bottom, transparent background",
+      "license": "Repository LICENSE",
+      "reference": "Roadmap/art/V1-Visual-Identity-Concept.png"
+    }
+  }
 }

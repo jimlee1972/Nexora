@@ -354,3 +354,10 @@ timestamp 尚不可用。證據與實機操作說明：`Apps/Showcase/evidence/V
 影片與同一執行檔的九份品質量測。證據：`Apps/Showcase/evidence/VIS-Background-HDR-Linux-2026-10-05`。
 軟體 FPS：Basic 11.94–12.16、Standard 7.31–7.59、High 6.47–6.78；這不是 GPU timestamp
 或實體目標硬體驗收。使用者目標／預覽圖一致性仍未完成。
+
+### 參考材質調整
+
+後續美術來源加入保留原始 PNG 的 image-assisted 石材與常春藤及確定性 cook、原創前景鋪面、
+倒角符文環、放大的參考構圖、風動青綠旗幟與彩繪陶器。Linux development 全套 97/97 測試通過；
+同來源版本的 release 截圖已保存。這仍是 VIS-M3 美術調整，場景倒影、水晶光學及最終參考圖
+一致性尚未完成，里程碑維持 5/7。

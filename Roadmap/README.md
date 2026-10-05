@@ -114,3 +114,7 @@ DX12／Vulkan／Metal target-tier parity。
 8. 聚焦 Roadmap AI 施工規劃：具依賴順序的 AI 執行、證據與審查制度。
 
 這些文件是規劃資料，不會自行授權命令、憑證、發布或外部系統變更。
+
+The next VIS-M3 art iteration has retained sandstone/ivy source authoring, expanded paving,
+chamfered ring geometry and wind-bent pennants; release captures are retained. Reference
+parity and physical target validation remain pending (5/7 VIS milestones accepted).

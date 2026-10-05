@@ -60,7 +60,7 @@ int main() {
   for (const auto index : wide.indices)
     assert(index < wide.vertices.size());
   assert(wide.pbr);
-  assert(wide.materials.size() == 15 && !wide.batches.empty());
+  assert(wide.materials.size() == 18 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   std::size_t covered = 0;
   std::vector<bool> selectedMaterials(wide.materials.size());

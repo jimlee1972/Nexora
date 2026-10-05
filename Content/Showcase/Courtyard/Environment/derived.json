@@ -3,7 +3,7 @@
   "source_sha256": "926a6bb81897919b2924f42407162b8d54be91eab2da3fe7fe19daf308cfa09a",
   "samples": 128,
   "sequence": "Hammersley",
-  "sky_source_sha256": "9673e48d96851cc0f611c63d52790dd97ba582c9947cf9deb14d9b0b00001003",
+  "sky_source_sha256": "e8de1657fff62b44e46961fdc1150212cf8d3b669c1071a37c760aa6fd77297a",
   "sky_authoring": {
     "description": "Original continuous golden-hour directional sky; atlas, solar disc, key light and floating HDR IBL share the same direction.",
     "sun_direction": [

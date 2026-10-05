@@ -485,3 +485,16 @@ Native courtyard animation consumes wall-clock delta up to the RoomSession one-s
 so software rendering below ten FPS does not stretch the 100-second tour. Engineering rooms
 retain their prior 0.1-second cap; the engine/gameplay fixed-update loop is unchanged. The
 recording tool still requires an actual native 90–120-second capture and never retimes video.
+
+## Reference material and silhouette iteration
+
+Retained image-assisted sandstone albedo/height and ivy PNG authoring now feeds the deterministic
+Hero cook; source briefs, license and SHA-256 values are retained beside the originals. The stone
+and ivy maps use 256x256 payloads; the mote remains 64x64 and sky atlas 384x256. Integer area
+filtering preserves transparent ivy edges without adding a Python or runtime image dependency.
+Original bevelled paving extends beyond the foreground, curved ring wedges have chamfers and an
+upper-left break, and the wide camera places the larger device to the right of center.
+Subdivided teal pennants and gold motifs share the wind clock, with fixed top anchors; ceramic
+vessels now include handles, rings and geometric paint. Cloth is bounded shader bending, not a
+cloth simulation. Crystal refraction and scene-reflected puddles remain separate work, and these
+changes do not establish reference-image parity or physical target performance.

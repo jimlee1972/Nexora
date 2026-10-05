@@ -5,12 +5,22 @@ import json
 import math
 from pathlib import Path
 from PrepareCourtyardEnvironment import golden_sky
+from CourtyardImageCook import decode_png, area_filter, leaf_card
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTENT = ROOT / 'Content/Showcase/Courtyard/Hero'
 
 def generate():
     source = json.loads((CONTENT / 'source.json').read_text())
+    source_hashes = {}
+    authored = {}
+    for role, entry in source['authored_images'].items():
+        data = (CONTENT / entry['path']).read_bytes()
+        digest = hashlib.sha256(data).hexdigest()
+        if digest != entry['sha256']:
+            raise ValueError(f'Authored source hash mismatch: {role}')
+        source_hashes[entry['path']] = digest
+        authored[role] = decode_png(data)
     sides, rings = source['sides'], source['rings']
     vertices = []
     def point(ring, side):
@@ -39,19 +49,20 @@ def generate():
         return (value^(value>>16))&255
     size=source['detail_size']
     assert size==256
+    stone_color = area_filter(authored['stone_color'], size, size)
+    stone_height = area_filter(authored['stone_height'], size, size)
     def height(x,y):
         x%=size;y%=size
-        joint=y%64<2 or (x+((y//64)&1)*37)%128<2
-        return 18 if joint else 112+noise(x,y)//12
+        return stone_height[(y*size+x)*4]
     for material in ('stone','bronze'):
         color,normal,orm=bytearray(),bytearray(),bytearray()
         for y in range(size):
             for x in range(size):
-                n=noise(x,y);h=height(x,y);joint=h==18
+                n=noise(x,y);h=height(x,y)
                 if material=='stone':
-                    delta=n//16-8
-                    rgb=(max(0,224+delta-(35 if joint else 0)),max(0,205+delta-(32 if joint else 0)),max(0,170+delta-(28 if joint else 0)))
-                    ao,rough,metal=(200 if joint else 245),210+n//12,0
+                    offset=(y*size+x)*4
+                    rgb=tuple(stone_color[offset:offset+3])
+                    ao,rough,metal=215+h*40//255,220+n//16,0
                 else:
                     patina=(noise(x//4,y//4)<60)
                     rgb=(55+n//12,107+n//16,88+n//16) if patina else (155+n//9,100+n//12,38+n//14)
@@ -64,7 +75,8 @@ def generate():
         for name,data in [('color',color),('normal',normal),('orm',orm)]:outputs[f'{material}-{name}.rgba']=bytes(data)
     size=source['texture_size']
     assert size==64
-    for name in ('leaf','mote'):
+    outputs['leaf.rgba']=bytes(leaf_card(authored['leaf'],source['leaf_size']))
+    for name in ('mote',):
         data=bytearray()
         for y in range(size):
             for x in range(size):
@@ -89,6 +101,8 @@ def generate():
             sky.extend((*rgb,255))
     outputs['sky.rgba']=bytes(sky)
     metadata={'schema' :'nexora.courtyard.hero-manifest.v1','source':'source.json','author':source['author'],'license':source['license'],'source_sha256':hashlib.sha256((CONTENT/'source.json').read_bytes()).hexdigest(),'license_sha256':hashlib.sha256((ROOT/'LICENSE').read_bytes()).hexdigest(),'converter_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'sky_converter_sha256':hashlib.sha256((ROOT/'Tools/Build/PrepareCourtyardEnvironment.py').read_bytes()).hexdigest(),'derived':{name:hashlib.sha256(data).hexdigest() for name,data in outputs.items()}}
+    metadata['authored_sources']=source_hashes
+    metadata['image_cook_sha256']=hashlib.sha256((ROOT/'Tools/Build/CourtyardImageCook.py').read_bytes()).hexdigest()
     outputs['manifest.json']=(json.dumps(metadata,indent=2)+'\n').encode()
     header='// Generated original courtyard art by PrepareCourtyardHero.py.\n// clang-format off\n#pragma once\n#include <array>\n#include <cstdint>\nnamespace nexora::showcase::courtyard_hero {\n'
     for name,key in [('sun_direction','sun_direction'),('sun_radiance','sun_radiance'),('key_radiance','key_radiance')]:

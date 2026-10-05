@@ -14,3 +14,7 @@ Content/Showcase/Courtyard/Hero/*.rgba binary
 Tools/Build/PrepareCourtyardHero.py text eol=lf
 Apps/Showcase/CourtyardHero.h text eol=lf
 LICENSE text eol=lf
+
+# Authored image cooking provenance must survive Windows checkout unchanged.
+Tools/Build/CourtyardImageCook.py text eol=lf
+Content/Showcase/Courtyard/Hero/Source/*.png binary

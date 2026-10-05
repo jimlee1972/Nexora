@@ -3,20 +3,26 @@
   "source": "source.json",
   "author": "Nexora repository contributors",
   "license": "Repository LICENSE",
-  "source_sha256": "9673e48d96851cc0f611c63d52790dd97ba582c9947cf9deb14d9b0b00001003",
+  "source_sha256": "e8de1657fff62b44e46961fdc1150212cf8d3b669c1071a37c760aa6fd77297a",
   "license_sha256": "1efea8712186f4d30e3a444bb709213b33a8706e371ddd2a9c6be38ce83f40e1",
-  "converter_sha256": "9021c8fd27fe3383380a251ec96ce0f551f67c0cda3db7cbd8c09a3f0e2715ab",
+  "converter_sha256": "8605152baa302f66852cd633c81854345389e6dd8067bd7fadfb59d5d967cbe2",
   "sky_converter_sha256": "8d8590dfcc660ea1c8c6925847cf0bd19af2b09b12d61be7ee8420251329172b",
   "derived": {
     "crystal.showcase": "af5fed81ff97bae9f545987ed93a792311a626496673d1d5c9aa112a2cd5de8f",
-    "stone-color.rgba": "d9e2ed9bfaf20dd0e0a4b778cad042bf05596c245c982663172d2eb0febc35be",
-    "stone-normal.rgba": "4dd49423dc6d6fbed98ed70312337ff84ba4ec3b6910c012ec2e1aceb4261c09",
-    "stone-orm.rgba": "8eec4eebb828def239f7e3010f0aabac2464474944db930b394b59785b98d551",
+    "stone-color.rgba": "38cfa7f1c127cc6576acf287a590ec11b7ae80ec89df3c63ff4b3eaae1272631",
+    "stone-normal.rgba": "3d85022e67df0929f4f6202f9c53759da2d37adde7e94ad941b801857fc9f435",
+    "stone-orm.rgba": "e4fc652a32ddeb9a1334514c64ed208e857a47a086c9a3155d03da11bd9ea268",
     "bronze-color.rgba": "a946e07d0bc98cdf986b022f02af25cbc5c90d0a3de049d5b21e44f045e9e58c",
     "bronze-normal.rgba": "d3103a1bb21a650982c73039ba5ad475f94968f2ec73974a0ab7964600ed1c50",
     "bronze-orm.rgba": "9774b5df26be749264dea97f1d8829b8d2a3e1adbf3797d3a4e43178c79b134a",
-    "leaf.rgba": "db7ef2ab8fb5392b6f4384c1dcc9ad2b5d8b795b50f6dd7f4d0c49790d2a552a",
+    "leaf.rgba": "20368dec988754f35e3394b75fcc173b0b3af468db7c0f62c79a584185f87a44",
     "mote.rgba": "0cd9c6c3b9b1ed5b4754c0b6042c94f2740a2ca6725c49c15be4b7c75499a9ca",
     "sky.rgba": "6e739a85566dafdbcfa655263a6be95183c0cf90e1fd3130f710386e904e6c21"
-  }
+  },
+  "authored_sources": {
+    "Source/sandstone-albedo.png": "76a80009a88c8b6e342987f181bac9bb7afa270902c16d049a08d95b97799270",
+    "Source/sandstone-height.png": "397869c1b8b7b6162382a2fdc9eacb8cc4f3de032795746dd871efdb33fc7817",
+    "Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76"
+  },
+  "image_cook_sha256": "5c0c9cd9345beb138a4238b9bd1c3d05d1069bf3e3703952164f609f0c282b64"
 }
