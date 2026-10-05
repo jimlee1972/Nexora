@@ -3,6 +3,7 @@
 // handles.
 #include "../../Engine/Presentation/src/MetalSurface.mm"
 #include "PbrEnvironmentFixtures.h"
+#include "PbrShadowFixtures.h"
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 
@@ -442,6 +443,31 @@ int main(int argc, char **argv) {
     }
     materialDraw.hdr = false;
     materialDraw.exposure = 1;
+    for (unsigned mode = 0; mode < 6; ++mode) {
+      PbrShadowFixtures::Fixture fixture(mode);
+      auto shadowDraw = fixture.Draw(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(shadowDraw), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x, std::size_t y) {
+        const auto index = (y * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto left = read(190, 200), right = read(450, 200), edge = read(206, 180);
+      if (!PbrShadowFixtures::Pixels(mode, left, right) ||
+          (mode == 0 && !(edge[0] > 20 && edge[0] + 10 < right[0]))) {
+        std::cerr << "Metal shadow mode=" << mode << " left=" << left[0] << " right=" << right[0]
+                  << " pcf=" << edge[0] << '\n';
+        return fail(__LINE__);
+      }
+    }
     // Depth must select the bright near triangle regardless of index order.
     std::array<SceneVertex, 6> layered{};
     for (std::size_t i = 0; i < 3; ++i) {

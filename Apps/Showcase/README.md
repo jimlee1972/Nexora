@@ -80,7 +80,7 @@ on cooked source/license/conversion metadata in the same verified Runtime bundle
 that bundle before submitting their bytes; asset-disabled builds explicitly retain direct light.
 
 Three reproducible camera framings and comparison restoration have native tests. Floating-point HDR
-composition is implemented below; real shadows, wind and finished art remain pending. See the [visual roadmap](../../Roadmap/en/V1-Visual-Identity-Roadmap.md) and
+composition and directional shadows are implemented below; wind and finished art remain pending. See the [visual roadmap](../../Roadmap/en/V1-Visual-Identity-Roadmap.md) and
 [blockout inventory](content/Courtyard-Greybox.md). Native baseline capture and VIS-M0 acceptance
 are tracked separately from final target-hardware visual/performance acceptance.
 
@@ -386,3 +386,13 @@ before UI. `E` toggles exposure 1/0.25 to inspect retained highlight detail and 
 exactly; `O` compares IBL/direct light and `P` selects Lambert. Reports identify the actual scene color
 format and exposure. HDR precision is independent of monitor HDR10; bloom and final art remain later
 VIS-M3 work. Native tests cover emission above one, exposure, UI invariance, frame reuse and resize.
+
+## Courtyard directional lighting
+
+The PBR courtyard uses a frame-owned 1024² directional shadow map, four-tap shared PCF and
+shared stylized light/shadow tint. F6 toggles shadow comparison, G toggles stylized/neutral light,
+and brackets halve/double bounded normal bias; slope bias follows at twice normal bias.
+P still selects the legacy Lambert comparison. Reports retain actual shadow/style flags and bias;
+window evidence counts recorded native shadow passes and instances. These controls and fixed-camera
+restoration have native tests. Final art, physical route visuals and target-hardware performance
+remain separate acceptance tasks.

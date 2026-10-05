@@ -4,7 +4,7 @@
 >
 > Date: 2026-10-04
 >
-> Status: ✅ VIS-M0 baseline accepted; VIS-M1 through VIS-M6 remain unaccepted (1/7).
+> Status: ✅ VIS-M0 and VIS-M1 accepted; VIS-M2 through VIS-M6 remain unaccepted (2/7).
 >
 > Theme: a stylized ruins courtyard.
 >
@@ -73,7 +73,7 @@ The user also requested free online models and textures. Prioritize freely downl
 | ID | Work | Visible outcome | Acceptance |
 | --- | --- | --- | --- |
 | ✅ VIS-M0 | Art direction, asset inventory, greybox, fixed shots, initial performance capture | Complete composition and tour route | Three shots work; a representative asset loads through Import → Cook → Bundle → Runtime; retain baseline screenshots |
-| VIS-M1 | Shared PBR shader integration, multiple materials, normal/ORM/emission, tangents, IBL, linear color, HDR output | Material close-up | Materials differ under identical light; orbit preserves correct normals/reflections; missing-map fallbacks work; no duplicate gamma conversion |
+| ✅ VIS-M1 | Shared PBR shader integration, multiple materials, normal/ORM/emission, tangents, IBL, linear color, HDR output | Material close-up | Materials differ under identical light; orbit preserves correct normals/reflections; missing-map fallbacks work; no duplicate gamma conversion |
 | VIS-M2 | Directional shadow map, PCF, bias controls, stylized tonal separation and shadow tint | Lighting wide shot | Moving objects update shadows; the fixed route has no obvious flicker, shadow acne, or floating shadows; retain lighting comparisons |
 | VIS-M3 | Central ruins, ground and surrounding content; exposure, tone mapping, color, restrained bloom | First finished hero image | Composition survives hidden UI; close shots have detail and wide shots a clear subject; target-hardware screenshots pass visual review |
 | VIS-M4 | Vegetation wind, alpha cutout, back-light transmission, rune particles, device activation | Living courtyard | Continuous wind; correct edges and occlusion; pause/replay works; particle and transparency costs are observable |
@@ -255,3 +255,27 @@ Windows Vulkan package replay and Shipping packaging require the exact PR head C
 acceptance. Evidence is retained under `Apps/Showcase/evidence/VIS-M1-Linux-HDR-2026-10-05`.
 This slice does not accept bloom, final art, physical visuals or the GTX 960 budget. VIS-M1 remains
 open until cross-platform acceptance; milestone progress is still 1/7.
+
+## 17. VIS-M2 directional shadows and tonal separation (2026-10-05)
+
+✅ Linux native PBR records a directional shadow prepass into frame-owned R32Float/D32Float
+resources and applies shared four-tap PCF, normal/slope bias, stylized ramp and shadow/light tint.
+The 30-submission pixel oracle covers horizontal/vertical caster movement, partial PCF edges,
+map resolution/reuse, camera/resize changes, disabled shadows and styled/neutral light.
+F6/G/brackets expose bounded comparisons; exact fixed-camera restoration is tested.
+✅ Linux Development full gate passes 95/95 without skips. The private packet grows to 208 bytes
+and main binds eight sampled maps; stable C/Zig and persistent content schemas remain unchanged.
+Evidence: `Apps/Showcase/evidence/VIS-M2-Linux-Shadows-2026-10-05`. Windows DX12/Metal execution
+and Windows Vulkan package replay require exact-head CI; fixed-route visual review and final
+hardware budget remain open. This Linux slice alone does not accept VIS-M2.
+
+## 18. VIS-M1 cross-platform acceptance
+
+✅ Shared PBR/material maps, tangent/orbit normals, cooked IBL, hardware sRGB filtering and
+linear RGBA16F composition are accepted. HDR PR #322 head
+`79270136894a7ed00ebf7d48db5044d1ebb5ecc0` passed all 18 checks in Build 1430
+(run 37278711512), including Windows DX12/Metal native pixel gates, exact generated shaders,
+Windows DX12/Vulkan isolated packages and Linux full/native interaction gates. Merge:
+`ef8c305f30e4f01e97ad2cbbd812bd5d0171c83c`. Prior pending notes in sections 12–16 describe
+those intermediate slices; this acceptance supersedes them. Progress is 2/7.
+Final art, physical target-hardware visuals and the GTX 960 performance budget remain later gates.

@@ -53,3 +53,9 @@ seven native sampled resources and an 80-byte private material packet. Public C+
 NXAB and stable C/Zig schemas remain unchanged. The subsequent HDR slice adds opt-in RGBA16F frame targets and GPU exposure/ACES/display composition
 before UI. External graph imports name the float format and ShaderRead transition; the independent
 native RHI triangle allocator still rejects float targets. Bloom remains VIS-M3 work.
+
+The VIS-M2 extension keeps shadow ownership in Presentation: each protecting frame owns an
+R32Float normalized-depth color map with a D32Float visibility target. Shared Slang handles
+projection, four-tap PCF, bias, ramp and tint. Main adds one sampled map and extends the private
+packet to 208 bytes; DX12 paired 512-byte constant slots still fit. Optional public C++ shadow
+and style descriptors are bounded and validated before recording. No stable wire/schema change.

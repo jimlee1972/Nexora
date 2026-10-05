@@ -43,6 +43,8 @@ struct SurfaceDiagnostics final {
   std::uint64_t nativeUiTextureUploads = 0;
   std::uint64_t nativeUiRejectedTextures = 0;
   std::uint64_t sceneDrawCalls = 0;
+  std::uint64_t sceneShadowPasses = 0;
+  std::uint64_t sceneShadowInstances = 0;
   std::uint64_t sceneInstances = 0;
   std::uint64_t sceneTextureUploads = 0;
   std::uint64_t sceneOffscreenDrawCalls = 0;
@@ -248,6 +250,19 @@ ResolveSceneViewport(SceneViewport viewport, std::uint32_t surface_width,
 // An indexed, lit mesh submission. Spans are borrowed for the call. The matrix is row-major,
 // matching Nexora::Math::Matrix4's storage, so backends that want row_major in HLSL need no
 // transpose; light/base_color give a minimal single-directional-light Lambertian material.
+struct SceneDirectionalShadow final {
+  std::array<float, 16> lightViewProjection{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+  std::uint32_t resolution = 1024; // 256, 512, 1024 or 2048; protecting-frame map.
+  float normalBias = 0.0008F;
+  float slopeBias = 0.0015F;
+};
+struct SceneLightingStyle final {
+  std::array<float, 3> shadowTint{0.45F, 0.62F, 0.8F};
+  std::array<float, 3> lightTint{1.0F, 0.9F, 0.75F};
+  float rampOffset = 0;
+  float rampScale = 1;
+  float rampSoftness = 0.15F;
+};
 struct SceneDrawData final {
   std::span<const SceneVertex> vertices;
   std::span<const std::uint16_t> indices;
@@ -271,6 +286,8 @@ struct SceneDrawData final {
   // Linear RGBA16F offscreen PBR; CompositeScene applies exposure, ACES and display transfer.
   bool hdr{};
   float exposure = 1.0F;
+  std::optional<SceneDirectionalShadow> shadow{};
+  std::optional<SceneLightingStyle> lightingStyle{};
 };
 
 // Call only after material/batch validation. Returned values own their scalar storage.
