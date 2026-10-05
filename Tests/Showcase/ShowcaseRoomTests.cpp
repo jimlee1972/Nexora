@@ -50,6 +50,37 @@ int main() {
   session.RerunProbe(12, nexora::showcase::ErrorInjection::Rollback);
   assert(session.Probes()[12].status == nexora::showcase::ProbeStatus::Pass);
 #endif
+  // Courtyard cameras replay exactly after orbit input; diagnostic-free output owns no UI.
+  RoomSession courtyard("courtyard");
+  courtyard.Tick(0.01);
+  const auto wide = courtyard.Scene(1280, 720);
+  assert(wide.vertices.size() > 2000 && wide.indices.size() > 3000);
+  for (const auto index : wide.indices)
+    assert(index < wide.vertices.size());
+  const auto wideMatrix = std::to_array(wide.model_view_projection);
+  Press(courtyard, Key::B);
+  const auto closeMatrix = std::to_array(courtyard.Scene(1280, 720).model_view_projection);
+  assert(closeMatrix != wideMatrix);
+  Press(courtyard, Key::B);
+  const auto motionMatrix = std::to_array(courtyard.Scene(1280, 720).model_view_projection);
+  assert(motionMatrix != closeMatrix && motionMatrix != wideMatrix);
+  Press(courtyard, Key::B);
+  assert(std::to_array(courtyard.Scene(1280, 720).model_view_projection) == wideMatrix);
+  Nexora::Presentation::SurfaceDiagnostics diagnostics{};
+  assert(!courtyard.Overlay(1280, 720, "validation", diagnostics, 0).vertices.empty());
+  Press(courtyard, Key::F4);
+  const auto hidden = courtyard.Overlay(1280, 720, "validation", diagnostics, 0);
+  assert(hidden.vertices.empty() && hidden.commands.empty() && hidden.textureUploads.empty());
+  Press(courtyard, Key::F4);
+  assert(!courtyard.Overlay(1280, 720, "validation", diagnostics, 0).vertices.empty());
+  Press(courtyard, Key::Digit1);
+  assert(courtyard.Selected() == "hub");
+  Press(courtyard, Key::Digit9);
+  assert(courtyard.Selected() == "courtyard");
+  assert(std::to_array(courtyard.Scene(1280, 720).model_view_projection) == wideMatrix);
+#if NEXORA_ASSET_PIPELINE_ENABLED
+  assert(courtyard.Report().find("\"representative_asset_loaded\":true") != std::string::npos);
+#endif
   session.RerunProbe(0, nexora::showcase::ErrorInjection::DependencyCycle);
   assert(session.Probes()[0].status == nexora::showcase::ProbeStatus::Unsupported);
   assert(session.Healthy());
