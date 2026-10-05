@@ -562,3 +562,11 @@ Project/document token changes cancel both pending dialogs and emitted requests.
 permit Open but disable New/Save/Save As; running Play disables New/Open. Recovery/close/apply dialogs
 block new file actions. The application independently rechecks policy and token before I/O. These
 are single-active-document controls; additive scene tabs and a native OS picker remain open.
+
+The Content panel's Open scene button, focused Enter, scene-row double-click and context Open scene
+copy the native asset path into that same owning file request. A single click only selects. Button/
+Enter require one selected `.scene`; non-scene or multiple selections do not activate. Content Open
+permits read-only access and follows the project/document, focus, Play and modal gates. It cancels
+drafts/gestures and retains the selected destination through Save/Discard/Cancel without requesting
+path text again. UI code performs no source IO or World replacement; the application consumes the
+request after all panels and revalidates it through `SceneFileSession`.

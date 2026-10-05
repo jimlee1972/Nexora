@@ -306,6 +306,11 @@ independent metadata-write failure does not undo a scene save. Linux Xvfb verifi
 by editing/saving the restored file and checking fallback. Additive scenes and full graphical
 milestone acceptance remain open.
 
+✅ Content Browser can open a scene by double-click, context Open scene, its Open scene button or
+focused Enter. Owning requests preserve the selected UTF-8 destination through dirty decisions;
+read-only is supported and Play/modal/stale tokens reject replacement. Real 1x/2x pointer/key tests
+cover the workflow; additive scene tabs remain open.
+
 ✅ Camera Inspector now aligns one Camera to the stored Scene 3D pose with one Undo, retaining
 lens, scale and parent. Runtime matrices verify sheared/mirrored ancestry; equivalent poses keep
 Redo, while read-only/unavailable views and stale targets reject edits. Extreme finite centers share
@@ -725,6 +730,10 @@ Untitled Save As 與明確覆寫確認。Document／project token 拒絕過期�
 ✅ 啟動現會恢復上次成功 Open／Save 的場景及 view state，包含唯讀重開；無效／無法載入的
 啟動資料回到 Main 並保留原檔案。獨立 metadata 儲存失敗不會回復場景儲存。Linux Xvfb 以真正
 重啟後編輯／儲存目的檔案及 fallback 驗證流程；additive scenes 與完整圖形里程碑驗收仍待完成。
+
+✅ Content Browser 可透過雙擊、context Open scene、Open scene 按鈕或 focused Enter 開啟
+場景。Owning request 在 dirty 確認中保留 UTF-8 目的路徑，支援唯讀；Play／modal／過期 token
+拒絕替換。真正 1×／2× pointer／key 測試驗證流程；additive scene tab 仍待完成。
 
 ✅ Camera Inspector 現可將單一 Camera 對齊已儲存的 Scene 3D pose，保留 lens、scale 及
 parent，並以一次 Undo 還原。Runtime matrix 驗證 shear／mirrored 父鏈；等價 pose 保留

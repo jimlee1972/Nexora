@@ -384,6 +384,12 @@ creates property widgets; unknown components retain raw data instead of being si
   operations retain the prior choice, and independent metadata-write failure retains successful
   scene persistence. Portable tests and Linux Xvfb restart/edit/save/fallback verify the workflow.
   Additive tabs and full ED-M4 acceptance remain open.
+- ✅ Content Browser scene activation now supports double-click, context Open scene, the Open scene
+  button and focused Enter. Owning paths use the existing deferred scene-file request and dirty
+  Save/Discard/Cancel workflow; UI widgets perform no file IO or World replacement. Read-only Open
+  is allowed; Play/modal/token gates reject replacement. Real 1x/2x pointer/key tests cover Unicode
+  paths, single/double clicks, non-scene/multiple selection rejection, dirty decisions and stale
+  requests. Additive scene tabs and full ED-M4 acceptance remain open.
 - ✅ The Scene panel exposes Undo/Redo by button and Ctrl+Z/Ctrl+Y/Ctrl+Shift+Z outside text input.
   Runtime replay restores stable IDs, hierarchy, transforms, and Camera/Light components; document
   replay restores names, selection, and authored Euler revolutions. New edits discard Redo; tests
