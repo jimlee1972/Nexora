@@ -191,7 +191,8 @@ struct SceneMaterial final {
   SceneReflectionRole reflectionRole{}; // Horizontal planar mirror mask; opt-in PBR only.
   float opacity{1}; // Linear HDR blend coverage; below 1 requires non-casting HDR PBR.
   std::array<float, 3> transparencyTint{1, 1, 1}; // Linear attenuation of the transmitted scene.
-  float worldTextureScale{}; // Base/ORM triplanar repeats per world unit; zero keeps mesh UVs.
+  float
+      worldTextureScale{}; // Base/normal/ORM triplanar repeats per world unit; zero keeps mesh UVs.
 };
 
 [[nodiscard]] inline bool ValidateSceneMaterials(std::span<const SceneMaterial> materials,

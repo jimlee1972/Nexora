@@ -441,3 +441,13 @@ refine the composition. Linux Development passes 97/97 (89.00 seconds), includin
 Crystal diffuse/backlight fill is reduced to retain transmitted background and sharper facets;
 stronger linear rune radiance feeds HDR bloom. Original column relief and distant tower fluting
 add geometric detail within the existing native vertex budget.
+
+
+### World-projected normal detail
+
+Existing stone normal maps now supply bounded projected surface gradients, avoiding mesh-UV
+stretching while retaining source-world base/ORM/reflection agreement. Zero strength preserves
+geometry normals; default zero world scale preserves legacy UV normal mapping. Four native
+cases check flat/projected normals, zero strength and exact restoration (69 PBR frames).
+No texture/pass/packet expansion occurs. Linux Development passes all 97 tests (92.68 seconds),
+including the 69 native cases. Shipping/reference acceptance remains open; VIS stays 5/7.

@@ -517,3 +517,10 @@ quality changes. Ceramic colors and the widened pedestal base refine the referen
 Crystal diffuse/backlight fill is reduced to retain transmitted background and sharper facets;
 stronger linear rune radiance feeds HDR bloom. Original column relief and distant tower fluting
 add geometric detail within the existing native vertex budget.
+
+
+Stone base/normal/ORM maps now share source-world projections. Bounded normal-map gradients
+perturb the geometric normal without UV streaking across columns, paving or reflected stone.
+Stone strengths use 0.35/0.2 for hero/background surfaces. Existing linear HDR lighting, shadows,
+focus and bloom consume the perturbed normals; four native fixtures verify projection strength
+and exact restoration (69 PBR frames).
