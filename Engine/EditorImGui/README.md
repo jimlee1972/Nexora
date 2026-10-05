@@ -444,6 +444,19 @@ every idle frame. Real 1x/2x tests cover native/overview and button/key parity, 
 proxy/OBJ roots become selected after Ctrl+A and remain pickable. Full Scene View and target-host
 acceptance remain open.
 
+## Native gizmo mode shortcuts
+
+X toggles the native Scene's existing Global/Local axes; Scale always retains Local axes. P toggles
+Pivot/Center. These host-owned settings require focused Scene input, actual canvas hover or active
+canvas, application focus, no text input and no blocking modal. Ctrl/Alt/Super-modified X/P do not
+toggle modes. Both shortcuts resolve before same-frame click/drag setup and remain blocked during
+held or pending native gestures. The P path now uses the same hover/navigation guard as Q/W/E/R,
+including Home followed by P without moving the pointer. Read-only projects retain mode navigation.
+World, selection, dirty state and Undo/Redo are unchanged; no IO, plugin or GPU contract changes.
+Real 1x/2x input tests cover same-frame mode/click, modifier/focus/text/modal gates, Scale constraints
+and retained Redo. Linux Xvfb verifies Home/P followed by center scale/rotate/move on proxy and OBJ
+roots, with one-step Undo and saved transforms. Complete gizmo and target-host acceptance remain open.
+
 ## Native Scene selection tool
 
 Select (Q) retains ordinary and Ctrl-toggle native picking without creating a transform drag,

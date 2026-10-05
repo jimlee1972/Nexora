@@ -152,6 +152,12 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Native Scene X switches Global/Local axes while Scale retains Local; P switches Pivot/Center
+  before same-frame click/drag setup. Home navigation, actual hover/focus, modifier/text/modal,
+  active/released gesture and read-only guards have real 1x/2x coverage with retained World/Redo.
+  Linux Xvfb verifies Home/P center scale/rotate/move and one-step Undo on proxy/OBJ roots.
+  Complete gizmo and target-host acceptance remain open.
+
 - ✅ Scene Ctrl+A and Select all now update generation-keyed selection without changing World,
   dirty state, clipboard or history. Overview selects scene nodes; native uses an owning one-frame
   token and the actual 3,999-bounded draw/pick candidates, omitting hidden/locked records and tails.

@@ -3796,7 +3796,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
               std::array{(tool_min.x + tool_max.x) * 0.5F, (tool_min.y + tool_max.y) * 0.5F};
         }
         ImGui::BeginDisabled(state_->native_scene_tool == NativeSceneTool::Scale);
-        ImGui::Checkbox("Local axes", &state_->native_scene_local_axes);
+        ImGui::Checkbox("Local axes (X)", &state_->native_scene_local_axes);
         ImGui::EndDisabled();
         ImGui::SameLine();
         ImGui::Checkbox("Center pivot (P)", &state_->native_scene_center_pivot);
@@ -3838,6 +3838,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           else if (ImGui::IsKeyPressed(ImGuiKey_R, false)) {
             state_->native_scene_tool = NativeSceneTool::Scale;
             state_->native_scene_local_axes = true;
+          }
+          if (!io.KeyCtrl && !io.KeyAlt && !io.KeySuper) {
+            if (state_->native_scene_tool != NativeSceneTool::Scale &&
+                ImGui::IsKeyPressed(ImGuiKey_X, false))
+              state_->native_scene_local_axes = !state_->native_scene_local_axes;
+            if (ImGui::IsKeyPressed(ImGuiKey_P, false))
+              state_->native_scene_center_pivot = !state_->native_scene_center_pivot;
           }
         }
         if (scene_editable && !scene->Selection().empty() && !io.WantTextInput &&
@@ -3900,8 +3907,6 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         if (state_->app_focused && !interaction_blocked &&
             (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
             !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput) {
-          if (ImGui::IsKeyPressed(ImGuiKey_P, false))
-            state_->native_scene_center_pivot = !state_->native_scene_center_pivot;
           if (io.MouseWheel != 0.0F)
             state_->native_scene_orbit.distance =
                 std::clamp(state_->native_scene_orbit.distance *

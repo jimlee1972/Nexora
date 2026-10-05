@@ -209,7 +209,8 @@ def main():
         send("click", 1)
         send("keyup", "Control_L")
         time.sleep(0.2)
-        send("key", "p", "r", "f")
+        # Home leaves ImGui navigation focus on the canvas. P must still resolve from real hover.
+        send("key", "Home", "p", "r", "f")
         time.sleep(0.2)
         viewport = settled_viewport(editor.stderr, viewport)
         send("key", "--delay", "80", "ctrl+s")

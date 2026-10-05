@@ -670,6 +670,7 @@ void TestNativeSceneCameraControls() {
       Nexora::Window::WindowEvent{
           {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, px, py}};
   host.ProcessEvents(hover);
+  nexora::editor::imgui::EditorImGuiTestAccess::FocusScene(host);
   draw();
   const auto press_pivot_key = [&] {
     const std::array down{
