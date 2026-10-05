@@ -28,3 +28,9 @@ counts are observable in reports. They are not GPU timings or a hardware perform
 This is the Linux implementation/interaction slice. Continuous native motion/video, final physical art
 review, exact-head platform CI and target-hardware performance remain outstanding acceptance evidence.
 Accepted VIS milestones remain VIS-M0–M2 (3/7).
+
+Build 1452 passed native DX12/Metal and Linux Development, but the isolated Linux Shipping
+wrapper stopped the enlarged real interaction suite at its older 60-second outer deadline. Its
+retained failure artifact explicitly reports timeout, not a weakened pixel assertion. The wrapper
+now uses the same bounded 90-second deadline as CTest; every comparison/replay assertion remains.
+The supplemental full Linux gate passes 96/96 without skips (66.37 seconds).
