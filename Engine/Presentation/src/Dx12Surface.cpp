@@ -310,6 +310,8 @@ public:
     const auto packedInstances = PackSceneInstances(drawData.instances);
     if (!packedInstances)
       return SurfaceStatus::InvalidDescriptor;
+    if (!ValidateSceneMaterials(drawData.materials, drawData.batches))
+      return SurfaceStatus::InvalidDescriptor;
     if (drawData.textureUploads.size() > 16)
       return SurfaceStatus::InvalidDescriptor;
     for (const auto &upload : drawData.textureUploads)
@@ -325,6 +327,16 @@ public:
         std::none_of(drawData.textureUploads.begin(), drawData.textureUploads.end(),
                      [textureId](const auto &upload) { return upload.textureId == textureId; }))
       return SurfaceStatus::InvalidDescriptor;
+    for (const auto &material : drawData.materials)
+      if (material.textureId && !sceneTextures_.contains(material.textureId) &&
+          std::none_of(
+              drawData.textureUploads.begin(), drawData.textureUploads.end(),
+              [&material](const auto &upload) { return upload.textureId == material.textureId; }))
+        return SurfaceStatus::InvalidDescriptor;
+    const bool needsWhite =
+        textureId == UINT64_MAX ||
+        std::any_of(drawData.materials.begin(), drawData.materials.end(),
+                    [](const auto &material) { return material.textureId == 0; });
     for (const auto &vertex : drawData.vertices)
       for (const auto value : vertex.uv)
         if (!std::isfinite(value))
@@ -352,9 +364,9 @@ public:
     std::memcpy(constants.baseColor, drawData.base_color, sizeof(constants.baseColor));
     // Constants live first, at offset 0 -- a committed resource's base GPU VA is always far more
     // aligned than the 256 bytes a root CBV requires, so offset 0 is always valid there. Vertex and
-    // index data start at a fixed 256-byte boundary after it (comfortably past sizeof(constants)),
+    // index data start after the bounded material palette (one 256-byte slot per material),
     // so neither section can ever overlap regardless of how large the mesh grows.
-    constexpr std::size_t kGeometryOffset = 256;
+    const std::size_t kGeometryOffset = std::max<std::size_t>(drawData.materials.size(), 1) * 256;
     const auto required = kGeometryOffset + instanceOffset + instanceBytes.size();
     if (!EnsureSceneUpload(required))
       return SurfaceStatus::DeviceLost;
@@ -362,7 +374,11 @@ public:
     D3D12_RANGE noRead{0, 0};
     if (FAILED(sceneUploads_[frame_]->Map(0, &noRead, &mapped)))
       return SurfaceStatus::DeviceLost;
-    std::memcpy(mapped, &constants, sizeof(constants));
+    for (std::size_t slot = 0; slot < std::max<std::size_t>(drawData.materials.size(), 1); ++slot) {
+      const auto material = ResolveSceneMaterial(drawData, slot);
+      std::copy(material.baseColor.begin(), material.baseColor.end(), constants.baseColor);
+      std::memcpy(static_cast<std::byte *>(mapped) + slot * 256, &constants, sizeof(constants));
+    }
     std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset, vertexBytes.data(),
                 vertexBytes.size());
     std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset + vertexBytes.size(),
@@ -370,7 +386,7 @@ public:
     std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset + instanceOffset,
                 instanceBytes.data(), instanceBytes.size());
     sceneUploads_[frame_]->Unmap(0, nullptr);
-    std::size_t additional = textureId == UINT64_MAX && !sceneTextures_.contains(textureId) ? 1 : 0;
+    std::size_t additional = needsWhite && !sceneTextures_.contains(UINT64_MAX) ? 1 : 0;
     for (std::size_t i = 0; i < drawData.textureUploads.size(); ++i) {
       const auto id = drawData.textureUploads[i].textureId;
       for (std::size_t j = 0; j < i; ++j)
@@ -385,7 +401,8 @@ public:
         return SurfaceStatus::DeviceLost;
     const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
                                          std::byte{255}};
-    if (!sceneTextures_.contains(textureId) && !UploadUiTexture({UINT64_MAX, 1, 1, 4, white}, true))
+    if (needsWhite && !sceneTextures_.contains(UINT64_MAX) &&
+        !UploadUiTexture({UINT64_MAX, 1, 1, 4, white}, true))
       return SurfaceStatus::DeviceLost;
     const auto base = sceneUploads_[frame_]->GetGPUVirtualAddress();
     const auto geometryBase = base + kGeometryOffset;
@@ -419,10 +436,6 @@ public:
     commands_->SetPipelineState(scenePipeline_.Get());
     ID3D12DescriptorHeap *heaps[]{uiDescriptors_.Get()};
     commands_->SetDescriptorHeaps(1, heaps);
-    auto textureHandle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
-    textureHandle.ptr += UINT64(sceneTextures_.at(textureId).descriptor) * uiDescriptorIncrement_;
-    commands_->SetGraphicsRootDescriptorTable(1, textureHandle);
-    commands_->SetGraphicsRootConstantBufferView(0, base);
     const D3D12_VIEWPORT nativeViewport{static_cast<float>(viewport->x),
                                         static_cast<float>(viewport->y),
                                         static_cast<float>(viewport->width),
@@ -446,13 +459,19 @@ public:
                                             sizeof(SceneInstanceUpload)}};
     commands_->IASetVertexBuffers(0, 2, views);
     commands_->IASetIndexBuffer(&indexView);
-    if (drawData.batches.empty()) {
-      commands_->DrawIndexedInstanced(static_cast<UINT>(drawData.indices.size()),
-                                      static_cast<UINT>(instances.size()), 0, 0, 0);
-    } else {
-      for (const auto &batch : drawData.batches)
-        commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
-                                        batch.firstInstance);
+    const SceneMeshBatch whole{0, static_cast<std::uint32_t>(drawData.indices.size()), 0,
+                               static_cast<std::uint32_t>(instances.size()), 0};
+    const auto batches =
+        drawData.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : drawData.batches;
+    for (const auto &batch : batches) {
+      const auto material = ResolveSceneMaterial(drawData, batch.materialIndex);
+      const auto id = material.textureId ? material.textureId : UINT64_MAX;
+      auto handle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
+      handle.ptr += UINT64(sceneTextures_.at(id).descriptor) * uiDescriptorIncrement_;
+      commands_->SetGraphicsRootDescriptorTable(1, handle);
+      commands_->SetGraphicsRootConstantBufferView(0, base + batch.materialIndex * 256ULL);
+      commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
+                                      batch.firstInstance);
     }
     sceneDrawn_ = true;
     sceneOffscreen_ = drawData.offscreen;

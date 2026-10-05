@@ -1,0 +1,83 @@
+{
+  "scope": "Linux Xvfb/lavapipe native interaction; no physical display or Windows claim",
+  "courtyard_fixed_shots": true,
+  "courtyard_screenshot_mode": true,
+  "courtyard": {
+    "stage": "engineering_greybox",
+    "shot": 1,
+    "screenshot_mode": false,
+    "representative_asset_loaded": true,
+    "asset_hash": "ba85a5f7c46a16fe",
+    "adopted_mesh_count": 3,
+    "adopted_texture_count": 1,
+    "adopted_hashes": [
+      "1f970f1257fe146d",
+      "d4fd878b4ca15a59",
+      "0971946f233ebffb",
+      "5c2880081a07b4f2"
+    ]
+  },
+  "room_controls": true,
+  "screenshots": [
+    "hub.png",
+    "rendering.png",
+    "rendering-quad.png",
+    "rendering-triangle.png",
+    "scene.png",
+    "input.png",
+    "gameplay.png",
+    "gameplay-geometry.png",
+    "presentation.png",
+    "streaming.png",
+    "shipping.png",
+    "presentation-blend.png",
+    "validation-lab.png",
+    "resized-hub.png",
+    "courtyard-ui.png",
+    "courtyard-wide.png",
+    "courtyard-material.png",
+    "courtyard-motion.png",
+    "courtyard-wide-replay.png"
+  ],
+  "windowed_evidence": {
+    "executed": true,
+    "backend": "vulkan",
+    "backend_fallback": false,
+    "fallback_reason": "",
+    "recovery_action": "render",
+    "surface_acquires": 1578,
+    "surface_presents": 1578,
+    "resize_requests": 0,
+    "resize_generations": 1,
+    "composed_frames": 0,
+    "scene_draws": 1578,
+    "native_scene_draws": 1578,
+    "native_scene_instances": 1869,
+    "native_scene_texture_uploads": 4,
+    "native_offscreen_draws": 1578,
+    "native_scene_composites": 1578,
+    "software_rasterizer": true,
+    "native_graph_frames": 1578,
+    "native_graph_passes": 4,
+    "native_graph_resource_transitions": 3,
+    "native_graph_order": [
+      "Offscreen",
+      "Main",
+      "UI",
+      "Present"
+    ],
+    "native_ui_draws": 1400,
+    "overlay_frames": 1400,
+    "rendering_mode": "gpu_scene",
+    "clear_color": true,
+    "triangle": false,
+    "diagnostics_overlay": true
+  },
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "f84d9b9b38ae",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  }
+}

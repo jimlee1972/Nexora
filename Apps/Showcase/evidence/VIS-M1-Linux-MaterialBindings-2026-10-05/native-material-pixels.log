@@ -1,0 +1,1 @@
+PASS: 27 scene submissions including affine mesh/normal oracles, mesh batches, independent batch materials, rotated native instances and UV texture pixels, depth-order invariance, lighting, matrix translation, 3 resize generations, immutable texture reuse, invalid-input containment and ordered teardown

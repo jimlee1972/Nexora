@@ -126,6 +126,8 @@ struct RoomSession::State final {
   std::vector<ProbeResult> probes{ProbeRegistry::CreateV1Registry().RunAll()};
   std::vector<Nexora::Presentation::SceneVertex> vertices;
   std::vector<Nexora::Presentation::SceneInstance> instances;
+  std::vector<Nexora::Presentation::SceneMaterial> materials;
+  std::vector<Nexora::Presentation::SceneMeshBatch> batches;
   std::array<std::byte, 8 * 8 * 4> checker{};
   std::vector<Nexora::Presentation::UiTextureUpload> sceneUploads;
   std::vector<std::uint16_t> indices;
@@ -470,9 +472,19 @@ struct RoomSession::State final {
 #endif
   // Engineering blockout only: no PBR, shadows, emission or wind acceptance is implied.
   void CourtyardGeometry() {
+    // Close each consecutive geometry range with an explicit ephemeral material slot.
+    std::size_t firstIndex = 0;
+    const auto finish = [&](std::uint32_t material) {
+      if (indices.size() > firstIndex)
+        batches.push_back({static_cast<std::uint32_t>(firstIndex),
+                           static_cast<std::uint32_t>(indices.size() - firstIndex), 0, 1,
+                           material});
+      firstIndex = indices.size();
+    };
     Cube(0, 0.12F, 0, 1.7F, 0.12F, 1.7F);
     Cube(0, 0.45F, 0, 1.15F, 0.2F, 1.15F);
     Cube(0, 0.95F, 0, 0.65F, 0.3F, 0.65F);
+    finish(0);
     constexpr std::size_t sides = 20;
     for (std::size_t i = 0; i < sides; ++i) {
       const float a = static_cast<float>(i) / sides * math::kPi * 2;
@@ -480,6 +492,7 @@ struct RoomSession::State final {
       Segment({1.5F * std::cos(a), 2.9F + 1.5F * std::sin(a), 0},
               {1.5F * std::cos(b), 2.9F + 1.5F * std::sin(b), 0}, 0.22F);
     }
+    finish(1);
     // Paving leaves a readable approach to the central device.
     for (int z = -4; z <= 4; ++z)
       for (int x = -4; x <= 4; ++x)
@@ -503,15 +516,19 @@ struct RoomSession::State final {
     AdoptedMesh(2, {-3.8F, 0, -2.5F}, {0.22F, 0.22F, 0.22F});
     AdoptedMesh(2, {3.8F, 0, -2.5F}, {0.22F, 0.22F, 0.22F});
 #endif
+    finish(4);
     // Broken rear arch and low side walls keep the focal device visible.
     Cube(-2.8F, 2.95F, -4, 1.7F, 0.3F, 0.45F);
     Cube(3.8F, 2.95F, -4, 0.7F, 0.3F, 0.45F);
     Cube(-5.3F, 0.55F, -1, 0.3F, 0.55F, 3.0F);
     Cube(5.3F, 0.55F, -1, 0.3F, 0.55F, 3.0F);
+    finish(0);
     for (const float x : {-3.5F, 3.5F}) {
       Capsule({x, 0.4F, 2.5F}, 0.35F, 0.8F); // Ceramic placeholder.
+      finish(3);
       for (int i = 0; i < 4; ++i)
         Segment({x, 0, -2.0F + i * 0.35F}, {x + 0.2F, 0.6F, -2.0F + i * 0.35F}, 0.08F);
+      finish(5);
     }
 #if NEXORA_ASSET_PIPELINE_ENABLED
     // The crystal placeholder is read from the active cooked/bundled generation.
@@ -526,6 +543,7 @@ struct RoomSession::State final {
 #else
     Cube(0, 2.9F, 0, 0.35F, 0.55F, 0.35F);
 #endif
+    finish(2);
   }
   void Probe(std::size_t m, ErrorInjection error = ErrorInjection::None) {
     if (m >= probes.size())
@@ -1330,8 +1348,19 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   s.indices.clear();
   s.instances.clear();
   s.sceneUploads.clear();
+  s.materials.clear();
+  s.batches.clear();
   s.Cube(0, -0.3F, 0, 6, 0.3F, 6);
   if (s.selected == "courtyard") {
+    s.materials = {{{0.68F, 0.61F, 0.48F, 1}, 0},
+                   {{0.78F, 0.44F, 0.12F, 1}, 0},
+                   {{0.08F, 0.8F, 0.95F, 1}, 0},
+                   {{0.58F, 0.19F, 0.09F, 1}, 0},
+                   {{1, 1, 1, 1}, 0},
+                   {{0.14F, 0.32F, 0.12F, 1}, 0}};
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    s.materials[4].textureId = 2;
+#endif
     s.CourtyardGeometry();
   } else if (s.selected == "hub") {
     s.Cube(0, 0.5F, 0, 1.5F, 0.5F, 1.5F);
@@ -1482,6 +1511,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   data.base_color[1] = 0.65F;
   data.base_color[2] = 0.9F;
   if (s.selected == "courtyard") {
+    data.materials = s.materials;
+    data.batches = s.batches;
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.sceneUploads.push_back({2, 64, 64, 256, s.courtyardAtlas});
     data.textureId = 2;

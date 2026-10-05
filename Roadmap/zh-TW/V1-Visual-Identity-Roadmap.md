@@ -172,3 +172,15 @@ resident bytes；GPU timestamp 尚無。三次無其他測試干擾的 lavapipe 
 [證據](../../Apps/Showcase/evidence/VIS-M0-Linux-AdoptedAssets-2026-10-05/acceptance.md)。
 
 VIS-M0 驗收不代表最終材質／美術、VIS-M1～M6 或目標硬體畫面已驗收。
+
+## 12. VIS-M1 材質提交基礎（2026-10-05）
+
+已實作 Vulkan、DX12、Metal 的逐批次不透明色彩與貼圖 generation 綁定。
+庭院幾何使用六個材質 slot，建築保留採用素材的 atlas UV。
+Vulkan 與 Metal 測試源碼涵蓋材質像素、拒絕與恢復；實際執行結果另行記錄。
+[ownership 與 PBR/HDR 方向](ADR-0004-Showcase-Materials-HDR.md)。
+這是進行中的 VIS-M1 切片。共享 PBR、切線、normal／ORM／emission、IBL、線性色彩與 HDR
+尚未完成驗收；里程碑進度仍為 1/7。
+
+✅ 材質綁定切片：Linux 87/87 無 skip 與原生材質像素測試通過。
+[Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-MaterialBindings-2026-10-05/acceptance.md).
