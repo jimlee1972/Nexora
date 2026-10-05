@@ -718,16 +718,16 @@ struct RoomSession::State final {
       batches.push_back({first, static_cast<std::uint32_t>(indices.size() - first), 0, 1, 7});
   }
   Nexora::Presentation::ScenePlanarReflection CourtyardReflectionSettings() const {
-    Nexora::Presentation::ScenePlanarReflection reflection;
-    reflection.planeHeight = 0.16F + 0.003F * std::sin(static_cast<float>(courtyardSeconds) * 0.8F);
-    reflection.regions[0] = {-0.9F, 4.0F, 1.4F, 1.0F};
-    reflection.regions[1] = {3.1F, 3.0F, 0.85F, 0.65F};
-    reflection.regionCount = 2;
-    return reflection;
+    Nexora::Presentation::ScenePlanarReflection planar;
+    planar.planeHeight = 0.16F + 0.003F * std::sin(static_cast<float>(courtyardSeconds) * 0.8F);
+    planar.regions[0] = {-0.9F, 4.0F, 1.4F, 1.0F};
+    planar.regions[1] = {3.1F, 3.0F, 0.85F, 0.65F};
+    planar.regionCount = 2;
+    return planar;
   }
   void CourtyardReflectionGeometry() {
     using Nexora::Presentation::SceneReflectionRole;
-    const auto reflection = CourtyardReflectionSettings();
+    const auto planar = CourtyardReflectionSettings();
     const auto materialCount = materials.size();
     materials[0].reflectionRole = materials[8].reflectionRole = SceneReflectionRole::Receiver;
     for (std::size_t i = 0; i < materialCount; ++i) {
@@ -741,11 +741,11 @@ struct RoomSession::State final {
     instances = {{}, {}};
     math::Matrix4 mirror;
     mirror(1, 1) = -1;
-    mirror(1, 3) = 2 * reflection.planeHeight;
+    mirror(1, 3) = 2 * planar.planeHeight;
     instances[1].model_transform = mirror.values;
     const auto sourceBatches = batches;
     for (const auto &batch : sourceBatches) {
-      // Bound reflection work to the focal device, vessels, foliage, pennants and sky.
+      // Bound planar work to the focal device, vessels, foliage, pennants and sky.
       // Distant ruins/terrain and the water surface never participate recursively.
       if (batch.firstIndex + batch.indexCount > courtyardReflectionDeviceIndexEnd &&
           batch.materialIndex != 3 && batch.materialIndex != 5 && batch.materialIndex != 6 &&
