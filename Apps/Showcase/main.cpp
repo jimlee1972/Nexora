@@ -305,8 +305,10 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       command.scene = std::string(argument.substr(8));
       if (command.scene != "hub" && command.scene != "tour" && command.scene != "rendering" &&
           command.scene != "input" && command.scene != "shipping" && command.scene != "platform" &&
-          command.scene != "world" && FindGalleryRoom(command.scene) == nullptr) {
-        error = "--scene must be hub, tour, rendering, math, scene, gameplay, presentation, or "
+          command.scene != "world" && command.scene != "courtyard" &&
+          FindGalleryRoom(command.scene) == nullptr) {
+        error = "--scene must be courtyard, hub, tour, rendering, math, scene, gameplay, "
+                "presentation, or "
                 "streaming";
         return false;
       }
@@ -749,8 +751,10 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
                                     const auto overlay = rooms.Overlay(
                                         frameInfo.width, frameInfo.height, result.windowed_backend,
                                         nativeSurface->Diagnostics(), frameSeconds * 1000);
-                                    requireReady(nativeSurface->RenderUi(overlay), "UI");
-                                    ++result.overlay_frames;
+                                    if (!overlay.vertices.empty()) {
+                                      requireReady(nativeSurface->RenderUi(overlay), "UI");
+                                      ++result.overlay_frames;
+                                    }
                                     completedNames.emplace_back(passInfo.name);
                                   });
       (void)graph.AddExternalPass("Present", {{presentation, rhi::ResourceState::Present}}, {},

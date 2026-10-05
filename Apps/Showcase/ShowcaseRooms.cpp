@@ -81,7 +81,8 @@ struct RoomSession::State final {
   std::set<std::string> visualized;
   float yaw{0.6F}, pitch{0.45F}, radius{14.0F};
   int pointerX{}, pointerY{};
-  bool dragging{};
+  bool dragging{}, screenshotMode{};
+  std::size_t courtyardShot{};
   std::uint64_t atlasGeneration{~std::uint64_t{0}};
   std::string lastAction{"Ready"}, pluginLibrary;
   ErrorInjection injection{ErrorInjection::None};
@@ -362,11 +363,70 @@ struct RoomSession::State final {
       room = "input";
     if (room == "tour")
       room = "hub";
-    if (std::find(rooms.begin(), rooms.end(), room) == rooms.end())
+    if (room != "courtyard" && std::find(rooms.begin(), rooms.end(), room) == rooms.end())
       throw std::invalid_argument("Unknown showcase room");
+    const bool enteringCourtyard = room == "courtyard" && selected != room;
     selected = room;
+    if (enteringCourtyard)
+      CourtyardCamera(0);
     visited.insert(selected);
     lastAction = "Entered " + selected;
+  }
+  void CourtyardCamera(std::size_t shot) {
+    courtyardShot = shot % 3;
+    constexpr std::array<float, 3> yaws{0.58F, -0.35F, 0.12F};
+    constexpr std::array<float, 3> pitches{0.48F, 0.24F, 0.14F};
+    constexpr std::array<float, 3> radii{18.0F, 7.0F, 10.0F};
+    yaw = yaws[courtyardShot];
+    pitch = pitches[courtyardShot];
+    radius = radii[courtyardShot];
+  }
+  // Engineering blockout only: no PBR, shadows, emission or wind acceptance is implied.
+  void CourtyardGeometry() {
+    Cube(0, 0.12F, 0, 1.7F, 0.12F, 1.7F);
+    Cube(0, 0.45F, 0, 1.15F, 0.2F, 1.15F);
+    Cube(0, 0.95F, 0, 0.65F, 0.3F, 0.65F);
+    constexpr std::size_t sides = 20;
+    for (std::size_t i = 0; i < sides; ++i) {
+      const float a = static_cast<float>(i) / sides * math::kPi * 2;
+      const float b = static_cast<float>(i + 1) / sides * math::kPi * 2;
+      Segment({1.5F * std::cos(a), 2.9F + 1.5F * std::sin(a), 0},
+              {1.5F * std::cos(b), 2.9F + 1.5F * std::sin(b), 0}, 0.22F);
+    }
+    // Paving leaves a readable approach to the central device.
+    for (int z = -4; z <= 4; ++z)
+      for (int x = -4; x <= 4; ++x)
+        if (std::abs(x) > 1 || std::abs(z) > 1)
+          Cube(x * 1.2F, 0.035F, z * 1.2F, 0.55F, 0.035F, 0.55F);
+    for (const float x : {-4.5F, 4.5F})
+      for (const float z : {-4.0F, 1.5F}) {
+        Cube(x, 0.2F, z, 0.7F, 0.2F, 0.7F);
+        Cube(x, 1.65F, z, 0.4F, 1.25F, 0.4F);
+        Cube(x, 3.1F, z, 0.65F, 0.2F, 0.65F);
+      }
+    // Broken rear arch and low side walls keep the focal device visible.
+    Cube(-2.8F, 2.95F, -4, 1.7F, 0.3F, 0.45F);
+    Cube(3.8F, 2.95F, -4, 0.7F, 0.3F, 0.45F);
+    Cube(-5.3F, 0.55F, -1, 0.3F, 0.55F, 3.0F);
+    Cube(5.3F, 0.55F, -1, 0.3F, 0.55F, 3.0F);
+    for (const float x : {-3.5F, 3.5F}) {
+      Capsule({x, 0.4F, 2.5F}, 0.35F, 0.8F); // Ceramic placeholder.
+      for (int i = 0; i < 4; ++i)
+        Segment({x, 0, -2.0F + i * 0.35F}, {x + 0.2F, 0.6F, -2.0F + i * 0.35F}, 0.08F);
+    }
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    // The crystal placeholder is read from the active cooked/bundled generation.
+    const auto base = static_cast<std::uint16_t>(vertices.size());
+    for (const auto &v : assetMesh.vertices)
+      vertices.push_back(
+          {{v.position[0] * 0.35F, v.position[1] * 0.55F + 2.9F, v.position[2] * 0.35F},
+           {v.normal[0], v.normal[1], v.normal[2]},
+           {v.uv[0], v.uv[1]}});
+    for (const auto index : assetMesh.indices)
+      indices.push_back(static_cast<std::uint16_t>(base + index));
+#else
+    Cube(0, 2.9F, 0, 0.35F, 0.55F, 0.35F);
+#endif
   }
   void Probe(std::size_t m, ErrorInjection error = ErrorInjection::None) {
     if (m >= probes.size())
@@ -740,6 +800,10 @@ struct RoomSession::State final {
   }
   std::vector<std::string> Lines() const {
     std::vector<std::string> lines{"Public Runtime state sampled at tick " + std::to_string(ticks)};
+    if (selected == "courtyard")
+      lines.insert(lines.end(), {"VIS-M0 ruins courtyard / engineering greybox",
+                                 "B cycles wide / material / motion framing; F4 hides UI",
+                                 "PBR / shadows / wind / final assets remain pending"});
     if (selected == "hub")
       lines.insert(lines.end(),
                    {"Eight rooms / central 3D display stand", "Choose a portal above or press 1-8",
@@ -943,6 +1007,14 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.tour = false;
     Select(rooms[static_cast<std::size_t>(key) - static_cast<std::size_t>(Key::Digit1)]);
   }
+  if (key == Key::Digit9) {
+    s.tour = false;
+    Select("courtyard");
+  }
+  if (s.selected == "courtyard" && key == Key::B)
+    s.CourtyardCamera(s.courtyardShot + 1);
+  if (key == Key::F4)
+    s.screenshotMode = !s.screenshotMode;
   if (key == Key::F1)
     s.overview = !s.overview;
   if (key == Key::F2)
@@ -1051,7 +1123,7 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
   }
 #endif
 #if NEXORA_PLATFORM_ENABLED
-  if (key == Key::B) {
+  if (key == Key::B && s.selected != "courtyard") {
     s.platform.Transition(s.platform.State() == platform::AppState::Foreground
                               ? platform::AppState::Background
                               : platform::AppState::Foreground);
@@ -1158,7 +1230,9 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   s.instances.clear();
   s.sceneUploads.clear();
   s.Cube(0, -0.3F, 0, 6, 0.3F, 6);
-  if (s.selected == "hub") {
+  if (s.selected == "courtyard") {
+    s.CourtyardGeometry();
+  } else if (s.selected == "hub") {
     s.Cube(0, 0.5F, 0, 1.5F, 0.5F, 1.5F);
     s.Cube(0, 2, 0, 0.7F, 1, 0.7F);
     for (std::size_t i = 0; i < 8; ++i) {
@@ -1306,6 +1380,11 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   data.base_color[0] = 0.15F;
   data.base_color[1] = 0.65F;
   data.base_color[2] = 0.9F;
+  if (s.selected == "courtyard") {
+    data.base_color[0] = 0.72F;
+    data.base_color[1] = 0.57F;
+    data.base_color[2] = 0.38F;
+  }
   return data;
 }
 
@@ -1317,9 +1396,11 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
   s.uiIndices.clear();
   s.commands.clear();
   s.uploads.clear();
+  if (s.screenshotMode)
+    return {};
   s.Rect(0, 0, 1280, 112, 0xf0271a10);
   s.Text(18, 14, s.localization.Resolve("title"), 0xffefdc80, 3);
-  s.Text(18, 45, "F1 overview / F2 profiler / F3 V1 matrix / F5 reload / L locale");
+  s.Text(18, 45, "9 courtyard / B shot / F4 hide UI / F1 overview / F2 profiler / F3 matrix");
   for (std::size_t i = 0; i < rooms.size(); ++i) {
     const float x = 18 + static_cast<float>(i) * 154;
     s.Rect(x, 75, 146, 28, s.selected == rooms[i] ? 0xff996828 : 0xff453123);
@@ -1445,7 +1526,15 @@ std::string RoomSession::Report() const {
     first = false;
     out << "\"" << Escape(line) << "\"";
   }
-  out << "],\"integration_probes\":" << SerializeJson(s.probes) << "}";
+  out << "],\"courtyard\":{\"stage\":\"engineering_greybox\",\"shot\":" << s.courtyardShot
+      << ",\"screenshot_mode\":" << s.screenshotMode
+#if NEXORA_ASSET_PIPELINE_ENABLED
+      << ",\"representative_asset_loaded\":" << !s.assetMesh.vertices.empty()
+      << ",\"asset_hash\":\"" << s.assetHash << "\""
+#else
+      << ",\"representative_asset_loaded\":false"
+#endif
+      << "},\"integration_probes\":" << SerializeJson(s.probes) << "}";
   return out.str();
 }
 } // namespace nexora::showcase

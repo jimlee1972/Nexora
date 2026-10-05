@@ -183,6 +183,25 @@ def main():
                     time.sleep(0.15)
                     screenshot(window,1280,720,output/'presentation-blend.png')
                     tool('key','--window',window,'F1')
+            tool('key', '--window', window, '9')
+            time.sleep(0.2)
+            courtyard_ui = screenshot(window,1280,720,output/'courtyard-ui.png')
+            tool('key', '--window', window, 'F4')
+            time.sleep(0.2)
+            courtyard_wide = screenshot(window,1280,720,output/'courtyard-wide.png')
+            assert courtyard_ui != courtyard_wide, 'Screenshot mode did not remove native UI'
+            tool('key', '--window', window, 'b')
+            time.sleep(0.2)
+            courtyard_material = screenshot(window,1280,720,output/'courtyard-material.png')
+            tool('key', '--window', window, 'b')
+            time.sleep(0.2)
+            courtyard_motion = screenshot(window,1280,720,output/'courtyard-motion.png')
+            assert courtyard_wide != courtyard_material and courtyard_material != courtyard_motion
+            tool('key', '--window', window, 'b')
+            time.sleep(0.2)
+            replay = screenshot(window,1280,720,output/'courtyard-wide-replay.png')
+            assert replay == courtyard_wide, 'Fixed wide camera did not reproduce native pixels'
+            tool('key', '--window', window, 'F4')
             # The previous matrix interaction selected M1. Drive real M5/M6/M12 errors.
             tool('key','--window',window,'F3','Tab','Tab','Tab','Tab','i','r','i','r','Tab','i','r','x','Next')
             time.sleep(0.15)
@@ -215,13 +234,15 @@ def main():
             assert native['resize_generations'] >= 1
             assert rooms['healthy'] and rooms['reloads'] == 1
             assert rooms['probe_runs'] > 13
-            assert set(rooms['visited']) == {'hub','rendering','scene','input','gameplay','presentation','streaming','shipping'}
+            assert set(rooms['visited']) == {'hub','rendering','scene','input','gameplay','presentation','streaming','shipping','courtyard'}
             assert set(rooms['visualized']) == set(rooms['visited'])
             assert rooms['tour']['enabled']
             assert markdown.is_file() and 'M12' in markdown.read_text()
             (output/'acceptance.json').write_text(json.dumps({
                 'scope':'Linux Xvfb/lavapipe native interaction; no physical display or Windows claim',
-                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png'],
+                'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,
+                'courtyard':rooms['courtyard'],
+                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png'],
                 'windowed_evidence':native,'build':evidence['build']},indent=2)+'\n')
             print(json.dumps({'native':native,'visited':rooms['visited'],'evidence_directory':str(output)},indent=2))
             return 0

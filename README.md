@@ -60,7 +60,9 @@ Windows DX12 local delivery: [acceptance record](Apps/Showcase/evidence/Windows-
 The [V1 Visual Identity Showcase Roadmap](Roadmap/en/V1-Visual-Identity-Roadmap.md)
 records the ✅ user-confirmed art direction and retained concept preview for a stylized ruins courtyard,
 with warm sunlight, cool shadows, turquoise runes, and a [free-model/texture shortlist](Roadmap/art/Free-Asset-Sourcing.md).
-VIS-M0–VIS-M6 remain planned and unaccepted (0/7); these separate visual milestones do
+VIS-M0 has begun with a native courtyard engineering greybox, three fixed camera framings (`B`),
+and diagnostic-free screenshot mode (`F4`); `9` opens the courtyard. ✅ [Linux baseline](Apps/Showcase/evidence/VIS-M0-Linux-Greybox-2026-10-05/acceptance.md): 84/84 tests, no skips, native fixed-shot replay and UI restoration. Final free-asset adoption and
+VIS-M0–VIS-M6 acceptance remain pending (0/7); these separate visual milestones do
 not change existing V1 contract progress or final platform acceptance.
 
 ### Repository status
@@ -503,8 +505,9 @@ Windows DX12 本地交付：[驗收紀錄](Apps/Showcase/evidence/Windows-V1-DX1
 
 [V1 視覺特色 Showcase Roadmap](Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md)
 已記錄 ✅ 使用者確認的美術方向並保存概念預覽：風格化遺跡庭院、暖陽、冷色陰影與青綠符文，
-以及 [免費模型／貼圖候選](Roadmap/art/Free-Asset-Sourcing.md)。VIS-M0～VIS-M6 仍為規劃中、
-尚未驗收（0/7）；獨立視覺里程碑不改變既有 V1 contract 進度或最終平台驗收狀態。
+以及 [免費模型／貼圖候選](Roadmap/art/Free-Asset-Sourcing.md)。VIS-M0 已開始原生庭院工程灰盒、
+三個固定鏡頭（B）與無診斷 UI 截圖模式（F4），以 9 進入。✅ [Linux 基線](Apps/Showcase/evidence/VIS-M0-Linux-Greybox-2026-10-05/acceptance.md)：84/84 無 skip，原生固定鏡頭重播與 UI 還原通過；正式免費素材採用及
+VIS-M0～VIS-M6 驗收仍待完成（0/7）；獨立視覺里程碑不改變既有 V1 contract 進度或最終平台驗收狀態。
 
 ### Repository 狀態
 
