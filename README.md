@@ -964,3 +964,7 @@ Linux toolchain、CMake 與 Zig 版本，並預先 configure development preset�
 Nexora 採用 [MIT License](LICENSE) 發布。
 
 視覺 Showcase 交付：原生 100 秒導覽與自由探索已實作；實際品質設定、共享天空及陰影優化的 Linux 同版套件／影片／效能證據已齊備。目標實機驗收仍待完成。
+
+Visual art refinement continues with retained sandstone/ivy authoring, foreground paving,
+chamfered ring geometry, wind-bent pennants and decorated ceramics (Linux development 97/97).
+Reference parity and physical target performance remain open; VIS acceptance stays 5/7.

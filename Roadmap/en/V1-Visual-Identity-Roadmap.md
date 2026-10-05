@@ -378,3 +378,11 @@ depth-aware focus/UI checks and exact focus/bloom/wind/pause/replay input captur
 movie with nine same-executable quality runs. Evidence: `Apps/Showcase/evidence/VIS-Background-HDR-Linux-2026-10-05`.
 Software FPS: Basic 11.94–12.16; Standard 7.31–7.59; High 6.47–6.78. These are neither GPU
 timestamps nor physical target acceptance. The user goal/reference parity remains open.
+
+### Reference material iteration
+
+The follow-up art source adds retained image-assisted sandstone/ivy authoring with deterministic
+cooking, original foreground paving, chamfered ring wedges, larger reference framing, wind-bent
+teal pennants and decorated ceramic vessels. Linux development validation passes 97/97 tests;
+matching-source release captures are retained. This remains VIS-M3 refinement, with scene
+reflection, crystal optics and final reference parity open; the milestone count remains 5/7.

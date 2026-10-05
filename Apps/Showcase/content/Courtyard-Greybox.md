@@ -53,3 +53,21 @@ The VIS-M4 implementation replaces the static vegetation tubes with original alp
 from the same cooked hero generation. Shared GPU wind moves their silhouettes and shadows.
 Original mote masks supply bounded cutout particles for activation; seed/order and replay time are
 deterministic. These masks are repository-licensed original content, not downloaded foliage art.
+
+## Reference art iteration / 參考圖美術調整
+
+The next source iteration replaces the regular procedural stone joints with retained image-assisted
+sandstone albedo/height authoring and the ellipse leaf mask with a 256² ivy sprig card. All original
+PNGs, authoring briefs, license and source/derived/converter hashes travel with the content.
+Original bevelled paving continues past the foreground; the curved hero wedges now have chamfers
+and an upper-left break. Teal subdivided pennants and their gold geometry motifs share the wind
+clock and root anchors. Hollow dark ceramic vessels add handles and painted geometric bands.
+The adopted KayKit originals remain retained and loaded; the visible paving is now original
+surface-mapped geometry rather than the downloaded prop's palette UVs. Native reference parity
+still requires scene reflection, crystal optics and further art refinement.
+
+下一輪改用保留原始 PNG 的 image-assisted 石材 albedo／height 與 256² 常春藤卡片；來源描述、
+授權及各階段 hash 隨內容保存。原創倒角鋪面延伸至前景之外，符文環增加倒角並改為左上缺口。
+青綠旗幟與金色幾何紋樣共用風動時鐘與固定根部；深色空心陶器補上把手與幾何彩繪。
+KayKit 原始素材仍保留及載入，畫面中的鋪面改為原創表面 UV 幾何。場景倒影、水晶光學與
+美術細節仍需後續工作，尚不宣稱與參考圖一致。

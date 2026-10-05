@@ -1,0 +1,59 @@
+{
+  "source_freeze": "1d6cda27e5b1",
+  "source_scope": "local source freeze; publication may use a connector-created commit with identical production files",
+  "source_sha256": {
+    "Apps/Showcase/ShowcaseRooms.cpp": "f4f406a1c25de2854c53aa9e6833b86b69cc39a0dc8c7446995d292634acad9e",
+    "Apps/Showcase/CourtyardHero.h": "e209c229dd809ef8da7865d35728bdfbecd03018895e5a5855ce3242980d61f4",
+    "Apps/Showcase/CourtyardEnvironment.h": "24024765f7d60af736f618a95c1a62b64e3c3c79623984f50915ee873d78e8f4",
+    "Content/Showcase/Courtyard/Hero/source.json": "e8de1657fff62b44e46961fdc1150212cf8d3b669c1071a37c760aa6fd77297a",
+    "Tools/Build/PrepareCourtyardHero.py": "8605152baa302f66852cd633c81854345389e6dd8067bd7fadfb59d5d967cbe2",
+    "Tools/Build/CourtyardImageCook.py": "5c0c9cd9345beb138a4238b9bd1c3d05d1069bf3e3703952164f609f0c282b64",
+    "Tools/Build/PrepareCourtyardEnvironment.py": "8d8590dfcc660ea1c8c6925847cf0bd19af2b09b12d61be7ee8420251329172b"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-reference-art/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/nexora-art-recording/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "1d6cda27e5b1",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.4918158060027,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.266667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "aa4a08061b2902f75450ee83d16df809fb8f57b736b16dde76d76a475fbd3745",
+    "video_sha256": "605d90cdb60e68e1990600cb402a8256367cec62c8d144e67dad609310bffc78",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "physical_display_verified": false,
+  "reference_parity_accepted": false,
+  "scope": "material/silhouette refinement; reflection and crystal optics pending",
+  "workspace_package_sha256": "92f37e5518046f8d30b06935a9317adf2304afb9830d987857f3031c2ce27775"
+}
