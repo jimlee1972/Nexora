@@ -119,6 +119,13 @@ write. SceneDocument persists authored Euler hints through save/reload and resto
 For one selected entity, the Inspector can add/remove a Camera component and edit its field of view
 and clipping planes. Invalid values are rejected; Save, Reload, and Undo retain the camera contract.
 The single-selection Light section likewise adds/removes a Light and edits nonnegative intensity.
+Inspector Copy values snapshots one selected entity's committed Transform/Euler, Camera or Light
+numeric values; Paste values applies the matching type to the displayed selection as one Undo.
+Camera/Light Paste preserves absent components, and Transform Paste preserves authored turns.
+Read-only Copy is available; write/modal/focus gates apply to Paste. Both abandon unsubmitted
+Inspector drafts and Scene gestures. The owning host clipboard survives source deletion/reload,
+is independent of hierarchy Copy/Cut/Paste, and is cleared when the host is destroyed. Scene files
+and runtime/stable C/Zig contracts are unchanged; complete reflected component editing remains open.
 Reset Transform clears local TRS and visible/stale authored Euler revolutions across the selection
 as one Undo.
 Reset Camera/Light restores existing components to defaults without adding missing components.

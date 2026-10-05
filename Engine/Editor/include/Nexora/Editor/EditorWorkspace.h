@@ -228,6 +228,11 @@ public:
   InspectOpaqueComponents(NodeKey entity) const;
   bool SetTransforms(std::span<const NodeKey> entities,
                      std::span<const runtime::Transform> transforms);
+  // Applies one local TRS and its matching finite authored Euler values to a nonempty,
+  // generation-checked selection as one atomic Undo. Invalid/duplicate targets reject before
+  // mutation; equal values preserve Redo. The caller owns workspace access policy.
+  bool SetTransformValues(std::span<const NodeKey> entities, runtime::Transform transform,
+                          const EulerDegrees &degrees);
   // Resets local TRS and authored Euler revolutions together as one Undo. Parent, selection and
   // unrelated components stay unchanged; already-default batches retain Redo.
   bool ResetTransforms(std::span<const NodeKey> entities);

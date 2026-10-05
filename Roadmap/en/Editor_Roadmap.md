@@ -229,6 +229,13 @@ creates property widgets; unknown components retain raw data instead of being si
   frames, maximum descriptor budgets, failed growth and leak-free lifetime. Fresh geometry is still
   copied per draw; persistent per-asset GPU caching and full graphical acceptance remain open.
 
+- ✅ Inspector Copy values / Paste values now snapshots committed Transform/Euler, Camera or
+  Light numeric values from one entity and applies them to multi-selection as one atomic Undo.
+  Camera/Light preserve component absence; Transform retains authored turns. The typed owning
+  clipboard survives source edits/deletion and reload, independently of hierarchy clipboard.
+  Read-only Copy, disabled/mismatched Paste, draft cancellation, no-op Redo and persistence are
+  covered by portable and 1x/2x real UI input tests. Full reflected Inspector remains open.
+
 - ✅ Inspector now exposes Reset Transform, Reset Camera and Reset Light for multi-selection.
   Transform reset clears local TRS and visible/stale Euler revolutions; Camera/Light reset preserves missing
   components. Changed batches are atomic single-step Undo/Redo, and no-ops retain Redo. Reset cancels

@@ -144,3 +144,9 @@ Runtime/metadata history; repeated replay is covered by `editor.component_reset_
 Hidden stale hints also reset, preventing later revival; Undo restores their original state.
 Already-default reset retains Redo. `editor.inspector_component_reset` covers 1x/2x real input,
 abandoned drafts, access gates and committed save/reload. Full graphical acceptance remains open.
+
+✅ Inspector Transform Copy values / Paste values now preserves committed local TRS and authored
+Euler turns across multi-selection as one Undo. The owning numeric clipboard survives source
+changes and reload; invalid pose/hint pairs reject atomically, equal values retain Redo, and
+metadata-only/hidden-hint edits keep Runtime and Editor history aligned. Portable and 1x/2x
+real UI tests cover replay, access gates, abandoned drafts and persistence.

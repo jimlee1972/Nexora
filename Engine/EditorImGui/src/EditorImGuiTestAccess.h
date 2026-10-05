@@ -113,6 +113,10 @@ public:
   // Transform, Camera, Light (0, 1, 2); reports actual UI widget positions for pointer tests.
   [[nodiscard]] static std::optional<std::array<float, 2>>
   InspectorResetPosition(const EditorImGuiHost &host, std::size_t component) noexcept;
+  // Component 0/1/2: Transform/Camera/Light; control 0/1: Copy/Paste values.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  InspectorClipboardPosition(const EditorImGuiHost &host, std::size_t component,
+                             std::size_t control) noexcept;
   static void CollapseInspector(EditorImGuiHost &host, bool collapsed) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   // Control 0: combo; 1: first available asset in its popup; 2: removal button.

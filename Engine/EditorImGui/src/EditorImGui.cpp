@@ -27,6 +27,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace nexora::editor::imgui {
@@ -211,6 +212,14 @@ struct EditorImGuiHost::State final {
   std::optional<InspectorCameraRequest> inspector_camera_request;
   std::optional<InspectorLightRequest> inspector_light_request;
   std::array<std::optional<std::array<float, 2>>, 3> inspector_reset_positions{};
+  struct TransformValues final {
+    runtime::Transform transform;
+    EulerDegrees degrees;
+  };
+  using ComponentValues =
+      std::variant<TransformValues, runtime::CameraComponent, runtime::LightComponent>;
+  std::optional<ComponentValues> inspector_component_clipboard;
+  std::array<std::array<std::optional<std::array<float, 2>>, 2>, 3> inspector_clipboard_positions{};
   std::optional<std::size_t> inspector_camera_focus_request;
   std::vector<SceneDocument::NodeKey> inspector_component_selection;
   std::array<std::array<char, 64>, 3> inspector_camera_text{};
@@ -1688,6 +1697,82 @@ template <typename StateT> void CaptureInspectorReset(StateT &state, std::size_t
       std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
 }
 
+// The clipboard owns only committed numeric values. It never borrows a source entity/document.
+template <typename StateT>
+bool DrawInspectorClipboard(StateT &state, SceneDocument &scene,
+                            std::span<const SceneDocument::NodeKey> keys, std::size_t component,
+                            bool editable, bool copy_allowed) {
+  const bool present =
+      component == 0 || std::ranges::any_of(keys, [&](const auto key) {
+        return component == 1 ? scene.Camera(key).has_value() : scene.Light(key).has_value();
+      });
+  const bool can_copy = copy_allowed && state.app_focused && keys.size() == 1 && present;
+  ImGui::PushID(static_cast<int>(component));
+  const auto capture = [&](std::size_t control) {
+    const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+    state.inspector_clipboard_positions[component][control] =
+        std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
+  };
+  ImGui::BeginDisabled(!can_copy);
+  if (ImGui::SmallButton("Copy values")) {
+    CancelSceneGestures(state);
+    CancelInspectorDrafts(state);
+    ImGui::ClearActiveID();
+    if (component == 0)
+      state.inspector_component_clipboard = typename StateT::TransformValues{
+          *scene.Transform(keys.front().id), *scene.EulerAngles(keys.front().id)};
+    else if (component == 1)
+      state.inspector_component_clipboard = *scene.Camera(keys.front());
+    else
+      state.inspector_component_clipboard = *scene.Light(keys.front());
+    state.inspector_error.clear();
+  }
+  capture(0);
+  ImGui::EndDisabled();
+  if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+    ImGui::SetTooltip(
+        "Copy committed values from one selected entity. Unsubmitted input is discarded.");
+  ImGui::SameLine();
+  const bool can_paste = editable && state.app_focused && present &&
+                         state.inspector_component_clipboard &&
+                         state.inspector_component_clipboard->index() == component;
+  ImGui::BeginDisabled(!can_paste);
+  bool pasted = false;
+  if (ImGui::SmallButton("Paste values")) {
+    CancelSceneGestures(state);
+    CancelInspectorDrafts(state);
+    ImGui::ClearActiveID();
+    const auto &copied = *state.inspector_component_clipboard;
+    if (component == 0) {
+      const auto &value = std::get<0>(copied);
+      pasted = scene.SetTransformValues(keys, value.transform, value.degrees);
+    } else if (component == 1) {
+      std::vector<std::optional<runtime::CameraComponent>> values;
+      for (const auto key : keys)
+        values.push_back(scene.Camera(key) ? std::optional{std::get<1>(copied)} : std::nullopt);
+      pasted = scene.SetCameras(keys, values);
+    } else {
+      std::vector<std::optional<runtime::LightComponent>> values;
+      for (const auto key : keys)
+        values.push_back(scene.Light(key) ? std::optional{std::get<2>(copied)} : std::nullopt);
+      pasted = scene.SetLights(keys, values);
+    }
+    if (pasted)
+      state.inspector_error.clear();
+    else
+      state.inspector_error =
+          "Paste rejected because the selected entities are no longer available.";
+  }
+  capture(1);
+  ImGui::EndDisabled();
+  if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+    ImGui::SetTooltip(
+        component == 0 ? "Paste copied Transform values, including authored Euler turns."
+                       : "Paste matching copied values to existing components in the selection.");
+  ImGui::PopID();
+  return pasted;
+}
+
 template <typename StateT>
 void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
                              const MeshAssetCatalog *meshes, bool editable,
@@ -1724,7 +1809,7 @@ void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
 
 template <typename StateT>
 void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
-                   const MeshAssetCatalog *meshes, bool editable) {
+                   const MeshAssetCatalog *meshes, bool editable, bool copy_allowed) {
   state.inspector_selection =
       scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
   state.inspector_transform_visible = false;
@@ -1734,6 +1819,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   state.inspector_mesh_label.clear();
   state.inspector_mesh_positions = {};
   state.inspector_reset_positions = {};
+  state.inspector_clipboard_positions = {};
   state.inspector_opaque_info.clear();
   std::unordered_set<runtime::Id> selected_entities;
   if (scene != nullptr)
@@ -1772,6 +1858,10 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
                 scene->Name(keys.front().id).data());
   else
     ImGui::Text("%zu entities selected", keys.size());
+  if (state.inspector_component_clipboard) {
+    constexpr std::array names{"Transform", "Camera", "Light"};
+    ImGui::TextDisabled("Copied values: %s", names[state.inspector_component_clipboard->index()]);
+  }
   for (const auto key : keys)
     if (auto info = scene->InspectOpaqueComponents(key))
       state.inspector_opaque_info.insert(state.inspector_opaque_info.end(),
@@ -1821,6 +1911,9 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   ImGui::PushID(static_cast<int>(selection_hash));
   ImGui::PushID(static_cast<int>(state.inspector_draft_generation));
   ImGui::SeparatorText("Transform");
+  if (DrawInspectorClipboard(state, *scene, keys, 0, editable, copy_allowed))
+    for (std::size_t i = 0; i < keys.size(); ++i)
+      transforms[i] = *scene->Transform(keys[i].id);
   ImGui::BeginDisabled(!editable);
   if (ImGui::SmallButton("Reset Transform") && ResetInspectorComponent(state, *scene, keys, 0))
     std::ranges::fill(transforms, runtime::Transform{});
@@ -1942,7 +2035,6 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   }
   ImGui::PushID(static_cast<int>(selection_hash));
   ImGui::PushID(static_cast<int>(state.inspector_draft_generation));
-  ImGui::BeginDisabled(!editable);
   std::vector<std::optional<runtime::CameraComponent>> cameras;
   std::vector<std::optional<runtime::LightComponent>> lights;
   for (const auto key : keys) {
@@ -1950,6 +2042,10 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     lights.push_back(scene->Light(key));
   }
   ImGui::SeparatorText("Camera");
+  if (DrawInspectorClipboard(state, *scene, keys, 1, editable, copy_allowed))
+    for (std::size_t i = 0; i < keys.size(); ++i)
+      cameras[i] = scene->Camera(keys[i]);
+  ImGui::BeginDisabled(!editable);
   bool camera_enabled = cameras.front().has_value();
   const bool camera_presence_mixed = std::ranges::any_of(
       cameras, [&](const auto &camera) { return camera.has_value() != camera_enabled; });
@@ -2079,7 +2175,12 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     else
       state.inspector_error.clear();
   }
+  ImGui::EndDisabled();
   ImGui::SeparatorText("Light");
+  if (DrawInspectorClipboard(state, *scene, keys, 2, editable, copy_allowed))
+    for (std::size_t i = 0; i < keys.size(); ++i)
+      lights[i] = scene->Light(keys[i]);
+  ImGui::BeginDisabled(!editable);
   bool light_enabled = lights.front().has_value();
   const bool light_presence_mixed = std::ranges::any_of(
       lights, [&](const auto &light) { return light.has_value() != light_enabled; });
@@ -2839,6 +2940,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->scene_canvas_viewport.reset();
   state_->scene_frame_position.reset();
   state_->inspector_reset_positions = {};
+  state_->inspector_clipboard_positions = {};
   state_->native_game_viewport.reset();
   state_->native_scene_pick.reset();
   state_->native_scene_drag.reset();
@@ -3143,7 +3245,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         DrawPlayEntityInspector(*selected);
       }
     } else {
-      DrawInspector(*state_, scene, content, meshes, scene_editable);
+      DrawInspector(*state_, scene, content, meshes, scene_editable, !interaction_blocked);
     }
   } else {
     CancelInspectorDrafts(*state_);
@@ -4541,6 +4643,13 @@ EditorImGuiTestAccess::InspectorResetPosition(const EditorImGuiHost &host,
                                               std::size_t component) noexcept {
   return component < host.state_->inspector_reset_positions.size()
              ? host.state_->inspector_reset_positions[component]
+             : std::nullopt;
+}
+
+std::optional<std::array<float, 2>> EditorImGuiTestAccess::InspectorClipboardPosition(
+    const EditorImGuiHost &host, std::size_t component, std::size_t control) noexcept {
+  return component < host.state_->inspector_clipboard_positions.size() && control < 2
+             ? host.state_->inspector_clipboard_positions[component][control]
              : std::nullopt;
 }
 
