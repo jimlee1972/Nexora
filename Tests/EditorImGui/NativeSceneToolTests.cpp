@@ -105,26 +105,46 @@ void Run(float dpi) {
   press(Key::Home); // ImGui navigation must not replace the actual canvas hover check.
   press(Key::W);
   Require(ui.GetNativeSceneTool() == Tool::Move, "W did not restore Move");
+  press(Key::X);
+  press(Key::P);
+  Require(ui.NativeSceneLocalAxes() && ui.NativeSceneCenterPivot(),
+          "Home navigation blocked gizmo mode shortcuts");
+  press(Key::X);
+  press(Key::P);
+  Require(!ui.NativeSceneLocalAxes() && !ui.NativeSceneCenterPivot(),
+          "gizmo mode shortcuts did not toggle back");
+  // Resolve both modes before the same-frame press starts a gesture.
   button.value1 = 1;
-  ui.ProcessEvents(std::array{button});
+  ui.ProcessEvents(std::array{key(Key::X, true), key(Key::P, true), button});
+  draw();
+  Require(ui.NativeSceneLocalAxes() && ui.NativeSceneCenterPivot(),
+          "same-frame mode/click used old gizmo settings");
+  ui.ProcessEvents(std::array{key(Key::X, false), key(Key::P, false)});
   draw();
   pointer.value0 += static_cast<int>(40 * dpi);
-  ui.ProcessEvents(std::array{pointer, key(Key::Q, true)});
+  ui.ProcessEvents(std::array{pointer, key(Key::Q, true), key(Key::X, true), key(Key::P, true)});
   draw();
-  Require(ui.GetNativeSceneTool() == Tool::Move && ui.NativeSceneDragPreview(),
+  Require(ui.GetNativeSceneTool() == Tool::Move && ui.NativeSceneDragPreview() &&
+              ui.NativeSceneLocalAxes() && ui.NativeSceneCenterPivot(),
           "Q interrupted an active Move gesture");
-  button.value1 = 0;
-  ui.ProcessEvents(std::array{button, key(Key::Q, false), key(Key::E, true)});
+  ui.ProcessEvents(std::array{key(Key::X, false), key(Key::P, false)});
   draw();
-  Require(ui.GetNativeSceneTool() == Tool::Move && ui.NativeSceneDrag(),
+  button.value1 = 0;
+  ui.ProcessEvents(std::array{button, key(Key::Q, false), key(Key::E, true), key(Key::X, true),
+                              key(Key::P, true)});
+  draw();
+  Require(ui.GetNativeSceneTool() == Tool::Move && ui.NativeSceneDrag() &&
+              ui.NativeSceneLocalAxes() && ui.NativeSceneCenterPivot(),
           "E changed tools before a released Move gesture committed");
-  ui.ProcessEvents(std::array{key(Key::E, false)});
+  ui.ProcessEvents(std::array{key(Key::E, false), key(Key::X, false), key(Key::P, false)});
   draw();
   press(Key::E);
   Require(ui.GetNativeSceneTool() == Tool::Rotate, "E did not restore Rotate");
   press(Key::R);
   Require(ui.GetNativeSceneTool() == Tool::Scale && ui.NativeSceneLocalAxes(),
           "R did not retain Scale local axes");
+  press(Key::X);
+  Require(ui.NativeSceneLocalAxes(), "X enabled unsupported world-axis Scale");
   // Actual toolbar pointer input follows the same tool state as Q.
   const auto select = Access::NativeSceneToolPosition(ui, Tool::Select);
   Require(select.has_value(), "Select toolbar widget missing");
@@ -146,9 +166,34 @@ void Run(float dpi) {
   press(Key::W);
   press(Key::Q);
   Require(ui.GetNativeSceneTool() == Tool::Select, "read-only tool navigation was rejected");
+  press(Key::X);
+  press(Key::P);
+  Require(!ui.NativeSceneLocalAxes() && !ui.NativeSceneCenterPivot(),
+          "read-only gizmo mode navigation was rejected");
+  for (const auto modifier :
+       {Nexora::Window::KeyModifiers::Control, Nexora::Window::KeyModifiers::Alt,
+        Nexora::Window::KeyModifiers::Super}) {
+    for (const auto value : {Key::X, Key::P}) {
+      auto event = key(value, true);
+      event.modifiers = modifier;
+      ui.ProcessEvents(std::array{event});
+      draw();
+      ui.ProcessEvents(std::array{key(value, false)});
+      draw();
+    }
+  }
+  Require(!ui.NativeSceneLocalAxes() && !ui.NativeSceneCenterPivot(),
+          "modified shortcuts toggled gizmo settings");
+  const auto blocked_modes = [&] {
+    press(Key::X);
+    press(Key::P);
+    Require(!ui.NativeSceneLocalAxes() && !ui.NativeSceneCenterPivot(),
+            "blocked input changed gizmo settings");
+  };
   Access::FocusHierarchy(ui);
   draw();
   press(Key::W);
+  blocked_modes();
   Require(ui.GetNativeSceneTool() == Tool::Select, "Scene hover stole another panel's key");
   Access::FocusScene(ui);
   draw();
@@ -156,6 +201,7 @@ void Run(float dpi) {
   ui.ProcessEvents(std::array{focus});
   draw();
   press(Key::W);
+  blocked_modes();
   Require(ui.GetNativeSceneTool() == Tool::Select, "unfocused W changed the Scene tool");
   focus.value0 = 1;
   ui.ProcessEvents(std::array{focus});
@@ -163,6 +209,7 @@ void Run(float dpi) {
   ui.RequestCloseConfirmation();
   draw();
   press(Key::W);
+  blocked_modes();
   Require(ui.GetNativeSceneTool() == Tool::Select, "modal W changed the Scene tool");
   press(Key::Escape);
   Require(ui.TakeCloseChoice() == editor::imgui::CloseChoice::Cancel,
@@ -172,6 +219,7 @@ void Run(float dpi) {
   Access::FocusInspectorTransformField(ui, 0);
   draw();
   press(Key::W);
+  blocked_modes();
   Require(ui.GetNativeSceneTool() == Tool::Select, "text input changed the Scene tool");
   Require(world.SaveScene(scene_id) == baseline && !scene.Dirty() &&
               std::ranges::equal(scene.Selection(), std::array{entity}) && scene.Redo() &&

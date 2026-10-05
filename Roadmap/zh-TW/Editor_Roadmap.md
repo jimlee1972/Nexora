@@ -148,6 +148,19 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Native Scene 的 X 現可切換 Global／Local axes，Scale 維持 Local；P 切換 Pivot／Center，
+  兩者皆在同幀點擊／拖曳開始前處理。1x／2x 真實輸入涵蓋 Home navigation、實際 hover／focus、
+  modifier／文字／modal、拖曳中與放開待提交、唯讀等限制，並保留 World／Redo。
+  Linux Xvfb 驗證 proxy／OBJ roots 的 Home／P center scale／rotate／move 與一步 Undo。
+  完整 gizmo 與目標主機驗收仍未完成。
+
+- ✅ Scene Ctrl+A 與 Select all 現以 generation-keyed selection 選取，不改動 World、dirty、
+  clipboard 或 history。Overview 選取場景節點；native 使用 owning 單一 frame token 與實際
+  3,999-bounded draw／pick candidate，跳過 hidden／locked record 及未提交的 tail。
+  真正 1×／2× 驗證唯讀、空場景、panel／text／modal／focus／backend 及 active／pending drag。
+  測試保留 unknown bytes、clipboard 與 Redo，拒絕 stale／malformed／duplicate packet，並涵蓋
+  4,001 個節點。Linux Xvfb 選取兩個 proxy／OBJ root；完整 Scene View 驗收仍待完成。
+
 - ✅ Native Scene Select（Q）保留一般／Ctrl picking，隱藏變形把手並停止 drag preview／commit。
   W／E／R 回到 Move／Rotate／Scale。真正 1×／2× 輸入測試涵蓋同 frame Q／click、toolbar
   一致性、Home 導覽、active／pending drag、唯讀、panel／focus／modal／text gate 及保留 Redo。

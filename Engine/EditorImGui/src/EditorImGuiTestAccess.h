@@ -92,6 +92,8 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneFrameAllPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  SceneSelectAllPosition(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneMarkerPosition(const EditorImGuiHost &host, SceneDocument::NodeKey entity) noexcept;
   [[nodiscard]] static std::array<float, 2>
   SceneOverviewCenter(const EditorImGuiHost &host) noexcept;

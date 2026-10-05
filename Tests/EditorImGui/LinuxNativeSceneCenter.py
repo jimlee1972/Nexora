@@ -171,6 +171,15 @@ def main():
             raise RuntimeError("Home did not restore all-scene framing without selection")
         send("key", "--delay", "100", "q")
         time.sleep(0.2)
+        send("key", "--delay", "100", "ctrl+a")
+        time.sleep(0.2)
+        viewport = settled_viewport(editor.stderr, viewport)
+        if blue_proxy_pixel(display, window, viewport) is not None:
+            raise RuntimeError("native Scene Ctrl+A did not select both submitted roots")
+        # A Select click on empty canvas clears selection without authoring a transform.
+        move((viewport[0] + 10, viewport[1] + 10))
+        send("click", 1)
+        time.sleep(0.2)
         point = blue_proxy_pixel(display, window, viewport, first=True)
         if point is None:
             raise RuntimeError("first root proxy is not visible")
@@ -200,7 +209,8 @@ def main():
         send("click", 1)
         send("keyup", "Control_L")
         time.sleep(0.2)
-        send("key", "p", "r", "f")
+        # Home leaves ImGui navigation focus on the canvas. P must still resolve from real hover.
+        send("key", "Home", "p", "r", "f")
         time.sleep(0.2)
         viewport = settled_viewport(editor.stderr, viewport)
         send("key", "--delay", "80", "ctrl+s")

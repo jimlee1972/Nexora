@@ -420,6 +420,43 @@ preparation after commands/ticks, where current scene lifecycle and CameraView a
 snapshots cannot retain a removed camera or draw an unloading scene. Automatic remains ordered by
 entity ID. No borrowed World data survives frame preparation.
 
+## Scene Select all
+
+Focused Scene Ctrl+A and Select all change selection without changing World, dirty state,
+clipboard or authoring history. Overview selects its scene nodes through current NodeKeys in
+node order; empty scenes clear selection. Native input emits one owning project/document token.
+`TakeNativeSceneSelectAllRequest` consumes it once in its issuing GUI frame and rejects changed
+scope, unavailable preview, focus loss and newly blocking dialogs. BeginFrame and gesture
+cancellation discard unapplied requests. No source IO or GPU ownership is added.
+
+After widgets the application revalidates the current SceneFileSession token and selects the same
+bounded candidates used by drawing/picking, including mesh upload/proxy fallback. It borrows those
+numeric records only during the synchronous selection call. Hidden/locked candidates are omitted;
+current NodeKeys validate every remaining target before one selection update. Stale, malformed,
+duplicate or oversized packets preserve selection. An empty eligible set clears it. The existing
+3,999-candidate budget means invisible submission tails are not selected by native Ctrl+A.
+
+Read-only selection works. Other panels/text input, blocking modals, unavailable native preview,
+held mouse buttons and active/pending drag commits cannot invoke the action. Native same-frame
+framing waits for a later input rather than using pre-selection bounds. Buttons do not poll Nodes()
+every idle frame. Real 1x/2x tests cover native/overview and button/key parity, one-shot/stale packets,
+4,001-node limits, unknown bytes, clipboard and Redo retention. Linux Xvfb verifies both submitted
+proxy/OBJ roots become selected after Ctrl+A and remain pickable. Full Scene View and target-host
+acceptance remain open.
+
+## Native gizmo mode shortcuts
+
+X toggles the native Scene's existing Global/Local axes; Scale always retains Local axes. P toggles
+Pivot/Center. These host-owned settings require focused Scene input, actual canvas hover or active
+canvas, application focus, no text input and no blocking modal. Ctrl/Alt/Super-modified X/P do not
+toggle modes. Both shortcuts resolve before same-frame click/drag setup and remain blocked during
+held or pending native gestures. The P path now uses the same hover/navigation guard as Q/W/E/R,
+including Home followed by P without moving the pointer. Read-only projects retain mode navigation.
+World, selection, dirty state and Undo/Redo are unchanged; no IO, plugin or GPU contract changes.
+Real 1x/2x input tests cover same-frame mode/click, modifier/focus/text/modal gates, Scale constraints
+and retained Redo. Linux Xvfb verifies Home/P followed by center scale/rotate/move on proxy and OBJ
+roots, with one-step Undo and saved transforms. Complete gizmo and target-host acceptance remain open.
+
 ## Native Scene selection tool
 
 Select (Q) retains ordinary and Ctrl-toggle native picking without creating a transform drag,

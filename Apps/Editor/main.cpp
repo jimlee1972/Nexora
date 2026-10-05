@@ -1287,6 +1287,11 @@ int RunGraphical(std::optional<ProjectState> project,
           native_scene_drag_rotate = false;
           native_scene_drag_scale_axis.reset();
         }
+        if (const auto request = ui.TakeNativeSceneSelectAllRequest(); request && scene_files) {
+          const auto candidates = NativeSceneProxyCandidates(scene, &*native_scene_meshes);
+          static_cast<void>(nexora::editor::preview::SelectNativeSceneCandidates(
+              scene, scene_files->Token(), *request, candidates));
+        }
         if (const auto request = ui.TakeNativeSceneFrameAllRequest();
             request && scene_files && *request == scene_files->Token()) {
           const auto candidates = NativeSceneProxyCandidates(scene, &*native_scene_meshes);

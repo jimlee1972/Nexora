@@ -17,6 +17,12 @@ target_link_libraries(NexoraNativeSceneToolTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraNativeSceneToolTests)
 add_test(NAME editor.native_scene_tools COMMAND NexoraNativeSceneToolTests)
 
+add_executable(NexoraSceneSelectAllTests SceneSelectAllTests.cpp)
+target_include_directories(NexoraSceneSelectAllTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraSceneSelectAllTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraSceneSelectAllTests)
+add_test(NAME editor.scene_select_all COMMAND NexoraSceneSelectAllTests)
+
 add_executable(NexoraInspectorComponentResetTests ComponentResetTests.cpp)
 target_include_directories(NexoraInspectorComponentResetTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraInspectorComponentResetTests PRIVATE Nexora::EditorImGui)
