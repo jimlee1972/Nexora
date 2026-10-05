@@ -20,3 +20,20 @@ with tempfile.TemporaryDirectory(prefix='nexora-visual-tour-cli-') as temporary:
     assert data['headless_evidence']['executed'] and not data['windowed_evidence']['executed']
     assert 5999<=data['lifecycle']['frames']<=6002
     print('PASS: 100-second visual timeline completed, finale activated, automatic stop and lifecycle verified (headless).')
+
+    for tier, name in enumerate(['basic','standard','high']):
+        quality_report=Path(temporary)/f'{name}.json'
+        completed=subprocess.run([sys.argv[1],'--headless','--scene=courtyard','--frames=1',
+            f'--quality={name}','--pause-animation','--activate-device','--no-reload',
+            '--gameplay-module=static',f'--report={quality_report}'],capture_output=True,text=True,timeout=15)
+        assert completed.returncode==0,completed.stderr
+        quality=json.loads(quality_report.read_text())
+        settings=quality['runtime_rooms']['courtyard']
+        assert quality['render_settings']['quality']==settings['quality']==name
+        assert settings['shadow_resolution']==512*(2**tier)
+        assert settings['particle_budget']==24*(2**tier) and settings['foliage_quad_count']==32*(2**tier)
+        assert settings['animation_paused'] and settings['animation_seconds']==0
+        assert settings['bloom_enabled']==(tier!=0)
+    rejected=subprocess.run([sys.argv[1],'--headless','--quality=unknown'],capture_output=True,text=True)
+    assert rejected.returncode!=0 and '--quality must be' in rejected.stderr
+    print('PASS: quality CLI selects actual workload settings and rejects unknown tiers.')

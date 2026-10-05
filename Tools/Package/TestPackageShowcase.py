@@ -35,7 +35,7 @@ def main() -> int:
         assert (output / "bin/NexoraRuntime.dll").read_bytes() == b"runtime"
         assert (output / "manifests/SHA256SUMS").read_text().count("\n") == 12
         assert content["showcase_content"][0]["path"] == "Content/Showcase/catalog.json"
-        assert "--mode=interactive" in build["interactive_launch"]
+        assert "--mode=interactive --scene=courtyard" in build["interactive_launch"]
         assert (output / "run-showcase.ps1").is_file()
         archive = output.with_suffix(".zip")
         before = hashlib.sha256(archive.read_bytes()).hexdigest()

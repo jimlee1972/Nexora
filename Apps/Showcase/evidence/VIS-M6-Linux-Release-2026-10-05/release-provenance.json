@@ -1,0 +1,36 @@
+{
+  "production_source_commit": "3047d5c68de939c6ead3bfceb8a47c5d6ccf3524",
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "3047d5c68de9",
+    "abi_version": 1,
+    "configuration": "Shipping",
+    "link_mode": "Monolithic"
+  },
+  "executable_sha256": "7d23c5c1c8a4b68fa349c95401b7e5c551db24d2a07da9f44ee2d058eedd196f",
+  "package_sha256": "9e0d6c783aa84f4026229bdfa1bac3edb0efccc81aaebe224829497c8e51f2a5",
+  "package_workspace_artifact": "/workspace/artifacts/NexoraShowcase-Visual-3047d5c-Linux.zip",
+  "video_sha256": "36c73ff97dfd68d4fbac179373911018e0f82ea238c550cbf7e1ed950efedbe6",
+  "sources": {
+    "Apps/Showcase/main.cpp": "e5f7e70e740204ce32ac018b977e3deeca7c7628218baa0c7003a03892620f18",
+    "Apps/Showcase/ShowcaseRooms.cpp": "5fc3ba952eab2f38f788965fb211beed72845df9172bbdb58a9ab4c72a0707e7",
+    "Apps/Showcase/ShowcaseRooms.h": "0bc8e38c292d759156fb3248e60e262b667d41fb772161ffcbfae2650338f668",
+    "Engine/Presentation/include/Nexora/Presentation/Surface.h": "77c72511e7f0e4db88e1b07727e2d3716ed37f41a8c79f40ac1de4910d099c82",
+    "Engine/Presentation/src/PbrMaterialUpload.h": "2347abb9369e1754362a4b4eb45e8caedc27e46f46e70c74a3afbc9efc53878f",
+    "Engine/Presentation/src/Dx12Surface.cpp": "f5bc2e9f7aa07bd6dbf7593bad90d7632ef78e72212058b63d9a4c09ed9c3e33",
+    "Engine/Presentation/src/VulkanSurface.cpp": "b7c95f8a8db918022ae501862f2a734fe44ec2560a1683d1c0dc0720c772efc4",
+    "Engine/Presentation/src/MetalSurface.mm": "8bdb60fc6056fb84651192f7ae99e98ce86a787ed3d739b3075577175ebcfa5a",
+    "Engine/Presentation/shaders/scene_pbr.slang": "6a10bf33156d5cf7d6013b94f221806603a29f6883d0cde3fc6d386fee13f9f0",
+    "Engine/Presentation/src/ScenePbrHlslShaders.h": "ae1410935e92f76f18e027a2881ce0654f620fe698f9c5274c8e264644b28537",
+    "Engine/Presentation/src/ScenePbrVulkanShaders.h": "8e24ae7bbcda16767c1cf0693f442d0a59f1b1e4a27e247300dfeb703a5a0596",
+    "Engine/Presentation/src/ScenePbrMetalShaders.h": "5931a80e167fb98b651c91a47d1f52d4c187e8b144e284a675c977402d625d9a",
+    "Tools/Package/PackageShowcase.py": "05484374f0d7fc65bf6f01843a500511127c81f6adf052ca783017fff8ba8777",
+    "Tools/Package/AcceptShowcaseWindows.ps1": "a36e039027bff18cb55961c8e5ed9b7272e99f22b6194397947a94be60ebb55b",
+    "Tools/Package/RecordVisualTour.py": "fcd7fa146d24d21aeaf06e51940234a62068c16fc074d22419ba656cbdf29d8b",
+    "Tests/Showcase/LinuxCourtyardBenchmark.py": "2ea997edeac42e345774a7fd8a4fc5f2641a18855b1789b1d8ace2b1c3afb968",
+    "Tests/Showcase/LinuxShowcaseInteraction.py": "7722cee9c9d7fbb81579e753ac2761ae27e9071f5aa4fd797ae27909b433752f",
+    "Content/Showcase/Courtyard/Hero/manifest.json": "de5b68806cf93421fc61a75c30b25379496909c4b64963bbd9a3ec199151955e"
+  },
+  "physical_target_hardware_accepted": false,
+  "gpu_timestamps_available": false
+}

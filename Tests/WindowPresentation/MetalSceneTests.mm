@@ -492,7 +492,7 @@ int main(int argc, char **argv) {
     }
     // Depth must select the bright near triangle regardless of index order.
     std::uint64_t windReference{}, windMoved{};
-    for (unsigned mode = 0; mode < 8; ++mode) {
+    for (unsigned mode = 0; mode < 9; ++mode) {
       PbrVegetationFixtures::Fixture fixture(mode);
       auto vegetationDraw = fixture.Draw(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||

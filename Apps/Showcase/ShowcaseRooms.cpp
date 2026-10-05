@@ -126,6 +126,7 @@ struct RoomSession::State final {
   bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true};
   bool courtyardPaused{}, courtyardActive{}, courtyardWind{true}, courtyardTransmission{true};
   bool visualTour{}, courtyardFreeCamera{}, courtyardCompare{};
+  unsigned courtyardQuality{1}; // Basic / Standard / High, shared by all native adapters.
   math::Vector3 freeEye{};
   double courtyardSeconds{};
   std::size_t courtyardParticleCount{};
@@ -175,8 +176,8 @@ struct RoomSession::State final {
   std::array<std::string, 3> environmentHashes;
   std::string environmentMetadataHash;
   renderer::Mesh courtyardCrystal;
-  std::array<ByteBuffer, 8> courtyardDetail;
-  std::array<std::string, 9> courtyardHeroHashes;
+  std::array<ByteBuffer, 9> courtyardDetail;
+  std::array<std::string, 10> courtyardHeroHashes;
   bool assetRejected{}, cycleRejected{}, rolledBack{};
 #endif
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
@@ -415,7 +416,7 @@ struct RoomSession::State final {
         return {};
       return CanonicalAsset{source.id, source.type, {{0x4e58, 119}}, source.bytes};
     });
-    const std::array<std::span<const std::byte>, 10> heroSources{
+    const std::array<std::span<const std::byte>, 11> heroSources{
         std::as_bytes(std::span{courtyard_hero::metadata, sizeof(courtyard_hero::metadata) - 1}),
         std::as_bytes(std::span{courtyard_hero::mesh, sizeof(courtyard_hero::mesh) - 1}),
         std::as_bytes(std::span{courtyard_hero::stone_color}),
@@ -425,7 +426,8 @@ struct RoomSession::State final {
         std::as_bytes(std::span{courtyard_hero::bronze_normal}),
         std::as_bytes(std::span{courtyard_hero::bronze_orm}),
         std::as_bytes(std::span{courtyard_hero::leaf}),
-        std::as_bytes(std::span{courtyard_hero::mote})};
+        std::as_bytes(std::span{courtyard_hero::mote}),
+        std::as_bytes(std::span{courtyard_hero::sky})};
     for (std::size_t i = 0; i < heroSources.size(); ++i) {
       const auto payload = heroSources[i];
       const auto imported = importer.Import({{0x4e58, 119 + i},
@@ -466,7 +468,7 @@ struct RoomSession::State final {
     }
     if (!courtyardAssets.Load({0x4e58, 107}))
       throw std::runtime_error("Courtyard cooked IBL metadata load failed");
-    for (std::size_t i = 0; i < 9; ++i) {
+    for (std::size_t i = 0; i < 10; ++i) {
       const auto *loaded = courtyardAssets.Load({0x4e58, 120 + i});
       if (!loaded || loaded->dependencies != std::vector<AssetUuid>{{0x4e58, 119}})
         throw std::runtime_error("Courtyard hero generation dependency failed");
@@ -694,7 +696,7 @@ struct RoomSession::State final {
       indices.push_back(static_cast<std::uint16_t>(base + i));
   }
   void CourtyardParticles() {
-    courtyardParticleCount = courtyardActive ? 48 : 0;
+    courtyardParticleCount = courtyardActive ? (24U << courtyardQuality) : 0;
     const auto first = static_cast<std::uint32_t>(indices.size());
     for (std::size_t i = 0; i < courtyardParticleCount; ++i) {
       const float phase =
@@ -705,7 +707,7 @@ struct RoomSession::State final {
       LeafQuad({std::cos(phase) * r, y, std::sin(phase) * r}, 0.025F, 0.05F, -yaw);
     }
     if (indices.size() > first)
-      batches.push_back({first, static_cast<std::uint32_t>(indices.size() - first), 0, 1, 30});
+      batches.push_back({first, static_cast<std::uint32_t>(indices.size() - first), 0, 1, 7});
   }
   // Authored stone/bronze device; native visual acceptance is tracked separately.
   void CourtyardGeometry() {
@@ -810,8 +812,8 @@ struct RoomSession::State final {
                                                          {0, 0.85F}}};
       Lathe({x, 0, 2.5F}, vessel); // Original hollow ceramic profile, not a downloaded prop.
       finish(3);
-      for (int i = 0; i < 16; ++i) {
-        const float z = -3.0F + i * 0.18F;
+      for (unsigned i = 0; i < (8U << courtyardQuality); ++i) {
+        const float z = -3.0F + i * (2.88F / (8U << courtyardQuality));
         LeafQuad({x + static_cast<float>(i % 3) * 0.15F, 0, z}, 0.14F, 0.55F + (i % 4) * 0.09F,
                  i * 0.73F);
         LeafQuad({x - 0.15F, 0, z}, 0.12F, 0.65F, i * 0.73F + 1.57F);
@@ -847,13 +849,13 @@ struct RoomSession::State final {
           vertices.push_back(
               {{n.x * 60, n.y * 60, n.z * 60},
                {-n.x, -n.y, -n.z},
-               {corner == 0 || corner == 3 ? 0.0F : 1.0F, corner < 2 ? 0.0F : 1.0F}});
+               {skyAzimuth / (2 * math::kPi), (skyLatitude + math::kPi / 2) / math::kPi}});
         }
         for (const auto index : {0, 1, 2, 0, 2, 3})
           indices.push_back(static_cast<std::uint16_t>(skyBase + index));
       }
-      finish(6 + band);
     }
+    finish(6);
     renderer::Mesh tangentSource;
     tangentSource.indices = indices;
     tangentSource.vertices.reserve(vertices.size());
@@ -1251,7 +1253,7 @@ struct RoomSession::State final {
       lines.insert(lines.end(),
                    {"Ruins courtyard", "B cycles wide / material / motion framing; F4 hides UI",
                     "P compares Lambert; O toggles environment lighting",
-                    "Shadows / wind / final art remain pending"});
+                    "Material / light / wind comparisons available"});
     if (selected == "hub")
       lines.insert(lines.end(),
                    {"Eight rooms / central 3D display stand", "Choose a portal above or press 1-8",
@@ -1491,6 +1493,9 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
       s.freeEye = {s.radius * std::sin(s.yaw) * std::cos(s.pitch), s.radius * std::sin(s.pitch),
                    s.radius * std::cos(s.yaw) * std::cos(s.pitch)};
   }
+  if (s.selected == "courtyard" && key == Key::Q)
+    SetQuality(
+        std::array<std::string_view, 3>{"basic", "standard", "high"}[(s.courtyardQuality + 1) % 3]);
   if (s.selected == "courtyard" && key == Key::H)
     s.courtyardCompare = !s.courtyardCompare;
   if (s.selected == "courtyard" && !s.tour && key == Key::Space)
@@ -1766,6 +1771,31 @@ void RoomSession::Tick(double seconds) {
       s.Probe(m);
 }
 
+void RoomSession::SetQuality(std::string_view quality) {
+  const auto tier = quality == "basic"      ? 0U
+                    : quality == "standard" ? 1U
+                    : quality == "high"     ? 2U
+                                            : 3U;
+  if (tier == 3)
+    throw std::invalid_argument("Unknown showcase quality");
+  if (tier == state_->courtyardQuality)
+    return;
+  state_->courtyardQuality = tier;
+  // Scene spans are borrowed only for a draw; invalidate geometry between draws.
+  state_->courtyardVertices.clear();
+  state_->courtyardIndices.clear();
+  state_->courtyardBatches.clear();
+}
+std::string_view RoomSession::QualityName() const noexcept {
+  return std::array<std::string_view, 3>{"basic", "standard", "high"}[state_->courtyardQuality];
+}
+void RoomSession::SetAnimationPaused(bool paused) {
+  state_->courtyardPaused = paused;
+  if (state_->visualTour)
+    state_->paused = paused;
+}
+void RoomSession::SetDeviceActive(bool active) { state_->courtyardActive = active; }
+
 Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std::uint32_t height) {
   auto &s = *state_;
   s.visualized.insert(s.selected);
@@ -1817,18 +1847,22 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
         s.courtyardActive ? 1.0F + 0.35F * std::sin(static_cast<float>(s.courtyardSeconds) * 2) : 1;
     for (auto &value : s.materials[2].emission)
       value *= pulse;
-    for (unsigned band = 0; band < 24; ++band) {
-      const float t = static_cast<float>(band) / 23;
-      Nexora::Presentation::SceneMaterial sky{};
-      sky.baseColor = {0, 0, 0, 1};
-      sky.metallic = sky.roughness = 1;
-      sky.emission = {0.8F * (1 - t) + 0.18F * t, 0.58F * (1 - t) + 0.32F * t,
-                      0.32F * (1 - t) + 0.5F * t};
-      s.materials.push_back(sky);
-    }
+    Nexora::Presentation::SceneMaterial sky{};
+    sky.baseColor = {0, 0, 0, 1};
+    sky.metallic = sky.roughness = 1;
+    sky.emission = {0.35F, 0.5F, 0.65F};
+    sky.unlit = s.courtyardPbr;
+    sky.castsShadow = false;
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    sky.emission = {1, 1, 1};
+    sky.emissionTextureId = 18;
+#endif
+    s.materials.push_back(sky);
     Nexora::Presentation::SceneMaterial motes{};
     motes.baseColor = {0, 0, 0, 1};
     motes.emission = {0.1F, 3, 4};
+    motes.unlit = s.courtyardPbr;
+    motes.castsShadow = false;
     if (s.courtyardPbr)
       motes.alphaCutoff = 0.5F;
 #if NEXORA_ASSET_PIPELINE_ENABLED
@@ -1998,8 +2032,9 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     data.offscreen = data.hdr;
     if (data.hdr && s.courtyardStyled)
       data.colorGrade = Nexora::Presentation::SceneColorGrade{0.95F, 1.02F};
-    if (data.hdr && s.courtyardBloom)
-      data.bloom = Nexora::Presentation::SceneBloom{};
+    if (data.hdr && s.courtyardBloom && s.courtyardQuality != 0)
+      data.bloom = Nexora::Presentation::SceneBloom{s.courtyardQuality == 2 ? 0.18F : 0.15F, 1.0F,
+                                                    s.courtyardQuality == 2 ? 20.0F : 12.0F};
     data.cameraPosition = {eye.x, eye.y, eye.z};
     if (data.pbr) {
       data.light_direction[0] = -8;
@@ -2012,6 +2047,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
         const auto light =
             math::Orthographic(-7, 7, -7, 7, 0.1F, 40) * math::LookAt({8, 14, 7}, {0, 1, 0});
         data.shadow = Nexora::Presentation::SceneDirectionalShadow{};
+        data.shadow->resolution = 512U << s.courtyardQuality;
         data.shadow->lightViewProjection = light.values;
         data.shadow->normalBias = s.courtyardShadowBias;
         data.shadow->slopeBias = s.courtyardShadowBias * 2;
@@ -2027,7 +2063,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       s.sceneUploads.push_back({10 + i, 64, 64, 256, s.courtyardDetail[i]});
     data.textureId = 2;
     data.textureUploads = s.sceneUploads;
-    if (data.pbr && s.courtyardIbl) {
+    if (data.pbr && s.courtyardIbl && s.courtyardQuality != 0) {
       s.linearSceneUploads = {{3, 16, 8, 1, s.courtyardEnvironment[0]},
                               {4, 64, 32, 7, s.courtyardEnvironment[1]},
                               {5, 32, 32, 1, s.courtyardEnvironment[2]}};
@@ -2060,12 +2096,13 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     const std::string viewing = s.tour ? "Courtyard tour " + Number(s.tourSeconds) + " / 100 s"
                                 : s.courtyardFreeCamera ? "WASD Move / Drag Look / Arrows Up-Down"
                                                         : "Drag Orbit / Wheel Zoom";
-    s.Text(30, 678, viewing, 0xffefdc80, 1.3F);
+    s.Text(30, 678, viewing + " / Q Quality: " + std::string(QualityName()), 0xffefdc80, 1.3F);
     if (s.courtyardCompare) {
       s.Rect(18, 531, 900, 100, 0xde241a10);
       s.Text(30, 544, "P Materials / O Environment / F6 Shadows", 0xffe9ded4, 1.4F);
       s.Text(30, 573, "K Glow / G Color / N Wind / M Backlight", 0xffe9ded4, 1.4F);
-      s.Text(30, 602, "Pause for fixed comparisons / R Replay / F1-F3 Details", 0xffefdc80, 1.2F);
+      s.Text(30, 602, "Q Quality / Pause for comparisons / R Replay / F1-F3 Details", 0xffefdc80,
+             1.2F);
     }
   } else {
     s.Rect(0, 0, 1280, 112, 0xf0271a10);
@@ -2205,21 +2242,31 @@ std::string RoomSession::Report() const {
   }
   out << "],\"courtyard\":{\"stage\":\"living_scene_in_progress\",\"shot\":" << s.courtyardShot
       << ",\"shading\":\""
-      << (s.courtyardPbr ? (NEXORA_ASSET_PIPELINE_ENABLED && s.courtyardIbl ? "shared_pbr_ibl"
-                                                                            : "shared_pbr_direct")
-                         : "lambert")
+      << (s.courtyardPbr
+              ? (NEXORA_ASSET_PIPELINE_ENABLED && s.courtyardIbl && s.courtyardQuality != 0
+                     ? "shared_pbr_ibl"
+                     : "shared_pbr_direct")
+              : "lambert")
       << "\""
       << ",\"scene_color_format\":\"" << (s.courtyardPbr ? "RGBA16F" : "RGBA8") << "\""
       << ",\"exposure\":" << s.courtyardExposure << ",\"camera_mode\":\""
-      << (s.courtyardFreeCamera ? "free" : "orbit") << "\""
+      << (s.visualTour            ? "tour"
+          : s.courtyardFreeCamera ? "free"
+                                  : "orbit")
+      << "\""
       << ",\"comparison_menu\":" << s.courtyardCompare
       << ",\"animation_paused\":" << (s.visualTour ? s.paused : s.courtyardPaused)
       << ",\"animation_seconds\":" << s.courtyardSeconds
       << ",\"wind_enabled\":" << (s.courtyardPbr && s.courtyardWind)
       << ",\"transmission_enabled\":" << (s.courtyardPbr && s.courtyardTransmission)
       << ",\"device_active\":" << s.courtyardActive
-      << ",\"particle_count\":" << s.courtyardParticleCount << ",\"foliage_quad_count\":64"
-      << ",\"bloom_enabled\":" << (s.courtyardPbr && s.courtyardBloom)
+      << ",\"particle_budget\":" << (24U << s.courtyardQuality)
+      << ",\"particle_count\":" << s.courtyardParticleCount
+      << ",\"foliage_quad_count\":" << (32U << s.courtyardQuality) << ",\"quality\":\""
+      << QualityName() << "\""
+      << ",\"shadow_resolution\":"
+      << (s.courtyardPbr && s.courtyardShadows ? (512U << s.courtyardQuality) : 0)
+      << ",\"bloom_enabled\":" << (s.courtyardPbr && s.courtyardBloom && s.courtyardQuality != 0)
       << ",\"shadows_enabled\":" << (s.courtyardPbr && s.courtyardShadows)
       << ",\"stylized_enabled\":" << (s.courtyardPbr && s.courtyardStyled)
       << ",\"shadow_bias\":" << s.courtyardShadowBias << ",\"screenshot_mode\":" << s.screenshotMode
@@ -2227,7 +2274,8 @@ std::string RoomSession::Report() const {
       << ",\"representative_asset_loaded\":" << !s.assetMesh.vertices.empty()
       << ",\"asset_hash\":\"" << s.assetHash << "\""
       << ",\"hero_asset_loaded\":" << !s.courtyardCrystal.vertices.empty()
-      << ",\"hero_detail_map_count\":8,\"hero_hashes\":[";
+      << ",\"hero_detail_map_count\":6,\"hero_mask_count\":2,\"hero_sky_map_count\":1,\"hero_"
+         "hashes\":[";
   for (std::size_t i = 0; i < s.courtyardHeroHashes.size(); ++i) {
     if (i)
       out << ',';
@@ -2238,8 +2286,8 @@ std::string RoomSession::Report() const {
       << s.courtyardHashes[0] << "\",\"" << s.courtyardHashes[1] << "\",\"" << s.courtyardHashes[2]
       << "\",\"" << s.courtyardHashes[3] << "\"]"
       << ",\"environment_loaded\":true,\"environment_enabled\":"
-      << (s.courtyardPbr && s.courtyardIbl) << ",\"environment_metadata_hash\":\""
-      << s.environmentMetadataHash << "\""
+      << (s.courtyardPbr && s.courtyardIbl && s.courtyardQuality != 0)
+      << ",\"environment_metadata_hash\":\"" << s.environmentMetadataHash << "\""
       << ",\"environment_hashes\":[\"" << s.environmentHashes[0] << "\",\""
       << s.environmentHashes[1] << "\",\"" << s.environmentHashes[2] << "\"]"
 #else

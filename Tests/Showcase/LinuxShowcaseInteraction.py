@@ -307,6 +307,14 @@ def main():
             replay = compared_screenshot(window,1280,720,output/'courtyard-wide-replay.png',courtyard_wide,True)
             assert replay == courtyard_wide, 'Fixed wide camera did not reproduce native pixels'
 
+            # Change actual GPU work while effects are paused, then require exact restoration.
+            tool('key','--window',window,'q')
+            compared_screenshot(window,1280,720,output/'courtyard-quality-high.png',courtyard_wide,False)
+            tool('key','--window',window,'q')
+            compared_screenshot(window,1280,720,output/'courtyard-quality-basic.png',courtyard_wide,False)
+            tool('key','--window',window,'q')
+            compared_screenshot(window,1280,720,output/'courtyard-quality-standard.png',courtyard_wide,True)
+
             tool('key','--window',window,'c')
             free_start=compared_screenshot(window,1280,720,output/'courtyard-free-camera.png',courtyard_wide,False)
             tool('keydown','--window',window,'w')
@@ -375,7 +383,7 @@ def main():
                 'scope':'Linux Xvfb/lavapipe native interaction; no physical display or Windows claim',
                 'courtyard_free_camera':True,'courtyard_living_replay':True,'courtyard_wind_comparison':True,'courtyard_transmission_comparison':True,'courtyard_bloom_comparison':True,'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_ibl_comparison':True,'courtyard_hdr_exposure':True,'courtyard_shadow_comparison':True,'courtyard_tone_comparison':True,'courtyard_material_comparison':True,
                 'courtyard':rooms['courtyard'],
-                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-bloom-off.png','courtyard-bloom-restored.png','courtyard-shadow-off.png','courtyard-shadow-restored.png','courtyard-neutral.png','courtyard-styled-restored.png','courtyard-exposure.png','courtyard-exposure-restored.png','courtyard-direct.png','courtyard-ibl-restored.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png','courtyard-activated.png','courtyard-paused.png','courtyard-animated.png','courtyard-animation-replay.png','courtyard-inactive.png','courtyard-free-camera.png','courtyard-free-moved.png','courtyard-free-restored.png','courtyard-wind-off.png','courtyard-wind-restored.png','courtyard-transmission-off.png','courtyard-transmission-restored.png'],
+                'quality_cycle_restores_pixels':True,'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-bloom-off.png','courtyard-bloom-restored.png','courtyard-shadow-off.png','courtyard-shadow-restored.png','courtyard-neutral.png','courtyard-styled-restored.png','courtyard-exposure.png','courtyard-exposure-restored.png','courtyard-direct.png','courtyard-ibl-restored.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png','courtyard-activated.png','courtyard-paused.png','courtyard-animated.png','courtyard-animation-replay.png','courtyard-inactive.png','courtyard-free-camera.png','courtyard-free-moved.png','courtyard-free-restored.png','courtyard-wind-off.png','courtyard-wind-restored.png','courtyard-transmission-off.png','courtyard-transmission-restored.png'],
                 'windowed_evidence':native,'build':evidence['build']},indent=2)+'\n')
             print(json.dumps({'native':native,'visited':rooms['visited'],'evidence_directory':str(output)},indent=2))
             return 0

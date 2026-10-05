@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "NexoraShowcase",
+      "bytes": 10016264,
+      "sha256": "7d23c5c1c8a4b68fa349c95401b7e5c551db24d2a07da9f44ee2d058eedd196f"
+    },
+    {
+      "path": "libNexoraExamplePlugin.so",
+      "bytes": 15200,
+      "sha256": "218a2b6a912913864b1c449b5b982f62cddcc12eb70cfbac09dce5572f58f1a9"
+    }
+  ],
+  "showcase_content": [
+    {
+      "path": "Content/Showcase/Courtyard/Environment/CC0.txt",
+      "bytes": 7048,
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Environment/brdf.rgba16f",
+      "bytes": 8192,
+      "sha256": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Environment/derived.json",
+      "bytes": 1332,
+      "sha256": "43c07fcd592e756af21881bf895be8215bfcfa2fc6324d6a993822c3187ae28d"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Environment/diffuse.rgba16f",
+      "bytes": 1024,
+      "sha256": "6eddd29182db70cd3b5b6066013932f9975ba17598d4e87d0b513dae4b00c99b"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Environment/drei-attribution.md",
+      "bytes": 13447,
+      "sha256": "3d8713b60415fbaac3281b361b6a5642e04402f59f88bed871786f64919ab0e6"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Environment/forest_slope_1k.hdr",
+      "bytes": 1911073,
+      "sha256": "926a6bb81897919b2924f42407162b8d54be91eab2da3fe7fe19daf308cfa09a"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Environment/polyhaven-license.json",
+      "bytes": 2216,
+      "sha256": "a9d88b758d1751dd41713381115ed309ea659e219c1654157b709dce7757e779"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Environment/source.json",
+      "bytes": 1455,
+      "sha256": "d59879681b553f7fb0c4b666a58cad7d1afb1e82c22976220e36a47f43758cf9"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Environment/specular.rgba16f",
+      "bytes": 21848,
+      "sha256": "732c2f3738715adace60fb5302cdaccdd01661323f1ef9998fd89bb324d0d96b"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/bronze-color.rgba",
+      "bytes": 16384,
+      "sha256": "99146e0832a4069b60d889d7e5b2a84dfc00e4cf83130a09b8d6d5d2f258bf7a"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/bronze-normal.rgba",
+      "bytes": 16384,
+      "sha256": "54b3704f0ecadb7da7d9de66746d75433bd4a3578dc1fa32696d2735e98c42b4"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/bronze-orm.rgba",
+      "bytes": 16384,
+      "sha256": "8f42359fc4c8e7022fd5600ac79a07d90c7e46554ef6bee9492bd4837e7273e8"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/crystal.showcase",
+      "bytes": 5300,
+      "sha256": "af5fed81ff97bae9f545987ed93a792311a626496673d1d5c9aa112a2cd5de8f"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/leaf.rgba",
+      "bytes": 16384,
+      "sha256": "db7ef2ab8fb5392b6f4384c1dcc9ad2b5d8b795b50f6dd7f4d0c49790d2a552a"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/manifest.json",
+      "bytes": 1343,
+      "sha256": "de5b68806cf93421fc61a75c30b25379496909c4b64963bbd9a3ec199151955e"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/mote.rgba",
+      "bytes": 16384,
+      "sha256": "0cd9c6c3b9b1ed5b4754c0b6042c94f2740a2ca6725c49c15be4b7c75499a9ca"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/sky.rgba",
+      "bytes": 16384,
+      "sha256": "46ce7bbccaa1efa238d2be2508c6a0348633e6d1692ba2a6cad0bd0e0d7760a0"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/source.json",
+      "bytes": 1936,
+      "sha256": "9f4b57bb7bf3615e01e02a172226641d21f1011bd46e8b6c28d66b29babc4300"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/stone-color.rgba",
+      "bytes": 16384,
+      "sha256": "cc98a985d73d7ab7e5fd800fcb189bf5798b18fb5f22cb7c08eb83f6a5aa83b5"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/stone-normal.rgba",
+      "bytes": 16384,
+      "sha256": "1f5f9b6f6cb2ee24c2022e6e17d9c40e63dd43b122093951bc97588975d99647"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/Hero/stone-orm.rgba",
+      "bytes": 16384,
+      "sha256": "5a79b534cf889b380ad7efd30b529d1cab14a81643f8e3407def7b77ea0aa375"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/KayKit/LICENSE.txt",
+      "bytes": 829,
+      "sha256": "c5f17abf619731f57f6bbff450f6484214605c13aa96bb75bbcfc70930941ff7"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/KayKit/dungeon_texture.png",
+      "bytes": 15794,
+      "sha256": "f9ae182518f908bd09461a56a430b9ca7369812ac10890224cc6f32e7da3e1ee"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/KayKit/floor_tile_small_broken_A.gltf.glb",
+      "bytes": 22132,
+      "sha256": "d1acc3407f941623b3b01ec9a1751c36a5ca82bb14721fc8f28e5559317edad4"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/KayKit/pillar_decorated.gltf.glb",
+      "bytes": 62460,
+      "sha256": "eecf7d454a1b6767a113e2490cb1536134abea0b57329a50cf2250d3ed8e2f65"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/KayKit/rubble_large.gltf.glb",
+      "bytes": 60196,
+      "sha256": "0292da1b5788a5a52b616d5d27d3270c676a5fbf9e921b6dd3dc30364d355b54"
+    },
+    {
+      "path": "Content/Showcase/Courtyard/assets.json",
+      "bytes": 4262,
+      "sha256": "95decf59e1a934370ee054f48629cb0850934bc6f11f517fb15939a485870320"
+    },
+    {
+      "path": "Content/Showcase/catalog.json",
+      "bytes": 2920,
+      "sha256": "2b3e15c15befe7301b90ccf1fc1a245acaa684d11583f9c7209182140c836d29"
+    }
+  ]
+}

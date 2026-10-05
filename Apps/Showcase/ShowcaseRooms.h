@@ -21,6 +21,10 @@ public:
   void ReplayTour();
   [[nodiscard]] bool TourComplete() const noexcept;
   void SetScreenshotMode(bool enabled);
+  void SetQuality(std::string_view quality);
+  [[nodiscard]] std::string_view QualityName() const noexcept;
+  void SetAnimationPaused(bool paused);
+  void SetDeviceActive(bool active);
   void RerunProbe(std::size_t milestone, ErrorInjection injection = ErrorInjection::None);
   [[nodiscard]] bool Healthy() const;
   [[nodiscard]] std::string_view Selected() const;
