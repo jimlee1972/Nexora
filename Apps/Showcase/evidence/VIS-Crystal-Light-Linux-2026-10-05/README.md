@@ -16,3 +16,7 @@ or physical target performance is claimed. The stable C/Zig ABI remains unchange
 Workspace artifacts: `NexoraShowcase-Crystal-Light-aec1817.mp4` and `NexoraShowcase-Crystal-Light-aec1817-Linux.zip`.
 Software Vulkan/Xvfb evidence does not accept physical target performance or final reference
 parity. VIS stays 5/7.
+
+
+[Test-only MSVC literal correction](msvc-literals/README.md) retains a full Linux follow-up
+gate and exact fixture hashes. Runtime sources and the retained Shipping/movie are unchanged.
