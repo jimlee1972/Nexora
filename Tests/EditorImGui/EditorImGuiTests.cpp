@@ -1294,8 +1294,8 @@ int main() {
     Nexora::Window::WindowEvent event{};
     event.type = Nexora::Window::WindowEventType::Text;
     event.value0 = character;
-    const std::array events{event};
-    host.ProcessEvents(events);
+    const std::array text_events{event};
+    host.ProcessEvents(text_events);
     draw_inspector();
   }
   assert(scene.Transform(root) == before_text_edit);

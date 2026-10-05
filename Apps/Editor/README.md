@@ -39,6 +39,9 @@ macOS/Metal. It requires `editor.imgui_contract` on every host and
 `development-tests.log`. The Windows test exercises native candidate positioning and frame-scoped
 callback lifetime across repeated 1x/1.25x/1.5x/2x round trips; it does not exercise an installed IME's composition or physical monitors.
 Feature-off isolation remains covered by the separate build-contract/mimalloc configurations.
+The pinned third-party ImGui target retains AppleClang's zero-length text-replacement warning
+without promoting it to an error when that diagnostic is supported; engine/Editor targets keep
+strict warnings. MSVC's newly exposed local-shadowing errors are fixed with distinct variable names.
 
 On a host with a display and native presentation support, launch the shell with:
 
