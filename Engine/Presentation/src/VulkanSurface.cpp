@@ -1735,7 +1735,7 @@ private:
     const auto settings = PackToneParameters(sceneExposure_,
                                              swapchainFormat_ != VK_FORMAT_B8G8R8A8_SRGB &&
                                                  swapchainFormat_ != VK_FORMAT_R8G8B8A8_SRGB,
-                                             sceneBloom_, sceneColorGrade_);
+                                             sceneBloom_, sceneColorGrade_, width_, height_);
     vkCmdPushConstants(frame.commands, tonePipelineLayout_, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                        sizeof(settings), settings.data());
     vkCmdBindVertexBuffers(frame.commands, 0, 1, &frame.sceneUpload, &frame.toneVertexOffset);

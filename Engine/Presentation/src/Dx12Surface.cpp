@@ -641,7 +641,8 @@ public:
       commands_->SetPipelineState(tonePipeline_.Get());
       ID3D12DescriptorHeap *heaps[]{uiDescriptors_.Get()};
       commands_->SetDescriptorHeaps(1, heaps);
-      const auto settings = PackToneParameters(sceneExposure_, true, sceneBloom_, sceneColorGrade_);
+      const auto settings =
+          PackToneParameters(sceneExposure_, true, sceneBloom_, sceneColorGrade_, width_, height_);
       commands_->SetGraphicsRoot32BitConstants(0, 8, settings.data(), 0);
       auto handle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
       handle.ptr += UINT64(frame_) * uiDescriptorIncrement_;

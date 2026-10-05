@@ -446,8 +446,8 @@ public:
                                          static_cast<double>(height_), 0, 1}];
         [encoder setFragmentTexture:sceneColors_[frame_] atIndex:0];
         [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
-        const auto settings =
-            PackToneParameters(sceneExposure_, true, sceneBloom_, sceneColorGrade_);
+        const auto settings = PackToneParameters(sceneExposure_, true, sceneBloom_,
+                                                 sceneColorGrade_, width_, height_);
         [encoder setFragmentBytes:settings.data() length:sizeof(settings) atIndex:0];
         [encoder setVertexBytes:toneVertices.data() length:sizeof(toneVertices) atIndex:0];
         [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];

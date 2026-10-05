@@ -478,10 +478,11 @@ int main(int argc, char **argv) {
              (!draw.pbr && std::abs(observedMarker - srgbLegacyMarker) <= 2)) &&
             pixels[2][1] < 5 && pixels[2][2] < 5;
         if (frame == 33) {
-          const auto gray = static_cast<int>(std::lround(255 * toSrgb(mappedMarker * 0.2126F)));
-          valid = valid && std::abs(observedMarker - gray) <= 2 &&
-                  std::abs(static_cast<int>(pixels[2][1]) - gray) <= 2 &&
-                  std::abs(static_cast<int>(pixels[2][2]) - gray) <= 2;
+          const auto grayMarkerCode =
+              static_cast<int>(std::lround(255 * toSrgb(mappedMarker * 0.2126F)));
+          valid = valid && std::abs(observedMarker - grayMarkerCode) <= 2 &&
+                  std::abs(static_cast<int>(pixels[2][1]) - grayMarkerCode) <= 2 &&
+                  std::abs(static_cast<int>(pixels[2][2]) - grayMarkerCode) <= 2;
         } else
           valid = valid && currentFrame;
         if (valid && frame == 19)

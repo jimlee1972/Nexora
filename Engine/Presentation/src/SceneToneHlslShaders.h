@@ -149,54 +149,46 @@ float4 toneFragmentMain(ToneVertex_0 input_0) : SV_TARGET
     {
 
 #line 27
-        uint width_0;
-
-#line 27
-        uint height_0;
-
-#line 27
-        hdrScene_texture_0.GetDimensions(hdrScene_sampler_0, width_0, height_0);
-
-        float2 _S4 = tone_0.bloom_0.z / float2(float(width_0), float(height_0));
+        float2 _S4 = tone_0.bloom_0.zw;
 
         float2  _S5[int(12)] = { float2(-1.0f, 0.0f), float2(1.0f, 0.0f), float2(0.0f, -1.0f), float2(0.0f, 1.0f), float2(-0.5f, -0.5f), float2(0.5f, -0.5f), float2(-0.5f, 0.5f), float2(0.5f, 0.5f), float2(-0.25f, 0.0f), float2(0.25f, 0.0f), float2(0.0f, -0.25f), float2(0.0f, 0.25f) };
 
 
         float3 _S6 = float3(0.0f, 0.0f, 0.0f);
 
-#line 34
+#line 32
         uint i_0 = 0U;
 
-#line 34
+#line 32
         hdr_1 = _S6;
         [unroll]
         for(;;)
         {
 
-#line 35
+#line 33
             if(i_0 < 12U)
             {
             }
             else
             {
 
-#line 35
+#line 33
                 break;
             }
 
-#line 36
+#line 34
             float3 glow_0 = hdr_1 + NexoraExtractBloom_0(hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, input_0.uv_0 + _S5[i_0] * _S4, 0.0f).xyz, tone_0.bloom_0.y) / 12.0f;
 
-#line 35
+#line 33
             i_0 = i_0 + 1U;
 
-#line 35
+#line 33
             hdr_1 = glow_0;
 
-#line 35
+#line 33
         }
 
-#line 35
+#line 33
         hdr_1 = NexoraApplyBloom_0(hdr_0, hdr_1, tone_0.bloom_0.x);
 
 #line 26
@@ -210,26 +202,26 @@ float4 toneFragmentMain(ToneVertex_0 input_0) : SV_TARGET
 #line 26
     }
 
-#line 41
+#line 39
     float3 color_4 = saturate(NexoraApplyColorGrade_0(NexoraAcesApproximate_0(hdr_1 * tone_0.settings_0.x), float3((int3)int(0)), float3((int3)int(1)), tone_0.settings_0.z, tone_0.settings_0.w));
 
-#line 41
+#line 39
     float3 color_5;
     if((tone_0.settings_0.y) > 0.5f)
     {
 
-#line 42
+#line 40
         color_5 = NexoraLinearToSrgb_0(color_4);
 
-#line 42
+#line 40
     }
     else
     {
 
-#line 42
+#line 40
         color_5 = color_4;
 
-#line 42
+#line 40
     }
     return float4(color_5, 1.0f);
 }
