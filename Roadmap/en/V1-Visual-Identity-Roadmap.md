@@ -548,3 +548,9 @@ This art iteration does not accept final reference parity or target performance;
 Linux native integration: ✅ full configure/build and 97/97 tests pass (103.93 seconds) with Khronos core/synchronization validation, including 85 PBR frames and all three geometry budgets. The fixed activated Standard frame has 50,166 vertices and 2,052 source foliage quads. Shipping/Full isolated native acceptance and an actual 100.27-second movie (100.80-second wall time) pass; final reference/target acceptance remains open.
 
 Evidence: [VIS-Courtyard-Masonry-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Masonry-Linux-2026-10-05). Production freeze `e5bb13119ba1`; exact source and package hashes are retained.
+
+
+MSVC fixture portability follow-up: point-light fill and two-sided normal conditionals use
+floating literals. ✅ Linux configure/build and full 97/97 pass (102.62 seconds), including
+85 native PBR frames with core/sync validation. Test values and runtime sources are unchanged;
+retained Shipping evidence keeps its production freeze. Windows CI recheck is pending.

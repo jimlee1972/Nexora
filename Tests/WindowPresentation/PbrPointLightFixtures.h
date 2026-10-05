@@ -42,7 +42,7 @@ struct Fixture final {
     draw.batches = batches;
     draw.pbr = draw.hdr = draw.offscreen = true;
     draw.cameraPosition = {0, 0, -3};
-    std::fill(std::begin(draw.light_color), std::end(draw.light_color), 0);
+    std::fill(std::begin(draw.light_color), std::end(draw.light_color), 0.0F);
     if (mode != 0 && mode != 4)
       draw.pointLight = ScenePointLight{{mode == 2 ? 0.8F : -0.8F, 0, -1}, {2, 0, 0}, 4};
     return draw;

@@ -498,3 +498,8 @@ bloom／ACES；此為實際美術幾何，不宣稱體積散射。Standard／Hig
 Linux 原生整合：✅ 完整 configure／build 與 97/97 測試通過（103.93 秒），啟用 Khronos core／同步驗證，包含 85 個 PBR 畫面與三種品質幾何預算。固定啟動裝置的 Standard 畫面為 50,166 頂點、2,052 張來源植被卡片。Shipping／Full 隔離套件原生驗收與實際 100.27 秒影片（實際錄製 100.80 秒）通過；最終參考圖／目標驗收仍未完成。
 
 證據：[VIS-Courtyard-Masonry-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Masonry-Linux-2026-10-05)。來源凍結 `e5bb13119ba1`，保留確切來源與套件雜湊。
+
+
+MSVC 測試可攜性修正：點光源填充值與雙面法線條件式改用明確浮點值。✅ Linux configure／build
+與完整 97/97 通過（102.62 秒），包含 85 個原生 PBR 畫面與 core／同步驗證。測試數值與
+Runtime 來源不變；既有 Shipping 證據保留原本來源凍結。Windows CI 重新驗證中。
