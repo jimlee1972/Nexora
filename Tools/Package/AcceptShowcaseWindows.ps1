@@ -286,6 +286,11 @@ public static class NexoraAcceptanceWindow {
     $acceptance.courtyard_free_camera = $true
     Press-Key 13 # Activate the device with animation paused at time zero.
     Capture-Compared 'courtyard-activated.png' 'courtyard-wide.png' $false
+    Press-Key 120 # F9 compares actual crystal point lighting.
+    Capture-Compared 'courtyard-crystal-light-off.png' 'courtyard-activated.png' $false
+    Press-Key 120
+    Capture-Compared 'courtyard-crystal-light-restored.png' 'courtyard-activated.png' $true
+    $acceptance.courtyard_crystal_light_comparison = $true
     Start-Sleep -Milliseconds 300
     Capture-Compared 'courtyard-paused.png' 'courtyard-activated.png' $true
     Press-Key 32

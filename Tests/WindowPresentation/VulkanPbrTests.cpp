@@ -3,6 +3,7 @@
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
 #include "PbrMipFixtures.h"
+#include "PbrPointLightFixtures.h"
 #include "PbrReflectionFixtures.h"
 #include "PbrRefractionFixtures.h"
 #include "PbrShadowFixtures.h"
@@ -218,7 +219,8 @@ int main(int argc, char **argv) {
         flatNormalLeft{}, flatNormalRight{}, tiltedNormalLeft{}, tiltedNormalRight{},
         refractedLeft{}, refractedRight{}, mipLeft{}, mipRight{};
     std::uint64_t windReference{}, windMoved{};
-    for (unsigned frame = 0; frame < 79; ++frame) {
+    std::array<unsigned, 3> pointLeft{}, pointRight{};
+    for (unsigned frame = 0; frame < 85; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
       PbrReflectionFixtures::Fixture reflectionFixture(frame >= 45 ? frame - 45 : 0);
@@ -231,6 +233,7 @@ int main(int argc, char **argv) {
                                                        : frame >= 69 ? frame - 69
                                                                      : 0);
       PbrMipFixtures::Fixture mipFixture(frame >= 75 ? frame - 75 : 0);
+      PbrPointLightFixtures::Fixture pointFixture(frame >= 79 ? frame - 79 : 0);
       materials = {};
       draw.shadow.reset();
       draw.lightingStyle.reset();
@@ -389,6 +392,11 @@ int main(int argc, char **argv) {
         materials = refractionFixture.materials;
         draw.materials = materials;
       }
+      if (frame >= 79) {
+        draw = pointFixture.Draw();
+        materials = pointFixture.materials;
+        draw.materials = materials;
+      }
       materials[2].emission = {marker, 0, 0};
       materials[2].roughness = 1;
       materials[2].metallic =
@@ -540,7 +548,15 @@ int main(int argc, char **argv) {
         const auto pixels = Read(display, native, width, height, {}, &region);
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 77) {
+        if (frame >= 79) {
+          valid = PbrPointLightFixtures::Pixels(frame - 79, left, right);
+          if (valid && frame == 80) {
+            pointLeft = left;
+            pointRight = right;
+          }
+          if (frame == 82)
+            valid = valid && left == pointLeft && right == pointRight;
+        } else if (frame >= 77) {
           valid = PbrRefractionFixtures::Pixels(frame - 71, pixels[7], pixels[8]);
         } else if (frame >= 75) {
           valid = PbrMipFixtures::Pixels(left, right);
@@ -701,7 +717,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, argv[1]));
       if (argc == 2 && frame >= 30) {
         auto capture = std::filesystem::path(argv[1]);
-        capture.replace_filename((frame >= 77   ? "refraction-front-"
+        capture.replace_filename((frame >= 79   ? "point-light-"
+                                  : frame >= 77 ? "refraction-front-"
                                   : frame >= 75 ? "mip-filter-"
                                   : frame >= 69 ? "refraction-"
                                   : frame >= 65 ? "world-normal-"
@@ -712,7 +729,8 @@ int main(int argc, char **argv) {
                                   : frame >= 43 ? "depth-of-field-"
                                   : frame < 34  ? "bloom-"
                                                 : "vegetation-") +
-                                 std::to_string(frame >= 77   ? frame - 77
+                                 std::to_string(frame >= 79   ? frame - 79
+                                                : frame >= 77 ? frame - 77
                                                 : frame >= 75 ? frame - 75
                                                 : frame >= 69 ? frame - 69
                                                 : frame >= 65 ? frame - 65
@@ -727,8 +745,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 79 &&
-                surface->Diagnostics().sceneComposites == 69 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 85 &&
+                surface->Diagnostics().sceneComposites == 75 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");

@@ -532,7 +532,8 @@ of the glass falls back to the original pixel. The premultiplied lit surface plu
 refracted opaque radiance replaces ordinary destination transmission; alpha retains nearest
 visible distance for focus. HDR focus/bloom/ACES and post-composite UI run afterward. Mirrored
 glass uses virtual camera directions and rendered projection positions. The private material
-packet is 368 bytes / 23 float4s; offsets 88–91 carry index/thickness/inverse dimensions. DX12's
+packet is now 400 bytes / 25 float4s including the optional point source below; offsets
+88–91 carry index/thickness/inverse dimensions. DX12's
 768-byte aligned pair and stable C/Zig ABI remain unchanged.
 
 `refractionFrontSurfaceOnly` defaults to false. Closed glass may opt in when index > 1 and
@@ -566,3 +567,21 @@ new pass, public resource handle, constant packet or C/Zig ABI field.
 CPU checks distinguish linear color (sRGB midpoint 188) from data midpoint 128, verify normal
 renormalization and preserve cutout/ambiguous roles. Two native minification cases compare a
 high-frequency 64² checker with its linear-light gray reference (77 PBR frames).
+
+## Bounded HDR point source
+
+`SceneDrawData::pointLight` owns an optional copied `ScenePointLight`. It requires HDR PBR,
+finite world position bounded to ±10,000, radiance RGB in [0,32] and radius in [0.1,64]. Absence
+packs zeros and preserves existing directional/IBL lighting. Native Vulkan/DX12/Metal share
+Slang BRDF evaluation with attenuation `saturate(1-distanceSquared/radiusSquared)^2 /
+max(0.25,distanceSquared)`. The source has no point-shadow map; it adds independently of the
+existing directional shadow/stylized response. Lit opaque/translucent surfaces and virtual-camera
+planar reflections receive the same source-world light; unlit sky/emission paths bypass it.
+Linear illumination precedes atmosphere, focus, bloom, ACES and sharp UI composition.
+
+Offsets 92–95 carry position/radius and 96–99 carry radiance/reserved zero. The 400-byte private
+packet fits the existing aligned 512-byte DX12 material region (768-byte scene/material pair),
+with no new native descriptors, texture allocations or stable C/Zig ABI fields. Six native
+cases verify colored distance response, source movement, exact replay, disable and unlit
+exclusion; CPU checks cover bounds and default-zero packing (85 PBR frames). The Showcase F9
+comparison requires paused pixel changes and exact restoration on the active crystal.

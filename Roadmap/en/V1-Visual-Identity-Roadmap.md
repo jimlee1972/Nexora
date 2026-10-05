@@ -516,3 +516,19 @@ clock. The fixed activated Standard shot contains 60,662 vertices and 1,764 sour
 quads. Linux full validation passes 97/97 (101.60 seconds) with core/sync validation enabled,
 including all three quality budgets and 79 PBR frames. Release/reference and physical target
 acceptance remain open. VIS stays 5/7.
+
+
+A bounded HDR crystal point source now adds real local PBR illumination to nearby stone,
+bronze and transparent surfaces before bloom/ACES. Shared Slang uses smooth finite-radius
+inverse-square falloff; source-world positions keep planar reflections coherent, and unlit
+sky/emitters remain unchanged. Standard/High activation follows crystal lift and the shared
+pause/replay clock; F9 compares the local light. Basic/inactive/default scenes omit it. The
+optional copied ScenePointLight validates finite position, radiance [0,32] and radius [0.1,64].
+The private packet grows to 400 bytes, fitting the existing DX12 768-byte aligned pair; C/Zig
+ABI is unchanged. CPU bounds/packing and six native movement/replay/disable/unlit cases are
+passing (85 PBR frames). Linux full validation passes 97/97 (105.31 seconds) with core/sync
+validation enabled, including native F9 changes/exact restoration. Release/reference and
+physical target acceptance remain open; VIS stays 5/7. This one source has no point-shadow map.
+
+
+Crystal point-light Shipping evidence: [Apps/Showcase/evidence/VIS-Crystal-Light-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Crystal-Light-Linux-2026-10-05). Production freeze `aec18172a4e6`; actual 100.33-second movie (100.71-second wall time), isolated native F9 comparison/restoration and all 85 native PBR cases pass. Final reference/physical-target acceptance remains open.
