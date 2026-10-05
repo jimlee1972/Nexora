@@ -284,3 +284,11 @@ Windows DX12／Vulkan 對照與套件重播通過。固定鏡頭保留精確還�
 證據保存在
 `Apps/Showcase/evidence/VIS-M3-Linux-Hero-2026-10-05`。跨平台執行與目標硬體主視覺／近景審查
 仍待完成；原創貼圖與已採用的網路 CC0 素材分開列出，VIS-M3 尚未驗收。
+
+## 21. VIS-M4 活動庭院實作
+
+原生 adapter 已接入共享 GPU 風動、主畫面／陰影 alpha cutout 與薄葉透光。原創 cooked
+葉片／粒子遮罩取代植被 placeholder；裝置啟動加入 48 個發光裁切粒子及晶體／符文脈動。
+Space 明確暫停、R 重播時間與固定鏡頭、N／M 比較風動／透光；F4 仍只控制 UI。原生案例
+驗證裁切陰影一致、風動移動、精確重播及背光色彩。VIS-M4 尚待跨平台 CI 與原生動態／互動證據驗收。
+✅ Linux Development 96/96 通過且無 skip；Shipping、原生 42-frame 像素及暫停／重播／效果比較互動通過。證據：`Apps/Showcase/evidence/VIS-M4-Linux-Living-2026-10-05`。

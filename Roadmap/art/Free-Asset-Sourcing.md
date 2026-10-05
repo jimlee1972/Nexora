@@ -142,3 +142,7 @@ those specific PBR candidates remain unadopted. Final physical visual review rem
 已採用的網路 CC0 模型、palette 與 Forest Slope HDRI 仍有各自 inventory。現行砂岩／青銅細節、
 多面晶體與陶器是 repository 原創內容，保留來源／授權／converter／derived hashes，
 不宣稱是下載的 ambientCG 素材；該候選細節貼圖仍未採用。最終實體畫面審查待完成。
+
+VIS-M4 adds repository-licensed original leaf/mote masks with converter and derived hashes,
+loaded through the same verified Runtime art generation. Existing CC0 online architecture/HDRI
+remain adopted; no new external foliage pack or unverified texture licensing is claimed.

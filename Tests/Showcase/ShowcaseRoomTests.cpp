@@ -1,6 +1,7 @@
 #include "ShowcaseRooms.h"
 #include <cassert>
 #include <cmath>
+#include <cstring>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -59,7 +60,7 @@ int main() {
   for (const auto index : wide.indices)
     assert(index < wide.vertices.size());
   assert(wide.pbr);
-  assert(wide.materials.size() == 30 && !wide.batches.empty());
+  assert(wide.materials.size() == 31 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   std::size_t covered = 0;
   std::vector<bool> selectedMaterials(wide.materials.size());
@@ -70,8 +71,8 @@ int main() {
     selectedMaterials[batch.materialIndex] = true;
   }
   assert(covered == wide.indices.size());
-  for (const auto selected : selectedMaterials)
-    assert(selected);
+  for (std::size_t i = 0; i < 30; ++i)
+    assert(selectedMaterials[i]);
   for (const auto &vertex : wide.vertices) {
     float orthogonal = 0, length = 0;
     for (std::size_t axis = 0; axis < 3; ++axis) {
@@ -146,10 +147,29 @@ int main() {
   assert(courtyard.Report().find("\"representative_asset_loaded\":true") != std::string::npos);
   assert(courtyard.Report().find("\"adopted_mesh_count\":3") != std::string::npos);
   const auto adopted = courtyard.Scene(1280, 720);
-  assert(adopted.textureId == 2 && adopted.textureUploads.size() == 7);
+  assert(adopted.textureId == 2 && adopted.textureUploads.size() == 9);
   assert(adopted.materials[0].normalTextureId == 11 && adopted.materials[1].ormTextureId == 15);
   assert(adopted.textureUploads[0].pixels.size() == 64 * 64 * 4);
 #endif
+  assert(courtyard.Scene(1280, 720).materials[5].alphaCutoff == 0.5F);
+  courtyard.Tick(0.5);
+  const float animatedTime = courtyard.Scene(1280, 720).vegetationTime;
+  Press(courtyard, Key::Space);
+  courtyard.Tick(0.5);
+  assert(courtyard.Scene(1280, 720).vegetationTime == animatedTime);
+  Press(courtyard, Key::Enter);
+  const auto active = courtyard.Scene(1280, 720);
+  assert(active.batches.back().materialIndex == 30 && active.batches.back().indexCount == 48 * 6);
+  const std::vector<Nexora::Presentation::SceneVertex> frozen(active.vertices.begin(),
+                                                              active.vertices.end());
+  courtyard.Tick(0.5);
+  const auto pausedScene = courtyard.Scene(1280, 720);
+  assert(std::memcmp(frozen.data(), pausedScene.vertices.data(),
+                     pausedScene.vertices.size_bytes()) == 0);
+  Press(courtyard, Key::R);
+  assert(courtyard.Scene(1280, 720).vegetationTime == 0);
+  Press(courtyard, Key::Enter);
+  assert(courtyard.Scene(1280, 720).batches.back().materialIndex != 30);
   session.RerunProbe(0, nexora::showcase::ErrorInjection::DependencyCycle);
   assert(session.Probes()[0].status == nexora::showcase::ProbeStatus::Unsupported);
   assert(session.Healthy());

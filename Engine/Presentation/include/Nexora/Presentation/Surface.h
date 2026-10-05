@@ -168,7 +168,8 @@ struct SceneMeshBatch final {
 // Opaque Lambert/PBR submission material. Slots are borrowed for one DrawScene, not persistent
 // Runtime identities. Texture zero selects white; nonzero IDs denote immutable generations.
 // PBR maps use sRGB base/emission, +Y normals and linear ORM (R=AO,G=roughness,B=metallic).
-// Base/emission factors are linear in PBR. Alpha-cutout is a separate forthcoming contract.
+// Base/emission factors are linear in PBR. PBR alpha cutout uses the base texture alpha; surviving
+// pixels remain opaque.
 struct SceneMaterial final {
   std::array<float, 4> baseColor{1, 1, 1, 1};
   std::uint64_t textureId{};
@@ -180,6 +181,10 @@ struct SceneMaterial final {
   float occlusion{1};
   float normalScale{1};
   std::array<float, 3> emission{}; // Linear radiance factor, bounded to half-float range.
+  float alphaCutoff{};   // Zero keeps opaque behavior; otherwise sample base alpha in main/shadow.
+  float windAmplitude{}; // World-space bend, 0..0.5; UV.y is root-to-tip bend weight.
+  float transmissionThickness{}; // Thin-leaf back lighting, 0..1; no alpha blending.
+  std::array<float, 3> transmissionColor{0.2F, 0.5F, 0.08F};
 };
 
 [[nodiscard]] inline bool ValidateSceneMaterials(std::span<const SceneMaterial> materials,
@@ -198,6 +203,15 @@ struct SceneMaterial final {
     if (!std::isfinite(material.normalScale) || material.normalScale < 0 ||
         material.normalScale > 4)
       return false;
+    for (const auto value : {material.alphaCutoff, material.transmissionThickness})
+      if (!std::isfinite(value) || value < 0 || value > 1)
+        return false;
+    if (!std::isfinite(material.windAmplitude) || material.windAmplitude < 0 ||
+        material.windAmplitude > 0.5F)
+      return false;
+    for (const auto value : material.transmissionColor)
+      if (!std::isfinite(value) || value < 0 || value > 1)
+        return false;
     for (const auto value : material.emission)
       if (!std::isfinite(value) || value < 0 || value > 65504)
         return false;
@@ -301,6 +315,7 @@ struct SceneDrawData final {
   std::optional<SceneLightingStyle> lightingStyle{};
   std::optional<SceneBloom> bloom{};
   std::optional<SceneColorGrade> colorGrade{};
+  float vegetationTime{}; // Finite bounded seconds [0,3600]; caller controls pause/replay.
 };
 
 // Call only after material/batch validation. Returned values own their scalar storage.

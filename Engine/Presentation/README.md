@@ -253,7 +253,7 @@ resources; missing base/ORM/emission select white (emission is multiplied by its
 and a missing normal selects a flat texture with normal scale zero. `UINT64_MAX` and
 `UINT64_MAX-1` are internal reserved texture IDs and are rejected in caller descriptors.
 
-The private material packing contract (currently 208 bytes) is shared across adapters. Vulkan allocates aligned
+The private material packing contract (currently 240 bytes) is shared across adapters. Vulkan allocates aligned
 UBOs and descriptor sets per protecting frame; DX12 uses aligned paired CBVs; Metal copies constants
 and binds four material maps plus three environment resources/samplers. Rejected missing maps/invalid factors do not consume scene submissions.
 Colors are evaluated in linear space and tone-mapped with shared ACES, followed by a single manual
@@ -301,7 +301,7 @@ rotation, view-dependent reflections, U-seam filtering, IBL disable and resize/r
 `SceneDrawData::hdr` defaults false and requires PBR plus a full-surface offscreen draw. Exposure is
 finite in [0,32], defaults 1, and is validated before recording on either path. Invalid combinations
 return InvalidDescriptor; unsupported float rendering reports Unsupported. The private material
-packet uses its reserved properties.w for linear HDR output within the original 80-byte layout; directional shadows now extend it to 208 bytes.
+packet uses its reserved properties.w for linear HDR output within the original 80-byte layout; directional shadows extend it to 208 bytes, and vegetation to 240 bytes.
 HDR fragments preserve nonnegative finite radiance up to RGBA16F's 65504 range; they perform no
 ACES or display transfer. Each protecting frame owns a RGBA16F color target, depth target and
 composite bindings. Main samples that target, applies exposure and the shared ACES implementation,
@@ -333,7 +333,7 @@ ColorAttachment → ShaderRead; DX12 uses RenderTarget → PixelShaderResource; 
 shadow encoder before main. Fences, resize and shutdown protect map ownership and release.
 Unsupported map formats report Unsupported rather than inventing a shadow.
 
-The private material packet is now 208 bytes, with light matrix, bias/texel settings, tint and
+The shadow portion extends the private material packet to 208 bytes (240 with vegetation), with light matrix, bias/texel settings, tint and
 ramp fields. Vulkan's material binding range/stride follows this size; DX12 retains 512-byte
 paired constant slots (112-byte scene plus material at offset 256); Metal copies the same packet.
 Main adds one shadow map binding (eight sampled maps total). No persistent asset or stable
@@ -358,3 +358,22 @@ OutOfDate/Suboptimal and schedules swapchain replacement. `presentedFrames` stil
 presents only. Resize acceptance accounts for these separate counters rather than assuming every
 acquire must present successfully; neither recovery counter proves visual acceptance. Public C++
 consumers rebuild, while stable C/Zig and persistent asset schemas remain unchanged.
+
+## PBR vegetation and cutout submissions
+
+`SceneMaterial::alphaCutoff` is finite [0,1]; zero preserves opaque behavior. A positive cutoff
+samples the base map alpha in both main and directional shadow fragments and discards rejected
+pixels before depth/color writes. Surviving pixels are opaque; this is not sorted alpha blending.
+`windAmplitude` is finite [0,0.5] world units. Shared vertex wind bends world positions using
+UV.y as root-to-tip weight, preserving UV.y=0 roots; main and shadow use the same caller-owned
+`vegetationTime` ([0,3600]) and private material packet. Authored normals remain an approximation
+for the bounded bend. `transmissionThickness` and RGB factors are finite [0,1]; shared thin-leaf
+back lighting contributes linear radiance with shadow visibility, without making geometry blended.
+Lambert submissions reject these PBR-only material effects. Defaults preserve existing clients.
+
+The private PBR packet is 240 bytes / fifteen float4s. Vulkan exposes its UBO to vertex/fragment
+stages and binds the PBR layout during shadows; DX12 uses matching CBVs/root signatures, and Metal
+copies the packet to both stage bindings. The protecting frame owns copies and sampled texture
+generations. No production readback or native handles escape. Public C++ clients rebuild; stable
+C/Zig/NXAB formats remain unchanged. Native fixtures distinguish alpha-zero opaque/cutout behavior,
+shadow agreement, two wind times, exact GPU replay and green back-light transmission.

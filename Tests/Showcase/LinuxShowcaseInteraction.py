@@ -194,8 +194,8 @@ def main():
                     time.sleep(0.15)
                     screenshot(window,1280,720,output/'presentation-blend.png')
                     tool('key','--window',window,'F1')
-            tool('key', '--window', window, '9')
-            time.sleep(0.2)
+            tool('key', '--window', window, '9', 'space', 'r')
+            time.sleep(0.3)
             courtyard_ui = screenshot(window,1280,720,output/'courtyard-ui.png')
             tool('key', '--window', window, 'F4')
             time.sleep(0.2)
@@ -246,6 +246,12 @@ def main():
             time.sleep(0.2)
             restored_pbr = compared_screenshot(window,1280,720,output/'courtyard-pbr-restored.png',courtyard_wide,True)
             assert restored_pbr == courtyard_wide, 'PBR material restoration changed the fixed shot'
+
+            for key,effect in [('n','wind'),('m','transmission')]:
+                tool('key','--window',window,key)
+                compared_screenshot(window,1280,720,output/f'courtyard-{effect}-off.png',courtyard_wide,False)
+                tool('key','--window',window,key)
+                compared_screenshot(window,1280,720,output/f'courtyard-{effect}-restored.png',courtyard_wide,True)
             tool('key', '--window', window, 'b')
             time.sleep(0.2)
             courtyard_material = compared_screenshot(window,1280,720,output/'courtyard-material.png',courtyard_wide,False)
@@ -257,6 +263,25 @@ def main():
             time.sleep(0.2)
             replay = compared_screenshot(window,1280,720,output/'courtyard-wide-replay.png',courtyard_wide,True)
             assert replay == courtyard_wide, 'Fixed wide camera did not reproduce native pixels'
+            tool('key','--window',window,'Return')
+            time.sleep(0.3)
+            activated=compared_screenshot(window,1280,720,output/'courtyard-activated.png',courtyard_wide,False)
+            assert activated != courtyard_wide, 'Activation did not draw particles'
+            time.sleep(0.3)
+            assert compared_screenshot(window,1280,720,output/'courtyard-paused.png',activated,True) == activated, 'Paused animation advanced'
+            tool('key','--window',window,'space')
+            time.sleep(0.6)
+            tool('key','--window',window,'space')
+            time.sleep(0.3)
+            moved=compared_screenshot(window,1280,720,output/'courtyard-animated.png',activated,False)
+            assert moved != activated, 'Wind/particles did not animate'
+            tool('key','--window',window,'r')
+            time.sleep(0.3)
+            assert compared_screenshot(window,1280,720,output/'courtyard-animation-replay.png',activated,True) == activated, 'Animation replay differs'
+            tool('key','--window',window,'Return')
+            time.sleep(0.3)
+            assert compared_screenshot(window,1280,720,output/'courtyard-inactive.png',courtyard_wide,True) == courtyard_wide
+
             tool('key', '--window', window, 'F4')
             # The previous matrix interaction selected M1. Drive real M5/M6/M12 errors.
             tool('key','--window',window,'F3','Tab','Tab','Tab','Tab','i','r','i','r','Tab','i','r','x','Next')
@@ -296,9 +321,9 @@ def main():
             assert markdown.is_file() and 'M12' in markdown.read_text()
             (output/'acceptance.json').write_text(json.dumps({
                 'scope':'Linux Xvfb/lavapipe native interaction; no physical display or Windows claim',
-                'courtyard_bloom_comparison':True,'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_ibl_comparison':True,'courtyard_hdr_exposure':True,'courtyard_shadow_comparison':True,'courtyard_tone_comparison':True,'courtyard_material_comparison':True,
+                'courtyard_living_replay':True,'courtyard_wind_comparison':True,'courtyard_transmission_comparison':True,'courtyard_bloom_comparison':True,'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_ibl_comparison':True,'courtyard_hdr_exposure':True,'courtyard_shadow_comparison':True,'courtyard_tone_comparison':True,'courtyard_material_comparison':True,
                 'courtyard':rooms['courtyard'],
-                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-bloom-off.png','courtyard-bloom-restored.png','courtyard-shadow-off.png','courtyard-shadow-restored.png','courtyard-neutral.png','courtyard-styled-restored.png','courtyard-exposure.png','courtyard-exposure-restored.png','courtyard-direct.png','courtyard-ibl-restored.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png'],
+                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-bloom-off.png','courtyard-bloom-restored.png','courtyard-shadow-off.png','courtyard-shadow-restored.png','courtyard-neutral.png','courtyard-styled-restored.png','courtyard-exposure.png','courtyard-exposure-restored.png','courtyard-direct.png','courtyard-ibl-restored.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png','courtyard-activated.png','courtyard-paused.png','courtyard-animated.png','courtyard-animation-replay.png','courtyard-inactive.png','courtyard-wind-off.png','courtyard-wind-restored.png','courtyard-transmission-off.png','courtyard-transmission-restored.png'],
                 'windowed_evidence':native,'build':evidence['build']},indent=2)+'\n')
             print(json.dumps({'native':native,'visited':rooms['visited'],'evidence_directory':str(output)},indent=2))
             return 0

@@ -522,7 +522,7 @@ public:
     }
     if (drawData.shadow &&
         !RecordShadow(drawData, geometryBase, base + shadowOffset, vertexBytes.size(),
-                      indexBytes.size(), instanceOffset, instances.size()))
+                      indexBytes.size(), instanceOffset, instances.size(), base, materialStride))
       return SurfaceStatus::DeviceLost;
     auto dsv = dsvHeap_->GetCPUDescriptorHandleForHeapStart();
     dsv.ptr += SIZE_T(frame_) * dsvIncrement_;
@@ -959,8 +959,7 @@ private:
     for (UINT i = 0; i < 2; ++i) {
       pbrParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
       pbrParameters[i].Descriptor.ShaderRegister = i;
-      pbrParameters[i].ShaderVisibility =
-          i == 0 ? D3D12_SHADER_VISIBILITY_ALL : D3D12_SHADER_VISIBILITY_PIXEL;
+      pbrParameters[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     }
     std::array<D3D12_STATIC_SAMPLER_DESC, 8> pbrSamplers{};
     for (UINT i = 0; i < 8; ++i) {
@@ -1017,7 +1016,7 @@ private:
                           "NexoraShadowDepth", nullptr, nullptr, "shadowFragmentMain", "ps_5_0", 0,
                           0, &shadowPixel, &errors)))
       return false;
-    pipeline.pRootSignature = sceneRootSignature_.Get();
+    pipeline.pRootSignature = scenePbrRootSignature_.Get();
     pipeline.PS = {shadowPixel->GetBufferPointer(), shadowPixel->GetBufferSize()};
     pipeline.RTVFormats[0] = DXGI_FORMAT_R32_FLOAT;
     if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&shadowPipeline_))))
@@ -1071,7 +1070,8 @@ private:
   }
   bool RecordShadow(const SceneDrawData &draw, D3D12_GPU_VIRTUAL_ADDRESS geometry,
                     D3D12_GPU_VIRTUAL_ADDRESS constants, std::size_t vertexSize,
-                    std::size_t indexSize, std::size_t instanceOffset, std::size_t instanceCount) {
+                    std::size_t indexSize, std::size_t instanceOffset, std::size_t instanceCount,
+                    D3D12_GPU_VIRTUAL_ADDRESS materials, std::size_t materialStride) {
     const auto resolution = draw.shadow->resolution;
     D3D12_RESOURCE_DESC descriptor{};
     descriptor.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -1116,7 +1116,7 @@ private:
     commands_->ClearRenderTargetView(rtv, color, 0, nullptr);
     commands_->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
     commands_->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
-    commands_->SetGraphicsRootSignature(sceneRootSignature_.Get());
+    commands_->SetGraphicsRootSignature(scenePbrRootSignature_.Get());
     commands_->SetPipelineState(shadowPipeline_.Get());
     commands_->SetGraphicsRootConstantBufferView(0, constants);
     const D3D12_VIEWPORT viewport{
@@ -1137,9 +1137,19 @@ private:
                                static_cast<std::uint32_t>(instanceCount), 0};
     const auto batches =
         draw.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : draw.batches;
-    for (const auto &batch : batches)
+    ID3D12DescriptorHeap *heaps[]{uiDescriptors_.Get()};
+    commands_->SetDescriptorHeaps(1, heaps);
+    for (const auto &batch : batches) {
+      const auto material = ResolveSceneMaterial(draw, batch.materialIndex);
+      commands_->SetGraphicsRootConstantBufferView(
+          1, materials + batch.materialIndex * materialStride + 256);
+      auto handle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
+      const auto id = material.textureId ? material.textureId : UINT64_MAX;
+      handle.ptr += UINT64(sceneTextures_.at(id).srgbDescriptor) * uiDescriptorIncrement_;
+      commands_->SetGraphicsRootDescriptorTable(2, handle);
       commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
                                       batch.firstInstance);
+    }
     D3D12_RESOURCE_BARRIER barrier{};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Transition = {shadowColors_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,

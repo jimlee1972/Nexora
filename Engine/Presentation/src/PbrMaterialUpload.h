@@ -20,6 +20,12 @@ namespace Nexora::Presentation {
                      draw.bloom->threshold > 32 || !std::isfinite(draw.bloom->radiusPixels) ||
                      draw.bloom->radiusPixels < 1 || draw.bloom->radiusPixels > 32))
     return false;
+  if (!std::isfinite(draw.vegetationTime) || draw.vegetationTime < 0 || draw.vegetationTime > 3600)
+    return false;
+  if (!draw.pbr)
+    for (const auto &material : draw.materials)
+      if (material.alphaCutoff || material.windAmplitude || material.transmissionThickness)
+        return false;
   if (!draw.pbr)
     return draw.linearTextureUploads.empty() && !draw.environment && !draw.shadow &&
            !draw.lightingStyle;
@@ -142,10 +148,10 @@ template <typename Lookup>
          resolveLevels(draw.environment->brdfTextureId) == 1;
 }
 
-// Matches MaterialConstants in scene_pbr.slang: thirteen float4s, independent of native UBO
+// Matches MaterialConstants in scene_pbr.slang: fifteen float4s, independent of native UBO
 // alignment.
-using PbrMaterialUpload = std::array<float, 52>;
-static_assert(sizeof(PbrMaterialUpload) == 208);
+using PbrMaterialUpload = std::array<float, 60>;
+static_assert(sizeof(PbrMaterialUpload) == 240);
 [[nodiscard]] inline PbrMaterialUpload PackPbrMaterial(const SceneDrawData &draw,
                                                        const SceneMaterial &material,
                                                        bool manualSrgbTransfer,
@@ -184,6 +190,12 @@ static_assert(sizeof(PbrMaterialUpload) == 208);
     parameters[49] = draw.lightingStyle->rampScale;
     parameters[50] = draw.lightingStyle->rampSoftness;
   }
+  parameters[52] = draw.vegetationTime;
+  parameters[53] = material.windAmplitude;
+  parameters[54] = material.alphaCutoff;
+  parameters[55] = material.transmissionThickness;
+  std::copy(material.transmissionColor.begin(), material.transmissionColor.end(),
+            parameters.begin() + 56);
   return parameters;
 }
 } // namespace Nexora::Presentation

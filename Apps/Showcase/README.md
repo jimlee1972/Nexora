@@ -412,3 +412,11 @@ along with stylized lighting. Reports retain bloom, hero loading and derived has
 wide/close/finale cameras preserve the crystal silhouette. Final target-hardware visual review
 and performance acceptance remain open; this is a native implementation, not final physical art
 approval. Animated cutout foliage/activation and the visual tour are subsequent slices.
+
+The living courtyard replaces static vegetation tubes with 64 original cutout leaf quads.
+Shared GPU wind and matching cutout shadows animate them continuously. `N` compares wind and
+`M` thin-leaf back lighting; `Enter` activates a pulsing crystal/runes and 48 bounded cutout
+emissive motes. `Space` pauses the courtyard clock and `R` resets time/camera for exact replay.
+With the validation matrix visible, R retains its probe-rerun meaning. F4 only hides UI; it does
+not implicitly pause animation. Reports retain effect flags, animation time, particle and foliage
+counts; these are real submitted geometry counts, not GPU timings or blended transparency proof.
