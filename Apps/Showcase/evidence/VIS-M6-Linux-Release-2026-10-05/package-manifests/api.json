@@ -1,0 +1,333 @@
+{
+  "schema_version": 1,
+  "abi": {
+    "name": "NexoraGameplay",
+    "major": 3
+  },
+  "canonical_header": "Engine/API/include/nexora/nexora.h",
+  "rules": {
+    "evolution": "append_only",
+    "descriptor_prefix": [
+      "struct_size",
+      "abi_version"
+    ],
+    "breaking_change": "increment_major"
+  },
+  "exports": [
+    {
+      "name": "NexoraGameplayHostV1.log",
+      "since": 1,
+      "ownership": "borrowed",
+      "nullability": "message_nonnull",
+      "threading": "caller_thread",
+      "errors": "none",
+      "determinism": "diagnostic_only"
+    },
+    {
+      "name": "NexoraGameModuleV1.initialize",
+      "since": 1,
+      "ownership": "module_state_owned_by_module",
+      "nullability": "nonnull",
+      "threading": "host_serialized",
+      "errors": "NexoraGameplayResult",
+      "determinism": "module_defined"
+    },
+    {
+      "name": "NexoraGameModuleV1.update",
+      "since": 1,
+      "ownership": "borrowed",
+      "nullability": "nonnull",
+      "threading": "host_serialized",
+      "errors": "none",
+      "determinism": "delta_driven"
+    },
+    {
+      "name": "NexoraGameModuleV1.shutdown",
+      "since": 1,
+      "ownership": "module_releases_state",
+      "nullability": "nonnull",
+      "threading": "host_serialized",
+      "errors": "none",
+      "determinism": "module_defined"
+    },
+    {
+      "name": "NexoraGameplayHostV2.log",
+      "since": 2,
+      "ownership": "borrowed",
+      "nullability": "message_nonnull",
+      "threading": "caller_thread",
+      "errors": "none",
+      "determinism": "diagnostic_only"
+    },
+    {
+      "name": "NexoraGameplayHostV2.read_component",
+      "since": 2,
+      "ownership": "caller_buffer",
+      "nullability": "data_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "world_state"
+    },
+    {
+      "name": "NexoraGameplayHostV2.write_component",
+      "since": 2,
+      "ownership": "borrowed",
+      "nullability": "data_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_mutation"
+    },
+    {
+      "name": "NexoraGameplayHostV2.subscribe_event",
+      "since": 2,
+      "ownership": "host_subscription",
+      "nullability": "context_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "event_ordered"
+    },
+    {
+      "name": "NexoraGameplayHostV2.set_tick_enabled",
+      "since": 2,
+      "ownership": "none",
+      "nullability": "context_nonnull",
+      "threading": "game_thread",
+      "errors": "none",
+      "determinism": "ordered_mutation"
+    },
+    {
+      "name": "NexoraGameModuleV2.save_state",
+      "since": 2,
+      "ownership": "caller_buffer",
+      "nullability": "data_nullable_for_size_query",
+      "threading": "host_serialized",
+      "errors": "required_size",
+      "determinism": "module_defined"
+    },
+    {
+      "name": "NexoraGameModuleV2.load_state",
+      "since": 2,
+      "ownership": "borrowed",
+      "nullability": "data_nonnull_when_size_nonzero",
+      "threading": "host_serialized",
+      "errors": "NexoraGameplayResult",
+      "determinism": "module_defined"
+    },
+    {
+      "name": "NexoraGameplayHostV3.log",
+      "since": 3,
+      "ownership": "borrowed",
+      "nullability": "message_nonnull",
+      "threading": "caller_thread",
+      "errors": "none",
+      "determinism": "diagnostic_only"
+    },
+    {
+      "name": "NexoraGameplayHostV3.read_component",
+      "since": 3,
+      "ownership": "caller_buffer",
+      "nullability": "data_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "world_state"
+    },
+    {
+      "name": "NexoraGameplayHostV3.write_component",
+      "since": 3,
+      "ownership": "borrowed",
+      "nullability": "data_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_mutation"
+    },
+    {
+      "name": "NexoraGameplayHostV3.allocate",
+      "since": 3,
+      "ownership": "tagged_module_until_matching_deallocate",
+      "nullability": "nullable_on_failure",
+      "threading": "caller_thread",
+      "errors": "null_on_failure",
+      "determinism": "not_applicable"
+    },
+    {
+      "name": "NexoraGameplayHostV3.deallocate",
+      "since": 3,
+      "ownership": "matching_tag_returns_to_allocating_host",
+      "nullability": "allocation_nullable",
+      "threading": "caller_thread",
+      "errors": "none",
+      "determinism": "not_applicable"
+    },
+    {
+      "name": "NexoraGameModuleV3.create",
+      "since": 3,
+      "ownership": "module_state_owned_by_module",
+      "nullability": "nonnull",
+      "threading": "host_serialized",
+      "errors": "NexoraGameplayResult",
+      "determinism": "module_defined"
+    },
+    {
+      "name": "NexoraGameModuleV3.on_start",
+      "since": 3,
+      "ownership": "borrowed",
+      "nullability": "state_module_defined",
+      "threading": "host_serialized",
+      "errors": "NexoraGameplayResult",
+      "determinism": "module_defined"
+    },
+    {
+      "name": "NexoraGameModuleV3.fixed_update",
+      "since": 3,
+      "ownership": "borrowed",
+      "nullability": "state_module_defined",
+      "threading": "host_serialized",
+      "errors": "NexoraGameplayResult",
+      "determinism": "fixed_delta_driven"
+    },
+    {
+      "name": "NexoraGameModuleV3.update",
+      "since": 3,
+      "ownership": "borrowed",
+      "nullability": "state_module_defined",
+      "threading": "host_serialized",
+      "errors": "NexoraGameplayResult",
+      "determinism": "delta_driven"
+    },
+    {
+      "name": "NexoraGameModuleV3.on_stop",
+      "since": 3,
+      "ownership": "borrowed",
+      "nullability": "state_module_defined",
+      "threading": "host_serialized",
+      "errors": "none",
+      "determinism": "module_defined"
+    },
+    {
+      "name": "NexoraGameModuleV3.destroy",
+      "since": 3,
+      "ownership": "module_releases_state",
+      "nullability": "state_module_defined",
+      "threading": "host_serialized",
+      "errors": "none",
+      "determinism": "module_defined"
+    },
+    {
+      "name": "NexoraGameModuleV3.save_state",
+      "since": 3,
+      "ownership": "caller_buffer",
+      "nullability": "data_nullable_for_size_query",
+      "threading": "host_serialized",
+      "errors": "required_size",
+      "determinism": "module_defined"
+    },
+    {
+      "name": "NexoraGameModuleV3.load_state",
+      "since": 3,
+      "ownership": "borrowed",
+      "nullability": "data_nonnull_when_size_nonzero",
+      "threading": "host_serialized",
+      "errors": "NexoraGameplayResult",
+      "determinism": "module_defined"
+    },
+    {
+      "name": "NexoraGameModuleLoad",
+      "since": 2,
+      "ownership": "caller_descriptor",
+      "nullability": "module_nonnull",
+      "threading": "loader_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "descriptor_only"
+    },
+    {
+      "name": "NexoraGameModuleLoadV3",
+      "since": 3,
+      "ownership": "caller_descriptor",
+      "nullability": "module_nonnull",
+      "threading": "loader_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "descriptor_only"
+    },
+    {
+      "name": "NexoraGameplayHostV3.load_scene",
+      "since": 3,
+      "ownership": "host_owned_scene",
+      "nullability": "name_and_output_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_mutation"
+    },
+    {
+      "name": "NexoraGameplayHostV3.activate_scene",
+      "since": 3,
+      "ownership": "none",
+      "nullability": "context_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_mutation"
+    },
+    {
+      "name": "NexoraGameplayHostV3.spawn_entity",
+      "since": 3,
+      "ownership": "host_owned_entity",
+      "nullability": "descriptor_and_output_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_mutation"
+    },
+    {
+      "name": "NexoraGameplayHostV3.despawn_entity",
+      "since": 3,
+      "ownership": "none",
+      "nullability": "context_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_mutation"
+    },
+    {
+      "name": "NexoraGameplayHostV3.capture_input",
+      "since": 3,
+      "ownership": "caller_snapshot",
+      "nullability": "snapshot_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "frame_snapshot"
+    },
+    {
+      "name": "NexoraGameplayHostV3.resolve_asset",
+      "since": 3,
+      "ownership": "opaque_handle",
+      "nullability": "asset_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "uuid_stable"
+    },
+    {
+      "name": "NexoraGameplayHostV3.raycast",
+      "since": 3,
+      "ownership": "caller_hit",
+      "nullability": "request_and_hit_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "world_state"
+    },
+    {
+      "name": "NexoraGameplayHostV3.debug_draw_line",
+      "since": 3,
+      "ownership": "copied_request",
+      "nullability": "line_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_request"
+    },
+    {
+      "name": "NexoraGameplayHostV3.get_diagnostics",
+      "since": 3,
+      "ownership": "caller_snapshot",
+      "nullability": "diagnostics_nonnull",
+      "threading": "game_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "frame_snapshot"
+    }
+  ]
+}

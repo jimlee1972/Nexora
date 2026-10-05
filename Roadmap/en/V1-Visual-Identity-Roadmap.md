@@ -4,7 +4,7 @@
 >
 > Date: 2026-10-04
 >
-> Status: ✅ VIS-M0 through VIS-M2 accepted; VIS-M3 through VIS-M6 remain unaccepted (3/7).
+> Status: ✅ VIS-M0–M2 and VIS-M4–M5 accepted (5/7); VIS-M3 art and VIS-M6 target-hardware acceptance remain open.
 >
 > Theme: a stylized ruins courtyard.
 >
@@ -76,8 +76,8 @@ The user also requested free online models and textures. Prioritize freely downl
 | ✅ VIS-M1 | Shared PBR shader integration, multiple materials, normal/ORM/emission, tangents, IBL, linear color, HDR output | Material close-up | Materials differ under identical light; orbit preserves correct normals/reflections; missing-map fallbacks work; no duplicate gamma conversion |
 | ✅ VIS-M2 | Directional shadow map, PCF, bias controls, stylized tonal separation and shadow tint | Lighting wide shot | Moving objects update shadows; the fixed route has no obvious flicker, shadow acne, or floating shadows; retain lighting comparisons |
 | VIS-M3 | Central ruins, ground and surrounding content; exposure, tone mapping, color, restrained bloom | First finished hero image | Composition survives hidden UI; close shots have detail and wide shots a clear subject; target-hardware screenshots pass visual review |
-| VIS-M4 | Vegetation wind, alpha cutout, back-light transmission, rune particles, device activation | Living courtyard | Continuous wind; correct edges and occlusion; pause/replay works; particle and transparency costs are observable |
-| VIS-M5 | 90–120-second visual tour, free camera, feature comparisons, screenshot mode | Complete viewing and interaction | Replayable tour; clear feature differences; default view has only necessary controls; screenshots omit diagnostic overlays |
+| ✅ VIS-M4 | Vegetation wind, alpha cutout, back-light transmission, rune particles, device activation | Living courtyard | Continuous wind; correct edges and occlusion; pause/replay works; particle and transparency costs are observable |
+| ✅ VIS-M5 | 90–120-second visual tour, free camera, feature comparisons, screenshot mode | Complete viewing and interaction | Replayable tour; clear feature differences; default view has only necessary controls; screenshots omit diagnostic overlays |
 | VIS-M6 | Optimization, quality tiers, DX12/Vulkan validation, packaging, video, performance report | Shareable V1 Visual Showcase | Fixed-route performance meets the confirmed budget; both backends pass visual acceptance; isolated package launches; video/screenshots/report match one version |
 
 ### Technical decisions before VIS-M1 expansion
@@ -331,3 +331,23 @@ One original Runtime-loaded gradient replaces 24 sky batches. Emission-only sky/
 lighting and shadow casting; native fixtures verify bright non-casters and lit receivers.
 Sequential repeatable measurements, matching-version packages/video and exact-head platform CI
 are in progress. Physical DX12/Vulkan art approval and confirmed performance budget remain open.
+
+## 24. Living/tour acceptance and matching-version release evidence
+
+✅ VIS-M4: PR #327 head 9040f0c7644db448f5c0e819dc7d1fc15f315f3d passed all 18 checks
+(run 37288122626); the retained actual native tour plus 25-second living finale and exact
+pause/replay/comparison captures supply continuous motion evidence.
+✅ VIS-M5: PR #328 head 4c944fca96bee9863b652940cc41f00a408ae406 passed all 18 checks
+(Build 1471, run 37292103114), including native DX12/Vulkan isolated packages and Metal pixels.
+Merge f016aa2a51b04475ae47657a6af042a0282b02ee. Stable native baseline acquisition preserves all
+exact comparison assertions. Earlier pending notes in sections 21–22 are superseded.
+
+The VIS-M6 release code 3047d5c68de939c6ead3bfceb8a47c5d6ccf3524 passes Linux 97/97,
+Shipping/Full isolated native acceptance and 43 native pixel cases. One packaged executable
+produces the 100.7-second video, five screenshots and nine quality measurements. Software
+Vulkan averages: Basic 27.45–28.20 FPS; Standard 17.56–17.86; High 12.99–13.11. P95/P99,
+CPU and memory are retained; GPU timestamps are unavailable. Evidence and physical instructions:
+`Apps/Showcase/evidence/VIS-M6-Linux-Release-2026-10-05`. Compiled ZIP remains a workspace
+deliverable; hashes/manifests are tracked. The production sources are unchanged by later evidence
+commits. Progress is 5/7: physical hero/material art review and the confirmed DX12/Vulkan hardware
+budget remain open. Earlier physical GTX 960 reports do not accept the new effects.
