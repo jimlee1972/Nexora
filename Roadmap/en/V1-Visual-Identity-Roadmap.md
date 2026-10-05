@@ -309,3 +309,15 @@ and fixed camera, N/M compare wind/transmission. F4 remains a UI-only control. N
 cover cutout shadow agreement, wind movement, exact replay and back-light color. Cross-platform
 CI and native motion/interaction evidence remain required before VIS-M4 acceptance.
 ✅ Linux Development passes 96/96 without skips; Shipping, native 42-frame pixels and pause/replay/comparison interaction pass. Evidence: `Apps/Showcase/evidence/VIS-M4-Linux-Living-2026-10-05`.
+
+## 22. VIS-M5 tour and exploration implementation
+
+The native default entry is the courtyard with a compact control strip. `--tour=visual` renders a
+100-second five-segment camera route (wide, material approach, orbit and activation finale),
+pauses camera/effects together and supports deterministic replay. The existing 210-second
+engineering tour remains separate. C enables actual eye translation and mouse look; B/R restore
+fixed framing. H exposes named comparisons; F1–F3 opt into diagnostics and F4 removes all UI.
+A full headless CLI timeline gate is separate from native tour recording/interaction evidence.
+Native execution/video and exact-head cross-platform CI remain required before VIS-M5 acceptance.
+
+✅ Linux Development: 97/97; Shipping package verification and native free-camera/fixed-shot restoration pass. Evidence: `Apps/Showcase/evidence/VIS-M5-Linux-Tour-2026-10-05`. PR #327 living effects passed all 18 checks (run 37288122626) and merged. Target-hardware final acceptance remains open.

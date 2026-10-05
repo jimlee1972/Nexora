@@ -1,0 +1,41 @@
+{
+  "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+  "command": [
+    "/workspace/Nexora-vis-m5-tour/build/linux-development/Apps/Showcase/NexoraShowcase",
+    "--tour=visual",
+    "--backend=vulkan",
+    "--clean-view",
+    "--vsync=off",
+    "--no-reload",
+    "--gameplay-module=static",
+    "--report=/tmp/nexora-visual-tour-clean/tour.json"
+  ],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "270d46ff7f51",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "wall_seconds": 101.81798116600112,
+  "video": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "format": {
+      "duration": "101.333333"
+    }
+  },
+  "software_rasterizer": true,
+  "physical_display_verified": false,
+  "executable_sha256": "b19abf6ff89ed61fed33d18696f777616d250db299f2082fbf3c79fc258d3fd6",
+  "video_sha256": "1e84e92f86b575fbd71d53fe248169f6f0ef316126b3759f043962a62dbbe157",
+  "tour_seconds": 100,
+  "overlay_frames": 0
+}

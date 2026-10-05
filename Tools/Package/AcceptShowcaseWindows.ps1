@@ -152,6 +152,19 @@ public static class NexoraAcceptanceWindow {
         [NexoraAcceptanceWindow]::Press($window, $key)
         Start-Sleep -Milliseconds 150
     }
+    function Capture-Settled([string]$name) {
+        $deadline = [DateTime]::UtcNow.AddSeconds(5)
+        $previous = ''; $repeats = 0
+        do {
+            Capture $name
+            $current = (Get-FileHash (Join-Path $evidence $name)).Hash
+            if ($current -eq $previous) { $repeats++ } else { $repeats = 0 }
+            if ($repeats -ge 2) { return }
+            $previous = $current
+            Start-Sleep -Milliseconds 150
+        } while ([DateTime]::UtcNow -lt $deadline)
+        throw "Native clean baseline did not settle: $name"
+    }
     function Capture-Compared([string]$name, [string]$reference, [bool]$equal) {
         $deadline = [DateTime]::UtcNow.AddSeconds(5)
         do {
@@ -170,7 +183,9 @@ public static class NexoraAcceptanceWindow {
     Press-Key 82 # Replay to time zero.
     Capture 'courtyard-ui.png'
     Press-Key 115 # F4: remove the overlay from fixed visual evidence.
-    Capture-Compared 'courtyard-wide.png' 'courtyard-ui.png' $false
+    Capture-Settled 'courtyard-wide.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
+        (Get-FileHash (Join-Path $evidence 'courtyard-ui.png')).Hash) 'Screenshot mode did not remove the UI.'
     Press-Key 75 # K: restrained GPU bloom comparison.
     Capture-Compared 'courtyard-bloom-off.png' 'courtyard-wide.png' $false
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
@@ -239,6 +254,15 @@ public static class NexoraAcceptanceWindow {
     Capture-Compared 'courtyard-wide-replay.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-wide-replay.png')).Hash) 'Courtyard fixed camera replay pixels differ.'
+    Press-Key 67 # Enter actual free camera.
+    Capture-Compared 'courtyard-free-camera.png' 'courtyard-wide.png' $false
+    [NexoraAcceptanceWindow]::PostMessage($window, 0x100, [IntPtr]::new(87), [IntPtr]::new(1)) | Out-Null
+    Start-Sleep -Milliseconds 300
+    [NexoraAcceptanceWindow]::PostMessage($window, 0x101, [IntPtr]::new(87), [IntPtr]::new(-1073741823)) | Out-Null
+    Capture-Compared 'courtyard-free-moved.png' 'courtyard-free-camera.png' $false
+    Press-Key 82
+    Capture-Compared 'courtyard-free-restored.png' 'courtyard-wide.png' $true
+    $acceptance.courtyard_free_camera = $true
     Press-Key 13 # Activate the device with animation paused at time zero.
     Capture-Compared 'courtyard-activated.png' 'courtyard-wide.png' $false
     Start-Sleep -Milliseconds 300

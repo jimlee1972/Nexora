@@ -259,6 +259,41 @@ int main() {
          session.Selected() != "input");
   session.Select("input");
   assert(session.Report().find("Missing translation uses English fallback") != std::string::npos);
+  RoomSession visualTour("courtyard", true);
+  assert(visualTour.Selected() == "courtyard" && !visualTour.TourComplete());
+  const auto initialTourMatrix = std::to_array(visualTour.Scene(1280, 720).model_view_projection);
+  for (int i = 0; i < 25; ++i)
+    visualTour.Tick(1);
+  assert(std::to_array(visualTour.Scene(1280, 720).model_view_projection) != initialTourMatrix);
+  Press(visualTour, Key::Space);
+  const auto pausedTourMatrix = std::to_array(visualTour.Scene(1280, 720).model_view_projection);
+  visualTour.Tick(1);
+  assert(std::to_array(visualTour.Scene(1280, 720).model_view_projection) == pausedTourMatrix);
+  Press(visualTour, Key::Space);
+  for (int i = 25; i < 100; ++i) {
+    visualTour.Tick(1);
+    static_cast<void>(visualTour.Scene(1280, 720));
+  }
+  assert(visualTour.TourComplete());
+  assert(visualTour.Report().find("\"duration_seconds\":100") != std::string::npos);
+  visualTour.ReplayTour();
+  assert(!visualTour.TourComplete() && visualTour.Scene(1280, 720).vegetationTime == 0);
+  assert(std::to_array(visualTour.Scene(1280, 720).model_view_projection) == initialTourMatrix);
+  RoomSession explore("courtyard");
+  Press(explore, Key::C);
+  const auto freeStart = std::to_array(explore.Scene(1280, 720).model_view_projection);
+  WindowEvent freeMove{};
+  freeMove.type = WindowEventType::Key;
+  freeMove.value0 = static_cast<int>(Key::W);
+  freeMove.value1 = 1;
+  explore.Event(freeMove, 1280, 720);
+  explore.Tick(0.5);
+  freeMove.value1 = 0;
+  explore.Event(freeMove, 1280, 720);
+  assert(std::to_array(explore.Scene(1280, 720).model_view_projection) != freeStart);
+  assert(explore.Report().find("\"camera_mode\":\"free\"") != std::string::npos);
+  Press(explore, Key::B);
+  assert(explore.Report().find("\"camera_mode\":\"orbit\"") != std::string::npos);
   session.ReplayTour();
   session.Tick(1);
   Press(session, Key::Space);

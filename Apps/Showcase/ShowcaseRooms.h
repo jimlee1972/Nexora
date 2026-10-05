@@ -19,6 +19,7 @@ public:
   void Tick(double seconds);
   void Select(std::string_view room);
   void ReplayTour();
+  [[nodiscard]] bool TourComplete() const noexcept;
   void SetScreenshotMode(bool enabled);
   void RerunProbe(std::size_t milestone, ErrorInjection injection = ErrorInjection::None);
   [[nodiscard]] bool Healthy() const;
