@@ -368,7 +368,8 @@ creates property widgets; unknown components retain raw data instead of being si
   Target-host acceptance and the complete graphical save/restart workflow remain open.
 - ✅ File New/Open/Save/Save As now manage one active scene with project-relative UTF-8 paths,
   document/project tokens, dirty Save/Discard/Cancel, nested Untitled Save As and explicit Replace.
-  Failed Open preserves the document/history/path; read-only permits Open and rejects writes;
+  Failed Open preserves the document/history/path; failed replacement retains the destination and
+  preexisting temporary paths. Read-only permits Open and rejects writes;
   Play/recovery/close gates reject scene replacement. New clears history/clipboard and stays dirty
   until saved. Content saves publish persistent identity without losing earlier content Undo;
   per-file CPU camera state survives switches and writable shutdown. Real 1x/2x menu/key/modal tests

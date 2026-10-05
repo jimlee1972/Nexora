@@ -482,7 +482,10 @@ destinations and destinations protected after a failed bootstrap load need expli
 New/Open first return `NeedsUnsavedChoice` for dirty content; the application saves or supplies an
 explicit discard choice. Missing path, unsaved choice, overwrite confirmation, and rejection are
 separate results; none consume history or modify files. Successful Save retains document Undo/Redo.
-This checks the path at operation time; it does not lock against concurrent external filesystem edits.
+The scene writer preserves native Unicode temporary paths, rejects preexisting temporary paths
+without truncating/removing them, and replaces with native Windows replace or POSIX rename; failure
+never deletes the original destination to retry. This checks paths at operation time; it does not
+lock against concurrent external filesystem edits.
 
 `ContentBrowserModel::Discover` publishes one already-saved owning item without recording a content
 edit. It rejects duplicate ID/path, including collisions in the retained Undo snapshot, preserves

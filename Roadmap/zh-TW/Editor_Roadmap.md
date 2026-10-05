@@ -345,7 +345,7 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   會被拒絕且不改變 live state。Target-host 驗收與完整圖形化 save／restart workflow 仍待完成。
 - ✅ File New／Open／Save／Save As 現管理單一活動場景，支援 project-relative UTF-8 路徑、
   document／project token、dirty Save／Discard／Cancel、Untitled 的巢狀 Save As 與明確 Replace。
-  Open 失敗保留文件／history／path；唯讀允許 Open 並拒絕寫入；Play／recovery／close gate
+  Open 失敗保留文件／history／path；覆寫失敗保留目的路徑及既有暫存檔。唯讀允許 Open 並拒絕寫入；Play／recovery／close gate
   拒絕替換場景。New 清除 history／clipboard 並保持 dirty 直到儲存。Content 儲存發布 persistent
   identity 並保留先前 Content Undo；各檔案的 CPU camera state 在切換及可寫 shutdown 時保留。
   真正 1×／2× menu／key／modal 測試與 Linux Xvfb 驗證 New、輸入 Save As、Open／重開、

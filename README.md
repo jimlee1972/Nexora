@@ -290,7 +290,8 @@ Unavailable target-host acceptance is deferred while independent Editor implemen
 
 ✅ File New/Open/Save/Save As now manage a single active scene with dirty Save/Discard/Cancel,
 Untitled Save As and explicit overwrite confirmation. Document/project tokens reject stale actions;
-failed Open keeps history and content. Content saves retain persistent asset identity and prior
+failed Open keeps history and content. Failed replacement keeps its destination and preexisting
+temporary paths. Content saves retain persistent asset identity and prior
 content Undo; per-file camera state survives switches and writable shutdown. Real 1x/2x UI tests
 and Linux Xvfb cover the application workflow and unchanged read-only project files. Startup still
 opens Main; additive scenes and full graphical milestone acceptance remain open.
@@ -704,7 +705,7 @@ Inspector 與唯讀／復原／關閉確認時取消。阻擋期間停用控制�
 
 ✅ File New／Open／Save／Save As 現管理單一活動場景，支援 dirty Save／Discard／Cancel、
 Untitled Save As 與明確覆寫確認。Document／project token 拒絕過期操作；Open 失敗保留 history
-與內容。Content 儲存保留 persistent asset identity 與先前 Content Undo；各檔案 camera state
+與內容；覆寫失敗也會保留目的路徑及既有暫存檔。Content 儲存保留 persistent asset identity 與先前 Content Undo；各檔案 camera state
 在切換及可寫 shutdown 時保留。真正 1×／2× UI 與 Linux Xvfb 驗證 application 流程及唯讀
 專案檔案不變。啟動仍開 Main；additive scenes 與完整圖形里程碑驗收仍待完成。
 

@@ -114,7 +114,22 @@ void Run(const std::filesystem::path &root) {
                 files.CurrentPath() == before_path && world.SaveScene(id) == before_world &&
                 Read(root / *before_path) == before_bytes,
             "Invalid path modified a managed document or file");
+  const auto occupied = root / *before_path;
+  auto temporary = occupied;
+  temporary += ".tmp";
+  std::ofstream(temporary) << "preexisting temporary sentinel";
+  Require(files.Save(token).status == Status::Rejected &&
+              Read(temporary) == "preexisting temporary sentinel" &&
+              Read(occupied) == before_bytes && world.SaveScene(id) == before_world &&
+              files.CurrentPath() == before_path,
+          "Save truncated a preexisting temporary file or changed the committed document");
+  std::filesystem::remove(temporary);
   std::filesystem::create_directories(root / "Content/Directory.scene");
+  Require(!scene.Save(root / "Content/Directory.scene") &&
+              std::filesystem::is_directory(root / "Content/Directory.scene") &&
+              !std::filesystem::exists(root / "Content/Directory.scene.tmp") &&
+              world.SaveScene(id) == before_world,
+          "Failed atomic replacement deleted the original directory or left its owned temporary");
   Require(files.SaveAs(token, "Content/Directory.scene", true).status == Status::Rejected &&
               files.SaveAs(token, "Content/First.scene/Child.scene").status == Status::Rejected &&
               files.CurrentPath() == before_path,
@@ -125,6 +140,13 @@ void Run(const std::filesystem::path &root) {
   std::error_code error;
   std::filesystem::create_directory_symlink(outside, root / "Content/Escape", error);
   if (!error) {
+    std::filesystem::create_symlink(outside / "Keep.scene", temporary, error);
+    Require(!error && files.Save(token).status == Status::Rejected &&
+                std::filesystem::is_symlink(temporary) &&
+                Read(outside / "Keep.scene") == "outside sentinel" &&
+                Read(occupied) == before_bytes,
+            "Save followed or removed a preexisting temporary symlink");
+    std::filesystem::remove(temporary);
     Require(files.SaveAs(token, "Content/Escape/Keep.scene", true).status == Status::Rejected &&
                 files.Open(token, "Content/Escape/Keep.scene", true).status == Status::Rejected &&
                 Read(outside / "Keep.scene") == "outside sentinel",
