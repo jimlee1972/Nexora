@@ -1059,3 +1059,15 @@ packet offset 78; the 368-byte packet and stable C/Zig ABI stay unchanged. F8/U/
 default behavior. Two native cases compare rear-face rejection with unchanged double-sided
 refraction, plus CPU validation/packing checks (79 PBR frames). Linux full validation passes 97/97 (98.20 seconds); release validation is
 pending; final reference parity and physical target acceptance remain open. VIS stays 5/7.
+
+
+The courtyard art pass now maps stone at 1.1 repeats per world unit with restrained normal
+strength, so authored pores read as surface detail rather than large mottled patches. Pedestal,
+basin and ceramic lathe profiles use 48 radial segments; columns retain 64 fluted segments.
+Brighter bronze factors, lower roughness and 0.8 IBL intensity expose the sun/IBL response.
+Distant ridges share restrained world-projected stone detail. Extra deterministic
+ground cover and right-hand ring ivy share the existing wind, pause/replay and reflection
+clock. The fixed activated Standard shot contains 60,662 vertices and 1,764 source foliage
+quads. Linux full validation passes 97/97 (101.60 seconds) with core/sync validation enabled,
+including all three quality budgets and 79 PBR frames. Release/reference and physical target
+acceptance remain open. VIS stays 5/7.
