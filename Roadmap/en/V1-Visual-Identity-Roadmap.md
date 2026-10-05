@@ -366,7 +366,7 @@ The shared HDR compositor now supports bounded depth-aware focus before bloom/AC
 sharp post-composite UI. Native tests require visible focus/bloom differences, exact restoration
 and deterministic animation pause/replay. Shipping and exact-head DX12/Vulkan/Metal CI remain
 required before merging. This is implementation progress, not concept-image parity acceptance.
-The procedural art is not identical to the reference; planar reflections/refraction and richer
+The procedural art is not identical to the reference; crystal refraction and richer
 asset detail remain unresolved. Keep VIS-M3/M6 open and progress at 5/7 until reference art and
 target hardware/budget acceptance are supported by matching-version evidence.
 
@@ -384,5 +384,16 @@ timestamps nor physical target acceptance. The user goal/reference parity remain
 The follow-up art source adds retained image-assisted sandstone/ivy authoring with deterministic
 cooking, original foreground paving, chamfered ring wedges, larger reference framing, wind-bent
 teal pennants and decorated ceramic vessels. Linux development validation passes 97/97 tests;
-matching-source release captures are retained. This remains VIS-M3 refinement, with scene
-reflection, crystal optics and final reference parity open; the milestone count remains 5/7.
+matching-source release captures are retained. This remains VIS-M3 refinement, with final scene
+reflection refinement, crystal optics and final reference parity open; the milestone count remains 5/7.
+
+
+### Planar mirror iteration
+
+The courtyard now submits bounded horizontal mirror instances for the focal device, crystal,
+vessels, foliage, pennants and sky. Shared Slang clipping removes receiver top/underside faces
+inside two water regions; source-space wind, light and shadows remain coherent. V toggles the
+reflection and Basic retains the cheaper environment-only water path. Four additional native
+PBR fixtures check floor occlusion, source-driven movement and exact restoration (49 total).
+Full release and cross-platform evidence must precede merge. Crystal refraction, shoreline
+refinement and concept-image parity remain open; this does not accept VIS-M3 or VIS-M6.

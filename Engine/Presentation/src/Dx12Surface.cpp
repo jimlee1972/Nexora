@@ -401,7 +401,7 @@ public:
     // aligned than the 256 bytes a root CBV requires, so offset 0 is always valid there. Vertex and
     // index data start after the bounded material palette (aligned constants per material),
     // so neither section can ever overlap regardless of how large the mesh grows.
-    const std::size_t materialStride = drawData.pbr ? 512 : 256;
+    const std::size_t materialStride = drawData.pbr ? 768 : 256;
     const std::size_t shadowOffset =
         std::max<std::size_t>(drawData.materials.size(), 1) * materialStride;
     const std::size_t kGeometryOffset = shadowOffset + (drawData.shadow ? 256 : 0);

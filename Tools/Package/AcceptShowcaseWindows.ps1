@@ -243,7 +243,7 @@ public static class NexoraAcceptanceWindow {
     Capture-Compared 'courtyard-pbr-restored.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-pbr-restored.png')).Hash) 'Courtyard PBR restoration pixels differ.'
-    foreach ($effect in @(@(78, 'wind'), @(77, 'transmission'), @(75, 'bloom'), @(74, 'depth-of-field'))) {
+    foreach ($effect in @(@(78, 'wind'), @(77, 'transmission'), @(75, 'bloom'), @(74, 'depth-of-field'), @(86, 'planar-reflection'))) {
         Press-Key $effect[0]
         Capture-Compared "courtyard-$($effect[1])-off.png" 'courtyard-wide.png' $false
         Press-Key $effect[0]
@@ -251,6 +251,7 @@ public static class NexoraAcceptanceWindow {
     }
     $acceptance.courtyard_wind_comparison = $true
     $acceptance.courtyard_transmission_comparison = $true
+    $acceptance.courtyard_planar_reflection_comparison = $true
     $acceptance.courtyard_bloom_comparison = $true
     $acceptance.courtyard_depth_of_field_comparison = $true
     Press-Key 66; Capture 'courtyard-material.png'
@@ -269,9 +270,14 @@ public static class NexoraAcceptanceWindow {
     Press-Key 67 # Enter actual free camera.
     Capture-Compared 'courtyard-free-camera.png' 'courtyard-wide.png' $false
     [NexoraAcceptanceWindow]::PostMessage($window, 0x100, [IntPtr]::new(87), [IntPtr]::new(1)) | Out-Null
-    Start-Sleep -Milliseconds 300
-    [NexoraAcceptanceWindow]::PostMessage($window, 0x101, [IntPtr]::new(87), [IntPtr]::new(-1073741823)) | Out-Null
-    Capture-Compared 'courtyard-free-moved.png' 'courtyard-free-camera.png' $false
+    # Keep the key held until a submitted frame proves movement; fixed short holds can
+    # enqueue keydown and keyup between two expensive software-GPU frames.
+    try {
+        Capture-Compared 'courtyard-free-moved.png' 'courtyard-free-camera.png' $false
+    } finally {
+        [NexoraAcceptanceWindow]::PostMessage($window, 0x101, [IntPtr]::new(87), [IntPtr]::new(-1073741823)) | Out-Null
+    }
+    Capture-Settled 'courtyard-free-moved.png'
     Press-Key 82
     Capture-Compared 'courtyard-free-restored.png' 'courtyard-wide.png' $true
     $acceptance.courtyard_free_camera = $true

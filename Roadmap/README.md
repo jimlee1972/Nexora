@@ -118,3 +118,10 @@ DX12／Vulkan／Metal target-tier parity。
 The next VIS-M3 art iteration has retained sandstone/ivy source authoring, expanded paving,
 chamfered ring geometry and wind-bent pennants; release captures are retained. Reference
 parity and physical target validation remain pending (5/7 VIS milestones accepted).
+
+
+The planar mirror iteration reuses source meshes through affine instances and shares HDR,
+wind and shadow shading. Native reflection tests retain movement/restoration checks. Final
+reference parity, crystal optics and physical target performance remain pending (VIS 5/7).
+水面倒影迭代以 affine instance 重用網格，與 HDR、風動及陰影共用著色；原生測試保留移動／還原檢查。
+最終預覽圖一致性、水晶光學與目標實機效能仍待完成（VIS 5/7）。
