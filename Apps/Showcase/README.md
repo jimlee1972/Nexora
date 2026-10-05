@@ -480,3 +480,8 @@ procedural stone/crystal/environment detail is not yet identical to the concept.
 puddles use PBR direct/IBL reflections, not planar scene reflection/refraction; falls and thin
 crystal back lighting are bounded approximations. Do not mark full visual acceptance based on
 feature switches, software Vulkan, or an attractive generated concept image.
+
+Native courtyard animation consumes wall-clock delta up to the RoomSession one-second bound,
+so software rendering below ten FPS does not stretch the 100-second tour. Engineering rooms
+retain their prior 0.1-second cap; the engine/gameplay fixed-update loop is unchanged. The
+recording tool still requires an actual native 90–120-second capture and never retimes video.
