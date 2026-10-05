@@ -66,15 +66,15 @@ std::array<Rgb, 4> Read(
   info.bmiHeader.biPlanes = 1;
   info.bmiHeader.biBitCount = 32;
   info.bmiHeader.biCompression = BI_RGB;
-  std::vector<unsigned char> bytes(static_cast<std::size_t>(width) * height * 4);
-  const auto rows = GetDIBits(dc, bitmap, 0, height, bytes.data(), &info, DIB_RGB_COLORS);
+  std::vector<unsigned char> capturedBytes(static_cast<std::size_t>(width) * height * 4);
+  const auto rows = GetDIBits(dc, bitmap, 0, height, capturedBytes.data(), &info, DIB_RGB_COLORS);
   DeleteObject(bitmap);
   DeleteDC(dc);
   ReleaseDC(window, source);
   Require(copied && rows == static_cast<int>(height), "PBR GDI capture failed");
   const auto rgb = [&](unsigned x, unsigned y) {
     const auto index = (static_cast<std::size_t>(y) * width + x) * 4;
-    return Rgb{bytes[index + 2], bytes[index + 1], bytes[index]};
+    return Rgb{capturedBytes[index + 2], capturedBytes[index + 1], capturedBytes[index]};
   };
 #else
   XSync(display, False);
@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
       draw.textureUploads = (frame == 0 || frame == 4) ? std::span<const UiTextureUpload>(uploads)
                                                        : std::span<const UiTextureUpload>{};
       const auto mode = frame % 4;
-      draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = mode == 0 ? 0 : 1;
+      draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = mode == 0 ? 0.0F : 1.0F;
       if (mode == 0) {
         materials[0].baseColor = materials[1].baseColor = {0, 0, 0, 1};
         materials[0].emission = materials[1].emission = {1, 1, 1};
