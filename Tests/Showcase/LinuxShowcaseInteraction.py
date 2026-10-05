@@ -81,16 +81,17 @@ def screenshot(window: int, width: int, height: int, output: Path) -> bytes:
     return bytes(raw)
 
 
-def settled_screenshot(window, width, height, output):
+def settled_screenshot(window, width, height, output, reference=None):
     # Wait for several identical presented images: changing diagnostic text must not
     # be mistaken for the first clean frame after the asynchronous F4 event.
-    deadline=time.monotonic()+5
+    started=time.monotonic()
+    deadline=started+15
     previous=None
     repeats=0
     while True:
         captured=screenshot(window,width,height,output)
         repeats=repeats+1 if captured==previous else 0
-        if repeats>=2:return captured
+        if repeats>=2 and time.monotonic()-started>=2 and captured!=reference:return captured
         if time.monotonic()>=deadline:raise AssertionError(f'Native clean frame did not settle: {output.name}')
         previous=captured
         time.sleep(0.15)
@@ -242,7 +243,7 @@ def main():
             courtyard_ui = screenshot(window,1280,720,output/'courtyard-ui.png')
             tool('key', '--window', window, 'F4')
             time.sleep(0.2)
-            courtyard_wide = settled_screenshot(window,1280,720,output/'courtyard-wide.png')
+            courtyard_wide = settled_screenshot(window,1280,720,output/'courtyard-wide.png',courtyard_ui)
             assert courtyard_ui != courtyard_wide, 'Screenshot mode did not remove native UI'
             tool('key','--window',window,'k')
             time.sleep(0.2)
