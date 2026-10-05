@@ -256,6 +256,11 @@ int main() {
   assert(courtyard.Scene(1280, 720).vegetationTime == animatedTime);
   Press(courtyard, Key::Enter);
   const auto active = courtyard.Scene(1280, 720);
+  assert(active.pointLight && active.pointLight->radius == 4.5F);
+  Press(courtyard, Key::F9);
+  assert(!courtyard.Scene(1280, 720).pointLight);
+  Press(courtyard, Key::F9);
+  assert(courtyard.Scene(1280, 720).pointLight);
   const auto activeParticles =
       std::find_if(active.batches.begin(), active.batches.end(),
                    [](const auto &batch) { return batch.materialIndex == 7; });

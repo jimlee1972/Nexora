@@ -267,6 +267,38 @@ void Run() {
   reflectionMaterials[0].refractionIndex = 1;
   reflectionMaterials[0].refractionThickness = 0;
   Require(!HasSceneRefraction(pbr), "default material requests refraction target");
+  SceneDrawData pointDraw{};
+  pointDraw.pbr = pointDraw.hdr = pointDraw.offscreen = true;
+  const auto noPoint = PackPbrMaterial(pointDraw, SceneMaterial{}, false);
+  for (unsigned i = 92; i < 100; ++i)
+    Require(noPoint[i] == 0, "default scene carries point light constants");
+  pointDraw.pointLight = ScenePointLight{{-1, 2, 3}, {0.3F, 8, 12}, 4.5F};
+  Require(ValidatePbrData(pointDraw), "valid point light rejected");
+  const auto pointPacked = PackPbrMaterial(pointDraw, SceneMaterial{}, false);
+  Require(pointPacked[92] == -1 && pointPacked[93] == 2 && pointPacked[94] == 3 &&
+              pointPacked[95] == 4.5F && pointPacked[96] == 0.3F && pointPacked[97] == 8 &&
+              pointPacked[98] == 12 && pointPacked[99] == 0,
+          "point light constants differ from shader layout");
+  for (const float invalid : {0.0F, 0.09F, 64.01F, std::numeric_limits<float>::quiet_NaN()}) {
+    pointDraw.pointLight->radius = invalid;
+    Require(!ValidatePbrData(pointDraw), "invalid point light radius accepted");
+  }
+  pointDraw.pointLight = ScenePointLight{};
+  for (const float invalid : {10001.0F, std::numeric_limits<float>::infinity()}) {
+    pointDraw.pointLight->position[0] = invalid;
+    Require(!ValidatePbrData(pointDraw), "invalid point light position accepted");
+  }
+  pointDraw.pointLight = ScenePointLight{};
+  for (const float invalid : {-0.1F, 32.1F, std::numeric_limits<float>::quiet_NaN()}) {
+    pointDraw.pointLight->radiance[0] = invalid;
+    Require(!ValidatePbrData(pointDraw), "invalid point radiance accepted");
+  }
+  pointDraw.pointLight = ScenePointLight{};
+  pointDraw.hdr = false;
+  Require(!ValidatePbrData(pointDraw), "non-HDR point light accepted");
+  pointDraw.pointLight.reset();
+  Require(ValidatePbrData(pointDraw), "default scene lighting changed");
+
   pbr.materials = {};
   pbr.materials = reflectionMaterials;
   for (const float invalid : {-1.0F, 17.0F, std::numeric_limits<float>::quiet_NaN()}) {

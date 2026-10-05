@@ -471,3 +471,22 @@ Shipping／預覽圖驗證持續進行；VIS 維持 5/7。
 60,662 頂點與 1,764 個來源植被四邊形。啟用 core／sync validation 的 Linux 全套通過
 97/97（101.60 秒），含三種品質預算與 79 個 PBR 畫面。發行、預覽圖一致性及實體
 目標驗收仍未通過，VIS 維持 5/7。
+
+
+水晶新增有界 HDR 點光源，在 bloom／ACES 前對附近石材、青銅及透明表面產生局部 PBR
+照明。共享 Slang 使用有限半徑的平滑反平方衰減；來源世界座標讓平面鏡像光照一致，
+unlit 天空與發光面不受影響。Standard／High 啟動後跟隨水晶升降與共用暫停／重播時鐘；
+F9 比較局部光源。Basic、未啟動與預設場景不啟用。複製型 ScenePointLight 驗證有限位置、
+radiance [0,32] 與半徑 [0.1,64]。私有封包增至 400 bytes，仍放入 DX12 的 768-byte
+對齊配對；C/Zig ABI 不變。已準備 CPU 邊界／封包及六個原生移動／重播／停用／unlit
+案例（85 個 PBR 畫面），啟用 core／sync validation 的 Linux 全套通過 97/97（105.31 秒），
+含 F9 原生畫面變化與精確還原。發行、預覽圖一致性及實體目標仍未驗收；VIS 維持 5/7。
+此單一光源不提供點光源陰影貼圖。
+
+
+水晶局部點光源 Shipping 證據：[VIS-Crystal-Light-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Crystal-Light-Linux-2026-10-05)。來源凍結 `aec18172a4e6`；實際動畫影片 100.33 秒（實際錄製 100.71 秒），隔離套件 F9 開關與精確還原、85 個原生 PBR 案例通過。參考圖一致性與實體目標驗收仍未完成。
+
+
+MSVC 測試可攜性修正：點光源填充值與雙面法線條件式改用明確浮點值。✅ Linux configure／build
+與完整 97/97 通過（102.20 秒），包含 85 個原生 PBR 畫面與 core／同步驗證。測試數值與
+Runtime 來源不變；既有 Shipping 證據保留原本來源凍結。Windows CI 重新驗證中。

@@ -32,6 +32,17 @@ namespace Nexora::Presentation {
        draw.depthOfField->strength > 4 || !std::isfinite(draw.depthOfField->radiusPixels) ||
        draw.depthOfField->radiusPixels < 1 || draw.depthOfField->radiusPixels > 32))
     return false;
+  if (draw.pointLight) {
+    const auto &light = *draw.pointLight;
+    if (!draw.hdr || !std::isfinite(light.radius) || light.radius < 0.1F || light.radius > 64)
+      return false;
+    for (const auto value : light.position)
+      if (!std::isfinite(value) || std::abs(value) > 10000)
+        return false;
+    for (const auto value : light.radiance)
+      if (!std::isfinite(value) || value < 0 || value > 32)
+        return false;
+  }
   if (draw.atmosphere) {
     const auto &fog = *draw.atmosphere;
     if (!draw.hdr || !std::isfinite(fog.strength) || fog.strength < 0 || fog.strength > 1 ||
@@ -205,8 +216,8 @@ template <typename Lookup>
 
 // Matches MaterialConstants in scene_pbr.slang: twenty-three float4s, independent of native UBO
 // alignment.
-using PbrMaterialUpload = std::array<float, 92>;
-static_assert(sizeof(PbrMaterialUpload) == 368);
+using PbrMaterialUpload = std::array<float, 100>;
+static_assert(sizeof(PbrMaterialUpload) == 400);
 [[nodiscard]] inline PbrMaterialUpload
 PackPbrMaterial(const SceneDrawData &draw, const SceneMaterial &material, bool manualSrgbTransfer,
                 bool shadowYDown = true, unsigned width = 1, unsigned height = 1) noexcept {
@@ -281,6 +292,13 @@ PackPbrMaterial(const SceneDrawData &draw, const SceneMaterial &material, bool m
   parameters[89] = material.refractionThickness;
   parameters[90] = 1.0F / std::max(width, 1U);
   parameters[91] = 1.0F / std::max(height, 1U);
+  if (draw.pointLight) {
+    std::copy(draw.pointLight->position.begin(), draw.pointLight->position.end(),
+              parameters.begin() + 92);
+    parameters[95] = draw.pointLight->radius;
+    std::copy(draw.pointLight->radiance.begin(), draw.pointLight->radiance.end(),
+              parameters.begin() + 96);
+  }
   return parameters;
 }
 } // namespace Nexora::Presentation

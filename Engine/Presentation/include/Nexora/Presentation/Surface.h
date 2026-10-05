@@ -336,6 +336,12 @@ struct SceneDepthOfField final {
   float strength = 1.0F;
   float radiusPixels = 12.0F;
 };
+// One finite unshadowed point source in linear HDR, copied for this scene submission.
+struct ScenePointLight final {
+  std::array<float, 3> position{};
+  std::array<float, 3> radiance{1, 1, 1};
+  float radius{4}; // Smooth finite influence [0.1,64] world units.
+};
 struct SceneDrawData final {
   std::span<const SceneVertex> vertices;
   std::span<const std::uint16_t> indices;
@@ -356,6 +362,7 @@ struct SceneDrawData final {
   std::array<float, 3> cameraPosition{};
   std::span<const SceneLinearTextureUpload> linearTextureUploads{};
   std::optional<SceneEnvironment> environment{};
+  std::optional<ScenePointLight> pointLight{}; // HDR PBR only; absent preserves existing lighting.
   // Linear RGBA16F offscreen PBR; CompositeScene applies exposure, ACES and display transfer.
   bool hdr{};
   float exposure = 1.0F;

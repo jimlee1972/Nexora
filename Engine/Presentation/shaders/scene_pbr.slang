@@ -35,6 +35,8 @@ struct MaterialConstants
   float4 atmosphereColor; // linear RGB, maximum haze strength
   float4 atmosphereRange; // start/end camera distance, two reserved
   float4 refraction; // index, slab thickness, inverse target width/height
+  float4 pointPositionRadius;
+  float4 pointRadiance;
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
 [[vk::binding(0, 0)]] Sampler2D<float4> baseMap : register(t0);
@@ -283,7 +285,17 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   }
   float3 transmitted = NexoraEvaluateVegetationTransmission(surface.normal, light,
       material.transmission.rgb * scene.lightColor.rgb, material.vegetation.w, 1-visibility);
-  float3 color = direct * visibility + ambient + transmitted + max(surface.emission, float3(0));
+  float3 local = float3(0);
+  if (material.pointPositionRadius.w > 0) {
+    float3 delta = material.pointPositionRadius.xyz - input.worldPosition;
+    float distanceSquared = dot(delta, delta);
+    float window = saturate(1 - distanceSquared /
+        (material.pointPositionRadius.w * material.pointPositionRadius.w));
+    float attenuation = window * window / max(0.25, distanceSquared);
+    local = NexoraEvaluateDirectBrdf(surface.normal, viewDirection, geometryDirection(delta),
+        surface.baseColor, surface.metallic, surface.roughness, material.pointRadiance.rgb * attenuation);
+  }
+  float3 color = direct * visibility + ambient + local + transmitted + max(surface.emission, float3(0));
   float4 result = outputSceneColor(reflectionResponse(color, renderedPosition), renderedPosition);
   if (material.refraction.x > 1 && material.refraction.y > 0) {
     float3 incident = -viewDirection;

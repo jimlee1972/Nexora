@@ -126,7 +126,7 @@ struct RoomSession::State final {
   bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true}, courtyardFocus{true};
   bool courtyardReflections{true}, courtyardAtmosphere{true};
   bool courtyardPaused{}, courtyardActive{}, courtyardWind{true}, courtyardTransmission{true};
-  bool courtyardTransparency{true}, courtyardRefraction{true};
+  bool courtyardTransparency{true}, courtyardRefraction{true}, courtyardCrystalLight{true};
   bool visualTour{}, courtyardFreeCamera{}, courtyardCompare{};
   unsigned courtyardQuality{1}; // Basic / Standard / High, shared by all native adapters.
   math::Vector3 freeEye{};
@@ -2071,7 +2071,7 @@ void RoomSession::ReplayTour() {
     state_->courtyardPbr = state_->courtyardIbl = state_->courtyardShadows = true;
     state_->courtyardBloom = state_->courtyardStyled = state_->courtyardFocus =
         state_->courtyardReflections = state_->courtyardAtmosphere = state_->courtyardRefraction =
-            true;
+            state_->courtyardCrystalLight = true;
     state_->courtyardWind = state_->courtyardTransmission = state_->courtyardTransparency = true;
     state_->courtyardExposure = 1;
     state_->courtyardShadowBias = 0.0008F;
@@ -2177,6 +2177,8 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.courtyardFocus = !s.courtyardFocus;
   if (s.selected == "courtyard" && key == Key::V)
     s.courtyardReflections = !s.courtyardReflections;
+  if (s.selected == "courtyard" && key == Key::F9)
+    s.courtyardCrystalLight = !s.courtyardCrystalLight;
   if (s.selected == "courtyard" && key == Key::F8)
     s.courtyardRefraction = !s.courtyardRefraction;
   if (s.selected == "courtyard" && key == Key::F7)
@@ -2811,6 +2813,14 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
           math::Length(eye - math::Vector3{0, 2.9F, 0}), s.courtyardQuality == 2 ? 0.8F : 0.65F,
           s.courtyardQuality == 2 ? 8.0F : 6.0F};
     data.cameraPosition = {eye.x, eye.y, eye.z};
+    if (data.hdr && s.courtyardQuality != 0 && s.courtyardActive && s.courtyardCrystalLight) {
+      const float time = static_cast<float>(s.courtyardSeconds);
+      const float pulse = 0.9F + 0.1F * std::sin(time * 1.7F);
+      data.pointLight =
+          Nexora::Presentation::ScenePointLight{{0, 2.9F + 0.12F * std::sin(time * 1.4F), 0},
+                                                {0.3F * pulse, 8.0F * pulse, 12.0F * pulse},
+                                                4.5F};
+    }
     if (data.pbr) {
       for (unsigned axis = 0; axis < 3; ++axis) {
         data.light_direction[axis] = -courtyard_hero::sun_direction[axis];
@@ -2883,8 +2893,10 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     s.Text(30, 678, viewing + " / Q Quality: " + std::string(QualityName()), 0xffefdc80, 1.3F);
     if (s.courtyardCompare) {
       s.Rect(18, 531, 900, 100, 0xde241a10);
-      s.Text(30, 544, "P Materials / O Environment / F6 Shadows / F7 Haze / F8 Refraction",
-             0xffe9ded4, 1.4F);
+      s.Text(
+          30, 544,
+          "P Materials / O Environment / F6 Shadows / F7 Haze / F8 Refraction / F9 Crystal light",
+          0xffe9ded4, 1.4F);
       s.Text(30, 573, "J Focus / V Reflection / U Crystal / K Glow / N Wind / M Backlight",
              0xffe9ded4, 1.4F);
       s.Text(30, 602, "Q Quality / Pause for comparisons / R Replay / F1-F3 Details", 0xffefdc80,
@@ -2895,7 +2907,7 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     s.Text(18, 14, s.localization.Resolve("title"), 0xffefdc80, 3);
     s.Text(18, 45,
            "9 courtyard / B shot / P material / O IBL / E exposure / F6 shadows / F7 haze / F8 "
-           "refraction / G tone "
+           "refraction / F9 crystal light / G tone "
            "/ [ ] bias "
            "/ F4 hide UI / F1 overview / F2 "
            "profiler / F3 matrix");
@@ -3048,6 +3060,7 @@ std::string RoomSession::Report() const {
       << ",\"transmission_enabled\":" << (s.courtyardPbr && s.courtyardTransmission)
       << ",\"atmosphere_enabled\":"
       << (s.courtyardPbr && s.courtyardAtmosphere && s.courtyardQuality != 0)
+      << ",\"crystal_light_enabled\":" << (s.courtyardCrystalLight ? "true" : "false")
       << ",\"refraction_enabled\":"
       << (s.courtyardPbr && s.courtyardTransparency && s.courtyardRefraction &&
           s.courtyardQuality != 0)
