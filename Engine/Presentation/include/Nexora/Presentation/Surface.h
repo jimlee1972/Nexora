@@ -186,8 +186,9 @@ struct SceneMaterial final {
   float windAmplitude{}; // World-space bend, 0..0.5; UV.y is root-to-tip bend weight.
   float transmissionThickness{}; // Thin-leaf back lighting, 0..1; no alpha blending.
   std::array<float, 3> transmissionColor{0.2F, 0.5F, 0.08F};
-  bool unlit{};           // PBR emission-only path; retains alpha cutout and common color output.
-  bool castsShadow{true}; // Exclude non-casters from the protecting-frame prepass.
+  bool unlit{};            // PBR emission-only path; retains alpha cutout and common color output.
+  bool twoSidedLighting{}; // Lit PBR sheets: orient the shading normal toward the viewer.
+  bool castsShadow{true};  // Exclude non-casters from the protecting-frame prepass.
   SceneReflectionRole reflectionRole{}; // Horizontal planar mirror mask; opt-in PBR only.
   float refractionIndex{1};    // [1,2.5]; above 1 enables bounded opaque-HDR background refraction.
   float refractionThickness{}; // [0,1] world units; requires non-casting translucent HDR PBR.

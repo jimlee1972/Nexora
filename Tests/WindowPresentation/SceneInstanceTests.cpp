@@ -312,8 +312,18 @@ void Run() {
   Require(mappedPacked[76] == 0.5F && mappedPacked[77] == 0 && mappedPacked[78] == 0 &&
               mappedPacked[79] == 0,
           "world mapping layout differs from shader constants");
+  reflectionMaterials[0].twoSidedLighting = true;
+  Require(ValidatePbrData(pbr) && PackPbrMaterial(pbr, reflectionMaterials[0], false)[79] == 1,
+          "two-sided lighting packet rejected");
+  reflectionMaterials[0].unlit = true;
+  Require(!ValidatePbrData(pbr), "unlit two-sided lighting accepted");
+  reflectionMaterials[0].unlit = false;
+  reflectionMaterials[0].worldTextureScale = 0;
   pbr.pbr = false;
   pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "Lambert two-sided lighting accepted");
+  reflectionMaterials[0].twoSidedLighting = false;
+  reflectionMaterials[0].worldTextureScale = 0.5F;
   Require(!ValidatePbrData(pbr), "Lambert world mapping accepted");
   pbr.pbr = pbr.hdr = true;
   pbr.materials = {};

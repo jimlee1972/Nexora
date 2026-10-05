@@ -498,3 +498,15 @@ bloom／ACES；此為實際美術幾何，不宣稱體積散射。Standard／Hig
 Linux 原生整合：✅ 完整 configure／build 與 97/97 測試通過（103.93 秒），啟用 Khronos core／同步驗證，包含 85 個 PBR 畫面與三種品質幾何預算。固定啟動裝置的 Standard 畫面為 50,166 頂點、2,052 張來源植被卡片。Shipping／Full 隔離套件原生驗收與實際 100.27 秒影片（實際錄製 100.80 秒）通過；最終參考圖／目標驗收仍未完成。
 
 證據：[VIS-Courtyard-Masonry-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Masonry-Linux-2026-10-05)。來源凍結 `e5bb13119ba1`，保留確切來源與套件雜湊。
+
+
+可選 `SceneMaterial::twoSidedLighting` 讓受光 PBR 薄片先將幾何法線朝向觀察者，再計算
+切線 normal map 與 BRDF／IBL。葉片與布旗啟用此功能；預設保留既有表面受光。
+世界座標陰影遮罩、平面鏡射的虛擬相機仍一致；封閉水晶背面過濾在法線翻轉之前執行。
+Unlit／Lambert 拒絕此旗標。私有材質 float 79 使用保留欄位，400-byte packet、後端绑定
+及穩定 C／Zig ABI 不變。背面不再因觀察角度為負而失去 diffuse IBL；此為薄片受光，
+並非厚材質體積模型。最終參考圖／目標驗收仍未完成。
+
+✅ Linux Development configure／build 與 97/97 測試通過（106.20 秒），包含啟用 Khronos core／同步驗證的 89 個原生 PBR 畫面。四個薄片案例保留預設背面行為，啟用後正反面顏色精確一致；CPU 驗證 slot 79，拒絕 unlit／Lambert 組合。原生幾何預算與風／暫停／重播互動通過；Shipping／Full 隔離套件原生驗收與實際 100.33 秒影片（實際錄製 100.79 秒）通過；最終參考圖／目標驗收仍未完成。
+
+證據：[VIS-Two-Sided-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05)。來源凍結 `248791c4b51a`，保留確切來源與套件雜湊。

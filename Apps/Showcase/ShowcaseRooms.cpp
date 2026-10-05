@@ -2575,6 +2575,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[3].baseColor = {0.58F, 0.4F, 0.24F, 1};
     s.materials[3].roughness = 0.6F;
     s.materials[4].roughness = 0.8F;
+    s.materials[5].twoSidedLighting = s.courtyardPbr;
     s.materials[5].roughness = 0.7F;
     s.materials[5].emission = {0, 0, 0};
 #if NEXORA_ASSET_PIPELINE_ENABLED
@@ -2675,6 +2676,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials.push_back(waterfall);
     Nexora::Presentation::SceneMaterial cloth{};
     cloth.baseColor = {0.025F, 0.19F, 0.23F, 1};
+    cloth.twoSidedLighting = s.courtyardPbr;
     cloth.roughness = 0.95F;
     cloth.windAmplitude = s.courtyardPbr && s.courtyardWind ? 0.12F : 0;
     s.materials.push_back(cloth);
