@@ -953,6 +953,17 @@ int RunGraphical(std::optional<ProjectState> project,
   const auto open_scene = [&] {
     retained_scene_views.clear();
     scene_files = std::make_unique<nexora::editor::SceneFileSession>(project->workspace, scene);
+    const auto restored = scene_files->RestoreStartup(scene_files->Token());
+    if (restored.Applied()) {
+      scene_load_failed = false;
+      log(nexora::runtime::RuntimeLogSeverity::Info, "Scene", "Restored last scene.");
+      load_scene_views();
+      return;
+    }
+    if (restored.status != nexora::editor::SceneFileStatus::NeedsPath) {
+      std::cerr << "ignored scene startup settings: " << restored.message << '\n';
+      log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene", restored.message);
+    }
     constexpr std::string_view initial_path = ".nexora/scenes/Main.scene";
     const auto path = project->workspace.Root() / initial_path;
     std::error_code error;
@@ -1020,6 +1031,15 @@ int RunGraphical(std::optional<ProjectState> project,
       break;
     }
   };
+  const auto remember_scene = [&] {
+    if (!project || !project->workspace.Writable() || !scene_files || !scene_files->CurrentPath())
+      return;
+    const auto remembered = scene_files->RememberCurrent(scene_files->Token());
+    if (!remembered.Applied()) {
+      std::cerr << "scene startup settings were not saved: " << remembered.message << '\n';
+      log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene", remembered.message);
+    }
+  };
   const auto save_scene = [&] {
     if (scene_load_failed) {
       ui.SetSceneSaveResult("Scene load failed. Resolve the scene file before saving.", false);
@@ -1045,6 +1065,7 @@ int RunGraphical(std::optional<ProjectState> project,
       return false;
     }
     publish_saved_scene();
+    remember_scene();
     ui.SetSceneSaveResult("Scene saved.", true);
     log(nexora::runtime::RuntimeLogSeverity::Info, "Scene", "Scene saved.");
     return true;
@@ -1389,6 +1410,7 @@ int RunGraphical(std::optional<ProjectState> project,
           can_apply = result.Applied();
           if (can_apply) {
             publish_saved_scene();
+            remember_scene();
             scene_load_failed = false;
             if (const auto saved_path = scene_files->CurrentPath())
               retained_scene_views[*saved_path] = old_views;
@@ -1419,6 +1441,8 @@ int RunGraphical(std::optional<ProjectState> project,
           if (result.Applied()) {
             if (request->action == FileAction::SaveAs)
               publish_saved_scene();
+            if (request->action != FileAction::New)
+              remember_scene();
             if (retain_views)
               retained_scene_views[*old_path] = old_views;
             scene_load_failed = false;

@@ -1,6 +1,9 @@
 #include "Nexora/Editor/SceneFiles.h"
+#include "AtomicFile.h"
 
 #include <algorithm>
+#include <array>
+#include <fstream>
 #include <system_error>
 
 namespace nexora::editor {
@@ -127,5 +130,87 @@ SceneFileResult SceneFileSession::SaveAs(SceneFileToken token,
   current_ = path->lexically_relative(root_);
   save_blocked_ = false;
   return {SceneFileStatus::Applied, "Scene saved."};
+}
+std::optional<std::filesystem::path> SceneFileSession::StartupMetadataPath() const {
+  std::error_code error;
+  const auto directory = root_ / ".nexora";
+  // Project-owned metadata must not follow a substituted directory or file alias.
+  if (std::filesystem::canonical(directory, error) != directory || error)
+    return std::nullopt;
+  const auto path = directory / "scene-session.ini";
+  const auto status = std::filesystem::symlink_status(path, error);
+  if (error == std::errc::no_such_file_or_directory ||
+      (!error && status.type() == std::filesystem::file_type::not_found))
+    return path;
+  if (error || !std::filesystem::is_regular_file(status))
+    return std::nullopt;
+  return path;
+}
+SceneFileResult
+SceneFileSession::ReadStartup(std::optional<std::filesystem::path> &relative) const {
+  relative.reset();
+  const auto path = StartupMetadataPath();
+  if (!path)
+    return Rejected("Scene startup settings are unavailable or unsafe; preserved for inspection.");
+  std::error_code error;
+  if (!std::filesystem::exists(*path, error) && !error)
+    return {SceneFileStatus::NeedsPath, {}};
+  std::ifstream input(*path, std::ios::binary);
+  std::array<char, 1100> buffer{};
+  input.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+  const auto count = static_cast<std::size_t>(input.gcount());
+  const std::string_view text(buffer.data(), count);
+  const auto prefix = "schema=1\nproject=" + project_.ToString() + "\nscene=";
+  if (!input.eof() || input.bad() || count == buffer.size() || !text.starts_with(prefix) ||
+      !text.ends_with('\n'))
+    return Rejected("Scene startup settings are invalid; preserved for inspection.");
+  const auto name = text.substr(prefix.size(), text.size() - prefix.size() - 1);
+  if (name.empty() || name.size() >= 1024 || !foundation::IsValidUtf8(name))
+    return Rejected("Scene startup filename is invalid; settings preserved for inspection.");
+  const std::filesystem::path requested(std::u8string(name.begin(), name.end()));
+  const auto resolved = Resolve(requested);
+  if (!resolved)
+    return Rejected("Scene startup path is outside the managed scope; settings preserved.");
+  relative = resolved->lexically_relative(root_);
+  return {SceneFileStatus::Applied, {}};
+}
+SceneFileResult SceneFileSession::RestoreStartup(SceneFileToken token) {
+  if (!Live(token))
+    return Rejected("The scene or project changed before startup restoration.");
+  std::optional<std::filesystem::path> relative;
+  auto result = ReadStartup(relative);
+  startup_checked_ = true;
+  startup_blocked_ = result.status == SceneFileStatus::Rejected;
+  if (!relative)
+    return result;
+  result = Open(token, *relative);
+  if (result.status == SceneFileStatus::Rejected) {
+    startup_blocked_ = true;
+    result.message = "Startup scene could not be loaded; settings preserved. " + result.message;
+  }
+  return result;
+}
+SceneFileResult SceneFileSession::RememberCurrent(SceneFileToken token) {
+  if (!Live(token) || !workspace_.Writable() || workspace_.HasRecoveryJournal() ||
+      !startup_checked_ || startup_blocked_ || save_blocked_ || !current_ || document_.Dirty())
+    return Rejected("Scene startup selection could not be remembered; prior settings preserved.");
+  std::optional<std::filesystem::path> previous;
+  const auto checked = ReadStartup(previous);
+  if (checked.status == SceneFileStatus::Rejected) {
+    startup_blocked_ = true;
+    return checked;
+  }
+  const auto scene_path = Resolve(*current_);
+  const auto metadata = StartupMetadataPath();
+  std::error_code error;
+  if (!scene_path || !metadata || !std::filesystem::is_regular_file(*scene_path, error) || error)
+    return Rejected("Current scene is unavailable; prior startup selection preserved.");
+  const auto relative = scene_path->lexically_relative(root_);
+  const auto text =
+      "schema=1\nproject=" + project_.ToString() + "\nscene=" + detail::PathUtf8(relative) + "\n";
+  std::string message;
+  if (!detail::AtomicWrite(*metadata, text, &message))
+    return Rejected("Scene selection was not remembered: " + message);
+  return {SceneFileStatus::Applied, "Scene startup selection remembered."};
 }
 } // namespace nexora::editor

@@ -128,6 +128,24 @@ def main():
             if not path.with_suffix(".overview.camera").is_file() or not path.with_suffix(
                     ".preview.camera").is_file():
                 raise RuntimeError(f"Scene camera state was not retained for {path}")
+        metadata = root / ".nexora/scene-session.ini"
+        if not metadata.read_bytes().endswith(b"scene=Content/Exit.scene\n"):
+            raise RuntimeError("Save and Exit did not remember its managed scene")
+        # A real writable restart must edit/save Exit.scene, rather than silently reopening Main.
+        # The visible filename alone is not enough evidence that the live World was restored.
+        exit_before = exit_scene.read_bytes()
+        process, window = start()
+        send("key", "--clearmodifiers", "ctrl+shift+n", "ctrl+s")
+        wait_until(lambda: exit_scene.read_bytes().count(b"node ") ==
+                   exit_before.count(b"node ") + 1,
+                   "Restart did not restore the last scene and its save destination", process)
+        if main_scene.read_bytes() != original:
+            raise RuntimeError("Startup restoration edited Main instead of the remembered scene")
+        request_window_close(window, env)
+        _, error = process.communicate(timeout=15)
+        if process.returncode != 0:
+            raise RuntimeError(f"Restored scene exit failed: {error}")
+        process = None
         before = {path.relative_to(root): path.read_bytes()
                   for path in root.rglob("*") if path.is_file() and path.name != "editor.lock"}
         process, window = start(read_only=True)
@@ -142,7 +160,23 @@ def main():
                  for path in root.rglob("*") if path.is_file() and path.name != "editor.lock"}
         if after != before:
             raise RuntimeError("Read-only scene workflow modified project files")
-        print("Native scene New/Open/Save As and per-scene camera persistence passed")
+        # Broken startup metadata must fall back to Main and survive an explicit scene Save.
+        malformed = b"schema=unsupported\nscene=Content/Exit.scene\n"
+        metadata.write_bytes(malformed)
+        exit_before = exit_scene.read_bytes()
+        process, window = start()
+        send("key", "--clearmodifiers", "ctrl+shift+n", "ctrl+s")
+        wait_until(lambda: main_scene.read_bytes().count(b"node ") ==
+                   original.count(b"node ") + 1,
+                   "Invalid startup settings did not fall back to Main", process)
+        if metadata.read_bytes() != malformed or exit_scene.read_bytes() != exit_before:
+            raise RuntimeError("Startup fallback overwrote broken settings or the remembered source")
+        request_window_close(window, env)
+        _, error = process.communicate(timeout=15)
+        if process.returncode != 0 or "ignored scene startup settings" not in error:
+            raise RuntimeError(f"Startup fallback did not report the preserved settings: {error}")
+        process = None
+        print("Native scene files, last-scene restart/fallback and camera persistence passed")
     finally:
         if process is not None and process.poll() is None:
             process.kill()

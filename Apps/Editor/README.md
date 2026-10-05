@@ -169,7 +169,8 @@ remain open.
 
 The graphical File menu supports New Scene, Open Scene, Save and Save As with Ctrl+N/Ctrl+O/
 Ctrl+S/Ctrl+Shift+S. Scene panel Save uses the same managed current path; Untitled Save opens Save As.
-Project startup still opens `.nexora/scenes/Main.scene`, creating a starter root only when missing.
+Project startup restores the last successfully opened/saved scene and its per-file view state.
+Without valid startup state it opens `.nexora/scenes/Main.scene`, creating a starter root only when missing.
 New starts empty/dirty, Open adopts a validated project-relative `.scene`, and Save As adopts its
 successfully written destination without changing the original file. Dirty New/Open requires
 Save/Discard/Cancel; existing different destinations require Replace. Missing/corrupt Open preserves
@@ -188,7 +189,13 @@ Editor view states remain separate from scene content: the legacy Main scene kee
 `.overview.camera`/`.preview.camera`; other paths mirror into `.nexora/scenes/views/<relative-path>`
 with camera extensions. Switching retains owning CPU view state for previously opened files and
 shutdown persists it only for writable projects and valid, readable view metadata. Untitled view state
-has no file destination. Additive scenes, last-opened-file startup selection, and complete ED-M2/
+has no file destination. Startup selection lives in bounded project/UTF-8 metadata at
+`.nexora/scene-session.ini`. Only successful Open/Save/Save As records a clean associated file;
+New/failed operations/Discard do not replace the previous choice. Read-only startup restores it
+without writing. Malformed, foreign, aliased or unavailable startup data is reported and preserved
+for the session while the application falls back to Main. A later metadata write failure warns without
+undoing a successful scene save or blocking Save and Exit. Workspace recovery blocks recording.
+Additive scenes and complete ED-M2/
 ED-M4 graphical acceptance remain open.
 The Scene panel exposes Undo (Ctrl+Z) and Redo (Ctrl+Y or Ctrl+Shift+Z) outside text inputs.
 Undoing entity creation removes stale node metadata and selection; Redo restores them with the

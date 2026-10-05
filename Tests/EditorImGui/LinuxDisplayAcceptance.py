@@ -150,7 +150,8 @@ def finish_project_selector(
     recent_projects: Path,
 ) -> str:
     def press(*keys: str) -> None:
-        subprocess.run([xdotool, "key", *keys], env=environment, check=True)
+        # Keep chord modifiers visible across native GPU frames and ImGui's trickled input queue.
+        subprocess.run([xdotool, "key", "--delay", "100", *keys], env=environment, check=True)
         time.sleep(0.15)
 
     previous_recent_revision = (recent_projects.stat().st_mtime_ns

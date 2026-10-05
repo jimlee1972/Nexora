@@ -378,8 +378,12 @@ creates property widgets; unknown components retain raw data instead of being si
   and Linux Xvfb verify New, typed Save As, Open/reopen, source-file retention and read-only bytes.
   Content Unicode folder/asset labels, search, rename/move and Undo use UTF-8 and native paths,
   with portable and 1x/2x panel tests; they avoid Windows system code-page conversion.
-  Startup still opens Main; additive tabs, last-opened startup selection, and full ED-M4 acceptance
-  remain open.
+  ✅ Startup restores the last successfully opened/saved scene with per-file view state, including
+  read-only reopen. Bounded project/UTF-8 metadata revalidates managed scope; invalid/aliased,
+  foreign or unavailable data falls back to Main and stays protected for the session. New/failed
+  operations retain the prior choice, and independent metadata-write failure retains successful
+  scene persistence. Portable tests and Linux Xvfb restart/edit/save/fallback verify the workflow.
+  Additive tabs and full ED-M4 acceptance remain open.
 - ✅ The Scene panel exposes Undo/Redo by button and Ctrl+Z/Ctrl+Y/Ctrl+Shift+Z outside text input.
   Runtime replay restores stable IDs, hierarchy, transforms, and Camera/Light components; document
   replay restores names, selection, and authored Euler revolutions. New edits discard Redo; tests

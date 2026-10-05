@@ -352,8 +352,11 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   真正 1×／2× menu／key／modal 測試與 Linux Xvfb 驗證 New、輸入 Save As、Open／重開、
   原檔案保留及唯讀 bytes。Content 中文資料夾／檔名顯示、搜尋、改名／移動與 Undo 使用 UTF-8
   與原生路徑，portable 及 1×／2× panel 測試驗證不經 Windows 系統字碼頁。
-  啟動仍開 Main；additive tab、last-opened 啟動選擇及完整 ED-M4
-  圖形驗收仍待完成。
+  ✅ 啟動現會恢復上次成功 Open／Save 的場景及各檔案 view state，包含唯讀重開。有界
+  project／UTF-8 metadata 重新驗證 managed scope；無效／aliased、其他專案或無法載入的資料
+  回到 Main 並在本次 session 保留原檔案。New／失敗操作保留先前選擇；獨立 metadata
+  儲存失敗保留成功的場景儲存。Portable 及 Linux Xvfb 的重啟／編輯／儲存／fallback 驗證
+  流程；additive tab 與完整 ED-M4 圖形驗收仍待完成。
 - ✅ Scene panel 現可透過按鈕及文字輸入欄位以外的 Ctrl+Z／Ctrl+Y／Ctrl+Shift+Z 執行
   Undo／Redo。Runtime 重播會還原穩定 ID、階層、transform 與 Camera／Light 元件；文件重播會
   還原名稱、選取與輸入的 Euler 圈數。新編輯會清除 Redo 分支；測試涵蓋重播及撤銷建立後的

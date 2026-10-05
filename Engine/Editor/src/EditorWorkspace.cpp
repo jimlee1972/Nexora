@@ -1,4 +1,5 @@
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "AtomicFile.h"
 #include "Nexora/Editor/ViewportMath.h"
 
 #include <algorithm>
@@ -15,13 +16,6 @@
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
-
-#if defined(_WIN32)
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
 
 namespace nexora::editor {
 namespace {
@@ -77,46 +71,7 @@ std::string Hex(std::uint64_t value) {
   stream << std::hex << std::setfill('0') << std::setw(16) << value;
   return stream.str();
 }
-bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, std::string *error) {
-  std::error_code ec;
-  std::filesystem::create_directories(path.parent_path(), ec);
-  auto temporary = path;
-  temporary += ".tmp";
-  // Do not truncate, follow, or remove a preexisting temporary path owned by another writer/file.
-  const auto temporary_status = std::filesystem::symlink_status(temporary, ec);
-  if (ec != std::errc::no_such_file_or_directory &&
-      (ec || std::filesystem::exists(temporary_status))) {
-    if (error)
-      *error = "temporary destination is already occupied";
-    return false;
-  }
-  ec.clear();
-  {
-    std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
-    // Close before checking so a failed flush (e.g. a full disk) is not renamed over a good file.
-    if (!output || !(output << contents) || (output.close(), output.fail())) {
-      output.close();
-      std::filesystem::remove(temporary, ec);
-      if (error)
-        *error = "could not write " + PathUtf8(temporary);
-      return false;
-    }
-  }
-#if defined(_WIN32)
-  if (!MoveFileExW(temporary.c_str(), path.c_str(),
-                   MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
-    ec = std::error_code(static_cast<int>(GetLastError()), std::system_category());
-#else
-  std::filesystem::rename(temporary, path, ec);
-#endif
-  if (ec) {
-    std::error_code cleanup;
-    std::filesystem::remove(temporary, cleanup);
-    if (error)
-      *error = "could not replace " + PathUtf8(path) + ": " + ec.message();
-  }
-  return !ec;
-}
+using detail::AtomicWrite;
 std::string Lower(std::string_view value) {
   std::string result(value);
   std::ranges::transform(result, result.begin(),
