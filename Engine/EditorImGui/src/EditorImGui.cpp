@@ -139,6 +139,7 @@ struct EditorImGuiHost::State final {
   std::vector<SceneMarker> scene_markers;
   std::optional<Nexora::Presentation::SceneViewport> scene_canvas_viewport;
   std::optional<std::array<float, 2>> scene_frame_position;
+  std::optional<std::array<float, 2>> scene_frame_all_position;
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
   bool native_game_available = true;
   bool game_was_running = false;
@@ -1126,12 +1127,20 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
       std::min<std::size_t>(scene->Selection().size(), std::numeric_limits<std::uint32_t>::max()));
 }
 
-template <typename StateT> bool FrameSceneSelection(StateT &state, const SceneDocument &scene) {
+template <typename StateT>
+bool FrameSceneSelection(StateT &state, const SceneDocument &scene, bool all = false,
+                         double width = 0, double height = 0) {
   double min_x = std::numeric_limits<double>::infinity();
   double max_x = -min_x;
   double min_z = min_x;
   double max_z = -min_x;
-  for (const auto id : scene.Selection()) {
+  std::vector<runtime::Id> targets(scene.Selection().begin(), scene.Selection().end());
+  if (all) {
+    targets.clear();
+    for (const auto &node : scene.Nodes())
+      targets.push_back(node.id);
+  }
+  for (const auto id : targets) {
     const auto pose = scene.WorldTransform(id);
     if (!pose)
       return false;
@@ -1148,21 +1157,29 @@ template <typename StateT> bool FrameSceneSelection(StateT &state, const SceneDo
       std::abs(z) > std::numeric_limits<float>::max())
     return false;
   state.scene_center_world = {static_cast<float>(x), static_cast<float>(z)};
+  if (all)
+    state.scene_pixels_per_unit = static_cast<float>(
+        std::clamp(std::min(std::max(1.0, width - 48.0) / std::max(1.0, max_x - min_x),
+                            std::max(1.0, height - 48.0) / std::max(1.0, max_z - min_z)),
+                   4.0, 256.0));
   return true;
 }
 
 template <typename StateT>
 bool FrameNativeSceneSelection(StateT &state, const SceneDocument &scene,
                                const ProjectContentSession *content, const MeshAssetCatalog *meshes,
-                               double aspect) {
-  if (scene.Selection().empty() || !std::isfinite(aspect) || aspect <= 0)
+                               double aspect, bool all = false) {
+  if ((all ? scene.Nodes().empty() : scene.Selection().empty()) || !std::isfinite(aspect) ||
+      aspect <= 0)
     return false;
-  // Frame selected forests once, including authored children of an empty parent. Source geometry
+  // Frame selected forests or all scene roots once, including children of an empty parent. Geometry
   // is CPU-owned; framing does not perform IO, publish assets, or consume the native upload budget.
   std::unordered_map<runtime::Id, std::vector<runtime::Id>> children;
   for (const auto &node : scene.Nodes())
     children[node.parent].push_back(node.id);
   std::vector<runtime::Id> pending(scene.Selection().begin(), scene.Selection().end());
+  if (all)
+    pending = children[0];
   std::unordered_set<runtime::Id> visited;
   const auto infinity = std::numeric_limits<double>::infinity();
   std::array<double, 3> minimum{infinity, infinity, infinity};
@@ -1483,17 +1500,22 @@ void AcceptSceneMeshDrop(StateT &state, SceneDocument &scene, ProjectContentSess
 
 template <typename StateT>
 void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
-                       ProjectContentSession *content, const MeshAssetCatalog *meshes) {
+                       ProjectContentSession *content, const MeshAssetCatalog *meshes,
+                       bool navigation_allowed) {
   ImGui::TextUnformatted("Top-down X/Z | Drag marker: free move | Drag red X/blue Z: axis move | "
                          "Middle: pan | Wheel: zoom");
-  ImGui::SameLine();
-  ImGui::BeginDisabled(scene.Selection().empty());
-  if (ImGui::SmallButton("Frame selected"))
-    static_cast<void>(FrameSceneSelection(state, scene));
+  ImGui::BeginDisabled(scene.Selection().empty() || state.scene_drag.has_value());
+  const bool frame_selected = ImGui::SmallButton("Frame selected");
   ImGui::EndDisabled();
-  if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-      !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_F, false))
-    static_cast<void>(FrameSceneSelection(state, scene));
+  ImGui::SameLine();
+  ImGui::BeginDisabled(scene.Nodes().empty() || state.scene_drag.has_value());
+  const bool frame_all = ImGui::SmallButton("Frame all");
+  const auto frame_min = ImGui::GetItemRectMin(), frame_max = ImGui::GetItemRectMax();
+  state.scene_frame_all_position =
+      std::array{(frame_min.x + frame_max.x) * 0.5F, (frame_min.y + frame_max.y) * 0.5F};
+  ImGui::EndDisabled();
+  ImGui::SameLine();
+  ImGui::TextDisabled("F: selected | Home: all");
   constexpr std::array snap_steps{0.25F, 0.5F, 1.0F, 2.0F, 4.0F};
   ImGui::Checkbox("Snap movement", &state.scene_snap_to_grid);
   ImGui::SameLine();
@@ -1515,6 +1537,14 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   CaptureCanvasViewport(state.scene_canvas_viewport, min, max);
   const ImVec2 center{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
   const auto &io = ImGui::GetIO();
+  if (navigation_allowed && !state.scene_drag) {
+    const bool keyboard =
+        !io.WantTextInput && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+    if (frame_all || (keyboard && ImGui::IsKeyPressed(ImGuiKey_Home, false)))
+      static_cast<void>(FrameSceneSelection(state, scene, true, size.x, size.y));
+    else if (frame_selected || (keyboard && ImGui::IsKeyPressed(ImGuiKey_F, false)))
+      static_cast<void>(FrameSceneSelection(state, scene));
+  }
   if (state.scene_drag) {
     if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
       state.scene_drag.reset();
@@ -3253,6 +3283,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->hierarchy_create_positions = {};
   state_->scene_canvas_viewport.reset();
   state_->scene_frame_position.reset();
+  state_->scene_frame_all_position.reset();
   state_->inspector_reset_positions = {};
   state_->inspector_clipboard_positions = {};
   state_->native_game_viewport.reset();
@@ -3675,7 +3706,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             std::array{(frame_min.x + frame_max.x) * 0.5F, (frame_min.y + frame_max.y) * 0.5F};
         ImGui::EndDisabled();
         ImGui::SameLine();
-        ImGui::TextDisabled("F: frame | Right: orbit | Wheel: zoom");
+        ImGui::BeginDisabled(scene->Nodes().empty() ||
+                             state_->native_scene_drag_origin.has_value());
+        const bool frame_all_clicked = ImGui::SmallButton("Frame all");
+        const auto all_min = ImGui::GetItemRectMin(), all_max = ImGui::GetItemRectMax();
+        state_->scene_frame_all_position =
+            std::array{(all_min.x + all_max.x) * 0.5F, (all_min.y + all_max.y) * 0.5F};
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        ImGui::TextDisabled("F: selected | Home: all | Right: orbit | Wheel: zoom");
         if (state_->native_scene_tool == NativeSceneTool::Rotate)
           ImGui::TextDisabled(
               "Drag colored rings: rotate | Shift: 15 deg snap | W: move | R: scale");
@@ -3826,20 +3865,25 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             }
           }
         }
-        if (!interaction_blocked && !state_->native_scene_drag_origin &&
+        const bool frame_keyboard =
+            !io.WantTextInput && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+        const bool frame_all =
+            frame_all_clicked || (frame_keyboard && ImGui::IsKeyPressed(ImGuiKey_Home, false));
+        if (state_->app_focused && !interaction_blocked && !state_->native_scene_drag_origin &&
             state_->scene_canvas_viewport &&
-            (frame_clicked ||
-             (!io.WantTextInput && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-              ImGui::IsKeyPressed(ImGuiKey_F, false)))) {
+            (frame_all || frame_clicked ||
+             (frame_keyboard && ImGui::IsKeyPressed(ImGuiKey_F, false)))) {
           const auto &view = *state_->scene_canvas_viewport;
-          static_cast<void>(FrameNativeSceneSelection(
-              *state_, *scene, content, meshes, static_cast<double>(view.width) / view.height));
+          static_cast<void>(FrameNativeSceneSelection(*state_, *scene, content, meshes,
+                                                      static_cast<double>(view.width) / view.height,
+                                                      frame_all));
         }
         AcceptSceneMeshDrop(*state_, *scene, content, meshes, scene_editable,
                             NativeMeshDropPose(*state_));
       } else {
         CancelNativeSceneGesture(*state_);
-        DrawSceneOverview(*state_, *scene, scene_editable, content, meshes);
+        DrawSceneOverview(*state_, *scene, scene_editable, content, meshes,
+                          state_->app_focused && !interaction_blocked);
       }
     }
   }
@@ -4953,6 +4997,10 @@ void EditorImGuiTestAccess::FocusScene(EditorImGuiHost &host) noexcept {
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneFramePosition(const EditorImGuiHost &host) noexcept {
   return host.state_->scene_frame_position;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneFrameAllPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->scene_frame_all_position;
 }
 
 std::optional<std::array<float, 2>>

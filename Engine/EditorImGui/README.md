@@ -420,6 +420,21 @@ preparation after commands/ticks, where current scene lifecycle and CameraView a
 snapshots cannot retain a removed camera or draw an unloading scene. Automatic remains ordered by
 entity ID. No borrowed World data survives frame preparation.
 
+## Frame all Scene view
+
+Focused Scene Home and Frame all navigate without changing selection, World, dirty state, clipboard
+or document history. Native framing visits all roots/descendants once and uses the same owning,
+generation-checked CPU mesh bounds and rotated proxy fallback as Frame selected. It uses the
+current clipped framebuffer aspect and the narrower FOV with the existing 2–100 distance limits;
+invalid/out-of-range bounds preserve every camera field. Overview framing centers all entity world
+origins and fits them to the current logical canvas with 24-pixel margins and 4–256 zoom limits.
+Empty scenes are no-ops. Read-only navigation works; text input, other panels, application focus
+loss, blocking modals and active Scene drags cannot invoke it. Framing performs no source IO or
+GPU publication and retains no World/Content borrows. Real 1x/2x tests cover exact affine unions,
+empty selection/scene, button/keyboard parity, gates, rejected bounds and retained World/Redo.
+Linux Xvfb drives Home without selection, pans, and verifies the restored native pixels for both
+proxy and authored OBJ scenes. Full graphical Scene View acceptance remains open.
+
 ## Camera alignment from Scene view
 
 With one enabled Camera selected, Use Scene view pose copies the stored native Scene orbit's eye

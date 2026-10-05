@@ -31,13 +31,13 @@ struct Fixture final {
   runtime::World world;
   runtime::Id scene_id = world.LoadScene("Frame geometry");
   editor::SceneDocument scene{world, scene_id};
-  runtime::Id ancestor{}, parent{}, leaf{}, redo_entity{};
+  runtime::Id ancestor{}, parent{}, leaf{}, other{}, redo_entity{};
   editor::imgui::EditorImGuiHost ui;
   float scale;
   editor::ProjectWorkspace *active = &writer;
   const editor::MeshAssetCatalog *catalog = &meshes;
   std::optional<std::string> original;
-  explicit Fixture(float dpi) : scale(dpi) {
+  explicit Fixture(float dpi, bool wide = false) : scale(dpi) {
     Require(writer.Create(root, "Frame geometry") &&
                 reader.Open(root, editor::ProjectAccess::ReadOnly) && world.Activate(scene_id),
             "frame project fixture failed");
@@ -62,8 +62,14 @@ struct Fixture final {
             scene.SetMeshRenderer(
                 *scene.Key(leaf),
                 runtime::MeshComponent{editor::MeshResourceId(assets.Entries()[0].id), {}}) &&
-            scene.Select(std::array{leaf}) && scene.Save(root / "Content/Frame.scene"),
+            scene.Select(std::array{leaf}),
         "frame mirrored/sheared hierarchy fixture failed");
+    if (wide) {
+      other = scene.Create("Other root");
+      Require(scene.SetTransform(other, {-20, -5, -8}) && scene.Select(std::array{leaf}),
+              "frame all root fixture failed");
+    }
+    Require(scene.Save(root / "Content/Frame.scene"), "frame baseline save failed");
     redo_entity = scene.Create("Retained Redo");
     Require(scene.Undo(), "frame Redo fixture failed");
     original = world.SaveScene(scene_id);
@@ -104,8 +110,8 @@ struct Fixture final {
     Draw();
     Key(Nexora::Window::Key::F);
   }
-  void ClickFrame() {
-    const auto position = Access::SceneFramePosition(ui);
+  void ClickFrame(bool all = false) {
+    const auto position = all ? Access::SceneFrameAllPosition(ui) : Access::SceneFramePosition(ui);
     Require(position.has_value(), "frame button absent");
     Nexora::Window::WindowEvent pointer, button;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
@@ -134,6 +140,130 @@ struct Fixture final {
             "camera navigation mutated scene content or dirty state");
   }
 };
+void RunAll(float dpi) {
+  Fixture f(dpi, true);
+  const double c = std::sqrt(0.5);
+  // Independent union of the sheared mesh, rotated ancestor proxies and the other root proxy.
+  const double x = (-20.45 + 10 + 2.25 * c) * 0.5;
+  const double y = (-4.95 - 3 + 45 * c) * 0.5;
+  const double z = (-8.45 + 6.5) * 0.5;
+  const double radius =
+      std::hypot((20.45 + 10 + 2.25 * c) * 0.5, (4.95 - 3 + 45 * c) * 0.5, (8.45 + 6.5) * 0.5);
+  const auto home = [&] {
+    Access::FocusScene(f.ui);
+    f.Draw();
+    f.Key(Nexora::Window::Key::Home);
+  };
+  home();
+  f.Verify(x, y, z, radius);
+  Require(std::ranges::equal(f.scene.Selection(), std::array{f.leaf}),
+          "Home replaced the selected mesh with the entire scene");
+  Require(f.ui.SetNativeSceneOrbit({0.3, 0.6, 25, 0}), "all button camera reset failed");
+  f.ClickFrame(true);
+  f.Verify(x, y, z, radius);
+  Require(f.scene.Select(std::span<const runtime::Id>{}), "clear frame selection failed");
+  f.active = &f.reader;
+  Require(f.ui.SetNativeSceneOrbit({0.3, 0.6, 25, 0}), "readonly all camera reset failed");
+  home();
+  f.Verify(x, y, z, radius);
+  Require(f.scene.Selection().empty(), "Frame all introduced selection into an empty selection");
+  Access::FocusHierarchy(f.ui);
+  f.Draw();
+  Require(f.ui.SetNativeSceneOrbit({0.3, 0.6, 25, 0}), "panel gate camera reset failed");
+  f.Key(Nexora::Window::Key::Home);
+  Require(f.ui.GetNativeSceneOrbit().target_y == 0 && f.ui.GetNativeSceneOrbit().distance == 25,
+          "Home in another panel navigated the scene");
+  Access::FocusScene(f.ui);
+  f.Draw();
+  Nexora::Window::WindowEvent focus;
+  focus.type = Nexora::Window::WindowEventType::FocusChanged;
+  focus.value0 = 0;
+  f.ui.ProcessEvents(std::array{focus});
+  f.Key(Nexora::Window::Key::Home);
+  Require(f.ui.GetNativeSceneOrbit().target_y == 0 && f.ui.GetNativeSceneOrbit().distance == 25,
+          "Home without application focus navigated the scene");
+  focus.value0 = 1;
+  f.ui.ProcessEvents(std::array{focus});
+  f.active = &f.writer;
+  Require(f.scene.Select(std::array{f.leaf}), "all drag selection failed");
+  f.Draw();
+  const auto viewport = f.ui.NativeScenePreviewViewport();
+  Require(viewport.has_value(), "all drag viewport missing");
+  Nexora::Window::WindowEvent pointer, button;
+  pointer.type = Nexora::Window::WindowEventType::Pointer;
+  pointer.value0 = viewport->x + viewport->width / 2;
+  pointer.value1 = viewport->y + viewport->height / 2;
+  button.type = Nexora::Window::WindowEventType::PointerButton;
+  button.value0 = 0;
+  button.value1 = 1;
+  f.ui.ProcessEvents(std::array{pointer, button});
+  f.Draw();
+  f.Key(Nexora::Window::Key::Home);
+  Require(f.ui.GetNativeSceneOrbit().target_y == 0 && f.ui.GetNativeSceneOrbit().distance == 25,
+          "Home interrupted an active native Scene gesture");
+  button.value1 = 0;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  Require(f.scene.Select(std::span<const runtime::Id>{}), "restore empty all selection failed");
+  f.ui.RequestCloseConfirmation();
+  f.Draw();
+  f.Key(Nexora::Window::Key::Home);
+  f.ClickFrame(true);
+  Require(f.ui.GetNativeSceneOrbit().target_y == 0 && f.ui.GetNativeSceneOrbit().distance == 25,
+          "Frame all bypassed the close modal");
+  f.Key(Nexora::Window::Key::Escape);
+  Require(f.ui.TakeCloseChoice() == editor::imgui::CloseChoice::Cancel,
+          "frame all close modal did not cancel");
+  home();
+  const auto camera = f.ui.GetSceneOverviewCamera();
+  const auto orbit = f.ui.GetNativeSceneOrbit();
+  runtime::WorldCommandBuffer outside;
+  outside.SetTransform(f.other, {1000000, 0, 0});
+  Require(outside.Apply(f.world), "all out-of-range fixture failed");
+  home();
+  Require(f.ui.GetSceneOverviewCamera().x == camera.x &&
+              f.ui.GetSceneOverviewCamera().z == camera.z &&
+              f.ui.GetNativeSceneOrbit().target_y == orbit.target_y &&
+              f.ui.GetNativeSceneOrbit().distance == orbit.distance,
+          "out-of-range Frame all partially published camera state");
+  runtime::WorldCommandBuffer restore;
+  restore.SetTransform(f.other, {-20, -5, -8});
+  Require(restore.Apply(f.world), "all fixture restore failed");
+  f.ui.SetNativeScenePreview(false);
+  f.active = &f.reader;
+  Require(f.ui.SetSceneOverviewCamera({100, 100, 256}), "overview all camera reset failed");
+  f.Draw();
+  home();
+  const auto overview = f.ui.GetSceneOverviewCamera();
+  Require(Near(overview.x, -5) && Near(overview.z, -1.5) && overview.pixels_per_unit < 256 &&
+              f.scene.Selection().empty() && f.original == f.world.SaveScene(f.scene_id) &&
+              !f.scene.Dirty(),
+          "overview Home did not fit all origins without authoring changes");
+  Require(f.ui.SetSceneOverviewCamera({100, 100, 256}), "overview button camera reset failed");
+  f.ClickFrame(true);
+  Require(f.ui.GetSceneOverviewCamera().x == overview.x &&
+              f.ui.GetSceneOverviewCamera().z == overview.z &&
+              f.ui.GetSceneOverviewCamera().pixels_per_unit == overview.pixels_per_unit,
+          "overview Frame all and Home used different bounds or canvas dimensions");
+  Require(f.scene.Redo() && f.scene.Name(f.redo_entity) == "Retained Redo",
+          "Frame all consumed authoring Redo");
+  Require(f.scene.NewScene(), "empty frame fixture failed");
+  const auto empty_camera = f.ui.GetSceneOverviewCamera();
+  home();
+  f.ClickFrame(true);
+  Require(f.ui.GetSceneOverviewCamera().x == empty_camera.x &&
+              f.ui.GetSceneOverviewCamera().z == empty_camera.z &&
+              f.ui.GetSceneOverviewCamera().pixels_per_unit == empty_camera.pixels_per_unit,
+          "empty overview Frame all changed the camera");
+  f.ui.SetNativeScenePreview(true);
+  f.Draw();
+  const auto empty_orbit = f.ui.GetNativeSceneOrbit();
+  home();
+  f.ClickFrame(true);
+  Require(f.ui.GetNativeSceneOrbit().target_y == empty_orbit.target_y &&
+              f.ui.GetNativeSceneOrbit().distance == empty_orbit.distance,
+          "empty native Frame all changed the camera");
+}
 void Run(float dpi) {
   Fixture f(dpi);
   const double c = std::sqrt(0.5);
@@ -233,6 +363,8 @@ int main() {
   try {
     Run(1);
     Run(2);
+    RunAll(1);
+    RunAll(2);
     std::cout << "Scene mesh frame selection contracts passed\n";
     return 0;
   } catch (const std::exception &error) {
