@@ -4,7 +4,7 @@
 >
 > 日期：2026-10-04
 >
-> 狀態：✅ VIS-M0 基線已驗收；VIS-M1～VIS-M6 尚未驗收（1/7）。
+> 狀態：✅ VIS-M0、VIS-M1 已驗收；VIS-M2～VIS-M6 尚未驗收（2/7）。
 >
 > 主題：風格化遺跡庭院。
 >
@@ -73,7 +73,7 @@
 | ID | 工作內容 | 可見成果 | 驗收條件 |
 | --- | --- | --- | --- |
 | ✅ VIS-M0 | 視覺定稿、資產盤點、灰盒、固定鏡頭與初始效能取樣 | 完整構圖與展示路線 | 三個鏡頭成立；代表性資產能經 Import → Cook → Bundle → Runtime 載入；保存基線截圖 |
-| VIS-M1 | 共享 PBR shader 整合、多材質、normal／ORM／emission、切線資料、IBL、線性色彩與 HDR 輸出 | 材質近景 | 相同光照下材質差異清楚；鏡頭繞行時反射與法線正確；缺圖 fallback 可用；無重複 gamma 轉換 |
+| ✅ VIS-M1 | 共享 PBR shader 整合、多材質、normal／ORM／emission、切線資料、IBL、線性色彩與 HDR 輸出 | 材質近景 | 相同光照下材質差異清楚；鏡頭繞行時反射與法線正確；缺圖 fallback 可用；無重複 gamma 轉換 |
 | VIS-M2 | 方向光 shadow map、PCF、偏移控制、風格化明暗與陰影色調 | 光影全景 | 移動物件投影更新；固定路線無明顯閃爍、陰影痤瘡或懸浮；保存光照比較畫面 |
 | VIS-M3 | 中央遺跡、地面與周邊內容；曝光、tone mapping、色彩與適量 bloom | 第一個完整主視覺 | 隱藏 UI 後構圖完整；近看有細節、遠看有主體；目標硬體截圖人工檢視通過 |
 | VIS-M4 | 植被風動、alpha cutout、背光透光、符文粒子與裝置啟動 | 有生命的庭院 | 風動連續；邊緣與遮擋正確；效果可暫停／重播；粒子與透明渲染成本可觀察 |
@@ -258,3 +258,12 @@ F6／G／方括號提供有界對照，固定相機的精確還原也有測試�
 `Apps/Showcase/evidence/VIS-M2-Linux-Shadows-2026-10-05`。Windows DX12／Metal 原生執行與 Windows
 Vulkan 套件重播須以精確 head CI 驗證；固定路徑視覺審查與最終硬體效能仍待驗收。
 僅這批 Linux 實作不代表 VIS-M2 完成。
+
+## 18. VIS-M1 跨平台驗收
+
+✅ 共享 PBR／材質貼圖、切線與 orbit normal、cooked IBL、硬體 sRGB 過濾及線性 RGBA16F
+合成已驗收。HDR PR #322 head `79270136894a7ed00ebf7d48db5044d1ebb5ecc0` 在 Build 1430
+（run 37278711512）18 項檢查全數通過，包含 Windows DX12／Metal 原生像素、精確生成 shader、
+Windows DX12／Vulkan 隔離套件及 Linux 全套／原生互動 gate。合併 commit：
+`ef8c305f30e4f01e97ad2cbbd812bd5d0171c83c`。第 12～16 節的待驗收文字描述各中間切片，
+由本節驗收結果取代；進度為 2/7。最終美術、目標硬體實體畫面與 GTX 960 效能仍屬後續 gate。

@@ -134,7 +134,7 @@ public static class NexoraAcceptanceWindow {
             }
             Require ($colors.Count -ge 8) 'Display capture is blank; keep the Showcase visible and rerun.'
             $bitmap.Save((Join-Path $evidence $name), [Drawing.Imaging.ImageFormat]::Png)
-            $script:acceptance.screenshots += $name
+            if ($script:acceptance.screenshots -notcontains $name) { $script:acceptance.screenshots += $name }
         } finally { $graphics.Dispose(); $bitmap.Dispose() }
     }
     $rooms = @('hub', 'rendering', 'scene', 'input', 'gameplay', 'presentation', 'streaming', 'shipping')
@@ -204,7 +204,17 @@ public static class NexoraAcceptanceWindow {
         (Get-FileHash (Join-Path $evidence 'courtyard-pbr-restored.png')).Hash) 'Courtyard PBR restoration pixels differ.'
     Press-Key 66; Capture 'courtyard-material.png'
     Press-Key 66; Capture 'courtyard-motion.png'
-    Press-Key 66; Capture 'courtyard-wide-replay.png'
+    Press-Key 66
+    # WARP may still be presenting the previous camera after a fixed key delay. Await the
+    # actual expected GPU image; preserve exact equality and fail within a bounded deadline.
+    $cameraDeadline = [DateTime]::UtcNow.AddSeconds(5)
+    do {
+        Capture 'courtyard-wide-replay.png'
+        $cameraMatches = (Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
+            (Get-FileHash (Join-Path $evidence 'courtyard-wide-replay.png')).Hash
+        if ($cameraMatches) { break }
+        Start-Sleep -Milliseconds 100
+    } while ([DateTime]::UtcNow -lt $cameraDeadline)
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-wide-replay.png')).Hash) 'Courtyard fixed camera replay pixels differ.'
     Press-Key 115

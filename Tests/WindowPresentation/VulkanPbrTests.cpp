@@ -229,7 +229,6 @@ int main(int argc, char **argv) {
         materials[1].textureId = 34;
       }
       if (frame == 8) {
-        PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
         materials = {};
         draw.shadow.reset();
         draw.lightingStyle.reset();
@@ -244,7 +243,6 @@ int main(int argc, char **argv) {
         draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 1;
       }
       if (frame >= 9) {
-        PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
         materials = {};
         draw.shadow.reset();
         draw.lightingStyle.reset();
@@ -283,7 +281,6 @@ int main(int argc, char **argv) {
         draw.environment.reset();
         draw.linearTextureUploads = {};
         draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 0;
-        PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
         materials = {};
         draw.shadow.reset();
         draw.lightingStyle.reset();

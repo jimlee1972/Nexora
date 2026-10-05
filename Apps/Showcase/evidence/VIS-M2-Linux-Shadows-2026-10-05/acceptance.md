@@ -27,3 +27,5 @@ idle, measured 25.72, 24.37 and 26.79 FPS on software lavapipe. Reports retain f
 actual shadow counters, enabled style/shadow flags, bias, RGBA16F and exposure. This does not accept
 the GTX 960 hardware budget. Final art, bloom, animated foliage, visual tour and quality optimization
 remain subsequent milestones. VIS-M2 awaits cross-platform CI and route acceptance.
+
+Build 1432 passed native Metal and Windows Vulkan package replay. MSVC rejected three unused shadow-fixture declarations that hid the owning loop fixture; those redundant declarations are removed. The DX12 package's final camera replay capture sampled a previous camera after the fixed delay; it now waits up to five seconds for the actual exact baseline GPU image, retaining equality and failing at the deadline. All earlier shadow/style/material/exposure restoration comparisons passed. Linux repeated the full gate after integrating current Editor main changes; supplemental log/hash records accompany this correction. Corrected-head Windows CI remains required.
