@@ -7,3 +7,10 @@ Content/Showcase/Courtyard/Environment/* text eol=lf
 Content/Showcase/Courtyard/Environment/*.hdr binary
 Content/Showcase/Courtyard/Environment/*.rgba16f binary
 Tools/Build/PrepareCourtyardEnvironment.py text eol=lf
+
+# Original hero authoring, conversion and provenance are byte-stable across hosts.
+Content/Showcase/Courtyard/Hero/* text eol=lf
+Content/Showcase/Courtyard/Hero/*.rgba binary
+Tools/Build/PrepareCourtyardHero.py text eol=lf
+Apps/Showcase/CourtyardHero.h text eol=lf
+LICENSE text eol=lf

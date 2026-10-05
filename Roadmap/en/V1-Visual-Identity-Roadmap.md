@@ -4,7 +4,7 @@
 >
 > Date: 2026-10-04
 >
-> Status: ✅ VIS-M0 and VIS-M1 accepted; VIS-M2 through VIS-M6 remain unaccepted (2/7).
+> Status: ✅ VIS-M0 through VIS-M2 accepted; VIS-M3 through VIS-M6 remain unaccepted (3/7).
 >
 > Theme: a stylized ruins courtyard.
 >
@@ -74,7 +74,7 @@ The user also requested free online models and textures. Prioritize freely downl
 | --- | --- | --- | --- |
 | ✅ VIS-M0 | Art direction, asset inventory, greybox, fixed shots, initial performance capture | Complete composition and tour route | Three shots work; a representative asset loads through Import → Cook → Bundle → Runtime; retain baseline screenshots |
 | ✅ VIS-M1 | Shared PBR shader integration, multiple materials, normal/ORM/emission, tangents, IBL, linear color, HDR output | Material close-up | Materials differ under identical light; orbit preserves correct normals/reflections; missing-map fallbacks work; no duplicate gamma conversion |
-| VIS-M2 | Directional shadow map, PCF, bias controls, stylized tonal separation and shadow tint | Lighting wide shot | Moving objects update shadows; the fixed route has no obvious flicker, shadow acne, or floating shadows; retain lighting comparisons |
+| ✅ VIS-M2 | Directional shadow map, PCF, bias controls, stylized tonal separation and shadow tint | Lighting wide shot | Moving objects update shadows; the fixed route has no obvious flicker, shadow acne, or floating shadows; retain lighting comparisons |
 | VIS-M3 | Central ruins, ground and surrounding content; exposure, tone mapping, color, restrained bloom | First finished hero image | Composition survives hidden UI; close shots have detail and wide shots a clear subject; target-hardware screenshots pass visual review |
 | VIS-M4 | Vegetation wind, alpha cutout, back-light transmission, rune particles, device activation | Living courtyard | Continuous wind; correct edges and occlusion; pause/replay works; particle and transparency costs are observable |
 | VIS-M5 | 90–120-second visual tour, free camera, feature comparisons, screenshot mode | Complete viewing and interaction | Replayable tour; clear feature differences; default view has only necessary controls; screenshots omit diagnostic overlays |
@@ -279,3 +279,23 @@ Windows DX12/Vulkan isolated packages and Linux full/native interaction gates. M
 `ef8c305f30e4f01e97ad2cbbd812bd5d0171c83c`. Prior pending notes in sections 12–16 describe
 those intermediate slices; this acceptance supersedes them. Progress is 2/7.
 Final art, physical target-hardware visuals and the GTX 960 performance budget remain later gates.
+
+## 19. VIS-M2 cross-platform acceptance
+
+✅ Shadow PR #324 head `a66f568af38954b665b16abc7fd15814bfc9ab7a` passed all 18 checks
+in Build 1439 (run 37280731307). DX12/Metal native movement/PCF/bias/reuse/tint pixels and
+Windows DX12/Vulkan comparison/package replay passed. Native fixed captures retain exact
+restoration; Linux wide and shadow-off images were reviewed. Merge:
+`dcd44ad1bfed81ce60ee59108ca80461003c79de`. Earlier pending slice notes are superseded;
+progress is 3/7. This does not accept final VIS-M3 art or target-hardware performance.
+
+## 20. VIS-M3 hero art, bloom and color implementation
+
+Original Runtime-loaded crystal/detail maps, a broken stone/bronze rune device, round plinths,
+ceramic profiles, sky and reframed fixed shots are implemented. GPU tone composition adds bounded
+thresholded neighborhood bloom and shared color grade before UI; K and G retain comparisons.
+Native pixel cases verify halo spread, threshold rejection, disable, grayscale and UI invariance.
+✅ Linux Development passes 96/96 without skips; Shipping packaging and native 34-frame pixels pass.
+Evidence is retained under `Apps/Showcase/evidence/VIS-M3-Linux-Hero-2026-10-05`.
+Cross-platform execution and final target-hardware hero/close-up visual approval remain open.
+Original maps remain distinct from the adopted online CC0 resources. VIS-M3 is not yet accepted.

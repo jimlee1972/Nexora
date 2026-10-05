@@ -789,3 +789,10 @@ source/derived/converter hashes and integration parameters. The verified bundle 
 dependencies before activation. Showcase owns decoded bytes and adapts them to borrowed native
 Presentation uploads; Runtime stores no native handles and reads no source HDRI at render time.
 This adds application-owned payload types without changing NXAB schema 1 or stable gameplay ABI.
+
+The original courtyard hero crystal and six surface-detail maps are application-owned payload
+types in the same NXAB pipeline. Each depends on an art metadata asset containing repository
+license/source/converter and derived hashes. The owning activated generation supplies the mesh
+and map bytes before Presentation submission. Procedural architectural/vessel/sky geometry remains
+Showcase-authored CPU geometry; this does not claim that every procedural shape is a Runtime asset.
+The original maps are distinct from downloaded CC0 KayKit/Poly Haven resources. No schema change.

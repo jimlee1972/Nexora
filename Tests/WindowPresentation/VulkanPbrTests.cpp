@@ -1,4 +1,5 @@
 #include "Nexora/Presentation/Surface.h"
+#include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
 #include "PbrShadowFixtures.h"
 #if defined(_WIN32)
@@ -41,7 +42,7 @@ unsigned Channel(unsigned long pixel, unsigned long mask) {
 }
 #endif
 using Rgb = std::array<unsigned, 3>;
-std::array<Rgb, 5> Read(
+std::array<Rgb, 7> Read(
 #if defined(_WIN32)
     std::nullptr_t display, HWND window,
 #else
@@ -89,9 +90,10 @@ std::array<Rgb, 5> Read(
                Channel(pixel, image->blue_mask)};
   };
 #endif
-  const std::array result{rgb(width / 4, height / 2), rgb(width * 3 / 4, height / 2),
-                          rgb(width / 2, height * 3 / 20), rgb(width / 2, height * 9 / 10),
-                          rgb(width * 129 / 400, height / 2)};
+  const std::array result{rgb(width / 4, height / 2),         rgb(width * 3 / 4, height / 2),
+                          rgb(width / 2, height * 3 / 20),    rgb(width / 2, height * 9 / 10),
+                          rgb(width * 129 / 400, height / 2), rgb(width * 58 / 100, height / 2),
+                          rgb(width / 2, height / 2)};
   if (!capture.empty()) {
     std::ofstream file(capture, std::ios::binary);
     file << "P6\n" << width << ' ' << height << "\n255\n";
@@ -194,8 +196,9 @@ int main(int argc, char **argv) {
     const UiTextureUpload filterUpload{38, 2, 1, 8, blackWhite};
     unsigned width = 640, height = 480;
     Rgb uiBaseline{};
-    for (unsigned frame = 0; frame < 30; ++frame) {
+    for (unsigned frame = 0; frame < 34; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
+      PbrBloomFixtures::Fixture bloomFixture;
       materials = {};
       draw.shadow.reset();
       draw.lightingStyle.reset();
@@ -290,7 +293,7 @@ int main(int argc, char **argv) {
       }
       // Require a unique marker from this submission before accepting asynchronously presented
       // X11 pixels. Equality alone could otherwise match the preceding frame's material pair.
-      if (frame >= 24) {
+      if (frame >= 24 && frame < 30) {
         draw = shadowFixture.Draw(frame - 24);
         materials = shadowFixture.materials;
         draw.materials = materials;
@@ -298,6 +301,11 @@ int main(int argc, char **argv) {
       const float marker = 0.02F * static_cast<float>(frame + 1);
       materials[2].baseColor =
           draw.pbr ? std::array<float, 4>{0, 0, 0, 1} : std::array<float, 4>{marker, 0, 0, 1};
+      if (frame >= 30) {
+        draw = bloomFixture.Draw(frame - 30);
+        materials = bloomFixture.geometry.materials;
+        draw.materials = materials;
+      }
       materials[2].emission = {marker, 0, 0};
       materials[2].roughness = 1;
       materials[2].metallic =
@@ -375,6 +383,21 @@ int main(int argc, char **argv) {
         Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
                 "NaN shadow bias accepted");
       }
+      if (frame == 30) {
+        auto invalid = draw;
+        invalid.bloom = SceneBloom{};
+        invalid.bloom->radiusPixels = 0;
+        Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
+                "zero bloom radius accepted");
+        invalid.bloom->radiusPixels = 12;
+        invalid.bloom->intensity = std::numeric_limits<float>::quiet_NaN();
+        Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
+                "NaN bloom intensity accepted");
+        invalid = draw;
+        invalid.colorGrade = SceneColorGrade{0, std::numeric_limits<float>::quiet_NaN()};
+        Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
+                "NaN color grade accepted");
+      }
       const auto drawStatus = surface->DrawScene(draw);
       if (drawStatus != SurfaceStatus::Ready)
         std::cerr << "PBR draw frame=" << frame << " status=" << static_cast<int>(drawStatus)
@@ -408,7 +431,12 @@ int main(int argc, char **argv) {
         const auto pixels = Read(display, native, width, height, {});
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 24) {
+        if (frame >= 30) {
+          valid = PbrBloomFixtures::Pixels(frame - 30, pixels[5], pixels[6]);
+          for (std::size_t channel = 0; channel < 3; ++channel)
+            valid = valid && std::abs(static_cast<int>(pixels[3][channel]) -
+                                      static_cast<int>(uiBaseline[channel])) <= 2;
+        } else if (frame >= 24) {
           valid = PbrShadowFixtures::Pixels(frame - 24, left, right);
           if (frame == 24)
             valid = valid && pixels[4][0] > 20 && pixels[4][0] + 10 < right[0];
@@ -449,7 +477,13 @@ int main(int argc, char **argv) {
             (std::abs(observedMarker - markerCode) <= 2 ||
              (!draw.pbr && std::abs(observedMarker - srgbLegacyMarker) <= 2)) &&
             pixels[2][1] < 5 && pixels[2][2] < 5;
-        valid = valid && currentFrame;
+        if (frame == 33) {
+          const auto gray = static_cast<int>(std::lround(255 * toSrgb(mappedMarker * 0.2126F)));
+          valid = valid && std::abs(observedMarker - gray) <= 2 &&
+                  std::abs(static_cast<int>(pixels[2][1]) - gray) <= 2 &&
+                  std::abs(static_cast<int>(pixels[2][2]) - gray) <= 2;
+        } else
+          valid = valid && currentFrame;
         if (valid && frame == 19)
           uiBaseline = pixels[3];
         if (!valid)
@@ -465,9 +499,14 @@ int main(int argc, char **argv) {
       Require(valid, "PBR emission/normal/ORM/sRGB native pixels mismatch");
       if (argc == 2 && frame == 9)
         static_cast<void>(Read(display, native, width, height, argv[1]));
+      if (argc == 2 && frame >= 30) {
+        auto capture = std::filesystem::path(argv[1]);
+        capture.replace_filename("bloom-" + std::to_string(frame - 30) + ".ppm");
+        static_cast<void>(Read(display, native, width, height, capture));
+      }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 30 &&
-                surface->Diagnostics().sceneComposites == 20 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 34 &&
+                surface->Diagnostics().sceneComposites == 24 &&
                 surface->Diagnostics().sceneShadowPasses == 4,
             "PBR counters mismatch");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "PBR teardown failed");
@@ -484,7 +523,7 @@ int main(int argc, char **argv) {
            "invalid descriptors, HDR IBL radiance, roughness mips, metal/diffuse separation, "
            "reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws "
            "and resize pixels; directional shadow movement, XY projection, PCF edge, map reuse, "
-           "shadow disable and stylized tint\n";
+           "shadow disable, stylized tint and thresholded HDR bloom/UI invariance\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
     return 1;

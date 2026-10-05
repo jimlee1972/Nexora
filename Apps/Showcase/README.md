@@ -396,3 +396,19 @@ P still selects the legacy Lambert comparison. Reports retain actual shadow/styl
 window evidence counts recorded native shadow passes and instances. These controls and fixed-camera
 restoration have native tests. Final art, physical route visuals and target-hardware performance
 remain separate acceptance tasks.
+
+## Hero art and restrained post processing
+
+The courtyard replaces the crystal cube with an original faceted crystal from the verified
+Runtime generation, shapes a broken carved stone ring with aged bronze fittings and diamond
+runes, adds round stepped plinths, original hollow ceramic vessels and a distant sky mesh.
+Original 64² sandstone/bronze base/normal/ORM authoring maps ship with deterministic converter,
+source/license hashes and metadata dependencies under `Courtyard/Hero`. These maps are original
+repository art; they are not attributed to a downloaded PBR texture service. The three adopted
+CC0 architectural meshes, palette and HDRI remain independently identified.
+
+K toggles bounded GPU HDR bloom; G also enables/disables shared saturation/contrast grading
+along with stylized lighting. Reports retain bloom, hero loading and derived hashes. Reframed
+wide/close/finale cameras preserve the crystal silhouette. Final target-hardware visual review
+and performance acceptance remain open; this is a native implementation, not final physical art
+approval. Animated cutout foliage/activation and the visual tour are subsequent slices.

@@ -8,6 +8,7 @@
 #include "SceneInstanceUpload.h"
 #include "ScenePbrHlslShaders.h"
 #include "SceneToneHlslShaders.h"
+#include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
 #include <algorithm>
 #include <array>
@@ -613,6 +614,8 @@ public:
     sceneOffscreen_ = drawData.offscreen;
     sceneHdr_ = drawData.hdr;
     sceneExposure_ = drawData.exposure;
+    sceneBloom_ = drawData.bloom.value_or(SceneBloom{0, 1, 12});
+    sceneColorGrade_ = drawData.colorGrade.value_or(SceneColorGrade{});
     diagnostics_.sceneOffscreenDrawCalls += drawData.offscreen ? 1 : 0;
     ++diagnostics_.sceneDrawCalls;
     diagnostics_.sceneInstances += instances.size();
@@ -638,8 +641,8 @@ public:
       commands_->SetPipelineState(tonePipeline_.Get());
       ID3D12DescriptorHeap *heaps[]{uiDescriptors_.Get()};
       commands_->SetDescriptorHeaps(1, heaps);
-      const std::array<float, 4> settings{sceneExposure_, 1, 0, 0};
-      commands_->SetGraphicsRoot32BitConstants(0, 4, settings.data(), 0);
+      const auto settings = PackToneParameters(sceneExposure_, true, sceneBloom_, sceneColorGrade_);
+      commands_->SetGraphicsRoot32BitConstants(0, 8, settings.data(), 0);
       auto handle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
       handle.ptr += UINT64(frame_) * uiDescriptorIncrement_;
       commands_->SetGraphicsRootDescriptorTable(1, handle);
@@ -1028,7 +1031,7 @@ private:
     toneRange.NumDescriptors = 1;
     D3D12_ROOT_PARAMETER toneParameters[2]{};
     toneParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-    toneParameters[0].Constants = {0, 0, 4};
+    toneParameters[0].Constants = {0, 0, 8};
     toneParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     toneParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
     toneParameters[1].DescriptorTable = {1, &toneRange};
@@ -1438,6 +1441,8 @@ private:
   std::array<std::size_t, kMaximumFrames> toneOffsets_{};
   bool sceneHdr_{};
   float sceneExposure_ = 1.0F;
+  SceneBloom sceneBloom_{0, 1, 12};
+  SceneColorGrade sceneColorGrade_{};
   ComPtr<ID3D12RootSignature> scenePbrRootSignature_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneUploads_;
   std::array<std::size_t, kMaximumFrames> sceneUploadCapacity_{};
