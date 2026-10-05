@@ -2384,7 +2384,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[4].textureId = 2;
 #endif
     s.materials[0].roughness = 0.85F;
-    s.materials[0].normalScale = 0;
+    s.materials[0].normalScale = 0.35F;
     s.materials[0].worldTextureScale = s.courtyardPbr ? 0.3F : 0;
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[0].textureId = 10;
@@ -2453,7 +2453,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     }
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[8].worldTextureScale = s.courtyardPbr ? 0.3F : 0;
-    s.materials[8].normalScale = 0;
+    s.materials[8].normalScale = 0.2F;
     s.materials[8].textureId = 10;
     s.materials[8].normalTextureId = 11;
     s.materials[8].ormTextureId = 12;

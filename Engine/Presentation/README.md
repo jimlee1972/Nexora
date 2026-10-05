@@ -467,9 +467,9 @@ by travel distance and order-independent transparency remain deferred.
 ## World-projected surface maps and bounded shorelines
 
 `SceneMaterial::worldTextureScale` defaults to zero (mesh UVs). Finite positive values up to
-16 require PBR and project base-color RGBA and ORM from source-world XY/XZ/ZY planes with
+16 require PBR and project base-color RGBA, normal slopes and ORM from source-world XY/XZ/ZY planes with
 absolute geometric-normal weights. Reflections use original source coordinates. The same
-base sampling helper drives visible and shadow alpha cutout; normal/emission maps retain mesh
+base sampling helper drives visible and shadow alpha cutout; emission maps retain mesh
 UVs. Callers using world-projected stone can disable the UV normal map with `normalScale=0`.
 The private packet is 352 bytes (22 float4s); offsets 76/77 store scale/shoreline variation and
 78/79 remain reserved. Existing native frame ownership and C/Zig contracts are unchanged.
@@ -496,3 +496,13 @@ sizes follow the common type. Stable C/Zig/NXAB and frame ownership are unchange
 Six native cases verify disabled/half/full haze, exact restoration, unlit exclusion and clear
 near-field range against linear HDR radiance (65 total PBR frames). Showcase F7 compares haze;
 Basic omits it. This is distance haze, not volumetric scattering or height-dependent fog.
+
+
+World normal projection samples the existing normal map on each source-world plane. Decoded
+XY slopes use a bounded Z denominator and clamp to ±8; their weighted gradient is projected
+onto the geometric tangent plane before applying `normalScale` and safe normalization. Zero
+strength retains geometry normals. Default `worldTextureScale=0` preserves legacy mesh-UV
+normal mapping. Reflection shading uses original positions/normals and the same projection.
+Four additional native cases verify flat/projected normals, zero-strength geometry restoration
+and exact projected-normal replay (69 PBR frames). No packet, resource, pass or ABI expansion
+is needed. This supplies bounded surface detail without geometric displacement.

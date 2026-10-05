@@ -1004,3 +1004,10 @@ Linux full validation passes 97/97 (89.00 seconds); Shipping evidence and refere
 Crystal diffuse/backlight fill is reduced to retain transmitted background and sharper facets;
 stronger linear rune radiance feeds HDR bloom. Original column relief and distant tower fluting
 add geometric detail within the existing native vertex budget.
+
+
+World-projected stone normals add bounded surface reflections across columns and paving,
+sharing source coordinates with base/ORM and reflections. Linux full validation passes 97/97
+(92.68 seconds), including 69 native PBR cases; Shipping evidence remains in progress (VIS 5/7).
+世界座標石材法線加入有界的凹凸反光，與 base／ORM 及倒影共用原始座標。
+Linux 全套 97/97（92.68 秒）與 69 個原生 PBR 案例通過；交付證據持續進行，VIS 維持 5/7。

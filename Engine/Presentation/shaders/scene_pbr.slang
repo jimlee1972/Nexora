@@ -131,6 +131,22 @@ float4 sampleBaseMap(VertexOutput input) {
       baseMap.Sample(frac(position.xz)) * weight.y +
       baseMap.Sample(frac(position.xy)) * weight.z;
 }
+// Interpret triplanar normal maps as bounded world-space surface slopes.
+float2 normalMapSlope(float3 encoded) {
+  float3 decoded = encoded * 2 - 1;
+  return -decoded.xy / max(0.05, abs(decoded.z));
+}
+float3 sampleWorldNormal(float3 position, float3 normal, float3 weight) {
+  if (material.properties.z == 0) return normal;
+  float2 x = normalMapSlope(normalMap.Sample(frac(position.zy)).xyz);
+  float2 y = normalMapSlope(normalMap.Sample(frac(position.xz)).xyz);
+  float2 z = normalMapSlope(normalMap.Sample(frac(position.xy)).xyz);
+  float3 gradient = float3(0, x.y, x.x)*weight.x + float3(y.x, 0, y.y)*weight.y +
+      float3(z.x, z.y, 0)*weight.z;
+  gradient = clamp(gradient, float3(-8), float3(8));
+  gradient -= normal * dot(normal, gradient);
+  return NexoraSafeNormalize(normal - gradient * material.properties.z);
+}
 [shader("fragment")]
 float4 shadowFragmentMain(VertexOutput input) : SV_Target {
   if (material.vegetation.z > 0 &&
@@ -222,7 +238,8 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
         ormMap.Sample(frac(mapPosition.xy)).xyz * mapWeight.z;
   NexoraPbrMaterial surface;
   surface.baseColor = baseSample.rgb * material.baseColor.rgb * input.color.rgb;
-  surface.normal = NexoraDecodeTangentNormal(encoded, t, b, n);
+  surface.normal = material.worldMapping.x > 0 ? sampleWorldNormal(mapPosition, n, mapWeight) :
+      NexoraDecodeTangentNormal(encoded, t, b, n);
   surface.metallic = saturate(orm.b * material.properties.x);
   surface.roughness = saturate(orm.g * material.emissionRoughness.w);
   surface.ao = saturate(orm.r * material.properties.y);

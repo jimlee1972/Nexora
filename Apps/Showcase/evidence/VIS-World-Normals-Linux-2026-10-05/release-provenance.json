@@ -1,0 +1,65 @@
+{
+  "source_freeze": "0eec7525b7ec220283a2ef608629b1638e85ca9a",
+  "source_scope": "local production freeze; connector publication must preserve the complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "4228744cbcf8c97bf119f12f81b014c7b87203e9b43f73c696f93351271228f2",
+    "Apps/Showcase/ShowcaseRooms.cpp": "b1cacd0e99271bb0efe35d1a8d286176726ab75f2707840e7055ed1d1cd0359f",
+    "Engine/Presentation/README.md": "67983ebcd254afe638c97ee1c8357a15cc3704c6e01bc5f7ec9ada7b7fc43d61",
+    "Engine/Presentation/include/Nexora/Presentation/Surface.h": "854c022dd14673dba98f96177ba523c6843aef9d31e997fc24b9af70b54faebb",
+    "Engine/Presentation/shaders/scene_pbr.slang": "d030c8fd14b90a0c4083085f51946a6ec58ed28b77cab71e5b5f5d724c8b0086",
+    "Engine/Presentation/src/ScenePbrHlslShaders.h": "d187ceb607e61ff38bcea19b33c53594ac7d938f01560f29ed89e6863e49dac5",
+    "Engine/Presentation/src/ScenePbrMetalShaders.h": "8f9604156464b3317896fac38ff12e9c8572fd941ef767c3db8c2a3f13a1510a",
+    "Engine/Presentation/src/ScenePbrVulkanShaders.h": "4d33ec626fbd50289603f102576f54fe62190b7ee7b240f40ef79da26e7fc009",
+    "README.md": "1f432c31dd52cbb08c1f5d23ed2a06419b70ee926327faec4b2aee86677895a1",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "ae96db32e57e1058fa46e1525f2f5a3f9a5895a997df317c1a5a4e57ad2a2e3f",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "f6de24f1424a5e88b3367719681063964c1ab7b66b7fcee0dd3c71cb0c7cf4db",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "ec7e74453e44fcd9ee1af487f8b314ce25e776b8714963a362aa77f773c8c773",
+    "Tests/WindowPresentation/PbrWorldNormalFixtures.h": "dc4b5f1266e245f6d67cba579af4d3eb5552980d0869bc311c546633c4b47732",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "b5d34a8f84a6babc43faac99dae2d14f9228794e7c06a1535ede49c26c051452"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-world-normals/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/world-normal-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "0eec7525b7ec",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.83373185900564,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.266667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "f078dc6ec9d43a5426e1d3a4f429c7806170dc9ea1cb7761b64ac12067982e0b",
+    "video_sha256": "7e4d6fb4ffc63252bc7673cec9d0d1a53640fc1dda4269f59f3336c3e29028ca",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "5d5525fbc185250705cda4090fcd1d9d6bc3db9440716df509cfffb9b6c361c2",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}
