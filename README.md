@@ -442,6 +442,11 @@ position proxies in that rectangle after UI submission. Proxies now reflect comp
 and scale. Resolved OBJ geometry now uses native mesh batches with exact affine world matrices;
 material shaders and full graphical Scene View acceptance remain open.
 
+✅ Native Scene Select (Q) now picks entities without transform handles or drag commits; W/E/R
+return to Move/Rotate/Scale. Real 1x/2x input tests cover tool gates, Home navigation and retained
+Redo; Linux Xvfb verifies proxy/OBJ picking and unchanged saved bytes after Select drags.
+Complete graphical Scene View acceptance remains open.
+
 ✅ Focused Scene Home and Frame all now frame the whole scene without altering selection or history.
 Native framing uses the actual bounded submission candidates and affine mesh/proxy bounds;
 overview framing fits all world origins. Owning session tokens apply once in the issuing frame.
@@ -875,6 +880,11 @@ Docked Scene canvas 現會在 layout 與 DPI 縮放後提供可見的 framebuffe
 Editor 的 3D Preview 切換現會在 UI 提交後於該矩形繪製原生有深度測試的地面與 live entity
 位置代理；代理現會反映合成後的世界旋轉與縮放。解析後的 OBJ 現以原生 mesh batch 與
 精確 affine world matrix 繪製；material shader、完整 3D 編輯與圖形化 Scene View 驗收仍待完成。
+
+✅ Native Scene Select（Q）現可在沒有變形把手或拖曳提交的情況下點選 entity；W／E／R
+回到 Move／Rotate／Scale。真正 1×／2× 輸入驗證 tool gate、Home 導覽與保留 Redo；
+Linux Xvfb 驗證 proxy／OBJ picking 及 Select 拖曳後 saved bytes 不變。
+完整圖形 Scene View 驗收仍待完成。
 
 ✅ Focused Scene Home 與 Frame all 現可對準整個場景，不改動 selection 或 history。
 Native 使用實際 bounded submission candidate 與 affine mesh／proxy bounds；overview 配合

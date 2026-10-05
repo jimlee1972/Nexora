@@ -420,6 +420,24 @@ preparation after commands/ticks, where current scene lifecycle and CameraView a
 snapshots cannot retain a removed camera or draw an unloading scene. Automatic remains ordered by
 entity ID. No borrowed World data survives frame preparation.
 
+## Native Scene selection tool
+
+Select (Q) retains ordinary and Ctrl-toggle native picking without creating a transform drag,
+preview or release request. Move/Rotate/Scale remain W/E/R; existing enum values are retained and
+Select is appended. The application submits and picks no transform handles for Select, so handles
+cannot intercept an entity hit. Tool changes only affect the host-owned view state, preserving
+selection, World, dirty state and authoring history. Read-only projects can choose tools and pick.
+
+Keyboard tool selection requires a focused Scene panel, a real canvas hover or active canvas,
+application focus, no text input and no blocking modal. It uses mouse hover without ImGui's navigation
+focus override, so Home followed by Q/W/E/R still works without moving the pointer. Keyboard requests
+resolve before click/drag setup in the same frame. Active and pending native drag commits block tool
+changes; toolbar buttons share these guards. No plugin callbacks, IO or GPU ownership is added.
+Real 1x/2x input tests cover Q/click batching, Ctrl picking, toolbar parity, Home/navigation, active
+and released gestures, read-only, panel/focus/modal/text gates and retained Redo. Linux Xvfb covers
+proxy and authored OBJ picking, hidden handles, unchanged saved bytes after a Select drag, and
+switching back to transform gestures. Complete Scene View and target-hardware acceptance remain open.
+
 ## Frame all Scene view
 
 Focused Scene Home and Frame all navigate without changing selection, World, dirty state, clipboard

@@ -169,12 +169,28 @@ def main():
             time.sleep(0.05)
         else:
             raise RuntimeError("Home did not restore all-scene framing without selection")
+        send("key", "--delay", "100", "q")
+        time.sleep(0.2)
         point = blue_proxy_pixel(display, window, viewport, first=True)
         if point is None:
             raise RuntimeError("first root proxy is not visible")
         move(point)
         send("click", 1)
         time.sleep(0.2)
+        # Select preserves picking while removing every transform handle and drag preview.
+        viewport = settled_viewport(editor.stderr, viewport)
+        if any(axis_handle_pixels(display, window, viewport)):
+            raise RuntimeError("Select tool still displays colored transform handles")
+        # Normalize the hand-authored fixture through a completed Save before comparing bytes.
+        baseline = save_changed(scene_file.read_text())
+        send("mousedown", 1)
+        time.sleep(0.1)
+        move((point[0] + 40, point[1] + 20))
+        send("mouseup", 1)
+        send("key", "--delay", "80", "ctrl+s")
+        time.sleep(0.3)
+        if scene_file.read_text() != baseline:
+            raise RuntimeError("Select drag authored a native Scene transform")
         viewport = settled_viewport(editor.stderr, viewport)
         point = blue_proxy_pixel(display, window, viewport)
         if point is None:
