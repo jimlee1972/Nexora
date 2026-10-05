@@ -26,6 +26,19 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
       --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/showcase-linux-vulkan-scene")
   set_tests_properties(window_presentation.vulkan_scene PROPERTIES
     LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
+
+  add_executable(NexoraVulkanSceneUploadTests VulkanSceneUploadTests.cpp)
+  target_include_directories(NexoraVulkanSceneUploadTests PRIVATE
+    "${CMAKE_SOURCE_DIR}/Engine/Presentation/include" "${NEXORA_VULKAN_INCLUDE_DIR}")
+  target_link_libraries(NexoraVulkanSceneUploadTests PRIVATE Nexora::Window X11::X11 "${NEXORA_VULKAN_LIBRARY}")
+  nexora_apply_defaults(NexoraVulkanSceneUploadTests)
+  add_test(NAME window_presentation.vulkan_scene_upload_reuse
+    COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+      --native-test "$<TARGET_FILE:NexoraVulkanSceneUploadTests>"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/vulkan-scene-upload-reuse")
+  set_tests_properties(window_presentation.vulkan_scene_upload_reuse PROPERTIES
+    LABELS "vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
 endif()
 
 if(APPLE)

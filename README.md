@@ -250,6 +250,12 @@ Scene Undo and Redo now replay stable entity IDs, hierarchy and components while
 names, selection, and authored Euler revolutions. The Scene panel exposes both by button and
 keyboard shortcut; a new edit discards the undone branch.
 
+✅ Vulkan Scene/Game uploads now reuse bounded capacity in fence-protected frame slots.
+Steady, smaller and Scene-free frames retain allocation; growth stages replacement before retiring
+old storage, and resize/teardown drains GPU work. Native call tracing and pixels verify 100 steady
+frames, maximum descriptor budgets, failed growth and leak-free lifetime. Fresh geometry is still
+copied per draw; persistent per-asset GPU caching and full graphical acceptance remain open.
+
 ✅ Inspector now exposes Reset Transform, Reset Camera and Reset Light for multi-selection.
 Transform reset clears local TRS and visible/stale Euler revolutions; Camera/Light reset preserves missing
 components. Changed batches are atomic single-step Undo/Redo, and no-ops retain Redo. Reset cancels
@@ -638,6 +644,12 @@ Docked Profiler 現會繪製有界的 Editor frame processing wall-time 即時�
 ✅ Profiler 現可把保留的 Editor frame-processing wall time 匯出為專案 CSV，保留 double
 精度與丟棄 frame 數，GPU／memory 欄保持空白。同步 writer 驗證 1-600 筆有序且有限的 sample，
 拒絕唯讀／recovery 寫入，驗證失敗會保留舊檔；實際 UI 點擊會送出一次性 request。
+
+✅ Vulkan Scene／Game upload 現會重用 fence-protected frame slot 的有界容量。穩定、縮小
+或沒有 Scene 的 frame 保留配置；放大時先完成新配置才釋放舊配置，resize／teardown 會等待
+GPU 完成。Native call tracing 與像素測試驗證 100 個穩定 frame、最大 descriptor 預算、
+放大失敗及無洩漏生命週期。每次 draw 仍複製最新 geometry；persistent per-asset GPU cache
+及完整圖形化驗收仍待完成。
 
 ✅ Inspector 現提供多選 Reset Transform、Reset Camera 及 Reset Light。Transform 重設會
 清除 local TRS 與可見／過期的 Euler 圈數；Camera／Light 重設保留缺少元件的狀態。變更 batch 以原子

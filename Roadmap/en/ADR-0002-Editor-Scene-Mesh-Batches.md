@@ -38,3 +38,8 @@ Validate range boundaries and uint32 overflow in portable contracts, and Vulkan 
 distinct geometry/instance ranges and repeated invalid descriptors before a successful draw. Run
 full Linux Development and Shipping gates; CI compiles DX12 on Windows. This cloud execution does
 not establish physical-display or physical-GPU acceptance.
+
+Vulkan retains bounded upload capacity per fence-protected frame slot, copying fresh submission
+bytes without reallocating at the same or smaller size. Growth stages replacement before releasing
+old storage; resize/teardown drains and releases every slot. This does not add per-asset residency or
+change source-span lifetime. Native call-tracing/pixel tests cover allocation failure and ownership.

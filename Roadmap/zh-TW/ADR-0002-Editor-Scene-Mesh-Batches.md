@@ -33,3 +33,8 @@ Unsupported。實際 mesh 的資產 residency 與每材質批次屬於後續功�
 Portable contract 驗證範圍邊界與 uint32 溢位；Vulkan X11 pixel gate 使用不同 geometry／instance
 範圍，並驗證多次錯誤 descriptor 後仍可成功繪製。執行完整 Linux Development 與 Shipping gate；
 Windows CI 編譯 DX12。雲端執行不代表實體顯示器或實體 GPU 驗收。
+
+Vulkan 會保留各 fence-protected frame slot 的有界 upload 容量；相同或較小提交會複製
+最新 bytes 而不重新配置。放大時先完成新配置才釋放舊資源；resize／teardown 會 drain 並
+釋放所有 slot。這不新增 per-asset residency，也不改變 source span 生命週期。
+Native call-tracing／pixel 測試涵蓋配置失敗及 ownership。

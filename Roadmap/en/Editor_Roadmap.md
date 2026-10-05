@@ -223,6 +223,12 @@ Deliver Hierarchy, Scene View, Inspector, camera controls, selection/picking, tr
 gizmos, parenting/reordering, multi-selection, clipboard, undo/redo, and save/reload. Reflection
 creates property widgets; unknown components retain raw data instead of being silently discarded.
 
+- ✅ Vulkan Scene/Game uploads now reuse bounded capacity in fence-protected frame slots.
+  Steady, smaller and Scene-free frames retain allocation; growth stages replacement before retiring
+  old storage, and resize/teardown drains GPU work. Native call tracing and pixels verify 100 steady
+  frames, maximum descriptor budgets, failed growth and leak-free lifetime. Fresh geometry is still
+  copied per draw; persistent per-asset GPU caching and full graphical acceptance remain open.
+
 - ✅ Inspector now exposes Reset Transform, Reset Camera and Reset Light for multi-selection.
   Transform reset clears local TRS and visible/stale Euler revolutions; Camera/Light reset preserves missing
   components. Changed batches are atomic single-step Undo/Redo, and no-ops retain Redo. Reset cancels

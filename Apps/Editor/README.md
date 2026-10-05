@@ -49,6 +49,10 @@ nodes inside the docked canvas after UI submission, preserving controls outside 
 object tint. Each proxy now uses the node's composed world rotation and scale; a conservative pick AABB
 filters candidates before a ray test against the rotated proxy or handle box. Thin handles have a
 small hit margin so visible edge pixels can be clicked.
+Vulkan now retains bounded upload capacity in completed frame slots for Scene/Game geometry.
+Steady or smaller draws reuse allocation while copying fresh vertices, indices and instances.
+Growing an upload commits replacement only after allocation/binding succeeds; resize and shutdown
+wait for GPU work before releasing it. Native call-tracing/pixel tests cover reuse and failure paths.
 Authored geometry uses exact sheared world matrices; material shader execution, persistent per-asset
 GPU caching and full Scene View acceptance remain open.
 Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel zooms, and F or

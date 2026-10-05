@@ -388,29 +388,14 @@ public:
         !UploadUiTexture(frame, {UINT64_MAX, 1, 1, 4, white}, true))
       return SurfaceStatus::DeviceLost;
     // Acquire has waited this frame's fence. Never release another in-flight slot's resources.
-    DestroySceneFrame(frame);
+    DestroySceneTargets(frame);
     const auto vertexBytes = std::as_bytes(data.vertices);
     const auto indexBytes = std::as_bytes(data.indices);
     const auto instanceOffset = (vertexBytes.size() + indexBytes.size() + 3) & ~std::size_t{3};
     const auto bytes = instanceOffset + instanceBytes.size();
-    VkBufferCreateInfo buffer{};
-    buffer.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buffer.size = bytes;
-    buffer.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-    if (vkCreateBuffer(device_, &buffer, nullptr, &frame.sceneUpload) != VK_SUCCESS)
-      return SurfaceStatus::DeviceLost;
-    VkMemoryRequirements requirements{};
-    vkGetBufferMemoryRequirements(device_, frame.sceneUpload, &requirements);
-    const auto memory =
-        FindMemoryType(requirements.memoryTypeBits,
-                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    if (memory == UINT32_MAX)
-      return SurfaceStatus::Unsupported;
-    VkMemoryAllocateInfo allocate{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
-                                  requirements.size, memory};
-    if (vkAllocateMemory(device_, &allocate, nullptr, &frame.sceneMemory) != VK_SUCCESS ||
-        vkBindBufferMemory(device_, frame.sceneUpload, frame.sceneMemory, 0) != VK_SUCCESS)
-      return SurfaceStatus::DeviceLost;
+    const auto uploadStatus = EnsureSceneUpload(frame, bytes);
+    if (uploadStatus != SurfaceStatus::Ready)
+      return uploadStatus;
     void *mapped{};
     if (vkMapMemory(device_, frame.sceneMemory, 0, bytes, 0, &mapped) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
@@ -431,13 +416,14 @@ public:
     image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     if (vkCreateImage(device_, &image, nullptr, &frame.sceneDepth) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
+    VkMemoryRequirements requirements{};
     vkGetImageMemoryRequirements(device_, frame.sceneDepth, &requirements);
     const auto depthMemory =
         FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (depthMemory == UINT32_MAX)
       return SurfaceStatus::Unsupported;
-    allocate.allocationSize = requirements.size;
-    allocate.memoryTypeIndex = depthMemory;
+    VkMemoryAllocateInfo allocate{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
+                                  requirements.size, depthMemory};
     if (vkAllocateMemory(device_, &allocate, nullptr, &frame.sceneDepthMemory) != VK_SUCCESS ||
         vkBindImageMemory(device_, frame.sceneDepth, frame.sceneDepthMemory, 0) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
@@ -776,6 +762,7 @@ private:
     VkFramebuffer uiFramebuffer{};
     VkBuffer sceneUpload{};
     VkDeviceMemory sceneMemory{};
+    VkDeviceSize sceneCapacity{};
     VkImage sceneDepth{};
     VkDeviceMemory sceneDepthMemory{};
     VkImageView sceneDepthView{};
@@ -807,7 +794,7 @@ private:
         return index;
     return std::numeric_limits<std::uint32_t>::max();
   }
-  void DestroySceneFrame(Frame &frame) {
+  void DestroySceneTargets(Frame &frame) {
     if (frame.sceneFramebuffer)
       vkDestroyFramebuffer(device_, frame.sceneFramebuffer, nullptr);
     if (frame.sceneColorView)
@@ -825,16 +812,66 @@ private:
       vkDestroyImage(device_, frame.sceneDepth, nullptr);
     if (frame.sceneDepthMemory)
       vkFreeMemory(device_, frame.sceneDepthMemory, nullptr);
-    if (frame.sceneUpload)
-      vkDestroyBuffer(device_, frame.sceneUpload, nullptr);
-    if (frame.sceneMemory)
-      vkFreeMemory(device_, frame.sceneMemory, nullptr);
     frame.sceneFramebuffer = VK_NULL_HANDLE;
     frame.sceneDepthView = VK_NULL_HANDLE;
     frame.sceneDepth = VK_NULL_HANDLE;
     frame.sceneDepthMemory = VK_NULL_HANDLE;
+  }
+  void DestroySceneUpload(Frame &frame) {
+    if (frame.sceneUpload)
+      vkDestroyBuffer(device_, frame.sceneUpload, nullptr);
+    if (frame.sceneMemory)
+      vkFreeMemory(device_, frame.sceneMemory, nullptr);
     frame.sceneUpload = VK_NULL_HANDLE;
     frame.sceneMemory = VK_NULL_HANDLE;
+    frame.sceneCapacity = 0;
+  }
+  void DestroySceneFrame(Frame &frame) {
+    DestroySceneTargets(frame);
+    DestroySceneUpload(frame);
+  }
+  SurfaceStatus EnsureSceneUpload(Frame &frame, VkDeviceSize required) {
+    if (frame.sceneCapacity >= required)
+      return SurfaceStatus::Ready;
+    // Descriptor budgets bound this geometric growth to 8 MiB per fence-owned frame slot.
+    VkDeviceSize capacity = 4096;
+    while (capacity < required)
+      capacity *= 2;
+    VkBuffer buffer{};
+    VkBufferCreateInfo create{};
+    create.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    create.size = capacity;
+    create.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    if (vkCreateBuffer(device_, &create, nullptr, &buffer) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
+    VkMemoryRequirements requirements{};
+    vkGetBufferMemoryRequirements(device_, buffer, &requirements);
+    const auto type =
+        FindMemoryType(requirements.memoryTypeBits,
+                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (type == UINT32_MAX) {
+      vkDestroyBuffer(device_, buffer, nullptr);
+      return SurfaceStatus::Unsupported;
+    }
+    VkDeviceMemory memory{};
+    const VkMemoryAllocateInfo allocate{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
+                                        requirements.size, type};
+    if (vkAllocateMemory(device_, &allocate, nullptr, &memory) != VK_SUCCESS) {
+      vkDestroyBuffer(device_, buffer, nullptr);
+      return SurfaceStatus::DeviceLost;
+    }
+    if (vkBindBufferMemory(device_, buffer, memory, 0) != VK_SUCCESS) {
+      vkDestroyBuffer(device_, buffer, nullptr);
+      vkFreeMemory(device_, memory, nullptr);
+      return SurfaceStatus::DeviceLost;
+    }
+    // Acquire waited this slot's fence. Keep its old allocation until replacement succeeds;
+    // another in-flight slot's storage is never touched, and a failed grow can retry a small draw.
+    DestroySceneUpload(frame);
+    frame.sceneUpload = buffer;
+    frame.sceneMemory = memory;
+    frame.sceneCapacity = capacity;
+    return SurfaceStatus::Ready;
   }
   void DestroyFrameRetirements(Frame &frame) {
     if (frame.uiFramebuffer)
