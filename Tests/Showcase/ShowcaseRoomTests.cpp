@@ -60,8 +60,9 @@ int main() {
   for (const auto index : wide.indices)
     assert(index < wide.vertices.size());
   assert(wide.pbr);
-  assert(wide.materials.size() == 36 && !wide.batches.empty());
+  assert(wide.materials.size() == 42 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
+  const auto sourceMaterialCount = wide.materials.size() / 2;
   std::size_t covered = 0;
   std::vector<bool> selectedMaterials(wide.materials.size());
   for (const auto &batch : wide.batches) {
@@ -70,15 +71,16 @@ int main() {
       assert(batch.instanceCount == 4);
     else if (batch.firstInstance >= 5 && batch.firstInstance < 437 && batch.materialIndex == 0)
       assert(batch.instanceCount > 1);
-    else if (batch.firstInstance >= 437 && batch.materialIndex < 18)
+    else if (batch.firstInstance >= 437 && batch.materialIndex < sourceMaterialCount)
       assert(batch.instanceCount >= 1 && batch.indexCount == 132);
     else
       assert(batch.instanceCount == 1);
-    if (batch.materialIndex < 18) {
-      assert(batch.firstIndex == covered && batch.materialIndex < 18);
+    if (batch.materialIndex < sourceMaterialCount) {
+      assert(batch.firstIndex == covered && batch.materialIndex < sourceMaterialCount);
       covered += batch.indexCount;
     } else {
-      assert(batch.firstInstance == wide.instances.size() - 1 && batch.materialIndex >= 18);
+      assert(batch.firstInstance == wide.instances.size() - 1 &&
+             batch.materialIndex >= sourceMaterialCount);
       assert(wide.materials[batch.materialIndex].reflectionRole ==
              Nexora::Presentation::SceneReflectionRole::ReflectedGeometry);
       assert(!wide.materials[batch.materialIndex].castsShadow);
@@ -86,7 +88,7 @@ int main() {
           std::find_if(wide.batches.begin(), wide.batches.end(), [&](const auto &candidate) {
             return candidate.firstInstance == 0 && candidate.firstIndex == batch.firstIndex &&
                    candidate.indexCount == batch.indexCount &&
-                   candidate.materialIndex + 18 == batch.materialIndex;
+                   candidate.materialIndex + sourceMaterialCount == batch.materialIndex;
           });
       assert(source != wide.batches.end());
     }
@@ -103,6 +105,27 @@ int main() {
   assert(courtyard.Report().find("\"foliage_quad_count\":" + std::to_string(sourceLeaves)) !=
          std::string::npos);
   assert(wide.materials[12].opacity == 0.23F && !wide.materials[12].castsShadow);
+#if NEXORA_ASSET_PIPELINE_ENABLED
+  // The mineral core stays contained by the closed shell and shares its animated range.
+  std::size_t coreCorners = 0;
+  for (const auto &batch : wide.batches) {
+    if (batch.materialIndex < 18 || batch.materialIndex > 20)
+      continue;
+    assert(batch.firstInstance == 0 && batch.instanceCount == 1);
+    const auto &material = wide.materials[batch.materialIndex];
+    assert(material.opacity == 1 && material.refractionIndex == 1 &&
+           material.refractionThickness == 0 && !material.refractionFrontSurfaceOnly &&
+           !material.castsShadow);
+    coreCorners += batch.indexCount;
+    for (std::size_t i = batch.firstIndex; i < batch.firstIndex + batch.indexCount; ++i) {
+      const auto &vertex = wide.vertices[wide.indices[i]];
+      assert(std::hypot(vertex.position[0], vertex.position[2]) < 0.45F);
+      assert(vertex.position[1] > 1.9F && vertex.position[1] < 3.9F);
+    }
+  }
+  assert(coreCorners == 144);
+#endif
+
   assert(covered == wide.indices.size() && wide.instances.size() > 438 && wide.planarReflection);
   const auto columnBatch =
       std::find_if(wide.batches.begin(), wide.batches.end(), [](const auto &batch) {
@@ -128,7 +151,7 @@ int main() {
   assert(pavingCount == 432 && wide.vertices.size() < 65536);
   std::size_t masonryCount = 0;
   for (const auto &batch : wide.batches)
-    if (batch.materialIndex < 18 && batch.firstInstance >= 437) {
+    if (batch.materialIndex < sourceMaterialCount && batch.firstInstance >= 437) {
       assert(batch.materialIndex == 0 || batch.materialIndex == 8);
       assert(batch.indexCount == 132); // Exact 26-face authored bevel profile.
       masonryCount += batch.instanceCount;

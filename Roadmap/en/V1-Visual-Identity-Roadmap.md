@@ -581,7 +581,19 @@ floating literals. ✅ Linux configure/build and full 97/97 pass (102.21 seconds
 retained Shipping evidence keeps its production freeze. Windows CI recheck is pending.
 
 
-Upstream point-light, masonry and two-sided MSVC fixture evidence is synchronized. Full
-Linux 97/97 gates pass in 102.20/102.62/102.61 seconds with 85/85/89 native PBR frames and
-core/sync validation. Each stage retains exact logs/hashes in `msvc-literals/`. This merge
-changes only documentation/evidence; runtime sources are unchanged.
+Crystal mineral core supporting status: 144 contained opaque mineral corners replace the
+internal wire veins and share the shell rotation/lift clock. Three HDR material responses
+are visible through the front-filtered refractive shell and in its planar reflection. Shared
+IBL intensity is 1.1. ✅ Linux configure/build and all 97 tests pass (104.78 seconds), including
+89 native PBR frames with core/sync validation and all three geometry budgets. Shipping/Full
+packaging and isolated native interaction pass; the same Shipping executable records an
+actual 100.27-second wind/animation tour (100.63-second wall time, zero overlays). Evidence
+is retained in `VIS-Crystal-Facets-Linux-2026-10-05`. No volumetric/recursive-glass claim,
+new native binding or ABI change is introduced. Reference parity and physical-target
+performance remain open; VIS stays 5/7.
+
+
+Upstream point-light, masonry and two-sided MSVC fixture evidence and merge ancestry are
+synchronized; each stage retains its full Linux gate and exact logs/hashes in `msvc-literals/`.
+This synchronization changes only documentation/evidence. The mineral-core runtime sources,
+97/97 gate and Shipping/movie source freeze remain unchanged.

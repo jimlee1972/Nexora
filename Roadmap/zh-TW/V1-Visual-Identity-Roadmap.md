@@ -527,6 +527,15 @@ MSVC 測試可攜性修正：點光源填充值與雙面法線條件式改用明
 Runtime 來源不變；既有 Shipping 證據保留原本來源凍結。Windows CI 重新驗證中。
 
 
-已同步上游點光源、石砌與雙面受光的 MSVC fixture 證據：Linux 完整 97/97 分別為
-102.20／102.62／102.61 秒，原生 PBR 畫面分別為 85／85／89，啟用 core／同步驗證。
-各階段 `msvc-literals/` 保留 log／雜湊；此同步僅變更文件與證據，Runtime 來源不變。
+水晶礦物核心支援狀態：144 個封閉殼內的實體礦物頂點取代內部線框，與外殼共用旋轉／浮動
+時間；三種 HDR 材質透過前表面折射與平面反射呈現。共用 IBL 強度為 1.1。✅ Linux configure／
+build 與完整 97/97 通過（104.78 秒），包含 89 個原生 PBR 畫面、core／同步驗證及三檔幾何預算。
+Shipping／Full 打包及隔離副本原生互動通過；同一 Shipping 執行檔錄製實際 100.27 秒風與動畫
+導覽（牆鐘 100.63 秒，零 overlay）。證據保留於 `VIS-Crystal-Facets-Linux-2026-10-05`。
+沒有宣稱體積或遞迴玻璃效果，也沒有新增原生 binding／ABI。預覽圖一致性與實體目標效能
+仍未完成；VIS 維持 5/7。
+
+
+已同步上游點光源、石砌與雙面受光的 MSVC fixture 證據與合併來源；各階段
+`msvc-literals/` 保留完整 Linux gate 及 log／雜湊。此同步僅變更文件與證據；
+水晶礦物核心的 Runtime 來源、97/97 gate 與 Shipping／影片來源凍結不變。
