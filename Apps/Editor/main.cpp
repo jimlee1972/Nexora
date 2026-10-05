@@ -1040,7 +1040,38 @@ int RunGraphical(std::optional<ProjectState> project,
       log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene", remembered.message);
     }
   };
+  nexora::editor::SceneFileToken content_location_token{};
+  std::optional<std::filesystem::path> content_location_path;
+  std::uint64_t content_location_revision = std::numeric_limits<std::uint64_t>::max();
+  const auto refresh_scene_location = [&](bool force = false) {
+    if (!project || !scene_files || scene_load_failed)
+      return;
+    const auto token = scene_files->Token();
+    const auto old_path = scene_files->CurrentPath();
+    const auto revision = content.Browser().Revision();
+    if (!force && token == content_location_token && old_path == content_location_path &&
+        revision == content_location_revision)
+      return;
+    content_location_token = token;
+    content_location_revision = revision;
+    const auto result = scene_files->SynchronizeContent(token, content);
+    content_location_path = scene_files->CurrentPath();
+    if (!result.Applied()) {
+      ui.SetSceneSaveResult(result.message, false);
+      log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene", result.message);
+      return;
+    }
+    if (old_path && content_location_path && old_path != content_location_path) {
+      retained_scene_views[*content_location_path] = {
+          ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(), overview_load_failed,
+          preview_camera_load_failed};
+      retained_scene_views.erase(*old_path);
+      if (!scene.Dirty())
+        remember_scene();
+    }
+  };
   const auto save_scene = [&] {
+    refresh_scene_location(true);
     if (scene_load_failed) {
       ui.SetSceneSaveResult("Scene load failed. Resolve the scene file before saving.", false);
       log(nexora::runtime::RuntimeLogSeverity::Error, "Scene", "Save blocked by failed load.");
@@ -1156,11 +1187,13 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     }
     if (project) {
+      refresh_scene_location();
       if (scene_files)
         ui.SetSceneFileContext(scene_files->Token(), scene_files->CurrentPath(),
                                scene_load_failed || scene_files->SaveBlocked());
       ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports,
                           &console, &play, &profile, &meshes);
+      refresh_scene_location();
       if (ui.TakeProfileExportRequest()) {
         std::string error;
         const bool exported = project->workspace.ExportEditorFrameProcessing(

@@ -362,6 +362,12 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   檔案 IO 或 World 替換。唯讀允許 Open；Play／modal／token gate 拒絕替換。真正 1×／2×
   pointer／key 測試涵蓋 Unicode 路徑、單／雙擊、非場景／多選拒絕、dirty 決策及過期
   request；additive scene tab 與完整 ED-M4 圖形驗收仍待完成。
+- ✅ 目前 Content 場景現透過 stable UUID 跟隨重新命名／移動及 Content Undo，保留文件
+  generation、dirty 內容、selection、history 與 live view state。刪除／失去、unsafe 或過期
+  追蹤資產時禁止一般 Save；還原後恢復儲存，同一舊檔名的不同 UUID 不可取代關聯。
+  已儲存場景 index 只在舊 source／sidecar 都不存在時更新 stale 移動項目。Portable
+  Unicode／唯讀／失敗契約及 Linux Xvfb context rename／delete／Save／Undo 驗證流程；
+  完整 ED-M4 仍待完成。
 - ✅ Scene panel 現可透過按鈕及文字輸入欄位以外的 Ctrl+Z／Ctrl+Y／Ctrl+Shift+Z 執行
   Undo／Redo。Runtime 重播會還原穩定 ID、階層、transform 與 Camera／Light 元件；文件重播會
   還原名稱、選取與輸入的 Euler 圈數。新編輯會清除 Redo 分支；測試涵蓋重播及撤銷建立後的

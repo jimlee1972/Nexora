@@ -1,5 +1,6 @@
 #include "Nexora/Editor/SceneFiles.h"
 #include "AtomicFile.h"
+#include "Nexora/Editor/ProjectContent.h"
 
 #include <algorithm>
 #include <array>
@@ -71,6 +72,8 @@ bool SceneFileSession::BindCurrent(std::filesystem::path relative, bool save_blo
     return false;
   current_ = path->lexically_relative(root_);
   save_blocked_ = save_blocked;
+  content_asset_.reset();
+  content_blocked_ = false;
   return true;
 }
 SceneFileResult SceneFileSession::New(SceneFileToken token, bool discard_unsaved) {
@@ -83,6 +86,8 @@ SceneFileResult SceneFileSession::New(SceneFileToken token, bool discard_unsaved
   generation_ = document_.Generation();
   current_.reset();
   save_blocked_ = false;
+  content_asset_.reset();
+  content_blocked_ = false;
   return {SceneFileStatus::Applied, "New unsaved scene."};
 }
 SceneFileResult SceneFileSession::Open(SceneFileToken token, const std::filesystem::path &relative,
@@ -99,13 +104,15 @@ SceneFileResult SceneFileSession::Open(SceneFileToken token, const std::filesyst
   generation_ = document_.Generation();
   current_ = path->lexically_relative(root_);
   save_blocked_ = false;
+  content_asset_.reset();
+  content_blocked_ = false;
   return {SceneFileStatus::Applied, "Scene opened."};
 }
 SceneFileResult SceneFileSession::Save(SceneFileToken token) {
   if (!Live(token) || !workspace_.Writable())
     return Rejected("Save is unavailable for this document or read-only project.");
-  if (save_blocked_)
-    return Rejected("The current scene file could not be loaded. Use New, Open or Save As.");
+  if (SaveBlocked())
+    return Rejected("The current scene file is unavailable. Use New, Open or Save As.");
   if (!current_)
     return {SceneFileStatus::NeedsPath, "Choose a scene filename with Save As."};
   return SaveAs(token, *current_);
@@ -123,13 +130,54 @@ SceneFileResult SceneFileSession::SaveAs(SceneFileToken token,
   if (error || (exists && !std::filesystem::is_regular_file(*path, error)) || error)
     return Rejected("The scene destination is not an accessible file.");
   if (exists && !replace_existing &&
-      (save_blocked_ || !current_ || *current_ != path->lexically_relative(root_)))
+      (SaveBlocked() || !current_ || *current_ != path->lexically_relative(root_)))
     return {SceneFileStatus::NeedsOverwrite, "The destination exists. Confirm replacement first."};
+  const bool reset_content =
+      SaveBlocked() || !current_ || *current_ != path->lexically_relative(root_);
   if (!document_.Save(*path))
     return Rejected("Scene could not be saved. Check the project directory.");
   current_ = path->lexically_relative(root_);
   save_blocked_ = false;
+  if (reset_content)
+    content_asset_.reset();
+  content_blocked_ = false;
   return {SceneFileStatus::Applied, "Scene saved."};
+}
+SceneFileResult SceneFileSession::SynchronizeContent(SceneFileToken token,
+                                                     const ProjectContentSession &content) {
+  if (!Live(token) || content.Root() != root_ || !content.Browser().ProjectGeneration())
+    return Rejected("The scene or Content project has changed.");
+  if (save_blocked_)
+    return Rejected("The scene could not be loaded; its destination remains protected.");
+  if (!current_ || *current_->begin() != "Content")
+    return {SceneFileStatus::Applied, {}};
+  const auto &browser = content.Browser();
+  const ContentItem *item = nullptr;
+  if (content_asset_) {
+    if (content_generation_ != browser.ProjectGeneration()) {
+      content_blocked_ = true;
+      return Rejected("The scene's Content session changed. Use Open or Save As.");
+    }
+    item = browser.Find(*content_asset_);
+  } else {
+    const auto found = std::ranges::find(browser.Items(), *current_, &ContentItem::path);
+    if (found == browser.Items().end())
+      return {SceneFileStatus::Applied, {}};
+    item = &*found;
+  }
+  const auto path = item && item->type == ".scene" ? Resolve(item->path) : std::nullopt;
+  std::error_code error;
+  if (!path || path->lexically_relative(root_) != item->path ||
+      !std::filesystem::is_regular_file(*path, error) || error) {
+    content_blocked_ = true;
+    return Rejected(
+        "The tracked scene asset is missing or unsafe. Undo its Content change or use Save As.");
+  }
+  content_asset_ = item->id;
+  content_generation_ = browser.ProjectGeneration();
+  current_ = item->path;
+  content_blocked_ = false;
+  return {SceneFileStatus::Applied, {}};
 }
 std::optional<std::filesystem::path> SceneFileSession::StartupMetadataPath() const {
   std::error_code error;
@@ -192,7 +240,7 @@ SceneFileResult SceneFileSession::RestoreStartup(SceneFileToken token) {
 }
 SceneFileResult SceneFileSession::RememberCurrent(SceneFileToken token) {
   if (!Live(token) || !workspace_.Writable() || workspace_.HasRecoveryJournal() ||
-      !startup_checked_ || startup_blocked_ || save_blocked_ || !current_ || document_.Dirty())
+      !startup_checked_ || startup_blocked_ || SaveBlocked() || !current_ || document_.Dirty())
     return Rejected("Scene startup selection could not be remembered; prior settings preserved.");
   std::optional<std::filesystem::path> previous;
   const auto checked = ReadStartup(previous);

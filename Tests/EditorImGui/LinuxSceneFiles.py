@@ -81,6 +81,51 @@ def main():
         copied = copy.read_bytes()
         if copied == original or main_scene.read_bytes() != original:
             raise RuntimeError("Save As changed its source or failed to include the authored entity")
+        # Fresh layout, one Content row: rename the actual open asset through its context menu.
+        # Save/Undo after relocation proves that the application's association follows the UUID.
+        identity = copy.with_suffix(".scene.meta").read_bytes()
+        send("mousemove", "--window", window, "410", "637", "click", "3")
+        send("mousemove", "--window", window, "445", "669", "click", "1")
+        send("mousemove", "--window", window, "600", "358", "click", "1")
+        send("key", "--clearmodifiers", "ctrl+a")
+        send("type", "--clearmodifiers", "--delay", "2", "Renamed.scene")
+        send("mousemove", "--window", window, "528", "381", "click", "1")
+        renamed = root / "Content/Renamed.scene"
+        metadata = root / ".nexora/scene-session.ini"
+        wait_until(lambda: renamed.is_file() and not copy.exists() and
+                   metadata.read_bytes().endswith(b"scene=Content/Renamed.scene\n"),
+                   "Content rename did not update the clean scene/startup path", process)
+        if renamed.with_suffix(".scene.meta").read_bytes() != identity:
+            raise RuntimeError("Content rename replaced the scene asset UUID")
+        send("mousemove", "--window", window, "500", "220", "click", "1")
+        send("key", "--clearmodifiers", "ctrl+shift+n", "ctrl+s")
+        wait_until(lambda: renamed.read_bytes().count(b"node ") == copied.count(b"node ") + 1,
+                   "Save after Content rename did not adopt its new destination", process)
+        if copy.exists():
+            raise RuntimeError("Save after Content rename recreated the old scene source")
+        send("key", "--clearmodifiers", "ctrl+z", "ctrl+s")
+        wait_until(lambda: renamed.read_bytes() == copied,
+                   "Scene Undo after Content rename lost history", process)
+        send("mousemove", "--window", window, "935", "600", "click", "1")
+        wait_until(lambda: copy.is_file() and not renamed.exists() and
+                   metadata.read_bytes().endswith(b"scene=Content/Copy.scene\n"),
+                   "Content Undo did not restore the current scene/startup path", process)
+        # Delete the same active asset; a new scene edit must not recreate its absent source.
+        send("mousemove", "--window", window, "410", "637", "click", "3")
+        send("mousemove", "--window", window, "445", "703", "click", "1")
+        wait_until(lambda: not copy.exists(), "Active scene Content delete failed", process)
+        send("mousemove", "--window", window, "500", "220", "click", "1")
+        send("key", "--clearmodifiers", "ctrl+shift+n", "ctrl+s")
+        if copy.exists():
+            raise RuntimeError("Save silently recreated a deleted active scene asset")
+        send("mousemove", "--window", window, "935", "600", "click", "1")
+        wait_until(copy.is_file, "Content delete Undo did not restore the scene asset", process)
+        send("key", "--clearmodifiers", "ctrl+s")
+        wait_until(lambda: copy.read_bytes().count(b"node ") == copied.count(b"node ") + 1,
+                   "Content delete Undo did not restore Save or retained scene edits", process)
+        send("key", "--clearmodifiers", "ctrl+z", "ctrl+s")
+        wait_until(lambda: copy.read_bytes() == copied,
+                   "Scene Undo after Content delete lost its original document", process)
         send("key", "--clearmodifiers", "ctrl+n")
         empty = root / "Content/Empty.scene"
         path_dialog("ctrl+shift+s", "Content/Empty.scene")

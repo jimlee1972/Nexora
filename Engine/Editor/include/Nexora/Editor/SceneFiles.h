@@ -3,6 +3,7 @@
 #include "Nexora/Editor/EditorWorkspace.h"
 
 namespace nexora::editor {
+class ProjectContentSession;
 
 struct SceneFileToken final {
   foundation::Uuid project;
@@ -24,7 +25,7 @@ public:
   SceneFileSession(const ProjectWorkspace &workspace, SceneDocument &document);
   [[nodiscard]] SceneFileToken Token() const noexcept;
   [[nodiscard]] std::optional<std::filesystem::path> CurrentPath() const;
-  [[nodiscard]] bool SaveBlocked() const noexcept { return save_blocked_; }
+  [[nodiscard]] bool SaveBlocked() const noexcept { return save_blocked_ || content_blocked_; }
   // Bootstrapping only: associates an already loaded/new document with a managed path. A failed
   // load can protect this destination from ordinary Save until another document is opened/new.
   bool BindCurrent(std::filesystem::path relative_path, bool save_blocked = false);
@@ -34,6 +35,11 @@ public:
   SceneFileResult Save(SceneFileToken token);
   SceneFileResult SaveAs(SceneFileToken token, const std::filesystem::path &relative_path,
                          bool replace_existing = false);
+  // Associate a loaded Content scene before browser mutations, then call after mutations. Tracks
+  // its stable asset UUID through rename/move/Undo without changing the document or its history.
+  // Missing, stale or unsafe tracked assets block ordinary Save until restored or explicitly
+  // replaced with New/Open/Save As. The content session is borrowed only for this call.
+  SceneFileResult SynchronizeContent(SceneFileToken token, const ProjectContentSession &content);
   // Bootstrap first, before RememberCurrent. Missing settings return NeedsPath; rejected settings
   // or source files stay protected for this session. Restore never discards a dirty document.
   SceneFileResult RestoreStartup(SceneFileToken token);
@@ -54,6 +60,9 @@ private:
   std::uint64_t generation_{};
   std::optional<std::filesystem::path> current_;
   bool save_blocked_{};
+  std::optional<runtime::AssetUuid> content_asset_;
+  std::uint64_t content_generation_{};
+  bool content_blocked_{};
   bool startup_checked_{}, startup_blocked_{};
 };
 

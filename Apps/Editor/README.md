@@ -182,6 +182,14 @@ case variants cannot bypass reserved metadata policy or save a scene over anothe
 Content paths, folder/asset labels, search and rename input use UTF-8 with native filesystem paths;
 Unicode scene discovery, folder navigation, rename/move and Undo avoid system code-page conversion.
 
+The active Content scene follows its stable UUID through rename/move and Content Undo. Refresh runs
+at authoring mutation boundaries and before Save; unchanged frames use a token/path/browser-revision
+cache rather than filesystem polling. It retains document history, dirty edits, selection and the
+live view state at the new path. Clean relocation updates startup selection; dirty relocation records
+it after the next successful save. Deleting or losing the tracked asset blocks ordinary Save until
+Content Undo restores it or the user explicitly uses New/Open/Save As. A different UUID at the old
+path stays protected. Linux Xvfb drives actual context rename/delete, Save and both Undo workflows.
+
 Saving a Content scene streams only that saved scene and its identity metadata, retaining an 8 KiB
 read buffer and 64 MiB limit, then publishes the saved source to the live Content browser without clearing earlier content Undo or reimport state. An import failure is
 a Console warning after the scene has successfully saved, never a claim that its save rolled back.
