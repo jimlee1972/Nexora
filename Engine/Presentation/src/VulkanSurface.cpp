@@ -393,6 +393,10 @@ public:
           VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
       if ((formatProperties.optimalTilingFeatures & required) != required)
         return SurfaceStatus::Unsupported;
+      if (std::any_of(data.materials.begin(), data.materials.end(),
+                      [](const auto &material) { return material.opacity < 1; }) &&
+          !sceneHdrBlendPipeline_)
+        return SurfaceStatus::Unsupported;
       if (!scenePbrPipeline_)
         return SurfaceStatus::Unsupported;
       for (const auto &material : data.materials)
@@ -705,21 +709,36 @@ public:
                                static_cast<std::uint32_t>(instances.size()), 0};
     const auto batches =
         data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
-    for (const auto &batch : batches) {
-      const auto material = ResolveSceneMaterial(data, batch.materialIndex);
-      std::copy(material.baseColor.begin(), material.baseColor.end(), constants.begin() + 24);
-      const auto pipelineLayout = data.pbr ? scenePbrPipelineLayout_ : scenePipelineLayout_;
-      const auto stages = data.pbr ? VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
-                                   : VK_SHADER_STAGE_VERTEX_BIT;
-      vkCmdPushConstants(frame.commands, pipelineLayout, stages, 0, sizeof(constants),
-                         constants.data());
-      const auto id = material.textureId ? material.textureId : UINT64_MAX;
-      const auto descriptor =
-          data.pbr ? frame.pbrDescriptors[batch.materialIndex] : sceneTextures_.at(id).descriptor;
-      vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                              &descriptor, 0, nullptr);
-      vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
-                       batch.firstInstance);
+    for (unsigned phase = 0; phase < 2; ++phase) {
+      for (const auto &batch : batches) {
+        const auto material = ResolveSceneMaterial(data, batch.materialIndex);
+        const bool transparent = material.opacity < 1;
+        if (material.opacity == 0 || transparent != (phase == 1))
+          continue;
+        vkCmdBindPipeline(
+            frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
+            transparent
+                ? sceneHdrBlendPipeline_
+                : (data.hdr ? sceneHdrPipeline_ : (data.pbr ? scenePbrPipeline_ : scenePipeline_)));
+        const float coverage[]{(1 - material.opacity) * material.transparencyTint[0],
+                               (1 - material.opacity) * material.transparencyTint[1],
+                               (1 - material.opacity) * material.transparencyTint[2], 1};
+        vkCmdSetBlendConstants(frame.commands, coverage);
+
+        std::copy(material.baseColor.begin(), material.baseColor.end(), constants.begin() + 24);
+        const auto pipelineLayout = data.pbr ? scenePbrPipelineLayout_ : scenePipelineLayout_;
+        const auto stages = data.pbr ? VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
+                                     : VK_SHADER_STAGE_VERTEX_BIT;
+        vkCmdPushConstants(frame.commands, pipelineLayout, stages, 0, sizeof(constants),
+                           constants.data());
+        const auto id = material.textureId ? material.textureId : UINT64_MAX;
+        const auto descriptor =
+            data.pbr ? frame.pbrDescriptors[batch.materialIndex] : sceneTextures_.at(id).descriptor;
+        vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
+                                1, &descriptor, 0, nullptr);
+        vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
+                         batch.firstInstance);
+      }
     }
     vkCmdEndRenderPass(frame.commands);
     sceneRendered_ = true;
@@ -1537,10 +1556,11 @@ private:
     blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     blending.attachmentCount = 1;
     blending.pAttachments = &blend;
-    const VkDynamicState dynamics[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    const VkDynamicState dynamics[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
+                                       VK_DYNAMIC_STATE_BLEND_CONSTANTS};
     VkPipelineDynamicStateCreateInfo dynamic{};
     dynamic.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamic.dynamicStateCount = 2;
+    dynamic.dynamicStateCount = 3;
     dynamic.pDynamicStates = dynamics;
     VkGraphicsPipelineCreateInfo pipeline{};
     pipeline.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -1872,10 +1892,11 @@ private:
     blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     blending.attachmentCount = 1;
     blending.pAttachments = &blend;
-    const VkDynamicState dynamics[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    const VkDynamicState dynamics[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR,
+                                       VK_DYNAMIC_STATE_BLEND_CONSTANTS};
     VkPipelineDynamicStateCreateInfo dynamic{};
     dynamic.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamic.dynamicStateCount = 2;
+    dynamic.dynamicStateCount = 3;
     dynamic.pDynamicStates = dynamics;
     VkPipelineDepthStencilStateCreateInfo depth{};
     depth.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -1998,9 +2019,24 @@ private:
     pipeline.renderPass = sceneHdrRenderPass_;
     const auto hdrResult = vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr,
                                                      &sceneHdrPipeline_);
+    blend.blendEnable = VK_TRUE;
+    blend.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    blend.dstColorBlendFactor = VK_BLEND_FACTOR_CONSTANT_COLOR;
+    blend.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    blend.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    blend.alphaBlendOp = VK_BLEND_OP_MIN;
+    depth.depthWriteEnable = VK_FALSE;
+    VkResult blendResult = VK_SUCCESS;
+    if (hdrFormat.optimalTilingFeatures & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT)
+      blendResult = vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr,
+                                              &sceneHdrBlendPipeline_);
+    blend.blendEnable = VK_FALSE;
+    blend.alphaBlendOp = VK_BLEND_OP_ADD;
+    depth.depthWriteEnable = VK_TRUE;
     vkDestroyShaderModule(device_, fragment, nullptr);
     vkDestroyShaderModule(device_, vertex, nullptr);
-    if (!Initialized(hdrResult, "vkCreateGraphicsPipelines (HDR)"))
+    if (!Initialized(hdrResult, "vkCreateGraphicsPipelines (HDR)") ||
+        !Initialized(blendResult, "vkCreateGraphicsPipelines (HDR blend)"))
       return false;
     const VkPushConstantRange tonePush{VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                                        sizeof(ToneParametersUpload)};
@@ -2064,6 +2100,9 @@ private:
     tonePipeline_ = sceneHdrPipeline_ = VK_NULL_HANDLE;
     tonePipelineLayout_ = VK_NULL_HANDLE;
     sceneHdrRenderPass_ = VK_NULL_HANDLE;
+    if (sceneHdrBlendPipeline_)
+      vkDestroyPipeline(device_, sceneHdrBlendPipeline_, nullptr);
+    sceneHdrBlendPipeline_ = VK_NULL_HANDLE;
     if (scenePbrPipeline_)
       vkDestroyPipeline(device_, scenePbrPipeline_, nullptr);
     if (scenePbrPipelineLayout_)
@@ -2248,6 +2287,7 @@ private:
   VkRenderPass sceneRenderPass_{};
   VkRenderPass sceneOverlayRenderPass_{};
   VkPipeline scenePipeline_{};
+  VkPipeline sceneHdrBlendPipeline_{};
   VkPipeline scenePbrPipeline_{};
   VkPipelineLayout scenePbrPipelineLayout_{};
   VkDescriptorSetLayout pbrMaterialLayout_{};

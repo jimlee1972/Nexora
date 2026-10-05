@@ -397,3 +397,12 @@ reflection and Basic retains the cheaper environment-only water path. Four addit
 PBR fixtures check floor occlusion, source-driven movement and exact restoration (49 total).
 Full release and cross-platform evidence must precede merge. Crystal refraction, shoreline
 refinement and concept-image parity remain open; this does not accept VIS-M3 or VIS-M6.
+
+
+### Tinted crystal transparency iteration
+
+The crystal and floating splinters use tinted linear HDR surface blending, depth-testing against
+opaque geometry and retaining nearest-layer camera distance for focus. U switches transparency
+for native comparisons. Six extra PBR fixtures check opaque/half/zero coverage, restoration,
+focus and colored transmission (55 total). Full Shipping and cross-platform gates must pass
+before merge. Refraction and final visual fidelity remain open; VIS acceptance remains 5/7.

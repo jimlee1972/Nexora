@@ -125,3 +125,7 @@ wind and shadow shading. Native reflection tests retain movement/restoration che
 reference parity, crystal optics and physical target performance remain pending (VIS 5/7).
 水面倒影迭代以 affine instance 重用網格，與 HDR、風動及陰影共用著色；原生測試保留移動／還原檢查。
 最終預覽圖一致性、水晶光學與目標實機效能仍待完成（VIS 5/7）。
+
+
+Tinted HDR crystal blending and nearest-layer focus now share the native adapters. This remains art refinement; refraction, final reference parity and physical performance acceptance remain open (VIS 5/7).
+水晶帶色 HDR 合成與最近可見層景深共用原生後端；折射、最終預覽圖一致性與目標實機效能仍待驗收（VIS 5/7）。

@@ -160,6 +160,31 @@ void Run() {
   pbr.planarReflection.reset();
   Require(!ValidatePbrData(pbr), "mirror material without plane accepted");
   pbr.materials = {};
+  reflectionMaterials[0].reflectionRole = SceneReflectionRole::None;
+  reflectionMaterials[0].opacity = 0.5F;
+  pbr.materials = reflectionMaterials;
+  Require(ValidatePbrData(pbr), "valid HDR blend rejected");
+  pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "non-HDR blend accepted");
+  pbr.hdr = true;
+  reflectionMaterials[0].castsShadow = true;
+  Require(!ValidatePbrData(pbr), "translucent shadow caster accepted");
+  reflectionMaterials[0].castsShadow = false;
+  for (const float invalid : {-1.0F, 1.1F, std::numeric_limits<float>::quiet_NaN()}) {
+    reflectionMaterials[0].opacity = invalid;
+    Require(!ValidateSceneMaterials(reflectionMaterials, {}), "invalid blend coverage accepted");
+  }
+  reflectionMaterials[0].opacity = 0.5F;
+  for (const float invalid : {-1.0F, 1.1F, std::numeric_limits<float>::quiet_NaN()}) {
+    reflectionMaterials[0].transparencyTint[0] = invalid;
+    Require(!ValidateSceneMaterials(reflectionMaterials, {}), "invalid transparency tint accepted");
+  }
+  reflectionMaterials[0].transparencyTint = {0.2F, 0.4F, 0.6F};
+  const auto translucentPacked = PackPbrMaterial(pbr, reflectionMaterials[0], false);
+  Require(translucentPacked[72] == 0.5F && translucentPacked[73] == 0.2F &&
+              translucentPacked[74] == 0.4F && translucentPacked[75] == 0.6F,
+          "transparency upload layout differs from shader constants");
+  pbr.materials = {};
   pbr.shadow = SceneDirectionalShadow{};
   Require(ValidatePbrData(pbr), "valid shadow rejected");
   pbr.shadow->resolution = 300;

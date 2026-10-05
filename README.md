@@ -975,3 +975,7 @@ courtyard. Native Vulkan fixtures verify reflected source movement and exact res
 reference art and physical target acceptance remain open (VIS 5/7).
 水平水面倒影已加入共享 HDR mirror instance 與庭院 V 比較；Vulkan 原生測試驗證物件移動及還原。
 預覽圖一致性與目標實機驗收仍待完成，VIS 維持 5/7。
+
+
+The crystal now supports tinted linear HDR transparency and U comparison. Native fixtures verify coverage, transmitted color and restoration before tone mapping. Reference-image parity remains open (VIS 5/7).
+水晶加入帶色線性 HDR 透明合成與 U 比較；原生檢查驗證覆蓋率、透光色與還原。預覽圖一致性仍待完成（VIS 5/7）。

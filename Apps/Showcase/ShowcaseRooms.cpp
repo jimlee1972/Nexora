@@ -126,6 +126,7 @@ struct RoomSession::State final {
   bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true}, courtyardFocus{true};
   bool courtyardReflections{true};
   bool courtyardPaused{}, courtyardActive{}, courtyardWind{true}, courtyardTransmission{true};
+  bool courtyardTransparency{true};
   bool visualTour{}, courtyardFreeCamera{}, courtyardCompare{};
   unsigned courtyardQuality{1}; // Basic / Standard / High, shared by all native adapters.
   math::Vector3 freeEye{};
@@ -1899,7 +1900,7 @@ void RoomSession::ReplayTour() {
     state_->courtyardPbr = state_->courtyardIbl = state_->courtyardShadows = true;
     state_->courtyardBloom = state_->courtyardStyled = state_->courtyardFocus =
         state_->courtyardReflections = true;
-    state_->courtyardWind = state_->courtyardTransmission = true;
+    state_->courtyardWind = state_->courtyardTransmission = state_->courtyardTransparency = true;
     state_->courtyardExposure = 1;
     state_->courtyardShadowBias = 0.0008F;
     Select("courtyard");
@@ -1988,6 +1989,8 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.courtyardActive = !s.courtyardActive;
   if (s.selected == "courtyard" && key == Key::N)
     s.courtyardWind = !s.courtyardWind;
+  if (s.selected == "courtyard" && key == Key::U)
+    s.courtyardTransparency = !s.courtyardTransparency;
   if (s.selected == "courtyard" && key == Key::M)
     s.courtyardTransmission = !s.courtyardTransmission;
   if (s.selected == "courtyard" && key == Key::B) {
@@ -2388,7 +2391,9 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       crystal.transmissionColor = {0.04F, 0.65F, 0.95F};
     }
     crystal.castsShadow = false;
-    crystal.metallic = 0.4F;
+    crystal.opacity = s.courtyardPbr && s.courtyardTransparency ? 0.32F : 1.0F;
+    crystal.transparencyTint = {0.18F, 0.85F, 0.95F};
+    crystal.metallic = 0.0F;
     crystal.roughness = 0.12F;
     s.materials.push_back(crystal);
     Nexora::Presentation::SceneMaterial water{};
@@ -2682,7 +2687,7 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     if (s.courtyardCompare) {
       s.Rect(18, 531, 900, 100, 0xde241a10);
       s.Text(30, 544, "P Materials / O Environment / F6 Shadows", 0xffe9ded4, 1.4F);
-      s.Text(30, 573, "J Focus / V Reflection / K Glow / G Color / N Wind / M Backlight",
+      s.Text(30, 573, "J Focus / V Reflection / U Crystal / K Glow / N Wind / M Backlight",
              0xffe9ded4, 1.4F);
       s.Text(30, 602, "Q Quality / Pause for comparisons / R Replay / F1-F3 Details", 0xffefdc80,
              1.2F);
@@ -2842,6 +2847,7 @@ std::string RoomSession::Report() const {
       << ",\"animation_seconds\":" << s.courtyardSeconds
       << ",\"wind_enabled\":" << (s.courtyardPbr && s.courtyardWind)
       << ",\"transmission_enabled\":" << (s.courtyardPbr && s.courtyardTransmission)
+      << ",\"transparency_enabled\":" << (s.courtyardPbr && s.courtyardTransparency)
       << ",\"device_active\":" << s.courtyardActive
       << ",\"particle_budget\":" << (24U << s.courtyardQuality)
       << ",\"particle_count\":" << s.courtyardParticleCount

@@ -85,6 +85,7 @@ int main() {
     assert(batch.materialIndex < selectedMaterials.size());
     selectedMaterials[batch.materialIndex] = true;
   }
+  assert(wide.materials[12].opacity == 0.32F && !wide.materials[12].castsShadow);
   assert(covered == wide.indices.size() && wide.instances.size() == 2 && wide.planarReflection);
   for (std::size_t i = 0; i < 7; ++i)
     assert(selectedMaterials[i]);
@@ -237,6 +238,10 @@ int main() {
   assert(std::none_of(inactive.batches.begin(), inactive.batches.end(), [](const auto &batch) {
     return batch.materialIndex == 7 || batch.materialIndex == 25;
   }));
+  Press(courtyard, Key::U);
+  assert(courtyard.Scene(1280, 720).materials[12].opacity == 1);
+  Press(courtyard, Key::U);
+  assert(courtyard.Scene(1280, 720).materials[12].opacity == 0.32F);
   session.RerunProbe(0, nexora::showcase::ErrorInjection::DependencyCycle);
   assert(session.Probes()[0].status == nexora::showcase::ProbeStatus::Unsupported);
   assert(session.Healthy());
