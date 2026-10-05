@@ -129,3 +129,9 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 比較鏡像／剪切 instance 與獨立
 烘焙的 geometry／normal。Legacy TRS、empty identity、batch budget 與 fence ownership 維持相容；
 Editor Scene／Game 現透過 CPU gate 使用精確 matrix；physical-display／GPU 驗收仍為獨立項目。
+
+✅ Vulkan Scene／Game upload 現會重用 fence-protected frame slot 的有界容量。穩定、縮小
+或沒有 Scene 的 frame 保留配置；放大時先完成新配置才釋放舊配置，resize／teardown 會等待
+GPU 完成。Native call tracing 與像素測試驗證 100 個穩定 frame、最大 descriptor 預算、
+放大失敗及無洩漏生命週期。每次 draw 仍複製最新 geometry；persistent per-asset GPU cache
+及完整圖形化驗收仍待完成。

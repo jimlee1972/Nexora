@@ -136,3 +136,9 @@ classification and malformed input; Vulkan pixels
 compare mirrored/sheared instances against independently baked geometry/normals. Legacy TRS,
 empty identity, batch budgets and fence ownership remain compatible. Editor Scene/Game now
 consume exact matrices through the CPU gate; physical-display/GPU acceptance remains separate.
+
+✅ Vulkan Scene/Game uploads now reuse bounded capacity in fence-protected frame slots.
+Steady, smaller and Scene-free frames retain allocation; growth stages replacement before retiring
+old storage, and resize/teardown drains GPU work. Native call tracing and pixels verify 100 steady
+frames, maximum descriptor budgets, failed growth and leak-free lifetime. Fresh geometry is still
+copied per draw; persistent per-asset GPU caching and full graphical acceptance remain open.

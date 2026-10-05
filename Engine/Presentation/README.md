@@ -57,6 +57,21 @@ scene/UI sources and embedded SPIR-V are under `shaders/` and `src/*VulkanShader
 `shaders/GenerateShaders.py --check` verifies deterministic regeneration with glslangValidator.
 Neither UI nor scene rendering requires the graphical Editor or a runtime shader compiler.
 
+Vulkan retains a geometrically grown Scene vertex/index/instance upload allocation in each
+fence-protected frame slot. Acquire waits that slot before any write or replacement; smaller and
+Scene-free frames retain capacity. Growth stages a new bound buffer/memory pair before releasing the
+old pair, so allocation failure preserves the old upload for a corrected smaller draw. Descriptor
+budgets cap each retained buffer at 8 MiB (up to three slots); temporary replacement may hold both
+old and new allocations. Every accepted submission still copies fresh geometry and packed instances.
+Resize/recovery drains GPU work and releases all slot uploads; teardown is idempotent, including an
+abandoned recording. Scene color/depth targets remain per-draw resources. This reuses upload capacity
+and does not provide persistent per-asset GPU geometry caching. Public descriptors, shaders and
+submission order are unchanged. `window_presentation.vulkan_scene_upload_reuse` compiles the actual
+private adapter with test-only Vulkan call tracing. It verifies 100 steady draws without new buffer
+allocations, maximum descriptor capacity, changed pixels, failed growth, slot fencing, resize and
+leak-free teardown.
+No tracing or native handles are exported by the production API.
+
 An application with unsaved work may call `CancelCloseRequest()` after `BeginFrame()` reports a user
 close and before the next frame, then render its confirmation dialog. The call fails when the native
 window was destroyed externally, or the surface has been drained. Existing consumers that do not
