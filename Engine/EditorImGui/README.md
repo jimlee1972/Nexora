@@ -233,6 +233,18 @@ the same selection cannot revive ImGui's old input buffer. Requests recheck the 
 cancel prospective Scene gestures before mutation. Numeric formatting is locale independent; mixed
 values, Undo/Redo and committed-only scene persistence retain the existing contract.
 
+## Inspector component reset
+
+Reset Transform restores local identity position/rotation/scale and zero authored Euler revolutions
+for the displayed selection, including hidden stale hints. Reset Camera and Reset Light restore existing components to their
+Runtime defaults without adding missing components; controls disable when all targets lack that
+component. Each changed selection resets atomically as one Undo/Redo step; already-default clicks
+retain Redo. Parent, selection, names, opaque payloads and unrelated components remain intact.
+Reset abandons active/pending Inspector drafts and prospective Scene gestures before mutation.
+Read-only/recovery/Play-review/close gates apply. Committed defaults survive Save/Reload; 1x/2x real
+pointer/keyboard tests cover multi-selection, mixed presence, abandoned drafts, Undo and access gates.
+Complete reflected component editing remains open.
+
 ## Inspector Position and Scale input
 
 Position/Scale fields keep bounded text drafts; typing never writes SceneDocument or Undo history.

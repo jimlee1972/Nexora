@@ -210,6 +210,7 @@ struct EditorImGuiHost::State final {
   using InspectorLightRequest = InspectorComponentRequest<runtime::LightComponent>;
   std::optional<InspectorCameraRequest> inspector_camera_request;
   std::optional<InspectorLightRequest> inspector_light_request;
+  std::array<std::optional<std::array<float, 2>>, 3> inspector_reset_positions{};
   std::optional<std::size_t> inspector_camera_focus_request;
   std::vector<SceneDocument::NodeKey> inspector_component_selection;
   std::array<std::array<char, 64>, 3> inspector_camera_text{};
@@ -1666,6 +1667,28 @@ void ApplyInspectorEuler(StateT &state, SceneDocument &scene,
 }
 
 template <typename StateT>
+bool ResetInspectorComponent(StateT &state, SceneDocument &scene,
+                             std::span<const SceneDocument::NodeKey> keys, std::size_t component) {
+  CancelSceneGestures(state);
+  CancelInspectorDrafts(state);
+  ImGui::ClearActiveID();
+  const bool reset = component == 0   ? scene.ResetTransforms(keys)
+                     : component == 1 ? scene.ResetCameras(keys)
+                                      : scene.ResetLights(keys);
+  if (reset)
+    state.inspector_error.clear();
+  else
+    state.inspector_error = "Reset rejected because entity generations are stale.";
+  return reset;
+}
+
+template <typename StateT> void CaptureInspectorReset(StateT &state, std::size_t component) {
+  const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+  state.inspector_reset_positions[component] =
+      std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
+}
+
+template <typename StateT>
 void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
                              const MeshAssetCatalog *meshes, bool editable,
                              const std::vector<SceneDocument::NodeKey> &keys) {
@@ -1710,6 +1733,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   state.inspector_light_mixed = false;
   state.inspector_mesh_label.clear();
   state.inspector_mesh_positions = {};
+  state.inspector_reset_positions = {};
   state.inspector_opaque_info.clear();
   std::unordered_set<runtime::Id> selected_entities;
   if (scene != nullptr)
@@ -1797,8 +1821,11 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   ImGui::PushID(static_cast<int>(selection_hash));
   ImGui::PushID(static_cast<int>(state.inspector_draft_generation));
   ImGui::SeparatorText("Transform");
-  ImGui::TextDisabled("Enter applies; Escape cancels.");
   ImGui::BeginDisabled(!editable);
+  if (ImGui::SmallButton("Reset Transform") && ResetInspectorComponent(state, *scene, keys, 0))
+    std::ranges::fill(transforms, runtime::Transform{});
+  CaptureInspectorReset(state, 0);
+  ImGui::TextDisabled("Enter applies; Escape cancels.");
   struct Field final {
     const char *label;
     double runtime::Transform::*member;
@@ -1943,6 +1970,15 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
                               : std::optional<runtime::CameraComponent>{};
     state.inspector_camera_request = typename StateT::InspectorCameraRequest{keys, cameras};
   }
+  ImGui::SameLine();
+  ImGui::BeginDisabled(
+      std::ranges::none_of(cameras, [](const auto &camera) { return camera.has_value(); }));
+  if (ImGui::SmallButton("Reset Camera") && ResetInspectorComponent(state, *scene, keys, 1))
+    for (auto &camera : cameras)
+      if (camera)
+        camera = runtime::CameraComponent{};
+  CaptureInspectorReset(state, 1);
+  ImGui::EndDisabled();
   if (!camera_presence_mixed && camera_enabled) {
     ImGui::BeginDisabled(keys.size() != 1 || !state.native_scene_preview ||
                          !state.native_scene_preview_available);
@@ -2064,6 +2100,15 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
                             : std::optional<runtime::LightComponent>{};
     state.inspector_light_request = typename StateT::InspectorLightRequest{keys, lights};
   }
+  ImGui::SameLine();
+  ImGui::BeginDisabled(
+      std::ranges::none_of(lights, [](const auto &light) { return light.has_value(); }));
+  if (ImGui::SmallButton("Reset Light") && ResetInspectorComponent(state, *scene, keys, 2))
+    for (auto &light : lights)
+      if (light)
+        light = runtime::LightComponent{};
+  CaptureInspectorReset(state, 2);
+  ImGui::EndDisabled();
   if (!light_presence_mixed && light_enabled) {
     float intensity = lights.front()->intensity;
     const bool mixed = std::ranges::any_of(
@@ -2793,6 +2838,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   Activate(state_->context);
   state_->scene_canvas_viewport.reset();
   state_->scene_frame_position.reset();
+  state_->inspector_reset_positions = {};
   state_->native_game_viewport.reset();
   state_->native_scene_pick.reset();
   state_->native_scene_drag.reset();
@@ -4490,6 +4536,14 @@ void EditorImGuiTestAccess::FocusInspector(EditorImGuiHost &host) noexcept {
   const auto name = PanelWindowName("nexora.inspector");
   ImGui::SetWindowFocus(name.c_str());
 }
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::InspectorResetPosition(const EditorImGuiHost &host,
+                                              std::size_t component) noexcept {
+  return component < host.state_->inspector_reset_positions.size()
+             ? host.state_->inspector_reset_positions[component]
+             : std::nullopt;
+}
+
 void EditorImGuiTestAccess::CollapseInspector(EditorImGuiHost &host, bool collapsed) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.inspector");

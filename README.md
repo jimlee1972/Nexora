@@ -250,6 +250,13 @@ Scene Undo and Redo now replay stable entity IDs, hierarchy and components while
 names, selection, and authored Euler revolutions. The Scene panel exposes both by button and
 keyboard shortcut; a new edit discards the undone branch.
 
+✅ Inspector now exposes Reset Transform, Reset Camera and Reset Light for multi-selection.
+Transform reset clears local TRS and visible/stale Euler revolutions; Camera/Light reset preserves missing
+components. Changed batches are atomic single-step Undo/Redo, and no-ops retain Redo. Reset cancels
+unsubmitted drafts and Scene gestures; workspace/modal gates apply. Portable and 1x/2x real UI
+input tests cover metadata-only Undo, mixed presence, unrelated payloads and save/reload.
+Complete reflected Inspector and target-host acceptance remain open.
+
 ✅ Camera and Light Inspector fields now support multi-selection with mixed presence/value states.
 Enabling a mixed component adds it to missing entities while preserving existing values; Enter applies
 only the edited field as one generation-checked atomic Undo/Redo transaction. Invalid/stale/duplicate
@@ -631,6 +638,12 @@ Docked Profiler 現會繪製有界的 Editor frame processing wall-time 即時�
 ✅ Profiler 現可把保留的 Editor frame-processing wall time 匯出為專案 CSV，保留 double
 精度與丟棄 frame 數，GPU／memory 欄保持空白。同步 writer 驗證 1-600 筆有序且有限的 sample，
 拒絕唯讀／recovery 寫入，驗證失敗會保留舊檔；實際 UI 點擊會送出一次性 request。
+
+✅ Inspector 現提供多選 Reset Transform、Reset Camera 及 Reset Light。Transform 重設會
+清除 local TRS 與可見／過期的 Euler 圈數；Camera／Light 重設保留缺少元件的狀態。變更 batch 以原子
+單步 Undo／Redo 提交，no-op 保留 Redo。重設取消未提交草稿及 Scene 手勢，並遵守 workspace／
+modal gate。Portable 與 1x／2x 真正 UI 輸入測試涵蓋 metadata-only Undo、mixed presence、
+無關 payload 保留及 save／reload。完整 reflected Inspector 與 target-host 驗收仍待完成。
 
 ✅ Camera／Light Inspector 現支援多選及 mixed presence／value。Mixed component 的 Enable
 會補到缺少的 entity 並保留現有值；Enter 只套用編輯欄位，以 generation-checked 原子交易

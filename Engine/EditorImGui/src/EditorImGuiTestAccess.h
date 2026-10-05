@@ -110,6 +110,9 @@ public:
                                    std::uint64_t generation);
   [[nodiscard]] static std::string_view InspectorMeshLabel(const EditorImGuiHost &host) noexcept;
   static void FocusInspector(EditorImGuiHost &host) noexcept;
+  // Transform, Camera, Light (0, 1, 2); reports actual UI widget positions for pointer tests.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  InspectorResetPosition(const EditorImGuiHost &host, std::size_t component) noexcept;
   static void CollapseInspector(EditorImGuiHost &host, bool collapsed) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   // Control 0: combo; 1: first available asset in its popup; 2: removal button.

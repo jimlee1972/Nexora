@@ -213,6 +213,10 @@ public:
   bool SetLight(NodeKey entity, std::optional<runtime::LightComponent> light);
   bool SetLights(std::span<const NodeKey> entities,
                  std::span<const std::optional<runtime::LightComponent>> lights);
+  // Atomic, generation-checked reset of existing components only. Missing components remain
+  // absent; empty/stale/duplicate batches reject, and already-default batches retain Redo.
+  bool ResetCameras(std::span<const NodeKey> entities);
+  bool ResetLights(std::span<const NodeKey> entities);
   bool SetMeshRenderer(NodeKey entity, std::optional<runtime::MeshComponent> mesh);
   bool SetMeshRenderers(std::span<const NodeKey> entities,
                         std::span<const std::optional<runtime::MeshComponent>> meshes);
@@ -224,6 +228,9 @@ public:
   InspectOpaqueComponents(NodeKey entity) const;
   bool SetTransforms(std::span<const NodeKey> entities,
                      std::span<const runtime::Transform> transforms);
+  // Resets local TRS and authored Euler revolutions together as one Undo. Parent, selection and
+  // unrelated components stay unchanged; already-default batches retain Redo.
+  bool ResetTransforms(std::span<const NodeKey> entities);
   // Moves generation-checked selection roots by a world X/Z delta as one atomic undo step.
   bool TranslateSelectionXZ(std::span<const NodeKey> entities, double dx, double dz);
   bool TranslateSelection(std::span<const NodeKey> entities, double dx, double dy, double dz);

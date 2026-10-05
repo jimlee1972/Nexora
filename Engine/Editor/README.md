@@ -265,6 +265,16 @@ The graphical Camera Inspector exposes this as Use Scene view pose when one Came
 native Scene 3D is enabled/available; workspace/modal gates apply and existing drafts are canceled.
 The single-selection Light toggle and intensity field follow the same generation and undo rules;
 intensity must be finite and nonnegative.
+`SceneDocument::ResetTransforms`, `ResetCameras` and `ResetLights` synchronously borrow a nonempty
+batch of generation-checked keys on the authoring thread. Stale or duplicate keys reject the entire
+batch. Transform reset restores local identity TRS and zero authored Euler hints, preserving parent,
+selection and unrelated components. Camera/Light reset restores defaults only where that component
+already exists; absent components remain absent. Each changed batch owns one Undo step. Metadata-only
+Euler resets clear visible and stale hints so old revolutions cannot revive on a later rotation,
+and still record matching Runtime history; already-default batches preserve Undo/Redo.
+Save/Reload retains committed defaults through the existing schema. These additive Editor C++ APIs
+require consumers to rebuild; stable C/Zig contracts and scene formats do not change. Workspace
+write permissions remain the caller's responsibility.
 The graphical Camera/Light host also supports mixed multi-selection and rechecks current selection
 and access before each batch. Its canceled drafts never enter SceneDocument or scene persistence;
 returning from read-only/recovery, application focus loss or Play inspection cannot revive them.
