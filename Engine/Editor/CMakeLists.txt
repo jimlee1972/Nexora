@@ -11,6 +11,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/MeshAssetCatalog.cpp
   src/ShaderAuthoring.cpp
   src/SceneAuthoring.cpp
+  src/SceneFiles.cpp
   src/ViewportMath.cpp)
 add_library(Nexora::Editor ALIAS NexoraEditorCore)
 target_include_directories(NexoraEditorCore PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")

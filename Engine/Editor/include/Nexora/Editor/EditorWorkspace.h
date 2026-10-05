@@ -280,6 +280,10 @@ public:
   bool Undo();
   bool Redo();
   bool Save(const std::filesystem::path &path) const;
+  // Starts an unsaved empty document, preserving World scene ID/name/state/persistence.
+  // Advances generations and clears selection/clipboard/history; rejected replacement is atomic.
+  // This document boundary is not an Undo step. Caller owns workspace/dirty-content decisions.
+  bool NewScene();
   bool Reload(const std::filesystem::path &path);
   // Compares the live, serializable scene with the last successful Save or Reload.
   [[nodiscard]] bool Dirty() const;

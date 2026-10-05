@@ -245,6 +245,16 @@ struct EditorImGuiHost::State final {
   std::vector<OpaqueComponentInfo> inspector_opaque_info;
   bool inspector_transform_visible = false;
   std::string inspector_error;
+  enum class FileDialog { None, OpenPath, SavePath, Unsaved, Overwrite };
+  FileDialog scene_file_dialog{FileDialog::None};
+  bool scene_file_context{}, scene_file_save_blocked{}, scene_file_popup_pending{};
+  bool scene_file_focus_path = false;
+  bool scene_file_save_before_switch{}, scene_file_close_popup{};
+  SceneFileToken scene_file_token;
+  std::optional<std::filesystem::path> scene_file_path;
+  std::optional<SceneFileRequest> scene_file_intent, scene_file_output;
+  std::array<char, 1024> scene_file_text{};
+  std::array<std::optional<std::array<float, 2>>, 11> scene_file_positions{};
   bool scene_save_requested = false;
   std::string scene_save_message;
   bool scene_save_success = false;
@@ -1734,6 +1744,155 @@ bool ResetInspectorComponent(StateT &state, SceneDocument &scene,
   return reset;
 }
 
+template <typename StateT> void CaptureSceneFileControl(StateT &state, std::size_t control) {
+  const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+  state.scene_file_positions[control] =
+      std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
+}
+
+template <typename StateT> void EmitSceneFile(StateT &state) {
+  state.scene_file_output = std::exchange(state.scene_file_intent, std::nullopt);
+  state.scene_file_dialog = StateT::FileDialog::None;
+}
+
+template <typename StateT> void SetSceneFileDraft(StateT &state) {
+  const auto path = state.scene_file_path.value_or(std::filesystem::path("Content/Untitled.scene"));
+  const auto text = PathLabel(path);
+  std::snprintf(state.scene_file_text.data(), state.scene_file_text.size(), "%s", text.c_str());
+}
+
+template <typename StateT>
+void BeginSceneFile(StateT &state, SceneDocument &scene, SceneFileAction action) {
+  CancelSceneGestures(state);
+  CancelInspectorDrafts(state);
+  ImGui::ClearActiveID();
+  state.hierarchy_rename_target.reset();
+  state.scene_file_intent = SceneFileRequest{action, state.scene_file_token};
+  state.scene_file_save_before_switch = false;
+  SetSceneFileDraft(state);
+  if (action == SceneFileAction::New) {
+    if (!scene.Dirty()) {
+      EmitSceneFile(state);
+      return;
+    }
+    state.scene_file_dialog = StateT::FileDialog::Unsaved;
+  } else
+    state.scene_file_dialog = action == SceneFileAction::Open ? StateT::FileDialog::OpenPath
+                                                              : StateT::FileDialog::SavePath;
+  state.scene_file_focus_path = true;
+  state.scene_file_popup_pending = true;
+}
+
+template <typename StateT>
+void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, bool cancel) {
+  if (cancel || !scene || !state.scene_file_context ||
+      state.scene_file_token.document_generation != scene->Generation() ||
+      (state.scene_file_intent && state.scene_file_intent->token != state.scene_file_token)) {
+    state.scene_file_intent.reset();
+    state.scene_file_output.reset();
+    state.scene_file_dialog = StateT::FileDialog::None;
+    state.scene_file_popup_pending = false;
+  }
+  if (state.scene_file_popup_pending) {
+    ImGui::OpenPopup("Scene file###editor.scene-file");
+    state.scene_file_popup_pending = false;
+  }
+  const auto size = ImGui::GetMainViewport()->WorkSize;
+  ImGui::SetNextWindowSizeConstraints({0, 0},
+                                      {std::max(1.0F, size.x - 24), std::max(1.0F, size.y - 24)});
+  if (!ImGui::BeginPopupModal("Scene file###editor.scene-file", nullptr,
+                              ImGuiWindowFlags_AlwaysAutoResize))
+    return;
+  const auto cancel_dialog = [&] {
+    state.scene_file_dialog = StateT::FileDialog::None;
+    state.scene_file_intent.reset();
+    state.scene_file_close_popup = false;
+    ImGui::CloseCurrentPopup();
+  };
+  if (state.scene_file_dialog == StateT::FileDialog::None || !state.scene_file_intent) {
+    cancel_dialog();
+    ImGui::EndPopup();
+    return;
+  }
+  bool emit = false;
+  auto &request = *state.scene_file_intent;
+  if (state.scene_file_dialog == StateT::FileDialog::Unsaved) {
+    ImGui::TextUnformatted("Save scene changes before continuing?");
+    ImGui::BeginDisabled(!writable || state.scene_file_save_blocked);
+    if (ImGui::Button("Save")) {
+      request.save_current = true;
+      if (state.scene_file_path) {
+        emit = true;
+      } else {
+        state.scene_file_save_before_switch = true;
+        state.scene_file_dialog = StateT::FileDialog::SavePath;
+        state.scene_file_focus_path = true;
+        SetSceneFileDraft(state);
+      }
+    }
+    CaptureSceneFileControl(state, 7);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ImGui::Button("Discard changes")) {
+      request.discard_unsaved = true;
+      emit = true;
+    }
+    CaptureSceneFileControl(state, 8);
+  } else if (state.scene_file_dialog == StateT::FileDialog::Overwrite) {
+    const auto &path = request.save_path ? *request.save_path : request.path;
+    ImGui::TextWrapped("Replace the existing scene at %s?", PathLabel(path).c_str());
+    ImGui::BeginDisabled(!writable);
+    if (ImGui::Button("Replace")) {
+      request.replace_existing = true;
+      emit = true;
+    }
+    CaptureSceneFileControl(state, 9);
+    ImGui::EndDisabled();
+  } else {
+    const bool opening = state.scene_file_dialog == StateT::FileDialog::OpenPath;
+    ImGui::TextUnformatted(opening ? "Open scene" : "Save scene as");
+    ImGui::TextWrapped("Choose a .scene path inside this project, such as Content/Level.scene.");
+    ImGui::SetNextItemWidth(std::max(1.0F, std::min(520.0F, size.x - 80)));
+    if (std::exchange(state.scene_file_focus_path, false))
+      ImGui::SetKeyboardFocusHere();
+    const bool submit =
+        ImGui::InputText("Scene path", state.scene_file_text.data(), state.scene_file_text.size(),
+                         ImGuiInputTextFlags_EnterReturnsTrue);
+    CaptureSceneFileControl(state, 4);
+    ImGui::BeginDisabled(!opening && !writable);
+    const bool apply = ImGui::Button(opening ? "Open" : "Save As");
+    CaptureSceneFileControl(state, 5);
+    if (apply || (submit && (opening || writable))) {
+      const std::string_view text(state.scene_file_text.data());
+      if (!text.empty() && foundation::IsValidUtf8(text)) {
+        const std::filesystem::path path(std::u8string(text.begin(), text.end()));
+        if (state.scene_file_save_before_switch) {
+          request.save_path = path;
+          emit = true;
+        } else {
+          request.path = path;
+          if (opening && scene->Dirty())
+            state.scene_file_dialog = StateT::FileDialog::Unsaved;
+          else {
+            emit = true;
+          }
+        }
+      }
+    }
+    ImGui::EndDisabled();
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false))
+    cancel_dialog();
+  CaptureSceneFileControl(state, 6);
+  // Transfer only after widgets finish using the intent's fields in this frame.
+  if (emit && state.scene_file_intent) {
+    EmitSceneFile(state);
+    ImGui::CloseCurrentPopup();
+  }
+  ImGui::EndPopup();
+}
+
 template <typename StateT> void CaptureInspectorReset(StateT &state, std::size_t component) {
   const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
   state.inspector_reset_positions[component] =
@@ -2980,6 +3139,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
 
 void EditorImGuiHost::BeginFrame(float delta_seconds) {
   Activate(state_->context);
+  state_->scene_file_positions = {};
   state_->hierarchy_create_positions = {};
   state_->scene_canvas_viewport.reset();
   state_->scene_frame_position.reset();
@@ -3168,8 +3328,58 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   // Query from the same root ID scope that opens the modal, before entering a panel window.
   const bool close_confirmation_open =
       state_->close_prompt_requested || ImGui::IsPopupOpen("Unsaved scene###editor.close");
-  const bool external_modal_open =
+  const bool file_context_valid =
+      scene && workspace && state_->scene_file_context &&
+      state_->scene_file_token.project == workspace->Project().id &&
+      state_->scene_file_token.document_generation == scene->Generation();
+  const bool file_external_block =
       recovery_available || state_->play_apply_open || close_confirmation_open;
+  const bool writable = workspace && workspace->Writable();
+  const bool file_busy =
+      state_->scene_file_dialog != State::FileDialog::None || state_->scene_file_output;
+  if (ImGui::BeginMainMenuBar()) {
+    const bool menu =
+        ImGui::BeginMenu("File", file_context_valid && !file_external_block && !file_busy);
+    CaptureSceneFileControl(*state_, 0);
+    if (menu) {
+      if (ImGui::MenuItem("New Scene", "Ctrl+N", false, writable && !game_running))
+        BeginSceneFile(*state_, *scene, SceneFileAction::New);
+      CaptureSceneFileControl(*state_, 1);
+      if (ImGui::MenuItem("Open Scene...", "Ctrl+O", false, !game_running))
+        BeginSceneFile(*state_, *scene, SceneFileAction::Open);
+      CaptureSceneFileControl(*state_, 2);
+      if (ImGui::MenuItem("Save", "Ctrl+S", false, writable && !state_->scene_file_save_blocked))
+        state_->scene_save_requested = true;
+      CaptureSceneFileControl(*state_, 10);
+      if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S", false, writable))
+        BeginSceneFile(*state_, *scene, SceneFileAction::SaveAs);
+      CaptureSceneFileControl(*state_, 3);
+      ImGui::EndMenu();
+    }
+    if (file_context_valid)
+      ImGui::TextDisabled("%s%s",
+                          state_->scene_file_path
+                              ? PathLabel(state_->scene_file_path->filename()).c_str()
+                              : "Untitled",
+                          scene->Dirty() ? " *" : "");
+    ImGui::EndMainMenuBar();
+  }
+  if (file_context_valid && state_->app_focused && !file_external_block &&
+      state_->scene_file_dialog == State::FileDialog::None && !state_->scene_file_output &&
+      !ImGui::GetIO().WantTextInput) {
+    if (writable && !game_running &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_N, ImGuiInputFlags_RouteGlobal))
+      BeginSceneFile(*state_, *scene, SceneFileAction::New);
+    else if (!game_running &&
+             ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_RouteGlobal))
+      BeginSceneFile(*state_, *scene, SceneFileAction::Open);
+    else if (writable && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
+                                         ImGuiInputFlags_RouteGlobal))
+      BeginSceneFile(*state_, *scene, SceneFileAction::SaveAs);
+  }
+  const bool external_modal_open =
+      file_external_block || state_->scene_file_dialog != State::FileDialog::None ||
+      state_->scene_file_output || ImGui::IsPopupOpen("Scene file###editor.scene-file");
   const bool rename_editable = (!workspace || workspace->Writable()) && !external_modal_open;
   const bool rename_open = state_->hierarchy_rename_target.has_value();
   const bool interaction_blocked = external_modal_open || rename_open;
@@ -3918,21 +4128,31 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
   if (ImGui::BeginPopupModal("Unsaved scene###editor.close", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
-    ImGui::TextUnformatted("Save scene changes before closing?");
-    if (ImGui::Button("Save and Exit"))
-      state_->close_choice = CloseChoice::SaveAndExit;
-    ImGui::SameLine();
-    if (ImGui::Button("Discard and Exit"))
-      state_->close_choice = CloseChoice::DiscardAndExit;
-    ImGui::SameLine();
-    if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
-      state_->close_choice = CloseChoice::Cancel;
+    if (state_->scene_file_close_popup) {
+      state_->scene_file_close_popup = false;
       ImGui::CloseCurrentPopup();
+    } else {
+      ImGui::TextUnformatted("Save scene changes before closing?");
+      if (ImGui::Button("Save and Exit"))
+        state_->close_choice = CloseChoice::SaveAndExit;
+      ImGui::SameLine();
+      if (ImGui::Button("Discard and Exit"))
+        state_->close_choice = CloseChoice::DiscardAndExit;
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+        state_->close_choice = CloseChoice::Cancel;
+        ImGui::CloseCurrentPopup();
+      }
+      if (!state_->scene_save_success && !state_->scene_save_message.empty())
+        ImGui::TextWrapped("%s", state_->scene_save_message.c_str());
     }
-    if (!state_->scene_save_success && !state_->scene_save_message.empty())
-      ImGui::TextWrapped("%s", state_->scene_save_message.c_str());
     ImGui::EndPopup();
   }
+  DrawSceneFileDialog(
+      *state_, scene, writable,
+      recovery_available || state_->play_apply_open || !file_context_valid ||
+          (close_confirmation_open && !state_->scene_file_close_popup &&
+           !state_->scene_file_intent.value_or(SceneFileRequest{}).close_after_save));
 }
 
 bool EditorImGuiHost::TakeSceneSaveRequest() noexcept {
@@ -3948,7 +4168,57 @@ void EditorImGuiHost::SetSceneSaveResult(std::string message, bool success) {
   state_->scene_save_success = success;
 }
 
+void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
+                                          std::optional<std::filesystem::path> path,
+                                          bool save_blocked) {
+  if (state_->scene_file_context && state_->scene_file_token != token) {
+    state_->scene_file_intent.reset();
+    state_->scene_file_output.reset();
+    state_->scene_file_dialog = State::FileDialog::None;
+    state_->scene_file_popup_pending = false;
+    state_->scene_file_save_before_switch = false;
+    state_->scene_file_close_popup = false;
+  }
+  state_->scene_file_context = true;
+  state_->scene_file_token = token;
+  state_->scene_file_path = std::move(path);
+  state_->scene_file_save_blocked = save_blocked;
+}
+std::optional<SceneFileRequest> EditorImGuiHost::TakeSceneFileRequest() {
+  return std::exchange(state_->scene_file_output, std::nullopt);
+}
+void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save) {
+  Activate(state_->context);
+  CancelSceneGestures(*state_);
+  CancelInspectorDrafts(*state_);
+  ImGui::ClearActiveID();
+  state_->scene_file_intent = SceneFileRequest{SceneFileAction::SaveAs, state_->scene_file_token};
+  state_->scene_file_intent->close_after_save = close_after_save;
+  state_->scene_file_close_popup = close_after_save;
+  state_->scene_file_save_before_switch = false;
+  SetSceneFileDraft(*state_);
+  state_->scene_file_dialog = State::FileDialog::SavePath;
+  state_->scene_file_focus_path = true;
+  state_->scene_file_popup_pending = true;
+}
+void EditorImGuiHost::RequestSceneOverwrite(SceneFileRequest request) {
+  state_->scene_file_intent = std::move(request);
+  state_->scene_file_dialog = State::FileDialog::Overwrite;
+  state_->scene_file_popup_pending = true;
+}
+
+void EditorImGuiHost::RequestSceneUnsavedChoice(SceneFileRequest request) {
+  state_->scene_file_intent = std::move(request);
+  state_->scene_file_dialog = State::FileDialog::Unsaved;
+  state_->scene_file_popup_pending = true;
+}
+
 void EditorImGuiHost::RequestCloseConfirmation() noexcept {
+  state_->scene_file_close_popup = false;
+  state_->scene_file_intent.reset();
+  state_->scene_file_output.reset();
+  state_->scene_file_dialog = State::FileDialog::None;
+  state_->scene_file_popup_pending = false;
   state_->play_apply_open = false;
   state_->play_apply_popup_pending = false;
   state_->game_input_focused = false;
@@ -4577,6 +4847,14 @@ void EditorImGuiTestAccess::QueueHierarchyMove(EditorImGuiHost &host, SceneDocum
                                                std::optional<SceneDocument::NodeKey> parent,
                                                std::size_t index) noexcept {
   host.state_->hierarchy_move_request = {entity, parent, index};
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneFilePosition(const EditorImGuiHost &host,
+                                         std::size_t control) noexcept {
+  return control < host.state_->scene_file_positions.size()
+             ? host.state_->scene_file_positions[control]
+             : std::nullopt;
 }
 
 std::optional<std::array<float, 2>>

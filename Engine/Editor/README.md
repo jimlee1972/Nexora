@@ -463,3 +463,29 @@ The application now consumes owning exact world/preview matrices for authored Sc
 bounds/triangle picking, with live post-tick matrices for Game meshes; proxies/gizmos retain TRS.
 Editor C++ consumers rebuild for the added owning target field and matrix getters;
 stable C/Zig wire layouts and scene formats are unchanged.
+
+## Managed scene files
+
+`SceneFileSession` borrows one workspace and document for its lifetime; calls run serially on the
+application authoring thread. Returned paths, tokens, and diagnostics own their values. New/Open
+advance the document generation and clear selection, entity clipboard, and Undo/Redo. New keeps the
+Runtime scene ID/name/activation/persistence, starts empty and dirty, and is a document boundary.
+Open stages the complete file before replacement; a malformed/missing file preserves the current
+World, authoring metadata, generation, dirty state, history, and managed path. It is allowed in a
+read-only workspace. The caller owns the Stop Play policy and any asset-index publication.
+
+Save/Save As require current project UUID/root/document token and write access. Paths must be bounded
+UTF-8 project-relative `.scene` filenames without traversal, nonportable punctuation, controls, or
+canonical parent/symlink escapes. `.nexora` destinations are restricted to `.nexora/scenes`. Ordinary
+Save needs an associated path; Save As adopts it only after successful persistence. Existing different
+destinations and destinations protected after a failed bootstrap load need explicit replacement.
+New/Open first return `NeedsUnsavedChoice` for dirty content; the application saves or supplies an
+explicit discard choice. Missing path, unsaved choice, overwrite confirmation, and rejection are
+separate results; none consume history or modify files. Successful Save retains document Undo/Redo.
+This checks the path at operation time; it does not lock against concurrent external filesystem edits.
+
+`ContentBrowserModel::Discover` publishes one already-saved owning item without recording a content
+edit. It rejects duplicate ID/path, including collisions in the retained Undo snapshot, preserves
+folder/filter/selection, and carries the new item into that snapshot so an earlier content Undo cannot
+hide it. Application scene saves compose persistent `AssetWorkspace` import with discovery/artifact
+publication; importing a saved source is separate from committing the scene document.

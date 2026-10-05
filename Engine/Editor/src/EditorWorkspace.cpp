@@ -69,7 +69,8 @@ std::string Hex(std::uint64_t value) {
 bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, std::string *error) {
   std::error_code ec;
   std::filesystem::create_directories(path.parent_path(), ec);
-  const auto temporary = path.string() + ".tmp";
+  auto temporary = path;
+  temporary += ".tmp";
   {
     std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
     // Close before checking so a failed flush (e.g. a full disk) is not renamed over a good file.
@@ -77,7 +78,7 @@ bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, s
       output.close();
       std::filesystem::remove(temporary, ec);
       if (error)
-        *error = "could not write " + temporary;
+        *error = "could not write " + temporary.string();
       return false;
     }
   }
@@ -1306,6 +1307,29 @@ bool SceneDocument::Save(const std::filesystem::path &path) const {
   opaque_dirty_ = false;
   return true;
 }
+bool SceneDocument::NewScene() {
+  const auto *current = world_.FindScene(scene_);
+  if (!current)
+    return false;
+  runtime::World staged;
+  const auto staged_id = staged.LoadScene(current->name, current->persistent);
+  const auto empty = staged.SaveScene(staged_id);
+  if (!empty || !world_.ReplaceSceneSnapshot(scene_, *empty))
+    return false;
+  document_generation_ = NextDocumentGeneration();
+  nodes_.clear();
+  selection_.clear();
+  clipboard_.clear();
+  clipboard_cut_pending_ = false;
+  undo_.clear();
+  redo_.clear();
+  editor_.ClearUndo();
+  saved_signature_.clear(); // Even an empty new document needs its first successful Save.
+  saved_opaque_records_.clear();
+  opaque_dirty_ = false;
+  return true;
+}
+
 bool SceneDocument::Reload(const std::filesystem::path &path) {
   std::ifstream file(path, std::ios::binary);
   if (!file)

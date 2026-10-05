@@ -38,6 +38,9 @@ class NEXORA_EDITOR_API ContentBrowserModel final {
 public:
   explicit ContentBrowserModel(std::uint64_t project_generation = 1);
   bool Reset(std::span<const ContentItem> items, std::uint64_t project_generation);
+  // Publishes one newly discovered owned item without adding an Undo step. Existing selection,
+  // folder/filter, and pending content Undo survive; Undo also retains this newly saved asset.
+  bool Discover(ContentItem item);
   bool SetFolder(const std::filesystem::path &folder);
   void SetFilter(std::string query, std::string type = {});
   [[nodiscard]] std::vector<const ContentItem *> Visible(std::size_t offset,

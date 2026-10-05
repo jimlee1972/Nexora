@@ -83,6 +83,13 @@ find_program(NEXORA_XVFB_EXECUTABLE Xvfb)
 find_program(NEXORA_XDOTOOL_EXECUTABLE xdotool)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
   add_test(
+    NAME editor.linux_scene_files
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSceneFiles.py"
+            --editor "$<TARGET_FILE:NexoraEditor>"
+            --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+            --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_scene_files PROPERTIES TIMEOUT 60)
+  add_test(
     NAME editor.linux_display_acceptance
     COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/LinuxDisplayAcceptance.py"
@@ -253,3 +260,9 @@ target_include_directories(NexoraKeyboardRenameTests PRIVATE "${PROJECT_SOURCE_D
 target_link_libraries(NexoraKeyboardRenameTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraKeyboardRenameTests)
 add_test(NAME editor.keyboard_rename_lifecycle COMMAND NexoraKeyboardRenameTests)
+
+add_executable(NexoraSceneFileInputTests SceneFileTests.cpp)
+target_include_directories(NexoraSceneFileInputTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraSceneFileInputTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraSceneFileInputTests)
+add_test(NAME editor.scene_file_input COMMAND NexoraSceneFileInputTests)

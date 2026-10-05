@@ -61,6 +61,33 @@ bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
   ++revision_;
   return true;
 }
+bool ContentBrowserModel::Discover(ContentItem item) {
+  if (item.id == runtime::AssetUuid{} || !SafeRelative(item.path) || Find(item.id) ||
+      !ValidDestination(item.path))
+    return false;
+  auto next = items_;
+  next.push_back(item);
+  if (!WithinMeshBudget(next))
+    return false;
+  // Discovery is not an authoring command. Preserve the earlier command's Undo snapshot too.
+  if (!undo_.empty()) {
+    if (std::ranges::any_of(undo_, [&](const ContentItem &old) {
+          return old.id == item.id || old.path == item.path;
+        }))
+      return false;
+    auto previous = undo_;
+    previous.push_back(item);
+    if (!WithinMeshBudget(previous))
+      return false;
+    std::ranges::sort(previous, {},
+                      [](const ContentItem &value) { return value.path.generic_string(); });
+    undo_ = std::move(previous);
+  }
+  std::ranges::sort(next, {}, [](const ContentItem &value) { return value.path.generic_string(); });
+  items_ = std::move(next);
+  ++revision_;
+  return true;
+}
 bool ContentBrowserModel::SetFolder(const std::filesystem::path &folder) {
   if (!SafeRelative(folder))
     return false;

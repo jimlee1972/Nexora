@@ -366,10 +366,15 @@ creates property widgets; unknown components retain raw data instead of being si
   finite, unique, rotation-matching hints and reads legacy version 1. Atomic same-World reload preserves
   scene ID/state and rejects malformed data or cross-scene ID collisions without changing live state.
   Target-host acceptance and the complete graphical save/restart workflow remain open.
-- ✅ The graphical Scene panel now routes Ctrl+S and Save Scene through a one-shot application
-  request. The application saves `.nexora/scenes/Main.scene`, reloads it on project open, rejects
-  read-only saves, and preserves unreadable scene files instead of overwriting them. This is a
-  single-scene persistence slice; the graphical save/restart acceptance workflow remains open.
+- ✅ File New/Open/Save/Save As now manage one active scene with project-relative UTF-8 paths,
+  document/project tokens, dirty Save/Discard/Cancel, nested Untitled Save As and explicit Replace.
+  Failed Open preserves the document/history/path; read-only permits Open and rejects writes;
+  Play/recovery/close gates reject scene replacement. New clears history/clipboard and stays dirty
+  until saved. Content saves publish persistent identity without losing earlier content Undo;
+  per-file CPU camera state survives switches and writable shutdown. Real 1x/2x menu/key/modal tests
+  and Linux Xvfb verify New, typed Save As, Open/reopen, source-file retention and read-only bytes.
+  Startup still opens Main; additive tabs, last-opened startup selection, and full ED-M4 acceptance
+  remain open.
 - ✅ The Scene panel exposes Undo/Redo by button and Ctrl+Z/Ctrl+Y/Ctrl+Shift+Z outside text input.
   Runtime replay restores stable IDs, hierarchy, transforms, and Camera/Light components; document
   replay restores names, selection, and authored Euler revolutions. New edits discard Redo; tests

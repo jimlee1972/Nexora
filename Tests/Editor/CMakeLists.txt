@@ -60,3 +60,8 @@ add_executable(NexoraBuiltinCreationTests BuiltinCreationTests.cpp)
 target_link_libraries(NexoraBuiltinCreationTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraBuiltinCreationTests)
 add_test(NAME editor.builtin_creation_contract COMMAND NexoraBuiltinCreationTests)
+
+add_executable(NexoraSceneFileTests SceneFileTests.cpp)
+target_link_libraries(NexoraSceneFileTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraSceneFileTests)
+add_test(NAME editor.scene_file_contract COMMAND NexoraSceneFileTests)
