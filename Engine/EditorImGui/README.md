@@ -143,7 +143,7 @@ authoring views on first launch.
   gizmos; material shader execution, exact hierarchy shear, and simultaneous 3D views remain open.
 - The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes
   it after drawing, checks project write access and scene load state, and calls `SceneDocument::Save`.
-  The host retains only the result text; it never chooses the path or writes the scene file.
+  The host retains result text and emits owning file requests; it never writes scene files.
 - `RequestCloseConfirmation` opens one modal for an unsaved scene after a cancelable native close.
   `TakeCloseChoice` transfers Save and Exit, Discard and Exit, or Cancel once to the application.
   The application owns the final save and exit decision; a failed save leaves the modal visible.
@@ -159,6 +159,8 @@ authoring views on first launch.
   request. The application owns the candidate workspace and import operation, consumes the staged
   `AssetWorkspace` on the window/authoring thread, and keeps the selector open after cancellation or
   failure.
+- Content labels, selected paths and drag/context labels convert native paths explicitly to UTF-8;
+  the host never uses the Windows system code page for asset names.
 - The host does not own a native window or swapchain. The application supplies events exposed by
   `RenderSurface::Events`; the native `Render` overload flattens ImGui draw lists into the public
   backend-neutral `UiDrawData` contract. `RenderSurface` records those indexed draws directly into
@@ -538,3 +540,25 @@ Selecting a type does not mutate the scene or history. Default names follow type
 names are preserved. Read-only/recovery/close and stale-parent requests cannot create entities.
 Requests borrow no World/entity storage and perform no source IO. Complete reflected component
 creation and target-host graphical acceptance remain open.
+
+## Scene file requests
+
+The File menu and Ctrl+N/Ctrl+O/Ctrl+Shift+S drive New Scene/Open Scene/Save As outside text input;
+Ctrl+S retains the ordinary save request. `SetSceneFileContext` copies a project/document token and
+optional current relative path. Filename and dirty status appear in the menu bar. One modal collects
+a project-relative UTF-8 path, Save/Discard/Cancel for unsaved content, or explicit Replace for an
+existing destination. Untitled Save before New/Open collects a nested Save As path while retaining
+the original intent. Untitled Save and Exit carries `close_after_save`; the application exits only
+after successful persistence. A failed close save reopens Save As with the attempted path and error;
+replacement approval resets when retrying a different filename. Bounded dialog width keeps wrapped
+diagnostics and the path field usable on reopen. Cancel closes the file modal without mutating the
+document.
+
+Requests own all values and are consumed once with `TakeSceneFileRequest`; the application calls
+`SceneFileSession` and may return a request through `RequestSceneOverwrite` or
+`RequestSceneUnsavedChoice`. Opening the workflow cancels authoring gestures and uncommitted
+Inspector drafts. File modals block authoring, clipboard/history, Play commands, and Game input.
+Project/document token changes cancel both pending dialogs and emitted requests. Read-only projects
+permit Open but disable New/Save/Save As; running Play disables New/Open. Recovery/close/apply dialogs
+block new file actions. The application independently rechecks policy and token before I/O. These
+are single-active-document controls; additive scene tabs and a native OS picker remain open.

@@ -129,7 +129,7 @@ enum class AssetIdentityMode { DerivedFromPath, PersistentReadOnly, PersistentRe
 
 struct AssetEntry final {
   runtime::AssetUuid id;
-  std::string relative_path;
+  std::string relative_path; // Owning UTF-8, with portable '/' separators.
   std::string type;
   std::string artifact_hash;
   ImportState state{ImportState::Pending};
@@ -147,6 +147,10 @@ public:
                   Progress progress = {},
                   AssetIdentityMode identity_mode = AssetIdentityMode::DerivedFromPath,
                   std::string *error = nullptr);
+  // Reads only one already-saved .scene and its sidecar in this initialized Content index.
+  // Bounds source bytes at 64 MiB, preserves other entries/geometry, and checks IDs against the
+  // current in-memory index. No directory scan, OBJ parsing, GPU work, or project-wide refresh.
+  bool ImportSavedScene(const std::filesystem::path &relative_path, std::string *error = nullptr);
   [[nodiscard]] static std::filesystem::path
   IdentitySidecar(const std::filesystem::path &asset_path);
   [[nodiscard]] std::vector<const AssetEntry *> Search(std::string_view query,
@@ -280,6 +284,10 @@ public:
   bool Undo();
   bool Redo();
   bool Save(const std::filesystem::path &path) const;
+  // Starts an unsaved empty document, preserving World scene ID/name/state/persistence.
+  // Advances generations and clears selection/clipboard/history; rejected replacement is atomic.
+  // This document boundary is not an Undo step. Caller owns workspace/dirty-content decisions.
+  bool NewScene();
   bool Reload(const std::filesystem::path &path);
   // Compares the live, serializable scene with the last successful Save or Reload.
   [[nodiscard]] bool Dirty() const;

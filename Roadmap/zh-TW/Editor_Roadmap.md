@@ -343,10 +343,17 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   提示，即使 quaternion 未改變。Editor scene format 2 驗證有限值、唯一性與旋轉一致性，並讀取
   舊版 format 1。Atomic 同 World reload 保留 scene ID／state；損壞資料與跨 scene ID 衝突
   會被拒絕且不改變 live state。Target-host 驗收與完整圖形化 save／restart workflow 仍待完成。
-- ✅ 圖形化 Scene panel 現透過一次性 application request 處理 Ctrl+S 與 Save Scene。
-  Application 將場景存至 `.nexora/scenes/Main.scene`，開啟 project 時重新載入；唯讀 project
-  拒絕儲存，無法讀取的場景檔也會保留原狀而不覆寫。這只是單一場景持久化切片，完整圖形化
-  save／restart 驗收仍待完成。
+- ✅ File New／Open／Save／Save As 現管理單一活動場景，支援 project-relative UTF-8 路徑、
+  document／project token、dirty Save／Discard／Cancel、Untitled 的巢狀 Save As 與明確 Replace。
+  Open 失敗保留文件／history／path；覆寫失敗保留目的路徑及既有暫存檔。唯讀允許 Open 並拒絕寫入；Play／recovery／close gate
+  拒絕替換場景。New 清除 history／clipboard 並保持 dirty 直到儲存。Content 儲存發布 persistent
+  identity，僅串流自己的有限來源檔並保留其他 geometry 及先前 Content Undo。Canonical alias
+  維持 metadata namespace／type，關閉儲存失敗則重開原路徑與錯誤以供重試。各檔案 CPU camera state 在切換及可寫 shutdown 時保留。
+  真正 1×／2× menu／key／modal 測試與 Linux Xvfb 驗證 New、輸入 Save As、Open／重開、
+  原檔案保留及唯讀 bytes。Content 中文資料夾／檔名顯示、搜尋、改名／移動與 Undo 使用 UTF-8
+  與原生路徑，portable 及 1×／2× panel 測試驗證不經 Windows 系統字碼頁。
+  啟動仍開 Main；additive tab、last-opened 啟動選擇及完整 ED-M4
+  圖形驗收仍待完成。
 - ✅ Scene panel 現可透過按鈕及文字輸入欄位以外的 Ctrl+Z／Ctrl+Y／Ctrl+Shift+Z 執行
   Undo／Redo。Runtime 重播會還原穩定 ID、階層、transform 與 Camera／Light 元件；文件重播會
   還原名稱、選取與輸入的 Euler 圈數。新編輯會清除 Redo 分支；測試涵蓋重播及撤銷建立後的

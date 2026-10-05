@@ -5,6 +5,7 @@
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/PlayApply.h"
 #include "Nexora/Editor/ProjectContent.h"
+#include "Nexora/Editor/SceneFiles.h"
 #include "Nexora/EditorImGui/Api.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/Device.h"
@@ -27,6 +28,19 @@ enum class RecoveryChoice : std::uint8_t { None, Recover, Discard };
 enum class CloseChoice : std::uint8_t { None, SaveAndExit, DiscardAndExit, Cancel };
 enum class PlayCommand : std::uint8_t { None, Start, Pause, Resume, Step, Stop };
 enum class ProjectSelectorAction : std::uint8_t { Open, Create };
+enum class SceneFileAction : std::uint8_t { New, Open, SaveAs };
+
+struct SceneFileRequest final {
+  SceneFileAction action{SceneFileAction::New};
+  SceneFileToken token;
+  std::filesystem::path path{};
+  // Save before New/Open. An empty save_path uses the current managed destination.
+  bool save_current{};
+  std::optional<std::filesystem::path> save_path{};
+  bool discard_unsaved{};
+  bool replace_existing{};
+  bool close_after_save{};
+};
 
 struct ProjectSelectorRequest final {
   ProjectSelectorAction action{ProjectSelectorAction::Open};
@@ -118,6 +132,17 @@ public:
   void SetProfileExportStatus(std::string message);
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
+  // Owning context only; the application performs all file IO and rechecks token/access.
+  // Owns a token/path copy, never a workspace/document borrow. Changing the token cancels
+  // pending dialogs and output. Consume requests once on the application authoring thread;
+  // SceneFileSession rechecks token, path, write access and dirty state before filesystem I/O.
+  void SetSceneFileContext(SceneFileToken token, std::optional<std::filesystem::path> path,
+                           bool save_blocked = false);
+  [[nodiscard]] std::optional<SceneFileRequest> TakeSceneFileRequest();
+  void RequestSceneSaveAs(bool close_after_save = false,
+                          std::optional<std::filesystem::path> suggested_path = std::nullopt);
+  void RequestSceneOverwrite(SceneFileRequest request);
+  void RequestSceneUnsavedChoice(SceneFileRequest request);
   void RequestCloseConfirmation() noexcept;
   [[nodiscard]] CloseChoice TakeCloseChoice() noexcept;
   [[nodiscard]] FrameMetrics EndFrame();

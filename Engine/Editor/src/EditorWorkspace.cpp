@@ -16,6 +16,13 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
 namespace nexora::editor {
 namespace {
 constexpr std::size_t kMaximumSceneFileBytes = 64 * 1024 * 1024;
@@ -53,6 +60,10 @@ std::uint64_t NextDocumentGeneration() noexcept {
   return generation;
 }
 
+std::string PathUtf8(const std::filesystem::path &path) {
+  const auto encoded = path.generic_u8string();
+  return std::string(encoded.begin(), encoded.end());
+}
 std::uint64_t Hash(std::string_view text, std::uint64_t seed) {
   auto value = seed;
   for (const unsigned char byte : text) {
@@ -69,7 +80,17 @@ std::string Hex(std::uint64_t value) {
 bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, std::string *error) {
   std::error_code ec;
   std::filesystem::create_directories(path.parent_path(), ec);
-  const auto temporary = path.string() + ".tmp";
+  auto temporary = path;
+  temporary += ".tmp";
+  // Do not truncate, follow, or remove a preexisting temporary path owned by another writer/file.
+  const auto temporary_status = std::filesystem::symlink_status(temporary, ec);
+  if (ec != std::errc::no_such_file_or_directory &&
+      (ec || std::filesystem::exists(temporary_status))) {
+    if (error)
+      *error = "temporary destination is already occupied";
+    return false;
+  }
+  ec.clear();
   {
     std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
     // Close before checking so a failed flush (e.g. a full disk) is not renamed over a good file.
@@ -77,21 +98,22 @@ bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, s
       output.close();
       std::filesystem::remove(temporary, ec);
       if (error)
-        *error = "could not write " + temporary;
+        *error = "could not write " + PathUtf8(temporary);
       return false;
     }
   }
+#if defined(_WIN32)
+  if (!MoveFileExW(temporary.c_str(), path.c_str(),
+                   MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+    ec = std::error_code(static_cast<int>(GetLastError()), std::system_category());
+#else
   std::filesystem::rename(temporary, path, ec);
-  if (ec) {
-    std::filesystem::remove(path, ec);
-    ec.clear();
-    std::filesystem::rename(temporary, path, ec);
-  }
+#endif
   if (ec) {
     std::error_code cleanup;
     std::filesystem::remove(temporary, cleanup);
     if (error)
-      *error = "could not replace " + path.string() + ": " + ec.message();
+      *error = "could not replace " + PathUtf8(path) + ": " + ec.message();
   }
   return !ec;
 }
@@ -121,14 +143,14 @@ bool ReadAssetIdentity(const std::filesystem::path &path, runtime::AssetUuid &id
   const auto size = std::filesystem::file_size(path, ec);
   if (ec || std::filesystem::is_symlink(status) || !std::filesystem::is_regular_file(status) ||
       size > 4096) {
-    error = "asset identity sidecar is unavailable, unsafe, or too large: " + path.string();
+    error = "asset identity sidecar is unavailable, unsafe, or too large: " + PathUtf8(path);
     return false;
   }
   std::ifstream input(path, std::ios::binary);
   std::string schema, uuid, type_line, extra;
   if (!input || !std::getline(input, schema) || !std::getline(input, uuid) ||
       !std::getline(input, type_line) || std::getline(input, extra)) {
-    error = "asset identity sidecar is malformed: " + path.string();
+    error = "asset identity sidecar is malformed: " + PathUtf8(path);
     return false;
   }
   StripCarriageReturn(schema);
@@ -138,7 +160,7 @@ bool ReadAssetIdentity(const std::filesystem::path &path, runtime::AssetUuid &id
                           ? runtime::AssetUuid::Parse(std::string_view(uuid).substr(5))
                           : std::nullopt;
   if (schema != "schema=1" || !parsed || !type_line.starts_with("type=")) {
-    error = "asset identity sidecar has an invalid or unsupported schema: " + path.string();
+    error = "asset identity sidecar has an invalid or unsupported schema: " + PathUtf8(path);
     return false;
   }
   id = *parsed;
@@ -192,7 +214,7 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
     if (ec)
       break;
     if (std::filesystem::is_regular_file(status) &&
-        Lower(it->path().extension().string()) != ".meta")
+        Lower(PathUtf8(it->path().extension())) != ".meta")
       files.push_back(it->path());
   }
   if (ec) {
@@ -210,7 +232,7 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> used_ids;
   if (identity_mode != AssetIdentityMode::DerivedFromPath) {
     for (const auto &file : files) {
-      const auto relative = std::filesystem::relative(file, root, ec).generic_string();
+      const auto relative = PathUtf8(std::filesystem::relative(file, root, ec));
       if (ec) {
         if (error)
           *error = "asset path could not be made project-relative: " + ec.message();
@@ -234,8 +256,9 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
       if (!ReadAssetIdentity(sidecar, identity.id, identity.type, identity_error) ||
           !used_ids.insert(identity.id).second) {
         if (error)
-          *error = identity_error.empty() ? "asset identity UUID is duplicated: " + sidecar.string()
-                                          : std::move(identity_error);
+          *error = identity_error.empty()
+                       ? "asset identity UUID is duplicated: " + PathUtf8(sidecar)
+                       : std::move(identity_error);
         return false;
       }
       identities.emplace(relative, std::move(identity));
@@ -246,13 +269,13 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
   entries.reserve(files.size());
   std::size_t mesh_bytes{};
   for (std::size_t index = 0; index < files.size(); ++index) {
-    const auto relative = std::filesystem::relative(files[index], root, ec).generic_string();
+    const auto relative = PathUtf8(std::filesystem::relative(files[index], root, ec));
     if (ec) {
       if (error)
         *error = "asset path could not be made project-relative: " + ec.message();
       return false;
     }
-    auto type = Lower(files[index].extension().string());
+    auto type = Lower(PathUtf8(files[index].extension()));
     auto id = DerivedAssetIdentity(relative);
     if (identity_mode != AssetIdentityMode::DerivedFromPath) {
       const auto existing = identities.find(relative);
@@ -263,7 +286,7 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
         if (identity_mode == AssetIdentityMode::PersistentReadOnly) {
           if (error)
             *error = "asset identity sidecar is missing in read-only mode: " +
-                     IdentitySidecar(files[index]).string();
+                     PathUtf8(IdentitySidecar(files[index]));
           return false;
         }
         std::uint64_t salt = 0;
@@ -366,6 +389,94 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
   entries_ = std::move(entries);
   content_root_ = root;
   identity_mode_ = identity_mode;
+  if (error)
+    error->clear();
+  return true;
+}
+bool AssetWorkspace::ImportSavedScene(const std::filesystem::path &relative, std::string *error) {
+  const auto fail = [&](std::string message) {
+    if (error)
+      *error = std::move(message);
+    return false;
+  };
+  if (content_root_.empty() || identity_mode_ != AssetIdentityMode::PersistentReadWrite ||
+      relative.empty() || relative.has_root_path() || relative.extension() != ".scene")
+    return fail("Saved scene import requires a writable Content index and relative .scene path.");
+  for (const auto &part : relative)
+    if (part.empty() || part == "." || part == "..")
+      return fail("Saved scene path is invalid.");
+  std::error_code ec;
+  const auto path = std::filesystem::canonical(content_root_ / relative, ec);
+  auto candidate = path.begin();
+  for (const auto &part : content_root_) {
+    if (ec || candidate == path.end() || *candidate++ != part)
+      return fail("Saved scene escaped the Content root.");
+  }
+  if (candidate == path.end() || path.extension() != ".scene" ||
+      !std::filesystem::is_regular_file(path, ec) || ec)
+    return fail("Saved scene source is unavailable.");
+  const auto size = std::filesystem::file_size(path, ec);
+  if (ec || size > kMaximumSceneFileBytes)
+    return fail("Saved scene source exceeds the 64 MiB limit or is unavailable.");
+  const auto canonical_relative = path.lexically_relative(content_root_);
+  const auto encoded = canonical_relative.generic_u8string();
+  const std::string key(encoded.begin(), encoded.end());
+  if (key.size() >= 1024 || !foundation::IsValidUtf8(key))
+    return fail("Saved scene path is too long or invalid UTF-8.");
+  auto id = DerivedAssetIdentity(key);
+  std::string type = ".scene";
+  const auto sidecar = IdentitySidecar(path);
+  const auto status = std::filesystem::symlink_status(sidecar, ec);
+  if (ec != std::errc::no_such_file_or_directory && ec)
+    return fail("Saved scene identity is unavailable.");
+  ec.clear();
+  const bool has_identity = std::filesystem::exists(status);
+  if (has_identity) {
+    std::string message;
+    if (!ReadAssetIdentity(sidecar, id, type, message) || type != ".scene")
+      return fail(message.empty() ? "Saved scene identity has the wrong type."
+                                  : std::move(message));
+    for (const auto &entry : entries_)
+      if (entry.id == id && entry.relative_path != key)
+        return fail("Saved scene identity duplicates another indexed asset.");
+  } else {
+    std::uint64_t salt{};
+    while (id == runtime::AssetUuid{} ||
+           std::ranges::any_of(entries_, [&](const AssetEntry &entry) { return entry.id == id; })) {
+      if (salt == std::numeric_limits<std::uint64_t>::max())
+        return fail("Asset identity space is exhausted.");
+      id = DerivedAssetIdentity(key, ++salt);
+    }
+  }
+  std::ifstream input(path, std::ios::binary);
+  if (!input)
+    return fail("Saved scene source could not be read.");
+  auto hash = Hash(id.ToString(), 1469598103934665603ULL);
+  std::array<char, 8192> block{};
+  std::size_t total{};
+  while (input) {
+    input.read(block.data(), static_cast<std::streamsize>(block.size()));
+    const auto count = static_cast<std::size_t>(input.gcount());
+    if (count > kMaximumSceneFileBytes - total)
+      return fail("Saved scene source exceeds the 64 MiB limit.");
+    total += count;
+    hash = Hash(std::string_view(block.data(), count), hash);
+  }
+  if (!input.eof() || input.bad())
+    return fail("Saved scene source read failed.");
+  if (!has_identity) {
+    std::string message;
+    if (!WriteAssetIdentity(sidecar, id, type, message))
+      return fail(std::move(message));
+  }
+  AssetEntry saved{id, key, ".scene", Hex(hash), ImportState::Imported, {}};
+  const auto existing = std::ranges::find(entries_, key, &AssetEntry::relative_path);
+  if (existing != entries_.end())
+    *existing = std::move(saved);
+  else {
+    entries_.push_back(std::move(saved));
+    std::ranges::sort(entries_, {}, &AssetEntry::relative_path);
+  }
   if (error)
     error->clear();
   return true;
@@ -1306,6 +1417,29 @@ bool SceneDocument::Save(const std::filesystem::path &path) const {
   opaque_dirty_ = false;
   return true;
 }
+bool SceneDocument::NewScene() {
+  const auto *current = world_.FindScene(scene_);
+  if (!current)
+    return false;
+  runtime::World staged;
+  const auto staged_id = staged.LoadScene(current->name, current->persistent);
+  const auto empty = staged.SaveScene(staged_id);
+  if (!empty || !world_.ReplaceSceneSnapshot(scene_, *empty))
+    return false;
+  document_generation_ = NextDocumentGeneration();
+  nodes_.clear();
+  selection_.clear();
+  clipboard_.clear();
+  clipboard_cut_pending_ = false;
+  undo_.clear();
+  redo_.clear();
+  editor_.ClearUndo();
+  saved_signature_.clear(); // Even an empty new document needs its first successful Save.
+  saved_opaque_records_.clear();
+  opaque_dirty_ = false;
+  return true;
+}
+
 bool SceneDocument::Reload(const std::filesystem::path &path) {
   std::ifstream file(path, std::ios::binary);
   if (!file)

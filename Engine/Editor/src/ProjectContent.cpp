@@ -113,7 +113,9 @@ bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetW
   items.reserve(assets.Entries().size());
   AssetDependencyGraph dependencies;
   for (const auto &entry : assets.Entries()) {
-    const auto path = std::filesystem::path("Content") / entry.relative_path;
+    const auto path = std::filesystem::path("Content") /
+                      std::filesystem::path(
+                          std::u8string(entry.relative_path.begin(), entry.relative_path.end()));
     if (!ContentPath(path) || entry.id == runtime::AssetUuid{} || !dependencies.Set(entry.id, {}))
       return Fail("asset index contains an invalid entry", error);
     items.push_back({entry.id, path.lexically_normal(), entry.type, entry.artifact_hash,
@@ -219,7 +221,7 @@ bool ProjectContentSession::CommitMoves(ContentBrowserModel candidate, std::vect
     return Fail("project content is read-only", error);
   std::vector<std::pair<std::filesystem::path, std::filesystem::path>> resolved;
   resolved.reserve(moves.size());
-  std::unordered_set<std::string> destinations;
+  std::unordered_set<std::filesystem::path> destinations;
   for (const auto &[source_relative, destination_relative] : moves) {
     std::string path_error;
     const auto source = ExistingPath(source_relative, &path_error);
@@ -227,7 +229,7 @@ bool ProjectContentSession::CommitMoves(ContentBrowserModel candidate, std::vect
         DestinationPath(destination_relative, create_destination_directories, &path_error);
     std::error_code ec;
     if (source.empty() || destination.empty() || std::filesystem::exists(destination, ec) || ec ||
-        !destinations.insert(destination.generic_string()).second)
+        !destinations.insert(destination).second)
       return Fail(path_error.empty() ? "asset destination already exists" : path_error, error);
     resolved.emplace_back(source, destination);
   }

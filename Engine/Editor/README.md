@@ -88,6 +88,8 @@ into renderer or platform internals.
   background workspace jobs emit bounded `asset.import_failed` diagnostics. Typed OBJ reimport
   stages bounded geometry together with hashes; persistent per-asset GPU caching remains separate work. Old shared geometry snapshots survive index replacement/destruction.
 - `ContentBrowserModel` owns its sorted item snapshot, breadcrumb and stable-ID selection state.
+  Path keys, labels and rename input use UTF-8; filesystem operations retain native paths. Sorting,
+  search, discovery, folder navigation and Undo never convert through a system code page.
   Virtual ranges borrow item pointers until the next mutation. Rename, multi-item move, and delete
   validate a complete replacement snapshot before committing and retain one undo snapshot.
 - `ProjectContentSession` owns the live browser model, dependency/conflict state, canonical project
@@ -463,3 +465,41 @@ The application now consumes owning exact world/preview matrices for authored Sc
 bounds/triangle picking, with live post-tick matrices for Game meshes; proxies/gizmos retain TRS.
 Editor C++ consumers rebuild for the added owning target field and matrix getters;
 stable C/Zig wire layouts and scene formats are unchanged.
+
+## Managed scene files
+
+`SceneFileSession` borrows one workspace and document for its lifetime; calls run serially on the
+application authoring thread. Returned paths, tokens, and diagnostics own their values. New/Open
+advance the document generation and clear selection, entity clipboard, and Undo/Redo. New keeps the
+Runtime scene ID/name/activation/persistence, starts empty and dirty, and is a document boundary.
+Open stages the complete file before replacement; a malformed/missing file preserves the current
+World, authoring metadata, generation, dirty state, history, and managed path. It is allowed in a
+read-only workspace. The caller owns the Stop Play policy and any asset-index publication.
+
+Save/Save As require current project UUID/root/document token and write access. Paths must be bounded
+UTF-8 project-relative `.scene` filenames without traversal, nonportable punctuation, controls, or
+canonical parent/symlink escapes. Lexical and resolved paths both enforce the case-insensitive
+`.nexora` namespace restriction to `scenes`; file aliases to other extensions reject. Successful
+association adopts the canonical relative path so aliases cannot bypass Content publication. Ordinary
+Save needs an associated path; Save As adopts it only after successful persistence. Existing different
+destinations and destinations protected after a failed bootstrap load need explicit replacement.
+New/Open first return `NeedsUnsavedChoice` for dirty content; the application saves or supplies an
+explicit discard choice. Missing path, unsaved choice, overwrite confirmation, and rejection are
+separate results; none consume history or modify files. Successful Save retains document Undo/Redo.
+The scene writer preserves native Unicode temporary paths, rejects preexisting temporary paths
+without truncating/removing them, and replaces with native Windows replace or POSIX rename; failure
+never deletes the original destination to retry. This checks paths at operation time; it does not
+lock against concurrent external filesystem edits.
+
+`ContentBrowserModel::Discover` publishes one already-saved owning item without recording a content
+edit. It rejects duplicate ID/path, including collisions in the retained Undo snapshot, preserves
+folder/filter/selection, and carries the new item into that snapshot so an earlier content Undo cannot
+hide it. Application scene saves compose `AssetWorkspace::ImportSavedScene` with discovery/artifact
+publication. That operation reads only the saved `.scene` and its bounded identity sidecar, hashes
+source bytes with an 8 KiB streaming buffer and a 64 MiB admission limit, and validates identity
+against the current in-memory index. It never enumerates directories or rereads/parses unrelated
+sources/OBJ files, and retains their geometry ownership. It requires an initialized writable
+persistent index and updates only that scene entry after successful import. Index paths own UTF-8
+with portable separators; filesystem consumers convert explicitly to native paths. Importing a saved
+source remains separate from committing the scene document; a later import failure does not roll
+back a successful save.

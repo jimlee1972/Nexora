@@ -167,12 +167,29 @@ External window destruction cannot be canceled and stops rendering.
 Scene View, reflected component widgets, the complete graphical save/restart workflow, and the ED-M2 visual exit gate
 remain open.
 
-The graphical shell now saves the active scene with Ctrl+S or the Scene panel's Save Scene button
-to `.nexora/scenes/Main.scene` under the project root. It reloads that scene when the project
-opens and creates a starter root only when no saved scene exists. Read-only projects reject saves;
-a corrupt or unreadable saved scene remains untouched and blocks saving until repaired. The Scene
-panel reports save and load failures. This is one-scene persistence, not the complete Scene View or
-the ED-M2 save/restart acceptance workflow.
+The graphical File menu supports New Scene, Open Scene, Save and Save As with Ctrl+N/Ctrl+O/
+Ctrl+S/Ctrl+Shift+S. Scene panel Save uses the same managed current path; Untitled Save opens Save As.
+Project startup still opens `.nexora/scenes/Main.scene`, creating a starter root only when missing.
+New starts empty/dirty, Open adopts a validated project-relative `.scene`, and Save As adopts its
+successfully written destination without changing the original file. Dirty New/Open requires
+Save/Discard/Cancel; existing different destinations require Replace. Missing/corrupt Open preserves
+the document, history, and current path. Read-only projects allow Open and reject writes. A failed
+startup load protects its file from ordinary Save; New/Open/Save As can recover explicitly.
+Stop Play before New/Open. Untitled Save and Exit collects a path and exits only after successful
+save; rejection reopens the path dialog with its attempted filename and error. Canonical aliases and
+case variants cannot bypass reserved metadata policy or save a scene over another file type.
+Content paths, folder/asset labels, search and rename input use UTF-8 with native filesystem paths;
+Unicode scene discovery, folder navigation, rename/move and Undo avoid system code-page conversion.
+
+Saving a Content scene streams only that saved scene and its identity metadata, retaining an 8 KiB
+read buffer and 64 MiB limit, then publishes the saved source to the live Content browser without clearing earlier content Undo or reimport state. An import failure is
+a Console warning after the scene has successfully saved, never a claim that its save rolled back.
+Editor view states remain separate from scene content: the legacy Main scene keeps its adjacent
+`.overview.camera`/`.preview.camera`; other paths mirror into `.nexora/scenes/views/<relative-path>`
+with camera extensions. Switching retains owning CPU view state for previously opened files and
+shutdown persists it only for writable projects and valid, readable view metadata. Untitled view state
+has no file destination. Additive scenes, last-opened-file startup selection, and complete ED-M2/
+ED-M4 graphical acceptance remain open.
 The Scene panel exposes Undo (Ctrl+Z) and Redo (Ctrl+Y or Ctrl+Shift+Z) outside text inputs.
 Undoing entity creation removes stale node metadata and selection; Redo restores them with the
 stable entity ID. New scene edits discard the redo branch.
