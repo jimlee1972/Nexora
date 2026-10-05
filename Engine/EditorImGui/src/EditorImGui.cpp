@@ -261,8 +261,12 @@ struct EditorImGuiHost::State final {
   bool scene_save_success = false;
   std::array<char, 128> content_query{};
   std::array<char, 64> content_type{};
-  std::array<char, 260> content_rename{};
+  std::array<char, 1024> content_rename{};
   std::optional<runtime::AssetUuid> content_rename_target;
+  std::uint64_t content_rename_generation{};
+  std::filesystem::path content_rename_root, content_rename_path;
+  bool content_rename_focus{};
+  std::array<std::optional<std::array<float, 2>>, 3> content_rename_positions;
   std::uint32_t content_visible_items = 0;
   std::uint32_t content_visible_folders = 0;
   std::uint32_t content_selection = 0;
@@ -2646,7 +2650,7 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
 template <typename StateT>
 void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImportQueue *imports,
                         SceneDocument *scene, const MeshAssetCatalog *meshes, bool scene_editable,
-                        bool scene_openable) {
+                        bool scene_openable, bool commands_allowed) {
   static_cast<void>(content.PollReimport());
   auto &browser = content.Browser();
   state.content_visible_items = 0;
@@ -2670,7 +2674,15 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   }
 
   const auto window = PanelWindowName("nexora.content");
+  state.content_rename_positions = {};
   if (!ImGui::Begin(window.c_str())) {
+    state.content_rename_target.reset();
+    if (ImGui::BeginPopupModal("Rename asset###editor.content.rename", nullptr,
+                               ImGuiWindowFlags_AlwaysAutoResize)) {
+      ImGui::ClearActiveID();
+      ImGui::CloseCurrentPopup();
+      ImGui::EndPopup();
+    }
     ImGui::End();
     return;
   }
@@ -2754,6 +2766,31 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   std::optional<runtime::AssetUuid> delete_asset;
   std::optional<runtime::AssetUuid> reimport_asset;
   bool open_rename = false;
+  const auto begin_rename = [&](const ContentItem &item) {
+    CancelSceneGestures(state);
+    CancelInspectorDrafts(state);
+    ImGui::ClearActiveID();
+    state.content_rename.fill(0);
+    const auto filename = PathLabel(item.path.filename());
+    auto count = std::min(filename.size(), state.content_rename.size() - 1);
+    while (count > 0 && count < filename.size() &&
+           (static_cast<unsigned char>(filename[count]) & 0xC0U) == 0x80U)
+      --count;
+    std::memcpy(state.content_rename.data(), filename.data(), count);
+    state.content_rename_target = item.id;
+    state.content_rename_generation = browser.ProjectGeneration();
+    state.content_rename_root = content.Root();
+    state.content_rename_path = item.path;
+    state.content_rename_focus = true;
+    open_rename = true;
+  };
+  if (commands_allowed && content.Writable() && !state.content_rename_target &&
+      selected_assets.size() == 1 && !ImGui::GetIO().WantTextInput &&
+      ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+      ImGui::IsKeyPressed(ImGuiKey_F2, false)) {
+    if (const auto *item = browser.Find(selected_assets.front()))
+      begin_rename(*item);
+  }
   const auto folders = browser.ChildFolders();
   state.content_visible_folders = static_cast<std::uint32_t>(folders.size());
   for (const auto &folder : folders) {
@@ -2804,17 +2841,9 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
           BeginContentScene(state, *scene, item->path);
           ImGui::CloseCurrentPopup();
         }
-        if (ImGui::MenuItem("Rename", nullptr, false, content.Writable())) {
-          state.content_rename.fill(0);
-          const auto filename = PathLabel(item->path.filename());
-          auto count = std::min(filename.size(), state.content_rename.size() - 1);
-          while (count > 0 && count < filename.size() &&
-                 (static_cast<unsigned char>(filename[count]) & 0xC0U) == 0x80U)
-            --count;
-          std::memcpy(state.content_rename.data(), filename.data(), count);
-          state.content_rename_target = item->id;
-          open_rename = true;
-        }
+        if (ImGui::MenuItem("Rename", "F2", false,
+                            commands_allowed && content.Writable() && !state.content_rename_target))
+          begin_rename(*item);
         if (ImGui::MenuItem("Reimport", nullptr, false,
                             content.Writable() && imports != nullptr && !content.ReimportBusy()))
           reimport_asset = item->id;
@@ -2835,17 +2864,45 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     ImGui::OpenPopup("Rename asset###editor.content.rename");
   if (ImGui::BeginPopupModal("Rename asset###editor.content.rename", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
-    ImGui::InputText("Filename", state.content_rename.data(), state.content_rename.size());
-    if (ImGui::Button("Apply") && state.content_rename_target &&
-        content.Rename(*state.content_rename_target, state.content_rename.data())) {
-      state.content_rename_target.reset();
-      ImGui::CloseCurrentPopup();
+    const auto *item =
+        state.content_rename_target ? browser.Find(*state.content_rename_target) : nullptr;
+    const bool valid = commands_allowed && content.Writable() && item &&
+                       state.content_rename_generation == browser.ProjectGeneration() &&
+                       state.content_rename_root == content.Root() &&
+                       state.content_rename_path == item->path;
+    const auto capture = [&](std::size_t control) {
+      const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+      state.content_rename_positions[control] =
+          std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
+    };
+    if (std::exchange(state.content_rename_focus, false))
+      ImGui::SetKeyboardFocusHere();
+    const bool submit =
+        ImGui::InputText("Filename", state.content_rename.data(), state.content_rename.size(),
+                         ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue);
+    capture(0);
+    const bool apply = ImGui::Button("Apply");
+    capture(1);
+    if (valid && (apply || submit)) {
+      if (PathLabel(item->path.filename()) == state.content_rename.data() ||
+          content.Rename(*state.content_rename_target, state.content_rename.data())) {
+        state.content_rename_target.reset();
+        ImGui::ClearActiveID();
+        ImGui::CloseCurrentPopup();
+      } else {
+        state.content_rename_focus = true;
+      }
     }
     ImGui::SameLine();
-    if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+    const bool cancel = ImGui::Button("Cancel");
+    capture(2);
+    if (!valid || cancel || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
       state.content_rename_target.reset();
+      ImGui::ClearActiveID();
       ImGui::CloseCurrentPopup();
     }
+    if (valid && !content.LastError().empty())
+      ImGui::TextWrapped("%s", std::string(content.LastError()).c_str());
     ImGui::EndPopup();
   }
 
@@ -3390,8 +3447,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool file_busy =
       state_->scene_file_dialog != State::FileDialog::None || state_->scene_file_output;
   if (ImGui::BeginMainMenuBar()) {
-    const bool menu =
-        ImGui::BeginMenu("File", file_context_valid && !file_external_block && !file_busy);
+    const bool menu = ImGui::BeginMenu("File", file_context_valid && !file_external_block &&
+                                                   !file_busy && !state_->content_rename_target);
     CaptureSceneFileControl(*state_, 0);
     if (menu) {
       if (ImGui::MenuItem("New Scene", "Ctrl+N", false, writable && !game_running))
@@ -3418,7 +3475,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
   if (file_context_valid && state_->app_focused && !file_external_block &&
       state_->scene_file_dialog == State::FileDialog::None && !state_->scene_file_output &&
-      !ImGui::GetIO().WantTextInput) {
+      !state_->content_rename_target && !ImGui::GetIO().WantTextInput) {
     if (writable && !game_running &&
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_N, ImGuiInputFlags_RouteGlobal))
       BeginSceneFile(*state_, *scene, SceneFileAction::New);
@@ -3432,9 +3489,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool external_modal_open =
       file_external_block || state_->scene_file_dialog != State::FileDialog::None ||
       state_->scene_file_output || ImGui::IsPopupOpen("Scene file###editor.scene-file");
-  const bool rename_editable = (!workspace || workspace->Writable()) && !external_modal_open;
+  if (!content)
+    state_->content_rename_target.reset();
+  const bool rename_editable = (!workspace || workspace->Writable()) && !external_modal_open &&
+                               !state_->content_rename_target;
   const bool rename_open = state_->hierarchy_rename_target.has_value();
-  const bool interaction_blocked = external_modal_open || rename_open;
+  const bool interaction_blocked =
+      external_modal_open || rename_open || state_->content_rename_target;
   const bool scene_editable = rename_editable && !rename_open;
   if (const auto *payload = ImGui::GetDragDropPayload();
       payload && payload->IsDataType(AssetDragPayload::kType.data()) &&
@@ -4061,7 +4122,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (content != nullptr)
     DrawContentBrowser(*state_, *content, imports, scene, meshes, scene_editable,
                        file_context_valid && state_->app_focused && !game_running &&
-                           !interaction_blocked && !file_busy && !state_->content_rename_target);
+                           !interaction_blocked && !file_busy && !state_->content_rename_target,
+                       state_->app_focused && !external_modal_open && !rename_open &&
+                           (!workspace || workspace->Writable()));
   DrawProjectPanel(*state_, workspace, recent_projects);
   if (state_->focus_initial_scene) {
     auto *scene_window = ImGui::FindWindowByName(
@@ -4835,6 +4898,16 @@ EditorImGuiTestAccess::ContentAddMeshPosition(const EditorImGuiHost &host) noexc
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentOpenScenePosition(const EditorImGuiHost &host) noexcept {
   return host.state_->content_open_scene_position;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentRenamePosition(const EditorImGuiHost &host,
+                                             std::size_t control) noexcept {
+  return control < host.state_->content_rename_positions.size()
+             ? host.state_->content_rename_positions[control]
+             : std::nullopt;
+}
+std::string_view EditorImGuiTestAccess::ContentRenameText(const EditorImGuiHost &host) noexcept {
+  return host.state_->content_rename.data();
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentAssetPosition(const EditorImGuiHost &host,

@@ -141,6 +141,12 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 - ✅ The graphical Content panel now shows dependency cycles and serializes dirty external changes
   through one blocking dialog. Compare exposes both retained hashes without resolving the conflict;
   Reload or Keep records the terminal authoring-thread decision, and no UI path overwrites files.
+- ✅ Focused Content F2 and context Rename now share owning UUID/generation/root/path drafts,
+  focused/select-all UTF-8 filenames, Enter/Apply and Escape/Cancel. Invalid names are retryable;
+  unchanged names preserve Content Undo. The modal blocks authoring/File commands and cancels on
+  focus/write loss, hidden Content, external modals or stale asset scope. Real 1x/2x Unicode/gate
+  tests and Linux Xvfb F2/Enter with scene Save/Undo/restart verify the workflow; physical IME and
+  complete graphical acceptance remain open.
 - Open: physical-display/Windows fresh-project workflow acceptance.
 
 ### ED-M2 — Scene authoring core
