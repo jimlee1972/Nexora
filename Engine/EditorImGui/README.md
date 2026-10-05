@@ -69,7 +69,7 @@ authoring views on first launch.
   Selected proxies show colored X/Y/Z handles at the first selected node. The Local axes
   checkbox rotates them with that node's world rotation; otherwise they follow world axes. Their
   hit bounds enclose the rendered boxes, and a click captures the same axis for the whole drag. The application reserves
-  three instance slots for these handles in the native draw. The Rotate tool (E over the canvas;
+  six instance slots for Move's three axes and three plane handles in the native draw. The Rotate tool (E over the canvas;
   W returns to Move) shows X/Y/Z ring handles and commits a selected-root turn on release as one
   Undo step. Selected roots and descendants visibly rotate during the drag; Escape cancels the
   preview. The Scale tool (R over the canvas) draws local X/Y/Z cubes and commits an axis's scale
@@ -443,6 +443,27 @@ every idle frame. Real 1x/2x tests cover native/overview and button/key parity, 
 4,001-node limits, unknown bytes, clipboard and Redo retention. Linux Xvfb verifies both submitted
 proxy/OBJ roots become selected after Ctrl+A and remain pickable. Full Scene View and target-host
 acceptance remain open.
+
+## Native Move planes
+
+Move draws paired-color XY, XZ and YZ plane handles beside the existing single-axis handles.
+`SceneMovePlanes.h` builds owning numeric boxes for the same native drawing and exact/padded picking.
+Global planes follow world axes; Local planes follow the first selected node's world rotation.
+Pivot/Center uses the existing selection frame. A plane hit keeps selection and captures its two
+orthonormal axes as numeric values; Ctrl picking cannot start a plane gesture. Shift on an explicit
+plane keeps that plane rather than switching the free drag to Y. Scale and Rotate keep their own handles.
+
+Start/current rays intersect the captured plane at the gizmo origin; both preview and release call
+the same `MovePlaneDelta`, snapping each plane coordinate in world-unit steps before forming one
+world delta. Nonfinite/degenerate/parallel/behind/distant rays reject the move. The existing bounded
+candidate submission, one selected-root transaction, parent conversion and descendant preview stay
+in use. Escape/focus/modal cancellation leaves committed World untouched. The private helper retains
+no World, document, plugin or GPU borrow and performs no IO. No Runtime or public GUI ABI changes.
+
+Contract tests cover every Global/rotated Local plane, shared drawn/pick boxes, snapping, invalid rays,
+nonuniform/mirrored parents, selected descendants, opaque bytes, preview/Redo retention and one-step Undo.
+Linux Xvfb drives all six plane gestures on proxy/OBJ roots, including Shift, Escape and saved transforms,
+after Scale/Rotate regression checks. Complete gizmo and physical target-host acceptance remain open.
 
 ## Native gizmo mode shortcuts
 

@@ -3776,7 +3776,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           ImGui::TextDisabled(
               "Drag cubes: local/uniform scale | Shift: 0.25 snap | W: move | E: rotate");
         else
-          ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y | E: rotate | R: scale");
+          ImGui::TextDisabled(
+              "Drag axes/planes: move | Free drag: X/Z | Shift+free drag: Y | E/R: rotate/scale");
         ImGui::TextDisabled("Middle: pan X/Z | Shift+middle: pan Y | Delete: selected");
         ImGui::BeginDisabled(!state_->app_focused || interaction_blocked ||
                              state_->native_scene_drag_origin || state_->native_scene_drag);

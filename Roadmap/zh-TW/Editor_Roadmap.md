@@ -148,6 +148,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Native Move 現可繪製／命中 Global／Local 與 Pivot／Center 的 XY／XZ／YZ 平面把手，保留
+  numeric 平面基底，讓 preview／release 共用位移計算與各軸 world-unit snapping。Shift 保持
+  明確選中的平面；Escape 可取消。測試涵蓋非法射線、共用 box、鏡像／非均勻父節點、選中的
+  descendants、opaque bytes、preview／Redo 與一步 Undo。Linux Xvfb 在 Scale／Rotate 檢查後，
+  經六個平面移動並儲存 proxy／OBJ roots。完整 gizmo 驗收仍未完成。
+
 - ✅ Native Scene 的 X 現可切換 Global／Local axes，Scale 維持 Local；P 切換 Pivot／Center，
   兩者皆在同幀點擊／拖曳開始前處理。1x／2x 真實輸入涵蓋 Home navigation、實際 hover／focus、
   modifier／文字／modal、拖曳中與放開待提交、唯讀等限制，並保留 World／Redo。

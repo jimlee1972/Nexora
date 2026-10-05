@@ -78,6 +78,14 @@ gestures. Modifier/text/modal/focus gates preserve authoring; read-only mode nav
 Home/P center gestures now share Q/W/E/R's real-hover guard. Real 1x/2x input and Linux Xvfb proxy/OBJ
 center gestures verify unchanged history and one-step Undo; full gizmo target-host acceptance stays open.
 
+Move now adds paired-color XY/XZ/YZ plane handles in Global or Local axes, at the existing Pivot/Center.
+Drawing and picking share numeric boxes; a hit captures both axes and retains selection. Explicit planes
+override Shift's free-drag Y mode. Preview/release share bounded ray-plane intersections and per-plane-axis
+world-unit snapping, then one generation-checked selected-root translation. Scale/Rotate remain separate;
+Escape and existing focus/modal gates cancel without authoring. Numeric helpers own no World/GPU data.
+Contract tests cover snapping, malformed rays, mirrored/nonuniform parents, descendants and Redo/Undo;
+Linux Xvfb verifies all six planes, Shift, Escape and saved proxy/OBJ root transforms. Full gizmo acceptance remains open.
+
 Focused Scene Ctrl+A and Select all change selection only. Overview uses current scene NodeKeys;
 native input emits one owning token consumed after widgets and revalidated against SceneFileSession.
 `SelectNativeSceneCandidates` borrows the actual drawing/picking packet during the call, omits hidden
