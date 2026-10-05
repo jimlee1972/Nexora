@@ -34,11 +34,19 @@ public:
   SceneFileResult Save(SceneFileToken token);
   SceneFileResult SaveAs(SceneFileToken token, const std::filesystem::path &relative_path,
                          bool replace_existing = false);
+  // Bootstrap first, before RememberCurrent. Missing settings return NeedsPath; rejected settings
+  // or source files stay protected for this session. Restore never discards a dirty document.
+  SceneFileResult RestoreStartup(SceneFileToken token);
+  // Remembers only a clean, successfully associated scene. This independent metadata commit
+  // does not affect document/history; failure must not turn a successful scene save into failure.
+  SceneFileResult RememberCurrent(SceneFileToken token);
 
 private:
   [[nodiscard]] bool Live(SceneFileToken token) const noexcept;
   [[nodiscard]] std::optional<std::filesystem::path>
   Resolve(const std::filesystem::path &relative_path) const;
+  [[nodiscard]] std::optional<std::filesystem::path> StartupMetadataPath() const;
+  [[nodiscard]] SceneFileResult ReadStartup(std::optional<std::filesystem::path> &relative) const;
   const ProjectWorkspace &workspace_;
   SceneDocument &document_;
   std::filesystem::path root_;
@@ -46,6 +54,7 @@ private:
   std::uint64_t generation_{};
   std::optional<std::filesystem::path> current_;
   bool save_blocked_{};
+  bool startup_checked_{}, startup_blocked_{};
 };
 
 } // namespace nexora::editor

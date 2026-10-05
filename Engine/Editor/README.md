@@ -503,3 +503,15 @@ persistent index and updates only that scene entry after successful import. Inde
 with portable separators; filesystem consumers convert explicitly to native paths. Importing a saved
 source remains separate from committing the scene document; a later import failure does not roll
 back a successful save.
+
+`SceneFileSession::RestoreStartup` bootstraps before `RememberCurrent`, returning `NeedsPath` for
+absent metadata and using normal atomic Open for an associated scene. It never discards a dirty
+document. The bounded 1100-byte binary metadata contains schema, project UUID and a UTF-8 managed
+scene path; reading revalidates canonical scope and rejects metadata directory/file aliases.
+Rejected settings or source loads protect the original record for the session. The caller may
+fall back to Main without replacing it. Recording requires the live token, initialized startup state,
+write access, no recovery journal, and a clean, unblocked associated file. It never records Untitled,
+New or failed scene operations. A record is a separate atomic commit with the same original/temp
+preservation as scene writes; its failure leaves the World, scene save, path and Undo/Redo intact.
+The application warns after an independent recording failure and still permits successful Save and
+Exit. Read-only startup only reads; per-file camera loading follows the restored association.

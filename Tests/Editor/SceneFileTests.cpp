@@ -131,8 +131,108 @@ void RunSavedSceneImport(const std::filesystem::path &content) {
               browser.Undo() && std::filesystem::exists(content / unicode),
           "Unicode content move or Undo lost the native path");
 }
+void RunStartup(const std::filesystem::path &root) {
+  editor::ProjectWorkspace workspace, observer;
+  Require(workspace.Create(root, "Startup scenes") &&
+              observer.Open(root, editor::ProjectAccess::ReadOnly),
+          "Startup workspace failed");
+  const auto metadata = root / ".nexora/scene-session.ini";
+  runtime::World world;
+  const auto id = world.LoadScene("Startup");
+  editor::SceneDocument scene(world, id);
+  editor::SceneFileSession files(workspace, scene);
+  const auto initial = world.SaveScene(id);
+  Require(files.RememberCurrent(files.Token()).status == Status::Rejected &&
+              files.RestoreStartup(files.Token()).status == Status::NeedsPath &&
+              world.SaveScene(id) == initial && !std::filesystem::exists(metadata),
+          "Absent startup settings mutated the document or created a file");
+  const auto entity = scene.CreateCamera("Last opened camera");
+  const auto relative = std::filesystem::path(u8"Content/場景.scene");
+  Require(entity && files.SaveAs(files.Token(), relative).Applied() &&
+              files.RememberCurrent(files.Token()).Applied(),
+          "Startup remember failed");
+  const auto recorded = Read(metadata);
+  const auto saved = world.SaveScene(id);
+  Require(recorded.ends_with("scene=Content/場景.scene\n"), "Startup path was not UTF-8");
+  runtime::World reopened;
+  const auto reopened_id = reopened.LoadScene("Startup");
+  editor::SceneDocument restored(reopened, reopened_id);
+  editor::SceneFileSession reader(observer, restored);
+  Require(reader.RestoreStartup(reader.Token()).Applied() && reader.CurrentPath() == relative &&
+              reopened.SaveScene(reopened_id) == saved && !restored.Dirty() && !restored.Undo() &&
+              reader.RememberCurrent(reader.Token()).status == Status::Rejected &&
+              Read(metadata) == recorded,
+          "Read-only startup failed or changed project state");
+  Require(scene.Rename(*scene.Key(entity), "Uncommitted") &&
+              files.RememberCurrent(files.Token()).status == Status::Rejected &&
+              files.RestoreStartup(files.Token()).status == Status::NeedsUnsavedChoice &&
+              scene.Name(entity) == "Uncommitted" && scene.Dirty() && scene.Undo(),
+          "Startup restoration discarded an unsaved document");
+  const auto old_token = files.Token();
+  Require(files.New(old_token).Applied() && !files.CurrentPath() &&
+              files.RememberCurrent(old_token).status == Status::Rejected &&
+              files.RememberCurrent(files.Token()).status == Status::Rejected &&
+              Read(metadata) == recorded,
+          "New or stale token overwrote the prior startup choice");
+  Require(files.Open(files.Token(), relative, true).Applied(), "Startup reopen failed");
+  auto temporary = metadata;
+  temporary += ".tmp";
+  std::ofstream(temporary, std::ios::binary) << "occupied temporary";
+  Require(files.RememberCurrent(files.Token()).status == Status::Rejected &&
+              Read(metadata) == recorded && Read(temporary) == "occupied temporary" &&
+              !scene.Dirty(),
+          "Failed metadata replacement modified settings or scene state");
+  std::filesystem::remove(temporary);
+  std::ofstream(root / ".nexora/workspace.recovery", std::ios::binary) << "recovery sentinel";
+  Require(files.RememberCurrent(files.Token()).status == Status::Rejected &&
+              Read(metadata) == recorded,
+          "Recovery journal admitted startup metadata writes");
+  std::filesystem::remove(root / ".nexora/workspace.recovery");
+  const auto prefix = "schema=1\nproject=" + workspace.Project().id.ToString() + "\nscene=";
+  const std::array bad = {std::string("schema=2\n"),
+                          prefix + "../Escape.scene\n",
+                          prefix + ".NEXORA/Internal.scene\n",
+                          prefix + "Content/Missing.scene\n",
+                          prefix + "Content/Bad.scene\n",
+                          prefix + std::string(1200, 'x') + "\n",
+                          std::string("schema=1\nproject=foreign\nscene=Content/場景.scene\n")};
+  std::ofstream(root / "Content/Bad.scene", std::ios::binary) << "corrupt scene";
+  for (const auto &text : bad) {
+    std::ofstream(metadata, std::ios::binary) << text;
+    editor::SceneFileSession broken(workspace, scene);
+    const auto generation = scene.Generation();
+    const auto current_world = world.SaveScene(id);
+    Require(broken.RestoreStartup(broken.Token()).status == Status::Rejected &&
+                scene.Generation() == generation && world.SaveScene(id) == current_world &&
+                !broken.CurrentPath() && broken.BindCurrent(relative) &&
+                broken.RememberCurrent(broken.Token()).status == Status::Rejected &&
+                Read(metadata) == text,
+            "Broken startup data was replaced or modified the document");
+  }
+  std::ofstream(metadata, std::ios::binary) << recorded;
+  editor::SceneFileSession healthy(workspace, scene);
+  Require(healthy.RestoreStartup(healthy.Token()).Applied() &&
+              healthy.RememberCurrent(healthy.Token()).Applied(),
+          "Repaired startup data stayed blocked");
+  std::error_code error;
+  std::filesystem::remove(metadata);
+  const auto outside = root.parent_path() / "startup-alias-sentinel";
+  std::ofstream(outside, std::ios::binary) << recorded;
+  std::filesystem::create_symlink(outside, metadata, error);
+  if (!error) {
+    editor::SceneFileSession alias(workspace, scene);
+    Require(alias.RestoreStartup(alias.Token()).status == Status::Rejected &&
+                alias.BindCurrent(relative) &&
+                alias.RememberCurrent(alias.Token()).status == Status::Rejected &&
+                Read(outside) == recorded && std::filesystem::is_symlink(metadata),
+            "Startup metadata followed or removed a file alias");
+    std::filesystem::remove(metadata);
+  }
+  std::filesystem::remove(outside);
+}
 void Run(const std::filesystem::path &root) {
   RunDiscovery();
+  RunStartup(root / std::filesystem::path(u8"啟動專案"));
   RunSavedSceneImport(root / "SingleImport/Content");
   editor::ProjectWorkspace workspace, reader;
   Require(workspace.Create(root, "Scene files") &&
