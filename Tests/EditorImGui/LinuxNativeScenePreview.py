@@ -278,6 +278,60 @@ def axis_handle_pixels(display_name: str, window: int,
         x11.XCloseDisplay(display)
 
 
+def _move_color_pixels(display_name: str, window: int,
+                       viewport: tuple[int, int, int, int]):
+    x11 = ctypes.CDLL("libX11.so.6")
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XGetImage.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                             ctypes.c_uint, ctypes.c_uint, ctypes.c_ulong, ctypes.c_int]
+    x11.XGetImage.restype = ctypes.POINTER(XImage)
+    x11.XGetPixel.argtypes = [ctypes.POINTER(XImage), ctypes.c_int, ctypes.c_int]
+    x11.XGetPixel.restype = ctypes.c_ulong
+    x11.XDestroyImage.argtypes = [ctypes.POINTER(XImage)]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    display = x11.XOpenDisplay(display_name.encode())
+    if not display:
+        raise RuntimeError("Xvfb plane pixel reader could not connect")
+    try:
+        x, y, width, height = viewport
+        image = x11.XGetImage(display, window, x, y, width, height,
+                             ctypes.c_ulong(-1).value, 2)
+        if not image:
+            raise RuntimeError("plane handle pixel readback failed")
+        try:
+            found = [[], [], [], []]
+            for py in range(max(0, height // 2 - 110), min(height, height // 2 + 110)):
+                for px in range(max(0, width // 2 - 110), min(width, width // 2 + 110)):
+                    pixel = x11.XGetPixel(image, px, py)
+                    rgb = [channel(pixel, mask) for mask in
+                           (image.contents.red_mask, image.contents.green_mask,
+                            image.contents.blue_mask)]
+                    for normal in range(3):
+                        a, b = rgb[(normal + 1) % 3], rgb[(normal + 2) % 3]
+                        if min(a, b) > 60 and abs(a - b) < 0.15 * max(a, b) and rgb[normal] < 0.4 * min(a, b):
+                            found[normal].append((x + px, y + py))
+                    # Selected proxy gold remains R > G > B after native sRGB conversion.
+                    # Plane colors have two equal channels; axis colors have two equal low ones.
+                    if rgb[0] > 80 and rgb[0] - rgb[1] > max(3, 0.02 * rgb[0]) and rgb[1] - rgb[2] > 0.1 * rgb[0]:
+                        found[3].append((x + px, y + py))
+            return [pixels[len(pixels) // 2] if pixels else None for pixels in found]
+        finally:
+            x11.XDestroyImage(image)
+    finally:
+        x11.XCloseDisplay(display)
+
+
+def plane_handle_pixels(display_name: str, window: int,
+                        viewport: tuple[int, int, int, int]):
+    return _move_color_pixels(display_name, window, viewport)[:3]
+
+
+def selected_proxy_pixel(display_name: str, window: int,
+                         viewport: tuple[int, int, int, int]):
+    return _move_color_pixels(display_name, window, viewport)[3]
+
+
 def uniform_handle_pixel(display_name: str, window: int,
                          viewport: tuple[int, int, int, int]):
     x11 = ctypes.CDLL("libX11.so.6")
@@ -430,8 +484,10 @@ def main() -> int:
                           f"axis handle {axis} drag did not undo atomically",
                           (display, window, viewport, baseline_move_pixels))
         viewport = settled_viewport(editor.stderr, viewport)
-        center_x = viewport[0] + viewport[2] // 2
-        center_y = viewport[1] + viewport[3] // 2
+        point = selected_proxy_pixel(display, window, viewport)
+        if point is None:
+            raise RuntimeError("selected proxy surface missing before free Move")
+        center_x, center_y = point
         subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                         str(center_x), str(center_y)], env=environment, check=True)
         _, before_drag_pixels = scene_pixels(display, window, viewport)
@@ -495,8 +551,10 @@ def main() -> int:
                       "native proxy drag did not undo before vertical movement",
                           (display, window, viewport, baseline_move_pixels))
         viewport = settled_viewport(editor.stderr, viewport)
-        center_x = viewport[0] + viewport[2] // 2
-        center_y = viewport[1] + viewport[3] // 2
+        point = selected_proxy_pixel(display, window, viewport)
+        if point is None:
+            raise RuntimeError("selected proxy surface missing before Shift free Move")
+        center_x, center_y = point
         subprocess.run([args.xdotool, "mousemove", "--window", str(window),
                         str(center_x), str(center_y)], env=environment, check=True)
         subprocess.run([args.xdotool, "keydown", "Shift_L"], env=environment, check=True)

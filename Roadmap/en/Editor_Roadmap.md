@@ -152,6 +152,12 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Native Move now draws/picks XY/XZ/YZ planes in Global/Local axes and Pivot/Center, capturing a
+  numeric plane basis for shared preview/release math and per-axis world-unit snapping. Shift keeps
+  an explicit plane; Escape cancels. Tests cover invalid rays, shared boxes, mirrored/nonuniform
+  parents, selected descendants, opaque bytes, preview/Redo and one-step Undo. Linux Xvfb moves and
+  saves proxy/OBJ roots through all six planes after Scale/Rotate checks. Full gizmo acceptance stays open.
+
 - ✅ Native Scene X switches Global/Local axes while Scale retains Local; P switches Pivot/Center
   before same-frame click/drag setup. Home navigation, actual hover/focus, modifier/text/modal,
   active/released gesture and read-only guards have real 1x/2x coverage with retained World/Redo.

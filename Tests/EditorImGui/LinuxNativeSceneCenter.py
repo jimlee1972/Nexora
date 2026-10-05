@@ -13,6 +13,7 @@ import tempfile
 import time
 
 from LinuxNativeScenePreview import (XImage, axis_handle_pixels, channel,
+                                    plane_handle_pixels,
                                     scene_region_pixels, settled_viewport, settled_scene_preview,
                                     uniform_handle_pixel, undo_and_save)
 from LinuxDisplayAcceptance import request_window_close, start_xvfb, wait_for_window
@@ -95,7 +96,7 @@ def main():
     scene_file.write_text(
         'NEXORA_EDITOR_SCENE 2\nnode 10 0 Left\nnode 20 0 Right\nworld\n'
         'NEXORA_SCENE 3 "Center scene" 0 2\n'
-        f'10 0 -2 1 0 0 0 0 1 1 1 1 0 0 {int(args.authored_meshes)} 60 0.1 1000 1 {mesh_ids[0]} 0\n'
+        f'10 0 -2 1 0 0 {math.sin(0.15)} 0 {math.cos(0.15)} 1 1 1 0 0 {int(args.authored_meshes)} 60 0.1 1000 1 {mesh_ids[0]} 0\n'
         f'20 0 2 1 0 0 0 0 1 1 1 1 0 0 {int(args.authored_meshes)} 60 0.1 1000 1 {mesh_ids[1]} 0\n')
     xvfb, display = start_xvfb(args.xvfb, "1280x720x24")
     editor = None
@@ -264,6 +265,56 @@ def main():
                 abs(math.hypot(a[0] - b[0], a[2] - b[2]) - 4) > 1e-6):
             raise RuntimeError(f"center rotation did not retain midpoint and separation: {rotated}")
         undo_to(baseline)
+        # Move planes use the same captured Global/Local basis for preview and release.
+        send("key", "w", "x") # Scale left Local enabled; X switches Move to Global.
+        time.sleep(0.2)
+        before = root_poses(baseline)
+        for local in (False, True):
+            if local:
+                send("key", "x")
+                time.sleep(0.2)
+            normals = ((math.cos(0.3), 0, -math.sin(0.3)), (0, 1, 0),
+                       (math.sin(0.3), 0, math.cos(0.3))) if local else ((1, 0, 0), (0, 1, 0), (0, 0, 1))
+            for normal, direction in enumerate(normals):
+                point = plane_handle_pixels(display, window, viewport)[normal]
+                if point is None:
+                    raise RuntimeError(f"Move plane {normal} is not visible (Local={local})")
+                move(point)
+                if normal == 0:
+                    send("keydown", "Shift_L") # Explicit planes override Shift's free-drag Y axis.
+                send("mousedown", 1)
+                time.sleep(0.1)
+                before_preview = scene_region_pixels(display, window, viewport)
+                move((point[0] + 28, point[1] - 20))
+                settled_scene_preview(display, window, viewport, before_preview)
+                if scene_file.read_text() != baseline:
+                    raise RuntimeError("plane Move committed before release")
+                send("mouseup", 1)
+                if normal == 0:
+                    send("keyup", "Shift_L")
+                moved = root_poses(save_changed(baseline))
+                deltas = [tuple(moved[entity][axis] - before[entity][axis] for axis in range(3))
+                          for entity in (10, 20)]
+                if (abs(sum(a * b for a, b in zip(deltas[0], direction))) > 1e-6 or
+                        math.dist(deltas[0], deltas[1]) > 1e-6 or
+                        math.sqrt(sum(value * value for value in deltas[0])) < 0.05 or
+                        any(moved[entity][3:] != before[entity][3:] for entity in (10, 20))):
+                    raise RuntimeError(f"plane Move lost its constraint/root transforms: {local}, {normal}, {moved}")
+                if not local and any(abs(deltas[0][axis]) < 0.01 for axis in range(3) if axis != normal):
+                    raise RuntimeError(f"plane Move collapsed to one axis: {normal}, {deltas}")
+                undo_to(baseline)
+        point = plane_handle_pixels(display, window, viewport)[2]
+        move(point)
+        send("mousedown", 1)
+        before_preview = scene_region_pixels(display, window, viewport)
+        move((point[0] + 28, point[1] - 20))
+        settled_scene_preview(display, window, viewport, before_preview)
+        send("key", "Escape")
+        send("mouseup", 1)
+        send("key", "--delay", "80", "ctrl+s")
+        time.sleep(0.2)
+        if scene_file.read_text() != baseline:
+            raise RuntimeError("Escape committed a plane Move")
         request_window_close(str(window), environment)
         _, stderr = editor.communicate(timeout=15)
         if editor.returncode != 0 or b"scene_draws=" not in stderr:

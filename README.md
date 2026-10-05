@@ -442,6 +442,11 @@ position proxies in that rectangle after UI submission. Proxies now reflect comp
 and scale. Resolved OBJ geometry now uses native mesh batches with exact affine world matrices;
 material shaders and full graphical Scene View acceptance remain open.
 
+✅ Native Move now adds Global/Local XY/XZ/YZ plane handles at Pivot/Center. Shared picking and
+preview/release math preserve selection and constrain and snap both axes; Shift keeps the explicit plane.
+Tests cover mirrored parents, descendants, unknown bytes and Undo/Redo; Linux Xvfb saves proxy/OBJ
+roots through all six planes and verifies Escape cancellation. Full gizmo acceptance remains open.
+
 ✅ Native Scene X now switches Global/Local axes (Scale keeps Local), and P switches Pivot/Center
 before same-frame click/drag setup. Real 1x/2x input verifies Home navigation and focus/modifier/modal/
 gesture guards with retained World/Redo; Linux Xvfb verifies Home/P center gestures on proxy/OBJ roots.
@@ -890,6 +895,11 @@ Docked Scene canvas 現會在 layout 與 DPI 縮放後提供可見的 framebuffe
 Editor 的 3D Preview 切換現會在 UI 提交後於該矩形繪製原生有深度測試的地面與 live entity
 位置代理；代理現會反映合成後的世界旋轉與縮放。解析後的 OBJ 現以原生 mesh batch 與
 精確 affine world matrix 繪製；material shader、完整 3D 編輯與圖形化 Scene View 驗收仍待完成。
+
+✅ Native Move 現增加 Global／Local XY／XZ／YZ 平面把手，使用現有 Pivot／Center。共用命中與
+preview／release 計算，保留 selection 並限制／吸附兩軸；Shift 保持明確選中的平面。測試涵蓋
+鏡像父節點、descendants、unknown bytes 與 Undo／Redo；Linux Xvfb 經六個平面儲存 proxy／OBJ
+roots 並驗證 Escape 取消。完整 gizmo 驗收仍未完成。
 
 ✅ Native Scene 的 X 現可切換 Global／Local axes（Scale 維持 Local），P 切換 Pivot／Center，
 在同幀點擊／拖曳開始前處理。1x／2x 輸入驗證 Home navigation、focus／modifier／modal／gesture
