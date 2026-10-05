@@ -1,0 +1,10 @@
+{
+  "Apps/Showcase/ShowcaseRooms.cpp": "d7bc1c287917e1f622ca4a88af7f8b724fefb720e4bcfa10bcc56c4fca3288d9",
+  "Apps/Showcase/ShowcaseRooms.h": "88c265c112d65e1caf18f0bc81a8774b670e07b1cd19604b716bc9feba2ed27a",
+  "Apps/Showcase/main.cpp": "4da74c2012fb23d397086684768b55bb72cb4df728b4f08945b17a7d4da69c13",
+  "Apps/Showcase/CourtyardAssets.h": "561211624a9369ddd62ab5be4f1c6899e92a16a07fb6b44b1cdbf1b2e7b1b05e",
+  "Apps/Showcase/ShowcasePerformance.cpp": "edd60f27b4ee8dadf5b267868a4b51f19c454790b1dfe3a86e121c9bb467950c",
+  "Apps/Showcase/ShowcasePerformance.h": "cf450f0d0a4abc64c9e6287b3ee05bb85eb50b08f5a476d966f498c169a62e68",
+  "Tools/Build/PrepareCourtyardAssets.py": "8a1ca7a0fb4c6ce5e04b56ee08b682c8985f214a896e9fef24081b77529c56fe",
+  "Tests/Showcase/LinuxCourtyardBenchmark.py": "13385971f2ee45c92aa41146e51cb8cc1ac10f925438a92d3ff55fdf25a614ac"
+}

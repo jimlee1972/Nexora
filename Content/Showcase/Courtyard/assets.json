@@ -1,0 +1,60 @@
+{
+  "schema": "nexora.showcase.courtyard.assets.v1",
+  "assets": [
+    {
+      "file": "KayKit/pillar_decorated.gltf.glb",
+      "author": "Kay Lousberg",
+      "license": "CC0-1.0",
+      "source": "https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/blob/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/pillar_decorated.gltf.glb",
+      "revision": "b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07",
+      "sha256": "eecf7d454a1b6767a113e2490cb1536134abea0b57329a50cf2250d3ed8e2f65",
+      "role": "Four decorated courtyard columns",
+      "modifications": "Original source retained unchanged; deterministic bounded mesh conversion, runtime placement/scale and warm material tint; palette atlas area filtered for native upload",
+      "redistribution": "CC0 permits modification and redistribution; original license included",
+      "purchase_cost": 0,
+      "replacement": "Replace source and pinned conversion together after license/hash and visual review"
+    },
+    {
+      "file": "KayKit/floor_tile_small_broken_A.gltf.glb",
+      "author": "Kay Lousberg",
+      "license": "CC0-1.0",
+      "source": "https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/blob/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/floor_tile_small_broken_A.gltf.glb",
+      "revision": "b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07",
+      "sha256": "d1acc3407f941623b3b01ec9a1751c36a5ca82bb14721fc8f28e5559317edad4",
+      "role": "Courtyard broken paving",
+      "modifications": "Original source retained unchanged; deterministic bounded mesh conversion, runtime placement/scale and warm material tint; palette atlas area filtered for native upload",
+      "redistribution": "CC0 permits modification and redistribution; original license included",
+      "purchase_cost": 0,
+      "replacement": "Replace source and pinned conversion together after license/hash and visual review"
+    },
+    {
+      "file": "KayKit/rubble_large.gltf.glb",
+      "author": "Kay Lousberg",
+      "license": "CC0-1.0",
+      "source": "https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/blob/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/gltf/rubble_large.gltf.glb",
+      "revision": "b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07",
+      "sha256": "0292da1b5788a5a52b616d5d27d3270c676a5fbf9e921b6dd3dc30364d355b54",
+      "role": "Two rear ruin debris groups",
+      "modifications": "Original source retained unchanged; deterministic bounded mesh conversion, runtime placement/scale and warm material tint; palette atlas area filtered for native upload",
+      "redistribution": "CC0 permits modification and redistribution; original license included",
+      "purchase_cost": 0,
+      "replacement": "Replace source and pinned conversion together after license/hash and visual review"
+    },
+    {
+      "file": "KayKit/dungeon_texture.png",
+      "author": "Kay Lousberg",
+      "license": "CC0-1.0",
+      "source": "https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0/blob/b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07/addons/kaykit_dungeon_remastered/Assets/texture/dungeon_texture.png",
+      "revision": "b0ca9bd96a8072ab36a3a5464f00ed1e06a16d07",
+      "sha256": "f9ae182518f908bd09461a56a430b9ca7369812ac10890224cc6f32e7da3e1ee",
+      "role": "Original palette atlas, area-filtered to 64x64 RGBA8 for VIS-M0",
+      "modifications": "Original source retained unchanged; deterministic bounded mesh conversion, runtime placement/scale and warm material tint; palette atlas area filtered for native upload",
+      "redistribution": "CC0 permits modification and redistribution; original license included",
+      "purchase_cost": 0,
+      "replacement": "Replace source and pinned conversion together after license/hash and visual review"
+    }
+  ],
+  "original_content": "Central ring, pedestal, ceramic/vegetation placeholders: Nexora contributors, MIT repository LICENSE",
+  "engineering_vs_final": "Licensed architecture is adopted; final surface-detail PBR maps, hero-device detailing and foliage remain VIS-M1/M3/M4 work",
+  "production_cost": "No purchases; implementation work, no asserted final art-production estimate"
+}

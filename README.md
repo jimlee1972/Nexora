@@ -60,10 +60,12 @@ Windows DX12 local delivery: [acceptance record](Apps/Showcase/evidence/Windows-
 The [V1 Visual Identity Showcase Roadmap](Roadmap/en/V1-Visual-Identity-Roadmap.md)
 records the ✅ user-confirmed art direction and retained concept preview for a stylized ruins courtyard,
 with warm sunlight, cool shadows, turquoise runes, and a [free-model/texture shortlist](Roadmap/art/Free-Asset-Sourcing.md).
-VIS-M0 has begun with a native courtyard engineering greybox, three fixed camera framings (`B`),
-and diagnostic-free screenshot mode (`F4`); `9` opens the courtyard. ✅ [Linux baseline](Apps/Showcase/evidence/VIS-M0-Linux-Greybox-2026-10-05/acceptance.md): 84/84 tests, no skips, native fixed-shot replay and UI restoration. Final free-asset adoption and
-VIS-M0–VIS-M6 acceptance remain pending (0/7); these separate visual milestones do
-not change existing V1 contract progress or final platform acceptance.
+✅ VIS-M0 now adopts three CC0 architectural meshes and their palette texture through Runtime
+import/cook/bundle loading, with sources/licenses packaged, reproducible shots and a three-run
+performance baseline. [Linux acceptance](Apps/Showcase/evidence/VIS-M0-Linux-AdoptedAssets-2026-10-05/acceptance.md):
+87/87 tests without skips and isolated Development package launch. VIS-M1–VIS-M6 remain unaccepted
+(1/7 accepted); software-rasterizer measurements do not establish the GTX 960 budget or final
+V1 platform acceptance.
 
 ### Repository status
 
@@ -506,9 +508,11 @@ Windows DX12 本地交付：[驗收紀錄](Apps/Showcase/evidence/Windows-V1-DX1
 
 [V1 視覺特色 Showcase Roadmap](Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md)
 已記錄 ✅ 使用者確認的美術方向並保存概念預覽：風格化遺跡庭院、暖陽、冷色陰影與青綠符文，
-以及 [免費模型／貼圖候選](Roadmap/art/Free-Asset-Sourcing.md)。VIS-M0 已開始原生庭院工程灰盒、
-三個固定鏡頭（B）與無診斷 UI 截圖模式（F4），以 9 進入。✅ [Linux 基線](Apps/Showcase/evidence/VIS-M0-Linux-Greybox-2026-10-05/acceptance.md)：84/84 無 skip，原生固定鏡頭重播與 UI 還原通過；正式免費素材採用及
-VIS-M0～VIS-M6 驗收仍待完成（0/7）；獨立視覺里程碑不改變既有 V1 contract 進度或最終平台驗收狀態。
+以及 [免費模型／貼圖候選](Roadmap/art/Free-Asset-Sourcing.md)。✅ VIS-M0 已採用三個 CC0 建築網格與 palette
+貼圖，完成 Runtime 匯入／cook／bundle 載入、隨包來源／授權、可重現鏡頭及三次效能基線。
+[Linux 驗收](Apps/Showcase/evidence/VIS-M0-Linux-AdoptedAssets-2026-10-05/acceptance.md)：
+87/87 無 skip 與隔離 Development 套件啟動通過。VIS-M1～VIS-M6 尚未驗收（1/7 通過）；
+軟體渲染測量不代表 GTX 960 達標或 V1 最終平台驗收完成。
 
 ### Repository 狀態
 

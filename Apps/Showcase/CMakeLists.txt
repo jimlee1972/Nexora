@@ -11,6 +11,7 @@ nexora_apply_defaults(NexoraShowcaseProbes)
 add_executable(NexoraShowcase
   main.cpp
   ShowcaseRooms.cpp
+  ShowcasePerformance.cpp
   "${NEXORA_ZIG_SAMPLE_OBJECT}")
 add_dependencies(NexoraShowcase NexoraZigGameplayBuild)
 target_link_libraries(NexoraShowcase PRIVATE
@@ -192,6 +193,15 @@ if(BUILD_TESTING)
       "${CMAKE_SOURCE_DIR}/Engine/Presentation/shaders/GenerateShaders.py"
       --compiler "${NEXORA_SHOWCASE_GLSLANG}" --check)
   endif()
+  add_test(NAME showcase.courtyard_asset_generation COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_SOURCE_DIR}/Tools/Build/PrepareCourtyardAssets.py" --check)
+  add_test(NAME showcase.courtyard_asset_conversion COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_SOURCE_DIR}/Tests/Showcase/CourtyardAssetTests.py")
+  add_executable(NexoraShowcasePerformanceTests "${CMAKE_SOURCE_DIR}/Tests/Showcase/ShowcasePerformanceTests.cpp"
+    ShowcasePerformance.cpp)
+  target_include_directories(NexoraShowcasePerformanceTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+  nexora_apply_defaults(NexoraShowcasePerformanceTests)
+  add_test(NAME showcase.performance_statistics COMMAND NexoraShowcasePerformanceTests)
   add_test(
     NAME showcase.v1_probe
     COMMAND NexoraShowcaseProbeTests)

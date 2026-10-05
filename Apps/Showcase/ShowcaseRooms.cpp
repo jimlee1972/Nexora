@@ -1,4 +1,5 @@
 #include "ShowcaseRooms.h"
+#include "CourtyardAssets.h"
 #include "Nexora/Foundation/BuildInfo.h"
 #include "Nexora/Math/Math.h"
 #include "Nexora/Renderer/SceneFrame.h"
@@ -47,6 +48,41 @@ std::string Escape(std::string_view value) {
   }
   return out;
 }
+#if NEXORA_ASSET_PIPELINE_ENABLED
+renderer::Mesh ReadShowcaseMesh(std::span<const std::byte> payload) {
+  if (payload.empty() || payload.size() > 4 * 1024 * 1024)
+    throw std::runtime_error("Showcase mesh payload exceeds the bounded content contract");
+  const std::string text(reinterpret_cast<const char *>(payload.data()), payload.size());
+  std::istringstream reader(text);
+  std::string schema;
+  std::size_t vertexCount{}, indexCount{};
+  if (!(reader >> schema >> vertexCount >> indexCount) || schema != "nexora.showcase.mesh.v1" ||
+      vertexCount == 0 || indexCount == 0 || vertexCount > 65535 || indexCount > 1048576 ||
+      indexCount % 3 != 0)
+    throw std::runtime_error("Unsupported Showcase mesh schema");
+  renderer::Mesh mesh;
+  mesh.vertices.resize(vertexCount);
+  mesh.indices.resize(indexCount);
+  for (auto &vertex : mesh.vertices) {
+    for (auto &value : vertex.position)
+      if (!(reader >> value) || !std::isfinite(value))
+        throw std::runtime_error("Invalid cooked Showcase position");
+    for (auto &value : vertex.normal)
+      if (!(reader >> value) || !std::isfinite(value))
+        throw std::runtime_error("Invalid cooked Showcase normal");
+    for (auto &value : vertex.uv)
+      if (!(reader >> value) || !std::isfinite(value))
+        throw std::runtime_error("Invalid cooked Showcase UV");
+  }
+  for (auto &index : mesh.indices)
+    if (!(reader >> index) || index >= vertexCount)
+      throw std::runtime_error("Invalid cooked Showcase index");
+  reader >> std::ws;
+  if (!reader.eof())
+    throw std::runtime_error("Unexpected cooked Showcase mesh suffix");
+  return mesh;
+}
+#endif
 // Original compact 5x7 glyphs; authored here, no external font or redistributable asset required.
 constexpr std::string_view characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.:/()_=+!? ";
 constexpr std::array<std::array<std::uint8_t, 7>, 48> glyphs{
@@ -114,6 +150,10 @@ struct RoomSession::State final {
   AssetGenerationStore assets;
   std::string assetHash;
   renderer::Mesh assetMesh;
+  AssetGenerationStore courtyardAssets;
+  std::array<renderer::Mesh, 3> courtyardMeshes;
+  std::array<std::byte, 64 * 64 * 4> courtyardAtlas{};
+  std::array<std::string, 4> courtyardHashes;
   bool assetRejected{}, cycleRejected{}, rolledBack{};
 #endif
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
@@ -255,28 +295,56 @@ struct RoomSession::State final {
     const auto *loadedAsset = assets.Load(source.id);
     if (!loadedAsset)
       throw std::runtime_error("Showcase asset load failed");
-    const std::string loadedText(reinterpret_cast<const char *>(loadedAsset->payload.data()),
-                                 loadedAsset->payload.size());
-    std::istringstream reader(loadedText);
-    std::string schema;
-    std::size_t vertexCount{}, indexCount{};
-    if (!(reader >> schema >> vertexCount >> indexCount) || schema != "nexora.showcase.mesh.v1" ||
-        vertexCount > 65535 || indexCount > 1048576)
-      throw std::runtime_error("Unsupported Showcase mesh schema");
-    assetMesh.vertices.resize(vertexCount);
-    assetMesh.indices.resize(indexCount);
-    for (auto &vertex : assetMesh.vertices) {
-      for (auto &value : vertex.position)
-        reader >> value;
-      for (auto &value : vertex.normal)
-        reader >> value;
-      for (auto &value : vertex.uv)
-        reader >> value;
+    assetMesh = ReadShowcaseMesh(loadedAsset->payload);
+    importer.Register(".rgba", [](const SourceAsset &source) -> std::optional<CanonicalAsset> {
+      if (source.bytes.size() != 64 * 64 * 4)
+        return {};
+      return CanonicalAsset{source.id, source.type, {}, source.bytes};
+    });
+    std::vector<RuntimeBlob> courtyardBlobs;
+    for (std::size_t i = 0; i < courtyard_content::meshes.size(); ++i) {
+      std::string meshSource;
+      for (const auto row : courtyard_content::meshes[i])
+        meshSource += row;
+      const auto meshBytes = std::as_bytes(std::span{meshSource.data(), meshSource.size()});
+      const SourceAsset adopted{{0x4e58, 100 + i},
+                                "kaykit-courtyard-mesh-v1",
+                                "courtyard.showcase",
+                                ByteBuffer{meshBytes.begin(), meshBytes.end()}};
+      const auto imported = importer.Import(adopted);
+      const auto blob = imported ? AssetCooker{}.Cook(*imported, "portable", "courtyard-v1", cache)
+                                 : std::nullopt;
+      if (!blob)
+        throw std::runtime_error("Courtyard adopted mesh cook failed");
+      courtyardHashes[i] = blob->content_hash;
+      courtyardBlobs.push_back(*blob);
     }
-    for (auto &index : assetMesh.indices)
-      reader >> index;
-    if (!reader)
-      throw std::runtime_error("Invalid cooked Showcase mesh");
+    const auto atlasBytes = std::as_bytes(std::span{courtyard_content::atlas});
+    const auto importedAtlas = importer.Import({{0x4e58, 103},
+                                                "kaykit-gradient-rgba8-v1",
+                                                "atlas.rgba",
+                                                ByteBuffer{atlasBytes.begin(), atlasBytes.end()}});
+    const auto atlasBlob =
+        importedAtlas ? AssetCooker{}.Cook(*importedAtlas, "portable", "courtyard-v1", cache)
+                      : std::nullopt;
+    if (!atlasBlob)
+      throw std::runtime_error("Courtyard atlas cook failed");
+    courtyardHashes[3] = atlasBlob->content_hash;
+    courtyardBlobs.push_back(*atlasBlob);
+    const auto adoptedBundle = BundleBuilder::Build("courtyard", 1, {}, courtyardBlobs);
+    if (!adoptedBundle || !courtyardAssets.Stage({*adoptedBundle}) ||
+        !courtyardAssets.ActivateStaged())
+      throw std::runtime_error("Courtyard bundle activation failed");
+    for (std::size_t i = 0; i < courtyardMeshes.size(); ++i) {
+      const auto *loaded = courtyardAssets.Load({0x4e58, 100 + i});
+      if (!loaded)
+        throw std::runtime_error("Courtyard adopted mesh load failed");
+      courtyardMeshes[i] = ReadShowcaseMesh(loaded->payload);
+    }
+    const auto *loadedAtlas = courtyardAssets.Load({0x4e58, 103});
+    if (!loadedAtlas || loadedAtlas->payload.size() != courtyardAtlas.size())
+      throw std::runtime_error("Courtyard adopted atlas load failed");
+    std::copy(loadedAtlas->payload.begin(), loadedAtlas->payload.end(), courtyardAtlas.begin());
     assetRejected = !importer.Import({source.id, source.type, source.source_path, {}});
     cycleRejected =
         !BundleBuilder::ValidateDependencyDag({{"a", 1, {"b"}, {}}, {"b", 1, {"a"}, {}}});
@@ -381,6 +449,25 @@ struct RoomSession::State final {
     pitch = pitches[courtyardShot];
     radius = radii[courtyardShot];
   }
+#if NEXORA_ASSET_PIPELINE_ENABLED
+  void AdoptedMesh(std::size_t meshIndex, math::Vector3 position, math::Vector3 scale) {
+    const auto &mesh = courtyardMeshes.at(meshIndex);
+    if (vertices.size() + mesh.vertices.size() > 65535)
+      throw std::runtime_error("Courtyard geometry exceeds the native vertex budget");
+    const auto base = static_cast<std::uint16_t>(vertices.size());
+    for (const auto &v : mesh.vertices) {
+      const auto normal = math::NormalizeSafe(
+          math::Vector3{v.normal[0] / scale.x, v.normal[1] / scale.y, v.normal[2] / scale.z});
+      vertices.push_back(
+          {{position.x + v.position[0] * scale.x, position.y + v.position[1] * scale.y,
+            position.z + v.position[2] * scale.z},
+           {normal.x, normal.y, normal.z},
+           {v.uv[0], v.uv[1]}});
+    }
+    for (const auto index : mesh.indices)
+      indices.push_back(static_cast<std::uint16_t>(base + index));
+  }
+#endif
   // Engineering blockout only: no PBR, shadows, emission or wind acceptance is implied.
   void CourtyardGeometry() {
     Cube(0, 0.12F, 0, 1.7F, 0.12F, 1.7F);
@@ -397,13 +484,25 @@ struct RoomSession::State final {
     for (int z = -4; z <= 4; ++z)
       for (int x = -4; x <= 4; ++x)
         if (std::abs(x) > 1 || std::abs(z) > 1)
+#if NEXORA_ASSET_PIPELINE_ENABLED
+          AdoptedMesh(1, {x * 1.2F, 0.06F, z * 1.2F}, {0.55F, 1, 0.55F});
+#else
           Cube(x * 1.2F, 0.035F, z * 1.2F, 0.55F, 0.035F, 0.55F);
+#endif
     for (const float x : {-4.5F, 4.5F})
       for (const float z : {-4.0F, 1.5F}) {
+#if NEXORA_ASSET_PIPELINE_ENABLED
+        AdoptedMesh(0, {x, 0, z}, {0.6F, 0.8F, 0.6F});
+#else
         Cube(x, 0.2F, z, 0.7F, 0.2F, 0.7F);
         Cube(x, 1.65F, z, 0.4F, 1.25F, 0.4F);
         Cube(x, 3.1F, z, 0.65F, 0.2F, 0.65F);
+#endif
       }
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    AdoptedMesh(2, {-3.8F, 0, -2.5F}, {0.22F, 0.22F, 0.22F});
+    AdoptedMesh(2, {3.8F, 0, -2.5F}, {0.22F, 0.22F, 0.22F});
+#endif
     // Broken rear arch and low side walls keep the focal device visible.
     Cube(-2.8F, 2.95F, -4, 1.7F, 0.3F, 0.45F);
     Cube(3.8F, 2.95F, -4, 0.7F, 0.3F, 0.45F);
@@ -656,7 +755,8 @@ struct RoomSession::State final {
         const auto &normal = normals[face];
         vertices.push_back({{x + point[0] * sx, y + point[1] * sy, z + point[2] * sz},
                             {normal[0], normal[1], normal[2]},
-                            {uv[corner][0], uv[corner][1]}});
+                            {selected == "courtyard" ? 0.1875F : uv[corner][0],
+                             selected == "courtyard" ? 0.10F : uv[corner][1]}});
       }
       for (const auto index : {0, 1, 2, 2, 3, 0})
         indices.push_back(static_cast<std::uint16_t>(offset + index));
@@ -944,6 +1044,7 @@ RoomSession::RoomSession(std::string scene, bool tour, bool minimal, std::string
   state_->SelectRoom(scene);
 }
 RoomSession::~RoomSession() = default;
+void RoomSession::SetScreenshotMode(bool enabled) { state_->screenshotMode = enabled; }
 void RoomSession::Select(std::string_view room) { state_->SelectRoom(room); }
 std::string_view RoomSession::Selected() const { return state_->selected; }
 void RoomSession::ReplayTour() {
@@ -1381,6 +1482,11 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   data.base_color[1] = 0.65F;
   data.base_color[2] = 0.9F;
   if (s.selected == "courtyard") {
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    s.sceneUploads.push_back({2, 64, 64, 256, s.courtyardAtlas});
+    data.textureId = 2;
+    data.textureUploads = s.sceneUploads;
+#endif
     data.base_color[0] = 0.72F;
     data.base_color[1] = 0.57F;
     data.base_color[2] = 0.38F;
@@ -1531,6 +1637,9 @@ std::string RoomSession::Report() const {
 #if NEXORA_ASSET_PIPELINE_ENABLED
       << ",\"representative_asset_loaded\":" << !s.assetMesh.vertices.empty()
       << ",\"asset_hash\":\"" << s.assetHash << "\""
+      << ",\"adopted_mesh_count\":3,\"adopted_texture_count\":1,\"adopted_hashes\":[\""
+      << s.courtyardHashes[0] << "\",\"" << s.courtyardHashes[1] << "\",\"" << s.courtyardHashes[2]
+      << "\",\"" << s.courtyardHashes[3] << "\"]"
 #else
       << ",\"representative_asset_loaded\":false"
 #endif

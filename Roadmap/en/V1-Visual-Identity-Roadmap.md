@@ -4,7 +4,7 @@
 >
 > Date: 2026-10-04
 >
-> Status: VIS-M0 engineering greybox in progress; VIS-M0 through VIS-M6 remain unaccepted (0/7).
+> Status: ✅ VIS-M0 baseline accepted; VIS-M1 through VIS-M6 remain unaccepted (1/7).
 >
 > Theme: a stylized ruins courtyard.
 >
@@ -64,15 +64,15 @@ VIS-M0 records asset authors, sources, licenses, redistribution conditions, and 
 
 The preview was created with the image-generation tool and is a visual target, not a rendered Nexora scene, production model, texture map, or performance result. The original PNG is retained unchanged; SHA-256: `ad4cd12a0331e9c30b4a2e54d2773ee0718a63bdf2791a65743f38e1bd7a9b3b`.
 
-The user also requested free online models and textures. Prioritize freely downloadable assets with redistribution permission, preferably CC0; avoid paid packs. See the bilingual [free-asset shortlist and source checks](../art/Free-Asset-Sourcing.md). Art-direction confirmation alone does not complete VIS-M0: asset inventory, greybox, pipeline loading, fixed shots, and baseline capture remain open.
+The user also requested free online models and textures. Prioritize freely downloadable assets with redistribution permission, preferably CC0; avoid paid packs. See the bilingual [free-asset shortlist and source checks](../art/Free-Asset-Sourcing.md). Art-direction confirmation alone did not complete VIS-M0; adopted-asset and baseline acceptance is now recorded in section 11.
 
 ## 4. Milestones
 
-VIS-M0 is in progress; the remaining milestones are planned. Mark milestones complete only after their acceptance gates pass and evidence is retained.
+✅ VIS-M0 is accepted within its baseline scope; the remaining milestones are planned. Mark milestones complete only after their acceptance gates pass and evidence is retained.
 
 | ID | Work | Visible outcome | Acceptance |
 | --- | --- | --- | --- |
-| VIS-M0 | Art direction, asset inventory, greybox, fixed shots, initial performance capture | Complete composition and tour route | Three shots work; a representative asset loads through Import → Cook → Bundle → Runtime; retain baseline screenshots |
+| ✅ VIS-M0 | Art direction, asset inventory, greybox, fixed shots, initial performance capture | Complete composition and tour route | Three shots work; a representative asset loads through Import → Cook → Bundle → Runtime; retain baseline screenshots |
 | VIS-M1 | Shared PBR shader integration, multiple materials, normal/ORM/emission, tangents, IBL, linear color, HDR output | Material close-up | Materials differ under identical light; orbit preserves correct normals/reflections; missing-map fallbacks work; no duplicate gamma conversion |
 | VIS-M2 | Directional shadow map, PCF, bias controls, stylized tonal separation and shadow tint | Lighting wide shot | Moving objects update shadows; the fixed route has no obvious flicker, shadow acne, or floating shadows; retain lighting comparisons |
 | VIS-M3 | Central ruins, ground and surrounding content; exposure, tone mapping, color, restrained bloom | First finished hero image | Composition survives hidden UI; close shots have detail and wide shots a clear subject; target-hardware screenshots pass visual review |
@@ -163,3 +163,15 @@ Material/motion shot names describe intended future demonstrations, not delivere
 
 ✅ First-slice Linux validation: 84/84 Development tests with no skips; native fixed-shot replay,
 UI hiding/restoration and representative asset loading verified. [Baseline evidence](../../Apps/Showcase/evidence/VIS-M0-Linux-Greybox-2026-10-05/acceptance.md).
+
+## 11. VIS-M0 accepted baseline (2026-10-05)
+
+✅ Three CC0 KayKit architectural meshes and the palette atlas are adopted through the Runtime
+asset generation, with original source/license/hash/replacement inventory retained and packaged.
+Three native fixed shots, exact replay and diagnostic-free startup are verified. Performance
+reports expose warm-up, average FPS, P95/P99, process CPU time and peak resident bytes; GPU timestamps
+remain unavailable. Three idle-host lavapipe runs provide an initial software baseline, not a
+GTX 960 performance promise. Full Linux Development passes 87/87 without skips; isolated
+Development packaging passes. [Evidence](../../Apps/Showcase/evidence/VIS-M0-Linux-AdoptedAssets-2026-10-05/acceptance.md).
+
+VIS-M0 acceptance does not accept final materials/art, VIS-M1–M6 or target-hardware visuals.

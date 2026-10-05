@@ -4,7 +4,7 @@
 >
 > 日期：2026-10-04
 >
-> 狀態：VIS-M0 工程灰盒施工中；VIS-M0～VIS-M6 尚未驗收（0/7）。
+> 狀態：✅ VIS-M0 基線已驗收；VIS-M1～VIS-M6 尚未驗收（1/7）。
 >
 > 主題：風格化遺跡庭院。
 >
@@ -64,15 +64,15 @@
 
 預覽使用圖片生成工具製作，是視覺目標，並非 Nexora 渲染畫面、正式模型、貼圖或效能結果。原始 PNG 完整保存，SHA-256：`ad4cd12a0331e9c30b4a2e54d2773ee0718a63bdf2791a65743f38e1bd7a9b3b`。
 
-使用者另要求先從網路尋找免費模型與貼圖。優先使用可免費下載且允許再散布的素材，以 CC0 為首選，不採購付費素材包。具體候選與來源查核見雙語 [免費素材清單](../art/Free-Asset-Sourcing.md)。確認美術方向不代表 VIS-M0 已完成：資產盤點、灰盒、流程載入、固定鏡頭與基線截圖仍待交付。
+使用者另要求先從網路尋找免費模型與貼圖。優先使用可免費下載且允許再散布的素材，以 CC0 為首選，不採購付費素材包。具體候選與來源查核見雙語 [免費素材清單](../art/Free-Asset-Sourcing.md)。美術方向確認當時並不代表 VIS-M0 完成；目前素材採用與基線驗收見第 11 節。
 
 ## 4. 里程碑
 
-VIS-M0 施工中，其餘里程碑為「規劃中」。通過各自驗收且保留證據後，才標記完成。
+✅ VIS-M0 已通過基線範圍驗收，其餘里程碑為「規劃中」。通過各自驗收且保留證據後，才標記完成。
 
 | ID | 工作內容 | 可見成果 | 驗收條件 |
 | --- | --- | --- | --- |
-| VIS-M0 | 視覺定稿、資產盤點、灰盒、固定鏡頭與初始效能取樣 | 完整構圖與展示路線 | 三個鏡頭成立；代表性資產能經 Import → Cook → Bundle → Runtime 載入；保存基線截圖 |
+| ✅ VIS-M0 | 視覺定稿、資產盤點、灰盒、固定鏡頭與初始效能取樣 | 完整構圖與展示路線 | 三個鏡頭成立；代表性資產能經 Import → Cook → Bundle → Runtime 載入；保存基線截圖 |
 | VIS-M1 | 共享 PBR shader 整合、多材質、normal／ORM／emission、切線資料、IBL、線性色彩與 HDR 輸出 | 材質近景 | 相同光照下材質差異清楚；鏡頭繞行時反射與法線正確；缺圖 fallback 可用；無重複 gamma 轉換 |
 | VIS-M2 | 方向光 shadow map、PCF、偏移控制、風格化明暗與陰影色調 | 光影全景 | 移動物件投影更新；固定路線無明顯閃爍、陰影痤瘡或懸浮；保存光照比較畫面 |
 | VIS-M3 | 中央遺跡、地面與周邊內容；曝光、tone mapping、色彩與適量 bloom | 第一個完整主視覺 | 隱藏 UI 後構圖完整；近看有細節、遠看有主體；目標硬體截圖人工檢視通過 |
@@ -161,3 +161,14 @@ Offscreen → Main → UI → Present 排程。水晶占位沿用目前 active c
 
 ✅ 首切片 Linux 驗證：Development 84/84 無 skip；原生固定鏡頭重播、UI 隱藏／还原及
 代表性資產載入已驗證。[基線證據](../../Apps/Showcase/evidence/VIS-M0-Linux-Greybox-2026-10-05/acceptance.md)。
+
+## 11. VIS-M0 基線驗收（2026-10-05）
+
+✅ 三個 CC0 KayKit 建築網格與 palette atlas 已透過 Runtime asset generation 正式採用，
+原始來源／授權／hash／替換方案 inventory 隨套件保存。三個原生固定鏡頭、像素精確重播
+與無診斷 UI 啟動已驗證。效能報告具暖機、平均 FPS、P95／P99、程序 CPU 時間及 peak
+resident bytes；GPU timestamp 尚無。三次無其他測試干擾的 lavapipe 執行提供軟體基線，
+不承諾 GTX 960 效能。Linux Development 87/87 無 skip，Development 套件隔離啟動通過。
+[證據](../../Apps/Showcase/evidence/VIS-M0-Linux-AdoptedAssets-2026-10-05/acceptance.md)。
+
+VIS-M0 驗收不代表最終材質／美術、VIS-M1～M6 或目標硬體畫面已驗收。
