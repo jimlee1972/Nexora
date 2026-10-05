@@ -377,6 +377,7 @@ public:
           [encoder setFragmentBytes:&constants length:sizeof(constants) atIndex:0];
           const auto parameters = PackPbrMaterial(drawData, material, true);
           [encoder setFragmentBytes:parameters.data() length:sizeof(parameters) atIndex:1];
+          [encoder setVertexBytes:parameters.data() length:sizeof(parameters) atIndex:1];
           const std::array ids{material.textureId ? material.textureId : UINT64_MAX,
                                material.normalTextureId ? material.normalTextureId : UINT64_MAX - 1,
                                material.ormTextureId ? material.ormTextureId : UINT64_MAX,
@@ -717,7 +718,14 @@ private:
         static_cast<std::uint32_t>(std::max<std::size_t>(draw.instances.size(), 1)), 0};
     const auto batches =
         draw.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : draw.batches;
-    for (const auto &batch : batches)
+    for (const auto &batch : batches) {
+      const auto material = ResolveSceneMaterial(draw, batch.materialIndex);
+      const auto parameters = PackPbrMaterial(draw, material, true);
+      [encoder setVertexBytes:parameters.data() length:sizeof(parameters) atIndex:1];
+      [encoder setFragmentBytes:parameters.data() length:sizeof(parameters) atIndex:1];
+      const auto id = material.textureId ? material.textureId : UINT64_MAX;
+      [encoder setFragmentTexture:sceneSrgbTextures_.at(id) atIndex:0];
+      [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
       [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                           indexCount:batch.indexCount
                            indexType:MTLIndexTypeUInt16
@@ -727,6 +735,7 @@ private:
                        instanceCount:batch.instanceCount
                           baseVertex:0
                         baseInstance:batch.firstInstance];
+    }
     [encoder endEncoding];
     ++diagnostics_.sceneShadowPasses;
     diagnostics_.sceneShadowInstances += std::max<std::size_t>(draw.instances.size(), 1);

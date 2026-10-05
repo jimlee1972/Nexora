@@ -1657,15 +1657,20 @@ private:
     std::array<float, 28> constants{};
     std::copy(data.shadow->lightViewProjection.begin(), data.shadow->lightViewProjection.end(),
               constants.begin());
-    vkCmdPushConstants(frame.commands, scenePipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
+    vkCmdPushConstants(frame.commands, scenePbrPipelineLayout_,
+                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                        sizeof(constants), constants.data());
     const SceneMeshBatch whole{0, static_cast<std::uint32_t>(data.indices.size()), 0,
                                static_cast<std::uint32_t>(instances.size()), 0};
     const auto batches =
         data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
-    for (const auto &batch : batches)
+    for (const auto &batch : batches) {
+      vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              scenePbrPipelineLayout_, 0, 1,
+                              &frame.pbrDescriptors[batch.materialIndex], 0, nullptr);
       vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
                        batch.firstInstance);
+    }
     vkCmdEndRenderPass(frame.commands);
     barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -1898,8 +1903,8 @@ private:
     for (std::uint32_t map = 0; map < 4; ++map)
       materialBindings[map] = {map, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                                VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
-    materialBindings[4] = {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
-                           nullptr};
+    materialBindings[4] = {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+                           VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
     for (std::uint32_t map = 5; map < 9; ++map)
       materialBindings[map] = {map, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                                VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
@@ -1957,7 +1962,7 @@ private:
           {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
            VK_SHADER_STAGE_FRAGMENT_BIT, shadowFragment, "main", nullptr}};
       pipeline.pStages = shadowStages;
-      pipeline.layout = scenePipelineLayout_;
+      pipeline.layout = scenePbrPipelineLayout_;
       pipeline.renderPass = shadowRenderPass_;
       const auto shadowResult = vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline,
                                                           nullptr, &shadowPipeline_);

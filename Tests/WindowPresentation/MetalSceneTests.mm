@@ -5,6 +5,7 @@
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
 #include "PbrShadowFixtures.h"
+#include "PbrVegetationFixtures.h"
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 
@@ -490,6 +491,43 @@ int main(int argc, char **argv) {
         return fail(__LINE__);
     }
     // Depth must select the bright near triangle regardless of index order.
+    std::uint64_t windReference{}, windMoved{};
+    for (unsigned mode = 0; mode < 8; ++mode) {
+      PbrVegetationFixtures::Fixture fixture(mode);
+      auto vegetationDraw = fixture.Draw(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(vegetationDraw), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != 640 * 360 * 4)
+        return fail(__LINE__);
+      const auto read = [&](unsigned x, unsigned y) {
+        const auto offset = (y * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[offset + 2]),
+                                       std::to_integer<unsigned>(pixels[offset + 1]),
+                                       std::to_integer<unsigned>(pixels[offset])};
+      };
+      if (!PbrVegetationFixtures::Pixels(mode, read(160, 180), read(320, 180)))
+        return fail(__LINE__);
+      std::uint64_t region = 14695981039346656037ULL;
+      for (unsigned y = 108; y < 252; ++y)
+        for (unsigned x = 192; x < 448; ++x)
+          for (const auto channel : read(x, y)) {
+            region ^= channel;
+            region *= 1099511628211ULL;
+          }
+      if (mode == 3)
+        windReference = region;
+      if (mode == 4) {
+        windMoved = region;
+        if (windMoved == windReference)
+          return fail(__LINE__);
+      }
+      if (mode == 5 && (region != windReference || region == windMoved))
+        return fail(__LINE__);
+    }
     std::array<SceneVertex, 6> layered{};
     for (std::size_t i = 0; i < 3; ++i) {
       layered[i] = vertices[i];

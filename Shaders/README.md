@@ -66,3 +66,8 @@ No PBR math is maintained in backend-specific handwritten shader strings.
 Native tone entries own the bounded neighbor sampling and call shared extraction/addition, ACES,
 color grade and display transfer. Backend adapters only bind the same 32-byte scalar packet;
 no bloom or grading math is duplicated in native source strings.
+
+Native PBR vertex/shadow entries call shared `NexoraEvaluateVegetationWind`, and both color/shadow
+fragments use `NexoraEvaluateVegetationAlpha` with the same texture and cutoff. Thin-leaf back lighting
+uses `NexoraEvaluateVegetationTransmission` in linear HDR. Adapter code binds the shared 240-byte
+packet and base texture; it maintains no backend-specific wind/cutout/transmission math.
