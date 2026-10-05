@@ -71,6 +71,11 @@ retain the view. Modal/focus/text/drag gates apply; native Linux pixel restorati
 real 1x/2x tests verify the workflow. The X/Z target persists with the
 overview camera; target height, orbit angle, and distance persist in a separate per-scene camera file on
 writable shutdown. Invalid camera files are preserved for inspection.
+Select (Q) removes all transform handles from native drawing and picking and suppresses transform
+preview/commit requests, while ordinary and Ctrl-toggle entity picking remain available. W/E/R return
+to Move/Rotate/Scale. Tool keys require focused Scene/canvas input and respect text/modal/focus and
+active/pending-drag guards; keyboard navigation after Home does not mask the actual canvas hover.
+Read-only picking works. Real 1x/2x input and native proxy/OBJ saved-byte tests cover this path.
 Left click selects the nearest visible position proxy using a viewport ray against its drawn
 box; Ctrl-click toggles it, and an empty click clears selection. Hierarchy and Inspector share
 that selection. Resolved authored meshes use transformed local bounds followed by two-sided triangle

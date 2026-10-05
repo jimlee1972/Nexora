@@ -152,6 +152,13 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Native Scene Select (Q) keeps ordinary/Ctrl picking while hiding transform handles and
+  suppressing drag previews/commits. W/E/R restore Move/Rotate/Scale. Real 1x/2x input tests cover
+  same-frame Q/click, toolbar parity, Home navigation, active/pending drag gates, read-only,
+  panel/focus/modal/text guards and retained Redo. Linux Xvfb verifies proxy/OBJ picking, hidden
+  handles and unchanged saved bytes after Select drags before returning to transform tools.
+  Complete Scene View and target-hardware acceptance remain open.
+
 - ✅ Scene Home and Frame all navigate without changing selection, World,
   dirty state or history. An owning token applies once using actual 3,999-bounded native submission
   candidates, upload/proxy fallback, exact affine mesh/proxy bounds and

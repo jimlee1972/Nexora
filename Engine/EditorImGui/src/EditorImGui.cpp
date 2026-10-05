@@ -140,6 +140,7 @@ struct EditorImGuiHost::State final {
   std::optional<Nexora::Presentation::SceneViewport> scene_canvas_viewport;
   std::optional<std::array<float, 2>> scene_frame_position;
   std::optional<std::array<float, 2>> scene_frame_all_position;
+  std::array<std::optional<std::array<float, 2>>, 4> native_scene_tool_positions;
   std::optional<SceneFileToken> scene_frame_token;
   std::optional<SceneFileToken> native_scene_frame_all_request, native_scene_frame_all_apply;
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
@@ -3297,6 +3298,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->scene_canvas_viewport.reset();
   state_->scene_frame_position.reset();
   state_->scene_frame_all_position.reset();
+  state_->native_scene_tool_positions = {};
   state_->scene_frame_token.reset();
   state_->native_scene_frame_all_request.reset();
   state_->native_scene_frame_all_apply.reset();
@@ -3733,7 +3735,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::EndDisabled();
         ImGui::SameLine();
         ImGui::TextDisabled("F: selected | Home: all | Right: orbit | Wheel: zoom");
-        if (state_->native_scene_tool == NativeSceneTool::Rotate)
+        if (state_->native_scene_tool == NativeSceneTool::Select)
+          ImGui::TextDisabled(
+              "Click: select | Ctrl+click: toggle | W: move | E: rotate | R: scale");
+        else if (state_->native_scene_tool == NativeSceneTool::Rotate)
           ImGui::TextDisabled(
               "Drag colored rings: rotate | Shift: 15 deg snap | W: move | R: scale");
         else if (state_->native_scene_tool == NativeSceneTool::Scale)
@@ -3742,16 +3747,22 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         else
           ImGui::TextDisabled("Left drag: move X/Z | Shift+drag: move Y | E: rotate | R: scale");
         ImGui::TextDisabled("Middle: pan X/Z | Shift+middle: pan Y | Delete: selected");
-        ImGui::BeginDisabled(state_->native_scene_drag_origin.has_value());
-        if (ImGui::RadioButton("Move", state_->native_scene_tool == NativeSceneTool::Move))
-          state_->native_scene_tool = NativeSceneTool::Move;
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Rotate", state_->native_scene_tool == NativeSceneTool::Rotate))
-          state_->native_scene_tool = NativeSceneTool::Rotate;
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Scale", state_->native_scene_tool == NativeSceneTool::Scale)) {
-          state_->native_scene_tool = NativeSceneTool::Scale;
-          state_->native_scene_local_axes = true;
+        ImGui::BeginDisabled(!state_->app_focused || interaction_blocked ||
+                             state_->native_scene_drag_origin || state_->native_scene_drag);
+        constexpr std::array tools{NativeSceneTool::Select, NativeSceneTool::Move,
+                                   NativeSceneTool::Rotate, NativeSceneTool::Scale};
+        constexpr std::array tool_labels{"Select (Q)", "Move (W)", "Rotate (E)", "Scale (R)"};
+        for (std::size_t index = 0; index < tools.size(); ++index) {
+          if (index != 0)
+            ImGui::SameLine();
+          if (ImGui::RadioButton(tool_labels[index], state_->native_scene_tool == tools[index])) {
+            state_->native_scene_tool = tools[index];
+            if (tools[index] == NativeSceneTool::Scale)
+              state_->native_scene_local_axes = true;
+          }
+          const auto tool_min = ImGui::GetItemRectMin(), tool_max = ImGui::GetItemRectMax();
+          state_->native_scene_tool_positions[static_cast<std::size_t>(tools[index])] =
+              std::array{(tool_min.x + tool_max.x) * 0.5F, (tool_min.y + tool_max.y) * 0.5F};
         }
         ImGui::BeginDisabled(state_->native_scene_tool == NativeSceneTool::Scale);
         ImGui::Checkbox("Local axes", &state_->native_scene_local_axes);
@@ -3782,6 +3793,22 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         CaptureCanvasViewport(state_->scene_canvas_viewport, ImGui::GetItemRectMin(),
                               ImGui::GetItemRectMax());
         const auto &io = ImGui::GetIO();
+        // Resolve tool input before picking/starting a drag in the same input frame.
+        if (state_->app_focused && !interaction_blocked &&
+            ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+            (ImGui::IsItemHovered(ImGuiHoveredFlags_NoNavOverride) || ImGui::IsItemActive()) &&
+            !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput) {
+          if (ImGui::IsKeyPressed(ImGuiKey_Q, false))
+            state_->native_scene_tool = NativeSceneTool::Select;
+          else if (ImGui::IsKeyPressed(ImGuiKey_W, false))
+            state_->native_scene_tool = NativeSceneTool::Move;
+          else if (ImGui::IsKeyPressed(ImGuiKey_E, false))
+            state_->native_scene_tool = NativeSceneTool::Rotate;
+          else if (ImGui::IsKeyPressed(ImGuiKey_R, false)) {
+            state_->native_scene_tool = NativeSceneTool::Scale;
+            state_->native_scene_local_axes = true;
+          }
+        }
         if (scene_editable && !scene->Selection().empty() && !io.WantTextInput &&
             (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
             !ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
@@ -3791,14 +3818,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           state_->native_scene_drag_origin.reset();
           state_->native_scene_drag_preview.reset();
         }
-        if (!interaction_blocked && state_->scene_canvas_viewport &&
+        if (state_->app_focused && !interaction_blocked && state_->scene_canvas_viewport &&
             ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
           const auto x = static_cast<std::uint32_t>(io.MousePos.x * io.DisplayFramebufferScale.x);
           const auto y = static_cast<std::uint32_t>(io.MousePos.y * io.DisplayFramebufferScale.y);
           const auto &view = *state_->scene_canvas_viewport;
           if (x >= view.x && y >= view.y && x < view.x + view.width && y < view.y + view.height) {
             state_->native_scene_pick = NativeScenePickRequest{x, y, io.KeyCtrl};
-            if (scene_editable && !io.KeyCtrl)
+            if (scene_editable && !io.KeyCtrl &&
+                state_->native_scene_tool != NativeSceneTool::Select)
               state_->native_scene_drag_origin =
                   std::array{static_cast<std::int32_t>(x), static_cast<std::int32_t>(y)};
             state_->native_scene_drag_snap_step =
@@ -3838,16 +3866,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                                  state_->native_scene_drag_snap_step,
                                                  state_->native_scene_drag_vertical};
         }
-        if (!interaction_blocked && (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
-            !state_->native_scene_drag_origin && !io.WantTextInput) {
-          if (ImGui::IsKeyPressed(ImGuiKey_W, false))
-            state_->native_scene_tool = NativeSceneTool::Move;
-          if (ImGui::IsKeyPressed(ImGuiKey_E, false))
-            state_->native_scene_tool = NativeSceneTool::Rotate;
-          if (ImGui::IsKeyPressed(ImGuiKey_R, false)) {
-            state_->native_scene_tool = NativeSceneTool::Scale;
-            state_->native_scene_local_axes = true;
-          }
+        if (state_->app_focused && !interaction_blocked &&
+            (ImGui::IsItemHovered() || ImGui::IsItemActive()) &&
+            !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput) {
           if (ImGui::IsKeyPressed(ImGuiKey_P, false))
             state_->native_scene_center_pivot = !state_->native_scene_center_pivot;
           if (io.MouseWheel != 0.0F)
@@ -5061,6 +5082,15 @@ EditorImGuiTestAccess::SceneFramePosition(const EditorImGuiHost &host) noexcept 
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneFrameAllPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->scene_frame_all_position;
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::NativeSceneToolPosition(const EditorImGuiHost &host,
+                                               NativeSceneTool tool) noexcept {
+  const auto index = static_cast<std::size_t>(tool);
+  return index < host.state_->native_scene_tool_positions.size()
+             ? host.state_->native_scene_tool_positions[index]
+             : std::nullopt;
 }
 
 std::optional<std::array<float, 2>>
