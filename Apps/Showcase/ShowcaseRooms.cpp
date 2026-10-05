@@ -754,9 +754,10 @@ struct RoomSession::State final {
       // Bound planar work to the focal device, vessels, foliage, pennants and sky.
       // Distant ruins/terrain and the water surface never participate recursively.
       if (batch.firstIndex + batch.indexCount > courtyardReflectionDeviceIndexEnd &&
-          batch.materialIndex != 3 && batch.materialIndex != 5 && batch.materialIndex != 6 &&
-          batch.materialIndex != 7 && batch.materialIndex != 11 && batch.materialIndex != 12 &&
-          batch.materialIndex != 15 && batch.materialIndex != 16 && batch.materialIndex != 17)
+          batch.materialIndex != 2 && batch.materialIndex != 3 && batch.materialIndex != 5 &&
+          batch.materialIndex != 6 && batch.materialIndex != 7 && batch.materialIndex != 11 &&
+          batch.materialIndex != 12 && batch.materialIndex != 15 && batch.materialIndex != 16 &&
+          batch.materialIndex != 17)
         continue;
       batches.push_back({batch.firstIndex, batch.indexCount, mirrorIndex, 1,
                          batch.materialIndex + static_cast<std::uint32_t>(materialCount)});
@@ -950,11 +951,11 @@ struct RoomSession::State final {
                                                      {0.8F, 1.87F},
                                                      {0.62F, 1.87F},
                                                      {0, 1.76F}}};
-    Lathe({0, 0, 0}, basin);
+    Lathe({0, 0, 0.45F}, basin);
     for (unsigned rib = 0; rib < 12; ++rib) {
       const float angle = rib * 2 * math::kPi / 12;
       const auto point = [&](float r, float y) {
-        return math::Vector3{r * std::cos(angle), y, r * std::sin(angle)};
+        return math::Vector3{r * std::cos(angle), y, 0.45F + r * std::sin(angle)};
       };
       Segment(point(0.54F, 1.08F), point(0.39F, 1.3F), 0.045F);
       Segment(point(0.39F, 1.3F), point(0.47F, 1.57F), 0.04F);
@@ -1155,8 +1156,45 @@ struct RoomSession::State final {
 #else
     Cube(0, 2.9F, 0, 0.35F, 0.55F, 0.35F);
 #endif
-    courtyardCrystalEnd = vertices.size();
     finish(12);
+    // Authored emissive mineral fissures live inside the glass, in the opaque HDR snapshot.
+    // Their actual geometry shares crystal rotation/lift and lights bloom through the shell.
+    for (unsigned vein = 0; vein < 3; ++vein) {
+      const float phase = vein * 2 * math::kPi / 3;
+      const auto point = [&](float radius, float y, float twist) {
+        return math::Vector3{radius * std::cos(phase + twist), 2.9F + y,
+                             radius * std::sin(phase + twist)};
+      };
+      Segment(point(0.025F, -0.58F, 0), point(0.17F, -0.24F, 0.4F), 0.009F);
+      Segment(point(0.17F, -0.24F, 0.4F), point(0.23F, 0.06F, -0.35F), 0.008F);
+      Segment(point(0.23F, 0.06F, -0.35F), point(0.1F, 0.35F, 0.2F), 0.006F);
+      Segment(point(0.1F, 0.35F, 0.2F), point(0.02F, 0.64F, 0), 0.004F);
+    }
+    finish(2);
+    courtyardCrystalEnd = vertices.size();
+    // Preserve each authored block's exact bevel profile while reusing repeated extents.
+    struct MasonryPrototype {
+      std::uint32_t material;
+      std::array<float, 3> extent;
+      std::vector<Nexora::Presentation::SceneInstance> placements;
+    };
+    std::vector<MasonryPrototype> masonry;
+    const auto placeMasonry = [&](std::uint32_t material, float x, float y, float z, float sx,
+                                  float sy, float sz) {
+      const std::array extent{sx, sy, sz};
+      auto prototype = std::find_if(masonry.begin(), masonry.end(), [&](const auto &entry) {
+        return entry.material == material && entry.extent == extent;
+      });
+      if (prototype == masonry.end()) {
+        masonry.push_back({material, extent, {}});
+        prototype = std::prev(masonry.end());
+      }
+      Nexora::Presentation::SceneInstance placement{};
+      placement.translation[0] = x;
+      placement.translation[1] = y;
+      placement.translation[2] = z;
+      prototype->placements.push_back(placement);
+    };
     // Layered original environment: terrain, distant ridge, ruined towers and cypress.
     Cube(0, -0.24F, 0, 38, 0.2F, 38);
     finish(8);
@@ -1184,54 +1222,66 @@ struct RoomSession::State final {
     finish(9);
     for (const float x : {-18.0F, -10.0F, 10.0F, 18.0F}) {
       for (unsigned layer = 0; layer < 10; ++layer)
-        Cube(x + (layer % 2) * 0.03F, 0.3F + layer * 0.6F, -16, 1.2F, 0.29F, 1.2F);
-      Cube(x, 6.2F, -16, 1.5F, 0.3F, 1.5F);
+        placeMasonry(8, x + (layer % 2) * 0.03F, 0.3F + layer * 0.6F, -16, 1.2F, 0.29F, 1.2F);
+      placeMasonry(8, x, 6.2F, -16, 1.5F, 0.3F, 1.5F);
       for (const float dx : {-0.9F, 0.9F})
-        Cube(x + dx, 7.3F, -16, 0.3F, 0.8F, 0.5F);
+        placeMasonry(8, x + dx, 7.3F, -16, 0.3F, 0.8F, 0.5F);
       for (unsigned i = 0; i < 10; ++i) {
         const float a = math::kPi * i / 10, b = math::kPi * (i + 1) / 10;
         Segment({x + 2.8F + 1.6F * std::cos(a), 4 + 1.6F * std::sin(a), -16},
                 {x + 2.8F + 1.6F * std::cos(b), 4 + 1.6F * std::sin(b), -16}, 0.3F);
       }
-      Cube(x + 4.4F, 2, -16, 0.35F, 2, 0.4F);
+      placeMasonry(8, x + 4.4F, 2, -16, 0.35F, 2, 0.4F);
     }
     for (unsigned tower = 0; tower < 5; ++tower) {
       const float x = -4 + tower * 5.0F, height = 7.0F + static_cast<float>(tower * 7 % 6);
-      Cube(x, height * 0.5F + 2, -23, 1.0F, height * 0.5F, 1.0F);
+      const unsigned courses = static_cast<unsigned>(std::ceil(height / 0.72F));
+      const float courseHeight = height / courses;
+      for (unsigned course = 0; course < courses; ++course)
+        placeMasonry(8, x + (course % 2) * 0.015F, 2 + (course + 0.5F) * courseHeight, -23, 1.0F,
+                     courseHeight * 0.5F - 0.012F, 1.0F);
+      for (const float y : {4.3F, height + 0.3F}) {
+        const std::array<math::Vector3, 4> emblem{{{x, y + 0.42F, -21.95F},
+                                                   {x + 0.3F, y, -21.95F},
+                                                   {x, y - 0.42F, -21.95F},
+                                                   {x - 0.3F, y, -21.95F}}};
+        for (unsigned edge = 0; edge < emblem.size(); ++edge)
+          Segment(emblem[edge], emblem[(edge + 1) % emblem.size()], 0.025F);
+      }
       for (unsigned groove = 0; groove < 6; ++groove) {
         const float gx = x - 0.75F + groove * 0.3F;
         Segment({gx, 3.1F, -21.98F}, {gx, height + 1.6F, -21.98F}, 0.035F);
       }
-      Cube(x, height + 2.2F, -23, 1.3F, 0.3F, 1.3F);
+      placeMasonry(8, x, height + 2.2F, -23, 1.3F, 0.3F, 1.3F);
       for (const float dx : {-0.9F, 0.9F})
-        Cube(x + dx, height + 3, -23, 0.25F, 0.5F, 0.45F);
+        placeMasonry(8, x + dx, height + 3, -23, 0.25F, 0.5F, 0.45F);
       for (unsigned i = 0; i < 12; ++i) {
         const float a = math::kPi * i / 12, b = math::kPi * (i + 1) / 12;
         Segment({x + 2.5F + 1.5F * std::cos(a), 6 + 1.5F * std::sin(a), -23},
                 {x + 2.5F + 1.5F * std::cos(b), 6 + 1.5F * std::sin(b), -23}, 0.28F);
       }
-      Cube(x + 4, 4, -23, 0.25F, 2, 0.3F);
+      placeMasonry(8, x + 4, 4, -23, 0.25F, 2, 0.3F);
     }
     for (unsigned step = 0; step < 6; ++step)
-      Cube(6, step * 0.15F, -10 - step * 0.7F, 2.5F, step * 0.15F + 0.1F, 0.4F);
+      placeMasonry(8, 6, step * 0.15F, -10 - step * 0.7F, 2.5F, step * 0.15F + 0.1F, 0.4F);
     // Cliff ledges support the distant falls and upper ruins.
-    Cube(0, 1, -25, 20, 1, 3);
+    placeMasonry(8, 0, 1, -25, 20, 1, 3);
     for (const float x : {-14.0F, 14.0F})
-      Cube(x, 4, -26, 3, 4, 2);
+      placeMasonry(8, x, 4, -26, 3, 4, 2);
     finish(8);
     // Side arcades frame the device, with hanging leaves driven by the shared wind shader.
     for (const float x : {-7.5F, 7.5F}) {
       for (const float z : {-7.0F, -1.0F, 5.0F}) {
         for (unsigned course = 0; course < 7; ++course) {
           const float stagger = static_cast<float>((course * 13) % 5) * 0.012F;
-          Cube(x + stagger - 0.024F, 0.4F + course * 0.8F, z, 0.55F - stagger * 0.25F, 0.39F,
-               0.55F);
+          placeMasonry(0, x + stagger - 0.024F, 0.4F + course * 0.8F, z, 0.55F - stagger * 0.25F,
+                       0.39F, 0.55F);
         }
-        Cube(x, 0.18F, z, 0.85F, 0.18F, 0.85F);
-        Cube(x, 0.43F, z, 0.7F, 0.08F, 0.7F);
-        Cube(x, 5.53F, z, 0.68F, 0.12F, 0.68F);
-        Cube(x, 5.75F, z, 0.85F, 0.10F, 0.85F);
-        Cube(x, 5.92F, z, 0.74F, 0.06F, 0.74F);
+        placeMasonry(0, x, 0.18F, z, 0.85F, 0.18F, 0.85F);
+        placeMasonry(0, x, 0.43F, z, 0.7F, 0.08F, 0.7F);
+        placeMasonry(0, x, 5.53F, z, 0.68F, 0.12F, 0.68F);
+        placeMasonry(0, x, 5.75F, z, 0.85F, 0.10F, 0.85F);
+        placeMasonry(0, x, 5.92F, z, 0.74F, 0.06F, 0.74F);
         // Original raised geometric relief on the front face, with carved side rails.
         const auto point = [&](float dx, float y) { return math::Vector3{x + dx, y, z + 0.565F}; };
         for (const float dx : {-0.34F, 0.34F})
@@ -1388,6 +1438,24 @@ struct RoomSession::State final {
       }
     }
     finish(5);
+    // Dense foreground banks retain the original alpha mask and the same GPU wind.
+    for (const auto bank :
+         {std::array{-5.0F, 5.3F}, std::array{5.4F, 5.9F}, std::array{-7.8F, -1.8F}})
+      for (unsigned sprig = 0; sprig < 96; ++sprig) {
+        const float angle = sprig * 2.399963F;
+        const float radius = 1.3F * std::sqrt((sprig + 0.5F) / 96);
+        LeafQuad({bank[0] + radius * std::cos(angle), 0.15F + 0.25F * (1 - radius / 1.3F),
+                  bank[1] + radius * std::sin(angle)},
+                 0.22F + (sprig % 4) * 0.035F, 0.45F + (sprig % 5) * 0.08F, angle);
+      }
+    finish(5);
+    for (const auto &prototype : masonry) {
+      Cube(0, 0, 0, prototype.extent[0], prototype.extent[1], prototype.extent[2]);
+      finish(prototype.material);
+      batches.back().firstInstance = static_cast<std::uint32_t>(instances.size());
+      batches.back().instanceCount = static_cast<std::uint32_t>(prototype.placements.size());
+      instances.insert(instances.end(), prototype.placements.begin(), prototype.placements.end());
+    }
     courtyardFoliageQuadCount = 0;
     for (const auto &batch : batches)
       if (batch.materialIndex == 5)
@@ -2503,11 +2571,12 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[1].roughness = 0.28F;
     s.materials[1].baseColor = {0.95F, 0.85F, 0.65F, 1};
     s.materials[2].roughness = 0.15F;
-    s.materials[2].emission = {0.1F, 4.5F, 6.0F};
-    s.materials[3].roughness = 0.8F;
+    s.materials[2].emission = {0.05F, 2.2F, 3.0F};
+    s.materials[3].baseColor = {0.58F, 0.4F, 0.24F, 1};
+    s.materials[3].roughness = 0.6F;
     s.materials[4].roughness = 0.8F;
-    s.materials[5].roughness = 0.9F;
-    s.materials[5].emission = {0.15F, 0.2F, 0.1F};
+    s.materials[5].roughness = 0.7F;
+    s.materials[5].emission = {0, 0, 0};
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[5].emissionTextureId = 16;
 #endif
@@ -2802,7 +2871,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     if (data.hdr && s.courtyardReflections && s.courtyardQuality != 0)
       data.planarReflection = s.CourtyardReflectionSettings();
     if (data.hdr && s.courtyardAtmosphere && s.courtyardQuality != 0)
-      data.atmosphere = Nexora::Presentation::SceneAtmosphere{{0.55F, 0.48F, 0.46F}, 0.55F, 16, 70};
+      data.atmosphere = Nexora::Presentation::SceneAtmosphere{{0.55F, 0.48F, 0.46F}, 0.6F, 18, 58};
     if (data.hdr && s.courtyardStyled)
       data.colorGrade = Nexora::Presentation::SceneColorGrade{1.05F, 1.05F};
     if (data.hdr && s.courtyardBloom && s.courtyardQuality != 0)

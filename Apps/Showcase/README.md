@@ -600,3 +600,19 @@ physical target acceptance remain open; VIS stays 5/7. This one source has no po
 
 
 Crystal point-light Shipping evidence: [Apps/Showcase/evidence/VIS-Crystal-Light-Linux-2026-10-05](evidence/VIS-Crystal-Light-Linux-2026-10-05). Production freeze `aec18172a4e6`; actual 100.33-second movie (100.71-second wall time), isolated native F9 comparison/restoration and all 85 native PBR cases pass. Final reference/physical-target acceptance remains open.
+
+
+Courtyard art now shares exact bevel profiles for repeated tower/arcade blocks, retaining
+world-space mapping and inverse-transpose normals while reducing uploaded geometry. Distant
+towers use masonry courses and raised diamond relief; three foreground banks add 288 wind
+cards. Leaf shading uses the original alpha/color mask without emissive fill. The basin is
+shifted forward for a readable silhouette; warmer ceramic glaze responds to the sunset.
+The authored crystal has five staggered rings with an outward convex triangulation check.
+Three internal emissive mineral fissures share crystal rotation/lift and appear through the
+opaque HDR snapshot; rune/fissure radiance is restrained before bloom/ACES. These are authored
+geometry, not volumetric scattering. Standard/High atmosphere uses strength 0.6 at 18–58 units.
+This art iteration does not accept final reference parity or target performance; VIS stays 5/7.
+
+Linux native integration: ✅ full configure/build and 97/97 tests pass (103.93 seconds) with Khronos core/synchronization validation, including 85 PBR frames and all three geometry budgets. The fixed activated Standard frame has 50,166 vertices and 2,052 source foliage quads. Shipping/Full isolated native acceptance and an actual 100.27-second movie (100.80-second wall time) pass; final reference/target acceptance remains open.
+
+Evidence: [VIS-Courtyard-Masonry-Linux-2026-10-05](evidence/VIS-Courtyard-Masonry-Linux-2026-10-05). Production freeze `e5bb13119ba1`; exact source and package hashes are retained.

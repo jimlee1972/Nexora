@@ -1,0 +1,65 @@
+{
+  "source_freeze": "e5bb13119ba1e78d148439b092c849136245bd04",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/CourtyardEnvironment.h": "d8fabbc1d924a997eec68bee2c4360895828c8c0c50ec28898cb4fa414d4a479",
+    "Apps/Showcase/CourtyardHero.h": "864a160cddd0b9c0ba5c81bcd1527a8d76b53028d799afa440c7e2c2db85d431",
+    "Apps/Showcase/README.md": "8d60b32f1f48ba97e23382f2de601db9d56f9904df74403cf7d9f87854bab780",
+    "Apps/Showcase/ShowcaseRooms.cpp": "687622a4fc681a7e224bd9c9717de7c56573e2b477f925af32b8f03df586405c",
+    "Content/Showcase/Courtyard/Environment/derived.json": "0efff793229b5b0e9640c8a4675f27c7291fa41776088ab16a45ee8f44ac3c32",
+    "Content/Showcase/Courtyard/Hero/Source/README.md": "e284fe1a9b43f5f2463365bc4a239ce07bdfbb58d3dc4aa2a964fe5e14d6e2ad",
+    "Content/Showcase/Courtyard/Hero/crystal.showcase": "f5bcf26fe4b4b895ae2d5221709c9eef1e03eaa8df7a253985adec8c61fc496f",
+    "Content/Showcase/Courtyard/Hero/manifest.json": "b628a2678068cc6fd0d636b5df30d4b0785a6cb9e00ec4f6f0d5e1b4095be879",
+    "Content/Showcase/Courtyard/Hero/source.json": "c3135c1ccac210ce2cb8e2ea145b924643b6327dbbadcdbed4df43a77816dfe4",
+    "README.md": "948ffd5cc1662126e4b3feb7049c4c1585306af799315cd91035e61175e32b46",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "08d05ab1ce9727f4717506d0c484d320ee3a06be177ee88f6d5586b754a8cd37",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "3b3b8b5cb297ad7f25dd059189fa80658aa43094ec67a27f6e499ea731b1ebfa",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "0c746ab04968bf73ca91da4e40160a9c8f09bef985e2870edd85b11ff4f84768",
+    "Tools/Build/PrepareCourtyardHero.py": "cd5ce39fc4e70d0acb88c7c9c6940404b33da4ff5f3c12ecbff13ad5e7910b31"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-masonry/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/masonry-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "e5bb13119ba1",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.79730023899901,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.266667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "a643c92a23cea06f82cc7946ce3c1477613473ec748c03d30a16c14ccc4e27ee",
+    "video_sha256": "1232a668e399e3855311b1b238b16107868be1cb1ca0396b755b40053a9740a5",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "2a6a393094b0dd6f67106c0e0fec99c0f3d47edf84a37a47a1c32a54723624bd",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}
