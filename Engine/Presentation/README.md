@@ -340,3 +340,21 @@ Main adds one shadow map binding (eight sampled maps total). No persistent asset
 C/Zig ABI changes. `SceneLightingStyle` optionally supplies bounded shadow/light tint and ramp
 controls using shared Common shader functions. Direct light receives PCF visibility; emission
 remains independent. Shadow diagnostics count actual successfully recorded passes/instances.
+
+## Bounded HDR bloom and color grade
+
+Optional `SceneBloom` requires HDR; intensity is finite [0,1], linear threshold [0,32],
+and radius [1,32] pixels. Optional `SceneColorGrade` also requires HDR with finite saturation
+and contrast in [0,2]. Defaults preserve the prior HDR output. Tone constants are now two
+float4s (32 bytes), packed identically by all adapters and copied into the recording frame.
+The tone entry samples the retained HDR image once plus twelve bounded neighboring taps,
+extracts thresholded radiance with shared math, adds shared bloom before exposure/ACES, then
+applies shared color grade and exactly one display transfer. This is a compact two-scale
+neighborhood filter, not a separable Gaussian or temporal bloom implementation. UI still follows
+Main. No extra target, descriptor, CPU readback or temporal resource ownership is introduced.
+
+Vulkan `recoverablePresentFrames` counts actual submitted frames whose native present reports
+OutOfDate/Suboptimal and schedules swapchain replacement. `presentedFrames` still counts Ready
+presents only. Resize acceptance accounts for these separate counters rather than assuming every
+acquire must present successfully; neither recovery counter proves visual acceptance. Public C++
+consumers rebuild, while stable C/Zig and persistent asset schemas remain unchanged.

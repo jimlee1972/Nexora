@@ -61,3 +61,8 @@ preserve linear radiance and `scene_tonemap.slang` applies exposure, shared ACES
 transfer in Main before UI. `GenerateToneShaders.py` uses the same pinned Slang 2026.18 embedding
 and regeneration-check route; native tone pipelines contain no duplicated color math.
 No PBR math is maintained in backend-specific handwritten shader strings.
+
+`NexoraExtractBloom` preserves linear HDR hue while rejecting radiance below a bounded threshold.
+Native tone entries own the bounded neighbor sampling and call shared extraction/addition, ACES,
+color grade and display transfer. Backend adapters only bind the same 32-byte scalar packet;
+no bloom or grading math is duplicated in native source strings.

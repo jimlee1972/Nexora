@@ -34,3 +34,17 @@ by CTest. Final surface-detail maps, hero crystal/runes and moving foliage remai
 已正式採用三個 CC0 KayKit 建築網格與隨附漸層貼圖，原始來源、授權、hash 與盤點隨套件
 提供。網格保留 normal／UV，依庭院配置縮放與擺放；貼圖經 area filtering 成為 64x64
 基線 palette，並透過匯入／cook／bundle／Runtime 載入。正式 PBR 細節與動態植被仍待後續。
+
+## Hero authoring update / 主體美術更新 — 2026-10-05
+
+The cube/capsule/fully-bronze-ring descriptions above preserve the original baseline. Current
+native art uses an original Runtime-loaded faceted crystal, stone wedge ring with bronze fittings
+and emissive diamond runes, round stepped plinths, hollow lathed vessels, sky geometry and six
+original 64² detail maps. Source, converter, repository license and derived hashes accompany the
+hero payloads. Existing downloaded CC0 architecture remains separately attributed. The vegetation
+markers are still static pending VIS-M4; physical final-art approval remains open.
+
+上方保留最初灰盒基線；目前原生美術改為 Runtime 載入的原創多面晶體、石材楔形環、青銅扣件、
+發光菱形符文、圓形階梯台、空心旋轉陶器、天空幾何及六張原創 64² 細節貼圖。來源、converter、
+repository 授權與 derived hash 隨 hero payload 提供，既有 CC0 建築另列出處。植被仍是静態標記，
+等待 VIS-M4；目標硬體最終美術審查仍未完成。

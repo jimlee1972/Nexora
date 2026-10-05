@@ -12,6 +12,14 @@ public float3 NexoraApplyExposure(float3 hdrColor, float exposure)
   return max(hdrColor, 0.0) * exp2(exposure);
 }
 
+// Preserve hue while rejecting radiance below the linear HDR threshold.
+public float3 NexoraExtractBloom(float3 hdrColor, float threshold)
+{
+  float3 color = max(hdrColor, 0.0);
+  float peak = max(max(color.x, color.y), color.z);
+  return color * max(peak - max(threshold, 0.0), 0.0) / max(peak, 1.0e-4);
+}
+
 public float3 NexoraApplyBloom(float3 hdrColor, float3 bloomColor, float intensity)
 {
   return max(hdrColor, 0.0) + max(bloomColor, 0.0) * max(intensity, 0.0);

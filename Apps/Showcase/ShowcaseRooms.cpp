@@ -1,6 +1,7 @@
 #include "ShowcaseRooms.h"
 #include "CourtyardAssets.h"
 #include "CourtyardEnvironment.h"
+#include "CourtyardHero.h"
 #include "Nexora/Foundation/BuildInfo.h"
 #include "Nexora/Math/Math.h"
 #include "Nexora/Renderer/SceneFrame.h"
@@ -122,7 +123,7 @@ struct RoomSession::State final {
   std::size_t courtyardShot{};
   bool courtyardPbr{true}, courtyardIbl{true};
   float courtyardExposure = 1.0F;
-  bool courtyardShadows{true}, courtyardStyled{true};
+  bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true};
   float courtyardShadowBias = 0.0008F;
   std::uint64_t atlasGeneration{~std::uint64_t{0}};
   std::string lastAction{"Ready"}, pluginLibrary;
@@ -168,6 +169,9 @@ struct RoomSession::State final {
   std::array<ByteBuffer, 3> courtyardEnvironment;
   std::array<std::string, 3> environmentHashes;
   std::string environmentMetadataHash;
+  renderer::Mesh courtyardCrystal;
+  std::array<ByteBuffer, 6> courtyardDetail;
+  std::array<std::string, 7> courtyardHeroHashes;
   bool assetRejected{}, cycleRejected{}, rolledBack{};
 #endif
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
@@ -392,6 +396,46 @@ struct RoomSession::State final {
       environmentHashes[i] = blob->content_hash;
       courtyardBlobs.push_back(*blob);
     }
+    importer.Register(".artmeta", [](const SourceAsset &source) -> std::optional<CanonicalAsset> {
+      if (source.bytes.empty() || source.bytes.size() > 16384)
+        return {};
+      return CanonicalAsset{source.id, source.type, {}, source.bytes};
+    });
+    importer.Register(".heromesh", [](const SourceAsset &source) -> std::optional<CanonicalAsset> {
+      static_cast<void>(ReadShowcaseMesh(source.bytes));
+      return CanonicalAsset{source.id, source.type, {{0x4e58, 119}}, source.bytes};
+    });
+    importer.Register(".surface", [](const SourceAsset &source) -> std::optional<CanonicalAsset> {
+      if (source.bytes.size() != 64 * 64 * 4)
+        return {};
+      return CanonicalAsset{source.id, source.type, {{0x4e58, 119}}, source.bytes};
+    });
+    const std::array<std::span<const std::byte>, 8> heroSources{
+        std::as_bytes(std::span{courtyard_hero::metadata, sizeof(courtyard_hero::metadata) - 1}),
+        std::as_bytes(std::span{courtyard_hero::mesh, sizeof(courtyard_hero::mesh) - 1}),
+        std::as_bytes(std::span{courtyard_hero::stone_color}),
+        std::as_bytes(std::span{courtyard_hero::stone_normal}),
+        std::as_bytes(std::span{courtyard_hero::stone_orm}),
+        std::as_bytes(std::span{courtyard_hero::bronze_color}),
+        std::as_bytes(std::span{courtyard_hero::bronze_normal}),
+        std::as_bytes(std::span{courtyard_hero::bronze_orm})};
+    for (std::size_t i = 0; i < heroSources.size(); ++i) {
+      const auto payload = heroSources[i];
+      const auto imported = importer.Import({{0x4e58, 119 + i},
+                                             "original-courtyard-art-v1",
+                                             i == 0   ? "hero.artmeta"
+                                             : i == 1 ? "crystal.heromesh"
+                                                      : "detail.surface",
+                                             ByteBuffer{payload.begin(), payload.end()}});
+      const auto blob = imported
+                            ? AssetCooker{}.Cook(*imported, "portable", "courtyard-art-v1", cache)
+                            : std::nullopt;
+      if (!blob)
+        throw std::runtime_error("Courtyard original hero cook failed");
+      if (i)
+        courtyardHeroHashes[i - 1] = blob->content_hash;
+      courtyardBlobs.push_back(*blob);
+    }
     const auto adoptedBundle = BundleBuilder::Build("courtyard", 1, {}, courtyardBlobs);
     if (!adoptedBundle || !courtyardAssets.Stage({*adoptedBundle}) ||
         !courtyardAssets.ActivateStaged())
@@ -415,6 +459,18 @@ struct RoomSession::State final {
     }
     if (!courtyardAssets.Load({0x4e58, 107}))
       throw std::runtime_error("Courtyard cooked IBL metadata load failed");
+    for (std::size_t i = 0; i < 7; ++i) {
+      const auto *loaded = courtyardAssets.Load({0x4e58, 120 + i});
+      if (!loaded || loaded->dependencies != std::vector<AssetUuid>{{0x4e58, 119}})
+        throw std::runtime_error("Courtyard hero generation dependency failed");
+      if (!i)
+        courtyardCrystal = ReadShowcaseMesh(loaded->payload);
+      else {
+        if (loaded->payload.size() != 64 * 64 * 4)
+          throw std::runtime_error("Courtyard detail payload invalid");
+        courtyardDetail[i - 1] = loaded->payload;
+      }
+    }
     assetRejected = !importer.Import({source.id, source.type, source.source_path, {}});
     cycleRejected =
         !BundleBuilder::ValidateDependencyDag({{"a", 1, {"b"}, {}}, {"b", 1, {"a"}, {}}});
@@ -513,8 +569,8 @@ struct RoomSession::State final {
   void CourtyardCamera(std::size_t shot) {
     courtyardShot = shot % 3;
     constexpr std::array<float, 3> yaws{0.58F, -0.35F, 0.12F};
-    constexpr std::array<float, 3> pitches{0.48F, 0.24F, 0.14F};
-    constexpr std::array<float, 3> radii{18.0F, 7.0F, 10.0F};
+    constexpr std::array<float, 3> pitches{0.40F, 0.26F, 0.20F};
+    constexpr std::array<float, 3> radii{18.0F, 9.0F, 11.0F};
     yaw = yaws[courtyardShot];
     pitch = pitches[courtyardShot];
     radius = radii[courtyardShot];
@@ -538,7 +594,63 @@ struct RoomSession::State final {
       indices.push_back(static_cast<std::uint16_t>(base + index));
   }
 #endif
-  // Engineering blockout only: no PBR, shadows, emission or wind acceptance is implied.
+  void Lathe(math::Vector3 center, std::span<const std::array<float, 2>> profile) {
+    constexpr unsigned sides = 20;
+    for (std::size_t layer = 0; layer + 1 < profile.size(); ++layer)
+      for (unsigned side = 0; side < sides; ++side) {
+        const auto base = static_cast<std::uint16_t>(vertices.size());
+        const std::array<std::array<unsigned, 2>, 4> corners{{{0, 0}, {1, 0}, {1, 1}, {0, 1}}};
+        for (const auto corner : corners) {
+          const auto row = layer + corner[1];
+          const float angle = 2 * math::kPi * (side + corner[0]) / sides;
+          const auto previous = profile[row ? row - 1 : row];
+          const auto next = profile[std::min(row + 1, profile.size() - 1)];
+          const float dr = next[0] - previous[0], dy = next[1] - previous[1];
+          const auto normal =
+              math::NormalizeSafe(math::Vector3{dy * std::cos(angle), -dr, dy * std::sin(angle)});
+          vertices.push_back(
+              {{center.x + profile[row][0] * std::cos(angle), center.y + profile[row][1],
+                center.z + profile[row][0] * std::sin(angle)},
+               {normal.x, normal.y, normal.z},
+               {static_cast<float>(side + corner[0]) / sides,
+                static_cast<float>(row) / (profile.size() - 1)}});
+        }
+        if (profile[layer][0] > 0)
+          for (const auto index : {0, 1, 2})
+            indices.push_back(static_cast<std::uint16_t>(base + index));
+        if (profile[layer + 1][0] > 0)
+          for (const auto index : {0, 2, 3})
+            indices.push_back(static_cast<std::uint16_t>(base + index));
+      }
+  }
+  void RingStone(float a, float b) {
+    constexpr float inner = 1.42F, outer = 1.9F, depth = 0.25F;
+    const std::array<math::Vector3, 8> points{
+        {{outer * std::cos(a), 2.9F + outer * std::sin(a), depth},
+         {outer * std::cos(b), 2.9F + outer * std::sin(b), depth},
+         {inner * std::cos(b), 2.9F + inner * std::sin(b), depth},
+         {inner * std::cos(a), 2.9F + inner * std::sin(a), depth},
+         {outer * std::cos(a), 2.9F + outer * std::sin(a), -depth},
+         {outer * std::cos(b), 2.9F + outer * std::sin(b), -depth},
+         {inner * std::cos(b), 2.9F + inner * std::sin(b), -depth},
+         {inner * std::cos(a), 2.9F + inner * std::sin(a), -depth}}};
+    constexpr std::array<std::array<unsigned, 4>, 6> faces{
+        {{0, 1, 2, 3}, {1, 5, 6, 2}, {5, 4, 7, 6}, {4, 0, 3, 7}, {3, 2, 6, 7}, {4, 5, 1, 0}}};
+    for (const auto face : faces) {
+      const auto normal = math::NormalizeSafe(
+          math::Cross(points[face[1]] - points[face[0]], points[face[2]] - points[face[0]]));
+      const auto base = static_cast<std::uint16_t>(vertices.size());
+      for (unsigned corner = 0; corner < 4; ++corner) {
+        const auto point = points[face[corner]];
+        vertices.push_back({{point.x, point.y, point.z},
+                            {normal.x, normal.y, normal.z},
+                            {corner == 0 || corner == 3 ? 0.0F : 1.0F, corner < 2 ? 0.0F : 1.0F}});
+      }
+      for (const auto index : {0, 1, 2, 0, 2, 3})
+        indices.push_back(static_cast<std::uint16_t>(base + index));
+    }
+  }
+  // Authored stone/bronze device; native visual acceptance is tracked separately.
   void CourtyardGeometry() {
     if (!courtyardVertices.empty()) {
       vertices = courtyardVertices;
@@ -555,18 +667,37 @@ struct RoomSession::State final {
                            material});
       firstIndex = indices.size();
     };
-    Cube(0, 0.12F, 0, 1.7F, 0.12F, 1.7F);
-    Cube(0, 0.45F, 0, 1.15F, 0.2F, 1.15F);
-    Cube(0, 0.95F, 0, 0.65F, 0.3F, 0.65F);
+    for (const auto tier : {std::array{2.3F, 0.0F, 0.24F}, std::array{1.7F, 0.24F, 0.60F},
+                            std::array{1.05F, 0.60F, 1.05F}}) {
+      const std::array<std::array<float, 2>, 4> profile{
+          {{0, tier[1]}, {tier[0], tier[1]}, {tier[0], tier[2]}, {0, tier[2]}}};
+      Lathe({0, 0, 0}, profile);
+    }
     finish(0);
     constexpr std::size_t sides = 20;
     for (std::size_t i = 0; i < sides; ++i) {
       const float a = static_cast<float>(i) / sides * math::kPi * 2;
       const float b = static_cast<float>(i + 1) / sides * math::kPi * 2;
-      Segment({1.5F * std::cos(a), 2.9F + 1.5F * std::sin(a), 0},
-              {1.5F * std::cos(b), 2.9F + 1.5F * std::sin(b), 0}, 0.22F);
+      if (i == 3 || i == 4)
+        continue; // Broken upper-right stone silhouette.
+      RingStone(a + 0.008F, b - 0.008F);
+      finish(0);
+      if (i % 4 == 0) {
+        Cube(1.65F * std::cos(a), 2.9F + 1.65F * std::sin(a), 0, 0.22F, 0.16F, 0.34F);
+        finish(1);
+      }
+      const float mid = (a + b) * 0.5F;
+      const math::Vector3 center{1.65F * std::cos(mid), 2.9F + 1.65F * std::sin(mid), 0.255F};
+      const math::Vector3 radial{std::cos(mid) * 0.1F, std::sin(mid) * 0.1F, 0};
+      const math::Vector3 tangent{-std::sin(mid) * 0.06F, std::cos(mid) * 0.06F, 0};
+      const auto base = static_cast<std::uint16_t>(vertices.size());
+      for (const auto point :
+           {center + radial, center + tangent, center - radial, center - tangent})
+        vertices.push_back({{point.x, point.y, point.z}, {0, 0, 1}, {0.5F, 0.5F}});
+      for (const auto index : {0, 1, 2, 0, 2, 3})
+        indices.push_back(static_cast<std::uint16_t>(base + index));
+      finish(2);
     }
-    finish(1);
     // Paving leaves a readable approach to the central device.
     for (int z = -4; z <= 4; ++z)
       for (int x = -4; x <= 4; ++x)
@@ -596,28 +727,72 @@ struct RoomSession::State final {
     Cube(3.8F, 2.95F, -4, 0.7F, 0.3F, 0.45F);
     Cube(-5.3F, 0.55F, -1, 0.3F, 0.55F, 3.0F);
     Cube(5.3F, 0.55F, -1, 0.3F, 0.55F, 3.0F);
+    for (const float archX : {-3.6F, 3.6F}) {
+      for (unsigned i = 0; i < 12; ++i) {
+        if (archX > 0 && i == 5)
+          continue;
+        const float a = static_cast<float>(i) / 12 * math::kPi;
+        const float b = static_cast<float>(i + 1) / 12 * math::kPi;
+        Segment({archX + 1.2F * std::cos(a), 2.6F + 1.2F * std::sin(a), -4},
+                {archX + 1.2F * std::cos(b), 2.6F + 1.2F * std::sin(b), -4}, 0.24F);
+      }
+      for (const float x : {archX - 1.2F, archX + 1.2F})
+        Cube(x, 1.3F, -4, 0.25F, 1.3F, 0.3F);
+    }
     finish(0);
     for (const float x : {-3.5F, 3.5F}) {
-      Capsule({x, 0.4F, 2.5F}, 0.35F, 0.8F); // Ceramic placeholder.
+      const std::array<std::array<float, 2>, 10> vessel{{{0, 0},
+                                                         {0.22F, 0},
+                                                         {0.36F, 0.15F},
+                                                         {0.43F, 0.5F},
+                                                         {0.32F, 0.8F},
+                                                         {0.22F, 0.95F},
+                                                         {0.29F, 1.05F},
+                                                         {0.24F, 1.05F},
+                                                         {0.18F, 0.85F},
+                                                         {0, 0.85F}}};
+      Lathe({x, 0, 2.5F}, vessel); // Original hollow ceramic profile, not a downloaded prop.
       finish(3);
       for (int i = 0; i < 4; ++i)
         Segment({x, 0, -2.0F + i * 0.35F}, {x + 0.2F, 0.6F, -2.0F + i * 0.35F}, 0.08F);
       finish(5);
     }
 #if NEXORA_ASSET_PIPELINE_ENABLED
-    // The crystal placeholder is read from the active cooked/bundled generation.
+    // The original faceted hero crystal is read from the active cooked/bundled generation.
     const auto base = static_cast<std::uint16_t>(vertices.size());
-    for (const auto &v : assetMesh.vertices)
-      vertices.push_back(
-          {{v.position[0] * 0.35F, v.position[1] * 0.55F + 2.9F, v.position[2] * 0.35F},
-           {v.normal[0], v.normal[1], v.normal[2]},
-           {v.uv[0], v.uv[1]}});
-    for (const auto index : assetMesh.indices)
+    for (const auto &v : courtyardCrystal.vertices)
+      vertices.push_back({{v.position[0], v.position[1] + 2.9F, v.position[2]},
+                          {v.normal[0], v.normal[1], v.normal[2]},
+                          {v.uv[0], v.uv[1]}});
+    for (const auto index : courtyardCrystal.indices)
       indices.push_back(static_cast<std::uint16_t>(base + index));
 #else
     Cube(0, 2.9F, 0, 0.35F, 0.55F, 0.35F);
 #endif
     finish(2);
+    constexpr unsigned skySides = 32, skyBands = 24;
+    for (unsigned band = 0; band < skyBands; ++band) {
+      const float low = -math::kPi / 2 + math::kPi * band / skyBands;
+      const float high = -math::kPi / 2 + math::kPi * (band + 1) / skyBands;
+      for (unsigned side = 0; side < skySides; ++side) {
+        const float a = 2 * math::kPi * side / skySides, b = 2 * math::kPi * (side + 1) / skySides;
+        const auto skyBase = static_cast<std::uint16_t>(vertices.size());
+        const std::array<std::array<float, 2>, 4> angles{
+            {{a, low}, {b, low}, {b, high}, {a, high}}};
+        for (std::size_t corner = 0; corner < 4; ++corner) {
+          const auto [skyAzimuth, skyLatitude] = angles[corner];
+          const math::Vector3 n{std::cos(skyLatitude) * std::cos(skyAzimuth), std::sin(skyLatitude),
+                                std::cos(skyLatitude) * std::sin(skyAzimuth)};
+          vertices.push_back(
+              {{n.x * 60, n.y * 60, n.z * 60},
+               {-n.x, -n.y, -n.z},
+               {corner == 0 || corner == 3 ? 0.0F : 1.0F, corner < 2 ? 0.0F : 1.0F}});
+        }
+        for (const auto index : {0, 1, 2, 0, 2, 3})
+          indices.push_back(static_cast<std::uint16_t>(skyBase + index));
+      }
+      finish(6 + band);
+    }
     renderer::Mesh tangentSource;
     tangentSource.indices = indices;
     tangentSource.vertices.reserve(vertices.size());
@@ -863,8 +1038,7 @@ struct RoomSession::State final {
         const auto &normal = normals[face];
         vertices.push_back({{x + point[0] * sx, y + point[1] * sy, z + point[2] * sz},
                             {normal[0], normal[1], normal[2]},
-                            {selected == "courtyard" ? 0.1875F : uv[corner][0],
-                             selected == "courtyard" ? 0.10F : uv[corner][1]}});
+                            {uv[corner][0], uv[corner][1]}});
       }
       for (const auto index : {0, 1, 2, 2, 3, 0})
         indices.push_back(static_cast<std::uint16_t>(offset + index));
@@ -912,7 +1086,11 @@ struct RoomSession::State final {
         const float angle = static_cast<float>(side) / sides * math::kPi * 2;
         const auto normal = tangent * std::cos(angle) + bitangent * std::sin(angle);
         const auto point = center + normal * tubeRadius;
-        vertices.push_back({{point.x, point.y, point.z}, {normal.x, normal.y, normal.z}});
+        vertices.push_back(
+            {{point.x, point.y, point.z},
+             {normal.x, normal.y, normal.z},
+             {static_cast<float>(side) / sides,
+              center.x == start.x && center.y == start.y && center.z == start.z ? 0.0F : 1.0F}});
       }
     for (std::size_t side = 0; side < sides; ++side) {
       const auto a = static_cast<std::uint16_t>(base + side),
@@ -1227,6 +1405,8 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.courtyardPbr = !s.courtyardPbr;
     s.lastAction = s.courtyardPbr ? "PBR materials" : "Lambert material comparison";
   }
+  if (s.selected == "courtyard" && key == Key::K)
+    s.courtyardBloom = !s.courtyardBloom;
   if (s.selected == "courtyard" && key == Key::F6) {
     s.courtyardShadows = !s.courtyardShadows;
     s.lastAction = s.courtyardShadows ? "Directional shadows on" : "Shadows off";
@@ -1478,12 +1658,31 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[4].textureId = 2;
 #endif
     s.materials[0].roughness = 0.85F;
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    s.materials[0].textureId = 10;
+    s.materials[0].normalTextureId = 11;
+    s.materials[0].ormTextureId = 12;
+    s.materials[1].textureId = 13;
+    s.materials[1].normalTextureId = 14;
+    s.materials[1].ormTextureId = 15;
+#endif
+    s.materials[4].baseColor = {0.52F, 0.44F, 0.31F, 1};
     s.materials[1].metallic = 1;
-    s.materials[1].roughness = 0.24F;
+    s.materials[1].roughness = 1.0F;
+    s.materials[1].baseColor = {0.7F, 0.67F, 0.5F, 1};
     s.materials[2].roughness = 0.15F;
-    s.materials[2].emission = {0.04F, 0.65F, 0.9F};
+    s.materials[2].emission = {0.05F, 1.8F, 2.4F};
     s.materials[3].roughness = 0.35F;
     s.materials[4].roughness = 0.8F;
+    for (unsigned band = 0; band < 24; ++band) {
+      const float t = static_cast<float>(band) / 23;
+      Nexora::Presentation::SceneMaterial sky{};
+      sky.baseColor = {0, 0, 0, 1};
+      sky.metallic = sky.roughness = 1;
+      sky.emission = {0.8F * (1 - t) + 0.18F * t, 0.58F * (1 - t) + 0.32F * t,
+                      0.32F * (1 - t) + 0.5F * t};
+      s.materials.push_back(sky);
+    }
     s.CourtyardGeometry();
   } else if (s.selected == "hub") {
     s.Cube(0, 0.5F, 0, 1.5F, 0.5F, 1.5F);
@@ -1619,7 +1818,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                           s.radius * std::cos(s.yaw) * std::cos(s.pitch)};
   const auto mvp =
       math::PerspectiveRadians(0.85F, height ? static_cast<float>(width) / height : 1, 0.1F, 100) *
-      math::LookAt(eye, {0, 0.8F, 0});
+      math::LookAt(eye, {0, s.selected == "courtyard" ? 2.0F : 0.8F, 0});
   Nexora::Presentation::SceneDrawData data{};
   data.vertices = s.vertices;
   data.instances = s.instances;
@@ -1638,6 +1837,10 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     data.hdr = data.pbr;
     data.exposure = s.courtyardExposure;
     data.offscreen = data.hdr;
+    if (data.hdr && s.courtyardStyled)
+      data.colorGrade = Nexora::Presentation::SceneColorGrade{0.95F, 1.02F};
+    if (data.hdr && s.courtyardBloom)
+      data.bloom = Nexora::Presentation::SceneBloom{};
     data.cameraPosition = {eye.x, eye.y, eye.z};
     if (data.pbr) {
       data.light_direction[0] = -8;
@@ -1661,6 +1864,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     data.batches = s.batches;
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.sceneUploads.push_back({2, 64, 64, 256, s.courtyardAtlas});
+    for (std::size_t i = 0; i < s.courtyardDetail.size(); ++i)
+      s.sceneUploads.push_back({10 + i, 64, 64, 256, s.courtyardDetail[i]});
     data.textureId = 2;
     data.textureUploads = s.sceneUploads;
     if (data.pbr && s.courtyardIbl) {
@@ -1819,7 +2024,7 @@ std::string RoomSession::Report() const {
     first = false;
     out << "\"" << Escape(line) << "\"";
   }
-  out << "],\"courtyard\":{\"stage\":\"engineering_greybox\",\"shot\":" << s.courtyardShot
+  out << "],\"courtyard\":{\"stage\":\"hero_art_in_progress\",\"shot\":" << s.courtyardShot
       << ",\"shading\":\""
       << (s.courtyardPbr ? (NEXORA_ASSET_PIPELINE_ENABLED && s.courtyardIbl ? "shared_pbr_ibl"
                                                                             : "shared_pbr_direct")
@@ -1827,12 +2032,21 @@ std::string RoomSession::Report() const {
       << "\""
       << ",\"scene_color_format\":\"" << (s.courtyardPbr ? "RGBA16F" : "RGBA8") << "\""
       << ",\"exposure\":" << s.courtyardExposure
+      << ",\"bloom_enabled\":" << (s.courtyardPbr && s.courtyardBloom)
       << ",\"shadows_enabled\":" << (s.courtyardPbr && s.courtyardShadows)
       << ",\"stylized_enabled\":" << (s.courtyardPbr && s.courtyardStyled)
       << ",\"shadow_bias\":" << s.courtyardShadowBias << ",\"screenshot_mode\":" << s.screenshotMode
 #if NEXORA_ASSET_PIPELINE_ENABLED
       << ",\"representative_asset_loaded\":" << !s.assetMesh.vertices.empty()
       << ",\"asset_hash\":\"" << s.assetHash << "\""
+      << ",\"hero_asset_loaded\":" << !s.courtyardCrystal.vertices.empty()
+      << ",\"hero_detail_map_count\":6,\"hero_hashes\":[";
+  for (std::size_t i = 0; i < s.courtyardHeroHashes.size(); ++i) {
+    if (i)
+      out << ',';
+    out << '\"' << s.courtyardHeroHashes[i] << '\"';
+  }
+  out << "]"
       << ",\"adopted_mesh_count\":3,\"adopted_texture_count\":1,\"adopted_hashes\":[\""
       << s.courtyardHashes[0] << "\",\"" << s.courtyardHashes[1] << "\",\"" << s.courtyardHashes[2]
       << "\",\"" << s.courtyardHashes[3] << "\"]"

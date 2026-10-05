@@ -62,6 +62,7 @@ SamplerState hdrScene_sampler_0 : register(s0);
 struct ToneParameters_0
 {
     float4 settings_0;
+    float4 bloom_0;
 };
 
 
@@ -71,21 +72,59 @@ cbuffer tone_0 : register(b0)
     ToneParameters_0 tone_0;
 }
 
-#line 24 "Shaders/Nexora/Common/Color.slang"
-float3 NexoraAcesApproximate_0(float3 hdrColor_0)
+#line 16 "Shaders/Nexora/Common/PostProcess.slang"
+float3 NexoraExtractBloom_0(float3 hdrColor_0, float threshold_0)
 {
     float3 color_0 = max(hdrColor_0, (float3)0.0f);
-    return saturate(color_0 * (2.50999999046325684f * color_0 + 0.02999999932944775f) / (color_0 * (2.43000006675720215f * color_0 + 0.5899999737739563f) + 0.14000000059604645f));
+    float _S1 = max(max(color_0.x, color_0.y), color_0.z);
+    return color_0 * max(_S1 - max(threshold_0, 0.0f), 0.0f) / max(_S1, 0.00009999999747379f);
+}
+
+float3 NexoraApplyBloom_0(float3 hdrColor_1, float3 bloomColor_0, float intensity_0)
+{
+    float3 _S2 = (float3)0.0f;
+
+#line 25
+    return max(hdrColor_1, _S2) + max(bloomColor_0, _S2) * max(intensity_0, 0.0f);
 }
 
 
-#line 11
-float3 NexoraLinearToSrgb_0(float3 linearColor_0)
+#line 24 "Shaders/Nexora/Common/Color.slang"
+float3 NexoraAcesApproximate_0(float3 hdrColor_2)
 {
-    float3 color_1 = max(linearColor_0, (float3)0.0f);
+    float3 color_1 = max(hdrColor_2, (float3)0.0f);
+    return saturate(color_1 * (2.50999999046325684f * color_1 + 0.02999999932944775f) / (color_1 * (2.43000006675720215f * color_1 + 0.5899999737739563f) + 0.14000000059604645f));
+}
 
 
-    return lerp(color_1 * 12.92000007629394531f, 1.0549999475479126f * pow(color_1, (float3)0.4166666567325592f) - 0.05499999970197678f, step((float3)0.00313080009073019f, color_1));
+#line 19
+float NexoraRec709Luminance_0(float3 linearColor_0)
+{
+    return dot(linearColor_0, float3(0.2125999927520752f, 0.71520000696182251f, 0.07220000028610229f));
+}
+
+
+#line 28 "Shaders/Nexora/Common/PostProcess.slang"
+float3 NexoraApplyColorGrade_0(float3 color_2, float3 lift_0, float3 gain_0, float saturation_0, float contrast_0)
+{
+
+    float3 _S3 = (float3)0.0f;
+
+#line 31
+    float3 graded_0 = max(color_2 + lift_0, _S3) * max(gain_0, _S3);
+    float luminance_0 = NexoraRec709Luminance_0(graded_0);
+
+    return max((lerp(float3(luminance_0, luminance_0, luminance_0), graded_0, (float3)saturation_0) - 0.5f) * contrast_0 + 0.5f, _S3);
+}
+
+
+#line 11 "Shaders/Nexora/Common/Color.slang"
+float3 NexoraLinearToSrgb_0(float3 linearColor_1)
+{
+    float3 color_3 = max(linearColor_1, (float3)0.0f);
+
+
+    return lerp(color_3 * 12.92000007629394531f, 1.0549999475479126f * pow(color_3, (float3)0.4166666567325592f) - 0.05499999970197678f, step((float3)0.00313080009073019f, color_3));
 }
 
 
@@ -102,15 +141,55 @@ float4 toneFragmentMain(ToneVertex_0 input_0) : SV_TARGET
 {
 
 #line 25
-    float3 color_2 = NexoraAcesApproximate_0(hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, input_0.uv_0, 0.0f).xyz * tone_0.settings_0.x);
+    float3 hdr_0 = hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, input_0.uv_0, 0.0f).xyz;
 
 #line 25
-    float3 color_3;
-    if((tone_0.settings_0.y) > 0.5f)
+    float3 hdr_1;
+    if((tone_0.bloom_0.x) > 0.0f)
     {
 
-#line 26
-        color_3 = NexoraLinearToSrgb_0(color_2);
+#line 27
+        float2 _S4 = tone_0.bloom_0.zw;
+
+        float2  _S5[int(12)] = { float2(-1.0f, 0.0f), float2(1.0f, 0.0f), float2(0.0f, -1.0f), float2(0.0f, 1.0f), float2(-0.5f, -0.5f), float2(0.5f, -0.5f), float2(-0.5f, 0.5f), float2(0.5f, 0.5f), float2(-0.25f, 0.0f), float2(0.25f, 0.0f), float2(0.0f, -0.25f), float2(0.0f, 0.25f) };
+
+
+        float3 _S6 = float3(0.0f, 0.0f, 0.0f);
+
+#line 32
+        uint i_0 = 0U;
+
+#line 32
+        hdr_1 = _S6;
+        [unroll]
+        for(;;)
+        {
+
+#line 33
+            if(i_0 < 12U)
+            {
+            }
+            else
+            {
+
+#line 33
+                break;
+            }
+
+#line 34
+            float3 glow_0 = hdr_1 + NexoraExtractBloom_0(hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, input_0.uv_0 + _S5[i_0] * _S4, 0.0f).xyz, tone_0.bloom_0.y) / 12.0f;
+
+#line 33
+            i_0 = i_0 + 1U;
+
+#line 33
+            hdr_1 = glow_0;
+
+#line 33
+        }
+
+#line 33
+        hdr_1 = NexoraApplyBloom_0(hdr_0, hdr_1, tone_0.bloom_0.x);
 
 #line 26
     }
@@ -118,11 +197,33 @@ float4 toneFragmentMain(ToneVertex_0 input_0) : SV_TARGET
     {
 
 #line 26
-        color_3 = color_2;
+        hdr_1 = hdr_0;
 
 #line 26
     }
-    return float4(color_3, 1.0f);
+
+#line 39
+    float3 color_4 = saturate(NexoraApplyColorGrade_0(NexoraAcesApproximate_0(hdr_1 * tone_0.settings_0.x), float3((int3)int(0)), float3((int3)int(1)), tone_0.settings_0.z, tone_0.settings_0.w));
+
+#line 39
+    float3 color_5;
+    if((tone_0.settings_0.y) > 0.5f)
+    {
+
+#line 40
+        color_5 = NexoraLinearToSrgb_0(color_4);
+
+#line 40
+    }
+    else
+    {
+
+#line 40
+        color_5 = color_4;
+
+#line 40
+    }
+    return float4(color_5, 1.0f);
 }
 
 )NEXORA_TONE";

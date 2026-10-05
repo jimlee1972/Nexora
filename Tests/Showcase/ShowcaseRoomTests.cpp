@@ -3,6 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 using nexora::showcase::RoomSession;
 using Nexora::Window::Key;
@@ -58,13 +59,14 @@ int main() {
   for (const auto index : wide.indices)
     assert(index < wide.vertices.size());
   assert(wide.pbr);
-  assert(wide.materials.size() == 6 && !wide.batches.empty());
+  assert(wide.materials.size() == 30 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   std::size_t covered = 0;
-  std::array<bool, 6> selectedMaterials{};
+  std::vector<bool> selectedMaterials(wide.materials.size());
   for (const auto &batch : wide.batches) {
     assert(batch.firstIndex == covered && batch.firstInstance == 0 && batch.instanceCount == 1);
     covered += batch.indexCount;
+    assert(batch.materialIndex < selectedMaterials.size());
     selectedMaterials[batch.materialIndex] = true;
   }
   assert(covered == wide.indices.size());
@@ -90,7 +92,11 @@ int main() {
   assert(courtyard.Scene(1280, 720).environment);
   assert(courtyard.Report().find("\"environment_loaded\":true") != std::string::npos);
 #endif
-  assert(wide.hdr && wide.offscreen && wide.exposure == 1);
+  assert(wide.hdr && wide.offscreen && wide.exposure == 1 && wide.bloom);
+  Press(courtyard, Key::K);
+  assert(!courtyard.Scene(1280, 720).bloom);
+  Press(courtyard, Key::K);
+  assert(courtyard.Scene(1280, 720).bloom);
   assert(wide.shadow && wide.lightingStyle && wide.shadow->resolution == 1024);
   Press(courtyard, Key::F6);
   assert(!courtyard.Scene(1280, 720).shadow);
@@ -140,7 +146,8 @@ int main() {
   assert(courtyard.Report().find("\"representative_asset_loaded\":true") != std::string::npos);
   assert(courtyard.Report().find("\"adopted_mesh_count\":3") != std::string::npos);
   const auto adopted = courtyard.Scene(1280, 720);
-  assert(adopted.textureId == 2 && adopted.textureUploads.size() == 1);
+  assert(adopted.textureId == 2 && adopted.textureUploads.size() == 7);
+  assert(adopted.materials[0].normalTextureId == 11 && adopted.materials[1].ormTextureId == 15);
   assert(adopted.textureUploads[0].pixels.size() == 64 * 64 * 4);
 #endif
   session.RerunProbe(0, nexora::showcase::ErrorInjection::DependencyCycle);
