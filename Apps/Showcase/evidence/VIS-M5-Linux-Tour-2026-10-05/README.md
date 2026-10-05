@@ -12,3 +12,8 @@ Build 1460 exposed a capture race: inequality against the UI frame accepted chan
 text before F4 had reached the presented frame. The clean baseline now requires three consecutive
 identical native images before the unchanged exact comparisons run. Supplemental full Linux
 configure/build/CTest passes 97/97 (46.55s), preserving every effect/restoration assertion.
+
+Build 1465 hit the same asynchronous F4 baseline race in Windows Shipping. The Windows
+acceptance script now also waits for three identical presented images and independently requires
+the resulting baseline to differ from the UI image; exact effect/replay assertions remain.
+Supplemental Linux full gate: 97/97 PASS, 40.06s. Windows execution is left to exact-head CI.
