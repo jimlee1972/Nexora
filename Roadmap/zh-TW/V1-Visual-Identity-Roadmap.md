@@ -510,3 +510,13 @@ Unlit／Lambert 拒絕此旗標。私有材質 float 79 使用保留欄位，400
 ✅ Linux Development configure／build 與 97/97 測試通過（106.20 秒），包含啟用 Khronos core／同步驗證的 89 個原生 PBR 畫面。四個薄片案例保留預設背面行為，啟用後正反面顏色精確一致；CPU 驗證 slot 79，拒絕 unlit／Lambert 組合。原生幾何預算與風／暫停／重播互動通過；Shipping／Full 隔離套件原生驗收與實際 100.33 秒影片（實際錄製 100.79 秒）通過；最終參考圖／目標驗收仍未完成。
 
 證據：[VIS-Two-Sided-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05)。來源凍結 `248791c4b51a`，保留確切來源與套件雜湊。
+
+
+庭院瀑布與山壁共用定位資料，讓水流幾何位於支撐岩壁前方，且可從廣角拱門開口看見。
+薄水片背光透射跟隨既有 M 比較；流動帶保留共用暫停／重播時鐘。左側柏樹移至太陽
+下方的拱門開口，保留風與透明遮罩受光。遠景山脊網格由 16×64 提高為 24×96；不新增
+貼圖、shader packet 或穩定 ABI。最終參考圖／目標驗收仍未完成。
+
+✅ Linux Development configure／build 與 97/97 測試通過（103.28 秒），啟用 Khronos core／同步驗證，包含 89 個原生 PBR 畫面與三種品質幾何預算。啟動裝置的 Standard 畫面為 55,382 頂點、2,052 張來源植被卡片；風／水流與精確暫停重播仍通過。Shipping／Full 隔離套件原生驗收與實際 100.20 秒影片（實際錄製 100.85 秒）通過；最終參考圖／目標驗收仍未完成。
+
+證據：[VIS-Courtyard-Valley-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05)。來源凍結 `c815263b5f87`，保留確切來源與套件雜湊。

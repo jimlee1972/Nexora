@@ -1116,3 +1116,15 @@ through a negative view cosine. This is sheet lighting, not a thick-material vol
 ✅ Linux Development configure/build and all 97 tests pass (106.20 seconds), including 89 native PBR frames with Khronos core/synchronization validation. Four sheet fixtures retain default rear-face behavior and reproduce the front-facing colors exactly when enabled; CPU rejects unlit/Lambert use and verifies slot 79. All native geometry budgets and wind/pause/replay interactions pass. Shipping/Full isolated native acceptance and an actual 100.33-second movie (100.79-second wall time) pass; final reference/target acceptance remains open.
 
 Evidence: [VIS-Two-Sided-Linux-2026-10-05](/Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05). Production freeze `248791c4b51a`; exact source and package hashes are retained.
+
+
+The courtyard waterfall ribbons now share authored cliff sites, keeping their geometry in
+front of the supporting rock and visible through the wide camera's arch openings. Thin
+water-sheet transmission follows the existing M comparison; flowing ribbons retain the
+shared pause/replay clock. The left cypress is placed beneath the sun in the open arch and
+retains wind/alpha lighting. The distant ridge grid grows from 16×64 to 24×96; no new map,
+shader packet or stable ABI is introduced. Final reference/target acceptance remains open.
+
+✅ Linux Development configure/build and all 97 tests pass (103.28 seconds) with Khronos core/synchronization validation enabled, including 89 native PBR frames and all three geometry budgets. The activated Standard frame has 55,382 vertices and 2,052 source foliage quads; wind/flow and exact paused replay remain validated. Shipping/Full isolated native acceptance and an actual 100.20-second movie (100.85-second wall time) pass; final reference/target acceptance remains open.
+
+Evidence: [VIS-Courtyard-Valley-Linux-2026-10-05](/Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05). Production freeze `c815263b5f87`; exact source and package hashes are retained.
