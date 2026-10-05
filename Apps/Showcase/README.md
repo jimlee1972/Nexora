@@ -60,13 +60,20 @@ orbit and wheel zoom remain available. Re-entering the courtyard resets the wide
 still completes, but submits no UI draw while hidden. Press `F4` again to restore the controls.
 The eight-room V1 tour remains available through `T`.
 
+The courtyard now adopts three CC0 KayKit meshes (decorated pillars, broken paving and rubble)
+and its gradient atlas. Their pinned originals, license, hashes and inventory ship under
+`Content/Showcase/Courtyard`; `PrepareCourtyardAssets.py --check` verifies deterministic bounded
+conversion. Converted authoring payloads are imported, cooked, bundled and loaded from an owning
+Runtime generation before their geometry/UVs/texels are submitted. The 64x64 area-filtered palette
+atlas is a baseline texture, not detailed PBR maps.
+
 The crystal placeholder uses the original mesh read from the active Import → Cook → Bundle →
 Runtime generation when the asset pipeline is enabled; disabled builds use an explicit procedural
 cube fallback and report `representative_asset_loaded=false`. Reports retain the fixed-shot index,
 UI visibility and representative asset hash. Geometry/report snapshots retain existing ownership.
 
-This is an engineering greybox with one basic sandstone-colored material. Three camera framings
-prepare later demonstrations; PBR, real shadows, emission, wind and finished third-party art remain
+This remains an engineering blockout with one basic sandstone-colored material. Three camera framings
+prepare later demonstrations; PBR, real shadows, emission, wind and finished art integration remain
 pending. See the [visual roadmap](../../Roadmap/en/V1-Visual-Identity-Roadmap.md) and
 [blockout inventory](content/Courtyard-Greybox.md). Native baseline capture and VIS-M0 acceptance
 are tracked separately from final target-hardware visual/performance acceptance.
@@ -352,3 +359,18 @@ display and clean-host attestations false. A missing desktop or failed native ru
 ✅ [Hosted execution acceptance](evidence/V1-Windows-Vulkan-Lavapipe-CI-2026-10-04/acceptance.md)
 passes 14 checksums, 25 screenshots, nine interaction checks and a 210.006-second tour. The rc.4
 tag Build/Release pass and the unpublished draft has 17 assets. Additional physical-GPU coverage remains open. Release bundles retain Vulkan evidence separately in `windows-vulkan-acceptance.tar.gz`.
+
+## Native performance baseline
+
+`--clean-view` starts with every diagnostic UI draw hidden; `F4` can restore it. Native reports
+include `render_settings` and `performance`: actual viewport/present mode, 60 warm-up frames, a
+bounded window of the latest 18,000 samples, average FPS and nearest-rank P95/P99 frame time.
+Frame durations include acquisition/presentation and pacing. Separate process-wide user+kernel
+CPU deltas include all threads (including software GPU work); peak resident/working-set bytes are
+host observations. GPU timestamp data and refresh-rate metadata remain explicitly unavailable.
+Headless/short runs report INSUFFICIENT_SAMPLES rather than inventing native FPS.
+
+Run `Tests/Showcase/LinuxCourtyardBenchmark.py EXECUTABLE --output EVIDENCE_DIR` for three
+360-frame fixed-wide-camera Vulkan runs at 1280x720 with immediate presentation and hidden UI.
+Keep other tests/builds idle during measurement. The native backend/software flag and BuildInfo
+are retained with each run; Xvfb/lavapipe results do not establish the proposed GTX 960 budget.

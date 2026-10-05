@@ -116,3 +116,18 @@ Poly Haven 也作為石材、陶瓷、植被與 HDRI 的免費來源；已從官
 - 每項採用素材保留來源、作者、明確授權、版本、hash、改作紀錄、再散布條件與替換方案；
   原始素材與 cooked 產物分開保存。
 - 美術方向已確認；正式採用、完整盤點、美術品質、流程整合與七個 VIS 里程碑仍待驗收。
+
+## Adoption update / 採用更新 — 2026-10-05
+
+✅ The three pinned pillar/paving/rubble GLBs and included palette PNG are now adopted for VIS-M0.
+Unmodified sources, CC0 license and per-file inventory ship under `Content/Showcase/Courtyard`.
+The bounded deterministic converter preserves mesh streams and area-filters the palette to 64x64;
+all four converted payloads pass Import → Cook → Bundle → Runtime and contribute native pixels.
+The doorway candidate and surface-detail PBR maps remain unadopted. The earlier research-only
+status describes 2026-10-04; this update is the current adoption status.
+
+✅ 三個固定版本石柱／地磚／碎石 GLB 與隨附 palette PNG 已正式採用於 VIS-M0。
+原始來源、CC0 授權與逐檔 inventory 隨套件提供；受限 deterministic converter 保留
+網格 streams，貼圖 area filtering 成為 64x64。四個 payload 經 Import → Cook → Bundle →
+Runtime 實際呈現於原生畫面。門洞候選與細節 PBR maps 尚未採用；先前僅研究狀態為
+2026-10-04 的紀錄，本節為目前採用狀態。
