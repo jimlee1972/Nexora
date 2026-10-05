@@ -48,10 +48,11 @@ namespace Nexora::Presentation {
     }
   }
   for (const auto &material : draw.materials)
-    if (material.reflectionRole != SceneReflectionRole::None &&
-        (!draw.planarReflection ||
-         (material.reflectionRole == SceneReflectionRole::ReflectedGeometry &&
-          material.castsShadow)))
+    if ((material.opacity < 1 && (!draw.hdr || material.castsShadow)) ||
+        (material.reflectionRole != SceneReflectionRole::None &&
+         (!draw.planarReflection ||
+          (material.reflectionRole == SceneReflectionRole::ReflectedGeometry &&
+           material.castsShadow))))
       return false;
   if (!draw.pbr)
     for (const auto &material : draw.materials)
@@ -180,10 +181,10 @@ template <typename Lookup>
          resolveLevels(draw.environment->brdfTextureId) == 1;
 }
 
-// Matches MaterialConstants in scene_pbr.slang: eighteen float4s, independent of native UBO
+// Matches MaterialConstants in scene_pbr.slang: nineteen float4s, independent of native UBO
 // alignment.
-using PbrMaterialUpload = std::array<float, 72>;
-static_assert(sizeof(PbrMaterialUpload) == 288);
+using PbrMaterialUpload = std::array<float, 76>;
+static_assert(sizeof(PbrMaterialUpload) == 304);
 [[nodiscard]] inline PbrMaterialUpload PackPbrMaterial(const SceneDrawData &draw,
                                                        const SceneMaterial &material,
                                                        bool manualSrgbTransfer,
@@ -241,6 +242,9 @@ static_assert(sizeof(PbrMaterialUpload) == 288);
       std::copy(packed.begin(), packed.end(), parameters.begin() + 64 + i * 4);
     }
   }
+  parameters[72] = material.opacity;
+  std::copy(material.transparencyTint.begin(), material.transparencyTint.end(),
+            parameters.begin() + 73);
   return parameters;
 }
 } // namespace Nexora::Presentation

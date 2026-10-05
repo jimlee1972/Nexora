@@ -189,6 +189,8 @@ struct SceneMaterial final {
   bool unlit{};           // PBR emission-only path; retains alpha cutout and common color output.
   bool castsShadow{true}; // Exclude non-casters from the protecting-frame prepass.
   SceneReflectionRole reflectionRole{}; // Horizontal planar mirror mask; opt-in PBR only.
+  float opacity{1}; // Linear HDR blend coverage; below 1 requires non-casting HDR PBR.
+  std::array<float, 3> transparencyTint{1, 1, 1}; // Linear attenuation of the transmitted scene.
 };
 
 [[nodiscard]] inline bool ValidateSceneMaterials(std::span<const SceneMaterial> materials,
@@ -211,7 +213,11 @@ struct SceneMaterial final {
     if (!std::isfinite(material.normalScale) || material.normalScale < 0 ||
         material.normalScale > 4)
       return false;
-    for (const auto value : {material.alphaCutoff, material.transmissionThickness})
+    for (const auto value :
+         {material.alphaCutoff, material.transmissionThickness, material.opacity})
+      if (!std::isfinite(value) || value < 0 || value > 1)
+        return false;
+    for (const float value : material.transparencyTint)
       if (!std::isfinite(value) || value < 0 || value > 1)
         return false;
     if (!std::isfinite(material.windAmplitude) || material.windAmplitude < 0 ||

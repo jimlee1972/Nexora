@@ -30,6 +30,7 @@ struct MaterialConstants
   float4 reflection; // horizontal height, role, Fresnel F0, ellipse count
   float4 reflectionRegion0; // center x/z, radius x/z
   float4 reflectionRegion1;
+  float4 transparency; // coverage, linear RGB transmission attenuation
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
 [[vk::binding(0, 0)]] Sampler2D<float4> baseMap : register(t0);
@@ -141,7 +142,7 @@ float shadowVisibility(float3 position, float3 normal, float3 light) {
 float4 outputSceneColor(float3 color, float3 worldPosition)
 {
   if (material.properties.w > 0.5)
-    return float4(clamp(color, float3(0), float3(65504)),
+    return float4(clamp(color * material.transparency.x, float3(0), float3(65504)),
         min(65504.0, length(worldPosition - material.cameraPosition.xyz)));
   color = NexoraAcesApproximate(color);
   if (material.cameraPosition.w > 0.5)
