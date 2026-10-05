@@ -314,6 +314,9 @@ Windows native candidate contract 現重複 100/125/150/200% scale round trip，
 確認隱藏 candidate 與 frame 結束後均不可更新位置。Target-host 執行結果與
 實體顯示器／installed-IME 證據仍須驗收。
 
+✅ Synthetic input fixture 明確採用 portable Ctrl 語意；Undo／Redo 另以 native macOS
+Cmd／Super 行為驗證。Production 保留平台原生的 ImGui input policy。
+
 1. Clean tree 執行 §6 完整 Linux gate。WP1/WP3 更動 linkage/API boundary，因此也跑 `linux-shipping`。
 2. Real X11 display 執行 launch、font/text 可見、Hierarchy selection、docking、各類 input、resize/
    minimize/restore、recovery checklist；記錄 command、commit、backend/device、result、artifact location。

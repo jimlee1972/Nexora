@@ -72,7 +72,7 @@ int main() {
     editor::imgui::EditorImGuiHost ui;
     ui.SetDisplay(1280, 900, 1);
     using Access = editor::imgui::EditorImGuiTestAccess;
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focused;
     focused.type = Nexora::Window::WindowEventType::FocusChanged;
     focused.value0 = 1;

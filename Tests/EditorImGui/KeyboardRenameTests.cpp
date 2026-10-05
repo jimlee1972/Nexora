@@ -42,7 +42,7 @@ struct Fixture final {
     sentinel = scene.Create("Redo sentinel");
     Require(sentinel && scene.Undo(), "Redo setup failed");
     ui.SetDisplay(1280, 900, scale);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Focus(true);
     for (int i = 0; i < 4; ++i)
       Draw();

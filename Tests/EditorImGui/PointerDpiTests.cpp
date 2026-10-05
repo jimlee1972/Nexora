@@ -28,7 +28,7 @@ int main() {
   try {
     using namespace nexora::editor;
     imgui::EditorImGuiHost host;
-    imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+    imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;
@@ -94,7 +94,7 @@ int main() {
     imgui::EditorImGuiHost gesture;
     gesture.SetDisplay(1280, 720, 1);
     gesture.SetNativeScenePreview(true);
-    imgui::EditorImGuiTestAccess::SetInputTrickle(gesture, false);
+    imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(gesture);
     focus.value0 = 1;
     gesture.ProcessEvents(std::array{focus});
     const auto draw_gesture = [&] {

@@ -51,7 +51,7 @@ struct Fixture final {
             "Play failed");
     baseline = world.SaveScene(scene_id);
     ui.SetDisplay(1280, 900, 1);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;

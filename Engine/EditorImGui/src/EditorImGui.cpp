@@ -5036,9 +5036,12 @@ std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHos
   return host.state_->selector_root.data();
 }
 
-void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept {
+void EditorImGuiTestAccess::ConfigureSyntheticInput(EditorImGuiHost &host,
+                                                    bool macos_behaviors) noexcept {
   Activate(host.state_->context);
-  ImGui::GetIO().ConfigInputTrickleEventQueue = enabled;
+  auto &io = ImGui::GetIO();
+  io.ConfigInputTrickleEventQueue = false;
+  io.ConfigMacOSXBehaviors = macos_behaviors;
 }
 
 std::optional<std::array<float, 2>>

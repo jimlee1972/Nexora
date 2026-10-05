@@ -344,6 +344,9 @@ logs. The Windows native candidate contract now repeats 100/125/150/200% scale r
 and checks that hidden candidates and ended frames cannot update placement. Target-host run
 results and physical-display/installed-IME evidence remain required.
 
+✅ Synthetic input fixtures explicitly choose portable Ctrl semantics; undo/redo additionally runs
+with native macOS Cmd/Super behavior enabled. Production keeps the platform's ImGui input policy.
+
 1. Run the full Linux gate listed in §6 with a clean tree. Because WP1/WP3 alter linkage/API
    boundaries, run `linux-shipping` too.
 2. Under a real X11 display, run a scripted/manual checklist covering launch, visible font/text,

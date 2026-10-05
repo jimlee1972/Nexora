@@ -56,7 +56,7 @@ struct Fixture final {
                 scene.Save(Path()),
             "Source value fixture failed");
     ui.SetDisplay(1600, 1200, scale);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;

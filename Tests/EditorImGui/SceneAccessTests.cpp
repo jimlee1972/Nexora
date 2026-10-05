@@ -50,7 +50,7 @@ struct Fixture final {
             "Redo setup failed");
     baseline = world.SaveScene(scene_id);
     ui.SetDisplay(1280, 900, 1);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent event;
     event.type = Nexora::Window::WindowEventType::FocusChanged;
     event.value0 = 1;

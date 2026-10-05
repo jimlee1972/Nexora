@@ -160,7 +160,7 @@ int main() {
     draw();
     Require(Access::InspectorMeshLabel(ui) != "Mixed", "different materials mixed the mesh label");
     Require(scene.Save(path), "assigned batch save failed");
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;
