@@ -1,5 +1,12 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+MSVC 編譯修正：前景植被區域變數改名 `sprigRadius`，避免 /WX 下遮蔽相機成員。
+標準化變數名稱後的來源逐位元比較相同，計算式與數值不變。✅ Linux configure／build
+與完整 97/97 通過（102.71 秒），包含 85 個原生 PBR 畫面與 core／同步驗證。
+證據位於 `VIS-Courtyard-Masonry-Linux-2026-10-05/msvc-member-shadowing/`；既有 Shipping／影片
+保留原本來源凍結，Windows CI 重新驗證中。
+
+
 > 版本：v0.2
 >
 > 日期：2026-10-04
