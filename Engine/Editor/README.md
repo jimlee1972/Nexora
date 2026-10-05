@@ -491,6 +491,16 @@ without truncating/removing them, and replaces with native Windows replace or PO
 never deletes the original destination to retry. This checks paths at operation time; it does not
 lock against concurrent external filesystem edits.
 
+`SceneFileSession::SynchronizeContent` borrows the current same-root Content session for one
+authoring-thread call. Bind before Content mutations; refresh after them. A loaded Content scene
+tracks its asset UUID and project generation through rename, move and Content Undo. Only an existing
+regular managed `.scene` destination can replace its path; document generations, World, selection,
+dirty state and Undo/Redo stay unchanged. Deleted, missing, unsafe or stale tracked assets protect
+ordinary Save and startup recording. Restoring the same UUID unblocks Save; another UUID at the
+old filename cannot adopt the document. New/Open or adopting a Save As destination resets the
+association; ordinary Save retains it. Read-only
+sessions may track paths but still cannot write. Bootstrap load protection remains independent.
+
 `ContentBrowserModel::Discover` publishes one already-saved owning item without recording a content
 edit. It rejects duplicate ID/path, including collisions in the retained Undo snapshot, preserves
 folder/filter/selection, and carries the new item into that snapshot so an earlier content Undo cannot
@@ -503,6 +513,10 @@ persistent index and updates only that scene entry after successful import. Inde
 with portable separators; filesystem consumers convert explicitly to native paths. Importing a saved
 source remains separate from committing the scene document; a later import failure does not roll
 back a successful save.
+After a Content move, a saved scene may retarget its same-UUID stale index entry only if both old
+source and sidecar are absent and its importer type is `.scene`. Existing sources/aliases/sidecars
+and other importer types remain collisions. Publication replaces stale ID/path entries atomically
+in memory and keeps other geometry; no directory scan or unrelated source read is introduced.
 
 `SceneFileSession::RestoreStartup` bootstraps before `RememberCurrent`, returning `NeedsPath` for
 absent metadata and using normal atomic Open for an associated scene. It never discards a dirty
@@ -510,7 +524,10 @@ document. The bounded 1100-byte binary metadata contains schema, project UUID an
 scene path; reading revalidates canonical scope and rejects metadata directory/file aliases.
 Rejected settings or source loads protect the original record for the session. The caller may
 fall back to Main without replacing it. Recording requires the live token, initialized startup state,
-write access, no recovery journal, and a clean, unblocked associated file. It never records Untitled,
+write access, no recovery journal, and an unblocked associated file. Ordinary dirty documents cannot
+be recorded; a validated same-UUID Content relocation may update its committed filename while
+retaining dirty World/history. The relocation exception is consumed only after successful metadata
+commit and resets on document/path adoption. It never records Untitled,
 New or failed scene operations. A record is a separate atomic commit with the same original/temp
 preservation as scene writes; its failure leaves the World, scene save, path and Undo/Redo intact.
 The application warns after an independent recording failure and still permits successful Save and

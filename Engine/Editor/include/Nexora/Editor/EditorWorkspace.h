@@ -150,6 +150,7 @@ public:
   // Reads only one already-saved .scene and its sidecar in this initialized Content index.
   // Bounds source bytes at 64 MiB, preserves other entries/geometry, and checks IDs against the
   // current in-memory index. No directory scan, OBJ parsing, GPU work, or project-wide refresh.
+  // A moved scene UUID retargets its stale entry only when both old source and sidecar are absent.
   bool ImportSavedScene(const std::filesystem::path &relative_path, std::string *error = nullptr);
   [[nodiscard]] static std::filesystem::path
   IdentitySidecar(const std::filesystem::path &asset_path);
