@@ -1465,9 +1465,9 @@ struct RoomSession::State final {
          {std::array{-5.0F, 5.3F}, std::array{5.4F, 5.9F}, std::array{-7.8F, -1.8F}})
       for (unsigned sprig = 0; sprig < 96; ++sprig) {
         const float angle = sprig * 2.399963F;
-        const float radius = 1.3F * std::sqrt((sprig + 0.5F) / 96);
-        LeafQuad({bank[0] + radius * std::cos(angle), 0.15F + 0.25F * (1 - radius / 1.3F),
-                  bank[1] + radius * std::sin(angle)},
+        const float sprigRadius = 1.3F * std::sqrt((sprig + 0.5F) / 96);
+        LeafQuad({bank[0] + sprigRadius * std::cos(angle), 0.15F + 0.25F * (1 - sprigRadius / 1.3F),
+                  bank[1] + sprigRadius * std::sin(angle)},
                  0.22F + (sprig % 4) * 0.035F, 0.45F + (sprig % 5) * 0.08F, angle);
       }
     finish(5);

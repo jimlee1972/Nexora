@@ -1,5 +1,12 @@
 # Nexora
 
+MSVC compiler follow-up: foreground sprigs use `sprigRadius` to avoid camera-member
+shadowing under /WX. Exact source comparison after identifier normalization is unchanged.
+✅ Linux configure/build and full 97/97 pass (102.71 seconds), including 85 native PBR
+frames with core/sync validation. Evidence: `VIS-Courtyard-Masonry-Linux-2026-10-05/msvc-member-shadowing/`.
+Existing Shipping/movie keep their recorded production freeze; Windows CI recheck is pending.
+
+
 > Open-source cross-platform 3D engine architecture and roadmap  
 > 開源跨平台 3D 引擎架構與 Roadmap
 
