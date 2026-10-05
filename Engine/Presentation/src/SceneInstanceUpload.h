@@ -90,7 +90,7 @@ inline bool PackSceneInstance(const SceneInstance &instance, SceneInstanceUpload
     const double determinant = AffineDeterminant(m);
     if (!std::isfinite(determinant) || determinant == 0)
       return false;
-    handedness = determinant < 0 ? -1 : 1;
+    handedness = determinant < 0 ? -1.0F : 1.0F;
     for (std::size_t row = 0; row < 3; ++row)
       for (std::size_t column = 0; column < 4; ++column) {
         packed.model[row][column] = m[row * 4 + column];
@@ -110,8 +110,9 @@ inline bool PackSceneInstance(const SceneInstance &instance, SceneInstanceUpload
     }
     if (std::abs(length - 1.0F) > 0.01F)
       return false;
-    handedness =
-        ((instance.scale[0] < 0) ^ (instance.scale[1] < 0) ^ (instance.scale[2] < 0)) ? -1 : 1;
+    handedness = ((instance.scale[0] < 0) ^ (instance.scale[1] < 0) ^ (instance.scale[2] < 0))
+                     ? -1.0F
+                     : 1.0F;
     const double x = instance.rotation[0], y = instance.rotation[1], z = instance.rotation[2],
                  w = instance.rotation[3];
     const double rotation[3][3]{

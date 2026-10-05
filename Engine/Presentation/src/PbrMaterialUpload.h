@@ -64,7 +64,7 @@ static_assert(sizeof(PbrMaterialUpload) == 64);
                                                        bool manualSrgbTransfer) noexcept {
   PbrMaterialUpload parameters{};
   std::copy(draw.cameraPosition.begin(), draw.cameraPosition.end(), parameters.begin());
-  parameters[3] = manualSrgbTransfer ? 1 : 0;
+  parameters[3] = manualSrgbTransfer ? 1.0F : 0.0F;
   std::copy(material.baseColor.begin(), material.baseColor.end(), parameters.begin() + 4);
   std::copy(material.emission.begin(), material.emission.end(), parameters.begin() + 8);
   parameters[11] = material.roughness;

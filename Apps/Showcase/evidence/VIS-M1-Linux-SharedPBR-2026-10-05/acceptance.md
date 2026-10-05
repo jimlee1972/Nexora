@@ -34,3 +34,9 @@ consumers rebuild; Runtime mesh serialization and stable C/Zig ABI are unchanged
 RGBA8 targets and manual color decoding after sampling are the current boundary. Hardware sRGB
 views/linear filtering, IBL, floating-point HDR, final reflections/art, shadows, motion, tour and
 final performance/visual acceptance remain open.
+
+MSVC portability follow-up: Windows CI rejected three implicit int-to-float ternaries under
+`/WX`. Explicit float constants preserve the exact values and byte packing. The full Linux
+Development gate passed 92/92 without skips after this correction (36.90 seconds); see
+`ctest-msvc-portability.log` and the two updated header hashes in `msvc-portability-hashes.json`.
+Original captures and benchmark artifacts retain their original source hashes.
