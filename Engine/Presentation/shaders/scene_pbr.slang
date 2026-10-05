@@ -20,6 +20,11 @@ struct MaterialConstants
   float4 emissionRoughness; // xyz linear emission factor; w perceptual roughness
   float4 properties;    // x metallic; y AO; z normal scale; w linear HDR output
   float4 environment;   // x intensity; y rotation radians; z maximum prefilter LOD; w reserved
+  row_major float4x4 lightViewProjection;
+  float4 shadowSettings; // normal bias, slope bias, inverse resolution (zero disables), UV Y sign
+  float4 shadowTint; // w enables stylized tone
+  float4 lightTint;
+  float4 ramp; // offset, scale, softness
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
 [[vk::binding(0, 0)]] Sampler2D<float4> baseMap : register(t0);
@@ -29,6 +34,7 @@ struct MaterialConstants
 [[vk::binding(5, 0)]] Sampler2D<float4> diffuseEnvironment : register(t4);
 [[vk::binding(6, 0)]] Sampler2D<float4> specularEnvironment : register(t5);
 [[vk::binding(7, 0)]] Sampler2D<float4> brdfIntegration : register(t6);
+[[vk::binding(8, 0)]] Sampler2D<float4> directionalShadow : register(t7);
 
 float2 environmentUv(float3 direction) {
   float angle = atan2(direction.z, direction.x) + material.environment.y;
@@ -92,6 +98,27 @@ VertexOutput pbrVertexMain(VertexInput input)
   return output;
 }
 [shader("fragment")]
+float4 shadowFragmentMain(VertexOutput input) : SV_Target {
+  return float4(input.position.z, 0, 0, 1);
+}
+float shadowVisibility(float3 position, float3 normal, float3 light) {
+  if (material.shadowSettings.z == 0) return 1;
+  float4 projected = mul(material.lightViewProjection, float4(position, 1));
+  if (projected.w <= 0) return 1;
+  float3 ndc = projected.xyz / projected.w;
+  float2 uv = ndc.xy * float2(0.5, 0.5 * material.shadowSettings.w) + 0.5;
+  if (any(uv < 0) || any(uv > 1) || ndc.z < 0 || ndc.z > 1) return 1;
+  float2 step = float2(material.shadowSettings.z * 0.5);
+  float4 depths = float4(
+    directionalShadow.SampleLevel(uv + float2(-step.x, -step.y), 0).r,
+    directionalShadow.SampleLevel(uv + float2(step.x, -step.y), 0).r,
+    directionalShadow.SampleLevel(uv + float2(-step.x, step.y), 0).r,
+    directionalShadow.SampleLevel(uv + step, 0).r);
+  float receiver = NexoraApplyShadowBias(ndc.z, material.shadowSettings.x,
+      material.shadowSettings.y, saturate(dot(normal, light)));
+  return NexoraEvaluatePcf4(receiver, depths, 0);
+}
+[shader("fragment")]
 float4 pbrFragmentMain(VertexOutput input) : SV_Target
 {
   float3 n = NexoraSafeNormalize(input.normal);
@@ -125,8 +152,20 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
     environment.brdfLut = brdfIntegration.SampleLevel(
         float2(saturate(dot(n, viewDirection)), roughness), 0).rg;
   }
-  float3 color = NexoraEvaluatePbr(surface, viewDirection,
-                                 -scene.lightDirection.xyz, scene.lightColor.rgb, environment);
+  float3 light = geometryDirection(-scene.lightDirection.xyz);
+  float visibility = shadowVisibility(input.worldPosition, geometryDirection(surface.normal), light);
+  float3 direct = NexoraEvaluateDirectBrdf(surface.normal, viewDirection, light,
+      surface.baseColor, surface.metallic, surface.roughness, scene.lightColor.rgb);
+  float3 ambient = NexoraEvaluatePbrIbl(surface.normal, viewDirection, surface.baseColor,
+      surface.metallic, surface.roughness, surface.ao, environment);
+  if (material.shadowTint.w > 0.5) {
+    float ramp = NexoraEvaluateStylizedRamp(saturate(dot(geometryDirection(surface.normal), light)),
+        material.ramp.x, material.ramp.y, material.ramp.z);
+    direct = NexoraApplyStylizedResponse(direct, ramp, material.shadowTint.rgb,
+        material.lightTint.rgb, 1, 1);
+    ambient = NexoraApplyShadowTint(ambient, visibility, material.shadowTint.rgb);
+  }
+  float3 color = direct * visibility + ambient + max(surface.emission, float3(0));
   if (material.properties.w > 0.5)
     return float4(clamp(color, float3(0), float3(65504)), 1);
   color = NexoraAcesApproximate(color);

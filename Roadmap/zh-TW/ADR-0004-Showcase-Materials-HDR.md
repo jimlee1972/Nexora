@@ -47,3 +47,8 @@ Runtime bundle 中的來源／授權／轉換 metadata 相依、七個原生取�
 公開 C++ consumer 必須重建；NXAB 與穩定 C／Zig schema 不變。後續 HDR slice 加入可選 RGBA16F frame target 與 GPU 曝光／ACES／顯示轉換，先合成再疊 UI。
 外部 graph 使用真實浮點格式與 ShaderRead transition；獨立原生 RHI triangle allocator 仍明確拒絕浮點 target。
 bloom 屬於 VIS-M3。
+
+VIS-M2 延伸仍由 Presentation 擁有陰影資源：每個 protecting frame 管理 R32Float 正規化深度
+色彩貼圖與 D32Float 可見性 target。共享 Slang 處理投影、四點 PCF、bias、ramp 與 tint。
+Main 增加一張採樣貼圖，私有封包增至 208 bytes；DX12 成對的 512-byte constant slot 仍容納得下。
+公開 C++ 的可選陰影／風格描述在錄製前進行有界驗證，穩定 wire／schema 不變。

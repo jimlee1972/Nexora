@@ -255,3 +255,16 @@ Windows Vulkan package replay and Shipping packaging require the exact PR head C
 acceptance. Evidence is retained under `Apps/Showcase/evidence/VIS-M1-Linux-HDR-2026-10-05`.
 This slice does not accept bloom, final art, physical visuals or the GTX 960 budget. VIS-M1 remains
 open until cross-platform acceptance; milestone progress is still 1/7.
+
+## 17. VIS-M2 directional shadows and tonal separation (2026-10-05)
+
+✅ Linux native PBR records a directional shadow prepass into frame-owned R32Float/D32Float
+resources and applies shared four-tap PCF, normal/slope bias, stylized ramp and shadow/light tint.
+The 30-submission pixel oracle covers horizontal/vertical caster movement, partial PCF edges,
+map resolution/reuse, camera/resize changes, disabled shadows and styled/neutral light.
+F6/G/brackets expose bounded comparisons; exact fixed-camera restoration is tested.
+✅ Linux Development full gate passes 95/95 without skips. The private packet grows to 208 bytes
+and main binds eight sampled maps; stable C/Zig and persistent content schemas remain unchanged.
+Evidence: `Apps/Showcase/evidence/VIS-M2-Linux-Shadows-2026-10-05`. Windows DX12/Metal execution
+and Windows Vulkan package replay require exact-head CI; fixed-route visual review and final
+hardware budget remain open. This Linux slice alone does not accept VIS-M2.

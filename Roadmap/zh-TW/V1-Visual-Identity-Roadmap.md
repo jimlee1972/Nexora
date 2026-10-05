@@ -246,3 +246,15 @@ C／Zig 與 NXAB 保持相容。
 Shipping 套件須以 PR 精確 head 的 CI 通過後才驗收里程碑。證據保留於
 `Apps/Showcase/evidence/VIS-M1-Linux-HDR-2026-10-05`。這批不代表 bloom、最終美術、實體畫面或 GTX 960
 效能通過；VIS-M1 等待跨平台驗收，進度仍為 1/7。
+
+## 17. VIS-M2 方向光陰影與明暗分離（2026-10-05）
+
+✅ Linux 原生 PBR 在 frame-owned R32Float／D32Float 資源執行方向光陰影 prepass，並套用共享
+四點 PCF、normal／slope bias、風格化 ramp 及陰影／光照色調。30 次提交的像素驗證涵蓋遮擋物
+水平／垂直移動、PCF 部分覆蓋邊緣、解析度／重用、相機／resize、關閉陰影與風格化／中性光照。
+F6／G／方括號提供有界對照，固定相機的精確還原也有測試。
+✅ Linux Development 全套 95/95、無 skip。私有材質封包增至 208 bytes、main 綁定八張採樣貼圖；
+穩定 C／Zig 與持久化內容 schema 保持相容。證據：
+`Apps/Showcase/evidence/VIS-M2-Linux-Shadows-2026-10-05`。Windows DX12／Metal 原生執行與 Windows
+Vulkan 套件重播須以精確 head CI 驗證；固定路徑視覺審查與最終硬體效能仍待驗收。
+僅這批 Linux 實作不代表 VIS-M2 完成。

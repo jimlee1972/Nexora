@@ -10,7 +10,34 @@ namespace Nexora::Presentation {
       (draw.hdr && (!draw.pbr || !draw.offscreen)))
     return false;
   if (!draw.pbr)
-    return draw.linearTextureUploads.empty() && !draw.environment;
+    return draw.linearTextureUploads.empty() && !draw.environment && !draw.shadow &&
+           !draw.lightingStyle;
+  if (draw.shadow) {
+    const auto &shadow = *draw.shadow;
+    if (!draw.offscreen ||
+        (shadow.resolution != 256 && shadow.resolution != 512 && shadow.resolution != 1024 &&
+         shadow.resolution != 2048) ||
+        !std::isfinite(shadow.normalBias) || shadow.normalBias < 0 || shadow.normalBias > 0.05F ||
+        !std::isfinite(shadow.slopeBias) || shadow.slopeBias < 0 || shadow.slopeBias > 0.05F)
+      return false;
+    for (const auto value : shadow.lightViewProjection)
+      if (!std::isfinite(value))
+        return false;
+  }
+  if (draw.lightingStyle) {
+    const auto &style = *draw.lightingStyle;
+    for (const auto value : style.shadowTint)
+      if (!std::isfinite(value) || value < 0 || value > 1)
+        return false;
+    for (const auto value : style.lightTint)
+      if (!std::isfinite(value) || value < 0 || value > 1)
+        return false;
+    if (!std::isfinite(style.rampOffset) || std::abs(style.rampOffset) > 2 ||
+        !std::isfinite(style.rampScale) || style.rampScale < 0 || style.rampScale > 4 ||
+        !std::isfinite(style.rampSoftness) || style.rampSoftness < 0.01F ||
+        style.rampSoftness > 0.5F)
+      return false;
+  }
   if (draw.linearTextureUploads.size() > 16)
     return false;
   for (std::size_t i = 0; i < draw.linearTextureUploads.size(); ++i) {
@@ -104,12 +131,14 @@ template <typename Lookup>
          resolveLevels(draw.environment->brdfTextureId) == 1;
 }
 
-// Matches MaterialConstants in scene_pbr.slang: five float4s, independent of native UBO alignment.
-using PbrMaterialUpload = std::array<float, 20>;
-static_assert(sizeof(PbrMaterialUpload) == 80);
+// Matches MaterialConstants in scene_pbr.slang: thirteen float4s, independent of native UBO
+// alignment.
+using PbrMaterialUpload = std::array<float, 52>;
+static_assert(sizeof(PbrMaterialUpload) == 208);
 [[nodiscard]] inline PbrMaterialUpload PackPbrMaterial(const SceneDrawData &draw,
                                                        const SceneMaterial &material,
-                                                       bool manualSrgbTransfer) noexcept {
+                                                       bool manualSrgbTransfer,
+                                                       bool shadowYDown = true) noexcept {
   PbrMaterialUpload parameters{};
   std::copy(draw.cameraPosition.begin(), draw.cameraPosition.end(), parameters.begin());
   parameters[3] = manualSrgbTransfer ? 1.0F : 0.0F;
@@ -125,6 +154,24 @@ static_assert(sizeof(PbrMaterialUpload) == 80);
     parameters[16] = draw.environment->intensity;
     parameters[17] = draw.environment->rotationRadians;
     parameters[18] = static_cast<float>(draw.environment->specularMipLevels - 1);
+  }
+  if (draw.shadow) {
+    std::copy(draw.shadow->lightViewProjection.begin(), draw.shadow->lightViewProjection.end(),
+              parameters.begin() + 20);
+    parameters[36] = draw.shadow->normalBias;
+    parameters[37] = draw.shadow->slopeBias;
+    parameters[38] = 1.0F / static_cast<float>(draw.shadow->resolution);
+    parameters[39] = shadowYDown ? -1.0F : 1.0F;
+  }
+  if (draw.lightingStyle) {
+    std::copy(draw.lightingStyle->shadowTint.begin(), draw.lightingStyle->shadowTint.end(),
+              parameters.begin() + 40);
+    std::copy(draw.lightingStyle->lightTint.begin(), draw.lightingStyle->lightTint.end(),
+              parameters.begin() + 44);
+    parameters[43] = 1;
+    parameters[48] = draw.lightingStyle->rampOffset;
+    parameters[49] = draw.lightingStyle->rampScale;
+    parameters[50] = draw.lightingStyle->rampSoftness;
   }
   return parameters;
 }

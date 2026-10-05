@@ -76,7 +76,7 @@ public:
     increment_ = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc{};
     dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-    dsvHeapDesc.NumDescriptors = frames_;
+    dsvHeapDesc.NumDescriptors = frames_ * 2;
     if (FAILED(device_->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsvHeap_))))
       return;
     dsvIncrement_ = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
@@ -401,8 +401,9 @@ public:
     // index data start after the bounded material palette (aligned constants per material),
     // so neither section can ever overlap regardless of how large the mesh grows.
     const std::size_t materialStride = drawData.pbr ? 512 : 256;
-    const std::size_t kGeometryOffset =
+    const std::size_t shadowOffset =
         std::max<std::size_t>(drawData.materials.size(), 1) * materialStride;
+    const std::size_t kGeometryOffset = shadowOffset + (drawData.shadow ? 256 : 0);
     const auto toneOffset = kGeometryOffset + instanceOffset + instanceBytes.size();
     const auto required = toneOffset + (drawData.hdr ? sizeof(toneVertices) : 0);
     toneOffsets_[frame_] = toneOffset;
@@ -422,6 +423,13 @@ public:
         std::memcpy(static_cast<std::byte *>(mapped) + slot * materialStride + 256,
                     parameters.data(), sizeof(parameters));
       }
+    }
+    if (drawData.shadow) {
+      std::array<float, 28> shadowConstants{};
+      std::copy(drawData.shadow->lightViewProjection.begin(),
+                drawData.shadow->lightViewProjection.end(), shadowConstants.begin());
+      std::memcpy(static_cast<std::byte *>(mapped) + shadowOffset, shadowConstants.data(),
+                  sizeof(shadowConstants));
     }
     std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset, vertexBytes.data(),
                 vertexBytes.size());
@@ -511,6 +519,10 @@ public:
       }
       commands_->ClearRenderTargetView(rtv, clear.Color, 0, nullptr);
     }
+    if (drawData.shadow &&
+        !RecordShadow(drawData, geometryBase, base + shadowOffset, vertexBytes.size(),
+                      indexBytes.size(), instanceOffset, instances.size()))
+      return SurfaceStatus::DeviceLost;
     auto dsv = dsvHeap_->GetCPUDescriptorHandleForHeapStart();
     dsv.ptr += SIZE_T(frame_) * dsvIncrement_;
     commands_->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
@@ -582,8 +594,20 @@ public:
       } else {
         commands_->SetGraphicsRootDescriptorTable(1, handle);
       }
+      if (drawData.pbr) {
+        auto shadowHandle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
+        const auto shadowDescriptor = drawData.shadow
+                                          ? kMaximumFrames + frame_
+                                          : linearSceneTextures_.at(UINT64_MAX).descriptor;
+        shadowHandle.ptr += UINT64(shadowDescriptor) * uiDescriptorIncrement_;
+        commands_->SetGraphicsRootDescriptorTable(9, shadowHandle);
+      }
       commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
                                       batch.firstInstance);
+    }
+    if (drawData.shadow) {
+      ++diagnostics_.sceneShadowPasses;
+      diagnostics_.sceneShadowInstances += instances.size();
     }
     sceneDrawn_ = true;
     sceneOffscreen_ = drawData.offscreen;
@@ -664,6 +688,10 @@ public:
     acquired_ = false;
     for (auto &color : sceneColors_)
       color.Reset();
+    for (auto &color : shadowColors_)
+      color.Reset();
+    for (auto &depth : shadowDepths_)
+      depth.Reset();
     sceneRtvHeap_.Reset();
     for (auto &b : buffers_)
       b.Reset();
@@ -684,6 +712,7 @@ public:
     scenePipeline_.Reset();
     scenePbrPipeline_.Reset();
     sceneHdrPipeline_.Reset();
+    shadowPipeline_.Reset();
     tonePipeline_.Reset();
     toneRootSignature_.Reset();
     scenePbrRootSignature_.Reset();
@@ -828,7 +857,7 @@ private:
       return false;
     D3D12_DESCRIPTOR_HEAP_DESC sceneHeap{};
     sceneHeap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-    sceneHeap.NumDescriptors = frames_;
+    sceneHeap.NumDescriptors = frames_ * 2;
     if (FAILED(device_->CreateDescriptorHeap(&sceneHeap, IID_PPV_ARGS(&sceneRtvHeap_))))
       return false;
     // Column-vector convention (row_major storage, mul(matrix, vector)) to match
@@ -921,16 +950,16 @@ private:
     pipeline.SampleDesc.Count = 1;
     if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePipeline_))))
       return false;
-    std::array<D3D12_DESCRIPTOR_RANGE, 7> pbrRanges{};
-    std::array<D3D12_ROOT_PARAMETER, 9> pbrParameters{};
+    std::array<D3D12_DESCRIPTOR_RANGE, 8> pbrRanges{};
+    std::array<D3D12_ROOT_PARAMETER, 10> pbrParameters{};
     for (UINT i = 0; i < 2; ++i) {
       pbrParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
       pbrParameters[i].Descriptor.ShaderRegister = i;
       pbrParameters[i].ShaderVisibility =
           i == 0 ? D3D12_SHADER_VISIBILITY_ALL : D3D12_SHADER_VISIBILITY_PIXEL;
     }
-    std::array<D3D12_STATIC_SAMPLER_DESC, 7> pbrSamplers{};
-    for (UINT i = 0; i < 7; ++i) {
+    std::array<D3D12_STATIC_SAMPLER_DESC, 8> pbrSamplers{};
+    for (UINT i = 0; i < 8; ++i) {
       pbrRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
       pbrRanges[i].NumDescriptors = 1;
       pbrRanges[i].BaseShaderRegister = i;
@@ -941,6 +970,12 @@ private:
       pbrSamplers[i].ShaderRegister = i;
       if (i == 4 || i == 5)
         pbrSamplers[i].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+      if (i == 7) {
+        pbrSamplers[i].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+        pbrSamplers[i].AddressU = pbrSamplers[i].AddressV = pbrSamplers[i].AddressW =
+            D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+        pbrSamplers[i].BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+      }
     }
     root.NumParameters = static_cast<UINT>(pbrParameters.size());
     root.pParameters = pbrParameters.data();
@@ -973,6 +1008,18 @@ private:
     pipeline.InputLayout = {pbrInputs.data(), static_cast<UINT>(pbrInputs.size())};
     if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePbrPipeline_))))
       return false;
+    ComPtr<ID3DBlob> shadowPixel;
+    if (FAILED(D3DCompile(scene_pbr_hlsl_shadow_frag, sizeof(scene_pbr_hlsl_shadow_frag),
+                          "NexoraShadowDepth", nullptr, nullptr, "shadowFragmentMain", "ps_5_0", 0,
+                          0, &shadowPixel, &errors)))
+      return false;
+    pipeline.pRootSignature = sceneRootSignature_.Get();
+    pipeline.PS = {shadowPixel->GetBufferPointer(), shadowPixel->GetBufferSize()};
+    pipeline.RTVFormats[0] = DXGI_FORMAT_R32_FLOAT;
+    if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&shadowPipeline_))))
+      return false;
+    pipeline.pRootSignature = scenePbrRootSignature_.Get();
+    pipeline.PS = {pixel->GetBufferPointer(), pixel->GetBufferSize()};
     pipeline.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
     if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&sceneHdrPipeline_))))
       return false;
@@ -1017,6 +1064,85 @@ private:
     pipeline.DSVFormat = DXGI_FORMAT_UNKNOWN;
     pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     return SUCCEEDED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&tonePipeline_)));
+  }
+  bool RecordShadow(const SceneDrawData &draw, D3D12_GPU_VIRTUAL_ADDRESS geometry,
+                    D3D12_GPU_VIRTUAL_ADDRESS constants, std::size_t vertexSize,
+                    std::size_t indexSize, std::size_t instanceOffset, std::size_t instanceCount) {
+    const auto resolution = draw.shadow->resolution;
+    D3D12_RESOURCE_DESC descriptor{};
+    descriptor.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    descriptor.Width = descriptor.Height = resolution;
+    descriptor.DepthOrArraySize = descriptor.MipLevels = 1;
+    descriptor.SampleDesc.Count = 1;
+    descriptor.Format = DXGI_FORMAT_R32_FLOAT;
+    descriptor.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    D3D12_HEAP_PROPERTIES heap{};
+    heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heap.CreationNodeMask = heap.VisibleNodeMask = 1;
+    D3D12_CLEAR_VALUE clear{};
+    clear.Format = DXGI_FORMAT_R32_FLOAT;
+    clear.Color[0] = 1;
+    if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
+                                                D3D12_RESOURCE_STATE_RENDER_TARGET, &clear,
+                                                IID_PPV_ARGS(&shadowColors_[frame_]))))
+      return false;
+    descriptor.Format = DXGI_FORMAT_D32_FLOAT;
+    descriptor.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    clear.Format = DXGI_FORMAT_D32_FLOAT;
+    clear.DepthStencil = {1, 0};
+    if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
+                                                D3D12_RESOURCE_STATE_DEPTH_WRITE, &clear,
+                                                IID_PPV_ARGS(&shadowDepths_[frame_]))))
+      return false;
+    auto rtv = sceneRtvHeap_->GetCPUDescriptorHandleForHeapStart();
+    rtv.ptr += SIZE_T(frames_ + frame_) * increment_;
+    device_->CreateRenderTargetView(shadowColors_[frame_].Get(), nullptr, rtv);
+    auto dsv = dsvHeap_->GetCPUDescriptorHandleForHeapStart();
+    dsv.ptr += SIZE_T(frames_ + frame_) * dsvIncrement_;
+    device_->CreateDepthStencilView(shadowDepths_[frame_].Get(), nullptr, dsv);
+    auto srv = uiDescriptors_->GetCPUDescriptorHandleForHeapStart();
+    srv.ptr += SIZE_T(kMaximumFrames + frame_) * uiDescriptorIncrement_;
+    D3D12_SHADER_RESOURCE_VIEW_DESC view{};
+    view.Format = DXGI_FORMAT_R32_FLOAT;
+    view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    view.Texture2D.MipLevels = 1;
+    device_->CreateShaderResourceView(shadowColors_[frame_].Get(), &view, srv);
+    const float color[4]{1, 1, 1, 1};
+    commands_->ClearRenderTargetView(rtv, color, 0, nullptr);
+    commands_->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1, 0, 0, nullptr);
+    commands_->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
+    commands_->SetGraphicsRootSignature(sceneRootSignature_.Get());
+    commands_->SetPipelineState(shadowPipeline_.Get());
+    commands_->SetGraphicsRootConstantBufferView(0, constants);
+    const D3D12_VIEWPORT viewport{
+        0, 0, static_cast<float>(resolution), static_cast<float>(resolution), 0, 1};
+    const D3D12_RECT scissor{0, 0, static_cast<LONG>(resolution), static_cast<LONG>(resolution)};
+    commands_->RSSetViewports(1, &viewport);
+    commands_->RSSetScissorRects(1, &scissor);
+    const D3D12_VERTEX_BUFFER_VIEW vertices[]{
+        {geometry, static_cast<UINT>(vertexSize), sizeof(SceneVertex)},
+        {geometry + instanceOffset, static_cast<UINT>(instanceCount * sizeof(SceneInstanceUpload)),
+         sizeof(SceneInstanceUpload)}};
+    const D3D12_INDEX_BUFFER_VIEW indices{geometry + vertexSize, static_cast<UINT>(indexSize),
+                                          DXGI_FORMAT_R16_UINT};
+    commands_->IASetVertexBuffers(0, 2, vertices);
+    commands_->IASetIndexBuffer(&indices);
+    commands_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    const SceneMeshBatch whole{0, static_cast<std::uint32_t>(draw.indices.size()), 0,
+                               static_cast<std::uint32_t>(instanceCount), 0};
+    const auto batches =
+        draw.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : draw.batches;
+    for (const auto &batch : batches)
+      commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
+                                      batch.firstInstance);
+    D3D12_RESOURCE_BARRIER barrier{};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition = {shadowColors_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                          D3D12_RESOURCE_STATE_RENDER_TARGET,
+                          D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE};
+    commands_->ResourceBarrier(1, &barrier);
+    return true;
   }
   bool EnsureSceneUpload(std::size_t required) {
     if (sceneUploadCapacity_[frame_] >= required)
@@ -1275,7 +1401,7 @@ private:
   HANDLE event_{};
   UINT increment_{};
   UINT uiDescriptorIncrement_{};
-  UINT nextUiDescriptor_{kMaximumFrames}; // Fence-owned HDR SRVs reserve the first frame slots.
+  UINT nextUiDescriptor_{2 * kMaximumFrames}; // Fence-owned HDR SRVs reserve the first frame slots.
   uint64_t fenceValue_{};
   std::array<uint64_t, kMaximumFrames> fenceValues_{};
   SurfaceDiagnostics diagnostics_{};
@@ -1286,6 +1412,8 @@ private:
   ComPtr<ID3D12DescriptorHeap> heap_;
   ComPtr<ID3D12DescriptorHeap> sceneRtvHeap_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneColors_;
+  std::array<ComPtr<ID3D12Resource>, kMaximumFrames> shadowColors_, shadowDepths_;
+  ComPtr<ID3D12PipelineState> shadowPipeline_;
   ComPtr<ID3D12DescriptorHeap> uiDescriptors_;
   ComPtr<ID3D12RootSignature> uiRootSignature_;
   ComPtr<ID3D12PipelineState> uiPipeline_;

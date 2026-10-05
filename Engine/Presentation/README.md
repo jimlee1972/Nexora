@@ -253,7 +253,7 @@ resources; missing base/ORM/emission select white (emission is multiplied by its
 and a missing normal selects a flat texture with normal scale zero. `UINT64_MAX` and
 `UINT64_MAX-1` are internal reserved texture IDs and are rejected in caller descriptors.
 
-The private 80-byte material packing contract is shared across adapters. Vulkan allocates aligned
+The private material packing contract (currently 208 bytes) is shared across adapters. Vulkan allocates aligned
 UBOs and descriptor sets per protecting frame; DX12 uses aligned paired CBVs; Metal copies constants
 and binds four material maps plus three environment resources/samplers. Rejected missing maps/invalid factors do not consume scene submissions.
 Colors are evaluated in linear space and tone-mapped with shared ACES, followed by a single manual
@@ -301,7 +301,7 @@ rotation, view-dependent reflections, U-seam filtering, IBL disable and resize/r
 `SceneDrawData::hdr` defaults false and requires PBR plus a full-surface offscreen draw. Exposure is
 finite in [0,32], defaults 1, and is validated before recording on either path. Invalid combinations
 return InvalidDescriptor; unsupported float rendering reports Unsupported. The private material
-packet uses its reserved properties.w for linear HDR output without growing the 80-byte layout.
+packet uses its reserved properties.w for linear HDR output within the original 80-byte layout; directional shadows now extend it to 208 bytes.
 HDR fragments preserve nonnegative finite radiance up to RGBA16F's 65504 range; they perform no
 ACES or display transfer. Each protecting frame owns a RGBA16F color target, depth target and
 composite bindings. Main samples that target, applies exposure and the shared ACES implementation,
@@ -320,3 +320,23 @@ The tone pass uses one explicit 48-byte fullscreen triangle (float2 position plu
 shared by all adapters. Vulkan/DX12 append it to their protecting-frame scene upload; Metal
 copies it into the encoder. This avoids compiler-dependent SV_VertexID builtin declaration
 ordering while keeping the generated shader artifact checks exact.
+
+## Directional shadows and lighting style
+
+`SceneDrawData::shadow` is optional and requires PBR plus offscreen rendering. Its row-major
+light view/projection is finite; resolution is one of 256/512/1024/2048 and normal/slope bias
+are finite in [0,0.05]. Each protecting frame owns an R32Float shadow color map and D32Float
+visibility depth target. The prepass renders the same indexed instance batches, storing normalized
+light-space depth into R32Float after depth testing. Main samples it with four point taps and
+shared PCF/bias functions; out-of-frustum receivers remain lit. Vulkan transitions the map
+ColorAttachment → ShaderRead; DX12 uses RenderTarget → PixelShaderResource; Metal ends the
+shadow encoder before main. Fences, resize and shutdown protect map ownership and release.
+Unsupported map formats report Unsupported rather than inventing a shadow.
+
+The private material packet is now 208 bytes, with light matrix, bias/texel settings, tint and
+ramp fields. Vulkan's material binding range/stride follows this size; DX12 retains 512-byte
+paired constant slots (112-byte scene plus material at offset 256); Metal copies the same packet.
+Main adds one shadow map binding (eight sampled maps total). No persistent asset or stable
+C/Zig ABI changes. `SceneLightingStyle` optionally supplies bounded shadow/light tint and ramp
+controls using shared Common shader functions. Direct light receives PCF visibility; emission
+remains independent. Shadow diagnostics count actual successfully recorded passes/instances.

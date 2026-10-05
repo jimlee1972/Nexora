@@ -91,6 +91,19 @@ int main() {
   assert(courtyard.Report().find("\"environment_loaded\":true") != std::string::npos);
 #endif
   assert(wide.hdr && wide.offscreen && wide.exposure == 1);
+  assert(wide.shadow && wide.lightingStyle && wide.shadow->resolution == 1024);
+  Press(courtyard, Key::F6);
+  assert(!courtyard.Scene(1280, 720).shadow);
+  Press(courtyard, Key::F6);
+  assert(courtyard.Scene(1280, 720).shadow);
+  Press(courtyard, Key::G);
+  assert(!courtyard.Scene(1280, 720).lightingStyle);
+  Press(courtyard, Key::G);
+  assert(courtyard.Scene(1280, 720).lightingStyle);
+  Press(courtyard, Key::RightBracket);
+  assert(courtyard.Scene(1280, 720).shadow->normalBias == wide.shadow->normalBias * 2);
+  Press(courtyard, Key::LeftBracket);
+  assert(courtyard.Scene(1280, 720).shadow->normalBias == wide.shadow->normalBias);
   Press(courtyard, Key::E);
   assert(courtyard.Scene(1280, 720).exposure == 0.25F);
   Press(courtyard, Key::E);

@@ -307,7 +307,7 @@ public:
         data.vertices.empty() || data.indices.empty() || data.vertices.size() > 65535 ||
         data.indices.size() > 1048576 || data.indices.size() % 3 != 0)
       return SurfaceStatus::InvalidDescriptor;
-    if (data.hdr && (!sceneHdrPipeline_ || !tonePipeline_))
+    if ((data.hdr && (!sceneHdrPipeline_ || !tonePipeline_)) || (data.shadow && !shadowPipeline_))
       return SurfaceStatus::Unsupported;
     const auto viewport = ResolveSceneViewport(data.viewport, width_, height_);
     const bool afterUi = frames_[frame_].uiFramebuffer != VK_NULL_HANDLE;
@@ -499,6 +499,11 @@ public:
       std::memcpy(static_cast<std::byte *>(mapped) + toneOffset, toneVertices.data(),
                   sizeof(toneVertices));
     vkUnmapMemory(device_, frame.sceneMemory);
+    if (data.shadow) {
+      const auto status = CreateShadowTargets(frame, data.shadow->resolution);
+      if (status != SurfaceStatus::Ready)
+        return status;
+    }
     if (data.pbr) {
       frame.pbrDescriptors.resize(materialCount);
       std::vector<VkDescriptorSetLayout> layouts(materialCount, pbrMaterialLayout_);
@@ -515,8 +520,8 @@ public:
                              material.normalTextureId ? material.normalTextureId : UINT64_MAX - 1,
                              material.ormTextureId ? material.ormTextureId : UINT64_MAX,
                              material.emissionTextureId ? material.emissionTextureId : UINT64_MAX};
-        std::array<VkDescriptorImageInfo, 7> images{};
-        std::array<VkWriteDescriptorSet, 8> writes{};
+        std::array<VkDescriptorImageInfo, 8> images{};
+        std::array<VkWriteDescriptorSet, 9> writes{};
         for (std::uint32_t map = 0; map < 4; ++map) {
           const auto &texture = sceneTextures_.at(ids[map]);
           images[map] = {uiSampler_, (map == 0 || map == 3) ? texture.srgbView : texture.view,
@@ -551,6 +556,19 @@ public:
                              nullptr,
                              nullptr};
         }
+        images[7] = {shadowSampler_,
+                     data.shadow ? frame.shadowColorView : linearSceneTextures_.at(UINT64_MAX).view,
+                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+        writes[8] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                     nullptr,
+                     frame.pbrDescriptors[slot],
+                     8,
+                     0,
+                     1,
+                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                     &images[7],
+                     nullptr,
+                     nullptr};
         const VkDescriptorBufferInfo info{frame.sceneUpload, materialOffset + slot * materialStride,
                                           sizeof(PbrMaterialUpload)};
         writes[4] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -653,6 +671,8 @@ public:
     begin.renderArea.extent = {width_, height_};
     begin.clearValueCount = 2;
     begin.pClearValues = clears.data();
+    if (data.shadow)
+      RecordShadow(frame, data, instances, instanceOffset, vertexBytes.size());
     vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       data.hdr ? sceneHdrPipeline_
@@ -947,6 +967,10 @@ private:
     VkImageView sceneDepthView{};
     VkFramebuffer sceneFramebuffer{};
     VkDeviceSize toneVertexOffset{};
+    VkImage shadowColor{}, shadowDepth{};
+    VkDeviceMemory shadowColorMemory{}, shadowDepthMemory{};
+    VkImageView shadowColorView{}, shadowDepthView{};
+    VkFramebuffer shadowFramebuffer{};
     VkDescriptorSet toneDescriptor{};
     VkFramebuffer toneFramebuffer{};
     VkImage sceneColor{};
@@ -979,6 +1003,24 @@ private:
     return std::numeric_limits<std::uint32_t>::max();
   }
   void DestroySceneTargets(Frame &frame) {
+    if (frame.shadowFramebuffer)
+      vkDestroyFramebuffer(device_, frame.shadowFramebuffer, nullptr);
+    if (frame.shadowColorView)
+      vkDestroyImageView(device_, frame.shadowColorView, nullptr);
+    if (frame.shadowDepthView)
+      vkDestroyImageView(device_, frame.shadowDepthView, nullptr);
+    if (frame.shadowColor)
+      vkDestroyImage(device_, frame.shadowColor, nullptr);
+    if (frame.shadowDepth)
+      vkDestroyImage(device_, frame.shadowDepth, nullptr);
+    if (frame.shadowColorMemory)
+      vkFreeMemory(device_, frame.shadowColorMemory, nullptr);
+    if (frame.shadowDepthMemory)
+      vkFreeMemory(device_, frame.shadowDepthMemory, nullptr);
+    frame.shadowFramebuffer = VK_NULL_HANDLE;
+    frame.shadowColorView = frame.shadowDepthView = VK_NULL_HANDLE;
+    frame.shadowColor = frame.shadowDepth = VK_NULL_HANDLE;
+    frame.shadowColorMemory = frame.shadowDepthMemory = VK_NULL_HANDLE;
     if (frame.toneDescriptor)
       vkFreeDescriptorSets(device_, uiDescriptorPool_, 1, &frame.toneDescriptor);
     if (frame.toneFramebuffer)
@@ -1326,6 +1368,9 @@ private:
       vkFreeMemory(device_, texture.memory, nullptr);
     }
     linearSceneTextures_.clear();
+    if (shadowSampler_)
+      vkDestroySampler(device_, shadowSampler_, nullptr);
+    shadowSampler_ = VK_NULL_HANDLE;
     if (environmentSampler_)
       vkDestroySampler(device_, environmentSampler_, nullptr);
     environmentSampler_ = VK_NULL_HANDLE;
@@ -1375,6 +1420,13 @@ private:
       return false;
     sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     if (vkCreateSampler(device_, &sampler, nullptr, &environmentSampler_) != VK_SUCCESS)
+      return false;
+    sampler.magFilter = sampler.minFilter = VK_FILTER_NEAREST;
+    sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+    sampler.addressModeU = sampler.addressModeV = sampler.addressModeW =
+        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+    if (vkCreateSampler(device_, &sampler, nullptr, &shadowSampler_) != VK_SUCCESS)
       return false;
     const VkDescriptorPoolSize poolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256};
     VkDescriptorPoolCreateInfo pool{};
@@ -1505,6 +1557,122 @@ private:
     return Initialized(result, "vkCreateGraphicsPipelines (UI)");
   }
 #endif
+  SurfaceStatus CreateShadowTargets(Frame &frame, std::uint32_t resolution) {
+    const auto create = [&](VkFormat format, VkImageUsageFlags usage, VkImageAspectFlags aspect,
+                            VkImage &image, VkDeviceMemory &memory, VkImageView &view) {
+      VkImageCreateInfo descriptor{};
+      descriptor.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+      descriptor.imageType = VK_IMAGE_TYPE_2D;
+      descriptor.format = format;
+      descriptor.extent = {resolution, resolution, 1};
+      descriptor.mipLevels = descriptor.arrayLayers = 1;
+      descriptor.samples = VK_SAMPLE_COUNT_1_BIT;
+      descriptor.tiling = VK_IMAGE_TILING_OPTIMAL;
+      descriptor.usage = usage;
+      if (vkCreateImage(device_, &descriptor, nullptr, &image) != VK_SUCCESS)
+        return false;
+      VkMemoryRequirements requirements{};
+      vkGetImageMemoryRequirements(device_, image, &requirements);
+      const auto type =
+          FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+      if (type == UINT32_MAX)
+        return false;
+      const VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
+                                            requirements.size, type};
+      if (vkAllocateMemory(device_, &allocation, nullptr, &memory) != VK_SUCCESS ||
+          vkBindImageMemory(device_, image, memory, 0) != VK_SUCCESS)
+        return false;
+      const VkImageViewCreateInfo viewInfo{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                                           nullptr,
+                                           0,
+                                           image,
+                                           VK_IMAGE_VIEW_TYPE_2D,
+                                           format,
+                                           {},
+                                           {aspect, 0, 1, 0, 1}};
+      return vkCreateImageView(device_, &viewInfo, nullptr, &view) == VK_SUCCESS;
+    };
+    if (!create(VK_FORMAT_R32_SFLOAT,
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_IMAGE_ASPECT_COLOR_BIT, frame.shadowColor, frame.shadowColorMemory,
+                frame.shadowColorView) ||
+        !create(VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                VK_IMAGE_ASPECT_DEPTH_BIT, frame.shadowDepth, frame.shadowDepthMemory,
+                frame.shadowDepthView))
+      return SurfaceStatus::DeviceLost;
+    const std::array attachments{frame.shadowColorView, frame.shadowDepthView};
+    const VkFramebufferCreateInfo framebuffer{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                                              nullptr,
+                                              0,
+                                              shadowRenderPass_,
+                                              2,
+                                              attachments.data(),
+                                              resolution,
+                                              resolution,
+                                              1};
+    if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.shadowFramebuffer) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
+    return SurfaceStatus::Ready;
+  }
+  void RecordShadow(Frame &frame, const SceneDrawData &data,
+                    std::span<const SceneInstance> instances, VkDeviceSize instanceOffset,
+                    VkDeviceSize indexOffset) {
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = frame.shadowColor;
+    barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr,
+                         1, &barrier);
+    std::array<VkClearValue, 2> clears{};
+    clears[0].color = {{1, 1, 1, 1}};
+    clears[1].depthStencil = {1, 0};
+    const auto resolution = data.shadow->resolution;
+    const VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                                      nullptr,
+                                      shadowRenderPass_,
+                                      frame.shadowFramebuffer,
+                                      {{0, 0}, {resolution, resolution}},
+                                      2,
+                                      clears.data()};
+    vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, shadowPipeline_);
+    const VkViewport viewport{0, 0, static_cast<float>(resolution), static_cast<float>(resolution),
+                              0, 1};
+    const VkRect2D scissor{{0, 0}, {resolution, resolution}};
+    vkCmdSetViewport(frame.commands, 0, 1, &viewport);
+    vkCmdSetScissor(frame.commands, 0, 1, &scissor);
+    const VkBuffer buffers[]{frame.sceneUpload, frame.sceneUpload};
+    const VkDeviceSize offsets[]{0, instanceOffset};
+    vkCmdBindVertexBuffers(frame.commands, 0, 2, buffers, offsets);
+    vkCmdBindIndexBuffer(frame.commands, frame.sceneUpload, indexOffset, VK_INDEX_TYPE_UINT16);
+    std::array<float, 28> constants{};
+    std::copy(data.shadow->lightViewProjection.begin(), data.shadow->lightViewProjection.end(),
+              constants.begin());
+    vkCmdPushConstants(frame.commands, scenePipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                       sizeof(constants), constants.data());
+    const SceneMeshBatch whole{0, static_cast<std::uint32_t>(data.indices.size()), 0,
+                               static_cast<std::uint32_t>(instances.size()), 0};
+    const auto batches =
+        data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
+    for (const auto &batch : batches)
+      vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
+                       batch.firstInstance);
+    vkCmdEndRenderPass(frame.commands);
+    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                         &barrier);
+    ++diagnostics_.sceneShadowPasses;
+    diagnostics_.sceneShadowInstances += instances.size();
+  }
   SurfaceStatus CompositeHdr(Frame &frame) {
     const VkDescriptorSetAllocateInfo allocation{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
                                                  nullptr, uiDescriptorPool_, 1,
@@ -1724,13 +1892,13 @@ private:
     vkDestroyShaderModule(device_, vertex, nullptr);
     if (!Initialized(result, "vkCreateGraphicsPipelines (scene)"))
       return false;
-    std::array<VkDescriptorSetLayoutBinding, 8> materialBindings{};
+    std::array<VkDescriptorSetLayoutBinding, 9> materialBindings{};
     for (std::uint32_t map = 0; map < 4; ++map)
       materialBindings[map] = {map, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                                VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
     materialBindings[4] = {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
                            nullptr};
-    for (std::uint32_t map = 5; map < 8; ++map)
+    for (std::uint32_t map = 5; map < 9; ++map)
       materialBindings[map] = {map, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                                VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
     const VkDescriptorSetLayoutCreateInfo materialLayout{
@@ -1741,7 +1909,7 @@ private:
       return false;
     const std::array poolSizes{
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64 * kMaxFrames},
-        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 7 * 64 * kMaxFrames}};
+        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8 * 64 * kMaxFrames}};
     const VkDescriptorPoolCreateInfo pool{
         VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,     nullptr,
         VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 64 * kMaxFrames,
@@ -1768,6 +1936,34 @@ private:
     pbrAttributes[10] = {10, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneVertex, tangent)};
     vertexInput.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(pbrAttributes.size());
     vertexInput.pVertexAttributeDescriptions = pbrAttributes.data();
+    VkFormatProperties shadowFormat{};
+    vkGetPhysicalDeviceFormatProperties(physical_, VK_FORMAT_R32_SFLOAT, &shadowFormat);
+    const auto requiredShadow =
+        VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+    if ((shadowFormat.optimalTilingFeatures & requiredShadow) == requiredShadow) {
+      attachments[0].format = VK_FORMAT_R32_SFLOAT;
+      attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+      pass.pDependencies = &dependency;
+      if (vkCreateRenderPass(device_, &pass, nullptr, &shadowRenderPass_) != VK_SUCCESS)
+        return false;
+      VkShaderModule shadowFragment{};
+      if (!makeShader(scene_pbr_spirv_shadow_frag, sizeof(scene_pbr_spirv_shadow_frag),
+                      shadowFragment))
+        return false;
+      const VkPipelineShaderStageCreateInfo shadowStages[]{
+          pbrStages[0],
+          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
+           VK_SHADER_STAGE_FRAGMENT_BIT, shadowFragment, "main", nullptr}};
+      pipeline.pStages = shadowStages;
+      pipeline.layout = scenePipelineLayout_;
+      pipeline.renderPass = shadowRenderPass_;
+      const auto shadowResult = vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline,
+                                                          nullptr, &shadowPipeline_);
+      vkDestroyShaderModule(device_, shadowFragment, nullptr);
+      if (shadowResult != VK_SUCCESS)
+        return false;
+    }
+    pipeline.renderPass = sceneRenderPass_;
     pipeline.layout = scenePbrPipelineLayout_;
     pipeline.pStages = pbrStages;
     const auto pbrResult = vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr,
@@ -1840,6 +2036,12 @@ private:
         vkDestroySemaphore(device_, frame.finished, nullptr);
     }
     frames_.clear();
+    if (shadowPipeline_)
+      vkDestroyPipeline(device_, shadowPipeline_, nullptr);
+    if (shadowRenderPass_)
+      vkDestroyRenderPass(device_, shadowRenderPass_, nullptr);
+    shadowPipeline_ = VK_NULL_HANDLE;
+    shadowRenderPass_ = VK_NULL_HANDLE;
     if (tonePipeline_)
       vkDestroyPipeline(device_, tonePipeline_, nullptr);
     if (tonePipelineLayout_)
@@ -2042,6 +2244,9 @@ private:
   bool sceneRendered_{};
   bool sceneOffscreen_{}, sceneComposited_{}, sceneHdr_{};
   float sceneExposure_ = 1.0F;
+  VkSampler shadowSampler_{};
+  VkRenderPass shadowRenderPass_{};
+  VkPipeline shadowPipeline_{};
   VkRenderPass sceneHdrRenderPass_{};
   VkPipeline sceneHdrPipeline_{}, tonePipeline_{};
   VkPipelineLayout tonePipelineLayout_{};

@@ -158,6 +158,24 @@ public static class NexoraAcceptanceWindow {
     Capture 'courtyard-ui.png'
     Press-Key 115 # F4: remove the overlay from fixed visual evidence.
     Capture 'courtyard-wide.png'
+    Press-Key 117 # F6: directional shadow comparison.
+    Capture 'courtyard-shadow-off.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
+        (Get-FileHash (Join-Path $evidence 'courtyard-shadow-off.png')).Hash) 'Directional shadow comparison did not change pixels.'
+    Press-Key 117
+    Capture 'courtyard-shadow-restored.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
+        (Get-FileHash (Join-Path $evidence 'courtyard-shadow-restored.png')).Hash) 'Shadow restoration differs.'
+    Press-Key 71 # G: stylized tonal separation.
+    Capture 'courtyard-neutral.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
+        (Get-FileHash (Join-Path $evidence 'courtyard-neutral.png')).Hash) 'Stylized tone did not change pixels.'
+    Press-Key 71
+    Capture 'courtyard-styled-restored.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
+        (Get-FileHash (Join-Path $evidence 'courtyard-styled-restored.png')).Hash) 'Tone restoration differs.'
+    $acceptance.courtyard_shadow_comparison = $true
+    $acceptance.courtyard_tone_comparison = $true
     Press-Key 69 # E: expose retained linear HDR highlights.
     Capture 'courtyard-exposure.png'
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
