@@ -91,6 +91,9 @@ def generate():
     metadata={'schema' :'nexora.courtyard.hero-manifest.v1','source':'source.json','author':source['author'],'license':source['license'],'source_sha256':hashlib.sha256((CONTENT/'source.json').read_bytes()).hexdigest(),'license_sha256':hashlib.sha256((ROOT/'LICENSE').read_bytes()).hexdigest(),'converter_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'sky_converter_sha256':hashlib.sha256((ROOT/'Tools/Build/PrepareCourtyardEnvironment.py').read_bytes()).hexdigest(),'derived':{name:hashlib.sha256(data).hexdigest() for name,data in outputs.items()}}
     outputs['manifest.json']=(json.dumps(metadata,indent=2)+'\n').encode()
     header='// Generated original courtyard art by PrepareCourtyardHero.py.\n// clang-format off\n#pragma once\n#include <array>\n#include <cstdint>\nnamespace nexora::showcase::courtyard_hero {\n'
+    for name,key in [('sun_direction','sun_direction'),('sun_radiance','sun_radiance'),('key_radiance','key_radiance')]:
+        values=','.join(f'{float(c):.6f}F' for c in source['sky'][key])
+        header+=f'inline constexpr std::array<float,3> {name}{{{values}}};\n'
     header+='inline constexpr char mesh[] = R"NEXORA_ART('+mesh+')NEXORA_ART";\n'
     header+='inline constexpr char metadata[] = R"NEXORA_ART('+outputs['manifest.json'].decode()+')NEXORA_ART";\n'
     for name in ('stone-color','stone-normal','stone-orm','bronze-color','bronze-normal','bronze-orm','leaf','mote','sky'):

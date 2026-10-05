@@ -835,7 +835,9 @@ struct RoomSession::State final {
         indices.push_back(static_cast<std::uint16_t>(base + index));
     }
     batches.push_back({first, 36, 0, 1, 6});
-    const auto sunDirection = math::NormalizeSafe(math::Vector3{-12, 3, -16});
+    const auto sunDirection = math::NormalizeSafe(math::Vector3{courtyard_hero::sun_direction[0],
+                                                                courtyard_hero::sun_direction[1],
+                                                                courtyard_hero::sun_direction[2]});
     const auto right = math::NormalizeSafe(math::Cross(sunDirection, math::Vector3{0, 1, 0}));
     const auto up = math::Cross(right, sunDirection);
     const auto center = eye + sunDirection * 104;
@@ -2212,7 +2214,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #endif
     Nexora::Presentation::SceneMaterial sun{};
     sun.baseColor = {0, 0, 0, 1};
-    sun.emission = {12, 8, 3};
+    sun.emission = courtyard_hero::sun_radiance;
     sun.unlit = s.courtyardPbr;
     sun.castsShadow = false;
     s.materials.push_back(sun);
@@ -2430,15 +2432,16 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
           s.courtyardQuality == 2 ? 8.0F : 6.0F};
     data.cameraPosition = {eye.x, eye.y, eye.z};
     if (data.pbr) {
-      data.light_direction[0] = 12;
-      data.light_direction[1] = -3;
-      data.light_direction[2] = 16;
-      data.light_color[0] = 5.5F;
-      data.light_color[1] = 3.6F;
-      data.light_color[2] = 1.8F;
+      for (unsigned axis = 0; axis < 3; ++axis) {
+        data.light_direction[axis] = -courtyard_hero::sun_direction[axis];
+        data.light_color[axis] = courtyard_hero::key_radiance[axis];
+      }
       if (s.courtyardShadows) {
         const auto light =
-            math::Orthographic(-7, 7, -7, 7, 0.1F, 40) * math::LookAt({-12, 4, -16}, {0, 1, 0});
+            math::Orthographic(-7, 7, -7, 7, 0.1F, 40) *
+            math::LookAt({courtyard_hero::sun_direction[0], courtyard_hero::sun_direction[1] + 1,
+                          courtyard_hero::sun_direction[2]},
+                         {0, 1, 0});
         data.shadow = Nexora::Presentation::SceneDirectionalShadow{};
         data.shadow->resolution = 512U << s.courtyardQuality;
         data.shadow->lightViewProjection = light.values;

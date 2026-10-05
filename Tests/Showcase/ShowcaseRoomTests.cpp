@@ -92,6 +92,19 @@ int main() {
     assert(std::abs(skyCenter[axis] - wide.cameraPosition[axis]) < 1e-4F);
   assert(wide.materials[13].metallic == 1 && !wide.materials[13].castsShadow);
   assert(!wide.materials[14].castsShadow);
+  std::array<float, 3> solarOffset{};
+  const auto &solarBatch = wide.batches.back();
+  for (std::size_t i = 0; i < solarBatch.indexCount; ++i) {
+    const auto &v = wide.vertices[wide.indices[solarBatch.firstIndex + i]];
+    for (std::size_t axis = 0; axis < 3; ++axis)
+      solarOffset[axis] += (v.position[axis] - wide.cameraPosition[axis]) / solarBatch.indexCount;
+  }
+  float lightLength = 0;
+  for (const auto d : wide.light_direction)
+    lightLength += d * d;
+  lightLength = std::sqrt(lightLength);
+  for (std::size_t axis = 0; axis < 3; ++axis)
+    assert(std::abs(solarOffset[axis] / 104 + wide.light_direction[axis] / lightLength) < 1e-4F);
   assert(wide.materials[6].unlit && !wide.materials[6].castsShadow);
   for (const auto &vertex : wide.vertices) {
     float orthogonal = 0, length = 0;

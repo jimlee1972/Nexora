@@ -3,9 +3,9 @@
   "source": "source.json",
   "author": "Nexora repository contributors",
   "license": "Repository LICENSE",
-  "source_sha256": "8ce3a8d2d3bd68243fc6be9effe2d9d6df3c218d966d220c9da259f1d4594cf7",
+  "source_sha256": "9673e48d96851cc0f611c63d52790dd97ba582c9947cf9deb14d9b0b00001003",
   "license_sha256": "1efea8712186f4d30e3a444bb709213b33a8706e371ddd2a9c6be38ce83f40e1",
-  "converter_sha256": "35e107200a29c64bce7d4058fc92476387d986a99d4e29acdcd013a47c9f9144",
+  "converter_sha256": "9021c8fd27fe3383380a251ec96ce0f551f67c0cda3db7cbd8c09a3f0e2715ab",
   "sky_converter_sha256": "8d8590dfcc660ea1c8c6925847cf0bd19af2b09b12d61be7ee8420251329172b",
   "derived": {
     "crystal.showcase": "af5fed81ff97bae9f545987ed93a792311a626496673d1d5c9aa112a2cd5de8f",
