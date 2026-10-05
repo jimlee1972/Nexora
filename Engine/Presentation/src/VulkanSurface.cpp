@@ -5,6 +5,7 @@
 #include "Nexora/Presentation/Surface.h"
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
+#include "SceneTextureMipmaps.h"
 
 #include "ScenePbrVulkanShaders.h"
 #include "SceneToneVulkanShaders.h"
@@ -450,8 +451,12 @@ public:
         !UploadUiTexture(frame, {UINT64_MAX, 1, 1, 8, blackEnvironment}, true, 1, true))
       return SurfaceStatus::DeviceLost;
     for (const auto &upload : data.textureUploads)
-      if (!sceneTextures_.contains(upload.textureId) && !UploadUiTexture(frame, upload, true))
-        return SurfaceStatus::DeviceLost;
+      if (!sceneTextures_.contains(upload.textureId)) {
+        const auto mips =
+            BuildSceneTextureMipmaps(upload, ResolveSceneMipSemantic(data, upload.textureId));
+        if (!UploadUiTexture(frame, mips.Upload(upload), true, mips.levels))
+          return SurfaceStatus::DeviceLost;
+      }
     const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
                                          std::byte{255}};
     if (needsWhite && !sceneTextures_.contains(UINT64_MAX) &&
@@ -1236,7 +1241,7 @@ private:
         upload.rowPitch != upload.width * (linear ? 8U : 4U) ||
         upload.pixels.size() !=
             (linear ? SceneLinearTextureByteSize(upload.width, upload.height, mipLevels)
-                    : static_cast<std::size_t>(upload.rowPitch) * upload.height))
+                    : SceneRgbaTextureByteSize(upload.width, upload.height, mipLevels)))
       return false;
     UiTexture next;
     next.mipLevels = mipLevels;

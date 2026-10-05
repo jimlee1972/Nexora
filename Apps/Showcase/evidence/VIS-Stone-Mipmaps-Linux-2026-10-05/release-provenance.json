@@ -1,0 +1,64 @@
+{
+  "source_freeze": "174b822f4df8cab7c1f34508371bec5a6b0f2d2c",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "df8a5c3233505fdd4ecd0d35d268b4d6b181a4cc633ff4a5ed243bb26a481dff",
+    "Engine/Presentation/README.md": "f509ffa7a598444819025c0d852d8e53de532c1828de0b23e07d8f328bc5fcbe",
+    "Engine/Presentation/src/Dx12Surface.cpp": "aeffe00a96b72300391dc3c6d7edea57af890619e09a62373ef1e1eb5ff6b8b9",
+    "Engine/Presentation/src/MetalSurface.mm": "ae810aa3ac8bf85075863a89544e23f15848a8c4c252be432cb5062c605907a0",
+    "Engine/Presentation/src/SceneTextureMipmaps.h": "6f5554c12c64648cf15e9b1e4e1ed629e64a9639296c5161e35a707502ae35c7",
+    "Engine/Presentation/src/VulkanSurface.cpp": "c668de319219283dc6d003912c84cff0e8da8b94ff38f3aae27d7d3561f1d52c",
+    "README.md": "2fc033fc8dcf2ae4edec12a53acf73d201d173e753bfe3e839f930d4ff98e17e",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "8b4564d2ead85520918f2b74e590db92ae4910d83622180f527720d13e9485f1",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "e14d5ed8b1b5ce57d21d1d3402f85afe71a39f53e7692e622f65cc7e2ee49023",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "423f161d973f454d56317efa54039c72ce4993e774b6bcce6d77367e4d3eaefa",
+    "Tests/WindowPresentation/PbrMipFixtures.h": "e9632e8d411fdc94ed21f2d2b3fca61d585b94f566f08f92ac8e7647bd9dfb6f",
+    "Tests/WindowPresentation/SceneInstanceTests.cpp": "eb112457abb35dfeea7e530503f8252a2b6cb754a7229e2d3907d9b14cdfac87",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "3f17a50ed2f42502d22e52dcd1ee66a8f94664d325e51058feb8740c18ec6542"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-stone-mipmaps/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/mipmap-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "174b822f4df8",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.79140709900093,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.266667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "375dd99af9d33174d91ddab960b666c8397985266be347bfec7aa627b89542d8",
+    "video_sha256": "506d78ca5cad601e3cb9ae7e5931de1e9eede67fe82735d7d77f673b7218312c",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "bf156bdaa8206d783f75f60e1901a1f61accb03b7a5b3600e3e663e7ffcf496e",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}

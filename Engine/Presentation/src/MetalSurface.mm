@@ -5,6 +5,7 @@
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
 #include "ScenePbrMetalShaders.h"
+#include "SceneTextureMipmaps.h"
 #include "SceneToneMetalShaders.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
@@ -254,7 +255,9 @@ public:
       }
       for (const auto &upload : drawData.textureUploads)
         if (!sceneTextures_.contains(upload.textureId)) {
-          const auto texture = CreateTexture(upload, true);
+          const auto mips =
+              BuildSceneTextureMipmaps(upload, ResolveSceneMipSemantic(drawData, upload.textureId));
+          const auto texture = CreateTexture(mips.Upload(upload), true, mips.levels);
           if (!texture)
             return SurfaceStatus::DeviceLost;
           const auto srgb = [texture newTextureViewWithPixelFormat:MTLPixelFormatRGBA8Unorm_sRGB];
@@ -817,22 +820,32 @@ private:
            (!offscreen || ensure(sceneColors_[frame_],
                                  hdr ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm));
   }
-  id<MTLTexture> CreateTexture(const UiTextureUpload &upload, bool scene = false) {
+  id<MTLTexture> CreateTexture(const UiTextureUpload &upload, bool scene = false,
+                               std::uint32_t levels = 1) {
     auto *descriptor =
         [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
                                                            width:upload.width
                                                           height:upload.height
-                                                       mipmapped:NO];
+                                                       mipmapped:levels > 1];
+    descriptor.mipmapLevelCount = levels;
     // Managed storage supports discrete Intel/AMD Macs as well as Apple Silicon's shared storage.
     descriptor.storageMode =
         device_.hasUnifiedMemory ? MTLStorageModeShared : MTLStorageModeManaged;
     descriptor.usage = MTLTextureUsageShaderRead | (scene ? MTLTextureUsagePixelFormatView : 0);
     id<MTLTexture> texture = [device_ newTextureWithDescriptor:descriptor];
-    if (texture)
-      [texture replaceRegion:MTLRegionMake2D(0, 0, upload.width, upload.height)
-                 mipmapLevel:0
-                   withBytes:upload.pixels.data()
-                 bytesPerRow:upload.rowPitch];
+    if (texture) {
+      std::size_t offset = 0;
+      auto width = upload.width, height = upload.height;
+      for (std::uint32_t level = 0; level < levels; ++level) {
+        [texture replaceRegion:MTLRegionMake2D(0, 0, width, height)
+                   mipmapLevel:level
+                     withBytes:upload.pixels.data() + offset
+                   bytesPerRow:width * 4];
+        offset += static_cast<std::size_t>(width) * height * 4;
+        width = std::max(1U, width / 2);
+        height = std::max(1U, height / 2);
+      }
+    }
     return texture;
   }
   id<MTLTexture> CreateLinearTexture(const SceneLinearTextureUpload &upload) {
@@ -1059,6 +1072,8 @@ private:
     sampler.magFilter = MTLSamplerMinMagFilterLinear;
     sampler.sAddressMode = MTLSamplerAddressModeClampToEdge;
     sampler.tAddressMode = MTLSamplerAddressModeClampToEdge;
+    sampler.mipFilter = MTLSamplerMipFilterLinear;
+    sampler.lodMaxClamp = 10;
     uiSampler_ = [device_ newSamplerStateWithDescriptor:sampler];
     sampler.sAddressMode = MTLSamplerAddressModeRepeat;
     sampler.mipFilter = MTLSamplerMipFilterLinear;

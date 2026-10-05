@@ -436,3 +436,14 @@ Vulkan／DX12／Metal adapter 保留不透明深度，以 frame fence／resize �
 六個原生檢查驗證偏移、反向、精確重播、零厚度與前景排除（共 75 個 PBR 案例）。
 Linux 全套 97/97（92.94 秒）與 75 個 PBR 案例通過，包含原生 F8 畫面變化／精確還原。
 Shipping／預覽圖驗證持續進行，VIS 維持 5/7；此模型不包含畫面外與多個透明層的折射。
+
+
+### 色彩正確的石材 mip 過濾
+
+有光照的場景貼圖 generation 現產生有界的原生 mip chain：sRGB 色彩在線性光照平均，
+ORM 資料線性平均，法線向量平均後重新正規化。Cutout 遮罩、unlit atlas、混合語意與
+UI 保留單層。Vulkan／DX12／Metal 以既有 generation 生命週期上傳相同的私有 CPU chain，
+減少遠處石材 aliasing；沒有修改來源美術、pass、常數 packet 或 C／Zig ABI。
+CPU 語意檢查與兩個原生棋盤／灰階縮小案例涵蓋過濾（共 77 個 PBR 案例）。
+Linux 全套 97/97（96.26 秒）通過，包含原生效果重播與所有品質頂點預算。
+Shipping／預覽圖驗證持續進行；VIS 維持 5/7。

@@ -475,3 +475,15 @@ fences/resize. Six native checks cover bending, reversal, exact replay, zero thi
 foreground rejection (75 PBR frames). Linux full validation passes 97/97 (92.94 seconds), including all 75 PBR frames and native F8
 change/exact restoration. Shipping/reference validation remains open (VIS 5/7). This model
 excludes offscreen and multiple transparent layers.
+
+
+### Color-correct stone mip filtering
+
+Lit scene texture generations now build bounded native mip chains: linear-light sRGB colors,
+linear ORM data and normalized-vector normal maps. Cutout masks, unlit atlases, ambiguous
+roles and UI remain single-level. Vulkan/DX12/Metal upload the same private CPU chain into
+existing generation-owned textures, reducing distant stone aliasing without changing source
+assets, passes, constant packets or C/Zig ABI. CPU semantic checks and two native checker/gray
+minification cases cover the new filtering (77 PBR frames). Linux full validation passes 97/97
+(96.26 seconds), with native effect replay and all quality budgets. Shipping/reference validation
+remains open; VIS stays 5/7.

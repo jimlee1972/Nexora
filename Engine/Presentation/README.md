@@ -536,3 +536,24 @@ Six native cases verify neutral/positive/reversed bending, exact replay, zero th
 foreground rejection against linear-radiance expectations (75 PBR frames). This bounded
 screen-space slab model excludes offscreen/multiple transparent layers, full-volume tracing,
 dispersion and travel-distance absorption.
+
+
+## Scene RGBA8 mip generation
+
+New lit scene texture generations receive one bounded CPU mip chain before native upload when
+their material usage selects an unambiguous semantic. Base/emission colors average in linear
+light before sRGB encoding; ORM data averages linearly; decoded normal vectors average and
+renormalize. Odd dimensions retain every source texel. Mixed color/data roles, cutout masks,
+unlit atlases, unreferenced uploads and Lambert/UI paths retain their original single level.
+The original upload bytes/IDs and public texture descriptors remain unchanged.
+
+Vulkan/DX12 upload every level into the existing private image/staging path; Metal replaces
+all mip regions before creating its sRGB view. Scene samplers select filtered levels while UI
+atlases remain single-level. The first immutable generation determines its mip policy; later
+views reuse that published generation. CPU chain storage ends after the native staging copy,
+and existing backend cache/frame-fence/resize ownership protects GPU resources. There is no
+new pass, public resource handle, constant packet or C/Zig ABI field.
+
+CPU checks distinguish linear color (sRGB midpoint 188) from data midpoint 128, verify normal
+renormalization and preserve cutout/ambiguous roles. Two native minification cases compare a
+high-frequency 64² checker with its linear-light gray reference (77 PBR frames).
