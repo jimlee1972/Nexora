@@ -59,6 +59,8 @@ DXGI_FORMAT ToFormat(TextureFormat format) {
     return DXGI_FORMAT_B8G8R8A8_UNORM;
   case TextureFormat::Depth32Float:
     return DXGI_FORMAT_D32_FLOAT;
+  case TextureFormat::Rgba16Float:
+    break; // External Presentation-owned HDR metadata; native triangle allocation is unsupported.
   }
   throw std::invalid_argument("unsupported D3D12 texture format");
 }
@@ -345,10 +347,9 @@ public:
     gpu_resource_description.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     auto gpu_heap = heap;
     gpu_heap.Type = D3D12_HEAP_TYPE_DEFAULT;
-    Check(device_->CreateCommittedResource(&gpu_heap, D3D12_HEAP_FLAG_NONE,
-                                           &gpu_resource_description,
-                                           D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
-                                           IID_PPV_ARGS(&record.gpu_resource)),
+    Check(device_->CreateCommittedResource(
+              &gpu_heap, D3D12_HEAP_FLAG_NONE, &gpu_resource_description,
+              D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&record.gpu_resource)),
           "CreateCommittedResource(buffer GPU)");
     std::lock_guard lock{mutex_};
     const auto handle = buffer_pool_.Create();
@@ -794,8 +795,8 @@ void D3D12CommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t off
   auto &record = device_.ValidateBuffer(buffer);
   if (offset > record.descriptor.size || record.descriptor.size - offset < DrawIndirectArgumentSize)
     throw std::logic_error("D3D12 indirect-buffer binding exceeds allocation");
-  indirect_buffer_ = device_.PrepareBuffer(list_.Get(), buffer,
-                                        D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
+  indirect_buffer_ =
+      device_.PrepareBuffer(list_.Get(), buffer, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
   indirect_offset_ = offset;
   indirect_size_ = record.descriptor.size;
   indirect_stride_ = stride;
@@ -844,7 +845,7 @@ void D3D12CommandList::Close() {
   closed_ = true;
 }
 void D3D12Device::ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
-                                        std::span<std::byte> data) {
+                                       std::span<std::byte> data) {
   WaitIdle();
   ComPtr<ID3D12Resource> readback;
   ComPtr<ID3D12CommandAllocator> allocator;
@@ -870,12 +871,11 @@ void D3D12Device::ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset
     readback_description.MipLevels = 1;
     readback_description.SampleDesc.Count = 1;
     readback_description.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    Check(device_->CreateCommittedResource(
-              &readback_heap, D3D12_HEAP_FLAG_NONE, &readback_description,
-              D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&readback)),
+    Check(device_->CreateCommittedResource(&readback_heap, D3D12_HEAP_FLAG_NONE,
+                                           &readback_description, D3D12_RESOURCE_STATE_COPY_DEST,
+                                           nullptr, IID_PPV_ARGS(&readback)),
           "CreateCommittedResource(readback)");
-    Check(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                          IID_PPV_ARGS(&allocator)),
+    Check(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&allocator)),
           "CreateCommandAllocator(readback)");
     Check(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(), nullptr,
                                      IID_PPV_ARGS(&list)),

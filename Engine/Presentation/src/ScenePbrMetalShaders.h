@@ -634,31 +634,40 @@ struct pixelInput_0
 
 #line 129
     float3 _S21 = NexoraEvaluatePbr_0(&_S19, viewDirection_3, _S17, _S18, &_S20);
-    float3 color_3 = NexoraAcesApproximate_0(_S21);
+    if(((&kernelContext_1)->material_0->properties_0.w) > 0.5f)
+    {
 
 #line 130
+        pixelOutput_0 _S22 = { float4(clamp(_S21, float3(int3(int(0)) ), float3(int3(int(65504)) )), 1.0f) };
+        return _S22;
+    }
+
+#line 132
+    float3 color_3 = NexoraAcesApproximate_0(_S21);
+
+#line 132
     float3 color_4;
     if(((&kernelContext_1)->material_0->cameraPosition_0.w) > 0.5f)
     {
 
-#line 131
+#line 133
         color_4 = NexoraLinearToSrgb_0(color_3);
 
-#line 131
+#line 133
     }
     else
     {
 
-#line 131
+#line 133
         color_4 = color_3;
 
-#line 131
+#line 133
     }
 
-#line 131
-    pixelOutput_0 _S22 = { float4(color_4, 1.0f) };
+#line 133
+    pixelOutput_0 _S23 = { float4(color_4, 1.0f) };
 
-    return _S22;
+    return _S23;
 }
 
 )NEXORA_PBR";

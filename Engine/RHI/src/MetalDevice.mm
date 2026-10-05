@@ -39,6 +39,8 @@ MTLPixelFormat ToPixelFormat(TextureFormat format) {
     return MTLPixelFormatBGRA8Unorm;
   case TextureFormat::Depth32Float:
     throw std::invalid_argument("Metal triangle backend only supports color textures");
+  case TextureFormat::Rgba16Float:
+    break; // External Presentation-owned HDR metadata; native triangle allocation is unsupported.
   }
   throw std::invalid_argument("unsupported Metal texture format");
 }

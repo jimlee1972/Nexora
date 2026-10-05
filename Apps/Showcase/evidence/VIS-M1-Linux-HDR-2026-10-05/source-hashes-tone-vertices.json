@@ -1,0 +1,11 @@
+{
+  "Engine/Presentation/shaders/scene_tonemap.slang": "366e78a626c13913140a5c9b291a84122dae8dc00fade5a142b1fc6b77e24b78",
+  "Engine/Presentation/src/Dx12Surface.cpp": "e85c1d40fd5d879be00dc0f43b8bed3cf5ea4125c97713c0a69a86cb98221d91",
+  "Engine/Presentation/src/MetalSurface.mm": "e2c01fbf61dd0629abc948bcb5f184338dd87a4c9ea5b7a2d84dd9642ae00a8c",
+  "Engine/Presentation/src/SceneToneHlslShaders.h": "949e1d5daf5c7b360470e75ceca3d37fd0212d2aed8683bb2efa215633a8c045",
+  "Engine/Presentation/src/SceneToneMetalShaders.h": "7e0530d692a0c5a03786c7918178d5654f6e049b38e8c4c235da2effad1acda7",
+  "Engine/Presentation/src/SceneToneVulkanShaders.h": "a187f4468d5c5d247d3f4712a2d88a1b10d44d874746be3dadbee3d4e50e1ba4",
+  "Engine/Presentation/src/VulkanSurface.cpp": "aa17ab609f0f213087525c7024b206b62c8b1b787035b70e1fdae5f087d1b516",
+  "Tests/WindowPresentation/VulkanPbrTests.cpp": "e7d5409759d674c9fcd723c3992fb52a29459889b8337dd12f9582d5a4498cff",
+  "Engine/Presentation/src/ToneVertexUpload.h": "5e63e1ceedfa03bb1feb1a1383951e9a4e32d05a4ffe4c1cd4d6f34f211bc2a9"
+}

@@ -80,7 +80,7 @@ on cooked source/license/conversion metadata in the same verified Runtime bundle
 that bundle before submitting their bytes; asset-disabled builds explicitly retain direct light.
 
 Three reproducible camera framings and comparison restoration have native tests. Floating-point HDR
-composition, real shadows, wind and finished art remain pending. See the [visual roadmap](../../Roadmap/en/V1-Visual-Identity-Roadmap.md) and
+composition is implemented below; real shadows, wind and finished art remain pending. See the [visual roadmap](../../Roadmap/en/V1-Visual-Identity-Roadmap.md) and
 [blockout inventory](content/Courtyard-Greybox.md). Native baseline capture and VIS-M0 acceptance
 are tracked separately from final target-hardware visual/performance acceptance.
 
@@ -380,3 +380,9 @@ Run `Tests/Showcase/LinuxCourtyardBenchmark.py EXECUTABLE --output EVIDENCE_DIR`
 360-frame fixed-wide-camera Vulkan runs at 1280x720 with immediate presentation and hidden UI.
 Keep other tests/builds idle during measurement. The native backend/software flag and BuildInfo
 are retained with each run; Xvfb/lavapipe results do not establish the proposed GTX 960 budget.
+
+The courtyard's shared PBR path now renders into RGBA16F and composites through a GPU Main pass
+before UI. `E` toggles exposure 1/0.25 to inspect retained highlight detail and restores the fixed shot
+exactly; `O` compares IBL/direct light and `P` selects Lambert. Reports identify the actual scene color
+format and exposure. HDR precision is independent of monitor HDR10; bloom and final art remain later
+VIS-M3 work. Native tests cover emission above one, exposure, UI invariance, frame reuse and resize.

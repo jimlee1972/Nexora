@@ -7,7 +7,9 @@
 #include "SceneInstanceUpload.h"
 
 #include "ScenePbrVulkanShaders.h"
+#include "SceneToneVulkanShaders.h"
 #include "SceneVulkanShaders.h"
+#include "ToneVertexUpload.h"
 #include "UiVulkanShaders.h"
 #include <vulkan/vulkan.h>
 #define NEXORA_HAS_NATIVE_UI_SHADERS 1
@@ -305,6 +307,8 @@ public:
         data.vertices.empty() || data.indices.empty() || data.vertices.size() > 65535 ||
         data.indices.size() > 1048576 || data.indices.size() % 3 != 0)
       return SurfaceStatus::InvalidDescriptor;
+    if (data.hdr && (!sceneHdrPipeline_ || !tonePipeline_))
+      return SurfaceStatus::Unsupported;
     const auto viewport = ResolveSceneViewport(data.viewport, width_, height_);
     const bool afterUi = frames_[frame_].uiFramebuffer != VK_NULL_HANDLE;
     if (!viewport ||
@@ -466,8 +470,10 @@ public:
     const auto materialOffset =
         (instanceOffset + instanceBytes.size() + alignment - 1) & ~(alignment - 1);
     const auto materialCount = std::max<std::size_t>(data.materials.size(), 1);
-    const auto bytes = data.pbr ? materialOffset + materialCount * materialStride
-                                : instanceOffset + instanceBytes.size();
+    const auto toneOffset = data.pbr ? materialOffset + materialCount * materialStride
+                                     : instanceOffset + instanceBytes.size();
+    const auto bytes = toneOffset + (data.hdr ? sizeof(toneVertices) : 0);
+    frame.toneVertexOffset = toneOffset;
     const auto uploadStatus = EnsureSceneUpload(frame, bytes);
     if (uploadStatus != SurfaceStatus::Ready)
       return uploadStatus;
@@ -489,6 +495,9 @@ public:
                     parameters.data(), sizeof(parameters));
       }
     }
+    if (data.hdr)
+      std::memcpy(static_cast<std::byte *>(mapped) + toneOffset, toneVertices.data(),
+                  sizeof(toneVertices));
     vkUnmapMemory(device_, frame.sceneMemory);
     if (data.pbr) {
       frame.pbrDescriptors.resize(materialCount);
@@ -589,8 +598,9 @@ public:
     if (vkCreateImageView(device_, &view, nullptr, &frame.sceneDepthView) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
     if (data.offscreen) {
-      image.format = swapchainFormat_;
-      image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+      image.format = data.hdr ? VK_FORMAT_R16G16B16A16_SFLOAT : swapchainFormat_;
+      image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                    VK_IMAGE_USAGE_SAMPLED_BIT;
       if (vkCreateImage(device_, &image, nullptr, &frame.sceneColor) != VK_SUCCESS)
         return SurfaceStatus::DeviceLost;
       vkGetImageMemoryRequirements(device_, frame.sceneColor, &requirements);
@@ -603,7 +613,7 @@ public:
           vkBindImageMemory(device_, frame.sceneColor, frame.sceneColorMemory, 0) != VK_SUCCESS)
         return SurfaceStatus::DeviceLost;
       view.image = frame.sceneColor;
-      view.format = swapchainFormat_;
+      view.format = image.format;
       view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
       if (vkCreateImageView(device_, &view, nullptr, &frame.sceneColorView) != VK_SUCCESS)
         return SurfaceStatus::DeviceLost;
@@ -623,7 +633,8 @@ public:
         data.offscreen ? frame.sceneColorView : imageViews_[imageIndex_], frame.sceneDepthView};
     VkFramebufferCreateInfo framebuffer{};
     framebuffer.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebuffer.renderPass = afterUi ? sceneOverlayRenderPass_ : sceneRenderPass_;
+    framebuffer.renderPass =
+        data.hdr ? sceneHdrRenderPass_ : (afterUi ? sceneOverlayRenderPass_ : sceneRenderPass_);
     framebuffer.attachmentCount = 2;
     framebuffer.pAttachments = attachments;
     framebuffer.width = width_;
@@ -636,14 +647,16 @@ public:
     clears[1].depthStencil = {1.0F, 0};
     VkRenderPassBeginInfo begin{};
     begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    begin.renderPass = afterUi ? sceneOverlayRenderPass_ : sceneRenderPass_;
+    begin.renderPass =
+        data.hdr ? sceneHdrRenderPass_ : (afterUi ? sceneOverlayRenderPass_ : sceneRenderPass_);
     begin.framebuffer = frame.sceneFramebuffer;
     begin.renderArea.extent = {width_, height_};
     begin.clearValueCount = 2;
     begin.pClearValues = clears.data();
     vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      data.pbr ? scenePbrPipeline_ : scenePipeline_);
+                      data.hdr ? sceneHdrPipeline_
+                               : (data.pbr ? scenePbrPipeline_ : scenePipeline_));
     const VkViewport nativeViewport{static_cast<float>(viewport->x),
                                     static_cast<float>(viewport->y),
                                     static_cast<float>(viewport->width),
@@ -690,6 +703,8 @@ public:
     vkCmdEndRenderPass(frame.commands);
     sceneRendered_ = true;
     sceneOffscreen_ = data.offscreen;
+    sceneHdr_ = data.hdr;
+    sceneExposure_ = data.exposure;
     diagnostics_.sceneOffscreenDrawCalls += data.offscreen ? 1 : 0;
     ++diagnostics_.sceneDrawCalls;
     diagnostics_.sceneInstances += instances.size();
@@ -702,6 +717,8 @@ public:
         frames_[frame_].uiFramebuffer)
       return SurfaceStatus::InvalidDescriptor;
     auto &frame = frames_[frame_];
+    if (sceneHdr_)
+      return CompositeHdr(frame);
     VkImageMemoryBarrier barriers[2]{};
     for (auto &barrier : barriers) {
       barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -929,6 +946,9 @@ private:
     VkDeviceMemory sceneDepthMemory{};
     VkImageView sceneDepthView{};
     VkFramebuffer sceneFramebuffer{};
+    VkDeviceSize toneVertexOffset{};
+    VkDescriptorSet toneDescriptor{};
+    VkFramebuffer toneFramebuffer{};
     VkImage sceneColor{};
     VkDeviceMemory sceneColorMemory{};
     VkImageView sceneColorView{};
@@ -959,6 +979,12 @@ private:
     return std::numeric_limits<std::uint32_t>::max();
   }
   void DestroySceneTargets(Frame &frame) {
+    if (frame.toneDescriptor)
+      vkFreeDescriptorSets(device_, uiDescriptorPool_, 1, &frame.toneDescriptor);
+    if (frame.toneFramebuffer)
+      vkDestroyFramebuffer(device_, frame.toneFramebuffer, nullptr);
+    frame.toneDescriptor = VK_NULL_HANDLE;
+    frame.toneFramebuffer = VK_NULL_HANDLE;
     if (!frame.pbrDescriptors.empty())
       vkFreeDescriptorSets(device_, pbrMaterialPool_,
                            static_cast<std::uint32_t>(frame.pbrDescriptors.size()),
@@ -1479,6 +1505,76 @@ private:
     return Initialized(result, "vkCreateGraphicsPipelines (UI)");
   }
 #endif
+  SurfaceStatus CompositeHdr(Frame &frame) {
+    const VkDescriptorSetAllocateInfo allocation{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                                                 nullptr, uiDescriptorPool_, 1,
+                                                 &uiDescriptorLayout_};
+    if (vkAllocateDescriptorSets(device_, &allocation, &frame.toneDescriptor) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
+    const VkDescriptorImageInfo image{uiSampler_, frame.sceneColorView,
+                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+    const VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                     nullptr,
+                                     frame.toneDescriptor,
+                                     0,
+                                     0,
+                                     1,
+                                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                     &image,
+                                     nullptr,
+                                     nullptr};
+    vkUpdateDescriptorSets(device_, 1, &write, 0, nullptr);
+    const VkFramebufferCreateInfo target{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                                         nullptr,
+                                         0,
+                                         uiRenderPass_,
+                                         1,
+                                         &imageViews_[imageIndex_],
+                                         width_,
+                                         height_,
+                                         1};
+    if (vkCreateFramebuffer(device_, &target, nullptr, &frame.toneFramebuffer) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = frame.sceneColor;
+    barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                         &barrier);
+    VkRenderPassBeginInfo begin{};
+    begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    begin.renderPass = uiRenderPass_;
+    begin.framebuffer = frame.toneFramebuffer;
+    begin.renderArea.extent = {width_, height_};
+    vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, tonePipeline_);
+    const VkViewport viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_), 0, 1};
+    const VkRect2D scissor{{0, 0}, {width_, height_}};
+    vkCmdSetViewport(frame.commands, 0, 1, &viewport);
+    vkCmdSetScissor(frame.commands, 0, 1, &scissor);
+    vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, tonePipelineLayout_, 0,
+                            1, &frame.toneDescriptor, 0, nullptr);
+    const std::array<float, 4> settings{sceneExposure_,
+                                        swapchainFormat_ != VK_FORMAT_B8G8R8A8_SRGB &&
+                                                swapchainFormat_ != VK_FORMAT_R8G8B8A8_SRGB
+                                            ? 1.0F
+                                            : 0.0F,
+                                        0, 0};
+    vkCmdPushConstants(frame.commands, tonePipelineLayout_, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                       sizeof(settings), settings.data());
+    vkCmdBindVertexBuffers(frame.commands, 0, 1, &frame.sceneUpload, &frame.toneVertexOffset);
+    vkCmdDraw(frame.commands, 3, 1, 0, 0);
+    vkCmdEndRenderPass(frame.commands);
+    sceneComposited_ = true;
+    ++diagnostics_.sceneComposites;
+    return SurfaceStatus::Ready;
+  }
   bool CreateSceneResources() {
     const VkPushConstantRange push{VK_SHADER_STAGE_VERTEX_BIT, 0, 112};
     VkPipelineLayoutCreateInfo layout{};
@@ -1676,9 +1772,59 @@ private:
     pipeline.pStages = pbrStages;
     const auto pbrResult = vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr,
                                                      &scenePbrPipeline_);
+    if (!Initialized(pbrResult, "vkCreateGraphicsPipelines (shared PBR)"))
+      return false;
+    VkFormatProperties hdrFormat{};
+    vkGetPhysicalDeviceFormatProperties(physical_, VK_FORMAT_R16G16B16A16_SFLOAT, &hdrFormat);
+    const auto hdrFeatures = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
+                             VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
+                             VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+    if ((hdrFormat.optimalTilingFeatures & hdrFeatures) != hdrFeatures) {
+      vkDestroyShaderModule(device_, fragment, nullptr);
+      vkDestroyShaderModule(device_, vertex, nullptr);
+      return true; // Legacy targets remain supported; DrawScene reports unsupported HDR.
+    }
+    attachments[0].format = VK_FORMAT_R16G16B16A16_SFLOAT;
+    attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    pass.pDependencies = &dependency;
+    if (vkCreateRenderPass(device_, &pass, nullptr, &sceneHdrRenderPass_) != VK_SUCCESS)
+      return false;
+    pipeline.renderPass = sceneHdrRenderPass_;
+    const auto hdrResult = vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr,
+                                                     &sceneHdrPipeline_);
     vkDestroyShaderModule(device_, fragment, nullptr);
     vkDestroyShaderModule(device_, vertex, nullptr);
-    return Initialized(pbrResult, "vkCreateGraphicsPipelines (shared PBR)");
+    if (!Initialized(hdrResult, "vkCreateGraphicsPipelines (HDR)"))
+      return false;
+    const VkPushConstantRange tonePush{VK_SHADER_STAGE_FRAGMENT_BIT, 0, 16};
+    layout.pSetLayouts = &uiDescriptorLayout_;
+    layout.pPushConstantRanges = &tonePush;
+    if (vkCreatePipelineLayout(device_, &layout, nullptr, &tonePipelineLayout_) != VK_SUCCESS ||
+        !makeShader(scene_tonemap_spirv_vert, sizeof(scene_tonemap_spirv_vert), vertex) ||
+        !makeShader(scene_tonemap_spirv_frag, sizeof(scene_tonemap_spirv_frag), fragment))
+      return false;
+    const VkPipelineShaderStageCreateInfo toneStages[]{
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
+         VK_SHADER_STAGE_VERTEX_BIT, vertex, "main", nullptr},
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
+         VK_SHADER_STAGE_FRAGMENT_BIT, fragment, "main", nullptr}};
+    const VkVertexInputBindingDescription toneBinding{0, 4 * sizeof(float),
+                                                      VK_VERTEX_INPUT_RATE_VERTEX};
+    const VkVertexInputAttributeDescription toneAttributes[]{
+        {0, 0, VK_FORMAT_R32G32_SFLOAT, 0}, {1, 0, VK_FORMAT_R32G32_SFLOAT, 2 * sizeof(float)}};
+    vertexInput.vertexBindingDescriptionCount = 1;
+    vertexInput.pVertexBindingDescriptions = &toneBinding;
+    vertexInput.vertexAttributeDescriptionCount = 2;
+    vertexInput.pVertexAttributeDescriptions = toneAttributes;
+    depth.depthTestEnable = depth.depthWriteEnable = VK_FALSE;
+    pipeline.pStages = toneStages;
+    pipeline.layout = tonePipelineLayout_;
+    pipeline.renderPass = uiRenderPass_;
+    const auto toneResult =
+        vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr, &tonePipeline_);
+    vkDestroyShaderModule(device_, fragment, nullptr);
+    vkDestroyShaderModule(device_, vertex, nullptr);
+    return Initialized(toneResult, "vkCreateGraphicsPipelines (tone mapping)");
   }
   void DestroySwapchain() {
     for (auto &frame : frames_) {
@@ -1694,6 +1840,17 @@ private:
         vkDestroySemaphore(device_, frame.finished, nullptr);
     }
     frames_.clear();
+    if (tonePipeline_)
+      vkDestroyPipeline(device_, tonePipeline_, nullptr);
+    if (tonePipelineLayout_)
+      vkDestroyPipelineLayout(device_, tonePipelineLayout_, nullptr);
+    if (sceneHdrPipeline_)
+      vkDestroyPipeline(device_, sceneHdrPipeline_, nullptr);
+    if (sceneHdrRenderPass_)
+      vkDestroyRenderPass(device_, sceneHdrRenderPass_, nullptr);
+    tonePipeline_ = sceneHdrPipeline_ = VK_NULL_HANDLE;
+    tonePipelineLayout_ = VK_NULL_HANDLE;
+    sceneHdrRenderPass_ = VK_NULL_HANDLE;
     if (scenePbrPipeline_)
       vkDestroyPipeline(device_, scenePbrPipeline_, nullptr);
     if (scenePbrPipelineLayout_)
@@ -1883,7 +2040,11 @@ private:
   VkDescriptorSetLayout pbrMaterialLayout_{};
   VkDescriptorPool pbrMaterialPool_{};
   bool sceneRendered_{};
-  bool sceneOffscreen_{}, sceneComposited_{};
+  bool sceneOffscreen_{}, sceneComposited_{}, sceneHdr_{};
+  float sceneExposure_ = 1.0F;
+  VkRenderPass sceneHdrRenderPass_{};
+  VkPipeline sceneHdrPipeline_{}, tonePipeline_{};
+  VkPipelineLayout tonePipelineLayout_{};
   bool transferTarget_{};
   SurfaceDiagnostics diagnostics_{};
 };

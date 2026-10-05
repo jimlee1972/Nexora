@@ -5,6 +5,8 @@
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
 #include "ScenePbrMetalShaders.h"
+#include "SceneToneMetalShaders.h"
+#include "ToneVertexUpload.h"
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -314,7 +316,7 @@ public:
       std::memcpy(storage, vertices.data(), vertices.size());
       std::memcpy(storage + vertices.size(), indices.data(), indices.size());
       std::memcpy(storage + instanceOffset, instanceBytes.data(), instanceBytes.size());
-      if (!EnsureSceneTargets(drawData.offscreen))
+      if (!EnsureSceneTargets(drawData.offscreen, drawData.hdr))
         return SurfaceStatus::DeviceLost;
       struct SceneConstants final {
         float mvp[16];
@@ -339,7 +341,9 @@ public:
       id<MTLRenderCommandEncoder> encoder = [commands_ renderCommandEncoderWithDescriptor:pass];
       if (!encoder)
         return SurfaceStatus::DeviceLost;
-      [encoder setRenderPipelineState:drawData.pbr ? scenePbrPipeline_ : scenePipeline_];
+      [encoder setRenderPipelineState:drawData.hdr
+                                          ? sceneHdrPipeline_
+                                          : (drawData.pbr ? scenePbrPipeline_ : scenePipeline_)];
       [encoder setDepthStencilState:depthState_];
       [encoder setCullMode:MTLCullModeNone];
       [encoder setViewport:MTLViewport{static_cast<double>(viewport->x),
@@ -404,6 +408,8 @@ public:
       [encoder endEncoding];
       sceneDrawn_ = true;
       sceneOffscreen_ = drawData.offscreen;
+      sceneHdr_ = drawData.hdr;
+      sceneExposure_ = drawData.exposure;
       ++diagnostics_.sceneDrawCalls;
       diagnostics_.sceneInstances += instances.size();
       if (drawData.offscreen)
@@ -417,6 +423,32 @@ public:
         return SurfaceStatus::WrongThread;
       if (!drawable_ || !commands_ || !sceneOffscreen_ || sceneComposited_ || uiRendered_)
         return SurfaceStatus::InvalidDescriptor;
+      if (sceneHdr_) {
+        auto *pass = [MTLRenderPassDescriptor renderPassDescriptor];
+        pass.colorAttachments[0].texture = drawable_.texture;
+        pass.colorAttachments[0].loadAction = MTLLoadActionDontCare;
+        pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+        auto encoder = [commands_ renderCommandEncoderWithDescriptor:pass];
+        if (!encoder)
+          return SurfaceStatus::DeviceLost;
+        [encoder setRenderPipelineState:tonePipeline_];
+        [encoder setCullMode:MTLCullModeNone];
+        [encoder setViewport:MTLViewport{0, 0, static_cast<double>(width_),
+                                         static_cast<double>(height_), 0, 1}];
+        [encoder setFragmentTexture:sceneColors_[frame_] atIndex:0];
+        [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
+        const std::array<float, 4> settings{sceneExposure_, 1, 0, 0};
+        [encoder setFragmentBytes:settings.data() length:sizeof(settings) atIndex:0];
+        [encoder setVertexBytes:toneVertices.data() length:sizeof(toneVertices) atIndex:0];
+        [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+        [encoder endEncoding];
+#if defined(NEXORA_METAL_SCENE_TESTING)
+        compositedTesting_ = drawable_.texture;
+#endif
+        sceneComposited_ = true;
+        ++diagnostics_.sceneComposites;
+        return SurfaceStatus::Ready;
+      }
       id<MTLBlitCommandEncoder> encoder = [commands_ blitCommandEncoder];
       if (!encoder)
         return SurfaceStatus::DeviceLost;
@@ -443,9 +475,10 @@ public:
                                        options:MTLResourceStorageModeShared];
     auto command = [queue_ commandBuffer];
     auto encoder = [command blitCommandEncoder];
-    if (!buffer || !encoder || !sceneColors_[frame_])
+    auto texture = sceneHdr_ ? compositedTesting_ : sceneColors_[frame_];
+    if (!buffer || !encoder || !texture)
       return {};
-    [encoder copyFromTexture:sceneColors_[frame_]
+    [encoder copyFromTexture:texture
                      sourceSlice:0
                      sourceLevel:0
                     sourceOrigin:MTLOriginMake(0, 0, 0)
@@ -491,6 +524,10 @@ public:
       uiPipeline_ = nil;
       scenePipeline_ = nil;
       scenePbrPipeline_ = nil;
+      sceneHdrPipeline_ = tonePipeline_ = nil;
+#if defined(NEXORA_METAL_SCENE_TESTING)
+      compositedTesting_ = nil;
+#endif
       depthState_ = nil;
       uiSampler_ = nil;
       environmentSampler_ = nil;
@@ -624,21 +661,23 @@ private:
     }
     return true;
   }
-  bool EnsureSceneTargets(bool offscreen) {
+  bool EnsureSceneTargets(bool offscreen, bool hdr) {
     const auto ensure = [&](id<MTLTexture> __strong &texture, MTLPixelFormat format) {
-      if (texture && texture.width == width_ && texture.height == height_)
+      if (texture && texture.width == width_ && texture.height == height_ &&
+          texture.pixelFormat == format)
         return true;
       auto *descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:format
                                                                             width:width_
                                                                            height:height_
                                                                         mipmapped:NO];
       descriptor.storageMode = MTLStorageModePrivate;
-      descriptor.usage = MTLTextureUsageRenderTarget;
+      descriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
       texture = [device_ newTextureWithDescriptor:descriptor];
       return texture != nil;
     };
     return ensure(sceneDepths_[frame_], MTLPixelFormatDepth32Float) &&
-           (!offscreen || ensure(sceneColors_[frame_], MTLPixelFormatBGRA8Unorm));
+           (!offscreen || ensure(sceneColors_[frame_],
+                                 hdr ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm));
   }
   id<MTLTexture> CreateTexture(const UiTextureUpload &upload, bool scene = false) {
     auto *descriptor =
@@ -786,7 +825,33 @@ private:
     pbrVertices.layouts[3].stepRate = 1;
     pipeline.vertexDescriptor = pbrVertices;
     scenePbrPipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
-    return scenePbrPipeline_ != nil;
+    if (!scenePbrPipeline_)
+      return false;
+    pipeline.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
+    sceneHdrPipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
+    auto toneVertex =
+        [device_ newLibraryWithSource:[NSString stringWithUTF8String:scene_tonemap_metal_vert]
+                              options:nil
+                                error:&error];
+    auto toneFragment =
+        [device_ newLibraryWithSource:[NSString stringWithUTF8String:scene_tonemap_metal_frag]
+                              options:nil
+                                error:&error];
+    if (!toneVertex || !toneFragment)
+      return false;
+    pipeline.vertexFunction = [toneVertex newFunctionWithName:@"toneVertexMain"];
+    pipeline.fragmentFunction = [toneFragment newFunctionWithName:@"toneFragmentMain"];
+    auto *toneDescriptor = [MTLVertexDescriptor vertexDescriptor];
+    toneDescriptor.attributes[0].format = toneDescriptor.attributes[1].format =
+        MTLVertexFormatFloat2;
+    toneDescriptor.attributes[0].bufferIndex = toneDescriptor.attributes[1].bufferIndex = 0;
+    toneDescriptor.attributes[1].offset = 2 * sizeof(float);
+    toneDescriptor.layouts[0].stride = 4 * sizeof(float);
+    pipeline.vertexDescriptor = toneDescriptor;
+    pipeline.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
+    pipeline.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+    tonePipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
+    return sceneHdrPipeline_ != nil && tonePipeline_ != nil;
   }
   bool CreateUiResources() {
     constexpr const char *source = R"(
@@ -870,6 +935,12 @@ private:
   id<MTLSamplerState> environmentSampler_ = nil;
   id<MTLRenderPipelineState> scenePipeline_ = nil;
   id<MTLRenderPipelineState> scenePbrPipeline_ = nil;
+  id<MTLRenderPipelineState> sceneHdrPipeline_ = nil, tonePipeline_ = nil;
+  bool sceneHdr_{};
+  float sceneExposure_ = 1.0F;
+#if defined(NEXORA_METAL_SCENE_TESTING)
+  id<MTLTexture> compositedTesting_ = nil;
+#endif
   id<MTLDepthStencilState> depthState_ = nil;
   std::array<id<MTLBuffer>, kFrames> sceneUploads_{};
   std::array<std::size_t, kFrames> sceneCapacity_{};

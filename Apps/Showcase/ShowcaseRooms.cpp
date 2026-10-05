@@ -121,6 +121,7 @@ struct RoomSession::State final {
   bool dragging{}, screenshotMode{};
   std::size_t courtyardShot{};
   bool courtyardPbr{true}, courtyardIbl{true};
+  float courtyardExposure = 1.0F;
   std::uint64_t atlasGeneration{~std::uint64_t{0}};
   std::string lastAction{"Ready"}, pluginLibrary;
   ErrorInjection injection{ErrorInjection::None};
@@ -1224,6 +1225,10 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.courtyardPbr = !s.courtyardPbr;
     s.lastAction = s.courtyardPbr ? "PBR materials" : "Lambert material comparison";
   }
+  if (s.selected == "courtyard" && key == Key::E) {
+    s.courtyardExposure = s.courtyardExposure == 1.0F ? 0.25F : 1.0F;
+    s.lastAction = s.courtyardExposure == 1.0F ? "Exposure normal" : "Exposure highlight detail";
+  }
   if (s.selected == "courtyard" && key == Key::O) {
     s.courtyardIbl = !s.courtyardIbl;
     s.lastAction = s.courtyardIbl ? "Environment lighting on" : "Direct-light comparison";
@@ -1616,6 +1621,9 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   data.base_color[2] = 0.9F;
   if (s.selected == "courtyard") {
     data.pbr = s.courtyardPbr;
+    data.hdr = data.pbr;
+    data.exposure = s.courtyardExposure;
+    data.offscreen = data.hdr;
     data.cameraPosition = {eye.x, eye.y, eye.z};
     if (data.pbr) {
       data.light_color[0] *= 3;
@@ -1656,7 +1664,8 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
   s.Rect(0, 0, 1280, 112, 0xf0271a10);
   s.Text(18, 14, s.localization.Resolve("title"), 0xffefdc80, 3);
   s.Text(18, 45,
-         "9 courtyard / B shot / P material / F4 hide UI / F1 overview / F2 profiler / F3 matrix");
+         "9 courtyard / B shot / P material / O IBL / E exposure / F4 hide UI / F1 overview / F2 "
+         "profiler / F3 matrix");
   for (std::size_t i = 0; i < rooms.size(); ++i) {
     const float x = 18 + static_cast<float>(i) * 154;
     s.Rect(x, 75, 146, 28, s.selected == rooms[i] ? 0xff996828 : 0xff453123);
@@ -1788,7 +1797,8 @@ std::string RoomSession::Report() const {
                                                                             : "shared_pbr_direct")
                          : "lambert")
       << "\""
-      << ",\"screenshot_mode\":" << s.screenshotMode
+      << ",\"scene_color_format\":\"" << (s.courtyardPbr ? "RGBA16F" : "RGBA8") << "\""
+      << ",\"exposure\":" << s.courtyardExposure << ",\"screenshot_mode\":" << s.screenshotMode
 #if NEXORA_ASSET_PIPELINE_ENABLED
       << ",\"representative_asset_loaded\":" << !s.assetMesh.vertices.empty()
       << ",\"asset_hash\":\"" << s.assetHash << "\""

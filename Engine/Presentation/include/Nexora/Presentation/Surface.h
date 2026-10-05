@@ -268,6 +268,9 @@ struct SceneDrawData final {
   std::array<float, 3> cameraPosition{};
   std::span<const SceneLinearTextureUpload> linearTextureUploads{};
   std::optional<SceneEnvironment> environment{};
+  // Linear RGBA16F offscreen PBR; CompositeScene applies exposure, ACES and display transfer.
+  bool hdr{};
+  float exposure = 1.0F;
 };
 
 // Call only after material/batch validation. Returned values own their scalar storage.
@@ -323,7 +326,8 @@ public:
   // composite. A bounded direct scene draw may follow UI to replace only its viewport pixels;
   // offscreen and default full-surface draws must precede UI.
   virtual SurfaceStatus DrawScene(const SceneDrawData &) { return SurfaceStatus::Unsupported; }
-  // Copies a completed offscreen scene into the acquired image entirely on the GPU. A pending
+  // Composites a completed offscreen scene entirely on the GPU: legacy color copy, or HDR
+  // exposure/ACES/display transfer into the acquired image. A pending
   // offscreen draw must be composited once before UI/Present; direct scene callers need no copy.
   virtual SurfaceStatus CompositeScene() { return SurfaceStatus::Unsupported; }
   virtual SurfaceStatus Present() = 0;

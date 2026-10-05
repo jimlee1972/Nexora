@@ -212,7 +212,7 @@ int RunTests() {
 
   renderer::RenderGraph external;
   const auto sceneColor = external.ImportExternalTexture(
-      {16, 16, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::Undefined, "Native color"});
+      {16, 16, rhi::TextureFormat::Rgba16Float, rhi::ResourceState::Undefined, "Native color"});
   const auto acquiredColor = external.ImportExternalTexture(
       {16, 16, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::RenderTarget, "Acquired color"});
   std::vector<std::string> executed;
@@ -225,7 +225,7 @@ int RunTests() {
               "external draw must request the native scene color transition");
     if (pass.name == "Main")
       Require(pass.transitions.size() == 1 && pass.transitions[0].texture == sceneColor &&
-                  pass.transitions[0].after == rhi::ResourceState::CopySource,
+                  pass.transitions[0].after == rhi::ResourceState::ShaderRead,
               "external composite must read the completed scene target");
     if (pass.name == "UI")
       Require(pass.transitions.empty(),
@@ -237,7 +237,7 @@ int RunTests() {
   };
   (void)external.AddExternalPass("Offscreen", {}, {{sceneColor, rhi::ResourceState::RenderTarget}},
                                  record);
-  (void)external.AddExternalPass("Main", {{sceneColor, rhi::ResourceState::CopySource}},
+  (void)external.AddExternalPass("Main", {{sceneColor, rhi::ResourceState::ShaderRead}},
                                  {{acquiredColor, rhi::ResourceState::RenderTarget}}, record);
   (void)external.AddExternalPass("UI", {}, {{acquiredColor, rhi::ResourceState::RenderTarget}},
                                  record);

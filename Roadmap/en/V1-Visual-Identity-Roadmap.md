@@ -240,3 +240,18 @@ lavapipe runs measured 35–37 FPS; physical performance remains open.
 [Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-IBL-2026-10-05/acceptance.md).
 Native Windows/Metal execution is required through PR CI. Targets remain RGBA8; floating HDR
 composition and final VIS-M1 material acceptance remain open. Milestone progress stays 1/7.
+
+## 16. VIS-M1 floating HDR composition (2026-10-05)
+
+✅ Linux native shared PBR renders into frame-owned RGBA16F and Main applies exposure, shared ACES
+and one display transfer before UI. Pixel oracles distinguish radiance 4/1, exposure 1/0.125/0.25,
+UI color invariance, frame reuse and resize. Legacy direct/offscreen RGBA8 and Lambert comparisons
+remain covered. E switches courtyard exposure with exact fixed-camera restoration. External graph
+metadata identifies RGBA16F and ShaderRead without exposing resources or silently changing native
+RHI triangle allocation. Public C++ consumers rebuild; stable C/Zig and NXAB remain compatible.
+
+✅ Linux Development full gate: 95/95 without skips. Native Windows DX12 and Metal pixel oracles,
+Windows Vulkan package replay and Shipping packaging require the exact PR head CI before milestone
+acceptance. Evidence is retained under `Apps/Showcase/evidence/VIS-M1-Linux-HDR-2026-10-05`.
+This slice does not accept bloom, final art, physical visuals or the GTX 960 budget. VIS-M1 remains
+open until cross-platform acceptance; milestone progress is still 1/7.

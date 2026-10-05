@@ -56,6 +56,8 @@ and frame lifetimes. Three additional bounded linear resources supply diffuse ir
 roughness-prefiltered latlong specular and the BRDF LUT. Environment coordinates use +Y rotation,
 U wrap/V clamp; the LUT clamps both axes. Material perceptual roughness spans prefilter levels;
 shared direct BRDF math owns its numerical roughness floor. `NexoraEvaluatePbr` consumes actual
-environment samples and ACES applies one display transfer; floating-point HDR scene composition
-remains the next slice.
+environment samples. Legacy targets apply ACES/display transfer in the fragment; HDR targets
+preserve linear radiance and `scene_tonemap.slang` applies exposure, shared ACES and one display
+transfer in Main before UI. `GenerateToneShaders.py` uses the same pinned Slang 2026.18 embedding
+and regeneration-check route; native tone pipelines contain no duplicated color math.
 No PBR math is maintained in backend-specific handwritten shader strings.

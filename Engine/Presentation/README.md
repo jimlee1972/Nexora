@@ -237,7 +237,7 @@ corrected draw. Vulkan push constants/descriptors, DX12 aligned per-slot CBVs/de
 copied constants/textures change per batch within the shared depth pass. Existing frame fences own
 uploads and texture lifetimes, including offscreen composition and resize. Consumers must rebuild
 for the appended C++ fields; stable C/Zig and persisted schemas are unchanged. This Lambert slice
-establishes binding only; Shared direct-light PBR is described below; IBL and floating-point HDR remain open.
+establishes binding only; shared PBR, cooked IBL and opt-in floating-point HDR are described below.
 See [ADR-0004](../../Roadmap/en/ADR-0004-Showcase-Materials-HDR.md).
 
 ## Shared direct-light PBR
@@ -257,8 +257,8 @@ The private 80-byte material packing contract is shared across adapters. Vulkan 
 UBOs and descriptor sets per protecting frame; DX12 uses aligned paired CBVs; Metal copies constants
 and binds four material maps plus three environment resources/samplers. Rejected missing maps/invalid factors do not consume scene submissions.
 Colors are evaluated in linear space and tone-mapped with shared ACES, followed by a single manual
-sRGB transfer for UNORM targets (hardware transfer for sRGB attachments). These remain RGBA8 targets;
-linear floating-point HDR scene storage is not yet accepted. Public C++ consumers rebuild; Runtime
+sRGB transfer for UNORM targets (hardware transfer for sRGB attachments). The legacy RGBA8 path
+retains this behavior; opt-in HDR defers these operations to Main composition as described below. Public C++ consumers rebuild; Runtime
 mesh wire formats and stable C/Zig ABI remain unchanged.
 
 PBR base/emission maps use hardware sRGB views, decoding texels before linear filtering. Each
@@ -268,7 +268,7 @@ Lambert bindings retain UNORM views. Both views share the texture generation and
 lifetime; UI textures retain their existing UNORM contract. Shared shaders consume sampled colors
 as linear values and do not decode them again. Midpoint black/white pixel tests compare base and
 emission against linear 0.5 factors, and separately verify linear ORM and legacy filtering.
-Floating-point HDR composition remains pending; color filtering alone does not complete VIS-M1.
+Color filtering is also used by the opt-in floating HDR path; it never adds another display transfer.
 
 ## Bounded linear environment textures
 
@@ -295,3 +295,28 @@ allocate fully before recording copy commands. Public C++ consumers rebuild; sta
 schemas are unchanged. RGBA16F environment resources do not yet mean floating HDR scene targets or
 HDR10 monitor output. Native tests exercise HDR radiance, diffuse/metal separation, roughness levels,
 rotation, view-dependent reflections, U-seam filtering, IBL disable and resize/re-upload.
+
+## Linear HDR scene composition
+
+`SceneDrawData::hdr` defaults false and requires PBR plus a full-surface offscreen draw. Exposure is
+finite in [0,32], defaults 1, and is validated before recording on either path. Invalid combinations
+return InvalidDescriptor; unsupported float rendering reports Unsupported. The private material
+packet uses its reserved properties.w for linear HDR output without growing the 80-byte layout.
+HDR fragments preserve nonnegative finite radiance up to RGBA16F's 65504 range; they perform no
+ACES or display transfer. Each protecting frame owns a RGBA16F color target, depth target and
+composite bindings. Main samples that target, applies exposure and the shared ACES implementation,
+then performs exactly one manual sRGB transfer for UNORM presentation or hardware transfer for
+sRGB attachments. UI follows Main and retains its existing color/blending behavior.
+
+Vulkan records ColorAttachment → ShaderRead with a frame descriptor and framebuffer; DX12 records
+RenderTarget → PixelShaderResource with reserved frame SRVs and root constants; Metal ends the scene
+encoder and samples its private texture in a drawable encoder. No production CPU pixel readback is
+involved. Format changes, frame reuse, resize and shutdown preserve protecting-fence ownership and
+drain before release. Legacy offscreen RGBA8 still uses the GPU copy path; direct/Lambert draws remain
+available. Public C++ consumers rebuild; stable C/Zig and persistent asset schemas are unchanged.
+HDR storage precision does not negotiate an HDR10 display or swapchain.
+
+The tone pass uses one explicit 48-byte fullscreen triangle (float2 position plus float2 UV),
+shared by all adapters. Vulkan/DX12 append it to their protecting-frame scene upload; Metal
+copies it into the encoder. This avoids compiler-dependent SV_VertexID builtin declaration
+ordering while keeping the generated shader artifact checks exact.
