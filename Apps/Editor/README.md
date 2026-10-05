@@ -181,6 +181,12 @@ save; rejection reopens the path dialog with its attempted filename and error. C
 case variants cannot bypass reserved metadata policy or save a scene over another file type.
 Content paths, folder/asset labels, search and rename input use UTF-8 with native filesystem paths;
 Unicode scene discovery, folder navigation, rename/move and Undo avoid system code-page conversion.
+Focused Content F2 renames one selected asset with focused/select-all UTF-8 filename input;
+Enter/Apply commits one Content Undo and Escape/Cancel abandons it. Context Rename shares this
+flow. Invalid names are retryable and unchanged names close without a filesystem transaction.
+The modal blocks other authoring/File commands and cancels on focus/write loss, external modals,
+hidden Content or stale project/asset path, retaining document history. Linux Xvfb uses real F2/
+Enter before Save/Undo/restart; physical IME acceptance remains open.
 
 The active Content scene follows its stable UUID through rename/move and Content Undo. Refresh runs
 at authoring mutation boundaries and before Save; unchanged frames use a token/path/browser-revision

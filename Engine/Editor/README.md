@@ -100,6 +100,8 @@ into renderer or platform internals.
   In persistent-identity mode, each source and its `.meta` sidecar are one rollback-capable
   transaction, so rename, move, delete, and undo cannot detach the UUID from the source. Existing
   files and symlinks outside the canonical project root are rejected before mutation.
+  Rename to the identical UTF-8 filename validates writable access and existing source/sidecar,
+  clears prior errors, and preserves the browser revision and pending Content Undo without IO writes.
 - Typed asset drag payloads carry the project generation and asset UUID. Reimport results are staged
   and may publish only when their generation and dependency graph remain valid; cancellation,
   staleness, failure, or a cycle preserves the previous artifact. `ProjectContentSession` also keeps

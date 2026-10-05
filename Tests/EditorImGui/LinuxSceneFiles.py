@@ -81,15 +81,13 @@ def main():
         copied = copy.read_bytes()
         if copied == original or main_scene.read_bytes() != original:
             raise RuntimeError("Save As changed its source or failed to include the authored entity")
-        # Fresh layout, one Content row: rename the actual open asset through its context menu.
+        # Fresh layout, one Content row: rename the actual open asset with focused F2/Enter.
         # Save/Undo after relocation proves that the application's association follows the UUID.
         identity = copy.with_suffix(".scene.meta").read_bytes()
-        send("mousemove", "--window", window, "410", "637", "click", "3")
-        send("mousemove", "--window", window, "445", "669", "click", "1")
-        send("mousemove", "--window", window, "600", "358", "click", "1")
-        send("key", "--clearmodifiers", "ctrl+a")
+        send("mousemove", "--window", window, "410", "637", "click", "1")
+        send("key", "--clearmodifiers", "F2")
         send("type", "--clearmodifiers", "--delay", "2", "Renamed.scene")
-        send("mousemove", "--window", window, "528", "381", "click", "1")
+        send("key", "--clearmodifiers", "Return")
         renamed = root / "Content/Renamed.scene"
         metadata = root / ".nexora/scene-session.ini"
         wait_until(lambda: renamed.is_file() and not copy.exists() and

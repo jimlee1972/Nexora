@@ -2,6 +2,7 @@
 #include "Nexora/Editor/ProjectContent.h"
 
 #include <chrono>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -394,6 +395,163 @@ void RunContentScene(float dpi) {
   f.Tap(Key::Enter);
   Require(!f.ui.TakeSceneFileRequest(), "Close modal allowed Content Open");
 }
+void RunContentRename(float dpi) {
+  Fixture f(dpi);
+  std::filesystem::copy_file(f.root / "Content/Original.scene", f.root / "Content/Second.scene");
+  editor::AssetWorkspace assets;
+  editor::ProjectContentSession content;
+  Require(assets.ImportTree(f.root / "Content", {}, {},
+                            editor::AssetIdentityMode::PersistentReadWrite) &&
+              content.Open(f.writer, assets, 1),
+          "Content rename fixture failed");
+  const auto asset = content.Browser().Items().front().id;
+  const auto second = content.Browser().Items().back().id;
+  Require(content.Browser().Select(asset), "Content rename selection failed");
+  f.content = &content;
+  Access::FocusContent(f.ui);
+  f.Draw();
+  f.Draw();
+  const auto type = [&](std::u32string_view text) {
+    for (const auto c : text) {
+      Nexora::Window::WindowEvent event;
+      event.type = Nexora::Window::WindowEventType::Text;
+      event.value0 = static_cast<int>(c);
+      f.ui.ProcessEvents(std::array{event});
+      f.Draw();
+    }
+  };
+  int rename_attempt = 0;
+  const auto begin = [&] {
+    ++rename_attempt;
+    Access::FocusContent(f.ui);
+    f.Draw();
+    f.Tap(Key::F2);
+    if (!Access::ContentRenamePosition(f.ui, 0))
+      throw std::runtime_error("Focused Content F2 did not open Rename at attempt " +
+                               std::to_string(rename_attempt) + " scale " + std::to_string(dpi));
+  };
+  Require(f.scene.CreateLight("Retained redo") && f.scene.Undo() && f.scene.CopySelection(),
+          "Content rename history fixture failed");
+  const auto original = f.world.SaveScene(f.id);
+  begin();
+  Require(Access::ContentRenameText(f.ui) == "Original.scene",
+          "F2 did not preload the full filename");
+  type(U"場景🙂.scene");
+  const auto unicode_name = std::u8string(u8"場景🙂.scene");
+  const std::string encoded(unicode_name.begin(), unicode_name.end());
+  const auto unicode = std::filesystem::path("Content") / std::filesystem::path(unicode_name);
+  Require(Access::ContentRenameText(f.ui) == encoded,
+          "Focused/select-all UTF-32 rename input failed");
+  f.Tap(Key::Enter);
+  Require(content.Browser().Find(asset)->path == unicode &&
+              std::filesystem::exists(f.root / unicode) &&
+              !std::filesystem::exists(f.root / "Content/Original.scene") &&
+              f.world.SaveScene(f.id) == original && !f.ui.TakeSceneFileRequest() &&
+              f.scene.Redo() && f.scene.Undo(),
+          "Enter rename lost source identity or consumed document history");
+  begin();
+  f.Shortcut(Key::A);
+  f.Tap(Key::Backspace);
+  f.Tap(Key::Enter);
+  Require(!content.LastError().empty(), "Invalid rename did not report its error");
+  type(U"場景🙂.scene");
+  f.Tap(Key::Enter);
+  Require(content.LastError().empty() && content.Undo() &&
+              content.Browser().Find(asset)->path == "Content/Original.scene" &&
+              content.Rename(asset, encoded),
+          "Unchanged rename retained an error or consumed Content Undo");
+  begin();
+  type(U"Canceled.scene");
+  f.Tap(Key::Escape);
+  Require(content.Browser().Find(asset)->path == unicode &&
+              !std::filesystem::exists(f.root / "Content/Canceled.scene"),
+          "Escape committed a Content rename");
+  begin();
+  f.Shortcut(Key::A);
+  f.Tap(Key::Backspace);
+  f.Tap(Key::Enter);
+  Require(Access::ContentRenamePosition(f.ui, 0).has_value() &&
+              content.Browser().Find(asset)->path == unicode,
+          "Invalid rename closed or mutated the asset");
+  type(U"Retry.scene");
+  f.Tap(Key::Enter);
+  Require(content.Browser().Find(asset)->path == "Content/Retry.scene",
+          "Rejected Content rename was not retryable");
+  Require(content.Undo() && content.Browser().Find(asset)->path == unicode,
+          "Content Undo did not retain the keyboard rename transaction");
+  // Rename blocks authoring commands even when its field has lost active text input.
+  begin();
+  const auto apply = Access::ContentRenamePosition(f.ui, 1);
+  Require(apply.has_value(), "Content Apply button missing");
+  f.ClickAt(*apply); // unchanged name completes; reopen for the independent gates.
+  begin();
+  const auto input = Access::ContentRenamePosition(f.ui, 0);
+  Require(input.has_value(), "Content filename input missing");
+  f.ClickAt({(*input)[0] + 140.0F, (*input)[1]}); // Filename label deactivates the text field.
+  f.Shortcut(Key::N);
+  f.Shortcut(Key::S, true);
+  f.Shortcut(Key::N, true);
+  f.Shortcut(Key::Z);
+  Require(!f.ui.TakeSceneFileRequest() && f.world.SaveScene(f.id) == original,
+          "Content rename allowed File commands");
+  f.active = &f.reader;
+  f.Draw();
+  f.Draw();
+  Require(!Access::ContentRenamePosition(f.ui, 0), "Write loss retained the Rename modal");
+  f.active = &f.writer;
+  f.Draw();
+  begin();
+  Nexora::Window::WindowEvent focus;
+  focus.type = Nexora::Window::WindowEventType::FocusChanged;
+  focus.value0 = 0;
+  f.ui.ProcessEvents(std::array{focus});
+  f.Draw();
+  f.Draw();
+  Require(!Access::ContentRenamePosition(f.ui, 0), "Focus loss retained Content Rename");
+  focus.value0 = 1;
+  f.ui.ProcessEvents(std::array{focus});
+  f.Draw();
+  begin();
+  type(U"FocusRestored.scene");
+  focus.value0 = 0;
+  f.ui.ProcessEvents(std::array{focus});
+  focus.value0 = 1;
+  f.ui.ProcessEvents(std::array{focus}); // No renderable frame occurred while unfocused.
+  f.Tap(Key::Enter);
+  f.Draw();
+  Require(!Access::ContentRenamePosition(f.ui, 0) &&
+              content.Browser().Find(asset)->path == unicode &&
+              !std::filesystem::exists(f.root / "Content/FocusRestored.scene"),
+          "Focus restoration before drawing revived the Content rename draft");
+  begin();
+  const std::vector<editor::ContentItem> snapshot(content.Browser().Items().begin(),
+                                                  content.Browser().Items().end());
+  Require(content.Browser().Reset(snapshot, 2), "Content generation fixture failed");
+  f.Draw();
+  f.Draw();
+  Require(!Access::ContentRenamePosition(f.ui, 0) && content.Browser().Find(asset)->path == unicode,
+          "Stale Content generation renamed an asset");
+  Require(content.Browser().Select(asset), "Restore selection after Content reset failed");
+  begin();
+  Require(content.Browser().Rename(asset, "ExternallyMoved.scene"), "Stale path fixture failed");
+  f.Draw();
+  f.Draw();
+  Require(!Access::ContentRenamePosition(f.ui, 0) && std::filesystem::exists(f.root / unicode) &&
+              content.Browser().Undo(),
+          "A stale captured asset path committed Rename");
+  Require(content.Browser().Select(asset) && content.Browser().Select(second, true),
+          "Multiple Content rename selection failed");
+  Access::FocusContent(f.ui);
+  f.Draw();
+  f.Tap(Key::F2);
+  Require(!Access::ContentRenamePosition(f.ui, 0), "Multiple asset selection opened Rename");
+  Require(content.Browser().Select(asset), "Restore Content rename selection failed");
+  begin();
+  f.ui.RequestCloseConfirmation();
+  f.Draw();
+  f.Draw();
+  Require(!Access::ContentRenamePosition(f.ui, 0), "Close modal retained Content Rename");
+}
 void RunUnicodeContent(float dpi) {
   Fixture f(dpi);
   const auto relative = std::filesystem::path(u8"Content/子資料夾/場景.scene");
@@ -430,6 +588,7 @@ int main() {
       RunGates(dpi);
       RunUnicodeContent(dpi);
       RunContentScene(dpi);
+      RunContentRename(dpi);
     }
     std::cout << "Scene file menu, shortcuts and modal lifecycle passed\n";
     return 0;

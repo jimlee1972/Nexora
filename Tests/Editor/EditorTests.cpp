@@ -248,8 +248,14 @@ int Run() {
               fs::is_regular_file(root / "Content/Player.mesh") &&
               fs::is_regular_file(root / "Content/Player.mesh.meta") &&
               !fs::exists(root / "Content/Hero.mesh") && content_session.CanUndo() &&
-              !fs::exists(root / "Content/Hero.mesh.meta") && content_session.Undo(&error) &&
-              fs::is_regular_file(root / "Content/Hero.mesh") &&
+              !fs::exists(root / "Content/Hero.mesh.meta"),
+          "filesystem-backed content rename failed");
+  const auto renamed_revision = content_session.Browser().Revision();
+  Require(!content_session.Rename(indexed_mesh, "", &error) && !error.empty() &&
+              content_session.Rename(indexed_mesh, "Player.mesh", &error) && error.empty() &&
+              content_session.LastError().empty() &&
+              content_session.Browser().Revision() == renamed_revision &&
+              content_session.Undo(&error) && fs::is_regular_file(root / "Content/Hero.mesh") &&
               fs::is_regular_file(root / "Content/Hero.mesh.meta"),
           "filesystem-backed content rename/undo failed");
   fs::create_directories(root / "Content/Characters");
@@ -439,6 +445,7 @@ int Run() {
           "read-only workspace opened writable project content");
   editor::ProjectContentSession read_only_content;
   Require(read_only_content.Open(read_only_workspace, reopened_assets, 12, false, &error) &&
+              !read_only_content.Rename(indexed_mesh, "Hero.mesh", &error) && !error.empty() &&
               !read_only_content.Rename(indexed_mesh, "Blocked.mesh", &error) &&
               fs::is_regular_file(root / "Content/Hero.mesh") && !error.empty(),
           "read-only project content accepted a mutation");

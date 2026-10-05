@@ -73,6 +73,9 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ContentOpenScenePosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  ContentRenamePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::string_view ContentRenameText(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   ContentAssetPosition(const EditorImGuiHost &host, runtime::AssetUuid asset) noexcept;
   [[nodiscard]] static bool ContentDragActive(const EditorImGuiHost &host) noexcept;
   static void FocusProfiler(EditorImGuiHost &host) noexcept;
