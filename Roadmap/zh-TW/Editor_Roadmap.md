@@ -82,6 +82,9 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 - ✅ 在 Vulkan host 上，圖形化 process 會將 ImGui draw data composite 至 public
   `RenderSurface` 已 acquire 的 swapchain backbuffer；Linux 與 Windows window event 也會正規化
   完整的 Editor 按鍵／modifier 集合。
+- ✅ WP0 可重現性盤點：graphical OFF 71/71、ON 加 Slang 115/115 通過且無 skipped，
+  Shipping engine build 通過。[Linux 證據](../../Tools/Build/evidence/EditorEDM0-Linux-2026-10-05.md)
+  與 focused plan 現已提供剩餘 target-host checklist；ED-M0 維持 open。
 - 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及 Windows DPI／IME 證據；
   已記錄 bounded Windows/DX12 開發機 shell smoke，但完整 target-host gate 通過之前 ED-M0
   仍維持 open。
