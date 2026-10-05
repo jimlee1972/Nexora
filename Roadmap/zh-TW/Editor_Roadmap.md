@@ -102,6 +102,10 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   新 owner 即使 DPI 不變仍取得 atlas，move／resize 保留 cache；native lifetime test
   涵蓋更換與 teardown（[紀錄](../../Tools/Build/evidence/EditorEDM0-SurfaceLifetime-2026-10-06.md)）。
 
+- ✅ ImGui context ownership 現隨 host State 移動與銷毀。以 allocator 計數的
+  `editor.imgui_context_lifetime` gate 可偵測原本遺留的 17 筆 allocation，並檢查 self-move、
+  current context 還原，要求全部 owner 銷毀後無遺留 allocation。
+
 ### ED-M1 — Project 與 Asset workspace
 
 建立、開啟與升級 project；Content Browser 支援 search/filter、folder/UUID、drag/drop、import

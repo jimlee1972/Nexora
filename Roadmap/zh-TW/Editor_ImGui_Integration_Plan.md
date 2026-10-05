@@ -168,6 +168,10 @@ target-host 證據。此處僅完成 WP0，ED-M0 尚未完成。
 **Exit gate：**乾淨的 baseline result 與明確 gap list。若 configure 需要網路但沒有 cache，回報環境限制；
 不可靜默關閉 feature。
 
+✅ Context move lifetime 已強化：`editor.imgui_context_lifetime` 驗證 destination context
+釋放、source context 移轉、self-move、其他 current context 保留與 allocator 平衡；此修正
+不取代 target-host 視覺驗收。
+
 ### WP1 — 讓 public RHI 足以表達 ImGui
 
 **狀態：source 與 validation contract 已實作；native target-host validation 仍待完成。**

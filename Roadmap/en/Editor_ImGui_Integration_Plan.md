@@ -183,6 +183,10 @@ map in §6 records the remaining target-host gaps. This closes WP0 only, not ED-
 **Exit gate:** clean baseline results and an explicit gap list. If configure needs network and no
 cache is available, report an environment limitation; never silently disable the feature.
 
+✅ Context move lifetime hardening: `editor.imgui_context_lifetime` verifies destination context
+release, source context transfer, self-move, preservation of another current context, and allocator
+balance. This closes an ownership defect without changing target-host visual acceptance.
+
 ### WP1 — Make the public RHI sufficient for ImGui
 
 **Status: implemented in source and validation contracts; native target-host validation remains.**
