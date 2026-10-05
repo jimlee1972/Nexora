@@ -427,3 +427,17 @@ fixtures check disabled/half/full haze, restoration, unlit exclusion and a clear
 range (65 PBR frames). Sun direction and sky panorama orientation move together to refine the
 reference lighting. Linux Development passes 97/97 tests (88.81 seconds), including native F7 change/restoration;
 all 65 PBR frames pass. Shipping/cross-platform evidence and concept parity remain open; VIS stays 5/7.
+
+
+### Living art and shared-column iteration
+
+Four fluted columns reuse one immutable mesh through native affine instances, preserving
+source-world stone projection and directional shadows while freeing vertex budget. Identity
+world geometry and the appended planar-mirror instance retain separate batch ranges. Additional
+ground-cover patches/climbing ivy use the original cutout mask and shared GPU wind/replay clock.
+Foliage counters count actual source quads. Warm painted ceramics and a wider pedestal base
+refine the composition. Linux Development passes 97/97 (89.00 seconds), including all three geometry budgets and native effect replay. Shipping/cross-platform validation and final reference parity remain open (5/7).
+
+Crystal diffuse/backlight fill is reduced to retain transmitted background and sharper facets;
+stronger linear rune radiance feeds HDR bloom. Original column relief and distant tower fluting
+add geometric detail within the existing native vertex budget.
