@@ -3,6 +3,7 @@
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
 #include "SceneTextureMipmaps.h"
+#include "ToneParametersUpload.h"
 
 #include <array>
 #include <cmath>
@@ -110,6 +111,19 @@ void Run() {
   Require(!ValidatePbrData(pbr), "direct HDR accepted");
   pbr.offscreen = true;
   Require(ValidatePbrData(pbr), "offscreen HDR rejected");
+  pbr.postProcessAntiAliasing = true;
+  Require(ValidatePbrData(pbr), "valid HDR anti-aliasing rejected");
+  pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "non-HDR anti-aliasing accepted");
+  pbr.hdr = true;
+  pbr.postProcessAntiAliasing = false;
+  const auto aaPacked = PackToneParameters(1, false, SceneBloom{0, 1, 12}, SceneColorGrade{}, 640,
+                                           480, SceneDepthOfField{10, 0, 12}, true);
+  const auto defaultTone =
+      PackToneParameters(1, false, SceneBloom{0, 1, 12}, SceneColorGrade{}, 640, 480);
+  Require(sizeof(aaPacked) == 64 && aaPacked[12] == 1.0F / 640 && aaPacked[13] == 1.0F / 480 &&
+              aaPacked[14] == 1 && aaPacked[15] == 0 && defaultTone[14] == 0,
+          "anti-aliasing tone packet layout/default changed");
   pbr.depthOfField = SceneDepthOfField{3, 1, 12};
   Require(ValidatePbrData(pbr), "valid HDR focus rejected");
   for (const float invalid : {0.0F, -1.0F, std::numeric_limits<float>::infinity(),

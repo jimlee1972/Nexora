@@ -1,0 +1,74 @@
+{
+  "source_freeze": "ba94ca58b1aa31b767eed90f6896073b0c70f898",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "46b648cbb0672a599b0be61385a051bb6711064949ed68faaa705a06ae03136c",
+    "Apps/Showcase/ShowcaseRooms.cpp": "385de7e542bb57be0fa75593c3fcffa0353f62916e81d1de21520521ae539add",
+    "Engine/Presentation/README.md": "3197354e6034bf24278939404fdd4918423bf4d22fdf0d7dd33e1bb3482db1a5",
+    "Engine/Presentation/include/Nexora/Presentation/Surface.h": "2942bf47d8908e1cc233cce9df3a7b562de8c0de21470c637731b01e1d73751e",
+    "Engine/Presentation/shaders/scene_tonemap.slang": "73514949d07d00c72f7224afda7560edd2b7062d03fde98ceaf2ba4a23fe001a",
+    "Engine/Presentation/src/Dx12Surface.cpp": "7d55580d8acb4f77772d6ed03747cd52291adab51e0253a1891b7acf1aea3fe2",
+    "Engine/Presentation/src/MetalSurface.mm": "42c43de0b9b470734c04d806ade1ef80a5f75eed917db197028edbf37f0c7866",
+    "Engine/Presentation/src/PbrMaterialUpload.h": "e8cc4c202b3748c411692235ea8a244cb9c74a8ec774a5af253f1209da32cad0",
+    "Engine/Presentation/src/SceneToneHlslShaders.h": "0c12096caa9c40fe0204db67f3891fdca3df70a0eb73e512603ec9a7fa122254",
+    "Engine/Presentation/src/SceneToneMetalShaders.h": "cf2962f8ea431c1d88ee0e3750f75044c2e8a6bbb2cd3bed702a8c0cafdabd44",
+    "Engine/Presentation/src/SceneToneVulkanShaders.h": "c558be262e98270497a66a554caa7e873226ffbe227cdecdc78a5988f8464a63",
+    "Engine/Presentation/src/ToneParametersUpload.h": "861f77ee59dafc91dfe2f303464f833f1cbafd99c1b0bc543298d7e22a80b2b3",
+    "Engine/Presentation/src/VulkanSurface.cpp": "b4cc6c5382bf16119045bf088ed221ff08ea076e5b30d0cb5befe44463d18a02",
+    "README.md": "af8d59cabe6492e4f72675bcad66e1a8c2744c1debc327635bb2d3954087c001",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "7563a7d008dcc17f524b399b721cb93383b01a536f63b9d12f24e9f9ffddffbd",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "63bca1ec6d6ef2f929a849412e1b225ad2b15122d5a6dc9acb36a618a6e20d99",
+    "Tests/Showcase/LinuxShowcaseInteraction.py": "0da1c3251031ac747dfb6dbd95dd83ab47865726ef967c21ab5552a0eacb62eb",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "eed07c742c1004b81b94009be0f41e3f02b400e9cd1d4add2a11355d05ef090c",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "96f7d404e6b8c346d426c57ca47e8e2a4ca5f7281ae7ff6d38bcaa9800a894d5",
+    "Tests/WindowPresentation/PbrAntiAliasFixtures.h": "0665ea9e1b72e6b046b188f14f96c74f689fe76129e21053b55785c220db84b5",
+    "Tests/WindowPresentation/SceneInstanceTests.cpp": "4ea077725d3717d3f0736fee97f1b83da028933e112cbc052351955453d32753",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "d2ed2ffd545ef4d97c627459a1b05071a3ddb64a416c65d43016ad6de022cd04",
+    "Tools/Package/AcceptShowcaseWindows.ps1": "dc1e5cff7298b8114393d5cd5f4e69ccbda71600eb682af22d9ed6295e38b375"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-antialias/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/aa-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "ba94ca58b1aa",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.6521499859955,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.266667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "612c64c9ebe730f9a1d9d9449eca9c9e4cf4b6ffc384d4aef2a84b54d7a1e8c4",
+    "video_sha256": "b9c4e420d496a3ec22ff3d45d4e304b59a59feca0af6128ea89eeca670afb050",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "1c43ac3d66c36f2e71ccf3720f753ce1554eafbe4b69f1472841433c3d76eadd",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}

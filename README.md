@@ -1172,3 +1172,16 @@ an actual 100.20-second wind/animation tour (100.86-second wall time, zero overl
 Evidence is retained in `VIS-Foliage-Mipmaps-Linux-2026-10-05`. No public material field,
 native binding, shader packet or C/Zig ABI change. Discrete tiny levels may have unavoidable
 coverage error. Reference parity and physical-target performance remain open; VIS stays 5/7.
+
+Spatial HDR anti-aliasing implementation: Standard/High courtyard applies a bounded shared
+linear-radiance edge filter before focus/bloom/ACES, with F10 comparison and exact restoration.
+Basic omits it. The public C++ draw flag defaults off; native tone constants are now 64 bytes.
+Vulkan diagonal-edge/constant-interior/restoration fixtures pass with core/sync validation;
+✅ Full Linux configure/build and 97/97 tests pass (106.93 seconds); Shipping/Full
+packaging, isolated native F10 comparison/restoration and the actual 100-second animated
+tour pass. Evidence: `Apps/Showcase/evidence/VIS-HDR-Anti-Aliasing-Linux-2026-10-05`. VIS-M3 reference parity and VIS-M6 hardware acceptance remain open.
+
+HDR 空間抗鋸齒實作：Standard/High 庭院在 focus/bloom/ACES 前套用有界的線性
+輻射亮度邊緣濾波；F10 可比較並精確還原，Basic 不啟用。公開 C++ draw flag 預設
+關閉，原生 tone 常數改為 64 bytes。Vulkan 斜邊、純色內部與還原測試已通過
+core/sync validation。✅ 完整 97/97 測試、Shipping/Full 隔離原生 F10 驗證與 100 秒動畫導覽通過；VIS-M3 預覽一致與 VIS-M6 硬體驗收保持未完成。

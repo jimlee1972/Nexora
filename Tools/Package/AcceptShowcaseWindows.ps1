@@ -291,6 +291,11 @@ public static class NexoraAcceptanceWindow {
     Press-Key 120
     Capture-Compared 'courtyard-crystal-light-restored.png' 'courtyard-activated.png' $true
     $acceptance.courtyard_crystal_light_comparison = $true
+    Press-Key 121 # F10 compares spatial HDR anti-aliasing.
+    Capture-Compared 'courtyard-anti-aliasing-off.png' 'courtyard-activated.png' $false
+    Press-Key 121
+    Capture-Compared 'courtyard-anti-aliasing-restored.png' 'courtyard-activated.png' $true
+    $acceptance.courtyard_anti_aliasing_comparison = $true
     Start-Sleep -Milliseconds 300
     Capture-Compared 'courtyard-paused.png' 'courtyard-activated.png' $true
     Press-Key 32

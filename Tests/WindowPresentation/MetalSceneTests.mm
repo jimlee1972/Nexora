@@ -2,6 +2,7 @@
 // Compile the real private adapter into this test to read back GPU output without adding public
 // handles.
 #include "../../Engine/Presentation/src/MetalSurface.mm"
+#include "PbrAntiAliasFixtures.h"
 #include "PbrAtmosphereFixtures.h"
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
@@ -580,6 +581,35 @@ int main(int argc, char **argv) {
         pointRight = right;
       }
       if (mode >= 2 && (left != pointLeft || right != pointRight))
+        return fail(__LINE__);
+    }
+    unsigned aaBaseline = 0;
+    std::vector<std::byte> aaReference;
+    for (unsigned mode = 0; mode < 4; ++mode) {
+      PbrAntiAliasFixtures::Fixture fixture(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](unsigned x, unsigned y) {
+        const auto index = (static_cast<std::size_t>(y) * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto intermediate = PbrAntiAliasFixtures::Intermediate(640, 360, read);
+      if (mode == 0) {
+        aaBaseline = intermediate;
+        aaReference = pixels;
+      } else if (mode == 1 && intermediate < aaBaseline + 40)
+        return fail(__LINE__);
+      else if (mode == 2 && pixels != aaReference)
+        return fail(__LINE__);
+      else if (mode == 3 && (intermediate != 0 || read(320, 180)[0] < 245))
         return fail(__LINE__);
     }
     std::array<unsigned, 3> refractedLeft{}, refractedRight{};
