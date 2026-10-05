@@ -2,7 +2,7 @@
   "schema": "nexora.courtyard.hero-authoring.v1",
   "author": "Nexora repository contributors",
   "license": "Repository LICENSE",
-  "geometry": "Original eight-sided faceted crystal with bevel waist, not a downloaded model",
+  "geometry": "Original eight-sided crystal with triangular staggered waist facets, not a downloaded model",
   "surfaces": "Authored sandstone albedo and matched height, original procedural aged bronze; image-assisted ivy alpha card",
   "sides": [
     [
@@ -40,20 +40,29 @@
   ],
   "rings": [
     [
-      0.0,
-      -1.1
+      0,
+      -1.25,
+      0
     ],
     [
-      0.42,
-      -0.45
+      0.54,
+      -0.5,
+      -0.06
     ],
     [
-      0.48,
-      0.45
+      0.64,
+      0,
+      0
     ],
     [
-      0.0,
-      1.2
+      0.54,
+      0.5,
+      0.06
+    ],
+    [
+      0,
+      1.25,
+      0
     ]
   ],
   "texture_size": 64,

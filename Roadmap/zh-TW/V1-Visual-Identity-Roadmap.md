@@ -1,5 +1,12 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+MSVC 編譯修正：前景植被區域變數改名 `sprigRadius`，避免 /WX 下遮蔽相機成員。
+標準化變數名稱後的來源逐位元比較相同，計算式與數值不變。✅ Linux configure／build
+與完整 97/97 通過（102.71 秒），包含 85 個原生 PBR 畫面與 core／同步驗證。
+證據位於 `VIS-Courtyard-Masonry-Linux-2026-10-05/msvc-member-shadowing/`；既有 Shipping／影片
+保留原本來源凍結，Windows CI 重新驗證中。
+
+
 > 版本：v0.2
 >
 > 日期：2026-10-04
@@ -487,6 +494,20 @@ radiance [0,32] 與半徑 [0.1,64]。私有封包增至 400 bytes，仍放入 DX
 水晶局部點光源 Shipping 證據：[VIS-Crystal-Light-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Crystal-Light-Linux-2026-10-05)。來源凍結 `aec18172a4e6`；實際動畫影片 100.33 秒（實際錄製 100.71 秒），隔離套件 F9 開關與精確還原、85 個原生 PBR 案例通過。參考圖一致性與實體目標驗收仍未完成。
 
 
-MSVC 測試可攜性修正：點光源填充值與雙面法線條件式改用明確浮點值。✅ Linux configure／build
-與完整 97/97 通過（102.20 秒），包含 85 個原生 PBR 畫面與 core／同步驗證。測試數值與
-Runtime 來源不變；既有 Shipping 證據保留原本來源凍結。Windows CI 重新驗證中。
+庭院美術改用相同尺寸石塊共用精確倒角模型，保留世界座標貼圖與反轉置法線，降低上傳幾何。
+遠景塔身加入分層石砌與菱形浮雕，三處前景葉叢增加 288 張隨風卡片；葉片以原始透明遮罩與
+顏色受光，移除自發光補色。石盆向前移以保留輪廓，陶器改用較暖的釉色與反光。
+水晶來源使用五層錯開切面，cook 檢查三角形朝外且構成凸面；三條內部發光礦物裂隙跟隨
+水晶旋轉與浮動，在不透明 HDR 快照中透過外殼呈現。符文與裂隙降低輻射亮度後再進入
+bloom／ACES；此為實際美術幾何，不宣稱體積散射。Standard／High 的霧化強度為 0.6，
+距離為 18–58 世界單位。本輪尚不接受最終參考圖一致性或實體目標效能，VIS 維持 5/7。
+
+Linux 原生整合：✅ 完整 configure／build 與 97/97 測試通過（103.93 秒），啟用 Khronos core／同步驗證，包含 85 個 PBR 畫面與三種品質幾何預算。固定啟動裝置的 Standard 畫面為 50,166 頂點、2,052 張來源植被卡片。Shipping／Full 隔離套件原生驗收與實際 100.27 秒影片（實際錄製 100.80 秒）通過；最終參考圖／目標驗收仍未完成。
+
+證據：[VIS-Courtyard-Masonry-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Masonry-Linux-2026-10-05)。來源凍結 `e5bb13119ba1`，保留確切來源與套件雜湊。
+
+
+MSVC 測試可攜性修正：明確浮點初值避免 C4244，測試數值與 Runtime 來源不變。✅ 點光源
+階段 Linux configure／build 與 97/97 通過（102.20 秒）；石砌階段完整 97/97 通過（102.62 秒）。
+兩者都包含 85 個原生 PBR 畫面與 core／同步驗證，各階段證據的 `msvc-literals/` 保留 log
+及確切 fixture 雜湊。Shipping／影片保留各自來源凍結；Windows CI 重新驗證中。
