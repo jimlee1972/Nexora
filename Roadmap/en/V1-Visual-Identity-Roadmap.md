@@ -573,3 +573,9 @@ shader packet or stable ABI is introduced. Final reference/target acceptance rem
 ✅ Linux Development configure/build and all 97 tests pass (103.28 seconds) with Khronos core/synchronization validation enabled, including 89 native PBR frames and all three geometry budgets. The activated Standard frame has 55,382 vertices and 2,052 source foliage quads; wind/flow and exact paused replay remain validated. Shipping/Full isolated native acceptance and an actual 100.20-second movie (100.85-second wall time) pass; final reference/target acceptance remains open.
 
 Evidence: [VIS-Courtyard-Valley-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05). Production freeze `c815263b5f87`; exact source and package hashes are retained.
+
+
+MSVC fixture portability follow-up: point-light fill and two-sided normal conditionals use
+floating literals. ✅ Linux configure/build and full 97/97 pass (102.21 seconds), including
+89 native PBR frames with core/sync validation. Test values and runtime sources are unchanged;
+retained Shipping evidence keeps its production freeze. Windows CI recheck is pending.

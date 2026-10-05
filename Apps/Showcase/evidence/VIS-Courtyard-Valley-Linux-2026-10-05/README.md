@@ -17,3 +17,7 @@ packet or stable ABI is introduced.
 Workspace artifacts: `NexoraShowcase-Courtyard-Valley-c815263.mp4` and `NexoraShowcase-Courtyard-Valley-c815263-Linux.zip`.
 Software Vulkan/Xvfb evidence does not accept physical target performance or final reference
 parity. VIS stays 5/7.
+
+
+[Test-only MSVC literal correction](msvc-literals/README.md) retains a full Linux follow-up
+gate and exact fixture hashes. Runtime sources and the retained Shipping/movie are unchanged.

@@ -520,3 +520,8 @@ Unlit／Lambert 拒絕此旗標。私有材質 float 79 使用保留欄位，400
 ✅ Linux Development configure／build 與 97/97 測試通過（103.28 秒），啟用 Khronos core／同步驗證，包含 89 個原生 PBR 畫面與三種品質幾何預算。啟動裝置的 Standard 畫面為 55,382 頂點、2,052 張來源植被卡片；風／水流與精確暫停重播仍通過。Shipping／Full 隔離套件原生驗收與實際 100.20 秒影片（實際錄製 100.85 秒）通過；最終參考圖／目標驗收仍未完成。
 
 證據：[VIS-Courtyard-Valley-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05)。來源凍結 `c815263b5f87`，保留確切來源與套件雜湊。
+
+
+MSVC 測試可攜性修正：點光源填充值與雙面法線條件式改用明確浮點值。✅ Linux configure／build
+與完整 97/97 通過（102.21 秒），包含 89 個原生 PBR 畫面與 core／同步驗證。測試數值與
+Runtime 來源不變；既有 Shipping 證據保留原本來源凍結。Windows CI 重新驗證中。
