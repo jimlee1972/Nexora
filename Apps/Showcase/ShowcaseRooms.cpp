@@ -2564,6 +2564,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     if (crystal.opacity < 1 && s.courtyardQuality > 0 && s.courtyardRefraction) {
       crystal.refractionIndex = 1.46F;
       crystal.refractionThickness = 0.65F;
+      crystal.refractionFrontSurfaceOnly = true;
     }
     crystal.transparencyTint = {0.28F, 0.92F, 0.98F};
     crystal.metallic = 0.0F;

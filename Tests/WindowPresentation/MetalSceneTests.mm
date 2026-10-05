@@ -528,7 +528,7 @@ int main(int argc, char **argv) {
             return fail(__LINE__);
     }
     std::array<unsigned, 3> refractedLeft{}, refractedRight{};
-    for (unsigned mode = 0; mode < 6; ++mode) {
+    for (unsigned mode = 0; mode < 8; ++mode) {
       PbrRefractionFixtures::Fixture fixture(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
           !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||

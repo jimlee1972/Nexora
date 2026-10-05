@@ -229,6 +229,17 @@ void Run() {
   Require(ValidateSceneMaterials(reflectionMaterials, {}) && ValidatePbrData(pbr) &&
               HasSceneRefraction(pbr),
           "valid refractive material rejected");
+  reflectionMaterials[0].refractionFrontSurfaceOnly = true;
+  Require(ValidatePbrData(pbr), "valid closed-glass front filtering rejected");
+  Require(PackPbrMaterial(pbr, reflectionMaterials[0], false)[78] == 1,
+          "front-surface flag not packed into reserved slot");
+  reflectionMaterials[0].refractionIndex = 1;
+  Require(!ValidatePbrData(pbr), "front filtering without refraction index accepted");
+  reflectionMaterials[0].refractionIndex = 1.5F;
+  reflectionMaterials[0].refractionThickness = 0;
+  Require(!ValidatePbrData(pbr), "front filtering without slab thickness accepted");
+  reflectionMaterials[0].refractionThickness = 0.7F;
+  reflectionMaterials[0].refractionFrontSurfaceOnly = false;
   const auto refractionPacked = PackPbrMaterial(pbr, reflectionMaterials[0], false, true, 640, 480);
   Require(refractionPacked[88] == 1.5F && refractionPacked[89] == 0.7F &&
               refractionPacked[90] == 1.0F / 640 && refractionPacked[91] == 1.0F / 480,

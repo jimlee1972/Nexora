@@ -38,12 +38,13 @@ struct Fixture final {
     materials[0].emission = {0, 0.5F, 0};
     materials[1].emission = mode == 5 ? std::array{0.0F, 0.0F, 0.5F} : std::array{0.5F, 0.0F, 0.0F};
     materials[3].opacity = 0.5F;
+    materials[3].refractionFrontSurfaceOnly = mode == 6;
     materials[3].refractionIndex = mode == 0 ? 1 : 1.5F;
     materials[3].refractionThickness = mode == 0 || mode == 4 ? 0 : 0.7F;
     for (unsigned i = 12; i < vertices.size(); ++i) {
       auto &v = vertices[i];
-      v.normal[0] = mode == 2 ? 0.6F : -0.6F;
-      v.normal[2] = -0.8F;
+      v.normal[0] = mode == 2 || mode >= 6 ? 0.6F : -0.6F;
+      v.normal[2] = mode >= 6 ? 0.8F : -0.8F;
       v.tangent[0] = 0.8F;
       v.tangent[2] = mode == 2 ? 0.6F : -0.6F;
     }
@@ -70,6 +71,10 @@ template <typename Rgb> bool Pixels(unsigned mode, const Rgb &left, const Rgb &r
            std::abs(static_cast<int>(p[0]) - PbrTransparencyFixtures::Encoded(0.25F)) <= 2 &&
            p[2] < 5;
   };
+  if (mode == 6)
+    return left[0] < 5 && left[2] < 5 && right[1] < 5 && right[2] < 5 &&
+           std::abs(static_cast<int>(left[1]) - PbrTransparencyFixtures::Encoded(0.5F)) <= 2 &&
+           std::abs(static_cast<int>(right[0]) - PbrTransparencyFixtures::Encoded(0.5F)) <= 2;
   if (mode == 0 || mode == 4)
     return green(left) && red(right);
   if (mode == 2)

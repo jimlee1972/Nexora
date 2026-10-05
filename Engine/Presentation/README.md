@@ -535,8 +535,14 @@ glass uses virtual camera directions and rendered projection positions. The priv
 packet is 368 bytes / 23 float4s; offsets 88–91 carry index/thickness/inverse dimensions. DX12's
 768-byte aligned pair and stable C/Zig ABI remain unchanged.
 
+`refractionFrontSurfaceOnly` defaults to false. Closed glass may opt in when index > 1 and
+positive thickness are active. Shared Slang discards rear geometric normals relative to the
+real/virtual camera before lighting, retaining the front slab result without changing general
+two-sided panes. Reserved packet offset 78 carries the flag; packet size is unchanged.
+
 Six native cases verify neutral/positive/reversed bending, exact replay, zero thickness and
-foreground rejection against linear-radiance expectations (75 PBR frames). This bounded
+foreground rejection against linear-radiance expectations. Two more cases compare front-only
+rear rejection and unchanged two-sided refraction (79 PBR frames including mip filtering). This bounded
 screen-space slab model excludes offscreen/multiple transparent layers, full-volume tracing,
 dispersion and travel-distance absorption.
 

@@ -562,3 +562,13 @@ assets, passes, constant packets or C/Zig ABI. CPU semantic checks and two nativ
 minification cases cover the new filtering (77 PBR frames). Linux full validation passes 97/97
 (96.26 seconds), with native effect replay and all quality budgets. Shipping/reference validation
 remains open; VIS stays 5/7.
+
+
+Closed courtyard crystals now opt into front-surface-only refraction. Shared Slang rejects
+rear geometric facets using the source normal and real/virtual reflection camera, so a later
+back face cannot replace the front face with another opaque-HDR sample. General glass stays
+two-sided by default. The flag requires active lit translucent HDR refraction and uses private
+packet offset 78; the 368-byte packet and stable C/Zig ABI stay unchanged. F8/U/Basic restore
+default behavior. Two native cases compare rear-face rejection with unchanged double-sided
+refraction, plus CPU validation/packing checks (79 PBR frames). Linux full validation passes 97/97 (98.20 seconds); release validation is
+pending; final reference parity and physical target acceptance remain open. VIS stays 5/7.
