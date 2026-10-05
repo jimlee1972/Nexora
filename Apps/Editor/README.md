@@ -178,6 +178,8 @@ startup load protects its file from ordinary Save; New/Open/Save As can recover 
 Stop Play before New/Open. Untitled Save and Exit collects a path and exits only after successful
 save; rejection reopens the path dialog with its attempted filename and error. Canonical aliases and
 case variants cannot bypass reserved metadata policy or save a scene over another file type.
+Content paths, folder/asset labels, search and rename input use UTF-8 with native filesystem paths;
+Unicode scene discovery, folder navigation, rename/move and Undo avoid system code-page conversion.
 
 Saving a Content scene streams only that saved scene and its identity metadata, retaining an 8 KiB
 read buffer and 64 MiB limit, then publishes the saved source to the live Content browser without clearing earlier content Undo or reimport state. An import failure is

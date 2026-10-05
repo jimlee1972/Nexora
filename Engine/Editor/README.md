@@ -88,6 +88,8 @@ into renderer or platform internals.
   background workspace jobs emit bounded `asset.import_failed` diagnostics. Typed OBJ reimport
   stages bounded geometry together with hashes; persistent per-asset GPU caching remains separate work. Old shared geometry snapshots survive index replacement/destruction.
 - `ContentBrowserModel` owns its sorted item snapshot, breadcrumb and stable-ID selection state.
+  Path keys, labels and rename input use UTF-8; filesystem operations retain native paths. Sorting,
+  search, discovery, folder navigation and Undo never convert through a system code page.
   Virtual ranges borrow item pointers until the next mutation. Rename, multi-item move, and delete
   validate a complete replacement snapshot before committing and retain one undo snapshot.
 - `ProjectContentSession` owns the live browser model, dependency/conflict state, canonical project

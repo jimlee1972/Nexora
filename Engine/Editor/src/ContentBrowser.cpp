@@ -1,4 +1,5 @@
 #include "Nexora/Editor/ContentBrowser.h"
+#include "Nexora/Foundation/Types.h"
 
 #include <algorithm>
 #include <cctype>
@@ -6,6 +7,10 @@
 
 namespace nexora::editor {
 namespace {
+std::string PathUtf8(const std::filesystem::path &path) {
+  const auto text = path.generic_u8string();
+  return {text.begin(), text.end()};
+}
 bool WithinMeshBudget(std::span<const ContentItem> items, runtime::AssetUuid replacement = {},
                       const std::shared_ptr<const MeshGeometry> &mesh = {}) {
   std::size_t remaining = kMaximumWorkspaceMeshBytes;
@@ -50,10 +55,10 @@ bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
   std::unordered_set<std::string> paths;
   for (const auto &item : items)
     if (item.id == runtime::AssetUuid{} || !SafeRelative(item.path) ||
-        !ids.insert(item.id).second || !paths.insert(item.path.generic_string()).second)
+        !ids.insert(item.id).second || !paths.insert(PathUtf8(item.path)).second)
       return false;
   items_.assign(items.begin(), items.end());
-  std::ranges::sort(items_, {}, [](const ContentItem &item) { return item.path.generic_string(); });
+  std::ranges::sort(items_, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
   selection_.clear();
   undo_.clear();
   undo_selection_.clear();
@@ -79,11 +84,10 @@ bool ContentBrowserModel::Discover(ContentItem item) {
     previous.push_back(item);
     if (!WithinMeshBudget(previous))
       return false;
-    std::ranges::sort(previous, {},
-                      [](const ContentItem &value) { return value.path.generic_string(); });
+    std::ranges::sort(previous, {}, [](const ContentItem &value) { return PathUtf8(value.path); });
     undo_ = std::move(previous);
   }
-  std::ranges::sort(next, {}, [](const ContentItem &value) { return value.path.generic_string(); });
+  std::ranges::sort(next, {}, [](const ContentItem &value) { return PathUtf8(value.path); });
   items_ = std::move(next);
   ++revision_;
   return true;
@@ -96,7 +100,7 @@ bool ContentBrowserModel::SetFolder(const std::filesystem::path &folder) {
   std::filesystem::path current;
   for (const auto &part : folder_) {
     current /= part;
-    breadcrumbs_.push_back({part.string(), current});
+    breadcrumbs_.push_back({PathUtf8(part), current});
   }
   return true;
 }
@@ -111,7 +115,7 @@ std::vector<const ContentItem *> ContentBrowserModel::Visible(std::size_t offset
     const auto parent = item.path.parent_path();
     if (parent != folder_ ||
         (!query_.empty() &&
-         Lower(item.path.filename().string()).find(query_) == std::string::npos) ||
+         Lower(PathUtf8(item.path.filename())).find(query_) == std::string::npos) ||
         (!type_.empty() && Lower(item.type) != type_))
       continue;
     if (offset != 0) {
@@ -130,7 +134,7 @@ std::size_t ContentBrowserModel::VisibleCount() const {
     const auto parent = item.path.parent_path();
     if (parent == folder_ &&
         (query_.empty() ||
-         Lower(item.path.filename().string()).find(query_) != std::string::npos) &&
+         Lower(PathUtf8(item.path.filename())).find(query_) != std::string::npos) &&
         (type_.empty() || Lower(item.type) == type_))
       ++count;
   }
@@ -144,11 +148,12 @@ std::vector<Breadcrumb> ContentBrowserModel::ChildFolders() const {
     if (relative.empty() || relative == ".")
       continue;
     auto part = relative.begin();
-    const auto label = part->string();
+    const auto name = *part;
+    const auto label = PathUtf8(name);
     if (++part == relative.end())
       continue;
-    const auto path = (folder_ / label).lexically_normal();
-    if (seen.insert(path.generic_string()).second)
+    const auto path = (folder_ / name).lexically_normal();
+    if (seen.insert(PathUtf8(path)).second)
       folders.push_back({label, path});
   }
   std::ranges::sort(folders, {}, &Breadcrumb::label);
@@ -194,7 +199,7 @@ bool ContentBrowserModel::Commit(std::vector<ContentItem> next, std::string *err
   undo_ = items_;
   undo_selection_ = selection_;
   items_ = std::move(next);
-  std::ranges::sort(items_, {}, [](const ContentItem &item) { return item.path.generic_string(); });
+  std::ranges::sort(items_, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
   if (error)
     error->clear();
   return true;
@@ -203,7 +208,9 @@ bool ContentBrowserModel::Rename(runtime::AssetUuid id, std::string_view filenam
                                  std::string *error) {
   auto next = items_;
   auto found = std::ranges::find(next, id, &ContentItem::id);
-  const std::filesystem::path name(filename);
+  if (!foundation::IsValidUtf8(filename))
+    return false;
+  const std::filesystem::path name(std::u8string(filename.begin(), filename.end()));
   if (found == next.end() || name.filename() != name || !SafeRelative(name)) {
     if (error)
       *error = "asset or filename is invalid";
@@ -229,8 +236,7 @@ bool ContentBrowserModel::Move(std::span<const runtime::AssetUuid> ids,
     if (found == next.end())
       return false;
     const auto destination = folder / found->path.filename();
-    if (!ValidDestination(destination, id) ||
-        !destinations.insert(destination.generic_string()).second) {
+    if (!ValidDestination(destination, id) || !destinations.insert(PathUtf8(destination)).second) {
       if (error)
         *error = "move destination conflicts";
       return false;
@@ -389,7 +395,7 @@ bool ReimportTransaction::Commit(std::uint64_t current_generation, AssetDependen
 
 void WatcherDebouncer::Push(FileEvent event) {
   if (!event.self_write)
-    pending_[event.path.lexically_normal().generic_string()] = std::move(event);
+    pending_[PathUtf8(event.path.lexically_normal())] = std::move(event);
 }
 std::vector<std::filesystem::path>
 WatcherDebouncer::Flush(std::chrono::steady_clock::time_point now) {

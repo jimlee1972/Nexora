@@ -159,6 +159,8 @@ authoring views on first launch.
   request. The application owns the candidate workspace and import operation, consumes the staged
   `AssetWorkspace` on the window/authoring thread, and keeps the selector open after cancellation or
   failure.
+- Content labels, selected paths and drag/context labels convert native paths explicitly to UTF-8;
+  the host never uses the Windows system code page for asset names.
 - The host does not own a native window or swapchain. The application supplies events exposed by
   `RenderSurface::Events`; the native `Render` overload flattens ImGui draw lists into the public
   backend-neutral `UiDrawData` contract. `RenderSurface` records those indexed draws directly into

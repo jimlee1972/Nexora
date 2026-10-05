@@ -38,7 +38,8 @@ bool MeshAssetCatalog::PublishContent(const ContentBrowserModel &content, std::s
       continue;
     AssetEntry entry;
     entry.id = item.id;
-    entry.relative_path = item.path.generic_string();
+    const auto path = item.path.generic_u8string();
+    entry.relative_path.assign(path.begin(), path.end());
     entry.state = ImportState::Imported;
     entry.mesh = item.mesh;
     assets.push_back(std::move(entry));

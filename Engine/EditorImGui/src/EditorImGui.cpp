@@ -2720,7 +2720,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   const auto folders = browser.ChildFolders();
   state.content_visible_folders = static_cast<std::uint32_t>(folders.size());
   for (const auto &folder : folders) {
-    const auto label = "[Folder] " + folder.label + "##" + folder.path.generic_string();
+    const auto label = "[Folder] " + folder.label + "##" + PathLabel(folder.path);
     if (ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick) &&
         ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
       static_cast<void>(browser.SetFolder(folder.path));
@@ -2739,7 +2739,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
                         static_cast<std::size_t>(clipper.DisplayEnd - clipper.DisplayStart));
     for (const auto *item : visible) {
       const auto label = std::string(ThumbnailLabel(item->thumbnail)) + " " +
-                         item->path.filename().string() + "##" + item->id.ToString();
+                         PathLabel(item->path.filename()) + "##" + item->id.ToString();
       if (ImGui::Selectable(label.c_str(), browser.IsSelected(item->id))) {
         if (ImGui::GetIO().KeyCtrl)
           static_cast<void>(browser.Toggle(item->id));
@@ -2753,13 +2753,13 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         const AssetDragData payload{browser.ProjectGeneration(), item->id};
         ImGui::SetDragDropPayload(AssetDragPayload::kType.data(), &payload, sizeof(payload),
                                   ImGuiCond_Once);
-        ImGui::TextUnformatted(item->path.filename().string().c_str());
+        ImGui::TextUnformatted(PathLabel(item->path.filename()).c_str());
         ImGui::EndDragDropSource();
       }
       if (ImGui::BeginPopupContextItem()) {
         if (ImGui::MenuItem("Rename", nullptr, false, content.Writable())) {
           state.content_rename.fill(0);
-          const auto filename = item->path.filename().string();
+          const auto filename = PathLabel(item->path.filename());
           auto count = std::min(filename.size(), state.content_rename.size() - 1);
           while (count > 0 && count < filename.size() &&
                  (static_cast<unsigned char>(filename[count]) & 0xC0U) == 0x80U)
@@ -2807,7 +2807,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   ImGui::SeparatorText("Asset details");
   if (selection.size() == 1) {
     if (const auto *item = browser.Find(selection.front())) {
-      ImGui::Text("Path: %s", item->path.generic_string().c_str());
+      ImGui::Text("Path: %s", PathLabel(item->path).c_str());
       ImGui::Text("UUID: %s", item->id.ToString().c_str());
       ImGui::Text("Type: %s", item->type.c_str());
       ImGui::Text("Artifact: %s", item->artifact_hash.c_str());
@@ -2820,7 +2820,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
           ImGui::TextUnformatted("None");
         for (const auto dependency : forward) {
           const auto *target = browser.Find(dependency);
-          ImGui::BulletText("%s", target ? target->path.generic_string().c_str()
+          ImGui::BulletText("%s", target ? PathLabel(target->path).c_str()
                                          : dependency.ToString().c_str());
         }
         ImGui::TreePop();
@@ -2830,7 +2830,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
           ImGui::TextUnformatted("None");
         for (const auto dependency : reverse) {
           const auto *target = browser.Find(dependency);
-          ImGui::BulletText("%s", target ? target->path.generic_string().c_str()
+          ImGui::BulletText("%s", target ? PathLabel(target->path).c_str()
                                          : dependency.ToString().c_str());
         }
         ImGui::TreePop();
@@ -2848,7 +2848,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
                        "Cyclic dependencies block artifact publication.");
     for (const auto asset : dependency_cycle) {
       const auto *item = browser.Find(asset);
-      const auto asset_label = item != nullptr ? item->path.generic_string() : asset.ToString();
+      const auto asset_label = item != nullptr ? PathLabel(item->path) : asset.ToString();
       ImGui::BulletText("%s", asset_label.c_str());
     }
   }
@@ -2871,8 +2871,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     if (ImGui::BeginPopupModal("External asset change###editor.content.dirty-conflict", nullptr,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
       const auto *item = browser.Find(conflict.asset);
-      const auto asset_label =
-          item != nullptr ? item->path.generic_string() : conflict.asset.ToString();
+      const auto asset_label = item != nullptr ? PathLabel(item->path) : conflict.asset.ToString();
       ImGui::TextUnformatted("This asset changed on disk while the Editor has unsaved changes.");
       ImGui::TextUnformatted("Automatic reload is blocked until you choose how to continue.");
       ImGui::Separator();

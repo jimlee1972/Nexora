@@ -1,4 +1,5 @@
 #include "EditorImGuiTestAccess.h"
+#include "Nexora/Editor/ProjectContent.h"
 
 #include <chrono>
 #include <iostream>
@@ -286,12 +287,41 @@ void RunGates(float dpi) {
   Require(f.files->SaveAs(request.token, request.path).Applied() && !f.scene.Dirty(),
           "Save and Exit retry did not save successfully");
 }
+void RunUnicodeContent(float dpi) {
+  Fixture f(dpi);
+  const auto relative = std::filesystem::path(u8"Content/子資料夾/場景.scene");
+  editor::AssetWorkspace assets;
+  editor::ProjectContentSession content;
+  Require(f.scene.Save(f.root / relative) &&
+              assets.ImportTree(f.root / "Content", {}, {},
+                                editor::AssetIdentityMode::PersistentReadWrite) &&
+              content.Open(f.writer, assets, 1, true),
+          "Unicode content UI fixture failed");
+  const auto draw = [&] {
+    f.ui.BeginFrame();
+    f.ui.DrawProductShell(f.shell, &f.scene, &f.writer, &content);
+    static_cast<void>(f.ui.EndFrame());
+  };
+  Access::FocusContent(f.ui);
+  draw(); // Draw UTF-8 child-folder label before entering it.
+  runtime::AssetUuid asset;
+  for (const auto &item : content.Browser().Items())
+    if (item.path == relative)
+      asset = item.id;
+  Require(asset != runtime::AssetUuid{} && content.Browser().SetFolder(relative.parent_path()) &&
+              content.Browser().Select(asset),
+          "Unicode content selection failed");
+  draw(); // Draw UTF-8 filename, breadcrumbs and selected path.
+  Require(Access::ContentAssetPosition(f.ui, asset).has_value(),
+          "Unicode scene was not submitted to the Content panel");
+}
 } // namespace
 int main() {
   try {
     for (const float dpi : {1.0F, 2.0F}) {
       Run(dpi);
       RunGates(dpi);
+      RunUnicodeContent(dpi);
     }
     std::cout << "Scene file menu, shortcuts and modal lifecycle passed\n";
     return 0;

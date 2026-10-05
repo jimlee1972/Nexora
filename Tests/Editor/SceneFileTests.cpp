@@ -89,7 +89,7 @@ void RunSavedSceneImport(const std::filesystem::path &content) {
   std::ofstream(content / "Triangle.obj.meta", std::ios::binary) << identity;
   std::filesystem::remove(content / "Unrelated.obj");
   std::filesystem::remove(content / "Unrelated.obj.meta");
-  const auto unicode = std::filesystem::path(u8"場景.scene");
+  const auto unicode = std::filesystem::path(u8"子資料夾/場景.scene");
   Require(document.Save(content / unicode) && assets.ImportSavedScene(unicode),
           "Unicode saved-scene import failed");
   const auto unicode_id = assets.Entries().back().id;
@@ -108,6 +108,28 @@ void RunSavedSceneImport(const std::filesystem::path &content) {
               browser.Browser().Find(unicode_id)->path ==
                   std::filesystem::path("Content") / unicode,
           "UTF-8 scene identity lost its native browser path on reopen");
+  const auto folder = std::filesystem::path(u8"Content/子資料夾");
+  const auto folders = browser.Browser().ChildFolders();
+  Require(folders.size() == 1 && folders.front().path == folder &&
+              folders.front().label == "子資料夾" && browser.Browser().SetFolder(folder) &&
+              browser.Browser().Breadcrumbs().back().label == "子資料夾",
+          "Unicode folders or breadcrumbs used a system code page");
+  browser.Browser().SetFilter("場景", ".scene");
+  Require(browser.Browser().VisibleCount() == 1 &&
+              browser.Browser().Visible(0, 1).front()->id == unicode_id,
+          "UTF-8 scene search failed");
+  Require(
+      browser.Open(workspace, assets, 2, true) && browser.Rename(unicode_id, "重新命名.scene") &&
+          browser.Browser().Find(unicode_id)->path ==
+              folder / std::filesystem::path(u8"重新命名.scene") &&
+          std::filesystem::exists(content / std::filesystem::path(u8"子資料夾/重新命名.scene")) &&
+          browser.Undo() && std::filesystem::exists(content / unicode),
+      "Unicode content rename or Undo lost the native path");
+  std::filesystem::create_directories(content / std::filesystem::path(u8"移動"));
+  Require(browser.Move(std::array{unicode_id}, std::filesystem::path(u8"Content/移動")) &&
+              std::filesystem::exists(content / std::filesystem::path(u8"移動/場景.scene")) &&
+              browser.Undo() && std::filesystem::exists(content / unicode),
+          "Unicode content move or Undo lost the native path");
 }
 void Run(const std::filesystem::path &root) {
   RunDiscovery();

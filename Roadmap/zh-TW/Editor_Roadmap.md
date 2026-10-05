@@ -350,7 +350,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   identity，僅串流自己的有限來源檔並保留其他 geometry 及先前 Content Undo。Canonical alias
   維持 metadata namespace／type，關閉儲存失敗則重開原路徑與錯誤以供重試。各檔案 CPU camera state 在切換及可寫 shutdown 時保留。
   真正 1×／2× menu／key／modal 測試與 Linux Xvfb 驗證 New、輸入 Save As、Open／重開、
-  原檔案保留及唯讀 bytes。啟動仍開 Main；additive tab、last-opened 啟動選擇及完整 ED-M4
+  原檔案保留及唯讀 bytes。Content 中文資料夾／檔名顯示、搜尋、改名／移動與 Undo 使用 UTF-8
+  與原生路徑，portable 及 1×／2× panel 測試驗證不經 Windows 系統字碼頁。
+  啟動仍開 Main；additive tab、last-opened 啟動選擇及完整 ED-M4
   圖形驗收仍待完成。
 - ✅ Scene panel 現可透過按鈕及文字輸入欄位以外的 Ctrl+Z／Ctrl+Y／Ctrl+Shift+Z 執行
   Undo／Redo。Runtime 重播會還原穩定 ID、階層、transform 與 Camera／Light 元件；文件重播會

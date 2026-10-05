@@ -376,6 +376,8 @@ creates property widgets; unknown components retain raw data instead of being si
   retaining unrelated geometry and earlier content Undo;
   per-file CPU camera state survives switches and writable shutdown. Real 1x/2x menu/key/modal tests
   and Linux Xvfb verify New, typed Save As, Open/reopen, source-file retention and read-only bytes.
+  Content Unicode folder/asset labels, search, rename/move and Undo use UTF-8 and native paths,
+  with portable and 1x/2x panel tests; they avoid Windows system code-page conversion.
   Startup still opens Main; additive tabs, last-opened startup selection, and full ED-M4 acceptance
   remain open.
 - ✅ The Scene panel exposes Undo/Redo by button and Ctrl+Z/Ctrl+Y/Ctrl+Shift+Z outside text input.

@@ -98,7 +98,7 @@ bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, s
       output.close();
       std::filesystem::remove(temporary, ec);
       if (error)
-        *error = "could not write " + temporary.string();
+        *error = "could not write " + PathUtf8(temporary);
       return false;
     }
   }
@@ -113,7 +113,7 @@ bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, s
     std::error_code cleanup;
     std::filesystem::remove(temporary, cleanup);
     if (error)
-      *error = "could not replace " + path.string() + ": " + ec.message();
+      *error = "could not replace " + PathUtf8(path) + ": " + ec.message();
   }
   return !ec;
 }
@@ -143,14 +143,14 @@ bool ReadAssetIdentity(const std::filesystem::path &path, runtime::AssetUuid &id
   const auto size = std::filesystem::file_size(path, ec);
   if (ec || std::filesystem::is_symlink(status) || !std::filesystem::is_regular_file(status) ||
       size > 4096) {
-    error = "asset identity sidecar is unavailable, unsafe, or too large: " + path.string();
+    error = "asset identity sidecar is unavailable, unsafe, or too large: " + PathUtf8(path);
     return false;
   }
   std::ifstream input(path, std::ios::binary);
   std::string schema, uuid, type_line, extra;
   if (!input || !std::getline(input, schema) || !std::getline(input, uuid) ||
       !std::getline(input, type_line) || std::getline(input, extra)) {
-    error = "asset identity sidecar is malformed: " + path.string();
+    error = "asset identity sidecar is malformed: " + PathUtf8(path);
     return false;
   }
   StripCarriageReturn(schema);
@@ -160,7 +160,7 @@ bool ReadAssetIdentity(const std::filesystem::path &path, runtime::AssetUuid &id
                           ? runtime::AssetUuid::Parse(std::string_view(uuid).substr(5))
                           : std::nullopt;
   if (schema != "schema=1" || !parsed || !type_line.starts_with("type=")) {
-    error = "asset identity sidecar has an invalid or unsupported schema: " + path.string();
+    error = "asset identity sidecar has an invalid or unsupported schema: " + PathUtf8(path);
     return false;
   }
   id = *parsed;
@@ -214,7 +214,7 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
     if (ec)
       break;
     if (std::filesystem::is_regular_file(status) &&
-        Lower(it->path().extension().string()) != ".meta")
+        Lower(PathUtf8(it->path().extension())) != ".meta")
       files.push_back(it->path());
   }
   if (ec) {
@@ -256,8 +256,9 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
       if (!ReadAssetIdentity(sidecar, identity.id, identity.type, identity_error) ||
           !used_ids.insert(identity.id).second) {
         if (error)
-          *error = identity_error.empty() ? "asset identity UUID is duplicated: " + sidecar.string()
-                                          : std::move(identity_error);
+          *error = identity_error.empty()
+                       ? "asset identity UUID is duplicated: " + PathUtf8(sidecar)
+                       : std::move(identity_error);
         return false;
       }
       identities.emplace(relative, std::move(identity));
@@ -274,7 +275,7 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
         *error = "asset path could not be made project-relative: " + ec.message();
       return false;
     }
-    auto type = Lower(files[index].extension().string());
+    auto type = Lower(PathUtf8(files[index].extension()));
     auto id = DerivedAssetIdentity(relative);
     if (identity_mode != AssetIdentityMode::DerivedFromPath) {
       const auto existing = identities.find(relative);
@@ -285,7 +286,7 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
         if (identity_mode == AssetIdentityMode::PersistentReadOnly) {
           if (error)
             *error = "asset identity sidecar is missing in read-only mode: " +
-                     IdentitySidecar(files[index]).string();
+                     PathUtf8(IdentitySidecar(files[index]));
           return false;
         }
         std::uint64_t salt = 0;

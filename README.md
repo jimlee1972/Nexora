@@ -298,7 +298,8 @@ failed Open keeps history and content. Failed replacement keeps its destination 
 temporary paths. Canonical aliases enforce metadata scope and close saves stay retryable.
 Content saves import only their own source and retain persistent asset identity and prior
 content Undo; per-file camera state survives switches and writable shutdown. Real 1x/2x UI tests
-and Linux Xvfb cover the application workflow and unchanged read-only project files. Startup still
+and Linux Xvfb cover the application workflow and unchanged read-only project files. Content Unicode
+folder/asset labels, search, rename/move and Undo use UTF-8 text and native filesystem paths. Startup still
 opens Main; additive scenes and full graphical milestone acceptance remain open.
 
 ✅ Camera Inspector now aligns one Camera to the stored Scene 3D pose with one Undo, retaining
@@ -716,7 +717,8 @@ Untitled Save As 與明確覆寫確認。Document／project token 拒絕過期�
 與內容；覆寫失敗也會保留目的路徑及既有暫存檔。Canonical alias 維持 metadata 範圍，關閉
 儲存失敗後可直接重試。Content 儲存只匯入自己的來源，並保留 persistent asset identity 與先前 Content Undo；各檔案 camera state
 在切換及可寫 shutdown 時保留。真正 1×／2× UI 與 Linux Xvfb 驗證 application 流程及唯讀
-專案檔案不變。啟動仍開 Main；additive scenes 與完整圖形里程碑驗收仍待完成。
+專案檔案不變。Content 中文路徑、資料夾／檔名顯示、搜尋及改名／移動／Undo 使用 UTF-8 與原生檔案路徑。
+啟動仍開 Main；additive scenes 與完整圖形里程碑驗收仍待完成。
 
 ✅ Camera Inspector 現可將單一 Camera 對齊已儲存的 Scene 3D pose，保留 lens、scale 及
 parent，並以一次 Undo 還原。Runtime matrix 驗證 shear／mirrored 父鏈；等價 pose 保留
