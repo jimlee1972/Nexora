@@ -4262,13 +4262,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                            (!workspace || workspace->Writable()));
   DrawProjectPanel(*state_, workspace, recent_projects);
   if (state_->focus_initial_scene) {
-    auto *scene_window = ImGui::FindWindowByName(
+    auto *initial_scene_window = ImGui::FindWindowByName(
         PanelWindowName(game_running ? "nexora.game" : "nexora.scene").c_str());
-    if (scene_window != nullptr && scene_window->DockNode != nullptr &&
-        scene_window->DockNode->TabBar != nullptr) {
-      scene_window->DockNode->SelectedTabId = scene_window->TabId;
-      scene_window->DockNode->TabBar->SelectedTabId = scene_window->TabId;
-      scene_window->DockNode->TabBar->NextSelectedTabId = scene_window->TabId;
+    if (initial_scene_window != nullptr && initial_scene_window->DockNode != nullptr &&
+        initial_scene_window->DockNode->TabBar != nullptr) {
+      initial_scene_window->DockNode->SelectedTabId = initial_scene_window->TabId;
+      initial_scene_window->DockNode->TabBar->SelectedTabId = initial_scene_window->TabId;
+      initial_scene_window->DockNode->TabBar->NextSelectedTabId = initial_scene_window->TabId;
       state_->focus_initial_scene = false;
     }
   }
