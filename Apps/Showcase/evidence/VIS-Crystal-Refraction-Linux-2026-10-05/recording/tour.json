@@ -5,10 +5,10 @@
   "scene": "courtyard",
   "backend": "vulkan",
   "validate_v1": false,
-  "startup_arguments": ["--tour=visual","--backend=vulkan","--clean-view","--vsync=off","--no-reload","--gameplay-module=static","--report=/tmp/refraction-shipping-tour/tour.json","--quality=standard"],
+  "startup_arguments": ["--tour=visual","--backend=vulkan","--clean-view","--vsync=off","--no-reload","--gameplay-module=static","--report=/tmp/refraction-main-shipping-tour/tour.json","--quality=standard"],
   "build": {
     "engine_version": "0.1.0",
-    "build_id": "5a82472337ed",
+    "build_id": "08ab287a9145",
     "abi_version": 1,
     "configuration": "Shipping",
     "link_mode": "Monolithic"
@@ -67,7 +67,7 @@
     "selected_entity": 4
   },
   "render_settings": {"width":1280,"height":720,"vsync_requested":"off","present_mode":"immediate","quality":"standard","refresh_rate_hz":null},
-  "performance": {"schema":"nexora.showcase.performance.v1","scope":"native acquired frame; includes acquire/present and pacing","warmup_frames":60,"observed_frames":434,"sample_count":374,"sample_capacity":18000,"sample_window":"latest frames after warmup","gpu_timing_ms":null,"gpu_timing_status":"UNAVAILABLE: no GPU timestamps","cpu_scope":"process-wide user+kernel CPU time; includes all threads","peak_resident_bytes":246018048,"status":"MEASURED","average_fps":4.24896123,"average_frame_ms":235.351641,"p95_frame_ms":278.520784,"p99_frame_ms":296.244111,"average_process_cpu_ms":777.837286},
+  "performance": {"schema":"nexora.showcase.performance.v1","scope":"native acquired frame; includes acquire/present and pacing","warmup_frames":60,"observed_frames":434,"sample_count":374,"sample_capacity":18000,"sample_window":"latest frames after warmup","gpu_timing_ms":null,"gpu_timing_status":"UNAVAILABLE: no GPU timestamps","cpu_scope":"process-wide user+kernel CPU time; includes all threads","peak_resident_bytes":245727232,"status":"MEASURED","average_fps":4.29534425,"average_frame_ms":232.810211,"p95_frame_ms":270.953984,"p99_frame_ms":286.466071,"average_process_cpu_ms":771.950225},
   "headless_evidence": {
     "executed": false,
     "backend": "Validation",

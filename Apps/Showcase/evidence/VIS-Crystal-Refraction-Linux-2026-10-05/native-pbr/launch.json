@@ -1,7 +1,7 @@
 {
   "command": [
-    "build/linux-development/Tests/WindowPresentation/NexoraVulkanPbrTests",
-    "/tmp/refraction-fixture-evidence/scene.ppm"
+    "/workspace/Nexora-vis-crystal-refraction/build/linux-development/Tests/WindowPresentation/NexoraVulkanPbrTests",
+    "/tmp/refraction-main-fixture-evidence/scene.ppm"
   ],
   "exit_code": 0,
   "acceptance_passed": true,
