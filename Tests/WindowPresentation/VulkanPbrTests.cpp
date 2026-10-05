@@ -538,10 +538,15 @@ int main(int argc, char **argv) {
           valid =
               left[0] > 80 && std::abs(static_cast<int>(left[0]) - static_cast<int>(right[0])) <= 2;
         const auto observedMarker = static_cast<int>(pixels[2][0]);
-        const auto expectedPhaseMarker =
-            frame >= 43 ? static_cast<int>(std::lround(
-                              255 * toSrgb(static_cast<float>(std::lround(marker * 255)) / 255)))
-                        : markerCode;
+        const auto uiMarker = static_cast<float>(std::lround(marker * 255)) / 255;
+#if defined(_WIN32)
+        // DX12 UI submits encoded byte colors directly to its UNORM swapchain.
+        const auto uiMarkerCode = static_cast<int>(std::lround(255 * uiMarker));
+#else
+        // Vulkan's sRGB swapchain performs the UI output transfer in hardware.
+        const auto uiMarkerCode = static_cast<int>(std::lround(255 * toSrgb(uiMarker)));
+#endif
+        const auto expectedPhaseMarker = frame >= 43 ? uiMarkerCode : markerCode;
         const bool currentFrame =
             (std::abs(observedMarker - expectedPhaseMarker) <= 2 ||
              (!draw.pbr && std::abs(observedMarker - srgbLegacyMarker) <= 2)) &&
