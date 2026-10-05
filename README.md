@@ -63,7 +63,7 @@ with warm sunlight, cool shadows, turquoise runes, and a [free-model/texture sho
 ✅ VIS-M0 now adopts three CC0 architectural meshes and their palette texture through Runtime
 import/cook/bundle loading, with sources/licenses packaged, reproducible shots and a three-run
 performance baseline. [Linux acceptance](Apps/Showcase/evidence/VIS-M0-Linux-AdoptedAssets-2026-10-05/acceptance.md):
-87/87 tests without skips and isolated Development package launch. VIS-M1–VIS-M6 remain unaccepted
+87/87 tests without skips and isolated Development package launch. VIS-M1 per-batch material binding is in progress; VIS-M1–VIS-M6 remain unaccepted
 (1/7 accepted); software-rasterizer measurements do not establish the GTX 960 budget or final
 V1 platform acceptance.
 
@@ -512,7 +512,7 @@ Windows DX12 本地交付：[驗收紀錄](Apps/Showcase/evidence/Windows-V1-DX1
 以及 [免費模型／貼圖候選](Roadmap/art/Free-Asset-Sourcing.md)。✅ VIS-M0 已採用三個 CC0 建築網格與 palette
 貼圖，完成 Runtime 匯入／cook／bundle 載入、隨包來源／授權、可重現鏡頭及三次效能基線。
 [Linux 驗收](Apps/Showcase/evidence/VIS-M0-Linux-AdoptedAssets-2026-10-05/acceptance.md)：
-87/87 無 skip 與隔離 Development 套件啟動通過。VIS-M1～VIS-M6 尚未驗收（1/7 通過）；
+87/87 無 skip 與隔離 Development 套件啟動通過。VIS-M1 正在製作逐批次材質綁定；VIS-M1～VIS-M6 尚未驗收（1/7 通過）；
 軟體渲染測量不代表 GTX 960 達標或 V1 最終平台驗收完成。
 
 ### Repository 狀態

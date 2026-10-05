@@ -175,3 +175,15 @@ GTX 960 performance promise. Full Linux Development passes 87/87 without skips; 
 Development packaging passes. [Evidence](../../Apps/Showcase/evidence/VIS-M0-Linux-AdoptedAssets-2026-10-05/acceptance.md).
 
 VIS-M0 acceptance does not accept final materials/art, VIS-M1–M6 or target-hardware visuals.
+
+## 12. VIS-M1 material submission foundation (2026-10-05)
+
+Per-batch opaque colors and texture generations are implemented for Vulkan, DX12 and Metal.
+Courtyard geometry now selects six material slots, preserving adopted atlas UVs for architecture.
+Native material pixel and rejection/recovery tests cover Vulkan and Metal source paths; execution
+results are recorded separately. [Ownership and PBR/HDR direction](ADR-0004-Showcase-Materials-HDR.md).
+This is an in-progress VIS-M1 slice. Shared PBR, tangents, normal/ORM/emission, IBL, linear color and
+HDR acceptance remain open; milestone progress remains 1/7.
+
+✅ Material binding slice: Linux 87/87 without skips and native material pixels passed.
+[Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-MaterialBindings-2026-10-05/acceptance.md).
