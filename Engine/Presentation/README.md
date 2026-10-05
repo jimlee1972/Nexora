@@ -377,3 +377,14 @@ copies the packet to both stage bindings. The protecting frame owns copies and s
 generations. No production readback or native handles escape. Public C++ clients rebuild; stable
 C/Zig/NXAB formats remain unchanged. Native fixtures distinguish alpha-zero opaque/cutout behavior,
 shadow agreement, two wind times, exact GPU replay and green back-light transmission.
+
+## Emission-only materials and shadow work
+
+PBR `SceneMaterial::unlit` samples emission and alpha cutout, then uses the same linear HDR or
+tone/transfer output as lit PBR. It bypasses normal/ORM/BRDF/IBL/shadow sampling. Lambert rejects
+unlit. `castsShadow` defaults true; false excludes a batch from the current frame shadow draw
+while leaving depth-map clearing and all main-pass rendering intact. `sceneShadowInstances`
+counts instances actually submitted per shadow batch, including repeated geometry batches.
+The private packet stays 240 bytes; its previously reserved final float carries unlit. Public C++
+consumers rebuild; stable C/Zig and NXAB contracts remain unchanged. Native GPU fixtures check an
+emissive non-caster remains visible while the receiver becomes lit.

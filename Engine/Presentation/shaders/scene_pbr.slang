@@ -26,7 +26,7 @@ struct MaterialConstants
   float4 lightTint;
   float4 ramp; // offset, scale, softness
   float4 vegetation; // time, wind amplitude, alpha cutoff, transmission thickness
-  float4 transmission; // linear RGB
+  float4 transmission; // linear RGB, unlit flag
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
 [[vk::binding(0, 0)]] Sampler2D<float4> baseMap : register(t0);
@@ -126,12 +126,23 @@ float shadowVisibility(float3 position, float3 normal, float3 light) {
       material.shadowSettings.y, saturate(dot(normal, light)));
   return NexoraEvaluatePcf4(receiver, depths, 0);
 }
+float4 outputSceneColor(float3 color)
+{
+  if (material.properties.w > 0.5)
+    return float4(clamp(color, float3(0), float3(65504)), 1);
+  color = NexoraAcesApproximate(color);
+  if (material.cameraPosition.w > 0.5)
+    color = NexoraLinearToSrgb(color);
+  return float4(color, 1);
+}
 [shader("fragment")]
 float4 pbrFragmentMain(VertexOutput input) : SV_Target
 {
   float4 baseSample = baseMap.Sample(input.uv);
   if (material.vegetation.z > 0 &&
       NexoraEvaluateVegetationAlpha(baseSample.a, material.vegetation.z) == 0) discard;
+  if (material.transmission.w > 0.5)
+    return outputSceneColor(emissionMap.Sample(input.uv).rgb * material.emissionRoughness.xyz);
   float3 n = NexoraSafeNormalize(input.normal);
   float3 t = NexoraSafeNormalize(input.tangent.xyz - n * dot(n, input.tangent.xyz));
   float3 b = NexoraSafeNormalize(cross(n, t)) * input.tangent.w;
@@ -179,10 +190,5 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   float3 transmitted = NexoraEvaluateVegetationTransmission(surface.normal, light,
       material.transmission.rgb * scene.lightColor.rgb, material.vegetation.w, 1-visibility);
   float3 color = direct * visibility + ambient + transmitted + max(surface.emission, float3(0));
-  if (material.properties.w > 0.5)
-    return float4(clamp(color, float3(0), float3(65504)), 1);
-  color = NexoraAcesApproximate(color);
-  if (material.cameraPosition.w > 0.5)
-    color = NexoraLinearToSrgb(color);
-  return float4(color, 1);
+  return outputSceneColor(color);
 }

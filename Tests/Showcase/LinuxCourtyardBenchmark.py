@@ -14,6 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('executable', type=Path)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--quality', choices=['basic', 'standard', 'high'], default='standard')
     args = parser.parse_args()
     xvfb = shutil.which('Xvfb')
     if not xvfb:
@@ -31,7 +32,7 @@ def main():
             target = (args.output / f'run-{repeat + 1}.json').resolve()
             command = [str(executable), '--scene=courtyard', '--backend=vulkan', '--vsync=off',
                        '--clean-view', '--frames=360', '--no-reload', '--gameplay-module=static',
-                       f'--report={target}']
+                       f'--report={target}', f'--quality={args.quality}', '--pause-animation', '--activate-device']
             result = subprocess.run(command, env=environment, capture_output=True, text=True,
                                     timeout=120)
             if result.returncode != 0:
@@ -63,7 +64,7 @@ def main():
         summary = {'schema': 'nexora.showcase.courtyard-baseline.v1', 'resolution': [1280, 720],
                    'quality': reports[0]['render_settings']['quality'],
                    'shading': reports[0]['shading'], 'scene_color_format': reports[0]['scene_color_format'],
-                   'exposure': reports[0]['exposure'], 'camera': 'fixed wide / shot 0',
+                   'exposure': reports[0]['exposure'], 'camera': 'fixed wide / shot 0 / animation time 0 / device active',
                    'cpu': cpu, 'host': platform.platform(), 'vsync_requested': False,
                    'refresh_rate_hz': None, 'driver_identity': 'retained VK_ICD_FILENAMES selection',
                    'software_rasterizer': reports[0]['native']['software_rasterizer'],

@@ -720,6 +720,9 @@ private:
         draw.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : draw.batches;
     for (const auto &batch : batches) {
       const auto material = ResolveSceneMaterial(draw, batch.materialIndex);
+      if (!material.castsShadow)
+        continue;
+      diagnostics_.sceneShadowInstances += batch.instanceCount;
       const auto parameters = PackPbrMaterial(draw, material, true);
       [encoder setVertexBytes:parameters.data() length:sizeof(parameters) atIndex:1];
       [encoder setFragmentBytes:parameters.data() length:sizeof(parameters) atIndex:1];
@@ -738,7 +741,6 @@ private:
     }
     [encoder endEncoding];
     ++diagnostics_.sceneShadowPasses;
-    diagnostics_.sceneShadowInstances += std::max<std::size_t>(draw.instances.size(), 1);
     return true;
   }
   bool EnsureSceneTargets(bool offscreen, bool hdr) {

@@ -321,3 +321,13 @@ A full headless CLI timeline gate is separate from native tour recording/interac
 Native execution/video and exact-head cross-platform CI remain required before VIS-M5 acceptance.
 
 ✅ Linux Development: 97/97; Shipping package verification and native free-camera/fixed-shot restoration pass. Evidence: `Apps/Showcase/evidence/VIS-M5-Linux-Tour-2026-10-05`. PR #327 living effects passed all 18 checks (run 37288122626) and merged. Target-hardware final acceptance remains open.
+
+## 23. VIS-M6 quality and optimization implementation
+
+Actual Basic / Standard / High quality selects 512/1024/2048 shadows, 32/64/128 foliage
+quads and 24/48/96 active motes. Basic disables IBL/bloom; Standard/High preserve bounded
+post-processing. Q changes real geometry and GPU settings; reports retain effective settings.
+One original Runtime-loaded gradient replaces 24 sky batches. Emission-only sky/motes bypass
+lighting and shadow casting; native fixtures verify bright non-casters and lit receivers.
+Sequential repeatable measurements, matching-version packages/video and exact-head platform CI
+are in progress. Physical DX12/Vulkan art approval and confirmed performance budget remain open.

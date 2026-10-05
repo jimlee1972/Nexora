@@ -898,3 +898,5 @@ Linux toolchain、CMake 與 Zig 版本，並預先 configure development preset�
 ### 授權
 
 Nexora 採用 [MIT License](LICENSE) 發布。
+
+視覺 Showcase 交付：原生 100 秒導覽與自由探索已實作；實際品質設定、共享天空及陰影優化正在交付驗證。目標實機驗收仍待完成。

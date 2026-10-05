@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
     unsigned width = 640, height = 480;
     Rgb uiBaseline{};
     std::uint64_t windReference{}, windMoved{};
-    for (unsigned frame = 0; frame < 42; ++frame) {
+    for (unsigned frame = 0; frame < 43; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
       PbrVegetationFixtures::Fixture vegetationFixture(frame >= 34 ? frame - 34 : 0);
@@ -551,9 +551,10 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 42 &&
-                surface->Diagnostics().sceneComposites == 32 &&
-                surface->Diagnostics().sceneShadowPasses == 10,
+    Require(surface->Diagnostics().sceneDrawCalls == 43 &&
+                surface->Diagnostics().sceneComposites == 33 &&
+                surface->Diagnostics().sceneShadowPasses == 11 &&
+                surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "PBR teardown failed");
     surface.reset();

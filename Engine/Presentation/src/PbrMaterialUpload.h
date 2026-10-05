@@ -24,7 +24,8 @@ namespace Nexora::Presentation {
     return false;
   if (!draw.pbr)
     for (const auto &material : draw.materials)
-      if (material.alphaCutoff || material.windAmplitude || material.transmissionThickness)
+      if (material.alphaCutoff || material.windAmplitude || material.transmissionThickness ||
+          material.unlit)
         return false;
   if (!draw.pbr)
     return draw.linearTextureUploads.empty() && !draw.environment && !draw.shadow &&
@@ -196,6 +197,7 @@ static_assert(sizeof(PbrMaterialUpload) == 240);
   parameters[55] = material.transmissionThickness;
   std::copy(material.transmissionColor.begin(), material.transmissionColor.end(),
             parameters.begin() + 56);
+  parameters[59] = material.unlit ? 1.0F : 0.0F;
   return parameters;
 }
 } // namespace Nexora::Presentation

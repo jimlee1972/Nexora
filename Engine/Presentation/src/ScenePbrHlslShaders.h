@@ -258,6 +258,14 @@ cbuffer material_0 : register(b1)
 }
 
 #line 31
+Texture2D<float4 > emissionMap_texture_0 : register(t3);
+
+
+#line 31
+SamplerState emissionMap_sampler_0 : register(s3);
+
+
+#line 31
 Texture2D<float4 > normalMap_texture_0 : register(t1);
 
 
@@ -271,14 +279,6 @@ Texture2D<float4 > ormMap_texture_0 : register(t2);
 
 #line 31
 SamplerState ormMap_sampler_0 : register(s2);
-
-
-#line 31
-Texture2D<float4 > emissionMap_texture_0 : register(t3);
-
-
-#line 31
-SamplerState emissionMap_sampler_0 : register(s3);
 
 
 #line 31
@@ -336,18 +336,72 @@ float NexoraEvaluateVegetationAlpha_0(float alpha_0, float cutoff_0)
 }
 
 
+#line 24 "Shaders/Nexora/Common/Color.slang"
+float3 NexoraAcesApproximate_0(float3 hdrColor_0)
+{
+    float3 color_0 = max(hdrColor_0, (float3)0.0f);
+    return saturate(color_0 * (2.50999999046325684f * color_0 + 0.02999999932944775f) / (color_0 * (2.43000006675720215f * color_0 + 0.5899999737739563f) + 0.14000000059604645f));
+}
+
+
+#line 11
+float3 NexoraLinearToSrgb_0(float3 linearColor_0)
+{
+    float3 color_1 = max(linearColor_0, (float3)0.0f);
+
+
+    return lerp(color_1 * 12.92000007629394531f, 1.0549999475479126f * pow(color_1, (float3)0.4166666567325592f) - 0.05499999970197678f, step((float3)0.00313080009073019f, color_1));
+}
+
+
+#line 129 "Engine/Presentation/shaders/scene_pbr.slang"
+float4 outputSceneColor_0(float3 color_2)
+{
+    if((material_0.properties_0.w) > 0.5f)
+    {
+
+#line 132
+        return float4(clamp(color_2, float3((int3)int(0)), float3((int3)int(65504))), 1.0f);
+    }
+
+#line 133
+    float3 _S1 = NexoraAcesApproximate_0(color_2);
+
+#line 133
+    float3 _S2;
+    if((material_0.cameraPosition_0.w) > 0.5f)
+    {
+
+#line 134
+        _S2 = NexoraLinearToSrgb_0(_S1);
+
+#line 134
+    }
+    else
+    {
+
+#line 134
+        _S2 = _S1;
+
+#line 134
+    }
+
+    return float4(_S2, 1.0f);
+}
+
+
 #line 3 "Shaders/Nexora/Common/Math.slang"
 float3 NexoraSafeNormalize_0(float3 value_0)
 {
     float lengthSquared_0 = dot(value_0, value_0);
 
 #line 5
-    float3 _S1;
+    float3 _S3;
     if(lengthSquared_0 > 9.999999960041972e-13f)
     {
 
 #line 6
-        _S1 = value_0 * rsqrt(lengthSquared_0);
+        _S3 = value_0 * rsqrt(lengthSquared_0);
 
 #line 6
     }
@@ -355,13 +409,13 @@ float3 NexoraSafeNormalize_0(float3 value_0)
     {
 
 #line 6
-        _S1 = float3(0.0f, 0.0f, 0.0f);
+        _S3 = float3(0.0f, 0.0f, 0.0f);
 
 #line 6
     }
 
 #line 6
-    return _S1;
+    return _S3;
 }
 
 
@@ -380,15 +434,15 @@ float3 NexoraDecodeTangentNormal_0(float3 encodedNormal_0, float3 tangent_0, flo
 #line 71 "Engine/Presentation/shaders/scene_pbr.slang"
 float3 geometryDirection_0(float3 value_1)
 {
-    float _S2 = max(max(abs(value_1.x), abs(value_1.y)), abs(value_1.z));
+    float _S4 = max(max(abs(value_1.x), abs(value_1.y)), abs(value_1.z));
 
 #line 73
-    float3 _S3;
-    if(_S2 > 0.0f)
+    float3 _S5;
+    if(_S4 > 0.0f)
     {
 
 #line 74
-        _S3 = NexoraSafeNormalize_0(value_1 / _S2);
+        _S5 = NexoraSafeNormalize_0(value_1 / _S4);
 
 #line 74
     }
@@ -396,13 +450,13 @@ float3 geometryDirection_0(float3 value_1)
     {
 
 #line 74
-        _S3 = float3(0.0f, 0.0f, 0.0f);
+        _S5 = float3(0.0f, 0.0f, 0.0f);
 
 #line 74
     }
 
 #line 74
-    return _S3;
+    return _S5;
 }
 
 
@@ -442,10 +496,10 @@ float shadowVisibility_0(float3 position_0, float3 normal_0, float3 light_0)
 
 #line 114
     float4 projected_0 = mul(float4x4(float4x4(material_0.lightViewProjection_0.data_0[int(0)][int(0)], material_0.lightViewProjection_0.data_0[int(0)][int(1)], material_0.lightViewProjection_0.data_0[int(0)][int(2)], material_0.lightViewProjection_0.data_0[int(0)][int(3)], material_0.lightViewProjection_0.data_0[int(1)][int(0)], material_0.lightViewProjection_0.data_0[int(1)][int(1)], material_0.lightViewProjection_0.data_0[int(1)][int(2)], material_0.lightViewProjection_0.data_0[int(1)][int(3)], material_0.lightViewProjection_0.data_0[int(2)][int(0)], material_0.lightViewProjection_0.data_0[int(2)][int(1)], material_0.lightViewProjection_0.data_0[int(2)][int(2)], material_0.lightViewProjection_0.data_0[int(2)][int(3)], material_0.lightViewProjection_0.data_0[int(3)][int(0)], material_0.lightViewProjection_0.data_0[int(3)][int(1)], material_0.lightViewProjection_0.data_0[int(3)][int(2)], material_0.lightViewProjection_0.data_0[int(3)][int(3)])), float4(position_0, 1.0f));
-    float _S4 = projected_0.w;
+    float _S6 = projected_0.w;
 
 #line 115
-    if(_S4 <= 0.0f)
+    if(_S6 <= 0.0f)
     {
 
 #line 115
@@ -453,16 +507,16 @@ float shadowVisibility_0(float3 position_0, float3 normal_0, float3 light_0)
     }
 
 #line 116
-    float3 ndc_0 = projected_0.xyz / _S4;
+    float3 ndc_0 = projected_0.xyz / _S6;
     float2 uv_0 = ndc_0.xy * float2(0.5f, 0.5f * material_0.shadowSettings_0.w) + 0.5f;
 
 #line 117
-    bool _S5;
+    bool _S7;
     if(any(uv_0 < 0.0f))
     {
 
 #line 118
-        _S5 = true;
+        _S7 = true;
 
 #line 118
     }
@@ -470,17 +524,17 @@ float shadowVisibility_0(float3 position_0, float3 normal_0, float3 light_0)
     {
 
 #line 118
-        _S5 = any(uv_0 > 1.0f);
+        _S7 = any(uv_0 > 1.0f);
 
 #line 118
     }
 
 #line 118
-    if(_S5)
+    if(_S7)
     {
 
 #line 118
-        _S5 = true;
+        _S7 = true;
 
 #line 118
     }
@@ -488,17 +542,17 @@ float shadowVisibility_0(float3 position_0, float3 normal_0, float3 light_0)
     {
 
 #line 118
-        _S5 = (ndc_0.z) < 0.0f;
+        _S7 = (ndc_0.z) < 0.0f;
 
 #line 118
     }
 
 #line 118
-    if(_S5)
+    if(_S7)
     {
 
 #line 118
-        _S5 = true;
+        _S7 = true;
 
 #line 118
     }
@@ -506,13 +560,13 @@ float shadowVisibility_0(float3 position_0, float3 normal_0, float3 light_0)
     {
 
 #line 118
-        _S5 = (ndc_0.z) > 1.0f;
+        _S7 = (ndc_0.z) > 1.0f;
 
 #line 118
     }
 
 #line 118
-    if(_S5)
+    if(_S7)
     {
 
 #line 118
@@ -522,19 +576,19 @@ float shadowVisibility_0(float3 position_0, float3 normal_0, float3 light_0)
 #line 119
     float2 step_0 = (float2)(material_0.shadowSettings_0.z * 0.5f);
 
-    float _S6 = step_0.x;
-
-#line 121
-    float _S7 = - _S6;
-
-#line 121
-    float _S8 = step_0.y;
+    float _S8 = step_0.x;
 
 #line 121
     float _S9 = - _S8;
 
+#line 121
+    float _S10 = step_0.y;
+
+#line 121
+    float _S11 = - _S10;
+
 #line 127
-    return NexoraEvaluatePcf4_0(NexoraApplyShadowBias_0(ndc_0.z, material_0.shadowSettings_0.x, material_0.shadowSettings_0.y, saturate(dot(normal_0, light_0))), float4(directionalShadow_texture_0.SampleLevel(directionalShadow_sampler_0, uv_0 + float2(_S7, _S9), 0.0f).x, directionalShadow_texture_0.SampleLevel(directionalShadow_sampler_0, uv_0 + float2(_S6, _S9), 0.0f).x, directionalShadow_texture_0.SampleLevel(directionalShadow_sampler_0, uv_0 + float2(_S7, _S8), 0.0f).x, directionalShadow_texture_0.SampleLevel(directionalShadow_sampler_0, uv_0 + step_0, 0.0f).x), 0.0f);
+    return NexoraEvaluatePcf4_0(NexoraApplyShadowBias_0(ndc_0.z, material_0.shadowSettings_0.x, material_0.shadowSettings_0.y, saturate(dot(normal_0, light_0))), float4(directionalShadow_texture_0.SampleLevel(directionalShadow_sampler_0, uv_0 + float2(_S9, _S11), 0.0f).x, directionalShadow_texture_0.SampleLevel(directionalShadow_sampler_0, uv_0 + float2(_S8, _S11), 0.0f).x, directionalShadow_texture_0.SampleLevel(directionalShadow_sampler_0, uv_0 + float2(_S9, _S10), 0.0f).x, directionalShadow_texture_0.SampleLevel(directionalShadow_sampler_0, uv_0 + step_0, 0.0f).x), 0.0f);
 }
 
 
@@ -556,18 +610,18 @@ float3 NexoraFresnelSchlick_0(float vDotH_0, float3 reflectanceAtNormal_0)
 #line 5
 float NexoraDistributionGgx_0(float nDotH_0, float roughness_0)
 {
-    float _S10 = max(roughness_0 * roughness_0, 0.00249999994412065f);
-    float alphaSquared_0 = _S10 * _S10;
+    float _S12 = max(roughness_0 * roughness_0, 0.00249999994412065f);
+    float alphaSquared_0 = _S12 * _S12;
     float denominator_0 = nDotH_0 * nDotH_0 * (alphaSquared_0 - 1.0f) + 1.0f;
     return alphaSquared_0 / max(3.14159274101257324f * denominator_0 * denominator_0, 1.00000001168609742e-07f);
 }
 
 float NexoraGeometrySchlickGgx_0(float nDotV_0, float roughness_1)
 {
-    float _S11 = roughness_1 + 1.0f;
+    float _S13 = roughness_1 + 1.0f;
 
 #line 15
-    float k_0 = _S11 * _S11 * 0.125f;
+    float k_0 = _S13 * _S13 * 0.125f;
     return nDotV_0 / max(nDotV_0 * (1.0f - k_0) + k_0, 9.99999997475242708e-07f);
 }
 
@@ -587,12 +641,12 @@ float3 NexoraEvaluateDirectBrdf_0(float3 normal_1, float3 viewDirection_0, float
     float vDotH_1 = NexoraSaturateDot_0(v_0, h_0);
 
 #line 37
-    bool _S12;
+    bool _S14;
     if(nDotV_1 <= 0.0f)
     {
 
 #line 38
-        _S12 = true;
+        _S14 = true;
 
 #line 38
     }
@@ -600,13 +654,13 @@ float3 NexoraEvaluateDirectBrdf_0(float3 normal_1, float3 viewDirection_0, float
     {
 
 #line 38
-        _S12 = nDotL_1 <= 0.0f;
+        _S14 = nDotL_1 <= 0.0f;
 
 #line 38
     }
 
 #line 38
-    if(_S12)
+    if(_S14)
     {
 
 #line 39
@@ -632,9 +686,9 @@ float3 NexoraComputePbrF0_0(float3 baseColor_2, float metallic_1)
 
 float3 NexoraFresnelSchlickRoughness_0(float nDotV_2, float3 f0_0, float roughness_3)
 {
-    float _S13 = 1.0f - roughness_3;
+    float _S15 = 1.0f - roughness_3;
 
-    return f0_0 + (max(float3(_S13, _S13, _S13), f0_0) - f0_0) * pow(saturate(1.0f - nDotV_2), 5.0f);
+    return f0_0 + (max(float3(_S15, _S15, _S15), f0_0) - f0_0) * pow(saturate(1.0f - nDotV_2), 5.0f);
 }
 
 
@@ -657,11 +711,11 @@ float3 NexoraEvaluatePbrIbl_0(float3 normal_2, float3 viewDirection_1, float3 ba
 
     float3 fresnel_1 = NexoraFresnelSchlickRoughness_0(NexoraSaturateDot_0(NexoraSafeNormalize_0(normal_2), NexoraSafeNormalize_0(viewDirection_1)), NexoraComputePbrF0_0(albedo_1, metal_1), saturate(roughness_4));
 
-    float _S14 = saturate(ao_0);
+    float _S16 = saturate(ao_0);
 
 
 
-    return environment_1.diffuseIrradiance_0 * albedo_1 * ((1.0f - fresnel_1) * (1.0f - metal_1)) * _S14 / 3.14159274101257324f + environment_1.prefilteredSpecular_0 * (fresnel_1 * environment_1.brdfLut_0.x + environment_1.brdfLut_0.y) * _S14;
+    return environment_1.diffuseIrradiance_0 * albedo_1 * ((1.0f - fresnel_1) * (1.0f - metal_1)) * _S16 / 3.14159274101257324f + environment_1.prefilteredSpecular_0 * (fresnel_1 * environment_1.brdfLut_0.x + environment_1.brdfLut_0.y) * _S16;
 }
 
 
@@ -669,15 +723,15 @@ float3 NexoraEvaluatePbrIbl_0(float3 normal_2, float3 viewDirection_1, float3 ba
 float NexoraEvaluateStylizedRamp_0(float nDotL_2, float offset_0, float scale_0, float softness_0)
 {
 
-    float _S15 = max(softness_0, 0.00009999999747379f);
-    return smoothstep(0.5f - _S15, 0.5f + _S15, saturate(nDotL_2 * scale_0 + offset_0));
+    float _S17 = max(softness_0, 0.00009999999747379f);
+    return smoothstep(0.5f - _S17, 0.5f + _S17, saturate(nDotL_2 * scale_0 + offset_0));
 }
 
 
 #line 19 "Shaders/Nexora/Common/Color.slang"
-float NexoraRec709Luminance_0(float3 linearColor_0)
+float NexoraRec709Luminance_0(float3 linearColor_1)
 {
-    return dot(linearColor_0, float3(0.2125999927520752f, 0.71520000696182251f, 0.07220000028610229f));
+    return dot(linearColor_1, float3(0.2125999927520752f, 0.71520000696182251f, 0.07220000028610229f));
 }
 
 
@@ -687,12 +741,12 @@ float3 NexoraApplyStylizedResponse_0(float3 lighting_0, float shadowFactor_0, fl
 
 
     float3 tinted_0 = lighting_0 * lerp(shadowTint_1, lightTint_1, (float3)saturate(shadowFactor_0));
-    float3 _S16 = (float3)0.0f;
+    float3 _S18 = (float3)0.0f;
 
 #line 15
-    float luminance_0 = NexoraRec709Luminance_0(max(tinted_0, _S16));
+    float luminance_0 = NexoraRec709Luminance_0(max(tinted_0, _S18));
 
-    return max((lerp(float3(luminance_0, luminance_0, luminance_0), tinted_0, (float3)saturation_0) - 0.5f) * contrast_0 + 0.5f, _S16);
+    return max((lerp(float3(luminance_0, luminance_0, luminance_0), tinted_0, (float3)saturation_0) - 0.5f) * contrast_0 + 0.5f, _S18);
 }
 
 
@@ -713,24 +767,6 @@ float3 NexoraEvaluateVegetationTransmission_0(float3 normal_3, float3 lightDirec
 }
 
 
-#line 24 "Shaders/Nexora/Common/Color.slang"
-float3 NexoraAcesApproximate_0(float3 hdrColor_0)
-{
-    float3 color_0 = max(hdrColor_0, (float3)0.0f);
-    return saturate(color_0 * (2.50999999046325684f * color_0 + 0.02999999932944775f) / (color_0 * (2.43000006675720215f * color_0 + 0.5899999737739563f) + 0.14000000059604645f));
-}
-
-
-#line 11
-float3 NexoraLinearToSrgb_0(float3 linearColor_1)
-{
-    float3 color_1 = max(linearColor_1, (float3)0.0f);
-
-
-    return lerp(color_1 * 12.92000007629394531f, 1.0549999475479126f * pow(color_1, (float3)0.4166666567325592f) - 0.05499999970197678f, step((float3)0.00313080009073019f, color_1));
-}
-
-
 #line 61 "Engine/Presentation/shaders/scene_pbr.slang"
 struct VertexOutput_0
 {
@@ -739,7 +775,7 @@ struct VertexOutput_0
     float3 normal_4 : TEXCOORD1;
     float4 tangent_1 : TEXCOORD2;
     float2 uv_1 : TEXCOORD3;
-    float4 color_2 : TEXCOORD4;
+    float4 color_3 : TEXCOORD4;
 };
 
 
@@ -756,95 +792,107 @@ struct NexoraPbrMaterial_0
 };
 
 
-#line 130 "Engine/Presentation/shaders/scene_pbr.slang"
+#line 139 "Engine/Presentation/shaders/scene_pbr.slang"
 float4 pbrFragmentMain(VertexOutput_0 input_0) : SV_TARGET
 {
 
-#line 130
-    float2 _S17 = input_0.uv_1;
+#line 139
+    float2 _S19 = input_0.uv_1;
 
     ;
 
-#line 132
-    float4 _S18 = baseMap_texture_0.Sample(baseMap_sampler_0, _S17);
+#line 141
+    float4 _S20 = baseMap_texture_0.Sample(baseMap_sampler_0, _S19);
 
-#line 132
-    bool _S19;
+#line 141
+    bool _S21;
     if((material_0.vegetation_0.z) > 0.0f)
     {
 
-#line 133
-        _S19 = (NexoraEvaluateVegetationAlpha_0(_S18.w, material_0.vegetation_0.z)) == 0.0f;
+#line 142
+        _S21 = (NexoraEvaluateVegetationAlpha_0(_S20.w, material_0.vegetation_0.z)) == 0.0f;
 
-#line 133
+#line 142
     }
     else
     {
 
-#line 133
-        _S19 = false;
+#line 142
+        _S21 = false;
 
-#line 133
+#line 142
     }
 
-#line 133
-    if(_S19)
+#line 142
+    if(_S21)
     {
 
-#line 134
+#line 143
         discard;
 
-#line 133
+#line 142
     }
 
+    if((material_0.transmission_0.w) > 0.5f)
+    {
+
+#line 144
+        float2 _S22 = input_0.uv_1;
+        ;
+
+#line 145
+        return outputSceneColor_0(emissionMap_texture_0.Sample(emissionMap_sampler_0, _S22).xyz * material_0.emissionRoughness_0.xyz);
+    }
+
+#line 146
     float3 n_1 = NexoraSafeNormalize_0(input_0.normal_4);
     float3 t_0 = NexoraSafeNormalize_0(input_0.tangent_1.xyz - n_1 * dot(n_1, input_0.tangent_1.xyz));
     float3 b_0 = NexoraSafeNormalize_0(cross(n_1, t_0)) * input_0.tangent_1.w;
 
-#line 137
-    float2 _S20 = input_0.uv_1;
+#line 148
+    float2 _S23 = input_0.uv_1;
     ;
 
-#line 138
-    float3 _S21 = normalMap_texture_0.Sample(normalMap_sampler_0, _S20).xyz;
+#line 149
+    float3 _S24 = normalMap_texture_0.Sample(normalMap_sampler_0, _S23).xyz;
 
-#line 138
-    float3 encoded_0 = _S21;
-    encoded_0.xy = (_S21.xy - 0.5f) * material_0.properties_0.z + 0.5f;
+#line 149
+    float3 encoded_0 = _S24;
+    encoded_0.xy = (_S24.xy - 0.5f) * material_0.properties_0.z + 0.5f;
 
-#line 139
-    float2 _S22 = input_0.uv_1;
+#line 150
+    float2 _S25 = input_0.uv_1;
     ;
 
-#line 140
-    float3 orm_0 = ormMap_texture_0.Sample(ormMap_sampler_0, _S22).xyz;
+#line 151
+    float3 orm_0 = ormMap_texture_0.Sample(ormMap_sampler_0, _S25).xyz;
     NexoraPbrMaterial_0 surface_0;
-    surface_0.baseColor_4 = _S18.xyz * material_0.baseColor_0.xyz * input_0.color_2.xyz;
+    surface_0.baseColor_4 = _S20.xyz * material_0.baseColor_0.xyz * input_0.color_3.xyz;
     surface_0.normal_5 = NexoraDecodeTangentNormal_0(encoded_0, t_0, b_0, n_1);
     surface_0.metallic_3 = saturate(orm_0.z * material_0.properties_0.x);
     surface_0.roughness_5 = saturate(orm_0.y * material_0.emissionRoughness_0.w);
     surface_0.ao_1 = saturate(orm_0.x * material_0.properties_0.y);
 
-#line 146
-    float2 _S23 = input_0.uv_1;
+#line 157
+    float2 _S26 = input_0.uv_1;
     ;
 
-#line 147
-    surface_0.emission_0 = emissionMap_texture_0.Sample(emissionMap_sampler_0, _S23).xyz * material_0.emissionRoughness_0.xyz;
+#line 158
+    surface_0.emission_0 = emissionMap_texture_0.Sample(emissionMap_sampler_0, _S26).xyz * material_0.emissionRoughness_0.xyz;
     surface_0.alpha_1 = 1.0f;
 
     NexoraPbrEnvironment_0 environment_2;
-    float3 _S24 = float3(0.0f, 0.0f, 0.0f);
+    float3 _S27 = float3(0.0f, 0.0f, 0.0f);
 
-#line 151
-    environment_2.diffuseIrradiance_0 = _S24;
-    environment_2.prefilteredSpecular_0 = _S24;
+#line 162
+    environment_2.diffuseIrradiance_0 = _S27;
+    environment_2.prefilteredSpecular_0 = _S27;
     environment_2.brdfLut_0 = float2(0.0f, 0.0f);
     float3 viewDirection_2 = geometryDirection_0(material_0.cameraPosition_0.xyz - input_0.worldPosition_0);
     if((material_0.environment_0.x) > 0.0f)
     {
 
-#line 156
+#line 167
         float3 n_2 = geometryDirection_0(surface_0.normal_5);
         float roughness_6 = saturate(surface_0.roughness_5);
         environment_2.diffuseIrradiance_0 = diffuseEnvironment_texture_0.SampleLevel(diffuseEnvironment_sampler_0, environmentUv_0(n_2), 0.0f).xyz * material_0.environment_0.x;
@@ -854,20 +902,20 @@ float4 pbrFragmentMain(VertexOutput_0 input_0) : SV_TARGET
 
         environment_2.brdfLut_0 = brdfIntegration_texture_0.SampleLevel(brdfIntegration_sampler_0, float2(saturate(dot(n_2, viewDirection_2)), roughness_6), 0.0f).xy;
 
-#line 155
+#line 166
     }
 
-#line 166
+#line 177
     float3 light_1 = geometryDirection_0(- scene_0.lightDirection_0.xyz);
     float visibility_0 = shadowVisibility_0(input_0.worldPosition_0, geometryDirection_0(surface_0.normal_5), light_1);
     float3 direct_0 = NexoraEvaluateDirectBrdf_0(surface_0.normal_5, viewDirection_2, light_1, surface_0.baseColor_4, surface_0.metallic_3, surface_0.roughness_5, scene_0.lightColor_0.xyz);
 
     float3 ambient_0 = NexoraEvaluatePbrIbl_0(surface_0.normal_5, viewDirection_2, surface_0.baseColor_4, surface_0.metallic_3, surface_0.roughness_5, surface_0.ao_1, environment_2);
 
-#line 170
+#line 181
     float3 direct_1;
 
-#line 170
+#line 181
     float3 ambient_1;
 
     if((material_0.shadowTint_0.w) > 0.5f)
@@ -875,63 +923,30 @@ float4 pbrFragmentMain(VertexOutput_0 input_0) : SV_TARGET
 
 
 
-        float3 _S25 = NexoraApplyShadowTint_0(ambient_0, visibility_0, material_0.shadowTint_0.xyz);
+        float3 _S28 = NexoraApplyShadowTint_0(ambient_0, visibility_0, material_0.shadowTint_0.xyz);
 
-#line 177
+#line 188
         direct_1 = NexoraApplyStylizedResponse_0(direct_0, NexoraEvaluateStylizedRamp_0(saturate(dot(geometryDirection_0(surface_0.normal_5), light_1)), material_0.ramp_0.x, material_0.ramp_0.y, material_0.ramp_0.z), material_0.shadowTint_0.xyz, material_0.lightTint_0.xyz, 1.0f, 1.0f);
 
-#line 177
-        ambient_1 = _S25;
+#line 188
+        ambient_1 = _S28;
 
-#line 172
+#line 183
     }
     else
-    {
-
-#line 172
-        direct_1 = direct_0;
-
-#line 172
-        ambient_1 = ambient_0;
-
-#line 172
-    }
-
-#line 181
-    float3 _S26 = float3((int3)int(0));
-
-#line 181
-    float3 color_3 = direct_1 * visibility_0 + ambient_1 + NexoraEvaluateVegetationTransmission_0(surface_0.normal_5, light_1, material_0.transmission_0.xyz * scene_0.lightColor_0.xyz, material_0.vegetation_0.w, 1.0f - visibility_0) + max(surface_0.emission_0, _S26);
-    if((material_0.properties_0.w) > 0.5f)
     {
 
 #line 183
-        return float4(clamp(color_3, _S26, float3((int3)int(65504))), 1.0f);
+        direct_1 = direct_0;
+
+#line 183
+        ambient_1 = ambient_0;
+
+#line 183
     }
 
-#line 184
-    float3 color_4 = NexoraAcesApproximate_0(color_3);
-
-#line 184
-    float3 color_5;
-    if((material_0.cameraPosition_0.w) > 0.5f)
-    {
-
-#line 185
-        color_5 = NexoraLinearToSrgb_0(color_4);
-
-#line 185
-    }
-    else
-    {
-
-#line 185
-        color_5 = color_4;
-
-#line 185
-    }
-
-    return float4(color_5, 1.0f);
+#line 193
+    return outputSceneColor_0(direct_1 * visibility_0 + ambient_1 + NexoraEvaluateVegetationTransmission_0(surface_0.normal_5, light_1, material_0.transmission_0.xyz * scene_0.lightColor_0.xyz, material_0.vegetation_0.w, 1.0f - visibility_0) + max(surface_0.emission_0, float3((int3)int(0))));
 }
 
 )NEXORA_PBR";

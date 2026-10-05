@@ -54,6 +54,8 @@ struct CommandLine final {
   bool reload{true};
   bool frames_explicit{};
   bool scene_explicit{};
+  bool pause_animation{}, activate_device{};
+  std::string quality{"standard"};
   std::size_t frames{4};
   std::string mode{"interactive"};
   std::string scene{"hub"};
@@ -136,6 +138,7 @@ struct ShowcaseRun final {
   std::size_t native_graph_passes{}, native_graph_transitions{};
   std::vector<std::string> native_graph_order;
   std::string runtime_rooms{"null"};
+  std::string quality{"standard"};
   std::string performance{"null"};
   std::string markdown;
   bool rooms_ok{};
@@ -252,6 +255,17 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       }
     } else if (argument == "--validate-v1") {
       command.validate_v1 = true;
+    } else if (argument == "--pause-animation") {
+      command.pause_animation = true;
+    } else if (argument == "--activate-device") {
+      command.activate_device = true;
+    } else if (argument.starts_with("--quality=")) {
+      command.quality = argument.substr(10);
+      if (command.quality != "basic" && command.quality != "standard" &&
+          command.quality != "high") {
+        error = "--quality must be basic, standard or high";
+        return false;
+      }
     } else if (argument == "--no-reload") {
       command.reload = false;
     } else if (argument == "--help" || argument == "-h") {
@@ -382,6 +396,9 @@ void PrintUsage() {
                "  --tour=visual|v1           100-second courtyard / 210-second engineering tour\n"
                "  --probe=v1.M0..v1.M12      rerun one live integration probe\n"
                "  --markdown=PATH            export the live probe results as Markdown\n"
+               "  --quality=basic|standard|high actual bounded rendering tiers\n"
+               "  --pause-animation          freeze effects for fixed comparisons\n"
+               "  --activate-device          enable the rune/particle effect\n"
                "  --clean-view               start without diagnostic UI\n  --vsync=on|off         "
                "    request synchronized or immediate presentation\n";
 }
@@ -691,6 +708,10 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   showcase::RoomSession rooms(command.scene, command.mode == "tour" || !command.tour.empty(),
                               command.capabilities == "minimal", command.plugin_library.string());
   rooms.SetScreenshotMode(command.clean_view);
+  rooms.SetQuality(command.quality);
+  rooms.SetAnimationPaused(command.pause_animation);
+  if (command.activate_device)
+    rooms.SetDeviceActive(true);
   showcase::FrameProfiler profiler;
   auto previousTime = std::chrono::steady_clock::now();
   for (std::size_t frame = 0; frame < frameLimit; ++frame) {
@@ -819,6 +840,7 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     rooms.RerunProbe(milestone);
   }
   result.runtime_rooms = rooms.Report();
+  result.quality = rooms.QualityName();
   result.performance = profiler.Report();
   result.markdown = rooms.Markdown();
   result.rooms_ok = rooms.Healthy();
@@ -1046,7 +1068,7 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << (run.surface.negotiatedPresentMode == Nexora::Presentation::PresentMode::Immediate
                  ? "immediate"
                  : "vsync")
-         << "\",\"quality\":\"basic\",\"refresh_rate_hz\":null},\n"
+         << "\",\"quality\":\"" << run.quality << "\",\"refresh_rate_hz\":null},\n"
          << "  \"performance\": " << run.performance << ",\n"
          << "  \"headless_evidence\": {\n"
          << "    \"executed\": " << command.headless << ",\n"
