@@ -27,6 +27,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
   set_tests_properties(window_presentation.vulkan_scene PROPERTIES
     LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
 
+  add_executable(NexoraVulkanPbrTests VulkanPbrTests.cpp)
+  target_link_libraries(NexoraVulkanPbrTests PRIVATE Nexora::Presentation X11::X11)
+  nexora_apply_defaults(NexoraVulkanPbrTests)
+  add_test(NAME window_presentation.vulkan_pbr
+    COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+      --native-test "$<TARGET_FILE:NexoraVulkanPbrTests>"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/showcase-linux-vulkan-pbr")
+  set_tests_properties(window_presentation.vulkan_pbr PROPERTIES
+    LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
+
   add_executable(NexoraVulkanSceneUploadTests VulkanSceneUploadTests.cpp)
   target_include_directories(NexoraVulkanSceneUploadTests PRIVATE
     "${CMAKE_SOURCE_DIR}/Engine/Presentation/include" "${NEXORA_VULKAN_INCLUDE_DIR}")
@@ -52,4 +63,11 @@ if(APPLE)
     "${CMAKE_BINARY_DIR}/artifacts/metal-scene.ppm")
   set_tests_properties(window_presentation.metal_scene PROPERTIES
     LABELS "showcase;metal;native-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
+endif()
+
+if(NEXORA_ENABLE_SLANG AND NEXORA_SLANGC_EXECUTABLE)
+  add_test(NAME window_presentation.pbr_shader_generation
+    COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_SOURCE_DIR}/Engine/Presentation/shaders/GeneratePbrShaders.py"
+      --compiler "${NEXORA_SLANGC_EXECUTABLE}" --check)
 endif()

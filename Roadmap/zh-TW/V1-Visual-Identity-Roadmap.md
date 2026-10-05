@@ -184,3 +184,20 @@ Vulkan 與 Metal 測試源碼涵蓋材質像素、拒絕與恢復；實際執行
 
 ✅ 材質綁定切片：Linux 87/87 無 skip 與原生材質像素測試通過。
 [Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-MaterialBindings-2026-10-05/acceptance.md).
+
+## 13. VIS-M1 共享直接光照 PBR（2026-10-05）
+
+原生 entry 已 import `Nexora.Common`，由固定 Slang 2026.18 產生 SPIR-V／HLSL／MSL。
+Vulkan、DX12、Metal 綁定 base／normal／ORM／emission、相機及逐材質參數。
+Renderer 產生單位切線及鏡射 UV handedness，不改 Runtime 網格 wire format。
+庭院快取 owning 頂點，預設使用共享直接光照 PBR；`P` 在相同固定場景切換 Lambert／PBR。
+線性 factor、一次 sRGB 貼圖解碼、共享 ACES 與一次輸出 transfer 已接通，target 仍為 RGBA8。
+
+Vulkan 原生像素驗證獨立發光、normal 受光、ORM、缺圖 fallback、一次 sRGB 解碼、
+鏡射模型切線 handedness、影格重用、direct／offscreen 與 resize 後重送資源。
+Metal 等效測試與 Windows 庭院截圖由 CI 驗證 host 路徑。
+IBL、浮點 HDR 合成及最終材質／反射驗收仍待完成；進度仍為 1/7。
+直接光照 PBR 尚不足以完成 VIS-M1。
+
+✅ Linux 直接光照 PBR 切片：91/91 無 skip、Monolithic Shipping build 與隔離套件啟動通過。
+[Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-SharedPBR-2026-10-05/acceptance.md).

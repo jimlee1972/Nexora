@@ -13,7 +13,7 @@ namespace Nexora::Presentation {
 // copied into a GPU upload; adapters consume the same packed affine and inverse-transpose rows.
 struct SceneInstanceUpload final {
   float model[3][4]{};
-  float normal[3][4]{};
+  float normal[3][4]{}; // normal[0][3] carries the exact model determinant sign for tangents.
   float color[4]{};
 };
 static_assert(std::is_standard_layout_v<SceneInstanceUpload> &&
@@ -65,6 +65,7 @@ inline double AffineDeterminant(const std::array<float, 16> &m) noexcept {
 
 inline bool PackSceneInstance(const SceneInstance &instance, SceneInstanceUpload &output) noexcept {
   SceneInstanceUpload packed;
+  float handedness = 1;
   for (std::size_t i = 0; i < 4; ++i) {
     if (!std::isfinite(instance.color[i]))
       return false;
@@ -89,6 +90,7 @@ inline bool PackSceneInstance(const SceneInstance &instance, SceneInstanceUpload
     const double determinant = AffineDeterminant(m);
     if (!std::isfinite(determinant) || determinant == 0)
       return false;
+    handedness = determinant < 0 ? -1 : 1;
     for (std::size_t row = 0; row < 3; ++row)
       for (std::size_t column = 0; column < 4; ++column) {
         packed.model[row][column] = m[row * 4 + column];
@@ -108,6 +110,8 @@ inline bool PackSceneInstance(const SceneInstance &instance, SceneInstanceUpload
     }
     if (std::abs(length - 1.0F) > 0.01F)
       return false;
+    handedness =
+        ((instance.scale[0] < 0) ^ (instance.scale[1] < 0) ^ (instance.scale[2] < 0)) ? -1 : 1;
     const double x = instance.rotation[0], y = instance.rotation[1], z = instance.rotation[2],
                  w = instance.rotation[3];
     const double rotation[3][3]{
@@ -133,6 +137,7 @@ inline bool PackSceneInstance(const SceneInstance &instance, SceneInstanceUpload
   for (auto &row : packed.normal)
     for (std::size_t column = 0; column < 3; ++column)
       row[column] /= maximum;
+  packed.normal[0][3] = handedness;
   output = packed;
   return true;
 }

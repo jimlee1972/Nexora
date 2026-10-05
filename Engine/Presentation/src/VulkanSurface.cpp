@@ -3,8 +3,10 @@
 #endif
 
 #include "Nexora/Presentation/Surface.h"
+#include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
 
+#include "ScenePbrVulkanShaders.h"
 #include "SceneVulkanShaders.h"
 #include "UiVulkanShaders.h"
 #include <vulkan/vulkan.h>
@@ -344,17 +346,17 @@ public:
     const auto packedInstances = PackSceneInstances(data.instances);
     if (!packedInstances)
       return SurfaceStatus::InvalidDescriptor;
-    if (!ValidateSceneMaterials(data.materials, data.batches))
+    if (!ValidateSceneMaterials(data.materials, data.batches) || !ValidatePbrData(data))
       return SurfaceStatus::InvalidDescriptor;
     if (data.textureUploads.size() > 16)
       return SurfaceStatus::InvalidDescriptor;
     for (const auto &upload : data.textureUploads)
-      if (upload.textureId == 0 || upload.textureId == UINT64_MAX || upload.width == 0 ||
+      if (upload.textureId == 0 || upload.textureId >= UINT64_MAX - 1 || upload.width == 0 ||
           upload.height == 0 || upload.width > 1024 || upload.height > 1024 ||
           upload.rowPitch != upload.width * 4U ||
           upload.pixels.size() != static_cast<std::size_t>(upload.rowPitch) * upload.height)
         return SurfaceStatus::InvalidDescriptor;
-    if (data.textureId == UINT64_MAX)
+    if (data.textureId >= UINT64_MAX - 1)
       return SurfaceStatus::InvalidDescriptor;
     const auto textureId = data.textureId ? data.textureId : UINT64_MAX;
     if (data.textureId && !sceneTextures_.contains(textureId) &&
@@ -367,8 +369,19 @@ public:
               data.textureUploads.begin(), data.textureUploads.end(),
               [&material](const auto &upload) { return upload.textureId == material.textureId; }))
         return SurfaceStatus::InvalidDescriptor;
+    if (data.pbr) {
+      if (!scenePbrPipeline_)
+        return SurfaceStatus::Unsupported;
+      for (const auto &material : data.materials)
+        for (const auto id :
+             {material.normalTextureId, material.ormTextureId, material.emissionTextureId})
+          if (id && !sceneTextures_.contains(id) &&
+              std::none_of(data.textureUploads.begin(), data.textureUploads.end(),
+                           [id](const auto &upload) { return upload.textureId == id; }))
+            return SurfaceStatus::InvalidDescriptor;
+    }
     const bool needsWhite =
-        textureId == UINT64_MAX ||
+        data.pbr || textureId == UINT64_MAX ||
         std::any_of(data.materials.begin(), data.materials.end(),
                     [](const auto &material) { return material.textureId == 0; });
     for (const auto &vertex : data.vertices)
@@ -382,6 +395,8 @@ public:
         std::as_bytes(std::span<const SceneInstanceUpload>(*packedInstances));
     auto &frame = frames_[frame_];
     std::size_t additional = needsWhite && !sceneTextures_.contains(UINT64_MAX) ? 1 : 0;
+    if (data.pbr && !sceneTextures_.contains(UINT64_MAX - 1))
+      ++additional;
     for (std::size_t i = 0; i < data.textureUploads.size(); ++i) {
       const auto id = data.textureUploads[i].textureId;
       for (std::size_t j = 0; j < i; ++j)
@@ -399,12 +414,26 @@ public:
     if (needsWhite && !sceneTextures_.contains(UINT64_MAX) &&
         !UploadUiTexture(frame, {UINT64_MAX, 1, 1, 4, white}, true))
       return SurfaceStatus::DeviceLost;
+    const std::array<std::byte, 4> flatNormal{std::byte{128}, std::byte{128}, std::byte{255},
+                                              std::byte{255}};
+    if (data.pbr && !sceneTextures_.contains(UINT64_MAX - 1) &&
+        !UploadUiTexture(frame, {UINT64_MAX - 1, 1, 1, 4, flatNormal}, true))
+      return SurfaceStatus::DeviceLost;
     // Acquire has waited this frame's fence. Never release another in-flight slot's resources.
     DestroySceneTargets(frame);
     const auto vertexBytes = std::as_bytes(data.vertices);
     const auto indexBytes = std::as_bytes(data.indices);
     const auto instanceOffset = (vertexBytes.size() + indexBytes.size() + 3) & ~std::size_t{3};
-    const auto bytes = instanceOffset + instanceBytes.size();
+    VkPhysicalDeviceProperties deviceProperties{};
+    vkGetPhysicalDeviceProperties(physical_, &deviceProperties);
+    const auto alignment =
+        std::max<VkDeviceSize>(deviceProperties.limits.minUniformBufferOffsetAlignment, 16);
+    const auto materialStride = (sizeof(float) * 16 + alignment - 1) & ~(alignment - 1);
+    const auto materialOffset =
+        (instanceOffset + instanceBytes.size() + alignment - 1) & ~(alignment - 1);
+    const auto materialCount = std::max<std::size_t>(data.materials.size(), 1);
+    const auto bytes = data.pbr ? materialOffset + materialCount * materialStride
+                                : instanceOffset + instanceBytes.size();
     const auto uploadStatus = EnsureSceneUpload(frame, bytes);
     if (uploadStatus != SurfaceStatus::Ready)
       return uploadStatus;
@@ -416,7 +445,65 @@ public:
                 indexBytes.size());
     std::memcpy(static_cast<std::byte *>(mapped) + instanceOffset, instanceBytes.data(),
                 instanceBytes.size());
+    if (data.pbr) {
+      for (std::size_t slot = 0; slot < materialCount; ++slot) {
+        const auto material = ResolveSceneMaterial(data, slot);
+        const auto parameters = PackPbrMaterial(data, material,
+                                                swapchainFormat_ != VK_FORMAT_B8G8R8A8_SRGB &&
+                                                    swapchainFormat_ != VK_FORMAT_R8G8B8A8_SRGB);
+        std::memcpy(static_cast<std::byte *>(mapped) + materialOffset + slot * materialStride,
+                    parameters.data(), sizeof(parameters));
+      }
+    }
     vkUnmapMemory(device_, frame.sceneMemory);
+    if (data.pbr) {
+      frame.pbrDescriptors.resize(materialCount);
+      std::vector<VkDescriptorSetLayout> layouts(materialCount, pbrMaterialLayout_);
+      const VkDescriptorSetAllocateInfo allocate{
+          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, pbrMaterialPool_,
+          static_cast<std::uint32_t>(materialCount), layouts.data()};
+      if (vkAllocateDescriptorSets(device_, &allocate, frame.pbrDescriptors.data()) != VK_SUCCESS) {
+        frame.pbrDescriptors.clear();
+        return SurfaceStatus::DeviceLost;
+      }
+      for (std::size_t slot = 0; slot < materialCount; ++slot) {
+        const auto material = ResolveSceneMaterial(data, slot);
+        const std::array ids{material.textureId ? material.textureId : UINT64_MAX,
+                             material.normalTextureId ? material.normalTextureId : UINT64_MAX - 1,
+                             material.ormTextureId ? material.ormTextureId : UINT64_MAX,
+                             material.emissionTextureId ? material.emissionTextureId : UINT64_MAX};
+        std::array<VkDescriptorImageInfo, 4> images{};
+        std::array<VkWriteDescriptorSet, 5> writes{};
+        for (std::uint32_t map = 0; map < 4; ++map) {
+          images[map] = {uiSampler_, sceneTextures_.at(ids[map]).view,
+                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+          writes[map] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                         nullptr,
+                         frame.pbrDescriptors[slot],
+                         map,
+                         0,
+                         1,
+                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                         &images[map],
+                         nullptr,
+                         nullptr};
+        }
+        const VkDescriptorBufferInfo info{frame.sceneUpload, materialOffset + slot * materialStride,
+                                          sizeof(float) * 16};
+        writes[4] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                     nullptr,
+                     frame.pbrDescriptors[slot],
+                     4,
+                     0,
+                     1,
+                     VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                     nullptr,
+                     &info,
+                     nullptr};
+        vkUpdateDescriptorSets(device_, static_cast<std::uint32_t>(writes.size()), writes.data(), 0,
+                               nullptr);
+      }
+    }
     VkImageCreateInfo image{};
     image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     image.imageType = VK_IMAGE_TYPE_2D;
@@ -501,7 +588,8 @@ public:
     begin.clearValueCount = 2;
     begin.pClearValues = clears.data();
     vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, scenePipeline_);
+    vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      data.pbr ? scenePbrPipeline_ : scenePipeline_);
     const VkViewport nativeViewport{static_cast<float>(viewport->x),
                                     static_cast<float>(viewport->y),
                                     static_cast<float>(viewport->width),
@@ -532,12 +620,21 @@ public:
     for (const auto &batch : batches) {
       const auto material = ResolveSceneMaterial(data, batch.materialIndex);
       std::copy(material.baseColor.begin(), material.baseColor.end(), constants.begin() + 24);
-      vkCmdPushConstants(frame.commands, scenePipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                         sizeof(constants), constants.data());
+      const auto pipelineLayout = data.pbr ? scenePbrPipelineLayout_ : scenePipelineLayout_;
+      const auto stages = data.pbr ? VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
+                                   : VK_SHADER_STAGE_VERTEX_BIT;
+      vkCmdPushConstants(frame.commands, pipelineLayout, stages, 0, sizeof(constants),
+                         constants.data());
       const auto id = material.textureId ? material.textureId : UINT64_MAX;
       const auto descriptor = sceneTextures_.at(id).descriptor;
-      vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, scenePipelineLayout_,
-                              0, 1, &descriptor, 0, nullptr);
+      if (data.pbr) {
+        const auto descriptor = frame.pbrDescriptors[batch.materialIndex];
+        vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
+                                1, &descriptor, 0, nullptr);
+      } else {
+        vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
+                                1, &descriptor, 0, nullptr);
+      }
       vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
                        batch.firstInstance);
     }
@@ -778,6 +875,7 @@ private:
     VkBuffer sceneUpload{};
     VkDeviceMemory sceneMemory{};
     VkDeviceSize sceneCapacity{};
+    std::vector<VkDescriptorSet> pbrDescriptors;
     VkImage sceneDepth{};
     VkDeviceMemory sceneDepthMemory{};
     VkImageView sceneDepthView{};
@@ -810,6 +908,11 @@ private:
     return std::numeric_limits<std::uint32_t>::max();
   }
   void DestroySceneTargets(Frame &frame) {
+    if (!frame.pbrDescriptors.empty())
+      vkFreeDescriptorSets(device_, pbrMaterialPool_,
+                           static_cast<std::uint32_t>(frame.pbrDescriptors.size()),
+                           frame.pbrDescriptors.data());
+    frame.pbrDescriptors.clear();
     if (frame.sceneFramebuffer)
       vkDestroyFramebuffer(device_, frame.sceneFramebuffer, nullptr);
     if (frame.sceneColorView)
@@ -856,7 +959,8 @@ private:
     VkBufferCreateInfo create{};
     create.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create.size = capacity;
-    create.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    create.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     if (vkCreateBuffer(device_, &create, nullptr, &buffer) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
     VkMemoryRequirements requirements{};
@@ -926,7 +1030,8 @@ private:
     VkBufferCreateInfo create{};
     create.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     create.size = frame.uiCapacity;
-    create.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    create.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     create.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     if (vkCreateBuffer(device_, &create, nullptr, &frame.uiUpload) != VK_SUCCESS)
       return false;
@@ -1415,7 +1520,56 @@ private:
         vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr, &scenePipeline_);
     vkDestroyShaderModule(device_, fragment, nullptr);
     vkDestroyShaderModule(device_, vertex, nullptr);
-    return Initialized(result, "vkCreateGraphicsPipelines (scene)");
+    if (!Initialized(result, "vkCreateGraphicsPipelines (scene)"))
+      return false;
+    std::array<VkDescriptorSetLayoutBinding, 5> materialBindings{};
+    for (std::uint32_t map = 0; map < 4; ++map)
+      materialBindings[map] = {map, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                               VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
+    materialBindings[4] = {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
+                           nullptr};
+    const VkDescriptorSetLayoutCreateInfo materialLayout{
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+        static_cast<std::uint32_t>(materialBindings.size()), materialBindings.data()};
+    if (vkCreateDescriptorSetLayout(device_, &materialLayout, nullptr, &pbrMaterialLayout_) !=
+        VK_SUCCESS)
+      return false;
+    const std::array poolSizes{
+        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64 * kMaxFrames},
+        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4 * 64 * kMaxFrames}};
+    const VkDescriptorPoolCreateInfo pool{
+        VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,     nullptr,
+        VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 64 * kMaxFrames,
+        static_cast<std::uint32_t>(poolSizes.size()),      poolSizes.data()};
+    if (vkCreateDescriptorPool(device_, &pool, nullptr, &pbrMaterialPool_) != VK_SUCCESS)
+      return false;
+    const VkPushConstantRange pbrPush{VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                                      112};
+    layout.setLayoutCount = 1;
+    layout.pSetLayouts = &pbrMaterialLayout_;
+    layout.pPushConstantRanges = &pbrPush;
+    if (vkCreatePipelineLayout(device_, &layout, nullptr, &scenePbrPipelineLayout_) != VK_SUCCESS)
+      return false;
+    if (!makeShader(scene_pbr_spirv_vert, sizeof(scene_pbr_spirv_vert), vertex) ||
+        !makeShader(scene_pbr_spirv_frag, sizeof(scene_pbr_spirv_frag), fragment))
+      return false;
+    const VkPipelineShaderStageCreateInfo pbrStages[]{
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
+         VK_SHADER_STAGE_VERTEX_BIT, vertex, "main", nullptr},
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
+         VK_SHADER_STAGE_FRAGMENT_BIT, fragment, "main", nullptr}};
+    std::array<VkVertexInputAttributeDescription, 11> pbrAttributes{};
+    std::copy(std::begin(attributes), std::end(attributes), pbrAttributes.begin());
+    pbrAttributes[10] = {10, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SceneVertex, tangent)};
+    vertexInput.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(pbrAttributes.size());
+    vertexInput.pVertexAttributeDescriptions = pbrAttributes.data();
+    pipeline.layout = scenePbrPipelineLayout_;
+    pipeline.pStages = pbrStages;
+    const auto pbrResult = vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr,
+                                                     &scenePbrPipeline_);
+    vkDestroyShaderModule(device_, fragment, nullptr);
+    vkDestroyShaderModule(device_, vertex, nullptr);
+    return Initialized(pbrResult, "vkCreateGraphicsPipelines (shared PBR)");
   }
   void DestroySwapchain() {
     for (auto &frame : frames_) {
@@ -1431,6 +1585,18 @@ private:
         vkDestroySemaphore(device_, frame.finished, nullptr);
     }
     frames_.clear();
+    if (scenePbrPipeline_)
+      vkDestroyPipeline(device_, scenePbrPipeline_, nullptr);
+    if (scenePbrPipelineLayout_)
+      vkDestroyPipelineLayout(device_, scenePbrPipelineLayout_, nullptr);
+    if (pbrMaterialPool_)
+      vkDestroyDescriptorPool(device_, pbrMaterialPool_, nullptr);
+    if (pbrMaterialLayout_)
+      vkDestroyDescriptorSetLayout(device_, pbrMaterialLayout_, nullptr);
+    scenePbrPipeline_ = VK_NULL_HANDLE;
+    scenePbrPipelineLayout_ = VK_NULL_HANDLE;
+    pbrMaterialPool_ = VK_NULL_HANDLE;
+    pbrMaterialLayout_ = VK_NULL_HANDLE;
     if (scenePipeline_)
       vkDestroyPipeline(device_, scenePipeline_, nullptr);
     if (scenePipelineLayout_)
@@ -1601,6 +1767,10 @@ private:
   VkRenderPass sceneRenderPass_{};
   VkRenderPass sceneOverlayRenderPass_{};
   VkPipeline scenePipeline_{};
+  VkPipeline scenePbrPipeline_{};
+  VkPipelineLayout scenePbrPipelineLayout_{};
+  VkDescriptorSetLayout pbrMaterialLayout_{};
+  VkDescriptorPool pbrMaterialPool_{};
   bool sceneRendered_{};
   bool sceneOffscreen_{}, sceneComposited_{};
   bool transferTarget_{};

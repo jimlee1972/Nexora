@@ -4,7 +4,9 @@
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include "Nexora/Presentation/Surface.h"
+#include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
+#include "ScenePbrHlslShaders.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -310,17 +312,17 @@ public:
     const auto packedInstances = PackSceneInstances(drawData.instances);
     if (!packedInstances)
       return SurfaceStatus::InvalidDescriptor;
-    if (!ValidateSceneMaterials(drawData.materials, drawData.batches))
+    if (!ValidateSceneMaterials(drawData.materials, drawData.batches) || !ValidatePbrData(drawData))
       return SurfaceStatus::InvalidDescriptor;
     if (drawData.textureUploads.size() > 16)
       return SurfaceStatus::InvalidDescriptor;
     for (const auto &upload : drawData.textureUploads)
-      if (upload.textureId == 0 || upload.textureId == UINT64_MAX || upload.width == 0 ||
+      if (upload.textureId == 0 || upload.textureId >= UINT64_MAX - 1 || upload.width == 0 ||
           upload.height == 0 || upload.width > 1024 || upload.height > 1024 ||
           upload.rowPitch != upload.width * 4U ||
           upload.pixels.size() != static_cast<std::size_t>(upload.rowPitch) * upload.height)
         return SurfaceStatus::InvalidDescriptor;
-    if (drawData.textureId == UINT64_MAX)
+    if (drawData.textureId >= UINT64_MAX - 1)
       return SurfaceStatus::InvalidDescriptor;
     const auto textureId = drawData.textureId ? drawData.textureId : UINT64_MAX;
     if (drawData.textureId && !sceneTextures_.contains(textureId) &&
@@ -333,8 +335,19 @@ public:
               drawData.textureUploads.begin(), drawData.textureUploads.end(),
               [&material](const auto &upload) { return upload.textureId == material.textureId; }))
         return SurfaceStatus::InvalidDescriptor;
+    if (drawData.pbr) {
+      if (!scenePbrPipeline_)
+        return SurfaceStatus::Unsupported;
+      for (const auto &material : drawData.materials)
+        for (const auto id :
+             {material.normalTextureId, material.ormTextureId, material.emissionTextureId})
+          if (id && !sceneTextures_.contains(id) &&
+              std::none_of(drawData.textureUploads.begin(), drawData.textureUploads.end(),
+                           [id](const auto &upload) { return upload.textureId == id; }))
+            return SurfaceStatus::InvalidDescriptor;
+    }
     const bool needsWhite =
-        textureId == UINT64_MAX ||
+        drawData.pbr || textureId == UINT64_MAX ||
         std::any_of(drawData.materials.begin(), drawData.materials.end(),
                     [](const auto &material) { return material.textureId == 0; });
     for (const auto &vertex : drawData.vertices)
@@ -364,9 +377,11 @@ public:
     std::memcpy(constants.baseColor, drawData.base_color, sizeof(constants.baseColor));
     // Constants live first, at offset 0 -- a committed resource's base GPU VA is always far more
     // aligned than the 256 bytes a root CBV requires, so offset 0 is always valid there. Vertex and
-    // index data start after the bounded material palette (one 256-byte slot per material),
+    // index data start after the bounded material palette (aligned constants per material),
     // so neither section can ever overlap regardless of how large the mesh grows.
-    const std::size_t kGeometryOffset = std::max<std::size_t>(drawData.materials.size(), 1) * 256;
+    const std::size_t materialStride = drawData.pbr ? 512 : 256;
+    const std::size_t kGeometryOffset =
+        std::max<std::size_t>(drawData.materials.size(), 1) * materialStride;
     const auto required = kGeometryOffset + instanceOffset + instanceBytes.size();
     if (!EnsureSceneUpload(required))
       return SurfaceStatus::DeviceLost;
@@ -377,7 +392,13 @@ public:
     for (std::size_t slot = 0; slot < std::max<std::size_t>(drawData.materials.size(), 1); ++slot) {
       const auto material = ResolveSceneMaterial(drawData, slot);
       std::copy(material.baseColor.begin(), material.baseColor.end(), constants.baseColor);
-      std::memcpy(static_cast<std::byte *>(mapped) + slot * 256, &constants, sizeof(constants));
+      std::memcpy(static_cast<std::byte *>(mapped) + slot * materialStride, &constants,
+                  sizeof(constants));
+      if (drawData.pbr) {
+        const auto parameters = PackPbrMaterial(drawData, material, true);
+        std::memcpy(static_cast<std::byte *>(mapped) + slot * materialStride + 256,
+                    parameters.data(), sizeof(parameters));
+      }
     }
     std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset, vertexBytes.data(),
                 vertexBytes.size());
@@ -387,6 +408,8 @@ public:
                 instanceBytes.data(), instanceBytes.size());
     sceneUploads_[frame_]->Unmap(0, nullptr);
     std::size_t additional = needsWhite && !sceneTextures_.contains(UINT64_MAX) ? 1 : 0;
+    if (drawData.pbr && !sceneTextures_.contains(UINT64_MAX - 1))
+      ++additional;
     for (std::size_t i = 0; i < drawData.textureUploads.size(); ++i) {
       const auto id = drawData.textureUploads[i].textureId;
       for (std::size_t j = 0; j < i; ++j)
@@ -403,6 +426,11 @@ public:
                                          std::byte{255}};
     if (needsWhite && !sceneTextures_.contains(UINT64_MAX) &&
         !UploadUiTexture({UINT64_MAX, 1, 1, 4, white}, true))
+      return SurfaceStatus::DeviceLost;
+    const std::array<std::byte, 4> flatNormal{std::byte{128}, std::byte{128}, std::byte{255},
+                                              std::byte{255}};
+    if (drawData.pbr && !sceneTextures_.contains(UINT64_MAX - 1) &&
+        !UploadUiTexture({UINT64_MAX - 1, 1, 1, 4, flatNormal}, true))
       return SurfaceStatus::DeviceLost;
     const auto base = sceneUploads_[frame_]->GetGPUVirtualAddress();
     const auto geometryBase = base + kGeometryOffset;
@@ -432,8 +460,9 @@ public:
     auto dsv = dsvHeap_->GetCPUDescriptorHandleForHeapStart();
     dsv.ptr += SIZE_T(frame_) * dsvIncrement_;
     commands_->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
-    commands_->SetGraphicsRootSignature(sceneRootSignature_.Get());
-    commands_->SetPipelineState(scenePipeline_.Get());
+    commands_->SetGraphicsRootSignature(drawData.pbr ? scenePbrRootSignature_.Get()
+                                                     : sceneRootSignature_.Get());
+    commands_->SetPipelineState(drawData.pbr ? scenePbrPipeline_.Get() : scenePipeline_.Get());
     ID3D12DescriptorHeap *heaps[]{uiDescriptors_.Get()};
     commands_->SetDescriptorHeaps(1, heaps);
     const D3D12_VIEWPORT nativeViewport{static_cast<float>(viewport->x),
@@ -468,8 +497,22 @@ public:
       const auto id = material.textureId ? material.textureId : UINT64_MAX;
       auto handle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
       handle.ptr += UINT64(sceneTextures_.at(id).descriptor) * uiDescriptorIncrement_;
-      commands_->SetGraphicsRootDescriptorTable(1, handle);
-      commands_->SetGraphicsRootConstantBufferView(0, base + batch.materialIndex * 256ULL);
+      commands_->SetGraphicsRootConstantBufferView(0, base + batch.materialIndex * materialStride);
+      if (drawData.pbr) {
+        commands_->SetGraphicsRootConstantBufferView(
+            1, base + batch.materialIndex * materialStride + 256);
+        const std::array ids{id,
+                             material.normalTextureId ? material.normalTextureId : UINT64_MAX - 1,
+                             material.ormTextureId ? material.ormTextureId : UINT64_MAX,
+                             material.emissionTextureId ? material.emissionTextureId : UINT64_MAX};
+        for (UINT map = 0; map < ids.size(); ++map) {
+          auto mapHandle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
+          mapHandle.ptr += UINT64(sceneTextures_.at(ids[map]).descriptor) * uiDescriptorIncrement_;
+          commands_->SetGraphicsRootDescriptorTable(map + 2, mapHandle);
+        }
+      } else {
+        commands_->SetGraphicsRootDescriptorTable(1, handle);
+      }
       commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
                                       batch.firstInstance);
     }
@@ -533,6 +576,8 @@ public:
     uiRootSignature_.Reset();
     uiDescriptors_.Reset();
     scenePipeline_.Reset();
+    scenePbrPipeline_.Reset();
+    scenePbrRootSignature_.Reset();
     sceneRootSignature_.Reset();
     dsvHeap_.Reset();
     swapchain_.Reset();
@@ -763,8 +808,58 @@ private:
     pipeline.NumRenderTargets = 1;
     pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     pipeline.SampleDesc.Count = 1;
+    if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePipeline_))))
+      return false;
+    std::array<D3D12_DESCRIPTOR_RANGE, 4> pbrRanges{};
+    std::array<D3D12_ROOT_PARAMETER, 6> pbrParameters{};
+    for (UINT i = 0; i < 2; ++i) {
+      pbrParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+      pbrParameters[i].Descriptor.ShaderRegister = i;
+      pbrParameters[i].ShaderVisibility =
+          i == 0 ? D3D12_SHADER_VISIBILITY_ALL : D3D12_SHADER_VISIBILITY_PIXEL;
+    }
+    std::array<D3D12_STATIC_SAMPLER_DESC, 4> pbrSamplers{};
+    for (UINT i = 0; i < 4; ++i) {
+      pbrRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+      pbrRanges[i].NumDescriptors = 1;
+      pbrRanges[i].BaseShaderRegister = i;
+      pbrParameters[i + 2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+      pbrParameters[i + 2].DescriptorTable = {1, &pbrRanges[i]};
+      pbrParameters[i + 2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+      pbrSamplers[i] = sampler;
+      pbrSamplers[i].ShaderRegister = i;
+    }
+    root.NumParameters = static_cast<UINT>(pbrParameters.size());
+    root.pParameters = pbrParameters.data();
+    root.NumStaticSamplers = static_cast<UINT>(pbrSamplers.size());
+    root.pStaticSamplers = pbrSamplers.data();
+    if (FAILED(D3D12SerializeRootSignature(&root, D3D_ROOT_SIGNATURE_VERSION_1, &signature,
+                                           &errors)) ||
+        FAILED(device_->CreateRootSignature(0, signature->GetBufferPointer(),
+                                            signature->GetBufferSize(),
+                                            IID_PPV_ARGS(&scenePbrRootSignature_))))
+      return false;
+    if (FAILED(D3DCompile(scene_pbr_hlsl_vert, sizeof(scene_pbr_hlsl_vert), "NexoraSharedPbrVertex",
+                          nullptr, nullptr, "pbrVertexMain", "vs_5_0", 0, 0, &vertex, &errors)) ||
+        FAILED(D3DCompile(scene_pbr_hlsl_frag, sizeof(scene_pbr_hlsl_frag),
+                          "NexoraSharedPbrFragment", nullptr, nullptr, "pbrFragmentMain", "ps_5_0",
+                          0, 0, &pixel, &errors)))
+      return false;
+    std::array<D3D12_INPUT_ELEMENT_DESC, std::size(inputs) + 1> pbrInputs{};
+    std::copy(std::begin(inputs), std::end(inputs), pbrInputs.begin());
+    pbrInputs.back() = {"TANGENT",
+                        0,
+                        DXGI_FORMAT_R32G32B32A32_FLOAT,
+                        0,
+                        offsetof(SceneVertex, tangent),
+                        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+                        0};
+    pipeline.pRootSignature = scenePbrRootSignature_.Get();
+    pipeline.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};
+    pipeline.PS = {pixel->GetBufferPointer(), pixel->GetBufferSize()};
+    pipeline.InputLayout = {pbrInputs.data(), static_cast<UINT>(pbrInputs.size())};
     return SUCCEEDED(
-        device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePipeline_)));
+        device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePbrPipeline_)));
   }
   bool EnsureSceneUpload(std::size_t required) {
     if (sceneUploadCapacity_[frame_] >= required)
@@ -1025,6 +1120,8 @@ private:
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> depthBuffers_;
   ComPtr<ID3D12RootSignature> sceneRootSignature_;
   ComPtr<ID3D12PipelineState> scenePipeline_;
+  ComPtr<ID3D12PipelineState> scenePbrPipeline_;
+  ComPtr<ID3D12RootSignature> scenePbrRootSignature_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneUploads_;
   std::array<std::size_t, kMaximumFrames> sceneUploadCapacity_{};
 };

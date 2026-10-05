@@ -217,6 +217,97 @@ int main(int argc, char **argv) {
           std::to_integer<int>(materialPixels[right + 2]) > 10)
         return fail(__LINE__);
     }
+    materialDraw.pbr = true;
+    materialDraw.cameraPosition = {0, 0, 3};
+    const std::array<std::byte, 4> sideNormal{std::byte{255}, std::byte{128}, std::byte{128},
+                                              std::byte{255}};
+    const std::array<std::byte, 4> gray{std::byte{128}, std::byte{128}, std::byte{128},
+                                        std::byte{255}};
+    const std::array<std::byte, 4> metalOrm{std::byte{255}, std::byte{128}, std::byte{255},
+                                            std::byte{255}};
+    const std::array<std::byte, 4> dielectricOrm{std::byte{255}, std::byte{128}, std::byte{0},
+                                                 std::byte{255}};
+    const std::array pbrUploads{
+        UiTextureUpload{41, 1, 1, 4, sideNormal}, UiTextureUpload{42, 1, 1, 4, gray},
+        UiTextureUpload{43, 1, 1, 4, metalOrm}, UiTextureUpload{44, 1, 1, 4, dielectricOrm}};
+    for (int frame = 0; frame < 8; ++frame) {
+      materialSlots = {};
+      materialDraw.textureUploads = frame == 0 ? std::span<const UiTextureUpload>(pbrUploads)
+                                               : std::span<const UiTextureUpload>{};
+      const auto mode = frame % 4;
+      materialDraw.light_color[0] = materialDraw.light_color[1] = materialDraw.light_color[2] =
+          mode == 0 ? 0 : 1;
+      if (mode == 0) {
+        materialSlots[0].baseColor = materialSlots[1].baseColor = {0, 0, 0, 1};
+        materialSlots[0].emission = materialSlots[1].emission = {1, 1, 1};
+        materialSlots[0].emissionTextureId = 21;
+        materialSlots[1].emissionTextureId = 22;
+      } else if (mode == 1) {
+        materialSlots[0].normalTextureId = 41;
+      } else if (mode == 2) {
+        materialSlots[0].metallic = materialSlots[1].metallic = 1;
+        materialSlots[0].ormTextureId = 43;
+        materialSlots[1].ormTextureId = 44;
+      } else {
+        const auto linear = static_cast<float>(std::pow((128.0 / 255.0 + 0.055) / 1.055, 2.4));
+        materialSlots[0].baseColor = {linear, linear, linear, 1};
+        materialSlots[1].textureId = 42;
+      }
+      if (!require(surface->Acquire(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      if (frame == 0) {
+        materialSlots[0].normalTextureId = 987;
+        if (!require(surface->DrawScene(materialDraw), SurfaceStatus::InvalidDescriptor))
+          return fail(__LINE__);
+        materialSlots[0].normalTextureId = 0;
+      }
+      if (!require(surface->DrawScene(materialDraw), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pbrPixels = surface->ReadScenePixelsForTesting();
+      if (pbrPixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto left = (200 * 640 + 190) * 4;
+      const auto right = (200 * 640 + 450) * 4;
+      const auto lr = std::to_integer<int>(pbrPixels[left + 2]);
+      const auto lg = std::to_integer<int>(pbrPixels[left + 1]);
+      const auto rr = std::to_integer<int>(pbrPixels[right + 2]);
+      const auto rg = std::to_integer<int>(pbrPixels[right + 1]);
+      const bool valid =
+          mode == 0   ? std::abs(lr - 232) <= 2 && lg < 10 && std::abs(rg - 232) <= 2 && rr < 10
+          : mode == 1 ? lr < 30 && rr > 100
+          : mode == 2 ? std::abs(lr - rr) > 10
+                      : lr > 80 && std::abs(lr - rr) <= 2;
+      if (!valid) {
+        std::cerr << "Metal PBR frame=" << frame << " left=" << lr << ',' << lg << " right=" << rr
+                  << ',' << rg << '\n';
+        return fail(__LINE__);
+      }
+    }
+    const std::array<std::byte, 4> upNormal{std::byte{128}, std::byte{255}, std::byte{128},
+                                            std::byte{255}};
+    const UiTextureUpload upUpload{45, 1, 1, 4, upNormal};
+    materialSlots = {};
+    materialSlots[0].normalTextureId = materialSlots[1].normalTextureId = 45;
+    materialDraw.textureUploads = {&upUpload, 1};
+    materialInstances[0].model_transform =
+        std::array<float, 16>{-1, 0, 0, -0.4F, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+    materialDraw.light_direction[1] = -1;
+    materialDraw.light_direction[2] = 0;
+    materialDraw.light_color[0] = materialDraw.light_color[1] = materialDraw.light_color[2] = 1;
+    if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+        !require(surface->DrawScene(materialDraw), SurfaceStatus::Ready) ||
+        !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+        !require(surface->Present(), SurfaceStatus::Ready))
+      return fail(__LINE__);
+    const auto mirroredPixels = surface->ReadScenePixelsForTesting();
+    if (mirroredPixels.size() != captured.size())
+      return fail(__LINE__);
+    const auto mirrorLeft = std::to_integer<int>(mirroredPixels[(200 * 640 + 190) * 4 + 2]);
+    const auto mirrorRight = std::to_integer<int>(mirroredPixels[(200 * 640 + 450) * 4 + 2]);
+    if (mirrorLeft < 100 || mirrorRight < 100 || std::abs(mirrorLeft - mirrorRight) > 2)
+      return fail(__LINE__);
     // Depth must select the bright near triangle regardless of index order.
     std::array<SceneVertex, 6> layered{};
     for (std::size_t i = 0; i < 3; ++i) {

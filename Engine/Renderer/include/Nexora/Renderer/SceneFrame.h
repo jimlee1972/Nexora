@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -39,6 +40,12 @@ struct Mesh final {
   std::vector<SceneVertex> vertices;
   std::vector<std::uint16_t> indices;
 };
+
+// UV/normal seams (including mirrored islands) must already have split vertices. Returns owning
+// unit tangent XYZ + handedness W; degenerate UVs use a stable orthogonal basis. No mesh mutation
+// or serialized layout change. Invalid bounded geometry returns nullopt.
+[[nodiscard]] NEXORA_RENDERER_API std::optional<std::vector<std::array<float, 4>>>
+GenerateMeshTangents(const Mesh &mesh);
 
 struct SceneFrame final {
   Camera camera;

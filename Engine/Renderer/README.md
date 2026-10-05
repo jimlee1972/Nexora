@@ -205,3 +205,14 @@ UI (attachment load/native UI draw) and Present to this graph. Main briefly tran
 through copy state and restores RenderTarget internally; its logical write describes that output
 state. Vulkan/DX12 Presentation own and validate all physical transitions. The native graph counters
 and actual successful callback order are reported separately from the RHI offscreen contract graph.
+
+## Mesh tangent preparation
+
+`GenerateMeshTangents` returns owning unit tangent XYZ and handedness W for a bounded indexed mesh;
+its input is borrowed and never mutated. UV and normal seams, including mirrored UV islands, must
+already have split vertices. Double-precision accumulation and Gram-Schmidt orthogonalization retain
+UV orientation; degenerate UVs use a stable orthogonal basis. Invalid indices, non-finite input,
+zero normals or descriptor budgets return `nullopt`. The Renderer mesh's serialized layout is unchanged.
+Showcase prepares tangents once for its immutable courtyard geometry and copies the owning results
+into the native submission; native adapters transform tangents with the model matrix, normals with
+the inverse transpose and mirrored handedness with the model determinant.
