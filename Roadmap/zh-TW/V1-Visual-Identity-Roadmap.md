@@ -525,3 +525,8 @@ Unlit／Lambert 拒絕此旗標。私有材質 float 79 使用保留欄位，400
 MSVC 測試可攜性修正：點光源填充值與雙面法線條件式改用明確浮點值。✅ Linux configure／build
 與完整 97/97 通過（102.21 秒），包含 89 個原生 PBR 畫面與 core／同步驗證。測試數值與
 Runtime 來源不變；既有 Shipping 證據保留原本來源凍結。Windows CI 重新驗證中。
+
+
+已同步上游點光源、石砌與雙面受光的 MSVC fixture 證據：Linux 完整 97/97 分別為
+102.20／102.62／102.61 秒，原生 PBR 畫面分別為 85／85／89，啟用 core／同步驗證。
+各階段 `msvc-literals/` 保留 log／雜湊；此同步僅變更文件與證據，Runtime 來源不變。
