@@ -201,3 +201,16 @@ IBL、浮點 HDR 合成及最終材質／反射驗收仍待完成；進度仍為
 
 ✅ Linux 直接光照 PBR 切片：91/91 無 skip、Monolithic Shipping build 與隔離套件啟動通過。
 [Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-SharedPBR-2026-10-05/acceptance.md).
+
+## 14. VIS-M1 線性色彩過濾（2026-10-05）
+
+PBR 底色／自發光使用硬體 sRGB texture view，先解碼再過濾；normal／ORM 與舊 Lambert
+保留線性 UNORM 取樣。Vulkan、DX12、Metal 的兩種 view 共用既有不可變世代與 fence
+生命週期。共享 shader 不再重複解碼取樣後的顏色。原生黑白中點像素測試以線性 0.5
+係數比對底色／自發光，並驗證 ORM 與舊取樣仍維持線性。逐影格校準的發光標記拒絕
+X11 舊影格像素。Vulkan 在記錄貼圖複製前完成候選資源配置，失敗時釋放尚未發布的資源。
+
+✅ Linux 色彩過濾切片：92/92 無 skip、九個房間與固定相機／比較重播通過。
+三次保留軟體光柵基準約 47–48 FPS；硬體效能仍待驗收。
+[Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-LinearColor-2026-10-05/acceptance.md).
+IBL 與浮點 HDR 仍開放，里程碑維持 1/7。

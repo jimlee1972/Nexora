@@ -261,6 +261,11 @@ sRGB transfer for UNORM targets (hardware transfer for sRGB attachments). These 
 linear floating-point HDR storage and IBL are not yet accepted. Public C++ consumers rebuild; Runtime
 mesh wire formats and stable C/Zig ABI remain unchanged.
 
-The direct-light slice decodes color after RGBA8 sampling. Hardware sRGB texture views and
-linear-space color filtering remain part of the subsequent IBL/HDR color slice; this is not final
-VIS-M1 color acceptance.
+PBR base/emission maps use hardware sRGB views, decoding texels before linear filtering. Each
+immutable scene texture owns a paired UNORM/sRGB view: Vulkan uses mutable-format images, DX12
+uses typeless resources with two SRVs, and Metal uses pixel-format views. Normal/ORM and legacy
+Lambert bindings retain UNORM views. Both views share the texture generation and protecting-fence
+lifetime; UI textures retain their existing UNORM contract. Shared shaders consume sampled colors
+as linear values and do not decode them again. Midpoint black/white pixel tests compare base and
+emission against linear 0.5 factors, and separately verify linear ORM and legacy filtering. IBL
+and floating-point HDR remain pending; this color-filtering slice does not complete VIS-M1.

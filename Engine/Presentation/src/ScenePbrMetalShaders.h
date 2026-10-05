@@ -217,16 +217,6 @@ float3 NexoraSafeNormalize_0(float3 value_0)
 }
 
 
-#line 3 "Shaders/Nexora/Common/Color.slang"
-float3 NexoraSrgbToLinear_0(float3 srgbColor_0)
-{
-
-
-
-    return mix(srgbColor_0 / float3(12.92000007629394531f) , pow((max(srgbColor_0, float3(0.0f) ) + float3(0.05499999970197678f) ) / float3(1.0549999475479126f) , float3(2.40000009536743164f) ), step(float3(0.04044999927282333f) , srgbColor_0));
-}
-
-
 #line 21 "Shaders/Nexora/Common/Pbr.slang"
 float3 NexoraDecodeTangentNormal_0(float3 encodedNormal_0, float3 tangent_0, float3 bitangent_0, float3 geometricNormal_0)
 {
@@ -528,7 +518,7 @@ struct KernelContext_0
     ;
 
 #line 94
-    (&surface_0)->baseColor_3 = NexoraSrgbToLinear_0((((&kernelContext_0)->baseMap_texture_0).sample(((&kernelContext_0)->baseMap_sampler_0), (_S8.uv_0))).xyz) * (&kernelContext_0)->material_1->baseColor_4.xyz * _S8.color_2.xyz;
+    (&surface_0)->baseColor_3 = (((&kernelContext_0)->baseMap_texture_0).sample(((&kernelContext_0)->baseMap_sampler_0), (_S8.uv_0))).xyz * (&kernelContext_0)->material_1->baseColor_4.xyz * _S8.color_2.xyz;
     (&surface_0)->normal_2 = NexoraDecodeTangentNormal_0(encoded_0, t_0, b_0, n_1);
     (&surface_0)->metallic_3 = saturate(orm_0.z * (&kernelContext_0)->material_1->properties_0.x);
     (&surface_0)->roughness_5 = max(0.05000000074505806f, saturate(orm_0.y * (&kernelContext_0)->material_1->emissionRoughness_0.w));
@@ -536,7 +526,7 @@ struct KernelContext_0
     ;
 
 #line 99
-    (&surface_0)->emission_0 = NexoraSrgbToLinear_0((((&kernelContext_0)->emissionMap_texture_0).sample(((&kernelContext_0)->emissionMap_sampler_0), (_S8.uv_0))).xyz) * (&kernelContext_0)->material_1->emissionRoughness_0.xyz;
+    (&surface_0)->emission_0 = (((&kernelContext_0)->emissionMap_texture_0).sample(((&kernelContext_0)->emissionMap_sampler_0), (_S8.uv_0))).xyz * (&kernelContext_0)->material_1->emissionRoughness_0.xyz;
     (&surface_0)->alpha_0 = 1.0f;
 
     thread NexoraPbrEnvironment_0 environment_2;
