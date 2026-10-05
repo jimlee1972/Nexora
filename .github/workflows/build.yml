@@ -121,6 +121,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SLANG_VERSION: 2026.18
+      VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
+      VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
+      VK_LOADER_DEBUG: layer
     steps:
       - uses: actions/checkout@v4
       - uses: lukka/get-cmake@latest
@@ -145,7 +148,7 @@ jobs:
       - name: Install Vulkan, X11, Xvfb and xdotool
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool glslang-tools
+          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers vulkan-validationlayers libx11-dev xvfb xdotool glslang-tools
       - run: cmake --preset linux-development -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON
       - run: cmake --build --preset linux-development
       - name: Require the display acceptance to be registered
@@ -154,9 +157,27 @@ jobs:
         run: |
           ctest --preset linux-development -N -R '^editor\.linux_display_acceptance$' | grep -q 'Total Tests: 1'
       - name: Editor tests (includes the Xvfb display acceptance)
-        run: ctest --preset linux-development -R '^editor\.' --output-on-failure
-      - name: Native Vulkan scene rotation pixels (Xvfb)
-        run: ctest --preset linux-development -R '^window_presentation\.vulkan_scene$' --output-on-failure
+        run: |
+          ctest --preset linux-development -R '^editor\.' -V --output-log build/linux-development/editor-validation.log
+          grep -Eq 'Insert(ed)? device layer.*VK_LAYER_KHRONOS_validation' build/linux-development/editor-validation.log
+      - name: Native Vulkan RHI and scene validation (Xvfb)
+        run: |
+          ctest --preset linux-development -R '^(renderer\.contracts|renderer\.v2_gpu_driven|window_presentation\.vulkan_(scene|pbr))$' -V --output-log build/linux-development/native-validation.log
+          grep -Eq 'Insert(ed)? device layer.*VK_LAYER_KHRONOS_validation' build/linux-development/native-validation.log
+          if grep -Eq 'Validation Error|VUID-|SYNC-HAZARD-' build/linux-development/native-validation.log; then
+            echo "Native Vulkan validation reported an error" >&2
+            exit 1
+          fi
+      - name: Retain Editor validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-linux-validation-logs
+          path: |
+            build/linux-development/editor-validation.log
+            build/linux-development/native-validation.log
+            build/linux-development/Testing/Temporary/LastTest*.log
+          if-no-files-found: warn
 
   zig-mobile-cross-build:
     needs: changes

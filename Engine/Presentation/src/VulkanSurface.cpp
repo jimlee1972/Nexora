@@ -204,7 +204,9 @@ public:
     VkImageMemoryBarrier toRender{};
     toRender.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     toRender.srcAccessMask = 0;
-    toRender.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    // UI and tone passes load the acquired color attachment before blending/writing it.
+    toRender.dstAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     toRender.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     toRender.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     toRender.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -1465,12 +1467,23 @@ private:
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &color;
+    // Preserve color from the preceding scene/tone/UI pass for LOAD and alpha blending.
+    const VkSubpassDependency dependency{VK_SUBPASS_EXTERNAL,
+                                         0,
+                                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                         VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                                             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                         0};
     VkRenderPassCreateInfo renderPass{};
     renderPass.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPass.attachmentCount = 1;
     renderPass.pAttachments = &attachment;
     renderPass.subpassCount = 1;
     renderPass.pSubpasses = &subpass;
+    renderPass.dependencyCount = 1;
+    renderPass.pDependencies = &dependency;
     if (vkCreateRenderPass(device_, &renderPass, nullptr, &uiRenderPass_) != VK_SUCCESS)
       return false;
     const auto makeShader = [&](const std::uint32_t *code, std::size_t bytes, VkShaderModule &out) {

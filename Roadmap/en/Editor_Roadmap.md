@@ -1,6 +1,6 @@
 # Nexora Graphical Editor Roadmap
 
-> Version: v1.3 | Status: AI-executable delivery plan | Updated: 2026-10-02
+> Version: v1.3 | Status: AI-executable delivery plan | Updated: 2026-10-06
 
 > **Progress: 0%** (none of ED-M0 through ED-M7 has passed graphical Editor acceptance;
 > completed Runtime/Editor SDK prerequisites are not rounded up into an Editor milestone.)
@@ -13,6 +13,10 @@ workflows, target-host acceptance, and production hardening.
 Platform-only acceptance is deferred when a required host is unavailable. Continue independent
 implementation and automated validation; preserve unverified evidence rows and do not mark the
 corresponding milestone accepted until its host gate passes.
+
+✅ Linux automated Vulkan validation now rejects exit-zero errors and covers attachment
+synchronization and native RHI shader features ([evidence](../../Tools/Build/evidence/EditorEDM0-VulkanValidation-2026-10-06.md)).
+ED-M0 remains open pending the target-host and workflow gates.
 
 ### Repository completion audit (2026-10-02)
 
