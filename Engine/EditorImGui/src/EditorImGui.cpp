@@ -139,7 +139,8 @@ struct EditorImGuiHost::State final {
   std::vector<SceneMarker> scene_markers;
   std::optional<Nexora::Presentation::SceneViewport> scene_canvas_viewport;
   std::optional<std::array<float, 2>> scene_frame_position;
-  std::optional<std::array<float, 2>> scene_frame_all_position;
+  std::optional<std::array<float, 2>> scene_frame_all_position, scene_select_all_position;
+  std::optional<SceneFileToken> native_scene_select_all_request;
   std::array<std::optional<std::array<float, 2>>, 4> native_scene_tool_positions;
   std::optional<SceneFileToken> scene_frame_token;
   std::optional<SceneFileToken> native_scene_frame_all_request, native_scene_frame_all_apply;
@@ -322,6 +323,7 @@ template <typename StateT> void CancelNativeSceneGesture(StateT &state) {
   state.native_scene_drag_preview.reset();
   state.native_scene_drag.reset();
   state.native_scene_pick.reset();
+  state.native_scene_select_all_request.reset();
   state.native_scene_frame_all_request.reset();
   state.native_scene_frame_all_apply.reset();
 }
@@ -1529,7 +1531,13 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
       std::array{(frame_min.x + frame_max.x) * 0.5F, (frame_min.y + frame_max.y) * 0.5F};
   ImGui::EndDisabled();
   ImGui::SameLine();
-  ImGui::TextDisabled("F: selected | Home: all");
+  ImGui::BeginDisabled(!navigation_allowed || state.scene_drag.has_value());
+  const bool select_all = ImGui::SmallButton("Select all");
+  const auto select_min = ImGui::GetItemRectMin(), select_max = ImGui::GetItemRectMax();
+  state.scene_select_all_position =
+      std::array{(select_min.x + select_max.x) * 0.5F, (select_min.y + select_max.y) * 0.5F};
+  ImGui::EndDisabled();
+  ImGui::TextDisabled("F: selected | Home: all | Ctrl+A: select all");
   constexpr std::array snap_steps{0.25F, 0.5F, 1.0F, 2.0F, 4.0F};
   ImGui::Checkbox("Snap movement", &state.scene_snap_to_grid);
   ImGui::SameLine();
@@ -1554,6 +1562,18 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   if (navigation_allowed && !state.scene_drag) {
     const bool keyboard =
         !io.WantTextInput && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+    if (!io.MouseDown[ImGuiMouseButton_Left] &&
+        (select_all ||
+         (keyboard && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_A, ImGuiInputFlags_RouteFocused)))) {
+      std::vector<SceneDocument::NodeKey> keys;
+      for (const auto &node : scene.Nodes())
+        keys.push_back(node.Key());
+      if (scene.Select(keys)) {
+        state.hierarchy_selection_anchor =
+            keys.empty() ? std::nullopt : std::optional{keys.front()};
+        state.inspect_play_selection = false;
+      }
+    }
     if (frame_all || (keyboard && ImGui::IsKeyPressed(ImGuiKey_Home, false)))
       static_cast<void>(FrameSceneSelection(state, scene, true, size.x, size.y));
     else if (frame_selected || (keyboard && ImGui::IsKeyPressed(ImGuiKey_F, false)))
@@ -3298,6 +3318,8 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->scene_canvas_viewport.reset();
   state_->scene_frame_position.reset();
   state_->scene_frame_all_position.reset();
+  state_->scene_select_all_position.reset();
+  state_->native_scene_select_all_request.reset();
   state_->native_scene_tool_positions = {};
   state_->scene_frame_token.reset();
   state_->native_scene_frame_all_request.reset();
@@ -3734,7 +3756,16 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             std::array{(all_min.x + all_max.x) * 0.5F, (all_min.y + all_max.y) * 0.5F};
         ImGui::EndDisabled();
         ImGui::SameLine();
-        ImGui::TextDisabled("F: selected | Home: all | Right: orbit | Wheel: zoom");
+        ImGui::BeginDisabled(!state_->app_focused || interaction_blocked ||
+                             !state_->native_scene_preview_available ||
+                             state_->native_scene_drag_origin || state_->native_scene_drag);
+        const bool select_all_clicked = ImGui::SmallButton("Select all");
+        const auto select_min = ImGui::GetItemRectMin(), select_max = ImGui::GetItemRectMax();
+        state_->scene_select_all_position =
+            std::array{(select_min.x + select_max.x) * 0.5F, (select_min.y + select_max.y) * 0.5F};
+        ImGui::EndDisabled();
+        ImGui::TextDisabled(
+            "F: selected | Home: all | Ctrl+A: select all | Right: orbit | Wheel: zoom");
         if (state_->native_scene_tool == NativeSceneTool::Select)
           ImGui::TextDisabled(
               "Click: select | Ctrl+click: toggle | W: move | E: rotate | R: scale");
@@ -3909,7 +3940,16 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         const bool frame_all =
             frame_all_clicked || (frame_keyboard && ImGui::IsKeyPressed(ImGuiKey_Home, false));
         if (state_->app_focused && !interaction_blocked && !state_->native_scene_drag_origin &&
-            !state_->native_scene_drag && state_->scene_canvas_viewport &&
+            !state_->native_scene_drag && state_->native_scene_preview_available &&
+            !io.MouseDown[ImGuiMouseButton_Left] && state_->scene_canvas_viewport &&
+            (select_all_clicked ||
+             (frame_keyboard &&
+              ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_A, ImGuiInputFlags_RouteFocused)))) {
+          state_->native_scene_select_all_request = state_->scene_frame_token;
+        }
+        if (state_->app_focused && !interaction_blocked && !state_->native_scene_drag_origin &&
+            !state_->native_scene_drag && !state_->native_scene_select_all_request &&
+            state_->scene_canvas_viewport &&
             (frame_all || frame_clicked ||
              (frame_keyboard && ImGui::IsKeyPressed(ImGuiKey_F, false)))) {
           const auto &view = *state_->scene_canvas_viewport;
@@ -4774,6 +4814,19 @@ std::optional<SceneFileToken> EditorImGuiHost::TakeNativeSceneFrameAllRequest() 
   return std::exchange(state_->native_scene_frame_all_request, std::nullopt);
 }
 
+std::optional<SceneFileToken> EditorImGuiHost::TakeNativeSceneSelectAllRequest() noexcept {
+  const auto request = std::exchange(state_->native_scene_select_all_request, std::nullopt);
+  if (!request || state_->scene_frame_token != request || !state_->app_focused ||
+      !NativeScenePreviewViewport() || !state_->native_scene_preview_available ||
+      state_->native_scene_drag_origin || state_->native_scene_drag ||
+      state_->close_prompt_requested || state_->play_apply_open ||
+      state_->hierarchy_rename_target || state_->content_rename_target ||
+      state_->scene_file_dialog != State::FileDialog::None || state_->scene_file_output ||
+      (state_->scene_file_context && state_->scene_file_token != request))
+    return std::nullopt;
+  return request;
+}
+
 bool EditorImGuiHost::ApplyNativeSceneFrameAll(SceneFileToken token,
                                                std::span<const PickCandidate> candidates) noexcept {
   const auto intent = std::exchange(state_->native_scene_frame_all_apply, std::nullopt);
@@ -5082,6 +5135,11 @@ EditorImGuiTestAccess::SceneFramePosition(const EditorImGuiHost &host) noexcept 
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneFrameAllPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->scene_frame_all_position;
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneSelectAllPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->scene_select_all_position;
 }
 
 std::optional<std::array<float, 2>>

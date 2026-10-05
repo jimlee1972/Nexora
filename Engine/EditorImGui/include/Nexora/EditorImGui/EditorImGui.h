@@ -189,6 +189,9 @@ public:
   // One-shot owning scope; the host revalidates it against the current project/document and
   // supplies the actual bounded submission candidates after widget/authoring commands.
   [[nodiscard]] std::optional<SceneFileToken> TakeNativeSceneFrameAllRequest() noexcept;
+  // One-shot owning scope, valid only in its issuing GUI frame. The application revalidates
+  // its current scene-file token and selects generation-checked actual submission candidates.
+  [[nodiscard]] std::optional<SceneFileToken> TakeNativeSceneSelectAllRequest() noexcept;
   // Borrowed numeric bounds are consumed only in this call. Applies once in the issuing GUI
   // frame; stale scope, empty/oversized/malformed bounds and blocked input preserve the camera.
   bool ApplyNativeSceneFrameAll(SceneFileToken token,
