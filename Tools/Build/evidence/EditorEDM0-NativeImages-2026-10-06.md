@@ -68,3 +68,14 @@ save failure. The counter expectation was strengthened to require resize reuse; 
 scenario passed in the isolated strict gate and final full suite without changing its assertions.
 No Windows/DX12 descriptor-soak result, macOS/Metal result, physical text/DPI screenshot,
 installed-IME composition or sanitizer result is claimed by this record. ED-M0 remains open.
+
+## CI queue follow-up
+
+The native implementation is commit `b20973f5456415426824bf5d0970a101e9d47f74`.
+A workflow-only follow-up shares concurrency groups between ED-M0 push/PR events and performs
+best-effort cancellation of older commits on four explicitly named ED-M0 branches. It preserves
+current heads, its own run, completed runs, main and fork repositories; a ref advancing during
+cleanup stops that branch's cancellation. Other branches keep independent concurrency groups.
+Only the documentation job receives Actions write permission; fork cleanup is disabled.
+Local validation: 16/16 documentation routing tests, workflow YAML parsing, and a mocked JavaScript
+guard audit all passed. Hosted cleanup execution and final cross-platform CI are still pending.
