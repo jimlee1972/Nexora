@@ -195,6 +195,8 @@ if(BUILD_TESTING)
   endif()
   add_test(NAME showcase.courtyard_asset_generation COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_SOURCE_DIR}/Tools/Build/PrepareCourtyardAssets.py" --check)
+  add_test(NAME showcase.courtyard_hero_generation COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_SOURCE_DIR}/Tools/Build/PrepareCourtyardHero.py" --check)
   add_test(NAME showcase.courtyard_environment_generation COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_SOURCE_DIR}/Tools/Build/PrepareCourtyardEnvironment.py" --check)
   add_test(NAME showcase.courtyard_environment_contracts COMMAND "${Python3_EXECUTABLE}"

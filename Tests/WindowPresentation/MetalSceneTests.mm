@@ -2,6 +2,7 @@
 // Compile the real private adapter into this test to read back GPU output without adding public
 // handles.
 #include "../../Engine/Presentation/src/MetalSurface.mm"
+#include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
 #include "PbrShadowFixtures.h"
 #import <Cocoa/Cocoa.h>
@@ -467,6 +468,26 @@ int main(int argc, char **argv) {
                   << " pcf=" << edge[0] << '\n';
         return fail(__LINE__);
       }
+    }
+    for (unsigned mode = 0; mode < 4; ++mode) {
+      PbrBloomFixtures::Fixture fixture;
+      auto bloomDraw = fixture.Draw(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(bloomDraw), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x, std::size_t y) {
+        const auto index = (y * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      if (!PbrBloomFixtures::Pixels(mode, read(640 * 58 / 100, 180), read(320, 180)))
+        return fail(__LINE__);
     }
     // Depth must select the bright near triangle regardless of index order.
     std::array<SceneVertex, 6> layered{};

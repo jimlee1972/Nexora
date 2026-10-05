@@ -53,6 +53,17 @@ def screenshot(window: int, width: int, height: int, output: Path) -> bytes:
     return bytes(raw)
 
 
+def compared_screenshot(window, width, height, output, reference, equal):
+    deadline = time.monotonic() + 5
+    while True:
+        captured = screenshot(window,width,height,output)
+        if (captured == reference) == equal:
+            return captured
+        if time.monotonic() >= deadline:
+            raise AssertionError(f'Native image did not settle within five seconds: {output.name}')
+        time.sleep(0.1)
+
+
 def request_window_close(window: int, display_name: str) -> None:
     """Request a normal close even when Xvfb has no window manager."""
     x11 = ctypes.CDLL('libX11.so.6')
@@ -188,56 +199,63 @@ def main():
             courtyard_ui = screenshot(window,1280,720,output/'courtyard-ui.png')
             tool('key', '--window', window, 'F4')
             time.sleep(0.2)
-            courtyard_wide = screenshot(window,1280,720,output/'courtyard-wide.png')
+            courtyard_wide = compared_screenshot(window,1280,720,output/'courtyard-wide.png',courtyard_ui,False)
             assert courtyard_ui != courtyard_wide, 'Screenshot mode did not remove native UI'
+            tool('key','--window',window,'k')
+            time.sleep(0.2)
+            assert compared_screenshot(window,1280,720,output/'courtyard-bloom-off.png',courtyard_wide,False) != courtyard_wide, 'Bloom did not change native pixels'
+            tool('key','--window',window,'k')
+            time.sleep(0.2)
+            assert compared_screenshot(window,1280,720,output/'courtyard-bloom-restored.png',courtyard_wide,True) == courtyard_wide, 'Bloom restoration changed pixels'
+
             tool('key', '--window', window, 'F6')
             time.sleep(0.2)
-            courtyard_unshadowed = screenshot(window,1280,720,output/'courtyard-shadow-off.png')
+            courtyard_unshadowed = compared_screenshot(window,1280,720,output/'courtyard-shadow-off.png',courtyard_wide,False)
             assert courtyard_unshadowed != courtyard_wide, 'Directional shadows did not change native pixels'
             tool('key', '--window', window, 'F6')
             time.sleep(0.2)
-            assert screenshot(window,1280,720,output/'courtyard-shadow-restored.png') == courtyard_wide
+            assert compared_screenshot(window,1280,720,output/'courtyard-shadow-restored.png',courtyard_wide,True) == courtyard_wide
             tool('key', '--window', window, 'g')
             time.sleep(0.2)
-            courtyard_neutral = screenshot(window,1280,720,output/'courtyard-neutral.png')
+            courtyard_neutral = compared_screenshot(window,1280,720,output/'courtyard-neutral.png',courtyard_wide,False)
             assert courtyard_neutral != courtyard_wide, 'Stylized tone did not change native pixels'
             tool('key', '--window', window, 'g')
             time.sleep(0.2)
-            assert screenshot(window,1280,720,output/'courtyard-styled-restored.png') == courtyard_wide
+            assert compared_screenshot(window,1280,720,output/'courtyard-styled-restored.png',courtyard_wide,True) == courtyard_wide
             tool('key', '--window', window, 'e')
             time.sleep(0.2)
-            courtyard_exposed = screenshot(window,1280,720,output/'courtyard-exposure.png')
+            courtyard_exposed = compared_screenshot(window,1280,720,output/'courtyard-exposure.png',courtyard_wide,False)
             assert courtyard_exposed != courtyard_wide, 'HDR exposure did not change native pixels'
             tool('key', '--window', window, 'e')
             time.sleep(0.2)
-            courtyard_exposure_restored = screenshot(window,1280,720,output/'courtyard-exposure-restored.png')
+            courtyard_exposure_restored = compared_screenshot(window,1280,720,output/'courtyard-exposure-restored.png',courtyard_wide,True)
             assert courtyard_exposure_restored == courtyard_wide, 'Exposure restoration changed the fixed shot'
             tool('key', '--window', window, 'o')
             time.sleep(0.2)
-            courtyard_direct = screenshot(window,1280,720,output/'courtyard-direct.png')
+            courtyard_direct = compared_screenshot(window,1280,720,output/'courtyard-direct.png',courtyard_wide,False)
             assert courtyard_direct != courtyard_wide, 'IBL comparison did not change native pixels'
             tool('key', '--window', window, 'o')
             time.sleep(0.2)
-            courtyard_ibl_restored = screenshot(window,1280,720,output/'courtyard-ibl-restored.png')
+            courtyard_ibl_restored = compared_screenshot(window,1280,720,output/'courtyard-ibl-restored.png',courtyard_wide,True)
             assert courtyard_ibl_restored == courtyard_wide, 'IBL restoration changed the fixed shot'
             tool('key', '--window', window, 'p')
             time.sleep(0.2)
-            courtyard_lambert = screenshot(window,1280,720,output/'courtyard-lambert.png')
+            courtyard_lambert = compared_screenshot(window,1280,720,output/'courtyard-lambert.png',courtyard_wide,False)
             assert courtyard_lambert != courtyard_wide, 'Material comparison did not change native pixels'
             tool('key', '--window', window, 'p')
             time.sleep(0.2)
-            restored_pbr = screenshot(window,1280,720,output/'courtyard-pbr-restored.png')
+            restored_pbr = compared_screenshot(window,1280,720,output/'courtyard-pbr-restored.png',courtyard_wide,True)
             assert restored_pbr == courtyard_wide, 'PBR material restoration changed the fixed shot'
             tool('key', '--window', window, 'b')
             time.sleep(0.2)
-            courtyard_material = screenshot(window,1280,720,output/'courtyard-material.png')
+            courtyard_material = compared_screenshot(window,1280,720,output/'courtyard-material.png',courtyard_wide,False)
             tool('key', '--window', window, 'b')
             time.sleep(0.2)
-            courtyard_motion = screenshot(window,1280,720,output/'courtyard-motion.png')
+            courtyard_motion = compared_screenshot(window,1280,720,output/'courtyard-motion.png',courtyard_material,False)
             assert courtyard_wide != courtyard_material and courtyard_material != courtyard_motion
             tool('key', '--window', window, 'b')
             time.sleep(0.2)
-            replay = screenshot(window,1280,720,output/'courtyard-wide-replay.png')
+            replay = compared_screenshot(window,1280,720,output/'courtyard-wide-replay.png',courtyard_wide,True)
             assert replay == courtyard_wide, 'Fixed wide camera did not reproduce native pixels'
             tool('key', '--window', window, 'F4')
             # The previous matrix interaction selected M1. Drive real M5/M6/M12 errors.
@@ -268,7 +286,7 @@ def main():
             native, rooms = evidence['windowed_evidence'], evidence['runtime_rooms']
             assert native['executed'] and not native['backend_fallback']
             assert native['scene_draws'] > 10 and native['native_ui_draws'] > 10
-            assert native['surface_acquires'] == native['surface_presents']
+            assert native['surface_acquires'] == native['surface_presents'] + native['surface_recoverable_presents'], native
             assert native['resize_generations'] >= 1
             assert rooms['healthy'] and rooms['reloads'] == 1
             assert rooms['probe_runs'] > 13
@@ -278,9 +296,9 @@ def main():
             assert markdown.is_file() and 'M12' in markdown.read_text()
             (output/'acceptance.json').write_text(json.dumps({
                 'scope':'Linux Xvfb/lavapipe native interaction; no physical display or Windows claim',
-                'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_ibl_comparison':True,'courtyard_hdr_exposure':True,'courtyard_shadow_comparison':True,'courtyard_tone_comparison':True,'courtyard_material_comparison':True,
+                'courtyard_bloom_comparison':True,'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_ibl_comparison':True,'courtyard_hdr_exposure':True,'courtyard_shadow_comparison':True,'courtyard_tone_comparison':True,'courtyard_material_comparison':True,
                 'courtyard':rooms['courtyard'],
-                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-shadow-off.png','courtyard-shadow-restored.png','courtyard-neutral.png','courtyard-styled-restored.png','courtyard-exposure.png','courtyard-exposure-restored.png','courtyard-direct.png','courtyard-ibl-restored.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png'],
+                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-bloom-off.png','courtyard-bloom-restored.png','courtyard-shadow-off.png','courtyard-shadow-restored.png','courtyard-neutral.png','courtyard-styled-restored.png','courtyard-exposure.png','courtyard-exposure-restored.png','courtyard-direct.png','courtyard-ibl-restored.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png'],
                 'windowed_evidence':native,'build':evidence['build']},indent=2)+'\n')
             print(json.dumps({'native':native,'visited':rooms['visited'],'evidence_directory':str(output)},indent=2))
             return 0

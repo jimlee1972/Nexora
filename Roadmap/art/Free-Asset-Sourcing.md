@@ -131,3 +131,14 @@ status describes 2026-10-04; this update is the current adoption status.
 網格 streams，貼圖 area filtering 成為 64x64。四個 payload 經 Import → Cook → Bundle →
 Runtime 實際呈現於原生畫面。門洞候選與細節 PBR maps 尚未採用；先前僅研究狀態為
 2026-10-04 的紀錄，本節為目前採用狀態。
+
+## Hero authoring update / 主體創作更新 — 2026-10-05
+
+The adopted online CC0 meshes, palette and Forest Slope HDRI remain identified in their inventories.
+Current sandstone/bronze detail maps and faceted crystal/vessels are original repository-authored
+content, with source/license/converter/derived hashes. They are not downloaded ambientCG assets;
+those specific PBR candidates remain unadopted. Final physical visual review remains pending.
+
+已採用的網路 CC0 模型、palette 與 Forest Slope HDRI 仍有各自 inventory。現行砂岩／青銅細節、
+多面晶體與陶器是 repository 原創內容，保留來源／授權／converter／derived hashes，
+不宣稱是下載的 ambientCG 素材；該候選細節貼圖仍未採用。最終實體畫面審查待完成。

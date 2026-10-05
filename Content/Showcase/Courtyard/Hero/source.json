@@ -1,0 +1,11 @@
+{
+  "schema": "nexora.courtyard.hero-authoring.v1",
+  "author": "Nexora repository contributors",
+  "license": "Repository LICENSE",
+  "geometry": "Original eight-sided faceted crystal with bevel waist, not a downloaded model",
+  "surfaces": "Original deterministic carved sandstone and aged bronze detail maps",
+  "sides": [[1, 0], [0.707107, 0.707107], [0, 1], [-0.707107, 0.707107], [-1, 0], [-0.707107, -0.707107], [0, -1], [0.707107, -0.707107]],
+  "rings": [[0.0, -1.1], [0.42, -0.45], [0.48, 0.45], [0.0, 1.2]],
+  "texture_size": 64,
+  "seed": 1972
+}

@@ -152,69 +152,81 @@ public static class NexoraAcceptanceWindow {
         [NexoraAcceptanceWindow]::Press($window, $key)
         Start-Sleep -Milliseconds 150
     }
+    function Capture-Compared([string]$name, [string]$reference, [bool]$equal) {
+        $deadline = [DateTime]::UtcNow.AddSeconds(5)
+        do {
+            Capture $name
+            $same = (Get-FileHash (Join-Path $evidence $reference)).Hash -eq
+                (Get-FileHash (Join-Path $evidence $name)).Hash
+            if ($same -eq $equal) { return }
+            Start-Sleep -Milliseconds 100
+        } while ([DateTime]::UtcNow -lt $deadline)
+        throw "Native comparison did not settle within five seconds: $name"
+    }
     # Exercise the same shared PBR scene and comparison path on each requested native backend.
     $rooms += 'courtyard'
     Press-Key 57
     Capture 'courtyard-ui.png'
     Press-Key 115 # F4: remove the overlay from fixed visual evidence.
-    Capture 'courtyard-wide.png'
+    Capture-Compared 'courtyard-wide.png' 'courtyard-ui.png' $false
+    Press-Key 75 # K: restrained GPU bloom comparison.
+    Capture-Compared 'courtyard-bloom-off.png' 'courtyard-wide.png' $false
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
+        (Get-FileHash (Join-Path $evidence 'courtyard-bloom-off.png')).Hash) 'Bloom did not change pixels.'
+    Press-Key 75
+    Capture-Compared 'courtyard-bloom-restored.png' 'courtyard-wide.png' $true
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
+        (Get-FileHash (Join-Path $evidence 'courtyard-bloom-restored.png')).Hash) 'Bloom restoration differs.'
+    $acceptance.courtyard_bloom_comparison = $true
+
     Press-Key 117 # F6: directional shadow comparison.
-    Capture 'courtyard-shadow-off.png'
+    Capture-Compared 'courtyard-shadow-off.png' 'courtyard-wide.png' $false
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
         (Get-FileHash (Join-Path $evidence 'courtyard-shadow-off.png')).Hash) 'Directional shadow comparison did not change pixels.'
     Press-Key 117
-    Capture 'courtyard-shadow-restored.png'
+    Capture-Compared 'courtyard-shadow-restored.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-shadow-restored.png')).Hash) 'Shadow restoration differs.'
     Press-Key 71 # G: stylized tonal separation.
-    Capture 'courtyard-neutral.png'
+    Capture-Compared 'courtyard-neutral.png' 'courtyard-wide.png' $false
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
         (Get-FileHash (Join-Path $evidence 'courtyard-neutral.png')).Hash) 'Stylized tone did not change pixels.'
     Press-Key 71
-    Capture 'courtyard-styled-restored.png'
+    Capture-Compared 'courtyard-styled-restored.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-styled-restored.png')).Hash) 'Tone restoration differs.'
     $acceptance.courtyard_shadow_comparison = $true
     $acceptance.courtyard_tone_comparison = $true
     Press-Key 69 # E: expose retained linear HDR highlights.
-    Capture 'courtyard-exposure.png'
+    Capture-Compared 'courtyard-exposure.png' 'courtyard-wide.png' $false
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
         (Get-FileHash (Join-Path $evidence 'courtyard-exposure.png')).Hash) 'Courtyard HDR exposure pixels did not change.'
     Press-Key 69
-    Capture 'courtyard-exposure-restored.png'
+    Capture-Compared 'courtyard-exposure-restored.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-exposure-restored.png')).Hash) 'Courtyard exposure restoration differs.'
     $acceptance.courtyard_hdr_exposure = $true
     Press-Key 79 # O: compare actual environment lighting with direct light.
-    Capture 'courtyard-direct.png'
+    Capture-Compared 'courtyard-direct.png' 'courtyard-wide.png' $false
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
         (Get-FileHash (Join-Path $evidence 'courtyard-direct.png')).Hash) 'Courtyard IBL comparison pixels did not change.'
     Press-Key 79
-    Capture 'courtyard-ibl-restored.png'
+    Capture-Compared 'courtyard-ibl-restored.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-ibl-restored.png')).Hash) 'Courtyard IBL restoration pixels differ.'
     $acceptance.courtyard_ibl_comparison = $true
     Press-Key 80
-    Capture 'courtyard-lambert.png'
+    Capture-Compared 'courtyard-lambert.png' 'courtyard-wide.png' $false
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
         (Get-FileHash (Join-Path $evidence 'courtyard-lambert.png')).Hash) 'Courtyard material comparison pixels did not change.'
     Press-Key 80
-    Capture 'courtyard-pbr-restored.png'
+    Capture-Compared 'courtyard-pbr-restored.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-pbr-restored.png')).Hash) 'Courtyard PBR restoration pixels differ.'
     Press-Key 66; Capture 'courtyard-material.png'
     Press-Key 66; Capture 'courtyard-motion.png'
     Press-Key 66
-    # WARP may still be presenting the previous camera after a fixed key delay. Await the
-    # actual expected GPU image; preserve exact equality and fail within a bounded deadline.
-    $cameraDeadline = [DateTime]::UtcNow.AddSeconds(5)
-    do {
-        Capture 'courtyard-wide-replay.png'
-        $cameraMatches = (Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
-            (Get-FileHash (Join-Path $evidence 'courtyard-wide-replay.png')).Hash
-        if ($cameraMatches) { break }
-        Start-Sleep -Milliseconds 100
-    } while ([DateTime]::UtcNow -lt $cameraDeadline)
+    Capture-Compared 'courtyard-wide-replay.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-wide-replay.png')).Hash) 'Courtyard fixed camera replay pixels differ.'
     Press-Key 115
@@ -375,7 +387,7 @@ public static class NexoraAcceptanceWindow {
         -and $native.native_graph_passes -eq 4 -and $native.native_graph_resource_transitions -eq 3 `
         -and ($native.native_graph_order -join ',') -eq 'Offscreen,Main,UI,Present' `
         -and $native.composed_frames -eq 0 -and $native.native_scene_texture_uploads -gt 0 `
-        -and $native.surface_acquires -eq $native.surface_presents -and $native.resize_generations -gt 0) 'Native graph/lifecycle counters failed.'
+        -and $native.surface_acquires -eq ($native.surface_presents + $native.surface_recoverable_presents) -and $native.resize_generations -gt 0) 'Native graph/lifecycle counters failed.'
     Require ($report.runtime_rooms.reloads -ge 1 -and $report.runtime_rooms.healthy) 'Scene reload or Runtime room health failed.'
     foreach ($room in $rooms) { Require ($report.runtime_rooms.visited -contains $room) "Room not visited: $room" }
     if ($ExpectedBuildId) { Require ($report.build.build_id -eq $ExpectedBuildId) 'Build ID does not match the requested version.' }

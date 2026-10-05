@@ -53,6 +53,8 @@ def main():
                             'exposure': report['runtime_rooms']['courtyard'].get('exposure', 1),
                             'shadows_enabled': report['runtime_rooms']['courtyard'].get('shadows_enabled', False),
                             'stylized_enabled': report['runtime_rooms']['courtyard'].get('stylized_enabled', False),
+                            'bloom_enabled': report['runtime_rooms']['courtyard'].get('bloom_enabled', False),
+                            'hero_asset_loaded': report['runtime_rooms']['courtyard'].get('hero_asset_loaded', False),
                             'shadow_bias': report['runtime_rooms']['courtyard'].get('shadow_bias', 0)})
         assert all(r['shading'] == reports[0]['shading'] and
                    r['render_settings'] == reports[0]['render_settings'] for r in reports)

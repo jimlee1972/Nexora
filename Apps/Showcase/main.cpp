@@ -1055,6 +1055,8 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"recovery_action\": \"" << run.presentation_recovery << "\",\n"
          << "    \"surface_acquires\": " << run.surface.acquiredFrames << ",\n"
          << "    \"surface_presents\": " << run.surface.presentedFrames << ",\n"
+         << "    \"surface_recoverable_presents\": " << run.surface.recoverablePresentFrames
+         << ",\n"
          << "    \"resize_requests\": " << run.resize_requests << ",\n"
          << "    \"resize_generations\": " << run.surface.resizeGenerations << ",\n"
          << "    \"composed_frames\": " << run.composed_frames << ",\n"

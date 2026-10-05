@@ -50,6 +50,8 @@ struct SurfaceDiagnostics final {
   std::uint64_t sceneOffscreenDrawCalls = 0;
   std::uint64_t sceneComposites = 0;
   bool softwareRasterizer = false;
+  // Submitted frames that require swapchain replacement instead of reporting successful present.
+  std::uint64_t recoverablePresentFrames = 0;
 };
 
 struct UiVertex final {
@@ -263,6 +265,15 @@ struct SceneLightingStyle final {
   float rampScale = 1;
   float rampSoftness = 0.15F;
 };
+struct SceneColorGrade final {
+  float saturation = 1.0F;
+  float contrast = 1.0F;
+};
+struct SceneBloom final {
+  float intensity = 0.15F;
+  float threshold = 1.0F;
+  float radiusPixels = 12.0F;
+};
 struct SceneDrawData final {
   std::span<const SceneVertex> vertices;
   std::span<const std::uint16_t> indices;
@@ -288,6 +299,8 @@ struct SceneDrawData final {
   float exposure = 1.0F;
   std::optional<SceneDirectionalShadow> shadow{};
   std::optional<SceneLightingStyle> lightingStyle{};
+  std::optional<SceneBloom> bloom{};
+  std::optional<SceneColorGrade> colorGrade{};
 };
 
 // Call only after material/batch validation. Returned values own their scalar storage.

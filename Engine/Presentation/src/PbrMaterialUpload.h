@@ -9,6 +9,17 @@ namespace Nexora::Presentation {
   if (!std::isfinite(draw.exposure) || draw.exposure < 0 || draw.exposure > 32 ||
       (draw.hdr && (!draw.pbr || !draw.offscreen)))
     return false;
+  if (draw.colorGrade && (!draw.hdr || !std::isfinite(draw.colorGrade->saturation) ||
+                          draw.colorGrade->saturation < 0 || draw.colorGrade->saturation > 2 ||
+                          !std::isfinite(draw.colorGrade->contrast) ||
+                          draw.colorGrade->contrast < 0 || draw.colorGrade->contrast > 2))
+    return false;
+  if (draw.bloom && (!draw.hdr || !std::isfinite(draw.bloom->intensity) ||
+                     draw.bloom->intensity < 0 || draw.bloom->intensity > 1 ||
+                     !std::isfinite(draw.bloom->threshold) || draw.bloom->threshold < 0 ||
+                     draw.bloom->threshold > 32 || !std::isfinite(draw.bloom->radiusPixels) ||
+                     draw.bloom->radiusPixels < 1 || draw.bloom->radiusPixels > 32))
+    return false;
   if (!draw.pbr)
     return draw.linearTextureUploads.empty() && !draw.environment && !draw.shadow &&
            !draw.lightingStyle;
