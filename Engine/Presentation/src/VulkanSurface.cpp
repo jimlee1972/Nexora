@@ -1665,6 +1665,9 @@ private:
     const auto batches =
         data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
     for (const auto &batch : batches) {
+      if (!ResolveSceneMaterial(data, batch.materialIndex).castsShadow)
+        continue;
+      diagnostics_.sceneShadowInstances += batch.instanceCount;
       vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
                               scenePbrPipelineLayout_, 0, 1,
                               &frame.pbrDescriptors[batch.materialIndex], 0, nullptr);
@@ -1680,7 +1683,6 @@ private:
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
                          &barrier);
     ++diagnostics_.sceneShadowPasses;
-    diagnostics_.sceneShadowInstances += instances.size();
   }
   SurfaceStatus CompositeHdr(Frame &frame) {
     const VkDescriptorSetAllocateInfo allocation{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,

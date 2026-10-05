@@ -254,6 +254,13 @@ public static class NexoraAcceptanceWindow {
     Capture-Compared 'courtyard-wide-replay.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-wide-replay.png')).Hash) 'Courtyard fixed camera replay pixels differ.'
+    Press-Key 81 # Standard -> High -> Basic -> Standard, with effects paused.
+    Capture-Compared 'courtyard-quality-high.png' 'courtyard-wide.png' $false
+    Press-Key 81
+    Capture-Compared 'courtyard-quality-basic.png' 'courtyard-wide.png' $false
+    Press-Key 81
+    Capture-Compared 'courtyard-quality-standard.png' 'courtyard-wide.png' $true
+    $acceptance.courtyard_quality_cycle_restores_pixels = $true
     Press-Key 67 # Enter actual free camera.
     Capture-Compared 'courtyard-free-camera.png' 'courtyard-wide.png' $false
     [NexoraAcceptanceWindow]::PostMessage($window, 0x100, [IntPtr]::new(87), [IntPtr]::new(1)) | Out-Null

@@ -1,0 +1,1 @@
+NexoraShowcase build=3047d5c68de9 --tour=visual --backend=vulkan --clean-view --vsync=off --no-reload --gameplay-module=static --report=/tmp/nexora-share-recording/tour.json --quality=standard

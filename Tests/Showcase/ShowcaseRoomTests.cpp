@@ -60,7 +60,7 @@ int main() {
   for (const auto index : wide.indices)
     assert(index < wide.vertices.size());
   assert(wide.pbr);
-  assert(wide.materials.size() == 31 && !wide.batches.empty());
+  assert(wide.materials.size() == 8 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   std::size_t covered = 0;
   std::vector<bool> selectedMaterials(wide.materials.size());
@@ -71,7 +71,7 @@ int main() {
     selectedMaterials[batch.materialIndex] = true;
   }
   assert(covered == wide.indices.size());
-  for (std::size_t i = 0; i < 30; ++i)
+  for (std::size_t i = 0; i < 7; ++i)
     assert(selectedMaterials[i]);
   for (const auto &vertex : wide.vertices) {
     float orthogonal = 0, length = 0;
@@ -147,7 +147,7 @@ int main() {
   assert(courtyard.Report().find("\"representative_asset_loaded\":true") != std::string::npos);
   assert(courtyard.Report().find("\"adopted_mesh_count\":3") != std::string::npos);
   const auto adopted = courtyard.Scene(1280, 720);
-  assert(adopted.textureId == 2 && adopted.textureUploads.size() == 9);
+  assert(adopted.textureId == 2 && adopted.textureUploads.size() == 10);
   assert(adopted.materials[0].normalTextureId == 11 && adopted.materials[1].ormTextureId == 15);
   assert(adopted.textureUploads[0].pixels.size() == 64 * 64 * 4);
 #endif
@@ -159,7 +159,7 @@ int main() {
   assert(courtyard.Scene(1280, 720).vegetationTime == animatedTime);
   Press(courtyard, Key::Enter);
   const auto active = courtyard.Scene(1280, 720);
-  assert(active.batches.back().materialIndex == 30 && active.batches.back().indexCount == 48 * 6);
+  assert(active.batches.back().materialIndex == 7 && active.batches.back().indexCount == 48 * 6);
   const std::vector<Nexora::Presentation::SceneVertex> frozen(active.vertices.begin(),
                                                               active.vertices.end());
   courtyard.Tick(0.5);
@@ -169,7 +169,7 @@ int main() {
   Press(courtyard, Key::R);
   assert(courtyard.Scene(1280, 720).vegetationTime == 0);
   Press(courtyard, Key::Enter);
-  assert(courtyard.Scene(1280, 720).batches.back().materialIndex != 30);
+  assert(courtyard.Scene(1280, 720).batches.back().materialIndex != 7);
   session.RerunProbe(0, nexora::showcase::ErrorInjection::DependencyCycle);
   assert(session.Probes()[0].status == nexora::showcase::ProbeStatus::Unsupported);
   assert(session.Healthy());
@@ -279,6 +279,39 @@ int main() {
   visualTour.ReplayTour();
   assert(!visualTour.TourComplete() && visualTour.Scene(1280, 720).vegetationTime == 0);
   assert(std::to_array(visualTour.Scene(1280, 720).model_view_projection) == initialTourMatrix);
+  RoomSession quality("courtyard");
+  quality.SetAnimationPaused(true);
+  quality.SetDeviceActive(true);
+  std::array<std::size_t, 3> qualityVertices{};
+  for (unsigned tier = 0; tier < 3; ++tier) {
+    const auto name = std::array<std::string_view, 3>{"basic", "standard", "high"}[tier];
+    quality.SetQuality(name);
+    quality.Tick(0.1);
+    const auto draw = quality.Scene(1280, 720);
+    assert(draw.hdr && draw.pbr && draw.shadow && draw.shadow->resolution == (512U << tier));
+    assert(draw.vegetationTime == 0 && quality.QualityName() == name);
+    assert(draw.bloom.has_value() == (tier != 0));
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    assert(draw.environment.has_value() == (tier != 0));
+#endif
+    assert(draw.materials[6].unlit && !draw.materials[6].castsShadow);
+    assert(draw.materials[7].unlit && !draw.materials[7].castsShadow);
+    assert(draw.batches.back().materialIndex == 7 &&
+           draw.batches.back().indexCount == (24U << tier) * 6);
+    qualityVertices[tier] = draw.vertices.size();
+  }
+  assert(qualityVertices[0] < qualityVertices[1] && qualityVertices[1] < qualityVertices[2]);
+  Press(quality, Key::Q);
+  assert(quality.QualityName() == "basic");
+  assert(quality.Scene(1280, 720).vertices.size() == qualityVertices[0]);
+  bool qualityRejected = false;
+  try {
+    quality.SetQuality("invalid");
+  } catch (const std::invalid_argument &) {
+    qualityRejected = true;
+  }
+  assert(qualityRejected && quality.QualityName() == "basic");
+
   RoomSession explore("courtyard");
   Press(explore, Key::C);
   const auto freeStart = std::to_array(explore.Scene(1280, 720).model_view_projection);

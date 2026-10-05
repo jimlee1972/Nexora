@@ -22,23 +22,29 @@ struct Fixture final {
       for (std::size_t i = 9; i < 12; ++i)
         geometry.vertices[i].uv[1] = 1;
     }
-    if (mode >= 6) {
+    if (mode == 6 || mode == 7) {
       geometry.materials[1].emission = {};
       geometry.materials[1].transmissionThickness = mode == 7 ? 1.0F : 0;
       geometry.materials[1].transmissionColor = {0, 1, 0};
       for (std::size_t i = 9; i < 12; ++i)
         geometry.vertices[i].normal[2] = 1;
     }
+    if (mode == 8) {
+      geometry.materials[1].unlit = true;
+      geometry.materials[1].castsShadow = false;
+    }
     upload = {geometry.materials[1].textureId, 1, 1, 4, texel};
   }
   Nexora::Presentation::SceneDrawData Draw(unsigned mode) const {
-    auto draw = geometry.Draw(mode <= 5 ? 0 : 2);
+    auto draw = geometry.Draw(mode <= 5 || mode == 8 ? 0 : 2);
     draw.textureUploads = {&upload, 1};
     draw.vegetationTime = mode == 4 ? 3.141593F : 0;
     return draw;
   }
 };
 template <class Rgb> bool Pixels(unsigned mode, const Rgb &shadow, const Rgb &center) {
+  if (mode == 8)
+    return shadow[0] > 100 && center[0] > 230;
   if (mode == 1)
     return shadow[0] > 100 && center[0] > 100 && center[0] < 230;
   if (mode == 0 || mode == 2)

@@ -608,7 +608,6 @@ public:
     }
     if (drawData.shadow) {
       ++diagnostics_.sceneShadowPasses;
-      diagnostics_.sceneShadowInstances += instances.size();
     }
     sceneDrawn_ = true;
     sceneOffscreen_ = drawData.offscreen;
@@ -1141,6 +1140,9 @@ private:
     commands_->SetDescriptorHeaps(1, heaps);
     for (const auto &batch : batches) {
       const auto material = ResolveSceneMaterial(draw, batch.materialIndex);
+      if (!material.castsShadow)
+        continue;
+      diagnostics_.sceneShadowInstances += batch.instanceCount;
       commands_->SetGraphicsRootConstantBufferView(
           1, materials + batch.materialIndex * materialStride + 256);
       auto handle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();

@@ -432,3 +432,25 @@ control strip; F1–F3 explicitly open engineering panels and F4 hides every ove
 `Tools/Package/RecordVisualTour.py` records the actual Xvfb Vulkan executable with existing FFmpeg,
 extracts matching video frames and retains application/video hashes, report, timing and software
 GPU scope. FFmpeg is evidence tooling, not an engine/package dependency.
+
+### Visual showcase quality and release evidence
+
+`--quality=basic|standard|high` and courtyard Q select actual shared scene workloads. Basic
+uses a 512 shadow map, 32 foliage quads and 24 active motes, disabling IBL and bloom. Standard
+uses 1024 / 64 / 48, IBL and 0.15 bloom at radius 12. High uses 2048 / 128 / 96, IBL and
+0.18 bloom at radius 20. HDR/PBR, cutout and color transfer remain correct at every tier.
+Changing quality rebuilds cached foliage geometry between borrowed draw calls, retaining immutable
+Runtime asset generations. Reports identify the effective tier after interaction, not just startup.
+The original sky is one Runtime-loaded sRGB emission texture and one non-casting unlit batch;
+active motes also skip the lighting/shadow path. Shadow counters now count actual submitted
+batch instances.
+
+`--pause-animation --activate-device` enables repeatable fixed-time active-device benchmarking.
+`LinuxCourtyardBenchmark.py EXE --quality=standard --output=DIR` retains three independent
+360-frame runs, discarding 60 warm-up frames and measuring 300. Run tiers sequentially with
+builds/tests idle. CPU wall/frame and resident-memory observations are not GPU timestamps or
+physical GTX 960 acceptance. The final package, native video, source/build hashes and reports
+are retained together before VIS-M6 acceptance; Windows DX12/Vulkan target-host visuals and
+the confirmed hardware budget remain required.
+
+Packaged interactive launchers also open the compact courtyard; use `--scene=hub` explicitly for the engineering portal.
