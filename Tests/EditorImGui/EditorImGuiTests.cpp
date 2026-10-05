@@ -940,6 +940,9 @@ int main() {
   assert(!initial_state.platform_viewports_enabled);
   assert(initial_state.keyboard_navigation_enabled);
   assert(initial_state.input_trickle_enabled);
+  // A callback without an active borrowed surface must be harmless on every platform.
+  EditorImGuiTestAccess::InvokeImeCallback(host, 40.0F, 60.0F, true);
+  EditorImGuiTestAccess::InvokeImeCallback(host, 40.0F, 60.0F, false);
   nexora::runtime::World world;
   const auto scene_id = world.LoadScene("Editor ImGui contract");
   assert(world.Activate(scene_id));
