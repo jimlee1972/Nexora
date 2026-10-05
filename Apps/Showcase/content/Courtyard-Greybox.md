@@ -8,11 +8,11 @@ Date: 2026-10-05. Scope: first implementation slice of VIS-M0, not finished art.
 | Central ring | Original 20-segment procedural tube | Repository LICENSE | Engineering silhouette; final carved stone/bronze treatment pending |
 | Crystal placeholder | Original `nexora.showcase.mesh.v1` mesh from Runtime asset generation | Repository LICENSE | Existing Import → Cook → Bundle → Runtime payload; report retains content hash; replace with faceted hero crystal |
 | Ceramic / vegetation placeholders | Original capsule and tube geometry | Repository LICENSE | Static spatial markers; final ceramic models, foliage maps and wind pending |
-| Third-party final models/textures | Free-asset shortlist in `Roadmap/art/Free-Asset-Sourcing.md` | No third-party asset adopted in this slice | Download, license/hash inventory, conversion and art review pending |
+| Third-party final models/textures | Free-asset shortlist in `Roadmap/art/Free-Asset-Sourcing.md` | Three architectural meshes and one palette atlas now adopted; see `Content/Showcase/Courtyard/assets.json` | Download, license/hash inventory, conversion and art review pending |
 
 No purchased or commissioned content. Engineering geometry has no separate source download or
 external dependencies. Production cost is implementation work; no art-production time estimate
-is claimed. These placeholders must not be described as adopted KayKit/ambientCG assets.
+is claimed. Original placeholders remain distinct from the adopted KayKit architecture; ambientCG surface-detail maps remain pending.
 
 Fixed camera order: wide (0), material close-up (1), motion finale framing (2). `B` restores each
 camera deterministically; `9` re-enters at wide. `F4` hides all UI. All shots target the same central
@@ -22,3 +22,15 @@ those features yet. Baselines retain backend/build provenance and software-raste
 本切片僅提供原創程序化工程灰盒、固定鏡頭與既有資產流程代表性網格，不宣稱最終美術、
 PBR、真實陰影、發光或風動完成。第三方免費素材尚未正式採用；模型／貼圖的下載、授權、
 hash、格式轉換及目視確認仍待完成。沒有採購、委外或已確認的美術工期。
+
+## Adopted VIS-M0 assets
+
+The decorated columns, broken paving and rubble now use the retained CC0 KayKit sources; mesh
+conversion preserves source normals/UVs, native placement/axis scales adapt the compact layout.
+A 64x64 area-filtered version of the included palette atlas is loaded from the same cooked bundle.
+Original source hashes and license are under `Content/Showcase/Courtyard`; conversion is verified
+by CTest. Final surface-detail maps, hero crystal/runes and moving foliage remain later milestones.
+
+已正式採用三個 CC0 KayKit 建築網格與隨附漸層貼圖，原始來源、授權、hash 與盤點隨套件
+提供。網格保留 normal／UV，依庭院配置縮放與擺放；貼圖經 area filtering 成為 64x64
+基線 palette，並透過匯入／cook／bundle／Runtime 載入。正式 PBR 細節與動態植被仍待後續。

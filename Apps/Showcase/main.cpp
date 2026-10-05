@@ -11,6 +11,7 @@
 #include "Nexora/Renderer/RenderGraph.h"
 #include "Nexora/Renderer/SceneFrame.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
+#include "ShowcasePerformance.h"
 #include "ShowcaseProbes.h"
 #include "ShowcaseRooms.h"
 #include <chrono>
@@ -49,6 +50,7 @@ constexpr std::uint64_t kPrimaryEntityToken = 0;
 struct CommandLine final {
   bool headless{false};
   bool validate_v1{};
+  bool clean_view{};
   bool reload{true};
   bool frames_explicit{};
   std::size_t frames{4};
@@ -126,12 +128,14 @@ struct ShowcaseRun final {
   std::string windowed_backend{"none"};
   std::uint32_t resize_requests{};
   std::uint32_t composed_frames{};
+  std::uint32_t viewport_width{}, viewport_height{};
   std::uint32_t scene_draws{};
   std::uint32_t overlay_frames{};
   std::uint32_t native_graph_frames{};
   std::size_t native_graph_passes{}, native_graph_transitions{};
   std::vector<std::string> native_graph_order;
   std::string runtime_rooms{"null"};
+  std::string performance{"null"};
   std::string markdown;
   bool rooms_ok{};
 };
@@ -294,6 +298,8 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
         error = "--resize must be WIDTHxHEIGHT with dimensions from 1 to 8192";
         return false;
       }
+    } else if (argument == "--clean-view") {
+      command.clean_view = true;
     } else if (argument.starts_with("--mode=")) {
       command.mode = std::string(argument.substr(7));
       if (command.mode != "headless" && command.mode != "interactive" && command.mode != "tour") {
@@ -366,7 +372,8 @@ void PrintUsage() {
                "  --tour=v1                  select the 210-second pausable guided tour\n"
                "  --probe=v1.M0..v1.M12      rerun one live integration probe\n"
                "  --markdown=PATH            export the live probe results as Markdown\n"
-               "  --vsync=on|off             request synchronized or immediate presentation\n";
+               "  --clean-view               start without diagnostic UI\n  --vsync=on|off         "
+               "    request synchronized or immediate presentation\n";
 }
 
 void Log(void *opaque_context, std::uint32_t level, const char *message,
@@ -673,9 +680,12 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   std::size_t executedFrames = 0;
   showcase::RoomSession rooms(command.scene, command.mode == "tour" || command.tour == "v1",
                               command.capabilities == "minimal", command.plugin_library.string());
+  rooms.SetScreenshotMode(command.clean_view);
+  showcase::FrameProfiler profiler;
   auto previousTime = std::chrono::steady_clock::now();
   for (std::size_t frame = 0; frame < frameLimit; ++frame) {
     if (nativeSurface) {
+      profiler.Begin();
       const auto status = nativeSurface->BeginFrame();
       if (nativeSurface->CloseRequested())
         break;
@@ -719,6 +729,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     ++executedFrames;
     if (nativeSurface) {
       const auto frameInfo = nativeSurface->FrameInfo();
+      result.viewport_width = frameInfo.width;
+      result.viewport_height = frameInfo.height;
       renderer::RenderGraph graph;
       std::vector<std::string> completedNames;
       const auto offscreen = graph.ImportExternalTexture(
@@ -778,6 +790,7 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
         ++result.native_graph_frames;
         result.native_graph_passes = graph.GetStatistics().completed_pass_count;
         result.native_graph_transitions = graph.GetStatistics().external_transition_count;
+        profiler.End();
       } catch (const std::exception &failure) {
         error = failure.what();
         device->DestroyTexture(output);
@@ -791,6 +804,7 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
     rooms.RerunProbe(milestone);
   }
   result.runtime_rooms = rooms.Report();
+  result.performance = profiler.Report();
   result.markdown = rooms.Markdown();
   result.rooms_ok = rooms.Healthy();
   const auto scene = context.scene;
@@ -1011,6 +1025,14 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"raycasts\": " << run.raycasts << ",\n"
          << "    \"selected_entity\": " << run.selected_entity << "\n"
          << "  },\n"
+         << "  \"render_settings\": {\"width\":" << run.viewport_width
+         << ",\"height\":" << run.viewport_height << ",\"vsync_requested\":\"" << command.vsync
+         << "\",\"present_mode\":\""
+         << (run.surface.negotiatedPresentMode == Nexora::Presentation::PresentMode::Immediate
+                 ? "immediate"
+                 : "vsync")
+         << "\",\"quality\":\"basic\",\"refresh_rate_hz\":null},\n"
+         << "  \"performance\": " << run.performance << ",\n"
          << "  \"headless_evidence\": {\n"
          << "    \"executed\": " << command.headless << ",\n"
          << "    \"backend\": \"Validation\",\n"

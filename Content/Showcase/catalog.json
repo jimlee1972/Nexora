@@ -2,7 +2,7 @@
   "schema": "nexora.showcase.content.v1",
   "version": 1,
   "migration": "Reject unknown schema versions; procedural content is rebuilt from the matching application version.",
-  "license": "Repository LICENSE; original procedural geometry, bitmap glyphs and checker texels",
+  "license": "Repository LICENSE for original content; Courtyard/KayKit/LICENSE.txt CC0 for adopted assets",
   "rooms": [
     "hub",
     "rendering",
@@ -11,7 +11,8 @@
     "gameplay",
     "presentation",
     "streaming",
-    "shipping"
+    "shipping",
+    "courtyard"
   ],
   "tour": {
     "duration_seconds": 210,
@@ -42,5 +43,18 @@
     "instances": "One indexed cube mesh shared by floor and three translation/axis-scale/tint hardware instances",
     "render_graph": "Native-owner Offscreen -> Main GPU color copy -> UI -> Present, with private fence-owned color/depth attachments",
     "primitives": "Rendering P cycles shared instanced cube, indexed quad, indexed triangle"
+  },
+  "courtyard": {
+    "inventory": "Courtyard/assets.json",
+    "source_license": "Courtyard/KayKit/LICENSE.txt",
+    "adopted_meshes": 3,
+    "adopted_atlas": 1,
+    "conversion": "Tools/Build/PrepareCourtyardAssets.py; embedded authoring payloads cooked and bundled at startup",
+    "native_texture_size": [
+      64,
+      64
+    ],
+    "third_party_license": "CC0-1.0",
+    "controls": "9 enter; B fixed shots; F4 clean view; --clean-view starts without UI"
   }
 }

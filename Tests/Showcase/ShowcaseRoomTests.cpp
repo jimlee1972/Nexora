@@ -80,6 +80,10 @@ int main() {
   assert(std::to_array(courtyard.Scene(1280, 720).model_view_projection) == wideMatrix);
 #if NEXORA_ASSET_PIPELINE_ENABLED
   assert(courtyard.Report().find("\"representative_asset_loaded\":true") != std::string::npos);
+  assert(courtyard.Report().find("\"adopted_mesh_count\":3") != std::string::npos);
+  const auto adopted = courtyard.Scene(1280, 720);
+  assert(adopted.textureId == 2 && adopted.textureUploads.size() == 1);
+  assert(adopted.textureUploads[0].pixels.size() == 64 * 64 * 4);
 #endif
   session.RerunProbe(0, nexora::showcase::ErrorInjection::DependencyCycle);
   assert(session.Probes()[0].status == nexora::showcase::ProbeStatus::Unsupported);

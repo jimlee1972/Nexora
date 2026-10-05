@@ -56,3 +56,14 @@ The scripts use Git and pinned `markdown-it-py`/`mdurl` packages. Workflow chang
 `CI result` 固定回報結果，分類失敗或應執行工作失敗／取消皆會失敗。既有建置工作在純文件
 變更時呈現 skipped。可將 `CI result` 作為 branch protection 的彙總檢查；本變更不修改
 保護設定。Release 不變，tag 仍要求完整 Build。
+
+## Courtyard asset conversion
+
+`PrepareCourtyardAssets.py` converts only the pinned CC0 KayKit single-node, single-primitive
+untransformed GLBs and RGBA8 palette atlas in `Content/Showcase/Courtyard`. It verifies source
+hashes, bounded accessors, triangle indices, finite streams, PNG CRC/filter data and bounded
+decompression. Unsupported transforms/external buffers reject rather than being silently lost.
+The generated private Showcase header retains position/normal/UV identity and a 64x64 area-filtered
+atlas; authoring payloads still pass through Runtime import/cook/bundle activation before use.
+`--check` and rejection tests run through CTest without Pillow or a runtime glTF dependency.
+Original sources/license/inventory ship through the existing checksum-verifying package flow.

@@ -19,6 +19,7 @@ public:
   void Tick(double seconds);
   void Select(std::string_view room);
   void ReplayTour();
+  void SetScreenshotMode(bool enabled);
   void RerunProbe(std::size_t milestone, ErrorInjection injection = ErrorInjection::None);
   [[nodiscard]] bool Healthy() const;
   [[nodiscard]] std::string_view Selected() const;
