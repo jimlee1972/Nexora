@@ -19,3 +19,7 @@ Native packet and stable C/Zig ABI remain unchanged.
 Workspace artifacts: `NexoraShowcase-Courtyard-Masonry-e5bb131.mp4` and `NexoraShowcase-Courtyard-Masonry-e5bb131-Linux.zip`.
 Software Vulkan/Xvfb evidence does not accept physical target performance or final reference
 parity. VIS stays 5/7.
+
+
+[Test-only MSVC literal correction](msvc-literals/README.md) retains a full Linux follow-up
+gate and exact fixture hashes. Runtime sources and the retained Shipping/movie are unchanged.

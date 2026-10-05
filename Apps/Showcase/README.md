@@ -635,3 +635,9 @@ MSVC fixture portability follow-up: point-light fill and two-sided normal condit
 floating literals. ✅ Linux configure/build and full 97/97 pass (102.61 seconds), including
 89 native PBR frames with core/sync validation. Test values and runtime sources are unchanged;
 retained Shipping evidence keeps its production freeze. Windows CI recheck is pending.
+
+
+Upstream point-light and masonry MSVC fixture evidence is synchronized. Their full Linux
+97/97 gates pass in 102.20/102.62 seconds with 85 native PBR frames and core/sync validation.
+Each stage retains exact logs/hashes in `msvc-literals/`. This synchronization changes only
+documentation/evidence; runtime sources and fixture values are unchanged.
