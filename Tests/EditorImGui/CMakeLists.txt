@@ -5,6 +5,11 @@ target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
 
+add_executable(NexoraEditorContextLifetimeTests ContextLifetimeTests.cpp)
+target_link_libraries(NexoraEditorContextLifetimeTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraEditorContextLifetimeTests)
+add_test(NAME editor.imgui_context_lifetime COMMAND NexoraEditorContextLifetimeTests)
+
 add_executable(NexoraEditorSceneFrameTests SceneFrameTests.cpp)
 target_include_directories(NexoraEditorSceneFrameTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraEditorSceneFrameTests PRIVATE Nexora::EditorImGui)

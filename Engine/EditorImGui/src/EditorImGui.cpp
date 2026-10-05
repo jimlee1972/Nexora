@@ -75,6 +75,17 @@ struct EditorImGuiHost::State final {
     std::size_t upload_slot = 0;
     std::uint32_t font_generation = 0;
   } renderer;
+  ~State() {
+    if (context == nullptr)
+      return;
+    auto *previous = ImGui::GetCurrentContext();
+    ImGui::SetCurrentContext(context);
+    surface = nullptr;
+    ImGui::GetIO().BackendPlatformUserData = nullptr;
+    ImGui::DestroyContext(context);
+    if (previous != context)
+      ImGui::SetCurrentContext(previous);
+  }
   ImGuiContext *context = nullptr;
   Nexora::Presentation::RenderSurface *surface = nullptr;
   float dpi_scale = 1.0F;
@@ -3196,16 +3207,7 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
   ApplyTheme();
 }
 
-EditorImGuiHost::~EditorImGuiHost() {
-  if (state_ && state_->context) {
-    // ImGui::Shutdown() (invoked by DestroyContext) asserts BackendPlatformUserData is cleared,
-    // treating a non-null value as a sign the platform backend never ran its own shutdown; clear it
-    // here since EditorImGuiHost is the only "backend" this context has.
-    Activate(state_->context);
-    ImGui::GetIO().BackendPlatformUserData = nullptr;
-    ImGui::DestroyContext(state_->context);
-  }
-}
+EditorImGuiHost::~EditorImGuiHost() = default;
 EditorImGuiHost::EditorImGuiHost(EditorImGuiHost &&) noexcept = default;
 EditorImGuiHost &EditorImGuiHost::operator=(EditorImGuiHost &&) noexcept = default;
 

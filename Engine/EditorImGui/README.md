@@ -11,6 +11,12 @@ authoring views on first launch.
 ## Ownership and lifetime
 
 - `EditorImGuiHost` owns one ImGui context and destroys it with the host.
+  State ownership also releases the previous context on move assignment, clearing backend/IME
+  borrows before destruction and preserving another current context. Move between frames;
+  a moved-from host supports only destruction or assignment. Before replacing a destination that
+  used the public-RHI renderer, call `ReleaseRenderer` while its borrowed device remains alive.
+  `editor.imgui_context_lifetime` verifies move assignment/construction, self-move, current-context
+  restoration, and zero outstanding ImGui allocations after all owners are destroyed.
 - Modular builds expose Dear ImGui as one shared dependency so `NexoraEditorImGui` and each
   host/test executable observe the same process-global context; Monolithic builds keep it as one
   statically linked dependency inside the executable.

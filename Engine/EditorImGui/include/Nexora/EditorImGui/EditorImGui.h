@@ -96,6 +96,8 @@ struct RendererMetrics final {
 
 // Owns exactly one Dear ImGui context. All methods are serialized and must be called from the
 // window owner thread. Draw data is borrowed until BeginFrame() or destruction.
+// Move between frames; moved-from hosts support only destruction or assignment. Release the
+// destination's public-RHI renderer before move assignment while its device is still alive.
 class NEXORA_EDITOR_IMGUI_API EditorImGuiHost final {
 public:
   EditorImGuiHost();
