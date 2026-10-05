@@ -138,6 +138,16 @@ void Run() {
     Require(!ValidatePbrData(pbr), "invalid mirror radius accepted");
   }
   pbr.planarReflection = ScenePlanarReflection{};
+  for (const float invalid : {-0.01F, 0.21F, std::numeric_limits<float>::infinity(),
+                              std::numeric_limits<float>::quiet_NaN()}) {
+    pbr.planarReflection->shorelineVariation = invalid;
+    Require(!ValidatePbrData(pbr), "invalid shoreline variation accepted");
+  }
+  pbr.planarReflection->shorelineVariation = 0.18F;
+  Require(ValidatePbrData(pbr), "bounded shoreline variation rejected");
+  Require(PackPbrMaterial(pbr, SceneMaterial{}, false)[77] == 0.18F,
+          "shoreline upload differs from shader constants");
+  pbr.planarReflection = ScenePlanarReflection{};
   pbr.planarReflection->reflectance = 1.1F;
   Require(!ValidatePbrData(pbr), "unbounded mirror reflectance accepted");
   pbr.planarReflection = ScenePlanarReflection{};
@@ -184,6 +194,23 @@ void Run() {
   Require(translucentPacked[72] == 0.5F && translucentPacked[73] == 0.2F &&
               translucentPacked[74] == 0.4F && translucentPacked[75] == 0.6F,
           "transparency upload layout differs from shader constants");
+  pbr.materials = {};
+  pbr.materials = reflectionMaterials;
+  for (const float invalid : {-1.0F, 17.0F, std::numeric_limits<float>::quiet_NaN()}) {
+    reflectionMaterials[0].worldTextureScale = invalid;
+    Require(!ValidateSceneMaterials(reflectionMaterials, {}),
+            "invalid world texture scale accepted");
+  }
+  reflectionMaterials[0].worldTextureScale = 0.5F;
+  reflectionMaterials[0].opacity = 1;
+  const auto mappedPacked = PackPbrMaterial(pbr, reflectionMaterials[0], false);
+  Require(mappedPacked[76] == 0.5F && mappedPacked[77] == 0 && mappedPacked[78] == 0 &&
+              mappedPacked[79] == 0,
+          "world mapping layout differs from shader constants");
+  pbr.pbr = false;
+  pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "Lambert world mapping accepted");
+  pbr.pbr = pbr.hdr = true;
   pbr.materials = {};
   pbr.shadow = SceneDirectionalShadow{};
   Require(ValidatePbrData(pbr), "valid shadow rejected");

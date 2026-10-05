@@ -3,10 +3,10 @@
   "source": "source.json",
   "author": "Nexora repository contributors",
   "license": "Repository LICENSE",
-  "source_sha256": "e8de1657fff62b44e46961fdc1150212cf8d3b669c1071a37c760aa6fd77297a",
+  "source_sha256": "46e1612ebcadffb80a393a1f656573edcd738d6a435e21dd1c69544535f00add",
   "license_sha256": "1efea8712186f4d30e3a444bb709213b33a8706e371ddd2a9c6be38ce83f40e1",
-  "converter_sha256": "8605152baa302f66852cd633c81854345389e6dd8067bd7fadfb59d5d967cbe2",
-  "sky_converter_sha256": "8d8590dfcc660ea1c8c6925847cf0bd19af2b09b12d61be7ee8420251329172b",
+  "converter_sha256": "f9a3d85d655ab6422e22c070b13244090e0d232eee94f1a38b88f8a21ebad272",
+  "sky_converter_sha256": "9c8dc8c1c20ddeb04cad78ffb10bae9fb4607d294fcb5635abae805e60c72a1a",
   "derived": {
     "crystal.showcase": "af5fed81ff97bae9f545987ed93a792311a626496673d1d5c9aa112a2cd5de8f",
     "stone-color.rgba": "38cfa7f1c127cc6576acf287a590ec11b7ae80ec89df3c63ff4b3eaae1272631",
@@ -17,12 +17,13 @@
     "bronze-orm.rgba": "9774b5df26be749264dea97f1d8829b8d2a3e1adbf3797d3a4e43178c79b134a",
     "leaf.rgba": "20368dec988754f35e3394b75fcc173b0b3af468db7c0f62c79a584185f87a44",
     "mote.rgba": "0cd9c6c3b9b1ed5b4754c0b6042c94f2740a2ca6725c49c15be4b7c75499a9ca",
-    "sky.rgba": "6e739a85566dafdbcfa655263a6be95183c0cf90e1fd3130f710386e904e6c21"
+    "sky.rgba": "abd994a2b5348ed290c60d6465a3404e256b893ba91525c0c6a8a96fdd616010"
   },
   "authored_sources": {
     "Source/sandstone-albedo.png": "76a80009a88c8b6e342987f181bac9bb7afa270902c16d049a08d95b97799270",
     "Source/sandstone-height.png": "397869c1b8b7b6162382a2fdc9eacb8cc4f3de032795746dd871efdb33fc7817",
-    "Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76"
+    "Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+    "Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d"
   },
   "image_cook_sha256": "5c0c9cd9345beb138a4238b9bd1c3d05d1069bf3e3703952164f609f0c282b64"
 }

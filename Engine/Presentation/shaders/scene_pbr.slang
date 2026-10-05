@@ -31,6 +31,7 @@ struct MaterialConstants
   float4 reflectionRegion0; // center x/z, radius x/z
   float4 reflectionRegion1;
   float4 transparency; // coverage, linear RGB transmission attenuation
+  float4 worldMapping; // base/ORM triplanar repeats per world unit; shoreline variation; two reserved
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
 [[vk::binding(0, 0)]] Sampler2D<float4> baseMap : register(t0);
@@ -115,10 +116,23 @@ VertexOutput pbrVertexMain(VertexInput input)
   output.color = input.color;
   return output;
 }
+// Share cutout sampling between visible and shadow passes, including world projection.
+float3 worldMapWeights(float3 normal) {
+  float3 weight = abs(NexoraSafeNormalize(normal));
+  return weight / max(0.00001, weight.x + weight.y + weight.z);
+}
+float4 sampleBaseMap(VertexOutput input) {
+  if (material.worldMapping.x <= 0) return baseMap.Sample(input.uv);
+  float3 position = input.worldPosition * material.worldMapping.x;
+  float3 weight = worldMapWeights(input.normal);
+  return baseMap.Sample(frac(position.zy)) * weight.x +
+      baseMap.Sample(frac(position.xz)) * weight.y +
+      baseMap.Sample(frac(position.xy)) * weight.z;
+}
 [shader("fragment")]
 float4 shadowFragmentMain(VertexOutput input) : SV_Target {
   if (material.vegetation.z > 0 &&
-      NexoraEvaluateVegetationAlpha(baseMap.Sample(input.uv).a, material.vegetation.z) == 0)
+      NexoraEvaluateVegetationAlpha(sampleBaseMap(input).a, material.vegetation.z) == 0)
     discard;
   return float4(input.position.z, 0, 0, 1);
 }
@@ -151,7 +165,9 @@ float4 outputSceneColor(float3 color, float3 worldPosition)
 }
 bool inReflectionRegion(float2 point, float4 region) {
   float2 offset = (point - region.xy) / max(region.zw, float2(0.00001));
-  return dot(offset, offset) <= 1;
+  float angle = atan2(offset.y, offset.x);
+  float edge = 1 - material.worldMapping.y * (0.5 + 0.3*sin(angle*7) + 0.2*sin(angle*11+0.9));
+  return dot(offset, offset) <= edge*edge;
 }
 bool reflectionMask(float3 renderedPosition) {
   float3 ray = renderedPosition - material.cameraPosition.xyz;
@@ -178,7 +194,9 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
     input.worldPosition.y = 2 * material.reflection.x - input.worldPosition.y;
   } else if (material.reflection.y > 0.5 &&
       input.worldPosition.y < material.reflection.x && reflectionMask(renderedPosition)) discard;
-  float4 baseSample = baseMap.Sample(input.uv);
+  float3 mapWeight = worldMapWeights(input.normal);
+  float3 mapPosition = input.worldPosition * material.worldMapping.x;
+  float4 baseSample = sampleBaseMap(input);
   if (material.vegetation.z > 0 &&
       NexoraEvaluateVegetationAlpha(baseSample.a, material.vegetation.z) == 0) discard;
   if (material.transmission.w > 0.5)
@@ -190,6 +208,10 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   float3 encoded = normalMap.Sample(input.uv).xyz;
   encoded.xy = (encoded.xy - 0.5) * material.properties.z + 0.5;
   float3 orm = ormMap.Sample(input.uv).xyz;
+  if (material.worldMapping.x > 0)
+    orm = ormMap.Sample(frac(mapPosition.zy)).xyz * mapWeight.x +
+        ormMap.Sample(frac(mapPosition.xz)).xyz * mapWeight.y +
+        ormMap.Sample(frac(mapPosition.xy)).xyz * mapWeight.z;
   NexoraPbrMaterial surface;
   surface.baseColor = baseSample.rgb * material.baseColor.rgb * input.color.rgb;
   surface.normal = NexoraDecodeTangentNormal(encoded, t, b, n);

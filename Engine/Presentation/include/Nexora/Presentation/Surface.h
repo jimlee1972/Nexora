@@ -191,6 +191,7 @@ struct SceneMaterial final {
   SceneReflectionRole reflectionRole{}; // Horizontal planar mirror mask; opt-in PBR only.
   float opacity{1}; // Linear HDR blend coverage; below 1 requires non-casting HDR PBR.
   std::array<float, 3> transparencyTint{1, 1, 1}; // Linear attenuation of the transmitted scene.
+  float worldTextureScale{}; // Base/ORM triplanar repeats per world unit; zero keeps mesh UVs.
 };
 
 [[nodiscard]] inline bool ValidateSceneMaterials(std::span<const SceneMaterial> materials,
@@ -210,6 +211,9 @@ struct SceneMaterial final {
     for (const auto value : {material.metallic, material.roughness, material.occlusion})
       if (!std::isfinite(value) || value < 0 || value > 1)
         return false;
+    if (!std::isfinite(material.worldTextureScale) || material.worldTextureScale < 0 ||
+        material.worldTextureScale > 16)
+      return false;
     if (!std::isfinite(material.normalScale) || material.normalScale < 0 ||
         material.normalScale > 4)
       return false;
@@ -310,6 +314,7 @@ struct ScenePlanarReflection final {
   float reflectance{0.04F}; // Fresnel F0; reflected surfaces use a dark water substrate.
   std::array<SceneReflectionEllipse, 2> regions{};
   std::uint32_t regionCount{1}; // One or two bounded non-recursive water regions.
+  float shorelineVariation{};   // Inward contour variation [0,0.2]; zero preserves ellipses.
 };
 struct SceneDepthOfField final {
   float focusDistance = 10.0F; // World units, measured from cameraPosition.

@@ -979,3 +979,10 @@ reference art and physical target acceptance remain open (VIS 5/7).
 
 The crystal now supports tinted linear HDR transparency and U comparison. Native fixtures verify coverage, transmitted color and restoration before tone mapping. Reference-image parity remains open (VIS 5/7).
 水晶加入帶色線性 HDR 透明合成與 U 比較；原生檢查驗證覆蓋率、透光色與還原。預覽圖一致性仍待完成（VIS 5/7）。
+
+
+World-projected stone maps now preserve detail across columns and paving; an original cloud
+panorama feeds both skybox and derived HDR environment light. Bounded shoreline contours and
+pedestal relief refine the scene. Reference parity remains under development (VIS 5/7).
+世界座標石材貼圖改善柱體與鋪面的細節；原創雲層全景同時供 skybox 與衍生 HDR 環境光使用。
+水岸輪廓與基座浮雕持續調整；預覽圖一致性仍在製作，VIS 維持 5/7。
