@@ -776,20 +776,20 @@ struct RoomSession::State final {
       const float high = -math::kPi / 2 + math::kPi * (band + 1) / skyBands;
       for (unsigned side = 0; side < skySides; ++side) {
         const float a = 2 * math::kPi * side / skySides, b = 2 * math::kPi * (side + 1) / skySides;
-        const auto base = static_cast<std::uint16_t>(vertices.size());
+        const auto skyBase = static_cast<std::uint16_t>(vertices.size());
         const std::array<std::array<float, 2>, 4> angles{
             {{a, low}, {b, low}, {b, high}, {a, high}}};
         for (std::size_t corner = 0; corner < 4; ++corner) {
-          const auto [yaw, pitch] = angles[corner];
-          const math::Vector3 n{std::cos(pitch) * std::cos(yaw), std::sin(pitch),
-                                std::cos(pitch) * std::sin(yaw)};
+          const auto [skyAzimuth, skyLatitude] = angles[corner];
+          const math::Vector3 n{std::cos(skyLatitude) * std::cos(skyAzimuth), std::sin(skyLatitude),
+                                std::cos(skyLatitude) * std::sin(skyAzimuth)};
           vertices.push_back(
               {{n.x * 60, n.y * 60, n.z * 60},
                {-n.x, -n.y, -n.z},
                {corner == 0 || corner == 3 ? 0.0F : 1.0F, corner < 2 ? 0.0F : 1.0F}});
         }
         for (const auto index : {0, 1, 2, 0, 2, 3})
-          indices.push_back(static_cast<std::uint16_t>(base + index));
+          indices.push_back(static_cast<std::uint16_t>(skyBase + index));
       }
       finish(6 + band);
     }
