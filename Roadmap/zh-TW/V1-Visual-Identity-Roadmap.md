@@ -500,6 +500,7 @@ Linux 原生整合：✅ 完整 configure／build 與 97/97 測試通過（103.9
 證據：[VIS-Courtyard-Masonry-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Masonry-Linux-2026-10-05)。來源凍結 `e5bb13119ba1`，保留確切來源與套件雜湊。
 
 
-MSVC 測試可攜性修正：點光源填充值與雙面法線條件式改用明確浮點值。✅ Linux configure／build
-與完整 97/97 通過（102.62 秒），包含 85 個原生 PBR 畫面與 core／同步驗證。測試數值與
-Runtime 來源不變；既有 Shipping 證據保留原本來源凍結。Windows CI 重新驗證中。
+MSVC 測試可攜性修正：明確浮點初值避免 C4244，測試數值與 Runtime 來源不變。✅ 點光源
+階段 Linux configure／build 與 97/97 通過（102.20 秒）；石砌階段完整 97/97 通過（102.62 秒）。
+兩者都包含 85 個原生 PBR 畫面與 core／同步驗證，各階段證據的 `msvc-literals/` 保留 log
+及確切 fixture 雜湊。Shipping／影片保留各自來源凍結；Windows CI 重新驗證中。

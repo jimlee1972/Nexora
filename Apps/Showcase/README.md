@@ -618,7 +618,9 @@ Linux native integration: ✅ full configure/build and 97/97 tests pass (103.93 
 Evidence: [VIS-Courtyard-Masonry-Linux-2026-10-05](evidence/VIS-Courtyard-Masonry-Linux-2026-10-05). Production freeze `e5bb13119ba1`; exact source and package hashes are retained.
 
 
-MSVC fixture portability follow-up: point-light fill and two-sided normal conditionals use
-floating literals. ✅ Linux configure/build and full 97/97 pass (102.62 seconds), including
-85 native PBR frames with core/sync validation. Test values and runtime sources are unchanged;
-retained Shipping evidence keeps its production freeze. Windows CI recheck is pending.
+MSVC fixture portability follow-up: explicit float initializers avoid C4244 with unchanged
+test values and runtime sources. ✅ Point-light Linux configure/build and 97/97 pass in
+102.20 seconds; masonry configure/build and 97/97 pass in 102.62 seconds. Both include
+85 native PBR frames with core/sync validation. Each stage retains logs and fixture hashes
+in its evidence `msvc-literals/` directory. Shipping/movie keep their production freezes;
+Windows CI recheck is pending.
