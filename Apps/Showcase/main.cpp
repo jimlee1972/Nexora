@@ -53,6 +53,7 @@ struct CommandLine final {
   bool clean_view{};
   bool reload{true};
   bool frames_explicit{};
+  bool scene_explicit{};
   std::size_t frames{4};
   std::string mode{"interactive"};
   std::string scene{"hub"};
@@ -277,8 +278,8 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       }
     } else if (argument.starts_with("--tour=")) {
       command.tour = argument.substr(7);
-      if (command.tour != "v1") {
-        error = "--tour must be v1";
+      if (command.tour != "v1" && command.tour != "visual") {
+        error = "--tour must be v1 or visual";
         return false;
       }
     } else if (argument.starts_with("--vsync=")) {
@@ -308,6 +309,7 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       }
       command.headless = command.mode == "headless";
     } else if (argument.starts_with("--scene=")) {
+      command.scene_explicit = true;
       command.scene = std::string(argument.substr(8));
       if (command.scene != "hub" && command.scene != "tour" && command.scene != "rendering" &&
           command.scene != "input" && command.scene != "shipping" && command.scene != "platform" &&
@@ -349,6 +351,14 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       return false;
     }
   }
+  if (command.tour == "visual") {
+    command.scene = "courtyard";
+    if (!command.headless)
+      command.mode = "tour";
+  } else if (!command.headless && !command.scene_explicit && command.tour.empty() &&
+             command.mode != "tour")
+    command.scene = "courtyard";
+
   return true;
 }
 
@@ -369,7 +379,7 @@ void PrintUsage() {
                "  --gameplay-module=auto|static|dynamic select Zig artifact ownership\n"
                "  --gameplay-library=PATH     override the dynamic Zig artifact path\n"
                "  --capabilities=auto|minimal override the gallery capability probe\n"
-               "  --tour=v1                  select the 210-second pausable guided tour\n"
+               "  --tour=visual|v1           100-second courtyard / 210-second engineering tour\n"
                "  --probe=v1.M0..v1.M12      rerun one live integration probe\n"
                "  --markdown=PATH            export the live probe results as Markdown\n"
                "  --clean-view               start without diagnostic UI\n  --vsync=on|off         "
@@ -678,7 +688,7 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
                               ? std::numeric_limits<std::size_t>::max()
                               : command.frames;
   std::size_t executedFrames = 0;
-  showcase::RoomSession rooms(command.scene, command.mode == "tour" || command.tour == "v1",
+  showcase::RoomSession rooms(command.scene, command.mode == "tour" || !command.tour.empty(),
                               command.capabilities == "minimal", command.plugin_library.string());
   rooms.SetScreenshotMode(command.clean_view);
   showcase::FrameProfiler profiler;
@@ -800,6 +810,8 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
         return false;
       }
     }
+    if (command.tour == "visual" && rooms.TourComplete())
+      break;
   }
 
   if (!command.probe.empty()) {

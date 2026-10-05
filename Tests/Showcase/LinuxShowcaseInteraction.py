@@ -15,8 +15,8 @@ from LinuxVirtualDisplaySmoke import start_xvfb, unavailable
 
 
 def screenshot(window: int, width: int, height: int, output: Path) -> bytes:
-    # Xvfb is explicitly started with a 24-bit TrueColor screen. XGetPixel removes byte-order,
-    # stride and padding assumptions; the fixed visual's RGB masks are 0xff0000/0xff00/0xff.
+    # Xvfb is explicitly started with a 24-bit TrueColor screen. XImage metadata bounds the bulk decode;
+    # native XGetPixel cross-checks it, with the original per-pixel path retained as a fallback.
     x11 = ctypes.CDLL('libX11.so.6')
     x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
     x11.XOpenDisplay.restype = ctypes.c_void_p
@@ -34,13 +34,41 @@ def screenshot(window: int, width: int, height: int, output: Path) -> bytes:
     if not image:
         x11.XCloseDisplay(display)
         raise RuntimeError('Cannot capture Showcase window')
+    class XImagePrefix(ctypes.Structure):
+        _fields_ = [('width',ctypes.c_int),('height',ctypes.c_int),('xoffset',ctypes.c_int),
+          ('format',ctypes.c_int),('data',ctypes.c_void_p),('byte_order',ctypes.c_int),
+          ('bitmap_unit',ctypes.c_int),('bitmap_bit_order',ctypes.c_int),('bitmap_pad',ctypes.c_int),
+          ('depth',ctypes.c_int),('bytes_per_line',ctypes.c_int),('bits_per_pixel',ctypes.c_int),
+          ('red_mask',ctypes.c_ulong),('green_mask',ctypes.c_ulong),('blue_mask',ctypes.c_ulong)]
     raw = bytearray()
     try:
-        for y in range(height):
-            raw.append(0)  # PNG filter None
-            for x in range(width):
-                value = x11.XGetPixel(image, x, y)
-                raw.extend(((value >> 16) & 255, (value >> 8) & 255, value & 255))
+        metadata = ctypes.cast(image,ctypes.POINTER(XImagePrefix)).contents
+        fast = (metadata.width == width and metadata.height == height and metadata.xoffset == 0
+                and metadata.format == 2 and metadata.depth == 24 and metadata.bits_per_pixel == 32
+                and metadata.byte_order in (0,1) and metadata.red_mask == 0xff0000
+                and metadata.green_mask == 0xff00 and metadata.blue_mask == 0xff
+                and width*4 <= metadata.bytes_per_line <= width*4+256
+                and metadata.bytes_per_line*height <= 64*1024*1024 and metadata.data)
+        if fast:
+            data = ctypes.string_at(metadata.data,metadata.bytes_per_line*height)
+            red,green,blue = (2,1,0) if metadata.byte_order == 0 else (1,2,3)
+            for y in range(height):
+                row=data[y*metadata.bytes_per_line:y*metadata.bytes_per_line+width*4]
+                line=bytearray(width*3+1) # PNG filter None, followed by RGB.
+                line[1::3]=row[red::4];line[2::3]=row[green::4];line[3::3]=row[blue::4]
+                raw.extend(line)
+            # Cross-check actual native XGetPixel values, independently of the bulk byte decoding.
+            for y in (0,height//3,height//2,height-1):
+                for x in (0,width//3,width//2,width-1):
+                    value=x11.XGetPixel(image,x,y)
+                    offset=y*(width*3+1)+1+x*3
+                    assert raw[offset:offset+3] == bytes(((value>>16)&255,(value>>8)&255,value&255))
+        else:
+            for y in range(height):
+                raw.append(0)
+                for x in range(width):
+                    value=x11.XGetPixel(image,x,y)
+                    raw.extend(((value>>16)&255,(value>>8)&255,value&255))
     finally:
         x11.XDestroyImage(image)
         x11.XCloseDisplay(display)
@@ -122,7 +150,7 @@ def main():
             environment = os.environ.copy()
             environment['DISPLAY'] = display
             report, markdown = output / 'interactive.json', output / 'interactive.md'
-            app = subprocess.Popen([executable, '--mode=interactive', '--backend=vulkan',
+            app = subprocess.Popen([executable, '--mode=interactive', '--scene=hub', '--backend=vulkan',
                 '--gameplay-module=static', '--no-reload', f'--report={report}',
                 f'--markdown={markdown}'], env=environment, stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE, text=True, cwd=temporary)
@@ -263,6 +291,15 @@ def main():
             time.sleep(0.2)
             replay = compared_screenshot(window,1280,720,output/'courtyard-wide-replay.png',courtyard_wide,True)
             assert replay == courtyard_wide, 'Fixed wide camera did not reproduce native pixels'
+
+            tool('key','--window',window,'c')
+            free_start=compared_screenshot(window,1280,720,output/'courtyard-free-camera.png',courtyard_wide,False)
+            tool('keydown','--window',window,'w')
+            time.sleep(0.25)
+            tool('keyup','--window',window,'w')
+            compared_screenshot(window,1280,720,output/'courtyard-free-moved.png',free_start,False)
+            tool('key','--window',window,'r')
+            compared_screenshot(window,1280,720,output/'courtyard-free-restored.png',courtyard_wide,True)
             tool('key','--window',window,'Return')
             time.sleep(0.3)
             activated=compared_screenshot(window,1280,720,output/'courtyard-activated.png',courtyard_wide,False)
@@ -299,7 +336,7 @@ def main():
             shutil.copy2(exported, output/'lab-export.json')
             shutil.copy2(Path(temporary)/'showcase-lab.md', output/'lab-export.md')
             tool('key','--window',window,'Tab','Tab','Tab','Tab','Tab','Tab','i','r','F3')
-            tool('key','--window',window,'v','b','h','t','space','r')
+            tool('key','--window',window,'1','v','b','h','t','space','r')
             tool('windowsize',window,960,540)
             time.sleep(0.2)
             screenshot(window,960,540,output/'resized-hub.png')
@@ -321,9 +358,9 @@ def main():
             assert markdown.is_file() and 'M12' in markdown.read_text()
             (output/'acceptance.json').write_text(json.dumps({
                 'scope':'Linux Xvfb/lavapipe native interaction; no physical display or Windows claim',
-                'courtyard_living_replay':True,'courtyard_wind_comparison':True,'courtyard_transmission_comparison':True,'courtyard_bloom_comparison':True,'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_ibl_comparison':True,'courtyard_hdr_exposure':True,'courtyard_shadow_comparison':True,'courtyard_tone_comparison':True,'courtyard_material_comparison':True,
+                'courtyard_free_camera':True,'courtyard_living_replay':True,'courtyard_wind_comparison':True,'courtyard_transmission_comparison':True,'courtyard_bloom_comparison':True,'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_ibl_comparison':True,'courtyard_hdr_exposure':True,'courtyard_shadow_comparison':True,'courtyard_tone_comparison':True,'courtyard_material_comparison':True,
                 'courtyard':rooms['courtyard'],
-                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-bloom-off.png','courtyard-bloom-restored.png','courtyard-shadow-off.png','courtyard-shadow-restored.png','courtyard-neutral.png','courtyard-styled-restored.png','courtyard-exposure.png','courtyard-exposure-restored.png','courtyard-direct.png','courtyard-ibl-restored.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png','courtyard-activated.png','courtyard-paused.png','courtyard-animated.png','courtyard-animation-replay.png','courtyard-inactive.png','courtyard-wind-off.png','courtyard-wind-restored.png','courtyard-transmission-off.png','courtyard-transmission-restored.png'],
+                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-bloom-off.png','courtyard-bloom-restored.png','courtyard-shadow-off.png','courtyard-shadow-restored.png','courtyard-neutral.png','courtyard-styled-restored.png','courtyard-exposure.png','courtyard-exposure-restored.png','courtyard-direct.png','courtyard-ibl-restored.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png','courtyard-activated.png','courtyard-paused.png','courtyard-animated.png','courtyard-animation-replay.png','courtyard-inactive.png','courtyard-free-camera.png','courtyard-free-moved.png','courtyard-free-restored.png','courtyard-wind-off.png','courtyard-wind-restored.png','courtyard-transmission-off.png','courtyard-transmission-restored.png'],
                 'windowed_evidence':native,'build':evidence['build']},indent=2)+'\n')
             print(json.dumps({'native':native,'visited':rooms['visited'],'evidence_directory':str(output)},indent=2))
             return 0

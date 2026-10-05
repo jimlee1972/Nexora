@@ -125,6 +125,8 @@ struct RoomSession::State final {
   float courtyardExposure = 1.0F;
   bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true};
   bool courtyardPaused{}, courtyardActive{}, courtyardWind{true}, courtyardTransmission{true};
+  bool visualTour{}, courtyardFreeCamera{}, courtyardCompare{};
+  math::Vector3 freeEye{};
   double courtyardSeconds{};
   std::size_t courtyardParticleCount{};
   float courtyardShadowBias = 0.0008F;
@@ -572,6 +574,7 @@ struct RoomSession::State final {
     lastAction = "Entered " + selected;
   }
   void CourtyardCamera(std::size_t shot) {
+    courtyardFreeCamera = false;
     courtyardShot = shot % 3;
     constexpr std::array<float, 3> yaws{0.58F, -0.35F, 0.12F};
     constexpr std::array<float, 3> pitches{0.40F, 0.26F, 0.20F};
@@ -654,6 +657,25 @@ struct RoomSession::State final {
       for (const auto index : {0, 1, 2, 0, 2, 3})
         indices.push_back(static_cast<std::uint16_t>(base + index));
     }
+  }
+  void VisualTourCamera() {
+    constexpr std::array<std::array<float, 4>, 6> route{{{0, .58F, .40F, 18},
+                                                         {25, .05F, .35F, 15},
+                                                         {45, -.35F, .26F, 9},
+                                                         {65, .12F, .20F, 11},
+                                                         {80, -.45F, .32F, 13},
+                                                         {100, .58F, .40F, 18}}};
+    std::size_t segment = 0;
+    while (segment + 2 < route.size() && tourSeconds >= route[segment + 1][0])
+      ++segment;
+    const auto &a = route[segment], &b = route[segment + 1];
+    float t = std::clamp((static_cast<float>(tourSeconds) - a[0]) / (b[0] - a[0]), 0.0F, 1.0F);
+    t = t * t * (3 - 2 * t);
+    yaw = a[1] + (b[1] - a[1]) * t;
+    pitch = a[2] + (b[2] - a[2]) * t;
+    radius = a[3] + (b[3] - a[3]) * t;
+    tourStep = segment;
+    courtyardActive = tourSeconds >= 75;
   }
   void LeafQuad(math::Vector3 center, float halfWidth, float height, float angle) {
     const auto base = static_cast<std::uint16_t>(vertices.size());
@@ -1368,6 +1390,12 @@ RoomSession::RoomSession(std::string scene, bool tour, bool minimal, std::string
   state_->minimal = minimal;
   state_->tour = tour;
   state_->SelectRoom(scene);
+  state_->visualTour = tour && scene == "courtyard";
+  if (scene == "courtyard") {
+    state_->overview = state_->profiler = false;
+    if (tour)
+      ReplayTour();
+  }
 }
 RoomSession::~RoomSession() = default;
 void RoomSession::SetScreenshotMode(bool enabled) { state_->screenshotMode = enabled; }
@@ -1378,7 +1406,23 @@ void RoomSession::ReplayTour() {
   state_->paused = false;
   state_->tourSeconds = 0;
   state_->tourStep = 0;
-  Select("hub");
+  if (state_->selected == "courtyard" || state_->visualTour) {
+    state_->visualTour = true;
+    state_->courtyardPaused = false;
+    state_->courtyardSeconds = 0;
+    state_->courtyardActive = false;
+    state_->courtyardPbr = state_->courtyardIbl = state_->courtyardShadows = true;
+    state_->courtyardBloom = state_->courtyardStyled = true;
+    state_->courtyardWind = state_->courtyardTransmission = true;
+    state_->courtyardExposure = 1;
+    state_->courtyardShadowBias = 0.0008F;
+    Select("courtyard");
+    state_->CourtyardCamera(0);
+  } else
+    Select("hub");
+}
+bool RoomSession::TourComplete() const noexcept {
+  return state_->tour && state_->paused && state_->tourSeconds >= (state_->visualTour ? 100 : 210);
 }
 void RoomSession::RerunProbe(std::size_t milestone, ErrorInjection injection) {
   state_->Probe(milestone, injection);
@@ -1405,7 +1449,8 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
   if (event.type == Type::Pointer) {
     if (s.dragging) {
       s.yaw += (event.value0 - s.pointerX) * 0.005F;
-      s.pitch = std::clamp(s.pitch + (event.value1 - s.pointerY) * 0.005F, 0.1F, 1.2F);
+      s.pitch = std::clamp(s.pitch + (event.value1 - s.pointerY) * 0.005F,
+                           s.courtyardFreeCamera ? -1.2F : 0.1F, 1.2F);
       ++s.cameraMoves;
     }
     s.pointerX = event.value0;
@@ -1431,14 +1476,24 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
   if (!s.held.insert(key).second)
     return;
   if (key >= Key::Digit1 && key <= Key::Digit8) {
-    s.tour = false;
+    s.tour = s.visualTour = false;
     Select(rooms[static_cast<std::size_t>(key) - static_cast<std::size_t>(Key::Digit1)]);
   }
   if (key == Key::Digit9) {
-    s.tour = false;
+    s.tour = s.visualTour = false;
     Select("courtyard");
   }
-  if (s.selected == "courtyard" && key == Key::Space)
+  if (s.selected == "courtyard" && key == Key::C) {
+    s.tour = false;
+    s.visualTour = false;
+    s.courtyardFreeCamera = !s.courtyardFreeCamera;
+    if (s.courtyardFreeCamera)
+      s.freeEye = {s.radius * std::sin(s.yaw) * std::cos(s.pitch), s.radius * std::sin(s.pitch),
+                   s.radius * std::cos(s.yaw) * std::cos(s.pitch)};
+  }
+  if (s.selected == "courtyard" && key == Key::H)
+    s.courtyardCompare = !s.courtyardCompare;
+  if (s.selected == "courtyard" && !s.tour && key == Key::Space)
     s.courtyardPaused = !s.courtyardPaused;
   if (s.selected == "courtyard" && key == Key::Enter)
     s.courtyardActive = !s.courtyardActive;
@@ -1446,8 +1501,10 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.courtyardWind = !s.courtyardWind;
   if (s.selected == "courtyard" && key == Key::M)
     s.courtyardTransmission = !s.courtyardTransmission;
-  if (s.selected == "courtyard" && key == Key::B)
+  if (s.selected == "courtyard" && key == Key::B) {
+    s.tour = s.visualTour = false;
     s.CourtyardCamera(s.courtyardShot + 1);
+  }
   if (s.selected == "courtyard" && key == Key::P) {
     s.courtyardPbr = !s.courtyardPbr;
     s.lastAction = s.courtyardPbr ? "PBR materials" : "Lambert material comparison";
@@ -1593,7 +1650,7 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
                               : platform::AppState::Foreground);
     s.lastAction = "Lifecycle transition";
   }
-  if (key == Key::H) {
+  if (key == Key::H && s.selected != "courtyard") {
     const auto pressure = s.platform.CurrentPolicy().reduce_quality;
     s.platform.SetPressure(
         pressure ? platform::ThermalState::Nominal : platform::ThermalState::Serious,
@@ -1609,14 +1666,22 @@ void RoomSession::Tick(double seconds) {
     throw std::invalid_argument("Invalid showcase delta");
   ++s.ticks;
   s.clock += seconds;
-  if (s.selected == "courtyard" && !s.courtyardPaused)
+  if (s.selected == "courtyard" && !s.courtyardPaused && !s.visualTour)
     s.courtyardSeconds = std::fmod(s.courtyardSeconds + seconds, 3600.0);
   if (s.tour && !s.paused) {
-    s.tourSeconds += seconds;
-    s.tourStep = std::min<std::size_t>(6, static_cast<std::size_t>(s.tourSeconds / 30));
-    s.SelectRoom(tourRooms[s.tourStep]);
-    if (s.tourSeconds >= 210)
-      s.paused = true;
+    if (s.visualTour) {
+      s.tourSeconds = std::min(100.0, s.tourSeconds + seconds);
+      s.courtyardSeconds = s.tourSeconds;
+      s.VisualTourCamera();
+      if (s.tourSeconds >= 100)
+        s.paused = true;
+    } else {
+      s.tourSeconds += seconds;
+      s.tourStep = std::min<std::size_t>(6, static_cast<std::size_t>(s.tourSeconds / 30));
+      s.SelectRoom(tourRooms[s.tourStep]);
+      if (s.tourSeconds >= 210)
+        s.paused = true;
+    }
   }
   for (const auto key : {Key::W, Key::A, Key::S, Key::D})
     if (s.held.contains(key)) {
@@ -1638,7 +1703,20 @@ void RoomSession::Tick(double seconds) {
     const auto found = controls.find(name);
     return found == controls.end() ? 0.0F : found->second;
   };
-  if (s.selected != "gameplay") {
+  if (s.selected == "courtyard" && s.courtyardFreeCamera) {
+    const math::Vector3 forward{-std::sin(s.yaw) * std::cos(s.pitch), -std::sin(s.pitch),
+                                -std::cos(s.yaw) * std::cos(s.pitch)};
+    const math::Vector3 right{std::cos(s.yaw), 0, -std::sin(s.yaw)};
+    s.freeEye = s.freeEye + (right * axis("move-x") - forward * axis("move-z")) *
+                                static_cast<float>(seconds) * 3;
+    if (s.held.contains(Key::UpArrow))
+      s.freeEye.y += static_cast<float>(seconds) * 3;
+    if (s.held.contains(Key::DownArrow))
+      s.freeEye.y -= static_cast<float>(seconds) * 3;
+    s.freeEye.x = std::clamp(s.freeEye.x, -50.0F, 50.0F);
+    s.freeEye.y = std::clamp(s.freeEye.y, 0.2F, 50.0F);
+    s.freeEye.z = std::clamp(s.freeEye.z, -50.0F, 50.0F);
+  } else if (s.selected != "gameplay" && !(s.tour && s.visualTour)) {
     s.yaw += axis("move-x") * static_cast<float>(seconds);
     s.radius = std::clamp(s.radius + axis("move-z") * static_cast<float>(seconds) * 4, 5.0F, 30.0F);
   }
@@ -1888,12 +1966,17 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.Cube(0, 2, 0, 0.5F, 2, 0.5F);
     s.Cube(2, 0.6F, 0, 0.5F, 0.6F, 0.5F);
   }
-  const math::Vector3 eye{s.radius * std::sin(s.yaw) * std::cos(s.pitch),
-                          s.radius * std::sin(s.pitch),
-                          s.radius * std::cos(s.yaw) * std::cos(s.pitch)};
+  math::Vector3 eye{s.radius * std::sin(s.yaw) * std::cos(s.pitch), s.radius * std::sin(s.pitch),
+                    s.radius * std::cos(s.yaw) * std::cos(s.pitch)};
+  math::Vector3 target{0, s.selected == "courtyard" ? 2.0F : 0.8F, 0};
+  if (s.selected == "courtyard" && s.courtyardFreeCamera) {
+    eye = s.freeEye;
+    target = eye + math::Vector3{-std::sin(s.yaw) * std::cos(s.pitch), -std::sin(s.pitch),
+                                 -std::cos(s.yaw) * std::cos(s.pitch)};
+  }
   const auto mvp =
       math::PerspectiveRadians(0.85F, height ? static_cast<float>(width) / height : 1, 0.1F, 100) *
-      math::LookAt(eye, {0, s.selected == "courtyard" ? 2.0F : 0.8F, 0});
+      math::LookAt(eye, target);
   Nexora::Presentation::SceneDrawData data{};
   data.vertices = s.vertices;
   data.instances = s.instances;
@@ -1969,88 +2052,106 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
   s.uploads.clear();
   if (s.screenshotMode)
     return {};
-  s.Rect(0, 0, 1280, 112, 0xf0271a10);
-  s.Text(18, 14, s.localization.Resolve("title"), 0xffefdc80, 3);
-  s.Text(18, 45,
-         "9 courtyard / B shot / P material / O IBL / E exposure / F6 shadows / G tone / [ ] bias "
-         "/ F4 hide UI / F1 overview / F2 "
-         "profiler / F3 matrix");
-  for (std::size_t i = 0; i < rooms.size(); ++i) {
-    const float x = 18 + static_cast<float>(i) * 154;
-    s.Rect(x, 75, 146, 28, s.selected == rooms[i] ? 0xff996828 : 0xff453123);
-    s.Text(x + 8, 79, std::to_string(i + 1) + " " + std::string(rooms[i]), 0xffffffff, 1.2F);
-    s.Text(x + 8, 93,
-           s.minimal && i >= 4 ? "UNAVAILABLE" : (i == 5 || i == 7 ? "CONTRACT ONLY" : "PARTIAL"),
-           0xff8fd4ef, 0.9F);
-  }
-  if (s.overview) {
-    const auto lines = s.Lines();
-    s.Rect(18, 126, 740, static_cast<float>(lines.size()) * 22 + 22, 0xde241a10);
-    float y = 139;
-    for (const auto &line : lines) {
-      s.Text(30, y, line, 0xffe9ded4, 1.5F);
-      y += 22;
+  if (s.selected == "courtyard" && !s.overview && !s.profiler && !s.matrix) {
+    s.Rect(18, 642, 1244, 60, 0xde241a10);
+    s.Text(30, 652,
+           "B Shots / C Explore / T Tour / Space Pause / Enter Activate / H Compare / F4 Photo",
+           0xffe9ded4, 1.3F);
+    const std::string viewing = s.tour ? "Courtyard tour " + Number(s.tourSeconds) + " / 100 s"
+                                : s.courtyardFreeCamera ? "WASD Move / Drag Look / Arrows Up-Down"
+                                                        : "Drag Orbit / Wheel Zoom";
+    s.Text(30, 678, viewing, 0xffefdc80, 1.3F);
+    if (s.courtyardCompare) {
+      s.Rect(18, 531, 900, 100, 0xde241a10);
+      s.Text(30, 544, "P Materials / O Environment / F6 Shadows", 0xffe9ded4, 1.4F);
+      s.Text(30, 573, "K Glow / G Color / N Wind / M Backlight", 0xffe9ded4, 1.4F);
+      s.Text(30, 602, "Pause for fixed comparisons / R Replay / F1-F3 Details", 0xffefdc80, 1.2F);
     }
-  }
-  if (s.profiler) {
-    s.Rect(930, 126, 328, 242, 0xef241a10);
-    s.Text(945, 140, "Live frame / " + std::string(backend));
-    s.Text(945, 165, d.softwareRasterizer ? "Rasterizer software" : "Rasterizer hardware");
-    s.Text(945, 190, "Frame ms " + Number(frameMs));
-    s.Text(945, 215, "Acquire " + std::to_string(d.acquiredFrames));
-    s.Text(945, 240, "Present " + std::to_string(d.presentedFrames));
-    s.Text(945, 265, "Scene draws " + std::to_string(d.sceneDrawCalls));
-    s.Text(945, 290, "Instances " + std::to_string(d.sceneInstances));
-    s.Text(945, 315, "UI draws " + std::to_string(d.nativeUiDrawCalls));
-    s.Text(945, 340, "Build " + std::string(foundation::GetBuildId()).substr(0, 12), 0xffa5cedd,
-           1.5F);
-  }
-  if (s.matrix) {
-    s.Rect(18, 126, 1240, 475, 0xf8241a10);
-    s.Text(30, 139, "Lab / Tab select / R run / I error case / PgUp-PgDn details / X export");
-    float y = 166;
-    for (std::size_t m = 0; m < s.probes.size(); ++m) {
-      const auto &p = s.probes[m];
-      const auto color = p.status == ProbeStatus::Pass   ? 0xff92d786
-                         : p.status == ProbeStatus::Fail ? 0xff7777ee
-                                                         : 0xff8fd4ef;
-      s.Text(30, y,
-             (m == s.selectedProbe ? "> " : "  ") + p.milestone + " " +
-                 std::string(ToString(p.status)) + " / CTest NOT_RUN / PARTIAL",
-             color, 1.5F);
-      y += 23;
+  } else {
+    s.Rect(0, 0, 1280, 112, 0xf0271a10);
+    s.Text(18, 14, s.localization.Resolve("title"), 0xffefdc80, 3);
+    s.Text(
+        18, 45,
+        "9 courtyard / B shot / P material / O IBL / E exposure / F6 shadows / G tone / [ ] bias "
+        "/ F4 hide UI / F1 overview / F2 "
+        "profiler / F3 matrix");
+    for (std::size_t i = 0; i < rooms.size(); ++i) {
+      const float x = 18 + static_cast<float>(i) * 154;
+      s.Rect(x, 75, 146, 28, s.selected == rooms[i] ? 0xff996828 : 0xff453123);
+      s.Text(x + 8, 79, std::to_string(i + 1) + " " + std::string(rooms[i]), 0xffffffff, 1.2F);
+      s.Text(x + 8, 93,
+             s.minimal && i >= 4 ? "UNAVAILABLE" : (i == 5 || i == 7 ? "CONTRACT ONLY" : "PARTIAL"),
+             0xff8fd4ef, 0.9F);
     }
-    s.Text(30, y + 12, "Contract authority: CTest / green shows runtime integration only",
-           0xff8fd4ef, 1.5F);
-    const auto &selected = s.probes[s.selectedProbe];
-    s.Text(30, y + 36, selected.summary.substr(0, 85), 0xffe9ded4, 1.5F);
-    constexpr std::array<std::string_view, 5> errorNames{"None", "Empty asset (M5)", "Cycle (M5)",
-                                                         "Plugin ABI (M6)", "Rollback (M5/M12)"};
-    s.Text(620, 169, "Input: " + std::string(errorNames[static_cast<unsigned>(s.injection)]),
-           0xffefdc80, 1.5F);
-    s.Text(620, 192, "Run uses fresh owned state / output sampled at run", 0xffa5cedd, 1.5F);
-    const auto offset = std::min(s.metricOffset, selected.metrics.size());
-    float detailY = 221;
-    for (std::size_t i = offset; i < selected.metrics.size() && i < offset + 10; ++i) {
-      const auto &metric = selected.metrics[i];
-      s.Text(620, detailY, (metric.name + " = " + metric.value).substr(0, 65), 0xffe9ded4, 1.5F);
-      detailY += 23;
+    if (s.overview) {
+      const auto lines = s.Lines();
+      s.Rect(18, 126, 740, static_cast<float>(lines.size()) * 22 + 22, 0xde241a10);
+      float y = 139;
+      for (const auto &line : lines) {
+        s.Text(30, y, line, 0xffe9ded4, 1.5F);
+        y += 22;
+      }
     }
-    for (const auto &issue : selected.issues) {
-      if (detailY > 519)
-        break;
-      s.Text(620, detailY, (issue.code + ": " + issue.message).substr(0, 65), 0xff7777ee, 1.5F);
-      detailY += 23;
+    if (s.profiler) {
+      s.Rect(930, 126, 328, 242, 0xef241a10);
+      s.Text(945, 140, "Live frame / " + std::string(backend));
+      s.Text(945, 165, d.softwareRasterizer ? "Rasterizer software" : "Rasterizer hardware");
+      s.Text(945, 190, "Frame ms " + Number(frameMs));
+      s.Text(945, 215, "Acquire " + std::to_string(d.acquiredFrames));
+      s.Text(945, 240, "Present " + std::to_string(d.presentedFrames));
+      s.Text(945, 265, "Scene draws " + std::to_string(d.sceneDrawCalls));
+      s.Text(945, 290, "Instances " + std::to_string(d.sceneInstances));
+      s.Text(945, 315, "UI draws " + std::to_string(d.nativeUiDrawCalls));
+      s.Text(945, 340, "Build " + std::string(foundation::GetBuildId()).substr(0, 12), 0xffa5cedd,
+             1.5F);
     }
-    s.Text(620, 552, s.lastAction.substr(0, 65), 0xffa5cedd, 1.5F);
-  }
-  if (s.tour) {
-    s.Rect(18, 651, 1100, 50, 0xef241a10);
-    s.Text(30, 665,
-           "Guided tour " + Number(s.tourSeconds) + "/210 s / step " +
-               std::to_string(s.tourStep + 1) + "/7 / " + (s.paused ? "paused" : "running") +
-               " / Space pause / R replay",
-           0xffefdc80, 1.5F);
+    if (s.matrix) {
+      s.Rect(18, 126, 1240, 475, 0xf8241a10);
+      s.Text(30, 139, "Lab / Tab select / R run / I error case / PgUp-PgDn details / X export");
+      float y = 166;
+      for (std::size_t m = 0; m < s.probes.size(); ++m) {
+        const auto &p = s.probes[m];
+        const auto color = p.status == ProbeStatus::Pass   ? 0xff92d786
+                           : p.status == ProbeStatus::Fail ? 0xff7777ee
+                                                           : 0xff8fd4ef;
+        s.Text(30, y,
+               (m == s.selectedProbe ? "> " : "  ") + p.milestone + " " +
+                   std::string(ToString(p.status)) + " / CTest NOT_RUN / PARTIAL",
+               color, 1.5F);
+        y += 23;
+      }
+      s.Text(30, y + 12, "Contract authority: CTest / green shows runtime integration only",
+             0xff8fd4ef, 1.5F);
+      const auto &selected = s.probes[s.selectedProbe];
+      s.Text(30, y + 36, selected.summary.substr(0, 85), 0xffe9ded4, 1.5F);
+      constexpr std::array<std::string_view, 5> errorNames{"None", "Empty asset (M5)", "Cycle (M5)",
+                                                           "Plugin ABI (M6)", "Rollback (M5/M12)"};
+      s.Text(620, 169, "Input: " + std::string(errorNames[static_cast<unsigned>(s.injection)]),
+             0xffefdc80, 1.5F);
+      s.Text(620, 192, "Run uses fresh owned state / output sampled at run", 0xffa5cedd, 1.5F);
+      const auto offset = std::min(s.metricOffset, selected.metrics.size());
+      float detailY = 221;
+      for (std::size_t i = offset; i < selected.metrics.size() && i < offset + 10; ++i) {
+        const auto &metric = selected.metrics[i];
+        s.Text(620, detailY, (metric.name + " = " + metric.value).substr(0, 65), 0xffe9ded4, 1.5F);
+        detailY += 23;
+      }
+      for (const auto &issue : selected.issues) {
+        if (detailY > 519)
+          break;
+        s.Text(620, detailY, (issue.code + ": " + issue.message).substr(0, 65), 0xff7777ee, 1.5F);
+        detailY += 23;
+      }
+      s.Text(620, 552, s.lastAction.substr(0, 65), 0xffa5cedd, 1.5F);
+    }
+    if (s.tour) {
+      s.Rect(18, 651, 1100, 50, 0xef241a10);
+      s.Text(30, 665,
+             "Guided tour " + Number(s.tourSeconds) + "/210 s / step " +
+                 std::to_string(s.tourStep + 1) + "/7 / " + (s.paused ? "paused" : "running") +
+                 " / Space pause / R replay",
+             0xffefdc80, 1.5F);
+    }
   }
   for (auto &v : s.uiVertices) {
     v.position[0] *= static_cast<float>(width) / 1280;
@@ -2073,7 +2174,9 @@ std::string RoomSession::Report() const {
   out << "{\"schema\":\"nexora.showcase.rooms.v1\",\"selected\":\"" << s.selected
       << "\",\"ticks\":" << s.ticks << ",\"reloads\":" << s.reloads
       << ",\"probe_runs\":" << s.probeRuns << ",\"healthy\":" << Healthy()
-      << ",\"tour\":{\"enabled\":" << s.tour << ",\"paused\":" << s.paused
+      << ",\"tour\":{\"enabled\":" << s.tour << ",\"paused\":" << s.paused << ",\"kind\":\""
+      << (s.visualTour ? "visual" : "engineering")
+      << "\",\"duration_seconds\":" << (s.visualTour ? 100 : 210)
       << ",\"seconds\":" << s.tourSeconds << ",\"step\":" << s.tourStep << "},\"visited\":[";
   bool first = true;
   for (const auto &room : s.visited) {
@@ -2107,7 +2210,10 @@ std::string RoomSession::Report() const {
                          : "lambert")
       << "\""
       << ",\"scene_color_format\":\"" << (s.courtyardPbr ? "RGBA16F" : "RGBA8") << "\""
-      << ",\"exposure\":" << s.courtyardExposure << ",\"animation_paused\":" << s.courtyardPaused
+      << ",\"exposure\":" << s.courtyardExposure << ",\"camera_mode\":\""
+      << (s.courtyardFreeCamera ? "free" : "orbit") << "\""
+      << ",\"comparison_menu\":" << s.courtyardCompare
+      << ",\"animation_paused\":" << (s.visualTour ? s.paused : s.courtyardPaused)
       << ",\"animation_seconds\":" << s.courtyardSeconds
       << ",\"wind_enabled\":" << (s.courtyardPbr && s.courtyardWind)
       << ",\"transmission_enabled\":" << (s.courtyardPbr && s.courtyardTransmission)

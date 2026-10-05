@@ -420,3 +420,15 @@ emissive motes. `Space` pauses the courtyard clock and `R` resets time/camera fo
 With the validation matrix visible, R retains its probe-rerun meaning. F4 only hides UI; it does
 not implicitly pause animation. Reports retain effect flags, animation time, particle and foliage
 counts; these are real submitted geometry counts, not GPU timings or blended transparency proof.
+
+Native interactive startup defaults to the courtyard; `--scene=hub` opens the engineering rooms.
+`--tour=visual` selects the 100-second courtyard camera route and stops after its finale. It uses
+actual update time on native surfaces; headless tests use deterministic fixed updates and provide
+no visual acceptance. `--tour=v1` preserves the existing 210-second engineering tour. T starts
+the visual tour in the courtyard, Space pauses camera/effects together, and R restarts it.
+C enters free exploration: WASD translates the eye, dragging looks, arrows move vertically;
+B or R returns to a fixed shot. H opens named effect comparisons. Default courtyard UI is a short
+control strip; F1–F3 explicitly open engineering panels and F4 hides every overlay.
+`Tools/Package/RecordVisualTour.py` records the actual Xvfb Vulkan executable with existing FFmpeg,
+extracts matching video frames and retains application/video hashes, report, timing and software
+GPU scope. FFmpeg is evidence tooling, not an engine/package dependency.

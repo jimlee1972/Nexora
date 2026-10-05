@@ -63,7 +63,7 @@ with warm sunlight, cool shadows, turquoise runes, and a [free-model/texture sho
 ✅ VIS-M0 now adopts three CC0 architectural meshes and their palette texture through Runtime
 import/cook/bundle loading, with sources/licenses packaged, reproducible shots and a three-run
 performance baseline. [Linux acceptance](Apps/Showcase/evidence/VIS-M0-Linux-AdoptedAssets-2026-10-05/acceptance.md):
-87/87 tests without skips and isolated Development package launch. VIS-M1 now integrates shared direct-light PBR, tangents and material-map bindings; Linux hardware sRGB color filtering passed 92/92; Linux cooked IBL passed 94/94 and Shipping packaging; Linux floating HDR composition and directional shadows/stylized lighting each passed 95/95; VIS-M1/M2 cross-platform acceptance each passed 18 checks in PRs #322/#324; hero art/bloom/color and living wind/cutout/activation implementation is in progress; VIS-M3–VIS-M6 remain unaccepted
+87/87 tests without skips and isolated Development package launch. VIS-M1 now integrates shared direct-light PBR, tangents and material-map bindings; Linux hardware sRGB color filtering passed 92/92; Linux cooked IBL passed 94/94 and Shipping packaging; Linux floating HDR composition and directional shadows/stylized lighting each passed 95/95; VIS-M1/M2 cross-platform acceptance each passed 18 checks in PRs #322/#324; hero art/bloom/color and living wind/cutout/activation and 100-second tour/free camera implementation are in progress; VIS-M3–VIS-M6 remain unaccepted
 (3/7 accepted); software-rasterizer measurements do not establish the GTX 960 budget or final
 V1 platform acceptance.
 
@@ -534,7 +534,7 @@ Windows DX12 本地交付：[驗收紀錄](Apps/Showcase/evidence/Windows-V1-DX1
 以及 [免費模型／貼圖候選](Roadmap/art/Free-Asset-Sourcing.md)。✅ VIS-M0 已採用三個 CC0 建築網格與 palette
 貼圖，完成 Runtime 匯入／cook／bundle 載入、隨包來源／授權、可重現鏡頭及三次效能基線。
 [Linux 驗收](Apps/Showcase/evidence/VIS-M0-Linux-AdoptedAssets-2026-10-05/acceptance.md)：
-87/87 無 skip 與隔離 Development 套件啟動通過。VIS-M1 已整合共享直接光照 PBR、切線與材質貼圖綁定；Linux 硬體 sRGB 色彩過濾 92/92 通過，Linux cooked IBL 94/94 與 Shipping 套件通過，Linux 浮點 HDR 合成、方向光陰影與風格化光照各以 95/95 通過，VIS-M1／M2 跨平台驗收在 PR #322／#324 各以 18 項通過；主體美術／bloom／色彩與植被風動／裁切／啟動效果實作中；VIS-M3～VIS-M6 尚未驗收（3/7 通過）；
+87/87 無 skip 與隔離 Development 套件啟動通過。VIS-M1 已整合共享直接光照 PBR、切線與材質貼圖綁定；Linux 硬體 sRGB 色彩過濾 92/92 通過，Linux cooked IBL 94/94 與 Shipping 套件通過，Linux 浮點 HDR 合成、方向光陰影與風格化光照各以 95/95 通過，VIS-M1／M2 跨平台驗收在 PR #322／#324 各以 18 項通過；主體美術／bloom／色彩與植被風動／裁切／啟動效果及 100 秒導覽／自由鏡頭實作中；VIS-M3～VIS-M6 尚未驗收（3/7 通過）；
 軟體渲染測量不代表 GTX 960 達標或 V1 最終平台驗收完成。
 
 ### Repository 狀態

@@ -226,6 +226,8 @@ if(BUILD_TESTING)
   endif()
   nexora_apply_defaults(NexoraShowcaseRoomTests)
   add_test(NAME showcase.runtime_rooms COMMAND NexoraShowcaseRoomTests)
+  add_test(NAME showcase.visual_tour_cli
+    COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tests/Showcase/VisualTourCli.py" $<TARGET_FILE:NexoraShowcase>)
   add_test(NAME showcase.guided_tour_cli COMMAND NexoraShowcase --headless --tour=v1 --frames=4 --no-reload)
   add_test(NAME showcase.probe_export COMMAND NexoraShowcase --headless --probe=v1.M8 --frames=2
     --report=${CMAKE_CURRENT_BINARY_DIR}/probe-export.json --markdown=${CMAKE_CURRENT_BINARY_DIR}/probe-export.md)
