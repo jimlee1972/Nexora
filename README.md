@@ -1116,3 +1116,9 @@ through a negative view cosine. This is sheet lighting, not a thick-material vol
 ✅ Linux Development configure/build and all 97 tests pass (106.20 seconds), including 89 native PBR frames with Khronos core/synchronization validation. Four sheet fixtures retain default rear-face behavior and reproduce the front-facing colors exactly when enabled; CPU rejects unlit/Lambert use and verifies slot 79. All native geometry budgets and wind/pause/replay interactions pass. Shipping/Full isolated native acceptance and an actual 100.33-second movie (100.79-second wall time) pass; final reference/target acceptance remains open.
 
 Evidence: [VIS-Two-Sided-Linux-2026-10-05](/Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05). Production freeze `248791c4b51a`; exact source and package hashes are retained.
+
+
+MSVC fixture portability follow-up: point-light fill and two-sided normal conditionals use
+floating literals. ✅ Linux configure/build and full 97/97 pass (102.61 seconds), including
+89 native PBR frames with core/sync validation. Test values and runtime sources are unchanged;
+retained Shipping evidence keeps its production freeze. Windows CI recheck is pending.
