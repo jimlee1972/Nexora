@@ -106,6 +106,9 @@ satisfy this milestone.
   The allocator-backed `editor.imgui_context_lifetime` gate detects the former 17-allocation leak,
   checks self-move and current-context restoration, and requires zero retained allocations.
 
+- ✅ Public-RHI texture registrations no longer resurrect stale IDs after renderer/device reset;
+  repeated reset and stale fallback are covered by `editor.imgui_contract`.
+
 ### ED-M1 — Project and asset workspace
 
 Create, open, and upgrade projects. Deliver a Content Browser with search/filter, folder/UUID,

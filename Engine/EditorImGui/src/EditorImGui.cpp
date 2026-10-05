@@ -98,6 +98,8 @@ struct EditorImGuiHost::State final {
   std::uint32_t font_generation = 1;
   std::uint32_t surface_font_generation = 0;
   std::uint64_t surface_font_domain = 0;
+  // Host-scoped IDs must not resurrect after ReleaseRenderer resets the device cache.
+  std::uint64_t next_texture_generation = 1;
   RendererMetrics renderer_metrics;
   RecoveryChoice recovery_choice = RecoveryChoice::None;
   CloseChoice close_choice = CloseChoice::None;
@@ -4694,19 +4696,24 @@ RendererMetrics EditorImGuiHost::GetRendererMetrics() const noexcept {
 std::uint64_t EditorImGuiHost::RegisterTexture(nexora::rhi::Device &device,
                                                nexora::rhi::TextureHandle texture) {
   auto &renderer = state_->renderer;
-  if (!texture.IsValid() || (renderer.device != nullptr && renderer.device != &device))
+  if (!texture.IsValid() || (renderer.device != nullptr && renderer.device != &device) ||
+      state_->next_texture_generation > std::numeric_limits<std::uint32_t>::max())
     return 0;
+  const auto generation = static_cast<std::uint32_t>(state_->next_texture_generation++);
   renderer.device = &device;
   for (std::uint32_t index = 1; index < renderer.textures.size(); ++index) {
     auto &slot = renderer.textures[index];
     if (!slot.live) {
       slot.texture = texture;
+      slot.generation = generation;
       slot.live = true;
-      return TextureId(index, slot.generation);
+      return TextureId(index, generation);
     }
   }
-  renderer.textures.push_back({texture, 1, true});
-  return TextureId(static_cast<std::uint32_t>(renderer.textures.size() - 1), 1);
+  if (renderer.textures.size() >= std::numeric_limits<std::uint32_t>::max())
+    return 0;
+  renderer.textures.push_back({texture, generation, true});
+  return TextureId(static_cast<std::uint32_t>(renderer.textures.size() - 1), generation);
 }
 
 bool EditorImGuiHost::UnregisterTexture(std::uint64_t texture_id) noexcept {
@@ -4718,9 +4725,7 @@ bool EditorImGuiHost::UnregisterTexture(std::uint64_t texture_id) noexcept {
     return false;
   textures[index].live = false;
   textures[index].texture = {};
-  ++textures[index].generation;
-  if (textures[index].generation == 0)
-    textures[index].generation = 1;
+  textures[index].generation = 0;
   return true;
 }
 

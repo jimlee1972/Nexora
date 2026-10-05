@@ -203,6 +203,10 @@ retirement；Vulkan offscreen frame 沒有 validation error。
 失效；resize／move 保留 domain，teardown 使其失效。Native lifetime gate 涵蓋 DPI 往返與
 穩定配置（[紀錄](../../Tools/Build/evidence/EditorEDM0-SurfaceLifetime-2026-10-06.md)）；實體 visual／lifetime 與不可用 target-host 證據仍待驗收。
 
+✅ Public-RHI user texture ID 現在 renderer release 與 device replacement 後保留單調 generation。
+回歸測試要求多次 cache reset 後 stale ID 仍無效且使用 diagnostic fallback；generation
+耗盡不會 wrap 成舊 ID。
+
 1. 在 `EditorImGuiHost` 下建立 renderer-owned state：pipeline、sampler、font texture/view、descriptor
    binding、有限大小的 per-frame vertex/index upload buffer ring。知道 device/format 後才 lazy-create
    stable resource；禁止每 frame create/destroy pipeline 與 font texture。

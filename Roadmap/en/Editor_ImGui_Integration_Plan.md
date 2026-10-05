@@ -220,6 +220,10 @@ process-local resource-domain token; resize/move preserves it and teardown inval
 The native lifetime gate covers DPI round trips and stable allocations ([record](../../Tools/Build/evidence/EditorEDM0-SurfaceLifetime-2026-10-06.md)).
 Physical visual/lifetime and unavailable target-host rows remain open.
 
+✅ Public-RHI user texture IDs now retain monotonic generations across renderer release and device
+replacement. Regression coverage requires stale IDs to remain invalid and use the diagnostic
+fallback after repeated cache resets; generation exhaustion cannot wrap to a previous ID.
+
 1. Introduce a renderer-owned state object beneath `EditorImGuiHost`: pipeline, sampler, font
    texture/view, descriptor bindings, and a bounded ring of per-frame vertex/index upload buffers.
    Create stable resources lazily after device/format is known; do not create/destroy pipeline and

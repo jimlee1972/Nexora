@@ -160,6 +160,8 @@ public:
                                      nexora::rhi::ResourceState before, bool prepare_for_present);
   void ReleaseRenderer(nexora::rhi::Device &device);
   [[nodiscard]] RendererMetrics GetRendererMetrics() const noexcept;
+  // Borrowed texture/device; IDs never resurrect within this host after renderer release.
+  // Returns zero for invalid ownership or exhausted generation capacity.
   [[nodiscard]] std::uint64_t RegisterTexture(nexora::rhi::Device &device,
                                               nexora::rhi::TextureHandle texture);
   [[nodiscard]] bool UnregisterTexture(std::uint64_t texture_id) noexcept;

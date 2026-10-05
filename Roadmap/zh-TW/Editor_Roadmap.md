@@ -106,6 +106,9 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   `editor.imgui_context_lifetime` gate 可偵測原本遺留的 17 筆 allocation，並檢查 self-move、
   current context 還原，要求全部 owner 銷毀後無遺留 allocation。
 
+- ✅ Public-RHI texture registration 在 renderer／device reset 後不再讓 stale ID 復活；
+  `editor.imgui_contract` 涵蓋多次 reset 與 stale fallback。
+
 ### ED-M1 — Project 與 Asset workspace
 
 建立、開啟與升級 project；Content Browser 支援 search/filter、folder/UUID、drag/drop、import

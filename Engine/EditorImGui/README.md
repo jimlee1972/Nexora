@@ -189,6 +189,14 @@ production retains ImGui's native platform defaults.
   reuse, resize, and teardown. Linux runs it on Xvfb with strict validation; Windows/DX12 and
   macOS/Metal use the native host when available. An unsupported Metal runner is explicitly skipped
   and cannot supply native/physical acceptance evidence.
+- Public-RHI user texture registrations borrow the caller's texture/device. Unregister prevents
+  future bindings; wait for the last GPU use before destroying that texture. Release the renderer
+  before destroying its device. IDs are scoped to
+  the host State, with monotonically assigned 32-bit generations that survive renderer release
+  and device replacement. Exhaustion returns zero instead of reusing an old generation. Renderer
+  release invalidates every registration; stale IDs keep the diagnostic font fallback and cannot
+  unregister a later texture. `editor.imgui_contract` covers release, repeated cache reset,
+  device replacement, stale draw fallback, and rejection metrics.
 - DPI is quantized to 100%, 125%, 150%, or 200%. Crossing a bucket rebuilds the font atlas at that
   pixel density, publishes the framebuffer scale, and derives the theme anew rather than
   cumulatively scaling an existing style.

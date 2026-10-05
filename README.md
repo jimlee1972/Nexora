@@ -496,6 +496,9 @@ space, previews selected roots and descendants while dragging, and commits an in
 selected-root rotation as one Undo step. The Scale tool (R over the canvas) shows local X/Y/Z
 cubes and a white uniform cube, previews selected roots and descendants during drag, and commits axis or uniform local scale as one Undo step. Shift held at drag start snaps rotation to 15-degree steps and scale changes to 0.25-factor steps in both preview and commit.
 
+✅ Public-RHI UI texture IDs stay invalid after renderer release/device replacement, with repeated
+reset and stale fallback coverage in `editor.imgui_contract`.
+
 Desktop graphical CI tests now distinguish deterministic Ctrl input fixtures from the native
 macOS Cmd/Super undo/redo path; production retains its platform input policy.
 
@@ -896,6 +899,9 @@ Editor selection 與編輯狀態保持獨立。
 與 entity generation，以及 original／Editor／Play 值，再用單次 atomic SceneDocument transaction
 套用並停止、捨棄 clone。衝突／重新掛接／其他場景會拒絕整批；Undo 會還原所有套用值。
 元件／建立／刪除不會複製；modal 會阻擋 authoring／Play 快捷鍵，預設 Stop 仍捨棄變更。
+
+✅ Public-RHI UI texture ID 在 renderer release／device replacement 後維持失效；
+`editor.imgui_contract` 涵蓋多次 reset 與 stale fallback。
 
 Desktop graphical CI test 現區分 deterministic Ctrl input fixture 與 native macOS Cmd／Super
 Undo／Redo 路徑；production 保留平台原生 input policy。
