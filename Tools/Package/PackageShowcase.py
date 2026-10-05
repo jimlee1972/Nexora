@@ -190,7 +190,7 @@ def main() -> int:
     (args.output / "run-showcase.sh").write_text(
         '#!/bin/sh\nset -eu\nshowcase_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\n'
         'cd "$showcase_root"\nexport LD_LIBRARY_PATH="$showcase_root/bin${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\n'
-        + f'exec "./bin/{args.binary.name}" --mode=interactive --scene=hub --backend=auto'
+        + f'exec "./bin/{args.binary.name}" --mode=interactive --scene=courtyard --backend=auto'
         + (f' --gameplay-module=dynamic --gameplay-library="./bin/{args.gameplay_module.name}"' if args.gameplay_module else ' --gameplay-module=static')
         + ' "$@"\n', encoding="utf-8")
     (args.output / "run-showcase.sh").chmod(0o755)
@@ -210,7 +210,7 @@ def main() -> int:
         "launch": (f"bin/{args.binary.name} --headless --validate-v1 --scene=tour --frames=4 --no-reload"
                    f"{module_argument} --report=launch-report.json"),
     }
-    build["interactive_launch"] = f"bin/{args.binary.name} --mode=interactive --scene=hub --backend=auto{module_argument}"
+    build["interactive_launch"] = f"bin/{args.binary.name} --mode=interactive --scene=courtyard --backend=auto{module_argument}"
     content = {"schema_version": 1, "artifacts": artifacts, "showcase_content": content_artifacts}
     (args.output / "README.txt").write_text(
         "Nexora Visual Showcase\nRun run-showcase.ps1 on Windows or ./run-showcase.sh on Linux/macOS.\n"
@@ -220,7 +220,7 @@ def main() -> int:
         "Windows: run accept-v1.ps1 for isolated-copy native screenshots/report; -PhysicalDisplay/-CleanHost are operator attestations.\n", encoding="utf-8")
     (args.output / "run-showcase.ps1").write_text(
         "$ErrorActionPreference = 'Stop'\nPush-Location $PSScriptRoot\ntry {\n"
-        f"  & './bin/{args.binary.name}' --mode=interactive --scene=hub --backend=auto"
+        f"  & './bin/{args.binary.name}' --mode=interactive --scene=courtyard --backend=auto"
         + (f" --gameplay-module=dynamic --gameplay-library='./bin/{args.gameplay_module.name}'" if args.gameplay_module else " --gameplay-module=static")
         + "\n  exit $LASTEXITCODE\n} finally { Pop-Location }\n", encoding="utf-8")
     copy(Path(__file__).with_name("AcceptShowcaseWindows.ps1"), args.output / "accept-v1.ps1")

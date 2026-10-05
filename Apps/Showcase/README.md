@@ -452,3 +452,5 @@ builds/tests idle. CPU wall/frame and resident-memory observations are not GPU t
 physical GTX 960 acceptance. The final package, native video, source/build hashes and reports
 are retained together before VIS-M6 acceptance; Windows DX12/Vulkan target-host visuals and
 the confirmed hardware budget remain required.
+
+Packaged interactive launchers also open the compact courtyard; use `--scene=hub` explicitly for the engineering portal.
