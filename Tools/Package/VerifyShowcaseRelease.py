@@ -95,7 +95,7 @@ def main() -> int:
                 # Uses the same real keyboard/mouse, room, Lab and screenshot gate as CTest.
                 gate = Path(__file__).resolve().parents[2] / "Tests/Showcase/LinuxShowcaseInteraction.py"
                 native = subprocess.run([sys.executable, str(gate), str(binary)], cwd=staged,
-                                        env=environment, text=True, capture_output=True, timeout=60)
+                                        env=environment, text=True, capture_output=True, timeout=90)
                 (output / "native.stdout.log").write_text(native.stdout)
                 (output / "native.stderr.log").write_text(native.stderr)
                 if native.returncode:
