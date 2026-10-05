@@ -194,6 +194,38 @@ void Run() {
   Require(translucentPacked[72] == 0.5F && translucentPacked[73] == 0.2F &&
               translucentPacked[74] == 0.4F && translucentPacked[75] == 0.6F,
           "transparency upload layout differs from shader constants");
+  reflectionMaterials[0].refractionIndex = 1.5F;
+  reflectionMaterials[0].refractionThickness = 0.7F;
+  Require(ValidateSceneMaterials(reflectionMaterials, {}) && ValidatePbrData(pbr) &&
+              HasSceneRefraction(pbr),
+          "valid refractive material rejected");
+  const auto refractionPacked = PackPbrMaterial(pbr, reflectionMaterials[0], false, true, 640, 480);
+  Require(refractionPacked[88] == 1.5F && refractionPacked[89] == 0.7F &&
+              refractionPacked[90] == 1.0F / 640 && refractionPacked[91] == 1.0F / 480,
+          "refraction upload target dimensions differ from shader constants");
+  for (const float invalid : {0.9F, 2.6F, std::numeric_limits<float>::quiet_NaN()}) {
+    reflectionMaterials[0].refractionIndex = invalid;
+    Require(!ValidateSceneMaterials(reflectionMaterials, {}), "invalid refraction index accepted");
+  }
+  reflectionMaterials[0].refractionIndex = 1.5F;
+  for (const float invalid : {-0.1F, 1.1F, std::numeric_limits<float>::quiet_NaN()}) {
+    reflectionMaterials[0].refractionThickness = invalid;
+    Require(!ValidateSceneMaterials(reflectionMaterials, {}),
+            "invalid refraction thickness accepted");
+  }
+  reflectionMaterials[0].refractionThickness = 0.7F;
+  reflectionMaterials[0].opacity = 1;
+  Require(!ValidatePbrData(pbr), "opaque refraction accepted");
+  reflectionMaterials[0].opacity = 0.5F;
+  reflectionMaterials[0].unlit = true;
+  Require(!ValidatePbrData(pbr), "unlit refraction accepted");
+  reflectionMaterials[0].unlit = false;
+  pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "non-HDR refraction accepted");
+  pbr.hdr = true;
+  reflectionMaterials[0].refractionIndex = 1;
+  reflectionMaterials[0].refractionThickness = 0;
+  Require(!HasSceneRefraction(pbr), "default material requests refraction target");
   pbr.materials = {};
   pbr.materials = reflectionMaterials;
   for (const float invalid : {-1.0F, 17.0F, std::numeric_limits<float>::quiet_NaN()}) {

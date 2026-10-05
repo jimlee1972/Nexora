@@ -126,7 +126,7 @@ struct RoomSession::State final {
   bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true}, courtyardFocus{true};
   bool courtyardReflections{true}, courtyardAtmosphere{true};
   bool courtyardPaused{}, courtyardActive{}, courtyardWind{true}, courtyardTransmission{true};
-  bool courtyardTransparency{true};
+  bool courtyardTransparency{true}, courtyardRefraction{true};
   bool visualTour{}, courtyardFreeCamera{}, courtyardCompare{};
   unsigned courtyardQuality{1}; // Basic / Standard / High, shared by all native adapters.
   math::Vector3 freeEye{};
@@ -2055,7 +2055,8 @@ void RoomSession::ReplayTour() {
     state_->courtyardActive = false;
     state_->courtyardPbr = state_->courtyardIbl = state_->courtyardShadows = true;
     state_->courtyardBloom = state_->courtyardStyled = state_->courtyardFocus =
-        state_->courtyardReflections = state_->courtyardAtmosphere = true;
+        state_->courtyardReflections = state_->courtyardAtmosphere = state_->courtyardRefraction =
+            true;
     state_->courtyardWind = state_->courtyardTransmission = state_->courtyardTransparency = true;
     state_->courtyardExposure = 1;
     state_->courtyardShadowBias = 0.0008F;
@@ -2161,6 +2162,8 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.courtyardFocus = !s.courtyardFocus;
   if (s.selected == "courtyard" && key == Key::V)
     s.courtyardReflections = !s.courtyardReflections;
+  if (s.selected == "courtyard" && key == Key::F8)
+    s.courtyardRefraction = !s.courtyardRefraction;
   if (s.selected == "courtyard" && key == Key::F7)
     s.courtyardAtmosphere = !s.courtyardAtmosphere;
   if (s.selected == "courtyard" && key == Key::K)
@@ -2558,6 +2561,10 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     }
     crystal.castsShadow = false;
     crystal.opacity = s.courtyardPbr && s.courtyardTransparency ? 0.23F : 1.0F;
+    if (crystal.opacity < 1 && s.courtyardQuality > 0 && s.courtyardRefraction) {
+      crystal.refractionIndex = 1.46F;
+      crystal.refractionThickness = 0.65F;
+    }
     crystal.transparencyTint = {0.28F, 0.92F, 0.98F};
     crystal.metallic = 0.0F;
     crystal.roughness = 0.06F;
@@ -2855,7 +2862,8 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     s.Text(30, 678, viewing + " / Q Quality: " + std::string(QualityName()), 0xffefdc80, 1.3F);
     if (s.courtyardCompare) {
       s.Rect(18, 531, 900, 100, 0xde241a10);
-      s.Text(30, 544, "P Materials / O Environment / F6 Shadows / F7 Haze", 0xffe9ded4, 1.4F);
+      s.Text(30, 544, "P Materials / O Environment / F6 Shadows / F7 Haze / F8 Refraction",
+             0xffe9ded4, 1.4F);
       s.Text(30, 573, "J Focus / V Reflection / U Crystal / K Glow / N Wind / M Backlight",
              0xffe9ded4, 1.4F);
       s.Text(30, 602, "Q Quality / Pause for comparisons / R Replay / F1-F3 Details", 0xffefdc80,
@@ -2865,7 +2873,8 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     s.Rect(0, 0, 1280, 112, 0xf0271a10);
     s.Text(18, 14, s.localization.Resolve("title"), 0xffefdc80, 3);
     s.Text(18, 45,
-           "9 courtyard / B shot / P material / O IBL / E exposure / F6 shadows / F7 haze / G tone "
+           "9 courtyard / B shot / P material / O IBL / E exposure / F6 shadows / F7 haze / F8 "
+           "refraction / G tone "
            "/ [ ] bias "
            "/ F4 hide UI / F1 overview / F2 "
            "profiler / F3 matrix");
@@ -3018,6 +3027,9 @@ std::string RoomSession::Report() const {
       << ",\"transmission_enabled\":" << (s.courtyardPbr && s.courtyardTransmission)
       << ",\"atmosphere_enabled\":"
       << (s.courtyardPbr && s.courtyardAtmosphere && s.courtyardQuality != 0)
+      << ",\"refraction_enabled\":"
+      << (s.courtyardPbr && s.courtyardTransparency && s.courtyardRefraction &&
+          s.courtyardQuality != 0)
       << ",\"transparency_enabled\":" << (s.courtyardPbr && s.courtyardTransparency)
       << ",\"device_active\":" << s.courtyardActive
       << ",\"geometry_vertex_count\":" << s.vertices.size()

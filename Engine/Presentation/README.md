@@ -18,9 +18,6 @@ surface (all zero means full surface). Invalid or out-of-bounds rectangles are r
 scene copies require the full surface. A direct scene draw may precede one UI submission, or an
 explicit bounded direct draw may follow UI to replace only the selected viewport pixels. Vulkan
 loads the UI color target for that later draw; DX12 preserves the existing render target.
-Vulkan acquisition makes the color attachment available for both reads and writes. The shared
-UI/tone render pass declares an external color-write to color-read/write dependency: its `LOAD`
-operation and alpha blending preserve color produced by preceding scene/tone/UI passes.
 Backends without a native geometry path return `Unsupported` rather than silently compositing a
 fallback. `SurfaceDiagnostics::sceneDrawCalls` counts accepted native scene draws. `CompositeRgba8`
 remains a legacy full-frame upload for non-Editor clients; the production Editor does not call it.
@@ -336,7 +333,7 @@ ColorAttachment → ShaderRead; DX12 uses RenderTarget → PixelShaderResource; 
 shadow encoder before main. Fences, resize and shutdown protect map ownership and release.
 Unsupported map formats report Unsupported rather than inventing a shadow.
 
-The shadow portion extends the private material packet to 208 bytes (352 with vegetation, planar mirrors, transparency, world mapping and atmosphere), with light matrix, bias/texel settings, tint and
+The shadow portion extends the private material packet to 208 bytes (368 with vegetation, planar mirrors, transparency, world mapping and atmosphere), with light matrix, bias/texel settings, tint and
 ramp fields. Vulkan's material binding range/stride follows this size; DX12 uses 768-byte
 paired constant slots (112-byte scene plus material at offset 256); Metal copies the same packet.
 Main adds one shadow map binding (eight sampled maps total). No persistent asset or stable
@@ -375,7 +372,7 @@ for the bounded bend. `transmissionThickness` and RGB factors are finite [0,1]; 
 back lighting contributes linear radiance with shadow visibility, without making geometry blended.
 Lambert submissions reject these PBR-only material effects. Defaults preserve existing clients.
 
-The private PBR packet is 352 bytes / twenty-two float4s. Vulkan exposes its UBO to vertex/fragment
+The private PBR packet is 368 bytes / twenty-three float4s. Vulkan exposes its UBO to vertex/fragment
 stages and binds the PBR layout during shadows; DX12 uses matching CBVs/root signatures, and Metal
 copies the packet to both stage bindings. The protecting frame owns copies and sampled texture
 generations. No production readback or native handles escape. Public C++ clients rebuild; stable
@@ -389,7 +386,7 @@ tone/transfer output as lit PBR. It bypasses normal/ORM/BRDF/IBL/shadow sampling
 unlit. `castsShadow` defaults true; false excludes a batch from the current frame shadow draw
 while leaving depth-map clearing and all main-pass rendering intact. `sceneShadowInstances`
 counts instances actually submitted per shadow batch, including repeated geometry batches.
-The private packet is 352 bytes; float 59 carries unlit before the appended mirror fields. Public C++
+The private packet is 368 bytes; float 59 carries unlit before the appended mirror fields. Public C++
 consumers rebuild; stable C/Zig and NXAB contracts remain unchanged. Native GPU fixtures check an
 emissive non-caster remains visible while the receiver becomes lit.
 
@@ -433,7 +430,7 @@ reflection filtering, refraction, arbitrary planes or sorted transparency.
 
 The private material packet appends three float4s to its existing fifteen-float4 prefix. DX12
 reserves 768 bytes per scene/material pair (scene offset 0, aligned material offset 256), avoiding
-CBV overlap after the material grows to 352 bytes. Vulkan and Metal use the same packet. Mirror
+CBV overlap after the material grows to 368 bytes. Vulkan and Metal use the same packet. Mirror
 instances reuse the original geometry and existing frame-owned uploads, without another render
 target, descriptors, temporal history or production readback. Stable C/Zig/NXAB contracts stay
 unchanged; public C++ clients rebuild. Four native fixtures require floor/underside clipping,
@@ -457,14 +454,14 @@ transparent/opaque camera distance for focus; it never blends distance using col
 UI composition is unchanged. Vulkan rejects requested blending when RGBA16F attachment blending
 is unsupported while retaining the old opaque HDR path.
 
-The PBR packet appends one float4 (coverage/tint) to its existing prefix; world mapping and atmosphere extend it to twenty-two float4s,
-352 bytes, still within DX12's aligned 768-byte scene/material pair. Pipeline variants and
+The PBR packet appends one float4 (coverage/tint) to its existing prefix; world mapping and atmosphere extend it to twenty-three float4s,
+368 bytes, still within DX12's aligned 768-byte scene/material pair. Pipeline variants and
 read-only depth states are adapter-owned and released during teardown. No target, texture,
 descriptor, history or native handle escapes; C/Zig and persistent asset contracts stay unchanged.
 Six native fixtures check opaque/half/zero coverage, exact restoration, focus distance and
 colored transmission against linear-radiance expectations. Showcase U compares crystal
-transparency with paused pixel changes and exact restoration. Geometric refraction, absorption
-by travel distance and order-independent transparency remain deferred.
+transparency with paused pixel changes and exact restoration. Bounded opaque-background screen-space refraction is described below; volumetric ray tracing,
+absorption by travel distance and order-independent transparency remain deferred.
 
 
 ## World-projected surface maps and bounded shorelines
@@ -474,7 +471,7 @@ by travel distance and order-independent transparency remain deferred.
 absolute geometric-normal weights. Reflections use original source coordinates. The same
 base sampling helper drives visible and shadow alpha cutout; emission maps retain mesh
 UVs. Callers using world-projected stone can disable the UV normal map with `normalScale=0`.
-The private packet is 352 bytes (22 float4s); offsets 76/77 store scale/shoreline variation and
+The private packet is 368 bytes (23 float4s); offsets 76/77 store scale/shoreline variation and
 78/79 remain reserved. Existing native frame ownership and C/Zig contracts are unchanged.
 
 `ScenePlanarReflection::shorelineVariation` defaults to zero (exact ellipse). Finite values
@@ -492,7 +489,7 @@ existing scenes because the option is absent. Shared Slang smoothsteps camera di
 mixes scene radiance with atmosphere before coverage blending, focus, bloom and ACES. Unlit
 sky, solar discs and emissive sprites retain their authored radiance. Reflections use virtual
 rendered distance, keeping the bounded mirror path coherent. No additional pass or texture is
-allocated. The private packet is 352 bytes (22 float4s); offsets 80–85 hold color/strength and
+allocated. The private packet is 368 bytes (23 float4s); offsets 80–85 hold color/strength and
 start/end, with 86/87 reserved. DX12's 768-byte aligned pair remains sufficient; native UBO
 sizes follow the common type. Stable C/Zig/NXAB and frame ownership are unchanged.
 
@@ -509,3 +506,36 @@ normal mapping. Reflection shading uses original positions/normals and the same 
 Four additional native cases verify flat/projected normals, zero-strength geometry restoration
 and exact projected-normal replay (69 PBR frames). No packet, resource, pass or ABI expansion
 is needed. This supplies bounded surface detail without geometric displacement.
+
+
+## Bounded opaque-HDR screen-space refraction
+
+`SceneMaterial::refractionIndex` defaults to 1, with finite range [1,2.5];
+`refractionThickness` defaults to zero, with finite world-unit range [0,1]. Non-default values
+require translucent, non-casting, lit HDR PBR. A scene containing visible glass with index > 1
+and positive thickness requests one private RGBA16F opaque-background snapshot per protecting
+frame. Defaults require no snapshot/copy. No native texture/descriptor handle escapes.
+
+Each adapter renders opaque batches first, copies their linear RGB/camera-distance result,
+then renders caller-ordered transparent batches against preserved opaque depth. Vulkan resumes
+a compatible load render pass after explicit color/copy/sample and depth dependencies; DX12
+uses fence-owned copy transitions/reserved SRVs; Metal ends the encoder, blits and resumes color
+and depth loads. Resize/destruction and the frame fence own snapshot lifetime. There is no
+same-image sampling feedback or host readback in production. Swapchain acquisition and HDR
+copy-to-color transitions permit attachment-load reads. HDR clear/load passes use identical
+color/depth read dependencies to preserve framebuffer/pipeline compatibility; Khronos core and
+synchronization validation verify the native refraction cases.
+
+Shared Slang refracts a camera ray through an authored slab, projects bent/straight endpoints,
+and bounds the sample displacement to 24 pixels per axis and the viewport. A sample in front
+of the glass falls back to the original pixel. The premultiplied lit surface plus tinted
+refracted opaque radiance replaces ordinary destination transmission; alpha retains nearest
+visible distance for focus. HDR focus/bloom/ACES and post-composite UI run afterward. Mirrored
+glass uses virtual camera directions and rendered projection positions. The private material
+packet is 368 bytes / 23 float4s; offsets 88–91 carry index/thickness/inverse dimensions. DX12's
+768-byte aligned pair and stable C/Zig ABI remain unchanged.
+
+Six native cases verify neutral/positive/reversed bending, exact replay, zero thickness and
+foreground rejection against linear-radiance expectations (75 PBR frames). This bounded
+screen-space slab model excludes offscreen/multiple transparent layers, full-volume tracing,
+dispersion and travel-distance absorption.

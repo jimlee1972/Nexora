@@ -4,6 +4,11 @@
 #include <array>
 
 namespace Nexora::Presentation {
+[[nodiscard]] inline bool HasSceneRefraction(const SceneDrawData &draw) noexcept {
+  return std::any_of(draw.materials.begin(), draw.materials.end(), [](const auto &material) {
+    return material.refractionIndex > 1 && material.refractionThickness > 0 && material.opacity > 0;
+  });
+}
 // PBR validation is shared; resident map references and native capabilities remain adapter-owned.
 [[nodiscard]] inline bool ValidatePbrData(const SceneDrawData &draw) noexcept {
   if (!std::isfinite(draw.exposure) || draw.exposure < 0 || draw.exposure > 32 ||
@@ -60,7 +65,9 @@ namespace Nexora::Presentation {
     }
   }
   for (const auto &material : draw.materials)
-    if ((material.opacity < 1 && (!draw.hdr || material.castsShadow)) ||
+    if (((material.refractionIndex > 1 || material.refractionThickness > 0) &&
+         (!draw.hdr || material.opacity >= 1 || material.castsShadow || material.unlit)) ||
+        (material.opacity < 1 && (!draw.hdr || material.castsShadow)) ||
         (material.reflectionRole != SceneReflectionRole::None &&
          (!draw.planarReflection ||
           (material.reflectionRole == SceneReflectionRole::ReflectedGeometry &&
@@ -69,7 +76,8 @@ namespace Nexora::Presentation {
   if (!draw.pbr)
     for (const auto &material : draw.materials)
       if (material.alphaCutoff || material.windAmplitude || material.transmissionThickness ||
-          material.unlit || material.worldTextureScale)
+          material.unlit || material.worldTextureScale || material.refractionIndex > 1 ||
+          material.refractionThickness)
         return false;
   if (!draw.pbr)
     return draw.linearTextureUploads.empty() && !draw.environment && !draw.shadow &&
@@ -193,14 +201,13 @@ template <typename Lookup>
          resolveLevels(draw.environment->brdfTextureId) == 1;
 }
 
-// Matches MaterialConstants in scene_pbr.slang: twenty-two float4s, independent of native UBO
+// Matches MaterialConstants in scene_pbr.slang: twenty-three float4s, independent of native UBO
 // alignment.
-using PbrMaterialUpload = std::array<float, 88>;
-static_assert(sizeof(PbrMaterialUpload) == 352);
-[[nodiscard]] inline PbrMaterialUpload PackPbrMaterial(const SceneDrawData &draw,
-                                                       const SceneMaterial &material,
-                                                       bool manualSrgbTransfer,
-                                                       bool shadowYDown = true) noexcept {
+using PbrMaterialUpload = std::array<float, 92>;
+static_assert(sizeof(PbrMaterialUpload) == 368);
+[[nodiscard]] inline PbrMaterialUpload
+PackPbrMaterial(const SceneDrawData &draw, const SceneMaterial &material, bool manualSrgbTransfer,
+                bool shadowYDown = true, unsigned width = 1, unsigned height = 1) noexcept {
   PbrMaterialUpload parameters{};
   std::copy(draw.cameraPosition.begin(), draw.cameraPosition.end(), parameters.begin());
   parameters[3] = manualSrgbTransfer ? 1.0F : 0.0F;
@@ -267,6 +274,10 @@ static_assert(sizeof(PbrMaterialUpload) == 352);
     parameters[84] = draw.atmosphere->startDistance;
     parameters[85] = draw.atmosphere->endDistance;
   }
+  parameters[88] = material.refractionIndex;
+  parameters[89] = material.refractionThickness;
+  parameters[90] = 1.0F / std::max(width, 1U);
+  parameters[91] = 1.0F / std::max(height, 1U);
   return parameters;
 }
 } // namespace Nexora::Presentation

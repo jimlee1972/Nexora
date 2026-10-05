@@ -425,3 +425,21 @@ Linux Development 全套 97/97（92.68 秒）與 69 個原生案例通過；Ship
 分層 cutout 樹冠共用 GPU 風與葉片光照。Standard 固定啟動鏡頭含 51,790 個頂點與
 1,338 個來源葉片 quad。Linux 全套 97/97（95.21 秒）通過，包含三種品質頂點預算與
 原生 instance／風／效果重播。Shipping 證據與預覽圖一致性仍待完成，VIS 維持 5/7。
+
+
+### 有界水晶折射
+
+螢幕空間水晶折射在透明繪製前取樣私有不透明線性 HDR 快照。共享 Slang 投影穿過原創
+slab 的折射鏡頭射線，每軸限制 24 像素並排除近於玻璃的前景取樣。Standard／High 水晶
+使用折射率 1.46 與 0.65 世界單位厚度；Basic／預設保留染色透明。
+Vulkan／DX12／Metal adapter 保留不透明深度，以 frame fence／resize 管理快照生命週期。
+六個原生檢查驗證偏移、反向、精確重播、零厚度與前景排除（共 75 個 PBR 案例）。
+Linux 全套 97/97（92.94 秒）與 75 個 PBR 案例通過，包含原生 F8 畫面變化／精確還原。
+Shipping／預覽圖驗證持續進行，VIS 維持 5/7；此模型不包含畫面外與多個透明層的折射。
+
+
+Vulkan 折射現以 Khronos 同步驗證檢查：swapchain acquire 與 HDR 複製後的轉換允許附件載入
+讀取；相容的 HDR clear／load pass 共用 color／depth read dependency，保留 pipeline 與
+framebuffer 相容性。75 個原生 PBR 畫面已通過 core／synchronization validation，
+完整 Linux configure／build／test 已在 validation layers 啟用時通過 97/97（95.08 秒）；
+發行重新驗證待完成。

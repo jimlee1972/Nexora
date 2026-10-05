@@ -1021,3 +1021,22 @@ raised geometric column relief. Layered cutout tree crowns share GPU wind and le
 The fixed activated Standard shot contains 51,790 vertices and 1,338 source foliage quads.
 Linux full validation passes 97/97 (95.21 seconds), including all three vertex budgets and native
 instance/wind/effect replay. Shipping evidence and final reference parity remain open (VIS 5/7).
+
+
+Bounded screen-space crystal refraction now samples a private opaque linear-HDR snapshot before
+transparent rendering. Shared Slang projects bent camera rays through an authored slab; each
+axis is limited to 24 pixels, with nearer-foreground rejection. Standard/High crystal uses
+index 1.46 and 0.65 world-unit thickness, while Basic/defaults retain ordinary tint coverage.
+Native Vulkan/DX12/Metal adapters preserve opaque depth and own snapshot lifetime through frame
+fences/resize. Six native checks cover bending, reversal, exact replay, zero thickness and
+foreground rejection (75 PBR frames). Linux full validation passes 97/97 (92.94 seconds), including all 75 PBR frames and native F8
+change/exact restoration. Shipping/reference validation remains open (VIS 5/7). This model
+excludes offscreen and multiple transparent layers.
+
+
+Vulkan synchronization validation now covers opaque-HDR refraction. Swapchain acquisition and
+the copied HDR color transition include attachment-load reads; compatible HDR clear/load
+passes share color/depth read dependencies. This preserves pipeline/framebuffer compatibility
+while loading opaque depth and color for the glass phase. Khronos core/synchronization validation
+passes all 75 native PBR frames. The full Linux configure/build/test rerun passes 97/97
+(95.08 seconds) with validation layers enabled. Release rerun remains pending.
