@@ -18,6 +18,9 @@ surface (all zero means full surface). Invalid or out-of-bounds rectangles are r
 scene copies require the full surface. A direct scene draw may precede one UI submission, or an
 explicit bounded direct draw may follow UI to replace only the selected viewport pixels. Vulkan
 loads the UI color target for that later draw; DX12 preserves the existing render target.
+Vulkan acquisition makes the color attachment available for both reads and writes. The shared
+UI/tone render pass declares an external color-write to color-read/write dependency: its `LOAD`
+operation and alpha blending preserve color produced by preceding scene/tone/UI passes.
 Backends without a native geometry path return `Unsupported` rather than silently compositing a
 fallback. `SurfaceDiagnostics::sceneDrawCalls` counts accepted native scene draws. `CompositeRgba8`
 remains a legacy full-frame upload for non-Editor clients; the production Editor does not call it.

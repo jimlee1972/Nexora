@@ -1,6 +1,6 @@
 # Nexora 圖形化 Editor Roadmap
 
-> 版本：v1.3｜狀態：AI 可執行交付計畫｜更新：2026-10-02
+> 版本：v1.3｜狀態：AI 可執行交付計畫｜更新：2026-10-06
 
 > **進度：0%**（ED-M0～ED-M7 尚無任一 milestone 通過圖形化 Editor 驗收；
 > 已完成的 Runtime/Editor SDK 前置不向上取整為 Editor milestone。）
@@ -12,6 +12,9 @@ workspace/document core。**待辦：** 其餘 graphical view、authoring workfl
 
 所需主機不可用時，先暫緩純平台驗收，繼續獨立實作與自動化驗證。未驗證的證據列保持待辦，
 對應 milestone 仍須通過主機 gate 才能標記已驗收。
+
+✅ Linux 自動化 Vulkan 驗證現會拒絕 exit-zero error，已涵蓋 attachment 同步與 native RHI
+shader feature（[證據](../../Tools/Build/evidence/EditorEDM0-VulkanValidation-2026-10-06.md)）。ED-M0 仍待 target-host 與 workflow gate。
 
 ### Repository 完成度稽核（2026-10-02）
 

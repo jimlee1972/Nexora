@@ -29,7 +29,7 @@ code and tag changes retain full validation; roadmap implementation acceptance r
 | V1 Visual Identity Showcase Roadmap | **✅ Art direction confirmed; free-asset shortlist recorded; ✅ VIS-M0–M2 / VIS-M4–M5 accepted (5/7); quality/release evidence retained; golden-hour environment/HDR Linux 97/97 + 100s native evidence retained; reference art and physical performance pending** | [V1 Visual Identity Showcase Roadmap](en/V1-Visual-Identity-Roadmap.md) |
 | Editor Roadmap | **0% graphical acceptance** | [Graphical Editor Roadmap](en/Editor_Roadmap.md) |
 | ✅ ADR-0001: Editor UI Framework | **Accepted** | [ADR-0001: Editor UI Framework](en/ADR-0001-Editor-UI-Framework.md) |
-| Editor ED-M0 Dear ImGui Integration Plan | **In progress; ✅ WP0 baseline accepted, target-host gates open** | [Editor ED-M0 Dear ImGui Integration Plan](en/Editor_ImGui_Integration_Plan.md) |
+| Editor ED-M0 Dear ImGui Integration Plan | **In progress; ✅ WP0 baseline and Linux Vulkan validation slice; target-host gates open** | [Editor ED-M0 Dear ImGui Integration Plan](en/Editor_ImGui_Integration_Plan.md) |
 | V2-M3 GPU-Driven Native Execution Plan | **In progress; ✅ Phase 1a and Metal source slice complete** | [V2-M3 GPU-Driven Native Execution Plan](en/V2-M3_GPU_Driven_Native_Execution_Plan.md) |
 | Transform Rotation and Scale Plan | **Approved; ✅ all phases complete (data model, persistence, Zig/C wire, Editor gizmo math, docs); the Euler Inspector hint waits for the graphical Inspector** | [Transform Rotation and Scale Plan](en/Transform_Rotation_Scale_Plan.md) |
 | ✅ ADR-0002: Native Scene mesh batches | **Accepted; bounded public batch contract** | [ADR-0002: Native Scene mesh batches](en/ADR-0002-Editor-Scene-Mesh-Batches.md) |
@@ -87,7 +87,7 @@ Roadmap 狀態與 repository root [`README.md`](../README.md) 的進度／狀態
 | V1 視覺特色 Showcase Roadmap | **✅ 美術方向已確認；已記錄免費素材候選；✅ VIS-M0–M2／VIS-M4–M5 已驗收（5/7）；品質／交付證據已齊備；實機美術／效能待驗收** | [Nexora V1 視覺特色 Showcase Roadmap](zh-TW/V1-Visual-Identity-Roadmap.md) |
 | Editor Roadmap | **0% 圖形化驗收** | [圖形化 Editor Roadmap](zh-TW/Editor_Roadmap.md) |
 | ✅ ADR-0001：Editor UI Framework | **Accepted** | [ADR-0001：Editor UI Framework](zh-TW/ADR-0001-Editor-UI-Framework.md) |
-| Editor ED-M0 Dear ImGui 整合計畫 | **施工中；✅ WP0 baseline 通過，target-host gate 待完成** | [Editor ED-M0 Dear ImGui 整合計畫](zh-TW/Editor_ImGui_Integration_Plan.md) |
+| Editor ED-M0 Dear ImGui 整合計畫 | **施工中；✅ WP0 baseline 與 Linux Vulkan validation slice，target-host gate 待完成** | [Editor ED-M0 Dear ImGui 整合計畫](zh-TW/Editor_ImGui_Integration_Plan.md) |
 | V2-M3 GPU-Driven Native Execution 計畫 | **施工中；✅ Phase 1a 與 Metal source slice 已完成** | [V2-M3 GPU-Driven Native Execution 計畫](zh-TW/V2-M3_GPU_Driven_Native_Execution_Plan.md) |
 | Transform 旋轉與縮放擴充計畫 | **已核准；✅ 所有階段皆已完成（資料模型、持久化、Zig／C wire、Editor gizmo 數學、文件）；Euler Inspector 提示留待圖形化 Inspector** | [Transform 旋轉與縮放擴充計畫](zh-TW/Transform_Rotation_Scale_Plan.md) |
 | ✅ ADR-0002：原生 Scene mesh 批次 | **Accepted；有界公共批次契約** | [ADR-0002：原生 Scene mesh 批次](zh-TW/ADR-0002-Editor-Scene-Mesh-Batches.md) |
