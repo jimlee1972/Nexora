@@ -450,6 +450,17 @@ void RunContentRename(float dpi) {
               f.scene.Redo() && f.scene.Undo(),
           "Enter rename lost source identity or consumed document history");
   begin();
+  f.Shortcut(Key::A);
+  f.Tap(Key::Backspace);
+  f.Tap(Key::Enter);
+  Require(!content.LastError().empty(), "Invalid rename did not report its error");
+  type(U"場景🙂.scene");
+  f.Tap(Key::Enter);
+  Require(content.LastError().empty() && content.Undo() &&
+              content.Browser().Find(asset)->path == "Content/Original.scene" &&
+              content.Rename(asset, encoded),
+          "Unchanged rename retained an error or consumed Content Undo");
+  begin();
   type(U"Canceled.scene");
   f.Tap(Key::Escape);
   Require(content.Browser().Find(asset)->path == unicode &&
@@ -500,6 +511,18 @@ void RunContentRename(float dpi) {
   focus.value0 = 1;
   f.ui.ProcessEvents(std::array{focus});
   f.Draw();
+  begin();
+  type(U"FocusRestored.scene");
+  focus.value0 = 0;
+  f.ui.ProcessEvents(std::array{focus});
+  focus.value0 = 1;
+  f.ui.ProcessEvents(std::array{focus}); // No renderable frame occurred while unfocused.
+  f.Tap(Key::Enter);
+  f.Draw();
+  Require(!Access::ContentRenamePosition(f.ui, 0) &&
+              content.Browser().Find(asset)->path == unicode &&
+              !std::filesystem::exists(f.root / "Content/FocusRestored.scene"),
+          "Focus restoration before drawing revived the Content rename draft");
   begin();
   const std::vector<editor::ContentItem> snapshot(content.Browser().Items().begin(),
                                                   content.Browser().Items().end());

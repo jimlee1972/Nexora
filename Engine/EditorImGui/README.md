@@ -551,6 +551,8 @@ The 1024-byte buffer retains supplementary Unicode input without truncating a po
 Rename blocks Scene/Inspector, File/Undo/clipboard/Play commands even with an inactive name field.
 Application focus loss, write loss, hidden Content, external blocking modals, stale project generation,
 root, missing asset or changed captured path cancels the draft. Access restoration cannot revive it.
+Focus loss cancels immediately in event processing, including loss/regain without a renderable frame;
+submitting the unchanged filename clears prior errors while preserving Content Undo.
 Successful `ProjectContentSession::Rename` transacts source and sidecar with one Content Undo and
 retains document history. Widgets keep no ContentItem/World borrows across frames. Real 1x/2x tests
 cover Unicode, retry, cancellation, unchanged names, File/authoring gates and stale scopes; Linux

@@ -261,6 +261,17 @@ bool ProjectContentSession::Rename(runtime::AssetUuid asset, std::string_view fi
   if (current == nullptr)
     return Fail("asset does not exist", error);
   const auto source = current->path;
+  if (source.filename().generic_u8string() == std::u8string(filename.begin(), filename.end())) {
+    if (!writable_)
+      return Fail("project content is read-only", error);
+    std::string path_error;
+    if (ExistingPath(source, &path_error).empty() ||
+        (persistent_identities_ &&
+         ExistingPath(AssetWorkspace::IdentitySidecar(source), &path_error).empty()))
+      return Fail(path_error, error);
+    ClearError(error);
+    return true;
+  }
   auto candidate = browser_;
   std::string model_error;
   if (!candidate.Rename(asset, filename, &model_error))

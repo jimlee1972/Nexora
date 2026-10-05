@@ -140,7 +140,8 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   authoring-thread 的終局決定，UI 不會直接覆寫檔案。
 - ✅ Focused Content F2 與 context Rename 現共用 owning UUID／generation／root／path draft、
   focused／select-all UTF-8 檔名、Enter／Apply 與 Escape／Cancel。無效名稱可重試，同名
-  保留 Content Undo。Modal 阻擋 authoring／File 指令，並在焦點／write loss、隱藏 Content、
+  清除錯誤並保留 Content Undo；失焦在延後繪製前立即取消。Modal 阻擋 authoring／File 指令，
+  並在焦點／write loss、隱藏 Content、
   外部 modal 或 stale asset scope 時取消。真正 1×／2× Unicode／gate 測試及 Linux Xvfb
   F2／Enter 後的 Scene Save／Undo／重啟驗證流程；實體 IME 與完整圖形驗收仍待完成。
 - 待辦：實體顯示／Windows 新 project 全流程驗收。

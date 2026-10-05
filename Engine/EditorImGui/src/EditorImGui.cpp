@@ -2884,8 +2884,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     const bool apply = ImGui::Button("Apply");
     capture(1);
     if (valid && (apply || submit)) {
-      if (PathLabel(item->path.filename()) == state.content_rename.data() ||
-          content.Rename(*state.content_rename_target, state.content_rename.data())) {
+      if (content.Rename(*state.content_rename_target, state.content_rename.data())) {
         state.content_rename_target.reset();
         ImGui::ClearActiveID();
         ImGui::CloseCurrentPopup();
@@ -3233,6 +3232,9 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
         CancelInspectorDrafts(*state_);
         state_->hierarchy_rename_target.reset();
         state_->hierarchy_rename_focus_pending = false;
+        state_->content_rename_target.reset();
+        state_->content_rename_focus = false;
+        state_->content_rename_positions = {};
       }
       io.AddFocusEvent(event.value0 != 0);
       break;

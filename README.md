@@ -312,9 +312,10 @@ read-only is supported and Play/modal/stale tokens reject replacement. Real 1x/2
 cover the workflow; additive scene tabs remain open.
 
 ✅ Focused Content F2 now renames one asset with selected UTF-8 filename input, Enter/Apply and
-Escape/Cancel. Invalid names remain retryable, unchanged names keep Undo, and stale/access/modal
-gates cancel drafts without changing document history. Real 1x/2x and native Linux keyboard
+Escape/Cancel. Invalid names remain retryable, unchanged names clear errors and keep Undo, and
+stale/access/modal gates cancel drafts without changing document history. Real 1x/2x and native Linux keyboard
 workflows verify the action; physical IME and full graphical acceptance remain open.
+Focus loss cancels immediately even when rendering is deferred until focus returns.
 
 ✅ The active Content scene now follows UUID-preserving rename/move and Content Undo without losing
 document edits/history or view state. Committed relocation updates startup location even when
@@ -748,9 +749,10 @@ Untitled Save As 與明確覆寫確認。Document／project token 拒絕過期�
 拒絕替換。真正 1×／2× pointer／key 測試驗證流程；additive scene tab 仍待完成。
 
 ✅ Focused Content F2 現可替單一資產改名，選取 UTF-8 檔名輸入並支援 Enter／Apply 與
-Escape／Cancel。無效名稱可重試，同名保留 Undo；stale／access／modal gate 取消 draft，
+Escape／Cancel。無效名稱可重試，同名清除錯誤並保留 Undo；stale／access／modal gate 取消 draft，
 不改動文件 history。真正 1×／2× 及原生 Linux 鍵盤流程驗證操作；實體 IME 與完整圖形
 驗收仍待完成。
+失焦事件會立即取消 draft，即使繪製延後至恢復焦點之後才發生。
 
 ✅ 目前 Content 場景現以 UUID 跟隨重新命名／移動與 Content Undo，保留文件修改、history
 及 view state。已提交的移動會更新啟動路徑，即使關閉時捨棄未儲存修改也能重開該來源。
