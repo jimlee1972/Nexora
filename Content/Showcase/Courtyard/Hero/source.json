@@ -183,7 +183,7 @@
   "sky": {
     "description": "Original authored golden-hour cloud panorama; visible six-face sky and HDR IBL share the panorama orientation, geometric solar disc and key-light direction.",
     "sun_direction": [
-      -12,
+      -18,
       6,
       -16
     ],
@@ -210,7 +210,7 @@
     "panorama": {
       "path": "Source/golden-sky.png",
       "sha256": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
-      "rotation_radians": -2.214297435588181,
+      "rotation_radians": -2.4149503129080676,
       "elevation_scale": 2.3
     }
   },

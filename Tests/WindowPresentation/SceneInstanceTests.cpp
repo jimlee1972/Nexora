@@ -212,6 +212,32 @@ void Run() {
   Require(!ValidatePbrData(pbr), "Lambert world mapping accepted");
   pbr.pbr = pbr.hdr = true;
   pbr.materials = {};
+  pbr.atmosphere = SceneAtmosphere{};
+  Require(ValidatePbrData(pbr), "valid HDR atmosphere rejected");
+  for (const float invalid : {-1.0F, 1.1F, std::numeric_limits<float>::quiet_NaN()}) {
+    pbr.atmosphere->strength = invalid;
+    Require(!ValidatePbrData(pbr), "invalid atmosphere strength accepted");
+  }
+  pbr.atmosphere = SceneAtmosphere{};
+  for (const float invalid : {-1.0F, 33.0F, std::numeric_limits<float>::infinity()}) {
+    pbr.atmosphere->color[0] = invalid;
+    Require(!ValidatePbrData(pbr), "invalid atmosphere radiance accepted");
+  }
+  pbr.atmosphere = SceneAtmosphere{};
+  pbr.atmosphere->endDistance = pbr.atmosphere->startDistance;
+  Require(!ValidatePbrData(pbr), "empty atmosphere range accepted");
+  pbr.atmosphere->startDistance = -1;
+  Require(!ValidatePbrData(pbr), "negative atmosphere start accepted");
+  pbr.atmosphere = SceneAtmosphere{{0.5F, 1, 2}, 0.5F, 10, 50};
+  const auto fogPacked = PackPbrMaterial(pbr, SceneMaterial{}, false);
+  Require(fogPacked[80] == 0.5F && fogPacked[82] == 2 && fogPacked[83] == 0.5F &&
+              fogPacked[84] == 10 && fogPacked[85] == 50 && fogPacked[86] == 0 &&
+              fogPacked[87] == 0,
+          "atmosphere packet differs from shader constants");
+  pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "non-HDR atmosphere accepted");
+  pbr.hdr = true;
+  pbr.atmosphere.reset();
   pbr.shadow = SceneDirectionalShadow{};
   Require(ValidatePbrData(pbr), "valid shadow rejected");
   pbr.shadow->resolution = 300;

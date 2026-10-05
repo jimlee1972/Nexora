@@ -986,3 +986,10 @@ panorama feeds both skybox and derived HDR environment light. Bounded shoreline 
 pedestal relief refine the scene. Reference parity remains under development (VIS 5/7).
 世界座標石材貼圖改善柱體與鋪面的細節；原創雲層全景同時供 skybox 與衍生 HDR 環境光使用。
 水岸輪廓與基座浮雕持續調整；預覽圖一致性仍在製作，VIS 維持 5/7。
+
+
+Linear HDR distance haze adds background depth while preserving authored sky/emitter radiance;
+F7 compares the effect. Sun direction remains shared by sky, IBL and directional lighting.
+Reference-image fidelity remains in progress (VIS 5/7).
+線性 HDR 距離霧化改善背景層次，保留天空與發光物件的原始輻射值，F7 可切換比較。
+太陽方位由天空、IBL 與方向光共用；預覽圖一致性持續製作，VIS 維持 5/7。

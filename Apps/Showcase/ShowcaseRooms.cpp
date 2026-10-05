@@ -124,7 +124,7 @@ struct RoomSession::State final {
   bool courtyardPbr{true}, courtyardIbl{true};
   float courtyardExposure = 1.0F;
   bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true}, courtyardFocus{true};
-  bool courtyardReflections{true};
+  bool courtyardReflections{true}, courtyardAtmosphere{true};
   bool courtyardPaused{}, courtyardActive{}, courtyardWind{true}, courtyardTransmission{true};
   bool courtyardTransparency{true};
   bool visualTour{}, courtyardFreeCamera{}, courtyardCompare{};
@@ -1915,7 +1915,7 @@ void RoomSession::ReplayTour() {
     state_->courtyardActive = false;
     state_->courtyardPbr = state_->courtyardIbl = state_->courtyardShadows = true;
     state_->courtyardBloom = state_->courtyardStyled = state_->courtyardFocus =
-        state_->courtyardReflections = true;
+        state_->courtyardReflections = state_->courtyardAtmosphere = true;
     state_->courtyardWind = state_->courtyardTransmission = state_->courtyardTransparency = true;
     state_->courtyardExposure = 1;
     state_->courtyardShadowBias = 0.0008F;
@@ -2021,6 +2021,8 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.courtyardFocus = !s.courtyardFocus;
   if (s.selected == "courtyard" && key == Key::V)
     s.courtyardReflections = !s.courtyardReflections;
+  if (s.selected == "courtyard" && key == Key::F7)
+    s.courtyardAtmosphere = !s.courtyardAtmosphere;
   if (s.selected == "courtyard" && key == Key::K)
     s.courtyardBloom = !s.courtyardBloom;
   if (s.selected == "courtyard" && key == Key::F6) {
@@ -2627,6 +2629,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     data.offscreen = data.hdr;
     if (data.hdr && s.courtyardReflections && s.courtyardQuality != 0)
       data.planarReflection = s.CourtyardReflectionSettings();
+    if (data.hdr && s.courtyardAtmosphere && s.courtyardQuality != 0)
+      data.atmosphere = Nexora::Presentation::SceneAtmosphere{{0.55F, 0.48F, 0.46F}, 0.55F, 16, 70};
     if (data.hdr && s.courtyardStyled)
       data.colorGrade = Nexora::Presentation::SceneColorGrade{1.05F, 1.05F};
     if (data.hdr && s.courtyardBloom && s.courtyardQuality != 0)
@@ -2709,7 +2713,7 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     s.Text(30, 678, viewing + " / Q Quality: " + std::string(QualityName()), 0xffefdc80, 1.3F);
     if (s.courtyardCompare) {
       s.Rect(18, 531, 900, 100, 0xde241a10);
-      s.Text(30, 544, "P Materials / O Environment / F6 Shadows", 0xffe9ded4, 1.4F);
+      s.Text(30, 544, "P Materials / O Environment / F6 Shadows / F7 Haze", 0xffe9ded4, 1.4F);
       s.Text(30, 573, "J Focus / V Reflection / U Crystal / K Glow / N Wind / M Backlight",
              0xffe9ded4, 1.4F);
       s.Text(30, 602, "Q Quality / Pause for comparisons / R Replay / F1-F3 Details", 0xffefdc80,
@@ -2718,11 +2722,11 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
   } else {
     s.Rect(0, 0, 1280, 112, 0xf0271a10);
     s.Text(18, 14, s.localization.Resolve("title"), 0xffefdc80, 3);
-    s.Text(
-        18, 45,
-        "9 courtyard / B shot / P material / O IBL / E exposure / F6 shadows / G tone / [ ] bias "
-        "/ F4 hide UI / F1 overview / F2 "
-        "profiler / F3 matrix");
+    s.Text(18, 45,
+           "9 courtyard / B shot / P material / O IBL / E exposure / F6 shadows / F7 haze / G tone "
+           "/ [ ] bias "
+           "/ F4 hide UI / F1 overview / F2 "
+           "profiler / F3 matrix");
     for (std::size_t i = 0; i < rooms.size(); ++i) {
       const float x = 18 + static_cast<float>(i) * 154;
       s.Rect(x, 75, 146, 28, s.selected == rooms[i] ? 0xff996828 : 0xff453123);
@@ -2870,6 +2874,8 @@ std::string RoomSession::Report() const {
       << ",\"animation_seconds\":" << s.courtyardSeconds
       << ",\"wind_enabled\":" << (s.courtyardPbr && s.courtyardWind)
       << ",\"transmission_enabled\":" << (s.courtyardPbr && s.courtyardTransmission)
+      << ",\"atmosphere_enabled\":"
+      << (s.courtyardPbr && s.courtyardAtmosphere && s.courtyardQuality != 0)
       << ",\"transparency_enabled\":" << (s.courtyardPbr && s.courtyardTransparency)
       << ",\"device_active\":" << s.courtyardActive
       << ",\"geometry_vertex_count\":" << s.vertices.size()
