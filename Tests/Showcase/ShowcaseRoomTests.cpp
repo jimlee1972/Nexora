@@ -416,6 +416,12 @@ int main() {
     assert(draw.instances.size() == (tier != 0 ? 438 : 437));
     qualityVertices[tier] = draw.vertices.size();
   }
+  assert(quality.Scene(1280, 720).materials[12].refractionIndex == 1.46F);
+  Press(quality, Key::F8);
+  assert(quality.Scene(1280, 720).materials[12].refractionIndex == 1 &&
+         quality.Scene(1280, 720).materials[12].refractionThickness == 0);
+  Press(quality, Key::F8);
+  assert(quality.Scene(1280, 720).materials[12].refractionIndex == 1.46F);
   Press(quality, Key::F7);
   assert(!quality.Scene(1280, 720).atmosphere);
   Press(quality, Key::F7);

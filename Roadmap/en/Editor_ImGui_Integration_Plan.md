@@ -1,7 +1,7 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
-> Version: v1.5 | Status: implementation in progress; target-host evidence pending |
-> Updated: 2026-10-06 | Relates to: `Editor_Roadmap.md` (ED-M0),
+> Version: v1.4 | Status: implementation in progress; target-host evidence pending |
+> Updated: 2026-10-05 | Relates to: `Editor_Roadmap.md` (ED-M0),
 > `ADR-0001-Editor-UI-Framework.md`, `Window_Presentation_Roadmap.md`
 
 > **Repository audit (2026-10-05):** implementation is **in progress**. The checked foundations
@@ -186,11 +186,6 @@ cache is available, report an environment limitation; never silently disable the
 ### WP1 — Make the public RHI sufficient for ImGui
 
 **Status: implemented in source and validation contracts; native target-host validation remains.**
-
-✅ Linux automated Vulkan validation slice passed: attachment load/blend synchronization and
-SPIR-V feature negotiation corrected; exit-zero diagnostics now fail the display/native gate.
-See the [validation record](../../Tools/Build/evidence/EditorEDM0-VulkanValidation-2026-10-06.md).
-Physical-display and other target-host evidence remain open; WP1 is not yet accepted.
 
 1. Compare `ImDrawVert`/`ImDrawIdx` and every `ImDrawCmd` field with public RHI capabilities.
    Required semantics are dynamic vertex/index upload, orthographic constants, alpha blending,

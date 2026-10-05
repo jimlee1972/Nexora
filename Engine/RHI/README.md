@@ -29,9 +29,6 @@
   on Windows/Linux, and Metal on Apple. Each backend owns device creation, texture allocation,
   resource-state transitions, triangle PSO creation, command recording, submission fencing, and
   the offscreen `Present` contract without leaking native types into public headers.
-- The native Vulkan RHI requires Vulkan 1.1 and `shaderDrawParameters` for canonical Slang
-  SPIR-V 1.3 artifacts, plus `multiDrawIndirect` for GPU-driven submission. Device selection rejects unsupported candidates before shader
-  creation and enables the required features on the selected graphics device.
 - `renderer.contracts` uses the native backend on the host platform when Slang is enabled. Set
   `NEXORA_SLANG_SPIRV_PATH` or `NEXORA_SLANG_METAL_PATH` manually when running the executable
   outside CTest; CMake sets these paths automatically for the CI test.

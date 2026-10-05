@@ -173,8 +173,6 @@ struct VulkanFunctions final {
   PFN_vkEnumeratePhysicalDevices EnumeratePhysicalDevices{};
   PFN_vkGetPhysicalDeviceQueueFamilyProperties GetPhysicalDeviceQueueFamilyProperties{};
   PFN_vkGetPhysicalDeviceMemoryProperties GetPhysicalDeviceMemoryProperties{};
-  PFN_vkGetPhysicalDeviceProperties GetPhysicalDeviceProperties{};
-  PFN_vkGetPhysicalDeviceFeatures2 GetPhysicalDeviceFeatures2{};
   PFN_vkCreateDevice CreateDevice{};
   PFN_vkGetDeviceProcAddr GetDeviceProcAddr{};
   PFN_vkDestroyDevice DestroyDevice{};
@@ -419,13 +417,6 @@ void VulkanDevice::LoadInstanceFunctions() {
       RequireFunction(loader_.Instance<PFN_vkGetPhysicalDeviceMemoryProperties>(
                           instance_, "vkGetPhysicalDeviceMemoryProperties"),
                       "vkGetPhysicalDeviceMemoryProperties");
-  functions_.GetPhysicalDeviceProperties =
-      RequireFunction(loader_.Instance<PFN_vkGetPhysicalDeviceProperties>(
-                          instance_, "vkGetPhysicalDeviceProperties"),
-                      "vkGetPhysicalDeviceProperties");
-  functions_.GetPhysicalDeviceFeatures2 = RequireFunction(
-      loader_.Instance<PFN_vkGetPhysicalDeviceFeatures2>(instance_, "vkGetPhysicalDeviceFeatures2"),
-      "vkGetPhysicalDeviceFeatures2");
   functions_.CreateDevice = RequireFunction(
       loader_.Instance<PFN_vkCreateDevice>(instance_, "vkCreateDevice"), "vkCreateDevice");
   functions_.GetDeviceProcAddr =
@@ -514,7 +505,7 @@ VulkanDevice::VulkanDevice() {
                                            VK_MAKE_VERSION(0, 1, 0),
                                            "Nexora",
                                            VK_MAKE_VERSION(0, 1, 0),
-                                           VK_API_VERSION_1_1};
+                                           VK_API_VERSION_1_0};
   const VkInstanceCreateInfo instance_info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
                                            nullptr,
                                            0,
@@ -544,17 +535,6 @@ void VulkanDevice::SelectPhysicalDevice() {
   Check(functions_.EnumeratePhysicalDevices(instance_, &count, devices.data()),
         "vkEnumeratePhysicalDevices");
   for (const auto candidate : devices) {
-    VkPhysicalDeviceProperties properties{};
-    functions_.GetPhysicalDeviceProperties(candidate, &properties);
-    if (properties.apiVersion < VK_API_VERSION_1_1)
-      continue;
-    VkPhysicalDeviceShaderDrawParametersFeatures draw_parameters{
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES, nullptr, VK_FALSE};
-    VkPhysicalDeviceFeatures2 features{
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &draw_parameters, {}};
-    functions_.GetPhysicalDeviceFeatures2(candidate, &features);
-    if (!draw_parameters.shaderDrawParameters || !features.features.multiDrawIndirect)
-      continue;
     std::uint32_t queue_count = 0;
     functions_.GetPhysicalDeviceQueueFamilyProperties(candidate, &queue_count, nullptr);
     std::vector<VkQueueFamilyProperties> queues(queue_count);
@@ -567,21 +547,15 @@ void VulkanDevice::SelectPhysicalDevice() {
       }
     }
   }
-  throw std::runtime_error("Vulkan requires a Vulkan 1.1 graphics device with shaderDrawParameters "
-                           "and multiDrawIndirect");
+  throw std::runtime_error("Vulkan has no graphics queue family");
 }
 
 void VulkanDevice::CreateCoreObjects() {
   constexpr float priority = 1.0F;
   const VkDeviceQueueCreateInfo queue_info{
       VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO, nullptr, 0, graphics_queue_family_, 1, &priority};
-  // Slang emits SPIR-V 1.3 with DrawParameters for the canonical native shaders.
-  const VkPhysicalDeviceShaderDrawParametersFeatures draw_parameters{
-      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES, nullptr, VK_TRUE};
-  VkPhysicalDeviceFeatures features{};
-  features.multiDrawIndirect = VK_TRUE;
   const VkDeviceCreateInfo device_info{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                                       &draw_parameters,
+                                       nullptr,
                                        0,
                                        1,
                                        &queue_info,
@@ -589,7 +563,7 @@ void VulkanDevice::CreateCoreObjects() {
                                        nullptr,
                                        0,
                                        nullptr,
-                                       &features};
+                                       nullptr};
   Check(functions_.CreateDevice(physical_device_, &device_info, nullptr, &device_),
         "vkCreateDevice");
   LoadDeviceFunctions();

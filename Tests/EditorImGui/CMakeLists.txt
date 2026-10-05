@@ -97,11 +97,6 @@ if(WIN32)
   add_test(NAME editor.windows_dpi_ime_contract COMMAND NexoraEditorWindowsDpiImeTests)
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  add_test(NAME editor.linux_validation_output
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxDisplayAcceptanceTests.py")
-endif()
-
 find_program(NEXORA_XVFB_EXECUTABLE Xvfb)
 find_program(NEXORA_XDOTOOL_EXECUTABLE xdotool)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)

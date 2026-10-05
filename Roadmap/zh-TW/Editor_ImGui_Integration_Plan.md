@@ -1,7 +1,7 @@
 # Editor ED-M0 Dear ImGui 整合計畫
 
-> 版本：v1.5｜狀態：施工中；target-host 證據待完成｜
-> 更新：2026-10-06｜對應：`Editor_Roadmap.md`（ED-M0）、
+> 版本：v1.4｜狀態：施工中；target-host 證據待完成｜
+> 更新：2026-10-05｜對應：`Editor_Roadmap.md`（ED-M0）、
 > `ADR-0001-Editor-UI-Framework.md`、`Window_Presentation_Roadmap.md`
 
 > **Repository 稽核（2026-10-05）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
@@ -171,11 +171,6 @@ target-host 證據。此處僅完成 WP0，ED-M0 尚未完成。
 ### WP1 — 讓 public RHI 足以表達 ImGui
 
 **狀態：source 與 validation contract 已實作；native target-host validation 仍待完成。**
-
-✅ Linux 自動化 Vulkan validation slice 已通過：修正 attachment load／blend 同步與
-SPIR-V feature negotiation；display／native gate 現會拒絕 exit-zero validation error。
-詳見[驗證紀錄](../../Tools/Build/evidence/EditorEDM0-VulkanValidation-2026-10-06.md)。
-實體顯示器與其他 target-host 證據仍待完成；WP1 尚未驗收。
 
 1. 對照 `ImDrawVert`/`ImDrawIdx` 與每個 `ImDrawCmd` field，稽核 public RHI capability。必須能表達
    dynamic vertex/index upload、orthographic constants、alpha blending、depth test/write off、cull-none、

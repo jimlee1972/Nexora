@@ -189,7 +189,9 @@ struct SceneMaterial final {
   bool unlit{};           // PBR emission-only path; retains alpha cutout and common color output.
   bool castsShadow{true}; // Exclude non-casters from the protecting-frame prepass.
   SceneReflectionRole reflectionRole{}; // Horizontal planar mirror mask; opt-in PBR only.
-  float opacity{1}; // Linear HDR blend coverage; below 1 requires non-casting HDR PBR.
+  float refractionIndex{1};    // [1,2.5]; above 1 enables bounded opaque-HDR background refraction.
+  float refractionThickness{}; // [0,1] world units; requires non-casting translucent HDR PBR.
+  float opacity{1};            // Linear HDR blend coverage; below 1 requires non-casting HDR PBR.
   std::array<float, 3> transparencyTint{1, 1, 1}; // Linear attenuation of the transmitted scene.
   float
       worldTextureScale{}; // Base/normal/ORM triplanar repeats per world unit; zero keeps mesh UVs.
@@ -212,6 +214,10 @@ struct SceneMaterial final {
     for (const auto value : {material.metallic, material.roughness, material.occlusion})
       if (!std::isfinite(value) || value < 0 || value > 1)
         return false;
+    if (!std::isfinite(material.refractionIndex) || material.refractionIndex < 1 ||
+        material.refractionIndex > 2.5F || !std::isfinite(material.refractionThickness) ||
+        material.refractionThickness < 0 || material.refractionThickness > 1)
+      return false;
     if (!std::isfinite(material.worldTextureScale) || material.worldTextureScale < 0 ||
         material.worldTextureScale > 16)
       return false;

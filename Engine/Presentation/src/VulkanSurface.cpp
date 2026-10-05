@@ -204,9 +204,7 @@ public:
     VkImageMemoryBarrier toRender{};
     toRender.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     toRender.srcAccessMask = 0;
-    // UI and tone passes load the acquired color attachment before blending/writing it.
-    toRender.dstAccessMask =
-        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    toRender.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     toRender.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     toRender.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     toRender.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -497,7 +495,8 @@ public:
         const auto material = ResolveSceneMaterial(data, slot);
         const auto parameters = PackPbrMaterial(data, material,
                                                 swapchainFormat_ != VK_FORMAT_B8G8R8A8_SRGB &&
-                                                    swapchainFormat_ != VK_FORMAT_R8G8B8A8_SRGB);
+                                                    swapchainFormat_ != VK_FORMAT_R8G8B8A8_SRGB,
+                                                true, width_, height_);
         std::memcpy(static_cast<std::byte *>(mapped) + materialOffset + slot * materialStride,
                     parameters.data(), sizeof(parameters));
       }
@@ -511,6 +510,9 @@ public:
       if (status != SurfaceStatus::Ready)
         return status;
     }
+    const bool refraction = HasSceneRefraction(data);
+    if (refraction && !CreateRefractionTarget(frame))
+      return SurfaceStatus::DeviceLost;
     if (data.pbr) {
       frame.pbrDescriptors.resize(materialCount);
       std::vector<VkDescriptorSetLayout> layouts(materialCount, pbrMaterialLayout_);
@@ -527,8 +529,8 @@ public:
                              material.normalTextureId ? material.normalTextureId : UINT64_MAX - 1,
                              material.ormTextureId ? material.ormTextureId : UINT64_MAX,
                              material.emissionTextureId ? material.emissionTextureId : UINT64_MAX};
-        std::array<VkDescriptorImageInfo, 8> images{};
-        std::array<VkWriteDescriptorSet, 9> writes{};
+        std::array<VkDescriptorImageInfo, 9> images{};
+        std::array<VkWriteDescriptorSet, 10> writes{};
         for (std::uint32_t map = 0; map < 4; ++map) {
           const auto &texture = sceneTextures_.at(ids[map]);
           images[map] = {uiSampler_, (map == 0 || map == 3) ? texture.srgbView : texture.view,
@@ -574,6 +576,19 @@ public:
                      1,
                      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                      &images[7],
+                     nullptr,
+                     nullptr};
+        images[8] = {uiSampler_,
+                     refraction ? frame.refractionView : linearSceneTextures_.at(UINT64_MAX).view,
+                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+        writes[9] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                     nullptr,
+                     frame.pbrDescriptors[slot],
+                     9,
+                     0,
+                     1,
+                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                     &images[8],
                      nullptr,
                      nullptr};
         const VkDescriptorBufferInfo info{frame.sceneUpload, materialOffset + slot * materialStride,
@@ -712,6 +727,12 @@ public:
     const auto batches =
         data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
     for (unsigned phase = 0; phase < 2; ++phase) {
+      if (phase == 1 && refraction) {
+        vkCmdEndRenderPass(frame.commands);
+        CaptureRefraction(frame);
+        begin.renderPass = sceneHdrLoadRenderPass_;
+        vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
+      }
       for (const auto &batch : batches) {
         const auto material = ResolveSceneMaterial(data, batch.materialIndex);
         const bool transparent = material.opacity < 1;
@@ -722,9 +743,11 @@ public:
             transparent
                 ? sceneHdrBlendPipeline_
                 : (data.hdr ? sceneHdrPipeline_ : (data.pbr ? scenePbrPipeline_ : scenePipeline_)));
-        const float coverage[]{(1 - material.opacity) * material.transparencyTint[0],
-                               (1 - material.opacity) * material.transparencyTint[1],
-                               (1 - material.opacity) * material.transparencyTint[2], 1};
+        const bool refractive = material.refractionIndex > 1 && material.refractionThickness > 0;
+        const float backgroundCoverage = refractive ? 0 : 1 - material.opacity;
+        const float coverage[]{backgroundCoverage * material.transparencyTint[0],
+                               backgroundCoverage * material.transparencyTint[1],
+                               backgroundCoverage * material.transparencyTint[2], 1};
         vkCmdSetBlendConstants(frame.commands, coverage);
 
         std::copy(material.baseColor.begin(), material.baseColor.end(), constants.begin() + 24);
@@ -999,6 +1022,9 @@ private:
     VkFramebuffer shadowFramebuffer{};
     VkDescriptorSet toneDescriptor{};
     VkFramebuffer toneFramebuffer{};
+    VkImage refractionColor{};
+    VkDeviceMemory refractionMemory{};
+    VkImageView refractionView{};
     VkImage sceneColor{};
     VkDeviceMemory sceneColorMemory{};
     VkImageView sceneColorView{};
@@ -1069,6 +1095,15 @@ private:
     frame.sceneColorView = VK_NULL_HANDLE;
     frame.sceneColor = VK_NULL_HANDLE;
     frame.sceneColorMemory = VK_NULL_HANDLE;
+    if (frame.refractionView)
+      vkDestroyImageView(device_, frame.refractionView, nullptr);
+    if (frame.refractionColor)
+      vkDestroyImage(device_, frame.refractionColor, nullptr);
+    if (frame.refractionMemory)
+      vkFreeMemory(device_, frame.refractionMemory, nullptr);
+    frame.refractionView = VK_NULL_HANDLE;
+    frame.refractionColor = VK_NULL_HANDLE;
+    frame.refractionMemory = VK_NULL_HANDLE;
     if (frame.sceneDepthView)
       vkDestroyImageView(device_, frame.sceneDepthView, nullptr);
     if (frame.sceneDepth)
@@ -1486,23 +1521,12 @@ private:
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &color;
-    // Preserve color from the preceding scene/tone/UI pass for LOAD and alpha blending.
-    const VkSubpassDependency dependency{VK_SUBPASS_EXTERNAL,
-                                         0,
-                                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                                         VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                                             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                                         0};
     VkRenderPassCreateInfo renderPass{};
     renderPass.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPass.attachmentCount = 1;
     renderPass.pAttachments = &attachment;
     renderPass.subpassCount = 1;
     renderPass.pSubpasses = &subpass;
-    renderPass.dependencyCount = 1;
-    renderPass.pDependencies = &dependency;
     if (vkCreateRenderPass(device_, &renderPass, nullptr, &uiRenderPass_) != VK_SUCCESS)
       return false;
     const auto makeShader = [&](const std::uint32_t *code, std::size_t bytes, VkShaderModule &out) {
@@ -1717,6 +1741,99 @@ private:
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
                          &barrier);
     ++diagnostics_.sceneShadowPasses;
+  }
+  bool CreateRefractionTarget(Frame &frame) {
+    VkImageCreateInfo image{};
+    image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    image.imageType = VK_IMAGE_TYPE_2D;
+    image.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+    image.extent = {width_, height_, 1};
+    image.mipLevels = image.arrayLayers = 1;
+    image.samples = VK_SAMPLE_COUNT_1_BIT;
+    image.tiling = VK_IMAGE_TILING_OPTIMAL;
+    image.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (vkCreateImage(device_, &image, nullptr, &frame.refractionColor) != VK_SUCCESS)
+      return false;
+    VkMemoryRequirements requirements{};
+    vkGetImageMemoryRequirements(device_, frame.refractionColor, &requirements);
+    const auto type =
+        FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (type == UINT32_MAX)
+      return false;
+    const VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
+                                          requirements.size, type};
+    if (vkAllocateMemory(device_, &allocation, nullptr, &frame.refractionMemory) != VK_SUCCESS ||
+        vkBindImageMemory(device_, frame.refractionColor, frame.refractionMemory, 0) != VK_SUCCESS)
+      return false;
+    VkImageViewCreateInfo view{};
+    view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    view.image = frame.refractionColor;
+    view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    view.format = image.format;
+    view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    if (vkCreateImageView(device_, &view, nullptr, &frame.refractionView) != VK_SUCCESS)
+      return false;
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = frame.refractionColor;
+    barrier.subresourceRange = view.subresourceRange;
+    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                         &barrier);
+    return true;
+  }
+  void CaptureRefraction(Frame &frame) {
+    std::array<VkImageMemoryBarrier, 2> barriers{};
+    for (auto &barrier : barriers) {
+      barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+      barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    }
+    barriers[0].image = frame.sceneColor;
+    barriers[0].oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    barriers[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    barriers[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barriers[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    barriers[1].image = frame.refractionColor;
+    barriers[1].oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barriers[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barriers[1].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barriers[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    vkCmdPipelineBarrier(
+        frame.commands,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 2, barriers.data());
+    VkImageCopy copy{};
+    copy.srcSubresource = copy.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+    copy.extent = {width_, height_, 1};
+    vkCmdCopyImage(frame.commands, frame.sceneColor, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   frame.refractionColor, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+    for (auto &barrier : barriers) {
+      std::swap(barrier.oldLayout, barrier.newLayout);
+      std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+    }
+    barriers[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                         0, 0, nullptr, 0, nullptr, 2, barriers.data());
+    VkImageMemoryBarrier depth{};
+    depth.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    depth.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    depth.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+    depth.oldLayout = depth.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depth.srcQueueFamilyIndex = depth.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    depth.image = frame.sceneDepth;
+    depth.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
+    vkCmdPipelineBarrier(
+        frame.commands,
+        VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, 0,
+        0, nullptr, 0, nullptr, 1, &depth);
   }
   SurfaceStatus CompositeHdr(Frame &frame) {
     const VkDescriptorSetAllocateInfo allocation{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -1936,13 +2053,13 @@ private:
     vkDestroyShaderModule(device_, vertex, nullptr);
     if (!Initialized(result, "vkCreateGraphicsPipelines (scene)"))
       return false;
-    std::array<VkDescriptorSetLayoutBinding, 9> materialBindings{};
+    std::array<VkDescriptorSetLayoutBinding, 10> materialBindings{};
     for (std::uint32_t map = 0; map < 4; ++map)
       materialBindings[map] = {map, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                                VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
     materialBindings[4] = {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
-    for (std::uint32_t map = 5; map < 9; ++map)
+    for (std::uint32_t map = 5; map < 10; ++map)
       materialBindings[map] = {map, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                                VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
     const VkDescriptorSetLayoutCreateInfo materialLayout{
@@ -1953,7 +2070,7 @@ private:
       return false;
     const std::array poolSizes{
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64 * kMaxFrames},
-        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8 * 64 * kMaxFrames}};
+        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 9 * 64 * kMaxFrames}};
     const VkDescriptorPoolCreateInfo pool{
         VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,     nullptr,
         VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 64 * kMaxFrames,
@@ -2027,7 +2144,13 @@ private:
     attachments[0].format = VK_FORMAT_R16G16B16A16_SFLOAT;
     attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     pass.pDependencies = &dependency;
+    attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     if (vkCreateRenderPass(device_, &pass, nullptr, &sceneHdrRenderPass_) != VK_SUCCESS)
+      return false;
+    attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    attachments[1].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    if (vkCreateRenderPass(device_, &pass, nullptr, &sceneHdrLoadRenderPass_) != VK_SUCCESS)
       return false;
     pipeline.renderPass = sceneHdrRenderPass_;
     const auto hdrResult = vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr,
@@ -2108,6 +2231,9 @@ private:
       vkDestroyPipelineLayout(device_, tonePipelineLayout_, nullptr);
     if (sceneHdrPipeline_)
       vkDestroyPipeline(device_, sceneHdrPipeline_, nullptr);
+    if (sceneHdrLoadRenderPass_)
+      vkDestroyRenderPass(device_, sceneHdrLoadRenderPass_, nullptr);
+    sceneHdrLoadRenderPass_ = VK_NULL_HANDLE;
     if (sceneHdrRenderPass_)
       vkDestroyRenderPass(device_, sceneHdrRenderPass_, nullptr);
     tonePipeline_ = sceneHdrPipeline_ = VK_NULL_HANDLE;
@@ -2314,7 +2440,7 @@ private:
   VkSampler shadowSampler_{};
   VkRenderPass shadowRenderPass_{};
   VkPipeline shadowPipeline_{};
-  VkRenderPass sceneHdrRenderPass_{};
+  VkRenderPass sceneHdrRenderPass_{}, sceneHdrLoadRenderPass_{};
   VkPipeline sceneHdrPipeline_{}, tonePipeline_{};
   VkPipelineLayout tonePipelineLayout_{};
   bool transferTarget_{};
