@@ -35,3 +35,10 @@ Benchmark details are retained in `benchmark/baseline.json`: three sequential 36
 The software lavapipe runs measured 15.0250992, 15.0581163, 14.9483666 FPS; these timings do not accept GTX 960 performance. GPU timestamps are unavailable and are
 not substituted with whole-frame timing. Final target-hardware hero/close-up review remains open;
 this accepts the Linux implementation slice, not the entire VIS-M3 milestone. Overall progress: 3/7.
+
+Build 1448 found an invalid Slang HLSL Sampler2D GetDimensions lowering and an MSVC gray-name
+shadow in the pixel fixture. Tone constants now carry the radius normalized by the acquired extent,
+retaining the 32-byte layout and shared helper. The shader no longer emits that unsupported query.
+Linux captures await actual inequality/equality within five seconds, preserving all exact assertions
+on slower CI hosts. Supplemental full-gate logs and current source hashes retain this fix; original
+captures/baselines describe the preceding dimensions-query variant. Corrected-head CI is required.

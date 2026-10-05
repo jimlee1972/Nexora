@@ -1,0 +1,13 @@
+{
+  "Apps/Showcase/ShowcaseRooms.cpp": "2e10e2af55b4e7922984e9811b5c8fe14fba6713e4c6f585fc3caa95c5594499",
+  "Engine/Presentation/shaders/scene_tonemap.slang": "1500ff22f679214821da3435169ad7832b5a1d555b4326ab18491b23b40ad1c6",
+  "Engine/Presentation/src/ToneParametersUpload.h": "8abc3f01d8e7ad2d15b7c6f81201f6cd453930d1f42037b46e34a24965518f47",
+  "Engine/Presentation/src/Dx12Surface.cpp": "362ca7e59c3311616d88c1bc825407b0aa9a9590def88cd9e702d805238d35ed",
+  "Engine/Presentation/src/VulkanSurface.cpp": "b562b2977cc449cb6beffd4c1ac73568d610e312526272c6445c2e14f82567ea",
+  "Engine/Presentation/src/MetalSurface.mm": "812509a8c45d215a559bc9d3ed03ab8863fba6df6dd0c518e5dcff269b13b4e7",
+  "Engine/Presentation/src/SceneToneHlslShaders.h": "ee4cd92b71e841e2d93e7afc019cebe22059b7e1e0894965e14d96cfc3b70abc",
+  "Engine/Presentation/src/SceneToneVulkanShaders.h": "49dd7e7aba786bd93d68f77de4a0ea5ef599b786ddfe8c0e3ee11d5879865c28",
+  "Engine/Presentation/src/SceneToneMetalShaders.h": "5837022eb1bc247a0ba2a442c71afb53d9249a44c0fc0e6b39497a56f6b0bdd6",
+  "Tests/Showcase/LinuxShowcaseInteraction.py": "e04b3d41b95bbff000f352bcfdfd16f63fe68b5046d3c7114e0b858292e26477",
+  "Tests/WindowPresentation/VulkanPbrTests.cpp": "9c014a548390f97b10397531a07eb9f74bb135af7a28d40335d6c1d8bd2077f1"
+}
