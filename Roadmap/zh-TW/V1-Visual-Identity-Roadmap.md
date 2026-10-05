@@ -546,3 +546,14 @@ Shipping／Full 打包及隔離副本原生互動通過；同一 Shipping 執行
 已同步上游點光源、石砌與雙面受光的 MSVC fixture 證據與合併來源；各階段
 `msvc-literals/` 保留完整 Linux gate 及 log／雜湊。此同步僅變更文件與證據；
 水晶礦物核心的 Runtime 來源、97/97 gate 與 Shipping／影片來源凍結不變。
+
+
+植被過濾支援狀態：共用 0.5 cutoff 的受光顏色遮罩在線性顏色空間以 alpha 加權縮小，
+各層保留最接近原始的輪廓覆蓋率。其他 cutoff、unlit 圖集及衝突用途維持單層；原始
+上傳內容及不可變資源世代的 ownership 不變，可見／陰影共用同一鏈。✅ Linux configure／
+build 與完整 97/97 通過（104.47 秒），包含 89 個原生 PBR 畫面、core／同步驗證、覆蓋率／
+葉緣顏色／用途檢查及三檔幾何預算。Shipping／Full 打包及隔離副本原生互動通過；同一
+執行檔錄製實際 100.20 秒風與動畫導覽（牆鐘 100.86 秒、零 overlay）。
+證據保留於 `VIS-Foliage-Mipmaps-Linux-2026-10-05`。未新增材質欄位、原生 binding、shader
+packet 或 C／Zig ABI；極小 mip 的離散覆蓋誤差不可完全避免。參考圖一致性與實體目標
+效能仍未完成，VIS 維持 5/7。

@@ -213,12 +213,46 @@ void Run() {
   Require(normalMips.bytes[8] == std::byte{128} && normalMips.bytes[9] == std::byte{128} &&
               normalMips.bytes[10] == std::byte{255},
           "normal mip filtering did not renormalize vectors");
+  // A minified half-alpha silhouette would lose its thinner lobes under plain averaging.
+  // Colors under zero coverage must not introduce magenta fringes into the green leaves.
+  std::array<std::byte, 64> cutoutPixels{};
+  for (unsigned y = 0; y < 4; ++y)
+    for (unsigned x = 0; x < 4; ++x) {
+      const bool opaque = (y < 2 && x < 2) || (y < 2 && x == 2) || (y == 2 && x % 2 == 0);
+      const auto offset = (y * 4 + x) * 4;
+      cutoutPixels[offset] = cutoutPixels[offset + 2] = opaque ? std::byte{0} : std::byte{255};
+      cutoutPixels[offset + 1] = opaque ? std::byte{255} : std::byte{0};
+      cutoutPixels[offset + 3] = opaque ? std::byte{128} : std::byte{0};
+    }
+  const auto cutoutMips =
+      BuildSceneTextureMipmaps({932, 4, 4, 16, cutoutPixels}, SceneMipSemantic::SrgbCutoutHalf);
+  Require(cutoutMips.levels == 3 && cutoutMips.bytes.size() == 84 &&
+              std::equal(cutoutPixels.begin(), cutoutPixels.end(), cutoutMips.bytes.begin()),
+          "cutout mip bounds or authored level changed");
+  unsigned coveredCutout = 0;
+  for (unsigned i = 0; i < 4; ++i) {
+    const auto offset = 64 + i * 4;
+    Require(cutoutMips.bytes[offset] == std::byte{0} &&
+                cutoutMips.bytes[offset + 1] == std::byte{255} &&
+                cutoutMips.bytes[offset + 2] == std::byte{0},
+            "transparent colors polluted filtered foliage");
+    coveredCutout += std::to_integer<unsigned>(cutoutMips.bytes[offset + 3]) >= 128;
+  }
+  Require(coveredCutout == 2, "minified foliage silhouette coverage was not preserved");
   reflectionMaterials[0].textureId = 930;
   Require(ResolveSceneMipSemantic(pbr, 930) == SceneMipSemantic::Srgb,
           "opaque color mip role lost");
   reflectionMaterials[0].alphaCutoff = 0.5F;
+  Require(ResolveSceneMipSemantic(pbr, 930) == SceneMipSemantic::SrgbCutoutHalf,
+          "half-cutoff foliage lost coverage-aware mip role");
+  reflectionMaterials[0].alphaCutoff = 0.4F;
   Require(ResolveSceneMipSemantic(pbr, 930) == SceneMipSemantic::None,
-          "cutout atlas was mip filtered");
+          "unsupported cutout threshold was mip filtered");
+  reflectionMaterials[0].alphaCutoff = 0.5F;
+  reflectionMaterials[0].unlit = true;
+  Require(ResolveSceneMipSemantic(pbr, 930) == SceneMipSemantic::None,
+          "unlit cutout atlas was mip filtered");
+  reflectionMaterials[0].unlit = false;
   reflectionMaterials[0].alphaCutoff = 0;
   reflectionMaterials[0].normalTextureId = 930;
   Require(ResolveSceneMipSemantic(pbr, 930) == SceneMipSemantic::None,
