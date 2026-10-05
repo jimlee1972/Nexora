@@ -148,11 +148,13 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
-- ✅ Scene Home 與 Frame all 對準全部 root／descendant，不改動 selection、World、dirty
-  state 或 history。Native 共用既有精確 affine mesh／proxy bounds 與 bounded FOV distance；
+- ✅ Scene Home 與 Frame all 導覽而不改動 selection、World、dirty
+  state 或 history。Owning token 使用實際 3,999-bounded native submission candidate、
+  upload／proxy fallback 與精確 affine bounds，僅於發出 request 的 frame 套用一次；沿用 FOV distance；
   overview 依 logical canvas 在 zoom 範圍內對準全部世界 origin。真正 1×／2× 測試驗證
   空 selection／scene、唯讀、button／keyboard 一致、modal／panel gate、拒絕 bounds 與保留
-  Redo。Linux Xvfb Home／pan／Home 還原 proxy 及 authored OBJ 的 native 像素。
+  Redo，包含 release／Home、4,001-node limit 與 stale／一次性 packet。按鈕 enable 不新增
+  idle frame 的完整 node snapshot；Linux Xvfb 還原 proxy 及 authored OBJ 的 native 像素。
   完整 Scene View 與實體顯示驗收仍待完成。
 
 - ✅ Native F 與 Frame selected 現依精確世界換算 CPU mesh 及旋轉 proxy bounds 對準選取

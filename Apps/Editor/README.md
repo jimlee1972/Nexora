@@ -61,8 +61,11 @@ and rotated proxy bounds, including descendants once. The narrower horizontal/ve
 FOV determines distance (2–100 world units); F and the button use the same current framebuffer
 rectangle. Framing uses generation-checked CPU snapshots without source IO and does not consume
 GPU upload budgets. Read-only navigation preserves scene/history.
-Home or Frame all targets all scene roots/descendants without changing selection;
-the native view uses the same affine bounds and distance limits, while the overview fits all world
+Home or Frame all navigates without changing selection. Native input emits an owning session token;
+after widgets the application revalidates it and supplies its actual drawing/picking candidates,
+including the 3,999-node cap and upload/proxy fallback. Pending drag commits block the request.
+The GUI borrows numeric bounds only for the single issuing-frame application, using existing
+affine bounds and distance limits. The overview fits all world
 origins to its logical canvas within the existing zoom range. Empty scenes and invalid native bounds
 retain the view. Modal/focus/text/drag gates apply; native Linux pixel restoration after pan and
 real 1x/2x tests verify the workflow. The X/Z target persists with the

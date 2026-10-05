@@ -6,7 +6,7 @@ nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
 
 add_executable(NexoraEditorSceneFrameTests SceneFrameTests.cpp)
-target_include_directories(NexoraEditorSceneFrameTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_include_directories(NexoraEditorSceneFrameTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraEditorSceneFrameTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraEditorSceneFrameTests)
 add_test(NAME editor.scene_mesh_frame_selection COMMAND NexoraEditorSceneFrameTests)

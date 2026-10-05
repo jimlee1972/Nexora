@@ -443,10 +443,12 @@ and scale. Resolved OBJ geometry now uses native mesh batches with exact affine 
 material shaders and full graphical Scene View acceptance remain open.
 
 ✅ Focused Scene Home and Frame all now frame the whole scene without altering selection or history.
-Native framing reuses exact affine mesh/proxy bounds; overview framing fits all world origins.
+Native framing uses the actual bounded submission candidates and affine mesh/proxy bounds;
+overview framing fits all world origins. Owning session tokens apply once in the issuing frame.
 Read-only, empty/rejected bounds and modal/focus/drag gates have real 1x/2x acceptance, and Linux
 Xvfb verifies Home/pan/Home pixel restoration for proxies and authored OBJ meshes. Existing bounded
-camera/zoom ranges apply; complete graphical Scene View acceptance remains open.
+camera/zoom ranges apply. Tests cover release/Home and 4,001-node submission limits; complete
+graphical Scene View acceptance remains open.
 
 The preview camera supports right-drag orbit, middle-drag X/Z pan, Shift+middle height pan,
 wheel zoom, and F or Frame selected to center selected forests using exact world-transformed
@@ -875,10 +877,11 @@ Editor 的 3D Preview 切換現會在 UI 提交後於該矩形繪製原生有深
 精確 affine world matrix 繪製；material shader、完整 3D 編輯與圖形化 Scene View 驗收仍待完成。
 
 ✅ Focused Scene Home 與 Frame all 現可對準整個場景，不改動 selection 或 history。
-Native 共用精確 affine mesh／proxy bounds；overview 配合 canvas 對準全部世界 origin。
+Native 使用實際 bounded submission candidate 與 affine mesh／proxy bounds；overview 配合
+canvas 對準全部世界 origin。Owning session token 僅於發出該 request 的 frame 套用一次。
 唯讀、空／拒絕 bounds 與 modal／focus／drag gate 有真正 1×／2× 驗收；Linux Xvfb 驗證
 proxy 及 authored OBJ 的 Home／pan／Home 像素還原。沿用既有 camera／zoom 範圍限制；
-完整圖形 Scene View 驗收仍待完成。
+測試涵蓋 release／Home 與 4,001-node submission limit；完整圖形 Scene View 驗收仍待完成。
 
 預覽鏡頭現支援右鍵拖曳旋轉、中鍵拖曳 X/Z 平移、Shift 加中鍵拖曳平移高度及滾輪縮放；
 F 或 Frame selected 以精確世界換算 mesh／proxy bounds 將 X/Y/Z 目標對準選取 forest，

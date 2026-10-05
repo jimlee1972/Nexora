@@ -6,12 +6,14 @@
 #include "Nexora/Editor/PlayApply.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneFiles.h"
+#include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/EditorImGui/Api.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/Device.h"
 #include "Nexora/Runtime/EditorSdk.h"
 #include "Nexora/Window/Window.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -23,6 +25,9 @@
 namespace nexora::editor::imgui {
 
 class EditorImGuiTestAccess;
+
+// Built-in native preview reserves the remaining instance slots for ground and gizmos.
+inline constexpr std::size_t kMaximumNativeSceneFrameCandidates = 3999;
 
 enum class RecoveryChoice : std::uint8_t { None, Recover, Discard };
 enum class CloseChoice : std::uint8_t { None, SaveAndExit, DiscardAndExit, Cancel };
@@ -181,6 +186,13 @@ public:
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   NativeScenePreviewViewport() const noexcept;
   [[nodiscard]] std::optional<NativeScenePickRequest> NativeScenePick() const noexcept;
+  // One-shot owning scope; the host revalidates it against the current project/document and
+  // supplies the actual bounded submission candidates after widget/authoring commands.
+  [[nodiscard]] std::optional<SceneFileToken> TakeNativeSceneFrameAllRequest() noexcept;
+  // Borrowed numeric bounds are consumed only in this call. Applies once in the issuing GUI
+  // frame; stale scope, empty/oversized/malformed bounds and blocked input preserve the camera.
+  bool ApplyNativeSceneFrameAll(SceneFileToken token,
+                                std::span<const PickCandidate> candidates) noexcept;
   [[nodiscard]] std::optional<NativeSceneDragRequest> NativeSceneDrag() const noexcept;
   [[nodiscard]] std::optional<NativeSceneDragRequest> NativeSceneDragPreview() const noexcept;
   // Flattens the current ImGui draw data into backend-neutral indexed geometry that RenderSurface
