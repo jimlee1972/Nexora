@@ -237,5 +237,30 @@ corrected draw. Vulkan push constants/descriptors, DX12 aligned per-slot CBVs/de
 copied constants/textures change per batch within the shared depth pass. Existing frame fences own
 uploads and texture lifetimes, including offscreen composition and resize. Consumers must rebuild
 for the appended C++ fields; stable C/Zig and persisted schemas are unchanged. This Lambert slice
-establishes binding only; PBR, normal/ORM/emission, IBL and floating-point HDR remain open.
+establishes binding only; Shared direct-light PBR is described below; IBL and floating-point HDR remain open.
 See [ADR-0004](../../Roadmap/en/ADR-0004-Showcase-Materials-HDR.md).
+
+## Shared direct-light PBR
+
+`SceneDrawData::pbr` explicitly selects the shared Slang native entry; legacy Lambert remains the
+comparison path. Camera position, vertex tangent XYZ/handedness W and opaque material factors are
+borrowed for the call. Tangents must be finite, nonzero and orthogonal to the finite nonzero normal;
+W is +1 or -1. Empty palettes also validate the selected global opaque color. PBR light radiance
+is finite in [0,65504]. The private normal-row padding carries an exact CPU determinant sign,
+avoiding rounded GPU determinant cancellation; geometry directions normalize after positive scaling. Base and emission RGBA8 maps decode sRGB exactly once; +Y normal and ORM
+(R=AO, G=perceptual roughness, B=metallic) stay linear. Optional map IDs select immutable native
+resources; missing base/ORM/emission select white (emission is multiplied by its zero default),
+and a missing normal selects a flat texture with normal scale zero. `UINT64_MAX` and
+`UINT64_MAX-1` are internal reserved texture IDs and are rejected in caller descriptors.
+
+The private 64-byte material packing contract is shared across adapters. Vulkan allocates aligned
+UBOs and descriptor sets per protecting frame; DX12 uses aligned paired CBVs; Metal copies constants
+and binds four maps/samplers. Rejected missing maps/invalid factors do not consume scene submissions.
+Colors are evaluated in linear space and tone-mapped with shared ACES, followed by a single manual
+sRGB transfer for UNORM targets (hardware transfer for sRGB attachments). These remain RGBA8 targets;
+linear floating-point HDR storage and IBL are not yet accepted. Public C++ consumers rebuild; Runtime
+mesh wire formats and stable C/Zig ABI remain unchanged.
+
+The direct-light slice decodes color after RGBA8 sampling. Hardware sRGB texture views and
+linear-space color filtering remain part of the subsequent IBL/HDR color slice; this is not final
+VIS-M1 color acceptance.

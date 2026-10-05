@@ -190,6 +190,14 @@ def main():
             time.sleep(0.2)
             courtyard_wide = screenshot(window,1280,720,output/'courtyard-wide.png')
             assert courtyard_ui != courtyard_wide, 'Screenshot mode did not remove native UI'
+            tool('key', '--window', window, 'p')
+            time.sleep(0.2)
+            courtyard_lambert = screenshot(window,1280,720,output/'courtyard-lambert.png')
+            assert courtyard_lambert != courtyard_wide, 'Material comparison did not change native pixels'
+            tool('key', '--window', window, 'p')
+            time.sleep(0.2)
+            restored_pbr = screenshot(window,1280,720,output/'courtyard-pbr-restored.png')
+            assert restored_pbr == courtyard_wide, 'PBR material restoration changed the fixed shot'
             tool('key', '--window', window, 'b')
             time.sleep(0.2)
             courtyard_material = screenshot(window,1280,720,output/'courtyard-material.png')
@@ -240,9 +248,9 @@ def main():
             assert markdown.is_file() and 'M12' in markdown.read_text()
             (output/'acceptance.json').write_text(json.dumps({
                 'scope':'Linux Xvfb/lavapipe native interaction; no physical display or Windows claim',
-                'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,
+                'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_material_comparison':True,
                 'courtyard':rooms['courtyard'],
-                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png'],
+                'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png'],
                 'windowed_evidence':native,'build':evidence['build']},indent=2)+'\n')
             print(json.dumps({'native':native,'visited':rooms['visited'],'evidence_directory':str(output)},indent=2))
             return 0

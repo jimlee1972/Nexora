@@ -2,7 +2,9 @@
 #error "MetalSurface.mm is only built on Apple platforms"
 #endif
 #include "Nexora/Presentation/Surface.h"
+#include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
+#include "ScenePbrMetalShaders.h"
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -215,10 +217,12 @@ public:
         return SurfaceStatus::InvalidDescriptor;
       const auto textureId = drawData.textureId ? drawData.textureId : UINT64_MAX;
       const bool needsWhite =
-          textureId == UINT64_MAX ||
+          drawData.pbr || textureId == UINT64_MAX ||
           std::any_of(drawData.materials.begin(), drawData.materials.end(),
                       [](const auto &material) { return material.textureId == 0; });
       std::size_t additional = needsWhite && !sceneTextures_.contains(UINT64_MAX) ? 1 : 0;
+      if (drawData.pbr && !sceneTextures_.contains(UINT64_MAX - 1))
+        ++additional;
       for (const auto &upload : drawData.textureUploads)
         additional += sceneTextures_.contains(upload.textureId) ? 0 : 1;
       if (sceneTextures_.size() + additional > 64)
@@ -238,6 +242,15 @@ public:
         if (!texture)
           return SurfaceStatus::DeviceLost;
         sceneTextures_[UINT64_MAX] = texture;
+        ++diagnostics_.sceneTextureUploads;
+      }
+      const std::array<std::byte, 4> flatNormal{std::byte{128}, std::byte{128}, std::byte{255},
+                                                std::byte{255}};
+      if (drawData.pbr && !sceneTextures_.contains(UINT64_MAX - 1)) {
+        const auto texture = CreateTexture({UINT64_MAX - 1, 1, 1, 4, flatNormal});
+        if (!texture)
+          return SurfaceStatus::DeviceLost;
+        sceneTextures_[UINT64_MAX - 1] = texture;
         ++diagnostics_.sceneTextureUploads;
       }
       const SceneInstance identity{};
@@ -292,7 +305,7 @@ public:
       id<MTLRenderCommandEncoder> encoder = [commands_ renderCommandEncoderWithDescriptor:pass];
       if (!encoder)
         return SurfaceStatus::DeviceLost;
-      [encoder setRenderPipelineState:scenePipeline_];
+      [encoder setRenderPipelineState:drawData.pbr ? scenePbrPipeline_ : scenePipeline_];
       [encoder setDepthStencilState:depthState_];
       [encoder setCullMode:MTLCullModeNone];
       [encoder setViewport:MTLViewport{static_cast<double>(viewport->x),
@@ -301,8 +314,10 @@ public:
                                        static_cast<double>(viewport->height), 0, 1}];
       [encoder setScissorRect:MTLScissorRect{viewport->x, viewport->y, viewport->width,
                                              viewport->height}];
-      [encoder setVertexBuffer:sceneUploads_[frame_] offset:0 atIndex:0];
-      [encoder setVertexBuffer:sceneUploads_[frame_] offset:instanceOffset atIndex:1];
+      [encoder setVertexBuffer:sceneUploads_[frame_] offset:0 atIndex:drawData.pbr ? 2 : 0];
+      [encoder setVertexBuffer:sceneUploads_[frame_]
+                        offset:instanceOffset
+                       atIndex:drawData.pbr ? 3 : 1];
 
       [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
       const SceneMeshBatch whole{0, static_cast<std::uint32_t>(drawData.indices.size()), 0,
@@ -312,7 +327,23 @@ public:
       for (const auto &batch : batches) {
         const auto material = ResolveSceneMaterial(drawData, batch.materialIndex);
         std::copy(material.baseColor.begin(), material.baseColor.end(), constants.color);
-        [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:2];
+        if (drawData.pbr) {
+          [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:0];
+          [encoder setFragmentBytes:&constants length:sizeof(constants) atIndex:0];
+          const auto parameters = PackPbrMaterial(drawData, material, true);
+          [encoder setFragmentBytes:parameters.data() length:sizeof(parameters) atIndex:1];
+          const std::array ids{material.textureId ? material.textureId : UINT64_MAX,
+                               material.normalTextureId ? material.normalTextureId : UINT64_MAX - 1,
+                               material.ormTextureId ? material.ormTextureId : UINT64_MAX,
+                               material.emissionTextureId ? material.emissionTextureId
+                                                          : UINT64_MAX};
+          for (NSUInteger map = 0; map < ids.size(); ++map) {
+            [encoder setFragmentTexture:sceneTextures_.at(ids[map]) atIndex:map];
+            [encoder setFragmentSamplerState:uiSampler_ atIndex:map];
+          }
+        } else {
+          [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:2];
+        }
         const auto id = material.textureId ? material.textureId : UINT64_MAX;
         [encoder setFragmentTexture:sceneTextures_.at(id) atIndex:0];
         [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
@@ -411,6 +442,7 @@ public:
       sceneTextures_.clear();
       uiPipeline_ = nil;
       scenePipeline_ = nil;
+      scenePbrPipeline_ = nil;
       depthState_ = nil;
       uiSampler_ = nil;
       layer_ = nil;
@@ -440,10 +472,11 @@ private:
     return success;
   }
   bool ValidateScene(const SceneDrawData &data) const {
-    if (!ValidateSceneMaterials(data.materials, data.batches) || data.vertices.empty() ||
-        data.vertices.size() > 65535 || data.indices.empty() || data.indices.size() > 1048576 ||
-        data.indices.size() % 3 != 0 || data.instances.size() > 4096 ||
-        data.textureUploads.size() > 16 || data.textureId == UINT64_MAX ||
+    if (!ValidateSceneMaterials(data.materials, data.batches) || !ValidatePbrData(data) ||
+        data.vertices.empty() || data.vertices.size() > 65535 || data.indices.empty() ||
+        data.indices.size() > 1048576 || data.indices.size() % 3 != 0 ||
+        data.instances.size() > 4096 || data.textureUploads.size() > 16 ||
+        data.textureId >= UINT64_MAX - 1 ||
         !ValidateSceneMeshBatches(data.batches, data.indices.size(),
                                   std::max<std::size_t>(data.instances.size(), 1)))
       return false;
@@ -467,7 +500,7 @@ private:
     }
     for (std::size_t i = 0; i < data.textureUploads.size(); ++i) {
       const auto &upload = data.textureUploads[i];
-      if (!ValidTexture(upload) || upload.textureId == UINT64_MAX || upload.width > 1024 ||
+      if (!ValidTexture(upload) || upload.textureId >= UINT64_MAX - 1 || upload.width > 1024 ||
           upload.height > 1024)
         return false;
       for (std::size_t j = 0; j < i; ++j)
@@ -480,6 +513,17 @@ private:
               data.textureUploads.begin(), data.textureUploads.end(),
               [&material](const auto &upload) { return upload.textureId == material.textureId; }))
         return false;
+    if (data.pbr) {
+      if (!scenePbrPipeline_)
+        return false;
+      for (const auto &material : data.materials)
+        for (const auto id :
+             {material.normalTextureId, material.ormTextureId, material.emissionTextureId})
+          if (id && !sceneTextures_.contains(id) &&
+              std::none_of(data.textureUploads.begin(), data.textureUploads.end(),
+                           [id](const auto &upload) { return upload.textureId == id; }))
+            return false;
+    }
     return !data.textureId || sceneTextures_.contains(data.textureId) ||
            std::any_of(data.textureUploads.begin(), data.textureUploads.end(),
                        [&data](const auto &upload) { return upload.textureId == data.textureId; });
@@ -625,7 +669,36 @@ private:
     depth.depthCompareFunction = MTLCompareFunctionLessEqual;
     depth.depthWriteEnabled = YES;
     depthState_ = [device_ newDepthStencilStateWithDescriptor:depth];
-    return scenePipeline_ != nil && depthState_ != nil;
+    if (!scenePipeline_ || !depthState_)
+      return false;
+    id<MTLLibrary> pbrVertex =
+        [device_ newLibraryWithSource:[NSString stringWithUTF8String:scene_pbr_metal_vert]
+                              options:nil
+                                error:&error];
+    id<MTLLibrary> pbrFragment =
+        [device_ newLibraryWithSource:[NSString stringWithUTF8String:scene_pbr_metal_frag]
+                              options:nil
+                                error:&error];
+    if (!pbrVertex || !pbrFragment)
+      return false;
+    pipeline.vertexFunction = [pbrVertex newFunctionWithName:@"pbrVertexMain"];
+    pipeline.fragmentFunction = [pbrFragment newFunctionWithName:@"pbrFragmentMain"];
+    auto *pbrVertices = [MTLVertexDescriptor vertexDescriptor];
+    for (NSUInteger i = 0; i < 10; ++i) {
+      pbrVertices.attributes[i].format = formats[i];
+      pbrVertices.attributes[i].offset = offsets[i];
+      pbrVertices.attributes[i].bufferIndex = i < 3 ? 2 : 3;
+    }
+    pbrVertices.attributes[10].format = MTLVertexFormatFloat4;
+    pbrVertices.attributes[10].offset = offsetof(SceneVertex, tangent);
+    pbrVertices.attributes[10].bufferIndex = 2;
+    pbrVertices.layouts[2].stride = sizeof(SceneVertex);
+    pbrVertices.layouts[3].stride = sizeof(SceneInstanceUpload);
+    pbrVertices.layouts[3].stepFunction = MTLVertexStepFunctionPerInstance;
+    pbrVertices.layouts[3].stepRate = 1;
+    pipeline.vertexDescriptor = pbrVertices;
+    scenePbrPipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
+    return scenePbrPipeline_ != nil;
   }
   bool CreateUiResources() {
     constexpr const char *source = R"(
@@ -703,6 +776,7 @@ private:
   id<MTLRenderPipelineState> uiPipeline_ = nil;
   id<MTLSamplerState> uiSampler_ = nil;
   id<MTLRenderPipelineState> scenePipeline_ = nil;
+  id<MTLRenderPipelineState> scenePbrPipeline_ = nil;
   id<MTLDepthStencilState> depthState_ = nil;
   std::array<id<MTLBuffer>, kFrames> sceneUploads_{};
   std::array<std::size_t, kFrames> sceneCapacity_{};

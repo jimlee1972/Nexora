@@ -1,0 +1,1 @@
+PASS: shared Slang PBR emission, normal, mirrored tangent handedness, ORM, single sRGB decoding, missing-map defaults, invalid descriptors, frame reuse, direct/offscreen draws and resize pixels

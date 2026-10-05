@@ -79,6 +79,7 @@ struct SceneVertex final {
   float position[3]{};
   float normal[3]{};
   float uv[2]{};
+  float tangent[4]{1, 0, 0, 1}; // XYZ direction, W handedness, used by PBR only.
 };
 
 // Translation, nonzero axis scale, and a unit quaternion transform one shared mesh. Colors
@@ -109,12 +110,21 @@ struct SceneMeshBatch final {
   std::uint32_t materialIndex{};
 };
 
-// Opaque Lambert submission material. Slots are borrowed for one DrawScene, not persistent
+// Opaque Lambert/PBR submission material. Slots are borrowed for one DrawScene, not persistent
 // Runtime identities. Texture zero selects white; nonzero IDs denote immutable generations.
-// PBR maps/parameters and alpha-cutout are separate forthcoming contracts.
+// PBR maps use sRGB base/emission, +Y normals and linear ORM (R=AO,G=roughness,B=metallic).
+// Base/emission factors are linear in PBR. Alpha-cutout is a separate forthcoming contract.
 struct SceneMaterial final {
   std::array<float, 4> baseColor{1, 1, 1, 1};
   std::uint64_t textureId{};
+  std::uint64_t normalTextureId{};
+  std::uint64_t ormTextureId{};
+  std::uint64_t emissionTextureId{};
+  float metallic{};
+  float roughness{0.5F};
+  float occlusion{1};
+  float normalScale{1};
+  std::array<float, 3> emission{}; // Linear radiance factor, bounded to half-float range.
 };
 
 [[nodiscard]] inline bool ValidateSceneMaterials(std::span<const SceneMaterial> materials,
@@ -122,8 +132,20 @@ struct SceneMaterial final {
   if (materials.size() > 64)
     return false;
   for (const auto &material : materials) {
-    if (material.textureId == UINT64_MAX || material.baseColor[3] != 1)
+    if (material.textureId >= UINT64_MAX - 1 || material.baseColor[3] != 1)
       return false;
+    if (material.normalTextureId >= UINT64_MAX - 1 || material.ormTextureId >= UINT64_MAX - 1 ||
+        material.emissionTextureId >= UINT64_MAX - 1)
+      return false;
+    for (const auto value : {material.metallic, material.roughness, material.occlusion})
+      if (!std::isfinite(value) || value < 0 || value > 1)
+        return false;
+    if (!std::isfinite(material.normalScale) || material.normalScale < 0 ||
+        material.normalScale > 4)
+      return false;
+    for (const auto value : material.emission)
+      if (!std::isfinite(value) || value < 0 || value > 65504)
+        return false;
     for (const auto value : material.baseColor)
       if (!std::isfinite(value) || value < 0 || value > 1)
         return false;
@@ -191,6 +213,8 @@ struct SceneDrawData final {
   std::span<const SceneMeshBatch> batches{};
   // Empty preserves the original global base_color/textureId; otherwise batches select slots.
   std::span<const SceneMaterial> materials{};
+  bool pbr{}; // Explicit direct-light shared PBR path; unsupported hosts must report Unsupported.
+  std::array<float, 3> cameraPosition{};
 };
 
 // Call only after material/batch validation. Returned values own their scalar storage.

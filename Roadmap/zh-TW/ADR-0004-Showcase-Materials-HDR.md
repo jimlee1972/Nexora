@@ -41,3 +41,5 @@ Upload／target 由 frame 擁有，texture generation immutable，配置採 tran
 場景／材質改變時，不釋放仍被 submitted command 引用的 resource。共享 validation、獨立材質
 原生像素、normal／roughness／orbit、missing-map fallback、resize／reload／lifetime 及後端比較
 構成驗收證據；shader 編譯本身不足。硬體畫面與 GTX 960 預算仍為 VIS-M3／M6 獨立 gate。
+
+共享直接光照 PBR 已接通，使用固定版本 shader artifacts 與共享材質 packing；IBL／HDR 為後續切片。
