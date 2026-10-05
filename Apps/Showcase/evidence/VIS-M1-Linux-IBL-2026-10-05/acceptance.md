@@ -33,3 +33,7 @@ Targets remain RGBA8. Floating HDR scene storage, final art, shadows/wind, physi
 GTX 960 performance remain pending. Three sequential 360-frame runs with 60 warm-up and
 300 retained samples each measured 37.16, 35.63, 36.46 FPS. Own builds/tests were
 idle during capture. These lavapipe measurements do not accept the physical GPU budget.
+
+## Cross-platform reproducibility correction
+
+The initial exact-head CI found Windows checkout line-ending changes in pinned text hashes and ARM/x86 libm variation at binary16 ties. Pinned provenance and converter sources now require LF; binary32 canonical intermediates precede half conversion. The original captures and source hashes above document the initial Linux generation. The corrected source/payload hashes and repeated 94/94 Linux gate are retained in `source-hashes-canonical.json` and `ctest-linux-development-canonical.log`. Cross-platform acceptance requires the corrected PR head CI.

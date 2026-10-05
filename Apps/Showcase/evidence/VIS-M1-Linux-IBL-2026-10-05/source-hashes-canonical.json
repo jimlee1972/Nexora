@@ -1,0 +1,7 @@
+{
+  ".gitattributes": "b2cab572670fba494df2b623c463c1fc9133c7688fdef3f232fe23083014569a",
+  "Tools/Build/PrepareCourtyardEnvironment.py": "4777321a9b2a62af058955c4c2ed07fc48ea38bdfb48b77ea8d982b11dbacf95",
+  "Apps/Showcase/CourtyardEnvironment.h": "87589484f77760b79984c252857dd651453f9b2e1ababdc3bd75e73af094daef",
+  "Content/Showcase/Courtyard/Environment/derived.json": "43c07fcd592e756af21881bf895be8215bfcfa2fc6324d6a993822c3187ae28d",
+  "Content/Showcase/Courtyard/Environment/specular.rgba16f": "732c2f3738715adace60fb5302cdaccdd01661323f1ef9998fd89bb324d0d96b"
+}

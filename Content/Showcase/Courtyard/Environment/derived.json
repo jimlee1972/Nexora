@@ -3,7 +3,7 @@
   "source_sha256": "926a6bb81897919b2924f42407162b8d54be91eab2da3fe7fe19daf308cfa09a",
   "samples": 128,
   "sequence": "Hammersley",
-  "converter_sha256": "00b13aa0967c187b5355c1fd69863394a86ce19b7a76a4884b78e6acb60f7693",
+  "converter_sha256": "4777321a9b2a62af058955c4c2ed07fc48ea38bdfb48b77ea8d982b11dbacf95",
   "format": "RGBA16F little-endian",
   "orientation": "latlong +Y up, atan2(z,x); U wrap/V clamp",
   "diffuse": "cosine-weighted irradiance integral including pi",
@@ -26,7 +26,7 @@
       "height": 32,
       "mip_levels": 7,
       "bytes": 21848,
-      "sha256": "47f811a2e12a58e5ccc806dbbe2e153a0c23106c462a365fdc394ac75707c1a1"
+      "sha256": "732c2f3738715adace60fb5302cdaccdd01661323f1ef9998fd89bb324d0d96b"
     },
     {
       "name": "brdf",

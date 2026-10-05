@@ -196,7 +196,10 @@ def integrate_brdf(n_dot_v, roughness):
 def half_pixel(color):
     if any(not math.isfinite(v) or v < 0 or v > 65504 for v in color):
         raise ValueError('Derived radiance exceeds finite RGBA16F range')
-    return struct.pack('<4e', *color, 1.0)
+    # Canonical binary32 intermediates remove libm's double-precision variation at
+    # binary16 rounding ties across x86 and ARM; payloads retain the GPU's half precision.
+    canonical = struct.unpack('<3f', struct.pack('<3f', *color))
+    return struct.pack('<4e', *canonical, 1.0)
 
 
 def bake(check):
