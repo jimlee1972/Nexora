@@ -124,6 +124,12 @@ into renderer or platform internals.
   Changing it requires migrating saved references. Collisions (including duplicate UUIDs) reject
   the entire candidate publication and preserve the previous catalog; lookup also verifies UUID.
   Paths and source bytes never enter this derivation. GUI assignment is handled by the optional Inspector; the application submits resolved OBJ geometry through bounded native batches. Persistent GPU caching remains open.
+- `SceneDocument::CreateCamera` / `CreateLight` validate a nonempty single-line name and live
+  scene-owned parent before creating one initialized default component with identity local TRS.
+  They return its stable ID and own one matching Runtime/Editor Undo step; Redo restores ID, name,
+  parent and defaults. Root/child creation retains existing hierarchy and other entities. The caller
+  owns generation/access checks and serializes authoring calls. The additive C++ APIs require
+  rebuilding consumers; scene formats and stable C/Zig contracts remain unchanged.
 - `SceneDocument` borrows its `World`, which must outlive the document. Entity selection and
   hierarchy use stable IDs, never component or container pointers. The hierarchy itself is the
   runtime's (`Entity::parent`, see the Runtime README's entity hierarchy section); the document keeps

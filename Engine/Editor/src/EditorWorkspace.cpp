@@ -395,6 +395,15 @@ void SceneDocument::PushUndo(UndoEntry entry) {
   undo_.push_back(std::move(entry));
 }
 runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
+  return CreateBuiltin(std::move(name), parent, BuiltinEntity::Empty);
+}
+runtime::Id SceneDocument::CreateCamera(std::string name, runtime::Id parent) {
+  return CreateBuiltin(std::move(name), parent, BuiltinEntity::Camera);
+}
+runtime::Id SceneDocument::CreateLight(std::string name, runtime::Id parent) {
+  return CreateBuiltin(std::move(name), parent, BuiltinEntity::Light);
+}
+runtime::Id SceneDocument::CreateBuiltin(std::string name, runtime::Id parent, BuiltinEntity kind) {
   // Save() persists each node as a single "node <id> <parent> <name>\n" line and
   // Reload() parses strictly line-by-line, so an embedded newline would split one
   // node into two physical lines and make the file permanently unloadable.
@@ -410,7 +419,10 @@ runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
         std::ranges::find(scene->entities, parent, &runtime::Entity::id) == scene->entities.end())
       return 0;
   }
-  return AdoptCreatedEntity(editor_.CreateEntity(scene_, parent), std::move(name));
+  const auto created = kind == BuiltinEntity::Camera  ? editor_.CreateCameraEntity(scene_, parent)
+                       : kind == BuiltinEntity::Light ? editor_.CreateLightEntity(scene_, parent)
+                                                      : editor_.CreateEntity(scene_, parent);
+  return AdoptCreatedEntity(created, std::move(name));
 }
 runtime::Id SceneDocument::CreateMesh(std::string name, runtime::MeshComponent mesh,
                                       runtime::Transform transform) {

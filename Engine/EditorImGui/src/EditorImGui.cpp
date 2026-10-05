@@ -46,6 +46,8 @@ struct EditorImGuiHost::State final {
   struct HierarchyCreateRequest final {
     std::string name;
     std::optional<SceneDocument::NodeKey> parent;
+    int kind{}; // Empty, Camera, Light.
+    std::uint64_t document_generation{};
   };
   struct Renderer final {
     struct UploadSlot final {
@@ -110,6 +112,9 @@ struct EditorImGuiHost::State final {
   std::string recovery_error;
   std::array<char, 128> hierarchy_filter{};
   std::array<char, 128> hierarchy_create_name{'E', 'n', 't', 'i', 't', 'y'};
+  int hierarchy_create_kind{};
+  bool hierarchy_create_custom_name{};
+  std::array<std::optional<std::array<float, 2>>, 7> hierarchy_create_positions{};
   std::array<char, 256> hierarchy_rename{};
   std::uint32_t hierarchy_visible_rows = 0;
   std::uint32_t hierarchy_rendered_rows = 0;
@@ -695,12 +700,18 @@ void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool edi
   if (state.hierarchy_create_request) {
     auto request = std::exchange(state.hierarchy_create_request, std::nullopt);
     const bool stale_parent = request->parent && scene->Key(request->parent->id) != request->parent;
-    const auto created = stale_parent ? runtime::Id{}
-                                      : scene->Create(std::move(request->name),
-                                                      request->parent ? request->parent->id : 0);
+    const bool stale_document =
+        request->document_generation != 0 && request->document_generation != scene->Generation();
+    const auto parent = request->parent ? request->parent->id : 0;
+    const auto created = stale_parent || stale_document ? runtime::Id{}
+                         : request->kind == 1
+                             ? scene->CreateCamera(std::move(request->name), parent)
+                         : request->kind == 2 ? scene->CreateLight(std::move(request->name), parent)
+                         : request->kind == 0 ? scene->Create(std::move(request->name), parent)
+                                              : runtime::Id{};
     if (created == 0) {
       state.hierarchy_error =
-          "Create rejected. Use a non-empty single-line name and a current parent.";
+          "Create rejected. Check the single-line name and current scene/parent.";
     } else {
       const std::array selection{created};
       static_cast<void>(scene->Select(selection));
@@ -796,23 +807,55 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
     return;
   }
 
-  ImGui::SetNextItemWidth(-1.0F);
-  ImGui::InputTextWithHint("##hierarchy-create-name", "New entity name...",
-                           state.hierarchy_create_name.data(), state.hierarchy_create_name.size());
+  const auto capture_create = [&](std::size_t control) {
+    const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+    state.hierarchy_create_positions[control] =
+        std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
+  };
+  ImGui::SetNextItemWidth(-92.0F);
+  if (ImGui::InputTextWithHint("##hierarchy-create-name", "New entity name...",
+                               state.hierarchy_create_name.data(),
+                               state.hierarchy_create_name.size()))
+    state.hierarchy_create_custom_name = true;
+  capture_create(6);
+  ImGui::SameLine();
+  ImGui::SetNextItemWidth(84.0F);
+  constexpr std::array kinds{"Empty", "Camera", "Light"};
+  ImGui::BeginDisabled(!editable);
+  const bool kind_open =
+      ImGui::BeginCombo("##hierarchy-create-kind", kinds[state.hierarchy_create_kind]);
+  capture_create(0);
+  if (kind_open) {
+    for (int kind = 0; kind < static_cast<int>(kinds.size()); ++kind) {
+      if (ImGui::Selectable(kinds[kind], state.hierarchy_create_kind == kind)) {
+        if (!state.hierarchy_create_custom_name)
+          std::snprintf(state.hierarchy_create_name.data(), state.hierarchy_create_name.size(),
+                        "%s", kind == 0 ? "Entity" : kinds[kind]);
+        state.hierarchy_create_kind = kind;
+      }
+      capture_create(static_cast<std::size_t>(kind + 1));
+    }
+    ImGui::EndCombo();
+  }
+  ImGui::EndDisabled();
   ImGui::BeginDisabled(!editable);
   if (ImGui::SmallButton("Create root"))
     state.hierarchy_create_request = typename StateT::HierarchyCreateRequest{
-        std::string(state.hierarchy_create_name.data()), std::nullopt};
+        std::string(state.hierarchy_create_name.data()), std::nullopt, state.hierarchy_create_kind,
+        scene->Generation()};
+  capture_create(4);
   ImGui::SameLine();
   const bool one_selected = scene->Selection().size() == 1;
   ImGui::BeginDisabled(!one_selected);
   if (ImGui::SmallButton("Create child") && one_selected) {
     if (const auto parent = scene->Key(scene->Selection().front()))
       state.hierarchy_create_request = typename StateT::HierarchyCreateRequest{
-          std::string(state.hierarchy_create_name.data()), parent};
+          std::string(state.hierarchy_create_name.data()), parent, state.hierarchy_create_kind,
+          scene->Generation()};
     else
       state.hierarchy_error = "Create rejected because the selected parent is stale.";
   }
+  capture_create(5);
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(scene->Selection().empty());
@@ -2937,6 +2980,7 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
 
 void EditorImGuiHost::BeginFrame(float delta_seconds) {
   Activate(state_->context);
+  state_->hierarchy_create_positions = {};
   state_->scene_canvas_viewport.reset();
   state_->scene_frame_position.reset();
   state_->inspector_reset_positions = {};
@@ -3168,7 +3212,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     CancelSceneGestures(*state_);
     static_cast<void>(shell.RouteCommand("editor.scene.create"));
     state_->hierarchy_create_request = State::HierarchyCreateRequest{
-        std::string(state_->hierarchy_create_name.data()), std::nullopt};
+        std::string(state_->hierarchy_create_name.data()), std::nullopt,
+        state_->hierarchy_create_kind, scene->Generation()};
   }
   if (scene != nullptr && scene_editable && !ImGui::GetIO().WantTextInput) {
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal) ||
@@ -4532,6 +4577,14 @@ void EditorImGuiTestAccess::QueueHierarchyMove(EditorImGuiHost &host, SceneDocum
                                                std::optional<SceneDocument::NodeKey> parent,
                                                std::size_t index) noexcept {
   host.state_->hierarchy_move_request = {entity, parent, index};
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::HierarchyCreatePosition(const EditorImGuiHost &host,
+                                               std::size_t control) noexcept {
+  return control < host.state_->hierarchy_create_positions.size()
+             ? host.state_->hierarchy_create_positions[control]
+             : std::nullopt;
 }
 
 void EditorImGuiTestAccess::QueueHierarchyCreate(EditorImGuiHost &host, std::string name,

@@ -55,3 +55,8 @@ add_executable(NexoraTransformValueTests TransformValueTests.cpp)
 target_link_libraries(NexoraTransformValueTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraTransformValueTests)
 add_test(NAME editor.transform_value_contract COMMAND NexoraTransformValueTests)
+
+add_executable(NexoraBuiltinCreationTests BuiltinCreationTests.cpp)
+target_link_libraries(NexoraBuiltinCreationTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraBuiltinCreationTests)
+add_test(NAME editor.builtin_creation_contract COMMAND NexoraBuiltinCreationTests)

@@ -256,6 +256,13 @@ old storage, and resize/teardown drains GPU work. Native call tracing and pixels
 frames, maximum descriptor budgets, failed growth and leak-free lifetime. Fresh geometry is still
 copied per draw; persistent per-asset GPU caching and full graphical acceptance remain open.
 
+✅ Hierarchy now selects Empty, Camera or Light for Create root / Create child and Ctrl+Shift+N.
+  Camera/Light are initialized at identity local TRS as one complete stable-ID Undo/Redo transaction.
+  Default names follow type choices while custom names remain. Queued owning requests recheck
+  access and scene/parent generations. Portable and 1x/2x real menu/pointer/key tests cover root/child,
+  stale scenes/parents, read-only/modal gates, 100-step replay and save/reload. Full reflected component
+  creation and target-host acceptance remain open.
+
 ✅ Inspector Copy values / Paste values now snapshots committed Transform/Euler, Camera or
   Light numeric values from one entity and applies them to multi-selection as one atomic Undo.
   Camera/Light preserve component absence; Transform retains authored turns. The typed owning
@@ -657,6 +664,13 @@ Docked Profiler 現會繪製有界的 Editor frame processing wall-time 即時�
 GPU 完成。Native call tracing 與像素測試驗證 100 個穩定 frame、最大 descriptor 預算、
 放大失敗及無洩漏生命週期。每次 draw 仍複製最新 geometry；persistent per-asset GPU cache
 及完整圖形化驗收仍待完成。
+
+✅ Hierarchy 現可選擇 Empty、Camera 或 Light，套用於 Create root／Create child 及
+  Ctrl+Shift+N。Camera／Light 以 identity local TRS 初始化，並具完整 stable-ID 的單步
+  Undo／Redo。預設名稱隨型別選擇調整，自訂名稱保留。Owning queued request 重新核對
+  存取權與 scene／parent generation。Portable 及 1x／2x 真正選單／pointer／key 測試涵蓋 root／child、
+  過期 scene／parent、唯讀／modal gate、100-step replay 及 save／reload。完整 reflected component
+  creation 與 target-host 驗收仍待完成。
 
 ✅ Inspector Copy values／Paste values 現可擷取單一 entity 已提交的 Transform／Euler、
   Camera 或 Light 數值，再以原子單步 Undo 套用到多選。Camera／Light 保留缺少元件的狀態；

@@ -189,6 +189,9 @@ public:
   SceneDocument(runtime::World &world, runtime::Id scene);
   // Creates a node; with a parent the new entity starts at the parent's origin (identity local).
   runtime::Id Create(std::string name, runtime::Id parent = 0);
+  // Creates one default Camera/Light node at identity local TRS, with a single Undo transaction.
+  runtime::Id CreateCamera(std::string name, runtime::Id parent = 0);
+  runtime::Id CreateLight(std::string name, runtime::Id parent = 0);
   // Creates one initialized mesh root with one Undo; caller owns asset generation/access checks.
   runtime::Id CreateMesh(std::string name, runtime::MeshComponent mesh,
                          runtime::Transform transform = {});
@@ -290,6 +293,8 @@ public:
   [[nodiscard]] std::vector<NodeView> Nodes() const;
 
 private:
+  enum class BuiltinEntity { Empty, Camera, Light };
+  runtime::Id CreateBuiltin(std::string name, runtime::Id parent, BuiltinEntity kind);
   runtime::Id AdoptCreatedEntity(runtime::Id entity, std::string name);
   [[nodiscard]] std::optional<std::vector<std::pair<NodeKey, runtime::Transform>>>
   SelectionGizmoEdits(std::span<const NodeKey> entities, const GizmoOperation &operation) const;

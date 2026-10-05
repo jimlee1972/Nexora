@@ -23,6 +23,12 @@ target_link_libraries(NexoraInspectorComponentValueTests PRIVATE Nexora::EditorI
 nexora_apply_defaults(NexoraInspectorComponentValueTests)
 add_test(NAME editor.inspector_component_values COMMAND NexoraInspectorComponentValueTests)
 
+add_executable(NexoraBuiltinCreationInputTests BuiltinCreationTests.cpp)
+target_include_directories(NexoraBuiltinCreationInputTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraBuiltinCreationInputTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraBuiltinCreationInputTests)
+add_test(NAME editor.builtin_creation_input COMMAND NexoraBuiltinCreationInputTests)
+
 add_executable(NexoraMeshInspectorTests MeshInspectorTests.cpp)
 target_include_directories(NexoraMeshInspectorTests
   PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
