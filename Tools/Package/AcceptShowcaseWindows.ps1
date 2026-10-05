@@ -270,9 +270,14 @@ public static class NexoraAcceptanceWindow {
     Press-Key 67 # Enter actual free camera.
     Capture-Compared 'courtyard-free-camera.png' 'courtyard-wide.png' $false
     [NexoraAcceptanceWindow]::PostMessage($window, 0x100, [IntPtr]::new(87), [IntPtr]::new(1)) | Out-Null
-    Start-Sleep -Milliseconds 300
-    [NexoraAcceptanceWindow]::PostMessage($window, 0x101, [IntPtr]::new(87), [IntPtr]::new(-1073741823)) | Out-Null
-    Capture-Compared 'courtyard-free-moved.png' 'courtyard-free-camera.png' $false
+    # Keep the key held until a submitted frame proves movement; fixed short holds can
+    # enqueue keydown and keyup between two expensive software-GPU frames.
+    try {
+        Capture-Compared 'courtyard-free-moved.png' 'courtyard-free-camera.png' $false
+    } finally {
+        [NexoraAcceptanceWindow]::PostMessage($window, 0x101, [IntPtr]::new(87), [IntPtr]::new(-1073741823)) | Out-Null
+    }
+    Capture-Settled 'courtyard-free-moved.png'
     Press-Key 82
     Capture-Compared 'courtyard-free-restored.png' 'courtyard-wide.png' $true
     $acceptance.courtyard_free_camera = $true
