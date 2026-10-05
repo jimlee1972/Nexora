@@ -5,6 +5,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace nexora::editor::preview {
 
@@ -150,6 +151,35 @@ NativeSceneProxyCandidates(const nexora::editor::SceneDocument &scene,
     result.entities.emplace(candidate.entity, *mesh);
   }
   return result;
+}
+
+// Borrowed numeric candidate records are consumed synchronously after widgets. All validation
+// precedes the single selection edit; hidden/locked records are omitted and an empty set clears.
+[[nodiscard]] inline bool
+SelectNativeSceneCandidates(nexora::editor::SceneDocument &scene,
+                            nexora::editor::SceneFileToken expected,
+                            nexora::editor::SceneFileToken request,
+                            std::span<const nexora::editor::PickCandidate> candidates) {
+  if (request != expected || expected.document_generation != scene.Generation() ||
+      candidates.size() > nexora::editor::imgui::kMaximumNativeSceneFrameCandidates)
+    return false;
+  std::vector<nexora::editor::SceneDocument::NodeKey> keys;
+  keys.reserve(candidates.size());
+  for (const auto &candidate : candidates) {
+    if (!candidate.visible || candidate.locked)
+      continue;
+    for (const auto &bounds :
+         {std::pair{candidate.min.x, candidate.max.x}, std::pair{candidate.min.y, candidate.max.y},
+          std::pair{candidate.min.z, candidate.max.z}})
+      if (!std::isfinite(bounds.first) || !std::isfinite(bounds.second) ||
+          bounds.first > bounds.second)
+        return false;
+    const auto key = scene.Key(candidate.entity);
+    if (!key)
+      return false;
+    keys.push_back(*key);
+  }
+  return scene.Select(keys);
 }
 
 } // namespace nexora::editor::preview
