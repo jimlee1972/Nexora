@@ -1,9 +1,21 @@
 #include "Nexora/Presentation/RenderSurface.h"
 
+#include <atomic>
+#include <limits>
 #include <utility>
 #include <vector>
 
 namespace Nexora::Presentation {
+namespace {
+std::uint64_t NextUiResourceDomain() noexcept {
+  static std::atomic<std::uint64_t> last{0};
+  auto previous = last.load(std::memory_order_relaxed);
+  while (previous != std::numeric_limits<std::uint64_t>::max())
+    if (last.compare_exchange_weak(previous, previous + 1, std::memory_order_relaxed))
+      return previous + 1;
+  return 0;
+}
+} // namespace
 
 struct RenderSurface::State final {
   std::unique_ptr<Window::IWindowSystem> windows;
@@ -12,6 +24,7 @@ struct RenderSurface::State final {
   SurfaceInputSnapshot input;
   SurfaceFrameInfo frame;
   std::vector<Window::WindowEvent> events;
+  std::uint64_t uiResourceDomain = 0;
   bool closeRequested = false;
   bool windowDestroyed = false;
   bool destroyed = false;
@@ -129,6 +142,10 @@ SurfaceDiagnostics RenderSurface::Diagnostics() const noexcept {
   return state_ && state_->surface ? state_->surface->Diagnostics() : SurfaceDiagnostics{};
 }
 
+std::uint64_t RenderSurface::UiResourceDomain() const noexcept {
+  return state_ && !state_->destroyed ? state_->uiResourceDomain : 0;
+}
+
 SurfaceStatus RenderSurface::DrainAndDestroy() {
   if (!state_ || state_->destroyed)
     return SurfaceStatus::Ready;
@@ -157,6 +174,9 @@ RenderSurfaceResult CreateRenderSurface(const RenderSurfaceDescriptor &descripto
 #endif
     return {{}, SurfaceStatus::Unsupported, "requested presentation backend is unsupported"};
   auto state = std::make_unique<RenderSurface::State>();
+  state->uiResourceDomain = NextUiResourceDomain();
+  if (state->uiResourceDomain == 0)
+    return {{}, SurfaceStatus::Unsupported, "native UI resource identity capacity exhausted"};
   state->frame = {descriptor.width, descriptor.height, 1.0F};
   state->windows = Window::CreateWindowSystem();
   if (!state->windows)

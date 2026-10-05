@@ -98,6 +98,10 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   以及 200% Apply dialog 點擊；render deferred／zero-extent frame 也會轉送 gameplay 按鍵釋放與失焦，
   不需 GUI frame 或 Play tick；target-host 實體顯示器 DPI 證據仍待完成。
 
+- ✅ Native UI atlas acknowledgement 現以 process-local surface resource domain 區隔。
+  新 owner 即使 DPI 不變仍取得 atlas，move／resize 保留 cache；native lifetime test
+  涵蓋更換與 teardown（[紀錄](../../Tools/Build/evidence/EditorEDM0-SurfaceLifetime-2026-10-06.md)）。
+
 ### ED-M1 — Project 與 Asset workspace
 
 建立、開啟與升級 project；Content Browser 支援 search/filter、folder/UUID、drag/drop、import

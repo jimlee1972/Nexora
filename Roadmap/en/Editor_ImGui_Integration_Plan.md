@@ -211,6 +211,11 @@ and resource retirement; Vulkan validation reports no errors for an offscreen fr
 
 **Status: implemented in source and validation contracts; native target-host validation remains.**
 
+✅ Native surface replacement now invalidates the atlas upload acknowledgement using a
+process-local resource-domain token; resize/move preserves it and teardown invalidates it.
+The native lifetime gate covers DPI round trips and stable allocations ([record](../../Tools/Build/evidence/EditorEDM0-SurfaceLifetime-2026-10-06.md)).
+Physical visual/lifetime and unavailable target-host rows remain open.
+
 1. Introduce a renderer-owned state object beneath `EditorImGuiHost`: pipeline, sampler, font
    texture/view, descriptor bindings, and a bounded ring of per-frame vertex/index upload buffers.
    Create stable resources lazily after device/format is known; do not create/destroy pipeline and

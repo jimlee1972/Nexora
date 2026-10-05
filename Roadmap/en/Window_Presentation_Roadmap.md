@@ -22,6 +22,10 @@ receives a native window, device, queue, or swapchain pointer.
 - ✅ `NexoraShowcase` preserves its headless lifecycle and can own a reusable native render surface.
 - Implemented: Win32 window/input translation and DX12 presentation have WP-M1/WP-M2 Windows acceptance evidence; Showcase integration remains a separate target-host gate.
 
+✅ `RenderSurface::UiResourceDomain()` now exposes an opaque process-local cache identity,
+stable across resize/move and invalid after teardown. Editor native replacement/DPI tests reject
+stale upload acknowledgements without caching an owner or exposing native image handles.
+
 ## 3. Required contracts
 
 - Backend-neutral `WindowDescriptor`, `WindowHandle`, `WindowEvent`, and `SurfaceDescriptor` types.

@@ -5,6 +5,12 @@ owns one window system, window, and `ISurface`, forwards normalized events and r
 destroys the GPU surface before its window. Runtime remains independent of Presentation and Editor.
 The borrowed `Events()` span and `FrameInfo()` snapshot remain valid until the next `BeginFrame()`;
 `FrameInfo()` tracks the latest client extent and DPI scale so UI hosts do not duplicate window state.
+`UiResourceDomain()` identifies the owner's native UI texture cache with a process-local, nonzero
+opaque token. A new owner always receives a distinct token, including address reuse; resize and
+move preserve it, and successful teardown or move-out returns zero. It exposes no image/native
+handle, retains no owner, and must not be serialized. Calls follow the surface's owner-thread
+contract. Clients must refresh uploads when changing domains; font/texture generations are local
+to a domain. Identity exhaustion fails creation explicitly instead of reusing a live/retired ID.
 After a successful `BeginFrame`, `RenderUi` borrows backend-neutral textured/indexed geometry,
 scissors, offsets, and generation-checked texture uploads and records native GPU draws directly into
 the acquired image. Vulkan, DX12, and Metal keep their pipeline, sampler, texture descriptors, and

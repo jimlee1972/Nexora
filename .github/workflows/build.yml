@@ -171,7 +171,7 @@ jobs:
           VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
           VK_LOADER_DEBUG: layer
         run: |
-          ctest --preset linux-development -R '^editor\.linux_(display_acceptance|validation_output)$' -V --output-log build/linux-development/editor-validation.log
+          ctest --preset linux-development -R '^editor\.(linux_(display_acceptance|validation_output)|native_surface_lifetime)$' -V --output-log build/linux-development/editor-validation.log
           grep -Eq 'Insert(ed)? device layer.*VK_LAYER_KHRONOS_validation' build/linux-development/editor-validation.log
       - name: Native Vulkan RHI and scene validation (Xvfb)
         env:

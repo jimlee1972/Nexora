@@ -195,6 +195,10 @@ retirement；Vulkan offscreen frame 沒有 validation error。
 
 **狀態：source 與 validation contract 已實作；native target-host validation 仍待完成。**
 
+✅ Native surface 更換現以 process-local resource-domain token 使 atlas upload acknowledgement
+失效；resize／move 保留 domain，teardown 使其失效。Native lifetime gate 涵蓋 DPI 往返與
+穩定配置（[紀錄](../../Tools/Build/evidence/EditorEDM0-SurfaceLifetime-2026-10-06.md)）；實體 visual／lifetime 與不可用 target-host 證據仍待驗收。
+
 1. 在 `EditorImGuiHost` 下建立 renderer-owned state：pipeline、sampler、font texture/view、descriptor
    binding、有限大小的 per-frame vertex/index upload buffer ring。知道 device/format 後才 lazy-create
    stable resource；禁止每 frame create/destroy pipeline 與 font texture。

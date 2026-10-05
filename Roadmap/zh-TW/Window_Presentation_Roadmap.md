@@ -21,6 +21,10 @@ backend-neutral surface event。Zig gameplay 不得取得 native window、device
 - ✅ `NexoraShowcase` 保留 headless lifecycle，並可擁有可重用的 native render surface。
 - 已實作：Win32 window/input translation 與 DX12 presentation 已有 WP-M1/WP-M2 Windows 驗收證據；Showcase 整合仍是獨立的 target-host gate。
 
+✅ `RenderSurface::UiResourceDomain()` 現提供 opaque process-local cache identity，
+resize／move 保留，teardown 後失效。Editor native 更換／DPI 測試拒絕過期 upload acknowledgement，
+不保留 owner，也不暴露 native image handle。
+
 ## 3. 必要 contract
 
 - Backend-neutral `WindowDescriptor`、`WindowHandle`、`WindowEvent` 與 `SurfaceDescriptor`。

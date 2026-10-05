@@ -86,6 +86,7 @@ struct EditorImGuiHost::State final {
   float dpi_bucket = 0.0F;
   std::uint32_t font_generation = 1;
   std::uint32_t surface_font_generation = 0;
+  std::uint64_t surface_font_domain = 0;
   RendererMetrics renderer_metrics;
   RecoveryChoice recovery_choice = RecoveryChoice::None;
   CloseChoice close_choice = CloseChoice::None;
@@ -4880,8 +4881,13 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
                         std::uint32_t height) {
   Activate(state_->context);
   const auto *draw = ImGui::GetDrawData();
-  if (draw == nullptr || width == 0 || height == 0)
+  const auto domain = surface.UiResourceDomain();
+  if (draw == nullptr || width == 0 || height == 0 || domain == 0)
     return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
+  if (state_->surface_font_domain != domain) {
+    state_->surface_font_domain = domain;
+    state_->surface_font_generation = 0;
+  }
   std::vector<Nexora::Presentation::UiVertex> vertices;
   std::vector<std::byte> indices;
   std::vector<Nexora::Presentation::UiDrawCommand> commands;

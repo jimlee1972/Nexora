@@ -98,6 +98,10 @@ satisfy this milestone.
   Deferred/zero-extent frames also forward gameplay key releases and focus loss without ticking
   Play or rendering a GUI frame. Target-host physical-display DPI evidence remains open.
 
+- ✅ Native UI atlas acknowledgements are now scoped to a process-local surface resource domain.
+  New owners receive the atlas at unchanged DPI, while move/resize retains it; native lifetime tests
+  cover both replacement and teardown ([record](../../Tools/Build/evidence/EditorEDM0-SurfaceLifetime-2026-10-06.md)).
+
 ### ED-M1 — Project and asset workspace
 
 Create, open, and upgrade projects. Deliver a Content Browser with search/filter, folder/UUID,

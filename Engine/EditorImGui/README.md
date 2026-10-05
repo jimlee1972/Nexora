@@ -172,6 +172,13 @@ authoring views on first launch.
   `ReleaseRenderer` waits for the device before destroying them and must run before that device is
   destroyed. The path applies framebuffer-scaled clip rectangles and preserves ImGui index and
   vertex offsets. The native `RenderSurface` path owns an equivalent completion-protected cache.
+  The host tracks its last native UI resource domain as a value, never as a retained surface pointer.
+  Changing owners invalidates the upload acknowledgement and sends the atlas to the new domain even
+  at unchanged DPI. Resize/move within a domain retains the upload; dead domains reject rendering.
+  `editor.native_surface_lifetime` covers native replacement, move, DPI round trips, steady-buffer
+  reuse, resize, and teardown. Linux runs it on Xvfb with strict validation; Windows/DX12 and
+  macOS/Metal use the native host when available. An unsupported Metal runner is explicitly skipped
+  and cannot supply native/physical acceptance evidence.
 - DPI is quantized to 100%, 125%, 150%, or 200%. Crossing a bucket rebuilds the font atlas at that
   pixel density, publishes the framebuffer scale, and derives the theme anew rather than
   cumulatively scaling an existing style.
