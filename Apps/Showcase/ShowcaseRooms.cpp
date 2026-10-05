@@ -615,7 +615,7 @@ struct RoomSession::State final {
 #endif
   void Lathe(math::Vector3 center, std::span<const std::array<float, 2>> profile,
              bool fluted = false) {
-    const unsigned sides = fluted ? 64 : 20;
+    const unsigned sides = fluted ? 64 : 48;
     for (std::size_t layer = 0; layer + 1 < profile.size(); ++layer)
       for (unsigned side = 0; side < sides; ++side) {
         const auto base = static_cast<std::uint16_t>(vertices.size());
@@ -1349,7 +1349,7 @@ struct RoomSession::State final {
         }
     finish(5);
     // Ground-cover patches and climbing ivy use the existing original leaf mask and GPU wind.
-    for (unsigned patch = 0; patch < 112; ++patch) {
+    for (unsigned patch = 0; patch < 180; ++patch) {
       const auto seed = patch * 747796405U + 2891336453U;
       const float x = static_cast<float>((seed >> 3) % 1500) * 0.01F - 7.5F;
       const float z = static_cast<float>((seed >> 15) % 1100) * 0.01F - 4.0F;
@@ -1372,6 +1372,21 @@ struct RoomSession::State final {
           for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
             vertices[v].uv[1] = 1 - vertices[v].uv[1];
         }
+    finish(5);
+    // Ivy follows the outer right-hand device rim; root anchors share the scene wind clock.
+    for (unsigned vine = 0; vine < 9; ++vine) {
+      const float angle = -0.45F + vine * 0.15F;
+      const float rootX = 1.94F * std::cos(angle);
+      const float rootY = 2.9F + 1.94F * std::sin(angle);
+      for (unsigned leaf = 0; leaf < 8; ++leaf) {
+        const float height = 0.32F + ((vine + leaf) % 3) * 0.035F;
+        LeafQuad({rootX + 0.08F * std::sin(leaf * 1.7F), rootY - leaf * 0.17F - height,
+                  0.33F + 0.04F * std::cos(leaf * 1.3F)},
+                 0.18F, height, vine * 0.57F);
+        for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
+          vertices[v].uv[1] = 1 - vertices[v].uv[1];
+      }
+    }
     finish(5);
     courtyardFoliageQuadCount = 0;
     for (const auto &batch : batches)
@@ -2471,8 +2486,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[4].textureId = 2;
 #endif
     s.materials[0].roughness = 0.85F;
-    s.materials[0].normalScale = 0.35F;
-    s.materials[0].worldTextureScale = s.courtyardPbr ? 0.3F : 0;
+    s.materials[0].normalScale = 0.2F;
+    s.materials[0].worldTextureScale = s.courtyardPbr ? 1.1F : 0;
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[0].textureId = 10;
     s.materials[0].normalTextureId = 11;
@@ -2483,8 +2498,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #endif
     s.materials[4].baseColor = {0.52F, 0.44F, 0.31F, 1};
     s.materials[1].metallic = 1;
-    s.materials[1].roughness = 0.35F;
-    s.materials[1].baseColor = {0.8F, 0.7F, 0.3F, 1};
+    s.materials[1].roughness = 0.28F;
+    s.materials[1].baseColor = {0.95F, 0.85F, 0.65F, 1};
     s.materials[2].roughness = 0.15F;
     s.materials[2].emission = {0.1F, 4.5F, 6.0F};
     s.materials[3].roughness = 0.8F;
@@ -2530,7 +2545,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #endif
     s.materials.push_back(motes);
     for (const auto color :
-         {std::array{0.42F, 0.38F, 0.25F, 1.0F}, std::array{0.39F, 0.46F, 0.50F, 1.0F},
+         {std::array{0.42F, 0.38F, 0.25F, 1.0F}, std::array{0.36F, 0.36F, 0.32F, 1.0F},
           std::array{0.09F, 0.18F, 0.07F, 1.0F}}) {
       Nexora::Presentation::SceneMaterial background{};
       background.baseColor = color;
@@ -2539,11 +2554,16 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       s.materials.push_back(background);
     }
 #if NEXORA_ASSET_PIPELINE_ENABLED
-    s.materials[8].worldTextureScale = s.courtyardPbr ? 0.3F : 0;
-    s.materials[8].normalScale = 0.2F;
+    s.materials[8].worldTextureScale = s.courtyardPbr ? 1.1F : 0;
+    s.materials[8].normalScale = 0.14F;
     s.materials[8].textureId = 10;
     s.materials[8].normalTextureId = 11;
     s.materials[8].ormTextureId = 12;
+    s.materials[9].textureId = 10;
+    s.materials[9].normalTextureId = 11;
+    s.materials[9].ormTextureId = 12;
+    s.materials[9].worldTextureScale = s.courtyardPbr ? 0.05F : 0;
+    s.materials[9].normalScale = 0.08F;
 #endif
     Nexora::Presentation::SceneMaterial sun{};
     sun.baseColor = {0, 0, 0, 1};
@@ -2832,7 +2852,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                               {4, 64, 32, 7, s.courtyardEnvironment[1]},
                               {5, 32, 32, 1, s.courtyardEnvironment[2]}};
       data.linearTextureUploads = s.linearSceneUploads;
-      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 1.0F, 0.0F, 7};
+      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 0.8F, 0.0F, 7};
     }
 #endif
     data.base_color[0] = 0.72F;

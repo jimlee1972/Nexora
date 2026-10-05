@@ -1,0 +1,378 @@
+Test project /workspace/Nexora-vis-fine-stone/build/linux-development
+      Start  1: build.module_graph
+ 1/97 Test  #1: build.module_graph ..............................   Passed    0.01 sec
+      Start  2: build.shader_contract
+ 2/97 Test  #2: build.shader_contract ...........................   Passed    0.01 sec
+      Start  3: build.plugin_manifests
+ 3/97 Test  #3: build.plugin_manifests ..........................   Passed    0.00 sec
+      Start  4: build.showcase_package
+ 4/97 Test  #4: build.showcase_package ..........................   Passed    0.21 sec
+      Start  5: build.showcase_package_launch_safety
+ 5/97 Test  #5: build.showcase_package_launch_safety ............   Passed    0.48 sec
+      Start  6: build.v2_migration_scanner
+ 6/97 Test  #6: build.v2_migration_scanner ......................   Passed    0.03 sec
+      Start  7: build.v2_production_toolchain
+ 7/97 Test  #7: build.v2_production_toolchain ...................   Passed    0.33 sec
+      Start  8: gameplay.zig_abi_smoke
+ 8/97 Test  #8: gameplay.zig_abi_smoke ..........................   Passed    0.00 sec
+      Start  9: showcase.embedded_vulkan_shaders
+ 9/97 Test  #9: showcase.embedded_vulkan_shaders ................   Passed    0.35 sec
+      Start 10: showcase.courtyard_asset_generation
+10/97 Test #10: showcase.courtyard_asset_generation .............   Passed    2.38 sec
+      Start 11: showcase.courtyard_hero_generation
+11/97 Test #11: showcase.courtyard_hero_generation ..............   Passed   17.33 sec
+      Start 12: showcase.courtyard_environment_generation
+12/97 Test #12: showcase.courtyard_environment_generation .......   Passed    5.29 sec
+      Start 13: showcase.courtyard_environment_contracts
+13/97 Test #13: showcase.courtyard_environment_contracts ........   Passed    3.83 sec
+      Start 14: showcase.courtyard_asset_conversion
+14/97 Test #14: showcase.courtyard_asset_conversion .............   Passed    2.24 sec
+      Start 15: showcase.performance_statistics
+15/97 Test #15: showcase.performance_statistics .................   Passed    0.01 sec
+      Start 16: showcase.v1_probe
+16/97 Test #16: showcase.v1_probe ...............................   Passed    0.01 sec
+      Start 17: showcase.runtime_rooms
+17/97 Test #17: showcase.runtime_rooms ..........................   Passed    1.39 sec
+      Start 18: showcase.visual_tour_cli
+18/97 Test #18: showcase.visual_tour_cli ........................   Passed    0.81 sec
+      Start 19: showcase.guided_tour_cli
+19/97 Test #19: showcase.guided_tour_cli ........................   Passed    0.18 sec
+      Start 20: showcase.probe_export
+20/97 Test #20: showcase.probe_export ...........................   Passed    0.18 sec
+      Start 21: showcase.zig_headless
+21/97 Test #21: showcase.zig_headless ...........................   Passed    0.17 sec
+      Start 22: showcase.feature_gallery
+22/97 Test #22: showcase.feature_gallery ........................   Passed    0.16 sec
+      Start 23: showcase.zig_dynamic
+23/97 Test #23: showcase.zig_dynamic ............................   Passed    0.20 sec
+      Start 24: showcase.capability_fallbacks
+24/97 Test #24: showcase.capability_fallbacks ...................   Passed    0.20 sec
+      Start 25: showcase.linux_vulkan_interaction
+25/97 Test #25: showcase.linux_vulkan_interaction ...............   Passed   44.05 sec
+      Start 26: showcase.linux_vulkan_evidence_policy
+26/97 Test #26: showcase.linux_vulkan_evidence_policy ...........   Passed    0.10 sec
+      Start 27: showcase.linux_vulkan_virtual_display
+27/97 Test #27: showcase.linux_vulkan_virtual_display ...........   Passed    1.74 sec
+      Start 28: showcase.linux_vulkan_rendering_room
+28/97 Test #28: showcase.linux_vulkan_rendering_room ............   Passed    0.62 sec
+      Start 29: showcase.linux_vulkan_camera_input
+29/97 Test #29: showcase.linux_vulkan_camera_input ..............***Failed    4.04 sec
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "interactive",
+  "scene": "rendering",
+  "backend": "vulkan",
+  "validate_v1": false,
+  "startup_arguments": ["--mode=interactive","--scene=rendering","--backend=vulkan","--frames=600","--resize=960x540","--no-reload","--gameplay-module=static","--report=/workspace/Nexora-vis-fine-stone/build/linux-development/artifacts/showcase-linux-vulkan-camera-input/scene.json"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "1c727628ba2e",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "AVAILABLE",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "IMPLEMENTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "rendering",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ray/AABB diagnostics"},
+      {"id": "scene", "title": "Scene Lab", "status": "IMPLEMENTED", "fallback": "public scene/entity/component callbacks"},
+      {"id": "gameplay", "title": "Gameplay Lab", "status": "IMPLEMENTED", "fallback": "deterministic physics raycast"},
+      {"id": "presentation", "title": "Presentation Lab", "status": "IMPLEMENTED", "fallback": "portable animation, audio, VFX, and media simulation"},
+      {"id": "streaming", "title": "Streaming Lab", "status": "IMPLEMENTED", "fallback": "cell residency, budgets, and HLOD fallback"}
+    ]
+  },
+  "lifecycle": {
+    "engine_initialized": true,
+    "module_callbacks": true,
+    "module_unloaded_before_engine_shutdown": true,
+    "frames": 600,
+    "start_count": 1,
+    "fixed_update_count": 600,
+    "update_count": 600,
+    "elapsed_seconds": 10
+  },
+  "scene_evidence": {
+    "scene_id": 1,
+    "entity_count": 5,
+    "primary_entity": 4,
+    "primary_transform": {
+      "x": 10.000000000000076,
+      "y": 0,
+      "z": 0
+    },
+    "zig_read_callbacks": 600,
+    "zig_write_callbacks": 600,
+    "zig_log_received": true,
+    "high_level_debug_lines": 600,
+    "public_api_errors": 0
+  },
+  "interaction_overlay": {
+    "camera_controls": "WASD",
+    "camera_moves": 0,
+    "camera_position": [0, 2, 6],
+    "raycasts": 600,
+    "selected_entity": 4
+  },
+  "render_settings": {"width":960,"height":540,"vsync_requested":"on","present_mode":"vsync","quality":"standard","refresh_rate_hz":null},
+  "performance": {"schema":"nexora.showcase.performance.v1","scope":"native acquired frame; includes acquire/present and pacing","warmup_frames":60,"observed_frames":600,"sample_count":540,"sample_capacity":18000,"sample_window":"latest frames after warmup","gpu_timing_ms":null,"gpu_timing_status":"UNAVAILABLE: no GPU timestamps","cpu_scope":"process-wide user+kernel CPU time; includes all threads","peak_resident_bytes":136347648,"status":"MEASURED","average_fps":171.995787,"average_frame_ms":5.8140959,"p95_frame_ms":7.297726,"p99_frame_ms":10.752829,"average_process_cpu_ms":15.3825426},
+  "headless_evidence": {
+    "executed": false,
+    "backend": "Validation",
+    "visible_meshes": 3,
+    "passes": 5,
+    "barriers": 6,
+    "submitted_command_lists": 5,
+    "draw_calls": 3,
+    "presents": 1,
+    "validation_errors": 0
+  },
+  "windowed_evidence": {
+    "executed": true,
+    "backend": "vulkan",
+    "backend_fallback": false,
+    "fallback_reason": "",
+    "recovery_action": "render",
+    "surface_acquires": 600,
+    "surface_presents": 600,
+    "surface_recoverable_presents": 0,
+    "resize_requests": 1,
+    "resize_generations": 1,
+    "composed_frames": 0,
+    "scene_draws": 600,
+    "native_scene_draws": 600,
+    "native_scene_instances": 2400,
+    "native_scene_texture_uploads": 2,
+    "native_offscreen_draws": 600,
+    "native_shadow_passes": 0,
+    "native_shadow_instances": 0,
+    "native_scene_composites": 600,
+    "software_rasterizer": true,
+    "native_graph_frames": 600,
+    "native_graph_passes": 4,
+    "native_graph_resource_transitions": 3,
+    "native_graph_order": ["Offscreen","Main","UI","Present"],
+    "native_ui_draws": 600,
+    "overlay_frames": 600,
+    "rendering_mode": "gpu_scene",
+    "clear_color": true,
+    "triangle": false,
+    "diagnostics_overlay": true
+  },
+  "runtime_rooms": {"schema":"nexora.showcase.rooms.v1","selected":"rendering","ticks":600,"reloads":0,"probe_runs":13,"healthy":true,"tour":{"enabled":false,"paused":false,"kind":"engineering","duration_seconds":210,"seconds":0,"step":0},"visited":["rendering"],"visualized":["rendering"],"sample_source":"public Runtime APIs","native_media":"CONTRACT_ONLY","native_webview":"UNAVAILABLE","visual_acceptance":"pending target-host evidence","lines":["Public Runtime state sampled at tick 600","Camera / indexed cube / material / directional light / depth","Native RenderGraph: Offscreen / Main / UI / Present","Offscreen depth scene / GPU copy to acquired image / UI","Original checker texture / hardware instances / shadow placeholder","P cycles instanced cubes / quad / triangle","Drag mouse to orbit / wheel zoom / WASD orbit","Last action: Entered rendering"],"courtyard":{"stage":"living_scene_in_progress","shot":0,"shading":"shared_pbr_ibl","scene_color_format":"RGBA16F","exposure":1,"camera_mode":"orbit","comparison_menu":false,"animation_paused":false,"animation_seconds":0,"wind_enabled":true,"transmission_enabled":true,"atmosphere_enabled":true,"refraction_enabled":true,"transparency_enabled":true,"device_active":false,"geometry_vertex_count":24,"geometry_index_count":36,"geometry_batch_count":0,"geometry_material_count":0,"particle_budget":48,"particle_count":0,"foliage_quad_count":0,"quality":"standard","skybox_face_count":6,"skybox_camera_centered":true,"background_environment":true,"water_surface_count":2,"waterfall_count":2,"crystal_animation":true,"shadow_resolution":1024,"depth_of_field_enabled":true,"planar_reflection_enabled":true,"bloom_enabled":true,"shadows_enabled":true,"stylized_enabled":true,"shadow_bias":0.0008,"screenshot_mode":false,"representative_asset_loaded":true,"asset_hash":"ba85a5f7c46a16fe","hero_asset_loaded":true,"hero_detail_map_count":6,"hero_mask_count":2,"hero_sky_map_count":1,"hero_hashes":["f548361236bc0a2b","bb34075f31b4567d","c0b0fd404d3335a5","1d063a7a8062ea86","baf5cf9b51873c01","8dcfe08d1dff6680","604591ba80ce176c","9e89411d9d4329af","c38abc605ced37e3","6e2fdec598a497a0"],"adopted_mesh_count":3,"adopted_texture_count":1,"adopted_hashes":["1f970f1257fe146d","d4fd878b4ca15a59","0971946f233ebffb","5c2880081a07b4f2"],"environment_loaded":true,"environment_enabled":true,"environment_metadata_hash":"edff5d745e87ce08","environment_hashes":["e0136e196ba1461e","491d4268c74d735e","9824b87fc91a5954"]},"integration_probes":{
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "0"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "1"}, {"name": "input.error_case", "value": "0"}, {"name": "fixed_ticks", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "2"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Native counters are reported separately in windowed_evidence", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "3"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "4"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "5"}, {"name": "input.error_case", "value": "0"}, {"name": "hash", "value": "ba85a5f7c46a16fe"}, {"name": "resident_bytes", "value": "253"}, {"name": "generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "6"}, {"name": "input.error_case", "value": "0"}, {"name": "editor_sdk", "value": "available"}, {"name": "graphical_editor", "value": "separate application"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "7"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "8"}, {"name": "input.error_case", "value": "0"}, {"name": "adapter", "value": "portable CPU / no third-party physics SDK"}, {"name": "character_x", "value": "-2.00"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "9"}, {"name": "input.error_case", "value": "0"}, {"name": "native_audio_video", "value": "adapter unavailable / contract only"}, {"name": "particles", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "10"}, {"name": "input.error_case", "value": "0"}, {"name": "full_cells", "value": "3"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "11"}, {"name": "input.error_case", "value": "0"}, {"name": "webview", "value": "adapter unavailable"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "12"}, {"name": "input.error_case", "value": "0"}, {"name": "rollback_generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+  ]
+}
+},
+  "validation_lab": {
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "NOT_RUN", "summary": "Mapped to CTest contract build.module_graph", "metrics": [{"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "NOT_RUN", "summary": "Mapped to CTest contract core.runtime", "metrics": [{"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "NOT_RUN", "summary": "Mapped to CTest contract renderer.contracts", "metrics": [{"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Mapped to CTest contract renderer.native_backend", "metrics": [{"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m4_vertical_slice", "metrics": [{"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m5_asset_pipeline", "metrics": [{"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m6_editor_sdk", "metrics": [{"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m7_input_ui_localization", "metrics": [{"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m8_gameplay_simulation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m9_presentation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m10_large_world", "metrics": [{"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m11_platform", "metrics": [{"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m12_shipping", "metrics": [{"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+    {"id": "input-ui-localization", "status": "NOT_RUN", "headless_evidence": "headless input routing, UI model, and locale fallback", "visual_complete": false},
+    {"id": "gameplay", "status": "NOT_RUN", "headless_evidence": "headless character, physics, navigation, and AI counters", "visual_complete": false},
+    {"id": "presentation", "status": "NOT_RUN", "headless_evidence": "headless animation, particle, audio, and video capability counters", "visual_complete": false},
+    {"id": "world", "status": "NOT_RUN", "headless_evidence": "headless cell, HLOD, procedural terrain, and vegetation state", "visual_complete": false}
+  ]
+},
+  "validation_lab_presentation": {"cards": [{"id": "v1.M0", "status": "NOT_RUN", "contract_test": "build.module_graph", "room": "hub", "world_object": 1314390016}, {"id": "v1.M1", "status": "NOT_RUN", "contract_test": "core.runtime", "room": "hub", "world_object": 1314390017}, {"id": "v1.M2", "status": "NOT_RUN", "contract_test": "renderer.contracts", "room": "hub", "world_object": 1314390018}, {"id": "v1.M3", "status": "UNSUPPORTED", "contract_test": "renderer.native_backend", "room": "hub", "world_object": 1314390019}, {"id": "v1.M4", "status": "NOT_RUN", "contract_test": "runtime.v1_m4_vertical_slice", "room": "scene", "world_object": 1314390020}, {"id": "v1.M5", "status": "NOT_RUN", "contract_test": "runtime.v1_m5_asset_pipeline", "room": "scene", "world_object": 1314390021}, {"id": "v1.M6", "status": "NOT_RUN", "contract_test": "runtime.v1_m6_editor_sdk", "room": "scene", "world_object": 1314390022}, {"id": "v1.M7", "status": "NOT_RUN", "contract_test": "runtime.v1_m7_input_ui_localization", "room": "input-ui-localization", "world_object": 1314390023}, {"id": "v1.M8", "status": "NOT_RUN", "contract_test": "runtime.v1_m8_gameplay_simulation", "room": "gameplay", "world_object": 1314390024}, {"id": "v1.M9", "status": "NOT_RUN", "contract_test": "runtime.v1_m9_presentation", "room": "presentation", "world_object": 1314390025}, {"id": "v1.M10", "status": "NOT_RUN", "contract_test": "runtime.v1_m10_large_world", "room": "world", "world_object": 1314390026}, {"id": "v1.M11", "status": "NOT_RUN", "contract_test": "runtime.v1_m11_platform", "room": "shipping", "world_object": 1314390027}, {"id": "v1.M12", "status": "NOT_RUN", "contract_test": "runtime.v1_m12_shipping", "room": "shipping", "world_object": 1314390028}], "status_legend": ["PASS", "FAIL", "UNSUPPORTED", "NOT_RUN", "BLOCKED"], "failure_states": [{"code": "invalid_asset", "label": "Invalid asset", "milestone": "M5", "status": "NOT_RUN"}, {"code": "dependency_cycle", "label": "Dependency cycle", "milestone": "M0", "status": "NOT_RUN"}, {"code": "plugin_abi_mismatch", "label": "Plugin ABI mismatch", "milestone": "M6", "status": "NOT_RUN"}, {"code": "rollback", "label": "Rollback", "milestone": "M12", "status": "NOT_RUN"}]},
+  "reload": {
+    "requested": false,
+    "successful_reloads": 0,
+    "migrated_bytes": 0
+  }
+}
+
+NexoraShowcase build=1c727628ba2e --mode=interactive --scene=rendering --backend=vulkan --frames=600 --resize=960x540 --no-reload --gameplay-module=static --report=/workspace/Nexora-vis-fine-stone/build/linux-development/artifacts/showcase-linux-vulkan-camera-input/scene.json
+
+FAIL: normalized D input did not move the gallery camera
+
+      Start 30: foundation.build_info
+30/97 Test #30: foundation.build_info ...........................   Passed    0.00 sec
+      Start 31: foundation.gameplay_abi
+31/97 Test #31: foundation.gameplay_abi .........................   Passed    0.00 sec
+      Start 32: core.runtime
+32/97 Test #32: core.runtime ....................................   Passed    0.00 sec
+      Start 33: core.v2_m11_remote_diagnostics
+33/97 Test #33: core.v2_m11_remote_diagnostics ..................   Passed    0.00 sec
+      Start 34: ai.v2_m7_navigation_crowd_policy
+34/97 Test #34: ai.v2_m7_navigation_crowd_policy ................   Passed    0.01 sec
+      Start 35: network.v2_m5_transport
+35/97 Test #35: network.v2_m5_transport .........................   Passed    0.08 sec
+      Start 36: network.v2_m6_entity_mapping
+36/97 Test #36: network.v2_m6_entity_mapping ....................   Passed    0.08 sec
+      Start 37: network.v2_m6_replication_interest
+37/97 Test #37: network.v2_m6_replication_interest ..............   Passed    0.08 sec
+      Start 38: network.v2_m6_dormancy
+38/97 Test #38: network.v2_m6_dormancy ..........................   Passed    0.08 sec
+      Start 39: network.v2_m6_prediction_replay
+39/97 Test #39: network.v2_m6_prediction_replay .................   Passed    0.09 sec
+      Start 40: network.server_runtime_contract
+40/97 Test #40: network.server_runtime_contract .................   Passed    0.09 sec
+      Start 41: network.v2_m5_headless_dependency
+41/97 Test #41: network.v2_m5_headless_dependency ...............   Passed    0.03 sec
+      Start 42: window_presentation.contracts
+42/97 Test #42: window_presentation.contracts ...................   Passed    0.00 sec
+      Start 43: window_presentation.scene_instance_contract
+43/97 Test #43: window_presentation.scene_instance_contract .....   Passed    0.00 sec
+      Start 44: window_presentation.vulkan_scene
+44/97 Test #44: window_presentation.vulkan_scene ................   Passed    0.53 sec
+      Start 45: window_presentation.vulkan_pbr
+45/97 Test #45: window_presentation.vulkan_pbr ..................   Passed    2.55 sec
+      Start 46: window_presentation.vulkan_scene_upload_reuse
+46/97 Test #46: window_presentation.vulkan_scene_upload_reuse ...   Passed    1.14 sec
+      Start 47: window_presentation.pbr_shader_generation
+47/97 Test #47: window_presentation.pbr_shader_generation .......   Passed    3.26 sec
+      Start 48: window_presentation.tone_shader_generation
+48/97 Test #48: window_presentation.tone_shader_generation ......   Passed    1.97 sec
+      Start 49: api.foundation_math_types
+49/97 Test #49: api.foundation_math_types .......................   Passed    0.06 sec
+      Start 50: api.core_services_handle_and_vfs_contract
+50/97 Test #50: api.core_services_handle_and_vfs_contract .......   Passed    0.06 sec
+      Start 51: api.m6_c_consumer
+51/97 Test #51: api.m6_c_consumer ...............................   Passed    0.00 sec
+      Start 52: api.m6_manifest_compatibility
+52/97 Test #52: api.m6_manifest_compatibility ...................   Passed    0.02 sec
+      Start 53: samples.api_foundation
+53/97 Test #53: samples.api_foundation ..........................   Passed    0.00 sec
+      Start 54: renderer.metal_source_contract
+54/97 Test #54: renderer.metal_source_contract ..................   Passed    0.02 sec
+      Start 55: renderer.indirect_range_source_contract
+55/97 Test #55: renderer.indirect_range_source_contract .........   Passed    0.02 sec
+      Start 56: renderer.contracts
+56/97 Test #56: renderer.contracts ..............................   Passed    0.07 sec
+      Start 57: renderer.scene_frame_contracts
+57/97 Test #57: renderer.scene_frame_contracts ..................   Passed    0.00 sec
+      Start 58: renderer.material_contracts
+58/97 Test #58: renderer.material_contracts .....................   Passed    0.00 sec
+      Start 59: renderer.golden_image_acceptance
+59/97 Test #59: renderer.golden_image_acceptance ................   Passed    0.00 sec
+      Start 60: renderer.v2_gpu_scene
+60/97 Test #60: renderer.v2_gpu_scene ...........................   Passed    0.00 sec
+      Start 61: renderer.v2_gpu_driven
+61/97 Test #61: renderer.v2_gpu_driven ..........................   Passed    0.16 sec
+      Start 62: build.shader_crosscompile
+62/97 Test #62: build.shader_crosscompile .......................   Passed    0.01 sec
+      Start 63: renderer.vulkan_golden_triangle
+63/97 Test #63: renderer.vulkan_golden_triangle .................   Passed    0.07 sec
+      Start 64: runtime.shader_artifact_contracts
+64/97 Test #64: runtime.shader_artifact_contracts ...............   Passed    0.00 sec
+      Start 65: runtime.v1_m4_m11_contracts
+65/97 Test #65: runtime.v1_m4_m11_contracts .....................   Passed    0.00 sec
+      Start 66: api.game_world_facade
+66/97 Test #66: api.game_world_facade ...........................   Passed    0.00 sec
+      Start 67: runtime.transform_rotation_scale
+67/97 Test #67: runtime.transform_rotation_scale ................   Passed    0.00 sec
+      Start 68: runtime.entity_parenting
+68/97 Test #68: runtime.entity_parenting ........................   Passed    0.53 sec
+      Start 69: runtime.render_sync
+69/97 Test #69: runtime.render_sync .............................   Passed    0.57 sec
+      Start 70: api.gameplay_host_bridge
+70/97 Test #70: api.gameplay_host_bridge ........................   Passed    0.00 sec
+      Start 71: runtime.v1_m12_shipping
+71/97 Test #71: runtime.v1_m12_shipping .........................   Passed    0.08 sec
+      Start 72: runtime.v2_m12_hardening_reference_projects
+72/97 Test #72: runtime.v2_m12_hardening_reference_projects .....   Passed    0.08 sec
+      Start 73: runtime.v1_m7_input_ui_localization
+73/97 Test #73: runtime.v1_m7_input_ui_localization .............   Passed    0.01 sec
+      Start 74: runtime.v1_m8_gameplay_simulation
+74/97 Test #74: runtime.v1_m8_gameplay_simulation ...............   Passed    0.01 sec
+      Start 75: runtime.v2_m7_ai_character_intent_bridge
+75/97 Test #75: runtime.v2_m7_ai_character_intent_bridge ........   Passed    0.00 sec
+      Start 76: runtime.v1_m10_large_world
+76/97 Test #76: runtime.v1_m10_large_world ......................   Passed    0.02 sec
+      Start 77: runtime.v1_m11_platform
+77/97 Test #77: runtime.v1_m11_platform .........................   Passed    0.00 sec
+      Start 78: runtime.v1_m9_presentation
+78/97 Test #78: runtime.v1_m9_presentation ......................   Passed    0.00 sec
+      Start 79: runtime.v2_m9_timeline_ui_audio_media
+79/97 Test #79: runtime.v2_m9_timeline_ui_audio_media ...........   Passed    0.00 sec
+      Start 80: runtime.v1_m4_vertical_slice
+80/97 Test #80: runtime.v1_m4_vertical_slice ....................   Passed    0.03 sec
+      Start 81: runtime.gameplay_module_host
+81/97 Test #81: runtime.gameplay_module_host ....................   Passed    0.00 sec
+      Start 82: runtime.dynamic_gameplay_module
+82/97 Test #82: runtime.dynamic_gameplay_module .................   Passed    0.43 sec
+      Start 83: runtime.v1_m5_asset_pipeline
+83/97 Test #83: runtime.v1_m5_asset_pipeline ....................   Passed    0.06 sec
+      Start 84: api.bundle_mount
+84/97 Test #84: api.bundle_mount ................................   Passed    0.00 sec
+      Start 85: runtime.v1_m6_editor_sdk
+85/97 Test #85: runtime.v1_m6_editor_sdk ........................   Passed    0.00 sec
+      Start 86: editor.shader_authoring_contracts
+86/97 Test #86: editor.shader_authoring_contracts ...............   Passed    0.02 sec
+      Start 87: editor.preview_contract
+87/97 Test #87: editor.preview_contract .........................   Passed    0.01 sec
+      Start 88: editor.viewport_math
+88/97 Test #88: editor.viewport_math ............................   Passed    0.00 sec
+      Start 89: editor.mesh_import
+89/97 Test #89: editor.mesh_import ..............................   Passed    0.06 sec
+      Start 90: editor.mesh_asset_catalog
+90/97 Test #90: editor.mesh_asset_catalog .......................   Passed    0.00 sec
+      Start 91: editor.mesh_reimport
+91/97 Test #91: editor.mesh_reimport ............................   Passed    0.04 sec
+      Start 92: editor.parser_robustness
+92/97 Test #92: editor.parser_robustness ........................   Passed    3.64 sec
+      Start 93: editor.affine_gizmo_contract
+93/97 Test #93: editor.affine_gizmo_contract ....................   Passed    0.00 sec
+      Start 94: editor.component_reset_contract
+94/97 Test #94: editor.component_reset_contract .................   Passed    0.01 sec
+      Start 95: editor.transform_value_contract
+95/97 Test #95: editor.transform_value_contract .................   Passed    0.01 sec
+      Start 96: editor.builtin_creation_contract
+96/97 Test #96: editor.builtin_creation_contract ................   Passed    0.01 sec
+      Start 97: editor.scene_file_contract
+97/97 Test #97: editor.scene_file_contract ......................   Passed    0.01 sec
+
+99% tests passed, 1 tests failed out of 97
+
+Label Time Summary:
+showcase           =  53.53 sec*proc (6 tests)
+virtual-display    =  54.67 sec*proc (7 tests)
+vulkan             =  54.67 sec*proc (7 tests)
+
+Total Test time (real) = 102.57 sec
+
+The following tests FAILED:
+	 29 - showcase.linux_vulkan_camera_input (Failed)       showcase virtual-display vulkan
+Errors while running CTest
