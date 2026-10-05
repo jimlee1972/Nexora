@@ -119,6 +119,11 @@ write. SceneDocument persists authored Euler hints through save/reload and resto
 For one selected entity, the Inspector can add/remove a Camera component and edit its field of view
 and clipping planes. Invalid values are rejected; Save, Reload, and Undo retain the camera contract.
 The single-selection Light section likewise adds/removes a Light and edits nonnegative intensity.
+Hierarchy creation now offers Empty, Camera or Light alongside the name field. Create root,
+Create child and Ctrl+Shift+N initialize the selected built-in component as one Undo; child poses
+start at the parent's local origin. Default names follow type changes while custom names remain.
+Queued requests revalidate access and scene/parent generations before mutation. Save/reload retains the
+initialized components, names and hierarchy; full reflected component creation remains open.
 Inspector Copy values snapshots one selected entity's committed Transform/Euler, Camera or Light
 numeric values; Paste values applies the matching type to the displayed selection as one Undo.
 Camera/Light Paste preserves absent components, and Transform Paste preserves authored turns.

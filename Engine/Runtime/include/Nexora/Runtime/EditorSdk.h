@@ -117,6 +117,10 @@ public:
   // storage (see Engine/Runtime/README.md), a discipline this class's own
   // external callers cannot be expected to know about.
   Id CreateEntity(Id scene, Id parent = 0);
+  // Initializes one default Camera/Light at the parent's local origin as one Undo transaction.
+  // Redo restores its stable ID, parent and complete committed component values.
+  Id CreateCameraEntity(Id scene, Id parent = 0);
+  Id CreateLightEntity(Id scene, Id parent = 0);
   // Creates a root with initialized pose and a nonzero mesh reference as one Undo transaction.
   // Undo/Redo own the complete entity and retain its stable ID, transform and material reference.
   Id CreateMeshEntity(Id scene, MeshComponent mesh, Transform transform = {});
@@ -162,7 +166,9 @@ public:
 
 private:
   Id CreateInitializedEntity(Id scene, Id parent, Transform transform,
-                             std::optional<MeshComponent> mesh);
+                             std::optional<MeshComponent> mesh,
+                             std::optional<CameraComponent> camera = std::nullopt,
+                             std::optional<LightComponent> light = std::nullopt);
   bool ApplyHierarchyEdit(Id entity, WorldCommandBuffer &apply);
   bool ApplyComponentEdit(WorldCommandBuffer apply, WorldCommandBuffer restore);
   World &world_;

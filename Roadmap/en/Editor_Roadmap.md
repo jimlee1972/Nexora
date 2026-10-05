@@ -229,6 +229,13 @@ creates property widgets; unknown components retain raw data instead of being si
   frames, maximum descriptor budgets, failed growth and leak-free lifetime. Fresh geometry is still
   copied per draw; persistent per-asset GPU caching and full graphical acceptance remain open.
 
+- ✅ Hierarchy now selects Empty, Camera or Light for Create root / Create child and Ctrl+Shift+N.
+  Camera/Light are initialized at identity local TRS as one complete stable-ID Undo/Redo transaction.
+  Default names follow type choices while custom names remain. Queued owning requests recheck
+  access and scene/parent generations. Portable and 1x/2x real menu/pointer/key tests cover root/child,
+  stale scenes/parents, read-only/modal gates, 100-step replay and save/reload. Full reflected component
+  creation and target-host acceptance remain open.
+
 - ✅ Inspector Copy values / Paste values now snapshots committed Transform/Euler, Camera or
   Light numeric values from one entity and applies them to multi-selection as one atomic Undo.
   Camera/Light preserve component absence; Transform retains authored turns. The typed owning

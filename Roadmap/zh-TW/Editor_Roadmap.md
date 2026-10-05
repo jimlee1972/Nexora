@@ -222,6 +222,13 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   放大失敗及無洩漏生命週期。每次 draw 仍複製最新 geometry；persistent per-asset GPU cache
   及完整圖形化驗收仍待完成。
 
+- ✅ Hierarchy 現可選擇 Empty、Camera 或 Light，套用於 Create root／Create child 及
+  Ctrl+Shift+N。Camera／Light 以 identity local TRS 初始化，並具完整 stable-ID 的單步
+  Undo／Redo。預設名稱隨型別選擇調整，自訂名稱保留。Owning queued request 重新核對
+  存取權與 scene／parent generation。Portable 及 1x／2x 真正選單／pointer／key 測試涵蓋 root／child、
+  過期 scene／parent、唯讀／modal gate、100-step replay 及 save／reload。完整 reflected component
+  creation 與 target-host 驗收仍待完成。
+
 - ✅ Inspector Copy values／Paste values 現可擷取單一 entity 已提交的 Transform／Euler、
   Camera 或 Light 數值，再以原子單步 Undo 套用到多選。Camera／Light 保留缺少元件的狀態；
   Transform 保留作者輸入的圈數。Typed owning clipboard 跨來源修改／刪除及 reload 保留，

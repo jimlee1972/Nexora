@@ -526,3 +526,15 @@ replacing values above U+FFFF. The host asserts the 32-bit text profile; UTF-8 R
 CJK and U+1F642 through real input, metadata Undo/Redo and save/reload. Default font glyph coverage
 and physical Windows IME acceptance are separate requirements and remain open. No public Window,
 Editor or plugin wire ABI changes.
+
+## Hierarchy Camera/Light creation
+
+The Hierarchy's name row now selects Empty, Camera or Light. Create root / Create child and
+Ctrl+Shift+N capture the selected type and name in an owning request; the next frame rechecks
+workspace/modal gates and the original scene generation / parent NodeKey before creating anything. Child creation starts at
+identity local TRS under the current single selection; the new entity is selected and its parent
+expanded. One Undo removes the fully initialized entity, and Redo retains its stable ID/name/defaults.
+Selecting a type does not mutate the scene or history. Default names follow type changes; custom
+names are preserved. Read-only/recovery/close and stale-parent requests cannot create entities.
+Requests borrow no World/entity storage and perform no source IO. Complete reflected component
+creation and target-host graphical acceptance remain open.

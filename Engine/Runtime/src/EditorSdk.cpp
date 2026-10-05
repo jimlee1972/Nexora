@@ -151,13 +151,21 @@ void *ServiceRegistry::Find(std::string_view name) const {
 Id SceneEditor::CreateEntity(Id scene, Id parent) {
   return CreateInitializedEntity(scene, parent, {}, std::nullopt);
 }
+Id SceneEditor::CreateCameraEntity(Id scene, Id parent) {
+  return CreateInitializedEntity(scene, parent, {}, std::nullopt, CameraComponent{});
+}
+Id SceneEditor::CreateLightEntity(Id scene, Id parent) {
+  return CreateInitializedEntity(scene, parent, {}, std::nullopt, std::nullopt, LightComponent{});
+}
 Id SceneEditor::CreateMeshEntity(Id scene, MeshComponent mesh, Transform transform) {
   if (mesh.mesh == 0)
     return 0;
   return CreateInitializedEntity(scene, 0, transform, mesh);
 }
 Id SceneEditor::CreateInitializedEntity(Id scene, Id parent, Transform transform,
-                                        std::optional<MeshComponent> mesh) {
+                                        std::optional<MeshComponent> mesh,
+                                        std::optional<CameraComponent> camera,
+                                        std::optional<LightComponent> light) {
   const auto *target_scene = world_.FindScene(scene);
   const auto normalized = NormalizedTransform(transform);
   if (!normalized || !target_scene || target_scene->state == SceneState::Unloading ||
@@ -170,6 +178,10 @@ Id SceneEditor::CreateInitializedEntity(Id scene, Id parent, Transform transform
   initialize.SetTransform(id, *normalized);
   if (mesh)
     initialize.SetMeshRenderer(id, mesh);
+  if (camera)
+    initialize.SetCamera(id, camera);
+  if (light)
+    initialize.SetLight(id, light);
   if (parent != 0)
     initialize.SetParent(id, parent, false);
   if (!initialize.Apply(world_)) {

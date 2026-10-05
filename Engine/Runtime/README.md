@@ -769,3 +769,15 @@ Undo rejects a changed descendant-ID set, while Redo rejects collisions and expi
 partial publication. Unrelated entities survive. Calls are synchronous on the authoring thread;
 prototype spans are borrowed only for the call, successful publication invalidates target entity
 borrows, and this API performs no IO or asset resolution.
+
+## Initialized Camera/Light creation
+
+`SceneEditor::CreateCameraEntity(scene, parent)` and `CreateLightEntity` synchronously initialize
+one default component at identity local TRS and attach it to a live parent in the same scene
+(zero selects a root), then record the complete entity in a single Undo transaction. Missing,
+unloading/unloaded scenes and foreign/missing parents reject before creating anything. Initialization
+uses the existing command-buffer transaction; rejected application discards the provisional entity.
+Undo removes the entity; Redo restores the same stable ID, parent, pose and component defaults.
+The caller serializes all calls on the World authoring thread, retains no Entity borrow across a
+mutation and owns workspace write policy. These additive Editor-SDK C++ methods require rebuilding
+consumers, without changing stable gameplay C/Zig wires or scene snapshot formats.
