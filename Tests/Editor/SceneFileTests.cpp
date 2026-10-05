@@ -76,7 +76,7 @@ void RunSavedSceneImport(const std::filesystem::path &content) {
   Require(!assets.ImportSavedScene("Saved.scene") &&
               assets.Find(saved)->artifact_hash == updated_hash && assets.Entries().size() == 2,
           "Duplicate identity changed the saved scene index");
-  std::ofstream(content / "Saved.scene.meta") << saved_identity;
+  std::ofstream(content / "Saved.scene.meta", std::ios::binary) << saved_identity;
   std::ofstream(content / "TooLarge.scene") << "sparse";
   std::filesystem::resize_file(content / "TooLarge.scene", 64 * 1024 * 1024 + 1);
   Require(!assets.ImportSavedScene("TooLarge.scene") &&
@@ -86,7 +86,7 @@ void RunSavedSceneImport(const std::filesystem::path &content) {
           "Unbounded or invalid scene import published an asset");
   std::filesystem::remove(content / "TooLarge.scene");
   std::ofstream(content / "Triangle.obj") << obj;
-  std::ofstream(content / "Triangle.obj.meta") << identity;
+  std::ofstream(content / "Triangle.obj.meta", std::ios::binary) << identity;
   std::filesystem::remove(content / "Unrelated.obj");
   std::filesystem::remove(content / "Unrelated.obj.meta");
   const auto unicode = std::filesystem::path(u8"場景.scene");
@@ -94,11 +94,14 @@ void RunSavedSceneImport(const std::filesystem::path &content) {
           "Unicode saved-scene import failed");
   const auto unicode_id = assets.Entries().back().id;
   editor::AssetWorkspace reader;
+  Require(Read(content / "Saved.scene.meta") == saved_identity,
+          "Restoring the identity fixture changed its bytes");
   Require(reader.ImportTree(content, {}, {}, editor::AssetIdentityMode::PersistentReadOnly) &&
-              reader.Find(saved) && reader.Find(saved)->artifact_hash == updated_hash &&
-              !reader.ImportSavedScene("Saved.scene") &&
+              reader.Find(saved) && reader.Find(saved)->artifact_hash == updated_hash,
+          "Single-scene hash disagrees with tree import");
+  Require(!reader.ImportSavedScene("Saved.scene") &&
               Read(content / "Saved.scene.meta") == saved_identity,
-          "Single-scene hash disagrees with tree import or read-only index wrote a file");
+          "Read-only index wrote an identity file");
   editor::ProjectContentSession browser;
   Require(reader.Find(unicode_id) && browser.Open(workspace, reader, 1, false) &&
               browser.Browser().Find(unicode_id) &&
