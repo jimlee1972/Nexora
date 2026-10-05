@@ -993,3 +993,14 @@ F7 compares the effect. Sun direction remains shared by sky, IBL and directional
 Reference-image fidelity remains in progress (VIS 5/7).
 線性 HDR 距離霧化改善背景層次，保留天空與發光物件的原始輻射值，F7 可切換比較。
 太陽方位由天空、IBL 與方向光共用；預覽圖一致性持續製作，VIS 維持 5/7。
+
+
+The next art iteration shares fluted-column geometry through native instances and adds wind-
+driven ground cover/climbing ivy, warmer painted ceramics and a wider pedestal base.
+Linux full validation passes 97/97 (89.00 seconds); Shipping evidence and reference parity remain in progress (VIS 5/7).
+下一輪美術調整以原生 instance 共用石柱網格，加入風動地被／攀爬常春藤、暖色彩繪陶器與
+較寬的基座。Linux 全套 97/97（89.00 秒）通過；Shipping 證據與預覽圖一致性持續進行，VIS 維持 5/7。
+
+Crystal diffuse/backlight fill is reduced to retain transmitted background and sharper facets;
+stronger linear rune radiance feeds HDR bloom. Original column relief and distant tower fluting
+add geometric detail within the existing native vertex budget.

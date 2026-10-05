@@ -506,3 +506,14 @@ radiance. Six analytical native PBR cases verify disabled/half/full haze, restor
 exclusion and near-field clarity (65 total). The private material packet grows to 352 bytes,
 with unchanged borrowed scene/frame ownership and stable C/Zig contracts. The effect precedes
 transparency, focus, bloom and ACES; it is distance haze, not volumetric scattering.
+
+
+Four fluted columns share one immutable mesh and four native instances; the identity instance
+serves world-authored geometry, and the mirror instance is appended after column instances.
+The saved vertex budget supports additional wind-driven ground cover and climbing ivy using
+the retained original leaf mask. Cached geometry retains its instance layout across frames and
+quality changes. Ceramic colors and the widened pedestal base refine the reference palette.
+
+Crystal diffuse/backlight fill is reduced to retain transmitted background and sharper facets;
+stronger linear rune radiance feeds HDR bloom. Original column relief and distant tower fluting
+add geometric detail within the existing native vertex budget.
