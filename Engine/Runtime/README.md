@@ -796,3 +796,8 @@ license/source/converter and derived hashes. The owning activated generation sup
 and map bytes before Presentation submission. Procedural architectural/vessel/sky geometry remains
 Showcase-authored CPU geometry; this does not claim that every procedural shape is a Runtime asset.
 The original maps are distinct from downloaded CC0 KayKit/Poly Haven resources. No schema change.
+
+Courtyard original leaf and mote masks extend that same verified art generation with payloads
+127/128 depending on metadata 119. The converter retains both RGBA/hash entries; Showcase owns
+eight surface payloads (six detail maps and two masks), borrowing them for native submission.
+Wind timing and deterministic particle positions are application state, not persistent NXAB fields.

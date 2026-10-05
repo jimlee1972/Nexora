@@ -61,12 +61,21 @@ def generate():
                 length=math.sqrt(dx*dx+dy*dy+1)
                 normal.extend((round(127.5-127.5*dx/length),round(127.5-127.5*dy/length),round(127.5+127.5/length),255))
         for name,data in [('color',color),('normal',normal),('orm',orm)]:outputs[f'{material}-{name}.rgba']=bytes(data)
-    metadata={'schema':'nexora.courtyard.hero-manifest.v1','source':'source.json','author':source['author'],'license':source['license'],'source_sha256':hashlib.sha256((CONTENT/'source.json').read_bytes()).hexdigest(),'license_sha256':hashlib.sha256((ROOT/'LICENSE').read_bytes()).hexdigest(),'converter_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'derived':{name:hashlib.sha256(data).hexdigest() for name,data in outputs.items()}}
+    for name in ('leaf','mote'):
+        data=bytearray()
+        for y in range(size):
+            for x in range(size):
+                u=(2*x+1-size)/size;v=(2*y+1-size)/size
+                mask=(abs(u)<0.72*(1-v*v) and abs(v)<0.94) if name=='leaf' else u*u+v*v<0.6
+                rgb=(65+noise(x,y)//12,135+noise(x,y)//8,30+noise(x,y)//16) if name=='leaf' else (255,255,255)
+                data.extend((*rgb,255 if mask else 0))
+        outputs[name+'.rgba']=bytes(data)
+    metadata={'schema' :'nexora.courtyard.hero-manifest.v1','source':'source.json','author':source['author'],'license':source['license'],'source_sha256':hashlib.sha256((CONTENT/'source.json').read_bytes()).hexdigest(),'license_sha256':hashlib.sha256((ROOT/'LICENSE').read_bytes()).hexdigest(),'converter_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'derived':{name:hashlib.sha256(data).hexdigest() for name,data in outputs.items()}}
     outputs['manifest.json']=(json.dumps(metadata,indent=2)+'\n').encode()
     header='// Generated original courtyard art by PrepareCourtyardHero.py.\n// clang-format off\n#pragma once\n#include <array>\n#include <cstdint>\nnamespace nexora::showcase::courtyard_hero {\n'
     header+='inline constexpr char mesh[] = R"NEXORA_ART('+mesh+')NEXORA_ART";\n'
     header+='inline constexpr char metadata[] = R"NEXORA_ART('+outputs['manifest.json'].decode()+')NEXORA_ART";\n'
-    for name in ('stone-color','stone-normal','stone-orm','bronze-color','bronze-normal','bronze-orm'):
+    for name in ('stone-color','stone-normal','stone-orm','bronze-color','bronze-normal','bronze-orm','leaf','mote'):
         data=outputs[name+'.rgba'];header+=f'inline constexpr std::array<std::uint8_t, {len(data)}> {name.replace("-","_")}{{\n'
         for start in range(0,len(data),32):header+='  '+','.join(str(x) for x in data[start:start+32])+',\n'
         header+='};\n'

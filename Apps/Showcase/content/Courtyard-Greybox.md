@@ -48,3 +48,8 @@ markers are still static pending VIS-M4; physical final-art approval remains ope
 發光菱形符文、圓形階梯台、空心旋轉陶器、天空幾何及六張原創 64² 細節貼圖。來源、converter、
 repository 授權與 derived hash 隨 hero payload 提供，既有 CC0 建築另列出處。植被仍是静態標記，
 等待 VIS-M4；目標硬體最終美術審查仍未完成。
+
+The VIS-M4 implementation replaces the static vegetation tubes with original alpha-masked leaves
+from the same cooked hero generation. Shared GPU wind moves their silhouettes and shadows.
+Original mote masks supply bounded cutout particles for activation; seed/order and replay time are
+deterministic. These masks are repository-licensed original content, not downloaded foliage art.

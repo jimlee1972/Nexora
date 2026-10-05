@@ -178,55 +178,46 @@ struct KernelContext_0
     if((tone_1->bloom_0.x) > 0.0f)
     {
 
-#line 26
-        texture2d<float, access::sample> _S6 = (&kernelContext_0)->hdrScene_texture_0;
-        thread uint width_0;
-
 #line 27
-        thread uint height_0;
+        float2 _S6 = tone_1->bloom_0.zw;
 
-#line 27
-        (*((&width_0)) = (_S6).get_width(0)),(*((&height_0)) = (_S6).get_height(0));
-
-        float2 _S7 = float2(tone_1->bloom_0.z)  / float2(float(width_0), float(height_0));
-
-        array<float2, int(12)> _S8 = { { float2(-1.0f, 0.0f), float2(1.0f, 0.0f), float2(0.0f, -1.0f), float2(0.0f, 1.0f), float2(-0.5f, -0.5f), float2(0.5f, -0.5f), float2(-0.5f, 0.5f), float2(0.5f, 0.5f), float2(-0.25f, 0.0f), float2(0.25f, 0.0f), float2(0.0f, -0.25f), float2(0.0f, 0.25f) } };
+        array<float2, int(12)> _S7 = { { float2(-1.0f, 0.0f), float2(1.0f, 0.0f), float2(0.0f, -1.0f), float2(0.0f, 1.0f), float2(-0.5f, -0.5f), float2(0.5f, -0.5f), float2(-0.5f, 0.5f), float2(0.5f, 0.5f), float2(-0.25f, 0.0f), float2(0.25f, 0.0f), float2(0.0f, -0.25f), float2(0.0f, 0.25f) } };
 
 
-        float3 _S9 = float3(0.0f, 0.0f, 0.0f);
+        float3 _S8 = float3(0.0f, 0.0f, 0.0f);
 
-#line 34
+#line 32
         uint i_0 = 0U;
 
-#line 34
-        hdr_1 = _S9;
+#line 32
+        hdr_1 = _S8;
         for(;;)
         {
 
-#line 35
+#line 33
             if(i_0 < 12U)
             {
             }
             else
             {
 
-#line 35
+#line 33
                 break;
             }
 
-#line 36
-            float3 glow_0 = hdr_1 + NexoraExtractBloom_0((((&kernelContext_0)->hdrScene_texture_0).sample(((&kernelContext_0)->hdrScene_sampler_0), (_S5.uv_0 + _S8[i_0] * _S7), level((0.0f)))).xyz, tone_1->bloom_0.y) / float3(12.0f) ;
+#line 34
+            float3 glow_0 = hdr_1 + NexoraExtractBloom_0((((&kernelContext_0)->hdrScene_texture_0).sample(((&kernelContext_0)->hdrScene_sampler_0), (_S5.uv_0 + _S7[i_0] * _S6), level((0.0f)))).xyz, tone_1->bloom_0.y) / float3(12.0f) ;
 
-#line 35
+#line 33
             i_0 = i_0 + 1U;
 
-#line 35
+#line 33
             hdr_1 = glow_0;
 
-#line 35
+#line 33
         }
 
-#line 35
+#line 33
         hdr_1 = NexoraApplyBloom_0(hdr_0, hdr_1, tone_1->bloom_0.x);
 
 #line 26
@@ -240,31 +231,31 @@ struct KernelContext_0
 #line 26
     }
 
-#line 41
+#line 39
     float3 color_4 = saturate(NexoraApplyColorGrade_0(NexoraAcesApproximate_0(hdr_1 * float3((&kernelContext_0)->tone_0->settings_0.x) ), float3(int3(int(0)) ), float3(int3(int(1)) ), (&kernelContext_0)->tone_0->settings_0.z, (&kernelContext_0)->tone_0->settings_0.w));
 
-#line 41
+#line 39
     float3 color_5;
     if(((&kernelContext_0)->tone_0->settings_0.y) > 0.5f)
     {
 
-#line 42
+#line 40
         color_5 = NexoraLinearToSrgb_0(color_4);
 
-#line 42
+#line 40
     }
     else
     {
 
-#line 42
+#line 40
         color_5 = color_4;
 
-#line 42
+#line 40
     }
 
-#line 42
-    pixelOutput_0 _S10 = { float4(color_5, 1.0f) };
-    return _S10;
+#line 40
+    pixelOutput_0 _S9 = { float4(color_5, 1.0f) };
+    return _S9;
 }
 
 )NEXORA_TONE";

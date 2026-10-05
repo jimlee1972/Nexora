@@ -299,3 +299,13 @@ Native pixel cases verify halo spread, threshold rejection, disable, grayscale a
 Evidence is retained under `Apps/Showcase/evidence/VIS-M3-Linux-Hero-2026-10-05`.
 Cross-platform execution and final target-hardware hero/close-up visual approval remain open.
 Original maps remain distinct from the adopted online CC0 resources. VIS-M3 is not yet accepted.
+
+## 21. VIS-M4 living courtyard implementation
+
+Shared GPU wind, main/shadow alpha cutout and thin-leaf transmission are implemented across native
+adapters. Original cooked leaf/mote masks replace vegetation placeholders; activation adds 48
+emissive cutout motes and a pulsing crystal/rune device. Space pauses explicitly, R replays time
+and fixed camera, N/M compare wind/transmission. F4 remains a UI-only control. Native fixtures
+cover cutout shadow agreement, wind movement, exact replay and back-light color. Cross-platform
+CI and native motion/interaction evidence remain required before VIS-M4 acceptance.
+✅ Linux Development passes 96/96 without skips; Shipping, native 42-frame pixels and pause/replay/comparison interaction pass. Evidence: `Apps/Showcase/evidence/VIS-M4-Linux-Living-2026-10-05`.

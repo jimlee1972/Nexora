@@ -124,6 +124,9 @@ struct RoomSession::State final {
   bool courtyardPbr{true}, courtyardIbl{true};
   float courtyardExposure = 1.0F;
   bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true};
+  bool courtyardPaused{}, courtyardActive{}, courtyardWind{true}, courtyardTransmission{true};
+  double courtyardSeconds{};
+  std::size_t courtyardParticleCount{};
   float courtyardShadowBias = 0.0008F;
   std::uint64_t atlasGeneration{~std::uint64_t{0}};
   std::string lastAction{"Ready"}, pluginLibrary;
@@ -170,8 +173,8 @@ struct RoomSession::State final {
   std::array<std::string, 3> environmentHashes;
   std::string environmentMetadataHash;
   renderer::Mesh courtyardCrystal;
-  std::array<ByteBuffer, 6> courtyardDetail;
-  std::array<std::string, 7> courtyardHeroHashes;
+  std::array<ByteBuffer, 8> courtyardDetail;
+  std::array<std::string, 9> courtyardHeroHashes;
   bool assetRejected{}, cycleRejected{}, rolledBack{};
 #endif
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
@@ -410,7 +413,7 @@ struct RoomSession::State final {
         return {};
       return CanonicalAsset{source.id, source.type, {{0x4e58, 119}}, source.bytes};
     });
-    const std::array<std::span<const std::byte>, 8> heroSources{
+    const std::array<std::span<const std::byte>, 10> heroSources{
         std::as_bytes(std::span{courtyard_hero::metadata, sizeof(courtyard_hero::metadata) - 1}),
         std::as_bytes(std::span{courtyard_hero::mesh, sizeof(courtyard_hero::mesh) - 1}),
         std::as_bytes(std::span{courtyard_hero::stone_color}),
@@ -418,7 +421,9 @@ struct RoomSession::State final {
         std::as_bytes(std::span{courtyard_hero::stone_orm}),
         std::as_bytes(std::span{courtyard_hero::bronze_color}),
         std::as_bytes(std::span{courtyard_hero::bronze_normal}),
-        std::as_bytes(std::span{courtyard_hero::bronze_orm})};
+        std::as_bytes(std::span{courtyard_hero::bronze_orm}),
+        std::as_bytes(std::span{courtyard_hero::leaf}),
+        std::as_bytes(std::span{courtyard_hero::mote})};
     for (std::size_t i = 0; i < heroSources.size(); ++i) {
       const auto payload = heroSources[i];
       const auto imported = importer.Import({{0x4e58, 119 + i},
@@ -459,7 +464,7 @@ struct RoomSession::State final {
     }
     if (!courtyardAssets.Load({0x4e58, 107}))
       throw std::runtime_error("Courtyard cooked IBL metadata load failed");
-    for (std::size_t i = 0; i < 7; ++i) {
+    for (std::size_t i = 0; i < 9; ++i) {
       const auto *loaded = courtyardAssets.Load({0x4e58, 120 + i});
       if (!loaded || loaded->dependencies != std::vector<AssetUuid>{{0x4e58, 119}})
         throw std::runtime_error("Courtyard hero generation dependency failed");
@@ -650,6 +655,36 @@ struct RoomSession::State final {
         indices.push_back(static_cast<std::uint16_t>(base + index));
     }
   }
+  void LeafQuad(math::Vector3 center, float halfWidth, float height, float angle) {
+    const auto base = static_cast<std::uint16_t>(vertices.size());
+    const math::Vector3 right{std::cos(angle), 0, std::sin(angle)};
+    const math::Vector3 normal{-std::sin(angle), 0, std::cos(angle)};
+    for (const auto uv : {std::array{0.0F, 0.0F}, std::array{1.0F, 0.0F}, std::array{1.0F, 1.0F},
+                          std::array{0.0F, 1.0F}}) {
+      const auto point =
+          center + right * ((uv[0] * 2 - 1) * halfWidth) + math::Vector3{0, uv[1] * height, 0};
+      vertices.push_back({{point.x, point.y, point.z},
+                          {normal.x, normal.y, normal.z},
+                          {uv[0], uv[1]},
+                          {right.x, right.y, right.z, 1}});
+    }
+    for (const auto i : {0, 1, 2, 0, 2, 3})
+      indices.push_back(static_cast<std::uint16_t>(base + i));
+  }
+  void CourtyardParticles() {
+    courtyardParticleCount = courtyardActive ? 48 : 0;
+    const auto first = static_cast<std::uint32_t>(indices.size());
+    for (std::size_t i = 0; i < courtyardParticleCount; ++i) {
+      const float phase =
+          static_cast<float>(courtyardSeconds) * 0.35F + static_cast<float>(i) * 0.618F;
+      const float y =
+          0.8F + std::fmod(static_cast<float>(courtyardSeconds) * 0.6F + i * 0.113F, 3.5F);
+      const float r = 0.75F + static_cast<float>(i % 7) * 0.08F;
+      LeafQuad({std::cos(phase) * r, y, std::sin(phase) * r}, 0.025F, 0.05F, -yaw);
+    }
+    if (indices.size() > first)
+      batches.push_back({first, static_cast<std::uint32_t>(indices.size() - first), 0, 1, 30});
+  }
   // Authored stone/bronze device; native visual acceptance is tracked separately.
   void CourtyardGeometry() {
     if (!courtyardVertices.empty()) {
@@ -753,8 +788,12 @@ struct RoomSession::State final {
                                                          {0, 0.85F}}};
       Lathe({x, 0, 2.5F}, vessel); // Original hollow ceramic profile, not a downloaded prop.
       finish(3);
-      for (int i = 0; i < 4; ++i)
-        Segment({x, 0, -2.0F + i * 0.35F}, {x + 0.2F, 0.6F, -2.0F + i * 0.35F}, 0.08F);
+      for (int i = 0; i < 16; ++i) {
+        const float z = -3.0F + i * 0.18F;
+        LeafQuad({x + static_cast<float>(i % 3) * 0.15F, 0, z}, 0.14F, 0.55F + (i % 4) * 0.09F,
+                 i * 0.73F);
+        LeafQuad({x - 0.15F, 0, z}, 0.12F, 0.65F, i * 0.73F + 1.57F);
+      }
       finish(5);
     }
 #if NEXORA_ASSET_PIPELINE_ENABLED
@@ -776,20 +815,20 @@ struct RoomSession::State final {
       const float high = -math::kPi / 2 + math::kPi * (band + 1) / skyBands;
       for (unsigned side = 0; side < skySides; ++side) {
         const float a = 2 * math::kPi * side / skySides, b = 2 * math::kPi * (side + 1) / skySides;
-        const auto base = static_cast<std::uint16_t>(vertices.size());
+        const auto skyBase = static_cast<std::uint16_t>(vertices.size());
         const std::array<std::array<float, 2>, 4> angles{
             {{a, low}, {b, low}, {b, high}, {a, high}}};
         for (std::size_t corner = 0; corner < 4; ++corner) {
-          const auto [yaw, pitch] = angles[corner];
-          const math::Vector3 n{std::cos(pitch) * std::cos(yaw), std::sin(pitch),
-                                std::cos(pitch) * std::sin(yaw)};
+          const auto [skyAzimuth, skyLatitude] = angles[corner];
+          const math::Vector3 n{std::cos(skyLatitude) * std::cos(skyAzimuth), std::sin(skyLatitude),
+                                std::cos(skyLatitude) * std::sin(skyAzimuth)};
           vertices.push_back(
               {{n.x * 60, n.y * 60, n.z * 60},
                {-n.x, -n.y, -n.z},
                {corner == 0 || corner == 3 ? 0.0F : 1.0F, corner < 2 ? 0.0F : 1.0F}});
         }
         for (const auto index : {0, 1, 2, 0, 2, 3})
-          indices.push_back(static_cast<std::uint16_t>(base + index));
+          indices.push_back(static_cast<std::uint16_t>(skyBase + index));
       }
       finish(6 + band);
     }
@@ -1399,6 +1438,14 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.tour = false;
     Select("courtyard");
   }
+  if (s.selected == "courtyard" && key == Key::Space)
+    s.courtyardPaused = !s.courtyardPaused;
+  if (s.selected == "courtyard" && key == Key::Enter)
+    s.courtyardActive = !s.courtyardActive;
+  if (s.selected == "courtyard" && key == Key::N)
+    s.courtyardWind = !s.courtyardWind;
+  if (s.selected == "courtyard" && key == Key::M)
+    s.courtyardTransmission = !s.courtyardTransmission;
   if (s.selected == "courtyard" && key == Key::B)
     s.CourtyardCamera(s.courtyardShot + 1);
   if (s.selected == "courtyard" && key == Key::P) {
@@ -1461,7 +1508,10 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
   if (key == Key::R) {
     if (s.tour)
       ReplayTour();
-    else
+    else if (s.selected == "courtyard" && !s.matrix) {
+      s.courtyardSeconds = 0;
+      s.CourtyardCamera(0);
+    } else
       RerunProbe(s.selectedProbe, s.injection);
   }
   if (key == Key::Space && s.tour)
@@ -1559,6 +1609,8 @@ void RoomSession::Tick(double seconds) {
     throw std::invalid_argument("Invalid showcase delta");
   ++s.ticks;
   s.clock += seconds;
+  if (s.selected == "courtyard" && !s.courtyardPaused)
+    s.courtyardSeconds = std::fmod(s.courtyardSeconds + seconds, 3600.0);
   if (s.tour && !s.paused) {
     s.tourSeconds += seconds;
     s.tourStep = std::min<std::size_t>(6, static_cast<std::size_t>(s.tourSeconds / 30));
@@ -1674,6 +1726,19 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[2].emission = {0.05F, 1.8F, 2.4F};
     s.materials[3].roughness = 0.35F;
     s.materials[4].roughness = 0.8F;
+    s.materials[5].roughness = 0.9F;
+    if (s.courtyardPbr) {
+      s.materials[5].alphaCutoff = 0.5F;
+      s.materials[5].windAmplitude = s.courtyardWind ? 0.22F : 0;
+      s.materials[5].transmissionThickness = s.courtyardTransmission ? 0.35F : 0;
+    }
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    s.materials[5].textureId = 16;
+#endif
+    const float pulse =
+        s.courtyardActive ? 1.0F + 0.35F * std::sin(static_cast<float>(s.courtyardSeconds) * 2) : 1;
+    for (auto &value : s.materials[2].emission)
+      value *= pulse;
     for (unsigned band = 0; band < 24; ++band) {
       const float t = static_cast<float>(band) / 23;
       Nexora::Presentation::SceneMaterial sky{};
@@ -1683,7 +1748,17 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                       0.32F * (1 - t) + 0.5F * t};
       s.materials.push_back(sky);
     }
+    Nexora::Presentation::SceneMaterial motes{};
+    motes.baseColor = {0, 0, 0, 1};
+    motes.emission = {0.1F, 3, 4};
+    if (s.courtyardPbr)
+      motes.alphaCutoff = 0.5F;
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    motes.textureId = 17;
+#endif
+    s.materials.push_back(motes);
     s.CourtyardGeometry();
+    s.CourtyardParticles();
   } else if (s.selected == "hub") {
     s.Cube(0, 0.5F, 0, 1.5F, 0.5F, 1.5F);
     s.Cube(0, 2, 0, 0.7F, 1, 0.7F);
@@ -1834,6 +1909,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   data.base_color[2] = 0.9F;
   if (s.selected == "courtyard") {
     data.pbr = s.courtyardPbr;
+    data.vegetationTime = static_cast<float>(s.courtyardSeconds);
     data.hdr = data.pbr;
     data.exposure = s.courtyardExposure;
     data.offscreen = data.hdr;
@@ -2024,14 +2100,19 @@ std::string RoomSession::Report() const {
     first = false;
     out << "\"" << Escape(line) << "\"";
   }
-  out << "],\"courtyard\":{\"stage\":\"hero_art_in_progress\",\"shot\":" << s.courtyardShot
+  out << "],\"courtyard\":{\"stage\":\"living_scene_in_progress\",\"shot\":" << s.courtyardShot
       << ",\"shading\":\""
       << (s.courtyardPbr ? (NEXORA_ASSET_PIPELINE_ENABLED && s.courtyardIbl ? "shared_pbr_ibl"
                                                                             : "shared_pbr_direct")
                          : "lambert")
       << "\""
       << ",\"scene_color_format\":\"" << (s.courtyardPbr ? "RGBA16F" : "RGBA8") << "\""
-      << ",\"exposure\":" << s.courtyardExposure
+      << ",\"exposure\":" << s.courtyardExposure << ",\"animation_paused\":" << s.courtyardPaused
+      << ",\"animation_seconds\":" << s.courtyardSeconds
+      << ",\"wind_enabled\":" << (s.courtyardPbr && s.courtyardWind)
+      << ",\"transmission_enabled\":" << (s.courtyardPbr && s.courtyardTransmission)
+      << ",\"device_active\":" << s.courtyardActive
+      << ",\"particle_count\":" << s.courtyardParticleCount << ",\"foliage_quad_count\":64"
       << ",\"bloom_enabled\":" << (s.courtyardPbr && s.courtyardBloom)
       << ",\"shadows_enabled\":" << (s.courtyardPbr && s.courtyardShadows)
       << ",\"stylized_enabled\":" << (s.courtyardPbr && s.courtyardStyled)
@@ -2040,7 +2121,7 @@ std::string RoomSession::Report() const {
       << ",\"representative_asset_loaded\":" << !s.assetMesh.vertices.empty()
       << ",\"asset_hash\":\"" << s.assetHash << "\""
       << ",\"hero_asset_loaded\":" << !s.courtyardCrystal.vertices.empty()
-      << ",\"hero_detail_map_count\":6,\"hero_hashes\":[";
+      << ",\"hero_detail_map_count\":8,\"hero_hashes\":[";
   for (std::size_t i = 0; i < s.courtyardHeroHashes.size(); ++i) {
     if (i)
       out << ',';

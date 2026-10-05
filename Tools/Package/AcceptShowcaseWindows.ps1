@@ -166,6 +166,8 @@ public static class NexoraAcceptanceWindow {
     # Exercise the same shared PBR scene and comparison path on each requested native backend.
     $rooms += 'courtyard'
     Press-Key 57
+    Press-Key 32 # Explicit animation pause for exact fixed-shot comparisons.
+    Press-Key 82 # Replay to time zero.
     Capture 'courtyard-ui.png'
     Press-Key 115 # F4: remove the overlay from fixed visual evidence.
     Capture-Compared 'courtyard-wide.png' 'courtyard-ui.png' $false
@@ -223,12 +225,33 @@ public static class NexoraAcceptanceWindow {
     Capture-Compared 'courtyard-pbr-restored.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-pbr-restored.png')).Hash) 'Courtyard PBR restoration pixels differ.'
+    foreach ($effect in @(@(78, 'wind'), @(77, 'transmission'))) {
+        Press-Key $effect[0]
+        Capture-Compared "courtyard-$($effect[1])-off.png" 'courtyard-wide.png' $false
+        Press-Key $effect[0]
+        Capture-Compared "courtyard-$($effect[1])-restored.png" 'courtyard-wide.png' $true
+    }
+    $acceptance.courtyard_wind_comparison = $true
+    $acceptance.courtyard_transmission_comparison = $true
     Press-Key 66; Capture 'courtyard-material.png'
     Press-Key 66; Capture 'courtyard-motion.png'
     Press-Key 66
     Capture-Compared 'courtyard-wide-replay.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-wide-replay.png')).Hash) 'Courtyard fixed camera replay pixels differ.'
+    Press-Key 13 # Activate the device with animation paused at time zero.
+    Capture-Compared 'courtyard-activated.png' 'courtyard-wide.png' $false
+    Start-Sleep -Milliseconds 300
+    Capture-Compared 'courtyard-paused.png' 'courtyard-activated.png' $true
+    Press-Key 32
+    Start-Sleep -Milliseconds 600
+    Press-Key 32
+    Capture-Compared 'courtyard-animated.png' 'courtyard-activated.png' $false
+    Press-Key 82
+    Capture-Compared 'courtyard-animation-replay.png' 'courtyard-activated.png' $true
+    Press-Key 13
+    Capture-Compared 'courtyard-inactive.png' 'courtyard-wide.png' $true
+    $acceptance.courtyard_living_replay = $true
     Press-Key 115
     $acceptance.courtyard_material_comparison = $true
     $acceptance.courtyard_fixed_shots = $true

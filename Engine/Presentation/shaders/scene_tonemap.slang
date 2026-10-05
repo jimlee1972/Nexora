@@ -24,9 +24,7 @@ ToneVertex toneVertexMain(
 float4 toneFragmentMain(ToneVertex input) : SV_Target {
   float3 hdr = hdrScene.SampleLevel(input.uv, 0).rgb;
   if (tone.bloom.x > 0) {
-    uint width, height;
-    hdrScene.GetDimensions(width, height);
-    float2 texel = tone.bloom.z / float2(width, height);
+    float2 texel = tone.bloom.zw; // Radius normalized by the acquired physical extent.
     // Fixed bounded twelve-tap two-scale bloom. No temporal history or CPU readback.
     const float2 offsets[12] = {float2(-1,0),float2(1,0),float2(0,-1),float2(0,1),
       float2(-0.5,-0.5),float2(0.5,-0.5),float2(-0.5,0.5),float2(0.5,0.5),

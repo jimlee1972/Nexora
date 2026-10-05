@@ -2,6 +2,7 @@
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
 #include "PbrShadowFixtures.h"
+#include "PbrVegetationFixtures.h"
 #if defined(_WIN32)
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -48,7 +49,8 @@ std::array<Rgb, 7> Read(
 #else
     Display *display, ::Window window,
 #endif
-    unsigned width, unsigned height, const std::filesystem::path &capture) {
+    unsigned width, unsigned height, const std::filesystem::path &capture,
+    std::uint64_t *sceneHash = nullptr) {
 #if defined(_WIN32)
   (void)display;
   POINT origin{};
@@ -94,6 +96,15 @@ std::array<Rgb, 7> Read(
                           rgb(width / 2, height * 3 / 20),    rgb(width / 2, height * 9 / 10),
                           rgb(width * 129 / 400, height / 2), rgb(width * 58 / 100, height / 2),
                           rgb(width / 2, height / 2)};
+  if (sceneHash) {
+    *sceneHash = 14695981039346656037ULL;
+    for (unsigned y = height * 3 / 10; y < height * 7 / 10; ++y)
+      for (unsigned x = width * 3 / 10; x < width * 7 / 10; ++x)
+        for (const auto channel : rgb(x, y)) {
+          *sceneHash ^= channel;
+          *sceneHash *= 1099511628211ULL;
+        }
+  }
   if (!capture.empty()) {
     std::ofstream file(capture, std::ios::binary);
     file << "P6\n" << width << ' ' << height << "\n255\n";
@@ -196,9 +207,11 @@ int main(int argc, char **argv) {
     const UiTextureUpload filterUpload{38, 2, 1, 8, blackWhite};
     unsigned width = 640, height = 480;
     Rgb uiBaseline{};
-    for (unsigned frame = 0; frame < 34; ++frame) {
+    std::uint64_t windReference{}, windMoved{};
+    for (unsigned frame = 0; frame < 42; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
+      PbrVegetationFixtures::Fixture vegetationFixture(frame >= 34 ? frame - 34 : 0);
       materials = {};
       draw.shadow.reset();
       draw.lightingStyle.reset();
@@ -298,12 +311,18 @@ int main(int argc, char **argv) {
         materials = shadowFixture.materials;
         draw.materials = materials;
       }
-      const float marker = 0.02F * static_cast<float>(frame + 1);
+      const float marker = frame >= 34 ? 0.08F + 0.12F * static_cast<float>(frame % 4)
+                                       : 0.02F * static_cast<float>(frame + 1);
       materials[2].baseColor =
           draw.pbr ? std::array<float, 4>{0, 0, 0, 1} : std::array<float, 4>{marker, 0, 0, 1};
-      if (frame >= 30) {
+      if (frame >= 30 && frame < 34) {
         draw = bloomFixture.Draw(frame - 30);
         materials = bloomFixture.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 34) {
+        draw = vegetationFixture.Draw(frame - 34);
+        materials = vegetationFixture.geometry.materials;
         draw.materials = materials;
       }
       materials[2].emission = {marker, 0, 0};
@@ -398,6 +417,20 @@ int main(int argc, char **argv) {
         Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
                 "NaN color grade accepted");
       }
+      if (frame == 34) {
+        auto invalid = draw;
+        invalid.vegetationTime = std::numeric_limits<float>::quiet_NaN();
+        Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
+                "NaN vegetation time accepted");
+        materials[1].alphaCutoff = 1.1F;
+        Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+                "invalid alpha cutoff accepted");
+        materials[1].alphaCutoff = 0;
+        materials[1].windAmplitude = -0.1F;
+        Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+                "negative wind amplitude accepted");
+        materials[1].windAmplitude = 0;
+      }
       const auto drawStatus = surface->DrawScene(draw);
       if (drawStatus != SurfaceStatus::Ready)
         std::cerr << "PBR draw frame=" << frame << " status=" << static_cast<int>(drawStatus)
@@ -428,10 +461,21 @@ int main(int argc, char **argv) {
       bool valid = false;
       const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
       while (!valid && std::chrono::steady_clock::now() < deadline) {
-        const auto pixels = Read(display, native, width, height, {});
+        std::uint64_t region{};
+        const auto pixels = Read(display, native, width, height, {}, &region);
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 30) {
+        if (frame >= 34) {
+          valid = PbrVegetationFixtures::Pixels(frame - 34, pixels[0], pixels[6]);
+          if (frame == 37)
+            windReference = region;
+          if (frame == 38) {
+            windMoved = region;
+            valid = valid && windMoved != windReference;
+          }
+          if (frame == 39)
+            valid = valid && region == windReference && region != windMoved;
+        } else if (frame >= 30) {
           valid = PbrBloomFixtures::Pixels(frame - 30, pixels[5], pixels[6]);
           for (std::size_t channel = 0; channel < 3; ++channel)
             valid = valid && std::abs(static_cast<int>(pixels[3][channel]) -
@@ -478,10 +522,11 @@ int main(int argc, char **argv) {
              (!draw.pbr && std::abs(observedMarker - srgbLegacyMarker) <= 2)) &&
             pixels[2][1] < 5 && pixels[2][2] < 5;
         if (frame == 33) {
-          const auto gray = static_cast<int>(std::lround(255 * toSrgb(mappedMarker * 0.2126F)));
-          valid = valid && std::abs(observedMarker - gray) <= 2 &&
-                  std::abs(static_cast<int>(pixels[2][1]) - gray) <= 2 &&
-                  std::abs(static_cast<int>(pixels[2][2]) - gray) <= 2;
+          const auto grayMarkerCode =
+              static_cast<int>(std::lround(255 * toSrgb(mappedMarker * 0.2126F)));
+          valid = valid && std::abs(observedMarker - grayMarkerCode) <= 2 &&
+                  std::abs(static_cast<int>(pixels[2][1]) - grayMarkerCode) <= 2 &&
+                  std::abs(static_cast<int>(pixels[2][2]) - grayMarkerCode) <= 2;
         } else
           valid = valid && currentFrame;
         if (valid && frame == 19)
@@ -501,13 +546,14 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, argv[1]));
       if (argc == 2 && frame >= 30) {
         auto capture = std::filesystem::path(argv[1]);
-        capture.replace_filename("bloom-" + std::to_string(frame - 30) + ".ppm");
+        capture.replace_filename((frame < 34 ? "bloom-" : "vegetation-") +
+                                 std::to_string(frame < 34 ? frame - 30 : frame - 34) + ".ppm");
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 34 &&
-                surface->Diagnostics().sceneComposites == 24 &&
-                surface->Diagnostics().sceneShadowPasses == 4,
+    Require(surface->Diagnostics().sceneDrawCalls == 42 &&
+                surface->Diagnostics().sceneComposites == 32 &&
+                surface->Diagnostics().sceneShadowPasses == 10,
             "PBR counters mismatch");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "PBR teardown failed");
     surface.reset();
@@ -523,7 +569,8 @@ int main(int argc, char **argv) {
            "invalid descriptors, HDR IBL radiance, roughness mips, metal/diffuse separation, "
            "reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws "
            "and resize pixels; directional shadow movement, XY projection, PCF edge, map reuse, "
-           "shadow disable, stylized tint and thresholded HDR bloom/UI invariance\n";
+           "shadow disable, stylized tint and thresholded HDR bloom/UI invariance, alpha "
+           "cutout/shadow agreement, GPU wind/replay and leaf transmission\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
     return 1;

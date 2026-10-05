@@ -25,6 +25,8 @@ struct MaterialConstants
   float4 shadowTint; // w enables stylized tone
   float4 lightTint;
   float4 ramp; // offset, scale, softness
+  float4 vegetation; // time, wind amplitude, alpha cutoff, transmission thickness
+  float4 transmission; // linear RGB
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
 [[vk::binding(0, 0)]] Sampler2D<float4> baseMap : register(t0);
@@ -77,6 +79,9 @@ VertexOutput pbrVertexMain(VertexInput input)
   VertexOutput output;
   float4 p = float4(input.position, 1.0);
   output.worldPosition = float3(dot(input.model0, p), dot(input.model1, p), dot(input.model2, p));
+  if (material.vegetation.y > 0)
+    output.worldPosition += NexoraEvaluateVegetationWind(output.worldPosition, float3(1,0,0.35),
+        material.vegetation.x, 1-saturate(input.uv.y), 1, 0.37) * material.vegetation.y;
   output.position = mul(scene.mvp, float4(output.worldPosition, 1.0));
 #ifdef NEXORA_VULKAN
   output.position.y = -output.position.y;
@@ -99,6 +104,9 @@ VertexOutput pbrVertexMain(VertexInput input)
 }
 [shader("fragment")]
 float4 shadowFragmentMain(VertexOutput input) : SV_Target {
+  if (material.vegetation.z > 0 &&
+      NexoraEvaluateVegetationAlpha(baseMap.Sample(input.uv).a, material.vegetation.z) == 0)
+    discard;
   return float4(input.position.z, 0, 0, 1);
 }
 float shadowVisibility(float3 position, float3 normal, float3 light) {
@@ -121,6 +129,9 @@ float shadowVisibility(float3 position, float3 normal, float3 light) {
 [shader("fragment")]
 float4 pbrFragmentMain(VertexOutput input) : SV_Target
 {
+  float4 baseSample = baseMap.Sample(input.uv);
+  if (material.vegetation.z > 0 &&
+      NexoraEvaluateVegetationAlpha(baseSample.a, material.vegetation.z) == 0) discard;
   float3 n = NexoraSafeNormalize(input.normal);
   float3 t = NexoraSafeNormalize(input.tangent.xyz - n * dot(n, input.tangent.xyz));
   float3 b = NexoraSafeNormalize(cross(n, t)) * input.tangent.w;
@@ -128,7 +139,7 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   encoded.xy = (encoded.xy - 0.5) * material.properties.z + 0.5;
   float3 orm = ormMap.Sample(input.uv).xyz;
   NexoraPbrMaterial surface;
-  surface.baseColor = baseMap.Sample(input.uv).rgb * material.baseColor.rgb * input.color.rgb;
+  surface.baseColor = baseSample.rgb * material.baseColor.rgb * input.color.rgb;
   surface.normal = NexoraDecodeTangentNormal(encoded, t, b, n);
   surface.metallic = saturate(orm.b * material.properties.x);
   surface.roughness = saturate(orm.g * material.emissionRoughness.w);
@@ -165,7 +176,9 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
         material.lightTint.rgb, 1, 1);
     ambient = NexoraApplyShadowTint(ambient, visibility, material.shadowTint.rgb);
   }
-  float3 color = direct * visibility + ambient + max(surface.emission, float3(0));
+  float3 transmitted = NexoraEvaluateVegetationTransmission(surface.normal, light,
+      material.transmission.rgb * scene.lightColor.rgb, material.vegetation.w, 1-visibility);
+  float3 color = direct * visibility + ambient + transmitted + max(surface.emission, float3(0));
   if (material.properties.w > 0.5)
     return float4(clamp(color, float3(0), float3(65504)), 1);
   color = NexoraAcesApproximate(color);
