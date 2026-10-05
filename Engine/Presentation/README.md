@@ -315,3 +315,8 @@ involved. Format changes, frame reuse, resize and shutdown preserve protecting-f
 drain before release. Legacy offscreen RGBA8 still uses the GPU copy path; direct/Lambert draws remain
 available. Public C++ consumers rebuild; stable C/Zig and persistent asset schemas are unchanged.
 HDR storage precision does not negotiate an HDR10 display or swapchain.
+
+The tone pass uses one explicit 48-byte fullscreen triangle (float2 position plus float2 UV),
+shared by all adapters. Vulkan/DX12 append it to their protecting-frame scene upload; Metal
+copies it into the encoder. This avoids compiler-dependent SV_VertexID builtin declaration
+ordering while keeping the generated shader artifact checks exact.

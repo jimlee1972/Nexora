@@ -8,6 +8,7 @@
 #include "SceneInstanceUpload.h"
 #include "ScenePbrHlslShaders.h"
 #include "SceneToneHlslShaders.h"
+#include "ToneVertexUpload.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -402,7 +403,9 @@ public:
     const std::size_t materialStride = drawData.pbr ? 512 : 256;
     const std::size_t kGeometryOffset =
         std::max<std::size_t>(drawData.materials.size(), 1) * materialStride;
-    const auto required = kGeometryOffset + instanceOffset + instanceBytes.size();
+    const auto toneOffset = kGeometryOffset + instanceOffset + instanceBytes.size();
+    const auto required = toneOffset + (drawData.hdr ? sizeof(toneVertices) : 0);
+    toneOffsets_[frame_] = toneOffset;
     if (!EnsureSceneUpload(required))
       return SurfaceStatus::DeviceLost;
     void *mapped = nullptr;
@@ -426,6 +429,9 @@ public:
                 indexBytes.data(), indexBytes.size());
     std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset + instanceOffset,
                 instanceBytes.data(), instanceBytes.size());
+    if (drawData.hdr)
+      std::memcpy(static_cast<std::byte *>(mapped) + toneOffset, toneVertices.data(),
+                  sizeof(toneVertices));
     sceneUploads_[frame_]->Unmap(0, nullptr);
     std::size_t additional = needsWhite && !sceneTextures_.contains(UINT64_MAX) ? 1 : 0;
     if (drawData.pbr && !sceneTextures_.contains(UINT64_MAX - 1))
@@ -619,6 +625,10 @@ public:
       commands_->RSSetViewports(1, &viewport);
       commands_->RSSetScissorRects(1, &scissor);
       commands_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      const D3D12_VERTEX_BUFFER_VIEW vertices{sceneUploads_[frame_]->GetGPUVirtualAddress() +
+                                                  toneOffsets_[frame_],
+                                              sizeof(toneVertices), 4 * sizeof(float)};
+      commands_->IASetVertexBuffers(0, 1, &vertices);
       commands_->DrawInstanced(3, 1, 0, 0);
       sceneComposited_ = true;
       ++diagnostics_.sceneComposites;
@@ -996,7 +1006,12 @@ private:
     pipeline.pRootSignature = toneRootSignature_.Get();
     pipeline.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};
     pipeline.PS = {pixel->GetBufferPointer(), pixel->GetBufferSize()};
-    pipeline.InputLayout = {nullptr, 0};
+    const D3D12_INPUT_ELEMENT_DESC toneInputs[]{{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0,
+                                                 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+                                                {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0,
+                                                 2 * sizeof(float),
+                                                 D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}};
+    pipeline.InputLayout = {toneInputs, 2};
     pipeline.DepthStencilState.DepthEnable = FALSE;
     pipeline.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
     pipeline.DSVFormat = DXGI_FORMAT_UNKNOWN;
@@ -1292,6 +1307,7 @@ private:
   ComPtr<ID3D12PipelineState> scenePbrPipeline_;
   ComPtr<ID3D12PipelineState> sceneHdrPipeline_, tonePipeline_;
   ComPtr<ID3D12RootSignature> toneRootSignature_;
+  std::array<std::size_t, kMaximumFrames> toneOffsets_{};
   bool sceneHdr_{};
   float sceneExposure_ = 1.0F;
   ComPtr<ID3D12RootSignature> scenePbrRootSignature_;

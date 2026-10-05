@@ -24,21 +24,15 @@ struct ToneVertex_0
 
 
 #line 11
-ToneVertex_0 toneVertexMain(uint index_0 : SV_VertexID)
+ToneVertex_0 toneVertexMain(float2 position_1 : POSITION, float2 uv_1 : TEXCOORD0)
 {
-    float _S1 = float((index_0 << int(1)) & 2U);
 
-#line 13
-    float _S2 = float(index_0 & 2U);
-
-#line 12
     ToneVertex_0 output_0;
-
-    output_0.position_0 = float4(float2(_S1, _S2) * 2.0f - 1.0f, 0.0f, 1.0f);
-
+    output_0.position_0 = float4(position_1, 0.0f, 1.0f);
 
 
-    output_0.uv_0 = float2(_S1, 1.0f - _S2);
+
+    output_0.uv_0 = uv_1;
 
     return output_0;
 }
@@ -103,30 +97,30 @@ struct ToneVertex_0
 };
 
 
-#line 23
+#line 24
 float4 toneFragmentMain(ToneVertex_0 input_0) : SV_TARGET
 {
 
-#line 24
+#line 25
     float3 color_2 = NexoraAcesApproximate_0(hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, input_0.uv_0, 0.0f).xyz * tone_0.settings_0.x);
 
-#line 24
+#line 25
     float3 color_3;
     if((tone_0.settings_0.y) > 0.5f)
     {
 
-#line 25
+#line 26
         color_3 = NexoraLinearToSrgb_0(color_2);
 
-#line 25
+#line 26
     }
     else
     {
 
-#line 25
+#line 26
         color_3 = color_2;
 
-#line 25
+#line 26
     }
     return float4(color_3, 1.0f);
 }

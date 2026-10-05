@@ -293,9 +293,15 @@ int main(int argc, char **argv) {
       const auto exposedMarker = marker * draw.exposure;
       const auto mappedMarker = exposedMarker * (2.51F * exposedMarker + 0.03F) /
                                 (exposedMarker * (2.43F * exposedMarker + 0.59F) + 0.14F);
+#if defined(_WIN32)
+      const auto legacyMarker = marker * 1.15F; // Existing DX12 Lambert ambient + direct light.
+#else
+      const auto legacyMarker =
+          marker; // Existing Vulkan Lambert ambient/direct weights sum to one.
+#endif
       const auto markerCode =
-          static_cast<int>(std::lround(255.0F * (draw.pbr ? toSrgb(mappedMarker) : marker)));
-      const auto srgbLegacyMarker = static_cast<int>(std::lround(255.0F * toSrgb(marker)));
+          static_cast<int>(std::lround(255.0F * (draw.pbr ? toSrgb(mappedMarker) : legacyMarker)));
+      const auto srgbLegacyMarker = static_cast<int>(std::lround(255.0F * toSrgb(legacyMarker)));
       if (frame == 4 || frame == 19 || frame == 22) {
         width = frame == 4 || frame == 22 ? 480U : 640U;
         height = frame == 4 || frame == 22 ? 360U : 480U;

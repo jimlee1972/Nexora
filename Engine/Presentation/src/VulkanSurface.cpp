@@ -9,6 +9,7 @@
 #include "ScenePbrVulkanShaders.h"
 #include "SceneToneVulkanShaders.h"
 #include "SceneVulkanShaders.h"
+#include "ToneVertexUpload.h"
 #include "UiVulkanShaders.h"
 #include <vulkan/vulkan.h>
 #define NEXORA_HAS_NATIVE_UI_SHADERS 1
@@ -469,8 +470,10 @@ public:
     const auto materialOffset =
         (instanceOffset + instanceBytes.size() + alignment - 1) & ~(alignment - 1);
     const auto materialCount = std::max<std::size_t>(data.materials.size(), 1);
-    const auto bytes = data.pbr ? materialOffset + materialCount * materialStride
-                                : instanceOffset + instanceBytes.size();
+    const auto toneOffset = data.pbr ? materialOffset + materialCount * materialStride
+                                     : instanceOffset + instanceBytes.size();
+    const auto bytes = toneOffset + (data.hdr ? sizeof(toneVertices) : 0);
+    frame.toneVertexOffset = toneOffset;
     const auto uploadStatus = EnsureSceneUpload(frame, bytes);
     if (uploadStatus != SurfaceStatus::Ready)
       return uploadStatus;
@@ -492,6 +495,9 @@ public:
                     parameters.data(), sizeof(parameters));
       }
     }
+    if (data.hdr)
+      std::memcpy(static_cast<std::byte *>(mapped) + toneOffset, toneVertices.data(),
+                  sizeof(toneVertices));
     vkUnmapMemory(device_, frame.sceneMemory);
     if (data.pbr) {
       frame.pbrDescriptors.resize(materialCount);
@@ -940,6 +946,7 @@ private:
     VkDeviceMemory sceneDepthMemory{};
     VkImageView sceneDepthView{};
     VkFramebuffer sceneFramebuffer{};
+    VkDeviceSize toneVertexOffset{};
     VkDescriptorSet toneDescriptor{};
     VkFramebuffer toneFramebuffer{};
     VkImage sceneColor{};
@@ -1561,6 +1568,7 @@ private:
                                         0, 0};
     vkCmdPushConstants(frame.commands, tonePipelineLayout_, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                        sizeof(settings), settings.data());
+    vkCmdBindVertexBuffers(frame.commands, 0, 1, &frame.sceneUpload, &frame.toneVertexOffset);
     vkCmdDraw(frame.commands, 3, 1, 0, 0);
     vkCmdEndRenderPass(frame.commands);
     sceneComposited_ = true;
@@ -1800,7 +1808,14 @@ private:
          VK_SHADER_STAGE_VERTEX_BIT, vertex, "main", nullptr},
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
          VK_SHADER_STAGE_FRAGMENT_BIT, fragment, "main", nullptr}};
-    vertexInput.vertexBindingDescriptionCount = vertexInput.vertexAttributeDescriptionCount = 0;
+    const VkVertexInputBindingDescription toneBinding{0, 4 * sizeof(float),
+                                                      VK_VERTEX_INPUT_RATE_VERTEX};
+    const VkVertexInputAttributeDescription toneAttributes[]{
+        {0, 0, VK_FORMAT_R32G32_SFLOAT, 0}, {1, 0, VK_FORMAT_R32G32_SFLOAT, 2 * sizeof(float)}};
+    vertexInput.vertexBindingDescriptionCount = 1;
+    vertexInput.pVertexBindingDescriptions = &toneBinding;
+    vertexInput.vertexAttributeDescriptionCount = 2;
+    vertexInput.pVertexAttributeDescriptions = toneAttributes;
     depth.depthTestEnable = depth.depthWriteEnable = VK_FALSE;
     pipeline.pStages = toneStages;
     pipeline.layout = tonePipelineLayout_;
