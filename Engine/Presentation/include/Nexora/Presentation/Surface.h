@@ -3,7 +3,9 @@
 #include "Nexora/Presentation/Api.h"
 #include "Nexora/Window/Window.h"
 
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -104,7 +106,33 @@ struct SceneMeshBatch final {
   std::uint32_t indexCount{};
   std::uint32_t firstInstance{};
   std::uint32_t instanceCount{};
+  std::uint32_t materialIndex{};
 };
+
+// Opaque Lambert submission material. Slots are borrowed for one DrawScene, not persistent
+// Runtime identities. Texture zero selects white; nonzero IDs denote immutable generations.
+// PBR maps/parameters and alpha-cutout are separate forthcoming contracts.
+struct SceneMaterial final {
+  std::array<float, 4> baseColor{1, 1, 1, 1};
+  std::uint64_t textureId{};
+};
+
+[[nodiscard]] inline bool ValidateSceneMaterials(std::span<const SceneMaterial> materials,
+                                                 std::span<const SceneMeshBatch> batches) noexcept {
+  if (materials.size() > 64)
+    return false;
+  for (const auto &material : materials) {
+    if (material.textureId == UINT64_MAX || material.baseColor[3] != 1)
+      return false;
+    for (const auto value : material.baseColor)
+      if (!std::isfinite(value) || value < 0 || value > 1)
+        return false;
+  }
+  for (const auto &batch : batches)
+    if (materials.empty() ? batch.materialIndex != 0 : batch.materialIndex >= materials.size())
+      return false;
+  return true;
+}
 
 [[nodiscard]] inline bool ValidateSceneMeshBatches(std::span<const SceneMeshBatch> batches,
                                                    std::size_t indexCount,
@@ -161,7 +189,20 @@ struct SceneDrawData final {
   float base_color[4]{1.0F, 1.0F, 1.0F, 1.0F};
   // Empty selects the entire index upload and all instances, preserving existing draws.
   std::span<const SceneMeshBatch> batches{};
+  // Empty preserves the original global base_color/textureId; otherwise batches select slots.
+  std::span<const SceneMaterial> materials{};
 };
+
+// Call only after material/batch validation. Returned values own their scalar storage.
+[[nodiscard]] inline SceneMaterial ResolveSceneMaterial(const SceneDrawData &data,
+                                                        std::size_t index) noexcept {
+  if (!data.materials.empty())
+    return data.materials[index];
+  SceneMaterial legacy;
+  std::copy(std::begin(data.base_color), std::end(data.base_color), legacy.baseColor.begin());
+  legacy.textureId = data.textureId;
+  return legacy;
+}
 
 struct UiDrawData final {
   std::span<const UiVertex> vertices;

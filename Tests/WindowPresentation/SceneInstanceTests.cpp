@@ -16,6 +16,35 @@ void Require(bool value, const char *message) {
 }
 bool Near(float a, float b) { return std::abs(a - b) < 1e-5F; }
 void Run() {
+  std::vector<SceneMaterial> materials(64);
+  std::array materialBatches{SceneMeshBatch{0, 3, 0, 1, 63}};
+  Require(ValidateSceneMaterials(materials, materialBatches), "maximum material palette rejected");
+  materials.emplace_back();
+  Require(!ValidateSceneMaterials(materials, materialBatches),
+          "unbounded material palette accepted");
+  materials.resize(64);
+  materialBatches[0].materialIndex = 64;
+  Require(!ValidateSceneMaterials(materials, materialBatches), "invalid material slot accepted");
+  materialBatches[0].materialIndex = 0;
+  for (const auto invalid : {-0.1F, 1.1F, std::numeric_limits<float>::quiet_NaN(),
+                             std::numeric_limits<float>::infinity()}) {
+    materials[0].baseColor[0] = invalid;
+    Require(!ValidateSceneMaterials(materials, materialBatches), "invalid material color accepted");
+  }
+  materials[0] = {};
+  materials[0].baseColor[3] = 0.5F;
+  Require(!ValidateSceneMaterials(materials, materialBatches), "unsupported alpha accepted");
+  materials[0] = {};
+  materials[0].textureId = UINT64_MAX;
+  Require(!ValidateSceneMaterials(materials, materialBatches), "reserved texture ID accepted");
+  SceneDrawData legacyDraw;
+  legacyDraw.base_color[0] = 0.25F;
+  legacyDraw.textureId = 42;
+  const auto resolved = ResolveSceneMaterial(legacyDraw, 0);
+  Require(resolved.baseColor[0] == 0.25F && resolved.textureId == 42,
+          "legacy material selection changed");
+  materialBatches[0].materialIndex = 1;
+  Require(!ValidateSceneMaterials({}, materialBatches), "nonzero legacy material slot accepted");
   SceneInstance instance;
   Require(ValidateSceneInstance(instance), "identity instance rejected");
   instance.model_transform =

@@ -344,6 +344,8 @@ public:
     const auto packedInstances = PackSceneInstances(data.instances);
     if (!packedInstances)
       return SurfaceStatus::InvalidDescriptor;
+    if (!ValidateSceneMaterials(data.materials, data.batches))
+      return SurfaceStatus::InvalidDescriptor;
     if (data.textureUploads.size() > 16)
       return SurfaceStatus::InvalidDescriptor;
     for (const auto &upload : data.textureUploads)
@@ -359,6 +361,16 @@ public:
         std::none_of(data.textureUploads.begin(), data.textureUploads.end(),
                      [textureId](const auto &upload) { return upload.textureId == textureId; }))
       return SurfaceStatus::InvalidDescriptor;
+    for (const auto &material : data.materials)
+      if (material.textureId && !sceneTextures_.contains(material.textureId) &&
+          std::none_of(
+              data.textureUploads.begin(), data.textureUploads.end(),
+              [&material](const auto &upload) { return upload.textureId == material.textureId; }))
+        return SurfaceStatus::InvalidDescriptor;
+    const bool needsWhite =
+        textureId == UINT64_MAX ||
+        std::any_of(data.materials.begin(), data.materials.end(),
+                    [](const auto &material) { return material.textureId == 0; });
     for (const auto &vertex : data.vertices)
       for (const auto value : vertex.uv)
         if (!std::isfinite(value))
@@ -369,7 +381,7 @@ public:
     const auto instanceBytes =
         std::as_bytes(std::span<const SceneInstanceUpload>(*packedInstances));
     auto &frame = frames_[frame_];
-    std::size_t additional = textureId == UINT64_MAX && !sceneTextures_.contains(textureId) ? 1 : 0;
+    std::size_t additional = needsWhite && !sceneTextures_.contains(UINT64_MAX) ? 1 : 0;
     for (std::size_t i = 0; i < data.textureUploads.size(); ++i) {
       const auto id = data.textureUploads[i].textureId;
       for (std::size_t j = 0; j < i; ++j)
@@ -384,7 +396,7 @@ public:
         return SurfaceStatus::DeviceLost;
     const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
                                          std::byte{255}};
-    if (!sceneTextures_.contains(textureId) &&
+    if (needsWhite && !sceneTextures_.contains(UINT64_MAX) &&
         !UploadUiTexture(frame, {UINT64_MAX, 1, 1, 4, white}, true))
       return SurfaceStatus::DeviceLost;
     // Acquire has waited this frame's fence. Never release another in-flight slot's resources.
@@ -513,18 +525,21 @@ public:
               constants.begin() + 16);
     std::copy(std::begin(data.light_color), std::end(data.light_color), constants.begin() + 20);
     std::copy(std::begin(data.base_color), std::end(data.base_color), constants.begin() + 24);
-    vkCmdPushConstants(frame.commands, scenePipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                       sizeof(constants), constants.data());
-    const auto descriptor = sceneTextures_.at(textureId).descriptor;
-    vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, scenePipelineLayout_,
-                            0, 1, &descriptor, 0, nullptr);
-    if (data.batches.empty()) {
-      vkCmdDrawIndexed(frame.commands, static_cast<std::uint32_t>(data.indices.size()),
-                       static_cast<std::uint32_t>(instances.size()), 0, 0, 0);
-    } else {
-      for (const auto &batch : data.batches)
-        vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
-                         batch.firstInstance);
+    const SceneMeshBatch whole{0, static_cast<std::uint32_t>(data.indices.size()), 0,
+                               static_cast<std::uint32_t>(instances.size()), 0};
+    const auto batches =
+        data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
+    for (const auto &batch : batches) {
+      const auto material = ResolveSceneMaterial(data, batch.materialIndex);
+      std::copy(material.baseColor.begin(), material.baseColor.end(), constants.begin() + 24);
+      vkCmdPushConstants(frame.commands, scenePipelineLayout_, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                         sizeof(constants), constants.data());
+      const auto id = material.textureId ? material.textureId : UINT64_MAX;
+      const auto descriptor = sceneTextures_.at(id).descriptor;
+      vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, scenePipelineLayout_,
+                              0, 1, &descriptor, 0, nullptr);
+      vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
+                       batch.firstInstance);
     }
     vkCmdEndRenderPass(frame.commands);
     sceneRendered_ = true;

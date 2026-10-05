@@ -164,6 +164,56 @@ int main(int argc, char **argv) {
       if (!image)
         return fail(__LINE__);
     }
+    // Material slots override the legacy texture/color independently per batch.
+    auto materialDraw = draw;
+    std::array<SceneMaterial, 2> materialSlots{{{{0.8F, 0, 0, 1}, 0}, {{0, 0.8F, 0, 1}, 0}}};
+    std::array materialRanges{SceneMeshBatch{0, 3, 0, 1, 0}, SceneMeshBatch{0, 3, 1, 1, 1}};
+    materialDraw.materials = materialSlots;
+    materialDraw.batches = materialRanges;
+    auto materialInstances = instances;
+    materialInstances[1].color[1] = 1;
+    materialDraw.instances = materialInstances;
+    const std::array<std::byte, 4> solidRed{std::byte{255}, std::byte{0}, std::byte{0},
+                                            std::byte{255}};
+    const std::array<std::byte, 4> solidGreen{std::byte{0}, std::byte{255}, std::byte{0},
+                                              std::byte{255}};
+    const std::array materialUploads{UiTextureUpload{21, 1, 1, 4, solidRed},
+                                     UiTextureUpload{22, 1, 1, 4, solidGreen}};
+    for (int frame = 0; frame < 5; ++frame) {
+      if (frame == 1) {
+        materialSlots[0] = {{0.8F, 0.8F, 0.8F, 1}, 21};
+        materialSlots[1] = {{0.8F, 0.8F, 0.8F, 1}, 22};
+        materialDraw.textureUploads = materialUploads;
+      } else if (frame > 1) {
+        materialDraw.textureUploads = {};
+      }
+      if (!require(surface->Acquire(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      if (frame == 0) {
+        materialRanges[1].materialIndex = 2;
+        if (!require(surface->DrawScene(materialDraw), SurfaceStatus::InvalidDescriptor))
+          return fail(__LINE__);
+        materialRanges[1].materialIndex = 1;
+        materialSlots[1].textureId = 987;
+        if (!require(surface->DrawScene(materialDraw), SurfaceStatus::InvalidDescriptor))
+          return fail(__LINE__);
+        materialSlots[1].textureId = 0;
+      }
+      if (!require(surface->DrawScene(materialDraw), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto materialPixels = surface->ReadScenePixelsForTesting();
+      if (materialPixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto left = (200 * 640 + 190) * 4;
+      const auto right = (200 * 640 + 450) * 4;
+      if (std::to_integer<int>(materialPixels[left + 2]) < 100 ||
+          std::to_integer<int>(materialPixels[left + 1]) > 10 ||
+          std::to_integer<int>(materialPixels[right + 1]) < 100 ||
+          std::to_integer<int>(materialPixels[right + 2]) > 10)
+        return fail(__LINE__);
+    }
     // Depth must select the bright near triangle regardless of index order.
     std::array<SceneVertex, 6> layered{};
     for (std::size_t i = 0; i < 3; ++i) {

@@ -57,6 +57,18 @@ int main() {
   assert(wide.vertices.size() > 2000 && wide.indices.size() > 3000);
   for (const auto index : wide.indices)
     assert(index < wide.vertices.size());
+  assert(wide.materials.size() == 6 && !wide.batches.empty());
+  assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
+  std::size_t covered = 0;
+  std::array<bool, 6> selectedMaterials{};
+  for (const auto &batch : wide.batches) {
+    assert(batch.firstIndex == covered && batch.firstInstance == 0 && batch.instanceCount == 1);
+    covered += batch.indexCount;
+    selectedMaterials[batch.materialIndex] = true;
+  }
+  assert(covered == wide.indices.size());
+  for (const auto selected : selectedMaterials)
+    assert(selected);
   const auto wideMatrix = std::to_array(wide.model_view_projection);
   Press(courtyard, Key::B);
   const auto closeMatrix = std::to_array(courtyard.Scene(1280, 720).model_view_projection);

@@ -214,8 +214,11 @@ public:
           (drawData.offscreen && !defaultViewport) || !ValidateScene(drawData))
         return SurfaceStatus::InvalidDescriptor;
       const auto textureId = drawData.textureId ? drawData.textureId : UINT64_MAX;
-      std::size_t additional =
-          textureId == UINT64_MAX && !sceneTextures_.contains(textureId) ? 1 : 0;
+      const bool needsWhite =
+          textureId == UINT64_MAX ||
+          std::any_of(drawData.materials.begin(), drawData.materials.end(),
+                      [](const auto &material) { return material.textureId == 0; });
+      std::size_t additional = needsWhite && !sceneTextures_.contains(UINT64_MAX) ? 1 : 0;
       for (const auto &upload : drawData.textureUploads)
         additional += sceneTextures_.contains(upload.textureId) ? 0 : 1;
       if (sceneTextures_.size() + additional > 64)
@@ -230,11 +233,11 @@ public:
         }
       const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
                                            std::byte{255}};
-      if (!sceneTextures_.contains(textureId)) {
+      if (needsWhite && !sceneTextures_.contains(UINT64_MAX)) {
         const auto texture = CreateTexture({UINT64_MAX, 1, 1, 4, white});
         if (!texture)
           return SurfaceStatus::DeviceLost;
-        sceneTextures_[textureId] = texture;
+        sceneTextures_[UINT64_MAX] = texture;
         ++diagnostics_.sceneTextureUploads;
       }
       const SceneInstance identity{};
@@ -300,14 +303,18 @@ public:
                                              viewport->height}];
       [encoder setVertexBuffer:sceneUploads_[frame_] offset:0 atIndex:0];
       [encoder setVertexBuffer:sceneUploads_[frame_] offset:instanceOffset atIndex:1];
-      [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:2];
-      [encoder setFragmentTexture:sceneTextures_.at(textureId) atIndex:0];
+
       [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
       const SceneMeshBatch whole{0, static_cast<std::uint32_t>(drawData.indices.size()), 0,
                                  static_cast<std::uint32_t>(instances.size())};
       const auto batches =
           drawData.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : drawData.batches;
-      for (const auto &batch : batches)
+      for (const auto &batch : batches) {
+        const auto material = ResolveSceneMaterial(drawData, batch.materialIndex);
+        std::copy(material.baseColor.begin(), material.baseColor.end(), constants.color);
+        [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:2];
+        const auto id = material.textureId ? material.textureId : UINT64_MAX;
+        [encoder setFragmentTexture:sceneTextures_.at(id) atIndex:0];
         [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                             indexCount:batch.indexCount
                              indexType:MTLIndexTypeUInt16
@@ -316,6 +323,7 @@ public:
                          instanceCount:batch.instanceCount
                             baseVertex:0
                           baseInstance:batch.firstInstance];
+      }
       [encoder endEncoding];
       sceneDrawn_ = true;
       sceneOffscreen_ = drawData.offscreen;
@@ -432,10 +440,10 @@ private:
     return success;
   }
   bool ValidateScene(const SceneDrawData &data) const {
-    if (data.vertices.empty() || data.vertices.size() > 65535 || data.indices.empty() ||
-        data.indices.size() > 1048576 || data.indices.size() % 3 != 0 ||
-        data.instances.size() > 4096 || data.textureUploads.size() > 16 ||
-        data.textureId == UINT64_MAX ||
+    if (!ValidateSceneMaterials(data.materials, data.batches) || data.vertices.empty() ||
+        data.vertices.size() > 65535 || data.indices.empty() || data.indices.size() > 1048576 ||
+        data.indices.size() % 3 != 0 || data.instances.size() > 4096 ||
+        data.textureUploads.size() > 16 || data.textureId == UINT64_MAX ||
         !ValidateSceneMeshBatches(data.batches, data.indices.size(),
                                   std::max<std::size_t>(data.instances.size(), 1)))
       return false;
@@ -466,6 +474,12 @@ private:
         if (data.textureUploads[j].textureId == upload.textureId)
           return false;
     }
+    for (const auto &material : data.materials)
+      if (material.textureId && !sceneTextures_.contains(material.textureId) &&
+          std::none_of(
+              data.textureUploads.begin(), data.textureUploads.end(),
+              [&material](const auto &upload) { return upload.textureId == material.textureId; }))
+        return false;
     return !data.textureId || sceneTextures_.contains(data.textureId) ||
            std::any_of(data.textureUploads.begin(), data.textureUploads.end(),
                        [&data](const auto &upload) { return upload.textureId == data.textureId; });

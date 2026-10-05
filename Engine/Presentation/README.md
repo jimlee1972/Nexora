@@ -221,3 +221,21 @@ screen returns UNSUPPORTED (77), never PASS. ✅ The hosted macOS gate passes De
 Cocoa input, depth and lifecycle. Shipping/Full isolated packages also pass eight-room Metal graph
 smoke (96 frames); see [the record](../../Apps/Showcase/evidence/V1-Metal-Hosted-CI-2026-10-04/acceptance.md).
 These commands ran on GitHub macOS runners; physical Mac visuals and full interactive parity remain open.
+
+## Per-batch opaque materials
+
+`SceneDrawData::materials` borrows at most 64 `SceneMaterial` slots. Each batch's `materialIndex`
+selects its base color and immutable texture generation; empty batches use slot zero. An empty
+palette preserves the global `base_color` and `textureId` shading path. All colors must be finite
+in [0,1], alpha must equal one, and texture zero selects an internal white texture. The reserved
+`UINT64_MAX` ID is rejected. Every referenced nonzero texture must already be resident or supplied
+in this submission's bounded RGBA8 uploads. Existing descriptor fields still undergo validation.
+Material slots are ephemeral and have no Runtime asset identity. Texture changes require new IDs.
+
+Validation precedes scene commands; rejected descriptors leave the acquired frame available for a
+corrected draw. Vulkan push constants/descriptors, DX12 aligned per-slot CBVs/descriptors and Metal
+copied constants/textures change per batch within the shared depth pass. Existing frame fences own
+uploads and texture lifetimes, including offscreen composition and resize. Consumers must rebuild
+for the appended C++ fields; stable C/Zig and persisted schemas are unchanged. This Lambert slice
+establishes binding only; PBR, normal/ORM/emission, IBL and floating-point HDR remain open.
+See [ADR-0004](../../Roadmap/en/ADR-0004-Showcase-Materials-HDR.md).

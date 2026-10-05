@@ -362,6 +362,69 @@ int main(int argc, char **argv) {
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
     Require(batchPixels, "mesh geometry/instance ranges did not produce independent pixels");
+    // Neutral instance tints isolate material colors and texture selection from instancing.
+    batchInstances = {};
+    std::array<Presentation::SceneMaterial, 2> materials{
+        {{{0.8F, 0, 0, 1}, 0}, {{0, 0.8F, 0, 1}, 0}}};
+    draw.materials = materials;
+    batchRanges[0].materialIndex = 0;
+    batchRanges[1].materialIndex = 1;
+    const std::array<std::byte, 4> red{std::byte{255}, std::byte{0}, std::byte{0}, std::byte{255}};
+    const std::array<std::byte, 4> green{std::byte{0}, std::byte{255}, std::byte{0},
+                                         std::byte{255}};
+    const std::array textureUploads{Presentation::UiTextureUpload{21, 1, 1, 4, red},
+                                    Presentation::UiTextureUpload{22, 1, 1, 4, green}};
+    for (unsigned materialFrame = 0; materialFrame < 5; ++materialFrame) {
+      if (materialFrame == 1) {
+        materials[0] = {{0.8F, 0.8F, 0.8F, 1}, 21};
+        materials[1] = {{0.8F, 0.8F, 0.8F, 1}, 22};
+        draw.textureUploads = textureUploads;
+      } else if (materialFrame > 1) {
+        draw.textureUploads = {}; // Immutable texture generations survive frame-slot reuse.
+      }
+      draw.offscreen = materialFrame % 2 != 0;
+      Require(surface->Acquire() == SurfaceStatus::Ready, "material acquire failed");
+      if (materialFrame == 0) {
+        const auto retained = surface->Diagnostics().sceneDrawCalls;
+        batchRanges[1].materialIndex = 2;
+        Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+                "out-of-range material accepted");
+        batchRanges[1].materialIndex = 1;
+        materials[1].textureId = 987;
+        Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+                "missing material texture accepted");
+        materials[1].textureId = 0;
+        materials[1].baseColor[3] = 0.5F;
+        Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
+                "unsupported material alpha accepted");
+        materials[1].baseColor[3] = 1;
+        Require(surface->Diagnostics().sceneDrawCalls == retained,
+                "invalid materials changed scene counters");
+      }
+      Require(surface->DrawScene(draw) == SurfaceStatus::Ready, "material draw failed");
+      if (draw.offscreen)
+        Require(surface->CompositeScene() == SurfaceStatus::Ready, "material composite failed");
+      Require(surface->Present() == SurfaceStatus::Ready, "material present failed");
+      bool batchPixels = false;
+      const auto batchDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+      while (!batchPixels && std::chrono::steady_clock::now() < batchDeadline) {
+        XSync(display, False);
+        auto *image = XGetImage(display, native, 0, 0, width, height, AllPlanes, ZPixmap);
+        Require(image != nullptr, "mesh batches readback failed");
+        const auto left = XGetPixel(image, width / 4, height / 2);
+        const auto right = XGetPixel(image, width * 3 / 4, height / 2);
+        batchPixels =
+            Channel(left, image->red_mask) > 150 && Channel(left, image->green_mask) < 20 &&
+            Channel(right, image->green_mask) > 150 && Channel(right, image->red_mask) < 20;
+        XDestroyImage(image);
+        if (!batchPixels)
+          std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      }
+      Require(batchPixels, "mesh geometry/instance ranges did not produce independent pixels");
+    }
+    draw.materials = {};
+    draw.textureUploads = {};
+    draw.offscreen = false;
     draw.vertices = std::span(vertices).first(3);
     draw.indices = std::span(indices).first(3);
     draw.instances = instances;
@@ -530,10 +593,10 @@ int main(int argc, char **argv) {
       Require(materialPixels, "UV texture sampling/resize pixels failed");
     }
     const auto diagnostics = surface->Diagnostics();
-    Require(diagnostics.sceneDrawCalls == 22 && diagnostics.sceneInstances == 28 &&
-                diagnostics.acquiredFrames == 22 && diagnostics.presentedFrames == 22 &&
-                diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 5 &&
-                diagnostics.sceneOffscreenDrawCalls == 3 && diagnostics.sceneComposites == 3,
+    Require(diagnostics.sceneDrawCalls == 27 && diagnostics.sceneInstances == 38 &&
+                diagnostics.acquiredFrames == 27 && diagnostics.presentedFrames == 27 &&
+                diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 7 &&
+                diagnostics.sceneOffscreenDrawCalls == 5 && diagnostics.sceneComposites == 5,
             "native scene counters or resize evidence mismatch");
     Require(surface->Acquire() == SurfaceStatus::Ready, "abandoned frame acquire failed");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "scene teardown failed");
@@ -545,8 +608,8 @@ int main(int argc, char **argv) {
     XCloseDisplay(display);
     Require(windows->Destroy(created.handle) == Window::WindowError::None,
             "window teardown failed");
-    std::cout << "PASS: 22 scene submissions including affine mesh/normal oracles, mesh batches, "
-                 "rotated native instances and UV "
+    std::cout << "PASS: 27 scene submissions including affine mesh/normal oracles, mesh batches, "
+                 "independent batch materials, rotated native instances and UV "
                  "texture pixels, "
                  "depth-order invariance, lighting, matrix translation, "
                  "3 resize generations, immutable texture reuse, invalid-input containment and "
