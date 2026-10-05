@@ -1,0 +1,28 @@
+# VIS-M1 Linux floating HDR acceptance — 2026-10-05
+
+Linux Development configure/build/full CTest passed: 95/95 without skips (60.17 seconds).
+Shipping Monolithic configure/build and NexoraShowcasePackageShippingEvidence passed, including
+checksum verification and isolated headless package launch. Native visual evidence is separately
+retained below; that headless launch alone does not accept rendered visuals.
+
+The actual native courtyard renders shared PBR/IBL into a protecting-frame RGBA16F target. Main
+samples it on the GPU, applies exposure and shared ACES, transfers once into the acquired image,
+and UI follows. External RenderGraph declares RGBA16F and ShaderRead; its counters still describe
+real successful callbacks. Native RHI triangle allocation explicitly rejects this externally owned
+format rather than silently substituting RGBA8. Stable C/Zig and NXAB remain unchanged.
+
+The native Vulkan oracle includes 24 presented submissions: prior material/IBL tests plus radiance
+4 versus 1, exposure 1/0.125/0.25, current-frame emission markers, UI color invariance, float target
+reuse/resize and rejected direct HDR/nonfinite exposure. Legacy direct and offscreen RGBA8/Lambert
+remain covered. Matching DX12 test source uses actual Win32 pixels; Metal reads the GPU-composited
+drawable through a private test seam. Windows/Metal execution requires exact-head PR CI.
+
+Interaction retains all nine rooms, fixed shots, P/O comparisons and E exposure changes with exact
+restoration. Three sequential 360-frame runs (60 warmup, 300 samples) measured 34.52, 35.23 and
+35.81 FPS with own builds/tests idle. Reports identify RGBA16F, exposure 1 and the actual basic
+quality/shared PBR IBL path. These software lavapipe results do not accept GTX 960 performance.
+
+The source hashes, native stdout/capture, interaction screenshots/reports and baseline accompany
+this acceptance. Geometry remains the engineering blockout. Bloom, directional shadows, vegetation
+motion, final art and target-hardware visual/performance acceptance remain open. HDR storage
+precision does not establish an HDR10 monitor/swapchain.

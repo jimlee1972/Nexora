@@ -106,3 +106,10 @@ monotonic completion value; resources referenced by that submission remain in us
 upload rings and replaced atlas generations retire without assuming that queue submission is
 synchronous. Current native devices complete `Submit` before returning, while the contract and
 validation backend preserve the completion-value boundary for asynchronous implementations.
+
+## External HDR format metadata
+
+The appended `TextureFormat::Rgba16Float` describes Presentation-owned HDR resources imported into
+RenderGraph's external executor. It does not extend the independent native RHI triangle pipeline:
+its allocation/format routing rejects RGBA16F explicitly rather than substituting RGBA8. The external
+owner allocates its float target and records native barriers; graph execution never allocates it.

@@ -48,14 +48,17 @@ def main():
             assert metrics['gpu_timing_ms'] is None and metrics['peak_resident_bytes'] > 0
             reports.append({'performance': metrics, 'build': report['build'], 'native': native,
                             'render_settings': report['render_settings'],
-                            'shading': report['runtime_rooms']['courtyard'].get('shading', 'lambert')})
+                            'shading': report['runtime_rooms']['courtyard'].get('shading', 'lambert'),
+                            'scene_color_format': report['runtime_rooms']['courtyard'].get('scene_color_format', 'RGBA8'),
+                            'exposure': report['runtime_rooms']['courtyard'].get('exposure', 1)})
         assert all(r['shading'] == reports[0]['shading'] and
                    r['render_settings'] == reports[0]['render_settings'] for r in reports)
         cpu = next((line.split(':', 1)[1].strip() for line in Path('/proc/cpuinfo').read_text().splitlines()
                     if line.startswith('model name')), 'unknown')
         summary = {'schema': 'nexora.showcase.courtyard-baseline.v1', 'resolution': [1280, 720],
                    'quality': reports[0]['render_settings']['quality'],
-                   'shading': reports[0]['shading'], 'camera': 'fixed wide / shot 0',
+                   'shading': reports[0]['shading'], 'scene_color_format': reports[0]['scene_color_format'],
+                   'exposure': reports[0]['exposure'], 'camera': 'fixed wide / shot 0',
                    'cpu': cpu, 'host': platform.platform(), 'vsync_requested': False,
                    'refresh_rate_hz': None, 'driver_identity': 'retained VK_ICD_FILENAMES selection',
                    'software_rasterizer': reports[0]['native']['software_rasterizer'],

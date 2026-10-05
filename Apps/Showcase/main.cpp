@@ -733,8 +733,11 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
       result.viewport_height = frameInfo.height;
       renderer::RenderGraph graph;
       std::vector<std::string> completedNames;
+      auto sceneDraw = rooms.Scene(frameInfo.width, frameInfo.height);
+      sceneDraw.offscreen = true;
       const auto offscreen = graph.ImportExternalTexture(
-          {frameInfo.width, frameInfo.height, rhi::TextureFormat::Rgba8Unorm,
+          {frameInfo.width, frameInfo.height,
+           sceneDraw.hdr ? rhi::TextureFormat::Rgba16Float : rhi::TextureFormat::Rgba8Unorm,
            rhi::ResourceState::Undefined, "NativeSceneColor"});
       const auto presentation = graph.ImportExternalTexture(
           {frameInfo.width, frameInfo.height, rhi::TextureFormat::Rgba8Unorm,
@@ -746,13 +749,13 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
       };
       (void)graph.AddExternalPass("Offscreen", {}, {{offscreen, rhi::ResourceState::RenderTarget}},
                                   [&](const renderer::ExternalPassContext &passInfo) {
-                                    auto draw = rooms.Scene(frameInfo.width, frameInfo.height);
-                                    draw.offscreen = true;
-                                    requireReady(nativeSurface->DrawScene(draw), "Offscreen");
+                                    requireReady(nativeSurface->DrawScene(sceneDraw), "Offscreen");
                                     ++result.scene_draws;
                                     completedNames.emplace_back(passInfo.name);
                                   });
-      (void)graph.AddExternalPass("Main", {{offscreen, rhi::ResourceState::CopySource}},
+      (void)graph.AddExternalPass("Main",
+                                  {{offscreen, sceneDraw.hdr ? rhi::ResourceState::ShaderRead
+                                                             : rhi::ResourceState::CopySource}},
                                   {{presentation, rhi::ResourceState::RenderTarget}},
                                   [&](const renderer::ExternalPassContext &passInfo) {
                                     requireReady(nativeSurface->CompositeScene(), "Main");

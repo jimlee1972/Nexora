@@ -594,29 +594,39 @@ float4 pbrFragmentMain(VertexOutput_0 input_0) : SV_TARGET
 #line 117
     }
 
-#line 130
-    float3 color_3 = NexoraAcesApproximate_0(NexoraEvaluatePbr_0(surface_0, viewDirection_3, - scene_0.lightDirection_0.xyz, scene_0.lightColor_0.xyz, environment_3));
+#line 128
+    float3 color_3 = NexoraEvaluatePbr_0(surface_0, viewDirection_3, - scene_0.lightDirection_0.xyz, scene_0.lightColor_0.xyz, environment_3);
 
-#line 130
-    float3 color_4;
-    if((material_0.cameraPosition_0.w) > 0.5f)
+    if((material_0.properties_0.w) > 0.5f)
     {
 
 #line 131
-        color_4 = NexoraLinearToSrgb_0(color_3);
+        return float4(clamp(color_3, float3((int3)int(0)), float3((int3)int(65504))), 1.0f);
+    }
 
-#line 131
+#line 132
+    float3 color_4 = NexoraAcesApproximate_0(color_3);
+
+#line 132
+    float3 color_5;
+    if((material_0.cameraPosition_0.w) > 0.5f)
+    {
+
+#line 133
+        color_5 = NexoraLinearToSrgb_0(color_4);
+
+#line 133
     }
     else
     {
 
-#line 131
-        color_4 = color_3;
+#line 133
+        color_5 = color_4;
 
-#line 131
+#line 133
     }
 
-    return float4(color_4, 1.0f);
+    return float4(color_5, 1.0f);
 }
 
 )NEXORA_PBR";

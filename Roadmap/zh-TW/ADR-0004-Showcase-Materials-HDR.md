@@ -44,4 +44,6 @@ Upload／target 由 frame 擁有，texture generation immutable，配置採 tran
 
 共享直接光照 PBR 與硬體 sRGB 過濾已接通。IBL 切片加入有界線性 RGBA16F 資源、
 Runtime bundle 中的來源／授權／轉換 metadata 相依、七個原生取樣資源及 80-byte 私有材質 packet。
-公開 C++ consumer 必須重建；NXAB 與穩定 C／Zig schema 不變。浮點 HDR scene target／合成仍開放。
+公開 C++ consumer 必須重建；NXAB 與穩定 C／Zig schema 不變。後續 HDR slice 加入可選 RGBA16F frame target 與 GPU 曝光／ACES／顯示轉換，先合成再疊 UI。
+外部 graph 使用真實浮點格式與 ShaderRead transition；獨立原生 RHI triangle allocator 仍明確拒絕浮點 target。
+bloom 屬於 VIS-M3。

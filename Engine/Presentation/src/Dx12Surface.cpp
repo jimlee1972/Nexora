@@ -7,6 +7,7 @@
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
 #include "ScenePbrHlslShaders.h"
+#include "SceneToneHlslShaders.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -348,13 +349,14 @@ public:
         return SurfaceStatus::InvalidDescriptor;
     if (drawData.pbr) {
       D3D12_FEATURE_DATA_FORMAT_SUPPORT support{DXGI_FORMAT_R16G16B16A16_FLOAT};
-      constexpr auto required = D3D12_FORMAT_SUPPORT1_TEXTURE2D |
-                                D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE | D3D12_FORMAT_SUPPORT1_MIP;
+      const auto required = D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE |
+                            D3D12_FORMAT_SUPPORT1_MIP |
+                            (drawData.hdr ? D3D12_FORMAT_SUPPORT1_RENDER_TARGET : 0);
       if (FAILED(device_->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &support,
                                               sizeof(support))) ||
           (support.Support1 & required) != required)
         return SurfaceStatus::Unsupported;
-      if (!scenePbrPipeline_)
+      if (!scenePbrPipeline_ || (drawData.hdr && (!sceneHdrPipeline_ || !tonePipeline_)))
         return SurfaceStatus::Unsupported;
       for (const auto &material : drawData.materials)
         for (const auto id :
@@ -473,6 +475,8 @@ public:
     if (drawData.offscreen) {
       auto descriptor = buffers_[frame_]->GetDesc();
       descriptor.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+      if (drawData.hdr)
+        descriptor.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
       D3D12_HEAP_PROPERTIES heap{};
       heap.Type = D3D12_HEAP_TYPE_DEFAULT;
       heap.CreationNodeMask = heap.VisibleNodeMask = 1;
@@ -489,6 +493,16 @@ public:
       rtv = sceneRtvHeap_->GetCPUDescriptorHandleForHeapStart();
       rtv.ptr += SIZE_T(frame_) * increment_;
       device_->CreateRenderTargetView(sceneColors_[frame_].Get(), nullptr, rtv);
+      if (drawData.hdr) {
+        auto handle = uiDescriptors_->GetCPUDescriptorHandleForHeapStart();
+        handle.ptr += SIZE_T(frame_) * uiDescriptorIncrement_;
+        D3D12_SHADER_RESOURCE_VIEW_DESC view{};
+        view.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        view.Texture2D.MipLevels = 1;
+        device_->CreateShaderResourceView(sceneColors_[frame_].Get(), &view, handle);
+      }
       commands_->ClearRenderTargetView(rtv, clear.Color, 0, nullptr);
     }
     auto dsv = dsvHeap_->GetCPUDescriptorHandleForHeapStart();
@@ -496,7 +510,9 @@ public:
     commands_->OMSetRenderTargets(1, &rtv, FALSE, &dsv);
     commands_->SetGraphicsRootSignature(drawData.pbr ? scenePbrRootSignature_.Get()
                                                      : sceneRootSignature_.Get());
-    commands_->SetPipelineState(drawData.pbr ? scenePbrPipeline_.Get() : scenePipeline_.Get());
+    commands_->SetPipelineState(
+        drawData.hdr ? sceneHdrPipeline_.Get()
+                     : (drawData.pbr ? scenePbrPipeline_.Get() : scenePipeline_.Get()));
     ID3D12DescriptorHeap *heaps[]{uiDescriptors_.Get()};
     commands_->SetDescriptorHeaps(1, heaps);
     const D3D12_VIEWPORT nativeViewport{static_cast<float>(viewport->x),
@@ -565,6 +581,8 @@ public:
     }
     sceneDrawn_ = true;
     sceneOffscreen_ = drawData.offscreen;
+    sceneHdr_ = drawData.hdr;
+    sceneExposure_ = drawData.exposure;
     diagnostics_.sceneOffscreenDrawCalls += drawData.offscreen ? 1 : 0;
     ++diagnostics_.sceneDrawCalls;
     diagnostics_.sceneInstances += instances.size();
@@ -576,6 +594,36 @@ public:
     if (!acquired_ || !sceneDrawn_ || !sceneOffscreen_ || sceneComposited_ || uiDrawn_ ||
         compositeDrawn_)
       return SurfaceStatus::InvalidDescriptor;
+    if (sceneHdr_) {
+      D3D12_RESOURCE_BARRIER transition{};
+      transition.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      transition.Transition = {sceneColors_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                               D3D12_RESOURCE_STATE_RENDER_TARGET,
+                               D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE};
+      commands_->ResourceBarrier(1, &transition);
+      auto rtv = heap_->GetCPUDescriptorHandleForHeapStart();
+      rtv.ptr += SIZE_T(frame_) * increment_;
+      commands_->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
+      commands_->SetGraphicsRootSignature(toneRootSignature_.Get());
+      commands_->SetPipelineState(tonePipeline_.Get());
+      ID3D12DescriptorHeap *heaps[]{uiDescriptors_.Get()};
+      commands_->SetDescriptorHeaps(1, heaps);
+      const std::array<float, 4> settings{sceneExposure_, 1, 0, 0};
+      commands_->SetGraphicsRoot32BitConstants(0, 4, settings.data(), 0);
+      auto handle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
+      handle.ptr += UINT64(frame_) * uiDescriptorIncrement_;
+      commands_->SetGraphicsRootDescriptorTable(1, handle);
+      const D3D12_VIEWPORT viewport{0, 0, static_cast<float>(width_), static_cast<float>(height_),
+                                    0, 1};
+      const D3D12_RECT scissor{0, 0, static_cast<LONG>(width_), static_cast<LONG>(height_)};
+      commands_->RSSetViewports(1, &viewport);
+      commands_->RSSetScissorRects(1, &scissor);
+      commands_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+      commands_->DrawInstanced(3, 1, 0, 0);
+      sceneComposited_ = true;
+      ++diagnostics_.sceneComposites;
+      return SurfaceStatus::Ready;
+    }
     D3D12_RESOURCE_BARRIER barriers[2]{};
     for (auto &barrier : barriers)
       barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -625,6 +673,9 @@ public:
     uiDescriptors_.Reset();
     scenePipeline_.Reset();
     scenePbrPipeline_.Reset();
+    sceneHdrPipeline_.Reset();
+    tonePipeline_.Reset();
+    toneRootSignature_.Reset();
     scenePbrRootSignature_.Reset();
     sceneRootSignature_.Reset();
     dsvHeap_.Reset();
@@ -910,8 +961,47 @@ private:
     pipeline.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};
     pipeline.PS = {pixel->GetBufferPointer(), pixel->GetBufferSize()};
     pipeline.InputLayout = {pbrInputs.data(), static_cast<UINT>(pbrInputs.size())};
-    return SUCCEEDED(
-        device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePbrPipeline_)));
+    if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePbrPipeline_))))
+      return false;
+    pipeline.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&sceneHdrPipeline_))))
+      return false;
+    D3D12_DESCRIPTOR_RANGE toneRange{};
+    toneRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+    toneRange.NumDescriptors = 1;
+    D3D12_ROOT_PARAMETER toneParameters[2]{};
+    toneParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    toneParameters[0].Constants = {0, 0, 4};
+    toneParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    toneParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+    toneParameters[1].DescriptorTable = {1, &toneRange};
+    toneParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    root.NumParameters = 2;
+    root.pParameters = toneParameters;
+    root.NumStaticSamplers = 1;
+    root.pStaticSamplers = &sampler;
+    if (FAILED(D3D12SerializeRootSignature(&root, D3D_ROOT_SIGNATURE_VERSION_1, &signature,
+                                           &errors)) ||
+        FAILED(device_->CreateRootSignature(0, signature->GetBufferPointer(),
+                                            signature->GetBufferSize(),
+                                            IID_PPV_ARGS(&toneRootSignature_))))
+      return false;
+    if (FAILED(D3DCompile(scene_tonemap_hlsl_vert, sizeof(scene_tonemap_hlsl_vert),
+                          "NexoraToneVertex", nullptr, nullptr, "toneVertexMain", "vs_5_0", 0, 0,
+                          &vertex, &errors)) ||
+        FAILED(D3DCompile(scene_tonemap_hlsl_frag, sizeof(scene_tonemap_hlsl_frag),
+                          "NexoraToneFragment", nullptr, nullptr, "toneFragmentMain", "ps_5_0", 0,
+                          0, &pixel, &errors)))
+      return false;
+    pipeline.pRootSignature = toneRootSignature_.Get();
+    pipeline.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};
+    pipeline.PS = {pixel->GetBufferPointer(), pixel->GetBufferSize()};
+    pipeline.InputLayout = {nullptr, 0};
+    pipeline.DepthStencilState.DepthEnable = FALSE;
+    pipeline.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+    pipeline.DSVFormat = DXGI_FORMAT_UNKNOWN;
+    pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    return SUCCEEDED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&tonePipeline_)));
   }
   bool EnsureSceneUpload(std::size_t required) {
     if (sceneUploadCapacity_[frame_] >= required)
@@ -1170,7 +1260,7 @@ private:
   HANDLE event_{};
   UINT increment_{};
   UINT uiDescriptorIncrement_{};
-  UINT nextUiDescriptor_{};
+  UINT nextUiDescriptor_{kMaximumFrames}; // Fence-owned HDR SRVs reserve the first frame slots.
   uint64_t fenceValue_{};
   std::array<uint64_t, kMaximumFrames> fenceValues_{};
   SurfaceDiagnostics diagnostics_{};
@@ -1200,6 +1290,10 @@ private:
   ComPtr<ID3D12RootSignature> sceneRootSignature_;
   ComPtr<ID3D12PipelineState> scenePipeline_;
   ComPtr<ID3D12PipelineState> scenePbrPipeline_;
+  ComPtr<ID3D12PipelineState> sceneHdrPipeline_, tonePipeline_;
+  ComPtr<ID3D12RootSignature> toneRootSignature_;
+  bool sceneHdr_{};
+  float sceneExposure_ = 1.0F;
   ComPtr<ID3D12RootSignature> scenePbrRootSignature_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneUploads_;
   std::array<std::size_t, kMaximumFrames> sceneUploadCapacity_{};

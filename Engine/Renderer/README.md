@@ -200,7 +200,7 @@ RHI executor's `barrier_count`; `completed_pass_count` counts successful callbac
 not a GPU completion fence. Portable tests cover ordering, ownership mismatch, cycles and callback
 failure containment. Native pixel/interaction acceptance verifies the actual bound operations.
 
-Showcase binds Offscreen (private color/depth draw), Main (GPU color copy into the acquired image),
+Showcase binds Offscreen (private color/depth draw), Main (GPU color copy or HDR tone mapping into the acquired image),
 UI (attachment load/native UI draw) and Present to this graph. Main briefly transitions its destination
 through copy state and restores RenderTarget internally; its logical write describes that output
 state. Vulkan/DX12 Presentation own and validate all physical transitions. The native graph counters
@@ -216,3 +216,8 @@ zero normals or descriptor budgets return `nullopt`. The Renderer mesh's seriali
 Showcase prepares tangents once for its immutable courtyard geometry and copies the owning results
 into the native submission; native adapters transform tangents with the model matrix, normals with
 the inverse transpose and mirrored handedness with the model determinant.
+
+External HDR imports describe the actual `Rgba16Float` format. Main requests ShaderRead for these
+inputs; legacy RGBA8 copy inputs request CopySource. The Presentation owner records the physical
+barriers and fullscreen exposure/ACES/display pass before UI. Logical counters continue to describe
+successful real callbacks; format metadata never grants access to native resource handles.

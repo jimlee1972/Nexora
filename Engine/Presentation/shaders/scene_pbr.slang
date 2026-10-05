@@ -18,7 +18,7 @@ struct MaterialConstants
   float4 cameraPosition; // w: manual sRGB output transfer for UNORM targets
   float4 baseColor;      // linear factors
   float4 emissionRoughness; // xyz linear emission factor; w perceptual roughness
-  float4 properties;    // x metallic; y AO; z normal scale; w reserved
+  float4 properties;    // x metallic; y AO; z normal scale; w linear HDR output
   float4 environment;   // x intensity; y rotation radians; z maximum prefilter LOD; w reserved
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
@@ -127,6 +127,8 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   }
   float3 color = NexoraEvaluatePbr(surface, viewDirection,
                                  -scene.lightDirection.xyz, scene.lightColor.rgb, environment);
+  if (material.properties.w > 0.5)
+    return float4(clamp(color, float3(0), float3(65504)), 1);
   color = NexoraAcesApproximate(color);
   if (material.cameraPosition.w > 0.5)
     color = NexoraLinearToSrgb(color);

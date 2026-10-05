@@ -66,6 +66,8 @@ VkFormat ToFormat(TextureFormat format) {
     return VK_FORMAT_B8G8R8A8_UNORM;
   case TextureFormat::Depth32Float:
     throw std::invalid_argument("Vulkan triangle backend only supports color textures");
+  case TextureFormat::Rgba16Float:
+    break; // External Presentation-owned HDR metadata; native triangle allocation is unsupported.
   }
   throw std::invalid_argument("unsupported Vulkan texture format");
 }
@@ -1242,6 +1244,7 @@ VkRenderPass VulkanDevice::RenderPassFor(TextureFormat format) const {
   case TextureFormat::Bgra8Unorm:
     return bgra_render_pass_;
   case TextureFormat::Depth32Float:
+  case TextureFormat::Rgba16Float:
     break;
   }
   throw std::invalid_argument("Vulkan render pass requires a color format");

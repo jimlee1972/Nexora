@@ -52,6 +52,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
     LABELS "vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
 endif()
 
+if(WIN32)
+  add_executable(NexoraDx12PbrTests VulkanPbrTests.cpp)
+  target_link_libraries(NexoraDx12PbrTests PRIVATE Nexora::Presentation user32 gdi32)
+  nexora_apply_defaults(NexoraDx12PbrTests)
+  add_test(NAME window_presentation.dx12_pbr COMMAND NexoraDx12PbrTests)
+  set_tests_properties(window_presentation.dx12_pbr PROPERTIES LABELS "showcase;dx12;native-display" TIMEOUT 90)
+endif()
+
 if(APPLE)
   add_executable(NexoraMetalSceneTests MetalSceneTests.mm)
   target_include_directories(NexoraMetalSceneTests PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Presentation/include")
@@ -69,5 +77,8 @@ if(NEXORA_ENABLE_SLANG AND NEXORA_SLANGC_EXECUTABLE)
   add_test(NAME window_presentation.pbr_shader_generation
     COMMAND "${Python3_EXECUTABLE}"
       "${CMAKE_SOURCE_DIR}/Engine/Presentation/shaders/GeneratePbrShaders.py"
+      --compiler "${NEXORA_SLANGC_EXECUTABLE}" --check)
+  add_test(NAME window_presentation.tone_shader_generation
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Engine/Presentation/shaders/GenerateToneShaders.py"
       --compiler "${NEXORA_SLANGC_EXECUTABLE}" --check)
 endif()

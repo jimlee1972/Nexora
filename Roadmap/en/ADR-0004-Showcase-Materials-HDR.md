@@ -50,4 +50,6 @@ alone is insufficient. Hardware visuals and the final GTX 960 budget remain sepa
 Shared direct-light PBR and hardware sRGB filtering are integrated. The IBL slice adds bounded
 linear RGBA16F resources, source/license/conversion metadata dependencies in the Runtime bundle,
 seven native sampled resources and an 80-byte private material packet. Public C++ consumers rebuild;
-NXAB and stable C/Zig schemas remain unchanged. Floating HDR scene targets/composition remain open.
+NXAB and stable C/Zig schemas remain unchanged. The subsequent HDR slice adds opt-in RGBA16F frame targets and GPU exposure/ACES/display composition
+before UI. External graph imports name the float format and ShaderRead transition; the independent
+native RHI triangle allocator still rejects float targets. Bloom remains VIS-M3 work.

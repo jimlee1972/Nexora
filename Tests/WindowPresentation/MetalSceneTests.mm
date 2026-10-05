@@ -383,6 +383,65 @@ int main(int argc, char **argv) {
         return fail(__LINE__);
       }
     }
+    // Read the actual GPU tone-mapped drawable; the private test seam performs no CPU shading.
+    materialDraw.environment.reset();
+    materialDraw.linearTextureUploads = {};
+    materialDraw.hdr = true;
+    materialDraw.offscreen = true;
+    materialDraw.cameraPosition = {0, 0, 3};
+    for (auto &instance : materialInstances)
+      for (auto &channel : instance.color)
+        channel = 1;
+    for (auto &channel : materialDraw.light_color)
+      channel = 0;
+    materialSlots = {};
+    materialSlots[0].baseColor = materialSlots[1].baseColor = {0, 0, 0, 1};
+    materialSlots[0].emission = {4, 0, 0};
+    materialSlots[1].emission = {1, 0, 0};
+    const std::array<UiVertex, 4> hdrUiVertices{{{{0, 400}, {0, 0}, 0xff808080U},
+                                                 {{640, 400}, {0, 0}, 0xff808080U},
+                                                 {{640, 480}, {0, 0}, 0xff808080U},
+                                                 {{0, 480}, {0, 0}, 0xff808080U}}};
+    const std::array<std::uint16_t, 6> hdrUiIndices{0, 1, 2, 0, 2, 3};
+    const std::array hdrUiCommands{UiDrawCommand{0, 0, 640, 480, 901, 6, 0, 0}};
+    const std::array<std::byte, 4> hdrUiWhite{std::byte{255}, std::byte{255}, std::byte{255},
+                                              std::byte{255}};
+    const std::array hdrUiUploads{UiTextureUpload{901, 1, 1, 4, hdrUiWhite}};
+    UiDrawData hdrUi{};
+    hdrUi.vertices = hdrUiVertices;
+    hdrUi.indices = std::as_bytes(std::span(hdrUiIndices));
+    hdrUi.commands = hdrUiCommands;
+    hdrUi.textureUploads = hdrUiUploads;
+    for (const float exposure : {1.0F, 0.125F, 0.25F, 1.0F}) {
+      materialDraw.exposure = exposure;
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(materialDraw), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->RenderUi(hdrUi), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto hdrPixels = surface->ReadScenePixelsForTesting();
+      if (hdrPixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto expected = [&](float value) {
+        value *= exposure;
+        const float mapped =
+            std::clamp(value * (2.51F * value + 0.03F) / (value * (2.43F * value + 0.59F) + 0.14F),
+                       0.0F, 1.0F);
+        const float srgb = mapped <= 0.0031308F ? mapped * 12.92F
+                                                : 1.055F * std::pow(mapped, 1.0F / 2.4F) - 0.055F;
+        return static_cast<int>(std::lround(255 * srgb));
+      };
+      const auto left = std::to_integer<int>(hdrPixels[(200 * 640 + 190) * 4 + 2]);
+      const auto right = std::to_integer<int>(hdrPixels[(200 * 640 + 450) * 4 + 2]);
+      if (std::abs(left - expected(4)) > 2 || std::abs(right - expected(1)) > 2)
+        return fail(__LINE__);
+      for (std::size_t channel = 0; channel < 3; ++channel)
+        if (std::abs(std::to_integer<int>(hdrPixels[(440 * 640 + 320) * 4 + channel]) - 128) > 2)
+          return fail(__LINE__);
+    }
+    materialDraw.hdr = false;
+    materialDraw.exposure = 1;
     // Depth must select the bright near triangle regardless of index order.
     std::array<SceneVertex, 6> layered{};
     for (std::size_t i = 0; i < 3; ++i) {

@@ -90,8 +90,14 @@ int main() {
   assert(courtyard.Scene(1280, 720).environment);
   assert(courtyard.Report().find("\"environment_loaded\":true") != std::string::npos);
 #endif
+  assert(wide.hdr && wide.offscreen && wide.exposure == 1);
+  Press(courtyard, Key::E);
+  assert(courtyard.Scene(1280, 720).exposure == 0.25F);
+  Press(courtyard, Key::E);
+  assert(courtyard.Scene(1280, 720).exposure == 1);
   Press(courtyard, Key::P);
   assert(!courtyard.Scene(1280, 720).pbr);
+  assert(!courtyard.Scene(1280, 720).hdr);
   assert(!courtyard.Scene(1280, 720).environment &&
          courtyard.Scene(1280, 720).linearTextureUploads.empty());
   Press(courtyard, Key::P);

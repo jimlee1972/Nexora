@@ -25,7 +25,9 @@ enum class ResourceState : std::uint8_t {
   RenderTarget,
   Present
 };
-enum class TextureFormat : std::uint8_t { Rgba8Unorm, Bgra8Unorm, Depth32Float };
+// Rgba16Float describes externally owned Presentation HDR resources; native RHI
+// triangle allocation rejects it until that independent pipeline supports float targets.
+enum class TextureFormat : std::uint8_t { Rgba8Unorm, Bgra8Unorm, Depth32Float, Rgba16Float };
 enum class ShaderStage : std::uint8_t { Vertex = 1, Fragment = 2, Compute = 4 };
 enum class BindingType : std::uint8_t { ConstantBuffer, Texture, Sampler, StorageBuffer };
 enum class IndexFormat : std::uint8_t { Uint16, Uint32 };

@@ -233,3 +233,16 @@ converter 與 derived hash 均保留。各 cooked 浮點資產相依於同一 ve
 [Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-IBL-2026-10-05/acceptance.md).
 Windows／Metal 原生執行由 PR CI 驗證。target 仍為 RGBA8；浮點 HDR 合成與最終 VIS-M1
 材質驗收仍開放。里程碑維持 1/7。
+
+## 16. VIS-M1 浮點 HDR 合成（2026-10-05）
+
+✅ Linux 原生共享 PBR 寫入 frame-owned RGBA16F，Main 套用曝光、共享 ACES 與一次顯示轉換後才疊 UI。
+像素驗證區分光值 4／1、曝光 1／0.125／0.25，並覆蓋 UI 顏色一致、frame 重用、resize，以及既有
+直接／離屏 RGBA8 與 Lambert 對照。E 切換庭院曝光並精確還原固定鏡頭。外部 graph 如實記錄 RGBA16F
+與 ShaderRead，不暴露資源，也不暗改原生 RHI triangle allocation。公開 C++ consumer 重建；穩定
+C／Zig 與 NXAB 保持相容。
+
+✅ Linux Development 全套 95/95、無 skip。Windows DX12／Metal 原生像素、Windows Vulkan 套件重播與
+Shipping 套件須以 PR 精確 head 的 CI 通過後才驗收里程碑。證據保留於
+`Apps/Showcase/evidence/VIS-M1-Linux-HDR-2026-10-05`。這批不代表 bloom、最終美術、實體畫面或 GTX 960
+效能通過；VIS-M1 等待跨平台驗收，進度仍為 1/7。

@@ -158,6 +158,15 @@ public static class NexoraAcceptanceWindow {
     Capture 'courtyard-ui.png'
     Press-Key 115 # F4: remove the overlay from fixed visual evidence.
     Capture 'courtyard-wide.png'
+    Press-Key 69 # E: expose retained linear HDR highlights.
+    Capture 'courtyard-exposure.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
+        (Get-FileHash (Join-Path $evidence 'courtyard-exposure.png')).Hash) 'Courtyard HDR exposure pixels did not change.'
+    Press-Key 69
+    Capture 'courtyard-exposure-restored.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
+        (Get-FileHash (Join-Path $evidence 'courtyard-exposure-restored.png')).Hash) 'Courtyard exposure restoration differs.'
+    $acceptance.courtyard_hdr_exposure = $true
     Press-Key 79 # O: compare actual environment lighting with direct light.
     Capture 'courtyard-direct.png'
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne

@@ -6,6 +6,9 @@
 namespace Nexora::Presentation {
 // PBR validation is shared; resident map references and native capabilities remain adapter-owned.
 [[nodiscard]] inline bool ValidatePbrData(const SceneDrawData &draw) noexcept {
+  if (!std::isfinite(draw.exposure) || draw.exposure < 0 || draw.exposure > 32 ||
+      (draw.hdr && (!draw.pbr || !draw.offscreen)))
+    return false;
   if (!draw.pbr)
     return draw.linearTextureUploads.empty() && !draw.environment;
   if (draw.linearTextureUploads.size() > 16)
@@ -117,6 +120,7 @@ static_assert(sizeof(PbrMaterialUpload) == 80);
   parameters[13] = material.occlusion;
   // Bypass quantization bias in the RGBA8 flat-normal fallback.
   parameters[14] = material.normalTextureId ? material.normalScale : 0;
+  parameters[15] = draw.hdr ? 1.0F : 0.0F;
   if (draw.environment) {
     parameters[16] = draw.environment->intensity;
     parameters[17] = draw.environment->rotationRadians;
