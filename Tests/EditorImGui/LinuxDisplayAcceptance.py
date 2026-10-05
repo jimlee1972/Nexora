@@ -14,6 +14,25 @@ import tempfile
 import time
 
 
+def collect_output(editor: subprocess.Popen[str], timeout: float) -> tuple[str, str]:
+    """Retain both streams in CTest evidence and reject Vulkan errors even after exit zero.
+
+    Validation layers may write to either stream without changing the application's exit code.
+    This applies to every completed launch, including the intentionally SIGKILLed recovery drill.
+    Cleanup-only waits remain outside this check so they cannot mask an earlier failure.
+    """
+    stdout, stderr = editor.communicate(timeout=timeout)
+    if stdout:
+        print(stdout, end="" if stdout.endswith("\n") else "\n", flush=True)
+    if stderr:
+        print(stderr, end="" if stderr.endswith("\n") else "\n", flush=True)
+    error = re.search(r"Validation Error\b|(?:VUID-|SYNC-HAZARD-)[A-Za-z0-9_-]+",
+                      stdout + "\n" + stderr)
+    if error:
+        raise RuntimeError(f"Vulkan validation failed: {error.group(0)}")
+    return stdout, stderr
+
+
 def start_xvfb(xvfb: str, screen: str, timeout: float = 10.0):
     """Start Xvfb on a display it picks itself; return (server, ":N") once it accepts clients.
 
@@ -191,7 +210,7 @@ def finish_project_selector(
             time.sleep(0.1)
         if not (root / "project.nexora").is_file():
             subprocess.run([xdotool, "windowclose", window], env=environment, check=False)
-            _, stderr = editor.communicate(timeout=30)
+            _, stderr = collect_output(editor, 30)
             raise RuntimeError(f"graphical selector did not create the project: {stderr}")
     else:
         press("ctrl+o")
@@ -210,10 +229,10 @@ def finish_project_selector(
         time.sleep(0.05)
     if not activated:
         subprocess.run([xdotool, "windowclose", window], env=environment, check=False)
-        _, stderr = editor.communicate(timeout=30)
+        _, stderr = collect_output(editor, 30)
         raise RuntimeError(f"project selector did not publish activation: {stderr}")
     subprocess.run([xdotool, "windowclose", window], env=environment, check=True)
-    _, stderr = editor.communicate(timeout=30)
+    _, stderr = collect_output(editor, 30)
     if editor.returncode != 0 or "graphical evidence:" not in stderr:
         raise RuntimeError(f"project selector {action} failed: {stderr}")
     if f"selector={action}" not in stderr or f"access={expected_access}" not in stderr:
@@ -246,7 +265,7 @@ def crash_with_pending_recovery(
     try:
         wait_for_window(xdotool, environment)
         editor.kill()
-        _, stderr = editor.communicate(timeout=5)
+        _, stderr = collect_output(editor, 5)
         if editor.returncode != -signal.SIGKILL:
             raise RuntimeError(f"Editor did not terminate through SIGKILL: {stderr}")
         if journal.read_bytes() != payload.encode("utf-8"):
@@ -270,7 +289,7 @@ def finish_recovery_choice(
     subprocess.run([xdotool, "windowfocus", window], env=environment, check=True)
     time.sleep(0.5)
     subprocess.run([xdotool, *key_sequence], env=environment, check=True)
-    _, stderr = editor.communicate(timeout=30)
+    _, stderr = collect_output(editor, 30)
     if editor.returncode != 0 or "graphical evidence:" not in stderr:
         raise RuntimeError(f"recovery process failed or omitted graphical diagnostics: {stderr}")
     match = re.search(
@@ -350,13 +369,13 @@ def main() -> int:
         # diagnostic, while an explicit read-only process can render the same project without
         # mutating project-owned state.
         contender = launch(args.editor, root, recent_projects, environment, frames=8)
-        _, contender_stderr = contender.communicate(timeout=30)
+        _, contender_stderr = collect_output(contender, 30)
         if contender.returncode == 0 or "project is already open for writing" not in contender_stderr:
             raise RuntimeError(f"second writer was not rejected: {contender_stderr}")
         observer = launch(
             args.editor, root, recent_projects, environment, frames=8, read_only=True
         )
-        _, observer_stderr = observer.communicate(timeout=30)
+        _, observer_stderr = collect_output(observer, 30)
         if observer.returncode != 0 or "access=read-only" not in observer_stderr:
             raise RuntimeError(f"read-only graphical open failed: {observer_stderr}")
 
@@ -401,7 +420,7 @@ def main() -> int:
             raise RuntimeError("Hierarchy shortcut did not save the created root")
         # A real close event must stop the unbounded loop and still drain/persist cleanly.
         subprocess.run([args.xdotool, "windowclose", window], env=environment, check=True)
-        _, stderr = editor.communicate(timeout=30)
+        _, stderr = collect_output(editor, 30)
         if editor.returncode != 0 or "graphical evidence:" not in stderr:
             raise RuntimeError(f"close-event shutdown failed: {stderr}")
         if "pie_steps=1" not in stderr:
@@ -436,7 +455,7 @@ def main() -> int:
         # run replaces it with the current schema after the default dock layout is rebuilt.
         (root / ".nexora/editor-layout.ini").write_text("schema=999\ncorrupt\n")
         editor = launch(args.editor, root, recent_projects, environment, frames=8)
-        _, stderr = editor.communicate(timeout=30)
+        _, stderr = collect_output(editor, 30)
         if (editor.returncode != 0 or "invalid or unsupported editor layout" not in stderr or
                 "scene_nodes=2" not in stderr):
             raise RuntimeError(f"corrupt-layout recovery failed: {stderr}")
@@ -451,7 +470,7 @@ def main() -> int:
         current_layout = (root / ".nexora/editor-layout.ini").read_text().split("\n", 1)[1]
         (root / ".nexora/editor-layout.ini").write_text("schema=0\n" + current_layout)
         editor = launch(args.editor, root, recent_projects, environment, frames=8)
-        _, stderr = editor.communicate(timeout=30)
+        _, stderr = collect_output(editor, 30)
         if editor.returncode != 0 or "graphical evidence:" not in stderr:
             raise RuntimeError(f"layout migration run failed: {stderr}")
         editor = None

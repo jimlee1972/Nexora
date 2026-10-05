@@ -23,6 +23,16 @@ Configure with `NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON` to build the optional
 Dear ImGui docking release; it remains off by default so the deterministic CLI workflow does not
 acquire a graphical dependency.
 
+The Linux display acceptance retains completed Editor launches' stdout and stderr in CTest logs
+and rejects Vulkan `Validation Error`, `VUID-*`, and `SYNC-HAZARD-*` diagnostics even if the Editor
+exits successfully. This includes selector, read-only/writer conflict, layout, close and durable
+SIGKILL/recovery launches; cleanup-only waits cannot replace an earlier failure.
+`editor.linux_validation_output` verifies this policy using real subprocesses on both streams.
+The `editor-linux-display` CI job enables Khronos core and synchronization validation and retains
+separate `editor-validation.log` and `native-validation.log` artifacts, so the later native test
+cannot overwrite the Editor evidence. These are software Vulkan/Xvfb results; target-host
+physical-display and Windows DPI/IME acceptance remain separate.
+
 On a host with a display and native presentation support, launch the shell with:
 
 ```bash
