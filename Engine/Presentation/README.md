@@ -253,12 +253,12 @@ resources; missing base/ORM/emission select white (emission is multiplied by its
 and a missing normal selects a flat texture with normal scale zero. `UINT64_MAX` and
 `UINT64_MAX-1` are internal reserved texture IDs and are rejected in caller descriptors.
 
-The private 64-byte material packing contract is shared across adapters. Vulkan allocates aligned
+The private 80-byte material packing contract is shared across adapters. Vulkan allocates aligned
 UBOs and descriptor sets per protecting frame; DX12 uses aligned paired CBVs; Metal copies constants
-and binds four maps/samplers. Rejected missing maps/invalid factors do not consume scene submissions.
+and binds four material maps plus three environment resources/samplers. Rejected missing maps/invalid factors do not consume scene submissions.
 Colors are evaluated in linear space and tone-mapped with shared ACES, followed by a single manual
 sRGB transfer for UNORM targets (hardware transfer for sRGB attachments). These remain RGBA8 targets;
-linear floating-point HDR storage and IBL are not yet accepted. Public C++ consumers rebuild; Runtime
+linear floating-point HDR scene storage is not yet accepted. Public C++ consumers rebuild; Runtime
 mesh wire formats and stable C/Zig ABI remain unchanged.
 
 PBR base/emission maps use hardware sRGB views, decoding texels before linear filtering. Each
@@ -267,5 +267,31 @@ uses typeless resources with two SRVs, and Metal uses pixel-format views. Normal
 Lambert bindings retain UNORM views. Both views share the texture generation and protecting-fence
 lifetime; UI textures retain their existing UNORM contract. Shared shaders consume sampled colors
 as linear values and do not decode them again. Midpoint black/white pixel tests compare base and
-emission against linear 0.5 factors, and separately verify linear ORM and legacy filtering. IBL
-and floating-point HDR remain pending; this color-filtering slice does not complete VIS-M1.
+emission against linear 0.5 factors, and separately verify linear ORM and legacy filtering.
+Floating-point HDR composition remains pending; color filtering alone does not complete VIS-M1.
+
+## Bounded linear environment textures
+
+`SceneLinearTextureUpload` borrows a tightly packed little-endian RGBA16F mip chain for one draw.
+Dimensions are nonzero powers of two, at most 256 per axis; levels span no more than the complete
+chain (at most nine). Half values must be finite and nonnegative. Up to 16 uploads and 16 resident
+linear generations, including an internal black fallback, are allowed. IDs are immutable, nonzero,
+and cannot alias RGBA8 scene generations; reserved IDs are rejected. A failed descriptor does not
+consume the frame. Native resource allocation or upload failure reports an error before publication.
+Vulkan/DX12 check float texture sampling support and report Unsupported when unavailable.
+
+An optional `SceneEnvironment` names diffuse irradiance, roughness-prefiltered specular and BRDF LUT
+resources. Diffuse/LUT have one level; the named specular count must match resident or same-draw
+upload metadata. Intensity is finite in [0,32], +Y rotation in [-2pi,2pi]. Latlong U wraps and V clamps;
+the LUT clamps both axes. The shared shader samples roughness across the prefiltered mip range,
+rotates reflection/normal coordinates consistently, and passes actual linear radiance to shared PBR.
+A missing environment explicitly contributes zero, including on retained Lambert comparison draws.
+
+Vulkan uses one eight-binding descriptor set per protecting frame; paired material constants grow
+from 64 to 80 bytes. DX12 uses seven SRV tables/static samplers and paired CBVs; Metal uses seven
+textures/samplers and copied constants. Linear textures share the existing protecting-fence/drain
+boundary, with all mip subresources uploaded and transitioned before sampling. Vulkan candidates
+allocate fully before recording copy commands. Public C++ consumers rebuild; stable C/Zig and NXAB
+schemas are unchanged. RGBA16F environment resources do not yet mean floating HDR scene targets or
+HDR10 monitor output. Native tests exercise HDR radiance, diffuse/metal separation, roughness levels,
+rotation, view-dependent reflections, U-seam filtering, IBL disable and resize/re-upload.

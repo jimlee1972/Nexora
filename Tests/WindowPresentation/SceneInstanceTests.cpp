@@ -1,4 +1,5 @@
 #include "Nexora/Presentation/Surface.h"
+#include "PbrEnvironmentFixtures.h"
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
 
@@ -17,6 +18,59 @@ void Require(bool value, const char *message) {
 }
 bool Near(float a, float b) { return std::abs(a - b) < 1e-5F; }
 void Run() {
+  const auto linearUpload = PbrEnvironmentFixtures::uploads[2];
+  Require(ValidateSceneLinearTexture(linearUpload), "valid RGBA16F mip chain rejected");
+  for (const auto width : {0U, 3U, 512U}) {
+    auto invalid = linearUpload;
+    invalid.width = width;
+    Require(!ValidateSceneLinearTexture(invalid), "invalid linear texture dimensions accepted");
+  }
+  auto invalidLinear = linearUpload;
+  invalidLinear.mipLevels = 3;
+  Require(!ValidateSceneLinearTexture(invalidLinear), "excess linear mip levels accepted");
+  invalidLinear = linearUpload;
+  invalidLinear.pixels = linearUpload.pixels.first(linearUpload.pixels.size() - 1);
+  Require(!ValidateSceneLinearTexture(invalidLinear), "truncated linear mip payload accepted");
+  for (const auto id : std::array<std::uint64_t, 3>{0, UINT64_MAX - 1, UINT64_MAX}) {
+    invalidLinear = linearUpload;
+    invalidLinear.textureId = id;
+    Require(!ValidateSceneLinearTexture(invalidLinear), "reserved linear texture ID accepted");
+  }
+  for (const unsigned half : {0x8000U, 0x7c00U, 0x7e00U}) {
+    std::array<std::byte, 8> bytes{};
+    bytes[0] = static_cast<std::byte>(half & 255U);
+    bytes[1] = static_cast<std::byte>(half >> 8);
+    Require(!ValidateSceneLinearTexture({10, 1, 1, 1, bytes}), "negative/nonfinite half accepted");
+  }
+  SceneDrawData environmentDraw{};
+  environmentDraw.pbr = true;
+  environmentDraw.linearTextureUploads = PbrEnvironmentFixtures::uploads;
+  environmentDraw.environment = SceneEnvironment{81, 83, 84, 1.0F, 0.0F, 2};
+  Require(ValidatePbrData(environmentDraw), "bounded environment rejected");
+  Require(ValidateEnvironmentResidency(environmentDraw, [](std::uint64_t) { return 0U; }),
+          "same-submission environment uploads rejected");
+  Require(!ValidateEnvironmentResidency(environmentDraw, [](std::uint64_t) { return 1U; }),
+          "resident prefilter level mismatch accepted");
+  for (const auto intensity : {-1.0F, 33.0F, std::numeric_limits<float>::quiet_NaN()}) {
+    environmentDraw.environment->intensity = intensity;
+    Require(!ValidatePbrData(environmentDraw), "invalid environment intensity accepted");
+  }
+  environmentDraw.environment->intensity = 1;
+  environmentDraw.environment->rotationRadians = 7;
+  Require(!ValidatePbrData(environmentDraw), "unbounded environment rotation accepted");
+  environmentDraw.environment->rotationRadians = 0;
+  environmentDraw.environment->specularTextureId = 0;
+  Require(!ValidatePbrData(environmentDraw), "missing environment identity accepted");
+  environmentDraw.environment->specularTextureId = 83;
+  environmentDraw.environment->specularMipLevels = 0;
+  Require(!ValidatePbrData(environmentDraw), "empty prefilter chain accepted");
+  environmentDraw.environment->specularMipLevels = 2;
+  std::array duplicateLinear{linearUpload, linearUpload};
+  environmentDraw.linearTextureUploads = duplicateLinear;
+  Require(!ValidatePbrData(environmentDraw), "duplicate linear upload accepted");
+  environmentDraw.linearTextureUploads = {};
+  environmentDraw.pbr = false;
+  Require(!ValidatePbrData(environmentDraw), "environment accepted by legacy shading");
   std::vector<SceneMaterial> materials(64);
   std::array materialBatches{SceneMeshBatch{0, 3, 0, 1, 63}};
   Require(ValidateSceneMaterials(materials, materialBatches), "maximum material palette rejected");

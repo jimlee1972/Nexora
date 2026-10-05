@@ -1,0 +1,41 @@
+{
+  "schema": "nexora.showcase.ibl-derived.v1",
+  "source_sha256": "926a6bb81897919b2924f42407162b8d54be91eab2da3fe7fe19daf308cfa09a",
+  "samples": 128,
+  "sequence": "Hammersley",
+  "converter_sha256": "4777321a9b2a62af058955c4c2ed07fc48ea38bdfb48b77ea8d982b11dbacf95",
+  "format": "RGBA16F little-endian",
+  "orientation": "latlong +Y up, atan2(z,x); U wrap/V clamp",
+  "diffuse": "cosine-weighted irradiance integral including pi",
+  "specular": "GGX importance sampling, N=V, NdotL weighted mean; roughness=mip/6",
+  "brdf": "split sum GGX / Schlick geometry k=roughness^2/2; x=NdotV, y=roughness",
+  "resources": [
+    {
+      "name": "diffuse",
+      "path": "diffuse.rgba16f",
+      "width": 16,
+      "height": 8,
+      "mip_levels": 1,
+      "bytes": 1024,
+      "sha256": "6eddd29182db70cd3b5b6066013932f9975ba17598d4e87d0b513dae4b00c99b"
+    },
+    {
+      "name": "specular",
+      "path": "specular.rgba16f",
+      "width": 64,
+      "height": 32,
+      "mip_levels": 7,
+      "bytes": 21848,
+      "sha256": "732c2f3738715adace60fb5302cdaccdd01661323f1ef9998fd89bb324d0d96b"
+    },
+    {
+      "name": "brdf",
+      "path": "brdf.rgba16f",
+      "width": 32,
+      "height": 32,
+      "mip_levels": 1,
+      "bytes": 8192,
+      "sha256": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2"
+    }
+  ]
+}

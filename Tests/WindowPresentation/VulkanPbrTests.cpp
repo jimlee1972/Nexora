@@ -1,4 +1,5 @@
 #include "Nexora/Presentation/Surface.h"
+#include "PbrEnvironmentFixtures.h"
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #undef None
@@ -130,7 +131,7 @@ int main(int argc, char **argv) {
                                               std::byte{255}, std::byte{255}};
     const UiTextureUpload filterUpload{38, 2, 1, 8, blackWhite};
     unsigned width = 640, height = 480;
-    for (unsigned frame = 0; frame < 13; ++frame) {
+    for (unsigned frame = 0; frame < 20; ++frame) {
       materials = {};
       draw.pbr = true;
       draw.instances = {};
@@ -195,12 +196,20 @@ int main(int argc, char **argv) {
           materials[1].ormTextureId = 38;
         }
       }
+      if (frame >= 13) {
+        PbrEnvironmentFixtures::Configure(draw, materials, frame - 13);
+        draw.linearTextureUploads =
+            (frame == 13 || frame == 19)
+                ? std::span<const SceneLinearTextureUpload>(PbrEnvironmentFixtures::uploads)
+                : std::span<const SceneLinearTextureUpload>{};
+      }
       // Require a unique marker from this submission before accepting asynchronously presented
       // X11 pixels. Equality alone could otherwise match the preceding frame's material pair.
       const float marker = 0.02F * static_cast<float>(frame + 1);
       materials[2].baseColor =
           draw.pbr ? std::array<float, 4>{0, 0, 0, 1} : std::array<float, 4>{marker, 0, 0, 1};
       materials[2].emission = {marker, 0, 0};
+      materials[2].roughness = 1;
       materials[2].metallic =
           1; // Zero albedo metal has zero direct specular; marker is emission only.
       const auto toSrgb = [](float linear) {
@@ -212,9 +221,9 @@ int main(int argc, char **argv) {
       const auto markerCode =
           static_cast<int>(std::lround(255.0F * (draw.pbr ? toSrgb(mappedMarker) : marker)));
       const auto srgbLegacyMarker = static_cast<int>(std::lround(255.0F * toSrgb(marker)));
-      if (frame == 4) {
-        width = 480;
-        height = 360;
+      if (frame == 4 || frame == 19) {
+        width = frame == 4 ? 480U : 640U;
+        height = frame == 4 ? 360U : 480U;
         Require(windows->Resize(window.handle, width, height) == Window::WindowError::None,
                 "PBR resize failed");
         Require(surface->NotifyWindowExtent(width, height) == SurfaceStatus::Ready,
@@ -232,6 +241,23 @@ int main(int argc, char **argv) {
                 "invalid roughness accepted");
         materials[0].roughness = 0.5F;
       }
+      if (frame == 13) {
+        auto invalid = draw;
+        invalid.environment->specularTextureId = 999;
+        Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
+                "missing environment accepted");
+        invalid = draw;
+        invalid.environment->specularMipLevels = 2;
+        Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
+                "mismatched environment mips accepted");
+        invalid = draw;
+        auto invalidUploads = PbrEnvironmentFixtures::uploads;
+        invalidUploads[0].textureId = 34;
+        invalid.environment->diffuseTextureId = 34;
+        invalid.linearTextureUploads = invalidUploads;
+        Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
+                "linear/RGBA8 alias accepted");
+      }
       const auto drawStatus = surface->DrawScene(draw);
       if (drawStatus != SurfaceStatus::Ready)
         std::cerr << "PBR draw frame=" << frame << " status=" << static_cast<int>(drawStatus)
@@ -246,7 +272,9 @@ int main(int argc, char **argv) {
         const auto pixels = Read(display, native, width, height, {});
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 9)
+        if (frame >= 13)
+          valid = PbrEnvironmentFixtures::Pixels(frame - 13, left, right);
+        else if (frame >= 9)
           valid =
               left[0] > 40 && std::abs(static_cast<int>(left[0]) - static_cast<int>(right[0])) <= 2;
         else if (frame == 8)
@@ -282,8 +310,8 @@ int main(int argc, char **argv) {
       if (argc == 2 && frame == 9)
         static_cast<void>(Read(display, native, width, height, argv[1]));
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 13 &&
-                surface->Diagnostics().sceneComposites == 7,
+    Require(surface->Diagnostics().sceneDrawCalls == 20 &&
+                surface->Diagnostics().sceneComposites == 10,
             "PBR counters mismatch");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "PBR teardown failed");
     surface.reset();
@@ -293,7 +321,9 @@ int main(int argc, char **argv) {
     std::cout << "PASS: shared Slang PBR emission, normal, mirrored tangent handedness, ORM, "
                  "linear-space sRGB filtering, linear ORM/legacy filtering, missing-map "
                  "defaults, "
-                 "invalid descriptors, frame reuse, direct/offscreen draws and resize pixels\n";
+                 "invalid descriptors, HDR IBL radiance, roughness mips, metal/diffuse separation, "
+                 "reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws "
+                 "and resize pixels\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
     return 1;

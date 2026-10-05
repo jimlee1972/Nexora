@@ -2,7 +2,7 @@
   "schema": "nexora.showcase.content.v1",
   "version": 1,
   "migration": "Reject unknown schema versions; procedural content is rebuilt from the matching application version.",
-  "license": "Repository LICENSE for original content; Courtyard/KayKit/LICENSE.txt CC0 for adopted assets",
+  "license": "Repository LICENSE for original content; Courtyard/KayKit/LICENSE.txt and Courtyard/Environment/CC0.txt for adopted CC0 assets",
   "rooms": [
     "hub",
     "rendering",
@@ -55,6 +55,13 @@
       64
     ],
     "third_party_license": "CC0-1.0",
-    "controls": "9 enter; B fixed shots; F4 clean view; --clean-view starts without UI"
+    "controls": "9 enter; B fixed shots; F4 clean view; --clean-view starts without UI",
+    "environment": {
+      "source": "Courtyard/Environment/source.json",
+      "derived": "Courtyard/Environment/derived.json",
+      "license": "Courtyard/Environment/CC0.txt",
+      "conversion": "Tools/Build/PrepareCourtyardEnvironment.py",
+      "runtime": "Cooked RGBA16F assets depend on cooked source/license/conversion metadata; imported, cooked, bundled, activated and loaded before native upload"
+    }
   }
 }

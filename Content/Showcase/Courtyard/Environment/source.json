@@ -1,0 +1,22 @@
+{
+  "schema": "nexora.showcase.environment-source.v1",
+  "asset": "forest_slope_1k",
+  "source": "HDRI Haven / Poly Haven",
+  "source_url": "https://polyhaven.com/a/forest_slope",
+  "distribution_repository": "https://github.com/pmndrs/drei-assets",
+  "distribution_commit": "456060a26bbeb8fdf79326f224b6d99b8bcce736",
+  "distribution_path": "hdri/forest_slope_1k.hdr",
+  "license": "CC0-1.0",
+  "license_evidence_repository": "https://github.com/Poly-Haven/polyhaven.com",
+  "license_evidence_commit": "b1a6aa13afc03ae00860f6ac5fe6d5daf8e95356",
+  "license_evidence_path": "public/locales/en/license.json",
+  "source_sha256": "926a6bb81897919b2924f42407162b8d54be91eab2da3fe7fe19daf308cfa09a",
+  "conversion": "Tools/Build/PrepareCourtyardEnvironment.py; deterministic bounded Radiance RGBE decode and offline IBL integration",
+  "source_color": "linear RGB radiance, no display transfer or tone mapping",
+  "redistribution": "CC0 permits modification and redistribution; original HDRI and attribution/license evidence retained",
+  "replacement": "Replace pinned source and derived resources together after hash/license and native visual review",
+  "license_file": "CC0.txt",
+  "license_sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499",
+  "license_evidence_sha256": "a9d88b758d1751dd41713381115ed309ea659e219c1654157b709dce7757e779",
+  "attribution_sha256": "3d8713b60415fbaac3281b361b6a5642e04402f59f88bed871786f64919ab0e6"
+}
