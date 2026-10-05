@@ -57,6 +57,7 @@ int main() {
   assert(wide.vertices.size() > 2000 && wide.indices.size() > 3000);
   for (const auto index : wide.indices)
     assert(index < wide.vertices.size());
+  assert(wide.pbr);
   assert(wide.materials.size() == 6 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   std::size_t covered = 0;
@@ -69,6 +70,19 @@ int main() {
   assert(covered == wide.indices.size());
   for (const auto selected : selectedMaterials)
     assert(selected);
+  for (const auto &vertex : wide.vertices) {
+    float orthogonal = 0, length = 0;
+    for (std::size_t axis = 0; axis < 3; ++axis) {
+      orthogonal += vertex.normal[axis] * vertex.tangent[axis];
+      length += vertex.tangent[axis] * vertex.tangent[axis];
+    }
+    assert(std::abs(orthogonal) < 1e-4F && std::abs(length - 1) < 1e-4F);
+    assert(std::abs(vertex.tangent[3]) == 1);
+  }
+  Press(courtyard, Key::P);
+  assert(!courtyard.Scene(1280, 720).pbr);
+  Press(courtyard, Key::P);
+  assert(courtyard.Scene(1280, 720).pbr);
   const auto wideMatrix = std::to_array(wide.model_view_projection);
   Press(courtyard, Key::B);
   const auto closeMatrix = std::to_array(courtyard.Scene(1280, 720).model_view_projection);

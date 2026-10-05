@@ -19,8 +19,10 @@ bool geometryAllocation{}, failNextAllocation{};
 VkResult CreateBuffer(VkDevice device, const VkBufferCreateInfo *info,
                       const VkAllocationCallbacks *allocator, VkBuffer *buffer) {
   const auto result = vkCreateBuffer(device, info, allocator, buffer);
-  geometryAllocation = result == VK_SUCCESS && info->usage == (VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-                                                               VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+  geometryAllocation =
+      result == VK_SUCCESS &&
+      (info->usage & (VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT)) ==
+          (VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
   if (geometryAllocation) {
     buffers[*buffer] = info->size;
     ++creations;

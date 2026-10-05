@@ -119,6 +119,7 @@ struct RoomSession::State final {
   int pointerX{}, pointerY{};
   bool dragging{}, screenshotMode{};
   std::size_t courtyardShot{};
+  bool courtyardPbr{true};
   std::uint64_t atlasGeneration{~std::uint64_t{0}};
   std::string lastAction{"Ready"}, pluginLibrary;
   ErrorInjection injection{ErrorInjection::None};
@@ -128,6 +129,9 @@ struct RoomSession::State final {
   std::vector<Nexora::Presentation::SceneInstance> instances;
   std::vector<Nexora::Presentation::SceneMaterial> materials;
   std::vector<Nexora::Presentation::SceneMeshBatch> batches;
+  std::vector<Nexora::Presentation::SceneVertex> courtyardVertices;
+  std::vector<std::uint16_t> courtyardIndices;
+  std::vector<Nexora::Presentation::SceneMeshBatch> courtyardBatches;
   std::array<std::byte, 8 * 8 * 4> checker{};
   std::vector<Nexora::Presentation::UiTextureUpload> sceneUploads;
   std::vector<std::uint16_t> indices;
@@ -472,6 +476,12 @@ struct RoomSession::State final {
 #endif
   // Engineering blockout only: no PBR, shadows, emission or wind acceptance is implied.
   void CourtyardGeometry() {
+    if (!courtyardVertices.empty()) {
+      vertices = courtyardVertices;
+      indices = courtyardIndices;
+      batches = courtyardBatches;
+      return;
+    }
     // Close each consecutive geometry range with an explicit ephemeral material slot.
     std::size_t firstIndex = 0;
     const auto finish = [&](std::uint32_t material) {
@@ -544,6 +554,22 @@ struct RoomSession::State final {
     Cube(0, 2.9F, 0, 0.35F, 0.55F, 0.35F);
 #endif
     finish(2);
+    renderer::Mesh tangentSource;
+    tangentSource.indices = indices;
+    tangentSource.vertices.reserve(vertices.size());
+    for (const auto &vertex : vertices)
+      tangentSource.vertices.push_back(
+          {{vertex.position[0], vertex.position[1], vertex.position[2]},
+           {vertex.normal[0], vertex.normal[1], vertex.normal[2]},
+           {vertex.uv[0], vertex.uv[1]}});
+    const auto tangents = renderer::GenerateMeshTangents(tangentSource);
+    if (!tangents)
+      throw std::runtime_error("Courtyard tangent generation failed");
+    for (std::size_t i = 0; i < vertices.size(); ++i)
+      std::copy((*tangents)[i].begin(), (*tangents)[i].end(), vertices[i].tangent);
+    courtyardVertices = vertices;
+    courtyardIndices = indices;
+    courtyardBatches = batches;
   }
   void Probe(std::size_t m, ErrorInjection error = ErrorInjection::None) {
     if (m >= probes.size())
@@ -1132,6 +1158,10 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
   }
   if (s.selected == "courtyard" && key == Key::B)
     s.CourtyardCamera(s.courtyardShot + 1);
+  if (s.selected == "courtyard" && key == Key::P) {
+    s.courtyardPbr = !s.courtyardPbr;
+    s.lastAction = s.courtyardPbr ? "PBR materials" : "Lambert material comparison";
+  }
   if (key == Key::F4)
     s.screenshotMode = !s.screenshotMode;
   if (key == Key::F1)
@@ -1361,6 +1391,13 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[4].textureId = 2;
 #endif
+    s.materials[0].roughness = 0.85F;
+    s.materials[1].metallic = 1;
+    s.materials[1].roughness = 0.24F;
+    s.materials[2].roughness = 0.15F;
+    s.materials[2].emission = {0.04F, 0.65F, 0.9F};
+    s.materials[3].roughness = 0.35F;
+    s.materials[4].roughness = 0.8F;
     s.CourtyardGeometry();
   } else if (s.selected == "hub") {
     s.Cube(0, 0.5F, 0, 1.5F, 0.5F, 1.5F);
@@ -1511,6 +1548,13 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   data.base_color[1] = 0.65F;
   data.base_color[2] = 0.9F;
   if (s.selected == "courtyard") {
+    data.pbr = s.courtyardPbr;
+    data.cameraPosition = {eye.x, eye.y, eye.z};
+    if (data.pbr) {
+      data.light_color[0] *= 3;
+      data.light_color[1] *= 3;
+      data.light_color[2] *= 3;
+    }
     data.materials = s.materials;
     data.batches = s.batches;
 #if NEXORA_ASSET_PIPELINE_ENABLED
@@ -1537,7 +1581,8 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     return {};
   s.Rect(0, 0, 1280, 112, 0xf0271a10);
   s.Text(18, 14, s.localization.Resolve("title"), 0xffefdc80, 3);
-  s.Text(18, 45, "9 courtyard / B shot / F4 hide UI / F1 overview / F2 profiler / F3 matrix");
+  s.Text(18, 45,
+         "9 courtyard / B shot / P material / F4 hide UI / F1 overview / F2 profiler / F3 matrix");
   for (std::size_t i = 0; i < rooms.size(); ++i) {
     const float x = 18 + static_cast<float>(i) * 154;
     s.Rect(x, 75, 146, 28, s.selected == rooms[i] ? 0xff996828 : 0xff453123);
@@ -1664,6 +1709,7 @@ std::string RoomSession::Report() const {
     out << "\"" << Escape(line) << "\"";
   }
   out << "],\"courtyard\":{\"stage\":\"engineering_greybox\",\"shot\":" << s.courtyardShot
+      << ",\"shading\":\"" << (s.courtyardPbr ? "shared_pbr_direct" : "lambert") << "\""
       << ",\"screenshot_mode\":" << s.screenshotMode
 #if NEXORA_ASSET_PIPELINE_ENABLED
       << ",\"representative_asset_loaded\":" << !s.assetMesh.vertices.empty()

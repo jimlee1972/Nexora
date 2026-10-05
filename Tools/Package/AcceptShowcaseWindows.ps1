@@ -152,6 +152,28 @@ public static class NexoraAcceptanceWindow {
         [NexoraAcceptanceWindow]::Press($window, $key)
         Start-Sleep -Milliseconds 150
     }
+    # Exercise the same shared PBR scene and comparison path on each requested native backend.
+    $rooms += 'courtyard'
+    Press-Key 57
+    Capture 'courtyard-ui.png'
+    Press-Key 115 # F4: remove the overlay from fixed visual evidence.
+    Capture 'courtyard-wide.png'
+    Press-Key 80
+    Capture 'courtyard-lambert.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -ne
+        (Get-FileHash (Join-Path $evidence 'courtyard-lambert.png')).Hash) 'Courtyard material comparison pixels did not change.'
+    Press-Key 80
+    Capture 'courtyard-pbr-restored.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
+        (Get-FileHash (Join-Path $evidence 'courtyard-pbr-restored.png')).Hash) 'Courtyard PBR restoration pixels differ.'
+    Press-Key 66; Capture 'courtyard-material.png'
+    Press-Key 66; Capture 'courtyard-motion.png'
+    Press-Key 66; Capture 'courtyard-wide-replay.png'
+    Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
+        (Get-FileHash (Join-Path $evidence 'courtyard-wide-replay.png')).Hash) 'Courtyard fixed camera replay pixels differ.'
+    Press-Key 115
+    $acceptance.courtyard_material_comparison = $true
+    $acceptance.courtyard_fixed_shots = $true
     function Clear-StateOutput {
         foreach ($name in @('showcase-lab.json', 'showcase-lab.md')) {
             $path = Join-Path $staged $name

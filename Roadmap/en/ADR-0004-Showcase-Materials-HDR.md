@@ -46,3 +46,5 @@ release resources on scene/material changes while submitted commands still refer
 material validation, native independent material pixels, normal/roughness/orbit cases, missing-map
 fallbacks, resize/reload/lifetime and backend comparisons are acceptance evidence; shader compilation
 alone is insufficient. Hardware visuals and the final GTX 960 budget remain separate VIS-M3/M6 gates.
+
+Direct-light PBR is now integrated with pinned embedded shader artifacts and shared native material packing. IBL/HDR remain subsequent slices.

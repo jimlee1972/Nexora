@@ -45,3 +45,13 @@ vertex/fragment UI entry with atlas sampling, clip, nine-slice, and explicit bin
 `NEXORA_ENABLE_SLANG=ON`, all three smoke shaders cross-compile to SPIR-V and Metal source, plus
 DXIL on Windows. The regular `build.shader_contract` also checks the module's public surface and
 smoke-shader coverage when Slang is disabled.
+
+## Native Showcase PBR entry
+
+`Engine/Presentation/shaders/scene_pbr.slang` imports this shared library for actual native
+Presentation draws. Its four explicit tier-1 maps decode sRGB base/emission once; +Y normal and ORM
+are linear. `GeneratePbrShaders.py` uses pinned Slang 2026.18 to embed SPIR-V and HLSL/Metal source,
+with an optional Slang-enabled regeneration check. Native adapters own geometry/material resources
+and frame lifetimes. This direct-light slice invokes `NexoraEvaluatePbr` and ACES with one display
+transfer; environment sampling and a floating-point HDR composition pass are subsequent slices.
+No PBR math is maintained in backend-specific handwritten shader strings.

@@ -24,6 +24,30 @@ int RunTests() {
               first.material.base_color == second.material.base_color,
           "procedural room must be deterministic");
 
+  renderer::Mesh tangentMesh;
+  tangentMesh.vertices = {{{0, 0, 0}, {0, 0, 1}, {0, 0}},
+                          {{1, 0, 0}, {0, 0, 1}, {1, 0}},
+                          {{0, 1, 0}, {0, 0, 1}, {0, 1}}};
+  tangentMesh.indices = {0, 1, 2};
+  const auto tangent = renderer::GenerateMeshTangents(tangentMesh);
+  Require(tangent && (*tangent)[0] == std::array<float, 4>{1, 0, 0, 1},
+          "UV basis did not produce +X tangent/+Y bitangent");
+  tangentMesh.vertices[1].uv[0] = -1;
+  const auto mirroredTangent = renderer::GenerateMeshTangents(tangentMesh);
+  Require(mirroredTangent && (*mirroredTangent)[0] == std::array<float, 4>{-1, 0, 0, -1},
+          "mirrored UV handedness changed the bitangent direction");
+  for (auto &vertex : tangentMesh.vertices)
+    vertex.uv = {};
+  const auto fallback = renderer::GenerateMeshTangents(tangentMesh);
+  Require(fallback && std::abs((*fallback)[0][2]) < 1e-6F &&
+              std::abs((*fallback)[0][0] * (*fallback)[0][0] +
+                       (*fallback)[0][1] * (*fallback)[0][1] - 1) < 1e-6F,
+          "degenerate UV did not produce a unit orthogonal fallback");
+  tangentMesh.indices[0] = 99;
+  Require(!renderer::GenerateMeshTangents(tangentMesh), "bad tangent mesh index accepted");
+  tangentMesh.indices[0] = 0;
+  tangentMesh.vertices[0].normal = {};
+  Require(!renderer::GenerateMeshTangents(tangentMesh), "zero tangent mesh normal accepted");
   auto invalid = first;
   invalid.mesh.indices.push_back(999);
   Require(!renderer::ValidateSceneFrame(invalid), "out-of-range index must be rejected");

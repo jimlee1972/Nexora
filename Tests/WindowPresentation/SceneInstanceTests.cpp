@@ -1,4 +1,5 @@
 #include "Nexora/Presentation/Surface.h"
+#include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
 
 #include <array>
@@ -45,6 +46,21 @@ void Run() {
           "legacy material selection changed");
   materialBatches[0].materialIndex = 1;
   Require(!ValidateSceneMaterials({}, materialBatches), "nonzero legacy material slot accepted");
+  std::array<SceneVertex, 1> pbrVertices{{{{0, 0, 0}, {0, 0, 1}, {0, 0}, {1, 0, 0, 1}}}};
+  SceneDrawData pbr;
+  pbr.pbr = true;
+  pbr.vertices = pbrVertices;
+  Require(ValidatePbrData(pbr), "valid PBR geometry rejected");
+  pbr.base_color[3] = 0.5F;
+  Require(!ValidatePbrData(pbr), "translucent legacy color accepted as opaque PBR");
+  pbr.base_color[3] = 1;
+  pbrVertices[0].tangent[0] = 0;
+  pbrVertices[0].tangent[2] = 1;
+  Require(!ValidatePbrData(pbr), "parallel normal/tangent accepted");
+  pbrVertices[0].tangent[0] = 1;
+  pbrVertices[0].tangent[2] = 0;
+  pbr.cameraPosition[0] = std::numeric_limits<float>::quiet_NaN();
+  Require(!ValidatePbrData(pbr), "nonfinite PBR camera accepted");
   SceneInstance instance;
   Require(ValidateSceneInstance(instance), "identity instance rejected");
   instance.model_transform =
@@ -64,6 +80,7 @@ void Run() {
       actual += packed.model[row][column] * point[column];
     Require(Near(actual, expected[row]), "row-major model transform changed the affine point");
   }
+  Require(packed.normal[0][3] == -1, "mirrored affine tangent sign was lost");
   // A^-T times +Z is (0.25, -1/12, 1); it remains orthogonal to both transformed tangents.
   Require(Near(packed.normal[0][2], 0.25F) && Near(packed.normal[1][2], -1.0F / 12) &&
               Near(packed.normal[2][2], 1),
@@ -117,6 +134,7 @@ void Run() {
               PackSceneInstance(cancellation, cancellation_upload) &&
               ValidateSceneInstance(cancellation),
           "exactly invertible cancellation matrix rejected");
+  Require(cancellation_upload.normal[0][3] == 1, "cancelling affine tangent sign was rounded");
   // The cofactor direction remains orthogonal despite the nearly dependent integer rows.
   for (std::size_t tangent = 0; tangent < 2; ++tangent) {
     double dot = 0, magnitude = 0;

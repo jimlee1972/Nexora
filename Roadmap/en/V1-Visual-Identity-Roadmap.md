@@ -187,3 +187,21 @@ HDR acceptance remain open; milestone progress remains 1/7.
 
 ✅ Material binding slice: Linux 87/87 without skips and native material pixels passed.
 [Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-MaterialBindings-2026-10-05/acceptance.md).
+
+## 13. VIS-M1 shared direct-light PBR (2026-10-05)
+
+The native entry now imports `Nexora.Common` and generates pinned Slang 2026.18 SPIR-V/HLSL/MSL
+artifacts. Vulkan, DX12 and Metal bind base/normal/ORM/emission maps, camera and per-material factors.
+Renderer generates unit tangents and mirrored UV handedness without changing Runtime mesh wire data.
+Courtyard geometry caches owning prepared vertices and defaults to shared direct-light PBR;
+`P` switches the same fixed scene to Lambert and back. Linear factors, single sRGB map decoding,
+shared ACES and a single target transfer establish the color path. Targets remain RGBA8.
+
+Native Vulkan cases check independent emission, normal-map lighting, ORM, missing-map fallbacks,
+single sRGB decoding, mirrored model tangent handedness, frame reuse, direct/offscreen draws and
+resize/re-upload. Equivalent Metal tests and Windows courtyard captures exercise the host paths in CI.
+IBL resources, floating-point HDR composition and final material/reflection acceptance remain open.
+The milestone remains 1/7; direct-light PBR alone does not complete VIS-M1.
+
+✅ Linux direct-light PBR slice: 91/91 without skips, Monolithic Shipping build and isolated package launch passed.
+[Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-SharedPBR-2026-10-05/acceptance.md).
