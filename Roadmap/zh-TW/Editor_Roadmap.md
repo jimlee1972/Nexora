@@ -222,6 +222,12 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   放大失敗及無洩漏生命週期。每次 draw 仍複製最新 geometry；persistent per-asset GPU cache
   及完整圖形化驗收仍待完成。
 
+- ✅ Inspector Copy values／Paste values 現可擷取單一 entity 已提交的 Transform／Euler、
+  Camera 或 Light 數值，再以原子單步 Undo 套用到多選。Camera／Light 保留缺少元件的狀態；
+  Transform 保留作者輸入的圈數。Typed owning clipboard 跨來源修改／刪除及 reload 保留，
+  並獨立於 Hierarchy clipboard。Portable 及 1x／2x 真正 UI input 測試涵蓋唯讀 Copy、
+  停用／不符型別的 Paste、草稿取消、no-op Redo 及持久化。完整 reflected Inspector 仍待完成。
+
 - ✅ Inspector 現提供多選 Reset Transform、Reset Camera 及 Reset Light。Transform 重設會
   清除 local TRS 與可見／過期的 Euler 圈數；Camera／Light 重設保留缺少元件的狀態。變更 batch 以原子
   單步 Undo／Redo 提交，no-op 保留 Redo。重設取消未提交草稿及 Scene 手勢，並遵守 workspace／

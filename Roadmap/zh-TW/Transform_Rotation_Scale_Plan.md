@@ -129,3 +129,8 @@ Identity quaternion 搭配 720 度提示仍建立相符的 Runtime／metadata hi
 隱藏的過期提示也會重設以防止再次出現，Undo 會還原原本狀態。
 `editor.inspector_component_reset` 涵蓋 1x／2x 真正輸入、草稿取消、access gate 與提交後
 save／reload。完整圖形化驗收仍待完成。
+
+✅ Inspector Transform Copy values／Paste values 現以一次 Undo 保留 local TRS 與 authored
+Euler 圈數並套用到多選。Owning numeric clipboard 跨來源變更及 reload 保留；無效姿態／
+hint 組合原子拒絕，相同值保留 Redo，metadata-only／隱藏 hint 編輯維持 Runtime 與 Editor
+history 對齊。Portable 及 1x／2x 真正 UI 測試涵蓋 replay、存取 gate、草稿取消及持久化。

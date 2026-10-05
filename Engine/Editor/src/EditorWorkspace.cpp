@@ -649,8 +649,11 @@ bool SceneDocument::SetTransforms(std::span<const NodeKey> entities,
   return true;
 }
 
-bool SceneDocument::ResetTransforms(std::span<const NodeKey> entities) {
-  if (entities.empty())
+bool SceneDocument::SetTransformValues(std::span<const NodeKey> entities, runtime::Transform value,
+                                       const EulerDegrees &degrees) {
+  const auto normalized = runtime::NormalizedTransform(value);
+  const auto authored = WithEulerDegrees(value, degrees);
+  if (entities.empty() || !normalized || !authored || !SameRotation(*normalized, *authored))
     return false;
   std::unordered_set<runtime::Id> unique;
   bool changed = false;
@@ -662,20 +665,24 @@ bool SceneDocument::ResetTransforms(std::span<const NodeKey> entities) {
     if (!transform || !angles)
       return false;
     const auto &hint = std::ranges::find(nodes_, key.id, &Node::id)->euler_hint;
-    // A mismatched hint is hidden by EulerAngles(), but can revive when a later pose matches it.
-    // Reset must clear that latent authored state through the same Runtime/metadata Undo step.
-    changed |=
-        *transform != runtime::Transform{} || *angles != EulerDegrees{} ||
-        (hint && (hint->degrees != EulerDegrees{} || !SameRotation(hint->transform, *transform)));
+    // Hidden mismatched hints can revive when a later pose matches them. Replace that latent
+    // authored state through the same Runtime/metadata Undo step, including equal Runtime TRS.
+    changed |= *transform != *normalized || *angles != degrees ||
+               (hint && (hint->degrees != degrees || !SameRotation(hint->transform, *transform)));
   }
   if (!changed)
     return true;
-  const std::vector<runtime::Transform> defaults(entities.size());
-  if (!SetTransforms(entities, defaults))
+  const std::vector<runtime::Transform> transforms(entities.size(), value);
+  if (!SetTransforms(entities, transforms))
     return false;
   for (const auto key : entities)
-    std::ranges::find(nodes_, key.id, &Node::id)->euler_hint = EulerHint{runtime::Transform{}, {}};
+    std::ranges::find(nodes_, key.id, &Node::id)->euler_hint =
+        EulerHint{*Transform(key.id), degrees};
   return true;
+}
+
+bool SceneDocument::ResetTransforms(std::span<const NodeKey> entities) {
+  return SetTransformValues(entities, {}, {});
 }
 
 bool SceneDocument::ResetCameras(std::span<const NodeKey> entities) {

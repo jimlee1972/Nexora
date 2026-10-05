@@ -17,6 +17,12 @@ target_link_libraries(NexoraInspectorComponentResetTests PRIVATE Nexora::EditorI
 nexora_apply_defaults(NexoraInspectorComponentResetTests)
 add_test(NAME editor.inspector_component_reset COMMAND NexoraInspectorComponentResetTests)
 
+add_executable(NexoraInspectorComponentValueTests ComponentValueTests.cpp)
+target_include_directories(NexoraInspectorComponentValueTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraInspectorComponentValueTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraInspectorComponentValueTests)
+add_test(NAME editor.inspector_component_values COMMAND NexoraInspectorComponentValueTests)
+
 add_executable(NexoraMeshInspectorTests MeshInspectorTests.cpp)
 target_include_directories(NexoraMeshInspectorTests
   PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")

@@ -233,7 +233,21 @@ the same selection cannot revive ImGui's old input buffer. Requests recheck the 
 cancel prospective Scene gestures before mutation. Numeric formatting is locale independent; mixed
 values, Undo/Redo and committed-only scene persistence retain the existing contract.
 
-## Inspector component reset
+## Inspector component values and reset
+
+The Editor Inspector exposes Copy values / Paste values for Transform, Camera and Light. Copy
+requires one live selected entity with that component and snapshots committed numeric values,
+including authored Euler turns; it discards unsubmitted drafts and works in read-only workspaces.
+One host-owned typed payload survives selection, source edits/deletion and document/workspace
+changes until replaced by another successful Copy or host destruction. It retains no source keys
+or borrowed World storage, and does not replace entity Copy/Cut/Paste or the OS text clipboard.
+Paste requires matching copied type, normal authoring interaction and workspace write access.
+Transform Paste applies local TRS/Euler to the whole selection; Camera/Light Paste updates existing
+components only. An all-absent selection disables Paste. Every changed batch is one atomic Undo;
+no-ops retain Redo. Copy and Paste cancel Inspector drafts and prospective Scene gestures and clear
+active input before acting, so Enter cannot submit abandoned text. Multi-selection/absent Copy is
+disabled and leaves the previous payload intact. Play inspection has no component-value controls.
+The host does not persist this clipboard or perform source IO while copying/pasting values.
 
 Reset Transform restores local identity position/rotation/scale and zero authored Euler revolutions
 for the displayed selection, including hidden stale hints. Reset Camera and Reset Light restore existing components to their

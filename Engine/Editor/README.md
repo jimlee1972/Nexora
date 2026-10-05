@@ -275,6 +275,18 @@ and still record matching Runtime history; already-default batches preserve Undo
 Save/Reload retains committed defaults through the existing schema. These additive Editor C++ APIs
 require consumers to rebuild; stable C/Zig contracts and scene formats do not change. Workspace
 write permissions remain the caller's responsibility.
+`SceneDocument::SetTransformValues` synchronously borrows target keys and Euler values on the
+serialized authoring thread, validates a nonempty unique live batch and a finite normalized TRS
+whose rotation matches the authored Z-X-Y degrees, then replaces local TRS and hints together as
+one Undo. Invalid keys, nonfinite/zero-scale poses or mismatched Euler values reject before mutation.
+Metadata-only edits also record Runtime history; equal normalized values retain Redo. Hidden stale
+hints are replaced so old turns cannot revive. Parents, names, selection and other components remain
+unchanged. Workspace access is caller-owned; this additive C++ API requires rebuilding consumers,
+without changing scene schemas or stable C/Zig wires. Reset Transform uses this same transaction.
+The optional Inspector's component-value clipboard owns committed numeric Transform/Euler,
+Camera lens or Light intensity values, independent of the SceneDocument entity-forest clipboard.
+No source key, World reference or asset payload is retained. Camera/Light value Paste uses existing
+batch setters and preserves absence; the clipboard is not scene persistence or an OS text clipboard.
 The graphical Camera/Light host also supports mixed multi-selection and rechecks current selection
 and access before each batch. Its canceled drafts never enter SceneDocument or scene persistence;
 returning from read-only/recovery, application focus loss or Play inspection cannot revive them.
