@@ -175,10 +175,12 @@ successfully written destination without changing the original file. Dirty New/O
 Save/Discard/Cancel; existing different destinations require Replace. Missing/corrupt Open preserves
 the document, history, and current path. Read-only projects allow Open and reject writes. A failed
 startup load protects its file from ordinary Save; New/Open/Save As can recover explicitly.
-Stop Play before New/Open. Untitled Save and Exit collects a path and exits only after successful save.
+Stop Play before New/Open. Untitled Save and Exit collects a path and exits only after successful
+save; rejection reopens the path dialog with its attempted filename and error. Canonical aliases and
+case variants cannot bypass reserved metadata policy or save a scene over another file type.
 
-Saving a Content scene imports persistent identity metadata and publishes the saved source to the
-live Content browser without clearing earlier content Undo or reimport state. An import failure is
+Saving a Content scene streams only that saved scene and its identity metadata, retaining an 8 KiB
+read buffer and 64 MiB limit, then publishes the saved source to the live Content browser without clearing earlier content Undo or reimport state. An import failure is
 a Console warning after the scene has successfully saved, never a claim that its save rolled back.
 Editor view states remain separate from scene content: the legacy Main scene keeps its adjacent
 `.overview.camera`/`.preview.camera`; other paths mirror into `.nexora/scenes/views/<relative-path>`

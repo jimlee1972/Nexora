@@ -60,6 +60,10 @@ std::uint64_t NextDocumentGeneration() noexcept {
   return generation;
 }
 
+std::string PathUtf8(const std::filesystem::path &path) {
+  const auto encoded = path.generic_u8string();
+  return std::string(encoded.begin(), encoded.end());
+}
 std::uint64_t Hash(std::string_view text, std::uint64_t seed) {
   auto value = seed;
   for (const unsigned char byte : text) {
@@ -228,7 +232,7 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> used_ids;
   if (identity_mode != AssetIdentityMode::DerivedFromPath) {
     for (const auto &file : files) {
-      const auto relative = std::filesystem::relative(file, root, ec).generic_string();
+      const auto relative = PathUtf8(std::filesystem::relative(file, root, ec));
       if (ec) {
         if (error)
           *error = "asset path could not be made project-relative: " + ec.message();
@@ -264,7 +268,7 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
   entries.reserve(files.size());
   std::size_t mesh_bytes{};
   for (std::size_t index = 0; index < files.size(); ++index) {
-    const auto relative = std::filesystem::relative(files[index], root, ec).generic_string();
+    const auto relative = PathUtf8(std::filesystem::relative(files[index], root, ec));
     if (ec) {
       if (error)
         *error = "asset path could not be made project-relative: " + ec.message();
@@ -384,6 +388,94 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
   entries_ = std::move(entries);
   content_root_ = root;
   identity_mode_ = identity_mode;
+  if (error)
+    error->clear();
+  return true;
+}
+bool AssetWorkspace::ImportSavedScene(const std::filesystem::path &relative, std::string *error) {
+  const auto fail = [&](std::string message) {
+    if (error)
+      *error = std::move(message);
+    return false;
+  };
+  if (content_root_.empty() || identity_mode_ != AssetIdentityMode::PersistentReadWrite ||
+      relative.empty() || relative.has_root_path() || relative.extension() != ".scene")
+    return fail("Saved scene import requires a writable Content index and relative .scene path.");
+  for (const auto &part : relative)
+    if (part.empty() || part == "." || part == "..")
+      return fail("Saved scene path is invalid.");
+  std::error_code ec;
+  const auto path = std::filesystem::canonical(content_root_ / relative, ec);
+  auto candidate = path.begin();
+  for (const auto &part : content_root_) {
+    if (ec || candidate == path.end() || *candidate++ != part)
+      return fail("Saved scene escaped the Content root.");
+  }
+  if (candidate == path.end() || path.extension() != ".scene" ||
+      !std::filesystem::is_regular_file(path, ec) || ec)
+    return fail("Saved scene source is unavailable.");
+  const auto size = std::filesystem::file_size(path, ec);
+  if (ec || size > kMaximumSceneFileBytes)
+    return fail("Saved scene source exceeds the 64 MiB limit or is unavailable.");
+  const auto canonical_relative = path.lexically_relative(content_root_);
+  const auto encoded = canonical_relative.generic_u8string();
+  const std::string key(encoded.begin(), encoded.end());
+  if (key.size() >= 1024 || !foundation::IsValidUtf8(key))
+    return fail("Saved scene path is too long or invalid UTF-8.");
+  auto id = DerivedAssetIdentity(key);
+  std::string type = ".scene";
+  const auto sidecar = IdentitySidecar(path);
+  const auto status = std::filesystem::symlink_status(sidecar, ec);
+  if (ec != std::errc::no_such_file_or_directory && ec)
+    return fail("Saved scene identity is unavailable.");
+  ec.clear();
+  const bool has_identity = std::filesystem::exists(status);
+  if (has_identity) {
+    std::string message;
+    if (!ReadAssetIdentity(sidecar, id, type, message) || type != ".scene")
+      return fail(message.empty() ? "Saved scene identity has the wrong type."
+                                  : std::move(message));
+    for (const auto &entry : entries_)
+      if (entry.id == id && entry.relative_path != key)
+        return fail("Saved scene identity duplicates another indexed asset.");
+  } else {
+    std::uint64_t salt{};
+    while (id == runtime::AssetUuid{} ||
+           std::ranges::any_of(entries_, [&](const AssetEntry &entry) { return entry.id == id; })) {
+      if (salt == std::numeric_limits<std::uint64_t>::max())
+        return fail("Asset identity space is exhausted.");
+      id = DerivedAssetIdentity(key, ++salt);
+    }
+  }
+  std::ifstream input(path, std::ios::binary);
+  if (!input)
+    return fail("Saved scene source could not be read.");
+  auto hash = Hash(id.ToString(), 1469598103934665603ULL);
+  std::array<char, 8192> block{};
+  std::size_t total{};
+  while (input) {
+    input.read(block.data(), static_cast<std::streamsize>(block.size()));
+    const auto count = static_cast<std::size_t>(input.gcount());
+    if (count > kMaximumSceneFileBytes - total)
+      return fail("Saved scene source exceeds the 64 MiB limit.");
+    total += count;
+    hash = Hash(std::string_view(block.data(), count), hash);
+  }
+  if (!input.eof() || input.bad())
+    return fail("Saved scene source read failed.");
+  if (!has_identity) {
+    std::string message;
+    if (!WriteAssetIdentity(sidecar, id, type, message))
+      return fail(std::move(message));
+  }
+  AssetEntry saved{id, key, ".scene", Hex(hash), ImportState::Imported, {}};
+  const auto existing = std::ranges::find(entries_, key, &AssetEntry::relative_path);
+  if (existing != entries_.end())
+    *existing = std::move(saved);
+  else {
+    entries_.push_back(std::move(saved));
+    std::ranges::sort(entries_, {}, &AssetEntry::relative_path);
+  }
   if (error)
     error->clear();
   return true;

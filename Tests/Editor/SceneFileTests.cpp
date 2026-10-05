@@ -1,4 +1,5 @@
 #include "Nexora/Editor/ContentBrowser.h"
+#include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneFiles.h"
 
 #include <array>
@@ -33,8 +34,81 @@ void RunDiscovery() {
               browser.Find(added) && browser.IsSelected(old),
           "Scene discovery lost content Undo or admitted duplicate identity/path");
 }
+void RunSavedSceneImport(const std::filesystem::path &content) {
+  std::filesystem::create_directories(content);
+  editor::ProjectWorkspace workspace;
+  Require(workspace.Create(content.parent_path(), "Single import"),
+          "Single import workspace failed");
+  const std::string obj = "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n";
+  std::ofstream(content / "Triangle.obj") << obj;
+  editor::AssetWorkspace assets;
+  Require(assets.ImportTree(content, {}, {}, editor::AssetIdentityMode::PersistentReadWrite),
+          "Saved scene import fixture failed");
+  const auto original_mesh = assets.Entries().front();
+  const auto identity = Read(content / "Triangle.obj.meta");
+  Require(original_mesh.mesh != nullptr, "Saved scene import mesh fixture failed");
+  // A full tree import cannot pass this unrelated broken source/identity; single-scene work must.
+  std::filesystem::remove(content / "Triangle.obj");
+  std::ofstream(content / "Triangle.obj.meta") << "poisoned unrelated identity";
+  std::ofstream(content / "Unrelated.obj") << "poisoned unrelated mesh";
+  std::ofstream(content / "Unrelated.obj.meta") << "poisoned unrelated identity";
+  runtime::World world;
+  const auto id = world.LoadScene("Saved source");
+  editor::SceneDocument document(world, id);
+  Require(document.Create("First") && document.Save(content / "Saved.scene") &&
+              assets.ImportSavedScene("Saved.scene") && assets.Entries().size() == 2 &&
+              assets.Find(original_mesh.id)->mesh == original_mesh.mesh &&
+              assets.Find(original_mesh.id)->artifact_hash == original_mesh.artifact_hash &&
+              Read(content / "Triangle.obj.meta") == "poisoned unrelated identity",
+          "Saving a scene re-read or replaced unrelated content/geometry");
+  const auto saved = assets.Search("Saved").front()->id;
+  const auto first_hash = assets.Find(saved)->artifact_hash;
+  const auto saved_identity = Read(content / "Saved.scene.meta");
+  Require(document.Create("Second") && document.Save(content / "Saved.scene") &&
+              assets.ImportSavedScene("Saved.scene") &&
+              assets.Find(saved)->artifact_hash != first_hash &&
+              Read(content / "Saved.scene.meta") == saved_identity &&
+              assets.Find(original_mesh.id)->mesh == original_mesh.mesh,
+          "Single-scene update lost stable identity or replaced unrelated mesh ownership");
+  const auto updated_hash = assets.Find(saved)->artifact_hash;
+  std::ofstream(content / "Saved.scene.meta")
+      << "schema=1\nuuid=" << original_mesh.id.ToString() << "\ntype=.scene\n";
+  Require(!assets.ImportSavedScene("Saved.scene") &&
+              assets.Find(saved)->artifact_hash == updated_hash && assets.Entries().size() == 2,
+          "Duplicate identity changed the saved scene index");
+  std::ofstream(content / "Saved.scene.meta") << saved_identity;
+  std::ofstream(content / "TooLarge.scene") << "sparse";
+  std::filesystem::resize_file(content / "TooLarge.scene", 64 * 1024 * 1024 + 1);
+  Require(!assets.ImportSavedScene("TooLarge.scene") &&
+              !std::filesystem::exists(content / "TooLarge.scene.meta") &&
+              assets.Entries().size() == 2 && !assets.ImportSavedScene("../Escape.scene") &&
+              !assets.ImportSavedScene("Triangle.obj"),
+          "Unbounded or invalid scene import published an asset");
+  std::filesystem::remove(content / "TooLarge.scene");
+  std::ofstream(content / "Triangle.obj") << obj;
+  std::ofstream(content / "Triangle.obj.meta") << identity;
+  std::filesystem::remove(content / "Unrelated.obj");
+  std::filesystem::remove(content / "Unrelated.obj.meta");
+  const auto unicode = std::filesystem::path(u8"場景.scene");
+  Require(document.Save(content / unicode) && assets.ImportSavedScene(unicode),
+          "Unicode saved-scene import failed");
+  const auto unicode_id = assets.Entries().back().id;
+  editor::AssetWorkspace reader;
+  Require(reader.ImportTree(content, {}, {}, editor::AssetIdentityMode::PersistentReadOnly) &&
+              reader.Find(saved) && reader.Find(saved)->artifact_hash == updated_hash &&
+              !reader.ImportSavedScene("Saved.scene") &&
+              Read(content / "Saved.scene.meta") == saved_identity,
+          "Single-scene hash disagrees with tree import or read-only index wrote a file");
+  editor::ProjectContentSession browser;
+  Require(reader.Find(unicode_id) && browser.Open(workspace, reader, 1, false) &&
+              browser.Browser().Find(unicode_id) &&
+              browser.Browser().Find(unicode_id)->path ==
+                  std::filesystem::path("Content") / unicode,
+          "UTF-8 scene identity lost its native browser path on reopen");
+}
 void Run(const std::filesystem::path &root) {
   RunDiscovery();
+  RunSavedSceneImport(root / "SingleImport/Content");
   editor::ProjectWorkspace workspace, reader;
   Require(workspace.Create(root, "Scene files") &&
               reader.Open(root, editor::ProjectAccess::ReadOnly),
@@ -102,18 +176,24 @@ void Run(const std::filesystem::path &root) {
   const auto before_path = files.CurrentPath();
   const auto before_bytes = Read(root / *before_path);
   const auto before_world = world.SaveScene(id);
-  const auto invalid = std::array<std::filesystem::path, 10>{
-      root / "Absolute.scene",   "../Outside.scene",
-      "Content/../Escape.scene", "Content/./Dot.scene",
-      "Content/Bad.txt",         ".nexora/project.scene",
-      "Content/Bad:Name.scene",  "Content/Bad\nName.scene",
-      "Content/Bad\\Name.scene", std::string(1024, 'x') + ".scene"};
+  const auto invalid = std::array<std::filesystem::path, 12>{
+      root / "Absolute.scene",   "../Outside.scene",        "Content/../Escape.scene",
+      "Content/./Dot.scene",     "Content/Bad.txt",         ".nexora/project.scene",
+      "Content/Bad:Name.scene",  "Content/Bad\nName.scene", ".NEXORA/Internal.scene",
+      ".nexora./Internal.scene", ".nexora /Internal.scene", std::string(1024, 'x') + ".scene"};
   for (const auto &path : invalid)
     Require(files.SaveAs(token, path, true).status == Status::Rejected &&
                 files.Open(token, path, true).status == Status::Rejected &&
                 files.CurrentPath() == before_path && world.SaveScene(id) == before_world &&
                 Read(root / *before_path) == before_bytes,
             "Invalid path modified a managed document or file");
+#if !defined(_WIN32)
+  // Backslash is a nonportable filename character on POSIX; Windows treats it as a separator.
+  Require(files.SaveAs(token, "Content/Bad\\Name.scene").status == Status::Rejected &&
+              files.Open(token, "Content/Bad\\Name.scene", true).status == Status::Rejected &&
+              files.CurrentPath() == before_path && world.SaveScene(id) == before_world,
+          "POSIX backslash filename was admitted");
+#endif
   const auto occupied = root / *before_path;
   auto temporary = occupied;
   temporary += ".tmp";
@@ -147,6 +227,22 @@ void Run(const std::filesystem::path &root) {
                 Read(occupied) == before_bytes,
             "Save followed or removed a preexisting temporary symlink");
     std::filesystem::remove(temporary);
+    std::filesystem::create_directory_symlink(root / ".nexora", root / "Alias", error);
+    Require(!error && files.SaveAs(token, "Alias/Internal.scene").status == Status::Rejected &&
+                files.Open(token, "Alias/Internal.scene", true).status == Status::Rejected &&
+                !std::filesystem::exists(root / ".nexora/Internal.scene"),
+            "Canonical alias bypassed the reserved metadata namespace");
+    Require(files.SaveAs(token, "Alias/scenes/Aliased.scene").Applied() &&
+                files.CurrentPath() == ".nexora/scenes/Aliased.scene" &&
+                files.Open(token, "Alias/scenes/Aliased.scene").Applied(),
+            "Allowed metadata alias did not adopt the canonical current path");
+    token = files.Token();
+    std::ofstream(root / "Content/Keep.obj") << "mesh source sentinel";
+    std::filesystem::create_symlink(root / "Content/Keep.obj", root / "Content/Wrong.scene", error);
+    Require(!error && files.SaveAs(token, "Content/Wrong.scene", true).status == Status::Rejected &&
+                files.Open(token, "Content/Wrong.scene", true).status == Status::Rejected &&
+                Read(root / "Content/Keep.obj") == "mesh source sentinel",
+            "Scene alias overwrote a different source file type");
     Require(files.SaveAs(token, "Content/Escape/Keep.scene", true).status == Status::Rejected &&
                 files.Open(token, "Content/Escape/Keep.scene", true).status == Status::Rejected &&
                 Read(outside / "Keep.scene") == "outside sentinel",
@@ -155,6 +251,9 @@ void Run(const std::filesystem::path &root) {
   std::filesystem::remove_all(outside);
   Require(files.SaveAs(token, std::filesystem::path(u8"Content/場景.scene")).Applied(),
           "UTF-8 scene path failed");
+  const auto native_nested = std::filesystem::path("Content") / "Native" / "Nested.scene";
+  Require(files.SaveAs(token, native_nested).Applied() && files.CurrentPath() == native_nested,
+          "Native nested path separators failed");
   editor::SceneFileSession observer(reader, scene);
   Require(observer.BindCurrent(first) &&
               observer.New(observer.Token(), true).status == Status::Rejected &&

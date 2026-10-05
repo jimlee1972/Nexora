@@ -8,6 +8,20 @@ namespace {
 SceneFileResult Rejected(std::string message) {
   return {SceneFileStatus::Rejected, std::move(message)};
 }
+bool ReservedPathAllowed(const std::filesystem::path &relative) {
+  const auto lower = [](const std::filesystem::path &part) {
+    const auto encoded = part.generic_u8string();
+    std::string text(encoded.begin(), encoded.end());
+    std::ranges::transform(text, text.begin(), [](unsigned char c) {
+      return static_cast<char>(c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c);
+    });
+    return text;
+  };
+  auto part = relative.begin();
+  if (part == relative.end() || lower(*part) != ".nexora")
+    return true;
+  return ++part != relative.end() && lower(*part) == "scenes";
+}
 bool Inside(const std::filesystem::path &root, const std::filesystem::path &path) {
   auto candidate = path.begin();
   for (auto part = root.begin(); part != root.end(); ++part, ++candidate)
@@ -34,24 +48,25 @@ SceneFileSession::Resolve(const std::filesystem::path &relative) const {
       text.find_first_of("\\:<>\"|?*") != std::string::npos ||
       std::ranges::any_of(text, [](unsigned char c) { return c < 0x20 || c == 0x7f; }))
     return std::nullopt;
-  for (const auto &part : relative)
-    if (part.empty() || part == "." || part == "..")
-      return std::nullopt;
-  if (*relative.begin() == ".nexora") {
-    auto part = relative.begin();
-    if (++part == relative.end() || *part != "scenes")
+  for (const auto &part : relative) {
+    const auto name = part.generic_u8string();
+    if (part.empty() || part == "." || part == ".." || name.back() == u8'.' || name.back() == u8' ')
       return std::nullopt;
   }
+  if (!ReservedPathAllowed(relative))
+    return std::nullopt;
   std::error_code error;
   const auto absolute = std::filesystem::weakly_canonical(root_ / relative, error);
-  if (error || !Inside(root_, absolute))
+  if (error || absolute.extension() != ".scene" || !Inside(root_, absolute) ||
+      !ReservedPathAllowed(absolute.lexically_relative(root_)))
     return std::nullopt;
-  return root_ / relative;
+  return absolute;
 }
 bool SceneFileSession::BindCurrent(std::filesystem::path relative, bool save_blocked) {
-  if (!Live(Token()) || !Resolve(relative))
+  const auto path = Resolve(relative);
+  if (!Live(Token()) || !path)
     return false;
-  current_ = std::move(relative);
+  current_ = path->lexically_relative(root_);
   save_blocked_ = save_blocked;
   return true;
 }
@@ -79,7 +94,7 @@ SceneFileResult SceneFileSession::Open(SceneFileToken token, const std::filesyst
   if (!document_.Reload(*path))
     return Rejected("Scene could not be opened. The current scene is unchanged.");
   generation_ = document_.Generation();
-  current_ = relative;
+  current_ = path->lexically_relative(root_);
   save_blocked_ = false;
   return {SceneFileStatus::Applied, "Scene opened."};
 }
@@ -104,11 +119,12 @@ SceneFileResult SceneFileSession::SaveAs(SceneFileToken token,
   const bool exists = std::filesystem::exists(*path, error);
   if (error || (exists && !std::filesystem::is_regular_file(*path, error)) || error)
     return Rejected("The scene destination is not an accessible file.");
-  if (exists && !replace_existing && (save_blocked_ || !current_ || *current_ != relative))
+  if (exists && !replace_existing &&
+      (save_blocked_ || !current_ || *current_ != path->lexically_relative(root_)))
     return {SceneFileStatus::NeedsOverwrite, "The destination exists. Confirm replacement first."};
   if (!document_.Save(*path))
     return Rejected("Scene could not be saved. Check the project directory.");
-  current_ = relative;
+  current_ = path->lexically_relative(root_);
   save_blocked_ = false;
   return {SceneFileStatus::Applied, "Scene saved."};
 }

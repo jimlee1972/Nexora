@@ -1798,6 +1798,9 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
     state.scene_file_popup_pending = false;
   }
   const auto size = ImGui::GetMainViewport()->WorkSize;
+  // A fixed available width prevents wrapped diagnostics from measuring at a transient tiny
+  // auto-fit width and putting the path field outside the viewport when reopening for retry.
+  ImGui::SetNextWindowSize({std::max(1.0F, std::min(640.0F, size.x - 24)), 0}, ImGuiCond_Always);
   ImGui::SetNextWindowSizeConstraints({0, 0},
                                       {std::max(1.0F, size.x - 24), std::max(1.0F, size.y - 24)});
   if (!ImGui::BeginPopupModal("Scene file###editor.scene-file", nullptr,
@@ -1814,6 +1817,8 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
     ImGui::EndPopup();
     return;
   }
+  if (!state.scene_save_success && !state.scene_save_message.empty())
+    ImGui::TextWrapped("%s", state.scene_save_message.c_str());
   bool emit = false;
   auto &request = *state.scene_file_intent;
   if (state.scene_file_dialog == StateT::FileDialog::Unsaved) {
@@ -4187,7 +4192,8 @@ void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
 std::optional<SceneFileRequest> EditorImGuiHost::TakeSceneFileRequest() {
   return std::exchange(state_->scene_file_output, std::nullopt);
 }
-void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save) {
+void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save,
+                                         std::optional<std::filesystem::path> suggested_path) {
   Activate(state_->context);
   CancelSceneGestures(*state_);
   CancelInspectorDrafts(*state_);
@@ -4197,6 +4203,11 @@ void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save) {
   state_->scene_file_close_popup = close_after_save;
   state_->scene_file_save_before_switch = false;
   SetSceneFileDraft(*state_);
+  if (suggested_path) {
+    const auto text = PathLabel(*suggested_path);
+    std::snprintf(state_->scene_file_text.data(), state_->scene_file_text.size(), "%s",
+                  text.c_str());
+  }
   state_->scene_file_dialog = State::FileDialog::SavePath;
   state_->scene_file_focus_path = true;
   state_->scene_file_popup_pending = true;
@@ -4849,6 +4860,9 @@ void EditorImGuiTestAccess::QueueHierarchyMove(EditorImGuiHost &host, SceneDocum
   host.state_->hierarchy_move_request = {entity, parent, index};
 }
 
+std::string_view EditorImGuiTestAccess::SceneFileText(const EditorImGuiHost &host) noexcept {
+  return host.state_->scene_file_text.data();
+}
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneFilePosition(const EditorImGuiHost &host,
                                          std::size_t control) noexcept {

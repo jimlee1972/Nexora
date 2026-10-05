@@ -139,7 +139,8 @@ public:
   void SetSceneFileContext(SceneFileToken token, std::optional<std::filesystem::path> path,
                            bool save_blocked = false);
   [[nodiscard]] std::optional<SceneFileRequest> TakeSceneFileRequest();
-  void RequestSceneSaveAs(bool close_after_save = false);
+  void RequestSceneSaveAs(bool close_after_save = false,
+                          std::optional<std::filesystem::path> suggested_path = std::nullopt);
   void RequestSceneOverwrite(SceneFileRequest request);
   void RequestSceneUnsavedChoice(SceneFileRequest request);
   void RequestCloseConfirmation() noexcept;

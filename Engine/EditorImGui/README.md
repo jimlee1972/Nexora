@@ -547,7 +547,10 @@ optional current relative path. Filename and dirty status appear in the menu bar
 a project-relative UTF-8 path, Save/Discard/Cancel for unsaved content, or explicit Replace for an
 existing destination. Untitled Save before New/Open collects a nested Save As path while retaining
 the original intent. Untitled Save and Exit carries `close_after_save`; the application exits only
-after successful persistence. Cancel closes the file modal without mutating the document.
+after successful persistence. A failed close save reopens Save As with the attempted path and error;
+replacement approval resets when retrying a different filename. Bounded dialog width keeps wrapped
+diagnostics and the path field usable on reopen. Cancel closes the file modal without mutating the
+document.
 
 Requests own all values and are consumed once with `TakeSceneFileRequest`; the application calls
 `SceneFileSession` and may return a request through `RequestSceneOverwrite` or

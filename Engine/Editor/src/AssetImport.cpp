@@ -192,9 +192,11 @@ ImportOperationId AssetImportQueue::Start(WorkspaceImportRequest request, std::s
            }
            for (const auto &entry : workspace.Entries())
              if (entry.state == ImportState::Failed)
-               implementation->Diagnose(operation, ImportDiagnosticSeverity::Error,
-                                        "asset.import_failed", entry.error,
-                                        content_root / entry.relative_path, entry.id);
+               implementation->Diagnose(
+                   operation, ImportDiagnosticSeverity::Error, "asset.import_failed", entry.error,
+                   content_root / std::filesystem::path(std::u8string(entry.relative_path.begin(),
+                                                                      entry.relative_path.end())),
+                   entry.id);
            implementation->Progress(operation, ImportStage::Staging, workspace.Entries().size(),
                                     workspace.Entries().size());
            std::lock_guard lock{operation->mutex};

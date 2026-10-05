@@ -371,7 +371,9 @@ creates property widgets; unknown components retain raw data instead of being si
   Failed Open preserves the document/history/path; failed replacement retains the destination and
   preexisting temporary paths. Read-only permits Open and rejects writes;
   Play/recovery/close gates reject scene replacement. New clears history/clipboard and stays dirty
-  until saved. Content saves publish persistent identity without losing earlier content Undo;
+  until saved. Canonical aliases enforce metadata namespace/type; failed close saves reopen the
+  attempted path/error for retry. Content saves stream only their own bounded source/identity,
+  retaining unrelated geometry and earlier content Undo;
   per-file CPU camera state survives switches and writable shutdown. Real 1x/2x menu/key/modal tests
   and Linux Xvfb verify New, typed Save As, Open/reopen, source-file retention and read-only bytes.
   Startup still opens Main; additive tabs, last-opened startup selection, and full ED-M4 acceptance

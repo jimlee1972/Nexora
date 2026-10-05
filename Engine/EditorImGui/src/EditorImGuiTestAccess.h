@@ -92,6 +92,7 @@ public:
   static void QueueHierarchyMove(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                  std::optional<SceneDocument::NodeKey> parent,
                                  std::size_t index) noexcept;
+  [[nodiscard]] static std::string_view SceneFileText(const EditorImGuiHost &host) noexcept;
   // File menu/New/Open/Save As/path/submit/Cancel/Save/Discard/Replace/menu Save (0..10).
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneFilePosition(const EditorImGuiHost &host, std::size_t control) noexcept;

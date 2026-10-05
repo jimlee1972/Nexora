@@ -476,7 +476,9 @@ read-only workspace. The caller owns the Stop Play policy and any asset-index pu
 
 Save/Save As require current project UUID/root/document token and write access. Paths must be bounded
 UTF-8 project-relative `.scene` filenames without traversal, nonportable punctuation, controls, or
-canonical parent/symlink escapes. `.nexora` destinations are restricted to `.nexora/scenes`. Ordinary
+canonical parent/symlink escapes. Lexical and resolved paths both enforce the case-insensitive
+`.nexora` namespace restriction to `scenes`; file aliases to other extensions reject. Successful
+association adopts the canonical relative path so aliases cannot bypass Content publication. Ordinary
 Save needs an associated path; Save As adopts it only after successful persistence. Existing different
 destinations and destinations protected after a failed bootstrap load need explicit replacement.
 New/Open first return `NeedsUnsavedChoice` for dirty content; the application saves or supplies an
@@ -490,5 +492,12 @@ lock against concurrent external filesystem edits.
 `ContentBrowserModel::Discover` publishes one already-saved owning item without recording a content
 edit. It rejects duplicate ID/path, including collisions in the retained Undo snapshot, preserves
 folder/filter/selection, and carries the new item into that snapshot so an earlier content Undo cannot
-hide it. Application scene saves compose persistent `AssetWorkspace` import with discovery/artifact
-publication; importing a saved source is separate from committing the scene document.
+hide it. Application scene saves compose `AssetWorkspace::ImportSavedScene` with discovery/artifact
+publication. That operation reads only the saved `.scene` and its bounded identity sidecar, hashes
+source bytes with an 8 KiB streaming buffer and a 64 MiB admission limit, and validates identity
+against the current in-memory index. It never enumerates directories or rereads/parses unrelated
+sources/OBJ files, and retains their geometry ownership. It requires an initialized writable
+persistent index and updates only that scene entry after successful import. Index paths own UTF-8
+with portable separators; filesystem consumers convert explicitly to native paths. Importing a saved
+source remains separate from committing the scene document; a later import failure does not roll
+back a successful save.

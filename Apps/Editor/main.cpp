@@ -991,17 +991,17 @@ int RunGraphical(std::optional<ProjectState> project,
     const auto relative = scene_files->CurrentPath();
     if (!relative || *relative->begin() != "Content")
       return;
-    nexora::editor::AssetWorkspace imported;
+    const auto asset_path = relative->lexically_relative("Content");
+    const auto encoded = asset_path.generic_u8string();
+    const std::string asset_key(encoded.begin(), encoded.end());
     std::string error;
-    if (!imported.ImportTree(project->workspace.Root() / "Content", {}, {},
-                             nexora::editor::AssetIdentityMode::PersistentReadWrite, &error)) {
+    if (!project->assets.ImportSavedScene(asset_path, &error)) {
       log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene",
           "Scene saved; content import failed: " + error);
       return;
     }
-    const auto asset_path = relative->lexically_relative("Content");
-    for (const auto &entry : imported.Entries()) {
-      if (entry.relative_path != asset_path)
+    for (const auto &entry : project->assets.Entries()) {
+      if (entry.relative_path != asset_key)
         continue;
       if (content.Browser().Find(entry.id))
         static_cast<void>(content.Browser().PublishArtifact(
@@ -1019,7 +1019,6 @@ int RunGraphical(std::optional<ProjectState> project,
         log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene", error);
       break;
     }
-    project->assets = std::move(imported);
   };
   const auto save_scene = [&] {
     if (scene_load_failed) {
@@ -1427,6 +1426,8 @@ int RunGraphical(std::optional<ProjectState> project,
               load_scene_views();
             if (request->close_after_save)
               exit_requested = true;
+          } else if (request->close_after_save) {
+            ui.RequestSceneSaveAs(true, request->path);
           }
         }
       }

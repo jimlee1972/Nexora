@@ -103,12 +103,27 @@ def main():
             send("key", "--clearmodifiers", "ctrl+s")
             wait_until(lambda: destination.read_bytes() == baseline,
                        f"Opened document Undo/Save lost scene data: {relative}", process)
+        # Native close on Untitled must retain the Save and Exit intent through a rejected path.
+        send("key", "--clearmodifiers", "ctrl+n")
         request_window_close(window, env)
+        time.sleep(0.4)
+        # Fresh 1280x720 window: click the real first close-modal button (Save and Exit).
+        send("mousemove", "--window", window, "545", "378", "click", "1")
+        send("key", "--clearmodifiers", "ctrl+a")
+        send("type", "--clearmodifiers", "--delay", "2", "../Rejected.scene")
+        send("key", "--clearmodifiers", "Return")
+        if process.poll() is not None:
+            raise RuntimeError("Rejected Save and Exit dismissed the Editor")
+        send("key", "--clearmodifiers", "ctrl+a")
+        send("type", "--clearmodifiers", "--delay", "2", "Content/Exit.scene")
+        send("key", "--clearmodifiers", "Return")
+        exit_scene = root / "Content/Exit.scene"
+        wait_until(exit_scene.is_file, "Save and Exit did not retain a retryable path dialog", process)
         _, error = process.communicate(timeout=15)
         if process.returncode != 0:
             raise RuntimeError(f"Scene workflow exit failed: {error}")
         process = None
-        for source in (main_scene, copy, empty):
+        for source in (main_scene, copy, empty, exit_scene):
             path = source if source == main_scene else root / ".nexora/scenes/views" / source.relative_to(root)
             if not path.with_suffix(".overview.camera").is_file() or not path.with_suffix(
                     ".preview.camera").is_file():

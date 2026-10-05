@@ -107,6 +107,8 @@ struct Fixture final {
       ui.ProcessEvents(std::array{event});
       Draw();
     }
+    if (Access::SceneFileText(ui) != text)
+      throw std::runtime_error("Path input retained " + std::string(Access::SceneFileText(ui)));
   }
   Request Take(Action action) {
     auto request = ui.TakeSceneFileRequest();
@@ -262,11 +264,27 @@ void RunGates(float dpi) {
   f.ui.RequestSceneSaveAs(true);
   f.Draw();
   f.Draw();
+  const auto before_retry = f.world.SaveScene(f.id);
+  f.Path("../Rejected.scene");
+  f.Click(5);
+  auto rejected_request = f.Take(Action::SaveAs);
+  const auto rejected = f.files->SaveAs(rejected_request.token, rejected_request.path);
+  Require(rejected_request.close_after_save &&
+              rejected.status == editor::SceneFileStatus::Rejected && f.scene.Dirty() &&
+              !f.files->CurrentPath() && f.world.SaveScene(f.id) == before_retry,
+          "Failed Save and Exit changed the current document");
+  f.ui.SetSceneSaveResult(rejected.message, false);
+  f.ui.RequestSceneSaveAs(true, rejected_request.path);
+  f.Draw();
+  f.Draw();
   f.Path("Content/Exit.scene");
   f.Click(5);
   const auto request = f.Take(Action::SaveAs);
-  Require(request.close_after_save && request.path == "Content/Exit.scene",
-          "Save and Exit lost its Save As request or remained blocked by the close modal");
+  if (!request.close_after_save || request.path != "Content/Exit.scene")
+    throw std::runtime_error("Save and Exit retry emitted path=" + request.path.generic_string() +
+                             ", close=" + std::to_string(request.close_after_save));
+  Require(f.files->SaveAs(request.token, request.path).Applied() && !f.scene.Dirty(),
+          "Save and Exit retry did not save successfully");
 }
 } // namespace
 int main() {

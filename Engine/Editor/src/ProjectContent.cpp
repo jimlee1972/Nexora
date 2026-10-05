@@ -113,7 +113,9 @@ bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetW
   items.reserve(assets.Entries().size());
   AssetDependencyGraph dependencies;
   for (const auto &entry : assets.Entries()) {
-    const auto path = std::filesystem::path("Content") / entry.relative_path;
+    const auto path = std::filesystem::path("Content") /
+                      std::filesystem::path(
+                          std::u8string(entry.relative_path.begin(), entry.relative_path.end()));
     if (!ContentPath(path) || entry.id == runtime::AssetUuid{} || !dependencies.Set(entry.id, {}))
       return Fail("asset index contains an invalid entry", error);
     items.push_back({entry.id, path.lexically_normal(), entry.type, entry.artifact_hash,
