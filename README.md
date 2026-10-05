@@ -1011,3 +1011,13 @@ sharing source coordinates with base/ORM and reflections. Linux full validation 
 (92.68 seconds), including 69 native PBR cases; Shipping evidence remains in progress (VIS 5/7).
 世界座標石材法線加入有界的凹凸反光，與 base／ORM 及倒影共用原始座標。
 Linux 全套 97/97（92.68 秒）與 69 個原生 PBR 案例通過；交付證據持續進行，VIS 維持 5/7。
+
+
+Eight original chipped paving meshes now share 432 native affine instances. Deterministic
+stone heights/widths and source-world PBR maps remain coherent; identity/column/paving/mirror
+ranges are retained across cached frames and quality changes. The reclaimed vertex budget
+supports a sculpted central basin/ribs, bevelled pedestal lips, staggered arcade masonry and
+raised geometric column relief. Layered cutout tree crowns share GPU wind and leaf lighting.
+The fixed activated Standard shot contains 51,790 vertices and 1,338 source foliage quads.
+Linux full validation passes 97/97 (95.21 seconds), including all three vertex budgets and native
+instance/wind/effect replay. Shipping evidence and final reference parity remain open (VIS 5/7).

@@ -451,3 +451,14 @@ geometry normals; default zero world scale preserves legacy UV normal mapping. F
 cases check flat/projected normals, zero strength and exact restoration (69 PBR frames).
 No texture/pass/packet expansion occurs. Linux Development passes all 97 tests (92.68 seconds),
 including the 69 native cases. Shipping/reference acceptance remains open; VIS stays 5/7.
+### Carved architecture and shared paving
+
+
+Eight original chipped paving meshes now share 432 native affine instances. Deterministic
+stone heights/widths and source-world PBR maps remain coherent; identity/column/paving/mirror
+ranges are retained across cached frames and quality changes. The reclaimed vertex budget
+supports a sculpted central basin/ribs, bevelled pedestal lips, staggered arcade masonry and
+raised geometric column relief. Layered cutout tree crowns share GPU wind and leaf lighting.
+The fixed activated Standard shot contains 51,790 vertices and 1,338 source foliage quads.
+Linux full validation passes 97/97 (95.21 seconds), including all three vertex budgets and native
+instance/wind/effect replay. Shipping evidence and final reference parity remain open (VIS 5/7).
