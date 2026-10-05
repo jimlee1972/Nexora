@@ -86,6 +86,8 @@ public:
   static void FocusHierarchy(EditorImGuiHost &host) noexcept;
   static void FocusScene(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  NativeSceneToolPosition(const EditorImGuiHost &host, NativeSceneTool tool) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneFramePosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneFrameAllPosition(const EditorImGuiHost &host) noexcept;

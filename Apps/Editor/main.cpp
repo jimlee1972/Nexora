@@ -307,7 +307,9 @@ NativeScenePickHit PickNativeSceneProxy(const nexora::editor::SceneDocument &sce
                      (*distance == proxy->distance && candidate.entity < proxy->entity)))
       proxy = nexora::editor::PickHit{candidate.entity, *distance};
   }
-  const auto handles = tool == nexora::editor::imgui::NativeSceneTool::Rotate
+  const auto handles = tool == nexora::editor::imgui::NativeSceneTool::Select
+                           ? std::vector<NativeSceneAxisHandle>{}
+                       : tool == nexora::editor::imgui::NativeSceneTool::Rotate
                            ? NativeSceneRotationHandles(scene, candidates, local_axes, center_pivot)
                        : tool == nexora::editor::imgui::NativeSceneTool::Scale
                            ? NativeSceneScaleHandles(scene, candidates, orbit, center_pivot)
@@ -505,7 +507,9 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview,
     std::optional<std::pair<std::size_t, double>> scale_preview, const NativeSceneMeshes &meshes) {
   const auto candidates = NativeSceneProxyCandidates(scene, &meshes);
-  const auto handles = tool == nexora::editor::imgui::NativeSceneTool::Rotate
+  const auto handles = tool == nexora::editor::imgui::NativeSceneTool::Select
+                           ? std::vector<NativeSceneAxisHandle>{}
+                       : tool == nexora::editor::imgui::NativeSceneTool::Rotate
                            ? NativeSceneRotationHandles(scene, candidates, local_axes, center_pivot)
                        : tool == nexora::editor::imgui::NativeSceneTool::Scale
                            ? NativeSceneScaleHandles(scene, candidates, orbit, center_pivot)

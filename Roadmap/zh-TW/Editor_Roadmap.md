@@ -148,6 +148,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Native Scene Select（Q）保留一般／Ctrl picking，隱藏變形把手並停止 drag preview／commit。
+  W／E／R 回到 Move／Rotate／Scale。真正 1×／2× 輸入測試涵蓋同 frame Q／click、toolbar
+  一致性、Home 導覽、active／pending drag、唯讀、panel／focus／modal／text gate 及保留 Redo。
+  Linux Xvfb 驗證 proxy／OBJ picking、隱藏把手、Select 拖曳後 saved bytes 不變，再切回變形工具。
+  完整 Scene View 與 target-hardware 驗收仍待完成。
+
 - ✅ Scene Home 與 Frame all 導覽而不改動 selection、World、dirty
   state 或 history。Owning token 使用實際 3,999-bounded native submission candidate、
   upload／proxy fallback 與精確 affine bounds，僅於發出 request 的 frame 套用一次；沿用 FOV distance；
