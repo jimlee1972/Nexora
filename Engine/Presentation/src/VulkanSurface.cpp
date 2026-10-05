@@ -348,6 +348,17 @@ public:
       return SurfaceStatus::InvalidDescriptor;
     if (!ValidateSceneMaterials(data.materials, data.batches) || !ValidatePbrData(data))
       return SurfaceStatus::InvalidDescriptor;
+    if (!ValidateEnvironmentResidency(data, [&](std::uint64_t id) {
+          const auto found = linearSceneTextures_.find(id);
+          return found == linearSceneTextures_.end() ? 0U : found->second.mipLevels;
+        }))
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto &upload : data.linearTextureUploads)
+      if (sceneTextures_.contains(upload.textureId))
+        return SurfaceStatus::InvalidDescriptor;
+    for (const auto &upload : data.textureUploads)
+      if (linearSceneTextures_.contains(upload.textureId))
+        return SurfaceStatus::InvalidDescriptor;
     if (data.textureUploads.size() > 16)
       return SurfaceStatus::InvalidDescriptor;
     for (const auto &upload : data.textureUploads)
@@ -370,6 +381,13 @@ public:
               [&material](const auto &upload) { return upload.textureId == material.textureId; }))
         return SurfaceStatus::InvalidDescriptor;
     if (data.pbr) {
+      VkFormatProperties formatProperties{};
+      vkGetPhysicalDeviceFormatProperties(physical_, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                          &formatProperties);
+      constexpr VkFormatFeatureFlags required =
+          VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+      if ((formatProperties.optimalTilingFeatures & required) != required)
+        return SurfaceStatus::Unsupported;
       if (!scenePbrPipeline_)
         return SurfaceStatus::Unsupported;
       for (const auto &material : data.materials)
@@ -406,6 +424,22 @@ public:
     }
     if (sceneTextures_.size() + additional > 64)
       return SurfaceStatus::Unsupported;
+    std::size_t additionalLinear = data.pbr && !linearSceneTextures_.contains(UINT64_MAX) ? 1 : 0;
+    for (const auto &upload : data.linearTextureUploads)
+      additionalLinear += linearSceneTextures_.contains(upload.textureId) ? 0 : 1;
+    if (linearSceneTextures_.size() + additionalLinear > 16)
+      return SurfaceStatus::Unsupported;
+    for (const auto &upload : data.linearTextureUploads)
+      if (!linearSceneTextures_.contains(upload.textureId) &&
+          !UploadUiTexture(
+              frame,
+              {upload.textureId, upload.width, upload.height, upload.width * 8, upload.pixels},
+              true, upload.mipLevels, true))
+        return SurfaceStatus::DeviceLost;
+    const std::array<std::byte, 8> blackEnvironment{};
+    if (data.pbr && !linearSceneTextures_.contains(UINT64_MAX) &&
+        !UploadUiTexture(frame, {UINT64_MAX, 1, 1, 8, blackEnvironment}, true, 1, true))
+      return SurfaceStatus::DeviceLost;
     for (const auto &upload : data.textureUploads)
       if (!sceneTextures_.contains(upload.textureId) && !UploadUiTexture(frame, upload, true))
         return SurfaceStatus::DeviceLost;
@@ -428,7 +462,7 @@ public:
     vkGetPhysicalDeviceProperties(physical_, &deviceProperties);
     const auto alignment =
         std::max<VkDeviceSize>(deviceProperties.limits.minUniformBufferOffsetAlignment, 16);
-    const auto materialStride = (sizeof(float) * 16 + alignment - 1) & ~(alignment - 1);
+    const auto materialStride = (sizeof(PbrMaterialUpload) + alignment - 1) & ~(alignment - 1);
     const auto materialOffset =
         (instanceOffset + instanceBytes.size() + alignment - 1) & ~(alignment - 1);
     const auto materialCount = std::max<std::size_t>(data.materials.size(), 1);
@@ -472,8 +506,8 @@ public:
                              material.normalTextureId ? material.normalTextureId : UINT64_MAX - 1,
                              material.ormTextureId ? material.ormTextureId : UINT64_MAX,
                              material.emissionTextureId ? material.emissionTextureId : UINT64_MAX};
-        std::array<VkDescriptorImageInfo, 4> images{};
-        std::array<VkWriteDescriptorSet, 5> writes{};
+        std::array<VkDescriptorImageInfo, 7> images{};
+        std::array<VkWriteDescriptorSet, 8> writes{};
         for (std::uint32_t map = 0; map < 4; ++map) {
           const auto &texture = sceneTextures_.at(ids[map]);
           images[map] = {uiSampler_, (map == 0 || map == 3) ? texture.srgbView : texture.view,
@@ -489,8 +523,27 @@ public:
                          nullptr,
                          nullptr};
         }
+        const std::array environmentIds{
+            data.environment ? data.environment->diffuseTextureId : UINT64_MAX,
+            data.environment ? data.environment->specularTextureId : UINT64_MAX,
+            data.environment ? data.environment->brdfTextureId : UINT64_MAX};
+        for (std::uint32_t map = 0; map < 3; ++map) {
+          images[4 + map] = {map == 2 ? uiSampler_ : environmentSampler_,
+                             linearSceneTextures_.at(environmentIds[map]).view,
+                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+          writes[5 + map] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                             nullptr,
+                             frame.pbrDescriptors[slot],
+                             5 + map,
+                             0,
+                             1,
+                             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                             &images[4 + map],
+                             nullptr,
+                             nullptr};
+        }
         const VkDescriptorBufferInfo info{frame.sceneUpload, materialOffset + slot * materialStride,
-                                          sizeof(float) * 16};
+                                          sizeof(PbrMaterialUpload)};
         writes[4] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                      nullptr,
                      frame.pbrDescriptors[slot],
@@ -892,6 +945,7 @@ private:
     VkImageView srgbView{};
     VkDeviceMemory memory{};
     VkDescriptorSet descriptor{};
+    std::uint32_t mipLevels{1};
   };
   static constexpr std::size_t kMaxFrames = 3;
   bool OnThread() const noexcept { return thread_ == std::this_thread::get_id(); }
@@ -1046,13 +1100,17 @@ private:
     ++diagnostics_.nativeUiBufferReallocations;
     return true;
   }
-  bool UploadUiTexture(Frame &frame, const UiTextureUpload &upload, bool scene = false) {
-    auto &textures = scene ? sceneTextures_ : uiTextures_;
+  bool UploadUiTexture(Frame &frame, const UiTextureUpload &upload, bool scene = false,
+                       std::uint32_t mipLevels = 1, bool linear = false) {
+    auto &textures = linear ? linearSceneTextures_ : scene ? sceneTextures_ : uiTextures_;
     if (upload.textureId == 0 || upload.width == 0 || upload.height == 0 ||
-        upload.rowPitch != upload.width * 4U ||
-        upload.pixels.size() != static_cast<std::size_t>(upload.rowPitch) * upload.height)
+        upload.rowPitch != upload.width * (linear ? 8U : 4U) ||
+        upload.pixels.size() !=
+            (linear ? SceneLinearTextureByteSize(upload.width, upload.height, mipLevels)
+                    : static_cast<std::size_t>(upload.rowPitch) * upload.height))
       return false;
     UiTexture next;
+    next.mipLevels = mipLevels;
     VkBuffer staging{};
     VkDeviceMemory stagingMemory{};
     const auto fail = [&]() {
@@ -1075,10 +1133,10 @@ private:
     VkImageCreateInfo imageCreate{};
     imageCreate.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageCreate.imageType = VK_IMAGE_TYPE_2D;
-    imageCreate.flags = scene ? VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT : 0;
-    imageCreate.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageCreate.flags = scene && !linear ? VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT : 0;
+    imageCreate.format = linear ? VK_FORMAT_R16G16B16A16_SFLOAT : VK_FORMAT_R8G8B8A8_UNORM;
     imageCreate.extent = {upload.width, upload.height, 1};
-    imageCreate.mipLevels = 1;
+    imageCreate.mipLevels = mipLevels;
     imageCreate.arrayLayers = 1;
     imageCreate.samples = VK_SAMPLE_COUNT_1_BIT;
     imageCreate.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -1099,11 +1157,11 @@ private:
     viewCreate.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewCreate.image = next.image;
     viewCreate.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewCreate.format = VK_FORMAT_R8G8B8A8_UNORM;
-    viewCreate.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    viewCreate.format = imageCreate.format;
+    viewCreate.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, mipLevels, 0, 1};
     if (vkCreateImageView(device_, &viewCreate, nullptr, &next.view) != VK_SUCCESS)
       return fail();
-    if (scene) {
+    if (scene && !linear) {
       viewCreate.format = VK_FORMAT_R8G8B8A8_SRGB;
       if (vkCreateImageView(device_, &viewCreate, nullptr, &next.srgbView) != VK_SUCCESS)
         return fail();
@@ -1143,14 +1201,22 @@ private:
     toCopy.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     toCopy.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     toCopy.image = next.image;
-    toCopy.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    toCopy.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, mipLevels, 0, 1};
     vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                          VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &toCopy);
-    VkBufferImageCopy copy{};
-    copy.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-    copy.imageExtent = {upload.width, upload.height, 1};
+    std::vector<VkBufferImageCopy> copies(mipLevels);
+    VkDeviceSize offset = 0;
+    auto mipWidth = upload.width, mipHeight = upload.height;
+    for (std::uint32_t level = 0; level < mipLevels; ++level) {
+      copies[level].bufferOffset = offset;
+      copies[level].imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, level, 0, 1};
+      copies[level].imageExtent = {mipWidth, mipHeight, 1};
+      offset += static_cast<VkDeviceSize>(mipWidth) * mipHeight * (linear ? 8U : 4U);
+      mipWidth = std::max(1U, mipWidth / 2);
+      mipHeight = std::max(1U, mipHeight / 2);
+    }
     vkCmdCopyBufferToImage(frame.commands, staging, next.image,
-                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels, copies.data());
     VkImageMemoryBarrier toRead = toCopy;
     toRead.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     toRead.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -1227,6 +1293,16 @@ private:
         vkFreeMemory(device_, texture.memory, nullptr);
     }
     sceneTextures_.clear();
+    for (auto &[id, texture] : linearSceneTextures_) {
+      (void)id;
+      vkDestroyImageView(device_, texture.view, nullptr);
+      vkDestroyImage(device_, texture.image, nullptr);
+      vkFreeMemory(device_, texture.memory, nullptr);
+    }
+    linearSceneTextures_.clear();
+    if (environmentSampler_)
+      vkDestroySampler(device_, environmentSampler_, nullptr);
+    environmentSampler_ = VK_NULL_HANDLE;
     if (uiPipeline_)
       vkDestroyPipeline(device_, uiPipeline_, nullptr);
     if (uiPipelineLayout_)
@@ -1270,6 +1346,9 @@ private:
     sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler.maxLod = VK_LOD_CLAMP_NONE;
     if (vkCreateSampler(device_, &sampler, nullptr, &uiSampler_) != VK_SUCCESS)
+      return false;
+    sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    if (vkCreateSampler(device_, &sampler, nullptr, &environmentSampler_) != VK_SUCCESS)
       return false;
     const VkDescriptorPoolSize poolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256};
     VkDescriptorPoolCreateInfo pool{};
@@ -1549,12 +1628,15 @@ private:
     vkDestroyShaderModule(device_, vertex, nullptr);
     if (!Initialized(result, "vkCreateGraphicsPipelines (scene)"))
       return false;
-    std::array<VkDescriptorSetLayoutBinding, 5> materialBindings{};
+    std::array<VkDescriptorSetLayoutBinding, 8> materialBindings{};
     for (std::uint32_t map = 0; map < 4; ++map)
       materialBindings[map] = {map, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                                VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
     materialBindings[4] = {4, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
                            nullptr};
+    for (std::uint32_t map = 5; map < 8; ++map)
+      materialBindings[map] = {map, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                               VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
     const VkDescriptorSetLayoutCreateInfo materialLayout{
         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
         static_cast<std::uint32_t>(materialBindings.size()), materialBindings.data()};
@@ -1563,7 +1645,7 @@ private:
       return false;
     const std::array poolSizes{
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64 * kMaxFrames},
-        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4 * 64 * kMaxFrames}};
+        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 7 * 64 * kMaxFrames}};
     const VkDescriptorPoolCreateInfo pool{
         VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,     nullptr,
         VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 64 * kMaxFrames,
@@ -1784,9 +1866,11 @@ private:
   std::vector<Frame> frames_;
   std::unordered_map<std::uint64_t, UiTexture> uiTextures_;
   std::unordered_map<std::uint64_t, UiTexture> sceneTextures_;
+  std::unordered_map<std::uint64_t, UiTexture> linearSceneTextures_;
   VkDescriptorSetLayout uiDescriptorLayout_{};
   VkDescriptorPool uiDescriptorPool_{};
   VkSampler uiSampler_{};
+  VkSampler environmentSampler_{};
   VkPipelineLayout uiPipelineLayout_{};
   VkRenderPass uiRenderPass_{};
   VkPipeline uiPipeline_{};

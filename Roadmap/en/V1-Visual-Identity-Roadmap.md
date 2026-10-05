@@ -220,3 +220,23 @@ failed candidates release their storage before publication.
 passed. Three retained software-renderer runs measured 47–48 FPS; hardware performance remains open.
 [Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-LinearColor-2026-10-05/acceptance.md).
 IBL and floating HDR remain open and the milestone stays 1/7.
+
+## 15. VIS-M1 cooked IBL resources (2026-10-05)
+
+The pinned CC0 Forest Slope HDRI produces bounded linear RGBA16F irradiance, seven GGX prefilter
+levels and a split-sum BRDF LUT with deterministic 128-sample Hammersley integration. Source, license,
+attribution, converter and derived hashes are retained. Each cooked float asset depends on cooked
+source/license/conversion metadata in the same verified Runtime generation. Vulkan, DX12 and Metal
+bind actual float environment resources through seven explicit sampled resources and an 80-byte
+private material packet. Public C++ consumers rebuild; NXAB/stable C/Zig schemas remain compatible.
+
+Native fixtures verify radiance above 1.0, diffuse/metal separation, roughness levels, reflection
+rotation/view/seam, IBL disable and resize/re-upload; descriptors reject bad mip counts, half values,
+missing resources and texture-type aliases. `O` compares IBL/direct light and restores the fixed shot.
+
+✅ Linux IBL slice: 94/94 without skips, Monolithic Shipping build, isolated headless package launch,
+nine-room interaction, all fixed shots and exact PBR/IBL comparison restoration pass. Three retained
+lavapipe runs measured 35–37 FPS; physical performance remains open.
+[Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-IBL-2026-10-05/acceptance.md).
+Native Windows/Metal execution is required through PR CI. Targets remain RGBA8; floating HDR
+composition and final VIS-M1 material acceptance remain open. Milestone progress stays 1/7.

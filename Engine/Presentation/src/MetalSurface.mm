@@ -227,6 +227,28 @@ public:
         additional += sceneTextures_.contains(upload.textureId) ? 0 : 1;
       if (sceneTextures_.size() + additional > 64)
         return SurfaceStatus::Unsupported;
+      std::size_t additionalLinear =
+          drawData.pbr && !sceneLinearTextures_.contains(UINT64_MAX) ? 1 : 0;
+      for (const auto &upload : drawData.linearTextureUploads)
+        additionalLinear += sceneLinearTextures_.contains(upload.textureId) ? 0 : 1;
+      if (sceneLinearTextures_.size() + additionalLinear > 16)
+        return SurfaceStatus::Unsupported;
+      for (const auto &upload : drawData.linearTextureUploads)
+        if (!sceneLinearTextures_.contains(upload.textureId)) {
+          const auto texture = CreateLinearTexture(upload);
+          if (!texture)
+            return SurfaceStatus::DeviceLost;
+          sceneLinearTextures_[upload.textureId] = texture;
+          ++diagnostics_.sceneTextureUploads;
+        }
+      const std::array<std::byte, 8> blackEnvironment{};
+      if (drawData.pbr && !sceneLinearTextures_.contains(UINT64_MAX)) {
+        const auto texture = CreateLinearTexture({UINT64_MAX, 1, 1, 1, blackEnvironment});
+        if (!texture)
+          return SurfaceStatus::DeviceLost;
+        sceneLinearTextures_[UINT64_MAX] = texture;
+        ++diagnostics_.sceneTextureUploads;
+      }
       for (const auto &upload : drawData.textureUploads)
         if (!sceneTextures_.contains(upload.textureId)) {
           const auto texture = CreateTexture(upload, true);
@@ -355,6 +377,16 @@ public:
             [encoder setFragmentTexture:texture atIndex:map];
             [encoder setFragmentSamplerState:uiSampler_ atIndex:map];
           }
+          const std::array environmentIds{
+              drawData.environment ? drawData.environment->diffuseTextureId : UINT64_MAX,
+              drawData.environment ? drawData.environment->specularTextureId : UINT64_MAX,
+              drawData.environment ? drawData.environment->brdfTextureId : UINT64_MAX};
+          for (NSUInteger map = 0; map < 3; ++map) {
+            [encoder setFragmentTexture:sceneLinearTextures_.at(environmentIds[map])
+                                atIndex:map + 4];
+            [encoder setFragmentSamplerState:map == 2 ? uiSampler_ : environmentSampler_
+                                     atIndex:map + 4];
+          }
         } else {
           [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:2];
           const auto id = material.textureId ? material.textureId : UINT64_MAX;
@@ -453,6 +485,7 @@ public:
         sceneColors_[i] = nil;
       }
       uiTextures_.clear();
+      sceneLinearTextures_.clear();
       sceneSrgbTextures_.clear();
       sceneTextures_.clear();
       uiPipeline_ = nil;
@@ -460,6 +493,7 @@ public:
       scenePbrPipeline_ = nil;
       depthState_ = nil;
       uiSampler_ = nil;
+      environmentSampler_ = nil;
       layer_ = nil;
       queue_ = nil;
       device_ = nil;
@@ -513,6 +547,19 @@ private:
       if (!PackSceneInstance(instance, packed))
         return false;
     }
+    if (!ValidateEnvironmentResidency(data, [&](std::uint64_t id) {
+          const auto found = sceneLinearTextures_.find(id);
+          return found == sceneLinearTextures_.end()
+                     ? 0U
+                     : static_cast<std::uint32_t>(found->second.mipmapLevelCount);
+        }))
+      return false;
+    for (const auto &upload : data.linearTextureUploads)
+      if (sceneTextures_.contains(upload.textureId))
+        return false;
+    for (const auto &upload : data.textureUploads)
+      if (sceneLinearTextures_.contains(upload.textureId))
+        return false;
     for (std::size_t i = 0; i < data.textureUploads.size(); ++i) {
       const auto &upload = data.textureUploads[i];
       if (!ValidTexture(upload) || upload.textureId >= UINT64_MAX - 1 || upload.width > 1024 ||
@@ -609,6 +656,32 @@ private:
                  mipmapLevel:0
                    withBytes:upload.pixels.data()
                  bytesPerRow:upload.rowPitch];
+    return texture;
+  }
+  id<MTLTexture> CreateLinearTexture(const SceneLinearTextureUpload &upload) {
+    auto *descriptor =
+        [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float
+                                                           width:upload.width
+                                                          height:upload.height
+                                                       mipmapped:upload.mipLevels > 1];
+    descriptor.mipmapLevelCount = upload.mipLevels;
+    descriptor.storageMode =
+        device_.hasUnifiedMemory ? MTLStorageModeShared : MTLStorageModeManaged;
+    descriptor.usage = MTLTextureUsageShaderRead;
+    id<MTLTexture> texture = [device_ newTextureWithDescriptor:descriptor];
+    if (!texture)
+      return nil;
+    auto width = upload.width, height = upload.height;
+    std::size_t offset = 0;
+    for (std::uint32_t level = 0; level < upload.mipLevels; ++level) {
+      [texture replaceRegion:MTLRegionMake2D(0, 0, width, height)
+                 mipmapLevel:level
+                   withBytes:upload.pixels.data() + offset
+                 bytesPerRow:width * 8];
+      offset += static_cast<std::size_t>(width) * height * 8;
+      width = std::max(1U, width / 2);
+      height = std::max(1U, height / 2);
+    }
     return texture;
   }
   bool CreateSceneResources() {
@@ -760,7 +833,11 @@ private:
     sampler.sAddressMode = MTLSamplerAddressModeClampToEdge;
     sampler.tAddressMode = MTLSamplerAddressModeClampToEdge;
     uiSampler_ = [device_ newSamplerStateWithDescriptor:sampler];
-    return uiPipeline_ != nil && uiSampler_ != nil;
+    sampler.sAddressMode = MTLSamplerAddressModeRepeat;
+    sampler.mipFilter = MTLSamplerMipFilterLinear;
+    sampler.lodMaxClamp = 8;
+    environmentSampler_ = [device_ newSamplerStateWithDescriptor:sampler];
+    return uiPipeline_ != nil && uiSampler_ != nil && environmentSampler_ != nil;
   }
   bool UploadUiTexture(const UiTextureUpload &upload) {
     if (upload.textureId == 0 || upload.width == 0 || upload.height == 0 ||
@@ -790,6 +867,7 @@ private:
   id<MTLCommandBuffer> commands_ = nil;
   id<MTLRenderPipelineState> uiPipeline_ = nil;
   id<MTLSamplerState> uiSampler_ = nil;
+  id<MTLSamplerState> environmentSampler_ = nil;
   id<MTLRenderPipelineState> scenePipeline_ = nil;
   id<MTLRenderPipelineState> scenePbrPipeline_ = nil;
   id<MTLDepthStencilState> depthState_ = nil;
@@ -799,6 +877,7 @@ private:
   std::array<id<MTLTexture>, kFrames> sceneColors_{};
   std::unordered_map<std::uint64_t, id<MTLTexture>> sceneTextures_;
   std::unordered_map<std::uint64_t, id<MTLTexture>> sceneSrgbTextures_;
+  std::unordered_map<std::uint64_t, id<MTLTexture>> sceneLinearTextures_;
   std::array<id<MTLCommandBuffer>, kFrames> inflight_{};
   std::array<id<MTLBuffer>, kFrames> uiUploads_{};
   std::array<std::size_t, kFrames> uiCapacity_{};

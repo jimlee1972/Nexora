@@ -314,6 +314,17 @@ public:
       return SurfaceStatus::InvalidDescriptor;
     if (!ValidateSceneMaterials(drawData.materials, drawData.batches) || !ValidatePbrData(drawData))
       return SurfaceStatus::InvalidDescriptor;
+    if (!ValidateEnvironmentResidency(drawData, [&](std::uint64_t id) {
+          const auto found = linearSceneTextures_.find(id);
+          return found == linearSceneTextures_.end() ? 0U : found->second.mipLevels;
+        }))
+      return SurfaceStatus::InvalidDescriptor;
+    for (const auto &upload : drawData.linearTextureUploads)
+      if (sceneTextures_.contains(upload.textureId))
+        return SurfaceStatus::InvalidDescriptor;
+    for (const auto &upload : drawData.textureUploads)
+      if (linearSceneTextures_.contains(upload.textureId))
+        return SurfaceStatus::InvalidDescriptor;
     if (drawData.textureUploads.size() > 16)
       return SurfaceStatus::InvalidDescriptor;
     for (const auto &upload : drawData.textureUploads)
@@ -336,6 +347,13 @@ public:
               [&material](const auto &upload) { return upload.textureId == material.textureId; }))
         return SurfaceStatus::InvalidDescriptor;
     if (drawData.pbr) {
+      D3D12_FEATURE_DATA_FORMAT_SUPPORT support{DXGI_FORMAT_R16G16B16A16_FLOAT};
+      constexpr auto required = D3D12_FORMAT_SUPPORT1_TEXTURE2D |
+                                D3D12_FORMAT_SUPPORT1_SHADER_SAMPLE | D3D12_FORMAT_SUPPORT1_MIP;
+      if (FAILED(device_->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &support,
+                                              sizeof(support))) ||
+          (support.Support1 & required) != required)
+        return SurfaceStatus::Unsupported;
       if (!scenePbrPipeline_)
         return SurfaceStatus::Unsupported;
       for (const auto &material : drawData.materials)
@@ -419,6 +437,22 @@ public:
     }
     if (sceneTextures_.size() + additional > 64)
       return SurfaceStatus::Unsupported;
+    std::size_t additionalLinear =
+        drawData.pbr && !linearSceneTextures_.contains(UINT64_MAX) ? 1 : 0;
+    for (const auto &upload : drawData.linearTextureUploads)
+      additionalLinear += linearSceneTextures_.contains(upload.textureId) ? 0 : 1;
+    if (linearSceneTextures_.size() + additionalLinear > 16)
+      return SurfaceStatus::Unsupported;
+    for (const auto &upload : drawData.linearTextureUploads)
+      if (!linearSceneTextures_.contains(upload.textureId) &&
+          !UploadUiTexture(
+              {upload.textureId, upload.width, upload.height, upload.width * 8, upload.pixels},
+              true, upload.mipLevels, true))
+        return SurfaceStatus::DeviceLost;
+    const std::array<std::byte, 8> blackEnvironment{};
+    if (drawData.pbr && !linearSceneTextures_.contains(UINT64_MAX) &&
+        !UploadUiTexture({UINT64_MAX, 1, 1, 8, blackEnvironment}, true, 1, true))
+      return SurfaceStatus::DeviceLost;
     for (const auto &upload : drawData.textureUploads)
       if (!sceneTextures_.contains(upload.textureId) && !UploadUiTexture(upload, true))
         return SurfaceStatus::DeviceLost;
@@ -513,6 +547,16 @@ public:
           mapHandle.ptr += UINT64(descriptor) * uiDescriptorIncrement_;
           commands_->SetGraphicsRootDescriptorTable(map + 2, mapHandle);
         }
+        const std::array environmentIds{
+            drawData.environment ? drawData.environment->diffuseTextureId : UINT64_MAX,
+            drawData.environment ? drawData.environment->specularTextureId : UINT64_MAX,
+            drawData.environment ? drawData.environment->brdfTextureId : UINT64_MAX};
+        for (UINT map = 0; map < 3; ++map) {
+          auto environmentHandle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
+          environmentHandle.ptr += UINT64(linearSceneTextures_.at(environmentIds[map]).descriptor) *
+                                   uiDescriptorIncrement_;
+          commands_->SetGraphicsRootDescriptorTable(map + 6, environmentHandle);
+        }
       } else {
         commands_->SetGraphicsRootDescriptorTable(1, handle);
       }
@@ -573,6 +617,7 @@ public:
       upload.Reset();
     uiTextures_.clear();
     sceneTextures_.clear();
+    linearSceneTextures_.clear();
     for (auto &retired : retired_)
       retired.clear();
     uiPipeline_.Reset();
@@ -597,6 +642,7 @@ private:
     ComPtr<ID3D12Resource> resource;
     UINT descriptor{};
     UINT srgbDescriptor{};
+    std::uint32_t mipLevels{1};
   };
   bool OnThread() const { return std::this_thread::get_id() == renderThread_; }
   bool CreateUiResources() {
@@ -814,16 +860,16 @@ private:
     pipeline.SampleDesc.Count = 1;
     if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePipeline_))))
       return false;
-    std::array<D3D12_DESCRIPTOR_RANGE, 4> pbrRanges{};
-    std::array<D3D12_ROOT_PARAMETER, 6> pbrParameters{};
+    std::array<D3D12_DESCRIPTOR_RANGE, 7> pbrRanges{};
+    std::array<D3D12_ROOT_PARAMETER, 9> pbrParameters{};
     for (UINT i = 0; i < 2; ++i) {
       pbrParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
       pbrParameters[i].Descriptor.ShaderRegister = i;
       pbrParameters[i].ShaderVisibility =
           i == 0 ? D3D12_SHADER_VISIBILITY_ALL : D3D12_SHADER_VISIBILITY_PIXEL;
     }
-    std::array<D3D12_STATIC_SAMPLER_DESC, 4> pbrSamplers{};
-    for (UINT i = 0; i < 4; ++i) {
+    std::array<D3D12_STATIC_SAMPLER_DESC, 7> pbrSamplers{};
+    for (UINT i = 0; i < 7; ++i) {
       pbrRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
       pbrRanges[i].NumDescriptors = 1;
       pbrRanges[i].BaseShaderRegister = i;
@@ -832,6 +878,8 @@ private:
       pbrParameters[i + 2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
       pbrSamplers[i] = sampler;
       pbrSamplers[i].ShaderRegister = i;
+      if (i == 4 || i == 5)
+        pbrSamplers[i].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
     }
     root.NumParameters = static_cast<UINT>(pbrParameters.size());
     root.pParameters = pbrParameters.data();
@@ -912,11 +960,17 @@ private:
     ++diagnostics_.nativeUiBufferReallocations;
     return true;
   }
-  bool UploadUiTexture(const UiTextureUpload &upload, bool scene = false) {
-    auto &textures = scene ? sceneTextures_ : uiTextures_;
+  bool UploadUiTexture(const UiTextureUpload &upload, bool scene = false,
+                       std::uint32_t mipLevels = 1, bool linear = false) {
+    auto &textures = linear ? linearSceneTextures_ : scene ? sceneTextures_ : uiTextures_;
     if (upload.textureId == 0 || upload.width == 0 || upload.height == 0 ||
-        upload.rowPitch != upload.width * 4U ||
-        upload.pixels.size() != static_cast<std::size_t>(upload.rowPitch) * upload.height)
+        upload.rowPitch != upload.width * (linear ? 8U : 4U) ||
+        upload.pixels.size() !=
+            (linear ? SceneLinearTextureByteSize(upload.width, upload.height, mipLevels)
+                    : static_cast<std::size_t>(upload.rowPitch) * upload.height))
+      return false;
+    const UINT descriptorCount = scene && !linear ? 2U : 1U;
+    if (nextUiDescriptor_ > 4096 - descriptorCount)
       return false;
     D3D12_HEAP_PROPERTIES defaultHeap{};
     defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -927,23 +981,29 @@ private:
     texture.Width = upload.width;
     texture.Height = upload.height;
     texture.DepthOrArraySize = 1;
-    texture.MipLevels = 1;
-    texture.Format = scene ? DXGI_FORMAT_R8G8B8A8_TYPELESS : DXGI_FORMAT_R8G8B8A8_UNORM;
+    texture.MipLevels = static_cast<UINT16>(mipLevels);
+    texture.Format = linear  ? DXGI_FORMAT_R16G16B16A16_FLOAT
+                     : scene ? DXGI_FORMAT_R8G8B8A8_TYPELESS
+                             : DXGI_FORMAT_R8G8B8A8_UNORM;
     texture.SampleDesc.Count = 1;
     ComPtr<ID3D12Resource> resource;
     if (FAILED(device_->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &texture,
                                                 D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
                                                 IID_PPV_ARGS(&resource))))
       return false;
-    const UINT alignedPitch = (upload.rowPitch + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) &
-                              ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1);
+    std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(mipLevels);
+    std::vector<UINT> rowCounts(mipLevels);
+    std::vector<UINT64> rowSizes(mipLevels);
+    UINT64 totalBytes{};
+    device_->GetCopyableFootprints(&texture, 0, mipLevels, 0, footprints.data(), rowCounts.data(),
+                                   rowSizes.data(), &totalBytes);
     D3D12_HEAP_PROPERTIES uploadHeap{};
     uploadHeap.Type = D3D12_HEAP_TYPE_UPLOAD;
     uploadHeap.CreationNodeMask = 1;
     uploadHeap.VisibleNodeMask = 1;
     D3D12_RESOURCE_DESC stagingDesc{};
     stagingDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    stagingDesc.Width = static_cast<UINT64>(alignedPitch) * upload.height;
+    stagingDesc.Width = totalBytes;
     stagingDesc.Height = 1;
     stagingDesc.DepthOrArraySize = 1;
     stagingDesc.MipLevels = 1;
@@ -958,28 +1018,35 @@ private:
     D3D12_RANGE noRead{0, 0};
     if (FAILED(staging->Map(0, &noRead, &mapped)))
       return false;
-    for (std::uint32_t row = 0; row < upload.height; ++row)
-      std::memcpy(static_cast<std::byte *>(mapped) + static_cast<std::size_t>(row) * alignedPitch,
-                  upload.pixels.data() + static_cast<std::size_t>(row) * upload.rowPitch,
-                  upload.rowPitch);
+    std::size_t sourceOffset = 0;
+    for (std::uint32_t level = 0; level < mipLevels; ++level) {
+      const auto &footprint = footprints[level];
+      for (UINT row = 0; row < rowCounts[level]; ++row)
+        std::memcpy(static_cast<std::byte *>(mapped) + footprint.Offset +
+                        static_cast<std::size_t>(row) * footprint.Footprint.RowPitch,
+                    upload.pixels.data() + sourceOffset +
+                        static_cast<std::size_t>(row) * rowSizes[level],
+                    static_cast<std::size_t>(rowSizes[level]));
+      sourceOffset += static_cast<std::size_t>(rowSizes[level]) * rowCounts[level];
+    }
     staging->Unmap(0, nullptr);
-    D3D12_TEXTURE_COPY_LOCATION destination{};
-    destination.pResource = resource.Get();
-    destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    D3D12_TEXTURE_COPY_LOCATION source{};
-    source.pResource = staging.Get();
-    source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-    source.PlacedFootprint.Footprint = {DXGI_FORMAT_R8G8B8A8_UNORM, upload.width, upload.height, 1,
-                                        alignedPitch};
-    commands_->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
+    for (std::uint32_t level = 0; level < mipLevels; ++level) {
+      D3D12_TEXTURE_COPY_LOCATION destination{};
+      destination.pResource = resource.Get();
+      destination.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+      destination.SubresourceIndex = level;
+      D3D12_TEXTURE_COPY_LOCATION source{};
+      source.pResource = staging.Get();
+      source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+      source.PlacedFootprint = footprints[level];
+      commands_->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
+    }
     D3D12_RESOURCE_BARRIER barrier{};
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Transition = {resource.Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
                           D3D12_RESOURCE_STATE_COPY_DEST,
                           D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE};
     commands_->ResourceBarrier(1, &barrier);
-    if (nextUiDescriptor_ > 4096 - (scene ? 2U : 1U))
-      return false;
     const UINT descriptor = nextUiDescriptor_++;
     if (const auto previous = textures.find(upload.textureId); previous != textures.end()) {
       retired_[frame_].push_back(previous->second.resource);
@@ -987,19 +1054,19 @@ private:
     auto cpu = uiDescriptors_->GetCPUDescriptorHandleForHeapStart();
     cpu.ptr += static_cast<SIZE_T>(descriptor) * uiDescriptorIncrement_;
     D3D12_SHADER_RESOURCE_VIEW_DESC view{};
-    view.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    view.Format = linear ? DXGI_FORMAT_R16G16B16A16_FLOAT : DXGI_FORMAT_R8G8B8A8_UNORM;
     view.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
     view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    view.Texture2D.MipLevels = 1;
+    view.Texture2D.MipLevels = mipLevels;
     device_->CreateShaderResourceView(resource.Get(), &view, cpu);
     UINT srgbDescriptor = descriptor;
-    if (scene) {
+    if (scene && !linear) {
       srgbDescriptor = nextUiDescriptor_++;
       cpu.ptr += uiDescriptorIncrement_;
       view.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
       device_->CreateShaderResourceView(resource.Get(), &view, cpu);
     }
-    textures[upload.textureId] = {resource, descriptor, srgbDescriptor};
+    textures[upload.textureId] = {resource, descriptor, srgbDescriptor, mipLevels};
     retired_[frame_].push_back(staging);
     if (scene)
       ++diagnostics_.sceneTextureUploads;
@@ -1125,6 +1192,7 @@ private:
   std::array<std::vector<ComPtr<ID3D12Resource>>, kMaximumFrames> retired_;
   std::unordered_map<std::uint64_t, UiTexture> uiTextures_;
   std::unordered_map<std::uint64_t, UiTexture> sceneTextures_;
+  std::unordered_map<std::uint64_t, UiTexture> linearSceneTextures_;
   ComPtr<IDXGISwapChain3> swapchain_;
   ComPtr<ID3D12DescriptorHeap> dsvHeap_;
   UINT dsvIncrement_{};

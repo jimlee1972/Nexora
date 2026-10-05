@@ -75,6 +75,57 @@ struct UiTextureUpload final {
   std::span<const std::byte> pixels;
 };
 
+// Borrowed tightly packed little-endian linear RGBA16F mip chain, largest level first.
+// Nonzero IDs identify immutable scene generations and cannot alias RGBA8 scene textures.
+struct SceneLinearTextureUpload final {
+  std::uint64_t textureId{};
+  std::uint32_t width{};
+  std::uint32_t height{};
+  std::uint32_t mipLevels{1};
+  std::span<const std::byte> pixels;
+};
+
+[[nodiscard]] inline std::size_t SceneLinearTextureByteSize(std::uint32_t width,
+                                                            std::uint32_t height,
+                                                            std::uint32_t levels) noexcept {
+  if (!width || !height || width > 256 || height > 256 || (width & (width - 1)) ||
+      (height & (height - 1)) || !levels || levels > 9)
+    return 0;
+  std::size_t size = 0;
+  for (std::uint32_t level = 0; level < levels; ++level) {
+    size += static_cast<std::size_t>(width) * height * 8;
+    if (width == 1 && height == 1 && level + 1 < levels)
+      return 0;
+    width = std::max(1U, width / 2);
+    height = std::max(1U, height / 2);
+  }
+  return size;
+}
+
+[[nodiscard]] inline bool
+ValidateSceneLinearTexture(const SceneLinearTextureUpload &upload) noexcept {
+  const auto size = SceneLinearTextureByteSize(upload.width, upload.height, upload.mipLevels);
+  if (!upload.textureId || upload.textureId >= UINT64_MAX - 1 || !size ||
+      size != upload.pixels.size())
+    return false;
+  for (std::size_t i = 0; i < size; i += 2) {
+    const auto half = std::to_integer<unsigned>(upload.pixels[i]) |
+                      (std::to_integer<unsigned>(upload.pixels[i + 1]) << 8);
+    if ((half & 0x8000U) || (half & 0x7c00U) == 0x7c00U)
+      return false; // Nonnegative finite radiance/LUT data; no infinities or NaNs.
+  }
+  return true;
+}
+
+struct SceneEnvironment final {
+  std::uint64_t diffuseTextureId{};
+  std::uint64_t specularTextureId{};
+  std::uint64_t brdfTextureId{};
+  float intensity{1};
+  float rotationRadians{};            // +Y rotation; latlong U wraps, V clamps.
+  std::uint32_t specularMipLevels{1}; // Roughness spans the complete prefiltered chain.
+};
+
 struct SceneVertex final {
   float position[3]{};
   float normal[3]{};
@@ -213,8 +264,10 @@ struct SceneDrawData final {
   std::span<const SceneMeshBatch> batches{};
   // Empty preserves the original global base_color/textureId; otherwise batches select slots.
   std::span<const SceneMaterial> materials{};
-  bool pbr{}; // Explicit direct-light shared PBR path; unsupported hosts must report Unsupported.
+  bool pbr{}; // Explicit shared PBR path; unsupported hosts must report Unsupported.
   std::array<float, 3> cameraPosition{};
+  std::span<const SceneLinearTextureUpload> linearTextureUploads{};
+  std::optional<SceneEnvironment> environment{};
 };
 
 // Call only after material/batch validation. Returned values own their scalar storage.

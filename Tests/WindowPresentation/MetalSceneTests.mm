@@ -2,6 +2,7 @@
 // Compile the real private adapter into this test to read back GPU output without adding public
 // handles.
 #include "../../Engine/Presentation/src/MetalSurface.mm"
+#include "PbrEnvironmentFixtures.h"
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 
@@ -346,6 +347,42 @@ int main(int argc, char **argv) {
     const auto mirrorRight = std::to_integer<int>(mirroredPixels[(200 * 640 + 450) * 4 + 2]);
     if (mirrorLeft < 100 || mirrorRight < 100 || std::abs(mirrorLeft - mirrorRight) > 2)
       return fail(__LINE__);
+    materialInstances = instances;
+    materialInstances[1].color[1] = 1;
+    materialDraw.vertices = originalVertices;
+    for (unsigned mode = 0; mode < 7; ++mode) {
+      PbrEnvironmentFixtures::Configure(materialDraw, materialSlots, mode);
+      materialDraw.linearTextureUploads =
+          mode == 0 ? std::span<const SceneLinearTextureUpload>(PbrEnvironmentFixtures::uploads)
+                    : std::span<const SceneLinearTextureUpload>{};
+      if (!require(surface->Acquire(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      if (mode == 0) {
+        auto invalid = materialDraw;
+        invalid.environment->specularTextureId = 999;
+        if (!require(surface->DrawScene(invalid), SurfaceStatus::InvalidDescriptor))
+          return fail(__LINE__);
+      }
+      if (!require(surface->DrawScene(materialDraw), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto environmentPixels = surface->ReadScenePixelsForTesting();
+      if (environmentPixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (200 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(environmentPixels[index + 2]),
+                                       std::to_integer<unsigned>(environmentPixels[index + 1]),
+                                       std::to_integer<unsigned>(environmentPixels[index])};
+      };
+      const auto left = read(190), right = read(450);
+      if (!PbrEnvironmentFixtures::Pixels(mode, left, right)) {
+        std::cerr << "Metal IBL mode=" << mode << " left=" << left[0] << ',' << left[1] << ','
+                  << left[2] << " right=" << right[0] << ',' << right[1] << ',' << right[2] << '\n';
+        return fail(__LINE__);
+      }
+    }
     // Depth must select the bright near triangle regardless of index order.
     std::array<SceneVertex, 6> layered{};
     for (std::size_t i = 0; i < 3; ++i) {

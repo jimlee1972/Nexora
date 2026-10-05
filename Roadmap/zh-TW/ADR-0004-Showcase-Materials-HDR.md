@@ -42,4 +42,6 @@ Upload／target 由 frame 擁有，texture generation immutable，配置採 tran
 原生像素、normal／roughness／orbit、missing-map fallback、resize／reload／lifetime 及後端比較
 構成驗收證據；shader 編譯本身不足。硬體畫面與 GTX 960 預算仍為 VIS-M3／M6 獨立 gate。
 
-共享直接光照 PBR 已接通，使用固定版本 shader artifacts 與共享材質 packing；IBL／HDR 為後續切片。
+共享直接光照 PBR 與硬體 sRGB 過濾已接通。IBL 切片加入有界線性 RGBA16F 資源、
+Runtime bundle 中的來源／授權／轉換 metadata 相依、七個原生取樣資源及 80-byte 私有材質 packet。
+公開 C++ consumer 必須重建；NXAB 與穩定 C／Zig schema 不變。浮點 HDR scene target／合成仍開放。

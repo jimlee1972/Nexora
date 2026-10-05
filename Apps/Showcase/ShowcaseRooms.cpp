@@ -1,5 +1,6 @@
 #include "ShowcaseRooms.h"
 #include "CourtyardAssets.h"
+#include "CourtyardEnvironment.h"
 #include "Nexora/Foundation/BuildInfo.h"
 #include "Nexora/Math/Math.h"
 #include "Nexora/Renderer/SceneFrame.h"
@@ -119,7 +120,7 @@ struct RoomSession::State final {
   int pointerX{}, pointerY{};
   bool dragging{}, screenshotMode{};
   std::size_t courtyardShot{};
-  bool courtyardPbr{true};
+  bool courtyardPbr{true}, courtyardIbl{true};
   std::uint64_t atlasGeneration{~std::uint64_t{0}};
   std::string lastAction{"Ready"}, pluginLibrary;
   ErrorInjection injection{ErrorInjection::None};
@@ -134,6 +135,7 @@ struct RoomSession::State final {
   std::vector<Nexora::Presentation::SceneMeshBatch> courtyardBatches;
   std::array<std::byte, 8 * 8 * 4> checker{};
   std::vector<Nexora::Presentation::UiTextureUpload> sceneUploads;
+  std::vector<Nexora::Presentation::SceneLinearTextureUpload> linearSceneUploads;
   std::vector<std::uint16_t> indices;
   std::vector<Nexora::Presentation::UiVertex> uiVertices;
   std::vector<std::uint32_t> uiIndices;
@@ -160,6 +162,9 @@ struct RoomSession::State final {
   std::array<renderer::Mesh, 3> courtyardMeshes;
   std::array<std::byte, 64 * 64 * 4> courtyardAtlas{};
   std::array<std::string, 4> courtyardHashes;
+  std::array<ByteBuffer, 3> courtyardEnvironment;
+  std::array<std::string, 3> environmentHashes;
+  std::string environmentMetadataHash;
   bool assetRejected{}, cycleRejected{}, rolledBack{};
 #endif
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
@@ -337,6 +342,53 @@ struct RoomSession::State final {
       throw std::runtime_error("Courtyard atlas cook failed");
     courtyardHashes[3] = atlasBlob->content_hash;
     courtyardBlobs.push_back(*atlasBlob);
+    const std::array<std::span<const std::byte>, 3> environmentSources{
+        std::as_bytes(std::span{courtyard_environment::diffuse}),
+        std::as_bytes(std::span{courtyard_environment::specular}),
+        std::as_bytes(std::span{courtyard_environment::brdf})};
+    const auto metadata = std::as_bytes(
+        std::span{courtyard_environment::metadata, sizeof(courtyard_environment::metadata) - 1});
+    importer.Register(".iblmeta", [](const SourceAsset &source) -> std::optional<CanonicalAsset> {
+      if (source.bytes.empty() || source.bytes.size() > 16384)
+        return {};
+      return CanonicalAsset{source.id, source.type, {}, source.bytes};
+    });
+    const auto importedMetadata = importer.Import({{0x4e58, 107},
+                                                   "courtyard-ibl-metadata-v1",
+                                                   "environment.iblmeta",
+                                                   ByteBuffer{metadata.begin(), metadata.end()}});
+    const auto metadataBlob = importedMetadata ? AssetCooker{}.Cook(*importedMetadata, "portable",
+                                                                    "courtyard-ibl-v1", cache)
+                                               : std::nullopt;
+    if (!metadataBlob)
+      throw std::runtime_error("Courtyard IBL metadata cook failed");
+    courtyardBlobs.push_back(*metadataBlob);
+    environmentMetadataHash = metadataBlob->content_hash;
+    importer.Register(".rgba16f", [](const SourceAsset &source) -> std::optional<CanonicalAsset> {
+      using namespace Nexora::Presentation;
+      if (source.id.high != 0x4e58 || source.id.low < 104 || source.id.low > 106)
+        return {};
+      const std::array widths{16U, 64U, 32U}, heights{8U, 32U, 32U}, levels{1U, 7U, 1U};
+      const auto slot = static_cast<std::size_t>(source.id.low - 104);
+      if (!ValidateSceneLinearTexture(
+              {source.id.low, widths[slot], heights[slot], levels[slot], source.bytes}))
+        return {};
+      return CanonicalAsset{source.id, source.type, {{0x4e58, 107}}, source.bytes};
+    });
+    for (std::size_t i = 0; i < environmentSources.size(); ++i) {
+      const auto sourceBytes = environmentSources[i];
+      const auto imported = importer.Import({{0x4e58, 104 + i},
+                                             "courtyard-ibl-rgba16f-v1",
+                                             "environment.rgba16f",
+                                             ByteBuffer{sourceBytes.begin(), sourceBytes.end()}});
+      const auto blob = imported
+                            ? AssetCooker{}.Cook(*imported, "portable", "courtyard-ibl-v1", cache)
+                            : std::nullopt;
+      if (!blob)
+        throw std::runtime_error("Courtyard IBL resource cook failed");
+      environmentHashes[i] = blob->content_hash;
+      courtyardBlobs.push_back(*blob);
+    }
     const auto adoptedBundle = BundleBuilder::Build("courtyard", 1, {}, courtyardBlobs);
     if (!adoptedBundle || !courtyardAssets.Stage({*adoptedBundle}) ||
         !courtyardAssets.ActivateStaged())
@@ -351,6 +403,15 @@ struct RoomSession::State final {
     if (!loadedAtlas || loadedAtlas->payload.size() != courtyardAtlas.size())
       throw std::runtime_error("Courtyard adopted atlas load failed");
     std::copy(loadedAtlas->payload.begin(), loadedAtlas->payload.end(), courtyardAtlas.begin());
+    for (std::size_t i = 0; i < courtyardEnvironment.size(); ++i) {
+      const auto *loaded = courtyardAssets.Load({0x4e58, 104 + i});
+      if (!loaded || loaded->payload.size() != environmentSources[i].size() ||
+          loaded->dependencies != std::vector<AssetUuid>{{0x4e58, 107}})
+        throw std::runtime_error("Courtyard cooked IBL resource load failed");
+      courtyardEnvironment[i] = loaded->payload;
+    }
+    if (!courtyardAssets.Load({0x4e58, 107}))
+      throw std::runtime_error("Courtyard cooked IBL metadata load failed");
     assetRejected = !importer.Import({source.id, source.type, source.source_path, {}});
     cycleRejected =
         !BundleBuilder::ValidateDependencyDag({{"a", 1, {"b"}, {}}, {"b", 1, {"a"}, {}}});
@@ -945,9 +1006,10 @@ struct RoomSession::State final {
   std::vector<std::string> Lines() const {
     std::vector<std::string> lines{"Public Runtime state sampled at tick " + std::to_string(ticks)};
     if (selected == "courtyard")
-      lines.insert(lines.end(), {"VIS-M0 ruins courtyard / engineering greybox",
-                                 "B cycles wide / material / motion framing; F4 hides UI",
-                                 "PBR / shadows / wind / final assets remain pending"});
+      lines.insert(lines.end(),
+                   {"Ruins courtyard", "B cycles wide / material / motion framing; F4 hides UI",
+                    "P compares Lambert; O toggles environment lighting",
+                    "Shadows / wind / final art remain pending"});
     if (selected == "hub")
       lines.insert(lines.end(),
                    {"Eight rooms / central 3D display stand", "Choose a portal above or press 1-8",
@@ -1161,6 +1223,10 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
   if (s.selected == "courtyard" && key == Key::P) {
     s.courtyardPbr = !s.courtyardPbr;
     s.lastAction = s.courtyardPbr ? "PBR materials" : "Lambert material comparison";
+  }
+  if (s.selected == "courtyard" && key == Key::O) {
+    s.courtyardIbl = !s.courtyardIbl;
+    s.lastAction = s.courtyardIbl ? "Environment lighting on" : "Direct-light comparison";
   }
   if (key == Key::F4)
     s.screenshotMode = !s.screenshotMode;
@@ -1378,6 +1444,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   s.indices.clear();
   s.instances.clear();
   s.sceneUploads.clear();
+  s.linearSceneUploads.clear();
   s.materials.clear();
   s.batches.clear();
   s.Cube(0, -0.3F, 0, 6, 0.3F, 6);
@@ -1561,6 +1628,13 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.sceneUploads.push_back({2, 64, 64, 256, s.courtyardAtlas});
     data.textureId = 2;
     data.textureUploads = s.sceneUploads;
+    if (data.pbr && s.courtyardIbl) {
+      s.linearSceneUploads = {{3, 16, 8, 1, s.courtyardEnvironment[0]},
+                              {4, 64, 32, 7, s.courtyardEnvironment[1]},
+                              {5, 32, 32, 1, s.courtyardEnvironment[2]}};
+      data.linearTextureUploads = s.linearSceneUploads;
+      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 1.0F, 0.0F, 7};
+    }
 #endif
     data.base_color[0] = 0.72F;
     data.base_color[1] = 0.57F;
@@ -1709,7 +1783,11 @@ std::string RoomSession::Report() const {
     out << "\"" << Escape(line) << "\"";
   }
   out << "],\"courtyard\":{\"stage\":\"engineering_greybox\",\"shot\":" << s.courtyardShot
-      << ",\"shading\":\"" << (s.courtyardPbr ? "shared_pbr_direct" : "lambert") << "\""
+      << ",\"shading\":\""
+      << (s.courtyardPbr ? (NEXORA_ASSET_PIPELINE_ENABLED && s.courtyardIbl ? "shared_pbr_ibl"
+                                                                            : "shared_pbr_direct")
+                         : "lambert")
+      << "\""
       << ",\"screenshot_mode\":" << s.screenshotMode
 #if NEXORA_ASSET_PIPELINE_ENABLED
       << ",\"representative_asset_loaded\":" << !s.assetMesh.vertices.empty()
@@ -1717,6 +1795,11 @@ std::string RoomSession::Report() const {
       << ",\"adopted_mesh_count\":3,\"adopted_texture_count\":1,\"adopted_hashes\":[\""
       << s.courtyardHashes[0] << "\",\"" << s.courtyardHashes[1] << "\",\"" << s.courtyardHashes[2]
       << "\",\"" << s.courtyardHashes[3] << "\"]"
+      << ",\"environment_loaded\":true,\"environment_enabled\":"
+      << (s.courtyardPbr && s.courtyardIbl) << ",\"environment_metadata_hash\":\""
+      << s.environmentMetadataHash << "\""
+      << ",\"environment_hashes\":[\"" << s.environmentHashes[0] << "\",\""
+      << s.environmentHashes[1] << "\",\"" << s.environmentHashes[2] << "\"]"
 #else
       << ",\"representative_asset_loaded\":false"
 #endif

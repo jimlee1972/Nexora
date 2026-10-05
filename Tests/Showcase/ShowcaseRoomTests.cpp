@@ -79,8 +79,21 @@ int main() {
     assert(std::abs(orthogonal) < 1e-4F && std::abs(length - 1) < 1e-4F);
     assert(std::abs(vertex.tangent[3]) == 1);
   }
+#if NEXORA_ASSET_PIPELINE_ENABLED
+  assert(wide.environment && wide.linearTextureUploads.size() == 3);
+  assert(wide.environment->specularMipLevels == 7);
+  for (const auto &upload : wide.linearTextureUploads)
+    assert(Nexora::Presentation::ValidateSceneLinearTexture(upload));
+  Press(courtyard, Key::O);
+  assert(!courtyard.Scene(1280, 720).environment);
+  Press(courtyard, Key::O);
+  assert(courtyard.Scene(1280, 720).environment);
+  assert(courtyard.Report().find("\"environment_loaded\":true") != std::string::npos);
+#endif
   Press(courtyard, Key::P);
   assert(!courtyard.Scene(1280, 720).pbr);
+  assert(!courtyard.Scene(1280, 720).environment &&
+         courtyard.Scene(1280, 720).linearTextureUploads.empty());
   Press(courtyard, Key::P);
   assert(courtyard.Scene(1280, 720).pbr);
   const auto wideMatrix = std::to_array(wide.model_view_projection);

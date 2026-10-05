@@ -49,9 +49,13 @@ smoke-shader coverage when Slang is disabled.
 ## Native Showcase PBR entry
 
 `Engine/Presentation/shaders/scene_pbr.slang` imports this shared library for actual native
-Presentation draws. Its four explicit tier-1 maps decode sRGB base/emission once; +Y normal and ORM
-are linear. `GeneratePbrShaders.py` uses pinned Slang 2026.18 to embed SPIR-V and HLSL/Metal source,
+Presentation draws. Its four explicit tier-1 material maps use hardware sRGB base/emission views;
++Y normal and ORM are linear. `GeneratePbrShaders.py` uses pinned Slang 2026.18 to embed SPIR-V and HLSL/Metal source,
 with an optional Slang-enabled regeneration check. Native adapters own geometry/material resources
-and frame lifetimes. This direct-light slice invokes `NexoraEvaluatePbr` and ACES with one display
-transfer; environment sampling and a floating-point HDR composition pass are subsequent slices.
+and frame lifetimes. Three additional bounded linear resources supply diffuse irradiance,
+roughness-prefiltered latlong specular and the BRDF LUT. Environment coordinates use +Y rotation,
+U wrap/V clamp; the LUT clamps both axes. Material perceptual roughness spans prefilter levels;
+shared direct BRDF math owns its numerical roughness floor. `NexoraEvaluatePbr` consumes actual
+environment samples and ACES applies one display transfer; floating-point HDR scene composition
+remains the next slice.
 No PBR math is maintained in backend-specific handwritten shader strings.
