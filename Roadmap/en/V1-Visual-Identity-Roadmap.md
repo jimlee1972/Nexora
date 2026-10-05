@@ -366,7 +366,7 @@ The shared HDR compositor now supports bounded depth-aware focus before bloom/AC
 sharp post-composite UI. Native tests require visible focus/bloom differences, exact restoration
 and deterministic animation pause/replay. Shipping and exact-head DX12/Vulkan/Metal CI remain
 required before merging. This is implementation progress, not concept-image parity acceptance.
-The procedural art is not identical to the reference; planar reflections/refraction and richer
+The procedural art is not identical to the reference; crystal refraction and richer
 asset detail remain unresolved. Keep VIS-M3/M6 open and progress at 5/7 until reference art and
 target hardware/budget acceptance are supported by matching-version evidence.
 
@@ -384,5 +384,70 @@ timestamps nor physical target acceptance. The user goal/reference parity remain
 The follow-up art source adds retained image-assisted sandstone/ivy authoring with deterministic
 cooking, original foreground paving, chamfered ring wedges, larger reference framing, wind-bent
 teal pennants and decorated ceramic vessels. Linux development validation passes 97/97 tests;
-matching-source release captures are retained. This remains VIS-M3 refinement, with scene
-reflection, crystal optics and final reference parity open; the milestone count remains 5/7.
+matching-source release captures are retained. This remains VIS-M3 refinement, with final scene
+reflection refinement, crystal optics and final reference parity open; the milestone count remains 5/7.
+
+
+### Planar mirror iteration
+
+The courtyard now submits bounded horizontal mirror instances for the focal device, crystal,
+vessels, foliage, pennants and sky. Shared Slang clipping removes receiver top/underside faces
+inside two water regions; source-space wind, light and shadows remain coherent. V toggles the
+reflection and Basic retains the cheaper environment-only water path. Four additional native
+PBR fixtures check floor occlusion, source-driven movement and exact restoration (49 total).
+Full release and cross-platform evidence must precede merge. Crystal refraction, shoreline
+refinement and concept-image parity remain open; this does not accept VIS-M3 or VIS-M6.
+
+
+### Tinted crystal transparency iteration
+
+The crystal and floating splinters use tinted linear HDR surface blending, depth-testing against
+opaque geometry and retaining nearest-layer camera distance for focus. U switches transparency
+for native comparisons. Six extra PBR fixtures check opaque/half/zero coverage, restoration,
+focus and colored transmission (55 total). Full Shipping and cross-platform gates must pass
+before merge. Refraction and final visual fidelity remain open; VIS acceptance remains 5/7.
+
+
+### Sky and surface projection iteration
+
+Retained original cloud-panorama authoring now drives the visible sky and linear HDR IBL,
+with aligned azimuth/elevation and the existing above-one sun radiance. World-projected base/ORM
+maps remove stretched stone detail; shared shadow cutout preserves visible-mask agreement.
+Four additional native fixtures verify mesh UVs, source-world movement and restoration (59 total).
+Bounded water contours, thinner bronze straps, camera framing and pedestal relief refine the
+reference composition. Linux Development passes 97/97 tests (89.18 seconds) and all 59 native PBR frames.
+Shipping/cross-platform evidence and concept parity remain open; VIS stays 5/7.
+
+
+### Distance atmosphere iteration
+
+Shared linear HDR distance haze gives the upper ruins and landscape depth, with F7 comparison.
+Sky/unlit emitters retain original radiance; reflection distance remains coherent. Six native
+fixtures check disabled/half/full haze, restoration, unlit exclusion and a clear near-field
+range (65 PBR frames). Sun direction and sky panorama orientation move together to refine the
+reference lighting. Linux Development passes 97/97 tests (88.81 seconds), including native F7 change/restoration;
+all 65 PBR frames pass. Shipping/cross-platform evidence and concept parity remain open; VIS stays 5/7.
+
+
+### Living art and shared-column iteration
+
+Four fluted columns reuse one immutable mesh through native affine instances, preserving
+source-world stone projection and directional shadows while freeing vertex budget. Identity
+world geometry and the appended planar-mirror instance retain separate batch ranges. Additional
+ground-cover patches/climbing ivy use the original cutout mask and shared GPU wind/replay clock.
+Foliage counters count actual source quads. Warm painted ceramics and a wider pedestal base
+refine the composition. Linux Development passes 97/97 (89.00 seconds), including all three geometry budgets and native effect replay. Shipping/cross-platform validation and final reference parity remain open (5/7).
+
+Crystal diffuse/backlight fill is reduced to retain transmitted background and sharper facets;
+stronger linear rune radiance feeds HDR bloom. Original column relief and distant tower fluting
+add geometric detail within the existing native vertex budget.
+
+
+### World-projected normal detail
+
+Existing stone normal maps now supply bounded projected surface gradients, avoiding mesh-UV
+stretching while retaining source-world base/ORM/reflection agreement. Zero strength preserves
+geometry normals; default zero world scale preserves legacy UV normal mapping. Four native
+cases check flat/projected normals, zero strength and exact restoration (69 PBR frames).
+No texture/pass/packet expansion occurs. Linux Development passes all 97 tests (92.68 seconds),
+including the 69 native cases. Shipping/reference acceptance remains open; VIS stays 5/7.

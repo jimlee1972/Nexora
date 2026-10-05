@@ -60,26 +60,59 @@ int main() {
   for (const auto index : wide.indices)
     assert(index < wide.vertices.size());
   assert(wide.pbr);
-  assert(wide.materials.size() == 18 && !wide.batches.empty());
+  assert(wide.materials.size() == 36 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   std::size_t covered = 0;
   std::vector<bool> selectedMaterials(wide.materials.size());
   for (const auto &batch : wide.batches) {
-    assert(batch.firstIndex == covered && batch.firstInstance == 0 && batch.instanceCount == 1);
-    covered += batch.indexCount;
+    assert(batch.instanceCount == (batch.firstInstance == 1 ? 4U : 1U));
+    if (batch.materialIndex < 18) {
+      assert(batch.firstIndex == covered && batch.materialIndex < 18);
+      covered += batch.indexCount;
+    } else {
+      assert(batch.firstInstance == 5 && batch.materialIndex >= 18);
+      assert(wide.materials[batch.materialIndex].reflectionRole ==
+             Nexora::Presentation::SceneReflectionRole::ReflectedGeometry);
+      assert(!wide.materials[batch.materialIndex].castsShadow);
+      const auto source =
+          std::find_if(wide.batches.begin(), wide.batches.end(), [&](const auto &candidate) {
+            return candidate.firstInstance == 0 && candidate.firstIndex == batch.firstIndex &&
+                   candidate.indexCount == batch.indexCount &&
+                   candidate.materialIndex + 18 == batch.materialIndex;
+          });
+      assert(source != wide.batches.end());
+    }
     assert(batch.materialIndex < selectedMaterials.size());
     selectedMaterials[batch.materialIndex] = true;
   }
-  assert(covered == wide.indices.size());
+  std::size_t sourceLeaves = 0;
+  for (const auto &batch : wide.batches)
+    if (batch.materialIndex == 5)
+      sourceLeaves += batch.indexCount / 6;
+  assert(sourceLeaves > 700);
+  assert(courtyard.Report().find("\"foliage_quad_count\":" + std::to_string(sourceLeaves)) !=
+         std::string::npos);
+  assert(wide.materials[12].opacity == 0.23F && !wide.materials[12].castsShadow);
+  assert(covered == wide.indices.size() && wide.instances.size() == 6 && wide.planarReflection);
+  const auto columnBatch =
+      std::find_if(wide.batches.begin(), wide.batches.end(), [](const auto &batch) {
+        return batch.firstInstance == 1 && batch.instanceCount == 4;
+      });
+  assert(columnBatch != wide.batches.end() && columnBatch->materialIndex == 0);
+  for (std::size_t i = 1; i <= 4; ++i)
+    assert(Nexora::Presentation::ValidateSceneInstance(wide.instances[i]));
+  assert(wide.instances[1].translation[0] == -4.5F && wide.instances[2].translation[0] == -5.5F);
+  assert(wide.instances[2].scale[1] == 0.7F && wide.instances[4].scale[1] == 0.7F);
   for (std::size_t i = 0; i < 7; ++i)
     assert(selectedMaterials[i]);
   for (std::size_t i = 8; i < 11; ++i) {
     assert(selectedMaterials[i] && !wide.materials[i].castsShadow);
   }
-  assert(wide.batches[wide.batches.size() - 2].materialIndex == 6 &&
-         wide.batches[wide.batches.size() - 2].indexCount == 36);
-  assert(wide.batches.back().materialIndex == 11 && wide.materials[11].emission[0] > 1);
-  const auto &skybox = wide.batches[wide.batches.size() - 2];
+  const auto skyboxIterator =
+      std::find_if(wide.batches.begin(), wide.batches.end(),
+                   [](const auto &batch) { return batch.materialIndex == 6; });
+  assert(skyboxIterator != wide.batches.end() && skyboxIterator->indexCount == 36);
+  const auto &skybox = *skyboxIterator;
   std::array<float, 3> skyCenter{};
   for (std::size_t i = 0; i < 24; ++i) {
     const auto &vertex = wide.vertices[wide.indices[skybox.firstIndex] + i];
@@ -93,7 +126,11 @@ int main() {
   assert(wide.materials[13].metallic == 1 && !wide.materials[13].castsShadow);
   assert(!wide.materials[14].castsShadow);
   std::array<float, 3> solarOffset{};
-  const auto &solarBatch = wide.batches.back();
+  const auto solarIterator =
+      std::find_if(wide.batches.begin(), wide.batches.end(),
+                   [](const auto &batch) { return batch.materialIndex == 11; });
+  assert(solarIterator != wide.batches.end() && wide.materials[11].emission[0] > 1);
+  const auto &solarBatch = *solarIterator;
   for (std::size_t i = 0; i < solarBatch.indexCount; ++i) {
     const auto &v = wide.vertices[wide.indices[solarBatch.firstIndex + i]];
     for (std::size_t axis = 0; axis < 3; ++axis)
@@ -200,7 +237,10 @@ int main() {
   assert(courtyard.Scene(1280, 720).vegetationTime == animatedTime);
   Press(courtyard, Key::Enter);
   const auto active = courtyard.Scene(1280, 720);
-  assert(active.batches.back().materialIndex == 7 && active.batches.back().indexCount == 48 * 6);
+  const auto activeParticles =
+      std::find_if(active.batches.begin(), active.batches.end(),
+                   [](const auto &batch) { return batch.materialIndex == 7; });
+  assert(activeParticles != active.batches.end() && activeParticles->indexCount == 48 * 6);
   const std::vector<Nexora::Presentation::SceneVertex> frozen(active.vertices.begin(),
                                                               active.vertices.end());
   courtyard.Tick(0.5);
@@ -210,7 +250,14 @@ int main() {
   Press(courtyard, Key::R);
   assert(courtyard.Scene(1280, 720).vegetationTime == 0);
   Press(courtyard, Key::Enter);
-  assert(courtyard.Scene(1280, 720).batches.back().materialIndex != 7);
+  const auto inactive = courtyard.Scene(1280, 720);
+  assert(std::none_of(inactive.batches.begin(), inactive.batches.end(), [](const auto &batch) {
+    return batch.materialIndex == 7 || batch.materialIndex == 25;
+  }));
+  Press(courtyard, Key::U);
+  assert(courtyard.Scene(1280, 720).materials[12].opacity == 1);
+  Press(courtyard, Key::U);
+  assert(courtyard.Scene(1280, 720).materials[12].opacity == 0.23F);
   session.RerunProbe(0, nexora::showcase::ErrorInjection::DependencyCycle);
   assert(session.Probes()[0].status == nexora::showcase::ProbeStatus::Unsupported);
   assert(session.Healthy());
@@ -336,6 +383,7 @@ int main() {
     assert(draw.hdr && draw.pbr && draw.shadow && draw.shadow->resolution == (512U << tier));
     assert(draw.vegetationTime == 0 && quality.QualityName() == name);
     assert(draw.bloom.has_value() == (tier != 0));
+    assert(draw.atmosphere.has_value() == (tier != 0));
 #if NEXORA_ASSET_PIPELINE_ENABLED
     assert(draw.environment.has_value() == (tier != 0));
 #endif
@@ -345,9 +393,24 @@ int main() {
         std::find_if(draw.batches.begin(), draw.batches.end(),
                      [](const auto &batch) { return batch.materialIndex == 7; });
     assert(particleBatch != draw.batches.end() && particleBatch->indexCount == (24U << tier) * 6);
+    assert(draw.planarReflection.has_value() == (tier != 0));
+    assert(draw.instances.size() == (tier != 0 ? 6 : 5));
     qualityVertices[tier] = draw.vertices.size();
   }
-  assert(qualityVertices[0] < qualityVertices[1] && qualityVertices[1] < qualityVertices[2]);
+  Press(quality, Key::F7);
+  assert(!quality.Scene(1280, 720).atmosphere);
+  Press(quality, Key::F7);
+  assert(quality.Scene(1280, 720).atmosphere);
+  // Basic retains the standalone ripple mesh; Standard/High use shared mirror instances.
+  // Compare quality geometry under the same reflection setting to retain the strict budget check.
+  Press(quality, Key::V);
+  const auto highWithoutReflection = quality.Scene(1280, 720).vertices.size();
+  quality.SetQuality("standard");
+  const auto standardWithoutReflection = quality.Scene(1280, 720).vertices.size();
+  assert(qualityVertices[0] < standardWithoutReflection &&
+         standardWithoutReflection < highWithoutReflection);
+  Press(quality, Key::V);
+  quality.SetQuality("high");
   Press(quality, Key::Q);
   assert(quality.QualityName() == "basic");
   assert(quality.Scene(1280, 720).vertices.size() == qualityVertices[0]);

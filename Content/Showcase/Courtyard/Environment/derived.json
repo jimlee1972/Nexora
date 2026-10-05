@@ -3,12 +3,13 @@
   "source_sha256": "926a6bb81897919b2924f42407162b8d54be91eab2da3fe7fe19daf308cfa09a",
   "samples": 128,
   "sequence": "Hammersley",
-  "sky_source_sha256": "e8de1657fff62b44e46961fdc1150212cf8d3b669c1071a37c760aa6fd77297a",
+  "sky_source_sha256": "40cfe00676deee6b28802c1c4476ca7c2e938ae1b3a9796449ced0a29e41c45b",
+  "image_cook_sha256": "5c0c9cd9345beb138a4238b9bd1c3d05d1069bf3e3703952164f609f0c282b64",
   "sky_authoring": {
-    "description": "Original continuous golden-hour directional sky; atlas, solar disc, key light and floating HDR IBL share the same direction.",
+    "description": "Original authored golden-hour cloud panorama; visible six-face sky and HDR IBL share the panorama orientation, geometric solar disc and key-light direction.",
     "sun_direction": [
-      -12,
-      3,
+      -18,
+      6,
       -16
     ],
     "sun_radiance": [
@@ -30,10 +31,16 @@
       5.5,
       3.6,
       1.8
-    ]
+    ],
+    "panorama": {
+      "path": "Source/golden-sky.png",
+      "sha256": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+      "rotation_radians": -2.4149503129080676,
+      "elevation_scale": 2.3
+    }
   },
   "radiance_mix": "90% original golden sky / 10% bounded adopted HDRI",
-  "converter_sha256": "8d8590dfcc660ea1c8c6925847cf0bd19af2b09b12d61be7ee8420251329172b",
+  "converter_sha256": "9c8dc8c1c20ddeb04cad78ffb10bae9fb4607d294fcb5635abae805e60c72a1a",
   "format": "RGBA16F little-endian",
   "orientation": "latlong +Y up, atan2(z,x); U wrap/V clamp",
   "diffuse": "cosine-weighted irradiance integral including pi",
@@ -47,7 +54,7 @@
       "height": 8,
       "mip_levels": 1,
       "bytes": 1024,
-      "sha256": "128e8e82848b5a2e121b366bc7a5544621ce240871c83076b05902c05f670803"
+      "sha256": "a0f089704c19258dd0cdae6859b2e94c34773b5d3c554ed7a856ab24e2f4332a"
     },
     {
       "name": "specular",
@@ -56,7 +63,7 @@
       "height": 32,
       "mip_levels": 7,
       "bytes": 21848,
-      "sha256": "3f03ec1d999ac59637a1fb62005f7380288f67513e72212e7ca9d8ba9e4d73ca"
+      "sha256": "1eec4776825c7e9e744b6692112b4d892a88862e145af261ae01c883a3bd560a"
     },
     {
       "name": "brdf",

@@ -1,0 +1,71 @@
+{
+  "source_freeze": "8e963ce0726490547799b35a0c169c97bf2e955c",
+  "source_scope": "local freeze; equivalent GitHub publication verified by complete Git tree and file hashes",
+  "source_sha256": {
+    "Apps/Showcase/ShowcaseRooms.cpp": "9375f71a1b70f139f9f3f40f205ec36902c7b999682472bd6d0959c498291767",
+    "Engine/Presentation/README.md": "cd11ef35c02ae9111a0faa5ea1f48a39f57d7a5fa2d33a6bfa20810664bf0081",
+    "Engine/Presentation/include/Nexora/Presentation/Surface.h": "30376567e65015b5102ebdf57b42d379bbf18764568049806098cdd8931c38e8",
+    "Engine/Presentation/shaders/scene_pbr.slang": "6f7b82a8f95495ea7c5a3bcff464d9861e1aff5649a35f7c68668ea2c6695007",
+    "Engine/Presentation/src/Dx12Surface.cpp": "af022b68269c3e8f7151e19a6f30f1f458e0b7502c6e1898fecdd77fb8a54360",
+    "Engine/Presentation/src/PbrMaterialUpload.h": "f9322c3e5250431dd8494105540ca87aefa48ec2a32fe9be5cea8e318f0071ef",
+    "Engine/Presentation/src/ScenePbrHlslShaders.h": "732868a6e3f522cb3c988f866bff1edfb76b91258c5f334901358a17a47c5ff0",
+    "Engine/Presentation/src/ScenePbrMetalShaders.h": "a880e36b2bd48765d6de09eecc3a404b02a682796e5102f5d7f67f5b69170ba7",
+    "Engine/Presentation/src/ScenePbrVulkanShaders.h": "1be3d7e98750597462824c31edc810884a964938a0b9ff85827d58e4ff464eb8",
+    "README.md": "3a1e5ee7a3311f6e9aa16320ffb6997ea037da4584cef9691fcbebd078f80665",
+    "Roadmap/README.md": "add8acbd33c5d8840bb83086f7452ed0cbec5077d3360e51e47f9f279d9a66e5",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "8efad6ba4144017c7cb95fd0d731f23a1b00f94e17f493d9234010d642627d16",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "6779073d73d3b19e4eae51d12a32604b2d6db8129e9649dac5c660ecd42f22a4",
+    "Tests/Showcase/LinuxShowcaseInteraction.py": "bea9d7c07d17019b1df40f201c06a897981ea9df4260e9a55a5ff61a87ae9db6",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "14345104b09eaf16e829d91551a118d9b83fda7622290d46463886146cfb22a7",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "a5446cfd3f2e98cdeb8681f15890731fe3cb124f68cf50a779e66dcba7281252",
+    "Tests/WindowPresentation/PbrReflectionFixtures.h": "d04938b2bdf01c01c2dac2707de26de4d3d7105dbe1b43287f473a083f4d5d4b",
+    "Tests/WindowPresentation/SceneInstanceTests.cpp": "cb4186a20599859751e65c6c9d2cab683f1e3c67e0909b0d2dc1cfc90b5b0c58",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "98432488c1458d8adec9ad702cfdca9980d9551f1642654c6bc44eaedf6538f7",
+    "Tools/Package/AcceptShowcaseWindows.ps1": "188ca8c9486fdc206ef5d0ccf49440109acc346756b2863c6aaf1e98bb191b8c"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-planar-reflections/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/reflection-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "8e963ce07264",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.57544492600573,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.333333"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "c423022724847f354b01be573c051dbf61ed894e2077cbcea3b95f0dd00a8c5f",
+    "video_sha256": "9531cdfb9405f19bc4d9eda820a2ffa0e5fbc383c23d1afe72770e372144aca9",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "ef21c187bcba5ce435ba2c9c3159d00937326a33bd9f9b06ce6340ca6f3daa13",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}

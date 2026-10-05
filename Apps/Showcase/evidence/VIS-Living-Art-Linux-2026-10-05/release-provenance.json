@@ -1,0 +1,58 @@
+{
+  "source_freeze": "5ec0283bcd437c96b5cf65b608965aeb27ae95c4",
+  "source_scope": "local production freeze; connector publication may use another commit with a verified identical tree",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "a21a2d7377a0d54fe21bfaab804d34f915cbb2cedcff8b176581ae8f673a521b",
+    "Apps/Showcase/ShowcaseRooms.cpp": "33594ad229d1e57ee1e078d4801b17fbefae1d469018c0346696a20b0dfd00f4",
+    "README.md": "d8a59cd71757c2dde2c04e875330f83f13aaeed93e7b90eaf2a99ff183fa239c",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "c6cc9274c63142f9b66ce9972ec542ee622a5ace6ab3f4144333f32d7edd0e2e",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "135280660c9b28634e45c4c803bc188043417016f9b2ed37b3ed139b6b2ab50a",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "42d3fe2ded7c491d90455cdbd2b51a8a9e668cc6c354a7f2f25aa88b358a47a6",
+    "Tests/Showcase/VisualTourCli.py": "5a7cdf8b6ca8977ddd20f1d2dc6c8cc787fa638741f8a12866b00fb7e01ef60c"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-living-art/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/living-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "5ec0283bcd43",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.50290261999908,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.333333"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "f3d99598405975b36a04976ab942471a56ccc007e12f86371d53c42beb444849",
+    "video_sha256": "b56bc51cef2c88b55b69006a3c499570ad2123e8e8e9c71885e0f83482f05c98",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "87170b612fbd2dad7b6b0742cd3ca4d3c916e9e3db5e7388bc0e5f57f819f0b6",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}

@@ -125,6 +125,119 @@ void Run() {
   Require(!ValidatePbrData(pbr), "non-HDR focus accepted");
   pbr.hdr = true;
   pbr.depthOfField.reset();
+  pbr.cameraPosition = {0, 2, 4};
+  pbr.planarReflection = ScenePlanarReflection{};
+  Require(ValidatePbrData(pbr), "valid bounded planar reflection rejected");
+  for (const auto count : {0U, 3U}) {
+    pbr.planarReflection->regionCount = count;
+    Require(!ValidatePbrData(pbr), "invalid mirror region count accepted");
+  }
+  pbr.planarReflection = ScenePlanarReflection{};
+  for (const float invalid : {0.0F, -1.0F, std::numeric_limits<float>::quiet_NaN()}) {
+    pbr.planarReflection->regions[0].radiusX = invalid;
+    Require(!ValidatePbrData(pbr), "invalid mirror radius accepted");
+  }
+  pbr.planarReflection = ScenePlanarReflection{};
+  for (const float invalid : {-0.01F, 0.21F, std::numeric_limits<float>::infinity(),
+                              std::numeric_limits<float>::quiet_NaN()}) {
+    pbr.planarReflection->shorelineVariation = invalid;
+    Require(!ValidatePbrData(pbr), "invalid shoreline variation accepted");
+  }
+  pbr.planarReflection->shorelineVariation = 0.18F;
+  Require(ValidatePbrData(pbr), "bounded shoreline variation rejected");
+  Require(PackPbrMaterial(pbr, SceneMaterial{}, false)[77] == 0.18F,
+          "shoreline upload differs from shader constants");
+  pbr.planarReflection = ScenePlanarReflection{};
+  pbr.planarReflection->reflectance = 1.1F;
+  Require(!ValidatePbrData(pbr), "unbounded mirror reflectance accepted");
+  pbr.planarReflection = ScenePlanarReflection{};
+  pbr.planarReflection->planeHeight = std::numeric_limits<float>::infinity();
+  Require(!ValidatePbrData(pbr), "nonfinite mirror plane accepted");
+  pbr.planarReflection = ScenePlanarReflection{};
+  pbr.cameraPosition[1] = 0;
+  Require(!ValidatePbrData(pbr), "camera on mirror plane accepted");
+  pbr.cameraPosition[1] = 2;
+  std::array<SceneMaterial, 1> reflectionMaterials{};
+  reflectionMaterials[0].reflectionRole = SceneReflectionRole::ReflectedGeometry;
+  pbr.materials = reflectionMaterials;
+  Require(!ValidatePbrData(pbr), "reflected shadow caster accepted");
+  reflectionMaterials[0].castsShadow = false;
+  Require(ValidatePbrData(pbr), "valid reflected material rejected");
+  const auto reflectionPacked = PackPbrMaterial(pbr, reflectionMaterials[0], false);
+  Require(reflectionPacked[60] == 0 && reflectionPacked[61] == 2 && reflectionPacked[62] == 0.04F &&
+              reflectionPacked[63] == 1 && reflectionPacked[66] == 1 && reflectionPacked[67] == 1,
+          "mirror material upload layout differs from shader constants");
+  pbr.planarReflection.reset();
+  Require(!ValidatePbrData(pbr), "mirror material without plane accepted");
+  pbr.materials = {};
+  reflectionMaterials[0].reflectionRole = SceneReflectionRole::None;
+  reflectionMaterials[0].opacity = 0.5F;
+  pbr.materials = reflectionMaterials;
+  Require(ValidatePbrData(pbr), "valid HDR blend rejected");
+  pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "non-HDR blend accepted");
+  pbr.hdr = true;
+  reflectionMaterials[0].castsShadow = true;
+  Require(!ValidatePbrData(pbr), "translucent shadow caster accepted");
+  reflectionMaterials[0].castsShadow = false;
+  for (const float invalid : {-1.0F, 1.1F, std::numeric_limits<float>::quiet_NaN()}) {
+    reflectionMaterials[0].opacity = invalid;
+    Require(!ValidateSceneMaterials(reflectionMaterials, {}), "invalid blend coverage accepted");
+  }
+  reflectionMaterials[0].opacity = 0.5F;
+  for (const float invalid : {-1.0F, 1.1F, std::numeric_limits<float>::quiet_NaN()}) {
+    reflectionMaterials[0].transparencyTint[0] = invalid;
+    Require(!ValidateSceneMaterials(reflectionMaterials, {}), "invalid transparency tint accepted");
+  }
+  reflectionMaterials[0].transparencyTint = {0.2F, 0.4F, 0.6F};
+  const auto translucentPacked = PackPbrMaterial(pbr, reflectionMaterials[0], false);
+  Require(translucentPacked[72] == 0.5F && translucentPacked[73] == 0.2F &&
+              translucentPacked[74] == 0.4F && translucentPacked[75] == 0.6F,
+          "transparency upload layout differs from shader constants");
+  pbr.materials = {};
+  pbr.materials = reflectionMaterials;
+  for (const float invalid : {-1.0F, 17.0F, std::numeric_limits<float>::quiet_NaN()}) {
+    reflectionMaterials[0].worldTextureScale = invalid;
+    Require(!ValidateSceneMaterials(reflectionMaterials, {}),
+            "invalid world texture scale accepted");
+  }
+  reflectionMaterials[0].worldTextureScale = 0.5F;
+  reflectionMaterials[0].opacity = 1;
+  const auto mappedPacked = PackPbrMaterial(pbr, reflectionMaterials[0], false);
+  Require(mappedPacked[76] == 0.5F && mappedPacked[77] == 0 && mappedPacked[78] == 0 &&
+              mappedPacked[79] == 0,
+          "world mapping layout differs from shader constants");
+  pbr.pbr = false;
+  pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "Lambert world mapping accepted");
+  pbr.pbr = pbr.hdr = true;
+  pbr.materials = {};
+  pbr.atmosphere = SceneAtmosphere{};
+  Require(ValidatePbrData(pbr), "valid HDR atmosphere rejected");
+  for (const float invalid : {-1.0F, 1.1F, std::numeric_limits<float>::quiet_NaN()}) {
+    pbr.atmosphere->strength = invalid;
+    Require(!ValidatePbrData(pbr), "invalid atmosphere strength accepted");
+  }
+  pbr.atmosphere = SceneAtmosphere{};
+  for (const float invalid : {-1.0F, 33.0F, std::numeric_limits<float>::infinity()}) {
+    pbr.atmosphere->color[0] = invalid;
+    Require(!ValidatePbrData(pbr), "invalid atmosphere radiance accepted");
+  }
+  pbr.atmosphere = SceneAtmosphere{};
+  pbr.atmosphere->endDistance = pbr.atmosphere->startDistance;
+  Require(!ValidatePbrData(pbr), "empty atmosphere range accepted");
+  pbr.atmosphere->startDistance = -1;
+  Require(!ValidatePbrData(pbr), "negative atmosphere start accepted");
+  pbr.atmosphere = SceneAtmosphere{{0.5F, 1, 2}, 0.5F, 10, 50};
+  const auto fogPacked = PackPbrMaterial(pbr, SceneMaterial{}, false);
+  Require(fogPacked[80] == 0.5F && fogPacked[82] == 2 && fogPacked[83] == 0.5F &&
+              fogPacked[84] == 10 && fogPacked[85] == 50 && fogPacked[86] == 0 &&
+              fogPacked[87] == 0,
+          "atmosphere packet differs from shader constants");
+  pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "non-HDR atmosphere accepted");
+  pbr.hdr = true;
+  pbr.atmosphere.reset();
   pbr.shadow = SceneDirectionalShadow{};
   Require(ValidatePbrData(pbr), "valid shadow rejected");
   pbr.shadow->resolution = 300;

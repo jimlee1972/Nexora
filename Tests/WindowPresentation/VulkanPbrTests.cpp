@@ -1,8 +1,13 @@
 #include "Nexora/Presentation/Surface.h"
+#include "PbrAtmosphereFixtures.h"
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
+#include "PbrReflectionFixtures.h"
 #include "PbrShadowFixtures.h"
+#include "PbrTransparencyFixtures.h"
 #include "PbrVegetationFixtures.h"
+#include "PbrWorldMappingFixtures.h"
+#include "PbrWorldNormalFixtures.h"
 #if defined(_WIN32)
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -206,12 +211,18 @@ int main(int argc, char **argv) {
                                               std::byte{255}, std::byte{255}};
     const UiTextureUpload filterUpload{38, 2, 1, 8, blackWhite};
     unsigned width = 640, height = 480;
-    Rgb uiBaseline{};
+    Rgb uiBaseline{}, reflectedReference{}, blendedReference{}, mappedReference{}, fogReference{},
+        flatNormalLeft{}, flatNormalRight{}, tiltedNormalLeft{}, tiltedNormalRight{};
     std::uint64_t windReference{}, windMoved{};
-    for (unsigned frame = 0; frame < 45; ++frame) {
+    for (unsigned frame = 0; frame < 69; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
+      PbrReflectionFixtures::Fixture reflectionFixture(frame >= 45 ? frame - 45 : 0);
       PbrVegetationFixtures::Fixture vegetationFixture(frame >= 34 ? frame - 34 : 0);
+      PbrTransparencyFixtures::Fixture transparencyFixture(frame >= 49 ? frame - 49 : 0);
+      PbrWorldMappingFixtures::Fixture mappingFixture(frame >= 55 ? frame - 55 : 0);
+      PbrAtmosphereFixtures::Fixture atmosphereFixture(frame >= 59 ? frame - 59 : 0);
+      PbrWorldNormalFixtures::Fixture worldNormalFixture(frame >= 65 ? frame - 65 : 0);
       materials = {};
       draw.shadow.reset();
       draw.lightingStyle.reset();
@@ -325,9 +336,34 @@ int main(int argc, char **argv) {
         materials = vegetationFixture.geometry.materials;
         draw.materials = materials;
       }
-      if (frame >= 43) {
+      if (frame >= 43 && frame < 45) {
         draw = bloomFixture.Draw(frame == 44 ? 4 : 0);
         materials = bloomFixture.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 45) {
+        draw = reflectionFixture.Draw(frame - 45);
+        materials = reflectionFixture.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 49) {
+        draw = transparencyFixture.Draw(frame - 49);
+        materials = transparencyFixture.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 55) {
+        draw = mappingFixture.Draw(frame - 55);
+        materials = mappingFixture.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 59) {
+        draw = atmosphereFixture.Draw(frame - 59);
+        materials = atmosphereFixture.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 65) {
+        draw = worldNormalFixture.Draw();
+        materials = worldNormalFixture.geometry.geometry.materials;
         draw.materials = materials;
       }
       materials[2].emission = {marker, 0, 0};
@@ -481,7 +517,51 @@ int main(int argc, char **argv) {
         const auto pixels = Read(display, native, width, height, {}, &region);
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 43) {
+        if (frame >= 65) {
+          valid = PbrWorldNormalFixtures::Pixels(left, right);
+          if (valid && frame == 65) {
+            flatNormalLeft = left;
+            flatNormalRight = right;
+          }
+          if (frame == 66) {
+            valid = valid && left[1] > flatNormalLeft[1] + 6 && right[0] > flatNormalRight[0] + 6;
+            if (valid) {
+              tiltedNormalLeft = left;
+              tiltedNormalRight = right;
+            }
+          }
+          if (frame == 67)
+            valid =
+                valid &&
+                std::abs(static_cast<int>(left[1]) - static_cast<int>(flatNormalLeft[1])) <= 2 &&
+                std::abs(static_cast<int>(right[0]) - static_cast<int>(flatNormalRight[0])) <= 2;
+          if (frame == 68)
+            valid = valid && left == tiltedNormalLeft && right == tiltedNormalRight;
+        } else if (frame >= 59) {
+          valid = PbrAtmosphereFixtures::Pixels(frame - 59, left, pixels[6]);
+          if (valid && frame == 60)
+            fogReference = pixels[6];
+          if (frame == 62)
+            valid = valid && pixels[6] == fogReference;
+        } else if (frame >= 55) {
+          valid = PbrWorldMappingFixtures::Pixels(frame - 55, left, right);
+          if (valid && frame == 56)
+            mappedReference = left;
+          if (frame == 58)
+            valid = valid && left == mappedReference;
+        } else if (frame >= 49) {
+          valid = PbrTransparencyFixtures::Pixels(frame - 49, left, pixels[6]);
+          if (valid && frame == 50)
+            blendedReference = pixels[6];
+          if (frame == 52)
+            valid = valid && pixels[6] == blendedReference;
+        } else if (frame >= 45) {
+          valid = PbrReflectionFixtures::Pixels(frame - 45, left, right);
+          if (valid && frame == 46)
+            reflectedReference = left;
+          if (frame == 48)
+            valid = valid && left == reflectedReference;
+        } else if (frame >= 43) {
           valid = PbrBloomFixtures::Pixels(frame == 44 ? 4 : 0, pixels[5], pixels[6]);
           for (std::size_t channel = 0; channel < 3; ++channel)
             valid = valid && std::abs(static_cast<int>(pixels[3][channel]) -
@@ -577,18 +657,28 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, argv[1]));
       if (argc == 2 && frame >= 30) {
         auto capture = std::filesystem::path(argv[1]);
-        capture.replace_filename((frame >= 43  ? "depth-of-field-"
-                                  : frame < 34 ? "bloom-"
-                                               : "vegetation-") +
-                                 std::to_string(frame >= 43  ? frame - 43
-                                                : frame < 34 ? frame - 30
-                                                             : frame - 34) +
+        capture.replace_filename((frame >= 65   ? "world-normal-"
+                                  : frame >= 59 ? "atmosphere-"
+                                  : frame >= 55 ? "world-mapping-"
+                                  : frame >= 49 ? "transparency-"
+                                  : frame >= 45 ? "planar-reflection-"
+                                  : frame >= 43 ? "depth-of-field-"
+                                  : frame < 34  ? "bloom-"
+                                                : "vegetation-") +
+                                 std::to_string(frame >= 65   ? frame - 65
+                                                : frame >= 59 ? frame - 59
+                                                : frame >= 55 ? frame - 55
+                                                : frame >= 49 ? frame - 49
+                                                : frame >= 45 ? frame - 45
+                                                : frame >= 43 ? frame - 43
+                                                : frame < 34  ? frame - 30
+                                                              : frame - 34) +
                                  ".ppm");
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 45 &&
-                surface->Diagnostics().sceneComposites == 35 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 69 &&
+                surface->Diagnostics().sceneComposites == 59 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
@@ -607,7 +697,10 @@ int main(int argc, char **argv) {
            "reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws "
            "and resize pixels; directional shadow movement, XY projection, PCF edge, map reuse, "
            "shadow disable, stylized tint and thresholded HDR bloom, depth-aware focus and UI "
-           "invariance, alpha "
+           "invariance, linear HDR translucent/tinted blending, bounded planar mirrors with source "
+           "movement and restoration, world-projected maps/normals, linear HDR atmosphere and "
+           "unlit "
+           "exclusion, alpha "
            "cutout/shadow agreement, GPU wind/replay and leaf transmission\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

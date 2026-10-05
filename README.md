@@ -968,3 +968,46 @@ Nexora 採用 [MIT License](LICENSE) 發布。
 Visual art refinement continues with retained sandstone/ivy authoring, foreground paving,
 chamfered ring geometry, wind-bent pennants and decorated ceramics (Linux development 97/97).
 Reference parity and physical target performance remain open; VIS acceptance stays 5/7.
+
+
+Planar water reflection refinement adds shared HDR mirror instances and a V comparison in the
+courtyard. Native Vulkan fixtures verify reflected source movement and exact restoration; final
+reference art and physical target acceptance remain open (VIS 5/7).
+水平水面倒影已加入共享 HDR mirror instance 與庭院 V 比較；Vulkan 原生測試驗證物件移動及還原。
+預覽圖一致性與目標實機驗收仍待完成，VIS 維持 5/7。
+
+
+The crystal now supports tinted linear HDR transparency and U comparison. Native fixtures verify coverage, transmitted color and restoration before tone mapping. Reference-image parity remains open (VIS 5/7).
+水晶加入帶色線性 HDR 透明合成與 U 比較；原生檢查驗證覆蓋率、透光色與還原。預覽圖一致性仍待完成（VIS 5/7）。
+
+
+World-projected stone maps now preserve detail across columns and paving; an original cloud
+panorama feeds both skybox and derived HDR environment light. Bounded shoreline contours and
+pedestal relief refine the scene. Reference parity remains under development (VIS 5/7).
+世界座標石材貼圖改善柱體與鋪面的細節；原創雲層全景同時供 skybox 與衍生 HDR 環境光使用。
+水岸輪廓與基座浮雕持續調整；預覽圖一致性仍在製作，VIS 維持 5/7。
+
+
+Linear HDR distance haze adds background depth while preserving authored sky/emitter radiance;
+F7 compares the effect. Sun direction remains shared by sky, IBL and directional lighting.
+Reference-image fidelity remains in progress (VIS 5/7).
+線性 HDR 距離霧化改善背景層次，保留天空與發光物件的原始輻射值，F7 可切換比較。
+太陽方位由天空、IBL 與方向光共用；預覽圖一致性持續製作，VIS 維持 5/7。
+
+
+The next art iteration shares fluted-column geometry through native instances and adds wind-
+driven ground cover/climbing ivy, warmer painted ceramics and a wider pedestal base.
+Linux full validation passes 97/97 (89.00 seconds); Shipping evidence and reference parity remain in progress (VIS 5/7).
+下一輪美術調整以原生 instance 共用石柱網格，加入風動地被／攀爬常春藤、暖色彩繪陶器與
+較寬的基座。Linux 全套 97/97（89.00 秒）通過；Shipping 證據與預覽圖一致性持續進行，VIS 維持 5/7。
+
+Crystal diffuse/backlight fill is reduced to retain transmitted background and sharper facets;
+stronger linear rune radiance feeds HDR bloom. Original column relief and distant tower fluting
+add geometric detail within the existing native vertex budget.
+
+
+World-projected stone normals add bounded surface reflections across columns and paving,
+sharing source coordinates with base/ORM and reflections. Linux full validation passes 97/97
+(92.68 seconds), including 69 native PBR cases; Shipping evidence remains in progress (VIS 5/7).
+世界座標石材法線加入有界的凹凸反光，與 base／ORM 及倒影共用原始座標。
+Linux 全套 97/97（92.68 秒）與 69 個原生 PBR 案例通過；交付證據持續進行，VIS 維持 5/7。

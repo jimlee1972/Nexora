@@ -6,8 +6,10 @@ import math
 import json
 from pathlib import Path
 import unittest
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT/'Tools/Build'))
 spec = importlib.util.spec_from_file_location('courtyard_ibl', ROOT/'Tools/Build/PrepareCourtyardEnvironment.py')
 ibl = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ibl)

@@ -366,53 +366,69 @@ public:
                                  static_cast<std::uint32_t>(instances.size())};
       const auto batches =
           drawData.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : drawData.batches;
-      for (const auto &batch : batches) {
-        const auto material = ResolveSceneMaterial(drawData, batch.materialIndex);
-        std::copy(material.baseColor.begin(), material.baseColor.end(), constants.color);
-        if (drawData.pbr) {
-          [encoder setFragmentTexture:drawData.shadow ? shadowColors_[frame_]
-                                                      : sceneLinearTextures_.at(UINT64_MAX)
-                              atIndex:7];
-          [encoder setFragmentSamplerState:shadowSampler_ atIndex:7];
-          [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:0];
-          [encoder setFragmentBytes:&constants length:sizeof(constants) atIndex:0];
-          const auto parameters = PackPbrMaterial(drawData, material, true);
-          [encoder setFragmentBytes:parameters.data() length:sizeof(parameters) atIndex:1];
-          [encoder setVertexBytes:parameters.data() length:sizeof(parameters) atIndex:1];
-          const std::array ids{material.textureId ? material.textureId : UINT64_MAX,
-                               material.normalTextureId ? material.normalTextureId : UINT64_MAX - 1,
-                               material.ormTextureId ? material.ormTextureId : UINT64_MAX,
-                               material.emissionTextureId ? material.emissionTextureId
-                                                          : UINT64_MAX};
-          for (NSUInteger map = 0; map < ids.size(); ++map) {
-            const auto texture = (map == 0 || map == 3) ? sceneSrgbTextures_.at(ids[map])
-                                                        : sceneTextures_.at(ids[map]);
-            [encoder setFragmentTexture:texture atIndex:map];
-            [encoder setFragmentSamplerState:uiSampler_ atIndex:map];
+      for (unsigned phase = 0; phase < 2; ++phase) {
+        for (const auto &batch : batches) {
+          const auto material = ResolveSceneMaterial(drawData, batch.materialIndex);
+          const bool transparent = material.opacity < 1;
+          if (material.opacity == 0 || transparent != (phase == 1))
+            continue;
+          [encoder setRenderPipelineState:transparent
+                                              ? sceneHdrBlendPipeline_
+                                              : (drawData.hdr ? sceneHdrPipeline_
+                                                              : (drawData.pbr ? scenePbrPipeline_
+                                                                              : scenePipeline_))];
+          [encoder setDepthStencilState:transparent ? blendDepthState_ : depthState_];
+          [encoder setBlendColorRed:(1 - material.opacity) * material.transparencyTint[0]
+                              green:(1 - material.opacity) * material.transparencyTint[1]
+                               blue:(1 - material.opacity) * material.transparencyTint[2]
+                              alpha:1];
+
+          std::copy(material.baseColor.begin(), material.baseColor.end(), constants.color);
+          if (drawData.pbr) {
+            [encoder setFragmentTexture:drawData.shadow ? shadowColors_[frame_]
+                                                        : sceneLinearTextures_.at(UINT64_MAX)
+                                atIndex:7];
+            [encoder setFragmentSamplerState:shadowSampler_ atIndex:7];
+            [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:0];
+            [encoder setFragmentBytes:&constants length:sizeof(constants) atIndex:0];
+            const auto parameters = PackPbrMaterial(drawData, material, true);
+            [encoder setFragmentBytes:parameters.data() length:sizeof(parameters) atIndex:1];
+            [encoder setVertexBytes:parameters.data() length:sizeof(parameters) atIndex:1];
+            const std::array ids{
+                material.textureId ? material.textureId : UINT64_MAX,
+                material.normalTextureId ? material.normalTextureId : UINT64_MAX - 1,
+                material.ormTextureId ? material.ormTextureId : UINT64_MAX,
+                material.emissionTextureId ? material.emissionTextureId : UINT64_MAX};
+            for (NSUInteger map = 0; map < ids.size(); ++map) {
+              const auto texture = (map == 0 || map == 3) ? sceneSrgbTextures_.at(ids[map])
+                                                          : sceneTextures_.at(ids[map]);
+              [encoder setFragmentTexture:texture atIndex:map];
+              [encoder setFragmentSamplerState:uiSampler_ atIndex:map];
+            }
+            const std::array environmentIds{
+                drawData.environment ? drawData.environment->diffuseTextureId : UINT64_MAX,
+                drawData.environment ? drawData.environment->specularTextureId : UINT64_MAX,
+                drawData.environment ? drawData.environment->brdfTextureId : UINT64_MAX};
+            for (NSUInteger map = 0; map < 3; ++map) {
+              [encoder setFragmentTexture:sceneLinearTextures_.at(environmentIds[map])
+                                  atIndex:map + 4];
+              [encoder setFragmentSamplerState:map == 2 ? uiSampler_ : environmentSampler_
+                                       atIndex:map + 4];
+            }
+          } else {
+            [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:2];
+            const auto id = material.textureId ? material.textureId : UINT64_MAX;
+            [encoder setFragmentTexture:sceneTextures_.at(id) atIndex:0];
           }
-          const std::array environmentIds{
-              drawData.environment ? drawData.environment->diffuseTextureId : UINT64_MAX,
-              drawData.environment ? drawData.environment->specularTextureId : UINT64_MAX,
-              drawData.environment ? drawData.environment->brdfTextureId : UINT64_MAX};
-          for (NSUInteger map = 0; map < 3; ++map) {
-            [encoder setFragmentTexture:sceneLinearTextures_.at(environmentIds[map])
-                                atIndex:map + 4];
-            [encoder setFragmentSamplerState:map == 2 ? uiSampler_ : environmentSampler_
-                                     atIndex:map + 4];
-          }
-        } else {
-          [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:2];
-          const auto id = material.textureId ? material.textureId : UINT64_MAX;
-          [encoder setFragmentTexture:sceneTextures_.at(id) atIndex:0];
+          [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                              indexCount:batch.indexCount
+                               indexType:MTLIndexTypeUInt16
+                             indexBuffer:sceneUploads_[frame_]
+                       indexBufferOffset:vertices.size() + batch.firstIndex * sizeof(std::uint16_t)
+                           instanceCount:batch.instanceCount
+                              baseVertex:0
+                            baseInstance:batch.firstInstance];
         }
-        [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                            indexCount:batch.indexCount
-                             indexType:MTLIndexTypeUInt16
-                           indexBuffer:sceneUploads_[frame_]
-                     indexBufferOffset:vertices.size() + batch.firstIndex * sizeof(std::uint16_t)
-                         instanceCount:batch.instanceCount
-                            baseVertex:0
-                          baseInstance:batch.firstInstance];
       }
       [encoder endEncoding];
       sceneDrawn_ = true;
@@ -539,6 +555,8 @@ public:
       uiPipeline_ = nil;
       scenePipeline_ = nil;
       scenePbrPipeline_ = nil;
+      sceneHdrBlendPipeline_ = nil;
+      blendDepthState_ = nil;
       sceneHdrPipeline_ = tonePipeline_ = shadowPipeline_ = nil;
 #if defined(NEXORA_METAL_SCENE_TESTING)
       compositedTesting_ = nil;
@@ -881,7 +899,9 @@ private:
     depth.depthCompareFunction = MTLCompareFunctionLessEqual;
     depth.depthWriteEnabled = YES;
     depthState_ = [device_ newDepthStencilStateWithDescriptor:depth];
-    if (!scenePipeline_ || !depthState_)
+    depth.depthWriteEnabled = NO;
+    blendDepthState_ = [device_ newDepthStencilStateWithDescriptor:depth];
+    if (!scenePipeline_ || !depthState_ || !blendDepthState_)
       return false;
     id<MTLLibrary> pbrVertex =
         [device_ newLibraryWithSource:[NSString stringWithUTF8String:scene_pbr_metal_vert]
@@ -926,6 +946,16 @@ private:
     pipeline.fragmentFunction = [pbrFragment newFunctionWithName:@"pbrFragmentMain"];
     pipeline.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
     sceneHdrPipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
+    auto *blend = pipeline.colorAttachments[0];
+    blend.blendingEnabled = YES;
+    blend.sourceRGBBlendFactor = MTLBlendFactorOne;
+    blend.destinationRGBBlendFactor = MTLBlendFactorBlendColor;
+    blend.rgbBlendOperation = MTLBlendOperationAdd;
+    blend.sourceAlphaBlendFactor = MTLBlendFactorOne;
+    blend.destinationAlphaBlendFactor = MTLBlendFactorOne;
+    blend.alphaBlendOperation = MTLBlendOperationMin;
+    sceneHdrBlendPipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
+    blend.blendingEnabled = NO;
     auto toneVertex =
         [device_ newLibraryWithSource:[NSString stringWithUTF8String:scene_tonemap_metal_vert]
                               options:nil
@@ -948,7 +978,7 @@ private:
     pipeline.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
     pipeline.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
     tonePipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
-    return sceneHdrPipeline_ != nil && tonePipeline_ != nil;
+    return sceneHdrPipeline_ != nil && sceneHdrBlendPipeline_ != nil && tonePipeline_ != nil;
   }
   bool CreateUiResources() {
     constexpr const char *source = R"(
@@ -1040,6 +1070,7 @@ private:
   id<MTLRenderPipelineState> shadowPipeline_ = nil;
   std::array<id<MTLTexture>, kFrames> shadowColors_{}, shadowDepths_{};
   id<MTLRenderPipelineState> scenePipeline_ = nil;
+  id<MTLRenderPipelineState> sceneHdrBlendPipeline_ = nil;
   id<MTLRenderPipelineState> scenePbrPipeline_ = nil;
   id<MTLRenderPipelineState> sceneHdrPipeline_ = nil, tonePipeline_ = nil;
   bool sceneHdr_{};
@@ -1050,7 +1081,7 @@ private:
 #if defined(NEXORA_METAL_SCENE_TESTING)
   id<MTLTexture> compositedTesting_ = nil;
 #endif
-  id<MTLDepthStencilState> depthState_ = nil;
+  id<MTLDepthStencilState> depthState_ = nil, blendDepthState_ = nil;
   std::array<id<MTLBuffer>, kFrames> sceneUploads_{};
   std::array<std::size_t, kFrames> sceneCapacity_{};
   std::array<id<MTLTexture>, kFrames> sceneDepths_{};

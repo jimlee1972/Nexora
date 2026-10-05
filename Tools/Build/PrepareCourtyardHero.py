@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import math
+import struct
 from pathlib import Path
 from PrepareCourtyardEnvironment import golden_sky
 from CourtyardImageCook import decode_png, area_filter, leaf_card
@@ -97,7 +98,9 @@ def generate():
             direction=[normals[face][i]+u*rights[face][i]+v*ups[face][i] for i in range(3)]
             length=math.sqrt(sum(d*d for d in direction)); dx,dy,dz=[d/length for d in direction]
             linear=golden_sky((dx,dy,dz),source['sky'])
-            rgb=[round(255*(12.92*c if c<=0.0031308 else 1.055*c**(1/2.4)-0.055)) for c in linear]
+            encoded=[255*(12.92*c if c<=0.0031308 else 1.055*c**(1/2.4)-0.055) for c in linear]
+            # Canonical binary32 intermediates stabilize byte rounding across host libm.
+            rgb=[round(c) for c in struct.unpack('<3f',struct.pack('<3f',*encoded))]
             sky.extend((*rgb,255))
     outputs['sky.rgba']=bytes(sky)
     metadata={'schema' :'nexora.courtyard.hero-manifest.v1','source':'source.json','author':source['author'],'license':source['license'],'source_sha256':hashlib.sha256((CONTENT/'source.json').read_bytes()).hexdigest(),'license_sha256':hashlib.sha256((ROOT/'LICENSE').read_bytes()).hexdigest(),'converter_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'sky_converter_sha256':hashlib.sha256((ROOT/'Tools/Build/PrepareCourtyardEnvironment.py').read_bytes()).hexdigest(),'derived':{name:hashlib.sha256(data).hexdigest() for name,data in outputs.items()}}

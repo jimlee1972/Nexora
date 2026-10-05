@@ -498,3 +498,29 @@ Subdivided teal pennants and gold motifs share the wind clock, with fixed top an
 vessels now include handles, rings and geometric paint. Cloth is bounded shader bending, not a
 cloth simulation. Crystal refraction and scene-reflected puddles remain separate work, and these
 changes do not establish reference-image parity or physical target performance.
+
+
+The shared linear HDR distance atmosphere adds far-background depth in Standard/High. F7
+compares haze using the same paused camera; Basic omits it. Sky/unlit emitters retain authored
+radiance. Six analytical native PBR cases verify disabled/half/full haze, restoration, unlit
+exclusion and near-field clarity (65 total). The private material packet grows to 352 bytes,
+with unchanged borrowed scene/frame ownership and stable C/Zig contracts. The effect precedes
+transparency, focus, bloom and ACES; it is distance haze, not volumetric scattering.
+
+
+Four fluted columns share one immutable mesh and four native instances; the identity instance
+serves world-authored geometry, and the mirror instance is appended after column instances.
+The saved vertex budget supports additional wind-driven ground cover and climbing ivy using
+the retained original leaf mask. Cached geometry retains its instance layout across frames and
+quality changes. Ceramic colors and the widened pedestal base refine the reference palette.
+
+Crystal diffuse/backlight fill is reduced to retain transmitted background and sharper facets;
+stronger linear rune radiance feeds HDR bloom. Original column relief and distant tower fluting
+add geometric detail within the existing native vertex budget.
+
+
+Stone base/normal/ORM maps now share source-world projections. Bounded normal-map gradients
+perturb the geometric normal without UV streaking across columns, paving or reflected stone.
+Stone strengths use 0.35/0.2 for hero/background surfaces. Existing linear HDR lighting, shadows,
+focus and bloom consume the perturbed normals; four native fixtures verify projection strength
+and exact restoration (69 PBR frames).

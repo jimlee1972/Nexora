@@ -170,6 +170,7 @@ struct SceneMeshBatch final {
 // PBR maps use sRGB base/emission, +Y normals and linear ORM (R=AO,G=roughness,B=metallic).
 // Base/emission factors are linear in PBR. PBR alpha cutout uses the base texture alpha; surviving
 // pixels remain opaque.
+enum class SceneReflectionRole : std::uint32_t { None, Receiver, ReflectedGeometry };
 struct SceneMaterial final {
   std::array<float, 4> baseColor{1, 1, 1, 1};
   std::uint64_t textureId{};
@@ -187,6 +188,11 @@ struct SceneMaterial final {
   std::array<float, 3> transmissionColor{0.2F, 0.5F, 0.08F};
   bool unlit{};           // PBR emission-only path; retains alpha cutout and common color output.
   bool castsShadow{true}; // Exclude non-casters from the protecting-frame prepass.
+  SceneReflectionRole reflectionRole{}; // Horizontal planar mirror mask; opt-in PBR only.
+  float opacity{1}; // Linear HDR blend coverage; below 1 requires non-casting HDR PBR.
+  std::array<float, 3> transparencyTint{1, 1, 1}; // Linear attenuation of the transmitted scene.
+  float
+      worldTextureScale{}; // Base/normal/ORM triplanar repeats per world unit; zero keeps mesh UVs.
 };
 
 [[nodiscard]] inline bool ValidateSceneMaterials(std::span<const SceneMaterial> materials,
@@ -194,6 +200,10 @@ struct SceneMaterial final {
   if (materials.size() > 64)
     return false;
   for (const auto &material : materials) {
+    if (material.reflectionRole != SceneReflectionRole::None &&
+        material.reflectionRole != SceneReflectionRole::Receiver &&
+        material.reflectionRole != SceneReflectionRole::ReflectedGeometry)
+      return false;
     if (material.textureId >= UINT64_MAX - 1 || material.baseColor[3] != 1)
       return false;
     if (material.normalTextureId >= UINT64_MAX - 1 || material.ormTextureId >= UINT64_MAX - 1 ||
@@ -202,10 +212,17 @@ struct SceneMaterial final {
     for (const auto value : {material.metallic, material.roughness, material.occlusion})
       if (!std::isfinite(value) || value < 0 || value > 1)
         return false;
+    if (!std::isfinite(material.worldTextureScale) || material.worldTextureScale < 0 ||
+        material.worldTextureScale > 16)
+      return false;
     if (!std::isfinite(material.normalScale) || material.normalScale < 0 ||
         material.normalScale > 4)
       return false;
-    for (const auto value : {material.alphaCutoff, material.transmissionThickness})
+    for (const auto value :
+         {material.alphaCutoff, material.transmissionThickness, material.opacity})
+      if (!std::isfinite(value) || value < 0 || value > 1)
+        return false;
+    for (const float value : material.transparencyTint)
       if (!std::isfinite(value) || value < 0 || value > 1)
         return false;
     if (!std::isfinite(material.windAmplitude) || material.windAmplitude < 0 ||
@@ -290,6 +307,23 @@ struct SceneBloom final {
   float threshold = 1.0F;
   float radiusPixels = 12.0F;
 };
+struct SceneReflectionEllipse final {
+  float centerX{}, centerZ{}, radiusX{1}, radiusZ{1};
+};
+struct ScenePlanarReflection final {
+  float planeHeight{};      // Caller mirrors reflected geometry around this horizontal world plane.
+  float reflectance{0.04F}; // Fresnel F0; reflected surfaces use a dark water substrate.
+  std::array<SceneReflectionEllipse, 2> regions{};
+  std::uint32_t regionCount{1}; // One or two bounded non-recursive water regions.
+  float shorelineVariation{};   // Inward contour variation [0,0.2]; zero preserves ellipses.
+};
+// Distance haze in linear HDR; sky/unlit emitters retain their authored radiance.
+struct SceneAtmosphere final {
+  std::array<float, 3> color{0.65F, 0.7F, 0.8F};
+  float strength{0.6F};
+  float startDistance{12};
+  float endDistance{60};
+};
 struct SceneDepthOfField final {
   float focusDistance = 10.0F; // World units, measured from cameraPosition.
   float strength = 1.0F;
@@ -324,6 +358,8 @@ struct SceneDrawData final {
   std::optional<SceneColorGrade> colorGrade{};
   float vegetationTime{}; // Finite bounded seconds [0,3600]; caller controls pause/replay.
   std::optional<SceneDepthOfField> depthOfField{}; // HDR PBR only; absent preserves sharp output.
+  std::optional<SceneAtmosphere> atmosphere{};     // Finite bounded HDR distance haze.
+  std::optional<ScenePlanarReflection> planarReflection{}; // Borrowed geometry, scalar mask copy.
 };
 
 // Call only after material/batch validation. Returned values own their scalar storage.
