@@ -298,6 +298,8 @@ add_test(NAME editor.scene_file_input COMMAND NexoraSceneFileInputTests)
 if(NEXORA_ENABLE_NATIVE_BACKENDS AND
    (WIN32 OR APPLE OR (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_VULKAN_BACKEND)))
   add_executable(NexoraEditorNativeSurfaceTests NativeSurfaceTests.cpp)
+  target_include_directories(NexoraEditorNativeSurfaceTests
+    PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
   target_link_libraries(NexoraEditorNativeSurfaceTests PRIVATE Nexora::EditorImGui)
   nexora_apply_defaults(NexoraEditorNativeSurfaceTests)
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_XVFB_EXECUTABLE)

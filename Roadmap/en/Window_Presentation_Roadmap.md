@@ -14,6 +14,10 @@ receives a native window, device, queue, or swapchain pointer.
 
 ## 2. Current baseline
 
+- ✅ Native UI replacement descriptors are now fence-recycled on DX12; Vulkan's bounded UI pool
+  supports 64 mutable Editor images and in-flight generations. The Editor native lifetime gate
+  exercises more than 4096 uploads. Target-host visual acceptance remains separate.
+
 - ✅ X11 modifier events report post-transition flags, preserve held left/right partners, and
   clear tracking on focus loss/destruction. The native Xvfb gate verifies all four modifier families.
 

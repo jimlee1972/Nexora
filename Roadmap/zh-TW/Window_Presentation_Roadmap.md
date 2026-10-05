@@ -13,6 +13,10 @@ backend-neutral surface event。Zig gameplay 不得取得 native window、device
 
 ## 2. 現有基線
 
+- ✅ Native UI 替換 descriptor 在 DX12 現依 fence 回收；Vulkan bounded UI pool 支援
+  64 個可替換 Editor image 與 in-flight generation。Editor native lifetime gate 執行
+  超過 4096 次 upload；target-host visual 驗收仍獨立追蹤。
+
 - ✅ X11 修飾鍵事件現回報 transition 後的 flags、保留仍按下的左右配對鍵，並在失焦／銷毀時
   清除追蹤狀態。原生 Xvfb gate 驗證四組修飾鍵。
 

@@ -117,6 +117,9 @@ public:
       ++diagnostics_.fenceWaits;
     }
     retired_[frame_].clear();
+    freeUiDescriptors_.insert(freeUiDescriptors_.end(), retiredUiDescriptors_[frame_].begin(),
+                              retiredUiDescriptors_[frame_].end());
+    retiredUiDescriptors_[frame_].clear();
     allocators_[frame_]->Reset();
     commands_->Reset(allocators_[frame_].Get(), nullptr);
     D3D12_RESOURCE_BARRIER b{};
@@ -728,6 +731,9 @@ public:
     linearSceneTextures_.clear();
     for (auto &retired : retired_)
       retired.clear();
+    for (auto &descriptors : retiredUiDescriptors_)
+      descriptors.clear();
+    freeUiDescriptors_.clear();
     uiPipeline_.Reset();
     uiRootSignature_.Reset();
     uiDescriptors_.Reset();
@@ -1250,7 +1256,7 @@ private:
                     : static_cast<std::size_t>(upload.rowPitch) * upload.height))
       return false;
     const UINT descriptorCount = scene && !linear ? 2U : 1U;
-    if (nextUiDescriptor_ > 4096 - descriptorCount)
+    if (freeUiDescriptors_.size() + 4096U - nextUiDescriptor_ < descriptorCount)
       return false;
     D3D12_HEAP_PROPERTIES defaultHeap{};
     defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -1327,9 +1333,19 @@ private:
                           D3D12_RESOURCE_STATE_COPY_DEST,
                           D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE};
     commands_->ResourceBarrier(1, &barrier);
-    const UINT descriptor = nextUiDescriptor_++;
+    const auto allocateDescriptor = [this]() {
+      if (freeUiDescriptors_.empty())
+        return nextUiDescriptor_++;
+      const auto available_descriptor = freeUiDescriptors_.back();
+      freeUiDescriptors_.pop_back();
+      return available_descriptor;
+    };
+    const UINT descriptor = allocateDescriptor();
     if (const auto previous = textures.find(upload.textureId); previous != textures.end()) {
       retired_[frame_].push_back(previous->second.resource);
+      retiredUiDescriptors_[frame_].push_back(previous->second.descriptor);
+      if (previous->second.srgbDescriptor != previous->second.descriptor)
+        retiredUiDescriptors_[frame_].push_back(previous->second.srgbDescriptor);
     }
     auto cpu = uiDescriptors_->GetCPUDescriptorHandleForHeapStart();
     cpu.ptr += static_cast<SIZE_T>(descriptor) * uiDescriptorIncrement_;
@@ -1341,8 +1357,9 @@ private:
     device_->CreateShaderResourceView(resource.Get(), &view, cpu);
     UINT srgbDescriptor = descriptor;
     if (scene && !linear) {
-      srgbDescriptor = nextUiDescriptor_++;
-      cpu.ptr += uiDescriptorIncrement_;
+      srgbDescriptor = allocateDescriptor();
+      cpu = uiDescriptors_->GetCPUDescriptorHandleForHeapStart();
+      cpu.ptr += static_cast<SIZE_T>(srgbDescriptor) * uiDescriptorIncrement_;
       view.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
       device_->CreateShaderResourceView(resource.Get(), &view, cpu);
     }
@@ -1451,6 +1468,8 @@ private:
   UINT increment_{};
   UINT uiDescriptorIncrement_{};
   UINT nextUiDescriptor_{2 * kMaximumFrames}; // Fence-owned HDR SRVs reserve the first frame slots.
+  std::vector<UINT> freeUiDescriptors_;
+  std::array<std::vector<UINT>, kMaximumFrames> retiredUiDescriptors_;
   uint64_t fenceValue_{};
   std::array<uint64_t, kMaximumFrames> fenceValues_{};
   SurfaceDiagnostics diagnostics_{};

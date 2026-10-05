@@ -44,3 +44,7 @@ The host/toolchain are those in the [Linux baseline](EditorEDM0-Linux-2026-10-05
 Strict validation uses `VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation` and
 `VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT`.
 No physical-display, installed Windows IME, sanitizer, or visual-legibility result is implied.
+
+Follow-up: the original resize case checked identity and upload counts, but not rejected bindings
+after resize. The [native image/cache record](EditorEDM0-NativeImages-2026-10-06.md) adds that assertion,
+reproduces Vulkan's swapchain cache loss, and records the fix plus a 4290-upload replacement soak.

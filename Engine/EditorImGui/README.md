@@ -197,6 +197,19 @@ production retains ImGui's native platform defaults.
   release invalidates every registration; stale IDs keep the diagnostic font fallback and cannot
   unregister a later texture. `editor.imgui_contract` covers release, repeated cache reset,
   device replacement, stale draw fallback, and rejection metrics.
+- `RegisterNativeTexture` copies tightly packed linear RGBA8 pixels for the native `RenderSurface`
+  renderer, without exposing its device. Each image is at most 1024x1024; the host permits 64 live
+  images and 16 MiB of retained pixels. Invalid sizes, exhausted slots/bytes/generations return zero.
+  IDs share the host's monotonic generation namespace with public-RHI registrations, but each
+  renderer accepts only its own registrations. Stale/foreign IDs use the diagnostic font fallback
+  and increment host rejection metrics. Register/unregister between frames on the owner thread.
+  Unregister frees the CPU copy immediately and prevents future bindings. A bounded GPU cache slot
+  remains until reuse or surface drain; replacing it retires the old resource behind completion.
+  One host drives a surface's UI namespace. New domains resend all live images; resize/move and
+  font DPI changes preserve immutable image uploads. Uploads are acknowledged only on successful
+  recording. Public-RHI renderer release does not invalidate native registrations.
+  `editor.native_surface_lifetime` covers copied caller data, stale fallback, owner/DPI/resize,
+  byte/slot limits, and over 4096 native uploads with no rejected backend texture bindings.
 - DPI is quantized to 100%, 125%, 150%, or 200%. Crossing a bucket rebuilds the font atlas at that
   pixel density, publishes the framebuffer scale, and derives the theme anew rather than
   cumulatively scaling an existing style.

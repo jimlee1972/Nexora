@@ -207,6 +207,13 @@ retirement；Vulkan offscreen frame 沒有 validation error。
 回歸測試要求多次 cache reset 後 stale ID 仍無效且使用 diagnostic fallback；generation
 耗盡不會 wrap 成舊 ID。
 
+✅ Native user image 現有 owning RGBA8 登錄入口（64 個 live slot、16 MiB、每張上限 1024x1024）。
+Backend binding 前的 generation 檢查拒絕 stale／foreign ID，domain 更換會重送 live image。
+Native 測試涵蓋 pixel 複製、fallback、容量上限與超過 4096 次 upload；DX12 descriptor
+回收等待 GPU completion，Vulkan resize 保留 texture。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md)；
+target-host visual gate 仍待完成。
+
 1. 在 `EditorImGuiHost` 下建立 renderer-owned state：pipeline、sampler、font texture/view、descriptor
    binding、有限大小的 per-frame vertex/index upload buffer ring。知道 device/format 後才 lazy-create
    stable resource；禁止每 frame create/destroy pipeline 與 font texture。

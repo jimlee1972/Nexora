@@ -164,6 +164,11 @@ public:
   // Returns zero for invalid ownership or exhausted generation capacity.
   [[nodiscard]] std::uint64_t RegisterTexture(nexora::rhi::Device &device,
                                               nexora::rhi::TextureHandle texture);
+  // Native RenderSurface images own a tight linear RGBA8 copy. Maximum 1024x1024,
+  // 64 live registrations and 16 MiB combined pixels; zero means invalid/capacity exhausted.
+  // Register/unregister between frames. IDs share the host's monotonic generation namespace.
+  [[nodiscard]] std::uint64_t RegisterNativeTexture(std::uint32_t width, std::uint32_t height,
+                                                    std::span<const std::byte> pixels);
   [[nodiscard]] bool UnregisterTexture(std::uint64_t texture_id) noexcept;
   [[nodiscard]] std::string SaveLayout() const;
   [[nodiscard]] bool LoadLayout(std::string_view layout);

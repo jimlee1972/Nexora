@@ -16,7 +16,15 @@ scissors, offsets, and generation-checked texture uploads and records native GPU
 the acquired image. Vulkan, DX12, and Metal keep their pipeline, sampler, texture descriptors, and
 bounded per-frame upload buffers below this boundary; resources replaced by a later atlas generation
 are released only after the protecting frame fence/command buffer completes. No native image or
-device handle escapes. `DrawScene` similarly borrows indexed `SceneDrawData` geometry, transform,
+device handle escapes. DX12 returns replaced UNORM/sRGB descriptor indices to a free list only
+after the protecting frame fence completes, alongside retired texture resources; reserved per-frame
+HDR indices are never recycled. Replacement therefore does not consume the 4096-entry heap
+permanently. Vulkan's bounded 512-set UI pool accommodates 64 mutable Editor image slots, the atlas,
+and in-flight replacement generations. Vulkan swapchain recreation preserves sampled images,
+descriptor pool/layout and samplers after waiting for the device; only swapchain-dependent
+pipelines, render passes and frame storage are rebuilt. This preserves the UI resource-domain
+contract through resize/recovery. Final surface drain destroys the retained cache.
+`DrawScene` similarly borrows indexed `SceneDrawData` geometry, transform,
 light, and base color for the duration of the call and records a depth-tested native scene draw on
 the render thread. DX12, Vulkan and Metal own their depth buffers, pipelines, and bounded per-frame upload storage;
 `SceneDrawData::viewport` optionally bounds that draw to a physical-pixel rectangle of the acquired

@@ -563,9 +563,9 @@ int main(int argc, char **argv) {
       }
       const auto beforeUploads = surface->Diagnostics().sceneTextureUploads;
       Require(surface->DrawScene(draw) == SurfaceStatus::Ready, "native material draw failed");
-      if (materialFrame == 1)
+      if (materialFrame > 0)
         Require(surface->Diagnostics().sceneTextureUploads == beforeUploads,
-                "immutable material texture was reuploaded");
+                "immutable material texture was reuploaded after frame reuse/resize");
       Require(surface->Present() == SurfaceStatus::InvalidDescriptor,
               "uncomposited offscreen present accepted");
       Require(surface->RenderUi({}) == SurfaceStatus::InvalidDescriptor,
@@ -595,7 +595,7 @@ int main(int argc, char **argv) {
     const auto diagnostics = surface->Diagnostics();
     Require(diagnostics.sceneDrawCalls == 27 && diagnostics.sceneInstances == 38 &&
                 diagnostics.acquiredFrames == 27 && diagnostics.presentedFrames == 27 &&
-                diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 7 &&
+                diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 4 &&
                 diagnostics.sceneOffscreenDrawCalls == 5 && diagnostics.sceneComposites == 5,
             "native scene counters or resize evidence mismatch");
     Require(surface->Acquire() == SurfaceStatus::Ready, "abandoned frame acquire failed");

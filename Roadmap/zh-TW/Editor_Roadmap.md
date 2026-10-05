@@ -109,6 +109,10 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 - ✅ Public-RHI texture registration 在 renderer／device reset 後不再讓 stale ID 復活；
   `editor.imgui_contract` 涵蓋多次 reset 與 stale fallback。
 
+- ✅ Native UI image 現以 owning、bounded RGBA8 登錄並進行 generation-checked fallback。
+  Native lifetime gate 涵蓋 owner 更換、DPI／resize 重用、容量上限及超過 4096 次 upload；
+  DX12 等待 GPU completion 才回收替換 descriptor，實體 visual 驗收仍待完成。
+
 ### ED-M1 — Project 與 Asset workspace
 
 建立、開啟與升級 project；Content Browser 支援 search/filter、folder/UUID、drag/drop、import

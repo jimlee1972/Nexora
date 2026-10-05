@@ -224,6 +224,13 @@ Physical visual/lifetime and unavailable target-host rows remain open.
 replacement. Regression coverage requires stale IDs to remain invalid and use the diagnostic
 fallback after repeated cache resets; generation exhaustion cannot wrap to a previous ID.
 
+✅ Native user images now have an owned RGBA8 registration entry point (64 live slots, 16 MiB,
+1024x1024 per image). Generation checks reject stale/foreign IDs before backend binding; domain
+replacement resends live images. Native tests cover copied pixels, fallback, limits and more than
+4096 uploads. DX12 descriptor recycling waits for GPU completion; Vulkan resize retains textures.
+[Linux evidence](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md);
+visual target-host gates remain open.
+
 1. Introduce a renderer-owned state object beneath `EditorImGuiHost`: pipeline, sampler, font
    texture/view, descriptor bindings, and a bounded ring of per-frame vertex/index upload buffers.
    Create stable resources lazily after device/format is known; do not create/destroy pipeline and
