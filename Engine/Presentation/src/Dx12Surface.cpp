@@ -507,7 +507,10 @@ public:
                              material.emissionTextureId ? material.emissionTextureId : UINT64_MAX};
         for (UINT map = 0; map < ids.size(); ++map) {
           auto mapHandle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
-          mapHandle.ptr += UINT64(sceneTextures_.at(ids[map]).descriptor) * uiDescriptorIncrement_;
+          const auto &texture = sceneTextures_.at(ids[map]);
+          const auto descriptor =
+              (map == 0 || map == 3) ? texture.srgbDescriptor : texture.descriptor;
+          mapHandle.ptr += UINT64(descriptor) * uiDescriptorIncrement_;
           commands_->SetGraphicsRootDescriptorTable(map + 2, mapHandle);
         }
       } else {
@@ -593,6 +596,7 @@ private:
   struct UiTexture final {
     ComPtr<ID3D12Resource> resource;
     UINT descriptor{};
+    UINT srgbDescriptor{};
   };
   bool OnThread() const { return std::this_thread::get_id() == renderThread_; }
   bool CreateUiResources() {
@@ -924,7 +928,7 @@ private:
     texture.Height = upload.height;
     texture.DepthOrArraySize = 1;
     texture.MipLevels = 1;
-    texture.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    texture.Format = scene ? DXGI_FORMAT_R8G8B8A8_TYPELESS : DXGI_FORMAT_R8G8B8A8_UNORM;
     texture.SampleDesc.Count = 1;
     ComPtr<ID3D12Resource> resource;
     if (FAILED(device_->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &texture,
@@ -974,7 +978,7 @@ private:
                           D3D12_RESOURCE_STATE_COPY_DEST,
                           D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE};
     commands_->ResourceBarrier(1, &barrier);
-    if (nextUiDescriptor_ >= 4096)
+    if (nextUiDescriptor_ > 4096 - (scene ? 2U : 1U))
       return false;
     const UINT descriptor = nextUiDescriptor_++;
     if (const auto previous = textures.find(upload.textureId); previous != textures.end()) {
@@ -988,7 +992,14 @@ private:
     view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     view.Texture2D.MipLevels = 1;
     device_->CreateShaderResourceView(resource.Get(), &view, cpu);
-    textures[upload.textureId] = {resource, descriptor};
+    UINT srgbDescriptor = descriptor;
+    if (scene) {
+      srgbDescriptor = nextUiDescriptor_++;
+      cpu.ptr += uiDescriptorIncrement_;
+      view.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+      device_->CreateShaderResourceView(resource.Get(), &view, cpu);
+    }
+    textures[upload.textureId] = {resource, descriptor, srgbDescriptor};
     retired_[frame_].push_back(staging);
     if (scene)
       ++diagnostics_.sceneTextureUploads;

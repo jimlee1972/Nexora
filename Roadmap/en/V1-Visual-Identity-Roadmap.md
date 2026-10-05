@@ -205,3 +205,18 @@ The milestone remains 1/7; direct-light PBR alone does not complete VIS-M1.
 
 ✅ Linux direct-light PBR slice: 91/91 without skips, Monolithic Shipping build and isolated package launch passed.
 [Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-SharedPBR-2026-10-05/acceptance.md).
+
+## 14. VIS-M1 linear color filtering (2026-10-05)
+
+PBR base/emission use hardware sRGB texture views with decoding before filtering; normal/ORM and
+legacy Lambert retain linear UNORM sampling. Vulkan, DX12 and Metal own paired views under the
+existing immutable-generation/fence lifetime. Shared shaders no longer decode sampled color a
+second time. Native black/white midpoint tests compare base/emission against linear 0.5 factors
+and verify that ORM and legacy sampling remain linear. A calibrated per-frame emission marker rejects
+stale X11 presentation pixels. Vulkan candidate allocation completes before recording texture copies;
+failed candidates release their storage before publication.
+
+✅ Linux color-filtering slice: 92/92 without skips, all nine rooms and fixed-camera/comparison replay
+passed. Three retained software-renderer runs measured 47–48 FPS; hardware performance remains open.
+[Evidence](../../Apps/Showcase/evidence/VIS-M1-Linux-LinearColor-2026-10-05/acceptance.md).
+IBL and floating HDR remain open and the milestone stays 1/7.

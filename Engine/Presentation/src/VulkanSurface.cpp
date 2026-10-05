@@ -475,7 +475,8 @@ public:
         std::array<VkDescriptorImageInfo, 4> images{};
         std::array<VkWriteDescriptorSet, 5> writes{};
         for (std::uint32_t map = 0; map < 4; ++map) {
-          images[map] = {uiSampler_, sceneTextures_.at(ids[map]).view,
+          const auto &texture = sceneTextures_.at(ids[map]);
+          images[map] = {uiSampler_, (map == 0 || map == 3) ? texture.srgbView : texture.view,
                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
           writes[map] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                          nullptr,
@@ -888,6 +889,7 @@ private:
   struct UiTexture final {
     VkImage image{};
     VkImageView view{};
+    VkImageView srgbView{};
     VkDeviceMemory memory{};
     VkDescriptorSet descriptor{};
   };
@@ -1051,9 +1053,29 @@ private:
         upload.pixels.size() != static_cast<std::size_t>(upload.rowPitch) * upload.height)
       return false;
     UiTexture next;
+    VkBuffer staging{};
+    VkDeviceMemory stagingMemory{};
+    const auto fail = [&]() {
+      if (next.descriptor)
+        vkFreeDescriptorSets(device_, uiDescriptorPool_, 1, &next.descriptor);
+      if (staging)
+        vkDestroyBuffer(device_, staging, nullptr);
+      if (stagingMemory)
+        vkFreeMemory(device_, stagingMemory, nullptr);
+      if (next.srgbView)
+        vkDestroyImageView(device_, next.srgbView, nullptr);
+      if (next.view)
+        vkDestroyImageView(device_, next.view, nullptr);
+      if (next.image)
+        vkDestroyImage(device_, next.image, nullptr);
+      if (next.memory)
+        vkFreeMemory(device_, next.memory, nullptr);
+      return false;
+    };
     VkImageCreateInfo imageCreate{};
     imageCreate.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageCreate.imageType = VK_IMAGE_TYPE_2D;
+    imageCreate.flags = scene ? VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT : 0;
     imageCreate.format = VK_FORMAT_R8G8B8A8_UNORM;
     imageCreate.extent = {upload.width, upload.height, 1};
     imageCreate.mipLevels = 1;
@@ -1062,7 +1084,7 @@ private:
     imageCreate.tiling = VK_IMAGE_TILING_OPTIMAL;
     imageCreate.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     if (vkCreateImage(device_, &imageCreate, nullptr, &next.image) != VK_SUCCESS)
-      return false;
+      return fail();
     VkMemoryRequirements requirements{};
     vkGetImageMemoryRequirements(device_, next.image, &requirements);
     const auto type =
@@ -1072,7 +1094,7 @@ private:
     if (type == std::numeric_limits<std::uint32_t>::max() ||
         vkAllocateMemory(device_, &allocate, nullptr, &next.memory) != VK_SUCCESS ||
         vkBindImageMemory(device_, next.image, next.memory, 0) != VK_SUCCESS)
-      return false;
+      return fail();
     VkImageViewCreateInfo viewCreate{};
     viewCreate.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewCreate.image = next.image;
@@ -1080,16 +1102,19 @@ private:
     viewCreate.format = VK_FORMAT_R8G8B8A8_UNORM;
     viewCreate.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     if (vkCreateImageView(device_, &viewCreate, nullptr, &next.view) != VK_SUCCESS)
-      return false;
-    VkBuffer staging{};
-    VkDeviceMemory stagingMemory{};
+      return fail();
+    if (scene) {
+      viewCreate.format = VK_FORMAT_R8G8B8A8_SRGB;
+      if (vkCreateImageView(device_, &viewCreate, nullptr, &next.srgbView) != VK_SUCCESS)
+        return fail();
+    }
     VkBufferCreateInfo bufferCreate{};
     bufferCreate.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferCreate.size = upload.pixels.size();
     bufferCreate.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     bufferCreate.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     if (vkCreateBuffer(device_, &bufferCreate, nullptr, &staging) != VK_SUCCESS)
-      return false;
+      return fail();
     vkGetBufferMemoryRequirements(device_, staging, &requirements);
     const auto stagingType =
         FindMemoryType(requirements.memoryTypeBits,
@@ -1098,12 +1123,18 @@ private:
     if (stagingType == std::numeric_limits<std::uint32_t>::max() ||
         vkAllocateMemory(device_, &allocate, nullptr, &stagingMemory) != VK_SUCCESS ||
         vkBindBufferMemory(device_, staging, stagingMemory, 0) != VK_SUCCESS)
-      return false;
+      return fail();
     void *mapped = nullptr;
     if (vkMapMemory(device_, stagingMemory, 0, upload.pixels.size(), 0, &mapped) != VK_SUCCESS)
-      return false;
+      return fail();
     std::memcpy(mapped, upload.pixels.data(), upload.pixels.size());
     vkUnmapMemory(device_, stagingMemory);
+    VkDescriptorSetAllocateInfo descriptorAllocate{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                                                   nullptr, uiDescriptorPool_, 1,
+                                                   &uiDescriptorLayout_};
+    if (vkAllocateDescriptorSets(device_, &descriptorAllocate, &next.descriptor) != VK_SUCCESS)
+      return fail();
+    // All allocations succeeded before recording references to this candidate generation.
     VkImageMemoryBarrier toCopy{};
     toCopy.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     toCopy.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -1134,14 +1165,11 @@ private:
     if (previous != textures.end()) {
       frame.retiredImages.push_back(previous->second.image);
       frame.retiredImageViews.push_back(previous->second.view);
+      if (previous->second.srgbView)
+        frame.retiredImageViews.push_back(previous->second.srgbView);
       frame.retiredImageMemory.push_back(previous->second.memory);
       frame.retiredDescriptors.push_back(previous->second.descriptor);
     }
-    VkDescriptorSetAllocateInfo descriptorAllocate{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                                                   nullptr, uiDescriptorPool_, 1,
-                                                   &uiDescriptorLayout_};
-    if (vkAllocateDescriptorSets(device_, &descriptorAllocate, &next.descriptor) != VK_SUCCESS)
-      return false;
     const VkDescriptorImageInfo imageInfo{uiSampler_, next.view,
                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     VkWriteDescriptorSet write{};
@@ -1179,6 +1207,8 @@ private:
       (void)id;
       if (texture.view)
         vkDestroyImageView(device_, texture.view, nullptr);
+      if (texture.srgbView)
+        vkDestroyImageView(device_, texture.srgbView, nullptr);
       if (texture.image)
         vkDestroyImage(device_, texture.image, nullptr);
       if (texture.memory)
@@ -1189,6 +1219,8 @@ private:
       (void)id;
       if (texture.view)
         vkDestroyImageView(device_, texture.view, nullptr);
+      if (texture.srgbView)
+        vkDestroyImageView(device_, texture.srgbView, nullptr);
       if (texture.image)
         vkDestroyImage(device_, texture.image, nullptr);
       if (texture.memory)
