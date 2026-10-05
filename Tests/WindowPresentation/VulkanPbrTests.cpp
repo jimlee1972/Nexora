@@ -1,5 +1,6 @@
 #include "Nexora/Presentation/Surface.h"
 #include "PbrEnvironmentFixtures.h"
+#include "PbrShadowFixtures.h"
 #if defined(_WIN32)
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -40,7 +41,7 @@ unsigned Channel(unsigned long pixel, unsigned long mask) {
 }
 #endif
 using Rgb = std::array<unsigned, 3>;
-std::array<Rgb, 4> Read(
+std::array<Rgb, 5> Read(
 #if defined(_WIN32)
     std::nullptr_t display, HWND window,
 #else
@@ -89,7 +90,8 @@ std::array<Rgb, 4> Read(
   };
 #endif
   const std::array result{rgb(width / 4, height / 2), rgb(width * 3 / 4, height / 2),
-                          rgb(width / 2, height * 3 / 20), rgb(width / 2, height * 9 / 10)};
+                          rgb(width / 2, height * 3 / 20), rgb(width / 2, height * 9 / 10),
+                          rgb(width * 129 / 400, height / 2)};
   if (!capture.empty()) {
     std::ofstream file(capture, std::ios::binary);
     file << "P6\n" << width << ' ' << height << "\n255\n";
@@ -153,7 +155,7 @@ int main(int argc, char **argv) {
     const std::array<std::uint16_t, 9> indices{0, 1, 2, 3, 4, 5, 6, 7, 8};
     const std::array batches{SceneMeshBatch{0, 3, 0, 1, 0}, SceneMeshBatch{3, 3, 0, 1, 1},
                              SceneMeshBatch{6, 3, 0, 1, 2}};
-    std::array<SceneMaterial, 3> materials{};
+    std::array<SceneMaterial, 4> materials{};
     SceneDrawData draw{};
     draw.vertices = vertices;
     draw.indices = indices;
@@ -192,8 +194,11 @@ int main(int argc, char **argv) {
     const UiTextureUpload filterUpload{38, 2, 1, 8, blackWhite};
     unsigned width = 640, height = 480;
     Rgb uiBaseline{};
-    for (unsigned frame = 0; frame < 24; ++frame) {
+    for (unsigned frame = 0; frame < 30; ++frame) {
+      PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       materials = {};
+      draw.shadow.reset();
+      draw.lightingStyle.reset();
       draw.pbr = true;
       draw.hdr = false;
       draw.exposure = 1;
@@ -225,6 +230,8 @@ int main(int argc, char **argv) {
       }
       if (frame == 8) {
         materials = {};
+        draw.shadow.reset();
+        draw.lightingStyle.reset();
         materials[0].normalTextureId = materials[1].normalTextureId = 37;
         draw.textureUploads = {&upUpload, 1};
         draw.instances = mirroredInstances;
@@ -237,6 +244,8 @@ int main(int argc, char **argv) {
       }
       if (frame >= 9) {
         materials = {};
+        draw.shadow.reset();
+        draw.lightingStyle.reset();
         draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 1;
         if (frame == 9) {
           draw.textureUploads = {&filterUpload, 1};
@@ -273,12 +282,19 @@ int main(int argc, char **argv) {
         draw.linearTextureUploads = {};
         draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 0;
         materials = {};
+        draw.shadow.reset();
+        draw.lightingStyle.reset();
         materials[0].baseColor = materials[1].baseColor = {0, 0, 0, 1};
         materials[0].emission = {4, 0, 0};
         materials[1].emission = {1, 0, 0};
       }
       // Require a unique marker from this submission before accepting asynchronously presented
       // X11 pixels. Equality alone could otherwise match the preceding frame's material pair.
+      if (frame >= 24) {
+        draw = shadowFixture.Draw(frame - 24);
+        materials = shadowFixture.materials;
+        draw.materials = materials;
+      }
       const float marker = 0.02F * static_cast<float>(frame + 1);
       materials[2].baseColor =
           draw.pbr ? std::array<float, 4>{0, 0, 0, 1} : std::array<float, 4>{marker, 0, 0, 1};
@@ -302,7 +318,7 @@ int main(int argc, char **argv) {
       const auto markerCode =
           static_cast<int>(std::lround(255.0F * (draw.pbr ? toSrgb(mappedMarker) : legacyMarker)));
       const auto srgbLegacyMarker = static_cast<int>(std::lround(255.0F * toSrgb(legacyMarker)));
-      if (frame == 4 || frame == 19 || frame == 22) {
+      if (frame == 4 || frame == 19 || frame == 22 || frame == 27) {
         width = frame == 4 || frame == 22 ? 480U : 640U;
         height = frame == 4 || frame == 22 ? 360U : 480U;
         Require(windows->Resize(window.handle, width, height) == Window::WindowError::None,
@@ -349,6 +365,16 @@ int main(int argc, char **argv) {
         Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
                 "nonfinite exposure accepted");
       }
+      if (frame == 24) {
+        auto invalid = draw;
+        invalid.shadow->resolution = 300;
+        Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
+                "unbounded shadow resolution accepted");
+        invalid = draw;
+        invalid.shadow->normalBias = std::numeric_limits<float>::quiet_NaN();
+        Require(surface->DrawScene(invalid) == SurfaceStatus::InvalidDescriptor,
+                "NaN shadow bias accepted");
+      }
       const auto drawStatus = surface->DrawScene(draw);
       if (drawStatus != SurfaceStatus::Ready)
         std::cerr << "PBR draw frame=" << frame << " status=" << static_cast<int>(drawStatus)
@@ -382,7 +408,11 @@ int main(int argc, char **argv) {
         const auto pixels = Read(display, native, width, height, {});
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 20) {
+        if (frame >= 24) {
+          valid = PbrShadowFixtures::Pixels(frame - 24, left, right);
+          if (frame == 24)
+            valid = valid && pixels[4][0] > 20 && pixels[4][0] + 10 < right[0];
+        } else if (frame >= 20) {
           const auto expected = [&](float value) {
             value *= draw.exposure;
             const float mapped = std::clamp(value * (2.51F * value + 0.03F) /
@@ -430,14 +460,15 @@ int main(int argc, char **argv) {
         std::cerr << "PBR frame=" << frame << " left=" << values[0][0] << ',' << values[0][1] << ','
                   << values[0][2] << " right=" << values[1][0] << ',' << values[1][1] << ','
                   << values[1][2] << " marker=" << values[2][0] << " expected=" << markerCode
-                  << " ui=" << values[3][0] << '\n';
+                  << " ui=" << values[3][0] << " pcf=" << values[4][0] << '\n';
       }
       Require(valid, "PBR emission/normal/ORM/sRGB native pixels mismatch");
       if (argc == 2 && frame == 9)
         static_cast<void>(Read(display, native, width, height, argv[1]));
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 24 &&
-                surface->Diagnostics().sceneComposites == 14,
+    Require(surface->Diagnostics().sceneDrawCalls == 30 &&
+                surface->Diagnostics().sceneComposites == 20 &&
+                surface->Diagnostics().sceneShadowPasses == 4,
             "PBR counters mismatch");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "PBR teardown failed");
     surface.reset();
@@ -446,12 +477,14 @@ int main(int argc, char **argv) {
 #endif
     Require(windows->Destroy(window.handle) == Window::WindowError::None,
             "PBR window teardown failed");
-    std::cout << "PASS: shared Slang PBR emission, normal, mirrored tangent handedness, ORM, "
-                 "linear-space sRGB filtering, linear ORM/legacy filtering, missing-map "
-                 "defaults, "
-                 "invalid descriptors, HDR IBL radiance, roughness mips, metal/diffuse separation, "
-                 "reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws "
-                 "and resize pixels\n";
+    std::cout
+        << "PASS: shared Slang PBR emission, normal, mirrored tangent handedness, ORM, "
+           "linear-space sRGB filtering, linear ORM/legacy filtering, missing-map "
+           "defaults, "
+           "invalid descriptors, HDR IBL radiance, roughness mips, metal/diffuse separation, "
+           "reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws "
+           "and resize pixels; directional shadow movement, XY projection, PCF edge, map reuse, "
+           "shadow disable and stylized tint\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
     return 1;

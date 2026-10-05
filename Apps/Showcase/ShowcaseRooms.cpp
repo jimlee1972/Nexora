@@ -122,6 +122,8 @@ struct RoomSession::State final {
   std::size_t courtyardShot{};
   bool courtyardPbr{true}, courtyardIbl{true};
   float courtyardExposure = 1.0F;
+  bool courtyardShadows{true}, courtyardStyled{true};
+  float courtyardShadowBias = 0.0008F;
   std::uint64_t atlasGeneration{~std::uint64_t{0}};
   std::string lastAction{"Ready"}, pluginLibrary;
   ErrorInjection injection{ErrorInjection::None};
@@ -1225,6 +1227,18 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.courtyardPbr = !s.courtyardPbr;
     s.lastAction = s.courtyardPbr ? "PBR materials" : "Lambert material comparison";
   }
+  if (s.selected == "courtyard" && key == Key::F6) {
+    s.courtyardShadows = !s.courtyardShadows;
+    s.lastAction = s.courtyardShadows ? "Directional shadows on" : "Shadows off";
+  }
+  if (s.selected == "courtyard" && key == Key::G) {
+    s.courtyardStyled = !s.courtyardStyled;
+    s.lastAction = s.courtyardStyled ? "Stylized light on" : "Neutral light comparison";
+  }
+  if (s.selected == "courtyard" && key == Key::LeftBracket)
+    s.courtyardShadowBias = std::max(0.0001F, s.courtyardShadowBias * 0.5F);
+  if (s.selected == "courtyard" && key == Key::RightBracket)
+    s.courtyardShadowBias = std::min(0.0128F, s.courtyardShadowBias * 2.0F);
   if (s.selected == "courtyard" && key == Key::E) {
     s.courtyardExposure = s.courtyardExposure == 1.0F ? 0.25F : 1.0F;
     s.lastAction = s.courtyardExposure == 1.0F ? "Exposure normal" : "Exposure highlight detail";
@@ -1626,9 +1640,22 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     data.offscreen = data.hdr;
     data.cameraPosition = {eye.x, eye.y, eye.z};
     if (data.pbr) {
-      data.light_color[0] *= 3;
-      data.light_color[1] *= 3;
-      data.light_color[2] *= 3;
+      data.light_direction[0] = -8;
+      data.light_direction[1] = -13;
+      data.light_direction[2] = -7;
+      data.light_color[0] = 3.4F;
+      data.light_color[1] = 2.8F;
+      data.light_color[2] = 2.0F;
+      if (s.courtyardShadows) {
+        const auto light =
+            math::Orthographic(-7, 7, -7, 7, 0.1F, 40) * math::LookAt({8, 14, 7}, {0, 1, 0});
+        data.shadow = Nexora::Presentation::SceneDirectionalShadow{};
+        data.shadow->lightViewProjection = light.values;
+        data.shadow->normalBias = s.courtyardShadowBias;
+        data.shadow->slopeBias = s.courtyardShadowBias * 2;
+      }
+      if (s.courtyardStyled)
+        data.lightingStyle = Nexora::Presentation::SceneLightingStyle{};
     }
     data.materials = s.materials;
     data.batches = s.batches;
@@ -1664,7 +1691,8 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
   s.Rect(0, 0, 1280, 112, 0xf0271a10);
   s.Text(18, 14, s.localization.Resolve("title"), 0xffefdc80, 3);
   s.Text(18, 45,
-         "9 courtyard / B shot / P material / O IBL / E exposure / F4 hide UI / F1 overview / F2 "
+         "9 courtyard / B shot / P material / O IBL / E exposure / F6 shadows / G tone / [ ] bias "
+         "/ F4 hide UI / F1 overview / F2 "
          "profiler / F3 matrix");
   for (std::size_t i = 0; i < rooms.size(); ++i) {
     const float x = 18 + static_cast<float>(i) * 154;
@@ -1798,7 +1826,10 @@ std::string RoomSession::Report() const {
                          : "lambert")
       << "\""
       << ",\"scene_color_format\":\"" << (s.courtyardPbr ? "RGBA16F" : "RGBA8") << "\""
-      << ",\"exposure\":" << s.courtyardExposure << ",\"screenshot_mode\":" << s.screenshotMode
+      << ",\"exposure\":" << s.courtyardExposure
+      << ",\"shadows_enabled\":" << (s.courtyardPbr && s.courtyardShadows)
+      << ",\"stylized_enabled\":" << (s.courtyardPbr && s.courtyardStyled)
+      << ",\"shadow_bias\":" << s.courtyardShadowBias << ",\"screenshot_mode\":" << s.screenshotMode
 #if NEXORA_ASSET_PIPELINE_ENABLED
       << ",\"representative_asset_loaded\":" << !s.assetMesh.vertices.empty()
       << ",\"asset_hash\":\"" << s.assetHash << "\""

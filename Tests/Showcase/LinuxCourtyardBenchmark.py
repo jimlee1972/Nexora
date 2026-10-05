@@ -50,7 +50,10 @@ def main():
                             'render_settings': report['render_settings'],
                             'shading': report['runtime_rooms']['courtyard'].get('shading', 'lambert'),
                             'scene_color_format': report['runtime_rooms']['courtyard'].get('scene_color_format', 'RGBA8'),
-                            'exposure': report['runtime_rooms']['courtyard'].get('exposure', 1)})
+                            'exposure': report['runtime_rooms']['courtyard'].get('exposure', 1),
+                            'shadows_enabled': report['runtime_rooms']['courtyard'].get('shadows_enabled', False),
+                            'stylized_enabled': report['runtime_rooms']['courtyard'].get('stylized_enabled', False),
+                            'shadow_bias': report['runtime_rooms']['courtyard'].get('shadow_bias', 0)})
         assert all(r['shading'] == reports[0]['shading'] and
                    r['render_settings'] == reports[0]['render_settings'] for r in reports)
         cpu = next((line.split(':', 1)[1].strip() for line in Path('/proc/cpuinfo').read_text().splitlines()

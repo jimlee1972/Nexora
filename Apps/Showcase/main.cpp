@@ -1063,6 +1063,8 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"native_scene_instances\": " << run.surface.sceneInstances << ",\n"
          << "    \"native_scene_texture_uploads\": " << run.surface.sceneTextureUploads << ",\n"
          << "    \"native_offscreen_draws\": " << run.surface.sceneOffscreenDrawCalls << ",\n"
+         << "    \"native_shadow_passes\": " << run.surface.sceneShadowPasses << ",\n"
+         << "    \"native_shadow_instances\": " << run.surface.sceneShadowInstances << ",\n"
          << "    \"native_scene_composites\": " << run.surface.sceneComposites << ",\n"
          << "    \"software_rasterizer\": " << run.surface.softwareRasterizer << ",\n"
          << "    \"native_graph_frames\": " << run.native_graph_frames << ",\n"

@@ -316,6 +316,8 @@ public:
       std::memcpy(storage, vertices.data(), vertices.size());
       std::memcpy(storage + vertices.size(), indices.data(), indices.size());
       std::memcpy(storage + instanceOffset, instanceBytes.data(), instanceBytes.size());
+      if (drawData.shadow && !RecordShadow(drawData, instanceOffset))
+        return SurfaceStatus::DeviceLost;
       if (!EnsureSceneTargets(drawData.offscreen, drawData.hdr))
         return SurfaceStatus::DeviceLost;
       struct SceneConstants final {
@@ -366,6 +368,10 @@ public:
         const auto material = ResolveSceneMaterial(drawData, batch.materialIndex);
         std::copy(material.baseColor.begin(), material.baseColor.end(), constants.color);
         if (drawData.pbr) {
+          [encoder setFragmentTexture:drawData.shadow ? shadowColors_[frame_]
+                                                      : sceneLinearTextures_.at(UINT64_MAX)
+                              atIndex:7];
+          [encoder setFragmentSamplerState:shadowSampler_ atIndex:7];
           [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:0];
           [encoder setFragmentBytes:&constants length:sizeof(constants) atIndex:0];
           const auto parameters = PackPbrMaterial(drawData, material, true);
@@ -515,6 +521,7 @@ public:
         uiUploads_[i] = nil;
         sceneUploads_[i] = nil;
         sceneDepths_[i] = nil;
+        shadowColors_[i] = shadowDepths_[i] = nil;
         sceneColors_[i] = nil;
       }
       uiTextures_.clear();
@@ -524,13 +531,13 @@ public:
       uiPipeline_ = nil;
       scenePipeline_ = nil;
       scenePbrPipeline_ = nil;
-      sceneHdrPipeline_ = tonePipeline_ = nil;
+      sceneHdrPipeline_ = tonePipeline_ = shadowPipeline_ = nil;
 #if defined(NEXORA_METAL_SCENE_TESTING)
       compositedTesting_ = nil;
 #endif
       depthState_ = nil;
       uiSampler_ = nil;
-      environmentSampler_ = nil;
+      environmentSampler_ = shadowSampler_ = nil;
       layer_ = nil;
       queue_ = nil;
       device_ = nil;
@@ -659,6 +666,66 @@ private:
           return false;
       }
     }
+    return true;
+  }
+  bool RecordShadow(const SceneDrawData &draw, std::size_t instanceOffset) {
+    const auto resolution = draw.shadow->resolution;
+    const auto ensure = [&](id<MTLTexture> __strong &texture, MTLPixelFormat format) {
+      if (texture && texture.width == resolution && texture.height == resolution)
+        return true;
+      auto *descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:format
+                                                                            width:resolution
+                                                                           height:resolution
+                                                                        mipmapped:NO];
+      descriptor.storageMode = MTLStorageModePrivate;
+      descriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+      texture = [device_ newTextureWithDescriptor:descriptor];
+      return texture != nil;
+    };
+    if (!ensure(shadowColors_[frame_], MTLPixelFormatR32Float) ||
+        !ensure(shadowDepths_[frame_], MTLPixelFormatDepth32Float))
+      return false;
+    auto *pass = [MTLRenderPassDescriptor renderPassDescriptor];
+    pass.colorAttachments[0].texture = shadowColors_[frame_];
+    pass.colorAttachments[0].loadAction = MTLLoadActionClear;
+    pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+    pass.colorAttachments[0].clearColor = MTLClearColorMake(1, 1, 1, 1);
+    pass.depthAttachment.texture = shadowDepths_[frame_];
+    pass.depthAttachment.loadAction = MTLLoadActionClear;
+    pass.depthAttachment.storeAction = MTLStoreActionDontCare;
+    pass.depthAttachment.clearDepth = 1;
+    auto encoder = [commands_ renderCommandEncoderWithDescriptor:pass];
+    if (!encoder)
+      return false;
+    [encoder setRenderPipelineState:shadowPipeline_];
+    [encoder setDepthStencilState:depthState_];
+    [encoder setCullMode:MTLCullModeNone];
+    [encoder setViewport:MTLViewport{0, 0, static_cast<double>(resolution),
+                                     static_cast<double>(resolution), 0, 1}];
+    std::array<float, 28> constants{};
+    std::copy(draw.shadow->lightViewProjection.begin(), draw.shadow->lightViewProjection.end(),
+              constants.begin());
+    [encoder setVertexBytes:constants.data() length:sizeof(constants) atIndex:0];
+    [encoder setVertexBuffer:sceneUploads_[frame_] offset:0 atIndex:2];
+    [encoder setVertexBuffer:sceneUploads_[frame_] offset:instanceOffset atIndex:3];
+    const SceneMeshBatch whole{
+        0, static_cast<std::uint32_t>(draw.indices.size()), 0,
+        static_cast<std::uint32_t>(std::max<std::size_t>(draw.instances.size(), 1)), 0};
+    const auto batches =
+        draw.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : draw.batches;
+    for (const auto &batch : batches)
+      [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                          indexCount:batch.indexCount
+                           indexType:MTLIndexTypeUInt16
+                         indexBuffer:sceneUploads_[frame_]
+                   indexBufferOffset:draw.vertices.size_bytes() +
+                                     batch.firstIndex * sizeof(std::uint16_t)
+                       instanceCount:batch.instanceCount
+                          baseVertex:0
+                        baseInstance:batch.firstInstance];
+    [encoder endEncoding];
+    ++diagnostics_.sceneShadowPasses;
+    diagnostics_.sceneShadowInstances += std::max<std::size_t>(draw.instances.size(), 1);
     return true;
   }
   bool EnsureSceneTargets(bool offscreen, bool hdr) {
@@ -827,6 +894,18 @@ private:
     scenePbrPipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
     if (!scenePbrPipeline_)
       return false;
+    auto shadowFragment =
+        [device_ newLibraryWithSource:[NSString stringWithUTF8String:scene_pbr_metal_shadow_frag]
+                              options:nil
+                                error:&error];
+    if (!shadowFragment)
+      return false;
+    pipeline.fragmentFunction = [shadowFragment newFunctionWithName:@"shadowFragmentMain"];
+    pipeline.colorAttachments[0].pixelFormat = MTLPixelFormatR32Float;
+    shadowPipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
+    if (!shadowPipeline_)
+      return false;
+    pipeline.fragmentFunction = [pbrFragment newFunctionWithName:@"pbrFragmentMain"];
     pipeline.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
     sceneHdrPipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
     auto toneVertex =
@@ -902,7 +981,14 @@ private:
     sampler.mipFilter = MTLSamplerMipFilterLinear;
     sampler.lodMaxClamp = 8;
     environmentSampler_ = [device_ newSamplerStateWithDescriptor:sampler];
-    return uiPipeline_ != nil && uiSampler_ != nil && environmentSampler_ != nil;
+    sampler.minFilter = sampler.magFilter = MTLSamplerMinMagFilterNearest;
+    sampler.mipFilter = MTLSamplerMipFilterNearest;
+    sampler.sAddressMode = sampler.tAddressMode = sampler.rAddressMode =
+        MTLSamplerAddressModeClampToBorderColor;
+    sampler.borderColor = MTLSamplerBorderColorOpaqueWhite;
+    shadowSampler_ = [device_ newSamplerStateWithDescriptor:sampler];
+    return uiPipeline_ != nil && uiSampler_ != nil && environmentSampler_ != nil &&
+           shadowSampler_ != nil;
   }
   bool UploadUiTexture(const UiTextureUpload &upload) {
     if (upload.textureId == 0 || upload.width == 0 || upload.height == 0 ||
@@ -932,7 +1018,9 @@ private:
   id<MTLCommandBuffer> commands_ = nil;
   id<MTLRenderPipelineState> uiPipeline_ = nil;
   id<MTLSamplerState> uiSampler_ = nil;
-  id<MTLSamplerState> environmentSampler_ = nil;
+  id<MTLSamplerState> environmentSampler_ = nil, shadowSampler_ = nil;
+  id<MTLRenderPipelineState> shadowPipeline_ = nil;
+  std::array<id<MTLTexture>, kFrames> shadowColors_{}, shadowDepths_{};
   id<MTLRenderPipelineState> scenePipeline_ = nil;
   id<MTLRenderPipelineState> scenePbrPipeline_ = nil;
   id<MTLRenderPipelineState> sceneHdrPipeline_ = nil, tonePipeline_ = nil;
