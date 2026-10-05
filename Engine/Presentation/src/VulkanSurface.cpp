@@ -626,15 +626,10 @@ public:
       vkCmdPushConstants(frame.commands, pipelineLayout, stages, 0, sizeof(constants),
                          constants.data());
       const auto id = material.textureId ? material.textureId : UINT64_MAX;
-      const auto descriptor = sceneTextures_.at(id).descriptor;
-      if (data.pbr) {
-        const auto descriptor = frame.pbrDescriptors[batch.materialIndex];
-        vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
-                                1, &descriptor, 0, nullptr);
-      } else {
-        vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
-                                1, &descriptor, 0, nullptr);
-      }
+      const auto descriptor =
+          data.pbr ? frame.pbrDescriptors[batch.materialIndex] : sceneTextures_.at(id).descriptor;
+      vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+                              &descriptor, 0, nullptr);
       vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
                        batch.firstInstance);
     }

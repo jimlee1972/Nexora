@@ -40,3 +40,8 @@ MSVC portability follow-up: Windows CI rejected three implicit int-to-float tern
 Development gate passed 92/92 without skips after this correction (36.90 seconds); see
 `ctest-msvc-portability.log` and the two updated header hashes in `msvc-portability-hashes.json`.
 Original captures and benchmark artifacts retain their original source hashes.
+
+The Windows Vulkan job also rejected a nested descriptor local under MSVC `/WX` (C4456).
+Selecting one descriptor for either shading path removes the shadowing. The full Linux
+Development gate again passed 92/92 without skips (37.46 seconds); see `ctest-msvc-vulkan.log`
+and `msvc-vulkan-hashes.json`. The original shader, captures and benchmark output are unchanged.
