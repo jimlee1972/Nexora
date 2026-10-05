@@ -5038,6 +5038,17 @@ void EditorImGuiTestAccess::ConfigureSyntheticInput(EditorImGuiHost &host,
   io.ConfigMacOSXBehaviors = macos_behaviors;
 }
 
+void EditorImGuiTestAccess::InvokeImeCallback(EditorImGuiHost &host, float x, float y,
+                                              bool visible) noexcept {
+  Activate(host.state_->context);
+  ImGuiPlatformImeData data{};
+  data.InputPos = {x, y};
+  data.WantVisible = visible;
+  const auto callback = ImGui::GetPlatformIO().Platform_SetImeDataFn;
+  IM_ASSERT(callback != nullptr);
+  callback(host.state_->context, ImGui::GetMainViewport(), &data);
+}
+
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::HierarchyRenamePosition(const EditorImGuiHost &host) noexcept {
   return host.state_->hierarchy_rename_position;
