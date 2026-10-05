@@ -3,9 +3,10 @@
 
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <imm.h>
+#include <windows.h>
 
+#include <array>
 #include <cassert>
 
 namespace {
@@ -46,29 +47,27 @@ int main() {
 
   {
     EditorImGuiHost host;
-    host.SetDisplay(640.0F, 360.0F, 1.0F);
-    host.BeginFrame();
-    host.UpdateImeCandidate(*created.surface);
-    EditorImGuiTestAccess::InvokeImeCallback(host, 40.0F, 60.0F, true);
-    auto candidate = CandidatePosition(inputContext);
-    assert(candidate.x == 40 && candidate.y == 60);
-    static_cast<void>(host.EndFrame());
+    // Repeat monitor-scale round trips, including the fractional 125% and 200% buckets.
+    // Observe the actual Win32 candidate window; no installed IME composition is implied.
+    constexpr std::array scales{1.0F, 1.25F, 1.5F, 2.0F, 1.5F, 1.25F, 1.0F};
+    for (const auto scale : scales) {
+      host.SetDisplay(640.0F / scale, 360.0F / scale, scale);
+      host.BeginFrame();
+      host.UpdateImeCandidate(*created.surface);
+      EditorImGuiTestAccess::InvokeImeCallback(host, 40.0F, 60.0F, true);
+      auto candidate = CandidatePosition(inputContext);
+      assert(candidate.x == static_cast<LONG>(40.0F * scale));
+      assert(candidate.y == static_cast<LONG>(60.0F * scale));
 
-    host.SetDisplay(640.0F / 1.5F, 360.0F / 1.5F, 1.5F);
-    host.BeginFrame();
-    host.UpdateImeCandidate(*created.surface);
-    EditorImGuiTestAccess::InvokeImeCallback(host, 40.0F, 60.0F, true);
-    candidate = CandidatePosition(inputContext);
-    assert(candidate.x == 60 && candidate.y == 90);
-
-    EditorImGuiTestAccess::InvokeImeCallback(host, 10.0F, 20.0F, false);
-    candidate = CandidatePosition(inputContext);
-    assert(candidate.x == 60 && candidate.y == 90);
-    static_cast<void>(host.EndFrame());
-
-    EditorImGuiTestAccess::InvokeImeCallback(host, 80.0F, 80.0F, true);
-    candidate = CandidatePosition(inputContext);
-    assert(candidate.x == 60 && candidate.y == 90);
+      // A hidden candidate or an ended frame cannot move the native IME window.
+      EditorImGuiTestAccess::InvokeImeCallback(host, 10.0F, 20.0F, false);
+      auto unchanged = CandidatePosition(inputContext);
+      assert(unchanged.x == candidate.x && unchanged.y == candidate.y);
+      static_cast<void>(host.EndFrame());
+      EditorImGuiTestAccess::InvokeImeCallback(host, 80.0F, 80.0F, true);
+      unchanged = CandidatePosition(inputContext);
+      assert(unchanged.x == candidate.x && unchanged.y == candidate.y);
+    }
   }
 
   ImmReleaseContext(window, inputContext);

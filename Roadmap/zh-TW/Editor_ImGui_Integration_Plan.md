@@ -304,6 +304,12 @@ coverage 已有；physical-display 證據仍待完成。**
 **狀態：automated Linux X11 smoke/recovery 已實作；physical-display Linux 與 Windows 證據仍待
 完成。**
 
+✅ Desktop CI 現在 Linux、Windows/DX12、macOS/Metal 啟用 graphical feature，
+要求 ImGui contract 與 Windows DPI/IME test 確實註冊，並保留完整 verbose log。
+Windows native candidate contract 現重複 100/125/150/200% scale round trip，
+確認隱藏 candidate 與 frame 結束後均不可更新位置。Target-host 執行結果與
+實體顯示器／installed-IME 證據仍須驗收。
+
 1. Clean tree 執行 §6 完整 Linux gate。WP1/WP3 更動 linkage/API boundary，因此也跑 `linux-shipping`。
 2. Real X11 display 執行 launch、font/text 可見、Hierarchy selection、docking、各類 input、resize/
    minimize/restore、recovery checklist；記錄 command、commit、backend/device、result、artifact location。

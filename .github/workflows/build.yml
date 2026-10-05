@@ -96,9 +96,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool glslang-tools
-      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }}
+      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }} -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON
       - run: cmake --build --preset ${{ matrix.preset }}
-      - run: ctest --preset ${{ matrix.preset }}
+      - name: Require the graphical Editor contract
+        shell: bash
+        run: |
+          ctest --preset ${{ matrix.preset }} -N -R '^editor\.imgui_contract$' | grep -q 'Total Tests: 1'
+      - name: Require the Windows DPI and IME contract
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          ctest --preset ${{ matrix.preset }} -N -R '^editor\.windows_dpi_ime_contract$' | grep -q 'Total Tests: 1'
+      - run: ctest --preset ${{ matrix.preset }} -V --output-log build/${{ matrix.preset }}/development-tests.log
       - name: Verify Development Showcase package
         run: cmake --build --preset ${{ matrix.preset }} --target NexoraShowcasePackageDevelopmentEvidence
       - uses: actions/upload-artifact@v4
@@ -111,9 +120,10 @@ jobs:
             build/${{ matrix.preset }}/artifacts/showcase-linux-vulkan*/
             build/${{ matrix.preset }}/artifacts/metal-scene.ppm
             build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
+            build/${{ matrix.preset }}/development-tests.log
 
   # Runs the graphical Editor against a real X11 server (Xvfb) with Mesa's software Vulkan. It is a
-  # separate job so the feature-on build (Dear ImGui is fetched) cannot disturb the main matrix.
+  # separate job to require synchronization-layer diagnostics in addition to desktop parity.
   editor-linux-display:
     needs: changes
     if: needs.changes.outputs.full_build == 'true'

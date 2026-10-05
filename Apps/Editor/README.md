@@ -33,6 +33,13 @@ separate `editor-validation.log` and `native-validation.log` artifacts, so the l
 cannot overwrite the Editor evidence. These are software Vulkan/Xvfb results; target-host
 physical-display and Windows DPI/IME acceptance remain separate.
 
+The Development desktop CI matrix enables the graphical shell on Linux, Windows/DX12, and
+macOS/Metal. It requires `editor.imgui_contract` on every host and
+`editor.windows_dpi_ime_contract` on Windows, then retains verbose full-suite output in
+`development-tests.log`. The Windows test exercises native candidate positioning and frame-scoped
+callback lifetime across repeated 1x/1.25x/1.5x/2x round trips; it does not exercise an installed IME's composition or physical monitors.
+Feature-off isolation remains covered by the separate build-contract/mimalloc configurations.
+
 On a host with a display and native presentation support, launch the shell with:
 
 ```bash
