@@ -169,7 +169,8 @@ void RunContentLocation(const std::filesystem::path &root) {
               Read(root / "Content/Renamed.scene.meta") == identity,
           "Clean rename changed the document, identity or startup association");
   Require(content.Undo() && files.SynchronizeContent(token, content).Applied() &&
-              files.CurrentPath() == original && world.SaveScene(id) == clean,
+              files.CurrentPath() == original && world.SaveScene(id) == clean &&
+              files.RememberCurrent(token).Applied(),
           "Rename Undo lost the active scene association");
   Require(content.Rename(asset, renamed_name) && assets.ImportSavedScene("Renamed.scene") &&
               assets.Entries().size() == 1 &&
@@ -178,6 +179,8 @@ void RunContentLocation(const std::filesystem::path &root) {
               assets.Find(asset)->relative_path == "Original.scene",
           "Saved-scene import did not retarget the stale UUID index through rename/Undo");
   Require(scene.CreateLight("Pending") != 0, "Dirty relocation fixture failed");
+  Require(files.RememberCurrent(token).status == Status::Rejected,
+          "An ordinary dirty document was recorded without relocation");
   const auto dirty = world.SaveScene(id);
   const std::vector<runtime::Id> selection(scene.Selection().begin(), scene.Selection().end());
   const auto unicode_name = std::u8string(u8"場景.scene");
@@ -185,6 +188,10 @@ void RunContentLocation(const std::filesystem::path &root) {
   Require(content.Rename(asset, std::string(unicode_name.begin(), unicode_name.end())) &&
               files.SynchronizeContent(token, content).Applied() &&
               files.CurrentPath() == unicode && world.SaveScene(id) == dirty && scene.Dirty() &&
+              files.RememberCurrent(token).Applied() && scene.Dirty() &&
+              Read(root / ".nexora/scene-session.ini")
+                  .ends_with("scene=Content/" +
+                             std::string(unicode_name.begin(), unicode_name.end()) + "\n") &&
               std::ranges::equal(scene.Selection(), selection) && scene.Undo() &&
               world.SaveScene(id) == clean && scene.Redo() && world.SaveScene(id) == dirty &&
               files.Save(token).Applied() &&

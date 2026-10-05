@@ -74,6 +74,7 @@ bool SceneFileSession::BindCurrent(std::filesystem::path relative, bool save_blo
   save_blocked_ = save_blocked;
   content_asset_.reset();
   content_blocked_ = false;
+  content_relocated_ = false;
   return true;
 }
 SceneFileResult SceneFileSession::New(SceneFileToken token, bool discard_unsaved) {
@@ -88,6 +89,7 @@ SceneFileResult SceneFileSession::New(SceneFileToken token, bool discard_unsaved
   save_blocked_ = false;
   content_asset_.reset();
   content_blocked_ = false;
+  content_relocated_ = false;
   return {SceneFileStatus::Applied, "New unsaved scene."};
 }
 SceneFileResult SceneFileSession::Open(SceneFileToken token, const std::filesystem::path &relative,
@@ -106,6 +108,7 @@ SceneFileResult SceneFileSession::Open(SceneFileToken token, const std::filesyst
   save_blocked_ = false;
   content_asset_.reset();
   content_blocked_ = false;
+  content_relocated_ = false;
   return {SceneFileStatus::Applied, "Scene opened."};
 }
 SceneFileResult SceneFileSession::Save(SceneFileToken token) {
@@ -138,8 +141,10 @@ SceneFileResult SceneFileSession::SaveAs(SceneFileToken token,
     return Rejected("Scene could not be saved. Check the project directory.");
   current_ = path->lexically_relative(root_);
   save_blocked_ = false;
-  if (reset_content)
+  if (reset_content) {
     content_asset_.reset();
+    content_relocated_ = false;
+  }
   content_blocked_ = false;
   return {SceneFileStatus::Applied, "Scene saved."};
 }
@@ -175,6 +180,7 @@ SceneFileResult SceneFileSession::SynchronizeContent(SceneFileToken token,
   }
   content_asset_ = item->id;
   content_generation_ = browser.ProjectGeneration();
+  content_relocated_ |= *current_ != item->path;
   current_ = item->path;
   content_blocked_ = false;
   return {SceneFileStatus::Applied, {}};
@@ -240,7 +246,8 @@ SceneFileResult SceneFileSession::RestoreStartup(SceneFileToken token) {
 }
 SceneFileResult SceneFileSession::RememberCurrent(SceneFileToken token) {
   if (!Live(token) || !workspace_.Writable() || workspace_.HasRecoveryJournal() ||
-      !startup_checked_ || startup_blocked_ || SaveBlocked() || !current_ || document_.Dirty())
+      !startup_checked_ || startup_blocked_ || SaveBlocked() || !current_ ||
+      (document_.Dirty() && !content_relocated_))
     return Rejected("Scene startup selection could not be remembered; prior settings preserved.");
   std::optional<std::filesystem::path> previous;
   const auto checked = ReadStartup(previous);
@@ -259,6 +266,7 @@ SceneFileResult SceneFileSession::RememberCurrent(SceneFileToken token) {
   std::string message;
   if (!detail::AtomicWrite(*metadata, text, &message))
     return Rejected("Scene selection was not remembered: " + message);
+  content_relocated_ = false;
   return {SceneFileStatus::Applied, "Scene startup selection remembered."};
 }
 } // namespace nexora::editor

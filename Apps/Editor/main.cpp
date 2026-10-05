@@ -1066,8 +1066,7 @@ int RunGraphical(std::optional<ProjectState> project,
           ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(), overview_load_failed,
           preview_camera_load_failed};
       retained_scene_views.erase(*old_path);
-      if (!scene.Dirty())
-        remember_scene();
+      remember_scene();
     }
   };
   const auto save_scene = [&] {

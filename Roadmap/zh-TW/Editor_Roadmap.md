@@ -363,7 +363,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   pointer／key 測試涵蓋 Unicode 路徑、單／雙擊、非場景／多選拒絕、dirty 決策及過期
   request；additive scene tab 與完整 ED-M4 圖形驗收仍待完成。
 - ✅ 目前 Content 場景現透過 stable UUID 跟隨重新命名／移動及 Content Undo，保留文件
-  generation、dirty 內容、selection、history 與 live view state。刪除／失去、unsafe 或過期
+  generation、dirty 內容、selection、history 與 live view state。已提交的移動也會更新啟動
+  檔名而不儲存 dirty World，Discard and Exit／重啟可載入改名後已提交的來源。
+  刪除／失去、unsafe 或過期
   追蹤資產時禁止一般 Save；還原後恢復儲存，同一舊檔名的不同 UUID 不可取代關聯。
   已儲存場景 index 只在舊 source／sidecar 都不存在時更新 stale 移動項目。Portable
   Unicode／唯讀／失敗契約及 Linux Xvfb context rename／delete／Save／Undo 驗證流程；

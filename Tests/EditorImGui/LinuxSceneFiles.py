@@ -126,6 +126,43 @@ def main():
         send("key", "--clearmodifiers", "ctrl+z", "ctrl+s")
         wait_until(lambda: copy.read_bytes() == copied,
                    "Scene Undo after Content delete lost its original document", process)
+        # A committed asset rename must update startup location even with an unsaved World.
+        # Discard closes without saving that World; restart must load the relocated committed file.
+        send("key", "--clearmodifiers", "ctrl+shift+n")
+        send("mousemove", "--window", window, "410", "637", "click", "3")
+        send("mousemove", "--window", window, "445", "669", "click", "1")
+        send("mousemove", "--window", window, "600", "358", "click", "1")
+        send("key", "--clearmodifiers", "ctrl+a")
+        send("type", "--clearmodifiers", "--delay", "2", "Renamed.scene")
+        send("mousemove", "--window", window, "528", "381", "click", "1")
+        wait_until(lambda: renamed.is_file() and not copy.exists() and
+                   metadata.read_bytes().endswith(b"scene=Content/Renamed.scene\n"),
+                   "Dirty Content relocation left a stale startup filename", process)
+        if renamed.read_bytes() != copied:
+            raise RuntimeError("Dirty relocation unexpectedly saved document changes")
+        request_window_close(window, env)
+        time.sleep(0.4)
+        send("mousemove", "--window", window, "655", "378", "click", "1")
+        _, error = process.communicate(timeout=15)
+        if process.returncode != 0 or renamed.read_bytes() != copied:
+            raise RuntimeError(f"Discard after dirty relocation changed its committed source: {error}")
+        process = None
+        process, window = start()
+        send("key", "--clearmodifiers", "ctrl+shift+n", "ctrl+s")
+        wait_until(lambda: renamed.read_bytes().count(b"node ") == copied.count(b"node ") + 1,
+                   "Restart after dirty relocation did not adopt the committed scene", process)
+        send("key", "--clearmodifiers", "ctrl+z", "ctrl+s")
+        wait_until(lambda: renamed.read_bytes() == copied,
+                   "Restart loaded discarded changes after dirty relocation", process)
+        # Return to the original path for the remaining New/Open/Save As acceptance scenarios.
+        send("mousemove", "--window", window, "410", "637", "click", "3")
+        send("mousemove", "--window", window, "445", "669", "click", "1")
+        send("mousemove", "--window", window, "600", "358", "click", "1")
+        send("key", "--clearmodifiers", "ctrl+a")
+        send("type", "--clearmodifiers", "--delay", "2", "Copy.scene")
+        send("mousemove", "--window", window, "528", "381", "click", "1")
+        wait_until(lambda: copy.is_file() and not renamed.exists(),
+                   "Restored process did not rename its active scene back", process)
         send("key", "--clearmodifiers", "ctrl+n")
         empty = root / "Content/Empty.scene"
         path_dialog("ctrl+shift+s", "Content/Empty.scene")

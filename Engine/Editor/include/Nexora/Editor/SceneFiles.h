@@ -43,8 +43,9 @@ public:
   // Bootstrap first, before RememberCurrent. Missing settings return NeedsPath; rejected settings
   // or source files stay protected for this session. Restore never discards a dirty document.
   SceneFileResult RestoreStartup(SceneFileToken token);
-  // Remembers only a clean, successfully associated scene. This independent metadata commit
-  // does not affect document/history; failure must not turn a successful scene save into failure.
+  // Remembers a clean associated scene, or a committed relocation of its existing Content asset
+  // even while the document is dirty. This metadata commit never saves document/history; failure
+  // must not turn a successful scene save into failure.
   SceneFileResult RememberCurrent(SceneFileToken token);
 
 private:
@@ -62,7 +63,7 @@ private:
   bool save_blocked_{};
   std::optional<runtime::AssetUuid> content_asset_;
   std::uint64_t content_generation_{};
-  bool content_blocked_{};
+  bool content_blocked_{}, content_relocated_{};
   bool startup_checked_{}, startup_blocked_{};
 };
 

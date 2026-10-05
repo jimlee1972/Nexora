@@ -524,7 +524,10 @@ document. The bounded 1100-byte binary metadata contains schema, project UUID an
 scene path; reading revalidates canonical scope and rejects metadata directory/file aliases.
 Rejected settings or source loads protect the original record for the session. The caller may
 fall back to Main without replacing it. Recording requires the live token, initialized startup state,
-write access, no recovery journal, and a clean, unblocked associated file. It never records Untitled,
+write access, no recovery journal, and an unblocked associated file. Ordinary dirty documents cannot
+be recorded; a validated same-UUID Content relocation may update its committed filename while
+retaining dirty World/history. The relocation exception is consumed only after successful metadata
+commit and resets on document/path adoption. It never records Untitled,
 New or failed scene operations. A record is a separate atomic commit with the same original/temp
 preservation as scene writes; its failure leaves the World, scene save, path and Undo/Redo intact.
 The application warns after an independent recording failure and still permits successful Save and

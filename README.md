@@ -312,7 +312,8 @@ read-only is supported and Play/modal/stale tokens reject replacement. Real 1x/2
 cover the workflow; additive scene tabs remain open.
 
 ✅ The active Content scene now follows UUID-preserving rename/move and Content Undo without losing
-document edits/history or view state. Deleted/unavailable tracked assets block ordinary Save;
+document edits/history or view state. Committed relocation updates startup location even when
+unsaved edits are discarded at exit. Deleted/unavailable tracked assets block ordinary Save;
 restoration unblocks it and another UUID at the old path remains protected. Saved-scene indexing
 retargets moved UUIDs without scanning unrelated sources. Portable and native Linux tests verify
 relocation, Save, deletion and Undo; graphical milestone acceptance remains partial.
@@ -742,7 +743,8 @@ Untitled Save As 與明確覆寫確認。Document／project token 拒絕過期�
 拒絕替換。真正 1×／2× pointer／key 測試驗證流程；additive scene tab 仍待完成。
 
 ✅ 目前 Content 場景現以 UUID 跟隨重新命名／移動與 Content Undo，保留文件修改、history
-及 view state。刪除／失去追蹤資產後禁止一般 Save；還原後恢復儲存，同一路徑的不同 UUID
+及 view state。已提交的移動會更新啟動路徑，即使關閉時捨棄未儲存修改也能重開該來源。
+刪除／失去追蹤資產後禁止一般 Save；還原後恢復儲存，同一路徑的不同 UUID
 維持保護。已儲存場景 index 可更新移動後的 UUID 路徑，不掃描其他來源。Portable 與原生
 Linux 測試驗證路徑跟隨、Save、刪除及 Undo；圖形里程碑驗收仍為部分完成。
 
