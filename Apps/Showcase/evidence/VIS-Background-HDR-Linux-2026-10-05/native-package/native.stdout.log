@@ -1,0 +1,51 @@
+{
+  "native": {
+    "executed": true,
+    "backend": "vulkan",
+    "backend_fallback": false,
+    "fallback_reason": "",
+    "recovery_action": "render",
+    "surface_acquires": 547,
+    "surface_presents": 547,
+    "surface_recoverable_presents": 0,
+    "resize_requests": 0,
+    "resize_generations": 1,
+    "composed_frames": 0,
+    "scene_draws": 547,
+    "native_scene_draws": 547,
+    "native_scene_instances": 637,
+    "native_scene_texture_uploads": 18,
+    "native_offscreen_draws": 547,
+    "native_shadow_passes": 120,
+    "native_shadow_instances": 10320,
+    "native_scene_composites": 547,
+    "software_rasterizer": true,
+    "native_graph_frames": 547,
+    "native_graph_passes": 4,
+    "native_graph_resource_transitions": 3,
+    "native_graph_order": [
+      "Offscreen",
+      "Main",
+      "UI",
+      "Present"
+    ],
+    "native_ui_draws": 418,
+    "overlay_frames": 418,
+    "rendering_mode": "gpu_scene",
+    "clear_color": true,
+    "triangle": false,
+    "diagnostics_overlay": true
+  },
+  "visited": [
+    "courtyard",
+    "gameplay",
+    "hub",
+    "input",
+    "presentation",
+    "rendering",
+    "scene",
+    "shipping",
+    "streaming"
+  ],
+  "evidence_directory": "/tmp/nexora-background-release-package/native"
+}

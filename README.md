@@ -61,6 +61,9 @@ The courtyard is being expanded toward the approved concept: a golden-hour six-f
 layered original background ruins/mountains, rooted vine wind, live crystal/splinter/water motion,
 256x256 detail maps, HDR bloom and depth-aware focus. Reference art parity remains open;
 implementation evidence does not establish pixel-identical concept matching or physical target acceptance.
+The incremental golden-hour version passes Linux 97/97, both Shipping profiles, isolated native
+launch and 45 PBR frames; its 100.27-second actual movie and nine same-executable quality runs
+are retained in [background/HDR evidence](Apps/Showcase/evidence/VIS-Background-HDR-Linux-2026-10-05/README.md).
 
 The [V1 Visual Identity Showcase Roadmap](Roadmap/en/V1-Visual-Identity-Roadmap.md)
 records the ✅ user-confirmed art direction and retained concept preview for a stylized ruins courtyard,

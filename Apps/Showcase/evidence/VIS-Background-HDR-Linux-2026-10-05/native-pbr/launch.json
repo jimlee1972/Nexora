@@ -1,0 +1,11 @@
+{
+  "command": [
+    "build/linux-development/Tests/WindowPresentation/NexoraVulkanPbrTests",
+    "/tmp/nexora-background-native45/scene.ppm"
+  ],
+  "exit_code": 0,
+  "acceptance_passed": true,
+  "scope": "Linux/X11/Vulkan GPU scene on virtual display",
+  "physical_display_verified": false,
+  "validation_layer_requested": false
+}

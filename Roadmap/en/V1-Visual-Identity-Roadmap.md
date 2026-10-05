@@ -372,3 +372,9 @@ target hardware/budget acceptance are supported by matching-version evidence.
 
 ✅ Linux Development passes 97/97 (54.23s, no skips), including 45 native PBR frames with
 depth-aware focus/UI checks and exact focus/bloom/wind/pause/replay input captures.
+
+✅ Golden-hour source `97b20cdeb1a6e6ea035d639d2752fc9daa8c4144` passes full Linux 97/97
+(53.10s), Shipping/Full and Minimal, isolated native launch, 45 PBR frames and a real 100.27s
+movie with nine same-executable quality runs. Evidence: `Apps/Showcase/evidence/VIS-Background-HDR-Linux-2026-10-05`.
+Software FPS: Basic 11.94–12.16; Standard 7.31–7.59; High 6.47–6.78. These are neither GPU
+timestamps nor physical target acceptance. The user goal/reference parity remains open.

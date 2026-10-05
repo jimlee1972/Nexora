@@ -348,3 +348,9 @@ timestamp 尚不可用。證據與實機操作說明：`Apps/Showcase/evidence/V
 
 ✅ Linux Development 97/97 通過（54.23 秒，無 skip），包含 45 幀原生 PBR 的景深／UI
 像素驗證，以及景深／bloom／風／暫停／重播的精確復原互動截圖。
+
+✅ 金色夕陽版本 `97b20cdeb1a6e6ea035d639d2752fc9daa8c4144` 已通過 Linux 完整 97/97
+（53.10 秒）、Shipping/Full 與 Minimal、隔離原生啟動、45 幀 PBR，以及實際 100.27 秒
+影片與同一執行檔的九份品質量測。證據：`Apps/Showcase/evidence/VIS-Background-HDR-Linux-2026-10-05`。
+軟體 FPS：Basic 11.94–12.16、Standard 7.31–7.59、High 6.47–6.78；這不是 GPU timestamp
+或實體目標硬體驗收。使用者目標／預覽圖一致性仍未完成。
