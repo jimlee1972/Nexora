@@ -124,6 +124,7 @@ struct RoomSession::State final {
   bool courtyardPbr{true}, courtyardIbl{true};
   float courtyardExposure = 1.0F;
   bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true}, courtyardFocus{true};
+  bool courtyardReflections{true};
   bool courtyardPaused{}, courtyardActive{}, courtyardWind{true}, courtyardTransmission{true};
   bool visualTour{}, courtyardFreeCamera{}, courtyardCompare{};
   unsigned courtyardQuality{1}; // Basic / Standard / High, shared by all native adapters.
@@ -142,6 +143,7 @@ struct RoomSession::State final {
   std::vector<Nexora::Presentation::SceneMeshBatch> batches;
   std::vector<Nexora::Presentation::SceneVertex> courtyardVertices;
   std::size_t courtyardCrystalFirst{}, courtyardCrystalEnd{};
+  std::size_t courtyardReflectionDeviceIndexEnd{};
   std::vector<std::uint16_t> courtyardIndices;
   std::vector<Nexora::Presentation::SceneMeshBatch> courtyardBatches;
   std::array<std::byte, 8 * 8 * 4> checker{};
@@ -584,8 +586,8 @@ struct RoomSession::State final {
     courtyardFreeCamera = false;
     courtyardShot = shot % 3;
     constexpr std::array<float, 3> yaws{-0.22F, -0.35F, 0.12F};
-    constexpr std::array<float, 3> pitches{0.16F, 0.20F, 0.13F};
-    constexpr std::array<float, 3> radii{9.5F, 9.0F, 11.0F};
+    constexpr std::array<float, 3> pitches{0.38F, 0.20F, 0.13F};
+    constexpr std::array<float, 3> radii{10.5F, 9.0F, 11.0F};
     yaw = yaws[courtyardShot];
     pitch = pitches[courtyardShot];
     radius = radii[courtyardShot];
@@ -667,12 +669,12 @@ struct RoomSession::State final {
     }
   }
   void VisualTourCamera() {
-    constexpr std::array<std::array<float, 4>, 6> route{{{0, -.22F, .16F, 9.5F},
+    constexpr std::array<std::array<float, 4>, 6> route{{{0, -.22F, .38F, 10.5F},
                                                          {25, .05F, .35F, 15},
                                                          {45, -.35F, .26F, 9},
                                                          {65, .12F, .20F, 11},
                                                          {80, -.45F, .32F, 13},
-                                                         {100, -.22F, .16F, 9.5F}}};
+                                                         {100, -.22F, .38F, 10.5F}}};
     std::size_t segment = 0;
     while (segment + 2 < route.size() && tourSeconds >= route[segment + 1][0])
       ++segment;
@@ -714,6 +716,45 @@ struct RoomSession::State final {
     }
     if (indices.size() > first)
       batches.push_back({first, static_cast<std::uint32_t>(indices.size() - first), 0, 1, 7});
+  }
+  Nexora::Presentation::ScenePlanarReflection CourtyardReflectionSettings() const {
+    Nexora::Presentation::ScenePlanarReflection reflection;
+    reflection.planeHeight = 0.16F + 0.003F * std::sin(static_cast<float>(courtyardSeconds) * 0.8F);
+    reflection.regions[0] = {-0.9F, 4.0F, 1.4F, 1.0F};
+    reflection.regions[1] = {3.1F, 3.0F, 0.85F, 0.65F};
+    reflection.regionCount = 2;
+    return reflection;
+  }
+  void CourtyardReflectionGeometry() {
+    using Nexora::Presentation::SceneReflectionRole;
+    const auto reflection = CourtyardReflectionSettings();
+    const auto materialCount = materials.size();
+    materials[0].reflectionRole = materials[8].reflectionRole = SceneReflectionRole::Receiver;
+    for (std::size_t i = 0; i < materialCount; ++i) {
+      auto reflected = materials[i];
+      reflected.reflectionRole = SceneReflectionRole::ReflectedGeometry;
+      reflected.castsShadow = false;
+      materials.push_back(reflected);
+    }
+    // Reuse the original vertices with an affine mirror instance. The public instance
+    // upload already supplies the inverse-transpose normal rows and determinant sign.
+    instances = {{}, {}};
+    math::Matrix4 mirror;
+    mirror(1, 1) = -1;
+    mirror(1, 3) = 2 * reflection.planeHeight;
+    instances[1].model_transform = mirror.values;
+    const auto sourceBatches = batches;
+    for (const auto &batch : sourceBatches) {
+      // Bound reflection work to the focal device, vessels, foliage, pennants and sky.
+      // Distant ruins/terrain and the water surface never participate recursively.
+      if (batch.firstIndex + batch.indexCount > courtyardReflectionDeviceIndexEnd &&
+          batch.materialIndex != 3 && batch.materialIndex != 5 && batch.materialIndex != 6 &&
+          batch.materialIndex != 7 && batch.materialIndex != 11 && batch.materialIndex != 12 &&
+          batch.materialIndex != 15 && batch.materialIndex != 16 && batch.materialIndex != 17)
+        continue;
+      batches.push_back({batch.firstIndex, batch.indexCount, 1, 1,
+                         batch.materialIndex + static_cast<std::uint32_t>(materialCount)});
+    }
   }
   void CourtyardSplinters() {
 #if NEXORA_ASSET_PIPELINE_ENABLED
@@ -915,6 +956,7 @@ struct RoomSession::State final {
               {1.94F * std::cos(b), 2.9F + 1.94F * std::sin(b), 0.05F}, 0.04F);
       finish(1);
     }
+    courtyardReflectionDeviceIndexEnd = indices.size();
     // Individually bevelled paving continues beyond the foreground; original surface UVs
     // retain the sandstone detail rather than reusing a prop's gradient-palette coordinates.
     for (int z = -10; z <= 10; ++z)
@@ -1855,7 +1897,8 @@ void RoomSession::ReplayTour() {
     state_->courtyardSeconds = 0;
     state_->courtyardActive = false;
     state_->courtyardPbr = state_->courtyardIbl = state_->courtyardShadows = true;
-    state_->courtyardBloom = state_->courtyardStyled = state_->courtyardFocus = true;
+    state_->courtyardBloom = state_->courtyardStyled = state_->courtyardFocus =
+        state_->courtyardReflections = true;
     state_->courtyardWind = state_->courtyardTransmission = true;
     state_->courtyardExposure = 1;
     state_->courtyardShadowBias = 0.0008F;
@@ -1957,6 +2000,8 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
   }
   if (s.selected == "courtyard" && key == Key::J)
     s.courtyardFocus = !s.courtyardFocus;
+  if (s.selected == "courtyard" && key == Key::V)
+    s.courtyardReflections = !s.courtyardReflections;
   if (s.selected == "courtyard" && key == Key::K)
     s.courtyardBloom = !s.courtyardBloom;
   if (s.selected == "courtyard" && key == Key::F6) {
@@ -2086,7 +2131,7 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.animation.Play(s.animation.ActiveClip() == 1 ? 2 : 1, 0.5F);
     s.lastAction = "Animation clip blend / 0.5 s";
   }
-  if (key == Key::V) {
+  if (key == Key::V && s.selected != "courtyard") {
     s.video.Seek(s.clock);
     s.lastAction = "Video seek invalidated queue";
   }
@@ -2514,7 +2559,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   math::Vector3 eye{s.radius * std::sin(s.yaw) * std::cos(s.pitch), s.radius * std::sin(s.pitch),
                     s.radius * std::cos(s.yaw) * std::cos(s.pitch)};
   math::Vector3 target{s.selected == "courtyard" ? -0.85F : 0.0F,
-                       s.selected == "courtyard" ? 2.0F : 0.8F, 0};
+                       s.selected == "courtyard" ? 1.3F : 0.8F, 0};
   if (s.selected == "courtyard" && s.courtyardFreeCamera) {
     eye = s.freeEye;
     target = eye + math::Vector3{-std::sin(s.yaw) * std::cos(s.pitch), -std::sin(s.pitch),
@@ -2523,9 +2568,12 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   if (s.selected == "courtyard") {
     s.CourtyardSplinters();
     s.CourtyardWaterfalls();
-    s.CourtyardWater();
+    if (!s.courtyardPbr || !s.courtyardReflections || s.courtyardQuality == 0)
+      s.CourtyardWater();
     s.CourtyardSkybox(eye);
     s.CourtyardParticles();
+    if (s.courtyardPbr && s.courtyardReflections && s.courtyardQuality != 0)
+      s.CourtyardReflectionGeometry();
   }
   const auto mvp = math::PerspectiveRadians(0.85F, height ? static_cast<float>(width) / height : 1,
                                             0.1F, s.selected == "courtyard" ? 300.0F : 100.0F) *
@@ -2549,6 +2597,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     data.hdr = data.pbr;
     data.exposure = s.courtyardExposure;
     data.offscreen = data.hdr;
+    if (data.hdr && s.courtyardReflections && s.courtyardQuality != 0)
+      data.planarReflection = s.CourtyardReflectionSettings();
     if (data.hdr && s.courtyardStyled)
       data.colorGrade = Nexora::Presentation::SceneColorGrade{1.05F, 1.05F};
     if (data.hdr && s.courtyardBloom && s.courtyardQuality != 0)
@@ -2632,7 +2682,8 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     if (s.courtyardCompare) {
       s.Rect(18, 531, 900, 100, 0xde241a10);
       s.Text(30, 544, "P Materials / O Environment / F6 Shadows", 0xffe9ded4, 1.4F);
-      s.Text(30, 573, "J Focus / K Glow / G Color / N Wind / M Backlight", 0xffe9ded4, 1.4F);
+      s.Text(30, 573, "J Focus / V Reflection / K Glow / G Color / N Wind / M Backlight",
+             0xffe9ded4, 1.4F);
       s.Text(30, 602, "Q Quality / Pause for comparisons / R Replay / F1-F3 Details", 0xffefdc80,
              1.2F);
     }
@@ -2802,6 +2853,8 @@ std::string RoomSession::Report() const {
       << (s.courtyardPbr && s.courtyardShadows ? (512U << s.courtyardQuality) : 0)
       << ",\"depth_of_field_enabled\":"
       << (s.courtyardPbr && s.courtyardFocus && s.courtyardQuality != 0)
+      << ",\"planar_reflection_enabled\":"
+      << (s.courtyardPbr && s.courtyardReflections && s.courtyardQuality != 0)
       << ",\"bloom_enabled\":" << (s.courtyardPbr && s.courtyardBloom && s.courtyardQuality != 0)
       << ",\"shadows_enabled\":" << (s.courtyardPbr && s.courtyardShadows)
       << ",\"stylized_enabled\":" << (s.courtyardPbr && s.courtyardStyled)

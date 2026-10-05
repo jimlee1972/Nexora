@@ -1,6 +1,7 @@
 #include "Nexora/Presentation/Surface.h"
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
+#include "PbrReflectionFixtures.h"
 #include "PbrShadowFixtures.h"
 #include "PbrVegetationFixtures.h"
 #if defined(_WIN32)
@@ -206,11 +207,12 @@ int main(int argc, char **argv) {
                                               std::byte{255}, std::byte{255}};
     const UiTextureUpload filterUpload{38, 2, 1, 8, blackWhite};
     unsigned width = 640, height = 480;
-    Rgb uiBaseline{};
+    Rgb uiBaseline{}, reflectedReference{};
     std::uint64_t windReference{}, windMoved{};
-    for (unsigned frame = 0; frame < 45; ++frame) {
+    for (unsigned frame = 0; frame < 49; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
+      PbrReflectionFixtures::Fixture reflectionFixture(frame >= 45 ? frame - 45 : 0);
       PbrVegetationFixtures::Fixture vegetationFixture(frame >= 34 ? frame - 34 : 0);
       materials = {};
       draw.shadow.reset();
@@ -325,9 +327,14 @@ int main(int argc, char **argv) {
         materials = vegetationFixture.geometry.materials;
         draw.materials = materials;
       }
-      if (frame >= 43) {
+      if (frame >= 43 && frame < 45) {
         draw = bloomFixture.Draw(frame == 44 ? 4 : 0);
         materials = bloomFixture.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 45) {
+        draw = reflectionFixture.Draw(frame - 45);
+        materials = reflectionFixture.materials;
         draw.materials = materials;
       }
       materials[2].emission = {marker, 0, 0};
@@ -481,7 +488,13 @@ int main(int argc, char **argv) {
         const auto pixels = Read(display, native, width, height, {}, &region);
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 43) {
+        if (frame >= 45) {
+          valid = PbrReflectionFixtures::Pixels(frame - 45, left, right);
+          if (valid && frame == 46)
+            reflectedReference = left;
+          if (frame == 48)
+            valid = valid && left == reflectedReference;
+        } else if (frame >= 43) {
           valid = PbrBloomFixtures::Pixels(frame == 44 ? 4 : 0, pixels[5], pixels[6]);
           for (std::size_t channel = 0; channel < 3; ++channel)
             valid = valid && std::abs(static_cast<int>(pixels[3][channel]) -
@@ -577,18 +590,20 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, argv[1]));
       if (argc == 2 && frame >= 30) {
         auto capture = std::filesystem::path(argv[1]);
-        capture.replace_filename((frame >= 43  ? "depth-of-field-"
-                                  : frame < 34 ? "bloom-"
-                                               : "vegetation-") +
-                                 std::to_string(frame >= 43  ? frame - 43
-                                                : frame < 34 ? frame - 30
-                                                             : frame - 34) +
+        capture.replace_filename((frame >= 45   ? "planar-reflection-"
+                                  : frame >= 43 ? "depth-of-field-"
+                                  : frame < 34  ? "bloom-"
+                                                : "vegetation-") +
+                                 std::to_string(frame >= 45   ? frame - 45
+                                                : frame >= 43 ? frame - 43
+                                                : frame < 34  ? frame - 30
+                                                              : frame - 34) +
                                  ".ppm");
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 45 &&
-                surface->Diagnostics().sceneComposites == 35 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 49 &&
+                surface->Diagnostics().sceneComposites == 39 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
@@ -607,7 +622,7 @@ int main(int argc, char **argv) {
            "reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws "
            "and resize pixels; directional shadow movement, XY projection, PCF edge, map reuse, "
            "shadow disable, stylized tint and thresholded HDR bloom, depth-aware focus and UI "
-           "invariance, alpha "
+           "invariance, bounded planar mirrors with source movement and restoration, alpha "
            "cutout/shadow agreement, GPU wind/replay and leaf transmission\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

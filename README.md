@@ -968,3 +968,10 @@ Nexora 採用 [MIT License](LICENSE) 發布。
 Visual art refinement continues with retained sandstone/ivy authoring, foreground paving,
 chamfered ring geometry, wind-bent pennants and decorated ceramics (Linux development 97/97).
 Reference parity and physical target performance remain open; VIS acceptance stays 5/7.
+
+
+Planar water reflection refinement adds shared HDR mirror instances and a V comparison in the
+courtyard. Native Vulkan fixtures verify reflected source movement and exact restoration; final
+reference art and physical target acceptance remain open (VIS 5/7).
+水平水面倒影已加入共享 HDR mirror instance 與庭院 V 比較；Vulkan 原生測試驗證物件移動及還原。
+預覽圖一致性與目標實機驗收仍待完成，VIS 維持 5/7。

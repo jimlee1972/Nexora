@@ -27,6 +27,9 @@ struct MaterialConstants
   float4 ramp; // offset, scale, softness
   float4 vegetation; // time, wind amplitude, alpha cutoff, transmission thickness
   float4 transmission; // linear RGB, unlit flag
+  float4 reflection; // horizontal height, role, Fresnel F0, ellipse count
+  float4 reflectionRegion0; // center x/z, radius x/z
+  float4 reflectionRegion1;
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
 [[vk::binding(0, 0)]] Sampler2D<float4> baseMap : register(t0);
@@ -79,9 +82,13 @@ VertexOutput pbrVertexMain(VertexInput input)
   VertexOutput output;
   float4 p = float4(input.position, 1.0);
   output.worldPosition = float3(dot(input.model0, p), dot(input.model1, p), dot(input.model2, p));
+  bool reflected = material.reflection.y > 1.5;
+  // Wind is evaluated at the original position before the deformed result is reflected.
+  if (reflected) output.worldPosition.y = 2 * material.reflection.x - output.worldPosition.y;
   if (material.vegetation.y > 0)
     output.worldPosition += NexoraEvaluateVegetationWind(output.worldPosition, float3(1,0,0.35),
         material.vegetation.x, 1-saturate(input.uv.y), 1, 0.37) * material.vegetation.y;
+  if (reflected) output.worldPosition.y = 2 * material.reflection.x - output.worldPosition.y;
   output.position = mul(scene.mvp, float4(output.worldPosition, 1.0));
 #ifdef NEXORA_VULKAN
   output.position.y = -output.position.y;
@@ -98,6 +105,11 @@ VertexOutput pbrVertexMain(VertexInput input)
   t = geometryDirection(t - output.normal * dot(output.normal, t));
   float handedness = input.normal0.w; // Exact CPU determinant sign, also for cancelling affine matrices.
   output.tangent = float4(t, input.tangent.w * handedness);
+  if (reflected) {
+    output.normal.y = -output.normal.y;
+    output.tangent.y = -output.tangent.y;
+    output.tangent.w = -output.tangent.w;
+  }
   output.uv = input.uv;
   output.color = input.color;
   return output;
@@ -136,14 +148,41 @@ float4 outputSceneColor(float3 color, float3 worldPosition)
     color = NexoraLinearToSrgb(color);
   return float4(color, 1);
 }
+bool inReflectionRegion(float2 point, float4 region) {
+  float2 offset = (point - region.xy) / max(region.zw, float2(0.00001));
+  return dot(offset, offset) <= 1;
+}
+bool reflectionMask(float3 renderedPosition) {
+  float3 ray = renderedPosition - material.cameraPosition.xyz;
+  if (abs(ray.y) < 0.00001) return false;
+  float distance = (material.reflection.x - material.cameraPosition.y) / ray.y;
+  if (distance < 0 || distance > 1) return false;
+  float2 point = material.cameraPosition.xz + ray.xz * distance;
+  return inReflectionRegion(point, material.reflectionRegion0) ||
+      (material.reflection.w > 1.5 && inReflectionRegion(point, material.reflectionRegion1));
+}
+float3 reflectionResponse(float3 color, float3 renderedPosition) {
+  if (material.reflection.y < 1.5) return color;
+  float3 ray = geometryDirection(material.cameraPosition.xyz - renderedPosition);
+  float fresnel = material.reflection.z + (1-material.reflection.z) * pow(1-abs(ray.y), 5);
+  return color * fresnel + float3(0.025, 0.03, 0.025) * (1-fresnel);
+}
 [shader("fragment")]
 float4 pbrFragmentMain(VertexOutput input) : SV_Target
 {
+  float3 renderedPosition = input.worldPosition;
+  bool reflected = material.reflection.y > 1.5;
+  if (reflected) {
+    if (renderedPosition.y >= material.reflection.x || !reflectionMask(renderedPosition)) discard;
+    input.worldPosition.y = 2 * material.reflection.x - input.worldPosition.y;
+  } else if (material.reflection.y > 0.5 &&
+      input.worldPosition.y < material.reflection.x && reflectionMask(renderedPosition)) discard;
   float4 baseSample = baseMap.Sample(input.uv);
   if (material.vegetation.z > 0 &&
       NexoraEvaluateVegetationAlpha(baseSample.a, material.vegetation.z) == 0) discard;
   if (material.transmission.w > 0.5)
-    return outputSceneColor(emissionMap.Sample(input.uv).rgb * material.emissionRoughness.xyz, input.worldPosition);
+    return outputSceneColor(reflectionResponse(
+        emissionMap.Sample(input.uv).rgb * material.emissionRoughness.xyz, renderedPosition), renderedPosition);
   float3 n = NexoraSafeNormalize(input.normal);
   float3 t = NexoraSafeNormalize(input.tangent.xyz - n * dot(n, input.tangent.xyz));
   float3 b = NexoraSafeNormalize(cross(n, t)) * input.tangent.w;
@@ -163,7 +202,9 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   environment.diffuseIrradiance = float3(0, 0, 0);
   environment.prefilteredSpecular = float3(0, 0, 0);
   environment.brdfLut = float2(0, 0);
-  float3 viewDirection = geometryDirection(material.cameraPosition.xyz - input.worldPosition);
+  float3 shadingEye = material.cameraPosition.xyz;
+  if (reflected) shadingEye.y = 2 * material.reflection.x - shadingEye.y;
+  float3 viewDirection = geometryDirection(shadingEye - input.worldPosition);
   if (material.environment.x > 0) {
     float3 n = geometryDirection(surface.normal);
     float roughness = saturate(surface.roughness);
@@ -191,5 +232,5 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   float3 transmitted = NexoraEvaluateVegetationTransmission(surface.normal, light,
       material.transmission.rgb * scene.lightColor.rgb, material.vegetation.w, 1-visibility);
   float3 color = direct * visibility + ambient + transmitted + max(surface.emission, float3(0));
-  return outputSceneColor(color, input.worldPosition);
+  return outputSceneColor(reflectionResponse(color, renderedPosition), renderedPosition);
 }

@@ -29,6 +29,30 @@ namespace Nexora::Presentation {
     return false;
   if (!std::isfinite(draw.vegetationTime) || draw.vegetationTime < 0 || draw.vegetationTime > 3600)
     return false;
+  if (draw.planarReflection) {
+    const auto &reflection = *draw.planarReflection;
+    if (!draw.hdr || !std::isfinite(reflection.planeHeight) ||
+        std::abs(reflection.planeHeight) > 10000 || !std::isfinite(reflection.reflectance) ||
+        reflection.reflectance < 0 || reflection.reflectance > 1 || reflection.regionCount < 1 ||
+        reflection.regionCount > reflection.regions.size() ||
+        !std::isfinite(draw.cameraPosition[1]) ||
+        draw.cameraPosition[1] <= reflection.planeHeight + 0.0001F)
+      return false;
+    for (std::size_t i = 0; i < reflection.regions.size(); ++i) {
+      const auto &region = reflection.regions[i];
+      for (const float value : {region.centerX, region.centerZ, region.radiusX, region.radiusZ})
+        if (!std::isfinite(value) || std::abs(value) > 10000)
+          return false;
+      if (region.radiusX <= 0 || region.radiusZ <= 0)
+        return false;
+    }
+  }
+  for (const auto &material : draw.materials)
+    if (material.reflectionRole != SceneReflectionRole::None &&
+        (!draw.planarReflection ||
+         (material.reflectionRole == SceneReflectionRole::ReflectedGeometry &&
+          material.castsShadow)))
+      return false;
   if (!draw.pbr)
     for (const auto &material : draw.materials)
       if (material.alphaCutoff || material.windAmplitude || material.transmissionThickness ||
@@ -156,10 +180,10 @@ template <typename Lookup>
          resolveLevels(draw.environment->brdfTextureId) == 1;
 }
 
-// Matches MaterialConstants in scene_pbr.slang: fifteen float4s, independent of native UBO
+// Matches MaterialConstants in scene_pbr.slang: eighteen float4s, independent of native UBO
 // alignment.
-using PbrMaterialUpload = std::array<float, 60>;
-static_assert(sizeof(PbrMaterialUpload) == 240);
+using PbrMaterialUpload = std::array<float, 72>;
+static_assert(sizeof(PbrMaterialUpload) == 288);
 [[nodiscard]] inline PbrMaterialUpload PackPbrMaterial(const SceneDrawData &draw,
                                                        const SceneMaterial &material,
                                                        bool manualSrgbTransfer,
@@ -205,6 +229,18 @@ static_assert(sizeof(PbrMaterialUpload) == 240);
   std::copy(material.transmissionColor.begin(), material.transmissionColor.end(),
             parameters.begin() + 56);
   parameters[59] = material.unlit ? 1.0F : 0.0F;
+  if (draw.planarReflection) {
+    const auto &reflection = *draw.planarReflection;
+    parameters[60] = reflection.planeHeight;
+    parameters[61] = static_cast<float>(material.reflectionRole);
+    parameters[62] = reflection.reflectance;
+    parameters[63] = static_cast<float>(reflection.regionCount);
+    for (std::size_t i = 0; i < reflection.regions.size(); ++i) {
+      const auto &region = reflection.regions[i];
+      const std::array packed{region.centerX, region.centerZ, region.radiusX, region.radiusZ};
+      std::copy(packed.begin(), packed.end(), parameters.begin() + 64 + i * 4);
+    }
+  }
   return parameters;
 }
 } // namespace Nexora::Presentation

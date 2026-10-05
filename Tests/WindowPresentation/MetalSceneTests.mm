@@ -4,6 +4,7 @@
 #include "../../Engine/Presentation/src/MetalSurface.mm"
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
+#include "PbrReflectionFixtures.h"
 #include "PbrShadowFixtures.h"
 #include "PbrVegetationFixtures.h"
 #import <Cocoa/Cocoa.h>
@@ -488,6 +489,32 @@ int main(int argc, char **argv) {
                                        std::to_integer<unsigned>(pixels[index])};
       };
       if (!PbrBloomFixtures::Pixels(mode, read(640 * 58 / 100, 180), read(320, 180)))
+        return fail(__LINE__);
+    }
+    std::array<unsigned, 3> reflectedReference{};
+    for (unsigned mode = 0; mode < 4; ++mode) {
+      PbrReflectionFixtures::Fixture fixture(mode);
+      auto reflectionDraw = fixture.Draw(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(reflectionDraw), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto left = read(160);
+      if (!PbrReflectionFixtures::Pixels(mode, left, read(480)))
+        return fail(__LINE__);
+      if (mode == 1)
+        reflectedReference = left;
+      if (mode == 3 && left != reflectedReference)
         return fail(__LINE__);
     }
     // Depth must select the bright near triangle regardless of index order.

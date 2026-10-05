@@ -125,6 +125,41 @@ void Run() {
   Require(!ValidatePbrData(pbr), "non-HDR focus accepted");
   pbr.hdr = true;
   pbr.depthOfField.reset();
+  pbr.cameraPosition = {0, 2, 4};
+  pbr.planarReflection = ScenePlanarReflection{};
+  Require(ValidatePbrData(pbr), "valid bounded planar reflection rejected");
+  for (const auto count : {0U, 3U}) {
+    pbr.planarReflection->regionCount = count;
+    Require(!ValidatePbrData(pbr), "invalid mirror region count accepted");
+  }
+  pbr.planarReflection = ScenePlanarReflection{};
+  for (const float invalid : {0.0F, -1.0F, std::numeric_limits<float>::quiet_NaN()}) {
+    pbr.planarReflection->regions[0].radiusX = invalid;
+    Require(!ValidatePbrData(pbr), "invalid mirror radius accepted");
+  }
+  pbr.planarReflection = ScenePlanarReflection{};
+  pbr.planarReflection->reflectance = 1.1F;
+  Require(!ValidatePbrData(pbr), "unbounded mirror reflectance accepted");
+  pbr.planarReflection = ScenePlanarReflection{};
+  pbr.planarReflection->planeHeight = std::numeric_limits<float>::infinity();
+  Require(!ValidatePbrData(pbr), "nonfinite mirror plane accepted");
+  pbr.planarReflection = ScenePlanarReflection{};
+  pbr.cameraPosition[1] = 0;
+  Require(!ValidatePbrData(pbr), "camera on mirror plane accepted");
+  pbr.cameraPosition[1] = 2;
+  std::array<SceneMaterial, 1> reflectionMaterials{};
+  reflectionMaterials[0].reflectionRole = SceneReflectionRole::ReflectedGeometry;
+  pbr.materials = reflectionMaterials;
+  Require(!ValidatePbrData(pbr), "reflected shadow caster accepted");
+  reflectionMaterials[0].castsShadow = false;
+  Require(ValidatePbrData(pbr), "valid reflected material rejected");
+  const auto reflectionPacked = PackPbrMaterial(pbr, reflectionMaterials[0], false);
+  Require(reflectionPacked[60] == 0 && reflectionPacked[61] == 2 && reflectionPacked[62] == 0.04F &&
+              reflectionPacked[63] == 1 && reflectionPacked[66] == 1 && reflectionPacked[67] == 1,
+          "mirror material upload layout differs from shader constants");
+  pbr.planarReflection.reset();
+  Require(!ValidatePbrData(pbr), "mirror material without plane accepted");
+  pbr.materials = {};
   pbr.shadow = SceneDirectionalShadow{};
   Require(ValidatePbrData(pbr), "valid shadow rejected");
   pbr.shadow->resolution = 300;
