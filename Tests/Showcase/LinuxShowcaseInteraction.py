@@ -319,9 +319,13 @@ def main():
             tool('key','--window',window,'c')
             free_start=compared_screenshot(window,1280,720,output/'courtyard-free-camera.png',courtyard_wide,False)
             tool('keydown','--window',window,'w')
-            time.sleep(0.25)
-            tool('keyup','--window',window,'w')
-            compared_screenshot(window,1280,720,output/'courtyard-free-moved.png',free_start,False)
+            # Prove a presented movement frame before releasing a held key. A short
+            # timed press can begin and end between slow software-GPU submissions.
+            try:
+                compared_screenshot(window,1280,720,output/'courtyard-free-moved.png',free_start,False)
+            finally:
+                tool('keyup','--window',window,'w')
+            settled_screenshot(window,1280,720,output/'courtyard-free-moved.png',free_start)
             tool('key','--window',window,'r')
             compared_screenshot(window,1280,720,output/'courtyard-free-restored.png',courtyard_wide,True)
             tool('key','--window',window,'Return')
