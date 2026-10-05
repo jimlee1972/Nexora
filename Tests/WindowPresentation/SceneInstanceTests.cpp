@@ -2,6 +2,7 @@
 #include "PbrEnvironmentFixtures.h"
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
+#include "SceneTextureMipmaps.h"
 
 #include <array>
 #include <cmath>
@@ -194,6 +195,35 @@ void Run() {
   Require(translucentPacked[72] == 0.5F && translucentPacked[73] == 0.2F &&
               translucentPacked[74] == 0.4F && translucentPacked[75] == 0.6F,
           "transparency upload layout differs from shader constants");
+  const std::array<std::byte, 8> mipChecker{std::byte{0},   std::byte{0},   std::byte{0},
+                                            std::byte{255}, std::byte{255}, std::byte{255},
+                                            std::byte{255}, std::byte{255}};
+  const UiTextureUpload mipSource{930, 2, 1, 8, mipChecker};
+  const auto colorMips = BuildSceneTextureMipmaps(mipSource, SceneMipSemantic::Srgb);
+  const auto linearMips = BuildSceneTextureMipmaps(mipSource, SceneMipSemantic::Linear);
+  Require(colorMips.levels == 2 && colorMips.bytes.size() == 12 &&
+              colorMips.bytes[8] == std::byte{188} && colorMips.bytes[11] == std::byte{255} &&
+              linearMips.bytes[8] == std::byte{128},
+          "mip filtering did not preserve linear color/data");
+  const std::array<std::byte, 8> mipNormals{std::byte{255}, std::byte{128}, std::byte{255},
+                                            std::byte{255}, std::byte{0},   std::byte{128},
+                                            std::byte{255}, std::byte{255}};
+  const auto normalMips =
+      BuildSceneTextureMipmaps({931, 2, 1, 8, mipNormals}, SceneMipSemantic::Normal);
+  Require(normalMips.bytes[8] == std::byte{128} && normalMips.bytes[9] == std::byte{128} &&
+              normalMips.bytes[10] == std::byte{255},
+          "normal mip filtering did not renormalize vectors");
+  reflectionMaterials[0].textureId = 930;
+  Require(ResolveSceneMipSemantic(pbr, 930) == SceneMipSemantic::Srgb,
+          "opaque color mip role lost");
+  reflectionMaterials[0].alphaCutoff = 0.5F;
+  Require(ResolveSceneMipSemantic(pbr, 930) == SceneMipSemantic::None,
+          "cutout atlas was mip filtered");
+  reflectionMaterials[0].alphaCutoff = 0;
+  reflectionMaterials[0].normalTextureId = 930;
+  Require(ResolveSceneMipSemantic(pbr, 930) == SceneMipSemantic::None,
+          "ambiguous mip role accepted");
+  reflectionMaterials[0].normalTextureId = reflectionMaterials[0].textureId = 0;
   reflectionMaterials[0].refractionIndex = 1.5F;
   reflectionMaterials[0].refractionThickness = 0.7F;
   Require(ValidateSceneMaterials(reflectionMaterials, {}) && ValidatePbrData(pbr) &&

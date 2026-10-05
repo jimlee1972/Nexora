@@ -2,6 +2,7 @@
 #include "PbrAtmosphereFixtures.h"
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
+#include "PbrMipFixtures.h"
 #include "PbrReflectionFixtures.h"
 #include "PbrRefractionFixtures.h"
 #include "PbrShadowFixtures.h"
@@ -215,9 +216,9 @@ int main(int argc, char **argv) {
     unsigned width = 640, height = 480;
     Rgb uiBaseline{}, reflectedReference{}, blendedReference{}, mappedReference{}, fogReference{},
         flatNormalLeft{}, flatNormalRight{}, tiltedNormalLeft{}, tiltedNormalRight{},
-        refractedLeft{}, refractedRight{};
+        refractedLeft{}, refractedRight{}, mipLeft{}, mipRight{};
     std::uint64_t windReference{}, windMoved{};
-    for (unsigned frame = 0; frame < 75; ++frame) {
+    for (unsigned frame = 0; frame < 77; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
       PbrReflectionFixtures::Fixture reflectionFixture(frame >= 45 ? frame - 45 : 0);
@@ -227,6 +228,7 @@ int main(int argc, char **argv) {
       PbrAtmosphereFixtures::Fixture atmosphereFixture(frame >= 59 ? frame - 59 : 0);
       PbrWorldNormalFixtures::Fixture worldNormalFixture(frame >= 65 ? frame - 65 : 0);
       PbrRefractionFixtures::Fixture refractionFixture(frame >= 69 ? frame - 69 : 0);
+      PbrMipFixtures::Fixture mipFixture(frame >= 75 ? frame - 75 : 0);
       materials = {};
       draw.shadow.reset();
       draw.lightingStyle.reset();
@@ -373,6 +375,11 @@ int main(int argc, char **argv) {
       if (frame >= 69) {
         draw = refractionFixture.Draw();
         materials = refractionFixture.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 75) {
+        draw = mipFixture.Draw();
+        materials = mipFixture.geometry.geometry.materials;
         draw.materials = materials;
       }
       materials[2].emission = {marker, 0, 0};
@@ -526,7 +533,18 @@ int main(int argc, char **argv) {
         const auto pixels = Read(display, native, width, height, {}, &region);
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 69) {
+        if (frame >= 75) {
+          valid = PbrMipFixtures::Pixels(left, right);
+          if (valid && frame == 75) {
+            mipLeft = left;
+            mipRight = right;
+          }
+          if (frame == 76)
+            for (unsigned c = 0; c < 3; ++c)
+              valid = valid &&
+                      std::abs(static_cast<int>(left[c]) - static_cast<int>(mipLeft[c])) <= 2 &&
+                      std::abs(static_cast<int>(right[c]) - static_cast<int>(mipRight[c])) <= 2;
+        } else if (frame >= 69) {
           valid = PbrRefractionFixtures::Pixels(frame - 69, pixels[7], pixels[8]);
           if (valid && frame == 70) {
             refractedLeft = pixels[7];
@@ -674,7 +692,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, argv[1]));
       if (argc == 2 && frame >= 30) {
         auto capture = std::filesystem::path(argv[1]);
-        capture.replace_filename((frame >= 69   ? "refraction-"
+        capture.replace_filename((frame >= 75   ? "mip-filter-"
+                                  : frame >= 69 ? "refraction-"
                                   : frame >= 65 ? "world-normal-"
                                   : frame >= 59 ? "atmosphere-"
                                   : frame >= 55 ? "world-mapping-"
@@ -683,7 +702,8 @@ int main(int argc, char **argv) {
                                   : frame >= 43 ? "depth-of-field-"
                                   : frame < 34  ? "bloom-"
                                                 : "vegetation-") +
-                                 std::to_string(frame >= 69   ? frame - 69
+                                 std::to_string(frame >= 75   ? frame - 75
+                                                : frame >= 69 ? frame - 69
                                                 : frame >= 65 ? frame - 65
                                                 : frame >= 59 ? frame - 59
                                                 : frame >= 55 ? frame - 55
@@ -696,8 +716,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 75 &&
-                surface->Diagnostics().sceneComposites == 65 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 77 &&
+                surface->Diagnostics().sceneComposites == 67 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
@@ -717,7 +737,8 @@ int main(int argc, char **argv) {
            "and resize pixels; directional shadow movement, XY projection, PCF edge, map reuse, "
            "shadow disable, stylized tint and thresholded HDR bloom, depth-aware focus and UI "
            "invariance, linear HDR translucent/tinted blending, bounded planar mirrors with source "
-           "movement and restoration, bounded opaque-HDR refraction, world-projected maps/normals, "
+           "movement and restoration, bounded opaque-HDR refraction, color-correct mip "
+           "minification, world-projected maps/normals, "
            "linear HDR atmosphere and "
            "unlit "
            "exclusion, alpha "

@@ -443,3 +443,13 @@ Vulkan 折射現以 Khronos 同步驗證檢查：swapchain acquire 與 HDR 複�
 framebuffer 相容性。75 個原生 PBR 畫面已通過 core／synchronization validation，
 完整 Linux configure／build／test 已在 validation layers 啟用時通過 97/97（95.08 秒）；
 發行重新驗證待完成。
+
+### 色彩正確的石材 mip 過濾
+
+有光照的場景貼圖 generation 現產生有界的原生 mip chain：sRGB 色彩在線性光照平均，
+ORM 資料線性平均，法線向量平均後重新正規化。Cutout 遮罩、unlit atlas、混合語意與
+UI 保留單層。Vulkan／DX12／Metal 以既有 generation 生命週期上傳相同的私有 CPU chain，
+減少遠處石材 aliasing；沒有修改來源美術、pass、常數 packet 或 C／Zig ABI。
+CPU 語意檢查與兩個原生棋盤／灰階縮小案例涵蓋過濾（共 77 個 PBR 案例）。
+Linux 全套 97/97（96.26 秒）通過，包含原生效果重播與所有品質頂點預算。
+Shipping／預覽圖驗證持續進行；VIS 維持 5/7。

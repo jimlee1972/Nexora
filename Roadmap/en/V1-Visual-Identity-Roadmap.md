@@ -483,3 +483,14 @@ passes share color/depth read dependencies. This preserves pipeline/framebuffer 
 while loading opaque depth and color for the glass phase. Khronos core/synchronization validation
 passes all 75 native PBR frames. The full Linux configure/build/test rerun passes 97/97
 (95.08 seconds) with validation layers enabled. Release rerun remains pending.
+
+### Color-correct stone mip filtering
+
+Lit scene texture generations now build bounded native mip chains: linear-light sRGB colors,
+linear ORM data and normalized-vector normal maps. Cutout masks, unlit atlases, ambiguous
+roles and UI remain single-level. Vulkan/DX12/Metal upload the same private CPU chain into
+existing generation-owned textures, reducing distant stone aliasing without changing source
+assets, passes, constant packets or C/Zig ABI. CPU semantic checks and two native checker/gray
+minification cases cover the new filtering (77 PBR frames). Linux full validation passes 97/97
+(96.26 seconds), with native effect replay and all quality budgets. Shipping/reference validation
+remains open; VIS stays 5/7.
