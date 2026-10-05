@@ -357,6 +357,11 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   回到 Main 並在本次 session 保留原檔案。New／失敗操作保留先前選擇；獨立 metadata
   儲存失敗保留成功的場景儲存。Portable 及 Linux Xvfb 的重啟／編輯／儲存／fallback 驗證
   流程；additive tab 與完整 ED-M4 圖形驗收仍待完成。
+- ✅ Content Browser 場景開啟現支援雙擊、context Open scene、Open scene 按鈕及 focused Enter。
+  Owning 路徑沿用 deferred scene-file request 與 dirty Save／Discard／Cancel；UI widget 不執行
+  檔案 IO 或 World 替換。唯讀允許 Open；Play／modal／token gate 拒絕替換。真正 1×／2×
+  pointer／key 測試涵蓋 Unicode 路徑、單／雙擊、非場景／多選拒絕、dirty 決策及過期
+  request；additive scene tab 與完整 ED-M4 圖形驗收仍待完成。
 - ✅ Scene panel 現可透過按鈕及文字輸入欄位以外的 Ctrl+Z／Ctrl+Y／Ctrl+Shift+Z 執行
   Undo／Redo。Runtime 重播會還原穩定 ID、階層、transform 與 Camera／Light 元件；文件重播會
   還原名稱、選取與輸入的 Euler 圈數。新編輯會清除 Redo 分支；測試涵蓋重播及撤銷建立後的

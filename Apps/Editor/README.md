@@ -197,6 +197,11 @@ for the session while the application falls back to Main. A later metadata write
 undoing a successful scene save or blocking Save and Exit. Workspace recovery blocks recording.
 Additive scenes and complete ED-M2/
 ED-M4 graphical acceptance remain open.
+The Content panel opens a `.scene` by double-click, context Open scene, or its Open scene button/
+focused Enter for one selected scene. It uses the same deferred file request, dirty decision and
+managed-path/token validation as File Open, including read-only access. Play and modal gates block
+replacement. Non-scene and multiple selections do not activate; opening cancels Inspector drafts
+and scene gestures. No source IO or World replacement occurs while drawing Content widgets.
 The Scene panel exposes Undo (Ctrl+Z) and Redo (Ctrl+Y or Ctrl+Shift+Z) outside text inputs.
 Undoing entity creation removes stale node metadata and selection; Redo restores them with the
 stable entity ID. New scene edits discard the redo branch.

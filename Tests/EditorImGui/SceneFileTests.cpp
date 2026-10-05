@@ -24,6 +24,7 @@ struct Fixture final {
        std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   editor::ProjectWorkspace writer, reader;
   editor::ProjectWorkspace *active = &writer;
+  editor::ProjectContentSession *content = nullptr;
   runtime::World world;
   runtime::Id id = world.LoadScene("Scene files UI");
   editor::SceneDocument scene{world, id};
@@ -60,16 +61,19 @@ struct Fixture final {
   void Draw() {
     ui.SetSceneFileContext(files->Token(), files->CurrentPath(), files->SaveBlocked());
     ui.BeginFrame();
-    ui.DrawProductShell(shell, &scene, active, nullptr, nullptr, nullptr, nullptr, &play);
+    ui.DrawProductShell(shell, &scene, active, content, nullptr, nullptr, nullptr, &play);
     static_cast<void>(ui.EndFrame());
   }
   void Click(std::size_t control) {
     const auto point = Access::SceneFilePosition(ui, control);
     Require(point.has_value(), "Scene file control absent");
+    ClickAt(*point);
+  }
+  void ClickAt(std::array<float, 2> point) {
     Nexora::Window::WindowEvent pointer, button;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
-    pointer.value0 = static_cast<int>((*point)[0] * scale);
-    pointer.value1 = static_cast<int>((*point)[1] * scale);
+    pointer.value0 = static_cast<int>(point[0] * scale);
+    pointer.value1 = static_cast<int>(point[1] * scale);
     button.type = Nexora::Window::WindowEventType::PointerButton;
     button.value0 = 0;
     button.value1 = 1;
@@ -287,6 +291,109 @@ void RunGates(float dpi) {
   Require(f.files->SaveAs(request.token, request.path).Applied() && !f.scene.Dirty(),
           "Save and Exit retry did not save successfully");
 }
+void RunContentScene(float dpi) {
+  Fixture f(dpi);
+  editor::AssetWorkspace assets;
+  editor::ProjectContentSession content;
+  const auto target = std::filesystem::path(u8"Content/場景.scene");
+  Require(f.scene.CreateLight("Target light") && f.scene.Save(f.root / target) &&
+              f.files->Open(f.files->Token(), "Content/Original.scene").Applied() &&
+              assets.ImportTree(f.root / "Content", {}, {},
+                                editor::AssetIdentityMode::PersistentReadWrite) &&
+              content.Open(f.writer, assets, 1, true),
+          "Content scene fixture failed");
+  runtime::AssetUuid asset;
+  for (const auto &item : content.Browser().Items())
+    if (item.path == target)
+      asset = item.id;
+  Require(asset != runtime::AssetUuid{} && content.Browser().Select(asset), "Scene asset missing");
+  f.content = &content;
+  Access::FocusContent(f.ui);
+  f.Draw();
+  f.Draw();
+  const auto open = [&] {
+    const auto point = Access::ContentOpenScenePosition(f.ui);
+    Require(point.has_value(), "Content Open control absent");
+    f.ClickAt(*point);
+  };
+  const auto original = f.world.SaveScene(f.id);
+  const runtime::AssetUuid text_asset{99, 1};
+  Require(content.Browser().Discover({text_asset, "Content/Readme.txt", ".txt", "text", {}, {}}) &&
+              content.Browser().Select(text_asset),
+          "Non-scene asset fixture failed");
+  f.Draw();
+  open();
+  f.Tap(Key::Enter);
+  Require(!f.ui.TakeSceneFileRequest(), "Non-scene selection emitted Open");
+  Require(content.Browser().Select(asset, true), "Multiple asset fixture failed");
+  f.Draw();
+  open();
+  Require(!f.ui.TakeSceneFileRequest(), "Multiple asset selection emitted Open");
+  Require(content.Browser().Select(asset), "Restore scene asset selection failed");
+  f.Draw();
+  open();
+  auto request = f.Take(Action::Open);
+  Require(request.path == target && !request.discard_unsaved && !request.save_current &&
+              f.world.SaveScene(f.id) == original && !Access::SceneFilePosition(f.ui, 4) &&
+              f.files->Open(request.token, request.path).Applied() && f.scene.Nodes().size() == 2,
+          "Content Open lost the Unicode path or bypassed deferred file loading");
+  f.Draw();
+  const auto row = Access::ContentAssetPosition(f.ui, asset);
+  const auto before_double_click = f.world.SaveScene(f.id);
+  Require(row.has_value(), "Scene content row absent");
+  f.ClickAt(*row);
+  Require(!f.ui.TakeSceneFileRequest(), "Single scene click opened a file");
+  f.ClickAt(*row);
+  request = f.Take(Action::Open);
+  Require(request.path == target && !request.discard_unsaved &&
+              f.world.SaveScene(f.id) == before_double_click,
+          "Double-click mutated the scene or lost its owning path");
+  // The application must reject a copied request after a new document boundary.
+  Require(f.files->New(f.files->Token(), true).Applied() &&
+              f.files->Open(request.token, request.path, true).status ==
+                  editor::SceneFileStatus::Rejected &&
+              f.files->Open(f.files->Token(), target, true).Applied(),
+          "Stale Content request replaced a new document");
+  f.Draw();
+  Require(f.scene.Create("Unsaved") != 0, "Dirty content scene fixture failed");
+  f.Draw();
+  open();
+  Require(!f.ui.TakeSceneFileRequest() && Access::SceneFilePosition(f.ui, 8),
+          "Content Open skipped the unsaved decision");
+  f.Click(6);
+  Require(f.scene.Dirty() && f.scene.Nodes().size() == 3 && !f.ui.TakeSceneFileRequest(),
+          "Cancel discarded content scene edits");
+  Access::FocusContent(f.ui);
+  f.Draw();
+  f.Tap(Key::Enter);
+  f.Click(8);
+  request = f.Take(Action::Open);
+  Require(request.path == target && request.discard_unsaved &&
+              f.files->Open(request.token, request.path, true).Applied() &&
+              f.scene.Nodes().size() == 2,
+          "Content Enter/Discard failed");
+  f.Draw();
+  Require(f.play.Start(1.0 / 60, [](runtime::World &, double) { return true; }),
+          "Content Play failed");
+  f.Draw();
+  open();
+  f.Tap(Key::Enter);
+  Require(!f.ui.TakeSceneFileRequest(), "Content scene replacement was allowed during Play");
+  Require(f.play.Stop(), "Content Play stop failed");
+  f.active = &f.reader;
+  f.files = std::make_unique<editor::SceneFileSession>(f.reader, f.scene);
+  Require(f.files->BindCurrent(target), "Read-only content bind failed");
+  f.Draw();
+  open();
+  request = f.Take(Action::Open);
+  Require(request.path == target && f.files->Open(request.token, request.path).Applied(),
+          "Read-only Content Open was blocked");
+  f.Draw();
+  f.ui.RequestCloseConfirmation();
+  f.Draw();
+  f.Tap(Key::Enter);
+  Require(!f.ui.TakeSceneFileRequest(), "Close modal allowed Content Open");
+}
 void RunUnicodeContent(float dpi) {
   Fixture f(dpi);
   const auto relative = std::filesystem::path(u8"Content/子資料夾/場景.scene");
@@ -322,6 +429,7 @@ int main() {
       Run(dpi);
       RunGates(dpi);
       RunUnicodeContent(dpi);
+      RunContentScene(dpi);
     }
     std::cout << "Scene file menu, shortcuts and modal lifecycle passed\n";
     return 0;

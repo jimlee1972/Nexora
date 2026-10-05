@@ -144,6 +144,7 @@ struct EditorImGuiHost::State final {
   bool game_was_running = false;
   std::optional<std::array<float, 2>> hierarchy_cut_position;
   std::optional<std::array<float, 2>> content_add_mesh_position;
+  std::optional<std::array<float, 2>> content_open_scene_position;
   std::string content_scene_error;
   std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>> content_asset_positions;
   std::optional<std::array<float, 2>> camera_align_position;
@@ -1784,6 +1785,24 @@ void BeginSceneFile(StateT &state, SceneDocument &scene, SceneFileAction action)
 }
 
 template <typename StateT>
+void BeginContentScene(StateT &state, SceneDocument &scene, const std::filesystem::path &path) {
+  if (state.scene_file_dialog != StateT::FileDialog::None || state.scene_file_output)
+    return;
+  CancelSceneGestures(state);
+  CancelInspectorDrafts(state);
+  ImGui::ClearActiveID();
+  state.hierarchy_rename_target.reset();
+  state.scene_file_intent = SceneFileRequest{SceneFileAction::Open, state.scene_file_token, path};
+  state.scene_file_save_before_switch = false;
+  if (!scene.Dirty()) {
+    EmitSceneFile(state);
+    return;
+  }
+  state.scene_file_dialog = StateT::FileDialog::Unsaved;
+  state.scene_file_popup_pending = true;
+}
+
+template <typename StateT>
 void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, bool cancel) {
   if (cancel || !scene || !state.scene_file_context ||
       state.scene_file_token.document_generation != scene->Generation() ||
@@ -2626,7 +2645,8 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
 
 template <typename StateT>
 void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImportQueue *imports,
-                        SceneDocument *scene, const MeshAssetCatalog *meshes, bool scene_editable) {
+                        SceneDocument *scene, const MeshAssetCatalog *meshes, bool scene_editable,
+                        bool scene_openable) {
   static_cast<void>(content.PollReimport());
   auto &browser = content.Browser();
   state.content_visible_items = 0;
@@ -2714,6 +2734,23 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   if (!state.content_scene_error.empty())
     ImGui::TextWrapped("%s", state.content_scene_error.c_str());
 
+  ImGui::SameLine();
+  const auto *selected_scene =
+      selected_assets.size() == 1 ? browser.Find(selected_assets.front()) : nullptr;
+  const bool selected_scene_file = selected_scene && selected_scene->type == ".scene" &&
+                                   selected_scene->path.extension() == ".scene";
+  ImGui::BeginDisabled(!scene_openable || !selected_scene_file);
+  if (ImGui::SmallButton("Open scene"))
+    BeginContentScene(state, *scene, selected_scene->path);
+  const auto open_min = ImGui::GetItemRectMin(), open_max = ImGui::GetItemRectMax();
+  state.content_open_scene_position =
+      std::array{(open_min.x + open_max.x) * 0.5F, (open_min.y + open_max.y) * 0.5F};
+  ImGui::EndDisabled();
+  if (scene_openable && selected_scene_file && !ImGui::GetIO().WantTextInput &&
+      ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+      ImGui::IsKeyPressed(ImGuiKey_Enter, false))
+    BeginContentScene(state, *scene, selected_scene->path);
+
   std::optional<runtime::AssetUuid> delete_asset;
   std::optional<runtime::AssetUuid> reimport_asset;
   bool open_rename = false;
@@ -2740,11 +2777,15 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     for (const auto *item : visible) {
       const auto label = std::string(ThumbnailLabel(item->thumbnail)) + " " +
                          PathLabel(item->path.filename()) + "##" + item->id.ToString();
-      if (ImGui::Selectable(label.c_str(), browser.IsSelected(item->id))) {
+      if (ImGui::Selectable(label.c_str(), browser.IsSelected(item->id),
+                            ImGuiSelectableFlags_AllowDoubleClick)) {
         if (ImGui::GetIO().KeyCtrl)
           static_cast<void>(browser.Toggle(item->id));
         else
           static_cast<void>(browser.Select(item->id));
+        if (scene_openable && item->type == ".scene" && item->path.extension() == ".scene" &&
+            ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+          BeginContentScene(state, *scene, item->path);
       }
       const auto asset_min = ImGui::GetItemRectMin(), asset_max = ImGui::GetItemRectMax();
       state.content_asset_positions.push_back(
@@ -2757,6 +2798,12 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         ImGui::EndDragDropSource();
       }
       if (ImGui::BeginPopupContextItem()) {
+        if (ImGui::MenuItem("Open scene", nullptr, false,
+                            scene_openable && item->type == ".scene" &&
+                                item->path.extension() == ".scene")) {
+          BeginContentScene(state, *scene, item->path);
+          ImGui::CloseCurrentPopup();
+        }
         if (ImGui::MenuItem("Rename", nullptr, false, content.Writable())) {
           state.content_rename.fill(0);
           const auto filename = PathLabel(item->path.filename());
@@ -3308,6 +3355,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->hierarchy_cut_position.reset();
   state_->hierarchy_rename_position.reset();
   state_->content_add_mesh_position.reset();
+  state_->content_open_scene_position.reset();
   state_->content_asset_positions.clear();
   state_->camera_align_position.reset();
   state_->play_inspector_rendered = 0;
@@ -4011,7 +4059,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
   ImGui::End();
   if (content != nullptr)
-    DrawContentBrowser(*state_, *content, imports, scene, meshes, scene_editable);
+    DrawContentBrowser(*state_, *content, imports, scene, meshes, scene_editable,
+                       file_context_valid && state_->app_focused && !game_running &&
+                           !interaction_blocked && !file_busy && !state_->content_rename_target);
   DrawProjectPanel(*state_, workspace, recent_projects);
   if (state_->focus_initial_scene) {
     auto *scene_window = ImGui::FindWindowByName(
@@ -4781,6 +4831,10 @@ void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentAddMeshPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->content_add_mesh_position;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentOpenScenePosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->content_open_scene_position;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentAssetPosition(const EditorImGuiHost &host,
