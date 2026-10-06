@@ -695,3 +695,22 @@ Vulkan diagonal-edge/constant-interior/restoration fixtures pass with core/sync 
 ✅ Full Linux configure/build and 97/97 tests pass (106.93 seconds); Shipping/Full
 packaging, isolated native F10 comparison/restoration and the actual 100-second animated
 tour pass. Evidence: `Apps/Showcase/evidence/VIS-HDR-Anti-Aliasing-Linux-2026-10-05`. VIS-M3 reference parity and VIS-M6 hardware acceptance remain open.
+
+Courtyard lighting/glass iteration: stronger authored IBL reveals leaf shadow detail; a
+closer, higher-aimed wide camera frames the device, and stone/core radiance is restrained.
+The crystal opts into thin dielectric Fresnel transmission using the existing bounded
+HDR snapshot. Its shared-clock rotation/hover, wind, bloom, skybox and local light remain
+active. ✅ Linux configure/build and 97/97 tests pass (104.97 seconds), including 97 native
+PBR frames with core/sync validation. Shipping/Full isolation, exact native comparison
+restoration and an actual 100-second animated movie pass. Evidence: `Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05`; reference parity and physical-target
+acceptance remain open (VIS 5/7).
+
+Native release diagnostic follow-up: failed headless/native subprocesses now print at
+most 8 KiB of stderr and the structured failure reason. Exit codes, timeouts and all
+acceptance checks are unchanged. ✅ Full Linux configure/build and 97/97 pass (103.21
+seconds); the frozen Shipping executable passes isolated native acceptance with the
+updated verifier. A controlled subprocess failure remains FAIL/exit 1 and prints its
+bounded reason. Follow-up evidence is in `VIS-Dielectric-Glass-Linux-2026-10-05/release-diagnostics/`;
+the recorded runtime/movie production freeze remains unchanged.
+
+✅ Dielectric/native interaction integration: Linux configure/build and full 97/97 tests passed (111.31 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 4933fbc passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.

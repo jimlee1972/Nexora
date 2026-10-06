@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
     std::array<unsigned, 3> pointLeft{}, pointRight{};
     unsigned aaBaseline = 0;
     std::uint64_t aaHash = 0;
-    for (unsigned frame = 0; frame < 93; ++frame) {
+    for (unsigned frame = 0; frame < 97; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
       PbrReflectionFixtures::Fixture reflectionFixture(frame >= 45 ? frame - 45 : 0);
@@ -235,7 +235,8 @@ int main(int argc, char **argv) {
       PbrWorldMappingFixtures::Fixture mappingFixture(frame >= 55 ? frame - 55 : 0);
       PbrAtmosphereFixtures::Fixture atmosphereFixture(frame >= 59 ? frame - 59 : 0);
       PbrWorldNormalFixtures::Fixture worldNormalFixture(frame >= 65 ? frame - 65 : 0);
-      PbrRefractionFixtures::Fixture refractionFixture(frame >= 77   ? frame - 71
+      PbrRefractionFixtures::Fixture refractionFixture(frame >= 93   ? frame - 85
+                                                       : frame >= 77 ? frame - 71
                                                        : frame >= 69 ? frame - 69
                                                                      : 0);
       PbrMipFixtures::Fixture mipFixture(frame >= 75 ? frame - 75 : 0);
@@ -415,6 +416,11 @@ int main(int argc, char **argv) {
         materials = aaFixture.materials;
         draw.materials = materials;
       }
+      if (frame >= 93) {
+        draw = refractionFixture.Draw();
+        materials = refractionFixture.materials;
+        draw.materials = materials;
+      }
       materials[2].emission = {marker, 0, 0};
       materials[2].roughness = 1;
       materials[2].metallic =
@@ -568,7 +574,13 @@ int main(int argc, char **argv) {
                                  frame >= 89 ? &intermediate : nullptr);
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 89) {
+        if (frame >= 93) {
+          valid = PbrRefractionFixtures::Pixels(frame - 85, pixels[7], pixels[8]);
+          if (frame == 93 && valid)
+            aaHash = region;
+          if (frame == 96)
+            valid = valid && region == aaHash;
+        } else if (frame >= 89) {
           if (frame == 89) {
             aaBaseline = intermediate;
             aaHash = region;
@@ -756,7 +768,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, argv[1]));
       if (argc == 2 && frame >= 30) {
         auto capture = std::filesystem::path(argv[1]);
-        capture.replace_filename((frame >= 89   ? "anti-alias-"
+        capture.replace_filename((frame >= 93   ? "dielectric-"
+                                  : frame >= 89 ? "anti-alias-"
                                   : frame >= 85 ? "two-sided-"
                                   : frame >= 79 ? "point-light-"
                                   : frame >= 77 ? "refraction-front-"
@@ -770,7 +783,8 @@ int main(int argc, char **argv) {
                                   : frame >= 43 ? "depth-of-field-"
                                   : frame < 34  ? "bloom-"
                                                 : "vegetation-") +
-                                 std::to_string(frame >= 89   ? frame - 89
+                                 std::to_string(frame >= 93   ? frame - 93
+                                                : frame >= 89 ? frame - 89
                                                 : frame >= 85 ? frame - 85
                                                 : frame >= 79 ? frame - 79
                                                 : frame >= 77 ? frame - 77
@@ -788,8 +802,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 93 &&
-                surface->Diagnostics().sceneComposites == 83 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 97 &&
+                surface->Diagnostics().sceneComposites == 87 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
@@ -815,7 +829,7 @@ int main(int argc, char **argv) {
            "unlit "
            "exclusion, alpha "
            "cutout/shadow agreement, GPU wind/replay, leaf transmission and bounded HDR "
-           "anti-aliasing/restoration\n";
+           "anti-aliasing/restoration and thin dielectric normal/grazing transmission\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
     return 1;

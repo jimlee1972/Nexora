@@ -589,7 +589,7 @@ struct RoomSession::State final {
     courtyardShot = shot % 3;
     constexpr std::array<float, 3> yaws{0.12F, -0.35F, 0.12F};
     constexpr std::array<float, 3> pitches{0.20F, 0.20F, 0.13F};
-    constexpr std::array<float, 3> radii{9.0F, 9.0F, 11.0F};
+    constexpr std::array<float, 3> radii{8.0F, 9.0F, 11.0F};
     yaw = yaws[courtyardShot];
     pitch = pitches[courtyardShot];
     radius = radii[courtyardShot];
@@ -2571,7 +2571,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   s.batches.clear();
   s.Cube(0, -0.3F, 0, 6, 0.3F, 6);
   if (s.selected == "courtyard") {
-    s.materials = {{{0.95F, 0.95F, 0.95F, 1}, 0},
+    s.materials = {{{0.65F, 0.65F, 0.65F, 1}, 0},
                    {{0.78F, 0.44F, 0.12F, 1}, 0},
                    {{0.08F, 0.8F, 0.95F, 1}, 0},
                    {{0.3F, 0.21F, 0.13F, 1}, 0},
@@ -2677,11 +2677,12 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       crystal.transmissionColor = {0.02F, 0.35F, 0.45F};
     }
     crystal.castsShadow = false;
-    crystal.opacity = s.courtyardPbr && s.courtyardTransparency ? 0.23F : 1.0F;
+    crystal.opacity = s.courtyardPbr && s.courtyardTransparency ? 0.95F : 1.0F;
     if (crystal.opacity < 1 && s.courtyardQuality > 0 && s.courtyardRefraction) {
       crystal.refractionIndex = 1.46F;
       crystal.refractionThickness = 0.65F;
       crystal.refractionFrontSurfaceOnly = true;
+      crystal.dielectricRefraction = true;
     }
     crystal.transparencyTint = {0.28F, 0.92F, 0.98F};
     crystal.metallic = 0.0F;
@@ -2715,13 +2716,14 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     ceramicPaint.baseColor = {0.12F, 0.25F, 0.29F, 1};
     s.materials.push_back(ceramicPaint);
     for (const auto radiance : {std::array{0.02F, 0.08F, 0.1F}, std::array{0.06F, 0.23F, 0.25F},
-                                std::array{0.4F, 1.4F, 1.6F}}) {
+                                std::array{0.1F, 0.4F, 0.45F}}) {
       auto interior = crystal;
       interior.opacity = 1;
       interior.transparencyTint = {1, 1, 1};
       interior.refractionIndex = 1;
       interior.refractionThickness = 0;
       interior.refractionFrontSurfaceOnly = false;
+      interior.dielectricRefraction = false;
       interior.transmissionThickness = 0;
       interior.baseColor = {0.04F, 0.25F, 0.28F, 1};
       interior.metallic = 0.35F;
@@ -2874,8 +2876,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   }
   math::Vector3 eye{s.radius * std::sin(s.yaw) * std::cos(s.pitch), s.radius * std::sin(s.pitch),
                     s.radius * std::cos(s.yaw) * std::cos(s.pitch)};
-  math::Vector3 target{s.selected == "courtyard" ? -1.65F : 0.0F,
-                       s.selected == "courtyard" ? 1.7F : 0.8F, 0};
+  math::Vector3 target{s.selected == "courtyard" ? -1.25F : 0.0F,
+                       s.selected == "courtyard" ? 2.15F : 0.8F, 0};
   if (s.selected == "courtyard" && s.courtyardFreeCamera) {
     eye = s.freeEye;
     target = eye + math::Vector3{-std::sin(s.yaw) * std::cos(s.pitch), -std::sin(s.pitch),
@@ -2978,7 +2980,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                               {4, 64, 32, 7, s.courtyardEnvironment[1]},
                               {5, 32, 32, 1, s.courtyardEnvironment[2]}};
       data.linearTextureUploads = s.linearSceneUploads;
-      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 1.1F, 0.0F, 7};
+      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 2.4F, 0.0F, 7};
     }
 #endif
     data.base_color[0] = 0.72F;
