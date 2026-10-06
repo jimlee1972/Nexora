@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux Development 完整 97/97 測試通過（112.34 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.84 秒）。製作凍結版本 `d5676eea058ecb999979120119f2ac36c6d5bad9`；證據：`Apps/Showcase/evidence/VIS-Background-Depth-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+背景場景持續修整：塔樓上層具有真正開口，共用頂點的連續山脊網格釋出 6,791 個頂點，並調整石材與遠景霧氣的層次。材質 AO 仍是統一控制，沒有新增空間接觸陰影。共同時鐘動畫、HDR 特色、紋理 ID 與原生 shader 契約不變；已整合並保留 main 的 Editor 變更。Linux configure/build 與完整 97/97 測試通過（112.34 秒，Khronos core/sync validation）；Shipping 驗證通過。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
 ✅ Linux Development 完整 97/97 測試通過（110.56 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.73 秒）。製作凍結版本 `5615a2d816db60f099792eb8abe2ba09585427c3`；證據：`Apps/Showcase/evidence/VIS-Arcade-Stones-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 拱廊幾何持續修整：四座側拱共用 20 個原創倒角楔形石塊，具有真實接縫；柱面浮雕也朝向庭院。曲面轉換維持正向三角形繞序與正確法線。Linux configure/build 與完整 97/97 測試通過（110.56 秒，Khronos core/sync validation）；Shipping 驗證通過。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。

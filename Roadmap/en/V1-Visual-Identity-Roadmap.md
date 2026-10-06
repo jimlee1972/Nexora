@@ -1,5 +1,9 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
+✅ Linux Development full 97/97 tests passed (112.34 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.84 s wall time). Production freeze `d5676eea058ecb999979120119f2ac36c6d5bad9`; evidence: `Apps/Showcase/evidence/VIS-Background-Depth-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+Background scenery iteration: genuine upper-story tower apertures, a welded continuous ridge grid with 6,791 freed vertices, and more readable stone/atmosphere depth. Material AO remains uniform; this does not add spatial contact shadows. Existing shared-clock animation, HDR features, texture IDs and native shader contracts remain stable. Accepted main Editor changes are preserved. Linux Development configure/build and full 97/97 tests passed (112.34 s, Khronos core/sync validation); Shipping verification passed. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
 ✅ Linux Development full 97/97 tests passed (110.56 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.73 s wall time). Production freeze `5615a2d816db60f099792eb8abe2ba09585427c3`; evidence: `Apps/Showcase/evidence/VIS-Arcade-Stones-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
 
 Arcade geometry follow-up: four side arches share 20 original jointed bevelled wedge meshes, and the columns carry courtyard-facing relief. The positive bend retains outward winding and correct normals. Linux Development configure/build and full 97/97 tests passed (110.56 s, Khronos core/sync validation); Shipping verification passed. VIS remains 5/7; reference parity and physical-display acceptance remain open.

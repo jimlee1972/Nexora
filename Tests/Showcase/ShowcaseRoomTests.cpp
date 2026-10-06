@@ -3,6 +3,8 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <map>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -192,6 +194,48 @@ int main() {
         assert(Nexora::Presentation::ValidateSceneInstance(wide.instances[i]));
     }
   assert(masonryCount > 100 && wide.instances.size() == 438 + masonryCount);
+
+  // The continuous ridge must have one shared outer boundary, not disconnected
+  // per-quad islands. Interior edges belong to exactly two triangles.
+  const auto ridge = std::find_if(wide.batches.begin(), wide.batches.end(), [](const auto &batch) {
+    return batch.materialIndex == 9 && batch.firstInstance == 0;
+  });
+  assert(ridge != wide.batches.end());
+  std::map<std::pair<std::uint16_t, std::uint16_t>, unsigned> ridgeEdges;
+  for (std::size_t triangle = ridge->firstIndex; triangle < ridge->firstIndex + ridge->indexCount;
+       triangle += 3)
+    for (unsigned edge = 0; edge < 3; ++edge) {
+      auto a = wide.indices[triangle + edge];
+      auto b = wide.indices[triangle + (edge + 1) % 3];
+      assert(a != b);
+      if (a > b)
+        std::swap(a, b);
+      ++ridgeEdges[{a, b}];
+    }
+  std::map<std::uint16_t, std::vector<std::uint16_t>> boundary;
+  for (const auto &[edge, count] : ridgeEdges) {
+    assert(count == 1 || count == 2);
+    if (count == 1) {
+      boundary[edge.first].push_back(edge.second);
+      boundary[edge.second].push_back(edge.first);
+    }
+  }
+  assert(!boundary.empty());
+  for (const auto &[vertex, neighbors] : boundary) {
+    static_cast<void>(vertex);
+    assert(neighbors.size() == 2);
+  }
+  std::set<std::uint16_t> visitedBoundary;
+  const auto start = boundary.begin()->first;
+  auto current = start, previous = start;
+  do {
+    assert(visitedBoundary.insert(current).second);
+    const auto &neighbors = boundary.at(current);
+    const auto next = neighbors[0] == previous ? neighbors[1] : neighbors[0];
+    previous = current;
+    current = next;
+  } while (current != start);
+  assert(visitedBoundary.size() == boundary.size());
 
   for (std::size_t i = 0; i < 7; ++i)
     assert(selectedMaterials[i]);

@@ -1,5 +1,9 @@
 # Nexora
 
+✅ Linux Development full 97/97 tests passed (112.34 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.84 s wall time). Production freeze `d5676eea058ecb999979120119f2ac36c6d5bad9`; evidence: `Apps/Showcase/evidence/VIS-Background-Depth-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+Courtyard background depth follow-up: upper tower stories have actual open apertures between instanced corner piers. The ridge shares its continuous grid vertices, freeing 6,791 native vertices without changing its authored extent or height function. Stone uses existing uniform material AO (foreground 0.45, background 0.5); lighter neutral background stone and reduced distant haze improve depth. Linux Development configure/build and full 97/97 tests passed (112.34 s, Khronos core/sync validation); Shipping verification passed. VIS remains 5/7; reference parity remains open.
+
 ✅ Linux Development full 97/97 tests passed (110.56 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.73 s wall time). Production freeze `5615a2d816db60f099792eb8abe2ba09585427c3`; evidence: `Apps/Showcase/evidence/VIS-Arcade-Stones-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
 
 Courtyard architecture follow-up: replace tube-shaped arcade spans with original jointed bevelled voussoirs, sharing 20 wedge meshes across four arches. Courtyard-facing column relief is visible from the wide composition. Normals use the positive bend inverse transpose; Linux Development configure/build and full 97/97 tests passed (110.56 s, Khronos core/sync validation); Shipping verification passed. VIS remains 5/7 and reference parity remains open.
