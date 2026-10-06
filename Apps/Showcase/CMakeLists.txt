@@ -208,6 +208,10 @@ if(BUILD_TESTING)
   target_include_directories(NexoraShowcasePerformanceTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
   nexora_apply_defaults(NexoraShowcasePerformanceTests)
   add_test(NAME showcase.performance_statistics COMMAND NexoraShowcasePerformanceTests)
+  add_test(NAME showcase.benchmark_evidence_policy
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tools/Package/TestBenchmarkShowcase.py")
+  add_test(NAME showcase.benchmark_evidence_policy_optimized
+    COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_SOURCE_DIR}/Tools/Package/TestBenchmarkShowcase.py")
   add_test(
     NAME showcase.v1_probe
     COMMAND NexoraShowcaseProbeTests)

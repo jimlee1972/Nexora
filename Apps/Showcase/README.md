@@ -1,5 +1,17 @@
 # Nexora Zig Showcase
 
+✅ Quality benchmark delivery: `Tools/Package/BenchmarkShowcase.py` provides sequential Basic/Standard/High measurements for a Shipping/Monolithic native DX12 or Vulkan executable. Each tier defaults to three 360-frame runs (60 warm-up, 300 measured), at the fixed wide camera with the activated device and animation paused at zero. It retains raw JSON, stdout/stderr, executable/report SHA-256 and a readable `benchmark.md`; it rejects fallback, VSync pacing, missing samples, scene drift, stale reports and mixed builds. Five evidence-policy tests pass locally and in native CI in normal and optimized Python; Build 1755 (source `2bfdee501726`) passes Linux 143/143, Windows 126/126, macOS 125/125, native Shipping acceptance and all nine full measurements. [Acceptance and immutable artifact](evidence/VIS-M6-Quality-Benchmark-CI-2026-10-07/acceptance.md). GPU timestamps, driver identity and display refresh are explicitly unavailable where unobserved. VIS remains 5/7.
+
+Linux software baseline (after building the Shipping/Full package):
+
+```bash
+python3 Tools/Package/BenchmarkShowcase.py \
+  build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase \
+  --backend vulkan --virtual-display --output work/quality-benchmark
+```
+
+On Windows, pass the packaged `bin/NexoraShowcase.exe`, `--backend dx12` or `--backend vulkan`, and an output directory; omit `--virtual-display`. Both backends need independent captures. The tool never grants physical-display or hardware-budget acceptance. Record GPU/driver/refresh metadata separately until the application can observe it. JSON and Markdown keep each repeat separate; percentile averages are not synthesized from per-run percentiles. The Build workflow retains a bounded three-quality branch smoke (one repeat, 60 warm-up + 100 samples each); release tags retain the full nine-run matrix beside isolated Shipping package evidence. Direct invocation keeps the full defaults. The initial nine-run software step took about 20 minutes, so branches avoid repeating that release workload.
+
 ✅ The visible HDR sun and key direction now align with the panorama at (-18, 4, -19.2); the left arcade and attached ivy move outward to clear the stone-column occlusion. Float diffuse/specular IBL is rebaked; BRDF LUT and original images remain unchanged. Full Linux 97/97 tests pass (121.07 s, core/sync validation), Shipping isolated native acceptance and a 100-second shared-clock movie pass (101.23 s wall time). Freeze `899958d93d53819bc169a1c04520e77b43a8774f`; evidence: `Apps/Showcase/evidence/VIS-Sunset-Alignment-Linux-2026-10-06/`. Standard remains 58,249 vertices, 135,378 indices, 387 batches and 44 materials; VIS stays 5/7.
 
 ✅ Nine original fallen sandstone blocks now frame the courtyard approach through three shared weathered profiles, keeping central device and puddle views open. Full Linux 97/97 tests pass (120.57 s, core/sync validation), Shipping isolated native acceptance and a 100-second shared-clock movie pass (100.99 s wall time). Freeze `d484e7e2d75cfaab539e020d30cdf3c2bbecdecd`; evidence: `Apps/Showcase/evidence/VIS-Foreground-Rubble-Linux-2026-10-06/`. Standard has 58,249 vertices, 135,378 indices, 387 batches and 44 materials. HDR, sky, wind, textures and clocks are preserved; VIS stays 5/7.
