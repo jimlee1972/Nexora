@@ -43,9 +43,10 @@ struct AssetImportQueue::Implementation final {
   };
 
   Implementation(core::JobSystem &job_system, std::size_t progress_limit,
-                 std::size_t diagnostic_limit)
+                 std::size_t diagnostic_limit, std::size_t operation_limit)
       : jobs(job_system), progress_capacity(std::max<std::size_t>(progress_limit, 1)),
-        diagnostic_capacity(std::max<std::size_t>(diagnostic_limit, 1)) {}
+        diagnostic_capacity(std::max<std::size_t>(diagnostic_limit, 1)),
+        operation_capacity(std::max<std::size_t>(operation_limit, 1)) {}
 
   void Progress(const std::shared_ptr<Operation> &operation, ImportStage stage,
                 std::size_t completed, std::size_t total) const {
@@ -106,6 +107,7 @@ struct AssetImportQueue::Implementation final {
   core::JobSystem &jobs;
   const std::size_t progress_capacity;
   const std::size_t diagnostic_capacity;
+  const std::size_t operation_capacity;
   mutable std::mutex mutex;
   std::unordered_map<ImportOperationId, std::shared_ptr<Operation>> operations;
   ImportOperationId next_operation{1};
@@ -114,8 +116,12 @@ struct AssetImportQueue::Implementation final {
 
 AssetImportQueue::AssetImportQueue(core::JobSystem &jobs, std::size_t progress_capacity,
                                    std::size_t diagnostic_capacity)
-    : implementation_(
-          std::make_unique<Implementation>(jobs, progress_capacity, diagnostic_capacity)) {}
+    : AssetImportQueue(jobs, progress_capacity, diagnostic_capacity, 64) {}
+
+AssetImportQueue::AssetImportQueue(core::JobSystem &jobs, std::size_t progress_capacity,
+                                   std::size_t diagnostic_capacity, std::size_t operation_capacity)
+    : implementation_(std::make_unique<Implementation>(jobs, progress_capacity, diagnostic_capacity,
+                                                       operation_capacity)) {}
 
 AssetImportQueue::~AssetImportQueue() { Shutdown(); }
 
@@ -134,6 +140,11 @@ ImportOperationId AssetImportQueue::Start(WorkspaceImportRequest request, std::s
     if (!implementation_->accepting) {
       if (error)
         *error = "asset import queue is shutting down";
+      return 0;
+    }
+    if (implementation_->operations.size() >= implementation_->operation_capacity) {
+      if (error)
+        *error = "asset import queue is full; consume a completed result before retrying";
       return 0;
     }
     operation->id = implementation_->next_operation++;
@@ -216,6 +227,11 @@ ImportOperationId AssetImportQueue::Start(ReimportJobRequest request, std::strin
     if (!implementation_->accepting) {
       if (error)
         *error = "asset import queue is shutting down";
+      return 0;
+    }
+    if (implementation_->operations.size() >= implementation_->operation_capacity) {
+      if (error)
+        *error = "asset import queue is full; consume a completed result before retrying";
       return 0;
     }
     operation->id = implementation_->next_operation++;

@@ -109,6 +109,13 @@ into renderer or platform internals.
 - `AssetImportQueue` owns generation-tagged workspace-import and reimport jobs submitted to an
   application-owned `JobSystem`. Its worker state retains bounded progress and diagnostic histories
   (stable code, severity, message, path, and asset context); overflow is counted explicitly.
+  Intake is also bounded to 64 retained operations by default. A four-argument constructor sets
+  a custom operation capacity (zero normalizes to one), preserving the existing constructor.
+  Queued, running, completed, failed and cancelled records all occupy a slot until `TakeResult`
+  consumes them; cancellation alone does not free capacity. A full queue returns operation zero
+  and a retryable error, without submitting a job or evicting another result. Admission and result
+  consumption share the existing queue mutex; Start/TakeResult/Shutdown remain authoring-thread
+  operations. This bounds retained operation count, not the total bytes of arbitrary project indexes.
   Workspace results and reimport artifacts remain staging data until the authoring thread calls
   `TakeResult` or `ProjectContentSession::PollReimport`. Reimport publication revalidates project
   generation, asset path, previous artifact, settings identity, source-file revision/size, and
