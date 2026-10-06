@@ -68,7 +68,7 @@ int main() {
   assert(!courtyard.Scene(1280, 720).postProcessAntiAliasing);
   Press(courtyard, Key::F10);
   assert(courtyard.Scene(1280, 720).postProcessAntiAliasing);
-  assert(wide.materials.size() == 42 && !wide.batches.empty());
+  assert(wide.materials.size() == 44 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   const auto sourceMaterialCount = wide.materials.size() / 2;
   std::size_t covered = 0;
@@ -79,6 +79,8 @@ int main() {
       assert(batch.instanceCount == 4);
     else if (batch.firstInstance >= 5 && batch.firstInstance < 437 && batch.materialIndex == 0)
       assert(batch.instanceCount > 1);
+    else if (batch.firstInstance >= 5 && batch.firstInstance < 437 && batch.materialIndex == 21)
+      assert(batch.instanceCount >= 1); // A wet subset may contain one original tile.
     else if (batch.firstInstance >= 437 && batch.materialIndex < sourceMaterialCount)
       assert(batch.instanceCount >= 1 && batch.indexCount == 132);
     else
@@ -224,19 +226,36 @@ int main() {
     assert(Nexora::Presentation::ValidateSceneInstance(wide.instances[i]));
   assert(wide.instances[1].translation[0] == -4.5F && wide.instances[2].translation[0] == -5.5F);
   assert(wide.instances[2].scale[1] == 0.7F && wide.instances[4].scale[1] == 0.7F);
-  std::size_t pavingCount = 0;
+  std::size_t pavingCount = 0, wetPavingCount = 0;
+  std::set<std::pair<float, float>> pavingLocations;
   for (const auto &batch : wide.batches)
-    if (batch.materialIndex == 0 && batch.firstInstance >= 5 && batch.firstInstance < 437) {
+    if ((batch.materialIndex == 0 || batch.materialIndex == 21) && batch.firstInstance >= 5 &&
+        batch.firstInstance < 437) {
       assert(batch.indexCount == 54); // Nine faces per original bevelled tile.
       pavingCount += batch.instanceCount;
+      if (batch.materialIndex == 21)
+        wetPavingCount += batch.instanceCount;
       for (std::size_t i = batch.firstInstance; i < batch.firstInstance + batch.instanceCount;
            ++i) {
         const auto &tile = wide.instances[i];
         assert(Nexora::Presentation::ValidateSceneInstance(tile));
+        assert(pavingLocations.emplace(tile.translation[0], tile.translation[2]).second);
+        if (batch.materialIndex == 21) {
+          const float d0x = tile.translation[0] - 0.2F, d0z = tile.translation[2] - 3.8F;
+          const float d1x = tile.translation[0] - 2.9F, d1z = tile.translation[2] - 2.8F;
+          assert(std::min(d0x * d0x + d0z * d0z, d1x * d1x + d1z * d1z) < 2.5F * 2.5F);
+        }
         assert(std::abs(tile.translation[0]) > 1.2F || std::abs(tile.translation[2]) > 1.2F);
       }
     }
-  assert(pavingCount == 432 && wide.vertices.size() < 65536);
+  assert(pavingCount == 432 && pavingLocations.size() == 432 && wide.vertices.size() < 65536);
+  assert(wetPavingCount > 0 && wetPavingCount < pavingCount && selectedMaterials[21]);
+  assert(wide.materials[21].roughness < wide.materials[0].roughness);
+  assert(wide.materials[21].metallic == 0);
+  assert(wide.materials[21].reflectionRole == Nexora::Presentation::SceneReflectionRole::Receiver);
+  assert(std::none_of(wide.batches.begin(), wide.batches.end(), [&](const auto &batch) {
+    return batch.materialIndex == 21 + sourceMaterialCount;
+  }));
   std::size_t masonryCount = 0;
   for (const auto &batch : wide.batches)
     if (batch.materialIndex < sourceMaterialCount && batch.firstInstance >= 437) {
@@ -459,6 +478,11 @@ int main() {
       std::find_if(active.batches.begin(), active.batches.end(),
                    [](const auto &batch) { return batch.materialIndex == 7; });
   assert(activeParticles != active.batches.end() && activeParticles->indexCount == 48 * 6);
+  const auto mirroredParticles =
+      std::find_if(active.batches.begin(), active.batches.end(), [&](const auto &batch) {
+        return batch.materialIndex == 7 + sourceMaterialCount;
+      });
+  assert(mirroredParticles != active.batches.end() && mirroredParticles->indexCount == 48 * 6);
   const std::vector<Nexora::Presentation::SceneVertex> frozen(active.vertices.begin(),
                                                               active.vertices.end());
   courtyard.Tick(0.5);
@@ -469,8 +493,8 @@ int main() {
   assert(courtyard.Scene(1280, 720).vegetationTime == 0);
   Press(courtyard, Key::Enter);
   const auto inactive = courtyard.Scene(1280, 720);
-  assert(std::none_of(inactive.batches.begin(), inactive.batches.end(), [](const auto &batch) {
-    return batch.materialIndex == 7 || batch.materialIndex == 25;
+  assert(std::none_of(inactive.batches.begin(), inactive.batches.end(), [&](const auto &batch) {
+    return batch.materialIndex == 7 || batch.materialIndex == 7 + sourceMaterialCount;
   }));
   Press(courtyard, Key::U);
   assert(courtyard.Scene(1280, 720).materials[12].opacity == 1);

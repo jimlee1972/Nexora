@@ -781,7 +781,7 @@ struct RoomSession::State final {
     // Mask the direct sky behind puddles too: otherwise its depth occludes the
     // Fresnel-attenuated mirrored sky, leaving a bright unreflected background.
     materials[0].reflectionRole = materials[6].reflectionRole = materials[8].reflectionRole =
-        SceneReflectionRole::Receiver;
+        materials[21].reflectionRole = SceneReflectionRole::Receiver;
     for (std::size_t i = 0; i < materialCount; ++i) {
       auto reflected = materials[i];
       reflected.reflectionRole = SceneReflectionRole::ReflectedGeometry;
@@ -802,7 +802,7 @@ struct RoomSession::State final {
     for (const auto &batch : sourceBatches) {
       // Bound planar work to the focal device, vessels, foliage, pennants and sky.
       // Distant ruins/terrain and the water surface never participate recursively.
-      if (batch.materialIndex < 18 &&
+      if (!(batch.materialIndex >= 18 && batch.materialIndex <= 20) &&
           batch.firstIndex + batch.indexCount > courtyardReflectionDeviceIndexEnd &&
           batch.materialIndex != 2 && batch.materialIndex != 3 && batch.materialIndex != 5 &&
           batch.materialIndex != 6 && batch.materialIndex != 7 && batch.materialIndex != 11 &&
@@ -1164,7 +1164,10 @@ struct RoomSession::State final {
     constexpr unsigned pavingVariants = 8;
     for (unsigned variant = 0; variant < pavingVariants; ++variant) {
       const auto tileVertex = vertices.size();
+      const auto tileIndex = indices.size();
       CourtyardPaving(static_cast<int>(variant), 0);
+      const std::vector<std::uint16_t> tileIndices(indices.begin() + tileIndex, indices.end());
+      std::vector<Nexora::Presentation::SceneInstance> wetPlacements;
       for (std::size_t v = tileVertex; v < vertices.size(); ++v)
         vertices[v].position[0] -= variant * 1.2F;
       const auto prototypeSeed = (variant + 11U) * 73856093U ^ 11U * 19349663U;
@@ -1186,11 +1189,29 @@ struct RoomSession::State final {
           tile.scale[0] = (0.575F - static_cast<float>(seed % 5) * 0.005F) / prototypeX;
           tile.scale[1] = (0.13F + static_cast<float>(seed % 7) * 0.003F) / prototypeTop;
           tile.scale[2] = (0.575F - static_cast<float>((seed >> 4) % 5) * 0.005F) / prototypeZ;
-          instances.push_back(tile);
+          // Wet stone is confined to the native puddles' surrounding paving.
+          const auto nearPuddle = [&](float cx, float cz, float rx, float rz) {
+            const float dx = (tile.translation[0] - cx) / rx;
+            const float dz = (tile.translation[2] - cz) / rz;
+            return dx * dx + dz * dz <= 1;
+          };
+          if (nearPuddle(0.2F, 3.8F, 1.75F, 1.45F) || nearPuddle(2.9F, 2.8F, 1.55F, 1.35F))
+            wetPlacements.push_back(tile);
+          else
+            instances.push_back(tile);
         }
       finish(0);
       batches.back().firstInstance = pavingFirst;
       batches.back().instanceCount = static_cast<std::uint32_t>(instances.size()) - pavingFirst;
+      if (!wetPlacements.empty()) {
+        const auto wetFirst = static_cast<std::uint32_t>(instances.size());
+        instances.insert(instances.end(), wetPlacements.begin(), wetPlacements.end());
+        // Reuse vertices while keeping each material's submitted index range contiguous.
+        indices.insert(indices.end(), tileIndices.begin(), tileIndices.end());
+        finish(21);
+        batches.back().firstInstance = wetFirst;
+        batches.back().instanceCount = static_cast<std::uint32_t>(wetPlacements.size());
+      }
     }
 #if NEXORA_ASSET_PIPELINE_ENABLED
     AdoptedMesh(2, {-3.8F, 0, -2.5F}, {0.22F, 0.22F, 0.22F});
@@ -2993,6 +3014,11 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
         interior.emission[channel] = radiance[channel] * (s.courtyardActive ? pulse : 0.25F);
       s.materials.push_back(interior);
     }
+    auto wetStone = s.materials[0];
+    wetStone.baseColor = {0.507F, 0.507F, 0.507F, 1};
+    wetStone.roughness = 0.25F;
+    wetStone.occlusion = 0.55F;
+    s.materials.push_back(wetStone);
     s.CourtyardGeometry();
     // Animate from the immutable cache each frame; pause/replay never accumulates drift.
     const float crystalAngle = static_cast<float>(s.courtyardSeconds) * 0.18F;

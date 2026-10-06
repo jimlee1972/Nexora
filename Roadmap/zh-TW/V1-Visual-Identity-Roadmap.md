@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux Development 完整 97/97 測試通過（111.23 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.96 秒）。製作凍結版本 `029a500a781711b09c78ad4f4df8be93083c63c0`；證據：`Apps/Showcase/evidence/VIS-Wet-Paving-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+水窪邊緣鋪面迭代：兩處既有水窪附近的部分石塊使用新增非金屬濕石材質（底色 0.507／0.507／0.507、粗糙度 0.25、AO 0.55）。乾濕批次共用原有地磚頂點，各有連續索引範圍；432 個唯一變換完整保留。材質由 21 擴為 22 個原稿槽（含平面倒影共 44）。濕鋪面作為接收面並排除遞迴倒影；礦物例外限於 18–20 槽。測試保留乾磚實例化檢查，驗證濕石距離／粗糙度／零金屬度，並由實際材質數推導倒影粒子編號，檢查啟用與停用狀態。Standard 使用 56,665 頂點、133,194 索引與 336 批次。Linux configure/build 與完整 97/97 測試通過（111.23 秒，Khronos core/sync validation）。Shipping 隔離原生驗收與共同時鐘錄影通過；預覽圖一致性與實體顯示器驗收仍未完成（VIS 5/7）。
+
 ✅ Linux Development 完整 97/97 測試通過（116.67 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 101.06 秒）。製作凍結版本 `cbf8d651248ad28f8c077d10336366f460e308d2`；證據：`Apps/Showcase/evidence/VIS-Crystal-Radiance-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 水晶 HDR 輻射與柏樹迭代：降低符文光軌底色與發光，最亮的包覆礦物刻面在 bloom／ACES 之前達到線性輻射 1.8／1.35。局部點光改為 0.2／3／4，保留相同共同時鐘脈動、位置與半徑。左側柏樹移入目前廣角拱門開口；八支原創漸縮共用輪廓樹幹與木質藤莖採用既有細節貼圖。遠景投影資格、葉片／固定根部風動、折射封包與 cooked 原稿不變。Standard 使用 56,665 頂點、132,870 索引、330 批次與 42 材質。Linux configure/build 與完整 97/97 測試通過（116.67 秒，Khronos core/sync validation）。Shipping 隔離原生驗收與共同時鐘錄影通過；預覽圖一致性與實體顯示器驗收仍未完成（VIS 5/7）。
