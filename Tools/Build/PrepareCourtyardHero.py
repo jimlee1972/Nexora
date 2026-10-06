@@ -105,11 +105,14 @@ def generate():
     normals=((1,0,0),(-1,0,0),(0,1,0),(0,-1,0),(0,0,1),(0,0,-1))
     rights=((0,0,-1),(0,0,1),(1,0,0),(1,0,0),(1,0,0),(-1,0,0))
     ups=((0,1,0),(0,1,0),(0,0,-1),(0,0,1),(0,1,0),(0,1,0))
+    face_size=source['sky_face_size']
+    if face_size not in (128,256,512):
+        raise ValueError('Sky face size must be 128, 256 or 512')
     sky=bytearray()
-    for y in range(256):
-        for x in range(384):
-            face=(y//128)*3+x//128
-            u,v=2*(x%128)/127-1,2*(y%128)/127-1
+    for y in range(face_size*2):
+        for x in range(face_size*3):
+            face=(y//face_size)*3+x//face_size
+            u,v=2*(x%face_size)/(face_size-1)-1,2*(y%face_size)/(face_size-1)-1
             direction=[normals[face][i]+u*rights[face][i]+v*ups[face][i] for i in range(3)]
             length=math.sqrt(sum(d*d for d in direction)); dx,dy,dz=[d/length for d in direction]
             linear=golden_sky((dx,dy,dz),source['sky'])
@@ -126,6 +129,7 @@ def generate():
     for name,key in [('sun_direction','sun_direction'),('sun_radiance','sun_radiance'),('key_radiance','key_radiance')]:
         values=','.join(f'{float(c):.6f}F' for c in source['sky'][key])
         header+=f'inline constexpr std::array<float,3> {name}{{{values}}};\n'
+    header+=f'inline constexpr std::uint32_t sky_face_size = {face_size};\n'
     header+='inline constexpr char mesh[] = R"NEXORA_ART('+mesh+')NEXORA_ART";\n'
     header+='inline constexpr char metadata[] = R"NEXORA_ART('+outputs['manifest.json'].decode()+')NEXORA_ART";\n'
     for name in ('stone-color','stone-normal','stone-orm','bronze-color','bronze-normal','bronze-orm','leaf','mote','sky'):

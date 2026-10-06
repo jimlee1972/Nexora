@@ -528,8 +528,8 @@ int main() {
   assert(adopted.textureUploads[0].pixels.size() == 64 * 64 * 4);
   assert(adopted.textureUploads[1].width == 256 && adopted.textureUploads[1].height == 256);
   assert(adopted.textureUploads[1].pixels.size() == 256 * 256 * 4);
-  assert(adopted.textureUploads.back().width == 384 && adopted.textureUploads.back().height == 256);
-  assert(adopted.textureUploads.back().pixels.size() == 384 * 256 * 4);
+  assert(adopted.textureUploads.back().width == 768 && adopted.textureUploads.back().height == 512);
+  assert(adopted.textureUploads.back().pixels.size() == 768 * 512 * 4);
 #endif
   assert(courtyard.Scene(1280, 720).materials[5].alphaCutoff == 0.5F);
   courtyard.Tick(0.5);

@@ -327,7 +327,8 @@ struct RoomSession::State final {
     assetMesh = ReadShowcaseMesh(loadedAsset->payload);
     importer.Register(".rgba", [](const SourceAsset &source) -> std::optional<CanonicalAsset> {
       if (source.bytes.size() != 64 * 64 * 4 && source.bytes.size() != 256 * 256 * 4 &&
-          source.bytes.size() != 384 * 256 * 4)
+          source.bytes.size() !=
+              6 * courtyard_hero::sky_face_size * courtyard_hero::sky_face_size * 4)
         return {};
       return CanonicalAsset{source.id, source.type, {}, source.bytes};
     });
@@ -419,7 +420,8 @@ struct RoomSession::State final {
     });
     importer.Register(".surface", [](const SourceAsset &source) -> std::optional<CanonicalAsset> {
       if (source.bytes.size() != 64 * 64 * 4 && source.bytes.size() != 256 * 256 * 4 &&
-          source.bytes.size() != 384 * 256 * 4)
+          source.bytes.size() !=
+              6 * courtyard_hero::sky_face_size * courtyard_hero::sky_face_size * 4)
         return {};
       return CanonicalAsset{source.id, source.type, {{0x4e58, 119}}, source.bytes};
     });
@@ -482,9 +484,10 @@ struct RoomSession::State final {
       if (!i)
         courtyardCrystal = ReadShowcaseMesh(loaded->payload);
       else {
-        if (loaded->payload.size() != (i == 9   ? 384 * 256 * 4
-                                       : i <= 7 ? 256 * 256 * 4
-                                                : 64 * 64 * 4))
+        if (loaded->payload.size() !=
+            (i == 9   ? 6 * courtyard_hero::sky_face_size * courtyard_hero::sky_face_size * 4
+             : i <= 7 ? 256 * 256 * 4
+                      : 64 * 64 * 4))
           throw std::runtime_error("Courtyard detail payload invalid");
         courtyardDetail[i - 1] = loaded->payload;
       }
@@ -943,10 +946,15 @@ struct RoomSession::State final {
            {std::array{0, 0}, std::array{1, 0}, std::array{1, 1}, std::array{0, 1}}) {
         const auto point =
             eye + (n + u * (2.0F * corner[0] - 1) + v * (2.0F * corner[1] - 1)) * 120;
-        Nexora::Presentation::SceneVertex vertex{{point.x, point.y, point.z},
-                                                 {-n.x, -n.y, -n.z},
-                                                 {(face % 3 * 128 + 0.5F + corner[0] * 127) / 384,
-                                                  (face / 3 * 128 + 0.5F + corner[1] * 127) / 256}};
+        Nexora::Presentation::SceneVertex vertex{
+            {point.x, point.y, point.z},
+            {-n.x, -n.y, -n.z},
+            {(face % 3 * courtyard_hero::sky_face_size + 0.5F +
+              corner[0] * (courtyard_hero::sky_face_size - 1)) /
+                 (3 * courtyard_hero::sky_face_size),
+             (face / 3 * courtyard_hero::sky_face_size + 0.5F +
+              corner[1] * (courtyard_hero::sky_face_size - 1)) /
+                 (2 * courtyard_hero::sky_face_size)}};
         vertex.tangent[0] = u.x;
         vertex.tangent[1] = u.y;
         vertex.tangent[2] = u.z;
@@ -3329,11 +3337,13 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.sceneUploads.push_back({2, 64, 64, 256, s.courtyardAtlas});
     for (std::size_t i = 0; i < s.courtyardDetail.size(); ++i)
       s.sceneUploads.push_back({10 + i,
-                                i == 8  ? 384U
+                                i == 8  ? 3 * courtyard_hero::sky_face_size
                                 : i < 7 ? 256U
                                         : 64U,
-                                i == 8 || i < 7 ? 256U : 64U,
-                                i == 8  ? 1536U
+                                i == 8  ? 2 * courtyard_hero::sky_face_size
+                                : i < 7 ? 256U
+                                        : 64U,
+                                i == 8  ? 12 * courtyard_hero::sky_face_size
                                 : i < 7 ? 1024U
                                         : 256U,
                                 s.courtyardDetail[i]});
