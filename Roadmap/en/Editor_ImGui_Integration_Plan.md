@@ -356,6 +356,8 @@ results and physical-display/installed-IME evidence remain required.
 with native macOS Cmd/Super behavior enabled. Production keeps the platform's ImGui input policy.
 Fixture cleanup runs after workspace/file owners are destroyed, canonical scene fixtures use
 binary writes, and the Linux shortcut gate explicitly focuses the Scene canvas.
+Shipping package verification mirrors failed native subprocess diagnostics to CI stderr, bounded
+to 8 KiB per stream, and retains complete logs/artifacts and unchanged acceptance checks.
 
 1. Run the full Linux gate listed in §6 with a clean tree. Because WP1/WP3 alter linkage/API
    boundaries, run `linux-shipping` too.

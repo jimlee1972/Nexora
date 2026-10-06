@@ -99,6 +99,8 @@ def main() -> int:
                 (output / "native.stdout.log").write_text(native.stdout)
                 (output / "native.stderr.log").write_text(native.stderr)
                 if native.returncode:
+                    print(native.stdout[-8192:], file=sys.stderr)
+                    print(native.stderr[-8192:], file=sys.stderr)
                     raise RuntimeError(f"Linux native interaction failed ({native.returncode})")
                 result["scope"] = "Linux Xvfb native interaction and screenshots; driver identity is recorded by the application"
             else:
@@ -114,12 +116,15 @@ def main() -> int:
                     (output / f"{room}.stdout.log").write_text(native.stdout)
                     (output / f"{room}.stderr.log").write_text(native.stderr)
                     if native.returncode:
+                        print(native.stdout[-8192:], file=sys.stderr)
+                        print(native.stderr[-8192:], file=sys.stderr)
                         raise RuntimeError(f"Metal {room} failed ({native.returncode})")
                     validate_native(json.loads(report.read_text()), "metal", room)
                 result["scope"] = "macOS Metal eight-room native graph/report smoke; no screenshots or physical-display attestation"
             result["status"] = "PASS"
         except (RuntimeError, ValueError, KeyError, OSError, subprocess.TimeoutExpired) as error:
             result["issues"].append(str(error))
+            print(f"Native release acceptance failed: {error}", file=sys.stderr)
         finally:
             status_path.write_text(json.dumps(result, indent=2) + "\n")
     return 0 if result["status"] == "PASS" else 1
