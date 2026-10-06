@@ -794,19 +794,23 @@ struct RoomSession::State final {
     batches.push_back({first, static_cast<std::uint32_t>(indices.size()) - first, 0, 1, 12});
 #endif
   }
+  // Shared authoring sites keep the falling ribbons in front of their supporting cliffs.
+  static constexpr std::array courtyardFallSites{std::array{-17.0F, -19.0F, 6.2F},
+                                                 std::array{7.0F, -21.0F, 5.8F}};
   void CourtyardWaterfalls() {
     const auto first = static_cast<std::uint32_t>(indices.size());
     const float time = static_cast<float>(courtyardSeconds);
-    for (const float x : {-14.0F, 14.0F})
+    for (const auto location : courtyardFallSites)
       for (unsigned ribbon = 0; ribbon < 4; ++ribbon)
         for (unsigned row = 0; row < 24; ++row) {
           const auto base = static_cast<std::uint16_t>(vertices.size());
           for (const auto corner :
                {std::array{0, 0}, std::array{1, 0}, std::array{1, 1}, std::array{0, 1}}) {
-            const float y = 8.2F - (row + corner[1]) * (7.9F / 24);
+            const float y = location[2] - (row + corner[1]) * ((location[2] - 0.3F) / 24);
             const float pulse = std::sin(y * 4 + time * 3 + ribbon);
-            const float px = x + (ribbon - 1.5F) * 0.3F + corner[0] * 0.22F + pulse * 0.04F;
-            Nexora::Presentation::SceneVertex vertex{{px, y, -23.8F + pulse * 0.025F},
+            const float px =
+                location[0] + (ribbon - 1.5F) * 0.3F + corner[0] * 0.22F + pulse * 0.04F;
+            Nexora::Presentation::SceneVertex vertex{{px, y, location[1] + pulse * 0.025F},
                                                      {0, 0, 1},
                                                      {corner[0] * 1.0F, (row + corner[1]) / 24.0F}};
             vertex.tangent[0] = 1;
@@ -1204,13 +1208,13 @@ struct RoomSession::State final {
       return -0.3F + std::max(0.0F, envelope) * (8 + 3 * std::sin(x * 0.19F) +
                                                  2 * std::sin(x * 0.47F) + std::cos(x * 0.81F));
     };
-    for (unsigned row = 0; row < 16; ++row)
-      for (unsigned col = 0; col < 64; ++col) {
-        const float x = -45 + col * (90.0F / 64), z = -50 + row * (26.0F / 16);
+    for (unsigned row = 0; row < 24; ++row)
+      for (unsigned col = 0; col < 96; ++col) {
+        const float x = -45 + col * (90.0F / 96), z = -50 + row * (26.0F / 24);
         const auto base = static_cast<std::uint16_t>(vertices.size());
         for (const auto corner :
              {std::array{0, 0}, std::array{0, 1}, std::array{1, 1}, std::array{1, 0}}) {
-          const float px = x + corner[0] * (90.0F / 64), pz = z + corner[1] * (26.0F / 16);
+          const float px = x + corner[0] * (90.0F / 96), pz = z + corner[1] * (26.0F / 24);
           const float dx = (ridgeHeight(px + 0.1F, pz) - ridgeHeight(px - 0.1F, pz)) / 0.2F;
           const float dz = (ridgeHeight(px, pz + 0.1F) - ridgeHeight(px, pz - 0.1F)) / 0.2F;
           const auto n = math::NormalizeSafe(math::Vector3{-dx, 1, -dz});
@@ -1266,8 +1270,9 @@ struct RoomSession::State final {
       placeMasonry(8, 6, step * 0.15F, -10 - step * 0.7F, 2.5F, step * 0.15F + 0.1F, 0.4F);
     // Cliff ledges support the distant falls and upper ruins.
     placeMasonry(8, 0, 1, -25, 20, 1, 3);
-    for (const float x : {-14.0F, 14.0F})
-      placeMasonry(8, x, 4, -26, 3, 4, 2);
+    for (const auto location : courtyardFallSites)
+      placeMasonry(8, location[0], location[2] * 0.5F, location[1] - 2.2F, 2.6F, location[2] * 0.5F,
+                   2);
     finish(8);
     // Side arcades frame the device, with hanging leaves driven by the shared wind shader.
     for (const float x : {-7.5F, 7.5F}) {
@@ -1380,20 +1385,28 @@ struct RoomSession::State final {
         }
       }
     finish(5);
+    // Place the left cypress in the wide camera's arch opening, retaining its shared wind.
+    const auto treeLocation = [](float x, float z) {
+      return x < 0 && z == -10 ? std::array{-15.0F, -6.0F} : std::array{x, z};
+    };
     for (const float x : {-12.0F, 12.0F})
-      for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F})
-        Cube(x, 2, z, 0.12F, 2, 0.12F);
+      for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F}) {
+        const auto location = treeLocation(x, z);
+        Cube(location[0], 2, location[1], 0.12F, 2, 0.12F);
+      }
     finish(10);
     // Layered cutout foliage replaces smooth cones; it shares leaf lighting and wind.
     for (const float x : {-12.0F, 12.0F})
       for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F})
         for (unsigned layer = 0; layer < 18; ++layer) {
           const float y = 0.7F + layer * 0.29F;
-          const float crownRadius = 0.85F * (1 - std::pow(layer / 18.0F, 1.35F));
+          const auto location = treeLocation(x, z);
+          const float crownRadius =
+              (x < 0 && z == -10 ? 0.6F : 0.85F) * (1 - std::pow(layer / 18.0F, 1.35F));
           for (unsigned branch = 0; branch < 3; ++branch) {
             const float angle = layer * 2.399963F + branch * 2 * math::kPi / 3;
-            LeafQuad({x + std::cos(angle) * crownRadius * 0.22F, y,
-                      z + std::sin(angle) * crownRadius * 0.22F},
+            LeafQuad({location[0] + std::cos(angle) * crownRadius * 0.22F, y,
+                      location[1] + std::sin(angle) * crownRadius * 0.22F},
                      crownRadius, 0.7F, angle);
           }
         }
@@ -2673,6 +2686,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     waterfall.roughness = 0.2F;
     waterfall.emission = {0.1F, 0.15F, 0.2F};
     waterfall.castsShadow = false;
+    waterfall.transmissionThickness = s.courtyardPbr && s.courtyardTransmission ? 0.25F : 0;
+    waterfall.transmissionColor = {0.65F, 0.8F, 0.9F};
     s.materials.push_back(waterfall);
     Nexora::Presentation::SceneMaterial cloth{};
     cloth.baseColor = {0.025F, 0.19F, 0.23F, 1};

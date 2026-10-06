@@ -1,0 +1,9 @@
+{
+  "source_before_followup": "83186795833dfece73a1c3bec7f94d45c64021cf",
+  "verifier_sha256": "0e4a6f20bff8e8ac16f969e63379d3cd2583896dd5fb29e3ec459329075869b9",
+  "runtime_changes": false,
+  "production_freeze": "c815263b5f871de0889571dd042d76b97c41b8b2",
+  "full_tests": 97,
+  "full_test_seconds": 104.27,
+  "physical_display_verified": false
+}

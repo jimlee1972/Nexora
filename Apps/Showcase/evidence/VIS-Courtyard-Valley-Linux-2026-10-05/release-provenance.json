@@ -1,0 +1,56 @@
+{
+  "source_freeze": "c815263b5f871de0889571dd042d76b97c41b8b2",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "8971b65888d39803dd7782cd7382e52132d4fd8132558ee66dd4b76b5d138fd9",
+    "Apps/Showcase/ShowcaseRooms.cpp": "04e5f7a648c60a3e59454feea846feedcc07dd5c59cf8c26700f703bd363eb65",
+    "README.md": "8c9d10eed7b87a9d970ab78bd34abcfb62c5ecac9508c7878b930b9fbbca3774",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "94ccb1d5bfcb442b5b62436efbdc6bd71abb4f2ecf347ec40879a507ae699b2b",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "321675ac00b3d0e6be599353987310fface362243811105620287fd8ed0cbb97"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-valley/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/valley-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "c815263b5f87",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.85102060899953,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.200000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "aedde4507b3564eb92cd455fc4036f641de4b8f6d67943187e69bac6c42a3b89",
+    "video_sha256": "0401296b63f32ae9256202b2efc0749a64a5da591316fce555b33c7befe86442",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "7bf215b22bc9777b6d8fd3f20d9474cee83176107612db9b213aba93e7e172fb",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}

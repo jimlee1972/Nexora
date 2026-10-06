@@ -1,5 +1,9 @@
 # Nexora
 
+✅ Linux configure/build and full 97/97 tests passed (108.23 s, Khronos core/sync validation), including nine evidence-policy tests and 600 actual native camera frames. Isolated original Shipping acceptance passed. Interaction synchronization now waits for complete Lab JSON/Markdown export, holds D through the fixed 600-frame camera run, and requires stable foreground pixels at the resized viewport scale before shutdown. The resize-generation, camera-movement, pixel-restoration, frame-count and timeout gates remain in force. Runtime/movie freeze remains c815263b; evidence: `Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+Release-verifier diagnostic follow-up: failed native/headless subprocesses now print a bounded stderr tail and the structured failure result to CI logs. Acceptance gates, exit status, runtime and the recorded Shipping/movie freeze are unchanged. Linux configure/build and full 97/97 tests passed (104.27 s) with Khronos core/synchronization validation; the original Shipping package passed isolated native acceptance. Evidence: `Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/release-diagnostics/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
+
 MSVC compiler follow-up: foreground sprigs use `sprigRadius` to avoid camera-member
 shadowing under /WX. Exact source comparison after identifier normalization is unchanged.
 ✅ Linux configure/build and full 97/97 pass (102.71 seconds), including 85 native PBR
@@ -1131,13 +1135,25 @@ through a negative view cosine. This is sheet lighting, not a thick-material vol
 Evidence: [VIS-Two-Sided-Linux-2026-10-05](/Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05). Production freeze `248791c4b51a`; exact source and package hashes are retained.
 
 
+The courtyard waterfall ribbons now share authored cliff sites, keeping their geometry in
+front of the supporting rock and visible through the wide camera's arch openings. Thin
+water-sheet transmission follows the existing M comparison; flowing ribbons retain the
+shared pause/replay clock. The left cypress is placed beneath the sun in the open arch and
+retains wind/alpha lighting. The distant ridge grid grows from 16×64 to 24×96; no new map,
+shader packet or stable ABI is introduced. Final reference/target acceptance remains open.
+
+✅ Linux Development configure/build and all 97 tests pass (103.28 seconds) with Khronos core/synchronization validation enabled, including 89 native PBR frames and all three geometry budgets. The activated Standard frame has 55,382 vertices and 2,052 source foliage quads; wind/flow and exact paused replay remain validated. Shipping/Full isolated native acceptance and an actual 100.20-second movie (100.85-second wall time) pass; final reference/target acceptance remains open.
+
+Evidence: [VIS-Courtyard-Valley-Linux-2026-10-05](/Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05). Production freeze `c815263b5f87`; exact source and package hashes are retained.
+
+
 MSVC fixture portability follow-up: point-light fill and two-sided normal conditionals use
-floating literals. ✅ Linux configure/build and full 97/97 pass (102.61 seconds), including
+floating literals. ✅ Linux configure/build and full 97/97 pass (102.21 seconds), including
 89 native PBR frames with core/sync validation. Test values and runtime sources are unchanged;
 retained Shipping evidence keeps its production freeze. Windows CI recheck is pending.
 
 
-Upstream point-light and masonry MSVC fixture evidence is synchronized. Their full Linux
-97/97 gates pass in 102.20/102.62 seconds with 85 native PBR frames and core/sync validation.
-Each stage retains exact logs/hashes in `msvc-literals/`. This synchronization changes only
-documentation/evidence; runtime sources and fixture values are unchanged.
+Upstream point-light, masonry and two-sided MSVC fixture evidence is synchronized. Full
+Linux 97/97 gates pass in 102.20/102.62/102.61 seconds with 85/85/89 native PBR frames and
+core/sync validation. Each stage retains exact logs/hashes in `msvc-literals/`. This merge
+changes only documentation/evidence; runtime sources are unchanged.

@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux configure/build 與完整 97/97 測試通過（108.23 秒，Khronos core/sync validation），包含九項證據政策測試與實際 600 幀原生相機測試；原 Shipping 套件隔離驗收通過。互動驗收改為等待完整 Lab JSON／Markdown 匯出、按住 D 直到固定 600 幀完成，並在關閉前確認前景像素已按縮放後視窗比例穩定呈現。縮放 generation、相機移動、像素還原、幀數與 timeout 驗收條件均保留。程式／影片凍結版本仍為 c815263b；證據：`Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/interaction-synchronization/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+發行驗證診斷補充：原生／headless 子程序失敗時，CI 會輸出有長度上限的 stderr 與結構化失敗結果。驗收條件、退出狀態、執行程式及既有 Shipping／影片凍結版本不變。Linux configure/build 與完整 97/97 測試通過（104.27 秒，Khronos core/sync validation），原 Shipping 套件隔離原生驗收通過。證據：`Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/release-diagnostics/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
 MSVC 編譯修正：前景植被區域變數改名 `sprigRadius`，避免 /WX 下遮蔽相機成員。
 標準化變數名稱後的來源逐位元比較相同，計算式與數值不變。✅ Linux configure／build
 與完整 97/97 通過（102.71 秒），包含 85 個原生 PBR 畫面與 core／同步驗證。
@@ -519,11 +523,21 @@ Unlit／Lambert 拒絕此旗標。私有材質 float 79 使用保留欄位，400
 證據：[VIS-Two-Sided-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05)。來源凍結 `248791c4b51a`，保留確切來源與套件雜湊。
 
 
+庭院瀑布與山壁共用定位資料，讓水流幾何位於支撐岩壁前方，且可從廣角拱門開口看見。
+薄水片背光透射跟隨既有 M 比較；流動帶保留共用暫停／重播時鐘。左側柏樹移至太陽
+下方的拱門開口，保留風與透明遮罩受光。遠景山脊網格由 16×64 提高為 24×96；不新增
+貼圖、shader packet 或穩定 ABI。最終參考圖／目標驗收仍未完成。
+
+✅ Linux Development configure／build 與 97/97 測試通過（103.28 秒），啟用 Khronos core／同步驗證，包含 89 個原生 PBR 畫面與三種品質幾何預算。啟動裝置的 Standard 畫面為 55,382 頂點、2,052 張來源植被卡片；風／水流與精確暫停重播仍通過。Shipping／Full 隔離套件原生驗收與實際 100.20 秒影片（實際錄製 100.85 秒）通過；最終參考圖／目標驗收仍未完成。
+
+證據：[VIS-Courtyard-Valley-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05)。來源凍結 `c815263b5f87`，保留確切來源與套件雜湊。
+
+
 MSVC 測試可攜性修正：點光源填充值與雙面法線條件式改用明確浮點值。✅ Linux configure／build
-與完整 97/97 通過（102.61 秒），包含 89 個原生 PBR 畫面與 core／同步驗證。測試數值與
+與完整 97/97 通過（102.21 秒），包含 89 個原生 PBR 畫面與 core／同步驗證。測試數值與
 Runtime 來源不變；既有 Shipping 證據保留原本來源凍結。Windows CI 重新驗證中。
 
 
-已同步上游點光源與石砌的 MSVC fixture 修正證據：兩階段 Linux 完整 97/97 分別為
-102.20／102.62 秒，包含 85 個原生 PBR 畫面與 core／同步驗證。各階段 `msvc-literals/`
-保留確切 log／雜湊；此同步僅變更文件與證據，Runtime／fixture 數值不變。
+已同步上游點光源、石砌與雙面受光的 MSVC fixture 證據：Linux 完整 97/97 分別為
+102.20／102.62／102.61 秒，原生 PBR 畫面分別為 85／85／89，啟用 core／同步驗證。
+各階段 `msvc-literals/` 保留 log／雜湊；此同步僅變更文件與證據，Runtime 來源不變。
