@@ -17,6 +17,16 @@ target_include_directories(NexoraDearImGui SYSTEM PUBLIC "${nexora_imgui_SOURCE_
 # This changes ImWchar-dependent layouts, so every direct consumer needs the same definition.
 target_compile_definitions(NexoraDearImGui PUBLIC IMGUI_USE_WCHAR32=1)
 set_target_properties(NexoraDearImGui PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+  # Pinned ImGui passes an unused scalar's address to a zero-length text replacement.
+  # New AppleClang diagnoses it; retain the vendor warning without relaxing engine targets.
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-Wno-error=uninitialized-const-pointer"
+    NEXORA_IMGUI_HAS_CONST_POINTER_WARNING)
+  if(NEXORA_IMGUI_HAS_CONST_POINTER_WARNING)
+    target_compile_options(NexoraDearImGui PRIVATE "-Wno-error=uninitialized-const-pointer")
+  endif()
+endif()
 if(NEXORA_LINK_MODE STREQUAL "Modular")
   if(WIN32)
     target_compile_definitions(NexoraDearImGui

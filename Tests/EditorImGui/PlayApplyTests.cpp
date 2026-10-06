@@ -110,7 +110,7 @@ int main() {
     Require(play.Start(0.25, simulate) && play.Tick(), "UI fixture failed");
     imgui::EditorImGuiHost host;
     host.SetDisplay(1280, 900, 1);
-    imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+    imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;

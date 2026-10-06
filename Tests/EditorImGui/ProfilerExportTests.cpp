@@ -74,7 +74,7 @@ int main() {
             "read-only export wrote a file");
     imgui::EditorImGuiHost host;
     host.SetDisplay(1280, 900, 1);
-    imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+    imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;

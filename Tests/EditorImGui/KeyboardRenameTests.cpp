@@ -1,4 +1,5 @@
 #include "EditorImGuiTestAccess.h"
+#include "TemporaryDirectoryCleanup.h"
 
 #include <chrono>
 #include <fstream>
@@ -18,6 +19,7 @@ struct Fixture final {
       std::filesystem::temp_directory_path() /
       ("nexora-keyboard-rename-" +
        std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  nexora::editor::test::TemporaryDirectoryCleanup cleanup{root};
   editor::ProjectWorkspace workspace, observer;
   runtime::World world;
   runtime::Id scene_id = world.LoadScene("Keyboard rename");
@@ -42,7 +44,7 @@ struct Fixture final {
     sentinel = scene.Create("Redo sentinel");
     Require(sentinel && scene.Undo(), "Redo setup failed");
     ui.SetDisplay(1280, 900, scale);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Focus(true);
     for (int i = 0; i < 4; ++i)
       Draw();
@@ -50,7 +52,6 @@ struct Fixture final {
     Draw();
     Draw();
   }
-  ~Fixture() { std::filesystem::remove_all(root); }
   std::filesystem::path Path() const { return root / "Content/Main.scene"; }
   void Draw() {
     ui.BeginFrame();

@@ -51,7 +51,7 @@ int main() {
     editor::ProductShell shell;
     editor::imgui::EditorImGuiHost ui;
     ui.SetDisplay(1280, 900, 1);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     editor::ProjectWorkspace *active = &workspace;
     runtime::PlaySession play(world);
     const auto draw = [&] {

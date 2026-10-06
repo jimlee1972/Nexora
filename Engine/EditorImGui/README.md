@@ -8,6 +8,10 @@ and Scene and Game tabs in the center, with Scene selected initially. Hierarchy 
 deterministically after their dock nodes settle, so adding a sibling tab cannot hide the primary
 authoring views on first launch.
 
+Synthetic contract fixtures explicitly choose Ctrl shortcut semantics and disable event trickling.
+The shared undo/redo contract also runs with macOS behaviors and physical Cmd/Super events;
+production retains ImGui's native platform defaults.
+
 ## Ownership and lifetime
 
 - `EditorImGuiHost` owns one ImGui context and destroys it with the host.
