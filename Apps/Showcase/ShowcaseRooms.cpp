@@ -2008,10 +2008,27 @@ struct RoomSession::State final {
     // A bevelled stone block has six faces, twelve edge strips and eight corner caps.
     const std::array<float, 3> extent{sx, sy, sz};
     const float bevel = std::min({sx, sy, sz, 0.6F}) * 0.18F;
+    const float weathering = std::min({sx, sy, sz, 0.6F}) * 0.055F;
+    const float shapeSeed = sx * 37 + sy * 23 + sz * 17 + x * 0.7F + y * 1.3F + z * 0.9F;
+    const auto weatherPoint = [&](math::Vector3 point) {
+      // Equal boundary positions receive equal bounded offsets across all faces.
+      // Original seams stay closed while perfect manufactured planes become worn.
+      return point + math::Vector3{weathering * std::sin(point.x * 7.13F + point.y * 12.7F +
+                                                         point.z * 9.41F + shapeSeed),
+                                   weathering * std::sin(point.x * 11.31F + point.y * 6.17F +
+                                                         point.z * 8.73F + shapeSeed * 1.7F),
+                                   weathering * std::sin(point.x * 8.37F + point.y * 9.29F +
+                                                         point.z * 13.11F + shapeSeed * 2.3F)};
+    };
     const auto emit = [&](std::vector<math::Vector3> points, math::Vector3 normal) {
-      normal = math::NormalizeSafe(normal);
+      for (auto &point : points)
+        point = weatherPoint(point);
       if (math::Dot(math::Cross(points[1] - points[0], points[2] - points[0]), normal) < 0)
         std::reverse(points.begin(), points.end());
+      math::Vector3 faceNormal{};
+      for (std::size_t i = 1; i + 1 < points.size(); ++i)
+        faceNormal = faceNormal + math::Cross(points[i] - points[0], points[i + 1] - points[0]);
+      normal = math::NormalizeSafe(faceNormal);
       const auto base = static_cast<std::uint16_t>(vertices.size());
       const unsigned axis =
           std::abs(normal.x) >= std::abs(normal.y) && std::abs(normal.x) >= std::abs(normal.z) ? 0
