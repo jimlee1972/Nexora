@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 遠景塔樓的狹長上層開口已有厚石窗邊、共用前後拱石與頂部過梁；交錯山脊摺面增加斜向岩面。Linux 完整 97/97 測試通過（120.62 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 101.04 秒）。凍結版本 `94b7f09807e4dae93b931776d530bc51a855dc56`；證據：`Apps/Showcase/evidence/VIS-Tower-Ridges-Linux-2026-10-06/`。Standard：57,961 vertices、134,982 indices、384 batches、44 materials。VIS 仍為 5/7。
+
 ✅ 六根廊柱的十二個菱形邊框已填入既有 material 3 的陶瓷鑲片。Linux 完整 97/97 測試通過（119.52 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 101.22 秒）。製作凍結版本 `2c7d68a0c8bfe4393f8051e4c94356e34b93cd46`；證據：`Apps/Showcase/evidence/VIS-Arcade-Inlays-Linux-2026-10-06/`。Standard：56,713 vertices、133,266 indices、371 batches、44 materials。VIS 仍為 5/7。
 
 ✅ F4 乾淨畫面驗證會等待實際導覽列消失。保留的 CI 失敗重播、Linux 完整 97/97 gate（118.49 秒，core/sync validation）與隔離 Shipping bloom 變化／精確還原驗證均通過。證據：`Tests/Showcase/evidence/Native-Clean-Frame-Linux-2026-10-06/`。比較等待上限保持一致；VIS 仍為 5/7。

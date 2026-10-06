@@ -1,0 +1,42 @@
+{
+  "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+  "command": [
+    "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+    "--tour=visual",
+    "--backend=vulkan",
+    "--clean-view",
+    "--vsync=off",
+    "--no-reload",
+    "--gameplay-module=static",
+    "--report=/tmp/tower-ridges-shipping-tour/tour.json",
+    "--quality=standard"
+  ],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "94b7f09807e4",
+    "abi_version": 1,
+    "configuration": "Shipping",
+    "link_mode": "Monolithic"
+  },
+  "wall_seconds": 101.04037819599034,
+  "video": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "format": {
+      "duration": "100.733333"
+    }
+  },
+  "software_rasterizer": true,
+  "physical_display_verified": false,
+  "executable_sha256": "f620dfc1dda12fd2e5177b81371d7ac5ef0869cdd2589154f1eff4406c0cf46a",
+  "video_sha256": "d90d461ea34e3da14957b034d1eb133a75c37aa6c3edacb30d92e53d2425f30d",
+  "tour_seconds": 100,
+  "overlay_frames": 0
+}
