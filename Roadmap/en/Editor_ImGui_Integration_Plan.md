@@ -83,6 +83,12 @@ never deletes the destination to retry. Portable tests preserve committed worksp
 and retain the new recovery journal, then explicitly recover after the staging collision is resolved.
 This strengthens failure behavior without claiming crash-during-write or target-host acceptance.
 
+**Recovery input limits update (2026-10-07):** ✅ Workspace and recovery reads now share a bounded
+record parser with matching save limits: 4096 documents and 1024 UTF-8 bytes per path. Portable
+tests reject oversized/corrupt/aliased metadata while preserving committed files, journals and
+authoring state; maximum-size CRLF and no-final-LF records remain compatible. This does not close
+physical-display or Windows recovery acceptance.
+
 ### Definition of "done"
 
 All of the following must be true at the same commit:

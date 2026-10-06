@@ -59,6 +59,13 @@ into renderer or platform internals.
   in-memory documents, retaining the newly written recovery journal for explicit recovery.
   After the occupied stage is resolved, a retry/recovery can publish normally. This is a
   single-writer replacement contract, not exclusive temporary creation against concurrent actors.
+  Workspace and recovery records share a bounded line reader and the same public limits:
+  4096 documents, each at most 1024 UTF-8 bytes. Save validates the complete input before writing
+  a journal or primary stage, so it cannot publish a workspace its own reader rejects for size.
+  CRLF and a final record without LF remain compatible; embedded NUL, overlong records and
+  excess document counts reject without changing the current model or retained files/journal.
+  Only a missing legacy workspace is treated as empty; unreadable/non-regular metadata and
+  file symlinks are rejected. Successful recovery closes its bounded reader before publication.
   Versioned Editor layout payloads are persisted separately and never use Dear ImGui's unmanaged
   global ini file. Gameplay library selection is an independent `.nexora/gameplay-library.ini`
   schema-1 payload, capped below 1100 bytes on read. Empty selects inspection-only Play. UTF-8

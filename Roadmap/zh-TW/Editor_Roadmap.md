@@ -125,6 +125,12 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 status、dependency 檢視與 reimport；background import 必須提供取消、進度與可採取行動的錯誤，
 並產生 deterministic artifact。
 
+- ✅ Workspace save 與 recovery 現共用 4096 個 document、每個 path 1024 UTF-8 bytes 的上限。
+  寫 journal／stage 前先驗證完整輸入；有界 line reader 拒絕過長／損壞 record，保留 model、
+  committed／recovery 檔案。缺少 legacy workspace 仍可載入；非 regular metadata 與 file
+  symlink 會拒絕。`editor.workspace_budget` 驗證最大尺寸 round trip、CRLF／最後一行無 LF
+  相容性、save 拒絕及 recovery 保留。
+
 - ✅ Project／workspace persistence 現共用 scene／asset atomic replacement helper。
   已占用的 `.tmp` file／directory／symlink 會保留並回報路徑，rename 失敗不再刪除目的地重試。
   Portable 測試涵蓋 descriptor 升級、gameplay setting、layout、recent-project 回復、

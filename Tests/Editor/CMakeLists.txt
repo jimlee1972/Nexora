@@ -8,6 +8,11 @@ target_link_libraries(NexoraEditorTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraEditorTests)
 add_test(NAME editor.preview_contract COMMAND NexoraEditorTests)
 
+add_executable(NexoraWorkspaceBudgetTests WorkspaceBudgetTests.cpp)
+target_link_libraries(NexoraWorkspaceBudgetTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraWorkspaceBudgetTests)
+add_test(NAME editor.workspace_budget COMMAND NexoraWorkspaceBudgetTests)
+
 add_executable(NexoraEditorViewportMathTests ViewportMathTests.cpp)
 target_link_libraries(NexoraEditorViewportMathTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraEditorViewportMathTests)
