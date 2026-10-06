@@ -1,0 +1,85 @@
+{
+  "source_freeze": "7de378f24240b4665d443154be292eb8b6f3ed8d",
+  "source_scope": "local production freeze; connector publication must preserve the complete Git tree and hashes",
+  "source_sha256": {
+    ".github/workflows/build.yml": "97bfd48b8ef5cac1691a63a5eb3e6f0a77514bebecfab8bf261549d51e830fa5",
+    "Apps/Editor/README.md": "2cb795b7abae54eeffe6e00ee8094a34e648d7345b3fc17ad8112d8757e9d947",
+    "Apps/Showcase/README.md": "d7e32f540c692efb9a4177c329781abb285ba947a327a9ff899a65faf28c2409",
+    "Apps/Showcase/ShowcaseRooms.cpp": "5ce9fec2e0d3760bc6977d209f92988b0ea9571b14abf9d73f9116fdc6052cca",
+    "Engine/Presentation/README.md": "f1d4b4315265e467b650b9e3d94482df84bb1f0936338cbdccd60c705fe4c230",
+    "Engine/Presentation/include/Nexora/Presentation/Surface.h": "a5f9ee40711e8080fe09f6d27ba2bf056c5749f76ef5c79c7d56623b3e18466b",
+    "Engine/Presentation/shaders/scene_pbr.slang": "d4371449567c87c2774003c32051d781021784b56a77f919617bc957659f9f01",
+    "Engine/Presentation/src/Dx12Surface.cpp": "d435a99af3f0c41e31b6b809f6d5d184c366bf368ee9df13bbd2dbe2fcaa8f05",
+    "Engine/Presentation/src/MetalSurface.mm": "5283fc22b9dd3b225b1f41ea066e1f9d8d90b3531a241da002517fce2b04ec71",
+    "Engine/Presentation/src/PbrMaterialUpload.h": "714a06ccd47b59890346836bb5cd41446a03be907c1ebe8b34c995eb7ff33b0f",
+    "Engine/Presentation/src/ScenePbrHlslShaders.h": "73406b949eb946d86cc9660b3ca2863e9a64b329e8b924921a2ca3202e1feae5",
+    "Engine/Presentation/src/ScenePbrMetalShaders.h": "8fe917c884253de5e1a2c783521dd9b7c45bb7a2ea5c9059527fc07a8e675b1c",
+    "Engine/Presentation/src/ScenePbrVulkanShaders.h": "b61cff996e9f24713a7ee85da3e14c90705bcb8a86efc6b5f223b2dcd23f29fe",
+    "Engine/Presentation/src/VulkanSurface.cpp": "97325488e687f918a28e37691165ecd6138ea13681a860ad62238e01ebd802a1",
+    "Engine/RHI/README.md": "2dc982f97d91e62cff197e51f4b5d00f5ce3eb1194a9a4ead0740542cb66d635",
+    "Engine/RHI/src/VulkanDevice.cpp": "a81dc4b3d4233b626a1ac5a02959bc01619dd4f94e6aa43d16f43c3ee6dd96da",
+    "README.md": "1befa56534d5f03e251dc713aa135e750fb2d5fc72e2a417aeda0625b40a802a",
+    "Roadmap/README.md": "21fd11cba3b2020697d0c72f1d1fb7dd0f65ef442cdc52efaae95ac4f58da999",
+    "Roadmap/en/Editor_ImGui_Integration_Plan.md": "e1ca4337bbc2a985d89683291ec4cdff0244e89a0a5699cd79607eaee157480f",
+    "Roadmap/en/Editor_Roadmap.md": "abd04b02971e039d92bbba96a2b72b3af3c922abfeb2b087fdc786719da347ec",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "775417761befa9f01736591695e4287999b5e0888a525db33c3a87ed24d88a70",
+    "Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md": "8212ee91600e1a470fc41aeabddf7fba80c78fc993375880cd26b5ce17562b17",
+    "Roadmap/zh-TW/Editor_Roadmap.md": "3e4c9f423229a7fc086ccc92cd397663397b7037408a84d6d71dcaee8d177990",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "9a5f517c8d4186781cf16aba72aba7f98a29cc05b172ba8744a005f9b43240bc",
+    "Tests/EditorImGui/CMakeLists.txt": "f41776083830cb27b5b8c0d7d1e9d4b067dc8af53bbf99831b422e074cbda6b0",
+    "Tests/EditorImGui/LinuxDisplayAcceptance.py": "d855e13ab608b6b2efa7e3b492fba6a921968f0ef755629ca63681533fd71fd5",
+    "Tests/EditorImGui/LinuxDisplayAcceptanceTests.py": "417342d8068dd6a97ad6467901136d45943db8ce8889527fe1510ce488027e43",
+    "Tests/Showcase/LinuxShowcaseInteraction.py": "a6eac69d1b754c168533802d0a80d703ec709d4fba762a7d5e236ec7a7e438ac",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "f0c647ee233a3de897eb78bf8c069e9f8a235366873d1d7c59787740021a448b",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "0cf6d420f41ed001b4be04ae80b789d8a2b204f052a6cfc0f41db9cfc68b1109",
+    "Tests/WindowPresentation/PbrRefractionFixtures.h": "767906ea43fb1bda31ffd873eb9269b99091e1535045986fa2572bbc416c7a04",
+    "Tests/WindowPresentation/SceneInstanceTests.cpp": "4ca51f206d40b77a451cf81acf679798d3e54ac00ea792fc54b3e4eac878110b",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "c2e64528f7fde8c7eeb20c50f6a44d5b53661b029f1a17bbb27fe867b3e7604c",
+    "Tools/Package/AcceptShowcaseWindows.ps1": "425c644a9a33cf9a09e5f5d361e2157c28ed8dcc0931bbc2cda8a56fa781ed75"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-crystal-refraction/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/refraction-sync-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "7de378f24240",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.61155569300172,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.200000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "6b6a55b9809e3256a5be86b3ca4cbefc27322237e5480ba7c66d268eb4e898c8",
+    "video_sha256": "8028c0a122d97e6de1eb47c79d128f3f46fe4e7acb5dbf4c037bea4e5bdb3ff4",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "dd4f7df6a905534a4409944410e0b0a9568dd6a7909dbdb3e6c7d51e111a3b65",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}

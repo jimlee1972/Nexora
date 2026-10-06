@@ -65,12 +65,20 @@ int main() {
   std::size_t covered = 0;
   std::vector<bool> selectedMaterials(wide.materials.size());
   for (const auto &batch : wide.batches) {
-    assert(batch.instanceCount == (batch.firstInstance == 1 ? 4U : 1U));
+    assert(batch.firstInstance + batch.instanceCount <= wide.instances.size());
+    if (batch.firstInstance == 1)
+      assert(batch.instanceCount == 4);
+    else if (batch.firstInstance >= 5 && batch.firstInstance < 437 && batch.materialIndex == 0)
+      assert(batch.instanceCount > 1);
+    else if (batch.firstInstance >= 437 && batch.materialIndex < 18)
+      assert(batch.instanceCount >= 1 && batch.indexCount == 132);
+    else
+      assert(batch.instanceCount == 1);
     if (batch.materialIndex < 18) {
       assert(batch.firstIndex == covered && batch.materialIndex < 18);
       covered += batch.indexCount;
     } else {
-      assert(batch.firstInstance == 5 && batch.materialIndex >= 18);
+      assert(batch.firstInstance == wide.instances.size() - 1 && batch.materialIndex >= 18);
       assert(wide.materials[batch.materialIndex].reflectionRole ==
              Nexora::Presentation::SceneReflectionRole::ReflectedGeometry);
       assert(!wide.materials[batch.materialIndex].castsShadow);
@@ -90,10 +98,12 @@ int main() {
     if (batch.materialIndex == 5)
       sourceLeaves += batch.indexCount / 6;
   assert(sourceLeaves > 700);
+  assert(wide.materials[5].twoSidedLighting && wide.materials[15].twoSidedLighting &&
+         wide.materials[16].twoSidedLighting);
   assert(courtyard.Report().find("\"foliage_quad_count\":" + std::to_string(sourceLeaves)) !=
          std::string::npos);
   assert(wide.materials[12].opacity == 0.23F && !wide.materials[12].castsShadow);
-  assert(covered == wide.indices.size() && wide.instances.size() == 6 && wide.planarReflection);
+  assert(covered == wide.indices.size() && wide.instances.size() > 438 && wide.planarReflection);
   const auto columnBatch =
       std::find_if(wide.batches.begin(), wide.batches.end(), [](const auto &batch) {
         return batch.firstInstance == 1 && batch.instanceCount == 4;
@@ -103,6 +113,30 @@ int main() {
     assert(Nexora::Presentation::ValidateSceneInstance(wide.instances[i]));
   assert(wide.instances[1].translation[0] == -4.5F && wide.instances[2].translation[0] == -5.5F);
   assert(wide.instances[2].scale[1] == 0.7F && wide.instances[4].scale[1] == 0.7F);
+  std::size_t pavingCount = 0;
+  for (const auto &batch : wide.batches)
+    if (batch.materialIndex == 0 && batch.firstInstance >= 5 && batch.firstInstance < 437) {
+      assert(batch.indexCount == 54); // Nine faces per original bevelled tile.
+      pavingCount += batch.instanceCount;
+      for (std::size_t i = batch.firstInstance; i < batch.firstInstance + batch.instanceCount;
+           ++i) {
+        const auto &tile = wide.instances[i];
+        assert(Nexora::Presentation::ValidateSceneInstance(tile));
+        assert(std::abs(tile.translation[0]) > 1.2F || std::abs(tile.translation[2]) > 1.2F);
+      }
+    }
+  assert(pavingCount == 432 && wide.vertices.size() < 65536);
+  std::size_t masonryCount = 0;
+  for (const auto &batch : wide.batches)
+    if (batch.materialIndex < 18 && batch.firstInstance >= 437) {
+      assert(batch.materialIndex == 0 || batch.materialIndex == 8);
+      assert(batch.indexCount == 132); // Exact 26-face authored bevel profile.
+      masonryCount += batch.instanceCount;
+      for (std::size_t i = batch.firstInstance; i < batch.firstInstance + batch.instanceCount; ++i)
+        assert(Nexora::Presentation::ValidateSceneInstance(wide.instances[i]));
+    }
+  assert(masonryCount > 100 && wide.instances.size() == 438 + masonryCount);
+
   for (std::size_t i = 0; i < 7; ++i)
     assert(selectedMaterials[i]);
   for (std::size_t i = 8; i < 11; ++i) {
@@ -237,6 +271,11 @@ int main() {
   assert(courtyard.Scene(1280, 720).vegetationTime == animatedTime);
   Press(courtyard, Key::Enter);
   const auto active = courtyard.Scene(1280, 720);
+  assert(active.pointLight && active.pointLight->radius == 4.5F);
+  Press(courtyard, Key::F9);
+  assert(!courtyard.Scene(1280, 720).pointLight);
+  Press(courtyard, Key::F9);
+  assert(courtyard.Scene(1280, 720).pointLight);
   const auto activeParticles =
       std::find_if(active.batches.begin(), active.batches.end(),
                    [](const auto &batch) { return batch.materialIndex == 7; });
@@ -387,6 +426,7 @@ int main() {
 #if NEXORA_ASSET_PIPELINE_ENABLED
     assert(draw.environment.has_value() == (tier != 0));
 #endif
+    assert(draw.materials[5].twoSidedLighting && draw.materials[15].twoSidedLighting);
     assert(draw.materials[6].unlit && !draw.materials[6].castsShadow);
     assert(draw.materials[7].unlit && !draw.materials[7].castsShadow);
     const auto particleBatch =
@@ -394,9 +434,15 @@ int main() {
                      [](const auto &batch) { return batch.materialIndex == 7; });
     assert(particleBatch != draw.batches.end() && particleBatch->indexCount == (24U << tier) * 6);
     assert(draw.planarReflection.has_value() == (tier != 0));
-    assert(draw.instances.size() == (tier != 0 ? 6 : 5));
+    assert(draw.instances.size() == (tier != 0 ? 438 : 437) + masonryCount);
     qualityVertices[tier] = draw.vertices.size();
   }
+  assert(quality.Scene(1280, 720).materials[12].refractionIndex == 1.46F);
+  Press(quality, Key::F8);
+  assert(quality.Scene(1280, 720).materials[12].refractionIndex == 1 &&
+         quality.Scene(1280, 720).materials[12].refractionThickness == 0);
+  Press(quality, Key::F8);
+  assert(quality.Scene(1280, 720).materials[12].refractionIndex == 1.46F);
   Press(quality, Key::F7);
   assert(!quality.Scene(1280, 720).atmosphere);
   Press(quality, Key::F7);

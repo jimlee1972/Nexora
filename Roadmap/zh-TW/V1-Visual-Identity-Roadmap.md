@@ -1,5 +1,12 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+MSVC 編譯修正：前景植被區域變數改名 `sprigRadius`，避免 /WX 下遮蔽相機成員。
+標準化變數名稱後的來源逐位元比較相同，計算式與數值不變。✅ Linux configure／build
+與完整 97/97 通過（102.71 秒），包含 85 個原生 PBR 畫面與 core／同步驗證。
+證據位於 `VIS-Courtyard-Masonry-Linux-2026-10-05/msvc-member-shadowing/`；既有 Shipping／影片
+保留原本來源凍結，Windows CI 重新驗證中。
+
+
 > 版本：v0.2
 >
 > 日期：2026-10-04
@@ -414,4 +421,109 @@ Shipping／跨平台證據與預覽圖一致性仍待完成，VIS 維持 5/7。
 既有石材法線圖提供有界的投影表面梯度，避免 mesh UV 拉伸，並與 base／ORM／倒影的原始
 世界座標一致。零強度保留幾何法線，world scale 預設為零時保留既有 UV 法線映射。新增四個
 原生檢查（共 69 個），驗證平坦／投影法線、零強度及精確還原。沒有新增貼圖／pass／packet。
-原生／交付驗證與預覽圖一致性仍待完成，VIS 維持 5/7。
+Linux Development 全套 97/97（92.68 秒）與 69 個原生案例通過；Shipping 證據見 VIS-World-Normals-Linux-2026-10-05。預覽圖驗收仍待完成，VIS 維持 5/7。
+
+
+### 雕刻建築與共用鋪面
+
+八個原創缺角鋪面網格以 432 個原生 affine instances 共用，保留決定性的石材高度／尺寸與
+原始世界座標 PBR 貼圖；identity／石柱／鋪面／倒影的 instance 範圍隨快取及品質切換保存。
+騰出的頂點預算用於中央托碗／支撐、基座倒角邊緣、交錯拱廊石材與柱面幾何浮雕。
+分層 cutout 樹冠共用 GPU 風與葉片光照。Standard 固定啟動鏡頭含 51,790 個頂點與
+1,338 個來源葉片 quad。Linux 全套 97/97（95.21 秒）通過，包含三種品質頂點預算與
+原生 instance／風／效果重播。Shipping 證據與預覽圖一致性仍待完成，VIS 維持 5/7。
+
+
+### 有界水晶折射
+
+螢幕空間水晶折射在透明繪製前取樣私有不透明線性 HDR 快照。共享 Slang 投影穿過原創
+slab 的折射鏡頭射線，每軸限制 24 像素並排除近於玻璃的前景取樣。Standard／High 水晶
+使用折射率 1.46 與 0.65 世界單位厚度；Basic／預設保留染色透明。
+Vulkan／DX12／Metal adapter 保留不透明深度，以 frame fence／resize 管理快照生命週期。
+六個原生檢查驗證偏移、反向、精確重播、零厚度與前景排除（共 75 個 PBR 案例）。
+Linux 全套 97/97（92.94 秒）與 75 個 PBR 案例通過，包含原生 F8 畫面變化／精確還原。
+Shipping／預覽圖驗證持續進行，VIS 維持 5/7；此模型不包含畫面外與多個透明層的折射。
+
+
+Vulkan 折射現以 Khronos 同步驗證檢查：swapchain acquire 與 HDR 複製後的轉換允許附件載入
+讀取；相容的 HDR clear／load pass 共用 color／depth read dependency，保留 pipeline 與
+framebuffer 相容性。75 個原生 PBR 畫面已通過 core／synchronization validation，
+完整 Linux configure／build／test 已在 validation layers 啟用時通過 97/97（95.08 秒）；
+發行重新驗證待完成。
+
+### 色彩正確的石材 mip 過濾
+
+有光照的場景貼圖 generation 現產生有界的原生 mip chain：sRGB 色彩在線性光照平均，
+ORM 資料線性平均，法線向量平均後重新正規化。Cutout 遮罩、unlit atlas、混合語意與
+UI 保留單層。Vulkan／DX12／Metal 以既有 generation 生命週期上傳相同的私有 CPU chain，
+減少遠處石材 aliasing；沒有修改來源美術、pass、常數 packet 或 C／Zig ABI。
+CPU 語意檢查與兩個原生棋盤／灰階縮小案例涵蓋過濾（共 77 個 PBR 案例）。
+Linux 全套 97/97（96.26 秒）通過，包含原生效果重播與所有品質頂點預算。
+Shipping／預覽圖驗證持續進行；VIS 維持 5/7。
+
+
+庭院封閉水晶現可選擇僅前表面折射。共享 Slang 以幾何法線與實際／鏡像相機判斷背面，
+避免稍後繪製的背面以另一份 opaque HDR 樣本覆蓋前方晶面。一般玻璃預設仍保留雙面。
+此選項須搭配啟用中的 lit、透明、HDR 折射，使用私有封包 offset 78；368-byte 封包及
+穩定 C/Zig ABI 不變。F8／U／Basic 回復預設行為。新增兩個原生案例比較背面捨棄與
+原有雙面折射，另有 CPU 驗證與封包檢查（79 個 PBR 畫面）。完整 Linux 已通過 97/97（98.20 秒）；發行驗證待完成；
+預覽圖一致性及實體目標驗收仍未通過，VIS 維持 5/7。
+
+
+庭院石材改為每世界單位 1.1 次重複並降低 normal 強度，讓原創孔隙以細節呈現，
+避免成為大塊斑駁。盆座、底座及陶器旋轉曲面使用 48 個徑向分段；溝槽柱仍保留 64 分段。
+青銅提高亮度係數並降低 roughness，以 0.8 IBL 強度表現太陽及環境反射；
+遠山共用低強度世界投影石材細節。新增確定性的地面植被及
+環體右側常春藤，共用風、暫停／重播及鏡面反射時鐘。固定 activated Standard 鏡頭含
+60,662 頂點與 1,764 個來源植被四邊形。啟用 core／sync validation 的 Linux 全套通過
+97/97（101.60 秒），含三種品質預算與 79 個 PBR 畫面。發行、預覽圖一致性及實體
+目標驗收仍未通過，VIS 維持 5/7。
+
+
+水晶新增有界 HDR 點光源，在 bloom／ACES 前對附近石材、青銅及透明表面產生局部 PBR
+照明。共享 Slang 使用有限半徑的平滑反平方衰減；來源世界座標讓平面鏡像光照一致，
+unlit 天空與發光面不受影響。Standard／High 啟動後跟隨水晶升降與共用暫停／重播時鐘；
+F9 比較局部光源。Basic、未啟動與預設場景不啟用。複製型 ScenePointLight 驗證有限位置、
+radiance [0,32] 與半徑 [0.1,64]。私有封包增至 400 bytes，仍放入 DX12 的 768-byte
+對齊配對；C/Zig ABI 不變。已準備 CPU 邊界／封包及六個原生移動／重播／停用／unlit
+案例（85 個 PBR 畫面），啟用 core／sync validation 的 Linux 全套通過 97/97（105.31 秒），
+含 F9 原生畫面變化與精確還原。發行、預覽圖一致性及實體目標仍未驗收；VIS 維持 5/7。
+此單一光源不提供點光源陰影貼圖。
+
+
+水晶局部點光源 Shipping 證據：[VIS-Crystal-Light-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Crystal-Light-Linux-2026-10-05)。來源凍結 `aec18172a4e6`；實際動畫影片 100.33 秒（實際錄製 100.71 秒），隔離套件 F9 開關與精確還原、85 個原生 PBR 案例通過。參考圖一致性與實體目標驗收仍未完成。
+
+
+庭院美術改用相同尺寸石塊共用精確倒角模型，保留世界座標貼圖與反轉置法線，降低上傳幾何。
+遠景塔身加入分層石砌與菱形浮雕，三處前景葉叢增加 288 張隨風卡片；葉片以原始透明遮罩與
+顏色受光，移除自發光補色。石盆向前移以保留輪廓，陶器改用較暖的釉色與反光。
+水晶來源使用五層錯開切面，cook 檢查三角形朝外且構成凸面；三條內部發光礦物裂隙跟隨
+水晶旋轉與浮動，在不透明 HDR 快照中透過外殼呈現。符文與裂隙降低輻射亮度後再進入
+bloom／ACES；此為實際美術幾何，不宣稱體積散射。Standard／High 的霧化強度為 0.6，
+距離為 18–58 世界單位。本輪尚不接受最終參考圖一致性或實體目標效能，VIS 維持 5/7。
+
+Linux 原生整合：✅ 完整 configure／build 與 97/97 測試通過（103.93 秒），啟用 Khronos core／同步驗證，包含 85 個 PBR 畫面與三種品質幾何預算。固定啟動裝置的 Standard 畫面為 50,166 頂點、2,052 張來源植被卡片。Shipping／Full 隔離套件原生驗收與實際 100.27 秒影片（實際錄製 100.80 秒）通過；最終參考圖／目標驗收仍未完成。
+
+證據：[VIS-Courtyard-Masonry-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Masonry-Linux-2026-10-05)。來源凍結 `e5bb13119ba1`，保留確切來源與套件雜湊。
+
+
+可選 `SceneMaterial::twoSidedLighting` 讓受光 PBR 薄片先將幾何法線朝向觀察者，再計算
+切線 normal map 與 BRDF／IBL。葉片與布旗啟用此功能；預設保留既有表面受光。
+世界座標陰影遮罩、平面鏡射的虛擬相機仍一致；封閉水晶背面過濾在法線翻轉之前執行。
+Unlit／Lambert 拒絕此旗標。私有材質 float 79 使用保留欄位，400-byte packet、後端绑定
+及穩定 C／Zig ABI 不變。背面不再因觀察角度為負而失去 diffuse IBL；此為薄片受光，
+並非厚材質體積模型。最終參考圖／目標驗收仍未完成。
+
+✅ Linux Development configure／build 與 97/97 測試通過（106.20 秒），包含啟用 Khronos core／同步驗證的 89 個原生 PBR 畫面。四個薄片案例保留預設背面行為，啟用後正反面顏色精確一致；CPU 驗證 slot 79，拒絕 unlit／Lambert 組合。原生幾何預算與風／暫停／重播互動通過；Shipping／Full 隔離套件原生驗收與實際 100.33 秒影片（實際錄製 100.79 秒）通過；最終參考圖／目標驗收仍未完成。
+
+證據：[VIS-Two-Sided-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05)。來源凍結 `248791c4b51a`，保留確切來源與套件雜湊。
+
+
+MSVC 測試可攜性修正：點光源填充值與雙面法線條件式改用明確浮點值。✅ Linux configure／build
+與完整 97/97 通過（102.61 秒），包含 89 個原生 PBR 畫面與 core／同步驗證。測試數值與
+Runtime 來源不變；既有 Shipping 證據保留原本來源凍結。Windows CI 重新驗證中。
+
+
+已同步上游點光源與石砌的 MSVC fixture 修正證據：兩階段 Linux 完整 97/97 分別為
+102.20／102.62 秒，包含 85 個原生 PBR 畫面與 core／同步驗證。各階段 `msvc-literals/`
+保留確切 log／雜湊；此同步僅變更文件與證據，Runtime／fixture 數值不變。

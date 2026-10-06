@@ -186,9 +186,13 @@ struct SceneMaterial final {
   float windAmplitude{}; // World-space bend, 0..0.5; UV.y is root-to-tip bend weight.
   float transmissionThickness{}; // Thin-leaf back lighting, 0..1; no alpha blending.
   std::array<float, 3> transmissionColor{0.2F, 0.5F, 0.08F};
-  bool unlit{};           // PBR emission-only path; retains alpha cutout and common color output.
-  bool castsShadow{true}; // Exclude non-casters from the protecting-frame prepass.
+  bool unlit{};            // PBR emission-only path; retains alpha cutout and common color output.
+  bool twoSidedLighting{}; // Lit PBR sheets: orient the shading normal toward the viewer.
+  bool castsShadow{true};  // Exclude non-casters from the protecting-frame prepass.
   SceneReflectionRole reflectionRole{}; // Horizontal planar mirror mask; opt-in PBR only.
+  float refractionIndex{1};    // [1,2.5]; above 1 enables bounded opaque-HDR background refraction.
+  float refractionThickness{}; // [0,1] world units; requires non-casting translucent HDR PBR.
+  bool refractionFrontSurfaceOnly{}; // Closed glass: reject rear geometric facets before shading.
   float opacity{1}; // Linear HDR blend coverage; below 1 requires non-casting HDR PBR.
   std::array<float, 3> transparencyTint{1, 1, 1}; // Linear attenuation of the transmitted scene.
   float
@@ -212,6 +216,10 @@ struct SceneMaterial final {
     for (const auto value : {material.metallic, material.roughness, material.occlusion})
       if (!std::isfinite(value) || value < 0 || value > 1)
         return false;
+    if (!std::isfinite(material.refractionIndex) || material.refractionIndex < 1 ||
+        material.refractionIndex > 2.5F || !std::isfinite(material.refractionThickness) ||
+        material.refractionThickness < 0 || material.refractionThickness > 1)
+      return false;
     if (!std::isfinite(material.worldTextureScale) || material.worldTextureScale < 0 ||
         material.worldTextureScale > 16)
       return false;
@@ -329,6 +337,12 @@ struct SceneDepthOfField final {
   float strength = 1.0F;
   float radiusPixels = 12.0F;
 };
+// One finite unshadowed point source in linear HDR, copied for this scene submission.
+struct ScenePointLight final {
+  std::array<float, 3> position{};
+  std::array<float, 3> radiance{1, 1, 1};
+  float radius{4}; // Smooth finite influence [0.1,64] world units.
+};
 struct SceneDrawData final {
   std::span<const SceneVertex> vertices;
   std::span<const std::uint16_t> indices;
@@ -349,6 +363,7 @@ struct SceneDrawData final {
   std::array<float, 3> cameraPosition{};
   std::span<const SceneLinearTextureUpload> linearTextureUploads{};
   std::optional<SceneEnvironment> environment{};
+  std::optional<ScenePointLight> pointLight{}; // HDR PBR only; absent preserves existing lighting.
   // Linear RGBA16F offscreen PBR; CompositeScene applies exposure, ACES and display transfer.
   bool hdr{};
   float exposure = 1.0F;

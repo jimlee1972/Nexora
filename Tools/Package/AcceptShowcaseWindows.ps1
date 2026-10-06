@@ -243,7 +243,7 @@ public static class NexoraAcceptanceWindow {
     Capture-Compared 'courtyard-pbr-restored.png' 'courtyard-wide.png' $true
     Require ((Get-FileHash (Join-Path $evidence 'courtyard-wide.png')).Hash -eq
         (Get-FileHash (Join-Path $evidence 'courtyard-pbr-restored.png')).Hash) 'Courtyard PBR restoration pixels differ.'
-    foreach ($effect in @(@(78, 'wind'), @(77, 'transmission'), @(75, 'bloom'), @(74, 'depth-of-field'), @(86, 'planar-reflection'), @(85, 'crystal-transparency'), @(118, 'atmosphere'))) {
+    foreach ($effect in @(@(78, 'wind'), @(77, 'transmission'), @(75, 'bloom'), @(74, 'depth-of-field'), @(86, 'planar-reflection'), @(85, 'crystal-transparency'), @(118, 'atmosphere'), @(119, 'refraction'))) {
         Press-Key $effect[0]
         Capture-Compared "courtyard-$($effect[1])-off.png" 'courtyard-wide.png' $false
         Press-Key $effect[0]
@@ -253,6 +253,7 @@ public static class NexoraAcceptanceWindow {
     $acceptance.courtyard_transmission_comparison = $true
     $acceptance.courtyard_transparency_comparison = $true
     $acceptance.courtyard_atmosphere_comparison = $true
+    $acceptance.courtyard_refraction_comparison = $true
     $acceptance.courtyard_planar_reflection_comparison = $true
     $acceptance.courtyard_bloom_comparison = $true
     $acceptance.courtyard_depth_of_field_comparison = $true
@@ -285,6 +286,11 @@ public static class NexoraAcceptanceWindow {
     $acceptance.courtyard_free_camera = $true
     Press-Key 13 # Activate the device with animation paused at time zero.
     Capture-Compared 'courtyard-activated.png' 'courtyard-wide.png' $false
+    Press-Key 120 # F9 compares actual crystal point lighting.
+    Capture-Compared 'courtyard-crystal-light-off.png' 'courtyard-activated.png' $false
+    Press-Key 120
+    Capture-Compared 'courtyard-crystal-light-restored.png' 'courtyard-activated.png' $true
+    $acceptance.courtyard_crystal_light_comparison = $true
     Start-Sleep -Milliseconds 300
     Capture-Compared 'courtyard-paused.png' 'courtyard-activated.png' $true
     Press-Key 32

@@ -7,6 +7,7 @@
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
 #include "ScenePbrHlslShaders.h"
+#include "SceneTextureMipmaps.h"
 #include "SceneToneHlslShaders.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
@@ -423,7 +424,7 @@ public:
       std::memcpy(static_cast<std::byte *>(mapped) + slot * materialStride, &constants,
                   sizeof(constants));
       if (drawData.pbr) {
-        const auto parameters = PackPbrMaterial(drawData, material, true);
+        const auto parameters = PackPbrMaterial(drawData, material, true, true, width_, height_);
         std::memcpy(static_cast<std::byte *>(mapped) + slot * materialStride + 256,
                     parameters.data(), sizeof(parameters));
       }
@@ -474,8 +475,12 @@ public:
         !UploadUiTexture({UINT64_MAX, 1, 1, 8, blackEnvironment}, true, 1, true))
       return SurfaceStatus::DeviceLost;
     for (const auto &upload : drawData.textureUploads)
-      if (!sceneTextures_.contains(upload.textureId) && !UploadUiTexture(upload, true))
-        return SurfaceStatus::DeviceLost;
+      if (!sceneTextures_.contains(upload.textureId)) {
+        const auto mips =
+            BuildSceneTextureMipmaps(upload, ResolveSceneMipSemantic(drawData, upload.textureId));
+        if (!UploadUiTexture(mips.Upload(upload), true, mips.levels))
+          return SurfaceStatus::DeviceLost;
+      }
     const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
                                          std::byte{255}};
     if (needsWhite && !sceneTextures_.contains(UINT64_MAX) &&
@@ -486,6 +491,7 @@ public:
     if (drawData.pbr && !sceneTextures_.contains(UINT64_MAX - 1) &&
         !UploadUiTexture({UINT64_MAX - 1, 1, 1, 4, flatNormal}, true))
       return SurfaceStatus::DeviceLost;
+    const bool refraction = HasSceneRefraction(drawData);
     const auto base = sceneUploads_[frame_]->GetGPUVirtualAddress();
     const auto geometryBase = base + kGeometryOffset;
     auto rtv = heap_->GetCPUDescriptorHandleForHeapStart();
@@ -520,6 +526,23 @@ public:
         view.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         view.Texture2D.MipLevels = 1;
         device_->CreateShaderResourceView(sceneColors_[frame_].Get(), &view, handle);
+      }
+      if (refraction) {
+        descriptor.Flags = D3D12_RESOURCE_FLAG_NONE;
+        if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
+                                                    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+                                                    nullptr,
+                                                    IID_PPV_ARGS(&refractionColors_[frame_]))))
+          return SurfaceStatus::DeviceLost;
+        auto snapshotHandle = uiDescriptors_->GetCPUDescriptorHandleForHeapStart();
+        snapshotHandle.ptr += SIZE_T(2 * kMaximumFrames + frame_) * uiDescriptorIncrement_;
+        D3D12_SHADER_RESOURCE_VIEW_DESC snapshotView{};
+        snapshotView.Format = descriptor.Format;
+        snapshotView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        snapshotView.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        snapshotView.Texture2D.MipLevels = 1;
+        device_->CreateShaderResourceView(refractionColors_[frame_].Get(), &snapshotView,
+                                          snapshotHandle);
       }
       commands_->ClearRenderTargetView(rtv, clear.Color, 0, nullptr);
     }
@@ -565,6 +588,22 @@ public:
     const auto batches =
         drawData.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : drawData.batches;
     for (unsigned phase = 0; phase < 2; ++phase) {
+      if (phase == 1 && refraction) {
+        std::array<D3D12_RESOURCE_BARRIER, 2> snapshotBarriers{};
+        for (auto &barrier : snapshotBarriers)
+          barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        snapshotBarriers[0].Transition = {
+            sceneColors_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+            D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE};
+        snapshotBarriers[1].Transition = {
+            refractionColors_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+            D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST};
+        commands_->ResourceBarrier(2, snapshotBarriers.data());
+        commands_->CopyResource(refractionColors_[frame_].Get(), sceneColors_[frame_].Get());
+        for (auto &barrier : snapshotBarriers)
+          std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+        commands_->ResourceBarrier(2, snapshotBarriers.data());
+      }
       for (const auto &batch : batches) {
         const auto material = ResolveSceneMaterial(drawData, batch.materialIndex);
         const bool transparent = material.opacity < 1;
@@ -575,9 +614,11 @@ public:
                 ? sceneHdrBlendPipeline_.Get()
                 : (drawData.hdr ? sceneHdrPipeline_.Get()
                                 : (drawData.pbr ? scenePbrPipeline_.Get() : scenePipeline_.Get())));
-        const float coverage[]{(1 - material.opacity) * material.transparencyTint[0],
-                               (1 - material.opacity) * material.transparencyTint[1],
-                               (1 - material.opacity) * material.transparencyTint[2], 1};
+        const bool refractive = material.refractionIndex > 1 && material.refractionThickness > 0;
+        const float backgroundCoverage = refractive ? 0 : 1 - material.opacity;
+        const float coverage[]{backgroundCoverage * material.transparencyTint[0],
+                               backgroundCoverage * material.transparencyTint[1],
+                               backgroundCoverage * material.transparencyTint[2], 1};
         commands_->OMSetBlendFactor(coverage);
 
         const auto id = material.textureId ? material.textureId : UINT64_MAX;
@@ -621,6 +662,11 @@ public:
                                             : linearSceneTextures_.at(UINT64_MAX).descriptor;
           shadowHandle.ptr += UINT64(shadowDescriptor) * uiDescriptorIncrement_;
           commands_->SetGraphicsRootDescriptorTable(9, shadowHandle);
+          auto snapshotGpu = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
+          const auto snapshotSlot = refraction ? 2 * kMaximumFrames + frame_
+                                               : linearSceneTextures_.at(UINT64_MAX).descriptor;
+          snapshotGpu.ptr += UINT64(snapshotSlot) * uiDescriptorIncrement_;
+          commands_->SetGraphicsRootDescriptorTable(10, snapshotGpu);
         }
         commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
                                         batch.firstInstance);
@@ -711,6 +757,8 @@ public:
       WaitForSingleObject(event_, INFINITE);
     }
     acquired_ = false;
+    for (auto &color : refractionColors_)
+      color.Reset();
     for (auto &color : sceneColors_)
       color.Reset();
     for (auto &color : shadowColors_)
@@ -979,15 +1027,15 @@ private:
     pipeline.SampleDesc.Count = 1;
     if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&scenePipeline_))))
       return false;
-    std::array<D3D12_DESCRIPTOR_RANGE, 8> pbrRanges{};
-    std::array<D3D12_ROOT_PARAMETER, 10> pbrParameters{};
+    std::array<D3D12_DESCRIPTOR_RANGE, 9> pbrRanges{};
+    std::array<D3D12_ROOT_PARAMETER, 11> pbrParameters{};
     for (UINT i = 0; i < 2; ++i) {
       pbrParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
       pbrParameters[i].Descriptor.ShaderRegister = i;
       pbrParameters[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     }
-    std::array<D3D12_STATIC_SAMPLER_DESC, 8> pbrSamplers{};
-    for (UINT i = 0; i < 8; ++i) {
+    std::array<D3D12_STATIC_SAMPLER_DESC, 9> pbrSamplers{};
+    for (UINT i = 0; i < 9; ++i) {
       pbrRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
       pbrRanges[i].NumDescriptors = 1;
       pbrRanges[i].BaseShaderRegister = i;
@@ -1253,7 +1301,7 @@ private:
         upload.rowPitch != upload.width * (linear ? 8U : 4U) ||
         upload.pixels.size() !=
             (linear ? SceneLinearTextureByteSize(upload.width, upload.height, mipLevels)
-                    : static_cast<std::size_t>(upload.rowPitch) * upload.height))
+                    : SceneRgbaTextureByteSize(upload.width, upload.height, mipLevels)))
       return false;
     const UINT descriptorCount = scene && !linear ? 2U : 1U;
     if (freeUiDescriptors_.size() + 4096U - nextUiDescriptor_ < descriptorCount)
@@ -1467,7 +1515,7 @@ private:
   HANDLE event_{};
   UINT increment_{};
   UINT uiDescriptorIncrement_{};
-  UINT nextUiDescriptor_{2 * kMaximumFrames}; // Fence-owned HDR SRVs reserve the first frame slots.
+  UINT nextUiDescriptor_{3 * kMaximumFrames}; // Fence-owned HDR SRVs reserve the first frame slots.
   std::vector<UINT> freeUiDescriptors_;
   std::array<std::vector<UINT>, kMaximumFrames> retiredUiDescriptors_;
   uint64_t fenceValue_{};
@@ -1479,7 +1527,7 @@ private:
   ComPtr<ID3D12Fence> fence_;
   ComPtr<ID3D12DescriptorHeap> heap_;
   ComPtr<ID3D12DescriptorHeap> sceneRtvHeap_;
-  std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneColors_;
+  std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneColors_, refractionColors_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> shadowColors_, shadowDepths_;
   ComPtr<ID3D12PipelineState> shadowPipeline_;
   ComPtr<ID3D12DescriptorHeap> uiDescriptors_;

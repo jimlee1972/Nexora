@@ -2,6 +2,7 @@
 #include "PbrEnvironmentFixtures.h"
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
+#include "SceneTextureMipmaps.h"
 
 #include <array>
 #include <cmath>
@@ -194,6 +195,110 @@ void Run() {
   Require(translucentPacked[72] == 0.5F && translucentPacked[73] == 0.2F &&
               translucentPacked[74] == 0.4F && translucentPacked[75] == 0.6F,
           "transparency upload layout differs from shader constants");
+  const std::array<std::byte, 8> mipChecker{std::byte{0},   std::byte{0},   std::byte{0},
+                                            std::byte{255}, std::byte{255}, std::byte{255},
+                                            std::byte{255}, std::byte{255}};
+  const UiTextureUpload mipSource{930, 2, 1, 8, mipChecker};
+  const auto colorMips = BuildSceneTextureMipmaps(mipSource, SceneMipSemantic::Srgb);
+  const auto linearMips = BuildSceneTextureMipmaps(mipSource, SceneMipSemantic::Linear);
+  Require(colorMips.levels == 2 && colorMips.bytes.size() == 12 &&
+              colorMips.bytes[8] == std::byte{188} && colorMips.bytes[11] == std::byte{255} &&
+              linearMips.bytes[8] == std::byte{128},
+          "mip filtering did not preserve linear color/data");
+  const std::array<std::byte, 8> mipNormals{std::byte{255}, std::byte{128}, std::byte{255},
+                                            std::byte{255}, std::byte{0},   std::byte{128},
+                                            std::byte{255}, std::byte{255}};
+  const auto normalMips =
+      BuildSceneTextureMipmaps({931, 2, 1, 8, mipNormals}, SceneMipSemantic::Normal);
+  Require(normalMips.bytes[8] == std::byte{128} && normalMips.bytes[9] == std::byte{128} &&
+              normalMips.bytes[10] == std::byte{255},
+          "normal mip filtering did not renormalize vectors");
+  reflectionMaterials[0].textureId = 930;
+  Require(ResolveSceneMipSemantic(pbr, 930) == SceneMipSemantic::Srgb,
+          "opaque color mip role lost");
+  reflectionMaterials[0].alphaCutoff = 0.5F;
+  Require(ResolveSceneMipSemantic(pbr, 930) == SceneMipSemantic::None,
+          "cutout atlas was mip filtered");
+  reflectionMaterials[0].alphaCutoff = 0;
+  reflectionMaterials[0].normalTextureId = 930;
+  Require(ResolveSceneMipSemantic(pbr, 930) == SceneMipSemantic::None,
+          "ambiguous mip role accepted");
+  reflectionMaterials[0].normalTextureId = reflectionMaterials[0].textureId = 0;
+  reflectionMaterials[0].refractionIndex = 1.5F;
+  reflectionMaterials[0].refractionThickness = 0.7F;
+  Require(ValidateSceneMaterials(reflectionMaterials, {}) && ValidatePbrData(pbr) &&
+              HasSceneRefraction(pbr),
+          "valid refractive material rejected");
+  reflectionMaterials[0].refractionFrontSurfaceOnly = true;
+  Require(ValidatePbrData(pbr), "valid closed-glass front filtering rejected");
+  Require(PackPbrMaterial(pbr, reflectionMaterials[0], false)[78] == 1,
+          "front-surface flag not packed into reserved slot");
+  reflectionMaterials[0].refractionIndex = 1;
+  Require(!ValidatePbrData(pbr), "front filtering without refraction index accepted");
+  reflectionMaterials[0].refractionIndex = 1.5F;
+  reflectionMaterials[0].refractionThickness = 0;
+  Require(!ValidatePbrData(pbr), "front filtering without slab thickness accepted");
+  reflectionMaterials[0].refractionThickness = 0.7F;
+  reflectionMaterials[0].refractionFrontSurfaceOnly = false;
+  const auto refractionPacked = PackPbrMaterial(pbr, reflectionMaterials[0], false, true, 640, 480);
+  Require(refractionPacked[88] == 1.5F && refractionPacked[89] == 0.7F &&
+              refractionPacked[90] == 1.0F / 640 && refractionPacked[91] == 1.0F / 480,
+          "refraction upload target dimensions differ from shader constants");
+  for (const float invalid : {0.9F, 2.6F, std::numeric_limits<float>::quiet_NaN()}) {
+    reflectionMaterials[0].refractionIndex = invalid;
+    Require(!ValidateSceneMaterials(reflectionMaterials, {}), "invalid refraction index accepted");
+  }
+  reflectionMaterials[0].refractionIndex = 1.5F;
+  for (const float invalid : {-0.1F, 1.1F, std::numeric_limits<float>::quiet_NaN()}) {
+    reflectionMaterials[0].refractionThickness = invalid;
+    Require(!ValidateSceneMaterials(reflectionMaterials, {}),
+            "invalid refraction thickness accepted");
+  }
+  reflectionMaterials[0].refractionThickness = 0.7F;
+  reflectionMaterials[0].opacity = 1;
+  Require(!ValidatePbrData(pbr), "opaque refraction accepted");
+  reflectionMaterials[0].opacity = 0.5F;
+  reflectionMaterials[0].unlit = true;
+  Require(!ValidatePbrData(pbr), "unlit refraction accepted");
+  reflectionMaterials[0].unlit = false;
+  pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "non-HDR refraction accepted");
+  pbr.hdr = true;
+  reflectionMaterials[0].refractionIndex = 1;
+  reflectionMaterials[0].refractionThickness = 0;
+  Require(!HasSceneRefraction(pbr), "default material requests refraction target");
+  SceneDrawData pointDraw{};
+  pointDraw.pbr = pointDraw.hdr = pointDraw.offscreen = true;
+  const auto noPoint = PackPbrMaterial(pointDraw, SceneMaterial{}, false);
+  for (unsigned i = 92; i < 100; ++i)
+    Require(noPoint[i] == 0, "default scene carries point light constants");
+  pointDraw.pointLight = ScenePointLight{{-1, 2, 3}, {0.3F, 8, 12}, 4.5F};
+  Require(ValidatePbrData(pointDraw), "valid point light rejected");
+  const auto pointPacked = PackPbrMaterial(pointDraw, SceneMaterial{}, false);
+  Require(pointPacked[92] == -1 && pointPacked[93] == 2 && pointPacked[94] == 3 &&
+              pointPacked[95] == 4.5F && pointPacked[96] == 0.3F && pointPacked[97] == 8 &&
+              pointPacked[98] == 12 && pointPacked[99] == 0,
+          "point light constants differ from shader layout");
+  for (const float invalid : {0.0F, 0.09F, 64.01F, std::numeric_limits<float>::quiet_NaN()}) {
+    pointDraw.pointLight->radius = invalid;
+    Require(!ValidatePbrData(pointDraw), "invalid point light radius accepted");
+  }
+  pointDraw.pointLight = ScenePointLight{};
+  for (const float invalid : {10001.0F, std::numeric_limits<float>::infinity()}) {
+    pointDraw.pointLight->position[0] = invalid;
+    Require(!ValidatePbrData(pointDraw), "invalid point light position accepted");
+  }
+  pointDraw.pointLight = ScenePointLight{};
+  for (const float invalid : {-0.1F, 32.1F, std::numeric_limits<float>::quiet_NaN()}) {
+    pointDraw.pointLight->radiance[0] = invalid;
+    Require(!ValidatePbrData(pointDraw), "invalid point radiance accepted");
+  }
+  pointDraw.pointLight = ScenePointLight{};
+  pointDraw.hdr = false;
+  Require(!ValidatePbrData(pointDraw), "non-HDR point light accepted");
+  pointDraw.pointLight.reset();
+  Require(ValidatePbrData(pointDraw), "default scene lighting changed");
+
   pbr.materials = {};
   pbr.materials = reflectionMaterials;
   for (const float invalid : {-1.0F, 17.0F, std::numeric_limits<float>::quiet_NaN()}) {
@@ -207,8 +312,18 @@ void Run() {
   Require(mappedPacked[76] == 0.5F && mappedPacked[77] == 0 && mappedPacked[78] == 0 &&
               mappedPacked[79] == 0,
           "world mapping layout differs from shader constants");
+  reflectionMaterials[0].twoSidedLighting = true;
+  Require(ValidatePbrData(pbr) && PackPbrMaterial(pbr, reflectionMaterials[0], false)[79] == 1,
+          "two-sided lighting packet rejected");
+  reflectionMaterials[0].unlit = true;
+  Require(!ValidatePbrData(pbr), "unlit two-sided lighting accepted");
+  reflectionMaterials[0].unlit = false;
+  reflectionMaterials[0].worldTextureScale = 0;
   pbr.pbr = false;
   pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "Lambert two-sided lighting accepted");
+  reflectionMaterials[0].twoSidedLighting = false;
+  reflectionMaterials[0].worldTextureScale = 0.5F;
   Require(!ValidatePbrData(pbr), "Lambert world mapping accepted");
   pbr.pbr = pbr.hdr = true;
   pbr.materials = {};

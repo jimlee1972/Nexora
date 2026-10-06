@@ -31,9 +31,12 @@ struct MaterialConstants
   float4 reflectionRegion0; // center x/z, radius x/z
   float4 reflectionRegion1;
   float4 transparency; // coverage, linear RGB transmission attenuation
-  float4 worldMapping; // base/ORM triplanar repeats per world unit; shoreline variation; two reserved
+  float4 worldMapping; // base/ORM triplanar repeats per world unit; shoreline variation; front-only refraction; two-sided lighting
   float4 atmosphereColor; // linear RGB, maximum haze strength
   float4 atmosphereRange; // start/end camera distance, two reserved
+  float4 refraction; // index, slab thickness, inverse target width/height
+  float4 pointPositionRadius;
+  float4 pointRadiance;
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
 [[vk::binding(0, 0)]] Sampler2D<float4> baseMap : register(t0);
@@ -44,6 +47,8 @@ struct MaterialConstants
 [[vk::binding(6, 0)]] Sampler2D<float4> specularEnvironment : register(t5);
 [[vk::binding(7, 0)]] Sampler2D<float4> brdfIntegration : register(t6);
 [[vk::binding(8, 0)]] Sampler2D<float4> directionalShadow : register(t7);
+
+[[vk::binding(9, 0)]] Sampler2D<float4> opaqueBackground : register(t8);
 
 float2 environmentUv(float3 direction) {
   float angle = atan2(direction.z, direction.x) + material.environment.y;
@@ -226,7 +231,13 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   if (material.transmission.w > 0.5)
     return outputSceneColor(reflectionResponse(
         emissionMap.Sample(input.uv).rgb * material.emissionRoughness.xyz, renderedPosition), renderedPosition);
+  float3 shadingEye = material.cameraPosition.xyz;
+  if (reflected) shadingEye.y = 2 * material.reflection.x - shadingEye.y;
+  float3 viewDirection = geometryDirection(shadingEye - input.worldPosition);
   float3 n = NexoraSafeNormalize(input.normal);
+  if (material.worldMapping.z > 0.5 && dot(n, viewDirection) <= 0) discard;
+  // Orient opt-in sheets before normal mapping, retaining a coherent tangent frame.
+  if (material.worldMapping.w > 0.5 && dot(n, viewDirection) < 0) n = -n;
   float3 t = NexoraSafeNormalize(input.tangent.xyz - n * dot(n, input.tangent.xyz));
   float3 b = NexoraSafeNormalize(cross(n, t)) * input.tangent.w;
   float3 encoded = normalMap.Sample(input.uv).xyz;
@@ -250,9 +261,6 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   environment.diffuseIrradiance = float3(0, 0, 0);
   environment.prefilteredSpecular = float3(0, 0, 0);
   environment.brdfLut = float2(0, 0);
-  float3 shadingEye = material.cameraPosition.xyz;
-  if (reflected) shadingEye.y = 2 * material.reflection.x - shadingEye.y;
-  float3 viewDirection = geometryDirection(shadingEye - input.worldPosition);
   if (material.environment.x > 0) {
     float3 n = geometryDirection(surface.normal);
     float roughness = saturate(surface.roughness);
@@ -279,6 +287,37 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   }
   float3 transmitted = NexoraEvaluateVegetationTransmission(surface.normal, light,
       material.transmission.rgb * scene.lightColor.rgb, material.vegetation.w, 1-visibility);
-  float3 color = direct * visibility + ambient + transmitted + max(surface.emission, float3(0));
-  return outputSceneColor(reflectionResponse(color, renderedPosition), renderedPosition);
+  float3 local = float3(0);
+  if (material.pointPositionRadius.w > 0) {
+    float3 delta = material.pointPositionRadius.xyz - input.worldPosition;
+    float distanceSquared = dot(delta, delta);
+    float window = saturate(1 - distanceSquared /
+        (material.pointPositionRadius.w * material.pointPositionRadius.w));
+    float attenuation = window * window / max(0.25, distanceSquared);
+    local = NexoraEvaluateDirectBrdf(surface.normal, viewDirection, geometryDirection(delta),
+        surface.baseColor, surface.metallic, surface.roughness, material.pointRadiance.rgb * attenuation);
+  }
+  float3 color = direct * visibility + ambient + local + transmitted + max(surface.emission, float3(0));
+  float4 result = outputSceneColor(reflectionResponse(color, renderedPosition), renderedPosition);
+  if (material.refraction.x > 1 && material.refraction.y > 0) {
+    float3 incident = -viewDirection;
+    float3 faceNormal = dot(surface.normal, incident) > 0 ? -surface.normal : surface.normal;
+    float3 bent = refract(incident, faceNormal, 1 / material.refraction.x);
+    if (reflected) { bent.y = -bent.y; incident.y = -incident.y; }
+    float4 bentClip = mul(scene.mvp, float4(renderedPosition + bent * material.refraction.y, 1));
+    float4 straightClip = mul(scene.mvp, float4(renderedPosition + incident * material.refraction.y, 1));
+    float2 shift = float2(0);
+    if (bentClip.w > 0.0001 && straightClip.w > 0.0001)
+      shift = (bentClip.xy / bentClip.w - straightClip.xy / straightClip.w) * float2(0.5, -0.5);
+    float2 uv = input.position.xy * material.refraction.zw;
+    // Clamp each axis to 24 pixels and avoid pulling nearer foreground geometry into glass.
+    float2 limit = material.refraction.zw * 24;
+    float2 target = clamp(uv + clamp(shift, -limit, limit), material.refraction.zw * 0.5,
+        1 - material.refraction.zw * 0.5);
+    float4 background = opaqueBackground.SampleLevel(target, 0);
+    if (background.a + 0.02 < result.a) background = opaqueBackground.SampleLevel(uv, 0);
+    result.rgb = clamp(result.rgb + background.rgb * material.transparency.yzw *
+        (1 - material.transparency.x), float3(0), float3(65504));
+  }
+  return result;
 }
