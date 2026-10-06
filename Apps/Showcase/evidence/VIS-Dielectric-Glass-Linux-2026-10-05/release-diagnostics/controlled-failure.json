@@ -1,0 +1,8 @@
+{
+  "scope": "controlled native subprocess failure; no rendering acceptance claim",
+  "exit_code": 1,
+  "status": "FAIL",
+  "detail_visible": true,
+  "stderr_tail_bounded": true,
+  "timeouts_and_acceptance_checks_unchanged": true
+}

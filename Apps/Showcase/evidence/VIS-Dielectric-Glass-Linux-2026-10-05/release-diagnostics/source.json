@@ -1,0 +1,8 @@
+{
+  "verifier_sha256": "0e4a6f20bff8e8ac16f969e63379d3cd2583896dd5fb29e3ec459329075869b9",
+  "runtime_source_freeze": "4933fbc047c1ee224f46081fcd65a68f6a6bc427",
+  "existing_shipping_executable_sha256": "5c8c3899db58f6898afc8e76f9af1f3e394e1c437ba4dc984471ee525dc0e5d1",
+  "runtime_and_recorded_movie_unchanged": true,
+  "followup_full_tests": 97,
+  "followup_full_seconds": 103.21
+}

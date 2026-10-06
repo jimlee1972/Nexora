@@ -1,0 +1,3 @@
+# Coping native interaction synchronization evidence
+
+✅ Coping/native interaction integration: Linux configure/build and full 97/97 tests passed (110.58 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 1989904 passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Courtyard-Coping-Linux-2026-10-06/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.

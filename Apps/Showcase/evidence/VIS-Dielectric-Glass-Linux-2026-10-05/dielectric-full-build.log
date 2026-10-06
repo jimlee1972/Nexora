@@ -1,0 +1,13 @@
+[1/13] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcaseRoomTests.dir/__/__/Tests/Showcase/ShowcaseRoomTests.cpp.o
+[2/13] Building CXX object Tests/WindowPresentation/CMakeFiles/NexoraSceneInstanceTests.dir/SceneInstanceTests.cpp.o
+[3/13] Building CXX object Tests/WindowPresentation/CMakeFiles/NexoraVulkanPbrTests.dir/VulkanPbrTests.cpp.o
+[4/13] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/VulkanSurface.cpp.o
+[5/13] Linking CXX shared library Engine/Presentation/libNexoraPresentation.so
+[6/13] Linking CXX executable Tests/WindowPresentation/NexoraSceneInstanceTests
+[7/13] Linking CXX executable Tests/WindowPresentation/NexoraVulkanSceneTests
+[8/13] Linking CXX executable Tests/WindowPresentation/NexoraWindowPresentationTests
+[9/13] Linking CXX executable Tests/WindowPresentation/NexoraVulkanPbrTests
+[10/13] Linking CXX executable Apps/Showcase/NexoraShowcaseRoomTests
+[11/13] Linking CXX executable Apps/Showcase/NexoraShowcase
+[12/13] Building CXX object Tests/WindowPresentation/CMakeFiles/NexoraVulkanSceneUploadTests.dir/VulkanSceneUploadTests.cpp.o
+[13/13] Linking CXX executable Tests/WindowPresentation/NexoraVulkanSceneUploadTests

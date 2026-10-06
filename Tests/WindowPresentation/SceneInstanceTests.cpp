@@ -288,6 +288,19 @@ void Run() {
   Require(!ValidatePbrData(pbr), "front filtering without slab thickness accepted");
   reflectionMaterials[0].refractionThickness = 0.7F;
   reflectionMaterials[0].refractionFrontSurfaceOnly = false;
+  reflectionMaterials[0].dielectricRefraction = true;
+  Require(ValidatePbrData(pbr), "valid dielectric refraction rejected");
+  const auto dielectricPacked = PackPbrMaterial(pbr, reflectionMaterials[0], false, true, 640, 480);
+  Require(dielectricPacked[99] == 1 && sizeof(dielectricPacked) == 400,
+          "dielectric flag packing changed material size");
+  reflectionMaterials[0].metallic = 1;
+  Require(!ValidatePbrData(pbr), "metallic dielectric refraction accepted");
+  reflectionMaterials[0].metallic = 0;
+  reflectionMaterials[0].refractionThickness = 0;
+  Require(!ValidatePbrData(pbr), "dielectric without refraction accepted");
+  reflectionMaterials[0].refractionThickness = 0.7F;
+  reflectionMaterials[0].dielectricRefraction = false;
+
   const auto refractionPacked = PackPbrMaterial(pbr, reflectionMaterials[0], false, true, 640, 480);
   Require(refractionPacked[88] == 1.5F && refractionPacked[89] == 0.7F &&
               refractionPacked[90] == 1.0F / 640 && refractionPacked[91] == 1.0F / 480,
