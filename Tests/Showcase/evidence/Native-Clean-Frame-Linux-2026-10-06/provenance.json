@@ -1,0 +1,30 @@
+{
+  "ci_run": 37472064537,
+  "ci_job": 112298332813,
+  "pr": 378,
+  "head_sha": "dcda75e37e0e23ecb09cb071f2fce26f387f13e0",
+  "artifact_id": 11416999808,
+  "artifact_archive_sha256": "fb25329acf499bae30768f2b4f281d8247e2f8a33225cf44339d4487d666ab7d",
+  "diagnosis": "The accepted stable baseline still has opaque native navigation; bloom-off and bloom-restored are identical clean frames. Stable inequality to an earlier UI frame does not establish UI removal.",
+  "ci_png_sha256": {
+    "courtyard-bloom-off.png": "4e8f2100247165f7ce51d3e8572dfb053e8b0421fb5bbe76b9b7a514385edd17",
+    "courtyard-bloom-restored.png": "4e8f2100247165f7ce51d3e8572dfb053e8b0421fb5bbe76b9b7a514385edd17",
+    "courtyard-ui.png": "e9fdfa271c70bf7c0a226d7ab5f5bff802ee582b7e5812b1ec5c38364254eeff",
+    "courtyard-wide.png": "812b64914e98bae3b0c033bd688977c8f20e17b8244ad5bf6c296e8f6c5a8a24"
+  },
+  "validation_source_scope": "Test-only synchronization update validated with the reflection renderer and separately pending 48-vertex ceramic-inlay geometry; no renderer, shader or Shipping linkage changes in this update.",
+  "timeouts_unchanged": {
+    "settled_seconds": 15,
+    "compared_seconds": 5
+  },
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "test_script_sha256": "97225a7a1911d6ac535e9dd0b791f5c57aa986a2459405cf60a98f7a024552e4",
+  "linux_full_tests": {
+    "passed": 97,
+    "seconds": 118.49,
+    "core_and_sync_validation": true
+  },
+  "shipping_package_source_freeze": "2c7d68a0c8bfe4393f8051e4c94356e34b93cd46",
+  "shipping_native_acceptance": "PASS"
+}

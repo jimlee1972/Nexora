@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ F4 乾淨畫面驗證會等待實際導覽列消失。保留的 CI 失敗重播、Linux 完整 97/97 gate（118.49 秒，core/sync validation）與隔離 Shipping bloom 變化／精確還原驗證均通過。證據：`Tests/Showcase/evidence/Native-Clean-Frame-Linux-2026-10-06/`。比較等待上限保持一致；VIS 仍為 5/7。
+
 ✅ Linux Development 完整 97/97 測試通過（117.48 秒，Khronos core/sync validation），包含 99 個原生 PBR frames。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.82 秒）。製作凍結版本 `d04ef3db67707511b62e64385151dbf6af22ef3b`；證據：`Apps/Showcase/evidence/VIS-Planar-Receiver-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 平面水面保留真實石材底色：原生 adapters 先繪製獨立 HDR 鏡像，再依 Fresnel 混合反射與地板輻射。前景深度會遮住水面，景深仍使用地板距離；鏡像與主畫面的玻璃依序使用各自 opaque snapshot。六個原生反射 fixtures 驗證底色、移動、遮擋與精確還原。新增每個 frame 擁有的 HDR color target；private shader packet 大小與穩定 ABI 保持一致。

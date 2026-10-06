@@ -81,9 +81,33 @@ def screenshot(window: int, width: int, height: int, output: Path) -> bytes:
     return bytes(raw)
 
 
-def settled_screenshot(window, width, height, output, reference=None):
-    # Wait for several identical presented images: changing diagnostic text must not
-    # be mistaken for the first clean frame after the asynchronous F4 event.
+def navigation_overlay_present(captured, width, height, reference):
+    """Recognize the opaque navigation backgrounds, independently of changing UI text."""
+    stride=width*3+1
+    y=77*height//720
+    def strip(image, column):
+        start=20*width//1280+column*154*width//1280
+        end=(160+column*154)*width//1280
+        return image[y*stride+1+start*3:y*stride+1+end*3]
+    # Six inactive buttons have the same solid background even while the selected
+    # room and diagnostic text change. Learn its presented color from the UI frame,
+    # rather than assuming a renderer's output transfer function.
+    colors=[strip(reference,column)[:3] for column in range(8)]
+    color=max(set(colors),key=colors.count)
+    matches=0
+    for column in range(8):
+        row=strip(captured,column)
+        pixels=len(row)//3
+        matches+=sum(row[i:i+3]==color for i in range(0,len(row),3))>=pixels*0.95
+    return matches>=6
+
+
+def settled_screenshot(window, width, height, output, reference=None, ui_reference=None):
+    # A stable UI frame can differ from the earlier reference only because its
+    # diagnostics changed. Require its opaque navigation to disappear as well as
+    # several identical presented frames before accepting the asynchronous F4.
+    if ui_reference is not None:
+        assert navigation_overlay_present(ui_reference,width,height,ui_reference), 'Missing native UI reference'
     started=time.monotonic()
     deadline=started+15
     previous=None
@@ -91,7 +115,8 @@ def settled_screenshot(window, width, height, output, reference=None):
     while True:
         captured=screenshot(window,width,height,output)
         repeats=repeats+1 if captured==previous else 0
-        if repeats>=2 and time.monotonic()-started>=2 and captured!=reference:return captured
+        clean=ui_reference is None or not navigation_overlay_present(captured,width,height,ui_reference)
+        if clean and repeats>=2 and time.monotonic()-started>=2 and captured!=reference:return captured
         if time.monotonic()>=deadline:raise AssertionError(f'Native clean frame did not settle: {output.name}')
         previous=captured
         time.sleep(0.15)
@@ -308,7 +333,7 @@ def main():
             courtyard_ui = screenshot(window,1280,720,output/'courtyard-ui.png')
             tool('key', '--window', window, 'F4')
             time.sleep(0.2)
-            courtyard_wide = settled_screenshot(window,1280,720,output/'courtyard-wide.png',courtyard_ui)
+            courtyard_wide = settled_screenshot(window,1280,720,output/'courtyard-wide.png',courtyard_ui,ui_reference=courtyard_ui)
             assert courtyard_ui != courtyard_wide, 'Screenshot mode did not remove native UI'
             tool('key','--window',window,'k')
             time.sleep(0.2)
@@ -435,7 +460,7 @@ def main():
             tool('key','--window',window,'Tab','Tab','Tab','Tab','Tab','Tab','i','r','F3')
             tool('key','--window',window,'1','v','b','h','t','space','r')
             tool('key','--window',window,'F4')
-            resize_source = settled_screenshot(window,1280,720,output/'resize-source-hub.png')
+            resize_source = settled_screenshot(window,1280,720,output/'resize-source-hub.png',ui_reference=courtyard_ui)
             samples = resize_samples(resize_source,1280,720,960,540)
             tool('windowsize',window,960,540)
             resize_proof = resized_screenshot(window,960,540,output/'resized-hub.png',samples)
