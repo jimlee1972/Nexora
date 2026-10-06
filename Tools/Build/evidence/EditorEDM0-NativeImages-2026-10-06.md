@@ -104,3 +104,34 @@ After synchronizing main `f5a1e6ae9167b9487c45644b3a673d13b714da7b`, the repaire
 source passed full Linux Development **118/118** without skips (187.37 seconds), strict Vulkan
 **4/4** (24.44 seconds, actual layer insertion and no error diagnostics), and Shipping engine
 configure/build. Refreshed final-head hosted CI is still required before merging.
+
+## Final-head automated acceptance
+
+Source `75e10f02addf47959401c0c15743a25b8f78a26a` integrates main `85e94f6`.
+[Build run 37408634636](https://github.com/jimlee1972/Nexora/actions/runs/37408634636)
+passed all 18 selected jobs, including CI result, with no failed or skipped selected jobs.
+
+| Hosted Development gate | Result | Duration |
+| --- | --- | --- |
+| Linux/Vulkan | 140/140 passed | 287.52 s |
+| Windows/DX12 | 123/123 passed | 135.44 s |
+| macOS/Metal | 122/122 passed | 66.37 s |
+
+Each desktop native lifetime gate reported **4290 uploads**, copied pixels, stale fallback,
+owner/DPI/resize reuse and bounded slots/bytes. The Windows full-suite fixture failures above
+are historical; the final head passed. Sanitizer/build-contract, all mimalloc jobs, dedicated
+Linux display/synchronization validation and isolated Shipping package jobs also passed.
+These are hosted results, not Windows/macOS runs in the Linux development workspace.
+
+Exact-source local validation: Linux Development configure/build and **118/118**, no skips,
+182.02 s; strict Vulkan **4/4**, 25.38 s, actual Khronos layer insertion and zero validation
+errors/VUIDs/synchronization hazards; engine-only Shipping configure/build passed.
+Shipping/Full package configure/build and `Tools/Package/VerifyShowcaseRelease.py` passed
+with Zig 0.14.0 and isolated native acceptance PASS. Full commands are recorded in
+[PR #354](https://github.com/jimlee1972/Nexora/pull/354).
+
+The shared fixtures release workspace/file owners before temporary-directory cleanup, use
+binary canonical scene writes and hold native shortcuts across GUI frames. Upstream Lab-export,
+presented-resize and held-input synchronization remains required. No behavioral/pixel assertions
+were removed. Physical Linux display, Windows monitor-DPI/installed-IME composition and visual
+legibility/glyph coverage remain open; **ED-M0 and graphical milestones remain 0/8**.

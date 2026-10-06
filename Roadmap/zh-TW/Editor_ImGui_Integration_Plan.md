@@ -211,9 +211,10 @@ retirement；Vulkan offscreen frame 沒有 validation error。
 Backend binding 前的 generation 檢查拒絕 stale／foreign ID，domain 更換會重送 live image。
 Native 測試涵蓋 pixel 複製、fallback、容量上限與超過 4096 次 upload；DX12 descriptor
 回收等待 GPU completion，Vulkan resize 保留 texture。
-[證據](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md) 記錄 immutable source 的
-Windows／DX12 與 macOS／Metal 4290-upload gate，以及 macOS 全套 122/122 通過。Windows
-整套 fixture 修正版仍需 final-head CI；target-host visual gate 仍待完成。
+✅ [Final-head hosted 證據](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md)：
+Linux／Vulkan 140/140、Windows／DX12 123/123、macOS／Metal 122/122，三個原生 backend
+均完成 4290 次 upload。全部 18 個 selected CI job 通過，包括 sanitizer 與 Shipping package。
+實體顯示器、已安裝 IME 及 visual-legibility／glyph coverage 驗收仍待完成。
 
 1. 在 `EditorImGuiHost` 下建立 renderer-owned state：pipeline、sampler、font texture/view、descriptor
    binding、有限大小的 per-frame vertex/index upload buffer ring。知道 device/format 後才 lazy-create
@@ -425,7 +426,7 @@ command、result 與 artifact。任何失敗項目維持 open，並阻擋 ED-M0 
 | --- | --- | --- |
 | WP0 | 完整 Development OFF/ON gate、Shipping engine build、相依 revision 與 feature isolation | 明確缺口盤點，包含不支援的 host/configuration |
 | WP1 | `window_presentation.contracts`、`renderer.contracts` | Native graphics validation 與 supported-backend parity；portable trace 不證明實體 GPU 行為 |
-| WP2 | `editor.imgui_contract` 的 draw conversion、texture generation、completion retirement、DPI rebuild 與 512-frame soak | Native output 可讀、resize/font rebuild 與 GPU resource lifetime |
+| WP2 | `editor.imgui_contract` 的 draw conversion、texture generation、completion retirement、DPI rebuild 與 512-frame soak；`editor.imgui_context_lifetime` allocation ownership；`editor.native_surface_lifetime` owner／resize 重用與 4290-upload native soak | Native output 可讀、resize/font rebuild 與 GPU resource lifetime |
 | WP3 | `editor.linux_display_acceptance`；native Vulkan scene/PBR/upload test | Linux physical-display render、resize、minimize/restore、close 與 recovery |
 | WP4 | `editor.imgui_contract`、`editor.pointer_dpi`、Linux display acceptance | 真實 typing/shortcut、drag docking 與 layout 還原、雙軸 wheel、按住 input 時 focus loss |
 | WP5 | DPI bucket 與 pointer test | Windows 100/125/150/200% text/hit target、反覆跨螢幕、同 frame resize/DPI、minimize/restore |

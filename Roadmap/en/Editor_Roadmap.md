@@ -113,6 +113,12 @@ satisfy this milestone.
   The native lifetime gate checks owner replacement, DPI/resize reuse, limits and over 4096 uploads;
   DX12 recycles replaced descriptors only after GPU completion. Physical visual acceptance remains open.
 
+✅ Final-head automated native UI acceptance passed on Linux/Vulkan (140/140), Windows/DX12
+(123/123) and macOS/Metal (122/122); all three backends completed the 4290-upload lifetime gate.
+[Immutable hosted evidence](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md)
+includes all 18 selected CI jobs. Physical display, installed IME and visual-legibility/glyph
+coverage remain open; ED-M0 through ED-M7 remain unchecked.
+
 ### ED-M1 — Project and asset workspace
 
 Create, open, and upgrade projects. Deliver a Content Browser with search/filter, folder/UUID,
