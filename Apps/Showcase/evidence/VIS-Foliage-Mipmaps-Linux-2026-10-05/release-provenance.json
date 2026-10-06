@@ -1,0 +1,59 @@
+{
+  "source_freeze": "e7fb2f5e24d980d5ff53caf65dfec82cd8208fa4",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "80e4a0bbfac6c4bb16c2c28dadcd09cf6cd88bb698efa875c4f9f31acd592d43",
+    "Apps/Showcase/ShowcaseRooms.cpp": "79b00535256d26d2437936f27778cb4195f33f666fb49a3da713991af9ada5b8",
+    "Engine/Presentation/README.md": "354ecc516354be0af703d831463efd1a7e437bec68c4f1f322876f2e8a642314",
+    "Engine/Presentation/src/SceneTextureMipmaps.h": "b4ab5bbe1ec47865f7de339df0d73c2d2d0d8669d46c9c495d584b942c38d04a",
+    "README.md": "6aa240133d9ddd47ce10d83fbe6ed9d9e624a29e44176e37fe7841c5b5795833",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "a1bf4fc9eb78ca66ea89f69f537875c7be03c2803408c81b2c071c2580e2aad4",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "10c04afda6b26dbcea252f3334629b3de152419c05d3cd65c5707f727dbe96c8",
+    "Tests/WindowPresentation/SceneInstanceTests.cpp": "3c8ffb2ab30f6ba395b1691864a7053b29ae903728fb80fdd76d0cf59947ecda"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-foliage-mipmaps/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/foliage-mips-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "e7fb2f5e24d9",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.86246944000595,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.200000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "13237fc1fba74a5a97e657316b211ff1a08ddf8fccd833d0f80239291a326e3c",
+    "video_sha256": "0896c52cefbfd6d4d6492ca69ba6031e8fb1f94c081e793fa8d79f660c4400fe",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "e19129e2eebd60093d45e62e2d283d7105e3aff554418106b9f09e32ed933f70",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}

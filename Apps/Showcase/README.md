@@ -674,3 +674,16 @@ Upstream point-light, masonry and two-sided MSVC fixture evidence and merge ance
 synchronized; each stage retains its full Linux gate and exact logs/hashes in `msvc-literals/`.
 This synchronization changes only documentation/evidence. The mineral-core runtime sources,
 97/97 gate and Shipping/movie source freeze remain unchanged.
+
+
+Foliage filtering supporting status: lit shared half-cutoff masks use alpha-weighted
+linear-color mip chains and the closest available authored silhouette coverage per level.
+Other cutoffs, unlit atlases and ambiguous/mixed uses keep one level. Original upload bytes
+and immutable generation ownership remain unchanged; visible/shadow passes share the chain.
+✅ Linux configure/build and full 97/97 pass (104.47 seconds), including 89 native PBR frames
+with core/sync validation, coverage/color-fringe/role checks and all three geometry budgets.
+Shipping/Full packaging and isolated native interaction pass; the same executable records
+an actual 100.20-second wind/animation tour (100.86-second wall time, zero overlays).
+Evidence is retained in `VIS-Foliage-Mipmaps-Linux-2026-10-05`. No public material field,
+native binding, shader packet or C/Zig ABI change. Discrete tiny levels may have unavoidable
+coverage error. Reference parity and physical-target performance remain open; VIS stays 5/7.

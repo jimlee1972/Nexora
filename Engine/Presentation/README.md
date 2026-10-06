@@ -553,7 +553,7 @@ dispersion and travel-distance absorption.
 New lit scene texture generations receive one bounded CPU mip chain before native upload when
 their material usage selects an unambiguous semantic. Base/emission colors average in linear
 light before sRGB encoding; ORM data averages linearly; decoded normal vectors average and
-renormalize. Odd dimensions retain every source texel. Mixed color/data roles, cutout masks,
+renormalize. Odd dimensions retain every source texel. Mixed color/data roles, unsupported cutout thresholds,
 unlit atlases, unreferenced uploads and Lambert/UI paths retain their original single level.
 The original upload bytes/IDs and public texture descriptors remain unchanged.
 
@@ -565,7 +565,7 @@ and existing backend cache/frame-fence/resize ownership protects GPU resources. 
 new pass, public resource handle, constant packet or C/Zig ABI field.
 
 CPU checks distinguish linear color (sRGB midpoint 188) from data midpoint 128, verify normal
-renormalization and preserve cutout/ambiguous roles. Two native minification cases compare a
+renormalization and preserve unlit/ambiguous roles. Two native minification cases compare a
 high-frequency 64² checker with its linear-light gray reference (77 PBR frames).
 
 ## Bounded HDR point source
@@ -598,3 +598,12 @@ through a negative view cosine. This is sheet lighting, not a thick-material vol
 ✅ Linux Development configure/build and all 97 tests pass (106.20 seconds), including 89 native PBR frames with Khronos core/synchronization validation. Four sheet fixtures retain default rear-face behavior and reproduce the front-facing colors exactly when enabled; CPU rejects unlit/Lambert use and verifies slot 79. All native geometry budgets and wind/pause/replay interactions pass. Shipping/Full isolated native acceptance and an actual 100.33-second movie (100.79-second wall time) pass; final reference/target acceptance remains open.
 
 Evidence: [VIS-Two-Sided-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05). Production freeze `248791c4b51a`; exact source and package hashes are retained.
+
+
+Lit RGBA8 masks whose every color/emission reference uses alpha cutoff 0.5 now receive
+alpha-weighted linear-color mips. Each derived level scales alpha to the closest available
+coverage at that cutoff, measured against the authored level. Transparent RGB does not bias
+averaged visible leaf colors. Discrete tiny levels may have unavoidable coverage error. Other
+cutoffs, unlit atlases and mixed opaque/cutout or color/data uses keep one level. This private
+upload policy changes neither public material fields nor native bindings. Visible and shadow
+passes consume the same immutable mip chain; existing IDs retain their first upload policy.
