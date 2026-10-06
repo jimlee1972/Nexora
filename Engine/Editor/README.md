@@ -66,6 +66,9 @@ into renderer or platform internals.
   excess document counts reject without changing the current model or retained files/journal.
   Only a missing legacy workspace is treated as empty; unreadable/non-regular metadata and
   file symlinks are rejected. Successful recovery closes its bounded reader before publication.
+  Recent-project admission validates the canonical root and name against its reader's 1024-byte
+  UTF-8 record limits before changing the retained list or writing a stage. Unsupported project
+  paths report an error and preserve the last-good store, instead of publishing an unreadable list.
   Versioned Editor layout payloads are persisted separately and never use Dear ImGui's unmanaged
   global ini file. Gameplay library selection is an independent `.nexora/gameplay-library.ini`
   schema-1 payload, capped below 1100 bytes on read. Empty selects inspection-only Play. UTF-8

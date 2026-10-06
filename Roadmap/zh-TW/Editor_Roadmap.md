@@ -125,6 +125,10 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 status、dependency 檢視與 reimport；background import 必須提供取消、進度與可採取行動的錯誤，
 並產生 deterministic artifact。
 
+- ✅ Recent-project record 現先驗證 canonical root／name 符合 reader 的 1024-byte UTF-8 上限，
+  再變更 list 或寫 stage。Linux 長 root regression test 證明拒絕後保留 persisted list、
+  in-memory entry，且 last-good store 仍可重新開啟。
+
 - ✅ Workspace save 與 recovery 現共用 4096 個 document、每個 path 1024 UTF-8 bytes 的上限。
   寫 journal／stage 前先驗證完整輸入；有界 line reader 拒絕過長／損壞 record，保留 model、
   committed／recovery 檔案。缺少 legacy workspace 仍可載入；非 regular metadata 與 file
