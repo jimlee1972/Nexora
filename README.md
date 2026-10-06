@@ -1384,3 +1384,11 @@ Graphical milestone acceptance remains 0/8.
 ✅ ED workspace save／recovery 現共用 4096 document／1024-byte path 上限及有界 record reader。
 拒絕的輸入保留 committed file、pending journal 與 authoring state；`editor.workspace_budget`
 涵蓋最大尺寸、CRLF 與最後一行相容性。圖形化 milestone 驗收維持 0/8。
+
+✅ ED recent-project recording now rejects root/name records beyond the reader's UTF-8 limits
+before mutation/staging, preserving the last-good list and reopen behavior. Linux long-root
+regression coverage is part of `editor.workspace_budget`; graphical acceptance remains 0/8.
+
+✅ ED recent-project record 現在 mutation／staging 前拒絕超過 reader UTF-8 上限的 root／name，
+保留 last-good list 及 reopen 行為。Linux 長 root regression 納入 `editor.workspace_budget`；
+圖形化驗收維持 0/8。

@@ -125,6 +125,10 @@ Create, open, and upgrade projects. Deliver a Content Browser with search/filter
 drag/drop, import status, dependency inspection, and reimport. Background import must expose
 cancellation, progress, and actionable errors, and must produce deterministic artifacts.
 
+- ✅ Recent-project recording now checks the canonical root/name against its reader's 1024-byte
+  UTF-8 limits before list mutation or staging. Linux long-root regression coverage proves rejection
+  preserves the persisted list, in-memory entries and successful reopen of the last-good store.
+
 - ✅ Workspace saves and recovery now use matching limits of 4096 documents and 1024 UTF-8
   bytes per path. Input is validated before any journal/stage write; a bounded line reader rejects
   oversized/corrupt records without changing the model or committed/recovery files. Missing legacy

@@ -116,6 +116,30 @@ int Run() {
               writer.OpenDocuments().front() == longest && !fs::exists(recovery),
           "bounded recovery rejected the maximum-length CRLF record");
 
+#if defined(__linux__)
+  // Linux supports complete paths longer than the recent-store record budget. Other hosts may
+  // reject these project roots at the filesystem layer before the store is reached.
+  nexora::editor::RecentProjectStore recents;
+  const auto recent_path = root / "recent-projects";
+  Require(recents.Open(recent_path, &error) && recents.Record(writer, &error),
+          "recent-project fixture could not be recorded");
+  const auto recent_bytes = Read(recent_path);
+  auto deep_root = root / "deep";
+  while (deep_root.string().size() <= ProjectWorkspace::kMaximumDocumentPathBytes)
+    deep_root /= std::string(100, 'p');
+  ProjectWorkspace deep;
+  Require(deep.Create(deep_root, "Deep Project", &error), "long-root project fixture failed");
+  Require(!recents.Record(deep, &error) && !error.empty() && Read(recent_path) == recent_bytes &&
+              recents.Entries().size() == 1 &&
+              recents.Entries().front().id == writer.Project().id &&
+              !fs::exists(recent_path.string() + ".tmp"),
+          "unsupported recent-project root replaced the last-good store or model");
+  nexora::editor::RecentProjectStore reopened;
+  Require(reopened.Open(recent_path, &error) && reopened.Entries().size() == 1 &&
+              reopened.Entries().front().id == writer.Project().id,
+          "rejected recent-project root made the last-good store unreadable");
+#endif
+
   fs::remove(primary);
   Require(observer.Open(root, ProjectAccess::ReadOnly, &error) && observer.OpenDocuments().empty(),
           "missing legacy workspace was no longer accepted");

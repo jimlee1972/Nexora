@@ -862,6 +862,11 @@ bool RecentProjectStore::Record(const ProjectWorkspace &workspace, std::string *
       *error = "recent-project store or project is not initialized";
     return false;
   }
+  if (!SafeLine(PathUtf8(workspace.Root())) || !SafeLine(workspace.Project().name)) {
+    if (error)
+      *error = "recent project root or name exceeds the supported UTF-8 record limits";
+    return false;
+  }
   const auto previous = entries_;
   std::erase_if(entries_, [&](const RecentProject &entry) {
     return entry.id == workspace.Project().id || entry.root == workspace.Root();
