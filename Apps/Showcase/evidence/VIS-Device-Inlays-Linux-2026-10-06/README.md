@@ -7,3 +7,5 @@ The opaque mineral core retains 144 corners and matching closed source positions
 Full 97/97 Development tests pass with Khronos core/synchronization validation (111.61 s). Isolated Shipping acceptance, an actual 100-second animation recording and source/executable/movie/package SHA-256 provenance are retained here. Production freeze: `79540805777114ab26d77dadda2258db39d43046`. Artifacts: `NexoraShowcase-Device-Inlays-7954080.mp4` and `NexoraShowcase-Device-Inlays-7954080-Linux.zip`. No overlays or retiming.
 
 Reference parity and physical-display performance are unaccepted. VIS remains 5/7.
+
+Windows CI follow-up: run 37412368918, job 112103646786 reported MSVC C4458 because the rivet-loop local `radius` hid the camera member. Rename only that loop local to `rivetRadius`, retaining all numeric values and operations. The frozen native executable/movie evidence above predates this naming-only change. Current-head CI must rebuild and validate every supported platform before merge. The retained log is a diagnostic excerpt, not the complete CI log.

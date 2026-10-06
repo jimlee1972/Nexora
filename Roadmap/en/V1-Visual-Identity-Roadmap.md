@@ -1,5 +1,7 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
+Windows CI naming correction: rename the rivet-loop local to `rivetRadius` to resolve MSVC C4458 without changing numeric values or operations. Native movie/package evidence is frozen before this naming-only change; merge still requires full current-head cross-platform CI.
+
 ✅ Linux Development full 97/97 tests passed (111.61 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.69 s wall time). Production freeze `79540805777114ab26d77dadda2258db39d43046`; evidence: `Apps/Showcase/evidence/VIS-Device-Inlays-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
 
 Hero device detail iteration: original bronze dome rivets and rune frames, corrected annular triangle winding, contained irregular mineral facets with geometry-derived normals, clearer glass and warm ceramic ornament. Original cooked assets, shader packets, stable ABIs and shared-clock animation remain stable. Linux Development configure/build and full 97/97 tests passed (111.61 s, Khronos core/sync validation); Shipping verification passed. VIS remains 5/7; reference parity and physical-display acceptance remain open.

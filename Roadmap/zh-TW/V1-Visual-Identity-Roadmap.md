@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+Windows CI 命名修正：鉚釘迴圈區域變數改為 `rivetRadius`，修正 MSVC C4458；數值與運算不變。原生影片與套件證據凍結於改名前；合併仍須目前 head 的完整跨平台 CI 通過。
+
 ✅ Linux Development 完整 97/97 測試通過（111.61 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.69 秒）。製作凍結版本 `79540805777114ab26d77dadda2258db39d43046`；證據：`Apps/Showcase/evidence/VIS-Device-Inlays-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 主裝置細節持續修整：原創銅製圓頂鉚釘、符文鑲框、正確的環形石塊三角形繞序，以及包在外殼內的不規則礦物切面與實際幾何法線；玻璃較清透，陶器採暖色紋飾。原 cooked 資產、shader packet、穩定 ABI 與共同時鐘動畫不變。Linux configure/build 與完整 97/97 測試通過（111.61 秒，Khronos core/sync validation）；Shipping 驗證通過。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
