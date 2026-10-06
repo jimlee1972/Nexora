@@ -89,5 +89,51 @@ class NativeEvidenceTests(unittest.TestCase):
             MODULE.validate_evidence({})
 
 
+class ResizePresentationTests(unittest.TestCase):
+    def test_scaled_foreground_rejects_stale_crop_and_blank(self) -> None:
+        import LinuxShowcaseInteraction as interaction
+        sw, sh, width, height = 320, 180, 240, 135
+        def rgb(x, y):
+            if 45 < x < 275 and 30 < y < 155:
+                return bytes((120 + (x // 40) % 2 * 70, 90 + (y // 23) % 2 * 70, 50))
+            return bytes((10, 20, 30))
+        def frame(w, h, color):
+            return b''.join(b'\0' + b''.join(color(x, y) for x in range(w)) for y in range(h))
+        source = frame(sw, sh, rgb)
+        samples = interaction.resize_samples(source, sw, sh, width, height)
+        scaled = frame(width, height, lambda x, y: rgb(
+            round((x + 0.5) * sw / width - 0.5), round((y + 0.5) * sh / height - 0.5)))
+        self.assertEqual(interaction.resize_match_count(scaled, width, height, samples), len(samples))
+        crop = frame(width, height, rgb)
+        self.assertLess(interaction.resize_match_count(crop, width, height, samples) * 10,
+                        len(samples) * 9)
+        blank = frame(width, height, lambda x, y: bytes((0, 0, 0)))
+        self.assertEqual(interaction.resize_match_count(blank, width, height, samples), 0)
+        with self.assertRaises(AssertionError):
+            interaction.resize_samples(frame(sw, sh, lambda x, y: bytes((0, 0, 0))),
+                                       sw, sh, width, height)
+        with self.assertRaises(AssertionError):
+            interaction.resize_match_count(blank[:-1], width, height, samples)
+
+
+class LabExportSynchronizationTests(unittest.TestCase):
+    def test_waits_for_complete_json_and_markdown(self) -> None:
+        import LinuxShowcaseInteraction as interaction
+        report, markdown = mock.Mock(), mock.Mock()
+        report.read_text.side_effect = [FileNotFoundError(), '{', '{"status":"PASS"}', '{"status":"PASS"}']
+        markdown.is_file.side_effect = [False, True]
+        with mock.patch.object(interaction.time, 'sleep'):
+            self.assertEqual(interaction.wait_lab_export(report, markdown), {'status': 'PASS'})
+        self.assertEqual(report.read_text.call_count, 4)
+
+    def test_missing_export_still_fails(self) -> None:
+        import LinuxShowcaseInteraction as interaction
+        report, markdown = mock.Mock(), mock.Mock()
+        report.read_text.side_effect = FileNotFoundError()
+        with mock.patch.object(interaction.time, 'monotonic', side_effect=[0, 6]):
+            with self.assertRaises(AssertionError):
+                interaction.wait_lab_export(report, markdown)
+
+
 if __name__ == "__main__":
     unittest.main()

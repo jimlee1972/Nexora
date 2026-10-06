@@ -1,0 +1,10 @@
+2026-10-06T02:19:29.0350763Z NexoraShowcase build=d4522a8845a3 --mode=interactive --scene=rendering --backend=vulkan --frames=600 --resize=960x540 --no-reload --gameplay-module=static --report=/home/runner/work/Nexora/Nexora/build/linux-development/artifacts/showcase-linux-vulkan-camera-input/scene.json
+2026-10-06T02:19:29.0351716Z 
+2026-10-06T02:19:29.0351887Z FAIL: normalized D input did not move the gallery camera
+2026-10-06T02:19:29.0352122Z 
+2026-10-06T02:19:29.0352230Z       Start 30: foundation.build_info
+2026-10-06T02:19:29.0352683Z 30/97 Test #30: foundation.build_info ...........................   Passed    0.00 sec
+2026-10-06T02:19:29.0353099Z       Start 31: foundation.gameplay_abi
+2026-10-06T02:19:29.0353503Z 31/97 Test #31: foundation.gameplay_abi .........................   Passed    0.00 sec
+2026-10-06T02:19:29.0353899Z       Start 32: core.runtime
+2026-10-06T02:19:29.0354251Z 32/97 Test #32: core.runtime ....................................   Passed    0.00 sec
