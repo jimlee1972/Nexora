@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux Development 完整 97/97 測試通過（110.65 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.78 秒）。製作凍結版本 `47675e7db75b669398368c902928c52866820a28`；證據：`Apps/Showcase/evidence/VIS-Camera-Framing-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+庭院構圖迭代：廣角預設由半徑 8／pitch 0.20 改為半徑 9／pitch 0.30，其餘預設略微提高，並同步導覽起點與終點構圖。原生鋪面、階梯與水窪更清楚；維持絕對軌道相機與可重播控制。Linux configure/build 與完整 97/97 測試通過（110.65 秒，Khronos core/sync validation），包含 MSVC 命名修正。Shipping 隔離原生驗收與共同時鐘錄影通過；預覽圖一致性與實體顯示器驗收仍未完成（VIS 5/7）。
+
 Windows CI 命名修正：鉚釘迴圈區域變數改為 `rivetRadius`，修正 MSVC C4458；數值與運算不變。原生影片與套件證據凍結於改名前；合併仍須目前 head 的完整跨平台 CI 通過。
 
 ✅ Linux Development 完整 97/97 測試通過（110.96 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.76 秒）。製作凍結版本 `22df5bbb911907aa8bcd495e6da99532d75b9d79`；證據：`Apps/Showcase/evidence/VIS-Canopy-Puddles-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。

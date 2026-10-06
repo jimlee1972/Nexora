@@ -588,8 +588,8 @@ struct RoomSession::State final {
     courtyardFreeCamera = false;
     courtyardShot = shot % 3;
     constexpr std::array<float, 3> yaws{0.12F, -0.35F, 0.12F};
-    constexpr std::array<float, 3> pitches{0.20F, 0.20F, 0.13F};
-    constexpr std::array<float, 3> radii{8.0F, 9.0F, 11.0F};
+    constexpr std::array<float, 3> pitches{0.30F, 0.28F, 0.25F};
+    constexpr std::array<float, 3> radii{9.0F, 9.0F, 11.0F};
     yaw = yaws[courtyardShot];
     pitch = pitches[courtyardShot];
     radius = radii[courtyardShot];
@@ -702,12 +702,12 @@ struct RoomSession::State final {
     }
   }
   void VisualTourCamera() {
-    constexpr std::array<std::array<float, 4>, 6> route{{{0, .12F, .20F, 9.0F},
+    constexpr std::array<std::array<float, 4>, 6> route{{{0, .12F, .30F, 9.0F},
                                                          {25, .05F, .35F, 15},
                                                          {45, -.35F, .26F, 9},
-                                                         {65, .12F, .20F, 11},
+                                                         {65, .12F, .28F, 11},
                                                          {80, -.45F, .32F, 13},
-                                                         {100, .12F, .20F, 9.0F}}};
+                                                         {100, .12F, .30F, 9.0F}}};
     std::size_t segment = 0;
     while (segment + 2 < route.size() && tourSeconds >= route[segment + 1][0])
       ++segment;

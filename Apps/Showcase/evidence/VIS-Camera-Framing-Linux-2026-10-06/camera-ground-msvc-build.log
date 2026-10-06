@@ -1,0 +1,71 @@
+[1/71] Linking CXX executable Samples/Api/NexoraApiFoundationSample
+[2/71] Linking CXX shared library Engine/AI/libNexoraAI.so
+[3/71] Linking CXX shared library Engine/Network/libNexoraNetwork.so
+[4/71] Linking CXX executable Apps/Host/NexoraHost
+[5/71] Linking CXX shared library Engine/AIIntegration/libNexoraAIIntegration.so
+[6/71] Linking CXX executable Apps/DedicatedServer/NexoraDedicatedServer
+[7/71] Linking CXX executable Tests/Foundation/NexoraFoundationTests
+[8/71] Linking CXX executable Tests/Foundation/NexoraGameplayAbiTests
+[9/71] Linking CXX executable Gameplay/Zig/NexoraZigGameplayTests
+[10/71] Linking CXX executable Tests/Core/NexoraV2M11Tests
+[11/71] Linking CXX executable Tests/AI/NexoraV2M7Tests
+[12/71] Linking CXX shared library Engine/Editor/libNexoraEditorCore.so
+[13/71] Linking CXX executable Tests/Network/NexoraNetworkTests
+[14/71] Linking CXX executable Apps/Editor/NexoraEditor
+[15/71] Linking CXX executable Tests/WindowPresentation/NexoraWindowPresentationTests
+[16/71] Linking CXX executable Tests/Core/NexoraCoreTests
+[17/71] Linking CXX executable Tests/WindowPresentation/NexoraVulkanSceneTests
+[18/71] Linking CXX executable Tests/WindowPresentation/NexoraSceneInstanceTests
+[19/71] Linking CXX executable Tests/WindowPresentation/NexoraVulkanPbrTests
+[20/71] Linking CXX executable Tests/API/NexoraApiFoundationTests
+[21/71] Linking CXX executable Tests/WindowPresentation/NexoraVulkanSceneUploadTests
+[22/71] Linking CXX executable Tests/Renderer/NexoraRendererTests
+[23/71] Linking CXX executable Tests/Renderer/NexoraSceneFrameTests
+[24/71] Linking CXX executable Tests/Renderer/NexoraMaterialTests
+[25/71] Linking CXX executable Tests/Renderer/NexoraGoldenImageTests
+[26/71] Linking CXX executable Tests/Renderer/NexoraGPUSceneTests
+[27/71] Linking CXX executable Tests/API/NexoraApiCoreContractTests
+[28/71] Linking CXX executable Tests/Renderer/NexoraGPUDrivenTests
+[29/71] Linking CXX executable Tests/Renderer/NexoraShaderReflectionContractTests
+[30/71] Linking CXX executable Tests/Runtime/NexoraShaderRuntimeTests
+[31/71] Linking CXX executable Tests/Runtime/NexoraRuntimeTests
+[32/71] Linking CXX executable Tests/Runtime/NexoraGameWorldTests
+[33/71] Linking CXX executable Tests/Runtime/NexoraTransformTests
+[34/71] Linking CXX executable Tests/Renderer/NexoraVulkanGoldenTests
+[35/71] Linking CXX executable Tests/Runtime/NexoraParentingTests
+[36/71] Linking CXX executable Tests/Runtime/NexoraRenderSyncTests
+[37/71] Linking CXX executable Tests/Runtime/NexoraV1M12Tests
+[38/71] Linking CXX executable Tests/Runtime/NexoraV2M12Tests
+[39/71] Linking CXX executable Tests/Runtime/NexoraV1M7Tests
+[40/71] Linking CXX executable Tests/Runtime/NexoraV1M8Tests
+[41/71] Linking CXX executable Tests/Runtime/NexoraGameplayHostBridgeTests
+[42/71] Linking CXX executable Tests/Runtime/NexoraV1M10Tests
+[43/71] Linking CXX executable Tests/Runtime/NexoraV1M11Tests
+[44/71] Linking CXX executable Tests/Runtime/NexoraAIIntentAdapterTests
+[45/71] Linking CXX executable Tests/Runtime/NexoraV2M9Tests
+[46/71] Linking CXX executable Tests/Runtime/NexoraV1M9Tests
+[47/71] Linking CXX executable Tests/Runtime/NexoraV1M4Tests
+[48/71] Linking CXX shared module Tests/Runtime/libNexoraDynamicGameplayFirst.so
+[49/71] Linking CXX shared module Tests/Runtime/libNexoraDynamicGameplayFailing.so
+[50/71] Linking CXX executable Tests/Runtime/NexoraGameplayModuleHostTests
+[51/71] Linking CXX shared module Tests/Runtime/libNexoraDynamicGameplaySecond.so
+[52/71] Linking CXX executable Tests/Runtime/NexoraV1M5Tests
+[53/71] Linking CXX executable Tests/Runtime/NexoraV1M6Tests
+[54/71] Linking CXX executable Tests/Runtime/NexoraBundleMountTests
+[55/71] Linking CXX executable Tests/Editor/NexoraEditorShaderTests
+[56/71] Linking CXX executable Tests/Editor/NexoraEditorViewportMathTests
+[57/71] Linking CXX executable Tests/Runtime/NexoraDynamicGameplayModuleTests
+[58/71] Linking CXX executable Tests/Editor/NexoraEditorTests
+[59/71] Linking CXX executable Tests/Editor/NexoraMeshImportTests
+[60/71] Linking CXX executable Tests/Editor/NexoraMeshAssetCatalogTests
+[61/71] Linking CXX executable Tests/Editor/NexoraEditorAffineGizmoTests
+[62/71] Linking CXX executable Tests/Editor/NexoraParserRobustnessTests
+[63/71] Linking CXX executable Tests/Editor/NexoraMeshReimportTests
+[64/71] Linking CXX executable Tests/Editor/NexoraEditorComponentResetTests
+[65/71] Linking CXX executable Tests/Editor/NexoraBuiltinCreationTests
+[66/71] Linking CXX executable Tests/Editor/NexoraSceneFileTests
+[67/71] Linking CXX executable Tests/Editor/NexoraTransformValueTests
+[68/71] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcaseRoomTests.dir/ShowcaseRooms.cpp.o
+[69/71] Linking CXX executable Apps/Showcase/NexoraShowcaseRoomTests
+[70/71] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/ShowcaseRooms.cpp.o
+[71/71] Linking CXX executable Apps/Showcase/NexoraShowcase
