@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Skybox 六個面提升為 256×256（768×512 RGBA8 atlas），保留雲層細節。原始天空圖與浮點 HDR IBL 資料保持一致，原生 HDR 日光、bloom 與共同時鐘動畫持續運作。Linux 完整 97/97 測試通過（122.80 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒影片通過（壁鐘 101.06 秒）。凍結版本 `2b2be9d670c9c691e2f333ce0efa2821c9539f78`；證據：`Apps/Showcase/evidence/VIS-Detailed-Sky-Linux-2026-10-06/`。幾何維持 57,961 vertices、134,982 indices、384 batches、44 materials。VIS 仍為 5/7。
+
 ✅ 庭院葉片使用橄欖色反射係數（0.42、0.52、0.30），保留環境光、texture alpha、雙面光照、風與暖色透光。Linux 完整 97/97 測試通過（119.89 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 100.93 秒）。凍結版本 `db4d3f38de133ec6a22e4d142cac7ea6e100ac5b`；證據：`Apps/Showcase/evidence/VIS-Olive-Foliage-Linux-2026-10-06/`。幾何維持 57,961 vertices、134,982 indices、384 batches、44 materials。VIS 仍為 5/7。
 
 ✅ 遠景塔樓的狹長上層開口已有厚石窗邊、共用前後拱石與頂部過梁；交錯山脊摺面增加斜向岩面。Linux 完整 97/97 測試通過（120.62 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 101.04 秒）。凍結版本 `94b7f09807e4dae93b931776d530bc51a855dc56`；證據：`Apps/Showcase/evidence/VIS-Tower-Ridges-Linux-2026-10-06/`。Standard：57,961 vertices、134,982 indices、384 batches、44 materials。VIS 仍為 5/7。

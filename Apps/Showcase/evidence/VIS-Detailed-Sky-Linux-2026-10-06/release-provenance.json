@@ -1,0 +1,86 @@
+{
+  "source_freeze": "2b2be9d670c9c691e2f333ce0efa2821c9539f78",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/CourtyardEnvironment.h": "91e2143ebdf2cadc9337c1c9e47d0c0b3f230697464c16269e5fdf141c6b1596",
+    "Apps/Showcase/CourtyardHero.h": "e7b7d9fbfadc66fba11e903cd9898dfa44eb3986f6ef3fa64709ff8054a4a2d5",
+    "Apps/Showcase/ShowcaseRooms.cpp": "addab0299fbc0edca847dffe7c0895735c4a26957ed9f7e5afdd2dd000f0b465",
+    "Content/Showcase/Courtyard/Environment/derived.json": "3ceed7aa2a396e7e84dbb51bbd9576dc1731835b71eddd79d6d842943236d078",
+    "Content/Showcase/Courtyard/Hero/manifest.json": "5a9d5b5acc3d25349f043bb4328c672d7a8e885a735a78bac7d39b74cf50e526",
+    "Content/Showcase/Courtyard/Hero/sky.rgba": "5e1c3273a2ae6c97aa9ee152ff60445c0f7006adf27967b5d10eb18b6914c6b9",
+    "Content/Showcase/Courtyard/Hero/source.json": "c3f70857e85d828233eb0f3d6efae285a9b744699193ae684af78de13b7ee4b9",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "e32a482b62a3dad71f25c0be3e2024a4b9b005cb4e52fb30b216ea8b2c0ea3df",
+    "Tools/Build/PrepareCourtyardHero.py": "89c92ab5c6f63fd003488f000d187f23bbf38e92bdba0230f07327fd757be455"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/sky-resolution-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "2b2be9d670c9",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.06262809698819,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.800000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "8389ecd040b98ad98aab57a210f1c727b38c66230ca3781ed11d7b51bee20237",
+    "video_sha256": "e89c66ffe8336ec6e63106adb810a1795e215d1d1b45d19dceca0afda984b981",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "5689d9f7028e690ed853d00e9f339453fe6a9e0c944754a0615861f85ae7e2b5",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        57,
+        641,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  },
+  "unchanged_environment_payload_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "1eec4776825c7e9e744b6692112b4d892a88862e145af261ae01c883a3bd560a",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "a0f089704c19258dd0cdae6859b2e94c34773b5d3c554ed7a856ab24e2f4332a"
+  }
+}

@@ -257,5 +257,6 @@
       "authoring_brief": "Original seamless 2:1 equirectangular golden-hour sky using the repository concept sky as a style reference; peach cloud edges, lavender blue zenith, pale gold horizon; no sun disc, objects or terrain",
       "license": "Repository LICENSE"
     }
-  }
+  },
+  "sky_face_size": 256
 }
