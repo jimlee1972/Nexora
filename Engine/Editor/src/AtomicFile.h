@@ -28,7 +28,7 @@ inline bool AtomicWrite(const std::filesystem::path &path, std::string_view cont
   if (ec != std::errc::no_such_file_or_directory &&
       (ec || std::filesystem::exists(temporary_status))) {
     if (error)
-      *error = "temporary destination is already occupied";
+      *error = "temporary destination is already occupied: " + PathUtf8(temporary);
     return false;
   }
   ec.clear();

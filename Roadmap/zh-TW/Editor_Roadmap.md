@@ -125,6 +125,12 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 status、dependency 檢視與 reimport；background import 必須提供取消、進度與可採取行動的錯誤，
 並產生 deterministic artifact。
 
+- ✅ Project／workspace persistence 現共用 scene／asset atomic replacement helper。
+  已占用的 `.tmp` file／directory／symlink 會保留並回報路徑，rename 失敗不再刪除目的地重試。
+  Portable 測試涵蓋 descriptor 升級、gameplay setting、layout、recent-project 回復、
+  committed workspace 保留及 staging collision 後明確的 journal recovery；
+  真正 write transaction 期間 crash 的實體證據仍待完成。
+
 - ✅ Import queue admission 現預設最多保留 64 個 operation，可設定容量，滿額回傳可重試錯誤。
   Queued job 與尚未取走的完成／失敗／取消 result 都保留名額，直到取走結果。
   `editor.preview_contract` 涵蓋混合 request、queued／失敗／取消、100 次滿額拒絕、

@@ -67,6 +67,11 @@ Recover 與 Discard。即使有 graphical diagnostic，recovery process 非零�
 這證明已有 journal 時的突然終止／重啟恢復；它未在 workspace write transaction 中注入 crash，
 也不代表實體顯示器／Windows 驗收完成。ED-M0 仍保持 open。
 
+**Persistence failure 更新（2026-10-07）：**workspace-owned 檔案現重用 scene／asset atomic
+replacement helper。既有 sibling stage（包含 symlink）保留，replace 失敗不會刪除目的地重試。
+Portable 測試保留 committed workspace／model 及新 recovery journal，解決 staging collision
+後明確執行 recovery。此項強化 failure 行為，不代表真正寫入中 crash 或 target-host 已驗收。
+
 ### 「完成」的定義
 
 同一個 commit 必須同時滿足：
