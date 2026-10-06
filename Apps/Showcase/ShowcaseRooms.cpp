@@ -753,7 +753,8 @@ struct RoomSession::State final {
     for (const auto &batch : sourceBatches) {
       // Bound planar work to the focal device, vessels, foliage, pennants and sky.
       // Distant ruins/terrain and the water surface never participate recursively.
-      if (batch.firstIndex + batch.indexCount > courtyardReflectionDeviceIndexEnd &&
+      if (batch.materialIndex < 18 &&
+          batch.firstIndex + batch.indexCount > courtyardReflectionDeviceIndexEnd &&
           batch.materialIndex != 2 && batch.materialIndex != 3 && batch.materialIndex != 5 &&
           batch.materialIndex != 6 && batch.materialIndex != 7 && batch.materialIndex != 11 &&
           batch.materialIndex != 12 && batch.materialIndex != 15 && batch.materialIndex != 16 &&
@@ -1161,20 +1162,28 @@ struct RoomSession::State final {
     Cube(0, 2.9F, 0, 0.35F, 0.55F, 0.35F);
 #endif
     finish(12);
-    // Authored emissive mineral fissures live inside the glass, in the opaque HDR snapshot.
-    // Their actual geometry shares crystal rotation/lift and lights bloom through the shell.
-    for (unsigned vein = 0; vein < 3; ++vein) {
-      const float phase = vein * 2 * math::kPi / 3;
-      const auto point = [&](float radius, float y, float twist) {
-        return math::Vector3{radius * std::cos(phase + twist), 2.9F + y,
-                             radius * std::sin(phase + twist)};
-      };
-      Segment(point(0.025F, -0.58F, 0), point(0.17F, -0.24F, 0.4F), 0.009F);
-      Segment(point(0.17F, -0.24F, 0.4F), point(0.23F, 0.06F, -0.35F), 0.008F);
-      Segment(point(0.23F, 0.06F, -0.35F), point(0.1F, 0.35F, 0.2F), 0.006F);
-      Segment(point(0.1F, 0.35F, 0.2F), point(0.02F, 0.64F, 0), 0.004F);
+    // Original inner mineral facets occupy real geometry behind the refractive shell.
+    // Three restrained HDR materials give the interior a faceted light response.
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    for (unsigned shade = 0; shade < 3; ++shade) {
+      for (std::size_t face = 0; face < courtyardCrystal.indices.size() / 3; ++face) {
+        if ((face * 7 + face / 8) % 3 != shade)
+          continue;
+        const auto base = static_cast<std::uint16_t>(vertices.size());
+        for (unsigned corner = 0; corner < 3; ++corner) {
+          const auto &v = courtyardCrystal.vertices[courtyardCrystal.indices[face * 3 + corner]];
+          const auto n = math::NormalizeSafe(
+              math::Vector3{v.normal[0] / 0.68F, v.normal[1] / 0.78F, v.normal[2] / 0.68F});
+          vertices.push_back(
+              {{v.position[0] * 0.68F, 2.9F + v.position[1] * 0.78F, v.position[2] * 0.68F},
+               {n.x, n.y, n.z},
+               {v.uv[0], v.uv[1]}});
+          indices.push_back(static_cast<std::uint16_t>(base + corner));
+        }
+      }
+      finish(18 + shade);
     }
-    finish(2);
+#endif
     courtyardCrystalEnd = vertices.size();
     // Preserve each authored block's exact bevel profile while reusing repeated extents.
     struct MasonryPrototype {
@@ -2702,6 +2711,22 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     ceramicPaint.windAmplitude = 0;
     ceramicPaint.baseColor = {0.12F, 0.25F, 0.29F, 1};
     s.materials.push_back(ceramicPaint);
+    for (const auto radiance : {std::array{0.02F, 0.08F, 0.1F}, std::array{0.06F, 0.23F, 0.25F},
+                                std::array{0.4F, 1.4F, 1.6F}}) {
+      auto interior = crystal;
+      interior.opacity = 1;
+      interior.transparencyTint = {1, 1, 1};
+      interior.refractionIndex = 1;
+      interior.refractionThickness = 0;
+      interior.refractionFrontSurfaceOnly = false;
+      interior.transmissionThickness = 0;
+      interior.baseColor = {0.04F, 0.25F, 0.28F, 1};
+      interior.metallic = 0.35F;
+      interior.roughness = 0.13F;
+      for (unsigned channel = 0; channel < 3; ++channel)
+        interior.emission[channel] = radiance[channel] * (s.courtyardActive ? pulse : 0.25F);
+      s.materials.push_back(interior);
+    }
     s.CourtyardGeometry();
     // Animate from the immutable cache each frame; pause/replay never accumulates drift.
     const float crystalAngle = static_cast<float>(s.courtyardSeconds) * 0.18F;
@@ -2948,7 +2973,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                               {4, 64, 32, 7, s.courtyardEnvironment[1]},
                               {5, 32, 32, 1, s.courtyardEnvironment[2]}};
       data.linearTextureUploads = s.linearSceneUploads;
-      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 0.8F, 0.0F, 7};
+      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 1.1F, 0.0F, 7};
     }
 #endif
     data.base_color[0] = 0.72F;
