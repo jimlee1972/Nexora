@@ -1373,3 +1373,12 @@ recovery journals, then prove explicit recovery/retry. Graphical milestone accep
 ✅ ED-M1 workspace／descriptor／setting／layout／recent persistence 現保留已占用 stage
 及 replace 失敗的目的地。Portable 測試保留 last-good 檔案、model state 與 recovery journal，
 並驗證明確的 recovery／retry；圖形化 milestone 驗收維持 0/8。
+
+✅ ED workspace save/recovery now share 4096-document and 1024-byte path limits with a bounded
+record reader. Rejected inputs preserve committed files, pending journals and authoring state;
+maximum-size, CRLF and final-record compatibility are covered by `editor.workspace_budget`.
+Graphical milestone acceptance remains 0/8.
+
+✅ ED workspace save／recovery 現共用 4096 document／1024-byte path 上限及有界 record reader。
+拒絕的輸入保留 committed file、pending journal 與 authoring state；`editor.workspace_budget`
+涵蓋最大尺寸、CRLF 與最後一行相容性。圖形化 milestone 驗收維持 0/8。

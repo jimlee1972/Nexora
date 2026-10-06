@@ -125,6 +125,12 @@ Create, open, and upgrade projects. Deliver a Content Browser with search/filter
 drag/drop, import status, dependency inspection, and reimport. Background import must expose
 cancellation, progress, and actionable errors, and must produce deterministic artifacts.
 
+- ✅ Workspace saves and recovery now use matching limits of 4096 documents and 1024 UTF-8
+  bytes per path. Input is validated before any journal/stage write; a bounded line reader rejects
+  oversized/corrupt records without changing the model or committed/recovery files. Missing legacy
+  workspaces remain supported; non-regular metadata and file symlinks reject. `editor.workspace_budget`
+  verifies maximum-size round trips, CRLF/no-final-LF compatibility, rejected saves and recovery.
+
 - ✅ Project/workspace persistence now shares the scene/asset atomic replacement helper.
   Occupied `.tmp` files/directories/symlinks are preserved and reported with their path; a failed
   rename no longer deletes its destination to retry. Portable tests cover descriptor upgrades,

@@ -9,6 +9,7 @@
 #include "Nexora/Runtime/EditorSdk.h"
 
 #include <compare>
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <functional>
@@ -55,6 +56,8 @@ enum class ProjectUpgradeState : std::uint8_t { Current, Applied, Required };
 
 class NEXORA_EDITOR_API ProjectWorkspace final {
 public:
+  static constexpr std::size_t kMaximumDocuments = 4096;
+  static constexpr std::size_t kMaximumDocumentPathBytes = 1024;
   ProjectWorkspace();
   ~ProjectWorkspace();
   ProjectWorkspace(ProjectWorkspace &&) noexcept;

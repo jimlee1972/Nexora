@@ -147,47 +147,78 @@ bool ReadProjectDescriptor(const std::filesystem::path &path, ProjectDescriptor 
   return false;
 }
 
+enum class WorkspaceLineState { Line, End, Invalid };
+
+WorkspaceLineState ReadWorkspaceLine(std::istream &input, std::string &line) {
+  // Prefix, maximum UTF-8 document bytes, optional CR, and the terminating buffer NUL.
+  std::array<char, 9 + ProjectWorkspace::kMaximumDocumentPathBytes + 2> buffer{};
+  input.getline(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+  if (input.fail())
+    return input.eof() && !input.bad() && input.gcount() == 0 ? WorkspaceLineState::End
+                                                              : WorkspaceLineState::Invalid;
+  const auto count = static_cast<std::size_t>(input.gcount());
+  line.assign(buffer.data(), count - (input.eof() ? 0 : 1));
+  StripCarriageReturn(line);
+  return WorkspaceLineState::Line;
+}
+
 bool ReadWorkspace(const std::filesystem::path &path, std::vector<std::string> &documents,
-                   std::string *error) {
-  std::ifstream input(path, std::ios::binary);
-  if (!input) {
+                   std::string *error, std::string_view label = "workspace",
+                   bool missing_allowed = true) {
+  const auto fail = [&](std::string_view reason) {
+    if (error)
+      *error = std::string(label) + std::string(reason);
+    return false;
+  };
+  std::error_code ec;
+  const auto status = std::filesystem::symlink_status(path, ec);
+  if (ec == std::errc::no_such_file_or_directory ||
+      (!ec && status.type() == std::filesystem::file_type::not_found)) {
+    if (!missing_allowed)
+      return fail(" is missing or unreadable");
     documents.clear();
     return true;
   }
+  if (ec || !std::filesystem::is_regular_file(status))
+    return fail(" is unavailable or unsafe");
+  std::ifstream input(path, std::ios::binary);
+  if (!input)
+    return fail(" is unreadable");
   std::string line;
-  if (!std::getline(input, line)) {
-    if (error)
-      *error = "workspace is empty or unreadable";
-    return false;
-  }
-  StripCarriageReturn(line);
-  if (line != "schema=1") {
-    if (error)
-      *error = "workspace uses an unsupported schema";
-    return false;
-  }
+  if (ReadWorkspaceLine(input, line) != WorkspaceLineState::Line)
+    return fail(" is empty, overlong or unreadable");
+  if (line != "schema=1")
+    return fail(" uses an unsupported schema");
   std::vector<std::string> candidate;
-  while (std::getline(input, line)) {
-    StripCarriageReturn(line);
-    if (!line.starts_with("document=") ||
-        !SafeLine(std::string_view(line).substr(std::string_view("document=").size()))) {
-      if (error)
-        *error = "workspace contains an invalid document entry";
-      return false;
-    }
+  for (;;) {
+    const auto state = ReadWorkspaceLine(input, line);
+    if (state == WorkspaceLineState::End)
+      break;
+    if (state == WorkspaceLineState::Invalid)
+      return fail(" contains an overlong or unreadable line");
+    if (!line.starts_with("document=") || !SafeLine(std::string_view(line).substr(9)))
+      return fail(" contains an invalid document entry");
+    if (candidate.size() == ProjectWorkspace::kMaximumDocuments)
+      return fail(" contains too many documents");
     candidate.push_back(line.substr(9));
-    if (candidate.size() > 4096) {
-      if (error)
-        *error = "workspace contains too many documents";
-      return false;
-    }
-  }
-  if (!input.good() && !input.eof()) {
-    if (error)
-      *error = "workspace could not be read";
-    return false;
   }
   documents = std::move(candidate);
+  return true;
+}
+
+bool ValidateWorkspaceDocuments(std::span<const std::string> documents, std::string *error) {
+  if (documents.size() > ProjectWorkspace::kMaximumDocuments) {
+    if (error)
+      *error = "workspace contains too many documents";
+    return false;
+  }
+  for (const auto &document : documents) {
+    if (!SafeLine(document)) {
+      if (error)
+        *error = "workspace document path is invalid";
+      return false;
+    }
+  }
   return true;
 }
 
@@ -509,15 +540,11 @@ bool ProjectWorkspace::Open(const std::filesystem::path &root, ProjectAccess acc
 bool ProjectWorkspace::WriteWorkspace(std::span<const std::string> documents, std::string *error) {
   if (!EnsureWritable(access_, error))
     return false;
+  if (!ValidateWorkspaceDocuments(documents, error))
+    return false;
   std::string contents = "schema=1\n";
-  for (const auto &document : documents) {
-    if (!SafeLine(document)) {
-      if (error)
-        *error = "workspace document path is invalid";
-      return false;
-    }
+  for (const auto &document : documents)
     contents += "document=" + document + "\n";
-  }
   if (!AtomicWrite(root_ / ".nexora/workspace", contents, error))
     return false;
   std::error_code ec;
@@ -534,15 +561,11 @@ bool ProjectWorkspace::WriteWorkspace(std::span<const std::string> documents, st
 bool ProjectWorkspace::SaveWorkspace(std::span<const std::string> documents, std::string *error) {
   if (!EnsureWritable(access_, error))
     return false;
+  if (!ValidateWorkspaceDocuments(documents, error))
+    return false;
   std::string journal = "schema=1\n";
-  for (const auto &document : documents) {
-    if (!SafeLine(document)) {
-      if (error)
-        *error = "workspace document path is invalid";
-      return false;
-    }
+  for (const auto &document : documents)
     journal += "document=" + document + "\n";
-  }
   if (!AtomicWrite(root_ / ".nexora/workspace.recovery", journal, error))
     return false;
   if (!WriteWorkspace(documents, error))
@@ -557,41 +580,10 @@ bool ProjectWorkspace::SaveWorkspace(std::span<const std::string> documents, std
 bool ProjectWorkspace::RecoverWorkspace(std::string *error) {
   if (!EnsureWritable(access_, error))
     return false;
-  std::ifstream input(root_ / ".nexora/workspace.recovery", std::ios::binary);
-  std::string line;
   std::vector<std::string> recovered;
-  if (!input || !std::getline(input, line)) {
-    if (error)
-      *error = "recovery journal is missing or unreadable";
+  if (!ReadWorkspace(root_ / ".nexora/workspace.recovery", recovered, error, "recovery journal",
+                     false))
     return false;
-  }
-  StripCarriageReturn(line);
-  if (line != "schema=1") {
-    if (error)
-      *error = "recovery journal uses an unsupported schema";
-    return false;
-  }
-  while (std::getline(input, line)) {
-    StripCarriageReturn(line);
-    if (!line.starts_with("document=") ||
-        !SafeLine(std::string_view(line).substr(std::string_view("document=").size()))) {
-      if (error)
-        *error = "recovery journal contains an invalid entry";
-      return false;
-    }
-    recovered.push_back(line.substr(9));
-    if (recovered.size() > 4096) {
-      if (error)
-        *error = "recovery journal contains too many documents";
-      return false;
-    }
-  }
-  if (!input.good() && !input.eof()) {
-    if (error)
-      *error = "recovery journal could not be read";
-    return false;
-  }
-  input.close();
   if (!WriteWorkspace(recovered, error))
     return false;
   std::error_code ec;

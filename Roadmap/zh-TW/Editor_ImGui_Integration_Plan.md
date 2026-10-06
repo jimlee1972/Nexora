@@ -72,6 +72,11 @@ replacement helper。既有 sibling stage（包含 symlink）保留，replace �
 Portable 測試保留 committed workspace／model 及新 recovery journal，解決 staging collision
 後明確執行 recovery。此項強化 failure 行為，不代表真正寫入中 crash 或 target-host 已驗收。
 
+**Recovery 輸入上限更新（2026-10-07）：**✅ Workspace／recovery read 現共用有界 record
+parser，並與 save 共用 4096 個 document、每個 path 1024 UTF-8 bytes 的上限。Portable 測試
+拒絕過大／損壞／aliased metadata，保留 committed file、journal 與 authoring state；最大尺寸
+CRLF 及最後一行無 LF 仍相容。實體顯示器／Windows recovery 驗收保持 open。
+
 ### 「完成」的定義
 
 同一個 commit 必須同時滿足：
