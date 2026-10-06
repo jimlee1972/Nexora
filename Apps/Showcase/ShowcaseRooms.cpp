@@ -1531,7 +1531,7 @@ struct RoomSession::State final {
     rubble(-2.0F, 0.21F, 5.65F, 0.34F, 0.18F, 0.3F, 0.35F);
     rubble(3.0F, 0.21F, 5.9F, 0.34F, 0.18F, 0.3F, -0.22F);
     // Side arcades frame the device, with hanging leaves driven by the shared wind shader.
-    for (const float x : {-7.5F, 7.5F}) {
+    for (const float x : {-9.0F, 7.5F}) {
       for (const float z : {-7.0F, -1.0F, 5.0F}) {
         for (unsigned course = 0; course < 7; ++course) {
           const float stagger = static_cast<float>((course * 13) % 5) * 0.012F;
@@ -1595,7 +1595,7 @@ struct RoomSession::State final {
     for (unsigned stone = 0; stone < 20; ++stone) {
       const float angle = math::kPi * (stone + 0.5F) / 20;
       MasonryPrototype prototype{0, {(math::kPi / 40 - 0.004F) * 3, 0.45F, 0.45F}, {}, angle};
-      for (const float x : {-7.5F, 7.5F})
+      for (const float x : {-9.0F, 7.5F})
         for (const float z : {-4.0F, 2.0F}) {
           Nexora::Presentation::SceneInstance placement{};
           placement.translation[0] = x;
@@ -1659,7 +1659,7 @@ struct RoomSession::State final {
       stripe(0.9F, 0.06F, 0.9F, 0.73F, 0.005F);
     }
     finish(16);
-    for (const float x : {-7.5F, 7.5F})
+    for (const float x : {-9.0F, 7.5F})
       for (unsigned i = 0; i < 48; ++i) {
         const float z = -7 + i * (12.4F / 48);
         const float arc = std::fmod(z + 7, 6.0F) - 3;
@@ -1667,7 +1667,7 @@ struct RoomSession::State final {
         Segment({x, root, z}, {x, root - 1.4F, z}, 0.018F);
       }
     finish(10);
-    for (const float x : {-7.5F, 7.5F})
+    for (const float x : {-9.0F, 7.5F})
       for (unsigned i = 0; i < 48; ++i) {
         const float z = -7 + i * (12.4F / 48);
         const float arc = std::fmod(z + 7, 6.0F) - 3;
@@ -1683,7 +1683,7 @@ struct RoomSession::State final {
     finish(5);
     // Original climbing ivy wraps the real arcade columns; flipped root UVs
     // keep the upper attachment fixed while the existing shared wind bends each leaf.
-    for (const float x : {-7.5F, 7.5F})
+    for (const float x : {-9.0F, 7.5F})
       for (const float z : {-7.0F, -1.0F, 5.0F})
         for (unsigned vine = 0; vine < 6; ++vine)
           for (unsigned leaf = 0; leaf < 7; ++leaf) {
