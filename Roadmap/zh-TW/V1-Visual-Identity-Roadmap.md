@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux Development 完整 97/97 測試通過（110.68 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.74 秒）。製作凍結版本 `972ceb59e264c4ad132cb9d98125f4e4dc86e1d2`；證據：`Apps/Showcase/evidence/VIS-Refined-Sandstone-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+砂岩材質：新製作的 albedo／height 來源降低密集深色斑點，舊 sandstone PNG 保留且未修改。可重現 cook 更新 stone color／normal／ORM；前景基色係數為 0.8／0.8／0.8，背景為 0.7／0.68／0.62。IBL 來源雜湊中繼資料已重生，三份 IBL 二進位貼圖雜湊保持一致。首輪完整測試拒絕過期中繼資料，修正後完整 97/97 通過。引擎太陽、天空、HDR、風、shader 與穩定 ABI 保持一致。
+
 ✅ Linux Development 完整 97/97 測試通過（115.01 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.82 秒）。製作凍結版本 `b6814267f3bb43fca17e3cde0e65fa7b7c6a7082`；證據：`Apps/Showcase/evidence/VIS-Curved-Foliage-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 葉片幾何：有界折曲與確定性傾角增加葉片的立體變化，並提供符合表面的解析法線與切線。原始 UV、鏤空貼圖、頂點／索引數與共同時鐘風動畫保持一致；細小粒子仍為平面。測試確認葉片不共平面、法線與切線為單位向量且正交、面朝向正確。放大石材尺度的試作已於完整驗收前移除。Standard：56,665 頂點、133,194 索引、336 batches、44 材質。

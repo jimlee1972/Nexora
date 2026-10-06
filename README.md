@@ -1,5 +1,9 @@
 # Nexora
 
+✅ Linux Development full 97/97 tests passed (110.68 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.74 s wall time). Production freeze `972ceb59e264c4ad132cb9d98125f4e4dc86e1d2`; evidence: `Apps/Showcase/evidence/VIS-Refined-Sandstone-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+Refined sandstone iteration: new authored albedo/height inputs reduce dark speckling; original sandstone PNGs remain unmodified archives. Reproducible cooking updates stone color/normal/ORM. Foreground base factors are 0.8/0.8/0.8 and background factors 0.7/0.68/0.62. IBL source-hash metadata is regenerated while all three IBL texture hashes stay unchanged. The first full test run rejected stale metadata; the corrected full run passes 97/97. Engine sunlight, sky, HDR, wind, shaders and stable ABIs remain unchanged.
+
 ✅ Linux Development full 97/97 tests passed (115.01 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.82 s wall time). Production freeze `b6814267f3bb43fca17e3cde0e65fa7b7c6a7082`; evidence: `Apps/Showcase/evidence/VIS-Curved-Foliage-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
 
 Foliage geometry iteration: bounded folds and deterministic lean give leaf cards real depth variation, with analytical surface normals and tangents. Original UVs, cutout art, vertex/index counts and shared-clock wind remain intact; small mote cards stay flat. Tests verify noncoplanar cards, unit/orthogonal normals and tangents, and outward orientation. The rejected larger-scale stone prototype was removed before full validation. Standard: 56,665 vertices, 133,194 indices, 336 batches, 44 materials.
