@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux Development 完整 97/97 測試通過（109.78 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.76 秒）。製作凍結版本 `b88e22c7b24aa6f63b697783c0c9d64b241b135a`；證據：`Apps/Showcase/evidence/VIS-Weathered-Blocks-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+石塊磨損：以有界、確定性的偏移變形倒角石塊與盒狀裝置細節的共用實體角點，並重算幾何面法線。測試確認 24 個實體角點、66 條邊皆由兩個三角面共用，沒有塌縮三角形且法線向外。原本每塊 96 頂點／132 索引、shader、穩定 ABI 與原始美術資產保持一致。Standard：56,665 頂點、133,194 索引、336 batches、44 材質。
+
 ✅ Linux Development 完整 97/97 測試通過（111.23 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.96 秒）。製作凍結版本 `029a500a781711b09c78ad4f4df8be93083c63c0`；證據：`Apps/Showcase/evidence/VIS-Wet-Paving-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 水窪邊緣鋪面迭代：兩處既有水窪附近的部分石塊使用新增非金屬濕石材質（底色 0.507／0.507／0.507、粗糙度 0.25、AO 0.55）。乾濕批次共用原有地磚頂點，各有連續索引範圍；432 個唯一變換完整保留。材質由 21 擴為 22 個原稿槽（含平面倒影共 44）。濕鋪面作為接收面並排除遞迴倒影；礦物例外限於 18–20 槽。測試保留乾磚實例化檢查，驗證濕石距離／粗糙度／零金屬度，並由實際材質數推導倒影粒子編號，檢查啟用與停用狀態。Standard 使用 56,665 頂點、133,194 索引與 336 批次。Linux configure/build 與完整 97/97 測試通過（111.23 秒，Khronos core/sync validation）。Shipping 隔離原生驗收與共同時鐘錄影通過；預覽圖一致性與實體顯示器驗收仍未完成（VIS 5/7）。

@@ -1,5 +1,6 @@
 #include "Nexora/Math/Math.h"
 #include "ShowcaseRooms.h"
+#include <array>
 #include <cassert>
 #include <cmath>
 #include <cstring>
@@ -262,6 +263,15 @@ int main() {
       assert(batch.materialIndex == 0 || batch.materialIndex == 8);
       assert(batch.indexCount == 132); // Exact 26-face authored bevel profile.
       masonryCount += batch.instanceCount;
+      // Duplicated UV/normal corners still form one closed physical stone surface.
+      using BoundaryPoint = std::array<long long, 3>;
+      std::map<std::pair<BoundaryPoint, BoundaryPoint>, unsigned> stoneEdges;
+      std::set<BoundaryPoint> stonePoints;
+      const auto pointKey = [](const auto &vertex) {
+        return BoundaryPoint{std::llround(vertex.position[0] * 1000000.0),
+                             std::llround(vertex.position[1] * 1000000.0),
+                             std::llround(vertex.position[2] * 1000000.0)};
+      };
       // Curved wedges must retain outward triangle winding and finite normals.
       for (std::size_t triangle = batch.firstIndex; triangle < batch.firstIndex + batch.indexCount;
            triangle += 3) {
@@ -274,7 +284,19 @@ int main() {
                                        c.position[2] - a.position[2]};
         const nexora::math::Vector3 normal{a.normal[0], a.normal[1], a.normal[2]};
         assert(nexora::math::Dot(nexora::math::Cross(ab, ac), normal) > 1e-7F);
+        const std::array points{pointKey(a), pointKey(b), pointKey(c)};
+        for (unsigned edge = 0; edge < 3; ++edge) {
+          auto from = points[edge], to = points[(edge + 1) % 3];
+          assert(from != to);
+          stonePoints.insert(from);
+          if (to < from)
+            std::swap(from, to);
+          ++stoneEdges[{from, to}];
+        }
       }
+      assert(stonePoints.size() == 24 && stoneEdges.size() == 66);
+      for (const auto &[edge, count] : stoneEdges)
+        assert(count == 2);
       for (std::size_t i = batch.firstInstance; i < batch.firstInstance + batch.instanceCount; ++i)
         assert(Nexora::Presentation::ValidateSceneInstance(wide.instances[i]));
     }
