@@ -1,0 +1,11 @@
+[1/11] Building CXX object Engine/Foundation/CMakeFiles/NexoraFoundation.dir/src/BuildInfo.cpp.o
+[2/11] Linking CXX shared library Engine/Foundation/libNexoraFoundation.so
+[3/11] Linking CXX shared library Engine/Core/libNexoraCore.so
+[4/11] Linking CXX shared library Engine/RHI/libNexoraRHI.so
+[5/11] Linking CXX shared library Engine/Renderer/libNexoraRenderer.so
+[6/11] Linking CXX shared library Engine/Runtime/libNexoraRuntime.so
+[7/11] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/AssetImport.cpp.o
+[8/11] Building CXX object Tests/Editor/CMakeFiles/NexoraMeshReimportTests.dir/MeshReimportTests.cpp.o
+[9/11] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/ProjectContent.cpp.o
+[10/11] Linking CXX shared library Engine/Editor/libNexoraEditorCore.so
+[11/11] Linking CXX executable Tests/Editor/NexoraMeshReimportTests

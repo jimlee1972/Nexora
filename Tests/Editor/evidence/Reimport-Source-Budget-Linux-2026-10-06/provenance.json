@@ -1,0 +1,14 @@
+{
+  "source_freeze": "0c08ca8ca92d819550532fa796f3e6b9b8f51dbf",
+  "source_sha256": {
+    "Engine/Editor/src/ReimportSource.h": "7f04b21348d479d2e6140b4f5aeec14c8e64af25ccb7041f901de7fbefa2c648",
+    "Tests/Editor/MeshReimportTests.cpp": "3833b4c2b14caaf1a34c45c40ac8c0e005c2a79690e523fc23079d3f80420453"
+  },
+  "full_tests": 97,
+  "full_test_seconds": 112.52,
+  "reimport_consecutive_passes": 100,
+  "reimport_stress_seconds": 2.79,
+  "integration_freeze": "08c15731cead0d3f19ea91363621a41273a1476e",
+  "accepted_main": "1079461167cc49fbf0c55834cc7f5b605e0d77da",
+  "integration_full_test_seconds": 114.2
+}

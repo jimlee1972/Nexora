@@ -33,6 +33,20 @@ inline ReimportSource ReadReimportSource(const std::filesystem::path &path, std:
     result.read_failed = true;
     return result;
   }
+  if (cancelled && cancelled()) {
+    result.cancelled = true;
+    return result;
+  }
+  // Reject known oversized OBJ sources before reading/allocating their payload.
+  // The streaming guard below still handles growth and unavailable size metadata.
+  if (type == ".obj") {
+    std::error_code size_error;
+    const auto source_size = std::filesystem::file_size(path, size_error);
+    if (!size_error && source_size > kMaximumObjSourceBytes) {
+      result.error = "OBJ source exceeds the 16 MiB limit.";
+      return result;
+    }
+  }
   std::array<char, 8192> chunk{};
   while (input) {
     if (cancelled && cancelled()) {
