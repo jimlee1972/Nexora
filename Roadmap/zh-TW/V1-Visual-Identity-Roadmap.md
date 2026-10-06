@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux Development 完整 97/97 測試通過（110.29 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.81 秒）。製作凍結版本 `040a3acf7c07351b98b13f2e0c5c89e4d1d3584b`；證據：`Apps/Showcase/evidence/VIS-Crystal-Proportions-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+水晶呈現比例與石材環境光反應正在對照參考圖驗證：縮窄外殼與內部核心、轉換法線，並對齊光源與景深焦點。以既有材質統一 occlusion 控制調整石材，比較選單補上 F10 抗鋸齒。原 cooked 資產與原生 shader 契約不變。Linux configure/build 與完整 97/97 測試通過（110.29 秒，Khronos core/sync validation）；Shipping 驗證通過。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
 ✅ Linux Development 完整 97/97 測試通過（109.50 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.89 秒）。製作凍結版本 `19899040d0c70d3ba2053bd918cae03230bed88f`；證據：`Apps/Showcase/evidence/VIS-Courtyard-Coping-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 Linux Development configure/build 與完整 97/97 測試通過（109.50 秒，Khronos core/sync validation）。庭院石台與陰影的 Shipping 驗收已通過：以 72 塊原創環形石塊取代平滑石台邊緣，並擴大方向光投影以涵蓋兩側拱頂。保留既有原生解析度、光源方向、材質、資產／shader 契約與動畫生命週期。VIS 仍為 5/7；寫實預覽圖一致性與實體顯示器驗收仍未完成。

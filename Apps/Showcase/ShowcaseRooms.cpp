@@ -775,12 +775,13 @@ struct RoomSession::State final {
                                  1.1F * std::sin(phase)};
       const auto base = static_cast<std::uint16_t>(vertices.size());
       for (const auto &v : courtyardCrystal.vertices) {
-        const math::Vector3 n{v.normal[0], v.normal[1], v.normal[2]};
+        const auto n = math::NormalizeSafe(
+            math::Vector3{v.normal[0] / 0.6F, v.normal[1] / 0.8F, v.normal[2] / 0.6F});
         const auto tangent = math::NormalizeSafe(
             math::Cross(n, std::abs(n.y) < 0.9F ? math::Vector3{0, 1, 0} : math::Vector3{1, 0, 0}));
-        Nexora::Presentation::SceneVertex vertex{{center.x + v.position[0] * 0.2F,
-                                                  center.y + v.position[1] * 0.2F,
-                                                  center.z + v.position[2] * 0.2F},
+        Nexora::Presentation::SceneVertex vertex{{center.x + v.position[0] * 0.12F,
+                                                  center.y + v.position[1] * 0.16F,
+                                                  center.z + v.position[2] * 0.12F},
                                                  {n.x, n.y, n.z},
                                                  {v.uv[0], v.uv[1]}};
         vertex.tangent[0] = tangent.x;
@@ -1177,14 +1178,18 @@ struct RoomSession::State final {
 #if NEXORA_ASSET_PIPELINE_ENABLED
     // The original faceted hero crystal is read from the active cooked/bundled generation.
     const auto crystalBase = static_cast<std::uint16_t>(vertices.size());
-    for (const auto &v : courtyardCrystal.vertices)
-      vertices.push_back({{v.position[0], v.position[1] + 2.9F, v.position[2]},
-                          {v.normal[0], v.normal[1], v.normal[2]},
-                          {v.uv[0], v.uv[1]}});
+    for (const auto &v : courtyardCrystal.vertices) {
+      const auto normal = math::NormalizeSafe(
+          math::Vector3{v.normal[0] / 0.6F, v.normal[1] / 0.8F, v.normal[2] / 0.6F});
+      vertices.push_back(
+          {{v.position[0] * 0.6F, v.position[1] * 0.8F + 3.15F, v.position[2] * 0.6F},
+           {normal.x, normal.y, normal.z},
+           {v.uv[0], v.uv[1]}});
+    }
     for (const auto index : courtyardCrystal.indices)
       indices.push_back(static_cast<std::uint16_t>(crystalBase + index));
 #else
-    Cube(0, 2.9F, 0, 0.35F, 0.55F, 0.35F);
+    Cube(0, 3.15F, 0, 0.21F, 0.44F, 0.21F);
 #endif
     finish(12);
     // Original inner mineral facets occupy real geometry behind the refractive shell.
@@ -1198,9 +1203,9 @@ struct RoomSession::State final {
         for (unsigned corner = 0; corner < 3; ++corner) {
           const auto &v = courtyardCrystal.vertices[courtyardCrystal.indices[face * 3 + corner]];
           const auto n = math::NormalizeSafe(
-              math::Vector3{v.normal[0] / 0.68F, v.normal[1] / 0.78F, v.normal[2] / 0.68F});
+              math::Vector3{v.normal[0] / 0.3F, v.normal[1] / 0.624F, v.normal[2] / 0.3F});
           vertices.push_back(
-              {{v.position[0] * 0.68F, 2.9F + v.position[1] * 0.78F, v.position[2] * 0.68F},
+              {{v.position[0] * 0.3F, 3.15F + v.position[1] * 0.624F, v.position[2] * 0.3F},
                {n.x, n.y, n.z},
                {v.uv[0], v.uv[1]}});
           indices.push_back(static_cast<std::uint16_t>(base + corner));
@@ -2606,6 +2611,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[4].textureId = 2;
 #endif
     s.materials[0].roughness = 0.85F;
+    s.materials[0].occlusion = 0.65F;
     s.materials[0].normalScale = 0.2F;
     s.materials[0].worldTextureScale = s.courtyardPbr ? 1.1F : 0;
 #if NEXORA_ASSET_PIPELINE_ENABLED
@@ -2953,14 +2959,14 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                                                     s.courtyardQuality == 2 ? 20.0F : 12.0F};
     if (data.hdr && s.courtyardFocus && s.courtyardQuality != 0)
       data.depthOfField = Nexora::Presentation::SceneDepthOfField{
-          math::Length(eye - math::Vector3{0, 2.9F, 0}), s.courtyardQuality == 2 ? 0.8F : 0.65F,
+          math::Length(eye - math::Vector3{0, 3.15F, 0}), s.courtyardQuality == 2 ? 0.8F : 0.65F,
           s.courtyardQuality == 2 ? 8.0F : 6.0F};
     data.cameraPosition = {eye.x, eye.y, eye.z};
     if (data.hdr && s.courtyardQuality != 0 && s.courtyardActive && s.courtyardCrystalLight) {
       const float time = static_cast<float>(s.courtyardSeconds);
       const float pulse = 0.9F + 0.1F * std::sin(time * 1.7F);
       data.pointLight =
-          Nexora::Presentation::ScenePointLight{{0, 2.9F + 0.12F * std::sin(time * 1.4F), 0},
+          Nexora::Presentation::ScenePointLight{{0, 3.15F + 0.12F * std::sin(time * 1.4F), 0},
                                                 {0.3F * pulse, 8.0F * pulse, 12.0F * pulse},
                                                 4.5F};
     }
@@ -3037,14 +3043,12 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
     s.Text(30, 678, viewing + " / Q Quality: " + std::string(QualityName()), 0xffefdc80, 1.3F);
     if (s.courtyardCompare) {
       s.Rect(18, 531, 900, 100, 0xde241a10);
-      s.Text(
-          30, 544,
-          "P Materials / O Environment / F6 Shadows / F7 Haze / F8 Refraction / F9 Crystal light",
-          0xffe9ded4, 1.4F);
-      s.Text(30, 573, "J Focus / V Reflection / U Crystal / K Glow / N Wind / M Backlight",
-             0xffe9ded4, 1.4F);
-      s.Text(30, 602, "Q Quality / Pause for comparisons / R Replay / F1-F3 Details", 0xffefdc80,
-             1.2F);
+      s.Text(30, 544, "P Materials / O IBL / F6 Shadows / F7 Haze / F8 Refraction", 0xffe9ded4,
+             1.4F);
+      s.Text(30, 573, "F9 Crystal light / F10 AA / J Focus / V Reflection / K Glow", 0xffe9ded4,
+             1.4F);
+      s.Text(30, 602, "N Wind / M Backlight / U Crystal / Q Quality / Space Pause / R Replay",
+             0xffefdc80, 1.2F);
     }
   } else {
     s.Rect(0, 0, 1280, 112, 0xf0271a10);
