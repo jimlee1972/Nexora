@@ -1,0 +1,7 @@
+# Background ruin shadows: Linux evidence
+
+Standard/High enable real shadow casting for background masonry and woody stems, while ridges remain excluded. A 48-by-30 world-unit frustum, light eye at twice the original sun displacement around (0,1,-8), and an 80-unit far plane include distant crowns. Both tiers use the existing native 2048-pixel ceiling; Basic retains its foreground frustum, 512-pixel map and background exclusions. Standard keeps its horizontal texel size over twice the width; High shares the expanded map. The left ruin moves to (-24,-26) to retain a sunset corridor. Tests verify caster eligibility by tier and tower/crown light-space coverage. The CLI quality expectation is updated to the new precise contract; the initial failed old-expectation log is retained.
+
+Full Linux configure/build and 97/97 tests pass with Khronos core/synchronization validation (113.49 s). Shipping isolated native acceptance, exact wind/reflection restoration and an actual 100-second shared-clock recording pass. Standard: 56,665 vertices, 133,194 indices, 336 batches, 44 materials. Production freeze `ee8837eb3d55db9f0892f468ab70773cbc968809`; native art uses the same Shipping executable. Source/executable/movie/package SHA-256 provenance is retained. Artifacts: `NexoraShowcase-Background-Shadows-ee8837e.mp4` and `NexoraShowcase-Background-Shadows-ee8837e-Linux.zip`. Shader packets, stable ABIs and cooked art remain unchanged.
+
+Reference parity and physical display acceptance remain open (VIS 5/7).
