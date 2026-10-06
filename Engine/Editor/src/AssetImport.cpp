@@ -5,31 +5,13 @@
 
 #include <algorithm>
 #include <deque>
-#include <fstream>
-#include <iomanip>
 #include <mutex>
 #include <ranges>
-#include <sstream>
 #include <unordered_map>
 #include <utility>
 
 namespace nexora::editor {
 namespace {
-
-std::uint64_t Hash(std::string_view bytes, std::uint64_t seed) {
-  auto value = seed;
-  for (const unsigned char byte : bytes) {
-    value ^= byte;
-    value *= 1099511628211ULL;
-  }
-  return value;
-}
-
-std::string Hex(std::uint64_t value) {
-  std::ostringstream stream;
-  stream << std::hex << std::setfill('0') << std::setw(16) << value;
-  return stream.str();
-}
 
 template <typename Value>
 void PushBounded(std::deque<Value> &values, Value value, std::size_t capacity,
@@ -252,8 +234,9 @@ ImportOperationId AssetImportQueue::Start(ReimportJobRequest request, std::strin
              return;
            }
            implementation->Progress(operation, ImportStage::Reading, 1, 4);
-           auto imported = detail::ReadReimportSource(
-               source, request.type, [&token] { return token.IsCancellationRequested(); });
+           auto imported =
+               detail::ReadReimportSource(source, request.type, request.asset,
+                                          [&token] { return token.IsCancellationRequested(); });
            if (imported.cancelled || token.IsCancellationRequested()) {
              implementation->FinishCancelled(operation);
              return;
@@ -265,17 +248,15 @@ ImportOperationId AssetImportQueue::Start(ReimportJobRequest request, std::strin
              return;
            }
            implementation->Progress(operation, ImportStage::Staging, 2, 4);
-           const auto &contents = imported.bytes;
-           ReimportResult result{
-               request.project_generation,
-               request.asset,
-               Hex(Hash(contents, 1469598103934665603ULL)),
-               std::move(request.settings_hash),
-               Hex(Hash(contents, Hash(request.asset.ToString(), 1469598103934665603ULL))),
-               std::move(request.dependencies),
-               {},
-               false,
-               std::move(imported.mesh)};
+           ReimportResult result{request.project_generation,
+                                 request.asset,
+                                 std::move(imported.source_hash),
+                                 std::move(request.settings_hash),
+                                 std::move(imported.artifact_hash),
+                                 std::move(request.dependencies),
+                                 {},
+                                 false,
+                                 std::move(imported.mesh)};
            if (token.IsCancellationRequested()) {
              implementation->FinishCancelled(operation);
              return;

@@ -167,9 +167,10 @@ int main() {
     }
     std::size_t cancellation_checks = 0;
     const auto oversized = editor::detail::ReadReimportSource(
-        source, ".OBJ", [&] { return ++cancellation_checks > 1; });
-    Require(oversized.bytes.empty() && !oversized.mesh && !oversized.cancelled &&
-                !oversized.read_failed && oversized.error == "OBJ source exceeds the 16 MiB limit.",
+        source, ".OBJ", asset, [&] { return ++cancellation_checks > 1; });
+    Require(oversized.source_hash.empty() && oversized.artifact_hash.empty() && !oversized.mesh &&
+                !oversized.cancelled && !oversized.read_failed &&
+                oversized.error == "OBJ source exceeds the 16 MiB limit.",
             "oversized OBJ was read/allocated before its metadata budget rejection");
     Require(content.BeginReimport(imports, asset), "oversized mesh request failed to start");
     AwaitPublication(content, "oversized source");

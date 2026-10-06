@@ -1344,3 +1344,13 @@ the recorded runtime/movie production freeze remains unchanged.
 ✅ Dielectric/native interaction integration: Linux configure/build and full 97/97 tests passed (111.31 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 4933fbc passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
 
 ✅ Coping/native interaction integration: Linux configure/build and full 97/97 tests passed (110.58 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 1989904 passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Courtyard-Coping-Linux-2026-10-06/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
+
+✅ ED-M1 asset source staging now uses 8 KiB binary read chunks and incremental hashes for ordinary
+assets across workspace indexing and synchronous/background reimport. Mid-file cancellation exposes
+no partial artifact; empty/binary/chunk-boundary tests preserve the existing hash format. OBJ source
+limits and authoring-thread publication remain required. Graphical milestone acceptance remains 0/8.
+
+✅ ED-M1 資產 source staging 現在 workspace indexing 與同步／背景 reimport 共用 8 KiB binary
+read chunk 及 incremental hash。讀取中取消不發布 partial artifact；空檔案、binary 與 chunk
+邊界測試保留既有 hash 格式。OBJ source 上限及 authoring-thread publication 持續必要；
+圖形化 milestone 驗收維持 0/8。

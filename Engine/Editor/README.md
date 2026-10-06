@@ -118,6 +118,13 @@ into renderer or platform internals.
   borrows its queue; destroy the session before the queue, including during exception unwinding.
   Cancellation requests do not release that borrow; PollReimport must consume the result, or the
   session must be destroyed before the queue.
+  Workspace indexing and synchronous/background reimport share binary source staging. Ordinary
+  assets are hashed incrementally through an 8 KiB read chunk instead of retaining the whole file;
+  cancellation is checked between reads and after EOF. Source hashes retain the existing FNV-1a
+  seed, and artifact hashes retain the UUID-string prefix, including empty and binary sources.
+  Failed/cancelled reads expose no partial hash or geometry. OBJ parsing retains its 16 MiB source
+  limit and early size preflight; workspace geometry retains its 128 MiB budget. Workers still only
+  stage results, and the authoring thread revalidates before publishing to the live Content model.
 - `MeshAssetCatalog` atomically publishes owning CPU geometry snapshots from imported assets on the
   authoring thread. Both UUID and resource lookup require the current nonzero project generation;
   failed imports and missing payloads remain unresolved. Retained snapshots survive replacement
