@@ -396,6 +396,13 @@ jobs:
             exit 0
           fi
           exit "$code"
+      - name: Measure Shipping courtyard quality matrix (Linux software Vulkan)
+        if: runner.os == 'Linux'
+        run: |
+          python3 Tools/Package/BenchmarkShowcase.py \
+            build/${{ matrix.preset }}/package/NexoraShowcase-Shipping/bin/NexoraShowcase \
+            --backend vulkan --virtual-display \
+            --output build/${{ matrix.preset }}/artifacts/quality-benchmark
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -403,6 +410,7 @@ jobs:
           path: |
             build/${{ matrix.preset }}/package/NexoraShowcase-Shipping*
             build/${{ matrix.preset }}/artifacts/release-native/
+            build/${{ matrix.preset }}/artifacts/quality-benchmark/
 
   mimalloc-smoke:
     needs: changes
