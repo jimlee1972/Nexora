@@ -48,3 +48,23 @@ No physical-display, installed Windows IME, sanitizer, or visual-legibility resu
 Follow-up: the original resize case checked identity and upload counts, but not rejected bindings
 after resize. The [native image/cache record](EditorEDM0-NativeImages-2026-10-06.md) adds that assertion,
 reproduces Vulkan's swapchain cache loss, and records the fix plus a 4290-upload replacement soak.
+
+## Final-head automated acceptance
+
+Source `b2ca94f962329fa14d4629a67f37daff01ba12a9` integrates main `85e94f6`.
+[Build run 37408629909](https://github.com/jimlee1972/Nexora/actions/runs/37408629909)
+records Linux Development **140/140**, 312.90 s; Windows/DX12 **123/123**, 135.75 s;
+macOS/Metal **122/122**, 96.46 s. These are hosted runs, separate from Linux workspace testing.
+
+Exact-source local configure/build passed; full Linux Development **118/118**, no skips,
+179.52 s; strict Vulkan **3/3**, 21.97 s, actual Khronos layer insertion and zero validation
+errors/VUIDs/synchronization hazards. Engine-only Shipping configure/build and Shipping/Full
+isolated native package acceptance passed with Zig 0.14.0.
+Full commands appear in [PR #348](https://github.com/jimlee1972/Nexora/pull/348).
+
+The first hosted Linux Shipping attempt failed during native window creation before interaction;
+its failure remains recorded. One failed-job rerun was requested after local isolated acceptance
+passed. The rerun and CI result succeeded: all 18 selected jobs passed. This overlapping PR was
+closed as superseded by merged #354, which carries its lifetime fixes and the stronger native-image
+resize follow-up.
+Physical-display, installed Windows IME and visual-legibility acceptance remain open.

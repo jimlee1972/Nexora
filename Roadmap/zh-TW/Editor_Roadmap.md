@@ -113,6 +113,12 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   Native lifetime gate 涵蓋 owner 更換、DPI／resize 重用、容量上限及超過 4096 次 upload；
   DX12 等待 GPU completion 才回收替換 descriptor，實體 visual 驗收仍待完成。
 
+✅ Final-head 原生 UI 自動驗收已通過 Linux／Vulkan（140/140）、Windows／DX12（123/123）
+與 macOS／Metal（122/122），三個 backend 均完成 4290-upload lifetime gate。
+[Immutable hosted 證據](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md)
+包含全部 18 個 selected CI job。實體顯示器、已安裝 IME 與 visual-legibility／glyph coverage
+仍待驗收，ED-M0 至 ED-M7 維持未打勾。
+
 ### ED-M1 — Project 與 Asset workspace
 
 建立、開啟與升級 project；Content Browser 支援 search/filter、folder/UUID、drag/drop、import
