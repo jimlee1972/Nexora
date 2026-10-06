@@ -155,6 +155,33 @@ int main() {
     if (batch.materialIndex == 5)
       sourceLeaves += batch.indexCount / 6;
   assert(sourceLeaves > 700);
+  std::size_t foldedLeaves = 0;
+  for (const auto &batch : wide.batches) {
+    if (batch.materialIndex != 5 || batch.firstInstance != 0)
+      continue;
+    for (std::size_t i = batch.firstIndex; i < batch.firstIndex + batch.indexCount; i += 6) {
+      const auto &a = wide.vertices[wide.indices[i]];
+      const auto &b = wide.vertices[wide.indices[i + 1]];
+      const auto &c = wide.vertices[wide.indices[i + 2]];
+      const auto &d = wide.vertices[wide.indices[i + 5]];
+      const auto point = [](const auto &v) {
+        return nexora::math::Vector3{v.position[0], v.position[1], v.position[2]};
+      };
+      const auto face = nexora::math::Cross(point(b) - point(a), point(c) - point(a));
+      if (std::abs(nexora::math::Dot(face, point(d) - point(a))) > 1e-6F)
+        ++foldedLeaves;
+      for (const auto *v : {&a, &b, &c, &d}) {
+        const nexora::math::Vector3 normal{v->normal[0], v->normal[1], v->normal[2]};
+        const nexora::math::Vector3 tangent{v->tangent[0], v->tangent[1], v->tangent[2]};
+        assert(std::abs(nexora::math::Dot(normal, tangent)) < 1e-5F);
+        assert(std::abs(nexora::math::Dot(normal, normal) - 1) < 1e-5F);
+        assert(std::abs(nexora::math::Dot(tangent, tangent) - 1) < 1e-5F);
+        assert(nexora::math::Dot(face, normal) > 0);
+      }
+    }
+  }
+  assert(foldedLeaves > 700);
+
   assert(wide.materials[5].twoSidedLighting && wide.materials[15].twoSidedLighting &&
          wide.materials[16].twoSidedLighting);
   assert(courtyard.Report().find("\"foliage_quad_count\":" + std::to_string(sourceLeaves)) !=
