@@ -1,0 +1,30 @@
+{
+  "scope": "Camera-space planning only; native screenshots must verify visibility and lighting",
+  "camera_eye": [
+    1.029288958351857,
+    2.6596818599520557,
+    8.536196848951933
+  ],
+  "reference_sun_pixel_approx": [
+    207,
+    176
+  ],
+  "old_direction": [
+    -18,
+    6,
+    -16
+  ],
+  "old_sun_center_prediction": [
+    105.09785793826161,
+    71.73067719835464
+  ],
+  "candidate_direction": [
+    -18,
+    4,
+    -19.2
+  ],
+  "candidate_sun_center_prediction": [
+    208.44722933031633,
+    175.09284212578953
+  ]
+}
