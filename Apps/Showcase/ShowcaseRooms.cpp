@@ -1326,6 +1326,8 @@ struct RoomSession::State final {
       std::array<float, 3> extent;
       std::vector<Nexora::Presentation::SceneInstance> placements;
       std::optional<float> arcadeAngle;
+      float arcadeRadius{3};
+      bool arcadeAcrossX{};
     };
     std::vector<MasonryPrototype> masonry;
     const auto placeMasonry = [&](std::uint32_t material, float x, float y, float z, float sx,
@@ -1343,6 +1345,28 @@ struct RoomSession::State final {
       placement.translation[1] = y;
       placement.translation[2] = z;
       prototype->placements.push_back(placement);
+    };
+    // Shared original chamfered arch stones span the background's X/Y planes.
+    const auto placeBackgroundArch = [&](math::Vector3 center, float archRadius, float halfWidth,
+                                         float halfDepth, unsigned stones) {
+      for (unsigned stone = 0; stone < stones; ++stone) {
+        const float angle = math::kPi * (stone + 0.5F) / stones;
+        const std::array extent{(math::kPi / (2 * stones) - 0.006F) * archRadius, halfWidth,
+                                halfDepth};
+        auto prototype = std::find_if(masonry.begin(), masonry.end(), [&](const auto &entry) {
+          return entry.material == 8 && entry.extent == extent && entry.arcadeAngle == angle &&
+                 entry.arcadeRadius == archRadius && entry.arcadeAcrossX;
+        });
+        if (prototype == masonry.end()) {
+          masonry.push_back({8, extent, {}, angle, archRadius, true});
+          prototype = std::prev(masonry.end());
+        }
+        Nexora::Presentation::SceneInstance placement{};
+        placement.translation[0] = center.x;
+        placement.translation[1] = center.y;
+        placement.translation[2] = center.z;
+        prototype->placements.push_back(placement);
+      }
     };
     // Layered original environment: terrain, distant ridge, ruined towers and cypress.
     Cube(0, -0.24F, 0, 38, 0.2F, 38);
@@ -1389,21 +1413,24 @@ struct RoomSession::State final {
       placeMasonry(8, x, 6.2F, -16, 1.5F, 0.3F, 1.5F);
       for (const float dx : {-0.9F, 0.9F})
         placeMasonry(8, x + dx, 7.3F, -16, 0.3F, 0.8F, 0.5F);
-      for (unsigned i = 0; i < 10; ++i) {
-        const float a = math::kPi * i / 10, b = math::kPi * (i + 1) / 10;
-        Segment({x + 2.8F + 1.6F * std::cos(a), 4 + 1.6F * std::sin(a), -16},
-                {x + 2.8F + 1.6F * std::cos(b), 4 + 1.6F * std::sin(b), -16}, 0.3F);
-      }
+      placeBackgroundArch({x + 2.8F, 4, -16}, 1.6F, 0.3F, 0.36F, 12);
       placeMasonry(8, x + 4.4F, 2, -16, 0.35F, 2, 0.4F);
     }
     for (unsigned tower = 0; tower < 5; ++tower) {
       const float x = -4 + tower * 5.0F, height = 7.0F + static_cast<float>(tower * 7 % 6);
       const unsigned courses = static_cast<unsigned>(std::ceil(height / 0.72F));
       const float courseHeight = height / courses;
-      for (unsigned course = 0; course < courses; ++course)
-        placeMasonry(8, x + (course % 2) * 0.015F, 2 + (course + 0.5F) * courseHeight, -23, 1.0F,
-                     courseHeight * 0.5F - 0.012F, 1.0F);
-      for (const float y : {4.3F, height + 0.3F}) {
+      for (unsigned course = 0; course < courses; ++course) {
+        const float y = 2 + (course + 0.5F) * courseHeight;
+        if (course + 4 < courses)
+          placeMasonry(8, x + (course % 2) * 0.015F, y, -23, 1.0F, courseHeight * 0.5F - 0.012F,
+                       1.0F);
+        else
+          for (const float dx : {-0.78F, 0.78F})
+            for (const float dz : {-0.78F, 0.78F})
+              placeMasonry(8, x + dx, y, -23 + dz, 0.22F, courseHeight * 0.5F - 0.012F, 0.22F);
+      }
+      for (const float y : {4.3F}) {
         const std::array<math::Vector3, 4> emblem{{{x, y + 0.42F, -21.95F},
                                                    {x + 0.3F, y, -21.95F},
                                                    {x, y - 0.42F, -21.95F},
@@ -1413,16 +1440,13 @@ struct RoomSession::State final {
       }
       for (unsigned groove = 0; groove < 6; ++groove) {
         const float gx = x - 0.75F + groove * 0.3F;
-        Segment({gx, 3.1F, -21.98F}, {gx, height + 1.6F, -21.98F}, 0.035F);
+        Segment({gx, 3.1F, -21.98F}, {gx, 2 + (courses - 4) * courseHeight - 0.05F, -21.98F},
+                0.035F);
       }
       placeMasonry(8, x, height + 2.2F, -23, 1.3F, 0.3F, 1.3F);
       for (const float dx : {-0.9F, 0.9F})
         placeMasonry(8, x + dx, height + 3, -23, 0.25F, 0.5F, 0.45F);
-      for (unsigned i = 0; i < 12; ++i) {
-        const float a = math::kPi * i / 12, b = math::kPi * (i + 1) / 12;
-        Segment({x + 2.5F + 1.5F * std::cos(a), 6 + 1.5F * std::sin(a), -23},
-                {x + 2.5F + 1.5F * std::cos(b), 6 + 1.5F * std::sin(b), -23}, 0.28F);
-      }
+      placeBackgroundArch({x + 2.5F, 6, -23}, 1.5F, 0.28F, 0.32F, 12);
       placeMasonry(8, x + 4, 4, -23, 0.25F, 2, 0.3F);
     }
     for (unsigned step = 0; step < 6; ++step)
@@ -1656,16 +1680,31 @@ struct RoomSession::State final {
       if (prototype.arcadeAngle)
         for (std::size_t i = firstVertex; i < vertices.size(); ++i) {
           auto &vertex = vertices[i];
-          const float stoneRadius = 3 + vertex.position[1];
-          const float angle = *prototype.arcadeAngle + vertex.position[0] / 3;
+          const float bendRadius = prototype.arcadeRadius;
+          const float stoneRadius = bendRadius + vertex.position[1];
+          const float angle = *prototype.arcadeAngle +
+                              (prototype.arcadeAcrossX ? -1 : 1) * vertex.position[0] / bendRadius;
           const float sine = std::sin(angle), cosine = std::cos(angle);
-          const auto normal = math::NormalizeSafe(math::Vector3{
-              vertex.normal[2],
-              cosine * vertex.normal[0] * 3 / stoneRadius + sine * vertex.normal[1],
-              -sine * vertex.normal[0] * 3 / stoneRadius + cosine * vertex.normal[1]});
-          vertex.position[0] = vertex.position[2];
-          vertex.position[1] = stoneRadius * sine;
-          vertex.position[2] = stoneRadius * cosine;
+          const float tangentScale = bendRadius / stoneRadius;
+          const auto normal = math::NormalizeSafe(
+              prototype.arcadeAcrossX
+                  ? math::Vector3{sine * vertex.normal[0] * tangentScale +
+                                      cosine * vertex.normal[1],
+                                  -cosine * vertex.normal[0] * tangentScale +
+                                      sine * vertex.normal[1],
+                                  vertex.normal[2]}
+                  : math::Vector3{
+                        vertex.normal[2],
+                        cosine * vertex.normal[0] * tangentScale + sine * vertex.normal[1],
+                        -sine * vertex.normal[0] * tangentScale + cosine * vertex.normal[1]});
+          if (prototype.arcadeAcrossX) {
+            vertex.position[0] = stoneRadius * cosine;
+            vertex.position[1] = stoneRadius * sine;
+          } else {
+            vertex.position[0] = vertex.position[2];
+            vertex.position[1] = stoneRadius * sine;
+            vertex.position[2] = stoneRadius * cosine;
+          }
           vertex.normal[0] = normal.x;
           vertex.normal[1] = normal.y;
           vertex.normal[2] = normal.z;
