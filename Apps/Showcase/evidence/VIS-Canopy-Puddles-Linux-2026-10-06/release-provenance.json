@@ -1,0 +1,76 @@
+{
+  "source_freeze": "22df5bbb911907aa8bcd495e6da99532d75b9d79",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "a10804e751e9d5f765c188bba1d7686f1d5c4751a0a7cac21b8257bad5ac0f24",
+    "Apps/Showcase/ShowcaseRooms.cpp": "69cbb9f075904a2a2e08b3671130f5e41ca9f586998f094ea7ba717e2deda2a2",
+    "README.md": "f0f826df57279c37aa443d3e802de3af4edb8b6825a7eb61d7388da5312715b5",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "32af9d9dab0b5312707c4f9d2e30545d8e8f8cef33777583b261c1f0b110cb43",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "e6e1183a8db50efabba0a36b50afcf0d758dafd82cdb0f7f9b23813aeff7f27d"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/canopy-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "22df5bbb9119",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.761622378006,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.266667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "c5c3f1312444c42376f8743276b0c15e4a87ed464995e2c8b0ca5cf614de1672",
+    "video_sha256": "718ceacc13888f05f29f4df22bd20a96c04f19627a9e0a1ded260c8425cbc0cb",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "64ac94dceecb3d38f8a364b4d51ff63fd5daf54e1ae90bf8b54bda8847d3a079",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        0,
+        624,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  }
+}

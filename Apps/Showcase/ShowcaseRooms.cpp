@@ -753,9 +753,9 @@ struct RoomSession::State final {
   Nexora::Presentation::ScenePlanarReflection CourtyardReflectionSettings() const {
     Nexora::Presentation::ScenePlanarReflection planar;
     planar.planeHeight = 0.16F + 0.003F * std::sin(static_cast<float>(courtyardSeconds) * 0.8F);
-    planar.regions[0] = {0.6F, 5.1F, 0.9F, 0.8F};
+    planar.regions[0] = {0.2F, 3.8F, 1.2F, 0.9F};
     planar.shorelineVariation = 0.18F;
-    planar.regions[1] = {3.1F, 3.0F, 0.85F, 0.65F};
+    planar.regions[1] = {2.9F, 2.8F, 1.0F, 0.7F};
     planar.regionCount = 2;
     return planar;
   }
@@ -763,7 +763,10 @@ struct RoomSession::State final {
     using Nexora::Presentation::SceneReflectionRole;
     const auto planar = CourtyardReflectionSettings();
     const auto materialCount = materials.size();
-    materials[0].reflectionRole = materials[8].reflectionRole = SceneReflectionRole::Receiver;
+    // Mask the direct sky behind puddles too: otherwise its depth occludes the
+    // Fresnel-attenuated mirrored sky, leaving a bright unreflected background.
+    materials[0].reflectionRole = materials[6].reflectionRole = materials[8].reflectionRole =
+        SceneReflectionRole::Receiver;
     for (std::size_t i = 0; i < materialCount; ++i) {
       auto reflected = materials[i];
       reflected.reflectionRole = SceneReflectionRole::ReflectedGeometry;
@@ -1486,26 +1489,41 @@ struct RoomSession::State final {
     }
     finish(16);
     for (const float x : {-7.5F, 7.5F})
-      for (unsigned i = 0; i < 32; ++i) {
-        const float z = -7 + i * 0.4F;
+      for (unsigned i = 0; i < 48; ++i) {
+        const float z = -7 + i * (12.4F / 48);
         const float arc = std::fmod(z + 7, 6.0F) - 3;
         const float root = 3.7F + std::sqrt(std::max(0.0F, 9 - arc * arc));
         Segment({x, root, z}, {x, root - 1.4F, z}, 0.018F);
       }
     finish(10);
     for (const float x : {-7.5F, 7.5F})
-      for (unsigned i = 0; i < 32; ++i) {
-        const float z = -7 + i * 0.4F;
+      for (unsigned i = 0; i < 48; ++i) {
+        const float z = -7 + i * (12.4F / 48);
         const float arc = std::fmod(z + 7, 6.0F) - 3;
         const float root = 3.7F + std::sqrt(std::max(0.0F, 9 - arc * arc));
-        for (unsigned leaf = 0; leaf < 3; ++leaf) {
+        for (unsigned leaf = 0; leaf < 5; ++leaf) {
           const float height = 0.65F + (i % 4) * 0.1F;
-          LeafQuad({x + (leaf % 2) * 0.1F, root - leaf * 0.42F - height, z}, 0.3F, height,
+          LeafQuad({x + (leaf % 2) * 0.1F, root - leaf * 0.32F - height, z}, 0.3F, height,
                    i * 0.61F + leaf);
           for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
             vertices[v].uv[1] = 1 - vertices[v].uv[1];
         }
       }
+    finish(5);
+    // Original climbing ivy wraps the real arcade columns; flipped root UVs
+    // keep the upper attachment fixed while the existing shared wind bends each leaf.
+    for (const float x : {-7.5F, 7.5F})
+      for (const float z : {-7.0F, -1.0F, 5.0F})
+        for (unsigned vine = 0; vine < 6; ++vine)
+          for (unsigned leaf = 0; leaf < 7; ++leaf) {
+            const float angle = vine * 2 * math::kPi / 6 + 0.13F * std::sin(leaf * 1.7F + vine);
+            const float height = 0.4F + ((vine + leaf) % 3) * 0.04F;
+            LeafQuad({x + 0.59F * std::cos(angle), 5.4F - leaf * 0.62F - height,
+                      z + 0.59F * std::sin(angle)},
+                     0.24F, height, angle - math::kPi * 0.5F);
+            for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
+              vertices[v].uv[1] = 1 - vertices[v].uv[1];
+          }
     finish(5);
     // Place the left cypress in the wide camera's arch opening, retaining its shared wind.
     const auto treeLocation = [](float x, float z) {
@@ -1520,13 +1538,13 @@ struct RoomSession::State final {
     // Layered cutout foliage replaces smooth cones; it shares leaf lighting and wind.
     for (const float x : {-12.0F, 12.0F})
       for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F})
-        for (unsigned layer = 0; layer < 18; ++layer) {
-          const float y = 0.7F + layer * 0.29F;
+        for (unsigned layer = 0; layer < 24; ++layer) {
+          const float y = 0.7F + layer * (5.22F / 24);
           const auto location = treeLocation(x, z);
           const float crownRadius =
-              (x < 0 && z == -10 ? 0.6F : 0.85F) * (1 - std::pow(layer / 18.0F, 1.35F));
-          for (unsigned branch = 0; branch < 3; ++branch) {
-            const float angle = layer * 2.399963F + branch * 2 * math::kPi / 3;
+              (x < 0 && z == -10 ? 0.6F : 0.85F) * (1 - std::pow(layer / 24.0F, 1.35F));
+          for (unsigned branch = 0; branch < 4; ++branch) {
+            const float angle = layer * 2.399963F + branch * 2 * math::kPi / 4;
             LeafQuad({location[0] + std::cos(angle) * crownRadius * 0.22F, y,
                       location[1] + std::sin(angle) * crownRadius * 0.22F},
                      crownRadius, 0.7F, angle);
@@ -1559,13 +1577,13 @@ struct RoomSession::State final {
         }
     finish(5);
     // Ivy follows the outer right-hand device rim; root anchors share the scene wind clock.
-    for (unsigned vine = 0; vine < 9; ++vine) {
-      const float angle = -0.45F + vine * 0.15F;
+    for (unsigned vine = 0; vine < 12; ++vine) {
+      const float angle = -0.45F + vine * 0.11F;
       const float rootX = 1.94F * std::cos(angle);
       const float rootY = 2.9F + 1.94F * std::sin(angle);
-      for (unsigned leaf = 0; leaf < 8; ++leaf) {
+      for (unsigned leaf = 0; leaf < 10; ++leaf) {
         const float height = 0.32F + ((vine + leaf) % 3) * 0.035F;
-        LeafQuad({rootX + 0.08F * std::sin(leaf * 1.7F), rootY - leaf * 0.17F - height,
+        LeafQuad({rootX + 0.08F * std::sin(leaf * 1.7F), rootY - leaf * 0.145F - height,
                   0.33F + 0.04F * std::cos(leaf * 1.3F)},
                  0.18F, height, vine * 0.57F);
         for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
@@ -1576,9 +1594,9 @@ struct RoomSession::State final {
     // Dense foreground banks retain the original alpha mask and the same GPU wind.
     for (const auto bank :
          {std::array{-5.0F, 5.3F}, std::array{5.4F, 5.9F}, std::array{-7.8F, -1.8F}})
-      for (unsigned sprig = 0; sprig < 96; ++sprig) {
+      for (unsigned sprig = 0; sprig < 128; ++sprig) {
         const float angle = sprig * 2.399963F;
-        const float sprigRadius = 1.3F * std::sqrt((sprig + 0.5F) / 96);
+        const float sprigRadius = 1.3F * std::sqrt((sprig + 0.5F) / 128);
         LeafQuad({bank[0] + sprigRadius * std::cos(angle), 0.15F + 0.25F * (1 - sprigRadius / 1.3F),
                   bank[1] + sprigRadius * std::sin(angle)},
                  0.22F + (sprig % 4) * 0.035F, 0.45F + (sprig % 5) * 0.08F, angle);
@@ -2707,7 +2725,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                    {{0.08F, 0.8F, 0.95F, 1}, 0},
                    {{0.3F, 0.21F, 0.13F, 1}, 0},
                    {{1, 1, 1, 1}, 0},
-                   {{0.7F, 0.8F, 0.65F, 1}, 0}};
+                   {{0.55F, 0.65F, 0.45F, 1}, 0}};
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[4].textureId = 2;
 #endif
@@ -2743,7 +2761,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       s.materials[5].alphaCutoff = 0.5F;
       s.materials[5].windAmplitude = s.courtyardWind ? 0.22F : 0;
       s.materials[5].transmissionThickness = s.courtyardTransmission ? 0.12F : 0;
-      s.materials[5].transmissionColor = {0.25F, 0.45F, 0.12F};
+      s.materials[5].transmissionColor = {0.2F, 0.35F, 0.1F};
     }
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[5].textureId = 16;
