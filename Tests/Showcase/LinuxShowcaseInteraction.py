@@ -383,10 +383,15 @@ def main():
             shutil.copy2(exported, output/'lab-export.json')
             shutil.copy2(exported_markdown, output/'lab-export.md')
             tool('key','--window',window,'Tab','Tab','Tab','Tab','Tab','Tab','i','r','F3')
-            tool('key','--window',window,'1','v','b','h','t','space','r')
+            tool('key','--window',window,'1','v','b','h','t','space','r','space','F4')
+            # Freeze the tour and hide changing diagnostics so a cropped old-size frame
+            # cannot satisfy the resize oracle. Wait for a real presented change before close.
+            settled_screenshot(window,1280,720,output/'hub-before-resize.png')
+            old_crop = screenshot(window,960,540,output/'hub-before-resize-crop.png')
             tool('windowsize',window,960,540)
-            time.sleep(0.2)
-            screenshot(window,960,540,output/'resized-hub.png')
+            compared_screenshot(window,960,540,output/'resized-hub.png',old_crop,False)
+            resized = settled_screenshot(window,960,540,output/'resized-hub.png',old_crop)
+            assert len(set(resized)) >= 8, 'Resized backbuffer did not render native pixels'
             request_window_close(window, display)
             _, errors = app.communicate(timeout=10)
             assert app.returncode == 0, errors
