@@ -14,6 +14,10 @@ receives a native window, device, queue, or swapchain pointer.
 
 ## 2. Current baseline
 
+- ✅ Native UI replacement descriptors are now fence-recycled on DX12; Vulkan's bounded UI pool
+  supports 64 mutable Editor images and in-flight generations. The Editor native lifetime gate
+  exercises more than 4096 uploads. Target-host visual acceptance remains separate.
+
 - ✅ X11 modifier events report post-transition flags, preserve held left/right partners, and
   clear tracking on focus loss/destruction. The native Xvfb gate verifies all four modifier families.
 
@@ -21,6 +25,10 @@ receives a native window, device, queue, or swapchain pointer.
 - ✅ Renderer scene extraction and offscreen `Present` state validation are covered by tests.
 - ✅ `NexoraShowcase` preserves its headless lifecycle and can own a reusable native render surface.
 - Implemented: Win32 window/input translation and DX12 presentation have WP-M1/WP-M2 Windows acceptance evidence; Showcase integration remains a separate target-host gate.
+
+✅ `RenderSurface::UiResourceDomain()` now exposes an opaque process-local cache identity,
+stable across resize/move and invalid after teardown. Editor native replacement/DPI tests reject
+stale upload acknowledgements without caching an owner or exposing native image handles.
 
 ## 3. Required contracts
 

@@ -98,6 +98,21 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   以及 200% Apply dialog 點擊；render deferred／zero-extent frame 也會轉送 gameplay 按鍵釋放與失焦，
   不需 GUI frame 或 Play tick；target-host 實體顯示器 DPI 證據仍待完成。
 
+- ✅ Native UI atlas acknowledgement 現以 process-local surface resource domain 區隔。
+  新 owner 即使 DPI 不變仍取得 atlas，move／resize 保留 cache；native lifetime test
+  涵蓋更換與 teardown（[紀錄](../../Tools/Build/evidence/EditorEDM0-SurfaceLifetime-2026-10-06.md)）。
+
+- ✅ ImGui context ownership 現隨 host State 移動與銷毀。以 allocator 計數的
+  `editor.imgui_context_lifetime` gate 可偵測原本遺留的 17 筆 allocation，並檢查 self-move、
+  current context 還原，要求全部 owner 銷毀後無遺留 allocation。
+
+- ✅ Public-RHI texture registration 在 renderer／device reset 後不再讓 stale ID 復活；
+  `editor.imgui_contract` 涵蓋多次 reset 與 stale fallback。
+
+- ✅ Native UI image 現以 owning、bounded RGBA8 登錄並進行 generation-checked fallback。
+  Native lifetime gate 涵蓋 owner 更換、DPI／resize 重用、容量上限及超過 4096 次 upload；
+  DX12 等待 GPU completion 才回收替換 descriptor，實體 visual 驗收仍待完成。
+
 ### ED-M1 — Project 與 Asset workspace
 
 建立、開啟與升級 project；Content Browser 支援 search/filter、folder/UUID、drag/drop、import

@@ -168,6 +168,10 @@ target-host 證據。此處僅完成 WP0，ED-M0 尚未完成。
 **Exit gate：**乾淨的 baseline result 與明確 gap list。若 configure 需要網路但沒有 cache，回報環境限制；
 不可靜默關閉 feature。
 
+✅ Context move lifetime 已強化：`editor.imgui_context_lifetime` 驗證 destination context
+釋放、source context 移轉、self-move、其他 current context 保留與 allocator 平衡；此修正
+不取代 target-host 視覺驗收。
+
 ### WP1 — 讓 public RHI 足以表達 ImGui
 
 **狀態：source 與 validation contract 已實作；native target-host validation 仍待完成。**
@@ -194,6 +198,22 @@ retirement；Vulkan offscreen frame 沒有 validation error。
 ### WP2 — 實作 retained GPU renderer resource
 
 **狀態：source 與 validation contract 已實作；native target-host validation 仍待完成。**
+
+✅ Native surface 更換現以 process-local resource-domain token 使 atlas upload acknowledgement
+失效；resize／move 保留 domain，teardown 使其失效。Native lifetime gate 涵蓋 DPI 往返與
+穩定配置（[紀錄](../../Tools/Build/evidence/EditorEDM0-SurfaceLifetime-2026-10-06.md)）；實體 visual／lifetime 與不可用 target-host 證據仍待驗收。
+
+✅ Public-RHI user texture ID 現在 renderer release 與 device replacement 後保留單調 generation。
+回歸測試要求多次 cache reset 後 stale ID 仍無效且使用 diagnostic fallback；generation
+耗盡不會 wrap 成舊 ID。
+
+✅ Native user image 現有 owning RGBA8 登錄入口（64 個 live slot、16 MiB、每張上限 1024x1024）。
+Backend binding 前的 generation 檢查拒絕 stale／foreign ID，domain 更換會重送 live image。
+Native 測試涵蓋 pixel 複製、fallback、容量上限與超過 4096 次 upload；DX12 descriptor
+回收等待 GPU completion，Vulkan resize 保留 texture。
+[證據](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md) 記錄 immutable source 的
+Windows／DX12 與 macOS／Metal 4290-upload gate，以及 macOS 全套 122/122 通過。Windows
+整套 fixture 修正版仍需 final-head CI；target-host visual gate 仍待完成。
 
 1. 在 `EditorImGuiHost` 下建立 renderer-owned state：pipeline、sampler、font texture/view、descriptor
    binding、有限大小的 per-frame vertex/index upload buffer ring。知道 device/format 後才 lazy-create
@@ -314,6 +334,14 @@ Windows native candidate contract 現重複 100/125/150/200% scale round trip，
 Cmd／Super 行為驗證。Production 保留平台原生的 ImGui input policy。
 Fixture cleanup 在 workspace／file owner 銷毀後執行，canonical scene fixture 採 binary
 寫入，Linux shortcut gate 明確取得 Scene canvas 焦點。
+Shipping package verification 將失敗 native subprocess 診斷同步至 CI stderr，每個 stream
+上限 8192 characters；完整 log／artifact 與驗收檢查維持原樣。
+Supporting Showcase Lab gate 等待已送出的 export 結果，不再假設 150 ms 內完成；
+input 只送一次，全部 data／pixel 斷言仍需通過。
+Close gate 另等待已變更且穩定的 resized native pixels，不再採固定 200 ms delay；
+resize generation 與最終 lifecycle counter 仍需通過。
+Editor display shortcut 採用與 selector 相同的 100 ms native key transition，
+讓 ImGui trickling 與 GPU frame 觀測原始 press／release sequence。
 
 1. Clean tree 執行 §6 完整 Linux gate。WP1/WP3 更動 linkage/API boundary，因此也跑 `linux-shipping`。
 2. Real X11 display 執行 launch、font/text 可見、Hierarchy selection、docking、各類 input、resize/

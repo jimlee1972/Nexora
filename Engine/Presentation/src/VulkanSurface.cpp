@@ -170,7 +170,7 @@ public:
       if (!width_ || !height_)
         return SurfaceStatus::ZeroExtent;
       vkDeviceWaitIdle(device_);
-      DestroySwapchain();
+      DestroySwapchain(true);
       if (!Recreate())
         return SurfaceStatus::OutOfDate;
       ++diagnostics_.resizeGenerations;
@@ -1404,7 +1404,20 @@ private:
     frame.uiCapacity = 0;
     DestroyFrameRetirements(frame);
   }
-  void DestroyUiResources() {
+  void DestroyUiResources(bool preserve_textures = false) {
+    if (uiPipeline_)
+      vkDestroyPipeline(device_, uiPipeline_, nullptr);
+    if (uiPipelineLayout_)
+      vkDestroyPipelineLayout(device_, uiPipelineLayout_, nullptr);
+    if (uiRenderPass_)
+      vkDestroyRenderPass(device_, uiRenderPass_, nullptr);
+    uiPipeline_ = VK_NULL_HANDLE;
+    uiPipelineLayout_ = VK_NULL_HANDLE;
+    uiRenderPass_ = VK_NULL_HANDLE;
+    // Swapchain resize does not change the UI resource domain. Keep sampled images and
+    // their compatible descriptor layout/pool/samplers until the owner is drained.
+    if (preserve_textures)
+      return;
     for (auto &[id, texture] : uiTextures_) {
       (void)id;
       if (texture.view)
@@ -1442,69 +1455,63 @@ private:
     if (environmentSampler_)
       vkDestroySampler(device_, environmentSampler_, nullptr);
     environmentSampler_ = VK_NULL_HANDLE;
-    if (uiPipeline_)
-      vkDestroyPipeline(device_, uiPipeline_, nullptr);
-    if (uiPipelineLayout_)
-      vkDestroyPipelineLayout(device_, uiPipelineLayout_, nullptr);
-    if (uiRenderPass_)
-      vkDestroyRenderPass(device_, uiRenderPass_, nullptr);
     if (uiDescriptorPool_)
       vkDestroyDescriptorPool(device_, uiDescriptorPool_, nullptr);
     if (uiSampler_)
       vkDestroySampler(device_, uiSampler_, nullptr);
     if (uiDescriptorLayout_)
       vkDestroyDescriptorSetLayout(device_, uiDescriptorLayout_, nullptr);
-    uiPipeline_ = VK_NULL_HANDLE;
-    uiPipelineLayout_ = VK_NULL_HANDLE;
-    uiRenderPass_ = VK_NULL_HANDLE;
     uiDescriptorPool_ = VK_NULL_HANDLE;
     uiSampler_ = VK_NULL_HANDLE;
     uiDescriptorLayout_ = VK_NULL_HANDLE;
   }
 #if defined(NEXORA_HAS_NATIVE_UI_SHADERS)
   bool CreateUiResources() {
-    VkDescriptorSetLayoutBinding binding{};
-    binding.binding = 0;
-    binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    binding.descriptorCount = 1;
-    binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    VkDescriptorSetLayoutCreateInfo descriptorLayout{};
-    descriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    descriptorLayout.bindingCount = 1;
-    descriptorLayout.pBindings = &binding;
-    if (vkCreateDescriptorSetLayout(device_, &descriptorLayout, nullptr, &uiDescriptorLayout_) !=
-        VK_SUCCESS)
-      return false;
-    VkSamplerCreateInfo sampler{};
-    sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    sampler.magFilter = VK_FILTER_LINEAR;
-    sampler.minFilter = VK_FILTER_LINEAR;
-    sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    sampler.maxLod = VK_LOD_CLAMP_NONE;
-    if (vkCreateSampler(device_, &sampler, nullptr, &uiSampler_) != VK_SUCCESS)
-      return false;
-    sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    if (vkCreateSampler(device_, &sampler, nullptr, &environmentSampler_) != VK_SUCCESS)
-      return false;
-    sampler.magFilter = sampler.minFilter = VK_FILTER_NEAREST;
-    sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    sampler.addressModeU = sampler.addressModeV = sampler.addressModeW =
-        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-    if (vkCreateSampler(device_, &sampler, nullptr, &shadowSampler_) != VK_SUCCESS)
-      return false;
-    const VkDescriptorPoolSize poolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 256};
-    VkDescriptorPoolCreateInfo pool{};
-    pool.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool.maxSets = 256;
-    pool.poolSizeCount = 1;
-    pool.pPoolSizes = &poolSize;
-    if (vkCreateDescriptorPool(device_, &pool, nullptr, &uiDescriptorPool_) != VK_SUCCESS)
-      return false;
+    if (uiDescriptorLayout_ == VK_NULL_HANDLE) {
+      VkDescriptorSetLayoutBinding binding{};
+      binding.binding = 0;
+      binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      binding.descriptorCount = 1;
+      binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+      VkDescriptorSetLayoutCreateInfo descriptorLayout{};
+      descriptorLayout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+      descriptorLayout.bindingCount = 1;
+      descriptorLayout.pBindings = &binding;
+      if (vkCreateDescriptorSetLayout(device_, &descriptorLayout, nullptr, &uiDescriptorLayout_) !=
+          VK_SUCCESS)
+        return false;
+      VkSamplerCreateInfo sampler{};
+      sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+      sampler.magFilter = VK_FILTER_LINEAR;
+      sampler.minFilter = VK_FILTER_LINEAR;
+      sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+      sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+      sampler.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+      sampler.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+      sampler.maxLod = VK_LOD_CLAMP_NONE;
+      if (vkCreateSampler(device_, &sampler, nullptr, &uiSampler_) != VK_SUCCESS)
+        return false;
+      sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+      if (vkCreateSampler(device_, &sampler, nullptr, &environmentSampler_) != VK_SUCCESS)
+        return false;
+      sampler.magFilter = sampler.minFilter = VK_FILTER_NEAREST;
+      sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+      sampler.addressModeU = sampler.addressModeV = sampler.addressModeW =
+          VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+      sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+      if (vkCreateSampler(device_, &sampler, nullptr, &shadowSampler_) != VK_SUCCESS)
+        return false;
+      // 64 mutable UI slots plus the atlas and fence-retired replacements must coexist.
+      const VkDescriptorPoolSize poolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 512};
+      VkDescriptorPoolCreateInfo pool{};
+      pool.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+      pool.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+      pool.maxSets = 512;
+      pool.poolSizeCount = 1;
+      pool.pPoolSizes = &poolSize;
+      if (vkCreateDescriptorPool(device_, &pool, nullptr, &uiDescriptorPool_) != VK_SUCCESS)
+        return false;
+    }
     VkPushConstantRange push{};
     push.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     push.size = sizeof(float) * 4U;
@@ -2216,7 +2223,7 @@ private:
     vkDestroyShaderModule(device_, vertex, nullptr);
     return Initialized(toneResult, "vkCreateGraphicsPipelines (tone mapping)");
   }
-  void DestroySwapchain() {
+  void DestroySwapchain(bool preserve_textures = false) {
     for (auto &frame : frames_) {
       DestroySceneFrame(frame);
       DestroyUpload(frame);
@@ -2277,7 +2284,7 @@ private:
     scenePipelineLayout_ = VK_NULL_HANDLE;
     sceneRenderPass_ = VK_NULL_HANDLE;
     sceneOverlayRenderPass_ = VK_NULL_HANDLE;
-    DestroyUiResources();
+    DestroyUiResources(preserve_textures);
     for (const auto view : imageViews_)
       vkDestroyImageView(device_, view, nullptr);
     imageViews_.clear();

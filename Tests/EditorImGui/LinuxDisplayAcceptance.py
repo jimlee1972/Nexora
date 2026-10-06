@@ -390,15 +390,15 @@ def main() -> int:
         # the central Scene canvas keyboard focus before authoring shortcuts, as a user would.
         subprocess.run([args.xdotool, "click", "1"], env=environment, check=True)
         time.sleep(0.5)
-        subprocess.run([args.xdotool, "key", "ctrl+shift+n"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "100", "ctrl+shift+n"], env=environment, check=True)
         time.sleep(0.2)
-        subprocess.run([args.xdotool, "key", "F5"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "100", "F5"], env=environment, check=True)
         time.sleep(0.3)
-        subprocess.run([args.xdotool, "key", "F6"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "100", "F6"], env=environment, check=True)
         time.sleep(0.2)
-        subprocess.run([args.xdotool, "key", "F10"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "100", "F10"], env=environment, check=True)
         time.sleep(0.2)
-        subprocess.run([args.xdotool, "key", "F5"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "100", "F5"], env=environment, check=True)
         time.sleep(0.2)
         # The initial Scene Root is unsaved. Native close must keep the window alive until the
         # user decides; Escape cancels the prompt and permits subsequent editing and saving.
@@ -409,9 +409,9 @@ def main() -> int:
                 f"unsaved close dismissed the Editor ({editor.poll()}) or wrote the scene "
                 f"({(root / '.nexora/scenes/Main.scene').exists()})"
             )
-        subprocess.run([args.xdotool, "key", "Escape"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "100", "Escape"], env=environment, check=True)
         time.sleep(0.2)
-        subprocess.run([args.xdotool, "key", "ctrl+s"], env=environment, check=True)
+        subprocess.run([args.xdotool, "key", "--delay", "100", "ctrl+s"], env=environment, check=True)
         scene_file = root / ".nexora/scenes/Main.scene"
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and not scene_file.is_file():

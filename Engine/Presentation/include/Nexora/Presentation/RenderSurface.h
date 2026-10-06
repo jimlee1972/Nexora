@@ -65,6 +65,10 @@ public:
   [[nodiscard]] Window::WindowError Resize(std::uint32_t width, std::uint32_t height);
   [[nodiscard]] Window::WindowError SetImeCandidatePosition(std::int32_t x, std::int32_t y);
   [[nodiscard]] SurfaceDiagnostics Diagnostics() const noexcept;
+  // Process-local identity of this owner's native UI texture cache. Stable across resize/move;
+  // distinct for every new owner, even when its address is reused. Zero after teardown/move-out.
+  // This token neither borrows the owner nor identifies a native image and must not be serialized.
+  [[nodiscard]] std::uint64_t UiResourceDomain() const noexcept;
   [[nodiscard]] SurfaceStatus DrainAndDestroy();
 
   // Internal construction hook used by CreateRenderSurface; consumers should use the factory.

@@ -100,6 +100,7 @@ def main() -> int:
                 (output / "native.stdout.log").write_text(native.stdout)
                 (output / "native.stderr.log").write_text(native.stderr)
                 if native.returncode:
+                    print(native.stdout[-8192:], file=sys.stderr)
                     print(native.stderr[-8192:], file=sys.stderr)
                     raise RuntimeError(f"Linux native interaction failed ({native.returncode})")
                 result["scope"] = "Linux Xvfb native interaction and screenshots; driver identity is recorded by the application"
@@ -116,6 +117,7 @@ def main() -> int:
                     (output / f"{room}.stdout.log").write_text(native.stdout)
                     (output / f"{room}.stderr.log").write_text(native.stderr)
                     if native.returncode:
+                        print(native.stdout[-8192:], file=sys.stderr)
                         print(native.stderr[-8192:], file=sys.stderr)
                         raise RuntimeError(f"Metal {room} failed ({native.returncode})")
                     validate_native(json.loads(report.read_text()), "metal", room)

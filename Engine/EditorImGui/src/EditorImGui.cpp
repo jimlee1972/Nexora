@@ -75,6 +75,17 @@ struct EditorImGuiHost::State final {
     std::size_t upload_slot = 0;
     std::uint32_t font_generation = 0;
   } renderer;
+  ~State() {
+    if (context == nullptr)
+      return;
+    auto *previous = ImGui::GetCurrentContext();
+    ImGui::SetCurrentContext(context);
+    surface = nullptr;
+    ImGui::GetIO().BackendPlatformUserData = nullptr;
+    ImGui::DestroyContext(context);
+    if (previous != context)
+      ImGui::SetCurrentContext(previous);
+  }
   ImGuiContext *context = nullptr;
   Nexora::Presentation::RenderSurface *surface = nullptr;
   float dpi_scale = 1.0F;
@@ -86,6 +97,18 @@ struct EditorImGuiHost::State final {
   float dpi_bucket = 0.0F;
   std::uint32_t font_generation = 1;
   std::uint32_t surface_font_generation = 0;
+  std::uint64_t surface_font_domain = 0;
+  // Host-scoped IDs must not resurrect after ReleaseRenderer resets the device cache.
+  std::uint64_t next_texture_generation = 1;
+  struct NativeTextureSlot final {
+    std::uint32_t width = 0;
+    std::uint32_t height = 0;
+    std::vector<std::byte> pixels;
+    std::uint32_t generation = 0;
+    std::uint32_t uploaded_generation = 0;
+  };
+  std::vector<NativeTextureSlot> native_textures{{}}; // Slot zero is the font atlas.
+  std::size_t native_texture_bytes = 0;
   RendererMetrics renderer_metrics;
   RecoveryChoice recovery_choice = RecoveryChoice::None;
   CloseChoice close_choice = CloseChoice::None;
@@ -3195,16 +3218,7 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
   ApplyTheme();
 }
 
-EditorImGuiHost::~EditorImGuiHost() {
-  if (state_ && state_->context) {
-    // ImGui::Shutdown() (invoked by DestroyContext) asserts BackendPlatformUserData is cleared,
-    // treating a non-null value as a sign the platform backend never ran its own shutdown; clear it
-    // here since EditorImGuiHost is the only "backend" this context has.
-    Activate(state_->context);
-    ImGui::GetIO().BackendPlatformUserData = nullptr;
-    ImGui::DestroyContext(state_->context);
-  }
-}
+EditorImGuiHost::~EditorImGuiHost() = default;
 EditorImGuiHost::EditorImGuiHost(EditorImGuiHost &&) noexcept = default;
 EditorImGuiHost &EditorImGuiHost::operator=(EditorImGuiHost &&) noexcept = default;
 
@@ -4691,33 +4705,71 @@ RendererMetrics EditorImGuiHost::GetRendererMetrics() const noexcept {
 std::uint64_t EditorImGuiHost::RegisterTexture(nexora::rhi::Device &device,
                                                nexora::rhi::TextureHandle texture) {
   auto &renderer = state_->renderer;
-  if (!texture.IsValid() || (renderer.device != nullptr && renderer.device != &device))
+  if (!texture.IsValid() || (renderer.device != nullptr && renderer.device != &device) ||
+      state_->next_texture_generation > std::numeric_limits<std::uint32_t>::max())
     return 0;
+  const auto generation = static_cast<std::uint32_t>(state_->next_texture_generation++);
   renderer.device = &device;
   for (std::uint32_t index = 1; index < renderer.textures.size(); ++index) {
     auto &slot = renderer.textures[index];
     if (!slot.live) {
       slot.texture = texture;
+      slot.generation = generation;
       slot.live = true;
-      return TextureId(index, slot.generation);
+      return TextureId(index, generation);
     }
   }
-  renderer.textures.push_back({texture, 1, true});
-  return TextureId(static_cast<std::uint32_t>(renderer.textures.size() - 1), 1);
+  if (renderer.textures.size() >= std::numeric_limits<std::uint32_t>::max())
+    return 0;
+  renderer.textures.push_back({texture, generation, true});
+  return TextureId(static_cast<std::uint32_t>(renderer.textures.size() - 1), generation);
+}
+
+std::uint64_t EditorImGuiHost::RegisterNativeTexture(std::uint32_t width, std::uint32_t height,
+                                                     std::span<const std::byte> pixels) {
+  constexpr std::size_t maximum_bytes = 16U * 1024U * 1024U;
+  if (width == 0 || height == 0 || width > 1024 || height > 1024 ||
+      pixels.size() != static_cast<std::size_t>(width) * height * 4U ||
+      pixels.size() > maximum_bytes - state_->native_texture_bytes ||
+      state_->next_texture_generation > std::numeric_limits<std::uint32_t>::max())
+    return 0;
+  auto &textures = state_->native_textures;
+  std::size_t index = 1;
+  while (index < textures.size() && textures[index].generation != 0)
+    ++index;
+  if (index == 65)
+    return 0;
+  State::NativeTextureSlot slot{width,
+                                height,
+                                {pixels.begin(), pixels.end()},
+                                static_cast<std::uint32_t>(state_->next_texture_generation),
+                                0};
+  if (index == textures.size())
+    textures.push_back(std::move(slot));
+  else
+    textures[index] = std::move(slot);
+  ++state_->next_texture_generation;
+  state_->native_texture_bytes += pixels.size();
+  return TextureId(static_cast<std::uint32_t>(index), textures[index].generation);
 }
 
 bool EditorImGuiHost::UnregisterTexture(std::uint64_t texture_id) noexcept {
   const auto index = static_cast<std::uint32_t>(texture_id);
   const auto generation = static_cast<std::uint32_t>(texture_id >> 32U);
+  auto &native = state_->native_textures;
+  if (index != 0 && index < native.size() && generation != 0 &&
+      native[index].generation == generation) {
+    state_->native_texture_bytes -= native[index].pixels.size();
+    native[index] = {};
+    return true;
+  }
   auto &textures = state_->renderer.textures;
   if (index == 0 || index >= textures.size() || !textures[index].live ||
       textures[index].generation != generation)
     return false;
   textures[index].live = false;
   textures[index].texture = {};
-  ++textures[index].generation;
-  if (textures[index].generation == 0)
-    textures[index].generation = 1;
+  textures[index].generation = 0;
   return true;
 }
 
@@ -4880,8 +4932,15 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
                         std::uint32_t height) {
   Activate(state_->context);
   const auto *draw = ImGui::GetDrawData();
-  if (draw == nullptr || width == 0 || height == 0)
+  const auto domain = surface.UiResourceDomain();
+  if (draw == nullptr || width == 0 || height == 0 || domain == 0)
     return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
+  if (state_->surface_font_domain != domain) {
+    state_->surface_font_domain = domain;
+    state_->surface_font_generation = 0;
+    for (auto &texture : state_->native_textures)
+      texture.uploaded_generation = 0;
+  }
   std::vector<Nexora::Presentation::UiVertex> vertices;
   std::vector<std::byte> indices;
   std::vector<Nexora::Presentation::UiDrawCommand> commands;
@@ -4914,10 +4973,21 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
                    (command.ClipRect.w - draw->DisplayPos.y) * draw->FramebufferScale.y);
       if (right <= left || bottom <= top)
         continue;
+      const auto texture_id = static_cast<std::uint64_t>(command.GetTexID());
+      const auto texture_index = static_cast<std::uint32_t>(texture_id);
+      const auto texture_generation = static_cast<std::uint32_t>(texture_id >> 32U);
+      auto native_id = TextureId(0, 1);
+      if (texture_index != 0 && texture_index < state_->native_textures.size() &&
+          texture_generation != 0 &&
+          state_->native_textures[texture_index].generation == texture_generation) {
+        // Backend cache keys are bounded slots; public generations are checked before binding.
+        native_id = TextureId(texture_index, 1);
+      } else if (texture_id != native_id) {
+        ++state_->renderer_metrics.rejected_textures;
+      }
       commands.push_back({static_cast<std::int32_t>(left), static_cast<std::int32_t>(top),
                           static_cast<std::uint32_t>(right - left),
-                          static_cast<std::uint32_t>(bottom - top),
-                          static_cast<std::uint64_t>(command.GetTexID()), command.ElemCount,
+                          static_cast<std::uint32_t>(bottom - top), native_id, command.ElemCount,
                           index_base + command.IdxOffset,
                           static_cast<std::int32_t>(vertex_base + command.VtxOffset)});
     }
@@ -4939,10 +5009,19 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
                        std::span{reinterpret_cast<const std::byte *>(atlas),
                                  static_cast<std::size_t>(atlas_width) * atlas_height * 4U}});
   }
+  for (std::uint32_t index = 1; index < state_->native_textures.size(); ++index) {
+    const auto &texture = state_->native_textures[index];
+    if (texture.generation != 0 && texture.uploaded_generation != texture.generation)
+      uploads.push_back(
+          {TextureId(index, 1), texture.width, texture.height, texture.width * 4U, texture.pixels});
+  }
   const auto status = surface.RenderUi(
       {vertices, indices, commands, uploads, sizeof(ImDrawIdx) == sizeof(std::uint32_t)});
-  if (status == Nexora::Presentation::SurfaceStatus::Ready)
+  if (status == Nexora::Presentation::SurfaceStatus::Ready) {
     state_->surface_font_generation = state_->font_generation;
+    for (auto &texture : state_->native_textures)
+      texture.uploaded_generation = texture.generation;
+  }
   return status;
 }
 
@@ -5433,6 +5512,17 @@ void EditorImGuiTestAccess::QueueContentConflictChoice(EditorImGuiHost &host,
                                                        runtime::AssetUuid asset,
                                                        DirtyConflictChoice choice) noexcept {
   host.state_->content_conflict_choice_request = std::pair{asset, choice};
+}
+
+std::vector<std::byte> EditorImGuiTestAccess::NativeTexturePixels(const EditorImGuiHost &host,
+                                                                  std::uint64_t texture_id) {
+  const auto index = static_cast<std::uint32_t>(texture_id);
+  const auto generation = static_cast<std::uint32_t>(texture_id >> 32U);
+  const auto &textures = host.state_->native_textures;
+  if (index == 0 || index >= textures.size() || generation == 0 ||
+      textures[index].generation != generation)
+    return {};
+  return textures[index].pixels;
 }
 
 std::uint32_t EditorImGuiTestAccess::OverrideDrawTexture(EditorImGuiHost &host,

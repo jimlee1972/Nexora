@@ -183,6 +183,10 @@ map in §6 records the remaining target-host gaps. This closes WP0 only, not ED-
 **Exit gate:** clean baseline results and an explicit gap list. If configure needs network and no
 cache is available, report an environment limitation; never silently disable the feature.
 
+✅ Context move lifetime hardening: `editor.imgui_context_lifetime` verifies destination context
+release, source context transfer, self-move, preservation of another current context, and allocator
+balance. This closes an ownership defect without changing target-host visual acceptance.
+
 ### WP1 — Make the public RHI sufficient for ImGui
 
 **Status: implemented in source and validation contracts; native target-host validation remains.**
@@ -210,6 +214,23 @@ and resource retirement; Vulkan validation reports no errors for an offscreen fr
 ### WP2 — Implement the retained GPU renderer resources
 
 **Status: implemented in source and validation contracts; native target-host validation remains.**
+
+✅ Native surface replacement now invalidates the atlas upload acknowledgement using a
+process-local resource-domain token; resize/move preserves it and teardown invalidates it.
+The native lifetime gate covers DPI round trips and stable allocations ([record](../../Tools/Build/evidence/EditorEDM0-SurfaceLifetime-2026-10-06.md)).
+Physical visual/lifetime and unavailable target-host rows remain open.
+
+✅ Public-RHI user texture IDs now retain monotonic generations across renderer release and device
+replacement. Regression coverage requires stale IDs to remain invalid and use the diagnostic
+fallback after repeated cache resets; generation exhaustion cannot wrap to a previous ID.
+
+✅ Native user images now have an owned RGBA8 registration entry point (64 live slots, 16 MiB,
+1024x1024 per image). Generation checks reject stale/foreign IDs before backend binding; domain
+replacement resends live images. Native tests cover copied pixels, fallback, limits and more than
+4096 uploads. DX12 descriptor recycling waits for GPU completion; Vulkan resize retains textures.
+[Evidence](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md) records immutable
+Windows/DX12 and macOS/Metal 4290-upload gates and macOS 122/122 full-suite success. Windows
+whole-suite fixture repairs still require final-head CI; visual target-host gates remain open.
 
 1. Introduce a renderer-owned state object beneath `EditorImGuiHost`: pipeline, sampler, font
    texture/view, descriptor bindings, and a bounded ring of per-frame vertex/index upload buffers.
@@ -343,6 +364,14 @@ results and physical-display/installed-IME evidence remain required.
 with native macOS Cmd/Super behavior enabled. Production keeps the platform's ImGui input policy.
 Fixture cleanup runs after workspace/file owners are destroyed, canonical scene fixtures use
 binary writes, and the Linux shortcut gate explicitly focuses the Scene canvas.
+Shipping package verification mirrors failed native subprocess diagnostics to CI stderr, bounded
+to 8192 characters per stream, and retains complete logs/artifacts and unchanged acceptance checks.
+The supporting Showcase Lab gate waits for its queued export result instead of assuming completion
+within 150 ms; input is sent once and all data/pixel assertions remain required.
+The close gate also waits for changed, stable resized native pixels instead of a fixed 200 ms delay;
+resize generation and final lifecycle counters remain mandatory.
+Editor display shortcuts use 100 ms native key transitions, matching selector input, so ImGui
+trickling and GPU frames can observe the original press/release sequence.
 
 1. Run the full Linux gate listed in §6 with a clean tree. Because WP1/WP3 alter linkage/API
    boundaries, run `linux-shipping` too.

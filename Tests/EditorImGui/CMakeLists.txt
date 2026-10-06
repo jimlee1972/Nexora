@@ -5,6 +5,11 @@ target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
 
+add_executable(NexoraEditorContextLifetimeTests ContextLifetimeTests.cpp)
+target_link_libraries(NexoraEditorContextLifetimeTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraEditorContextLifetimeTests)
+add_test(NAME editor.imgui_context_lifetime COMMAND NexoraEditorContextLifetimeTests)
+
 add_executable(NexoraEditorSceneFrameTests SceneFrameTests.cpp)
 target_include_directories(NexoraEditorSceneFrameTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraEditorSceneFrameTests PRIVATE Nexora::EditorImGui)
@@ -289,3 +294,22 @@ target_include_directories(NexoraSceneFileInputTests PRIVATE "${PROJECT_SOURCE_D
 target_link_libraries(NexoraSceneFileInputTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraSceneFileInputTests)
 add_test(NAME editor.scene_file_input COMMAND NexoraSceneFileInputTests)
+
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND
+   (WIN32 OR APPLE OR (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_VULKAN_BACKEND)))
+  add_executable(NexoraEditorNativeSurfaceTests NativeSurfaceTests.cpp)
+  target_include_directories(NexoraEditorNativeSurfaceTests
+    PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+  target_link_libraries(NexoraEditorNativeSurfaceTests PRIVATE Nexora::EditorImGui)
+  nexora_apply_defaults(NexoraEditorNativeSurfaceTests)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_XVFB_EXECUTABLE)
+    add_test(NAME editor.native_surface_lifetime COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeSurfaceAcceptance.py"
+      --native-test "$<TARGET_FILE:NexoraEditorNativeSurfaceTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}")
+    set_tests_properties(editor.native_surface_lifetime PROPERTIES TIMEOUT 45)
+  elseif(WIN32 OR APPLE)
+    add_test(NAME editor.native_surface_lifetime COMMAND NexoraEditorNativeSurfaceTests)
+    set_tests_properties(editor.native_surface_lifetime PROPERTIES TIMEOUT 45 SKIP_RETURN_CODE 77)
+  endif()
+endif()

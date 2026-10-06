@@ -1598,6 +1598,39 @@ int main() {
   content_workspace = {};
   std::filesystem::remove_all(content_root);
   host.ReleaseRenderer(*device);
+  const auto recreated_texture_id = host.RegisterTexture(*device, user_texture);
+  assert(recreated_texture_id != 0 && recreated_texture_id != texture_id &&
+         recreated_texture_id != next_texture_id);
+  assert(!host.UnregisterTexture(texture_id) && !host.UnregisterTexture(next_texture_id));
+  const auto rejected_before_reset_draw = host.GetRendererMetrics().rejected_textures;
+  assert(EditorImGuiTestAccess::OverrideDrawTexture(host, texture_id) > 0);
+  assert(host.Render(*device, target, 1280, 720, nexora::rhi::ResourceState::ShaderRead, false) >
+         0);
+  assert(host.GetRendererMetrics().rejected_textures > rejected_before_reset_draw);
+  assert(device->Diagnostics().validation_errors == 0);
+  assert(host.UnregisterTexture(recreated_texture_id));
+  std::vector<std::uint64_t> retired_ids{texture_id, next_texture_id, recreated_texture_id};
+  for (unsigned reset = 0; reset < 32; ++reset) {
+    host.ReleaseRenderer(*device);
+    const auto registered_id = host.RegisterTexture(*device, user_texture);
+    assert(registered_id != 0);
+    for (const auto retired_id : retired_ids)
+      assert(registered_id != retired_id && !host.UnregisterTexture(retired_id));
+    retired_ids.push_back(registered_id);
+    assert(host.UnregisterTexture(registered_id));
+  }
+  host.ReleaseRenderer(*device);
+  auto replacement_device = nexora::rhi::CreateValidationDevice();
+  const auto replacement_texture = replacement_device->CreateTexture(
+      {1, 1, nexora::rhi::TextureFormat::Rgba8Unorm, nexora::rhi::ResourceState::ShaderRead,
+       "Replacement device texture"});
+  const auto replacement_id = host.RegisterTexture(*replacement_device, replacement_texture);
+  assert(replacement_id != 0);
+  for (const auto retired_id : retired_ids)
+    assert(replacement_id != retired_id && !host.UnregisterTexture(retired_id));
+  assert(host.UnregisterTexture(replacement_id));
+  host.ReleaseRenderer(*replacement_device);
+  replacement_device->DestroyTexture(replacement_texture);
   device->DestroyTexture(user_texture);
   device->DestroyTexture(target);
 }

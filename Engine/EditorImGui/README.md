@@ -15,6 +15,12 @@ production retains ImGui's native platform defaults.
 ## Ownership and lifetime
 
 - `EditorImGuiHost` owns one ImGui context and destroys it with the host.
+  State ownership also releases the previous context on move assignment, clearing backend/IME
+  borrows before destruction and preserving another current context. Move between frames;
+  a moved-from host supports only destruction or assignment. Before replacing a destination that
+  used the public-RHI renderer, call `ReleaseRenderer` while its borrowed device remains alive.
+  `editor.imgui_context_lifetime` verifies move assignment/construction, self-move, current-context
+  restoration, and zero outstanding ImGui allocations after all owners are destroyed.
 - Modular builds expose Dear ImGui as one shared dependency so `NexoraEditorImGui` and each
   host/test executable observe the same process-global context; Monolithic builds keep it as one
   statically linked dependency inside the executable.
@@ -176,6 +182,34 @@ production retains ImGui's native platform defaults.
   `ReleaseRenderer` waits for the device before destroying them and must run before that device is
   destroyed. The path applies framebuffer-scaled clip rectangles and preserves ImGui index and
   vertex offsets. The native `RenderSurface` path owns an equivalent completion-protected cache.
+  The host tracks its last native UI resource domain as a value, never as a retained surface pointer.
+  Changing owners invalidates the upload acknowledgement and sends the atlas to the new domain even
+  at unchanged DPI. Resize/move within a domain retains the upload; dead domains reject rendering.
+  `editor.native_surface_lifetime` covers native replacement, move, DPI round trips, steady-buffer
+  reuse, resize, and teardown. Linux runs it on Xvfb with strict validation; Windows/DX12 and
+  macOS/Metal use the native host when available. An unsupported Metal runner is explicitly skipped
+  and cannot supply native/physical acceptance evidence.
+- Public-RHI user texture registrations borrow the caller's texture/device. Unregister prevents
+  future bindings; wait for the last GPU use before destroying that texture. Release the renderer
+  before destroying its device. IDs are scoped to
+  the host State, with monotonically assigned 32-bit generations that survive renderer release
+  and device replacement. Exhaustion returns zero instead of reusing an old generation. Renderer
+  release invalidates every registration; stale IDs keep the diagnostic font fallback and cannot
+  unregister a later texture. `editor.imgui_contract` covers release, repeated cache reset,
+  device replacement, stale draw fallback, and rejection metrics.
+- `RegisterNativeTexture` copies tightly packed linear RGBA8 pixels for the native `RenderSurface`
+  renderer, without exposing its device. Each image is at most 1024x1024; the host permits 64 live
+  images and 16 MiB of retained pixels. Invalid sizes, exhausted slots/bytes/generations return zero.
+  IDs share the host's monotonic generation namespace with public-RHI registrations, but each
+  renderer accepts only its own registrations. Stale/foreign IDs use the diagnostic font fallback
+  and increment host rejection metrics. Register/unregister between frames on the owner thread.
+  Unregister frees the CPU copy immediately and prevents future bindings. A bounded GPU cache slot
+  remains until reuse or surface drain; replacing it retires the old resource behind completion.
+  One host drives a surface's UI namespace. New domains resend all live images; resize/move and
+  font DPI changes preserve immutable image uploads. Uploads are acknowledged only on successful
+  recording. Public-RHI renderer release does not invalidate native registrations.
+  `editor.native_surface_lifetime` covers copied caller data, stale fallback, owner/DPI/resize,
+  byte/slot limits, and over 4096 native uploads with no rejected backend texture bindings.
 - DPI is quantized to 100%, 125%, 150%, or 200%. Crossing a bucket rebuilds the font atlas at that
   pixel density, publishes the framebuffer scale, and derives the theme anew rather than
   cumulatively scaling an existing style.

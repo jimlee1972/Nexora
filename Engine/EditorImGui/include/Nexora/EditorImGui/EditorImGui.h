@@ -96,6 +96,8 @@ struct RendererMetrics final {
 
 // Owns exactly one Dear ImGui context. All methods are serialized and must be called from the
 // window owner thread. Draw data is borrowed until BeginFrame() or destruction.
+// Move between frames; moved-from hosts support only destruction or assignment. Release the
+// destination's public-RHI renderer before move assignment while its device is still alive.
 class NEXORA_EDITOR_IMGUI_API EditorImGuiHost final {
 public:
   EditorImGuiHost();
@@ -158,8 +160,15 @@ public:
                                      nexora::rhi::ResourceState before, bool prepare_for_present);
   void ReleaseRenderer(nexora::rhi::Device &device);
   [[nodiscard]] RendererMetrics GetRendererMetrics() const noexcept;
+  // Borrowed texture/device; IDs never resurrect within this host after renderer release.
+  // Returns zero for invalid ownership or exhausted generation capacity.
   [[nodiscard]] std::uint64_t RegisterTexture(nexora::rhi::Device &device,
                                               nexora::rhi::TextureHandle texture);
+  // Native RenderSurface images own a tight linear RGBA8 copy. Maximum 1024x1024,
+  // 64 live registrations and 16 MiB combined pixels; zero means invalid/capacity exhausted.
+  // Register/unregister between frames. IDs share the host's monotonic generation namespace.
+  [[nodiscard]] std::uint64_t RegisterNativeTexture(std::uint32_t width, std::uint32_t height,
+                                                    std::span<const std::byte> pixels);
   [[nodiscard]] bool UnregisterTexture(std::uint64_t texture_id) noexcept;
   [[nodiscard]] std::string SaveLayout() const;
   [[nodiscard]] bool LoadLayout(std::string_view layout);

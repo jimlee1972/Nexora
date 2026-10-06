@@ -5,12 +5,26 @@ owns one window system, window, and `ISurface`, forwards normalized events and r
 destroys the GPU surface before its window. Runtime remains independent of Presentation and Editor.
 The borrowed `Events()` span and `FrameInfo()` snapshot remain valid until the next `BeginFrame()`;
 `FrameInfo()` tracks the latest client extent and DPI scale so UI hosts do not duplicate window state.
+`UiResourceDomain()` identifies the owner's native UI texture cache with a process-local, nonzero
+opaque token. A new owner always receives a distinct token, including address reuse; resize and
+move preserve it, and successful teardown or move-out returns zero. It exposes no image/native
+handle, retains no owner, and must not be serialized. Calls follow the surface's owner-thread
+contract. Clients must refresh uploads when changing domains; font/texture generations are local
+to a domain. Identity exhaustion fails creation explicitly instead of reusing a live/retired ID.
 After a successful `BeginFrame`, `RenderUi` borrows backend-neutral textured/indexed geometry,
 scissors, offsets, and generation-checked texture uploads and records native GPU draws directly into
 the acquired image. Vulkan, DX12, and Metal keep their pipeline, sampler, texture descriptors, and
 bounded per-frame upload buffers below this boundary; resources replaced by a later atlas generation
 are released only after the protecting frame fence/command buffer completes. No native image or
-device handle escapes. `DrawScene` similarly borrows indexed `SceneDrawData` geometry, transform,
+device handle escapes. DX12 returns replaced UNORM/sRGB descriptor indices to a free list only
+after the protecting frame fence completes, alongside retired texture resources; reserved per-frame
+HDR indices are never recycled. Replacement therefore does not consume the 4096-entry heap
+permanently. Vulkan's bounded 512-set UI pool accommodates 64 mutable Editor image slots, the atlas,
+and in-flight replacement generations. Vulkan swapchain recreation preserves sampled images,
+descriptor pool/layout and samplers after waiting for the device; only swapchain-dependent
+pipelines, render passes and frame storage are rebuilt. This preserves the UI resource-domain
+contract through resize/recovery. Final surface drain destroys the retained cache.
+`DrawScene` similarly borrows indexed `SceneDrawData` geometry, transform,
 light, and base color for the duration of the call and records a depth-tested native scene draw on
 the render thread. DX12, Vulkan and Metal own their depth buffers, pipelines, and bounded per-frame upload storage;
 `SceneDrawData::viewport` optionally bounds that draw to a physical-pixel rectangle of the acquired

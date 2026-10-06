@@ -59,6 +59,8 @@ public:
   // untouched.
   static void ConfigureSyntheticInput(EditorImGuiHost &host, bool macos_behaviors = false) noexcept;
   static void InvokeImeCallback(EditorImGuiHost &host, float x, float y, bool visible) noexcept;
+  [[nodiscard]] static std::vector<std::byte> NativeTexturePixels(const EditorImGuiHost &host,
+                                                                  std::uint64_t texture_id);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   HierarchyRenamePosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static bool HierarchyRenameOpen(const EditorImGuiHost &host) noexcept;

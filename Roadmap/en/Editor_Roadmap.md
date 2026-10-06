@@ -98,6 +98,21 @@ satisfy this milestone.
   Deferred/zero-extent frames also forward gameplay key releases and focus loss without ticking
   Play or rendering a GUI frame. Target-host physical-display DPI evidence remains open.
 
+- ✅ Native UI atlas acknowledgements are now scoped to a process-local surface resource domain.
+  New owners receive the atlas at unchanged DPI, while move/resize retains it; native lifetime tests
+  cover both replacement and teardown ([record](../../Tools/Build/evidence/EditorEDM0-SurfaceLifetime-2026-10-06.md)).
+
+- ✅ ImGui context ownership now follows host State across move assignment and construction.
+  The allocator-backed `editor.imgui_context_lifetime` gate detects the former 17-allocation leak,
+  checks self-move and current-context restoration, and requires zero retained allocations.
+
+- ✅ Public-RHI texture registrations no longer resurrect stale IDs after renderer/device reset;
+  repeated reset and stale fallback are covered by `editor.imgui_contract`.
+
+- ✅ Native UI images now use copied, bounded RGBA8 registrations with generation-checked fallback.
+  The native lifetime gate checks owner replacement, DPI/resize reuse, limits and over 4096 uploads;
+  DX12 recycles replaced descriptors only after GPU completion. Physical visual acceptance remains open.
+
 ### ED-M1 — Project and asset workspace
 
 Create, open, and upgrade projects. Deliver a Content Browser with search/filter, folder/UUID,
