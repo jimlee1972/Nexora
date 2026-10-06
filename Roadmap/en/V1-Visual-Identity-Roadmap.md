@@ -1,5 +1,9 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
+✅ Linux Development full 97/97 tests passed (110.65 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.78 s wall time). Production freeze `47675e7db75b669398368c902928c52866820a28`; evidence: `Apps/Showcase/evidence/VIS-Camera-Framing-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+Courtyard framing iteration: the wide preset moves from radius 8/pitch 0.20 to radius 9/pitch 0.30, with slightly elevated secondary presets and matching start/end tour framing. This reveals more native paving, stairs and puddles while retaining absolute orbit-camera ownership and deterministic replay. Linux configure/build and full 97/97 tests passed (110.65 s, Khronos core/sync validation), including the MSVC naming correction. Shipping isolated native acceptance and shared-clock recording passed; reference parity and physical-display acceptance remain open (VIS 5/7).
+
 Windows CI naming correction: rename the rivet-loop local to `rivetRadius` to resolve MSVC C4458 without changing numeric values or operations. Native movie/package evidence is frozen before this naming-only change; merge still requires full current-head cross-platform CI.
 
 ✅ Linux Development full 97/97 tests passed (110.96 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.76 s wall time). Production freeze `22df5bbb911907aa8bcd495e6da99532d75b9d79`; evidence: `Apps/Showcase/evidence/VIS-Canopy-Puddles-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
