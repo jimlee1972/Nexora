@@ -651,6 +651,7 @@ struct RoomSession::State final {
     constexpr float middleRadius = 1.66F;
     const float middleAngle = (a + b) * 0.5F;
     const auto firstVertex = vertices.size();
+    const auto firstStoneIndex = indices.size();
     // Bend an original bevelled block into an annular wedge. Each chamfer retains a
     // correct transformed normal; the curve's differential is not a rigid rotation.
     CourtyardBlock(0, 0, 0, (b - a) * middleRadius * 0.5F, radialHalfWidth, depthHalfWidth);
@@ -668,6 +669,36 @@ struct RoomSession::State final {
       vertex.normal[0] = normal.x;
       vertex.normal[1] = normal.y;
       vertex.normal[2] = normal.z;
+    }
+    // The tangent/radial XY mapping has negative orientation; reverse winding.
+    for (std::size_t triangle = firstStoneIndex; triangle < indices.size(); triangle += 3)
+      std::swap(indices[triangle + 1], indices[triangle + 2]);
+  }
+  void DeviceRivet(math::Vector3 center) {
+    // Original ellipsoidal bronze dome: two shared rings and one apex.
+    constexpr unsigned sides = 16;
+    const auto base = static_cast<std::uint16_t>(vertices.size());
+    for (unsigned ring = 0; ring < 2; ++ring)
+      for (unsigned side = 0; side < sides; ++side) {
+        const float angle = 2 * math::kPi * side / sides;
+        const float radial = ring ? 0.03535534F : 0.05F;
+        const float depth = ring ? 0.02474874F : 0;
+        const float x = radial * std::cos(angle), y = radial * std::sin(angle);
+        const auto normal = math::NormalizeSafe(
+            math::Vector3{x / (0.05F * 0.05F), y / (0.05F * 0.05F), depth / (0.035F * 0.035F)});
+        vertices.push_back({{center.x + x, center.y + y, center.z + depth},
+                            {normal.x, normal.y, normal.z},
+                            {0.5F + x * 10, 0.5F + y * 10}});
+      }
+    const auto apex = static_cast<std::uint16_t>(vertices.size());
+    vertices.push_back({{center.x, center.y, center.z + 0.035F}, {0, 0, 1}, {0.5F, 0.5F}});
+    for (unsigned side = 0; side < sides; ++side) {
+      const auto a = static_cast<std::uint16_t>(base + side);
+      const auto b = static_cast<std::uint16_t>(base + (side + 1) % sides);
+      const auto c = static_cast<std::uint16_t>(b + sides);
+      const auto d = static_cast<std::uint16_t>(a + sides);
+      for (const auto index : {a, b, c, a, c, d, d, c, apex})
+        indices.push_back(index);
     }
   }
   void VisualTourCamera() {
@@ -1015,12 +1046,20 @@ struct RoomSession::State final {
       finish(0);
       if (i % 4 == 0) {
         RingStone(a - 0.035F, a + 0.035F, 0.265F, 0.275F);
+        for (const float rivetRadius : {1.5F, 1.82F})
+          DeviceRivet({rivetRadius * std::cos(a), 2.9F + rivetRadius * std::sin(a), 0.276F});
         finish(1);
       }
       const float mid = (a + b) * 0.5F;
       const math::Vector3 center{1.65F * std::cos(mid), 2.9F + 1.65F * std::sin(mid), 0.255F};
       const math::Vector3 radial{std::cos(mid) * 0.1F, std::sin(mid) * 0.1F, 0};
       const math::Vector3 tangent{-std::sin(mid) * 0.06F, std::cos(mid) * 0.06F, 0};
+      const std::array outline{center + radial * 1.25F, center + tangent * 1.5F,
+                               center - radial * 1.25F, center - tangent * 1.5F};
+      for (unsigned edge = 0; edge < outline.size(); ++edge)
+        Segment(outline[edge] + math::Vector3{0, 0, 0.012F},
+                outline[(edge + 1) % outline.size()] + math::Vector3{0, 0, 0.012F}, 0.01F);
+      finish(1);
       const auto base = static_cast<std::uint16_t>(vertices.size());
       for (const auto point :
            {center + radial, center + tangent, center - radial, center - tangent})
@@ -1202,13 +1241,28 @@ struct RoomSession::State final {
         const auto base = static_cast<std::uint16_t>(vertices.size());
         for (unsigned corner = 0; corner < 3; ++corner) {
           const auto &v = courtyardCrystal.vertices[courtyardCrystal.indices[face * 3 + corner]];
-          const auto n = math::NormalizeSafe(
-              math::Vector3{v.normal[0] / 0.3F, v.normal[1] / 0.624F, v.normal[2] / 0.3F});
+          const float x = v.position[0] * 0.3F, y = v.position[1] * 0.624F,
+                      z = v.position[2] * 0.3F;
+          // Small deterministic fractures break the interior's regular ring planes.
+          // Equal cooked positions map equally, retaining the closed mineral surface.
           vertices.push_back(
-              {{v.position[0] * 0.3F, 3.15F + v.position[1] * 0.624F, v.position[2] * 0.3F},
-               {n.x, n.y, n.z},
+              {{x + 0.025F * std::sin(3 * y + 11 * z), 3.15F + y + 0.035F * std::sin(7 * x + 5 * z),
+                z + 0.03F * std::cos(4 * y + 9 * x)},
+               {0, 0, 1},
                {v.uv[0], v.uv[1]}});
           indices.push_back(static_cast<std::uint16_t>(base + corner));
+        }
+        const auto point = [&](unsigned corner) {
+          const auto &v = vertices[base + corner];
+          return math::Vector3{v.position[0], v.position[1], v.position[2]};
+        };
+        const auto normal =
+            math::NormalizeSafe(math::Cross(point(1) - point(0), point(2) - point(0)));
+        for (unsigned corner = 0; corner < 3; ++corner) {
+          auto &v = vertices[base + corner];
+          v.normal[0] = normal.x;
+          v.normal[1] = normal.y;
+          v.normal[2] = normal.z;
         }
       }
       finish(18 + shade);
@@ -2675,7 +2729,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[1].baseColor = {0.95F, 0.85F, 0.65F, 1};
     s.materials[2].roughness = 0.15F;
     s.materials[2].emission = {0.05F, 2.2F, 3.0F};
-    s.materials[3].baseColor = {0.58F, 0.4F, 0.24F, 1};
+    s.materials[3].baseColor = {0.46F, 0.3F, 0.15F, 1};
+    s.materials[3].occlusion = 0.75F;
     s.materials[3].roughness = 0.6F;
     s.materials[4].roughness = 0.8F;
     s.materials[5].twoSidedLighting = s.courtyardPbr;
@@ -2763,9 +2818,9 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       crystal.refractionFrontSurfaceOnly = true;
       crystal.dielectricRefraction = true;
     }
-    crystal.transparencyTint = {0.28F, 0.92F, 0.98F};
+    crystal.transparencyTint = {0.65F, 0.98F, 0.94F};
     crystal.metallic = 0.0F;
-    crystal.roughness = 0.06F;
+    crystal.roughness = 0.035F;
     s.materials.push_back(crystal);
     Nexora::Presentation::SceneMaterial water{};
     water.baseColor = {0.28F, 0.4F, 0.42F, 1};
@@ -2792,10 +2847,11 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials.push_back(clothTrim);
     auto ceramicPaint = clothTrim;
     ceramicPaint.windAmplitude = 0;
-    ceramicPaint.baseColor = {0.12F, 0.25F, 0.29F, 1};
+    ceramicPaint.baseColor = {0.68F, 0.44F, 0.2F, 1};
+    ceramicPaint.occlusion = 0.75F;
     s.materials.push_back(ceramicPaint);
-    for (const auto radiance : {std::array{0.02F, 0.08F, 0.1F}, std::array{0.06F, 0.23F, 0.25F},
-                                std::array{0.1F, 0.4F, 0.45F}}) {
+    for (const auto radiance : {std::array{0.005F, 0.03F, 0.025F}, std::array{0.02F, 0.12F, 0.11F},
+                                std::array{0.06F, 0.28F, 0.26F}}) {
       auto interior = crystal;
       interior.opacity = 1;
       interior.transparencyTint = {1, 1, 1};
@@ -2804,7 +2860,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       interior.refractionFrontSurfaceOnly = false;
       interior.dielectricRefraction = false;
       interior.transmissionThickness = 0;
-      interior.baseColor = {0.04F, 0.25F, 0.28F, 1};
+      interior.baseColor = {0.02F, 0.1F, 0.09F, 1};
       interior.metallic = 0.35F;
       interior.roughness = 0.13F;
       for (unsigned channel = 0; channel < 3; ++channel)

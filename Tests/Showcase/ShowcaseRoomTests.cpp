@@ -103,6 +103,26 @@ int main() {
     assert(batch.materialIndex < selectedMaterials.size());
     selectedMaterials[batch.materialIndex] = true;
   }
+  // The annular device bend reverses orientation. Its actual triangles must
+  // still wind outward, agreeing with the transformed shading normals.
+  unsigned annularWedges = 0;
+  for (const auto &batch : wide.batches)
+    if (batch.firstInstance == 0 && batch.materialIndex == 0 && batch.indexCount == 132) {
+      ++annularWedges;
+      for (std::size_t triangle = batch.firstIndex; triangle < batch.firstIndex + batch.indexCount;
+           triangle += 3) {
+        const auto &a = wide.vertices[wide.indices[triangle]];
+        const auto &b = wide.vertices[wide.indices[triangle + 1]];
+        const auto &c = wide.vertices[wide.indices[triangle + 2]];
+        const nexora::math::Vector3 ab{b.position[0] - a.position[0], b.position[1] - a.position[1],
+                                       b.position[2] - a.position[2]};
+        const nexora::math::Vector3 ac{c.position[0] - a.position[0], c.position[1] - a.position[1],
+                                       c.position[2] - a.position[2]};
+        const nexora::math::Vector3 normal{a.normal[0], a.normal[1], a.normal[2]};
+        assert(nexora::math::Dot(nexora::math::Cross(ab, ac), normal) > 1e-7F);
+      }
+    }
+  assert(annularWedges > 0);
   std::size_t sourceLeaves = 0;
   for (const auto &batch : wide.batches)
     if (batch.materialIndex == 5)
