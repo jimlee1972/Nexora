@@ -236,6 +236,19 @@ int main() {
   Press(courtyard, Key::K);
   assert(courtyard.Scene(1280, 720).bloom);
   assert(wide.shadow && wide.lightingStyle && wide.shadow->resolution == 1024);
+  // Side-arcade crowns must remain inside the shadow camera. Their shadows use
+  // the same light-space XY, even when projected beyond the central pedestal.
+  for (const float x : {-7.5F, 7.5F})
+    for (const float z : {-4.0F, 2.0F}) {
+      const std::array<float, 4> crown{x, 7.0F, z, 1.0F};
+      const auto &matrix = wide.shadow->lightViewProjection;
+      std::array<float, 4> clip{};
+      for (unsigned row = 0; row < 4; ++row)
+        for (unsigned column = 0; column < 4; ++column)
+          clip[row] += matrix[row * 4 + column] * crown[column];
+      assert(std::abs(clip[0]) < clip[3] && std::abs(clip[1]) < clip[3]);
+      assert(clip[2] > 0 && clip[2] < clip[3]);
+    }
   Press(courtyard, Key::F6);
   assert(!courtyard.Scene(1280, 720).shadow);
   Press(courtyard, Key::F6);
