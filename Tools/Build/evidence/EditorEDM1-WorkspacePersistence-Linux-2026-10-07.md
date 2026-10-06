@@ -38,6 +38,8 @@ VK_DRIVER_FILES/VK_LAYER_PATH/VK_INSTANCE_LAYERS/VK_LAYER_ENABLES settings as im
 Public-API probe before/after:
 
 ```text
+occupied_stage_save=1 stage_preserved=0 setting=Content/replacement.so
+directory_destination_save=1 directory_preserved=0
 --- after ---
 occupied_stage_save=0 stage_preserved=1 setting=Content/original.so
 directory_destination_save=0 directory_preserved=1
