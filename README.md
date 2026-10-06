@@ -1,5 +1,9 @@
 # Nexora
 
+✅ Linux configure/build and full 97/97 tests passed (108.23 s, Khronos core/sync validation), including nine evidence-policy tests and 600 actual native camera frames. Isolated original Shipping acceptance passed. Interaction synchronization now waits for complete Lab JSON/Markdown export, holds D through the fixed 600-frame camera run, and requires stable foreground pixels at the resized viewport scale before shutdown. The resize-generation, camera-movement, pixel-restoration, frame-count and timeout gates remain in force. Runtime/movie freeze remains c815263b; evidence: `Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+Release-verifier diagnostic follow-up: failed native/headless subprocesses now print a bounded stderr tail and the structured failure result to CI logs. Acceptance gates, exit status, runtime and the recorded Shipping/movie freeze are unchanged. Linux configure/build and full 97/97 tests passed (104.27 s) with Khronos core/synchronization validation; the original Shipping package passed isolated native acceptance. Evidence: `Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/release-diagnostics/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
+
 MSVC compiler follow-up: foreground sprigs use `sprigRadius` to avoid camera-member
 shadowing under /WX. Exact source comparison after identifier normalization is unchanged.
 ✅ Linux configure/build and full 97/97 pass (102.71 seconds), including 85 native PBR
@@ -1215,3 +1219,5 @@ the recorded runtime/movie production freeze remains unchanged.
 97/97 測試通過（103.21 秒）；固定 Shipping 執行檔使用新版 verifier 的隔離
 原生驗證通過。受控的子程序失敗仍回傳 FAIL／exit 1，且能看到有界原因。證據：
 `VIS-Dielectric-Glass-Linux-2026-10-05/release-diagnostics/`；原有 runtime／影片 freeze 保持相同。
+
+✅ Dielectric/native interaction integration: Linux configure/build and full 97/97 tests passed (111.31 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 4933fbc passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.

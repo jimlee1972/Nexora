@@ -1,0 +1,13 @@
+{
+  "source_before_evidence": "abcf65aefe045381db8bf1215fcee308c5920648",
+  "scripts_sha256": {
+    "Tests/Showcase/LinuxShowcaseInteraction.py": "f38167587aa374a8725a4399d6bbdbed893ae3a16f241f2a3b752375bcabe3da",
+    "Tests/Showcase/LinuxVirtualDisplaySmokeTests.py": "dc0bcda9d985eddebbc3d6a261c518a4afe21b1c579f838f6632fc50a5a37dd5",
+    "Tests/Showcase/LinuxVulkanSceneAcceptance.py": "8f0132a27e009aaa409c5f40e6c21eb019614198a5956d790c693282b07d4e44"
+  },
+  "runtime_source_unchanged_from": "4933fbc047c1ee224f46081fcd65a68f6a6bc427",
+  "original_shipping_executable_sha256": "5c8c3899db58f6898afc8e76f9af1f3e394e1c437ba4dc984471ee525dc0e5d1",
+  "full_tests": 97,
+  "full_test_seconds": 111.31,
+  "physical_display_verified": false
+}

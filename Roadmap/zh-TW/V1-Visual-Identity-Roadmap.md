@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux configure/build 與完整 97/97 測試通過（108.23 秒，Khronos core/sync validation），包含九項證據政策測試與實際 600 幀原生相機測試；原 Shipping 套件隔離驗收通過。互動驗收改為等待完整 Lab JSON／Markdown 匯出、按住 D 直到固定 600 幀完成，並在關閉前確認前景像素已按縮放後視窗比例穩定呈現。縮放 generation、相機移動、像素還原、幀數與 timeout 驗收條件均保留。程式／影片凍結版本仍為 c815263b；證據：`Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/interaction-synchronization/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+發行驗證診斷補充：原生／headless 子程序失敗時，CI 會輸出有長度上限的 stderr 與結構化失敗結果。驗收條件、退出狀態、執行程式及既有 Shipping／影片凍結版本不變。Linux configure/build 與完整 97/97 測試通過（104.27 秒，Khronos core/sync validation），原 Shipping 套件隔離原生驗收通過。證據：`Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/release-diagnostics/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
 MSVC 編譯修正：前景植被區域變數改名 `sprigRadius`，避免 /WX 下遮蔽相機成員。
 標準化變數名稱後的來源逐位元比較相同，計算式與數值不變。✅ Linux configure／build
 與完整 97/97 通過（102.71 秒），包含 85 個原生 PBR 畫面與 core／同步驗證。
@@ -577,3 +581,5 @@ PBR frame 的 core/sync 驗證；Shipping/Full 隔離、原生比較精確還原
 97/97 測試通過（103.21 秒）；固定 Shipping 執行檔使用新版 verifier 的隔離
 原生驗證通過。受控的子程序失敗仍回傳 FAIL／exit 1，且能看到有界原因。證據：
 `VIS-Dielectric-Glass-Linux-2026-10-05/release-diagnostics/`；原有 runtime／影片 freeze 保持相同。
+
+✅ 玻璃／原生互動整合：Linux configure/build 與完整 97/97 測試通過（111.31 秒，Khronos core/sync validation），包含 97 幀原生 PBR 與九項證據政策測試。通過 checksum 的 4933fbc 原 Shipping 程式已通過同步匯出、按住相機輸入與實際縮放呈現的隔離驗收。程式原始碼、凍結執行檔與影片不變。證據：`Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05/interaction-synchronization/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。

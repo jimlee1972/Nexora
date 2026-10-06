@@ -1,0 +1,30 @@
+2026-10-06T02:22:58.5867551Z   ZIG_LOCAL_CACHE_DIR: /home/runner/work/Nexora/Nexora/.zig-cache
+2026-10-06T02:22:58.5867649Z ##[endgroup]
+2026-10-06T02:23:47.6236727Z Traceback (most recent call last):
+2026-10-06T02:23:47.6237857Z   File "/home/runner/work/Nexora/Nexora/Tests/Showcase/LinuxShowcaseInteraction.py", line 408, in <module>
+2026-10-06T02:23:47.6239064Z     raise SystemExit(main())
+2026-10-06T02:23:47.6239673Z                      ^^^^^^
+2026-10-06T02:23:47.6240746Z   File "/home/runner/work/Nexora/Nexora/Tests/Showcase/LinuxShowcaseInteraction.py", line 360, in main
+2026-10-06T02:23:47.6241735Z     lab = json.loads(exported.read_text())
+2026-10-06T02:23:47.6242278Z                      ^^^^^^^^^^^^^^^^^^^^
+2026-10-06T02:23:47.6242920Z   File "/usr/lib/python3.12/pathlib.py", line 1029, in read_text
+2026-10-06T02:23:47.6243732Z     with self.open(mode='r', encoding=encoding, errors=errors) as f:
+2026-10-06T02:23:47.6244632Z          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-06T02:23:47.6245083Z   File "/usr/lib/python3.12/pathlib.py", line 1015, in open
+2026-10-06T02:23:47.6245598Z     return io.open(self, mode, buffering, encoding, errors, newline)
+2026-10-06T02:23:47.6246073Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-06T02:23:47.6246756Z FileNotFoundError: [Errno 2] No such file or directory: '/tmp/nexora-showcase-controls-h9oswn7q/showcase-lab.json'
+2026-10-06T02:23:47.6247559Z 
+2026-10-06T02:23:47.6247673Z {
+2026-10-06T02:23:47.6247906Z   "status": "FAIL",
+2026-10-06T02:23:47.6248186Z   "platform": "Linux",
+2026-10-06T02:23:47.6248494Z   "isolated_copy": true,
+2026-10-06T02:23:47.6248819Z   "physical_display_verified": false,
+2026-10-06T02:23:47.6249159Z   "issues": [
+2026-10-06T02:23:47.6249439Z     "Linux native interaction failed (1)"
+2026-10-06T02:23:47.6249783Z   ]
+2026-10-06T02:23:47.6250007Z }
+2026-10-06T02:23:47.6446279Z ##[error]Process completed with exit code 1.
+2026-10-06T02:23:47.6521391Z ##[group]Run actions/upload-artifact@v4
+2026-10-06T02:23:47.6521723Z with:
+2026-10-06T02:23:47.6521996Z   name: showcase-linux-showcase-shipping-evidence

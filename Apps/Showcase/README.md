@@ -1,5 +1,7 @@
 # Nexora Zig Showcase
 
+✅ Linux configure/build and full 97/97 tests passed (108.23 s, Khronos core/sync validation), including nine evidence-policy tests and 600 actual native camera frames. Isolated original Shipping acceptance passed. Interaction synchronization now waits for complete Lab JSON/Markdown export, holds D through the fixed 600-frame camera run, and requires stable foreground pixels at the resized viewport scale before shutdown. The resize-generation, camera-movement, pixel-restoration, frame-count and timeout gates remain in force. Runtime/movie freeze remains c815263b; evidence: `Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
 MSVC compiler follow-up: foreground sprigs use `sprigRadius` to avoid camera-member
 shadowing under /WX. Exact source comparison after identifier normalization is unchanged.
 ✅ Linux configure/build and full 97/97 pass (102.71 seconds), including 85 native PBR
@@ -710,3 +712,5 @@ seconds); the frozen Shipping executable passes isolated native acceptance with 
 updated verifier. A controlled subprocess failure remains FAIL/exit 1 and prints its
 bounded reason. Follow-up evidence is in `VIS-Dielectric-Glass-Linux-2026-10-05/release-diagnostics/`;
 the recorded runtime/movie production freeze remains unchanged.
+
+✅ Dielectric/native interaction integration: Linux configure/build and full 97/97 tests passed (111.31 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 4933fbc passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
