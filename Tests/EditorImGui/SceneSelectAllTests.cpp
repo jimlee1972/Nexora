@@ -305,7 +305,7 @@ void RunBudget() {
   const auto path = f.root / "Content/Budget.scene";
   constexpr std::size_t count = editor::imgui::kMaximumNativeSceneFrameCandidates + 2;
   {
-    std::ofstream source(path);
+    std::ofstream source(path, std::ios::binary);
     source << "NEXORA_EDITOR_SCENE 2\n";
     for (std::size_t i = 0; i < count; ++i)
       source << "node " << i + 100 << " 0 Budget " << i << '\n';

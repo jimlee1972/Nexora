@@ -26,3 +26,13 @@ engine's separate geometric HDR sun preserves radiance above display white. The 
 is an LDR art source, not a native capture or a measured HDR photograph.
 `golden-sky.png` 保留原創天空來源；線性化後的天空圖同時供 skybox 與 HDR IBL 使用，方位與
 引擎太陽一致。PNG 本身是 LDR 美術來源，並非原生截圖或實測 HDR 照片。
+
+
+The original crystal geometry is authored separately in `../source.json`: five radius/height
+rings include an optional azimuth phase. The cook selects outward diagonals for nonplanar
+quads and rejects any face whose plane cuts through the convex hull. Per-triangle normals
+retain the faceted silhouette. This changes the original mesh; the retained image inputs
+and their source hashes are unchanged.
+原創水晶幾何另由 `../source.json` 描述五層半徑／高度與可選方位相位。Cook 選擇朝外的
+非共面四邊形對角線，並拒絕切入凸包的面；每個三角形保留獨立法線。原始 PNG 與來源
+雜湊保持一致。

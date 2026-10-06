@@ -1,5 +1,12 @@
 # Nexora
 
+MSVC compiler follow-up: foreground sprigs use `sprigRadius` to avoid camera-member
+shadowing under /WX. Exact source comparison after identifier normalization is unchanged.
+✅ Linux configure/build and full 97/97 pass (102.71 seconds), including 85 native PBR
+frames with core/sync validation. Evidence: `VIS-Courtyard-Masonry-Linux-2026-10-05/msvc-member-shadowing/`.
+Existing Shipping/movie keep their recorded production freeze; Windows CI recheck is pending.
+
+
 > Open-source cross-platform 3D engine architecture and roadmap  
 > 開源跨平台 3D 引擎架構與 Roadmap
 
@@ -500,7 +507,7 @@ cubes and a white uniform cube, previews selected roots and descendants during d
 reset and stale fallback coverage in `editor.imgui_contract`.
 
 Desktop graphical CI tests now distinguish deterministic Ctrl input fixtures from the native
-macOS Cmd/Super undo/redo path; production retains its platform input policy.
+macOS Cmd/Super undo/redo path; production retains its platform input policy. Fixtures now release workspace/file owners before deleting temporary projects and write canonical scene bytes in binary mode; the Linux interaction gate explicitly focuses the Scene canvas before shortcuts.
 
 The [Graphical Editor Roadmap](Roadmap/en/Editor_Roadmap.md) remains at **0/8 (0%) graphical milestone acceptance**. Portable foundations now include ED-M4 additive-scene ownership and dependency ordering, migration dry-runs, bounded autosave recovery, and source-control-neutral three-way conflicts, and UI-neutral viewport pick-ray, AABB picking, axis-drag, snapping, and resize-hysteresis math, in addition to the existing ED-M1 through ED-M3 contracts. The [rotation and scale plan](Roadmap/en/Transform_Rotation_Scale_Plan.md) has ✅ all phases complete: `runtime::Transform` carries a quaternion rotation and per-axis scale following Unity/Unreal conventions, position-only writers preserve them, and `ViewportMath.h` provides Unity-style translate/rotate/scale gizmo math (Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots, covered by `editor.viewport_math`), and gameplay modules read and write `"Nexora.TransformV2"`, `"Nexora.WorldTransform"`, and `"Nexora.Parent"` through append-only C/Zig wires whose layouts are gated in C11, the ABI baseline, and Zig; the Graphical degree rotation fields now use Z-X-Y composition and one atomic multi-selection transaction; ✅ SceneDocument hints retain typed revolutions across selection/save/reload and undo, with validated version-2 metadata, version-1 compatibility, and atomic same-World reload. Phases 1 and 2 of the [entity parenting plan](Roadmap/en/Entity_Parenting_Plan.md) are ✅ complete: entities form a Unity-style hierarchy with local transforms, world transform and exact world matrix, keep-world reparenting, and cascading destroy; scene snapshots are version 3 (versions 1 and 2 still load), the Editor scene document uses the runtime hierarchy, and character controllers work under a parent the way Unity's do (a moving parent carries them). Hierarchy batches are all-or-nothing, snapshot validation and cascading destroy are linear in the scene size, and PIE apply-back rejects entities reparented during play (`runtime.entity_parenting`, `editor.preview_contract`; Linux development, full-feature, Shipping, ASan/UBSan, and Editor-SDK-off builds, plus the full CI matrix after merge). Unity-style sibling order (`SetSiblingIndex`, reparent-to-last) and an undoable Hierarchy drag model (`SceneDocument::Move`) are in place; `RenderSceneSync` mirrors mesh renderers into the `GPUScene` with each entity's exact world matrix and conservative bounds, so a moved parent re-renders its subtree, and cameras follow their parents too (`CameraView`, plus a frustum-culled `RenderSceneSync::RenderFrame`; `runtime.render_sync`); no application draw loop uses it yet. These are portable math and data contracts; local X/Y/Z scale cubes now work; uniform scaling is available through a white camera-facing cube. The Linux Editor display acceptance now passes locally on a virtual display (Xvfb with Mesa lavapipe) after fixing three real defects it exposed; a dedicated CI job (`editor-linux-display`) runs it, and a bounded Windows/DX12 developer-host shell smoke now also passes; physical-display Linux and Windows DPI/IME evidence remain open. The virtual-display recovery gate now fsyncs a seeded journal, SIGKILLs the real Editor, verifies that the journal and committed workspace survive, and reacquires the writer lease on relaunch before keyboard-only Recover/Discard. Recovery process failures cannot pass on diagnostics alone. The graphical shell now routes Ctrl+S and the Scene panel save button through an application-owned one-shot request, saves to the managed current path (startup still opens `.nexora/scenes/Main.scene`), and blocks read-only saves or overwriting an unreadable scene; the Scene panel also supports Undo by button or Ctrl+Z outside text input, and an undone creation no longer leaves stale nodes in saved scenes; the Hierarchy can now create named roots and children, select them, and reject stale parents, with Undo and save/reload coverage; Copy/Paste buttons and Ctrl+C/Ctrl+V now paste world-pose snapshots and select the new roots; the Hierarchy or hovered native 3D canvas can also delete selected subtrees and restore their metadata with Undo, or duplicate the current selection without replacing the clipboard; the central Scene panel now adds an interactive top-down X/Z entity overview with Ctrl/Shift selection, F to frame the selection, and one-step undoable X/Z marker dragging with visible single-axis handles; the overview camera now restores its center and zoom per scene, the Scene panel marks unsaved content until a successful save or matching Undo, and a native close request offers Save and Exit, Discard and Exit, or Cancel for unsaved content, while renderer-backed 3D Scene View and graphical save/restart acceptance remain open. The focused [ED-M0 Dear ImGui plan](Roadmap/en/Editor_ImGui_Integration_Plan.md) now has ✅ WP0 baseline acceptance ([evidence](Tools/Build/evidence/EditorEDM0-Linux-2026-10-05.md): graphical OFF 71/71, ON with Slang 115/115, no skips, and Shipping engine build passed), and remains **in progress**; graphical workflows, native debugger integration, physical-display evidence, and UI acceptance remain open. ✅ ImGui host context moves now release the previous context and retain zero ImGui allocations after teardown (`editor.imgui_context_lifetime`). ED-M0 through ED-M7 are therefore unchecked; portable prerequisites are not rounded up into accepted graphical milestones.
 The Linux virtual-display gates allow 90 seconds for recovery relaunch on a loaded CI host; the native Scene acceptance re-saves a settled Undo before reporting a mismatch.
@@ -904,7 +911,7 @@ Editor selection 與編輯狀態保持獨立。
 `editor.imgui_contract` 涵蓋多次 reset 與 stale fallback。
 
 Desktop graphical CI test 現區分 deterministic Ctrl input fixture 與 native macOS Cmd／Super
-Undo／Redo 路徑；production 保留平台原生 input policy。
+Undo／Redo 路徑；production 保留平台原生 input policy。 Fixture 現在 workspace／file owner 銷毀後才刪除暫存 project，canonical scene 使用 binary 寫入；Linux interaction gate 明確取得 Scene canvas 焦點後執行 shortcut。
 
 [圖形化 Editor Roadmap](Roadmap/zh-TW/Editor_Roadmap.md) 的**圖形化 milestone 驗收仍為 0/8（0%）**。Portable foundation 除既有 ED-M1 至 ED-M3 contract 外，現已加入 ED-M4 additive-scene ownership 與 dependency ordering、migration dry-run、bounded autosave recovery，以及 source-control-neutral three-way conflict，另有與 UI 無關的 viewport pick ray、AABB picking、軸向拖曳、snapping 與 resize hysteresis 數學。[旋轉與縮放計畫](Roadmap/zh-TW/Transform_Rotation_Scale_Plan.md)的 ✅ 所有階段皆已完成：`runtime::Transform` 含 quaternion 旋轉與逐軸縮放（沿用 Unity／Unreal 慣例），只寫位置的寫入者會保留它們，`ViewportMath.h` 提供 Unity 式的移動／旋轉／縮放 gizmo 數學（Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定，由 `editor.viewport_math` 涵蓋），gameplay module 可透過 append-only 的 C／Zig wire 讀寫 `"Nexora.TransformV2"`、`"Nexora.WorldTransform"` 與 `"Nexora.Parent"`，其 layout 由 C11、ABI baseline 與 Zig 檢查固定；圖形化旋轉欄位現使用度數、Z-X-Y composition 與單次 atomic 多選 transaction；✅ SceneDocument 提示跨 selection／save／reload 與 undo 保留輸入圈數，並具已驗證的 version-2 metadata、version-1 相容性與 atomic 同 World reload。[Entity parenting 計畫](Roadmap/zh-TW/Entity_Parenting_Plan.md)第 1、2 階段 ✅ 已完成：entity 形成 Unity 式階層，具 local transform、world transform 與精確的 world matrix、保留世界姿態的重新掛接，以及連帶刪除；場景快照為 v3（v1、v2 仍可載入），Editor 的場景文件以 runtime 階層為準，角色控制器也能像 Unity 一樣掛在父物件底下（移動中的父物件會帶著它走）。階層批次全有或全無、快照驗證與連帶刪除與場景大小成線性，PIE apply-back 會拒絕遊玩期間被重新掛接的 entity（`runtime.entity_parenting`、`editor.preview_contract`；Linux development、全功能、Shipping、ASan/UBSan 與關閉 Editor SDK 的組態，合併後也通過完整 CI）。Unity 式的兄弟順序（`SetSiblingIndex`、重新掛接後成為最後一個子物件）與可復原的 Hierarchy 拖曳模型（`SceneDocument::Move`）已就緒；`RenderSceneSync` 會以每個 entity 精確的 world matrix 與保守的包圍球，把 mesh renderer 同步到 `GPUScene`，移動父物件時整棵子樹的渲染資料都會更新，攝影機也會跟著父物件走（`CameraView`，以及經視錐剔除的 `RenderSceneSync::RenderFrame`；`runtime.render_sync`）；目前還沒有應用程式的繪製迴圈使用它。以上是 portable 的數學與資料 contract；圖形化旋轉把手已有原生環狀操作，Local X/Y/Z 縮放立方把手及白色等比例把手也已可操作；原生代理預覽已有世界 X/Y/Z 位移把手。Linux Editor 顯示驗收在修正它暴露的三個真實缺陷後，已能在虛擬顯示器（Xvfb 搭配 Mesa lavapipe）上於本機通過；已由專用 CI job（`editor-linux-display`）執行，另有 Windows/DX12 開發機 bounded shell smoke 通過；實體顯示器 Linux 與 Windows DPI／IME 證據仍待完成。虛擬顯示 recovery gate 現會 fsync seeded journal、SIGKILL 真正的 Editor，確認 journal 與已提交 workspace 保留，再重啟並重新取得 writer lease，執行 keyboard-only Recover／Discard；recovery process 失敗不會只憑 diagnostic 就通過。Focused [ED-M0 Dear ImGui 計畫](Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md) 現已 ✅ 通過 WP0 baseline（[證據](Tools/Build/evidence/EditorEDM0-Linux-2026-10-05.md)：graphical OFF 71/71、ON 加 Slang 115/115 無 skipped，Shipping engine build 通過），整體仍為**施工中**；✅ [Linux Vulkan 驗證 slice](Tools/Build/evidence/EditorEDM0-VulkanValidation-2026-10-06.md)已修正 attachment 同步與 native RHI shader feature negotiation，CI 啟用同步驗證並拒絕 exit-zero error、保存 log；✅ native UI 字型 cache 現以 surface resource domain 在 owner 更換後重送 atlas，具更換／move／DPI／resize／teardown 原生測試；desktop CI 現在三個平台啟用 graphical Editor、要求 Windows DPI／IME contract 註冊並保留完整測試 log；圖形化 workflow、native debugger integration、physical-display evidence 與 UI 驗收仍待完成。✅ ImGui host context 移動現會釋放舊 context，全部 owner 銷毀後無遺留 ImGui allocation（`editor.imgui_context_lifetime`）。因此 ED-M0 至 ED-M7 都不打勾；portable prerequisite 不會向上取整為已驗收的 graphical milestone。
 Linux 虛擬顯示驗收現允許忙碌 CI 主機上的 recovery 重啟在 90 秒內完成；原生 Scene 的 Undo 驗收會於判定不符前再次儲存已穩定的狀態。
@@ -1023,3 +1030,120 @@ sharing source coordinates with base/ORM and reflections. Linux full validation 
 (92.68 seconds), including 69 native PBR cases; Shipping evidence remains in progress (VIS 5/7).
 世界座標石材法線加入有界的凹凸反光，與 base／ORM 及倒影共用原始座標。
 Linux 全套 97/97（92.68 秒）與 69 個原生 PBR 案例通過；交付證據持續進行，VIS 維持 5/7。
+
+
+Eight original chipped paving meshes now share 432 native affine instances. Deterministic
+stone heights/widths and source-world PBR maps remain coherent; identity/column/paving/mirror
+ranges are retained across cached frames and quality changes. The reclaimed vertex budget
+supports a sculpted central basin/ribs, bevelled pedestal lips, staggered arcade masonry and
+raised geometric column relief. Layered cutout tree crowns share GPU wind and leaf lighting.
+The fixed activated Standard shot contains 51,790 vertices and 1,338 source foliage quads.
+Linux full validation passes 97/97 (95.21 seconds), including all three vertex budgets and native
+instance/wind/effect replay. Shipping evidence and final reference parity remain open (VIS 5/7).
+
+
+Bounded screen-space crystal refraction now samples a private opaque linear-HDR snapshot before
+transparent rendering. Shared Slang projects bent camera rays through an authored slab; each
+axis is limited to 24 pixels, with nearer-foreground rejection. Standard/High crystal uses
+index 1.46 and 0.65 world-unit thickness, while Basic/defaults retain ordinary tint coverage.
+Native Vulkan/DX12/Metal adapters preserve opaque depth and own snapshot lifetime through frame
+fences/resize. Six native checks cover bending, reversal, exact replay, zero thickness and
+foreground rejection (75 PBR frames). Linux full validation passes 97/97 (92.94 seconds), including all 75 PBR frames and native F8
+change/exact restoration. Shipping/reference validation remains open (VIS 5/7). This model
+excludes offscreen and multiple transparent layers.
+
+
+Vulkan synchronization validation now covers opaque-HDR refraction. Swapchain acquisition and
+the copied HDR color transition include attachment-load reads; compatible HDR clear/load
+passes share color/depth read dependencies. This preserves pipeline/framebuffer compatibility
+while loading opaque depth and color for the glass phase. Khronos core/synchronization validation
+passes all 75 native PBR frames. The full Linux configure/build/test rerun passes 97/97
+(95.08 seconds) with validation layers enabled. Release rerun remains pending.
+
+Lit scene texture generations now build bounded native mip chains: linear-light sRGB colors,
+linear ORM data and normalized-vector normal maps. Cutout masks, unlit atlases, ambiguous
+roles and UI remain single-level. Vulkan/DX12/Metal upload the same private CPU chain into
+existing generation-owned textures, reducing distant stone aliasing without changing source
+assets, passes, constant packets or C/Zig ABI. CPU semantic checks and two native checker/gray
+minification cases cover the new filtering (77 PBR frames). Linux full validation passes 97/97
+(96.26 seconds), with native effect replay and all quality budgets. Shipping/reference validation
+remains open; VIS stays 5/7.
+
+
+Closed courtyard crystals now opt into front-surface-only refraction. Shared Slang rejects
+rear geometric facets using the source normal and real/virtual reflection camera, so a later
+back face cannot replace the front face with another opaque-HDR sample. General glass stays
+two-sided by default. The flag requires active lit translucent HDR refraction and uses private
+packet offset 78; the 368-byte packet and stable C/Zig ABI stay unchanged. F8/U/Basic restore
+default behavior. Two native cases compare rear-face rejection with unchanged double-sided
+refraction, plus CPU validation/packing checks (79 PBR frames). Linux full validation passes 97/97 (98.20 seconds); release validation is
+pending; final reference parity and physical target acceptance remain open. VIS stays 5/7.
+
+
+The courtyard art pass now maps stone at 1.1 repeats per world unit with restrained normal
+strength, so authored pores read as surface detail rather than large mottled patches. Pedestal,
+basin and ceramic lathe profiles use 48 radial segments; columns retain 64 fluted segments.
+Brighter bronze factors, lower roughness and 0.8 IBL intensity expose the sun/IBL response.
+Distant ridges share restrained world-projected stone detail. Extra deterministic
+ground cover and right-hand ring ivy share the existing wind, pause/replay and reflection
+clock. The fixed activated Standard shot contains 60,662 vertices and 1,764 source foliage
+quads. Linux full validation passes 97/97 (101.60 seconds) with core/sync validation enabled,
+including all three quality budgets and 79 PBR frames. Release/reference and physical target
+acceptance remain open. VIS stays 5/7.
+
+
+A bounded HDR crystal point source now adds real local PBR illumination to nearby stone,
+bronze and transparent surfaces before bloom/ACES. Shared Slang uses smooth finite-radius
+inverse-square falloff; source-world positions keep planar reflections coherent, and unlit
+sky/emitters remain unchanged. Standard/High activation follows crystal lift and the shared
+pause/replay clock; F9 compares the local light. Basic/inactive/default scenes omit it. The
+optional copied ScenePointLight validates finite position, radiance [0,32] and radius [0.1,64].
+The private packet grows to 400 bytes, fitting the existing DX12 768-byte aligned pair; C/Zig
+ABI is unchanged. CPU bounds/packing and six native movement/replay/disable/unlit cases are
+passing (85 PBR frames). Linux full validation passes 97/97 (105.31 seconds) with core/sync
+validation enabled, including native F9 changes/exact restoration. Release/reference and
+physical target acceptance remain open; VIS stays 5/7. This one source has no point-shadow map.
+
+
+Crystal point-light Shipping evidence: [Apps/Showcase/evidence/VIS-Crystal-Light-Linux-2026-10-05](/Apps/Showcase/evidence/VIS-Crystal-Light-Linux-2026-10-05). Production freeze `aec18172a4e6`; actual 100.33-second movie (100.71-second wall time), isolated native F9 comparison/restoration and all 85 native PBR cases pass. Final reference/physical-target acceptance remains open.
+
+
+Courtyard art now shares exact bevel profiles for repeated tower/arcade blocks, retaining
+world-space mapping and inverse-transpose normals while reducing uploaded geometry. Distant
+towers use masonry courses and raised diamond relief; three foreground banks add 288 wind
+cards. Leaf shading uses the original alpha/color mask without emissive fill. The basin is
+shifted forward for a readable silhouette; warmer ceramic glaze responds to the sunset.
+The authored crystal has five staggered rings with an outward convex triangulation check.
+Three internal emissive mineral fissures share crystal rotation/lift and appear through the
+opaque HDR snapshot; rune/fissure radiance is restrained before bloom/ACES. These are authored
+geometry, not volumetric scattering. Standard/High atmosphere uses strength 0.6 at 18–58 units.
+This art iteration does not accept final reference parity or target performance; VIS stays 5/7.
+
+Linux native integration: ✅ full configure/build and 97/97 tests pass (103.93 seconds) with Khronos core/synchronization validation, including 85 PBR frames and all three geometry budgets. The fixed activated Standard frame has 50,166 vertices and 2,052 source foliage quads. Shipping/Full isolated native acceptance and an actual 100.27-second movie (100.80-second wall time) pass; final reference/target acceptance remains open.
+
+Evidence: [VIS-Courtyard-Masonry-Linux-2026-10-05](/Apps/Showcase/evidence/VIS-Courtyard-Masonry-Linux-2026-10-05). Production freeze `e5bb13119ba1`; exact source and package hashes are retained.
+
+
+Optional `SceneMaterial::twoSidedLighting` makes lit PBR sheets face the viewer before tangent
+normal mapping and BRDF/IBL evaluation. Leaves and pennants opt in; defaults preserve existing
+surface lighting. Source-world shadow masks and mirrored virtual cameras remain coherent,
+while closed-crystal front-facet filtering still precedes the flip. Unlit and Lambert use
+reject this flag. Private material float 79 uses the reserved slot; the 400-byte packet,
+backend bindings and stable C/Zig ABI are unchanged. Back faces no longer lose diffuse IBL
+through a negative view cosine. This is sheet lighting, not a thick-material volume model.
+
+✅ Linux Development configure/build and all 97 tests pass (106.20 seconds), including 89 native PBR frames with Khronos core/synchronization validation. Four sheet fixtures retain default rear-face behavior and reproduce the front-facing colors exactly when enabled; CPU rejects unlit/Lambert use and verifies slot 79. All native geometry budgets and wind/pause/replay interactions pass. Shipping/Full isolated native acceptance and an actual 100.33-second movie (100.79-second wall time) pass; final reference/target acceptance remains open.
+
+Evidence: [VIS-Two-Sided-Linux-2026-10-05](/Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05). Production freeze `248791c4b51a`; exact source and package hashes are retained.
+
+
+MSVC fixture portability follow-up: point-light fill and two-sided normal conditionals use
+floating literals. ✅ Linux configure/build and full 97/97 pass (102.61 seconds), including
+89 native PBR frames with core/sync validation. Test values and runtime sources are unchanged;
+retained Shipping evidence keeps its production freeze. Windows CI recheck is pending.
+
+
+Upstream point-light and masonry MSVC fixture evidence is synchronized. Their full Linux
+97/97 gates pass in 102.20/102.62 seconds with 85 native PBR frames and core/sync validation.
+Each stage retains exact logs/hashes in `msvc-literals/`. This synchronization changes only
+documentation/evidence; runtime sources and fixture values are unchanged.

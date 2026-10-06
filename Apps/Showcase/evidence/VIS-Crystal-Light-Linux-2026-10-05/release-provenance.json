@@ -1,0 +1,70 @@
+{
+  "source_freeze": "aec18172a4e67be4d4958e706e3afa8c6b4a2852",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "43766a7b4ebcb73fdb1c9047cdb7903b91b618722cd78a1de499e4570c16eb74",
+    "Apps/Showcase/ShowcaseRooms.cpp": "a766e16e99a7f39815047efa60b3c67dfb12b9e1d7b0383b15447cc9562d91b6",
+    "Engine/Presentation/README.md": "045b97367a587d7560d156e9af9d65e00e9339cadda5fa73a6137c19303da46e",
+    "Engine/Presentation/include/Nexora/Presentation/Surface.h": "1d1080ece4780d4b40b5aef3c806d7c308493dc6bf684f78f1d6e4b05a487b2a",
+    "Engine/Presentation/shaders/scene_pbr.slang": "e9b9cd752c5d22ce0dcd008b2098ca004a293e52816d443745aa433cb4e858bc",
+    "Engine/Presentation/src/PbrMaterialUpload.h": "2bfeb3953e8642177ad24adecdd6857926dad45f2941bcb6983904caad993431",
+    "Engine/Presentation/src/ScenePbrHlslShaders.h": "1d3f492be9235a16b465a50a760e8422574e990e88899a755b63cd6d9f9827e0",
+    "Engine/Presentation/src/ScenePbrMetalShaders.h": "43f6e863c9ad34f9768e8f464653bc204f5b9b33f68dd81b5b505ac1b4c20ded",
+    "Engine/Presentation/src/ScenePbrVulkanShaders.h": "70da540015c93066c3b80855ee3fe2bff856e2347e4a1939c4bc5837fd1c93ac",
+    "README.md": "33c3ce75d394a67a62e37f4f867e42cd975dc042b717b8d12bc36f6f100f9161",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "b5317a30a2aed0d52643d1abf0f4b267c6695dee6b41a5988f14fd3e06ce12fd",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "0abb70f1e601ef635d97da68a3612b26e33d999f7bd1bea9d2eb3b32ab749d5f",
+    "Tests/Showcase/LinuxShowcaseInteraction.py": "0d6fd84e433ed31de0d227aa5656ade0e6c9f1173903638f5393b6e18e290878",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "d300aeaddb47246ac06665c9bc713965fef7ce60e6e669340bb537b941455dd0",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "2c7e5ef00115b1c099c445b3b5e1a852a90fe5ea7303061957142c073a8f9197",
+    "Tests/WindowPresentation/PbrPointLightFixtures.h": "faf80b0e49a8037d15eb9f4e6307a6193f9ac1b329c145af0e998ac894a75f25",
+    "Tests/WindowPresentation/SceneInstanceTests.cpp": "2e5e9884b3b2dd21a9143ec2fa801276541266f974723a320ffe93edbc2c4afc",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "042fc71a33261208a5feeb00e86642e3238e5188873839340100c00b3a1af604",
+    "Tools/Package/AcceptShowcaseWindows.ps1": "c7ea79766d1fe6bd2f9919ecd2eaf622b3014df0d985e7a78cab4b416e6de5bb"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-crystal-light/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/crystal-light-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "aec18172a4e6",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.7099480600009,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.333333"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "7d85505da54156c7a3e04ceb97ebc5d7a13025d1d4b5abb6483fc0ecc58a45d6",
+    "video_sha256": "545b16c8d17f23fe9d01aff98690521fb4ee0e7438b2e6d46a2d7f2e707f42f1",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "ddcc60c7eed51ff05d7e8b51ca5c7744889dd76c985be9099b9913aa10962634",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}

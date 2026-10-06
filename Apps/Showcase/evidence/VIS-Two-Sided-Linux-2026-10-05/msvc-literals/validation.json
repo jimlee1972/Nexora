@@ -1,0 +1,14 @@
+{
+  "reason": "MSVC /WX C4244 test initializer portability",
+  "fixture_sha256": {
+    "Tests/WindowPresentation/PbrPointLightFixtures.h": "447b3de563aa2e290ca809df44654b0506e440ea3d9538159f7226b3c641e4d1",
+    "Tests/WindowPresentation/PbrTwoSidedFixtures.h": "2ce582d4504acc1a57816e163ee209cd5b15713843c93f052e2c381b65bb3246"
+  },
+  "linux_full_tests": 97,
+  "linux_seconds": 102.61,
+  "native_pbr_frames": 89,
+  "core_synchronization_validation_enabled": true,
+  "production_runtime_changed": false,
+  "retained_shipping_source_freeze": "248791c4b51a7b0329a2798e8dae12129e87a618",
+  "windows_ci_recheck": "pending"
+}

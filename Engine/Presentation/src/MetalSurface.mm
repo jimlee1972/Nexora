@@ -5,6 +5,7 @@
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
 #include "ScenePbrMetalShaders.h"
+#include "SceneTextureMipmaps.h"
 #include "SceneToneMetalShaders.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
@@ -254,7 +255,9 @@ public:
       }
       for (const auto &upload : drawData.textureUploads)
         if (!sceneTextures_.contains(upload.textureId)) {
-          const auto texture = CreateTexture(upload, true);
+          const auto mips =
+              BuildSceneTextureMipmaps(upload, ResolveSceneMipSemantic(drawData, upload.textureId));
+          const auto texture = CreateTexture(mips.Upload(upload), true, mips.levels);
           if (!texture)
             return SurfaceStatus::DeviceLost;
           const auto srgb = [texture newTextureViewWithPixelFormat:MTLPixelFormatRGBA8Unorm_sRGB];
@@ -319,7 +322,7 @@ public:
       std::memcpy(storage + instanceOffset, instanceBytes.data(), instanceBytes.size());
       if (drawData.shadow && !RecordShadow(drawData, instanceOffset))
         return SurfaceStatus::DeviceLost;
-      if (!EnsureSceneTargets(drawData.offscreen, drawData.hdr))
+      if (!EnsureSceneTargets(drawData.offscreen, drawData.hdr, HasSceneRefraction(drawData)))
         return SurfaceStatus::DeviceLost;
       struct SceneConstants final {
         float mvp[16];
@@ -331,6 +334,7 @@ public:
       std::memcpy(constants.direction, drawData.light_direction, sizeof(drawData.light_direction));
       std::memcpy(constants.light, drawData.light_color, sizeof(drawData.light_color));
       std::memcpy(constants.color, drawData.base_color, sizeof(constants.color));
+      const bool refraction = HasSceneRefraction(drawData);
       MTLRenderPassDescriptor *pass = [MTLRenderPassDescriptor renderPassDescriptor];
       pass.colorAttachments[0].texture =
           drawData.offscreen ? sceneColors_[frame_] : drawable_.texture;
@@ -340,33 +344,58 @@ public:
           MTLClearColorMake(0.025, 0.045, 0.09, drawData.hdr ? 65504.0 : 1.0);
       pass.depthAttachment.texture = sceneDepths_[frame_];
       pass.depthAttachment.loadAction = MTLLoadActionClear;
-      pass.depthAttachment.storeAction = MTLStoreActionDontCare;
+      pass.depthAttachment.storeAction = refraction ? MTLStoreActionStore : MTLStoreActionDontCare;
       pass.depthAttachment.clearDepth = 1;
       id<MTLRenderCommandEncoder> encoder = [commands_ renderCommandEncoderWithDescriptor:pass];
       if (!encoder)
         return SurfaceStatus::DeviceLost;
-      [encoder setRenderPipelineState:drawData.hdr
-                                          ? sceneHdrPipeline_
-                                          : (drawData.pbr ? scenePbrPipeline_ : scenePipeline_)];
-      [encoder setDepthStencilState:depthState_];
-      [encoder setCullMode:MTLCullModeNone];
-      [encoder setViewport:MTLViewport{static_cast<double>(viewport->x),
-                                       static_cast<double>(viewport->y),
-                                       static_cast<double>(viewport->width),
-                                       static_cast<double>(viewport->height), 0, 1}];
-      [encoder setScissorRect:MTLScissorRect{viewport->x, viewport->y, viewport->width,
-                                             viewport->height}];
-      [encoder setVertexBuffer:sceneUploads_[frame_] offset:0 atIndex:drawData.pbr ? 2 : 0];
-      [encoder setVertexBuffer:sceneUploads_[frame_]
-                        offset:instanceOffset
-                       atIndex:drawData.pbr ? 3 : 1];
+      const auto configureEncoder = [&] {
+        [encoder setRenderPipelineState:drawData.hdr
+                                            ? sceneHdrPipeline_
+                                            : (drawData.pbr ? scenePbrPipeline_ : scenePipeline_)];
+        [encoder setDepthStencilState:depthState_];
+        [encoder setCullMode:MTLCullModeNone];
+        [encoder setViewport:MTLViewport{static_cast<double>(viewport->x),
+                                         static_cast<double>(viewport->y),
+                                         static_cast<double>(viewport->width),
+                                         static_cast<double>(viewport->height), 0, 1}];
+        [encoder setScissorRect:MTLScissorRect{viewport->x, viewport->y, viewport->width,
+                                               viewport->height}];
+        [encoder setVertexBuffer:sceneUploads_[frame_] offset:0 atIndex:drawData.pbr ? 2 : 0];
+        [encoder setVertexBuffer:sceneUploads_[frame_]
+                          offset:instanceOffset
+                         atIndex:drawData.pbr ? 3 : 1];
 
-      [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
+        [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
+      };
+      configureEncoder();
       const SceneMeshBatch whole{0, static_cast<std::uint32_t>(drawData.indices.size()), 0,
                                  static_cast<std::uint32_t>(instances.size())};
       const auto batches =
           drawData.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : drawData.batches;
       for (unsigned phase = 0; phase < 2; ++phase) {
+        if (phase == 1 && refraction) {
+          [encoder endEncoding];
+          id<MTLBlitCommandEncoder> blit = [commands_ blitCommandEncoder];
+          if (!blit)
+            return SurfaceStatus::DeviceLost;
+          [blit copyFromTexture:sceneColors_[frame_]
+                    sourceSlice:0
+                    sourceLevel:0
+                   sourceOrigin:MTLOriginMake(0, 0, 0)
+                     sourceSize:MTLSizeMake(width_, height_, 1)
+                      toTexture:refractionColors_[frame_]
+               destinationSlice:0
+               destinationLevel:0
+              destinationOrigin:MTLOriginMake(0, 0, 0)];
+          [blit endEncoding];
+          pass.colorAttachments[0].loadAction = MTLLoadActionLoad;
+          pass.depthAttachment.loadAction = MTLLoadActionLoad;
+          encoder = [commands_ renderCommandEncoderWithDescriptor:pass];
+          if (!encoder)
+            return SurfaceStatus::DeviceLost;
+          configureEncoder();
+        }
         for (const auto &batch : batches) {
           const auto material = ResolveSceneMaterial(drawData, batch.materialIndex);
           const bool transparent = material.opacity < 1;
@@ -378,9 +407,11 @@ public:
                                                               : (drawData.pbr ? scenePbrPipeline_
                                                                               : scenePipeline_))];
           [encoder setDepthStencilState:transparent ? blendDepthState_ : depthState_];
-          [encoder setBlendColorRed:(1 - material.opacity) * material.transparencyTint[0]
-                              green:(1 - material.opacity) * material.transparencyTint[1]
-                               blue:(1 - material.opacity) * material.transparencyTint[2]
+          const bool refractive = material.refractionIndex > 1 && material.refractionThickness > 0;
+          const float backgroundCoverage = refractive ? 0 : 1 - material.opacity;
+          [encoder setBlendColorRed:backgroundCoverage * material.transparencyTint[0]
+                              green:backgroundCoverage * material.transparencyTint[1]
+                               blue:backgroundCoverage * material.transparencyTint[2]
                               alpha:1];
 
           std::copy(material.baseColor.begin(), material.baseColor.end(), constants.color);
@@ -389,9 +420,14 @@ public:
                                                         : sceneLinearTextures_.at(UINT64_MAX)
                                 atIndex:7];
             [encoder setFragmentSamplerState:shadowSampler_ atIndex:7];
+            [encoder setFragmentTexture:refraction ? refractionColors_[frame_]
+                                                   : sceneLinearTextures_.at(UINT64_MAX)
+                                atIndex:8];
+            [encoder setFragmentSamplerState:uiSampler_ atIndex:8];
             [encoder setVertexBytes:&constants length:sizeof(constants) atIndex:0];
             [encoder setFragmentBytes:&constants length:sizeof(constants) atIndex:0];
-            const auto parameters = PackPbrMaterial(drawData, material, true);
+            const auto parameters =
+                PackPbrMaterial(drawData, material, true, true, width_, height_);
             [encoder setFragmentBytes:parameters.data() length:sizeof(parameters) atIndex:1];
             [encoder setVertexBytes:parameters.data() length:sizeof(parameters) atIndex:1];
             const std::array ids{
@@ -547,6 +583,7 @@ public:
         sceneDepths_[i] = nil;
         shadowColors_[i] = shadowDepths_[i] = nil;
         sceneColors_[i] = nil;
+        refractionColors_[i] = nil;
       }
       uiTextures_.clear();
       sceneLinearTextures_.clear();
@@ -764,7 +801,7 @@ private:
     ++diagnostics_.sceneShadowPasses;
     return true;
   }
-  bool EnsureSceneTargets(bool offscreen, bool hdr) {
+  bool EnsureSceneTargets(bool offscreen, bool hdr, bool refraction) {
     const auto ensure = [&](id<MTLTexture> __strong &texture, MTLPixelFormat format) {
       if (texture && texture.width == width_ && texture.height == height_ &&
           texture.pixelFormat == format)
@@ -778,26 +815,37 @@ private:
       texture = [device_ newTextureWithDescriptor:descriptor];
       return texture != nil;
     };
-    return ensure(sceneDepths_[frame_], MTLPixelFormatDepth32Float) &&
+    return (!refraction || ensure(refractionColors_[frame_], MTLPixelFormatRGBA16Float)) &&
+           ensure(sceneDepths_[frame_], MTLPixelFormatDepth32Float) &&
            (!offscreen || ensure(sceneColors_[frame_],
                                  hdr ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm));
   }
-  id<MTLTexture> CreateTexture(const UiTextureUpload &upload, bool scene = false) {
+  id<MTLTexture> CreateTexture(const UiTextureUpload &upload, bool scene = false,
+                               std::uint32_t levels = 1) {
     auto *descriptor =
         [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
                                                            width:upload.width
                                                           height:upload.height
-                                                       mipmapped:NO];
+                                                       mipmapped:levels > 1];
+    descriptor.mipmapLevelCount = levels;
     // Managed storage supports discrete Intel/AMD Macs as well as Apple Silicon's shared storage.
     descriptor.storageMode =
         device_.hasUnifiedMemory ? MTLStorageModeShared : MTLStorageModeManaged;
     descriptor.usage = MTLTextureUsageShaderRead | (scene ? MTLTextureUsagePixelFormatView : 0);
     id<MTLTexture> texture = [device_ newTextureWithDescriptor:descriptor];
-    if (texture)
-      [texture replaceRegion:MTLRegionMake2D(0, 0, upload.width, upload.height)
-                 mipmapLevel:0
-                   withBytes:upload.pixels.data()
-                 bytesPerRow:upload.rowPitch];
+    if (texture) {
+      std::size_t offset = 0;
+      auto width = upload.width, height = upload.height;
+      for (std::uint32_t level = 0; level < levels; ++level) {
+        [texture replaceRegion:MTLRegionMake2D(0, 0, width, height)
+                   mipmapLevel:level
+                     withBytes:upload.pixels.data() + offset
+                   bytesPerRow:width * 4];
+        offset += static_cast<std::size_t>(width) * height * 4;
+        width = std::max(1U, width / 2);
+        height = std::max(1U, height / 2);
+      }
+    }
     return texture;
   }
   id<MTLTexture> CreateLinearTexture(const SceneLinearTextureUpload &upload) {
@@ -1024,6 +1072,8 @@ private:
     sampler.magFilter = MTLSamplerMinMagFilterLinear;
     sampler.sAddressMode = MTLSamplerAddressModeClampToEdge;
     sampler.tAddressMode = MTLSamplerAddressModeClampToEdge;
+    sampler.mipFilter = MTLSamplerMipFilterLinear;
+    sampler.lodMaxClamp = 10;
     uiSampler_ = [device_ newSamplerStateWithDescriptor:sampler];
     sampler.sAddressMode = MTLSamplerAddressModeRepeat;
     sampler.mipFilter = MTLSamplerMipFilterLinear;
@@ -1085,7 +1135,7 @@ private:
   std::array<id<MTLBuffer>, kFrames> sceneUploads_{};
   std::array<std::size_t, kFrames> sceneCapacity_{};
   std::array<id<MTLTexture>, kFrames> sceneDepths_{};
-  std::array<id<MTLTexture>, kFrames> sceneColors_{};
+  std::array<id<MTLTexture>, kFrames> sceneColors_{}, refractionColors_{};
   std::unordered_map<std::uint64_t, id<MTLTexture>> sceneTextures_;
   std::unordered_map<std::uint64_t, id<MTLTexture>> sceneSrgbTextures_;
   std::unordered_map<std::uint64_t, id<MTLTexture>> sceneLinearTextures_;

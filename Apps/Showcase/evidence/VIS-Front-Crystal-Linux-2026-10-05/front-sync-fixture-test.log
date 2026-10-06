@@ -1,0 +1,14 @@
+PASS: shared Slang PBR emission, normal, mirrored tangent handedness, ORM, linear-space sRGB filtering, linear ORM/legacy filtering, missing-map defaults, invalid descriptors, HDR IBL radiance, roughness mips, metal/diffuse separation, reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws and resize pixels; directional shadow movement, XY projection, PCF edge, map reuse, shadow disable, stylized tint and thresholded HDR bloom, depth-aware focus and UI invariance, linear HDR translucent/tinted blending, bounded planar mirrors with source movement and restoration, bounded opaque-HDR refraction, color-correct mip minification, world-projected maps/normals, linear HDR atmosphere and unlit exclusion, alpha cutout/shadow agreement, GPU wind/replay and leaf transmission
+
+
+{
+  "command": [
+    "build/linux-development/Tests/WindowPresentation/NexoraVulkanPbrTests",
+    "/tmp/front-sync-fixture-evidence/scene.ppm"
+  ],
+  "exit_code": 0,
+  "acceptance_passed": true,
+  "scope": "Linux/X11/Vulkan GPU scene on virtual display",
+  "physical_display_verified": false,
+  "validation_layer_requested": true
+}

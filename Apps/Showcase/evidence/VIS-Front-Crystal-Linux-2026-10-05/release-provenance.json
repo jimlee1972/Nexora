@@ -1,0 +1,72 @@
+{
+  "source_freeze": "572225c5fdb3a49c97ac05fd86d13c9378a6b563",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "57e184b7050eb1e051eceec69e4d75eff53e01cf83be1a903132bcb8a5f8a07e",
+    "Apps/Showcase/ShowcaseRooms.cpp": "d1148ae684073205d40ec27de07bf806d38ed854b662a5d92af6c9b47cbbe54f",
+    "Engine/Presentation/README.md": "7ffb87c25bbe0e2df41efaf4eebdbbc56590ffc61771e124d2d833b797d2d5ea",
+    "Engine/Presentation/include/Nexora/Presentation/Surface.h": "f8bddd546449e5626f313bd0938d17753a4c310de2490233f4f5a3fadd202b9e",
+    "Engine/Presentation/shaders/scene_pbr.slang": "376d3d5e963f13df7cee0cd0f5be67ad5a2a134351a36c87dc3811a63f09fc20",
+    "Engine/Presentation/src/Dx12Surface.cpp": "aeffe00a96b72300391dc3c6d7edea57af890619e09a62373ef1e1eb5ff6b8b9",
+    "Engine/Presentation/src/MetalSurface.mm": "ae810aa3ac8bf85075863a89544e23f15848a8c4c252be432cb5062c605907a0",
+    "Engine/Presentation/src/PbrMaterialUpload.h": "f53c070181c6043fe14bafcfaa01247950e035567a32e9dce98869b65aea7bb6",
+    "Engine/Presentation/src/ScenePbrHlslShaders.h": "8ca76e9b84fac7645325e54be53ced54a63654474f40c6505c4e12e76ca7d33d",
+    "Engine/Presentation/src/ScenePbrMetalShaders.h": "d45a24f680aa7757ee7e00be94b0f4f2a80034451b3bf3ad4ce049e00d93b42c",
+    "Engine/Presentation/src/ScenePbrVulkanShaders.h": "fce9ed0c262288c73cf08ce1c39ee53e29355ba84143f57c6831d176da88f55c",
+    "Engine/Presentation/src/SceneTextureMipmaps.h": "6f5554c12c64648cf15e9b1e4e1ed629e64a9639296c5161e35a707502ae35c7",
+    "Engine/Presentation/src/VulkanSurface.cpp": "6db647289a97e3ced5df96b8446f5e1934e074a74a1db82d968bbf489b72c5c7",
+    "README.md": "b418288f5cbe3936a043dd66df60ab75e0fa459da1ce8eafac62c8f39da9b724",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "da5e0a35d7aeab5bc770f8fb712c9c07b331d0319bdad1812bf324f1f7ece382",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "0ad6a208584549692a4be773e37b7f97699f560434976e8a848c838002b991d3",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "b50cf2d90a3b571d95583b764bb9fa09dfe369924194ea3a01e060638b47ce52",
+    "Tests/WindowPresentation/PbrMipFixtures.h": "e9632e8d411fdc94ed21f2d2b3fca61d585b94f566f08f92ac8e7647bd9dfb6f",
+    "Tests/WindowPresentation/PbrRefractionFixtures.h": "ae3b9f9fea88a5563b78206ebdd7ad085e283e0023aa890a634f4c08b66c35d5",
+    "Tests/WindowPresentation/SceneInstanceTests.cpp": "50c90146607f17c43cd4e8f34d282d4a0aeca47fbdd2dbdf0e36a67c4665ce46",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "d932a153c75e81e64db872baaaabb11904d0439c8d62ac519bb222e0ff82a39b"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-front-crystal/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/front-sync-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "572225c5fdb3",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.77515310599847,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.266667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "2308346639a903f15121b0d1a703ba561e2fb33d1cd7643a8da1ca42216e5968",
+    "video_sha256": "2523e144e680af064853dd02e47843f8ad4d4bffbbb3fb9a731e78c30a87e34a",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "a37e2c5bc801a22b0848f5a83b3767a1181fd7e6aa177c05a9334a22a6f302a1",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}
