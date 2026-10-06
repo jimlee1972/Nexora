@@ -207,11 +207,16 @@ bool reflectionMask(float3 renderedPosition) {
   return inReflectionRegion(point, material.reflectionRegion0) ||
       (material.reflection.w > 1.5 && inReflectionRegion(point, material.reflectionRegion1));
 }
-float3 reflectionResponse(float3 color, float3 renderedPosition) {
-  if (material.reflection.y < 1.5) return color;
+float4 reflectionReceiver(float4 color, float3 renderedPosition, float2 pixel) {
+  if (material.reflection.y < 0.5 || material.reflection.y > 1.5 ||
+      renderedPosition.y >= material.reflection.x || !reflectionMask(renderedPosition)) return color;
+  float4 reflectedColor = opaqueBackground.SampleLevel(pixel * material.refraction.zw, 0);
+  // Empty mirror pixels retain the actual receiver, including its HDR depth.
+  if (reflectedColor.a >= 65500) return color;
   float3 ray = geometryDirection(material.cameraPosition.xyz - renderedPosition);
   float fresnel = material.reflection.z + (1-material.reflection.z) * pow(1-abs(ray.y), 5);
-  return color * fresnel + float3(0.025, 0.03, 0.025) * (1-fresnel);
+  color.rgb = lerp(color.rgb, reflectedColor.rgb, fresnel);
+  return color;
 }
 [shader("fragment")]
 float4 pbrFragmentMain(VertexOutput input) : SV_Target
@@ -221,16 +226,16 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   if (reflected) {
     if (renderedPosition.y >= material.reflection.x || !reflectionMask(renderedPosition)) discard;
     input.worldPosition.y = 2 * material.reflection.x - input.worldPosition.y;
-  } else if (material.reflection.y > 0.5 &&
-      input.worldPosition.y < material.reflection.x && reflectionMask(renderedPosition)) discard;
+  }
   float3 mapWeight = worldMapWeights(input.normal);
   float3 mapPosition = input.worldPosition * material.worldMapping.x;
   float4 baseSample = sampleBaseMap(input);
   if (material.vegetation.z > 0 &&
       NexoraEvaluateVegetationAlpha(baseSample.a, material.vegetation.z) == 0) discard;
   if (material.transmission.w > 0.5)
-    return outputSceneColor(reflectionResponse(
-        emissionMap.Sample(input.uv).rgb * material.emissionRoughness.xyz, renderedPosition), renderedPosition);
+    return reflectionReceiver(outputSceneColor(
+        emissionMap.Sample(input.uv).rgb * material.emissionRoughness.xyz, renderedPosition),
+        renderedPosition, input.position.xy);
   float3 shadingEye = material.cameraPosition.xyz;
   if (reflected) shadingEye.y = 2 * material.reflection.x - shadingEye.y;
   float3 viewDirection = geometryDirection(shadingEye - input.worldPosition);
@@ -300,7 +305,7 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
   }
   if (material.pointRadiance.w > 0.5) transmitted = float3(0);
   float3 color = direct * visibility + ambient + local + transmitted + max(surface.emission, float3(0));
-  float4 result = outputSceneColor(reflectionResponse(color, renderedPosition), renderedPosition);
+  float4 result = outputSceneColor(color, renderedPosition);
   if (material.refraction.x > 1 && material.refraction.y > 0) {
     float3 incident = -viewDirection;
     float3 faceNormal = dot(surface.normal, incident) > 0 ? -surface.normal : surface.normal;
@@ -331,5 +336,5 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
           (1 - material.transparency.x), float3(0), float3(65504));
     }
   }
-  return result;
+  return reflectionReceiver(result, renderedPosition, input.position.xy);
 }

@@ -1,0 +1,2 @@
+PASS: stable changed UI rejected; repeated clean frame accepted
+PASS: UI that never disappears fails at the original 15-second deadline

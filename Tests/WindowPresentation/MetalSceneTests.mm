@@ -758,7 +758,7 @@ int main(int argc, char **argv) {
         return fail(__LINE__);
     }
     std::array<unsigned, 3> reflectedReference{};
-    for (unsigned mode = 0; mode < 4; ++mode) {
+    for (unsigned mode = 0; mode < 6; ++mode) {
       PbrReflectionFixtures::Fixture fixture(mode);
       auto reflectionDraw = fixture.Draw(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
@@ -780,7 +780,7 @@ int main(int argc, char **argv) {
         return fail(__LINE__);
       if (mode == 1)
         reflectedReference = left;
-      if (mode == 3 && left != reflectedReference)
+      if ((mode == 3 || mode == 5) && left != reflectedReference)
         return fail(__LINE__);
     }
     // Depth must select the bright near triangle regardless of index order.

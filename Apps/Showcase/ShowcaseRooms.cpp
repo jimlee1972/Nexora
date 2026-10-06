@@ -785,8 +785,8 @@ struct RoomSession::State final {
     using Nexora::Presentation::SceneReflectionRole;
     const auto planar = CourtyardReflectionSettings();
     const auto materialCount = materials.size();
-    // Mask the direct sky behind puddles too: otherwise its depth occludes the
-    // Fresnel-attenuated mirrored sky, leaving a bright unreflected background.
+    // Receivers retain their surface color and depth while mixing the separate HDR mirror.
+    // The sky participates for open water pixels without a foreground floor.
     materials[0].reflectionRole = materials[6].reflectionRole = materials[8].reflectionRole =
         materials[21].reflectionRole = SceneReflectionRole::Receiver;
     for (std::size_t i = 0; i < materialCount; ++i) {

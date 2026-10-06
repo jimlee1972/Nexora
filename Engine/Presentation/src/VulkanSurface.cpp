@@ -517,6 +517,9 @@ public:
         return status;
     }
     const bool refraction = HasSceneRefraction(data);
+    const bool reflection = data.planarReflection.has_value();
+    if (reflection && !CreateRefractionTarget(frame, true))
+      return SurfaceStatus::DeviceLost;
     if (refraction && !CreateRefractionTarget(frame))
       return SurfaceStatus::DeviceLost;
     if (data.pbr) {
@@ -584,9 +587,12 @@ public:
                      &images[7],
                      nullptr,
                      nullptr};
-        images[8] = {uiSampler_,
-                     refraction ? frame.refractionView : linearSceneTextures_.at(UINT64_MAX).view,
-                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+        images[8] = {
+            uiSampler_,
+            reflection && material.reflectionRole == SceneReflectionRole::Receiver
+                ? frame.reflectionView
+                : (refraction ? frame.refractionView : linearSceneTextures_.at(UINT64_MAX).view),
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
         writes[9] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                      nullptr,
                      frame.pbrDescriptors[slot],
@@ -688,6 +694,13 @@ public:
     framebuffer.layers = 1;
     if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.sceneFramebuffer) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
+    if (reflection) {
+      const VkImageView reflectedAttachments[]{frame.reflectionView, frame.sceneDepthView};
+      framebuffer.pAttachments = reflectedAttachments;
+      if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.reflectionFramebuffer) !=
+          VK_SUCCESS)
+        return SurfaceStatus::DeviceLost;
+    }
     std::array<VkClearValue, 2> clears{};
     clears[0].color = {{0.025F, 0.045F, 0.09F, data.hdr ? 65504.0F : 1.0F}};
     clears[1].depthStencil = {1.0F, 0};
@@ -695,7 +708,7 @@ public:
     begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     begin.renderPass =
         data.hdr ? sceneHdrRenderPass_ : (afterUi ? sceneOverlayRenderPass_ : sceneRenderPass_);
-    begin.framebuffer = frame.sceneFramebuffer;
+    begin.framebuffer = reflection ? frame.reflectionFramebuffer : frame.sceneFramebuffer;
     begin.renderArea.extent = {width_, height_};
     begin.clearValueCount = 2;
     begin.pClearValues = clears.data();
@@ -732,46 +745,57 @@ public:
                                static_cast<std::uint32_t>(instances.size()), 0};
     const auto batches =
         data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
-    for (unsigned phase = 0; phase < 2; ++phase) {
-      if (phase == 1 && refraction) {
-        vkCmdEndRenderPass(frame.commands);
-        CaptureRefraction(frame);
-        begin.renderPass = sceneHdrLoadRenderPass_;
+    // Mirror color has its own depth-tested pass. Reuse depth only after the mirror is complete.
+    for (unsigned scenePass = 0; scenePass < (reflection ? 2U : 1U); ++scenePass) {
+      const bool mirrorPass = reflection && scenePass == 0;
+      if (scenePass == 1) {
+        FinishReflection(frame);
+        begin.renderPass = sceneHdrRenderPass_;
+        begin.framebuffer = frame.sceneFramebuffer;
         vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
       }
-      for (const auto &batch : batches) {
-        const auto material = ResolveSceneMaterial(data, batch.materialIndex);
-        const bool transparent = material.opacity < 1;
-        if (material.opacity == 0 || transparent != (phase == 1))
-          continue;
-        vkCmdBindPipeline(
-            frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
-            transparent
-                ? sceneHdrBlendPipeline_
-                : (data.hdr ? sceneHdrPipeline_ : (data.pbr ? scenePbrPipeline_ : scenePipeline_)));
-        const bool refractive = material.refractionIndex > 1 && material.refractionThickness > 0;
-        const float backgroundCoverage = refractive ? 0 : 1 - material.opacity;
-        const float coverage[]{backgroundCoverage * material.transparencyTint[0],
-                               backgroundCoverage * material.transparencyTint[1],
-                               backgroundCoverage * material.transparencyTint[2], 1};
-        vkCmdSetBlendConstants(frame.commands, coverage);
+      for (unsigned phase = 0; phase < 2; ++phase) {
+        if (phase == 1 && refraction) {
+          vkCmdEndRenderPass(frame.commands);
+          CaptureRefraction(frame, mirrorPass ? frame.reflectionColor : frame.sceneColor);
+          begin.renderPass = sceneHdrLoadRenderPass_;
+          vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
+        }
+        for (const auto &batch : batches) {
+          const auto material = ResolveSceneMaterial(data, batch.materialIndex);
+          const bool transparent = material.opacity < 1;
+          if (material.opacity == 0 || transparent != (phase == 1) ||
+              (material.reflectionRole == SceneReflectionRole::ReflectedGeometry) != mirrorPass)
+            continue;
+          vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            transparent
+                                ? sceneHdrBlendPipeline_
+                                : (data.hdr ? sceneHdrPipeline_
+                                            : (data.pbr ? scenePbrPipeline_ : scenePipeline_)));
+          const bool refractive = material.refractionIndex > 1 && material.refractionThickness > 0;
+          const float backgroundCoverage = refractive ? 0 : 1 - material.opacity;
+          const float coverage[]{backgroundCoverage * material.transparencyTint[0],
+                                 backgroundCoverage * material.transparencyTint[1],
+                                 backgroundCoverage * material.transparencyTint[2], 1};
+          vkCmdSetBlendConstants(frame.commands, coverage);
 
-        std::copy(material.baseColor.begin(), material.baseColor.end(), constants.begin() + 24);
-        const auto pipelineLayout = data.pbr ? scenePbrPipelineLayout_ : scenePipelineLayout_;
-        const auto stages = data.pbr ? VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
-                                     : VK_SHADER_STAGE_VERTEX_BIT;
-        vkCmdPushConstants(frame.commands, pipelineLayout, stages, 0, sizeof(constants),
-                           constants.data());
-        const auto id = material.textureId ? material.textureId : UINT64_MAX;
-        const auto descriptor =
-            data.pbr ? frame.pbrDescriptors[batch.materialIndex] : sceneTextures_.at(id).descriptor;
-        vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0,
-                                1, &descriptor, 0, nullptr);
-        vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
-                         batch.firstInstance);
+          std::copy(material.baseColor.begin(), material.baseColor.end(), constants.begin() + 24);
+          const auto pipelineLayout = data.pbr ? scenePbrPipelineLayout_ : scenePipelineLayout_;
+          const auto stages = data.pbr ? VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
+                                       : VK_SHADER_STAGE_VERTEX_BIT;
+          vkCmdPushConstants(frame.commands, pipelineLayout, stages, 0, sizeof(constants),
+                             constants.data());
+          const auto id = material.textureId ? material.textureId : UINT64_MAX;
+          const auto descriptor = data.pbr ? frame.pbrDescriptors[batch.materialIndex]
+                                           : sceneTextures_.at(id).descriptor;
+          vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                  0, 1, &descriptor, 0, nullptr);
+          vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex,
+                           0, batch.firstInstance);
+        }
       }
+      vkCmdEndRenderPass(frame.commands);
     }
-    vkCmdEndRenderPass(frame.commands);
     sceneRendered_ = true;
     sceneOffscreen_ = data.offscreen;
     sceneHdr_ = data.hdr;
@@ -1029,6 +1053,10 @@ private:
     VkFramebuffer shadowFramebuffer{};
     VkDescriptorSet toneDescriptor{};
     VkFramebuffer toneFramebuffer{};
+    VkImage reflectionColor{};
+    VkDeviceMemory reflectionMemory{};
+    VkImageView reflectionView{};
+    VkFramebuffer reflectionFramebuffer{};
     VkImage refractionColor{};
     VkDeviceMemory refractionMemory{};
     VkImageView refractionView{};
@@ -1102,6 +1130,18 @@ private:
     frame.sceneColorView = VK_NULL_HANDLE;
     frame.sceneColor = VK_NULL_HANDLE;
     frame.sceneColorMemory = VK_NULL_HANDLE;
+    if (frame.reflectionFramebuffer)
+      vkDestroyFramebuffer(device_, frame.reflectionFramebuffer, nullptr);
+    if (frame.reflectionView)
+      vkDestroyImageView(device_, frame.reflectionView, nullptr);
+    if (frame.reflectionColor)
+      vkDestroyImage(device_, frame.reflectionColor, nullptr);
+    if (frame.reflectionMemory)
+      vkFreeMemory(device_, frame.reflectionMemory, nullptr);
+    frame.reflectionFramebuffer = VK_NULL_HANDLE;
+    frame.reflectionView = VK_NULL_HANDLE;
+    frame.reflectionColor = VK_NULL_HANDLE;
+    frame.reflectionMemory = VK_NULL_HANDLE;
     if (frame.refractionView)
       vkDestroyImageView(device_, frame.refractionView, nullptr);
     if (frame.refractionColor)
@@ -1756,7 +1796,10 @@ private:
                          &barrier);
     ++diagnostics_.sceneShadowPasses;
   }
-  bool CreateRefractionTarget(Frame &frame) {
+  bool CreateRefractionTarget(Frame &frame, bool reflection = false) {
+    auto &target = reflection ? frame.reflectionColor : frame.refractionColor;
+    auto &memory = reflection ? frame.reflectionMemory : frame.refractionMemory;
+    auto &targetView = reflection ? frame.reflectionView : frame.refractionView;
     VkImageCreateInfo image{};
     image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     image.imageType = VK_IMAGE_TYPE_2D;
@@ -1765,49 +1808,54 @@ private:
     image.mipLevels = image.arrayLayers = 1;
     image.samples = VK_SAMPLE_COUNT_1_BIT;
     image.tiling = VK_IMAGE_TILING_OPTIMAL;
-    image.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    if (vkCreateImage(device_, &image, nullptr, &frame.refractionColor) != VK_SUCCESS)
+    image.usage = VK_IMAGE_USAGE_SAMPLED_BIT | (reflection ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                                                 VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+                                                           : VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+    if (vkCreateImage(device_, &image, nullptr, &target) != VK_SUCCESS)
       return false;
     VkMemoryRequirements requirements{};
-    vkGetImageMemoryRequirements(device_, frame.refractionColor, &requirements);
+    vkGetImageMemoryRequirements(device_, target, &requirements);
     const auto type =
         FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     if (type == UINT32_MAX)
       return false;
     const VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
                                           requirements.size, type};
-    if (vkAllocateMemory(device_, &allocation, nullptr, &frame.refractionMemory) != VK_SUCCESS ||
-        vkBindImageMemory(device_, frame.refractionColor, frame.refractionMemory, 0) != VK_SUCCESS)
+    if (vkAllocateMemory(device_, &allocation, nullptr, &memory) != VK_SUCCESS ||
+        vkBindImageMemory(device_, target, memory, 0) != VK_SUCCESS)
       return false;
     VkImageViewCreateInfo view{};
     view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    view.image = frame.refractionColor;
+    view.image = target;
     view.viewType = VK_IMAGE_VIEW_TYPE_2D;
     view.format = image.format;
     view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-    if (vkCreateImageView(device_, &view, nullptr, &frame.refractionView) != VK_SUCCESS)
+    if (vkCreateImageView(device_, &view, nullptr, &targetView) != VK_SUCCESS)
       return false;
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.newLayout = reflection ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+                                   : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.dstAccessMask =
+        reflection ? VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT : VK_ACCESS_SHADER_READ_BIT;
     barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = frame.refractionColor;
+    barrier.image = target;
     barrier.subresourceRange = view.subresourceRange;
     vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-                         &barrier);
+                         reflection ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+                                    : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                         0, 0, nullptr, 0, nullptr, 1, &barrier);
     return true;
   }
-  void CaptureRefraction(Frame &frame) {
+  void CaptureRefraction(Frame &frame, VkImage source) {
     std::array<VkImageMemoryBarrier, 2> barriers{};
     for (auto &barrier : barriers) {
       barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
       barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
       barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     }
-    barriers[0].image = frame.sceneColor;
+    barriers[0].image = source;
     barriers[0].oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barriers[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     barriers[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -1824,7 +1872,7 @@ private:
     VkImageCopy copy{};
     copy.srcSubresource = copy.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
     copy.extent = {width_, height_, 1};
-    vkCmdCopyImage(frame.commands, frame.sceneColor, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    vkCmdCopyImage(frame.commands, source, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                    frame.refractionColor, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
     for (auto &barrier : barriers) {
       std::swap(barrier.oldLayout, barrier.newLayout);
@@ -1849,6 +1897,34 @@ private:
         VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
         VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, 0,
         0, nullptr, 0, nullptr, 1, &depth);
+  }
+  void FinishReflection(Frame &frame) {
+    std::array<VkImageMemoryBarrier, 2> barriers{};
+    for (auto &barrier : barriers) {
+      barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+      barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    }
+    auto &color = barriers[0];
+    color.image = frame.reflectionColor;
+    color.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    color.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    color.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    color.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    color.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    auto &depth = barriers[1];
+    depth.image = frame.sceneDepth;
+    depth.oldLayout = depth.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depth.srcAccessMask =
+        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    depth.dstAccessMask = depth.srcAccessMask;
+    depth.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
+    vkCmdPipelineBarrier(
+        frame.commands,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+        0, 0, nullptr, 0, nullptr, 2, barriers.data());
   }
   SurfaceStatus CompositeHdr(Frame &frame) {
     const VkDescriptorSetAllocateInfo allocation{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,

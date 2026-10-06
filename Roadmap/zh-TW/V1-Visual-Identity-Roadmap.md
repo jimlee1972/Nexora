@@ -1,5 +1,11 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ F4 乾淨畫面驗證會等待實際導覽列消失。保留的 CI 失敗重播、Linux 完整 97/97 gate（118.49 秒，core/sync validation）與隔離 Shipping bloom 變化／精確還原驗證均通過。證據：`Tests/Showcase/evidence/Native-Clean-Frame-Linux-2026-10-06/`。比較等待上限保持一致；VIS 仍為 5/7。
+
+✅ Linux Development 完整 97/97 測試通過（117.48 秒，Khronos core/sync validation），包含 99 個原生 PBR frames。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.82 秒）。製作凍結版本 `d04ef3db67707511b62e64385151dbf6af22ef3b`；證據：`Apps/Showcase/evidence/VIS-Planar-Receiver-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+平面水面保留真實石材底色：原生 adapters 先繪製獨立 HDR 鏡像，再依 Fresnel 混合反射與地板輻射。前景深度會遮住水面，景深仍使用地板距離；鏡像與主畫面的玻璃依序使用各自 opaque snapshot。六個原生反射 fixtures 驗證底色、移動、遮擋與精確還原。新增每個 frame 擁有的 HDR color target；private shader packet 大小與穩定 ABI 保持一致。
+
 ✅ Linux Development 完整 97/97 測試通過（113.49 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 101.05 秒）。製作凍結版本 `ee8837eb3d55db9f0892f468ab70773cbc968809`；證據：`Apps/Showcase/evidence/VIS-Background-Shadows-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 背景陰影：Standard／High 啟用背景石造建築與木質莖幹的真實投影，山脊仍排除。48×30 世界單位的光源視錐與 80 單位遠平面納入遠塔頂部，兩種品質皆維持原生 2048 上限；Basic 保留前景視錐、512 陰影圖與背景排除。Standard 在兩倍水平範圍保持原有 texel 尺度，High 共用擴大範圍。左側廢墟移至 (-24,-26)，保留夕陽通道。測試確認品質投影資格、塔頂覆蓋與 CLI 精確品質契約。Shader 封包、穩定 ABI 與烘焙資產保持一致。

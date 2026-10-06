@@ -1,0 +1,5 @@
+2026-10-06T13:43:01.1079899Z 25: AssertionError: Native image did not settle within five seconds: courtyard-bloom-restored.png
+2026-10-06T13:43:01.1290499Z  25/140 Test  #25: showcase.linux_vulkan_interaction ...............***Failed   21.41 sec
+2026-10-06T13:43:01.1300513Z AssertionError: Native image did not settle within five seconds: courtyard-bloom-restored.png
+2026-10-06T13:46:20.4319298Z 99% tests passed, 1 tests failed out of 140
+2026-10-06T13:46:20.4322699Z 	 25 - showcase.linux_vulkan_interaction (Failed)        showcase virtual-display vulkan
