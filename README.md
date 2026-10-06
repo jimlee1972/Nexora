@@ -1,5 +1,9 @@
 # Nexora
 
+✅ Linux Development full 97/97 tests passed (110.56 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.73 s wall time). Production freeze `5615a2d816db60f099792eb8abe2ba09585427c3`; evidence: `Apps/Showcase/evidence/VIS-Arcade-Stones-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+Courtyard architecture follow-up: replace tube-shaped arcade spans with original jointed bevelled voussoirs, sharing 20 wedge meshes across four arches. Courtyard-facing column relief is visible from the wide composition. Normals use the positive bend inverse transpose; Linux Development configure/build and full 97/97 tests passed (110.56 s, Khronos core/sync validation); Shipping verification passed. VIS remains 5/7 and reference parity remains open.
+
 ✅ Linux Development full 97/97 tests passed (110.29 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.81 s wall time). Production freeze `040a3acf7c07351b98b13f2e0c5c89e4d1d3584b`; evidence: `Apps/Showcase/evidence/VIS-Crystal-Proportions-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
 
 Courtyard crystal proportion follow-up: display the existing cooked shell at scale (0.6, 0.8, 0.6) centered at Y=3.15, with a narrower opaque core, inverse-transpose normals, matching splinter proportions and aligned light/focus anchors. The stone material uses the existing uniform ambient-occlusion scalar at 0.65, preserving foliage IBL. F10 anti-aliasing is discoverable in the C comparison menu. Linux Development configure/build and full 97/97 tests passed (110.29 s, Khronos core/sync validation); Shipping verification passed; VIS remains 5/7 and preview parity remains open.

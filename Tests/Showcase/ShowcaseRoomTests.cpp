@@ -1,3 +1,4 @@
+#include "Nexora/Math/Math.h"
 #include "ShowcaseRooms.h"
 #include <cassert>
 #include <cmath>
@@ -174,6 +175,19 @@ int main() {
       assert(batch.materialIndex == 0 || batch.materialIndex == 8);
       assert(batch.indexCount == 132); // Exact 26-face authored bevel profile.
       masonryCount += batch.instanceCount;
+      // Curved wedges must retain outward triangle winding and finite normals.
+      for (std::size_t triangle = batch.firstIndex; triangle < batch.firstIndex + batch.indexCount;
+           triangle += 3) {
+        const auto &a = wide.vertices[wide.indices[triangle]];
+        const auto &b = wide.vertices[wide.indices[triangle + 1]];
+        const auto &c = wide.vertices[wide.indices[triangle + 2]];
+        const nexora::math::Vector3 ab{b.position[0] - a.position[0], b.position[1] - a.position[1],
+                                       b.position[2] - a.position[2]};
+        const nexora::math::Vector3 ac{c.position[0] - a.position[0], c.position[1] - a.position[1],
+                                       c.position[2] - a.position[2]};
+        const nexora::math::Vector3 normal{a.normal[0], a.normal[1], a.normal[2]};
+        assert(nexora::math::Dot(nexora::math::Cross(ab, ac), normal) > 1e-7F);
+      }
       for (std::size_t i = batch.firstInstance; i < batch.firstInstance + batch.instanceCount; ++i)
         assert(Nexora::Presentation::ValidateSceneInstance(wide.instances[i]));
     }
@@ -253,7 +267,7 @@ int main() {
   // the same light-space XY, even when projected beyond the central pedestal.
   for (const float x : {-7.5F, 7.5F})
     for (const float z : {-4.0F, 2.0F}) {
-      const std::array<float, 4> crown{x, 7.0F, z, 1.0F};
+      const std::array<float, 4> crown{x, 7.45F, z, 1.0F};
       const auto &matrix = wide.shadow->lightViewProjection;
       std::array<float, 4> clip{};
       for (unsigned row = 0; row < 4; ++row)

@@ -1220,16 +1220,17 @@ struct RoomSession::State final {
       std::uint32_t material;
       std::array<float, 3> extent;
       std::vector<Nexora::Presentation::SceneInstance> placements;
+      std::optional<float> arcadeAngle;
     };
     std::vector<MasonryPrototype> masonry;
     const auto placeMasonry = [&](std::uint32_t material, float x, float y, float z, float sx,
                                   float sy, float sz) {
       const std::array extent{sx, sy, sz};
       auto prototype = std::find_if(masonry.begin(), masonry.end(), [&](const auto &entry) {
-        return entry.material == material && entry.extent == extent;
+        return !entry.arcadeAngle && entry.material == material && entry.extent == extent;
       });
       if (prototype == masonry.end()) {
-        masonry.push_back({material, extent, {}});
+        masonry.push_back({material, extent, {}, std::nullopt});
         prototype = std::prev(masonry.end());
       }
       Nexora::Presentation::SceneInstance placement{};
@@ -1326,27 +1327,41 @@ struct RoomSession::State final {
         placeMasonry(0, x, 5.53F, z, 0.68F, 0.12F, 0.68F);
         placeMasonry(0, x, 5.75F, z, 0.85F, 0.10F, 0.85F);
         placeMasonry(0, x, 5.92F, z, 0.74F, 0.06F, 0.74F);
-        // Original raised geometric relief on the front face, with carved side rails.
-        const auto point = [&](float dx, float y) { return math::Vector3{x + dx, y, z + 0.565F}; };
-        for (const float dx : {-0.34F, 0.34F})
-          Segment(point(dx, 0.9F), point(dx, 5.1F), 0.025F);
-        const std::array<math::Vector3, 4> emblem{
-            {point(0, 4.8F), point(0.23F, 4.45F), point(0, 4.1F), point(-0.23F, 4.45F)}};
-        for (unsigned edge = 0; edge < emblem.size(); ++edge)
-          Segment(emblem[edge], emblem[(edge + 1) % emblem.size()], 0.03F);
-        Segment(point(0, 1.0F), point(0, 3.95F), 0.022F);
-        for (const float sign : {-1.0F, 1.0F})
-          for (const float y : {1.1F, 2.1F, 3.1F}) {
-            Segment(point(0, y), point(sign * 0.2F, y + 0.35F), 0.022F);
-            Segment(point(sign * 0.2F, y + 0.35F), point(sign * 0.2F, y + 0.75F), 0.022F);
-          }
-      }
-      for (const float z : {-4.0F, 2.0F})
-        for (unsigned i = 0; i < 20; ++i) {
-          const float a = math::kPi * i / 20, b = math::kPi * (i + 1) / 20;
-          Segment({x, 4.0F + 3 * std::sin(a), z + 3 * std::cos(a)},
-                  {x, 4.0F + 3 * std::sin(b), z + 3 * std::cos(b)}, 0.45F);
+        // Raised original relief faces both the courtyard and the front approach.
+        for (const bool innerFace : {false, true}) {
+          const auto point = [&](float dx, float y) {
+            return innerFace ? math::Vector3{x + (x < 0 ? 0.565F : -0.565F), y, z + dx}
+                             : math::Vector3{x + dx, y, z + 0.565F};
+          };
+          for (const float dx : {-0.34F, 0.34F})
+            Segment(point(dx, 0.9F), point(dx, 5.1F), 0.025F);
+          const std::array<math::Vector3, 4> emblem{
+              {point(0, 4.8F), point(0.23F, 4.45F), point(0, 4.1F), point(-0.23F, 4.45F)}};
+          for (unsigned edge = 0; edge < emblem.size(); ++edge)
+            Segment(emblem[edge], emblem[(edge + 1) % emblem.size()], 0.03F);
+          Segment(point(0, 1.0F), point(0, 3.95F), 0.022F);
+          for (const float sign : {-1.0F, 1.0F})
+            for (const float y : {1.1F, 2.1F, 3.1F}) {
+              Segment(point(0, y), point(sign * 0.2F, y + 0.35F), 0.022F);
+              Segment(point(sign * 0.2F, y + 0.35F), point(sign * 0.2F, y + 0.75F), 0.022F);
+            }
         }
+      }
+    }
+    // Original voussoirs use real wedge joints and chamfers instead of round tubes.
+    // Twenty meshes are shared by all four arches; the positive bend preserves winding.
+    for (unsigned stone = 0; stone < 20; ++stone) {
+      const float angle = math::kPi * (stone + 0.5F) / 20;
+      MasonryPrototype prototype{0, {(math::kPi / 40 - 0.004F) * 3, 0.45F, 0.45F}, {}, angle};
+      for (const float x : {-7.5F, 7.5F})
+        for (const float z : {-4.0F, 2.0F}) {
+          Nexora::Presentation::SceneInstance placement{};
+          placement.translation[0] = x;
+          placement.translation[1] = 4;
+          placement.translation[2] = z;
+          prototype.placements.push_back(placement);
+        }
+      masonry.push_back(std::move(prototype));
     }
     finish(0);
     // Subdivided pennants hang from rigid top anchors; UV.y drives the existing
@@ -1502,7 +1517,25 @@ struct RoomSession::State final {
       }
     finish(5);
     for (const auto &prototype : masonry) {
+      const auto firstVertex = vertices.size();
       Cube(0, 0, 0, prototype.extent[0], prototype.extent[1], prototype.extent[2]);
+      if (prototype.arcadeAngle)
+        for (std::size_t i = firstVertex; i < vertices.size(); ++i) {
+          auto &vertex = vertices[i];
+          const float stoneRadius = 3 + vertex.position[1];
+          const float angle = *prototype.arcadeAngle + vertex.position[0] / 3;
+          const float sine = std::sin(angle), cosine = std::cos(angle);
+          const auto normal = math::NormalizeSafe(math::Vector3{
+              vertex.normal[2],
+              cosine * vertex.normal[0] * 3 / stoneRadius + sine * vertex.normal[1],
+              -sine * vertex.normal[0] * 3 / stoneRadius + cosine * vertex.normal[1]});
+          vertex.position[0] = vertex.position[2];
+          vertex.position[1] = stoneRadius * sine;
+          vertex.position[2] = stoneRadius * cosine;
+          vertex.normal[0] = normal.x;
+          vertex.normal[1] = normal.y;
+          vertex.normal[2] = normal.z;
+        }
       finish(prototype.material);
       batches.back().firstInstance = static_cast<std::uint32_t>(instances.size());
       batches.back().instanceCount = static_cast<std::uint32_t>(prototype.placements.size());

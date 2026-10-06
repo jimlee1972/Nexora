@@ -1,5 +1,9 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
+✅ Linux Development full 97/97 tests passed (110.56 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.73 s wall time). Production freeze `5615a2d816db60f099792eb8abe2ba09585427c3`; evidence: `Apps/Showcase/evidence/VIS-Arcade-Stones-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+Arcade geometry follow-up: four side arches share 20 original jointed bevelled wedge meshes, and the columns carry courtyard-facing relief. The positive bend retains outward winding and correct normals. Linux Development configure/build and full 97/97 tests passed (110.56 s, Khronos core/sync validation); Shipping verification passed. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
 ✅ Linux Development full 97/97 tests passed (110.29 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.81 s wall time). Production freeze `040a3acf7c07351b98b13f2e0c5c89e4d1d3584b`; evidence: `Apps/Showcase/evidence/VIS-Crystal-Proportions-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
 
 Crystal presentation proportions and stone ambient response are being verified against the reference: slimmer shell, narrower contained core, transformed normals and aligned light/focus anchors. The existing uniform material occlusion control is tuned for stone, and the comparison menu exposes F10 anti-aliasing. Original cooked assets and native shader contracts remain stable. Linux Development configure/build and full 97/97 tests passed (110.29 s, Khronos core/sync validation); Shipping verification passed. VIS remains 5/7; reference parity and physical-display acceptance remain open.

@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux Development 完整 97/97 測試通過（110.56 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.73 秒）。製作凍結版本 `5615a2d816db60f099792eb8abe2ba09585427c3`；證據：`Apps/Showcase/evidence/VIS-Arcade-Stones-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+拱廊幾何持續修整：四座側拱共用 20 個原創倒角楔形石塊，具有真實接縫；柱面浮雕也朝向庭院。曲面轉換維持正向三角形繞序與正確法線。Linux configure/build 與完整 97/97 測試通過（110.56 秒，Khronos core/sync validation）；Shipping 驗證通過。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
 ✅ Linux Development 完整 97/97 測試通過（110.29 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.81 秒）。製作凍結版本 `040a3acf7c07351b98b13f2e0c5c89e4d1d3584b`；證據：`Apps/Showcase/evidence/VIS-Crystal-Proportions-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 水晶呈現比例與石材環境光反應正在對照參考圖驗證：縮窄外殼與內部核心、轉換法線，並對齊光源與景深焦點。以既有材質統一 occlusion 控制調整石材，比較選單補上 F10 抗鋸齒。原 cooked 資產與原生 shader 契約不變。Linux configure/build 與完整 97/97 測試通過（110.29 秒，Khronos core/sync validation）；Shipping 驗證通過。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
