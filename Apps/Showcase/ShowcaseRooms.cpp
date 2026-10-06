@@ -933,18 +933,43 @@ struct RoomSession::State final {
                            material});
       firstIndex = indices.size();
     };
+    unsigned pedestalTier = 0;
     for (const auto tier : {std::array{2.65F, 0.0F, 0.24F}, std::array{1.7F, 0.24F, 0.60F},
                             std::array{1.05F, 0.60F, 1.05F}}) {
-      const float lip = std::min(0.09F, (tier[2] - tier[1]) * 0.2F);
-      const std::array<std::array<float, 2>, 8> profile{{{0, tier[1]},
-                                                         {tier[0] - 0.05F, tier[1]},
-                                                         {tier[0], tier[1] + lip},
-                                                         {tier[0] - 0.025F, tier[1] + lip * 1.8F},
-                                                         {tier[0] - 0.025F, tier[2] - lip * 1.8F},
-                                                         {tier[0], tier[2] - lip},
-                                                         {tier[0] - 0.05F, tier[2]},
-                                                         {0, tier[2]}}};
-      Lathe({0, 0, 0}, profile);
+      // A recessed core supports original individual coping stones. Real joints,
+      // bevels and bounded height/radius variation replace the perfect lathed rim.
+      const float coreRadius = tier[0] - 0.5F;
+      const std::array<std::array<float, 2>, 4> core{
+          {{0, tier[1]}, {coreRadius, tier[1]}, {coreRadius, tier[2]}, {0, tier[2]}}};
+      Lathe({0, 0, 0}, core);
+      const unsigned stoneCount = 32 - pedestalTier * 8;
+      for (unsigned stone = 0; stone < stoneCount; ++stone) {
+        const unsigned seed = stone * 17 + pedestalTier * 31;
+        const float middleAngle = 2 * math::kPi * (stone + 0.5F) / stoneCount;
+        const float middleRadius = tier[0] - 0.275F + (static_cast<float>(seed % 7) - 3) * 0.008F;
+        const float halfAngle = math::kPi / stoneCount - 0.004F - (seed % 3) * 0.001F;
+        const float stoneHeight = (tier[2] - tier[1]) * 0.5F - 0.006F;
+        const auto firstStoneVertex = vertices.size();
+        CourtyardBlock(0, 0, 0, halfAngle * middleRadius, stoneHeight, 0.275F);
+        for (std::size_t i = firstStoneVertex; i < vertices.size(); ++i) {
+          auto &vertex = vertices[i];
+          const float stoneRadius = middleRadius + vertex.position[2];
+          const float angle = middleAngle - vertex.position[0] / middleRadius;
+          const float sine = std::sin(angle), cosine = std::cos(angle);
+          const auto normal = math::NormalizeSafe(math::Vector3{
+              sine * vertex.normal[0] * middleRadius / stoneRadius + cosine * vertex.normal[2],
+              vertex.normal[1],
+              -cosine * vertex.normal[0] * middleRadius / stoneRadius + sine * vertex.normal[2]});
+          vertex.position[0] = stoneRadius * cosine;
+          vertex.position[1] +=
+              (tier[1] + tier[2]) * 0.5F + (static_cast<float>(seed % 5) - 2) * 0.003F;
+          vertex.position[2] = stoneRadius * sine;
+          vertex.normal[0] = normal.x;
+          vertex.normal[1] = normal.y;
+          vertex.normal[2] = normal.z;
+        }
+      }
+      ++pedestalTier;
     }
     finish(0);
     // Original sculpted basin and radial buttresses support the floating hero crystal.
@@ -2946,7 +2971,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       }
       if (s.courtyardShadows) {
         const auto light =
-            math::Orthographic(-7, 7, -7, 7, 0.1F, 40) *
+            // Include the side arcade crowns and their ground-projected shadows.
+            math::Orthographic(-12, 12, -10, 10, 0.1F, 40) *
             math::LookAt({courtyard_hero::sun_direction[0], courtyard_hero::sun_direction[1] + 1,
                           courtyard_hero::sun_direction[2]},
                          {0, 1, 0});
