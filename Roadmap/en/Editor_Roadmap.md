@@ -125,6 +125,12 @@ Create, open, and upgrade projects. Deliver a Content Browser with search/filter
 drag/drop, import status, dependency inspection, and reimport. Background import must expose
 cancellation, progress, and actionable errors, and must produce deterministic artifacts.
 
+- ✅ Project/workspace persistence now shares the scene/asset atomic replacement helper.
+  Occupied `.tmp` files/directories/symlinks are preserved and reported with their path; a failed
+  rename no longer deletes its destination to retry. Portable tests cover descriptor upgrades,
+  gameplay settings, layout, recent-project rollback, committed workspace preservation and
+  explicit journal recovery after a staging collision. Physical crash-during-write evidence remains open.
+
 - ✅ Import queue admission now retains at most 64 operations by default, with a configurable
   capacity and retryable full-queue error. Queued jobs and unconsumed completed/failed/cancelled
   results retain their slot until consumption. `editor.preview_contract` covers mixed request

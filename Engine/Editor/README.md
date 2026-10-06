@@ -50,6 +50,15 @@ into renderer or platform internals.
   read-only workspaces. Workspace files are atomically replaced (the temporary file is flushed and
   checked before it replaces the old one), a recovery journal is written before the primary
   workspace file, and successful save/recovery removes that journal. The UI may query and explicitly discard a pending journal.
+  Workspace, recovery, descriptor upgrade, gameplay settings, layout, profiler export and recent
+  project saves share the scene/asset atomic replacement helper. A preexisting sibling `.tmp`
+  file, directory or symlink (including dangling links) is preserved and rejects the write.
+  A failed replacement never deletes the destination to retry; Windows uses replace-existing
+  `MoveFileExW`, while POSIX uses rename. Only staging created by this call is cleaned up after
+  replacement failure. A failed primary workspace publish preserves its committed file and
+  in-memory documents, retaining the newly written recovery journal for explicit recovery.
+  After the occupied stage is resolved, a retry/recovery can publish normally. This is a
+  single-writer replacement contract, not exclusive temporary creation against concurrent actors.
   Versioned Editor layout payloads are persisted separately and never use Dear ImGui's unmanaged
   global ini file. Gameplay library selection is an independent `.nexora/gameplay-library.ini`
   schema-1 payload, capped below 1100 bytes on read. Empty selects inspection-only Play. UTF-8

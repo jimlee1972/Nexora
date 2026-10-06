@@ -77,6 +77,12 @@ process exit fails acceptance even if graphical diagnostics were emitted. This p
 abrupt process termination with an existing journal; it does not inject a crash into the workspace
 write transaction or establish physical-display/Windows acceptance. ED-M0 remains open.
 
+**Persistence failure update (2026-10-07):** workspace-owned files now reuse the scene/asset atomic
+replacement helper. Existing sibling stages, including symlinks, are preserved; failed replacement
+never deletes the destination to retry. Portable tests preserve committed workspace/model state
+and retain the new recovery journal, then explicitly recover after the staging collision is resolved.
+This strengthens failure behavior without claiming crash-during-write or target-host acceptance.
+
 ### Definition of "done"
 
 All of the following must be true at the same commit:

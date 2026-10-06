@@ -1365,3 +1365,11 @@ remains 0/8. This limits operation count, not arbitrary project-index bytes.
 ✅ ED-M1 import queue 現預設最多保留 64 個 operation，包含尚未取走的完成／失敗／取消
 result。`editor.preview_contract` 涵蓋可設定容量、滿額可重試錯誤及重複取走／重新提交；
 圖形化驗收維持 0/8。此項限制 operation 數量，並非任意 project index 的 bytes。
+
+✅ ED-M1 workspace/descriptor/settings/layout/recent persistence now preserves occupied staging
+paths and failed replacement destinations. Portable tests retain last-good files, model state and
+recovery journals, then prove explicit recovery/retry. Graphical milestone acceptance remains 0/8.
+
+✅ ED-M1 workspace／descriptor／setting／layout／recent persistence 現保留已占用 stage
+及 replace 失敗的目的地。Portable 測試保留 last-good 檔案、model state 與 recovery journal，
+並驗證明確的 recovery／retry；圖形化 milestone 驗收維持 0/8。

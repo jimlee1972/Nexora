@@ -1,3 +1,4 @@
+#include "AtomicFile.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 
@@ -73,32 +74,7 @@ bool AtomicWrite(const std::filesystem::path &path, std::string_view contents, s
       *error = "could not create " + PathUtf8(path.parent_path()) + ": " + ec.message();
     return false;
   }
-  auto temporary = path;
-  temporary += ".tmp";
-  {
-    std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
-    // Close before checking so a failed flush (e.g. a full disk) is not renamed over a good file.
-    if (!output || !(output << contents) || (output.close(), output.fail())) {
-      output.close();
-      std::filesystem::remove(temporary, ec);
-      if (error)
-        *error = "could not write " + PathUtf8(temporary);
-      return false;
-    }
-  }
-  std::filesystem::rename(temporary, path, ec);
-  if (ec) {
-    std::filesystem::remove(path, ec);
-    ec.clear();
-    std::filesystem::rename(temporary, path, ec);
-  }
-  if (ec) {
-    std::error_code cleanup;
-    std::filesystem::remove(temporary, cleanup);
-    if (error)
-      *error = "could not replace " + PathUtf8(path) + ": " + ec.message();
-  }
-  return !ec;
+  return detail::AtomicWrite(path, contents, error);
 }
 
 std::optional<std::filesystem::path> PathFromUtf8(std::string_view text) noexcept {

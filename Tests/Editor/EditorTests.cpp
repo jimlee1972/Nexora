@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <numbers>
 #include <stdexcept>
@@ -77,11 +78,86 @@ int Run() {
                 observer.LoadGameplayLibrary(&error) == "Content/Game module.so" &&
                 !observer.SaveGameplayLibrary("", &error) && !error.empty(),
             "gameplay settings allowed writes from read-only observers");
+    const auto read_bytes = [](const fs::path &path) {
+      std::ifstream input(path, std::ios::binary);
+      Require(static_cast<bool>(input), "persistence fixture could not be read");
+      return std::string{std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{}};
+    };
+    const auto setting_path = root / ".nexora/gameplay-library.ini";
+    auto setting_stage = setting_path;
+    setting_stage += ".tmp";
+    const auto last_good_setting = read_bytes(setting_path);
+    std::ofstream(setting_stage) << "occupied staging data";
+    Require(!project.SaveGameplayLibrary("Content/Replacement.so", &error) &&
+                error.find("occupied") != std::string::npos &&
+                error.find("gameplay-library.ini.tmp") != std::string::npos &&
+                read_bytes(setting_stage) == "occupied staging data" &&
+                read_bytes(setting_path) == last_good_setting,
+            "workspace write overwrote an occupied staging file or last-good setting");
+    fs::remove(setting_stage);
+    fs::create_directory(setting_stage);
+    Require(!project.SaveGameplayLibrary("Content/Replacement.so", &error) &&
+                fs::is_directory(setting_stage) && read_bytes(setting_path) == last_good_setting,
+            "workspace write removed an occupied staging directory");
+    fs::remove(setting_stage);
+#if !defined(_WIN32)
+    const auto unrelated = root / "unrelated-data";
+    std::ofstream(unrelated) << "unrelated data";
+    fs::create_symlink(unrelated, setting_stage);
+    Require(!project.SaveGameplayLibrary("Content/Replacement.so", &error) &&
+                fs::is_symlink(setting_stage) && read_bytes(unrelated) == "unrelated data" &&
+                read_bytes(setting_path) == last_good_setting,
+            "workspace write followed or removed an occupied staging symlink");
+    fs::remove(setting_stage);
+    fs::create_symlink(root / "missing-target", setting_stage);
+    Require(!project.SaveGameplayLibrary("Content/Replacement.so", &error) &&
+                fs::is_symlink(setting_stage) && !fs::exists(root / "missing-target") &&
+                read_bytes(setting_path) == last_good_setting,
+            "workspace write followed a dangling staging symlink");
+    fs::remove(setting_stage);
+#endif
+    const auto layout_path = root / ".nexora/editor-layout.ini";
+    fs::create_directory(layout_path);
+    Require(!project.SaveEditorLayout("[Window][Fixture]\n", &error) && !error.empty() &&
+                fs::is_directory(layout_path) && !fs::exists(layout_path.string() + ".tmp"),
+            "failed workspace replacement deleted its destination directory or retained staging");
+    fs::remove(layout_path);
+    Require(project.SaveEditorLayout("[Window][Fixture]\n", &error) && error.empty(),
+            "workspace replacement could not retry after a failed destination");
+    Require(project.SaveGameplayLibrary("Content/Replacement.so", &error) && error.empty() &&
+                observer.LoadGameplayLibrary(&error) == "Content/Replacement.so" &&
+                project.SaveGameplayLibrary("Content/Game module.so", &error),
+            "workspace replacement could not retry after an occupied stage");
+
+    const auto committed_workspace = read_bytes(root / ".nexora/workspace");
+    const std::array<std::string, 1> replacement_documents{"Content/Replacement.scene"};
+    const auto workspace_stage = root / ".nexora/workspace.tmp";
+    std::ofstream(workspace_stage) << "retained workspace staging";
+    Require(!project.SaveWorkspace(replacement_documents, &error) &&
+                read_bytes(root / ".nexora/workspace") == committed_workspace &&
+                project.OpenDocuments().size() == documents.size() &&
+                read_bytes(workspace_stage) == "retained workspace staging" &&
+                project.HasRecoveryJournal(),
+            "failed workspace publication lost committed state or its recovery journal");
+    fs::remove(workspace_stage);
+    Require(project.RecoverWorkspace(&error) && project.OpenDocuments().size() == 1 &&
+                project.OpenDocuments().front() == replacement_documents.front() &&
+                !project.HasRecoveryJournal() && project.SaveWorkspace(documents, &error),
+            "workspace recovery could not retry after a staging collision");
     editor::RecentProjectStore recents;
     Require(recents.Open(recent_path, &error) && recents.Record(project, &error) &&
                 recents.Record(observer, &error) && recents.Entries().size() == 1 &&
                 recents.Entries().front().id == project_id,
             "recent-project persistence did not deduplicate the current project");
+    const auto recent_bytes = read_bytes(recent_path);
+    const auto recent_stage = recent_path.string() + ".tmp";
+    std::ofstream(recent_stage) << "retained recent staging";
+    Require(!recents.Remove(project_id, &error) && recents.Entries().size() == 1 &&
+                recents.Entries().front().id == project_id &&
+                read_bytes(recent_path) == recent_bytes &&
+                read_bytes(recent_stage) == "retained recent staging",
+            "recent-project save failure lost persisted or in-memory entries");
+    fs::remove(recent_stage);
     editor::RecentProjectStore reopened_recents;
     Require(reopened_recents.Open(recent_path, &error) && reopened_recents.Entries().size() == 1 &&
                 reopened_recents.Entries().front().root == project.Root(),
@@ -113,6 +189,19 @@ int Run() {
   }
   {
     editor::ProjectWorkspace legacy_writer;
+    const auto descriptor_stage = legacy_root / "project.nexora.tmp";
+    std::ofstream(descriptor_stage) << "retained descriptor staging";
+    Require(!legacy_writer.Open(legacy_root, &error) && !error.empty(),
+            "schema upgrade overwrote an occupied descriptor stage");
+    {
+      std::ifstream descriptor(legacy_root / "project.nexora");
+      std::ifstream stage(descriptor_stage);
+      std::string schema, staged;
+      Require(std::getline(descriptor, schema) && schema == "schema=1" &&
+                  std::getline(stage, staged) && staged == "retained descriptor staging",
+              "failed schema upgrade changed the descriptor or its occupied stage");
+    }
+    fs::remove(descriptor_stage);
     Require(legacy_writer.Open(legacy_root, &error) &&
                 legacy_writer.UpgradeState() == editor::ProjectUpgradeState::Applied &&
                 legacy_writer.Project().schema_version ==
