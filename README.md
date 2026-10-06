@@ -1,5 +1,7 @@
 # Nexora
 
+Release-verifier diagnostic follow-up: failed native/headless subprocesses now print a bounded stderr tail and the structured failure result to CI logs. Acceptance gates, exit status, runtime and the recorded Shipping/movie freeze are unchanged. Linux configure/build and full 97/97 tests passed (104.27 s) with Khronos core/synchronization validation; the original Shipping package passed isolated native acceptance. Evidence: `Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/release-diagnostics/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
+
 MSVC compiler follow-up: foreground sprigs use `sprigRadius` to avoid camera-member
 shadowing under /WX. Exact source comparison after identifier normalization is unchanged.
 ✅ Linux configure/build and full 97/97 pass (102.71 seconds), including 85 native PBR
