@@ -11,6 +11,8 @@ namespace Nexora::Presentation {
 }
 // PBR validation is shared; resident map references and native capabilities remain adapter-owned.
 [[nodiscard]] inline bool ValidatePbrData(const SceneDrawData &draw) noexcept {
+  if (draw.postProcessAntiAliasing && (!draw.hdr || !draw.pbr || !draw.offscreen))
+    return false;
   if (!std::isfinite(draw.exposure) || draw.exposure < 0 || draw.exposure > 32 ||
       (draw.hdr && (!draw.pbr || !draw.offscreen)))
     return false;

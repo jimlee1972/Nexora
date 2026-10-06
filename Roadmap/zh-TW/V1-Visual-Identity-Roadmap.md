@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux configure/build 與完整 97/97 測試通過（108.23 秒，Khronos core/sync validation），包含九項證據政策測試與實際 600 幀原生相機測試；原 Shipping 套件隔離驗收通過。互動驗收改為等待完整 Lab JSON／Markdown 匯出、按住 D 直到固定 600 幀完成，並在關閉前確認前景像素已按縮放後視窗比例穩定呈現。縮放 generation、相機移動、像素還原、幀數與 timeout 驗收條件均保留。程式／影片凍結版本仍為 c815263b；證據：`Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/interaction-synchronization/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+發行驗證診斷補充：原生／headless 子程序失敗時，CI 會輸出有長度上限的 stderr 與結構化失敗結果。驗收條件、退出狀態、執行程式及既有 Shipping／影片凍結版本不變。Linux configure/build 與完整 97/97 測試通過（104.27 秒，Khronos core/sync validation），原 Shipping 套件隔離原生驗收通過。證據：`Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/release-diagnostics/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
 MSVC 編譯修正：前景植被區域變數改名 `sprigRadius`，避免 /WX 下遮蔽相機成員。
 標準化變數名稱後的來源逐位元比較相同，計算式與數值不變。✅ Linux configure／build
 與完整 97/97 通過（102.71 秒），包含 85 個原生 PBR 畫面與 core／同步驗證。
@@ -519,11 +523,48 @@ Unlit／Lambert 拒絕此旗標。私有材質 float 79 使用保留欄位，400
 證據：[VIS-Two-Sided-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05)。來源凍結 `248791c4b51a`，保留確切來源與套件雜湊。
 
 
+庭院瀑布與山壁共用定位資料，讓水流幾何位於支撐岩壁前方，且可從廣角拱門開口看見。
+薄水片背光透射跟隨既有 M 比較；流動帶保留共用暫停／重播時鐘。左側柏樹移至太陽
+下方的拱門開口，保留風與透明遮罩受光。遠景山脊網格由 16×64 提高為 24×96；不新增
+貼圖、shader packet 或穩定 ABI。最終參考圖／目標驗收仍未完成。
+
+✅ Linux Development configure／build 與 97/97 測試通過（103.28 秒），啟用 Khronos core／同步驗證，包含 89 個原生 PBR 畫面與三種品質幾何預算。啟動裝置的 Standard 畫面為 55,382 頂點、2,052 張來源植被卡片；風／水流與精確暫停重播仍通過。Shipping／Full 隔離套件原生驗收與實際 100.20 秒影片（實際錄製 100.85 秒）通過；最終參考圖／目標驗收仍未完成。
+
+證據：[VIS-Courtyard-Valley-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05)。來源凍結 `c815263b5f87`，保留確切來源與套件雜湊。
+
+
 MSVC 測試可攜性修正：點光源填充值與雙面法線條件式改用明確浮點值。✅ Linux configure／build
-與完整 97/97 通過（102.61 秒），包含 89 個原生 PBR 畫面與 core／同步驗證。測試數值與
+與完整 97/97 通過（102.21 秒），包含 89 個原生 PBR 畫面與 core／同步驗證。測試數值與
 Runtime 來源不變；既有 Shipping 證據保留原本來源凍結。Windows CI 重新驗證中。
 
 
-已同步上游點光源與石砌的 MSVC fixture 修正證據：兩階段 Linux 完整 97/97 分別為
-102.20／102.62 秒，包含 85 個原生 PBR 畫面與 core／同步驗證。各階段 `msvc-literals/`
-保留確切 log／雜湊；此同步僅變更文件與證據，Runtime／fixture 數值不變。
+水晶礦物核心支援狀態：144 個封閉殼內的實體礦物頂點取代內部線框，與外殼共用旋轉／浮動
+時間；三種 HDR 材質透過前表面折射與平面反射呈現。共用 IBL 強度為 1.1。✅ Linux configure／
+build 與完整 97/97 通過（104.78 秒），包含 89 個原生 PBR 畫面、core／同步驗證及三檔幾何預算。
+Shipping／Full 打包及隔離副本原生互動通過；同一 Shipping 執行檔錄製實際 100.27 秒風與動畫
+導覽（牆鐘 100.63 秒，零 overlay）。證據保留於 `VIS-Crystal-Facets-Linux-2026-10-05`。
+沒有宣稱體積或遞迴玻璃效果，也沒有新增原生 binding／ABI。預覽圖一致性與實體目標效能
+仍未完成；VIS 維持 5/7。
+
+
+已同步上游點光源、石砌與雙面受光的 MSVC fixture 證據與合併來源；各階段
+`msvc-literals/` 保留完整 Linux gate 及 log／雜湊。此同步僅變更文件與證據；
+水晶礦物核心的 Runtime 來源、97/97 gate 與 Shipping／影片來源凍結不變。
+
+
+植被過濾支援狀態：共用 0.5 cutoff 的受光顏色遮罩在線性顏色空間以 alpha 加權縮小，
+各層保留最接近原始的輪廓覆蓋率。其他 cutoff、unlit 圖集及衝突用途維持單層；原始
+上傳內容及不可變資源世代的 ownership 不變，可見／陰影共用同一鏈。✅ Linux configure／
+build 與完整 97/97 通過（104.47 秒），包含 89 個原生 PBR 畫面、core／同步驗證、覆蓋率／
+葉緣顏色／用途檢查及三檔幾何預算。Shipping／Full 打包及隔離副本原生互動通過；同一
+執行檔錄製實際 100.20 秒風與動畫導覽（牆鐘 100.86 秒、零 overlay）。
+證據保留於 `VIS-Foliage-Mipmaps-Linux-2026-10-05`。未新增材質欄位、原生 binding、shader
+packet 或 C／Zig ABI；極小 mip 的離散覆蓋誤差不可完全避免。參考圖一致性與實體目標
+效能仍未完成，VIS 維持 5/7。
+
+HDR 空間抗鋸齒實作：Standard/High 庭院在 focus/bloom/ACES 前套用有界的線性
+輻射亮度邊緣濾波；F10 可比較並精確還原，Basic 不啟用。公開 C++ draw flag 預設
+關閉，原生 tone 常數改為 64 bytes。Vulkan 斜邊、純色內部與還原測試已通過
+core/sync validation。✅ Linux configure/build 與 97/97 測試通過（106.93 秒）；
+Shipping/Full 打包、隔離原生 F10 比較與還原、實際 100 秒動畫導覽通過。證據：
+`Apps/Showcase/evidence/VIS-HDR-Anti-Aliasing-Linux-2026-10-05`；VIS-M3 預覽一致與 VIS-M6 硬體驗收保持未完成。

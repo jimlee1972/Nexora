@@ -148,6 +148,71 @@ def request_window_close(window: int, display_name: str) -> None:
         x11.XCloseDisplay(display)
 
 
+def wait_lab_export(path, markdown):
+    deadline = time.monotonic() + 5
+    while True:
+        try:
+            report = json.loads(path.read_text())
+            if markdown.is_file():
+                return report
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        if time.monotonic() >= deadline:
+            raise AssertionError('Native Lab export did not complete within five seconds')
+        time.sleep(0.1)
+
+
+def resize_samples(source, source_width, source_height, width, height):
+    """Select flat foreground pixels at equal normalized viewport coordinates."""
+    assert len(source) == (source_width * 3 + 1) * source_height
+    def pixel(x, y):
+        offset = y * (source_width * 3 + 1) + 1 + x * 3
+        return source[offset:offset + 3]
+    background = pixel(0, 0)
+    samples = []
+    for row in range(1, 13):
+        for column in range(1, 21):
+            x, y = width * column // 21, height * row // 13
+            sx = round((x + 0.5) * source_width / width - 0.5)
+            sy = round((y + 0.5) * source_height / height - 0.5)
+            expected = pixel(sx, sy)
+            if max(abs(a - b) for a, b in zip(expected, background)) < 8:
+                continue
+            if any(max(abs(a - b) for a, b in zip(expected, pixel(sx + dx, sy + dy))) > 2
+                   for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1))):
+                continue
+            samples.append((x, y, expected))
+    assert len(samples) >= 24, 'Resize source lacks enough stable foreground samples'
+    return samples
+
+
+def resize_match_count(captured, width, height, samples):
+    assert len(captured) == (width * 3 + 1) * height
+    matched = 0
+    for x, y, expected in samples:
+        offset = y * (width * 3 + 1) + 1 + x * 3
+        actual = captured[offset:offset + 3]
+        matched += max(abs(a - b) for a, b in zip(expected, actual)) <= 3
+    return matched
+
+
+def resized_screenshot(window, width, height, output, samples):
+    # An X window can resize before Vulkan presents its new swapchain. Require
+    # stable foreground pixels at the new viewport scale before sending close.
+    started = time.monotonic()
+    previous, repeats = None, 0
+    while True:
+        captured = screenshot(window, width, height, output)
+        matched = resize_match_count(captured, width, height, samples)
+        repeats = repeats + 1 if captured == previous else 0
+        if matched * 10 >= len(samples) * 9 and repeats >= 2 and time.monotonic() - started >= 2:
+            return {'matched': matched, 'samples': len(samples)}
+        if time.monotonic() - started >= 15:
+            raise AssertionError(f'Native resized viewport did not present: {matched}/{len(samples)}')
+        previous = captured
+        time.sleep(0.15)
+
+
 def main():
     if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] != "--allow-unavailable-plugin"):
         raise SystemExit('usage: LinuxShowcaseInteraction.py NEXORA_SHOWCASE')
@@ -291,7 +356,7 @@ def main():
             restored_pbr = compared_screenshot(window,1280,720,output/'courtyard-pbr-restored.png',courtyard_wide,True)
             assert restored_pbr == courtyard_wide, 'PBR material restoration changed the fixed shot'
 
-            for key,effect in [('n','wind'),('m','transmission'),('k','bloom'),('j','depth-of-field'),('v','planar-reflection'),('u','crystal-transparency'),('F7','atmosphere'),('F8','refraction')]:
+            for key,effect in [('n','wind'),('m','transmission'),('k','bloom'),('j','depth-of-field'),('v','planar-reflection'),('u','crystal-transparency'),('F7','atmosphere'),('F8','refraction'),('F10','anti-aliasing')]:
                 tool('key','--window',window,key)
                 compared_screenshot(window,1280,720,output/f'courtyard-{effect}-off.png',courtyard_wide,False)
                 tool('key','--window',window,key)
@@ -357,22 +422,7 @@ def main():
             time.sleep(0.15)
             screenshot(window,1280,720,output/'validation-lab.png')
             exported = Path(temporary) / 'showcase-lab.json'
-            exported_markdown = Path(temporary) / 'showcase-lab.md'
-            # The export key is queued while a software-GPU frame may still be in flight.
-            # Wait for the original command's result; never resend input or retry assertions.
-            deadline = time.monotonic() + 5
-            while True:
-                if app.poll() is not None:
-                    raise RuntimeError(app.stderr.read())
-                try:
-                    lab = json.loads(exported.read_text())
-                    if exported_markdown.read_text():
-                        break
-                except (FileNotFoundError, json.JSONDecodeError):
-                    pass
-                if time.monotonic() >= deadline:
-                    raise RuntimeError('Validation Lab export did not complete within 5 seconds')
-                time.sleep(0.03)
+            lab = wait_lab_export(exported,Path(temporary)/'showcase-lab.md')
             plugin = lab['integration_probes']['probes'][6]
             if len(sys.argv) == 2:
                 assert plugin['status'] == 'PASS', plugin
@@ -381,17 +431,14 @@ def main():
             else:
                 assert plugin['status'] == 'UNSUPPORTED', plugin
             shutil.copy2(exported, output/'lab-export.json')
-            shutil.copy2(exported_markdown, output/'lab-export.md')
+            shutil.copy2(Path(temporary)/'showcase-lab.md', output/'lab-export.md')
             tool('key','--window',window,'Tab','Tab','Tab','Tab','Tab','Tab','i','r','F3')
-            tool('key','--window',window,'1','v','b','h','t','space','r','space','F4')
-            # Freeze the tour and hide changing diagnostics so a cropped old-size frame
-            # cannot satisfy the resize oracle. Wait for a real presented change before close.
-            settled_screenshot(window,1280,720,output/'hub-before-resize.png')
-            old_crop = screenshot(window,960,540,output/'hub-before-resize-crop.png')
+            tool('key','--window',window,'1','v','b','h','t','space','r')
+            tool('key','--window',window,'F4')
+            resize_source = settled_screenshot(window,1280,720,output/'resize-source-hub.png')
+            samples = resize_samples(resize_source,1280,720,960,540)
             tool('windowsize',window,960,540)
-            compared_screenshot(window,960,540,output/'resized-hub.png',old_crop,False)
-            resized = settled_screenshot(window,960,540,output/'resized-hub.png',old_crop)
-            assert len(set(resized)) >= 8, 'Resized backbuffer did not render native pixels'
+            resize_proof = resized_screenshot(window,960,540,output/'resized-hub.png',samples)
             request_window_close(window, display)
             _, errors = app.communicate(timeout=10)
             assert app.returncode == 0, errors
@@ -410,9 +457,9 @@ def main():
             assert markdown.is_file() and 'M12' in markdown.read_text()
             (output/'acceptance.json').write_text(json.dumps({
                 'scope':'Linux Xvfb/lavapipe native interaction; no physical display or Windows claim',
-                'courtyard_free_camera':True,'courtyard_living_replay':True,'courtyard_transparency_comparison':True,'courtyard_atmosphere_comparison':True,'courtyard_refraction_comparison':True,'courtyard_crystal_light_comparison':True,'courtyard_planar_reflection_comparison':True,'courtyard_wind_comparison':True,'courtyard_transmission_comparison':True,'courtyard_bloom_comparison':True,'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_ibl_comparison':True,'courtyard_hdr_exposure':True,'courtyard_shadow_comparison':True,'courtyard_tone_comparison':True,'courtyard_material_comparison':True,
+                'courtyard_free_camera':True,'courtyard_living_replay':True,'courtyard_transparency_comparison':True,'courtyard_atmosphere_comparison':True,'courtyard_refraction_comparison':True,'courtyard_crystal_light_comparison':True,'courtyard_anti_aliasing_comparison':True,'courtyard_planar_reflection_comparison':True,'courtyard_wind_comparison':True,'courtyard_transmission_comparison':True,'courtyard_bloom_comparison':True,'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_ibl_comparison':True,'courtyard_hdr_exposure':True,'courtyard_shadow_comparison':True,'courtyard_tone_comparison':True,'courtyard_material_comparison':True,
                 'courtyard':rooms['courtyard'],
-                'quality_cycle_restores_pixels':True,'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-bloom-off.png','courtyard-bloom-restored.png','courtyard-shadow-off.png','courtyard-shadow-restored.png','courtyard-neutral.png','courtyard-styled-restored.png','courtyard-exposure.png','courtyard-exposure-restored.png','courtyard-direct.png','courtyard-ibl-restored.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png','courtyard-activated.png','courtyard-paused.png','courtyard-animated.png','courtyard-animation-replay.png','courtyard-inactive.png','courtyard-free-camera.png','courtyard-free-moved.png','courtyard-free-restored.png','courtyard-wind-off.png','courtyard-wind-restored.png','courtyard-transmission-off.png','courtyard-transmission-restored.png'],
+                'resize_presented_frame':resize_proof,'quality_cycle_restores_pixels':True,'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-bloom-off.png','courtyard-bloom-restored.png','courtyard-shadow-off.png','courtyard-shadow-restored.png','courtyard-neutral.png','courtyard-styled-restored.png','courtyard-exposure.png','courtyard-exposure-restored.png','courtyard-direct.png','courtyard-ibl-restored.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png','courtyard-activated.png','courtyard-paused.png','courtyard-animated.png','courtyard-animation-replay.png','courtyard-inactive.png','courtyard-free-camera.png','courtyard-free-moved.png','courtyard-free-restored.png','courtyard-wind-off.png','courtyard-wind-restored.png','courtyard-transmission-off.png','courtyard-transmission-restored.png'],
                 'windowed_evidence':native,'build':evidence['build']},indent=2)+'\n')
             print(json.dumps({'native':native,'visited':rooms['visited'],'evidence_directory':str(output)},indent=2))
             return 0

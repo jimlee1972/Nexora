@@ -1,0 +1,11 @@
+{
+  "command": [
+    "/workspace/Nexora-vis-foliage-mipmaps/build/linux-development/Tests/WindowPresentation/NexoraVulkanPbrTests",
+    "/workspace/Nexora-vis-foliage-mipmaps/build/linux-development/artifacts/showcase-linux-vulkan-pbr/scene.ppm"
+  ],
+  "exit_code": 0,
+  "acceptance_passed": true,
+  "scope": "Linux/X11/Vulkan GPU scene on virtual display",
+  "physical_display_verified": false,
+  "validation_layer_requested": true
+}

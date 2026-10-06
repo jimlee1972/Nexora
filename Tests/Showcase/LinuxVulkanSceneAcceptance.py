@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import time
 
 from LinuxVirtualDisplaySmoke import start_xvfb, unavailable
 
@@ -49,17 +48,21 @@ def main() -> int:
                 window = subprocess.check_output([
                     "xdotool", "search", "--sync", "--onlyvisible", "--name", "^Nexora Showcase$"
                 ], env=environment, text=True, timeout=5).splitlines()[0]
+                subprocess.run(["xdotool", "windowfocus", "--sync", window],
+                               env=environment, check=True, capture_output=True, timeout=3)
                 subprocess.run(["xdotool", "keydown", "--window", window, "d"],
                                env=environment, check=True, capture_output=True, timeout=3)
-                time.sleep(0.03)
-                subprocess.run(["xdotool", "keyup", "--window", window, "d"],
-                               env=environment, check=True, capture_output=True, timeout=3)
+                # Hold through the fixed 600 native frames; a timed down/up pair
+                # can both arrive before the application's first update.
                 stdout, stderr = process.communicate(timeout=30)
                 run = subprocess.CompletedProcess(command, process.returncode, stdout, stderr)
             finally:
                 if process.poll() is None:
                     process.kill()
                     process.communicate(timeout=3)
+                # Release server key state even when the application has closed its window.
+                subprocess.run(["xdotool", "keyup", "d"], env=environment,
+                               capture_output=True, timeout=3)
         else:
             run = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=30)
         (output / "stdout.log").write_text(run.stdout, encoding="utf-8")

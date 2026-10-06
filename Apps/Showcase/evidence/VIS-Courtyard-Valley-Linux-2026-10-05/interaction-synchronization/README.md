@@ -1,0 +1,5 @@
+# Native interaction synchronization evidence
+
+✅ Linux configure/build and full 97/97 tests passed (108.23 s, Khronos core/sync validation), including nine evidence-policy tests and 600 actual native camera frames. Isolated original Shipping acceptance passed. Interaction synchronization now waits for complete Lab JSON/Markdown export, holds D through the fixed 600-frame camera run, and requires stable foreground pixels at the resized viewport scale before shutdown. The resize-generation, camera-movement, pixel-restoration, frame-count and timeout gates remain in force. Runtime/movie freeze remains c815263b; evidence: `Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+The scaled-foreground contract rejects stale cropped frames, blank frames, insufficient foreground and invalid capture lengths. Export tests cover missing/partial JSON and missing Markdown; missing exports still fail. Hosted CI failure excerpts identify the original timing assumptions; they are diagnostic evidence, not passing native acceptance.
