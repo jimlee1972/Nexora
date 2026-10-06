@@ -1650,8 +1650,8 @@ struct RoomSession::State final {
         const float arc = std::fmod(z + 7, 6.0F) - 3;
         const float root = 3.7F + std::sqrt(std::max(0.0F, 9 - arc * arc));
         for (unsigned leaf = 0; leaf < 5; ++leaf) {
-          const float height = 0.65F + (i % 4) * 0.1F;
-          LeafQuad({x + (leaf % 2) * 0.1F, root - leaf * 0.32F - height, z}, 0.3F, height,
+          const float height = 0.4F + (i % 4) * 0.06F;
+          LeafQuad({x + (leaf % 2) * 0.1F, root - leaf * 0.32F - height, z}, 0.2F, height,
                    i * 0.61F + leaf);
           for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
             vertices[v].uv[1] = 1 - vertices[v].uv[1];
@@ -1665,10 +1665,10 @@ struct RoomSession::State final {
         for (unsigned vine = 0; vine < 6; ++vine)
           for (unsigned leaf = 0; leaf < 7; ++leaf) {
             const float angle = vine * 2 * math::kPi / 6 + 0.13F * std::sin(leaf * 1.7F + vine);
-            const float height = 0.4F + ((vine + leaf) % 3) * 0.04F;
+            const float height = 0.28F + ((vine + leaf) % 3) * 0.03F;
             LeafQuad({x + 0.59F * std::cos(angle), 5.4F - leaf * 0.62F - height,
                       z + 0.59F * std::sin(angle)},
-                     0.24F, height, angle - math::kPi * 0.5F);
+                     0.17F, height, angle - math::kPi * 0.5F);
             for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
               vertices[v].uv[1] = 1 - vertices[v].uv[1];
           }
@@ -1697,7 +1697,7 @@ struct RoomSession::State final {
             const float angle = layer * 2.399963F + branch * 2 * math::kPi / 4;
             LeafQuad({location[0] + std::cos(angle) * crownRadius * 0.22F, y,
                       location[1] + std::sin(angle) * crownRadius * 0.22F},
-                     crownRadius, 0.7F, angle);
+                     crownRadius * 0.7F, 0.49F, angle);
           }
         }
     finish(5);
@@ -1732,10 +1732,10 @@ struct RoomSession::State final {
       const float rootX = 1.94F * std::cos(angle);
       const float rootY = 2.9F + 1.94F * std::sin(angle);
       for (unsigned leaf = 0; leaf < 10; ++leaf) {
-        const float height = 0.32F + ((vine + leaf) % 3) * 0.035F;
+        const float height = 0.24F + ((vine + leaf) % 3) * 0.025F;
         LeafQuad({rootX + 0.08F * std::sin(leaf * 1.7F), rootY - leaf * 0.145F - height,
                   0.33F + 0.04F * std::cos(leaf * 1.3F)},
-                 0.18F, height, vine * 0.57F);
+                 0.14F, height, vine * 0.57F);
         for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
           vertices[v].uv[1] = 1 - vertices[v].uv[1];
       }
@@ -1749,7 +1749,7 @@ struct RoomSession::State final {
         const float sprigRadius = 1.3F * std::sqrt((sprig + 0.5F) / 128);
         LeafQuad({bank[0] + sprigRadius * std::cos(angle), 0.15F + 0.25F * (1 - sprigRadius / 1.3F),
                   bank[1] + sprigRadius * std::sin(angle)},
-                 0.22F + (sprig % 4) * 0.035F, 0.45F + (sprig % 5) * 0.08F, angle);
+                 0.16F + (sprig % 4) * 0.025F, 0.32F + (sprig % 5) * 0.06F, angle);
       }
     finish(5);
     for (const auto &prototype : masonry) {

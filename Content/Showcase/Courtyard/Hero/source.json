@@ -243,10 +243,10 @@
       "reference": "Roadmap/art/V1-Visual-Identity-Concept.png"
     },
     "leaf": {
-      "path": "Source/ivy.png",
-      "sha256": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+      "path": "Source/ivy-single-leaf.png",
+      "sha256": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
       "origin": "OpenAI image generation in this authorized showcase art session",
-      "authoring_brief": "Natural green ivy sprig with eight lobed leaves, visible veins, stem rooted at bottom, transparent background",
+      "authoring_brief": "One mature five-lobed olive ivy leaf with fine veins and short petiole rooted at bottom, facing the camera in neutral diffuse light, transparent background; authored against the retained original ivy sprig",
       "license": "Repository LICENSE",
       "reference": "Roadmap/art/V1-Visual-Identity-Concept.png"
     },
