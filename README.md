@@ -1154,3 +1154,8 @@ all data and pixel checks remain required.
 
 ED-M0 supporting CI 修正：Showcase Lab export gate 等待原始 command 完成 JSON／Markdown
 寫入，不再假設 150 ms 完成；input 只送一次，全部 data 與 pixel 檢查維持必要。
+
+The supporting native close gate now proves a changed, stable resized backbuffer before close;
+resize-generation and lifecycle assertions remain required.
+原生 close supporting gate 現在關閉前確認已變更且穩定的 resized backbuffer；
+resize-generation 與 lifecycle 斷言仍為必要。

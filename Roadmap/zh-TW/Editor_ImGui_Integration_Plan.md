@@ -330,6 +330,8 @@ Shipping package verification 將失敗 native subprocess 診斷同步至 CI std
 上限 8192 characters；完整 log／artifact 與驗收檢查維持原樣。
 Supporting Showcase Lab gate 等待已送出的 export 結果，不再假設 150 ms 內完成；
 input 只送一次，全部 data／pixel 斷言仍需通過。
+Close gate 另等待已變更且穩定的 resized native pixels，不再採固定 200 ms delay；
+resize generation 與最終 lifecycle counter 仍需通過。
 
 1. Clean tree 執行 §6 完整 Linux gate。WP1/WP3 更動 linkage/API boundary，因此也跑 `linux-shipping`。
 2. Real X11 display 執行 launch、font/text 可見、Hierarchy selection、docking、各類 input、resize/

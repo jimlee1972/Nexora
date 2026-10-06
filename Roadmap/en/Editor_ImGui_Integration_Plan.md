@@ -360,6 +360,8 @@ Shipping package verification mirrors failed native subprocess diagnostics to CI
 to 8192 characters per stream, and retains complete logs/artifacts and unchanged acceptance checks.
 The supporting Showcase Lab gate waits for its queued export result instead of assuming completion
 within 150 ms; input is sent once and all data/pixel assertions remain required.
+The close gate also waits for changed, stable resized native pixels instead of a fixed 200 ms delay;
+resize generation and final lifecycle counters remain mandatory.
 
 1. Run the full Linux gate listed in §6 with a clean tree. Because WP1/WP3 alter linkage/API
    boundaries, run `linux-shipping` too.
