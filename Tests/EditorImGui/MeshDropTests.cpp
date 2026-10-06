@@ -1,4 +1,5 @@
 #include "EditorImGuiTestAccess.h"
+#include "TemporaryDirectoryCleanup.h"
 #include <cmath>
 
 #include <chrono>
@@ -19,6 +20,7 @@ struct Fixture final {
       std::filesystem::temp_directory_path() /
       ("nexora-mesh-drop-" +
        std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  nexora::editor::test::TemporaryDirectoryCleanup cleanup{root};
   editor::ProjectWorkspace workspace, observer;
   editor::AssetWorkspace assets;
   editor::ProjectContentSession content;
@@ -66,7 +68,6 @@ struct Fixture final {
     Draw();
     Draw();
   }
-  ~Fixture() { std::filesystem::remove_all(root); }
   void Draw() {
     ui.BeginFrame();
     ui.DrawProductShell(shell, &scene, active, &content, nullptr, nullptr, nullptr, nullptr,

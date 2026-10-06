@@ -1,4 +1,5 @@
 #include "EditorImGuiTestAccess.h"
+#include "TemporaryDirectoryCleanup.h"
 #include <array>
 #include <chrono>
 #include <fstream>
@@ -23,6 +24,7 @@ int main() {
   const auto root = std::filesystem::temp_directory_path() /
                     ("nexora-unknown-inspector-" +
                      std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  nexora::editor::test::TemporaryDirectoryCleanup cleanup{root};
   try {
     using namespace nexora;
     editor::ProjectWorkspace workspace;
@@ -203,12 +205,10 @@ int main() {
                 Read(root / "legacy.scene").starts_with("NEXORA_EDITOR_SCENE 2\n") &&
                 legacy.Reload(root / "legacy.scene"),
             "opaque-free schema compatibility changed");
-    std::filesystem::remove_all(root);
     std::cout << "Unknown-component inspector and persistence contracts passed\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
-    std::filesystem::remove_all(root);
     return 1;
   }
 }
