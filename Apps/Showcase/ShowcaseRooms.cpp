@@ -1248,25 +1248,39 @@ struct RoomSession::State final {
       return -0.3F + std::max(0.0F, envelope) * (8 + 3 * std::sin(x * 0.19F) +
                                                  2 * std::sin(x * 0.47F) + std::cos(x * 0.81F));
     };
+    // Weld the continuous ridge grid; shared positions retain its original silhouette
+    // while leaving native vertex space for authored architecture.
+    const auto ridgeBase = static_cast<std::uint16_t>(vertices.size());
+    for (unsigned row = 0; row <= 24; ++row)
+      for (unsigned col = 0; col <= 96; ++col) {
+        const float px = -45 + col * (90.0F / 96), pz = -50 + row * (26.0F / 24);
+        const float dx = (ridgeHeight(px + 0.1F, pz) - ridgeHeight(px - 0.1F, pz)) / 0.2F;
+        const float dz = (ridgeHeight(px, pz + 0.1F) - ridgeHeight(px, pz - 0.1F)) / 0.2F;
+        const auto normal = math::NormalizeSafe(math::Vector3{-dx, 1, -dz});
+        vertices.push_back(
+            {{px, ridgeHeight(px, pz), pz}, {normal.x, normal.y, normal.z}, {px / 10, pz / 10}});
+      }
     for (unsigned row = 0; row < 24; ++row)
       for (unsigned col = 0; col < 96; ++col) {
-        const float x = -45 + col * (90.0F / 96), z = -50 + row * (26.0F / 24);
-        const auto base = static_cast<std::uint16_t>(vertices.size());
-        for (const auto corner :
-             {std::array{0, 0}, std::array{0, 1}, std::array{1, 1}, std::array{1, 0}}) {
-          const float px = x + corner[0] * (90.0F / 96), pz = z + corner[1] * (26.0F / 24);
-          const float dx = (ridgeHeight(px + 0.1F, pz) - ridgeHeight(px - 0.1F, pz)) / 0.2F;
-          const float dz = (ridgeHeight(px, pz + 0.1F) - ridgeHeight(px, pz - 0.1F)) / 0.2F;
-          const auto n = math::NormalizeSafe(math::Vector3{-dx, 1, -dz});
-          vertices.push_back({{px, ridgeHeight(px, pz), pz}, {n.x, n.y, n.z}, {px / 10, pz / 10}});
-        }
-        for (const auto index : {0, 1, 2, 0, 2, 3})
-          indices.push_back(static_cast<std::uint16_t>(base + index));
+        const auto a = static_cast<std::uint16_t>(ridgeBase + row * 97 + col);
+        const auto b = static_cast<std::uint16_t>(a + 97);
+        for (const auto index :
+             {a, b, static_cast<std::uint16_t>(b + 1), a, static_cast<std::uint16_t>(b + 1),
+              static_cast<std::uint16_t>(a + 1)})
+          indices.push_back(index);
       }
     finish(9);
     for (const float x : {-18.0F, -10.0F, 10.0F, 18.0F}) {
-      for (unsigned layer = 0; layer < 10; ++layer)
-        placeMasonry(8, x + (layer % 2) * 0.03F, 0.3F + layer * 0.6F, -16, 1.2F, 0.29F, 1.2F);
+      for (unsigned layer = 0; layer < 10; ++layer) {
+        const float y = 0.3F + layer * 0.6F;
+        if (layer < 6)
+          placeMasonry(8, x + (layer % 2) * 0.03F, y, -16, 1.2F, 0.29F, 1.2F);
+        else
+          // Four corner piers leave actual open upper-story apertures on every face.
+          for (const float dx : {-0.85F, 0.85F})
+            for (const float dz : {-0.85F, 0.85F})
+              placeMasonry(8, x + dx, y, -16 + dz, 0.35F, 0.29F, 0.35F);
+      }
       placeMasonry(8, x, 6.2F, -16, 1.5F, 0.3F, 1.5F);
       for (const float dx : {-0.9F, 0.9F})
         placeMasonry(8, x + dx, 7.3F, -16, 0.3F, 0.8F, 0.5F);
@@ -2644,7 +2658,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[4].textureId = 2;
 #endif
     s.materials[0].roughness = 0.85F;
-    s.materials[0].occlusion = 0.65F;
+    s.materials[0].occlusion = 0.45F;
     s.materials[0].normalScale = 0.2F;
     s.materials[0].worldTextureScale = s.courtyardPbr ? 1.1F : 0;
 #if NEXORA_ASSET_PIPELINE_ENABLED
@@ -2706,7 +2720,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #endif
     s.materials.push_back(motes);
     for (const auto color :
-         {std::array{0.42F, 0.38F, 0.25F, 1.0F}, std::array{0.36F, 0.36F, 0.32F, 1.0F},
+         {std::array{0.6F, 0.56F, 0.48F, 1.0F}, std::array{0.36F, 0.36F, 0.32F, 1.0F},
           std::array{0.09F, 0.18F, 0.07F, 1.0F}}) {
       Nexora::Presentation::SceneMaterial background{};
       background.baseColor = color;
@@ -2714,6 +2728,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       background.castsShadow = false;
       s.materials.push_back(background);
     }
+    s.materials[8].occlusion = 0.5F;
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[8].worldTextureScale = s.courtyardPbr ? 1.1F : 0;
     s.materials[8].normalScale = 0.14F;
@@ -2984,7 +2999,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     if (data.hdr && s.courtyardReflections && s.courtyardQuality != 0)
       data.planarReflection = s.CourtyardReflectionSettings();
     if (data.hdr && s.courtyardAtmosphere && s.courtyardQuality != 0)
-      data.atmosphere = Nexora::Presentation::SceneAtmosphere{{0.55F, 0.48F, 0.46F}, 0.6F, 18, 58};
+      data.atmosphere = Nexora::Presentation::SceneAtmosphere{{0.55F, 0.48F, 0.46F}, 0.35F, 24, 75};
     if (data.hdr && s.courtyardStyled)
       data.colorGrade = Nexora::Presentation::SceneColorGrade{1.05F, 1.05F};
     if (data.hdr && s.courtyardBloom && s.courtyardQuality != 0)

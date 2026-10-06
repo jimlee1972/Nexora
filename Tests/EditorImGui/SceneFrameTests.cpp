@@ -77,7 +77,7 @@ struct Fixture final {
     original = world.SaveScene(scene_id);
     ui.SetDisplay(1600, 1000, scale);
     ui.SetNativeScenePreview(true);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;
@@ -424,7 +424,7 @@ void RunBudget() {
   constexpr std::size_t count = editor::imgui::kMaximumNativeSceneFrameCandidates + 2;
   const auto path = f.root / "Content/Budget.scene";
   {
-    std::ofstream source(path);
+    std::ofstream source(path, std::ios::binary);
     source << "NEXORA_EDITOR_SCENE 2\n";
     for (std::size_t index = 0; index < count; ++index)
       source << "node " << index + 100 << " 0 Budget " << index << '\n';

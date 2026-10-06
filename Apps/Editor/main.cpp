@@ -1329,7 +1329,7 @@ int RunGraphical(std::optional<ProjectState> project,
       if (auto request = ui.TakeSceneFileRequest(); request && scene_files) {
         using FileStatus = nexora::editor::SceneFileStatus;
         using FileAction = nexora::editor::imgui::SceneFileAction;
-        nexora::editor::SceneFileResult result;
+        nexora::editor::SceneFileResult file_result;
         bool can_apply = request->action == FileAction::SaveAs ||
                          play.State() == nexora::runtime::PlayState::Stopped;
         const auto old_path = scene_files->CurrentPath();
@@ -1337,12 +1337,13 @@ int RunGraphical(std::optional<ProjectState> project,
                                    overview_load_failed, preview_camera_load_failed};
         const bool retain_views = old_path && !scene_load_failed && !scene_files->SaveBlocked();
         if (!can_apply)
-          result = {FileStatus::Rejected, "Stop Play before changing scenes."};
+          file_result = {FileStatus::Rejected, "Stop Play before changing scenes."};
         if (can_apply && request->save_current) {
-          result = request->save_path ? scene_files->SaveAs(request->token, *request->save_path,
-                                                            request->replace_existing)
-                                      : scene_files->Save(request->token);
-          can_apply = result.Applied();
+          file_result = request->save_path
+                            ? scene_files->SaveAs(request->token, *request->save_path,
+                                                  request->replace_existing)
+                            : scene_files->Save(request->token);
+          can_apply = file_result.Applied();
           if (can_apply) {
             publish_saved_scene();
             remember_scene();
@@ -1354,26 +1355,28 @@ int RunGraphical(std::optional<ProjectState> project,
         if (can_apply) {
           switch (request->action) {
           case FileAction::New:
-            result = scene_files->New(request->token, request->discard_unsaved);
+            file_result = scene_files->New(request->token, request->discard_unsaved);
             break;
           case FileAction::Open:
-            result = scene_files->Open(request->token, request->path, request->discard_unsaved);
+            file_result =
+                scene_files->Open(request->token, request->path, request->discard_unsaved);
             break;
           case FileAction::SaveAs:
-            result = scene_files->SaveAs(request->token, request->path, request->replace_existing);
+            file_result =
+                scene_files->SaveAs(request->token, request->path, request->replace_existing);
             break;
           }
         }
-        if (result.status == FileStatus::NeedsOverwrite)
+        if (file_result.status == FileStatus::NeedsOverwrite)
           ui.RequestSceneOverwrite(std::move(*request));
-        else if (result.status == FileStatus::NeedsUnsavedChoice)
+        else if (file_result.status == FileStatus::NeedsUnsavedChoice)
           ui.RequestSceneUnsavedChoice(std::move(*request));
         else {
-          ui.SetSceneSaveResult(result.message, result.Applied());
-          log(result.Applied() ? nexora::runtime::RuntimeLogSeverity::Info
-                               : nexora::runtime::RuntimeLogSeverity::Error,
-              "Scene", result.message);
-          if (result.Applied()) {
+          ui.SetSceneSaveResult(file_result.message, file_result.Applied());
+          log(file_result.Applied() ? nexora::runtime::RuntimeLogSeverity::Info
+                                    : nexora::runtime::RuntimeLogSeverity::Error,
+              "Scene", file_result.message);
+          if (file_result.Applied()) {
             if (request->action == FileAction::SaveAs)
               publish_saved_scene();
             if (request->action != FileAction::New)

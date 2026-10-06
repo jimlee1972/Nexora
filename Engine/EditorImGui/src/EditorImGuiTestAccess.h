@@ -55,7 +55,10 @@ class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
   [[nodiscard]] static EditorImGuiTestState Inspect(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::string_view ProjectSelectorRoot(const EditorImGuiHost &host) noexcept;
-  static void SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept;
+  // Deterministic event batches default to portable Ctrl semantics; production OS policy is
+  // untouched.
+  static void ConfigureSyntheticInput(EditorImGuiHost &host, bool macos_behaviors = false) noexcept;
+  static void InvokeImeCallback(EditorImGuiHost &host, float x, float y, bool visible) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   HierarchyRenamePosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static bool HierarchyRenameOpen(const EditorImGuiHost &host) noexcept;

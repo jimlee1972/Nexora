@@ -1,6 +1,7 @@
 #include "EditorImGuiTestAccess.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Runtime/RenderSync.h"
+#include "TemporaryDirectoryCleanup.h"
 
 #include <chrono>
 #include <iostream>
@@ -20,6 +21,7 @@ struct Fixture final {
       std::filesystem::temp_directory_path() /
       ("nexora-camera-alignment-" +
        std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  nexora::editor::test::TemporaryDirectoryCleanup cleanup{root};
   runtime::World world;
   runtime::Id scene_id = world.LoadScene("Alignment");
   editor::SceneDocument scene{world, scene_id};
@@ -54,7 +56,7 @@ struct Fixture final {
             "Camera fixture failed");
     original = world.SaveScene(scene_id);
     ui.SetDisplay(1600, 1000, 1);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;
@@ -66,7 +68,6 @@ struct Fixture final {
     Draw();
     Draw();
   }
-  ~Fixture() { std::filesystem::remove_all(root); }
   void Draw() {
     ui.BeginFrame();
     ui.DrawProductShell(shell, &scene, active);

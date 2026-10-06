@@ -4262,13 +4262,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                            (!workspace || workspace->Writable()));
   DrawProjectPanel(*state_, workspace, recent_projects);
   if (state_->focus_initial_scene) {
-    auto *scene_window = ImGui::FindWindowByName(
+    auto *initial_scene_window = ImGui::FindWindowByName(
         PanelWindowName(game_running ? "nexora.game" : "nexora.scene").c_str());
-    if (scene_window != nullptr && scene_window->DockNode != nullptr &&
-        scene_window->DockNode->TabBar != nullptr) {
-      scene_window->DockNode->SelectedTabId = scene_window->TabId;
-      scene_window->DockNode->TabBar->SelectedTabId = scene_window->TabId;
-      scene_window->DockNode->TabBar->NextSelectedTabId = scene_window->TabId;
+    if (initial_scene_window != nullptr && initial_scene_window->DockNode != nullptr &&
+        initial_scene_window->DockNode->TabBar != nullptr) {
+      initial_scene_window->DockNode->SelectedTabId = initial_scene_window->TabId;
+      initial_scene_window->DockNode->TabBar->SelectedTabId = initial_scene_window->TabId;
+      initial_scene_window->DockNode->TabBar->NextSelectedTabId = initial_scene_window->TabId;
       state_->focus_initial_scene = false;
     }
   }
@@ -5030,9 +5030,23 @@ std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHos
   return host.state_->selector_root.data();
 }
 
-void EditorImGuiTestAccess::SetInputTrickle(EditorImGuiHost &host, bool enabled) noexcept {
+void EditorImGuiTestAccess::ConfigureSyntheticInput(EditorImGuiHost &host,
+                                                    bool macos_behaviors) noexcept {
   Activate(host.state_->context);
-  ImGui::GetIO().ConfigInputTrickleEventQueue = enabled;
+  auto &io = ImGui::GetIO();
+  io.ConfigInputTrickleEventQueue = false;
+  io.ConfigMacOSXBehaviors = macos_behaviors;
+}
+
+void EditorImGuiTestAccess::InvokeImeCallback(EditorImGuiHost &host, float x, float y,
+                                              bool visible) noexcept {
+  Activate(host.state_->context);
+  ImGuiPlatformImeData data{};
+  data.InputPos = {x, y};
+  data.WantVisible = visible;
+  const auto callback = ImGui::GetPlatformIO().Platform_SetImeDataFn;
+  IM_ASSERT(callback != nullptr);
+  callback(host.state_->context, ImGui::GetMainViewport(), &data);
 }
 
 std::optional<std::array<float, 2>>

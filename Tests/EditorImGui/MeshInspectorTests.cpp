@@ -143,8 +143,8 @@ int main() {
     Require(scene.Select(batch), "batch reselection failed");
     Access::QueueInspectorMeshes(ui, batch, asset, 7);
     draw();
-    for (const auto key : batch)
-      Require(scene.MeshRenderer(key) && scene.MeshRenderer(key)->mesh == original.mesh,
+    for (const auto batch_key : batch)
+      Require(scene.MeshRenderer(batch_key) && scene.MeshRenderer(batch_key)->mesh == original.mesh,
               "batch assignment failed");
     Require(scene.MeshRenderer(batch[0])->material.shader == original.material.shader &&
                 scene.MeshRenderer(batch[1])->material.shader == unresolved.material.shader &&
@@ -160,7 +160,7 @@ int main() {
     draw();
     Require(Access::InspectorMeshLabel(ui) != "Mixed", "different materials mixed the mesh label");
     Require(scene.Save(path), "assigned batch save failed");
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;
@@ -187,23 +187,23 @@ int main() {
       draw();
     };
     click(2);
-    for (const auto key : batch)
-      Require(!scene.MeshRenderer(key), "Remove button did not remove the entire selection");
+    for (const auto batch_key : batch)
+      Require(!scene.MeshRenderer(batch_key), "Remove button did not remove the entire selection");
     Require(scene.Undo() && !scene.Dirty() && scene.Redo(), "batch removal was not one Undo step");
     draw();
     Require(Access::InspectorMeshLabel(ui) == "None", "absent batch not displayed as None");
     click(0);
     draw();
     click(1);
-    for (const auto key : batch)
-      Require(scene.MeshRenderer(key) && scene.MeshRenderer(key)->mesh == original.mesh,
+    for (const auto batch_key : batch)
+      Require(scene.MeshRenderer(batch_key) && scene.MeshRenderer(batch_key)->mesh == original.mesh,
               "combo click did not assign to all entities");
     Require(scene.Undo() && !scene.MeshRenderer(batch[0]) && !scene.MeshRenderer(batch[1]) &&
                 !scene.MeshRenderer(batch[2]) && scene.Redo(),
             "combo batch was not one Undo step");
     Require(scene.Save(path) && scene.Reload(path), "batch persistence failed");
-    for (const auto key : batch)
-      Require(scene.MeshRenderer(*scene.Key(key.id))->mesh == original.mesh,
+    for (const auto batch_key : batch)
+      Require(scene.MeshRenderer(*scene.Key(batch_key.id))->mesh == original.mesh,
               "reopened batch lost mesh reference");
     Access::QueueInspectorMeshes(ui, batch, std::nullopt, 7);
     Require(scene.Select(std::array{entity, other, empty}), "reopened batch selection failed");

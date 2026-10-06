@@ -333,6 +333,17 @@ recover and discard without data loss outside the selected policy.
 **Status: automated Linux X11 smoke/recovery implemented; physical-display Linux and Windows
 evidence remain.**
 
+✅ Desktop CI now configures the graphical feature on Linux, Windows/DX12, and macOS/Metal,
+requires the ImGui contract and Windows DPI/IME test to register, and retains verbose full-suite
+logs. The Windows native candidate contract now repeats 100/125/150/200% scale round trips
+and checks that hidden candidates and ended frames cannot update placement. Target-host run
+results and physical-display/installed-IME evidence remain required.
+
+✅ Synthetic input fixtures explicitly choose portable Ctrl semantics; undo/redo additionally runs
+with native macOS Cmd/Super behavior enabled. Production keeps the platform's ImGui input policy.
+Fixture cleanup runs after workspace/file owners are destroyed, canonical scene fixtures use
+binary writes, and the Linux shortcut gate explicitly focuses the Scene canvas.
+
 1. Run the full Linux gate listed in §6 with a clean tree. Because WP1/WP3 alter linkage/API
    boundaries, run `linux-shipping` too.
 2. Under a real X11 display, run a scripted/manual checklist covering launch, visible font/text,

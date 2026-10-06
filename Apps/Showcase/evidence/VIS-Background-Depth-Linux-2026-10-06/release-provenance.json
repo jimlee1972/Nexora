@@ -1,0 +1,96 @@
+{
+  "source_freeze": "d5676eea058ecb999979120119f2ac36c6d5bad9",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    ".github/workflows/build.yml": "200ba544001d53d34b91469e83b885bf3e924b19de21b910c0c654609fb53958",
+    "Apps/Editor/README.md": "5f44c2132641c913d90ba4833dd27979c1e65bc0757eba45559dc8ecc81e51f3",
+    "Apps/Editor/main.cpp": "ef7f922ec3175a23cee3852ed16e38ce925b9638293447dbaad8e6d32f8b15d7",
+    "Apps/Showcase/README.md": "03741402704f090b399de2239951c53396bcb96e2a27f52ebd75a84e920b66bd",
+    "Apps/Showcase/ShowcaseRooms.cpp": "f669c686a7c567e9108d20ca4efe494498b5b537c5ffb35ee6ab88d7f036227c",
+    "Engine/EditorImGui/CMakeLists.txt": "0360a8c80af13b97227b413caaf43e04415d79e3e4a18f13e1d703eb7eec6175",
+    "Engine/EditorImGui/README.md": "12b397a8ffbe3057b212b1cce4807a0cf87d272eb8c7738e7fd47454ebecb7a5",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "84eb7fc5e45b58c304a2655e7a68a79b04491a313aff965b1d3abc58768b29dd",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "060a449e3293fe5d6ffe01d72059f43779e18c7bc9cec633a4d45c0e2913a495",
+    "README.md": "8b752531da491c1b8095c43d30e1c96629cbc34cf73d263eb0b58d71a8228a59",
+    "Roadmap/en/Editor_ImGui_Integration_Plan.md": "dce0ec375cc7cba99da06c34b17753fa4d6d5318811b2816265a37649b010ccc",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "76cb0a0b850b38703f0f962aa55e2b95b0b0466fe3b9388877647ad9b22b0182",
+    "Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md": "fedadf6531ec35059d59fe22c605fc2c4119c81ebb67024b42eb34c4062ea5d2",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "dc1eac891d5256d67dfce2c121b5103eb61fb60be7870734dda364e8ae9db975",
+    "Tests/EditorImGui/BuiltinCreationTests.cpp": "0366cb4f440501957f7967885f3d77012e9303471ce7f9b1217b086999c5a5ec",
+    "Tests/EditorImGui/CameraAlignmentTests.cpp": "7cd1e0027110552c93e00d80a23568e079bbc9f4b302fa5569e0628fcd518c84",
+    "Tests/EditorImGui/ClipboardForestTests.cpp": "4768a9e79c76b68a47c3d73ea400da4016d36b06982de03201c04a4325560516",
+    "Tests/EditorImGui/ComponentDraftTests.cpp": "780f0e6b700202704df54d34b3119023f5cf5ed32f8971e6e760cc58516ac21c",
+    "Tests/EditorImGui/ComponentMultiEditTests.cpp": "331b695192aee1428734dd4e6150388897f73b068f49b8c2c8c980763a7041f3",
+    "Tests/EditorImGui/ComponentResetTests.cpp": "fc553ee8f838917b9a72f7e4a585af4f364bcdd188f7e6f16ab25767c2320a42",
+    "Tests/EditorImGui/ComponentValueTests.cpp": "905dddd13011054e7f561c8c2f1e67637475b9455aa36eb9dbcbc67ea6f208ad",
+    "Tests/EditorImGui/CutClipboardTests.cpp": "ab1d343bb49448d171608a535d6d65fa4edf8701610cb239d9c6d76a3ddbd3aa",
+    "Tests/EditorImGui/EditorImGuiTests.cpp": "6ee13b3d58192285e9e8f43d60f346bde2b7bfd3c2d7b5b3f8f78915dcd5fdf8",
+    "Tests/EditorImGui/GameCameraTests.cpp": "f80008ff2812f6957946e8ce80f856f8645c4c38a800bccd7e9560ecbbf54bc4",
+    "Tests/EditorImGui/HierarchySelectAllTests.cpp": "d4d9945f79dce3bbf162fd2d1705bf6ec4dc347c813ba540943627d979fde621",
+    "Tests/EditorImGui/InspectorMeshDropTests.cpp": "1beb26cfeffe3625e8ad7e64b4d3dc6e5f9428e66730daa420eadb360c39aca2",
+    "Tests/EditorImGui/KeyboardRenameTests.cpp": "f7ae5387e505a357f46fca0c50a2aaa94fe394ae0f492aa612fae5056aecda9f",
+    "Tests/EditorImGui/LinuxDisplayAcceptance.py": "0a40c97d6926a51104d0992de4155f1886246d0f17fed2da1a01d56008e4da40",
+    "Tests/EditorImGui/MeshCreationTests.cpp": "9e91c77fc94b237b50b59736b48ff55606f50b2c384899c83004845414161c27",
+    "Tests/EditorImGui/MeshDropTests.cpp": "3b5d2a1c905b4f84f60544d3e20acf6ddff88fccccef1ec923fa530a0bec8f4d",
+    "Tests/EditorImGui/MeshInspectorTests.cpp": "fe1598d8fa42eb354f29d19d1aca1d4920ee46e03535a0ead82fd8105cec0b3d",
+    "Tests/EditorImGui/NativeSceneToolTests.cpp": "29d2c92a6163894992d62dfe759b82198b57580c8b15776842899f159360fc15",
+    "Tests/EditorImGui/PlayApplyTests.cpp": "c11e4bb77dcedfa9d17094402de6362fb3359f29d779a098fdeb81f57260aa6a",
+    "Tests/EditorImGui/PointerDpiTests.cpp": "c8b9d389c6f5c5742beff8ae4c8fc3fa5b38d910be3c434d3e029ab0cd797d4a",
+    "Tests/EditorImGui/ProfilerExportTests.cpp": "7b3e90a242a1b4c239a3974186991f38538c65738c121b39984515ad069f3ad8",
+    "Tests/EditorImGui/SceneAccessTests.cpp": "544623d61c16894eba609b568da7f3eac1c46029df097c23102487d8e1b5d76e",
+    "Tests/EditorImGui/SceneFileTests.cpp": "3ee62f81091ec98102379dbb40baa1c716b9a7827a56735a3d8baee71320240c",
+    "Tests/EditorImGui/SceneFrameTests.cpp": "3844e2704d89faab142ccac4d2fd1dab4d41899cbca8dd4eaf364d314e032b3e",
+    "Tests/EditorImGui/SceneSelectAllTests.cpp": "025bd0ea0ae8ce6b701d4a69a26866ea6e1ba788c972bfc58070cce707d5175b",
+    "Tests/EditorImGui/SelectionDeleteTests.cpp": "b6266f09a8d6bc86eff276ffcde8e2a5dead8e84f08346012ea0a9783b2fb74b",
+    "Tests/EditorImGui/TemporaryDirectoryCleanup.h": "538a65e306fee379491758b8c8d30ff74afe6bf38766e61d3878061c0e9754b2",
+    "Tests/EditorImGui/TransformInputTests.cpp": "a0bad9a1b7f88a9e2ae5c62c9152f37c983cb7a8feef216dd89777492965cecf",
+    "Tests/EditorImGui/UnknownInspectorTests.cpp": "eee4ac1477a6927798933f62b89969023c6d44a1599700c0a29ffcb81ddf7c56",
+    "Tests/EditorImGui/WindowsDpiImeTests.cpp": "80587b720f34f40248de300a2585cb2de54754ce8ddd8c53bc1cc18ba4475aee",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "4f0c8ba246a820790ed8b84dcc11cd50c53e6004c8f6699de5054cb08360506c"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/background-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "d5676eea058e",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.83739913700265,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.266667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "87c302bf0505b078911c9d19510ac0be9027b6da29cfb40d8e80dfad67352023",
+    "video_sha256": "fc0ae3a3b8393903a29a81f0d94d7cc5dac858fc75dea8938deb8eb9d9c6656f",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "a531e27857382c1903cbf9ca64880333faea568db87d2bebc5c1e8493596396b",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}

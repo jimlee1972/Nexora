@@ -386,6 +386,9 @@ def main() -> int:
                        env=environment, check=True)
         subprocess.run([args.xdotool, "mousemove", "640", "300", "click", "4"],
                        env=environment, check=True)
+        # Resize may move the earlier sidebar click onto an editable widget. Explicitly give
+        # the central Scene canvas keyboard focus before authoring shortcuts, as a user would.
+        subprocess.run([args.xdotool, "click", "1"], env=environment, check=True)
         time.sleep(0.5)
         subprocess.run([args.xdotool, "key", "ctrl+shift+n"], env=environment, check=True)
         time.sleep(0.2)

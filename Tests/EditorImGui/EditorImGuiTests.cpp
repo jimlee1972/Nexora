@@ -47,7 +47,7 @@ void TestEulerRotation() {
   assert(!ToEulerDegrees(original));
 }
 
-void TestSceneUndoShortcut() {
+void TestSceneUndoShortcut(bool macos_behaviors) {
   nexora::runtime::World world;
   const auto scene_id = world.LoadScene("Undo shortcut");
   assert(world.Activate(scene_id));
@@ -58,7 +58,24 @@ void TestSceneUndoShortcut() {
   assert(root && added && scene.Select(selected));
   nexora::editor::ProductShell shell;
   nexora::editor::imgui::EditorImGuiHost host;
-  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  nexora::editor::imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host, macos_behaviors);
+  const auto process_shortcut = [&](const auto &events) {
+    std::vector<Nexora::Window::WindowEvent> native_events(events.begin(), events.end());
+    if (macos_behaviors) {
+      for (auto &event : native_events) {
+        const auto modifiers = static_cast<unsigned>(event.modifiers);
+        const auto control = static_cast<unsigned>(Nexora::Window::KeyModifiers::Control);
+        const auto super = static_cast<unsigned>(Nexora::Window::KeyModifiers::Super);
+        event.modifiers = static_cast<Nexora::Window::KeyModifiers>(
+            (modifiers & ~(control | super)) | ((modifiers & control) ? super : 0U) |
+            ((modifiers & super) ? control : 0U));
+        if (event.type == Nexora::Window::WindowEventType::Key &&
+            event.value0 == static_cast<std::int32_t>(Nexora::Window::Key::LeftControl))
+          event.value0 = static_cast<std::int32_t>(Nexora::Window::Key::LeftSuper);
+      }
+    }
+    host.ProcessEvents(native_events);
+  };
   host.SetDisplay(1280.0F, 720.0F, 1.0F);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene);
@@ -84,7 +101,7 @@ void TestSceneUndoShortcut() {
                                   static_cast<std::int32_t>(Nexora::Window::Key::Z),
                                   1,
                                   Nexora::Window::KeyModifiers::Control}};
-  host.ProcessEvents(events);
+  process_shortcut(events);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene);
   static_cast<void>(host.EndFrame());
@@ -110,7 +127,7 @@ void TestSceneUndoShortcut() {
                                   static_cast<std::int32_t>(Nexora::Window::Key::Y),
                                   1,
                                   Nexora::Window::KeyModifiers::Control}};
-  host.ProcessEvents(redo_events);
+  process_shortcut(redo_events);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene);
   static_cast<void>(host.EndFrame());
@@ -146,7 +163,7 @@ void TestSceneUndoShortcut() {
                                   static_cast<std::int32_t>(Nexora::Window::Key::Z),
                                   1,
                                   control_shift}};
-  host.ProcessEvents(alternate_redo);
+  process_shortcut(alternate_redo);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene);
   static_cast<void>(host.EndFrame());
@@ -163,7 +180,7 @@ void TestSceneClipboardShortcuts() {
   assert(source && scene.SetTransform(source, {1.0, 2.0, 3.0}) && scene.Select(selected));
   nexora::editor::ProductShell shell;
   nexora::editor::imgui::EditorImGuiHost host;
-  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  nexora::editor::imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host);
   host.SetDisplay(1280.0F, 720.0F, 1.0F);
   const auto draw = [&] {
     host.BeginFrame();
@@ -238,7 +255,7 @@ void TestHierarchyCreateShortcut() {
   nexora::editor::SceneDocument scene(world, scene_id);
   nexora::editor::ProductShell shell;
   nexora::editor::imgui::EditorImGuiHost host;
-  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  nexora::editor::imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host);
   host.SetDisplay(1280.0F, 720.0F, 1.0F);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene);
@@ -292,7 +309,7 @@ void TestHierarchyDuplicateShortcut() {
   assert(source && scene.Select(selected));
   nexora::editor::ProductShell shell;
   nexora::editor::imgui::EditorImGuiHost host;
-  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  nexora::editor::imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host);
   host.SetDisplay(1280.0F, 720.0F, 1.0F);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene);
@@ -339,7 +356,7 @@ void TestSceneOverviewSelection() {
          scene.SetTransform(overview_child, {3.0, 0.0, 2.0}));
   nexora::editor::ProductShell shell;
   nexora::editor::imgui::EditorImGuiHost host;
-  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  nexora::editor::imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host);
   host.SetDisplay(1280.0F, 720.0F, 1.0F);
   host.BeginFrame();
   host.DrawProductShell(shell, &scene);
@@ -478,7 +495,7 @@ void TestSceneOverviewDrag() {
   assert(drag_entity);
   nexora::editor::ProductShell shell;
   nexora::editor::imgui::EditorImGuiHost host;
-  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  nexora::editor::imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host);
   host.SetDisplay(1280.0F, 720.0F, 1.0F);
   const auto draw = [&] {
     host.BeginFrame();
@@ -650,7 +667,7 @@ void TestNativeSceneCameraControls() {
   assert(target && scene.SetTransform(target, {0.0, 7.0, 0.0}));
   nexora::editor::ProductShell shell;
   nexora::editor::imgui::EditorImGuiHost host;
-  nexora::editor::imgui::EditorImGuiTestAccess::SetInputTrickle(host, false);
+  nexora::editor::imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host);
   host.SetDisplay(1280.0F, 720.0F, 1.0F);
   host.SetNativeScenePreview(true);
   const auto draw = [&] {
@@ -907,7 +924,8 @@ void TestNativeSceneCameraControls() {
 
 int main() {
   TestEulerRotation();
-  TestSceneUndoShortcut();
+  TestSceneUndoShortcut(false);
+  TestSceneUndoShortcut(true);
   TestSceneClipboardShortcuts();
   TestHierarchyDeleteShortcut();
   TestHierarchyCreateShortcut();
@@ -922,6 +940,9 @@ int main() {
   assert(!initial_state.platform_viewports_enabled);
   assert(initial_state.keyboard_navigation_enabled);
   assert(initial_state.input_trickle_enabled);
+  // A callback without an active borrowed surface must be harmless on every platform.
+  EditorImGuiTestAccess::InvokeImeCallback(host, 40.0F, 60.0F, true);
+  EditorImGuiTestAccess::InvokeImeCallback(host, 40.0F, 60.0F, false);
   nexora::runtime::World world;
   const auto scene_id = world.LoadScene("Editor ImGui contract");
   assert(world.Activate(scene_id));
@@ -971,7 +992,7 @@ int main() {
   // This test replays a synthetic event batch as a single deterministic unit rather than live
   // input, so disable trickling to make ProcessEvents() -> one NewFrame() a reliable, complete
   // apply.
-  EditorImGuiTestAccess::SetInputTrickle(host, false);
+  EditorImGuiTestAccess::ConfigureSyntheticInput(host);
   assert(!EditorImGuiTestAccess::Inspect(host).input_trickle_enabled);
   host.SetDisplay(1280.0F, 720.0F, 1.0F);
   host.BeginFrame();
@@ -1294,8 +1315,8 @@ int main() {
     Nexora::Window::WindowEvent event{};
     event.type = Nexora::Window::WindowEventType::Text;
     event.value0 = character;
-    const std::array events{event};
-    host.ProcessEvents(events);
+    const std::array text_events{event};
+    host.ProcessEvents(text_events);
     draw_inspector();
   }
   assert(scene.Transform(root) == before_text_edit);

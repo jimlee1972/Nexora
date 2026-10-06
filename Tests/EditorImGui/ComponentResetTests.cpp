@@ -49,7 +49,7 @@ struct Fixture final {
         "Inspector reset entity fixture failed");
     original = world.SaveScene(id);
     ui.SetDisplay(1600, 1200, scale);
-    Access::SetInputTrickle(ui, false);
+    Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
     focus.value0 = 1;
