@@ -312,6 +312,8 @@ Windows native candidate contract 現重複 100/125/150/200% scale round trip，
 
 ✅ Synthetic input fixture 明確採用 portable Ctrl 語意；Undo／Redo 另以 native macOS
 Cmd／Super 行為驗證。Production 保留平台原生的 ImGui input policy。
+Fixture cleanup 在 workspace／file owner 銷毀後執行，canonical scene fixture 採 binary
+寫入，Linux shortcut gate 明確取得 Scene canvas 焦點。
 
 1. Clean tree 執行 §6 完整 Linux gate。WP1/WP3 更動 linkage/API boundary，因此也跑 `linux-shipping`。
 2. Real X11 display 執行 launch、font/text 可見、Hierarchy selection、docking、各類 input、resize/
