@@ -78,7 +78,10 @@ namespace Nexora::Presentation {
     }
   }
   for (const auto &material : draw.materials)
-    if ((material.twoSidedLighting && material.unlit) ||
+    if ((material.dielectricRefraction &&
+         (material.refractionIndex <= 1 || material.refractionThickness <= 0 ||
+          material.metallic != 0)) ||
+        (material.twoSidedLighting && material.unlit) ||
         (material.refractionFrontSurfaceOnly &&
          (material.refractionIndex <= 1 || material.refractionThickness <= 0)) ||
         ((material.refractionIndex > 1 || material.refractionThickness > 0) &&
@@ -94,7 +97,7 @@ namespace Nexora::Presentation {
       if (material.alphaCutoff || material.windAmplitude || material.transmissionThickness ||
           material.unlit || material.worldTextureScale || material.refractionIndex > 1 ||
           material.refractionThickness || material.refractionFrontSurfaceOnly ||
-          material.twoSidedLighting)
+          material.twoSidedLighting || material.dielectricRefraction)
         return false;
   if (!draw.pbr)
     return draw.linearTextureUploads.empty() && !draw.environment && !draw.shadow &&
@@ -218,7 +221,7 @@ template <typename Lookup>
          resolveLevels(draw.environment->brdfTextureId) == 1;
 }
 
-// Matches MaterialConstants in scene_pbr.slang: twenty-three float4s, independent of native UBO
+// Matches MaterialConstants in scene_pbr.slang: twenty-five float4s, independent of native UBO
 // alignment.
 using PbrMaterialUpload = std::array<float, 100>;
 static_assert(sizeof(PbrMaterialUpload) == 400);
@@ -304,6 +307,7 @@ PackPbrMaterial(const SceneDrawData &draw, const SceneMaterial &material, bool m
     std::copy(draw.pointLight->radiance.begin(), draw.pointLight->radiance.end(),
               parameters.begin() + 96);
   }
+  parameters[99] = material.dielectricRefraction ? 1.0F : 0.0F;
   return parameters;
 }
 } // namespace Nexora::Presentation

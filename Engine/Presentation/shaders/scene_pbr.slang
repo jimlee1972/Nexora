@@ -36,7 +36,7 @@ struct MaterialConstants
   float4 atmosphereRange; // start/end camera distance, two reserved
   float4 refraction; // index, slab thickness, inverse target width/height
   float4 pointPositionRadius;
-  float4 pointRadiance;
+  float4 pointRadiance; // xyz point radiance; w opts into thin dielectric refraction
 };
 [[vk::binding(4, 0)]] ConstantBuffer<MaterialConstants> material : register(b1);
 [[vk::binding(0, 0)]] Sampler2D<float4> baseMap : register(t0);
@@ -248,7 +248,8 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
         ormMap.Sample(frac(mapPosition.xz)).xyz * mapWeight.y +
         ormMap.Sample(frac(mapPosition.xy)).xyz * mapWeight.z;
   NexoraPbrMaterial surface;
-  surface.baseColor = baseSample.rgb * material.baseColor.rgb * input.color.rgb;
+  surface.baseColor = material.pointRadiance.w > 0.5 ? float3(0) :
+      baseSample.rgb * material.baseColor.rgb * input.color.rgb;
   surface.normal = material.worldMapping.x > 0 ? sampleWorldNormal(mapPosition, n, mapWeight) :
       NexoraDecodeTangentNormal(encoded, t, b, n);
   surface.metallic = saturate(orm.b * material.properties.x);
@@ -297,6 +298,7 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
     local = NexoraEvaluateDirectBrdf(surface.normal, viewDirection, geometryDirection(delta),
         surface.baseColor, surface.metallic, surface.roughness, material.pointRadiance.rgb * attenuation);
   }
+  if (material.pointRadiance.w > 0.5) transmitted = float3(0);
   float3 color = direct * visibility + ambient + local + transmitted + max(surface.emission, float3(0));
   float4 result = outputSceneColor(reflectionResponse(color, renderedPosition), renderedPosition);
   if (material.refraction.x > 1 && material.refraction.y > 0) {
@@ -316,8 +318,18 @@ float4 pbrFragmentMain(VertexOutput input) : SV_Target
         1 - material.refraction.zw * 0.5);
     float4 background = opaqueBackground.SampleLevel(target, 0);
     if (background.a + 0.02 < result.a) background = opaqueBackground.SampleLevel(uv, 0);
-    result.rgb = clamp(result.rgb + background.rgb * material.transparency.yzw *
-        (1 - material.transparency.x), float3(0), float3(65504));
+    if (material.pointRadiance.w > 0.5) {
+      // One bounded dielectric interface: tint only the covered transmitted background.
+      // Uncovered pixels retain their original background, rather than the shifted sample.
+      float fresnel = NexoraEvaluateWaterFresnel(faceNormal, viewDirection, material.refraction.x);
+      float3 uncovered = opaqueBackground.SampleLevel(uv, 0).rgb;
+      result.rgb = clamp(result.rgb + background.rgb * material.transparency.yzw *
+          material.transparency.x * (1-fresnel) + uncovered * (1-material.transparency.x),
+          float3(0), float3(65504));
+    } else {
+      result.rgb = clamp(result.rgb + background.rgb * material.transparency.yzw *
+          (1 - material.transparency.x), float3(0), float3(65504));
+    }
   }
   return result;
 }

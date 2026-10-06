@@ -8,7 +8,8 @@ struct Fixture final {
   std::array<SceneMaterial, 4> materials{};
   // Deliberately submit the glass before its opaque background.
   std::array<SceneMeshBatch, 3> batches{{{12, 6, 0, 1, 3}, {0, 6, 0, 1, 0}, {6, 6, 0, 1, 1}}};
-  explicit Fixture(unsigned mode) {
+  unsigned variant{};
+  explicit Fixture(unsigned mode) : variant(mode) {
     const auto quad = [&](unsigned first, float left, float right, float z) {
       const std::array<std::array<float, 2>, 6> corners{{{left, -0.8F},
                                                          {right, -0.8F},
@@ -48,6 +49,18 @@ struct Fixture final {
       v.tangent[0] = 0.8F;
       v.tangent[2] = mode == 2 ? 0.6F : -0.6F;
     }
+    if (mode >= 8) {
+      materials[0].emission = materials[1].emission = {0.5F, 0.5F, 0.5F};
+      materials[3].opacity = 0.75F;
+      materials[3].dielectricRefraction = mode == 9 || mode == 10;
+      for (unsigned i = 12; i < vertices.size(); ++i) {
+        auto &v = vertices[i];
+        v.normal[0] = mode == 10 ? 0.98F : 0.0F;
+        v.normal[2] = mode == 10 ? -0.2F : -1.0F;
+        v.tangent[0] = mode == 10 ? 0.2F : 1.0F;
+        v.tangent[2] = mode == 10 ? 0.98F : 0.0F;
+      }
+    }
   }
   SceneDrawData Draw() const {
     SceneDrawData draw{};
@@ -57,6 +70,8 @@ struct Fixture final {
     draw.batches = batches;
     draw.pbr = draw.hdr = draw.offscreen = true;
     draw.cameraPosition = {0, 0, -3};
+    if (variant >= 8)
+      draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 0;
     return draw;
   }
 };
@@ -71,6 +86,24 @@ template <typename Rgb> bool Pixels(unsigned mode, const Rgb &left, const Rgb &r
            std::abs(static_cast<int>(p[0]) - PbrTransparencyFixtures::Encoded(0.25F)) <= 2 &&
            p[2] < 5;
   };
+  if (mode >= 8) {
+    for (const auto &pixel : {left, right}) {
+      const int value = static_cast<int>(pixel[0]);
+      if (std::abs(value - static_cast<int>(pixel[1])) > 1 ||
+          std::abs(value - static_cast<int>(pixel[2])) > 1)
+        return false;
+      if ((mode == 8 || mode == 11) &&
+          std::abs(value - PbrTransparencyFixtures::Encoded(0.125F)) > 2)
+        return false;
+      if (mode == 9 && (value < PbrTransparencyFixtures::Encoded(0.47F) ||
+                        value > PbrTransparencyFixtures::Encoded(0.5F) + 1))
+        return false;
+      if (mode == 10 && (value >= PbrTransparencyFixtures::Encoded(0.44F) ||
+                         value <= PbrTransparencyFixtures::Encoded(0.25F)))
+        return false;
+    }
+    return true;
+  }
   if (mode == 6)
     return left[0] < 5 && left[2] < 5 && right[1] < 5 && right[2] < 5 &&
            std::abs(static_cast<int>(left[1]) - PbrTransparencyFixtures::Encoded(0.5F)) <= 2 &&

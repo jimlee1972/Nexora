@@ -1,5 +1,9 @@
 # Nexora
 
+✅ Linux Development full 97/97 tests passed (109.50 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.89 s wall time). Production freeze `19899040d0c70d3ba2053bd918cae03230bed88f`; evidence: `Apps/Showcase/evidence/VIS-Courtyard-Coping-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+Courtyard coping and shadow follow-up: replace the three perfect pedestal rims with 72 original jointed, bevelled stones over recessed supporting cores, with bounded radial/height variation and transformed normals. The 24×20 directional projection includes both side-arcade crowns. The light orientation, tier resolutions, shader packets, assets and shared animation clock remain unchanged. Linux Development configure/build and full 97/97 tests passed (109.50 s), including native shadow comparison/restoration with Khronos core/sync validation; Shipping verification passed; VIS remains 5/7 and reference parity remains open.
+
 ✅ Linux configure/build and full 97/97 tests passed (108.23 s, Khronos core/sync validation), including nine evidence-policy tests and 600 actual native camera frames. Isolated original Shipping acceptance passed. Interaction synchronization now waits for complete Lab JSON/Markdown export, holds D through the fixed 600-frame camera run, and requires stable foreground pixels at the resized viewport scale before shutdown. The resize-generation, camera-movement, pixel-restoration, frame-count and timeout gates remain in force. Runtime/movie freeze remains c815263b; evidence: `Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
 
 Release-verifier diagnostic follow-up: failed native/headless subprocesses now print a bounded stderr tail and the structured failure result to CI logs. Acceptance gates, exit status, runtime and the recorded Shipping/movie freeze are unchanged. Linux configure/build and full 97/97 tests passed (104.27 s) with Khronos core/synchronization validation; the original Shipping package passed isolated native acceptance. Evidence: `Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/release-diagnostics/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
@@ -1227,3 +1231,37 @@ ED-M0 display input synchronization: authoring/save/close keys now use 100 ms tr
 matching the selector, with all original assertions retained.
 ED-M0 display input 同步：authoring／save／close key 採與 selector 相同的 100 ms transition，
 全部原始斷言仍保留。
+
+Courtyard lighting/glass iteration: stronger authored IBL reveals leaf shadow detail; a
+closer, higher-aimed wide camera frames the device, and stone/core radiance is restrained.
+The crystal opts into thin dielectric Fresnel transmission using the existing bounded
+HDR snapshot. Its shared-clock rotation/hover, wind, bloom, skybox and local light remain
+active. ✅ Linux configure/build and 97/97 tests pass (104.97 seconds), including 97 native
+PBR frames with core/sync validation. Shipping/Full isolation, exact native comparison
+restoration and an actual 100-second animated movie pass. Evidence: `Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05`; reference parity and physical-target
+acceptance remain open (VIS 5/7).
+
+庭院光照與玻璃修整：提高原有 IBL 強度以顯示葉片陰影細節；廣角鏡頭靠近並提高
+視線，石材與水晶內部輻射亮度更克制。水晶使用現有有界 HDR 快照，選用薄介電
+界面的 Fresnel 透光；共用時鐘的旋轉／浮動、風、bloom、skybox 與局部光源持續
+運作。✅ Linux configure/build 與 97/97 測試通過（104.97 秒），包括 97 個原生
+PBR frame 的 core/sync 驗證；Shipping/Full 隔離、原生比較精確還原及實際 100 秒
+動畫影片通過。證據：`Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05`；預覽一致及實體硬體驗收保持未完成（VIS 5/7）。
+
+Native release diagnostic follow-up: failed headless/native subprocesses now print at
+most 8 KiB of stderr and the structured failure reason. Exit codes, timeouts and all
+acceptance checks are unchanged. ✅ Full Linux configure/build and 97/97 pass (103.21
+seconds); the frozen Shipping executable passes isolated native acceptance with the
+updated verifier. A controlled subprocess failure remains FAIL/exit 1 and prints its
+bounded reason. Follow-up evidence is in `VIS-Dielectric-Glass-Linux-2026-10-05/release-diagnostics/`;
+the recorded runtime/movie production freeze remains unchanged.
+
+原生 release 診斷補強：headless／native 子程序失敗時輸出最多 8 KiB stderr 與
+結構化原因；退出碼、逾時及全部驗收條件保持相同。✅ Linux configure/build 與
+97/97 測試通過（103.21 秒）；固定 Shipping 執行檔使用新版 verifier 的隔離
+原生驗證通過。受控的子程序失敗仍回傳 FAIL／exit 1，且能看到有界原因。證據：
+`VIS-Dielectric-Glass-Linux-2026-10-05/release-diagnostics/`；原有 runtime／影片 freeze 保持相同。
+
+✅ Dielectric/native interaction integration: Linux configure/build and full 97/97 tests passed (111.31 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 4933fbc passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
+
+✅ Coping/native interaction integration: Linux configure/build and full 97/97 tests passed (110.58 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 1989904 passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Courtyard-Coping-Linux-2026-10-06/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.

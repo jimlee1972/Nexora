@@ -109,7 +109,8 @@ int main() {
          wide.materials[16].twoSidedLighting);
   assert(courtyard.Report().find("\"foliage_quad_count\":" + std::to_string(sourceLeaves)) !=
          std::string::npos);
-  assert(wide.materials[12].opacity == 0.23F && !wide.materials[12].castsShadow);
+  assert(wide.materials[12].opacity == 0.95F && !wide.materials[12].castsShadow &&
+         wide.materials[12].dielectricRefraction);
 #if NEXORA_ASSET_PIPELINE_ENABLED
   // The mineral core stays contained by the closed shell and shares its animated range.
   std::size_t coreCorners = 0;
@@ -235,6 +236,19 @@ int main() {
   Press(courtyard, Key::K);
   assert(courtyard.Scene(1280, 720).bloom);
   assert(wide.shadow && wide.lightingStyle && wide.shadow->resolution == 1024);
+  // Side-arcade crowns must remain inside the shadow camera. Their shadows use
+  // the same light-space XY, even when projected beyond the central pedestal.
+  for (const float x : {-7.5F, 7.5F})
+    for (const float z : {-4.0F, 2.0F}) {
+      const std::array<float, 4> crown{x, 7.0F, z, 1.0F};
+      const auto &matrix = wide.shadow->lightViewProjection;
+      std::array<float, 4> clip{};
+      for (unsigned row = 0; row < 4; ++row)
+        for (unsigned column = 0; column < 4; ++column)
+          clip[row] += matrix[row * 4 + column] * crown[column];
+      assert(std::abs(clip[0]) < clip[3] && std::abs(clip[1]) < clip[3]);
+      assert(clip[2] > 0 && clip[2] < clip[3]);
+    }
   Press(courtyard, Key::F6);
   assert(!courtyard.Scene(1280, 720).shadow);
   Press(courtyard, Key::F6);
@@ -324,7 +338,7 @@ int main() {
   Press(courtyard, Key::U);
   assert(courtyard.Scene(1280, 720).materials[12].opacity == 1);
   Press(courtyard, Key::U);
-  assert(courtyard.Scene(1280, 720).materials[12].opacity == 0.23F);
+  assert(courtyard.Scene(1280, 720).materials[12].opacity == 0.95F);
   session.RerunProbe(0, nexora::showcase::ErrorInjection::DependencyCycle);
   assert(session.Probes()[0].status == nexora::showcase::ProbeStatus::Unsupported);
   assert(session.Healthy());
@@ -463,13 +477,15 @@ int main() {
                      [](const auto &batch) { return batch.materialIndex == 7; });
     assert(particleBatch != draw.batches.end() && particleBatch->indexCount == (24U << tier) * 6);
     assert(draw.planarReflection.has_value() == (tier != 0));
+    assert(draw.materials[12].dielectricRefraction == (tier != 0));
     assert(draw.instances.size() == (tier != 0 ? 438 : 437) + masonryCount);
     qualityVertices[tier] = draw.vertices.size();
   }
   assert(quality.Scene(1280, 720).materials[12].refractionIndex == 1.46F);
   Press(quality, Key::F8);
   assert(quality.Scene(1280, 720).materials[12].refractionIndex == 1 &&
-         quality.Scene(1280, 720).materials[12].refractionThickness == 0);
+         quality.Scene(1280, 720).materials[12].refractionThickness == 0 &&
+         !quality.Scene(1280, 720).materials[12].dielectricRefraction);
   Press(quality, Key::F8);
   assert(quality.Scene(1280, 720).materials[12].refractionIndex == 1.46F);
   Press(quality, Key::F7);

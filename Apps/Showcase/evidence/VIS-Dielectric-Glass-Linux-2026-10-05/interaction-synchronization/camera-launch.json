@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/workspace/Nexora-vis-courtyard-fill/build/linux-development/Apps/Showcase/NexoraShowcase",
+    "--mode=interactive",
+    "--scene=rendering",
+    "--backend=vulkan",
+    "--frames=600",
+    "--resize=960x540",
+    "--no-reload",
+    "--gameplay-module=static",
+    "--report=/workspace/Nexora-vis-courtyard-fill/build/linux-development/artifacts/showcase-linux-vulkan-camera-input/scene.json"
+  ],
+  "exit_code": 0,
+  "acceptance_passed": true,
+  "scope": "Linux/X11/Vulkan GPU scene on virtual display",
+  "physical_display_verified": false,
+  "validation_layer_requested": true
+}

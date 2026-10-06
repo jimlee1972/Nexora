@@ -613,7 +613,8 @@ int main(int argc, char **argv) {
         return fail(__LINE__);
     }
     std::array<unsigned, 3> refractedLeft{}, refractedRight{};
-    for (unsigned mode = 0; mode < 8; ++mode) {
+    std::vector<std::byte> dielectricReference;
+    for (unsigned mode = 0; mode < 12; ++mode) {
       PbrRefractionFixtures::Fixture fixture(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
           !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
@@ -630,6 +631,10 @@ int main(int argc, char **argv) {
                                        std::to_integer<unsigned>(pixels[index])};
       };
       const auto left = read(640 * 49 / 100), right = read(640 * 51 / 100);
+      if (mode == 8)
+        dielectricReference = pixels;
+      if (mode == 11 && pixels != dielectricReference)
+        return fail(__LINE__);
       if (!PbrRefractionFixtures::Pixels(mode, left, right))
         return fail(__LINE__);
       if (mode == 1) {

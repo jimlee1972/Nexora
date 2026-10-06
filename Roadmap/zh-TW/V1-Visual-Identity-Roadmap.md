@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux Development 完整 97/97 測試通過（109.50 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.89 秒）。製作凍結版本 `19899040d0c70d3ba2053bd918cae03230bed88f`；證據：`Apps/Showcase/evidence/VIS-Courtyard-Coping-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+Linux Development configure/build 與完整 97/97 測試通過（109.50 秒，Khronos core/sync validation）。庭院石台與陰影的 Shipping 驗收已通過：以 72 塊原創環形石塊取代平滑石台邊緣，並擴大方向光投影以涵蓋兩側拱頂。保留既有原生解析度、光源方向、材質、資產／shader 契約與動畫生命週期。VIS 仍為 5/7；寫實預覽圖一致性與實體顯示器驗收仍未完成。
+
 ✅ Linux configure/build 與完整 97/97 測試通過（108.23 秒，Khronos core/sync validation），包含九項證據政策測試與實際 600 幀原生相機測試；原 Shipping 套件隔離驗收通過。互動驗收改為等待完整 Lab JSON／Markdown 匯出、按住 D 直到固定 600 幀完成，並在關閉前確認前景像素已按縮放後視窗比例穩定呈現。縮放 generation、相機移動、像素還原、幀數與 timeout 驗收條件均保留。程式／影片凍結版本仍為 c815263b；證據：`Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/interaction-synchronization/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 發行驗證診斷補充：原生／headless 子程序失敗時，CI 會輸出有長度上限的 stderr 與結構化失敗結果。驗收條件、退出狀態、執行程式及既有 Shipping／影片凍結版本不變。Linux configure/build 與完整 97/97 測試通過（104.27 秒，Khronos core/sync validation），原 Shipping 套件隔離原生驗收通過。證據：`Apps/Showcase/evidence/VIS-Courtyard-Valley-Linux-2026-10-05/release-diagnostics/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
@@ -568,3 +572,20 @@ HDR 空間抗鋸齒實作：Standard/High 庭院在 focus/bloom/ACES 前套用�
 core/sync validation。✅ Linux configure/build 與 97/97 測試通過（106.93 秒）；
 Shipping/Full 打包、隔離原生 F10 比較與還原、實際 100 秒動畫導覽通過。證據：
 `Apps/Showcase/evidence/VIS-HDR-Anti-Aliasing-Linux-2026-10-05`；VIS-M3 預覽一致與 VIS-M6 硬體驗收保持未完成。
+
+庭院光照與玻璃修整：提高原有 IBL 強度以顯示葉片陰影細節；廣角鏡頭靠近並提高
+視線，石材與水晶內部輻射亮度更克制。水晶使用現有有界 HDR 快照，選用薄介電
+界面的 Fresnel 透光；共用時鐘的旋轉／浮動、風、bloom、skybox 與局部光源持續
+運作。✅ Linux configure/build 與 97/97 測試通過（104.97 秒），包括 97 個原生
+PBR frame 的 core/sync 驗證；Shipping/Full 隔離、原生比較精確還原及實際 100 秒
+動畫影片通過。證據：`Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05`；預覽一致及實體硬體驗收保持未完成（VIS 5/7）。
+
+原生 release 診斷補強：headless／native 子程序失敗時輸出最多 8 KiB stderr 與
+結構化原因；退出碼、逾時及全部驗收條件保持相同。✅ Linux configure/build 與
+97/97 測試通過（103.21 秒）；固定 Shipping 執行檔使用新版 verifier 的隔離
+原生驗證通過。受控的子程序失敗仍回傳 FAIL／exit 1，且能看到有界原因。證據：
+`VIS-Dielectric-Glass-Linux-2026-10-05/release-diagnostics/`；原有 runtime／影片 freeze 保持相同。
+
+✅ 玻璃／原生互動整合：Linux configure/build 與完整 97/97 測試通過（111.31 秒，Khronos core/sync validation），包含 97 幀原生 PBR 與九項證據政策測試。通過 checksum 的 4933fbc 原 Shipping 程式已通過同步匯出、按住相機輸入與實際縮放呈現的隔離驗收。程式原始碼、凍結執行檔與影片不變。證據：`Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05/interaction-synchronization/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+✅ 石台／原生互動整合：Linux configure/build 與完整 97/97 測試通過（110.58 秒，Khronos core/sync validation），包含 97 幀原生 PBR 與九項證據政策測試。通過 checksum 的 1989904 原 Shipping 程式已通過同步匯出、按住相機輸入與實際縮放呈現的隔離驗收。程式原始碼、凍結執行檔與影片不變。證據：`Apps/Showcase/evidence/VIS-Courtyard-Coping-Linux-2026-10-06/interaction-synchronization/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
