@@ -4,6 +4,11 @@
 #include <array>
 
 namespace Nexora::Presentation {
+[[nodiscard]] inline bool HasSceneRefraction(const SceneDrawData &draw) noexcept {
+  return std::any_of(draw.materials.begin(), draw.materials.end(), [](const auto &material) {
+    return material.refractionIndex > 1 && material.refractionThickness > 0 && material.opacity > 0;
+  });
+}
 // PBR validation is shared; resident map references and native capabilities remain adapter-owned.
 [[nodiscard]] inline bool ValidatePbrData(const SceneDrawData &draw) noexcept {
   if (!std::isfinite(draw.exposure) || draw.exposure < 0 || draw.exposure > 32 ||
@@ -27,12 +32,67 @@ namespace Nexora::Presentation {
        draw.depthOfField->strength > 4 || !std::isfinite(draw.depthOfField->radiusPixels) ||
        draw.depthOfField->radiusPixels < 1 || draw.depthOfField->radiusPixels > 32))
     return false;
+  if (draw.pointLight) {
+    const auto &light = *draw.pointLight;
+    if (!draw.hdr || !std::isfinite(light.radius) || light.radius < 0.1F || light.radius > 64)
+      return false;
+    for (const auto value : light.position)
+      if (!std::isfinite(value) || std::abs(value) > 10000)
+        return false;
+    for (const auto value : light.radiance)
+      if (!std::isfinite(value) || value < 0 || value > 32)
+        return false;
+  }
+  if (draw.atmosphere) {
+    const auto &fog = *draw.atmosphere;
+    if (!draw.hdr || !std::isfinite(fog.strength) || fog.strength < 0 || fog.strength > 1 ||
+        !std::isfinite(fog.startDistance) || fog.startDistance < 0 ||
+        !std::isfinite(fog.endDistance) || fog.endDistance <= fog.startDistance ||
+        fog.endDistance > 10000)
+      return false;
+    for (const auto value : fog.color)
+      if (!std::isfinite(value) || value < 0 || value > 32)
+        return false;
+  }
   if (!std::isfinite(draw.vegetationTime) || draw.vegetationTime < 0 || draw.vegetationTime > 3600)
     return false;
+  if (draw.planarReflection) {
+    const auto &reflection = *draw.planarReflection;
+    if (!draw.hdr || !std::isfinite(reflection.planeHeight) ||
+        std::abs(reflection.planeHeight) > 10000 || !std::isfinite(reflection.reflectance) ||
+        reflection.reflectance < 0 || reflection.reflectance > 1 || reflection.regionCount < 1 ||
+        reflection.regionCount > reflection.regions.size() ||
+        !std::isfinite(reflection.shorelineVariation) || reflection.shorelineVariation < 0 ||
+        reflection.shorelineVariation > 0.2F || !std::isfinite(draw.cameraPosition[1]) ||
+        draw.cameraPosition[1] <= reflection.planeHeight + 0.0001F)
+      return false;
+    for (std::size_t i = 0; i < reflection.regions.size(); ++i) {
+      const auto &region = reflection.regions[i];
+      for (const float value : {region.centerX, region.centerZ, region.radiusX, region.radiusZ})
+        if (!std::isfinite(value) || std::abs(value) > 10000)
+          return false;
+      if (region.radiusX <= 0 || region.radiusZ <= 0)
+        return false;
+    }
+  }
+  for (const auto &material : draw.materials)
+    if ((material.twoSidedLighting && material.unlit) ||
+        (material.refractionFrontSurfaceOnly &&
+         (material.refractionIndex <= 1 || material.refractionThickness <= 0)) ||
+        ((material.refractionIndex > 1 || material.refractionThickness > 0) &&
+         (!draw.hdr || material.opacity >= 1 || material.castsShadow || material.unlit)) ||
+        (material.opacity < 1 && (!draw.hdr || material.castsShadow)) ||
+        (material.reflectionRole != SceneReflectionRole::None &&
+         (!draw.planarReflection ||
+          (material.reflectionRole == SceneReflectionRole::ReflectedGeometry &&
+           material.castsShadow))))
+      return false;
   if (!draw.pbr)
     for (const auto &material : draw.materials)
       if (material.alphaCutoff || material.windAmplitude || material.transmissionThickness ||
-          material.unlit)
+          material.unlit || material.worldTextureScale || material.refractionIndex > 1 ||
+          material.refractionThickness || material.refractionFrontSurfaceOnly ||
+          material.twoSidedLighting)
         return false;
   if (!draw.pbr)
     return draw.linearTextureUploads.empty() && !draw.environment && !draw.shadow &&
@@ -156,14 +216,13 @@ template <typename Lookup>
          resolveLevels(draw.environment->brdfTextureId) == 1;
 }
 
-// Matches MaterialConstants in scene_pbr.slang: fifteen float4s, independent of native UBO
+// Matches MaterialConstants in scene_pbr.slang: twenty-three float4s, independent of native UBO
 // alignment.
-using PbrMaterialUpload = std::array<float, 60>;
-static_assert(sizeof(PbrMaterialUpload) == 240);
-[[nodiscard]] inline PbrMaterialUpload PackPbrMaterial(const SceneDrawData &draw,
-                                                       const SceneMaterial &material,
-                                                       bool manualSrgbTransfer,
-                                                       bool shadowYDown = true) noexcept {
+using PbrMaterialUpload = std::array<float, 100>;
+static_assert(sizeof(PbrMaterialUpload) == 400);
+[[nodiscard]] inline PbrMaterialUpload
+PackPbrMaterial(const SceneDrawData &draw, const SceneMaterial &material, bool manualSrgbTransfer,
+                bool shadowYDown = true, unsigned width = 1, unsigned height = 1) noexcept {
   PbrMaterialUpload parameters{};
   std::copy(draw.cameraPosition.begin(), draw.cameraPosition.end(), parameters.begin());
   parameters[3] = manualSrgbTransfer ? 1.0F : 0.0F;
@@ -205,6 +264,44 @@ static_assert(sizeof(PbrMaterialUpload) == 240);
   std::copy(material.transmissionColor.begin(), material.transmissionColor.end(),
             parameters.begin() + 56);
   parameters[59] = material.unlit ? 1.0F : 0.0F;
+  if (draw.planarReflection) {
+    const auto &reflection = *draw.planarReflection;
+    parameters[60] = reflection.planeHeight;
+    parameters[61] = static_cast<float>(material.reflectionRole);
+    parameters[62] = reflection.reflectance;
+    parameters[63] = static_cast<float>(reflection.regionCount);
+    for (std::size_t i = 0; i < reflection.regions.size(); ++i) {
+      const auto &region = reflection.regions[i];
+      const std::array packed{region.centerX, region.centerZ, region.radiusX, region.radiusZ};
+      std::copy(packed.begin(), packed.end(), parameters.begin() + 64 + i * 4);
+    }
+  }
+  parameters[72] = material.opacity;
+  std::copy(material.transparencyTint.begin(), material.transparencyTint.end(),
+            parameters.begin() + 73);
+  parameters[76] = material.worldTextureScale;
+  parameters[78] = material.refractionFrontSurfaceOnly ? 1.0F : 0.0F;
+  parameters[79] = material.twoSidedLighting ? 1.0F : 0.0F;
+  if (draw.planarReflection)
+    parameters[77] = draw.planarReflection->shorelineVariation;
+  if (draw.atmosphere) {
+    std::copy(draw.atmosphere->color.begin(), draw.atmosphere->color.end(),
+              parameters.begin() + 80);
+    parameters[83] = draw.atmosphere->strength;
+    parameters[84] = draw.atmosphere->startDistance;
+    parameters[85] = draw.atmosphere->endDistance;
+  }
+  parameters[88] = material.refractionIndex;
+  parameters[89] = material.refractionThickness;
+  parameters[90] = 1.0F / std::max(width, 1U);
+  parameters[91] = 1.0F / std::max(height, 1U);
+  if (draw.pointLight) {
+    std::copy(draw.pointLight->position.begin(), draw.pointLight->position.end(),
+              parameters.begin() + 92);
+    parameters[95] = draw.pointLight->radius;
+    std::copy(draw.pointLight->radiance.begin(), draw.pointLight->radiance.end(),
+              parameters.begin() + 96);
+  }
   return parameters;
 }
 } // namespace Nexora::Presentation

@@ -1,8 +1,17 @@
 #include "Nexora/Presentation/Surface.h"
+#include "PbrAtmosphereFixtures.h"
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
+#include "PbrMipFixtures.h"
+#include "PbrPointLightFixtures.h"
+#include "PbrReflectionFixtures.h"
+#include "PbrRefractionFixtures.h"
 #include "PbrShadowFixtures.h"
+#include "PbrTransparencyFixtures.h"
+#include "PbrTwoSidedFixtures.h"
 #include "PbrVegetationFixtures.h"
+#include "PbrWorldMappingFixtures.h"
+#include "PbrWorldNormalFixtures.h"
 #if defined(_WIN32)
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -43,7 +52,7 @@ unsigned Channel(unsigned long pixel, unsigned long mask) {
 }
 #endif
 using Rgb = std::array<unsigned, 3>;
-std::array<Rgb, 7> Read(
+std::array<Rgb, 9> Read(
 #if defined(_WIN32)
     std::nullptr_t display, HWND window,
 #else
@@ -95,7 +104,8 @@ std::array<Rgb, 7> Read(
   const std::array result{rgb(width / 4, height / 2),         rgb(width * 3 / 4, height / 2),
                           rgb(width / 2, height * 3 / 20),    rgb(width / 2, height * 9 / 10),
                           rgb(width * 129 / 400, height / 2), rgb(width * 58 / 100, height / 2),
-                          rgb(width / 2, height / 2)};
+                          rgb(width / 2, height / 2),         rgb(width * 49 / 100, height / 2),
+                          rgb(width * 51 / 100, height / 2)};
   if (sceneHash) {
     *sceneHash = 14695981039346656037ULL;
     for (unsigned y = height * 3 / 10; y < height * 7 / 10; ++y)
@@ -206,12 +216,26 @@ int main(int argc, char **argv) {
                                               std::byte{255}, std::byte{255}};
     const UiTextureUpload filterUpload{38, 2, 1, 8, blackWhite};
     unsigned width = 640, height = 480;
-    Rgb uiBaseline{};
+    Rgb uiBaseline{}, reflectedReference{}, blendedReference{}, mappedReference{}, fogReference{},
+        flatNormalLeft{}, flatNormalRight{}, tiltedNormalLeft{}, tiltedNormalRight{},
+        refractedLeft{}, refractedRight{}, mipLeft{}, mipRight{};
     std::uint64_t windReference{}, windMoved{};
-    for (unsigned frame = 0; frame < 45; ++frame) {
+    std::array<unsigned, 3> pointLeft{}, pointRight{};
+    for (unsigned frame = 0; frame < 89; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
+      PbrReflectionFixtures::Fixture reflectionFixture(frame >= 45 ? frame - 45 : 0);
       PbrVegetationFixtures::Fixture vegetationFixture(frame >= 34 ? frame - 34 : 0);
+      PbrTransparencyFixtures::Fixture transparencyFixture(frame >= 49 ? frame - 49 : 0);
+      PbrWorldMappingFixtures::Fixture mappingFixture(frame >= 55 ? frame - 55 : 0);
+      PbrAtmosphereFixtures::Fixture atmosphereFixture(frame >= 59 ? frame - 59 : 0);
+      PbrWorldNormalFixtures::Fixture worldNormalFixture(frame >= 65 ? frame - 65 : 0);
+      PbrRefractionFixtures::Fixture refractionFixture(frame >= 77   ? frame - 71
+                                                       : frame >= 69 ? frame - 69
+                                                                     : 0);
+      PbrMipFixtures::Fixture mipFixture(frame >= 75 ? frame - 75 : 0);
+      PbrPointLightFixtures::Fixture pointFixture(frame >= 79 ? frame - 79 : 0);
+      PbrTwoSidedFixtures::Fixture twoSidedFixture(frame >= 85 ? frame - 85 : 0);
       materials = {};
       draw.shadow.reset();
       draw.lightingStyle.reset();
@@ -325,9 +349,59 @@ int main(int argc, char **argv) {
         materials = vegetationFixture.geometry.materials;
         draw.materials = materials;
       }
-      if (frame >= 43) {
+      if (frame >= 43 && frame < 45) {
         draw = bloomFixture.Draw(frame == 44 ? 4 : 0);
         materials = bloomFixture.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 45) {
+        draw = reflectionFixture.Draw(frame - 45);
+        materials = reflectionFixture.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 49) {
+        draw = transparencyFixture.Draw(frame - 49);
+        materials = transparencyFixture.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 55) {
+        draw = mappingFixture.Draw(frame - 55);
+        materials = mappingFixture.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 59) {
+        draw = atmosphereFixture.Draw(frame - 59);
+        materials = atmosphereFixture.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 65) {
+        draw = worldNormalFixture.Draw();
+        materials = worldNormalFixture.geometry.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 69) {
+        draw = refractionFixture.Draw();
+        materials = refractionFixture.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 75 && frame < 77) {
+        draw = mipFixture.Draw();
+        materials = mipFixture.geometry.geometry.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 77) {
+        draw = refractionFixture.Draw();
+        materials = refractionFixture.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 79) {
+        draw = pointFixture.Draw();
+        materials = pointFixture.materials;
+        draw.materials = materials;
+      }
+      if (frame >= 85) {
+        draw = twoSidedFixture.Draw();
+        materials = twoSidedFixture.geometry.materials;
         draw.materials = materials;
       }
       materials[2].emission = {marker, 0, 0};
@@ -481,7 +555,88 @@ int main(int argc, char **argv) {
         const auto pixels = Read(display, native, width, height, {}, &region);
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 43) {
+        if (frame >= 85) {
+          valid = PbrTwoSidedFixtures::Pixels(frame - 85, left, right);
+          if (valid && frame == 85) {
+            pointLeft = left;
+            pointRight = right;
+          }
+          if (frame >= 87)
+            valid = valid && left == pointLeft && right == pointRight;
+        } else if (frame >= 79) {
+          valid = PbrPointLightFixtures::Pixels(frame - 79, left, right);
+          if (valid && frame == 80) {
+            pointLeft = left;
+            pointRight = right;
+          }
+          if (frame == 82)
+            valid = valid && left == pointLeft && right == pointRight;
+        } else if (frame >= 77) {
+          valid = PbrRefractionFixtures::Pixels(frame - 71, pixels[7], pixels[8]);
+        } else if (frame >= 75) {
+          valid = PbrMipFixtures::Pixels(left, right);
+          if (valid && frame == 75) {
+            mipLeft = left;
+            mipRight = right;
+          }
+          if (frame == 76)
+            for (unsigned c = 0; c < 3; ++c)
+              valid = valid &&
+                      std::abs(static_cast<int>(left[c]) - static_cast<int>(mipLeft[c])) <= 2 &&
+                      std::abs(static_cast<int>(right[c]) - static_cast<int>(mipRight[c])) <= 2;
+        } else if (frame >= 69) {
+          valid = PbrRefractionFixtures::Pixels(frame - 69, pixels[7], pixels[8]);
+          if (valid && frame == 70) {
+            refractedLeft = pixels[7];
+            refractedRight = pixels[8];
+          }
+          if (frame == 72)
+            valid = valid && pixels[7] == refractedLeft && pixels[8] == refractedRight;
+        } else if (frame >= 65) {
+          valid = PbrWorldNormalFixtures::Pixels(left, right);
+          if (valid && frame == 65) {
+            flatNormalLeft = left;
+            flatNormalRight = right;
+          }
+          if (frame == 66) {
+            valid = valid && left[1] > flatNormalLeft[1] + 6 && right[0] > flatNormalRight[0] + 6;
+            if (valid) {
+              tiltedNormalLeft = left;
+              tiltedNormalRight = right;
+            }
+          }
+          if (frame == 67)
+            valid =
+                valid &&
+                std::abs(static_cast<int>(left[1]) - static_cast<int>(flatNormalLeft[1])) <= 2 &&
+                std::abs(static_cast<int>(right[0]) - static_cast<int>(flatNormalRight[0])) <= 2;
+          if (frame == 68)
+            valid = valid && left == tiltedNormalLeft && right == tiltedNormalRight;
+        } else if (frame >= 59) {
+          valid = PbrAtmosphereFixtures::Pixels(frame - 59, left, pixels[6]);
+          if (valid && frame == 60)
+            fogReference = pixels[6];
+          if (frame == 62)
+            valid = valid && pixels[6] == fogReference;
+        } else if (frame >= 55) {
+          valid = PbrWorldMappingFixtures::Pixels(frame - 55, left, right);
+          if (valid && frame == 56)
+            mappedReference = left;
+          if (frame == 58)
+            valid = valid && left == mappedReference;
+        } else if (frame >= 49) {
+          valid = PbrTransparencyFixtures::Pixels(frame - 49, left, pixels[6]);
+          if (valid && frame == 50)
+            blendedReference = pixels[6];
+          if (frame == 52)
+            valid = valid && pixels[6] == blendedReference;
+        } else if (frame >= 45) {
+          valid = PbrReflectionFixtures::Pixels(frame - 45, left, right);
+          if (valid && frame == 46)
+            reflectedReference = left;
+          if (frame == 48)
+            valid = valid && left == reflectedReference;
+        } else if (frame >= 43) {
           valid = PbrBloomFixtures::Pixels(frame == 44 ? 4 : 0, pixels[5], pixels[6]);
           for (std::size_t channel = 0; channel < 3; ++channel)
             valid = valid && std::abs(static_cast<int>(pixels[3][channel]) -
@@ -577,18 +732,38 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, argv[1]));
       if (argc == 2 && frame >= 30) {
         auto capture = std::filesystem::path(argv[1]);
-        capture.replace_filename((frame >= 43  ? "depth-of-field-"
-                                  : frame < 34 ? "bloom-"
-                                               : "vegetation-") +
-                                 std::to_string(frame >= 43  ? frame - 43
-                                                : frame < 34 ? frame - 30
-                                                             : frame - 34) +
+        capture.replace_filename((frame >= 85   ? "two-sided-"
+                                  : frame >= 79 ? "point-light-"
+                                  : frame >= 77 ? "refraction-front-"
+                                  : frame >= 75 ? "mip-filter-"
+                                  : frame >= 69 ? "refraction-"
+                                  : frame >= 65 ? "world-normal-"
+                                  : frame >= 59 ? "atmosphere-"
+                                  : frame >= 55 ? "world-mapping-"
+                                  : frame >= 49 ? "transparency-"
+                                  : frame >= 45 ? "planar-reflection-"
+                                  : frame >= 43 ? "depth-of-field-"
+                                  : frame < 34  ? "bloom-"
+                                                : "vegetation-") +
+                                 std::to_string(frame >= 85   ? frame - 85
+                                                : frame >= 79 ? frame - 79
+                                                : frame >= 77 ? frame - 77
+                                                : frame >= 75 ? frame - 75
+                                                : frame >= 69 ? frame - 69
+                                                : frame >= 65 ? frame - 65
+                                                : frame >= 59 ? frame - 59
+                                                : frame >= 55 ? frame - 55
+                                                : frame >= 49 ? frame - 49
+                                                : frame >= 45 ? frame - 45
+                                                : frame >= 43 ? frame - 43
+                                                : frame < 34  ? frame - 30
+                                                              : frame - 34) +
                                  ".ppm");
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 45 &&
-                surface->Diagnostics().sceneComposites == 35 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 89 &&
+                surface->Diagnostics().sceneComposites == 79 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
@@ -607,7 +782,12 @@ int main(int argc, char **argv) {
            "reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws "
            "and resize pixels; directional shadow movement, XY projection, PCF edge, map reuse, "
            "shadow disable, stylized tint and thresholded HDR bloom, depth-aware focus and UI "
-           "invariance, alpha "
+           "invariance, linear HDR translucent/tinted blending, bounded planar mirrors with source "
+           "movement and restoration, bounded opaque-HDR refraction, color-correct mip "
+           "minification, world-projected maps/normals, "
+           "linear HDR atmosphere and "
+           "unlit "
+           "exclusion, alpha "
            "cutout/shadow agreement, GPU wind/replay and leaf transmission\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

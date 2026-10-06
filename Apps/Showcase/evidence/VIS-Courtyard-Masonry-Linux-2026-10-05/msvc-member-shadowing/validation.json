@@ -1,0 +1,12 @@
+{
+  "source_freeze": "3d09ffea0976473a458aea02eb5e745fd9e0d69a",
+  "source_sha256": "713634eb8a8b6ce6e19917c60bed2951857806d5c464a49df766717ab691631b",
+  "normalized_identifier_source_sha256": "687622a4fc681a7e224bd9c9717de7c56573e2b477f925af32b8f03df586405c",
+  "identifier_only_change": true,
+  "linux_full_tests": 97,
+  "linux_seconds": 102.71,
+  "native_pbr_frames": 85,
+  "core_synchronization_validation_enabled": true,
+  "retained_shipping_production_freeze": "e5bb13119ba1e78d148439b092c849136245bd04",
+  "windows_ci_recheck": "pending"
+}

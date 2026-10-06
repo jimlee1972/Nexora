@@ -1,0 +1,299 @@
+[1/227] Building CXX object Engine/Foundation/CMakeFiles/NexoraFoundation.dir/src/BuildInfo.cpp.o
+[2/227] Building CXX object Engine/Foundation/CMakeFiles/NexoraFoundation.dir/src/DataAbi.cpp.o
+[3/227] Linking CXX shared library Engine/Foundation/libNexoraFoundation.so
+[4/227] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Memory.cpp.o
+[5/227] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Platform.cpp.o
+[6/227] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/JobSystem.cpp.o
+[7/227] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Services.cpp.o
+[8/227] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/RemoteDiagnostics.cpp.o
+[9/227] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Log.cpp.o
+[10/227] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/TaskGraph.cpp.o
+[11/227] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Time.cpp.o
+[12/227] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Timer.cpp.o
+[13/227] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Engine.cpp.o
+[14/227] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/ShaderReflection.cpp.o
+[15/227] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/DeviceFactory.cpp.o
+[16/227] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/ValidationDevice.cpp.o
+[17/227] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/GPUDrivenPipeline.cpp.o
+[18/227] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/GPUScene.cpp.o
+[19/227] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/Material.cpp.o
+[20/227] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/FramePipeline.cpp.o
+[21/227] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Vfs.cpp.o
+[22/227] Linking CXX shared library Engine/Core/libNexoraCore.so
+[23/227] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/VulkanDevice.cpp.o
+[24/227] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/PipelineCache.cpp.o
+[25/227] Linking CXX shared library Engine/RHI/libNexoraRHI.so
+[26/227] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/SceneFrame.cpp.o
+[27/227] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/MeshTangents.cpp.o
+[28/227] Building CXX object Engine/Window/CMakeFiles/NexoraWindow.dir/src/Window.cpp.o
+[29/227] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/RenderGraph.cpp.o
+[30/227] Linking CXX shared library Engine/Renderer/libNexoraRenderer.so
+[31/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/InputUi.cpp.o
+[32/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameWorld.cpp.o
+[33/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplayModuleHost.cpp.o
+[34/227] Building CXX object Engine/AI/CMakeFiles/NexoraAI.dir/src/AI.cpp.o
+[35/227] Building CXX object Engine/Window/CMakeFiles/NexoraWindow.dir/src/X11Window.cpp.o
+[36/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/ShaderRuntime.cpp.o
+[37/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/RenderSync.cpp.o
+[38/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplayHostBridge.cpp.o
+[39/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/BundleMount.cpp.o
+[40/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplaySimulation.cpp.o
+[41/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Runtime.cpp.o
+[42/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/AssetPipeline.cpp.o
+[43/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Presentation.cpp.o
+[44/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/HardeningV2.cpp.o
+[45/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/EditorSdk.cpp.o
+[46/227] Building CXX object Plugins/Example/CMakeFiles/NexoraExamplePlugin.dir/ExamplePlugin.cpp.o
+[47/227] Linking CXX shared library Engine/AI/libNexoraAI.so
+[48/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/PresentationV2.cpp.o
+[49/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Platform.cpp.o
+[50/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Shipping.cpp.o
+[51/227] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Dormancy.cpp.o
+[52/227] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/LargeWorld.cpp.o
+[53/227] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/EntityMapping.cpp.o
+[54/227] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Prediction.cpp.o
+[55/227] Linking CXX shared library Engine/Window/libNexoraWindow.so
+[56/227] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Replication.cpp.o
+[57/227] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/SocketProvider.cpp.o
+[58/227] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/ServerRuntime.cpp.o
+[59/227] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/Presentation.cpp.o
+[60/227] Linking CXX shared library Engine/Runtime/libNexoraRuntime.so
+[61/227] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Transport.cpp.o
+[62/227] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/RenderSurface.cpp.o
+[63/227] Building CXX object Engine/AIIntegration/CMakeFiles/NexoraAIIntegration.dir/src/IntentAdapter.cpp.o
+[64/227] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/VulkanSurface.cpp.o
+[65/227] Compiling canonical Slang shaders and shared shader library
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/Triangle.slang:2:40
+  |
+2 | ConstantBuffer<FrameConstants> frame : register(b0);
+  |                                        ^^^^^^^^ shader parameter 'frame' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-b-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/Triangle.slang:2:40
+  |
+2 | ConstantBuffer<FrameConstants> frame : register(b0);
+  |                                        ^^^^^^^^ shader parameter 'frame' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-b-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/GPUDriven.slang:5:44
+  |
+5 | StructuredBuffer<uint> computeCandidates : register(t0);
+  |                                            ^^^^^^^^ shader parameter 'computeCandidates' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-t-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/GPUDriven.slang:6:43
+  |
+6 | RWStructuredBuffer<uint> computeVisible : register(u1);
+  |                                           ^^^^^^^^ shader parameter 'computeVisible' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/GPUDriven.slang:7:44
+  |
+7 | RWStructuredBuffer<uint> computeIndirect : register(u2);
+  |                                            ^^^^^^^^ shader parameter 'computeIndirect' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/GPUDriven.slang:8:46
+  |
+8 | RWStructuredBuffer<uint> computeStatistics : register(u3);
+  |                                              ^^^^^^^^ shader parameter 'computeStatistics' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/GPUDriven.slang:5:44
+  |
+5 | StructuredBuffer<uint> computeCandidates : register(t0);
+  |                                            ^^^^^^^^ shader parameter 'computeCandidates' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-t-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/GPUDriven.slang:6:43
+  |
+6 | RWStructuredBuffer<uint> computeVisible : register(u1);
+  |                                           ^^^^^^^^ shader parameter 'computeVisible' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/GPUDriven.slang:7:44
+  |
+7 | RWStructuredBuffer<uint> computeIndirect : register(u2);
+  |                                            ^^^^^^^^ shader parameter 'computeIndirect' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/GPUDriven.slang:8:46
+  |
+8 | RWStructuredBuffer<uint> computeStatistics : register(u3);
+  |                                              ^^^^^^^^ shader parameter 'computeStatistics' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/Triangle.slang:2:40
+  |
+2 | ConstantBuffer<FrameConstants> frame : register(b0);
+  |                                        ^^^^^^^^ shader parameter 'frame' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-b-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-two-sided/Shaders/Triangle.slang:2:40
+  |
+2 | ConstantBuffer<FrameConstants> frame : register(b0);
+  |                                        ^^^^^^^^ shader parameter 'frame' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-b-shift` used.
+--'
+[66/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/EditorProduction.cpp.o
+[67/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/ContentBrowser.cpp.o
+[68/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/PlayApply.cpp.o
+[69/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/MeshImport.cpp.o
+[70/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/ProjectContent.cpp.o
+[71/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/AssetImport.cpp.o
+[72/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/MeshAssetCatalog.cpp.o
+[73/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/ProjectWorkspace.cpp.o
+[74/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/SceneAuthoring.cpp.o
+[75/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/EditorWorkspace.cpp.o
+[76/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/SceneFiles.cpp.o
+[77/227] Linking CXX shared module Plugins/Example/libNexoraExamplePlugin.so
+[78/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/ViewportMath.cpp.o
+[79/227] Building CXX object Engine/Editor/CMakeFiles/NexoraEditorCore.dir/src/ShaderAuthoring.cpp.o
+[80/227] Linking CXX shared library Engine/Presentation/libNexoraPresentation.so
+[81/227] Linking CXX shared library Engine/Network/libNexoraNetwork.so
+[82/227] Linking CXX shared library Engine/AIIntegration/libNexoraAIIntegration.so
+[83/227] Building the Zig gameplay ABI sample
+[84/227] Linking CXX shared library Engine/Editor/libNexoraEditorCore.so
+[85/227] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcaseProbes.dir/ShowcaseProbes.cpp.o
+[86/227] Building the Zig gameplay Development shared library
+[87/227] Linking CXX static library Apps/Showcase/libNexoraShowcaseProbes.a
+[88/227] Building CXX object Apps/Host/CMakeFiles/NexoraHost.dir/main.cpp.o
+[89/227] Building CXX object Gameplay/Zig/CMakeFiles/NexoraZigGameplayTests.dir/ZigGameplayTests.cpp.o
+[90/227] Building CXX object Apps/Editor/CMakeFiles/NexoraEditor.dir/main.cpp.o
+[91/227] Building CXX object Apps/DedicatedServer/CMakeFiles/NexoraDedicatedServer.dir/main.cpp.o
+[92/227] Building CXX object Samples/Api/CMakeFiles/NexoraApiFoundationSample.dir/ApiFoundationSample.cpp.o
+[93/227] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/ShowcasePerformance.cpp.o
+[94/227] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcaseProbeTests.dir/__/__/Tests/Showcase/ShowcaseProbeTests.cpp.o
+[95/227] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcasePerformanceTests.dir/ShowcasePerformance.cpp.o
+[96/227] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcaseRoomTests.dir/__/__/Tests/Showcase/ShowcaseRoomTests.cpp.o
+[97/227] Building CXX object Tests/Foundation/CMakeFiles/NexoraGameplayAbiTests.dir/GameplayAbiTests.cpp.o
+[98/227] Building CXX object Tests/Foundation/CMakeFiles/NexoraFoundationTests.dir/BuildInfoTests.cpp.o
+[99/227] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcasePerformanceTests.dir/__/__/Tests/Showcase/ShowcasePerformanceTests.cpp.o
+[100/227] Building CXX object Tests/Core/CMakeFiles/NexoraV2M11Tests.dir/V2M11Tests.cpp.o
+[101/227] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/main.cpp.o
+[102/227] Building CXX object Tests/AI/CMakeFiles/NexoraV2M7Tests.dir/V2M7Tests.cpp.o
+[103/227] Building CXX object Tests/WindowPresentation/CMakeFiles/NexoraWindowPresentationTests.dir/WindowPresentationTests.cpp.o
+[104/227] Building CXX object Tests/WindowPresentation/CMakeFiles/NexoraSceneInstanceTests.dir/SceneInstanceTests.cpp.o
+[105/227] Building CXX object Tests/WindowPresentation/CMakeFiles/NexoraVulkanSceneTests.dir/VulkanSceneTests.cpp.o
+[106/227] Building CXX object Tests/Core/CMakeFiles/NexoraCoreTests.dir/CoreTests.cpp.o
+[107/227] Building CXX object Tests/Network/CMakeFiles/NexoraNetworkTests.dir/NetworkTests.cpp.o
+[108/227] Building CXX object Tests/WindowPresentation/CMakeFiles/NexoraVulkanPbrTests.dir/VulkanPbrTests.cpp.o
+[109/227] Building C object Tests/API/CMakeFiles/NexoraApiM6CConsumer.dir/ApiM6CConsumer.c.o
+[110/227] Building CXX object Tests/API/CMakeFiles/NexoraApiFoundationTests.dir/ApiFoundationTests.cpp.o
+[111/227] Building CXX object Tests/Renderer/CMakeFiles/NexoraSceneFrameTests.dir/SceneFrameTests.cpp.o
+[112/227] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/ShowcaseRooms.cpp.o
+[113/227] Building CXX object Tests/Renderer/CMakeFiles/NexoraGoldenImageTests.dir/GoldenImageTests.cpp.o
+[114/227] Building CXX object Tests/Renderer/CMakeFiles/NexoraMaterialTests.dir/MaterialTests.cpp.o
+[115/227] Building CXX object Tests/Renderer/CMakeFiles/NexoraRendererTests.dir/RendererTests.cpp.o
+[116/227] Building CXX object Tests/API/CMakeFiles/NexoraApiCoreContractTests.dir/ApiCoreContractTests.cpp.o
+[117/227] Building CXX object Tests/Renderer/CMakeFiles/NexoraShaderReflectionContractTests.dir/ShaderReflectionCrossCompileTests.cpp.o
+[118/227] Building CXX object Tests/Renderer/CMakeFiles/NexoraGPUSceneTests.dir/GPUSceneTests.cpp.o
+[119/227] Building CXX object Tests/Renderer/CMakeFiles/NexoraVulkanGoldenTests.dir/VulkanGoldenTests.cpp.o
+[120/227] Building CXX object Tests/WindowPresentation/CMakeFiles/NexoraVulkanSceneUploadTests.dir/VulkanSceneUploadTests.cpp.o
+[121/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraShaderRuntimeTests.dir/ShaderRuntimeTests.cpp.o
+[122/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraRuntimeTests.dir/RuntimeTests.cpp.o
+[123/227] Building CXX object Tests/Renderer/CMakeFiles/NexoraGPUDrivenTests.dir/GPUDrivenPipelineTests.cpp.o
+[124/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraGameWorldTests.dir/GameWorldTests.cpp.o
+[125/227] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcaseRoomTests.dir/ShowcaseRooms.cpp.o
+[126/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraTransformTests.dir/TransformTests.cpp.o
+[127/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraV2M12Tests.dir/V2M12Tests.cpp.o
+[128/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraRenderSyncTests.dir/RenderSyncTests.cpp.o
+[129/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraGameplayHostBridgeTests.dir/GameplayHostBridgeTests.cpp.o
+[130/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraV1M12Tests.dir/V1M12Tests.cpp.o
+[131/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraAIIntentAdapterTests.dir/AIIntentAdapterTests.cpp.o
+[132/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraV1M7Tests.dir/V1M7Tests.cpp.o
+[133/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraV1M8Tests.dir/V1M8Tests.cpp.o
+[134/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraParentingTests.dir/ParentingTests.cpp.o
+[135/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraV1M10Tests.dir/V1M10Tests.cpp.o
+[136/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraDynamicGameplayFirst.dir/DynamicGameplayModule.cpp.o
+[137/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraDynamicGameplaySecond.dir/DynamicGameplayModule.cpp.o
+[138/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraDynamicGameplayFailing.dir/DynamicGameplayModule.cpp.o
+[139/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraGameplayModuleHostTests.dir/GameplayModuleHostTests.cpp.o
+[140/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraV1M11Tests.dir/V1M11Tests.cpp.o
+[141/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraV1M4Tests.dir/V1M4Tests.cpp.o
+[142/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraV2M9Tests.dir/V2M9Tests.cpp.o
+[143/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraDynamicGameplayModuleTests.dir/DynamicGameplayModuleTests.cpp.o
+[144/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraV1M6Tests.dir/V1M6Tests.cpp.o
+[145/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraBundleMountTests.dir/BundleMountTests.cpp.o
+[146/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraV1M9Tests.dir/V1M9Tests.cpp.o
+[147/227] Building CXX object Tests/Runtime/CMakeFiles/NexoraV1M5Tests.dir/V1M5Tests.cpp.o
+[148/227] Building CXX object Tests/Editor/CMakeFiles/NexoraEditorViewportMathTests.dir/ViewportMathTests.cpp.o
+[149/227] Building CXX object Tests/Editor/CMakeFiles/NexoraMeshAssetCatalogTests.dir/MeshAssetCatalogTests.cpp.o
+[150/227] Building CXX object Tests/Editor/CMakeFiles/NexoraMeshImportTests.dir/MeshImportTests.cpp.o
+[151/227] Building CXX object Tests/Editor/CMakeFiles/NexoraEditorShaderTests.dir/ShaderAuthoringTests.cpp.o
+[152/227] Building CXX object Tests/Editor/CMakeFiles/NexoraMeshReimportTests.dir/MeshReimportTests.cpp.o
+[153/227] Building CXX object Tests/Editor/CMakeFiles/NexoraParserRobustnessTests.dir/ParserRobustnessTests.cpp.o
+[154/227] Building CXX object Tests/Editor/CMakeFiles/NexoraEditorTests.dir/EditorTests.cpp.o
+[155/227] Linking CXX executable Samples/Api/NexoraApiFoundationSample
+[156/227] Linking CXX executable Apps/Editor/NexoraEditor
+[157/227] Linking CXX executable Apps/Host/NexoraHost
+[158/227] Linking CXX executable Apps/DedicatedServer/NexoraDedicatedServer
+[159/227] Linking CXX executable Gameplay/Zig/NexoraZigGameplayTests
+[160/227] Building CXX object Tests/Editor/CMakeFiles/NexoraEditorComponentResetTests.dir/ComponentResetTests.cpp.o
+[161/227] Linking CXX executable Apps/Showcase/NexoraShowcasePerformanceTests
+[162/227] Linking CXX executable Apps/Showcase/NexoraShowcaseProbeTests
+[163/227] Linking CXX executable Apps/Showcase/NexoraShowcase
+[164/227] Linking CXX executable Tests/Foundation/NexoraFoundationTests
+[165/227] Linking CXX executable Tests/Foundation/NexoraGameplayAbiTests
+[166/227] Linking CXX executable Tests/Core/NexoraCoreTests
+[167/227] Linking CXX executable Apps/Showcase/NexoraShowcaseRoomTests
+[168/227] Linking CXX executable Tests/Core/NexoraV2M11Tests
+[169/227] Linking CXX executable Tests/AI/NexoraV2M7Tests
+[170/227] Linking CXX executable Tests/WindowPresentation/NexoraWindowPresentationTests
+[171/227] Linking CXX executable Tests/Network/NexoraNetworkTests
+[172/227] Linking CXX executable Tests/WindowPresentation/NexoraVulkanSceneTests
+[173/227] Linking CXX executable Tests/WindowPresentation/NexoraSceneInstanceTests
+[174/227] Linking CXX executable Tests/WindowPresentation/NexoraVulkanPbrTests
+[175/227] Linking CXX executable Tests/WindowPresentation/NexoraVulkanSceneUploadTests
+[176/227] Linking CXX executable Tests/API/NexoraApiFoundationTests
+[177/227] Linking C executable Tests/API/NexoraApiM6CConsumer
+[178/227] Linking CXX executable Tests/API/NexoraApiCoreContractTests
+[179/227] Linking CXX executable Tests/Renderer/NexoraRendererTests
+[180/227] Linking CXX executable Tests/Renderer/NexoraMaterialTests
+[181/227] Linking CXX executable Tests/Renderer/NexoraSceneFrameTests
+[182/227] Linking CXX executable Tests/Renderer/NexoraGoldenImageTests
+[183/227] Linking CXX executable Tests/Renderer/NexoraGPUSceneTests
+[184/227] Linking CXX executable Tests/Renderer/NexoraGPUDrivenTests
+[185/227] Linking CXX executable Tests/Renderer/NexoraShaderReflectionContractTests
+[186/227] Linking CXX executable Tests/Renderer/NexoraVulkanGoldenTests
+[187/227] Linking CXX executable Tests/Runtime/NexoraShaderRuntimeTests
+[188/227] Linking CXX executable Tests/Runtime/NexoraRuntimeTests
+[189/227] Linking CXX executable Tests/Runtime/NexoraGameWorldTests
+[190/227] Linking CXX executable Tests/Runtime/NexoraTransformTests
+[191/227] Linking CXX executable Tests/Runtime/NexoraParentingTests
+[192/227] Linking CXX executable Tests/Runtime/NexoraGameplayHostBridgeTests
+[193/227] Linking CXX executable Tests/Runtime/NexoraRenderSyncTests
+[194/227] Linking CXX executable Tests/Runtime/NexoraV1M12Tests
+[195/227] Linking CXX executable Tests/Runtime/NexoraV2M12Tests
+[196/227] Building CXX object Tests/Editor/CMakeFiles/NexoraBuiltinCreationTests.dir/BuiltinCreationTests.cpp.o
+[197/227] Linking CXX executable Tests/Runtime/NexoraV1M7Tests
+[198/227] Linking CXX executable Tests/Runtime/NexoraAIIntentAdapterTests
+[199/227] Linking CXX executable Tests/Runtime/NexoraV1M8Tests
+[200/227] Linking CXX executable Tests/Runtime/NexoraV1M10Tests
+[201/227] Linking CXX executable Tests/Runtime/NexoraV2M9Tests
+[202/227] Linking CXX executable Tests/Runtime/NexoraV1M11Tests
+[203/227] Linking CXX executable Tests/Runtime/NexoraV1M9Tests
+[204/227] Linking CXX shared module Tests/Runtime/libNexoraDynamicGameplayFirst.so
+[205/227] Linking CXX executable Tests/Runtime/NexoraV1M4Tests
+[206/227] Linking CXX shared module Tests/Runtime/libNexoraDynamicGameplayFailing.so
+[207/227] Linking CXX shared module Tests/Runtime/libNexoraDynamicGameplaySecond.so
+[208/227] Linking CXX executable Tests/Runtime/NexoraGameplayModuleHostTests
+[209/227] Linking CXX executable Tests/Runtime/NexoraDynamicGameplayModuleTests
+[210/227] Linking CXX executable Tests/Runtime/NexoraBundleMountTests
+[211/227] Linking CXX executable Tests/Runtime/NexoraV1M5Tests
+[212/227] Linking CXX executable Tests/Runtime/NexoraV1M6Tests
+[213/227] Linking CXX executable Tests/Editor/NexoraEditorShaderTests
+[214/227] Linking CXX executable Tests/Editor/NexoraEditorViewportMathTests
+[215/227] Building CXX object Tests/Editor/CMakeFiles/NexoraEditorAffineGizmoTests.dir/AffineGizmoTests.cpp.o
+[216/227] Linking CXX executable Tests/Editor/NexoraMeshImportTests
+[217/227] Linking CXX executable Tests/Editor/NexoraEditorTests
+[218/227] Linking CXX executable Tests/Editor/NexoraMeshAssetCatalogTests
+[219/227] Linking CXX executable Tests/Editor/NexoraMeshReimportTests
+[220/227] Linking CXX executable Tests/Editor/NexoraEditorAffineGizmoTests
+[221/227] Linking CXX executable Tests/Editor/NexoraParserRobustnessTests
+[222/227] Linking CXX executable Tests/Editor/NexoraEditorComponentResetTests
+[223/227] Linking CXX executable Tests/Editor/NexoraBuiltinCreationTests
+[224/227] Building CXX object Tests/Editor/CMakeFiles/NexoraTransformValueTests.dir/TransformValueTests.cpp.o
+[225/227] Linking CXX executable Tests/Editor/NexoraTransformValueTests
+[226/227] Building CXX object Tests/Editor/CMakeFiles/NexoraSceneFileTests.dir/SceneFileTests.cpp.o
+[227/227] Linking CXX executable Tests/Editor/NexoraSceneFileTests

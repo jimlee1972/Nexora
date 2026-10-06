@@ -81,16 +81,17 @@ def screenshot(window: int, width: int, height: int, output: Path) -> bytes:
     return bytes(raw)
 
 
-def settled_screenshot(window, width, height, output):
+def settled_screenshot(window, width, height, output, reference=None):
     # Wait for several identical presented images: changing diagnostic text must not
     # be mistaken for the first clean frame after the asynchronous F4 event.
-    deadline=time.monotonic()+5
+    started=time.monotonic()
+    deadline=started+15
     previous=None
     repeats=0
     while True:
         captured=screenshot(window,width,height,output)
         repeats=repeats+1 if captured==previous else 0
-        if repeats>=2:return captured
+        if repeats>=2 and time.monotonic()-started>=2 and captured!=reference:return captured
         if time.monotonic()>=deadline:raise AssertionError(f'Native clean frame did not settle: {output.name}')
         previous=captured
         time.sleep(0.15)
@@ -242,7 +243,7 @@ def main():
             courtyard_ui = screenshot(window,1280,720,output/'courtyard-ui.png')
             tool('key', '--window', window, 'F4')
             time.sleep(0.2)
-            courtyard_wide = settled_screenshot(window,1280,720,output/'courtyard-wide.png')
+            courtyard_wide = settled_screenshot(window,1280,720,output/'courtyard-wide.png',courtyard_ui)
             assert courtyard_ui != courtyard_wide, 'Screenshot mode did not remove native UI'
             tool('key','--window',window,'k')
             time.sleep(0.2)
@@ -290,7 +291,7 @@ def main():
             restored_pbr = compared_screenshot(window,1280,720,output/'courtyard-pbr-restored.png',courtyard_wide,True)
             assert restored_pbr == courtyard_wide, 'PBR material restoration changed the fixed shot'
 
-            for key,effect in [('n','wind'),('m','transmission'),('k','bloom'),('j','depth-of-field')]:
+            for key,effect in [('n','wind'),('m','transmission'),('k','bloom'),('j','depth-of-field'),('v','planar-reflection'),('u','crystal-transparency'),('F7','atmosphere'),('F8','refraction')]:
                 tool('key','--window',window,key)
                 compared_screenshot(window,1280,720,output/f'courtyard-{effect}-off.png',courtyard_wide,False)
                 tool('key','--window',window,key)
@@ -318,15 +319,23 @@ def main():
             tool('key','--window',window,'c')
             free_start=compared_screenshot(window,1280,720,output/'courtyard-free-camera.png',courtyard_wide,False)
             tool('keydown','--window',window,'w')
-            time.sleep(0.25)
-            tool('keyup','--window',window,'w')
-            compared_screenshot(window,1280,720,output/'courtyard-free-moved.png',free_start,False)
+            # Prove a presented movement frame before releasing a held key. A short
+            # timed press can begin and end between slow software-GPU submissions.
+            try:
+                compared_screenshot(window,1280,720,output/'courtyard-free-moved.png',free_start,False)
+            finally:
+                tool('keyup','--window',window,'w')
+            settled_screenshot(window,1280,720,output/'courtyard-free-moved.png',free_start)
             tool('key','--window',window,'r')
             compared_screenshot(window,1280,720,output/'courtyard-free-restored.png',courtyard_wide,True)
             tool('key','--window',window,'Return')
             time.sleep(0.3)
             activated=compared_screenshot(window,1280,720,output/'courtyard-activated.png',courtyard_wide,False)
             assert activated != courtyard_wide, 'Activation did not draw particles'
+            tool('key','--window',window,'F9')
+            compared_screenshot(window,1280,720,output/'courtyard-crystal-light-off.png',activated,False)
+            tool('key','--window',window,'F9')
+            compared_screenshot(window,1280,720,output/'courtyard-crystal-light-restored.png',activated,True)
             time.sleep(0.3)
             assert compared_screenshot(window,1280,720,output/'courtyard-paused.png',activated,True) == activated, 'Paused animation advanced'
             tool('key','--window',window,'space')
@@ -381,7 +390,7 @@ def main():
             assert markdown.is_file() and 'M12' in markdown.read_text()
             (output/'acceptance.json').write_text(json.dumps({
                 'scope':'Linux Xvfb/lavapipe native interaction; no physical display or Windows claim',
-                'courtyard_free_camera':True,'courtyard_living_replay':True,'courtyard_wind_comparison':True,'courtyard_transmission_comparison':True,'courtyard_bloom_comparison':True,'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_ibl_comparison':True,'courtyard_hdr_exposure':True,'courtyard_shadow_comparison':True,'courtyard_tone_comparison':True,'courtyard_material_comparison':True,
+                'courtyard_free_camera':True,'courtyard_living_replay':True,'courtyard_transparency_comparison':True,'courtyard_atmosphere_comparison':True,'courtyard_refraction_comparison':True,'courtyard_crystal_light_comparison':True,'courtyard_planar_reflection_comparison':True,'courtyard_wind_comparison':True,'courtyard_transmission_comparison':True,'courtyard_bloom_comparison':True,'courtyard_fixed_shots':True,'courtyard_screenshot_mode':True,'courtyard_ibl_comparison':True,'courtyard_hdr_exposure':True,'courtyard_shadow_comparison':True,'courtyard_tone_comparison':True,'courtyard_material_comparison':True,
                 'courtyard':rooms['courtyard'],
                 'quality_cycle_restores_pixels':True,'room_controls':True,'screenshots':['hub.png','rendering.png','rendering-quad.png','rendering-triangle.png','scene.png','input.png','gameplay.png','gameplay-geometry.png','presentation.png','streaming.png','shipping.png','presentation-blend.png','validation-lab.png','resized-hub.png','courtyard-ui.png','courtyard-wide.png','courtyard-bloom-off.png','courtyard-bloom-restored.png','courtyard-shadow-off.png','courtyard-shadow-restored.png','courtyard-neutral.png','courtyard-styled-restored.png','courtyard-exposure.png','courtyard-exposure-restored.png','courtyard-direct.png','courtyard-ibl-restored.png','courtyard-lambert.png','courtyard-pbr-restored.png','courtyard-material.png','courtyard-motion.png','courtyard-wide-replay.png','courtyard-activated.png','courtyard-paused.png','courtyard-animated.png','courtyard-animation-replay.png','courtyard-inactive.png','courtyard-free-camera.png','courtyard-free-moved.png','courtyard-free-restored.png','courtyard-wind-off.png','courtyard-wind-restored.png','courtyard-transmission-off.png','courtyard-transmission-restored.png'],
                 'windowed_evidence':native,'build':evidence['build']},indent=2)+'\n')

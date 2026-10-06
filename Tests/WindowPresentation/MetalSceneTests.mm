@@ -2,10 +2,19 @@
 // Compile the real private adapter into this test to read back GPU output without adding public
 // handles.
 #include "../../Engine/Presentation/src/MetalSurface.mm"
+#include "PbrAtmosphereFixtures.h"
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
+#include "PbrMipFixtures.h"
+#include "PbrPointLightFixtures.h"
+#include "PbrReflectionFixtures.h"
+#include "PbrRefractionFixtures.h"
 #include "PbrShadowFixtures.h"
+#include "PbrTransparencyFixtures.h"
+#include "PbrTwoSidedFixtures.h"
 #include "PbrVegetationFixtures.h"
+#include "PbrWorldMappingFixtures.h"
+#include "PbrWorldNormalFixtures.h"
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 
@@ -488,6 +497,255 @@ int main(int argc, char **argv) {
                                        std::to_integer<unsigned>(pixels[index])};
       };
       if (!PbrBloomFixtures::Pixels(mode, read(640 * 58 / 100, 180), read(320, 180)))
+        return fail(__LINE__);
+    }
+    std::array<unsigned, 3> mipLeft{}, mipRight{};
+    for (unsigned mode = 0; mode < 2; ++mode) {
+      PbrMipFixtures::Fixture fixture(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto left = read(160), right = read(480);
+      if (!PbrMipFixtures::Pixels(left, right))
+        return fail(__LINE__);
+      if (mode == 0) {
+        mipLeft = left;
+        mipRight = right;
+      }
+      if (mode == 1)
+        for (unsigned c = 0; c < 3; ++c)
+          if (std::abs(static_cast<int>(left[c]) - static_cast<int>(mipLeft[c])) > 2 ||
+              std::abs(static_cast<int>(right[c]) - static_cast<int>(mipRight[c])) > 2)
+            return fail(__LINE__);
+    }
+    std::array<unsigned, 3> pointLeft{}, pointRight{};
+    for (unsigned mode = 0; mode < 6; ++mode) {
+      PbrPointLightFixtures::Fixture fixture(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto left = read(160), right = read(480);
+      if (!PbrPointLightFixtures::Pixels(mode, left, right))
+        return fail(__LINE__);
+      if (mode == 1) {
+        pointLeft = left;
+        pointRight = right;
+      }
+      if (mode == 3 && (left != pointLeft || right != pointRight))
+        return fail(__LINE__);
+    }
+    for (unsigned mode = 0; mode < 4; ++mode) {
+      PbrTwoSidedFixtures::Fixture fixture(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto left = read(160), right = read(480);
+      if (!PbrTwoSidedFixtures::Pixels(mode, left, right))
+        return fail(__LINE__);
+      if (mode == 0) {
+        pointLeft = left;
+        pointRight = right;
+      }
+      if (mode >= 2 && (left != pointLeft || right != pointRight))
+        return fail(__LINE__);
+    }
+    std::array<unsigned, 3> refractedLeft{}, refractedRight{};
+    for (unsigned mode = 0; mode < 8; ++mode) {
+      PbrRefractionFixtures::Fixture fixture(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto left = read(640 * 49 / 100), right = read(640 * 51 / 100);
+      if (!PbrRefractionFixtures::Pixels(mode, left, right))
+        return fail(__LINE__);
+      if (mode == 1) {
+        refractedLeft = left;
+        refractedRight = right;
+      }
+      if (mode == 3 && (left != refractedLeft || right != refractedRight))
+        return fail(__LINE__);
+    }
+    std::array<unsigned, 3> flatLeft{}, flatRight{}, tiltedLeft{}, tiltedRight{};
+    for (unsigned mode = 0; mode < 4; ++mode) {
+      PbrWorldNormalFixtures::Fixture fixture(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto left = read(160), right = read(480);
+      if (!PbrWorldNormalFixtures::Pixels(left, right))
+        return fail(__LINE__);
+      if (mode == 0) {
+        flatLeft = left;
+        flatRight = right;
+      }
+      if (mode == 1) {
+        if (left[1] <= flatLeft[1] + 6 || right[0] <= flatRight[0] + 6)
+          return fail(__LINE__);
+        tiltedLeft = left;
+        tiltedRight = right;
+      }
+      if (mode == 2 && (std::abs(static_cast<int>(left[1]) - static_cast<int>(flatLeft[1])) > 2 ||
+                        std::abs(static_cast<int>(right[0]) - static_cast<int>(flatRight[0])) > 2))
+        return fail(__LINE__);
+      if (mode == 3 && (left != tiltedLeft || right != tiltedRight))
+        return fail(__LINE__);
+    }
+    std::array<unsigned, 3> fogReference{};
+    for (unsigned mode = 0; mode < 6; ++mode) {
+      PbrAtmosphereFixtures::Fixture fixture(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(fixture.Draw(mode)), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto center = read(320);
+      if (!PbrAtmosphereFixtures::Pixels(mode, read(160), center))
+        return fail(__LINE__);
+      if (mode == 1)
+        fogReference = center;
+      if (mode == 3 && center != fogReference)
+        return fail(__LINE__);
+    }
+    std::array<unsigned, 3> mappedReference{};
+    for (unsigned mode = 0; mode < 4; ++mode) {
+      PbrWorldMappingFixtures::Fixture fixture(mode);
+      auto mappingDraw = fixture.Draw(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(mappingDraw), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto left = read(160);
+      if (!PbrWorldMappingFixtures::Pixels(mode, left, read(480)))
+        return fail(__LINE__);
+      if (mode == 1)
+        mappedReference = left;
+      if (mode == 3 && left != mappedReference)
+        return fail(__LINE__);
+    }
+    std::array<unsigned, 3> blendedReference{};
+    for (unsigned mode = 0; mode < 6; ++mode) {
+      PbrTransparencyFixtures::Fixture fixture(mode);
+      auto blendDraw = fixture.Draw(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(blendDraw), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto center = read(320);
+      if (!PbrTransparencyFixtures::Pixels(mode, read(160), center))
+        return fail(__LINE__);
+      if (mode == 1)
+        blendedReference = center;
+      if (mode == 3 && center != blendedReference)
+        return fail(__LINE__);
+    }
+    std::array<unsigned, 3> reflectedReference{};
+    for (unsigned mode = 0; mode < 4; ++mode) {
+      PbrReflectionFixtures::Fixture fixture(mode);
+      auto reflectionDraw = fixture.Draw(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(reflectionDraw), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto left = read(160);
+      if (!PbrReflectionFixtures::Pixels(mode, left, read(480)))
+        return fail(__LINE__);
+      if (mode == 1)
+        reflectedReference = left;
+      if (mode == 3 && left != reflectedReference)
         return fail(__LINE__);
     }
     // Depth must select the bright near triangle regardless of index order.

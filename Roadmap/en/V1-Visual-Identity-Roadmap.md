@@ -1,5 +1,12 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
+MSVC compiler follow-up: foreground sprigs use `sprigRadius` to avoid camera-member
+shadowing under /WX. Exact source comparison after identifier normalization is unchanged.
+✅ Linux configure/build and full 97/97 pass (102.71 seconds), including 85 native PBR
+frames with core/sync validation. Evidence: `VIS-Courtyard-Masonry-Linux-2026-10-05/msvc-member-shadowing/`.
+Existing Shipping/movie keep their recorded production freeze; Windows CI recheck is pending.
+
+
 > Version: v0.2
 >
 > Date: 2026-10-04
@@ -366,7 +373,7 @@ The shared HDR compositor now supports bounded depth-aware focus before bloom/AC
 sharp post-composite UI. Native tests require visible focus/bloom differences, exact restoration
 and deterministic animation pause/replay. Shipping and exact-head DX12/Vulkan/Metal CI remain
 required before merging. This is implementation progress, not concept-image parity acceptance.
-The procedural art is not identical to the reference; planar reflections/refraction and richer
+The procedural art is not identical to the reference; crystal refraction and richer
 asset detail remain unresolved. Keep VIS-M3/M6 open and progress at 5/7 until reference art and
 target hardware/budget acceptance are supported by matching-version evidence.
 
@@ -384,5 +391,192 @@ timestamps nor physical target acceptance. The user goal/reference parity remain
 The follow-up art source adds retained image-assisted sandstone/ivy authoring with deterministic
 cooking, original foreground paving, chamfered ring wedges, larger reference framing, wind-bent
 teal pennants and decorated ceramic vessels. Linux development validation passes 97/97 tests;
-matching-source release captures are retained. This remains VIS-M3 refinement, with scene
-reflection, crystal optics and final reference parity open; the milestone count remains 5/7.
+matching-source release captures are retained. This remains VIS-M3 refinement, with final scene
+reflection refinement, crystal optics and final reference parity open; the milestone count remains 5/7.
+
+
+### Planar mirror iteration
+
+The courtyard now submits bounded horizontal mirror instances for the focal device, crystal,
+vessels, foliage, pennants and sky. Shared Slang clipping removes receiver top/underside faces
+inside two water regions; source-space wind, light and shadows remain coherent. V toggles the
+reflection and Basic retains the cheaper environment-only water path. Four additional native
+PBR fixtures check floor occlusion, source-driven movement and exact restoration (49 total).
+Full release and cross-platform evidence must precede merge. Crystal refraction, shoreline
+refinement and concept-image parity remain open; this does not accept VIS-M3 or VIS-M6.
+
+
+### Tinted crystal transparency iteration
+
+The crystal and floating splinters use tinted linear HDR surface blending, depth-testing against
+opaque geometry and retaining nearest-layer camera distance for focus. U switches transparency
+for native comparisons. Six extra PBR fixtures check opaque/half/zero coverage, restoration,
+focus and colored transmission (55 total). Full Shipping and cross-platform gates must pass
+before merge. Refraction and final visual fidelity remain open; VIS acceptance remains 5/7.
+
+
+### Sky and surface projection iteration
+
+Retained original cloud-panorama authoring now drives the visible sky and linear HDR IBL,
+with aligned azimuth/elevation and the existing above-one sun radiance. World-projected base/ORM
+maps remove stretched stone detail; shared shadow cutout preserves visible-mask agreement.
+Four additional native fixtures verify mesh UVs, source-world movement and restoration (59 total).
+Bounded water contours, thinner bronze straps, camera framing and pedestal relief refine the
+reference composition. Linux Development passes 97/97 tests (89.18 seconds) and all 59 native PBR frames.
+Shipping/cross-platform evidence and concept parity remain open; VIS stays 5/7.
+
+
+### Distance atmosphere iteration
+
+Shared linear HDR distance haze gives the upper ruins and landscape depth, with F7 comparison.
+Sky/unlit emitters retain original radiance; reflection distance remains coherent. Six native
+fixtures check disabled/half/full haze, restoration, unlit exclusion and a clear near-field
+range (65 PBR frames). Sun direction and sky panorama orientation move together to refine the
+reference lighting. Linux Development passes 97/97 tests (88.81 seconds), including native F7 change/restoration;
+all 65 PBR frames pass. Shipping/cross-platform evidence and concept parity remain open; VIS stays 5/7.
+
+
+### Living art and shared-column iteration
+
+Four fluted columns reuse one immutable mesh through native affine instances, preserving
+source-world stone projection and directional shadows while freeing vertex budget. Identity
+world geometry and the appended planar-mirror instance retain separate batch ranges. Additional
+ground-cover patches/climbing ivy use the original cutout mask and shared GPU wind/replay clock.
+Foliage counters count actual source quads. Warm painted ceramics and a wider pedestal base
+refine the composition. Linux Development passes 97/97 (89.00 seconds), including all three geometry budgets and native effect replay. Shipping/cross-platform validation and final reference parity remain open (5/7).
+
+Crystal diffuse/backlight fill is reduced to retain transmitted background and sharper facets;
+stronger linear rune radiance feeds HDR bloom. Original column relief and distant tower fluting
+add geometric detail within the existing native vertex budget.
+
+
+### World-projected normal detail
+
+Existing stone normal maps now supply bounded projected surface gradients, avoiding mesh-UV
+stretching while retaining source-world base/ORM/reflection agreement. Zero strength preserves
+geometry normals; default zero world scale preserves legacy UV normal mapping. Four native
+cases check flat/projected normals, zero strength and exact restoration (69 PBR frames).
+No texture/pass/packet expansion occurs. Linux Development passes all 97 tests (92.68 seconds),
+including the 69 native cases. Shipping/reference acceptance remains open; VIS stays 5/7.
+### Carved architecture and shared paving
+
+
+Eight original chipped paving meshes now share 432 native affine instances. Deterministic
+stone heights/widths and source-world PBR maps remain coherent; identity/column/paving/mirror
+ranges are retained across cached frames and quality changes. The reclaimed vertex budget
+supports a sculpted central basin/ribs, bevelled pedestal lips, staggered arcade masonry and
+raised geometric column relief. Layered cutout tree crowns share GPU wind and leaf lighting.
+The fixed activated Standard shot contains 51,790 vertices and 1,338 source foliage quads.
+Linux full validation passes 97/97 (95.21 seconds), including all three vertex budgets and native
+instance/wind/effect replay. Shipping evidence and final reference parity remain open (VIS 5/7).
+
+
+### Bounded crystal refraction
+
+Bounded screen-space crystal refraction now samples a private opaque linear-HDR snapshot before
+transparent rendering. Shared Slang projects bent camera rays through an authored slab; each
+axis is limited to 24 pixels, with nearer-foreground rejection. Standard/High crystal uses
+index 1.46 and 0.65 world-unit thickness, while Basic/defaults retain ordinary tint coverage.
+Native Vulkan/DX12/Metal adapters preserve opaque depth and own snapshot lifetime through frame
+fences/resize. Six native checks cover bending, reversal, exact replay, zero thickness and
+foreground rejection (75 PBR frames). Linux full validation passes 97/97 (92.94 seconds), including all 75 PBR frames and native F8
+change/exact restoration. Shipping/reference validation remains open (VIS 5/7). This model
+excludes offscreen and multiple transparent layers.
+
+
+Vulkan synchronization validation now covers opaque-HDR refraction. Swapchain acquisition and
+the copied HDR color transition include attachment-load reads; compatible HDR clear/load
+passes share color/depth read dependencies. This preserves pipeline/framebuffer compatibility
+while loading opaque depth and color for the glass phase. Khronos core/synchronization validation
+passes all 75 native PBR frames. The full Linux configure/build/test rerun passes 97/97
+(95.08 seconds) with validation layers enabled. Release rerun remains pending.
+
+### Color-correct stone mip filtering
+
+Lit scene texture generations now build bounded native mip chains: linear-light sRGB colors,
+linear ORM data and normalized-vector normal maps. Cutout masks, unlit atlases, ambiguous
+roles and UI remain single-level. Vulkan/DX12/Metal upload the same private CPU chain into
+existing generation-owned textures, reducing distant stone aliasing without changing source
+assets, passes, constant packets or C/Zig ABI. CPU semantic checks and two native checker/gray
+minification cases cover the new filtering (77 PBR frames). Linux full validation passes 97/97
+(96.26 seconds), with native effect replay and all quality budgets. Shipping/reference validation
+remains open; VIS stays 5/7.
+
+
+Closed courtyard crystals now opt into front-surface-only refraction. Shared Slang rejects
+rear geometric facets using the source normal and real/virtual reflection camera, so a later
+back face cannot replace the front face with another opaque-HDR sample. General glass stays
+two-sided by default. The flag requires active lit translucent HDR refraction and uses private
+packet offset 78; the 368-byte packet and stable C/Zig ABI stay unchanged. F8/U/Basic restore
+default behavior. Two native cases compare rear-face rejection with unchanged double-sided
+refraction, plus CPU validation/packing checks (79 PBR frames). Linux full validation passes 97/97 (98.20 seconds); release validation is
+pending; final reference parity and physical target acceptance remain open. VIS stays 5/7.
+
+
+The courtyard art pass now maps stone at 1.1 repeats per world unit with restrained normal
+strength, so authored pores read as surface detail rather than large mottled patches. Pedestal,
+basin and ceramic lathe profiles use 48 radial segments; columns retain 64 fluted segments.
+Brighter bronze factors, lower roughness and 0.8 IBL intensity expose the sun/IBL response.
+Distant ridges share restrained world-projected stone detail. Extra deterministic
+ground cover and right-hand ring ivy share the existing wind, pause/replay and reflection
+clock. The fixed activated Standard shot contains 60,662 vertices and 1,764 source foliage
+quads. Linux full validation passes 97/97 (101.60 seconds) with core/sync validation enabled,
+including all three quality budgets and 79 PBR frames. Release/reference and physical target
+acceptance remain open. VIS stays 5/7.
+
+
+A bounded HDR crystal point source now adds real local PBR illumination to nearby stone,
+bronze and transparent surfaces before bloom/ACES. Shared Slang uses smooth finite-radius
+inverse-square falloff; source-world positions keep planar reflections coherent, and unlit
+sky/emitters remain unchanged. Standard/High activation follows crystal lift and the shared
+pause/replay clock; F9 compares the local light. Basic/inactive/default scenes omit it. The
+optional copied ScenePointLight validates finite position, radiance [0,32] and radius [0.1,64].
+The private packet grows to 400 bytes, fitting the existing DX12 768-byte aligned pair; C/Zig
+ABI is unchanged. CPU bounds/packing and six native movement/replay/disable/unlit cases are
+passing (85 PBR frames). Linux full validation passes 97/97 (105.31 seconds) with core/sync
+validation enabled, including native F9 changes/exact restoration. Release/reference and
+physical target acceptance remain open; VIS stays 5/7. This one source has no point-shadow map.
+
+
+Crystal point-light Shipping evidence: [Apps/Showcase/evidence/VIS-Crystal-Light-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Crystal-Light-Linux-2026-10-05). Production freeze `aec18172a4e6`; actual 100.33-second movie (100.71-second wall time), isolated native F9 comparison/restoration and all 85 native PBR cases pass. Final reference/physical-target acceptance remains open.
+
+
+Courtyard art now shares exact bevel profiles for repeated tower/arcade blocks, retaining
+world-space mapping and inverse-transpose normals while reducing uploaded geometry. Distant
+towers use masonry courses and raised diamond relief; three foreground banks add 288 wind
+cards. Leaf shading uses the original alpha/color mask without emissive fill. The basin is
+shifted forward for a readable silhouette; warmer ceramic glaze responds to the sunset.
+The authored crystal has five staggered rings with an outward convex triangulation check.
+Three internal emissive mineral fissures share crystal rotation/lift and appear through the
+opaque HDR snapshot; rune/fissure radiance is restrained before bloom/ACES. These are authored
+geometry, not volumetric scattering. Standard/High atmosphere uses strength 0.6 at 18–58 units.
+This art iteration does not accept final reference parity or target performance; VIS stays 5/7.
+
+Linux native integration: ✅ full configure/build and 97/97 tests pass (103.93 seconds) with Khronos core/synchronization validation, including 85 PBR frames and all three geometry budgets. The fixed activated Standard frame has 50,166 vertices and 2,052 source foliage quads. Shipping/Full isolated native acceptance and an actual 100.27-second movie (100.80-second wall time) pass; final reference/target acceptance remains open.
+
+Evidence: [VIS-Courtyard-Masonry-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Courtyard-Masonry-Linux-2026-10-05). Production freeze `e5bb13119ba1`; exact source and package hashes are retained.
+
+
+Optional `SceneMaterial::twoSidedLighting` makes lit PBR sheets face the viewer before tangent
+normal mapping and BRDF/IBL evaluation. Leaves and pennants opt in; defaults preserve existing
+surface lighting. Source-world shadow masks and mirrored virtual cameras remain coherent,
+while closed-crystal front-facet filtering still precedes the flip. Unlit and Lambert use
+reject this flag. Private material float 79 uses the reserved slot; the 400-byte packet,
+backend bindings and stable C/Zig ABI are unchanged. Back faces no longer lose diffuse IBL
+through a negative view cosine. This is sheet lighting, not a thick-material volume model.
+
+✅ Linux Development configure/build and all 97 tests pass (106.20 seconds), including 89 native PBR frames with Khronos core/synchronization validation. Four sheet fixtures retain default rear-face behavior and reproduce the front-facing colors exactly when enabled; CPU rejects unlit/Lambert use and verifies slot 79. All native geometry budgets and wind/pause/replay interactions pass. Shipping/Full isolated native acceptance and an actual 100.33-second movie (100.79-second wall time) pass; final reference/target acceptance remains open.
+
+Evidence: [VIS-Two-Sided-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05). Production freeze `248791c4b51a`; exact source and package hashes are retained.
+
+
+MSVC fixture portability follow-up: point-light fill and two-sided normal conditionals use
+floating literals. ✅ Linux configure/build and full 97/97 pass (102.61 seconds), including
+89 native PBR frames with core/sync validation. Test values and runtime sources are unchanged;
+retained Shipping evidence keeps its production freeze. Windows CI recheck is pending.
+
+
+Upstream point-light and masonry MSVC fixture evidence is synchronized. Their full Linux
+97/97 gates pass in 102.20/102.62 seconds with 85 native PBR frames and core/sync validation.
+Each stage retains exact logs/hashes in `msvc-literals/`. This synchronization changes only
+documentation/evidence; runtime sources and fixture values are unchanged.

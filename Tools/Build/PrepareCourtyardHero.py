@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import math
+import struct
 from pathlib import Path
 from PrepareCourtyardEnvironment import golden_sky
 from CourtyardImageCook import decode_png, area_filter, leaf_card
@@ -24,9 +25,19 @@ def generate():
     sides, rings = source['sides'], source['rings']
     vertices = []
     def point(ring, side):
-        radius, y = ring
+        radius, y = ring[:2]
+        phase = ring[2] if len(ring) == 3 else 0
         x, z = sides[side % len(sides)]
-        return (radius*x, y, radius*z)
+        return (radius*(x*math.cos(phase)-z*math.sin(phase)), y,
+                radius*(x*math.sin(phase)+z*math.cos(phase)))
+    hull_points = [point(ring, side) for ring in rings for side in range(len(sides))]
+    def plane_violation(points):
+        a,b,c = points
+        u,v = tuple(b[i]-a[i] for i in range(3)),tuple(c[i]-a[i] for i in range(3))
+        n=(u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0])
+        length=math.sqrt(sum(x*x for x in n))
+        if length < 1e-8: return 0
+        return max(sum(n[i]*(p[i]-a[i]) for i in range(3))/length for p in hull_points)
     def triangle(points):
         a,b,c = points
         u,v = tuple(b[i]-a[i] for i in range(3)),tuple(c[i]-a[i] for i in range(3))
@@ -38,7 +49,12 @@ def generate():
     for band in range(len(rings)-1):
         for side in range(len(sides)):
             a,b,c,d=point(rings[band],side),point(rings[band],side+1),point(rings[band+1],side+1),point(rings[band+1],side)
-            triangle((a,c,b));triangle((a,d,c))
+            # A staggered quad is nonplanar: select its outward ridge diagonal.
+            options = (((a,c,b),(a,d,c)), ((a,d,b),(b,d,c)))
+            faces = min(options, key=lambda option: max(plane_violation(face) for face in option))
+            if max(plane_violation(face) for face in faces) > 1e-5:
+                raise ValueError('Crystal authoring rings must form a convex closed hull')
+            for face in faces: triangle(face)
     mesh=f'nexora.showcase.mesh.v1 {len(vertices)} {len(vertices)}\n'
     mesh+=''.join(' '.join(format(x,'.9g') for x in row)+'\n' for row in vertices)
     mesh+=' '.join(map(str,range(len(vertices))))+'\n'
@@ -97,7 +113,9 @@ def generate():
             direction=[normals[face][i]+u*rights[face][i]+v*ups[face][i] for i in range(3)]
             length=math.sqrt(sum(d*d for d in direction)); dx,dy,dz=[d/length for d in direction]
             linear=golden_sky((dx,dy,dz),source['sky'])
-            rgb=[round(255*(12.92*c if c<=0.0031308 else 1.055*c**(1/2.4)-0.055)) for c in linear]
+            encoded=[255*(12.92*c if c<=0.0031308 else 1.055*c**(1/2.4)-0.055) for c in linear]
+            # Canonical binary32 intermediates stabilize byte rounding across host libm.
+            rgb=[round(c) for c in struct.unpack('<3f',struct.pack('<3f',*encoded))]
             sky.extend((*rgb,255))
     outputs['sky.rgba']=bytes(sky)
     metadata={'schema' :'nexora.courtyard.hero-manifest.v1','source':'source.json','author':source['author'],'license':source['license'],'source_sha256':hashlib.sha256((CONTENT/'source.json').read_bytes()).hexdigest(),'license_sha256':hashlib.sha256((ROOT/'LICENSE').read_bytes()).hexdigest(),'converter_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'sky_converter_sha256':hashlib.sha256((ROOT/'Tools/Build/PrepareCourtyardEnvironment.py').read_bytes()).hexdigest(),'derived':{name:hashlib.sha256(data).hexdigest() for name,data in outputs.items()}}

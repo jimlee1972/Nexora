@@ -1,0 +1,79 @@
+{
+  "source_freeze": "cab87c5f04e18395cfa7abd9b22bf68f787b3da2",
+  "source_scope": "local production freeze; connector publication may use a different commit with a verified identical tree",
+  "source_sha256": {
+    "Apps/Showcase/CourtyardEnvironment.h": "f68f915dd743be3c0abbc253781340c9c089861f12fb70c7a474ba9988e08bb7",
+    "Apps/Showcase/CourtyardHero.h": "fc80771e865810d9bf37cf365e3a176164644a3e54c3f22cec4f933d79b1c961",
+    "Apps/Showcase/ShowcaseRooms.cpp": "d05b561546504e8889c20a3f002db0225d3eaf3373453c1eafc9e48be26641c0",
+    "Content/Showcase/Courtyard/Environment/derived.json": "c840ff7edd34089c4e16671c0aac24a4ecf15b608b6589087cf6132adcea7cc3",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "268ad21788e8b34fc5e0d5e5d84e771ab2fd568ada4be952955d2496537711fa",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "391b3b8ce9b451a1dec61727ebc403ecb5e11a4a5a3c6422fdb331929b845aa2",
+    "Content/Showcase/Courtyard/Hero/Source/README.md": "63862e0c163b0469558d8a98963bb05683156a4a32fe43737db190f13117c207",
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/manifest.json": "3fc3fe1d6307d69a413ffd3ddfd18ee4b8b09238a6f16ba0a45ccc63339a63b0",
+    "Content/Showcase/Courtyard/Hero/sky.rgba": "abd994a2b5348ed290c60d6465a3404e256b893ba91525c0c6a8a96fdd616010",
+    "Content/Showcase/Courtyard/Hero/source.json": "46e1612ebcadffb80a393a1f656573edcd738d6a435e21dd1c69544535f00add",
+    "Engine/Presentation/README.md": "6d080c735e74671f0dc1180a2c90dae51623f4083772067aa97ff96669e75d1b",
+    "Engine/Presentation/include/Nexora/Presentation/Surface.h": "fcefd15dd5c62b489ef63ac0dddfdd770878dc2bbc0a1ef453466d9133254122",
+    "Engine/Presentation/shaders/scene_pbr.slang": "b4e52dc3596572d9b93a804ed81c0e2639c054458ac0a1b99267e3bc8c3fb9c7",
+    "Engine/Presentation/src/PbrMaterialUpload.h": "ca66a32ff84917dcca310ad4ed6c0e01af71b4e6dadd64b49075caf2e5875c85",
+    "Engine/Presentation/src/ScenePbrHlslShaders.h": "9a7f27c6cb9aa17d5297fef47bda70ae5c2ff3007c8e4e8e284b468a25345ac6",
+    "Engine/Presentation/src/ScenePbrMetalShaders.h": "5a331ca228d909b524c533537a216b15ee7bf453cb07c9876a91da11d6dde518",
+    "Engine/Presentation/src/ScenePbrVulkanShaders.h": "93e2af029b81021534654c5a2f3faf7616f5c3b8066e1b0ad4b7e57563c03475",
+    "README.md": "dd43c90b3187562cb93718ae82ba64139763af2ac9383f4c83adb2002e0005bb",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "f68364feb71db89108ec56fa15dc7dd57f41001e9eb4b354386428b69af5f6ec",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "f54e3f26568193d491491cc5031206c5fea1ba29d4e4d3445d2c00af8ec664ab",
+    "Tests/Showcase/CourtyardEnvironmentTests.py": "e85c134ae461f646c123b70eae6461db753d4423f65153ca4900f964f970c1c1",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "ae2e9d2cefee89776345d2b928c71aa5a7d15f9f754b736b8accb4a346b3f01b",
+    "Tests/WindowPresentation/PbrWorldMappingFixtures.h": "12a9dc89d3f204ae66bd314987544c293be838cb482ef8582db81b89091ff2b6",
+    "Tests/WindowPresentation/SceneInstanceTests.cpp": "ca3881474f54df559419ee7378f41360068f08b95fcf122b3c69ff8c9dddd54a",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "e54b04c84663c5436229cade9167692013b44b2f081d560f7390a2e81aa15843",
+    "Tools/Build/PrepareCourtyardEnvironment.py": "9c8dc8c1c20ddeb04cad78ffb10bae9fb4607d294fcb5635abae805e60c72a1a",
+    "Tools/Build/PrepareCourtyardHero.py": "f9a3d85d655ab6422e22c070b13244090e0d232eee94f1a38b88f8a21ebad272"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-atmosphere-materials/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/world-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "cab87c5f04e1",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.62953993499832,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.400000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "a7f3249b2af68458289468fd5c80ab23d5b681fcd63562a79fda4805a1143dcd",
+    "video_sha256": "7ef38fd36c6e68af52449e0a08d08044f1b750b49a6a0907418a1c039fc84af8",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "78cf104b4d52b123a1056c01ca8f55a8c6e9b632db256369929c59d2aee3f04b",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}
