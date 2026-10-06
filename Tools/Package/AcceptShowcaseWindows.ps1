@@ -299,8 +299,14 @@ public static class NexoraAcceptanceWindow {
     Start-Sleep -Milliseconds 300
     Capture-Compared 'courtyard-paused.png' 'courtyard-activated.png' $true
     Press-Key 32
-    Start-Sleep -Milliseconds 600
-    Press-Key 32
+    # Require a presented animated frame before pausing. On a slow software adapter,
+    # a fixed short delay can queue both toggles before the next simulation update.
+    # Keep the existing comparison deadline and exact replay checks.
+    try {
+        Capture-Compared 'courtyard-animating.png' 'courtyard-activated.png' $false
+    } finally {
+        Press-Key 32
+    }
     Capture-Compared 'courtyard-animated.png' 'courtyard-activated.png' $false
     Press-Key 82
     Capture-Compared 'courtyard-animation-replay.png' 'courtyard-activated.png' $true

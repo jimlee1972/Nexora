@@ -1,0 +1,7 @@
+# Crystal HDR radiance and woody cypress: Linux evidence
+
+Rune rail base/emission are restrained while the brightest contained mineral faces use authored linear radiance coefficients 1.8/1.35, modulated by the existing pulse before bloom/ACES. Local point radiance becomes 0.2/3/4 with the same pulse, position and radius. The left cypress moves into the current wide arch opening; eight original tapered shared-profile trunks and woody ivy stems use existing material slot 10 and detail maps. Far-background shadow eligibility remains unchanged; the prototype attempt to enable it was rejected by the existing contract and removed. Foliage/root wind, refraction packets and cooked originals remain unchanged.
+
+The activated Standard scene reports 56,665 vertices, 132,870 indices, 330 batches and 42 materials. Full 97/97 Development tests pass with Khronos core/synchronization validation (116.67 s). Isolated Shipping acceptance, exact wind/planar-reflection restoration and an actual 100-second shared-clock animation recording are retained with source/executable/movie/package SHA-256 provenance. Production freeze: `cbf8d651248ad28f8c077d10336366f460e308d2`. Artifacts: `NexoraShowcase-Crystal-Radiance-cbf8d65.mp4` and `NexoraShowcase-Crystal-Radiance-cbf8d65-Linux.zip`. Native art captures use the same Shipping executable. No overlays or retiming.
+
+Reference parity and physical-display performance remain unaccepted. VIS remains 5/7.
