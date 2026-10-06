@@ -1,5 +1,9 @@
 # Nexora
 
+✅ Linux Development full 97/97 tests passed (115.01 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.82 s wall time). Production freeze `b6814267f3bb43fca17e3cde0e65fa7b7c6a7082`; evidence: `Apps/Showcase/evidence/VIS-Curved-Foliage-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+Foliage geometry iteration: bounded folds and deterministic lean give leaf cards real depth variation, with analytical surface normals and tangents. Original UVs, cutout art, vertex/index counts and shared-clock wind remain intact; small mote cards stay flat. Tests verify noncoplanar cards, unit/orthogonal normals and tangents, and outward orientation. The rejected larger-scale stone prototype was removed before full validation. Standard: 56,665 vertices, 133,194 indices, 336 batches, 44 materials.
+
 ✅ Linux Development full 97/97 tests passed (109.78 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.76 s wall time). Production freeze `b88e22c7b24aa6f63b697783c0c9d64b241b135a`; evidence: `Apps/Showcase/evidence/VIS-Weathered-Blocks-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
 
 Weathered block iteration: deterministic bounded offsets deform shared physical corners of bevelled masonry and boxed device details. Geometric face normals follow the deformation. Tests verify 24 physical points, 66 closed edges used exactly twice, noncollapsed triangles and outward normals. Original 96-vertex/132-index block topology, shaders, stable ABIs and cooked art remain unchanged. Standard: 56,665 vertices, 133,194 indices, 336 batches, 44 materials.

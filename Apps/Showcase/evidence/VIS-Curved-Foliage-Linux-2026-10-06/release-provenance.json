@@ -1,0 +1,73 @@
+{
+  "source_freeze": "b6814267f3bb43fca17e3cde0e65fa7b7c6a7082",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/ShowcaseRooms.cpp": "6c29219ebe915b272c420d7c1c074f25cbcfde39d66752a530bcc096e67745b9",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "a40187bdc78b349844fbdf3dbe5ef2006b5c5bf06181eaf5e73562d6a7fe5874"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/foliage-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "b6814267f3bb",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.82169129198883,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.333333"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "07243e20fe70de7a7c794eddf04fce50af5eb136c171d04159f341a7a530efa8",
+    "video_sha256": "8730e26e9bdddee6a6de9c6b42e5169002624c8b50494097b7188dcc4605fe70",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "5089d59b2641fc46e528fc127b81a208f13f818ee3eecf718936e587f201854d",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        58,
+        642,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  }
+}

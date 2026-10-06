@@ -739,14 +739,21 @@ struct RoomSession::State final {
     const auto base = static_cast<std::uint16_t>(vertices.size());
     const math::Vector3 right{std::cos(angle), 0, std::sin(angle)};
     const math::Vector3 normal{-std::sin(angle), 0, std::cos(angle)};
+    const float fold = height >= 0.1F ? halfWidth * 0.18F : 0;
+    const float lean =
+        height >= 0.1F ? 0.16F * std::sin(angle + center.x * 0.7F + center.z * 0.3F) : 0;
     for (const auto uv : {std::array{0.0F, 0.0F}, std::array{1.0F, 0.0F}, std::array{1.0F, 1.0F},
                           std::array{0.0F, 1.0F}}) {
-      const auto point =
-          center + right * ((uv[0] * 2 - 1) * halfWidth) + math::Vector3{0, uv[1] * height, 0};
+      const float u = uv[0] * 2 - 1, v = uv[1] * 2 - 1;
+      const auto point = center + right * (u * halfWidth) + math::Vector3{0, uv[1] * height, 0} +
+                         normal * (fold * u * v + lean * uv[1] * height);
+      const auto tangent = math::NormalizeSafe(right * (2 * halfWidth) + normal * (2 * fold * v));
+      const auto vertical = math::Vector3{0, height, 0} + normal * (2 * fold * u + lean * height);
+      const auto surfaceNormal = math::NormalizeSafe(math::Cross(tangent, vertical));
       vertices.push_back({{point.x, point.y, point.z},
-                          {normal.x, normal.y, normal.z},
+                          {surfaceNormal.x, surfaceNormal.y, surfaceNormal.z},
                           {uv[0], uv[1]},
-                          {right.x, right.y, right.z, 1}});
+                          {tangent.x, tangent.y, tangent.z, 1}});
     }
     for (const auto i : {0, 1, 2, 0, 2, 3})
       indices.push_back(static_cast<std::uint16_t>(base + i));
