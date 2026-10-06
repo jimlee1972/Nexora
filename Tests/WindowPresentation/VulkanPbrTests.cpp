@@ -1,4 +1,5 @@
 #include "Nexora/Presentation/Surface.h"
+#include "PbrAntiAliasFixtures.h"
 #include "PbrAtmosphereFixtures.h"
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
@@ -59,7 +60,7 @@ std::array<Rgb, 9> Read(
     Display *display, ::Window window,
 #endif
     unsigned width, unsigned height, const std::filesystem::path &capture,
-    std::uint64_t *sceneHash = nullptr) {
+    std::uint64_t *sceneHash = nullptr, unsigned *intermediate = nullptr) {
 #if defined(_WIN32)
   (void)display;
   POINT origin{};
@@ -115,6 +116,8 @@ std::array<Rgb, 9> Read(
           *sceneHash *= 1099511628211ULL;
         }
   }
+  if (intermediate)
+    *intermediate = PbrAntiAliasFixtures::Intermediate(width, height, rgb);
   if (!capture.empty()) {
     std::ofstream file(capture, std::ios::binary);
     file << "P6\n" << width << ' ' << height << "\n255\n";
@@ -221,7 +224,9 @@ int main(int argc, char **argv) {
         refractedLeft{}, refractedRight{}, mipLeft{}, mipRight{};
     std::uint64_t windReference{}, windMoved{};
     std::array<unsigned, 3> pointLeft{}, pointRight{};
-    for (unsigned frame = 0; frame < 89; ++frame) {
+    unsigned aaBaseline = 0;
+    std::uint64_t aaHash = 0;
+    for (unsigned frame = 0; frame < 93; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
       PbrReflectionFixtures::Fixture reflectionFixture(frame >= 45 ? frame - 45 : 0);
@@ -236,6 +241,7 @@ int main(int argc, char **argv) {
       PbrMipFixtures::Fixture mipFixture(frame >= 75 ? frame - 75 : 0);
       PbrPointLightFixtures::Fixture pointFixture(frame >= 79 ? frame - 79 : 0);
       PbrTwoSidedFixtures::Fixture twoSidedFixture(frame >= 85 ? frame - 85 : 0);
+      PbrAntiAliasFixtures::Fixture aaFixture(frame >= 89 ? frame - 89 : 0);
       materials = {};
       draw.shadow.reset();
       draw.lightingStyle.reset();
@@ -404,6 +410,11 @@ int main(int argc, char **argv) {
         materials = twoSidedFixture.geometry.materials;
         draw.materials = materials;
       }
+      if (frame >= 89) {
+        draw = aaFixture.Draw();
+        materials = aaFixture.materials;
+        draw.materials = materials;
+      }
       materials[2].emission = {marker, 0, 0};
       materials[2].roughness = 1;
       materials[2].metallic =
@@ -552,10 +563,23 @@ int main(int argc, char **argv) {
       const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
       while (!valid && std::chrono::steady_clock::now() < deadline) {
         std::uint64_t region{};
-        const auto pixels = Read(display, native, width, height, {}, &region);
+        unsigned intermediate = 0;
+        const auto pixels = Read(display, native, width, height, {}, &region,
+                                 frame >= 89 ? &intermediate : nullptr);
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 85) {
+        if (frame >= 89) {
+          if (frame == 89) {
+            aaBaseline = intermediate;
+            aaHash = region;
+            valid = true;
+          } else if (frame == 90)
+            valid = intermediate >= aaBaseline + width / 16;
+          else if (frame == 91)
+            valid = intermediate == aaBaseline && region == aaHash;
+          else
+            valid = intermediate == 0 && left[0] >= 245 && right[0] >= 245;
+        } else if (frame >= 85) {
           valid = PbrTwoSidedFixtures::Pixels(frame - 85, left, right);
           if (valid && frame == 85) {
             pointLeft = left;
@@ -732,7 +756,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, argv[1]));
       if (argc == 2 && frame >= 30) {
         auto capture = std::filesystem::path(argv[1]);
-        capture.replace_filename((frame >= 85   ? "two-sided-"
+        capture.replace_filename((frame >= 89   ? "anti-alias-"
+                                  : frame >= 85 ? "two-sided-"
                                   : frame >= 79 ? "point-light-"
                                   : frame >= 77 ? "refraction-front-"
                                   : frame >= 75 ? "mip-filter-"
@@ -745,7 +770,8 @@ int main(int argc, char **argv) {
                                   : frame >= 43 ? "depth-of-field-"
                                   : frame < 34  ? "bloom-"
                                                 : "vegetation-") +
-                                 std::to_string(frame >= 85   ? frame - 85
+                                 std::to_string(frame >= 89   ? frame - 89
+                                                : frame >= 85 ? frame - 85
                                                 : frame >= 79 ? frame - 79
                                                 : frame >= 77 ? frame - 77
                                                 : frame >= 75 ? frame - 75
@@ -762,8 +788,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 89 &&
-                surface->Diagnostics().sceneComposites == 79 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 93 &&
+                surface->Diagnostics().sceneComposites == 83 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
@@ -788,7 +814,8 @@ int main(int argc, char **argv) {
            "linear HDR atmosphere and "
            "unlit "
            "exclusion, alpha "
-           "cutout/shadow agreement, GPU wind/replay and leaf transmission\n";
+           "cutout/shadow agreement, GPU wind/replay, leaf transmission and bounded HDR "
+           "anti-aliasing/restoration\n";
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
     return 1;

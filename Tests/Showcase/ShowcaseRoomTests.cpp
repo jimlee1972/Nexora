@@ -60,6 +60,11 @@ int main() {
   for (const auto index : wide.indices)
     assert(index < wide.vertices.size());
   assert(wide.pbr);
+  assert(wide.postProcessAntiAliasing);
+  Press(courtyard, Key::F10);
+  assert(!courtyard.Scene(1280, 720).postProcessAntiAliasing);
+  Press(courtyard, Key::F10);
+  assert(courtyard.Scene(1280, 720).postProcessAntiAliasing);
   assert(wide.materials.size() == 42 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   const auto sourceMaterialCount = wide.materials.size() / 2;
@@ -448,6 +453,7 @@ int main() {
     assert(draw.atmosphere.has_value() == (tier != 0));
 #if NEXORA_ASSET_PIPELINE_ENABLED
     assert(draw.environment.has_value() == (tier != 0));
+    assert(draw.postProcessAntiAliasing == (tier != 0));
 #endif
     assert(draw.materials[5].twoSidedLighting && draw.materials[15].twoSidedLighting);
     assert(draw.materials[6].unlit && !draw.materials[6].castsShadow);

@@ -124,7 +124,7 @@ struct RoomSession::State final {
   bool courtyardPbr{true}, courtyardIbl{true};
   float courtyardExposure = 1.0F;
   bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true}, courtyardFocus{true};
-  bool courtyardReflections{true}, courtyardAtmosphere{true};
+  bool courtyardReflections{true}, courtyardAtmosphere{true}, courtyardAntiAliasing{true};
   bool courtyardPaused{}, courtyardActive{}, courtyardWind{true}, courtyardTransmission{true};
   bool courtyardTransparency{true}, courtyardRefraction{true}, courtyardCrystalLight{true};
   bool visualTour{}, courtyardFreeCamera{}, courtyardCompare{};
@@ -2158,6 +2158,7 @@ void RoomSession::ReplayTour() {
     state_->courtyardPaused = false;
     state_->courtyardSeconds = 0;
     state_->courtyardActive = false;
+    state_->courtyardAntiAliasing = true;
     state_->courtyardPbr = state_->courtyardIbl = state_->courtyardShadows = true;
     state_->courtyardBloom = state_->courtyardStyled = state_->courtyardFocus =
         state_->courtyardReflections = state_->courtyardAtmosphere = state_->courtyardRefraction =
@@ -2267,6 +2268,8 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.courtyardFocus = !s.courtyardFocus;
   if (s.selected == "courtyard" && key == Key::V)
     s.courtyardReflections = !s.courtyardReflections;
+  if (s.selected == "courtyard" && key == Key::F10)
+    s.courtyardAntiAliasing = !s.courtyardAntiAliasing;
   if (s.selected == "courtyard" && key == Key::F9)
     s.courtyardCrystalLight = !s.courtyardCrystalLight;
   if (s.selected == "courtyard" && key == Key::F8)
@@ -2908,6 +2911,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     data.pbr = s.courtyardPbr;
     data.vegetationTime = static_cast<float>(s.courtyardSeconds);
     data.hdr = data.pbr;
+    data.postProcessAntiAliasing =
+        data.hdr && data.pbr && s.courtyardQuality != 0 && s.courtyardAntiAliasing;
     data.exposure = s.courtyardExposure;
     data.offscreen = data.hdr;
     if (data.hdr && s.courtyardReflections && s.courtyardQuality != 0)
@@ -3171,6 +3176,8 @@ std::string RoomSession::Report() const {
       << ",\"transmission_enabled\":" << (s.courtyardPbr && s.courtyardTransmission)
       << ",\"atmosphere_enabled\":"
       << (s.courtyardPbr && s.courtyardAtmosphere && s.courtyardQuality != 0)
+      << ",\"anti_aliasing_enabled\":"
+      << (s.courtyardPbr && s.courtyardQuality != 0 && s.courtyardAntiAliasing)
       << ",\"crystal_light_enabled\":" << (s.courtyardCrystalLight ? "true" : "false")
       << ",\"refraction_enabled\":"
       << (s.courtyardPbr && s.courtyardTransparency && s.courtyardRefraction &&

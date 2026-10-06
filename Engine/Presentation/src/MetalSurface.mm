@@ -474,6 +474,7 @@ public:
       sceneBloom_ = drawData.bloom.value_or(SceneBloom{0, 1, 12});
       sceneColorGrade_ = drawData.colorGrade.value_or(SceneColorGrade{});
       sceneDepthOfField_ = drawData.depthOfField.value_or(SceneDepthOfField{10, 0, 12});
+      sceneAntiAliasing_ = drawData.postProcessAntiAliasing;
       ++diagnostics_.sceneDrawCalls;
       diagnostics_.sceneInstances += instances.size();
       if (drawData.offscreen)
@@ -503,7 +504,7 @@ public:
         [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
         const auto settings =
             PackToneParameters(sceneExposure_, true, sceneBloom_, sceneColorGrade_, width_, height_,
-                               sceneDepthOfField_);
+                               sceneDepthOfField_, sceneAntiAliasing_);
         [encoder setFragmentBytes:settings.data() length:sizeof(settings) atIndex:0];
         [encoder setVertexBytes:toneVertices.data() length:sizeof(toneVertices) atIndex:0];
         [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
@@ -1128,6 +1129,7 @@ private:
   SceneBloom sceneBloom_{0, 1, 12};
   SceneColorGrade sceneColorGrade_{};
   SceneDepthOfField sceneDepthOfField_{10, 0, 12};
+  bool sceneAntiAliasing_ = false;
 #if defined(NEXORA_METAL_SCENE_TESTING)
   id<MTLTexture> compositedTesting_ = nil;
 #endif

@@ -366,6 +366,7 @@ struct SceneDrawData final {
   std::optional<ScenePointLight> pointLight{}; // HDR PBR only; absent preserves existing lighting.
   // Linear RGBA16F offscreen PBR; CompositeScene applies exposure, ACES and display transfer.
   bool hdr{};
+  bool postProcessAntiAliasing = false;
   float exposure = 1.0F;
   std::optional<SceneDirectionalShadow> shadow{};
   std::optional<SceneLightingStyle> lightingStyle{};

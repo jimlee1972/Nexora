@@ -561,3 +561,10 @@ build 與完整 97/97 通過（104.47 秒），包含 89 個原生 PBR 畫面、
 證據保留於 `VIS-Foliage-Mipmaps-Linux-2026-10-05`。未新增材質欄位、原生 binding、shader
 packet 或 C／Zig ABI；極小 mip 的離散覆蓋誤差不可完全避免。參考圖一致性與實體目標
 效能仍未完成，VIS 維持 5/7。
+
+HDR 空間抗鋸齒實作：Standard/High 庭院在 focus/bloom/ACES 前套用有界的線性
+輻射亮度邊緣濾波；F10 可比較並精確還原，Basic 不啟用。公開 C++ draw flag 預設
+關閉，原生 tone 常數改為 64 bytes。Vulkan 斜邊、純色內部與還原測試已通過
+core/sync validation。✅ Linux configure/build 與 97/97 測試通過（106.93 秒）；
+Shipping/Full 打包、隔離原生 F10 比較與還原、實際 100 秒動畫導覽通過。證據：
+`Apps/Showcase/evidence/VIS-HDR-Anti-Aliasing-Linux-2026-10-05`；VIS-M3 預覽一致與 VIS-M6 硬體驗收保持未完成。
