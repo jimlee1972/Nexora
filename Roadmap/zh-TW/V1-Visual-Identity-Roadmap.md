@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 九塊原創倒塌砂岩以三個共用風化模型形成庭院前景，中央裝置與水窪視線保持開放。Linux 完整 97/97 測試通過（120.57 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 100.99 秒）。凍結版本 `d484e7e2d75cfaab539e020d30cdf3c2bbecdecd`；證據：`Apps/Showcase/evidence/VIS-Foreground-Rubble-Linux-2026-10-06/`。Standard 為 58,249 vertices、135,378 indices、387 batches、44 materials。HDR、天空、風、貼圖與時鐘維持一致；VIS 仍為 5/7。
+
 ✅ 原創單片常春藤葉取代整株卡片，懸掛、攀附與前景卡片縮小，保留風動畫與附著根部。Linux 完整 97/97 測試通過（118.92 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 101.04 秒）。凍結版本 `61235ecdef9adb8ab57215afd0a9f27df861726c`；證據：`Apps/Showcase/evidence/VIS-Single-Leaf-Linux-2026-10-06/`。Standard 維持 57,961 vertices、134,982 indices、384 batches、44 materials；原始整株葉圖與天空／HDR 資料留存。VIS 仍為 5/7。
 
 ✅ Skybox 六個面提升為 256×256（768×512 RGBA8 atlas），保留雲層細節。原始天空圖與浮點 HDR IBL 資料保持一致，原生 HDR 日光、bloom 與共同時鐘動畫持續運作。Linux 完整 97/97 測試通過（122.80 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒影片通過（壁鐘 101.06 秒）。凍結版本 `2b2be9d670c9c691e2f333ce0efa2821c9539f78`；證據：`Apps/Showcase/evidence/VIS-Detailed-Sky-Linux-2026-10-06/`。幾何維持 57,961 vertices、134,982 indices、384 batches、44 materials。VIS 仍為 5/7。
