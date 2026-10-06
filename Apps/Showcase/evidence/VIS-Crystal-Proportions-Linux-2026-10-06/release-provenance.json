@@ -1,0 +1,57 @@
+{
+  "source_freeze": "040a3acf7c07351b98b13f2e0c5c89e4d1d3584b",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "4528573df1ebe3d3fb468ffbe2a06950becb8117b00eeb8243daeb64c7d7f4fe",
+    "Apps/Showcase/ShowcaseRooms.cpp": "9add486f5576ad90c74764157b6475bd8a748c1086c0c1ad26a3d28b786cff12",
+    "README.md": "8cc87e454644d6c46f3a162cff25a5677251ef98b9ce6102897379cd69094eda",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "99ff754122bdf725d3d3d616a0f494e5c6999d154b1c39b2bef90b3ad88ea53d",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "f5cf455fc660dfbdf4d674d76776d87baa80f4beca1b2b3fdf320006782e5545",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "640856f38d0ab25ad80c787b5ccf1623626d51cbddea198f657621fa446af230"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/proportions-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "040a3acf7c07",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.80642441399687,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.266667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "872d14fac95dec318a64163c1e51d1f809e6152131311e1220ccfc74798a9e15",
+    "video_sha256": "8c1666c79478828c8b5b4533e82c2d62ee28d161944601e53879b99cd311fc7f",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "f6a04b6aec562bc54b6dbdca065924aaf4d8f06e447e917b6173931f3e1ba807",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}

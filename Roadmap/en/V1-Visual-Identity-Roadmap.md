@@ -1,5 +1,9 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
+✅ Linux Development full 97/97 tests passed (110.29 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.81 s wall time). Production freeze `040a3acf7c07351b98b13f2e0c5c89e4d1d3584b`; evidence: `Apps/Showcase/evidence/VIS-Crystal-Proportions-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
+Crystal presentation proportions and stone ambient response are being verified against the reference: slimmer shell, narrower contained core, transformed normals and aligned light/focus anchors. The existing uniform material occlusion control is tuned for stone, and the comparison menu exposes F10 anti-aliasing. Original cooked assets and native shader contracts remain stable. Linux Development configure/build and full 97/97 tests passed (110.29 s, Khronos core/sync validation); Shipping verification passed. VIS remains 5/7; reference parity and physical-display acceptance remain open.
+
 ✅ Linux Development full 97/97 tests passed (109.50 s, Khronos core/sync validation). Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.89 s wall time). Production freeze `19899040d0c70d3ba2053bd918cae03230bed88f`; evidence: `Apps/Showcase/evidence/VIS-Courtyard-Coping-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
 
 Linux Development configure/build and full 97/97 tests passed (109.50 s, Khronos core/sync validation). Shipping acceptance passed for courtyard coping and shadows: 72 original annular stones replace smooth pedestal rims, and the directional projection includes both side-arcade crowns. Existing native resolutions, light orientation, materials, asset/shader contracts and animation ownership remain stable. VIS remains 5/7; photoreal reference parity and physical-display acceptance remain open.

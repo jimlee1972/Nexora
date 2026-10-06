@@ -113,6 +113,10 @@ int main() {
          wide.materials[12].dielectricRefraction);
 #if NEXORA_ASSET_PIPELINE_ENABLED
   // The mineral core stays contained by the closed shell and shares its animated range.
+  const auto shell = std::find_if(wide.batches.begin(), wide.batches.end(), [](const auto &batch) {
+    return batch.materialIndex == 12 && batch.firstInstance == 0;
+  });
+  assert(shell != wide.batches.end());
   std::size_t coreCorners = 0;
   for (const auto &batch : wide.batches) {
     if (batch.materialIndex < 18 || batch.materialIndex > 20)
@@ -126,7 +130,16 @@ int main() {
     for (std::size_t i = batch.firstIndex; i < batch.firstIndex + batch.indexCount; ++i) {
       const auto &vertex = wide.vertices[wide.indices[i]];
       assert(std::hypot(vertex.position[0], vertex.position[2]) < 0.45F);
-      assert(vertex.position[1] > 1.9F && vertex.position[1] < 3.9F);
+      // Use the actual convex shell planes, including the frame's shared rotation
+      // and hover, rather than a fixed world-space envelope.
+      for (std::size_t triangle = shell->firstIndex;
+           triangle < shell->firstIndex + shell->indexCount; triangle += 3) {
+        const auto &surface = wide.vertices[wide.indices[triangle]];
+        float distance = 0;
+        for (unsigned axis = 0; axis < 3; ++axis)
+          distance += (vertex.position[axis] - surface.position[axis]) * surface.normal[axis];
+        assert(distance < -1e-4F);
+      }
     }
   }
   assert(coreCorners == 144);
