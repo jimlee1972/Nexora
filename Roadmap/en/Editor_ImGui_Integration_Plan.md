@@ -362,6 +362,8 @@ The supporting Showcase Lab gate waits for its queued export result instead of a
 within 150 ms; input is sent once and all data/pixel assertions remain required.
 The close gate also waits for changed, stable resized native pixels instead of a fixed 200 ms delay;
 resize generation and final lifecycle counters remain mandatory.
+Editor display shortcuts use 100 ms native key transitions, matching selector input, so ImGui
+trickling and GPU frames can observe the original press/release sequence.
 
 1. Run the full Linux gate listed in §6 with a clean tree. Because WP1/WP3 alter linkage/API
    boundaries, run `linux-shipping` too.

@@ -1213,3 +1213,8 @@ The supporting native close gate now proves a changed, stable resized backbuffer
 resize-generation and lifecycle assertions remain required.
 原生 close supporting gate 現在關閉前確認已變更且穩定的 resized backbuffer；
 resize-generation 與 lifecycle 斷言仍為必要。
+
+ED-M0 display input synchronization: authoring/save/close keys now use 100 ms transitions,
+matching the selector, with all original assertions retained.
+ED-M0 display input 同步：authoring／save／close key 採與 selector 相同的 100 ms transition，
+全部原始斷言仍保留。

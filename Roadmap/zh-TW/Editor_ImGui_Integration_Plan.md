@@ -332,6 +332,8 @@ Supporting Showcase Lab gate 等待已送出的 export 結果，不再假設 150
 input 只送一次，全部 data／pixel 斷言仍需通過。
 Close gate 另等待已變更且穩定的 resized native pixels，不再採固定 200 ms delay；
 resize generation 與最終 lifecycle counter 仍需通過。
+Editor display shortcut 採用與 selector 相同的 100 ms native key transition，
+讓 ImGui trickling 與 GPU frame 觀測原始 press／release sequence。
 
 1. Clean tree 執行 §6 完整 Linux gate。WP1/WP3 更動 linkage/API boundary，因此也跑 `linux-shipping`。
 2. Real X11 display 執行 launch、font/text 可見、Hierarchy selection、docking、各類 input、resize/
