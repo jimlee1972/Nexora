@@ -1,0 +1,7 @@
+# Flowing translucent waterfall ribbons: Linux evidence
+
+Each of the two existing waterfall sites uses six narrow 32-row shared strips with real gaps and an uneven silhouette. The paused/replayed courtyard clock advects deterministic ripples downward; analytic surface normals follow the same height-dependent displacement. Descending-row indices now face outward, with a regression checking actual geometric faces against the supplied normals. Lower authored base/transmission radiance, roughness 0.3 and opacity 0.78 let the supporting rock show through the native forward translucent surface. This adds no volume simulation or caustics.
+
+The activated Standard scene reports 61,679 vertices, 122,994 indices, 299 batches and 42 materials. Full 97/97 Development tests pass with Khronos core/synchronization validation (111.27 s). Isolated Shipping acceptance, exact wind/planar-reflection restoration and an actual 100-second shared-clock animation recording are retained with source/executable/movie/package SHA-256 provenance. Production freeze: `5cf914eda65f35faeb3cf937f55c049d296b1ccc`. Artifacts: `NexoraShowcase-Waterfall-Ribbons-5cf914e.mp4` and `NexoraShowcase-Waterfall-Ribbons-5cf914e-Linux.zip`. Original cooked assets, native shader packets and stable ABIs remain unchanged. No overlays or retiming.
+
+Reference parity and physical-display performance remain unaccepted. VIS remains 5/7.

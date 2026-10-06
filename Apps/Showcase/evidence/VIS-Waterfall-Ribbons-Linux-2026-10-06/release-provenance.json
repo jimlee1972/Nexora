@@ -1,0 +1,77 @@
+{
+  "source_freeze": "5cf914eda65f35faeb3cf937f55c049d296b1ccc",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "3a49ddd08cd5349dbd717b0fef94fbf4a19d30f830435b708b3f3abb3cb9a977",
+    "Apps/Showcase/ShowcaseRooms.cpp": "cb06214cb0c485def65a356440c52cda48767aa5ee1bd660ac19b03c9f5a2394",
+    "README.md": "e4cf4720a2b22658a054651cfe7e0a1276c87479e3ae335d872b9d650758c680",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "e08c5622aab89acde09a4c9266c78a1069dc2c83706ce4e16d4c64e9268078f4",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "98df43da08b112f6cc548ca2975779db30626f95ae529496f8bbe42449d13a66",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "e79e84b9237fd6895f54257880eb9b95ca4f69dc6a17e16b87ae89e6922ec1a2"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/waterfall-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "5cf914eda65f",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.21334024700627,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.800000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "702ad1463c14bfd85ee7632a8fba3efb5e960bb913a56c880045ddb89610736c",
+    "video_sha256": "984a48ffc9649902003e55ab008f26d4786726722a781b96e2ad2260ac562b3d",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "75e3c62f54cee21cfdbf72ebc7162681787363f931b18ebdfdc6717e9d479fb4",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        57,
+        643,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  }
+}

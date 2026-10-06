@@ -1,0 +1,11 @@
+[1/11] Linking CXX executable Tests/Editor/NexoraMeshAssetCatalogTests
+[2/11] Linking CXX executable Tests/Editor/NexoraEditorAffineGizmoTests
+[3/11] Linking CXX executable Tests/Editor/NexoraParserRobustnessTests
+[4/11] Linking CXX executable Tests/Editor/NexoraMeshReimportTests
+[5/11] Linking CXX executable Tests/Editor/NexoraEditorComponentResetTests
+[6/11] Linking CXX executable Apps/Showcase/NexoraShowcase
+[7/11] Linking CXX executable Tests/Editor/NexoraTransformValueTests
+[8/11] Linking CXX executable Tests/Editor/NexoraBuiltinCreationTests
+[9/11] Linking CXX executable Tests/Editor/NexoraSceneFileTests
+[10/11] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcaseRoomTests.dir/__/__/Tests/Showcase/ShowcaseRoomTests.cpp.o
+[11/11] Linking CXX executable Apps/Showcase/NexoraShowcaseRoomTests

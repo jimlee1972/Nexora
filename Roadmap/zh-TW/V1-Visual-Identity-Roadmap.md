@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux Development 完整 97/97 測試通過（111.27 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 101.21 秒）。製作凍結版本 `5cf914eda65f35faeb3cf937f55c049d296b1ccc`；證據：`Apps/Showcase/evidence/VIS-Waterfall-Ribbons-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+瀑布美術迭代：每處六條共用列頂點的細水束，保留實際間隙、不規則輪廓、向下流動波紋與解析法線。三角形朝向已修正，並以實際面法線檢查；降低材質輻射並採用 0.78 不透明度，露出後方岩壁。Standard 使用 61,679 頂點、122,994 索引與 42 材質。Linux configure/build 與完整 97/97 測試通過（111.27 秒，Khronos core/sync validation）。共同時鐘暫停／重播、shader、cooked 素材與穩定 ABI 不變。Shipping 隔離原生驗收與共同時鐘錄影通過；預覽圖一致性與實體顯示器驗收仍未完成（VIS 5/7）。
+
 ✅ Linux Development 完整 97/97 測試通過（110.65 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.78 秒）。製作凍結版本 `47675e7db75b669398368c902928c52866820a28`；證據：`Apps/Showcase/evidence/VIS-Camera-Framing-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 庭院構圖迭代：廣角預設由半徑 8／pitch 0.20 改為半徑 9／pitch 0.30，其餘預設略微提高，並同步導覽起點與終點構圖。原生鋪面、階梯與水窪更清楚；維持絕對軌道相機與可重播控制。Linux configure/build 與完整 97/97 測試通過（110.65 秒，Khronos core/sync validation），包含 MSVC 命名修正。Shipping 隔離原生驗收與共同時鐘錄影通過；預覽圖一致性與實體顯示器驗收仍未完成（VIS 5/7）。
