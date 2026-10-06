@@ -1356,3 +1356,12 @@ limits and authoring-thread publication remain required. Graphical milestone acc
 read chunk 及 incremental hash。讀取中取消不發布 partial artifact；空檔案、binary 與 chunk
 邊界測試保留既有 hash 格式。OBJ source 上限及 authoring-thread publication 持續必要；
 圖形化 milestone 驗收維持 0/8。
+
+✅ ED-M1 import queue admission now bounds retained operations to 64 by default, including
+unconsumed completed/failed/cancelled results. Configurable capacity, retryable full errors and
+repeated consume/readmit cycles are covered by `editor.preview_contract`; graphical acceptance
+remains 0/8. This limits operation count, not arbitrary project-index bytes.
+
+✅ ED-M1 import queue 現預設最多保留 64 個 operation，包含尚未取走的完成／失敗／取消
+result。`editor.preview_contract` 涵蓋可設定容量、滿額可重試錯誤及重複取走／重新提交；
+圖形化驗收維持 0/8。此項限制 operation 數量，並非任意 project index 的 bytes。

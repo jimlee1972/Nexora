@@ -311,6 +311,63 @@ int Run() {
     throw std::runtime_error(message);
   };
 
+  // Unconsumed results must keep their admission slot, including after cancellation.
+  editor::AssetImportQueue bounded_imports{import_jobs, 2, 2, 0};
+  const editor::WorkspaceImportRequest bounded_workspace{
+      21, root / "Content", editor::AssetIdentityMode::PersistentReadOnly};
+  const editor::ReimportJobRequest bounded_reimport{
+      21, indexed_mesh, root / "Content/Hero.mesh", "last-good", "default-v1", {}};
+  auto retained_operation = bounded_imports.Start(bounded_workspace, &error);
+  Require(retained_operation != 0, "zero operation capacity did not normalize to one");
+  wait_for_result(
+      [&] {
+        const auto snapshot = bounded_imports.Snapshot(retained_operation);
+        return snapshot && snapshot->state == editor::ImportOperationState::AwaitingPublish;
+      },
+      "bounded workspace import did not stage a result");
+  for (int attempt = 0; attempt < 100; ++attempt) {
+    Require(bounded_imports.Start(bounded_workspace, &error) == 0 &&
+                error.find("queue is full") != std::string::npos &&
+                bounded_imports.Start(bounded_reimport, &error) == 0 &&
+                error.find("queue is full") != std::string::npos,
+            "full queue admitted work or did not expose a retryable error");
+  }
+  Require(bounded_imports.Cancel(retained_operation) &&
+              bounded_imports.Start(bounded_workspace, &error) == 0,
+          "cancellation released an unconsumed operation slot");
+  std::optional<editor::ImportOperationResult> bounded_result;
+  wait_for_result(
+      [&] {
+        bounded_result = bounded_imports.TakeResult(retained_operation);
+        return bounded_result.has_value();
+      },
+      "bounded cancelled result could not be consumed");
+  Require(bounded_result->snapshot.state == editor::ImportOperationState::Cancelled &&
+              !bounded_result->workspace && !bounded_result->reimport &&
+              !bounded_imports.Snapshot(retained_operation),
+          "cancelled bounded queue published or retained staging data");
+  for (int cycle = 0; cycle < 100; ++cycle) {
+    const auto next_operation = bounded_imports.Start(bounded_reimport, &error);
+    Require(next_operation > retained_operation && error.empty(),
+            "consuming a result did not restore admission with a new operation identity");
+    retained_operation = next_operation;
+    bounded_result.reset();
+    wait_for_result(
+        [&] {
+          bounded_result = bounded_imports.TakeResult(retained_operation);
+          return bounded_result.has_value();
+        },
+        "bounded reimport did not complete after readmission");
+    Require(bounded_result->snapshot.state == editor::ImportOperationState::AwaitingPublish &&
+                bounded_result->reimport && !bounded_result->workspace &&
+                !bounded_imports.TakeResult(retained_operation),
+            "bounded readmission lost its result or allowed repeated consumption");
+  }
+  bounded_imports.Shutdown();
+  Require(bounded_imports.Start(bounded_workspace, &error) == 0 &&
+              error.find("shutting down") != std::string::npos,
+          "empty bounded shutdown resumed intake");
+
   const auto workspace_import =
       imports.Start({21, root / "Content", editor::AssetIdentityMode::PersistentReadOnly}, &error);
   Require(workspace_import != 0, "background workspace import did not start");
@@ -341,10 +398,33 @@ int Run() {
   const runtime::AssetUuid failing_asset{81, 82};
   const auto failing_import =
       imports.Start({21, failing_asset, failing_source, "last-good", "default-v1", {}}, &error);
+  editor::AssetImportQueue failed_bounded_imports{import_jobs, 2, 2, 1};
+  const editor::ReimportJobRequest failed_bounded_request{
+      21, failing_asset, failing_source, "last-good", "default-v1", {}};
+  const auto failed_bounded_operation =
+      failed_bounded_imports.Start(failed_bounded_request, &error);
+  const bool bounded_queued_rejected =
+      failed_bounded_operation != 0 && failed_bounded_imports.Start(bounded_workspace, &error) == 0;
   Require(failing_import != 0 && fs::remove(failing_source),
           "background failure operation could not be staged");
   release_failure.store(true, std::memory_order_release);
   import_jobs.Wait(failure_blocker);
+  Require(bounded_queued_rejected, "queued operation did not retain a bounded admission slot");
+  wait_for_result(
+      [&] {
+        const auto snapshot = failed_bounded_imports.Snapshot(failed_bounded_operation);
+        return snapshot && snapshot->state == editor::ImportOperationState::Failed;
+      },
+      "bounded failure operation did not terminate");
+  Require(failed_bounded_imports.Start(bounded_workspace, &error) == 0,
+          "worker failure released an unconsumed admission slot");
+  wait_for_result(
+      [&] { return failed_bounded_imports.TakeResult(failed_bounded_operation).has_value(); },
+      "bounded failed result could not be consumed");
+  const auto replacement_operation = failed_bounded_imports.Start(bounded_workspace, &error);
+  Require(replacement_operation > failed_bounded_operation && error.empty(),
+          "consuming a failed result did not restore bounded intake");
+  failed_bounded_imports.Shutdown();
   std::optional<editor::ImportOperationResult> failure_result;
   wait_for_result(
       [&] {

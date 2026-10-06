@@ -125,6 +125,12 @@ Create, open, and upgrade projects. Deliver a Content Browser with search/filter
 drag/drop, import status, dependency inspection, and reimport. Background import must expose
 cancellation, progress, and actionable errors, and must produce deterministic artifacts.
 
+- ✅ Import queue admission now retains at most 64 operations by default, with a configurable
+  capacity and retryable full-queue error. Queued jobs and unconsumed completed/failed/cancelled
+  results retain their slot until consumption. `editor.preview_contract` covers mixed request
+  kinds, queued/failure/cancel paths, 100 rejected retries, 100 readmission cycles and shutdown.
+  This bounds operation count; arbitrary project-index bytes and physical workflow gates remain open.
+
 - ✅ Ordinary asset indexing and synchronous/background reimport now stream binary source hashes
   through an 8 KiB read chunk instead of retaining whole files. Mid-file cancellation publishes no
   partial hash; empty, embedded-NUL, exact-chunk and multi-chunk fixtures preserve the existing

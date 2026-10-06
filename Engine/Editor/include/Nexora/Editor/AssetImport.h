@@ -94,10 +94,16 @@ struct ImportOperationResult final {
 // the authoring thread may TakeResult() and publish them into a live workspace/content model.
 // Shutdown() cancels and joins every submitted job; the referenced JobSystem must outlive the
 // queue.
+// Intake retains at most 64 operations by default; the four-argument constructor sets a custom
+// limit (zero becomes one). Completed, failed and cancelled operations retain their slot until
+// TakeResult() consumes them. Full intake returns zero plus a retryable error without submitting
+// work or evicting an existing result. Start/TakeResult/Shutdown run on the authoring thread.
 class NEXORA_EDITOR_API AssetImportQueue final {
 public:
   explicit AssetImportQueue(core::JobSystem &jobs, std::size_t progress_capacity = 16,
                             std::size_t diagnostic_capacity = 32);
+  AssetImportQueue(core::JobSystem &jobs, std::size_t progress_capacity,
+                   std::size_t diagnostic_capacity, std::size_t operation_capacity);
   ~AssetImportQueue();
   AssetImportQueue(const AssetImportQueue &) = delete;
   AssetImportQueue &operator=(const AssetImportQueue &) = delete;

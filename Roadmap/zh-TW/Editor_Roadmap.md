@@ -125,6 +125,12 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 status、dependency 檢視與 reimport；background import 必須提供取消、進度與可採取行動的錯誤，
 並產生 deterministic artifact。
 
+- ✅ Import queue admission 現預設最多保留 64 個 operation，可設定容量，滿額回傳可重試錯誤。
+  Queued job 與尚未取走的完成／失敗／取消 result 都保留名額，直到取走結果。
+  `editor.preview_contract` 涵蓋混合 request、queued／失敗／取消、100 次滿額拒絕、
+  100 次取走後重新提交及 shutdown。此項限制 operation 數量；任意 project index 的 bytes
+  及實體 workflow gate 仍待完成。
+
 - ✅ 一般資產 indexing 及同步／背景 reimport 現以 8 KiB read chunk 串流計算 binary source hash，
   不再保留整個來源檔案。讀取中取消不發布 partial hash；空檔案、embedded NUL、完整 chunk
   與 multi-chunk fixture 保留既有 source／artifact hash 格式（`editor.asset_source`）。OBJ
