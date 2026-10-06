@@ -334,9 +334,10 @@ Xvfb interaction/screenshot gate from a verified isolated package; macOS perform
 Metal graph/report smoke when its device and display are available, otherwise preserving an explicit
 UNSUPPORTED artifact. The Mac smoke does not claim screenshots or operator physical-display review.
 
-Failed native package checks print the final 8 KiB of each subprocess stream and the failure
+Failed native package checks print the final 8192 characters of each subprocess stream and the failure
 summary to CI stderr. Complete output remains in the evidence directory; success criteria and
-exit codes are unchanged.
+exit codes are unchanged. The Linux interaction gate waits up to five seconds for the original
+Lab export command to produce readable JSON/Markdown, without resending keys or relaxing data checks.
 
 ```bash
 cmake --preset macos-showcase-shipping

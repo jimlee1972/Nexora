@@ -357,7 +357,22 @@ def main():
             time.sleep(0.15)
             screenshot(window,1280,720,output/'validation-lab.png')
             exported = Path(temporary) / 'showcase-lab.json'
-            lab = json.loads(exported.read_text())
+            exported_markdown = Path(temporary) / 'showcase-lab.md'
+            # The export key is queued while a software-GPU frame may still be in flight.
+            # Wait for the original command's result; never resend input or retry assertions.
+            deadline = time.monotonic() + 5
+            while True:
+                if app.poll() is not None:
+                    raise RuntimeError(app.stderr.read())
+                try:
+                    lab = json.loads(exported.read_text())
+                    if exported_markdown.read_text():
+                        break
+                except (FileNotFoundError, json.JSONDecodeError):
+                    pass
+                if time.monotonic() >= deadline:
+                    raise RuntimeError('Validation Lab export did not complete within 5 seconds')
+                time.sleep(0.03)
             plugin = lab['integration_probes']['probes'][6]
             if len(sys.argv) == 2:
                 assert plugin['status'] == 'PASS', plugin
@@ -366,7 +381,7 @@ def main():
             else:
                 assert plugin['status'] == 'UNSUPPORTED', plugin
             shutil.copy2(exported, output/'lab-export.json')
-            shutil.copy2(Path(temporary)/'showcase-lab.md', output/'lab-export.md')
+            shutil.copy2(exported_markdown, output/'lab-export.md')
             tool('key','--window',window,'Tab','Tab','Tab','Tab','Tab','Tab','i','r','F3')
             tool('key','--window',window,'1','v','b','h','t','space','r')
             tool('windowsize',window,960,540)

@@ -1147,3 +1147,10 @@ Upstream point-light and masonry MSVC fixture evidence is synchronized. Their fu
 97/97 gates pass in 102.20/102.62 seconds with 85 native PBR frames and core/sync validation.
 Each stage retains exact logs/hashes in `msvc-literals/`. This synchronization changes only
 documentation/evidence; runtime sources and fixture values are unchanged.
+
+ED-M0 supporting CI repair: the Showcase Lab export gate now waits for the original command
+to finish writing JSON/Markdown instead of assuming 150 ms completion. Input is sent once;
+all data and pixel checks remain required.
+
+ED-M0 supporting CI 修正：Showcase Lab export gate 等待原始 command 完成 JSON／Markdown
+寫入，不再假設 150 ms 完成；input 只送一次，全部 data 與 pixel 檢查維持必要。
