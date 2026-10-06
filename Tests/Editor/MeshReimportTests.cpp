@@ -1,3 +1,4 @@
+#include "../../Engine/Editor/src/ReimportSource.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/ProjectContent.h"
 
@@ -26,13 +27,17 @@ void AwaitWorker(editor::ProjectContentSession &content) {
   }
   throw std::runtime_error("mesh worker did not stage its result");
 }
-void AwaitPublication(editor::ProjectContentSession &content) {
+void AwaitPublication(editor::ProjectContentSession &content, const char *phase) {
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
   while (content.ReimportBusy() && std::chrono::steady_clock::now() < deadline) {
     static_cast<void>(content.PollReimport());
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
-  Require(!content.ReimportBusy(), "mesh reimport did not finish");
+  if (content.ReimportBusy()) {
+    const auto status = content.ReimportStatus();
+    throw std::runtime_error(std::string{"mesh reimport did not finish: "} + phase + "; state=" +
+                             (status ? std::to_string(static_cast<int>(status->state)) : "none"));
+  }
 }
 void TestBudget() {
   auto mesh = std::make_shared<editor::MeshGeometry>();
@@ -119,7 +124,7 @@ int main() {
     AwaitWorker(content);
     Require(content.Browser().Find(asset)->mesh->maximum[0] == 2,
             "worker mutated live geometry before publication");
-    AwaitPublication(content);
+    AwaitPublication(content, "valid mesh");
     Require(content.ReimportStatus()->state == editor::ImportOperationState::Succeeded &&
                 content.Browser().Find(asset)->mesh->maximum[0] == 3 &&
                 catalog.PublishContent(content.Browser()) &&
@@ -134,7 +139,7 @@ int main() {
     const auto revision = content.Browser().Revision();
     std::ofstream(source) << "invalid OBJ\n";
     Require(content.BeginReimport(imports, asset), "invalid mesh request failed to start");
-    AwaitPublication(content);
+    AwaitPublication(content, "invalid mesh");
     Require(content.ReimportStatus()->state == editor::ImportOperationState::Failed &&
                 content.Browser().Find(asset)->mesh == published &&
                 content.Browser().Find(asset)->artifact_hash == artifact &&
@@ -143,14 +148,14 @@ int main() {
     WriteTriangle(source, 4);
     Require(content.BeginReimport(imports, asset) && content.CancelReimport(),
             "mesh cancellation failed");
-    AwaitPublication(content);
+    AwaitPublication(content, "cancelled mesh");
     Require(content.ReimportStatus()->state == editor::ImportOperationState::Cancelled &&
                 content.Browser().Find(asset)->mesh == published,
             "cancelled mesh reimport published geometry");
     Require(content.BeginReimport(imports, asset), "stale mesh request failed to start");
     AwaitWorker(content);
     std::ofstream(source) << "a different source revision\n";
-    AwaitPublication(content);
+    AwaitPublication(content, "stale source");
     Require(content.ReimportStatus()->state == editor::ImportOperationState::Stale &&
                 content.Browser().Find(asset)->mesh == published &&
                 content.Browser().Find(asset)->artifact_hash == artifact,
@@ -160,8 +165,14 @@ int main() {
       oversized.seekp(editor::kMaximumObjSourceBytes);
       oversized.put('x');
     }
+    std::size_t cancellation_checks = 0;
+    const auto oversized = editor::detail::ReadReimportSource(
+        source, ".OBJ", [&] { return ++cancellation_checks > 1; });
+    Require(oversized.bytes.empty() && !oversized.mesh && !oversized.cancelled &&
+                !oversized.read_failed && oversized.error == "OBJ source exceeds the 16 MiB limit.",
+            "oversized OBJ was read/allocated before its metadata budget rejection");
     Require(content.BeginReimport(imports, asset), "oversized mesh request failed to start");
-    AwaitPublication(content);
+    AwaitPublication(content, "oversized source");
     Require(content.ReimportStatus()->state == editor::ImportOperationState::Failed &&
                 content.Browser().Find(asset)->mesh == published,
             "oversized mesh reimport published geometry");
