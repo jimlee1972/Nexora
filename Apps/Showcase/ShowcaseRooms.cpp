@@ -1402,10 +1402,16 @@ struct RoomSession::State final {
     // Continuous ridges with irregular peaks and foothills, rather than isolated cones.
     const auto ridgeHeight = [](float x, float z) {
       const float envelope = std::sin(math::kPi * (z + 50) / 26);
-      return -0.3F + std::max(0.0F, envelope) * (8 + 3 * std::sin(x * 0.19F) +
-                                                 2 * std::sin(x * 0.47F) + std::cos(x * 0.81F));
+      const float peaks =
+          8 + 3 * std::sin(x * 0.19F) + 2 * std::sin(x * 0.47F) + std::cos(x * 0.81F);
+      // Crossing folds create sloping rock faces in both axes, while the envelope
+      // keeps the original grounded boundary and shared finite-difference normals.
+      const float folds = 1.25F * std::abs(std::sin(x * 0.41F + z * 0.23F)) +
+                          0.75F * std::sin(x * 0.79F - z * 0.46F) +
+                          0.4F * std::sin(x * 1.37F + z * 0.93F);
+      return -0.3F + std::max(0.0F, envelope) * (peaks + folds);
     };
-    // Weld the continuous ridge grid; shared positions retain its original silhouette
+    // Weld the continuous ridge grid; shared positions keep neighbouring faces connected
     // while leaving native vertex space for authored architecture.
     const auto ridgeBase = static_cast<std::uint16_t>(vertices.size());
     for (unsigned row = 0; row <= 24; ++row)
@@ -1456,10 +1462,16 @@ struct RoomSession::State final {
           placeMasonry(8, x + (course % 2) * 0.015F, y, -23, 1.0F, courseHeight * 0.5F - 0.012F,
                        1.0F);
         else
-          for (const float dx : {-0.78F, 0.78F})
-            for (const float dz : {-0.78F, 0.78F})
-              placeMasonry(8, x + dx, y, -23 + dz, 0.22F, courseHeight * 0.5F - 0.012F, 0.22F);
+          // Broad masonry piers frame narrow apertures instead of spindly posts.
+          for (const float dx : {-0.64F, 0.64F})
+            for (const float dz : {-0.64F, 0.64F})
+              placeMasonry(8, x + dx, y, -23 + dz, 0.36F, courseHeight * 0.5F - 0.012F, 0.36F);
       }
+      // Shared voussoirs bridge the front/back openings with real arched intrados.
+      // A solid lintel closes the small space above the arch beneath the crown.
+      for (const float dz : {-0.64F, 0.64F})
+        placeBackgroundArch({x, height + 1.18F, -23 + dz}, 0.4F, 0.12F, 0.36F, 12);
+      placeMasonry(8, x, height + 1.85F, -23, 1.0F, 0.15F, 1.0F);
       for (const float y : {4.3F}) {
         const std::array<math::Vector3, 4> emblem{{{x, y + 0.42F, -21.95F},
                                                    {x + 0.3F, y, -21.95F},

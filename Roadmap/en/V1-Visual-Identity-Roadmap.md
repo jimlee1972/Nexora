@@ -1,5 +1,7 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
+✅ Distant towers now frame narrow upper apertures with broad stone piers, shared front/back arches and crown lintels; crossing mountain folds add sloping rock faces. Full Linux 97/97 tests pass (120.62 s, core/sync validation), with Shipping isolated native acceptance and a 100-second shared-clock movie (101.04 s wall time). Freeze `94b7f09807e4dae93b931776d530bc51a855dc56`; evidence: `Apps/Showcase/evidence/VIS-Tower-Ridges-Linux-2026-10-06/`. Standard: 57,961 vertices, 134,982 indices, 384 batches, 44 materials. VIS stays 5/7.
+
 ✅ Ceramic diamond inlays now fill all twelve arcade pillar borders with existing material 3. Full Linux 97/97 tests pass (119.52 s, core/sync validation), and Shipping isolated native acceptance plus a 100-second shared-clock movie pass (101.22 s wall time). Production freeze `2c7d68a0c8bfe4393f8051e4c94356e34b93cd46`; evidence: `Apps/Showcase/evidence/VIS-Arcade-Inlays-Linux-2026-10-06/`. Standard: 56,713 vertices, 133,266 indices, 371 batches, 44 materials. VIS stays 5/7.
 
 ✅ Native clean-view synchronization now requires the actual navigation overlay to disappear after F4. The retained CI failure replay, full Linux 97/97 gate (118.49 s, core/sync validation), and isolated Shipping bloom change/exact restoration pass. Evidence: `Tests/Showcase/evidence/Native-Clean-Frame-Linux-2026-10-06/`. Comparison deadlines remain unchanged; VIS stays 5/7.
