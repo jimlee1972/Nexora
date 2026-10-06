@@ -98,6 +98,8 @@ int main() {
     if (batch.materialIndex == 5)
       sourceLeaves += batch.indexCount / 6;
   assert(sourceLeaves > 700);
+  assert(wide.materials[5].twoSidedLighting && wide.materials[15].twoSidedLighting &&
+         wide.materials[16].twoSidedLighting);
   assert(courtyard.Report().find("\"foliage_quad_count\":" + std::to_string(sourceLeaves)) !=
          std::string::npos);
   assert(wide.materials[12].opacity == 0.23F && !wide.materials[12].castsShadow);
@@ -424,6 +426,7 @@ int main() {
 #if NEXORA_ASSET_PIPELINE_ENABLED
     assert(draw.environment.has_value() == (tier != 0));
 #endif
+    assert(draw.materials[5].twoSidedLighting && draw.materials[15].twoSidedLighting);
     assert(draw.materials[6].unlit && !draw.materials[6].castsShadow);
     assert(draw.materials[7].unlit && !draw.materials[7].castsShadow);
     const auto particleBatch =

@@ -11,6 +11,7 @@
 #include "PbrRefractionFixtures.h"
 #include "PbrShadowFixtures.h"
 #include "PbrTransparencyFixtures.h"
+#include "PbrTwoSidedFixtures.h"
 #include "PbrVegetationFixtures.h"
 #include "PbrWorldMappingFixtures.h"
 #include "PbrWorldNormalFixtures.h"
@@ -553,6 +554,32 @@ int main(int argc, char **argv) {
         pointRight = right;
       }
       if (mode == 3 && (left != pointLeft || right != pointRight))
+        return fail(__LINE__);
+    }
+    for (unsigned mode = 0; mode < 4; ++mode) {
+      PbrTwoSidedFixtures::Fixture fixture(mode);
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      const auto left = read(160), right = read(480);
+      if (!PbrTwoSidedFixtures::Pixels(mode, left, right))
+        return fail(__LINE__);
+      if (mode == 0) {
+        pointLeft = left;
+        pointRight = right;
+      }
+      if (mode >= 2 && (left != pointLeft || right != pointRight))
         return fail(__LINE__);
     }
     std::array<unsigned, 3> refractedLeft{}, refractedRight{};

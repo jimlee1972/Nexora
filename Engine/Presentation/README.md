@@ -585,3 +585,16 @@ with no new native descriptors, texture allocations or stable C/Zig ABI fields. 
 cases verify colored distance response, source movement, exact replay, disable and unlit
 exclusion; CPU checks cover bounds and default-zero packing (85 PBR frames). The Showcase F9
 comparison requires paused pixel changes and exact restoration on the active crystal.
+
+
+Optional `SceneMaterial::twoSidedLighting` makes lit PBR sheets face the viewer before tangent
+normal mapping and BRDF/IBL evaluation. Leaves and pennants opt in; defaults preserve existing
+surface lighting. Source-world shadow masks and mirrored virtual cameras remain coherent,
+while closed-crystal front-facet filtering still precedes the flip. Unlit and Lambert use
+reject this flag. Private material float 79 uses the reserved slot; the 400-byte packet,
+backend bindings and stable C/Zig ABI are unchanged. Back faces no longer lose diffuse IBL
+through a negative view cosine. This is sheet lighting, not a thick-material volume model.
+
+✅ Linux Development configure/build and all 97 tests pass (106.20 seconds), including 89 native PBR frames with Khronos core/synchronization validation. Four sheet fixtures retain default rear-face behavior and reproduce the front-facing colors exactly when enabled; CPU rejects unlit/Lambert use and verifies slot 79. All native geometry budgets and wind/pause/replay interactions pass. Shipping/Full isolated native acceptance and an actual 100.33-second movie (100.79-second wall time) pass; final reference/target acceptance remains open.
+
+Evidence: [VIS-Two-Sided-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05). Production freeze `248791c4b51a`; exact source and package hashes are retained.
