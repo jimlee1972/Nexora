@@ -125,6 +125,13 @@ Create, open, and upgrade projects. Deliver a Content Browser with search/filter
 drag/drop, import status, dependency inspection, and reimport. Background import must expose
 cancellation, progress, and actionable errors, and must produce deterministic artifacts.
 
+- ✅ Ordinary asset indexing and synchronous/background reimport now stream binary source hashes
+  through an 8 KiB read chunk instead of retaining whole files. Mid-file cancellation publishes no
+  partial hash; empty, embedded-NUL, exact-chunk and multi-chunk fixtures preserve the existing
+  source/artifact hash format (`editor.asset_source`). OBJ size preflight/source limits, workspace
+  geometry budgets and authoring-thread publication remain enforced. Physical workflow acceptance
+  remains open.
+
 - ✅ Typed OBJ reimport now stages immutable geometry and hashes, then atomically publishes through
   the live content model after project/asset/source/settings/dependency and 128 MiB mesh-budget checks.
   Tests verify synchronous/background updates, stable resource identity, owning older snapshots,

@@ -125,6 +125,12 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 status、dependency 檢視與 reimport；background import 必須提供取消、進度與可採取行動的錯誤，
 並產生 deterministic artifact。
 
+- ✅ 一般資產 indexing 及同步／背景 reimport 現以 8 KiB read chunk 串流計算 binary source hash，
+  不再保留整個來源檔案。讀取中取消不發布 partial hash；空檔案、embedded NUL、完整 chunk
+  與 multi-chunk fixture 保留既有 source／artifact hash 格式（`editor.asset_source`）。OBJ
+  大小預檢與 source 上限、workspace geometry 預算及 authoring-thread publication 持續必要；
+  實體 workflow 驗收仍待完成。
+
 - ✅ Typed OBJ reimport 現 staging 不可變 geometry 及 hash，通過 project／asset／source／settings／
   dependency 與 128 MiB mesh 預算後，透過 live content model 原子發布。測試驗證同步／背景更新、
   穩定 resource ID、舊 owning snapshot、失敗／取消／過期／超限保留、重新命名 Undo 與刪除／Undo

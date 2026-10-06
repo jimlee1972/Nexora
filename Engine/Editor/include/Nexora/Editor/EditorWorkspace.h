@@ -143,6 +143,9 @@ class NEXORA_EDITOR_API AssetWorkspace final {
 public:
   using Cancelled = std::function<bool()>;
   using Progress = std::function<void(std::size_t, std::size_t)>;
+  // Ordinary asset sources use fixed-size binary read chunks and incremental hashes, with
+  // cancellation checks between reads. Failed/cancelled entries never carry a partial artifact.
+  // OBJ parsing retains its bounded source/geometry policy; live publication is caller-owned.
   bool ImportTree(const std::filesystem::path &content_root, Cancelled cancelled = {},
                   Progress progress = {},
                   AssetIdentityMode identity_mode = AssetIdentityMode::DerivedFromPath,

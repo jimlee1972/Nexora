@@ -3,10 +3,7 @@
 
 #include <algorithm>
 #include <array>
-#include <fstream>
-#include <iomanip>
 #include <ranges>
-#include <sstream>
 #include <unordered_set>
 
 namespace nexora::editor {
@@ -23,21 +20,6 @@ bool ContentPath(const std::filesystem::path &path) {
     return false;
   const auto first = path.begin();
   return first != path.end() && *first == "Content";
-}
-
-std::uint64_t Hash(std::string_view bytes, std::uint64_t seed) {
-  auto value = seed;
-  for (const unsigned char byte : bytes) {
-    value ^= byte;
-    value *= 1099511628211ULL;
-  }
-  return value;
-}
-
-std::string Hex(std::uint64_t value) {
-  std::ostringstream stream;
-  stream << std::hex << std::setfill('0') << std::setw(16) << value;
-  return stream.str();
 }
 
 ThumbnailState ThumbnailFor(ImportState state) {
@@ -395,12 +377,11 @@ bool ProjectContentSession::Reimport(runtime::AssetUuid asset, std::string *erro
   const auto source = ExistingPath(item->path, &path_error);
   if (source.empty())
     return Fail(path_error, error);
-  auto imported = detail::ReadReimportSource(source, item->type);
+  auto imported = detail::ReadReimportSource(source, item->type, asset);
   if (!imported.error.empty())
     return Fail(imported.error, error);
-  const auto source_hash = Hex(Hash(imported.bytes, 1469598103934665603ULL));
-  const auto artifact_hash =
-      Hex(Hash(imported.bytes, Hash(asset.ToString(), 1469598103934665603ULL)));
+  const auto &source_hash = imported.source_hash;
+  const auto &artifact_hash = imported.artifact_hash;
   auto candidate = browser_;
   if (!candidate.PublishArtifact(asset, artifact_hash, ThumbnailState::Ready, error, imported.mesh))
     return Fail(error && !error->empty() ? *error : "reimport geometry publication failed", error);
