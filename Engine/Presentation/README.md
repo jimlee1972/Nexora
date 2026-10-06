@@ -625,3 +625,21 @@ packet is 64 bytes; the fullscreen triangle stays 48 bytes and PBR material pack
 Public C++ clients rebuild for the new boolean; stable C/Zig ABI and persistent asset schemas are
 unchanged. Native fixtures check a diagonal emissive edge, unchanged constant interiors and
 exact restoration after disabling; packet and invalid-mode checks run on the CPU.
+
+## Thin dielectric refraction
+
+`SceneMaterial::dielectricRefraction` defaults false and requires non-casting translucent
+lit HDR PBR, index above 1, positive refraction thickness, and zero metallic factor. It
+uses the existing bounded opaque-HDR snapshot and foreground rejection; no extra target,
+texture binding or ownership changes are introduced. The copied boolean uses previously
+reserved material scalar 99 (point-radiance w); the private material packet stays 400 bytes.
+Public C++ clients rebuild; stable C/Zig ABI and persistent asset schemas are unchanged.
+
+The opt-in layer suppresses diffuse surface albedo and thin-leaf transmission, retaining
+PBR specular/emission. Covered transmitted radiance is multiplied by one minus the
+IOR-based Schlick Fresnel term; uncovered pixels retain the unshifted, untinted background.
+Opacity denotes interface coverage in this mode. Reflection retains the shared approximate
+dielectric BRDF (normal-incidence F0=0.04); this is a bounded single-interface approximation,
+without volume transport, absorption distance, internal reflections or recursive tracing.
+Default legacy tint/coverage composition is unchanged. Native cases compare normal and
+grazing transmission against a constant HDR background and restore the default pixels exactly.

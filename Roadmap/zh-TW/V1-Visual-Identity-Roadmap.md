@@ -564,3 +564,16 @@ HDR 空間抗鋸齒實作：Standard/High 庭院在 focus/bloom/ACES 前套用�
 core/sync validation。✅ Linux configure/build 與 97/97 測試通過（106.93 秒）；
 Shipping/Full 打包、隔離原生 F10 比較與還原、實際 100 秒動畫導覽通過。證據：
 `Apps/Showcase/evidence/VIS-HDR-Anti-Aliasing-Linux-2026-10-05`；VIS-M3 預覽一致與 VIS-M6 硬體驗收保持未完成。
+
+庭院光照與玻璃修整：提高原有 IBL 強度以顯示葉片陰影細節；廣角鏡頭靠近並提高
+視線，石材與水晶內部輻射亮度更克制。水晶使用現有有界 HDR 快照，選用薄介電
+界面的 Fresnel 透光；共用時鐘的旋轉／浮動、風、bloom、skybox 與局部光源持續
+運作。✅ Linux configure/build 與 97/97 測試通過（104.97 秒），包括 97 個原生
+PBR frame 的 core/sync 驗證；Shipping/Full 隔離、原生比較精確還原及實際 100 秒
+動畫影片通過。證據：`Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05`；預覽一致及實體硬體驗收保持未完成（VIS 5/7）。
+
+原生 release 診斷補強：headless／native 子程序失敗時輸出最多 8 KiB stderr 與
+結構化原因；退出碼、逾時及全部驗收條件保持相同。✅ Linux configure/build 與
+97/97 測試通過（103.21 秒）；固定 Shipping 執行檔使用新版 verifier 的隔離
+原生驗證通過。受控的子程序失敗仍回傳 FAIL／exit 1，且能看到有界原因。證據：
+`VIS-Dielectric-Glass-Linux-2026-10-05/release-diagnostics/`；原有 runtime／影片 freeze 保持相同。

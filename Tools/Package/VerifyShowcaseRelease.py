@@ -67,6 +67,7 @@ def main() -> int:
     (output / "headless.stdout.log").write_text(headless.stdout)
     (output / "headless.stderr.log").write_text(headless.stderr)
     if headless.returncode:
+        print(headless.stderr[-8192:], file=sys.stderr)
         return headless.returncode
     result = {"status": "FAIL", "platform": system, "isolated_copy": True,
               "physical_display_verified": False, "issues": []}
@@ -99,6 +100,7 @@ def main() -> int:
                 (output / "native.stdout.log").write_text(native.stdout)
                 (output / "native.stderr.log").write_text(native.stderr)
                 if native.returncode:
+                    print(native.stderr[-8192:], file=sys.stderr)
                     raise RuntimeError(f"Linux native interaction failed ({native.returncode})")
                 result["scope"] = "Linux Xvfb native interaction and screenshots; driver identity is recorded by the application"
             else:
@@ -114,12 +116,17 @@ def main() -> int:
                     (output / f"{room}.stdout.log").write_text(native.stdout)
                     (output / f"{room}.stderr.log").write_text(native.stderr)
                     if native.returncode:
+                        print(native.stderr[-8192:], file=sys.stderr)
                         raise RuntimeError(f"Metal {room} failed ({native.returncode})")
                     validate_native(json.loads(report.read_text()), "metal", room)
                 result["scope"] = "macOS Metal eight-room native graph/report smoke; no screenshots or physical-display attestation"
             result["status"] = "PASS"
         except (RuntimeError, ValueError, KeyError, OSError, subprocess.TimeoutExpired) as error:
             result["issues"].append(str(error))
+            if isinstance(error, subprocess.TimeoutExpired) and error.stderr:
+                detail = error.stderr.decode(errors="replace") if isinstance(error.stderr, bytes) else error.stderr
+                print(detail[-8192:], file=sys.stderr)
+            print(json.dumps(result, indent=2), file=sys.stderr)
         finally:
             status_path.write_text(json.dumps(result, indent=2) + "\n")
     return 0 if result["status"] == "PASS" else 1
