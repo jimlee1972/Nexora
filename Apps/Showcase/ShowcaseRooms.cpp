@@ -2934,6 +2934,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[3].normalScale = 0.06F;
 #endif
     s.materials[4].roughness = 0.8F;
+    // Olive leaf reflectance retains the existing ambient light and warm transmission.
+    s.materials[5].baseColor = {0.42F, 0.52F, 0.3F, 1};
     s.materials[5].twoSidedLighting = s.courtyardPbr;
     s.materials[5].roughness = 0.7F;
     s.materials[5].emission = {0, 0, 0};
