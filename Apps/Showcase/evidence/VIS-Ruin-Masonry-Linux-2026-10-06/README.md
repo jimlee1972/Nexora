@@ -1,0 +1,7 @@
+# Shared background arch stones and tower apertures: Linux evidence
+
+Nine distant arches use 24 shared original chamfered wedge meshes with real stone joints. A positive X/Y bend includes the radius-dependent normal transform; the existing four side-arcade bends retain their authored silhouette. Five far towers use four corner piers across the upper four courses. Lower carvings end below the actual openings, leaving the native sky visible through the architecture. The roadmap scope now consistently includes the user-required background, HDR, wind, animation and final reference acceptance.
+
+The activated Standard scene reports 55,473 vertices, 127,014 indices, 330 batches and 42 materials. Full 97/97 Development tests pass with Khronos core/synchronization validation (113.60 s), including actual wedge winding and all quality geometry budgets. Isolated Shipping acceptance, exact wind/planar-reflection restoration and an actual 100-second shared-clock animation recording are retained with source/executable/movie/package SHA-256 provenance. Production freeze: `2d4989e49d5109ddb8f7b7d073a7b20ac718321b`. Artifacts: `NexoraShowcase-Ruin-Masonry-2d4989e.mp4` and `NexoraShowcase-Ruin-Masonry-2d4989e-Linux.zip`. Native art captures use the same Shipping executable. Cooked originals, shader packets and stable ABIs remain unchanged. No overlays or retiming.
+
+Reference parity and physical-display performance remain unaccepted. VIS remains 5/7.
