@@ -1,0 +1,7 @@
+# Refined authored sandstone: Linux evidence
+
+New OpenAI image-generation albedo/height inputs reduce dark speckling while retaining restrained warm mineral detail. Original sandstone PNGs remain unmodified archives; source.json records the active pair, origin, briefs, license and exact SHA-256. Reproducible cooking updates stone color/normal/ORM and generated headers. Foreground base factors are 0.8/0.8/0.8 and background factors 0.7/0.68/0.62. Engine sunlight, sky, floating HDR IBL, wind and shader packets remain unchanged. IBL metadata is regenerated because it records the entire hero source.json hash; all three IBL binary textures retain their previous hashes. The initial full-suite run correctly rejected stale environment metadata; its log is retained.
+
+Final full Linux configure/build and 97/97 tests pass with Khronos core/synchronization validation (110.68 s). Shipping isolated native acceptance, exact wind/reflection restoration and an actual 100-second shared-clock recording pass. Standard: 56,665 vertices, 133,194 indices, 336 batches, 44 materials. Production freeze `972ceb59e264c4ad132cb9d98125f4e4dc86e1d2`; native art uses the same Shipping executable. Source/executable/movie/package SHA-256 provenance is retained. Artifacts: `NexoraShowcase-Refined-Sandstone-972ceb5.mp4` and `NexoraShowcase-Refined-Sandstone-972ceb5-Linux.zip`.
+
+Reference parity and physical display acceptance remain open (VIS 5/7).

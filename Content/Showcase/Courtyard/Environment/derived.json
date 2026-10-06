@@ -3,7 +3,7 @@
   "source_sha256": "926a6bb81897919b2924f42407162b8d54be91eab2da3fe7fe19daf308cfa09a",
   "samples": 128,
   "sequence": "Hammersley",
-  "sky_source_sha256": "c3135c1ccac210ce2cb8e2ea145b924643b6327dbbadcdbed4df43a77816dfe4",
+  "sky_source_sha256": "639633d2da8c0f7e09d5e96680c8983e6d70be62869f68da9db9b791ccbbd75c",
   "image_cook_sha256": "5c0c9cd9345beb138a4238b9bd1c3d05d1069bf3e3703952164f609f0c282b64",
   "sky_authoring": {
     "description": "Original authored golden-hour cloud panorama; visible six-face sky and HDR IBL share the panorama orientation, geometric solar disc and key-light direction.",

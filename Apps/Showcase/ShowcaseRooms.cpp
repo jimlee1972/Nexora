@@ -2854,7 +2854,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   s.batches.clear();
   s.Cube(0, -0.3F, 0, 6, 0.3F, 6);
   if (s.selected == "courtyard") {
-    s.materials = {{{0.65F, 0.65F, 0.65F, 1}, 0},
+    s.materials = {{{0.8F, 0.8F, 0.8F, 1}, 0},
                    {{0.78F, 0.44F, 0.12F, 1}, 0},
                    {{0.08F, 0.8F, 0.95F, 1}, 0},
                    {{0.3F, 0.21F, 0.13F, 1}, 0},
@@ -2936,7 +2936,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #endif
     s.materials.push_back(motes);
     for (const auto color :
-         {std::array{0.6F, 0.56F, 0.48F, 1.0F}, std::array{0.36F, 0.36F, 0.32F, 1.0F},
+         {std::array{0.7F, 0.68F, 0.62F, 1.0F}, std::array{0.36F, 0.36F, 0.32F, 1.0F},
           std::array{0.09F, 0.18F, 0.07F, 1.0F}}) {
       Nexora::Presentation::SceneMaterial background{};
       background.baseColor = color;

@@ -227,18 +227,18 @@
   "leaf_size": 256,
   "authored_images": {
     "stone_color": {
-      "path": "Source/sandstone-albedo.png",
-      "sha256": "76a80009a88c8b6e342987f181bac9bb7afa270902c16d049a08d95b97799270",
+      "path": "Source/sandstone-refined-albedo.png",
+      "sha256": "c87f19cd23116fd849960a15c19aa20642ea8feb019111b4b3fde77380fe0e02",
       "origin": "OpenAI image generation in this authorized showcase art session",
-      "authoring_brief": "Neutral unlit pale weathered sandstone albedo, natural hairline fractures and sparse lichen; no regular brick grid",
+      "authoring_brief": "Refined original sandstone with reduced dark speckling and restrained warm mineral variation, authored against the retained courtyard visual reference",
       "license": "Repository LICENSE",
       "reference": "Roadmap/art/V1-Visual-Identity-Concept.png"
     },
     "stone_height": {
-      "path": "Source/sandstone-height.png",
-      "sha256": "397869c1b8b7b6162382a2fdc9eacb8cc4f3de032795746dd871efdb33fc7817",
+      "path": "Source/sandstone-refined-height.png",
+      "sha256": "3bb0119fdc035718ca18c6d647f7a52f6d22802aa01eef867de4723453d262c3",
       "origin": "OpenAI image generation in this authorized showcase art session",
-      "authoring_brief": "Matched grayscale height map derived with image generation from the retained sandstone albedo; same fractures and spatial layout",
+      "authoring_brief": "Image-assisted grayscale height candidate authored from the refined albedo, preserving its chipped-patch and fracture layout",
       "license": "Repository LICENSE",
       "reference": "Roadmap/art/V1-Visual-Identity-Concept.png"
     },

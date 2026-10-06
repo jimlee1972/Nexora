@@ -1,0 +1,4 @@
+[1/4] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/ShowcaseRooms.cpp.o
+[2/4] Linking CXX executable Apps/Showcase/NexoraShowcase
+[3/4] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcaseRoomTests.dir/ShowcaseRooms.cpp.o
+[4/4] Linking CXX executable Apps/Showcase/NexoraShowcaseRoomTests

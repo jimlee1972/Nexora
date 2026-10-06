@@ -36,3 +36,7 @@ and their source hashes are unchanged.
 原創水晶幾何另由 `../source.json` 描述五層半徑／高度與可選方位相位。Cook 選擇朝外的
 非共面四邊形對角線，並拒絕切入凸包的面；每個三角形保留獨立法線。原始 PNG 與來源
 雜湊保持一致。
+
+The active stone pair is `sandstone-refined-albedo.png` / `sandstone-refined-height.png`, created with OpenAI image generation on 2026-10-06 against the retained original material and courtyard reference. The earlier `sandstone-albedo.png` / `sandstone-height.png` files remain unmodified archives. `source.json` identifies the active pair and exact hashes. These are authored LDR material inputs; native lighting and HDR remain engine computations.
+
+目前使用 `sandstone-refined-albedo.png`／`sandstone-refined-height.png`，於 2026-10-06 以原始材質與庭院參考圖製作；原本的 `sandstone-albedo.png`／`sandstone-height.png` 保留且未修改。`source.json` 記錄目前來源與精確雜湊。這些是 LDR 材質輸入，原生光照與 HDR 由引擎計算。

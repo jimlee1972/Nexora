@@ -1,0 +1,83 @@
+{
+  "source_freeze": "972ceb59e264c4ad132cb9d98125f4e4dc86e1d2",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/CourtyardEnvironment.h": "a3c9a7b4385cb56621319de69bdf71dd1b13a69ca27ed72e3444200dfe3e6a2e",
+    "Apps/Showcase/CourtyardHero.h": "fa318553b3d5be0ac4ef75ba9aeb852c5a6d1b41e5018a7b0fabaee9400fe9ab",
+    "Apps/Showcase/ShowcaseRooms.cpp": "7c16fac929ead0004890096aed90938b0b4b638ddf035dc2afded0ae0096b8cd",
+    "Content/Showcase/Courtyard/Environment/derived.json": "3a786ac772b6e16cba879864c57807073f9fb41831b6ad621784a3fdddac4197",
+    "Content/Showcase/Courtyard/Hero/Source/README.md": "7efb1c25227a57cc293b1991c679edba2d7fcf2dc5a4cf230777c8f04e32bcd9",
+    "Content/Showcase/Courtyard/Hero/Source/sandstone-refined-albedo.png": "c87f19cd23116fd849960a15c19aa20642ea8feb019111b4b3fde77380fe0e02",
+    "Content/Showcase/Courtyard/Hero/Source/sandstone-refined-height.png": "3bb0119fdc035718ca18c6d647f7a52f6d22802aa01eef867de4723453d262c3",
+    "Content/Showcase/Courtyard/Hero/manifest.json": "9beb62a3bc4fa4a9464371f0e307ea554813e4bdffc928f914fefc5e3c2e1fbb",
+    "Content/Showcase/Courtyard/Hero/source.json": "639633d2da8c0f7e09d5e96680c8983e6d70be62869f68da9db9b791ccbbd75c",
+    "Content/Showcase/Courtyard/Hero/stone-color.rgba": "4552bd16ed4bdf5b465fbd19438f29ae1b9ea91d84800b22e1718a9cedd544aa",
+    "Content/Showcase/Courtyard/Hero/stone-normal.rgba": "9c1858b94299bf394c96fe6085b73209cb3bd2d6c222a7fef675b37540733c76",
+    "Content/Showcase/Courtyard/Hero/stone-orm.rgba": "53bfaad261099a364c2e09a235fc340e302ee8ac2974b3f758919b75080634a5"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/sandstone-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "972ceb59e264",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.73660898499656,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.266667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "bd1e7094ea9409dc54d591f56305197bdcea6e85a5eeba20f369f5c3c2c83c2e",
+    "video_sha256": "ce27d075600458e6c9758305cde7b2ad067d1e4e1f9e3787067c66a741c5b2ee",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "f6fd8854257c8a417ea3d46fd79c274aef94fc47537b78dab3b7c28199639182",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        58,
+        641,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  }
+}
