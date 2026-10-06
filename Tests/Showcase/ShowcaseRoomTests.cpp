@@ -132,6 +132,28 @@ int main() {
          wide.materials[16].twoSidedLighting);
   assert(courtyard.Report().find("\"foliage_quad_count\":" + std::to_string(sourceLeaves)) !=
          std::string::npos);
+  // Flowing strip faces must agree with their analytic surface normals. This
+  // catches an orientation reversal when indexing the shared descending rows.
+  std::size_t waterfallTriangles = 0;
+  for (const auto &batch : wide.batches) {
+    if (batch.materialIndex != 14 || batch.firstInstance != 0)
+      continue;
+    for (std::size_t triangle = batch.firstIndex; triangle < batch.firstIndex + batch.indexCount;
+         triangle += 3) {
+      const auto &a = wide.vertices[wide.indices[triangle]];
+      const auto &b = wide.vertices[wide.indices[triangle + 1]];
+      const auto &c = wide.vertices[wide.indices[triangle + 2]];
+      const nexora::math::Vector3 ab{b.position[0] - a.position[0], b.position[1] - a.position[1],
+                                     b.position[2] - a.position[2]};
+      const nexora::math::Vector3 ac{c.position[0] - a.position[0], c.position[1] - a.position[1],
+                                     c.position[2] - a.position[2]};
+      const auto normal = nexora::math::Cross(ab, ac);
+      assert(nexora::math::Dot(
+                 normal, nexora::math::Vector3{a.normal[0], a.normal[1], a.normal[2]}) > 1e-7F);
+      ++waterfallTriangles;
+    }
+  }
+  assert(waterfallTriangles > 0);
   assert(wide.materials[12].opacity == 0.95F && !wide.materials[12].castsShadow &&
          wide.materials[12].dielectricRefraction);
 #if NEXORA_ASSET_PIPELINE_ENABLED

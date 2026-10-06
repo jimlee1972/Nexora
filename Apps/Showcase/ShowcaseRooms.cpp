@@ -836,26 +836,39 @@ struct RoomSession::State final {
   void CourtyardWaterfalls() {
     const auto first = static_cast<std::uint32_t>(indices.size());
     const float time = static_cast<float>(courtyardSeconds);
+    // Narrow shared strips retain genuine gaps and an uneven flowing silhouette.
+    // The same paused/replayed courtyard clock advects the ripples downward.
+    constexpr unsigned ribbonCount = 6, rows = 32;
     for (const auto location : courtyardFallSites)
-      for (unsigned ribbon = 0; ribbon < 4; ++ribbon)
-        for (unsigned row = 0; row < 24; ++row) {
-          const auto base = static_cast<std::uint16_t>(vertices.size());
-          for (const auto corner :
-               {std::array{0, 0}, std::array{1, 0}, std::array{1, 1}, std::array{0, 1}}) {
-            const float y = location[2] - (row + corner[1]) * ((location[2] - 0.3F) / 24);
-            const float pulse = std::sin(y * 4 + time * 3 + ribbon);
+      for (unsigned ribbon = 0; ribbon < ribbonCount; ++ribbon) {
+        const auto base = static_cast<std::uint16_t>(vertices.size());
+        for (unsigned row = 0; row <= rows; ++row) {
+          const float v = static_cast<float>(row) / rows;
+          const float y = location[2] - v * (location[2] - 0.3F);
+          const float phase = y * 4 + time * 3 + ribbon * 1.7F;
+          const float ripple = std::sin(phase);
+          const float halfWidth = 0.05F * (0.8F + 0.2F * std::sin(phase * 1.7F));
+          for (unsigned edge = 0; edge < 2; ++edge) {
+            const float side = edge ? 1.0F : -1.0F;
             const float px =
-                location[0] + (ribbon - 1.5F) * 0.3F + corner[0] * 0.22F + pulse * 0.04F;
-            Nexora::Presentation::SceneVertex vertex{{px, y, location[1] + pulse * 0.025F},
-                                                     {0, 0, 1},
-                                                     {corner[0] * 1.0F, (row + corner[1]) / 24.0F}};
+                location[0] + (ribbon - 2.5F) * 0.17F + side * halfWidth + ripple * 0.035F;
+            const auto normal = math::NormalizeSafe(math::Vector3{0, -0.1F * std::cos(phase), 1});
+            Nexora::Presentation::SceneVertex vertex{{px, y, location[1] + ripple * 0.025F},
+                                                     {normal.x, normal.y, normal.z},
+                                                     {static_cast<float>(edge), v}};
             vertex.tangent[0] = 1;
             vertex.tangent[3] = 1;
             vertices.push_back(vertex);
           }
-          for (const auto index : {0, 1, 2, 0, 2, 3})
-            indices.push_back(static_cast<std::uint16_t>(base + index));
         }
+        for (unsigned row = 0; row < rows; ++row) {
+          const auto a = static_cast<std::uint16_t>(base + row * 2);
+          for (const auto index :
+               {a, static_cast<std::uint16_t>(a + 3), static_cast<std::uint16_t>(a + 1), a,
+                static_cast<std::uint16_t>(a + 2), static_cast<std::uint16_t>(a + 3)})
+            indices.push_back(index);
+        }
+      }
     batches.push_back({first, static_cast<std::uint32_t>(indices.size()) - first, 0, 1, 14});
   }
   void CourtyardWater() {
@@ -2847,12 +2860,13 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     water.castsShadow = false;
     s.materials.push_back(water);
     Nexora::Presentation::SceneMaterial waterfall{};
-    waterfall.baseColor = {0.65F, 0.8F, 0.9F, 1};
-    waterfall.roughness = 0.2F;
-    waterfall.emission = {0.1F, 0.15F, 0.2F};
+    waterfall.baseColor = {0.28F, 0.38F, 0.4F, 1};
+    waterfall.roughness = 0.3F;
+    waterfall.emission = {0.025F, 0.035F, 0.04F};
+    waterfall.opacity = s.courtyardPbr ? 0.78F : 1.0F;
     waterfall.castsShadow = false;
     waterfall.transmissionThickness = s.courtyardPbr && s.courtyardTransmission ? 0.25F : 0;
-    waterfall.transmissionColor = {0.65F, 0.8F, 0.9F};
+    waterfall.transmissionColor = {0.22F, 0.35F, 0.4F};
     s.materials.push_back(waterfall);
     Nexora::Presentation::SceneMaterial cloth{};
     cloth.baseColor = {0.025F, 0.19F, 0.23F, 1};
