@@ -1518,6 +1518,32 @@ struct RoomSession::State final {
               Segment(point(0, y), point(sign * 0.2F, y + 0.35F), 0.022F);
               Segment(point(sign * 0.2F, y + 0.35F), point(sign * 0.2F, y + 0.75F), 0.022F);
             }
+          finish(0);
+          // Slate-blue ceramic inlay sits inside the original raised diamond border.
+          // Keep its face above the weathered stone without covering the border.
+          const auto inlayPoint = [&](float dx, float y) {
+            return innerFace ? math::Vector3{x + (x < 0 ? 0.595F : -0.595F), y, z + dx}
+                             : math::Vector3{x + dx, y, z + 0.595F};
+          };
+          const std::array<math::Vector3, 4> inlay{{inlayPoint(0, 4.73F), inlayPoint(0.18F, 4.45F),
+                                                    inlayPoint(0, 4.17F),
+                                                    inlayPoint(-0.18F, 4.45F)}};
+          const auto inlayBase = static_cast<std::uint16_t>(vertices.size());
+          const bool reverse = !innerFace || x > 0;
+          const auto normal =
+              math::NormalizeSafe(math::Cross(inlay[1] - inlay[0], inlay[2] - inlay[0])) *
+              (reverse ? -1.0F : 1.0F);
+          for (const auto &v : inlay) {
+            Nexora::Presentation::SceneVertex vertex{
+                {v.x, v.y, v.z}, {normal.x, normal.y, normal.z}, {0.5F, 0.5F}};
+            vertex.tangent[0] = innerFace ? 0.0F : 1.0F;
+            vertex.tangent[2] = innerFace ? 1.0F : 0.0F;
+            vertices.push_back(vertex);
+          }
+          for (const unsigned index :
+               (reverse ? std::array{0U, 2U, 1U, 0U, 3U, 2U} : std::array{0U, 1U, 2U, 0U, 2U, 3U}))
+            indices.push_back(static_cast<std::uint16_t>(inlayBase + index));
+          finish(3);
         }
       }
     }

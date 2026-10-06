@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 六根廊柱的十二個菱形邊框已填入既有 material 3 的陶瓷鑲片。Linux 完整 97/97 測試通過（119.52 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 101.22 秒）。製作凍結版本 `2c7d68a0c8bfe4393f8051e4c94356e34b93cd46`；證據：`Apps/Showcase/evidence/VIS-Arcade-Inlays-Linux-2026-10-06/`。Standard：56,713 vertices、133,266 indices、371 batches、44 materials。VIS 仍為 5/7。
+
 ✅ F4 乾淨畫面驗證會等待實際導覽列消失。保留的 CI 失敗重播、Linux 完整 97/97 gate（118.49 秒，core/sync validation）與隔離 Shipping bloom 變化／精確還原驗證均通過。證據：`Tests/Showcase/evidence/Native-Clean-Frame-Linux-2026-10-06/`。比較等待上限保持一致；VIS 仍為 5/7。
 
 ✅ Linux Development 完整 97/97 測試通過（117.48 秒，Khronos core/sync validation），包含 99 個原生 PBR frames。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.82 秒）。製作凍結版本 `d04ef3db67707511b62e64385151dbf6af22ef3b`；證據：`Apps/Showcase/evidence/VIS-Planar-Receiver-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。

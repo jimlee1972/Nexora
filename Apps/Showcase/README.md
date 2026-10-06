@@ -1,5 +1,7 @@
 # Nexora Zig Showcase
 
+✅ Ceramic diamond inlays now fill all twelve arcade pillar borders with existing material 3. Full Linux 97/97 tests pass (119.52 s, core/sync validation), and Shipping isolated native acceptance plus a 100-second shared-clock movie pass (101.22 s wall time). Production freeze `2c7d68a0c8bfe4393f8051e4c94356e34b93cd46`; evidence: `Apps/Showcase/evidence/VIS-Arcade-Inlays-Linux-2026-10-06/`. Standard: 56,713 vertices, 133,266 indices, 371 batches, 44 materials. VIS stays 5/7.
+
 ✅ Native clean-view synchronization now requires the actual navigation overlay to disappear after F4. The retained CI failure replay, full Linux 97/97 gate (118.49 s, core/sync validation), and isolated Shipping bloom change/exact restoration pass. Evidence: `Tests/Showcase/evidence/Native-Clean-Frame-Linux-2026-10-06/`. Comparison deadlines remain unchanged; VIS stays 5/7.
 
 ✅ Linux Development full 97/97 tests passed (117.48 s, Khronos core/sync validation), including 99 native PBR frames. Shipping/Full isolated native acceptance and an actual 100-second shared-clock tour passed (100.82 s wall time). Production freeze `d04ef3db67707511b62e64385151dbf6af22ef3b`; evidence: `Apps/Showcase/evidence/VIS-Planar-Receiver-Linux-2026-10-06/`. VIS remains 5/7; reference parity and physical-display acceptance remain open.
