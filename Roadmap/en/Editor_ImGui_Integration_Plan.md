@@ -228,9 +228,10 @@ fallback after repeated cache resets; generation exhaustion cannot wrap to a pre
 1024x1024 per image). Generation checks reject stale/foreign IDs before backend binding; domain
 replacement resends live images. Native tests cover copied pixels, fallback, limits and more than
 4096 uploads. DX12 descriptor recycling waits for GPU completion; Vulkan resize retains textures.
-[Evidence](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md) records immutable
-Windows/DX12 and macOS/Metal 4290-upload gates and macOS 122/122 full-suite success. Windows
-whole-suite fixture repairs still require final-head CI; visual target-host gates remain open.
+✅ [Final-head hosted evidence](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md):
+Linux/Vulkan 140/140, Windows/DX12 123/123 and macOS/Metal 122/122; each native backend completed
+4290 uploads. All 18 selected CI jobs passed, including sanitizers and Shipping packages.
+Physical-display, installed-IME and visual-legibility/glyph coverage remain open.
 
 1. Introduce a renderer-owned state object beneath `EditorImGuiHost`: pipeline, sampler, font
    texture/view, descriptor bindings, and a bounded ring of per-frame vertex/index upload buffers.
@@ -462,7 +463,7 @@ using the schema above. A failed row stays open and blocks ED-M0 acceptance.
 | --- | --- | --- |
 | WP0 | Full Development OFF/ON gates; Shipping engine build; dependency revision and feature isolation | Explicit gap inventory, including unsupported host/configuration rows |
 | WP1 | `window_presentation.contracts`, `renderer.contracts` | Native graphics validation and supported-backend parity; portable traces do not prove physical GPU behavior |
-| WP2 | `editor.imgui_contract` draw conversion, texture generations, completion retirement, DPI rebuild and 512-frame soak | Legible native output, resize/font rebuild and GPU resource lifetime |
+| WP2 | `editor.imgui_contract` draw conversion, texture generations, completion retirement, DPI rebuild and 512-frame soak; `editor.imgui_context_lifetime` allocation ownership; `editor.native_surface_lifetime` owner/resize reuse and 4290-upload native soak | Legible native output, resize/font rebuild and GPU resource lifetime |
 | WP3 | `editor.linux_display_acceptance`; native Vulkan scene/PBR/upload tests | Linux physical-display render, resize, minimize/restore, close and recovery |
 | WP4 | `editor.imgui_contract`, `editor.pointer_dpi`, Linux display acceptance | Real typing/shortcuts, drag docking and restored layout, both wheel axes, focus loss with held input |
 | WP5 | DPI buckets and pointer tests | Windows 100/125/150/200% text and hit targets, repeated monitor moves, same-frame resize/DPI, minimize/restore |
