@@ -1,0 +1,74 @@
+{
+  "source_freeze": "ee8837eb3d55db9f0892f468ab70773cbc968809",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/ShowcaseRooms.cpp": "d7075277d57a6cb224022f1796102274b26359e8e5cc9a06d1929b7889e9df1b",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "bd00733999525f0357dd48e0923cb12b06640bb4d129c93b27ce0c84d1695698",
+    "Tests/Showcase/VisualTourCli.py": "0f970f7b865dfaf8c7377dfd89d7d336ef49652de8dc44dd52118c3699cb6b61"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/background-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "ee8837eb3d55",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.05139201800921,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.733333"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "2a2f7a3ae61c35ebb40671ab5aa6ab72fb81506bb7b090e6996d0dafb277920e",
+    "video_sha256": "5fe997566a6d7f84e6901bdac21c435ceb104586bb4c12f1227fe39839383a5b",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "2f912d1d1eedc9be184b17c1e3a2883901f2dc6621631ecc3046e0c00133555e",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        57,
+        641,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  }
+}

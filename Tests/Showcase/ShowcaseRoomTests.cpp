@@ -374,7 +374,7 @@ int main() {
   for (std::size_t i = 0; i < 7; ++i)
     assert(selectedMaterials[i]);
   for (std::size_t i = 8; i < 11; ++i) {
-    assert(selectedMaterials[i] && !wide.materials[i].castsShadow);
+    assert(selectedMaterials[i] && wide.materials[i].castsShadow == (i != 9));
   }
   const auto skyboxIterator =
       std::find_if(wide.batches.begin(), wide.batches.end(),
@@ -440,7 +440,7 @@ int main() {
   assert(!courtyard.Scene(1280, 720).bloom);
   Press(courtyard, Key::K);
   assert(courtyard.Scene(1280, 720).bloom);
-  assert(wide.shadow && wide.lightingStyle && wide.shadow->resolution == 1024);
+  assert(wide.shadow && wide.lightingStyle && wide.shadow->resolution == 2048);
   // Side-arcade crowns must remain inside the shadow camera. Their shadows use
   // the same light-space XY, even when projected beyond the central pedestal.
   for (const float x : {-7.5F, 7.5F})
@@ -454,6 +454,27 @@ int main() {
       assert(std::abs(clip[0]) < clip[3] && std::abs(clip[1]) < clip[3]);
       assert(clip[2] > 0 && clip[2] < clip[3]);
     }
+  for (const float x : {-24.0F, -10.0F, 10.0F, 18.0F}) {
+    const std::array<float, 4> crown{x, 8.1F, x < -20 ? -26.0F : -16.0F, 1};
+    const auto &matrix = wide.shadow->lightViewProjection;
+    std::array<float, 4> clip{};
+    for (unsigned row = 0; row < 4; ++row)
+      for (unsigned column = 0; column < 4; ++column)
+        clip[row] += matrix[row * 4 + column] * crown[column];
+    assert(std::abs(clip[0]) < clip[3] && std::abs(clip[1]) < clip[3]);
+    assert(clip[2] > 0 && clip[2] < clip[3]);
+  }
+  for (unsigned tower = 0; tower < 5; ++tower) {
+    const std::array<float, 4> crown{-4 + tower * 5.0F, 10.6F + static_cast<float>(tower * 7 % 6),
+                                     -23, 1};
+    const auto &matrix = wide.shadow->lightViewProjection;
+    std::array<float, 4> clip{};
+    for (unsigned row = 0; row < 4; ++row)
+      for (unsigned column = 0; column < 4; ++column)
+        clip[row] += matrix[row * 4 + column] * crown[column];
+    assert(std::abs(clip[0]) < clip[3] && std::abs(clip[1]) < clip[3]);
+    assert(clip[2] > 0 && clip[2] < clip[3]);
+  }
   Press(courtyard, Key::F6);
   assert(!courtyard.Scene(1280, 720).shadow);
   Press(courtyard, Key::F6);
@@ -671,7 +692,7 @@ int main() {
     quality.Tick(0.1);
     const auto draw = quality.Scene(1280, 720);
     assert(draw.vertices.size() < 65536);
-    assert(draw.hdr && draw.pbr && draw.shadow && draw.shadow->resolution == (512U << tier));
+    assert(draw.hdr && draw.pbr && draw.shadow && draw.shadow->resolution == (tier ? 2048U : 512U));
     assert(draw.vegetationTime == 0 && quality.QualityName() == name);
     assert(draw.bloom.has_value() == (tier != 0));
     assert(draw.atmosphere.has_value() == (tier != 0));
@@ -681,6 +702,8 @@ int main() {
 #endif
     assert(draw.materials[5].twoSidedLighting && draw.materials[15].twoSidedLighting);
     assert(draw.materials[6].unlit && !draw.materials[6].castsShadow);
+    assert(draw.materials[8].castsShadow == (tier != 0) &&
+           draw.materials[10].castsShadow == (tier != 0) && !draw.materials[9].castsShadow);
     assert(draw.materials[7].unlit && !draw.materials[7].castsShadow);
     const auto particleBatch =
         std::find_if(draw.batches.begin(), draw.batches.end(),

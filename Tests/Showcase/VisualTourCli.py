@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory(prefix='nexora-visual-tour-cli-') as temporary:
         quality=json.loads(quality_report.read_text())
         settings=quality['runtime_rooms']['courtyard']
         assert quality['render_settings']['quality']==settings['quality']==name
-        assert settings['shadow_resolution']==512*(2**tier)
+        assert settings['shadow_resolution']==(512 if tier==0 else 2048)
         assert settings['particle_budget']==24*(2**tier)
         # Headless timeline checks do not construct or submit native courtyard geometry.
         assert settings['foliage_quad_count']==0 and settings['geometry_vertex_count']==0

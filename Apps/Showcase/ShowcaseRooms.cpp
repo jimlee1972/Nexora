@@ -1427,22 +1427,24 @@ struct RoomSession::State final {
           indices.push_back(index);
       }
     finish(9);
-    for (const float x : {-18.0F, -10.0F, 10.0F, 18.0F}) {
+    // Keep the sunset corridor open between the left ruin and the side arcade.
+    for (const float x : {-24.0F, -10.0F, 10.0F, 18.0F}) {
+      const float towerZ = x < -20 ? -26.0F : -16.0F;
       for (unsigned layer = 0; layer < 10; ++layer) {
         const float y = 0.3F + layer * 0.6F;
         if (layer < 6)
-          placeMasonry(8, x + (layer % 2) * 0.03F, y, -16, 1.2F, 0.29F, 1.2F);
+          placeMasonry(8, x + (layer % 2) * 0.03F, y, towerZ, 1.2F, 0.29F, 1.2F);
         else
           // Four corner piers leave actual open upper-story apertures on every face.
           for (const float dx : {-0.85F, 0.85F})
             for (const float dz : {-0.85F, 0.85F})
-              placeMasonry(8, x + dx, y, -16 + dz, 0.35F, 0.29F, 0.35F);
+              placeMasonry(8, x + dx, y, towerZ + dz, 0.35F, 0.29F, 0.35F);
       }
-      placeMasonry(8, x, 6.2F, -16, 1.5F, 0.3F, 1.5F);
+      placeMasonry(8, x, 6.2F, towerZ, 1.5F, 0.3F, 1.5F);
       for (const float dx : {-0.9F, 0.9F})
-        placeMasonry(8, x + dx, 7.3F, -16, 0.3F, 0.8F, 0.5F);
-      placeBackgroundArch({x + 2.8F, 4, -16}, 1.6F, 0.3F, 0.36F, 12);
-      placeMasonry(8, x + 4.4F, 2, -16, 0.35F, 2, 0.4F);
+        placeMasonry(8, x + dx, 7.3F, towerZ, 0.3F, 0.8F, 0.5F);
+      placeBackgroundArch({x + 2.8F, 4, towerZ}, 1.6F, 0.3F, 0.36F, 12);
+      placeMasonry(8, x + 4.4F, 2, towerZ, 0.35F, 2, 0.4F);
     }
     for (unsigned tower = 0; tower < 5; ++tower) {
       const float x = -4 + tower * 5.0F, height = 7.0F + static_cast<float>(tower * 7 % 6);
@@ -2945,6 +2947,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       s.materials.push_back(background);
     }
     s.materials[8].occlusion = 0.5F;
+    s.materials[8].castsShadow = s.courtyardQuality > 0;
+    s.materials[10].castsShadow = s.courtyardQuality > 0;
     // Woody cypress trunks and ivy stems retain the existing shared material slot.
     s.materials[10].baseColor = {0.12F, 0.085F, 0.045F, 1};
     s.materials[10].roughness = 0.9F;
@@ -3256,14 +3260,22 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
         data.light_color[axis] = courtyard_hero::key_radiance[axis];
       }
       if (s.courtyardShadows) {
-        const auto light =
-            // Include the side arcade crowns and their ground-projected shadows.
-            math::Orthographic(-12, 12, -10, 10, 0.1F, 40) *
-            math::LookAt({courtyard_hero::sun_direction[0], courtyard_hero::sun_direction[1] + 1,
-                          courtyard_hero::sun_direction[2]},
-                         {0, 1, 0});
+        // Basic retains the bounded foreground map. Standard/High include the
+        // authored distant towers. Standard preserves its horizontal texel size;
+        // High shares the expanded map within the native 2048-pixel ceiling.
+        const auto light = s.courtyardQuality == 0
+                               ? math::Orthographic(-12, 12, -10, 10, 0.1F, 40) *
+                                     math::LookAt({courtyard_hero::sun_direction[0],
+                                                   courtyard_hero::sun_direction[1] + 1,
+                                                   courtyard_hero::sun_direction[2]},
+                                                  {0, 1, 0})
+                               : math::Orthographic(-24, 24, -15, 15, 0.1F, 80) *
+                                     math::LookAt({courtyard_hero::sun_direction[0] * 2,
+                                                   courtyard_hero::sun_direction[1] * 2 + 1,
+                                                   courtyard_hero::sun_direction[2] * 2 - 8},
+                                                  {0, 1, -8});
         data.shadow = Nexora::Presentation::SceneDirectionalShadow{};
-        data.shadow->resolution = 512U << s.courtyardQuality;
+        data.shadow->resolution = s.courtyardQuality ? 2048U : 512U;
         data.shadow->lightViewProjection = light.values;
         data.shadow->normalBias = s.courtyardShadowBias;
         data.shadow->slopeBias = s.courtyardShadowBias * 2;
@@ -3507,7 +3519,7 @@ std::string RoomSession::Report() const {
       << ",\"skybox_face_count\":6,\"skybox_camera_centered\":true,\"background_environment\":true"
       << ",\"water_surface_count\":2,\"waterfall_count\":2,\"crystal_animation\":true"
       << ",\"shadow_resolution\":"
-      << (s.courtyardPbr && s.courtyardShadows ? (512U << s.courtyardQuality) : 0)
+      << (s.courtyardPbr && s.courtyardShadows ? (s.courtyardQuality ? 2048U : 512U) : 0)
       << ",\"depth_of_field_enabled\":"
       << (s.courtyardPbr && s.courtyardFocus && s.courtyardQuality != 0)
       << ",\"planar_reflection_enabled\":"
