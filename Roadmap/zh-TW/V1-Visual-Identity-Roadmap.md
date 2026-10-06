@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 原創單片常春藤葉取代整株卡片，懸掛、攀附與前景卡片縮小，保留風動畫與附著根部。Linux 完整 97/97 測試通過（118.92 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 101.04 秒）。凍結版本 `61235ecdef9adb8ab57215afd0a9f27df861726c`；證據：`Apps/Showcase/evidence/VIS-Single-Leaf-Linux-2026-10-06/`。Standard 維持 57,961 vertices、134,982 indices、384 batches、44 materials；原始整株葉圖與天空／HDR 資料留存。VIS 仍為 5/7。
+
 ✅ Skybox 六個面提升為 256×256（768×512 RGBA8 atlas），保留雲層細節。原始天空圖與浮點 HDR IBL 資料保持一致，原生 HDR 日光、bloom 與共同時鐘動畫持續運作。Linux 完整 97/97 測試通過（122.80 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒影片通過（壁鐘 101.06 秒）。凍結版本 `2b2be9d670c9c691e2f333ce0efa2821c9539f78`；證據：`Apps/Showcase/evidence/VIS-Detailed-Sky-Linux-2026-10-06/`。幾何維持 57,961 vertices、134,982 indices、384 batches、44 materials。VIS 仍為 5/7。
 
 ✅ 庭院葉片使用橄欖色反射係數（0.42、0.52、0.30），保留環境光、texture alpha、雙面光照、風與暖色透光。Linux 完整 97/97 測試通過（119.89 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 100.93 秒）。凍結版本 `db4d3f38de133ec6a22e4d142cac7ea6e100ac5b`；證據：`Apps/Showcase/evidence/VIS-Olive-Foliage-Linux-2026-10-06/`。幾何維持 57,961 vertices、134,982 indices、384 batches、44 materials。VIS 仍為 5/7。

@@ -1,0 +1,23 @@
+{
+  "source_generated_file": "/workspace/generated_images/exec-1a80cd5f-4fff-44c3-8c55-bb5adeae758a.png",
+  "preserved_copy": "/workspace/artifacts/ivy-single-leaf-source.png",
+  "sha256": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
+  "size": [
+    1254,
+    1254
+  ],
+  "mode": "RGBA",
+  "alpha_range": [
+    0,
+    255
+  ],
+  "alpha_bounds": [
+    0,
+    21,
+    1223,
+    1238
+  ],
+  "origin": "OpenAI image generation in this authorized showcase art session",
+  "license": "Repository LICENSE",
+  "original_sprig_preserved": true
+}

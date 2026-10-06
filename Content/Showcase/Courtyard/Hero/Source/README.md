@@ -40,3 +40,7 @@ and their source hashes are unchanged.
 The active stone pair is `sandstone-refined-albedo.png` / `sandstone-refined-height.png`, created with OpenAI image generation on 2026-10-06 against the retained original material and courtyard reference. The earlier `sandstone-albedo.png` / `sandstone-height.png` files remain unmodified archives. `source.json` identifies the active pair and exact hashes. These are authored LDR material inputs; native lighting and HDR remain engine computations.
 
 目前使用 `sandstone-refined-albedo.png`／`sandstone-refined-height.png`，於 2026-10-06 以原始材質與庭院參考圖製作；原本的 `sandstone-albedo.png`／`sandstone-height.png` 保留且未修改。`source.json` 記錄目前來源與精確雜湊。這些是 LDR 材質輸入，原生光照與 HDR 由引擎計算。
+
+The active leaf source is `ivy-single-leaf.png`, an unmodified original OpenAI image-generation output from 2026-10-06. One five-lobed olive leaf replaces the entire sprig on each native wind card, so individual silhouettes and veins remain legible. The earlier `ivy.png` remains an unmodified archive. Exact origin, authoring brief and SHA-256 are recorded in `source.json`; alpha filtering and root UV mapping still use the existing cook.
+
+目前葉片來源為 `ivy-single-leaf.png`，保留 2026-10-06 OpenAI image generation 原始輸出。一張風動畫卡片使用一片五裂橄欖色常春藤葉，原本整株 `ivy.png` 留存且未修改；來源與精確雜湊記錄於 `source.json`，仍使用既有 alpha 過濾與根部 UV cook。
