@@ -1,0 +1,42 @@
+{
+  "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+  "command": [
+    "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+    "--tour=visual",
+    "--backend=vulkan",
+    "--clean-view",
+    "--vsync=off",
+    "--no-reload",
+    "--gameplay-module=static",
+    "--report=/tmp/radiance-shipping-tour/tour.json",
+    "--quality=standard"
+  ],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "cbf8d651248a",
+    "abi_version": 1,
+    "configuration": "Shipping",
+    "link_mode": "Monolithic"
+  },
+  "wall_seconds": 101.06040472599852,
+  "video": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "format": {
+      "duration": "100.733333"
+    }
+  },
+  "software_rasterizer": true,
+  "physical_display_verified": false,
+  "executable_sha256": "170b59ae6e4e9ab4d625e9ac8bfd720bda67d8ec327087bc3f4dea8ea55402bc",
+  "video_sha256": "75ba905b58c827792bfcdfbdf74d8d677791aa040f171cd90055a141e42b6529",
+  "tour_seconds": 100,
+  "overlay_frames": 0
+}

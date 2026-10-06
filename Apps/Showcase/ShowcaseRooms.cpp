@@ -1599,12 +1599,14 @@ struct RoomSession::State final {
     finish(5);
     // Place the left cypress in the wide camera's arch opening, retaining its shared wind.
     const auto treeLocation = [](float x, float z) {
-      return x < 0 && z == -10 ? std::array{-15.0F, -6.0F} : std::array{x, z};
+      return x < 0 && z == -10 ? std::array{-12.5F, -9.0F} : std::array{x, z};
     };
     for (const float x : {-12.0F, 12.0F})
       for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F}) {
         const auto location = treeLocation(x, z);
-        Cube(location[0], 2, location[1], 0.12F, 2, 0.12F);
+        const std::array<std::array<float, 2>, 5> trunk{
+            {{0, 0}, {0.11F, 0}, {0.08F, 2.5F}, {0.04F, 4.5F}, {0, 4.5F}}};
+        Lathe({location[0], 0, location[1]}, trunk);
       }
     finish(10);
     // Layered cutout foliage replaces smooth cones; it shares leaf lighting and wind.
@@ -2833,7 +2835,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[1].roughness = 0.28F;
     s.materials[1].baseColor = {0.95F, 0.85F, 0.65F, 1};
     s.materials[2].roughness = 0.15F;
-    s.materials[2].emission = {0.05F, 2.2F, 3.0F};
+    s.materials[2].baseColor = {0.02F, 0.24F, 0.28F, 1};
+    s.materials[2].emission = {0.02F, 0.65F, 0.85F};
     s.materials[3].baseColor = {0.24F, 0.36F, 0.43F, 1};
     s.materials[3].occlusion = 0.75F;
     s.materials[3].roughness = 0.78F;
@@ -2897,6 +2900,10 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       s.materials.push_back(background);
     }
     s.materials[8].occlusion = 0.5F;
+    // Woody cypress trunks and ivy stems retain the existing shared material slot.
+    s.materials[10].baseColor = {0.12F, 0.085F, 0.045F, 1};
+    s.materials[10].roughness = 0.9F;
+    s.materials[10].occlusion = 0.8F;
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[8].worldTextureScale = s.courtyardPbr ? 1.1F : 0;
     s.materials[8].normalScale = 0.14F;
@@ -2908,6 +2915,11 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[9].ormTextureId = 12;
     s.materials[9].worldTextureScale = s.courtyardPbr ? 0.05F : 0;
     s.materials[9].normalScale = 0.08F;
+    s.materials[10].textureId = 10;
+    s.materials[10].normalTextureId = 11;
+    s.materials[10].ormTextureId = 12;
+    s.materials[10].worldTextureScale = s.courtyardPbr ? 2.5F : 0;
+    s.materials[10].normalScale = 0.08F;
 #endif
     Nexora::Presentation::SceneMaterial sun{};
     sun.baseColor = {0, 0, 0, 1};
@@ -2965,7 +2977,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     ceramicPaint.occlusion = 0.75F;
     s.materials.push_back(ceramicPaint);
     for (const auto radiance : {std::array{0.005F, 0.03F, 0.025F}, std::array{0.02F, 0.12F, 0.11F},
-                                std::array{0.06F, 0.28F, 0.26F}}) {
+                                std::array{0.18F, 1.8F, 1.35F}}) {
       auto interior = crystal;
       interior.opacity = 1;
       interior.transparencyTint = {1, 1, 1};
@@ -3185,7 +3197,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       const float pulse = 0.9F + 0.1F * std::sin(time * 1.7F);
       data.pointLight =
           Nexora::Presentation::ScenePointLight{{0, 3.15F + 0.12F * std::sin(time * 1.4F), 0},
-                                                {0.3F * pulse, 8.0F * pulse, 12.0F * pulse},
+                                                {0.2F * pulse, 3.0F * pulse, 4.0F * pulse},
                                                 4.5F};
     }
     if (data.pbr) {

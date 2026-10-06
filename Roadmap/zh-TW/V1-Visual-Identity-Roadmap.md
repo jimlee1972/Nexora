@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux Development 完整 97/97 測試通過（116.67 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 101.06 秒）。製作凍結版本 `cbf8d651248ad28f8c077d10336366f460e308d2`；證據：`Apps/Showcase/evidence/VIS-Crystal-Radiance-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+水晶 HDR 輻射與柏樹迭代：降低符文光軌底色與發光，最亮的包覆礦物刻面在 bloom／ACES 之前達到線性輻射 1.8／1.35。局部點光改為 0.2／3／4，保留相同共同時鐘脈動、位置與半徑。左側柏樹移入目前廣角拱門開口；八支原創漸縮共用輪廓樹幹與木質藤莖採用既有細節貼圖。遠景投影資格、葉片／固定根部風動、折射封包與 cooked 原稿不變。Standard 使用 56,665 頂點、132,870 索引、330 批次與 42 材質。Linux configure/build 與完整 97/97 測試通過（116.67 秒，Khronos core/sync validation）。Shipping 隔離原生驗收與共同時鐘錄影通過；預覽圖一致性與實體顯示器驗收仍未完成（VIS 5/7）。
+
 ✅ Linux Development 完整 97/97 測試通過（113.60 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.70 秒）。製作凍結版本 `2d4989e49d5109ddb8f7b7d073a7b20ac718321b`；證據：`Apps/Showcase/evidence/VIS-Ruin-Masonry-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 背景石造迭代：九座遠景拱門使用 24 個共用原創倒角楔形石塊，以實際石縫取代管段。正向 X／Y 彎曲包含隨半徑調整的法線轉換，保留原有四座側拱廊彎曲。五座遠塔的上方四層改用四角支柱，下方雕刻在實際開口之前結束。Standard 使用 55,473 頂點、127,014 索引、330 批次與 42 材質。Linux configure/build 與完整 97/97 測試通過（113.60 秒，Khronos core/sync validation），包含實際楔形面朝向與各品質幾何預算。Shipping 隔離原生驗收與共同時鐘錄影通過；預覽圖一致性與實體顯示器驗收仍未完成（VIS 5/7）。
