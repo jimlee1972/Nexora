@@ -1507,6 +1507,29 @@ struct RoomSession::State final {
       placeMasonry(8, location[0], location[2] * 0.5F, location[1] - 2.2F, 2.6F, location[2] * 0.5F,
                    2);
     finish(8);
+    // Original fallen masonry frames the approach while leaving the device and puddles open.
+    // Three shared weathered block profiles retain native lighting, shadows and detail maps.
+    const auto rubble = [&](float x, float y, float z, float sx, float sy, float sz, float yaw) {
+      placeMasonry(0, x, y, z, sx, sy, sz);
+      // Find the matching shared prototype because earlier courtyard masonry may reuse it.
+      for (auto &prototype : masonry)
+        if (!prototype.arcadeAngle && prototype.material == 0 &&
+            prototype.extent == std::array{sx, sy, sz}) {
+          auto &instance = prototype.placements.back();
+          instance.rotation[1] = std::sin(yaw * 0.5F);
+          instance.rotation[3] = std::cos(yaw * 0.5F);
+          break;
+        }
+    };
+    for (const auto &stone :
+         std::array{std::array{-4.0F, 0.48F, 5.1F, -0.16F}, std::array{-2.8F, 0.42F, 5.35F, 0.13F},
+                    std::array{-3.7F, 0.5F, 4.05F, 0.3F}, std::array{4.0F, 0.45F, 5.6F, -0.26F}})
+      rubble(stone[0], stone[1], stone[2], 0.62F, 0.4F, 0.48F, stone[3]);
+    rubble(-4.0F, 1.08F, 5.0F, 0.5F, 0.22F, 0.42F, 0.08F);
+    rubble(-3.1F, 0.23F, 4.1F, 0.5F, 0.22F, 0.42F, -0.28F);
+    rubble(4.8F, 0.28F, 4.7F, 0.5F, 0.22F, 0.42F, 0.2F);
+    rubble(-2.0F, 0.21F, 5.65F, 0.34F, 0.18F, 0.3F, 0.35F);
+    rubble(3.0F, 0.21F, 5.9F, 0.34F, 0.18F, 0.3F, -0.22F);
     // Side arcades frame the device, with hanging leaves driven by the shared wind shader.
     for (const float x : {-7.5F, 7.5F}) {
       for (const float z : {-7.0F, -1.0F, 5.0F}) {
