@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Linux Development 完整 97/97 測試通過（111.59 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 100.92 秒）。製作凍結版本 `f105c7877a2bedc694643aab945345ce8cdcbc3d`；證據：`Apps/Showcase/evidence/VIS-Floor-Medallions-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+庭院鋪面與陶器迭代：兩處原創淺同心石雕使用實際原生幾何、光照與陰影。旋轉曲面共用輪廓列頂點並保留 UV 接縫，釋出 8,502 個重複頂點；實際石材／陶器／彩繪三角面檢查朝向、相鄰單位輪廓法線與凹槽角度斜率。新的平滑法線也影響 UV 選擇與衍生切線。既有陶器材質 3 採磨損冷色係數（0.24／0.36／0.43）、粗糙度 0.78 與原有石材貼圖，保留暖色彩繪和 42 材質。Standard 使用 54,609 頂點、128,946 索引與 301 批次。Linux configure/build 與完整 97/97 測試通過（111.59 秒，Khronos core/sync validation）。Shipping 隔離原生驗收與共同時鐘錄影通過；預覽圖一致性與實體顯示器驗收仍未完成（VIS 5/7）。
+
 ✅ Linux Development 完整 97/97 測試通過（111.27 秒，Khronos core/sync validation）。Shipping/Full 隔離原生驗收與實際 100 秒共同時鐘影片通過（壁鐘 101.21 秒）。製作凍結版本 `5cf914eda65f35faeb3cf937f55c049d296b1ccc`；證據：`Apps/Showcase/evidence/VIS-Waterfall-Ribbons-Linux-2026-10-06/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 瀑布美術迭代：每處六條共用列頂點的細水束，保留實際間隙、不規則輪廓、向下流動波紋與解析法線。三角形朝向已修正，並以實際面法線檢查；降低材質輻射並採用 0.78 不透明度，露出後方岩壁。Standard 使用 61,679 頂點、122,994 索引與 42 材質。Linux configure/build 與完整 97/97 測試通過（111.27 秒，Khronos core/sync validation）。共同時鐘暫停／重播、shader、cooked 素材與穩定 ABI 不變。Shipping 隔離原生驗收與共同時鐘錄影通過；預覽圖一致性與實體顯示器驗收仍未完成（VIS 5/7）。

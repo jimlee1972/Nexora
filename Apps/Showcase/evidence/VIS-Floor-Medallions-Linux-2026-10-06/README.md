@@ -1,0 +1,7 @@
+# Floor medallions and shared lathe surfaces: Linux evidence
+
+Two original shallow concentric stone medallions add real native geometry, lighting and shadows. Shared lathe profile rows preserve the UV wrap seam and free 8,502 duplicate vertices; outward winding, normalized neighboring profile normals and the flute angular slope are checked against actual rigid stone/ceramic/paint faces. Changed normals also affect UV selection and derived tangents. Existing ceramic slot 3 uses cool worn factors (0.24/0.36/0.43), roughness 0.78 and the original stone textures, retaining warm painted ornaments and 42 materials.
+
+The activated Standard scene reports 54,609 vertices, 128,946 indices, 301 batches and 42 materials. Full 97/97 Development tests pass with Khronos core/synchronization validation (111.59 s). Isolated Shipping acceptance, exact wind/planar-reflection restoration and an actual 100-second shared-clock animation recording are retained with source/executable/movie/package SHA-256 provenance. Production freeze: `f105c7877a2bedc694643aab945345ce8cdcbc3d`. Artifacts: `NexoraShowcase-Floor-Medallions-f105c78.mp4` and `NexoraShowcase-Floor-Medallions-f105c78-Linux.zip`. Native art captures use the same Shipping executable. Cooked originals, shader packets and stable ABIs remain unchanged. No overlays or retiming.
+
+Reference parity and physical-display performance remain unaccepted. VIS remains 5/7.

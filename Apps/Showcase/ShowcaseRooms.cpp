@@ -616,37 +616,52 @@ struct RoomSession::State final {
   void Lathe(math::Vector3 center, std::span<const std::array<float, 2>> profile,
              bool fluted = false) {
     const unsigned sides = fluted ? 64 : 48;
+    const auto base = static_cast<std::uint16_t>(vertices.size());
+    // Shared profile rows preserve the UV wrap seam instead of duplicating each quad.
+    for (std::size_t row = 0; row < profile.size(); ++row)
+      for (unsigned side = 0; side <= sides; ++side) {
+        const float angle = 2 * math::kPi * side / sides;
+        const auto previous = profile[row ? row - 1 : row];
+        const auto next = profile[std::min(row + 1, profile.size() - 1)];
+        const float flute = fluted ? 0.97F + 0.03F * std::cos(angle * 12) : 1;
+        const auto sectionNormal = [flute](const auto &from, const auto &to) {
+          return math::NormalizeSafe(math::Vector3{to[1] - from[1], -(to[0] - from[0]) * flute, 0});
+        };
+        // Unit section normals keep short sharp turns from being overwhelmed by
+        // a longer neighboring profile edge. Include the flute's angular slope.
+        const auto incoming = sectionNormal(previous, profile[row]);
+        const auto outgoing = sectionNormal(profile[row], next);
+        const auto profileNormal = math::NormalizeSafe(incoming + outgoing);
+        const float angularSlope = fluted ? -0.36F * std::sin(angle * 12) / flute : 0;
+        const auto normal = math::NormalizeSafe(math::Vector3{
+            profileNormal.x * (std::cos(angle) + angularSlope * std::sin(angle)), profileNormal.y,
+            profileNormal.x * (std::sin(angle) - angularSlope * std::cos(angle))});
+        const float columnRadius = profile[row][0] * flute;
+        vertices.push_back(
+            {{center.x + columnRadius * std::cos(angle), center.y + profile[row][1],
+              center.z + columnRadius * std::sin(angle)},
+             {normal.x, normal.y, normal.z},
+             {std::abs(normal.y) > 0.8F ? columnRadius * std::cos(angle) * 0.8F
+                                        : angle * std::max(columnRadius, 0.3F) * 0.8F,
+              std::abs(normal.y) > 0.8F ? columnRadius * std::sin(angle) * 0.8F
+                                        : profile[row][1] * 0.8F}});
+      }
     for (std::size_t layer = 0; layer + 1 < profile.size(); ++layer)
       for (unsigned side = 0; side < sides; ++side) {
-        const auto base = static_cast<std::uint16_t>(vertices.size());
-        const std::array<std::array<unsigned, 2>, 4> corners{{{0, 0}, {1, 0}, {1, 1}, {0, 1}}};
-        for (const auto corner : corners) {
-          const auto row = layer + corner[1];
-          const float angle = 2 * math::kPi * (side + corner[0]) / sides;
-          const auto previous = profile[row ? row - 1 : row];
-          const auto next = profile[std::min(row + 1, profile.size() - 1)];
-          const float dr = next[0] - previous[0], dy = next[1] - previous[1];
-          const auto normal =
-              math::NormalizeSafe(math::Vector3{dy * std::cos(angle), -dr, dy * std::sin(angle)});
-          const float columnRadius =
-              profile[row][0] * (fluted ? 0.97F + 0.03F * std::cos(angle * 12) : 1);
-          vertices.push_back(
-              {{center.x + columnRadius * std::cos(angle), center.y + profile[row][1],
-                center.z + columnRadius * std::sin(angle)},
-               {normal.x, normal.y, normal.z},
-               {std::abs(normal.y) > 0.8F ? columnRadius * std::cos(angle) * 0.8F
-                                          : angle * std::max(columnRadius, 0.3F) * 0.8F,
-                std::abs(normal.y) > 0.8F ? columnRadius * std::sin(angle) * 0.8F
-                                          : profile[row][1] * 0.8F}});
-        }
+        const auto a = static_cast<std::uint16_t>(base + layer * (sides + 1) + side);
+        const auto b = static_cast<std::uint16_t>(a + 1);
+        const auto d = static_cast<std::uint16_t>(a + sides + 1);
+        const auto c = static_cast<std::uint16_t>(d + 1);
+        // Profile x angular orientation faces outward; omit collapsed pole faces.
         if (profile[layer][0] > 0)
-          for (const auto index : {0, 1, 2})
-            indices.push_back(static_cast<std::uint16_t>(base + index));
+          for (const auto index : {a, c, b})
+            indices.push_back(index);
         if (profile[layer + 1][0] > 0)
-          for (const auto index : {0, 2, 3})
-            indices.push_back(static_cast<std::uint16_t>(base + index));
+          for (const auto index : {a, d, c})
+            indices.push_back(index);
       }
   }
+
   void RingStone(float a, float b, float radialHalfWidth = 0.24F, float depthHalfWidth = 0.25F) {
     constexpr float middleRadius = 1.66F;
     const float middleAngle = (a + b) * 0.5F;
@@ -981,6 +996,26 @@ struct RoomSession::State final {
                            material});
       firstIndex = indices.size();
     };
+    // Original shallow concentric stone medallions break up the tiled foreground.
+    // These are real raised/recessed profiles with native lighting and shadows.
+    for (const auto center : {math::Vector3{-2.0F, 0, 3.0F}, math::Vector3{2.5F, 0, 3.5F}}) {
+      for (const float ringRadius : {0.62F, 0.42F, 0.22F}) {
+        const std::array<std::array<float, 2>, 4> profile{{{ringRadius + 0.025F, 0.15F},
+                                                           {ringRadius + 0.025F, 0.16F},
+                                                           {ringRadius, 0.17F},
+                                                           {ringRadius - 0.025F, 0.15F}}};
+        Lathe(center, profile);
+      }
+      for (unsigned spoke = 0; spoke < 8; ++spoke) {
+        const float angle = spoke * 2 * math::kPi / 8;
+        const math::Vector3 inner{center.x + 0.26F * std::cos(angle), 0.164F,
+                                  center.z + 0.26F * std::sin(angle)};
+        const math::Vector3 outer{center.x + 0.38F * std::cos(angle), 0.164F,
+                                  center.z + 0.38F * std::sin(angle)};
+        Segment(inner, outer, 0.007F);
+      }
+    }
+    finish(0);
     unsigned pedestalTier = 0;
     for (const auto tier : {std::array{2.65F, 0.0F, 0.24F}, std::array{1.7F, 0.24F, 0.60F},
                             std::array{1.05F, 0.60F, 1.05F}}) {
@@ -2760,9 +2795,17 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[1].baseColor = {0.95F, 0.85F, 0.65F, 1};
     s.materials[2].roughness = 0.15F;
     s.materials[2].emission = {0.05F, 2.2F, 3.0F};
-    s.materials[3].baseColor = {0.46F, 0.3F, 0.15F, 1};
+    s.materials[3].baseColor = {0.24F, 0.36F, 0.43F, 1};
     s.materials[3].occlusion = 0.75F;
-    s.materials[3].roughness = 0.6F;
+    s.materials[3].roughness = 0.78F;
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    // Worn cool ceramic bodies retain their existing slot and original warm paint.
+    s.materials[3].textureId = 10;
+    s.materials[3].normalTextureId = 11;
+    s.materials[3].ormTextureId = 12;
+    s.materials[3].worldTextureScale = s.courtyardPbr ? 2.0F : 0;
+    s.materials[3].normalScale = 0.06F;
+#endif
     s.materials[4].roughness = 0.8F;
     s.materials[5].twoSidedLighting = s.courtyardPbr;
     s.materials[5].roughness = 0.7F;

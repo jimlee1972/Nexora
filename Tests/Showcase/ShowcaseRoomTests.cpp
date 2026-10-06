@@ -123,6 +123,30 @@ int main() {
       }
     }
   assert(annularWedges > 0);
+  // All rigid authored stone/ceramic/paint faces agree with their outward
+  // normals, including shared lathe rows, sharp vessel profiles and flutes.
+  std::size_t rigidTriangles = 0;
+  for (const auto &batch : wide.batches) {
+    if (batch.materialIndex != 0 && batch.materialIndex != 3 && batch.materialIndex != 17)
+      continue;
+    for (std::size_t triangle = batch.firstIndex; triangle < batch.firstIndex + batch.indexCount;
+         triangle += 3) {
+      const auto &a = wide.vertices[wide.indices[triangle]];
+      const auto &b = wide.vertices[wide.indices[triangle + 1]];
+      const auto &c = wide.vertices[wide.indices[triangle + 2]];
+      const nexora::math::Vector3 ab{b.position[0] - a.position[0], b.position[1] - a.position[1],
+                                     b.position[2] - a.position[2]};
+      const nexora::math::Vector3 ac{c.position[0] - a.position[0], c.position[1] - a.position[1],
+                                     c.position[2] - a.position[2]};
+      const auto face = nexora::math::Cross(ab, ac);
+      for (const auto *vertex : {&a, &b, &c})
+        assert(nexora::math::Dot(face, nexora::math::Vector3{vertex->normal[0], vertex->normal[1],
+                                                             vertex->normal[2]}) > 1e-7F);
+      ++rigidTriangles;
+    }
+  }
+  assert(rigidTriangles > 0);
+
   std::size_t sourceLeaves = 0;
   for (const auto &batch : wide.batches)
     if (batch.materialIndex == 5)
