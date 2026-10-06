@@ -1323,7 +1323,14 @@ struct RoomSession::State final {
 #if NEXORA_ASSET_PIPELINE_ENABLED
     for (unsigned shade = 0; shade < 3; ++shade) {
       for (std::size_t face = 0; face < courtyardCrystal.indices.size() / 3; ++face) {
-        if ((face * 7 + face / 8) % 3 != shade)
+        // Lower mineral faces carry the bright HDR core; the upper tip remains dark teal.
+        const float centroidY =
+            (courtyardCrystal.vertices[courtyardCrystal.indices[face * 3]].position[1] +
+             courtyardCrystal.vertices[courtyardCrystal.indices[face * 3 + 1]].position[1] +
+             courtyardCrystal.vertices[courtyardCrystal.indices[face * 3 + 2]].position[1]) /
+            3.0F;
+        const unsigned mineralShade = centroidY < -0.3F ? 2U : centroidY < 0.3F ? 1U : 0U;
+        if (mineralShade != shade)
           continue;
         const auto base = static_cast<std::uint16_t>(vertices.size());
         for (unsigned corner = 0; corner < 3; ++corner) {

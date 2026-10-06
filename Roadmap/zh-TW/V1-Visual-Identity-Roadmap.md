@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 水晶內部礦物面依原始高度分層：下方 16 個明亮 HDR 三角形、中間 16 個與上方 16 個暗色三角形。位置、法線、UV、輻射亮度常數與動畫不變。Linux 完整 97/97 測試通過（121.63 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 100.91 秒）。凍結版本 `5f9104f71677df263f45078e0b894a8e045170ad`；證據：`Apps/Showcase/evidence/VIS-Crystal-Core-Gradient-Linux-2026-10-06/`。Standard 維持 58,249 vertices、135,378 indices、387 batches、44 materials；VIS 仍為 5/7。
+
 ✅ 可見 HDR 太陽與主光方向改為（-18、4、-19.2），與天空方位一致；左側拱廊及附著藤葉向外移動，解除石柱遮擋。浮點 diffuse／specular IBL 重新烘焙，BRDF LUT 與原始圖片不變。Linux 完整 97/97 測試通過（121.07 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 101.23 秒）。凍結版本 `899958d93d53819bc169a1c04520e77b43a8774f`；證據：`Apps/Showcase/evidence/VIS-Sunset-Alignment-Linux-2026-10-06/`。Standard 維持 58,249 vertices、135,378 indices、387 batches、44 materials；VIS 仍為 5/7。
 
 ✅ 九塊原創倒塌砂岩以三個共用風化模型形成庭院前景，中央裝置與水窪視線保持開放。Linux 完整 97/97 測試通過（120.57 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 100.99 秒）。凍結版本 `d484e7e2d75cfaab539e020d30cdf3c2bbecdecd`；證據：`Apps/Showcase/evidence/VIS-Foreground-Rubble-Linux-2026-10-06/`。Standard 為 58,249 vertices、135,378 indices、387 batches、44 materials。HDR、天空、風、貼圖與時鐘維持一致；VIS 仍為 5/7。

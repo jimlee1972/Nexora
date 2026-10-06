@@ -1,0 +1,18 @@
+{
+  "source": "Content/Showcase/Courtyard/Hero/crystal.showcase",
+  "scope": "Existing triangle regrouping by authored centroid height; no vertex positions, normals, UVs or radiance constants change",
+  "triangles_per_shade": {
+    "2": 16,
+    "1": 16,
+    "0": 16
+  },
+  "thresholds": [
+    -0.3,
+    0.3
+  ],
+  "material_indices": [
+    18,
+    19,
+    20
+  ]
+}
