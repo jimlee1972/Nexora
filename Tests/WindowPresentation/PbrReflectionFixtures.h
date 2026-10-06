@@ -5,36 +5,26 @@
 
 namespace PbrReflectionFixtures {
 using namespace Nexora::Presentation;
-// An oblique camera must see the reflected emitter through both faces of a solid
-// receiver. Moving the source must move its mirror image without replacing a texture.
+// An oblique camera sees the emitter mixed with the solid green receiver. Moving
+// the source restores the floor; a foreground surface must occlude the reflection.
 struct Fixture final {
-  std::array<SceneVertex, 18> vertices{};
-  std::array<std::uint16_t, 18> indices{};
+  std::array<SceneVertex, 24> vertices{};
+  std::array<std::uint16_t, 24> indices{};
   std::array<SceneMaterial, 4> materials{};
   std::array<SceneInstance, 2> instances{};
-  std::array<SceneMeshBatch, 3> batches{{{0, 12, 0, 1, 0}, {12, 6, 0, 1, 1}, {12, 6, 1, 1, 3}}};
+  std::array<SceneMeshBatch, 4> batches{
+      {{0, 12, 0, 1, 0}, {12, 6, 0, 1, 1}, {12, 6, 1, 1, 3}, {18, 6, 0, 1, 0}}};
   explicit Fixture(unsigned mode) {
-    const std::array<std::array<float, 3>, 18> positions{{{-4, -0.01F, -4},
-                                                          {4, -0.01F, -4},
-                                                          {4, -0.01F, 4},
-                                                          {-4, -0.01F, -4},
-                                                          {4, -0.01F, 4},
-                                                          {-4, -0.01F, 4},
-                                                          {-4, -0.1F, -4},
-                                                          {4, -0.1F, 4},
-                                                          {4, -0.1F, -4},
-                                                          {-4, -0.1F, -4},
-                                                          {-4, -0.1F, 4},
-                                                          {4, -0.1F, 4},
-                                                          {-1.3F, 0.4F, -1.2F},
-                                                          {-0.7F, 0.4F, -1.2F},
-                                                          {-0.7F, 0.8F, -1.2F},
-                                                          {-1.3F, 0.4F, -1.2F},
-                                                          {-0.7F, 0.8F, -1.2F},
-                                                          {-1.3F, 0.8F, -1.2F}}};
+    const std::array<std::array<float, 3>, 24> positions{
+        {{-4, -0.01F, -4},     {4, -0.01F, -4},      {4, -0.01F, 4},       {-4, -0.01F, -4},
+         {4, -0.01F, 4},       {-4, -0.01F, 4},      {-4, -0.1F, -4},      {4, -0.1F, 4},
+         {4, -0.1F, -4},       {-4, -0.1F, -4},      {-4, -0.1F, 4},       {4, -0.1F, 4},
+         {-1.3F, 0.4F, -1.2F}, {-0.7F, 0.4F, -1.2F}, {-0.7F, 0.8F, -1.2F}, {-1.3F, 0.4F, -1.2F},
+         {-0.7F, 0.8F, -1.2F}, {-1.3F, 0.8F, -1.2F}, {-1.3F, 0.1F, 0.6F},  {-0.7F, 0.1F, 0.6F},
+         {-0.7F, 0.5F, 0.6F},  {-1.3F, 0.1F, 0.6F},  {-0.7F, 0.5F, 0.6F},  {-1.3F, 0.5F, 0.6F}}};
     for (std::size_t i = 0; i < vertices.size(); ++i) {
       std::copy(positions[i].begin(), positions[i].end(), vertices[i].position);
-      if (i >= 12 && mode == 2)
+      if (i >= 12 && i < 18 && mode == 2)
         vertices[i].position[0] += 1;
       vertices[i].normal[1] = i < 6 ? 1.0F : -1.0F;
       vertices[i].tangent[0] = vertices[i].tangent[3] = 1;
@@ -60,7 +50,7 @@ struct Fixture final {
     draw.indices = indices;
     draw.materials = materials;
     draw.instances = instances;
-    draw.batches = std::span(batches).first(mode == 0 ? 2 : 3);
+    draw.batches = std::span(batches).first(mode == 0 ? 2 : (mode == 4 ? 4 : 3));
     draw.pbr = draw.hdr = draw.offscreen = true;
     draw.cameraPosition = {0, 2, 4};
     // Row-major orthographic view: right X, up (0,2,-1)/sqrt(5).
@@ -79,8 +69,8 @@ template <typename Rgb> bool Pixels(unsigned mode, const Rgb &left, const Rgb &r
     return false;
   if (mode == 0)
     return left[1] > 80 && left[0] < 40;
-  if (mode == 2)
-    return left[0] < 80 && left[1] < 80;
-  return left[0] > 120 && left[0] > left[1] + 70;
+  if (mode == 2 || mode == 4)
+    return left[0] < 40 && left[1] > 150;
+  return left[0] > 120 && left[1] > 150;
 }
 } // namespace PbrReflectionFixtures

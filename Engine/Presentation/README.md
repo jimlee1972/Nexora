@@ -436,21 +436,26 @@ translation twice the plane height. Existing clients default to no reflection.
 
 The shared Slang shader evaluates vegetation wind in original world space, mirrors the deformed
 position, and clips reflected fragments to the camera-ray/plane intersection inside either
-region. Receiver geometry below the plane is discarded inside that region, including underside
-faces, so solid floors cannot occlude the mirror. Reflected shading uses original positions,
-normals and shadow visibility with the mirrored eye; Fresnel mixes linear radiance with a dark
-water substrate before existing HDR focus/bloom/ACES. Camera distance uses the rendered virtual
-position. This is a bounded non-recursive planar water approximation; it does not provide rough
-reflection filtering, refraction, arbitrary planes or sorted transparency.
+region. Reflected opaque and transparent batches first render into a separate frame-owned
+RGBA16F color target. They retain original source positions, normals and shadow visibility with
+the mirrored eye. Refractive mirror batches sample a copy of their own opaque pass.
 
-The private material packet appends three float4s to its existing fifteen-float4 prefix. DX12
-reserves 768 bytes per scene/material pair (scene offset 0, aligned material offset 256), avoiding
-CBV overlap after the material grows to 368 bytes. Vulkan and Metal use the same packet. Mirror
-instances reuse the original geometry and existing frame-owned uploads, without another render
-target, descriptors, temporal history or production readback. Stable C/Zig/NXAB contracts stay
-unchanged; public C++ clients rebuild. Four native fixtures require floor/underside clipping,
-visible reflection, source-driven movement and exact restoration. Showcase V comparison and
-quality controls exercise real native pixels with paused animation.
+The main pass clears and reuses scene depth after the mirror completes. Receiver geometry
+remains intact: its existing HDR radiance mixes with the reflection through Schlick Fresnel,
+while its real camera distance remains the HDR alpha used by focus filtering. Empty reflection
+pixels preserve the receiver. Foreground geometry uses ordinary depth testing to occlude the
+water. Main translucent batches sample a fresh copy of main opaque color. Vulkan explicitly
+synchronizes both copies and the shared depth; Metal and DX12 use the same pass order.
+
+The private material packet remains 400 bytes (25 float4s). Receivers reuse the existing opaque
+background sampler binding for reflection color; refractive materials use the opaque snapshot.
+DX12 reserves one additional fence-owned SRV/RTV slot per frame. Mirror instances reuse original
+geometry and uploads; the extra color target has no temporal history or production readback.
+Stable C/Zig/NXAB contracts and the public reflection API stay unchanged. Six native fixtures
+verify retained solid floor color, visible reflection, source-driven movement, foreground
+occlusion and exact restoration. Showcase V comparison and quality controls exercise native
+pixels with paused animation. This remains a bounded non-recursive horizontal water
+approximation, without rough reflection filtering or arbitrary planes.
 
 
 ## Tinted linear HDR transparency
@@ -491,7 +496,7 @@ The private packet is 368 bytes (23 float4s); offsets 76/77 store scale/shorelin
 
 `ScenePlanarReflection::shorelineVariation` defaults to zero (exact ellipse). Finite values
 in [0,0.2] vary the radial boundary with bounded harmonics, always inside each supplied ellipse.
-Receiver clipping and reflected geometry use the same contour. Four native world-map fixtures
+Receiver mixing and reflected geometry use the same contour. Four native world-map fixtures
 verify mesh UV preservation, world-position movement and exact restoration (59 PBR frames).
 This provides surface mapping and water contours, not geometric erosion or refraction.
 

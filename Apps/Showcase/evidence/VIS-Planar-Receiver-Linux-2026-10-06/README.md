@@ -1,0 +1,9 @@
+# Intact planar reflection receivers: Linux evidence
+
+Vulkan, Metal and DX12 render reflected opaque/translucent geometry into a frame-owned RGBA16F color target. Mirror refraction samples its own opaque snapshot. Main rendering clears/reuses depth, preserves receiver geometry and mixes real floor radiance with reflected radiance through Fresnel. Its HDR alpha remains the real receiver distance for focus. Main glass samples a fresh main opaque snapshot. Frame-owned resources and Vulkan barriers cover both copies and depth reuse; the private 400-byte PBR and 64-byte tone packets and stable ABIs remain unchanged.
+
+Six shared native reflection fixtures verify retained solid floor color, mirror movement, foreground occlusion and exact restoration. The old dark-substrate expectation correctly fails after the behavior change; its log is retained. Updated pixel gates require both reflected red and retained green, and require the floor when the emitter moves or a foreground surface occludes it. All 99 Vulkan PBR frames pass with Khronos core/synchronization validation (89 composites, 11 shadow passes, 32 shadow instances). Full Linux configure/build and 97/97 tests pass (117.48 s), including Showcase comparisons and restoration.
+
+Shipping isolated native acceptance and an actual 100-second shared-clock tour pass (100.82 s wall time). Production freeze `d04ef3db67707511b62e64385151dbf6af22ef3b`; art uses that same Shipping executable. Source/executable/movie/package SHA-256 provenance is retained. Artifacts: `NexoraShowcase-Planar-Receiver-d04ef3d.mp4` and `NexoraShowcase-Planar-Receiver-d04ef3d-Linux.zip`. Standard retains 56,665 vertices, 133,194 indices, 336 batches and 44 materials. An additional full-resolution HDR color target is used per active native frame; no temporal history or production readback. This is a bounded horizontal planar water approximation.
+
+Reference parity and physical-display acceptance remain open (VIS 5/7).

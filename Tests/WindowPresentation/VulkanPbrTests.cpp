@@ -226,10 +226,11 @@ int main(int argc, char **argv) {
     std::array<unsigned, 3> pointLeft{}, pointRight{};
     unsigned aaBaseline = 0;
     std::uint64_t aaHash = 0;
-    for (unsigned frame = 0; frame < 97; ++frame) {
+    for (unsigned frame = 0; frame < 99; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
-      PbrReflectionFixtures::Fixture reflectionFixture(frame >= 45 ? frame - 45 : 0);
+      PbrReflectionFixtures::Fixture reflectionFixture(
+          frame >= 97 ? frame - 93 : (frame >= 45 ? frame - 45 : 0));
       PbrVegetationFixtures::Fixture vegetationFixture(frame >= 34 ? frame - 34 : 0);
       PbrTransparencyFixtures::Fixture transparencyFixture(frame >= 49 ? frame - 49 : 0);
       PbrWorldMappingFixtures::Fixture mappingFixture(frame >= 55 ? frame - 55 : 0);
@@ -421,6 +422,11 @@ int main(int argc, char **argv) {
         materials = refractionFixture.materials;
         draw.materials = materials;
       }
+      if (frame >= 97) {
+        draw = reflectionFixture.Draw(frame - 93);
+        materials = reflectionFixture.materials;
+        draw.materials = materials;
+      }
       materials[2].emission = {marker, 0, 0};
       materials[2].roughness = 1;
       materials[2].metallic =
@@ -574,7 +580,11 @@ int main(int argc, char **argv) {
                                  frame >= 89 ? &intermediate : nullptr);
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 93) {
+        if (frame >= 97) {
+          valid = PbrReflectionFixtures::Pixels(frame - 93, left, right);
+          if (frame == 98)
+            valid = valid && left == reflectedReference;
+        } else if (frame >= 93) {
           valid = PbrRefractionFixtures::Pixels(frame - 85, pixels[7], pixels[8]);
           if (frame == 93 && valid)
             aaHash = region;
@@ -768,7 +778,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, argv[1]));
       if (argc == 2 && frame >= 30) {
         auto capture = std::filesystem::path(argv[1]);
-        capture.replace_filename((frame >= 93   ? "dielectric-"
+        capture.replace_filename((frame >= 97   ? "reflection-occlusion-"
+                                  : frame >= 93 ? "dielectric-"
                                   : frame >= 89 ? "anti-alias-"
                                   : frame >= 85 ? "two-sided-"
                                   : frame >= 79 ? "point-light-"
@@ -783,7 +794,8 @@ int main(int argc, char **argv) {
                                   : frame >= 43 ? "depth-of-field-"
                                   : frame < 34  ? "bloom-"
                                                 : "vegetation-") +
-                                 std::to_string(frame >= 93   ? frame - 93
+                                 std::to_string(frame >= 97   ? frame - 93
+                                                : frame >= 93 ? frame - 93
                                                 : frame >= 89 ? frame - 89
                                                 : frame >= 85 ? frame - 85
                                                 : frame >= 79 ? frame - 79
@@ -802,8 +814,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 97 &&
-                surface->Diagnostics().sceneComposites == 87 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 99 &&
+                surface->Diagnostics().sceneComposites == 89 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
