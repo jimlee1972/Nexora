@@ -351,9 +351,10 @@ remains independent. Shadow diagnostics count actual successfully recorded passe
 
 Optional `SceneBloom` requires HDR; intensity is finite [0,1], linear threshold [0,32],
 and radius [1,32] pixels. Optional `SceneColorGrade` also requires HDR with finite saturation
-and contrast in [0,2]. Defaults preserve the prior HDR output. Tone constants use three
-float4s (48 bytes), packed identically by all adapters and copied into the recording frame;
-the first two carry exposure/color/bloom and the third carries optional depth-aware focus.
+and contrast in [0,2]. Defaults preserve the prior HDR output. Tone constants use four
+float4s (64 bytes), packed identically by all adapters and copied into the recording frame;
+the first two carry exposure/color/bloom, the third carries optional depth-aware focus, and
+the fourth carries physical texel size and the optional spatial anti-aliasing flag.
 After optional focus filtering, the tone entry uses twelve bounded neighboring bloom taps,
 extracts thresholded radiance with shared math, adds shared bloom before exposure/ACES, then
 applies shared color grade and exactly one display transfer. This is a compact two-scale
@@ -405,7 +406,7 @@ linear radiance in RGB and bounded camera distance in alpha; untouched pixels us
 far-distance sentinel. Alpha is internal distance data, not blended transparency. Non-HDR scene
 output and the final composite still have alpha 1. Cutout discard remains before depth/color writes.
 
-The private tone packet is now three float4s / 48 bytes, copied into the protecting frame by
+The private tone packet is now four float4s / 64 bytes, copied into the protecting frame by
 DX12, Vulkan and Metal. A bounded twelve-tap depth-aware neighborhood filter rejects samples
 from different depth layers and filters linear radiance before bloom/exposure/ACES. This is an
 approximate spatial focus filter, with no temporal history, additional target, depth descriptor or
@@ -559,7 +560,7 @@ dispersion and travel-distance absorption.
 New lit scene texture generations receive one bounded CPU mip chain before native upload when
 their material usage selects an unambiguous semantic. Base/emission colors average in linear
 light before sRGB encoding; ORM data averages linearly; decoded normal vectors average and
-renormalize. Odd dimensions retain every source texel. Mixed color/data roles, cutout masks,
+renormalize. Odd dimensions retain every source texel. Mixed color/data roles, unsupported cutout thresholds,
 unlit atlases, unreferenced uploads and Lambert/UI paths retain their original single level.
 The original upload bytes/IDs and public texture descriptors remain unchanged.
 
@@ -571,7 +572,7 @@ and existing backend cache/frame-fence/resize ownership protects GPU resources. 
 new pass, public resource handle, constant packet or C/Zig ABI field.
 
 CPU checks distinguish linear color (sRGB midpoint 188) from data midpoint 128, verify normal
-renormalization and preserve cutout/ambiguous roles. Two native minification cases compare a
+renormalization and preserve unlit/ambiguous roles. Two native minification cases compare a
 high-frequency 64² checker with its linear-light gray reference (77 PBR frames).
 
 ## Bounded HDR point source
@@ -604,3 +605,29 @@ through a negative view cosine. This is sheet lighting, not a thick-material vol
 ✅ Linux Development configure/build and all 97 tests pass (106.20 seconds), including 89 native PBR frames with Khronos core/synchronization validation. Four sheet fixtures retain default rear-face behavior and reproduce the front-facing colors exactly when enabled; CPU rejects unlit/Lambert use and verifies slot 79. All native geometry budgets and wind/pause/replay interactions pass. Shipping/Full isolated native acceptance and an actual 100.33-second movie (100.79-second wall time) pass; final reference/target acceptance remains open.
 
 Evidence: [VIS-Two-Sided-Linux-2026-10-05](../../Apps/Showcase/evidence/VIS-Two-Sided-Linux-2026-10-05). Production freeze `248791c4b51a`; exact source and package hashes are retained.
+
+
+Lit RGBA8 masks whose every color/emission reference uses alpha cutoff 0.5 now receive
+alpha-weighted linear-color mips. Each derived level scales alpha to the closest available
+coverage at that cutoff, measured against the authored level. Transparent RGB does not bias
+averaged visible leaf colors. Discrete tiny levels may have unavoidable coverage error. Other
+cutoffs, unlit atlases and mixed opaque/cutout or color/data uses keep one level. This private
+upload policy changes neither public material fields nor native bindings. Visible and shadow
+passes consume the same immutable mip chain; existing IDs retain their first upload policy.
+
+## Optional spatial HDR anti-aliasing
+
+`SceneDrawData::postProcessAntiAliasing` defaults to false and requires offscreen HDR PBR.
+Adapters copy the flag into the protecting frame; invalid direct, Lambert or non-HDR requests
+report InvalidDescriptor. The shared tone shader estimates edge contrast using exposed ACES
+luminance, then filters linear HDR radiance with four diagonal and up to four directional taps.
+The furthest tap is bounded to four physical pixels. Flat regions bypass the filter. Camera
+distance remains the original center alpha for subsequent focus filtering; bloom, exposure,
+ACES, color grade and display transfer follow. UI is rendered after composition and stays sharp.
+
+This spatial filter adds no target, descriptor, history or production readback. It cannot recover
+subpixel geometry or remove temporal shimmer as temporal accumulation would. The private tone
+packet is 64 bytes; the fullscreen triangle stays 48 bytes and PBR material packet stays 400 bytes.
+Public C++ clients rebuild for the new boolean; stable C/Zig ABI and persistent asset schemas are
+unchanged. Native fixtures check a diagonal emissive edge, unchanged constant interiors and
+exact restoration after disabling; packet and invalid-mode checks run on the CPU.

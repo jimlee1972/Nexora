@@ -124,7 +124,7 @@ struct RoomSession::State final {
   bool courtyardPbr{true}, courtyardIbl{true};
   float courtyardExposure = 1.0F;
   bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true}, courtyardFocus{true};
-  bool courtyardReflections{true}, courtyardAtmosphere{true};
+  bool courtyardReflections{true}, courtyardAtmosphere{true}, courtyardAntiAliasing{true};
   bool courtyardPaused{}, courtyardActive{}, courtyardWind{true}, courtyardTransmission{true};
   bool courtyardTransparency{true}, courtyardRefraction{true}, courtyardCrystalLight{true};
   bool visualTour{}, courtyardFreeCamera{}, courtyardCompare{};
@@ -753,7 +753,8 @@ struct RoomSession::State final {
     for (const auto &batch : sourceBatches) {
       // Bound planar work to the focal device, vessels, foliage, pennants and sky.
       // Distant ruins/terrain and the water surface never participate recursively.
-      if (batch.firstIndex + batch.indexCount > courtyardReflectionDeviceIndexEnd &&
+      if (batch.materialIndex < 18 &&
+          batch.firstIndex + batch.indexCount > courtyardReflectionDeviceIndexEnd &&
           batch.materialIndex != 2 && batch.materialIndex != 3 && batch.materialIndex != 5 &&
           batch.materialIndex != 6 && batch.materialIndex != 7 && batch.materialIndex != 11 &&
           batch.materialIndex != 12 && batch.materialIndex != 15 && batch.materialIndex != 16 &&
@@ -794,19 +795,23 @@ struct RoomSession::State final {
     batches.push_back({first, static_cast<std::uint32_t>(indices.size()) - first, 0, 1, 12});
 #endif
   }
+  // Shared authoring sites keep the falling ribbons in front of their supporting cliffs.
+  static constexpr std::array courtyardFallSites{std::array{-17.0F, -19.0F, 6.2F},
+                                                 std::array{7.0F, -21.0F, 5.8F}};
   void CourtyardWaterfalls() {
     const auto first = static_cast<std::uint32_t>(indices.size());
     const float time = static_cast<float>(courtyardSeconds);
-    for (const float x : {-14.0F, 14.0F})
+    for (const auto location : courtyardFallSites)
       for (unsigned ribbon = 0; ribbon < 4; ++ribbon)
         for (unsigned row = 0; row < 24; ++row) {
           const auto base = static_cast<std::uint16_t>(vertices.size());
           for (const auto corner :
                {std::array{0, 0}, std::array{1, 0}, std::array{1, 1}, std::array{0, 1}}) {
-            const float y = 8.2F - (row + corner[1]) * (7.9F / 24);
+            const float y = location[2] - (row + corner[1]) * ((location[2] - 0.3F) / 24);
             const float pulse = std::sin(y * 4 + time * 3 + ribbon);
-            const float px = x + (ribbon - 1.5F) * 0.3F + corner[0] * 0.22F + pulse * 0.04F;
-            Nexora::Presentation::SceneVertex vertex{{px, y, -23.8F + pulse * 0.025F},
+            const float px =
+                location[0] + (ribbon - 1.5F) * 0.3F + corner[0] * 0.22F + pulse * 0.04F;
+            Nexora::Presentation::SceneVertex vertex{{px, y, location[1] + pulse * 0.025F},
                                                      {0, 0, 1},
                                                      {corner[0] * 1.0F, (row + corner[1]) / 24.0F}};
             vertex.tangent[0] = 1;
@@ -1157,20 +1162,28 @@ struct RoomSession::State final {
     Cube(0, 2.9F, 0, 0.35F, 0.55F, 0.35F);
 #endif
     finish(12);
-    // Authored emissive mineral fissures live inside the glass, in the opaque HDR snapshot.
-    // Their actual geometry shares crystal rotation/lift and lights bloom through the shell.
-    for (unsigned vein = 0; vein < 3; ++vein) {
-      const float phase = vein * 2 * math::kPi / 3;
-      const auto point = [&](float radius, float y, float twist) {
-        return math::Vector3{radius * std::cos(phase + twist), 2.9F + y,
-                             radius * std::sin(phase + twist)};
-      };
-      Segment(point(0.025F, -0.58F, 0), point(0.17F, -0.24F, 0.4F), 0.009F);
-      Segment(point(0.17F, -0.24F, 0.4F), point(0.23F, 0.06F, -0.35F), 0.008F);
-      Segment(point(0.23F, 0.06F, -0.35F), point(0.1F, 0.35F, 0.2F), 0.006F);
-      Segment(point(0.1F, 0.35F, 0.2F), point(0.02F, 0.64F, 0), 0.004F);
+    // Original inner mineral facets occupy real geometry behind the refractive shell.
+    // Three restrained HDR materials give the interior a faceted light response.
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    for (unsigned shade = 0; shade < 3; ++shade) {
+      for (std::size_t face = 0; face < courtyardCrystal.indices.size() / 3; ++face) {
+        if ((face * 7 + face / 8) % 3 != shade)
+          continue;
+        const auto base = static_cast<std::uint16_t>(vertices.size());
+        for (unsigned corner = 0; corner < 3; ++corner) {
+          const auto &v = courtyardCrystal.vertices[courtyardCrystal.indices[face * 3 + corner]];
+          const auto n = math::NormalizeSafe(
+              math::Vector3{v.normal[0] / 0.68F, v.normal[1] / 0.78F, v.normal[2] / 0.68F});
+          vertices.push_back(
+              {{v.position[0] * 0.68F, 2.9F + v.position[1] * 0.78F, v.position[2] * 0.68F},
+               {n.x, n.y, n.z},
+               {v.uv[0], v.uv[1]}});
+          indices.push_back(static_cast<std::uint16_t>(base + corner));
+        }
+      }
+      finish(18 + shade);
     }
-    finish(2);
+#endif
     courtyardCrystalEnd = vertices.size();
     // Preserve each authored block's exact bevel profile while reusing repeated extents.
     struct MasonryPrototype {
@@ -1204,13 +1217,13 @@ struct RoomSession::State final {
       return -0.3F + std::max(0.0F, envelope) * (8 + 3 * std::sin(x * 0.19F) +
                                                  2 * std::sin(x * 0.47F) + std::cos(x * 0.81F));
     };
-    for (unsigned row = 0; row < 16; ++row)
-      for (unsigned col = 0; col < 64; ++col) {
-        const float x = -45 + col * (90.0F / 64), z = -50 + row * (26.0F / 16);
+    for (unsigned row = 0; row < 24; ++row)
+      for (unsigned col = 0; col < 96; ++col) {
+        const float x = -45 + col * (90.0F / 96), z = -50 + row * (26.0F / 24);
         const auto base = static_cast<std::uint16_t>(vertices.size());
         for (const auto corner :
              {std::array{0, 0}, std::array{0, 1}, std::array{1, 1}, std::array{1, 0}}) {
-          const float px = x + corner[0] * (90.0F / 64), pz = z + corner[1] * (26.0F / 16);
+          const float px = x + corner[0] * (90.0F / 96), pz = z + corner[1] * (26.0F / 24);
           const float dx = (ridgeHeight(px + 0.1F, pz) - ridgeHeight(px - 0.1F, pz)) / 0.2F;
           const float dz = (ridgeHeight(px, pz + 0.1F) - ridgeHeight(px, pz - 0.1F)) / 0.2F;
           const auto n = math::NormalizeSafe(math::Vector3{-dx, 1, -dz});
@@ -1266,8 +1279,9 @@ struct RoomSession::State final {
       placeMasonry(8, 6, step * 0.15F, -10 - step * 0.7F, 2.5F, step * 0.15F + 0.1F, 0.4F);
     // Cliff ledges support the distant falls and upper ruins.
     placeMasonry(8, 0, 1, -25, 20, 1, 3);
-    for (const float x : {-14.0F, 14.0F})
-      placeMasonry(8, x, 4, -26, 3, 4, 2);
+    for (const auto location : courtyardFallSites)
+      placeMasonry(8, location[0], location[2] * 0.5F, location[1] - 2.2F, 2.6F, location[2] * 0.5F,
+                   2);
     finish(8);
     // Side arcades frame the device, with hanging leaves driven by the shared wind shader.
     for (const float x : {-7.5F, 7.5F}) {
@@ -1380,20 +1394,28 @@ struct RoomSession::State final {
         }
       }
     finish(5);
+    // Place the left cypress in the wide camera's arch opening, retaining its shared wind.
+    const auto treeLocation = [](float x, float z) {
+      return x < 0 && z == -10 ? std::array{-15.0F, -6.0F} : std::array{x, z};
+    };
     for (const float x : {-12.0F, 12.0F})
-      for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F})
-        Cube(x, 2, z, 0.12F, 2, 0.12F);
+      for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F}) {
+        const auto location = treeLocation(x, z);
+        Cube(location[0], 2, location[1], 0.12F, 2, 0.12F);
+      }
     finish(10);
     // Layered cutout foliage replaces smooth cones; it shares leaf lighting and wind.
     for (const float x : {-12.0F, 12.0F})
       for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F})
         for (unsigned layer = 0; layer < 18; ++layer) {
           const float y = 0.7F + layer * 0.29F;
-          const float crownRadius = 0.85F * (1 - std::pow(layer / 18.0F, 1.35F));
+          const auto location = treeLocation(x, z);
+          const float crownRadius =
+              (x < 0 && z == -10 ? 0.6F : 0.85F) * (1 - std::pow(layer / 18.0F, 1.35F));
           for (unsigned branch = 0; branch < 3; ++branch) {
             const float angle = layer * 2.399963F + branch * 2 * math::kPi / 3;
-            LeafQuad({x + std::cos(angle) * crownRadius * 0.22F, y,
-                      z + std::sin(angle) * crownRadius * 0.22F},
+            LeafQuad({location[0] + std::cos(angle) * crownRadius * 0.22F, y,
+                      location[1] + std::sin(angle) * crownRadius * 0.22F},
                      crownRadius, 0.7F, angle);
           }
         }
@@ -2136,6 +2158,7 @@ void RoomSession::ReplayTour() {
     state_->courtyardPaused = false;
     state_->courtyardSeconds = 0;
     state_->courtyardActive = false;
+    state_->courtyardAntiAliasing = true;
     state_->courtyardPbr = state_->courtyardIbl = state_->courtyardShadows = true;
     state_->courtyardBloom = state_->courtyardStyled = state_->courtyardFocus =
         state_->courtyardReflections = state_->courtyardAtmosphere = state_->courtyardRefraction =
@@ -2245,6 +2268,8 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.courtyardFocus = !s.courtyardFocus;
   if (s.selected == "courtyard" && key == Key::V)
     s.courtyardReflections = !s.courtyardReflections;
+  if (s.selected == "courtyard" && key == Key::F10)
+    s.courtyardAntiAliasing = !s.courtyardAntiAliasing;
   if (s.selected == "courtyard" && key == Key::F9)
     s.courtyardCrystalLight = !s.courtyardCrystalLight;
   if (s.selected == "courtyard" && key == Key::F8)
@@ -2673,6 +2698,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     waterfall.roughness = 0.2F;
     waterfall.emission = {0.1F, 0.15F, 0.2F};
     waterfall.castsShadow = false;
+    waterfall.transmissionThickness = s.courtyardPbr && s.courtyardTransmission ? 0.25F : 0;
+    waterfall.transmissionColor = {0.65F, 0.8F, 0.9F};
     s.materials.push_back(waterfall);
     Nexora::Presentation::SceneMaterial cloth{};
     cloth.baseColor = {0.025F, 0.19F, 0.23F, 1};
@@ -2687,6 +2714,22 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     ceramicPaint.windAmplitude = 0;
     ceramicPaint.baseColor = {0.12F, 0.25F, 0.29F, 1};
     s.materials.push_back(ceramicPaint);
+    for (const auto radiance : {std::array{0.02F, 0.08F, 0.1F}, std::array{0.06F, 0.23F, 0.25F},
+                                std::array{0.4F, 1.4F, 1.6F}}) {
+      auto interior = crystal;
+      interior.opacity = 1;
+      interior.transparencyTint = {1, 1, 1};
+      interior.refractionIndex = 1;
+      interior.refractionThickness = 0;
+      interior.refractionFrontSurfaceOnly = false;
+      interior.transmissionThickness = 0;
+      interior.baseColor = {0.04F, 0.25F, 0.28F, 1};
+      interior.metallic = 0.35F;
+      interior.roughness = 0.13F;
+      for (unsigned channel = 0; channel < 3; ++channel)
+        interior.emission[channel] = radiance[channel] * (s.courtyardActive ? pulse : 0.25F);
+      s.materials.push_back(interior);
+    }
     s.CourtyardGeometry();
     // Animate from the immutable cache each frame; pause/replay never accumulates drift.
     const float crystalAngle = static_cast<float>(s.courtyardSeconds) * 0.18F;
@@ -2868,6 +2911,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     data.pbr = s.courtyardPbr;
     data.vegetationTime = static_cast<float>(s.courtyardSeconds);
     data.hdr = data.pbr;
+    data.postProcessAntiAliasing =
+        data.hdr && data.pbr && s.courtyardQuality != 0 && s.courtyardAntiAliasing;
     data.exposure = s.courtyardExposure;
     data.offscreen = data.hdr;
     if (data.hdr && s.courtyardReflections && s.courtyardQuality != 0)
@@ -2933,7 +2978,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                               {4, 64, 32, 7, s.courtyardEnvironment[1]},
                               {5, 32, 32, 1, s.courtyardEnvironment[2]}};
       data.linearTextureUploads = s.linearSceneUploads;
-      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 0.8F, 0.0F, 7};
+      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 1.1F, 0.0F, 7};
     }
 #endif
     data.base_color[0] = 0.72F;
@@ -3131,6 +3176,8 @@ std::string RoomSession::Report() const {
       << ",\"transmission_enabled\":" << (s.courtyardPbr && s.courtyardTransmission)
       << ",\"atmosphere_enabled\":"
       << (s.courtyardPbr && s.courtyardAtmosphere && s.courtyardQuality != 0)
+      << ",\"anti_aliasing_enabled\":"
+      << (s.courtyardPbr && s.courtyardQuality != 0 && s.courtyardAntiAliasing)
       << ",\"crystal_light_enabled\":" << (s.courtyardCrystalLight ? "true" : "false")
       << ",\"refraction_enabled\":"
       << (s.courtyardPbr && s.courtyardTransparency && s.courtyardRefraction &&

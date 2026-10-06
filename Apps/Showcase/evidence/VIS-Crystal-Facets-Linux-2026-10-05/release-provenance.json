@@ -1,0 +1,53 @@
+{
+  "source_freeze": "4a0b23c1a6aa6d86982879d67225da9c8259fa6a",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/ShowcaseRooms.cpp": "9dd5dc612188f2217445cec15fa9ff97f26ad7ff689e3db7fae88a22df85c8f3",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "de46498c74872706551a913d3c2d68046597f01a5ba8bcfad6469e00693537ae"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-crystal-facets/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/crystal-facets-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "4a0b23c1a6aa",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 100.62978935000137,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.266667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "2116cee1fcec7aab624f79331ceb54c01f97067016df59b2ed642b0011bb42f3",
+    "video_sha256": "27e09df8a7e97dca5db79bd8348e1d2d8cc97d96e04f4116de317e1bc2fd04ca",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "f854af1207201ddfbd90f53b0ecfaa8b5841da25d768759608233054d84cfea4",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false
+}

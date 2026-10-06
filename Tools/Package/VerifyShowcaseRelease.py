@@ -67,6 +67,7 @@ def main() -> int:
     (output / "headless.stdout.log").write_text(headless.stdout)
     (output / "headless.stderr.log").write_text(headless.stderr)
     if headless.returncode:
+        print(headless.stderr[-8192:], file=sys.stderr)
         return headless.returncode
     result = {"status": "FAIL", "platform": system, "isolated_copy": True,
               "physical_display_verified": False, "issues": []}
@@ -124,7 +125,10 @@ def main() -> int:
             result["status"] = "PASS"
         except (RuntimeError, ValueError, KeyError, OSError, subprocess.TimeoutExpired) as error:
             result["issues"].append(str(error))
-            print(f"Native release acceptance failed: {error}", file=sys.stderr)
+            if isinstance(error, subprocess.TimeoutExpired) and error.stderr:
+                detail = error.stderr.decode(errors="replace") if isinstance(error.stderr, bytes) else error.stderr
+                print(detail[-8192:], file=sys.stderr)
+            print(json.dumps(result, indent=2), file=sys.stderr)
         finally:
             status_path.write_text(json.dumps(result, indent=2) + "\n")
     return 0 if result["status"] == "PASS" else 1
