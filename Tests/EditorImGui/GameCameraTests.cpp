@@ -1,5 +1,6 @@
 #include "EditorImGuiTestAccess.h"
 #include "GameViewPreview.h"
+#include "TemporaryDirectoryCleanup.h"
 
 #include <array>
 #include <chrono>
@@ -18,6 +19,7 @@ struct Fixture final {
       std::filesystem::temp_directory_path() /
       ("nexora-game-camera-" +
        std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  nexora::editor::test::TemporaryDirectoryCleanup cleanup{root};
   editor::ProjectWorkspace writer, reader;
   runtime::World world;
   runtime::Id scene_id = world.LoadScene("Cameras");
@@ -59,7 +61,6 @@ struct Fixture final {
     for (int i = 0; i < 4; ++i)
       Draw();
   }
-  ~Fixture() { std::filesystem::remove_all(root); }
   void Draw() {
     ui.BeginFrame();
     ui.DrawProductShell(shell, &scene, &reader, nullptr, nullptr, nullptr, nullptr, &play);
