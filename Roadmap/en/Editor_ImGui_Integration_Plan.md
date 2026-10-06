@@ -228,8 +228,9 @@ fallback after repeated cache resets; generation exhaustion cannot wrap to a pre
 1024x1024 per image). Generation checks reject stale/foreign IDs before backend binding; domain
 replacement resends live images. Native tests cover copied pixels, fallback, limits and more than
 4096 uploads. DX12 descriptor recycling waits for GPU completion; Vulkan resize retains textures.
-[Linux evidence](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md);
-visual target-host gates remain open.
+[Evidence](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md) records immutable
+Windows/DX12 and macOS/Metal 4290-upload gates and macOS 122/122 full-suite success. Windows
+whole-suite fixture repairs still require final-head CI; visual target-host gates remain open.
 
 1. Introduce a renderer-owned state object beneath `EditorImGuiHost`: pipeline, sampler, font
    texture/view, descriptor bindings, and a bounded ring of per-frame vertex/index upload buffers.

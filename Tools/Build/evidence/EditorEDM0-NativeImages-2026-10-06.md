@@ -66,8 +66,9 @@ ctest --preset linux-development -R '^(editor\.(linux_(display_acceptance|valida
 An initial full run caught the obsolete scene upload-count expectation and one Editor close/cancel
 save failure. The counter expectation was strengthened to require resize reuse; the Editor save
 scenario passed in the isolated strict gate and final full suite without changing its assertions.
-No Windows/DX12 descriptor-soak result, macOS/Metal result, physical text/DPI screenshot,
-installed-IME composition or sanitizer result is claimed by this record. ED-M0 remains open.
+The initial local validation above establishes no target-host result. Hosted desktop results
+are recorded separately below. Physical text/DPI screenshots, installed-IME composition and
+sanitizer acceptance remain open; ED-M0 remains open.
 
 ## CI queue follow-up
 
@@ -79,3 +80,27 @@ cleanup stops that branch's cancellation. Other branches keep independent concur
 Only the documentation job receives Actions write permission; fork cleanup is disabled.
 Local validation: 16/16 documentation routing tests, workflow YAML parsing, and a mocked JavaScript
 guard audit all passed. Hosted cleanup execution and final cross-platform CI are still pending.
+## Hosted desktop and fixture follow-up
+
+At immutable source `6884c7c08e2bf45b1384b8b3d3a20c4c729faece`,
+[Build run 37371576645](https://github.com/jimlee1972/Nexora/actions/runs/37371576645)
+records these distinct results:
+
+- [macOS/Metal Development](https://github.com/jimlee1972/Nexora/actions/runs/37371576645/job/111995856982):
+  **122/122 passed**, 84.97 seconds. The native lifetime gate passed in 7.24 seconds and
+  reports copied pixels, stale fallback, owner/DPI/resize behavior, and **4290 uploads**.
+- [Windows/DX12 Development](https://github.com/jimlee1972/Nexora/actions/runs/37371576645/job/111995856950):
+  the context lifetime, DPI/IME callback contract, and native surface/image gate passed;
+  the latter completed in 7.64 seconds and reports **4290 uploads**. The full suite failed
+  11 unrelated fixture cases, so this is native image/descriptor-soak evidence rather than
+  whole-job acceptance.
+- Linux Development passed 139/140; its display fixture did not reliably focus the Scene canvas
+  before the Hierarchy creation shortcut. The failure remains recorded rather than retried away.
+
+Repair commit `92b3293` moves temporary-directory cleanup after all file/workspace owners,
+uses binary canonical scene writes instead of Windows CRLF conversion, and explicitly focuses
+Scene before the Linux shortcut. Existing behavioral assertions remain required.
+After synchronizing main `f5a1e6ae9167b9487c45644b3a673d13b714da7b`, the repaired native image
+source passed full Linux Development **118/118** without skips (187.37 seconds), strict Vulkan
+**4/4** (24.44 seconds, actual layer insertion and no error diagnostics), and Shipping engine
+configure/build. Refreshed final-head hosted CI is still required before merging.

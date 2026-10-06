@@ -211,8 +211,9 @@ retirement；Vulkan offscreen frame 沒有 validation error。
 Backend binding 前的 generation 檢查拒絕 stale／foreign ID，domain 更換會重送 live image。
 Native 測試涵蓋 pixel 複製、fallback、容量上限與超過 4096 次 upload；DX12 descriptor
 回收等待 GPU completion，Vulkan resize 保留 texture。
-[Linux 證據](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md)；
-target-host visual gate 仍待完成。
+[證據](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md) 記錄 immutable source 的
+Windows／DX12 與 macOS／Metal 4290-upload gate，以及 macOS 全套 122/122 通過。Windows
+整套 fixture 修正版仍需 final-head CI；target-host visual gate 仍待完成。
 
 1. 在 `EditorImGuiHost` 下建立 renderer-owned state：pipeline、sampler、font texture/view、descriptor
    binding、有限大小的 per-frame vertex/index upload buffer ring。知道 device/format 後才 lazy-create
