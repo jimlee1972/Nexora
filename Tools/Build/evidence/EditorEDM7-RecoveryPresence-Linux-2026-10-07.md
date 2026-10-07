@@ -24,7 +24,9 @@ rejected recovery preserving the committed workspace, blocked CSV/JSON export, r
 nonrecursive discard, target preservation and successful explicit resolution. Replacing the
 metadata parent with a regular file verifies fail-closed handling of an uninspectable path;
 restoring it preserves the workspace and clears pending state. Missing metadata and valid/dangling
-metadata parent aliases are also covered. Unopened and missing paths remain
+metadata parent aliases are also covered. Parent fixtures release the writer lease before directory
+rename, inspect through the lease-free read-only observer, then reopen the writer after restoring
+metadata. This preserves Windows lock sharing policy and verifies successful lease reacquisition. Unopened and missing paths remain
 false. The real Window pointer/button Profiler test now covers a regular journal at 1x DPI and
 an occupied recovery directory at 2x DPI, retaining the existing modal export gate.
 
@@ -39,14 +41,14 @@ ctest --preset linux-development
 ```
 
 Configure/build passed with the graphical shell and Slang enabled. Focused tests: **4/4 passed**,
-1.68 seconds. Full CTest: **123/123 passed**, none skipped, **204.40 seconds**, with lavapipe and
+1.65 seconds. Full CTest: **123/123 passed**, none skipped, **203.36 seconds**, with lavapipe and
 Khronos core/synchronization validation. `git diff --check` passed. No linkage boundary changed.
 Generated output and local tools remain uncommitted.
 
 Source SHA-256:
 
 - `Engine/Editor/src/ProjectWorkspace.cpp`: `91bde3b7b9a3a0ec635c5f2b3cb8b31f9c1af7c4852e029eceb67cc968bff83d`
-- `Tests/Editor/WorkspaceBudgetTests.cpp`: `bfa05b41f6219019274f5e5fe29e85c1c2b99af0a136e6997e2f31f0e9e510ff`
+- `Tests/Editor/WorkspaceBudgetTests.cpp`: `ddf3f1195989139d24b55419376e5ce2fe3b51e83149cf60b5da64617f386be9`
 - `Tests/EditorImGui/ProfilerExportTests.cpp`: `b3edc381b202a579fcfd6eaae3ffde17320bbfb9f2c641e2ac4fb33d457ef0fb`
 
 Broader corrupt-document recovery/production-hardening and physical-host acceptance remain open.

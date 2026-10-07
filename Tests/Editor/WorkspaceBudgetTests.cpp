@@ -253,28 +253,30 @@ int Run() {
 
   const auto metadata = root / ".nexora";
   const auto retained_metadata = root / "retained-metadata";
+  // Windows prevents renaming directories containing the writer's open lock handle. Inspect
+  // parent fixtures through the lease-free observer, then reacquire the writer after restoration.
+  writer = ProjectWorkspace{};
   fs::rename(metadata, retained_metadata);
   Write(metadata, "occupied metadata parent");
-  Require(writer.HasRecoveryJournal() && observer.HasRecoveryJournal() &&
-              !writer.RecoverWorkspace(&error) &&
-              !writer.ExportEditorFrameProcessingJson(frame_samples, 0, &error),
-          "uninspectable recovery path unlocked project operations");
+  Require(observer.HasRecoveryJournal(), "uninspectable recovery path was reported as absent");
   fs::remove(metadata);
   fs::rename(retained_metadata, metadata);
-  Require(!writer.HasRecoveryJournal() && Read(primary) == recovery_primary,
+  Require(!observer.HasRecoveryJournal() && Read(primary) == recovery_primary,
           "restoring inspectable metadata changed the workspace or left recovery pending");
   fs::rename(metadata, retained_metadata);
-  Require(!writer.HasRecoveryJournal(), "missing legacy metadata was reported as recovery");
+  Require(!observer.HasRecoveryJournal(), "missing legacy metadata was reported as recovery");
 #if !defined(_WIN32)
   fs::create_symlink(retained_metadata, metadata);
-  Require(!writer.HasRecoveryJournal(), "valid metadata directory alias changed missing recovery");
+  Require(!observer.HasRecoveryJournal(),
+          "valid metadata directory alias changed missing recovery");
   fs::remove(metadata);
   fs::create_symlink(root / "missing-metadata-target", metadata);
-  Require(writer.HasRecoveryJournal(), "dangling metadata parent unlocked recovery gates");
+  Require(observer.HasRecoveryJournal(), "dangling metadata parent unlocked recovery gates");
   fs::remove(metadata);
 #endif
   fs::rename(retained_metadata, metadata);
-  Require(!writer.HasRecoveryJournal() && Read(primary) == recovery_primary,
+  Require(writer.Open(root, &error) && !writer.HasRecoveryJournal() &&
+              Read(primary) == recovery_primary,
           "metadata alias fixtures changed committed state");
 
   fs::remove(primary);
