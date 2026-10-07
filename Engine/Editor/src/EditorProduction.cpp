@@ -1,5 +1,6 @@
 #include "Nexora/Editor/EditorProduction.h"
 #include "AtomicFile.h"
+#include "Nexora/Foundation/Types.h"
 
 #include <algorithm>
 #include <cmath>
@@ -11,16 +12,19 @@
 namespace nexora::editor {
 namespace {
 bool SafePath(std::string_view path) {
-  if (path.empty() || path.starts_with('/') || path.starts_with('\\'))
+  if (path.empty() || path.starts_with('/') || path.ends_with('/') ||
+      path.find_first_of("\\:") != std::string_view::npos ||
+      path.find("//") != std::string_view::npos ||
+      std::ranges::any_of(path, [](unsigned char value) { return value < 0x20 || value == 0x7F; }))
     return false;
-  std::filesystem::path parsed(path);
-  // is_absolute()/has_root_name() catches a Windows drive-letter-rooted path
-  // (e.g. "C:/Windows/System32/x.dll"), which starts with neither '/' nor
-  // '\\' and so would otherwise slip past the checks above and later escape
-  // the sandbox root it is joined onto.
-  return path.find('\\') == std::string_view::npos && !parsed.is_absolute() &&
-         !parsed.has_root_name() &&
-         std::ranges::none_of(parsed, [](const auto &part) { return part == ".." || part == "."; });
+  // Text is validated below before reaching this parser. Interpret UTF-8 consistently on
+  // every host; drive/stream syntax and separator aliases cannot depend on the writer's OS.
+  const std::filesystem::path parsed(std::u8string(path.begin(), path.end()));
+  return !parsed.is_absolute() && !parsed.has_root_name() &&
+         std::ranges::none_of(parsed, [](const auto &part) {
+           const auto text = part.u8string();
+           return text.ends_with(u8'.') || text.ends_with(u8' ');
+         });
 }
 
 std::string Escape(std::string_view value) {
@@ -72,8 +76,21 @@ bool BuildFrontend::Validate(const BuildManifest &manifest, std::string *error) 
       *error = "incomplete build profile";
     return false;
   }
+  if (!foundation::IsValidUtf8(manifest.profile.name) ||
+      !foundation::IsValidUtf8(manifest.profile.target) ||
+      !foundation::IsValidUtf8(manifest.profile.configuration) ||
+      !foundation::IsValidUtf8(manifest.profile.command)) {
+    if (error)
+      *error = "invalid UTF-8 build profile text";
+    return false;
+  }
   std::unordered_set<std::string> paths;
   for (const auto &artifact : manifest.artifacts) {
+    if (!foundation::IsValidUtf8(artifact.path) || !foundation::IsValidUtf8(artifact.checksum)) {
+      if (error)
+        *error = "invalid UTF-8 build artifact text";
+      return false;
+    }
     if (!SafePath(artifact.path) || artifact.checksum.empty() ||
         !paths.insert(artifact.path).second) {
       if (error)
