@@ -57,3 +57,18 @@ The build gate checks actual CMake File API targets, dependencies, linkage, and 
 entries in Development, explicit OFF, Shipping Minimal, Shipping Full, Shipping Dedicated, and
 headless configurations. It neither downloads SDKs nor substitutes target existence for compiling
 and executing the enabled module.
+
+## Integration with current main
+
+The initial implementation `8de9ab6fcb7b8f754098be48e871da57a72ed098` passes all 18 hosted jobs in
+[Build 1814, attempt 2](https://github.com/jimlee1972/Nexora/actions/runs/37605163119), including
+Linux 150/150, Windows 133/133, macOS 132/132, Shipping packages, allocator variants, ASan/UBSan,
+and TSan. Attempt 1 had two intermittent existing Editor window failures; the same source also
+passed all jobs in its push run, and the retry passed without code or acceptance changes.
+
+Main advanced to `cf9ccaa2` during CI with Showcase grass/HDR content and README simplification.
+Integration preserves that concise root README exactly, records this supporting task in roadmap
+and module/evidence documents, and leaves the Pose Search implementation unchanged. The integrated
+Linux Development configure/build/full CTest gate passes 104/104 in 127.87 seconds; the integrated
+`linux-shipping` configure/build also passes. These local integration results do not substitute
+for the PR's current integration-head hosted checks.

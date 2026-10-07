@@ -761,6 +761,24 @@ struct RoomSession::State final {
     for (const auto i : {0, 1, 2, 0, 2, 3})
       indices.push_back(static_cast<std::uint16_t>(base + i));
   }
+  void GrassBlade(math::Vector3 root, float height, float angle) {
+    const auto base = static_cast<std::uint16_t>(vertices.size());
+    const math::Vector3 right{std::cos(angle), 0, std::sin(angle)};
+    const math::Vector3 facing{-std::sin(angle), 0, std::cos(angle)};
+    const auto rise = math::Vector3{0, height, 0} + facing * (height * 0.2F);
+    const auto normal = math::NormalizeSafe(math::Cross(right, rise));
+    for (const auto uv : {std::array{0.0F, 0.0F}, std::array{1.0F, 0.0F}, std::array{1.0F, 1.0F},
+                          std::array{0.0F, 1.0F}}) {
+      const float width = uv[1] == 0 ? 0.012F : 0.0008F;
+      const auto point = root + right * ((uv[0] * 2 - 1) * width) + rise * uv[1];
+      vertices.push_back({{point.x, point.y, point.z},
+                          {normal.x, normal.y, normal.z},
+                          {uv[0], uv[1]},
+                          {right.x, right.y, right.z, 1}});
+    }
+    for (const auto i : {0, 1, 2, 0, 2, 3})
+      indices.push_back(static_cast<std::uint16_t>(base + i));
+  }
   void CourtyardParticles() {
     courtyardParticleCount = courtyardActive ? (24U << courtyardQuality) : 0;
     const auto first = static_cast<std::uint32_t>(indices.size());
@@ -817,7 +835,7 @@ struct RoomSession::State final {
           batch.materialIndex != 2 && batch.materialIndex != 3 && batch.materialIndex != 5 &&
           batch.materialIndex != 6 && batch.materialIndex != 7 && batch.materialIndex != 11 &&
           batch.materialIndex != 12 && batch.materialIndex != 15 && batch.materialIndex != 16 &&
-          batch.materialIndex != 17)
+          batch.materialIndex != 17 && batch.materialIndex != 22)
         continue;
       batches.push_back({batch.firstIndex, batch.indexCount, mirrorIndex, 1,
                          batch.materialIndex + static_cast<std::uint32_t>(materialCount)});
@@ -1323,7 +1341,14 @@ struct RoomSession::State final {
 #if NEXORA_ASSET_PIPELINE_ENABLED
     for (unsigned shade = 0; shade < 3; ++shade) {
       for (std::size_t face = 0; face < courtyardCrystal.indices.size() / 3; ++face) {
-        if ((face * 7 + face / 8) % 3 != shade)
+        // Lower mineral faces carry the bright HDR core; the upper tip remains dark teal.
+        const float centroidY =
+            (courtyardCrystal.vertices[courtyardCrystal.indices[face * 3]].position[1] +
+             courtyardCrystal.vertices[courtyardCrystal.indices[face * 3 + 1]].position[1] +
+             courtyardCrystal.vertices[courtyardCrystal.indices[face * 3 + 2]].position[1]) /
+            3.0F;
+        const unsigned mineralShade = centroidY < -0.3F ? 2U : centroidY < 0.3F ? 1U : 0U;
+        if (mineralShade != shade)
           continue;
         const auto base = static_cast<std::uint16_t>(vertices.size());
         for (unsigned corner = 0; corner < 3; ++corner) {
@@ -1724,20 +1749,21 @@ struct RoomSession::State final {
           }
         }
     finish(5);
-    // Ground-cover patches and climbing ivy use the existing original leaf mask and GPU wind.
+    // Original tapered grass blades occupy paving cracks with root-anchored GPU wind.
     for (unsigned patch = 0; patch < 180; ++patch) {
       const auto seed = patch * 747796405U + 2891336453U;
       const float x = static_cast<float>((seed >> 3) % 1500) * 0.01F - 7.5F;
       const float z = static_cast<float>((seed >> 15) % 1100) * 0.01F - 4.0F;
       if (x * x + z * z < 7.3F)
         continue; // Keep the device's stone tiers readable.
-      for (unsigned leaf = 0; leaf < 6; ++leaf) {
-        const float angle = patch * 2.399963F + leaf * 1.047198F;
-        const float offset = 0.04F + leaf * 0.028F;
-        LeafQuad({x + std::cos(angle) * offset, 0.15F, z + std::sin(angle) * offset},
-                 0.12F + (patch % 4) * 0.015F, 0.2F + ((patch + leaf) % 5) * 0.045F, angle);
+      for (unsigned blade = 0; blade < 9; ++blade) {
+        const float angle = patch * 2.399963F + blade * (2 * math::kPi / 9);
+        const float offset = 0.025F + blade * 0.009F;
+        GrassBlade({x + std::cos(angle) * offset, 0.15F, z + std::sin(angle) * offset},
+                   0.2F + ((patch + blade) % 5) * 0.045F, angle);
       }
     }
+    finish(22);
     for (const float x : {-5.5F, 5.5F})
       for (unsigned vine = 0; vine < 10; ++vine)
         for (unsigned leaf = 0; leaf < 4; ++leaf) {
@@ -1817,7 +1843,7 @@ struct RoomSession::State final {
     }
     courtyardFoliageQuadCount = 0;
     for (const auto &batch : batches)
-      if (batch.materialIndex == 5)
+      if (batch.materialIndex == 5 || batch.materialIndex == 22)
         courtyardFoliageQuadCount += batch.indexCount / 6;
     renderer::Mesh tangentSource;
     tangentSource.indices = indices;
@@ -2948,11 +2974,11 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #endif
     s.materials[4].baseColor = {0.52F, 0.44F, 0.31F, 1};
     s.materials[1].metallic = 1;
-    s.materials[1].roughness = 0.28F;
-    s.materials[1].baseColor = {0.95F, 0.85F, 0.65F, 1};
-    s.materials[2].roughness = 0.15F;
-    s.materials[2].baseColor = {0.02F, 0.24F, 0.28F, 1};
-    s.materials[2].emission = {0.02F, 0.65F, 0.85F};
+    s.materials[1].roughness = 0.4F;
+    s.materials[1].baseColor = {0.8F, 0.65F, 0.4F, 1};
+    s.materials[2].roughness = 0.22F;
+    s.materials[2].baseColor = {0.02F, 0.16F, 0.17F, 1};
+    s.materials[2].emission = {0.012F, 0.32F, 0.4F};
     s.materials[3].baseColor = {0.24F, 0.36F, 0.43F, 1};
     s.materials[3].occlusion = 0.75F;
     s.materials[3].roughness = 0.78F;
@@ -3118,6 +3144,14 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     wetStone.roughness = 0.25F;
     wetStone.occlusion = 0.55F;
     s.materials.push_back(wetStone);
+    Nexora::Presentation::SceneMaterial grass{};
+    grass.baseColor = {0.11F, 0.105F, 0.03F, 1};
+    grass.roughness = 0.88F;
+    grass.twoSidedLighting = s.courtyardPbr;
+    grass.windAmplitude = s.courtyardPbr && s.courtyardWind ? 0.035F : 0;
+    grass.transmissionThickness = s.courtyardPbr && s.courtyardTransmission ? 0.035F : 0;
+    grass.transmissionColor = {0.12F, 0.18F, 0.03F};
+    s.materials.push_back(grass);
     s.CourtyardGeometry();
     // Animate from the immutable cache each frame; pause/replay never accumulates drift.
     const float crystalAngle = static_cast<float>(s.courtyardSeconds) * 0.18F;
