@@ -1,0 +1,99 @@
+{
+  "source_freeze": "c17e9cfb5a1365fbca8f43fce12941bca61f3206",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/README.md": "8bf77944252425d43fa217f195280463a1c4150182a74c6f448deeb9cd7050b5",
+    "Apps/Showcase/ShowcaseRooms.cpp": "70bb18f56a5937811aede0e3a284057fc8ea954ca208dfc036440e73deed973b",
+    "README.md": "1ebf91cd5bb40279bf0689deac232211fbad3550287e41cb2dbd8dd86105e85f",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "a79eaad6e19685af2c4c524dd3010aeaffa781d321f7829fbb45d843251a7458",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "2d8eb5674f48c040b4b9b93e2c3888548e77df2d6fc0c2372f4f60fc68bec3e5",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "98159bb90f5e50146008330b84d8523204364d661ad378371e4f984e84af9a4d"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/native-grass-final-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "c17e9cfb5a13",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.15428555101971,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.800000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "6494533d983dd37dbfa2b3344bb20cfa4976a319c3b5b2500f264ae40e7f821f",
+    "video_sha256": "355eec6264d7068006ddd1979cbca1fa0faed33d76524a1c773a7b7037c58d29",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "f23d20a72c65972a5ad1bea7b4619edb1b344b43f96254b57aa0c74c4618d23a",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        245,
+        649,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        1,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  },
+  "environment_payload_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+    "Content/Showcase/Courtyard/Hero/Source/ivy-single-leaf.png": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "f0522dcada15d10fc42fe92d930816fea1b7af1f305079b209e5f667d2f91682",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "9bc8c52ef98ee5f7d67d2f4501577af8e013c854850add3e29688ee70b348532"
+  },
+  "scene_counts": {
+    "geometry_vertex_count": 60097,
+    "geometry_index_count": 138150,
+    "geometry_batch_count": 389,
+    "geometry_material_count": 46,
+    "foliage_quad_count": 3534
+  },
+  "device_identity": {
+    "name": "llvmpipe (LLVM 19.1.7, 256 bits)",
+    "vendor_id": 65541,
+    "device_id": 0,
+    "driver_version": "1",
+    "driver_version_format": "vulkan.raw"
+  }
+}

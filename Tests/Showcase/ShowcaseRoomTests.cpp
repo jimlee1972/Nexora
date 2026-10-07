@@ -69,7 +69,7 @@ int main() {
   assert(!courtyard.Scene(1280, 720).postProcessAntiAliasing);
   Press(courtyard, Key::F10);
   assert(courtyard.Scene(1280, 720).postProcessAntiAliasing);
-  assert(wide.materials.size() == 44 && !wide.batches.empty());
+  assert(wide.materials.size() == 46 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   const auto sourceMaterialCount = wide.materials.size() / 2;
   std::size_t covered = 0;
@@ -152,7 +152,7 @@ int main() {
 
   std::size_t sourceLeaves = 0;
   for (const auto &batch : wide.batches)
-    if (batch.materialIndex == 5)
+    if (batch.materialIndex == 5 || batch.materialIndex == 22)
       sourceLeaves += batch.indexCount / 6;
   assert(sourceLeaves > 700);
   std::size_t foldedLeaves = 0;
@@ -183,7 +183,29 @@ int main() {
   assert(foldedLeaves > 700);
 
   assert(wide.materials[5].twoSidedLighting && wide.materials[15].twoSidedLighting &&
-         wide.materials[16].twoSidedLighting);
+         wide.materials[16].twoSidedLighting && wide.materials[22].twoSidedLighting);
+  // Grass roots must remain pinned by the shared GPU UV.y bend contract.
+  std::size_t grassBlades = 0;
+  for (const auto &batch : wide.batches) {
+    if (batch.materialIndex != 22 || batch.firstInstance != 0)
+      continue;
+    for (std::size_t i = batch.firstIndex; i < batch.firstIndex + batch.indexCount; i += 6) {
+      const auto &rootA = wide.vertices[wide.indices[i]];
+      const auto &rootB = wide.vertices[wide.indices[i + 1]];
+      const auto &tipA = wide.vertices[wide.indices[i + 2]];
+      const auto &tipB = wide.vertices[wide.indices[i + 5]];
+      assert(rootA.uv[1] == 0 && rootB.uv[1] == 0);
+      assert(tipA.uv[1] == 1 && tipB.uv[1] == 1);
+      assert(tipA.position[1] > rootA.position[1] && tipB.position[1] > rootB.position[1]);
+      ++grassBlades;
+    }
+  }
+  assert(grassBlades > 0 && wide.materials[22].windAmplitude > 0);
+  Press(courtyard, Key::N);
+  assert(courtyard.Scene(1280, 720).materials[22].windAmplitude == 0);
+  Press(courtyard, Key::N);
+  assert(courtyard.Scene(1280, 720).materials[22].windAmplitude ==
+         wide.materials[22].windAmplitude);
   assert(courtyard.Report().find("\"foliage_quad_count\":" + std::to_string(sourceLeaves)) !=
          std::string::npos);
   // Flowing strip faces must agree with their analytic surface normals. This
@@ -443,7 +465,7 @@ int main() {
   assert(wide.shadow && wide.lightingStyle && wide.shadow->resolution == 2048);
   // Side-arcade crowns must remain inside the shadow camera. Their shadows use
   // the same light-space XY, even when projected beyond the central pedestal.
-  for (const float x : {-7.5F, 7.5F})
+  for (const float x : {-9.0F, 7.5F})
     for (const float z : {-4.0F, 2.0F}) {
       const std::array<float, 4> crown{x, 7.45F, z, 1.0F};
       const auto &matrix = wide.shadow->lightViewProjection;
