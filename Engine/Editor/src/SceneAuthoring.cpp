@@ -19,6 +19,8 @@
 
 namespace nexora::editor {
 namespace {
+constexpr std::uint64_t MaxAutosavePayloadBytes = 64 * 1024 * 1024;
+
 void Error(std::string *error, std::string message) {
   if (error)
     *error = std::move(message);
@@ -415,29 +417,46 @@ std::optional<MigrationReport> DocumentMigration::Run(std::uint32_t from, std::u
 }
 bool AutosaveJournal::Write(const std::filesystem::path &path, std::uint64_t revision,
                             std::string_view payload, std::string *error) {
+  if (payload.size() > MaxAutosavePayloadBytes) {
+    Error(error, "autosave payload exceeds the 64 MiB recovery limit");
+    return false;
+  }
   auto temporary = path;
   temporary += ".tmp";
+  std::error_code ec;
+  const auto temporary_status = std::filesystem::symlink_status(temporary, ec);
+  if (ec != std::errc::no_such_file_or_directory &&
+      (ec || std::filesystem::exists(temporary_status))) {
+    Error(error, "autosave temporary destination is already occupied");
+    return false;
+  }
+  ec.clear();
   std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
+  output.imbue(std::locale::classic());
   output << "NEXORA_AUTOSAVE 1 " << revision << ' ' << payload.size() << '\n' << payload;
   output.close();
   if (!output) {
+    std::filesystem::remove(temporary, ec);
     Error(error, "failed to write autosave journal");
     return false;
   }
-  std::error_code ec;
   ReplaceFile(temporary, path, ec);
-  if (ec)
+  if (ec) {
+    std::error_code cleanup;
+    std::filesystem::remove(temporary, cleanup);
     Error(error, ec.message());
+  }
   return !ec;
 }
 std::optional<std::string> AutosaveJournal::Recover(const std::filesystem::path &path,
                                                     std::uint64_t *revision, std::string *error) {
   std::ifstream input(path, std::ios::binary);
+  input.imbue(std::locale::classic());
   std::string magic;
   unsigned version{};
   std::uint64_t found_revision{}, size{};
   if (!(input >> magic >> version >> found_revision >> size) || magic != "NEXORA_AUTOSAVE" ||
-      version != 1 || input.get() != '\n' || size > 64 * 1024 * 1024) {
+      version != 1 || input.get() != '\n' || size > MaxAutosavePayloadBytes) {
     Error(error, "corrupt autosave header");
     return std::nullopt;
   }

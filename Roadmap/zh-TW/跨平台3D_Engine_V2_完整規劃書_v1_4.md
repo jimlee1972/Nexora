@@ -3,7 +3,7 @@
 **文件版本：Master Draft v1.4**
 **Engine 世代：V2.x — Scale-Up / Production**
 
-> **進度：46%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已通過 portable repository gate；V2-M3、V2-M7 至 V2-M12 仍待完成。V2-M7 已有第一個 portable foundation，但仍屬進行中且尚未驗收。Native target evidence 維持獨立 gate。）
+> **進度：46%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已通過 portable repository gate；V2-M3、V2-M7 至 V2-M12 仍待完成。V2-M7 與 V2-M8 已有 portable foundation，但仍屬進行中且尚未驗收。Native target evidence 維持獨立 gate。）
 
 > 本文件為 **V2 Master Plan**，所有 V1 Contract 預設繼承；只有本文件明確標示「V2 supersede」的項目可以改變 V1 行為。
 >
@@ -3885,7 +3885,7 @@ Meshlet metadata
 - ✅ CPU fallback 會對 recorded backend output 進行 deterministic correctness comparison。
 
 已勾選項目代表 repository-level contract 證據。V2-M3 只會在剩餘 native target-host parity
-項目通過後驗收；因此該 milestone 仍未勾選，整體進度仍為 23%。
+項目通過後驗收；因此該 milestone 仍未勾選，整體進度仍為 46%。
 
 ---
 
@@ -4038,6 +4038,15 @@ Budgeted Multi-world Self-play Orchestrator
 
 ## V2-M8 — Animation V2
 
+> **Portable Pose Search 切片（2026-10-07）：** ✅ `NexoraPoseSearch` 提供只依賴
+> Foundation 的 optional feature extractor、deterministic weighted pose database builder、
+> canonical fingerprint、clip/time reference 與精確 tag-constrained search。輸入順序與 signed
+> zero 不影響產物；無效重建會保留舊資料庫。`animation.v2_m8_pose_search` 以 65,536 筆資料
+> 比對獨立 reference；`build.pose_search_profiles` 驗證六種 profile 的啟用／停用 target 與
+> source graph。Translation-only feature 不代表 compressed pose、retargeting、motion warping、
+> inertialization、sync group、GPU execution、editor tooling 或 Motion Matching 已驗收。
+> V2-M8 仍進行中；V2 整體進度維持 46%。
+
 施工：
 
 ```text
@@ -4058,7 +4067,7 @@ Motion Matching optional
 ✓ Compute / Vertex Skinning 可 profile-driven 選擇
 ✓ GPU crowd animation 不成為 gameplay event authority
 ✓ Motion Warping 最終仍經 CharacterMotor / Controller resolve
-✓ Pose Search database 可重建且 deterministic
+✅ Portable Pose Search database 可重建且 deterministic（GPU／editor gate 仍待完成）
 ```
 
 ---

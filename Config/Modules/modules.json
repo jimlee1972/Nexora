@@ -24,6 +24,13 @@
       ]
     },
     {
+      "name": "PoseSearch",
+      "feature": "NEXORA_ENABLE_POSE_SEARCH",
+      "dependencies": [
+        "Foundation"
+      ]
+    },
+    {
       "name": "Network",
       "feature": "NEXORA_ENABLE_NETWORK",
       "dependencies": [

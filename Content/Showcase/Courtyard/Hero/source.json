@@ -193,7 +193,7 @@
     "description": "Original authored golden-hour cloud panorama; visible six-face sky and HDR IBL share the panorama orientation, geometric solar disc and key-light direction.",
     "sun_direction": [
       -18,
-      4,
+      5,
       -19.2
     ],
     "sun_radiance": [
@@ -256,6 +256,14 @@
       "origin": "OpenAI image generation in this authorized showcase art session",
       "authoring_brief": "Original seamless 2:1 equirectangular golden-hour sky using the repository concept sky as a style reference; peach cloud edges, lavender blue zenith, pale gold horizon; no sun disc, objects or terrain",
       "license": "Repository LICENSE"
+    },
+    "cypress": {
+      "path": "Source/cypress-spray.png",
+      "sha256": "aa8d8dca919581100a7e9383c375bec249c3236eee83234d89c9e80b7b848352",
+      "origin": "OpenAI image generation in this authorized showcase art session",
+      "authoring_brief": "Original upright Mediterranean cypress needle spray, bottom-center root, neutral diffuse light and transparent background; preserves fine overlapping evergreen needles when cooked to 256 pixels",
+      "license": "Repository LICENSE",
+      "reference": "Roadmap/art/V1-Visual-Identity-Concept.png"
     }
   },
   "sky_face_size": 256

@@ -69,7 +69,7 @@ int main() {
   assert(!courtyard.Scene(1280, 720).postProcessAntiAliasing);
   Press(courtyard, Key::F10);
   assert(courtyard.Scene(1280, 720).postProcessAntiAliasing);
-  assert(wide.materials.size() == 44 && !wide.batches.empty());
+  assert(wide.materials.size() == 48 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   const auto sourceMaterialCount = wide.materials.size() / 2;
   std::size_t covered = 0;
@@ -150,9 +150,30 @@ int main() {
   }
   assert(rigidTriangles > 0);
 
+  // Cypress crowns use their own cutout and retain the shared wind and mirror contracts.
+  const auto cypress = wide.materials[23];
+  assert(cypress.textureId != wide.materials[5].textureId && cypress.alphaCutoff > 0);
+  assert(cypress.windAmplitude > 0 && cypress.twoSidedLighting);
+  bool cypressMirror = false;
+  for (const auto &batch : wide.batches) {
+    if (batch.materialIndex != 23 || batch.firstInstance != 0)
+      continue;
+    cypressMirror = std::any_of(wide.batches.begin(), wide.batches.end(), [&](const auto &other) {
+      return other.materialIndex == batch.materialIndex + sourceMaterialCount &&
+             other.firstIndex == batch.firstIndex && other.indexCount == batch.indexCount &&
+             other.firstInstance != 0;
+    });
+    assert(cypressMirror);
+  }
+  assert(cypressMirror);
+  Press(courtyard, Key::N);
+  assert(courtyard.Scene(1280, 720).materials[23].windAmplitude == 0);
+  Press(courtyard, Key::N);
+  assert(courtyard.Scene(1280, 720).materials[23].windAmplitude == cypress.windAmplitude);
+
   std::size_t sourceLeaves = 0;
   for (const auto &batch : wide.batches)
-    if (batch.materialIndex == 5)
+    if (batch.materialIndex == 5 || batch.materialIndex == 22 || batch.materialIndex == 23)
       sourceLeaves += batch.indexCount / 6;
   assert(sourceLeaves > 700);
   std::size_t foldedLeaves = 0;
@@ -183,7 +204,49 @@ int main() {
   assert(foldedLeaves > 700);
 
   assert(wide.materials[5].twoSidedLighting && wide.materials[15].twoSidedLighting &&
-         wide.materials[16].twoSidedLighting);
+         wide.materials[16].twoSidedLighting && wide.materials[22].twoSidedLighting);
+  // Every foreground shrub stem batch is mirrored; distant wood stays excluded.
+  std::size_t shrubStemBatches = 0;
+  for (const auto &batch : wide.batches) {
+    if (batch.materialIndex != 10 || batch.firstInstance != 0)
+      continue;
+    bool foreground = true;
+    for (std::size_t i = batch.firstIndex; i < batch.firstIndex + batch.indexCount; ++i) {
+      const auto &p = wide.vertices[wide.indices[i]].position;
+      foreground &= p[1] < 0.7F && p[2] > -3.1F && p[2] < 0.1F;
+    }
+    const auto mirror = std::find_if(wide.batches.begin(), wide.batches.end(), [&](const auto &b) {
+      return b.materialIndex == 10 + wide.materials.size() / 2 &&
+             b.firstIndex == batch.firstIndex && b.indexCount == batch.indexCount &&
+             b.firstInstance != 0;
+    });
+    assert((mirror != wide.batches.end()) == foreground);
+    if (foreground)
+      ++shrubStemBatches;
+  }
+  assert(shrubStemBatches == 2);
+  // Grass roots must remain pinned by the shared GPU UV.y bend contract.
+  std::size_t grassBlades = 0;
+  for (const auto &batch : wide.batches) {
+    if (batch.materialIndex != 22 || batch.firstInstance != 0)
+      continue;
+    for (std::size_t i = batch.firstIndex; i < batch.firstIndex + batch.indexCount; i += 6) {
+      const auto &rootA = wide.vertices[wide.indices[i]];
+      const auto &rootB = wide.vertices[wide.indices[i + 1]];
+      const auto &tipA = wide.vertices[wide.indices[i + 2]];
+      const auto &tipB = wide.vertices[wide.indices[i + 5]];
+      assert(rootA.uv[1] == 0 && rootB.uv[1] == 0);
+      assert(tipA.uv[1] == 1 && tipB.uv[1] == 1);
+      assert(tipA.position[1] > rootA.position[1] && tipB.position[1] > rootB.position[1]);
+      ++grassBlades;
+    }
+  }
+  assert(grassBlades > 0 && wide.materials[22].windAmplitude > 0);
+  Press(courtyard, Key::N);
+  assert(courtyard.Scene(1280, 720).materials[22].windAmplitude == 0);
+  Press(courtyard, Key::N);
+  assert(courtyard.Scene(1280, 720).materials[22].windAmplitude ==
+         wide.materials[22].windAmplitude);
   assert(courtyard.Report().find("\"foliage_quad_count\":" + std::to_string(sourceLeaves)) !=
          std::string::npos);
   // Flowing strip faces must agree with their analytic surface normals. This
@@ -242,6 +305,40 @@ int main() {
     }
   }
   assert(coreCorners == 144);
+  // At the shared hover trough the crystal must still clear its supporting basin.
+  RoomSession basinHover("courtyard");
+  basinHover.SetDeviceActive(true);
+  double remaining = 3.0 * nexora::math::kPi / (2.0 * 1.4);
+  while (remaining > 0) {
+    const double step = std::min(remaining, 1.0);
+    basinHover.Tick(step);
+    remaining -= step;
+  }
+  const auto trough = basinHover.Scene(1280, 720);
+  float shellBottom = 10000, basinTop = -10000;
+  std::size_t basins = 0;
+  for (const auto &batch : trough.batches) {
+    if (batch.firstInstance != 0 || (batch.materialIndex != 0 && batch.materialIndex != 12))
+      continue;
+    float minX = 10000, maxX = -10000, minZ = 10000, maxZ = -10000, maxY = -10000;
+    for (std::size_t i = batch.firstIndex; i < batch.firstIndex + batch.indexCount; ++i) {
+      const auto &v = trough.vertices[trough.indices[i]];
+      minX = std::min(minX, v.position[0]);
+      maxX = std::max(maxX, v.position[0]);
+      minZ = std::min(minZ, v.position[2]);
+      maxZ = std::max(maxZ, v.position[2]);
+      maxY = std::max(maxY, v.position[1]);
+      if (batch.materialIndex == 12)
+        shellBottom = std::min(shellBottom, v.position[1]);
+    }
+    // Identify the original basin by its centered radial footprint, independent of height.
+    if (batch.materialIndex == 0 && std::abs(maxX - minX - 1.6F) < 1e-4F &&
+        std::abs(minX + maxX) < 1e-4F && std::abs(minZ + maxZ - 0.9F) < 1e-4F) {
+      basinTop = maxY;
+      ++basins;
+    }
+  }
+  assert(basins == 1 && shellBottom < 3 && shellBottom > basinTop);
 #endif
 
   assert(covered == wide.indices.size() && wide.instances.size() > 438 && wide.planarReflection);
@@ -443,7 +540,7 @@ int main() {
   assert(wide.shadow && wide.lightingStyle && wide.shadow->resolution == 2048);
   // Side-arcade crowns must remain inside the shadow camera. Their shadows use
   // the same light-space XY, even when projected beyond the central pedestal.
-  for (const float x : {-7.5F, 7.5F})
+  for (const float x : {-9.0F, 7.5F})
     for (const float z : {-4.0F, 2.0F}) {
       const std::array<float, 4> crown{x, 7.45F, z, 1.0F};
       const auto &matrix = wide.shadow->lightViewProjection;
@@ -523,13 +620,23 @@ int main() {
   assert(courtyard.Report().find("\"representative_asset_loaded\":true") != std::string::npos);
   assert(courtyard.Report().find("\"adopted_mesh_count\":3") != std::string::npos);
   const auto adopted = courtyard.Scene(1280, 720);
-  assert(adopted.textureId == 2 && adopted.textureUploads.size() == 10);
+  assert(adopted.textureId == 2 && adopted.textureUploads.size() == 11);
   assert(adopted.materials[0].normalTextureId == 11 && adopted.materials[1].ormTextureId == 15);
   assert(adopted.textureUploads[0].pixels.size() == 64 * 64 * 4);
   assert(adopted.textureUploads[1].width == 256 && adopted.textureUploads[1].height == 256);
   assert(adopted.textureUploads[1].pixels.size() == 256 * 256 * 4);
-  assert(adopted.textureUploads.back().width == 768 && adopted.textureUploads.back().height == 512);
-  assert(adopted.textureUploads.back().pixels.size() == 768 * 512 * 4);
+  assert(adopted.textureUploads[9].width == 768 && adopted.textureUploads[9].height == 512);
+  assert(adopted.textureUploads[9].pixels.size() == 768 * 512 * 4);
+  const auto &cypressUpload = adopted.textureUploads.back();
+  assert(cypressUpload.width == 256 && cypressUpload.height == 256);
+  assert(cypressUpload.pixels.size() == 256 * 256 * 4);
+  bool transparentNeedleGap = false, solidNeedleCluster = false;
+  for (std::size_t pixel = 3; pixel < cypressUpload.pixels.size(); pixel += 4) {
+    const auto alpha = std::to_integer<unsigned>(cypressUpload.pixels[pixel]);
+    transparentNeedleGap |= alpha < 128;
+    solidNeedleCluster |= alpha >= 128;
+  }
+  assert(transparentNeedleGap && solidNeedleCluster);
 #endif
   assert(courtyard.Scene(1280, 720).materials[5].alphaCutoff == 0.5F);
   courtyard.Tick(0.5);

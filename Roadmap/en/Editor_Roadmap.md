@@ -620,6 +620,10 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Autosave writes enforce the same 64 MiB payload budget as recovery before touching files,
+    retain last-good journals and occupied temporary paths, and clean failed replacement staging.
+    Portable tests cover the exact limit, oversized rejection, binary/empty payloads, locale-independent
+    headers, corrupt recovery, and failure/retry preservation. Graphical crash/recovery acceptance remains open.
   - ✅ Portable prefab prerequisite covers inspectable override diffs, targeted/full revert,
     immutable apply, variants, and nested-path rebase.
   - ✅ Portable additive-scene ownership/dependency ordering, migration dry-run, atomic bounded

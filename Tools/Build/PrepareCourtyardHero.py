@@ -92,6 +92,7 @@ def generate():
     size=source['texture_size']
     assert size==64
     outputs['leaf.rgba']=bytes(leaf_card(authored['leaf'],source['leaf_size']))
+    outputs['cypress.rgba']=bytes(leaf_card(authored['cypress'],source['leaf_size']))
     for name in ('mote',):
         data=bytearray()
         for y in range(size):
@@ -132,7 +133,7 @@ def generate():
     header+=f'inline constexpr std::uint32_t sky_face_size = {face_size};\n'
     header+='inline constexpr char mesh[] = R"NEXORA_ART('+mesh+')NEXORA_ART";\n'
     header+='inline constexpr char metadata[] = R"NEXORA_ART('+outputs['manifest.json'].decode()+')NEXORA_ART";\n'
-    for name in ('stone-color','stone-normal','stone-orm','bronze-color','bronze-normal','bronze-orm','leaf','mote','sky'):
+    for name in ('stone-color','stone-normal','stone-orm','bronze-color','bronze-normal','bronze-orm','leaf','mote','sky','cypress'):
         data=outputs[name+'.rgba'];header+=f'inline constexpr std::array<std::uint8_t, {len(data)}> {name.replace("-","_")}{{\n'
         for start in range(0,len(data),32):header+='  '+','.join(str(x) for x in data[start:start+32])+',\n'
         header+='};\n'

@@ -230,8 +230,13 @@ into renderer or platform internals.
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
   from references, and rejects cycles or unsafe removal atomically. Migration dry-runs never mutate
-  source text; bounded autosave journals reject corruption; stable-path three-way records retain
-  unresolved base/local/remote values without coupling conflicts to a source-control provider.
+  source text; autosave writers and readers share a 64 MiB payload limit. Oversized writes are
+  rejected before filesystem mutation, occupied temporary paths are preserved, and failed
+  writes/replacements clean only this attempt's temporary file while retaining the destination.
+  The schema-1 header uses the classic locale regardless of the process locale. Calls are
+  serialized by the authoring host; concurrent writers are not supported. Bounded autosave
+  recovery rejects corruption without changing the caller's revision; stable-path three-way
+  records retain unresolved base/local/remote values without coupling conflicts to a source-control provider.
 - Inspector adapters borrow reflection metadata and expose differing multi-selection values as an
   explicit mixed state. Unknown component stores own opaque bytes and replace their state only
   after a complete payload validates, so unavailable plugins do not silently discard authoring

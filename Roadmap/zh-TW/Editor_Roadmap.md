@@ -584,6 +584,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
+- ✅ Autosave 寫入於碰觸檔案前套用與 recovery 相同的 64 MiB payload 上限；保留上一份有效
+  journal 與已佔用的暫存路徑，替換失敗則清理本次 staging。Portable 測試涵蓋精確上限、
+  超限拒絕、binary／empty payload、locale-independent header、corrupt recovery 及失敗／重試保留。
+  圖形化 crash／recovery 驗收仍待完成。
+
 - ✅ Portable prefab prerequisite 已涵蓋可檢視 override diff、單筆／全部 revert、immutable
   apply、variant 與 nested-path rebase。
 - ✅ 已實作並測試 portable additive-scene ownership／dependency ordering、migration dry-run、

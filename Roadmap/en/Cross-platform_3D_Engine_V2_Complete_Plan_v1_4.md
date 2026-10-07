@@ -3,7 +3,7 @@
 **Document Version: Master Draft v1.4**
 **Engine Generation: V2.x — Scale-Up / Production**
 
-> **Progress: 46%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 have passed their portable repository gates; V2-M3 and V2-M7 through V2-M12 remain open. V2-M7 now has an in-progress portable foundation but is not yet accepted. Native target evidence remains a separate gate.)
+> **Progress: 46%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 have passed their portable repository gates; V2-M3 and V2-M7 through V2-M12 remain open. V2-M7 and V2-M8 now have in-progress portable foundations but are not yet accepted. Native target evidence remains a separate gate.)
 
 > This document is the **V2 Master Plan**. All V1 Contracts are inherited by default; only items explicitly marked “V2 supersede” in this document may change V1 behavior.
 >
@@ -3875,8 +3875,7 @@ Meshlet metadata
 - ✅ The CPU fallback performs deterministic correctness comparison with recorded backend output.
 
 Checked items are repository-level contract evidence. V2-M3 is accepted only after the remaining
-native target-host parity item passes; therefore the milestone and overall progress stay open at
-23%.
+native target-host parity item passes; therefore the milestone stays open and overall V2 progress remains 46%.
 
 ---
 
@@ -4028,6 +4027,16 @@ Budgeted Multi-world Self-play Orchestrator
 
 ## V2-M8 — Animation V2
 
+> **Portable Pose Search slice (2026-10-07):** ✅ `NexoraPoseSearch` provides a
+> Foundation-only optional feature extractor, deterministic weighted pose database builder,
+> canonical fingerprint, clip/time references, and exact tag-constrained search. Reordered input
+> and signed zero produce identical artifacts; invalid rebuilds preserve the previous database.
+> `animation.v2_m8_pose_search` checks 65,536 samples against an independent reference;
+> `build.pose_search_profiles` verifies enabled/disabled target and source graphs in six profiles.
+> Translation-only features do not establish compressed poses, retargeting, motion warping,
+> inertialization, sync groups, GPU execution, editor tooling, or Motion Matching acceptance.
+> V2-M8 remains in progress; overall V2 progress stays 46%.
+
 Construction:
 
 ```text
@@ -4048,7 +4057,7 @@ Motion Matching optional
 ✓ Compute / Vertex Skinning can be selected through the profile
 ✓ GPU crowd animation does not become gameplay event authority
 ✓ Motion Warping is ultimately resolved through CharacterMotor / Controller
-✓ Pose Search database can be rebuilt deterministically
+✅ Portable Pose Search database can be rebuilt deterministically (GPU/editor gates remain open)
 ```
 
 ---
