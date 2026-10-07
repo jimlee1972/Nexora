@@ -140,6 +140,76 @@ int Run() {
           "rejected recent-project root made the last-good store unreadable");
 #endif
 
+  const auto layout_path = root / ".nexora/editor-layout.ini";
+  const std::string layout = "[Window][Hierarchy]\nPos=0,0\n";
+  Require(writer.SaveEditorLayout(layout, &error) && writer.LoadEditorLayout(&error) == layout,
+          "layout fixture failed");
+  const auto layout_bytes = Read(layout_path);
+  const auto stage = fs::path(layout_path.string() + ".tmp");
+  Write(stage, "occupied layout staging");
+  for (const auto &invalid_layout :
+       {std::string{}, std::string(ProjectWorkspace::kMaximumEditorLayoutBytes + 1, 'a'),
+        std::string("bad\0layout", 10)}) {
+    Require(!writer.SaveEditorLayout(invalid_layout, &error) && !error.empty() &&
+                Read(layout_path) == layout_bytes && Read(stage) == "occupied layout staging",
+            "invalid layout save changed last-good bytes or unrelated staging");
+  }
+  fs::remove(stage);
+  Require(!observer.SaveEditorLayout(layout, &error) && Read(layout_path) == layout_bytes &&
+              !fs::exists(stage),
+          "read-only layout save changed the last-good file");
+  const std::string maximum_layout(ProjectWorkspace::kMaximumEditorLayoutBytes, 'a');
+  Require(writer.SaveEditorLayout(maximum_layout, &error) &&
+              observer.LoadEditorLayout(&error) == maximum_layout && error.empty(),
+          "maximum layout did not round-trip");
+  Write(layout_path, "schema=0\r\n" + maximum_layout);
+  Require(observer.LoadEditorLayout(&error) == maximum_layout,
+          "maximum legacy layout with CRLF header was rejected");
+  Write(layout_path, "schema=1\r\n[Window][Hierarchy]\r\nPos=0,0\r\n");
+  Require(observer.LoadEditorLayout(&error) == layout, "layout CRLF normalization failed");
+  std::string many_lines;
+  for (std::size_t index = 0; index < ProjectWorkspace::kMaximumEditorLayoutBytes / 2; ++index)
+    many_lines += "\r\n";
+  Write(layout_path, "schema=1\n" + many_lines);
+  Require(observer.LoadEditorLayout(&error) ==
+              std::string(ProjectWorkspace::kMaximumEditorLayoutBytes / 2, '\n'),
+          "maximum CRLF layout did not normalize");
+  for (const auto &invalid_file :
+       {std::string{}, std::string("schema=1\n"), std::string("schema=999\n") + layout,
+        std::string("schema=1\n") +
+            std::string(ProjectWorkspace::kMaximumEditorLayoutBytes + 1, 'a'),
+        std::string("schema=1\r\n") +
+            std::string(ProjectWorkspace::kMaximumEditorLayoutBytes + 1, 'a'),
+        std::string(4 * 1024 * 1024, 'a'), std::string("schema=1\nbad\0layout", 19)}) {
+    Write(layout_path, invalid_file);
+    Require(!observer.LoadEditorLayout(&error) && !error.empty() &&
+                Read(layout_path) == invalid_file,
+            "invalid layout was accepted or rewritten");
+  }
+  fs::remove(layout_path);
+  error = "stale";
+  Require(!observer.LoadEditorLayout(&error) && error.empty(),
+          "missing optional layout reported corruption or retained an error");
+  fs::create_directory(layout_path);
+  Require(!observer.LoadEditorLayout(&error) && !error.empty() && fs::is_directory(layout_path),
+          "directory layout was accepted or changed");
+  fs::remove(layout_path);
+#if !defined(_WIN32)
+  const auto layout_target = root / "aliased-layout";
+  Write(layout_target, layout_bytes);
+  fs::create_symlink(layout_target, layout_path);
+  Require(!observer.LoadEditorLayout(&error) && !error.empty() && fs::is_symlink(layout_path) &&
+              Read(layout_target) == layout_bytes,
+          "layout reader followed an alias or changed its target");
+  fs::remove(layout_path);
+  fs::create_symlink(root / "missing-layout-target", layout_path);
+  Require(!observer.LoadEditorLayout(&error) && !error.empty() && fs::is_symlink(layout_path),
+          "dangling layout alias was treated as missing");
+  fs::remove(layout_path);
+#endif
+  Require(writer.SaveEditorLayout(layout, &error) && observer.LoadEditorLayout(&error) == layout,
+          "layout did not recover after rejected inputs");
+
   fs::remove(primary);
   Require(observer.Open(root, ProjectAccess::ReadOnly, &error) && observer.OpenDocuments().empty(),
           "missing legacy workspace was no longer accepted");

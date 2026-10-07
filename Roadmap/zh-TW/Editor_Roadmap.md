@@ -619,6 +619,10 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
+- ✅ Project layout save／read 共用 1 MiB raw-payload 上限、有界 schema header 與線性 CRLF
+  normalization。Corrupt／NUL／over-budget 或 non-regular／aliased 檔案拒絕且不改寫；
+  雲端測試涵蓋 exact-limit schema-0／1 round trip 與 save 失敗的原檔保留。
+
 大型 project incremental index、virtualized UI、100k entity hierarchy、長時 soak、workspace migration、corrupt document recovery、signed extension policy、telemetry opt-in/privacy、keyboard-only與螢幕閱讀器 audit。
 
 - ✅ Portable tests 已涵蓋 100k-item virtual hierarchy range、trusted-publisher/signature policy，
