@@ -656,6 +656,9 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: graphical build frontend, remote deployment/logs, GPU/memory profiling, capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ Cloud documentation-routing Git fixtures now disable local automatic maintenance/GC before
+    commits, preventing detached housekeeping from racing strict temporary-directory cleanup.
+    Routing semantics and product/global Git settings remain unchanged.
   - ✅ Recovery presence now detects occupied/uninspectable paths, including directories and
     dangling aliases, preserving existing authoring/export/shutdown gates until explicit resolution.
     Tests cover rejected recovery, nonrecursive/read-only discard and actual 2x Profiler modal gating.

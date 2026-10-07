@@ -1439,3 +1439,9 @@ preserving last-good files and unrelated staging.
 ✅ ED build manifest admission 現在 IO 前驗證 UTF-8 metadata，並拒絕跨 host 的 absolute、
 traversal 與 ambiguous artifact path（含 component 尾端的句點／空白）；保留上一份有效檔案與
 無關 staging。完整圖形化驗收維持 0/8。
+
+✅ ED cloud routing-test Git fixtures now contain automatic maintenance/GC within their lifetime
+by disabling it locally before commits. Strict cleanup and build-routing checks remain in force.
+
+✅ ED cloud routing-test Git fixture 現在 commit 前關閉 local 自動 maintenance／GC，避免
+背景作業超出 lifetime；嚴格 cleanup 與 build-routing 檢查維持原樣。完整圖形化驗收維持 0/8。

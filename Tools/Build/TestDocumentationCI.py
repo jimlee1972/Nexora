@@ -18,6 +18,10 @@ class DocumentationCITests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.git("init", "-q", "-b", "main")
+        # Detached maintenance can outlive a commit and race TemporaryDirectory cleanup.
+        # These short-lived fixtures need no automatic housekeeping; keep the settings local.
+        self.git("config", "maintenance.auto", "false")
+        self.git("config", "gc.auto", "0")
         self.git("config", "user.email", "ci@example.test")
         self.git("config", "user.name", "CI Test")
         self.write("README.md", "# Documentation\n")
