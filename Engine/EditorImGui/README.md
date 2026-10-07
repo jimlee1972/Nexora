@@ -115,6 +115,16 @@ production retains ImGui's native platform defaults.
 - `RuntimeConsole` is borrowed for the frame. The Console panel takes an owning, bounded snapshot,
   filters severity and text, clips visible rows, and reports the producer's dropped-record count.
   It does not retain record references after drawing. The application owns ingress and timestamps.
+  Pause display captures one owning snapshot; producers continue admitting/evicting records and
+  filters operate on that frozen copy. Resume display releases the copy and reads current ingress.
+  Clear view hides all sequences present at its click, including records hidden by filters or
+  received while paused. It never removes producer records or resets cumulative drops; newer
+  records appear after resume. Visible/captured-or-retained counts distinguish display state from
+  ingress. These diagnostic controls do not write projects or consume authoring history.
+  Pause/clear scope follows ingress address identity and resets on a different/null binding; detach
+  with a null binding before reusing the same ingress storage for a new instance. No record storage
+  or ingress pointer is dereferenced between drawing calls. The captured copy is bounded by that
+  ingress's configured capacity and is replaced, not appended to, on the next pause.
 - `PlaySession` is borrowed for the frame. The docked Game panel reads an owning inspection
   snapshot and emits one-shot Start, Pause, Resume, Step, or Stop commands. F5 toggles Start/Stop,
   F6 toggles Pause/Resume, and F10 steps a paused session. The application owns the cloned World,

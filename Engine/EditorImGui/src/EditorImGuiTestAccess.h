@@ -84,6 +84,13 @@ public:
   ContentAssetPosition(const EditorImGuiHost &host, runtime::AssetUuid asset) noexcept;
   [[nodiscard]] static bool ContentDragActive(const EditorImGuiHost &host) noexcept;
   static void FocusProfiler(EditorImGuiHost &host) noexcept;
+  static void FocusConsole(EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ConsoleControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::size_t ConsoleVisibleCount(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::uint64_t>
+  ConsoleFirstVisibleSequence(const EditorImGuiHost &host) noexcept;
+  static void SetConsoleFilter(EditorImGuiHost &host, std::string_view text, int severity);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProfileExportPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>

@@ -159,6 +159,11 @@ shown in the Content panel and continue to block artifact publication.
 The docked Console now shows bounded structured records with text and severity filters, timestamps,
 source, and a dropped-record counter. The Editor records graphical startup and scene open/save
 results through the Runtime console; broader gameplay and build log routing remains open.
+Pause display freezes an owning log snapshot while Runtime producers continue; filters still apply
+to the frozen records. Resume reads current ingress. Clear view hides all records present at the
+click, including live records received during pause, while preserving the source buffer and its
+cumulative dropped count. Later logs remain visible. Display counts distinguish visible records
+from captured/retained records; controls perform no project writes or scene-history mutations.
 
 The docked Game panel now controls an isolated `PlaySession`: F5 starts or stops, F6 pauses or
 resumes, and F10 advances one paused fixed tick. The panel inspects copied Play World entity

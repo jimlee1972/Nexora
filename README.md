@@ -1392,3 +1392,13 @@ regression coverage is part of `editor.workspace_budget`; graphical acceptance r
 ✅ ED recent-project record 現在 mutation／staging 前拒絕超過 reader UTF-8 上限的 root／name，
 保留 last-good list 及 reopen 行為。Linux 長 root regression 納入 `editor.workspace_budget`；
 圖形化驗收維持 0/8。
+
+✅ ED Console now offers Pause/Resume display and Clear view. An owning frozen snapshot survives
+producer eviction; clearing hides current sequences while preserving ingress and cumulative drops.
+Window pointer/button tests cover 1x/2x DPI, filtering, background producers and repeated control cycles.
+Full graphical milestone acceptance remains 0/8.
+
+✅ ED Console 現提供 Pause／Resume display 及 Clear view。Owning frozen snapshot 保留 producer
+淘汰前的紀錄；clear 僅隱藏當下 sequence，保留 ingress 與 cumulative dropped count。
+滑鼠事件驅動測試涵蓋 1x／2x DPI、filter、background producer 與重複控制循環；
+完整圖形化 milestone 驗收維持 0/8。

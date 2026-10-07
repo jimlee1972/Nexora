@@ -132,6 +132,13 @@ struct EditorImGuiHost::State final {
   bool focus_initial_scene = false;
   ImGuiTextFilter console_filter;
   int console_min_severity = 0;
+  runtime::RuntimeConsole *console_scope = nullptr;
+  bool console_display_paused = false;
+  std::uint64_t console_clear_sequence = 0;
+  std::vector<runtime::RuntimeLogRecord> console_frozen_records;
+  std::array<std::optional<std::array<float, 2>>, 2> console_control_positions{};
+  std::size_t console_visible_count = 0;
+  std::optional<std::uint64_t> console_first_visible_sequence;
   std::string recovery_error;
   std::array<char, 128> hierarchy_filter{};
   std::array<char, 128> hierarchy_create_name{'E', 'n', 't', 'i', 't', 'y'};
@@ -3505,6 +3512,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->play_inspector_rendered = 0;
   state_->inspector_opaque_info.clear();
   state_->profile_export_position.reset();
+  state_->console_control_positions = {};
+  state_->console_visible_count = 0;
+  state_->console_first_visible_sequence.reset();
+  if (state_->console_scope != console) {
+    state_->console_scope = console;
+    state_->console_display_paused = false;
+    state_->console_clear_sequence = 0;
+    state_->console_frozen_records.clear();
+  }
   state_->play_apply_position.reset();
   state_->play_apply_confirm_position.reset();
   if (!game_running) {
@@ -4169,19 +4185,52 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       constexpr const char *levels[] = {"All", "Info+", "Warning+", "Error+"};
       ImGui::SetNextItemWidth(110.0F);
       ImGui::Combo("Severity###editor.console.severity", &state_->console_min_severity, levels, 4);
-      const auto records = console->Snapshot();
-      ImGui::Text("%zu records | %llu dropped", records.size(),
-                  static_cast<unsigned long long>(console->DroppedCount()));
+      auto live_records = state_->console_display_paused ? std::vector<runtime::RuntimeLogRecord>{}
+                                                         : console->Snapshot();
+      const auto control_position = [&](std::size_t control) {
+        const auto min = ImGui::GetItemRectMin();
+        const auto max = ImGui::GetItemRectMax();
+        state_->console_control_positions[control] =
+            std::array{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
+      };
+      if (ImGui::Button(state_->console_display_paused ? "Resume display###editor.console.pause"
+                                                       : "Pause display###editor.console.pause")) {
+        state_->console_display_paused = !state_->console_display_paused;
+        if (state_->console_display_paused)
+          state_->console_frozen_records = std::move(live_records);
+        else {
+          state_->console_frozen_records.clear();
+          live_records = console->Snapshot();
+        }
+      }
+      control_position(0);
+      ImGui::SameLine();
+      if (ImGui::Button("Clear view###editor.console.clear")) {
+        // Capture every record present at the click, including records hidden by filters/pause.
+        const auto current = console->Snapshot();
+        if (!current.empty())
+          state_->console_clear_sequence = current.back().sequence;
+        state_->console_frozen_records.clear();
+      }
+      control_position(1);
+      const auto &records =
+          state_->console_display_paused ? state_->console_frozen_records : live_records;
       std::vector<const runtime::RuntimeLogRecord *> visible;
       visible.reserve(records.size());
       const auto minimum = static_cast<runtime::RuntimeLogSeverity>(state_->console_min_severity);
       for (const auto &record : records) {
-        if (record.severity < minimum)
+        if (record.sequence <= state_->console_clear_sequence || record.severity < minimum)
           continue;
         const std::string searchable = record.category + " " + record.source + " " + record.message;
         if (state_->console_filter.PassFilter(searchable.c_str()))
           visible.push_back(&record);
       }
+      state_->console_visible_count = visible.size();
+      if (!visible.empty())
+        state_->console_first_visible_sequence = visible.front()->sequence;
+      ImGui::Text("%zu visible | %zu %s | %llu dropped", visible.size(), records.size(),
+                  state_->console_display_paused ? "captured (paused)" : "retained",
+                  static_cast<unsigned long long>(console->DroppedCount()));
       ImGui::BeginChild("Records###editor.console.records", ImVec2(0, 0), ImGuiChildFlags_Borders);
       ImGuiListClipper clipper;
       clipper.Begin(static_cast<int>(visible.size()));
@@ -5206,6 +5255,35 @@ void EditorImGuiTestAccess::FocusProfiler(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.profiler");
   ImGui::SetWindowFocus(name.c_str());
+}
+void EditorImGuiTestAccess::FocusConsole(EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto name = PanelWindowName("nexora.console");
+  ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ConsoleControlPosition(const EditorImGuiHost &host,
+                                              std::size_t control) noexcept {
+  return control < host.state_->console_control_positions.size()
+             ? host.state_->console_control_positions[control]
+             : std::nullopt;
+}
+std::size_t EditorImGuiTestAccess::ConsoleVisibleCount(const EditorImGuiHost &host) noexcept {
+  return host.state_->console_visible_count;
+}
+std::optional<std::uint64_t>
+EditorImGuiTestAccess::ConsoleFirstVisibleSequence(const EditorImGuiHost &host) noexcept {
+  return host.state_->console_first_visible_sequence;
+}
+void EditorImGuiTestAccess::SetConsoleFilter(EditorImGuiHost &host, std::string_view text,
+                                             int severity) {
+  auto &buffer = host.state_->console_filter.InputBuf;
+  const auto size = std::min(text.size(), sizeof(buffer) - 1);
+  if (size)
+    std::memcpy(buffer, text.data(), size);
+  buffer[size] = '\0';
+  host.state_->console_filter.Build();
+  host.state_->console_min_severity = std::clamp(severity, 0, 3);
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProfileExportPosition(const EditorImGuiHost &host) noexcept {
