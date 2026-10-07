@@ -123,7 +123,8 @@ public:
     vkGetPhysicalDeviceProperties(physical_, &deviceProperties);
     diagnostics_.softwareRasterizer = deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
     auto &identity = diagnostics_.device;
-    std::strncpy(identity.name.data(), deviceProperties.deviceName, identity.name.size() - 1);
+    std::memcpy(identity.name.data(), deviceProperties.deviceName,
+                sizeof(deviceProperties.deviceName));
     identity.vendorId = deviceProperties.vendorID;
     identity.deviceId = deviceProperties.deviceID;
     identity.deviceIdsAvailable = true;

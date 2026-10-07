@@ -959,7 +959,11 @@ std::string DeviceIdentityJson(const Nexora::Presentation::SurfaceDeviceInfo &de
   std::ostringstream out;
   out << "{\"name\":";
   if (device.name[0])
-    out << '"' << EscapeJson(device.name.data()) << '"';
+    out << '"'
+        << EscapeJson(std::string_view(device.name.data(),
+                                       std::find(device.name.begin(), device.name.end(), '\0') -
+                                           device.name.begin()))
+        << '"';
   else
     out << "null";
   out << ",\"vendor_id\":" << (device.deviceIdsAvailable ? std::to_string(device.vendorId) : "null")

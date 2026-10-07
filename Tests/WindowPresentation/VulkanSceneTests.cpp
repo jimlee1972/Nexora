@@ -595,7 +595,8 @@ int main(int argc, char **argv) {
     const auto diagnostics = surface->Diagnostics();
     Require(diagnostics.device.name[0] != '\0' && diagnostics.device.name.back() == '\0' &&
                 diagnostics.device.deviceIdsAvailable &&
-                diagnostics.device.driverVersionFormat == DriverVersionFormat::VulkanRaw,
+                diagnostics.device.driverVersionFormat ==
+                    Nexora::Presentation::DriverVersionFormat::VulkanRaw,
             "selected Vulkan device identity missing");
     Require(diagnostics.sceneDrawCalls == 27 && diagnostics.sceneInstances == 38 &&
                 diagnostics.acquiredFrames == 27 && diagnostics.presentedFrames == 27 &&
