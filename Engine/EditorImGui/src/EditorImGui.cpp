@@ -120,8 +120,10 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> play_apply_position;
   std::optional<std::array<float, 2>> play_apply_confirm_position;
   bool profile_export_requested = false;
+  bool profile_json_export_requested = false;
   std::string profile_export_status;
   std::optional<std::array<float, 2>> profile_export_position;
+  std::optional<std::array<float, 2>> profile_json_export_position;
   std::array<char, 1024> gameplay_library{};
   std::string gameplay_status;
   std::uint64_t gameplay_project_generation{};
@@ -3512,6 +3514,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->play_inspector_rendered = 0;
   state_->inspector_opaque_info.clear();
   state_->profile_export_position.reset();
+  state_->profile_json_export_position.reset();
   state_->console_control_positions = {};
   state_->console_visible_count = 0;
   state_->console_first_visible_sequence.reset();
@@ -4289,6 +4292,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       const auto export_max = ImGui::GetItemRectMax();
       state_->profile_export_position =
           std::array{(export_min.x + export_max.x) * 0.5F, (export_min.y + export_max.y) * 0.5F};
+      ImGui::SameLine();
+      if (ImGui::Button("Export JSON###editor.profiler.export-json"))
+        state_->profile_json_export_requested = true;
+      const auto json_min = ImGui::GetItemRectMin();
+      const auto json_max = ImGui::GetItemRectMax();
+      state_->profile_json_export_position =
+          std::array{(json_min.x + json_max.x) * 0.5F, (json_min.y + json_max.y) * 0.5F};
       ImGui::EndDisabled();
       if (!state_->profile_export_status.empty())
         ImGui::TextWrapped("%s", state_->profile_export_status.c_str());
@@ -4575,6 +4585,9 @@ std::optional<PlayTransformReview> EditorImGuiHost::TakePlayApplyRequest() {
 
 bool EditorImGuiHost::TakeProfileExportRequest() noexcept {
   return std::exchange(state_->profile_export_requested, false);
+}
+bool EditorImGuiHost::TakeProfileJsonExportRequest() noexcept {
+  return std::exchange(state_->profile_json_export_requested, false);
 }
 void EditorImGuiHost::SetProfileExportStatus(std::string message) {
   state_->profile_export_status = std::move(message);
@@ -5288,6 +5301,10 @@ void EditorImGuiTestAccess::SetConsoleFilter(EditorImGuiHost &host, std::string_
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProfileExportPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->profile_export_position;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProfileJsonExportPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_json_export_position;
 }
 
 std::optional<std::array<float, 2>>

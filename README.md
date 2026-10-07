@@ -1404,3 +1404,12 @@ Full graphical milestone acceptance remains 0/8.
 淘汰前的紀錄；clear 僅隱藏當下 sequence，保留 ingress 與 cumulative dropped count。
 滑鼠事件驅動測試涵蓋 1x／2x DPI、filter、background producer 與重複控制循環；
 完整圖形化 milestone 驗收維持 0/8。
+
+✅ ED Profiler now exports schema-1 JSON alongside CSV, with source/scope/unit/project metadata,
+lossless uint64 frame/drop strings, full double precision and explicit unavailable GPU/memory values.
+Window input and independent JSON-parser tests cover 1x/2x DPI and failure preservation; full
+graphical milestone acceptance remains 0/8.
+
+✅ ED Profiler 現在 CSV 之外支援 schema-1 JSON，包含 source／scope／unit／project metadata、
+無損 uint64 frame／drop 字串、完整 double 精度與明確不可用的 GPU／memory 值。
+Window input 與獨立 JSON parser 測試涵蓋 1x／2x DPI 及失敗時原檔保留；完整圖形化驗收維持 0/8。

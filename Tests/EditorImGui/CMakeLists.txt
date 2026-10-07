@@ -192,6 +192,10 @@ target_include_directories(NexoraProfilerExportTests PRIVATE "${PROJECT_SOURCE_D
 target_link_libraries(NexoraProfilerExportTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraProfilerExportTests)
 add_test(NAME editor.profiler_export COMMAND NexoraProfilerExportTests)
+add_test(NAME editor.profiler_json_schema
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/TestProfilerJson.py" "$<TARGET_FILE:NexoraProfilerExportTests>")
+add_test(NAME editor.profiler_json_schema_optimized
+  COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_CURRENT_SOURCE_DIR}/TestProfilerJson.py" "$<TARGET_FILE:NexoraProfilerExportTests>")
 
 add_executable(NexoraPlayApplyTests PlayApplyTests.cpp)
 target_include_directories(NexoraPlayApplyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")

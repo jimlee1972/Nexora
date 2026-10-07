@@ -418,7 +418,18 @@ cells because those measurements are unavailable. Export requires 1-600 strictly
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Comprehensive versioned capture/import, GPU timing and memory instrumentation remain open.
+file itself. Capture import, GPU timing and memory instrumentation remain open.
+
+Profiler Export JSON writes the companion `.nexora/frame-processing.json` under the same writer,
+sample-validation, recovery and atomic-replacement rules. Schema 1 records source `NexoraEditor`,
+metric `editor_frame_processing_wall_ms`, scope `after_begin_frame_before_present`, unit
+`milliseconds`, project UUID and sample count. Frame IDs and `older_frames_dropped` are decimal
+strings to preserve uint64 precision in JavaScript consumers. Wall times use locale-independent
+full double precision; availability flags are false and each GPU/memory value is JSON null even
+when a caller's FrameSample contains those fields. Export borrows samples only for the synchronous
+call and leaves CSV unchanged. `gpu_timing_available` and `memory_measurement_available` are false;
+each `samples` entry has `frame`, `frame_processing_wall_ms`, `gpu_ms` and `memory_bytes`.
+Schema/capture import and measured GPU/memory data remain open.
 
 Game Apply Changes is an explicit transform-only review. Opening it emits Pause when needed and
 releases Game input. The modal owns original/Editor/Play transforms and session/document/entity

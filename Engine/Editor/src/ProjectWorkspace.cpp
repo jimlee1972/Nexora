@@ -54,6 +54,20 @@ bool SafeLine(std::string_view value) {
          foundation::IsValidUtf8(value);
 }
 
+bool ValidateFrameProcessingSamples(std::span<const FrameSample> samples, std::string *error) {
+  std::uint64_t previous = 0;
+  for (const auto &sample : samples) {
+    if (sample.frame == 0 || sample.frame <= previous || !std::isfinite(sample.cpu_ms) ||
+        sample.cpu_ms < 0) {
+      if (error)
+        *error = "invalid or unordered Editor frame processing samples";
+      return false;
+    }
+    previous = sample.frame;
+  }
+  return true;
+}
+
 std::string PathUtf8(const std::filesystem::path &path) {
   const auto encoded = path.generic_u8string();
   std::string result;
@@ -685,18 +699,48 @@ bool ProjectWorkspace::ExportEditorFrameProcessing(std::span<const FrameSample> 
   csv.imbue(std::locale::classic());
   csv << std::setprecision(std::numeric_limits<double>::max_digits10);
   csv << "frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes\n";
-  std::uint64_t previous = 0;
+  if (!ValidateFrameProcessingSamples(samples, error))
+    return false;
   for (const auto &sample : samples) {
-    if (sample.frame == 0 || sample.frame <= previous || !std::isfinite(sample.cpu_ms) ||
-        sample.cpu_ms < 0) {
-      if (error)
-        *error = "invalid or unordered Editor frame processing samples";
-      return false;
-    }
-    previous = sample.frame;
     csv << sample.frame << ',' << sample.cpu_ms << ',' << dropped_frames << ",,\n";
   }
   return AtomicWrite(root_ / ".nexora/frame-processing.csv", csv.str(), error);
+}
+
+bool ProjectWorkspace::ExportEditorFrameProcessingJson(std::span<const FrameSample> samples,
+                                                       std::uint64_t dropped_frames,
+                                                       std::string *error) {
+  if (error)
+    error->clear();
+  if (!EnsureWritable(access_, error))
+    return false;
+  if (root_.empty() || HasRecoveryJournal() || samples.empty() || samples.size() > 600) {
+    if (error)
+      *error = "frame export requires 1-600 samples and a resolved project recovery journal";
+    return false;
+  }
+  if (!ValidateFrameProcessingSamples(samples, error))
+    return false;
+  std::ostringstream json;
+  json.imbue(std::locale::classic());
+  json << std::setprecision(std::numeric_limits<double>::max_digits10);
+  json << "{\n  \"schema\": 1,\n  \"source\": \"NexoraEditor\",\n"
+          "  \"metric\": \"editor_frame_processing_wall_ms\",\n"
+          "  \"scope\": \"after_begin_frame_before_present\",\n"
+          "  \"unit\": \"milliseconds\",\n  \"project_uuid\": \""
+       << project_.id.ToString() << "\",\n  \"sample_count\": " << samples.size()
+       << ",\n  \"older_frames_dropped\": \"" << dropped_frames
+       << "\",\n  \"gpu_timing_available\": false,\n"
+          "  \"memory_measurement_available\": false,\n  \"samples\": [\n";
+  for (std::size_t index = 0; index < samples.size(); ++index) {
+    const auto &sample = samples[index];
+    json << "    {\"frame\": \"" << sample.frame
+         << "\", \"frame_processing_wall_ms\": " << sample.cpu_ms
+         << ", \"gpu_ms\": null, \"memory_bytes\": null}"
+         << (index + 1 == samples.size() ? "\n" : ",\n");
+  }
+  json << "  ]\n}\n";
+  return AtomicWrite(root_ / ".nexora/frame-processing.json", json.str(), error);
 }
 
 bool ProjectWorkspace::SaveEditorLayout(std::string_view layout, std::string *error) {
