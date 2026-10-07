@@ -15,6 +15,7 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <d3d12.h>
 #include <d3dcompiler.h>
@@ -1202,8 +1203,12 @@ private:
                           &vertex, &errors)) ||
         FAILED(D3DCompile(scene_tonemap_hlsl_frag, sizeof(scene_tonemap_hlsl_frag),
                           "NexoraToneFragment", nullptr, nullptr, "toneFragmentMain", "ps_5_0", 0,
-                          0, &pixel, &errors)))
+                          0, &pixel, &errors))) {
+      if (errors)
+        std::fwrite(errors->GetBufferPointer(), 1,
+                    std::min<std::size_t>(errors->GetBufferSize(), 4096), stderr);
       return false;
+    }
     pipeline.pRootSignature = toneRootSignature_.Get();
     pipeline.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};
     pipeline.PS = {pixel->GetBufferPointer(), pixel->GetBufferSize()};
