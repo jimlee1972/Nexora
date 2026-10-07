@@ -2981,7 +2981,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[0].roughness = 0.85F;
     s.materials[0].occlusion = 0.45F;
     s.materials[0].normalScale = 0.2F;
-    s.materials[0].worldTextureScale = s.courtyardPbr ? 1.1F : 0;
+    // One authored sandstone repeat spans 2.5 metres, exposing broad erosion cracks.
+    s.materials[0].worldTextureScale = s.courtyardPbr ? 0.4F : 0;
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[0].textureId = 10;
     s.materials[0].normalTextureId = 11;
@@ -3069,7 +3070,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[10].roughness = 0.9F;
     s.materials[10].occlusion = 0.8F;
 #if NEXORA_ASSET_PIPELINE_ENABLED
-    s.materials[8].worldTextureScale = s.courtyardPbr ? 1.1F : 0;
+    s.materials[8].worldTextureScale = s.courtyardPbr ? 0.4F : 0;
     s.materials[8].normalScale = 0.14F;
     s.materials[8].textureId = 10;
     s.materials[8].normalTextureId = 11;
