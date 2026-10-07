@@ -21,7 +21,10 @@ bool SafePath(std::string_view path) {
   // every host; drive/stream syntax and separator aliases cannot depend on the writer's OS.
   const std::filesystem::path parsed(std::u8string(path.begin(), path.end()));
   return !parsed.is_absolute() && !parsed.has_root_name() &&
-         std::ranges::none_of(parsed, [](const auto &part) { return part == ".." || part == "."; });
+         std::ranges::none_of(parsed, [](const auto &part) {
+           const auto text = part.u8string();
+           return text.ends_with(u8'.') || text.ends_with(u8' ');
+         });
 }
 
 std::string Escape(std::string_view value) {

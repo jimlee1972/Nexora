@@ -1433,7 +1433,9 @@ publisher, preserving occupied staging and last-good files on failed replacement
 occupied staging 與 replace 失敗時的上一份有效檔案都會保留。完整圖形化驗收維持 0/8。
 
 ✅ ED build manifest admission now validates UTF-8 metadata and rejects cross-host absolute,
-traversal and ambiguous artifact paths before IO, preserving last-good files and unrelated staging.
+traversal and ambiguous artifact paths (including component-ending dots/spaces) before IO,
+preserving last-good files and unrelated staging.
 
 ✅ ED build manifest admission 現在 IO 前驗證 UTF-8 metadata，並拒絕跨 host 的 absolute、
-traversal 與 ambiguous artifact path；保留上一份有效檔案與無關 staging。完整圖形化驗收維持 0/8。
+traversal 與 ambiguous artifact path（含 component 尾端的句點／空白）；保留上一份有效檔案與
+無關 staging。完整圖形化驗收維持 0/8。

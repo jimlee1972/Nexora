@@ -157,14 +157,33 @@ void VerifyBuildManifestValidation(const std::filesystem::path &root) {
                 !fs::exists(missing_parent),
             "invalid manifest created directories before admission validation");
   };
-  for (const auto &path :
-       {std::string{}, std::string("C:/Windows/game.exe"), std::string("c:game.exe"),
-        std::string("bin/game.exe:stream"), std::string("/bin/game"),
-        std::string("\\\\server\\share\\game"), std::string("//server/share/game"),
-        std::string("bin\\game"), std::string("../game"), std::string("bin/../game"),
-        std::string("./game"), std::string("bin/./game"), std::string("bin//game"),
-        std::string("bin/game/"), std::string("bin/game\n"), std::string("bin/game\r"),
-        std::string("bin/game\t"), std::string("bin/game\x7f"), std::string("bin/ga\0me", 9)}) {
+  for (const auto &path : {std::string{},
+                           std::string("C:/Windows/game.exe"),
+                           std::string("c:game.exe"),
+                           std::string("bin/game.exe:stream"),
+                           std::string("/bin/game"),
+                           std::string("\\\\server\\share\\game"),
+                           std::string("//server/share/game"),
+                           std::string("bin\\game"),
+                           std::string("../game"),
+                           std::string("bin/../game"),
+                           std::string("./game"),
+                           std::string("bin/./game"),
+                           std::string("bin//game"),
+                           std::string("bin/game/"),
+                           std::string("bin/game\n"),
+                           std::string("bin/game\r"),
+                           std::string("bin/game\t"),
+                           std::string("bin/game\x7f"),
+                           std::string("bin/ga\0me", 9),
+                           std::string("bin/game.exe."),
+                           std::string("bin/game.exe "),
+                           std::string("dir/.. /evil.dll"),
+                           std::string("dir/../evil.dll"),
+                           std::string("dir. /game.exe"),
+                           std::string("dir./game.exe"),
+                           std::string("dir /game.exe"),
+                           std::string("dir/. /game")}) {
     auto invalid = manifest;
     invalid.artifacts.front().path = path;
     expect_rejected(invalid);

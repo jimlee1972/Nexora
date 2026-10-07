@@ -632,7 +632,8 @@ creates property widgets; unknown components retain raw data instead of being si
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
   - ✅ Build manifest admission now validates all metadata as UTF-8 and enforces host-independent
     relative artifact syntax, including Windows drive/stream rejection on Linux. Malformed text,
-    traversal and separator/control aliases reject before any IO, preserving last-good manifests
+    traversal, component-ending dots/spaces and separator/control aliases reject before any IO,
+    preserving last-good manifests
     and unrelated staging; cross-target CJK/supplementary paths and valid retry are tested.
   - ✅ Build manifest publication now streams locale-independent schema-1 JSON through the shared
     native-path atomic publisher. Occupied file/directory/valid/dangling stages and failed replacement

@@ -604,7 +604,8 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 - ✅ Build manifest admission 現驗證所有 metadata 的 UTF-8，並採 host-independent relative
   artifact syntax，包含在 Linux 拒絕 Windows drive／stream。Malformed text、traversal、
-  separator／control alias 在任何 IO 前拒絕，保留上一份有效 manifest 與無關 staging；
+  component 尾端句點／空白與 separator／control alias 在任何 IO 前拒絕，保留上一份有效
+  manifest 與無關 staging；
   測試涵蓋跨 target 的 CJK／supplementary path 與有效 retry。
 - ✅ Build manifest publication 現透過共用 native-path atomic publisher 串流寫入不受 locale
   影響的 schema-1 JSON。Occupied file／directory／valid／dangling stage 與 replace 失敗會保留
