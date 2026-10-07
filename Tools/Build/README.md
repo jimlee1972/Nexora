@@ -85,3 +85,7 @@ It checks the actual compile-source and target graphs: Development and Monolithi
 include PoseSearch with only a Foundation dependency; explicit OFF, Shipping Minimal/Dedicated,
 and headless builds omit its implementation and target. `build.pose_search_profiles` runs this
 gate through CTest. It does not replace compiling/testing the enabled library.
+
+`VerifyAnimationProfiles.py` checks the optional Foundation-only `NexoraAnimation` target and source
+graph in Development, explicit OFF, Shipping Minimal/Full/Dedicated, and headless profiles. Only
+Development and Shipping Full include pose storage/retarget code; Full uses Monolithic linkage.
