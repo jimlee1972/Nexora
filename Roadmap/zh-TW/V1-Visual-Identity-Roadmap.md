@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 原創水晶石盆上部輪廓與放射支肋提高 0.15 世界單位，盆腳與平面範圍維持一致。實際共同時鐘的升降最低點幾何測試確認水晶仍高於盆口。Linux 完整 configure/build 與 102/102 測試通過（122.48 秒，core/sync validation）；Shipping 隔離原生驗收、風／反射精確還原與實際 100 秒動畫影片通過（壁鐘 101.23 秒）。凍結版本 `586d14295ad3b70a44e2a59083f8f398fe86ef33`；證據：`Apps/Showcase/evidence/VIS-Crystal-Basin-Linux-2026-10-07/`。Standard 維持 60,097 vertices、138,150 indices、389 batches、46 materials；HDR、skybox、風與動畫持續運作。預覽圖一致性與實體 GPU／顯示器驗收仍未完成（VIS 5/7）。
+
 ✅ 原生草葉整合保留已接受主線 `27bc395f6bb3`，包括 Editor journal／復原更新。Linux 完整 configure/build 與 102/102 測試通過（126.02 秒，core/sync validation）。Showcase 原始碼與留存的 `c17e9cf` Shipping／100 秒影片凍結版本逐 byte 相同；原始證據完整保留。最新整合日誌：`Apps/Showcase/evidence/VIS-Native-Grass-Integration-Linux-2026-10-07/main-integration/`。VIS 維持 5/7；最終預覽圖一致性與實體 GPU／顯示器驗收仍未完成。
 
 ✅ 原創細草生長於庭院鋪面間，保留根部固定的 GPU 風動、雙面 PBR、薄片透光、原生陰影與平面反射。水晶核心依高度分組；克制符文輻射與霧面青銅保留水晶 HDR bloom 和共同動畫時鐘。最新主線的原生裝置來源與品質量測功能完整保留。Linux 完整 configure/build 與 101/101 測試通過（119.84 秒，core/sync validation）；Shipping 隔離原生驗收、風／反射精確還原與實際 100 秒動畫影片通過（壁鐘 101.15 秒）。凍結版本 `c17e9cfb5a1365fbca8f43fce12941bca61f3206`；證據：`Apps/Showcase/evidence/VIS-Native-Grass-Integration-Linux-2026-10-07/`。Standard：60,097 vertices、138,150 indices、389 batches、46 materials、3,534 張來源植被 quad。預覽圖一致性與實體 GPU／顯示器驗收仍未完成，VIS 維持 5/7。

@@ -1092,11 +1092,11 @@ struct RoomSession::State final {
     const std::array<std::array<float, 2>, 8> basin{{{0, 1.04F},
                                                      {0.48F, 1.04F},
                                                      {0.34F, 1.22F},
-                                                     {0.42F, 1.6F},
-                                                     {0.78F, 1.75F},
-                                                     {0.8F, 1.87F},
-                                                     {0.62F, 1.87F},
-                                                     {0, 1.76F}}};
+                                                     {0.42F, 1.75F},
+                                                     {0.78F, 1.9F},
+                                                     {0.8F, 2.02F},
+                                                     {0.62F, 2.02F},
+                                                     {0, 1.91F}}};
     Lathe({0, 0, 0.45F}, basin);
     for (unsigned rib = 0; rib < 12; ++rib) {
       const float angle = rib * 2 * math::kPi / 12;
@@ -1104,8 +1104,8 @@ struct RoomSession::State final {
         return math::Vector3{r * std::cos(angle), y, 0.45F + r * std::sin(angle)};
       };
       Segment(point(0.54F, 1.08F), point(0.39F, 1.3F), 0.045F);
-      Segment(point(0.39F, 1.3F), point(0.47F, 1.57F), 0.04F);
-      Segment(point(0.47F, 1.57F), point(0.73F, 1.76F), 0.045F);
+      Segment(point(0.39F, 1.3F), point(0.47F, 1.72F), 0.04F);
+      Segment(point(0.47F, 1.72F), point(0.73F, 1.91F), 0.045F);
     }
     finish(0);
     // Original shallow stone relief around the middle pedestal tier.
