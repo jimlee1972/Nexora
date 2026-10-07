@@ -41,7 +41,7 @@ struct Fixture final {
     draw.materials = materials;
     draw.batches = batches;
     draw.pbr = draw.hdr = draw.offscreen = true;
-    std::fill(std::begin(draw.model_view_projection), std::end(draw.model_view_projection), 0);
+    std::fill(std::begin(draw.model_view_projection), std::end(draw.model_view_projection), 0.0F);
     const float f = 1 / std::tan(0.425F);
     draw.model_view_projection[0] = f * height / width;
     draw.model_view_projection[5] = f;

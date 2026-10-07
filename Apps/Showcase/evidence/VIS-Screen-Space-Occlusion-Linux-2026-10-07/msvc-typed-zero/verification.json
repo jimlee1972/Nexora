@@ -1,0 +1,10 @@
+{
+  "change": "Use float zero in the fixture matrix initializer to avoid MSVC C4244 under warnings-as-errors",
+  "fixture_sha256": "e78779b6741a2ed1b46cc08dcb06f5bae4a31e5b6448f2f18aaef51cdb4f4af8",
+  "tested_authoring_head": "923f25f442c6492cc1b242273ba2e58d5a4ecb2f",
+  "scope": "Full Linux authoring gate includes the separately verified landmark-cypress art; AO runtime implementation and native release freeze 60e6a54621fe3bcfedf4b6d5b3ccd8e5419b05b3 remain unchanged",
+  "tests": 104,
+  "tests_seconds": 134.11,
+  "core_and_synchronization_validation": true,
+  "windows_ci_verification": "pending corrected PR head"
+}
