@@ -24,8 +24,17 @@ macOS, Android, or iOS validation ran in the Linux cloud environment.
 - Keep `Roadmap/en/` and `Roadmap/zh-TW/` synchronized.
 - After every content change, review all roadmap documents for affected delivered functionality.
   Mark every newly completed item with the green `✅` symbol (never `[x]`), keep incomplete items
-  unmarked, and update the progress or supporting status text in the repository-root `README.md`
-  (the GitHub README). Do not claim completion without acceptance evidence.
+  unmarked, and record detailed completion status and acceptance evidence in the relevant roadmap,
+  module documentation, or evidence files. Do not claim completion without acceptance evidence.
+- Keep the repository-root `README.md` (the GitHub README) concise and reader-facing. Roadmap
+  coverage there must stay at the level of a brief overall progress or major milestone summary,
+  with links to `Roadmap/` for details. Update that summary only when the overall progress or a
+  major milestone changes; completing a supporting task does not require a README update.
+  Do not append per-task completion entries, implementation histories, test counts/timings,
+  CI build numbers, commit hashes, or detailed acceptance logs to the GitHub README. Put those
+  details in the relevant roadmap, module documentation, or evidence files instead. Before
+  finishing a documentation change, check that the GitHub README has not accumulated such
+  detailed progress entries. Follow this rule unless the user explicitly requests otherwise.
 - Declare module dependencies in `Config/Modules/modules.json`; optional modules require a feature
   option.
 - Update the applicable contract README when ownership, lifetime, threading, error, or deferred-work
