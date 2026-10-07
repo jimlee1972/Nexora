@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 花器旁灌木改用較小的分層橄欖葉片與細木莖；提高葉片反射色，保留原始貼圖且不增加自發光。完整 Linux configure/build 與 102/102 測試通過（123.25 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 101.37 秒）。來源凍結 `d95b337dd41ffe42f736bc3bb91428f0f211cd1d`；證據：`Apps/Showcase/evidence/VIS-Layered-Shrubs-Linux-2026-10-07/`。Standard 使用 60,865 頂點、140,070 索引、393 batches、46 材質。HDR、skybox 與共用時鐘動畫保持運作；預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
 ✅ 原創水晶石盆上部輪廓與放射支肋提高 0.15 世界單位，盆腳與平面範圍維持一致。實際共同時鐘的升降最低點幾何測試確認水晶仍高於盆口。Linux 完整 configure/build 與 102/102 測試通過（122.48 秒，core/sync validation）；Shipping 隔離原生驗收、風／反射精確還原與實際 100 秒動畫影片通過（壁鐘 101.23 秒）。凍結版本 `586d14295ad3b70a44e2a59083f8f398fe86ef33`；證據：`Apps/Showcase/evidence/VIS-Crystal-Basin-Linux-2026-10-07/`。Standard 維持 60,097 vertices、138,150 indices、389 batches、46 materials；HDR、skybox、風與動畫持續運作。預覽圖一致性與實體 GPU／顯示器驗收仍未完成（VIS 5/7）。
 
 ✅ 原生草葉整合保留已接受主線 `27bc395f6bb3`，包括 Editor journal／復原更新。Linux 完整 configure/build 與 102/102 測試通過（126.02 秒，core/sync validation）。Showcase 原始碼與留存的 `c17e9cf` Shipping／100 秒影片凍結版本逐 byte 相同；原始證據完整保留。最新整合日誌：`Apps/Showcase/evidence/VIS-Native-Grass-Integration-Linux-2026-10-07/main-integration/`。VIS 維持 5/7；最終預覽圖一致性與實體 GPU／顯示器驗收仍未完成。
