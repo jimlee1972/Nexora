@@ -46,6 +46,9 @@ selection, transactional rejection, finite extremes, feature extraction, and max
 search against an independent reference. `build.pose_search_profiles` checks CMake File API target
 and source graphs across six profile configurations, including the Foundation-only dependency
 and Modular/Monolithic linkage. These gates accept only this portable Pose Search slice. Compute
-skinning, GPU pose sampling, compressed poses, retarget V2, motion warping, inertialization, sync
+skinning, GPU pose sampling, motion warping, inertialization, sync
 groups, editor visualization, cooked database loading, and optional Motion Matching remain open;
 V2-M8 and total V2 progress remain unaccepted/46%.
+
+Portable compressed pose storage and explicit local bind-space retargeting are delivered separately
+by [NexoraAnimation](../Animation/README.md), without introducing a dependency on PoseSearch.

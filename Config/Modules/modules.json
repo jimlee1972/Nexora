@@ -24,6 +24,13 @@
       ]
     },
     {
+      "name": "Animation",
+      "feature": "NEXORA_ENABLE_ANIMATION_V2",
+      "dependencies": [
+        "Foundation"
+      ]
+    },
+    {
       "name": "PoseSearch",
       "feature": "NEXORA_ENABLE_POSE_SEARCH",
       "dependencies": [

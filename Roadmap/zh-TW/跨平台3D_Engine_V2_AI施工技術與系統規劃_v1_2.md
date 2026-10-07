@@ -2298,12 +2298,21 @@ cache 隔離與失敗 containment。Production NavMesh streaming、job-system ad
 
 # V2-M8 Portable Pose Search 狀態
 
+> **Portable 壓縮姿態／local retarget 切片（2026-10-07）：** ✅ `NexoraAnimation`
+> 新增版本化 little-endian QuantizedTRS 儲存、具容量限制的 transactional load/build、
+> quaternion canonicalization、fractional-frame sampling 與驗證階層對應的 local bind-space retarget。
+> `animation.v2_m8_pose_storage_retarget` 驗證 8,192 筆姿態、損壞資料、數值極值、move 安全及
+> retarget 拒絕行為；`build.animation_profiles` 檢查六種 profile 的啟用／剝除 target 與 source graph。
+> 詳見[模組 contract](../../Engine/Animation/README.md)與[驗收證據](../../Tests/Animation/acceptance.md)。
+> GPU 執行、motion warping、inertialization、sync group、改變拓樸的 retarget 與 editor/cook 整合仍待完成。
+> V2-M8 仍進行中；V2 整體進度維持 46%。
+
 > **Portable Pose Search 切片（2026-10-07）：** ✅ `NexoraPoseSearch` 提供只依賴
 > Foundation 的 optional feature extractor、deterministic weighted pose database builder、
 > canonical fingerprint、clip/time reference 與精確 tag-constrained search。輸入順序與 signed
 > zero 不影響產物；無效重建會保留舊資料庫。`animation.v2_m8_pose_search` 以 65,536 筆資料
 > 比對獨立 reference；`build.pose_search_profiles` 驗證六種 profile 的啟用／停用 target 與
-> source graph。Translation-only feature 不代表 compressed pose、retargeting、motion warping、
+> source graph。Translation-only Pose Search feature 不代表 motion warping、
 > inertialization、sync group、GPU execution、editor tooling 或 Motion Matching 已驗收。
 > V2-M8 仍進行中；V2 整體進度維持 46%。
 

@@ -4027,13 +4027,23 @@ Budgeted Multi-world Self-play Orchestrator
 
 ## V2-M8 — Animation V2
 
+> **Portable compressed pose / local retarget slice (2026-10-07):** ✅ `NexoraAnimation`
+> adds versioned little-endian QuantizedTRS storage, transactional bounded load/build,
+> quaternion canonicalization, fractional-frame sampling, and explicit hierarchy-validated
+> local bind-space retargeting. `animation.v2_m8_pose_storage_retarget` covers 8,192 poses,
+> malformed data, numeric extremes, move safety, and retarget rejection; `build.animation_profiles`
+> verifies enabled/stripped graphs in six profiles. See [the module contract](../../Engine/Animation/README.md)
+> and [acceptance evidence](../../Tests/Animation/acceptance.md). GPU execution, motion warping,
+> inertialization, sync groups, topology-changing retargeting, and editor/cook integration remain open.
+> V2-M8 remains in progress and overall V2 progress remains 46%.
+
 > **Portable Pose Search slice (2026-10-07):** ✅ `NexoraPoseSearch` provides a
 > Foundation-only optional feature extractor, deterministic weighted pose database builder,
 > canonical fingerprint, clip/time references, and exact tag-constrained search. Reordered input
 > and signed zero produce identical artifacts; invalid rebuilds preserve the previous database.
 > `animation.v2_m8_pose_search` checks 65,536 samples against an independent reference;
 > `build.pose_search_profiles` verifies enabled/disabled target and source graphs in six profiles.
-> Translation-only features do not establish compressed poses, retargeting, motion warping,
+> Translation-only Pose Search features do not establish motion warping,
 > inertialization, sync groups, GPU execution, editor tooling, or Motion Matching acceptance.
 > V2-M8 remains in progress; overall V2 progress stays 46%.
 
@@ -4042,8 +4052,8 @@ Construction:
 ```text
 Compute Skinning
 GPU Pose Sampling
-Compressed Pose
-Runtime Retarget V2
+✅ Compressed Pose (portable QuantizedTRS storage)
+Runtime Retarget V2 (✅ portable local bind-space mapping; production integration open)
 Motion Warping
 Inertialization
 Sync Group
