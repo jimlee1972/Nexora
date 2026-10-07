@@ -1,5 +1,15 @@
 # Nexora Presentation contract (WP-M4)
 
+`SurfaceDiagnostics::device` copies the selected native device's UTF-8 name and observed IDs/driver
+version into bounded value storage. It allocates no memory, owns no native handle, follows the
+existing diagnostics render-thread contract, and survives resize and drain. Vulkan supplies
+`VkPhysicalDeviceProperties` vendor/device IDs and the raw vendor-specific 32-bit driver value;
+DX12 supplies DXGI adapter IDs and a 64-bit UMD version only if `CheckInterfaceSupport` succeeds.
+Metal supplies its selected `MTLDevice` name; IDs and driver version remain unavailable. Empty names,
+`deviceIdsAvailable=false` and `DriverVersionFormat::Unavailable` explicitly denote missing data.
+This extends the rebuild-required C++ diagnostics value type without changing the stable C/Gameplay
+ABI or module dependencies. Device identity does not establish GPU timing or physical acceptance.
+
 `RenderSurface` is the application-facing owner shared by Showcase and Editor Scene/Game views. It
 owns one window system, window, and `ISurface`, forwards normalized events and resize state, and always
 destroys the GPU surface before its window. Runtime remains independent of Presentation and Editor.

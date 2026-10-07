@@ -90,6 +90,10 @@ int main(int argc, char **argv) {
         SurfaceDescriptor{window.handle, 640, 360, 2, PresentMode::VSync, ColorSpace::Srgb,
                           SurfaceBackend::Metal},
         *windows);
+    const auto identity = surface->Diagnostics().device;
+    if (!identity.name[0] || identity.name.back() != '\0' || identity.deviceIdsAvailable ||
+        identity.driverVersionFormat != DriverVersionFormat::Unavailable)
+      return fail(__LINE__);
     const auto require = [](SurfaceStatus actual, SurfaceStatus expected) {
       if (actual != expected) {
         std::cerr << "Unexpected surface status: " << static_cast<int>(actual) << " expected "

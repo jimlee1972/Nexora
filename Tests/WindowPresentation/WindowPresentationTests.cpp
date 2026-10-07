@@ -296,7 +296,12 @@ int main() {
   assert(diagnostics.acquiredFrames == 4);
   assert(diagnostics.presentedFrames == 4);
   assert(diagnostics.resizeGenerations == 1);
+  assert(diagnostics.device.name[0] != '\0');
+  assert(diagnostics.device.name.back() == '\0');
+  assert(diagnostics.device.deviceIdsAvailable);
+  const auto deviceBeforeDrain = diagnostics.device;
   assert(nativeSurface->DrainAndDestroy() == Presentation::SurfaceStatus::Ready);
+  assert(nativeSurface->Diagnostics().device.name == deviceBeforeDrain.name);
   assert(nativeWindows->Destroy(native.handle) == Window::WindowError::None);
 
   for (int iteration = 0; iteration != 8; ++iteration) {

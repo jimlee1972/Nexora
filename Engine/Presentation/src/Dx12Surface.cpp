@@ -62,6 +62,25 @@ public:
       factory_->EnumWarpAdapter(IID_PPV_ARGS(&adapter));
       D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device_));
     }
+    if (device_ && adapter) {
+      DXGI_ADAPTER_DESC1 desc{};
+      if (SUCCEEDED(adapter->GetDesc1(&desc))) {
+        auto &identity = diagnostics_.device;
+        if (!WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, desc.Description, -1,
+                                 identity.name.data(), static_cast<int>(identity.name.size()),
+                                 nullptr, nullptr))
+          identity.name.fill(0);
+        identity.vendorId = desc.VendorId;
+        identity.deviceId = desc.DeviceId;
+        identity.deviceIdsAvailable = true;
+        diagnostics_.softwareRasterizer = (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0;
+        LARGE_INTEGER version{};
+        if (SUCCEEDED(adapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &version))) {
+          identity.driverVersion = static_cast<std::uint64_t>(version.QuadPart);
+          identity.driverVersionFormat = DriverVersionFormat::DxgiUmd;
+        }
+      }
+    }
     D3D12_COMMAND_QUEUE_DESC q{};
     if (!device_ || FAILED(device_->CreateCommandQueue(&q, IID_PPV_ARGS(&queue_))))
       return;
