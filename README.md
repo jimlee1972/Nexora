@@ -1413,3 +1413,9 @@ graphical milestone acceptance remains 0/8.
 ✅ ED Profiler 現在 CSV 之外支援 schema-1 JSON，包含 source／scope／unit／project metadata、
 無損 uint64 frame／drop 字串、完整 double 精度與明確不可用的 GPU／memory 值。
 Window input 與獨立 JSON parser 測試涵蓋 1x／2x DPI 及失敗時原檔保留；完整圖形化驗收維持 0/8。
+
+✅ ED project layout persistence now enforces a shared 1 MiB payload budget on save/read, bounded
+schema headers and linear CRLF normalization, preserving last-good files on rejected saves.
+
+✅ ED project layout persistence 的 save／read 現共用 1 MiB payload 上限、有界 schema header
+與線性 CRLF normalization；save 被拒絕時保留上一份有效檔案。完整圖形化驗收維持 0/8。

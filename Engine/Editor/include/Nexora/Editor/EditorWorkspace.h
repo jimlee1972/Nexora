@@ -58,6 +58,7 @@ class NEXORA_EDITOR_API ProjectWorkspace final {
 public:
   static constexpr std::size_t kMaximumDocuments = 4096;
   static constexpr std::size_t kMaximumDocumentPathBytes = 1024;
+  static constexpr std::size_t kMaximumEditorLayoutBytes = 1024 * 1024;
   ProjectWorkspace();
   ~ProjectWorkspace();
   ProjectWorkspace(ProjectWorkspace &&) noexcept;

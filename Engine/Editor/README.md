@@ -70,7 +70,11 @@ into renderer or platform internals.
   UTF-8 record limits before changing the retained list or writing a stage. Unsupported project
   paths report an error and preserve the last-good store, instead of publishing an unreadable list.
   Versioned Editor layout payloads are persisted separately and never use Dear ImGui's unmanaged
-  global ini file. Gameplay library selection is an independent `.nexora/gameplay-library.ini`
+  global ini file. Layout save/read share a 1 MiB raw-payload limit; schema-0/1 headers
+  are bounded, embedded NUL and non-regular/aliased files reject with an error, and only a missing
+  file returns no layout without error. CRLF payload normalization is linear. Invalid/oversized
+  saves preserve the last-good layout and any unrelated staging path. Gameplay library selection
+  is an independent `.nexora/gameplay-library.ini`
   schema-1 payload, capped below 1100 bytes on read. Empty selects inspection-only Play. UTF-8
   relative paths are limited to 1023 bytes; roots, traversal, backslashes, colons, control separators,
   unknown schemas, and extra records are rejected. Missing files return no setting; corrupt files

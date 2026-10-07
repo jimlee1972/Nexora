@@ -647,6 +647,9 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: graphical build frontend, remote deployment/logs, GPU/memory profiling, capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ Project layout save/read share a 1 MiB raw-payload budget, bounded schema headers and linear
+    CRLF normalization. Corrupt/NUL/over-budget or non-regular/aliased files reject without mutation;
+    exact-limit schema-0/1 round trips and failed-save preservation are covered by cloud tests.
   - ✅ 100k-item virtual hierarchy ranges, trusted-publisher/signature policy, and telemetry that
     drops events until explicit opt-in are covered by portable tests.
   - Open: graphical performance/soak acceptance, workspace migrations, corrupt-document recovery,

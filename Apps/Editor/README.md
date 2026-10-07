@@ -546,3 +546,7 @@ reimport; no World borrow escapes. Representable small affine scales remain visi
 while nonfinite/singular/overflowing float conversions increment unavailable and omit that object
 without rejecting the entire frame. `editor.game_view_preview` checks mirrored/sheared ancestry,
 stale-snapshot post-tick matrices, clone isolation, frozen geometry and frame ownership.
+
+Project-owned layout save/read is capped at 1 MiB of raw payload. Missing layout permits the default
+dock arrangement; corrupt, oversized or aliased layout reports an error without rewriting the file.
+Schema 0/1 and CRLF remain supported. Invalid saves preserve the last-good layout and occupied staging.

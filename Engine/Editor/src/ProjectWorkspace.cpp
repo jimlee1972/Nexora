@@ -748,9 +748,10 @@ bool ProjectWorkspace::SaveEditorLayout(std::string_view layout, std::string *er
     error->clear();
   if (!EnsureWritable(access_, error))
     return false;
-  if (root_.empty() || layout.empty() || layout.find('\0') != std::string_view::npos) {
+  if (root_.empty() || layout.empty() || layout.size() > kMaximumEditorLayoutBytes ||
+      layout.find('\0') != std::string_view::npos) {
     if (error)
-      *error = "editor layout is empty or invalid";
+      *error = "editor layout is empty, invalid or exceeds the byte limit";
     return false;
   }
   return AtomicWrite(root_ / ".nexora/editor-layout.ini", "schema=1\n" + std::string(layout),
@@ -760,37 +761,54 @@ bool ProjectWorkspace::SaveEditorLayout(std::string_view layout, std::string *er
 std::optional<std::string> ProjectWorkspace::LoadEditorLayout(std::string *error) const {
   if (error)
     error->clear();
-  std::ifstream input(root_ / ".nexora/editor-layout.ini", std::ios::binary);
+  const auto fail = [&](std::string_view reason) -> std::optional<std::string> {
+    if (error)
+      *error = reason;
+    return std::nullopt;
+  };
+  const auto path = root_ / ".nexora/editor-layout.ini";
+  std::error_code ec;
+  const auto status = std::filesystem::symlink_status(path, ec);
+  if (ec == std::errc::no_such_file_or_directory ||
+      (!ec && status.type() == std::filesystem::file_type::not_found))
+    return std::nullopt;
+  if (ec || !std::filesystem::is_regular_file(status))
+    return fail("editor layout is unavailable or unsafe");
+  std::ifstream input(path, std::ios::binary);
   if (!input)
-    return std::nullopt;
-  std::string schema;
-  if (!std::getline(input, schema)) {
-    if (error)
-      *error = "invalid or unsupported editor layout";
-    return std::nullopt;
+    return fail("could not read editor layout");
+  // Include the longest supported schema header (CRLF); never accumulate an unbounded line.
+  constexpr auto maximum_file_bytes = kMaximumEditorLayoutBytes + 10;
+  std::string bytes;
+  std::array<char, 4096> buffer{};
+  while (input) {
+    const auto requested = std::min(buffer.size(), maximum_file_bytes - bytes.size() + 1);
+    input.read(buffer.data(), static_cast<std::streamsize>(requested));
+    const auto count = static_cast<std::size_t>(input.gcount());
+    if (count > maximum_file_bytes - bytes.size())
+      return fail("editor layout exceeds the byte limit");
+    bytes.append(buffer.data(), count);
   }
+  if (input.bad() || !input.eof())
+    return fail("could not read editor layout");
+  const auto newline = bytes.find('\n');
+  if (newline == std::string::npos || newline > 9)
+    return fail("invalid or unsupported editor layout");
+  auto schema = bytes.substr(0, newline);
   StripCarriageReturn(schema);
-  if (schema != "schema=0" && schema != "schema=1") {
-    if (error)
-      *error = "invalid or unsupported editor layout";
-    return std::nullopt;
+  if (schema != "schema=0" && schema != "schema=1")
+    return fail("invalid or unsupported editor layout");
+  auto layout = bytes.substr(newline + 1);
+  if (layout.empty() || layout.size() > kMaximumEditorLayoutBytes ||
+      layout.find('\0') != std::string::npos)
+    return fail("editor layout is empty, invalid or exceeds the byte limit");
+  std::size_t output = 0;
+  for (std::size_t position = 0; position < layout.size(); ++position) {
+    if (layout[position] == '\r' && position + 1 < layout.size() && layout[position + 1] == '\n')
+      continue;
+    layout[output++] = layout[position];
   }
-  std::ostringstream contents;
-  contents << input.rdbuf();
-  if (!input.good() && !input.eof()) {
-    if (error)
-      *error = "could not read editor layout";
-    return std::nullopt;
-  }
-  auto layout = contents.str();
-  for (auto position = layout.find("\r\n"); position != std::string::npos;
-       position = layout.find("\r\n", position))
-    layout.replace(position, 2, "\n");
-  if (layout.empty()) {
-    if (error)
-      *error = "editor layout is empty";
-    return std::nullopt;
-  }
+  layout.resize(output);
   return layout;
 }
 
