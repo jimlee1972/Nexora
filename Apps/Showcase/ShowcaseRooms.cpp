@@ -146,6 +146,7 @@ struct RoomSession::State final {
   std::vector<Nexora::Presentation::SceneInstance> courtyardInstances;
   std::size_t courtyardCrystalFirst{}, courtyardCrystalEnd{};
   std::size_t courtyardReflectionDeviceIndexEnd{};
+  std::array<std::array<std::uint32_t, 2>, 2> courtyardShrubStemRanges{};
   std::vector<std::uint16_t> courtyardIndices;
   std::vector<Nexora::Presentation::SceneMeshBatch> courtyardBatches;
   std::array<std::byte, 8 * 8 * 4> checker{};
@@ -830,7 +831,13 @@ struct RoomSession::State final {
     for (const auto &batch : sourceBatches) {
       // Bound planar work to the focal device, vessels, foliage, pennants and sky.
       // Distant ruins/terrain and the water surface never participate recursively.
-      if (!(batch.materialIndex >= 18 && batch.materialIndex <= 20) &&
+      const bool shrubStem =
+          batch.materialIndex == 10 &&
+          std::any_of(courtyardShrubStemRanges.begin(), courtyardShrubStemRanges.end(),
+                      [&](const auto &range) {
+                        return batch.firstIndex == range[0] && batch.indexCount == range[1];
+                      });
+      if (!shrubStem && !(batch.materialIndex >= 18 && batch.materialIndex <= 20) &&
           batch.firstIndex + batch.indexCount > courtyardReflectionDeviceIndexEnd &&
           batch.materialIndex != 2 && batch.materialIndex != 3 && batch.materialIndex != 5 &&
           batch.materialIndex != 6 && batch.materialIndex != 7 && batch.materialIndex != 11 &&
@@ -1269,6 +1276,7 @@ struct RoomSession::State final {
         Cube(x, 1.3F, -4, 0.25F, 1.3F, 0.3F);
     }
     finish(0);
+    std::size_t shrubStemRange = 0;
     for (const float x : {-3.5F, 3.5F}) {
       const std::array<std::array<float, 2>, 10> vessel{{{0, 0},
                                                          {0.22F, 0},
@@ -1312,9 +1320,19 @@ struct RoomSession::State final {
       finish(17);
       for (unsigned i = 0; i < (8U << courtyardQuality); ++i) {
         const float z = -3.0F + i * (2.88F / (8U << courtyardQuality));
-        LeafQuad({x + static_cast<float>(i % 3) * 0.15F, 0, z}, 0.35F, 0.85F + (i % 4) * 0.09F,
-                 i * 0.73F);
-        LeafQuad({x - 0.15F, 0, z}, 0.32F, 0.9F, i * 0.73F + 1.57F);
+        Segment({x, 0.02F, z}, {x, 0.62F, z}, 0.012F);
+      }
+      finish(10);
+      courtyardShrubStemRanges[shrubStemRange++] = {batches.back().firstIndex,
+                                                    batches.back().indexCount};
+      for (unsigned i = 0; i < (8U << courtyardQuality); ++i) {
+        const float z = -3.0F + i * (2.88F / (8U << courtyardQuality));
+        // Individual olive leaves form layered shrubs beside the vessels.
+        for (unsigned leaf = 0; leaf < 4; ++leaf) {
+          const float angle = i * 0.73F + leaf * 1.57F;
+          LeafQuad({x + std::cos(angle) * 0.16F, 0.08F + leaf * 0.15F, z + std::sin(angle) * 0.1F},
+                   0.14F, 0.28F + ((i + leaf) % 3) * 0.03F, angle);
+        }
       }
       finish(5);
     }
@@ -2992,7 +3010,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #endif
     s.materials[4].roughness = 0.8F;
     // Olive leaf reflectance retains the existing ambient light and warm transmission.
-    s.materials[5].baseColor = {0.42F, 0.52F, 0.3F, 1};
+    s.materials[5].baseColor = {0.8F, 0.8F, 0.6F, 1};
     s.materials[5].twoSidedLighting = s.courtyardPbr;
     s.materials[5].roughness = 0.7F;
     s.materials[5].emission = {0, 0, 0};

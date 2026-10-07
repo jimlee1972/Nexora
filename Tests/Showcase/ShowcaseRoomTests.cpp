@@ -184,6 +184,26 @@ int main() {
 
   assert(wide.materials[5].twoSidedLighting && wide.materials[15].twoSidedLighting &&
          wide.materials[16].twoSidedLighting && wide.materials[22].twoSidedLighting);
+  // Every foreground shrub stem batch is mirrored; distant wood stays excluded.
+  std::size_t shrubStemBatches = 0;
+  for (const auto &batch : wide.batches) {
+    if (batch.materialIndex != 10 || batch.firstInstance != 0)
+      continue;
+    bool foreground = true;
+    for (std::size_t i = batch.firstIndex; i < batch.firstIndex + batch.indexCount; ++i) {
+      const auto &p = wide.vertices[wide.indices[i]].position;
+      foreground &= p[1] < 0.7F && p[2] > -3.1F && p[2] < 0.1F;
+    }
+    const auto mirror = std::find_if(wide.batches.begin(), wide.batches.end(), [&](const auto &b) {
+      return b.materialIndex == 10 + wide.materials.size() / 2 &&
+             b.firstIndex == batch.firstIndex && b.indexCount == batch.indexCount &&
+             b.firstInstance != 0;
+    });
+    assert((mirror != wide.batches.end()) == foreground);
+    if (foreground)
+      ++shrubStemBatches;
+  }
+  assert(shrubStemBatches == 2);
   // Grass roots must remain pinned by the shared GPU UV.y bend contract.
   std::size_t grassBlades = 0;
   for (const auto &batch : wide.batches) {
