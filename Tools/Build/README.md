@@ -77,3 +77,11 @@ The generated private Showcase header retains position/normal/UV identity and a 
 atlas; authoring payloads still pass through Runtime import/cook/bundle activation before use.
 `--check` and rejection tests run through CTest without Pillow or a runtime glTF dependency.
 Original sources/license/inventory ship through the existing checksum-verifying package flow.
+
+## Pose Search profile verification
+
+`VerifyPoseSearchProfiles.py` configures six isolated CMake File API fixtures without SDK downloads.
+It checks the actual compile-source and target graphs: Development and Monolithic Shipping Full
+include PoseSearch with only a Foundation dependency; explicit OFF, Shipping Minimal/Dedicated,
+and headless builds omit its implementation and target. `build.pose_search_profiles` runs this
+gate through CTest. It does not replace compiling/testing the enabled library.

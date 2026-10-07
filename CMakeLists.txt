@@ -27,6 +27,8 @@ option(NEXORA_ENABLE_AI_RUNTIME_BRIDGE
        "Build the optional V2-M7 AI CharacterIntent to Runtime adapter" ON)
 option(NEXORA_ENABLE_PRESENTATION
        "Build the V1-M9 animation, audio, VFX, and media foundation" ON)
+option(NEXORA_ENABLE_POSE_SEARCH
+       "Build the optional V2-M8 deterministic pose database and search" ON)
 option(NEXORA_ENABLE_MEDIA_DRM "Build the optional V2-M9 DRM provider boundary" OFF)
 option(NEXORA_ENABLE_CAPTURE_ENCODER "Build the optional V2-M9 capture/encoder boundary" OFF)
 option(NEXORA_ENABLE_LARGE_WORLD
@@ -48,11 +50,15 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Shipping")
   set(NEXORA_ENABLE_EDITOR OFF CACHE BOOL "Build the standalone Nexora Editor preview" FORCE)
   if(NEXORA_SHIPPING_PROFILE STREQUAL "Minimal")
+    set(NEXORA_ENABLE_POSE_SEARCH OFF CACHE BOOL
+        "Build the optional V2-M8 deterministic pose database and search" FORCE)
     set(NEXORA_ENABLE_EDITOR_SDK OFF CACHE BOOL
         "Build the V1-M6 reflection, plugin host, scene editor, and prefab foundation" FORCE)
     set(NEXORA_FEATURE_EXAMPLE_PLUGIN OFF CACHE BOOL
         "Build the example optional plugin" FORCE)
   elseif(NEXORA_SHIPPING_PROFILE STREQUAL "Dedicated")
+    set(NEXORA_ENABLE_POSE_SEARCH OFF CACHE BOOL
+        "Build the optional V2-M8 deterministic pose database and search" FORCE)
     set(NEXORA_ENABLE_EDITOR_SDK OFF CACHE BOOL
         "Build the V1-M6 reflection, plugin host, scene editor, and prefab foundation" FORCE)
     set(NEXORA_FEATURE_EXAMPLE_PLUGIN OFF CACHE BOOL
@@ -64,6 +70,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Shipping")
   endif()
 endif()
 if(NEXORA_HEADLESS)
+  set(NEXORA_ENABLE_POSE_SEARCH OFF CACHE BOOL
+      "Build the optional V2-M8 deterministic pose database and search" FORCE)
   set(NEXORA_BUILD_SHOWCASE OFF CACHE BOOL "Build the V1 visual showcase" FORCE)
   set(NEXORA_ENABLE_NATIVE_BACKENDS OFF CACHE BOOL "Build the platform RHI backends" FORCE)
   set(NEXORA_ENABLE_WINDOW_PRESENTATION OFF CACHE BOOL
@@ -141,6 +149,9 @@ endif()
 add_subdirectory(Engine/Foundation)
 add_subdirectory(Engine/Core)
 add_subdirectory(Engine/AI)
+if(NEXORA_ENABLE_POSE_SEARCH)
+  add_subdirectory(Engine/PoseSearch)
+endif()
 if(NEXORA_ENABLE_NETWORK)
   add_subdirectory(Engine/Network)
 endif()
@@ -187,6 +198,7 @@ if(BUILD_TESTING)
   add_subdirectory(Tests/Foundation)
   add_subdirectory(Tests/Core)
   add_subdirectory(Tests/AI)
+  add_subdirectory(Tests/PoseSearch)
   if(NEXORA_ENABLE_NETWORK)
     add_subdirectory(Tests/Network)
   endif()

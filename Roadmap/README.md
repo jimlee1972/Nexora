@@ -80,8 +80,8 @@ Roadmap 狀態。細部任務完成紀錄與驗證資料保留在相關 Roadmap�
 | --- | ---: | --- |
 | ✅ V1 完整規劃書 | **100%** | [跨平台 3D Engine — V1 完整規劃書](zh-TW/跨平台3D_Engine_V1_完整規劃書_v1_2.md) |
 | ✅ V1 AI 施工技術與系統規劃 | **100%** | [跨平台 3D Engine — V1 AI 施工技術與系統規劃](zh-TW/跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_2.md) |
-| V2 完整規劃書 | **23%** | [跨平台 3D Engine — V2 完整規劃書](zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) |
-| V2 AI 施工技術與系統規劃 | **23%** | [跨平台 3D Engine — V2 AI 施工技術與系統規劃](zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) |
+| V2 完整規劃書 | **46%** | [跨平台 3D Engine — V2 完整規劃書](zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) |
+| V2 AI 施工技術與系統規劃 | **46%** | [跨平台 3D Engine — V2 AI 施工技術與系統規劃](zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) |
 | V3 完整規劃書 | **0%** | [跨平台 3D Engine — V3 完整規劃書](zh-TW/跨平台3D_Engine_V3_完整規劃書_v1_4.md) |
 | V3 AI 施工技術與系統規劃 | **0%** | [跨平台 3D Engine — V3 AI 施工技術與系統規劃](zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) |
 | ✅ Engine API 基礎 Roadmap | **100%** | [Engine API 基礎 Roadmap](zh-TW/Engine_API_基礎_Roadmap.md) |
