@@ -4,9 +4,11 @@
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).
 
-Completed items use the green `✅` marker. After every repository content change, affected roadmap
-status and the progress/status summary in the repository-root [`README.md`](../README.md) must be
-updated together and remain evidence-based.
+Completed items use the green `✅` marker. After every repository content change, review and update
+affected roadmap status using acceptance evidence. Keep detailed task completion and validation
+records in the relevant roadmap, module documentation, or evidence files. Update the brief summary
+in the repository-root [`README.md`](../README.md) only when overall progress or a major milestone
+changes; supporting task completion does not require a root README update. See [AGENTS.md](../AGENTS.md).
 
 Markdown-only edits use the [documentation CI route](../Tools/Build/README.md), including changed
 local-link checks and paired updates for bilingual roadmaps, including mapped legacy filenames. CI/configuration,
@@ -64,8 +66,10 @@ The documents are planning artifacts. They do not themselves authorize commands,
 
 本目錄收錄 Nexora 公開基線使用的版本規劃與聚焦能力規劃。英文版位於 [`en/`](en/)，對應的繁體中文版位於 [`zh-TW/`](zh-TW/)。
 
-已完成項目統一使用綠色 `✅` 標記。每次 repository 內容更新後，必須一併更新受影響的
-Roadmap 狀態與 repository root [`README.md`](../README.md) 的進度／狀態摘要，且所有完成標記都必須有驗收證據。
+已完成項目統一使用綠色 `✅` 標記。每次 repository 內容更新後，依驗收證據檢視並更新受影響的
+Roadmap 狀態。細部任務完成紀錄與驗證資料保留在相關 Roadmap、模組文件或證據檔案；
+只有整體進度或主要里程碑改變時，才更新 repository root [`README.md`](../README.md) 的簡短摘要。
+完成 supporting task 不需要更新首頁。規則見 [AGENTS.md](../AGENTS.md)。
 
 純 Markdown 變更使用[文件 CI 分流](../Tools/Build/README.md)，檢查變動文件的本地連結，並要求
 中英文 roadmap（含映射配對的異名舊文件）同批更新。CI／設定、程式與 tag 仍執行完整驗證；引擎里程碑驗收獨立追蹤。
