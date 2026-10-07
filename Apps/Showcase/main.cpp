@@ -954,6 +954,29 @@ std::string EscapeJson(std::string_view value) {
   return out.str();
 }
 
+std::string DeviceIdentityJson(const Nexora::Presentation::SurfaceDeviceInfo &device) {
+  using Nexora::Presentation::DriverVersionFormat;
+  std::ostringstream out;
+  out << "{\"name\":";
+  if (device.name[0])
+    out << '"' << EscapeJson(device.name.data()) << '"';
+  else
+    out << "null";
+  out << ",\"vendor_id\":" << (device.deviceIdsAvailable ? std::to_string(device.vendorId) : "null")
+      << ",\"device_id\":" << (device.deviceIdsAvailable ? std::to_string(device.deviceId) : "null")
+      << ",\"driver_version\":";
+  if (device.driverVersionFormat == DriverVersionFormat::Unavailable)
+    out << "null,\"driver_version_format\":null";
+  else
+    // Keep the full DXGI 64-bit value exact in JSON consumers; Vulkan encoding is vendor-specific.
+    out << '"' << device.driverVersion << "\",\"driver_version_format\":\""
+        << (device.driverVersionFormat == DriverVersionFormat::VulkanRaw ? "vulkan.raw"
+                                                                         : "dxgi.umd")
+        << '"';
+  out << '}';
+  return out.str();
+}
+
 std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
   const auto build = foundation::GetBuildInfo();
   const auto probes = showcase::ProbeRegistry::CreateV1Registry().RunAll();
@@ -1106,6 +1129,7 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"native_shadow_instances\": " << run.surface.sceneShadowInstances << ",\n"
          << "    \"native_scene_composites\": " << run.surface.sceneComposites << ",\n"
          << "    \"software_rasterizer\": " << run.surface.softwareRasterizer << ",\n"
+         << "    \"device_identity\": " << DeviceIdentityJson(run.surface.device) << ",\n"
          << "    \"native_graph_frames\": " << run.native_graph_frames << ",\n"
          << "    \"native_graph_passes\": " << run.native_graph_passes << ",\n"
          << "    \"native_graph_resource_transitions\": " << run.native_graph_transitions << ",\n"

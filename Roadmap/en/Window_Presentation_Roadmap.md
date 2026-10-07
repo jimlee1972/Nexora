@@ -1,5 +1,7 @@
 # Nexora Window and Native Presentation Roadmap
 
+Native device provenance is implemented: Vulkan/DX12 reports now observe the selected device name, vendor/device IDs and raw driver version (explicitly labelled `vulkan.raw` or `dxgi.umd`); Metal observes its selected device name with unavailable IDs/driver. JSON retains driver values as decimal strings to preserve 64-bit precision. Quality benchmarks retain these observations in JSON/Markdown and reject mixed devices/drivers, while older reports remain explicitly unidentified. Seven policy tests pass in normal and optimized Python; native cross-platform validation is pending. GPU timestamps and display refresh remain unavailable; VIS stays 5/7 with physical GPU budgets and final art acceptance open.
+
 > Version: v1.0 | Status: planning baseline | Updated: 2026-10-02
 
 > **Progress: implementation complete** (WP-M0 through WP-M4 are implemented. Windows/DX12 acceptance for WP-M1/WP-M2 is recorded; Linux Showcase Vulkan composition now has non-skip Xvfb/lavapipe acceptance; physical-display, Windows/Vulkan, and macOS/Metal still require target-host runners.)

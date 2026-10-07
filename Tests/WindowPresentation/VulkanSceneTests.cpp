@@ -593,6 +593,10 @@ int main(int argc, char **argv) {
       Require(materialPixels, "UV texture sampling/resize pixels failed");
     }
     const auto diagnostics = surface->Diagnostics();
+    Require(diagnostics.device.name[0] != '\0' && diagnostics.device.name.back() == '\0' &&
+                diagnostics.device.deviceIdsAvailable &&
+                diagnostics.device.driverVersionFormat == DriverVersionFormat::VulkanRaw,
+            "selected Vulkan device identity missing");
     Require(diagnostics.sceneDrawCalls == 27 && diagnostics.sceneInstances == 38 &&
                 diagnostics.acquiredFrames == 27 && diagnostics.presentedFrames == 27 &&
                 diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 4 &&
@@ -600,6 +604,8 @@ int main(int argc, char **argv) {
             "native scene counters or resize evidence mismatch");
     Require(surface->Acquire() == SurfaceStatus::Ready, "abandoned frame acquire failed");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "scene teardown failed");
+    Require(surface->Diagnostics().device.name == diagnostics.device.name,
+            "device identity lost during drain");
     Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,
             "draw after abandoned-frame teardown accepted");
     Require(surface->Acquire() == SurfaceStatus::SurfaceLost, "acquire after teardown accepted");

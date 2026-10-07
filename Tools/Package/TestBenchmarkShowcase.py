@@ -74,6 +74,9 @@ class BenchmarkPolicyTests(unittest.TestCase):
                 validate_repeats([first, second])
 
     def test_collect_retains_provenance_without_hardware_acceptance(self):
+        self.report['windowed_evidence']['device_identity'] = {
+            'name': 'Observed Vulkan device', 'vendor_id': 65541, 'device_id': 0,
+            'driver_version': '0', 'driver_version_format': 'vulkan.raw'}
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary)
             executable = output / 'showcase'
@@ -91,10 +94,52 @@ class BenchmarkPolicyTests(unittest.TestCase):
             self.assertEqual(len(summary['runs']), 2)
             self.assertFalse(summary['hardware_budget_accepted'])
             self.assertFalse(summary['physical_display_verified'])
+            self.assertEqual(summary['driver_identity'], 'vulkan.raw:0')
+            self.assertEqual(summary['device_identity']['name'], 'Observed Vulkan device')
             self.assertEqual(len(summary['executable_sha256']), 64)
             self.assertEqual(len(summary['runs'][0]['report_sha256']), 64)
             self.assertTrue((output / 'benchmark.md').is_file())
             self.assertIn('GPU timestamps are unavailable', markdown(summary))
+
+    def test_device_observations_and_missing_historical_identity(self):
+        original = copy.deepcopy(self.validate(self.report))
+        self.assertIsNone(original['native'].get('device_identity'))
+        identity = {'name': 'Observed device', 'vendor_id': 0, 'device_id': 0,
+                    'driver_version': '4294967295', 'driver_version_format': 'vulkan.raw'}
+        self.report['windowed_evidence']['device_identity'] = identity
+        observed = self.validate(self.report)
+        for key, value in [('name', ''), ('name', 'bad\nname'), ('name', 'a' * 512),
+                           ('vendor_id', True), ('device_id', -1), ('vendor_id', None),
+                           ('driver_version', 123), ('driver_version', '01'),
+                           ('driver_version', '4294967296'), ('driver_version', '１'),
+                           ('driver_version', None), ('driver_version_format', 'dxgi.umd')]:
+            with self.subTest(key=key, value=value):
+                changed = copy.deepcopy(self.report)
+                changed['windowed_evidence']['device_identity'][key] = value
+                with self.assertRaises(ValueError):
+                    self.validate(changed)
+        for changed in (original, copy.deepcopy(observed)):
+            if changed is not original:
+                changed['native']['device_identity']['driver_version'] = '0'
+            with self.assertRaises(ValueError):
+                validate_repeats([observed, changed])
+        identity.update(driver_version=None, driver_version_format=None)
+        self.validate(self.report)
+        identity.update(name=None, vendor_id=None, device_id=None)
+        self.validate(self.report)
+
+    def test_dxgi_version_precision_and_markdown_device_text(self):
+        self.report['windowed_evidence'].update(backend='dx12', device_identity={
+            'name': '<device> [link](url) `code` | *bold*', 'vendor_id': 0, 'device_id': 0,
+            'driver_version': '18446744073709551615', 'driver_version_format': 'dxgi.umd'})
+        self.report['render_settings']['backend_requested'] = 'dx12'
+        run = validate_report(self.report, 'dx12', 'standard', 360)
+        text = markdown({'runs': [dict(run, repeat=1)], 'backend': 'dx12', 'scope': 'test',
+                         'software_rasterizer': True, 'device_identity': run['native']['device_identity'],
+                         'driver_identity': 'dxgi.umd:18446744073709551615'})
+        self.assertIn('18446744073709551615', text)
+        for fragment in ('<device>', '[link]', '`code`', '*bold*', ' | '):
+            self.assertNotIn(fragment, text.split('Device: ', 1)[1].split('\n', 1)[0])
 
     def test_failed_or_missing_report_cannot_reuse_stale_pass(self):
         with tempfile.TemporaryDirectory() as temporary:

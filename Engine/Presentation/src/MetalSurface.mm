@@ -36,6 +36,10 @@ public:
       device_ = MTLCreateSystemDefaultDevice();
       if (!window || !device_)
         return;
+      if (![device_.name getCString:diagnostics_.device.name.data()
+                          maxLength:diagnostics_.device.name.size()
+                           encoding:NSUTF8StringEncoding])
+        diagnostics_.device.name.fill(0);
       layer_ = [CAMetalLayer layer];
       layer_.device = device_;
       layer_.pixelFormat = MTLPixelFormatBGRA8Unorm;

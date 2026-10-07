@@ -1,5 +1,7 @@
 # Nexora Window 與 Native Presentation Roadmap
 
+已實作原生裝置來源記錄：Vulkan／DX12 報告觀測實際選中的裝置名稱、vendor／device ID 與原始驅動版本（明確標示 `vulkan.raw` 或 `dxgi.umd`）；Metal 記錄所選裝置名稱，ID／驅動維持不可用。JSON 以十進位字串保留驅動版本，避免 64-bit 精度遺失。品質 benchmark 在 JSON／Markdown 保留觀測並拒絕混用裝置／驅動，舊報告明確維持未識別。7 個證據政策測試於一般與最佳化 Python 通過；原生跨平台驗證待完成。GPU timestamp 與螢幕更新率仍不可用；VIS 維持 5/7，實體 GPU 預算與最終美術驗收保持開放。
+
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-10-02
 
 > **進度：實作完成**（WP-M0 至 WP-M4 已實作；WP-M1/WP-M2 的 Windows/DX12 驗收已記錄，Linux Showcase Vulkan composition 已通過未跳過的 Xvfb/lavapipe 驗收；physical-display、Windows/Vulkan 與 macOS/Metal 仍須各 target-host runner。）

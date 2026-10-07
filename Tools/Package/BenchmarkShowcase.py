@@ -23,6 +23,37 @@ def positive(value):
     return type(value) in (int, float) and math.isfinite(value) and value > 0
 
 
+def device_identity(native, backend):
+    identity = native.get('device_identity')
+    # Historical evidence predates the optional additive observation. Never backfill its device.
+    if identity is None:
+        return None
+    require(type(identity) is dict, 'invalid device identity')
+    require(set(identity) == {'name', 'vendor_id', 'device_id', 'driver_version',
+                              'driver_version_format'}, 'incomplete device identity')
+    name = identity['name']
+    require(name is None or (type(name) is str and bool(name.strip()) and
+                            len(name.encode('utf-8')) < 512 and
+                            all(ord(c) >= 32 for c in name)), 'invalid device name')
+    for key in ('vendor_id', 'device_id'):
+        value = identity[key]
+        require(value is None or (type(value) is int and 0 <= value <= 0xffffffff),
+                f'invalid device identity: {key}')
+    require((identity['vendor_id'] is None) == (identity['device_id'] is None),
+            'partial device IDs')
+    version, encoding = identity['driver_version'], identity['driver_version_format']
+    if version is None:
+        require(encoding is None, 'driver format without an observed version')
+    else:
+        require(type(version) is str and version.isascii() and version.isdecimal() and
+                len(version) <= 20 and str(int(version)) == version and
+                int(version) <= (0xffffffff if backend == 'vulkan' else 0xffffffffffffffff),
+                'invalid raw driver version')
+        require(encoding == ('vulkan.raw' if backend == 'vulkan' else 'dxgi.umd'),
+                'driver version/backend mismatch')
+    return identity
+
+
 def validate_report(report, backend, quality, frames):
     """Reject missing/fallback/paced/drifting evidence even under python -O."""
     require(report.get('schema') == 'nexora.zig_showcase.v1' and report.get('status') == 'PASS',
@@ -34,6 +65,7 @@ def validate_report(report, backend, quality, frames):
     require(native.get('executed') is True and native.get('backend') == backend and
             native.get('backend_fallback') is False, 'native backend mismatch or fallback')
     require(type(native.get('software_rasterizer')) is bool, 'missing rasterizer identity')
+    device_identity(native, backend)
     for field in ('surface_acquires', 'surface_presents', 'native_graph_frames',
                   'native_scene_draws', 'native_offscreen_draws', 'native_scene_composites'):
         require(type(native.get(field)) is int and native[field] == frames,
@@ -85,6 +117,8 @@ def validate_repeats(runs):
         require(run['build'] == runs[0]['build'], 'mixed build versions')
         require(run['native']['software_rasterizer'] == runs[0]['native']['software_rasterizer'],
                 'rasterizer changed between runs')
+        require(run['native'].get('device_identity') == runs[0]['native'].get('device_identity'),
+                'device/driver identity changed between runs')
         same_quality = next((r for r in runs if r['render_settings']['quality'] ==
                              run['render_settings']['quality']), None)
         require(run['render_settings'] == same_quality['render_settings'] and
@@ -92,9 +126,20 @@ def validate_repeats(runs):
 
 
 def markdown(summary):
+    identity = summary['device_identity']
+    # JSON string quoting retains literal device text without Markdown/HTML interpretation.
+    def literal(value):
+        if value is None:
+            return 'UNAVAILABLE'
+        return json.dumps(value, ensure_ascii=False).replace('&', '&amp;').replace('<', '&lt;') \
+            .replace('>', '&gt;').replace('`', '&#96;').replace('*', '&#42;').replace('_', '&#95;') \
+            .replace('[', '&#91;').replace(']', '&#93;').replace('|', '&#124;')
+
     lines = ['# Native courtyard performance', '', summary['scope'], '',
              f"Build: `{summary['runs'][0]['build']['build_id']}`; backend: {summary['backend']}; "
              f"software rasterizer: {summary['software_rasterizer']}.", '',
+             'Device: ' + literal(identity['name'] if identity else None) + '; driver: ' +
+             literal(summary['driver_identity']) + '.', '',
              'Fixed wide camera, activated device, frozen animation at 0 seconds, 1280×720, VSync off.',
              'Each process discards 60 warm-up frames. CPU is process-wide; GPU timestamps are unavailable.',
              'These observations do not accept the hardware budget or physical display.', '',
@@ -137,10 +182,13 @@ def collect(executable, output, backend, qualities, repeats, frames, environment
             validate_repeats(runs)
             require(hashlib.sha256(executable.read_bytes()).hexdigest() == executable_hash,
                     'executable changed during benchmark')
+    identity = runs[0]['native'].get('device_identity')
+    driver = (f"{identity['driver_version_format']}:{identity['driver_version']}"
+              if identity and identity['driver_version'] is not None else None)
     summary = {'schema': 'nexora.showcase.quality-benchmark.v1', 'status': 'MEASURED',
                'scope': 'Sequential native fixed-scene measurements; hardware/visual acceptance remains open.',
                'backend': backend, 'host': platform.platform(), 'cpu': platform.processor() or None,
-               'driver_identity': None, 'refresh_rate_hz': None,
+               'device_identity': identity, 'driver_identity': driver, 'refresh_rate_hz': None,
                'executable_sha256': executable_hash, 'software_rasterizer': runs[0]['native']['software_rasterizer'],
                'hardware_budget_accepted': False, 'physical_display_verified': False, 'runs': runs}
     (output / 'benchmark.md').write_text(markdown(summary), encoding='utf-8')
@@ -181,6 +229,8 @@ def main():
                           list(dict.fromkeys(args.quality or ['basic', 'standard', 'high'])),
                           args.repeats, args.frames, environment, args.timeout)
         print(json.dumps({'status': summary['status'], 'runs': len(summary['runs']),
+                          'device_identity': summary['device_identity'],
+                          'driver_identity': summary['driver_identity'],
                           'hardware_budget_accepted': False}))
         return 0
     except (ValueError, KeyError, TypeError, OSError, subprocess.TimeoutExpired) as error:

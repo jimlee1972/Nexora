@@ -29,6 +29,19 @@ struct SurfaceDescriptor final {
   SurfaceBackend backend = SurfaceBackend::Automatic;
 };
 
+enum class DriverVersionFormat : std::uint8_t { Unavailable, VulkanRaw, DxgiUmd };
+
+// Copied observations of the selected native device, never a borrowed handle. Empty name,
+// unavailable IDs and Unavailable driver format are explicit absence, not inferred host metadata.
+struct SurfaceDeviceInfo final {
+  std::array<char, 512> name{};
+  std::uint32_t vendorId = 0;
+  std::uint32_t deviceId = 0;
+  bool deviceIdsAvailable = false;
+  std::uint64_t driverVersion = 0;
+  DriverVersionFormat driverVersionFormat = DriverVersionFormat::Unavailable;
+};
+
 struct SurfaceDiagnostics final {
   std::uint64_t acquiredFrames = 0;
   std::uint64_t presentedFrames = 0;
@@ -52,6 +65,7 @@ struct SurfaceDiagnostics final {
   bool softwareRasterizer = false;
   // Submitted frames that require swapchain replacement instead of reporting successful present.
   std::uint64_t recoverablePresentFrames = 0;
+  SurfaceDeviceInfo device;
 };
 
 struct UiVertex final {

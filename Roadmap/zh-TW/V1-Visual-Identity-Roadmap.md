@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+已實作原生裝置來源記錄：Vulkan／DX12 報告觀測實際選中的裝置名稱、vendor／device ID 與原始驅動版本（明確標示 `vulkan.raw` 或 `dxgi.umd`）；Metal 記錄所選裝置名稱，ID／驅動維持不可用。JSON 以十進位字串保留驅動版本，避免 64-bit 精度遺失。品質 benchmark 在 JSON／Markdown 保留觀測並拒絕混用裝置／驅動，舊報告明確維持未識別。7 個證據政策測試於一般與最佳化 Python 通過；原生跨平台驗證待完成。GPU timestamp 與螢幕更新率仍不可用；VIS 維持 5/7，實體 GPU 預算與最終美術驗收保持開放。
+
 ✅ VIS-M6 量測工具：共用原生 DX12／Vulkan Shipping benchmark 依序量測 Basic／Standard／High，保留版本、執行檔／報告 SHA-256、原始日誌及 JSON／Markdown。每種品質預設三次獨立 360-frame 程序，捨棄 60-frame 暖機並量測 300 個樣本，使用時間零、啟動裝置的固定廣角。證據檢查拒絕 fallback／VSync 限速、不完整或過期報告、無效指標、混版及同品質場景漂移，Python 最佳化模式亦有效。五組政策測試已在兩種模式通過；Build 1755（來源 `2bfdee501726`）通過 Linux 143/143、Windows 126/126、macOS 125/125、原生 Shipping 驗收與九次完整 Linux 量測。[證據](../../Apps/Showcase/evidence/VIS-M6-Quality-Benchmark-CI-2026-10-07/acceptance.md)。一般分支 CI 改用三次 160-frame smoke；tag 與直接執行保留每種品質三次 360-frame 完整量測。GPU timestamps、driver／refresh 未觀測時保持缺值。此項補強 VIS-M6 交付，尚未驗收實體硬體效能或 VIS-M3 美術；進度維持 5/7。
 
 ✅ 可見 HDR 太陽與主光方向改為（-18、4、-19.2），與天空方位一致；左側拱廊及附著藤葉向外移動，解除石柱遮擋。浮點 diffuse／specular IBL 重新烘焙，BRDF LUT 與原始圖片不變。Linux 完整 97/97 測試通過（121.07 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 101.23 秒）。凍結版本 `899958d93d53819bc169a1c04520e77b43a8774f`；證據：`Apps/Showcase/evidence/VIS-Sunset-Alignment-Linux-2026-10-06/`。Standard 維持 58,249 vertices、135,378 indices、387 batches、44 materials；VIS 仍為 5/7。
