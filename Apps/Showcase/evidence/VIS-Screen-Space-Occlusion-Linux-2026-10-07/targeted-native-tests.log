@@ -1,0 +1,14 @@
+Test project /workspace/Nexora-vis-courtyard-fill/build/linux-development
+    Start 47: window_presentation.scene_instance_contract
+1/2 Test #47: window_presentation.scene_instance_contract ...   Passed    0.00 sec
+    Start 49: window_presentation.vulkan_pbr
+2/2 Test #49: window_presentation.vulkan_pbr ................   Passed    3.84 sec
+
+100% tests passed out of 2
+
+Label Time Summary:
+showcase           =   3.84 sec*proc (1 test)
+virtual-display    =   3.84 sec*proc (1 test)
+vulkan             =   3.84 sec*proc (1 test)
+
+Total Test time (real) =   3.85 sec

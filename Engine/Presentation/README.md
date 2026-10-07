@@ -424,7 +424,7 @@ linear radiance in RGB and bounded camera distance in alpha; untouched pixels us
 far-distance sentinel. Alpha is internal distance data, not blended transparency. Non-HDR scene
 output and the final composite still have alpha 1. Cutout discard remains before depth/color writes.
 
-The private tone packet is now four float4s / 64 bytes, copied into the protecting frame by
+The private tone packet is now five float4s / 80 bytes, copied into the protecting frame by
 DX12, Vulkan and Metal. A bounded twelve-tap depth-aware neighborhood filter rejects samples
 from different depth layers and filters linear radiance before bloom/exposure/ACES. This is an
 approximate spatial focus filter, with no temporal history, additional target, depth descriptor or
@@ -672,3 +672,27 @@ dielectric BRDF (normal-incidence F0=0.04); this is a bounded single-interface a
 without volume transport, absorption distance, internal reflections or recursive tracing.
 Default legacy tint/coverage composition is unchanged. Native cases compare normal and
 grazing transmission against a constant HDR background and restore the default pixels exactly.
+
+## Screen-space contact occlusion
+
+Optional `SceneScreenSpaceOcclusion` requires an offscreen HDR PBR perspective draw. Its copied
+scalars are finite: strength [0,1], radius [0.01,2] world units, bias [0,radius] and vertical field
+of view [0.1,3] radians. The FOV must match the draw projection. Absence or zero strength bypasses
+sampling and preserves the existing composite. Orthographic projections are outside this contract.
+
+The shared Slang tone pass reconstructs view positions from the existing radial camera-distance
+channel. Four adjacent samples reconstruct a normal using the smaller depth discontinuity on each
+axis; twelve bounded taps estimate nearby occlusion with world-distance rejection and bias.
+The footprint is capped at 32 physical pixels per axis. Out-of-bounds, empty and degenerate samples
+are rejected. No extra texture, descriptor, pass, temporal history or production readback is added.
+The fifth float4 extends the private tone packet to 80 bytes on Vulkan, DX12 and Metal; protecting
+frame ownership, resize and teardown remain unchanged. Public C++ clients rebuild; stable C/Zig and
+persistent asset schemas remain unchanged.
+
+Contact shading modulates composed linear color before thresholded bloom, exposure, ACES and output
+transfer. Radiance above 1 progressively bypasses the modulation and radiance at or above 2 is
+preserved; bloom samples the original HDR target. This is a composition approximation, rather than
+per-material ambient-only occlusion or ray tracing. Hidden/offscreen geometry cannot contribute.
+Transparent surfaces retain the existing nearest-geometry distance approximation. UI follows the
+composite. Shared native fixtures verify contact darkening, planar stability, preserved HDR pixels,
+and exact absent/zero-strength restoration; descriptor tests reject invalid scalar combinations.

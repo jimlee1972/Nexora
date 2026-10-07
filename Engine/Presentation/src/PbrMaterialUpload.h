@@ -34,6 +34,15 @@ namespace Nexora::Presentation {
        draw.depthOfField->strength > 4 || !std::isfinite(draw.depthOfField->radiusPixels) ||
        draw.depthOfField->radiusPixels < 1 || draw.depthOfField->radiusPixels > 32))
     return false;
+  if (draw.screenSpaceOcclusion) {
+    const auto &ao = *draw.screenSpaceOcclusion;
+    if (!draw.hdr || !std::isfinite(ao.strength) || ao.strength < 0 || ao.strength > 1 ||
+        !std::isfinite(ao.radius) || ao.radius < 0.01F || ao.radius > 2 ||
+        !std::isfinite(ao.bias) || ao.bias < 0 || ao.bias > ao.radius ||
+        !std::isfinite(ao.verticalFovRadians) || ao.verticalFovRadians < 0.1F ||
+        ao.verticalFovRadians > 3)
+      return false;
+  }
   if (draw.pointLight) {
     const auto &light = *draw.pointLight;
     if (!draw.hdr || !std::isfinite(light.radius) || light.radius < 0.1F || light.radius > 64)

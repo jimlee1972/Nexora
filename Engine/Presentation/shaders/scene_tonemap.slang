@@ -1,5 +1,5 @@
 import Nexora.Common;
-struct ToneParameters { float4 settings; float4 bloom; float4 focus; float4 antiAlias; }; // x exposure; y manual output transfer
+struct ToneParameters { float4 settings; float4 bloom; float4 focus; float4 antiAlias; float4 occlusion; }; // x exposure; y manual output transfer
 #ifdef NEXORA_VULKAN
 [[vk::push_constant]] ConstantBuffer<ToneParameters> tone;
 #else
@@ -44,6 +44,45 @@ float3 filterEdges(float2 uv, float3 center) {
   float lb=displayLuma(b);
   return lb<low || lb>high ? a : b;
 }
+// Reconstruct perspective positions from radial camera distance; the descriptor owns the FOV.
+float3 contactPosition(float2 uv, float distance) {
+  float aspect = tone.antiAlias.y / tone.antiAlias.x;
+  float3 ray = float3((uv.x * 2 - 1) * aspect * tone.occlusion.w, (1 - uv.y * 2) * tone.occlusion.w, -1);
+  return normalize(ray) * distance;
+}
+float contactVisibility(float2 uv, float distance) {
+  if (distance <= 0) return 1;
+  float3 center = contactPosition(uv, distance);
+  float2 pixel = tone.antiAlias.xy;
+  float3 left = contactPosition(uv - float2(pixel.x,0), hdrScene.SampleLevel(uv - float2(pixel.x,0),0).a);
+  float3 right = contactPosition(uv + float2(pixel.x,0), hdrScene.SampleLevel(uv + float2(pixel.x,0),0).a);
+  float3 up = contactPosition(uv - float2(0,pixel.y), hdrScene.SampleLevel(uv - float2(0,pixel.y),0).a);
+  float3 down = contactPosition(uv + float2(0,pixel.y), hdrScene.SampleLevel(uv + float2(0,pixel.y),0).a);
+  float3 dx = abs(left.z-center.z) < abs(right.z-center.z) ? center-left : right-center;
+  float3 dy = abs(up.z-center.z) < abs(down.z-center.z) ? center-up : down-center;
+  float3 normal = cross(dx,dy);
+  if (dot(normal,normal) < 1e-10) return 1;
+  normal = normalize(normal);
+  if (dot(normal,-center) < 0) normal = -normal;
+  const float2 directions[6] = {float2(1,0),float2(0.5,0.866025),float2(-0.5,0.866025),
+    float2(-1,0),float2(-0.5,-0.866025),float2(0.5,-0.866025)};
+  float radius = tone.occlusion.y;
+  float2 screenRadius = float2(pixel.x / pixel.y,1) * radius / (2 * max(abs(center.z),0.1) * tone.occlusion.w);
+  screenRadius = min(screenRadius, pixel * 32);
+  float blocked = 0;
+  [unroll] for (uint i=0;i<12;++i) {
+    float2 sampleUv = uv + directions[i%6] * screenRadius * (i<6 ? 0.5 : 1);
+    if (any(sampleUv <= 0) || any(sampleUv >= 1)) continue;
+    float tapDistance = hdrScene.SampleLevel(sampleUv,0).a;
+    if (tapDistance <= 0) continue;
+    float3 delta = contactPosition(sampleUv,tapDistance) - center;
+    float lengthSquared = dot(delta,delta);
+    if (lengthSquared <= 0.000001 || lengthSquared >= radius*radius) continue;
+    float angle = saturate((dot(normal,delta)-tone.occlusion.z) / sqrt(lengthSquared));
+    blocked += angle * (1-lengthSquared/(radius*radius));
+  }
+  return saturate(1 - tone.occlusion.x * blocked / 6);
+}
 [shader("fragment")]
 float4 toneFragmentMain(ToneVertex input) : SV_Target {
   float4 center = hdrScene.SampleLevel(input.uv, 0);
@@ -65,6 +104,12 @@ float4 toneFragmentMain(ToneVertex input) : SV_Target {
       }
       hdr = sum / weights;
     }
+  }
+  if (tone.occlusion.x > 0) {
+    // Preserve radiance above the bloom threshold: contact shading is an HDR composition
+    // approximation, not a replacement for per-material ambient lighting or ray tracing.
+    float preserveHighlight = saturate(max(center.r,max(center.g,center.b)) - 1);
+    hdr *= lerp(contactVisibility(input.uv, center.a), 1, preserveHighlight);
   }
   if (tone.bloom.x > 0) {
     float2 texel = tone.bloom.zw; // Radius normalized by the acquired physical extent.

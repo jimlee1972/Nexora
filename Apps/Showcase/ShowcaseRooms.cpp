@@ -125,6 +125,7 @@ struct RoomSession::State final {
   float courtyardExposure = 1.0F;
   bool courtyardShadows{true}, courtyardStyled{true}, courtyardBloom{true}, courtyardFocus{true};
   bool courtyardReflections{true}, courtyardAtmosphere{true}, courtyardAntiAliasing{true};
+  bool courtyardOcclusion{true};
   bool courtyardPaused{}, courtyardActive{}, courtyardWind{true}, courtyardTransmission{true};
   bool courtyardTransparency{true}, courtyardRefraction{true}, courtyardCrystalLight{true};
   bool visualTour{}, courtyardFreeCamera{}, courtyardCompare{};
@@ -2577,7 +2578,7 @@ void RoomSession::ReplayTour() {
     state_->courtyardPaused = false;
     state_->courtyardSeconds = 0;
     state_->courtyardActive = false;
-    state_->courtyardAntiAliasing = true;
+    state_->courtyardAntiAliasing = state_->courtyardOcclusion = true;
     state_->courtyardPbr = state_->courtyardIbl = state_->courtyardShadows = true;
     state_->courtyardBloom = state_->courtyardStyled = state_->courtyardFocus =
         state_->courtyardReflections = state_->courtyardAtmosphere = state_->courtyardRefraction =
@@ -2687,6 +2688,8 @@ void RoomSession::Event(const Nexora::Window::WindowEvent &event, std::uint32_t 
     s.courtyardFocus = !s.courtyardFocus;
   if (s.selected == "courtyard" && key == Key::V)
     s.courtyardReflections = !s.courtyardReflections;
+  if (s.selected == "courtyard" && key == Key::F11)
+    s.courtyardOcclusion = !s.courtyardOcclusion;
   if (s.selected == "courtyard" && key == Key::F10)
     s.courtyardAntiAliasing = !s.courtyardAntiAliasing;
   if (s.selected == "courtyard" && key == Key::F9)
@@ -3392,6 +3395,9 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     if (data.hdr && s.courtyardBloom && s.courtyardQuality != 0)
       data.bloom = Nexora::Presentation::SceneBloom{s.courtyardQuality == 2 ? 0.28F : 0.22F, 1.0F,
                                                     s.courtyardQuality == 2 ? 20.0F : 12.0F};
+    if (data.hdr && data.pbr && s.courtyardQuality != 0 && s.courtyardOcclusion)
+      data.screenSpaceOcclusion = Nexora::Presentation::SceneScreenSpaceOcclusion{
+          s.courtyardQuality == 2 ? 0.85F : 0.7F, 0.5F, 0.025F, 0.85F};
     if (data.hdr && s.courtyardFocus && s.courtyardQuality != 0)
       data.depthOfField = Nexora::Presentation::SceneDepthOfField{
           math::Length(eye - math::Vector3{0, 3.15F, 0}), s.courtyardQuality == 2 ? 0.5F : 0.35F,
@@ -3490,8 +3496,8 @@ RoomSession::Overlay(std::uint32_t width, std::uint32_t height, std::string_view
       s.Rect(18, 531, 900, 100, 0xde241a10);
       s.Text(30, 544, "P Materials / O IBL / F6 Shadows / F7 Haze / F8 Refraction", 0xffe9ded4,
              1.4F);
-      s.Text(30, 573, "F9 Crystal light / F10 AA / J Focus / V Reflection / K Glow", 0xffe9ded4,
-             1.4F);
+      s.Text(30, 573, "F9 Crystal light / F10 AA / F11 AO / J Focus / V Reflection / K Glow",
+             0xffe9ded4, 1.4F);
       s.Text(30, 602, "N Wind / M Backlight / U Crystal / Q Quality / Space Pause / R Replay",
              0xffefdc80, 1.2F);
     }
@@ -3655,6 +3661,8 @@ std::string RoomSession::Report() const {
       << (s.courtyardPbr && s.courtyardAtmosphere && s.courtyardQuality != 0)
       << ",\"anti_aliasing_enabled\":"
       << (s.courtyardPbr && s.courtyardQuality != 0 && s.courtyardAntiAliasing)
+      << ",\"screen_space_occlusion_enabled\":"
+      << (s.courtyardPbr && s.courtyardQuality != 0 && s.courtyardOcclusion)
       << ",\"crystal_light_enabled\":" << (s.courtyardCrystalLight ? "true" : "false")
       << ",\"refraction_enabled\":"
       << (s.courtyardPbr && s.courtyardTransparency && s.courtyardRefraction &&

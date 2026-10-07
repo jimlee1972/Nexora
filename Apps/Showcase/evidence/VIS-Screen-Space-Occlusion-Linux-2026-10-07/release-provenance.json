@@ -1,0 +1,134 @@
+{
+  "source_freeze": "60e6a54621fe3bcfedf4b6d5b3ccd8e5419b05b3",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Editor/README.md": "36ce263957d19b51722daf18089d22d41bdaadca7e05be68e5345268b306938f",
+    "Apps/Editor/main.cpp": "b8aae87ceab069eed89252f996d668a7c6687d0faae42ca8be57c545b910fb87",
+    "Apps/Showcase/ShowcaseRooms.cpp": "0a019e41c4f83698bac88c4133a2c5755ca8cbccaf3c11f297b1297b599a4a32",
+    "Engine/Editor/README.md": "ecbe9bd9d14e1ea29d2862a88dd0ef2348759f9e275f5d793397d70b6cba8c14",
+    "Engine/Editor/include/Nexora/Editor/EditorProduction.h": "7e5405d389edeb277f53b1a4fb5687673965ef7f532a06cc8c6bcb316be4034a",
+    "Engine/Editor/include/Nexora/Editor/EditorWorkspace.h": "0de3c1e76c8e7199f6f44f1f77a641e2544f6b51abcc8b0360fb9b28fc91cd51",
+    "Engine/Editor/src/ProjectWorkspace.cpp": "6a99902a40fc277a2e7c5139471e8575e21808b98ee9ac8be0511f1185133eb2",
+    "Engine/EditorImGui/README.md": "c230f7ca29894bc6a90c92bdf479b3612f84e4b6d78e6a205a0fb9f0140a579a",
+    "Engine/EditorImGui/include/Nexora/EditorImGui/EditorImGui.h": "179b18053355d3f40b78c81fd101cbf3810787fb93d2b158278f6397cb5e0bd5",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "51d22832912d9a0e99f0e0870bfffa81baa6421ebbb9e6f58a50aea8937bec7e",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "ef1176897b9f50d2b6b0fba8180d6c8b91860087fffed7cedac1d75bed1844c3",
+    "Engine/Presentation/README.md": "9024d70178ad85c9598b2fe51cf5fb88a48782b13715867898ee8c82c9f07ffe",
+    "Engine/Presentation/include/Nexora/Presentation/Surface.h": "9bb89fcea9f9320884ebbb2c4f9cabdde4e44b70b5e3ce22d162b836af559d59",
+    "Engine/Presentation/shaders/scene_tonemap.slang": "3f7dd9a8239235594b54c3059b40f19faa283893d08bfc5412600405e655c1f5",
+    "Engine/Presentation/src/Dx12Surface.cpp": "fbbd65951ec293f6e707a2aa168fc4521d0c210063a0f036bc6f3542f8d59888",
+    "Engine/Presentation/src/MetalSurface.mm": "418cd67a196116a63e010dc411b2910488d095eafbfaa7f326a91fbf12414926",
+    "Engine/Presentation/src/PbrMaterialUpload.h": "ecd038d92bfae800b815e6c7170dab4f5719f1c175e6fe63ad08dbe479fa4a3b",
+    "Engine/Presentation/src/SceneToneHlslShaders.h": "c9717ac45557d990a079aad925872fbb35c9b2c786d57483d9a033cba82a0874",
+    "Engine/Presentation/src/SceneToneMetalShaders.h": "331c4556faef397b7e97716b5a519fde3300afc9ae6ed96f2f45ff4dd86b4c5d",
+    "Engine/Presentation/src/SceneToneVulkanShaders.h": "0aa7eb0c679dfa16ff0becfef539f3056f53d0a99a9a068beed97b74a741c490",
+    "Engine/Presentation/src/ToneParametersUpload.h": "70ec69a27867a5defe23b3158a0225653db1d99d4691e2549f57a07a610a7ac9",
+    "Engine/Presentation/src/VulkanSurface.cpp": "d35b913e5df547bff8a5d46077ab0f0785d543b1fce32b5bb2b2d4b676eb2e72",
+    "README.md": "ee6a2d031e21c86f95205a12b5d35ca222adc8c26fdfbf146121dcac8fe5f826",
+    "Roadmap/en/Editor_Roadmap.md": "4893b6deb7083d142505580cbe72d7ea0814d2ede6c8cc450936d71f4ce937c3",
+    "Roadmap/zh-TW/Editor_Roadmap.md": "1b5fa891b069ab4f777114e8d0ef7fa9e7be6c76081a8ccd2947b1cc7f435702",
+    "Tests/EditorImGui/ProfilerExportTests.cpp": "5947cd80ea2da77128b3bd0545e64b07b72a6c4da107dbb82870678b915b1383",
+    "Tests/Showcase/LinuxShowcaseInteraction.py": "1556590aa9bb89a89d7259a1222db0ebe32182dc2e5e93a4ee72e5e461969702",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "817908eede809b0aad9942af14957221e57271fba3d5fcd55d9da2c78676b85c",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "90f588765e66a2cb533623359c5f650778b9d11f8d39a69793cffa4a7f969284",
+    "Tests/WindowPresentation/PbrOcclusionFixtures.h": "b9a67cfee433f121aca29bc29860d48dcd29de90e946188a8362b09ee6bb90f0",
+    "Tests/WindowPresentation/SceneInstanceTests.cpp": "77eb630574c549d1f396eb78383b7c160a279ecfe4ab1d6f785a3098147d3299",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "ad3dfbe49787da5cedb686fe33b20cdeea54eca3ba5b6000d0f90d49370171bd"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/screen-space-occlusion-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "60e6a54621fe",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.08280013300828,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.800000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "0534d96d8c98af9a086e0547c5f473354a6ad606053afea02c7637dd8c13a34e",
+    "video_sha256": "69e872b8d8d172d87396c2a7df1a9fbb0fe85f0553d422db2bc211707d70e3fe",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "050865abeb1dbe6283c3d04d4d1150d386aca2920b32a49966fc8363933f4624",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        246,
+        623,
+        1145,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "screen_space_occlusion": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  },
+  "environment_payload_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+    "Content/Showcase/Courtyard/Hero/Source/ivy-single-leaf.png": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "8818167fa713fc545fbfb6edcd717f476e9e1e38941989385a37e941fe14bea9",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "656eee2adaf52dace8d8555291c9092c13d8ef0aa304386b0d40dfdde8734a18"
+  },
+  "scene_counts": {
+    "geometry_vertex_count": 60685,
+    "geometry_index_count": 139680,
+    "geometry_batch_count": 393,
+    "geometry_material_count": 48,
+    "foliage_quad_count": 3573
+  },
+  "device_identity": {
+    "name": "llvmpipe (LLVM 19.1.7, 256 bits)",
+    "vendor_id": 65541,
+    "device_id": 0,
+    "driver_version": "1",
+    "driver_version_format": "vulkan.raw"
+  }
+}

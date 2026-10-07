@@ -121,9 +121,34 @@ void Run() {
                                            480, SceneDepthOfField{10, 0, 12}, true);
   const auto defaultTone =
       PackToneParameters(1, false, SceneBloom{0, 1, 12}, SceneColorGrade{}, 640, 480);
-  Require(sizeof(aaPacked) == 64 && aaPacked[12] == 1.0F / 640 && aaPacked[13] == 1.0F / 480 &&
+  Require(sizeof(aaPacked) == 80 && aaPacked[12] == 1.0F / 640 && aaPacked[13] == 1.0F / 480 &&
               aaPacked[14] == 1 && aaPacked[15] == 0 && defaultTone[14] == 0,
           "anti-aliasing tone packet layout/default changed");
+  pbr.screenSpaceOcclusion = SceneScreenSpaceOcclusion{};
+  Require(ValidatePbrData(pbr), "valid screen-space occlusion rejected");
+  const auto validOcclusion = *pbr.screenSpaceOcclusion;
+  for (unsigned field = 0; field < 4; ++field) {
+    for (const float invalid :
+         {-1.0F, std::numeric_limits<float>::infinity(), std::numeric_limits<float>::quiet_NaN()}) {
+      auto &ao = *pbr.screenSpaceOcclusion;
+      ao = validOcclusion;
+      auto *value = field == 0   ? &ao.strength
+                    : field == 1 ? &ao.radius
+                    : field == 2 ? &ao.bias
+                                 : &ao.verticalFovRadians;
+      *value = invalid;
+      Require(!ValidatePbrData(pbr), "invalid occlusion scalar accepted");
+    }
+  }
+  pbr.screenSpaceOcclusion = SceneScreenSpaceOcclusion{1.01F};
+  Require(!ValidatePbrData(pbr), "unbounded occlusion strength accepted");
+  pbr.screenSpaceOcclusion = SceneScreenSpaceOcclusion{1, 0.5F, 0.6F};
+  Require(!ValidatePbrData(pbr), "occlusion bias beyond radius accepted");
+  pbr.screenSpaceOcclusion = validOcclusion;
+  pbr.hdr = false;
+  Require(!ValidatePbrData(pbr), "non-HDR occlusion accepted");
+  pbr.hdr = true;
+  pbr.screenSpaceOcclusion.reset();
   pbr.depthOfField = SceneDepthOfField{3, 1, 12};
   Require(ValidatePbrData(pbr), "valid HDR focus rejected");
   for (const float invalid : {0.0F, -1.0F, std::numeric_limits<float>::infinity(),

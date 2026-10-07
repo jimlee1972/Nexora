@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Standard／High 新增可關閉的螢幕空間接觸遮蔽，使用原生 HDR 幾何距離；Basic 不啟用，F11 切換。四個鄰近深度重建法線，十二個取樣依世界距離與 bias 排除無效遮蔽，各軸限制為 32 實體像素。共用 Slang tone pass 與複製的 80-byte packet 支援 Vulkan、DX12 與 Metal。原生 fixtures 驗證交接處變暗、平面穩定、HDR 高亮保持一致，以及停用／零強度精確還原；bloom 使用原始 HDR radiance，UI 在後處理後繪製。這是螢幕空間的合成近似，不宣稱隱藏／畫面外幾何或光線追蹤。包含已合併 Editor profiler 匯入更新的完整 Linux configure/build 與 104/104 測試通過（135.83 秒，core/sync validation）；Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.08 秒）。來源凍結 `60e6a54621fe3bcfedf4b6d5b3ccd8e5419b05b3`；證據：`Apps/Showcase/evidence/VIS-Screen-Space-Occlusion-Linux-2026-10-07/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
 ✅ 庭院環體沿垂直軸旋轉 -0.35 弧度，石材、銅帶、符文與附著藤蔓維持貼合；位置、法線及切線一併旋轉。水晶與盆座保留原始錨點，幾何數量、材質、原生風及共用動畫時鐘保持一致。完整 Linux configure/build 與 104/104 測試通過（130.34 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 101.10 秒）。來源凍結 `bb20d2807e5cb83149875acf96163d15a348df82`；證據：`Apps/Showcase/evidence/VIS-Device-Ring-Yaw-Linux-2026-10-07/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
 
 ✅ 柏樹樹冠改用原創針葉枝葉素材與獨立 cutout 材質，保留共用風、雙面受光、alpha 裁切及平面反射；來源 PNG 經雜湊驗證並可重現烘焙為根部對齊的 256 像素卡片。既有幾何／枝葉數量、常春藤、光源、shader packets 與 stable ABI 保持不變，Standard 使用 24 組原始與 24 組鏡面材質。Room contracts 驗證遮罩覆蓋、獨立紋理、柏樹反射及風切換精確還原。完整 Linux configure/build 與 104/104 測試通過（132.49 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 100.95 秒）。來源凍結 `56b2e509a376de5f5c40d644a2fb7ee8ae725d0e`；證據：`Apps/Showcase/evidence/VIS-Cypress-Crown-Linux-2026-10-07/`。Standard 使用 60,685 頂點、139,680 索引、393 batches、48 材質。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
