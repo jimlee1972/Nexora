@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "platform": "Linux",
+  "isolated_copy": true,
+  "physical_display_verified": false,
+  "issues": [],
+  "scope": "Linux Xvfb native interaction and screenshots; driver identity is recorded by the application"
+}

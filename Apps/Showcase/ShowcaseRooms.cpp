@@ -1705,6 +1705,9 @@ struct RoomSession::State final {
     for (const float x : {-9.0F, 7.5F})
       for (unsigned i = 0; i < 48; ++i) {
         const float z = -7 + i * (12.4F / 48);
+        // An authored gap retains the sunset opening through the left canopy.
+        if (x < 0 && z > -2.7F && z < -1.5F)
+          continue;
         const float arc = std::fmod(z + 7, 6.0F) - 3;
         const float root = 3.7F + std::sqrt(std::max(0.0F, 9 - arc * arc));
         Segment({x, root, z}, {x, root - 1.4F, z}, 0.018F);
@@ -1713,6 +1716,9 @@ struct RoomSession::State final {
     for (const float x : {-9.0F, 7.5F})
       for (unsigned i = 0; i < 48; ++i) {
         const float z = -7 + i * (12.4F / 48);
+        // An authored gap retains the sunset opening through the left canopy.
+        if (x < 0 && z > -2.7F && z < -1.5F)
+          continue;
         const float arc = std::fmod(z + 7, 6.0F) - 3;
         const float root = 3.7F + std::sqrt(std::max(0.0F, 9 - arc * arc));
         for (unsigned leaf = 0; leaf < 5; ++leaf) {
@@ -1810,7 +1816,7 @@ struct RoomSession::State final {
     finish(5);
     // Dense foreground banks retain the original alpha mask and the same GPU wind.
     for (const auto bank :
-         {std::array{-5.0F, 5.3F}, std::array{5.4F, 5.9F}, std::array{-7.8F, -1.8F}})
+         {std::array{-3.8F, 3.8F}, std::array{3.8F, 3.8F}, std::array{-7.8F, -1.8F}})
       for (unsigned sprig = 0; sprig < 128; ++sprig) {
         const float angle = sprig * 2.399963F;
         const float sprigRadius = 1.3F * std::sqrt((sprig + 0.5F) / 128);
@@ -3367,7 +3373,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                                                     s.courtyardQuality == 2 ? 20.0F : 12.0F};
     if (data.hdr && s.courtyardFocus && s.courtyardQuality != 0)
       data.depthOfField = Nexora::Presentation::SceneDepthOfField{
-          math::Length(eye - math::Vector3{0, 3.15F, 0}), s.courtyardQuality == 2 ? 0.8F : 0.65F,
+          math::Length(eye - math::Vector3{0, 3.15F, 0}), s.courtyardQuality == 2 ? 0.5F : 0.35F,
           s.courtyardQuality == 2 ? 8.0F : 6.0F};
     data.cameraPosition = {eye.x, eye.y, eye.z};
     if (data.hdr && s.courtyardQuality != 0 && s.courtyardActive && s.courtyardCrystalLight) {

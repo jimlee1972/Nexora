@@ -1,5 +1,11 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 原生 HDR 太陽、主光／陰影方向、skybox 與浮點 IBL 同步使用作者設定方向 (-18, 5, -19.2)，左側藤蔓僅省略五組根部與葉片形成小開口，使日輪露出；其餘常春藤、原始圖片、太陽／主光 radiance、BRDF LUT 與動畫時鐘保持不變。此最終套件包含已另行驗證的前景植被配置與較柔和景深。完整 Linux configure/build 與 104/104 測試通過（128.43 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 101.16 秒）。來源凍結 `c25b4c460948c34c12bd28b3857f506c2b5127b0`；證據：`Apps/Showcase/evidence/VIS-Courtyard-Sun-Window-Linux-2026-10-07/`。Standard 使用 60,685 頂點、139,680 索引、393 batches、46 材質。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
+✅ 將 Standard／High 景深強度從 0.65／0.8 降低為 0.35／0.5，使焦點周圍的背景塔樓、瀑布與石材細節更清楚；焦距、幾何深度、取樣半徑、HDR bloom、光源與幾何保持不變。此套件也包含已另行驗證的前景植被配置。完整 Linux configure/build 與 104/104 測試通過（128.41 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 100.96 秒）。來源凍結 `37b40b8005942805507bfc5f57fc061afe7e8b75`；證據：`Apps/Showcase/evidence/VIS-Courtyard-Focus-Clarity-Linux-2026-10-07/`。Standard 使用 60,865 頂點、140,070 索引、393 batches、46 材質。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
+✅ 重新配置兩組既有前景植被，使寬景與近景的庭院入口邊緣都有清楚植被層次；原始 alpha 遮罩、枝葉數量、葉片形狀、材質與 GPU 風保持不變，未增加幾何量。完整 Linux configure/build 與 104/104 測試通過（128.50 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 101.15 秒）。來源凍結 `236bf29ef11091ed6a405b3ae5fb40252b426ff0`；證據：`Apps/Showcase/evidence/VIS-Foreground-Bank-Placement-Linux-2026-10-07/`。Standard 使用 60,865 頂點、140,070 索引、393 batches、46 材質。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
 ✅ 將前景／背景石材與濕石鋪面的原始紋理尺度從每公尺 1.1 次調整為 0.4 次，使較大的侵蝕裂紋更清楚；原始圖片、烘焙紋理、粗糙度、法線強度、光源、幾何與動畫保持不變。完整 Linux configure/build 與 104/104 測試通過（125.60 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 101.14 秒）。來源凍結 `c80496cff0fd991093cbe48d43d4ebff8e93112c`；證據：`Apps/Showcase/evidence/VIS-Stone-Weathering-Scale-Linux-2026-10-07/`。Standard 使用 60,865 頂點、140,070 索引、393 batches、46 材質。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
 
 ✅ 將切面水晶外殼與內部核心的 X/Z 寬度增加 50%，使輪廓更接近預覽圖；外殼法線同步使用 inverse-transpose 縮放，高度、懸浮間距、折射、發光與共用動畫時鐘保持不變。完整 Linux configure/build 與 104/104 測試通過（126.28 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 101.14 秒）。來源凍結 `62da0c38f9e82cd797fba8ae5dd62d28eac803a9`；證據：`Apps/Showcase/evidence/VIS-Crystal-Silhouette-Linux-2026-10-07/`。Standard 使用 60,865 頂點、140,070 索引、393 batches、46 材質。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
