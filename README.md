@@ -1420,6 +1420,14 @@ schema headers and linear CRLF normalization, preserving last-good files on reje
 ✅ ED project layout persistence 的 save／read 現共用 1 MiB payload 上限、有界 schema header
 與線性 CRLF normalization；save 被拒絕時保留上一份有效檔案。完整圖形化驗收維持 0/8。
 
+✅ ED-M4 autosave writes now share recovery's 64 MiB payload limit, retain last-good journals
+and occupied temporary paths, and clean failed replacement staging. Portable regression tests cover
+limit boundaries, binary/empty content, locale-independent headers, corruption and retry preservation.
+
+✅ ED-M4 autosave 寫入現在與 recovery 共用 64 MiB payload 上限，保留上一份有效 journal
+與已佔用的暫存路徑，替換失敗則清理 staging。Portable regression 涵蓋上限邊界、binary／empty
+內容、locale-independent header、corruption 與重試保留；完整圖形化驗收仍維持 0/8。
+
 ✅ ED recovery gates now retain directories, dangling aliases and uninspectable journal paths as
 pending recovery; explicit discard is nonrecursive and preserves alias targets.
 
