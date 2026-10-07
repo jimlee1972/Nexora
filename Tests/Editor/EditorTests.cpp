@@ -15,6 +15,7 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
+#include <locale>
 #include <numbers>
 #include <stdexcept>
 #include <string>
@@ -26,6 +27,100 @@ namespace {
 void Require(bool condition, const char *message) {
   if (!condition)
     throw std::runtime_error(message);
+}
+
+void VerifyBuildManifestWrite(const std::filesystem::path &root) {
+  namespace fs = std::filesystem;
+  using nexora::editor::BuildFrontend;
+  const auto read = [](const fs::path &path) {
+    std::ifstream input(path, std::ios::binary);
+    Require(static_cast<bool>(input), "manifest fixture could not be read");
+    return std::string(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{});
+  };
+  const auto write = [](const fs::path &path, std::string_view bytes) {
+    std::ofstream output(path, std::ios::binary);
+    output << bytes;
+    output.close();
+    Require(!output.fail(), "manifest fixture could not be written");
+  };
+  const auto path = root / fs::path{u8"建置產物-manifest.json"};
+  auto stage = path;
+  stage += ".tmp";
+  nexora::editor::BuildManifest manifest{
+      1,
+      {"linux-dev", "linux-x64", "Development", "cmake --build --preset linux-development"},
+      {{"bin/game", "sha256:game", std::numeric_limits<std::uint64_t>::max()}}};
+  const std::u8string label = u8"建置\"\\\x1f\n";
+  manifest.profile.name.assign(label.begin(), label.end());
+  struct Grouped final : std::numpunct<char> {
+    char do_thousands_sep() const override { return ','; }
+    std::string do_grouping() const override { return "\1"; }
+  };
+  std::string error = "stale";
+  bool saved = false;
+  {
+    struct Restore final {
+      std::locale previous{std::locale()};
+      ~Restore() { std::locale::global(previous); }
+    } restore;
+    std::locale::global(std::locale(restore.previous, new Grouped));
+    saved = BuildFrontend::Write(manifest, path, &error);
+  }
+  const auto committed = read(path);
+  Require(saved && error.empty() &&
+              committed.find("\"bytes\": 18446744073709551615}") != std::string::npos &&
+              committed.find("\\u001f\\n") != std::string::npos && !fs::exists(stage),
+          "native UTF-8 destination, locale-independent uint64 or staging cleanup failed");
+  write(stage, "unrelated manifest stage");
+  Require(!BuildFrontend::Write(manifest, path, &error) && !error.empty() &&
+              read(stage) == "unrelated manifest stage" && read(path) == committed,
+          "manifest write truncated an occupied stage or replaced the last-good destination");
+  fs::remove(stage);
+  fs::create_directory(stage);
+  write(stage / "retained", "unrelated staging contents");
+  Require(!BuildFrontend::Write(manifest, path, &error) && fs::is_directory(stage) &&
+              read(stage / "retained") == "unrelated staging contents" && read(path) == committed,
+          "manifest write removed an occupied staging directory");
+  fs::remove_all(stage);
+#if !defined(_WIN32)
+  const auto target = root / "manifest-stage-target";
+  write(target, "unrelated alias target");
+  for (const auto &alias : {target, root / "missing-manifest-stage-target"}) {
+    fs::create_symlink(alias, stage);
+    Require(!BuildFrontend::Write(manifest, path, &error) && fs::is_symlink(stage) &&
+                read(target) == "unrelated alias target" && read(path) == committed,
+            "manifest write followed or removed an occupied staging alias");
+    fs::remove(stage);
+  }
+#endif
+  const auto backup = root / "last-good-build-manifest.json";
+  fs::rename(path, backup);
+  fs::create_directory(path);
+  Require(!BuildFrontend::Write(manifest, path, &error) && !error.empty() &&
+              fs::is_directory(path) && read(backup) == committed && !fs::exists(stage),
+          "failed manifest replacement changed the destination or left owned staging");
+  fs::remove(path);
+  fs::rename(backup, path);
+  manifest.schema_version = 999;
+  Require(!BuildFrontend::Write(manifest, path, &error) && read(path) == committed &&
+              !fs::exists(stage),
+          "invalid manifest changed last-good bytes or staging");
+  manifest.schema_version = 1;
+  error = "stale";
+  Require(BuildFrontend::Validate(manifest, &error) && error.empty() &&
+              BuildFrontend::Write(manifest, path, &error) && error.empty() &&
+              read(path) == committed && !fs::exists(stage),
+          "manifest validation or successful retry retained an old error");
+  const auto relative = fs::path{root.filename().string() + "-relative-manifest.json"};
+  struct RelativeCleanup final {
+    fs::path path;
+    ~RelativeCleanup() {
+      std::error_code ignored;
+      fs::remove(path, ignored);
+    }
+  } cleanup{relative};
+  Require(BuildFrontend::Write(manifest, relative, &error) && read(relative) == committed,
+          "relative manifest destination lost compatibility");
 }
 
 int Run() {
@@ -1543,6 +1638,7 @@ int Run() {
   Require(editor::BuildFrontend::Write(manifest, manifest_path, &error) &&
               fs::file_size(manifest_path) > 0,
           "build manifest failed");
+  VerifyBuildManifestWrite(root);
   const auto manifest_directory = root / "manifest-directory";
   fs::create_directory(manifest_directory);
   Require(!editor::BuildFrontend::Write(manifest, manifest_directory, &error) &&
