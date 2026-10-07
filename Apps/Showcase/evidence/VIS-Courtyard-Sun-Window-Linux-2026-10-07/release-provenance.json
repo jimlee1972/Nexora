@@ -1,0 +1,105 @@
+{
+  "source_freeze": "c25b4c460948c34c12bd28b3857f506c2b5127b0",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/CourtyardEnvironment.h": "b1c1284cb3cf3c245eb8c8b13529f04e294335ed216a2fbea6390190e6516283",
+    "Apps/Showcase/CourtyardHero.h": "fd1865d4235be5befd32b6fd02b942915cd21a7c88e11ca624e402cf0177e427",
+    "Apps/Showcase/README.md": "e344165a43c645aadb3819627376787b6168a749044801e17ad233a95c278926",
+    "Apps/Showcase/ShowcaseRooms.cpp": "81e1a494c8e5ee912f9ca972399cecc46e1b387c88c5b90fc51da62f291e5af3",
+    "Content/Showcase/Courtyard/Environment/derived.json": "68f2c94edc9d4fa50f859e5ed77feb55748c7aa74e9e8c02e388fddd88c8a247",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "656eee2adaf52dace8d8555291c9092c13d8ef0aa304386b0d40dfdde8734a18",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "8818167fa713fc545fbfb6edcd717f476e9e1e38941989385a37e941fe14bea9",
+    "Content/Showcase/Courtyard/Hero/manifest.json": "ae5fcf7b8a98dcf91dc88e155046c9016c40968df531564838394f53ae0e0200",
+    "Content/Showcase/Courtyard/Hero/sky.rgba": "92213f530783dc8b6e7cea9f3a233ffd9f6068ff54331294d729bc758facaf5a",
+    "Content/Showcase/Courtyard/Hero/source.json": "f24ad86125c5aa0786d62cf0d257e6a0483744df048c3f9b53a8d7d68f811ae9",
+    "Roadmap/en/V1-Visual-Identity-Roadmap.md": "3aa0c7692a15d3dfbeda3e8e8624c7ef2d60c435a637d2a154d61138f4afba1c",
+    "Roadmap/zh-TW/V1-Visual-Identity-Roadmap.md": "b245eeadd9a575dd53968881c168095c5d0ede54bb25f616ea7d0e70df65254f"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/courtyard-sun-window-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "c25b4c460948",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.16322861399385,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.866667"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "2ce98e857ed39c6ce54ffaa797f8a0b2cd97ed8049b3cd31d4a097bef454d213",
+    "video_sha256": "67aae33012eca635becd972db52ba90708ce9fd3a7869c2a9e3d258ccf98cbe5",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "51d4305b12ebe199d13b50186e87d19ab38ddb4f6197f2e587fcc8a6b5600b97",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        246,
+        647,
+        1145,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        2,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  },
+  "environment_payload_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+    "Content/Showcase/Courtyard/Hero/Source/ivy-single-leaf.png": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "8818167fa713fc545fbfb6edcd717f476e9e1e38941989385a37e941fe14bea9",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "656eee2adaf52dace8d8555291c9092c13d8ef0aa304386b0d40dfdde8734a18"
+  },
+  "scene_counts": {
+    "geometry_vertex_count": 60685,
+    "geometry_index_count": 139680,
+    "geometry_batch_count": 393,
+    "geometry_material_count": 46,
+    "foliage_quad_count": 3573
+  },
+  "device_identity": {
+    "name": "llvmpipe (LLVM 19.1.7, 256 bits)",
+    "vendor_id": 65541,
+    "device_id": 0,
+    "driver_version": "1",
+    "driver_version_format": "vulkan.raw"
+  }
+}
