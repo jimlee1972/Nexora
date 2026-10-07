@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 將切面水晶外殼與內部核心的 X/Z 寬度增加 50%，使輪廓更接近預覽圖；外殼法線同步使用 inverse-transpose 縮放，高度、懸浮間距、折射、發光與共用動畫時鐘保持不變。完整 Linux configure/build 與 104/104 測試通過（126.28 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 101.14 秒）。來源凍結 `62da0c38f9e82cd797fba8ae5dd62d28eac803a9`；證據：`Apps/Showcase/evidence/VIS-Crystal-Silhouette-Linux-2026-10-07/`。Standard 使用 60,865 頂點、140,070 索引、393 batches、46 材質。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
 ✅ 太陽仰角版本整合已接受主線 `deab1c965704`，保留全部 18 個 PoseSearch／建置／文件路徑，Showcase 自有來源逐位元組一致。完整 Linux configure/build 與 104/104 測試通過（123.68 秒，core/sync validation），一般 linux-shipping Full／Monolithic 建置亦通過。凍結 `5ee0a10628bc` 的 Shipping 執行檔完成原生驗收、風／反射精確還原及 100 秒動畫錄製（實際 101.22 秒）。原始 `be4fb04` 證據保持不變；同版本整合證據：`Apps/Showcase/evidence/VIS-Solar-Elevation-Linux-2026-10-07/main-integration/`。VIS 維持 5/7；預覽圖一致性及實體目標硬體驗收仍待完成。
 
 ✅ 提高黃昏太陽仰角，同步原生 HDR 太陽、主光、skybox 與重新烘焙的浮點 IBL，使前景受光與陰影更清楚；原始圖片、radiance 因子與動畫時鐘保持不變。完整 Linux configure/build 與 102/102 測試通過（123.38 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 101.15 秒）。來源凍結 `be4fb04edf382692c5a5903f571c2afad5ae20a1`；證據：`Apps/Showcase/evidence/VIS-Solar-Elevation-Linux-2026-10-07/`。Standard 使用 60,865 頂點、140,070 索引、393 batches、46 材質。HDR、skybox 與共用時鐘動畫保持運作；預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
