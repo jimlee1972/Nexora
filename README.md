@@ -137,8 +137,8 @@ an unchecked or unmarked item remains incomplete.
 | --- | ---: | --- |
 | ✅ [V1 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md) | **100%** | 13/13 portable M0–M12 contract foundations delivered; native/product adapters remain separate gates. |
 | ✅ [V1 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V1_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **100%** | Tracks the same accepted portable V1 implementation baseline. |
-| [V2 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) | **46%** | ✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 are accepted. V2-M7 now includes bounded multi-world self-play coordination but remains in progress; V2-M9 through V2-M12 also have unaccepted portable foundations, while V2-M3 and V2-M8 remain open. |
-| [V2 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **46%** | Tracks the same accepted V2 baseline plus the in-progress V2-M7 and V2-M9–M12 portable foundations; production backends, distributed infrastructure, cross-device diagnostics, and hardening acceptance remain open. |
+| [V2 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md) | **46%** | ✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 are accepted. V2-M7 now includes bounded multi-world self-play coordination but remains in progress; V2-M8 adds an accepted portable Pose Search slice but remains incomplete; V2-M9 through V2-M12 also have unaccepted portable foundations, while V2-M3 remains open. |
+| [V2 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md) | **46%** | Tracks the same accepted V2 baseline plus the in-progress V2-M7–M12 portable foundations; production backends, distributed infrastructure, cross-device diagnostics, and hardening acceptance remain open. |
 | [V3 Complete Plan](Roadmap/en/Cross-platform_3D_Engine_V3_Complete_Plan_v1_4.md) | **0%** | No V3 delivery milestone has an accepted repository gate. |
 | [V3 AI Implementation Plan](Roadmap/en/Cross-platform_3D_Engine_V3_AI_Implementation_Technology_and_System_Plan_v1_3.md) | **0%** | Execution plan only; no V3 milestone accepted. |
 | ✅ [Engine API Foundation](Roadmap/en/Engine_API_Foundation_Roadmap.md) | **100%** | ✅ API-M1 through ✅ API-M6 complete for portable scope. |
@@ -659,8 +659,8 @@ Nexora 是一個開源跨平台 3D 引擎計畫，聚焦於高效能 C++20 核�
 | --- | ---: | --- |
 | ✅ [V1 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V1_完整規劃書_v1_2.md) | **100%** | 13/13 個 portable M0–M12 contract foundation 已交付；native/product adapter 仍為獨立 gate。 |
 | ✅ [V1 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V1_AI施工技術與系統規劃_v1_2.md) | **100%** | 對應同一個已驗收的 portable V1 施工基線。 |
-| [V2 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) | **46%** | ✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已驗收。V2-M7 現含有界 multi-world self-play 協調，但仍進行中；V2-M9 至 V2-M12 也仍是未驗收的 portable foundation，V2-M3 與 V2-M8 尚未完成。 |
-| [V2 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) | **46%** | 追蹤同一套已驗收的 V2 基線，以及進行中的 V2-M7 與 V2-M9～M12 portable foundation；production backend、distributed infrastructure、跨裝置 diagnostics 與 hardening 驗收仍待完成。 |
+| [V2 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V2_完整規劃書_v1_4.md) | **46%** | ✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已驗收。V2-M7 現含有界 multi-world self-play 協調，但仍進行中；V2-M8 新增已驗證的 portable Pose Search 切片，但尚未整體驗收；V2-M9 至 V2-M12 也仍是未驗收的 portable foundation，V2-M3 尚未完成。 |
+| [V2 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V2_AI施工技術與系統規劃_v1_2.md) | **46%** | 追蹤同一套已驗收的 V2 基線，以及進行中的 V2-M7～M12 portable foundation；production backend、distributed infrastructure、跨裝置 diagnostics 與 hardening 驗收仍待完成。 |
 | [V3 完整規劃書](Roadmap/zh-TW/跨平台3D_Engine_V3_完整規劃書_v1_4.md) | **0%** | 尚無 V3 delivery milestone 通過 repository gate。 |
 | [V3 AI 施工規劃](Roadmap/zh-TW/跨平台3D_Engine_V3_AI施工技術與系統規劃_v1_3.md) | **0%** | 僅為施工規劃；尚無 V3 milestone 驗收。 |
 | ✅ [Engine API 基礎](Roadmap/zh-TW/Engine_API_基礎_Roadmap.md) | **100%** | ✅ API-M1 至 ✅ API-M6 完成 portable scope。 |

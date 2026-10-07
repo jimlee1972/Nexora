@@ -4,7 +4,7 @@
 **Corresponding Source: Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md**
 **Purpose: AI implementation, Engine Programmer implementation, system decomposition, Code Review, CI Gate.**
 
-> **Progress: 46%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 are accepted; V2-M3 and V2-M7 through V2-M12 remain open. V2-M7 has an in-progress portable foundation but is not yet accepted.)
+> **Progress: 46%** (✅ V2-M0 through ✅ V2-M2 and ✅ V2-M4 through ✅ V2-M6 are accepted; V2-M3 and V2-M7 through V2-M12 remain open. V2-M7 and V2-M8 have in-progress portable foundations but are not yet accepted.)
 
 
 
@@ -2284,6 +2284,20 @@ multi-world self-play coordinator adds deterministic world seeds, a per-tick ser
 round-robin fairness, per-world deferred-policy cache isolation, and failure containment. Production
 NavMesh streaming, job-system adapters, policy backends, and large-scale/distributed training
 orchestration remain open.
+
+---
+
+# V2-M8 Portable Pose Search Status
+
+> **Portable Pose Search slice (2026-10-07):** ✅ `NexoraPoseSearch` provides a
+> Foundation-only optional feature extractor, deterministic weighted pose database builder,
+> canonical fingerprint, clip/time references, and exact tag-constrained search. Reordered input
+> and signed zero produce identical artifacts; invalid rebuilds preserve the previous database.
+> `animation.v2_m8_pose_search` checks 65,536 samples against an independent reference;
+> `build.pose_search_profiles` verifies enabled/disabled target and source graphs in six profiles.
+> Translation-only features do not establish compressed poses, retargeting, motion warping,
+> inertialization, sync groups, GPU execution, editor tooling, or Motion Matching acceptance.
+> V2-M8 remains in progress; overall V2 progress stays 46%.
 
 ---
 

@@ -4,7 +4,7 @@
 **對應來源：跨平台3D_Engine_V2_完整規劃書_v1_4.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
-> **進度：46%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已驗收；V2-M3、V2-M7 至 V2-M12 仍待完成。V2-M7 已有第一個 portable foundation，但仍屬進行中且尚未驗收。）
+> **進度：46%**（✅ V2-M0 至 ✅ V2-M2 與 ✅ V2-M4 至 ✅ V2-M6 已驗收；V2-M3、V2-M7 至 V2-M12 仍待完成。V2-M7 與 V2-M8 已有 portable foundation，但仍屬進行中且尚未驗收。）
 
 
 
@@ -2293,6 +2293,19 @@ motor input，不改變任一模組的依賴方向。Portable multi-world self-p
 deterministic world seed、每 tick 服務預算、round-robin 公平輪轉、world 間 deferred-policy
 cache 隔離與失敗 containment。Production NavMesh streaming、job-system adapter、policy backend
 與大型／distributed training orchestration 仍待完成。
+
+---
+
+# V2-M8 Portable Pose Search 狀態
+
+> **Portable Pose Search 切片（2026-10-07）：** ✅ `NexoraPoseSearch` 提供只依賴
+> Foundation 的 optional feature extractor、deterministic weighted pose database builder、
+> canonical fingerprint、clip/time reference 與精確 tag-constrained search。輸入順序與 signed
+> zero 不影響產物；無效重建會保留舊資料庫。`animation.v2_m8_pose_search` 以 65,536 筆資料
+> 比對獨立 reference；`build.pose_search_profiles` 驗證六種 profile 的啟用／停用 target 與
+> source graph。Translation-only feature 不代表 compressed pose、retargeting、motion warping、
+> inertialization、sync group、GPU execution、editor tooling 或 Motion Matching 已驗收。
+> V2-M8 仍進行中；V2 整體進度維持 46%。
 
 ---
 

@@ -119,6 +119,11 @@ transitions, extracts root motion, and publishes a validated matrix palette for 
 vertex-skinning or baked-animation-texture backend. The graph and palette are synchronous and
 caller-owned; production clip compression and GPU upload remain backend responsibilities.
 
+V2-M8's optional [`NexoraPoseSearch`](../PoseSearch/README.md) supplies a translation-only feature
+extractor and deterministic weighted pose database/search through a separate Foundation-only
+module. Runtime does not link it implicitly. A caller may use its owning clip/time result to select
+animation state; the database owns no graph, character motor, transform, or gameplay event authority.
+
 `AudioEngine` enforces a hard voice limit, routes events through named buses, and acquires a
 reference in `ResidencyTracker` for every active voice. Stopping one of several voices cannot
 unload their shared clip. The `streaming` event bit is preserved for a MiniAudio/platform adapter;
