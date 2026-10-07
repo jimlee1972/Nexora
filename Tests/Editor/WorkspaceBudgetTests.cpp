@@ -263,6 +263,19 @@ int Run() {
   fs::rename(retained_metadata, metadata);
   Require(!writer.HasRecoveryJournal() && Read(primary) == recovery_primary,
           "restoring inspectable metadata changed the workspace or left recovery pending");
+  fs::rename(metadata, retained_metadata);
+  Require(!writer.HasRecoveryJournal(), "missing legacy metadata was reported as recovery");
+#if !defined(_WIN32)
+  fs::create_symlink(retained_metadata, metadata);
+  Require(!writer.HasRecoveryJournal(), "valid metadata directory alias changed missing recovery");
+  fs::remove(metadata);
+  fs::create_symlink(root / "missing-metadata-target", metadata);
+  Require(writer.HasRecoveryJournal(), "dangling metadata parent unlocked recovery gates");
+  fs::remove(metadata);
+#endif
+  fs::rename(retained_metadata, metadata);
+  Require(!writer.HasRecoveryJournal() && Read(primary) == recovery_primary,
+          "metadata alias fixtures changed committed state");
 
   fs::remove(primary);
   Require(observer.Open(root, ProjectAccess::ReadOnly, &error) && observer.OpenDocuments().empty(),

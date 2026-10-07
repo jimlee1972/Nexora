@@ -816,9 +816,24 @@ bool ProjectWorkspace::HasRecoveryJournal() const {
   if (root_.empty())
     return false;
   std::error_code ec;
-  const auto status = std::filesystem::symlink_status(root_ / ".nexora/workspace.recovery", ec);
-  if (ec == std::errc::no_such_file_or_directory)
-    return false;
+  const auto path = root_ / ".nexora/workspace.recovery";
+  const auto status = std::filesystem::symlink_status(path, ec);
+  if (ec == std::errc::no_such_file_or_directory ||
+      (!ec && status.type() == std::filesystem::file_type::not_found)) {
+    // Windows may report a missing leaf when a metadata parent is a file. Verify the parent
+    // before interpreting absence; valid directory aliases retain their existing behavior.
+    const auto parent = std::filesystem::symlink_status(path.parent_path(), ec);
+    if (ec == std::errc::no_such_file_or_directory ||
+        (!ec && parent.type() == std::filesystem::file_type::not_found))
+      return false;
+    if (ec)
+      return true;
+    if (std::filesystem::is_symlink(parent)) {
+      const auto target = std::filesystem::status(path.parent_path(), ec);
+      return ec || !std::filesystem::is_directory(target);
+    }
+    return !std::filesystem::is_directory(parent);
+  }
   // Occupied or uninspectable metadata requires an explicit recovery decision. Do not follow
   // aliases, or mistake a dangling link/directory for an absent journal and unlock authoring.
   return ec || status.type() != std::filesystem::file_type::not_found;
