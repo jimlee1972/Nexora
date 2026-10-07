@@ -69,7 +69,7 @@ int main() {
   assert(!courtyard.Scene(1280, 720).postProcessAntiAliasing);
   Press(courtyard, Key::F10);
   assert(courtyard.Scene(1280, 720).postProcessAntiAliasing);
-  assert(wide.materials.size() == 46 && !wide.batches.empty());
+  assert(wide.materials.size() == 48 && !wide.batches.empty());
   assert(Nexora::Presentation::ValidateSceneMaterials(wide.materials, wide.batches));
   const auto sourceMaterialCount = wide.materials.size() / 2;
   std::size_t covered = 0;
@@ -150,9 +150,30 @@ int main() {
   }
   assert(rigidTriangles > 0);
 
+  // Cypress crowns use their own cutout and retain the shared wind and mirror contracts.
+  const auto cypress = wide.materials[23];
+  assert(cypress.textureId != wide.materials[5].textureId && cypress.alphaCutoff > 0);
+  assert(cypress.windAmplitude > 0 && cypress.twoSidedLighting);
+  bool cypressMirror = false;
+  for (const auto &batch : wide.batches) {
+    if (batch.materialIndex != 23 || batch.firstInstance != 0)
+      continue;
+    cypressMirror = std::any_of(wide.batches.begin(), wide.batches.end(), [&](const auto &other) {
+      return other.materialIndex == batch.materialIndex + sourceMaterialCount &&
+             other.firstIndex == batch.firstIndex && other.indexCount == batch.indexCount &&
+             other.firstInstance != 0;
+    });
+    assert(cypressMirror);
+  }
+  assert(cypressMirror);
+  Press(courtyard, Key::N);
+  assert(courtyard.Scene(1280, 720).materials[23].windAmplitude == 0);
+  Press(courtyard, Key::N);
+  assert(courtyard.Scene(1280, 720).materials[23].windAmplitude == cypress.windAmplitude);
+
   std::size_t sourceLeaves = 0;
   for (const auto &batch : wide.batches)
-    if (batch.materialIndex == 5 || batch.materialIndex == 22)
+    if (batch.materialIndex == 5 || batch.materialIndex == 22 || batch.materialIndex == 23)
       sourceLeaves += batch.indexCount / 6;
   assert(sourceLeaves > 700);
   std::size_t foldedLeaves = 0;
@@ -599,13 +620,23 @@ int main() {
   assert(courtyard.Report().find("\"representative_asset_loaded\":true") != std::string::npos);
   assert(courtyard.Report().find("\"adopted_mesh_count\":3") != std::string::npos);
   const auto adopted = courtyard.Scene(1280, 720);
-  assert(adopted.textureId == 2 && adopted.textureUploads.size() == 10);
+  assert(adopted.textureId == 2 && adopted.textureUploads.size() == 11);
   assert(adopted.materials[0].normalTextureId == 11 && adopted.materials[1].ormTextureId == 15);
   assert(adopted.textureUploads[0].pixels.size() == 64 * 64 * 4);
   assert(adopted.textureUploads[1].width == 256 && adopted.textureUploads[1].height == 256);
   assert(adopted.textureUploads[1].pixels.size() == 256 * 256 * 4);
-  assert(adopted.textureUploads.back().width == 768 && adopted.textureUploads.back().height == 512);
-  assert(adopted.textureUploads.back().pixels.size() == 768 * 512 * 4);
+  assert(adopted.textureUploads[9].width == 768 && adopted.textureUploads[9].height == 512);
+  assert(adopted.textureUploads[9].pixels.size() == 768 * 512 * 4);
+  const auto &cypressUpload = adopted.textureUploads.back();
+  assert(cypressUpload.width == 256 && cypressUpload.height == 256);
+  assert(cypressUpload.pixels.size() == 256 * 256 * 4);
+  bool transparentNeedleGap = false, solidNeedleCluster = false;
+  for (std::size_t pixel = 3; pixel < cypressUpload.pixels.size(); pixel += 4) {
+    const auto alpha = std::to_integer<unsigned>(cypressUpload.pixels[pixel]);
+    transparentNeedleGap |= alpha < 128;
+    solidNeedleCluster |= alpha >= 128;
+  }
+  assert(transparentNeedleGap && solidNeedleCluster);
 #endif
   assert(courtyard.Scene(1280, 720).materials[5].alphaCutoff == 0.5F);
   courtyard.Tick(0.5);

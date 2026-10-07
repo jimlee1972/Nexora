@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 柏樹樹冠改用原創針葉枝葉素材與獨立 cutout 材質，保留共用風、雙面受光、alpha 裁切及平面反射；來源 PNG 經雜湊驗證並可重現烘焙為根部對齊的 256 像素卡片。既有幾何／枝葉數量、常春藤、光源、shader packets 與 stable ABI 保持不變，Standard 使用 24 組原始與 24 組鏡面材質。Room contracts 驗證遮罩覆蓋、獨立紋理、柏樹反射及風切換精確還原。完整 Linux configure/build 與 104/104 測試通過（132.49 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 100.95 秒）。來源凍結 `56b2e509a376de5f5c40d644a2fb7ee8ae725d0e`；證據：`Apps/Showcase/evidence/VIS-Cypress-Crown-Linux-2026-10-07/`。Standard 使用 60,685 頂點、139,680 索引、393 batches、48 材質。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
 ✅ 原生 HDR 太陽、主光／陰影方向、skybox 與浮點 IBL 同步使用作者設定方向 (-18, 5, -19.2)，左側藤蔓僅省略五組根部與葉片形成小開口，使日輪露出；其餘常春藤、原始圖片、太陽／主光 radiance、BRDF LUT 與動畫時鐘保持不變。此最終套件包含已另行驗證的前景植被配置與較柔和景深。完整 Linux configure/build 與 104/104 測試通過（128.43 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 101.16 秒）。來源凍結 `c25b4c460948c34c12bd28b3857f506c2b5127b0`；證據：`Apps/Showcase/evidence/VIS-Courtyard-Sun-Window-Linux-2026-10-07/`。Standard 使用 60,685 頂點、139,680 索引、393 batches、46 材質。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
 
 ✅ 將 Standard／High 景深強度從 0.65／0.8 降低為 0.35／0.5，使焦點周圍的背景塔樓、瀑布與石材細節更清楚；焦距、幾何深度、取樣半徑、HDR bloom、光源與幾何保持不變。此套件也包含已另行驗證的前景植被配置。完整 Linux configure/build 與 104/104 測試通過（128.41 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 100.96 秒）。來源凍結 `37b40b8005942805507bfc5f57fc061afe7e8b75`；證據：`Apps/Showcase/evidence/VIS-Courtyard-Focus-Clarity-Linux-2026-10-07/`。Standard 使用 60,865 頂點、140,070 索引、393 batches、46 材質。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。

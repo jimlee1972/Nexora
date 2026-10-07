@@ -182,8 +182,8 @@ struct RoomSession::State final {
   std::array<std::string, 3> environmentHashes;
   std::string environmentMetadataHash;
   renderer::Mesh courtyardCrystal;
-  std::array<ByteBuffer, 9> courtyardDetail;
-  std::array<std::string, 10> courtyardHeroHashes;
+  std::array<ByteBuffer, 10> courtyardDetail;
+  std::array<std::string, 11> courtyardHeroHashes;
   bool assetRejected{}, cycleRejected{}, rolledBack{};
 #endif
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
@@ -426,7 +426,7 @@ struct RoomSession::State final {
         return {};
       return CanonicalAsset{source.id, source.type, {{0x4e58, 119}}, source.bytes};
     });
-    const std::array<std::span<const std::byte>, 11> heroSources{
+    const std::array<std::span<const std::byte>, 12> heroSources{
         std::as_bytes(std::span{courtyard_hero::metadata, sizeof(courtyard_hero::metadata) - 1}),
         std::as_bytes(std::span{courtyard_hero::mesh, sizeof(courtyard_hero::mesh) - 1}),
         std::as_bytes(std::span{courtyard_hero::stone_color}),
@@ -437,7 +437,8 @@ struct RoomSession::State final {
         std::as_bytes(std::span{courtyard_hero::bronze_orm}),
         std::as_bytes(std::span{courtyard_hero::leaf}),
         std::as_bytes(std::span{courtyard_hero::mote}),
-        std::as_bytes(std::span{courtyard_hero::sky})};
+        std::as_bytes(std::span{courtyard_hero::sky}),
+        std::as_bytes(std::span{courtyard_hero::cypress})};
     for (std::size_t i = 0; i < heroSources.size(); ++i) {
       const auto payload = heroSources[i];
       const auto imported = importer.Import({{0x4e58, 119 + i},
@@ -478,7 +479,7 @@ struct RoomSession::State final {
     }
     if (!courtyardAssets.Load({0x4e58, 107}))
       throw std::runtime_error("Courtyard cooked IBL metadata load failed");
-    for (std::size_t i = 0; i < 10; ++i) {
+    for (std::size_t i = 0; i < courtyardHeroHashes.size(); ++i) {
       const auto *loaded = courtyardAssets.Load({0x4e58, 120 + i});
       if (!loaded || loaded->dependencies != std::vector<AssetUuid>{{0x4e58, 119}})
         throw std::runtime_error("Courtyard hero generation dependency failed");
@@ -486,9 +487,9 @@ struct RoomSession::State final {
         courtyardCrystal = ReadShowcaseMesh(loaded->payload);
       else {
         if (loaded->payload.size() !=
-            (i == 9   ? 6 * courtyard_hero::sky_face_size * courtyard_hero::sky_face_size * 4
-             : i <= 7 ? 256 * 256 * 4
-                      : 64 * 64 * 4))
+            (i == 9 ? 6 * courtyard_hero::sky_face_size * courtyard_hero::sky_face_size * 4
+             : i <= 7 || i == 10 ? 256 * 256 * 4
+                                 : 64 * 64 * 4))
           throw std::runtime_error("Courtyard detail payload invalid");
         courtyardDetail[i - 1] = loaded->payload;
       }
@@ -842,7 +843,7 @@ struct RoomSession::State final {
           batch.materialIndex != 2 && batch.materialIndex != 3 && batch.materialIndex != 5 &&
           batch.materialIndex != 6 && batch.materialIndex != 7 && batch.materialIndex != 11 &&
           batch.materialIndex != 12 && batch.materialIndex != 15 && batch.materialIndex != 16 &&
-          batch.materialIndex != 17 && batch.materialIndex != 22)
+          batch.materialIndex != 17 && batch.materialIndex != 22 && batch.materialIndex != 23)
         continue;
       batches.push_back({batch.firstIndex, batch.indexCount, mirrorIndex, 1,
                          batch.materialIndex + static_cast<std::uint32_t>(materialCount)});
@@ -1772,7 +1773,7 @@ struct RoomSession::State final {
                      crownRadius * 0.7F, 0.49F, angle);
           }
         }
-    finish(5);
+    finish(23);
     // Original tapered grass blades occupy paving cracks with root-anchored GPU wind.
     for (unsigned patch = 0; patch < 180; ++patch) {
       const auto seed = patch * 747796405U + 2891336453U;
@@ -1867,7 +1868,7 @@ struct RoomSession::State final {
     }
     courtyardFoliageQuadCount = 0;
     for (const auto &batch : batches)
-      if (batch.materialIndex == 5 || batch.materialIndex == 22)
+      if (batch.materialIndex == 5 || batch.materialIndex == 22 || batch.materialIndex == 23)
         courtyardFoliageQuadCount += batch.indexCount / 6;
     renderer::Mesh tangentSource;
     tangentSource.indices = indices;
@@ -3177,6 +3178,12 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     grass.transmissionThickness = s.courtyardPbr && s.courtyardTransmission ? 0.035F : 0;
     grass.transmissionColor = {0.12F, 0.18F, 0.03F};
     s.materials.push_back(grass);
+    auto cypress = s.materials[5];
+#if NEXORA_ASSET_PIPELINE_ENABLED
+    cypress.textureId = 19;
+    cypress.emissionTextureId = 19;
+#endif
+    s.materials.push_back(cypress);
     s.CourtyardGeometry();
     // Animate from the immutable cache each frame; pause/replay never accumulates drift.
     const float crystalAngle = static_cast<float>(s.courtyardSeconds) * 0.18F;
@@ -3419,15 +3426,15 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.sceneUploads.push_back({2, 64, 64, 256, s.courtyardAtlas});
     for (std::size_t i = 0; i < s.courtyardDetail.size(); ++i)
       s.sceneUploads.push_back({10 + i,
-                                i == 8  ? 3 * courtyard_hero::sky_face_size
-                                : i < 7 ? 256U
-                                        : 64U,
-                                i == 8  ? 2 * courtyard_hero::sky_face_size
-                                : i < 7 ? 256U
-                                        : 64U,
-                                i == 8  ? 12 * courtyard_hero::sky_face_size
-                                : i < 7 ? 1024U
-                                        : 256U,
+                                i == 8            ? 3 * courtyard_hero::sky_face_size
+                                : i < 7 || i == 9 ? 256U
+                                                  : 64U,
+                                i == 8            ? 2 * courtyard_hero::sky_face_size
+                                : i < 7 || i == 9 ? 256U
+                                                  : 64U,
+                                i == 8            ? 12 * courtyard_hero::sky_face_size
+                                : i < 7 || i == 9 ? 1024U
+                                                  : 256U,
                                 s.courtyardDetail[i]});
     data.textureId = 2;
     data.textureUploads = s.sceneUploads;
@@ -3664,7 +3671,7 @@ std::string RoomSession::Report() const {
       << ",\"representative_asset_loaded\":" << !s.assetMesh.vertices.empty()
       << ",\"asset_hash\":\"" << s.assetHash << "\""
       << ",\"hero_asset_loaded\":" << !s.courtyardCrystal.vertices.empty()
-      << ",\"hero_detail_map_count\":6,\"hero_mask_count\":2,\"hero_sky_map_count\":1,\"hero_"
+      << ",\"hero_detail_map_count\":6,\"hero_mask_count\":3,\"hero_sky_map_count\":1,\"hero_"
          "hashes\":[";
   for (std::size_t i = 0; i < s.courtyardHeroHashes.size(); ++i) {
     if (i)
