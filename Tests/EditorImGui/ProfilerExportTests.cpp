@@ -198,7 +198,10 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   click(true);
   Require(!host.TakeProfileJsonExportRequest(), "empty capture emitted JSON export");
   Require(profile.Add({4, 1, 0, 0}), "recovery sample fixture failed");
-  std::ofstream(temporary.root / ".nexora/workspace.recovery") << "schema=1\n";
+  if (dpi == 1)
+    std::ofstream(temporary.root / ".nexora/workspace.recovery") << "schema=1\n";
+  else
+    std::filesystem::create_directory(temporary.root / ".nexora/workspace.recovery");
   draw();
   click(true);
   Require(!host.TakeProfileJsonExportRequest() && workspace.DiscardRecovery(&error),

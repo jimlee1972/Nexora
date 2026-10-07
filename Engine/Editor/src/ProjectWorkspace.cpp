@@ -813,9 +813,15 @@ std::optional<std::string> ProjectWorkspace::LoadEditorLayout(std::string *error
 }
 
 bool ProjectWorkspace::HasRecoveryJournal() const {
+  if (root_.empty())
+    return false;
   std::error_code ec;
-  return !root_.empty() &&
-         std::filesystem::is_regular_file(root_ / ".nexora/workspace.recovery", ec);
+  const auto status = std::filesystem::symlink_status(root_ / ".nexora/workspace.recovery", ec);
+  if (ec == std::errc::no_such_file_or_directory)
+    return false;
+  // Occupied or uninspectable metadata requires an explicit recovery decision. Do not follow
+  // aliases, or mistake a dangling link/directory for an absent journal and unlock authoring.
+  return ec || status.type() != std::filesystem::file_type::not_found;
 }
 
 bool ProjectWorkspace::HasExternalChange() const {

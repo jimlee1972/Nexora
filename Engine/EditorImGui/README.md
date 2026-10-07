@@ -738,3 +738,9 @@ permits read-only access and follows the project/document, focus, Play and modal
 drafts/gestures and retains the selected destination through Save/Discard/Cancel without requesting
 path text again. UI code performs no source IO or World replacement; the application consumes the
 request after all panels and revalidates it through `SceneFileSession`.
+
+Recovery presence means any occupied or uninspectable `.nexora/workspace.recovery` path, including
+directories and valid/dangling leaf symlinks. Only verified absence permits existing recovery-gated
+authoring/export/shutdown actions. Recovery rejects unsafe inputs without mutation. Explicit writer
+discard removes one directory entry (never recursively); alias targets remain untouched, and a
+nonempty directory remains pending after discard fails. Read-only observers cannot discard.

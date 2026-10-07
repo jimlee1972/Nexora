@@ -582,3 +582,9 @@ New or failed scene operations. A record is a separate atomic commit with the sa
 preservation as scene writes; its failure leaves the World, scene save, path and Undo/Redo intact.
 The application warns after an independent recording failure and still permits successful Save and
 Exit. Read-only startup only reads; per-file camera loading follows the restored association.
+
+Recovery presence means any occupied or uninspectable `.nexora/workspace.recovery` path, including
+directories and valid/dangling leaf symlinks. Only verified absence permits existing recovery-gated
+authoring/export/shutdown actions. Recovery rejects unsafe inputs without mutation. Explicit writer
+discard removes one directory entry (never recursively); alias targets remain untouched, and a
+nonempty directory remains pending after discard fails. Read-only observers cannot discard.

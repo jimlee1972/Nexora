@@ -550,3 +550,9 @@ stale-snapshot post-tick matrices, clone isolation, frozen geometry and frame ow
 Project-owned layout save/read is capped at 1 MiB of raw payload. Missing layout permits the default
 dock arrangement; corrupt, oversized or aliased layout reports an error without rewriting the file.
 Schema 0/1 and CRLF remain supported. Invalid saves preserve the last-good layout and occupied staging.
+
+Recovery presence means any occupied or uninspectable `.nexora/workspace.recovery` path, including
+directories and valid/dangling leaf symlinks. Only verified absence permits existing recovery-gated
+authoring/export/shutdown actions. Recovery rejects unsafe inputs without mutation. Explicit writer
+discard removes one directory entry (never recursively); alias targets remain untouched, and a
+nonempty directory remains pending after discard fails. Read-only observers cannot discard.

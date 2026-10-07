@@ -619,6 +619,10 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
+- ✅ Recovery presence 現偵測 occupied／uninspectable 路徑，包含目錄與 dangling alias；
+  明確 resolve 前保留既有 authoring／export／shutdown gates。測試涵蓋拒絕 recovery、
+  nonrecursive／read-only discard 與實際 2x Profiler modal gating。
+
 - ✅ Project layout save／read 共用 1 MiB raw-payload 上限、有界 schema header 與線性 CRLF
   normalization。Corrupt／NUL／over-budget 或 non-regular／aliased 檔案拒絕且不改寫；
   雲端測試涵蓋 exact-limit schema-0／1 round trip 與 save 失敗的原檔保留。
