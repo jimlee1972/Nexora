@@ -1342,9 +1342,9 @@ struct RoomSession::State final {
     const auto crystalBase = static_cast<std::uint16_t>(vertices.size());
     for (const auto &v : courtyardCrystal.vertices) {
       const auto normal = math::NormalizeSafe(
-          math::Vector3{v.normal[0] / 0.6F, v.normal[1] / 0.8F, v.normal[2] / 0.6F});
+          math::Vector3{v.normal[0] / 0.9F, v.normal[1] / 0.8F, v.normal[2] / 0.9F});
       vertices.push_back(
-          {{v.position[0] * 0.6F, v.position[1] * 0.8F + 3.15F, v.position[2] * 0.6F},
+          {{v.position[0] * 0.9F, v.position[1] * 0.8F + 3.15F, v.position[2] * 0.9F},
            {normal.x, normal.y, normal.z},
            {v.uv[0], v.uv[1]}});
     }
@@ -1371,8 +1371,8 @@ struct RoomSession::State final {
         const auto base = static_cast<std::uint16_t>(vertices.size());
         for (unsigned corner = 0; corner < 3; ++corner) {
           const auto &v = courtyardCrystal.vertices[courtyardCrystal.indices[face * 3 + corner]];
-          const float x = v.position[0] * 0.3F, y = v.position[1] * 0.624F,
-                      z = v.position[2] * 0.3F;
+          const float x = v.position[0] * 0.45F, y = v.position[1] * 0.624F,
+                      z = v.position[2] * 0.45F;
           // Small deterministic fractures break the interior's regular ring planes.
           // Equal cooked positions map equally, retaining the closed mineral surface.
           vertices.push_back(
