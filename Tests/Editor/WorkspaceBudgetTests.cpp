@@ -1,5 +1,7 @@
+#include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 
+#include <array>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -209,6 +211,73 @@ int Run() {
 #endif
   Require(writer.SaveEditorLayout(layout, &error) && observer.LoadEditorLayout(&error) == layout,
           "layout did not recover after rejected inputs");
+
+  const auto recovery_primary = Read(primary);
+  const std::array frame_samples{nexora::editor::FrameSample{1, 1, 0, 0}};
+  const auto expect_pending = [&] {
+    Require(writer.HasRecoveryJournal() && observer.HasRecoveryJournal(),
+            "occupied recovery was mistaken for an absent journal");
+    Require(!writer.RecoverWorkspace(&error) && !error.empty() && Read(primary) == recovery_primary,
+            "unsafe recovery changed the committed workspace");
+    Require(!writer.ExportEditorFrameProcessing(frame_samples, 0, &error) &&
+                !writer.ExportEditorFrameProcessingJson(frame_samples, 0, &error) &&
+                !fs::exists(root / ".nexora/frame-processing.csv") &&
+                !fs::exists(root / ".nexora/frame-processing.json"),
+            "occupied recovery unlocked frame export");
+    Require(!observer.DiscardRecovery(&error) && observer.HasRecoveryJournal(),
+            "read-only observer discarded occupied recovery metadata");
+  };
+  Require(!ProjectWorkspace{}.HasRecoveryJournal() && !writer.HasRecoveryJournal(),
+          "empty or missing recovery was reported as pending");
+  fs::create_directory(recovery);
+  Write(recovery / "retained", "pending recovery contents");
+  expect_pending();
+  Require(!writer.DiscardRecovery(&error) && writer.HasRecoveryJournal() &&
+              Read(recovery / "retained") == "pending recovery contents",
+          "discard recursively deleted occupied recovery contents");
+  fs::remove(recovery / "retained");
+  Require(writer.DiscardRecovery(&error) && !writer.HasRecoveryJournal(),
+          "explicit discard did not resolve an empty recovery directory");
+#if !defined(_WIN32)
+  const auto recovery_target = root / "recovery-alias-target";
+  Write(recovery_target, "schema=1\ndocument=Aliased.scene\n");
+  const auto target_bytes = Read(recovery_target);
+  for (const auto &target : {recovery_target, root / "missing-recovery-target"}) {
+    fs::create_symlink(target, recovery);
+    expect_pending();
+    Require(writer.DiscardRecovery(&error) && !writer.HasRecoveryJournal() &&
+                Read(recovery_target) == target_bytes,
+            "explicit alias discard changed its target or left recovery pending");
+  }
+#endif
+
+  const auto metadata = root / ".nexora";
+  const auto retained_metadata = root / "retained-metadata";
+  // Windows prevents renaming directories containing the writer's open lock handle. Inspect
+  // parent fixtures through the lease-free observer, then reacquire the writer after restoration.
+  writer = ProjectWorkspace{};
+  fs::rename(metadata, retained_metadata);
+  Write(metadata, "occupied metadata parent");
+  Require(observer.HasRecoveryJournal(), "uninspectable recovery path was reported as absent");
+  fs::remove(metadata);
+  fs::rename(retained_metadata, metadata);
+  Require(!observer.HasRecoveryJournal() && Read(primary) == recovery_primary,
+          "restoring inspectable metadata changed the workspace or left recovery pending");
+  fs::rename(metadata, retained_metadata);
+  Require(!observer.HasRecoveryJournal(), "missing legacy metadata was reported as recovery");
+#if !defined(_WIN32)
+  fs::create_symlink(retained_metadata, metadata);
+  Require(!observer.HasRecoveryJournal(),
+          "valid metadata directory alias changed missing recovery");
+  fs::remove(metadata);
+  fs::create_symlink(root / "missing-metadata-target", metadata);
+  Require(observer.HasRecoveryJournal(), "dangling metadata parent unlocked recovery gates");
+  fs::remove(metadata);
+#endif
+  fs::rename(retained_metadata, metadata);
+  Require(writer.Open(root, &error) && !writer.HasRecoveryJournal() &&
+              Read(primary) == recovery_primary,
+          "metadata alias fixtures changed committed state");
 
   fs::remove(primary);
   Require(observer.Open(root, ProjectAccess::ReadOnly, &error) && observer.OpenDocuments().empty(),

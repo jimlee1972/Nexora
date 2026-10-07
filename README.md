@@ -1419,3 +1419,9 @@ schema headers and linear CRLF normalization, preserving last-good files on reje
 
 ✅ ED project layout persistence 的 save／read 現共用 1 MiB payload 上限、有界 schema header
 與線性 CRLF normalization；save 被拒絕時保留上一份有效檔案。完整圖形化驗收維持 0/8。
+
+✅ ED recovery gates now retain directories, dangling aliases and uninspectable journal paths as
+pending recovery; explicit discard is nonrecursive and preserves alias targets.
+
+✅ ED recovery gates 現把目錄、dangling alias 與無法檢查的 journal 路徑視為 pending recovery；
+明確 discard 不遞迴且保留 alias target。完整圖形化驗收維持 0/8。
