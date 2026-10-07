@@ -628,6 +628,10 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
+- ✅ Cloud documentation-routing Git fixture 現在 commit 前關閉 local 自動 maintenance／GC，
+  避免 detached housekeeping 與嚴格 temporary-directory cleanup 競爭；routing semantics、
+  正式 repo 與 global Git 設定維持原樣。
+
 - ✅ Recovery presence 現偵測 occupied／uninspectable 路徑，包含目錄與 dangling alias；
   明確 resolve 前保留既有 authoring／export／shutdown gates。測試涵蓋拒絕 recovery、
   nonrecursive／read-only discard 與實際 2x Profiler modal gating。

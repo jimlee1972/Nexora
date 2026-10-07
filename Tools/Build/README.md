@@ -39,6 +39,11 @@ python3 Tools/Build/DocumentationCI.py --event /path/to/event.json --event-name 
 
 The scripts use Git and pinned `markdown-it-py`/`mdurl` packages. Workflow changes themselves require full CI.
 
+Routing-test repositories disable automatic Git maintenance and GC in their own local config
+before the first commit. Detached housekeeping must not outlive these temporary fixtures or race
+their strict cleanup. Production repositories, user/global Git settings, routing decisions and
+cleanup error handling are unchanged; cleanup failures still fail the tests.
+
 ## 繁體中文
 
 `Build` 對 push 與 PR 持續啟動。先使用完整 Git diff 判斷範圍，驗證變動的 Markdown，再選擇
@@ -56,6 +61,11 @@ The scripts use Git and pinned `markdown-it-py`/`mdurl` packages. Workflow chang
 `CI result` 固定回報結果，分類失敗或應執行工作失敗／取消皆會失敗。既有建置工作在純文件
 變更時呈現 skipped。可將 `CI result` 作為 branch protection 的彙總檢查；本變更不修改
 保護設定。Release 不變，tag 仍要求完整 Build。
+
+Routing test 的短期 Git fixture 在第一個 commit 前以自己的 local config 關閉自動
+maintenance／GC，避免 detached housekeeping 超出 fixture lifetime 並與嚴格 cleanup 競爭。
+正式 repo、user／global Git 設定、路由判斷與 cleanup error handling 都維持原樣；cleanup
+失敗仍使測試失敗。
 
 ## Courtyard asset conversion
 
