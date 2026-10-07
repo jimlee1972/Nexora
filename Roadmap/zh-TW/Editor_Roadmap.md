@@ -607,6 +607,11 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
 
 Build profiles、cook/package frontend、target/device matrix、remote deploy/log、CPU/GPU/memory/frame profiler、plugin manager、script/API docs。任何「Build Success」必須附 target manifest 與可重現 command。
 
+- ✅ Profiler Import CSV 現讀取 project 的有界 exported wall-time capture，顯示獨立 static
+  trace，支援單獨 clear 與 read-only import，保留 live capture。測試涵蓋 corrupt／unsafe
+  input、modal／recovery gates、不受 locale 影響的數字精度、600-frame／128-KiB 上限與
+  1x／2x pointer ownership；JSON／任意 capture import 仍待完成。
+
 - ✅ Build manifest admission 現驗證所有 metadata 的 UTF-8，並採 host-independent relative
   artifact syntax，包含在 Linux 拒絕 Windows drive／stream。Malformed text、traversal、
   component 尾端句點／空白與 separator／control alias 在任何 IO 前拒絕，保留上一份有效
@@ -624,11 +629,11 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   sample count、完整 double 精度及無損 decimal-string uint64 frame／drop 值。
   未量測 GPU／memory 明示為 unavailable／null。獨立一次性 CSV／JSON 控制共用 write／modal
   gates；1x／2x 滑鼠事件及獨立 normal／optimized Python JSON parser 驗證精度、上限、
-  replace 失敗與原檔保留。Capture import 仍保持 open。
+  replace 失敗與原檔保留。JSON capture import 仍保持 open。
 - ✅ Profiler 現可把保留的 Editor frame-processing wall time 匯出為專案 CSV，保留 double
   精度與丟棄 frame 數，GPU／memory 欄保持空白。同步 writer 驗證 1-600 筆有序且有限的 sample，
   拒絕唯讀／recovery 寫入，驗證失敗會保留舊檔；實際 UI 點擊會送出一次性 request。
-- 待辦：圖形化 build frontend、remote deployment/log、GPU／memory profiling、capture import
+- 待辦：圖形化 build frontend、remote deployment/log、GPU／memory profiling、JSON／任意 capture import
   與 plugin manager。
 
 ### ED-M7 — Production hardening

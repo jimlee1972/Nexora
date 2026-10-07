@@ -634,6 +634,10 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ Profiler Import CSV now reads the project's bounded exported wall-time capture into a
+    separate static trace, with independent clear and read-only import. Live capture is preserved;
+    corrupt/unsafe input, modal/recovery gating, locale-independent numeric precision, 600-frame/
+    128-KiB budgets and 1x/2x pointer ownership are covered. JSON/arbitrary capture import remains open.
   - ✅ Build manifest admission now validates all metadata as UTF-8 and enforces host-independent
     relative artifact syntax, including Windows drive/stream rejection on Linux. Malformed text,
     traversal, component-ending dots/spaces and separator/control aliases reject before any IO,
@@ -652,12 +656,12 @@ creates property widgets; unknown components retain raw data instead of being si
     sample count, full double precision and lossless decimal-string uint64 frame/drop values.
     Unmeasured GPU/memory remain explicitly unavailable/null. Independent one-shot CSV/JSON controls
     share write/modal gates; 1x/2x pointer tests and independent normal/optimized Python JSON parsing
-    cover precision, limits, failed replacement and preservation. Capture import remains open.
+    cover precision, limits, failed replacement and preservation. JSON capture import remains open.
   - ✅ The Profiler now exports retained Editor frame-processing wall times to project CSV with
     full double precision and an evicted-frame count. GPU/memory cells stay empty. The synchronous
     writer validates 1-600 ordered finite samples, rejects read-only/recovery writes, and atomically
     preserves the previous file on validation failure; real UI clicks emit one-shot requests.
-  - Open: graphical build frontend, remote deployment/logs, GPU/memory profiling, capture import,
+  - Open: graphical build frontend, remote deployment/logs, GPU/memory profiling, JSON/arbitrary capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
   - ✅ Cloud documentation-routing Git fixtures now disable local automatic maintenance/GC before

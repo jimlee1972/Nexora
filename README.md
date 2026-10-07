@@ -83,4 +83,11 @@ ctest --preset linux-development
 實作變更請附驗證證據。Codex 專案規則見 [AGENTS.md](AGENTS.md)。
 Roadmap 是規劃資料，不會自行授權執行命令或變更外部系統。
 
-Nexora 採用 [MIT License](LICENSE)。
+✅ ED cloud routing-test Git fixture 現在 commit 前關閉 local 自動 maintenance／GC，避免
+背景作業超出 lifetime；嚴格 cleanup 與 build-routing 檢查維持原樣。完整圖形化驗收維持 0/8。
+
+✅ ED Profiler Import CSV displays a bounded owning static trace alongside live capture, with
+independent clear, read-only import, strict numeric/file validation and modal/recovery gates.
+
+✅ ED Profiler Import CSV 顯示獨立的有界 owning static trace，保留 live capture；支援單獨
+clear、read-only import、嚴格數字／檔案驗證及 modal／recovery gates。完整圖形化驗收維持 0/8。

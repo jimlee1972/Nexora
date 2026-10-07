@@ -31,10 +31,142 @@ struct CommaDecimal final : std::numpunct<char> {
   char do_decimal_point() const override { return ','; }
 };
 std::string Read(const std::filesystem::path &path) {
-  std::ifstream file(path);
+  std::ifstream file(path, std::ios::binary);
   std::ostringstream value;
   value << file.rdbuf();
   return value.str();
+}
+void VerifyCsvImport(nexora::editor::ProjectWorkspace &workspace) {
+  using namespace nexora::editor;
+  namespace fs = std::filesystem;
+  const auto output = workspace.Root() / ".nexora/frame-processing.csv";
+  const auto original = Read(output);
+  const std::string header =
+      "frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes\n";
+  auto stage = output;
+  stage += ".tmp";
+  std::ofstream(stage, std::ios::binary) << "unrelated staging";
+  const auto write = [&](std::string_view bytes) {
+    std::ofstream file(output, std::ios::binary | std::ios::trunc);
+    file.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+  };
+  std::string error = "stale";
+  const auto ordinary = workspace.ImportEditorFrameProcessingCsv(&error);
+  Require(ordinary && error.empty() && ordinary->samples.size() == 2 &&
+              ordinary->samples.front().frame == 2 && ordinary->samples.front().cpu_ms == 4.25 &&
+              ordinary->older_frames_dropped == 1 && Read(output) == original &&
+              Read(stage) == "unrelated staging",
+          "CSV import round trip, stale error or non-mutating ownership failed");
+  const auto reject = [&](const std::string &bytes) {
+    write(bytes);
+    error = "stale";
+    Require(!workspace.ImportEditorFrameProcessingCsv(&error) && !error.empty() &&
+                error != "stale" && Read(output) == bytes && Read(stage) == "unrelated staging",
+            "invalid CSV was accepted or import mutated source/staging");
+  };
+  for (const auto *rows : {"",
+                           "0,1,0,,\n",
+                           "1,-1,0,,\n",
+                           "1,nan,0,,\n",
+                           "1,inf,0,,\n",
+                           "1,1e999,0,,\n",
+                           "1,1.5suffix,0,,\n",
+                           "1,+1,0,,\n",
+                           " 1,1,0,,\n",
+                           "1, 1,0,,\n",
+                           "1,1, 0,,\n",
+                           "1,1,0,0,\n",
+                           "1,1,0,,0\n",
+                           "1,1,0,,,\n",
+                           "1,1,0,\n",
+                           "1,1,0,,",
+                           "\n",
+                           "\"1\",1,0,,\n",
+                           "18446744073709551616,1,0,,\n",
+                           "1,1,18446744073709551616,,\n",
+                           "1,1,0,,\n1,2,0,,\n",
+                           "2,1,0,,\n1,2,0,,\n",
+                           "1,1,0,,\n2,2,1,,\n"})
+    reject(header + rows);
+  reject("");
+  reject("unsupported\n1,1,0,,\n");
+  reject(header + std::string("1,1\0,0,,\n", 9));
+  std::string maximum = header;
+  for (std::uint64_t frame = 1; frame <= 600; ++frame)
+    maximum += std::to_string(frame) + ",0.25,0,,\n";
+  write(maximum);
+  auto capture = workspace.ImportEditorFrameProcessingCsv(&error);
+  Require(capture && capture->samples.size() == 600, "600-frame import rejected");
+  reject(maximum + "601,0.25,0,,\n");
+  const auto exact = header + "1," +
+                     std::string(ProjectWorkspace::kMaximumFrameProcessingCsvBytes - header.size() -
+                                     std::string_view("1,,0,,\n").size(),
+                                 '0') +
+                     ",0,,\n";
+  write(exact);
+  capture = workspace.ImportEditorFrameProcessingCsv(&error);
+  Require(capture && capture->samples.front().cpu_ms == 0 &&
+              exact.size() == ProjectWorkspace::kMaximumFrameProcessingCsvBytes,
+          "exact-byte-limit CSV was rejected");
+  reject(exact + "\n");
+  const std::array precise{
+      FrameSample{9007199254740993ULL, 1.2345678901234567, 99, 99},
+      FrameSample{9007199254740994ULL, std::numeric_limits<double>::min(), 99, 99},
+      FrameSample{9007199254740995ULL, std::numeric_limits<double>::denorm_min(), 99, 99},
+      FrameSample{std::numeric_limits<std::uint64_t>::max(), std::numeric_limits<double>::max(), 99,
+                  99}};
+  fs::remove(stage);
+  Require(workspace.ExportEditorFrameProcessing(precise, std::numeric_limits<std::uint64_t>::max(),
+                                                &error),
+          "precise CSV fixture export failed");
+  const auto previous_locale = std::locale();
+  std::locale::global(std::locale(previous_locale, new CommaDecimal));
+  capture = workspace.ImportEditorFrameProcessingCsv(&error);
+  std::locale::global(previous_locale);
+  Require(capture && capture->samples.size() == precise.size() &&
+              capture->older_frames_dropped == std::numeric_limits<std::uint64_t>::max(),
+          "lossless uint64/locale-independent CSV import failed");
+  for (std::size_t index = 0; index < precise.size(); ++index)
+    Require(capture->samples[index].frame == precise[index].frame &&
+                capture->samples[index].cpu_ms == precise[index].cpu_ms &&
+                capture->samples[index].gpu_ms == 0 && capture->samples[index].memory_bytes == 0,
+            "CSV import lost double precision or invented GPU/memory data");
+  write("frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes\r\n1,1.5,0,,\r\n");
+  capture = workspace.ImportEditorFrameProcessingCsv(&error);
+  Require(capture && capture->samples.front().cpu_ms == 1.5, "CRLF CSV rejected");
+  const auto backup = workspace.Root() / "csv-backup";
+  fs::rename(output, backup);
+  Require(!workspace.ImportEditorFrameProcessingCsv(&error) && !error.empty(),
+          "missing CSV accepted");
+  fs::create_directory(output);
+  Require(!workspace.ImportEditorFrameProcessingCsv(&error) && fs::is_directory(output),
+          "CSV directory accepted or removed");
+  fs::remove(output);
+#if !defined(_WIN32)
+  for (const auto &target : {backup, workspace.Root() / "missing-csv"}) {
+    fs::create_symlink(target, output);
+    Require(!workspace.ImportEditorFrameProcessingCsv(&error) && fs::is_symlink(output),
+            "aliased CSV accepted or removed");
+    fs::remove(output);
+  }
+#endif
+  fs::rename(backup, output);
+#if !defined(_WIN32)
+  const auto metadata = workspace.Root() / ".nexora";
+  const auto metadata_backup = workspace.Root() / "metadata-backup";
+  fs::rename(metadata, metadata_backup);
+  fs::create_directory_symlink(metadata_backup, metadata);
+  Require(!workspace.ImportEditorFrameProcessingCsv(&error) && fs::is_symlink(metadata),
+          "aliased CSV parent accepted or removed");
+  fs::remove(metadata);
+  fs::rename(metadata_backup, metadata);
+#endif
+  write(original);
+  Require(workspace.ImportEditorFrameProcessingCsv(&error) && error.empty(),
+          "valid CSV retry failed");
+  ProjectWorkspace empty;
+  Require(!empty.ImportEditorFrameProcessingCsv(&error) && !error.empty(),
+          "closed workspace imported a CWD-relative CSV");
 }
 void Run(float dpi, const std::filesystem::path &fixture = {}) {
   using namespace nexora;
@@ -57,6 +189,7 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   const auto expected = "frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes\n"
                         "2,4.25,1,,\n3,2.5,1,,\n";
   Require(exported && Read(output) == expected, "CSV precision, scope or unavailable cells failed");
+  VerifyCsvImport(workspace);
   const auto json_output = temporary.root / ".nexora/frame-processing.json";
   const auto json_expected = Read(json_output);
   Require(json_exported && json_expected.find("\"schema\": 1") != std::string::npos &&
@@ -106,6 +239,8 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   Require(!workspace.ExportEditorFrameProcessing(invalid, 0, &error) && Read(output) == expected,
           "invalid export replaced the last good file");
   std::ofstream(temporary.root / ".nexora/workspace.recovery") << "schema=1\n";
+  Require(!workspace.ImportEditorFrameProcessingCsv(&error) && Read(output) == expected,
+          "CSV import bypassed recovery gating");
   Require(!workspace.ExportEditorFrameProcessingJson(profile.Samples(), 1, &error) &&
               Read(json_output) == json_expected,
           "JSON export bypassed recovery gating");
@@ -120,6 +255,9 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   Require(!observer.ExportEditorFrameProcessingJson(profile.Samples(), 1, &error) &&
               Read(json_output) == json_expected,
           "read-only JSON export wrote a file");
+  Require(observer.ImportEditorFrameProcessingCsv(&error) && error.empty() &&
+              Read(output) == expected,
+          "read-only observer could not import without writes");
   imgui::EditorImGuiHost host;
   host.SetDisplay(1280 * dpi, 900 * dpi, dpi);
   imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host);
@@ -140,9 +278,12 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   imgui::EditorImGuiTestAccess::FocusProfiler(host);
   draw();
   draw();
-  const auto click = [&](bool json = false) {
-    const auto point = json ? imgui::EditorImGuiTestAccess::ProfileJsonExportPosition(host)
-                            : imgui::EditorImGuiTestAccess::ProfileExportPosition(host);
+  const auto click = [&](int control = 0) {
+    const auto point = control == 3 ? imgui::EditorImGuiTestAccess::ProfileImportClearPosition(host)
+                       : control == 2 ? imgui::EditorImGuiTestAccess::ProfileCsvImportPosition(host)
+                       : control == 1
+                           ? imgui::EditorImGuiTestAccess::ProfileJsonExportPosition(host)
+                           : imgui::EditorImGuiTestAccess::ProfileExportPosition(host);
     Require(point.has_value(), "Profiler export button not visible");
     Nexora::Window::WindowEvent pointer;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
@@ -166,10 +307,33 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   Require(host.TakeProfileJsonExportRequest() && !host.TakeProfileJsonExportRequest() &&
               !host.TakeProfileExportRequest(),
           "JSON click was not an independent one-shot request");
+  click(2);
+  Require(host.TakeProfileCsvImportRequest() && !host.TakeProfileCsvImportRequest() &&
+              !host.TakeProfileExportRequest() && !host.TakeProfileJsonExportRequest(),
+          "CSV import click was not an independent one-shot request");
+  auto loaded = workspace.ImportEditorFrameProcessingCsv(&error);
+  Require(loaded && host.SetImportedProfileCapture(*loaded), "valid snapshot publication failed");
+  loaded->samples.front().cpu_ms = 999;
+  draw();
+  const auto *imported = imgui::EditorImGuiTestAccess::ImportedProfileCapture(host);
+  Require(imported && imported->samples.front().cpu_ms == 4.25 &&
+              imported->older_frames_dropped == 1 && profile.Samples().size() == 2 &&
+              profile.Samples().front().cpu_ms == 4.25 && profile.Capturing(),
+          "import borrowed caller data or changed live capture");
+  Require(!host.SetImportedProfileCapture({{{1, -1, 0, 0}}, 0}) &&
+              imgui::EditorImGuiTestAccess::ImportedProfileCapture(host)->samples.front().cpu_ms ==
+                  4.25,
+          "invalid snapshot replaced the previous imported trace");
+  click(3);
+  Require(!imgui::EditorImGuiTestAccess::ImportedProfileCapture(host) &&
+              profile.Samples().size() == 2 && profile.DroppedCount() == 1,
+          "clear imported changed live history");
   host.RequestCloseConfirmation();
   draw();
   click(true);
   Require(!host.TakeProfileJsonExportRequest(), "close confirmation emitted JSON export");
+  click(2);
+  Require(!host.TakeProfileCsvImportRequest(), "close confirmation emitted CSV import");
   Nexora::Window::WindowEvent escape;
   escape.type = Nexora::Window::WindowEventType::Key;
   escape.value0 = static_cast<int>(Nexora::Window::Key::Escape);
@@ -190,6 +354,19 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   Require(!host.TakeProfileExportRequest(), "read-only button emitted export");
   click(true);
   Require(!host.TakeProfileJsonExportRequest(), "read-only button emitted JSON export");
+  click(2);
+  Require(host.TakeProfileCsvImportRequest(), "read-only CSV import button was disabled");
+  auto observed = observer.ImportEditorFrameProcessingCsv(&error);
+  Require(observed && host.SetImportedProfileCapture(*observed),
+          "read-only snapshot publication failed");
+  click(2);
+  active = nullptr;
+  draw();
+  Require(!imgui::EditorImGuiTestAccess::ImportedProfileCapture(host) &&
+              !host.TakeProfileCsvImportRequest(),
+          "project detach retained the prior imported trace or stale request");
+  click(2);
+  Require(!host.TakeProfileCsvImportRequest(), "no-project CSV import button was enabled");
   active = &workspace;
   profile.Clear();
   draw();
@@ -197,6 +374,20 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   Require(!host.TakeProfileExportRequest(), "empty capture emitted export");
   click(true);
   Require(!host.TakeProfileJsonExportRequest(), "empty capture emitted JSON export");
+  click(2);
+  Require(host.TakeProfileCsvImportRequest(), "empty live history prevented saved CSV import");
+  loaded = workspace.ImportEditorFrameProcessingCsv(&error);
+  Require(loaded && host.SetImportedProfileCapture(*loaded) && profile.Samples().empty(),
+          "saved CSV import populated live history");
+  const auto imported_cpu =
+      imgui::EditorImGuiTestAccess::ImportedProfileCapture(host)->samples.front().cpu_ms;
+  std::ofstream(output, std::ios::binary | std::ios::trunc) << "corrupt CSV\n";
+  loaded = workspace.ImportEditorFrameProcessingCsv(&error);
+  Require(!loaded &&
+              imgui::EditorImGuiTestAccess::ImportedProfileCapture(host)->samples.front().cpu_ms ==
+                  imported_cpu,
+          "failed CSV load changed the prior imported trace");
+  std::ofstream(output, std::ios::binary | std::ios::trunc) << expected;
   Require(profile.Add({4, 1, 0, 0}), "recovery sample fixture failed");
   if (dpi == 1)
     std::ofstream(temporary.root / ".nexora/workspace.recovery") << "schema=1\n";
@@ -204,6 +395,8 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
     std::filesystem::create_directory(temporary.root / ".nexora/workspace.recovery");
   draw();
   click(true);
+  click(2);
+  Require(!host.TakeProfileCsvImportRequest(), "recovery prompt emitted CSV import");
   Require(!host.TakeProfileJsonExportRequest() && workspace.DiscardRecovery(&error),
           "recovery prompt emitted JSON export");
   if (!fixture.empty()) {

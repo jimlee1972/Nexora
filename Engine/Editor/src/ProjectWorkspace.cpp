@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cerrno>
+#include <charconv>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -741,6 +742,90 @@ bool ProjectWorkspace::ExportEditorFrameProcessingJson(std::span<const FrameSamp
   }
   json << "  ]\n}\n";
   return AtomicWrite(root_ / ".nexora/frame-processing.json", json.str(), error);
+}
+
+std::optional<FrameProcessingCapture>
+ProjectWorkspace::ImportEditorFrameProcessingCsv(std::string *error) const {
+  if (error)
+    error->clear();
+  const auto fail = [&](std::string_view message) -> std::optional<FrameProcessingCapture> {
+    if (error)
+      *error = message;
+    return std::nullopt;
+  };
+  if (root_.empty() || HasRecoveryJournal())
+    return fail("CSV import requires an open project with resolved recovery");
+  std::error_code ec;
+  const auto metadata = std::filesystem::symlink_status(root_ / ".nexora", ec);
+  if (ec || !std::filesystem::is_directory(metadata))
+    return fail("CSV import metadata directory is unavailable or unsafe");
+  const auto path = root_ / ".nexora/frame-processing.csv";
+  const auto status = std::filesystem::symlink_status(path, ec);
+  if (ec || !std::filesystem::is_regular_file(status))
+    return fail("frame processing CSV is missing, unavailable or unsafe");
+  std::ifstream input(path, std::ios::binary);
+  if (!input)
+    return fail("could not read frame processing CSV");
+  std::string bytes;
+  std::array<char, 4096> buffer{};
+  while (input) {
+    const auto requested =
+        std::min(buffer.size(), kMaximumFrameProcessingCsvBytes - bytes.size() + 1);
+    input.read(buffer.data(), static_cast<std::streamsize>(requested));
+    const auto count = static_cast<std::size_t>(input.gcount());
+    if (count > kMaximumFrameProcessingCsvBytes - bytes.size())
+      return fail("frame processing CSV exceeds the byte limit");
+    bytes.append(buffer.data(), count);
+  }
+  if (input.bad() || bytes.empty() || !bytes.ends_with('\n'))
+    return fail("frame processing CSV is unreadable or truncated");
+  std::string_view remaining = bytes;
+  const auto line = [&] {
+    const auto end = remaining.find('\n');
+    auto value = remaining.substr(0, end);
+    remaining.remove_prefix(end + 1);
+    if (value.ends_with('\r'))
+      value.remove_suffix(1);
+    return value;
+  };
+  constexpr std::string_view header =
+      "frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes";
+  if (line() != header)
+    return fail("unsupported frame processing CSV header");
+  FrameProcessingCapture capture;
+  while (!remaining.empty()) {
+    if (capture.samples.size() == 600)
+      return fail("frame processing CSV exceeds 600 samples");
+    auto row = line();
+    std::array<std::string_view, 5> fields{};
+    for (std::size_t index = 0; index < fields.size() - 1; ++index) {
+      const auto comma = row.find(',');
+      if (comma == std::string_view::npos)
+        return fail("invalid frame processing CSV row");
+      fields[index] = row.substr(0, comma);
+      row.remove_prefix(comma + 1);
+    }
+    fields.back() = row;
+    if (!fields[3].empty() || !fields[4].empty())
+      return fail("frame processing CSV must not claim unavailable GPU or memory data");
+    FrameSample sample{};
+    std::uint64_t dropped{};
+    const auto number = [](std::string_view text, auto &value) {
+      const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+      return result.ec == std::errc{} && result.ptr == text.data() + text.size();
+    };
+    if (!number(fields[0], sample.frame) || !number(fields[1], sample.cpu_ms) ||
+        !number(fields[2], dropped) || sample.frame == 0 || !std::isfinite(sample.cpu_ms) ||
+        sample.cpu_ms < 0 ||
+        (!capture.samples.empty() &&
+         (sample.frame <= capture.samples.back().frame || dropped != capture.older_frames_dropped)))
+      return fail("invalid, unordered or inconsistent frame processing CSV samples");
+    capture.older_frames_dropped = dropped;
+    capture.samples.push_back(sample);
+  }
+  if (capture.samples.empty())
+    return fail("frame processing CSV requires 1-600 samples");
+  return capture;
 }
 
 bool ProjectWorkspace::SaveEditorLayout(std::string_view layout, std::string *error) {

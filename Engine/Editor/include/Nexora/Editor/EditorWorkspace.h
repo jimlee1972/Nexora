@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/Editor/Api.h"
+#include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/MeshImport.h"
 #include "Nexora/Editor/SceneAuthoring.h"
@@ -24,7 +25,6 @@
 
 namespace nexora::editor {
 
-struct FrameSample;
 struct GizmoOperation;
 enum class GizmoPivot;
 
@@ -59,6 +59,7 @@ public:
   static constexpr std::size_t kMaximumDocuments = 4096;
   static constexpr std::size_t kMaximumDocumentPathBytes = 1024;
   static constexpr std::size_t kMaximumEditorLayoutBytes = 1024 * 1024;
+  static constexpr std::size_t kMaximumFrameProcessingCsvBytes = 128 * 1024;
   ProjectWorkspace();
   ~ProjectWorkspace();
   ProjectWorkspace(ProjectWorkspace &&) noexcept;
@@ -84,6 +85,10 @@ public:
   // interchange; GPU/memory are explicitly unavailable and samples remain synchronous borrows.
   bool ExportEditorFrameProcessingJson(std::span<const FrameSample> samples,
                                        std::uint64_t dropped_frames, std::string *error = nullptr);
+  // Reads the project CSV synchronously into a bounded owning snapshot. Read-only observers
+  // may import; recovery, unsafe files and unsupported/corrupt data reject without mutation.
+  [[nodiscard]] std::optional<FrameProcessingCapture>
+  ImportEditorFrameProcessingCsv(std::string *error = nullptr) const;
   bool SaveEditorLayout(std::string_view layout, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadEditorLayout(std::string *error = nullptr) const;
   [[nodiscard]] bool HasRecoveryJournal() const;

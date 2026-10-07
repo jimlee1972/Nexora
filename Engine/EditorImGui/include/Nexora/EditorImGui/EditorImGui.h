@@ -137,6 +137,10 @@ public:
   [[nodiscard]] bool GameInputFocused() const noexcept;
   [[nodiscard]] bool TakeProfileExportRequest() noexcept;
   [[nodiscard]] bool TakeProfileJsonExportRequest() noexcept;
+  [[nodiscard]] bool TakeProfileCsvImportRequest() noexcept;
+  // Transfers a bounded owning wall-time snapshot; rejection preserves the previous import.
+  // Bind to the last drawn project; project changes clear it. Live ProfileSession is untouched.
+  bool SetImportedProfileCapture(FrameProcessingCapture capture);
   void SetProfileExportStatus(std::string message);
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
