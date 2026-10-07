@@ -1,6 +1,6 @@
 # Nexora Graphical Editor Roadmap
 
-> Version: v1.3 | Status: AI-executable delivery plan | Updated: 2026-10-06
+> Version: v1.3 | Status: AI-executable delivery plan | Updated: 2026-10-07
 
 > **Progress: 0%** (none of ED-M0 through ED-M7 has passed graphical Editor acceptance;
 > completed Runtime/Editor SDK prerequisites are not rounded up into an Editor milestone.)
@@ -567,6 +567,11 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ Portable debugging prerequisite adds structured bounded Console records, owning runtime
     inspection snapshots, debugger boundary/pause reasons, contained update recovery, and deterministic
     all-or-nothing transform conflict detection.
+  - ✅ Console Pause display retains an owning snapshot while producers continue admission/eviction;
+    Clear view hides every current sequence without deleting ingress or resetting cumulative drops.
+    Resume shows newer retained logs, and filters still work while paused. Window pointer/button tests
+    at 1x/2x DPI cover background-producer eviction, source/null rebinding and 32 control cycles.
+    Broader runtime/build log routing and full ED-M3 target acceptance remain open.
   - ✅ A docked Console now displays bounded Runtime records with text/severity filtering, source,
     timestamps, and dropped-record count; the Editor feeds startup and scene open/save diagnostics.
   - ✅ A docked Game panel now controls an isolated PlaySession through Play/Stop, Pause/Resume,

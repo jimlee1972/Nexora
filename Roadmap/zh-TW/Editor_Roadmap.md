@@ -1,6 +1,6 @@
 # Nexora 圖形化 Editor Roadmap
 
-> 版本：v1.3｜狀態：AI 可執行交付計畫｜更新：2026-10-06
+> 版本：v1.3｜狀態：AI 可執行交付計畫｜更新：2026-10-07
 
 > **進度：0%**（ED-M0～ED-M7 尚無任一 milestone 通過圖形化 Editor 驗收；
 > 已完成的 Runtime/Editor SDK 前置不向上取整為 Editor milestone。）
@@ -534,6 +534,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 - ✅ Portable debugging prerequisite 新增 structured bounded Console records、owning runtime
   inspection snapshots、debugger boundary/pause reasons、contained update recovery，以及 deterministic
   all-or-nothing transform conflict detection。
+- ✅ Console Pause display 保留 owning snapshot，producer 仍正常 admission／eviction；
+  Clear view 隱藏當下所有 sequence，不刪除 ingress 或重設 cumulative dropped count。
+  Resume 顯示較新的 retained log，暫停時仍可 filter。1x／2x DPI 滑鼠事件驅動測試涵蓋
+  background producer 淘汰、source／null 重新綁定及 32 次控制循環。
+  更完整的 Runtime／build log routing 與 ED-M3 target 驗收仍保持 open。
 - ✅ Docked Console 現顯示有界 Runtime 紀錄，提供文字／嚴重度篩選、來源、時間戳與丟棄數；
   Editor 會記錄啟動及場景開啟／儲存診斷。
 - ✅ Docked Game panel 現可操作隔離的 PlaySession：Play／Stop、Pause／Resume 與單一步進；
