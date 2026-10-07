@@ -193,7 +193,7 @@
     "description": "Original authored golden-hour cloud panorama; visible six-face sky and HDR IBL share the panorama orientation, geometric solar disc and key-light direction.",
     "sun_direction": [
       -18,
-      4,
+      6.5,
       -19.2
     ],
     "sun_radiance": [

@@ -1,0 +1,151 @@
+[1/79] Building CXX object Engine/Foundation/CMakeFiles/NexoraFoundation.dir/src/BuildInfo.cpp.o
+[2/79] Building CXX object Engine/Foundation/CMakeFiles/NexoraFoundation.dir/src/DataAbi.cpp.o
+[3/79] Linking CXX static library Engine/Foundation/libNexoraFoundation.a
+[4/79] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Engine.cpp.o
+[5/79] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/JobSystem.cpp.o
+[6/79] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Log.cpp.o
+[7/79] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Memory.cpp.o
+[8/79] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Platform.cpp.o
+[9/79] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/RemoteDiagnostics.cpp.o
+[10/79] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Services.cpp.o
+[11/79] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/TaskGraph.cpp.o
+[12/79] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Time.cpp.o
+[13/79] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Timer.cpp.o
+[14/79] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Vfs.cpp.o
+[15/79] Linking CXX static library Engine/Core/libNexoraCore.a
+[16/79] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/ShaderReflection.cpp.o
+[17/79] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/ValidationDevice.cpp.o
+[18/79] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/DeviceFactory.cpp.o
+[19/79] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/VulkanDevice.cpp.o
+[20/79] Building CXX object Engine/Window/CMakeFiles/NexoraWindow.dir/src/Window.cpp.o
+[21/79] Building CXX object Engine/Window/CMakeFiles/NexoraWindow.dir/src/X11Window.cpp.o
+[22/79] Linking CXX static library Engine/RHI/libNexoraRHI.a
+[23/79] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/FramePipeline.cpp.o
+[24/79] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/GPUDrivenPipeline.cpp.o
+[25/79] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/GPUScene.cpp.o
+[26/79] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/Material.cpp.o
+[27/79] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/PipelineCache.cpp.o
+[28/79] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/RenderGraph.cpp.o
+[29/79] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/SceneFrame.cpp.o
+[30/79] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/MeshTangents.cpp.o
+[31/79] Building CXX object Engine/AI/CMakeFiles/NexoraAI.dir/src/AI.cpp.o
+[32/79] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Dormancy.cpp.o
+[33/79] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/EntityMapping.cpp.o
+[34/79] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Prediction.cpp.o
+[35/79] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Replication.cpp.o
+[36/79] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/ServerRuntime.cpp.o
+[37/79] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/SocketProvider.cpp.o
+[38/79] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Transport.cpp.o
+[39/79] Linking CXX static library Engine/Window/libNexoraWindow.a
+[40/79] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/Presentation.cpp.o
+[41/79] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/RenderSurface.cpp.o
+[42/79] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/VulkanSurface.cpp.o
+[43/79] Linking CXX static library Engine/Renderer/libNexoraRenderer.a
+[44/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/InputUi.cpp.o
+[45/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplayModuleHost.cpp.o
+[46/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameWorld.cpp.o
+[47/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplayHostBridge.cpp.o
+[48/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/ShaderRuntime.cpp.o
+[49/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/RenderSync.cpp.o
+[50/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Runtime.cpp.o
+[51/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplaySimulation.cpp.o
+[52/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/AssetPipeline.cpp.o
+[53/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/BundleMount.cpp.o
+[54/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Presentation.cpp.o
+[55/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/PresentationV2.cpp.o
+[56/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/LargeWorld.cpp.o
+[57/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Platform.cpp.o
+[58/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Shipping.cpp.o
+[59/79] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/HardeningV2.cpp.o
+[60/79] Building the Zig gameplay ABI sample
+[61/79] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcaseProbes.dir/ShowcaseProbes.cpp.o
+[62/79] Building CXX object Samples/Api/CMakeFiles/NexoraApiFoundationSample.dir/ApiFoundationSample.cpp.o
+[63/79] Linking CXX static library Engine/AI/libNexoraAI.a
+[64/79] Linking CXX static library Engine/Network/libNexoraNetwork.a
+[65/79] Linking CXX static library Engine/Presentation/libNexoraPresentation.a
+[66/79] Linking CXX static library Engine/Runtime/libNexoraRuntime.a
+[67/79] Building CXX object Engine/AIIntegration/CMakeFiles/NexoraAIIntegration.dir/src/IntentAdapter.cpp.o
+[68/79] Building CXX object Apps/Host/CMakeFiles/NexoraHost.dir/main.cpp.o
+[69/79] Building CXX object Apps/DedicatedServer/CMakeFiles/NexoraDedicatedServer.dir/main.cpp.o
+[70/79] Linking CXX static library Apps/Showcase/libNexoraShowcaseProbes.a
+[71/79] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/main.cpp.o
+[72/79] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/ShowcaseRooms.cpp.o
+[73/79] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/ShowcasePerformance.cpp.o
+[74/79] Compiling canonical Slang shaders and shared shader library
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/Triangle.slang:2:40
+  |
+2 | ConstantBuffer<FrameConstants> frame : register(b0);
+  |                                        ^^^^^^^^ shader parameter 'frame' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-b-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/Triangle.slang:2:40
+  |
+2 | ConstantBuffer<FrameConstants> frame : register(b0);
+  |                                        ^^^^^^^^ shader parameter 'frame' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-b-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/GPUDriven.slang:5:44
+  |
+5 | StructuredBuffer<uint> computeCandidates : register(t0);
+  |                                            ^^^^^^^^ shader parameter 'computeCandidates' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-t-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/GPUDriven.slang:6:43
+  |
+6 | RWStructuredBuffer<uint> computeVisible : register(u1);
+  |                                           ^^^^^^^^ shader parameter 'computeVisible' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/GPUDriven.slang:7:44
+  |
+7 | RWStructuredBuffer<uint> computeIndirect : register(u2);
+  |                                            ^^^^^^^^ shader parameter 'computeIndirect' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/GPUDriven.slang:8:46
+  |
+8 | RWStructuredBuffer<uint> computeStatistics : register(u3);
+  |                                              ^^^^^^^^ shader parameter 'computeStatistics' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/GPUDriven.slang:5:44
+  |
+5 | StructuredBuffer<uint> computeCandidates : register(t0);
+  |                                            ^^^^^^^^ shader parameter 'computeCandidates' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-t-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/GPUDriven.slang:6:43
+  |
+6 | RWStructuredBuffer<uint> computeVisible : register(u1);
+  |                                           ^^^^^^^^ shader parameter 'computeVisible' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/GPUDriven.slang:7:44
+  |
+7 | RWStructuredBuffer<uint> computeIndirect : register(u2);
+  |                                            ^^^^^^^^ shader parameter 'computeIndirect' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/GPUDriven.slang:8:46
+  |
+8 | RWStructuredBuffer<uint> computeStatistics : register(u3);
+  |                                              ^^^^^^^^ shader parameter 'computeStatistics' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-u-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/Triangle.slang:2:40
+  |
+2 | ConstantBuffer<FrameConstants> frame : register(b0);
+  |                                        ^^^^^^^^ shader parameter 'frame' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-b-shift` used.
+--'
+warning[E39029]: D3D register without Vulkan binding or shift
+ --> /workspace/Nexora-vis-courtyard-fill/Shaders/Triangle.slang:2:40
+  |
+2 | ConstantBuffer<FrameConstants> frame : register(b0);
+  |                                        ^^^^^^^^ shader parameter 'frame' has a 'register' specified for D3D, but no '[[vk::binding(...)]]` specified for Vulkan, nor is `-fvk-b-shift` used.
+--'
+[75/79] Linking CXX executable Samples/Api/NexoraApiFoundationSample
+[76/79] Linking CXX static library Engine/AIIntegration/libNexoraAIIntegration.a
+[77/79] Linking CXX executable Apps/Host/NexoraHost
+[78/79] Linking CXX executable Apps/DedicatedServer/NexoraDedicatedServer
+[79/79] Linking CXX executable Apps/Showcase/NexoraShowcase

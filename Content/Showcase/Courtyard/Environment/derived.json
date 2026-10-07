@@ -3,13 +3,13 @@
   "source_sha256": "926a6bb81897919b2924f42407162b8d54be91eab2da3fe7fe19daf308cfa09a",
   "samples": 128,
   "sequence": "Hammersley",
-  "sky_source_sha256": "1f6640731a8217add2e468c0f0c9bbd0aa94f768e1744c99f51ff6de6ed1655f",
+  "sky_source_sha256": "cb6bfe44c50b7b643eac06ca9e42b39afe02f908eb0cbcf2957c391247bd5f3b",
   "image_cook_sha256": "5c0c9cd9345beb138a4238b9bd1c3d05d1069bf3e3703952164f609f0c282b64",
   "sky_authoring": {
     "description": "Original authored golden-hour cloud panorama; visible six-face sky and HDR IBL share the panorama orientation, geometric solar disc and key-light direction.",
     "sun_direction": [
       -18,
-      4,
+      6.5,
       -19.2
     ],
     "sun_radiance": [
@@ -54,7 +54,7 @@
       "height": 8,
       "mip_levels": 1,
       "bytes": 1024,
-      "sha256": "9bc8c52ef98ee5f7d67d2f4501577af8e013c854850add3e29688ee70b348532"
+      "sha256": "ec54e6cea06b5d3dcd1d2e3db6e8bfd15864170c18240575e39f3bcc0c609867"
     },
     {
       "name": "specular",
@@ -63,7 +63,7 @@
       "height": 32,
       "mip_levels": 7,
       "bytes": 21848,
-      "sha256": "f0522dcada15d10fc42fe92d930816fea1b7af1f305079b209e5f667d2f91682"
+      "sha256": "738c0aa9cbb82feb50dbf3d04a4f6e20d6afb60f9551e8a1de152cff5a127585"
     },
     {
       "name": "brdf",

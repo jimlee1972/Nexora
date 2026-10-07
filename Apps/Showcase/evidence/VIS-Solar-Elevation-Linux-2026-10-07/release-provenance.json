@@ -1,0 +1,101 @@
+{
+  "source_freeze": "be4fb04edf382692c5a5903f571c2afad5ae20a1",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/CourtyardEnvironment.h": "37fa456008a05d33654e17c9786e307c838be7c8554d24d82bcbdb1a71b9de94",
+    "Apps/Showcase/CourtyardHero.h": "54dd2f029c0e3d85a82a643f6812fd43fce9626c451ead8f51514ea09bfa9ecd",
+    "Content/Showcase/Courtyard/Environment/derived.json": "8df66d0d26c75bf508ea81861455e0a24f0ac535da71b13a79c324660012927b",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "ec54e6cea06b5d3dcd1d2e3db6e8bfd15864170c18240575e39f3bcc0c609867",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "738c0aa9cbb82feb50dbf3d04a4f6e20d6afb60f9551e8a1de152cff5a127585",
+    "Content/Showcase/Courtyard/Hero/manifest.json": "3ac5b4cc8ab8c344349fe58bc85b86faf5b04fff48940b2497c0340680c78632",
+    "Content/Showcase/Courtyard/Hero/sky.rgba": "80da3eb8ca3816e6060d582ce90b0ace694c2b5e81bdfc0eb54aea3e3afea6cc",
+    "Content/Showcase/Courtyard/Hero/source.json": "cb6bfe44c50b7b643eac06ca9e42b39afe02f908eb0cbcf2957c391247bd5f3b"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/solar-elevation-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "be4fb04edf38",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.15216551197227,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.733333"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "26b4eb323729e330507db09d5f1c8c1c4334120ea0890c96aba5a66c2ad907b3",
+    "video_sha256": "10c35f18f1698a530d28ca0a076703bc9a8d39ffe8baa26630ba81c7fbe6db10",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "904e4976fd36b8c02140c5d57e24ad424718f3108a982d70cdaf96ed521f7ffc",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        245,
+        649,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        1,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  },
+  "environment_payload_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+    "Content/Showcase/Courtyard/Hero/Source/ivy-single-leaf.png": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "738c0aa9cbb82feb50dbf3d04a4f6e20d6afb60f9551e8a1de152cff5a127585",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "ec54e6cea06b5d3dcd1d2e3db6e8bfd15864170c18240575e39f3bcc0c609867"
+  },
+  "scene_counts": {
+    "geometry_vertex_count": 60865,
+    "geometry_index_count": 140070,
+    "geometry_batch_count": 393,
+    "geometry_material_count": 46,
+    "foliage_quad_count": 3598
+  },
+  "device_identity": {
+    "name": "llvmpipe (LLVM 19.1.7, 256 bits)",
+    "vendor_id": 65541,
+    "device_id": 0,
+    "driver_version": "1",
+    "driver_version_format": "vulkan.raw"
+  }
+}
