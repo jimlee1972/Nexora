@@ -262,7 +262,12 @@ into renderer or platform internals.
   manifest borrows; callback exceptions close staging and attempt owned-stage cleanup before
   propagating. Schema-1
   fields and artifact byte-count number types are unchanged. The writer records supplied metadata;
-  it does not execute the build command or independently verify artifact checksums.
+  it does not execute the build command or independently verify artifact checksums. All profile
+  and artifact strings must be valid UTF-8 before any directory/stage creation. Artifact paths
+  use normalized project-relative forward-slash syntax: roots, drive/stream colon syntax, backslashes,
+  dot traversal, repeated/trailing separators, ASCII controls and DEL reject on every host. UTF-8
+  paths are parsed as native UTF-8 instead of a system code page. Valid escaped control text remains
+  supported in profile/checksum metadata; existing exact duplicate-artifact checks remain in force.
 
 ## Threading, errors, and deferred work
 

@@ -7,6 +7,7 @@
 #include "Nexora/Editor/ViewportMath.h"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -121,6 +122,72 @@ void VerifyBuildManifestWrite(const std::filesystem::path &root) {
   } cleanup{relative};
   Require(BuildFrontend::Write(manifest, relative, &error) && read(relative) == committed,
           "relative manifest destination lost compatibility");
+}
+
+void VerifyBuildManifestValidation(const std::filesystem::path &root) {
+  namespace fs = std::filesystem;
+  using nexora::editor::BuildFrontend;
+  nexora::editor::BuildManifest manifest{
+      1,
+      {"windows-dev", "windows-x64", "Development", "cmake --build --preset windows-development"},
+      {{"bin/game", "sha256:game", 0}}};
+  const std::u8string unicode_path = u8"bin/遊戲-😀.exe";
+  manifest.artifacts.front().path.assign(unicode_path.begin(), unicode_path.end());
+  std::string error = "stale";
+  const auto destination = root / "validated-build-manifest.json";
+  auto stage = destination;
+  stage += ".tmp";
+  Require(BuildFrontend::Validate(manifest, &error) && error.empty() &&
+              BuildFrontend::Write(manifest, destination, &error),
+          "valid cross-target UTF-8 manifest was rejected");
+  const auto read = [](const fs::path &path) {
+    std::ifstream input(path, std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>{input}, std::istreambuf_iterator<char>{});
+  };
+  const auto committed = read(destination);
+  std::ofstream(stage) << "retained validation stage";
+  const auto expect_rejected = [&](const nexora::editor::BuildManifest &candidate) {
+    error = "stale";
+    Require(!BuildFrontend::Validate(candidate, &error) && !error.empty() && error != "stale" &&
+                !BuildFrontend::Write(candidate, destination, &error) &&
+                read(destination) == committed && read(stage) == "retained validation stage",
+            "invalid manifest text/path changed last-good bytes or occupied staging");
+    const auto missing_parent = root / "invalid-build-parent";
+    Require(!BuildFrontend::Write(candidate, missing_parent / "manifest.json", &error) &&
+                !fs::exists(missing_parent),
+            "invalid manifest created directories before admission validation");
+  };
+  for (const auto &path :
+       {std::string{}, std::string("C:/Windows/game.exe"), std::string("c:game.exe"),
+        std::string("bin/game.exe:stream"), std::string("/bin/game"),
+        std::string("\\\\server\\share\\game"), std::string("//server/share/game"),
+        std::string("bin\\game"), std::string("../game"), std::string("bin/../game"),
+        std::string("./game"), std::string("bin/./game"), std::string("bin//game"),
+        std::string("bin/game/"), std::string("bin/game\n"), std::string("bin/game\r"),
+        std::string("bin/game\t"), std::string("bin/game\x7f"), std::string("bin/ga\0me", 9)}) {
+    auto invalid = manifest;
+    invalid.artifacts.front().path = path;
+    expect_rejected(invalid);
+  }
+  for (const auto &bad_text :
+       {std::string("\xc0\x80", 2), std::string("\xed\xa0\x80", 3),
+        std::string("\xf4\x90\x80\x80", 4), std::string("\xc2", 1), std::string("\xc3(", 2)}) {
+    for (std::size_t field = 0; field < 6; ++field) {
+      auto invalid = manifest;
+      const std::array fields{&invalid.profile.name,           &invalid.profile.target,
+                              &invalid.profile.configuration,  &invalid.profile.command,
+                              &invalid.artifacts.front().path, &invalid.artifacts.front().checksum};
+      *fields[field] = bad_text;
+      expect_rejected(invalid);
+    }
+  }
+  auto duplicate = manifest;
+  duplicate.artifacts.push_back(duplicate.artifacts.front());
+  expect_rejected(duplicate);
+  fs::remove(stage);
+  Require(BuildFrontend::Write(manifest, destination, &error) && error.empty() &&
+              read(destination) == committed,
+          "valid manifest retry failed after text/path rejection");
 }
 
 int Run() {
@@ -1639,6 +1706,7 @@ int Run() {
               fs::file_size(manifest_path) > 0,
           "build manifest failed");
   VerifyBuildManifestWrite(root);
+  VerifyBuildManifestValidation(root);
   const auto manifest_directory = root / "manifest-directory";
   fs::create_directory(manifest_directory);
   Require(!editor::BuildFrontend::Write(manifest, manifest_directory, &error) &&
@@ -1646,15 +1714,11 @@ int Run() {
           "build manifest replacement deleted an existing destination directory");
   manifest.artifacts.push_back({"../escape", "bad", 1});
   Require(!editor::BuildFrontend::Validate(manifest, &error), "unsafe build artifact accepted");
-#if defined(_WIN32)
-  // std::filesystem::path only parses a drive letter as a root-name on Windows,
-  // so this rejection is inherently platform-specific and cannot be exercised
-  // by the Linux gate.
+  // Artifact metadata can target a different OS from the host producing the manifest.
   manifest.artifacts.back() = {"C:/Windows/System32/evil.dll", "bad", 1};
   Require(!editor::BuildFrontend::Validate(manifest, &error),
           "a Windows drive-letter-rooted artifact path must be rejected even though it starts "
           "with neither '/' nor '\\\\', or it can escape the sandbox root it gets joined onto");
-#endif
 
   editor::ProfileSession profile;
   Require(profile.Add({1, 2.0, 3.0, 100}) && profile.Add({2, 8.0, 4.0, 200}) &&
