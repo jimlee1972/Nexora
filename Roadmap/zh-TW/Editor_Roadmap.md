@@ -602,6 +602,10 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
 
 Build profiles、cook/package frontend、target/device matrix、remote deploy/log、CPU/GPU/memory/frame profiler、plugin manager、script/API docs。任何「Build Success」必須附 target manifest 與可重現 command。
 
+- ✅ Build manifest publication 現透過共用 native-path atomic publisher 串流寫入不受 locale
+  影響的 schema-1 JSON。Occupied file／directory／valid／dangling stage 與 replace 失敗會保留
+  無關資料；雲端測試涵蓋 UTF-8 destination、uint64 byte count、escaped control、error 清除與
+  retry。圖形化 build／deploy frontend 仍維持 open。
 - ✅ Portable build frontend 會驗證並 atomic 寫入 target/configuration/command 與帶 checksum
   的 artifact manifest；有界的 monotonic CPU/GPU/memory frame capture 已實作。
 - ✅ 圖形化 Profiler 現顯示即時且有界的 Editor frame processing wall-time 曲線，支援暫停／

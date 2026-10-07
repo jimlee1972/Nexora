@@ -630,6 +630,10 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ Build manifest publication now streams locale-independent schema-1 JSON through the shared
+    native-path atomic publisher. Occupied file/directory/valid/dangling stages and failed replacement
+    preserve unrelated data; UTF-8 destinations, uint64 byte counts, escaped controls, error clearing
+    and retry are covered by cloud tests. The graphical build/deploy frontend remains open.
   - ✅ Portable build frontend validates and atomically writes target/configuration/command and
     checksummed artifact manifests; bounded monotonic CPU/GPU/memory frame capture is implemented.
   - ✅ The graphical Profiler shows a live, bounded Editor frame processing wall-time trace with

@@ -17,8 +17,9 @@ inline std::string PathUtf8(const std::filesystem::path &path) {
   const auto encoded = path.generic_u8string();
   return {encoded.begin(), encoded.end()};
 }
-inline bool AtomicWrite(const std::filesystem::path &path, std::string_view contents,
-                        std::string *error) {
+template <class WriteContents>
+inline bool AtomicWriteWith(const std::filesystem::path &path, WriteContents &&write_contents,
+                            std::string *error) {
   std::error_code ec;
   std::filesystem::create_directories(path.parent_path(), ec);
   auto temporary = path;
@@ -34,8 +35,16 @@ inline bool AtomicWrite(const std::filesystem::path &path, std::string_view cont
   ec.clear();
   {
     std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
+    try {
+      if (output)
+        write_contents(output);
+    } catch (...) {
+      output.close();
+      std::filesystem::remove(temporary, ec);
+      throw;
+    }
     // Close before checking so a failed flush (e.g. a full disk) is not renamed over a good file.
-    if (!output || !(output << contents) || (output.close(), output.fail())) {
+    if (!output || (output.close(), output.fail())) {
       output.close();
       std::filesystem::remove(temporary, ec);
       if (error)
@@ -57,5 +66,9 @@ inline bool AtomicWrite(const std::filesystem::path &path, std::string_view cont
       *error = "could not replace " + PathUtf8(path) + ": " + ec.message();
   }
   return !ec;
+}
+inline bool AtomicWrite(const std::filesystem::path &path, std::string_view contents,
+                        std::string *error) {
+  return AtomicWriteWith(path, [contents](std::ostream &output) { output << contents; }, error);
 }
 } // namespace nexora::editor::detail

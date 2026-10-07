@@ -1,18 +1,12 @@
 #include "Nexora/Editor/EditorProduction.h"
+#include "AtomicFile.h"
 
 #include <algorithm>
 #include <cmath>
-#include <fstream>
 #include <iomanip>
+#include <locale>
 #include <sstream>
 #include <unordered_set>
-
-#if defined(_WIN32)
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
 
 namespace nexora::editor {
 namespace {
@@ -31,6 +25,7 @@ bool SafePath(std::string_view path) {
 
 std::string Escape(std::string_view value) {
   std::ostringstream result;
+  result.imbue(std::locale::classic());
   for (const unsigned char c : value) {
     if (c == '"' || c == '\\') {
       result << '\\' << c;
@@ -49,21 +44,6 @@ std::string Escape(std::string_view value) {
   return result.str();
 }
 
-bool ReplaceFile(const std::filesystem::path &temporary, const std::filesystem::path &path,
-                 std::error_code &error) {
-#if defined(_WIN32)
-  if (MoveFileExW(temporary.c_str(), path.c_str(),
-                  MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-    error.clear();
-    return true;
-  }
-  error = std::error_code(static_cast<int>(GetLastError()), std::system_category());
-  return false;
-#else
-  std::filesystem::rename(temporary, path, error);
-  return !error;
-#endif
-}
 } // namespace
 
 bool SpecializedToolRegistry::Register(ToolDescriptor descriptor) {
@@ -83,6 +63,8 @@ const ToolDescriptor *SpecializedToolRegistry::Find(std::string_view id) const n
 }
 
 bool BuildFrontend::Validate(const BuildManifest &manifest, std::string *error) {
+  if (error)
+    error->clear();
   if (manifest.schema_version != 1 || manifest.profile.name.empty() ||
       manifest.profile.target.empty() || manifest.profile.configuration.empty() ||
       manifest.profile.command.empty()) {
@@ -114,29 +96,24 @@ bool BuildFrontend::Write(const BuildManifest &manifest, const std::filesystem::
       *error = ec.message();
     return false;
   }
-  const auto temporary = path.string() + ".tmp";
-  std::ofstream output(temporary, std::ios::trunc);
-  output << "{\n  \"schema_version\": 1,\n  \"profile\": {\"name\": \""
-         << Escape(manifest.profile.name) << "\", \"target\": \"" << Escape(manifest.profile.target)
-         << "\", \"configuration\": \"" << Escape(manifest.profile.configuration)
-         << "\", \"command\": \"" << Escape(manifest.profile.command) << "\"},\n  \"artifacts\": [";
-  for (std::size_t i = 0; i < manifest.artifacts.size(); ++i) {
-    const auto &artifact = manifest.artifacts[i];
-    output << (i ? "," : "") << "\n    {\"path\": \"" << Escape(artifact.path)
-           << "\", \"checksum\": \"" << Escape(artifact.checksum)
-           << "\", \"bytes\": " << artifact.bytes << "}";
-  }
-  output << "\n  ]\n}\n";
-  output.close();
-  if (!output) {
-    if (error)
-      *error = "could not write build manifest";
-    return false;
-  }
-  ReplaceFile(temporary, path, ec);
-  if (ec && error)
-    *error = ec.message();
-  return !ec;
+  return detail::AtomicWriteWith(
+      path,
+      [&](std::ostream &output) {
+        output.imbue(std::locale::classic());
+        output << "{\n  \"schema_version\": 1,\n  \"profile\": {\"name\": \""
+               << Escape(manifest.profile.name) << "\", \"target\": \""
+               << Escape(manifest.profile.target) << "\", \"configuration\": \""
+               << Escape(manifest.profile.configuration) << "\", \"command\": \""
+               << Escape(manifest.profile.command) << "\"},\n  \"artifacts\": [";
+        for (std::size_t i = 0; i < manifest.artifacts.size(); ++i) {
+          const auto &artifact = manifest.artifacts[i];
+          output << (i ? "," : "") << "\n    {\"path\": \"" << Escape(artifact.path)
+                 << "\", \"checksum\": \"" << Escape(artifact.checksum)
+                 << "\", \"bytes\": " << artifact.bytes << "}";
+        }
+        output << "\n  ]\n}\n";
+      },
+      error);
 }
 
 bool ProfileSession::Add(FrameSample sample) {

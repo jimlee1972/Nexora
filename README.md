@@ -1425,3 +1425,9 @@ pending recovery; explicit discard is nonrecursive and preserves alias targets.
 
 ✅ ED recovery gates 現把目錄、dangling alias 與無法檢查的 journal 路徑視為 pending recovery；
 明確 discard 不遞迴且保留 alias target。完整圖形化驗收維持 0/8。
+
+✅ ED build manifests now stream locale-independent JSON through the shared native-path atomic
+publisher, preserving occupied staging and last-good files on failed replacement.
+
+✅ ED build manifest 現透過共用 native-path atomic publisher 串流寫入不受 locale 影響的 JSON；
+occupied staging 與 replace 失敗時的上一份有效檔案都會保留。完整圖形化驗收維持 0/8。
