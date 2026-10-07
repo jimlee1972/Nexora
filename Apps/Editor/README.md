@@ -405,7 +405,16 @@ cells because those measurements are unavailable. Export requires 1-600 strictly
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Capture import, GPU timing and memory instrumentation remain open.
+file itself. JSON/arbitrary capture import, GPU timing and memory instrumentation remain open.
+
+Profiler Import CSV reads `.nexora/frame-processing.csv` through the workspace owner and displays a
+separate static wall-time snapshot. The file is bounded to 128 KiB/600 ordered samples; malformed,
+unsafe, unsupported or recovery-pending input rejects without changing the prior imported trace.
+Read-only projects may import. Status and Console report the result; Clear imported changes only
+the UI snapshot, while live capture and its export commands retain their behavior. Switching project
+root/UUID or detaching clears imported history and pending requests. CSV lacks device/project
+provenance and the UI says so; GPU/memory remain unavailable. IO and publication run synchronously
+on the authoring thread with owning snapshots and no retained workspace/sample borrow.
 
 Profiler Export JSON saves `.nexora/frame-processing.json` through the same synchronous owner and
 atomic writer. Its independent UI request is consumed before adding the current frame, and errors

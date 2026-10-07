@@ -66,6 +66,12 @@ struct FrameSample final {
   std::uint64_t memory_bytes{};
 };
 
+// Owning snapshot of Editor wall timing only. GPU/memory fields remain zero/unavailable.
+struct FrameProcessingCapture final {
+  std::vector<FrameSample> samples;
+  std::uint64_t older_frames_dropped{};
+};
+
 class NEXORA_EDITOR_API ProfileSession final {
 public:
   explicit ProfileSession(std::size_t capacity = 600) : capacity_(capacity) {}

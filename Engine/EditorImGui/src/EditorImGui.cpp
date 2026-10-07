@@ -121,9 +121,15 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> play_apply_confirm_position;
   bool profile_export_requested = false;
   bool profile_json_export_requested = false;
+  bool profile_csv_import_requested = false;
+  std::optional<FrameProcessingCapture> imported_profile;
+  std::filesystem::path profile_project_root;
+  std::string profile_project_id;
   std::string profile_export_status;
   std::optional<std::array<float, 2>> profile_export_position;
   std::optional<std::array<float, 2>> profile_json_export_position;
+  std::optional<std::array<float, 2>> profile_csv_import_position;
+  std::optional<std::array<float, 2>> profile_import_clear_position;
   std::array<char, 1024> gameplay_library{};
   std::string gameplay_status;
   std::uint64_t gameplay_project_generation{};
@@ -3515,6 +3521,19 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->inspector_opaque_info.clear();
   state_->profile_export_position.reset();
   state_->profile_json_export_position.reset();
+  state_->profile_csv_import_position.reset();
+  state_->profile_import_clear_position.reset();
+  const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
+  const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
+  if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id) {
+    state_->profile_project_root = profile_root;
+    state_->profile_project_id = profile_id;
+    state_->imported_profile.reset();
+    state_->profile_csv_import_requested = false;
+    state_->profile_export_requested = false;
+    state_->profile_json_export_requested = false;
+    state_->profile_export_status.clear();
+  }
   state_->console_control_positions = {};
   state_->console_visible_count = 0;
   state_->console_first_visible_sequence.reset();
@@ -4276,6 +4295,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (profile == nullptr) {
       ImGui::TextDisabled("Frame capture unavailable.");
     } else {
+      ImGui::SeparatorText("Live capture");
       bool capturing = profile->Capturing();
       if (ImGui::Checkbox("Capture", &capturing))
         profile->SetCapturing(capturing);
@@ -4300,29 +4320,56 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->profile_json_export_position =
           std::array{(json_min.x + json_max.x) * 0.5F, (json_min.y + json_max.y) * 0.5F};
       ImGui::EndDisabled();
+      ImGui::BeginDisabled(!workspace || interaction_blocked || state_->close_prompt_requested);
+      if (ImGui::Button("Import CSV###editor.profiler.import-csv"))
+        state_->profile_csv_import_requested = true;
+      const auto import_min = ImGui::GetItemRectMin(), import_max = ImGui::GetItemRectMax();
+      state_->profile_csv_import_position =
+          std::array{(import_min.x + import_max.x) * 0.5F, (import_min.y + import_max.y) * 0.5F};
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!state_->imported_profile);
+      if (ImGui::Button("Clear imported###editor.profiler.clear-import"))
+        state_->imported_profile.reset();
+      const auto clear_min = ImGui::GetItemRectMin(), clear_max = ImGui::GetItemRectMax();
+      state_->profile_import_clear_position =
+          std::array{(clear_min.x + clear_max.x) * 0.5F, (clear_min.y + clear_max.y) * 0.5F};
+      ImGui::EndDisabled();
+      ImGui::EndDisabled();
       if (!state_->profile_export_status.empty())
         ImGui::TextWrapped("%s", state_->profile_export_status.c_str());
       ImGui::Text("%zu frames retained | %llu older frames dropped", samples.size(),
                   static_cast<unsigned long long>(profile->DroppedCount()));
       ImGui::TextDisabled("Editor frame processing: wall time after BeginFrame, before Present.");
       ImGui::TextDisabled("GPU time and process memory are not instrumented.");
-      if (!samples.empty()) {
+      const auto plot = [](std::span<const FrameSample> values_to_plot, const char *label) {
+        if (values_to_plot.empty())
+          return;
         std::vector<float> values;
-        values.reserve(samples.size());
-        double sum = 0.0;
+        values.reserve(values_to_plot.size());
+        double average = 0.0;
         double peak = 0.0;
         float maximum = 1.0F;
-        for (const auto &sample : samples) {
+        for (const auto &sample : values_to_plot) {
           values.push_back(static_cast<float>(
               std::min(sample.cpu_ms, static_cast<double>(std::numeric_limits<float>::max()))));
-          sum += sample.cpu_ms;
+          average += (sample.cpu_ms - average) / static_cast<double>(values.size());
           peak = std::max(peak, sample.cpu_ms);
           maximum = std::max(maximum, values.back());
         }
-        ImGui::Text("Latest %.2f ms | Average %.2f ms | Peak %.2f ms", samples.back().cpu_ms,
-                    sum / static_cast<double>(samples.size()), peak);
-        ImGui::PlotLines("Frame processing (ms)", values.data(), static_cast<int>(values.size()), 0,
-                         nullptr, 0.0F, maximum, ImVec2(-1.0F, 120.0F));
+        ImGui::Text("Latest %.2f ms | Average %.2f ms | Peak %.2f ms", values_to_plot.back().cpu_ms,
+                    average, peak);
+        ImGui::PlotLines(label, values.data(), static_cast<int>(values.size()), 0, nullptr, 0.0F,
+                         maximum, ImVec2(-1.0F, 120.0F));
+      };
+      plot(samples, "Frame processing (ms)");
+      if (state_->imported_profile) {
+        ImGui::SeparatorText("Imported CSV (static)");
+        ImGui::Text(
+            "%zu saved frames | %llu older frames dropped",
+            state_->imported_profile->samples.size(),
+            static_cast<unsigned long long>(state_->imported_profile->older_frames_dropped));
+        ImGui::TextDisabled("Saved Editor wall timing; CSV has no device/project provenance.");
+        plot(state_->imported_profile->samples, "Imported frame processing (ms)");
       }
     }
   }
@@ -4588,6 +4635,23 @@ bool EditorImGuiHost::TakeProfileExportRequest() noexcept {
 }
 bool EditorImGuiHost::TakeProfileJsonExportRequest() noexcept {
   return std::exchange(state_->profile_json_export_requested, false);
+}
+bool EditorImGuiHost::TakeProfileCsvImportRequest() noexcept {
+  return std::exchange(state_->profile_csv_import_requested, false);
+}
+bool EditorImGuiHost::SetImportedProfileCapture(FrameProcessingCapture capture) {
+  if (state_->profile_project_root.empty() || capture.samples.empty() ||
+      capture.samples.size() > 600)
+    return false;
+  std::uint64_t previous = 0;
+  for (const auto &sample : capture.samples) {
+    if (sample.frame == 0 || sample.frame <= previous || !std::isfinite(sample.cpu_ms) ||
+        sample.cpu_ms < 0 || sample.gpu_ms != 0 || sample.memory_bytes != 0)
+      return false;
+    previous = sample.frame;
+  }
+  state_->imported_profile = std::move(capture);
+  return true;
 }
 void EditorImGuiHost::SetProfileExportStatus(std::string message) {
   state_->profile_export_status = std::move(message);
@@ -5305,6 +5369,18 @@ EditorImGuiTestAccess::ProfileExportPosition(const EditorImGuiHost &host) noexce
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProfileJsonExportPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->profile_json_export_position;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProfileCsvImportPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_csv_import_position;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProfileImportClearPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_import_clear_position;
+}
+const FrameProcessingCapture *
+EditorImGuiTestAccess::ImportedProfileCapture(const EditorImGuiHost &host) noexcept {
+  return host.state_->imported_profile ? &*host.state_->imported_profile : nullptr;
 }
 
 std::optional<std::array<float, 2>>

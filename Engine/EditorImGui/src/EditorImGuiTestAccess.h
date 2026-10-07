@@ -96,6 +96,12 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProfileJsonExportPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  ProfileCsvImportPosition(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ProfileImportClearPosition(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static const FrameProcessingCapture *
+  ImportedProfileCapture(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   HierarchyCutPosition(const EditorImGuiHost &host) noexcept;
   static void FocusHierarchy(EditorImGuiHost &host) noexcept;
   static void FocusScene(EditorImGuiHost &host) noexcept;

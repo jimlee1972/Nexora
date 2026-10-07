@@ -240,6 +240,16 @@ into renderer or platform internals.
   rejected; capacity evictions increment a dropped count. Capture can be paused and cleared without
   changing project files. The graphical host currently supplies Editor frame processing wall time
   after BeginFrame and before Present; GPU timing and process memory are not instrumented.
+  `ProjectWorkspace::ImportEditorFrameProcessingCsv` reads the project's exported CSV synchronously
+  into an owning `FrameProcessingCapture`, without changing files, workspace state or a live
+  session. Read-only observers may import; closed/recovery-pending projects, aliased metadata/leaf
+  paths, nonregular/unreadable/missing files and corrupt data reject with an error. Input is bounded
+  to 128 KiB and 1-600 ordered, nonzero frame IDs. The fixed header, five unquoted columns, finite
+  nonnegative wall times, consistent uint64 drop counts and empty GPU/memory cells are required.
+  LF/CRLF are accepted; integer/double parsing is locale-independent and consumes entire fields.
+  Snapshots retain numeric precision and mark GPU/memory unavailable. CSV contains no project/device
+  provenance; arbitrary CSV formats and JSON capture import remain deferred. Filesystem checks
+  retain the serialized authoring-thread contract, not a concurrent filesystem adversary guarantee.
 - Gizmo transactions own their stable-ID and initial-transform snapshots until commit or cancel.
   If an update callback rejects a target after earlier targets were applied, the transaction uses
   that same callback to restore those earlier targets from the initial snapshot before reporting
