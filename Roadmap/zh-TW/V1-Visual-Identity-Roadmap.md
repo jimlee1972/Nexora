@@ -1,5 +1,13 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 原生草葉整合保留已接受主線 `27bc395f6bb3`，包括 Editor journal／復原更新。Linux 完整 configure/build 與 102/102 測試通過（126.02 秒，core/sync validation）。Showcase 原始碼與留存的 `c17e9cf` Shipping／100 秒影片凍結版本逐 byte 相同；原始證據完整保留。最新整合日誌：`Apps/Showcase/evidence/VIS-Native-Grass-Integration-Linux-2026-10-07/main-integration/`。VIS 維持 5/7；最終預覽圖一致性與實體 GPU／顯示器驗收仍未完成。
+
+✅ 原創細草生長於庭院鋪面間，保留根部固定的 GPU 風動、雙面 PBR、薄片透光、原生陰影與平面反射。水晶核心依高度分組；克制符文輻射與霧面青銅保留水晶 HDR bloom 和共同動畫時鐘。最新主線的原生裝置來源與品質量測功能完整保留。Linux 完整 configure/build 與 101/101 測試通過（119.84 秒，core/sync validation）；Shipping 隔離原生驗收、風／反射精確還原與實際 100 秒動畫影片通過（壁鐘 101.15 秒）。凍結版本 `c17e9cfb5a1365fbca8f43fce12941bca61f3206`；證據：`Apps/Showcase/evidence/VIS-Native-Grass-Integration-Linux-2026-10-07/`。Standard：60,097 vertices、138,150 indices、389 batches、46 materials、3,534 張來源植被 quad。預覽圖一致性與實體 GPU／顯示器驗收仍未完成，VIS 維持 5/7。
+
+✅ 符文 emission（0.012、0.32、0.4）與 roughness 0.22 保留青色細節並收斂亮度；青銅反射係數（0.8、0.65、0.4）與 roughness 0.4 呈現較霧面的磨損飾帶與鉚釘。Linux 完整 97/97 測試通過（123.56 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 100.91 秒）。凍結版本 `5a7c665266fe34d18ad33dc1804a41f600786e68`；證據：`Apps/Showcase/evidence/VIS-Restrained-Runes-Linux-2026-10-06/`。Standard 維持 58,249 vertices、135,378 indices、387 batches、44 materials；貼圖／幾何、水晶 HDR 與共同脈動保持一致。VIS 仍為 5/7。
+
+✅ 水晶內部礦物面依原始高度分層：下方 16 個明亮 HDR 三角形、中間 16 個與上方 16 個暗色三角形。位置、法線、UV、輻射亮度常數與動畫不變。Linux 完整 97/97 測試通過（121.63 秒，core/sync validation），Shipping 隔離原生驗收與 100 秒共同時鐘影片通過（壁鐘 100.91 秒）。凍結版本 `5f9104f71677df263f45078e0b894a8e045170ad`；證據：`Apps/Showcase/evidence/VIS-Crystal-Core-Gradient-Linux-2026-10-06/`。Standard 維持 58,249 vertices、135,378 indices、387 batches、44 materials；VIS 仍為 5/7。
+
 ✅ 已交付原生裝置來源記錄：Vulkan／DX12 報告保留實際選中的裝置名稱、vendor／device ID 與觀測到的原始驅動版本；Metal 保留所選裝置名稱，ID／驅動明確維持不可用。十進位字串避免 DXGI 64-bit 精度遺失。品質 benchmark 在 JSON／Markdown 保留識別並拒絕不同的觀測裝置／驅動；舊報告明確維持未識別。7 個證據政策測試於一般與最佳化 Python 通過。Build 1778（來源 `46eac3a50f83`）18 個工作全過，Linux 145/145、Windows 128/128、macOS 127/127，並通過原生 Shipping gate 與三品質量測，保留實際 llvmpipe／驅動觀測。GPU timestamp 與螢幕更新率仍不可用；VIS 維持 5/7，實體 GPU 預算與最終美術驗收保持開放。 [驗證證據](../../Apps/Showcase/evidence/VIS-M6-Native-Device-Provenance-CI-2026-10-07/acceptance.md).
 
 ✅ VIS-M6 量測工具：共用原生 DX12／Vulkan Shipping benchmark 依序量測 Basic／Standard／High，保留版本、執行檔／報告 SHA-256、原始日誌及 JSON／Markdown。每種品質預設三次獨立 360-frame 程序，捨棄 60-frame 暖機並量測 300 個樣本，使用時間零、啟動裝置的固定廣角。證據檢查拒絕 fallback／VSync 限速、不完整或過期報告、無效指標、混版及同品質場景漂移，Python 最佳化模式亦有效。五組政策測試已在兩種模式通過；Build 1755（來源 `2bfdee501726`）通過 Linux 143/143、Windows 126/126、macOS 125/125、原生 Shipping 驗收與九次完整 Linux 量測。[證據](../../Apps/Showcase/evidence/VIS-M6-Quality-Benchmark-CI-2026-10-07/acceptance.md)。一般分支 CI 改用三次 160-frame smoke；tag 與直接執行保留每種品質三次 360-frame 完整量測。GPU timestamps、driver／refresh 未觀測時保持缺值。此項補強 VIS-M6 交付，尚未驗收實體硬體效能或 VIS-M3 美術；進度維持 5/7。
