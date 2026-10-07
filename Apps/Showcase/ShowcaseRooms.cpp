@@ -1128,6 +1128,17 @@ struct RoomSession::State final {
         Segment(corners[edge], corners[(edge + 1) % corners.size()], 0.012F);
     }
     finish(8);
+    const auto rotateDeviceRange = [&](std::size_t first) {
+      constexpr float angle = -0.35F;
+      const float cosine = std::cos(angle), sine = std::sin(angle);
+      for (std::size_t v = first; v < vertices.size(); ++v)
+        for (auto *vector : {vertices[v].position, vertices[v].normal, vertices[v].tangent}) {
+          const float x = vector[0], z = vector[2];
+          vector[0] = cosine * x + sine * z;
+          vector[2] = -sine * x + cosine * z;
+        }
+    };
+    const auto ringFirst = vertices.size();
     constexpr std::size_t sides = 20;
     for (std::size_t i = 0; i < sides; ++i) {
       const float a = static_cast<float>(i) / sides * math::kPi * 2;
@@ -1166,6 +1177,7 @@ struct RoomSession::State final {
               {1.94F * std::cos(b), 2.9F + 1.94F * std::sin(b), 0.05F}, 0.04F);
       finish(1);
     }
+    rotateDeviceRange(ringFirst);
     courtyardReflectionDeviceIndexEnd = indices.size();
     const std::array<std::array<float, 2>, 10> column{{{0, 0},
                                                        {0.7F, 0},
@@ -1800,6 +1812,7 @@ struct RoomSession::State final {
             vertices[v].uv[1] = 1 - vertices[v].uv[1];
         }
     finish(5);
+    const auto ringIvyFirst = vertices.size();
     // Ivy follows the outer right-hand device rim; root anchors share the scene wind clock.
     for (unsigned vine = 0; vine < 12; ++vine) {
       const float angle = -0.45F + vine * 0.11F;
@@ -1815,6 +1828,7 @@ struct RoomSession::State final {
       }
     }
     finish(5);
+    rotateDeviceRange(ringIvyFirst);
     // Dense foreground banks retain the original alpha mask and the same GPU wind.
     for (const auto bank :
          {std::array{-3.8F, 3.8F}, std::array{3.8F, 3.8F}, std::array{-7.8F, -1.8F}})
