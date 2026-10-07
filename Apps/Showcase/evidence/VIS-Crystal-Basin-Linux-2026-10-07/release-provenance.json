@@ -1,0 +1,95 @@
+{
+  "source_freeze": "586d14295ad3b70a44e2a59083f8f398fe86ef33",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/ShowcaseRooms.cpp": "6bb93980480c07ad53cfecad9000f6c2beb11946b7681e390f87a1e496f73aaf",
+    "Tests/Showcase/ShowcaseRoomTests.cpp": "db22b89b0354d2225e99a39792c51c7ea213ae406da918f65fa18f1b7dfc156a"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/crystal-basin-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "586d14295ad3",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.23108639300335,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.800000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "4cc46c74847b9ba8aa31dc116ea96aa3a9098515b136b98718effd976447f98c",
+    "video_sha256": "1fbfe38d84c1ddb2f60886ed80626f17cc539679bc4e2f02ceda29498186d39a",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "b48e8f62ab07cd2f25a2427fbf3d44687fea93532fa11252bcefe004703c0e78",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        245,
+        649,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        1,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  },
+  "environment_payload_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+    "Content/Showcase/Courtyard/Hero/Source/ivy-single-leaf.png": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "f0522dcada15d10fc42fe92d930816fea1b7af1f305079b209e5f667d2f91682",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "9bc8c52ef98ee5f7d67d2f4501577af8e013c854850add3e29688ee70b348532"
+  },
+  "scene_counts": {
+    "geometry_vertex_count": 60097,
+    "geometry_index_count": 138150,
+    "geometry_batch_count": 389,
+    "geometry_material_count": 46,
+    "foliage_quad_count": 3534
+  },
+  "device_identity": {
+    "name": "llvmpipe (LLVM 19.1.7, 256 bits)",
+    "vendor_id": 65541,
+    "device_id": 0,
+    "driver_version": "1",
+    "driver_version_format": "vulkan.raw"
+  }
+}

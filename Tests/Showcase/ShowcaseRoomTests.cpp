@@ -264,6 +264,40 @@ int main() {
     }
   }
   assert(coreCorners == 144);
+  // At the shared hover trough the crystal must still clear its supporting basin.
+  RoomSession basinHover("courtyard");
+  basinHover.SetDeviceActive(true);
+  double remaining = 3.0 * nexora::math::kPi / (2.0 * 1.4);
+  while (remaining > 0) {
+    const double step = std::min(remaining, 1.0);
+    basinHover.Tick(step);
+    remaining -= step;
+  }
+  const auto trough = basinHover.Scene(1280, 720);
+  float shellBottom = 10000, basinTop = -10000;
+  std::size_t basins = 0;
+  for (const auto &batch : trough.batches) {
+    if (batch.firstInstance != 0 || (batch.materialIndex != 0 && batch.materialIndex != 12))
+      continue;
+    float minX = 10000, maxX = -10000, minZ = 10000, maxZ = -10000, maxY = -10000;
+    for (std::size_t i = batch.firstIndex; i < batch.firstIndex + batch.indexCount; ++i) {
+      const auto &v = trough.vertices[trough.indices[i]];
+      minX = std::min(minX, v.position[0]);
+      maxX = std::max(maxX, v.position[0]);
+      minZ = std::min(minZ, v.position[2]);
+      maxZ = std::max(maxZ, v.position[2]);
+      maxY = std::max(maxY, v.position[1]);
+      if (batch.materialIndex == 12)
+        shellBottom = std::min(shellBottom, v.position[1]);
+    }
+    // Identify the original basin by its centered radial footprint, independent of height.
+    if (batch.materialIndex == 0 && std::abs(maxX - minX - 1.6F) < 1e-4F &&
+        std::abs(minX + maxX) < 1e-4F && std::abs(minZ + maxZ - 0.9F) < 1e-4F) {
+      basinTop = maxY;
+      ++basins;
+    }
+  }
+  assert(basins == 1 && shellBottom < 3 && shellBottom > basinTop);
 #endif
 
   assert(covered == wide.indices.size() && wide.instances.size() > 438 && wide.planarReflection);
