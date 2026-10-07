@@ -79,6 +79,10 @@ public:
   // Samples are borrowed only for this synchronous call; GPU/memory cells stay empty.
   bool ExportEditorFrameProcessing(std::span<const FrameSample> samples,
                                    std::uint64_t dropped_frames, std::string *error = nullptr);
+  // Schema-1 JSON companion. Frame IDs/drop counts are decimal strings for lossless uint64
+  // interchange; GPU/memory are explicitly unavailable and samples remain synchronous borrows.
+  bool ExportEditorFrameProcessingJson(std::span<const FrameSample> samples,
+                                       std::uint64_t dropped_frames, std::string *error = nullptr);
   bool SaveEditorLayout(std::string_view layout, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadEditorLayout(std::string *error = nullptr) const;
   [[nodiscard]] bool HasRecoveryJournal() const;

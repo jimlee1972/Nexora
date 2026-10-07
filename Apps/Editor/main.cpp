@@ -1093,6 +1093,15 @@ int RunGraphical(std::optional<ProjectState> project,
                      : nexora::runtime::RuntimeLogSeverity::Error,
             "Profiler", exported ? "Frame processing CSV exported." : error);
       }
+      if (ui.TakeProfileJsonExportRequest()) {
+        std::string error;
+        const bool exported = project->workspace.ExportEditorFrameProcessingJson(
+            profile.Samples(), profile.DroppedCount(), &error);
+        ui.SetProfileExportStatus(exported ? "Saved .nexora/frame-processing.json" : error);
+        log(exported ? nexora::runtime::RuntimeLogSeverity::Info
+                     : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", exported ? "Frame processing JSON exported." : error);
+      }
       if (auto review = ui.TakePlayApplyRequest()) {
         std::string error;
         const auto status =

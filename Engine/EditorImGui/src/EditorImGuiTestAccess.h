@@ -94,6 +94,8 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProfileExportPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  ProfileJsonExportPosition(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   HierarchyCutPosition(const EditorImGuiHost &host) noexcept;
   static void FocusHierarchy(EditorImGuiHost &host) noexcept;
   static void FocusScene(EditorImGuiHost &host) noexcept;
