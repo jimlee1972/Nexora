@@ -3,6 +3,11 @@ add_test(NAME build.animation_profiles
   COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Build/VerifyAnimationProfiles.py"
     --root "${PROJECT_SOURCE_DIR}" --cmake "${CMAKE_COMMAND}")
 if(NEXORA_ENABLE_ANIMATION_V2)
+  add_executable(NexoraInertialBlendTests InertialBlendTests.cpp)
+  target_link_libraries(NexoraInertialBlendTests PRIVATE Nexora::Animation)
+  nexora_apply_defaults(NexoraInertialBlendTests)
+  add_test(NAME animation.v2_m8_inertial_pose_blend COMMAND NexoraInertialBlendTests)
+
   add_executable(NexoraPoseGraphTests PoseGraphTests.cpp)
   target_link_libraries(NexoraPoseGraphTests PRIVATE Nexora::Animation)
   nexora_apply_defaults(NexoraPoseGraphTests)

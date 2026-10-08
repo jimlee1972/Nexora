@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 粒子整合保留已接受的 main `e05af4b9a102`，包含 Animation 慣性姿態混合與 Editor 不同 DPI 證據合約。粒子幾何來源及三張固定鏡位原生畫面與前一粒子版本完全一致。完整 Linux configure/build 與 111/111 測試通過（145.47 秒，core/sync validation），並通過一般 Monolithic Shipping 建置、凍結 Showcase Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製（實際 101.29 秒）。最終來源凍結 `d01541bed0d4b4ec3c06135b121ab44bb627b8d9`；整合證據：`Apps/Showcase/evidence/VIS-Crystal-Mote-Scale-Linux-2026-10-08/integration/`。先前粒子與天空的製作證據各自保留。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
 ✅ 水晶粒子卡片的半寬由 0.025 縮至 0.015、高度由 0.05 縮至 0.03 世界單位，使發光輪廓更細緻。24／48／96 的粒子數量、環繞及垂直軌跡、HDR 輻射、紋理、共用動畫時鐘與原生效果保持一致。固定暫停鏡位的原生前後對照只顯示粒子及既有反射／bloom 回應的變化。Standard 保持 62,557 頂點、142,488 索引、395 批次、48 材質及 4,041 來源植被卡片。完整 Linux configure/build 與 110/110 測試通過（143.86 秒，core/sync validation）；凍結 Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.03 秒）。來源凍結 `b5d6120c26508f7f0e2236d640a8af6f50a00ee2`；證據：`Apps/Showcase/evidence/VIS-Crystal-Mote-Scale-Linux-2026-10-08/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
 
 ✅ 可見天空的 emission 倍率由 1.0 改為 0.65，使原創雲層色階更清楚；反射天空繼承相同數值。原始天空 PNG／atlas、浮點 HDR IBL、產生的資源標頭、幾何 HDR 太陽、主光源、水晶輻射、幾何及共用動畫保持一致。固定原生比較中的不透明石材區域逐像素一致。完整 Linux configure/build 與 110/110 測試通過（138.94 秒，core/sync validation）；凍結 Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.38 秒）。Standard 保留 62,557 頂點、142,488 索引、395 batches、48 材質及 4,041 個來源葉片 quad。來源凍結 `f90613ed665fd769be1ea6ed03cdd91d65f7e48b`；證據：`Apps/Showcase/evidence/VIS-Sky-Brightness-Balance-Linux-2026-10-08/`。天空影像是原創 LDR 來源；原生 RGBA16F HDR、幾何太陽及水晶 bloom 保持啟用。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。

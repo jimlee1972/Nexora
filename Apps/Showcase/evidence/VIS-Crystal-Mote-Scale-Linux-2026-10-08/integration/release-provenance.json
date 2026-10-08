@@ -1,0 +1,119 @@
+{
+  "source_freeze": "d01541bed0d4b4ec3c06135b121ab44bb627b8d9",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "AGENTS.md": "22ad896c58940b410ee01b5dec1cd4d4b248f2a440afb1cfcc23292b6a01185c",
+    "Apps/Editor/README.md": "832cdb3aa3ea563ebad7841b6e1165e6fa22a0b58d579311aaee14b3d8957daa",
+    "Engine/Animation/CMakeLists.txt": "98018efd601030717702f95cd085ca9c44b367d92056e8eaf352c826eef2c2d5",
+    "Engine/Animation/README.md": "b263b5dfeeee440a8e9577f2550310a26fd0a15e46b0e7ebc8a8e19dba051e63",
+    "Engine/Animation/include/Nexora/Animation/InertialBlend.h": "06362144a3ef5f636c669de273ee2c589d2d1952cb269de49802831bed4db197",
+    "Engine/Animation/src/InertialBlend.cpp": "fe234e4514154dd58f8f31a951b1092cd309a0f125fc5d1936305cb577b1720d",
+    "Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md": "4d1b443ebb839d715e8e485173edf068e789de7c78f00ec1b9afaa2dad2d7119",
+    "Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md": "1fd326daeffc2e8f49281c48c779824ce14d8eaf2dac7a4bcbd8a256193e049a",
+    "Roadmap/zh-TW/\u8de8\u5e73\u53f03D_Engine_V2_AI\u65bd\u5de5\u6280\u8853\u8207\u7cfb\u7d71\u898f\u5283_v1_2.md": "30a1f05b299c9971c0f824505c9a8b7ec0cfc76e895a4e41ad2f017fbaf035a6",
+    "Roadmap/zh-TW/\u8de8\u5e73\u53f03D_Engine_V2_\u5b8c\u6574\u898f\u5283\u66f8_v1_4.md": "856a293a1a9f97bf63a275fab88ed2f5e8b339dcbeb2b717505441e86ce44ecf",
+    "Tests/Animation/CMakeLists.txt": "43528c81354649116c19a42086b89f5e9f96d400d49ea9708c38a9fada370864",
+    "Tests/Animation/InertialBlendTests.cpp": "ae2dd3b7ecbb7a6167d28ab37dba3243f0b708b54a5339e592485ed869654149",
+    "Tests/Animation/inertial-blend-acceptance.md": "382a4f9373a3808d94da3a33fcd95453251cd3037650c2379c11c698d310a03c",
+    "Tools/Build/VerifyAnimationProfiles.py": "11129754b1e5c9f2942206b743f9e55c3d8ac8f423a8403b8ec93811c75bc774",
+    "Tools/Editor/RecordEditorWindowsEvidence.ps1": "5eb1f6160169ebeef390d3c2e91d5a795f4c1ce06a4ce6ebb66f02f40f9908db"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/crystal-mote-integrated-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "d01541bed0d4",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.28555607900489,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.800000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "ca9235c486832e2e4f262e9835c4e573a62e968aa843d2147da1ee480abfa476",
+    "video_sha256": "de1aea12bd63d1a9acdfd1acf628449a6d92d905c631609de7ac62b99bb9f628",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "63a3c13cd0e490b8b36ad87465a2cc44952d46e42195203a9d5a17b75d2c6089",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        246,
+        623,
+        1144,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "screen_space_occlusion": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  },
+  "environment_payload_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+    "Content/Showcase/Courtyard/Hero/Source/ivy-single-leaf.png": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "8818167fa713fc545fbfb6edcd717f476e9e1e38941989385a37e941fe14bea9",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "656eee2adaf52dace8d8555291c9092c13d8ef0aa304386b0d40dfdde8734a18"
+  },
+  "scene_counts": {
+    "geometry_vertex_count": 62557,
+    "geometry_index_count": 142488,
+    "geometry_batch_count": 395,
+    "geometry_material_count": 48,
+    "foliage_quad_count": 4041
+  },
+  "device_identity": {
+    "name": "llvmpipe (LLVM 19.1.7, 256 bits)",
+    "vendor_id": 65541,
+    "device_id": 0,
+    "driver_version": "1",
+    "driver_version_format": "vulkan.raw"
+  },
+  "native_art_byte_identical_to_prior_mote_freeze": true,
+  "accepted_main": "e05af4b9a102dd741d732ae0ca1ef00f4271b226"
+}

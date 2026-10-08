@@ -4027,6 +4027,16 @@ Budgeted Multi-world Self-play Orchestrator
 
 ## V2-M8 — Animation V2
 
+> **Portable inertial TRS blend slice (2026-10-08):** ✅ `InertialPoseBlend` owns local
+> translation, principal rotation-vector, and log-scale offsets with caller-provided residual
+> velocities. Quintic correction preserves initial residual position/velocity and reaches zero
+> position/velocity/acceleration at a finite deadline. Failed updates preserve live time; output
+> can consume synchronized compressed TRS graph poses. `animation.v2_m8_inertial_pose_blend` verifies
+> initial velocity, dense independent polynomial references, rotations, moving targets, graph use,
+> deadlines, overflow rejection and capacity. See [acceptance evidence](../../Tests/Animation/inertial-blend-acceptance.md).
+> Runtime history estimation/interruption policy, motion warping, GPU and authoring gates remain
+> open. V2-M8 stays open; overall V2 progress remains 46%.
+
 > **Portable synchronized TRS graph slice (2026-10-08):** ✅ `SynchronizedPoseGraph`
 > connects owned QuantizedTRS clips to marker clocks and normalized weighted local TRS blending.
 > Rotation blending aligns each joint to the leader hemisphere; the local retargeter consumes the
@@ -4034,7 +4044,7 @@ Budgeted Multi-world Self-play Orchestrator
 > preservation are validated. `animation.v2_m8_synchronized_trs_graph` covers marker-driven sampling,
 > ownership/order, leadership, rotation, pause, numeric extremes, budget limits, and retarget use.
 > See [acceptance evidence](../../Tests/Animation/pose-graph-acceptance.md). This is a portable visual
-> blend graph; Runtime transform/event/root-motion adapters, marker authoring, inertialization,
+> blend graph; Runtime transform/event/root-motion adapters, marker authoring, Runtime inertial history adapters,
 > motion warping, and GPU gates remain open. V2-M8 stays open; overall V2 progress remains 46%.
 
 > **Portable marker synchronization slice (2026-10-08):** ✅ `SyncGroup` in `NexoraAnimation`
@@ -4044,7 +4054,7 @@ Budgeted Multi-world Self-play Orchestrator
 > leadership, marker wrap, fallback, capacity, and numeric extremes; `build.animation_profiles`
 > verifies all Animation sources are omitted when disabled. `AnimationGraph::Synchronize` provides a visual
 > seek without publishing seek displacement as root motion, covered by `runtime.v1_m9_presentation`.
-> Marker authoring, Runtime TRS application, inertialization, motion warping, and GPU gates remain
+> Marker authoring, Runtime TRS application, inertial history adapters, motion warping, and GPU gates remain
 > open. V2-M8 remains in progress and overall V2 progress remains 46%.
 
 > **Portable compressed pose / local retarget slice (2026-10-07):** ✅ `NexoraAnimation`
@@ -4054,7 +4064,7 @@ Budgeted Multi-world Self-play Orchestrator
 > malformed data, numeric extremes, move safety, and retarget rejection; `build.animation_profiles`
 > verifies enabled/stripped graphs in six profiles. See [the module contract](../../Engine/Animation/README.md)
 > and [acceptance evidence](../../Tests/Animation/acceptance.md). GPU execution, motion warping,
-> inertialization, sync-group authoring/Runtime adapters, topology-changing retargeting, and editor/cook integration remain open.
+> inertial history adapters, sync-group authoring/Runtime adapters, topology-changing retargeting, and editor/cook integration remain open.
 > V2-M8 remains in progress and overall V2 progress remains 46%.
 
 > **Portable Pose Search slice (2026-10-07):** ✅ `NexoraPoseSearch` provides a
@@ -4075,7 +4085,7 @@ GPU Pose Sampling
 ✅ Compressed Pose (portable QuantizedTRS storage)
 Runtime Retarget V2 (✅ portable local bind-space mapping; production integration open)
 Motion Warping
-Inertialization
+Inertialization (✅ portable velocity-aware TRS correction; Runtime history adapters open)
 Sync Group (✅ portable marker clocks and compressed TRS blend graph; authoring/Runtime adapters open)
 Pose Search
 Motion Matching optional
