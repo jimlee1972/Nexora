@@ -1635,6 +1635,9 @@ int RunGraphical(std::optional<ProjectState> project,
         {static_cast<std::uint64_t>(frames) + 1,
          std::chrono::duration<double, std::milli>(frame_processed - frame_started).count(), 0.0,
          0}));
+    // OS observation belongs to the application, after a successfully presented frame. The
+    // owner throttles reads independently of frame rate; drawing widgets only copies its result.
+    static_cast<void>(profile.SampleProcessMemory(std::chrono::steady_clock::now()));
     ++frames;
   }
   if (result == 0 && project && project->workspace.Writable() &&
@@ -1700,6 +1703,20 @@ int RunGraphical(std::optional<ProjectState> project,
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());
   const auto diagnostics = created.surface->Diagnostics();
+  const auto process_memory = profile.ProcessMemory();
+  std::cerr << "process memory evidence: scope=current_process_resident_set unit=bytes attempts="
+            << process_memory.attempts << " successful=" << process_memory.successful_samples
+            << " latest=";
+  if (process_memory.resident_bytes)
+    std::cerr << *process_memory.resident_bytes;
+  else
+    std::cerr << "unavailable";
+  std::cerr << " observed_peak=";
+  if (process_memory.observed_peak_bytes)
+    std::cerr << *process_memory.observed_peak_bytes;
+  else
+    std::cerr << "unavailable";
+  std::cerr << '\n';
   std::cerr << "graphical evidence: acquired=" << diagnostics.acquiredFrames
             << " presented=" << diagnostics.presentedFrames
             << " ui_draws=" << diagnostics.nativeUiDrawCalls

@@ -132,6 +132,9 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> profile_csv_import_position;
   std::optional<std::array<float, 2>> profile_json_import_position;
   std::optional<std::array<float, 2>> profile_import_clear_position;
+  std::optional<std::array<float, 2>> profile_capture_position;
+  std::optional<std::array<float, 2>> profile_clear_position;
+  ProcessMemoryObservation profile_memory;
   std::array<char, 1024> gameplay_library{};
   std::string gameplay_status;
   std::uint64_t gameplay_project_generation{};
@@ -3783,6 +3786,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->profile_csv_import_position.reset();
   state_->profile_json_import_position.reset();
   state_->profile_import_clear_position.reset();
+  state_->profile_capture_position.reset();
+  state_->profile_clear_position.reset();
+  state_->profile_memory = profile ? profile->ProcessMemory() : ProcessMemoryObservation{};
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id) {
@@ -4597,9 +4603,17 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       bool capturing = profile->Capturing();
       if (ImGui::Checkbox("Capture", &capturing))
         profile->SetCapturing(capturing);
+      const auto capture_min = ImGui::GetItemRectMin(), capture_max = ImGui::GetItemRectMax();
+      state_->profile_capture_position = std::array{(capture_min.x + capture_max.x) * 0.5F,
+                                                    (capture_min.y + capture_max.y) * 0.5F};
       ImGui::SameLine();
       if (ImGui::Button("Clear"))
         profile->Clear();
+      const auto memory_clear_min = ImGui::GetItemRectMin(),
+                 memory_clear_max = ImGui::GetItemRectMax();
+      state_->profile_clear_position = std::array{(memory_clear_min.x + memory_clear_max.x) * 0.5F,
+                                                  (memory_clear_min.y + memory_clear_max.y) * 0.5F};
+      state_->profile_memory = profile->ProcessMemory();
       const auto samples = profile->Samples();
       ImGui::SameLine();
       ImGui::BeginDisabled(samples.empty() || !workspace || !workspace->Writable() ||
@@ -4646,7 +4660,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::Text("%zu frames retained | %llu older frames dropped", samples.size(),
                   static_cast<unsigned long long>(profile->DroppedCount()));
       ImGui::TextDisabled("Editor frame processing: wall time after BeginFrame, before Present.");
-      ImGui::TextDisabled("GPU time and process memory are not instrumented.");
+      ImGui::TextDisabled("GPU time is not instrumented. Saved captures contain wall timing only.");
+      ImGui::SeparatorText("Process resident memory (live)");
+      const auto memory = state_->profile_memory;
+      if (memory.resident_bytes)
+        ImGui::Text("Latest %llu bytes", static_cast<unsigned long long>(*memory.resident_bytes));
+      else
+        ImGui::TextDisabled("Latest unavailable: no successful current observation.");
+      if (memory.observed_peak_bytes)
+        ImGui::Text("Observed peak %llu bytes",
+                    static_cast<unsigned long long>(*memory.observed_peak_bytes));
+      ImGui::TextDisabled("Current process RSS / working set, including shared resident pages.");
+      ImGui::TextDisabled(
+          "250 ms sampling; Capture pauses observations; Clear resets observed peak.");
+      ImGui::TextDisabled("Process-wide across projects; excludes GPU/allocator accounting.");
       const auto plot = [](std::span<const FrameSample> values_to_plot, const char *label) {
         if (values_to_plot.empty())
           return;
@@ -5857,6 +5884,18 @@ void EditorImGuiTestAccess::SetConsoleFilter(EditorImGuiHost &host, std::string_
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProfileExportPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->profile_export_position;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProfileCapturePosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_capture_position;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProfileClearPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_clear_position;
+}
+ProcessMemoryObservation
+EditorImGuiTestAccess::ProfileMemory(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_memory;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProfileJsonExportPosition(const EditorImGuiHost &host) noexcept {

@@ -174,7 +174,12 @@ production retains ImGui's native platform defaults.
   recovery journal awaits a choice.
 - The docked Profiler reads an application-owned bounded `ProfileSession`. It can pause and clear
   capture, plots retained Editor frame processing times, and reports the latest, average, peak, and
-  evicted-frame count. GPU time and memory remain explicitly unavailable until instrumented.
+  evicted-frame count. It also copies the owner's optional current process resident bytes and
+  observed peak; widgets perform no OS reads. Capture pauses observations, Clear resets the peak
+  and sample window, and a failed latest read displays unavailable while retaining the prior peak.
+  Memory scope is process-wide RSS / working set including shared resident pages, across project
+  changes; it is not GPU/allocator accounting. GPU time remains explicitly unavailable. Schema-1
+  wall-time exports/imports do not include the live memory observation.
 - Profiler Import CSV emits an independent one-shot request; the application reads the current
   project's `.nexora/frame-processing.csv` on the authoring thread and transfers a validated owning
   wall-time snapshot to the host. The imported static trace is displayed separately from live
@@ -439,11 +444,11 @@ commands and before adding the current frame; the call borrows them synchronousl
 serialized CSV data. `cpu_ms` at this call is Editor frame processing wall time after BeginFrame and
 before Present, not whole-frame CPU utilization. CSV uses locale-independent full double precision,
 columns `frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes`, and empty GPU/memory
-cells because those measurements are unavailable. Export requires 1-600 strictly increasing nonzero
+cells because this wall-time format excludes live RSS observations. Export requires 1-600 strictly increasing nonzero
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import, GPU timing and memory instrumentation remain open.
+file itself. Arbitrary capture import, GPU timing and saved process-memory traces remain open.
 
 Export JSON emits an independent one-shot request consumed through `TakeProfileJsonExportRequest`;
 the CSV request API retains its behavior. Both buttons share empty-sample, write-access and modal
