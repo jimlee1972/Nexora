@@ -121,11 +121,18 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 ### ED-M1 — Project 與 Asset workspace
 
+- ✅ Content 資料夾支援實際 Tab 聚焦與 Enter 開啟；focused Alt+Up 返回上一層 breadcrumb，
+  並停在 Content 根目錄。唯讀導覽保留 mutation history 與 filter；keyboard ownership gates
+  保護 text、panel／focus 與 blocking-modal 狀態。開啟資料夾不會同時觸發 selected-scene
+  Enter route。1x／2x 與 macOS modifier coverage 已記錄於
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM1-ContentFolders-Linux-2026-10-08.md)。
+  Screen-reader 與實體主機 accessibility acceptance 仍未完成。
+
 - ✅ Content Up／Down 與 Home／End 導覽完整 matching asset rows，支援 held-key repeat、
   endpoint clamp 及 clipper／scroll reveal。Shift 鍵盤與 pointer 選取共用 inclusive anchored
   visible interval，保留 read-only 與既有 ownership gates。1x／2x 和 macOS modifier tests
   涵蓋 range shrink／reverse、stale scope 與 Rename handoff；100k-row model coverage 保留
-  history，並拒絕 hidden endpoints。Folder traversal 與 accessibility acceptance 仍未完成。
+  history，並拒絕 hidden endpoints。完整 accessibility acceptance 仍未完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM1-ContentNavigation-Linux-2026-10-08.md)。
 
 - ✅ Focused Content Ctrl／Cmd+A 選取完整 current-folder query／type 結果，包含 clipped row

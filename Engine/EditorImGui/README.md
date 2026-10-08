@@ -780,8 +780,18 @@ focus, drag, Game capture and modal gates apply. Plain selection resets the anch
 cursor/anchor, and project/root/folder/revision or UI-filter changes invalidate retained navigation
 state. Every use rechecks visible membership, including externally changed filters/selections.
 State retains owning UUIDs and scope values; no ContentItem borrow crosses frames. Rename and
-Delete continue to act on the resulting owning selection. This does not implement folder-row
-keyboard traversal, a semantic screen-reader bridge, or full accessibility acceptance.
+Delete continue to act on the resulting owning selection.
+
+Content folder rows participate in Dear ImGui Tab navigation. Enter activates the focused folder,
+while a single pointer click retains the existing inspection behavior and double-click opens it.
+Focused Alt+Up moves to the preceding breadcrumb once per press, stopping at the Content root.
+These operations work read-only, preserve asset selection/filter and mutation history, and reset
+scroll on navigation. Folder entry suppresses the competing selected-scene Enter route. Keyboard
+folder activation and parent navigation share text/focus/drag/modal/Game-capture gates; the folder
+list is an owning frame snapshot and navigation is deferred until its iteration completes.
+Real Tab/Enter and Alt+Up tests cover 1x/2x, macOS modifier behavior, root clamping, read-only,
+text input, another panel, blur and a blocking close modal. A semantic screen-reader bridge and
+full accessibility acceptance remain open.
 
 ## Game input binding drafts
 
