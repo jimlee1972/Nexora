@@ -33,6 +33,13 @@ separate `editor-validation.log` and `native-validation.log` artifacts, so the l
 cannot overwrite the Editor evidence. These are software Vulkan/Xvfb results; target-host
 physical-display and Windows DPI/IME acceptance remain separate.
 
+Windows target-host evidence for ED-M0 is recorded with `Tools/Editor/RecordEditorWindowsEvidence.ps1`.
+It runs a bounded real-window smoke automatically, then asks the person at the machine for the
+per-monitor DPI, IME composition/candidate and keyboard-only recovery rows. Unanswered or
+not-performed rows are recorded as `blocked`, and the overall status is `PASS` only when every row
+passes on a machine with at least two monitors. The script itself has not been run on a Windows host
+yet, so it is not evidence; only a recorded `evidence.json` from a real run is.
+
 The Development desktop CI matrix enables the graphical shell on Linux, Windows/DX12, and
 macOS/Metal. It requires `editor.imgui_contract` on every host and
 `editor.windows_dpi_ime_contract` on Windows, then retains verbose full-suite output in
