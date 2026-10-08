@@ -1,0 +1,20 @@
+
+Traceback (most recent call last):
+  File "/workspace/Nexora-vis-courtyard-fill/Tests/Showcase/LinuxShowcaseInteraction.py", line 500, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/workspace/Nexora-vis-courtyard-fill/Tests/Showcase/LinuxShowcaseInteraction.py", line 270, in main
+    raise RuntimeError(app.stderr.read())
+RuntimeError: NexoraShowcase build=d33e87094a67 --mode=interactive --scene=hub --backend=vulkan --gameplay-module=static --no-reload --report=/tmp/bronze-collar-width-shipping-native/native/interactive.json --markdown=/tmp/bronze-collar-width-shipping-native/native/interactive.md
+NexoraShowcase validation failed: vulkan presentation failed: native window creation failed
+
+
+{
+  "status": "FAIL",
+  "platform": "Linux",
+  "isolated_copy": true,
+  "physical_display_verified": false,
+  "issues": [
+    "Linux native interaction failed (1)"
+  ]
+}

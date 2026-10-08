@@ -1149,7 +1149,7 @@ struct RoomSession::State final {
       RingStone(a + 0.008F, b - 0.008F);
       finish(0);
       if (i % 4 == 0) {
-        RingStone(a - 0.035F, a + 0.035F, 0.265F, 0.275F);
+        RingStone(a - 0.075F, a + 0.075F, 0.265F, 0.275F);
         for (const float rivetRadius : {1.5F, 1.82F})
           DeviceRivet({rivetRadius * std::cos(a), 2.9F + rivetRadius * std::sin(a), 0.276F});
         finish(1);
