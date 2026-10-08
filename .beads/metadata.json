@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "nexora",
+  "project_id": "e0ad71b3-6ab6-4632-9276-5da1b8d9783b"
+}

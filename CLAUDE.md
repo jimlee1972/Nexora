@@ -55,3 +55,13 @@ Windows / macOS / Android / iOS 的 preset 在雲端跑不了（缺 MSVC、Xcode
 - 動手前先讀相關的 README 與 roadmap 文件，不要從檔名猜架構。
 - 大範圍重構先提計畫，不要一次改幾十個檔案再回報。
 - 遇到需要裝新相依、改 CI、或動 build 系統的情況，先講清楚再做。
+
+## Beads 跨任務同步
+
+每次開始工作先執行 `bd prime`；讀取 task graph 前先 `bd dolt pull`；變更任務、相依或共享記憶後
+執行 `bd dolt push`。新 clone 用 `bd bootstrap` 採用既有遠端資料，不可覆蓋共享歷史。
+本 GitHub repo 是 public，推送到 `refs/dolt/data` 的 Beads 任務與共享記憶也會公開；
+不可放 secrets、個人私密資訊或私下筆記。同步失敗時回報錯誤，不得 force 或更換遠端。
+只提交設定與整合檔案，不提交 embedded Dolt database、runtime data 或機器設定。
+此 cloud environment 的 home 為唯讀；資料庫命令需將 `DOLT_ROOT_PATH` 設為 repo 外可寫目錄
+（例如 `/workspace/work/nexora-dolt`）並先建立該目錄，設定僅保留在本次 session。
