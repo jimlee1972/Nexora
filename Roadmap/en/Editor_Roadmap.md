@@ -229,6 +229,14 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Hierarchy Up/Down and Home/End navigate all visible tree/filter rows with repeat, clamped
+  endpoints, Shift anchored ranges and clipper reveal. Plain Right expands/enters children;
+  Left collapses/returns to the visible parent. Read-only inspection preserves World/history;
+  owning generation-keyed cursor/anchor checks reject stale/hidden scope. Real 1x/2x and macOS
+  modifier tests cover nested traversal, pointer/keyboard range handoff, reload/detach, Rename,
+  text/focus/modal/drag ownership. [Linux evidence](../../Tools/Build/evidence/EditorEDM2-HierarchyKeyboard-Linux-2026-10-08.md).
+  Screen-reader and physical-host accessibility acceptance remain open.
+
 - ✅ Native Move now draws/picks XY/XZ/YZ planes in Global/Local axes and Pivot/Center, capturing a
   numeric plane basis for shared preview/release math and per-axis world-unit snapping. Shift keeps
   an explicit plane; Escape cancels. Tests cover invalid rays, shared boxes, mirrored/nonuniform

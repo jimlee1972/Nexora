@@ -224,6 +224,13 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Hierarchy Up／Down 與 Home／End 導覽完整可見 tree／filter rows，支援 repeat、endpoint
+  clamp、Shift anchored range 與 clipper reveal。無 modifier 的 Right 展開／進入子節點，
+  Left 收合／返回可見父節點。唯讀檢視保留 World／history；owning generation-keyed cursor／
+  anchor 驗證拒絕 stale／hidden scope。1x／2x 與 macOS modifier 真實輸入測試涵蓋巢狀導覽、
+  pointer／keyboard range handoff、reload／detach、Rename、text／focus／modal／drag ownership。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM2-HierarchyKeyboard-Linux-2026-10-08.md)。Screen-reader 與實體主機 accessibility 驗收仍未完成。
+
 - ✅ Native Move 現可繪製／命中 Global／Local 與 Pivot／Center 的 XY／XZ／YZ 平面把手，保留
   numeric 平面基底，讓 preview／release 共用位移計算與各軸 world-unit snapping。Shift 保持
   明確選中的平面；Escape 可取消。測試涵蓋非法射線、共用 box、鏡像／非均勻父節點、選中的
