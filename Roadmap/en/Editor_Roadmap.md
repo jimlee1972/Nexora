@@ -32,7 +32,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. The graphical Console shows bounded records and Editor diagnostics; a docked Game panel controls an isolated clone and copied inspection snapshot. Bounded native camera/OBJ Game View is implemented; complete materials/multiple canvases, complete gameplay services/expanded input, complete log routing, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
 | ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
-| ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts. CSV and schema-1 JSON export are available. Build/deploy/log, GPU/memory profiling, capture import, and plugin-manager workflows remain open. | [ ] |
+| ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts. CSV and schema-1 JSON export/import are available. Build/deploy/log, GPU/memory profiling, arbitrary capture import, and plugin-manager workflows remain open. | [ ] |
 | ED-M7 hardening | Portable virtual hierarchy, trust/signature policy, and telemetry opt-in tests exist. Graphical scale/soak, migration/corruption, keyboard, and screen-reader audits remain open. | [ ] |
 
 The focused [Dear ImGui plan](Editor_ImGui_Integration_Plan.md) contains the granular checked ED-M0
@@ -634,10 +634,16 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ Profiler Import JSON reads the exported schema-1 wall-time capture into an owning static
+    trace, checking project UUID, source/scope/unit, ordered lossless frame/drop values and unavailable
+    GPU/memory. The bounded nonrecursive reader rejects duplicate/unknown/missing fields, corruption,
+    trailing data, unsafe paths and recovery without replacing the previous trace or changing live
+    capture. Read-only and 1x/2x independent one-shot UI controls are covered.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ProfilerJsonImport-Linux-2026-10-08.md).
   - ✅ Profiler Import CSV now reads the project's bounded exported wall-time capture into a
     separate static trace, with independent clear and read-only import. Live capture is preserved;
     corrupt/unsafe input, modal/recovery gating, locale-independent numeric precision, 600-frame/
-    128-KiB budgets and 1x/2x pointer ownership are covered. JSON/arbitrary capture import remains open.
+    128-KiB budgets and 1x/2x pointer ownership are covered. Arbitrary capture import remains open.
   - ✅ Build manifest admission now validates all metadata as UTF-8 and enforces host-independent
     relative artifact syntax, including Windows drive/stream rejection on Linux. Malformed text,
     traversal, component-ending dots/spaces and separator/control aliases reject before any IO,
@@ -656,12 +662,12 @@ creates property widgets; unknown components retain raw data instead of being si
     sample count, full double precision and lossless decimal-string uint64 frame/drop values.
     Unmeasured GPU/memory remain explicitly unavailable/null. Independent one-shot CSV/JSON controls
     share write/modal gates; 1x/2x pointer tests and independent normal/optimized Python JSON parsing
-    cover precision, limits, failed replacement and preservation. JSON capture import remains open.
+    cover precision, limits, failed replacement and preservation. Arbitrary capture import remains open.
   - ✅ The Profiler now exports retained Editor frame-processing wall times to project CSV with
     full double precision and an evicted-frame count. GPU/memory cells stay empty. The synchronous
     writer validates 1-600 ordered finite samples, rejects read-only/recovery writes, and atomically
     preserves the previous file on validation failure; real UI clicks emit one-shot requests.
-  - Open: graphical build frontend, remote deployment/logs, GPU/memory profiling, JSON/arbitrary capture import,
+  - Open: graphical build frontend, remote deployment/logs, GPU/memory profiling, arbitrary capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
   - ✅ Cloud documentation-routing Git fixtures now disable local automatic maintenance/GC before

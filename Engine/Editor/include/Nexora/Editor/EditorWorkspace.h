@@ -60,6 +60,7 @@ public:
   static constexpr std::size_t kMaximumDocumentPathBytes = 1024;
   static constexpr std::size_t kMaximumEditorLayoutBytes = 1024 * 1024;
   static constexpr std::size_t kMaximumFrameProcessingCsvBytes = 128 * 1024;
+  static constexpr std::size_t kMaximumFrameProcessingJsonBytes = 128 * 1024;
   ProjectWorkspace();
   ~ProjectWorkspace();
   ProjectWorkspace(ProjectWorkspace &&) noexcept;
@@ -89,6 +90,9 @@ public:
   // may import; recovery, unsafe files and unsupported/corrupt data reject without mutation.
   [[nodiscard]] std::optional<FrameProcessingCapture>
   ImportEditorFrameProcessingCsv(std::string *error = nullptr) const;
+  // Schema-1 JSON import also validates metric/scope, unavailable measurements and project UUID.
+  [[nodiscard]] std::optional<FrameProcessingCapture>
+  ImportEditorFrameProcessingJson(std::string *error = nullptr) const;
   bool SaveEditorLayout(std::string_view layout, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadEditorLayout(std::string *error = nullptr) const;
   [[nodiscard]] bool HasRecoveryJournal() const;

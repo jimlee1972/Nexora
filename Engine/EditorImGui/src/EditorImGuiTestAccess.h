@@ -98,6 +98,8 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProfileCsvImportPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  ProfileJsonImportPosition(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   ProfileImportClearPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static const FrameProcessingCapture *
   ImportedProfileCapture(const EditorImGuiHost &host) noexcept;

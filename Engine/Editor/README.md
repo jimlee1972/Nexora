@@ -253,7 +253,13 @@ into renderer or platform internals.
   nonnegative wall times, consistent uint64 drop counts and empty GPU/memory cells are required.
   LF/CRLF are accepted; integer/double parsing is locale-independent and consumes entire fields.
   Snapshots retain numeric precision and mark GPU/memory unavailable. CSV contains no project/device
-  provenance; arbitrary CSV formats and JSON capture import remain deferred. Filesystem checks
+  provenance; arbitrary CSV formats remain deferred.
+  `ImportEditorFrameProcessingJson` applies the same read/access/size/sample policy to schema-1
+  `.nexora/frame-processing.json`. It requires the current project UUID, exact source/metric/scope/unit,
+  matching sample count, lossless decimal-string uint64 IDs/drop counts, false availability flags and
+  null GPU/memory samples. Duplicate/missing/unknown fields, trailing data and invalid JSON numbers
+  reject without mutation. Fields may be reordered; ASCII schema strings accept equivalent JSON
+  escapes. This bounded nonrecursive reader supports only the exported schema, not arbitrary captures. Filesystem checks
   retain the serialized authoring-thread contract, not a concurrent filesystem adversary guarantee.
 - Gizmo transactions own their stable-ID and initial-transform snapshots until commit or cancel.
   If an update callback rejects a target after earlier targets were applied, the transaction uses

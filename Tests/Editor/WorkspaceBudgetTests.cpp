@@ -224,6 +224,9 @@ int Run() {
                 !fs::exists(root / ".nexora/frame-processing.csv") &&
                 !fs::exists(root / ".nexora/frame-processing.json"),
             "occupied recovery unlocked frame export");
+    Require(!writer.ImportEditorFrameProcessingJson(&error) &&
+                !observer.ImportEditorFrameProcessingJson(&error) && writer.HasRecoveryJournal(),
+            "occupied recovery unlocked JSON import");
     Require(!observer.DiscardRecovery(&error) && observer.HasRecoveryJournal(),
             "read-only observer discarded occupied recovery metadata");
   };
