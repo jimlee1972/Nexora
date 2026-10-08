@@ -1315,16 +1315,16 @@ bool SceneDocument::Dirty() const {
   return !signature || *signature != saved_signature_ || *opaque_dirty_;
 }
 
-bool SceneDocument::Save(const std::filesystem::path &path) const {
+std::optional<SceneDocument::PreparedSave> SceneDocument::PrepareSave() const {
   const auto signature = StateSignature();
   if (!signature)
-    return false;
+    return std::nullopt;
   const auto snapshot = world_.SaveScene(scene_);
   if (!snapshot)
-    return false;
+    return std::nullopt;
   const auto opaque = CaptureOpaque(nodes_);
   if (!opaque)
-    return false;
+    return std::nullopt;
   const auto opaque_records = OpaqueRecords(*opaque);
   std::string output =
       opaque_records.empty() ? "NEXORA_EDITOR_SCENE 2\n" : "NEXORA_EDITOR_SCENE 3\n";
@@ -1343,12 +1343,30 @@ bool SceneDocument::Save(const std::filesystem::path &path) const {
   }
   output += hints.str() + opaque_records;
   output += "world\n" + *snapshot;
-  if (output.size() > kMaximumSceneFileBytes || !AtomicWrite(path, output, nullptr))
+  if (output.size() > kMaximumSceneFileBytes)
+    return std::nullopt;
+  return PreparedSave{document_generation_, std::move(output), *signature, opaque_records};
+}
+
+bool SceneDocument::SavePrepared(const std::filesystem::path &path,
+                                 const PreparedSave &prepared) const {
+  if (prepared.generation_ != document_generation_)
+    return false;
+  const auto signature = StateSignature();
+  const auto opaque = CaptureOpaque(nodes_);
+  if (!signature || *signature != prepared.signature_ || !opaque ||
+      OpaqueRecords(*opaque) != prepared.opaque_records_ ||
+      !AtomicWrite(path, prepared.bytes_, nullptr))
     return false;
   saved_signature_ = *signature;
-  saved_opaque_records_ = opaque_records;
+  saved_opaque_records_ = prepared.opaque_records_;
   opaque_dirty_ = false;
   return true;
+}
+
+bool SceneDocument::Save(const std::filesystem::path &path) const {
+  const auto prepared = PrepareSave();
+  return prepared && SavePrepared(path, *prepared);
 }
 bool SceneDocument::NewScene() {
   const auto *current = world_.FindScene(scene_);

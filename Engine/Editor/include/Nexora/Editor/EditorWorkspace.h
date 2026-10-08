@@ -218,6 +218,22 @@ public:
       return {id, entity_generation, document_generation};
     }
   };
+  // Owns the serialized scene and its clean-baseline identity, without borrowing Runtime state.
+  // Only SceneDocument can prepare it; readers cannot alter its bytes or validation metadata.
+  class PreparedSave final {
+  public:
+    [[nodiscard]] const std::string &Bytes() const noexcept { return bytes_; }
+    [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }
+
+  private:
+    friend class SceneDocument;
+    PreparedSave(std::uint64_t generation, std::string bytes, std::string signature,
+                 std::string opaque_records)
+        : generation_(generation), bytes_(std::move(bytes)), signature_(std::move(signature)),
+          opaque_records_(std::move(opaque_records)) {}
+    std::uint64_t generation_{};
+    std::string bytes_, signature_, opaque_records_;
+  };
   SceneDocument(runtime::World &world, runtime::Id scene);
   // Creates a node; with a parent the new entity starts at the parent's origin (identity local).
   runtime::Id Create(std::string name, runtime::Id parent = 0);
@@ -311,6 +327,11 @@ public:
   bool DeleteSelection();
   bool Undo();
   bool Redo();
+  // Serialized authoring-thread calls. Prepare performs no IO or baseline/history mutation.
+  [[nodiscard]] std::optional<PreparedSave> PrepareSave() const;
+  // Rejects changed document generation or content before IO; advances the baseline only after
+  // successful single-file publication. Caller owns workspace access and destination policy.
+  bool SavePrepared(const std::filesystem::path &path, const PreparedSave &prepared) const;
   bool Save(const std::filesystem::path &path) const;
   // Starts an unsaved empty document, preserving World scene ID/name/state/persistence.
   // Advances generations and clears selection/clipboard/history; rejected replacement is atomic.

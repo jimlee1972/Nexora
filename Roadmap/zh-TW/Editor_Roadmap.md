@@ -628,6 +628,14 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
+- ✅ Scene save 現先準備 owning、immutable 的 byte／content／generation snapshot，不做 IO、
+  不改 dirty baseline 或 history。延後的單檔 publication 在 IO 前重驗 live generation 與
+  serializable content，涵蓋 opaque bytes 及 authored Euler turns；僅替換成功後才將 snapshot
+  標為 clean。一般 Save 共用此路徑。測試涵蓋 stale rejection、Undo／Redo、staging failure、
+  ownership 與 save／reopen。Coordinated multi-file publication、additive tabs 及完整 ED-M4
+  仍保持 open。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PreparedSceneSave-Linux-2026-10-08.md)。
+
 - ✅ Autosave 寫入於碰觸檔案前套用與 recovery 相同的 64 MiB payload 上限；保留上一份有效
   journal 與已佔用的暫存路徑，替換失敗則清理本次 staging。Portable 測試涵蓋精確上限、
   超限拒絕、binary／empty payload、locale-independent header、corrupt recovery 及失敗／重試保留。
