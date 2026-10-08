@@ -67,6 +67,9 @@ public:
     return false;
   }
   void SetInputFocus(bool focused) noexcept { input_.SetFocused(focused); }
+  bool SetInputBindings(const PlayInputBindings &bindings) noexcept {
+    return input_.SetBindings(bindings);
+  }
   void ProcessInput(std::span<const Nexora::Window::WindowEvent> events) noexcept {
     input_.Process(events);
   }

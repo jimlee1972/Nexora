@@ -640,3 +640,13 @@ directories and valid/dangling leaf symlinks. Only verified absence permits exis
 authoring/export/shutdown actions. Recovery rejects unsafe inputs without mutation. Explicit writer
 discard removes one directory entry (never recursively); alias targets remain untouched, and a
 nonempty directory remains pending after discard fails. Read-only observers cannot discard.
+
+## Play input binding values
+
+`PlayInputBindings` is an owning, fixed-size platform-neutral profile for four movement directions
+and five copied button bits, with two control slots per action. Its finite control set covers
+letters, arrows, Space, left/right Shift/Ctrl and left/right mouse; None unbinds a slot. Validation
+rejects unknown controls, duplicate concrete controls (including within one action) and mouse
+movement bindings. None may repeat and actions may be fully unbound. The value type depends on no
+Window/native key codes and changes no gameplay C ABI. Host policy owns editing, project scope,
+lifetime and publication; this value type performs no persistence or transmission.

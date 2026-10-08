@@ -73,6 +73,14 @@ public:
   PlayApplyPosition(const EditorImGuiHost &host, bool confirm) noexcept;
   [[nodiscard]] static bool PlayApplyOpen(const EditorImGuiHost &host) noexcept;
   static void FocusContent(EditorImGuiHost &host) noexcept;
+  static void FocusGame(EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static bool GameInputBindingsOpen(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::string_view
+  GameInputBindingsError(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  GameInputBindingPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  GameInputChoicePosition(const EditorImGuiHost &host, PlayInputControl control) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ContentSearchPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
