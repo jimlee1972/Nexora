@@ -2298,13 +2298,22 @@ cache 隔離與失敗 containment。Production NavMesh streaming、job-system ad
 
 # V2-M8 Portable Pose Search 狀態
 
+> **Portable 同步 TRS graph 切片（2026-10-08）：** ✅ `SynchronizedPoseGraph`
+> 將持有的 QuantizedTRS clip 接到 marker clock，產生正規化加權的 local TRS 混合姿態。
+> 每個 joint 的 rotation 對齊 leader hemisphere；local retargeter 可直接消費完整結果。
+> 驗證 skeleton identity、joint count、總 sample 預算與失敗時狀態保留。
+> `animation.v2_m8_synchronized_trs_graph` 覆蓋 marker 驅動取樣、ownership/order、leader、rotation、
+> pause、數值極端、容量及 retarget 串接。詳見[驗收證據](../../Tests/Animation/pose-graph-acceptance.md)。
+> 此切片為 portable visual blend graph；Runtime transform/event/root-motion adapter、marker authoring、
+> inertialization、motion warping 與 GPU gate 仍待完成。V2-M8 保持未完成；V2 整體進度維持 46%。
+
 > **Portable marker synchronization 切片（2026-10-08）：** ✅ `NexoraAnimation` 的 `SyncGroup`
 > 提供有上限的 looping clock、deterministic weight leader、相容具名 cyclic marker 對齊，
 > 並在 marker layout 不相容時退回 normalized phase。權重改變保留同步時鐘；無效更新保留狀態。
 > `animation.v2_m8_marker_sync` 驗證領導權、marker wrap、fallback、容量與數值極端；
-> `build.animation_profiles` 驗證停用時剝除兩個 source。`AnimationGraph::Synchronize` 提供
+> `build.animation_profiles` 驗證停用時剝除所有 Animation source。`AnimationGraph::Synchronize` 提供
 > visual seek，不將 seek 位移發布為 root motion，由 `runtime.v1_m9_presentation` 驗證。
-> Marker authoring、完整 TRS graph 整合、inertialization、motion warping 與 GPU gate 仍待完成。
+> Marker authoring、Runtime TRS application、inertialization、motion warping 與 GPU gate 仍待完成。
 > V2-M8 仍進行中；V2 整體進度維持 46%。
 
 > **Portable 壓縮姿態／local retarget 切片（2026-10-07）：** ✅ `NexoraAnimation`
@@ -2313,7 +2322,7 @@ cache 隔離與失敗 containment。Production NavMesh streaming、job-system ad
 > `animation.v2_m8_pose_storage_retarget` 驗證 8,192 筆姿態、損壞資料、數值極值、move 安全及
 > retarget 拒絕行為；`build.animation_profiles` 檢查六種 profile 的啟用／剝除 target 與 source graph。
 > 詳見[模組 contract](../../Engine/Animation/README.md)與[驗收證據](../../Tests/Animation/acceptance.md)。
-> GPU 執行、motion warping、inertialization、sync group authoring/TRS 整合、改變拓樸的 retarget 與 editor/cook 整合仍待完成。
+> GPU 執行、motion warping、inertialization、sync group authoring/Runtime adapter、改變拓樸的 retarget 與 editor/cook 整合仍待完成。
 > V2-M8 仍進行中；V2 整體進度維持 46%。
 
 > **Portable Pose Search 切片（2026-10-07）：** ✅ `NexoraPoseSearch` 提供只依賴
