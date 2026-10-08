@@ -36,6 +36,17 @@ The tracking allocator's aligned-allocate/deallocate calls are the replaceable b
 
 ## Platform
 
+`CurrentProcessResidentBytes()` in `ProcessMemory.h` synchronously returns an optional current
+process resident-set / working-set byte count. Linux reads at most 256 bytes from `/proc/self/statm`,
+parses complete decimal page counts, and checks multiplication by the native page size for overflow.
+Windows uses `K32GetProcessMemoryInfo().WorkingSetSize`; macOS uses
+`task_info(MACH_TASK_BASIC_INFO).resident_size`. Unreadable/invalid OS data and unsupported hosts
+return unavailable. This process-wide observation includes shared resident pages; it is neither
+GPU memory, TrackingAllocator accounting, nor an operating-system lifetime peak. The value owns no
+OS handle or memory borrow. Calls hold no shared state, and the caller controls sampling frequency.
+Linux native allocation/touch evidence is covered by `core.process_memory`; Windows/macOS API
+branches require their own CI/host validation and were not run in the Linux cloud.
+
 `Nexora::Core::platform` wraps the OS-specific primitives the rest of Core needs: hardware concurrency for sizing the job pool, and best-effort OS thread naming for profilers/debuggers. `JobSystem` names each worker `Nexora.WorkerN` through it. Naming is diagnostic only — a platform that can't honor it never fails the caller.
 
 ## Deferred work

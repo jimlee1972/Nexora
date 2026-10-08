@@ -53,3 +53,17 @@ After PR #440 merged, this branch integrated main
 `editor.additive_scene_contract` and `editor.inspector_atomic_batch`. The full preset configure,
 build (`-j 2`) and CTest gate ran again: **85/85 passed, zero skipped**, **24.63 s**.
 The same graphical OFF / Slang OFF settings apply; no graph implementation change was needed.
+
+## Integration with the merged live-memory baseline
+
+Main advanced to `b966f895a30cf71485051edaad9fb80faa68c14f` after PR #443.
+The branch merged that baseline and resolved only the test-registration conflict by retaining
+AdditiveScene, ProcessMemoryProfile and InspectorAtomicBatch targets. Additive production/test
+sources are unchanged from the previously validated implementation.
+
+The required `cmake --preset linux-development`, `cmake --build --preset linux-development -j 2`,
+and `ctest --preset linux-development` all passed on the integrated source: **87/87 tests**,
+**zero skips**, **50.31 seconds**. The build completed 116 rebuild/link steps. Default graphical
+shell/Slang remain OFF; Core native RSS and profile ownership tests are included. Shipping is not
+required for this additive-graph change; the upstream Core boundary has its own merged evidence.
+`git diff --check` passed; the root README remains unchanged.
