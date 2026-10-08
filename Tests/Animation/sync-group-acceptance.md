@@ -107,6 +107,20 @@ shortcuts, and all native Editor probes. Shipping Minimal configure/build passed
 integration as well. Hosted CI must pass the integrated head before merge; the older successful
 run is retained as historical evidence, not a substitute for that final gate.
 
+## Windows lock fixture portability
+
+[Build 1905](https://github.com/jimlee1972/Nexora/actions/runs/37734288998) exposed an existing
+latest-main fixture error in both Windows desktop and mimalloc: `editor.play_input_settings`
+renamed `.nexora` while its writer still held `editor.lock`, producing Access denied. The fixture
+now closes the writer before moving metadata, reopens it through the constructed alias before
+running the unchanged load/save rejection assertions, and closes it before removing/restoring
+the alias. Production lock sharing and settings code are unchanged; no assertion is weakened.
+
+The focused `ctest --preset linux-development -R editor.play_input_settings --output-on-failure`
+passed, followed by the complete Development configure/build/CTest gate: **158/158 passed**, zero
+failures/skips, 329.54 seconds, graphical editor enabled. This is the final local fixture-revision
+gate; hosted Windows CI must confirm the corrected lock lifetime on the new head.
+
 This evidence accepts portable looping marker clocks and the translation graph's visual seek.
 Marker authoring, compressed TRS graph integration, inertialization, motion warping, GPU animation,
 and optional Motion Matching remain open. V2-M8 remains unaccepted and total V2 progress stays 46%.
