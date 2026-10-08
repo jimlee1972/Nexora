@@ -118,6 +118,9 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   HierarchyCutPosition(const EditorImGuiHost &host) noexcept;
   static void FocusHierarchy(EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static bool HierarchyDragActive(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  HierarchyRowPosition(const EditorImGuiHost &host, SceneDocument::NodeKey key) noexcept;
   static void FocusScene(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   NativeSceneToolPosition(const EditorImGuiHost &host, NativeSceneTool tool) noexcept;

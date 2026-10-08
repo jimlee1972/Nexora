@@ -31,7 +31,7 @@ production retains ImGui's native platform defaults.
   the application performs those steps and reports a failed activation back to the selector.
 - `ProductShell` and `SceneDocument` remain borrowed Editor Core models and outlive calls that
   present them. The Hierarchy owns only presentation state: its filter, generation-keyed expansion
-  and selection anchor, rename buffer/modal, and pending one-frame UI requests. It builds
+  and selection anchor/cursor, rename buffer/modal, and pending one-frame UI requests. It builds
   parent-aware visible rows and clips their submission with `ImGuiListClipper`; plain/Ctrl/Shift
   selection routes through `SceneDocument::Select`, rename routes through `SceneDocument::Rename`,
   and sibling reorder or drag/drop reparenting routes through `SceneDocument::Move`. Stale entity or
@@ -268,6 +268,31 @@ The stable `ProductShell` panel and command IDs are the semantic source for a fu
 accessibility tree. Widget labels use those stable IDs and never become the data-model identity.
 Dear ImGui does not provide a native accessibility tree, so keyboard traversal and screen-reader
 bridges remain ED-M7 work; plugins must not inspect the ImGui widget tree to supply semantics.
+
+## Hierarchy keyboard navigation
+
+Focused Up/Down and Home/End select the complete visible tree or filtered flat row set, with
+held-key repeat and endpoint clamping. Shift extends/shrinks an inclusive range around the
+selection anchor; Shift pointer selection shares that anchor and moves the keyboard cursor.
+Collapsed descendants are skipped. Without a visible selection, Down/Home start at the first row
+and Up/End at the last. Empty rows preserve selection. The clipper includes and scrolls the chosen
+endpoint even when it was previously clipped.
+
+In the unfiltered tree, plain Right expands a closed parent, then enters its first child on a
+subsequent press. Left collapses an expanded parent, otherwise selects its visible parent; roots
+and leaves clamp. Filtering presents a flat list and disables these tree actions. Ctrl/Alt/Super
+navigation variants and Shift Left/Right do not change the owning selection through these routes.
+Read-only projects retain selection and expansion; neither authors the World or consumes history.
+
+Text input, another panel, application blur, Game capture, active/pending scene gestures, a held
+pointer, drag payloads, Rename and blocking modals prevent these commands. Selection changes
+cancel abandoned Inspector drafts. State owns generation-keyed values, never retained node/name
+borrows. Document/filter changes clear cursor/anchor; every operation rechecks visible membership
+and the cursor's current selection. Invalid/hidden anchors rebase to the initial visible cursor.
+Clearing selection or Ctrl/Cmd+A clears the cursor. Expansion updates the same frame's row snapshot.
+Real 1x/2x and macOS-modifier event tests cover ranges, clipped reveal, nested traversal, repeat,
+read-only history, filter/reload/detach boundaries, Rename and ownership gates, including a real
+Hierarchy drag and a same-frame native Scene release. Screen-reader bridging and physical-host accessibility acceptance remain open.
 
 ## Scene and Hierarchy authoring access
 

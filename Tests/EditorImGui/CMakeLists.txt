@@ -345,3 +345,9 @@ target_include_directories(NexoraGameInputBindingsTests PRIVATE "${PROJECT_SOURC
 target_link_libraries(NexoraGameInputBindingsTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraGameInputBindingsTests)
 add_test(NAME editor.game_input_bindings COMMAND NexoraGameInputBindingsTests)
+
+add_executable(NexoraHierarchyNavigationTests HierarchyNavigationTests.cpp)
+target_include_directories(NexoraHierarchyNavigationTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraHierarchyNavigationTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraHierarchyNavigationTests)
+add_test(NAME editor.hierarchy_keyboard_navigation COMMAND NexoraHierarchyNavigationTests)
