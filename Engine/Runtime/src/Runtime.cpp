@@ -6,14 +6,78 @@
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <ostream>
 #include <queue>
 #include <sstream>
 #include <stdexcept>
+#include <streambuf>
 #include <unordered_map>
+#include <utility>
 
 namespace nexora::runtime {
 
 namespace {
+// No put area bypasses these checks: both formatted characters and bulk strings validate their
+// complete append against the remaining logical budget before changing owning output storage.
+class SceneSaveBuffer final : public std::streambuf {
+public:
+  explicit SceneSaveBuffer(std::size_t max_bytes) : max_bytes_(max_bytes) {}
+  [[nodiscard]] bool Failed() const noexcept { return failed_; }
+  [[nodiscard]] std::string Take() && { return std::move(bytes_); }
+
+protected:
+  std::streamsize xsputn(const char *data, std::streamsize count) override {
+    if (failed_)
+      return 0;
+    if (!std::in_range<std::size_t>(count)) {
+      failed_ = true;
+      return 0;
+    }
+    const auto size = static_cast<std::size_t>(count);
+    if (size > max_bytes_ - bytes_.size()) {
+      failed_ = true;
+      return 0;
+    }
+    if (size != 0)
+      bytes_.append(data, size);
+    return count;
+  }
+
+  int_type overflow(int_type value) override {
+    if (failed_)
+      return traits_type::eof();
+    if (traits_type::eq_int_type(value, traits_type::eof()))
+      return traits_type::not_eof(value);
+    if (max_bytes_ - bytes_.size() == 0) {
+      failed_ = true;
+      return traits_type::eof();
+    }
+    bytes_.push_back(traits_type::to_char_type(value));
+    return value;
+  }
+
+private:
+  const std::size_t max_bytes_;
+  std::string bytes_;
+  bool failed_{};
+};
+
+// std::quoted may first build its escaped string in a formatter-owned temporary. Bound that
+// representation before invoking it; this checks its size without creating a second serializer.
+bool QuotedSceneNameFits(std::string_view name, std::size_t max_bytes) noexcept {
+  if (max_bytes < 2 || name.size() > max_bytes - 2)
+    return false;
+  auto remaining = max_bytes - 2 - name.size();
+  for (const auto value : name) {
+    if (value != '"' && value != '\\')
+      continue;
+    if (remaining == 0)
+      return false;
+    --remaining;
+  }
+  return true;
+}
+
 struct Quat final {
   double x, y, z, w;
 };
@@ -141,17 +205,24 @@ Id World::LoadScene(std::string name, bool persistent) {
 }
 
 std::optional<std::string> World::SaveScene(Id id) const {
+  return SaveScene(id, std::numeric_limits<std::size_t>::max());
+}
+
+std::optional<std::string> World::SaveScene(Id id, std::size_t max_bytes) const {
   const auto *scene = FindScene(id);
   if (scene == nullptr || scene->state == SceneState::Unloading ||
-      scene->state == SceneState::Unloaded)
+      scene->state == SceneState::Unloaded || !QuotedSceneNameFits(scene->name, max_bytes))
     return std::nullopt;
-  std::ostringstream output;
+  SceneSaveBuffer buffer(max_bytes);
+  std::ostream output(&buffer);
   // The classic locale keeps the text identical regardless of the process locale.
   output.imbue(std::locale::classic());
   output << "NEXORA_SCENE 3 " << std::quoted(scene->name) << ' ' << scene->persistent << ' '
          << scene->entities.size() << '\n';
+  if (!output || buffer.Failed())
+    return std::nullopt;
   output << std::setprecision(17);
-  for (const auto &entity : scene->entities)
+  for (const auto &entity : scene->entities) {
     output << entity.id << ' ' << entity.parent << ' ' << entity.transform.x << ' '
            << entity.transform.y << ' ' << entity.transform.z << ' ' << entity.transform.qx << ' '
            << entity.transform.qy << ' ' << entity.transform.qz << ' ' << entity.transform.qw << ' '
@@ -160,7 +231,10 @@ std::optional<std::string> World::SaveScene(Id id) const {
            << entity.camera_data.vertical_field_of_view << ' ' << entity.camera_data.near_plane
            << ' ' << entity.camera_data.far_plane << ' ' << entity.light_data.intensity << ' '
            << entity.mesh_data.mesh << ' ' << entity.mesh_data.material.shader << '\n';
-  return output.str();
+    if (!output || buffer.Failed())
+      return std::nullopt;
+  }
+  return std::move(buffer).Take();
 }
 
 std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {

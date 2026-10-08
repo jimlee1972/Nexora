@@ -51,6 +51,11 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E echo "V1-M12 shipping implementation stripped")
 endif()
 
+add_executable(NexoraBoundedSceneSaveTests BoundedSceneSaveTests.cpp)
+target_link_libraries(NexoraBoundedSceneSaveTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraBoundedSceneSaveTests)
+add_test(NAME runtime.bounded_scene_save COMMAND NexoraBoundedSceneSaveTests)
+
 add_executable(NexoraV1M7Tests V1M7Tests.cpp)
 target_link_libraries(NexoraV1M7Tests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraV1M7Tests)

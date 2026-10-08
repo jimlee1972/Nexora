@@ -673,6 +673,13 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
 
 Build profiles、cook/package frontend、target/device matrix、remote deploy/log、CPU/GPU/memory/frame profiler、plugin manager、script/API docs。任何「Build Success」必須附 target manifest 與可重現 command。
 
+- ✅ Build export 前置現提供有界 owning Runtime scene capture。共用 schema-3 writer
+  在 append 前限制輸出；Editor 複製完整 Runtime 實體、tracked NodeKey 與完整未知 metadata，
+  不做 IO 或改變 history。測試涵蓋 entity／output 與 opaque name／payload budgets、exact
+  wire 相容性、lifetime、tracked subset 及真實 Undo／Redo。Generation 是物件 identity，
+  並非 authoring revision；export publication、native player 與圖形化 build flow 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-OwningSceneCapture-Linux-2026-10-08.md)。
+
 - ✅ Profiler Import JSON 現讀取 exported schema-1 wall-time capture 至 owning static trace，
   驗證 project UUID、source／scope／unit、有序且無損的 frame／drop 值及 unavailable GPU／memory。
   有界且非遞迴的 reader 拒絕 duplicate／unknown／missing field、損壞、尾端資料、unsafe path
