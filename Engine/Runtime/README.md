@@ -447,6 +447,23 @@ Desktop CI builds the same module on Linux, Windows, and macOS. A separate CI sm
 runs `zig build-obj` for `aarch64-linux-android` and `aarch64-ios`; these checks validate object
 generation only and do not claim Android NDK or iOS SDK linking, packaging, or runtime execution.
 
+## Cooked static-project consumption
+
+The asset-pipeline feature now provides owning [cooked mesh, scalar PBR and scene codecs](CookedSceneAssets.md)
+and the [StaticView project package consumer](ProjectPackage.md). Public schema-1 payloads use explicit
+little-endian fields; the existing NXAB envelope requires a little-endian host. The loader validates
+bounded framing, hashes, full UUID/dependency closure and mesh resource collisions, then constructs
+an isolated Play World with owning typed resources and exact hierarchy matrices. Unknown component
+bytes remain preserved and inactive. Failed candidates publish no replacement.
+
+Calls are synchronous; inputs are borrowed only during each call and callers serialize mutations.
+Returned resource ownership survives package replacement. Allocation exceptions propagate; invalid
+input returns an error. The optional `NEXORA_BUILD_PROJECT_PLAYER` executable consumes real files
+through `--verify-package`, without Editor or source assets. Static verification does not imply native
+rendering, gameplay loading or application build success. Editor capture, cancellation, generation
+checks and output publication remain the export coordinator's responsibility. See
+[ADR-0006](../../Roadmap/en/ADR-0006-Cooked-Static-Projects.md).
+
 ## V1-M5 asset, cooker, bundle, and residency pipeline
 
 `AssetPipeline.h` is the public, platform-neutral content contract. Authoring identities are

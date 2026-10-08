@@ -2,8 +2,8 @@
 
 #include "Nexora/Editor/ContentBrowser.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Runtime/CookedSceneAssets.h"
 
-#include <bit>
 #include <optional>
 #include <unordered_map>
 
@@ -11,15 +11,7 @@ namespace nexora::editor {
 
 // Persistent 64-bit scene resource identity, independent of path, import bytes and host size.
 // Changing this derivation requires migrating saved mesh references. Zero UUID is invalid.
-[[nodiscard]] constexpr std::uint64_t MeshResourceId(runtime::AssetUuid asset) noexcept {
-  if (asset.high == 0 && asset.low == 0)
-    return 0;
-  auto value = std::rotl(asset.high, 23) ^ asset.low;
-  value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9ULL;
-  value = (value ^ (value >> 27)) * 0x94d049bb133111ebULL;
-  value ^= value >> 31;
-  return value == 0 ? 1 : value;
-}
+using runtime::MeshResourceId;
 
 struct MeshAssetSnapshot final {
   runtime::AssetUuid asset;
