@@ -239,6 +239,7 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   editing, Game View materials, persistent GPU caching and full ED-M2 acceptance remain open.
   Contract: [ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md). Evidence:
   [Linux acceptance](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md).
+  [Main integration gates](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/integration.md).
 
 - ✅ Reflected Inspector writes now prepare one owning, bounded `InspectorEditBatch` and invoke
   one transaction callback. Empty/duplicate/oversized targets, stale or ambiguous field metadata,

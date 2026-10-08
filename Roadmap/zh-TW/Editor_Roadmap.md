@@ -233,6 +233,7 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   Game View 材質、persistent GPU cache 與完整 ED-M2 驗收仍未完成。
   Contract：[ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md)。證據：
   [Linux 驗收](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md)。
+  [Main 整合 gate](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/integration.md)。
 
 - ✅ Reflected Inspector 寫入現會準備一個 owning、有界的 `InspectorEditBatch`，只呼叫一次
   transaction callback。Empty／duplicate／oversized target、過期或有歧義的 field metadata、

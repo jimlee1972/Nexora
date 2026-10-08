@@ -106,3 +106,6 @@ Game View materials or runtime/cooked shipping material consumer. `.nmaterial` s
 is external; the Inspector assigns imported assets. Native evidence uses a virtual display and
 software Vulkan device. Physical-GPU visuals, complete application visual workflows, cross-platform
 host checks and full multi-DPI ED-M2 exit acceptance remain open.
+
+[Integration after main PR #443](integration.md) records a separate tested merge and final gates;
+the original source/capture provenance above remains unchanged.
