@@ -102,6 +102,7 @@
       "name": "Editor",
       "feature": "NEXORA_ENABLE_EDITOR",
       "dependencies": [
+        "Renderer",
         "Core",
         "Foundation",
         "Runtime"

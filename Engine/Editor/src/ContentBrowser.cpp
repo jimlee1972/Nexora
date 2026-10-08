@@ -27,6 +27,16 @@ bool WithinMeshBudget(std::span<const ContentItem> items, runtime::AssetUuid rep
   }
   return true;
 }
+bool WithinMaterialBudget(std::span<const ContentItem> items, runtime::AssetUuid replacement = {},
+                          const std::shared_ptr<const MaterialAsset> &material = {}) {
+  std::size_t count{};
+  for (const auto &item : items) {
+    const auto &value = item.id == replacement && material ? material : item.material;
+    if (value && ++count > kMaximumWorkspaceMaterials)
+      return false;
+  }
+  return true;
+}
 std::string Lower(std::string_view value) {
   std::string result(value);
   std::ranges::transform(result, result.begin(),
@@ -49,7 +59,7 @@ ContentBrowserModel::ContentBrowserModel(std::uint64_t project_generation)
 }
 bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
                                 std::uint64_t project_generation) {
-  if (!WithinMeshBudget(items))
+  if (!WithinMeshBudget(items) || !WithinMaterialBudget(items))
     return false;
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> ids;
   std::unordered_set<std::string> paths;
@@ -72,7 +82,7 @@ bool ContentBrowserModel::Discover(ContentItem item) {
     return false;
   auto next = items_;
   next.push_back(item);
-  if (!WithinMeshBudget(next))
+  if (!WithinMeshBudget(next) || !WithinMaterialBudget(next))
     return false;
   // Discovery is not an authoring command. Preserve the earlier command's Undo snapshot too.
   if (!undo_.empty()) {
@@ -82,7 +92,7 @@ bool ContentBrowserModel::Discover(ContentItem item) {
       return false;
     auto previous = undo_;
     previous.push_back(item);
-    if (!WithinMeshBudget(previous))
+    if (!WithinMeshBudget(previous) || !WithinMaterialBudget(previous))
       return false;
     std::ranges::sort(previous, {}, [](const ContentItem &value) { return PathUtf8(value.path); });
     undo_ = std::move(previous);
@@ -301,7 +311,8 @@ bool ContentBrowserModel::Undo() {
 }
 bool ContentBrowserModel::PublishArtifact(runtime::AssetUuid id, std::string artifact_hash,
                                           ThumbnailState thumbnail, std::string *error,
-                                          std::shared_ptr<const MeshGeometry> mesh) {
+                                          std::shared_ptr<const MeshGeometry> mesh,
+                                          std::shared_ptr<const MaterialAsset> material) {
   const auto found = std::ranges::find(items_, id, &ContentItem::id);
   if (found == items_.end() || artifact_hash.empty()) {
     if (error)
@@ -313,9 +324,16 @@ bool ContentBrowserModel::PublishArtifact(runtime::AssetUuid id, std::string art
       *error = "Live mesh geometry exceeds the 128 MiB workspace budget.";
     return false;
   }
+  if (!WithinMaterialBudget(items_, id, material) || !WithinMaterialBudget(undo_, id, material)) {
+    if (error)
+      *error = "Live or retained Undo scalar PBR materials exceed the 4096 asset budget.";
+    return false;
+  }
   ++revision_;
   if (mesh)
     found->mesh = std::move(mesh);
+  if (material)
+    found->material = std::move(material);
   found->artifact_hash = std::move(artifact_hash);
   found->thumbnail = thumbnail;
   const auto undo = std::ranges::find(undo_, id, &ContentItem::id);
@@ -323,6 +341,7 @@ bool ContentBrowserModel::PublishArtifact(runtime::AssetUuid id, std::string art
     undo->artifact_hash = found->artifact_hash;
     undo->thumbnail = thumbnail;
     undo->mesh = found->mesh;
+    undo->material = found->material;
   }
   if (error)
     error->clear();

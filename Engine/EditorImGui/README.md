@@ -856,3 +856,18 @@ during activation, cancelling old drafts/requests. The application loads project
 defaults for missing state and reports preserved corrupt settings. If startup recovery blocks
 loading, it retries once after recovery resolution. `SetGameInputBindingsStatus` reports save/load
 results. Widgets perform no IO and do not persist during ordinary shutdown.
+
+## Scalar material assignment
+
+`DrawProductShell` borrows an application-owned `MaterialAssetCatalog` for the current frame.
+A single selected Mesh Renderer offers valid typed `.nmaterial` assets; multiple selections state
+that assignment requires one object. UI requests own the complete entity key, asset UUID and
+project generation and pass through `AssignMaterialAsset` on the authoring thread. Live permissions,
+selection, component presence, generations and Content/catalog payload identity are rechecked
+before one Undo. The host does not perform filesystem/GPU work or retain borrowed asset pointers.
+Missing or unsupported UUID references remain visible and saved; unknown versions cannot be
+replaced by this host. Focus loss, hidden Inspector, read-only/modal gates discard queued material
+drafts; reopening a gate cannot revive an abandoned request. Inspector reads owning bounded opaque
+metadata instead of copying unrelated plugin payloads. Valid Editor-owned schema-1 references are excluded from missing-plugin
+inspection, while unknown payloads remain inspectable. Legacy shader IDs stay unchanged. Texture,
+graph, multi-selection and Game View material editing remain open.

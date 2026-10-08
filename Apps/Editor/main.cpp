@@ -4,6 +4,7 @@
 #include "Nexora/Editor/ProjectContent.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
 #include "GameViewPreview.h"
+#include "MaterialScenePreview.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/SceneAuthoring.h"
@@ -528,8 +529,15 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     nexora::editor::imgui::NativeSceneOrbit orbit, bool local_axes, bool center_pivot,
     nexora::editor::imgui::NativeSceneTool tool, std::optional<std::array<double, 3>> drag_preview,
     std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview,
-    std::optional<std::pair<std::size_t, double>> scale_preview, const NativeSceneMeshes &meshes) {
+    std::optional<std::pair<std::size_t, double>> scale_preview, const NativeSceneMeshes &meshes,
+    const nexora::editor::MaterialAssetCatalog &materials, std::uint64_t generation) {
   const auto candidates = NativeSceneProxyCandidates(scene, &meshes);
+  std::vector<nexora::runtime::Id> material_entities;
+  for (const auto &candidate : candidates)
+    if (meshes.entities.contains(candidate.entity))
+      material_entities.push_back(candidate.entity);
+  const auto palette = nexora::editor::preview::PrepareMaterialPalette(scene, materials, generation,
+                                                                       material_entities);
   const auto handles =
       tool == nexora::editor::imgui::NativeSceneTool::Select ? std::vector<NativeSceneAxisHandle>{}
       : tool == nexora::editor::imgui::NativeSceneTool::Rotate
@@ -588,7 +596,12 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   ground.color[1] = 0.28F;
   ground.color[2] = 0.34F;
   instances.push_back(ground);
-  std::vector<std::pair<std::uint64_t, Nexora::Presentation::SceneInstance>> authored_instances;
+  struct AuthoredInstance {
+    std::uint64_t resource;
+    nexora::runtime::Id entity;
+    Nexora::Presentation::SceneInstance instance;
+  };
+  std::vector<AuthoredInstance> authored_instances;
   for (const auto &candidate : candidates) {
     const auto pose = preview ? std::optional{preview->at(candidate.entity)}
                               : scene.WorldTransform(candidate.entity);
@@ -617,7 +630,9 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
       if (!exact)
         continue;
       std::ranges::copy(instance.color, exact->color);
-      authored_instances.emplace_back(authored->second.resource, *exact);
+      if (palette.entities.at(candidate.entity) != 0)
+        std::fill(std::begin(exact->color), std::end(exact->color), 1.0F);
+      authored_instances.push_back({authored->second.resource, candidate.entity, *exact});
     } else {
       instances.push_back(instance);
     }
@@ -631,10 +646,11 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   }
   std::vector<Nexora::Presentation::SceneMeshBatch> batches;
   batches.push_back({0, 36, 0, static_cast<std::uint32_t>(instances.size())});
-  for (const auto &[resource, instance] : authored_instances) {
+  for (const auto &[resource, entity, instance] : authored_instances) {
     const auto range = meshes.ranges.at(resource);
-    batches.push_back(
-        {range.firstIndex, range.indexCount, static_cast<std::uint32_t>(instances.size()), 1});
+    batches.push_back({range.firstIndex, range.indexCount,
+                       static_cast<std::uint32_t>(instances.size()), 1,
+                       palette.entities.at(entity)});
     instances.push_back(instance);
   }
   const nexora::math::Vector3 target{static_cast<float>(camera.x),
@@ -648,7 +664,16 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
                        0.85F, static_cast<float>(viewport.width) / viewport.height, 0.1F, 500.0F) *
                    nexora::math::LookAt(eye, target);
   Nexora::Presentation::SceneDrawData draw{};
-  draw.vertices = meshes.geometry.vertices;
+  std::optional<nexora::editor::preview::Geometry> lit_geometry;
+  if (palette.authored) {
+    lit_geometry = meshes.geometry;
+    if (!nexora::editor::preview::PrepareMaterialTangents(*lit_geometry))
+      return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
+    draw.pbr = true;
+    draw.materials = palette.materials;
+    draw.cameraPosition = {eye.x, eye.y, eye.z};
+  }
+  draw.vertices = lit_geometry ? lit_geometry->vertices : meshes.geometry.vertices;
   draw.indices = meshes.geometry.indices;
   draw.batches = batches;
   draw.instances = instances;
@@ -726,6 +751,9 @@ int RunGraphical(std::optional<ProjectState> project,
     load_gameplay_settings(project->workspace);
   }
   nexora::editor::MeshAssetCatalog meshes;
+  nexora::editor::MaterialAssetCatalog materials;
+  if (project && !materials.PublishContent(content.Browser(), &layout_error))
+    std::cerr << "material catalog warning: " << layout_error << '\n';
   if (project && !meshes.PublishContent(content.Browser(), &layout_error))
     std::cerr << "mesh catalog warning: " << layout_error << '\n';
   std::uint64_t mesh_content_revision = content.Browser().Revision();
@@ -1073,6 +1101,8 @@ int RunGraphical(std::optional<ProjectState> project,
             const bool was_created = pending_project->created;
             project = std::move(pending_project->candidate);
             content = std::move(candidate_content);
+            if (!materials.PublishContent(content.Browser(), &selector_error))
+              std::cerr << "material catalog warning: " << selector_error << '\n';
             if (!meshes.PublishContent(content.Browser(), &selector_error))
               std::cerr << "mesh catalog warning: " << selector_error << '\n';
             pending_project.reset();
@@ -1094,7 +1124,7 @@ int RunGraphical(std::optional<ProjectState> project,
         ui.SetSceneFileContext(scene_files->Token(), scene_files->CurrentPath(),
                                scene_load_failed || scene_files->SaveBlocked());
       ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports,
-                          &console, &play, &profile, &meshes);
+                          &console, &play, &profile, &meshes, &materials);
       if (input_settings_deferred && !project->workspace.HasRecoveryJournal())
         load_input_settings(project->workspace);
       refresh_scene_location();
@@ -1252,6 +1282,8 @@ int RunGraphical(std::optional<ProjectState> project,
       if (mesh_content_revision != content.Browser().Revision() ||
           mesh_content_generation != content.Browser().ProjectGeneration()) {
         std::string mesh_error;
+        if (!materials.PublishContent(content.Browser(), &mesh_error))
+          log(nexora::runtime::RuntimeLogSeverity::Error, "Content", mesh_error);
         if (!meshes.PublishContent(content.Browser(), &mesh_error))
           log(nexora::runtime::RuntimeLogSeverity::Error, "Content", mesh_error);
         mesh_content_revision = content.Browser().Revision();
@@ -1552,7 +1584,7 @@ int RunGraphical(std::optional<ProjectState> project,
             *created.surface, scene, *viewport, ui.GetSceneOverviewCamera(),
             ui.GetNativeSceneOrbit(), ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(),
             ui.GetNativeSceneTool(), drag_preview, rotation_preview, scale_preview,
-            *native_scene_meshes);
+            *native_scene_meshes, materials, project_generation);
         ui.SetNativeScenePreviewAvailable(scene_status !=
                                           Nexora::Presentation::SurfaceStatus::Unsupported);
         if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&

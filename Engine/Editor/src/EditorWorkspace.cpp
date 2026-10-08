@@ -224,6 +224,7 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
   std::vector<AssetEntry> entries;
   entries.reserve(files.size());
   std::size_t mesh_bytes{};
+  std::size_t material_count{};
   for (std::size_t index = 0; index < files.size(); ++index) {
     const auto relative = PathUtf8(std::filesystem::relative(files[index], root, ec));
     if (ec) {
@@ -299,8 +300,17 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
       } else {
         entry.state = ImportState::Imported;
       }
-      if (entry.state == ImportState::Imported)
-        entry.artifact_hash = std::move(imported.artifact_hash);
+      if (entry.state == ImportState::Imported) {
+        if (imported.material && material_count == kMaximumWorkspaceMaterials) {
+          entry.state = ImportState::Failed;
+          entry.error = "Workspace scalar PBR materials exceed the 4096 asset budget.";
+        } else {
+          entry.artifact_hash = std::move(imported.artifact_hash);
+          if (imported.material)
+            ++material_count;
+          entry.material = std::move(imported.material);
+        }
+      }
     }
     entries.push_back(std::move(entry));
     if (progress)
