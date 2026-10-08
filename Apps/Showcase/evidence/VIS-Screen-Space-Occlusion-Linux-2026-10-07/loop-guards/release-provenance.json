@@ -1,0 +1,123 @@
+{
+  "source_freeze": "5d566aa94aa708b1329d807c9ffaa53575b7807e",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "CMakeLists.txt": "3c25e578fadd67b46b4be12da4bb58f7e66b6b0997947fcccfd7a6104f91f431",
+    "Config/Modules/modules.json": "56707908e64e383d32a31d826e8eb3c625d8de723ff0c25de5f9014c52fa7e62",
+    "Engine/Animation/CMakeLists.txt": "9ed570136940c3a1ddaf7d721a982eca1ca271d640a2117f579b4333f2242638",
+    "Engine/Animation/README.md": "f4e4152c3a92efac9d25ddcf60dfdbc6d1881b77bd80167b193eff04fab5780c",
+    "Engine/Animation/include/Nexora/Animation/Api.h": "ff448ed6c1d3e3b910242f5c53cc6e534be715f71335b1bbffc4361334b6312b",
+    "Engine/Animation/include/Nexora/Animation/Pose.h": "02687966c0ce5d254f8053d33c0bf175ccc6a7231aaa12794590c10007e799a9",
+    "Engine/Animation/src/Pose.cpp": "8f94f673af55f7084f1fa31f98fe9d9f02cfe13aef8f081d1a3b1bfad3bb8787",
+    "Engine/PoseSearch/README.md": "2a50bd2fcd9bb7440572af327363a71b9715664410299fdda6d3a7f1fb5c20b1",
+    "Engine/Presentation/shaders/scene_tonemap.slang": "50983f709bfda2b2c2dbb9c8435593bc7875e9c55e7863c98a41d7e69f77d0c0",
+    "Engine/Presentation/src/SceneToneHlslShaders.h": "7e3d9aad7c23e28c86437f209b727c21a6ecfe5485147a3dfc1146985b132905",
+    "Engine/Presentation/src/SceneToneMetalShaders.h": "8ae4a99aa02c91d0967e7a28f986329b82dac6b32d7785e3ce95017ff41653e6",
+    "Engine/Presentation/src/SceneToneVulkanShaders.h": "960cbc5e7da3ea61bf06bd93ef1ec8059dbaad4f61bf85e4da4410a5d49c0611",
+    "Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md": "88905147741902c7be20eeb84930de02a9668a6879177bdaa00ae656bbac9eba",
+    "Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md": "fadee76c0e320d4b28b2bfa54396ec58bcf77fb3c66996684e3a475f4a465f0d",
+    "Roadmap/zh-TW/\u8de8\u5e73\u53f03D_Engine_V2_AI\u65bd\u5de5\u6280\u8853\u8207\u7cfb\u7d71\u898f\u5283_v1_2.md": "80c999bec7799fa98f704d635fe31309edb91298ecc1fe350c219d8504848c4c",
+    "Roadmap/zh-TW/\u8de8\u5e73\u53f03D_Engine_V2_\u5b8c\u6574\u898f\u5283\u66f8_v1_4.md": "03619df2bf0684ea77274ccbcc505b0df292084779f0b46428d04d37b793deee",
+    "Tests/Animation/CMakeLists.txt": "25c2e4c19330ca4b3ab579f5d8e7df3c08453ef36c0a5864aa575435c9d727a7",
+    "Tests/Animation/PoseTests.cpp": "f471dc9eea5112b62cc6130a140f761e889a3671c711a1881ffd514f70a4ec87",
+    "Tests/Animation/acceptance.md": "5eb9e3eae1c6e465608e016ed3bb3f42d33bfe8f69b7bfd7161470aa0273fdd8",
+    "Tools/Build/README.md": "04bd2a8a34d1f00ac4fbdd6e7b6d0125f0beb448227b7807fe88abeffa0bc050",
+    "Tools/Build/VerifyAnimationProfiles.py": "bebb25841471eb7cf4c1580ad587cafd816b041a117b48e1a4fbdf2b99b6b079"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/occlusion-loop-guards-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "5d566aa94aa7",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.14699123598984,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.733333"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "509446fe768fa3797b48a87147d84343264003f2a7e3d1078ab69eac84d89797",
+    "video_sha256": "d27721e9af059d31e8a93a63248390aca310e4b353a2e228205f308640477785",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "50172a61901c6911a941b211d901fdb521a782d214f1c19c29807ea07c3ea51f",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        246,
+        623,
+        1145,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "screen_space_occlusion": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  },
+  "environment_payload_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+    "Content/Showcase/Courtyard/Hero/Source/ivy-single-leaf.png": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "8818167fa713fc545fbfb6edcd717f476e9e1e38941989385a37e941fe14bea9",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "656eee2adaf52dace8d8555291c9092c13d8ef0aa304386b0d40dfdde8734a18"
+  },
+  "scene_counts": {
+    "geometry_vertex_count": 60685,
+    "geometry_index_count": 139680,
+    "geometry_batch_count": 393,
+    "geometry_material_count": 48,
+    "foliage_quad_count": 3573
+  },
+  "device_identity": {
+    "name": "llvmpipe (LLVM 19.1.7, 256 bits)",
+    "vendor_id": 65541,
+    "device_id": 0,
+    "driver_version": "1",
+    "driver_version_format": "vulkan.raw"
+  }
+}

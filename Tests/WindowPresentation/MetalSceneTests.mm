@@ -507,8 +507,8 @@ int main(int argc, char **argv) {
     }
     std::array<unsigned, 3> aoPlane{}, aoContact{}, aoHighlight{};
     std::vector<std::byte> aoOriginal;
-    for (unsigned mode = 0; mode < 4; ++mode) {
-      PbrOcclusionFixtures::Fixture fixture;
+    for (unsigned mode = 0; mode < 6; ++mode) {
+      PbrOcclusionFixtures::Fixture fixture(mode >= 4 ? 100.0F / 3 : 1.0F);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
           !require(surface->DrawScene(fixture.Draw(mode, 640, 360)), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
@@ -533,6 +533,10 @@ int main(int argc, char **argv) {
       } else if (mode == 1) {
         if (std::abs(static_cast<int>(read(160)[0]) - static_cast<int>(aoPlane[0])) > 2 ||
             read(640 * 49 / 100)[0] + 3 >= aoContact[0] || read(480) != aoHighlight)
+          return fail(__LINE__);
+      } else if (mode == 4) {
+        aoOriginal.assign(pixels.begin(), pixels.end());
+        if (read(160) != aoPlane || read(480) != aoHighlight)
           return fail(__LINE__);
       } else if (!std::equal(pixels.begin(), pixels.end(), aoOriginal.begin())) {
         return fail(__LINE__);

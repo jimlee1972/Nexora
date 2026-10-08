@@ -83,7 +83,7 @@ void Storage() {
   Require(!storage.Load(bad), "NaN bound accepted");
   bad = golden;
   const auto rotation = 16 + 32 * 48 + 6;
-  std::fill(bad.begin() + rotation, bad.begin() + rotation + 8, 0);
+  std::fill(bad.begin() + rotation, bad.begin() + rotation + 8, std::uint8_t{0});
   Require(!storage.Load(bad), "zero quaternion accepted");
   Require(std::ranges::equal(storage.Bytes(), golden), "failed loads damaged pose storage");
   AnimationPoseStorage moved(std::move(storage));

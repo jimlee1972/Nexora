@@ -1,0 +1,38 @@
+[
+  {
+    "mode": 0,
+    "exact_bytes": true,
+    "before_sha256": "4b9dc66d4e92d14055cf52dc38d9c48ef75e8403ac6da8ccc8a6899f9155bf78",
+    "after_sha256": "4b9dc66d4e92d14055cf52dc38d9c48ef75e8403ac6da8ccc8a6899f9155bf78"
+  },
+  {
+    "mode": 1,
+    "exact_bytes": true,
+    "before_sha256": "cffabd5e4c9bebece02f07f7442da82ee8b370802575fbd42d77c75c67d7ba9d",
+    "after_sha256": "cffabd5e4c9bebece02f07f7442da82ee8b370802575fbd42d77c75c67d7ba9d"
+  },
+  {
+    "mode": 2,
+    "exact_bytes": true,
+    "before_sha256": "888d288f6dacd3b539f913d1032eeed84ffe539d59fabe7daadee4f192342b2e",
+    "after_sha256": "888d288f6dacd3b539f913d1032eeed84ffe539d59fabe7daadee4f192342b2e"
+  },
+  {
+    "mode": 3,
+    "exact_bytes": true,
+    "before_sha256": "bc2aeba36581735432a54d6f491270d610c898fbae4236cedc50fd4bdb19a3e0",
+    "after_sha256": "bc2aeba36581735432a54d6f491270d610c898fbae4236cedc50fd4bdb19a3e0"
+  },
+  {
+    "mode": 4,
+    "exact_bytes": true,
+    "before_sha256": "4b9dc66d4e92d14055cf52dc38d9c48ef75e8403ac6da8ccc8a6899f9155bf78",
+    "after_sha256": "4b9dc66d4e92d14055cf52dc38d9c48ef75e8403ac6da8ccc8a6899f9155bf78"
+  },
+  {
+    "mode": 5,
+    "exact_bytes": true,
+    "before_sha256": "89b89db3de832fd5115efac92495d238110a1846038ae5cc0909e7097f9205bc",
+    "after_sha256": "89b89db3de832fd5115efac92495d238110a1846038ae5cc0909e7097f9205bc"
+  }
+]

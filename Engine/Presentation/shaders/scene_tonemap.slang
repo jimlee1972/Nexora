@@ -51,7 +51,8 @@ float3 contactPosition(float2 uv, float distance) {
   return normalize(ray) * distance;
 }
 float contactVisibility(float2 uv, float distance) {
-  if (distance <= 0) return 1;
+  // RGBA16F radial distance loses contact precision at large distances.
+  if (distance <= 0 || distance >= 64) return 1;
   float3 center = contactPosition(uv, distance);
   float2 pixel = tone.antiAlias.xy;
   float3 left = contactPosition(uv - float2(pixel.x,0), hdrScene.SampleLevel(uv - float2(pixel.x,0),0).a);
@@ -72,16 +73,20 @@ float contactVisibility(float2 uv, float distance) {
   float blocked = 0;
   [unroll] for (uint i=0;i<12;++i) {
     float2 sampleUv = uv + directions[i%6] * screenRadius * (i<6 ? 0.5 : 1);
-    if (any(sampleUv <= 0) || any(sampleUv >= 1)) continue;
-    float tapDistance = hdrScene.SampleLevel(sampleUv,0).a;
-    if (tapDistance <= 0) continue;
-    float3 delta = contactPosition(sampleUv,tapDistance) - center;
-    float lengthSquared = dot(delta,delta);
-    if (lengthSquared <= 0.000001 || lengthSquared >= radius*radius) continue;
-    float angle = saturate((dot(normal,delta)-tone.occlusion.z) / sqrt(lengthSquared));
-    blocked += angle * (1-lengthSquared/(radius*radius));
+    // Keep one induction update so legacy native HLSL compilers can unroll the fixed kernel.
+    if (all(sampleUv > 0) && all(sampleUv < 1)) {
+      float tapDistance = hdrScene.SampleLevel(sampleUv,0).a;
+      if (tapDistance > 0) {
+        float3 delta = contactPosition(sampleUv,tapDistance) - center;
+        float lengthSquared = dot(delta,delta);
+        if (lengthSquared > 0.000001 && lengthSquared < radius*radius) {
+          float angle = saturate((dot(normal,delta)-tone.occlusion.z) / sqrt(lengthSquared));
+          blocked += angle * (1-lengthSquared/(radius*radius));
+        }
+      }
+    }
   }
-  return saturate(1 - tone.occlusion.x * blocked / 6);
+  return saturate(1 - tone.occlusion.x * (1 - smoothstep(32.0,64.0,distance)) * blocked / 6);
 }
 [shader("fragment")]
 float4 toneFragmentMain(ToneVertex input) : SV_Target {

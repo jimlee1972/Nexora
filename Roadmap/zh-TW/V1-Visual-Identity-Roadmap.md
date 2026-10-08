@@ -1,5 +1,13 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 遠景瀑布加寬六條共享水帶，左側水流可從背景拱門看見。左側水流與支撐峭壁的 XZ 位置由 (-17,-19) 調至 (-11,-24)，高度由 6.2 降至 5.5；右側維持原本位置與高度。水帶半寬由 0.05 調至 0.075、間距由 0.17 調至 0.25，保留間隙與向下流動的共享動畫時鐘。完整 Linux configure/build 與 106/106 測試通過（136.14 秒，core/sync 驗證）；凍結 Shipping 原生操作、風／反射／接觸遮蔽精確還原與真正 100 秒動畫錄影通過（實際 101.31 秒）。來源凍結 `3dff93d9ba517e6d5e3787037c52f9227b8aaf81`；證據：`Apps/Showcase/evidence/VIS-Waterfall-Framing-Linux-2026-10-07/`。參考圖一致性與實體目標驗收仍未完成（VIS 5/7）。
+
+✅ 固定接觸遮蔽核心改用條件包覆取樣與單一迴圈計數更新，避免原生 FXC X3511；六組 Vulkan 原生 fixture 圖像與前一版逐位元組一致。整合版本保留地標柏樹構圖、32 至 64 世界單位的遠距淡出及已合併 Animation 更新。完整 Linux configure/build 與 106/106 測試通過（137.36 秒，core/sync validation）；Full Monolithic Shipping configure/build 通過。凍結的 Showcase Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.15 秒）。來源凍結 `5d566aa94aa708b1329d807c9ffaa53575b7807e`；證據：`Apps/Showcase/evidence/VIS-Screen-Space-Occlusion-Linux-2026-10-07/loop-guards/`。Windows CI 通過後才合併；預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
+✅ 螢幕空間接觸遮蔽在 32 至 64 世界單位之間逐漸停用，避免 RGBA16F 幾何距離精度下降時在遠方 skybox 產生假陰影。原生 fixtures 驗證啟用遮蔽時遠方幾何保持一致，並保留交接處變暗、平面穩定、HDR 高亮及精確還原驗證；這個凍結版本也包含地標柏樹構圖。完整 Linux configure/build 與 104/104 測試通過（133.38 秒，core/sync validation）；Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 100.98 秒）。來源凍結 `c8fd0ebc6b9fac467a7fa812bdc353c2c0e33a58`；證據：`Apps/Showcase/evidence/VIS-Screen-Space-Occlusion-Linux-2026-10-07/distance-fade/`。Windows CI 仍在驗證；預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
+✅ 地標柏樹的 XZ 位置由 (-12.5,-9) 改為 (-14.2,-9)，使針葉樹冠出現在 wide 鏡頭的左側拱門開口；樹冠分層跨度由 5.22 增至 5.85 世界單位。樹幹與樹冠共用位置，其他樹木保留既有位置及高度，針葉遮罩、風、幾何數量、材質與光源保持一致。完整 Linux configure/build 與 104/104 測試通過（134.70 秒，core/sync validation）；Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.15 秒）。來源凍結 `748e841427cfe22c1d99407ac122dfce45c9b47a`；證據：`Apps/Showcase/evidence/VIS-Cypress-Aperture-Linux-2026-10-07/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
 ✅ Standard／High 新增可關閉的螢幕空間接觸遮蔽，使用原生 HDR 幾何距離；Basic 不啟用，F11 切換。四個鄰近深度重建法線，十二個取樣依世界距離與 bias 排除無效遮蔽，各軸限制為 32 實體像素。共用 Slang tone pass 與複製的 80-byte packet 支援 Vulkan、DX12 與 Metal。原生 fixtures 驗證交接處變暗、平面穩定、HDR 高亮保持一致，以及停用／零強度精確還原；bloom 使用原始 HDR radiance，UI 在後處理後繪製。這是螢幕空間的合成近似，不宣稱隱藏／畫面外幾何或光線追蹤。包含已合併 Editor profiler 匯入更新的完整 Linux configure/build 與 104/104 測試通過（135.83 秒，core/sync validation）；Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.08 秒）。來源凍結 `60e6a54621fe3bcfedf4b6d5b3ccd8e5419b05b3`；證據：`Apps/Showcase/evidence/VIS-Screen-Space-Occlusion-Linux-2026-10-07/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
 
 ✅ 庭院環體沿垂直軸旋轉 -0.35 弧度，石材、銅帶、符文與附著藤蔓維持貼合；位置、法線及切線一併旋轉。水晶與盆座保留原始錨點，幾何數量、材質、原生風及共用動畫時鐘保持一致。完整 Linux configure/build 與 104/104 測試通過（130.34 秒，core/sync validation）；Shipping 原生驗收、風／反射精確還原及 100 秒動畫錄製通過（實際 101.10 秒）。來源凍結 `bb20d2807e5cb83149875acf96163d15a348df82`；證據：`Apps/Showcase/evidence/VIS-Device-Ring-Yaw-Linux-2026-10-07/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
