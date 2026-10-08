@@ -80,6 +80,8 @@ void Run(const std::filesystem::path &root) {
   editor::SceneFileSession files(workspace, scene);
   const std::filesystem::path relative(u8"Content/場景.scene");
   const auto path = root / relative;
+  auto temporary = path;
+  temporary += ".tmp";
   Require(files.SaveAs(files.Token(), relative).Applied(), "Initial Save failed");
   const auto original = Read(path);
   const auto mtime = std::filesystem::last_write_time(path);
@@ -99,7 +101,7 @@ void Run(const std::filesystem::path &root) {
               std::filesystem::last_write_time(path) == mtime && files.Token() == token &&
               files.CurrentPath() == relative && world.SaveScene(id) == local && scene.Dirty() &&
               scene.Selection().size() == 1 && (*scene.EulerAngles(camera))[1] == 720 &&
-              !std::filesystem::exists(path.string() + ".tmp") && scene.Redo() && scene.Undo() &&
+              !std::filesystem::exists(temporary) && scene.Redo() && scene.Undo() &&
               world.SaveScene(id) == local,
           "Same-size/restored-mtime conflict changed disk/document/history or was missed");
   const auto first_approval = *conflict.overwrite_token;
@@ -110,12 +112,12 @@ void Run(const std::filesystem::path &root) {
               files.Save(token, first_approval).status == Status::Rejected && scene.Dirty(),
           "A second external edit used the previous approval");
   const auto approval = *refreshed.overwrite_token;
-  Write(path.string() + ".tmp", "occupied temporary file");
+  Write(temporary, "occupied temporary file");
   Require(files.Save(token, approval).status == Status::Rejected && Read(path) == disk_b &&
-              Read(path.string() + ".tmp") == "occupied temporary file" && scene.Dirty() &&
+              Read(temporary) == "occupied temporary file" && scene.Dirty() &&
               world.SaveScene(id) == local,
           "Failed atomic save consumed the scene or overwrote a destination");
-  std::filesystem::remove(path.string() + ".tmp");
+  std::filesystem::remove(temporary);
   Require(files.Save(token, approval).Applied() && !scene.Dirty() &&
               Read(path).find("Local A") != std::string::npos && scene.Redo() && scene.Undo() &&
               files.Save(token).Applied() && files.Save(token, approval).status == Status::Rejected,

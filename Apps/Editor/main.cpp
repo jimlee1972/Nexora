@@ -881,9 +881,11 @@ int RunGraphical(std::optional<ProjectState> project,
     if (!loaded) {
       static_cast<void>(scene_files->BindCurrent(std::filesystem::path(initial_path), true));
       scene_load_failed = true;
-      ui.SetSceneSaveResult("Scene could not be loaded: " + path.string(), false);
-      log(nexora::runtime::RuntimeLogSeverity::Error, "Scene",
-          "Scene could not be loaded: " + path.string());
+      const auto encoded = path.generic_u8string();
+      const auto message =
+          "Scene could not be loaded: " + std::string(encoded.begin(), encoded.end());
+      ui.SetSceneSaveResult(message, false);
+      log(nexora::runtime::RuntimeLogSeverity::Error, "Scene", message);
       return;
     }
     scene_load_failed = false;
