@@ -64,3 +64,20 @@ Integrated exact source SHA-256 (prior hashes describe the original tested base)
 - `Tests/Editor/SceneRuntimeCaptureTests.cpp`: `64e9f20fac36ef1565dd90ebd2827530c47024bb3cf471c95e7ae5cd7a27f691`
 - `Tests/Runtime/CMakeLists.txt`: `d30fe168039d3cdae4d551afb46c547c1ad86cd052fbc98c86777629dba90505`
 - `Tests/Editor/CMakeLists.txt`: `df96cdee6ee776219c78937a064b9f9e9a453b44b915fad465df461d33cf333e`
+
+## Integration with the merged Runtime package consumer
+
+Integrated main `69788a28ed280b0ae803d87ba1f7734c424dbdb8` in `ad0b76d22087a5c7c76e7737b39ef2fcca6040bf`. The only conflicts were adjacent bilingual M6 delivery bullets; both distinct delivered prerequisites remain present once. New Runtime package/codec sources and tests use the shared bounded serializer without changing its wire output.
+
+Required Development configure and 103-step build passed; full **94/94 passed first integration run, zero skips, 28.77 seconds**. Required Shipping configure and 8-step Monolithic Minimal build passed, including the new cooked scene/package sources with Editor/SDK stripped. Logs: `scene-capture-package-{configure,build,tests,shipping-configure,shipping-build}.log` in the external task directory. No local non-Linux or full milestone acceptance is claimed.
+
+Latest exact SHA-256:
+
+- `Engine/Runtime/include/Nexora/Runtime/Runtime.h`: `ddd3e068d3e87fd193ace1ae1efbcc9e87a3c0b9363a78612585fe5d61e1f8b4`
+- `Engine/Runtime/src/Runtime.cpp`: `93efca4f77e2f7f3485f228f5a13f629e3b9d8d342bbb8b59a55743fa449ae65`
+- `Engine/Editor/include/Nexora/Editor/EditorWorkspace.h`: `50649225760ef552fad5f114d10a80d2039226699dd668f1a6047e6517954835`
+- `Engine/Editor/src/EditorWorkspace.cpp`: `1ed9a0141105fe403a779ed34c145ed753de21d23300ddc3d412a44dbc64e081`
+- `Tests/Runtime/BoundedSceneSaveTests.cpp`: `b35dffcc1359af6e29ee289525576a9e74de5b356f67f67b84ff2b2e61fa66e9`
+- `Tests/Editor/SceneRuntimeCaptureTests.cpp`: `64e9f20fac36ef1565dd90ebd2827530c47024bb3cf471c95e7ae5cd7a27f691`
+- `Tests/Runtime/CMakeLists.txt`: `264d4e528b742867c02ba56955cd80af7efcd2f99d801e7dafbfa57ee76637f6`
+- `Tests/Editor/CMakeLists.txt`: `df96cdee6ee776219c78937a064b9f9e9a453b44b915fad465df461d33cf333e`
