@@ -791,7 +791,7 @@ struct RoomSession::State final {
       const float y =
           0.8F + std::fmod(static_cast<float>(courtyardSeconds) * 0.6F + i * 0.113F, 3.5F);
       const float r = 0.75F + static_cast<float>(i % 7) * 0.08F;
-      LeafQuad({std::cos(phase) * r, y, std::sin(phase) * r}, 0.025F, 0.05F, -yaw);
+      LeafQuad({std::cos(phase) * r, y, std::sin(phase) * r}, 0.015F, 0.03F, -yaw);
     }
     if (indices.size() > first)
       batches.push_back({first, static_cast<std::uint32_t>(indices.size() - first), 0, 1, 7});
