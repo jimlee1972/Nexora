@@ -3018,7 +3018,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[4].baseColor = {0.52F, 0.44F, 0.31F, 1};
     s.materials[1].metallic = 1;
     s.materials[1].roughness = 0.4F;
-    s.materials[1].baseColor = {0.8F, 0.65F, 0.4F, 1};
+    s.materials[1].baseColor = {1.0F, 0.95F, 0.85F, 1};
     s.materials[2].roughness = 0.22F;
     s.materials[2].baseColor = {0.02F, 0.16F, 0.17F, 1};
     s.materials[2].emission = {0.012F, 0.32F, 0.4F};
