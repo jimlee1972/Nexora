@@ -295,7 +295,15 @@ Undoing entity creation removes stale node metadata and selection; Redo restores
 stable entity ID. New scene edits discard the redo branch.
 The docked Profiler shows a bounded history of Editor frame processing wall time measured after
 BeginFrame and before Present. Capture can be paused or cleared; the panel reports evicted frames
-and labels GPU timing and process memory as unavailable.
+and labels GPU timing as unavailable. After a successful Present, the application separately calls
+`ProfileSession::SampleProcessMemory` to observe real current process RSS / working-set bytes at
+most once per 250 ms. The Profiler displays a copied latest optional value and observed peak since
+Clear, in bytes, including shared resident pages. A read failure makes latest unavailable and
+preserves the historical peak. Capture pauses memory observations as well as wall-frame ingestion;
+Clear resets observations and sampling time without resuming paused capture. The next capturing
+frame may sample immediately. Scope remains process-wide across project switches/detachment and
+does not measure GPU memory or allocator ownership. The bounded shutdown diagnostic reports
+scope/unit, attempt/success counts and latest/peak, without paths or project data.
 
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows
 fresh-project workflow acceptance remain open.
@@ -409,11 +417,11 @@ commands and before adding the current frame; the call borrows them synchronousl
 serialized CSV data. `cpu_ms` at this call is Editor frame processing wall time after BeginFrame and
 before Present, not whole-frame CPU utilization. CSV uses locale-independent full double precision,
 columns `frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes`, and empty GPU/memory
-cells because those measurements are unavailable. Export requires 1-600 strictly increasing nonzero
+cells because this wall-time format excludes live RSS observations. Export requires 1-600 strictly increasing nonzero
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import, GPU timing and memory instrumentation remain open.
+file itself. Arbitrary capture import, GPU timing and saved process-memory traces remain open.
 
 Profiler Import CSV reads `.nexora/frame-processing.csv` through the workspace owner and displays a
 separate static wall-time snapshot. The file is bounded to 128 KiB/600 ordered samples; malformed,
