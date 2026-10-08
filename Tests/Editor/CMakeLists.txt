@@ -13,6 +13,11 @@ target_link_libraries(NexoraAdditiveSceneTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraAdditiveSceneTests)
 add_test(NAME editor.additive_scene_contract COMMAND NexoraAdditiveSceneTests)
 
+add_executable(NexoraInspectorBatchTests InspectorBatchTests.cpp)
+target_link_libraries(NexoraInspectorBatchTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraInspectorBatchTests)
+add_test(NAME editor.inspector_atomic_batch COMMAND NexoraInspectorBatchTests)
+
 add_executable(NexoraAutosaveJournalTests AutosaveJournalTests.cpp)
 target_link_libraries(NexoraAutosaveJournalTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraAutosaveJournalTests)

@@ -45,3 +45,11 @@ this repair changes no module linkage boundary. Root README remains unchanged.
 This is a portable graph prerequisite. Additive document tabs, coordinated multi-document save,
 cross-scene reference behavior, external-change conflict UI, crash/reopen goldens and full ED-M4
 acceptance remain open. Windows/macOS/mobile or physical-display acceptance did not run.
+
+## Integration with merged Inspector prerequisite
+
+After PR #440 merged, this branch integrated main
+`06b11369daf2f9d0da86098df5343f8e00e122cf`. The CMake conflict was resolved by retaining both
+`editor.additive_scene_contract` and `editor.inspector_atomic_batch`. The full preset configure,
+build (`-j 2`) and CTest gate ran again: **85/85 passed, zero skipped**, **24.63 s**.
+The same graphical OFF / Slang OFF settings apply; no graph implementation change was needed.

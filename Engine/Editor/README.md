@@ -254,7 +254,17 @@ into renderer or platform internals.
   recovery rejects corruption without changing the caller's revision; stable-path three-way
   records retain unresolved base/local/remote values without coupling conflicts to a source-control provider.
 - Inspector adapters borrow reflection metadata and expose differing multi-selection values as an
-  explicit mixed state. Unknown component stores own opaque bytes and replace their state only
+  explicit mixed state. `InspectorPropertyAdapter::ApplyBatch` prepares one owning request for up to
+  100,000 unique nonzero entity IDs and calls one transaction writer. Empty/duplicate/oversized
+  selections, read-only or stale component/field/type metadata, ambiguous fields and nonfinite
+  scalar values reject before the writer runs. The authoring owner revalidates live entity/document
+  generations, workspace permissions and component-specific value types, then commits all targets
+  as one Undo transaction or returns false without changing state/history. Deferred consumers copy
+  the request and repeat those live checks at commit; the adapter does not own the World or undo
+  stack. Legacy `Apply` remains a single-target callback API; multi-target calls now reject instead
+  of allowing a later failure to leave earlier targets modified. C++ consumers must use `ApplyBatch`
+  for multi-selection; this adds no stable C/Zig wire or persistence-schema change.
+  Unknown component stores own opaque bytes and replace their state only
   after a complete payload validates, so unavailable plugins do not silently discard authoring
   data.
 - `ProfileSession` retains a bounded, monotonic frame history. Invalid or out-of-order samples are
