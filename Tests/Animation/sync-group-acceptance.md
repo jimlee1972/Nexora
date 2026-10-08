@@ -18,7 +18,7 @@ cmake --build --preset linux-development
 ctest --preset linux-development
 ```
 
-Result: configure/build passed; final CTest passed 108/108, 0 failures, 0 skips, in 141.55 seconds.
+Result: configure/build passed; final CTest passed 108/108, 0 failures, 0 skips, in 140.31 seconds.
 This includes the seven existing Linux virtual-display/Vulkan probes using software Vulkan.
 The local preset has the graphical editor disabled; this is not physical GPU or graphical editor
 acceptance.
@@ -49,6 +49,23 @@ ASAN_OPTIONS=detect_leaks=0 work/marker-sync-sanitizers
 
 Result: ASan/UBSan passed. Leak detection is disabled in this ptrace-constrained environment;
 no leak-check acceptance is claimed. Changed Markdown validation and `git diff --check` passed.
+
+The initial push workflow [37723799069](https://github.com/jimlee1972/Nexora/actions/runs/37723799069)
+failed four Linux jobs because GCC 13.3 crashed compiling nested aggregate extreme-value fixtures.
+The same Ubuntu GCC 13.3.0-6ubuntu2~24.04.1 packages were unpacked under `work/gcc13`; the original
+fixture reproduced the identical `gimplify_var_or_parm_decl` ICE. Explicit field assignment retains
+all values/assertions and fixes compilation with warnings-as-errors. The corrected standalone
+sync-group test also builds and runs with that compiler (using the host libstdc++ runtime):
+
+```bash
+work/gcc13/root/usr/bin/x86_64-linux-gnu-g++-13 -std=c++20 -Wall -Wextra -Wpedantic -Werror -IEngine/Animation/include -c Tests/Animation/SyncGroupTests.cpp -o work/gcc13/sync-group-fixed.o
+work/gcc13/root/usr/bin/x86_64-linux-gnu-g++-13 -std=c++20 -Wall -Wextra -Wpedantic -Werror -IEngine/Animation/include Engine/Animation/src/SyncGroup.cpp Tests/Animation/SyncGroupTests.cpp -L/usr/lib/gcc/x86_64-linux-gnu/14 -o work/gcc13/sync-group-tests
+work/gcc13/sync-group-tests
+```
+
+The full local gate, Monolithic selected gates, and ASan/UBSan above passed again after the fixture
+change. The initial failing workflow is not acceptance evidence; hosted CI must pass the corrected
+PR head before merge.
 
 This evidence accepts portable looping marker clocks and the translation graph's visual seek.
 Marker authoring, compressed TRS graph integration, inertialization, motion warping, GPU animation,

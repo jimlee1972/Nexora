@@ -162,14 +162,31 @@ void ClockAndGraphTests() {
   Require(bounded.SetMembers(maximum) && bounded.Update(0.5)->size() == SyncGroup::MaxMembers,
           "maximum member capacity failed");
   const double tiny = std::numeric_limits<double>::denorm_min();
-  Require(bounded.SetMembers(std::vector<SyncGroupMember>{{1, tiny, 0, 1, {}}}) &&
+  // Explicit assignment avoids GCC 13's ICE on nested aggregates using local constants.
+  std::vector<SyncGroupMember> tiny_members(1);
+  tiny_members[0].clip = 1;
+  tiny_members[0].duration = tiny;
+  tiny_members[0].weight = 1.0F;
+  Require(bounded.SetMembers(tiny_members) &&
               (*bounded.Update(std::numeric_limits<double>::max()))[0].time == 0,
           "subnormal clock failed");
   const double large = std::numeric_limits<double>::max();
-  Require(bounded.SetMembers(std::vector<SyncGroupMember>{
-              {1, large, large * 0.75, 1, {{"A", large * 0.25}, {"B", large * 0.5}}},
-              {2, large, 0, 0.5F, {{"A", large * 0.125}, {"B", large * 0.625}}}}),
-          "large marker clock rejected");
+  std::vector<SyncGroupMember> large_members(2);
+  for (std::size_t i = 0; i < large_members.size(); ++i) {
+    large_members[i].clip = i + 1;
+    large_members[i].duration = large;
+    large_members[i].markers.resize(2);
+    large_members[i].markers[0].name = "A";
+    large_members[i].markers[1].name = "B";
+  }
+  large_members[0].time = large * 0.75;
+  large_members[0].weight = 1.0F;
+  large_members[0].markers[0].time = large * 0.25;
+  large_members[0].markers[1].time = large * 0.5;
+  large_members[1].weight = 0.5F;
+  large_members[1].markers[0].time = large * 0.125;
+  large_members[1].markers[1].time = large * 0.625;
+  Require(bounded.SetMembers(large_members), "large marker clock rejected");
   const auto extreme = bounded.Update(large * 0.5);
   Near((*extreme)[0].time / large, 0.25, "large clock wrapping failed");
   Near((*extreme)[1].time / large, 0.125, "large marker clock overflowed");
