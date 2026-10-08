@@ -189,11 +189,20 @@ struct RuntimeLogRecord final {
   std::string message;
 };
 
-// Multi-producer, bounded Console ingress. Snapshot returns owning records in sequence order and
-// never exposes storage that can be invalidated by a producer.
+// Multi-producer Console ingress. Capacity is clamped to kMaxRecords (zero disables admission).
+// Strings must be NUL-free valid UTF-8 within the byte budgets; empty strings are permitted.
+// Push rejects invalid records before eviction/sequence changes and increments the saturating
+// dropped count. Accepted sequences are never reused: after UINT64_MAX, all pushes reject.
+// Snapshot returns owning records in sequence order without exposing producer-invalidated storage.
 class NEXORA_RUNTIME_API RuntimeConsole final {
 public:
-  explicit RuntimeConsole(std::size_t capacity) noexcept : capacity_(capacity) {}
+  static constexpr std::size_t kMaxRecords = 4096;
+  static constexpr std::size_t kMaxCategoryBytes = 256;
+  static constexpr std::size_t kMaxSourceBytes = 1024;
+  static constexpr std::size_t kMaxMessageBytes = 16 * 1024;
+
+  explicit RuntimeConsole(std::size_t capacity) noexcept
+      : capacity_(capacity > kMaxRecords ? kMaxRecords : capacity) {}
   bool Push(RuntimeLogRecord record);
   [[nodiscard]] std::vector<RuntimeLogRecord> Snapshot() const;
   [[nodiscard]] std::uint64_t DroppedCount() const;

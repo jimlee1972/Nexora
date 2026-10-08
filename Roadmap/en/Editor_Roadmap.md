@@ -619,6 +619,13 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ Portable debugging prerequisite adds structured bounded Console records, owning runtime
     inspection snapshots, debugger boundary/pause reasons, contained update recovery, and deterministic
     all-or-nothing transform conflict detection.
+  - ✅ Runtime Console admission now clamps capacity to 4,096 records and enforces 256 B category,
+    1 KiB source and 16 KiB message budgets with valid NUL-free UTF-8 and known severity. Rejections
+    preserve accepted history/sequences; drops saturate and sequence exhaustion cannot wrap.
+    Owning compaction releases oversized producer reserves. Exact-limit/Unicode/malformed input,
+    counter exhaustion and four-producer snapshot tests cover the portable boundary; complete log
+    routing and native debugger acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-ConsoleAdmission-Linux-2026-10-08.md).
   - ✅ Console Pause display retains an owning snapshot while producers continue admission/eviction;
     Clear view hides every current sequence without deleting ingress or resetting cumulative drops.
     Resume shows newer retained logs, and filters still work while paused. Window pointer/button tests
