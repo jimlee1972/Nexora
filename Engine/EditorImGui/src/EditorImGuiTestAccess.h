@@ -164,6 +164,13 @@ public:
                                    std::optional<runtime::AssetUuid> asset,
                                    std::uint64_t generation);
   [[nodiscard]] static std::string_view InspectorMeshLabel(const EditorImGuiHost &host) noexcept;
+  static void QueueInspectorMaterial(EditorImGuiHost &host, SceneDocument::NodeKey entity,
+                                     runtime::AssetUuid asset, std::uint64_t generation) noexcept;
+  [[nodiscard]] static std::string_view
+  InspectorMaterialLabel(const EditorImGuiHost &host) noexcept;
+  // Control 0: combo; 1: first available typed material in its popup.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  InspectorMaterialPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   static void FocusInspector(EditorImGuiHost &host) noexcept;
   // Transform, Camera, Light (0, 1, 2); reports actual UI widget positions for pointer tests.
   [[nodiscard]] static std::optional<std::array<float, 2>>

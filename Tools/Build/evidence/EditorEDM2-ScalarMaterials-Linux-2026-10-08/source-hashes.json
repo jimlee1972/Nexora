@@ -1,0 +1,33 @@
+{
+  "base_commit": "06b11369daf2f9d0da86098df5343f8e00e122cf",
+  "sha256": {
+    "Apps/Editor/MaterialScenePreview.h": "f909328688fef53e3c9a68a6b9ffc6f70e207ba416e8684cbbd571e66c5fa3ba",
+    "Apps/Editor/main.cpp": "b44ee09aafefddf893f882d9cfdfdfebe05550683a3e054438ceeca99a28fde8",
+    "Config/Modules/modules.json": "b648dfc3bd35cee37b1a1c94b4705b850547f52a1aad2dcb5e6f02001c4cccbc",
+    "Engine/Editor/CMakeLists.txt": "dc3ab080e49a53ec2bf81fd32628abdf4a9be3c2ece1a20b22a81430089c7ff8",
+    "Engine/Editor/include/Nexora/Editor/ContentBrowser.h": "c0481110f3ab39095ff418020b3dfe02ed706125960263d806c4bcc4c1fc8481",
+    "Engine/Editor/include/Nexora/Editor/EditorWorkspace.h": "67a3454d81011932c7ddf38ae96850c0ccd1456ef0e9e31f8407d316e4f9e1f2",
+    "Engine/Editor/include/Nexora/Editor/MaterialAssetCatalog.h": "721bb3c6192f1a33105558194fbc322f60540f2c249c82c7d46648cc4b44f4db",
+    "Engine/Editor/include/Nexora/Editor/MaterialImport.h": "54db4697a070e82a8d0534f433dd3584d593f225292fbcb0cede2eacb1fab529",
+    "Engine/Editor/src/AssetImport.cpp": "4aba3b65c7108f15a61fcc8f3fb783b5dcb4b5395663b6e9f7419d0d420e7c1b",
+    "Engine/Editor/src/ContentBrowser.cpp": "d14f1ef092b22f1a36b754fb6fa9d3ebadbe61f42b8b0c8de5f10ca3fe521963",
+    "Engine/Editor/src/EditorWorkspace.cpp": "d6c1073837136da16a6498d0348c2cfc447fdf3919c07d9fedc7733d5b53024e",
+    "Engine/Editor/src/MaterialAssetCatalog.cpp": "9419dd4dd513094800b5b023a7f38e8735a18de259a91672457ba452c4e7a947",
+    "Engine/Editor/src/MaterialImport.cpp": "558873de31c5756fde4a3c2e8c81a359e6f9fd551c6aa670454f96515d73e7c0",
+    "Engine/Editor/src/ProjectContent.cpp": "3572ba65764d47722c6e908f3ed345f04172a72c7df569d6d58efc4184b0ff30",
+    "Engine/Editor/src/ReimportSource.h": "292706d5bf3f34507d6e47a80a109bfb8d5fa219bed3ef15d1cb36b4dfd66f68",
+    "Engine/EditorImGui/include/Nexora/EditorImGui/EditorImGui.h": "6a4631fbc2fe87350495ba9e8c7198419460e884f204cd4a4f160e9e2670cd37",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "554ee94f1f71081057739cb28f6eda7b7b0b2fa4c6468a479194fb6db0790303",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "9e6b68062599c0dda2628f135fe0416743149996b759bdf67ecabad63feb95fe",
+    "Tests/Editor/CMakeLists.txt": "752b2ef1f30a7f65ffa12872fab513a46735460fcb5fffeac091946f3b575f50",
+    "Tests/Editor/MaterialCatalogTests.cpp": "94306fa7df0150182fb594ad74496121f891c8815eaec2c3849268843b96d1bb",
+    "Tests/Editor/MaterialImportTests.cpp": "21e98f47ea6f43f38d47fecf5ef4c344805a2caf8c992462341098c70915a62b",
+    "Tests/Editor/MaterialSceneNativeTests.cpp": "baabe0e0d5a5b1d94e08d478ac8a5b3efbc9c5e26dca6ec137a02412fdbba6e4",
+    "Tests/EditorImGui/CMakeLists.txt": "013b45a1ce02ebe6e0955f9404777aac0975ebb9fc62d6ddc56bd8876f9f4fae",
+    "Tests/EditorImGui/MaterialInspectorTests.cpp": "b5017b4233752a17a143266f26dd1e61877f72b04b3d5c24616e711e64f9d52c"
+  },
+  "captures": {
+    "assigned.png": "bf920c3ee09caa4ccd3b4b4797bc5461c6fac95c5897f80a609a2503095a958d",
+    "reimported.png": "131a09d771e6185703635011d15e9d20ff1762cd9978f0fc49976e0321b90676"
+  }
+}

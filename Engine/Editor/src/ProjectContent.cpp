@@ -102,7 +102,7 @@ bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetW
     if (!ContentPath(path) || entry.id == runtime::AssetUuid{} || !dependencies.Set(entry.id, {}))
       return Fail("asset index contains an invalid entry", error);
     items.push_back({entry.id, path.lexically_normal(), entry.type, entry.artifact_hash,
-                     ThumbnailFor(entry.state), entry.mesh});
+                     ThumbnailFor(entry.state), entry.mesh, entry.material});
   }
 
   auto browser = browser_;
@@ -389,8 +389,9 @@ bool ProjectContentSession::Reimport(runtime::AssetUuid asset, std::string *erro
   const auto &source_hash = imported.source_hash;
   const auto &artifact_hash = imported.artifact_hash;
   auto candidate = browser_;
-  if (!candidate.PublishArtifact(asset, artifact_hash, ThumbnailState::Ready, error, imported.mesh))
-    return Fail(error && !error->empty() ? *error : "reimport geometry publication failed", error);
+  if (!candidate.PublishArtifact(asset, artifact_hash, ThumbnailState::Ready, error, imported.mesh,
+                                 imported.material))
+    return Fail(error && !error->empty() ? *error : "reimport asset publication failed", error);
   ReimportTransaction transaction(browser_.ProjectGeneration(), asset, item->artifact_hash);
   const auto dependencies = dependencies_.Forward(asset);
   if (!transaction.Stage({browser_.ProjectGeneration(),
@@ -514,7 +515,8 @@ bool ProjectContentSession::PollReimport(std::string *error) {
   auto candidate = browser_;
   std::string publish_error;
   if (!candidate.PublishArtifact(pending_reimport_->asset, result->reimport->artifact_hash,
-                                 ThumbnailState::Ready, &publish_error, result->reimport->mesh))
+                                 ThumbnailState::Ready, &publish_error, result->reimport->mesh,
+                                 result->reimport->material))
     return finish(ImportOperationState::Failed, ImportDiagnosticSeverity::Error,
                   "reimport.publish_failed", publish_error, error);
   ReimportTransaction transaction(pending_reimport_->project_generation, pending_reimport_->asset,

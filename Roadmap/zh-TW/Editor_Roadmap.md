@@ -26,7 +26,7 @@ shader feature（[證據](../../Tools/Build/evidence/EditorEDM0-VulkanValidation
 | --- | --- | :---: |
 | ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Linux 虛擬顯示 recovery 現會以 durable seeded journal 驗證 SIGKILL、已提交 workspace 不變、重新取得 writer lease，以及 keyboard-only Recover／Discard；實體顯示器 Linux 與 Windows DPI／IME host evidence 仍待完成；已記錄 bounded Windows/DX12 開發機 shell smoke。 | [ ] |
 | ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態、提供圖形化 create/open/recent selector、將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation，執行具 bounded progress 與 structured diagnostic 的 cancellable background import/reimport、顯示 dependency cycle，並提供阻塞式 reload／keep／compare conflict UX；實體顯示／Windows workflow 驗收仍待完成。 | [ ] |
-| ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware expandable tree、filter、以 generation 為 key 的 expansion／selection、可見列裁切提交、可復原 rename、兄弟排序與 cycle-safe reparent，且會拒絕 stale entity／document generation。Docked Inspector 已提供 generation-safe 的 position、Euler 度數（quaternion storage）與 scale 單選／mixed-value 多選編輯，並具 atomic Runtime validation 與單步 undo。完整的 authored-mesh Scene View、reflected Inspector、material shader workflow、camera authoring 與 missing-plugin 還原仍待完成；有界唯讀 opaque component Inspector 與 persistence 已實作；原生代理預覽已提供 Move／Rotate／Scale 把手。 | [ ] |
+| ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware expandable tree、filter、以 generation 為 key 的 expansion／selection、可見列裁切提交、可復原 rename、兄弟排序與 cycle-safe reparent，且會拒絕 stale entity／document generation。Docked Inspector 已提供 generation-safe 的 position、Euler 度數（quaternion storage）與 scale 單選／mixed-value 多選編輯，並具 atomic Runtime validation 與單步 undo。Scalar opaque PBR 材質資產現已支援 import／reimport、單物件 Inspector 指派、persistent UUID 參照、Undo／save／reopen 與真實原生 Scene View palette。完整的 authored-mesh Scene View、reflected Inspector、完整 material／shader workflow、camera authoring 與 missing-plugin 還原仍待完成；有界唯讀 opaque component Inspector 與 persistence 已實作；原生代理預覽已提供 Move／Rotate／Scale 把手。 | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。圖形化 Console 會顯示有界紀錄與 Editor 診斷；docked Game panel 可控制隔離 clone 並顯示複製的檢視資料。有界原生 camera／OBJ Game View 已實作；完整材質／多個 canvas、完整 gameplay 服務／擴充 input、完整 log 路由與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
 | ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
@@ -224,6 +224,16 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Scalar opaque PBR `.nmaterial` 資產現可 import／reimport 為有界 immutable typed data，
+  具 64 KiB source、4096 asset／Content Undo 預算與 canonical Renderer schema 驗證。
+  單物件 Inspector 指派使用版本化 owning opaque UUID 參照、一步 Undo 與 save／reopen，
+  並保留 legacy shader ID。測試涵蓋有界參照檢視、取消、stale／read-only／missing／unsupported
+  guard 與真實 1x／2x dropdown 點擊。Scene View 使用 Renderer 切線提交去重的原生 PBR palette；
+  Vulkan pixels 驗證獨立材質、reimport 變色、非法版本與 Undo／reopen。Texture／shader 編輯、
+  Game View 材質、persistent GPU cache 與完整 ED-M2 驗收仍未完成。
+  Contract：[ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md)。證據：
+  [Linux 驗收](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md)。
+
 - ✅ Reflected Inspector 寫入現會準備一個 owning、有界的 `InspectorEditBatch`，只呼叫一次
   transaction callback。Empty／duplicate／oversized target、過期或有歧義的 field metadata、
   read-only property 與 nonfinite scalar value 都會在修改前拒絕。Legacy per-entity callback
@@ -400,7 +410,8 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   bounds 與雙面 triangle picking 取代代理選取。Portable 測試涵蓋範圍回復、幾何／座標預算、
   負縮放／旋轉 picking 及輪廓 miss；Xvfb 不同 triangle／quad 資產驗證選取、Center 縮放／旋轉、
   預覽／放開像素及單步 Undo。缺失／刪除／超限資產保留參照、顯示代理並警告。持續的每資產
-  GPU cache、material shader 與完整 Scene View 驗收仍待完成。
+  GPU cache 仍待完成；scalar opaque PBR 資產現已支援（[ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md)），
+  完整 texture／shader workflow 與 Scene View 驗收仍待完成。
 
 - ✅ Inspector 現能為單選及 mixed 多選指派匯入 OBJ mesh 資產及移除 MeshRenderer，以一個
   atomic、generation-safe Undo／Redo 操作完成。各 entity 保留自己的 material 參照；混合有無
@@ -526,8 +537,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   並於每幀重設。
 - ✅ Scene panel 現提供 Vulkan／DX12 原生 3D 代理預覽，在 UI 提交後於該 canvas 繪製有深度測試的
   地面與 live scene 節點位置代理，保留 canvas 外的控制項。X/Z 編輯概覽仍可切回。解析後的 OBJ 現以原生 batch 繪製及 triangle picking；
-  authored mesh 現使用精確 shear 矩陣；material shader 仍待完成，完整 renderer-backed
-  Scene View 驗收仍未通過。
+  authored mesh 現使用精確 shear 矩陣，scalar opaque PBR 資產現已在 Scene View 執行
+  （[ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md)）；完整 texture／shader workflow 與
+  renderer-backed Scene View 驗收仍未通過。
   代理 instance 現反映合成後的世界旋轉與縮放；保守包圍範圍先篩選候選物件，再精確點選
   旋轉盒體及位移把手，避免點到包圍範圍的空角落。
   右鍵拖曳可旋轉預覽鏡頭，中鍵拖曳可平移 X/Z 目標，Shift 加中鍵拖曳可平移目標高度，

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Nexora/Editor/MaterialImport.h"
 #include "Nexora/Editor/MeshImport.h"
 #include "Nexora/Runtime/AssetPipeline.h"
 
@@ -22,6 +23,7 @@ struct ReimportSource final {
   std::string source_hash;
   std::string artifact_hash;
   std::shared_ptr<const MeshGeometry> mesh;
+  std::shared_ptr<const MaterialAsset> material;
   std::string error;
   bool cancelled{};
   bool read_failed{};
@@ -42,9 +44,9 @@ inline std::string SourceHashHex(std::uint64_t value) {
 }
 
 // Shared staging path for indexing, synchronous authoring requests and background jobs. Ordinary
-// assets retain only a fixed read chunk and incremental hashes; OBJ parsing retains bounded source
-// bytes. Publication is a separate revision-checked authoring-thread transaction. Partial hashes
-// never escape a failed or cancelled read.
+// assets retain only a fixed read chunk and incremental hashes; OBJ/material parsing retains
+// bounded source bytes. Publication is a separate revision-checked authoring-thread transaction.
+// Partial hashes never escape a failed or cancelled read.
 inline ReimportSource ReadReimportSource(const std::filesystem::path &path, std::string type,
                                          runtime::AssetUuid asset,
                                          const std::function<bool()> &cancelled = {}) {
@@ -63,19 +65,24 @@ inline ReimportSource ReadReimportSource(const std::filesystem::path &path, std:
     result.cancelled = true;
     return result;
   }
-  // Reject known oversized OBJ sources before reading/allocating their payload.
+  const auto typed_source = type == ".obj" || type == ".nmaterial";
+  const auto source_budget =
+      type == ".nmaterial" ? kMaximumMaterialSourceBytes : kMaximumObjSourceBytes;
+  const auto budget_error = type == ".nmaterial" ? "Material source exceeds the 64 KiB limit."
+                                                 : "OBJ source exceeds the 16 MiB limit.";
+  // Reject known oversized typed sources before reading/allocating their payload.
   // The streaming guard below still handles growth and unavailable size metadata.
-  if (type == ".obj") {
+  if (typed_source) {
     std::error_code size_error;
     const auto source_size = std::filesystem::file_size(path, size_error);
-    if (!size_error && source_size > kMaximumObjSourceBytes) {
-      result.error = "OBJ source exceeds the 16 MiB limit.";
+    if (!size_error && source_size > source_budget) {
+      result.error = budget_error;
       return result;
     }
   }
   auto source_hash = std::uint64_t{1469598103934665603ULL};
   auto artifact_hash = HashSourceChunk(asset.ToString(), source_hash);
-  std::string obj_bytes;
+  std::string source_bytes;
   std::array<char, 8192> chunk{};
   while (input) {
     if (cancelled && cancelled()) {
@@ -84,15 +91,15 @@ inline ReimportSource ReadReimportSource(const std::filesystem::path &path, std:
     }
     input.read(chunk.data(), chunk.size());
     const auto count = static_cast<std::size_t>(input.gcount());
-    if (type == ".obj" && count > kMaximumObjSourceBytes - obj_bytes.size()) {
-      result.error = "OBJ source exceeds the 16 MiB limit.";
+    if (typed_source && count > source_budget - source_bytes.size()) {
+      result.error = budget_error;
       return result;
     }
     const std::string_view bytes{chunk.data(), count};
     source_hash = HashSourceChunk(bytes, source_hash);
     artifact_hash = HashSourceChunk(bytes, artifact_hash);
-    if (type == ".obj")
-      obj_bytes.append(bytes);
+    if (typed_source)
+      source_bytes.append(bytes);
   }
   if (input.bad() || !input.eof()) {
     result.error = "Asset source could not be read.";
@@ -104,7 +111,7 @@ inline ReimportSource ReadReimportSource(const std::filesystem::path &path, std:
     return result;
   }
   if (type == ".obj") {
-    auto parsed = ImportObjMesh(obj_bytes, cancelled);
+    auto parsed = ImportObjMesh(source_bytes, cancelled);
     if (parsed.cancelled) {
       result.cancelled = true;
       return result;
@@ -114,6 +121,18 @@ inline ReimportSource ReadReimportSource(const std::filesystem::path &path, std:
       return result;
     }
     result.mesh = std::make_shared<const MeshGeometry>(std::move(*parsed.geometry));
+  }
+  if (type == ".nmaterial") {
+    auto parsed = ImportMaterial(source_bytes, cancelled);
+    if (parsed.cancelled) {
+      result.cancelled = true;
+      return result;
+    }
+    if (!parsed.material) {
+      result.error = std::move(parsed.error);
+      return result;
+    }
+    result.material = std::make_shared<const MaterialAsset>(std::move(*parsed.material));
   }
   result.source_hash = SourceHashHex(source_hash);
   result.artifact_hash = SourceHashHex(artifact_hash);

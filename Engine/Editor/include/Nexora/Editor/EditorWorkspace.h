@@ -3,6 +3,7 @@
 #include "Nexora/Editor/Api.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/InspectorRotation.h"
+#include "Nexora/Editor/MaterialImport.h"
 #include "Nexora/Editor/MeshImport.h"
 #include "Nexora/Editor/PlayInputBindings.h"
 #include "Nexora/Editor/SceneAuthoring.h"
@@ -161,6 +162,8 @@ struct AssetEntry final {
   // Immutable CPU geometry for successfully imported triangulated .obj assets; owning across
   // workspace copies. GPU residency and reimport publication are separate contracts.
   std::shared_ptr<const MeshGeometry> mesh{};
+  // Owning immutable schema-1 scalar PBR data, retained across model/Undo copies.
+  std::shared_ptr<const MaterialAsset> material{};
 };
 
 class NEXORA_EDITOR_API AssetWorkspace final {
@@ -169,7 +172,8 @@ public:
   using Progress = std::function<void(std::size_t, std::size_t)>;
   // Ordinary asset sources use fixed-size binary read chunks and incremental hashes, with
   // cancellation checks between reads. Failed/cancelled entries never carry a partial artifact.
-  // OBJ parsing retains its bounded source/geometry policy; live publication is caller-owned.
+  // OBJ/material parsing retains its bounded source/payload policy; live publication is
+  // caller-owned.
   bool ImportTree(const std::filesystem::path &content_root, Cancelled cancelled = {},
                   Progress progress = {},
                   AssetIdentityMode identity_mode = AssetIdentityMode::DerivedFromPath,
