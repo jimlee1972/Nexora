@@ -1,0 +1,35 @@
+{
+  "wide": {
+    "changed_bounds": [
+      72,
+      109,
+      1280,
+      446
+    ],
+    "changed_pixels": 28144,
+    "baseline": "VIS-Bronze-Collar-Width-Linux-2026-10-08/integration/native-art/wide.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  },
+  "close": {
+    "changed_bounds": [
+      54,
+      90,
+      1280,
+      710
+    ],
+    "changed_pixels": 22029,
+    "baseline": "VIS-Bronze-Collar-Width-Linux-2026-10-08/integration/native-art/close.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  },
+  "motion": {
+    "changed_bounds": [
+      159,
+      157,
+      1280,
+      672
+    ],
+    "changed_pixels": 22639,
+    "baseline": "VIS-Bronze-Collar-Width-Linux-2026-10-08/integration/native-art/motion.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  }
+}
