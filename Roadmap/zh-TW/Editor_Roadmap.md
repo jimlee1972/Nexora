@@ -628,6 +628,12 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
+- ✅ Additive scene 的初始 dependency 現於 graph mutation 前拒絕 zero／self／missing ID，
+  並與 dependency replacement 一致地正規化重複 edge。獨立 portable 測試確認 admission
+  拒絕後保留 owned／reference descriptor 與 deterministic load order，並驗證 cycle rollback
+  及安全的反向移除。Additive tab、coordinated save-all 與完整 ED-M4 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneDependencies-Linux-2026-10-08.md)。
+
 - ✅ Autosave 寫入於碰觸檔案前套用與 recovery 相同的 64 MiB payload 上限；保留上一份有效
   journal 與已佔用的暫存路徑，替換失敗則清理本次 staging。Portable 測試涵蓋精確上限、
   超限拒絕、binary／empty payload、locale-independent header、corrupt recovery 及失敗／重試保留。

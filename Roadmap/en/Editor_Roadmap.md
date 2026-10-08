@@ -662,6 +662,12 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Initial additive-scene dependencies now reject zero, self and missing IDs before graph
+    mutation and normalize repeated edges consistently with dependency replacement. Dedicated
+    portable tests preserve owned/reference descriptors and deterministic load order after rejected
+    admission, verify cycle rollback and safe reverse-order removal. Additive tabs, coordinated
+    save-all and full ED-M4 acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneDependencies-Linux-2026-10-08.md).
   - ✅ Autosave writes enforce the same 64 MiB payload budget as recovery before touching files,
     retain last-good journals and occupied temporary paths, and clean failed replacement staging.
     Portable tests cover the exact limit, oversized rejection, binary/empty payloads, locale-independent

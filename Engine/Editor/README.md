@@ -240,9 +240,14 @@ into renderer or platform internals.
   preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
-  from references, and rejects cycles or unsafe removal atomically. Migration dry-runs never mutate
-  source text; autosave writers and readers share a 64 MiB payload limit. Oversized writes are
-  rejected before filesystem mutation, occupied temporary paths are preserved, and failed
+  from references, and rejects cycles or unsafe removal atomically. Initial dependencies must refer
+  to already admitted scenes; zero, self, missing dependencies and duplicate scene IDs reject before
+  mutation. Initial and replacement dependencies are sorted and deduplicated, preserving deterministic
+  load order and reverse-order removal after a rejected edit. Descriptors do not open documents or
+  publish files; additive tabs and coordinated multi-document save remain separate host workflows.
+  This validation changes no serialization schema, class layout or module linkage. Migration
+  dry-runs never mutate source text; autosave writers and readers share a 64 MiB payload limit.
+  Oversized writes are rejected before filesystem mutation, occupied temporary paths are preserved, and failed
   writes/replacements clean only this attempt's temporary file while retaining the destination.
   The schema-1 header uses the classic locale regardless of the process locale. Calls are
   serialized by the authoring host; concurrent writers are not supported. Bounded autosave
