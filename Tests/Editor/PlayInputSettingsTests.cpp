@@ -156,14 +156,18 @@ void Run() {
           "resolved recovery did not allow reload");
   // Metadata-directory aliases are rejected without touching their target.
   const auto metadata = base / "Metadata";
+  // Windows cannot rename a directory containing the writer's open lock file.
+  workspace = ProjectWorkspace{};
   fs::rename(root / ".nexora", metadata);
   std::error_code ec;
   fs::create_directory_symlink(metadata, root / ".nexora", ec);
   if (!ec) {
+    Require(workspace.Open(root, &error), "metadata alias fixture could not acquire writer");
     Require(!workspace.LoadPlayInputBindings(&error) &&
                 !workspace.SavePlayInputBindings({}, &error) &&
                 Read(metadata / "play-input.ini") == committed,
             "metadata alias was followed");
+    workspace = ProjectWorkspace{};
     fs::remove(root / ".nexora");
   }
   fs::rename(metadata, root / ".nexora");

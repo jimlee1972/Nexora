@@ -2973,18 +2973,18 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       ImGui::SetScrollY(0);
     }
   }
-  const auto folder =
+  const auto navigation_folder =
       browser.Breadcrumbs().empty() ? std::filesystem::path{} : browser.Breadcrumbs().back().path;
   if (filter_changed || state.content_navigation_generation != browser.ProjectGeneration() ||
       state.content_navigation_revision != browser.Revision() ||
       state.content_navigation_root != content.Root() ||
-      state.content_navigation_folder != folder) {
+      state.content_navigation_folder != navigation_folder) {
     state.content_navigation_cursor.reset();
     state.content_navigation_anchor.reset();
     state.content_navigation_generation = browser.ProjectGeneration();
     state.content_navigation_revision = browser.Revision();
     state.content_navigation_root = content.Root();
-    state.content_navigation_folder = folder;
+    state.content_navigation_folder = navigation_folder;
   }
   std::optional<std::size_t> reveal_row;
   std::optional<runtime::AssetUuid> reveal_asset;

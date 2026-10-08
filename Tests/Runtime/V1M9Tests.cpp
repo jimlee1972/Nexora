@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 
 namespace {
@@ -12,8 +13,35 @@ void Require(bool value, const char *message) {
     throw std::runtime_error(message);
 }
 
+void SyncSeekTests() {
+  using namespace nexora::runtime::presentation;
+  AnimationGraph graph;
+  Require(!graph.Synchronize(0), "unbuilt graph accepted synchronization");
+  Skeleton skeleton;
+  Require(skeleton.Build({{-1, "root"}}) && graph.SetSkeleton(std::move(skeleton)),
+          "skeleton setup failed");
+  Require(graph.AddClip({10, 1, true, {{0, {{0, {}}, {1, {2, 0, 0}}}}}}) &&
+              graph.AddClip({20, 2, true, {{0, {{0, {}}, {2, {8, 0, 0}}}}}}) &&
+              graph.AddClip({30, 1, false, {}}),
+          "graph clips rejected");
+  Require(graph.Play(10) && graph.Play(20, 1), "transition failed");
+  Require(graph.Synchronize(0.6F), "sync graph seek failed");
+  const auto pose = graph.Update(0);
+  Require(std::abs(pose.translations[0].x - 2.4F) < 1e-5F && pose.root_motion == Vec3{},
+          "seek retained crossfade or published teleport root motion");
+  for (const float invalid : {-1.0F, 2.0F, std::numeric_limits<float>::infinity(),
+                              std::numeric_limits<float>::quiet_NaN()})
+    Require(!graph.Synchronize(invalid) && graph.Update(0).translations == pose.translations,
+            "invalid seek changed graph");
+  const auto moved = graph.Update(0.1F);
+  Require(std::abs(moved.root_motion.x - 0.4F) < 1e-5F,
+          "post-seek update lost ordinary root motion");
+  Require(graph.Play(30) && !graph.Synchronize(0), "non-looping graph accepted sync seek");
+}
+
 int RunTests() {
   using namespace nexora::runtime::presentation;
+  SyncSeekTests();
   Skeleton skeleton;
   Require(!skeleton.Build({{1, "cycle"}}), "skeleton accepted a forward parent");
   Require(skeleton.Build({{-1, "root"}, {0, "hand"}}), "valid skeleton was rejected");

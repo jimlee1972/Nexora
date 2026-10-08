@@ -97,6 +97,13 @@ else()
 endif()
 
 if(NEXORA_ENABLE_PRESENTATION)
+  if(NEXORA_ENABLE_ANIMATION_V2)
+    add_executable(NexoraSyncGroupGraphTests SyncGroupGraphTests.cpp)
+    target_link_libraries(NexoraSyncGroupGraphTests PRIVATE Nexora::Runtime Nexora::Animation)
+    nexora_apply_defaults(NexoraSyncGroupGraphTests)
+    add_test(NAME animation.v2_m8_sync_group_graph COMMAND NexoraSyncGroupGraphTests)
+  endif()
+
   add_executable(NexoraV1M9Tests V1M9Tests.cpp)
   target_link_libraries(NexoraV1M9Tests PRIVATE Nexora::Runtime)
   nexora_apply_defaults(NexoraV1M9Tests)
