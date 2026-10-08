@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 水晶盆座保留石製本體，十二個既有三段式肋條使用原創舊化青銅材質。分開繪製範圍新增一個來源 batch 及一個反射 batch；位置、法線、切線、索引、材質、光源及動畫保持一致。固定原生鏡位的差異限制在肋條區域及前景反射。完整 Linux configure/build 與 110/110 測試通過（139.01 秒，core/sync validation）；凍結 Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.15 秒）。Standard 保留 62,557 頂點、142,488 索引、395 batches、48 材質及 4,041 個來源葉片 quad。來源凍結 `2b10bf3cf387b8a97f9999add83b3b1e7c4434d7`；證據：`Apps/Showcase/evidence/VIS-Basin-Bronze-Ribs-Linux-2026-10-08/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
 ✅ 六個拱廊柱面的攀附藤蔓由六條各七片葉，增為十條各十二片葉；垂直間距由 0.62 減至 0.36 世界單位。柱面位置、葉片尺寸、折面產生器、alpha 紋理、固定根部風動、材質及其他植物保持一致。新增的 468 個葉片 quad 共用原生陰影與平面反射。完整 Linux configure/build 與 110/110 測試通過（141.20 秒，core/sync validation）；凍結 Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.18 秒）。Standard 使用 62,557 頂點、142,488 索引、393 batches、48 材質及 4,041 個來源葉片 quad。來源凍結 `bdb418ce0da0f8de341857472bcaccf55bba2593`；證據：`Apps/Showcase/evidence/VIS-Column-Ivy-Density-Linux-2026-10-08/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
 
 ✅ 青銅束帶發布版本保留已接受主分支 `720dd5304ee3`，包含同步 TRS pose graph 及 Windows Editor 證據錄製工具。完整 Linux configure/build 與 110/110 測試通過（137.23 秒，core/sync validation）；Full Monolithic Shipping configure/build 通過。凍結 Showcase Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.00 秒）。三張固定原生鏡位圖與前一個束帶候選版本逐位元組一致。來源凍結 `d9a7c63086456ef93508f83f3c9c100e0075ccf0`；證據：`Apps/Showcase/evidence/VIS-Bronze-Collar-Width-Linux-2026-10-08/integration/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
