@@ -1,0 +1,20 @@
+{
+  "scope": "accepted main integration preserves fixed-shot native art",
+  "shots": {
+    "wide": {
+      "restored_exact_pixels": true,
+      "before_sha256": "b2fd0f715078af0fd707157c2974498adae62de431ac079495e84bda4e1d2b74",
+      "after_sha256": "b2fd0f715078af0fd707157c2974498adae62de431ac079495e84bda4e1d2b74"
+    },
+    "close": {
+      "restored_exact_pixels": true,
+      "before_sha256": "642512bb018ebc3a47840bbcb4e2fa3ef9165b14496a415ca4a734bc4a2e5392",
+      "after_sha256": "642512bb018ebc3a47840bbcb4e2fa3ef9165b14496a415ca4a734bc4a2e5392"
+    },
+    "motion": {
+      "restored_exact_pixels": true,
+      "before_sha256": "bec0df94169d899e290094220e15a0b64cfc5e31ed8e5200fb340e47dfb03555",
+      "after_sha256": "bec0df94169d899e290094220e15a0b64cfc5e31ed8e5200fb340e47dfb03555"
+    }
+  }
+}

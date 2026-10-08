@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 磨損地磚發布版本保留已合併的 Editor／Animation／Runtime 主分支整合。完整 Linux configure/build 與 109/109 測試通過（134.89 秒，core/sync 驗證），Full Monolithic Shipping configure/build 通過。凍結 Showcase Shipping 原生操作、風／反射／遮蔽精確還原與真正 100 秒動畫導覽通過（實際 100.88 秒）；三個固定原生鏡位的 PNG 與前一個地磚候選版本逐位元組一致。來源凍結 `da9243961d1352176349aa48f0ed22fd98924f50`；證據：`Apps/Showcase/evidence/VIS-Paving-Worn-Edges-Linux-2026-10-08/integration/`。參考圖一致性與實體目標驗收仍未完成（VIS 5/7）。
+
+✅ 共享地磚原型的倒角由 0.035 加寬至 0.07 世界單位，確定性的缺角步距由 0.006 調至 0.018，讓磨損石縫接受原生光照與接觸遮蔽。乾／濕地磚維持原本位置、材質與數量。凍結的廣角／材質／動態鏡位比較只改變第 397／406／397 列以下的畫面，保留上方主體與背景像素。完整 Linux configure/build 與 106/106 測試通過（135.57 秒，core/sync 驗證）；凍結 Shipping 原生操作、風／反射／遮蔽精確還原及真正 100 秒導覽通過（實際 100.98 秒）。來源凍結 `dd6d1bb9cb278e4f1711a33f540750b7797f10d5`；證據：`Apps/Showcase/evidence/VIS-Paving-Worn-Edges-Linux-2026-10-08/`。參考圖一致性與實體目標驗收仍未完成（VIS 5/7）。
+
 ✅ 遠景瀑布加寬六條共享水帶，左側水流可從背景拱門看見。左側水流與支撐峭壁的 XZ 位置由 (-17,-19) 調至 (-11,-24)，高度由 6.2 降至 5.5；右側維持原本位置與高度。水帶半寬由 0.05 調至 0.075、間距由 0.17 調至 0.25，保留間隙與向下流動的共享動畫時鐘。完整 Linux configure/build 與 106/106 測試通過（136.14 秒，core/sync 驗證）；凍結 Shipping 原生操作、風／反射／接觸遮蔽精確還原與真正 100 秒動畫錄影通過（實際 101.31 秒）。來源凍結 `3dff93d9ba517e6d5e3787037c52f9227b8aaf81`；證據：`Apps/Showcase/evidence/VIS-Waterfall-Framing-Linux-2026-10-07/`。參考圖一致性與實體目標驗收仍未完成（VIS 5/7）。
 
 ✅ 固定接觸遮蔽核心改用條件包覆取樣與單一迴圈計數更新，避免原生 FXC X3511；六組 Vulkan 原生 fixture 圖像與前一版逐位元組一致。整合版本保留地標柏樹構圖、32 至 64 世界單位的遠距淡出及已合併 Animation 更新。完整 Linux configure/build 與 106/106 測試通過（137.36 秒，core/sync validation）；Full Monolithic Shipping configure/build 通過。凍結的 Showcase Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.15 秒）。來源凍結 `5d566aa94aa708b1329d807c9ffaa53575b7807e`；證據：`Apps/Showcase/evidence/VIS-Screen-Space-Occlusion-Linux-2026-10-07/loop-guards/`。Windows CI 通過後才合併；預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
