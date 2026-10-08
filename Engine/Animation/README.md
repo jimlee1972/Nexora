@@ -71,8 +71,29 @@ or dispatches events. Runtime does not link Animation implicitly: a consumer exp
 selects a clip with `AnimationGraph::Play`, then passes its synchronized time to
 `AnimationGraph::Synchronize` and samples with `Update(0)`. The graph uses float times; consumers
 must convert into its valid interval (rounding to duration requires wrapping to zero). Non-looping
-clips are outside this group contract. Marker authoring/editor tools and compressed TRS graph
-integration remain future work.
+clips are outside this group contract. Marker authoring/editor tools remain future work.
+
+`SynchronizedPoseGraph` owns compressed clips and a `SyncGroup`, returning an owning local TRS
+pose plus canonical clip-clock diagnostics. All clips must share one nonzero caller-defined
+skeleton ID and joint count/order; the ID is an authoring assertion, not automatic hierarchy
+validation. `SetClips` validates before replacement, copies clip storage, and bounds aggregate
+samples to 1,048,576 as well as the group's 256-clip limit. Source objects may then be destroyed.
+Uniform frames map `[0, duration]` to `[0, FrameCount()-1]`; the last frame is the authored loop
+endpoint. Seam continuity is the caller's responsibility (normally repeat the first pose at that
+endpoint); a one-frame clip is constant. No implicit endpoint synthesis or temporal smoothing occurs.
+
+After marker synchronization, positive-weight clips sample their compressed poses. Translation
+and positive scale use a normalized weighted sum with double intermediates. Each joint's rotations
+are aligned to the current leader's quaternion hemisphere, summed by weight, and normalized
+(weighted nlerp, not multiway slerp). Clip-ID order makes accumulation independent of input order.
+Changing the leader can change the hemisphere reference for widely separated rotations; this is
+not inertialization. The existing local retargeter can consume the resulting complete TRS pose.
+Weight changes preserve clocks; all-zero weights pause. Failed clip replacement, weight change,
+or update preserves live state. Updates stage clocks and publish them only after all pose sampling
+and output allocation succeeds. Work is synchronous O(clips × joints), plus marker matching;
+clip decompression and metadata/output allocation occur each tick. These are visual local poses,
+without transform application, hierarchy evaluation, gameplay events, or root-motion extraction.
+Runtime's translation graph remains a separate consumer API; no Runtime link or C ABI is added.
 
 Objects are caller-owned, synchronous, externally synchronized, and have no threads, callbacks,
 filesystem I/O, gameplay events, root-motion authority, or transform mutation. Allocations use
@@ -87,8 +108,13 @@ move safety, parent mapping, bind-axis rotation, displacement ratios, and overfl
 fallback, stable leadership, weight switches, transactional rejection, tick partitioning, bounded
 capacity, and extreme finite clocks. `animation.v2_m8_sync_group_graph` drives two Runtime graphs
 through wrap and leader switches while checking visual poses and zero seek root motion.
-`build.animation_profiles` inspects both implementation sources
+`animation.v2_m8_synchronized_trs_graph` checks marker-driven compressed sampling, TRS blending,
+rotation hemisphere handling, input ownership/order, leadership switches, pause, failed-state
+preservation, aggregate sample budgets, finite extremes, and retarget consumption.
+`build.animation_profiles` inspects all three implementation sources
 and actual target/source graphs in six profiles. Acceptance is limited to compressed storage,
-explicit local retargeting, and portable marker synchronization. GPU skinning/sampling, motion
+explicit local retargeting, portable marker synchronization, and synchronized compressed TRS
+blending. See [TRS graph acceptance](../../Tests/Animation/pose-graph-acceptance.md).
+GPU skinning/sampling, motion
 warping, inertialization, marker authoring/editor/cook integration, and Motion Matching remain open;
 V2-M8 and overall V2 completion are not claimed. See [marker synchronization acceptance](../../Tests/Animation/sync-group-acceptance.md).

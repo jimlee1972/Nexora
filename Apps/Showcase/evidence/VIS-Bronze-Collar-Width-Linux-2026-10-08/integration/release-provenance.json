@@ -1,0 +1,119 @@
+{
+  "source_freeze": "d9a7c63086456ef93508f83f3c9c100e0075ccf0",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Editor/README.md": "200ad3aeb20dea96affe491cbb70ce55693ad13c4a3d6dcd8b76644cb1973cc3",
+    "Engine/Animation/CMakeLists.txt": "362fc1110df952735ed4c7b1fbfe6b0882f6be811d135a8d1f31e9165525bead",
+    "Engine/Animation/README.md": "36545212ea33c602b5d91139f41c9a9b22644e2a9b686b278259bf1c0580d847",
+    "Engine/Animation/include/Nexora/Animation/PoseGraph.h": "c199d1b1864b991c043fd4fa06b747896e153a907ac44af78d8938cc2ca947bd",
+    "Engine/Animation/src/PoseGraph.cpp": "77f0f2eac0d216d44a0127d4991a15502fe4f757ccf0c9ee6f7dd42ee1ed4d63",
+    "Engine/PoseSearch/README.md": "91d15f469f906ed61886a7cebe608fb9e7b00d358f9acf3df9c0bba72cedf0c6",
+    "Roadmap/en/Cross-platform_3D_Engine_V2_AI_Implementation_Technology_and_System_Plan_v1_2.md": "6ec018ad421e78a8f74647517495ab57fca4e65211ae579a966d2b33f612eccc",
+    "Roadmap/en/Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md": "33f439fa3a28c9e440a72d50ca25adc4ca4c7a17070a48c79d340a03da698ac5",
+    "Roadmap/en/Editor_ImGui_Integration_Plan.md": "1acf1446dc949c317caf3ebff7582c047cd1ca776936bec5abf4e735ce9d094c",
+    "Roadmap/zh-TW/Editor_ImGui_Integration_Plan.md": "c89be66cdb8593c0f40cf04323442fb85649a0dbbececa91c5ececc291018f3f",
+    "Roadmap/zh-TW/\u8de8\u5e73\u53f03D_Engine_V2_AI\u65bd\u5de5\u6280\u8853\u8207\u7cfb\u7d71\u898f\u5283_v1_2.md": "9a02dde5937895fb666a6d5b1430dabd102e69b28a30786a9afa925e0e30f261",
+    "Roadmap/zh-TW/\u8de8\u5e73\u53f03D_Engine_V2_\u5b8c\u6574\u898f\u5283\u66f8_v1_4.md": "a4890a7349f41d77d57c3ce5a0c282ac5c68949b881f254ed24cb62ae3437839",
+    "Tests/Animation/CMakeLists.txt": "c72b9cc01def913dbc0c23f2865fd2f45b5743221e46f6f3321ad5ee2c8183bd",
+    "Tests/Animation/PoseGraphTests.cpp": "143dd6258a55413597813b997ff981a4b9903aa18ce094c30904e39560d2a3a6",
+    "Tests/Animation/pose-graph-acceptance.md": "e0def77851499c7868ddc06510af640129eadfdc3bd146c0aaaf3bab72a176ab",
+    "Tools/Build/VerifyAnimationProfiles.py": "925c45f61538bdf7b7ed421d76c2970468c9df4835307ec8dabc70f79e9ea454",
+    "Tools/Editor/RecordEditorWindowsEvidence.ps1": "a084ea5ec5d8699b4fd7897f45de73429246c81b36bf90303f451f830a8c01e0"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/collar-integrated-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "d9a7c6308645",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.00177582196193,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.800000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "6a13d05e3fb20eb096e2dc1602af0276682783c331bf7a2aa08e0a13a85ca2a0",
+    "video_sha256": "2ecbfe137d3042fa101b9b4b3476617649195fef9e376f81be6de430512b743f",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "4d4ff898980474430d9daa3591284494f8425f169ee29ce0581e78d8430457d0",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        246,
+        623,
+        1144,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "screen_space_occlusion": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  },
+  "environment_payload_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+    "Content/Showcase/Courtyard/Hero/Source/ivy-single-leaf.png": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "8818167fa713fc545fbfb6edcd717f476e9e1e38941989385a37e941fe14bea9",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "656eee2adaf52dace8d8555291c9092c13d8ef0aa304386b0d40dfdde8734a18"
+  },
+  "scene_counts": {
+    "geometry_vertex_count": 60685,
+    "geometry_index_count": 139680,
+    "geometry_batch_count": 393,
+    "geometry_material_count": 48,
+    "foliage_quad_count": 3573
+  },
+  "device_identity": {
+    "name": "llvmpipe (LLVM 19.1.7, 256 bits)",
+    "vendor_id": 65541,
+    "device_id": 0,
+    "driver_version": "1",
+    "driver_version_format": "vulkan.raw"
+  }
+}

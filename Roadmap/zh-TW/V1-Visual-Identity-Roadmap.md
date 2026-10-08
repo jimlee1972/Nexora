@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 青銅束帶發布版本保留已接受主分支 `720dd5304ee3`，包含同步 TRS pose graph 及 Windows Editor 證據錄製工具。完整 Linux configure/build 與 110/110 測試通過（137.23 秒，core/sync validation）；Full Monolithic Shipping configure/build 通過。凍結 Showcase Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.00 秒）。三張固定原生鏡位圖與前一個束帶候選版本逐位元組一致。來源凍結 `d9a7c63086456ef93508f83f3c9c100e0075ccf0`；證據：`Apps/Showcase/evidence/VIS-Bronze-Collar-Width-Linux-2026-10-08/integration/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
 ✅ 四個既有青銅束帶的角寬由 0.07 增至 0.15 弧度。共用環形楔塊產生器重新計算位置與變換後法線；徑向／深度尺寸、鉚釘、符文、材質、光源、幾何數量、裝置旋轉及反射保持一致。完整 Linux configure/build 與 109/109 測試通過（137.21 秒，core/sync validation）；凍結 Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.04 秒）。首次獨立原生視窗在截圖前建立失敗；診斷紀錄保留，同一份凍結程式重跑完整驗收通過。來源凍結 `d33e87094a673e74973ec886462ac6fcc9c39691`；證據：`Apps/Showcase/evidence/VIS-Bronze-Collar-Width-Linux-2026-10-08/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
 
 ✅ 既有陶器由前景 XZ (-3.5,2.5)／(3.5,2.5) 移至 (-4.7,0)／(4.0,0)，並上抬 0.13 世界單位至地磚表面。器身、把手、飾帶與圖案共享平移；法線、切線、幾何數量、材質與附近植被維持原值。完整 Linux configure/build 與 109/109 測試通過（138.89 秒，core/sync 驗證）；凍結 Shipping 原生操作、風／反射／遮蔽精確還原與真正 100 秒動畫導覽通過（實際 101.39 秒）。來源凍結 `da703f33fa6c3a9320dbf607b061c518831a9859`；證據：`Apps/Showcase/evidence/VIS-Vessel-Framing-Linux-2026-10-08/`。參考圖一致性與實體目標驗收仍未完成（VIS 5/7）。

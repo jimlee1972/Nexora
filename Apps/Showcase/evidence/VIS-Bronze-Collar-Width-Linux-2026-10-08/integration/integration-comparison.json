@@ -1,0 +1,14 @@
+{
+  "wide": {
+    "exact_bytes": true,
+    "sha256": "31484cf1560705e446735992a5879e2b996bb980cd4dbb5941355b655fd8439c"
+  },
+  "close": {
+    "exact_bytes": true,
+    "sha256": "0f74c09e4accc86b1917450848aee50617fdcccb53f95bad3a27e4fbabcb3223"
+  },
+  "motion": {
+    "exact_bytes": true,
+    "sha256": "0854439d233357d7d17a8405e117a4295d41d9bce8ff9b001f28e4b25a6e1f6d"
+  }
+}
