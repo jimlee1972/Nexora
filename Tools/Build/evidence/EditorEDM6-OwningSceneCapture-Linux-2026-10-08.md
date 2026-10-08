@@ -46,3 +46,21 @@ Logs are task-local under `/tmp/nexora-ed-beads-p1p7a0jw/scene-capture-{configur
 - `Tests/Editor/SceneRuntimeCaptureTests.cpp`: `64e9f20fac36ef1565dd90ebd2827530c47024bb3cf471c95e7ae5cd7a27f691`
 - `Tests/Runtime/CMakeLists.txt`: `d30fe168039d3cdae4d551afb46c547c1ad86cd052fbc98c86777629dba90505`
 - `Tests/Editor/CMakeLists.txt`: `b7e6732edc6c93497aeddc250cf68f5b10d5b00f7f2be5414f365f7b1d3d589a`
+
+## Integration with scalar material assets
+
+Integrated main `8c4ee4e4397588104e2c11f777433aa226811885` in commit `0752f5f3`.
+The real conflict was only adjacent appended Editor test registrations; both targets and all material tests were preserved. Capture metadata retains the reserved material binding as complete opaque bytes. Bounded serializer/capture method semantics and tests were unchanged.
+
+Repeated required Development configure, 123-step build and full suite: **92/92 passed on the first integration run, zero skips, 28.66 seconds**. Shipping configure and 5-step incremental Monolithic build passed. Logs use `scene-capture-integration-{configure,build,tests,shipping-configure,shipping-build}.log` under the same external task directory. Local default graphical shell/Slang remain OFF; material PR owns its distinct real GUI/native evidence.
+
+Integrated exact source SHA-256 (prior hashes describe the original tested base):
+
+- `Engine/Runtime/include/Nexora/Runtime/Runtime.h`: `ddd3e068d3e87fd193ace1ae1efbcc9e87a3c0b9363a78612585fe5d61e1f8b4`
+- `Engine/Runtime/src/Runtime.cpp`: `93efca4f77e2f7f3485f228f5a13f629e3b9d8d342bbb8b59a55743fa449ae65`
+- `Engine/Editor/include/Nexora/Editor/EditorWorkspace.h`: `50649225760ef552fad5f114d10a80d2039226699dd668f1a6047e6517954835`
+- `Engine/Editor/src/EditorWorkspace.cpp`: `1ed9a0141105fe403a779ed34c145ed753de21d23300ddc3d412a44dbc64e081`
+- `Tests/Runtime/BoundedSceneSaveTests.cpp`: `b35dffcc1359af6e29ee289525576a9e74de5b356f67f67b84ff2b2e61fa66e9`
+- `Tests/Editor/SceneRuntimeCaptureTests.cpp`: `64e9f20fac36ef1565dd90ebd2827530c47024bb3cf471c95e7ae5cd7a27f691`
+- `Tests/Runtime/CMakeLists.txt`: `d30fe168039d3cdae4d551afb46c547c1ad86cd052fbc98c86777629dba90505`
+- `Tests/Editor/CMakeLists.txt`: `df96cdee6ee776219c78937a064b9f9e9a453b44b915fad465df461d33cf333e`
