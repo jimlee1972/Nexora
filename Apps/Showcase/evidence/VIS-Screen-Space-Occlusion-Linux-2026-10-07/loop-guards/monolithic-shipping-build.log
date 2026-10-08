@@ -1,0 +1,12 @@
+[1/12] Building CXX object Engine/Foundation/CMakeFiles/NexoraFoundation.dir/src/BuildInfo.cpp.o
+[2/12] Linking CXX static library Engine/Foundation/libNexoraFoundation.a
+[3/12] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/Presentation.cpp.o
+[4/12] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/RenderSurface.cpp.o
+[5/12] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/VulkanSurface.cpp.o
+[6/12] Linking CXX static library Engine/Presentation/libNexoraPresentation.a
+[7/12] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/main.cpp.o
+[8/12] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/ShowcaseRooms.cpp.o
+[9/12] Linking CXX executable Samples/Api/NexoraApiFoundationSample
+[10/12] Linking CXX executable Apps/Host/NexoraHost
+[11/12] Linking CXX executable Apps/DedicatedServer/NexoraDedicatedServer
+[12/12] Linking CXX executable Apps/Showcase/NexoraShowcase

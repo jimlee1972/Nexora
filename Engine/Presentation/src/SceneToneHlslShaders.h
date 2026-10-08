@@ -191,176 +191,174 @@ float3 contactPosition_0(float2 uv_1, float distance_0)
 float contactVisibility_0(float2 uv_2, float distance_1)
 {
 
-#line 54
+#line 53
+    bool _S8;
+
     if(distance_1 <= 0.0f)
     {
 
-#line 54
-        return 1.0f;
+#line 55
+        _S8 = true;
+
+#line 55
+    }
+    else
+    {
+
+#line 55
+        _S8 = distance_1 >= 64.0f;
+
+#line 55
     }
 
 #line 55
+    if(_S8)
+    {
+
+#line 55
+        return 1.0f;
+    }
+
+#line 56
     float3 center_1 = contactPosition_0(uv_2, distance_1);
     float2 pixel_1 = tone_0.antiAlias_0.xy;
-    float _S8 = pixel_1.x;
-
-#line 57
-    float2 _S9 = float2(_S8, 0.0f);
-
-#line 57
-    float2 _S10 = uv_2 - _S9;
-
-#line 57
-    float3 left_0 = contactPosition_0(_S10, hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, _S10, 0.0f).w);
-    float2 _S11 = uv_2 + _S9;
+    float _S9 = pixel_1.x;
 
 #line 58
-    float3 right_0 = contactPosition_0(_S11, hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, _S11, 0.0f).w);
-    float _S12 = pixel_1.y;
+    float2 _S10 = float2(_S9, 0.0f);
+
+#line 58
+    float2 _S11 = uv_2 - _S10;
+
+#line 58
+    float3 left_0 = contactPosition_0(_S11, hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, _S11, 0.0f).w);
+    float2 _S12 = uv_2 + _S10;
 
 #line 59
-    float2 _S13 = float2(0.0f, _S12);
-
-#line 59
-    float2 _S14 = uv_2 - _S13;
-
-#line 59
-    float3 up_0 = contactPosition_0(_S14, hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, _S14, 0.0f).w);
-    float2 _S15 = uv_2 + _S13;
+    float3 right_0 = contactPosition_0(_S12, hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, _S12, 0.0f).w);
+    float _S13 = pixel_1.y;
 
 #line 60
-    float3 down_0 = contactPosition_0(_S15, hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, _S15, 0.0f).w);
-    float _S16 = center_1.z;
+    float2 _S14 = float2(0.0f, _S13);
+
+#line 60
+    float2 _S15 = uv_2 - _S14;
+
+#line 60
+    float3 up_0 = contactPosition_0(_S15, hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, _S15, 0.0f).w);
+    float2 _S16 = uv_2 + _S14;
 
 #line 61
+    float3 down_0 = contactPosition_0(_S16, hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, _S16, 0.0f).w);
+    float _S17 = center_1.z;
+
+#line 62
     float3 dx_0;
 
-#line 61
-    if((abs(left_0.z - _S16)) < (abs(right_0.z - _S16)))
+#line 62
+    if((abs(left_0.z - _S17)) < (abs(right_0.z - _S17)))
     {
 
-#line 61
+#line 62
         dx_0 = center_1 - left_0;
 
-#line 61
+#line 62
     }
     else
     {
 
-#line 61
+#line 62
         dx_0 = right_0 - center_1;
 
-#line 61
+#line 62
     }
 
-#line 61
+#line 62
     float3 dy_0;
-    if((abs(up_0.z - _S16)) < (abs(down_0.z - _S16)))
+    if((abs(up_0.z - _S17)) < (abs(down_0.z - _S17)))
     {
 
-#line 62
+#line 63
         dy_0 = center_1 - up_0;
 
-#line 62
+#line 63
     }
     else
     {
 
-#line 62
+#line 63
         dy_0 = down_0 - center_1;
 
-#line 62
+#line 63
     }
     float3 normal_0 = cross(dx_0, dy_0);
     if((dot(normal_0, normal_0)) < 1.00000001335143196e-10f)
     {
 
-#line 64
+#line 65
         return 1.0f;
     }
 
-#line 65
+#line 66
     float3 normal_1 = normalize(normal_0);
 
-#line 65
+#line 66
     float3 normal_2;
     if((dot(normal_1, - center_1)) < 0.0f)
     {
 
-#line 66
+#line 67
         normal_2 = - normal_1;
 
-#line 66
+#line 67
     }
     else
     {
 
-#line 66
+#line 67
         normal_2 = normal_1;
 
-#line 66
+#line 67
     }
-    float2  _S17[int(6)] = { float2(1.0f, 0.0f), float2(0.5f, 0.86602497100830078f), float2(-0.5f, 0.86602497100830078f), float2(-1.0f, 0.0f), float2(-0.5f, -0.86602497100830078f), float2(0.5f, -0.86602497100830078f) };
+    float2  _S18[int(6)] = { float2(1.0f, 0.0f), float2(0.5f, 0.86602497100830078f), float2(-0.5f, 0.86602497100830078f), float2(-1.0f, 0.0f), float2(-0.5f, -0.86602497100830078f), float2(0.5f, -0.86602497100830078f) };
 
     float radius_0 = tone_0.occlusion_0.y;
 
-    float2 _S18 = min(float2(_S8 / _S12, 1.0f) * radius_0 / (2.0f * max(abs(_S16), 0.10000000149011612f) * tone_0.occlusion_0.w), pixel_1 * 32.0f);
+    float2 _S19 = min(float2(_S9 / _S13, 1.0f) * radius_0 / (2.0f * max(abs(_S17), 0.10000000149011612f) * tone_0.occlusion_0.w), pixel_1 * 32.0f);
 
-#line 71
+#line 72
     uint i_0 = 0U;
 
-#line 71
+#line 72
     float blocked_0 = 0.0f;
 
     [unroll]
     for(;;)
     {
 
-#line 73
+#line 74
         if(i_0 < 12U)
         {
         }
         else
         {
 
-#line 73
+#line 74
             break;
         }
 
-#line 74
-        float2 _S19 = _S17[i_0 % 6U] * _S18;
+#line 75
+        float2 _S20 = _S18[i_0 % 6U] * _S19;
 
-#line 74
-        float _S20;
+#line 75
+        float _S21;
 
-#line 74
+#line 75
         if(i_0 < 6U)
         {
 
-#line 74
-            _S20 = 0.5f;
-
-#line 74
-        }
-        else
-        {
-
-#line 74
-            _S20 = 1.0f;
-
-#line 74
-        }
-
-#line 74
-        float2 sampleUv_0 = uv_2 + _S19 * _S20;
-
-#line 74
-        bool _S21;
-        if(any(sampleUv_0 <= 0.0f))
-        {
-
 #line 75
-            _S21 = true;
+            _S21 = 0.5f;
 
 #line 75
         }
@@ -368,79 +366,117 @@ float contactVisibility_0(float2 uv_2, float distance_1)
         {
 
 #line 75
-            _S21 = any(sampleUv_0 >= 1.0f);
+            _S21 = 1.0f;
 
 #line 75
         }
 
 #line 75
-        if(_S21)
-        {
+        float2 sampleUv_0 = uv_2 + _S20 * _S21;
 
-#line 75
-            i_0 = i_0 + 1U;
-
-#line 73
-            continue;
-        }
-
-        float tapDistance_0 = hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, sampleUv_0, 0.0f).w;
-        if(tapDistance_0 <= 0.0f)
+        if(all(sampleUv_0 > 0.0f))
         {
 
 #line 77
-            i_0 = i_0 + 1U;
+            _S8 = all(sampleUv_0 < 1.0f);
 
-#line 73
-            continue;
-        }
-
-
-
-        float3 delta_0 = contactPosition_0(sampleUv_0, tapDistance_0) - center_1;
-        float lengthSquared_0 = dot(delta_0, delta_0);
-
-#line 79
-        bool _S22;
-        if(lengthSquared_0 <= 9.99999997475242708e-07f)
-        {
-
-#line 80
-            _S22 = true;
-
-#line 80
+#line 77
         }
         else
         {
 
-#line 80
-            _S22 = lengthSquared_0 >= (radius_0 * radius_0);
+#line 77
+            _S8 = false;
 
-#line 80
+#line 77
         }
 
-#line 80
-        if(_S22)
+#line 77
+        float blocked_1;
+
+#line 77
+        if(_S8)
         {
 
-#line 80
-            i_0 = i_0 + 1U;
+#line 78
+            float tapDistance_0 = hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, sampleUv_0, 0.0f).w;
+            if(tapDistance_0 > 0.0f)
+            {
 
-#line 73
-            continue;
+#line 80
+                float3 delta_0 = contactPosition_0(sampleUv_0, tapDistance_0) - center_1;
+                float lengthSquared_0 = dot(delta_0, delta_0);
+
+#line 81
+                bool _S22;
+                if(lengthSquared_0 > 9.99999997475242708e-07f)
+                {
+
+#line 82
+                    _S22 = lengthSquared_0 < (radius_0 * radius_0);
+
+#line 82
+                }
+                else
+                {
+
+#line 82
+                    _S22 = false;
+
+#line 82
+                }
+
+#line 82
+                if(_S22)
+                {
+
+#line 82
+                    blocked_1 = blocked_0 + saturate((dot(normal_2, delta_0) - tone_0.occlusion_0.z) / sqrt(lengthSquared_0)) * (1.0f - lengthSquared_0 / (radius_0 * radius_0));
+
+#line 82
+                }
+                else
+                {
+
+#line 82
+                    blocked_1 = blocked_0;
+
+#line 82
+                }
+
+#line 79
+            }
+            else
+            {
+
+#line 79
+                blocked_1 = blocked_0;
+
+#line 79
+            }
+
+#line 77
+        }
+        else
+        {
+
+#line 77
+            blocked_1 = blocked_0;
+
+#line 77
         }
 
-#line 73
-        blocked_0 = blocked_0 + saturate((dot(normal_2, delta_0) - tone_0.occlusion_0.z) / sqrt(lengthSquared_0)) * (1.0f - lengthSquared_0 / (radius_0 * radius_0));
-
-#line 73
+#line 74
         i_0 = i_0 + 1U;
 
-#line 73
+#line 74
+        blocked_0 = blocked_1;
+
+#line 74
     }
 
-#line 84
-    return saturate(1.0f - tone_0.occlusion_0.x * blocked_0 / 6.0f);
+#line 89
+    return saturate(1.0f - tone_0.occlusion_0.x * (1.0f - smoothstep(32.0f, 64.0f, distance_1)) * blocked_0 / 6.0f);
 }
 
 
@@ -500,140 +536,155 @@ struct ToneVertex_0
 };
 
 
-#line 87
+#line 92
 float4 toneFragmentMain(ToneVertex_0 input_0) : SV_TARGET
 {
 
-#line 88
+#line 93
     float4 _S26 = hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, input_0.uv_3, 0.0f);
 
-#line 88
+#line 93
     float3 hdr_1;
     if((tone_0.antiAlias_0.z) > 0.5f)
     {
 
-#line 89
+#line 94
         hdr_1 = filterEdges_0(input_0.uv_3, _S26.xyz);
 
-#line 89
+#line 94
     }
     else
     {
 
-#line 89
+#line 94
         hdr_1 = _S26.xyz;
 
-#line 89
+#line 94
     }
 
-#line 89
+#line 94
     bool _S27;
     if((tone_0.focus_0.y) > 0.0f)
     {
 
-#line 90
+#line 95
         _S27 = (_S26.w) > 0.0f;
 
-#line 90
+#line 95
     }
     else
     {
 
-#line 90
+#line 95
         _S27 = false;
 
-#line 90
+#line 95
     }
 
-#line 90
+#line 95
     float3 color_4;
 
-#line 90
+#line 95
     uint i_1;
 
-#line 90
+#line 95
     if(_S27)
     {
 
-#line 91
+#line 96
         float _S28 = _S26.w;
 
-#line 91
+#line 96
         float coc_0 = saturate(abs(_S28 - tone_0.focus_0.x) / max(_S28, 0.00100000004749745f) * tone_0.focus_0.y);
         if(coc_0 > 0.05000000074505806f)
         {
 
-#line 93
+#line 98
             float2  _S29[int(12)] = { float2(-1.0f, 0.0f), float2(1.0f, 0.0f), float2(0.0f, -1.0f), float2(0.0f, 1.0f), float2(-0.7070000171661377f, -0.7070000171661377f), float2(0.7070000171661377f, -0.7070000171661377f), float2(-0.7070000171661377f, 0.7070000171661377f), float2(0.7070000171661377f, 0.7070000171661377f), float2(-0.34999999403953552f, -0.34999999403953552f), float2(0.34999999403953552f, -0.34999999403953552f), float2(-0.34999999403953552f, 0.34999999403953552f), float2(0.34999999403953552f, 0.34999999403953552f) };
 
-#line 93
+#line 98
             i_1 = 0U;
 
-#line 93
+#line 98
             color_4 = hdr_1;
 
-#line 93
+#line 98
             float weights_0 = 1.0f;
 
-#line 98
+#line 103
             [unroll]
             for(;;)
             {
 
-#line 98
+#line 103
                 if(i_1 < 12U)
                 {
                 }
                 else
                 {
 
-#line 98
+#line 103
                     break;
                 }
 
-#line 99
+#line 104
                 float4 _S30 = hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, input_0.uv_3 + _S29[i_1] * tone_0.focus_0.zw * coc_0, 0.0f);
 
                 float weight_0 = saturate(1.0f - abs(_S30.w - _S28) / max(1.0f, _S28 * 0.25f));
                 float3 sum_0 = color_4 + _S30.xyz * weight_0;
                 float weights_1 = weights_0 + weight_0;
 
-#line 98
+#line 103
                 i_1 = i_1 + 1U;
 
-#line 98
+#line 103
                 color_4 = sum_0;
 
-#line 98
+#line 103
                 weights_0 = weights_1;
 
-#line 98
+#line 103
             }
 
-#line 98
+#line 103
             hdr_1 = color_4 / weights_0;
 
-#line 92
+#line 97
+        }
+        else
+        {
+
+#line 97
         }
 
-#line 90
+#line 95
+    }
+    else
+    {
+
+#line 95
     }
 
-#line 108
+#line 113
     if((tone_0.occlusion_0.x) > 0.0f)
     {
 
-#line 108
+#line 113
         hdr_1 = hdr_1 * lerp(contactVisibility_0(input_0.uv_3, _S26.w), 1.0f, saturate(max(_S26.x, max(_S26.y, _S26.z)) - 1.0f));
 
-#line 108
+#line 113
+    }
+    else
+    {
+
+#line 113
     }
 
-#line 114
+#line 119
     if((tone_0.bloom_0.x) > 0.0f)
     {
 
-#line 115
+#line 120
         float2 _S31 = tone_0.bloom_0.zw;
 
         float2  _S32[int(12)] = { float2(-1.0f, 0.0f), float2(1.0f, 0.0f), float2(0.0f, -1.0f), float2(0.0f, 1.0f), float2(-0.5f, -0.5f), float2(0.5f, -0.5f), float2(-0.5f, 0.5f), float2(0.5f, 0.5f), float2(-0.25f, 0.0f), float2(0.25f, 0.0f), float2(0.0f, -0.25f), float2(0.0f, 0.25f) };
@@ -641,61 +692,66 @@ float4 toneFragmentMain(ToneVertex_0 input_0) : SV_TARGET
 
         float3 _S33 = float3(0.0f, 0.0f, 0.0f);
 
-#line 120
+#line 125
         i_1 = 0U;
 
-#line 120
+#line 125
         color_4 = _S33;
         [unroll]
         for(;;)
         {
 
-#line 121
+#line 126
             if(i_1 < 12U)
             {
             }
             else
             {
 
-#line 121
+#line 126
                 break;
             }
 
-#line 122
+#line 127
             float3 glow_0 = color_4 + NexoraExtractBloom_0(hdrScene_texture_0.SampleLevel(hdrScene_sampler_0, input_0.uv_3 + _S32[i_1] * _S31, 0.0f).xyz, tone_0.bloom_0.y) / 12.0f;
 
-#line 121
+#line 126
             i_1 = i_1 + 1U;
 
-#line 121
+#line 126
             color_4 = glow_0;
 
-#line 121
+#line 126
         }
 
-#line 121
+#line 126
         hdr_1 = NexoraApplyBloom_0(hdr_1, color_4, tone_0.bloom_0.x);
 
-#line 114
-    }
-
-#line 127
-    float3 color_5 = saturate(NexoraApplyColorGrade_0(NexoraAcesApproximate_0(hdr_1 * tone_0.settings_0.x), float3((int3)int(0)), float3((int3)int(1)), tone_0.settings_0.z, tone_0.settings_0.w));
-    if((tone_0.settings_0.y) > 0.5f)
-    {
-
-#line 128
-        color_4 = NexoraLinearToSrgb_0(color_5);
-
-#line 128
+#line 119
     }
     else
     {
 
-#line 128
+#line 119
+    }
+
+#line 132
+    float3 color_5 = saturate(NexoraApplyColorGrade_0(NexoraAcesApproximate_0(hdr_1 * tone_0.settings_0.x), float3((int3)int(0)), float3((int3)int(1)), tone_0.settings_0.z, tone_0.settings_0.w));
+    if((tone_0.settings_0.y) > 0.5f)
+    {
+
+#line 133
+        color_4 = NexoraLinearToSrgb_0(color_5);
+
+#line 133
+    }
+    else
+    {
+
+#line 133
         color_4 = color_5;
 
-#line 128
+#line 133
     }
     return float4(color_4, 1.0f);
 }
