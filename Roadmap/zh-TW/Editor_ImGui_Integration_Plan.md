@@ -367,6 +367,8 @@ Editor display shortcut 採用與 selector 相同的 100 ms native key transitio
 5. 移除 production CPU compositor/dead scaffold、更新 contract README、同步雙語 roadmap、review final
    diff，最後才更新 ED-M0 狀態。只有 panel 存在不構成驗收。
 
+Windows 項目的證據用 `Tools/Editor/RecordEditorWindowsEvidence.ps1` 記錄（smoke 自動執行；DPI/IME 項目由操作者回報，預設為 `blocked`）。此腳本尚未在 Windows 主機上實際執行過。
+
 **Exit gate：**每個必要 evidence row 都有 link/result，沒有任何 required row 寫「assumed」。
 
 ## 5. 技術問題與解法登錄表

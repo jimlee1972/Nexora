@@ -403,6 +403,8 @@ trickling and GPU frames can observe the original press/release sequence.
    both roadmap languages, inspect the final diff, and only then update ED-M0 status. Panel
    existence alone is not acceptance.
 
+Evidence for the Windows rows is recorded with `Tools/Editor/RecordEditorWindowsEvidence.ps1` (smoke automated; DPI/IME rows operator-attested, default `blocked`). The script has not yet been run on a Windows host.
+
 **Exit gate:** every required evidence row has a link/result and no required row says "assumed".
 
 ## 5. Technical problem and solution register
