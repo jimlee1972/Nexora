@@ -1,0 +1,103 @@
+{
+  "source_freeze": "2b10bf3cf387b8a97f9999add83b3b1e7c4434d7",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/ShowcaseRooms.cpp": "5e3a07c57e1f7736a7880aab0e992b9afb85eb9cf271f8becd0aefe1236099a6"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/basin-bronze-ribs-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "2b10bf3cf387",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.1502889150288,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "100.733333"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "a233c7b549f8ac22dc3f832073bca8e0578a3dbc5ad4b7e200b7217f7b4eb890",
+    "video_sha256": "9b2216e223499df4eb4b837c147aa17ae08fc9fcbce92d9ab647ce9c0f9d0a98",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "2a1edd311706fe17ab328dc248ba2810d8f31e544ffda1e34d0f6756c605b6f2",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        246,
+        623,
+        1144,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "screen_space_occlusion": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  },
+  "environment_payload_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+    "Content/Showcase/Courtyard/Hero/Source/ivy-single-leaf.png": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "8818167fa713fc545fbfb6edcd717f476e9e1e38941989385a37e941fe14bea9",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "656eee2adaf52dace8d8555291c9092c13d8ef0aa304386b0d40dfdde8734a18"
+  },
+  "scene_counts": {
+    "geometry_vertex_count": 62557,
+    "geometry_index_count": 142488,
+    "geometry_batch_count": 395,
+    "geometry_material_count": 48,
+    "foliage_quad_count": 4041
+  },
+  "device_identity": {
+    "name": "llvmpipe (LLVM 19.1.7, 256 bits)",
+    "vendor_id": 65541,
+    "device_id": 0,
+    "driver_version": "1",
+    "driver_version_format": "vulkan.raw"
+  }
+}

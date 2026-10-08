@@ -1,0 +1,35 @@
+{
+  "wide": {
+    "changed_bounds": [
+      673,
+      391,
+      825,
+      720
+    ],
+    "changed_pixels": 8625,
+    "baseline": "VIS-Column-Ivy-Density-Linux-2026-10-08/native-art/wide.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  },
+  "close": {
+    "changed_bounds": [
+      695,
+      387,
+      846,
+      720
+    ],
+    "changed_pixels": 5787,
+    "baseline": "VIS-Column-Ivy-Density-Linux-2026-10-08/native-art/close.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  },
+  "motion": {
+    "changed_bounds": [
+      667,
+      384,
+      789,
+      655
+    ],
+    "changed_pixels": 6178,
+    "baseline": "VIS-Column-Ivy-Density-Linux-2026-10-08/native-art/motion.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  }
+}

@@ -1107,6 +1107,7 @@ struct RoomSession::State final {
                                                      {0.62F, 2.02F},
                                                      {0, 1.91F}}};
     Lathe({0, 0, 0.45F}, basin);
+    finish(0);
     for (unsigned rib = 0; rib < 12; ++rib) {
       const float angle = rib * 2 * math::kPi / 12;
       const auto point = [&](float r, float y) {
@@ -1116,7 +1117,7 @@ struct RoomSession::State final {
       Segment(point(0.39F, 1.3F), point(0.47F, 1.72F), 0.04F);
       Segment(point(0.47F, 1.72F), point(0.73F, 1.91F), 0.045F);
     }
-    finish(0);
+    finish(1);
     // Original shallow stone relief around the middle pedestal tier.
     for (unsigned ornament = 0; ornament < 16; ++ornament) {
       const float angle = 2 * math::kPi * ornament / 16;
@@ -1754,11 +1755,11 @@ struct RoomSession::State final {
     // keep the upper attachment fixed while the existing shared wind bends each leaf.
     for (const float x : {-9.0F, 7.5F})
       for (const float z : {-7.0F, -1.0F, 5.0F})
-        for (unsigned vine = 0; vine < 6; ++vine)
-          for (unsigned leaf = 0; leaf < 7; ++leaf) {
-            const float angle = vine * 2 * math::kPi / 6 + 0.13F * std::sin(leaf * 1.7F + vine);
+        for (unsigned vine = 0; vine < 10; ++vine)
+          for (unsigned leaf = 0; leaf < 12; ++leaf) {
+            const float angle = vine * 2 * math::kPi / 10 + 0.13F * std::sin(leaf * 1.7F + vine);
             const float height = 0.28F + ((vine + leaf) % 3) * 0.03F;
-            LeafQuad({x + 0.59F * std::cos(angle), 5.4F - leaf * 0.62F - height,
+            LeafQuad({x + 0.59F * std::cos(angle), 5.4F - leaf * 0.36F - height,
                       z + 0.59F * std::sin(angle)},
                      0.17F, height, angle - math::kPi * 0.5F);
             for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
