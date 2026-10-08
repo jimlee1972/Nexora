@@ -616,6 +616,14 @@ without truncating/removing them, and replaces with native Windows replace or PO
 never deletes the original destination to retry. This checks paths at operation time; it does not
 lock against concurrent external filesystem edits.
 
+`SceneDocument::Save(path, written_bytes)` clears a supplied output string before serialization and
+IO. Only after successful atomic replacement does it move the exact serialized bytes, including
+opaque components and authored Euler hints, into that caller-owned string. Failure leaves it empty
+and preserves document dirty state, selection, generation and history. The original `Save(path)`
+delegates to the same serializer without requesting bytes. All calls remain serialized on the
+authoring thread; the returned bytes describe the Editor's publication even if an external writer
+subsequently changes the file.
+
 Ordinary Save and unconfirmed Save As to the current association compare the actual source bytes
 against an owning disk baseline. File size or restored modification time cannot hide a changed
 revision. Bind/Open/successful Save establish the baseline; failed Bind/Open leave the live good
@@ -634,13 +642,17 @@ Read-only access and pending workspace recovery are rechecked before Save, inclu
 Existing `SaveAs(..., true)` without a confirmation remains an explicit caller-owned destructive
 replacement policy; it is not suitable for delayed interactive approval. Cancel does not discard
 either version. Unreadable/nonregular/oversized destinations fail closed. A confirmed source that
-disappears also rejects. A successful scene write whose baseline cannot be reread is reported as
-successful persistence with ordinary Save protected until Open/Save As.
+disappears also rejects. Every successful scene write establishes its baseline directly from the
+exact bytes published by `SceneDocument::Save`, never from a post-save reread that could adopt
+another writer's revision.
+An external edit after successful Save therefore requires review on the next ordinary Save.
 
 Each retained baseline and pending replacement owns at most 64 MiB; both together retain at most
-128 MiB of source bytes. One bounded comparison/read snapshot adds at most 64 MiB (192 MiB total
-source-byte peak, excluding string allocator overhead and SceneDocument serialization/World data).
-Comparison scratch is released before serialization and pending bytes before baseline refresh.
+128 MiB of source bytes. One bounded comparison/read snapshot or published output adds at most
+64 MiB (192 MiB total source-byte peak, excluding string allocator overhead and SceneDocument
+serialization/World data).
+Comparison scratch is released before serialization; the published output string moves into the
+baseline after pending bytes are released, with no additional copy or reread.
 The session is noncopyable; all operations remain serialized on its owning authoring thread. Exact
 comparison is an operation-time check, not a file lock or guarantee against a concurrent change
 between check and replacement. C++ Editor/EditorImGui consumers rebuild for the new optional

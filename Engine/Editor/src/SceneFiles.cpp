@@ -216,7 +216,8 @@ SceneFileResult SceneFileSession::SaveAs(SceneFileToken token,
                               "The destination exists. Confirm replacement first.");
   }
   disk.reset(); // Release comparison scratch before the document's bounded serialization.
-  if (!document_.Save(*path))
+  std::string published_bytes;
+  if (!document_.Save(*path, &published_bytes))
     return Rejected("Scene could not be saved. Check the project directory.");
   current_ = path->lexically_relative(root_);
   save_blocked_ = false;
@@ -226,12 +227,7 @@ SceneFileResult SceneFileSession::SaveAs(SceneFileToken token,
   }
   content_blocked_ = false;
   pending_overwrite_.reset();
-  disk_baseline_ = ReadDisk(*path);
-  if (!disk_baseline_ || !disk_baseline_->exists) {
-    save_blocked_ = true;
-    return {SceneFileStatus::Applied, "Scene saved, but its disk baseline is unavailable. Use Open "
-                                      "or Save As before saving again."};
-  }
+  disk_baseline_ = DiskSnapshot{true, std::move(published_bytes)};
   return {SceneFileStatus::Applied, "Scene saved."};
 }
 SceneFileResult SceneFileSession::SynchronizeContent(SceneFileToken token,

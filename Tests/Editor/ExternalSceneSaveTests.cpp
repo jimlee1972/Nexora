@@ -27,6 +27,82 @@ std::string RenameBytes(std::string bytes, std::string_view name) {
     bytes.replace(at, 6, name);
   return bytes;
 }
+void RunWrittenOutput(const std::filesystem::path &root) {
+  std::filesystem::create_directories(root);
+  runtime::World world;
+  const auto id = world.LoadScene("Written output");
+  editor::SceneDocument scene(world, id);
+  const auto camera = scene.CreateCamera("Camera");
+  const auto key = scene.Key(camera);
+  const editor::OpaqueComponent opaque{77, "Plugin.Preserved", {0, 1, 127, 255}};
+  Require(key && scene.Select(std::array{*key}) && scene.SetEulerField(std::array{*key}, 1, 720) &&
+              scene.SetOpaqueComponent(*key, opaque) && scene.Rename(*key, "LocalA") &&
+              scene.Undo(),
+          "Written-output fixture failed");
+  const auto path = root / std::filesystem::path(u8"輸出.scene");
+  std::string published = "previous output";
+  Require(scene.Save(path, &published) && !scene.Dirty() && !published.empty() &&
+              published == Read(path) && scene.Redo() && scene.Undo(),
+          "Save did not return its exact bytes or preserve history");
+  const auto original = published;
+  const auto external = RenameBytes(original, "DiskAA");
+  Require(external != original, "Written-output external edit fixture failed");
+  Write(path, external);
+  Require(published == original && Read(path) == external,
+          "Returned output was borrowed from or reread from the destination");
+  const auto captured_path = root / "Captured.scene";
+  Write(captured_path, published);
+  runtime::World reopened_world;
+  const auto reopened_id = reopened_world.LoadScene("Captured output");
+  editor::SceneDocument reopened(reopened_world, reopened_id);
+  Require(reopened.Reload(captured_path) && reopened.Name(camera) == "Camera" &&
+              (*reopened.EulerAngles(camera))[1] == 720 &&
+              reopened.OpaqueComponents(*reopened.Key(camera)) == std::vector{opaque},
+          "Written bytes lost authored Euler or complete opaque metadata");
+  Require(scene.Redo() && scene.Dirty(), "Written-output failure fixture failed");
+  const auto local = world.SaveScene(id);
+  const auto generation = scene.Generation();
+  auto temporary = path;
+  temporary += ".tmp";
+  Write(temporary, "occupied temporary file");
+  Require(!scene.Save(path, &published) && published.empty() && scene.Dirty() &&
+              scene.Generation() == generation && scene.Selection().size() == 1 &&
+              world.SaveScene(id) == local && Read(path) == external &&
+              Read(temporary) == "occupied temporary file" && scene.Undo() && scene.Redo() &&
+              world.SaveScene(id) == local,
+          "Failed Save retained output or changed source/document/history");
+  std::filesystem::remove(temporary);
+  Require(scene.Save(path) && !scene.Dirty(), "Existing Save overload stopped delegating");
+  published = "previous output";
+  Require(!scene.Save(root, &published) && published.empty() && !scene.Dirty(),
+          "Failed Save into a directory retained output or changed saved state");
+}
+void RunPostSaveEdit(const std::filesystem::path &root) {
+  editor::ProjectWorkspace workspace;
+  Require(workspace.Create(root, "Post-save edits"), "Post-save workspace failed");
+  runtime::World world;
+  const auto id = world.LoadScene("Post-save edits");
+  editor::SceneDocument scene(world, id);
+  const auto entity = scene.CreateCamera("Camera");
+  editor::SceneFileSession files(workspace, scene);
+  const std::filesystem::path relative(u8"Content/寫後.scene");
+  const auto path = root / relative;
+  Require(entity && files.SaveAs(files.Token(), relative).Applied() &&
+              scene.Rename(*scene.Key(entity), "LocalA") && files.Save(files.Token()).Applied(),
+          "Post-save fixture failed");
+  const auto published = Read(path);
+  auto external = published;
+  const auto at = external.find("LocalA");
+  Require(at != std::string::npos, "Post-save replacement fixture failed");
+  external.replace(at, 6, "DiskAA");
+  Write(path, external);
+  Require(scene.Rename(*scene.Key(entity), "LocalB"), "Post-save local edit failed");
+  const auto local = world.SaveScene(id);
+  const auto conflict = files.Save(files.Token());
+  Require(conflict.status == Status::NeedsOverwrite && conflict.overwrite_token &&
+              Read(path) == external && world.SaveScene(id) == local && scene.Dirty(),
+          "External edit after successful ordinary Save bypassed review");
+}
 void RunRelocation(const std::filesystem::path &root) {
   editor::ProjectWorkspace workspace;
   Require(workspace.Create(root, "Relocated saves"), "Relocation workspace failed");
@@ -213,6 +289,8 @@ int main() {
                      std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   try {
     Run(root);
+    RunWrittenOutput(root / "WrittenOutput");
+    RunPostSaveEdit(root / "PostSaveEdit");
     RunRelocation(root / "Relocation");
     std::filesystem::remove_all(root);
     std::cout << "Exact disk baseline and confirmed scene replacement contracts passed\n";

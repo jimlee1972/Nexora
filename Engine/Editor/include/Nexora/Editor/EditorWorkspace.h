@@ -312,6 +312,10 @@ public:
   bool Undo();
   bool Redo();
   bool Save(const std::filesystem::path &path) const;
+  // Clears written_bytes before attempting IO; on success it owns exactly the bytes this Save
+  // published, including authoring metadata, independent of subsequent external file changes.
+  // Failure preserves document state/history and leaves written_bytes empty. Calls are serialized.
+  bool Save(const std::filesystem::path &path, std::string *written_bytes) const;
   // Starts an unsaved empty document, preserving World scene ID/name/state/persistence.
   // Advances generations and clears selection/clipboard/history; rejected replacement is atomic.
   // This document boundary is not an Undo step. Caller owns workspace/dirty-content decisions.

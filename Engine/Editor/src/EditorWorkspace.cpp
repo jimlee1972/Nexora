@@ -1315,7 +1315,10 @@ bool SceneDocument::Dirty() const {
   return !signature || *signature != saved_signature_ || *opaque_dirty_;
 }
 
-bool SceneDocument::Save(const std::filesystem::path &path) const {
+bool SceneDocument::Save(const std::filesystem::path &path) const { return Save(path, nullptr); }
+bool SceneDocument::Save(const std::filesystem::path &path, std::string *written_bytes) const {
+  if (written_bytes)
+    written_bytes->clear();
   const auto signature = StateSignature();
   if (!signature)
     return false;
@@ -1348,6 +1351,8 @@ bool SceneDocument::Save(const std::filesystem::path &path) const {
   saved_signature_ = *signature;
   saved_opaque_records_ = opaque_records;
   opaque_dirty_ = false;
+  if (written_bytes)
+    *written_bytes = std::move(output);
   return true;
 }
 bool SceneDocument::NewScene() {
