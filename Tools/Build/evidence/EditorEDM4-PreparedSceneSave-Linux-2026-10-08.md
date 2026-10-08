@@ -61,3 +61,11 @@ registrations were retained when resolving the CMake conflict. The full preset c
 (`-j 2`) and CTest gate ran again: **85/85 passed, zero skipped**, **29.84 seconds**.
 The same graphical OFF / Slang OFF settings apply and the prepared-save source hashes above
 remain unchanged.
+
+## Integration with measured memory and bounded Console
+
+Integrated main `f21620387e5b27dfb9cce9b341100bb516cc8708` after PRs #443 and #444.
+The test-registration conflict was resolved by retaining prepared-save, process-memory and
+Inspector batch targets. Preset configure and the **127-step** build (`-j 2`) passed; full
+`ctest --preset linux-development` passed **88/88, zero skipped, 22.20 seconds**.
+Graphical shell and Slang remain OFF. Prepared-save implementation/test hashes are unchanged.

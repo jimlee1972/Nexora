@@ -596,12 +596,40 @@ parent), the entire apply is rejected without
 partial mutation and the conflict remains visible through `LastApplyBackStatus`. The Play World and update callback are released
 before `Stop` returns, including after conflicts and contained update failures.
 
-`RuntimeConsole` is a bounded, mutex-protected multi-producer ingress for owning structured records
-(sequence, severity, category, timestamp, source, and message). Old records are evicted in sequence
-order and the cumulative dropped count is observable. `PlaySession::Inspect` similarly returns an
-owning, stable-ID-sorted entity/component snapshot with both local and world poses rather than
-pointers into relocatable World storage. It includes copied parent/scene state and optional
-Camera/Light/Mesh payloads; these remain valid after component mutation/removal and Stop.
+`RuntimeConsole` is a mutex-protected multi-producer ingress for owning structured records
+(sequence, severity, category, timestamp, source, and message). The requested record capacity is
+clamped to 4,096; zero disables admission. Category, source and message have respective limits of
+256, 1,024 and 16,384 **UTF-8 bytes**, inclusive. Empty strings are valid. All fields reject embedded
+NUL, truncated/overlong encodings, surrogate encodings and scalars above U+10FFFF; other valid
+Unicode scalars, including newlines/tabs and other non-NUL controls, are preserved without
+normalization. Severity must be one of Trace/Info/Warning/Error/Fatal. Caller timestamps are copied
+without imposing a clock policy; caller sequences are ignored.
+
+A malformed/oversized record, disabled capacity or exhausted sequence returns false, increments the
+saturating cumulative dropped count, and preserves accepted history and the next accepted sequence.
+An accepted record receives a strictly increasing sequence starting at one and evicts the oldest
+record only after successful ownership publication; that eviction also increments dropped count.
+UINT64_MAX is admitted once, after which the sequence is exhausted permanently and future pushes
+reject without evicting the final retained history. Dropped count saturates at UINT64_MAX, never
+wraps, and includes both admission rejections and capacity evictions. The ingress has no reset API.
+
+Accepted strings are rebuilt from their validated bytes to release producer-provided oversized
+reserve allocations. At maximum capacity, retained text totals at most 72,351,744 bytes (69 MiB),
+plus record/container/string allocator overhead; one extra bounded record exists during an eviction
+transaction. `Push` takes an owning value, so callers still own budgeting the input allocation before
+admission. Allocation failure propagates the standard allocation exception with history and counters
+unchanged; it is not an admission rejection. `Snapshot` returns an owning sequence-ordered copy and
+never exposes producer-invalidated storage; callers own the number/lifetime of such copies. Calls
+are synchronous, safe across concurrent producers/snapshot readers, and perform no I/O or log-route
+registration. Complete Runtime/build routing and native debugger integration remain separate ED-M3
+work. The dedicated `runtime.console_record_admission` gate covers byte/Unicode/severity admission,
+producer reserve compaction, rejected-history preservation, capacity clamping, concurrent owning
+snapshots, exact drops, and production-transaction counter exhaustion.
+
+`PlaySession::Inspect` similarly returns an owning, stable-ID-sorted entity/component snapshot with
+both local and world poses rather than pointers into relocatable World storage. It includes copied
+parent/scene state and optional Camera/Light/Mesh payloads; these remain valid after component
+mutation/removal and Stop.
 `ReportRuntimeFailure` lets embedding per-frame callbacks use the same failure policy as fixed ticks:
 pause the owned clone, release input, record `RuntimeFailure`, and increment the crash count once per
 reported failure. It rejects reports without an active clone and does not perform World rollback.
