@@ -2117,12 +2117,12 @@ struct RoomSession::State final {
     const float top = 0.13F + static_cast<float>(seed % 7) * 0.003F;
     const float halfX = 0.575F - static_cast<float>(seed % 5) * 0.005F;
     const float halfZ = 0.575F - static_cast<float>((seed >> 4) % 5) * 0.005F;
-    constexpr float bevel = 0.035F;
+    constexpr float bevel = 0.07F;
     std::array<math::Vector3, 4> inner{}, outer{}, bottom{};
     const std::array corners{std::array{-1.0F, -1.0F}, std::array{-1.0F, 1.0F},
                              std::array{1.0F, 1.0F}, std::array{1.0F, -1.0F}};
     for (std::size_t i = 0; i < corners.size(); ++i) {
-      const float chip = static_cast<float>((seed >> (i * 3)) % 5) * 0.006F;
+      const float chip = static_cast<float>((seed >> (i * 3)) % 5) * 0.018F;
       inner[i] = {x + corners[i][0] * (halfX - bevel - chip), top,
                   z + corners[i][1] * (halfZ - bevel - chip)};
       outer[i] = {x + corners[i][0] * halfX, top - bevel, z + corners[i][1] * halfZ};

@@ -1,0 +1,52 @@
+{
+  "baseline_runtime_freeze": "3dff93d9ba517e6d5e3787037c52f9227b8aaf81",
+  "candidate_runtime_freeze": "dd6d1bb9cb278e4f1711a33f540750b7797f10d5",
+  "scope": "native frozen activated paused shots; scene change, not reference-image parity acceptance",
+  "shots": {
+    "wide": {
+      "changed_bounds": [
+        0,
+        397,
+        1230,
+        720
+      ],
+      "changed_pixels": 73150,
+      "dimensions": [
+        1280,
+        720
+      ],
+      "before_sha256": "6ae164233974f09cfaab041522c7b4d0fe2d0e79a2095e4c9f811c6b1c9fedbb",
+      "after_sha256": "b2fd0f715078af0fd707157c2974498adae62de431ac079495e84bda4e1d2b74"
+    },
+    "close": {
+      "changed_bounds": [
+        0,
+        406,
+        1280,
+        720
+      ],
+      "changed_pixels": 72030,
+      "dimensions": [
+        1280,
+        720
+      ],
+      "before_sha256": "ae46ed6533930118ef263a9f84bb52972d64da567410276d32a0fc8283554d2b",
+      "after_sha256": "642512bb018ebc3a47840bbcb4e2fa3ef9165b14496a415ca4a734bc4a2e5392"
+    },
+    "motion": {
+      "changed_bounds": [
+        0,
+        397,
+        1217,
+        720
+      ],
+      "changed_pixels": 85645,
+      "dimensions": [
+        1280,
+        720
+      ],
+      "before_sha256": "46f775bb603addf06ee2da8c9d52e5d38158785aaacb5a8f73e658456769202f",
+      "after_sha256": "bec0df94169d899e290094220e15a0b64cfc5e31ed8e5200fb340e47dfb03555"
+    }
+  }
+}

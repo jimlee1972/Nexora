@@ -1,0 +1,10 @@
+[1/10] Building CXX object Engine/Foundation/CMakeFiles/NexoraFoundation.dir/src/BuildInfo.cpp.o
+[2/10] Linking CXX static library Engine/Foundation/libNexoraFoundation.a
+[3/10] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Presentation.cpp.o
+[4/10] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/PresentationV2.cpp.o
+[5/10] Linking CXX static library Engine/Runtime/libNexoraRuntime.a
+[6/10] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/ShowcaseRooms.cpp.o
+[7/10] Linking CXX executable Samples/Api/NexoraApiFoundationSample
+[8/10] Linking CXX executable Apps/Host/NexoraHost
+[9/10] Linking CXX executable Apps/DedicatedServer/NexoraDedicatedServer
+[10/10] Linking CXX executable Apps/Showcase/NexoraShowcase
