@@ -761,3 +761,11 @@ CSV/JSON share the imported plot and Clear imported; failed loads preserve it an
 Project change/detach clears both import requests and the previous snapshot. Read-only projects may
 import; recovery/close/modal/no-project states disable both controls. JSON validates current project
 identity before publication; CSV carries no project provenance. GPU/memory remain unavailable.
+
+Focused Content Ctrl+A (Cmd+A with macOS behavior) selects the complete current-folder query/type
+results, including clipped rows; an empty result clears selection. Read-only projects may select.
+Unmodified Delete submits the selected UUID batch to the existing project-local trash transaction,
+with one Content Undo restoring sources, sidecars and selection. Prospective Scene/Inspector drafts
+are cancelled before deletion. Text inputs, another panel, focus loss, drags, context/rename/file/
+recovery/Play-review/close modals and Game capture block keyboard commands. Write controls, including
+context Delete/Reimport and Content Undo, also respect workspace write/modal gates.

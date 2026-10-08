@@ -108,15 +108,24 @@ void ContentBrowserModel::SetFilter(std::string query, std::string type) {
   query_ = Lower(query);
   type_ = Lower(type);
 }
+bool ContentBrowserModel::MatchesVisible(const ContentItem &item) const {
+  return item.path.parent_path() == folder_ &&
+         (query_.empty() ||
+          Lower(PathUtf8(item.path.filename())).find(query_) != std::string::npos) &&
+         (type_.empty() || Lower(item.type) == type_);
+}
+void ContentBrowserModel::SelectVisible() {
+  std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> selected;
+  for (const auto &item : items_)
+    if (MatchesVisible(item))
+      selected.insert(item.id);
+  selection_ = std::move(selected);
+}
 std::vector<const ContentItem *> ContentBrowserModel::Visible(std::size_t offset,
                                                               std::size_t count) const {
   std::vector<const ContentItem *> matches;
   for (const auto &item : items_) {
-    const auto parent = item.path.parent_path();
-    if (parent != folder_ ||
-        (!query_.empty() &&
-         Lower(PathUtf8(item.path.filename())).find(query_) == std::string::npos) ||
-        (!type_.empty() && Lower(item.type) != type_))
+    if (!MatchesVisible(item))
       continue;
     if (offset != 0) {
       --offset;
@@ -131,11 +140,7 @@ std::vector<const ContentItem *> ContentBrowserModel::Visible(std::size_t offset
 std::size_t ContentBrowserModel::VisibleCount() const {
   std::size_t count = 0;
   for (const auto &item : items_) {
-    const auto parent = item.path.parent_path();
-    if (parent == folder_ &&
-        (query_.empty() ||
-         Lower(PathUtf8(item.path.filename())).find(query_) != std::string::npos) &&
-        (type_.empty() || Lower(item.type) == type_))
+    if (MatchesVisible(item))
       ++count;
   }
   return count;
@@ -248,13 +253,21 @@ bool ContentBrowserModel::Move(std::span<const runtime::AssetUuid> ids,
 bool ContentBrowserModel::Delete(std::span<const runtime::AssetUuid> ids, std::string *error) {
   if (ids.empty())
     return false;
-  auto next = items_;
-  for (const auto id : ids) {
-    const auto found = std::ranges::find(next, id, &ContentItem::id);
-    if (found == next.end())
+  std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> requested;
+  for (const auto id : ids)
+    if (!requested.insert(id).second)
       return false;
-    next.erase(found);
+  std::vector<ContentItem> next;
+  next.reserve(items_.size());
+  std::size_t found = 0;
+  for (const auto &item : items_) {
+    if (requested.contains(item.id))
+      ++found;
+    else
+      next.push_back(item);
   }
+  if (found != requested.size())
+    return false;
   if (!Commit(std::move(next), error))
     return false;
   for (const auto id : ids)

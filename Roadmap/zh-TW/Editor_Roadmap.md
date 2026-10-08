@@ -121,6 +121,13 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 ### ED-M1 — Project 與 Asset workspace
 
+- ✅ Focused Content Ctrl／Cmd+A 選取完整 current-folder query／type 結果，包含 clipped row
+  與 read-only inspection。無 modifier 的 Delete 使用一次可復原 source／sidecar batch，
+  由一次 Content Undo 還原。1x／2x 測試涵蓋 text、panel／focus、drag 與 blocking-modal gates；
+  model tests 涵蓋 100k 列與 large batch reject／delete／Undo，消除 per-ID 掃描。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM1-ContentKeyboard-Linux-2026-10-08.md)。
+
+
 建立、開啟與升級 project；Content Browser 支援 search/filter、folder/UUID、drag/drop、import
 status、dependency 檢視與 reimport；background import 必須提供取消、進度與可採取行動的錯誤，
 並產生 deterministic artifact。

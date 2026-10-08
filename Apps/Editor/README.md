@@ -572,3 +572,11 @@ with lossless uint64/double values and explicitly unavailable GPU/memory. The 12
 reader rejects unsupported/corrupt/unsafe or recovery-pending input without replacing the prior plot.
 Read-only projects may import; live capture and source files stay unchanged. Project detach/change
 clears pending JSON requests and imported data. Status and Console expose success/failure.
+
+Focused Content Ctrl+A (Cmd+A with macOS behavior) selects the complete current-folder query/type
+results, including clipped rows; an empty result clears selection. Read-only projects may select.
+Unmodified Delete submits the selected UUID batch to the existing project-local trash transaction,
+with one Content Undo restoring sources, sidecars and selection. Prospective Scene/Inspector drafts
+are cancelled before deletion. Text inputs, another panel, focus loss, drags, context/rename/file/
+recovery/Play-review/close modals and Game capture block keyboard commands. Write controls, including
+context Delete/Reimport and Content Undo, also respect workspace write/modal gates.

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <ranges>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace nexora::editor {
@@ -310,10 +311,15 @@ bool ProjectContentSession::Delete(std::span<const runtime::AssetUuid> assets, s
   const auto operation = operation_;
   std::vector<FileMove> moves;
   moves.reserve(assets.size());
+  std::unordered_map<runtime::AssetUuid, const ContentItem *, runtime::AssetUuidHash> index;
+  index.reserve(browser_.Items().size());
+  for (const auto &item : browser_.Items())
+    index.emplace(item.id, &item);
   for (const auto asset : assets) {
-    const auto *current = browser_.Find(asset);
-    if (current == nullptr)
+    const auto found = index.find(asset);
+    if (found == index.end())
       return Fail("asset does not exist", error);
+    const auto *current = found->second;
     AppendAssetMove(moves, current->path,
                     std::filesystem::path(".nexora") / "trash" / std::to_string(operation) /
                         current->path);

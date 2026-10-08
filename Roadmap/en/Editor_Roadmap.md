@@ -121,6 +121,12 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
 ### ED-M1 — Project and asset workspace
 
+- ✅ Focused Content Ctrl/Cmd+A selects the entire current-folder query/type result, including
+  clipped rows and read-only inspection. Unmodified Delete uses one recoverable source/sidecar
+  batch with one Content Undo. Text, panel/focus, drag and blocking-modal gates are tested at
+  1x/2x; model tests cover 100k rows and large batch rejection/delete/Undo without per-ID scans.
+  [Linux evidence](../../Tools/Build/evidence/EditorEDM1-ContentKeyboard-Linux-2026-10-08.md).
+
 Create, open, and upgrade projects. Deliver a Content Browser with search/filter, folder/UUID,
 drag/drop, import status, dependency inspection, and reimport. Background import must expose
 cancellation, progress, and actionable errors, and must produce deterministic artifacts.

@@ -307,6 +307,7 @@ struct EditorImGuiHost::State final {
   std::array<char, 128> content_query{};
   std::array<char, 64> content_type{};
   std::array<char, 1024> content_rename{};
+  std::optional<std::array<float, 2>> content_search_position;
   std::optional<runtime::AssetUuid> content_rename_target;
   std::uint64_t content_rename_generation{};
   std::filesystem::path content_rename_root, content_rename_path;
@@ -2754,7 +2755,8 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
 template <typename StateT>
 void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImportQueue *imports,
                         SceneDocument *scene, const MeshAssetCatalog *meshes, bool scene_editable,
-                        bool scene_openable, bool commands_allowed) {
+                        bool scene_openable, bool commands_allowed,
+                        bool selection_commands_allowed) {
   static_cast<void>(content.PollReimport());
   auto &browser = content.Browser();
   state.content_visible_items = 0;
@@ -2779,6 +2781,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
 
   const auto window = PanelWindowName("nexora.content");
   state.content_rename_positions = {};
+  state.content_search_position.reset();
   if (!ImGui::Begin(window.c_str())) {
     state.content_rename_target.reset();
     if (ImGui::BeginPopupModal("Rename asset###editor.content.rename", nullptr,
@@ -2810,6 +2813,9 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
 
   bool filter_changed = ImGui::InputTextWithHint(
       "##content-search", "Search assets", state.content_query.data(), state.content_query.size());
+  const auto search_min = ImGui::GetItemRectMin(), search_max = ImGui::GetItemRectMax();
+  state.content_search_position =
+      std::array{(search_min.x + search_max.x) * 0.5F, (search_min.y + search_max.y) * 0.5F};
   ImGui::SameLine();
   ImGui::SetNextItemWidth(120.0F);
   filter_changed |= ImGui::InputTextWithHint("##content-type", "Type", state.content_type.data(),
@@ -2817,10 +2823,24 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   if (filter_changed)
     browser.SetFilter(state.content_query.data(), state.content_type.data());
   ImGui::SameLine();
-  ImGui::BeginDisabled(!content.CanUndo());
+  ImGui::BeginDisabled(!commands_allowed || !content.CanUndo());
   if (ImGui::Button("Undo content"))
     static_cast<void>(content.Undo());
   ImGui::EndDisabled();
+
+  const bool keyboard =
+      selection_commands_allowed && !state.content_rename_target &&
+      ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+      !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive() && !ImGui::GetDragDropPayload() &&
+      !ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
+      !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+  if (keyboard && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_A, ImGuiInputFlags_RouteFocused))
+    browser.SelectVisible();
+  std::vector<runtime::AssetUuid> delete_assets;
+  if (keyboard && commands_allowed && content.Writable() && !ImGui::GetIO().KeyCtrl &&
+      !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt && !ImGui::GetIO().KeySuper &&
+      ImGui::IsKeyPressed(ImGuiKey_Delete, false))
+    delete_assets = browser.Selection();
 
   const auto selected_assets = browser.Selection();
   const auto *selected_mesh =
@@ -2867,7 +2887,6 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       ImGui::IsKeyPressed(ImGuiKey_Enter, false))
     BeginContentScene(state, *scene, selected_scene->path);
 
-  std::optional<runtime::AssetUuid> delete_asset;
   std::optional<runtime::AssetUuid> reimport_asset;
   bool open_rename = false;
   const auto begin_rename = [&](const ContentItem &item) {
@@ -2949,10 +2968,11 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
                             commands_allowed && content.Writable() && !state.content_rename_target))
           begin_rename(*item);
         if (ImGui::MenuItem("Reimport", nullptr, false,
-                            content.Writable() && imports != nullptr && !content.ReimportBusy()))
+                            commands_allowed && content.Writable() && imports != nullptr &&
+                                !content.ReimportBusy()))
           reimport_asset = item->id;
-        if (ImGui::MenuItem("Delete", nullptr, false, content.Writable()))
-          delete_asset = item->id;
+        if (ImGui::MenuItem("Delete", "Delete", false, commands_allowed && content.Writable()))
+          delete_assets = {item->id};
         ImGui::EndPopup();
       }
     }
@@ -2960,9 +2980,10 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
 
   if (reimport_asset && imports != nullptr)
     static_cast<void>(content.BeginReimport(*imports, *reimport_asset));
-  if (delete_asset) {
-    const std::array assets{*delete_asset};
-    static_cast<void>(content.Delete(assets));
+  if (!delete_assets.empty() && !state.content_rename_target) {
+    CancelSceneGestures(state);
+    CancelInspectorDrafts(state);
+    static_cast<void>(content.Delete(delete_assets));
   }
   if (open_rename)
     ImGui::OpenPopup("Rename asset###editor.content.rename");
@@ -4392,7 +4413,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                        file_context_valid && state_->app_focused && !game_running &&
                            !interaction_blocked && !file_busy && !state_->content_rename_target,
                        state_->app_focused && !external_modal_open && !rename_open &&
-                           (!workspace || workspace->Writable()));
+                           (!workspace || workspace->Writable()),
+                       state_->app_focused && !interaction_blocked && !state_->game_input_focused);
   DrawProjectPanel(*state_, workspace, recent_projects);
   if (state_->focus_initial_scene) {
     auto *initial_scene_window = ImGui::FindWindowByName(
@@ -5311,6 +5333,10 @@ void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.content");
   ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentSearchPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->content_search_position;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentAddMeshPosition(const EditorImGuiHost &host) noexcept {
