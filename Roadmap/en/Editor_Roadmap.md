@@ -681,6 +681,13 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ Portable additive-scene ownership/dependency ordering, migration dry-run, atomic bounded
     autosave/corrupt recovery, and stable-path three-way conflict records are implemented and tested.
   - Open: graphical workflows and source-control-provider UI integration.
+  - ✅ Managed ordinary scene Save compares a bounded owning exact-byte disk baseline, including
+    same-size edits with restored modification times. External changes require Replace/Cancel with
+    a session/path/document-bound confirmation that rechecks disk revisions before writing. Ctrl+S,
+    Save before New/Open and Save and Exit share this graphical workflow; failures retain scene,
+    history and disk versions. Portable 64 MiB/lifecycle/Content relocation tests and 1x/2x ImGui
+    control tests cover the supporting slice. Full prefab/additive/migration/crash and source-control
+    acceptance remain open; see [external-save evidence](../../Tools/Build/evidence/EditorEDM4-ExternalSceneSave-Linux-2026-10-08.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
   - ✅ Portable capability registry enforces stable tool IDs and honest implemented/read-only/
     unavailable states with fallback reasons.

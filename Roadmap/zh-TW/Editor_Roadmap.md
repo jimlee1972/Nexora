@@ -647,6 +647,12 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 - ✅ 已實作並測試 portable additive-scene ownership／dependency ordering、migration dry-run、
   atomic bounded autosave／corrupt recovery，以及 stable-path three-way conflict records。
 - 待辦：圖形化 workflow 與 source-control provider UI 整合。
+- ✅ Managed scene 的 ordinary Save 以有界 owning 原始磁碟 bytes baseline 精確比對，包含
+  相同大小且還原修改時間的外部編輯。外部變更需 Replace／Cancel，確認綁定 session／path／document
+  並於寫入前重新驗證磁碟版本。Ctrl+S、New／Open 前 Save 與 Save and Exit 共用此圖形流程；
+  失敗保留場景、history 與磁碟版本。Portable 64 MiB／lifecycle／Content relocation 與 1x／2x
+  ImGui 真實控制項測試涵蓋此 supporting slice；完整 prefab／additive／migration／crash 與
+  source-control 驗收仍待完成，詳見 [external-save evidence](../../Tools/Build/evidence/EditorEDM4-ExternalSceneSave-Linux-2026-10-08.md)。
 
 ### ED-M5 — Specialized tools
 

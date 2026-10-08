@@ -766,6 +766,16 @@ permit Open but disable New/Save/Save As; running Play disables New/Open. Recove
 block new file actions. The application independently rechecks policy and token before I/O. These
 are single-active-document controls; additive scene tabs and a native OS picker remain open.
 
+Ordinary Ctrl+S, Save before New/Open, and Save and Exit route an externally changed managed scene
+through the same Replace/Cancel modal and show the owning conflict reason. Requests retain the
+session's scalar overwrite confirmation; the application passes it back for exact disk revision
+revalidation. A disk change while the modal is open reopens confirmation, retaining the New/Open
+destination or close-after-save continuation. Cancel keeps both scene versions; successful persistence
+alone permits continuation/exit. Replacement dialogs cancel gestures/Inspector drafts and obey the
+existing project/document, read-only and recovery gates. The UI performs no source reads or writes.
+Real ImGui control tests cover these continuations and stale/read-only rejection at 1x and 2x;
+physical desktop crash/source-control-provider acceptance remains open.
+
 The Content panel's Open scene button, focused Enter, scene-row double-click and context Open scene
 copy the native asset path into that same owning file request. A single click only selects. Button/
 Enter require one selected `.scene`; non-scene or multiple selections do not activate. Content Open

@@ -16,6 +16,7 @@
 #include "Nexora/Runtime/EditorSdk.h"
 #include "PlayGameplayModule.h"
 #include "PlayInputForwarding.h"
+#include "SceneFileContinuation.h"
 #include "SceneMeshPreview.h"
 #include "SceneMovePlanes.h"
 #include "ScenePreviewCandidates.h"
@@ -972,7 +973,7 @@ int RunGraphical(std::optional<ProjectState> project,
       remember_scene();
     }
   };
-  const auto save_scene = [&] {
+  const auto save_scene = [&](bool close_after_save = false) {
     refresh_scene_location(true);
     if (scene_load_failed) {
       ui.SetSceneSaveResult("Scene load failed. Resolve the scene file before saving.", false);
@@ -989,7 +990,18 @@ int RunGraphical(std::optional<ProjectState> project,
       return false;
     const auto saved = scene_files->Save(scene_files->Token());
     if (saved.status == nexora::editor::SceneFileStatus::NeedsPath) {
-      ui.RequestSceneSaveAs();
+      ui.RequestSceneSaveAs(close_after_save);
+      return false;
+    }
+    if (saved.status == nexora::editor::SceneFileStatus::NeedsOverwrite) {
+      nexora::editor::imgui::SceneFileRequest request{
+          nexora::editor::imgui::SceneFileAction::SaveAs, scene_files->Token(),
+          *scene_files->CurrentPath()};
+      request.close_after_save = close_after_save;
+      if (!PrepareSceneOverwriteRequest(request, saved, scene_files->CurrentPath()))
+        return false;
+      ui.SetSceneSaveResult(saved.message, false);
+      ui.RequestSceneOverwrite(std::move(request));
       return false;
     }
     if (!saved.Applied()) {
@@ -1398,10 +1410,11 @@ int RunGraphical(std::optional<ProjectState> project,
         if (!can_apply)
           file_result = {FileStatus::Rejected, "Stop Play before changing scenes."};
         if (can_apply && request->save_current) {
-          file_result = request->save_path
-                            ? scene_files->SaveAs(request->token, *request->save_path,
-                                                  request->replace_existing)
-                            : scene_files->Save(request->token);
+          file_result =
+              request->save_path
+                  ? scene_files->SaveAs(request->token, *request->save_path,
+                                        request->replace_existing, request->overwrite_token)
+                  : scene_files->Save(request->token, request->overwrite_token);
           can_apply = file_result.Applied();
           if (can_apply) {
             publish_saved_scene();
@@ -1421,14 +1434,16 @@ int RunGraphical(std::optional<ProjectState> project,
                 scene_files->Open(request->token, request->path, request->discard_unsaved);
             break;
           case FileAction::SaveAs:
-            file_result =
-                scene_files->SaveAs(request->token, request->path, request->replace_existing);
+            file_result = scene_files->SaveAs(request->token, request->path,
+                                              request->replace_existing, request->overwrite_token);
             break;
           }
         }
-        if (file_result.status == FileStatus::NeedsOverwrite)
-          ui.RequestSceneOverwrite(std::move(*request));
-        else if (file_result.status == FileStatus::NeedsUnsavedChoice)
+        if (file_result.status == FileStatus::NeedsOverwrite) {
+          ui.SetSceneSaveResult(file_result.message, false);
+          if (PrepareSceneOverwriteRequest(*request, file_result, scene_files->CurrentPath()))
+            ui.RequestSceneOverwrite(std::move(*request));
+        } else if (file_result.status == FileStatus::NeedsUnsavedChoice)
           ui.RequestSceneUnsavedChoice(std::move(*request));
         else {
           ui.SetSceneSaveResult(file_result.message, file_result.Applied());
@@ -1457,7 +1472,7 @@ int RunGraphical(std::optional<ProjectState> project,
         if (scene_files && !scene_files->CurrentPath())
           ui.RequestSceneSaveAs(true);
         else
-          exit_requested = save_scene();
+          exit_requested = save_scene(true);
       } else if (close_choice == nexora::editor::imgui::CloseChoice::DiscardAndExit)
         exit_requested = true;
       if (const auto choice = ui.TakeRecoveryChoice();

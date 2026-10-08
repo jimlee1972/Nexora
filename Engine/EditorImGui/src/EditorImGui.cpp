@@ -5003,6 +5003,11 @@ void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save,
   state_->scene_file_popup_pending = true;
 }
 void EditorImGuiHost::RequestSceneOverwrite(SceneFileRequest request) {
+  Activate(state_->context);
+  CancelSceneGestures(*state_);
+  CancelInspectorDrafts(*state_);
+  ImGui::ClearActiveID();
+  state_->scene_file_close_popup = request.close_after_save;
   state_->scene_file_intent = std::move(request);
   state_->scene_file_dialog = State::FileDialog::Overwrite;
   state_->scene_file_popup_pending = true;
