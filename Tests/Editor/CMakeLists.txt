@@ -8,6 +8,11 @@ target_link_libraries(NexoraEditorTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraEditorTests)
 add_test(NAME editor.preview_contract COMMAND NexoraEditorTests)
 
+add_executable(NexoraProcessMemoryProfileTests ProcessMemoryProfileTests.cpp)
+target_link_libraries(NexoraProcessMemoryProfileTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraProcessMemoryProfileTests)
+add_test(NAME editor.process_memory_profile COMMAND NexoraProcessMemoryProfileTests)
+
 add_executable(NexoraInspectorBatchTests InspectorBatchTests.cpp)
 target_link_libraries(NexoraInspectorBatchTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraInspectorBatchTests)
