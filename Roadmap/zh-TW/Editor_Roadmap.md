@@ -587,6 +587,13 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 - ✅ Portable debugging prerequisite 新增 structured bounded Console records、owning runtime
   inspection snapshots、debugger boundary/pause reasons、contained update recovery，以及 deterministic
   all-or-nothing transform conflict detection。
+- ✅ Runtime Console admission 現將容量限制為 4,096 records，並驗證 category 256 B、source
+  1 KiB、message 16 KiB 的 byte budget、有效且無 NUL 的 UTF-8 與已知 severity。拒絕不變動
+  accepted history／sequence；dropped count 飽和、sequence 耗盡不會回繞。Owning compaction
+  釋放 producer 過大 reserve。精確上限／Unicode／malformed input、counter exhaustion 與
+  四個 producer 的 owning snapshot 測試涵蓋 portable 邊界；完整 log routing 與 native
+  debugger 驗收仍保持 open。
+  [Linux evidence](../../Tools/Build/evidence/EditorEDM3-ConsoleAdmission-Linux-2026-10-08.md)。
 - ✅ Console Pause display 保留 owning snapshot，producer 仍正常 admission／eviction；
   Clear view 隱藏當下所有 sequence，不刪除 ingress 或重設 cumulative dropped count。
   Resume 顯示較新的 retained log，暫停時仍可 filter。1x／2x DPI 滑鼠事件驅動測試涵蓋
