@@ -98,3 +98,44 @@ as `external-scene-integrated-tests.log`, `external-scene-integrated-native-prev
 `external-scene-integrated-tests-final.log`. Final formatting and `git diff --check` passed. No new
 linkage boundary was introduced; the upstream memory change's Shipping validation remains recorded
 in its own evidence. Repository-root README stays unchanged relative to the integrated main base.
+
+## Windows CI portability correction and final integration
+
+PR #445's original [Build 1987 Windows mimalloc job](https://github.com/jimlee1972/Nexora/actions/runs/37847816778/job/113553408693)
+reported `editor.external_scene_save_contract` throwing "No mapping for the Unicode character
+exists in the target multi-byte code page." The fixture retained `Content/場景.scene`, but four
+temporary-path checks used `path.string() + ".tmp"`. On Windows this converts the native Unicode
+path to the local narrow code page before constructing a path, which cannot represent the fixture
+on that CI host. Production atomic-save IO already preserved native paths. The original CI result
+is retained as failure evidence; it is not a local Windows execution result.
+
+Fix commit `f12c1114` constructs the test's temporary destination from the native path and appends
+the ASCII suffix directly, retaining the Chinese filename, occupied-temp rejection, retry and
+history assertions. The Editor's two failed-load diagnostic consumers also share one message
+explicitly encoded with `generic_u8string()`, avoiding the same code-page conversion for a Unicode
+project root. No save, approval, access-gate or atomic-replacement policy changes.
+
+Remote main `f21620387e5b27dfb9cce9b341100bb516cc8708` (including Runtime Console admission) was
+integrated without conflicts using normal merge commit `a07735efcfb005505935c3d0d7cd684c2de69c39`.
+On that exact source head, graphical shell ON and Slang ON were confirmed in the CMake cache:
+
+```sh
+cmake --preset linux-development
+cmake --build --preset linux-development -j 4
+ctest --preset linux-development -R 'editor\.(external_scene_save_contract|scene_file_contract|scene_file_input)$'
+ctest --preset linux-development
+```
+
+- Configure and 206-step build passed, including the changed Editor application and test.
+- Focused portable and 1x/2x UI tests: **3/3 passed**, zero skips, **0.55 s**.
+- Complete serialized Linux gate: **144/144 passed** on its first run, zero skips, **210.59 s**.
+  Native scene files passed **37.57 s**, display acceptance **19.47 s**, and native Scene preview
+  **27.78 s**. No acceptance threshold or timing was changed.
+- Separate external logs: `external-scene-windows-fix-configure.log`,
+  `external-scene-windows-fix-build.log`, `external-scene-windows-fix-focused.log`, and
+  `external-scene-windows-fix-tests.log`.
+- Touched C++ formatting and `git diff --check` passed. No linkage boundary changed; Shipping is
+  unchanged. Both roadmap supporting bullets still link to this evidence and full ED-M4 stays open.
+
+This correction was validated locally on Linux. Windows validation of the corrected source must
+come from the subsequent GitHub CI run; no local Windows pass is claimed.
