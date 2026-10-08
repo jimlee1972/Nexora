@@ -1,0 +1,12 @@
+Test project /workspace/Nexora-vis-courtyard-fill/build/linux-development
+    Start 49: window_presentation.vulkan_pbr
+1/1 Test #49: window_presentation.vulkan_pbr ...   Passed    4.48 sec
+
+100% tests passed out of 1
+
+Label Time Summary:
+showcase           =   4.48 sec*proc (1 test)
+virtual-display    =   4.48 sec*proc (1 test)
+vulkan             =   4.48 sec*proc (1 test)
+
+Total Test time (real) =   4.48 sec

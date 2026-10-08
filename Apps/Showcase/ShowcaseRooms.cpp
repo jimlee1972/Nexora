@@ -883,7 +883,7 @@ struct RoomSession::State final {
 #endif
   }
   // Shared authoring sites keep the falling ribbons in front of their supporting cliffs.
-  static constexpr std::array courtyardFallSites{std::array{-17.0F, -19.0F, 6.2F},
+  static constexpr std::array courtyardFallSites{std::array{-11.0F, -24.0F, 5.5F},
                                                  std::array{7.0F, -21.0F, 5.8F}};
   void CourtyardWaterfalls() {
     const auto first = static_cast<std::uint32_t>(indices.size());
@@ -899,11 +899,11 @@ struct RoomSession::State final {
           const float y = location[2] - v * (location[2] - 0.3F);
           const float phase = y * 4 + time * 3 + ribbon * 1.7F;
           const float ripple = std::sin(phase);
-          const float halfWidth = 0.05F * (0.8F + 0.2F * std::sin(phase * 1.7F));
+          const float halfWidth = 0.075F * (0.8F + 0.2F * std::sin(phase * 1.7F));
           for (unsigned edge = 0; edge < 2; ++edge) {
             const float side = edge ? 1.0F : -1.0F;
             const float px =
-                location[0] + (ribbon - 2.5F) * 0.17F + side * halfWidth + ripple * 0.035F;
+                location[0] + (ribbon - 2.5F) * 0.25F + side * halfWidth + ripple * 0.035F;
             const auto normal = math::NormalizeSafe(math::Vector3{0, -0.1F * std::cos(phase), 1});
             Nexora::Presentation::SceneVertex vertex{{px, y, location[1] + ripple * 0.025F},
                                                      {normal.x, normal.y, normal.z},
@@ -1761,7 +1761,7 @@ struct RoomSession::State final {
     finish(5);
     // Place the left cypress in the wide camera's arch opening, retaining its shared wind.
     const auto treeLocation = [](float x, float z) {
-      return x < 0 && z == -10 ? std::array{-12.5F, -9.0F} : std::array{x, z};
+      return x < 0 && z == -10 ? std::array{-14.2F, -9.0F} : std::array{x, z};
     };
     for (const float x : {-12.0F, 12.0F})
       for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F}) {
@@ -1775,7 +1775,7 @@ struct RoomSession::State final {
     for (const float x : {-12.0F, 12.0F})
       for (const float z : {-22.0F, -10.0F, 2.0F, 14.0F})
         for (unsigned layer = 0; layer < 24; ++layer) {
-          const float y = 0.7F + layer * (5.22F / 24);
+          const float y = 0.7F + layer * ((x < 0 && z == -10 ? 5.85F : 5.22F) / 24);
           const auto location = treeLocation(x, z);
           const float crownRadius =
               (x < 0 && z == -10 ? 0.6F : 0.85F) * (1 - std::pow(layer / 24.0F, 1.35F));

@@ -683,7 +683,8 @@ sampling and preserves the existing composite. Orthographic projections are outs
 The shared Slang tone pass reconstructs view positions from the existing radial camera-distance
 channel. Four adjacent samples reconstruct a normal using the smaller depth discontinuity on each
 axis; twelve bounded taps estimate nearby occlusion with world-distance rejection and bias.
-The footprint is capped at 32 physical pixels per axis. Out-of-bounds, empty and degenerate samples
+The footprint is capped at 32 physical pixels per axis. Occlusion fades between 32 and 64 world
+units, preserving distant sky and avoiding false contacts from RGBA16F distance quantization. Out-of-bounds, empty and degenerate samples
 are rejected. No extra texture, descriptor, pass, temporal history or production readback is added.
 The fifth float4 extends the private tone packet to 80 bytes on Vulkan, DX12 and Metal; protecting
 frame ownership, resize and teardown remain unchanged. Public C++ clients rebuild; stable C/Zig and

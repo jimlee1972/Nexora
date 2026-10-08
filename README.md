@@ -15,7 +15,7 @@ V1 portable contract foundations are delivered; V2 is in progress, and V3 remain
 Production platform coverage, final Showcase art/performance acceptance, and graphical editor
 milestone acceptance remain in progress. Foundation delivery does not imply full product acceptance.
 
-See the [bilingual roadmap index](Roadmap/README.md) for milestone progress and acceptance evidence.
+See the [bilingual roadmap index](Roadmap/ReadMe.md) for milestone progress and acceptance evidence.
 
 ### Build on Linux
 
@@ -57,7 +57,7 @@ V1 Portable Contract 基礎已交付；V2 施工中，V3 仍在規劃階段。
 正式平台支援、Showcase 最終美術／效能驗收及圖形化 Editor 里程碑驗收仍待完成。
 基礎交付不代表完整產品驗收。
 
-里程碑進度與驗收證據請參閱[雙語 Roadmap 索引](Roadmap/README.md)。
+里程碑進度與驗收證據請參閱[雙語 Roadmap 索引](Roadmap/ReadMe.md)。
 
 ### Linux 建置
 

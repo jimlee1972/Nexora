@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
     Rgb occlusionPlane{}, occlusionContact{}, occlusionHighlight{};
     std::uint64_t occlusionHash = 0;
     std::uint64_t aaHash = 0;
-    for (unsigned frame = 0; frame < 103; ++frame) {
+    for (unsigned frame = 0; frame < 105; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
       PbrReflectionFixtures::Fixture reflectionFixture(
@@ -430,7 +430,7 @@ int main(int argc, char **argv) {
         materials = reflectionFixture.materials;
         draw.materials = materials;
       }
-      PbrOcclusionFixtures::Fixture occlusionFixture;
+      PbrOcclusionFixtures::Fixture occlusionFixture(frame >= 103 ? 100.0F / 3 : 1.0F);
       if (frame >= 99) {
         draw = occlusionFixture.Draw(frame - 99, width, height);
         materials = occlusionFixture.materials;
@@ -840,8 +840,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 103 &&
-                surface->Diagnostics().sceneComposites == 93 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 105 &&
+                surface->Diagnostics().sceneComposites == 95 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
