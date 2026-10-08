@@ -1,0 +1,37 @@
+{
+  "scope": "frozen paused native bronze color comparison, not reference parity acceptance",
+  "baseline_runtime_freeze": "da9243961d1352176349aa48f0ed22fd98924f50",
+  "candidate_runtime_freeze": "9d7298bed7ccaff24609ae2184753f574948960b",
+  "shots": {
+    "wide": {
+      "changed_bounds": [
+        601,
+        101,
+        949,
+        720
+      ],
+      "before_sha256": "b2fd0f715078af0fd707157c2974498adae62de431ac079495e84bda4e1d2b74",
+      "after_sha256": "4679794ad3e6f2f7239591e5f2f3dc52637fac3ca0451974a47f8ec3c126db9f"
+    },
+    "close": {
+      "changed_bounds": [
+        571,
+        100,
+        944,
+        719
+      ],
+      "before_sha256": "642512bb018ebc3a47840bbcb4e2fa3ef9165b14496a415ca4a734bc4a2e5392",
+      "after_sha256": "bc76545179635e917dd78f1b3b098daa37f78b2a63574423471e1ea632d95fd0"
+    },
+    "motion": {
+      "changed_bounds": [
+        607,
+        149,
+        887,
+        646
+      ],
+      "before_sha256": "bec0df94169d899e290094220e15a0b64cfc5e31ed8e5200fb340e47dfb03555",
+      "after_sha256": "6c1d8591d90f711d2abd10eebcaa24aa7563b93656a9e9a7f0b847d4ff1bf6a0"
+    }
+  }
+}
