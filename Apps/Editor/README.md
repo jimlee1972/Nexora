@@ -37,7 +37,7 @@ Windows target-host evidence for ED-M0 is recorded with `Tools/Editor/RecordEdit
 It runs a bounded real-window smoke automatically, then asks the person at the machine for the
 per-monitor DPI, IME composition/candidate and keyboard-only recovery rows. Unanswered or
 not-performed rows are recorded as `blocked`, and the overall status is `PASS` only when every row
-passes on a machine with at least two monitors. The script itself has not been run on a Windows host
+passes on a machine with at least two monitors running at different scales. The script itself has not been run on a Windows host
 yet, so it is not evidence; only a recorded `evidence.json` from a real run is.
 
 The Development desktop CI matrix enables the graphical shell on Linux, Windows/DX12, and

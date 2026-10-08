@@ -91,8 +91,9 @@ foreach ($check in $checks) {
 $required = @($rows | Where-Object { $_.scenario -ne 'smoke.bounded_frames' })
 $overall = if ($rows | Where-Object { $_.result -eq 'fail' }) { 'FAIL' }
            elseif ($required | Where-Object { $_.result -ne 'pass' }) { 'INCOMPLETE' } else { 'PASS' }
-if (@($monitors).Count -lt 2) {
-    Write-Host 'Only one monitor detected: cross-monitor DPI evidence cannot be complete.'
+if (@($monitors | Select-Object -Unique).Count -lt 2) {
+    Write-Host 'Fewer than two distinct monitor scales detected: cross-monitor DPI evidence cannot be complete.'
+    Add-Row 'dpi.distinct_scales_available' 'blocked' "detected: $($monitors -join '; ')"
     if ($overall -eq 'PASS') { $overall = 'INCOMPLETE' }
 }
 $record = [ordered]@{
