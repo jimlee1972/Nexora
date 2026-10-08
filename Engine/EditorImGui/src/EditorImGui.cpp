@@ -203,7 +203,9 @@ struct EditorImGuiHost::State final {
   foundation::Uuid game_input_project{};
   bool game_input_binding_open{}, game_input_binding_pending{};
   std::string game_input_binding_error;
-  std::array<std::optional<std::array<float, 2>>, 22> game_input_binding_positions;
+  std::string game_input_binding_status;
+  std::optional<GameInputBindingsSaveRequest> game_input_save_requested;
+  std::array<std::optional<std::array<float, 2>>, 23> game_input_binding_positions;
   std::vector<std::pair<PlayInputControl, std::array<float, 2>>> game_input_choice_positions;
   runtime::Id play_inspection_entity{};
   runtime::Id play_inspector_rendered{};
@@ -3429,6 +3431,9 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
       if (!state_->app_focused) {
         state_->game_input_binding_open = false;
         state_->game_input_binding_pending = false;
+        if (state_->game_input_save_requested)
+          state_->game_input_binding_status.clear();
+        state_->game_input_save_requested.reset();
         state_->native_pointer.reset();
         state_->game_input_focused = false;
         CancelSceneGestures(*state_);
@@ -3680,6 +3685,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const auto input_project = workspace ? workspace->Project().id : foundation::Uuid{};
   if (state_->game_input_root != input_root || state_->game_input_project != input_project) {
     state_->game_input_bindings = {};
+    state_->game_input_binding_status.clear();
+    state_->game_input_save_requested.reset();
     state_->game_input_root = input_root;
     state_->game_input_project = input_project;
     state_->game_input_binding_open = false;
@@ -3691,6 +3698,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->hierarchy_rename_target || state_->content_rename_target) {
     state_->game_input_binding_open = false;
     state_->game_input_binding_pending = false;
+    if (state_->game_input_save_requested)
+      state_->game_input_binding_status.clear();
+    state_->game_input_save_requested.reset();
   }
   // Query from the same root ID scope that opens the modal, before entering a panel window.
   const bool close_confirmation_open =
@@ -4201,6 +4211,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->game_input_binding_positions[0] = std::array{(binding_min.x + binding_max.x) * 0.5F,
                                                            (binding_min.y + binding_max.y) * 0.5F};
       ImGui::EndDisabled();
+      if (!state_->game_input_binding_status.empty())
+        ImGui::TextWrapped("%s", state_->game_input_binding_status.c_str());
       if (state == runtime::PlayState::Stopped) {
         if (ImGui::Button("Play"))
           state_->play_command = PlayCommand::Start;
@@ -4544,8 +4556,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::ClearActiveID();
       ImGui::CloseCurrentPopup();
     } else {
-      ImGui::TextWrapped("Editor session bindings. Stop Play before editing. Apply replaces the "
-                         "whole profile; changing projects resets it.");
+      ImGui::TextWrapped("Apply uses this profile for the current session. Apply and save also "
+                         "stores it in this project for the next open.");
       constexpr const char *actions[] = {"Left (-X)",     "Right (+X)", "Forward (+Y)",
                                          "Back (-Y)",     "Action (1)", "Primary (2)",
                                          "Secondary (4)", "Sprint (8)", "Modifier (16)"};
@@ -4610,6 +4622,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (ImGui::Button("Apply")) {
         if (state_->game_input_draft.Valid()) {
           state_->game_input_bindings = state_->game_input_draft;
+          state_->game_input_binding_status =
+              "Session bindings applied; project settings unchanged.";
           state_->game_input_binding_open = false;
           ImGui::CloseCurrentPopup();
         } else
@@ -4617,6 +4631,22 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                              "to release a duplicate.";
       }
       capture(19);
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!workspace || !workspace->Writable() || recovery_available);
+      if (ImGui::Button("Apply and save")) {
+        if (state_->game_input_draft.Valid()) {
+          state_->game_input_bindings = state_->game_input_draft;
+          state_->game_input_binding_status = "Saving project input bindings...";
+          state_->game_input_save_requested = GameInputBindingsSaveRequest{
+              workspace->Project().id, workspace->Root(), state_->game_input_draft};
+          state_->game_input_binding_open = false;
+          ImGui::CloseCurrentPopup();
+        } else
+          state_->game_input_binding_error = "Each control can be bound only once. Choose Unbound "
+                                             "to release a duplicate.";
+      }
+      capture(22);
+      ImGui::EndDisabled();
       ImGui::SameLine();
       if (ImGui::Button("Reset defaults")) {
         state_->game_input_draft = {};
@@ -4843,6 +4873,9 @@ void EditorImGuiHost::RequestSceneUnsavedChoice(SceneFileRequest request) {
 }
 
 void EditorImGuiHost::RequestCloseConfirmation() noexcept {
+  if (state_->game_input_save_requested)
+    state_->game_input_binding_status.clear();
+  state_->game_input_save_requested.reset();
   state_->game_input_binding_open = state_->game_input_binding_pending = false;
   state_->scene_file_close_popup = false;
   state_->scene_file_intent.reset();
@@ -4862,6 +4895,24 @@ CloseChoice EditorImGuiHost::TakeCloseChoice() noexcept {
 bool EditorImGuiHost::GameInputFocused() const noexcept { return state_->game_input_focused; }
 PlayInputBindings EditorImGuiHost::GameInputBindings() const noexcept {
   return state_->game_input_bindings;
+}
+bool EditorImGuiHost::SetGameInputBindings(const PlayInputBindings &bindings,
+                                           const ProjectWorkspace &workspace) {
+  if (!bindings.Valid() || workspace.Root().empty())
+    return false;
+  state_->game_input_bindings = bindings;
+  state_->game_input_binding_status.clear();
+  state_->game_input_root = workspace.Root();
+  state_->game_input_project = workspace.Project().id;
+  state_->game_input_binding_open = state_->game_input_binding_pending = false;
+  state_->game_input_save_requested.reset();
+  return true;
+}
+std::optional<GameInputBindingsSaveRequest> EditorImGuiHost::TakeGameInputBindingsSaveRequest() {
+  return std::exchange(state_->game_input_save_requested, std::nullopt);
+}
+void EditorImGuiHost::SetGameInputBindingsStatus(std::string message) {
+  state_->game_input_binding_status = std::move(message);
 }
 std::string_view EditorImGuiHost::GameplayLibrary() const noexcept {
   return state_->gameplay_library.data();

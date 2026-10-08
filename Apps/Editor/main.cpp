@@ -693,6 +693,17 @@ int RunGraphical(std::optional<ProjectState> project,
   };
   bool gameplay_settings_invalid = false;
   std::string loaded_gameplay_library;
+  bool input_settings_deferred = false;
+  const auto load_input_settings = [&](nexora::editor::ProjectWorkspace &workspace) {
+    input_settings_deferred = workspace.HasRecoveryJournal();
+    std::string error;
+    const auto bindings = workspace.LoadPlayInputBindings(&error);
+    static_cast<void>(
+        ui.SetGameInputBindings(bindings.value_or(nexora::editor::PlayInputBindings{}), workspace));
+    ui.SetGameInputBindingsStatus(error);
+    if (!error.empty())
+      std::cerr << "ignored input settings: " << error << '\n';
+  };
   const auto load_gameplay_settings = [&](nexora::editor::ProjectWorkspace &workspace) {
     std::string error;
     const auto saved = workspace.LoadGameplayLibrary(&error);
@@ -702,6 +713,7 @@ int RunGraphical(std::optional<ProjectState> project,
       std::cerr << "ignored gameplay settings: " << error << '\n';
     ui.SetGameplayLibrary(initial_gameplay_library.value_or(loaded_gameplay_library),
                           content.Browser().ProjectGeneration());
+    load_input_settings(workspace);
   };
   std::uint64_t project_generation = 1;
   if (project) {
@@ -1083,7 +1095,23 @@ int RunGraphical(std::optional<ProjectState> project,
                                scene_load_failed || scene_files->SaveBlocked());
       ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports,
                           &console, &play, &profile, &meshes);
+      if (input_settings_deferred && !project->workspace.HasRecoveryJournal())
+        load_input_settings(project->workspace);
       refresh_scene_location();
+      if (auto request = ui.TakeGameInputBindingsSaveRequest()) {
+        std::string error;
+        const bool current = request->project == project->workspace.Project().id &&
+                             request->root == project->workspace.Root() &&
+                             play.State() == nexora::runtime::PlayState::Stopped;
+        const bool saved =
+            current && project->workspace.SavePlayInputBindings(request->bindings, &error);
+        if (!saved && error.empty())
+          error = "Input settings request belongs to another project or active Play session.";
+        ui.SetGameInputBindingsStatus(saved ? "Input bindings saved to project." : error);
+        log(saved ? nexora::runtime::RuntimeLogSeverity::Info
+                  : nexora::runtime::RuntimeLogSeverity::Error,
+            "Input", saved ? "Project input bindings saved." : error);
+      }
       if (ui.TakeProfileCsvImportRequest()) {
         std::string error;
         auto imported = project->workspace.ImportEditorFrameProcessingCsv(&error);

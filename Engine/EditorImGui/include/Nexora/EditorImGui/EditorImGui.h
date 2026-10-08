@@ -35,6 +35,11 @@ enum class CloseChoice : std::uint8_t { None, SaveAndExit, DiscardAndExit, Cance
 enum class PlayCommand : std::uint8_t { None, Start, Pause, Resume, Step, Stop };
 enum class ProjectSelectorAction : std::uint8_t { Open, Create };
 enum class SceneFileAction : std::uint8_t { New, Open, SaveAs };
+struct GameInputBindingsSaveRequest final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+  PlayInputBindings bindings;
+};
 
 struct SceneFileRequest final {
   SceneFileAction action{SceneFileAction::New};
@@ -137,6 +142,10 @@ public:
   void SetGameplayLibrary(std::string_view library, std::uint64_t project_generation = 0);
   [[nodiscard]] bool GameInputFocused() const noexcept;
   [[nodiscard]] PlayInputBindings GameInputBindings() const noexcept;
+  // Owner loads validated settings during project activation; widgets never perform IO.
+  bool SetGameInputBindings(const PlayInputBindings &bindings, const ProjectWorkspace &workspace);
+  [[nodiscard]] std::optional<GameInputBindingsSaveRequest> TakeGameInputBindingsSaveRequest();
+  void SetGameInputBindingsStatus(std::string message);
   [[nodiscard]] bool TakeProfileExportRequest() noexcept;
   [[nodiscard]] bool TakeProfileJsonExportRequest() noexcept;
   [[nodiscard]] bool TakeProfileCsvImportRequest() noexcept;

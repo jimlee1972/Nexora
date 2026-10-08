@@ -376,7 +376,7 @@ recovery/close prompts, and window blur release it and clear held controls. F5/F
 controls; other captured keys/text do not reach authoring shortcuts. The initial user-zero input
 snapshot maps WASD/arrows to movement axes and Space/left mouse/right mouse/Shift/Ctrl to button
 bits 1/2/4/8/16, with one frame sequence and no borrowed input data. Gamepad, pointer motion/look,
-persistent/device-specific rebinding, multiple users, and module hot reload remain open.
+device-specific rebinding, multiple users, and module hot reload remain open.
 
 Play inspection uses one owning Runtime snapshot per UI frame. Selecting a Game entity switches
 Inspector to read-only Play mode: local/world transforms, parent/scene state, Camera/Light payloads,
@@ -595,7 +595,7 @@ The stopped Game panel now edits two control slots for each of four movement dir
 button actions. Apply publishes one validated session profile; duplicate controls reject the
 complete candidate, None unbinds actions, and Cancel/Reset preserve the applied profile until
 explicit Apply. Read-only inspection permits these settings. Switching/detaching projects resets
-them; new Play sessions within the same project retain them. The finite keyboard/mouse control
+session state before project settings are restored; new Play sessions within the same project retain it. The finite keyboard/mouse control
 set excludes the reserved Escape/F5/F6/F10 Editor controls.
 
 `ForwardPlayInput` sends the copied profile through `PlayGameplayModule` before processing every
@@ -605,4 +605,20 @@ wire shape. Successful replacement clears held keys/buttons and output, then dis
 batch while focused; an unchanged profile preserves held input, and invalid profiles preserve the
 last-good mapping/output. Sequence remains monotonic and reserved remains zero. Module callbacks
 observe one copied frame, including release events without a GUI frame. The UI never writes a
-profile file; project/device persistence, gamepad, pointer look and multiple users remain open.
+profile file; device-specific persistence, gamepad, pointer look and multiple users remain open.
+
+## Persisted project input bindings
+
+Apply and save sends an owning UUID/root/profile request to the application. Before IO it rechecks
+the active project and stopped Play, then delegates writer/recovery/profile/path validation and
+atomic publication to `ProjectWorkspace::SavePlayInputBindings`. Failure leaves the last-good file
+and applied session profile intact and displays an error. Session Apply writes no file.
+
+Both startup and project activation load `.nexora/play-input.ini` through the bounded workspace
+reader, including read-only projects. Missing legacy settings use defaults; corrupt/unsafe settings
+are preserved with an error until explicit replacement. Startup recovery defers this load until
+Recover/Discard succeeds. The copied scoped setter prevents the first UI frame from discarding a
+restored profile, and native/deferred input forwarding uses it through the existing copied ABI.
+There is no automatic shutdown save or gameplay-library load caused by reading bindings. Linux
+Xvfb checks actual remapped B movement, rejected old D input and read-only process reopen with
+unchanged settings/scene bytes. Expanded devices/users and physical-host acceptance remain open.

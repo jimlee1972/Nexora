@@ -650,3 +650,20 @@ rejects unknown controls, duplicate concrete controls (including within one acti
 movement bindings. None may repeat and actions may be fully unbound. The value type depends on no
 Window/native key codes and changes no gameplay C ABI. Host policy owns editing, project scope,
 lifetime and publication; this value type performs no persistence or transmission.
+
+## Project Play input settings
+
+`ProjectWorkspace::SavePlayInputBindings` explicitly publishes `.nexora/play-input.ini` under the
+writer lease with resolved recovery and a verified metadata directory/file. The schema-1 ASCII
+format has one header and nine named action records, each containing two stable control names.
+Serialization is deterministic; reads permit reordered action records, CRLF and no final LF, but
+reject unknown/missing/duplicate fields, extra records, NUL, invalid controls, duplicate concrete
+controls and mouse-axis mappings. `kMaximumPlayInputSettingsBytes` is 1,024; a fixed 1,025-byte read
+independently bounds consumption. Only verified missing legacy state yields no value without error.
+
+Reads return owning profiles and permit read-only access. Uninspectable/non-regular/leaf or metadata
+aliases and pending recovery reject. Invalid saves touch no staging; occupied temporary files,
+directories and aliases preserve unrelated data and the last-good destination through the shared
+atomic replacement helper. Explicit valid saves may replace corrupt settings, while reads and
+ordinary shutdown never rewrite them. Settings are independent from scene content and journals;
+these additive APIs change no existing class layout, module dependencies or gameplay C ABI.

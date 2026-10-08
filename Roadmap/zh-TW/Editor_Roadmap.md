@@ -541,12 +541,20 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 
 ### ED-M3 — PIE 與 debugging
 
+- ✅ Project input bindings 現透過明確 Apply and save 的 owning UUID／root／profile request
+  持久化。Schema-1 named records 使用有界 1 KiB reader 與 atomic writer，測試涵蓋 corruption、
+  duplicate／control validation、read-only／recovery／alias／staging preservation 與相容
+  ordering／line ending。Activation 還原 saved profile；startup recovery 會在 resolution 後
+  retry deferred load。Linux Xvfb 證明 B 重綁移動、舊 D 拒絕與 read-only process reopen，
+  保留 settings／scene bytes。Device profiles 與 physical-host acceptance 仍未完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-ProjectInputBindings-Linux-2026-10-08.md)。
+
 - ✅ Stopped Game input bindings 現可為每個 movement／button action 編輯兩個有限
   keyboard／mouse slot，並 atomic apply 通過驗證的 session profile。Duplicate／unknown／
   mouse-axis candidate 拒絕，None 可解除綁定。Cancel／Reset／read-only／project scope 與
   modal／focus／Play gates 具真實 1x／2x 與 macOS input coverage。Replacement 清除 held
   input；deferred batch 與 copied gameplay callback 使用選定 mapping，C ABI 不變。
-  Profile persistence、expanded devices／users 及 physical-host acceptance 仍未完成。
+  Expanded devices／users 及 physical-host acceptance 仍未完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-GameInputBindings-Linux-2026-10-08.md)。
 
 Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔離、apply changes policy、Console、entity/component inspection、breakpoint adapter boundary。Zig gameplay 由 Engine Host 載入，Editor 不成為 Zig `main`。
@@ -586,7 +594,7 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   WASD／方向鍵位移與 Space／滑鼠／Shift／Ctrl 按鈕。Escape、pointer 離開、隱藏 Game、
   Pause／Stop、提示視窗與 native 失焦會清除擷取及 held state。擷取中的按鍵不會觸發 authoring
   快捷鍵；F5／F6／F10 保留控制。測試涵蓋狀態轉移、owning snapshot、callback，以及 Xvfb
-  input-only mesh 移動／釋放。Gamepad、pointer look、persistent／device-specific rebinding 與多使用者仍待完成。
+  input-only mesh 移動／釋放。Gamepad、pointer look、device-specific rebinding 與多使用者仍待完成。
 - ✅ 選取 Game entity 現會開啟唯讀 Play Inspector，顯示複製的 local／world pose、parent、
   scene state、Camera／Light 與完整寬度的 mesh／shader ID。Game panel 顯示暫停原因及 callback
   失敗次數；每 frame 與 fixed callback 失敗皆會釋放 input。快照在元件移除與 Stop 後仍有效，
