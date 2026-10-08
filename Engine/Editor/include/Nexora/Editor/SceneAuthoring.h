@@ -178,6 +178,7 @@ struct AdditiveScene final {
 
 // Owns the additive-scene composition snapshot. Dependencies are validated and load order is
 // deterministic; a failed edit leaves the previous graph intact.
+// Add requires dependencies to refer to existing scenes; both edge admission APIs sort/deduplicate.
 class NEXORA_EDITOR_API AdditiveSceneGraph final {
 public:
   bool Add(AdditiveScene scene);

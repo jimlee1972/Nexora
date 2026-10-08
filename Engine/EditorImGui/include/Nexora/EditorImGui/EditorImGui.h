@@ -2,6 +2,7 @@
 
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/MaterialAssetCatalog.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/PlayApply.h"
 #include "Nexora/Editor/PlayInputBindings.h"
@@ -127,14 +128,12 @@ public:
   void SetProjectSelectorError(std::string error);
   void SetProjectSelectorStatus(std::string status, bool busy);
   [[nodiscard]] std::string_view ProjectSelectorError() const noexcept;
-  void DrawProductShell(ProductShell &shell, SceneDocument *scene = nullptr,
-                        ProjectWorkspace *workspace = nullptr,
-                        ProjectContentSession *content = nullptr,
-                        RecentProjectStore *recent_projects = nullptr,
-                        AssetImportQueue *imports = nullptr,
-                        runtime::RuntimeConsole *console = nullptr,
-                        runtime::PlaySession *play = nullptr, ProfileSession *profile = nullptr,
-                        const MeshAssetCatalog *meshes = nullptr);
+  void DrawProductShell(
+      ProductShell &shell, SceneDocument *scene = nullptr, ProjectWorkspace *workspace = nullptr,
+      ProjectContentSession *content = nullptr, RecentProjectStore *recent_projects = nullptr,
+      AssetImportQueue *imports = nullptr, runtime::RuntimeConsole *console = nullptr,
+      runtime::PlaySession *play = nullptr, ProfileSession *profile = nullptr,
+      const MeshAssetCatalog *meshes = nullptr, const MaterialAssetCatalog *materials = nullptr);
   [[nodiscard]] PlayCommand TakePlayCommand() noexcept;
   [[nodiscard]] std::optional<PlayTransformReview> TakePlayApplyRequest();
   [[nodiscard]] std::string_view GameplayLibrary() const noexcept;

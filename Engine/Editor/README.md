@@ -249,9 +249,14 @@ into renderer or platform internals.
   preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
-  from references, and rejects cycles or unsafe removal atomically. Migration dry-runs never mutate
-  source text; autosave writers and readers share a 64 MiB payload limit. Oversized writes are
-  rejected before filesystem mutation, occupied temporary paths are preserved, and failed
+  from references, and rejects cycles or unsafe removal atomically. Initial dependencies must refer
+  to already admitted scenes; zero, self, missing dependencies and duplicate scene IDs reject before
+  mutation. Initial and replacement dependencies are sorted and deduplicated, preserving deterministic
+  load order and reverse-order removal after a rejected edit. Descriptors do not open documents or
+  publish files; additive tabs and coordinated multi-document save remain separate host workflows.
+  This validation changes no serialization schema, class layout or module linkage. Migration
+  dry-runs never mutate source text; autosave writers and readers share a 64 MiB payload limit.
+  Oversized writes are rejected before filesystem mutation, occupied temporary paths are preserved, and failed
   writes/replacements clean only this attempt's temporary file while retaining the destination.
   The schema-1 header uses the classic locale regardless of the process locale. Calls are
   serialized by the authoring host; concurrent writers are not supported. Bounded autosave
@@ -699,3 +704,32 @@ directories and aliases preserve unrelated data and the last-good destination th
 atomic replacement helper. Explicit valid saves may replace corrupt settings, while reads and
 ordinary shutdown never rewrite them. Settings are independent from scene content and journals;
 these additive APIs change no existing class layout, module dependencies or gameplay C ABI.
+
+## Scalar PBR material assets
+
+`.nmaterial` schema 1 imports opaque linear base color, metallic, roughness, occlusion and emission
+from bounded fixed-order tokens; see [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md)
+for the source grammar, numeric bounds and persistent UUID-reference bytes. Indexing and reimport
+own immutable `MaterialAsset` snapshots. Workers only stage; live publication rechecks source,
+project and dependency revisions. Cancellation, invalid/unsupported source and stale results keep
+the previous artifact. Content Undo retains the latest successful material reimport, just as it
+retains mesh reimports. Sources are limited to 64 KiB and workspaces to 4096 typed materials.
+
+`MaterialAssetCatalog` is externally serialized on the authoring thread and publishes atomically.
+Canonical scalar fields and their exact derived Renderer schema are validated together, rejecting
+unsupported shader/profile/features and contradictory reflected parameters. It borrows Content only
+for the call and returns owning snapshots; every lookup checks the current
+nonzero project generation. Import/catalog operations perform no native GPU work. Its direct
+Renderer dependency uses the shared material-validation policy; application drawing uses Renderer
+tangent generation and existing Presentation PBR bindings.
+
+`AssignMaterialAsset` requires one selected live Mesh Renderer, writable Content, an editable host,
+live entity/document/project generations and the same owning typed payload in catalog and Content.
+It commits one `SceneDocument::SetOpaqueComponent` Undo. Identical assignments preserve Redo.
+The Editor-owned `editor.material.asset` component stores a versioned UUID independently of the
+unchanged legacy shader ID; missing resources and unsupported component versions retain all bytes.
+Per-frame reference inspection copies only bounded opaque metadata prefixes and requires exact
+17-byte length/version, including when unrelated plugins retain large payloads. Unsupported
+versions/type-name collisions reject assignment. Scene container and stable C/Zig
+schemas stay unchanged. Multi-selection, reference removal, textures, shader graphs, Game View
+materials and the shipped-game/cook consumer remain separate work.

@@ -40,8 +40,11 @@ git diff --check
 
 Configure and build passed. Full CTest
 **84/84 passed, zero skipped**, **22.83 seconds**. The prepared-save and preview focused checks
-passed **2/2**. clang-format 19 checks passed for touched C++ files. No module linkage boundary
-changed, so Shipping was not required; root README is unchanged.
+passed **2/2**. clang-format 19 checks passed for touched C++ files. The added out-of-line public Editor APIs require the Shipping linkage gate. The initial
+validation omitted it; the subsequent review identified this gap and the supplemental
+`linux-shipping` configure plus 72-step Monolithic Minimal build passed. Editor/SDK are
+stripped by that preset; this is not a claim that it exercises the Editor API. Root README
+is unchanged.
 
 | Tested source | SHA-256 |
 | --- | --- |
