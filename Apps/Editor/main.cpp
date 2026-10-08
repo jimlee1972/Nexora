@@ -1095,6 +1095,17 @@ int RunGraphical(std::optional<ProjectState> project,
                    : nexora::runtime::RuntimeLogSeverity::Error,
             "Profiler", loaded ? "Frame processing CSV imported; live capture unchanged." : error);
       }
+      if (ui.TakeProfileJsonImportRequest()) {
+        std::string error;
+        auto imported = project->workspace.ImportEditorFrameProcessingJson(&error);
+        const bool loaded = imported && ui.SetImportedProfileCapture(std::move(*imported));
+        if (!loaded && error.empty())
+          error = "Imported JSON snapshot was rejected.";
+        ui.SetProfileExportStatus(loaded ? "Loaded .nexora/frame-processing.json (static)" : error);
+        log(loaded ? nexora::runtime::RuntimeLogSeverity::Info
+                   : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", loaded ? "Frame processing JSON imported; live capture unchanged." : error);
+      }
       if (ui.TakeProfileExportRequest()) {
         std::string error;
         const bool exported = project->workspace.ExportEditorFrameProcessing(

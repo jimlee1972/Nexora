@@ -138,6 +138,7 @@ public:
   [[nodiscard]] bool TakeProfileExportRequest() noexcept;
   [[nodiscard]] bool TakeProfileJsonExportRequest() noexcept;
   [[nodiscard]] bool TakeProfileCsvImportRequest() noexcept;
+  [[nodiscard]] bool TakeProfileJsonImportRequest() noexcept;
   // Transfers a bounded owning wall-time snapshot; rejection preserves the previous import.
   // Bind to the last drawn project; project changes clear it. Live ProfileSession is untouched.
   bool SetImportedProfileCapture(FrameProcessingCapture capture);

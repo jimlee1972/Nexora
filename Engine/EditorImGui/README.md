@@ -184,7 +184,7 @@ production retains ImGui's native platform defaults.
   Publication requires 1-600 ordered nonzero frames, finite nonnegative CPU wall times and zero
   unavailable GPU/memory fields. No retained workspace/sample borrow or live-session mutation is
   introduced. Statistics use an incremental mean so finite large samples do not overflow a sum.
-  CSV has no project/device provenance and is labelled accordingly; JSON import remains deferred.
+  CSV has no project/device provenance and is labelled accordingly; JSON import verifies project identity.
 - The project selector displays background content-index progress and exposes a one-shot cancel
   request. The application owns the candidate workspace and import operation, consumes the staged
   `AssetWorkspace` on the window/authoring thread, and keeps the selector open after cancellation or
@@ -418,7 +418,7 @@ cells because those measurements are unavailable. Export requires 1-600 strictly
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. JSON/arbitrary capture import, GPU timing and memory instrumentation remain open.
+file itself. Arbitrary capture import, GPU timing and memory instrumentation remain open.
 
 Export JSON emits an independent one-shot request consumed through `TakeProfileJsonExportRequest`;
 the CSV request API retains its behavior. Both buttons share empty-sample, write-access and modal
@@ -754,3 +754,10 @@ directories and valid/dangling leaf symlinks. Only verified absence permits exis
 authoring/export/shutdown actions. Recovery rejects unsafe inputs without mutation. Explicit writer
 discard removes one directory entry (never recursively); alias targets remain untouched, and a
 nonempty directory remains pending after discard fails. Read-only observers cannot discard.
+
+Profiler Import JSON emits `TakeProfileJsonImportRequest` independently of CSV and export requests.
+The application owns synchronous workspace IO and publishes a validated owning static snapshot.
+CSV/JSON share the imported plot and Clear imported; failed loads preserve it and live capture.
+Project change/detach clears both import requests and the previous snapshot. Read-only projects may
+import; recovery/close/modal/no-project states disable both controls. JSON validates current project
+identity before publication; CSV carries no project provenance. GPU/memory remain unavailable.

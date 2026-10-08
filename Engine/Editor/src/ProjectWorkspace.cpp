@@ -1,4 +1,5 @@
 #include "AtomicFile.h"
+#include "FrameProcessingJson.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 
@@ -825,6 +826,47 @@ ProjectWorkspace::ImportEditorFrameProcessingCsv(std::string *error) const {
   }
   if (capture.samples.empty())
     return fail("frame processing CSV requires 1-600 samples");
+  return capture;
+}
+
+std::optional<FrameProcessingCapture>
+ProjectWorkspace::ImportEditorFrameProcessingJson(std::string *error) const {
+  if (error)
+    error->clear();
+  const auto fail = [&](std::string_view message) -> std::optional<FrameProcessingCapture> {
+    if (error)
+      *error = message;
+    return std::nullopt;
+  };
+  if (root_.empty() || HasRecoveryJournal())
+    return fail("JSON import requires an open project with resolved recovery");
+  std::error_code ec;
+  const auto metadata = std::filesystem::symlink_status(root_ / ".nexora", ec);
+  if (ec || !std::filesystem::is_directory(metadata))
+    return fail("JSON import metadata directory is unavailable or unsafe");
+  const auto path = root_ / ".nexora/frame-processing.json";
+  const auto status = std::filesystem::symlink_status(path, ec);
+  if (ec || !std::filesystem::is_regular_file(status))
+    return fail("frame processing JSON is missing, unavailable or unsafe");
+  std::ifstream input(path, std::ios::binary);
+  if (!input)
+    return fail("could not read frame processing JSON");
+  std::string bytes;
+  std::array<char, 4096> buffer{};
+  while (input) {
+    const auto requested =
+        std::min(buffer.size(), kMaximumFrameProcessingJsonBytes - bytes.size() + 1);
+    input.read(buffer.data(), static_cast<std::streamsize>(requested));
+    const auto count = static_cast<std::size_t>(input.gcount());
+    if (count > kMaximumFrameProcessingJsonBytes - bytes.size())
+      return fail("frame processing JSON exceeds the byte limit");
+    bytes.append(buffer.data(), count);
+  }
+  if (input.bad() || bytes.empty())
+    return fail("frame processing JSON is unreadable or empty");
+  auto capture = detail::FrameProcessingJsonReader(bytes).Read(project_.id.ToString());
+  if (!capture)
+    return fail("invalid or unsupported frame processing JSON schema, project or samples");
   return capture;
 }
 

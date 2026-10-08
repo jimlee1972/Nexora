@@ -405,7 +405,7 @@ cells because those measurements are unavailable. Export requires 1-600 strictly
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. JSON/arbitrary capture import, GPU timing and memory instrumentation remain open.
+file itself. Arbitrary capture import, GPU timing and memory instrumentation remain open.
 
 Profiler Import CSV reads `.nexora/frame-processing.csv` through the workspace owner and displays a
 separate static wall-time snapshot. The file is bounded to 128 KiB/600 ordered samples; malformed,
@@ -421,7 +421,7 @@ atomic writer. Its independent UI request is consumed before adding the current 
 reach Profiler status and Console. Schema 1 identifies source/scope, milliseconds, project UUID,
 sample count and evicted-frame count. uint64 frame/drop values are lossless decimal strings;
 GPU/memory availability is false and sample values are null. CSV behavior and file remain unchanged.
-Import and instrumented GPU/memory traces are still unavailable.
+Arbitrary import and instrumented GPU/memory traces are still unavailable.
 
 Game Apply Changes is an explicit transform-only review. Opening it emits Pause when needed and
 releases Game input. The modal owns original/Editor/Play transforms and session/document/entity
@@ -565,3 +565,10 @@ directories and valid/dangling leaf symlinks. Only verified absence permits exis
 authoring/export/shutdown actions. Recovery rejects unsafe inputs without mutation. Explicit writer
 discard removes one directory entry (never recursively); alias targets remain untouched, and a
 nonempty directory remains pending after discard fails. Read-only observers cannot discard.
+
+Profiler Import JSON reads `.nexora/frame-processing.json` through the workspace owner into the same
+separate static plot as CSV. Schema 1 requires the current project UUID and exported wall-time scope,
+with lossless uint64/double values and explicitly unavailable GPU/memory. The 128-KiB/600-sample
+reader rejects unsupported/corrupt/unsafe or recovery-pending input without replacing the prior plot.
+Read-only projects may import; live capture and source files stay unchanged. Project detach/change
+clears pending JSON requests and imported data. Status and Console expose success/failure.

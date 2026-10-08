@@ -168,6 +168,146 @@ void VerifyCsvImport(nexora::editor::ProjectWorkspace &workspace) {
   Require(!empty.ImportEditorFrameProcessingCsv(&error) && !error.empty(),
           "closed workspace imported a CWD-relative CSV");
 }
+void VerifyJsonImport(nexora::editor::ProjectWorkspace &workspace) {
+  using namespace nexora::editor;
+  namespace fs = std::filesystem;
+  const auto output = workspace.Root() / ".nexora/frame-processing.json";
+  const auto original = Read(output);
+  std::string error;
+  const auto write = [&](const std::string &bytes) {
+    std::ofstream(output, std::ios::binary | std::ios::trunc) << bytes;
+  };
+  const auto imported = workspace.ImportEditorFrameProcessingJson(&error);
+  Require(imported && error.empty() && imported->samples.size() == 2 &&
+              imported->samples.front().cpu_ms == 4.25 && imported->older_frames_dropped == 1,
+          "ordinary JSON import failed");
+  const auto reject = [&](const std::string &bytes) {
+    write(bytes);
+    Require(!workspace.ImportEditorFrameProcessingJson(&error) && !error.empty() &&
+                Read(output) == bytes,
+            "invalid JSON accepted or rewritten");
+  };
+  const auto changed = [&](std::string_view before, std::string_view after) {
+    auto bytes = original;
+    const auto index = bytes.find(before);
+    Require(index != std::string::npos, "JSON corruption fixture did not match");
+    bytes.replace(index, before.size(), after);
+    return bytes;
+  };
+  for (const auto &[before, after] :
+       std::array{std::pair{"\"schema\": 1", "\"schema\": 2"},
+                  std::pair{"\"schema\": 1", "\"schema\": 1, \"schema\": 1"},
+                  std::pair{"\"source\"", "\"unknown\""},
+                  std::pair{"NexoraEditor", "OtherEditor"},
+                  std::pair{"after_begin_frame_before_present", "whole_frame"},
+                  std::pair{"milliseconds", "seconds"},
+                  std::pair{"\"sample_count\": 2", "\"sample_count\": 3"},
+                  std::pair{"\"sample_count\": 2", "\"sample_count\": 2.0"},
+                  std::pair{"\"sample_count\": 2", "\"sample_count\": 02"},
+                  std::pair{"\"frame\": \"2\"", "\"frame\": \"0\""},
+                  std::pair{"\"frame\": \"3\"", "\"frame\": \"2\""},
+                  std::pair{"\"frame\": \"2\"", "\"frame\": 2"},
+                  std::pair{"\"frame\": \"2\"", "\"frame\": \"02\""},
+                  std::pair{"\"older_frames_dropped\": \"1\"",
+                            "\"older_frames_dropped\": \"18446744073709551616\""},
+                  std::pair{"4.25", "-1"},
+                  std::pair{"4.25", "NaN"},
+                  std::pair{"4.25", "1e999"},
+                  std::pair{"4.25", "+1"},
+                  std::pair{"4.25", "01"},
+                  std::pair{"4.25", "1."},
+                  std::pair{"4.25", "0x1"},
+                  std::pair{"4.25", "1e"},
+                  std::pair{"\"gpu_timing_available\": false", "\"gpu_timing_available\": true"},
+                  std::pair{"\"gpu_ms\": null", "\"gpu_ms\": 0"},
+                  std::pair{"\"memory_bytes\": null", "\"memory_bytes\": \"0\""}})
+    reject(changed(before, after));
+  reject(changed(workspace.Project().id.ToString(), "00000000-0000-0000-0000-000000000000"));
+  reject(original + "{}");
+  reject(original + std::string(1, '\0'));
+  for (std::size_t size = 0; size < original.find_last_of('}') + 1; ++size)
+    reject(original.substr(0, size));
+  // Whitespace, field reordering, escaped ASCII schema keys and no final newline are valid.
+  auto reordered = changed("\"schema\": 1,\n  \"source\": \"NexoraEditor\"",
+                           "\"source\": \"NexoraEditor\",\n  \"schema\": 1");
+  reordered.replace(reordered.find("schema"), 6, R"(sch\u0065ma)");
+  reordered.erase(reordered.find_last_of('}') + 1);
+  write(reordered);
+  Require(workspace.ImportEditorFrameProcessingJson(&error).has_value(),
+          "reordered/escaped/no-final-LF JSON rejected");
+  auto exact = original;
+  exact.append(ProjectWorkspace::kMaximumFrameProcessingJsonBytes - exact.size(), ' ');
+  write(exact);
+  Require(workspace.ImportEditorFrameProcessingJson(&error).has_value(),
+          "exact byte limit JSON rejected");
+  reject(exact + " ");
+  const std::array precise{
+      FrameSample{9007199254740993ULL, 1.2345678901234567, 99, 99},
+      FrameSample{9007199254740994ULL, std::numeric_limits<double>::denorm_min(), 99, 99},
+      FrameSample{std::numeric_limits<std::uint64_t>::max(), std::numeric_limits<double>::max(), 99,
+                  99}};
+  Require(workspace.ExportEditorFrameProcessingJson(
+              precise, std::numeric_limits<std::uint64_t>::max(), &error),
+          "precise JSON export failed");
+  const auto previous_locale = std::locale();
+  std::locale::global(std::locale(previous_locale, new CommaDecimal));
+  auto capture = workspace.ImportEditorFrameProcessingJson(&error);
+  std::locale::global(previous_locale);
+  Require(capture && capture->older_frames_dropped == std::numeric_limits<std::uint64_t>::max(),
+          "locale independent/lossless JSON import failed");
+  for (std::size_t index = 0; index < precise.size(); ++index)
+    Require(capture->samples[index].frame == precise[index].frame &&
+                capture->samples[index].cpu_ms == precise[index].cpu_ms &&
+                capture->samples[index].gpu_ms == 0 && capture->samples[index].memory_bytes == 0,
+            "JSON import lost precision or invented measurements");
+  std::vector<FrameSample> maximum;
+  for (std::uint64_t frame = 1; frame <= 600; ++frame)
+    maximum.push_back({frame, 0.25, 0, 0});
+  Require(workspace.ExportEditorFrameProcessingJson(maximum, 0, &error),
+          "maximum JSON export failed");
+  capture = workspace.ImportEditorFrameProcessingJson(&error);
+  Require(capture && capture->samples.size() == 600, "maximum sample JSON rejected");
+  auto oversized = Read(output);
+  const auto close = oversized.find("\n  ]");
+  oversized.insert(close, ", {\"frame\": \"601\", \"frame_processing_wall_ms\": 1, "
+                          "\"gpu_ms\": null, \"memory_bytes\": null}");
+  reject(oversized);
+  const auto backup = workspace.Root() / "json-backup";
+  fs::rename(output, backup);
+  Require(!workspace.ImportEditorFrameProcessingJson(&error), "missing JSON accepted");
+  fs::create_directory(output);
+  Require(!workspace.ImportEditorFrameProcessingJson(&error) && fs::is_directory(output),
+          "JSON directory accepted or removed");
+  fs::remove(output);
+#if !defined(_WIN32)
+  for (const auto &target : {backup, workspace.Root() / "missing-json"}) {
+    fs::create_symlink(target, output);
+    Require(!workspace.ImportEditorFrameProcessingJson(&error) && fs::is_symlink(output),
+            "aliased JSON accepted or removed");
+    fs::remove(output);
+  }
+  const auto metadata = workspace.Root() / ".nexora";
+  const auto metadata_backup = workspace.Root() / "json-metadata-backup";
+  fs::rename(metadata, metadata_backup);
+  fs::create_directory_symlink(metadata_backup, metadata);
+  Require(!workspace.ImportEditorFrameProcessingJson(&error) && fs::is_symlink(metadata),
+          "aliased JSON parent accepted or removed");
+  fs::remove(metadata);
+  fs::rename(metadata_backup, metadata);
+#endif
+  fs::rename(backup, output);
+  write(original);
+  ProjectWorkspace observer;
+  Require(observer.Open(workspace.Root(), ProjectAccess::ReadOnly, &error) &&
+              observer.ImportEditorFrameProcessingJson(&error) && Read(output) == original,
+          "read-only JSON import failed");
+  std::ofstream(workspace.Root() / ".nexora/workspace.recovery") << "schema=1\n";
+  Require(!workspace.ImportEditorFrameProcessingJson(&error) && Read(output) == original &&
+              workspace.DiscardRecovery(&error),
+          "recovery-pending JSON imported or mutated");
+  ProjectWorkspace empty;
+  Require(!empty.ImportEditorFrameProcessingJson(&error), "closed workspace imported JSON");
+}
 void Run(float dpi, const std::filesystem::path &fixture = {}) {
   using namespace nexora;
   using namespace editor;
@@ -192,6 +332,7 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   VerifyCsvImport(workspace);
   const auto json_output = temporary.root / ".nexora/frame-processing.json";
   const auto json_expected = Read(json_output);
+  VerifyJsonImport(workspace);
   Require(json_exported && json_expected.find("\"schema\": 1") != std::string::npos &&
               json_expected.find("\"project_uuid\": \"" + workspace.Project().id.ToString()) !=
                   std::string::npos &&
@@ -279,11 +420,12 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   draw();
   draw();
   const auto click = [&](int control = 0) {
-    const auto point = control == 3 ? imgui::EditorImGuiTestAccess::ProfileImportClearPosition(host)
-                       : control == 2 ? imgui::EditorImGuiTestAccess::ProfileCsvImportPosition(host)
-                       : control == 1
-                           ? imgui::EditorImGuiTestAccess::ProfileJsonExportPosition(host)
-                           : imgui::EditorImGuiTestAccess::ProfileExportPosition(host);
+    const auto point =
+        control == 4   ? imgui::EditorImGuiTestAccess::ProfileJsonImportPosition(host)
+        : control == 3 ? imgui::EditorImGuiTestAccess::ProfileImportClearPosition(host)
+        : control == 2 ? imgui::EditorImGuiTestAccess::ProfileCsvImportPosition(host)
+        : control == 1 ? imgui::EditorImGuiTestAccess::ProfileJsonExportPosition(host)
+                       : imgui::EditorImGuiTestAccess::ProfileExportPosition(host);
     Require(point.has_value(), "Profiler export button not visible");
     Nexora::Window::WindowEvent pointer;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
@@ -311,6 +453,21 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   Require(host.TakeProfileCsvImportRequest() && !host.TakeProfileCsvImportRequest() &&
               !host.TakeProfileExportRequest() && !host.TakeProfileJsonExportRequest(),
           "CSV import click was not an independent one-shot request");
+  click(4);
+  Require(host.TakeProfileJsonImportRequest() && !host.TakeProfileJsonImportRequest() &&
+              !host.TakeProfileCsvImportRequest() && !host.TakeProfileJsonExportRequest(),
+          "JSON import was not an independent one-shot request");
+  auto json_loaded = workspace.ImportEditorFrameProcessingJson(&error);
+  Require(json_loaded && host.SetImportedProfileCapture(*json_loaded),
+          "valid JSON snapshot publication failed");
+  const auto preserved =
+      imgui::EditorImGuiTestAccess::ImportedProfileCapture(host)->samples.front().cpu_ms;
+  std::ofstream(json_output) << "{}";
+  Require(!workspace.ImportEditorFrameProcessingJson(&error) &&
+              imgui::EditorImGuiTestAccess::ImportedProfileCapture(host)->samples.front().cpu_ms ==
+                  preserved,
+          "failed JSON import replaced prior snapshot");
+  std::ofstream(json_output) << json_expected;
   auto loaded = workspace.ImportEditorFrameProcessingCsv(&error);
   Require(loaded && host.SetImportedProfileCapture(*loaded), "valid snapshot publication failed");
   loaded->samples.front().cpu_ms = 999;
@@ -334,6 +491,8 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   Require(!host.TakeProfileJsonExportRequest(), "close confirmation emitted JSON export");
   click(2);
   Require(!host.TakeProfileCsvImportRequest(), "close confirmation emitted CSV import");
+  click(4);
+  Require(!host.TakeProfileJsonImportRequest(), "close confirmation emitted JSON import");
   Nexora::Window::WindowEvent escape;
   escape.type = Nexora::Window::WindowEventType::Key;
   escape.value0 = static_cast<int>(Nexora::Window::Key::Escape);
@@ -356,17 +515,22 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   Require(!host.TakeProfileJsonExportRequest(), "read-only button emitted JSON export");
   click(2);
   Require(host.TakeProfileCsvImportRequest(), "read-only CSV import button was disabled");
+  click(4);
+  Require(host.TakeProfileJsonImportRequest(), "read-only JSON import was disabled");
   auto observed = observer.ImportEditorFrameProcessingCsv(&error);
   Require(observed && host.SetImportedProfileCapture(*observed),
           "read-only snapshot publication failed");
   click(2);
+  click(4);
   active = nullptr;
   draw();
   Require(!imgui::EditorImGuiTestAccess::ImportedProfileCapture(host) &&
-              !host.TakeProfileCsvImportRequest(),
+              !host.TakeProfileCsvImportRequest() && !host.TakeProfileJsonImportRequest(),
           "project detach retained the prior imported trace or stale request");
   click(2);
   Require(!host.TakeProfileCsvImportRequest(), "no-project CSV import button was enabled");
+  click(4);
+  Require(!host.TakeProfileJsonImportRequest(), "no-project JSON import enabled");
   active = &workspace;
   profile.Clear();
   draw();
@@ -397,6 +561,8 @@ void Run(float dpi, const std::filesystem::path &fixture = {}) {
   click(true);
   click(2);
   Require(!host.TakeProfileCsvImportRequest(), "recovery prompt emitted CSV import");
+  click(4);
+  Require(!host.TakeProfileJsonImportRequest(), "recovery prompt emitted JSON import");
   Require(!host.TakeProfileJsonExportRequest() && workspace.DiscardRecovery(&error),
           "recovery prompt emitted JSON export");
   if (!fixture.empty()) {
