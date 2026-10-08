@@ -74,7 +74,7 @@ remain covered. Physical GPU/display and other target-host evidence remain open.
 ## Latest-main compatibility
 
 After these gates completed, main advanced to `f21620387e5b27dfb9cce9b341100bb516cc8708`
-(Console virtualization, PR #444). A read-only `git merge-tree --write-tree HEAD origin/main`
+(bounded Console admission, PR #444). A read-only `git merge-tree --write-tree HEAD origin/main`
 compatibility check returned exit 0 without conflicts. That newer main was not merged into this
 locally tested source; the 146-test result above belongs to the explicit tested merge commit.
 The PR merge CI remains responsible for validating the combined latest-main tree.
