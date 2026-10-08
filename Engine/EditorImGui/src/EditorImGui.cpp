@@ -198,6 +198,13 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> game_camera_combo_position;
   std::vector<std::pair<runtime::Id, std::array<float, 2>>> game_camera_positions;
   bool game_input_focused = false;
+  PlayInputBindings game_input_bindings{}, game_input_draft{};
+  std::filesystem::path game_input_root;
+  foundation::Uuid game_input_project{};
+  bool game_input_binding_open{}, game_input_binding_pending{};
+  std::string game_input_binding_error;
+  std::array<std::optional<std::array<float, 2>>, 22> game_input_binding_positions;
+  std::vector<std::pair<PlayInputControl, std::array<float, 2>>> game_input_choice_positions;
   runtime::Id play_inspection_entity{};
   runtime::Id play_inspector_rendered{};
   bool inspect_play_selection{};
@@ -3420,6 +3427,8 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
       // Dear ImGui releases held inputs on focus loss. Cancel before that synthetic release
       // can be interpreted as a completed authoring gesture.
       if (!state_->app_focused) {
+        state_->game_input_binding_open = false;
+        state_->game_input_binding_pending = false;
         state_->native_pointer.reset();
         state_->game_input_focused = false;
         CancelSceneGestures(*state_);
@@ -3599,6 +3608,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const auto play_snapshot = play ? play->Inspect() : runtime::RuntimeInspectionSnapshot{};
   state_->game_camera_combo_position.reset();
   state_->game_camera_positions.clear();
+  state_->game_input_binding_positions = {};
+  state_->game_input_choice_positions.clear();
   if (!game_running || state_->game_camera_generation != play->Generation())
     state_->game_camera_selection = 0;
   state_->game_camera_generation = play ? play->Generation() : 0;
@@ -3665,6 +3676,22 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         SceneFileToken{workspace ? workspace->Project().id : foundation::Uuid{}, scene_generation};
   state_->selector_visible = false;
   const bool recovery_available = workspace != nullptr && workspace->HasRecoveryJournal();
+  const auto input_root = workspace ? workspace->Root() : std::filesystem::path{};
+  const auto input_project = workspace ? workspace->Project().id : foundation::Uuid{};
+  if (state_->game_input_root != input_root || state_->game_input_project != input_project) {
+    state_->game_input_bindings = {};
+    state_->game_input_root = input_root;
+    state_->game_input_project = input_project;
+    state_->game_input_binding_open = false;
+    state_->game_input_binding_pending = false;
+  }
+  if (!state_->app_focused || !play || play->State() != runtime::PlayState::Stopped ||
+      recovery_available || state_->close_prompt_requested || state_->play_apply_open ||
+      state_->scene_file_dialog != State::FileDialog::None || state_->scene_file_output ||
+      state_->hierarchy_rename_target || state_->content_rename_target) {
+    state_->game_input_binding_open = false;
+    state_->game_input_binding_pending = false;
+  }
   // Query from the same root ID scope that opens the modal, before entering a panel window.
   const bool close_confirmation_open =
       state_->close_prompt_requested || ImGui::IsPopupOpen("Unsaved scene###editor.close");
@@ -3672,8 +3699,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       scene && workspace && state_->scene_file_context &&
       state_->scene_file_token.project == workspace->Project().id &&
       state_->scene_file_token.document_generation == scene->Generation();
-  const bool file_external_block =
-      recovery_available || state_->play_apply_open || close_confirmation_open;
+  const bool file_external_block = recovery_available || state_->play_apply_open ||
+                                   close_confirmation_open || state_->game_input_binding_open;
   const bool writable = workspace && workspace->Writable();
   const bool file_busy =
       state_->scene_file_dialog != State::FileDialog::None || state_->scene_file_output;
@@ -4160,6 +4187,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (!state_->gameplay_status.empty())
         ImGui::TextWrapped("%s", state_->gameplay_status.c_str());
       const auto state = play->State();
+      ImGui::BeginDisabled(state != runtime::PlayState::Stopped || interaction_blocked ||
+                           !state_->app_focused);
+      if (ImGui::Button("Input bindings###game.input.bindings")) {
+        state_->game_input_draft = state_->game_input_bindings;
+        state_->game_input_binding_error.clear();
+        state_->game_input_binding_open = state_->game_input_binding_pending = true;
+        state_->play_command = PlayCommand::None;
+        CancelSceneGestures(*state_);
+        CancelInspectorDrafts(*state_);
+      }
+      const auto binding_min = ImGui::GetItemRectMin(), binding_max = ImGui::GetItemRectMax();
+      state_->game_input_binding_positions[0] = std::array{(binding_min.x + binding_max.x) * 0.5F,
+                                                           (binding_min.y + binding_max.y) * 0.5F};
+      ImGui::EndDisabled();
       if (state == runtime::PlayState::Stopped) {
         if (ImGui::Button("Play"))
           state_->play_command = PlayCommand::Start;
@@ -4494,6 +4535,103 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                            (!workspace || workspace->Writable()),
                        state_->app_focused && !interaction_blocked && !state_->game_input_focused);
   DrawProjectPanel(*state_, workspace, recent_projects);
+  if (std::exchange(state_->game_input_binding_pending, false))
+    ImGui::OpenPopup("Game input bindings###game.input.binding-dialog");
+  ImGui::SetNextWindowSize({620.0F, 440.0F}, ImGuiCond_Always);
+  if (ImGui::BeginPopupModal("Game input bindings###game.input.binding-dialog", nullptr,
+                             ImGuiWindowFlags_NoResize)) {
+    if (!state_->game_input_binding_open) {
+      ImGui::ClearActiveID();
+      ImGui::CloseCurrentPopup();
+    } else {
+      ImGui::TextWrapped("Editor session bindings. Stop Play before editing. Apply replaces the "
+                         "whole profile; changing projects resets it.");
+      constexpr const char *actions[] = {"Left (-X)",     "Right (+X)", "Forward (+Y)",
+                                         "Back (-Y)",     "Action (1)", "Primary (2)",
+                                         "Secondary (4)", "Sprint (8)", "Modifier (16)"};
+      const auto label = [](PlayInputControl control) -> std::string {
+        if (control >= PlayInputControl::A && control <= PlayInputControl::Z)
+          return std::string(1, static_cast<char>('A' + static_cast<int>(control) -
+                                                  static_cast<int>(PlayInputControl::A)));
+        constexpr const char *names[] = {"Left arrow", "Right arrow", "Up arrow",    "Down arrow",
+                                         "Space",      "Left Shift",  "Right Shift", "Left Ctrl",
+                                         "Right Ctrl", "Left mouse",  "Right mouse"};
+        if (control >= PlayInputControl::Left && control < PlayInputControl::Count)
+          return names[static_cast<std::size_t>(control) -
+                       static_cast<std::size_t>(PlayInputControl::Left)];
+        return "Unbound";
+      };
+      const auto capture = [&](std::size_t index) {
+        const auto min = ImGui::GetItemRectMin(), max = ImGui::GetItemRectMax();
+        state_->game_input_binding_positions[index] =
+            std::array{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
+      };
+      if (ImGui::BeginTable("##input-bindings", 3, ImGuiTableFlags_SizingStretchSame)) {
+        ImGui::TableSetupColumn("Action");
+        ImGui::TableSetupColumn("Primary");
+        ImGui::TableSetupColumn("Alternate");
+        ImGui::TableHeadersRow();
+        for (std::size_t action = 0; action < PlayInputBindings::kActions; ++action) {
+          ImGui::TableNextRow();
+          ImGui::TableNextColumn();
+          ImGui::TextUnformatted(actions[action]);
+          for (std::size_t slot = 0; slot < 2; ++slot) {
+            ImGui::TableNextColumn();
+            ImGui::PushID(static_cast<int>(action * 2 + slot));
+            auto &binding = state_->game_input_draft.controls[action][slot];
+            ImGui::SetNextItemWidth(-1);
+            const bool open = ImGui::BeginCombo("##control", label(binding).c_str());
+            capture(1 + action * 2 + slot);
+            if (open) {
+              const int count = static_cast<int>(action < 4 ? PlayInputControl::MouseLeft
+                                                            : PlayInputControl::Count);
+              ImGuiListClipper controls;
+              controls.Begin(count);
+              while (controls.Step())
+                for (int value = controls.DisplayStart; value < controls.DisplayEnd; ++value) {
+                  const auto control = static_cast<PlayInputControl>(value);
+                  if (ImGui::Selectable(label(control).c_str(), binding == control)) {
+                    binding = control;
+                    state_->game_input_binding_error.clear();
+                  }
+                  const auto min = ImGui::GetItemRectMin(), max = ImGui::GetItemRectMax();
+                  state_->game_input_choice_positions.push_back(
+                      {control, {(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F}});
+                }
+              ImGui::EndCombo();
+            }
+            ImGui::PopID();
+          }
+        }
+        ImGui::EndTable();
+      }
+      if (!state_->game_input_binding_error.empty())
+        ImGui::TextWrapped("%s", state_->game_input_binding_error.c_str());
+      if (ImGui::Button("Apply")) {
+        if (state_->game_input_draft.Valid()) {
+          state_->game_input_bindings = state_->game_input_draft;
+          state_->game_input_binding_open = false;
+          ImGui::CloseCurrentPopup();
+        } else
+          state_->game_input_binding_error = "Each control can be bound only once. Choose Unbound "
+                                             "to release a duplicate.";
+      }
+      capture(19);
+      ImGui::SameLine();
+      if (ImGui::Button("Reset defaults")) {
+        state_->game_input_draft = {};
+        state_->game_input_binding_error.clear();
+      }
+      capture(20);
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+        state_->game_input_binding_open = false;
+        ImGui::CloseCurrentPopup();
+      }
+      capture(21);
+    }
+    ImGui::EndPopup();
+  }
   if (state_->focus_initial_scene) {
     auto *initial_scene_window = ImGui::FindWindowByName(
         PanelWindowName(game_running ? "nexora.game" : "nexora.scene").c_str());
@@ -4705,6 +4843,7 @@ void EditorImGuiHost::RequestSceneUnsavedChoice(SceneFileRequest request) {
 }
 
 void EditorImGuiHost::RequestCloseConfirmation() noexcept {
+  state_->game_input_binding_open = state_->game_input_binding_pending = false;
   state_->scene_file_close_popup = false;
   state_->scene_file_intent.reset();
   state_->scene_file_output.reset();
@@ -4721,6 +4860,9 @@ CloseChoice EditorImGuiHost::TakeCloseChoice() noexcept {
 }
 
 bool EditorImGuiHost::GameInputFocused() const noexcept { return state_->game_input_focused; }
+PlayInputBindings EditorImGuiHost::GameInputBindings() const noexcept {
+  return state_->game_input_bindings;
+}
 std::string_view EditorImGuiHost::GameplayLibrary() const noexcept {
   return state_->gameplay_library.data();
 }
@@ -5411,6 +5553,34 @@ void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.content");
   ImGui::SetWindowFocus(name.c_str());
+}
+void EditorImGuiTestAccess::FocusGame(EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto name = PanelWindowName("nexora.game");
+  ImGui::SetWindowFocus(name.c_str());
+}
+bool EditorImGuiTestAccess::GameInputBindingsOpen(const EditorImGuiHost &host) noexcept {
+  return host.state_->game_input_binding_open;
+}
+std::string_view
+EditorImGuiTestAccess::GameInputBindingsError(const EditorImGuiHost &host) noexcept {
+  return host.state_->game_input_binding_error;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::GameInputBindingPosition(const EditorImGuiHost &host,
+                                                std::size_t control) noexcept {
+  return control < host.state_->game_input_binding_positions.size()
+             ? host.state_->game_input_binding_positions[control]
+             : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::GameInputChoicePosition(const EditorImGuiHost &host,
+                                               PlayInputControl control) noexcept {
+  const auto found =
+      std::ranges::find(host.state_->game_input_choice_positions, control,
+                        &decltype(host.state_->game_input_choice_positions)::value_type::first);
+  return found == host.state_->game_input_choice_positions.end() ? std::nullopt
+                                                                 : std::optional{found->second};
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentSearchPosition(const EditorImGuiHost &host) noexcept {

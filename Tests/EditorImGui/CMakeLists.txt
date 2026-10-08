@@ -329,3 +329,9 @@ target_include_directories(NexoraContentShortcutTests PRIVATE "${PROJECT_SOURCE_
 target_link_libraries(NexoraContentShortcutTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraContentShortcutTests)
 add_test(NAME editor.content_keyboard_shortcuts COMMAND NexoraContentShortcutTests)
+
+add_executable(NexoraGameInputBindingsTests GameInputBindingsTests.cpp)
+target_include_directories(NexoraGameInputBindingsTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraGameInputBindingsTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraGameInputBindingsTests)
+add_test(NAME editor.game_input_bindings COMMAND NexoraGameInputBindingsTests)

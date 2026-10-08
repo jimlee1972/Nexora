@@ -127,6 +127,27 @@ int main() {
                 host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
                 snapshot.move_x == 0,
             "paused forwarding admitted gameplay movement");
+    editor::PlayInputBindings rebound;
+    rebound.controls[1][0] = editor::PlayInputControl::B;
+    Require(play.Resume(), "rebound callback fixture resume failed");
+    editor::preview::ForwardPlayInput(play, module, true, {}, rebound);
+    auto custom = right;
+    custom.value0 = static_cast<int>(Nexora::Window::Key::B);
+    editor::preview::ForwardPlayInput(play, module, true, std::array{custom}, rebound);
+    Require(host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 1 && snapshot.reserved == 0,
+            "custom binding did not reach gameplay callback without a rendered frame");
+    const auto captured = snapshot;
+    Require(host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.sequence == captured.sequence && snapshot.move_x == captured.move_x,
+            "repeated capture changed copied rebound frame");
+    custom.value1 = 0;
+    editor::preview::ForwardPlayInput(play, module, true, std::array{custom}, rebound);
+    Require(host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 0,
+            "rebound keyup without rendering retained movement");
+    editor::preview::ForwardPlayInput(play, module, false, {}, rebound);
+    Require(play.Pause(), "rebound callback fixture pause failed");
     fail_fixed = true;
     Require(!play.Step() && play.LastPauseReason() == runtime::PauseReason::RuntimeFailure &&
                 play.Stats().crashes == 1,

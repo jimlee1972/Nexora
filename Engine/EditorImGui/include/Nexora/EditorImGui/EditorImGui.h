@@ -4,6 +4,7 @@
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/PlayApply.h"
+#include "Nexora/Editor/PlayInputBindings.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneFiles.h"
 #include "Nexora/Editor/ViewportMath.h"
@@ -135,6 +136,7 @@ public:
   void SetGameplayStatus(std::string message);
   void SetGameplayLibrary(std::string_view library, std::uint64_t project_generation = 0);
   [[nodiscard]] bool GameInputFocused() const noexcept;
+  [[nodiscard]] PlayInputBindings GameInputBindings() const noexcept;
   [[nodiscard]] bool TakeProfileExportRequest() noexcept;
   [[nodiscard]] bool TakeProfileJsonExportRequest() noexcept;
   [[nodiscard]] bool TakeProfileCsvImportRequest() noexcept;

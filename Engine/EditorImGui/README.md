@@ -158,7 +158,7 @@ production retains ImGui's native platform defaults.
   return the same copied frame value. Pause/hide/blur clears held controls, including before Step.
   The application forwards release/focus events into the owning gameplay snapshot even when
   rendering is deferred or the client extent is zero; these batches do not tick Play or need an
-  ImGui frame. Gamepad, pointer motion/look, rebinding, and multiple input users remain open.
+  ImGui frame. Gamepad, pointer motion/look, persistent/device-specific rebinding and multiple input users remain open.
   Game uses the existing bounded Lambertian preview and composed TRS, without editor proxies or
   gizmos; material shader execution, exact hierarchy shear, and simultaneous 3D views remain open.
 - The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes
@@ -782,3 +782,21 @@ state. Every use rechecks visible membership, including externally changed filte
 State retains owning UUIDs and scope values; no ContentItem borrow crosses frames. Rename and
 Delete continue to act on the resulting owning selection. This does not implement folder-row
 keyboard traversal, a semantic screen-reader bridge, or full accessibility acceptance.
+
+## Game input binding drafts
+
+The stopped Game panel opens an Editor-session input binding modal. Each action exposes Primary
+and Alternate choices from the portable profile; movement choices exclude mouse buttons. Apply
+validates and publishes the entire owning value, while duplicate controls retain the draft with
+an error and preserve the applied profile. Cancel/Escape discards edits; Reset defaults edits only
+the draft until Apply. Read-only projects permit these session-only settings. Changing/detaching
+the project root/UUID resets the applied profile; scene replacement and new Play sessions retain it.
+
+The modal blocks authoring, File and Play requests and cancels Scene gestures/Inspector drafts.
+Native blur, recovery, close/file/rename/Play-review prompts and externally started Play cancel
+the draft; loss/regain without an intervening frame cannot revive it. Playing and Paused disable
+editing. Fixed modal bounds and equal-width columns retain stable hit geometry at 1x/2x.
+`GameInputBindings()` returns a copied profile; the application publishes it alongside each native
+input batch, including deferred/zero-extent frames. No widgets read/write project settings or
+retain World/input borrows. There is no OS key-capture dialog, project persistence, gamepad/pointer
+look/multiple-user rebinding or full target-host accessibility acceptance in this slice.
