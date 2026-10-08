@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Standard／High 浮點 HDR 環境光強度由 2.4 降至 1.8，使庭院石材陰影更深，同時保留既有直接光；Basic 仍省略 IBL。原始天空來源／圖集、浮點 diffuse／specular／BRDF 資料、資源標頭、HDR 太陽、主光／點光、水晶／粒子輻射、bloom、幾何與共用動畫時鐘保持一致。固定鏡位原生前後對照保留，開放天空區域逐像素相同。Standard 保持 62,557 頂點、142,488 索引、395 批次、48 材質及 4,041 來源植被卡片。完整 Linux configure/build 與 111/111 測試通過（141.78 秒，core/sync validation）；凍結 Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.32 秒）。來源凍結 `1dd920094dc339ddc90ce5955543447355d056ef`；證據：`Apps/Showcase/evidence/VIS-IBL-Fill-Balance-Linux-2026-10-08/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
+
 ✅ 粒子整合保留已接受的 main `e05af4b9a102`，包含 Animation 慣性姿態混合與 Editor 不同 DPI 證據合約。粒子幾何來源及三張固定鏡位原生畫面與前一粒子版本完全一致。完整 Linux configure/build 與 111/111 測試通過（145.47 秒，core/sync validation），並通過一般 Monolithic Shipping 建置、凍結 Showcase Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製（實際 101.29 秒）。最終來源凍結 `d01541bed0d4b4ec3c06135b121ab44bb627b8d9`；整合證據：`Apps/Showcase/evidence/VIS-Crystal-Mote-Scale-Linux-2026-10-08/integration/`。先前粒子與天空的製作證據各自保留。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
 
 ✅ 水晶粒子卡片的半寬由 0.025 縮至 0.015、高度由 0.05 縮至 0.03 世界單位，使發光輪廓更細緻。24／48／96 的粒子數量、環繞及垂直軌跡、HDR 輻射、紋理、共用動畫時鐘與原生效果保持一致。固定暫停鏡位的原生前後對照只顯示粒子及既有反射／bloom 回應的變化。Standard 保持 62,557 頂點、142,488 索引、395 批次、48 材質及 4,041 來源植被卡片。完整 Linux configure/build 與 110/110 測試通過（143.86 秒，core/sync validation）；凍結 Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.03 秒）。來源凍結 `b5d6120c26508f7f0e2236d640a8af6f50a00ee2`；證據：`Apps/Showcase/evidence/VIS-Crystal-Mote-Scale-Linux-2026-10-08/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。

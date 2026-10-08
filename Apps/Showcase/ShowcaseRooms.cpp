@@ -3470,7 +3470,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                               {4, 64, 32, 7, s.courtyardEnvironment[1]},
                               {5, 32, 32, 1, s.courtyardEnvironment[2]}};
       data.linearTextureUploads = s.linearSceneUploads;
-      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 2.4F, 0.0F, 7};
+      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 1.8F, 0.0F, 7};
     }
 #endif
     data.base_color[0] = 0.72F;
