@@ -98,7 +98,14 @@ struct NEXORA_EDITOR_API ExtensionPolicy final {
 
 class NEXORA_EDITOR_API TelemetryConsent final {
 public:
-  void Set(bool enabled) noexcept { enabled_ = enabled; }
+  static constexpr std::size_t kMaximumEvents = 1024;
+  static constexpr std::size_t kMaximumEventBytes = 1024;
+  // Revoking consent releases all retained events; enabling never restores an old queue.
+  void Set(bool enabled) noexcept {
+    enabled_ = enabled;
+    if (!enabled)
+      events_.clear();
+  }
   [[nodiscard]] bool Enabled() const noexcept { return enabled_; }
   bool Record(std::string event);
   [[nodiscard]] std::span<const std::string> Events() const noexcept { return events_; }

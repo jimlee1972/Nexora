@@ -670,6 +670,12 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: graphical build frontend, remote deployment/logs, GPU/memory profiling, arbitrary capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ Portable telemetry consent now releases all retained events on opt-out and bounds the
+    in-memory queue to 1,024 events of 1,024 UTF-8 bytes each. Invalid/oversized/overflow events
+    preserve accepted records; repeated revoke/enable cannot resurrect old events. Contract tests
+    cover exact limits, malformed text, saturation and consent transitions. Persistence/transmission,
+    redaction and graphical privacy acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-TelemetryConsent-Linux-2026-10-08.md).
   - ✅ Cloud documentation-routing Git fixtures now disable local automatic maintenance/GC before
     commits, preventing detached housekeeping from racing strict temporary-directory cleanup.
     Routing semantics and product/global Git settings remain unchanged.

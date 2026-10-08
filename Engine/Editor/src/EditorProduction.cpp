@@ -166,7 +166,9 @@ bool ExtensionPolicy::Allows(std::string_view publisher, bool signature_valid) c
 }
 
 bool TelemetryConsent::Record(std::string event) {
-  if (!enabled_ || event.empty())
+  if (!enabled_ || event.empty() || event.size() > kMaximumEventBytes ||
+      event.find('\0') != std::string::npos || !foundation::IsValidUtf8(event) ||
+      events_.size() >= kMaximumEvents)
     return false;
   events_.push_back(std::move(event));
   return true;
