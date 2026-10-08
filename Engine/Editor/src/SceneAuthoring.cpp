@@ -367,7 +367,16 @@ bool UndoRedoHistory::Redo() {
 }
 
 bool AdditiveSceneGraph::Add(AdditiveScene scene) {
-  return scene.id && !scene.path.empty() && scenes_.emplace(scene.id, std::move(scene)).second;
+  if (!scene.id || scene.path.empty() || scenes_.contains(scene.id) ||
+      std::ranges::any_of(scene.dependencies, [&](const auto dependency) {
+        return dependency == scene.id || !scenes_.contains(dependency);
+      }))
+    return false;
+  std::ranges::sort(scene.dependencies);
+  scene.dependencies.erase(std::unique(scene.dependencies.begin(), scene.dependencies.end()),
+                           scene.dependencies.end());
+  // Existing scenes cannot depend on this new ID, so validated edges preserve acyclicity.
+  return scenes_.emplace(scene.id, std::move(scene)).second;
 }
 const AdditiveScene *AdditiveSceneGraph::Find(SceneDocumentId id) const noexcept {
   const auto found = scenes_.find(id);

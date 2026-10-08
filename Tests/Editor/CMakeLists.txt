@@ -8,6 +8,11 @@ target_link_libraries(NexoraEditorTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraEditorTests)
 add_test(NAME editor.preview_contract COMMAND NexoraEditorTests)
 
+add_executable(NexoraAdditiveSceneTests AdditiveSceneTests.cpp)
+target_link_libraries(NexoraAdditiveSceneTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraAdditiveSceneTests)
+add_test(NAME editor.additive_scene_contract COMMAND NexoraAdditiveSceneTests)
+
 add_executable(NexoraProcessMemoryProfileTests ProcessMemoryProfileTests.cpp)
 target_link_libraries(NexoraProcessMemoryProfileTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraProcessMemoryProfileTests)
