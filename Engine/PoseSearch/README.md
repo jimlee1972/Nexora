@@ -47,7 +47,7 @@ search against an independent reference. `build.pose_search_profiles` checks CMa
 and source graphs across six profile configurations, including the Foundation-only dependency
 and Modular/Monolithic linkage. These gates accept only this portable Pose Search slice. Compute
 skinning, GPU pose sampling, motion warping, inertialization, sync
-group authoring/TRS integration, editor visualization, cooked database loading, and optional
+group authoring/Runtime adapters, editor visualization, cooked database loading, and optional
 Motion Matching remain open;
 V2-M8 and total V2 progress remain unaccepted/46%.
 

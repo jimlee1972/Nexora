@@ -31,7 +31,7 @@ def verify(root: Path, cmake: str, directory: Path, options: list[str], enabled:
     animation_sources = [entry for entry in source_entries if "/Engine/Animation/" in entry["file"].replace("\\", "/")]
     if enabled:
         source_names = {Path(entry["file"]).name for entry in animation_sources}
-        if "NexoraAnimation" not in by_name or source_names != {"Pose.cpp", "SyncGroup.cpp"}:
+        if "NexoraAnimation" not in by_name or source_names != {"Pose.cpp", "SyncGroup.cpp", "PoseGraph.cpp"}:
             raise RuntimeError(f"{directory.name}: enabled Animation target/source missing")
         target = json.loads((reply / by_name["NexoraAnimation"]["jsonFile"]).read_text())
         dependencies = {entry["id"] for entry in target.get("dependencies", [])}
