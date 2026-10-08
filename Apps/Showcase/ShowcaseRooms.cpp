@@ -1292,6 +1292,7 @@ struct RoomSession::State final {
     finish(0);
     std::size_t shrubStemRange = 0;
     for (const float x : {-3.5F, 3.5F}) {
+      const auto vesselFirst = vertices.size();
       const std::array<std::array<float, 2>, 10> vessel{{{0, 0},
                                                          {0.22F, 0},
                                                          {0.36F, 0.15F},
@@ -1332,6 +1333,11 @@ struct RoomSession::State final {
           Segment(points[edge], points[(edge + 1) % points.size()], 0.008F);
       }
       finish(17);
+      for (std::size_t v = vesselFirst; v < vertices.size(); ++v) {
+        vertices[v].position[0] += x < 0 ? -1.2F : 0.5F;
+        vertices[v].position[1] += 0.13F;
+        vertices[v].position[2] -= 2.5F;
+      }
       for (unsigned i = 0; i < (8U << courtyardQuality); ++i) {
         const float z = -3.0F + i * (2.88F / (8U << courtyardQuality));
         Segment({x, 0.02F, z}, {x, 0.62F, z}, 0.012F);
