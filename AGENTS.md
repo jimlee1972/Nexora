@@ -42,6 +42,35 @@ macOS, Android, or iOS validation ran in the Linux cloud environment.
 - Format only touched C++ files with `.clang-format`; do not reformat unrelated files.
 - Do not commit `CMakeUserPresets.json` or generated build output.
 
+## Beads Issue Tracker
+
+Use Beads (`bd`) for durable task tracking in this repository. Follow the project skill at
+`.agents/skills/beads/SKILL.md` for the required external task paths, bootstrap, pull, prime,
+and push workflow.
+
+### Quick Reference
+
+```bash
+bd dolt pull             # Synchronize before context or task-graph reads
+bd prime                 # Refresh Beads context after a successful pull
+bd ready                 # Find available work
+bd show <id>             # View issue details
+bd update <id> --claim   # Claim work
+bd close <id>            # Complete work
+```
+
+### Rules
+
+- Follow the Beads skill for every task. Pull before prime and before every task-graph read.
+- If any checkout lacks the local database, use the verified bootstrap procedure in the skill.
+  Never initialize or replace shared history.
+- After changing tasks, dependencies, or shared memory, run `bd dolt push`.
+- This GitHub repository is public. Beads tasks and shared memory on `refs/dolt/data` are public
+  too: never store secrets, personal private information, or private notes.
+- Track configuration and integration files only. Never commit embedded Dolt databases, runtime
+  data, or machine-specific settings.
+- Keep `DOLT_ROOT_PATH` and `BEADS_DIR` in task-specific paths outside the repository.
+
 ## Delivery
 
 - Inspect the final diff and validation results before committing.
