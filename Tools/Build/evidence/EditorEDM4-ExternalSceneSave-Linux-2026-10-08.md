@@ -9,7 +9,8 @@ external changes. Full ED-M4 prefab/additive/migration/crash/source-control acce
 
 - Bind/Open/successful Save establish an owning baseline; New clears it. Missing-at-bind permits
   the first save, while deletion of an existing source rejects ordinary Save. Failed Bind/Open
-  preserve the previous good document, generation, history, association and baseline.
+  preserve the previous good document, generation, history, association and baseline. Successful
+  Save retains the Editor's exact published bytes, including authoring metadata, without a reread.
 - Disk equality compares raw bytes, not timestamps or collision-prone hashes. The portable test
   replaces every `Camera` occurrence with `DiskAA` at identical byte length, restores the previous
   file modification time, and still observes `NeedsOverwrite`. The external bytes, selected entity,
@@ -24,7 +25,7 @@ external changes. Full ED-M4 prefab/additive/migration/crash/source-control acce
   keep the stable association and do not recreate the old source while it is moved.
 - Exact 64 MiB source admission succeeds; a sparse 64 MiB + 1-byte source rejects before reading
   or replacement. Nonregular/unavailable/oversized sources fail closed. Each retained baseline and
-  pending revision owns at most 64 MiB (128 MiB retained); one comparison/read scratch snapshot adds
+  pending revision owns at most 64 MiB (128 MiB retained); one comparison/read or published output adds
   at most 64 MiB (192 MiB source-byte peak, excluding allocator and SceneDocument/World storage).
   Source bytes are read only on file operations, with no per-frame source reads.
 - Real ImGui controls at 1x and 2x exercise ordinary Ctrl+S conflict Cancel/Replace, disk changes
@@ -139,3 +140,36 @@ ctest --preset linux-development
 
 This correction was validated locally on Linux. Windows validation of the corrected source must
 come from the subsequent GitHub CI run; no local Windows pass is claimed.
+
+## P1 review correction: retain the Editor's actual published bytes
+
+The original [PR #445 P1 review](https://github.com/jimlee1972/Nexora/pull/445#discussion_r4224435139)
+identified a valid bug independent of the Windows test exception: rereading the destination after
+successful Save could adopt an external writer's newer bytes as the Editor's baseline, letting the
+next ordinary Save erase that revision without review. The original concurrent-filesystem exclusion
+does not justify adopting another writer's output.
+
+The tested source is preserved in commit `8ade950436c68ac358606fed77b0cdfe3e72ecff`, on the same
+main integration base `f21620387e5b27dfb9cce9b341100bb516cc8708`. `SceneDocument::Save(path, string*)`
+clears a supplied output before serialization/IO and moves the owning exact serialized bytes only
+after successful atomic replacement. The original Save overload delegates to the same serializer.
+SceneFileSession moves that output directly into its baseline and performs no post-write ReadDisk.
+This includes complete opaque components and authored Euler hints; no second serializer or read
+can substitute another revision. A compare-to-replacement race remains outside the guarantee.
+
+Portable regressions verify exact output equality, retain captured output after rewriting the real
+Unicode destination, and reload the captured bytes with complete opaque data and a 720-degree Euler
+hint. Occupied-temp and directory-target failures clear output while preserving source/document/
+history and dirty state. An actual session ordinary Save, subsequent external edit and next local
+Save require `NeedsOverwrite` and preserve both versions. Tests use no IO hooks, racing threads or
+timing-dependent acceptance. Existing save confirmation/access/Content relocation and 1x/2x UI
+coverage also remain green.
+
+Using the same configure/build/focused/full commands recorded above, graphical shell ON and
+Slang ON: configure and **196-step build passed**; focused **3/3 passed**, zero skips, **0.58 s**;
+complete serialized Linux gate **144/144 passed** on its first run, zero skips, **209.93 s**.
+Native scene files passed **37.71 s**, display acceptance **20.12 s**, and Scene preview **27.80 s**.
+External logs: `external-scene-baseline-fix-{configure,build,focused,tests}.log`. C++ formatting and
+`git diff --check` passed. No linkage boundary or wire format changed; Shipping was not required.
+The existing bilingual roadmap supporting bullets link here and full ED-M4 remains open. Corrected
+Windows acceptance still comes from subsequent CI, not local execution.
