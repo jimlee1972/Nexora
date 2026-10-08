@@ -18,10 +18,10 @@ cmake --build --preset linux-development
 ctest --preset linux-development
 ```
 
-Result: configure/build passed; final CTest passed 108/108, 0 failures, 0 skips, in 140.31 seconds.
+Portable gate before Editor integration: configure/build passed; CTest passed 108/108, 0 failures, 0 skips, in 140.31 seconds.
 This includes the seven existing Linux virtual-display/Vulkan probes using software Vulkan.
-The local preset has the graphical editor disabled; this is not physical GPU or graphical editor
-acceptance.
+This earlier portable run had the graphical editor disabled; the final integration gate below
+enables it. Neither run establishes physical GPU acceptance.
 
 ```bash
 cmake --preset linux-shipping
@@ -66,6 +66,30 @@ work/gcc13/sync-group-tests
 The full local gate, Monolithic selected gates, and ASan/UBSan above passed again after the fixture
 change. The initial failing workflow is not acceptance evidence; hosted CI must pass the corrected
 PR head before merge.
+
+## Latest main integration
+
+The PR workflow [37724790574](https://github.com/jimlee1972/Nexora/actions/runs/37724790574)
+exposed a separate latest-main MSVC C4456/C2220 failure: Content browser's child-folder loop shadowed
+its existing `folder` local. Main `403b42fc` was integrated and the loop variable renamed
+`child_folder`, preserving UI behavior and warnings-as-errors. The EditorImGui compilation command
+also passed Linux syntax checking with `-fsyntax-only -Wshadow` added.
+
+```bash
+cmake --preset linux-development -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON
+cmake --preset linux-development
+cmake --build --preset linux-development
+ctest --preset linux-development
+cmake --preset linux-shipping
+cmake --build --preset linux-shipping
+```
+
+Result: final Development configure/build and **156/156 CTest tests passed**, 0 failures/skips,
+317.30 seconds. Graphical editor was enabled: scene-file, display, native preview/center/mesh,
+Content keyboard shortcuts, and session Game input-binding tests all passed. Shipping Minimal
+configure/build also passed after integration. The selected Shipping Full tests passed 3/3 again.
+This is Linux software-Vulkan/virtual-display evidence; Windows acceptance still requires CI on
+this final head.
 
 This evidence accepts portable looping marker clocks and the translation graph's visual seek.
 Marker authoring, compressed TRS graph integration, inertialization, motion warping, GPU animation,

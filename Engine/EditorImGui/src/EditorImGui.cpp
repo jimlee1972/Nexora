@@ -2990,12 +2990,12 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   }
   const auto folders = browser.ChildFolders();
   state.content_visible_folders = static_cast<std::uint32_t>(folders.size());
-  for (const auto &folder : folders) {
-    const auto label = "[Folder] " + folder.label + "##" + PathLabel(folder.path);
+  for (const auto &child_folder : folders) {
+    const auto label = "[Folder] " + child_folder.label + "##" + PathLabel(child_folder.path);
     if (ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick) &&
         ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-      static_cast<void>(browser.SetFolder(folder.path));
-    static_cast<void>(AcceptAssetDrop(content, folder.path));
+      static_cast<void>(browser.SetFolder(child_folder.path));
+    static_cast<void>(AcceptAssetDrop(content, child_folder.path));
   }
 
   const auto visible_count = browser.VisibleCount();
