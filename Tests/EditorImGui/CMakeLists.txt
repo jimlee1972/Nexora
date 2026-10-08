@@ -323,3 +323,9 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND
     set_tests_properties(editor.native_surface_lifetime PROPERTIES TIMEOUT 45 SKIP_RETURN_CODE 77)
   endif()
 endif()
+
+add_executable(NexoraContentShortcutTests ContentShortcutTests.cpp)
+target_include_directories(NexoraContentShortcutTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraContentShortcutTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraContentShortcutTests)
+add_test(NAME editor.content_keyboard_shortcuts COMMAND NexoraContentShortcutTests)

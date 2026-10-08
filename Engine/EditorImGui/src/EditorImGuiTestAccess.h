@@ -74,6 +74,8 @@ public:
   [[nodiscard]] static bool PlayApplyOpen(const EditorImGuiHost &host) noexcept;
   static void FocusContent(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  ContentSearchPosition(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   ContentAddMeshPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ContentOpenScenePosition(const EditorImGuiHost &host) noexcept;

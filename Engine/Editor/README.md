@@ -116,6 +116,12 @@ into renderer or platform internals.
   search, discovery, folder navigation and Undo never convert through a system code page.
   Virtual ranges borrow item pointers until the next mutation. Rename, multi-item move, and delete
   validate a complete replacement snapshot before committing and retain one undo snapshot.
+- `ContentBrowserModel::SelectVisible` atomically replaces selection with the complete matching
+  current-folder query/type row set, including clipped rows. It uses one item scan and preserves
+  revision, assets and mutation Undo. No matches clear selection. Batch Delete uses a UUID set to
+  reject duplicates/missing IDs before publication and compacts surviving items in one scan;
+  ProjectContentSession resolves the complete source/sidecar move list through a frame-local UUID
+  index, preserving request order and the existing rollback/Undo transaction.
 - `ProjectContentSession` owns the live browser model, dependency/conflict state, canonical project
   root, project generation, and one recoverable filesystem mutation. The application owns the
   session; UI code borrows it for a frame and never retains `ContentItem` pointers. Rename and move

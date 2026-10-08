@@ -55,6 +55,9 @@ public:
 
   bool Select(runtime::AssetUuid id, bool additive = false);
   bool Toggle(runtime::AssetUuid id);
+  // Replace selection with all matching current-folder rows, including clipped rows.
+  // Selection-only: preserves content revision and mutation Undo state.
+  void SelectVisible();
   void ClearSelection() noexcept { selection_.clear(); }
   [[nodiscard]] bool IsSelected(runtime::AssetUuid id) const;
   [[nodiscard]] std::vector<runtime::AssetUuid> Selection() const;
@@ -70,6 +73,7 @@ public:
 
 private:
   bool Commit(std::vector<ContentItem> next, std::string *error);
+  [[nodiscard]] bool MatchesVisible(const ContentItem &item) const;
   [[nodiscard]] bool ValidDestination(const std::filesystem::path &path,
                                       runtime::AssetUuid except = {}) const;
   std::vector<ContentItem> items_;
