@@ -84,6 +84,32 @@ struct Fixture final {
     ui.ProcessEvents(std::array{event});
     Draw();
   }
+  void Click(runtime::AssetUuid asset, bool shift = false) {
+    const auto point = Access::ContentAssetPosition(ui, asset);
+    Require(point.has_value(), "click row is clipped");
+    Nexora::Window::WindowEvent pointer, button, modifier;
+    pointer.type = Nexora::Window::WindowEventType::Pointer;
+    pointer.value0 = static_cast<int>((*point)[0] * dpi);
+    pointer.value1 = static_cast<int>((*point)[1] * dpi);
+    button.type = Nexora::Window::WindowEventType::PointerButton;
+    button.value0 = 0;
+    button.value1 = 1;
+    modifier.type = Nexora::Window::WindowEventType::Key;
+    modifier.value0 = static_cast<int>(Key::LeftShift);
+    modifier.value1 = shift;
+    modifier.modifiers = shift ? Mod::Shift : Mod::None;
+    ui.ProcessEvents(std::array{pointer, modifier});
+    Draw();
+    ui.ProcessEvents(std::array{button});
+    Draw();
+    button.value1 = 0;
+    ui.ProcessEvents(std::array{button});
+    Draw();
+    modifier.value1 = 0;
+    modifier.modifiers = Mod::None;
+    ui.ProcessEvents(std::array{modifier});
+    Draw();
+  }
   bool AllMatching() const {
     const auto selected = content.Browser().Selection();
     return selected.size() == matching.size() &&
@@ -146,6 +172,7 @@ void Run(float dpi, bool macos) {
   f.Draw();
   f.Focus(false);
   f.Draw();
+  f.Press(Key::End);
   f.Press(Key::A, f.command);
   f.Press(Key::Delete);
   Require(browser.Selection().size() == 1 && browser.Items().size() == 129,
@@ -154,6 +181,7 @@ void Run(float dpi, bool macos) {
   Access::FocusHierarchy(f.ui);
   f.Draw();
   f.Draw();
+  f.Press(Key::End);
   f.Press(Key::A, f.command);
   f.Press(Key::Delete);
   Require(browser.Selection().size() == 1 && browser.Items().size() == 129,
@@ -174,6 +202,7 @@ void Run(float dpi, bool macos) {
   button.value1 = 0;
   f.ui.ProcessEvents(std::array{button});
   f.Draw();
+  f.Press(Key::End);
   f.Press(Key::A, f.command);
   f.Press(Key::Delete);
   Require(browser.Selection().size() == 1 && browser.Items().size() == 129,
@@ -182,6 +211,7 @@ void Run(float dpi, bool macos) {
   f.Draw();
   f.FocusContent();
   f.Press(Key::F2);
+  f.Press(Key::End);
   f.Press(Key::A, f.command);
   f.Press(Key::Delete);
   Require(browser.Selection().size() == 1 && browser.Items().size() == 129,
@@ -191,10 +221,125 @@ void Run(float dpi, bool macos) {
   f.FocusContent();
   f.ui.RequestCloseConfirmation();
   f.Draw();
+  f.Press(Key::End);
   f.Press(Key::A, f.command);
   f.Press(Key::Delete);
   Require(browser.Selection().size() == 1 && browser.Items().size() == 129,
           "close modal admitted shortcuts");
+}
+void Navigation(float dpi, bool macos) {
+  Fixture f(dpi, macos);
+  auto &browser = f.content.Browser();
+  browser.SetFilter("Match", ".txt");
+  f.Draw();
+  const auto rows = browser.Visible(0, browser.Items().size());
+  std::vector<runtime::AssetUuid> ids;
+  for (const auto *row : rows)
+    ids.push_back(row->id);
+  Require(ids.size() == 64 && !Access::ContentAssetPosition(f.ui, ids.back()),
+          "navigation fixture does not clip rows");
+  const auto revision = browser.Revision();
+  const auto single = [&](std::size_t index) {
+    return browser.Selection() == std::vector{ids[index]};
+  };
+  f.Press(Key::DownArrow);
+  Require(single(0), "initial Down did not select first matching asset");
+  f.Press(Key::DownArrow);
+  Require(single(1), "Down did not advance one visible row");
+  f.Press(Key::DownArrow, Mod::Shift);
+  Require(browser.Selection().size() == 2 && browser.IsSelected(ids[1]) &&
+              browser.IsSelected(ids[2]),
+          "Shift Down did not extend selection");
+  f.Press(Key::UpArrow, Mod::Shift);
+  Require(single(1), "Shift Up did not shrink to anchor");
+  f.Press(Key::End, Mod::Shift);
+  Require(browser.Selection().size() == 63 && !browser.IsSelected(ids[0]) &&
+              Access::ContentAssetPosition(f.ui, ids.back()).has_value(),
+          "Shift End missed clipped range or did not reveal endpoint");
+  f.Press(Key::Home, Mod::Shift);
+  Require(browser.Selection().size() == 2 && browser.IsSelected(ids[0]) &&
+              browser.IsSelected(ids[1]),
+          "Shift Home moved the anchor");
+  f.Press(Key::End);
+  Require(single(63) && Access::ContentAssetPosition(f.ui, ids.back()).has_value(),
+          "End did not select/reveal final asset");
+  f.Press(Key::DownArrow);
+  Require(single(63), "Down wrapped past last asset");
+  f.Press(Key::UpArrow);
+  Require(single(62), "Up did not step backward");
+  f.Press(Key::Home);
+  f.Press(Key::UpArrow);
+  Require(single(0), "Home/Up did not clamp at first asset");
+  for (const auto modifier : {Mod::Control, Mod::Alt, Mod::Super})
+    f.Press(Key::End, modifier);
+  Require(single(0), "modified navigation stole another shortcut");
+  f.Press(Key::Home);
+  f.Click(ids[0]);
+  Nexora::Window::WindowEvent wheel;
+  wheel.type = Nexora::Window::WindowEventType::Wheel;
+  wheel.value1 = -12000;
+  f.ui.ProcessEvents(std::array{wheel});
+  f.Draw();
+  f.Draw();
+  f.Click(ids.back(), true);
+  Require(browser.Selection().size() == 64 && browser.IsSelected(ids[0]) &&
+              browser.IsSelected(ids.back()),
+          "Shift click did not share visible interval selection");
+  wheel.value1 = 12000;
+  f.ui.ProcessEvents(std::array{wheel});
+  f.Draw();
+  f.Draw();
+  f.Click(ids[0], true);
+  Require(single(0), "Shift click did not shrink around original anchor");
+  Nexora::Window::WindowEvent held;
+  held.type = Nexora::Window::WindowEventType::Key;
+  held.value0 = static_cast<int>(Key::DownArrow);
+  held.value1 = 1;
+  f.ui.ProcessEvents(std::array{held});
+  for (int frame = 0; frame < 45; ++frame)
+    f.Draw();
+  held.value1 = 0;
+  f.ui.ProcessEvents(std::array{held});
+  f.Draw();
+  Require(browser.Selection().size() == 1 && !single(0) && !single(1),
+          "held Down did not repeat navigation");
+  f.Press(Key::End);
+  f.Press(Key::F2);
+  Require(Access::ContentRenameText(f.ui) == browser.Find(ids.back())->path.filename().string(),
+          "keyboard navigation did not route Rename to its endpoint");
+  f.Press(Key::Escape);
+  f.active = &f.observer;
+  f.FocusContent();
+  f.Press(Key::End);
+  Require(single(63) && browser.Revision() == revision && !f.content.CanUndo(),
+          "read-only navigation changed content history or was blocked");
+  // Changing folder invalidates cursor/anchor; an initial Up selects its last visible asset.
+  Require(browser.SetFolder("Content/Child"), "navigation folder failed");
+  f.Draw();
+  f.Press(Key::UpArrow, Mod::Shift);
+  Require(browser.Selection().size() == 1 &&
+              browser.Find(browser.Selection().front())->path.parent_path() == "Content/Child",
+          "new folder retained an old anchor or included another folder");
+  Require(browser.SetFolder("Content"), "navigation root failed");
+  browser.SetFilter("no-such-asset");
+  f.Draw();
+  const auto selection = browser.Selection();
+  f.Press(Key::DownArrow, Mod::Shift);
+  f.Press(Key::Home);
+  Require(browser.Selection() == selection, "empty-result navigation changed selection");
+  browser.SetFilter("Other", ".txt");
+  f.Draw();
+  f.Press(Key::Home, Mod::Shift);
+  Require(
+      browser.Selection().size() == 1 &&
+          browser.Find(browser.Selection().front())->path.filename().string().starts_with("Other-"),
+      "hidden filter cursor/anchor revived old selection");
+  Require(f.content.Open(f.workspace, f.assets, 10, true), "new generation setup failed");
+  browser.SetFilter("Match", ".txt");
+  f.Draw();
+  f.Press(Key::End, Mod::Shift);
+  Require(browser.ProjectGeneration() == 10 && single(63),
+          "new content generation retained old range anchor");
 }
 void ModelScale() {
   editor::ContentBrowserModel model;
@@ -211,6 +356,14 @@ void ModelScale() {
           "model scale setup failed");
   const auto revision = model.Revision();
   model.SetFilter("match", ".TXT");
+  const auto visible = model.Visible(0, model.Items().size());
+  Require(model.SelectVisibleRange(visible.back()->id, visible.front()->id) &&
+              model.Selection().size() == 49999 && model.Revision() == revision,
+          "100k-item reversed range failed or changed revision");
+  const auto range = model.Selection();
+  Require(!model.SelectVisibleRange({1, 1}, visible.back()->id) &&
+              !model.SelectVisibleRange(visible.front()->id, {9, 9}) && model.Selection() == range,
+          "hidden/missing range endpoint changed selection");
   model.SelectVisible();
   Require(model.Selection().size() == 49999 && model.Revision() == revision && model.Undo() &&
               model.Selection() == std::vector<runtime::AssetUuid>{{1, 1}},
@@ -234,6 +387,9 @@ int main() {
     Run(1, false);
     Run(2, false);
     Run(1, true);
+    Navigation(1, false);
+    Navigation(2, false);
+    Navigation(1, true);
     {
       Fixture drag(2);
       Require(drag.content.Browser().Select(drag.matching.front()), "drag selection failed");
@@ -256,6 +412,7 @@ int main() {
       drag.Draw();
       drag.Draw();
       Require(Access::ContentDragActive(drag.ui), "drag fixture did not start");
+      drag.Press(Key::End);
       drag.Press(Key::A, drag.command);
       drag.Press(Key::Delete);
       Require(drag.content.Browser().Selection().size() == 1 &&
@@ -290,6 +447,7 @@ int main() {
     Require(f.content.Browser().Select(f.matching.front()), "recovery selection setup failed");
     std::ofstream(f.root / ".nexora/workspace.recovery") << "schema=1\n";
     f.Draw();
+    f.Press(Key::End);
     f.Press(Key::A, f.command);
     f.Press(Key::Delete);
     Require(f.content.Browser().Selection().size() == 1 &&

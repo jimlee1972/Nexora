@@ -121,6 +121,13 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
 ### ED-M1 — Project and asset workspace
 
+- ✅ Content Up/Down and Home/End navigate the complete matching asset rows with held-key repeat,
+  clamped endpoints and clipper/scroll reveal. Shift keyboard and pointer selection share an
+  inclusive anchored visible interval; read-only and existing ownership gates apply. 1x/2x and
+  macOS modifier tests cover range shrink/reversal, stale scope and Rename handoff; 100k-row model
+  coverage preserves history and rejects hidden endpoints. Folder traversal and accessibility
+  acceptance remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM1-ContentNavigation-Linux-2026-10-08.md).
+
 - ✅ Focused Content Ctrl/Cmd+A selects the entire current-folder query/type result, including
   clipped rows and read-only inspection. Unmodified Delete uses one recoverable source/sidecar
   batch with one Content Undo. Text, panel/focus, drag and blocking-modal gates are tested at

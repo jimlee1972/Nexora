@@ -769,3 +769,16 @@ with one Content Undo restoring sources, sidecars and selection. Prospective Sce
 are cancelled before deletion. Text inputs, another panel, focus loss, drags, context/rename/file/
 recovery/Play-review/close modals and Game capture block keyboard commands. Write controls, including
 context Delete/Reimport and Content Undo, also respect workspace write/modal gates.
+
+Focused Content Up/Down and Home/End select matching assets in sorted row order, with held-key
+repeat and endpoint clamping. Shift extends or shrinks the inclusive interval around the retained
+anchor; Shift-click shares the same model operation. Without a visible selection, Down/Home start
+at the first row and Up/End at the last. Empty results leave selection unchanged. Navigation asks
+the clipper to submit its endpoint and scrolls it into view. Read-only projects retain these
+selection-only operations. Ctrl/Alt/Super variants are not claimed by these routes. Existing text,
+focus, drag, Game capture and modal gates apply. Plain selection resets the anchor; Ctrl+A clears
+cursor/anchor, and project/root/folder/revision or UI-filter changes invalidate retained navigation
+state. Every use rechecks visible membership, including externally changed filters/selections.
+State retains owning UUIDs and scope values; no ContentItem borrow crosses frames. Rename and
+Delete continue to act on the resulting owning selection. This does not implement folder-row
+keyboard traversal, a semantic screen-reader bridge, or full accessibility acceptance.
