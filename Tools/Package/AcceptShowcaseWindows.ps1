@@ -484,7 +484,14 @@ public static class NexoraAcceptanceWindow {
     $acceptance.clean_host_verified = [bool]$CleanHost
     $acceptance.status = 'PASS'
     $exitCode = 0
-} catch { $acceptance.issues = @($_.Exception.Message) }
+} catch {
+    $acceptance.issues = @($_.Exception.Message)
+    $nativeError = Join-Path $evidence 'stderr.log'
+    if (Test-Path -LiteralPath $nativeError) {
+        Write-Output 'Native Showcase stderr (last 40 lines):'
+        Get-Content -LiteralPath $nativeError -Tail 40 | Write-Output
+    }
+}
 finally {
     if ($null -ne $process) {
         if (-not $process.HasExited) { $process.Kill(); $process.WaitForExit() }

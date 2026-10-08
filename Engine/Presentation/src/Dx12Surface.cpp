@@ -15,6 +15,7 @@
 #include <array>
 #include <atomic>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <d3d12.h>
 #include <d3dcompiler.h>
@@ -743,6 +744,7 @@ public:
     sceneColorGrade_ = drawData.colorGrade.value_or(SceneColorGrade{});
     sceneDepthOfField_ = drawData.depthOfField.value_or(SceneDepthOfField{10, 0, 12});
     sceneAntiAliasing_ = drawData.postProcessAntiAliasing;
+    sceneOcclusion_ = drawData.screenSpaceOcclusion.value_or(SceneScreenSpaceOcclusion{0});
     diagnostics_.sceneOffscreenDrawCalls += drawData.offscreen ? 1 : 0;
     ++diagnostics_.sceneDrawCalls;
     diagnostics_.sceneInstances += instances.size();
@@ -770,7 +772,7 @@ public:
       commands_->SetDescriptorHeaps(1, heaps);
       const auto settings =
           PackToneParameters(sceneExposure_, true, sceneBloom_, sceneColorGrade_, width_, height_,
-                             sceneDepthOfField_, sceneAntiAliasing_);
+                             sceneDepthOfField_, sceneAntiAliasing_, sceneOcclusion_);
       commands_->SetGraphicsRoot32BitConstants(0, static_cast<UINT>(settings.size()),
                                                settings.data(), 0);
       auto handle = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
@@ -1201,8 +1203,12 @@ private:
                           &vertex, &errors)) ||
         FAILED(D3DCompile(scene_tonemap_hlsl_frag, sizeof(scene_tonemap_hlsl_frag),
                           "NexoraToneFragment", nullptr, nullptr, "toneFragmentMain", "ps_5_0", 0,
-                          0, &pixel, &errors)))
+                          0, &pixel, &errors))) {
+      if (errors)
+        std::fwrite(errors->GetBufferPointer(), 1,
+                    std::min<std::size_t>(errors->GetBufferSize(), 4096), stderr);
       return false;
+    }
     pipeline.pRootSignature = toneRootSignature_.Get();
     pipeline.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};
     pipeline.PS = {pixel->GetBufferPointer(), pixel->GetBufferSize()};
@@ -1622,6 +1628,7 @@ private:
   SceneBloom sceneBloom_{0, 1, 12};
   SceneColorGrade sceneColorGrade_{};
   SceneDepthOfField sceneDepthOfField_{10, 0, 12};
+  SceneScreenSpaceOcclusion sceneOcclusion_{0};
   bool sceneAntiAliasing_ = false;
   ComPtr<ID3D12RootSignature> scenePbrRootSignature_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneUploads_;

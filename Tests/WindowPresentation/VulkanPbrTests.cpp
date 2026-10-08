@@ -4,6 +4,7 @@
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
 #include "PbrMipFixtures.h"
+#include "PbrOcclusionFixtures.h"
 #include "PbrPointLightFixtures.h"
 #include "PbrReflectionFixtures.h"
 #include "PbrRefractionFixtures.h"
@@ -225,8 +226,10 @@ int main(int argc, char **argv) {
     std::uint64_t windReference{}, windMoved{};
     std::array<unsigned, 3> pointLeft{}, pointRight{};
     unsigned aaBaseline = 0;
+    Rgb occlusionPlane{}, occlusionContact{}, occlusionHighlight{};
+    std::uint64_t occlusionHash = 0;
     std::uint64_t aaHash = 0;
-    for (unsigned frame = 0; frame < 99; ++frame) {
+    for (unsigned frame = 0; frame < 103; ++frame) {
       PbrShadowFixtures::Fixture shadowFixture(frame >= 24 ? frame - 24 : 0);
       PbrBloomFixtures::Fixture bloomFixture;
       PbrReflectionFixtures::Fixture reflectionFixture(
@@ -427,6 +430,12 @@ int main(int argc, char **argv) {
         materials = reflectionFixture.materials;
         draw.materials = materials;
       }
+      PbrOcclusionFixtures::Fixture occlusionFixture;
+      if (frame >= 99) {
+        draw = occlusionFixture.Draw(frame - 99, width, height);
+        materials = occlusionFixture.materials;
+        draw.materials = materials;
+      }
       materials[2].emission = {marker, 0, 0};
       materials[2].roughness = 1;
       materials[2].metallic =
@@ -580,7 +589,22 @@ int main(int argc, char **argv) {
                                  frame >= 89 ? &intermediate : nullptr);
         const auto &left = pixels[0];
         const auto &right = pixels[1];
-        if (frame >= 97) {
+        if (frame >= 99) {
+          if (frame == 99) {
+            occlusionPlane = left;
+            occlusionContact = pixels[7];
+            occlusionHighlight = right;
+            occlusionHash = region;
+            valid = left[0] > 100 && right[0] > 240;
+          } else if (frame == 100) {
+            valid =
+                std::abs(static_cast<int>(left[0]) - static_cast<int>(occlusionPlane[0])) <= 2 &&
+                pixels[7][0] + 3 < occlusionContact[0] && right == occlusionHighlight;
+          } else {
+            valid =
+                region == occlusionHash && left == occlusionPlane && right == occlusionHighlight;
+          }
+        } else if (frame >= 97) {
           valid = PbrReflectionFixtures::Pixels(frame - 93, left, right);
           if (frame == 98)
             valid = valid && left == reflectedReference;
@@ -778,7 +802,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, argv[1]));
       if (argc == 2 && frame >= 30) {
         auto capture = std::filesystem::path(argv[1]);
-        capture.replace_filename((frame >= 97   ? "reflection-occlusion-"
+        capture.replace_filename((frame >= 99   ? "screen-occlusion-"
+                                  : frame >= 97 ? "reflection-occlusion-"
                                   : frame >= 93 ? "dielectric-"
                                   : frame >= 89 ? "anti-alias-"
                                   : frame >= 85 ? "two-sided-"
@@ -794,7 +819,8 @@ int main(int argc, char **argv) {
                                   : frame >= 43 ? "depth-of-field-"
                                   : frame < 34  ? "bloom-"
                                                 : "vegetation-") +
-                                 std::to_string(frame >= 97   ? frame - 93
+                                 std::to_string(frame >= 99   ? frame - 99
+                                                : frame >= 97 ? frame - 93
                                                 : frame >= 93 ? frame - 93
                                                 : frame >= 89 ? frame - 89
                                                 : frame >= 85 ? frame - 85
@@ -814,8 +840,8 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 99 &&
-                surface->Diagnostics().sceneComposites == 89 &&
+    Require(surface->Diagnostics().sceneDrawCalls == 103 &&
+                surface->Diagnostics().sceneComposites == 93 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");

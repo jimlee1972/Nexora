@@ -812,6 +812,7 @@ public:
     sceneColorGrade_ = data.colorGrade.value_or(SceneColorGrade{});
     sceneDepthOfField_ = data.depthOfField.value_or(SceneDepthOfField{10, 0, 12});
     sceneAntiAliasing_ = data.postProcessAntiAliasing;
+    sceneOcclusion_ = data.screenSpaceOcclusion.value_or(SceneScreenSpaceOcclusion{0});
     diagnostics_.sceneOffscreenDrawCalls += data.offscreen ? 1 : 0;
     ++diagnostics_.sceneDrawCalls;
     diagnostics_.sceneInstances += instances.size();
@@ -1992,7 +1993,8 @@ private:
     const auto settings = PackToneParameters(
         sceneExposure_,
         swapchainFormat_ != VK_FORMAT_B8G8R8A8_SRGB && swapchainFormat_ != VK_FORMAT_R8G8B8A8_SRGB,
-        sceneBloom_, sceneColorGrade_, width_, height_, sceneDepthOfField_, sceneAntiAliasing_);
+        sceneBloom_, sceneColorGrade_, width_, height_, sceneDepthOfField_, sceneAntiAliasing_,
+        sceneOcclusion_);
     vkCmdPushConstants(frame.commands, tonePipelineLayout_, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                        sizeof(settings), settings.data());
     vkCmdBindVertexBuffers(frame.commands, 0, 1, &frame.sceneUpload, &frame.toneVertexOffset);
@@ -2539,6 +2541,7 @@ private:
   SceneBloom sceneBloom_{0, 1, 12};
   SceneColorGrade sceneColorGrade_{};
   SceneDepthOfField sceneDepthOfField_{10, 0, 12};
+  SceneScreenSpaceOcclusion sceneOcclusion_{0};
   bool sceneAntiAliasing_ = false;
   VkSampler shadowSampler_{};
   VkRenderPass shadowRenderPass_{};

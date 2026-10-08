@@ -7,6 +7,7 @@
 #include "PbrBloomFixtures.h"
 #include "PbrEnvironmentFixtures.h"
 #include "PbrMipFixtures.h"
+#include "PbrOcclusionFixtures.h"
 #include "PbrPointLightFixtures.h"
 #include "PbrReflectionFixtures.h"
 #include "PbrRefractionFixtures.h"
@@ -503,6 +504,39 @@ int main(int argc, char **argv) {
       };
       if (!PbrBloomFixtures::Pixels(mode, read(640 * 58 / 100, 180), read(320, 180)))
         return fail(__LINE__);
+    }
+    std::array<unsigned, 3> aoPlane{}, aoContact{}, aoHighlight{};
+    std::vector<std::byte> aoOriginal;
+    for (unsigned mode = 0; mode < 4; ++mode) {
+      PbrOcclusionFixtures::Fixture fixture;
+      if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+          !require(surface->DrawScene(fixture.Draw(mode, 640, 360)), SurfaceStatus::Ready) ||
+          !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+          !require(surface->Present(), SurfaceStatus::Ready))
+        return fail(__LINE__);
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != captured.size())
+        return fail(__LINE__);
+      const auto read = [&](std::size_t x) {
+        const auto index = (180 * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[index + 2]),
+                                       std::to_integer<unsigned>(pixels[index + 1]),
+                                       std::to_integer<unsigned>(pixels[index])};
+      };
+      if (mode == 0) {
+        aoPlane = read(160);
+        aoContact = read(640 * 49 / 100);
+        aoHighlight = read(480);
+        aoOriginal.assign(pixels.begin(), pixels.end());
+        if (aoPlane[0] <= 100 || aoHighlight[0] <= 240)
+          return fail(__LINE__);
+      } else if (mode == 1) {
+        if (std::abs(static_cast<int>(read(160)[0]) - static_cast<int>(aoPlane[0])) > 2 ||
+            read(640 * 49 / 100)[0] + 3 >= aoContact[0] || read(480) != aoHighlight)
+          return fail(__LINE__);
+      } else if (!std::equal(pixels.begin(), pixels.end(), aoOriginal.begin())) {
+        return fail(__LINE__);
+      }
     }
     std::array<unsigned, 3> mipLeft{}, mipRight{};
     for (unsigned mode = 0; mode < 2; ++mode) {

@@ -352,6 +352,13 @@ struct SceneDepthOfField final {
   float strength = 1.0F;
   float radiusPixels = 12.0F;
 };
+// Perspective-only screen-space contact shading from the HDR geometry-distance channel.
+struct SceneScreenSpaceOcclusion final {
+  float strength = 0.7F;            // [0,1]; zero bypasses all sampling.
+  float radius = 0.5F;              // [0.01,2] world units, bounded to 32 screen pixels.
+  float bias = 0.025F;              // World units [0,radius], suppresses planar self-occlusion.
+  float verticalFovRadians = 0.85F; // Must match the perspective projection; [0.1,3].
+};
 // One finite unshadowed point source in linear HDR, copied for this scene submission.
 struct ScenePointLight final {
   std::array<float, 3> position{};
@@ -389,7 +396,8 @@ struct SceneDrawData final {
   std::optional<SceneColorGrade> colorGrade{};
   float vegetationTime{}; // Finite bounded seconds [0,3600]; caller controls pause/replay.
   std::optional<SceneDepthOfField> depthOfField{}; // HDR PBR only; absent preserves sharp output.
-  std::optional<SceneAtmosphere> atmosphere{};     // Finite bounded HDR distance haze.
+  std::optional<SceneScreenSpaceOcclusion> screenSpaceOcclusion{}; // Absent preserves existing HDR.
+  std::optional<SceneAtmosphere> atmosphere{};             // Finite bounded HDR distance haze.
   std::optional<ScenePlanarReflection> planarReflection{}; // Borrowed geometry, scalar mask copy.
 };
 

@@ -537,6 +537,11 @@ int main() {
   assert(!courtyard.Scene(1280, 720).bloom);
   Press(courtyard, Key::K);
   assert(courtyard.Scene(1280, 720).bloom);
+  assert(wide.screenSpaceOcclusion);
+  Press(courtyard, Key::F11);
+  assert(!courtyard.Scene(1280, 720).screenSpaceOcclusion);
+  Press(courtyard, Key::F11);
+  assert(courtyard.Scene(1280, 720).screenSpaceOcclusion);
   assert(wide.shadow && wide.lightingStyle && wide.shadow->resolution == 2048);
   // Side-arcade crowns must remain inside the shadow camera. Their shadows use
   // the same light-space XY, even when projected beyond the central pedestal.
