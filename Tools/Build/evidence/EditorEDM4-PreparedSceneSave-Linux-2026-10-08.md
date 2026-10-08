@@ -72,3 +72,18 @@ The test-registration conflict was resolved by retaining prepared-save, process-
 Inspector batch targets. Preset configure and the **127-step** build (`-j 2`) passed; full
 `ctest --preset linux-development` passed **88/88, zero skipped, 22.20 seconds**.
 Graphical shell and Slang remain OFF. Prepared-save implementation/test hashes are unchanged.
+
+## Public API Shipping gate and latest-main integration
+
+The review correctly identified that new `NEXORA_EDITOR_API` out-of-line symbols require the repository's Shipping gate. Supplemental `cmake --preset linux-shipping` and `cmake --build --preset linux-shipping` passed a 72-step Monolithic Minimal build. That preset strips Editor/SDK; it checks the required shipping/link configuration, not Editor runtime API coverage.
+
+Integrated main `8c4ee4e4397588104e2c11f777433aa226811885` in `dbe0f829f90c7e85dc83de05f26f50d34e4a37a2`. Adjacent additive-scene test registrations and bilingual scoped roadmap entries conflicted; both features were retained. Public PreparedSave implementation and tests were preserved.
+
+Repeated required gates: Development configure and 134-step build passed; full **91/91 passed first integration run, zero skips, 23.29 seconds**. Shipping configure and 5-step incremental build passed. Logs: `prepared-material-integration-{configure,build,tests,shipping-configure,shipping-build}.log` under the external task directory. Original source/test timings and hashes above describe their own tested bases.
+
+Integrated SHA-256:
+
+- `Engine/Editor/include/Nexora/Editor/EditorWorkspace.h`: `45f2a23124e829ccabd7248f7fb14cbb3656bd58a8e2dabf9e344fd4d6892efe`
+- `Engine/Editor/src/EditorWorkspace.cpp`: `4740d86985c640e05870253b80048492a23b4601f8a2193fad5d4b51494fb4f2`
+- `Tests/Editor/PreparedSceneSaveTests.cpp`: `3cf02de47de06c5a39dbf035319a9db32dbb83e14928da7c15b77be95d57f230`
+- `Tests/Editor/CMakeLists.txt`: `676149e477578b02ff2a05ab4f13fead3956a0bfa77a04e6d885300ecd05ba4c`
