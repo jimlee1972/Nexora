@@ -193,3 +193,23 @@ else()
   add_test(NAME runtime.v1_m6_feature_strip
     COMMAND "${CMAKE_COMMAND}" -E echo "V1-M6 editor SDK stripped")
 endif()
+
+if(NEXORA_ENABLE_ASSET_PIPELINE)
+  add_executable(NexoraCookedSceneAssetTests CookedSceneAssetTests.cpp)
+  target_link_libraries(NexoraCookedSceneAssetTests PRIVATE Nexora::Runtime)
+  nexora_apply_defaults(NexoraCookedSceneAssetTests)
+  add_test(NAME runtime.cooked_scene_assets COMMAND NexoraCookedSceneAssetTests)
+
+  add_executable(NexoraProjectPackageTests ProjectPackageTests.cpp)
+  target_link_libraries(NexoraProjectPackageTests PRIVATE Nexora::Runtime)
+  if(MINGW)
+    target_link_options(NexoraProjectPackageTests PRIVATE -municode)
+  endif()
+  nexora_apply_defaults(NexoraProjectPackageTests)
+  add_test(NAME runtime.static_project_package COMMAND NexoraProjectPackageTests)
+  if(NEXORA_BUILD_PROJECT_PLAYER)
+    add_test(NAME runtime.static_project_player_cli
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/ProjectPlayerCli.py"
+        "$<TARGET_FILE:NexoraProjectPackageTests>" "$<TARGET_FILE:NexoraProjectPlayer>")
+  endif()
+endif()

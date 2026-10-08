@@ -720,6 +720,16 @@ creates property widgets; unknown components retain raw data instead of being si
     Undo/Redo boundaries are tested. Generations identify objects rather than authoring revisions;
     export publication, native player and graphical build flows remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-OwningSceneCapture-Linux-2026-10-08.md).
+
+  - ✅ Runtime-owned schema-1 mesh/scalar PBR/scene codecs and a bounded StaticView package now
+    resolve real cooked assets into an isolated World without Editor or source content. The optional
+    `NexoraProjectPlayer --verify-package` consumes actual files and reports inactive components.
+    Full UUIDs, legacy shader IDs, opaque bytes and exact hierarchy matrices are preserved;
+    corruption, unsupported schemas, unresolved dependencies and resource collisions reject.
+    [ADR-0006](ADR-0006-Cooked-Static-Projects.md) records the compatibility/ownership decision.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-CookedStaticProject-Linux-2026-10-08.md)
+    covers Development, Monolithic Shipping and real CLI consumption. Editor export, native player
+    rendering, gameplay compilation and Build/deploy/log workflows remain open.
   - ✅ Profiler Import JSON reads the exported schema-1 wall-time capture into an owning static
     trace, checking project UUID, source/scope/unit, ordered lossless frame/drop values and unavailable
     GPU/memory. The bounded nonrecursive reader rejects duplicate/unknown/missing fields, corruption,
