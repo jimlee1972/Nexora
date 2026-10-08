@@ -95,6 +95,40 @@ clip decompression and metadata/output allocation occur each tick. These are vis
 without transform application, hierarchy evaluation, gameplay events, or root-motion extraction.
 Runtime's translation graph remains a separate consumer API; no Runtime link or C ABI is added.
 
+`InertialPoseBlend` adds finite-duration visual TRS correction. `Begin(outgoing, incoming,
+duration, velocities)` owns offsets for 1–512 joints; both spans must have the same authored joint
+order. Offsets retain source/target channel anchors to avoid cancellation at the start.
+Translation offset is outgoing minus incoming, scale offset is the difference of natural
+logarithms, and rotation offset is the shortest principal rotation vector of outgoing rotation ×
+inverse incoming rotation (radians, in the joint's parent-local axes). Quaternions are normalized;
+their norm must exceed 1e-12. Nonfinite channels, nonpositive scales, invalid duration/counts, or
+overflowing duration-scaled velocity or a nonzero velocity product rounding to zero reject Begin
+without replacing a live transition.
+
+Optional `JointInertialVelocity` values are derivatives of those residual coordinates per second:
+translation, relative rotation vector, and log scale. Rotation-vector derivatives are not world
+angular velocities. Empty velocity input means zero residual velocity. History estimation, branch
+handling near the principal rotation's pi boundary, and policy for interruption belong to the
+consumer; use the current visible outgoing pose when beginning another transition. The class
+does not sample an outgoing clip after Begin. A synchronized compressed graph can supply its
+incoming local TRS poses without adding a Runtime dependency.
+
+For normalized time u=t/duration, correction is offset × A(u) + velocity × duration × B(u),
+where A=(1-u)^3(1+3u+6u²) and B=u(1-u)^3(1+3u). This preserves initial residual position and
+velocity, with zero initial residual acceleration; position, velocity, and acceleration reach
+zero at the deadline. Update applies the correction to the current incoming pose, exponentiating
+rotation/log-scale corrections. It is a velocity-aware quintic inertial blend, not a crossfade.
+Nonzero velocity can overshoot; no monotonicity or joint-limit guarantee is made. A collapsed or
+unrepresentable reconstructed scale/translation rejects the entire update without advancing time.
+
+Ticks must be finite and nonnegative. Large ticks saturate at the deadline without overflow;
+double-clock precision applies to tiny increments. Output owns its normalized, canonical local
+poses. `Active()` reports the transition clock; completion passes through the current target
+without residual correction. After Begin, joint count remains fixed until `Reset()`, which also
+enables validated passthrough before another Begin. Updates allocate O(joints) output and stage
+elapsed time until all joints succeed. No events, root motion, transforms, jobs, or callbacks are
+produced. This does not add Runtime history/graph policy adapters or production inertialization gates.
+
 Objects are caller-owned, synchronous, externally synchronized, and have no threads, callbacks,
 filesystem I/O, gameplay events, root-motion authority, or transform mutation. Allocations use
 standard C++ exception behavior; validation failures return false/nullopt. `Bytes()` borrows
@@ -111,10 +145,15 @@ through wrap and leader switches while checking visual poses and zero seek root 
 `animation.v2_m8_synchronized_trs_graph` checks marker-driven compressed sampling, TRS blending,
 rotation hemisphere handling, input ownership/order, leadership switches, pause, failed-state
 preservation, aggregate sample budgets, finite extremes, and retarget consumption.
-`build.animation_profiles` inspects all three implementation sources
+`animation.v2_m8_inertial_pose_blend` checks initial pose/velocity, dense independent polynomial
+references, short-arc and antipodal rotations, moving target and compressed-graph consumption,
+pause/partition/deadline behavior, transactional rejection, numeric extremes and joint budgets.
+See [inertial blend acceptance](../../Tests/Animation/inertial-blend-acceptance.md).
+`build.animation_profiles` inspects all four implementation sources
 and actual target/source graphs in six profiles. Acceptance is limited to compressed storage,
 explicit local retargeting, portable marker synchronization, and synchronized compressed TRS
 blending. See [TRS graph acceptance](../../Tests/Animation/pose-graph-acceptance.md).
 GPU skinning/sampling, motion
-warping, inertialization, marker authoring/editor/cook integration, and Motion Matching remain open;
+warping, Runtime inertial history/policy adapters, marker authoring/editor/cook integration,
+and Motion Matching remain open;
 V2-M8 and overall V2 completion are not claimed. See [marker synchronization acceptance](../../Tests/Animation/sync-group-acceptance.md).
