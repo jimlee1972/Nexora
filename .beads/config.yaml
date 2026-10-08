@@ -40,7 +40,7 @@
 #   primary: "."  # Primary repo (where this database lives)
 #   additional:   # Additional repos to hydrate from (read-only)
 #     - ~/beads-planning  # Personal planning repo
-#     - ~/work-planning   # Work planning repo
+#     - ~/work-planning   # Personal planning repo
 
 # Dolt-native backup (periodic backup for off-machine recovery)
 # This is full database backup only. Cross-machine sync uses Dolt remotes.
@@ -67,9 +67,9 @@
 # - linear.team_id
 # - github.org, github.repo
 #
-# Secret keys (stored in this file but prefer env vars to avoid git exposure):
-# - linear.api_key  → use LINEAR_API_KEY env var instead
-# - github.token    → use GITHUB_TOKEN env var instead
+# Never store secrets in this tracked file. Use environment variables only:
+# - LINEAR_API_KEY for Linear credentials
+# - GITHUB_TOKEN for GitHub credentials
 
 sync:
     remote: "git+https://github.com/jimlee1972/Nexora.git"
