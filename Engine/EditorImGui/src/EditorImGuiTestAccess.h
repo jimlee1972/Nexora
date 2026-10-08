@@ -73,6 +73,8 @@ public:
   PlayApplyPosition(const EditorImGuiHost &host, bool confirm) noexcept;
   [[nodiscard]] static bool PlayApplyOpen(const EditorImGuiHost &host) noexcept;
   static void FocusContent(EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::filesystem::path>
+  ContentFocusedFolder(const EditorImGuiHost &host);
   static void FocusGame(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static bool GameInputBindingsOpen(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::string_view

@@ -395,6 +395,41 @@ void RunContentScene(float dpi) {
   f.Tap(Key::Enter);
   Require(!f.ui.TakeSceneFileRequest(), "Close modal allowed Content Open");
 }
+void RunFolderSceneConflict(float dpi) {
+  Fixture f(dpi);
+  editor::AssetWorkspace assets;
+  editor::ProjectContentSession content;
+  Require(assets.ImportTree(f.root / "Content", {}, {},
+                            editor::AssetIdentityMode::PersistentReadWrite) &&
+              content.Open(f.writer, assets, 1, true),
+          "Folder/scene fixture failed");
+  auto &browser = content.Browser();
+  const auto scene_asset = browser.Items().front().id;
+  Require(browser.Discover({{99, 3}, "Content/Child/Readme.txt", ".txt", "text", {}, {}}) &&
+              browser.Select(scene_asset),
+          "Folder/scene selection fixture failed");
+  f.content = &content;
+  Access::FocusContent(f.ui);
+  f.Draw();
+  f.Draw();
+  const auto original = f.world.SaveScene(f.id);
+  for (int i = 0; i < 40 && Access::ContentFocusedFolder(f.ui) != "Content/Child"; ++i)
+    f.Tap(Key::Tab);
+  Require(Access::ContentFocusedFolder(f.ui) == "Content/Child", "Folder Tab focus failed");
+  f.Tap(Key::Enter);
+  Require(browser.Breadcrumbs().back().path == "Content/Child" && !f.ui.TakeSceneFileRequest() &&
+              f.world.SaveScene(f.id) == original && browser.IsSelected(scene_asset),
+          "Folder Enter also opened the selected scene or mutated selection/document");
+  f.Tap(Key::UpArrow, Mods::Alt);
+  Require(browser.Breadcrumbs().back().path == "Content", "Folder parent return failed");
+  const auto row = Access::ContentAssetPosition(f.ui, scene_asset);
+  Require(row.has_value(), "Scene row absent after parent return");
+  f.ClickAt(*row);
+  f.Tap(Key::Enter);
+  Require(f.Take(Action::Open).path == "Content/Original.scene" &&
+              f.world.SaveScene(f.id) == original,
+          "Folder traversal broke subsequent scene Enter");
+}
 void RunContentRename(float dpi) {
   Fixture f(dpi);
   std::filesystem::copy_file(f.root / "Content/Original.scene", f.root / "Content/Second.scene");
@@ -588,6 +623,7 @@ int main() {
       RunGates(dpi);
       RunUnicodeContent(dpi);
       RunContentScene(dpi);
+      RunFolderSceneConflict(dpi);
       RunContentRename(dpi);
     }
     std::cout << "Scene file menu, shortcuts and modal lifecycle passed\n";
