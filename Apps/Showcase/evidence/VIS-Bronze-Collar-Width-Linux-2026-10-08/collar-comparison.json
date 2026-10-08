@@ -1,0 +1,35 @@
+{
+  "wide": {
+    "changed_bounds": [
+      611,
+      101,
+      964,
+      702
+    ],
+    "changed_pixels": 6641,
+    "baseline": "VIS-Vessel-Framing-Linux-2026-10-08/native-art/wide.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  },
+  "close": {
+    "changed_bounds": [
+      586,
+      95,
+      962,
+      474
+    ],
+    "changed_pixels": 5789,
+    "baseline": "VIS-Vessel-Framing-Linux-2026-10-08/native-art/close.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  },
+  "motion": {
+    "changed_bounds": [
+      613,
+      155,
+      895,
+      641
+    ],
+    "changed_pixels": 4596,
+    "baseline": "VIS-Vessel-Framing-Linux-2026-10-08/native-art/motion.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  }
+}

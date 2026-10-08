@@ -1,0 +1,37 @@
+{
+  "scope": "frozen paused native vessel framing comparison; no reference parity acceptance",
+  "baseline_runtime_freeze": "9d7298bed7ccaff24609ae2184753f574948960b",
+  "candidate_runtime_freeze": "da703f33fa6c3a9320dbf607b061c518831a9859",
+  "shots": {
+    "wide": {
+      "changed_bounds": [
+        235,
+        430,
+        1280,
+        720
+      ],
+      "before_sha256": "4679794ad3e6f2f7239591e5f2f3dc52637fac3ca0451974a47f8ec3c126db9f",
+      "after_sha256": "b0a6f5ebb4bb4e9415a50c99e31d22be68f046cc586a533509bc07a1e97aa6b1"
+    },
+    "close": {
+      "changed_bounds": [
+        229,
+        425,
+        1280,
+        720
+      ],
+      "before_sha256": "bc76545179635e917dd78f1b3b098daa37f78b2a63574423471e1ea632d95fd0",
+      "after_sha256": "93708aa550f049d3b77f793d4d34e378055cb84eb2c7f3074fe52cd264269189"
+    },
+    "motion": {
+      "changed_bounds": [
+        319,
+        417,
+        1198,
+        720
+      ],
+      "before_sha256": "6c1d8591d90f711d2abd10eebcaa24aa7563b93656a9e9a7f0b847d4ff1bf6a0",
+      "after_sha256": "f37a3dced125f417be9b0aeb59fa19a49b85b24075719c26f2b8095818d4d394"
+    }
+  }
+}
