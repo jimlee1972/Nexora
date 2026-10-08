@@ -312,8 +312,13 @@ The `.meta` filename suffix is reserved for asset identity sidecars and is exclu
 asset index. Artifact hashes use the persistent UUID plus source bytes rather than the current path,
 so an Editor move followed by reopen does not invalidate identity or derived-data addressing.
 Profiling samples require strictly increasing frame IDs. Telemetry drops every event until the user
-explicitly opts in; extension policy rejects untrusted publishers and, by default, invalid or
-missing signatures.
+explicitly opts in. Its in-memory queue retains at most 1,024 events of at most 1,024 UTF-8 bytes
+apiece; empty, embedded-NUL, invalid UTF-8, oversized and over-capacity events return false without
+changing accepted records. Reaffirming consent preserves the queue. `Set(false)` releases all event
+strings, including after repeated revocation; later opt-in starts with no previous records. Events()
+borrows a span until the next queue/consent mutation. Calls are serialized by the owner; this
+primitive provides no persistence, transmission, secure memory wiping or content redaction.
+Extension policy rejects untrusted publishers and, by default, invalid or missing signatures.
 
 Watcher events are path-coalesced after a caller-supplied debounce interval and known self-writes are
 discarded. A disk change never overwrites dirty authoring state: `DirtyConflictModel` retains both

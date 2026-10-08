@@ -644,6 +644,12 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
+- ✅ Portable telemetry consent 現於 opt-out 釋放所有 retained event，記憶體 queue 上限為
+  1,024 筆、每筆 1,024 UTF-8 bytes。Invalid／oversized／overflow event 保留已接受的紀錄；
+  重複 revoke／enable 不會恢復舊 event。Contract tests 涵蓋精確上限、損壞文字、飽和與
+  consent transition。Persistence／transmission、redaction 與圖形化 privacy 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-TelemetryConsent-Linux-2026-10-08.md)。
+
 - ✅ Cloud documentation-routing Git fixture 現在 commit 前關閉 local 自動 maintenance／GC，
   避免 detached housekeeping 與嚴格 temporary-directory cleanup 競爭；routing semantics、
   正式 repo 與 global Git 設定維持原樣。

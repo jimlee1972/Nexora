@@ -1768,6 +1768,35 @@ int Run() {
   Require(!telemetry.Record("startup") && telemetry.Events().empty(), "telemetry was not opt-in");
   telemetry.Set(true);
   Require(telemetry.Record("startup") && telemetry.Events().size() == 1, "opt-in telemetry failed");
+  const auto original_event = telemetry.Events().front();
+  Require(
+      !telemetry.Record("") &&
+          !telemetry.Record(std::string(editor::TelemetryConsent::kMaximumEventBytes + 1, 'a')) &&
+          !telemetry.Record(std::string("event\0private", 13)) &&
+          !telemetry.Record(std::string("\xC0\xAF", 2)) && telemetry.Events().size() == 1 &&
+          telemetry.Events().front() == original_event,
+      "invalid telemetry changed the accepted queue");
+  Require(telemetry.Record(std::string(editor::TelemetryConsent::kMaximumEventBytes, 'a')) &&
+              telemetry.Record("editor.場景.😀"),
+          "bounded UTF-8 telemetry was rejected");
+  while (telemetry.Events().size() < editor::TelemetryConsent::kMaximumEvents)
+    Require(telemetry.Record("frame"), "telemetry capacity filled early");
+  Require(!telemetry.Record("overflow") &&
+              telemetry.Events().size() == editor::TelemetryConsent::kMaximumEvents &&
+              telemetry.Events().front() == original_event && telemetry.Events().back() == "frame",
+          "telemetry overflow evicted accepted events or grew the queue");
+  telemetry.Set(true);
+  Require(telemetry.Events().size() == editor::TelemetryConsent::kMaximumEvents,
+          "reaffirming consent unexpectedly discarded the queue");
+  telemetry.Set(false);
+  Require(!telemetry.Enabled() && telemetry.Events().empty() && !telemetry.Record("disabled"),
+          "revoking consent retained events or accepted new telemetry");
+  telemetry.Set(false);
+  telemetry.Set(true);
+  Require(telemetry.Events().empty() && telemetry.Record("new-session") &&
+              telemetry.Events().size() == 1 && telemetry.Events().front() == "new-session",
+          "re-enabling consent resurrected previously retained events");
+  telemetry.Set(false);
   editor::AdditiveSceneGraph scene_graph;
   Require(scene_graph.Add({1, "Content/Base.scene", true, {}}) &&
               scene_graph.Add({2, "Content/Lighting.scene", false, {}}) &&
