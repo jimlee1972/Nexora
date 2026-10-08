@@ -13,6 +13,11 @@ target_link_libraries(NexoraProcessMemoryProfileTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraProcessMemoryProfileTests)
 add_test(NAME editor.process_memory_profile COMMAND NexoraProcessMemoryProfileTests)
 
+add_executable(NexoraInspectorBatchTests InspectorBatchTests.cpp)
+target_link_libraries(NexoraInspectorBatchTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraInspectorBatchTests)
+add_test(NAME editor.inspector_atomic_batch COMMAND NexoraInspectorBatchTests)
+
 add_executable(NexoraAutosaveJournalTests AutosaveJournalTests.cpp)
 target_link_libraries(NexoraAutosaveJournalTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraAutosaveJournalTests)

@@ -28,6 +28,13 @@ struct InspectorProperty final {
   bool read_only{};
 };
 
+// Owning request: a transaction writer may retain a copy for deferred authoring-thread commit.
+struct InspectorEditBatch final {
+  std::vector<runtime::Id> entities;
+  InspectorProperty property;
+  InspectorValue value;
+};
+
 // UI-neutral adapter used by graphical inspectors. A missing value means that the component or
 // property is not present on an entity; differing present values are represented explicitly as
 // mixed rather than selecting an arbitrary entity's value.
@@ -37,14 +44,22 @@ public:
       std::function<std::optional<InspectorValue>(runtime::Id, runtime::TypeId, std::string_view)>;
   using Write =
       std::function<bool(runtime::Id, runtime::TypeId, std::string_view, const InspectorValue &)>;
+  // The owner validates live generations, permissions and value types, then either commits the
+  // entire request as one Undo transaction or returns false without changing state/history.
+  using WriteBatch = std::function<bool(const InspectorEditBatch &)>;
+  static constexpr std::size_t kMaximumBatchEntities = 100000;
 
   explicit InspectorPropertyAdapter(const runtime::ReflectionRegistry &reflection)
       : reflection_(reflection) {}
   [[nodiscard]] std::vector<InspectorProperty> Inspect(std::span<const runtime::Id> entities,
                                                        std::span<const runtime::TypeId> components,
                                                        const Read &read) const;
+  // Single-target compatibility API. Multi-target calls reject before invoking Write because
+  // independent writes cannot establish atomicity; use ApplyBatch for multi-selection.
   bool Apply(std::span<const runtime::Id> entities, const InspectorProperty &property,
              const InspectorValue &value, const Write &write) const;
+  bool ApplyBatch(std::span<const runtime::Id> entities, const InspectorProperty &property,
+                  const InspectorValue &value, const WriteBatch &write) const;
 
 private:
   const runtime::ReflectionRegistry &reflection_;

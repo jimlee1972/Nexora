@@ -77,3 +77,28 @@ Implementation SHA-256 at validation:
 Saved/versioned memory traces, GPU timestamps and GPU-memory accounting, allocator attribution,
 remote profiling, production budgets/soak, physical-display and Windows/macOS host validation
 remain open. No ED milestone acceptance flag or root README progress summary changes.
+
+## Integration with accepted main
+
+The RSS implementation commit `b9b180441b37d36f028ada335460a23cfba33261` was integrated with
+main `06b11369daf2f9d0da86098df5343f8e00e122cf`, which includes the accepted atomic Inspector
+batch change. The resolved Editor test registration retains both `editor.process_memory_profile`
+and `editor.inspector_atomic_batch`, each registered once. The four implementation SHA-256 values
+above remain unchanged, and all twelve RSS production/test source files match the RSS implementation
+commit. The RSS slice changes only its integration evidence and combined test registrations;
+the accepted main separately adds the Inspector adapter implementation and its tests/documentation.
+
+The resolved integration tree passed the required gate with graphical shell and Slang ON, Modular
+Development, and the same Linux/Xvfb/lavapipe environment:
+
+```bash
+cmake --preset linux-development
+cmake --build --preset linux-development -j 4
+ctest --preset linux-development
+```
+
+Configure and build succeeded (196 rebuild/link steps). Full CTest passed **142/142, zero skipped**,
+in **215.35 seconds**, including both new feature gates, actual Linux process RSS, native graphical
+flows and the existing schema-1 capture regressions. `git diff --check` passed. No source changed
+while this gate ran. The earlier successful 72-step Shipping build continues to cover the unchanged
+Core memory implementation; Shipping was not rerun for this Editor integration.

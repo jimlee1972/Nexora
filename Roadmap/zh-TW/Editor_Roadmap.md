@@ -224,6 +224,15 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Reflected Inspector 寫入現會準備一個 owning、有界的 `InspectorEditBatch`，只呼叫一次
+  transaction callback。Empty／duplicate／oversized target、過期或有歧義的 field metadata、
+  read-only property 與 nonfinite scalar value 都會在修改前拒絕。Legacy per-entity callback
+  只接受單一 target；多選改用 `ApplyBatch`，由 authoring transaction 負責 live generation、
+  permission 與 value-type validation。真正的 `SceneDocument` 測試涵蓋多目標單步 Undo／Redo、
+  後續 target 失敗時整批拒絕並保留 Redo、opaque data 保留及 100k-target 上限。完整 reflected
+  widget、plugin restoration 與 ED-M2 target-host 驗收仍保持 open。證據：
+  [`EditorEDM2-InspectorAtomicBatch-2026-10-08.md`](../../Tools/Build/evidence/EditorEDM2-InspectorAtomicBatch-2026-10-08.md)。
+
 - ✅ Hierarchy Up／Down 與 Home／End 導覽完整可見 tree／filter rows，支援 repeat、endpoint
   clamp、Shift anchored range 與 clipper reveal。無 modifier 的 Right 展開／進入子節點，
   Left 收合／返回可見父節點。唯讀檢視保留 World／history；owning generation-keyed cursor／
