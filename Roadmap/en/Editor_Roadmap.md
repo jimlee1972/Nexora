@@ -713,6 +713,15 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ Runtime-owned schema-1 mesh/scalar PBR/scene codecs and a bounded StaticView package now
+    resolve real cooked assets into an isolated World without Editor or source content. The optional
+    `NexoraProjectPlayer --verify-package` consumes actual files and reports inactive components.
+    Full UUIDs, legacy shader IDs, opaque bytes and exact hierarchy matrices are preserved;
+    corruption, unsupported schemas, unresolved dependencies and resource collisions reject.
+    [ADR-0006](ADR-0006-Cooked-Static-Projects.md) records the compatibility/ownership decision.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-CookedStaticProject-Linux-2026-10-08.md)
+    covers Development, Monolithic Shipping and real CLI consumption. Editor export, native player
+    rendering, gameplay compilation and Build/deploy/log workflows remain open.
   - ✅ Profiler Import JSON reads the exported schema-1 wall-time capture into an owning static
     trace, checking project UUID, source/scope/unit, ordered lossless frame/drop values and unavailable
     GPU/memory. The bounded nonrecursive reader rejects duplicate/unknown/missing fields, corruption,

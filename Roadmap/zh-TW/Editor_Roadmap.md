@@ -686,6 +686,16 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
 
 Build profiles、cook/package frontend、target/device matrix、remote deploy/log、CPU/GPU/memory/frame profiler、plugin manager、script/API docs。任何「Build Success」必須附 target manifest 與可重現 command。
 
+- ✅ Runtime-owned schema-1 mesh／scalar PBR／scene codec 與有界 StaticView package 現可
+  把真實 cooked asset 解析至隔離 World，不依賴 Editor 或 source content。可選的
+  `NexoraProjectPlayer --verify-package` 讀取實際檔案並回報 inactive component。
+  保留完整 UUID、legacy shader ID、opaque bytes 與精確 hierarchy matrix；拒絕損壞、
+  未知 schema、未解析 dependency 與 resource collision。
+  [ADR-0006](ADR-0006-Cooked-Static-Projects.md) 記錄 compatibility／ownership 決策；
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-CookedStaticProject-Linux-2026-10-08.md)
+  涵蓋 Development、Monolithic Shipping 與實際 CLI consumption。Editor export、原生 player
+  rendering、gameplay compilation 與 Build／deploy／log workflow 仍待完成。
+
 - ✅ Profiler Import JSON 現讀取 exported schema-1 wall-time capture 至 owning static trace，
   驗證 project UUID、source／scope／unit、有序且無損的 frame／drop 值及 unavailable GPU／memory。
   有界且非遞迴的 reader 拒絕 duplicate／unknown／missing field、損壞、尾端資料、unsafe path
