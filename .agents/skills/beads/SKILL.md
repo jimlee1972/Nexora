@@ -7,25 +7,29 @@ description: Use when working in a repository that uses bd or Beads for durable 
 
 Use Beads as the shared project task system. Local plans, scratch files, and personal memories are useful, but they are not the durable source of truth for project work.
 
-## First Step
+## Start each task
 
-Run:
+Use the repository's pinned Beads CLI v1.3.1. If `bd` is missing or the version differs, stop and report it.
 
-```bash
-bd prime
-```
+Keep the database outside the repository. Choose one writable, task-specific `DOLT_ROOT_PATH` and `BEADS_DIR`, record them in an external environment file, and source that same file before every `bd` command in the task. Reuse the paths when resuming the task; do not allocate a new path per command.
 
-If that prints nothing, check whether the repository has an active Beads workspace:
+Before injecting Beads context or reading the task graph, run `bd dolt pull`. If it reports that the local database is missing, follow the safe bootstrap steps below. If pull fails for another reason, stop and report the error.
 
-```bash
-bd where
-```
+### Adopt existing shared history
 
-## Preferred Route
+This applies to any checkout without a local database, including an existing clone after the repository's first Beads rollout:
 
-Use the `bd` CLI when shell access is available. It is the most compact and direct Beads interface.
+1. From the repository root, run `git ls-remote --exit-code origin refs/dolt/data`. Require the existing ref.
+2. Run `bd bootstrap --dry-run` and inspect that the plan adopts the existing database from this GitHub origin. Stop if the ref is absent or the plan would create a new database.
+3. Run `bd bootstrap --yes`, then `bd dolt pull`.
 
-## Core CLI Workflow
+Never run `bd init`, `bd init --force`, overwrite or rebuild shared history, or select a different database to recover a missing local database.
+
+After synchronization succeeds, run `bd prime` and read its complete output. Before every later task-graph read, including `bd ready`, `bd list`, `bd show`, or dependency queries, run `bd dolt pull` again.
+
+## Core CLI workflow
+
+Use the `bd` CLI when shell access is available.
 
 1. Find work:
 
@@ -59,7 +63,9 @@ bd create "Short title" --description="Why this exists and what needs to be done
 bd close <id> --reason="Completed"
 ```
 
-## What Belongs In Beads
+After any change to tasks, dependencies, or shared memory, run `bd dolt push` with the same task paths. If push fails, report the error and preserve local changes for recovery. Do not claim synchronization succeeded until push completes.
+
+## What belongs in Beads
 
 Use Beads for:
 
@@ -76,5 +82,5 @@ Use agent-local planning tools only for the current turn's execution checklist. 
 - Do not create markdown TODO files as the source of truth when Beads is available.
 - Do not use `bd edit`; it opens an interactive editor. Use `bd update` flags instead.
 - Prefer `--json` when parsing `bd` output programmatically.
-- If hooks are installed, `bd prime` may already be injected. Run it manually when context is missing.
+- Nexora and its Beads sync data are public. Never store secrets, credentials, personal data, or private notes in tasks, comments, or shared memory.
 - Do not auto-close or mutate tasks unless the work is actually complete.
