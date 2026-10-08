@@ -30,7 +30,7 @@ shader feature（[證據](../../Tools/Build/evidence/EditorEDM0-VulkanValidation
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。圖形化 Console 會顯示有界紀錄與 Editor 診斷；docked Game panel 可控制隔離 clone 並顯示複製的檢視資料。有界原生 camera／OBJ Game View 已實作；完整材質／多個 canvas、完整 gameplay 服務／擴充 input、完整 log 路由與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
 | ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
-| ED-M6 build/profile/extensions | Portable build manifest/checksum 與有界的 monotonic profile capture 已存在。Docked Profiler 可繪出即時 Editor frame processing 時間，具暫停／清除與丟棄數。CSV 與 schema-1 JSON export／import 已提供。Build/deploy/log、GPU／memory profiling、任意 capture import 與 plugin manager workflow 仍待完成。 | [ ] |
+| ED-M6 build/profile/extensions | Portable build manifest/checksum 與有界的 monotonic profile capture 已存在。Docked Profiler 可繪出即時 Editor frame processing 時間，具暫停／清除與丟棄數，並顯示真實目前 process resident bytes 與 observed peak。CSV 與 schema-1 wall-time JSON export／import 已提供。Build/deploy/log、GPU profiling、儲存 memory trace、任意 capture import 與 plugin manager workflow 仍待完成。 | [ ] |
 | ED-M7 hardening | Portable virtual hierarchy、trust/signature policy 與 telemetry opt-in test 已存在。Graphical scale/soak、migration/corruption、keyboard 與 screen-reader audit 仍待完成。 | [ ] |
 
 Focused [Dear ImGui 計畫](Editor_ImGui_Integration_Plan.md) 已列出細部打勾的 ED-M0 foundation。只有
@@ -674,7 +674,15 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 - ✅ Portable build frontend 會驗證並 atomic 寫入 target/configuration/command 與帶 checksum
   的 artifact manifest；有界的 monotonic CPU/GPU/memory frame capture 已實作。
 - ✅ 圖形化 Profiler 現顯示即時且有界的 Editor frame processing wall-time 曲線，支援暫停／
-  清除、最新／平均／峰值與丟棄數。GPU 時間與記憶體在量測接線完成前會明示為不可用。
+  清除、最新／平均／峰值與丟棄數。GPU 時間仍明示為不可用。
+- ✅ Application 現最多每 250 ms 量測一次真實目前 process RSS／working-set bytes，Profiler
+  讀取 copied optional latest／observed-peak 值。Capture 暫停 OS observation，Clear 重設
+  peak／timer 且不解除暫停；讀取失敗顯示 unavailable，保留 observed peak。Process-wide
+  scope 包含 shared resident pages，跨 project 切換保留，並非 GPU 或 allocator usage。
+  Linux 測試涵蓋真實 allocation／touch、實際 24-frame graphical process、owner throttle／
+  failure，以及 1x／2x pointer／ownership／reset。Schema-1 wall-time capture 保持分開；
+  儲存 memory trace 與 Windows／macOS host 驗證仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-LiveProcessMemory-Linux-2026-10-08.md)。
 - ✅ Profiler Export JSON 現寫入 schema-1 companion，包含 source／scope／unit／project metadata、
   sample count、完整 double 精度及無損 decimal-string uint64 frame／drop 值。
   未量測 GPU／memory 明示為 unavailable／null。獨立一次性 CSV／JSON 控制共用 write／modal
@@ -683,7 +691,7 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 - ✅ Profiler 現可把保留的 Editor frame-processing wall time 匯出為專案 CSV，保留 double
   精度與丟棄 frame 數，GPU／memory 欄保持空白。同步 writer 驗證 1-600 筆有序且有限的 sample，
   拒絕唯讀／recovery 寫入，驗證失敗會保留舊檔；實際 UI 點擊會送出一次性 request。
-- 待辦：圖形化 build frontend、remote deployment/log、GPU／memory profiling、任意 capture import
+- 待辦：圖形化 build frontend、remote deployment/log、GPU profiling、儲存 memory trace、任意 capture import
   與 plugin manager。
 
 ### ED-M7 — Production hardening

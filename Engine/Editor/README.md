@@ -255,7 +255,20 @@ into renderer or platform internals.
 - `ProfileSession` retains a bounded, monotonic frame history. Invalid or out-of-order samples are
   rejected; capacity evictions increment a dropped count. Capture can be paused and cleared without
   changing project files. The graphical host currently supplies Editor frame processing wall time
-  after BeginFrame and before Present; GPU timing and process memory are not instrumented.
+  after BeginFrame and before Present; GPU timing remains uninstrumented.
+  `SampleProcessMemory` is a separate application-thread observation, throttled to one real Core
+  OS read per 250 ms using a monotonic clock. `ProcessMemory()` returns a copied optional current
+  process RSS / working-set byte count, observed peak since Clear, and attempt/success counters.
+  A failed read publishes unavailable for the latest value while preserving the historical peak;
+  no previous success masquerades as a fresh measurement. Capture pauses both wall-frame ingestion
+  and memory reads while preserving observations. Clear resets both histories and the sample timer,
+  retains the pause state, and allows an immediate observation once capturing resumes. Clock
+  rollback/same-timestamp calls do not sample. Counters saturate and the timer handles the clock's
+  upper boundary. Memory observations are process-wide across project changes and detachment,
+  including shared resident pages, rather than scene/GPU/allocator usage or an OS lifetime peak.
+  Widgets copy the observation and never call the reader. The optional injected function-pointer
+  reader supports deterministic owner-contract tests; the application uses the real default.
+  `FrameSample` and schema-1 wall-time CSV/JSON capture remain separate and contain no RSS samples.
   `ProjectWorkspace::ImportEditorFrameProcessingCsv` reads the project's exported CSV synchronously
   into an owning `FrameProcessingCapture`, without changing files, workspace state or a live
   session. Read-only observers may import; closed/recovery-pending projects, aliased metadata/leaf
@@ -470,11 +483,11 @@ commands and before adding the current frame; the call borrows them synchronousl
 serialized CSV data. `cpu_ms` at this call is Editor frame processing wall time after BeginFrame and
 before Present, not whole-frame CPU utilization. CSV uses locale-independent full double precision,
 columns `frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes`, and empty GPU/memory
-cells because those measurements are unavailable. Export requires 1-600 strictly increasing nonzero
+cells because this wall-time format excludes live RSS observations. Export requires 1-600 strictly increasing nonzero
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Capture import, GPU timing and memory instrumentation remain open.
+file itself. Arbitrary capture import, GPU timing and saved memory traces remain open.
 
 Profiler Export JSON writes the companion `.nexora/frame-processing.json` under the same writer,
 sample-validation, recovery and atomic-replacement rules. Schema 1 records source `NexoraEditor`,
@@ -485,7 +498,7 @@ full double precision; availability flags are false and each GPU/memory value is
 when a caller's FrameSample contains those fields. Export borrows samples only for the synchronous
 call and leaves CSV unchanged. `gpu_timing_available` and `memory_measurement_available` are false;
 each `samples` entry has `frame`, `frame_processing_wall_ms`, `gpu_ms` and `memory_bytes`.
-Schema/capture import and measured GPU/memory data remain open.
+Arbitrary capture import, measured GPU data and saved process-memory traces remain open.
 
 Game Apply Changes is an explicit transform-only review. Opening it emits Pause when needed and
 releases Game input. The modal owns original/Editor/Play transforms and session/document/entity

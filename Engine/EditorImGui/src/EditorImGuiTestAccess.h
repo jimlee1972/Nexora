@@ -96,6 +96,11 @@ public:
   ContentAssetPosition(const EditorImGuiHost &host, runtime::AssetUuid asset) noexcept;
   [[nodiscard]] static bool ContentDragActive(const EditorImGuiHost &host) noexcept;
   static void FocusProfiler(EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ProfileCapturePosition(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ProfileClearPosition(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static ProcessMemoryObservation ProfileMemory(const EditorImGuiHost &host) noexcept;
   static void FocusConsole(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ConsoleControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;

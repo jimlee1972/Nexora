@@ -1,10 +1,12 @@
 #include "Nexora/Editor/EditorProduction.h"
 #include "AtomicFile.h"
+#include "Nexora/Core/ProcessMemory.h"
 #include "Nexora/Foundation/Types.h"
 
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
+#include <limits>
 #include <locale>
 #include <sstream>
 #include <unordered_set>
@@ -149,6 +151,31 @@ bool ProfileSession::Add(FrameSample sample) {
 void ProfileSession::Clear() noexcept {
   samples_.clear();
   dropped_ = 0;
+  memory_ = {};
+  next_memory_sample_.reset();
+  last_memory_sample_.reset();
+}
+
+bool ProfileSession::SampleProcessMemory(std::chrono::steady_clock::time_point now,
+                                         ProcessMemoryReader reader) noexcept {
+  if (!capturing_ || (last_memory_sample_ && now <= *last_memory_sample_) ||
+      (next_memory_sample_ && now < *next_memory_sample_))
+    return false;
+  last_memory_sample_ = now;
+  next_memory_sample_ =
+      now > std::chrono::steady_clock::time_point::max() - kProcessMemorySampleInterval
+          ? std::chrono::steady_clock::time_point::max()
+          : now + kProcessMemorySampleInterval;
+  memory_.resident_bytes = (reader ? reader : core::CurrentProcessResidentBytes)();
+  if (memory_.attempts != std::numeric_limits<std::uint64_t>::max())
+    ++memory_.attempts;
+  if (memory_.resident_bytes) {
+    if (memory_.successful_samples != std::numeric_limits<std::uint64_t>::max())
+      ++memory_.successful_samples;
+    memory_.observed_peak_bytes =
+        std::max(memory_.observed_peak_bytes.value_or(0), *memory_.resident_bytes);
+  }
+  return true;
 }
 
 std::optional<FrameSample> ProfileSession::Peak() const noexcept {
