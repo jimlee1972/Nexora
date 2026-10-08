@@ -3069,7 +3069,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     sky.unlit = s.courtyardPbr;
     sky.castsShadow = false;
 #if NEXORA_ASSET_PIPELINE_ENABLED
-    sky.emission = {1, 1, 1};
+    sky.emission = {0.65F, 0.65F, 0.65F};
     sky.emissionTextureId = 18;
 #endif
     s.materials.push_back(sky);
