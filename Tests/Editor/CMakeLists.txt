@@ -80,3 +80,8 @@ add_executable(NexoraSceneFileTests SceneFileTests.cpp)
 target_link_libraries(NexoraSceneFileTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraSceneFileTests)
 add_test(NAME editor.scene_file_contract COMMAND NexoraSceneFileTests)
+
+add_executable(NexoraPlayInputSettingsTests PlayInputSettingsTests.cpp)
+target_link_libraries(NexoraPlayInputSettingsTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraPlayInputSettingsTests)
+add_test(NAME editor.play_input_settings COMMAND NexoraPlayInputSettingsTests)
