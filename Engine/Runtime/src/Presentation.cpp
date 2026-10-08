@@ -72,6 +72,17 @@ bool AnimationGraph::Play(ResourceId clip, float blend_seconds) {
   return true;
 }
 
+bool AnimationGraph::Synchronize(float clip_time) {
+  const auto found = clips_.find(active_);
+  if (found == clips_.end() || !found->second.looping || !std::isfinite(clip_time) ||
+      clip_time < 0.0F || clip_time >= found->second.duration)
+    return false;
+  time_ = clip_time;
+  previous_ = 0;
+  blend_duration_ = blend_time_ = 0.0F;
+  return true;
+}
+
 AnimationPose AnimationGraph::Sample(ResourceId id, float time) const {
   AnimationPose pose;
   pose.translations.resize(skeleton_.JointCount());

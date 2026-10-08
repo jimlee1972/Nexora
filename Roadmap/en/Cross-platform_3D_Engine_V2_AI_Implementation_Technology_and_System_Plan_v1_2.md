@@ -2289,6 +2289,16 @@ orchestration remain open.
 
 # V2-M8 Portable Pose Search Status
 
+> **Portable marker synchronization slice (2026-10-08):** ✅ `SyncGroup` in `NexoraAnimation`
+> owns bounded looping clocks, selects a deterministic weight leader, maps compatible cyclic named
+> markers, and falls back to normalized phase for incompatible layouts. Weight changes preserve
+> synchronized clocks; invalid updates preserve state. `animation.v2_m8_marker_sync` validates
+> leadership, marker wrap, fallback, capacity, and numeric extremes; `build.animation_profiles`
+> verifies both sources are omitted when disabled. `AnimationGraph::Synchronize` provides a visual
+> seek without publishing seek displacement as root motion, covered by `runtime.v1_m9_presentation`.
+> Marker authoring, full TRS graph integration, inertialization, motion warping, and GPU gates remain
+> open. V2-M8 remains in progress and overall V2 progress remains 46%.
+
 > **Portable compressed pose / local retarget slice (2026-10-07):** ✅ `NexoraAnimation`
 > adds versioned little-endian QuantizedTRS storage, transactional bounded load/build,
 > quaternion canonicalization, fractional-frame sampling, and explicit hierarchy-validated
@@ -2296,7 +2306,7 @@ orchestration remain open.
 > malformed data, numeric extremes, move safety, and retarget rejection; `build.animation_profiles`
 > verifies enabled/stripped graphs in six profiles. See [the module contract](../../Engine/Animation/README.md)
 > and [acceptance evidence](../../Tests/Animation/acceptance.md). GPU execution, motion warping,
-> inertialization, sync groups, topology-changing retargeting, and editor/cook integration remain open.
+> inertialization, sync-group authoring/TRS integration, topology-changing retargeting, and editor/cook integration remain open.
 > V2-M8 remains in progress and overall V2 progress remains 46%.
 
 > **Portable Pose Search slice (2026-10-07):** ✅ `NexoraPoseSearch` provides a

@@ -1,5 +1,5 @@
 include(NexoraTarget)
-add_library(NexoraAnimation ${NEXORA_MODULE_LIBRARY_TYPE} src/Pose.cpp)
+add_library(NexoraAnimation ${NEXORA_MODULE_LIBRARY_TYPE} src/Pose.cpp src/SyncGroup.cpp)
 add_library(Nexora::Animation ALIAS NexoraAnimation)
 target_include_directories(NexoraAnimation PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_link_libraries(NexoraAnimation PUBLIC Nexora::Foundation)

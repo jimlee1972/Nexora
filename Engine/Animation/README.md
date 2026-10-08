@@ -1,4 +1,4 @@
-# V2-M8 portable pose storage and retarget contract
+# V2-M8 portable animation contract
 
 `NexoraAnimation` is optional (`NEXORA_ENABLE_ANIMATION_V2`) and depends only on Foundation.
 OFF removes its target and source; Shipping Minimal, Shipping Dedicated, and headless profiles
@@ -43,6 +43,37 @@ convention; this local mapping supports authored compatible hierarchies. Differe
 IK/end-effector preservation, automatic name matching, twist distribution, and animation graph
 integration require separate adapters. Invalid or overflowing poses fail without a partial result.
 
+`SyncGroup` owns up to 256 looping clip clocks, each with up to 256 optional named markers.
+`SetMembers` copies and validates the complete input before replacement: nonzero unique clip IDs,
+finite positive durations, times in `[0, duration)`, finite nonnegative weights, and either zero
+markers or at least two. Marker times are strictly increasing in that same interval; names are
+nonempty and unique within a clip. Invalid replacement leaves the previous group unchanged.
+Membership replacement resets clocks to the supplied times; weight updates preserve clocks.
+
+`Update(seconds)` advances the highest-weight member using its own duration. Equal weights select
+the lowest clip ID; zero-weight members still receive follower samples, while an all-zero group
+returns `nullopt` without advancing. Ticks are finite and nonnegative. Large finite deltas are
+reduced before addition to avoid overflow. Output is an owning vector sorted by clip ID. Compatible
+marker layouts have the same unique names in the same cyclic order, allowing a different first
+marker. Followers interpolate between the leader's bounding markers, including the wrap segment.
+Missing or incompatible layouts use normalized loop phase, reported by `marker_synced=false`.
+Only followers report marker synchronization. Leadership changes start from the new leader's last
+synchronized clock; they do not reset its phase. No previous clip is sampled for synchronization.
+Clock math uses doubles; repeatability assumes the same floating-point environment, not bitwise
+replay across arbitrary CPUs. Exact marker boundaries use the outgoing segment.
+Updates perform O(members × markers) matching and allocate the output plus a leader metadata copy;
+callers budget this synchronous work. Validation also checks duplicate names pairwise. Marker name
+byte length is caller-owned authoring policy; the limits bound counts, not total string bytes.
+
+The group produces visual sample times only. Callers own clip metadata, group membership, weight
+policy, blend evaluation, and event/root-motion authority. It never loads clips, mutates transforms,
+or dispatches events. Runtime does not link Animation implicitly: a consumer explicitly links both,
+selects a clip with `AnimationGraph::Play`, then passes its synchronized time to
+`AnimationGraph::Synchronize` and samples with `Update(0)`. The graph uses float times; consumers
+must convert into its valid interval (rounding to duration requires wrapping to zero). Non-looping
+clips are outside this group contract. Marker authoring/editor tools and compressed TRS graph
+integration remain future work.
+
 Objects are caller-owned, synchronous, externally synchronized, and have no threads, callbacks,
 filesystem I/O, gameplay events, root-motion authority, or transform mutation. Allocations use
 standard C++ exception behavior; validation failures return false/nullopt. `Bytes()` borrows
@@ -52,7 +83,12 @@ be serialized with sampling. Copying owns a separate byte buffer.
 `animation.v2_m8_pose_storage_retarget` checks 8,192 round-trip poses, interpolation, compression
 size, canonical bytes, finite extremes, malformed/truncated input, transactional rejection,
 move safety, parent mapping, bind-axis rotation, displacement ratios, and overflow rejection.
-`build.animation_profiles` inspects actual target/source graphs in six profiles. Acceptance is
-limited to compressed storage and explicit local retargeting. GPU skinning/sampling, motion
-warping, inertialization, sync groups, editor/cook integration, and Motion Matching remain open;
-V2-M8 and overall V2 completion are not claimed.
+`animation.v2_m8_marker_sync` verifies marker/wrap interpolation, cyclic layouts, normalized
+fallback, stable leadership, weight switches, transactional rejection, tick partitioning, bounded
+capacity, and extreme finite clocks. `animation.v2_m8_sync_group_graph` drives two Runtime graphs
+through wrap and leader switches while checking visual poses and zero seek root motion.
+`build.animation_profiles` inspects both implementation sources
+and actual target/source graphs in six profiles. Acceptance is limited to compressed storage,
+explicit local retargeting, and portable marker synchronization. GPU skinning/sampling, motion
+warping, inertialization, marker authoring/editor/cook integration, and Motion Matching remain open;
+V2-M8 and overall V2 completion are not claimed. See [marker synchronization acceptance](../../Tests/Animation/sync-group-acceptance.md).

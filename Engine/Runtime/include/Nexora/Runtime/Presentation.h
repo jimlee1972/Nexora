@@ -59,6 +59,8 @@ public:
   bool SetSkeleton(Skeleton skeleton);
   bool AddClip(AnimationAsset clip);
   bool Play(ResourceId clip, float blend_seconds = 0.0F);
+  // Visual clock seek; cancels crossfade and never publishes seek displacement as root motion.
+  bool Synchronize(float clip_time);
   [[nodiscard]] AnimationPose Update(float seconds);
   [[nodiscard]] ResourceId ActiveClip() const noexcept { return active_; }
 

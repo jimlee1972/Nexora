@@ -124,6 +124,15 @@ extractor and deterministic weighted pose database/search through a separate Fou
 module. Runtime does not link it implicitly. A caller may use its owning clip/time result to select
 animation state; the database owns no graph, character motor, transform, or gameplay event authority.
 
+`AnimationGraph::Synchronize(time)` seeks the active looping clip within `[0, duration)` and
+cancels any crossfade. Invalid/nonfinite/out-of-range times or non-looping clips return false
+without mutation. `Update(0)` then returns the synchronized pose with zero root motion; a later
+positive update extracts only displacement from the new clock. Seeking does not produce gameplay
+events or character movement. An explicit consumer may use the Foundation-only
+[`Animation SyncGroup`](../Animation/README.md) for marker-aligned sample times; Runtime does not
+acquire an implicit Animation dependency. Synchronize/Play/Update remain caller-serialized. This
+is a visual clock operation, not a motor/controller movement request.
+
 `AudioEngine` enforces a hard voice limit, routes events through named buses, and acquires a
 reference in `ResidencyTracker` for every active voice. Stopping one of several voices cannot
 unload their shared clip. The `streaming` event bit is preserved for a MiniAudio/platform adapter;

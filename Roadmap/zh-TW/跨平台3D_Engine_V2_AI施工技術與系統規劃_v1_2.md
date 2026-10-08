@@ -2298,13 +2298,22 @@ cache 隔離與失敗 containment。Production NavMesh streaming、job-system ad
 
 # V2-M8 Portable Pose Search 狀態
 
+> **Portable marker synchronization 切片（2026-10-08）：** ✅ `NexoraAnimation` 的 `SyncGroup`
+> 提供有上限的 looping clock、deterministic weight leader、相容具名 cyclic marker 對齊，
+> 並在 marker layout 不相容時退回 normalized phase。權重改變保留同步時鐘；無效更新保留狀態。
+> `animation.v2_m8_marker_sync` 驗證領導權、marker wrap、fallback、容量與數值極端；
+> `build.animation_profiles` 驗證停用時剝除兩個 source。`AnimationGraph::Synchronize` 提供
+> visual seek，不將 seek 位移發布為 root motion，由 `runtime.v1_m9_presentation` 驗證。
+> Marker authoring、完整 TRS graph 整合、inertialization、motion warping 與 GPU gate 仍待完成。
+> V2-M8 仍進行中；V2 整體進度維持 46%。
+
 > **Portable 壓縮姿態／local retarget 切片（2026-10-07）：** ✅ `NexoraAnimation`
 > 新增版本化 little-endian QuantizedTRS 儲存、具容量限制的 transactional load/build、
 > quaternion canonicalization、fractional-frame sampling 與驗證階層對應的 local bind-space retarget。
 > `animation.v2_m8_pose_storage_retarget` 驗證 8,192 筆姿態、損壞資料、數值極值、move 安全及
 > retarget 拒絕行為；`build.animation_profiles` 檢查六種 profile 的啟用／剝除 target 與 source graph。
 > 詳見[模組 contract](../../Engine/Animation/README.md)與[驗收證據](../../Tests/Animation/acceptance.md)。
-> GPU 執行、motion warping、inertialization、sync group、改變拓樸的 retarget 與 editor/cook 整合仍待完成。
+> GPU 執行、motion warping、inertialization、sync group authoring/TRS 整合、改變拓樸的 retarget 與 editor/cook 整合仍待完成。
 > V2-M8 仍進行中；V2 整體進度維持 46%。
 
 > **Portable Pose Search 切片（2026-10-07）：** ✅ `NexoraPoseSearch` 提供只依賴
