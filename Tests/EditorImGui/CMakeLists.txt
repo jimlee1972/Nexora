@@ -185,6 +185,16 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_game_input PROPERTIES TIMEOUT 45)
+  add_test(
+    NAME editor.linux_native_project_input
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
+            --input-routing --project-bindings
+            --module "$<TARGET_FILE:NexoraPlayInputFixture>"
+            --editor "$<TARGET_FILE:NexoraEditor>"
+            --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+            --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_project_input PROPERTIES TIMEOUT 45)
 endif()
 
 add_executable(NexoraProfilerExportTests ProfilerExportTests.cpp)

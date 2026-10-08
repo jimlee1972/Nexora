@@ -136,10 +136,33 @@ void Run(float dpi, bool macos) {
   Require(f.ui.GameInputBindings() == committed, "Apply did not publish owning profile");
   Require(!Access::GameInputBindingsOpen(f.ui) && f.document->Dirty() == originally_dirty,
           "Apply retained modal or changed scene dirty state");
+  Require(!f.ui.TakeGameInputBindingsSaveRequest(), "session Apply emitted persistence request");
   const auto copy = f.ui.GameInputBindings();
   f.FocusGame();
   f.Open();
+  f.Choose(3, Control::C);
+  f.Click(22);
+  auto request = f.ui.TakeGameInputBindingsSaveRequest();
+  auto saved = committed;
+  saved.controls[1][0] = Control::C;
+  Require(request && request->project == f.workspace.Project().id &&
+              request->root == f.workspace.Root() && request->bindings == saved &&
+              f.ui.GameInputBindings() == saved && !f.ui.TakeGameInputBindingsSaveRequest() &&
+              !std::filesystem::exists(f.root / ".nexora/play-input.ini"),
+          "Apply/save did not emit one owning scoped request or widgets performed IO");
+  std::string save_error;
+  Require(f.workspace.SavePlayInputBindings(request->bindings, &save_error), "owner save failed");
+  imgui::EditorImGuiHost reopened;
+  const auto persisted = f.observer.LoadPlayInputBindings(&save_error);
+  Require(persisted && reopened.SetGameInputBindings(*persisted, f.observer) &&
+              reopened.GameInputBindings() == saved &&
+              f.ui.SetGameInputBindings(committed, f.workspace),
+          "reopened host did not restore owning profile or reset session failed");
+  f.FocusGame();
+  f.Open();
   f.Choose(5, Control::B); // Duplicates Right's concrete control.
+  f.Click(22);
+  Require(!f.ui.TakeGameInputBindingsSaveRequest(), "invalid draft emitted save request");
   f.Click(19);
   Require(Access::GameInputBindingsOpen(f.ui) && !Access::GameInputBindingsError(f.ui).empty() &&
               f.ui.GameInputBindings() == committed,
@@ -157,6 +180,9 @@ void Run(float dpi, bool macos) {
   f.FocusGame();
   f.Open();
   f.Click(20);
+  f.Click(22);
+  Require(!f.ui.TakeGameInputBindingsSaveRequest() && Access::GameInputBindingsOpen(f.ui),
+          "read-only draft emitted save request");
   f.Click(19);
   Require(f.ui.GameInputBindings() == defaults && copy == committed,
           "read-only Reset/Apply failed or owning copy changed");
@@ -194,6 +220,7 @@ void Run(float dpi, bool macos) {
   Require(!Access::GameInputBindingsOpen(f.ui), "paused Play allowed binding edits");
   Require(f.play.Stop(), "Stop failed");
   f.Draw();
+  f.active = &f.workspace;
   f.FocusGame();
   f.Open();
   f.Choose(3, Control::C);
@@ -204,9 +231,11 @@ void Run(float dpi, bool macos) {
   f.Press(Key::Escape);
   f.FocusGame();
   f.Open();
+  f.Click(22);
   f.active = nullptr;
   f.Draw();
-  Require(!Access::GameInputBindingsOpen(f.ui) && f.ui.GameInputBindings() == defaults,
+  Require(!Access::GameInputBindingsOpen(f.ui) && f.ui.GameInputBindings() == defaults &&
+              !f.ui.TakeGameInputBindingsSaveRequest(),
           "project detach retained profile or draft");
 }
 } // namespace

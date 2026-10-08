@@ -203,7 +203,9 @@ struct EditorImGuiHost::State final {
   foundation::Uuid game_input_project{};
   bool game_input_binding_open{}, game_input_binding_pending{};
   std::string game_input_binding_error;
-  std::array<std::optional<std::array<float, 2>>, 22> game_input_binding_positions;
+  std::string game_input_binding_status;
+  std::optional<GameInputBindingsSaveRequest> game_input_save_requested;
+  std::array<std::optional<std::array<float, 2>>, 23> game_input_binding_positions;
   std::vector<std::pair<PlayInputControl, std::array<float, 2>>> game_input_choice_positions;
   runtime::Id play_inspection_entity{};
   runtime::Id play_inspector_rendered{};
@@ -318,6 +320,7 @@ struct EditorImGuiHost::State final {
   std::optional<runtime::AssetUuid> content_navigation_cursor, content_navigation_anchor;
   std::uint64_t content_navigation_generation{}, content_navigation_revision{};
   std::filesystem::path content_navigation_root, content_navigation_folder;
+  std::optional<std::filesystem::path> content_focused_folder;
   std::optional<runtime::AssetUuid> content_rename_target;
   std::uint64_t content_rename_generation{};
   std::filesystem::path content_rename_root, content_rename_path;
@@ -2792,6 +2795,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   const auto window = PanelWindowName("nexora.content");
   state.content_rename_positions = {};
   state.content_search_position.reset();
+  state.content_focused_folder.reset();
   if (!ImGui::Begin(window.c_str())) {
     state.content_rename_target.reset();
     if (ImGui::BeginPopupModal("Rename asset###editor.content.rename", nullptr,
@@ -2818,8 +2822,10 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     ImGui::SameLine();
   }
   ImGui::NewLine();
-  if (navigate_to)
+  if (navigate_to) {
     static_cast<void>(browser.SetFolder(*navigate_to));
+    navigate_to.reset();
+  }
 
   bool filter_changed = ImGui::InputTextWithHint(
       "##content-search", "Search assets", state.content_query.data(), state.content_query.size());
@@ -2838,25 +2844,36 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     static_cast<void>(content.Undo());
   ImGui::EndDisabled();
 
-  const auto folder =
-      browser.Breadcrumbs().empty() ? std::filesystem::path{} : browser.Breadcrumbs().back().path;
-  if (filter_changed || state.content_navigation_generation != browser.ProjectGeneration() ||
-      state.content_navigation_revision != browser.Revision() ||
-      state.content_navigation_root != content.Root() ||
-      state.content_navigation_folder != folder) {
-    state.content_navigation_cursor.reset();
-    state.content_navigation_anchor.reset();
-    state.content_navigation_generation = browser.ProjectGeneration();
-    state.content_navigation_revision = browser.Revision();
-    state.content_navigation_root = content.Root();
-    state.content_navigation_folder = folder;
-  }
   const bool keyboard =
       selection_commands_allowed && !state.content_rename_target &&
       ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
       !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive() && !ImGui::GetDragDropPayload() &&
       !ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
       !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+  // Register the Alt route before its modifier transition. Parent navigation never escapes
+  // the first breadcrumb, and uses the same inspection-only ownership gates as asset selection.
+  if (keyboard && !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeySuper &&
+      ImGui::Shortcut(ImGuiMod_Alt | ImGuiKey_UpArrow, ImGuiInputFlags_RouteFocused)) {
+    const auto breadcrumbs = browser.Breadcrumbs();
+    if (breadcrumbs.size() > 1) {
+      const auto parent = breadcrumbs[breadcrumbs.size() - 2].path;
+      static_cast<void>(browser.SetFolder(parent));
+      ImGui::SetScrollY(0);
+    }
+  }
+  const auto navigation_folder =
+      browser.Breadcrumbs().empty() ? std::filesystem::path{} : browser.Breadcrumbs().back().path;
+  if (filter_changed || state.content_navigation_generation != browser.ProjectGeneration() ||
+      state.content_navigation_revision != browser.Revision() ||
+      state.content_navigation_root != content.Root() ||
+      state.content_navigation_folder != navigation_folder) {
+    state.content_navigation_cursor.reset();
+    state.content_navigation_anchor.reset();
+    state.content_navigation_generation = browser.ProjectGeneration();
+    state.content_navigation_revision = browser.Revision();
+    state.content_navigation_root = content.Root();
+    state.content_navigation_folder = navigation_folder;
+  }
   std::optional<std::size_t> reveal_row;
   std::optional<runtime::AssetUuid> reveal_asset;
   if (keyboard && !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && !ImGui::GetIO().KeySuper) {
@@ -2916,6 +2933,12 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       ImGui::IsKeyPressed(ImGuiKey_Delete, false))
     delete_assets = browser.Selection();
 
+  const auto folders = browser.ChildFolders();
+  const bool folder_activation =
+      keyboard && std::ranges::any_of(folders, [&](const Breadcrumb &entry) {
+        const auto label = "[Folder] " + entry.label + "##" + PathLabel(entry.path);
+        return ImGui::GetCurrentContext()->NavActivateId == ImGui::GetID(label.c_str());
+      });
   const auto selected_assets = browser.Selection();
   const auto *selected_mesh =
       selected_assets.size() == 1 ? browser.Find(selected_assets.front()) : nullptr;
@@ -2956,7 +2979,8 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   state.content_open_scene_position =
       std::array{(open_min.x + open_max.x) * 0.5F, (open_min.y + open_max.y) * 0.5F};
   ImGui::EndDisabled();
-  if (scene_openable && selected_scene_file && !ImGui::GetIO().WantTextInput &&
+  if (!folder_activation && scene_openable && selected_scene_file &&
+      !ImGui::GetIO().WantTextInput &&
       ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
       ImGui::IsKeyPressed(ImGuiKey_Enter, false))
     BeginContentScene(state, *scene, selected_scene->path);
@@ -2988,14 +3012,22 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     if (const auto *item = browser.Find(selected_assets.front()))
       begin_rename(*item);
   }
-  const auto folders = browser.ChildFolders();
   state.content_visible_folders = static_cast<std::uint32_t>(folders.size());
-  for (const auto &child_folder : folders) {
-    const auto label = "[Folder] " + child_folder.label + "##" + PathLabel(child_folder.path);
-    if (ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick) &&
-        ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-      static_cast<void>(browser.SetFolder(child_folder.path));
-    static_cast<void>(AcceptAssetDrop(content, child_folder.path));
+  for (const auto &folder : folders) {
+    const auto label = "[Folder] " + folder.label + "##" + PathLabel(folder.path);
+    const bool activated =
+        ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick);
+    if (ImGui::IsItemFocused())
+      state.content_focused_folder = folder.path;
+    const bool keyboard_activation =
+        keyboard && ImGui::GetCurrentContext()->NavActivateId == ImGui::GetItemID();
+    if (activated && (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) || keyboard_activation))
+      navigate_to = folder.path;
+    static_cast<void>(AcceptAssetDrop(content, folder.path));
+  }
+  if (navigate_to && browser.Breadcrumbs().back().path != *navigate_to) {
+    static_cast<void>(browser.SetFolder(*navigate_to));
+    ImGui::SetScrollY(0);
   }
 
   const auto visible_count = browser.VisibleCount();
@@ -3429,6 +3461,9 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
       if (!state_->app_focused) {
         state_->game_input_binding_open = false;
         state_->game_input_binding_pending = false;
+        if (state_->game_input_save_requested)
+          state_->game_input_binding_status.clear();
+        state_->game_input_save_requested.reset();
         state_->native_pointer.reset();
         state_->game_input_focused = false;
         CancelSceneGestures(*state_);
@@ -3680,6 +3715,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const auto input_project = workspace ? workspace->Project().id : foundation::Uuid{};
   if (state_->game_input_root != input_root || state_->game_input_project != input_project) {
     state_->game_input_bindings = {};
+    state_->game_input_binding_status.clear();
+    state_->game_input_save_requested.reset();
     state_->game_input_root = input_root;
     state_->game_input_project = input_project;
     state_->game_input_binding_open = false;
@@ -3691,6 +3728,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->hierarchy_rename_target || state_->content_rename_target) {
     state_->game_input_binding_open = false;
     state_->game_input_binding_pending = false;
+    if (state_->game_input_save_requested)
+      state_->game_input_binding_status.clear();
+    state_->game_input_save_requested.reset();
   }
   // Query from the same root ID scope that opens the modal, before entering a panel window.
   const bool close_confirmation_open =
@@ -4201,6 +4241,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->game_input_binding_positions[0] = std::array{(binding_min.x + binding_max.x) * 0.5F,
                                                            (binding_min.y + binding_max.y) * 0.5F};
       ImGui::EndDisabled();
+      if (!state_->game_input_binding_status.empty())
+        ImGui::TextWrapped("%s", state_->game_input_binding_status.c_str());
       if (state == runtime::PlayState::Stopped) {
         if (ImGui::Button("Play"))
           state_->play_command = PlayCommand::Start;
@@ -4544,8 +4586,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::ClearActiveID();
       ImGui::CloseCurrentPopup();
     } else {
-      ImGui::TextWrapped("Editor session bindings. Stop Play before editing. Apply replaces the "
-                         "whole profile; changing projects resets it.");
+      ImGui::TextWrapped("Apply uses this profile for the current session. Apply and save also "
+                         "stores it in this project for the next open.");
       constexpr const char *actions[] = {"Left (-X)",     "Right (+X)", "Forward (+Y)",
                                          "Back (-Y)",     "Action (1)", "Primary (2)",
                                          "Secondary (4)", "Sprint (8)", "Modifier (16)"};
@@ -4610,6 +4652,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (ImGui::Button("Apply")) {
         if (state_->game_input_draft.Valid()) {
           state_->game_input_bindings = state_->game_input_draft;
+          state_->game_input_binding_status =
+              "Session bindings applied; project settings unchanged.";
           state_->game_input_binding_open = false;
           ImGui::CloseCurrentPopup();
         } else
@@ -4617,6 +4661,22 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                              "to release a duplicate.";
       }
       capture(19);
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!workspace || !workspace->Writable() || recovery_available);
+      if (ImGui::Button("Apply and save")) {
+        if (state_->game_input_draft.Valid()) {
+          state_->game_input_bindings = state_->game_input_draft;
+          state_->game_input_binding_status = "Saving project input bindings...";
+          state_->game_input_save_requested = GameInputBindingsSaveRequest{
+              workspace->Project().id, workspace->Root(), state_->game_input_draft};
+          state_->game_input_binding_open = false;
+          ImGui::CloseCurrentPopup();
+        } else
+          state_->game_input_binding_error = "Each control can be bound only once. Choose Unbound "
+                                             "to release a duplicate.";
+      }
+      capture(22);
+      ImGui::EndDisabled();
       ImGui::SameLine();
       if (ImGui::Button("Reset defaults")) {
         state_->game_input_draft = {};
@@ -4843,6 +4903,9 @@ void EditorImGuiHost::RequestSceneUnsavedChoice(SceneFileRequest request) {
 }
 
 void EditorImGuiHost::RequestCloseConfirmation() noexcept {
+  if (state_->game_input_save_requested)
+    state_->game_input_binding_status.clear();
+  state_->game_input_save_requested.reset();
   state_->game_input_binding_open = state_->game_input_binding_pending = false;
   state_->scene_file_close_popup = false;
   state_->scene_file_intent.reset();
@@ -4862,6 +4925,24 @@ CloseChoice EditorImGuiHost::TakeCloseChoice() noexcept {
 bool EditorImGuiHost::GameInputFocused() const noexcept { return state_->game_input_focused; }
 PlayInputBindings EditorImGuiHost::GameInputBindings() const noexcept {
   return state_->game_input_bindings;
+}
+bool EditorImGuiHost::SetGameInputBindings(const PlayInputBindings &bindings,
+                                           const ProjectWorkspace &workspace) {
+  if (!bindings.Valid() || workspace.Root().empty())
+    return false;
+  state_->game_input_bindings = bindings;
+  state_->game_input_binding_status.clear();
+  state_->game_input_root = workspace.Root();
+  state_->game_input_project = workspace.Project().id;
+  state_->game_input_binding_open = state_->game_input_binding_pending = false;
+  state_->game_input_save_requested.reset();
+  return true;
+}
+std::optional<GameInputBindingsSaveRequest> EditorImGuiHost::TakeGameInputBindingsSaveRequest() {
+  return std::exchange(state_->game_input_save_requested, std::nullopt);
+}
+void EditorImGuiHost::SetGameInputBindingsStatus(std::string message) {
+  state_->game_input_binding_status = std::move(message);
 }
 std::string_view EditorImGuiHost::GameplayLibrary() const noexcept {
   return state_->gameplay_library.data();
@@ -5553,6 +5634,10 @@ void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.content");
   ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::filesystem::path>
+EditorImGuiTestAccess::ContentFocusedFolder(const EditorImGuiHost &host) {
+  return host.state_->content_focused_folder;
 }
 void EditorImGuiTestAccess::FocusGame(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);

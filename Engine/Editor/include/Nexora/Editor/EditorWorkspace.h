@@ -4,6 +4,7 @@
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/MeshImport.h"
+#include "Nexora/Editor/PlayInputBindings.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/Foundation/Types.h"
 #include "Nexora/Runtime/AssetPipeline.h"
@@ -61,6 +62,7 @@ public:
   static constexpr std::size_t kMaximumEditorLayoutBytes = 1024 * 1024;
   static constexpr std::size_t kMaximumFrameProcessingCsvBytes = 128 * 1024;
   static constexpr std::size_t kMaximumFrameProcessingJsonBytes = 128 * 1024;
+  static constexpr std::size_t kMaximumPlayInputSettingsBytes = 1024;
   ProjectWorkspace();
   ~ProjectWorkspace();
   ProjectWorkspace(ProjectWorkspace &&) noexcept;
@@ -78,6 +80,11 @@ public:
   // inspection-only Play; reading never loads a module or grants project write access.
   bool SaveGameplayLibrary(std::string_view relative_path, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadGameplayLibrary(std::string *error = nullptr) const;
+  // Explicit project input settings, independent from scene/workspace recovery. Missing legacy
+  // settings return no value/error; unsafe, corrupt or recovery-pending reads/writes reject.
+  bool SavePlayInputBindings(const PlayInputBindings &bindings, std::string *error = nullptr);
+  [[nodiscard]] std::optional<PlayInputBindings>
+  LoadPlayInputBindings(std::string *error = nullptr) const;
   // Export completed Editor-frame wall timing (FrameSample::cpu_ms) to a project-owned CSV.
   // Samples are borrowed only for this synchronous call; GPU/memory cells stay empty.
   bool ExportEditorFrameProcessing(std::span<const FrameSample> samples,

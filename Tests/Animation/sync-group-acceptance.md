@@ -67,7 +67,7 @@ The full local gate, Monolithic selected gates, and ASan/UBSan above passed agai
 change. The initial failing workflow is not acceptance evidence; hosted CI must pass the corrected
 PR head before merge.
 
-## Latest main integration
+## First main integration
 
 The PR workflow [37724790574](https://github.com/jimlee1972/Nexora/actions/runs/37724790574)
 exposed a separate latest-main MSVC C4456/C2220 failure: Content browser's child-folder loop shadowed
@@ -84,12 +84,28 @@ cmake --preset linux-shipping
 cmake --build --preset linux-shipping
 ```
 
-Result: final Development configure/build and **156/156 CTest tests passed**, 0 failures/skips,
+Result: this integration Development configure/build and **156/156 CTest tests passed**, 0 failures/skips,
 317.30 seconds. Graphical editor was enabled: scene-file, display, native preview/center/mesh,
 Content keyboard shortcuts, and session Game input-binding tests all passed. Shipping Minimal
 configure/build also passed after integration. The selected Shipping Full tests passed 3/3 again.
 This is Linux software-Vulkan/virtual-display evidence; Windows acceptance still requires CI on
 this final head.
+
+## Final Content navigation integration
+
+The earlier head `9148f87f` passed all 18 jobs in
+[PR Build 1897](https://github.com/jimlee1972/Nexora/actions/runs/37726605356): Linux 156/156,
+Windows 139/139, macOS 138/138, including the two new animation tests and ASan/UBSan/TSan.
+Main then advanced to `1bfc7f46` with project input settings and folder keyboard navigation,
+causing a Content-loop conflict at merge time. Integration preserves main's complete loop and
+moves the MSVC shadow fix to the outer `navigation_folder` local (three identifier replacements).
+The loop behavior is unchanged from main. Linux `-fsyntax-only -Wshadow` still passes.
+
+The same final configure/build/CTest commands above passed **158/158**, 0 failures/skips, in
+323.74 seconds with graphical editor enabled, including project input settings, Content keyboard
+shortcuts, and all native Editor probes. Shipping Minimal configure/build passed after this
+integration as well. Hosted CI must pass the integrated head before merge; the older successful
+run is retained as historical evidence, not a substitute for that final gate.
 
 This evidence accepts portable looping marker clocks and the translation graph's visual seek.
 Marker authoring, compressed TRS graph integration, inertialization, motion warping, GPU animation,

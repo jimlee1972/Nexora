@@ -18,6 +18,7 @@ def main():
         parser.add_argument('--' + argument, required=True)
     parser.add_argument('--module')
     parser.add_argument('--input-routing', action='store_true')
+    parser.add_argument('--project-bindings', action='store_true')
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix='nexora-game-view-'))
     state = Path(tempfile.mkdtemp(prefix='nexora-game-state-'))
@@ -25,6 +26,13 @@ def main():
     (root / '.nexora/scenes').mkdir(parents=True)
     (root / 'project.nexora').write_text('schema=1\nname=Game View Acceptance\n')
     (root / '.nexora/workspace').write_text('schema=1\n')
+    if args.project_bindings:
+        if not args.input_routing:
+            parser.error('--project-bindings requires --input-routing')
+        (root / '.nexora/play-input.ini').write_text(
+            'schema=1\nleft=A,Left\nright=B,Right\nforward=W,Up\nbackward=S,Down\n'
+            'action=Space,None\nprimary=MouseLeft,None\nsecondary=MouseRight,None\n'
+            'sprint=LeftShift,RightShift\nmodifier=LeftControl,RightControl\n')
     (root / 'Content/Triangle.obj').write_text(
         'v -1 -1 0\nv 1 -1 0\nv 0 1 0\nvn 0 1 1\nf 1//1 2//1 3//1\n')
     (root / 'Content/Triangle.obj.meta').write_text(
@@ -90,27 +98,34 @@ def main():
             if scene_region_pixels(display, window, viewport) == first:
                 raise RuntimeError('Loaded gameplay fixed callback did not move the native mesh')
         if args.input_routing:
+            movement_key = 'b' if args.project_bindings else 'd'
             first = scene_region_pixels(display, window, viewport)
-            send('keydown', 'd')
+            send('keydown', movement_key)
             time.sleep(0.3)
-            send('keyup', 'd')
+            send('keyup', movement_key)
             if scene_region_pixels(display, window, viewport) != first:
                 raise RuntimeError('Uncaptured Game input reached the module')
             x, y, width, height = viewport
             send('mousemove', '--window', window, x + width // 2, y + height // 2)
             send('click', 1)
             time.sleep(0.2)
-            send('keydown', 'd')
+            if args.project_bindings:
+                send('keydown', 'd')
+                time.sleep(0.25)
+                send('keyup', 'd')
+                if scene_region_pixels(display, window, viewport) != first:
+                    raise RuntimeError('Persisted bindings still admitted old D movement')
+            send('keydown', movement_key)
             time.sleep(0.45)
             if scene_region_pixels(display, window, viewport) == first:
-                raise RuntimeError('Captured D did not drive the native mesh')
+                raise RuntimeError('Captured bound movement did not drive the native mesh')
             send('key', '--delay', '80', 'Escape')
             time.sleep(0.2)
             released = scene_region_pixels(display, window, viewport)
             time.sleep(0.3)
             if scene_region_pixels(display, window, viewport) != released:
                 raise RuntimeError('Escape retained a held movement key')
-            send('keyup', 'd')
+            send('keyup', movement_key)
             send('click', 1)
             time.sleep(0.2)
         send('key', '--delay', '80', 'F6')
@@ -131,6 +146,44 @@ def main():
         if editor.returncode != 0 or b'pie_steps=1' not in captured:
             raise RuntimeError(f'Game View shutdown/step failed: {captured!r}')
         editor = None
+        if args.project_bindings:
+            bindings_file = root / '.nexora/play-input.ini'
+            retained = bindings_file.read_bytes()
+            captured = b''
+            editor = subprocess.Popen([args.editor, f'--project={root}', '--graphical',
+                '--read-only', '--native-scene-preview', '--frames=10000',
+                f'--recent-projects={state / "recent"}'], env=env,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            window = int(wait_for_window(args.xdotool, env))
+            wait_view(b'native scene viewport')
+            send('windowfocus', window)
+            send('key', '--delay', '80', 'F5')
+            viewport = wait_view(b'native game viewport')
+            time.sleep(0.25)
+            first = scene_region_pixels(display, window, viewport)
+            x, y, width, height = viewport
+            send('mousemove', '--window', window, x + width // 2, y + height // 2)
+            send('click', 1)
+            time.sleep(0.2)
+            send('keydown', 'd')
+            time.sleep(0.25)
+            send('keyup', 'd')
+            if scene_region_pixels(display, window, viewport) != first:
+                raise RuntimeError('Read-only reopen restored old D instead of project bindings')
+            send('keydown', 'b')
+            time.sleep(0.45)
+            if scene_region_pixels(display, window, viewport) == first:
+                raise RuntimeError('Read-only reopen did not load B movement and saved gameplay module')
+            send('keyup', 'b')
+            send('key', '--delay', '80', 'Escape')
+            send('key', '--delay', '80', 'F5')
+            request_window_close(str(window), env)
+            _, stderr = editor.communicate(timeout=15)
+            if editor.returncode != 0 or b'ignored input settings' in captured + stderr:
+                raise RuntimeError(f'Reopened input project failed: {stderr!r}')
+            editor = None
+            if bindings_file.read_bytes() != retained or scene.read_bytes() != baseline:
+                raise RuntimeError('Read-only input reopen changed settings or authored scene')
         if args.module and not args.input_routing:
             expected = f'schema=1\nlibrary=Content/{filename}\n'
             if (root / '.nexora/gameplay-library.ini').read_text() != expected:

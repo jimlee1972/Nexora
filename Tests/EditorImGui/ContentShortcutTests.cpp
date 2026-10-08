@@ -341,6 +341,70 @@ void Navigation(float dpi, bool macos) {
   Require(browser.ProjectGeneration() == 10 && single(63),
           "new content generation retained old range anchor");
 }
+void FolderNavigation(float dpi, bool macos) {
+  Fixture f(dpi, macos);
+  auto &browser = f.content.Browser();
+  const auto revision = browser.Revision();
+  const auto current = [&] { return browser.Breadcrumbs().back().path; };
+  const auto enter_child = [&] {
+    // Reach the folder using real Tab events, without setting ImGui's navigation ID.
+    for (int i = 0; i < 160 && Access::ContentFocusedFolder(f.ui) != "Content/Child"; ++i)
+      f.Press(Key::Tab);
+    Require(Access::ContentFocusedFolder(f.ui) == "Content/Child",
+            "Tab could not focus the child folder");
+    f.Press(Key::Enter);
+    Require(current() == "Content/Child", "Enter did not open the focused folder");
+  };
+  enter_child();
+  f.Press(Key::UpArrow, Mod::Control);
+  f.Press(Key::UpArrow, Mod::Super);
+  Require(current() == "Content/Child", "unrelated modified Up changed folder");
+  f.Press(Key::UpArrow, Mod::Alt);
+  Require(current() == "Content", "Alt Up did not return to parent");
+  f.Press(Key::UpArrow, Mod::Alt);
+  Require(current() == "Content", "Alt Up escaped the Content root");
+  f.active = &f.observer;
+  f.FocusContent();
+  enter_child();
+  Require(browser.Revision() == revision && !f.content.CanUndo(),
+          "read-only folder traversal changed mutation history");
+  f.Focus(false);
+  f.Draw();
+  f.Press(Key::UpArrow, Mod::Alt);
+  Require(current() == "Content/Child", "blur admitted parent traversal");
+  f.Focus(true);
+  Access::FocusHierarchy(f.ui);
+  f.Draw();
+  f.Draw();
+  f.Press(Key::UpArrow, Mod::Alt);
+  Require(current() == "Content/Child", "another panel admitted parent traversal");
+  f.FocusContent();
+  f.Press(Key::UpArrow, Mod::Alt);
+  Require(current() == "Content", "read-only parent traversal failed");
+  enter_child();
+  const auto search = Access::ContentSearchPosition(f.ui);
+  Require(search.has_value(), "folder search field absent");
+  Nexora::Window::WindowEvent pointer, button;
+  pointer.type = Nexora::Window::WindowEventType::Pointer;
+  pointer.value0 = static_cast<int>((*search)[0] * dpi);
+  pointer.value1 = static_cast<int>((*search)[1] * dpi);
+  button.type = Nexora::Window::WindowEventType::PointerButton;
+  button.value0 = 0;
+  button.value1 = 1;
+  f.ui.ProcessEvents(std::array{pointer, button});
+  f.Draw();
+  button.value1 = 0;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  f.Press(Key::UpArrow, Mod::Alt);
+  Require(current() == "Content/Child", "search input admitted parent traversal");
+  f.Press(Key::Escape);
+  f.FocusContent();
+  f.ui.RequestCloseConfirmation();
+  f.Draw();
+  f.Press(Key::UpArrow, Mod::Alt);
+  Require(current() == "Content/Child", "blocking modal admitted parent traversal");
+}
 void ModelScale() {
   editor::ContentBrowserModel model;
   std::vector<editor::ContentItem> items;
@@ -390,6 +454,9 @@ int main() {
     Navigation(1, false);
     Navigation(2, false);
     Navigation(1, true);
+    FolderNavigation(1, false);
+    FolderNavigation(2, false);
+    FolderNavigation(1, true);
     {
       Fixture drag(2);
       Require(drag.content.Browser().Select(drag.matching.front()), "drag selection failed");
