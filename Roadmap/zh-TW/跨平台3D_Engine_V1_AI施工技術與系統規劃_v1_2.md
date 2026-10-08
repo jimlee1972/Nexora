@@ -1642,6 +1642,12 @@ Validate
 
 # V1 Asset Pipeline
 
+✅ Editor scalar `.nmaterial` source 現可 import／reimport 為有界 immutable typed asset，
+具 persistent UUID 與 last-good publication。這是 Editor pipeline 切片；material cooking、
+DDC／bundle production 與 shipping consumer 仍待完成。
+[Contract](ADR-0005-Editor-Scalar-PBR-Materials.md) ·
+[Linux 證據](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md)。
+
 ```text
 Source
 ↓
@@ -1928,6 +1934,12 @@ Budget
 ---
 
 # V1 Material / Shading
+
+✅ Editor Scene View 現以共享 Presentation pipeline 與 Renderer 產生的切線，
+使用匯入的 opaque PBR scalar 材質。測試涵蓋 Inspector UUID 指派、Undo／save／reopen
+與獨立 Vulkan reimport pixels；texture／shader 編輯、Game View 材質與完整 ED-M2 驗收仍待完成。
+[Contract](ADR-0005-Editor-Scalar-PBR-Materials.md) ·
+[Linux 證據](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md)。
 
 Shading Model：
 

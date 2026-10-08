@@ -105,3 +105,29 @@ add_executable(NexoraSceneRuntimeCaptureTests SceneRuntimeCaptureTests.cpp)
 target_link_libraries(NexoraSceneRuntimeCaptureTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraSceneRuntimeCaptureTests)
 add_test(NAME editor.scene_runtime_capture COMMAND NexoraSceneRuntimeCaptureTests)
+
+add_executable(NexoraMaterialImportTests MaterialImportTests.cpp)
+target_link_libraries(NexoraMaterialImportTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraMaterialImportTests)
+add_test(NAME editor.material_import COMMAND NexoraMaterialImportTests)
+
+if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND UNIX AND NOT APPLE)
+  find_package(X11 REQUIRED)
+  add_executable(NexoraMaterialSceneNativeTests MaterialSceneNativeTests.cpp)
+  target_include_directories(NexoraMaterialSceneNativeTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+  target_link_libraries(NexoraMaterialSceneNativeTests PRIVATE Nexora::Editor Nexora::EditorImGui Nexora::Presentation X11::X11)
+  nexora_apply_defaults(NexoraMaterialSceneNativeTests)
+  add_test(NAME editor.material_scene_native
+    COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+      --native-test "$<TARGET_FILE:NexoraMaterialSceneNativeTests>"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-material-scene-native")
+  set_tests_properties(editor.material_scene_native PROPERTIES LABELS "vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
+endif()
+
+if(NEXORA_ENABLE_WINDOW_PRESENTATION)
+add_executable(NexoraMaterialCatalogTests MaterialCatalogTests.cpp)
+target_include_directories(NexoraMaterialCatalogTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraMaterialCatalogTests PRIVATE Nexora::Editor Nexora::Presentation)
+nexora_apply_defaults(NexoraMaterialCatalogTests)
+add_test(NAME editor.material_catalog COMMAND NexoraMaterialCatalogTests)
+endif()

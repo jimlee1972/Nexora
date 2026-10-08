@@ -28,7 +28,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | --- | --- | :---: |
 | ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Linux virtual-display recovery now verifies SIGKILL with a durable seeded journal, unchanged committed workspace, writer-lease reacquisition, and keyboard-only Recover/Discard; physical-display Linux and Windows DPI/IME host evidence remain open; a bounded Windows/DX12 developer-host shell smoke is recorded. | [ ] |
 | ED-M1 project/assets | Portable create/open, schema upgrade, single-writer/read-only access, recent-project state, deterministic indexing/search, persistent sidecar UUIDs, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. The native shell exposes project status, provides a graphical create/open/recent selector, binds the real index to a graphical Content panel with recoverable project-local mutations, runs cancellable background import/reimport with bounded progress and structured diagnostics, shows dependency cycles, and presents blocking reload/keep/compare conflict UX; physical-display/Windows workflow acceptance remains open. | [ ] |
-| ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. The graphical Hierarchy now presents a parent-aware expandable tree, filtering, generation-keyed expansion/selection, clipped visible rows, undoable rename, sibling ordering, and cycle-safe reparenting while rejecting stale entity/document generations. A docked Inspector exposes generation-safe position, Euler degrees (quaternion storage), and scale editing for single and mixed-value multi-selection, with atomic Runtime validation and one-step undo. Full authored-mesh Scene View, the complete reflected Inspector, material shader workflows, camera authoring, and missing-plugin restoration remain open. Bounded read-only opaque component inspection and persistence are implemented. The native proxy preview already has Move, Rotate, and Scale handles. | [ ] |
+| ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. The graphical Hierarchy now presents a parent-aware expandable tree, filtering, generation-keyed expansion/selection, clipped visible rows, undoable rename, sibling ordering, and cycle-safe reparenting while rejecting stale entity/document generations. A docked Inspector exposes generation-safe position, Euler degrees (quaternion storage), and scale editing for single and mixed-value multi-selection, with atomic Runtime validation and one-step undo. Scalar opaque PBR material assets now import/reimport and support single-object Inspector assignment with persistent UUID references, Undo/save/reopen and real native Scene View palettes. Full authored-mesh Scene View, the complete reflected Inspector, complete material/shader workflows, camera authoring, and missing-plugin restoration remain open. Bounded read-only opaque component inspection and persistence are implemented. The native proxy preview already has Move, Rotate, and Scale handles. | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. The graphical Console shows bounded records and Editor diagnostics; a docked Game panel controls an isolated clone and copied inspection snapshot. Bounded native camera/OBJ Game View is implemented; complete materials/multiple canvases, complete gameplay services/expanded input, complete log routing, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
 | ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
@@ -229,6 +229,18 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Scalar opaque PBR `.nmaterial` assets now import/reimport as bounded immutable typed data,
+  with 64 KiB sources, 4096-asset/Content Undo budgets and canonical Renderer-schema validation.
+  Single-object Inspector assignment uses a versioned owning opaque UUID reference, one Undo and
+  save/reopen while preserving legacy shader IDs. Bounded reference inspection, cancellation,
+  stale/read-only/missing/unsupported guards, and actual 1x/2x dropdown clicks are covered.
+  Scene View submits deduplicated native PBR palettes with Renderer tangents; Vulkan pixels verify
+  independent materials, reimport color changes, rejected versions and Undo/reopen. Texture/shader
+  editing, Game View materials, persistent GPU caching and full ED-M2 acceptance remain open.
+  Contract: [ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md). Evidence:
+  [Linux acceptance](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md).
+  [Main integration gates](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/integration.md).
+
 - ✅ Reflected Inspector writes now prepare one owning, bounded `InspectorEditBatch` and invoke
   one transaction callback. Empty/duplicate/oversized targets, stale or ambiguous field metadata,
   read-only properties and nonfinite scalar values reject before mutation. The legacy per-entity
@@ -417,7 +429,8 @@ creates property widgets; unknown components retain raw data instead of being si
   tests cover range rollback, geometry/coordinate budgets, mirrored/rotated picking and silhouette
   misses; Xvfb distinct triangle/quad assets verify picking, Center scale/rotation, preview/release
   pixels, and one-step Undo. Missing/deleted/oversized assets retain references and warn while using
-  proxies. Persistent per-asset GPU caching, material shaders and full Scene View acceptance remain open.
+  proxies. Scalar opaque PBR assets are now supported ([ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md));
+  persistent per-asset GPU caching, complete texture/shader workflows and full Scene View acceptance remain open.
 
 - ✅ The Inspector now assigns imported OBJ mesh assets and removes MeshRenderer for single and
   mixed multi-selection as one atomic generation-safe Undo/Redo operation. Each entity retains its
@@ -567,7 +580,8 @@ creates property widgets; unknown components retain raw data instead of being si
   its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Proxy instances now show
   composed world rotation and scale; a conservative bound filters candidates before an exact
   rotated-box pick, including translation handles. Authored meshes now use exact sheared matrices;
-  material shaders remain open. Selected
+  scalar opaque PBR assets now execute in Scene View ([ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md)).
+  Complete texture/shader workflows remain open. Selected
   proxies show colored X/Y/Z translation handles in world or local space; Local axes uses
   the first selected node's world rotation, and picking a handle captures its axis for the drag. Dragging previews selected roots and descendants in world X/Z, along world Y with
   Shift-drag, or along the picked handle, then commits one undoable move on release. Escape cancels;

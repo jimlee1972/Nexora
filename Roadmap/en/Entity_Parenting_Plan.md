@@ -102,4 +102,5 @@ hierarchy. The owner asked to follow Unity/Unreal so users can transfer their ha
   Owning SceneDocument world/preview matrices match commit without touching selection or history.
   `runtime.entity_parenting` and `editor.affine_gizmo_contract` cover closed-form origins, world
   translation, Center rotation/scale, atomic Undo/Redo and save/reload. Native authored Scene/Game meshes now consume exact matrices for geometry and
-  Scene picking; materials, persistent GPU caching and graphical milestone acceptance remain open.
+  Scene picking. Scalar opaque Scene materials are supported ([ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md));
+  complete material workflows, persistent GPU caching and graphical milestone acceptance remain open.

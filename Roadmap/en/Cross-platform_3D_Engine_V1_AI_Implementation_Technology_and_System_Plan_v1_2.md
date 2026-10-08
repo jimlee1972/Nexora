@@ -1630,6 +1630,12 @@ Validate
 
 # V1 Asset Pipeline
 
+✅ Editor scalar `.nmaterial` sources now import/reimport to bounded immutable typed assets with
+persistent UUIDs and last-good publication. This is an Editor pipeline slice; material cooking,
+DDC/bundle production and shipping consumption remain open.
+[Contract](ADR-0005-Editor-Scalar-PBR-Materials.md) ·
+[Linux evidence](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md).
+
 ```text
 Source
 ↓
@@ -1916,6 +1922,13 @@ Do not impose a fixed global 256-variant hard limit.
 ---
 
 # V1 Material / Shading
+
+✅ Editor Scene View now consumes imported opaque PBR scalar materials through the shared
+Presentation pipeline and Renderer-generated tangents. Inspector UUID assignment, Undo/save/reopen
+and independent Vulkan reimport pixels are covered; texture/shader editing, Game View materials and
+full ED-M2 acceptance remain open.
+[Contract](ADR-0005-Editor-Scalar-PBR-Materials.md) ·
+[Linux evidence](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md).
 
 Shading Model:
 

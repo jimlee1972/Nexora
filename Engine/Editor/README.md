@@ -727,3 +727,32 @@ directories and aliases preserve unrelated data and the last-good destination th
 atomic replacement helper. Explicit valid saves may replace corrupt settings, while reads and
 ordinary shutdown never rewrite them. Settings are independent from scene content and journals;
 these additive APIs change no existing class layout, module dependencies or gameplay C ABI.
+
+## Scalar PBR material assets
+
+`.nmaterial` schema 1 imports opaque linear base color, metallic, roughness, occlusion and emission
+from bounded fixed-order tokens; see [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md)
+for the source grammar, numeric bounds and persistent UUID-reference bytes. Indexing and reimport
+own immutable `MaterialAsset` snapshots. Workers only stage; live publication rechecks source,
+project and dependency revisions. Cancellation, invalid/unsupported source and stale results keep
+the previous artifact. Content Undo retains the latest successful material reimport, just as it
+retains mesh reimports. Sources are limited to 64 KiB and workspaces to 4096 typed materials.
+
+`MaterialAssetCatalog` is externally serialized on the authoring thread and publishes atomically.
+Canonical scalar fields and their exact derived Renderer schema are validated together, rejecting
+unsupported shader/profile/features and contradictory reflected parameters. It borrows Content only
+for the call and returns owning snapshots; every lookup checks the current
+nonzero project generation. Import/catalog operations perform no native GPU work. Its direct
+Renderer dependency uses the shared material-validation policy; application drawing uses Renderer
+tangent generation and existing Presentation PBR bindings.
+
+`AssignMaterialAsset` requires one selected live Mesh Renderer, writable Content, an editable host,
+live entity/document/project generations and the same owning typed payload in catalog and Content.
+It commits one `SceneDocument::SetOpaqueComponent` Undo. Identical assignments preserve Redo.
+The Editor-owned `editor.material.asset` component stores a versioned UUID independently of the
+unchanged legacy shader ID; missing resources and unsupported component versions retain all bytes.
+Per-frame reference inspection copies only bounded opaque metadata prefixes and requires exact
+17-byte length/version, including when unrelated plugins retain large payloads. Unsupported
+versions/type-name collisions reject assignment. Scene container and stable C/Zig
+schemas stay unchanged. Multi-selection, reference removal, textures, shader graphs, Game View
+materials and the shipped-game/cook consumer remain separate work.
