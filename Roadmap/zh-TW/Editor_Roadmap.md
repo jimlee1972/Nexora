@@ -121,6 +121,13 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 ### ED-M1 — Project 與 Asset workspace
 
+- ✅ Content Up／Down 與 Home／End 導覽完整 matching asset rows，支援 held-key repeat、
+  endpoint clamp 及 clipper／scroll reveal。Shift 鍵盤與 pointer 選取共用 inclusive anchored
+  visible interval，保留 read-only 與既有 ownership gates。1x／2x 和 macOS modifier tests
+  涵蓋 range shrink／reverse、stale scope 與 Rename handoff；100k-row model coverage 保留
+  history，並拒絕 hidden endpoints。Folder traversal 與 accessibility acceptance 仍未完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM1-ContentNavigation-Linux-2026-10-08.md)。
+
 - ✅ Focused Content Ctrl／Cmd+A 選取完整 current-folder query／type 結果，包含 clipped row
   與 read-only inspection。無 modifier 的 Delete 使用一次可復原 source／sidecar batch，
   由一次 Content Undo 還原。1x／2x 測試涵蓋 text、panel／focus、drag 與 blocking-modal gates；

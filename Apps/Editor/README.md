@@ -580,3 +580,11 @@ with one Content Undo restoring sources, sidecars and selection. Prospective Sce
 are cancelled before deletion. Text inputs, another panel, focus loss, drags, context/rename/file/
 recovery/Play-review/close modals and Game capture block keyboard commands. Write controls, including
 context Delete/Reimport and Content Undo, also respect workspace write/modal gates.
+
+Content Up/Down and Home/End now select the current matching asset rows, repeat while held, clamp
+at either endpoint and scroll clipped targets into view. Shift navigation and Shift-click extend
+or shrink one inclusive anchored interval. These are selection-only, including read-only access;
+the same focus/text/drag/modal/Game-input gates apply. Cursor/anchor are owning UUID state checked
+against current visible membership and invalidated by scope changes. Keyboard Rename and batch
+Delete use that selection. Folder-row keyboard traversal and full accessibility acceptance remain
+open.

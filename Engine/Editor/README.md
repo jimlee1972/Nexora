@@ -122,6 +122,11 @@ into renderer or platform internals.
   reject duplicates/missing IDs before publication and compacts surviving items in one scan;
   ProjectContentSession resolves the complete source/sidecar move list through a frame-local UUID
   index, preserving request order and the existing rollback/Undo transaction.
+- `ContentBrowserModel::SelectVisibleRange` replaces selection with an inclusive current-folder
+  query/type interval, in either direction. Both UUID endpoints must belong to that visible row
+  set; hidden/missing endpoints preserve the previous selection. Linear scans build one owning
+  replacement set without per-row Find/Select calls. Revision, asset data and mutation Undo are
+  unchanged, and all borrowed row pointers remain local to the call.
 - `ProjectContentSession` owns the live browser model, dependency/conflict state, canonical project
   root, project generation, and one recoverable filesystem mutation. The application owns the
   session; UI code borrows it for a frame and never retains `ContentItem` pointers. Rename and move

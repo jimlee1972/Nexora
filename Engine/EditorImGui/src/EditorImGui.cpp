@@ -308,6 +308,9 @@ struct EditorImGuiHost::State final {
   std::array<char, 64> content_type{};
   std::array<char, 1024> content_rename{};
   std::optional<std::array<float, 2>> content_search_position;
+  std::optional<runtime::AssetUuid> content_navigation_cursor, content_navigation_anchor;
+  std::uint64_t content_navigation_generation{}, content_navigation_revision{};
+  std::filesystem::path content_navigation_root, content_navigation_folder;
   std::optional<runtime::AssetUuid> content_rename_target;
   std::uint64_t content_rename_generation{};
   std::filesystem::path content_rename_root, content_rename_path;
@@ -2828,14 +2831,78 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     static_cast<void>(content.Undo());
   ImGui::EndDisabled();
 
+  const auto folder =
+      browser.Breadcrumbs().empty() ? std::filesystem::path{} : browser.Breadcrumbs().back().path;
+  if (filter_changed || state.content_navigation_generation != browser.ProjectGeneration() ||
+      state.content_navigation_revision != browser.Revision() ||
+      state.content_navigation_root != content.Root() ||
+      state.content_navigation_folder != folder) {
+    state.content_navigation_cursor.reset();
+    state.content_navigation_anchor.reset();
+    state.content_navigation_generation = browser.ProjectGeneration();
+    state.content_navigation_revision = browser.Revision();
+    state.content_navigation_root = content.Root();
+    state.content_navigation_folder = folder;
+  }
   const bool keyboard =
       selection_commands_allowed && !state.content_rename_target &&
       ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
       !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive() && !ImGui::GetDragDropPayload() &&
       !ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
       !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
-  if (keyboard && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_A, ImGuiInputFlags_RouteFocused))
+  std::optional<std::size_t> reveal_row;
+  std::optional<runtime::AssetUuid> reveal_asset;
+  if (keyboard && !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && !ImGui::GetIO().KeySuper) {
+    const auto pressed = [&](ImGuiKey key) {
+      constexpr auto flags = ImGuiInputFlags_RouteFocused | ImGuiInputFlags_Repeat;
+      // Register both routes before a modifier transition, so the first Shift press is owned.
+      const bool plain = ImGui::Shortcut(key, flags);
+      const bool extend = ImGui::Shortcut(ImGuiMod_Shift | key, flags);
+      return plain || extend;
+    };
+    const bool first = pressed(ImGuiKey_Home), last = pressed(ImGuiKey_End);
+    const bool previous = pressed(ImGuiKey_UpArrow), next = pressed(ImGuiKey_DownArrow);
+    if (first || last || previous || next) {
+      const auto rows = browser.Visible(0, browser.Items().size());
+      if (!rows.empty()) {
+        auto cursor = rows.end();
+        if (state.content_navigation_cursor && browser.IsSelected(*state.content_navigation_cursor))
+          cursor = std::ranges::find(rows, *state.content_navigation_cursor,
+                                     [](const ContentItem *item) { return item->id; });
+        if (cursor == rows.end())
+          cursor = std::ranges::find_if(
+              rows, [&](const ContentItem *item) { return browser.IsSelected(item->id); });
+        auto index = cursor == rows.end() ? (previous || last ? rows.size() - 1 : 0)
+                                          : static_cast<std::size_t>(cursor - rows.begin());
+        if (first)
+          index = 0;
+        else if (last)
+          index = rows.size() - 1;
+        else if (cursor != rows.end())
+          index = previous ? (index == 0 ? 0 : index - 1) : std::min(index + 1, rows.size() - 1);
+        const auto target = rows[index]->id;
+        if (ImGui::GetIO().KeyShift) {
+          auto anchor = state.content_navigation_anchor;
+          if (!anchor || !browser.SelectVisibleRange(*anchor, target)) {
+            anchor = cursor == rows.end() ? target : (*cursor)->id;
+            static_cast<void>(browser.SelectVisibleRange(*anchor, target));
+          }
+          state.content_navigation_anchor = anchor;
+        } else {
+          static_cast<void>(browser.Select(target));
+          state.content_navigation_anchor = target;
+        }
+        state.content_navigation_cursor = target;
+        reveal_row = index;
+        reveal_asset = target;
+      }
+    }
+  }
+  if (keyboard && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_A, ImGuiInputFlags_RouteFocused)) {
     browser.SelectVisible();
+    state.content_navigation_cursor.reset();
+    state.content_navigation_anchor.reset();
+  }
   std::vector<runtime::AssetUuid> delete_assets;
   if (keyboard && commands_allowed && content.Writable() && !ImGui::GetIO().KeyCtrl &&
       !ImGui::GetIO().KeyShift && !ImGui::GetIO().KeyAlt && !ImGui::GetIO().KeySuper &&
@@ -2930,6 +2997,8 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   ImGuiListClipper clipper;
   clipper.Begin(static_cast<int>(std::min<std::size_t>(
       visible_count, static_cast<std::size_t>(std::numeric_limits<int>::max()))));
+  if (reveal_row && *reveal_row < static_cast<std::size_t>(std::numeric_limits<int>::max()))
+    clipper.IncludeItemByIndex(static_cast<int>(*reveal_row));
   while (clipper.Step()) {
     const auto visible =
         browser.Visible(static_cast<std::size_t>(clipper.DisplayStart),
@@ -2939,10 +3008,17 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
                          PathLabel(item->path.filename()) + "##" + item->id.ToString();
       if (ImGui::Selectable(label.c_str(), browser.IsSelected(item->id),
                             ImGuiSelectableFlags_AllowDoubleClick)) {
-        if (ImGui::GetIO().KeyCtrl)
+        if (ImGui::GetIO().KeyShift && state.content_navigation_anchor &&
+            browser.SelectVisibleRange(*state.content_navigation_anchor, item->id)) {
+          // Keep the original anchor when extending or shrinking the visible interval.
+        } else if (ImGui::GetIO().KeyCtrl) {
           static_cast<void>(browser.Toggle(item->id));
-        else
+          state.content_navigation_anchor = item->id;
+        } else {
           static_cast<void>(browser.Select(item->id));
+          state.content_navigation_anchor = item->id;
+        }
+        state.content_navigation_cursor = item->id;
         if (scene_openable && item->type == ".scene" && item->path.extension() == ".scene" &&
             ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
           BeginContentScene(state, *scene, item->path);
@@ -2950,6 +3026,8 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       const auto asset_min = ImGui::GetItemRectMin(), asset_max = ImGui::GetItemRectMax();
       state.content_asset_positions.push_back(
           {item->id, {(asset_min.x + asset_max.x) * 0.5F, (asset_min.y + asset_max.y) * 0.5F}});
+      if (reveal_asset == item->id)
+        ImGui::SetScrollHereY(0.5F);
       if (ImGui::BeginDragDropSource()) {
         const AssetDragData payload{browser.ProjectGeneration(), item->id};
         ImGui::SetDragDropPayload(AssetDragPayload::kType.data(), &payload, sizeof(payload),
