@@ -8,26 +8,43 @@ secrets, personal private information, or private notes.
 
 ## Start and synchronize
 
-In a fresh clone, run `bd bootstrap` to adopt the existing remote database.
-Do not replace shared history with a new database.
+Keep the Beads database outside the repository, using one writable path per task.
+Record the paths in an external environment file and source that same file for every
+`bd` command in that task.
 
-At the start of every task, run `bd prime`. Before reading the task graph, run
-`bd dolt pull`, then use `bd ready`, `bd list`, or `bd show <id>`.
+At the start of a task, run `bd dolt pull` before reading Beads context. If it reports
+that the local database is missing, this applies to any checkout, including existing
+clones after the first install:
 
-After changing tasks, dependencies, or shared memory, run `bd dolt push`.
-If synchronization fails, report the exact error; do not force or change remotes.
+1. Confirm `git ls-remote --exit-code origin refs/dolt/data` returns the existing ref.
+2. Run `bd bootstrap --dry-run` and verify it adopts the existing database from this
+   GitHub origin; stop if the ref is missing or the plan would create a new database.
+3. Run `bd bootstrap --yes`, then `bd dolt pull`.
+
+Never use `bd init`, `bd init --force`, or another database to recover missing
+shared history. If pull or bootstrap fails for another reason, stop and report the
+error rather than replacing data.
+
+After pull/bootstrap succeeds, run `bd prime` and read its complete output. Before
+later task-graph reads, run `bd dolt pull` again. After changing tasks, dependencies,
+or shared memory, run `bd dolt push`. If synchronization fails, report the exact
+error and preserve local changes for recovery.
 
 ## Local runtime configuration
 
-`DOLT_ROOT_PATH` must point to a writable per-task directory outside the repository.
+`DOLT_ROOT_PATH` and `BEADS_DIR` must point to writable per-task paths outside the
+repository. Keep those paths local to the task. Track configuration and integration
+files only; embedded databases, runtime state, and optional JSONL exports are not
+Git deliverables.
 
-Keep this environment setting local. Track configuration and integration files only;
-embedded databases, runtime state, and optional JSONL exports are not Git deliverables.
+The project uses the Beads skill and explicit task instructions for Codex context.
+Native Codex lifecycle hooks are intentionally not installed: they cannot reliably
+share the task-specific external database paths used by this workflow.
 
 ## Validation
 
 ```bash
-bd setup codex --check
+bd --version
 bd dolt remote list
 bd doctor --check=artifacts
 bd doctor --check=conventions
