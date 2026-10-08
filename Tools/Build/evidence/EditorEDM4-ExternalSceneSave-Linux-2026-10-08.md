@@ -58,8 +58,8 @@ ctest --preset linux-development
 - Existing native Linux scene-file/restart workflow: **37.53 s**, passed; display acceptance:
   **19.57 s**, passed; native Scene preview: **27.96 s**, passed.
 - Touched C++ files formatted with the repository clang-format policy; `git diff --check` passed.
-- No module dependency/linkage boundary change. Shipping was not required for this Editor-only
-  source change. C++ Editor/EditorImGui clients must rebuild for added confirmation arguments,
+- Existing module dependencies remain unchanged. The added public Editor/EditorImGui APIs
+  require the Shipping gate, supplied in the supplemental section below. Clients must rebuild for confirmation arguments,
   result/request fields and session ownership state; stable C/Zig and scene wire formats are unchanged.
 - Repository-root README remains unchanged; synchronized English/Traditional Chinese roadmap
   supporting bullets preserve the unchecked full milestone.
@@ -96,9 +96,8 @@ ctest --preset linux-development
 
 External logs retain the original integration result, isolated retry and final complete run separately
 as `external-scene-integrated-tests.log`, `external-scene-integrated-native-preview-retry.log`, and
-`external-scene-integrated-tests-final.log`. Final formatting and `git diff --check` passed. No new
-linkage boundary was introduced; the upstream memory change's Shipping validation remains recorded
-in its own evidence. Repository-root README stays unchanged relative to the integrated main base.
+`external-scene-integrated-tests-final.log`. Final formatting and `git diff --check` passed. Public API Shipping validation is
+recorded below; the upstream memory change has separate validation in its own evidence. Repository-root README stays unchanged relative to the integrated main base.
 
 ## Windows CI portability correction and final integration
 
@@ -135,8 +134,8 @@ ctest --preset linux-development
 - Separate external logs: `external-scene-windows-fix-configure.log`,
   `external-scene-windows-fix-build.log`, `external-scene-windows-fix-focused.log`, and
   `external-scene-windows-fix-tests.log`.
-- Touched C++ formatting and `git diff --check` passed. No linkage boundary changed; Shipping is
-  unchanged. Both roadmap supporting bullets still link to this evidence and full ED-M4 stays open.
+- Touched C++ formatting and `git diff --check` passed. Supplemental public API Shipping
+  validation is recorded below. Both roadmap supporting bullets still link to this evidence and full ED-M4 stays open.
 
 This correction was validated locally on Linux. Windows validation of the corrected source must
 come from the subsequent GitHub CI run; no local Windows pass is claimed.
@@ -170,6 +169,13 @@ Slang ON: configure and **196-step build passed**; focused **3/3 passed**, zero 
 complete serialized Linux gate **144/144 passed** on its first run, zero skips, **209.93 s**.
 Native scene files passed **37.71 s**, display acceptance **20.12 s**, and Scene preview **27.80 s**.
 External logs: `external-scene-baseline-fix-{configure,build,focused,tests}.log`. C++ formatting and
-`git diff --check` passed. No linkage boundary or wire format changed; Shipping was not required.
+`git diff --check` passed. Scene wire formats remain unchanged; the added public Save overload
+requires the supplemental Shipping gate below.
 The existing bilingual roadmap supporting bullets link here and full ED-M4 remains open. Corrected
 Windows acceptance still comes from subsequent CI, not local execution.
+
+## Supplemental public API Shipping gate
+
+Added public out-of-line Editor/EditorImGui APIs, including `Save(path, written_bytes)`, require the repository's linkage gate. Earlier statements that Shipping was not required have been corrected. With final tested source head `1a39a5114d89c4967ce862c1043b9c1e062900ce`, `cmake --preset linux-shipping` and `cmake --build --preset linux-shipping` passed the **72-step Monolithic Minimal build**. The preset strips Editor/SDK; it validates the required Shipping configuration, not Editor API runtime coverage. The full GUI/Slang 144/144 gate above supplies that separate local Editor coverage.
+
+Configure reuses the external Vulkan header cache with `-DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/Nexora/build/linux-development/_deps/nexora_vulkan_headers-src`. Logs: `/tmp/nexora-ed-beads-p1p7a0jw/external-scene-shipping-{configure,build}.log`. This documentation correction does not change product source, tests, thresholds or the prior source hashes. Current main8c4 was checked with `git merge-tree` and admits this head without source conflicts; it was not merged into the locally tested source.
