@@ -121,6 +121,13 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
 ### ED-M1 — Project and asset workspace
 
+- ✅ Content Up/Down and Home/End navigate the complete matching asset rows with held-key repeat,
+  clamped endpoints and clipper/scroll reveal. Shift keyboard and pointer selection share an
+  inclusive anchored visible interval; read-only and existing ownership gates apply. 1x/2x and
+  macOS modifier tests cover range shrink/reversal, stale scope and Rename handoff; 100k-row model
+  coverage preserves history and rejects hidden endpoints. Folder traversal and accessibility
+  acceptance remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM1-ContentNavigation-Linux-2026-10-08.md).
+
 - ✅ Focused Content Ctrl/Cmd+A selects the entire current-folder query/type result, including
   clipped rows and read-only inspection. Unmodified Delete uses one recoverable source/sidecar
   batch with one Content Undo. Text, panel/focus, drag and blocking-modal gates are tested at
@@ -568,6 +575,13 @@ creates property widgets; unknown components retain raw data instead of being si
   select/edit/undo/save/restart acceptance and visual evidence.
 
 - **ED-M3 — PIE/debugging:** Game View, play/pause/step, fixed ticks, input focus, isolated worlds, apply policy, Console, runtime inspection, debugger boundary. The engine loads Zig gameplay; the Editor is not Zig `main`.
+  - ✅ Stopped Game input bindings now edit two finite keyboard/mouse slots per movement/button
+    action and atomically apply a validated session profile. Duplicate/unknown/mouse-axis candidates
+    reject; None unbinds. Cancel/Reset/read-only/project scope and modal/focus/Play gates have real
+    1x/2x and macOS input coverage. Replacement clears held input; deferred batches and copied
+    gameplay callbacks use the selected mapping without changing the C ABI. Profile persistence,
+    expanded devices/users and physical-host acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameInputBindings-Linux-2026-10-08.md).
   - ✅ Portable `PlaySession` prerequisite covers isolated Play World ownership, fixed tick,
     play/pause/step, input-focus policy, discard-by-default, and explicit transform apply-back.
   - ✅ Portable debugging prerequisite adds structured bounded Console records, owning runtime
@@ -608,7 +622,7 @@ creates property widgets; unknown components retain raw data instead of being si
     hidden Game, Pause/Stop, prompts, and native blur clear capture and held state. Captured keys
     cannot trigger authoring shortcuts; F5/F6/F10 remain controls. Tests cover state transitions,
     owning snapshots, callback delivery, and native Xvfb input-only mesh movement/release.
-    Gamepad, pointer look, rebinding, and multiple users remain open.
+    Gamepad, pointer look, persistent/device-specific rebinding and multiple users remain open.
   - ✅ Selecting a Game entity now opens a read-only Play Inspector with copied local/world poses,
     parent and scene state, Camera/Light values, and full-width mesh/shader IDs. The Game panel shows
     pause reasons and callback failure counts; per-frame and fixed callback failures both release input.

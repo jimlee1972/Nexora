@@ -122,6 +122,11 @@ into renderer or platform internals.
   reject duplicates/missing IDs before publication and compacts surviving items in one scan;
   ProjectContentSession resolves the complete source/sidecar move list through a frame-local UUID
   index, preserving request order and the existing rollback/Undo transaction.
+- `ContentBrowserModel::SelectVisibleRange` replaces selection with an inclusive current-folder
+  query/type interval, in either direction. Both UUID endpoints must belong to that visible row
+  set; hidden/missing endpoints preserve the previous selection. Linear scans build one owning
+  replacement set without per-row Find/Select calls. Revision, asset data and mutation Undo are
+  unchanged, and all borrowed row pointers remain local to the call.
 - `ProjectContentSession` owns the live browser model, dependency/conflict state, canonical project
   root, project generation, and one recoverable filesystem mutation. The application owns the
   session; UI code borrows it for a frame and never retains `ContentItem` pointers. Rename and move
@@ -635,3 +640,13 @@ directories and valid/dangling leaf symlinks. Only verified absence permits exis
 authoring/export/shutdown actions. Recovery rejects unsafe inputs without mutation. Explicit writer
 discard removes one directory entry (never recursively); alias targets remain untouched, and a
 nonempty directory remains pending after discard fails. Read-only observers cannot discard.
+
+## Play input binding values
+
+`PlayInputBindings` is an owning, fixed-size platform-neutral profile for four movement directions
+and five copied button bits, with two control slots per action. Its finite control set covers
+letters, arrows, Space, left/right Shift/Ctrl and left/right mouse; None unbinds a slot. Validation
+rejects unknown controls, duplicate concrete controls (including within one action) and mouse
+movement bindings. None may repeat and actions may be fully unbound. The value type depends on no
+Window/native key codes and changes no gameplay C ABI. Host policy owns editing, project scope,
+lifetime and publication; this value type performs no persistence or transmission.

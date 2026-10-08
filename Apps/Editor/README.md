@@ -376,7 +376,7 @@ recovery/close prompts, and window blur release it and clear held controls. F5/F
 controls; other captured keys/text do not reach authoring shortcuts. The initial user-zero input
 snapshot maps WASD/arrows to movement axes and Space/left mouse/right mouse/Shift/Ctrl to button
 bits 1/2/4/8/16, with one frame sequence and no borrowed input data. Gamepad, pointer motion/look,
-rebinding, multiple users, and module hot reload remain open.
+persistent/device-specific rebinding, multiple users, and module hot reload remain open.
 
 Play inspection uses one owning Runtime snapshot per UI frame. Selecting a Game entity switches
 Inspector to read-only Play mode: local/world transforms, parent/scene state, Camera/Light payloads,
@@ -580,3 +580,29 @@ with one Content Undo restoring sources, sidecars and selection. Prospective Sce
 are cancelled before deletion. Text inputs, another panel, focus loss, drags, context/rename/file/
 recovery/Play-review/close modals and Game capture block keyboard commands. Write controls, including
 context Delete/Reimport and Content Undo, also respect workspace write/modal gates.
+
+Content Up/Down and Home/End now select the current matching asset rows, repeat while held, clamp
+at either endpoint and scroll clipped targets into view. Shift navigation and Shift-click extend
+or shrink one inclusive anchored interval. These are selection-only, including read-only access;
+the same focus/text/drag/modal/Game-input gates apply. Cursor/anchor are owning UUID state checked
+against current visible membership and invalidated by scope changes. Keyboard Rename and batch
+Delete use that selection. Folder-row keyboard traversal and full accessibility acceptance remain
+open.
+
+## Session Play input rebinding
+
+The stopped Game panel now edits two control slots for each of four movement directions and five
+button actions. Apply publishes one validated session profile; duplicate controls reject the
+complete candidate, None unbinds actions, and Cancel/Reset preserve the applied profile until
+explicit Apply. Read-only inspection permits these settings. Switching/detaching projects resets
+them; new Play sessions within the same project retain them. The finite keyboard/mouse control
+set excludes the reserved Escape/F5/F6/F10 Editor controls.
+
+`ForwardPlayInput` sends the copied profile through `PlayGameplayModule` before processing every
+native input batch, including deferred rendering. `PlayInputState` translates platform-independent
+Window keys/buttons to profile controls and publishes the same user-zero `NexoraInputSnapshot`
+wire shape. Successful replacement clears held keys/buttons and output, then discards one acquired
+batch while focused; an unchanged profile preserves held input, and invalid profiles preserve the
+last-good mapping/output. Sequence remains monotonic and reserved remains zero. Module callbacks
+observe one copied frame, including release events without a GUI frame. The UI never writes a
+profile file; project/device persistence, gamepad, pointer look and multiple users remain open.

@@ -69,6 +69,54 @@ int main() {
     Require(input.Snapshot().buttons == 0 && input.Snapshot().move_x == 0,
             "pause/hide retained pressed keys");
 
+    PlayInputBindings bindings;
+    using Control = PlayInputControl;
+    bindings.controls[0] = {Control::J, Control::Left};
+    bindings.controls[1] = {Control::I, Control::Right};
+    bindings.controls[2] = {Control::K, Control::Up};
+    bindings.controls[3] = {Control::L, Control::Down};
+    bindings.controls[4] = {Control::B, Control::None};
+    bindings.controls[5] = {Control::C, Control::None};
+    bindings.controls[6] = {Control::MouseLeft, Control::MouseRight};
+    Require(bindings.Valid() && input.SetBindings(bindings), "custom profile rejected");
+    input.SetFocused(true);
+    input.Process({});
+    const std::array rebound{KeyEvent(Key::I, true), KeyEvent(Key::K, true), KeyEvent(Key::B, true),
+                             KeyEvent(Key::C, true), Mouse(0, true)};
+    input.Process(rebound);
+    Require(input.Snapshot().move_x == 1 && input.Snapshot().move_y == 1 &&
+                input.Snapshot().buttons == 7,
+            "rebound keyboard/mouse mapping failed");
+    auto invalid = bindings;
+    invalid.controls[2][0] = Control::I;
+    Require(!invalid.Valid() && !input.SetBindings(invalid) && input.Snapshot().buttons == 7,
+            "duplicate candidate changed held input");
+    invalid = bindings;
+    invalid.controls[0][0] = Control::MouseLeft;
+    Require(!input.SetBindings(invalid), "mouse movement binding admitted");
+    invalid.controls[0][0] = static_cast<Control>(255);
+    Require(!input.SetBindings(invalid), "out-of-range control admitted");
+    const auto custom_copy = input.Snapshot();
+    Require(input.SetBindings({}) && input.Snapshot().buttons == 0 &&
+                input.Snapshot().move_x == 0 && custom_copy.buttons == 7,
+            "binding replacement retained held input or changed owning snapshot");
+    input.Process(held);
+    Require(input.Snapshot().buttons == 0, "replacement did not discard acquisition batch");
+    input.Process(held);
+    Require(input.Snapshot().buttons == 3 && input.Snapshot().move_x == 1,
+            "default mapping did not resume after replacement");
+    Require(input.SetBindings({}), "unchanged mapping rejected");
+    input.Process({});
+    Require(input.Snapshot().buttons == 3, "unchanged mapping cleared held input");
+    PlayInputBindings unbound;
+    for (std::size_t index = 4; index < unbound.controls.size(); ++index)
+      unbound.controls[index] = {Control::None, Control::None};
+    Require(input.SetBindings(unbound), "unbound buttons rejected");
+    input.Process({});
+    input.Process(held);
+    Require(input.Snapshot().buttons == 0 && input.Snapshot().move_x == 1,
+            "unbound buttons still fired or changed movement mapping");
+
     runtime::World world;
     const auto scene = world.LoadScene("Game input");
     Require(world.Activate(scene), "activate failed");

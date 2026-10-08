@@ -58,6 +58,9 @@ public:
   // Replace selection with all matching current-folder rows, including clipped rows.
   // Selection-only: preserves content revision and mutation Undo state.
   void SelectVisible();
+  // Replace selection with the inclusive visible-row interval. Invalid/hidden endpoints
+  // preserve selection and history; reverse intervals are supported.
+  bool SelectVisibleRange(runtime::AssetUuid first, runtime::AssetUuid last);
   void ClearSelection() noexcept { selection_.clear(); }
   [[nodiscard]] bool IsSelected(runtime::AssetUuid id) const;
   [[nodiscard]] std::vector<runtime::AssetUuid> Selection() const;

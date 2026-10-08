@@ -121,6 +121,21 @@ void ContentBrowserModel::SelectVisible() {
       selected.insert(item.id);
   selection_ = std::move(selected);
 }
+bool ContentBrowserModel::SelectVisibleRange(runtime::AssetUuid first, runtime::AssetUuid last) {
+  const auto visible = Visible(0, items_.size());
+  auto begin = std::ranges::find(visible, first, [](const ContentItem *item) { return item->id; });
+  auto end = std::ranges::find(visible, last, [](const ContentItem *item) { return item->id; });
+  if (begin == visible.end() || end == visible.end())
+    return false;
+  if (begin > end)
+    std::swap(begin, end);
+  std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> selected;
+  selected.reserve(static_cast<std::size_t>(end - begin) + 1);
+  for (auto row = begin; row != end + 1; ++row)
+    selected.insert((*row)->id);
+  selection_ = std::move(selected);
+  return true;
+}
 std::vector<const ContentItem *> ContentBrowserModel::Visible(std::size_t offset,
                                                               std::size_t count) const {
   std::vector<const ContentItem *> matches;

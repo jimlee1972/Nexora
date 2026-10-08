@@ -8,9 +8,11 @@ namespace nexora::editor::preview {
 // needed to revoke capture or release held controls; native client-pixel coordinates stay intact.
 inline void ForwardPlayInput(runtime::PlaySession &play, PlayGameplayModule &gameplay,
                              bool canvas_focused,
-                             std::span<const Nexora::Window::WindowEvent> events) {
+                             std::span<const Nexora::Window::WindowEvent> events,
+                             const PlayInputBindings &bindings = {}) {
   play.SetInputFocus(canvas_focused && play.State() == runtime::PlayState::Playing);
   gameplay.SetInputFocus(play.AcceptsInput());
+  static_cast<void>(gameplay.SetInputBindings(bindings));
   gameplay.ProcessInput(events);
 }
 } // namespace nexora::editor::preview
