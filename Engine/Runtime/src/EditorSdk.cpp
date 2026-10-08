@@ -2,6 +2,8 @@
 
 #include "Nexora/Foundation/PluginAbi.h"
 
+#include "RuntimeConsoleAdmission.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -663,17 +665,8 @@ void SceneEditor::ClearUndo() noexcept {
 
 bool RuntimeConsole::Push(RuntimeLogRecord record) {
   std::scoped_lock lock(mutex_);
-  if (capacity_ == 0) {
-    ++dropped_;
-    return false;
-  }
-  record.sequence = next_sequence_++;
-  if (records_.size() == capacity_) {
-    records_.erase(records_.begin());
-    ++dropped_;
-  }
-  records_.push_back(std::move(record));
-  return true;
+  return detail::PushConsoleRecord(std::move(record), capacity_, records_, next_sequence_,
+                                   dropped_);
 }
 
 std::vector<RuntimeLogRecord> RuntimeConsole::Snapshot() const {
