@@ -66,3 +66,35 @@ ctest --preset linux-development
 This is an operation-time revision check, not a filesystem lock or a guarantee against a concurrent
 external change between comparison and replacement. Physical desktop crash drills, Windows/macOS
 host acceptance, full semantic diff/merge/source-control UI, and whole ED-M4 acceptance did not run.
+
+## Integration with merged process-memory support
+
+The reviewed feature commit `c9059bce4ffe024feddcc71f8b0ee38f7c286baa` was merged with remote main
+`b966f895a30cf71485051edaad9fb80faa68c14f` using a normal merge, preserving both histories. Integration
+merge commit: `2a50ede18de5f446fc0bf056613f7c089c1f1130`. No conflicts occurred. The existing atomic
+Inspector and process-memory Core/Profile/UI targets and application RSS sampling remain intact,
+alongside the external-save test and owning retry composition. SceneFiles, the retry helper and
+external-save/input test sources are unchanged from the reviewed feature commit.
+
+The final integrated configure and 199-step build passed with graphical shell ON and Slang ON.
+The first integrated full run reported **142/143 passed**, zero skips, **215.13 s**, with one existing
+native Scene preview failure: Z-axis drag did not move the object, and the cached handle coordinate
+differed from the subsequently visible handles. Other worktree validation/build activity was present;
+that observation does not establish the failure's cause. The original failure log was retained.
+No source, test, timing or acceptance threshold was changed. The failing native preview then passed
+in isolation (**1/1**, **28.71 s**). Following coordination to finish other worktree suites and pause
+heavy builds, the complete final integrated gate passed **143/143**, zero skips, **209.94 s**;
+native Scene preview passed **27.82 s** in that full run.
+
+```sh
+cmake --preset linux-development
+cmake --build --preset linux-development -j 4
+ctest --preset linux-development -R '^editor.linux_native_scene_preview$'
+ctest --preset linux-development
+```
+
+External logs retain the original integration result, isolated retry and final complete run separately
+as `external-scene-integrated-tests.log`, `external-scene-integrated-native-preview-retry.log`, and
+`external-scene-integrated-tests-final.log`. Final formatting and `git diff --check` passed. No new
+linkage boundary was introduced; the upstream memory change's Shipping validation remains recorded
+in its own evidence. Repository-root README stays unchanged relative to the integrated main base.
