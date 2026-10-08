@@ -86,6 +86,5 @@ bd prime                # Refresh Beads context
   or replace shared history. If pull or push fails, report the error; do not force or change remotes.
 - Track configuration and integration files only. Never commit embedded Dolt databases,
   runtime data, or machine-specific settings.
-- In this cloud environment, the home directory is read-only. Set `DOLT_ROOT_PATH` to a writable
-  directory outside the repository, for example `/workspace/work/nexora-dolt`, and create it
-  before running database commands. Keep this setting local to the session.
+- Set `DOLT_ROOT_PATH` to a writable per-task directory outside the repository.
+  Keep this setting local to the session.

@@ -63,5 +63,4 @@ Windows / macOS / Android / iOS 的 preset 在雲端跑不了（缺 MSVC、Xcode
 本 GitHub repo 是 public，推送到 `refs/dolt/data` 的 Beads 任務與共享記憶也會公開；
 不可放 secrets、個人私密資訊或私下筆記。同步失敗時回報錯誤，不得 force 或更換遠端。
 只提交設定與整合檔案，不提交 embedded Dolt database、runtime data 或機器設定。
-此 cloud environment 的 home 為唯讀；資料庫命令需將 `DOLT_ROOT_PATH` 設為 repo 外可寫目錄
-（例如 `/workspace/work/nexora-dolt`）並先建立該目錄，設定僅保留在本次 session。
+`DOLT_ROOT_PATH` 必須指向 repo 外、每個 task 各自使用的可寫目錄；設定僅保留在本次 session。
