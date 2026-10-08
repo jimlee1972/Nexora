@@ -229,6 +229,16 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Reflected Inspector writes now prepare one owning, bounded `InspectorEditBatch` and invoke
+  one transaction callback. Empty/duplicate/oversized targets, stale or ambiguous field metadata,
+  read-only properties and nonfinite scalar values reject before mutation. The legacy per-entity
+  callback accepts only one target; multi-selection uses `ApplyBatch`, with live generation,
+  permission and value-type validation owned by the authoring transaction. A real `SceneDocument`
+  test covers one-step multi-target Undo/Redo, failed later-target rejection with Redo preservation,
+  opaque-data retention and the 100k-target boundary. Complete reflected widgets, plugin restoration
+  and ED-M2 target-host acceptance remain open. Evidence:
+  [`EditorEDM2-InspectorAtomicBatch-2026-10-08.md`](../../Tools/Build/evidence/EditorEDM2-InspectorAtomicBatch-2026-10-08.md).
+
 - ✅ Hierarchy Up/Down and Home/End navigate all visible tree/filter rows with repeat, clamped
   endpoints, Shift anchored ranges and clipper reveal. Plain Right expands/enters children;
   Left collapses/returns to the visible parent. Read-only inspection preserves World/history;

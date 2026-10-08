@@ -1582,12 +1582,14 @@ int Run() {
                                       });
   Require(properties.size() == 1 && properties.front().mixed && !properties.front().value,
           "mixed-value inspector state was not represented explicitly");
-  Require(inspector.Apply(inspect_entities, properties.front(), editor::InspectorValue{3.0},
-                          [&](runtime::Id entity, runtime::TypeId, std::string_view,
-                              const editor::InspectorValue &value) {
-                            inspector_values[entity] = value;
-                            return true;
-                          }) &&
+  Require(inspector.ApplyBatch(inspect_entities, properties.front(), editor::InspectorValue{3.0},
+                               [&](const editor::InspectorEditBatch &edit) {
+                                 auto staged = inspector_values;
+                                 for (const auto entity : edit.entities)
+                                   staged.at(entity) = edit.value;
+                                 inspector_values = std::move(staged);
+                                 return true;
+                               }) &&
               inspector_values[parent] == editor::InspectorValue{3.0} &&
               inspector_values[child] == editor::InspectorValue{3.0},
           "multi-selection inspector edit failed");

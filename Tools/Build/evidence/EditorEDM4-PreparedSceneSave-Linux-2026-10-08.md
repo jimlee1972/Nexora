@@ -52,3 +52,12 @@ changed, so Shipping was not required; root README is unchanged.
 This is save-all staging groundwork. It does not provide coordinated multi-file publication,
 crash recovery for a group of files, fsync durability, additive tabs or full ED-M4 acceptance.
 Physical desktop and Windows/macOS/mobile acceptance were not run here.
+
+## Integration with merged Inspector prerequisite
+
+After PR #440 merged, this branch integrated main
+`06b11369daf2f9d0da86098df5343f8e00e122cf`. Both prepared-save and Inspector atomic-batch test
+registrations were retained when resolving the CMake conflict. The full preset configure, build
+(`-j 2`) and CTest gate ran again: **85/85 passed, zero skipped**, **29.84 seconds**.
+The same graphical OFF / Slang OFF settings apply and the prepared-save source hashes above
+remain unchanged.
