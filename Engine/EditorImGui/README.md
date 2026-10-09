@@ -33,6 +33,9 @@ production retains ImGui's native platform defaults.
   all named memberships/roles and active selection, and preserves invalid metadata/source versions.
   Metadata is saved after Play/export shutdown, with exact source/metadata baseline checks; unnamed
   or unresolved sets preserve the previous saved composition and report the reason.
+  A composition record starts when multiple documents coexist. Once present it also remembers a
+  later single-document set. Ordinary single-scene sessions retain the legacy startup/fallback
+  contract; bootstrap still validates legacy settings so later Open can remember its destination.
 - `EditorImGuiHost` owns one ImGui context and destroys it with the host.
   State ownership also releases the previous context on move assignment, clearing backend/IME
   borrows before destruction and preserving another current context. Move between frames;
@@ -812,7 +815,8 @@ Inspector drafts. File modals block authoring, clipboard/history, Play commands,
 Project/document token changes cancel both pending dialogs and emitted requests. Read-only projects
 permit Open but disable New/Save/Save As; running Play disables New/Open. Recovery/close/apply dialogs
 block new file actions. The application independently rechecks policy and token before I/O. These
-are single-active-document controls; additive scene tabs and a native OS picker remain open.
+operate on the active document; additive membership uses the separate copied tab requests. A native
+OS picker remains open.
 
 Ordinary Ctrl+S, Save before New/Open, and Save and Exit route an externally changed managed scene
 through the same Replace/Cancel modal and show the owning conflict reason. Requests retain the

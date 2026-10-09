@@ -778,6 +778,7 @@ int RunGraphical(std::optional<ProjectState> project,
   std::unique_ptr<nexora::editor::AdditiveSceneComposition> scene_composition;
   bool composition_restore_blocked = false;
   std::string composition_restore_error;
+  bool composition_was_persisted = false;
   // The presentation host borrows the active document for selection/view state. Source mutation
   // requires scene_authoring_allowed(), in addition to the ImGui reference controls.
   const auto active_scene = [&]() -> nexora::editor::SceneDocument & {
@@ -955,12 +956,15 @@ int RunGraphical(std::optional<ProjectState> project,
     retained_scene_views.clear();
     primary_scene_files =
         std::make_unique<nexora::editor::SceneFileSession>(project->workspace, primary_scene);
+    // Validate the legacy settings even when composition selects the bootstrap. RememberCurrent
+    // requires this observation and must preserve rejected settings rather than overwrite them.
+    const auto startup = primary_scene_files->RestoreStartup(primary_scene_files->Token());
     std::string bootstrap_error;
     const auto bootstrap = nexora::editor::AdditiveSceneComposition::BootstrapScene(
         project->workspace, &bootstrap_error);
-    const auto restored = bootstrap
-                              ? active_files()->Open(active_files()->Token(), *bootstrap, true)
-                              : active_files()->RestoreStartup(active_files()->Token());
+    composition_was_persisted = bootstrap.has_value();
+    const auto restored =
+        bootstrap ? active_files()->Open(active_files()->Token(), *bootstrap, true) : startup;
     if (restored.Applied()) {
       scene_load_failed = false;
       initialize_scene_documents();
@@ -2175,7 +2179,8 @@ int RunGraphical(std::optional<ProjectState> project,
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());
   if (result == 0 && project && project->workspace.Writable() && scene_composition &&
-      !composition_restore_blocked) {
+      !composition_restore_blocked &&
+      (composition_was_persisted || scene_documents->Snapshot().size() > 1)) {
     std::string error;
     if (!scene_composition->Save(&error))
       std::cerr << "scene set was not saved: " << error << '\n';

@@ -168,6 +168,32 @@ def main():
         if process.returncode != 0 or 'scene_documents=3' not in error or 'scene_references=1' not in error:
             raise RuntimeError(f'Repaired native scene set could not reopen: {output}\n{error}')
         process = None
+        # Closing back to one document must replace the existing composition, preventing old
+        # additive members from returning on restart. No source is deleted or saved implicitly.
+        process = launch(args.editor, root, state / 'recent', env)
+        window = wait_for_window(args.xdotool, env)
+        send('windowfocus', '--sync', window)
+        time.sleep(.8)
+        send('mousemove', '--window', window, '500', '220', 'click', '1')
+        key('ctrl+alt+w')  # Active reference closes; primary becomes active.
+        key('ctrl+alt+Next')
+        key('ctrl+alt+w')  # Close the second owned document.
+        request_window_close(window, env)
+        output, error = collect_output(process, 15)
+        if (process.returncode != 0 or 'scene_documents=1' not in error or
+                'scene_references=0' not in error or
+                metadata.read_bytes().splitlines()[2] != b'1 0'):
+            raise RuntimeError(f'Closing additive members lost the remaining composition: {output}\n{error}')
+        process = None
+        single_metadata = metadata.read_bytes()
+        process = launch(args.editor, root, state / 'recent', env, frames=8)
+        output, error = collect_output(process, 20)
+        if (process.returncode != 0 or 'scene_documents=1' not in error or
+                'scene_references=0' not in error or metadata.read_bytes() != single_metadata or
+                primary.read_bytes() != saved_primary or second.read_bytes() != second_original or
+                reference.read_bytes() != reference_original):
+            raise RuntimeError(f'Closed additive members returned or changed sources: {output}\n{error}')
+        process = None
         passed = True
         print('Actual native additive ownership, independent Undo, Save All and reference/close gates passed.')
     finally:
