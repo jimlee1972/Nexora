@@ -52,6 +52,7 @@ struct SceneFileRequest final {
   bool discard_unsaved{};
   bool replace_existing{};
   bool close_after_save{};
+  std::optional<SceneOverwriteToken> overwrite_token{};
 };
 
 struct ProjectSelectorRequest final {

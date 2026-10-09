@@ -662,6 +662,48 @@ without truncating/removing them, and replaces with native Windows replace or PO
 never deletes the original destination to retry. This checks paths at operation time; it does not
 lock against concurrent external filesystem edits.
 
+`SceneDocument::Save(path, written_bytes)` clears a supplied output string before serialization and
+IO. Only after successful atomic replacement does it move the exact serialized bytes, including
+opaque components and authored Euler hints, into that caller-owned string. Failure leaves it empty
+and preserves document dirty state, selection, generation and history. The original `Save(path)`
+delegates to the same serializer without requesting bytes. All calls remain serialized on the
+authoring thread; the returned bytes describe the Editor's publication even if an external writer
+subsequently changes the file.
+
+Ordinary Save and unconfirmed Save As to the current association compare the actual source bytes
+against an owning disk baseline. File size or restored modification time cannot hide a changed
+revision. Bind/Open/successful Save establish the baseline; failed Bind/Open leave the live good
+association and document intact. Bind is an explicit bootstrap association of a document the caller
+has already loaded or created: a missing-at-bind destination permits its first Save, but deleting an
+existing associated source rejects ordinary Save. New clears the baseline. Content relocation through
+the same asset UUID keeps it, so a renamed externally edited source still conflicts at its new path.
+Source bytes are read only during file operations, never during frame polling or Content
+synchronization; existing path-scope and regular-file metadata checks remain in those operations.
+
+`NeedsOverwrite` carries an owning scalar `SceneOverwriteToken`; the session retains the exact
+reviewed bytes, project/document token and resolved destination. Interactive replacement must pass
+that token to Save or Save As. A second disk revision returns a fresh confirmation without writing;
+old/replayed tokens, another destination/session, Bind/New/Open and relocation cannot reuse approval.
+Read-only access and pending workspace recovery are rechecked before Save, including confirmed Save.
+Existing `SaveAs(..., true)` without a confirmation remains an explicit caller-owned destructive
+replacement policy; it is not suitable for delayed interactive approval. Cancel does not discard
+either version. Unreadable/nonregular/oversized destinations fail closed. A confirmed source that
+disappears also rejects. Every successful scene write establishes its baseline directly from the
+exact bytes published by `SceneDocument::Save`, never from a post-save reread that could adopt
+another writer's revision.
+An external edit after successful Save therefore requires review on the next ordinary Save.
+
+Each retained baseline and pending replacement owns at most 64 MiB; both together retain at most
+128 MiB of source bytes. One bounded comparison/read snapshot or published output adds at most
+64 MiB (192 MiB total source-byte peak, excluding string allocator overhead and SceneDocument
+serialization/World data).
+Comparison scratch is released before serialization; the published output string moves into the
+baseline after pending bytes are released, with no additional copy or reread.
+The session is noncopyable; all operations remain serialized on its owning authoring thread. Exact
+comparison is an operation-time check, not a file lock or guarantee against a concurrent change
+between check and replacement. C++ Editor/EditorImGui consumers rebuild for the new optional
+confirmation arguments and result/request fields; stable C/Zig and scene formats are unchanged.
+
 `SceneFileSession::SynchronizeContent` borrows the current same-root Content session for one
 authoring-thread call. Bind before Content mutations; refresh after them. A loaded Content scene
 tracks its asset UUID and project generation through rename, move and Content Undo. Only an existing

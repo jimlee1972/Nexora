@@ -1,5 +1,6 @@
 #include "EditorImGuiTestAccess.h"
 #include "Nexora/Editor/ProjectContent.h"
+#include "SceneFileContinuation.h"
 
 #include <chrono>
 #include <fstream>
@@ -291,6 +292,186 @@ void RunGates(float dpi) {
                              ", close=" + std::to_string(request.close_after_save));
   Require(f.files->SaveAs(request.token, request.path).Applied() && !f.scene.Dirty(),
           "Save and Exit retry did not save successfully");
+}
+void RunExternalSave(float dpi) {
+  Fixture f(dpi);
+  const auto path = f.root / "Content/Original.scene";
+  const auto read = [&] {
+    std::ifstream input(path, std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(input), {});
+  };
+  const auto write = [&](std::string_view bytes) {
+    std::ofstream output(path, std::ios::binary | std::ios::trunc);
+    output.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    Require(static_cast<bool>(output), "External UI write failed");
+  };
+  const auto original = read();
+  Require(f.scene.Rename(*f.scene.Key(f.entity), "Local UI edit"), "Local UI edit failed");
+  const auto local = f.world.SaveScene(f.id);
+  write(original + "\nexternal A\n");
+  f.Shortcut(Key::S);
+  Require(f.ui.TakeSceneSaveRequest(), "External Save shortcut absent");
+  auto result = f.files->Save(f.files->Token());
+  Require(result.status == editor::SceneFileStatus::NeedsOverwrite && result.overwrite_token,
+          "External ordinary Save did not request replacement");
+  Request request{Action::SaveAs, f.files->Token(), *f.files->CurrentPath()};
+  Require(PrepareSceneOverwriteRequest(request, result, f.files->CurrentPath()),
+          "Ordinary save retry composition failed");
+  const auto prompt = [&](const Request &intent, const editor::SceneFileResult &conflict) {
+    f.ui.SetSceneSaveResult(conflict.message, false);
+    f.ui.RequestSceneOverwrite(intent);
+    f.Draw();
+    f.Draw();
+    Require(Access::SceneFilePosition(f.ui, 9).has_value(), "External Replace control absent");
+  };
+  prompt(request, result);
+  f.Click(6);
+  Require(!f.ui.TakeSceneFileRequest() && f.scene.Dirty() && f.world.SaveScene(f.id) == local &&
+              read() == original + "\nexternal A\n",
+          "Cancel discarded a local or external scene version");
+  // Approval owns the exact reviewed disk revision. A later change reopens the same real modal.
+  result = f.files->Save(f.files->Token());
+  request.overwrite_token = result.overwrite_token;
+  prompt(request, result);
+  write(original + "\nexternal B\n");
+  f.Click(9);
+  auto confirmed = f.Take(Action::SaveAs);
+  Require(confirmed.replace_existing && confirmed.overwrite_token == request.overwrite_token,
+          "Replace request lost its owning revision");
+  result = f.files->SaveAs(confirmed.token, confirmed.path, confirmed.replace_existing,
+                           confirmed.overwrite_token);
+  Require(result.status == editor::SceneFileStatus::NeedsOverwrite && result.overwrite_token &&
+              result.overwrite_token != confirmed.overwrite_token && f.scene.Dirty() &&
+              read() == original + "\nexternal B\n",
+          "Popup-time external change was overwritten");
+  confirmed.replace_existing = false;
+  confirmed.overwrite_token = result.overwrite_token;
+  prompt(confirmed, result);
+  f.Click(9);
+  confirmed = f.Take(Action::SaveAs);
+  Require(f.files->SaveAs(confirmed.token, confirmed.path, confirmed.replace_existing,
+                          confirmed.overwrite_token)
+                  .Applied() &&
+              !f.scene.Dirty() && f.scene.Undo() && f.scene.Redo() &&
+              read().find("Local UI edit") != std::string::npos,
+          "Confirmed UI Save failed or consumed Undo/Redo");
+  f.Draw();
+
+  // Save-before-Open retains the intended destination while confirming the current source.
+  std::ofstream(f.root / "Content/Target.scene", std::ios::binary) << original;
+  Require(f.scene.Rename(*f.scene.Key(f.entity), "Save before Open"), "Open dirty fixture failed");
+  write(original + "\nexternal C\n");
+  f.Shortcut(Key::O);
+  f.Path("Content/Target.scene");
+  f.Click(5);
+  f.Click(7);
+  request = f.Take(Action::Open);
+  Require(request.save_current && !request.save_path, "Save-before-Open intent absent");
+  result = f.files->Save(request.token);
+  Require(result.status == editor::SceneFileStatus::NeedsOverwrite, "Open conflict absent");
+  Require(PrepareSceneOverwriteRequest(request, result, f.files->CurrentPath()),
+          "Open continuation retry composition failed");
+  prompt(request, result);
+  f.Click(9);
+  confirmed = f.Take(Action::Open);
+  Require(confirmed.path == "Content/Target.scene" &&
+              confirmed.save_path == "Content/Original.scene" && confirmed.save_current &&
+              confirmed.overwrite_token == request.overwrite_token &&
+              f.files
+                  ->SaveAs(confirmed.token, *confirmed.save_path, confirmed.replace_existing,
+                           confirmed.overwrite_token)
+                  .Applied() &&
+              read().find("Save before Open") != std::string::npos &&
+              f.files->Open(confirmed.token, confirmed.path).Applied() &&
+              f.scene.Name(f.entity) == "Original",
+          "Replacement lost the original Open continuation or saved to the Open target");
+  f.Draw();
+
+  // A close continuation survives replacement; project/document boundaries cancel stale dialogs.
+  Require(f.scene.Rename(*f.scene.Key(f.entity), "Save and Exit"), "Close dirty fixture failed");
+  const auto target = f.root / "Content/Target.scene";
+  std::ofstream(target, std::ios::binary) << original + "\nexternal close\n";
+  result = f.files->Save(f.files->Token());
+  request = Request{Action::SaveAs, f.files->Token(), *f.files->CurrentPath()};
+  Require(PrepareSceneOverwriteRequest(request, result, f.files->CurrentPath()),
+          "Close retry composition failed");
+  request.close_after_save = true;
+  f.ui.RequestCloseConfirmation();
+  f.Draw();
+  prompt(request, result);
+  f.Click(9);
+  confirmed = f.Take(Action::SaveAs);
+  Require(confirmed.close_after_save && confirmed.replace_existing &&
+              confirmed.overwrite_token == request.overwrite_token &&
+              f.files
+                  ->SaveAs(confirmed.token, confirmed.path, confirmed.replace_existing,
+                           confirmed.overwrite_token)
+                  .Applied(),
+          "Close replacement lost its successful-save-only continuation");
+  // Reopen a new fixture to avoid the outstanding synthetic OS-close state.
+  Fixture gated(dpi);
+  Require(gated.scene.Rename(*gated.scene.Key(gated.entity), "Gated edit"), "Gate fixture failed");
+  std::ofstream(gated.root / "Content/Original.scene", std::ios::binary) << "external gate";
+  result = gated.files->Save(gated.files->Token());
+  request = Request{Action::SaveAs, gated.files->Token(), *gated.files->CurrentPath()};
+  Require(PrepareSceneOverwriteRequest(request, result, gated.files->CurrentPath()),
+          "Gated save retry composition failed");
+  gated.ui.RequestSceneOverwrite(request);
+  gated.Draw();
+  gated.Draw();
+  gated.active = &gated.reader;
+  gated.Draw();
+  gated.Click(9);
+  Require(!gated.ui.TakeSceneFileRequest(), "Read-only UI emitted replacement");
+  gated.active = &gated.writer;
+  Require(gated.files->New(gated.files->Token(), true).Applied(), "Stale dialog New failed");
+  gated.Draw();
+  gated.Draw();
+  Require(!Access::SceneFilePosition(gated.ui, 9) && !gated.ui.TakeSceneFileRequest(),
+          "Stale document replacement dialog revived");
+}
+void RunUnsavedReplacement(float dpi) {
+  Fixture f(dpi);
+  Require(f.files->New(f.files->Token(), true).Applied() && !f.files->CurrentPath(),
+          "Untitled replacement fixture failed");
+  f.Draw();
+  const auto original_file = f.root / "Content/Original.scene";
+  std::ifstream input(original_file, std::ios::binary);
+  const std::string original(std::istreambuf_iterator<char>(input), {});
+  f.Shortcut(Key::N);
+  f.Click(7);
+  f.Path("Content/Original.scene");
+  f.Click(5);
+  auto request = f.Take(Action::New);
+  Require(request.save_current && request.save_path == "Content/Original.scene" &&
+              !f.files->CurrentPath(),
+          "Untitled Save-before-New lost its explicit destination");
+  const auto result = f.files->SaveAs(request.token, *request.save_path);
+  Require(result.status == editor::SceneFileStatus::NeedsOverwrite && result.overwrite_token,
+          "Existing untitled destination did not require replacement");
+  // The application must retain the explicit save_path, even when CurrentPath is absent.
+  Require(PrepareSceneOverwriteRequest(request, result, f.files->CurrentPath()) &&
+              request.save_path == "Content/Original.scene",
+          "Untitled retry composition replaced the explicit destination with absent CurrentPath");
+  f.ui.SetSceneSaveResult(result.message, false);
+  f.ui.RequestSceneOverwrite(request);
+  f.Draw();
+  f.Draw();
+  f.Click(9);
+  const auto confirmed = f.Take(Action::New);
+  Require(confirmed.save_path == request.save_path && confirmed.replace_existing &&
+              confirmed.overwrite_token == request.overwrite_token &&
+              f.files
+                  ->SaveAs(confirmed.token, *confirmed.save_path, confirmed.replace_existing,
+                           confirmed.overwrite_token)
+                  .Applied() &&
+              f.files->CurrentPath() == "Content/Original.scene" &&
+              f.files->New(confirmed.token).Applied() && !f.files->CurrentPath(),
+          "Untitled replacement changed its destination or lost New continuation");
+  std::ifstream saved(original_file, std::ios::binary);
+  const std::string replaced(std::istreambuf_iterator<char>(saved), {});
+  Require(replaced != original && f.scene.Nodes().empty() && f.scene.Dirty(),
+          "Untitled replacement failed to save before creating another new scene");
 }
 void RunContentScene(float dpi) {
   Fixture f(dpi);
@@ -621,6 +802,8 @@ int main() {
     for (const float dpi : {1.0F, 2.0F}) {
       Run(dpi);
       RunGates(dpi);
+      RunExternalSave(dpi);
+      RunUnsavedReplacement(dpi);
       RunUnicodeContent(dpi);
       RunContentScene(dpi);
       RunFolderSceneConflict(dpi);
