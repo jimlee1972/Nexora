@@ -125,6 +125,13 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
   Linux gate passes 178/178; updated hosted Windows verification remains pending and physical-host
   acceptance stays open. [Evidence](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md).
 
+- ✅ The shared Linux native Showcase gate now observes an animated presented frame before
+  queuing Pause, then requires stable changed frames and exact replay. Delayed input/presentation
+  regressions cover the original double-toggle race, missing motion and pause cleanup. Existing
+  five-second comparisons and 15-second settling remain bounded; the nine-room aggregate receives
+  180 seconds. This strengthens the cloud gate without accepting a physical Editor milestone.
+  [Evidence](../../Tools/Build/evidence/EditorEDM0-LinuxAnimationHandshake-2026-10-09.md).
+
 ### ED-M1 — Project and asset workspace
 
 - ✅ Content folders support real Tab focus and Enter activation; focused Alt+Up returns to the

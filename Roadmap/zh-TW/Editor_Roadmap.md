@@ -125,6 +125,12 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   hosted Windows 驗證仍待完成，實體主機驗收保持 open。
   [證據](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md)。
 
+- ✅ 共用 Linux native Showcase gate 現先確認動畫 frame 已呈現才送出 Pause，再要求
+  穩定且已改變的畫面與 exact replay。延遲 input／presentation regression 涵蓋原本的雙次
+  toggle race、缺少 motion 與 pause cleanup。既有 5 秒 comparison 與 15 秒 settling 期限
+  保持有界；九個 room 的整體預算為 180 秒。此 cloud gate 補強不接受實體 Editor 里程碑。
+  [證據](../../Tools/Build/evidence/EditorEDM0-LinuxAnimationHandshake-2026-10-09.md)。
+
 ### ED-M1 — Project 與 Asset workspace
 
 - ✅ Content 資料夾支援實際 Tab 聚焦與 Enter 開啟；focused Alt+Up 返回上一層 breadcrumb，

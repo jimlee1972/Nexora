@@ -44,9 +44,11 @@ build/linux-showcase-shipping/Apps/Showcase/NexoraShowcase --headless --frames=4
 git diff --check
 ```
 
-The required full Development configure/build/test gate passed **184/184**, no skips, in
-**342.37 seconds**. Focused final integration/opt-in tests passed **15/15**, no skips, in
-**4.64 seconds**. Minimal Shipping and Full Monolithic Showcase Shipping configure/build passed,
+The initial full Development gate passed **184/184** in **342.37 seconds**. After repairing the
+shared native animation acceptance handshake, the final required configure/build/test gate passed
+**186/186**, no skips, in **354.81 seconds**. Focused final GPU integration/opt-in tests passed
+**15/15** in **4.64 seconds**; the handshake/native GPU focused gate passed **8/8** in **66.41 seconds**.
+Minimal Shipping and Full Monolithic Showcase Shipping configure/build passed,
 including the changed native Presentation adapter with Editor disabled. The Full Shipping
 four-frame headless Showcase run also passed; its physical visual-room acceptance remains NOT_RUN.
 
