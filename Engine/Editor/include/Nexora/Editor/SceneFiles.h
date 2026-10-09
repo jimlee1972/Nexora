@@ -61,6 +61,7 @@ public:
   SceneFileResult RememberCurrent(SceneFileToken token);
 
 private:
+  friend class SceneSaveBatch;
   struct DiskSnapshot final {
     bool exists{};
     std::string bytes;

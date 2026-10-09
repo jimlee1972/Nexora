@@ -740,19 +740,26 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ The authoring SDK now stages/revalidates a bounded immutable Save All batch, publishes all
+    named scene files and acknowledges baselines only after complete verification. Interrupted
+    publication restores exact originals or retains gated recovery data; foreign/corrupt inputs
+    are preserved. Real multi-document/16-document, rollback, restart, initial metadata write
+    failure and final directory cleanup retry tests pass.
+    Graphical additive ownership/tabs, persisted composition and full ED-M4 remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-SceneSaveBatch-Linux-2026-10-09.md).
   - ✅ Scene saves now prepare an owning immutable byte/content/generation snapshot without IO,
     dirty-baseline or history changes. Deferred single-file publication revalidates live generation
     and serializable content, including opaque bytes and authored Euler turns, before IO; only a
     successful replacement marks the snapshot clean. Ordinary Save shares this path. Tests cover
-    stale rejection, Undo/Redo, staging failure, ownership and save/reopen. Coordinated multi-file
-    publication, additive tabs and full ED-M4 remain open.
+    stale rejection, Undo/Redo, staging failure, ownership and save/reopen. Graphical coordinated
+    multi-file publication, additive tabs and full ED-M4 remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PreparedSceneSave-Linux-2026-10-08.md).
 
   - ✅ Initial additive-scene dependencies now reject zero, self and missing IDs before graph
     mutation and normalize repeated edges consistently with dependency replacement. Dedicated
     portable tests preserve owned/reference descriptors and deterministic load order after rejected
-    admission, verify cycle rollback and safe reverse-order removal. Additive tabs, coordinated
-    save-all and full ED-M4 acceptance remain open.
+    admission, verify cycle rollback and safe reverse-order removal. Additive tabs, graphical
+    coordinated save-all and full ED-M4 acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneDependencies-Linux-2026-10-08.md).
   - ✅ Autosave writes enforce the same 64 MiB payload budget as recovery before touching files,
     retain last-good journals and occupied temporary paths, and clean failed replacement staging.

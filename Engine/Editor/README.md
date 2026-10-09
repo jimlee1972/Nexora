@@ -39,6 +39,11 @@ into renderer or platform internals.
 
 ## Ownership and lifetime
 
+Save All recovery retires a strictly empty ordinary journal without replacing any source or
+inferring a publication phase. If final directory removal fails, cleanup best-effort restores its
+bounded phase manifest for retry; occupied/invalid journals retain their entries. Initial metadata
+write failure leaves original scene files and dirty baselines unchanged.
+
 - `ProjectWorkspace` owns its descriptor, stable project UUID, open-document list, and (for
   read-write access) one OS-held writer lease on `.nexora/editor.lock`. A second writer fails with
   the owning process ID while any number of explicit read-only observers may coexist. The lock file
@@ -249,11 +254,37 @@ into renderer or platform internals.
   successful publication and is empty on failure; the owning result is allocated before IO.
   Both calls are serialized by the authoring host; the snapshot can be copied
   or retained without World borrows, but submission still requires the live owning document.
-  Callers retain workspace writer/recovery and destination-path responsibilities. This is save-all
-  staging groundwork: no multi-file commit, crash journal, additive tabs or fsync durability is added.
+  Callers retain workspace writer/recovery and destination-path responsibilities. These individual
+  calls publish one file; coordinated publication uses the separate `SceneSaveBatch` owner below.
   `Dirty` compares the live serializable scene to the last successful Save or Reload. Its signature
   preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.
+- `SceneSaveBatch` borrows one writer workspace and its current named scene-file sessions. The
+  workspace, sessions and documents must outlive the batch. Prepare/publish/cancel are serialized
+  on the authoring thread; drain background readers before publication. Up to 16 unique documents
+  capture owning `PreparedSave` outputs and exact disk baselines, with 128 MiB aggregate original
+  and output bytes and the existing 64 MiB per-file limit. This bounds serialized payload, not
+  total resident memory. Read-only, stale, externally changed, recovery-blocked, unnamed,
+  duplicate, ASCII case-colliding, aliased or unsafe inputs reject before publication. Destination parents must exist
+  as ordinary directories; occupied sibling staging paths are preserved.
+  `.nexora/scene-save-all.recovery` retains a bounded project-UUID/version/checksum manifest and
+  exact originals and outputs. Preparing authorizes no source writes; prepared authorizes
+  sequential native replacements after all copies/stages validate; committed acknowledges every
+  document baseline only after all files verify. Rollback records a separate completed phase so
+  partial cleanup can be retried without requiring copies already removed. Metadata uses the
+  existing atomic-write policy; file replacement uses POSIX rename or Windows replace/write-through,
+  without deleting a destination before retry. Independent readers do not observe a filesystem-wide
+  atomic snapshot, and power-loss/fsync durability is not promised.
+  Before restoration, recovery validates every retained payload and all current destinations.
+  Conflicting external changes, malformed metadata, aliases and unknown retained entries block
+  recovery and preserve inspection data. `RecoveryRequired` leaves documents dirty and originals
+  retained; `PublishedRecoveryRequired` acknowledges the complete batch while gating authoring
+  until cleanup finishes. `ProjectWorkspace` recovery status and controls recognize both journals.
+  Discarding an uncommitted Save All restores its originals; discarding a committed batch finishes
+  cleanup and retains its acknowledged outputs. Baseline acknowledgement preserves identity,
+  selection, opaque metadata, Euler turns and Undo/Redo. Graphical additive tabs and composition
+  are separate host workflows. This rebuild-required C++ API does not change scene or gameplay C ABI.
+  [Linux acceptance](../../Tools/Build/evidence/EditorEDM4-SceneSaveBatch-Linux-2026-10-09.md).
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
   from references, and rejects cycles or unsafe removal atomically. Initial dependencies must refer
   to already admitted scenes; zero, self, missing dependencies and duplicate scene IDs reject before
@@ -790,11 +821,15 @@ preservation as scene writes; its failure leaves the World, scene save, path and
 The application warns after an independent recording failure and still permits successful Save and
 Exit. Read-only startup only reads; per-file camera loading follows the restored association.
 
-Recovery presence means any occupied or uninspectable `.nexora/workspace.recovery` path, including
-directories and valid/dangling leaf symlinks. Only verified absence permits existing recovery-gated
-authoring/export/shutdown actions. Recovery rejects unsafe inputs without mutation. Explicit writer
-discard removes one directory entry (never recursively); alias targets remain untouched, and a
-nonempty directory remains pending after discard fails. Read-only observers cannot discard.
+Recovery presence means any occupied or uninspectable `.nexora/workspace.recovery` or
+`.nexora/scene-save-all.recovery` path, including directories and valid/dangling leaf symlinks.
+Only verified absence permits existing recovery-gated authoring/export/shutdown actions.
+Recovery rejects unsafe inputs without replacing source files. Explicit writer discard of the
+workspace journal removes one directory entry (never recursively); alias targets remain untouched,
+and a nonempty directory remains pending after discard fails. Save All discard instead validates
+and restores an uncommitted batch or finishes committed cleanup; it never recursively erases the
+only retained originals. If both journals are present, resolve the workspace journal first, then
+Save All. Read-only observers cannot recover or discard either journal.
 
 ## Play input binding values
 

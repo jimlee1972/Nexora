@@ -262,6 +262,7 @@ public:
 
   private:
     friend class SceneDocument;
+    friend class SceneSaveBatch;
     PreparedSave(std::uint64_t generation, std::string bytes, std::string signature,
                  std::string opaque_records)
         : generation_(generation), bytes_(std::move(bytes)), signature_(std::move(signature)),
@@ -402,6 +403,7 @@ public:
 
 private:
   enum class BuiltinEntity { Empty, Camera, Light };
+  friend class SceneSaveBatch;
   runtime::Id CreateBuiltin(std::string name, runtime::Id parent, BuiltinEntity kind);
   runtime::Id AdoptCreatedEntity(runtime::Id entity, std::string name);
   [[nodiscard]] std::optional<std::vector<std::pair<NodeKey, runtime::Transform>>>
