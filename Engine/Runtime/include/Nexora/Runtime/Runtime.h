@@ -109,6 +109,8 @@ struct SceneFrameResult;
 class NEXORA_RUNTIME_API World final {
 public:
   explicit World(WorldKind kind = WorldKind::Editor) noexcept : kind_(kind) {}
+  // Scene/entity IDs are 1..UINT64_MAX-1; the maximum is the exhausted watermark. Creation
+  // throws overflow_error before mutation on exhaustion, and consumes an ID only on publication.
   Id LoadScene(std::string name, bool persistent = false);
   [[nodiscard]] std::optional<Id> LoadSceneSnapshot(std::string_view snapshot);
   // Editor-only atomic replacement. Preserves scene ID and lifecycle state; rejects corrupt data,

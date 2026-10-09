@@ -408,13 +408,76 @@ optional and runs on fixed ticks/manual Step, and Update runs once per playing f
 retain inspection-only Play. Canonical paths outside the project and failed ABI/lifecycle loads
 are rejected visibly. Module logs enter the bounded Console; failed callbacks pause Play.
 Stop/window shutdown unload the module before destroying the clone. The host bounds allocation
-and message sizes, supports the shared component wire set, and advertises no scene/physics
-capability. Click a playing Game canvas to capture input; Escape, pointer exit, hiding Game, Pause/Stop,
+and message sizes, supports the shared component wire set, and advertises implemented Scene API
+and host allocator capabilities. With gameplay simulation enabled, bounded CPU AABB Physics spawn
+and copied raycast are also available; other optional services remain unavailable. Click a playing
+Game canvas to capture input; Escape, pointer exit, hiding Game, Pause/Stop,
 recovery/close prompts, and window blur release it and clear held controls. F5/F6/F10 remain Play
 controls; other captured keys/text do not reach authoring shortcuts. The initial user-zero input
 snapshot maps WASD/arrows to movement axes and Space/left mouse/right mouse/Shift/Ctrl to button
 bits 1/2/4/8/16, with one frame sequence and no borrowed input data. Gamepad, pointer motion/look,
 device-specific rebinding, multiple users, and module hot reload remain open.
+
+### Play scene/entity services
+
+The V3 embedding binds only a Play-kind World; static and relative dynamic loads reject an Editor
+World. `load_scene` creates an empty in-memory scene, with an owning NUL-free UTF-8 name of 1–256
+bytes and persistent flag 0/1. It performs no project IO or scene-file interpretation. `activate_scene`
+uses the loaded-inactive lifecycle, and duplicate/missing/unloading activation fails. `spawn_entity`
+validates the admitted descriptor prefix, known flags, reserved zero, finite root position, enabled
+Camera FOV (0–180 exclusive), nonnegative finite Light and nonzero Mesh ID before publication.
+Camera clipping defaults to 0.1/1000. Material zero is neutral; full uint64 mesh/shader IDs are values,
+with resolution remaining separate. Unused component fields/future descriptor suffixes are ignored.
+Physics bounds use the optional query binding described below; feature-off requests return
+Unsupported. No partial entity or output is published. Missing/unloading
+scenes and malformed descriptors return InvalidArgument; unbound, exhausted quotas/IDs or allocation
+failure return Lifecycle. All output arguments retain their prior values on failure.
+
+One module binding admits at most 32 scenes and 4096 spawns over its lifetime, counting successful
+admission. Despawn uses atomic World commands and removes descendants; it does not replenish quotas.
+Authored cloned entities can be despawned in Play, while Editor data/Undo remain isolated. Callback
+calls are synchronous on the serialized game thread, borrow wire pointers only for the call and
+return scalar IDs. Module Stop/Destroy still have access; the owner clears binding/quotas after
+Unload and before clone destruction. Stop discards created/deleted entities; transform Apply Changes
+continues excluding creation/deletion. Asset resolution, debug drawing and diagnostics slots
+remain null; raycast is null when gameplay simulation is disabled. Modules must check each optional
+callback. Stable C/Zig layout and scene formats are
+unchanged. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md).
+
+### Play CPU collider queries
+
+When `NEXORA_ENABLE_GAMEPLAY_SIMULATION` is ON, `NEXORA_SPAWN_PHYSICS` admits a finite, ordered
+local AABB into a fixed owning 256-entry entity/scene binding array. Degenerate bounds, including
+planes, follow the existing `PhysicsWorld` contract. Initial root translation must leave both bound
+corners finite. Validation and live quota checks precede entity creation; subsequent scalar
+assignments cannot throw. Unused bounds remain ignored for non-Physics descriptors. Despawn removes
+bindings for the full atomic deletion cascade. Queries and later spawns prune externally deleted or
+unloading/unloaded entries. Despawn releases the live collider budget, while the existing 4096
+lifetime spawn quota is still consumed. Bind resets both; Clear follows module destruction.
+
+The nonnull V3 `raycast` callback uses a fresh real CPU `PhysicsWorld` for each serialized query.
+Each active-scene collider's eight local corners pass through its current exact World matrix,
+including inherited rotation, nonuniform scale, reflection and shear, to build a conservative
+world AABB. This is an AABB query, not oriented-shape collision. Inactive scenes are excluded.
+It does not retain a stale proxy, move bodies, step rigid-body simulation or import authored
+Physics components. Authored Editor World and Undo remain isolated.
+
+Finite nonzero direction is normalized with maximum-component scaling before the real Runtime
+query, including very large and subnormal directions. Finite distance must be nonnegative. Copied
+hits contain entity ID, distance and point; equal-distance hits select the lower body/entity ID
+independently of unordered insertion. Invalid/null requests and misses return InvalidArgument;
+unbound, allocation failures and overflow/invalid live collider matrices return Lifecycle.
+The whole query fails on an invalid live collider rather than returning a partial hit. Outputs
+remain unchanged on every failure. Stop/Destroy retain access; Unload clears before clone teardown.
+Feature OFF leaves the host slot null and direct valid queries/Physics spawn return Unsupported.
+Stable C/Zig layouts and capability bits are unchanged; no additional capability is advertised.
+
+Actual V3 and Linux dynamic/native Game fixtures verify copied hit distance/point/entity,
+despawn misses, ownership, transform/shear updates, tie resolution, quotas, unload, Stop/Destroy,
+unchanged Editor bytes and real normal Game movement. Enabled and simulation-OFF tests are recorded
+in [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPhysicsServices-Linux-2026-10-09.md).
+Rigid-body/backend integration, authored collider import, asset resolution, debug drawing,
+diagnostics and complete gameplay/input acceptance remain open.
 
 Play inspection uses one owning Runtime snapshot per UI frame. Selecting a Game entity switches
 Inspector to read-only Play mode: local/world transforms, parent/scene state, Camera/Light payloads,

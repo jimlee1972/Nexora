@@ -20,7 +20,13 @@ def main():
     parser.add_argument('--input-routing', action='store_true')
     parser.add_argument('--project-bindings', action='store_true')
     parser.add_argument('--materials', action='store_true')
+    parser.add_argument('--scene-services', action='store_true')
+    parser.add_argument('--physics-services', action='store_true')
     args = parser.parse_args()
+    if args.physics_services and not args.scene_services:
+        parser.error('--physics-services requires --scene-services and its independent fixture')
+    if args.scene_services and (not args.module or args.materials or args.input_routing):
+        parser.error('--scene-services requires an independent scene module fixture')
     if args.materials and (args.module or args.input_routing or args.project_bindings):
         parser.error('--materials is an independent scalar material acceptance case')
     root = Path(tempfile.mkdtemp(prefix='nexora-game-view-'))
@@ -178,6 +184,13 @@ def main():
         forwarded, retained, dropped, gameplay = map(int, producer.groups())
         if forwarded < 1 or retained < 1 or dropped != 0 or (args.module and gameplay < 1):
             raise RuntimeError('Native Core/gameplay producer did not reach bounded Console records')
+        if args.scene_services and b'play scene fixture evidence: loaded=1 activated=1 ' \
+                b'spawned=1 despawned=1' not in captured:
+            raise RuntimeError('Actual dynamic Play scene callbacks did not execute successfully')
+        if args.physics_services and not re.search(
+                rb'play physics fixture evidence: distance=2 point_z=4 entity=[1-9][0-9]* '
+                rb'despawn_miss=1', captured):
+            raise RuntimeError('Actual dynamic Play PhysicsWorld hit/despawn query did not execute')
         editor = None
         if args.materials:
             retained_source = material_path.read_bytes()

@@ -4,6 +4,7 @@
 #include "Nexora/Game/GameplayHostBridge.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
 #include "PlayInputState.h"
+#include "PlaySceneServices.h"
 #include <algorithm>
 #include <bit>
 #include <filesystem>
@@ -49,6 +50,10 @@ public:
       error = "Gameplay library must be a file inside this project.";
       return false;
     }
+    if (!scenes_.Bind(world)) {
+      error = "Gameplay requires an isolated Play World.";
+      return false;
+    }
     world_ = &world;
     if (!module_.Load(library)) {
       Unload();
@@ -64,6 +69,8 @@ public:
   // Static loader overload is useful for embedding tests; it has the same owning lifetime.
   bool Load(runtime::World &world, NexoraGameModuleLoadV3Fn loader) {
     Unload();
+    if (!scenes_.Bind(world))
+      return false;
     world_ = &world;
     if (module_.Load(loader))
       return true;
@@ -85,6 +92,7 @@ public:
   void Unload() noexcept {
     input_.SetFocused(false);
     module_.Unload();
+    scenes_.Clear();
     world_ = nullptr;
     for (const auto &[pointer, allocation] : allocations_)
       ::operator delete(pointer, std::align_val_t(allocation.alignment));
@@ -104,6 +112,8 @@ private:
     NexoraGameplayHostV3 host{};
     host.struct_size = sizeof(host);
     host.abi_version = NEXORA_GAMEPLAY_ABI_VERSION;
+    host.capabilities =
+        NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR | NEXORA_GAMEPLAY_CAPABILITY_SCENE_API;
     host.context = this;
     host.log = [](void *context, std::uint32_t level, const char *message, std::uint32_t length) {
       try {
@@ -185,13 +195,35 @@ private:
       *snapshot = Self(context).input_.Snapshot();
       return NEXORA_GAMEPLAY_OK;
     };
-    // No scene/physics capability is advertised: modules operate on cloned authored entities.
+    host.load_scene = [](void *context, const char *name, std::uint32_t length,
+                         std::uint32_t persistent, std::uint64_t *scene) -> int32_t {
+      return Self(context).scenes_.Load(name, length, persistent, scene);
+    };
+    host.activate_scene = [](void *context, std::uint64_t scene) -> int32_t {
+      return Self(context).scenes_.Activate(scene);
+    };
+    host.spawn_entity = [](void *context, std::uint64_t scene,
+                           const NexoraEntitySpawnDescriptor *descriptor,
+                           std::uint64_t *entity) -> int32_t {
+      return Self(context).scenes_.Spawn(scene, descriptor, entity);
+    };
+    host.despawn_entity = [](void *context, std::uint64_t entity) -> int32_t {
+      return Self(context).scenes_.Despawn(entity);
+    };
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+    host.raycast = [](void *context, const NexoraRaycastRequest *request,
+                      NexoraRaycastHit *hit) -> int32_t {
+      return Self(context).scenes_.Raycast(request, hit);
+    };
+#endif
+    // Asset resolution, debug drawing and diagnostics callbacks remain unavailable.
     return host;
   }
   runtime::World *world_{};
   LogSink log_;
   LogRejectionSink rejected_log_;
   PlayInputState input_;
+  PlaySceneServices scenes_;
   std::unordered_map<void *, Allocation> allocations_;
   std::uint64_t bytes_{};
   runtime::GameplayModuleHost module_;

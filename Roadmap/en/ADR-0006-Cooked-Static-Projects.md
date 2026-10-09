@@ -26,9 +26,16 @@ indexed, with exact matrices including mirror/shear; no recursive ancestor walk 
 
 ## Consequences and acceptance
 
+The Editor now provides bounded owning Runtime capture and a pure `CookStaticProject` producer
+from that capture plus explicitly supplied owning imported OBJ/scalar PBR assets. Its exact closure
+uses the shared codecs/cooker/package validation; no source lookup or publication occurs. See the
+[producer contract](../../Engine/Editor/StaticProjectExport.md). Full UUID/resource collisions,
+unsupported reserved bindings, missing assets and nonzero legacy shaders without a scalar override
+reject. The scene text and inactive opaque bytes remain unchanged.
+
 The real CLI can verify an owning package after source content is removed. It reports StaticView
 and inactive components explicitly. It does not render a native window, load gameplay, compile,
-deploy or sign an application. Editor snapshot capture, stale/cancel checks, atomic publication,
+deploy or sign an application. Current-state/stale/cancel checks, atomic publication,
 native resource admission and Build/deploy/log UI are dependent work.
 
 Keep every full ED milestone unmarked. Delivery requires full Linux Development, Monolithic Shipping,

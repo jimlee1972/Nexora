@@ -90,7 +90,8 @@ std::optional<PhysicsHit> PhysicsWorld::Raycast(const RaycastRequest &request) c
       if (low > high)
         hit = false;
     }
-    if (hit && low >= 0 && (!closest || low < closest->distance))
+    if (hit && low >= 0 &&
+        (!closest || low < closest->distance || (low == closest->distance && id < closest->body)))
       closest = PhysicsHit{id, low, Add(request.origin, Mul(direction, low)), normal};
   }
   return closest;

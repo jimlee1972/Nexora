@@ -115,6 +115,22 @@ target_link_libraries(NexoraSceneRuntimeCaptureTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraSceneRuntimeCaptureTests)
 add_test(NAME editor.scene_runtime_capture COMMAND NexoraSceneRuntimeCaptureTests)
 
+add_executable(NexoraStaticProjectExportTests StaticProjectExportTests.cpp)
+target_link_libraries(NexoraStaticProjectExportTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraStaticProjectExportTests)
+add_test(NAME editor.static_project_export COMMAND NexoraStaticProjectExportTests)
+set_tests_properties(editor.static_project_export PROPERTIES TIMEOUT 120)
+if(NEXORA_BUILD_PROJECT_PLAYER)
+  add_test(NAME editor.static_project_export_cli
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/StaticProjectExportCli.py"
+      "$<TARGET_FILE:NexoraStaticProjectExportTests>" "$<TARGET_FILE:NexoraProjectPlayer>")
+  add_test(NAME editor.static_project_export_cli_optimized
+    COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_CURRENT_SOURCE_DIR}/StaticProjectExportCli.py"
+      "$<TARGET_FILE:NexoraStaticProjectExportTests>" "$<TARGET_FILE:NexoraProjectPlayer>")
+  set_tests_properties(editor.static_project_export_cli editor.static_project_export_cli_optimized
+    PROPERTIES TIMEOUT 300)
+endif()
+
 add_executable(NexoraMaterialImportTests MaterialImportTests.cpp)
 target_link_libraries(NexoraMaterialImportTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraMaterialImportTests)

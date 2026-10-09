@@ -101,9 +101,33 @@ target_link_libraries(NexoraCoreConsoleIngressTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraCoreConsoleIngressTests)
 add_test(NAME editor.core_console_ingress COMMAND NexoraCoreConsoleIngressTests)
 
+add_executable(NexoraPlaySceneServicesTests PlaySceneServicesTests.cpp)
+target_include_directories(NexoraPlaySceneServicesTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraPlaySceneServicesTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPlaySceneServicesTests)
+add_test(NAME editor.play_scene_services COMMAND NexoraPlaySceneServicesTests)
+
+add_executable(NexoraPlayPhysicsServicesTests PlayPhysicsServicesTests.cpp)
+target_include_directories(NexoraPlayPhysicsServicesTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraPlayPhysicsServicesTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPlayPhysicsServicesTests)
+add_test(NAME editor.play_physics_services COMMAND NexoraPlayPhysicsServicesTests)
+
 add_library(NexoraPlayGameplayFixture MODULE PlayGameplayFixture.cpp)
 target_link_libraries(NexoraPlayGameplayFixture PRIVATE Nexora::Foundation)
 nexora_apply_defaults(NexoraPlayGameplayFixture)
+
+add_library(NexoraPlaySceneFixture MODULE PlayGameplayFixture.cpp)
+target_compile_definitions(NexoraPlaySceneFixture PRIVATE NEXORA_FIXTURE_SCENES=1)
+target_link_libraries(NexoraPlaySceneFixture PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraPlaySceneFixture)
+
+if(NEXORA_ENABLE_GAMEPLAY_SIMULATION)
+  add_library(NexoraPlayPhysicsFixture MODULE PlayGameplayFixture.cpp)
+  target_compile_definitions(NexoraPlayPhysicsFixture PRIVATE NEXORA_FIXTURE_SCENES=1 NEXORA_FIXTURE_PHYSICS=1)
+  target_link_libraries(NexoraPlayPhysicsFixture PRIVATE Nexora::Foundation)
+  nexora_apply_defaults(NexoraPlayPhysicsFixture)
+endif()
 
 add_executable(NexoraPlayInputStateTests PlayInputStateTests.cpp)
 target_include_directories(NexoraPlayInputStateTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
@@ -207,6 +231,28 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_gameplay_module PROPERTIES TIMEOUT 45)
+  add_test(
+    NAME editor.linux_native_play_scene_services
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
+            --scene-services
+            --module "$<TARGET_FILE:NexoraPlaySceneFixture>"
+            --editor "$<TARGET_FILE:NexoraEditor>"
+            --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+            --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_play_scene_services PROPERTIES TIMEOUT 45)
+  if(NEXORA_ENABLE_GAMEPLAY_SIMULATION)
+    add_test(
+      NAME editor.linux_native_play_physics_services
+      COMMAND "${Python3_EXECUTABLE}"
+              "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
+              --scene-services --physics-services
+              --module "$<TARGET_FILE:NexoraPlayPhysicsFixture>"
+              --editor "$<TARGET_FILE:NexoraEditor>"
+              --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+              --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+    set_tests_properties(editor.linux_native_play_physics_services PROPERTIES TIMEOUT 45)
+  endif()
   add_test(
     NAME editor.linux_native_game_input
     COMMAND "${Python3_EXECUTABLE}"

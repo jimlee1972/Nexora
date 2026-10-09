@@ -506,7 +506,9 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   identity，僅串流自己的有限來源檔並保留其他 geometry 及先前 Content Undo。Canonical alias
   維持 metadata namespace／type，關閉儲存失敗則重開原路徑與錯誤以供重試。各檔案 CPU camera state 在切換及可寫 shutdown 時保留。
   真正 1×／2× menu／key／modal 測試與 Linux Xvfb 驗證 New、輸入 Save As、Open／重開、
-  原檔案保留及唯讀 bytes。Content 中文資料夾／檔名顯示、搜尋、改名／移動與 Undo 使用 UTF-8
+  原檔案保留及唯讀 bytes。✅ 原生 Open fixture 現先等既有 committed startup association
+  確認完成，再執行 edit／save／Undo 斷言，保留原 operation deadline 與 production route。
+  Content 中文資料夾／檔名顯示、搜尋、改名／移動與 Undo 使用 UTF-8
   與原生路徑，portable 及 1×／2× panel 測試驗證不經 Windows 系統字碼頁。
   ✅ 啟動現會恢復上次成功 Open／Save 的場景及各檔案 view state，包含唯讀重開。有界
   project／UTF-8 metadata 重新驗證 managed scope；無效／aliased、其他專案或無法載入的資料
@@ -651,7 +653,23 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   optional FixedUpdate 在 tick／Step 執行，Update 每個 playing frame 執行一次。有界訊息進入
   Console，失敗會拒絕 Start／暫停 Play，Stop／視窗關閉會先卸載再銷毀 clone。Static lifecycle
   測試與 Xvfb 真實動態 library 已驗證 mesh 移動、Pause／Step／Stop、Editor 場景未變動。
-  初版 host 支援 component，未宣告 scene／physics 服務；擴充 input 裝置與 hot reload 仍待完成。
+  host 現也提供下述有界 Scene API 與 optional CPU collider query；rigid-body integration、
+  擴充 input 裝置與 hot reload 仍待完成。
+- ✅ 真正的 Play V3 host 現可載入／啟用空的記憶體 scene，並在隔離 clone 生成／刪除
+  已驗證的 Camera／Light／Mesh entity。UTF-8 名稱、descriptor 值與 lifetime admission 配額
+  皆有界；拒絕操作會保留 output 與 World 資料。原子刪除包含 descendants，Stop／Destroy
+  callback 仍可使用服務，新 binding 重設配額。World ID 耗盡會拒絕配置，不會回繞。
+  Portable 與真正 Xvfb 動態模組測試涵蓋重複 Play lifecycle、Editor bytes 未變動。
+  Optional CPU Physics query 詳列於下方；其他 optional callback 仍不可用。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md)。
+- ✅ Optional Play Physics spawn 現擁有最多 256 個 live local AABB binding，提供真正 CPU
+  PhysicsWorld raycast 的 copied result。八個角點透過目前 affine matrix 保留 inherited
+  rotation／mirror／shear；排除 inactive／stale／unloading entry，同距離命中選較小 entity ID。
+  Despawn cascade 清除 binding，但 lifetime spawn quota 仍消耗。Invalid／miss／overflow
+  失敗保留 output，Stop／Destroy 期間仍可使用服務。真正 V3、simulation-OFF 與 dynamic
+  native Game fixture 涵蓋 query、Editor 資料未變動；詳見
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayPhysicsServices-Linux-2026-10-09.md)。
+  Rigid-body／backend stepping、authored collider import 與完整 gameplay／input 仍待完成。
 - ✅ 點擊 playing Game canvas 現可透過複製的 gameplay input snapshot 路由 user-zero
   WASD／方向鍵位移與 Space／滑鼠／Shift／Ctrl 按鈕。Escape、pointer 離開、隱藏 Game、
   Pause／Stop、提示視窗與 native 失焦會清除擷取及 held state。擷取中的按鍵不會觸發 authoring
@@ -740,8 +758,18 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   未知 schema、未解析 dependency 與 resource collision。
   [ADR-0006](ADR-0006-Cooked-Static-Projects.md) 記錄 compatibility／ownership 決策；
   [Linux 證據](../../Tools/Build/evidence/EditorEDM6-CookedStaticProject-Linux-2026-10-08.md)
-  涵蓋 Development、Monolithic Shipping 與實際 CLI consumption。Editor export、原生 player
+  涵蓋 Development、Monolithic Shipping 與實際 CLI consumption。圖形化 Editor export、原生 player
   rendering、gameplay compilation 與 Build／deploy／log workflow 仍待完成。
+
+- ✅ 純 Editor `CookStaticProject` producer 現消費 owning Runtime scene capture 與明確提供的
+  owning imported OBJ／scalar PBR values，透過共用 Runtime codec／AssetCooker／package
+  validation cook exact full-UUID dependency closure。保留 snapshot／legacy shader／opaque
+  bytes，拒絕 resource collision 或未知 reserved binding。測試涵蓋 owning lifetime、獨立
+  capture 的 deterministic bytes、真實 10 萬 entities、精確 geometry／opaque 上限與
+  standalone ProjectPlayer consumption；詳見 [producer contract](../../Engine/Editor/StaticProjectExport.md)
+  與 [Linux 證據](../../Tools/Build/evidence/EditorEDM6-StaticProjectExport-Linux-2026-10-09.md)。
+  Current-state／recovery／cancellation 授權、atomic publication、圖形化 export、原生
+  player rendering 與完整 Build／deploy／log 驗收仍待完成。
 
 - ✅ Editor 現明確啟用真實 completed native GPU timing：Vulkan／DX12 timestamp query
   與 Metal command-buffer timing 在既有 completion point 發布 copied source／submission／

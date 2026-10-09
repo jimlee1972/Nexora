@@ -56,6 +56,11 @@ target_link_libraries(NexoraBoundedSceneSaveTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraBoundedSceneSaveTests)
 add_test(NAME runtime.bounded_scene_save COMMAND NexoraBoundedSceneSaveTests)
 
+add_executable(NexoraWorldIdentityTests WorldIdentityTests.cpp)
+target_link_libraries(NexoraWorldIdentityTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraWorldIdentityTests)
+add_test(NAME runtime.world_identity_exhaustion COMMAND NexoraWorldIdentityTests)
+
 add_executable(NexoraV1M7Tests V1M7Tests.cpp)
 target_link_libraries(NexoraV1M7Tests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraV1M7Tests)
