@@ -64,8 +64,8 @@ NEXORA_PLUGIN_ABI_EXPORT uint32_t NexoraPluginAbiVersion() noexcept {
   return nexora::foundation::kEngineAbiVersion + (kMode == 5 ? 1U : 0U);
 }
 #endif
-NEXORA_PLUGIN_ABI_EXPORT void NexoraPluginRegister(void *context,
-                                                   NexoraServiceRegisterCallback callback) {
+NEXORA_PLUGIN_ABI_EXPORT void
+NexoraPluginRegister(void *context, NexoraServiceRegisterCallback callback) noexcept(false) {
   Event("register");
   stopped = false;
   if (kMode == 12 || kMode == 13) {

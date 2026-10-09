@@ -72,3 +72,9 @@ four unchanged constants now has its own declaration; warnings and export requir
 enabled. The repaired source passes the complete graphical gate again: **205/205**, zero skips,
 **404.66s**, plus Minimal Shipping and Full Shipping SDK tests **3/3 in 0.02s**.
 Touched C++ clang-format and git diff checks pass. Root README and full milestone counts remain unchanged.
+
+The next hosted Windows run exposed C4297 in the deliberately throwing registration fixture:
+MSVC assumes C linkage functions do not throw under the repository exception flags. Marking that
+test export noexcept(false) explicitly preserves the mode-11 registration-exception rollback proof
+without suppressing warnings or changing the production C ABI. The complete graphical gate passes
+again: **205/205**, zero skips, **404.16s**, plus Minimal Shipping and Full SDK tests **3/3 in 0.02s**.
