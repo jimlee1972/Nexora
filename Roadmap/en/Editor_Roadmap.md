@@ -721,6 +721,14 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ Build export prerequisites now provide a bounded owning Runtime scene capture. The shared
+    schema-3 writer caps output before appending; the Editor captures all Runtime entities plus
+    tracked NodeKeys and full unknown metadata without IO or history changes. Entity/output and
+    opaque name/payload budgets, exact wire compatibility, lifetime, tracked subsets and real
+    Undo/Redo boundaries are tested. Generations identify objects rather than authoring revisions;
+    export publication, native player and graphical build flows remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-OwningSceneCapture-Linux-2026-10-08.md).
+
   - ✅ Runtime-owned schema-1 mesh/scalar PBR/scene codecs and a bounded StaticView package now
     resolve real cooked assets into an isolated World without Editor or source content. The optional
     `NexoraProjectPlayer --verify-package` consumes actual files and reports inactive components.

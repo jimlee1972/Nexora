@@ -106,6 +106,11 @@ target_link_libraries(NexoraPlayInputSettingsTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraPlayInputSettingsTests)
 add_test(NAME editor.play_input_settings COMMAND NexoraPlayInputSettingsTests)
 
+add_executable(NexoraSceneRuntimeCaptureTests SceneRuntimeCaptureTests.cpp)
+target_link_libraries(NexoraSceneRuntimeCaptureTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraSceneRuntimeCaptureTests)
+add_test(NAME editor.scene_runtime_capture COMMAND NexoraSceneRuntimeCaptureTests)
+
 add_executable(NexoraMaterialImportTests MaterialImportTests.cpp)
 target_link_libraries(NexoraMaterialImportTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraMaterialImportTests)

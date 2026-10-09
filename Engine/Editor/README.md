@@ -339,6 +339,38 @@ into renderer or platform internals.
   paths are parsed as native UTF-8 instead of a system code page. Valid escaped control text remains
   supported in profile/checksum metadata; existing exact duplicate-artifact checks remain in force.
 
+## Owning Runtime scene capture
+
+`SceneDocument::CaptureRuntimeScene` synchronously returns an owning `RuntimeSceneCapture` from a
+live, non-unloading Editor World scene. `runtime_snapshot` contains every Runtime entity and its
+components, including entities without an Editor node, and preserves the exact bytes from
+`World::SaveScene(scene, max_bytes)`. `nodes` contains only the document's tracked NodeKeys and their
+complete opaque type names/payloads; tracked nodes with no opaque data still retain their keys.
+Nodes follow Runtime entity storage order and each node's opaque records sort by unique type ID.
+Editor node names and authored Euler hints are excluded. The constructor does not adopt existing
+Runtime entities or invent Editor metadata.
+
+The capture owns all strings/vectors and survives later edits, New/Reload, and destruction of the
+document and World. Scene ID, document generation and NodeKey generations identify the captured
+objects; they are not an authoring revision and do not prove that captured content is still current.
+Default equality compares the complete owning data. Consumers must perform their own current-state
+comparison and access/recovery checks before publishing a result.
+
+Capture checks the 100,000 Runtime entity limit before serialization, then preflights nonzero/unique
+identities, tracked-node membership in this scene and opaque metadata before copying payloads.
+Runtime output is capped at 64 MiB. Opaque limits are 4096 records total, 64 per entity, 1 MiB per
+payload, 256 bytes per nonempty type name and 16 MiB total raw type-name bytes plus payload bytes.
+Names containing CR, LF or NUL reject; legacy non-UTF-8 names retain their original bytes. Invalid
+identities, missing/foreign nodes, lifecycle/kind failures and exceeded budgets return no partial
+capture and an actionable optional error. These are logical data/output limits, not allocator or
+process-RSS bounds.
+
+Calls are serialized with all World/document authoring access on the owning thread; the operation
+is not thread-safe. Capture performs no IO and does not change selection, clipboard, Undo/Redo,
+dirty state or the saved baseline. It does not authorize publication, workspace write access or
+recovery decisions. The owning result may be transferred to a worker without retaining World
+borrows, but that worker gains no authority to mutate or publish to the source document.
+
 ## Threading, errors, and deferred work
 
 Project create/open/upgrade, recent-project mutation, workspace/layout writes, and content-model

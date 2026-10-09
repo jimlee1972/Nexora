@@ -222,22 +222,24 @@ public:
       return {id, entity_generation, document_generation};
     }
   };
-  // Owns the serialized scene and its clean-baseline identity, without borrowing Runtime state.
-  // Only SceneDocument can prepare it; readers cannot alter its bytes or validation metadata.
-  class PreparedSave final {
-  public:
-    [[nodiscard]] const std::string &Bytes() const noexcept { return bytes_; }
-    [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }
-
-  private:
-    friend class SceneDocument;
-    PreparedSave(std::uint64_t generation, std::string bytes, std::string signature,
-                 std::string opaque_records)
-        : generation_(generation), bytes_(std::move(bytes)), signature_(std::move(signature)),
-          opaque_records_(std::move(opaque_records)) {}
-    std::uint64_t generation_{};
-    std::string bytes_, signature_, opaque_records_;
+  // Owning Runtime bytes and Editor-owned opaque metadata; names/Euler hints are authoring data
+  // and are intentionally absent. Runtime entities without a tracked Editor node stay in the
+  // snapshot without fabricated metadata. Nodes follow Runtime storage order, opaque types sort
+  // ascending, and all keys retain the captured document identity (not an authoring revision).
+  struct RuntimeSceneCapture final {
+    struct NodeMetadata final {
+      NodeKey key;
+      std::vector<OpaqueComponent> opaque;
+      bool operator==(const NodeMetadata &) const = default;
+    };
+    runtime::Id scene{};
+    std::uint64_t document_generation{};
+    std::string runtime_snapshot;
+    std::vector<NodeMetadata> nodes;
+    bool operator==(const RuntimeSceneCapture &) const = default;
   };
+  static constexpr std::size_t kMaximumRuntimeCaptureEntities = 100'000;
+  static constexpr std::size_t kMaximumRuntimeCaptureBytes = 64 * 1024 * 1024;
   SceneDocument(runtime::World &world, runtime::Id scene);
   // Creates a node; with a parent the new entity starts at the parent's origin (identity local).
   runtime::Id Create(std::string name, runtime::Id parent = 0);
@@ -342,6 +344,12 @@ public:
   // This document boundary is not an Undo step. Caller owns workspace/dirty-content decisions.
   bool NewScene();
   bool Reload(const std::filesystem::path &path);
+  // Authoring-thread, synchronous capture of a live Editor World scene. Preflights identities,
+  // opaque metadata and bounds before serialization/copy; serialization uses World authority
+  // with the byte cap. No IO, World borrow in the result, or history/selection/baseline mutation.
+  // A rejected capture returns no partial value and an actionable error when requested.
+  [[nodiscard]] std::optional<RuntimeSceneCapture>
+  CaptureRuntimeScene(std::string *error = nullptr) const;
   // Compares the live, serializable scene with the last successful Save or Reload.
   [[nodiscard]] bool Dirty() const;
   [[nodiscard]] std::span<const runtime::Id> Selection() const noexcept { return selection_; }

@@ -210,6 +210,22 @@ reservation is capped at a small constant, so a hostile snapshot cannot make the
 reserve memory proportional to a claimed count.
 Double-precision world transforms provide the large-coordinate foundation.
 
+`World::SaveScene(scene, max_bytes)` synchronously returns an owning snapshot only when its complete
+serialized output fits the caller's byte cap. Missing, unloading/unloaded scenes, stream failures
+and exceeded caps return `nullopt`, never partial bytes. The writer checks remaining capacity before
+each append and preflights the escaped quoted scene-name size before invoking `std::quoted`, which
+may allocate a formatter-owned temporary. The cap bounds logical output bytes, not string capacity,
+total formatter/allocator memory or process RSS. Callers apply their own entity/count and metadata
+budgets; Runtime does not impose the Editor capture's 100,000-entity or 64-MiB policy.
+
+The legacy `SaveScene(scene)` delegates with the maximum `size_t` cap to the same production
+serializer. Both paths preserve schema 3, classic locale, 17-digit numeric precision, quoted names,
+entity storage order and full-width IDs; this overload adds no persistence migration. Serialization
+is read-only, performs no IO/publication, and requires serialized access on the World's owning
+thread like other World calls. Returned bytes retain no scene/entity borrow and survive mutation or
+destruction of the source World. Successful serialization grants no Editor workspace access,
+recovery or publication authority and does not establish an authoring revision.
+
 `runtime::Transform` is one component holding a position, a rotation stored as a unit quaternion
 (`qx, qy, qz, qw`, identity by default), and a per-axis scale (`sx, sy, sz`, one by default), following
 the Unity and Unreal convention of a single transform with possibly non-uniform scale. Euler angles
