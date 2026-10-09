@@ -1030,6 +1030,9 @@ third-party capture adapters remain open.
 rows keyed by stable entity IDs and fields. An absent whole source is `nullopt`, distinct from an
 empty present file or an existing empty field. `SceneDocument::ReloadBytes` and ordinary file Reload
 share one versioned parser and legacy migration; comparison uses only isolated temporary Worlds.
+Comparison caps authoring nodes during ingestion before legacy validation/migration, and legacy
+hierarchy validation visits each node/edge once. Quaternion signs use one canonical hemisphere;
+equivalent q/-q rotations remain equal while independent authored Euler turns stay inspectable.
 Runtime entity presence, parent/sibling order, local TRS, camera/light/mesh fields, tracked names,
 authored Euler turns and opaque type names/exact hexadecimal payloads remain inspectable. Generation
 IDs, selection and Undo history are not persistent source fields. Unknown payloads are never loaded

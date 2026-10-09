@@ -4,9 +4,9 @@
 isolated temporary Worlds and the production SceneDocument parser/migration. Its output owns changed
 stable entity/field paths and optional base/local/remote values. Missing whole sources and existing
 empty fields are distinct. Runtime presence, parent/sibling order, local TRS, camera/light/mesh fields,
+tracked authoring names, Euler turns and exact opaque type/payload values remain inspectable.
 Quaternion signs are canonicalized to one hemisphere, including zero-w rotations, so q/-q do not
-fabricate scene changes. Authored Euler hints remain separate and preserve intentional full turns.
-tracked authoring names, Euler turns and exact opaque type/payload values remain inspectable. Paths
+fabricate scene changes. Authored Euler hints remain separate and preserve intentional full turns. Paths
 sort deterministically. Shared/local/remote choices are read-only per-field hints; unresolved conflicts
 remain explicit. They do not certify a valid merged scene or publish data.
 
@@ -45,8 +45,8 @@ snapshots pass. No racing writer, source publication, weakened assertion or skip
 Initial 74-step focused build passed 1/1 in 1.97s. Expanded two-step build passed 1/1 in 6.39s.
 Final full graphical/native configure/build completed 403 remaining steps and **218/218 in 505.68s**,
 zero skips; semantic acceptance passed 6.47s inside that full run. Minimal Shipping completed 74 steps.
-The tested functional commit is a1f4a6a1 on accepted owner main 2e1b03a1. Exact final-head hosted checks
-subsequently required two review corrections. Real identity, zero-w half-turn and general rotations
+The initial functional commit was a1f4a6a1 on accepted owner main 2e1b03a1. Automated review
+then identified two corrections. Real identity, zero-w half-turn and general rotations
 serialize with opposite signs and compare without changed fields/conflicts. A 20,000-node legacy
 parent chain below 8 MiB rejects on its 4,097th authoring node in each revision position, preserving
 existing document bytes/generation/history. The bounded ReloadBytes overload shares the production
