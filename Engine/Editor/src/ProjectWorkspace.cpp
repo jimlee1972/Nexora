@@ -3,6 +3,7 @@
 #include "GpuTimingJson.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/SceneSaveBatch.h"
 #include "ProcessMemoryJson.h"
 
 #include <algorithm>
@@ -579,6 +580,11 @@ bool ProjectWorkspace::WriteWorkspace(std::span<const std::string> documents, st
 bool ProjectWorkspace::SaveWorkspace(std::span<const std::string> documents, std::string *error) {
   if (!EnsureWritable(access_, error))
     return false;
+  if (SceneSaveBatch::HasRecovery(*this)) {
+    if (error)
+      *error = "Save All recovery must finish before saving the workspace.";
+    return false;
+  }
   if (!ValidateWorkspaceDocuments(documents, error))
     return false;
   std::string journal = "schema=1\n";
@@ -598,6 +604,13 @@ bool ProjectWorkspace::SaveWorkspace(std::span<const std::string> documents, std
 bool ProjectWorkspace::RecoverWorkspace(std::string *error) {
   if (!EnsureWritable(access_, error))
     return false;
+  std::error_code status_error;
+  const auto legacy =
+      std::filesystem::symlink_status(root_ / ".nexora/workspace.recovery", status_error);
+  if (SceneSaveBatch::HasRecovery(*this) &&
+      (status_error == std::errc::no_such_file_or_directory ||
+       (!status_error && legacy.type() == std::filesystem::file_type::not_found)))
+    return SceneSaveBatch::Recover(*this, error);
   std::vector<std::string> recovered;
   if (!ReadWorkspace(root_ / ".nexora/workspace.recovery", recovered, error, "recovery journal",
                      false))
@@ -608,19 +621,23 @@ bool ProjectWorkspace::RecoverWorkspace(std::string *error) {
   std::filesystem::remove(root_ / ".nexora/workspace.recovery", ec);
   if (ec && error)
     *error = "workspace recovered but journal cleanup failed: " + ec.message();
-  return !ec;
+  return !ec && (!SceneSaveBatch::HasRecovery(*this) || SceneSaveBatch::Recover(*this, error));
 }
 
 bool ProjectWorkspace::DiscardRecovery(std::string *error) {
   if (!EnsureWritable(access_, error))
     return false;
+  const bool batch_pending = SceneSaveBatch::HasRecovery(*this);
   std::error_code ec;
   const bool removed = std::filesystem::remove(root_ / ".nexora/workspace.recovery", ec);
   if (ec && error)
     *error = "could not discard recovery journal: " + ec.message();
-  else if (!removed && error)
+  else if (!removed && !batch_pending && error)
     *error = "recovery journal does not exist";
-  return !ec && removed;
+  // Discarding an interrupted Save All means restoring its originals. Never discard the
+  // only retained copies while a partially published batch is awaiting recovery.
+  return !ec && (removed || batch_pending) &&
+         (!batch_pending || SceneSaveBatch::Recover(*this, error));
 }
 
 namespace {
@@ -1128,6 +1145,8 @@ std::optional<std::string> ProjectWorkspace::LoadEditorLayout(std::string *error
 bool ProjectWorkspace::HasRecoveryJournal() const {
   if (root_.empty())
     return false;
+  if (SceneSaveBatch::HasRecovery(*this))
+    return true;
   std::error_code ec;
   const auto path = root_ / ".nexora/workspace.recovery";
   const auto status = std::filesystem::symlink_status(path, ec);

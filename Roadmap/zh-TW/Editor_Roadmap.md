@@ -701,18 +701,24 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
+- ✅ Authoring SDK 現可 stage／重驗有界 immutable Save All batch，僅在全部 named scene
+  file 發布並驗證後承認 baseline。中斷時復原精確原檔或保留 gated recovery data，
+  不覆寫 foreign／corrupt input；實際多文件／16 文件、rollback、restart 與 cleanup retry
+  測試通過。圖形化 additive ownership／tabs、persisted composition 與完整 ED-M4 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-SceneSaveBatch-Linux-2026-10-09.md)。
+
 - ✅ Scene save 現先準備 owning、immutable 的 byte／content／generation snapshot，不做 IO、
   不改 dirty baseline 或 history。延後的單檔 publication 在 IO 前重驗 live generation 與
   serializable content，涵蓋 opaque bytes 及 authored Euler turns；僅替換成功後才將 snapshot
   標為 clean。一般 Save 共用此路徑。測試涵蓋 stale rejection、Undo／Redo、staging failure、
-  ownership 與 save／reopen。Coordinated multi-file publication、additive tabs 及完整 ED-M4
+  ownership 與 save／reopen。Graphical coordinated multi-file publication、additive tabs 及完整 ED-M4
   仍保持 open。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PreparedSceneSave-Linux-2026-10-08.md)。
 
 - ✅ Additive scene 的初始 dependency 現於 graph mutation 前拒絕 zero／self／missing ID，
   並與 dependency replacement 一致地正規化重複 edge。獨立 portable 測試確認 admission
   拒絕後保留 owned／reference descriptor 與 deterministic load order，並驗證 cycle rollback
-  及安全的反向移除。Additive tab、coordinated save-all 與完整 ED-M4 驗收仍待完成。
+  及安全的反向移除。Additive tab、graphical coordinated save-all 與完整 ED-M4 驗收仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneDependencies-Linux-2026-10-08.md)。
 
 - ✅ Autosave 寫入於碰觸檔案前套用與 recovery 相同的 64 MiB payload 上限；保留上一份有效

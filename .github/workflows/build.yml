@@ -182,6 +182,9 @@ jobs:
           ctest --preset linux-development -N -R '^editor\.linux_display_acceptance$' | grep -q 'Total Tests: 1'
           ctest --preset linux-development -N -R '^editor\.static_project_export_(job|ui)$|^editor\.linux_static_project_export$' | grep -q 'Total Tests: 3'
           ctest --preset linux-development -N -R '^editor\.tool_capability_metadata$' | grep -q 'Total Tests: 1'
+      - name: Require coordinated scene-save acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.scene_save_batch$' | grep -q 'Total Tests: 1'
       - name: Editor tests (includes the Xvfb display acceptance)
         # The deep hierarchy test must be present in the graphical configuration.
         # Full Editor execution below retains all existing navigation controls.
