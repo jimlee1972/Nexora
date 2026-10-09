@@ -8,6 +8,11 @@ target_link_libraries(NexoraEditorTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraEditorTests)
 add_test(NAME editor.preview_contract COMMAND NexoraEditorTests)
 
+add_executable(NexoraToolCapabilityTests ToolCapabilityTests.cpp)
+target_link_libraries(NexoraToolCapabilityTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraToolCapabilityTests)
+add_test(NAME editor.tool_capability_metadata COMMAND NexoraToolCapabilityTests)
+
 add_executable(NexoraPreparedSceneSaveTests PreparedSceneSaveTests.cpp)
 target_link_libraries(NexoraPreparedSceneSaveTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraPreparedSceneSaveTests)

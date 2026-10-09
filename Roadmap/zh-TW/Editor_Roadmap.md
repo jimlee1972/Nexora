@@ -740,6 +740,12 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
   狀態，fallback 必須附原因。
 - 待辦：由各 production subsystem 支援的圖形化 specialized tool 與 capability plugin。
 
+- ✅ UI-neutral specialized-tool metadata 現擁有 schema／interface version、provider ID、
+  宣告權限、document／contribution identity 與有界 resource declaration。無效或超限 registration
+  保留既有 registry；owning snapshot 可跨 removal。這些宣告不授權、不執行 plugin allocation
+  policy，也不代表 production graphical workflow 已驗收；reference plugin 與
+  edit／preview／save／unload 驗收仍待完成。
+
 ### ED-M6 — Build、profile 與 extensibility
 
 Build profiles、cook/package frontend、target/device matrix、remote deploy/log、CPU/GPU/memory/frame profiler、plugin manager、script/API docs。任何「Build Success」必須附 target manifest 與可重現 command。

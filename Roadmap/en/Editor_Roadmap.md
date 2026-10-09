@@ -771,6 +771,11 @@ creates property widgets; unknown components retain raw data instead of being si
     control tests cover the supporting slice. Full prefab/additive/migration/crash and source-control
     acceptance remain open; see [external-save evidence](../../Tools/Build/evidence/EditorEDM4-ExternalSceneSave-Linux-2026-10-08.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
+  - ✅ UI-neutral specialized-tool metadata now owns schema/interface versions, provider IDs,
+    declared permissions, document/contribution identities and bounded resource declarations.
+    Invalid/oversized admission preserves existing registry state; owning snapshots survive removal.
+    These declarations do not grant permissions, enforce plugin allocations or prove a production
+    graphical workflow. The reference plugin and edit/preview/save/unload acceptance remain open.
   - ✅ Portable capability registry enforces stable tool IDs and honest implemented/read-only/
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
