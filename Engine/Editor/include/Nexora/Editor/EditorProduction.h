@@ -114,6 +114,16 @@ struct GpuProfileObservation final {
   std::optional<double> milliseconds;
   std::optional<double> observed_peak_ms;
 };
+struct GpuTimingCapture final {
+  GpuProfileSource source{GpuProfileSource::Unavailable};
+  bool software_rasterizer{};
+  std::vector<GpuProfileSample> samples;
+  std::uint64_t older_samples_dropped{};
+};
+// Shared admission for synchronous export and owning static GUI/import snapshots.
+[[nodiscard]] NEXORA_EDITOR_API bool
+ValidateGpuTimingSamples(GpuProfileSource source,
+                         std::span<const GpuProfileSample> samples) noexcept;
 
 class NEXORA_EDITOR_API ProfileSession final {
 public:

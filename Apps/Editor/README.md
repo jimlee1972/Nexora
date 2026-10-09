@@ -421,7 +421,7 @@ cells because this wall-time format excludes live RSS observations. Export requi
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import and GPU trace persistence remain open; process-memory traces use their own schema.
+file itself. Arbitrary capture import remains open; native GPU and process-memory traces use separate schemas.
 
 Profiler Import CSV reads `.nexora/frame-processing.csv` through the workspace owner and displays a
 separate static wall-time snapshot. The file is bounded to 128 KiB/600 ordered samples; malformed,
@@ -437,7 +437,7 @@ atomic writer. Its independent UI request is consumed before adding the current 
 reach Profiler status and Console. Schema 1 identifies source/scope, milliseconds, project UUID,
 sample count and evicted-frame count. uint64 frame/drop values are lossless decimal strings;
 GPU/memory availability is false and sample values are null. CSV behavior and file remain unchanged.
-Arbitrary import and instrumented GPU/memory traces are still unavailable.
+Arbitrary import remains open; measured native GPU and process-memory traces use separate files.
 
 Game Apply Changes is an explicit transform-only review. Opening it emits Pause when needed and
 releases Game input. The modal owns original/Editor/Play transforms and session/document/entity
@@ -672,3 +672,12 @@ never borrows a native command buffer or substitutes CPU frame time. GPU samples
 completion and are independent of CPU wall-time/RSS; no project file is written implicitly. Shutdown
 reports bounded source/scope/unit, completed ID, retained/dropped counts and optional latest duration.
 Software Vulkan evidence does not establish physical GPU timing accuracy or performance budgets.
+
+The application consumes independent GPU export/import requests through the current workspace.
+Export synchronously borrows the retained live samples with the current native source/software and
+dropped count, writing `.nexora/gpu-timing.json`. Import transfers a validated owning static snapshot
+to the GUI; source/scope/unit/project validation and failures preserve live capture and prior static
+state. Results enter Profiler status and the bounded Console independently of wall/RSS requests.
+The project UUID denotes the export destination, not GPU resource ownership. No file is written
+automatically, and existing wall-time/RSS capture bytes remain compatible. Physical calibration,
+per-pass analysis and broader external capture formats remain open.

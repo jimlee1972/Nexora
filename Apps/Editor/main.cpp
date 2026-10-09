@@ -1175,6 +1175,29 @@ int RunGraphical(std::optional<ProjectState> project,
                   : nexora::runtime::RuntimeLogSeverity::Error,
             "Input", saved ? "Project input bindings saved." : error);
       }
+      if (ui.TakeGpuExportRequest()) {
+        std::string error;
+        const auto observation = profile.GpuTiming();
+        const bool saved = project->workspace.ExportGpuTimingJson(
+            observation.source, observation.software_rasterizer, profile.GpuSamples(),
+            profile.GpuDroppedCount(), &error);
+        ui.SetProfileExportStatus(saved ? "Saved .nexora/gpu-timing.json" : error);
+        log(saved ? nexora::runtime::RuntimeLogSeverity::Info
+                  : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", saved ? "Native GPU timing trace exported." : error);
+      }
+      if (ui.TakeGpuImportRequest()) {
+        std::string error;
+        auto capture = project->workspace.ImportGpuTimingJson(&error);
+        const bool loaded = capture && ui.SetImportedGpuCapture(std::move(*capture));
+        if (!loaded && error.empty())
+          error = "Imported GPU timing snapshot was rejected.";
+        ui.SetProfileExportStatus(loaded ? "Loaded .nexora/gpu-timing.json (static)" : error);
+        log(loaded ? nexora::runtime::RuntimeLogSeverity::Info
+                   : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler",
+            loaded ? "Native GPU timing trace imported; live capture unchanged." : error);
+      }
       if (ui.TakeMemoryExportRequest()) {
         std::string error;
         const bool saved = project->workspace.ExportProcessMemoryJson(

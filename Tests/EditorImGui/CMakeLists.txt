@@ -374,3 +374,8 @@ target_include_directories(NexoraGpuProfileDisplayTests PRIVATE "${PROJECT_SOURC
 target_link_libraries(NexoraGpuProfileDisplayTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraGpuProfileDisplayTests)
 add_test(NAME editor.gpu_profile_display COMMAND NexoraGpuProfileDisplayTests)
+add_executable(NexoraGpuCaptureDisplayTests GpuCaptureDisplayTests.cpp)
+target_link_libraries(NexoraGpuCaptureDisplayTests PRIVATE Nexora::EditorImGui)
+target_include_directories(NexoraGpuCaptureDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+nexora_apply_defaults(NexoraGpuCaptureDisplayTests)
+add_test(NAME editor.gpu_capture_display COMMAND NexoraGpuCaptureDisplayTests)

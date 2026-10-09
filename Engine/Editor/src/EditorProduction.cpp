@@ -223,6 +223,21 @@ bool ProfileSession::SampleProcessMemory(std::chrono::steady_clock::time_point n
   return true;
 }
 
+bool ValidateGpuTimingSamples(GpuProfileSource source,
+                              std::span<const GpuProfileSample> samples) noexcept {
+  if (source == GpuProfileSource::Unavailable || source > GpuProfileSource::MetalCommandBuffer ||
+      samples.empty() || samples.size() > ProfileSession::kMaximumGpuSamples)
+    return false;
+  std::uint64_t previous = 0;
+  for (const auto &sample : samples) {
+    if (!sample.submission || sample.submission <= previous ||
+        (sample.milliseconds && (!std::isfinite(*sample.milliseconds) || *sample.milliseconds < 0)))
+      return false;
+    previous = sample.submission;
+  }
+  return true;
+}
+
 bool ProfileSession::ObserveGpuFrame(std::uint64_t domain, GpuProfileSource source,
                                      bool software_rasterizer, GpuProfileSample sample) noexcept {
   if (!domain || source > GpuProfileSource::MetalCommandBuffer ||

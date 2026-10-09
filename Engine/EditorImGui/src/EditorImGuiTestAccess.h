@@ -107,6 +107,10 @@ public:
   ImportedMemoryCapture(const EditorImGuiHost &host) noexcept;
 
   [[nodiscard]] static GpuProfileObservation ProfileGpu(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  GpuControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static const GpuTimingCapture *
+  ImportedGpuCapture(const EditorImGuiHost &host) noexcept;
   static void FocusConsole(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ConsoleControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
