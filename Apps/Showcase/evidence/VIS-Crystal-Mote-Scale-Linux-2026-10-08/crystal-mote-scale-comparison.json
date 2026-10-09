@@ -1,0 +1,35 @@
+{
+  "wide": {
+    "changed_bounds": [
+      634,
+      167,
+      883,
+      674
+    ],
+    "changed_pixels": 4483,
+    "baseline": "VIS-Sky-Brightness-Balance-Linux-2026-10-08/native-art/wide.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  },
+  "close": {
+    "changed_bounds": [
+      628,
+      175,
+      874,
+      513
+    ],
+    "changed_pixels": 4749,
+    "baseline": "VIS-Sky-Brightness-Balance-Linux-2026-10-08/native-art/close.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  },
+  "motion": {
+    "changed_bounds": [
+      633,
+      201,
+      816,
+      607
+    ],
+    "changed_pixels": 3168,
+    "baseline": "VIS-Sky-Brightness-Balance-Linux-2026-10-08/native-art/motion.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  }
+}

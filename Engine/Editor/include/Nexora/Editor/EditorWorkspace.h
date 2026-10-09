@@ -333,6 +333,11 @@ public:
   bool DeleteSelection();
   bool Undo();
   bool Redo();
+  // Serialized authoring-thread calls. Prepare performs no IO or baseline/history mutation.
+  [[nodiscard]] std::optional<PreparedSave> PrepareSave() const;
+  // Rejects changed document generation or content before IO; advances the baseline only after
+  // successful single-file publication. Caller owns workspace access and destination policy.
+  bool SavePrepared(const std::filesystem::path &path, const PreparedSave &prepared) const;
   bool Save(const std::filesystem::path &path) const;
   // Starts an unsaved empty document, preserving World scene ID/name/state/persistence.
   // Advances generations and clears selection/clipboard/history; rejected replacement is atomic.

@@ -236,6 +236,15 @@ into renderer or platform internals.
   commit the whole batch as one Runtime Undo step; equal-value batches preserve Redo.
   Unresolved resource IDs are retained in scene persistence, and Undo can return to the saved clean
   baseline. These synchronous authoring APIs do not perform asset lookup, I/O, residency, or GPU work.
+  `PrepareSave` owns immutable serialized scene bytes plus document generation, content signature
+  and opaque baseline, bounded by the existing 64 MiB scene-file limit. Preparation performs no IO
+  and does not change dirty state, selection or history. `SavePrepared` revalidates generation and
+  all serializable content (including opaque bytes and authored Euler turns) before any file IO;
+  only successful atomic single-file replacement advances the clean baseline. Ordinary `Save`
+  uses the same path. Both calls are serialized by the authoring host; the snapshot can be copied
+  or retained without World borrows, but submission still requires the live owning document.
+  Callers retain workspace writer/recovery and destination-path responsibilities. This is save-all
+  staging groundwork: no multi-file commit, crash journal, additive tabs or fsync durability is added.
   `Dirty` compares the live serializable scene to the last successful Save or Reload. Its signature
   preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.
