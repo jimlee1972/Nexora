@@ -120,7 +120,8 @@
       "feature": "NEXORA_ENABLE_EDITOR",
       "dependencies": [
         "Editor",
-        "Runtime"
+        "Runtime",
+        "Core"
       ]
     },
     {

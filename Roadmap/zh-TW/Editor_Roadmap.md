@@ -624,6 +624,13 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   Resume 顯示較新的 retained log，暫停時仍可 filter。1x／2x DPI 滑鼠事件驅動測試涵蓋
   background producer 淘汰、source／null 重新綁定及 32 次控制循環。
   更完整的 Runtime／build log routing 與 ED-M3 target 驗收仍保持 open。
+- ✅ 圖形 Console 現從真正有界的 Core async producer 接收 owning、sequenced observation，
+  涵蓋 Editor 與 V3 Play log。Pending／ring／text budget、UTF-8／raw-wire 拒絕、跨 restart
+  單調 cursor 與 upstream loss 單次計數，讓 worker traffic 不受 UI Pause／filter／Clear
+  影響。四個 producer、teardown、byte／sequence 邊界與真正 1x／2x 控制項測試涵蓋此路徑；
+  原生 Game fixture 驗證關閉時保有 Core／gameplay records。完整 Runtime／build producer
+  與 debugger／IDE 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-CoreConsole-Linux-2026-10-09.md)。
 - ✅ Docked Console 現顯示有界 Runtime 紀錄，提供文字／嚴重度篩選、來源、時間戳與丟棄數；
   Editor 會記錄啟動及場景開啟／儲存診斷。
 - ✅ Docked Game panel 現可操作隔離的 PlaySession：Play／Stop、Pause／Resume 與單一步進；

@@ -154,6 +154,20 @@ int Run() {
   log_service.Flush();
   Require(log_service.CrashRingSnapshot().size() == 1,
           "an out-of-range log level must be dropped rather than misinterpreted");
+  const char embedded_nul[]{'a', 0, 'b'};
+  const char invalid_utf8[]{char(0xc0), char(0xaf)};
+  logging_host.log(logging_host.context, 1, embedded_nul, sizeof(embedded_nul));
+  logging_host.log(logging_host.context, 1, invalid_utf8, sizeof(invalid_utf8));
+  logging_host.log(logging_host.context, 1, nullptr, 1);
+  logging_host.log(logging_host.context, 1, reinterpret_cast<const char *>(1), UINT32_MAX);
+  const auto rejected = log_service.SnapshotSince(0);
+  Require(rejected.records.size() == 1 && rejected.rejected_records == 5,
+          "invalid gameplay wire data allocated/read payloads or concealed producer loss");
+  logging_host.log(logging_host.context, 1, nullptr, 0);
+  log_service.Flush();
+  Require(log_service.CrashRingSnapshot().size() == 2 &&
+              log_service.CrashRingSnapshot().back().message.empty(),
+          "zero-length gameplay log requires a non-null pointer");
   log_service.Stop();
 
   return 0;

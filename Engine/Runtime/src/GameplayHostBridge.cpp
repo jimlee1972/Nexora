@@ -57,7 +57,7 @@ void SetTickEnabled(void *context, uint32_t enabled) {
 }
 
 void Log(void *context, uint32_t level, const char *message, uint32_t message_length) {
-  if (context == nullptr || message == nullptr)
+  if (context == nullptr)
     return;
   auto &host_context = *static_cast<const GameplayHostContext *>(context);
   if (host_context.log == nullptr)
@@ -67,14 +67,21 @@ void Log(void *context, uint32_t level, const char *message, uint32_t message_le
   // against a future ABI version could pass a level this build doesn't
   // know about, and silently reinterpreting it as whichever LogLevel that
   // bit pattern happens to alias would be worse than just dropping it.
-  if (level > static_cast<uint32_t>(core::LogLevel::Fatal))
+  if (level > static_cast<uint32_t>(core::LogLevel::Fatal) ||
+      message_length > core::AsyncLogService::kMaximumMessageBytes ||
+      (!message && message_length)) {
+    host_context.log->ReportRejected();
     return;
+  }
   // message is a (pointer, length) pair, not necessarily NUL-terminated --
-  // constructing std::string from both preserves an embedded NUL exactly
-  // like Nexora/Foundation/Types.h's own byte-oriented views do, rather
-  // than truncating at the first one.
-  host_context.log->Write(static_cast<core::LogLevel>(level), "Gameplay",
-                          std::string(message, message_length));
+  // Validate bounded text before allocating. Embedded NUL/malformed UTF-8 rejects the record,
+  // rather than truncating bytes into a different diagnostic message.
+  const auto text = message_length ? std::string_view(message, message_length) : std::string_view{};
+  if (text.find('\0') != std::string_view::npos || !foundation::IsValidUtf8(text)) {
+    host_context.log->ReportRejected();
+    return;
+  }
+  host_context.log->Write(static_cast<core::LogLevel>(level), "Gameplay", std::string(text));
 }
 
 } // namespace

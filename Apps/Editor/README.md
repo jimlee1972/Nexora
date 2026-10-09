@@ -166,12 +166,34 @@ shown in the Content panel and continue to block artifact publication.
 
 The docked Console now shows bounded structured records with text and severity filters, timestamps,
 source, and a dropped-record counter. The Editor records graphical startup and scene open/save
-results through the Runtime console; broader gameplay and build log routing remains open.
+results through a real bounded Core AsyncLogService. V3 gameplay records use the same producer;
+Core Trace/Debug map to Console Trace, and Info/Warning/Error/Fatal preserve their severity.
+Broader Runtime/build log producers and native debugger routing remain open.
 Pause display freezes an owning log snapshot while Runtime producers continue; filters still apply
 to the frozen records. Resume reads current ingress. Clear view hides all records present at the
 click, including live records received during pause, while preserving the source buffer and its
 cumulative dropped count. Later logs remain visible. Display counts distinguish visible records
 from captured/retained records; controls perform no project writes or scene-history mutations.
+
+### Core producer-to-Console ingress
+
+The application owns a bounded Core async log producer and a noncopyable polling adapter for this
+one graphical session. The adapter binds one producer/Console pair whose lifetimes outlive it.
+Every loop polls only copied already-consumed records; it never flushes, joins or invokes UI from
+a producer thread. Source text is validated bounded UTF-8 and compacted. Monotonic cursors avoid
+duplicate delivery; unread Core-ring sequence gaps and rejected producer/wire counts enter the
+Console's saturating visible drop counter exactly once, independently of Console capacity evictions.
+Producer records already observed before Core-ring eviction are not counted again as source loss.
+
+V3 Play logging rejects unknown levels, messages over 4 KiB, missing nonempty pointers, embedded
+NUL and malformed UTF-8 before copying; it never truncates Unicode or silently converts an unknown
+level. Null/zero messages are empty records. A rejection callback accounts lost wire data without
+allocating its payload. The underlying Runtime V2 bridge uses the same Core policy with its 16-KiB
+message budget. Module unload/Stop records reach the producer before clone destruction; shutdown
+then drains Core and polls its final owning records before Console teardown. Graphical shutdown
+prints bounded producer/retained/drop/gameplay-retained counts for native acceptance fixtures.
+This routes actual Core/Play producers, without claiming complete engine/build/device log routing
+or debugger/IDE integration. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-CoreConsole-Linux-2026-10-09.md).
 
 The docked Game panel now controls an isolated `PlaySession`: F5 starts or stops, F6 pauses or
 resumes, and F10 advances one paused fixed tick. The panel inspects copied Play World entity

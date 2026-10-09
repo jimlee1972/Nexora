@@ -644,7 +644,9 @@ An accepted record receives a strictly increasing sequence starting at one and e
 record only after successful ownership publication; that eviction also increments dropped count.
 UINT64_MAX is admitted once, after which the sequence is exhausted permanently and future pushes
 reject without evicting the final retained history. Dropped count saturates at UINT64_MAX, never
-wraps, and includes both admission rejections and capacity evictions. The ingress has no reset API.
+wraps, and includes admission rejections, capacity evictions and explicitly reported upstream
+loss. `ReportDropped(count)` saturates under the same mutex without inventing records/sequences
+or changing retained history. The ingress has no reset API.
 
 Accepted strings are rebuilt from their validated bytes to release producer-provided oversized
 reserve allocations. At maximum capacity, retained text totals at most 72,351,744 bytes (69 MiB),
@@ -654,8 +656,8 @@ admission. Allocation failure propagates the standard allocation exception with 
 unchanged; it is not an admission rejection. `Snapshot` returns an owning sequence-ordered copy and
 never exposes producer-invalidated storage; callers own the number/lifetime of such copies. Calls
 are synchronous, safe across concurrent producers/snapshot readers, and perform no I/O or log-route
-registration. Complete Runtime/build routing and native debugger integration remain separate ED-M3
-work. The dedicated `runtime.console_record_admission` gate covers byte/Unicode/severity admission,
+registration. The Editor now polls owning Core producer records into this ingress and reports unread source
+loss once; full Runtime/build routing and native debugger integration remain separate ED-M3 work. The dedicated `runtime.console_record_admission` gate covers byte/Unicode/severity admission,
 producer reserve compaction, rejected-history preservation, capacity clamping, concurrent owning
 snapshots, exact drops, and production-transaction counter exhaustion.
 
@@ -721,7 +723,10 @@ derived from their `Nexora.*` names, and explicit wire structures keep internal 
 the ABI. `log` forwards to a
 real `core::AsyncLogService` when `GameplayHostContext::log` is set (category `"Gameplay"`,
 level validated against `LogLevel`'s own range before the `uint32_t` -> enum cast, message built
-from the `(pointer, length)` pair rather than assumed NUL-terminated); it stays a silent no-op when
+from the `(pointer, length)` pair rather than assumed NUL-terminated). Attached logging rejects
+unknown levels, messages over 16 KiB, missing nonempty pointers, embedded NUL and malformed UTF-8
+before allocating a record; rejected raw wire data increments the Core producer counter. A null
+pointer with zero length is a valid empty message. It stays a silent no-op when
 that field is left null, exactly as it always was. `GameplayHostContext` grew a field to carry it --
 like every other Runtime C++ facade type (`GameWorld`, `EntitySpawnDescriptor`, ...), it has no
 `struct_size` of its own and is not part of the stable, versioned C ABI surface

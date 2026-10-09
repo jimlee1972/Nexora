@@ -112,6 +112,9 @@ production retains ImGui's native platform defaults.
   applied/required upgrade state, and the bounded recent-project list. It never acquires a lock,
   upgrades a descriptor, or writes recent state; the application completes those operations before
   drawing.
+- The application polls the real bounded Core async producer into RuntimeConsole before drawing.
+  Core rejection and unread-eviction counts join the visible Console drop counter once; workers
+  never call UI and Pause/filter/Clear do not stop producer traffic or change its cursor.
 - `RuntimeConsole` is borrowed for the frame. The Console panel takes an owning, bounded snapshot,
   filters severity and text, clips visible rows, and reports the producer's dropped-record count.
   It does not retain record references after drawing. The application owns ingress and timestamps.

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Nexora/Foundation/Types.h"
 #include "Nexora/Game/GameplayHostBridge.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
 #include "PlayInputState.h"
@@ -19,7 +20,10 @@ namespace nexora::editor::preview {
 class PlayGameplayModule final {
 public:
   using LogSink = std::function<void(std::uint32_t, std::string)>;
-  explicit PlayGameplayModule(LogSink log = {}) : log_(std::move(log)), module_(Host()) {}
+  using LogRejectionSink = std::function<void()>;
+  static constexpr std::size_t kMaximumLogMessageBytes = 4096;
+  explicit PlayGameplayModule(LogSink log = {}, LogRejectionSink rejected_log = {})
+      : log_(std::move(log)), rejected_log_(std::move(rejected_log)), module_(Host()) {}
   ~PlayGameplayModule() { Unload(); }
   PlayGameplayModule(const PlayGameplayModule &) = delete;
   PlayGameplayModule &operator=(const PlayGameplayModule &) = delete;
@@ -104,8 +108,22 @@ private:
     host.log = [](void *context, std::uint32_t level, const char *message, std::uint32_t length) {
       try {
         auto &self = Self(context);
-        if (self.log_ && message)
-          self.log_(level, std::string(message, std::min(length, 4096U)));
+        // Reject before reading oversized/invalid pointer-length data; never truncate UTF-8.
+        if (level > static_cast<std::uint32_t>(core::LogLevel::Fatal) ||
+            length > kMaximumLogMessageBytes || (!message && length)) {
+          if (self.rejected_log_)
+            self.rejected_log_();
+          return;
+        }
+        const std::string_view text =
+            length ? std::string_view(message, length) : std::string_view{};
+        if (text.find('\0') != std::string_view::npos || !foundation::IsValidUtf8(text)) {
+          if (self.rejected_log_)
+            self.rejected_log_();
+          return;
+        }
+        if (self.log_)
+          self.log_(level, std::string(text));
       } catch (...) {
       }
     };
@@ -172,6 +190,7 @@ private:
   }
   runtime::World *world_{};
   LogSink log_;
+  LogRejectionSink rejected_log_;
   PlayInputState input_;
   std::unordered_map<void *, Allocation> allocations_;
   std::uint64_t bytes_{};
