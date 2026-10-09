@@ -408,13 +408,37 @@ optional and runs on fixed ticks/manual Step, and Update runs once per playing f
 retain inspection-only Play. Canonical paths outside the project and failed ABI/lifecycle loads
 are rejected visibly. Module logs enter the bounded Console; failed callbacks pause Play.
 Stop/window shutdown unload the module before destroying the clone. The host bounds allocation
-and message sizes, supports the shared component wire set, and advertises no scene/physics
-capability. Click a playing Game canvas to capture input; Escape, pointer exit, hiding Game, Pause/Stop,
+and message sizes, supports the shared component wire set, and advertises implemented Scene API
+and host allocator capabilities. Physics and other optional services remain unavailable. Click a playing Game canvas to capture input; Escape, pointer exit, hiding Game, Pause/Stop,
 recovery/close prompts, and window blur release it and clear held controls. F5/F6/F10 remain Play
 controls; other captured keys/text do not reach authoring shortcuts. The initial user-zero input
 snapshot maps WASD/arrows to movement axes and Space/left mouse/right mouse/Shift/Ctrl to button
 bits 1/2/4/8/16, with one frame sequence and no borrowed input data. Gamepad, pointer motion/look,
 device-specific rebinding, multiple users, and module hot reload remain open.
+
+### Play scene/entity services
+
+The V3 embedding binds only a Play-kind World; static and relative dynamic loads reject an Editor
+World. `load_scene` creates an empty in-memory scene, with an owning NUL-free UTF-8 name of 1–256
+bytes and persistent flag 0/1. It performs no project IO or scene-file interpretation. `activate_scene`
+uses the loaded-inactive lifecycle, and duplicate/missing/unloading activation fails. `spawn_entity`
+validates the admitted descriptor prefix, known flags, reserved zero, finite root position, enabled
+Camera FOV (0–180 exclusive), nonnegative finite Light and nonzero Mesh ID before publication.
+Camera clipping defaults to 0.1/1000. Material zero is neutral; full uint64 mesh/shader IDs are values,
+with resolution remaining separate. Unused component fields/future descriptor suffixes are ignored.
+Physics requests return Unsupported; no partial entity or output is published. Missing/unloading
+scenes and malformed descriptors return InvalidArgument; unbound, exhausted quotas/IDs or allocation
+failure return Lifecycle. All output arguments retain their prior values on failure.
+
+One module binding admits at most 32 scenes and 4096 spawns over its lifetime, counting successful
+admission. Despawn uses atomic World commands and removes descendants; it does not replenish quotas.
+Authored cloned entities can be despawned in Play, while Editor data/Undo remain isolated. Callback
+calls are synchronous on the serialized game thread, borrow wire pointers only for the call and
+return scalar IDs. Module Stop/Destroy still have access; the owner clears binding/quotas after
+Unload and before clone destruction. Stop discards created/deleted entities; transform Apply Changes
+continues excluding creation/deletion. Physics, asset resolution, debug drawing and diagnostics slots
+remain null; modules must check each optional callback. Stable C/Zig layout and scene formats are
+unchanged. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md).
 
 Play inspection uses one owning Runtime snapshot per UI frame. Selecting a Game entity switches
 Inspector to read-only Play mode: local/world transforms, parent/scene state, Camera/Light payloads,

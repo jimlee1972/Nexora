@@ -199,8 +199,11 @@ std::optional<Transform> NormalizedTransform(Transform transform) noexcept {
 }
 
 Id World::LoadScene(std::string name, bool persistent) {
-  const auto id = next_id_++;
+  if (next_id_ == std::numeric_limits<Id>::max())
+    throw std::overflow_error("World object IDs exhausted");
+  const auto id = next_id_;
   scenes_.push_back({id, std::move(name), SceneState::LoadedInactive, persistent, {}});
+  ++next_id_;
   return id;
 }
 
@@ -238,6 +241,8 @@ std::optional<std::string> World::SaveScene(Id id, std::size_t max_bytes) const 
 }
 
 std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
+  if (next_id_ == std::numeric_limits<Id>::max())
+    return std::nullopt;
   std::istringstream input{std::string(snapshot)};
   input.imbue(std::locale::classic());
   std::string magic, name;
@@ -276,7 +281,8 @@ std::optional<Id> World::LoadSceneSnapshot(std::string_view snapshot) {
           entity.camera_data.vertical_field_of_view >> entity.camera_data.near_plane >>
           entity.camera_data.far_plane >> entity.light_data.intensity >> entity.mesh_data.mesh >>
           entity.mesh_data.material.shader) ||
-        entity.id == 0 || FindEntity(entity.id) != nullptr || !ids.insert(entity.id).second)
+        entity.id == 0 || entity.id == std::numeric_limits<Id>::max() ||
+        FindEntity(entity.id) != nullptr || !ids.insert(entity.id).second)
       return std::nullopt;
     // Rejects non-finite values, a zero scale, and a degenerate quaternion; a valid quaternion that
     // is not unit length is normalized so a loaded scene always holds unit rotations.
@@ -376,7 +382,10 @@ Entity &World::CreateEntity(Id id) {
   if (scene == nullptr || scene->state == SceneState::Unloaded ||
       scene->state == SceneState::Unloading)
     throw std::invalid_argument("entity requires a loaded scene");
-  scene->entities.push_back({next_id_++});
+  if (next_id_ == std::numeric_limits<Id>::max())
+    throw std::overflow_error("World object IDs exhausted");
+  scene->entities.push_back({next_id_});
+  ++next_id_;
   return scene->entities.back();
 }
 

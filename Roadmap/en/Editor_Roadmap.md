@@ -540,6 +540,8 @@ creates property widgets; unknown components retain raw data instead of being si
   retaining unrelated geometry and earlier content Undo;
   per-file CPU camera state survives switches and writable shutdown. Real 1x/2x menu/key/modal tests
   and Linux Xvfb verify New, typed Save As, Open/reopen, source-file retention and read-only bytes.
+  ✅ The native Open fixture waits for the existing committed startup association before later
+  edit/save/Undo assertions, retaining its original operation deadlines and production routes.
   Content Unicode folder/asset labels, search, rename/move and Undo use UTF-8 and native paths,
   with portable and 1x/2x panel tests; they avoid Windows system code-page conversion.
   ✅ Startup restores the last successfully opened/saved scene with per-file view state, including
@@ -690,7 +692,14 @@ creates property widgets; unknown components retain raw data instead of being si
     frame. Bounded messages reach Console, failures reject Start/pause Play, and Stop/window shutdown
     unload before clone destruction. Static lifecycle tests and a real Xvfb dynamic library verify
     mesh movement, Pause/Step/Stop, and an unchanged authored scene. This initial component-oriented
-    host does not advertise scene/physics services; expanded input devices and hot reload remain open.
+    host now also provides the bounded Scene API below; physics, expanded input devices and hot reload remain open.
+  - ✅ The actual Play V3 host now loads/activates empty in-memory scenes and spawns/despawns
+    validated Camera/Light/Mesh entities in the isolated clone. UTF-8 names, descriptor values and
+    lifetime admission quotas are bounded; outputs and World data survive rejected operations.
+    Atomic deletion cascades, Stop/Destroy callbacks retain service access, and new bindings reset
+    quotas. World allocation rejects ID exhaustion without wrapping. Portable and actual dynamic
+    Xvfb fixtures preserve Editor bytes across repeated Play lifecycles. Physics and other optional
+    callbacks remain unavailable. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md).
   - ✅ Clicking the playing Game canvas now routes user-zero held WASD/arrow movement and
     Space/mouse/Shift/Ctrl buttons through copied gameplay input snapshots. Escape, pointer exit,
     hidden Game, Pause/Stop, prompts, and native blur clear capture and held state. Captured keys
