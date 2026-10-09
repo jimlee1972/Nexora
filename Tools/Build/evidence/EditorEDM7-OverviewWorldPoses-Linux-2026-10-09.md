@@ -47,6 +47,16 @@ cmake --preset linux-shipping
 cmake --build --preset linux-shipping -j4
 ~~~
 
+## Final accepted deep-hierarchy integration
+
+Rebased onto accepted main `ceb409da50a4900c9fedfc476db33f18ed03600a`, retaining both deep
+hierarchy and overview registration, fixtures and bilingual entries. The 305-step incremental
+graphical/native build passed. The complete gate passed **214/214**, zero skips, **497.18s**;
+minimal Shipping passed its **14-step** incremental build. Exact commands and options above were
+repeated. This final result includes the existing native scene-file, preview, center and authored
+mesh acceptance without helper changes or relaxed assertions/deadlines in this branch.
+Fresh hosted checks for the final head remain required before merge.
+
 This rebuild-required public C++ API preserves scene serialization and stable C/Zig gameplay ABI.
 Complete frame/memory budgets, production asset scale, lifecycle soak and physical-display
 acceptance remain open. Linux cloud execution does not certify other hosted/physical platforms.
