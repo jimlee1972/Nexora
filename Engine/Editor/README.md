@@ -241,7 +241,9 @@ into renderer or platform internals.
   and does not change dirty state, selection or history. `SavePrepared` revalidates generation and
   all serializable content (including opaque bytes and authored Euler turns) before any file IO;
   only successful atomic single-file replacement advances the clean baseline. Ordinary `Save`
-  uses the same path. Both calls are serialized by the authoring host; the snapshot can be copied
+  uses the same path. Its optional written-bytes result owns exactly the prepared bytes after
+  successful publication and is empty on failure; the owning result is allocated before IO.
+  Both calls are serialized by the authoring host; the snapshot can be copied
   or retained without World borrows, but submission still requires the live owning document.
   Callers retain workspace writer/recovery and destination-path responsibilities. This is save-all
   staging groundwork: no multi-file commit, crash journal, additive tabs or fsync durability is added.
@@ -258,7 +260,12 @@ into renderer or platform internals.
   dry-runs never mutate source text; autosave writers and readers share a 64 MiB payload limit.
   Oversized writes are rejected before filesystem mutation, occupied temporary paths are preserved, and failed
   writes/replacements clean only this attempt's temporary file while retaining the destination.
-  The schema-1 header uses the classic locale regardless of the process locale. Calls are
+  The schema-1 writer uses the classic locale regardless of the process locale. Recovery reads
+  at most 127 header bytes and requires the writer's `NEXORA_AUTOSAVE 1 <revision> <size>\n`
+  syntax with unsigned decimal fields. It rejects non-regular files and file symlinks, checks the
+  total file budget and exact declared payload length before allocation, and still verifies EOF
+  after reading. Failures preserve source bytes and the caller's revision; success clears a prior
+  error. This is a serialized-file preflight, not protection against concurrent file substitution. Calls are
   serialized by the authoring host; concurrent writers are not supported. Bounded autosave
   recovery rejects corruption without changing the caller's revision; stable-path three-way
   records retain unresolved base/local/remote values without coupling conflicts to a source-control provider.
@@ -514,7 +521,10 @@ diagnostics, asset UUID, autosave, camera, and project/workspace/layout/recent-p
 fixed seeds. It
 requires every parser to return normally on corrupted input; under the ASan/UBSan presets memory and
 undefined-behavior errors fail it too. Set `NEXORA_PARSER_ROBUSTNESS_ITERATIONS` for a longer local soak.
-It is a robustness check, not a proof that no malformed input can fail.
+Workspace mutations restore valid descriptor/workspace/layout metadata for each input; recovery uses
+a real schema-1 journal and writable owner, checking failed recovery preserves committed bytes,
+current documents and the journal. Autosave mutations also check source and caller-revision
+preservation. It is a robustness check, not a proof that no malformed input can fail.
 
 ### Mesh reimport publication
 

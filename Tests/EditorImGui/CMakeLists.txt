@@ -128,7 +128,8 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --editor "$<TARGET_FILE:NexoraEditor>"
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
-  set_tests_properties(editor.linux_scene_files PROPERTIES TIMEOUT 60)
+  # This workflow includes several native launches; individual waits still fail after 10 seconds.
+  set_tests_properties(editor.linux_scene_files PROPERTIES TIMEOUT 120)
   add_test(
     NAME editor.linux_display_acceptance
     COMMAND "${Python3_EXECUTABLE}"

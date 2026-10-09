@@ -119,6 +119,12 @@ satisfy this milestone.
 includes all 18 selected CI jobs. Physical display, installed IME and visual-legibility/glyph
 coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
+- ✅ Scene-file acceptance fixtures release the consumed destination reader before atomic
+  overwrite, retaining every SaveAs/New continuation assertion. The multi-launch Linux workflow
+  now has a 120-second total budget with unchanged 10-second per-step deadlines. Final graphical
+  Linux gate passes 178/178; updated hosted Windows verification remains pending and physical-host
+  acceptance stays open. [Evidence](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md).
+
 ### ED-M1 — Project and asset workspace
 
 - ✅ Content folders support real Tab focus and Enter activation; focused Alt+Up returns to the
@@ -789,6 +795,13 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: graphical build frontend, remote deployment/logs, GPU profiling, saved memory traces, arbitrary capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ Autosave recovery now bounds schema-1 headers before token parsing, rejects signed/overflow
+    fields and non-regular/aliased files, and checks the exact file/payload length before allocation.
+    Empty/binary/64 MiB/max-revision round trips, every-byte truncation and rejection preservation
+    are covered. Mutation fixtures now seed a real workspace recovery journal, reset valid project
+    metadata per input and exercise writable recovery; rejected journals preserve committed bytes,
+    live documents and source data. Full migration/crash/target-host acceptance remains open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md).
   - ✅ Portable telemetry consent now releases all retained events on opt-out and bounds the
     in-memory queue to 1,024 events of 1,024 UTF-8 bytes each. Invalid/oversized/overflow events
     preserve accepted records; repeated revoke/enable cannot resurrect old events. Contract tests
