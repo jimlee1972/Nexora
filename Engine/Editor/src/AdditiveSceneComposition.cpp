@@ -141,6 +141,7 @@ struct AdditiveSceneComposition::State final {
   foundation::Uuid project;
   std::optional<Disk> baseline;
   std::function<void()> before_restore_publish;
+  std::function<void()> after_source_size_preflight;
   explicit State(AdditiveSceneSession &owner, const ProjectWorkspace &project_workspace)
       : session(owner), workspace(project_workspace), root(workspace.Root()),
         project(workspace.Project().id) {}
@@ -199,7 +200,8 @@ SceneCompositionStatus AdditiveSceneComposition::Restore(std::string *error) {
     return state.Current() && current && *current == *disk;
   };
   if (!decoded ||
-      !state.session.RestoreComposition(decoded->rows, decoded->active, metadata_current, error)) {
+      !state.session.RestoreComposition(decoded->rows, decoded->active, metadata_current,
+                                        state.after_source_size_preflight, error)) {
     if (!decoded)
       Fail(error, "Saved scene composition is invalid or belongs to another project.");
     return SceneCompositionStatus::Rejected;
@@ -244,11 +246,13 @@ bool AdditiveSceneComposition::Save(std::string *error) {
     const auto *files = state.session.Files(row.id);
     const auto path = files && files->current_ ? files->Resolve(*files->current_) : std::nullopt;
     const auto current = path ? SceneFileSession::ReadDisk(*path) : std::nullopt;
-    if (!files || !files->disk_baseline_ || !current ||
-        current->exists != files->disk_baseline_->exists ||
+    if (!files || !files->disk_baseline_ || !files->disk_baseline_->exists || !current ||
+        !current->exists || !state.session.DistinctPath(row.path, row.id) ||
         current->bytes != files->disk_baseline_->bytes ||
         current->bytes.size() > SceneSaveBatch::kMaximumPayloadBytes - payload_bytes)
-      return Fail(error, "A composition source changed or exceeds its aggregate payload budget.");
+      return Fail(error,
+                  "A composition source is missing, aliased, changed or exceeds its aggregate "
+                  "payload budget.");
     payload_bytes += current->bytes.size();
   }
   const auto bytes = Encode(state.workspace, composition);
@@ -270,5 +274,9 @@ bool AdditiveSceneComposition::Save(std::string *error) {
 void SceneCompositionTestAccess::BeforeRestorePublish(AdditiveSceneComposition &composition,
                                                       std::function<void()> hook) {
   composition.state_->before_restore_publish = std::move(hook);
+}
+void SceneCompositionTestAccess::AfterSourceSizePreflight(AdditiveSceneComposition &composition,
+                                                          std::function<void()> hook) {
+  composition.state_->after_source_size_preflight = std::move(hook);
 }
 } // namespace nexora::editor

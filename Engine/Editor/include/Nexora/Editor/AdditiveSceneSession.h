@@ -56,7 +56,8 @@ public:
 private:
   friend class AdditiveSceneComposition;
   bool RestoreComposition(std::span<const SceneCompositionEntry>, std::size_t active,
-                          const std::function<bool()> &validate_metadata, std::string *error);
+                          const std::function<bool()> &validate_metadata,
+                          const std::function<void()> &after_size_preflight, std::string *error);
   struct Entry;
   [[nodiscard]] Entry *Find(SceneDocumentId) const;
   [[nodiscard]] bool Live(const Entry &, SceneFileToken) const;

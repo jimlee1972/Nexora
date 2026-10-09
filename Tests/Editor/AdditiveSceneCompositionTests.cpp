@@ -1,6 +1,7 @@
 #include "../../Engine/Editor/src/SceneCompositionTestAccess.h"
 #include "Nexora/Editor/AdditiveSceneComposition.h"
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <fstream>
@@ -282,6 +283,136 @@ void LateChangesAndPartialAdmission(const std::filesystem::path &root) {
           "Late/partial failures prevented a complete restore retry");
   project.Unchanged();
 }
+void AliasAndMissingSources(const std::filesystem::path &root) {
+  editor::ProjectWorkspace workspace;
+  Require(workspace.Create(root, "Source existence and aliases"), "Source policy project failed");
+  runtime::World world;
+  const auto id = world.LoadScene("Empty source");
+  Require(world.Activate(id), "Source policy primary activation failed");
+  editor::SceneDocument document(world, id);
+  editor::SceneFileSession files(workspace, document);
+  Require(files.BindCurrent("Content/Missing.scene"), "Missing named source fixture failed");
+  editor::AdditiveSceneSession session(workspace, world);
+  Require(session.Attach(document, files) == id, "Missing source attachment failed");
+  editor::AdditiveSceneComposition composition(session);
+  const auto metadata = root / ".nexora/scene-composition.ini";
+  const auto before = document.CaptureRuntimeScene();
+  Require(composition.Restore() == Status::Missing && !composition.Save() &&
+              !std::filesystem::exists(metadata) &&
+              !std::filesystem::exists(root / "Content/Missing.scene") &&
+              document.CaptureRuntimeScene() == before,
+          "Named absent source published unrestorable composition metadata");
+  Require(files.SaveAs(files.Token(), "Content/Primary.scene").Applied(),
+          "Empty primary save failed");
+  const auto original = Read(root / "Content/Primary.scene");
+  Write(root / "Content/Second.scene", original);
+  const auto second = session.Open("Content/Second.scene", true);
+  Require(second && composition.Save(), "Distinct identical empty sources failed");
+  const auto saved = Read(metadata);
+  std::filesystem::remove(root / "Content/Second.scene");
+  std::filesystem::create_hard_link(root / "Content/Primary.scene", root / "Content/Second.scene");
+  Require(!composition.Save() && Read(metadata) == saved &&
+              Read(root / "Content/Primary.scene") == original &&
+              Read(root / "Content/Second.scene") == original,
+          "Byte-identical post-admission hard links published unrestorable metadata");
+  std::filesystem::remove(root / "Content/Second.scene");
+  Write(root / "Content/Second.scene", original);
+  Require(composition.Save(), "Alias repair did not permit metadata retry");
+  runtime::World restored_world;
+  const auto primary = restored_world.LoadScene("Restored primary");
+  Require(restored_world.Activate(primary), "Alias restore activation failed");
+  editor::SceneDocument restored(restored_world, primary);
+  editor::SceneFileSession restored_files(workspace, restored);
+  Require(restored_files.Open(restored_files.Token(), "Content/Primary.scene", true).Applied(),
+          "Alias restore primary open failed");
+  editor::AdditiveSceneSession restored_session(workspace, restored_world);
+  Require(restored_session.Attach(restored, restored_files) == primary,
+          "Alias restore primary attach failed");
+  editor::AdditiveSceneComposition restored_composition(restored_session);
+  const auto restored_before = restored.CaptureRuntimeScene();
+  editor::SceneCompositionTestAccess::BeforeRestorePublish(restored_composition, [&] {
+    std::filesystem::remove(root / "Content/Second.scene");
+    std::filesystem::create_hard_link(root / "Content/Primary.scene",
+                                      root / "Content/Second.scene");
+  });
+  Require(restored_composition.Restore() == Status::Rejected &&
+              restored_session.Snapshot().size() == 1 && restored_world.ActiveSceneCount() == 1 &&
+              restored.CaptureRuntimeScene() == restored_before && Read(metadata) == saved &&
+              std::filesystem::equivalent(root / "Content/Primary.scene",
+                                          root / "Content/Second.scene"),
+          "Late byte-identical alias published candidate membership or rewrote sources");
+  std::filesystem::remove(root / "Content/Second.scene");
+  Write(root / "Content/Second.scene", original);
+  editor::SceneCompositionTestAccess::BeforeRestorePublish(restored_composition, {});
+  Require(restored_composition.Restore() == Status::Restored &&
+              restored_session.Snapshot().size() == 2 && Read(metadata) == saved,
+          "Late alias repair could not restore the complete set");
+}
+void ActualBaselineGrowth(const std::filesystem::path &root) {
+  editor::ProjectWorkspace workspace;
+  Require(workspace.Create(root, "Loaded payload budget"), "Growth workspace failed");
+  std::string metadata;
+  {
+    runtime::World world;
+    const auto id = world.LoadScene("Primary");
+    Require(world.Activate(id), "Growth primary activation failed");
+    editor::SceneDocument document(world, id);
+    editor::SceneFileSession files(workspace, document);
+    Require(files.SaveAs(files.Token(), "Content/Primary.scene").Applied(),
+            "Growth primary save failed");
+    editor::AdditiveSceneSession session(workspace, world);
+    Require(session.Attach(document, files) == id, "Growth primary attach failed");
+    for (std::size_t index = 1; index <= 3; ++index) {
+      const auto added = session.New("Growing " + std::to_string(index));
+      Require(added && session
+                           .SaveAs(*added, session.Files(*added)->Token(),
+                                   "Content/Growing" + std::to_string(index) + ".scene")
+                           .Applied(),
+              "Growth source fixture failed");
+    }
+    editor::AdditiveSceneComposition composition(session);
+    Require(composition.Restore() == Status::Missing && composition.Save(),
+            "Growth metadata save failed");
+    metadata = Read(root / ".nexora/scene-composition.ini");
+  }
+  runtime::World world;
+  const auto id = world.LoadScene("Reopened primary");
+  Require(world.Activate(id), "Growth reopen activation failed");
+  editor::SceneDocument document(world, id);
+  editor::SceneFileSession files(workspace, document);
+  Require(files.Open(files.Token(), "Content/Primary.scene", true).Applied(),
+          "Growth bootstrap failed");
+  editor::AdditiveSceneSession session(workspace, world);
+  Require(session.Attach(document, files) == id, "Growth reopen attachment failed");
+  editor::AdditiveSceneComposition composition(session);
+  const auto before = document.CaptureRuntimeScene();
+  const auto token = files.Token();
+  editor::SceneCompositionTestAccess::AfterSourceSizePreflight(composition, [&] {
+    const std::string spaces(64 * 1024, ' ');
+    for (std::size_t index = 1; index <= 3; ++index) {
+      const auto path = root / ("Content/Growing" + std::to_string(index) + ".scene");
+      auto remaining = 45 * 1024 * 1024 - std::filesystem::file_size(path);
+      std::ofstream output(path, std::ios::binary | std::ios::app);
+      while (remaining) {
+        const auto count = std::min<std::uintmax_t>(remaining, spaces.size());
+        output.write(spaces.data(), static_cast<std::streamsize>(count));
+        remaining -= count;
+      }
+      Require(static_cast<bool>(output), "Real post-preflight source growth failed");
+    }
+  });
+  std::string error;
+  Require(composition.Restore(&error) == Status::Rejected &&
+              error.find("aggregate payload budget") != std::string::npos &&
+              session.Snapshot().size() == 1 && world.ActiveSceneCount() == 1 &&
+              files.Token() == token && document.CaptureRuntimeScene() == before &&
+              Read(root / ".nexora/scene-composition.ini") == metadata,
+          "Actual baseline growth bypassed aggregate admission or retained candidate records");
+  for (std::size_t index = 1; index <= 3; ++index)
+    Require(std::filesystem::file_size(
+                root / ("Content/Growing" + std::to_string(index) + ".scene")) == 45 * 1024 * 1024,
+            "Rejected growth restore rewrote the external sources");
+}
 void CapacityAndPayload(const std::filesystem::path &root) {
   editor::ProjectWorkspace workspace;
   Require(workspace.Create(root, "Sixteen scenes"), "Capacity workspace create failed");
@@ -364,6 +495,8 @@ int main() {
     SourceFailures(root / "sources");
     PublicationAndGates(root / "publication");
     LateChangesAndPartialAdmission(root / "late");
+    AliasAndMissingSources(root / "aliases");
+    ActualBaselineGrowth(root / "growth");
     CapacityAndPayload(root / "capacity");
     std::filesystem::remove_all(root);
     return 0;

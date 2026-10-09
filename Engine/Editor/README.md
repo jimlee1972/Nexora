@@ -291,7 +291,11 @@ write failure leaves original scene files and dirty baselines unchanged.
   prior-row dependencies and active selection in a project-bound 32 KiB UTF-8 record. Start from
   `BootstrapScene`, attach one clean primary, then Restore after Play/readers drain. All candidate
   sources/dependencies plus final exact source/metadata revisions verify before membership changes.
-  Named source payloads have a 128 MiB aggregate logical limit, not a total RSS bound. Failed restore
+  Named source payloads have a 128 MiB aggregate logical limit, not a total RSS bound. Restore
+  counts actual loaded baselines after each admission and again before publication, since source
+  files can grow after size preflight. Save and final Restore require existing source revisions and
+  recheck all destinations for aliases, including byte-identical hard links introduced after admission.
+  A rejected restore
   preserves the primary and drops only newly admitted records; invalid/foreign metadata, source ID
   collisions and external changes preserve their bytes. Save writes only metadata and requires its
   observed baseline, all named/live/source-resolved documents and writer access. Dirty scene content

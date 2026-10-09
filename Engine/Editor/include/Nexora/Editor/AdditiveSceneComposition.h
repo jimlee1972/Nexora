@@ -14,6 +14,8 @@ enum class SceneCompositionStatus : unsigned char { Missing, Restored, Rejected 
 // Metadata owns at most sixteen named paths/roles/dependency indexes and active selection, not
 // document content/history. Stop Play/drain readers before Restore. Save never saves scene sources.
 // Named source payloads are limited to 128 MiB in aggregate (logical bytes, not total RSS).
+// Actual loaded baselines are counted after admission and before publication, not just file_size.
+// Save/Restore revalidate existing distinct source destinations; aliases/absent sources reject.
 // Unnamed or unresolved compositions reject Save and preserve the previous metadata. Exact-byte
 // external-change checks protect the observed baseline; no fsync/power-loss guarantee is made.
 class NEXORA_EDITOR_API AdditiveSceneComposition final {
