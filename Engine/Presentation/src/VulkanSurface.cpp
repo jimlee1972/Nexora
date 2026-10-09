@@ -493,8 +493,20 @@ public:
     if (data.pbr && !sceneTextures_.contains(UINT64_MAX - 1) &&
         !UploadUiTexture(frame, {UINT64_MAX - 1, 1, 1, 4, flatNormal}, true))
       return SurfaceStatus::DeviceLost;
-    // Acquire has waited this frame's fence. Never release another in-flight slot's resources.
-    DestroySceneTargets(frame);
+    // Acquire has waited this slot's fence. Reuse only complete compatible offscreen targets;
+    // direct draws depend on the acquired swapchain image and retain the recreate path.
+    const bool refraction = HasSceneRefraction(data);
+    const bool reflection = data.planarReflection.has_value();
+    const auto shadowResolution = data.shadow ? data.shadow->resolution : 0U;
+    const bool reuseTargets =
+        data.offscreen && frame.sceneTargetsReusable && frame.sceneTargetsHdr == data.hdr &&
+        frame.sceneTargetsWidth == width_ && frame.sceneTargetsHeight == height_ &&
+        frame.sceneTargetsShadowResolution == shadowResolution &&
+        frame.sceneTargetsReflection == reflection && frame.sceneTargetsRefraction == refraction;
+    if (reuseTargets)
+      DestroySceneBindings(frame);
+    else
+      DestroySceneTargets(frame);
     const auto vertexBytes = std::as_bytes(data.vertices);
     const auto indexBytes = std::as_bytes(data.indices);
     const auto instanceOffset = (vertexBytes.size() + indexBytes.size() + 3) & ~std::size_t{3};
@@ -536,13 +548,11 @@ public:
       std::memcpy(static_cast<std::byte *>(mapped) + toneOffset, toneVertices.data(),
                   sizeof(toneVertices));
     vkUnmapMemory(device_, frame.sceneMemory);
-    if (data.shadow) {
+    if (data.shadow && !reuseTargets) {
       const auto status = CreateShadowTargets(frame, data.shadow->resolution);
       if (status != SurfaceStatus::Ready)
         return status;
     }
-    const bool refraction = HasSceneRefraction(data);
-    const bool reflection = data.planarReflection.has_value();
     if (reflection && !CreateRefractionTarget(frame, true))
       return SurfaceStatus::DeviceLost;
     if (refraction && !CreateRefractionTarget(frame))
@@ -644,56 +654,83 @@ public:
                                nullptr);
       }
     }
-    VkImageCreateInfo image{};
-    image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    image.imageType = VK_IMAGE_TYPE_2D;
-    image.format = VK_FORMAT_D32_SFLOAT;
-    image.extent = {width_, height_, 1};
-    image.mipLevels = image.arrayLayers = 1;
-    image.samples = VK_SAMPLE_COUNT_1_BIT;
-    image.tiling = VK_IMAGE_TILING_OPTIMAL;
-    image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    if (vkCreateImage(device_, &image, nullptr, &frame.sceneDepth) != VK_SUCCESS)
-      return SurfaceStatus::DeviceLost;
-    VkMemoryRequirements requirements{};
-    vkGetImageMemoryRequirements(device_, frame.sceneDepth, &requirements);
-    const auto depthMemory =
-        FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    if (depthMemory == UINT32_MAX)
-      return SurfaceStatus::Unsupported;
-    VkMemoryAllocateInfo allocate{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
-                                  requirements.size, depthMemory};
-    if (vkAllocateMemory(device_, &allocate, nullptr, &frame.sceneDepthMemory) != VK_SUCCESS ||
-        vkBindImageMemory(device_, frame.sceneDepth, frame.sceneDepthMemory, 0) != VK_SUCCESS)
-      return SurfaceStatus::DeviceLost;
-    VkImageViewCreateInfo view{};
-    view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    view.image = frame.sceneDepth;
-    view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    view.format = VK_FORMAT_D32_SFLOAT;
-    view.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
-    if (vkCreateImageView(device_, &view, nullptr, &frame.sceneDepthView) != VK_SUCCESS)
-      return SurfaceStatus::DeviceLost;
-    if (data.offscreen) {
-      image.format = data.hdr ? VK_FORMAT_R16G16B16A16_SFLOAT : swapchainFormat_;
-      image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                    VK_IMAGE_USAGE_SAMPLED_BIT;
-      if (vkCreateImage(device_, &image, nullptr, &frame.sceneColor) != VK_SUCCESS)
+    if (!reuseTargets) {
+      VkImageCreateInfo image{};
+      image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+      image.imageType = VK_IMAGE_TYPE_2D;
+      image.format = VK_FORMAT_D32_SFLOAT;
+      image.extent = {width_, height_, 1};
+      image.mipLevels = image.arrayLayers = 1;
+      image.samples = VK_SAMPLE_COUNT_1_BIT;
+      image.tiling = VK_IMAGE_TILING_OPTIMAL;
+      image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      if (vkCreateImage(device_, &image, nullptr, &frame.sceneDepth) != VK_SUCCESS)
         return SurfaceStatus::DeviceLost;
-      vkGetImageMemoryRequirements(device_, frame.sceneColor, &requirements);
-      allocate.allocationSize = requirements.size;
-      allocate.memoryTypeIndex =
+      VkMemoryRequirements requirements{};
+      vkGetImageMemoryRequirements(device_, frame.sceneDepth, &requirements);
+      const auto depthMemory =
           FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-      if (allocate.memoryTypeIndex == UINT32_MAX)
+      if (depthMemory == UINT32_MAX)
         return SurfaceStatus::Unsupported;
-      if (vkAllocateMemory(device_, &allocate, nullptr, &frame.sceneColorMemory) != VK_SUCCESS ||
-          vkBindImageMemory(device_, frame.sceneColor, frame.sceneColorMemory, 0) != VK_SUCCESS)
+      VkMemoryAllocateInfo allocate{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
+                                    requirements.size, depthMemory};
+      if (vkAllocateMemory(device_, &allocate, nullptr, &frame.sceneDepthMemory) != VK_SUCCESS ||
+          vkBindImageMemory(device_, frame.sceneDepth, frame.sceneDepthMemory, 0) != VK_SUCCESS)
         return SurfaceStatus::DeviceLost;
-      view.image = frame.sceneColor;
-      view.format = image.format;
-      view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-      if (vkCreateImageView(device_, &view, nullptr, &frame.sceneColorView) != VK_SUCCESS)
+      VkImageViewCreateInfo view{};
+      view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+      view.image = frame.sceneDepth;
+      view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+      view.format = VK_FORMAT_D32_SFLOAT;
+      view.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
+      if (vkCreateImageView(device_, &view, nullptr, &frame.sceneDepthView) != VK_SUCCESS)
         return SurfaceStatus::DeviceLost;
+      if (data.offscreen) {
+        image.format = data.hdr ? VK_FORMAT_R16G16B16A16_SFLOAT : swapchainFormat_;
+        image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                      VK_IMAGE_USAGE_SAMPLED_BIT;
+        if (vkCreateImage(device_, &image, nullptr, &frame.sceneColor) != VK_SUCCESS)
+          return SurfaceStatus::DeviceLost;
+        vkGetImageMemoryRequirements(device_, frame.sceneColor, &requirements);
+        allocate.allocationSize = requirements.size;
+        allocate.memoryTypeIndex =
+            FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        if (allocate.memoryTypeIndex == UINT32_MAX)
+          return SurfaceStatus::Unsupported;
+        if (vkAllocateMemory(device_, &allocate, nullptr, &frame.sceneColorMemory) != VK_SUCCESS ||
+            vkBindImageMemory(device_, frame.sceneColor, frame.sceneColorMemory, 0) != VK_SUCCESS)
+          return SurfaceStatus::DeviceLost;
+        view.image = frame.sceneColor;
+        view.format = image.format;
+        view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        if (vkCreateImageView(device_, &view, nullptr, &frame.sceneColorView) != VK_SUCCESS)
+          return SurfaceStatus::DeviceLost;
+      }
+      const VkImageView attachments[] = {
+          data.offscreen ? frame.sceneColorView : imageViews_[imageIndex_], frame.sceneDepthView};
+      VkFramebufferCreateInfo framebuffer{};
+      framebuffer.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+      framebuffer.renderPass =
+          data.hdr ? sceneHdrRenderPass_ : (afterUi ? sceneOverlayRenderPass_ : sceneRenderPass_);
+      framebuffer.attachmentCount = 2;
+      framebuffer.pAttachments = attachments;
+      framebuffer.width = width_;
+      framebuffer.height = height_;
+      framebuffer.layers = 1;
+      if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.sceneFramebuffer) !=
+          VK_SUCCESS)
+        return SurfaceStatus::DeviceLost;
+      if (reflection) {
+        const VkImageView reflectedAttachments[]{frame.reflectionView, frame.sceneDepthView};
+        framebuffer.pAttachments = reflectedAttachments;
+        if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.reflectionFramebuffer) !=
+            VK_SUCCESS)
+          return SurfaceStatus::DeviceLost;
+      }
+    }
+    // Previous contents are discarded only after the protecting slot's fence completes.
+    // The same full clear and copy operations initialize this submission's images.
+    if (data.offscreen) {
       VkImageMemoryBarrier color{};
       color.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
       color.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -706,26 +743,13 @@ public:
                            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr,
                            1, &color);
     }
-    const VkImageView attachments[] = {
-        data.offscreen ? frame.sceneColorView : imageViews_[imageIndex_], frame.sceneDepthView};
-    VkFramebufferCreateInfo framebuffer{};
-    framebuffer.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebuffer.renderPass =
-        data.hdr ? sceneHdrRenderPass_ : (afterUi ? sceneOverlayRenderPass_ : sceneRenderPass_);
-    framebuffer.attachmentCount = 2;
-    framebuffer.pAttachments = attachments;
-    framebuffer.width = width_;
-    framebuffer.height = height_;
-    framebuffer.layers = 1;
-    if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.sceneFramebuffer) != VK_SUCCESS)
-      return SurfaceStatus::DeviceLost;
-    if (reflection) {
-      const VkImageView reflectedAttachments[]{frame.reflectionView, frame.sceneDepthView};
-      framebuffer.pAttachments = reflectedAttachments;
-      if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.reflectionFramebuffer) !=
-          VK_SUCCESS)
-        return SurfaceStatus::DeviceLost;
-    }
+    frame.sceneTargetsReusable = data.offscreen;
+    frame.sceneTargetsHdr = data.hdr;
+    frame.sceneTargetsWidth = width_;
+    frame.sceneTargetsHeight = height_;
+    frame.sceneTargetsShadowResolution = shadowResolution;
+    frame.sceneTargetsReflection = reflection;
+    frame.sceneTargetsRefraction = refraction;
     std::array<VkClearValue, 2> clears{};
     clears[0].color = {{0.025F, 0.045F, 0.09F, data.hdr ? 65504.0F : 1.0F}};
     clears[1].depthStencil = {1.0F, 0};
@@ -1087,6 +1111,9 @@ private:
     VkDeviceMemory sceneDepthMemory{};
     VkImageView sceneDepthView{};
     VkFramebuffer sceneFramebuffer{};
+    bool sceneTargetsReusable{}, sceneTargetsHdr{}, sceneTargetsReflection{},
+        sceneTargetsRefraction{};
+    std::uint32_t sceneTargetsWidth{}, sceneTargetsHeight{}, sceneTargetsShadowResolution{};
     VkDeviceSize toneVertexOffset{};
     VkImage shadowColor{}, shadowDepth{};
     VkDeviceMemory shadowColorMemory{}, shadowDepthMemory{};
@@ -1149,7 +1176,22 @@ private:
                              frame.timingSequence, measured);
     frame.timingSequence = 0;
   }
+  void DestroySceneBindings(Frame &frame) {
+    if (frame.toneDescriptor)
+      vkFreeDescriptorSets(device_, uiDescriptorPool_, 1, &frame.toneDescriptor);
+    if (frame.toneFramebuffer)
+      vkDestroyFramebuffer(device_, frame.toneFramebuffer, nullptr);
+    frame.toneDescriptor = VK_NULL_HANDLE;
+    frame.toneFramebuffer = VK_NULL_HANDLE;
+    if (!frame.pbrDescriptors.empty())
+      vkFreeDescriptorSets(device_, pbrMaterialPool_,
+                           static_cast<std::uint32_t>(frame.pbrDescriptors.size()),
+                           frame.pbrDescriptors.data());
+    frame.pbrDescriptors.clear();
+  }
   void DestroySceneTargets(Frame &frame) {
+    frame.sceneTargetsReusable = false;
+    DestroySceneBindings(frame);
     if (frame.shadowFramebuffer)
       vkDestroyFramebuffer(device_, frame.shadowFramebuffer, nullptr);
     if (frame.shadowColorView)
@@ -1168,17 +1210,6 @@ private:
     frame.shadowColorView = frame.shadowDepthView = VK_NULL_HANDLE;
     frame.shadowColor = frame.shadowDepth = VK_NULL_HANDLE;
     frame.shadowColorMemory = frame.shadowDepthMemory = VK_NULL_HANDLE;
-    if (frame.toneDescriptor)
-      vkFreeDescriptorSets(device_, uiDescriptorPool_, 1, &frame.toneDescriptor);
-    if (frame.toneFramebuffer)
-      vkDestroyFramebuffer(device_, frame.toneFramebuffer, nullptr);
-    frame.toneDescriptor = VK_NULL_HANDLE;
-    frame.toneFramebuffer = VK_NULL_HANDLE;
-    if (!frame.pbrDescriptors.empty())
-      vkFreeDescriptorSets(device_, pbrMaterialPool_,
-                           static_cast<std::uint32_t>(frame.pbrDescriptors.size()),
-                           frame.pbrDescriptors.data());
-    frame.pbrDescriptors.clear();
     if (frame.sceneFramebuffer)
       vkDestroyFramebuffer(device_, frame.sceneFramebuffer, nullptr);
     if (frame.sceneColorView)
@@ -1864,38 +1895,40 @@ private:
     auto &target = reflection ? frame.reflectionColor : frame.refractionColor;
     auto &memory = reflection ? frame.reflectionMemory : frame.refractionMemory;
     auto &targetView = reflection ? frame.reflectionView : frame.refractionView;
-    VkImageCreateInfo image{};
-    image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    image.imageType = VK_IMAGE_TYPE_2D;
-    image.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-    image.extent = {width_, height_, 1};
-    image.mipLevels = image.arrayLayers = 1;
-    image.samples = VK_SAMPLE_COUNT_1_BIT;
-    image.tiling = VK_IMAGE_TILING_OPTIMAL;
-    image.usage = VK_IMAGE_USAGE_SAMPLED_BIT | (reflection ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                                                                 VK_IMAGE_USAGE_TRANSFER_SRC_BIT
-                                                           : VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-    if (vkCreateImage(device_, &image, nullptr, &target) != VK_SUCCESS)
-      return false;
-    VkMemoryRequirements requirements{};
-    vkGetImageMemoryRequirements(device_, target, &requirements);
-    const auto type =
-        FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    if (type == UINT32_MAX)
-      return false;
-    const VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
-                                          requirements.size, type};
-    if (vkAllocateMemory(device_, &allocation, nullptr, &memory) != VK_SUCCESS ||
-        vkBindImageMemory(device_, target, memory, 0) != VK_SUCCESS)
-      return false;
-    VkImageViewCreateInfo view{};
-    view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    view.image = target;
-    view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    view.format = image.format;
-    view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-    if (vkCreateImageView(device_, &view, nullptr, &targetView) != VK_SUCCESS)
-      return false;
+    if (!target) {
+      VkImageCreateInfo image{};
+      image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+      image.imageType = VK_IMAGE_TYPE_2D;
+      image.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+      image.extent = {width_, height_, 1};
+      image.mipLevels = image.arrayLayers = 1;
+      image.samples = VK_SAMPLE_COUNT_1_BIT;
+      image.tiling = VK_IMAGE_TILING_OPTIMAL;
+      image.usage = VK_IMAGE_USAGE_SAMPLED_BIT | (reflection ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                                                                   VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+                                                             : VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+      if (vkCreateImage(device_, &image, nullptr, &target) != VK_SUCCESS)
+        return false;
+      VkMemoryRequirements requirements{};
+      vkGetImageMemoryRequirements(device_, target, &requirements);
+      const auto type =
+          FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+      if (type == UINT32_MAX)
+        return false;
+      const VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
+                                            requirements.size, type};
+      if (vkAllocateMemory(device_, &allocation, nullptr, &memory) != VK_SUCCESS ||
+          vkBindImageMemory(device_, target, memory, 0) != VK_SUCCESS)
+        return false;
+      VkImageViewCreateInfo view{};
+      view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+      view.image = target;
+      view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+      view.format = image.format;
+      view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+      if (vkCreateImageView(device_, &view, nullptr, &targetView) != VK_SUCCESS)
+        return false;
+    }
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -1905,7 +1938,7 @@ private:
         reflection ? VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT : VK_ACCESS_SHADER_READ_BIT;
     barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = target;
-    barrier.subresourceRange = view.subresourceRange;
+    barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                          reflection ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
                                     : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,

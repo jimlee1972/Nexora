@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
     descriptor.window = window.handle;
     descriptor.width = 640;
     descriptor.height = 480;
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(NEXORA_TEST_VULKAN)
     descriptor.backend = SurfaceBackend::Dx12;
 #else
     descriptor.backend = SurfaceBackend::Vulkan;
@@ -451,7 +451,7 @@ int main(int argc, char **argv) {
       const auto exposedMarker = marker * draw.exposure;
       const auto mappedMarker = exposedMarker * (2.51F * exposedMarker + 0.03F) /
                                 (exposedMarker * (2.43F * exposedMarker + 0.59F) + 0.14F);
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(NEXORA_TEST_VULKAN)
       const auto legacyMarker = marker * 1.15F; // Existing DX12 Lambert ambient + direct light.
 #else
       const auto legacyMarker =
@@ -776,7 +776,7 @@ int main(int argc, char **argv) {
         const auto observedMarker = static_cast<int>(pixels[2][0]);
         const auto uiMarker = static_cast<float>(std::lround(marker * 255)) / 255;
 #if defined(_WIN32)
-        // DX12 UI submits encoded byte colors directly to its UNORM swapchain.
+        // Both Windows test adapters use UNORM swapchains for encoded UI byte colors.
         const auto uiMarkerCode = static_cast<int>(std::lround(255 * uiMarker));
 #else
         // Vulkan's sRGB swapchain performs the UI output transfer in hardware.

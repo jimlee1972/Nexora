@@ -1,6 +1,8 @@
 # Nexora V1 可視化展示 Demo 長期規劃
 
-具識別版本 `bb0c96f0` 的 GTX 960 矩陣保留全部 18 次量測：DX12 Standard 60.20–60.73 FPS（p99 18.89–20.48 ms），Vulkan Standard 37.51–40.11 FPS （p99 35.15–37.66 ms）。穩定 16.7 ms 預算與最終概念圖一致性仍未驗收。可選的已完成 GPU 計時候選版通過 Windows 122/122（234.54 秒）、Shipping 與原生／預設／headless 對照：Vulkan GPU 平均 9.24 ms，wall 平均 26.85 ms；DX12 仍保留 272.02 ms wall p99 停頓。同版診斷 CI 尚待執行；預設品質矩陣計時政策維持原值。
+✅ 相容 Vulkan offscreen 目標重用候選版通過 Windows configure／build／CTest 123/123（213.17 秒），包含雙後端原生 PBR 像素測試，Shipping／隔離 headless 亦通過。GTX 960 全部 18 次品質報告驗證通過：Vulkan Standard 125.99–126.19 FPS（p99 8.96–10.17 ms），DX12 Standard 59.87–60.56 FPS（p99 17.96–19.96 ms）。Vulkan 長跑啟用診斷時 GPU 平均 7.88 ms、process CPU 平均 6.28 ms。重用目標同版 CI、最終概念圖一致性與整體硬體預算仍未完成。[證據](../../Apps/Showcase/evidence/Windows-Vulkan-Target-Reuse-Local-2026-10-10/acceptance.md)。
+
+具識別版本 `bb0c96f0` 的 GTX 960 矩陣保留全部 18 次量測：DX12 Standard 60.20–60.73 FPS（p99 18.89–20.48 ms），Vulkan Standard 37.51–40.11 FPS （p99 35.15–37.66 ms）。穩定 16.7 ms 預算與最終概念圖一致性仍未驗收。可選的已完成 GPU 計時候選版通過 Windows 122/122（234.54 秒）、Shipping 與原生／預設／headless 對照：Vulkan GPU 平均 9.24 ms，wall 平均 26.85 ms；DX12 仍保留 272.02 ms wall p99 停頓。診斷版本 5f59f934 通過 Build 2074 全部 18 項託管 CI；預設品質矩陣計時政策維持原值。
 
 已提交的 `bb0c96f0` 候選版通過 GTX 960 雙後端實體顯示互動／完整導覽（各 74 張截圖、51 項雜湊）及同版 Build 2069 全部 18 項託管 CI。最終美術、穩定幀時間預算與修正版視覺影片仍未完成。
 

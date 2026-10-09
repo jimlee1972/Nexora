@@ -767,3 +767,27 @@ DX12／Vulkan 僅在單一場景 phase 或陰影 pass 記住上一筆已提交�
 鏡像、陰影 pass 及 DrawScene 呼叫都清空快取；不保留呼叫者資料或跨 command list／貼圖世代
 共用狀態。原有描述驗證與原生能力拒絕仍先於命令錄製。原生影像 fixture 將接收面拆成相鄰
 同材質繪製後再切換材質，維持既有像素驗收。
+
+
+## Completed-slot Vulkan offscreen target reuse
+
+After the existing protecting frame-slot fence has completed, Vulkan can reuse that slot's complete
+scene/depth/shadow/reflection/refraction images, views and scene framebuffers for an offscreen draw
+with matching dimensions, HDR format, shadow resolution and reflection/refraction requirements.
+A mismatch, direct draw, resize or teardown releases the targets through the existing completed-slot
+or device-drain path. Storage remains bounded to the existing maximum three slots; no resource is
+shared across in-flight slots and no extra wait is introduced. Reuse still discards and clears scene
+contents, renders every requested pass/batch and copies fresh opaque color for refraction.
+
+Material descriptors and tone-composite bindings remain transient. They are released after completion
+and rebuilt from this submission's textures, material ranges, uniform buffer offsets and acquired
+swapchain image. Upload resizing and all descriptor/geometry validation retain their existing rules.
+The shared native PBR pixel fixture also runs on Windows Vulkan when that backend is enabled, covering
+changing materials, offscreen/direct frames, HDR, shadow, refraction/reflection and resize/restoration.
+
+既有 frame-slot fence 完成後，Vulkan 才能重用該槽完整的 offscreen 場景／深度／陰影／鏡面／
+折射 image、view 與場景 framebuffer；尺寸、HDR 格式、陰影解析度及鏡面／折射需求必須相同。
+需求改變、直接繪製、resize 或 teardown 仍沿用既有完成槽或 device drain 釋放路徑。最多維持
+原有三個槽，不跨 in-flight 槽共用、不新增等待；每幀仍清除內容、提交所有 pass／batch 並複製
+新鮮 opaque 色彩。材質 descriptor 與 tone 綁定每幀重建，維持目前 uniform offset、紋理與
+acquired swapchain image 的對應。Windows 啟用 Vulkan 時也執行共用 PBR 原生像素測試。
