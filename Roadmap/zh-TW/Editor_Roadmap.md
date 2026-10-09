@@ -885,6 +885,13 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   navigation、collapse、filter、replacement 與 1x／2x；overview pose traversal 另行驗收。
   完整 frame／memory budget、production asset scale、soak 與實體 host 驗收仍待完成。
 
+- ✅ Top-down Scene overview 改用 owning bulk world pose 與 iterative indexed ancestry，
+  保留 exact affine origin 與既有 TRS approximation；marker、Frame all、prospective drag ancestry
+  避免重複 parent-chain lookup。真正 100,000-node Runtime／deep／flat ImGui fixture 驗證
+  reversed storage、1x／2x、untracked ancestor、reload 與 corruption rejection。
+  完整 frame／memory budget、production asset scale 與 soak 仍待完成。
+  [Linux contract 證據](../../Tools/Build/evidence/EditorEDM7-OverviewWorldPoses-Linux-2026-10-09.md)。
+
 - ✅ Autosave recovery 現會先限制 schema-1 header，再解析 token；拒絕帶正負號／溢位
   欄位與非 regular／alias file，並在配置 payload 前驗證精確的檔案／payload 長度。
   空值／binary／64 MiB／最大 revision round trip、逐 byte 截斷與拒絕後保留均有測試。

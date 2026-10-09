@@ -347,6 +347,10 @@ public:
   [[nodiscard]] std::optional<runtime::LightComponent> Light(NodeKey entity) const noexcept;
   [[nodiscard]] std::optional<runtime::MeshComponent> MeshRenderer(NodeKey entity) const noexcept;
   [[nodiscard]] std::optional<runtime::Transform> WorldTransform(runtime::Id entity) const noexcept;
+  // Owning current-document poses in World storage order, resolved together. Includes only
+  // tracked nodes; untracked ancestors still participate in their exact world matrices.
+  // Serialized owner-thread observation, not an authoring transaction or persistent cache.
+  [[nodiscard]] std::optional<std::vector<runtime::SceneWorldPose>> WorldPoses() const;
   [[nodiscard]] std::optional<runtime::TransformMatrix>
   WorldMatrix(runtime::Id entity) const noexcept;
   // Copies selected-root forests, initialized components and authoring metadata into owned storage.

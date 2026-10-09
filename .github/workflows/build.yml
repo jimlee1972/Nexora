@@ -188,6 +188,8 @@ jobs:
         # Keep this separate from Xvfb discovery, since it is a portable ImGui test.
         run: |
           ctest --preset linux-development -N -R '^editor\.deep_hierarchy$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -N -R '^(runtime\.scene_world_pose_snapshot|editor\.overview_pose_snapshot)$' | grep -q 'Total Tests: 2'
+          ctest --preset linux-development -R '^runtime\.scene_world_pose_snapshot$' -V
           ctest --preset linux-development -R '^editor\.' -V --output-log build/linux-development/editor-tests.log
       - name: Require and verify standalone native ProjectPlayer
         run: |

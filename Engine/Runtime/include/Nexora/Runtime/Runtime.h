@@ -53,6 +53,11 @@ NormalizedTransform(Transform transform) noexcept;
 }
 // Column-major 4x4 affine matrix (translation * rotation * scale), double precision.
 using TransformMatrix = std::array<double, 16>;
+struct SceneWorldPose final {
+  Id id{};
+  Transform transform;
+  TransformMatrix matrix;
+};
 [[nodiscard]] NEXORA_RUNTIME_API TransformMatrix ToMatrix(const Transform &transform) noexcept;
 // `a * b` (b applied first). World matrices are products in root-to-leaf order.
 [[nodiscard]] NEXORA_RUNTIME_API TransformMatrix
@@ -140,6 +145,10 @@ public:
   [[nodiscard]] std::optional<Transform> WorldTransform(Id entity) const;
   // Exact world matrix (product of the chain's matrices), including any shear.
   [[nodiscard]] std::optional<TransformMatrix> WorldMatrix(Id entity) const;
+  // Owning, scene-storage-order snapshot; expected O(n) work/storage on the owner thread.
+  // Missing/unloading scenes or invalid identities, hierarchy, transforms and affine overflow
+  // reject the whole snapshot. No retained World pointers or persistent transform cache.
+  [[nodiscard]] std::optional<std::vector<SceneWorldPose>> SceneWorldPoses(Id scene) const;
   [[nodiscard]] std::size_t ActiveSceneCount() const;
   [[nodiscard]] World CloneForPlay() const;
   [[nodiscard]] WorldKind Kind() const noexcept { return kind_; }

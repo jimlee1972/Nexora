@@ -911,6 +911,13 @@ creates property widgets; unknown components retain raw data instead of being si
     and replacement at 1x/2x in the 3D-preview layout; overview pose traversal is a separate gate.
     These are bounded-by-input correctness foundations; complete frame/memory budgets, production
     asset scale, soak and physical-host acceptance remain open.
+
+  - ✅ Top-down Scene overview now resolves owning bulk world poses with iterative indexed ancestry,
+    preserving exact affine origins and the existing TRS approximation. Marker traversal, Frame all
+    and prospective drag ancestry avoid repeated parent-chain lookup. Real 100,000-node Runtime and
+    deep/flat ImGui fixtures cover reversed storage, 1x/2x, untracked ancestors, reload and corruption
+    rejection. Full frame/memory budgets, production asset scale and soak remain open.
+    [Linux contract evidence](../../Tools/Build/evidence/EditorEDM7-OverviewWorldPoses-Linux-2026-10-09.md).
   - ✅ Autosave recovery now bounds schema-1 headers before token parsing, rejects signed/overflow
     fields and non-regular/aliased files, and checks the exact file/payload length before allocation.
     Empty/binary/64 MiB/max-revision round trips, every-byte truncation and rejection preservation

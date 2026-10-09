@@ -1347,22 +1347,33 @@ bool FrameSceneSelection(StateT &state, const SceneDocument &scene, bool all = f
   double max_x = -min_x;
   double min_z = min_x;
   double max_z = -min_x;
-  std::vector<runtime::Id> targets(scene.Selection().begin(), scene.Selection().end());
-  if (all) {
-    targets.clear();
-    for (const auto &node : scene.Nodes())
-      targets.push_back(node.id);
-  }
-  for (const auto id : targets) {
-    const auto pose = scene.WorldTransform(id);
-    if (!pose)
+  std::size_t included = 0;
+  const auto include = [&](const runtime::Transform &pose) {
+    ++included;
+    min_x = std::min(min_x, pose.x);
+    max_x = std::max(max_x, pose.x);
+    min_z = std::min(min_z, pose.z);
+    max_z = std::max(max_z, pose.z);
+  };
+  if (all || scene.Selection().size() > 1) {
+    const auto poses = scene.WorldPoses();
+    if (!poses)
       return false;
-    min_x = std::min(min_x, pose->x);
-    max_x = std::max(max_x, pose->x);
-    min_z = std::min(min_z, pose->z);
-    max_z = std::max(max_z, pose->z);
+    const std::unordered_set<runtime::Id> selected(scene.Selection().begin(),
+                                                   scene.Selection().end());
+    for (const auto &pose : *poses)
+      if (all || selected.contains(pose.id))
+        include(pose.transform);
+  } else {
+    for (const auto id : scene.Selection()) {
+      const auto pose = scene.WorldTransform(id);
+      if (!pose)
+        return false;
+      include(*pose);
+    }
   }
-  if (min_x == std::numeric_limits<double>::infinity())
+  if ((!all && included != scene.Selection().size()) ||
+      min_x == std::numeric_limits<double>::infinity())
     return false;
   const double x = min_x * 0.5 + max_x * 0.5;
   const double z = min_z * 0.5 + max_z * 0.5;
@@ -1863,23 +1874,52 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   }
 
   state.scene_markers.clear();
-  for (const auto &node : scene.Nodes()) {
-    const auto pose = scene.WorldTransform(node.id);
-    if (!pose)
-      continue;
-    ImVec2 position{origin.x + static_cast<float>(pose->x) * state.scene_pixels_per_unit,
-                    origin.y + static_cast<float>(pose->z) * state.scene_pixels_per_unit};
-    if (state.scene_drag) {
+  const auto nodes = scene.Nodes();
+  const auto poses = scene.WorldPoses();
+  std::unordered_map<runtime::Id, const runtime::Transform *> world_poses;
+  if (poses) {
+    world_poses.reserve(poses->size());
+    for (const auto &pose : *poses)
+      world_poses.emplace(pose.id, &pose.transform);
+  }
+  std::unordered_map<runtime::Id, bool> dragged;
+  if (poses && state.scene_drag && (preview_pixels.x != 0 || preview_pixels.y != 0)) {
+    std::unordered_map<runtime::Id, runtime::Id> parents;
+    parents.reserve(nodes.size());
+    for (const auto &node : nodes)
+      parents.emplace(node.id, node.parent);
+    std::unordered_set<runtime::Id> selected;
+    for (const auto &key : state.scene_drag->entities)
+      selected.insert(key.id);
+    dragged.reserve(nodes.size());
+    std::vector<runtime::Id> path;
+    for (const auto &node : nodes) {
+      path.clear();
       auto ancestor = node.id;
-      while (ancestor != 0) {
-        if (std::ranges::find(state.scene_drag->entities, ancestor, &SceneDocument::NodeKey::id) !=
-            state.scene_drag->entities.end()) {
-          position.x += preview_pixels.x;
-          position.y += preview_pixels.y;
+      while (ancestor && !dragged.contains(ancestor)) {
+        if (selected.contains(ancestor)) {
+          dragged.emplace(ancestor, true);
           break;
         }
-        ancestor = scene.Parent(ancestor).value_or(0);
+        path.push_back(ancestor);
+        const auto parent = parents.find(ancestor);
+        ancestor = parent == parents.end() ? 0 : parent->second;
       }
+      const bool moves = ancestor && dragged.at(ancestor);
+      for (const auto id : path)
+        dragged.emplace(id, moves);
+    }
+  }
+  for (const auto &node : nodes) {
+    const auto found = world_poses.find(node.id);
+    if (found == world_poses.end())
+      continue;
+    const auto *pose = found->second;
+    ImVec2 position{origin.x + static_cast<float>(pose->x) * state.scene_pixels_per_unit,
+                    origin.y + static_cast<float>(pose->z) * state.scene_pixels_per_unit};
+    if (const auto moving = dragged.find(node.id); moving != dragged.end() && moving->second) {
+      position.x += preview_pixels.x;
+      position.y += preview_pixels.y;
     }
     if (!std::isfinite(position.x) || !std::isfinite(position.y) || position.x < min.x - 10.0F ||
         position.x > max.x + 10.0F || position.y < min.y - 10.0F || position.y > max.y + 10.0F)

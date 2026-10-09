@@ -24,6 +24,12 @@ target_link_libraries(NexoraParentingTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraParentingTests)
 add_test(NAME runtime.entity_parenting COMMAND NexoraParentingTests)
 
+add_executable(NexoraSceneWorldPoseTests SceneWorldPoseTests.cpp)
+target_link_libraries(NexoraSceneWorldPoseTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraSceneWorldPoseTests)
+add_test(NAME runtime.scene_world_pose_snapshot COMMAND NexoraSceneWorldPoseTests)
+set_tests_properties(runtime.scene_world_pose_snapshot PROPERTIES TIMEOUT 90)
+
 add_executable(NexoraRenderSyncTests RenderSyncTests.cpp)
 target_link_libraries(NexoraRenderSyncTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraRenderSyncTests)
