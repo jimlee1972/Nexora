@@ -761,3 +761,437 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   Consumer 須先排空 borrowed call；圖形化 PluginManager、install／trust policy 與 native crash
   isolation 仍待完成。[ADR-0007](ADR-0007-Cooperative-Plugin-Lifecycle.md) 與
   [Linux 證據](../../Tools/Build/evidence/EditorEDM6-PluginLifecycle-Linux-2026-10-09.md)。
+
+- ✅ Build export 前置現提供有界 owning Runtime scene capture。共用 schema-3 writer
+  在 append 前限制輸出；Editor 複製完整 Runtime 實體、tracked NodeKey 與完整未知 metadata，
+  不做 IO 或改變 history。測試涵蓋 entity／output 與 opaque name／payload budgets、exact
+  wire 相容性、lifetime、tracked subset 及真實 Undo／Redo。Generation 是物件 identity，
+  並非 authoring revision；export publication、native player 與圖形化 build flow 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-OwningSceneCapture-Linux-2026-10-08.md)。
+
+- ✅ Runtime-owned schema-1 mesh／scalar PBR／scene codec 與有界 StaticView package 現可
+  把真實 cooked asset 解析至隔離 World，不依賴 Editor 或 source content。可選的
+  `NexoraProjectPlayer --verify-package` 讀取實際檔案並回報 inactive component。
+  保留完整 UUID、legacy shader ID、opaque bytes 與精確 hierarchy matrix；拒絕損壞、
+  未知 schema、未解析 dependency 與 resource collision。
+  [ADR-0006](ADR-0006-Cooked-Static-Projects.md) 記錄 compatibility／ownership 決策；
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-CookedStaticProject-Linux-2026-10-08.md)
+  涵蓋 Development、Monolithic Shipping 與實際 CLI consumption。圖形化 Editor export、原生 player
+  rendering、gameplay compilation 與 Build／deploy／log workflow 仍待完成。
+
+- ✅ 純 Editor `CookStaticProject` producer 現消費 owning Runtime scene capture 與明確提供的
+  owning imported OBJ／scalar PBR values，透過共用 Runtime codec／AssetCooker／package
+  validation cook exact full-UUID dependency closure。保留 snapshot／legacy shader／opaque
+  bytes，拒絕 resource collision 或未知 reserved binding。測試涵蓋 owning lifetime、獨立
+  capture 的 deterministic bytes、真實 10 萬 entities、精確 geometry／opaque 上限與
+  standalone ProjectPlayer consumption；詳見 [producer contract](../../Engine/Editor/StaticProjectExport.md)
+  與 [Linux 證據](../../Tools/Build/evidence/EditorEDM6-StaticProjectExport-Linux-2026-10-09.md)。
+  Current-state／recovery／cancellation 授權、atomic publication、圖形化 export、原生
+  player rendering 與完整 Build／deploy／log 驗收仍待完成。
+
+- ✅ Editor 現明確啟用真實 completed native GPU timing：Vulkan／DX12 timestamp query
+  與 Metal command-buffer timing 在既有 completion point 發布 copied source／submission／
+  optional milliseconds。Profiler 提供獨立且有界的 live history，明示 software device、來源與
+  範圍，拒絕 stale／nonfinite input，並於 unavailable record 中斷曲線。測試涵蓋 Capture、
+  Clear、domain 切換與 1x／2x 控制；真實 Linux query allocation／read failure、fencing、resize、
+  abandoned recording、teardown 與 default opt-out 保留渲染及 lifetime。實體校準與
+  per-pass profiling 仍待完成；GPU capture 使用下方獨立 schema。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-NativeGpuTiming-Linux-2026-10-09.md)。
+
+- ✅ Native GPU timing 現有獨立 schema-1 JSON capture，明示 backend／software、command-buffer
+  scope、milliseconds、無損 completed submission／drop ID 與 unavailable。同步 writer-gated
+  export 與有界 read-only import 保留 last-good file 與 owning static snapshot。獨立 1x／2x
+  Export GPU／Import GPU／Clear GPU import 控制保留 live CPU／GPU／RSS 與其他 import；project
+  切換只清除 static state。共用 nonrecursive JSON grammar 亦保留既有 wall／RSS capture contract。
+  實體計時校準、per-pass tool 與第三方 capture format 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-GpuTimingCapture-Linux-2026-10-09.md)。
+- ✅ Profiler process-memory trace 現保留最多 600 筆真實 RSS／working-set attempt，包含
+  elapsed time、unavailable read 與獨立丟棄數。獨立 schema-1 project JSON export／import
+  保留 uint64 精度、source／scope／unit 與暫停時間空隙；匯入為 owning static snapshot，
+  讀取或 publication 失敗保留舊狀態。Linux 通過有界 corruption／limit／access 測試與
+  1x／2x 獨立 modal／recovery／read-only UI 控制。GPU／allocator profiling 與實體主機
+  驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-ProcessMemoryCapture-Linux-2026-10-09.md)。
+
+- ✅ Profiler Import JSON 現讀取 exported schema-1 wall-time capture 至 owning static trace，
+  驗證 project UUID、source／scope／unit、有序且無損的 frame／drop 值及 unavailable GPU／memory。
+  有界且非遞迴的 reader 拒絕 duplicate／unknown／missing field、損壞、尾端資料、unsafe path
+  與 recovery，不取代舊 trace 或改變 live capture。測試涵蓋 read-only 與 1x／2x 獨立一次性
+  UI 控制。[Linux 證據](../../Tools/Build/evidence/EditorEDM6-ProfilerJsonImport-Linux-2026-10-08.md)。
+
+- ✅ Profiler Import CSV 現讀取 project 的有界 exported wall-time capture，顯示獨立 static
+  trace，支援單獨 clear 與 read-only import，保留 live capture。測試涵蓋 corrupt／unsafe
+  input、modal／recovery gates、不受 locale 影響的數字精度、600-frame／128-KiB 上限與
+  1x／2x pointer ownership；任意 capture import 仍待完成。
+
+- ✅ Build manifest admission 現驗證所有 metadata 的 UTF-8，並採 host-independent relative
+  artifact syntax，包含在 Linux 拒絕 Windows drive／stream。Malformed text、traversal、
+  component 尾端句點／空白與 separator／control alias 在任何 IO 前拒絕，保留上一份有效
+  manifest 與無關 staging；
+  測試涵蓋跨 target 的 CJK／supplementary path 與有效 retry。
+- ✅ Build manifest publication 現透過共用 native-path atomic publisher 串流寫入不受 locale
+  影響的 schema-1 JSON。Occupied file／directory／valid／dangling stage 與 replace 失敗會保留
+  無關資料；雲端測試涵蓋 UTF-8 destination、uint64 byte count、escaped control、error 清除與
+  retry。圖形化 build／deploy frontend 仍維持 open。
+- ✅ Portable build frontend 會驗證並 atomic 寫入 target/configuration/command 與帶 checksum
+  的 artifact manifest；有界的 monotonic CPU/GPU/memory frame capture 已實作。
+- ✅ 圖形化 Profiler 現顯示即時且有界的 Editor frame processing wall-time 曲線，支援暫停／
+  清除、最新／平均／峰值與丟棄數。Native GPU interval 現採獨立 history。
+- ✅ Application 現最多每 250 ms 量測一次真實目前 process RSS／working-set bytes，Profiler
+  讀取 copied optional latest／observed-peak 值。Capture 暫停 OS observation，Clear 重設
+  peak／timer 且不解除暫停；讀取失敗顯示 unavailable，保留 observed peak。Process-wide
+  scope 包含 shared resident pages，跨 project 切換保留，並非 GPU 或 allocator usage。
+  Linux 測試涵蓋真實 allocation／touch、實際 24-frame graphical process、owner throttle／
+  failure，以及 1x／2x pointer／ownership／reset。Schema-1 wall-time capture 保持分開；
+  Windows／macOS host 驗證仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-LiveProcessMemory-Linux-2026-10-08.md)。
+- ✅ Profiler Export JSON 現寫入 schema-1 companion，包含 source／scope／unit／project metadata、
+  sample count、完整 double 精度及無損 decimal-string uint64 frame／drop 值。
+  未量測 GPU／memory 明示為 unavailable／null。獨立一次性 CSV／JSON 控制共用 write／modal
+  gates；1x／2x 滑鼠事件及獨立 normal／optimized Python JSON parser 驗證精度、上限、
+  replace 失敗與原檔保留。任意 capture import 仍保持 open。
+- ✅ Profiler 現可把保留的 Editor frame-processing wall time 匯出為專案 CSV，保留 double
+  精度與丟棄 frame 數，GPU／memory 欄保持空白。同步 writer 驗證 1-600 筆有序且有限的 sample，
+  拒絕唯讀／recovery 寫入，驗證失敗會保留舊檔；實際 UI 點擊會送出一次性 request。
+- 待辦：圖形化 build frontend、remote deployment/log、實體 GPU 計時校準、任意 capture import
+  與 plugin manager。
+
+### ED-M7 — Production hardening
+
+- ✅ Autosave recovery 現會先限制 schema-1 header，再解析 token；拒絕帶正負號／溢位
+  欄位與非 regular／alias file，並在配置 payload 前驗證精確的檔案／payload 長度。
+  空值／binary／64 MiB／最大 revision round trip、逐 byte 截斷與拒絕後保留均有測試。
+  Mutation fixture 現以真實 workspace recovery journal 為 seed，每筆輸入重設有效 project
+  metadata，並實際執行 writable recovery；拒絕 journal 時保留 committed bytes、live documents
+  與來源資料。完整 migration／crash／target-host 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md)。
+
+- ✅ Portable telemetry consent 現於 opt-out 釋放所有 retained event，記憶體 queue 上限為
+  1,024 筆、每筆 1,024 UTF-8 bytes。Invalid／oversized／overflow event 保留已接受的紀錄；
+  重複 revoke／enable 不會恢復舊 event。Contract tests 涵蓋精確上限、損壞文字、飽和與
+  consent transition。Persistence／transmission、redaction 與圖形化 privacy 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-TelemetryConsent-Linux-2026-10-08.md)。
+
+- ✅ Cloud documentation-routing Git fixture 現在 commit 前關閉 local 自動 maintenance／GC，
+  避免 detached housekeeping 與嚴格 temporary-directory cleanup 競爭；routing semantics、
+  正式 repo 與 global Git 設定維持原樣。
+
+- ✅ Recovery presence 現偵測 occupied／uninspectable 路徑，包含目錄與 dangling alias；
+  明確 resolve 前保留既有 authoring／export／shutdown gates。測試涵蓋拒絕 recovery、
+  nonrecursive／read-only discard 與實際 2x Profiler modal gating。
+
+- ✅ Project layout save／read 共用 1 MiB raw-payload 上限、有界 schema header 與線性 CRLF
+  normalization。Corrupt／NUL／over-budget 或 non-regular／aliased 檔案拒絕且不改寫；
+  雲端測試涵蓋 exact-limit schema-0／1 round trip 與 save 失敗的原檔保留。
+
+大型 project incremental index、virtualized UI、100k entity hierarchy、長時 soak、workspace migration、corrupt document recovery、signed extension policy、telemetry opt-in/privacy、keyboard-only與螢幕閱讀器 audit。
+
+- ✅ Portable tests 已涵蓋 100k-item virtual hierarchy range、trusted-publisher/signature policy，
+  以及明確 opt-in 前會丟棄 event 的 telemetry。
+- 待辦：圖形化 performance/soak 驗收、workspace migration、corrupt-document recovery，以及
+  keyboard/screen-reader audit。
+
+## 4. 儲存與 transaction contract
+
+Scene/Prefab/Project 格式要 versioned、deterministic、atomic write；每筆 command 有 target stable ID、before/after 或 reversible operation、merge key、authoring timestamp（不影響 runtime determinism）。長操作先寫 staging 再 commit；crash recovery journal 不覆蓋最後 good file。Schema migration 必須可 dry-run、備份、report，重大版本不得 silent downgrade。
+
+## 5. 驗收矩陣
+
+| 領域 | 自動 Gate | 人工/視覺 Gate |
+| --- | --- | --- |
+| Documents | golden round trip、migration、corruption/fuzz | recovery workflow |
+| Transactions | undo/redo property tests、1000-step replay | gizmo/multi-edit behavior |
+| Scene View | picking/gizmo math、render contract | DPI、多 viewport、resize |
+| PIE | world isolation、start/stop stress、state diff | focus、pause/step workflow |
+| Assets | import determinism、cancel/rollback、dependency cycle | browser/status usability |
+| Extensions | ABI/version/capability rejection | install/disable/recovery |
+| Performance | startup/index/frame/interaction baselines | representative large project |
+
+## 6. 發布切片
+
+**Editor Preview** 必須完整通過 ED-M0、ED-M1 與 ED-M2，任一單獨 milestone 都不足以構成
+Preview；**Creator Alpha** 加入 M3/M4；**Production Beta** 加入至少一組 specialized tools、
+build/profile 與 hardening。版本標章依實際驗收證據，不因 panel 存在或前置 groundwork
+已完成就標為完成。
+
+## 7. 依賴與非目標
+
+依賴 Engine API M1～M5、window/swapchain、reflection、asset pipeline、scene snapshot 與 Editor
+SDK。因此已有 reflection、undo model 或 prefab groundwork，仍不代表圖形化 Editor 已完成。
+第一版不做完整 visual scripting、Marketplace、雲端協作、電影級工具或所有平台 remote
+deployment；這些在核心 authoring loop 穩定後另立 Roadmap。
+
+## 8. 固定交付決策
+
+以下是施工輸入，不得由各 work package 重新決定。若要改動，必須新增 ADR（或修訂
+ADR-0001）、相容性說明，並同步更新兩種語言版本。
+
+| 主題 | 決策與必要後果 |
+| --- | --- |
+| 產品邊界 | `NexoraEditor` 是 public engine API 的獨立 client；Shipping 不連結 `Editor`、`EditorImGui` 或 editor metadata。 |
+| UI 與模組 | 第一套 shell 是由 `NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL` 控制的 Dear ImGui docking；產品中立 model 留在 `Editor`，widget 留在 `EditorImGui`，相依維持宣告於 `Config/Modules/modules.json`。 |
+| Presentation | 所有 Editor window 走 public `Window`／`Presentation`／`RHI`；禁止 private swapchain、backend downcast 與第二套 event pump。 |
+| Identity | Project、asset、entity、component、document、panel、command、tool 使用 typed stable serialized ID；pointer、index、path 與 label 都不是 identity。 |
+| 修改 | Authoring write 是 authoring thread 上的 transaction；worker 只回傳 immutable、帶 revision 的結果供驗證與 commit。 |
+| 文件 | 格式須 versioned、deterministic、atomic replace 並保留未知 field/component；migration 支援 inspect、dry-run、backup、report。 |
+| 非同步 | Import、index、thumbnail、build、source-control job 可取消；不得保留 document pointer 或直接改 UI state。 |
+| PIE | Play 擁有 cloned world 與獨立 input domain；stop 預設 discard，apply-back 是明確的 diff transaction。 |
+| Extension | Extension 只走 versioned Editor SDK capability registry，註冊前驗證 ABI、permission、dependency 與 trust policy。 |
+| Accessibility | Keyboard、semantic mirror、contrast、screen-reader bridge 是 ED-M7 release gate；畫面上有 widget 不構成證據。 |
+| 證據 | Automated test 證明 contract，target-host capture 證明圖形行為；mock、screenshot 或 compile-only 不可代替不同的指定 gate。 |
+
+## 9. Ownership、threading、error 與 shutdown contract
+
+```text
+EditorApplication
+  +-- WindowSystem / PresentationDevice / RenderSurface(s)
+  +-- EditorUiHost（僅 graphical feature）
+  +-- ProjectSession（零或一個）
+      +-- AssetIndex + JobCoordinator
+      +-- DocumentManager
+      |   +-- SceneDocument(s) / PrefabDocument(s)
+      |   +-- 每份文件的 SelectionModel + TransactionHistory
+      +-- PlaySession（零或一個 cloned Play World）
+      +-- ExtensionManager / CapabilityRegistry
+```
+
+Owner 使用 RAII 並反向銷毀 child。關閉 project 時，先停止 intake 與 job，再關 document；
+document 先於 Runtime service 關閉；GPU resource 只能在 completion value 通過後 retire。UI 只保存
+stable ID 或 scoped weak handle，不擁有 ECS、asset、plugin 或 GPU storage pointer。每個 async
+result 都攜帶 project generation、target ID、input revision/hash 與 operation ID，因此 close、reload、
+undo 或 reimport 之後才完成的結果會 fail closed。
+
+Authoring thread 擁有 event、ImGui、document、selection、transaction、extension callback 與結果
+commit。Render submission 只消費 immutable frame packet。Worker 讀 snapshot、寫 staging output，
+並以 bounded queue 與 cancellation 回報。File watcher 只送 normalized event；conflict 決策回到
+authoring thread。Shutdown 依序停止 intake、取消工作、drain callback 但不 commit、等待必要 job／
+GPU value、寫 recovery state，再銷毀 service。
+
+預期失敗使用帶 stable code、可處理 context、operation ID 的 typed result；assertion 只處理內部
+invariant。Capability 失敗時停用該能力但保留文件。Write 失敗保留 last-good file，import 失敗保留
+舊 artifact；device loss 保留 CPU authoring state，並重建 device-owned resource。
+
+## 10. AI 施工順序
+
+只有 dependency 與 exit gate 通過才能開始下一包。每包依序做 contract/model、automated test、
+graphical binding、failure state、target evidence。Portable prerequisite 不會自動關閉 graphical milestone。
+
+### WP0 — Baseline audit 與 evidence ledger
+
+**相依：** 無。**影響：** 全部 milestone。
+
+1. 將每項需求映射到 source、test、owner module，以及 `absent`、`contract-only`、`portable`、
+   `graphical`、`target-accepted` 其中一個真實狀態。
+2. 記錄 support tier、compiler/backend、feature flag、缺少的 SDK、baseline result 與精確 command；
+   區分 pre-existing failure，且不提交 generated evidence。
+3. 把每個 open bullet 轉成含 owner、dependency、automated check、manual evidence、rollback 的 gate，
+   再選最小的 end-to-end slice。
+
+**Exit gate：** inventory 與 source/test 一致，沒有把 open work 說成完成，下一 slice 有明確驗收。
+
+### WP1 — ED-M0 graphical shell 驗收
+
+**相依：** WP0 與 public Window/Presentation contract。
+
+依 [Dear ImGui integration plan](Editor_ImGui_Integration_Plan.md) 執行其中 WP0～WP8。證明 public
+`RenderSurface`、完整 event normalization、stable docking、DPI font rebuild、Unicode／IME candidate
+placement、recovery UX、device/surface recovery。直到每個 platform window 都遵守同一 ownership 與
+presentation path 才能啟用 multi-viewport。收集真實 display 的 Linux visual/input/recovery 與
+Windows DPI/IME 證據。
+
+**Exit gate：** focused plan 所有 gate 在 feature on/off 都通過；關閉 viewport/project/application
+後沒有 callback 或 GPU resource 指向已銷毀 owner。
+
+### WP2 — ED-M1 project/content vertical slice
+
+**相依：** WP1。
+
+1. ✅ 完成 create/open/upgrade：canonical root、schema compatibility、lock/read-only、recent project、
+   actionable error，且不改 process working directory。
+2. 將 deterministic index 綁到以 asset UUID 為 key 的 virtualized Content Browser；加入 breadcrumb、
+   search/filter、selection、transactional rename/move/delete 與 loading/error thumbnail state。
+3. Typed drag payload 攜帶 project generation 與 asset UUID；修改前驗證 type、target、permission、staleness。
+4. ✅ Import/reimport 使用 cancellable job，包含 source/settings hash、dependency、staging、atomic publish、
+   bounded progress、structured diagnostic；取消／失敗須保留舊 artifact。
+5. ✅ 顯示 forward/reverse dependency 與 cycle；debounce file event，dirty conflict 必須提供 reload/keep/
+   compare，禁止覆蓋。
+
+**測試／Gate：** deterministic index/artifact golden、upgrade/corruption、每階段 cancel、stale completion、
+watcher burst、drag validation。新 project 必須能全程由 UI import、搜尋、檢查、移動、reimport、recover，
+且無 destructive failure path。
+
+### WP3 — ED-M2 scene-authoring vertical slice
+
+**相依：** WP2 與 production serialization/reflection API。
+
+1. ✅ Hierarchy row、expansion、selection anchor、filter、rename、reorder、cycle-safe reparent 全部以 entity／
+   document generation 為 key 並 virtualize。
+2. Scene View 渲染至 Editor-owned、RHI-neutral texture token；resize 有 hysteresis，舊 GPU resource 依
+   completion value retire，每 document 保存 camera。
+3. Async picking 攜帶 frame/document/viewport/entity generation；丟棄 stale result，定義 empty、hidden、
+   locked、overlap 行為。
+4. Reflection adapter 支援 scalar、enum/flags、vector、color、asset/entity reference、array、nested struct；
+   顯示 mixed value，保留 unknown component 與 opaque bytes。
+5. 每個 gizmo gesture 是單一 `begin/update/commit|cancel` transaction；先定義 world/local、pivot/center、
+   snapping、parent、negative scale、multi-selection，再做 polish。
+6. 完成 clipboard、duplicate/delete、dirty prompt、save/reload 與 1,000-step undo/redo replay。
+
+**Exit gate：** 使用者可 select、inspect、edit、undo、save、restart 並 visually verify scene；輸出 stable、
+deterministic 且不遺失 unknown data。
+
+### WP4 — ED-M3 PIE/debugging vertical slice
+
+**相依：** WP3 與 Runtime snapshot/clone。
+
+1. Freeze source revision 並 clone isolated Play World；Game View、camera、audio、input focus 分離；start
+   失敗不能改 Editor World。
+2. 實作 `Stopped -> Starting -> Playing <-> Paused -> Stopping -> Stopped`；拒絕非法 transition，
+   stop idempotent，step 恰好一個 fixed tick。
+3. 按明確 focus/capture 分流 device input 與 shortcut；emergency stop 與 focus recovery 永遠可用。
+4. Console 經 bounded thread-safe buffer，含 severity/category/time/source 與 visible drop count；runtime
+   inspect snapshot，不保存 relocatable pointer。
+5. Stop 預設 discard；apply-back 顯示 supported-field diff，僅 source revision 相符時 commit 一筆
+   transaction，否則進 conflict resolution。
+6. Debugger attach/detach/pause/location/diagnostic 留在 adapter 後方；Editor 不成為 gameplay `main`。
+
+**Exit gate：** 重複 start/pause/step/stop 不洩漏 world/focus，隔離成立，discard/apply conflict 已明確測試。
+
+### WP5 — ED-M4 prefab、multi-scene 與 collaboration safety
+
+**相依：** WP4 與 stable scene/prefab schema。
+
+實作 prefab isolation、variant、nested stable-property override tree、diff、targeted/full revert、apply、
+rebase；加入 additive-scene ownership、load order、cross-scene reference policy、save-all、dirty indicator；
+再加入具 backup/report 的 dry-run migration、不取代 good file 的 recovery snapshot、external-change
+conflict UX 與 canonical semantic source-control diff。Multi-document operation 先 stage 全部檔案，只能
+整組 commit 或完整保留 originals。
+
+**Exit gate：** golden project 通過 nested edit/rebase、additive save、migrate、crash、reopen；external
+change 不會靜默抹除 local edit，diff 能指出 stable object/field。
+
+### WP6 — ED-M5 specialized-tool capability platform
+
+**相依：** WP5 與至少一個有 Editor-safe public API 的 production subsystem。
+
+Capability 加入 version、implemented/read-only/unavailable、reason、permission、document type、
+contribution。先交付一個薄 reference plugin，證明 edit-preview-save-reopen、undo、unload、missing-
+backend，且不存取 private engine。再獨立加入 material/shader、animation、VFX、audio、navigation/
+physics、terrain/vegetation、localization；各自定義 schema、preview lifetime、diagnostic、undo boundary、
+budget。Plugin 缺少時保留 payload 並提供 read-only fallback，不能丟資料或假裝 compile 成功。
+
+**Exit gate：** reference tool 可安全 load/unload，且能處理 backend absent/failure。
+
+### WP7 — ED-M6 build、profile 與 extension operation
+
+**相依：** WP5 與 WP6 reference extension contract。
+
+序列化 target、configuration、feature、cook root、output policy、toolchain ID。顯示 escaped reproducible
+command，離開 UI thread 執行、可 cancel、bounded log，且成功除 zero exit 外還必須有 checksummed
+artifact manifest。Remote adapter 使用 authenticated deploy/run/stop/log state，secret 不進 project。
+Profiler 使用 monotonic time、bounded memory、drop count、stable ID、versioned export。Plugin install
+在載入 code 前驗證 SDK/ABI、manifest、permission、trust/signature、dependency、restart requirement。
+
+**Exit gate：** 相同 manifest input 可重現 output；cancelled/failed/incomplete build 不會報 success；
+profiler/plugin failure 不影響 authoring。
+
+### WP8 — ED-M7 hardening 與 release 驗收
+
+**相依：** Release 所選的 WP1～WP7。
+
+1. 以 dataset、machine、build、sample window、percentile 定義 startup、index、memory、frame、interaction
+   budget；測 100k entity 與 production asset scale，優先清除 unbounded per-frame work/queue。
+2. Soak 重複 project/document/PIE/plugin/device-loss，檢查 leak、deadlock、queue growth、recovery。
+3. Migration 涵蓋所有 supported version，並 fuzz corrupt/truncated input；保留 last-good file 與 report。
+4. Audit keyboard traversal、visible focus、shortcut conflict、contrast/scaling、semantic mirror、screen reader；
+   platform gap 必須是 blocker，或有 owner/date 的 approved exception。
+5. 驗證 signature/privacy：不載入 policy 外 plugin、opt-in 前無 telemetry、persist/transmit 前 redaction、
+   inspectable queue、opt-out deletion、offline behavior。
+
+**Exit gate：** 宣稱 release 的所有 gate 都在 supported target host 通過，證據已 review，exception 明確，
+roadmap 狀態不把 prerequisite 向上取整。
+
+## 11. 跨領域施工 contract
+
+- **Identity：** typed ID 不可混用，透過 owner resolve；ImGui ID 由 stable object/property identity 加
+  document generation 產生，label 可在地化；reuse 必須增加 generation。
+- **Transaction：** `begin -> preview/update -> validate -> commit|cancel`；記錄 target ID、source revision、
+  reversible state、merge key、description；commit 只增加一次 revision，cancel 精確還原，undo 使 stale job 失效。
+- **Persistence：** 寫 sibling stage、flush、必要時 read-back validate、atomic replace、最後更新 journal；
+  不修改唯一 good copy。Migration chain 必須有 version、preflight、backup、deterministic transform、validate、
+  report，且不得 silent downgrade。
+- **Job：** 攜帶 operation/project/target/revision、cancellation、progress、bounded diagnostic、staging、status；
+  revalidate 後才能 commit。File event 要 normalize/debounce 並辨認 self-write。
+- **Rendering：** Preview token 是 RHI-neutral 且 generation-safe；先 allocate replacement，再依 GPU completion
+  retire。Empty/loading/error/suspended/minimized/occluded/out-of-date/device-lost 都是明確 state；禁止 cast
+  backend handle 或假設 frames-in-flight。
+- **Extension：** SDK struct 驗證 size/version 並定義 ownership。Unload 須 revoke registration、cancel job、
+  close/fallback document、drain call，再 release library；safe mode 記錄 crash，本計畫不宣稱 native plugin sandbox。
+
+## 12. 技術問題與指定解法
+
+| 問題 | 指定解法 | 禁止捷徑／驗證 |
+| --- | --- | --- |
+| Portable 工作被當成 graphical 完成 | 分開追蹤 WP0 五種狀態。 | Panel stub/test 數量不能關 graphical gate。 |
+| Late job 修改 reopened document | Revalidate project generation、target ID、revision/hash。 | Worker 不 capture model pointer。 |
+| Drag 產生大量 undo | Preview 後只 commit 一筆 mergeable transaction；cancel 精確還原。 | 不得每 mouse move 一筆 command。 |
+| Watcher 與 Editor write race | 辨識 self-write、debounce/hash、dirty conflict 提示。 | 不得 auto-reload 覆蓋 unsaved edit。 |
+| Cancel import 損壞 output | Content-addressed staging，驗證後 atomic publish。 | 不直接覆寫 active artifact。 |
+| ECS relocation 破壞 selection | 使用時以 generation resolve typed stable ID。 | 不跨 frame 保存 component address。 |
+| Pick 是舊 frame | 驗證 frame/document/viewport/entity generation。 | 不盲收最新完成結果。 |
+| Mixed Inspector 遺失值 | 顯示 mixed state，只以 multi-target transaction 改指定 field。 | 不把第一個 selection 複製給全部。 |
+| Unknown component/plugin | 保留 opaque payload，顯示 read-only diagnostic。 | Save 不丟未知資料。 |
+| PIE 汙染 authoring | Clone world，revision-checked explicit diff/apply。 | 不在 Editor World 跑 simulation。 |
+| Multi-file save 部分成功 | 全部 stage/validate，加 recovery manifest，再 coordinated commit。 | 不回報 subset success。 |
+| Resize/device loss 提早 free GPU | Generation registry、completion retirement/recovery。 | CPU frame age 不足以判定。 |
+| Console/profiler 無限成長 | Bounded batching/backpressure 與 visible drop count。 | 禁止 unlimited history。 |
+| Plugin unload 留 callback | Revoke、cancel、fallback/close、drain、unload。 | Unload 時不可仍 reach function pointer。 |
+| Build 假成功 | Exit success 加 validated checksummed artifact。 | Exit code 單獨不足。 |
+| 從 pixels 推論 accessibility | Semantic bridge 加 keyboard/screen-reader host audit。 | Screenshot/widget test 不足。 |
+| Benchmark 無法重現 | 記錄 dataset、machine、build、window、percentile。 | 不用單筆無標示數據宣稱達標。 |
+
+## 13. 驗證與證據
+
+每個 implementation PR 都跑 Linux development gate。若可能影響 module boundary、export、optional
+feature、plugin loading 或 Shipping exclusion，另跑 Shipping configure/build。Target-only gate 必須在
+該 host 跑；Linux cloud 結果不能宣稱是 Windows/macOS/mobile 證據。
+
+```bash
+cmake --preset linux-development
+cmake --build --preset linux-development
+ctest --preset linux-development
+
+# 連結或 Shipping boundary 變更另跑：
+cmake --preset linux-shipping
+cmake --build --preset linux-shipping
+```
+
+| Gate | Automated evidence | Manual／target-host evidence |
+| --- | --- | --- |
+| ED-M0 | feature on/off、input、persistence、RHI lifetime/recovery | Linux display、Windows DPI/IME、docking/recovery |
+| ED-M1 | deterministic import/index、cancel、corruption、stale completion | import/reimport/dependency/conflict workflow |
+| ED-M2 | hierarchy/property/gizmo/pick math、serialization、replay | 多 DPI Scene/Inspector edit-save-reopen |
+| ED-M3 | isolation、state machine、fixed-step、apply conflict、stress | focus、pause/step、Console、Game View |
+| ED-M4 | rebase、multi-scene atomicity、migration/recovery golden | external-edit conflict、crash drill |
+| ED-M5 | SDK/capability/unload/unknown-data test | reference tool、missing-backend mode |
+| ED-M6 | reproducibility、cancel/fail、bounded profiler、policy | build/deploy/log/profile/plugin recovery |
+| ED-M7 | scale、soak、fuzz、migration、privacy | keyboard、screen reader、contrast、large project |
+
+Manual record 包含 commit/configuration、OS、GPU/driver、display scale、locale/IME、flag、精確步驟、
+expected/actual、log/capture、reviewer；須 redact secret、private/telemetry data。Commit 或 configuration
+有實質差異的證據無效。
+
+## 14. AI 變更流程與 Definition of Done
+
+每個 slice 依序：讀本 roadmap、focused plan/ADR、相關 README、module graph、tests；核對 source truth；
+列出 contract、compatibility、failure mode、rollback、evidence；先補 contract test；施工不得加入 downcast、
+global、以 sleep 同步、persisted raw pointer、silent fallback；只 format touched C++；跑精確 gate 並檢查
+diff；狀態或 ownership/lifetime/thread/error/deferred-work 改變時同步兩種 roadmap 與 contract README。
+未跑的 check 不得寫成 passed。每個 PR 優先是一個可 review vertical slice；schema/SDK 變更附相容與
+migration，架構決策先有 ADR 再寫 widget code。
+
+Milestone 完成必須同時滿足：model、graphical workflow、degraded/failure state、persistence、undo boundary
+可用；automated 與指定 host gate 通過；compatibility/migration 有文件；shutdown/cancellation/stale
+completion/recovery 有 stress coverage；error 可採取行動；文件與 evidence 符合現況；未提交 build
+output、local preset、credential、private project 或 sensitive capture。`Editor Preview` 要 ED-M0～M2；
+`Creator Alpha` 再要 M3～M4；`Production Beta` 要所選 M5 tool 與 M6～M7。Preview/read-only capability
+不提高 enclosing milestone 百分比，也不能免除 target-host gate。
