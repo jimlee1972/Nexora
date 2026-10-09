@@ -16,6 +16,44 @@ std::unordered_map<VkCommandBuffer, VkBuffer> commands;
 std::unordered_map<VkDeviceMemory, VkFence> pending;
 std::size_t creations{}, violations{};
 bool geometryAllocation{}, failNextAllocation{};
+bool failNextQueryAllocation{}, failNextTimingRead{};
+std::size_t timingReadFailures{}, queryAllocationFailures{};
+std::unordered_set<VkQueryPool> queryPools;
+std::unordered_map<VkCommandBuffer, VkQueryPool> queryCommands;
+std::unordered_map<VkQueryPool, VkFence> pendingQueries;
+VkResult CreateQueryPool(VkDevice device, const VkQueryPoolCreateInfo *info,
+                         const VkAllocationCallbacks *allocator, VkQueryPool *pool) {
+  if (std::exchange(failNextQueryAllocation, false)) {
+    ++queryAllocationFailures;
+    *pool = VK_NULL_HANDLE;
+    return VK_ERROR_OUT_OF_HOST_MEMORY;
+  }
+  const auto result = vkCreateQueryPool(device, info, allocator, pool);
+  if (result == VK_SUCCESS)
+    queryPools.insert(*pool);
+  return result;
+}
+void DestroyQueryPool(VkDevice device, VkQueryPool pool, const VkAllocationCallbacks *allocator) {
+  violations += pendingQueries.contains(pool);
+  queryPools.erase(pool);
+  vkDestroyQueryPool(device, pool, allocator);
+}
+void ResetQueryPool(VkCommandBuffer command, VkQueryPool pool, std::uint32_t first,
+                    std::uint32_t count) {
+  violations += pendingQueries.contains(pool);
+  queryCommands[command] = pool;
+  vkCmdResetQueryPool(command, pool, first, count);
+}
+VkResult GetQueryPoolResults(VkDevice device, VkQueryPool pool, std::uint32_t first,
+                             std::uint32_t count, std::size_t bytes, void *data,
+                             VkDeviceSize stride, VkQueryResultFlags flags) {
+  violations += pendingQueries.contains(pool) || (flags & VK_QUERY_RESULT_WAIT_BIT) != 0;
+  if (std::exchange(failNextTimingRead, false)) {
+    ++timingReadFailures;
+    return VK_NOT_READY;
+  }
+  return vkGetQueryPoolResults(device, pool, first, count, bytes, data, stride, flags);
+}
 VkResult CreateBuffer(VkDevice device, const VkBufferCreateInfo *info,
                       const VkAllocationCallbacks *allocator, VkBuffer *buffer) {
   const auto result = vkCreateBuffer(device, info, allocator, buffer);
@@ -71,16 +109,21 @@ VkResult MapMemory(VkDevice device, VkDeviceMemory allocated, VkDeviceSize offse
 VkResult WaitForFences(VkDevice device, std::uint32_t count, const VkFence *fences, VkBool32 all,
                        std::uint64_t timeout) {
   const auto result = vkWaitForFences(device, count, fences, all, timeout);
-  if (result == VK_SUCCESS && (all || count == 1))
-    std::erase_if(pending, [&](const auto &entry) {
+  if (result == VK_SUCCESS && (all || count == 1)) {
+    const auto completed = [&](const auto &entry) {
       return std::find(fences, fences + count, entry.second) != fences + count;
-    });
+    };
+    std::erase_if(pending, completed);
+    std::erase_if(pendingQueries, completed);
+  }
   return result;
 }
 VkResult DeviceWaitIdle(VkDevice device) {
   const auto result = vkDeviceWaitIdle(device);
-  if (result == VK_SUCCESS)
+  if (result == VK_SUCCESS) {
     pending.clear();
+    pendingQueries.clear();
+  }
   return result;
 }
 void BindVertexBuffers(VkCommandBuffer command, std::uint32_t first, std::uint32_t count,
@@ -91,14 +134,18 @@ void BindVertexBuffers(VkCommandBuffer command, std::uint32_t first, std::uint32
 }
 VkResult ResetCommandBuffer(VkCommandBuffer command, VkCommandBufferResetFlags flags) {
   const auto result = vkResetCommandBuffer(command, flags);
-  if (result == VK_SUCCESS)
+  if (result == VK_SUCCESS) {
     commands.erase(command);
+    queryCommands.erase(command);
+  }
   return result;
 }
 void FreeCommandBuffers(VkDevice device, VkCommandPool pool, std::uint32_t count,
                         const VkCommandBuffer *freed) {
-  for (std::uint32_t i = 0; i < count; ++i)
+  for (std::uint32_t i = 0; i < count; ++i) {
     commands.erase(freed[i]);
+    queryCommands.erase(freed[i]);
+  }
   vkFreeCommandBuffers(device, pool, count, freed);
 }
 VkResult QueueSubmit(VkQueue queue, std::uint32_t count, const VkSubmitInfo *submits,
@@ -107,6 +154,9 @@ VkResult QueueSubmit(VkQueue queue, std::uint32_t count, const VkSubmitInfo *sub
   if (result == VK_SUCCESS)
     for (std::uint32_t i = 0; i < count; ++i)
       for (std::uint32_t j = 0; j < submits[i].commandBufferCount; ++j) {
+        const auto query = queryCommands.find(submits[i].pCommandBuffers[j]);
+        if (query != queryCommands.end())
+          pendingQueries[query->second] = fence;
         const auto command = commands.find(submits[i].pCommandBuffers[j]);
         if (command != commands.end()) {
           const auto bound = bindings.find(command->second);
@@ -118,6 +168,10 @@ VkResult QueueSubmit(VkQueue queue, std::uint32_t count, const VkSubmitInfo *sub
 }
 } // namespace UploadTrace
 
+#define vkCreateQueryPool UploadTrace::CreateQueryPool
+#define vkDestroyQueryPool UploadTrace::DestroyQueryPool
+#define vkCmdResetQueryPool UploadTrace::ResetQueryPool
+#define vkGetQueryPoolResults UploadTrace::GetQueryPoolResults
 #define vkCreateBuffer UploadTrace::CreateBuffer
 #define vkDestroyBuffer UploadTrace::DestroyBuffer
 #define vkAllocateMemory UploadTrace::AllocateMemory
@@ -131,6 +185,10 @@ VkResult QueueSubmit(VkQueue queue, std::uint32_t count, const VkSubmitInfo *sub
 #define vkFreeCommandBuffers UploadTrace::FreeCommandBuffers
 #define vkQueueSubmit UploadTrace::QueueSubmit
 #include "../../Engine/Presentation/src/VulkanSurface.cpp"
+#undef vkCreateQueryPool
+#undef vkDestroyQueryPool
+#undef vkCmdResetQueryPool
+#undef vkGetQueryPoolResults
 #undef vkCreateBuffer
 #undef vkDestroyBuffer
 #undef vkAllocateMemory
@@ -204,9 +262,10 @@ void Run(const std::filesystem::path &capture) {
   Require(windows != nullptr, "upload reuse window system unavailable");
   const auto window = windows->Create({"Nexora Vulkan upload reuse", 640, 480, true, true});
   Require(static_cast<bool>(window), "upload reuse window creation failed");
+  UploadTrace::failNextQueryAllocation = true;
   auto surface = std::make_unique<VulkanSurface>(
       SurfaceDescriptor{window.handle, 640, 480, 2, PresentMode::Immediate, ColorSpace::Srgb,
-                        SurfaceBackend::Vulkan},
+                        SurfaceBackend::Vulkan, true},
       *windows);
   Display *display = XOpenDisplay(nullptr);
   Require(display != nullptr, "upload reuse X11 display unavailable");
@@ -247,6 +306,18 @@ void Run(const std::filesystem::path &capture) {
   const auto slots = UploadTrace::buffers.size();
   Require(slots >= 2 && slots <= 3 && UploadTrace::creations == slots,
           "scene upload did not warm one allocation per frame slot");
+  Require(UploadTrace::queryAllocationFailures == 1 && !UploadTrace::failNextQueryAllocation,
+          "optional query allocation failure broke rendering or fixture did not execute");
+  UploadTrace::failNextTimingRead = true;
+  for (int i = 0; i < 3; ++i) {
+    const auto before = UploadTrace::timingReadFailures;
+    submit(i % 2 != 0);
+    if (UploadTrace::timingReadFailures > before)
+      Require(!surface->Diagnostics().gpuTiming.milliseconds,
+              "failed query read fabricated latest timing from a historical success");
+  }
+  Require(UploadTrace::timingReadFailures == 1 && !UploadTrace::failNextTimingRead,
+          "failed optional native query read did not execute");
   for (int i = 0; i < 100; ++i)
     submit(i % 2 != 0);
   Require(UploadTrace::creations == slots && UploadTrace::violations == 0,
@@ -340,8 +411,25 @@ void Run(const std::filesystem::path &capture) {
   Require(surface->DrainAndDestroy() == SurfaceStatus::Ready &&
               surface->DrainAndDestroy() == SurfaceStatus::Ready && UploadTrace::buffers.empty() &&
               UploadTrace::memory.empty() && UploadTrace::pending.empty() &&
-              UploadTrace::violations == 0,
+              UploadTrace::queryPools.empty() && UploadTrace::pendingQueries.empty() &&
+              UploadTrace::queryCommands.empty() && UploadTrace::violations == 0,
           "resize/teardown leaked storage or freed it before GPU completion");
+  // Existing consumers opt out: no query resources or completed timing stream are created.
+  auto disabled = std::make_unique<VulkanSurface>(
+      SurfaceDescriptor{window.handle, width, height, 2, PresentMode::Immediate, ColorSpace::Srgb,
+                        SurfaceBackend::Vulkan},
+      *windows);
+  Require(UploadTrace::queryPools.empty(), "default surface allocated GPU profiling resources");
+  for (int i = 0; i < 4; ++i)
+    Require(disabled->Acquire() == SurfaceStatus::Ready &&
+                disabled->Present() == SurfaceStatus::Ready,
+            "default surface stopped rendering without GPU profiling");
+  Require(disabled->DrainAndDestroy() == SurfaceStatus::Ready &&
+              disabled->Diagnostics().gpuTiming.source == GpuTimingSource::Unavailable &&
+              disabled->Diagnostics().gpuTiming.completedSubmission == 0 &&
+              !disabled->Diagnostics().gpuTiming.milliseconds && UploadTrace::queryPools.empty() &&
+              UploadTrace::violations == 0,
+          "default surface fabricated measurements or retained query resources");
   XCloseDisplay(display);
   Require(windows->Destroy(window.handle) == Window::WindowError::None,
           "upload reuse window teardown failed");

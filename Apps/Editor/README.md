@@ -295,7 +295,7 @@ Undoing entity creation removes stale node metadata and selection; Redo restores
 stable entity ID. New scene edits discard the redo branch.
 The docked Profiler shows a bounded history of Editor frame processing wall time measured after
 BeginFrame and before Present. Capture can be paused or cleared; the panel reports evicted frames
-and labels GPU timing as unavailable. After a successful Present, the application separately calls
+and plots separately measured native GPU intervals. After a successful Present, the application separately calls
 `ProfileSession::SampleProcessMemory` to observe real current process RSS / working-set bytes at
 most once per 250 ms. The Profiler displays a copied latest optional value and observed peak since
 Clear, in bytes, including shared resident pages. A read failure makes latest unavailable and
@@ -421,7 +421,7 @@ cells because this wall-time format excludes live RSS observations. Export requi
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import, GPU timing and saved process-memory traces remain open.
+file itself. Arbitrary capture import and GPU trace persistence remain open; process-memory traces use their own schema.
 
 Profiler Import CSV reads `.nexora/frame-processing.csv` through the workspace owner and displays a
 separate static wall-time snapshot. The file is bounded to 128 KiB/600 ordered samples; malformed,
@@ -664,3 +664,11 @@ across project switches; the stored UUID denotes only the export destination. Im
 validated owning static snapshot and preserves live capture on failure/success. The UI plots elapsed
 time with pause gaps and unavailable reads, and reports memory-history evictions separately. No
 capture is written automatically; wall-time CSV/JSON files and GPU availability remain unchanged.
+
+The graphical Editor opts into native GPU timing when creating its RenderSurface. After successful
+BeginFrame/Acquire and before UI Capture/Clear, it maps copied completed Presentation timing into
+`ProfileSession::ObserveGpuFrame` with the stable surface domain and software-device flag. Recording
+never borrows a native command buffer or substitutes CPU frame time. GPU samples include delayed
+completion and are independent of CPU wall-time/RSS; no project file is written implicitly. Shutdown
+reports bounded source/scope/unit, completed ID, retained/dropped counts and optional latest duration.
+Software Vulkan evidence does not establish physical GPU timing accuracy or performance budgets.

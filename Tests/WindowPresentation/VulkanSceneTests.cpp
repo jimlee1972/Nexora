@@ -172,6 +172,7 @@ int main(int argc, char **argv) {
     descriptor.width = 640;
     descriptor.height = 480;
     descriptor.backend = Presentation::SurfaceBackend::Vulkan;
+    descriptor.enableGpuTiming = true;
     auto surface = Presentation::CreateSurface(descriptor, *windows);
     Require(surface != nullptr, "Vulkan surface creation failed");
     std::array<Presentation::SceneVertex, 6> vertices{{
@@ -598,6 +599,11 @@ int main(int argc, char **argv) {
                 diagnostics.device.driverVersionFormat ==
                     Nexora::Presentation::DriverVersionFormat::VulkanRaw,
             "selected Vulkan device identity missing");
+    if (diagnostics.gpuTiming.source == Presentation::GpuTimingSource::VulkanTimestamps)
+      Require(diagnostics.gpuTiming.completedSubmission > 0 && diagnostics.gpuTiming.milliseconds &&
+                  std::isfinite(*diagnostics.gpuTiming.milliseconds) &&
+                  *diagnostics.gpuTiming.milliseconds >= 0,
+              "real completed Vulkan query timing unavailable or invalid");
     Require(diagnostics.sceneDrawCalls == 27 && diagnostics.sceneInstances == 38 &&
                 diagnostics.acquiredFrames == 27 && diagnostics.presentedFrames == 27 &&
                 diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 4 &&
@@ -605,6 +611,11 @@ int main(int argc, char **argv) {
             "native scene counters or resize evidence mismatch");
     Require(surface->Acquire() == SurfaceStatus::Ready, "abandoned frame acquire failed");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "scene teardown failed");
+    Require(
+        surface->Diagnostics().gpuTiming.completedSubmission == 27 &&
+            (!surface->Diagnostics().gpuTiming.milliseconds ||
+             std::isfinite(*surface->Diagnostics().gpuTiming.milliseconds)),
+        "drain did not collect latest completed submission or abandoned recording changed timing");
     Require(surface->Diagnostics().device.name == diagnostics.device.name,
             "device identity lost during drain");
     Require(surface->DrawScene(draw) == SurfaceStatus::InvalidDescriptor,

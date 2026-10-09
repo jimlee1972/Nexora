@@ -1,6 +1,7 @@
 #if !defined(__APPLE__)
 #error "MetalSurface.mm is only built on Apple platforms"
 #endif
+#include "GpuTiming.h"
 #include "Nexora/Presentation/Surface.h"
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
@@ -26,7 +27,8 @@ namespace {
 class MetalSurface final : public ISurface {
 public:
   MetalSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows)
-      : thread_(std::this_thread::get_id()), width_(descriptor.width), height_(descriptor.height) {
+      : thread_(std::this_thread::get_id()), width_(descriptor.width), height_(descriptor.height),
+        gpuTimingEnabled_(descriptor.enableGpuTiming) {
     @autoreleasepool {
       if (descriptor.framesInFlight < 2 || descriptor.framesInFlight > kFrames ||
           descriptor.colorSpace != ColorSpace::Srgb || !width_ || !height_)
@@ -96,6 +98,7 @@ public:
       if (inflight_[frame_] != nil) {
         [inflight_[frame_] waitUntilCompleted];
         ++diagnostics_.fenceWaits;
+        CollectGpuTiming(frame_);
         if (inflight_[frame_].status == MTLCommandBufferStatusError)
           return SurfaceStatus::DeviceLost;
         inflight_[frame_] = nil;
@@ -133,6 +136,8 @@ public:
       }
       [commands_ presentDrawable:drawable_];
       [commands_ commit];
+      timingSequences_[frame_] =
+          !gpuTimingEnabled_ || timingSequence_ == UINT64_MAX ? 0 : ++timingSequence_;
       inflight_[frame_] = commands_;
       commands_ = nil;
       drawable_ = nil;
@@ -640,12 +645,31 @@ public:
 
 private:
   static constexpr std::size_t kFrames = 3;
+  void CollectGpuTiming(std::size_t slot) noexcept {
+    if (!timingSequences_[slot])
+      return;
+    std::optional<double> measured;
+    auto source = GpuTimingSource::Unavailable;
+    if (@available(macOS 10.15, *)) {
+      source = GpuTimingSource::MetalCommandBuffer;
+      if (inflight_[slot].status == MTLCommandBufferStatusCompleted) {
+        const double begin = inflight_[slot].GPUStartTime, end = inflight_[slot].GPUEndTime;
+        const double duration = (end - begin) * 1000;
+        if (std::isfinite(begin) && begin > 0 && std::isfinite(end) && end >= begin &&
+            std::isfinite(duration))
+          measured = duration;
+      }
+    }
+    detail::PublishGpuTiming(diagnostics_.gpuTiming, source, timingSequences_[slot], measured);
+    timingSequences_[slot] = 0;
+  }
   bool DrainFrames() {
     bool success = true;
     for (std::size_t i = 0; i < kFrames; ++i) {
       if (inflight_[i]) {
         [inflight_[i] waitUntilCompleted];
         ++diagnostics_.fenceWaits;
+        CollectGpuTiming(i);
         if (inflight_[i].status == MTLCommandBufferStatusError) {
           diagnostics_.lastPlatformResult = static_cast<std::int64_t>(inflight_[i].error.code);
           success = false;
@@ -1134,6 +1158,7 @@ private:
   }
   std::thread::id thread_;
   std::uint32_t width_{}, height_{};
+  bool gpuTimingEnabled_{};
   std::mutex extentMutex_;
   std::uint32_t pendingWidth_{}, pendingHeight_{};
   bool dirty_{};
@@ -1179,6 +1204,8 @@ private:
   CAMetalLayer *layer_ = nil;
   id<CAMetalDrawable> drawable_ = nil;
   SurfaceDiagnostics diagnostics_{};
+  std::uint64_t timingSequence_{};
+  std::array<std::uint64_t, kFrames> timingSequences_{};
 };
 } // namespace
 std::unique_ptr<ISurface> CreateMetalSurface(const SurfaceDescriptor &descriptor,

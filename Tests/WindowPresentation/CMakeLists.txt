@@ -82,3 +82,9 @@ if(NEXORA_ENABLE_SLANG AND NEXORA_SLANGC_EXECUTABLE)
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Engine/Presentation/shaders/GenerateToneShaders.py"
       --compiler "${NEXORA_SLANGC_EXECUTABLE}" --check)
 endif()
+
+add_executable(NexoraGpuTimingTests GpuTimingTests.cpp)
+target_include_directories(NexoraGpuTimingTests PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Presentation/src")
+target_link_libraries(NexoraGpuTimingTests PRIVATE Nexora::Presentation)
+nexora_apply_defaults(NexoraGpuTimingTests)
+add_test(NAME window_presentation.gpu_timing COMMAND NexoraGpuTimingTests)

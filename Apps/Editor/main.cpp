@@ -689,7 +689,8 @@ int RunGraphical(std::optional<ProjectState> project,
                  bool native_scene_preview,
                  const std::optional<std::string> &initial_gameplay_library) {
   auto created = Nexora::Presentation::CreateRenderSurface(
-      {"Nexora Editor", 1280, 720, true, Nexora::Presentation::SurfaceBackend::Automatic});
+      {"Nexora Editor", 1280, 720, true, Nexora::Presentation::SurfaceBackend::Automatic,
+       Nexora::Presentation::PresentMode::VSync, Nexora::Presentation::ColorSpace::Srgb, true});
   if (!created) {
     std::cerr << "graphical shell unavailable: " << created.reason << '\n';
     return 1;
@@ -1073,6 +1074,24 @@ int RunGraphical(std::optional<ProjectState> project,
       continue;
     }
     ui.UpdateImeCandidate(*created.surface);
+    const auto native_gpu = created.surface->Diagnostics();
+    auto gpu_source = nexora::editor::GpuProfileSource::Unavailable;
+    switch (native_gpu.gpuTiming.source) {
+    case Nexora::Presentation::GpuTimingSource::VulkanTimestamps:
+      gpu_source = nexora::editor::GpuProfileSource::VulkanTimestamps;
+      break;
+    case Nexora::Presentation::GpuTimingSource::Dx12Timestamps:
+      gpu_source = nexora::editor::GpuProfileSource::Dx12Timestamps;
+      break;
+    case Nexora::Presentation::GpuTimingSource::MetalCommandBuffer:
+      gpu_source = nexora::editor::GpuProfileSource::MetalCommandBuffer;
+      break;
+    case Nexora::Presentation::GpuTimingSource::Unavailable:
+      break;
+    }
+    static_cast<void>(profile.ObserveGpuFrame(
+        created.surface->UiResourceDomain(), gpu_source, native_gpu.softwareRasterizer,
+        {native_gpu.gpuTiming.completedSubmission, native_gpu.gpuTiming.milliseconds}));
     ui.BeginFrame();
     if (!project && pending_project) {
       if (const auto snapshot = imports.Snapshot(pending_project->import)) {
@@ -1757,6 +1776,18 @@ int RunGraphical(std::optional<ProjectState> project,
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());
   const auto diagnostics = created.surface->Diagnostics();
+  const auto gpu_timing = profile.GpuTiming();
+  std::cout << "GPU timing evidence: scope=native_command_buffer_interval unit=milliseconds source="
+            << static_cast<unsigned>(gpu_timing.source)
+            << " software=" << gpu_timing.software_rasterizer
+            << " completed=" << gpu_timing.completed_submission
+            << " retained=" << profile.GpuSamples().size()
+            << " dropped=" << profile.GpuDroppedCount() << " latest=";
+  if (gpu_timing.milliseconds)
+    std::cout << *gpu_timing.milliseconds;
+  else
+    std::cout << "unavailable";
+  std::cout << '\n';
   const auto process_memory = profile.ProcessMemory();
   std::cerr << "process memory evidence: scope=current_process_resident_set unit=bytes attempts="
             << process_memory.attempts << " successful=" << process_memory.successful_samples

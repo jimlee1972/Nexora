@@ -133,6 +133,18 @@ def compared_screenshot(window, width, height, output, reference, equal):
         time.sleep(0.1)
 
 
+def animate_and_pause(window, width, height, output, reference, tool):
+    # A fixed sleep can queue both Space toggles before a slow software GPU presents motion.
+    # Acknowledge actual changed pixels before Pause; retain the five-second motion deadline.
+    tool('key', '--window', window, 'space')
+    try:
+        compared_screenshot(window, width, height, output / 'courtyard-running.png', reference, False)
+    finally:
+        tool('key', '--window', window, 'space')
+    # Prove Pause also reached presentation: repeated stable changed frames, existing 15s bound.
+    return settled_screenshot(window, width, height, output / 'courtyard-animated.png', reference)
+
+
 def request_window_close(window: int, display_name: str) -> None:
     """Request a normal close even when Xvfb has no window manager."""
     x11 = ctypes.CDLL('libX11.so.6')
@@ -428,11 +440,7 @@ def main():
             compared_screenshot(window,1280,720,output/'courtyard-crystal-light-restored.png',activated,True)
             time.sleep(0.3)
             assert compared_screenshot(window,1280,720,output/'courtyard-paused.png',activated,True) == activated, 'Paused animation advanced'
-            tool('key','--window',window,'space')
-            time.sleep(0.6)
-            tool('key','--window',window,'space')
-            time.sleep(0.3)
-            moved=compared_screenshot(window,1280,720,output/'courtyard-animated.png',activated,False)
+            moved=animate_and_pause(window,1280,720,output,activated,tool)
             assert moved != activated, 'Wind/particles did not animate'
             tool('key','--window',window,'r')
             time.sleep(0.3)

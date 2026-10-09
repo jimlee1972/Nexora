@@ -97,6 +97,24 @@ struct ProcessMemoryCapture final {
 [[nodiscard]] NEXORA_EDITOR_API bool
 ValidateProcessMemorySamples(std::span<const ProcessMemorySample> samples) noexcept;
 
+enum class GpuProfileSource : std::uint8_t {
+  Unavailable,
+  VulkanTimestamps,
+  Dx12Timestamps,
+  MetalCommandBuffer
+};
+struct GpuProfileSample final {
+  std::uint64_t submission{};
+  std::optional<double> milliseconds;
+};
+struct GpuProfileObservation final {
+  GpuProfileSource source{GpuProfileSource::Unavailable};
+  bool software_rasterizer{};
+  std::uint64_t completed_submission{};
+  std::optional<double> milliseconds;
+  std::optional<double> observed_peak_ms;
+};
+
 class NEXORA_EDITOR_API ProfileSession final {
 public:
   explicit ProfileSession(std::size_t capacity = 600) : capacity_(capacity) {}
@@ -120,6 +138,17 @@ public:
   }
   [[nodiscard]] std::uint64_t MemoryDroppedCount() const noexcept { return memory_dropped_; }
 
+  // Consume copied completed native results on the owner thread, never native handles.
+  // Domain changes clear GPU history; paused ingestion still advances its completion watermark.
+  bool ObserveGpuFrame(std::uint64_t domain, GpuProfileSource source, bool software_rasterizer,
+                       GpuProfileSample sample) noexcept;
+  static constexpr std::size_t kMaximumGpuSamples = 600;
+  [[nodiscard]] GpuProfileObservation GpuTiming() const noexcept { return gpu_; }
+  [[nodiscard]] std::span<const GpuProfileSample> GpuSamples() const noexcept {
+    return {gpu_samples_.data(), gpu_sample_count_};
+  }
+  [[nodiscard]] std::uint64_t GpuDroppedCount() const noexcept { return gpu_dropped_; }
+
 private:
   std::size_t capacity_{};
   std::uint64_t dropped_{};
@@ -130,6 +159,13 @@ private:
   std::size_t memory_sample_count_{};
   std::uint64_t memory_dropped_{};
   std::optional<std::chrono::steady_clock::time_point> memory_origin_;
+
+  GpuProfileObservation gpu_;
+  std::uint64_t gpu_domain_{};
+  std::uint64_t gpu_watermark_{};
+  std::array<GpuProfileSample, kMaximumGpuSamples> gpu_samples_{};
+  std::size_t gpu_sample_count_{};
+  std::uint64_t gpu_dropped_{};
   std::optional<std::chrono::steady_clock::time_point> next_memory_sample_;
   std::optional<std::chrono::steady_clock::time_point> last_memory_sample_;
 };

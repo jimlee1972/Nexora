@@ -368,3 +368,9 @@ target_include_directories(NexoraMaterialInspectorTests PRIVATE "${PROJECT_SOURC
 target_link_libraries(NexoraMaterialInspectorTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraMaterialInspectorTests)
 add_test(NAME editor.material_inspector COMMAND NexoraMaterialInspectorTests)
+
+add_executable(NexoraGpuProfileDisplayTests GpuProfileDisplayTests.cpp)
+target_include_directories(NexoraGpuProfileDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraGpuProfileDisplayTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraGpuProfileDisplayTests)
+add_test(NAME editor.gpu_profile_display COMMAND NexoraGpuProfileDisplayTests)
