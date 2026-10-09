@@ -771,6 +771,12 @@ creates property widgets; unknown components retain raw data instead of being si
     control tests cover the supporting slice. Full prefab/additive/migration/crash and source-control
     acceptance remain open; see [external-save evidence](../../Tools/Build/evidence/EditorEDM4-ExternalSceneSave-Linux-2026-10-08.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
+  - ✅ UI-neutral specialized-tool metadata now owns schema/interface versions, provider IDs,
+    declared permissions, document/contribution identities and bounded resource declarations.
+    Invalid/oversized admission preserves existing registry state; owning snapshots survive removal.
+    These declarations do not grant permissions, enforce plugin allocations or prove a production
+    graphical workflow. The reference plugin and edit/preview/save/unload acceptance remain open.
+    [Linux contract evidence](../../Tools/Build/evidence/EditorEDM5-ToolCapabilities-Linux-2026-10-09.md).
   - ✅ Portable capability registry enforces stable tool IDs and honest implemented/read-only/
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
@@ -894,6 +900,10 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: graphical build frontend, remote deployment/logs, physical GPU calibration, arbitrary capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ Linux native center-gesture acceptance now repeats only Save while observing committed bytes
+    inside the original deadline, retaining exact transform/saved-byte and one-step Undo assertions.
+    Physical input/display and general synthetic-input stability remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-NativeSaveObservation-Linux-2026-10-09.md).
   - ✅ Graphical hierarchy traversal now uses explicit work storage rather than native recursion,
     preserving parent-first/sibling order for deep expanded scenes. Expansion pruning indexes current
     generation keys once, and name-only saved-state metadata avoids repeated World lookup.

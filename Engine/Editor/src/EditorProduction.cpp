@@ -52,14 +52,101 @@ std::string Escape(std::string_view value) {
 
 } // namespace
 
-bool SpecializedToolRegistry::Register(ToolDescriptor descriptor) {
-  if (descriptor.id.empty() || descriptor.title.empty() ||
-      std::ranges::any_of(tools_, [&](const auto &tool) { return tool.id == descriptor.id; }))
+bool SpecializedToolRegistry::Validate(const ToolDescriptor &descriptor, std::string *error) {
+  if (error)
+    error->clear();
+  const auto fail = [&](const char *message) {
+    if (error)
+      *error = message;
     return false;
+  };
+  const auto identifier = [](std::string_view value) {
+    return !value.empty() && value.size() <= kMaximumIdBytes && value.front() >= 'a' &&
+           value.front() <= 'z' && std::ranges::all_of(value, [](unsigned char c) {
+             return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '-' ||
+                    c == '_';
+           });
+  };
+  const auto text = [](std::string_view value, std::size_t limit) {
+    if (value.size() > limit || !foundation::IsValidUtf8(value))
+      return false;
+    for (std::size_t i = 0; i < value.size(); ++i) {
+      const auto byte = static_cast<unsigned char>(value[i]);
+      if (byte < 0x20 || byte == 0x7F)
+        return false;
+      // Valid UTF-8 encodes U+0080..U+009F as C2 80..9F. Check that complete code-point
+      // encoding, not continuation bytes alone, so ordinary non-ASCII titles remain valid.
+      if (byte == 0xC2 && i + 1 < value.size()) {
+        const auto continuation = static_cast<unsigned char>(value[i + 1]);
+        if (continuation >= 0x80 && continuation <= 0x9F)
+          return false;
+      }
+    }
+    return true;
+  };
+  if (descriptor.schema_version != 1 || descriptor.interface_version != 1)
+    return fail("unsupported tool descriptor or interface version");
+  if (!identifier(descriptor.id) || !identifier(descriptor.provider_id) ||
+      descriptor.title.empty() || !text(descriptor.title, kMaximumTitleBytes) ||
+      !text(descriptor.reason, kMaximumReasonBytes))
+    return fail("invalid or oversized tool identity, title or diagnostic");
+  if (descriptor.state != CapabilityState::Implemented &&
+      descriptor.state != CapabilityState::ReadOnly &&
+      descriptor.state != CapabilityState::Unavailable)
+    return fail("unknown tool capability state");
   if (descriptor.state != CapabilityState::Implemented && descriptor.reason.empty())
+    return fail("read-only or unavailable tool requires a diagnostic");
+  constexpr auto permissions = static_cast<std::uint32_t>(ToolPermission::ReadDocument) |
+                               static_cast<std::uint32_t>(ToolPermission::EditDocument) |
+                               static_cast<std::uint32_t>(ToolPermission::Preview) |
+                               static_cast<std::uint32_t>(ToolPermission::SaveDocument);
+  if (!descriptor.required_permissions || (descriptor.required_permissions & ~permissions))
+    return fail("unknown or empty tool permissions");
+  if (descriptor.document_types.size() > kMaximumIdentifiers ||
+      descriptor.contributions.size() > kMaximumIdentifiers)
+    return fail("tool document or contribution count exceeds its budget");
+  std::size_t bytes = descriptor.id.size() + descriptor.provider_id.size() +
+                      descriptor.title.size() + descriptor.reason.size();
+  const auto identifiers = [&](const std::vector<std::string> &values) {
+    for (std::size_t i = 0; i < values.size(); ++i) {
+      if (!identifier(values[i]) ||
+          std::find(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(i), values[i]) !=
+              values.begin() + static_cast<std::ptrdiff_t>(i))
+        return false;
+      bytes += values[i].size();
+    }
+    return true;
+  };
+  if (!identifiers(descriptor.document_types) || !identifiers(descriptor.contributions) ||
+      bytes > kMaximumDescriptorBytes)
+    return fail("invalid, duplicate or oversized tool document/contribution metadata");
+  if (!descriptor.budget.document_bytes ||
+      descriptor.budget.document_bytes > kMaximumDocumentBytes ||
+      !descriptor.budget.preview_bytes || descriptor.budget.preview_bytes > kMaximumPreviewBytes ||
+      !descriptor.budget.pending_operations ||
+      descriptor.budget.pending_operations > kMaximumPendingOperations)
+    return fail("invalid or unsupported tool resource budget");
+  return true;
+}
+
+bool SpecializedToolRegistry::Register(ToolDescriptor descriptor, std::string *error) {
+  if (!Validate(descriptor, error))
     return false;
+  if (tools_.size() >= kMaximumTools || Find(descriptor.id)) {
+    if (error)
+      *error = "tool registry is full or the capability ID already exists";
+    return false;
+  }
   tools_.push_back(std::move(descriptor));
   std::ranges::sort(tools_, {}, &ToolDescriptor::id);
+  return true;
+}
+
+bool SpecializedToolRegistry::Remove(std::string_view id) noexcept {
+  const auto found = std::ranges::find(tools_, id, &ToolDescriptor::id);
+  if (found == tools_.end())
+    return false;
+  tools_.erase(found);
   return true;
 }
 

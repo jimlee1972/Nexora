@@ -328,6 +328,23 @@ into renderer or platform internals.
   Console records and inspection/debugger state cross as owning snapshots, never live World pointers.
 - Specialized tools are registrations, not implied backends: a tool must report `Implemented`,
   `ReadOnly`, or `Unavailable`, and every non-implemented state carries a reason.
+  Schema/interface version one now owns a provider ID, declared operation permissions,
+  document/contribution IDs and document/preview/pending-operation budgets. Stable IDs use lowercase
+  ASCII letters, digits, dot, hyphen and underscore, starting with a letter; displayed titles and
+  diagnostics are bounded UTF-8 without C0, DEL or Unicode C1 control characters. Ordinary
+  non-ASCII continuation bytes retain their code-point meaning. Discovery is limited to 128 tools,
+  128-byte IDs, 256-byte titles, 1024-byte reasons, 16 document IDs and 16 contribution IDs, and
+  4096 total text bytes per descriptor. Document/preview declarations are positive and at most
+  16 MiB/128 MiB; pending operations are 1..64. Invalid versions, states, permissions, duplicate IDs
+  or exceeded limits reject before registry mutation. Removal releases discovery capacity;
+  `Snapshot()` owns copied metadata across provider removal. `Find()`/`Tools()` are borrowed only
+  until the next mutation. Calls are serialized on the authoring thread.
+  These declarations grant no access and enforce no native allocation policy: the implementing
+  host must separately check permissions, access, document generation, actual resource use and
+  preview lifetime. Empty contribution lists preserve the original four-field aggregate discovery
+  API; they do not certify a production tool. Registry removal neither unloads a native library nor
+  edits source payload. The production reference plugin and graphical fallback remain separate
+  acceptance work. Public C++ consumers must rebuild; the C/Zig gameplay ABI is unchanged.
 - Build manifests own copied profile/artifact data and are atomically replaced. A successful
   manifest always records its target, configuration, reproducible command, artifact sizes, and
   checksums. Manifest JSON numbers and control-character escapes use the classic locale, including
