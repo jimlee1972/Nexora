@@ -55,6 +55,9 @@ def main():
 
         def path_dialog(shortcut, path):
             send("key", "--clearmodifiers", shortcut)
+            # Use the real path widget after opening the modal. Automatic keyboard focus is
+            # assigned during layout and must not race the next chord on a slow native frame.
+            send("mousemove", "--window", window, "600", "375", "click", "1")
             send("key", "--clearmodifiers", "ctrl+a")
             send("type", "--clearmodifiers", "--delay", "2", path)
             send("key", "--clearmodifiers", "Return")
