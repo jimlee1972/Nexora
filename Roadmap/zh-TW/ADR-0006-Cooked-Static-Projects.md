@@ -26,9 +26,16 @@ FNV checksum 偵測損壞，不提供 authenticity。不改 stable C／Zig ABI�
 
 ## 影響與驗收
 
+Editor 現提供有界 owning Runtime capture，以及從 capture 與明確提供的 owning imported
+OBJ／scalar PBR asset 產生封裝的純 `CookStaticProject` producer。Exact closure 重用共用
+codec／cooker／package validation，不查找 source 或執行 publication；詳見
+[producer contract](../../Engine/Editor/StaticProjectExport.md)。拒絕完整 UUID／resource collision、
+未知 reserved binding、缺失 asset，以及沒有 scalar override 的非零 legacy shader。
+Scene text 與 inactive opaque bytes 保持原樣。
+
 實際 CLI 可在移除 source content 後驗證 owning package，明確回報 StaticView 與 inactive
 component。原生視窗 rendering、gameplay loading、compile、deploy 與 signing 尚未接上。
-Editor snapshot capture、stale／cancel 檢查、atomic publication、native resource admission
+Current-state／stale／cancel 檢查、atomic publication、native resource admission
 及 Build／deploy／log UI 是後續工作。
 
 所有完整 ED milestone 保持未勾選。交付須通過完整 Linux Development、Monolithic Shipping、
