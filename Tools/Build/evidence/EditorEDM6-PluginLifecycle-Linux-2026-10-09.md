@@ -66,4 +66,9 @@ Initial graphical gate: 203/203, zero skips, 394.82s; Minimal Shipping: 74 steps
 Explicit Full Monolithic Shipping SDK build: 86 steps, actual focused tests 3/3 in 0.02s.
 Final accepted-main integration: **205/205**, zero skips, **415.35s**;
 Minimal Shipping rebuild passes; Full Shipping SDK rebuild and tests 3/3 in 0.02s pass.
+Initial hosted Windows compilation reported MSVC C2487 for the second declarator in each
+comma-separated static constexpr declaration on the DLL-exported PluginHost class. Each of the
+four unchanged constants now has its own declaration; warnings and export requirements remain
+enabled. The repaired source passes the complete graphical gate again: **205/205**, zero skips,
+**404.66s**, plus Minimal Shipping and Full Shipping SDK tests **3/3 in 0.02s**.
 Touched C++ clang-format and git diff checks pass. Root README and full milestone counts remain unchanged.

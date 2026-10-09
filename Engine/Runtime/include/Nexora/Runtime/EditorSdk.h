@@ -149,8 +149,10 @@ public:
   void PollShutdown() noexcept;
   [[nodiscard]] std::vector<PluginSnapshot> Snapshot() const;
   [[nodiscard]] std::size_t LoadedCount() const noexcept;
-  static constexpr std::size_t kMaximumPlugins = 128, kMaximumPathBytes = 32768;
-  static constexpr std::size_t kMaximumServices = 64, kMaximumServiceNameBytes = 256;
+  static constexpr std::size_t kMaximumPlugins = 128;
+  static constexpr std::size_t kMaximumPathBytes = 32768;
+  static constexpr std::size_t kMaximumServices = 64;
+  static constexpr std::size_t kMaximumServiceNameBytes = 256;
 
 private:
   struct Entry final {
