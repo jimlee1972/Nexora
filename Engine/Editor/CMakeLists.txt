@@ -16,6 +16,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/SceneAuthoring.cpp
   src/SceneFiles.cpp
   src/StaticProjectExport.cpp
+  src/StaticProjectExportJob.cpp
   src/ViewportMath.cpp)
 add_library(Nexora::Editor ALIAS NexoraEditorCore)
 target_include_directories(NexoraEditorCore PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")

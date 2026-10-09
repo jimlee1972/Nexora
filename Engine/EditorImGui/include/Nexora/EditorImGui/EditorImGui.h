@@ -8,6 +8,7 @@
 #include "Nexora/Editor/PlayInputBindings.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneFiles.h"
+#include "Nexora/Editor/StaticProjectExportJob.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/EditorImGui/Api.h"
 #include "Nexora/Presentation/RenderSurface.h"
@@ -53,6 +54,11 @@ struct SceneFileRequest final {
   bool replace_existing{};
   bool close_after_save{};
   std::optional<SceneOverwriteToken> overwrite_token{};
+};
+
+struct StaticExportRequest final {
+  SceneFileToken token;
+  bool cancel{};
 };
 
 struct ProjectSelectorRequest final {
@@ -160,6 +166,9 @@ public:
   [[nodiscard]] bool TakeGpuImportRequest() noexcept;
   bool SetImportedGpuCapture(GpuTimingCapture capture);
   void SetProfileExportStatus(std::string message);
+  [[nodiscard]] std::optional<StaticExportRequest> TakeStaticExportRequest();
+  // Owning bounded observations only. Application revalidates requests and owns job publication.
+  void SetStaticExportStatus(StaticExportSnapshot snapshot, bool busy);
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
   // Owning context only; the application performs all file IO and rechecks token/access.

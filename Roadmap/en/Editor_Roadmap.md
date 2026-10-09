@@ -809,8 +809,16 @@ creates property widgets; unknown components retain raw data instead of being si
     geometry/opaque bounds and standalone ProjectPlayer consumption are covered.
     [Producer contract](../../Engine/Editor/StaticProjectExport.md) and
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-StaticProjectExport-Linux-2026-10-09.md).
-    Current-state/recovery/cancellation authorization, atomic publication, graphical export,
-    native player rendering and full Build/deploy/log acceptance remain open.
+    The separate coordinator below adds current-state/cancellation-checked graphical publication;
+    native player rendering and full Build/deploy/log acceptance are separate slices.
+  - ✅ The graphical Build menu now exports an owning StaticView package through a single background
+    Core job. Real cooking/Runtime verification and chunked staging/readback precede authoring-thread
+    project/document/content/catalog/recovery/access/cancellation checks and atomic publication.
+    Ready status includes actual bytes/checksum and a reproducible ProjectPlayer verification command.
+    Cancellation, stale scenes/projects/assets, failed cooking and unsafe/occupied output preserve
+    the last package and authoring Undo/baseline. Actual core and 1x/2x UI-to-worker-to-Runtime tests
+    cover this data-package slice; executable compilation, manifests, remote deploy/signing and full
+    ED-M6 remain open. [Coordinator contract](../../Engine/Editor/StaticProjectExport.md#graphical-staticview-export-coordinator).
   - ✅ The Editor now opts into real completed native GPU timing: Vulkan/DX12 timestamp queries
     and Metal command-buffer timings publish copied source/submission/optional milliseconds through
     existing completion points. A separate bounded live Profiler history identifies software devices,

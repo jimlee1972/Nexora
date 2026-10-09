@@ -128,6 +128,10 @@ struct EditorImGuiHost::State final {
   std::optional<GpuTimingCapture> imported_gpu;
   std::array<std::optional<std::array<float, 2>>, 3> gpu_control_positions{};
   bool profile_export_requested = false;
+  std::optional<StaticExportRequest> static_export_request;
+  StaticExportSnapshot static_export;
+  bool static_export_busy{};
+  std::array<std::optional<std::array<float, 2>>, 3> static_export_positions{};
   bool profile_json_export_requested = false;
   bool profile_csv_import_requested = false;
   bool profile_json_import_requested = false;
@@ -2968,6 +2972,17 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
           "This legacy project is open read-only. Reopen it for writing to upgrade safely.");
   }
 
+  if (!state.static_export.message.empty()) {
+    ImGui::SeparatorText("StaticView export");
+    ImGui::TextWrapped("%s", state.static_export.message.c_str());
+    if (state.static_export.phase == StaticExportPhase::Published) {
+      ImGui::TextWrapped("%s", state.static_export.relative_path.c_str());
+      ImGui::TextWrapped("Verify: %s", state.static_export.verify_command.c_str());
+      ImGui::Text("Bytes: %llu / FNV-1a: %s",
+                  static_cast<unsigned long long>(state.static_export.bytes),
+                  state.static_export.checksum.c_str());
+    }
+  }
   ImGui::SeparatorText("Recent projects");
   if (recent_projects == nullptr || recent_projects->Entries().empty()) {
     ImGui::TextUnformatted("No recent projects.");
@@ -3991,6 +4006,28 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         BeginSceneFile(*state_, *scene, SceneFileAction::SaveAs);
       CaptureSceneFileControl(*state_, 3);
       ImGui::EndMenu();
+    }
+    state_->static_export_positions = {};
+    if (ImGui::BeginMenu("Build", file_context_valid && !file_external_block && !file_busy)) {
+      const auto capture_position = [&](std::size_t index) {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->static_export_positions[index] =
+            std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      };
+      if (ImGui::MenuItem("Export StaticView package", nullptr, false,
+                          writable && !game_running && !state_->scene_file_save_blocked &&
+                              state_->scene_file_path && content && content->Writable() &&
+                              !content->ReimportBusy() && !state_->static_export_busy))
+        state_->static_export_request = StaticExportRequest{state_->scene_file_token, false};
+      capture_position(1);
+      if (ImGui::MenuItem("Cancel StaticView export", nullptr, false, state_->static_export_busy))
+        state_->static_export_request = StaticExportRequest{state_->scene_file_token, true};
+      capture_position(2);
+      ImGui::EndMenu();
+    } else {
+      const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+      state_->static_export_positions[0] =
+          std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
     }
     if (file_context_valid)
       ImGui::TextDisabled("%s%s",
@@ -5292,6 +5329,9 @@ void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
                                           std::optional<std::filesystem::path> path,
                                           bool save_blocked) {
   if (state_->scene_file_context && state_->scene_file_token != token) {
+    state_->static_export_request.reset();
+    state_->static_export = {};
+    state_->static_export_busy = false;
     state_->scene_file_intent.reset();
     state_->scene_file_output.reset();
     state_->scene_file_dialog = State::FileDialog::None;
@@ -5461,6 +5501,28 @@ bool EditorImGuiHost::SetImportedGpuCapture(GpuTimingCapture capture) {
 }
 void EditorImGuiHost::SetProfileExportStatus(std::string message) {
   state_->profile_export_status = std::move(message);
+}
+
+std::optional<StaticExportRequest> EditorImGuiHost::TakeStaticExportRequest() {
+  return std::exchange(state_->static_export_request, std::nullopt);
+}
+void EditorImGuiHost::SetStaticExportStatus(StaticExportSnapshot snapshot, bool busy) {
+  if (snapshot.operation &&
+      (!state_->scene_file_context || snapshot.source_project != state_->scene_file_token.project ||
+       snapshot.document_generation != state_->scene_file_token.document_generation)) {
+    snapshot = {};
+    if (busy)
+      snapshot.message = "A previous-scene export is pending; cancel or wait for its state check.";
+  }
+  if (snapshot.message.size() > 1024 || snapshot.relative_path.size() > 1024 ||
+      snapshot.verify_command.size() > 1024 || snapshot.checksum.size() > 64 ||
+      !foundation::IsValidUtf8(snapshot.message) ||
+      !foundation::IsValidUtf8(snapshot.relative_path) ||
+      !foundation::IsValidUtf8(snapshot.verify_command) ||
+      !foundation::IsValidUtf8(snapshot.checksum))
+    return;
+  state_->static_export = std::move(snapshot);
+  state_->static_export_busy = busy;
 }
 
 PlayCommand EditorImGuiHost::TakePlayCommand() noexcept {
@@ -6610,6 +6672,16 @@ std::vector<std::byte> EditorImGuiTestAccess::NativeTexturePixels(const EditorIm
       textures[index].generation != generation)
     return {};
   return textures[index].pixels;
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::StaticExportPosition(const EditorImGuiHost &host, std::size_t index) {
+  return index < host.state_->static_export_positions.size()
+             ? host.state_->static_export_positions[index]
+             : std::nullopt;
+}
+StaticExportSnapshot EditorImGuiTestAccess::StaticExportStatus(const EditorImGuiHost &host) {
+  return host.state_->static_export;
 }
 
 std::uint32_t EditorImGuiTestAccess::OverrideDrawTexture(EditorImGuiHost &host,
