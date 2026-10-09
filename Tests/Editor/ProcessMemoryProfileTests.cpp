@@ -43,6 +43,13 @@ void Run() {
           profile.ProcessMemory().observed_peak_bytes == 42 &&
           profile.ProcessMemory().attempts == 3 && profile.ProcessMemory().successful_samples == 2,
       "failed observation fabricated a measurement or erased historical peak");
+  Require(profile.MemorySamples().size() == 2 && profile.MemoryDroppedCount() == 1 &&
+              profile.MemorySamples().front().sequence == 2 &&
+              profile.MemorySamples().front().elapsed_ms == 250 &&
+              profile.MemorySamples().back().sequence == 3 &&
+              profile.MemorySamples().back().elapsed_ms == 500 &&
+              !profile.MemorySamples().back().resident_bytes,
+          "bounded history lost time/order/unavailable attempts");
   profile.SetCapturing(false);
   Require(!profile.SampleProcessMemory(start + 1s, Read) && reads == 3 &&
               !profile.Add({2, 1, 0, 0}),
@@ -51,6 +58,7 @@ void Run() {
   const auto cleared = profile.ProcessMemory();
   Require(!cleared.resident_bytes && !cleared.observed_peak_bytes && cleared.attempts == 0 &&
               cleared.successful_samples == 0 && profile.Samples().empty() &&
+              profile.MemorySamples().empty() && profile.MemoryDroppedCount() == 0 &&
               !profile.SampleProcessMemory(start + 1s, Read),
           "clear did not release observations or resumed paused capture");
   profile.SetCapturing(true);
@@ -63,6 +71,10 @@ void Run() {
   Require(profile.SampleProcessMemory(start + 1250ms, Read) &&
               profile.ProcessMemory().resident_bytes == 0,
           "valid zero was confused with unavailable");
+  Require(profile.MemorySamples().front().resident_bytes ==
+                  std::numeric_limits<std::uint64_t>::max() &&
+              profile.MemorySamples().back().resident_bytes == 0,
+          "history truncated bytes or confused zero/unavailable");
   profile.Clear();
   Require(profile.SampleProcessMemory(start, Read), "clear did not reset monotonic sample window");
   profile.Clear();
@@ -76,6 +88,27 @@ void Run() {
   Require(profile.ProcessMemory().resident_bytes && *profile.ProcessMemory().resident_bytes > 0,
           "production session did not use real OS memory sampler");
 #endif
+  ProfileSession endpoint;
+  Require(endpoint.SampleProcessMemory(std::chrono::steady_clock::time_point::min(), Read) &&
+              endpoint.SampleProcessMemory(std::chrono::steady_clock::time_point::max(), Read) &&
+              nexora::editor::ValidateProcessMemorySamples(endpoint.MemorySamples()),
+          "clock endpoint subtraction overflowed");
+  ProfileSession gap;
+  Require(gap.SampleProcessMemory(start, Read), "gap seed failed");
+  gap.SetCapturing(false);
+  Require(!gap.SampleProcessMemory(start + 1s, Read), "pause sampled");
+  gap.SetCapturing(true);
+  Require(gap.SampleProcessMemory(start + 2s, Read) &&
+              gap.MemorySamples().back().elapsed_ms == 2000,
+          "pause gap erased elapsed time");
+  ProfileSession capped{10000}, disabled{0};
+  for (int i = 0; i < 605; ++i)
+    Require(capped.SampleProcessMemory(start + i * 250ms, Read), "capped sample rejected");
+  Require(capped.MemorySamples().size() == 600 && capped.MemoryDroppedCount() == 5 &&
+              capped.MemorySamples().front().sequence == 6,
+          "hard memory retention cap failed");
+  Require(disabled.SampleProcessMemory(start, Read) && disabled.MemorySamples().empty(),
+          "zero history capacity contract failed");
   Require(profile.Add({2, 2.5, 0, 0}) && profile.Samples().back().memory_bytes == 0 &&
               profile.Samples().back().gpu_ms == 0,
           "memory observation fabricated schema-1 frame metrics");

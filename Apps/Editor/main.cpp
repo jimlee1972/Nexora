@@ -3,6 +3,7 @@
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/ProjectContent.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
+#include "CoreConsoleIngress.h"
 #include "GameViewPreview.h"
 #include "MaterialScenePreview.h"
 #include "Nexora/Editor/EditorProduction.h"
@@ -689,7 +690,8 @@ int RunGraphical(std::optional<ProjectState> project,
                  bool native_scene_preview,
                  const std::optional<std::string> &initial_gameplay_library) {
   auto created = Nexora::Presentation::CreateRenderSurface(
-      {"Nexora Editor", 1280, 720, true, Nexora::Presentation::SurfaceBackend::Automatic});
+      {"Nexora Editor", 1280, 720, true, Nexora::Presentation::SurfaceBackend::Automatic,
+       Nexora::Presentation::PresentMode::VSync, Nexora::Presentation::ColorSpace::Srgb, true});
   if (!created) {
     std::cerr << "graphical shell unavailable: " << created.reason << '\n';
     return 1;
@@ -775,11 +777,15 @@ int RunGraphical(std::optional<ProjectState> project,
   };
   std::unordered_map<std::filesystem::path, SceneViews> retained_scene_views;
   nexora::runtime::PlaySession play(world);
+  nexora::core::AsyncLogService core_logs{1024};
+  core_logs.Start();
   nexora::runtime::RuntimeConsole console{1024};
+  nexora::editor::preview::CoreConsoleIngress console_ingress{core_logs, console, "NexoraEditor"};
   nexora::editor::ProfileSession profile{240};
   std::optional<Nexora::Presentation::SceneViewport> native_scene_viewport_reported;
   std::optional<NativeSceneMeshes> native_scene_meshes;
   std::optional<nexora::editor::MeshAssetCatalog> play_meshes;
+  std::optional<nexora::editor::preview::MaterialPalette> play_materials;
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport_reported;
   std::size_t unavailable_meshes = 0;
   std::optional<std::array<std::size_t, 3>> native_mesh_geometry_reported;
@@ -789,20 +795,30 @@ int RunGraphical(std::optional<ProjectState> project,
   std::optional<std::size_t> native_scene_drag_scale_axis;
   const auto log = [&](nexora::runtime::RuntimeLogSeverity severity, std::string category,
                        std::string message) {
-    const auto timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                               std::chrono::system_clock::now().time_since_epoch())
-                               .count();
-    static_cast<void>(
-        console.Push({0, severity, std::move(category), static_cast<std::uint64_t>(timestamp),
-                      "NexoraEditor", std::move(message)}));
+    auto level = nexora::core::LogLevel::Info;
+    switch (severity) {
+    case nexora::runtime::RuntimeLogSeverity::Trace:
+      level = nexora::core::LogLevel::Trace;
+      break;
+    case nexora::runtime::RuntimeLogSeverity::Info:
+      break;
+    case nexora::runtime::RuntimeLogSeverity::Warning:
+      level = nexora::core::LogLevel::Warning;
+      break;
+    case nexora::runtime::RuntimeLogSeverity::Error:
+      level = nexora::core::LogLevel::Error;
+      break;
+    case nexora::runtime::RuntimeLogSeverity::Fatal:
+      level = nexora::core::LogLevel::Fatal;
+      break;
+    }
+    core_logs.Write(level, std::move(category), std::move(message));
   };
   nexora::editor::preview::PlayGameplayModule gameplay(
       [&](std::uint32_t level, std::string message) {
-        const auto severity = level >= 3   ? nexora::runtime::RuntimeLogSeverity::Error
-                              : level == 2 ? nexora::runtime::RuntimeLogSeverity::Warning
-                                           : nexora::runtime::RuntimeLogSeverity::Info;
-        log(severity, "Gameplay", std::move(message));
-      });
+        core_logs.Write(static_cast<nexora::core::LogLevel>(level), "Gameplay", std::move(message));
+      },
+      [&] { core_logs.ReportRejected(); });
   log(nexora::runtime::RuntimeLogSeverity::Info, "Editor", "Graphical session started.");
   const auto view_base = [](const std::filesystem::path &relative) {
     return relative == ".nexora/scenes/Main.scene"
@@ -1047,6 +1063,7 @@ int RunGraphical(std::optional<ProjectState> project,
   };
   while (!exit_requested && !created.surface->CloseRequested() &&
          (frame_limit == 0 || frames < frame_limit)) {
+    console_ingress.Poll();
     const auto begin_frame_status = created.surface->BeginFrame();
     if (created.surface->CloseRequested()) {
       if (project && scene.Dirty() && created.surface->CancelCloseRequest()) {
@@ -1073,6 +1090,24 @@ int RunGraphical(std::optional<ProjectState> project,
       continue;
     }
     ui.UpdateImeCandidate(*created.surface);
+    const auto native_gpu = created.surface->Diagnostics();
+    auto gpu_source = nexora::editor::GpuProfileSource::Unavailable;
+    switch (native_gpu.gpuTiming.source) {
+    case Nexora::Presentation::GpuTimingSource::VulkanTimestamps:
+      gpu_source = nexora::editor::GpuProfileSource::VulkanTimestamps;
+      break;
+    case Nexora::Presentation::GpuTimingSource::Dx12Timestamps:
+      gpu_source = nexora::editor::GpuProfileSource::Dx12Timestamps;
+      break;
+    case Nexora::Presentation::GpuTimingSource::MetalCommandBuffer:
+      gpu_source = nexora::editor::GpuProfileSource::MetalCommandBuffer;
+      break;
+    case Nexora::Presentation::GpuTimingSource::Unavailable:
+      break;
+    }
+    static_cast<void>(profile.ObserveGpuFrame(
+        created.surface->UiResourceDomain(), gpu_source, native_gpu.softwareRasterizer,
+        {native_gpu.gpuTiming.completedSubmission, native_gpu.gpuTiming.milliseconds}));
     ui.BeginFrame();
     if (!project && pending_project) {
       if (const auto snapshot = imports.Snapshot(pending_project->import)) {
@@ -1156,6 +1191,49 @@ int RunGraphical(std::optional<ProjectState> project,
                   : nexora::runtime::RuntimeLogSeverity::Error,
             "Input", saved ? "Project input bindings saved." : error);
       }
+      if (ui.TakeGpuExportRequest()) {
+        std::string error;
+        const auto observation = profile.GpuTiming();
+        const bool saved = project->workspace.ExportGpuTimingJson(
+            observation.source, observation.software_rasterizer, profile.GpuSamples(),
+            profile.GpuDroppedCount(), &error);
+        ui.SetProfileExportStatus(saved ? "Saved .nexora/gpu-timing.json" : error);
+        log(saved ? nexora::runtime::RuntimeLogSeverity::Info
+                  : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", saved ? "Native GPU timing trace exported." : error);
+      }
+      if (ui.TakeGpuImportRequest()) {
+        std::string error;
+        auto capture = project->workspace.ImportGpuTimingJson(&error);
+        const bool loaded = capture && ui.SetImportedGpuCapture(std::move(*capture));
+        if (!loaded && error.empty())
+          error = "Imported GPU timing snapshot was rejected.";
+        ui.SetProfileExportStatus(loaded ? "Loaded .nexora/gpu-timing.json (static)" : error);
+        log(loaded ? nexora::runtime::RuntimeLogSeverity::Info
+                   : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler",
+            loaded ? "Native GPU timing trace imported; live capture unchanged." : error);
+      }
+      if (ui.TakeMemoryExportRequest()) {
+        std::string error;
+        const bool saved = project->workspace.ExportProcessMemoryJson(
+            profile.MemorySamples(), profile.MemoryDroppedCount(), &error);
+        ui.SetProfileExportStatus(saved ? "Saved .nexora/process-memory.json" : error);
+        log(saved ? nexora::runtime::RuntimeLogSeverity::Info
+                  : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", saved ? "Process memory trace exported." : error);
+      }
+      if (ui.TakeMemoryImportRequest()) {
+        std::string error;
+        auto capture = project->workspace.ImportProcessMemoryJson(&error);
+        const bool loaded = capture && ui.SetImportedMemoryCapture(std::move(*capture));
+        if (!loaded && error.empty())
+          error = "Imported process memory snapshot was rejected.";
+        ui.SetProfileExportStatus(loaded ? "Loaded .nexora/process-memory.json (static)" : error);
+        log(loaded ? nexora::runtime::RuntimeLogSeverity::Info
+                   : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", loaded ? "Process memory trace imported; live capture unchanged." : error);
+      }
       if (ui.TakeProfileCsvImportRequest()) {
         std::string error;
         auto imported = project->workspace.ImportEditorFrameProcessingCsv(&error);
@@ -1206,6 +1284,7 @@ int RunGraphical(std::optional<ProjectState> project,
           gameplay.Unload();
           static_cast<void>(play.Stop());
           play_meshes.reset();
+          play_materials.reset();
           native_game_viewport_reported.reset();
           ui.SetNativeGameStatus({});
           play_accumulator = 0;
@@ -1220,7 +1299,15 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
       switch (ui.TakePlayCommand()) {
-      case nexora::editor::imgui::PlayCommand::Start:
+      case nexora::editor::imgui::PlayCommand::Start: {
+        auto frozen_materials = nexora::editor::preview::FreezeGameMaterials(
+            scene, materials, content.Browser().ProjectGeneration());
+        if (!frozen_materials) {
+          ui.SetGameplayStatus(
+              "Play material snapshot is unavailable; refresh the project assets.");
+          log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", "Play material snapshot failed.");
+          break;
+        }
         if (play.Start(1.0 / 60.0, [&](nexora::runtime::World &, double seconds) {
               return gameplay.FixedUpdate(seconds);
             })) {
@@ -1237,11 +1324,13 @@ int RunGraphical(std::optional<ProjectState> project,
                                    ? "Gameplay module running."
                                    : "Inspection only: no gameplay library selected.");
           play_meshes = meshes;
+          play_materials = std::move(frozen_materials);
           play_accumulator = 0.0;
           last_play_frame = std::chrono::steady_clock::now();
           log(nexora::runtime::RuntimeLogSeverity::Info, "PIE", "Isolated Play World started.");
         }
         break;
+      }
       case nexora::editor::imgui::PlayCommand::Pause:
         static_cast<void>(play.Pause());
         break;
@@ -1258,6 +1347,7 @@ int RunGraphical(std::optional<ProjectState> project,
         static_cast<void>(play.Stop());
         ui.SetGameplayStatus("Play stopped.");
         play_meshes.reset();
+        play_materials.reset();
         native_game_viewport_reported.reset();
         ui.SetNativeGameStatus({});
         play_accumulator = 0.0;
@@ -1622,11 +1712,13 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
     }
-    if (const auto viewport = ui.NativeGameViewport();
-        viewport && play.PlayWorld() && play_meshes && !ui.NativeScenePreviewViewport()) {
+    if (const auto viewport = ui.NativeGameViewport(); viewport && play.PlayWorld() &&
+                                                       play_meshes && play_materials &&
+                                                       !ui.NativeScenePreviewViewport()) {
       const auto game = nexora::editor::preview::BuildGameFrame(
           *play.PlayWorld(), play.Inspect(), *play_meshes,
-          static_cast<float>(viewport->width) / viewport->height, ui.GameCameraSelection());
+          static_cast<float>(viewport->width) / viewport->height, ui.GameCameraSelection(),
+          &*play_materials);
       if (!game.camera || game.instances.empty()) {
         ui.SetNativeGameStatus(!game.camera
                                    ? "Add an active camera to the scene before Play."
@@ -1634,10 +1726,13 @@ int RunGraphical(std::optional<ProjectState> project,
       } else {
         const auto status = created.surface->DrawScene(game.DrawData(*viewport));
         ui.SetNativeGameStatus(
-            game.unavailable
-                ? std::to_string(game.unavailable) +
-                      " mesh renderers could not be displayed (asset, budget, or transform)."
-                : "",
+            (game.unavailable
+                 ? std::to_string(game.unavailable) +
+                       " mesh renderers could not be displayed (asset, budget, or transform). "
+                 : "") +
+                (game.unavailable_materials ? std::to_string(game.unavailable_materials) +
+                                                  " materials use fallback shading."
+                                            : ""),
             status != Nexora::Presentation::SurfaceStatus::Unsupported);
         if (status == Nexora::Presentation::SurfaceStatus::Ready &&
             (!native_game_viewport_reported || native_game_viewport_reported->x != viewport->x ||
@@ -1736,7 +1831,28 @@ int RunGraphical(std::optional<ProjectState> project,
   gameplay.Unload();
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());
+  core_logs.Stop();
+  console_ingress.Poll();
+  const auto console_records = console.Snapshot();
+  std::cerr << "console producer evidence: source=core_async_log forwarded="
+            << console_ingress.ForwardedCount() << " retained=" << console_records.size()
+            << " dropped=" << console.DroppedCount() << " gameplay_retained="
+            << std::ranges::count(console_records, std::string("Gameplay"),
+                                  &nexora::runtime::RuntimeLogRecord::category)
+            << '\n';
   const auto diagnostics = created.surface->Diagnostics();
+  const auto gpu_timing = profile.GpuTiming();
+  std::cout << "GPU timing evidence: scope=native_command_buffer_interval unit=milliseconds source="
+            << static_cast<unsigned>(gpu_timing.source)
+            << " software=" << gpu_timing.software_rasterizer
+            << " completed=" << gpu_timing.completed_submission
+            << " retained=" << profile.GpuSamples().size()
+            << " dropped=" << profile.GpuDroppedCount() << " latest=";
+  if (gpu_timing.milliseconds)
+    std::cout << *gpu_timing.milliseconds;
+  else
+    std::cout << "unavailable";
+  std::cout << '\n';
   const auto process_memory = profile.ProcessMemory();
   std::cerr << "process memory evidence: scope=current_process_resident_set unit=bytes attempts="
             << process_memory.attempts << " successful=" << process_memory.successful_samples

@@ -119,6 +119,14 @@ struct EditorImGuiHost::State final {
   std::optional<PlayTransformReview> play_apply_requested;
   std::optional<std::array<float, 2>> play_apply_position;
   std::optional<std::array<float, 2>> play_apply_confirm_position;
+  bool memory_export_requested = false;
+  bool memory_import_requested = false;
+  std::optional<ProcessMemoryCapture> imported_memory;
+  std::array<std::optional<std::array<float, 2>>, 3> memory_control_positions{};
+  bool gpu_export_requested = false;
+  bool gpu_import_requested = false;
+  std::optional<GpuTimingCapture> imported_gpu;
+  std::array<std::optional<std::array<float, 2>>, 3> gpu_control_positions{};
   bool profile_export_requested = false;
   bool profile_json_export_requested = false;
   bool profile_csv_import_requested = false;
@@ -135,6 +143,7 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> profile_capture_position;
   std::optional<std::array<float, 2>> profile_clear_position;
   ProcessMemoryObservation profile_memory;
+  GpuProfileObservation profile_gpu;
   std::array<char, 1024> gameplay_library{};
   std::string gameplay_status;
   std::uint64_t gameplay_project_generation{};
@@ -3874,6 +3883,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->camera_align_position.reset();
   state_->play_inspector_rendered = 0;
   state_->inspector_opaque_info.clear();
+  state_->memory_control_positions = {};
   state_->profile_export_position.reset();
   state_->profile_json_export_position.reset();
   state_->profile_csv_import_position.reset();
@@ -3882,11 +3892,19 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->profile_capture_position.reset();
   state_->profile_clear_position.reset();
   state_->profile_memory = profile ? profile->ProcessMemory() : ProcessMemoryObservation{};
+  state_->profile_gpu = profile ? profile->GpuTiming() : GpuProfileObservation{};
+  state_->gpu_control_positions = {};
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id) {
     state_->profile_project_root = profile_root;
     state_->profile_project_id = profile_id;
+    state_->imported_memory.reset();
+    state_->imported_gpu.reset();
+    state_->gpu_export_requested = false;
+    state_->gpu_import_requested = false;
+    state_->memory_export_requested = false;
+    state_->memory_import_requested = false;
     state_->imported_profile.reset();
     state_->profile_csv_import_requested = false;
     state_->profile_json_import_requested = false;
@@ -4708,6 +4726,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->profile_clear_position = std::array{(memory_clear_min.x + memory_clear_max.x) * 0.5F,
                                                   (memory_clear_min.y + memory_clear_max.y) * 0.5F};
       state_->profile_memory = profile->ProcessMemory();
+      state_->profile_gpu = profile->GpuTiming();
       const auto samples = profile->Samples();
       ImGui::SameLine();
       ImGui::BeginDisabled(samples.empty() || !workspace || !workspace->Writable() ||
@@ -4749,25 +4768,35 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           std::array{(clear_min.x + clear_max.x) * 0.5F, (clear_min.y + clear_max.y) * 0.5F};
       ImGui::EndDisabled();
       ImGui::EndDisabled();
+      const auto memory_position = [&](std::size_t index) {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->memory_control_positions[index] =
+            std::array{(low.x + high.x) * 0.5F, (low.y + high.y) * 0.5F};
+      };
+      ImGui::BeginDisabled(!workspace || !workspace->Writable() || interaction_blocked ||
+                           state_->close_prompt_requested || profile->MemorySamples().empty());
+      if (ImGui::Button("Export memory"))
+        state_->memory_export_requested = true;
+      memory_position(0);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!workspace || interaction_blocked || state_->close_prompt_requested);
+      if (ImGui::Button("Import memory"))
+        state_->memory_import_requested = true;
+      memory_position(1);
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!state_->imported_memory);
+      if (ImGui::Button("Clear memory import"))
+        state_->imported_memory.reset();
+      memory_position(2);
+      ImGui::EndDisabled();
+      ImGui::EndDisabled();
       if (!state_->profile_export_status.empty())
         ImGui::TextWrapped("%s", state_->profile_export_status.c_str());
       ImGui::Text("%zu frames retained | %llu older frames dropped", samples.size(),
                   static_cast<unsigned long long>(profile->DroppedCount()));
       ImGui::TextDisabled("Editor frame processing: wall time after BeginFrame, before Present.");
-      ImGui::TextDisabled("GPU time is not instrumented. Saved captures contain wall timing only.");
-      ImGui::SeparatorText("Process resident memory (live)");
-      const auto memory = state_->profile_memory;
-      if (memory.resident_bytes)
-        ImGui::Text("Latest %llu bytes", static_cast<unsigned long long>(*memory.resident_bytes));
-      else
-        ImGui::TextDisabled("Latest unavailable: no successful current observation.");
-      if (memory.observed_peak_bytes)
-        ImGui::Text("Observed peak %llu bytes",
-                    static_cast<unsigned long long>(*memory.observed_peak_bytes));
-      ImGui::TextDisabled("Current process RSS / working set, including shared resident pages.");
-      ImGui::TextDisabled(
-          "250 ms sampling; Capture pauses observations; Clear resets observed peak.");
-      ImGui::TextDisabled("Process-wide across projects; excludes GPU/allocator accounting.");
+      ImGui::TextDisabled("Wall-time exports remain separate from native GPU measurements.");
       const auto plot = [](std::span<const FrameSample> values_to_plot, const char *label) {
         if (values_to_plot.empty())
           return;
@@ -4789,6 +4818,181 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                          maximum, ImVec2(-1.0F, 120.0F));
       };
       plot(samples, "Frame processing (ms)");
+      ImGui::SeparatorText("Completed native GPU timing (live)");
+      const auto gpu = state_->profile_gpu;
+      const auto gpu_source_name = [](GpuProfileSource source) {
+        if (source == GpuProfileSource::VulkanTimestamps)
+          return "Vulkan timestamp queries";
+        if (source == GpuProfileSource::Dx12Timestamps)
+          return "DX12 timestamp queries";
+        if (source == GpuProfileSource::MetalCommandBuffer)
+          return "Metal command-buffer timings";
+        return "Unavailable";
+      };
+      const auto gpu_position = [&](std::size_t index) {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->gpu_control_positions[index] =
+            std::array{(low.x + high.x) * 0.5F, (low.y + high.y) * 0.5F};
+      };
+      ImGui::BeginDisabled(!workspace || !workspace->Writable() || interaction_blocked ||
+                           state_->close_prompt_requested || profile->GpuSamples().empty());
+      if (ImGui::Button("Export GPU"))
+        state_->gpu_export_requested = true;
+      gpu_position(0);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!workspace || interaction_blocked || state_->close_prompt_requested);
+      if (ImGui::Button("Import GPU"))
+        state_->gpu_import_requested = true;
+      gpu_position(1);
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!state_->imported_gpu);
+      if (ImGui::Button("Clear GPU import"))
+        state_->imported_gpu.reset();
+      gpu_position(2);
+      ImGui::EndDisabled();
+      ImGui::EndDisabled();
+      ImGui::Text("Source: %s%s", gpu_source_name(gpu.source),
+                  gpu.software_rasterizer ? " (software rasterizer)" : "");
+      if (gpu.milliseconds)
+        ImGui::Text("Completed submission %llu: %.3f ms",
+                    static_cast<unsigned long long>(gpu.completed_submission), *gpu.milliseconds);
+      else
+        ImGui::TextDisabled("Latest completed timing unavailable.");
+      if (gpu.observed_peak_ms)
+        ImGui::Text("Observed peak since Clear: %.3f ms", *gpu.observed_peak_ms);
+      ImGui::Text("%zu GPU intervals retained | %llu older intervals dropped",
+                  profile->GpuSamples().size(),
+                  static_cast<unsigned long long>(profile->GpuDroppedCount()));
+      ImGui::TextDisabled(
+          "Native command-buffer interval; delayed completion, not display latency or CPU time.");
+      ImGui::TextDisabled("Capture pauses recording; Clear starts a fresh GPU history.");
+      const auto gpu_plot = [](std::span<const GpuProfileSample> gpu_samples, const char *label) {
+        if (gpu_samples.empty())
+          return;
+        double maximum = 1;
+        for (const auto &sample : gpu_samples)
+          if (sample.milliseconds)
+            maximum = std::max(maximum, *sample.milliseconds);
+        const auto low = ImGui::GetCursorScreenPos();
+        const ImVec2 size(std::max(1.0F, ImGui::GetContentRegionAvail().x), 90);
+        ImGui::InvisibleButton(label, size);
+        auto *draw = ImGui::GetWindowDrawList();
+        draw->AddRectFilled(low, ImVec2(low.x + size.x, low.y + size.y),
+                            ImGui::GetColorU32(ImGuiCol_FrameBg));
+        const auto first = gpu_samples.front().submission;
+        const double range =
+            static_cast<double>(std::max<std::uint64_t>(1, gpu_samples.back().submission - first));
+        std::optional<ImVec2> previous;
+        for (const auto &sample : gpu_samples) {
+          if (!sample.milliseconds) {
+            previous.reset();
+            continue;
+          }
+          const ImVec2 point(
+              low.x + static_cast<float>(static_cast<double>(sample.submission - first) / range) *
+                          (size.x - 1),
+              low.y + (1 - static_cast<float>(*sample.milliseconds / maximum)) * (size.y - 1));
+          if (previous)
+            draw->AddLine(*previous, point, ImGui::GetColorU32(ImGuiCol_PlotLines));
+          draw->AddCircleFilled(point, 2, ImGui::GetColorU32(ImGuiCol_PlotLines));
+          previous = point;
+        }
+      };
+      gpu_plot(profile->GpuSamples(), "GPU intervals###editor.profiler.gpu-plot");
+      if (state_->imported_gpu) {
+        const auto &imported = *state_->imported_gpu;
+        ImGui::SeparatorText("Imported GPU timing (static)");
+        ImGui::Text("Source: %s%s", gpu_source_name(imported.source),
+                    imported.software_rasterizer ? " (software rasterizer)" : "");
+        ImGui::Text("%zu intervals retained | %llu older intervals dropped",
+                    imported.samples.size(),
+                    static_cast<unsigned long long>(imported.older_samples_dropped));
+        std::optional<double> peak;
+        for (const auto &sample : imported.samples)
+          if (sample.milliseconds)
+            peak = std::max(peak.value_or(0), *sample.milliseconds);
+        if (peak)
+          ImGui::Text("Retained peak: %.3f ms", *peak);
+        else
+          ImGui::TextDisabled("Retained GPU timing unavailable.");
+        ImGui::TextDisabled("Native command-buffer interval; export project is a destination.");
+        gpu_plot(imported.samples, "Imported GPU intervals###editor.profiler.imported-gpu-plot");
+      }
+      ImGui::SeparatorText("Process resident memory (live)");
+      const auto memory = state_->profile_memory;
+      if (memory.resident_bytes)
+        ImGui::Text("Latest %llu bytes", static_cast<unsigned long long>(*memory.resident_bytes));
+      else
+        ImGui::TextDisabled("Latest unavailable: no successful current observation.");
+      if (memory.observed_peak_bytes)
+        ImGui::Text("Observed peak %llu bytes",
+                    static_cast<unsigned long long>(*memory.observed_peak_bytes));
+      ImGui::TextDisabled("Current process RSS / working set, including shared resident pages.");
+      ImGui::TextDisabled(
+          "250 ms sampling; Capture pauses observations; Clear resets observed peak.");
+      ImGui::TextDisabled("Process-wide across projects; excludes GPU/allocator accounting.");
+      const auto memory_plot = [](std::span<const ProcessMemorySample> history,
+                                  std::uint64_t dropped, const char *label) {
+        ImGui::Text("%zu memory attempts retained | %llu older attempts dropped", history.size(),
+                    static_cast<unsigned long long>(dropped));
+        if (history.empty())
+          return;
+        std::optional<double> retained_peak;
+        std::size_t unavailable = 0;
+        for (const auto &sample : history) {
+          if (sample.resident_bytes)
+            retained_peak =
+                std::max(retained_peak.value_or(0), static_cast<double>(*sample.resident_bytes));
+          else
+            ++unavailable;
+        }
+        ImGui::Text("%.0f ms since first observation | %zu unavailable attempts",
+                    history.back().elapsed_ms, unavailable);
+        if (retained_peak)
+          ImGui::Text("%s | peak in retained samples %.2f MiB", label,
+                      *retained_peak / (1024 * 1024));
+        else
+          ImGui::TextDisabled("%s | retained peak unavailable", label);
+        const double maximum = std::max(1.0, retained_peak.value_or(0));
+        ImGui::TextDisabled(
+            "Horizontal axis: elapsed time, including pause gaps. Missing reads break the line.");
+        ImGui::PushID(label);
+        const auto low = ImGui::GetCursorScreenPos();
+        const ImVec2 size(std::max(1.0F, ImGui::GetContentRegionAvail().x), 90);
+        ImGui::InvisibleButton("memory-plot", size);
+        auto *draw = ImGui::GetWindowDrawList();
+        draw->AddRectFilled(low, ImVec2(low.x + size.x, low.y + size.y),
+                            ImGui::GetColorU32(ImGuiCol_FrameBg));
+        const double first = history.front().elapsed_ms;
+        const double range = std::max(1.0, history.back().elapsed_ms - first);
+        std::optional<ImVec2> previous;
+        for (const auto &sample : history) {
+          if (!sample.resident_bytes) {
+            previous.reset();
+            continue;
+          }
+          const ImVec2 point(
+              low.x + static_cast<float>((sample.elapsed_ms - first) / range) * (size.x - 1),
+              low.y +
+                  (1 - static_cast<float>(static_cast<double>(*sample.resident_bytes) / maximum)) *
+                      (size.y - 1));
+          if (previous)
+            draw->AddLine(*previous, point, ImGui::GetColorU32(ImGuiCol_PlotLines));
+          draw->AddCircleFilled(point, 2, ImGui::GetColorU32(ImGuiCol_PlotLines));
+          previous = point;
+        }
+        ImGui::PopID();
+      };
+      memory_plot(profile->MemorySamples(), profile->MemoryDroppedCount(), "Resident memory (MiB)");
+      if (state_->imported_memory) {
+        ImGui::SeparatorText("Imported process memory (static)");
+        ImGui::TextDisabled("Process-wide trace; project identity denotes export destination, not "
+                            "allocation ownership.");
+        memory_plot(state_->imported_memory->samples,
+                    state_->imported_memory->older_samples_dropped,
+                    "Imported resident memory (MiB)");
+      }
       if (state_->imported_profile) {
         ImGui::SeparatorText("Imported capture (static)");
         ImGui::Text(
@@ -5228,6 +5432,31 @@ bool EditorImGuiHost::SetImportedProfileCapture(FrameProcessingCapture capture) 
     previous = sample.frame;
   }
   state_->imported_profile = std::move(capture);
+  return true;
+}
+bool EditorImGuiHost::TakeMemoryExportRequest() noexcept {
+  return std::exchange(state_->memory_export_requested, false);
+}
+bool EditorImGuiHost::TakeMemoryImportRequest() noexcept {
+  return std::exchange(state_->memory_import_requested, false);
+}
+bool EditorImGuiHost::SetImportedMemoryCapture(ProcessMemoryCapture capture) {
+  if (state_->profile_project_root.empty() || !ValidateProcessMemorySamples(capture.samples))
+    return false;
+  state_->imported_memory = std::move(capture);
+  return true;
+}
+bool EditorImGuiHost::TakeGpuExportRequest() noexcept {
+  return std::exchange(state_->gpu_export_requested, false);
+}
+bool EditorImGuiHost::TakeGpuImportRequest() noexcept {
+  return std::exchange(state_->gpu_import_requested, false);
+}
+bool EditorImGuiHost::SetImportedGpuCapture(GpuTimingCapture capture) {
+  if (state_->profile_project_root.empty() ||
+      !ValidateGpuTimingSamples(capture.source, capture.samples))
+    return false;
+  state_->imported_gpu = std::move(capture);
   return true;
 }
 void EditorImGuiHost::SetProfileExportStatus(std::string message) {
@@ -5987,9 +6216,34 @@ std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProfileClearPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->profile_clear_position;
 }
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::MemoryControlPosition(const EditorImGuiHost &host,
+                                             std::size_t control) noexcept {
+  return control < host.state_->memory_control_positions.size()
+             ? host.state_->memory_control_positions[control]
+             : std::nullopt;
+}
+const ProcessMemoryCapture *
+EditorImGuiTestAccess::ImportedMemoryCapture(const EditorImGuiHost &host) noexcept {
+  return host.state_->imported_memory ? &*host.state_->imported_memory : nullptr;
+}
 ProcessMemoryObservation
 EditorImGuiTestAccess::ProfileMemory(const EditorImGuiHost &host) noexcept {
   return host.state_->profile_memory;
+}
+GpuProfileObservation EditorImGuiTestAccess::ProfileGpu(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_gpu;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::GpuControlPosition(const EditorImGuiHost &host,
+                                          std::size_t control) noexcept {
+  return control < host.state_->gpu_control_positions.size()
+             ? host.state_->gpu_control_positions[control]
+             : std::nullopt;
+}
+const GpuTimingCapture *
+EditorImGuiTestAccess::ImportedGpuCapture(const EditorImGuiHost &host) noexcept {
+  return host.state_->imported_gpu ? &*host.state_->imported_gpu : nullptr;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProfileJsonExportPosition(const EditorImGuiHost &host) noexcept {

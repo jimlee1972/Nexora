@@ -3,6 +3,7 @@
 #endif
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
+#include "GpuTiming.h"
 #include "Nexora/Presentation/Surface.h"
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
@@ -37,7 +38,8 @@ public:
   Dx12Surface(const SurfaceDescriptor &d, Window::IWindowSystem &windows)
       : renderThread_(std::this_thread::get_id()),
         window_(static_cast<HWND>(windows.NativeHandle(d.window))), width_(d.width),
-        height_(d.height), frames_(d.framesInFlight), mode_(d.presentMode) {
+        height_(d.height), frames_(d.framesInFlight), mode_(d.presentMode),
+        gpuTimingEnabled_(d.enableGpuTiming) {
     if (!window_ || frames_ < 2 || frames_ > kMaximumFrames || d.colorSpace != ColorSpace::Srgb)
       return;
     UINT flags = 0;
@@ -110,6 +112,8 @@ public:
                                           nullptr, IID_PPV_ARGS(&commands_))))
       return;
     commands_->Close();
+    if (gpuTimingEnabled_)
+      InitializeGpuTiming();
     valid_ = CreateSwapchain(width_, height_) && CreateUiResources() && CreateSceneResources();
     if (valid_)
       diagnostics_.negotiatedPresentMode = mode_;
@@ -139,12 +143,15 @@ public:
       WaitForSingleObject(event_, INFINITE);
       ++diagnostics_.fenceWaits;
     }
+    CollectGpuTiming(frame_);
     retired_[frame_].clear();
     freeUiDescriptors_.insert(freeUiDescriptors_.end(), retiredUiDescriptors_[frame_].begin(),
                               retiredUiDescriptors_[frame_].end());
     retiredUiDescriptors_[frame_].clear();
     allocators_[frame_]->Reset();
     commands_->Reset(allocators_[frame_].Get(), nullptr);
+    if (gpuQueries_ && gpuReadback_)
+      commands_->EndQuery(gpuQueries_.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 2 * frame_);
     D3D12_RESOURCE_BARRIER b{};
     b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     b.Transition = {buffers_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
@@ -234,7 +241,16 @@ public:
     b.Transition = {buffers_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
                     D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT};
     commands_->ResourceBarrier(1, &b);
+    if (gpuQueries_ && gpuReadback_) {
+      commands_->EndQuery(gpuQueries_.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 2 * frame_ + 1);
+      commands_->ResolveQueryData(gpuQueries_.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 2 * frame_, 2,
+                                  gpuReadback_.Get(), 2 * frame_ * sizeof(std::uint64_t));
+    }
     commands_->Close();
+    if (gpuTimingEnabled_)
+      timingSubmittedAt_[frame_] = std::chrono::steady_clock::now();
+    timingSequences_[frame_] =
+        !gpuTimingEnabled_ || timingSequence_ == UINT64_MAX ? 0 : ++timingSequence_;
     ID3D12CommandList *l[] = {commands_.Get()};
     queue_->ExecuteCommandLists(1, l);
     auto hr = swapchain_->Present(
@@ -242,14 +258,16 @@ public:
         mode_ == PresentMode::Immediate && allowTearing_ ? DXGI_PRESENT_ALLOW_TEARING : 0);
     diagnostics_.lastPlatformResult = hr;
     acquired_ = false;
+    // Every submitted list is fenced even when DXGI reports occlusion or a presentation error.
+    fenceValues_[frame_] = ++fenceValue_;
+    if (FAILED(queue_->Signal(fence_.Get(), fenceValue_)))
+      return SurfaceStatus::DeviceLost;
     if (hr == DXGI_STATUS_OCCLUDED)
       return SurfaceStatus::Occluded;
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
       return SurfaceStatus::DeviceLost;
     if (FAILED(hr))
       return SurfaceStatus::SurfaceLost;
-    fenceValues_[frame_] = ++fenceValue_;
-    queue_->Signal(fence_.Get(), fenceValue_);
     ++diagnostics_.presentedFrames;
     return SurfaceStatus::Ready;
   }
@@ -824,6 +842,10 @@ public:
       fence_->SetEventOnCompletion(fenceValue_, event_);
       WaitForSingleObject(event_, INFINITE);
     }
+    for (UINT slot = 0; slot < frames_; ++slot)
+      CollectGpuTiming(slot);
+    gpuQueries_.Reset();
+    gpuReadback_.Reset();
     acquired_ = false;
     for (auto &color : reflectionColors_)
       color.Reset();
@@ -875,6 +897,55 @@ public:
   }
 
 private:
+  void InitializeGpuTiming() {
+    if (FAILED(queue_->GetTimestampFrequency(&timestampFrequency_)) || !timestampFrequency_)
+      return;
+    diagnostics_.gpuTiming.source = GpuTimingSource::Dx12Timestamps;
+    D3D12_QUERY_HEAP_DESC query{};
+    query.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+    query.Count = 2 * frames_;
+    D3D12_HEAP_PROPERTIES heap{};
+    heap.Type = D3D12_HEAP_TYPE_READBACK;
+    D3D12_RESOURCE_DESC resource{};
+    resource.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    resource.Width = query.Count * sizeof(std::uint64_t);
+    resource.Height = 1;
+    resource.DepthOrArraySize = 1;
+    resource.MipLevels = 1;
+    resource.SampleDesc.Count = 1;
+    resource.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    if (FAILED(device_->CreateQueryHeap(&query, IID_PPV_ARGS(&gpuQueries_))) ||
+        FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &resource,
+                                                D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                                IID_PPV_ARGS(&gpuReadback_)))) {
+      gpuQueries_.Reset();
+      gpuReadback_.Reset();
+    }
+  }
+  void CollectGpuTiming(UINT slot) noexcept {
+    if (!timingSequences_[slot])
+      return;
+    std::optional<double> measured;
+    if (gpuReadback_ && gpuQueries_ && timestampFrequency_ &&
+        fence_->GetCompletedValue() != UINT64_MAX && fenceValues_[slot] &&
+        fence_->GetCompletedValue() >= fenceValues_[slot]) {
+      const SIZE_T offset = 2 * slot * sizeof(std::uint64_t);
+      const D3D12_RANGE range{offset, offset + 2 * sizeof(std::uint64_t)};
+      void *mapped = nullptr;
+      if (SUCCEEDED(gpuReadback_->Map(0, &range, &mapped))) {
+        std::array<std::uint64_t, 2> values{};
+        std::memcpy(values.data(), static_cast<const std::byte *>(mapped) + offset, sizeof(values));
+        const D3D12_RANGE written{0, 0};
+        gpuReadback_->Unmap(0, &written);
+        measured = detail::TimestampMilliseconds(
+            values[0], values[1], 64, 1000000000.0 / static_cast<double>(timestampFrequency_),
+            detail::CompletionWallMilliseconds(timingSubmittedAt_[slot]));
+      }
+    }
+    detail::PublishGpuTiming(diagnostics_.gpuTiming, diagnostics_.gpuTiming.source,
+                             timingSequences_[slot], measured);
+    timingSequences_[slot] = 0;
+  }
   struct UiTexture final {
     ComPtr<ID3D12Resource> resource;
     UINT descriptor{};
@@ -1565,6 +1636,8 @@ private:
     queue_->Signal(fence_.Get(), ++fenceValue_);
     fence_->SetEventOnCompletion(fenceValue_, event_);
     WaitForSingleObject(event_, INFINITE);
+    for (UINT slot = 0; slot < frames_; ++slot)
+      CollectGpuTiming(slot);
     for (auto &b : buffers_)
       b.Reset();
     auto hr = swapchain_->ResizeBuffers(frames_, w, h, DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -1582,6 +1655,7 @@ private:
   uint32_t width_{}, height_{};
   UINT frames_{}, frame_{};
   PresentMode mode_{};
+  bool gpuTimingEnabled_{};
   bool allowTearing_{}, valid_{}, destroyed_{}, acquired_{};
   bool sceneDrawn_{}, sceneOffscreen_{}, sceneComposited_{}, uiDrawn_{}, compositeDrawn_{};
   std::atomic<uint32_t> pendingWidth_{}, pendingHeight_{};
@@ -1599,6 +1673,12 @@ private:
   ComPtr<ID3D12Device> device_;
   ComPtr<ID3D12CommandQueue> queue_;
   ComPtr<ID3D12Fence> fence_;
+  ComPtr<ID3D12QueryHeap> gpuQueries_;
+  ComPtr<ID3D12Resource> gpuReadback_;
+  UINT64 timestampFrequency_{};
+  std::uint64_t timingSequence_{};
+  std::array<std::uint64_t, kMaximumFrames> timingSequences_{};
+  std::array<std::chrono::steady_clock::time_point, kMaximumFrames> timingSubmittedAt_{};
   ComPtr<ID3D12DescriptorHeap> heap_;
   ComPtr<ID3D12DescriptorHeap> sceneRtvHeap_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneColors_, refractionColors_,

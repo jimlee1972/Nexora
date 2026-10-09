@@ -166,12 +166,34 @@ shown in the Content panel and continue to block artifact publication.
 
 The docked Console now shows bounded structured records with text and severity filters, timestamps,
 source, and a dropped-record counter. The Editor records graphical startup and scene open/save
-results through the Runtime console; broader gameplay and build log routing remains open.
+results through a real bounded Core AsyncLogService. V3 gameplay records use the same producer;
+Core Trace/Debug map to Console Trace, and Info/Warning/Error/Fatal preserve their severity.
+Broader Runtime/build log producers and native debugger routing remain open.
 Pause display freezes an owning log snapshot while Runtime producers continue; filters still apply
 to the frozen records. Resume reads current ingress. Clear view hides all records present at the
 click, including live records received during pause, while preserving the source buffer and its
 cumulative dropped count. Later logs remain visible. Display counts distinguish visible records
 from captured/retained records; controls perform no project writes or scene-history mutations.
+
+### Core producer-to-Console ingress
+
+The application owns a bounded Core async log producer and a noncopyable polling adapter for this
+one graphical session. The adapter binds one producer/Console pair whose lifetimes outlive it.
+Every loop polls only copied already-consumed records; it never flushes, joins or invokes UI from
+a producer thread. Source text is validated bounded UTF-8 and compacted. Monotonic cursors avoid
+duplicate delivery; unread Core-ring sequence gaps and rejected producer/wire counts enter the
+Console's saturating visible drop counter exactly once, independently of Console capacity evictions.
+Producer records already observed before Core-ring eviction are not counted again as source loss.
+
+V3 Play logging rejects unknown levels, messages over 4 KiB, missing nonempty pointers, embedded
+NUL and malformed UTF-8 before copying; it never truncates Unicode or silently converts an unknown
+level. Null/zero messages are empty records. A rejection callback accounts lost wire data without
+allocating its payload. The underlying Runtime V2 bridge uses the same Core policy with its 16-KiB
+message budget. Module unload/Stop records reach the producer before clone destruction; shutdown
+then drains Core and polls its final owning records before Console teardown. Graphical shutdown
+prints bounded producer/retained/drop/gameplay-retained counts for native acceptance fixtures.
+This routes actual Core/Play producers, without claiming complete engine/build/device log routing
+or debugger/IDE integration. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-CoreConsole-Linux-2026-10-09.md).
 
 The docked Game panel now controls an isolated `PlaySession`: F5 starts or stops, F6 pauses or
 resumes, and F10 advances one paused fixed tick. The panel inspects copied Play World entity
@@ -295,7 +317,7 @@ Undoing entity creation removes stale node metadata and selection; Redo restores
 stable entity ID. New scene edits discard the redo branch.
 The docked Profiler shows a bounded history of Editor frame processing wall time measured after
 BeginFrame and before Present. Capture can be paused or cleared; the panel reports evicted frames
-and labels GPU timing as unavailable. After a successful Present, the application separately calls
+and plots separately measured native GPU intervals. After a successful Present, the application separately calls
 `ProfileSession::SampleProcessMemory` to observe real current process RSS / working-set bytes at
 most once per 250 ms. The Profiler displays a copied latest optional value and observed peak since
 Clear, in bytes, including shared resident pages. A read failure makes latest unavailable and
@@ -421,7 +443,7 @@ cells because this wall-time format excludes live RSS observations. Export requi
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import, GPU timing and saved process-memory traces remain open.
+file itself. Arbitrary capture import remains open; native GPU and process-memory traces use separate schemas.
 
 Profiler Import CSV reads `.nexora/frame-processing.csv` through the workspace owner and displays a
 separate static wall-time snapshot. The file is bounded to 128 KiB/600 ordered samples; malformed,
@@ -437,7 +459,7 @@ atomic writer. Its independent UI request is consumed before adding the current 
 reach Profiler status and Console. Schema 1 identifies source/scope, milliseconds, project UUID,
 sample count and evicted-frame count. uint64 frame/drop values are lossless decimal strings;
 GPU/memory availability is false and sample values are null. CSV behavior and file remain unchanged.
-Arbitrary import and instrumented GPU/memory traces are still unavailable.
+Arbitrary import remains open; measured native GPU and process-memory traces use separate files.
 
 Game Apply Changes is an explicit transform-only review. Opening it emits Pause when needed and
 releases Game input. The modal owns original/Editor/Play transforms and session/document/entity
@@ -654,5 +676,55 @@ with no usable UVs, while the submitted world matrix retains shear/mirroring.
 Every draw owns its temporary palette and converted geometry until `DrawScene` returns; native
 Presentation fences retain submitted storage. Geometry is still converted/uploaded per frame:
 persistent per-asset GPU caching is open. This is scalar opaque Scene material assignment, not
-texture/shader-graph editing, Game View materials, shipping asset cooking or full physical/multi-DPI
+texture/shader-graph editing, shipping asset cooking or full physical/multi-DPI
 Scene View acceptance. See [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md).
+
+### Frozen scalar PBR Game materials
+
+Before cloning Play, the application freezes validated scalar material values and the current
+SceneDocument's mesh-entity UUID assignments into an owning palette. Catalog generation mismatch
+rejects Start before clone creation. The palette reserves neutral slot zero and at most 63 distinct
+resolved UUIDs; missing/budget-rejected assignments retain their source bytes and report fallback
+shading for visible admitted meshes. Unsupported opaque versions remain unresolved. New entities
+created by gameplay receive neutral shading; runtime material-reference authoring is separate work.
+
+Game frame preparation reads the post-tick isolated World, copies the selected camera's world
+position, generates Renderer tangents (including degenerate UV fallback), and owns its native PBR
+palette, geometry and exact affine instances until DrawScene returns. A tangent conversion failure
+preserves the geometry through the legacy Lambert path. Frames with no resolved authored material
+also retain Lambert shading. Reimport, deletion and authoring reassignment cannot change the frozen
+Play palette; Stop/apply-and-stop releases it and the next Start captures current values. Prepared
+frames remain valid after Stop or project/catalog destruction. No material assignment or value is
+applied back to the Editor World.
+
+Portable tests exercise actual reimport/deletion/reassignment, dedup/budget/missing fallbacks,
+legacy full-width shader IDs, camera/tangent values and Pause/Step/Stop isolation. Linux Xvfb tests
+acknowledge red native Vulkan Game pixels, preserve them through a paused source edit, then reopen
+read-only and acknowledge fresh green pixels with unchanged authored bytes. This does not accept
+texture/shader graphs, simultaneous native Scene/Game canvases, dynamic material references or
+physical-host output. See [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameMaterials-Linux-2026-10-09.md).
+
+The Profiler memory controls save/load a separate `.nexora/process-memory.json` trace through the
+current ProjectWorkspace on the application thread. Both requests are consumed independently of
+wall-time controls and results enter the bounded Console. Export includes the process-wide history
+across project switches; the stored UUID denotes only the export destination. Import publishes a
+validated owning static snapshot and preserves live capture on failure/success. The UI plots elapsed
+time with pause gaps and unavailable reads, and reports memory-history evictions separately. No
+capture is written automatically; wall-time CSV/JSON files and GPU availability remain unchanged.
+
+The graphical Editor opts into native GPU timing when creating its RenderSurface. After successful
+BeginFrame/Acquire and before UI Capture/Clear, it maps copied completed Presentation timing into
+`ProfileSession::ObserveGpuFrame` with the stable surface domain and software-device flag. Recording
+never borrows a native command buffer or substitutes CPU frame time. GPU samples include delayed
+completion and are independent of CPU wall-time/RSS; no project file is written implicitly. Shutdown
+reports bounded source/scope/unit, completed ID, retained/dropped counts and optional latest duration.
+Software Vulkan evidence does not establish physical GPU timing accuracy or performance budgets.
+
+The application consumes independent GPU export/import requests through the current workspace.
+Export synchronously borrows the retained live samples with the current native source/software and
+dropped count, writing `.nexora/gpu-timing.json`. Import transfers a validated owning static snapshot
+to the GUI; source/scope/unit/project validation and failures preserve live capture and prior static
+state. Results enter Profiler status and the bounded Console independently of wall/RSS requests.
+The project UUID denotes the export destination, not GPU resource ownership. No file is written
+automatically, and existing wall-time/RSS capture bytes remain compatible. Physical calibration,
+per-pass analysis and broader external capture formats remain open.

@@ -716,3 +716,37 @@ PBR 頂點以 binary32 exponent 位元分類有限值，保留正負零與 subno
 NaN payload；不以浮點運算改變待驗值。幾何界限、切線方向／正交性及材質／範圍驗證皆保留。
 DX12／Vulkan 的 PBR 提交共用完整掃描，Lambert 維持原有獨立檢查；消除重複掃描後仍在原生
 命令錄製前拒絕無效描述資料。驗證成本改善不代表最終目標主機效能已驗收。
+
+## Optional completed GPU timing
+
+`SurfaceDescriptor::enableGpuTiming` and the corresponding `RenderSurfaceDescriptor` option default
+to false. Default surfaces allocate no timestamp query/readback resources and record no timing
+commands or completion stream. The Editor opts in; native Showcase/player consumers retain their
+existing defaults. `SurfaceDiagnostics::gpuTiming` copies a source enum, monotonically increasing
+completed submission ID and optional milliseconds on the existing render thread. It owns no native
+handle and remains readable after drain. Values measure native command-buffer intervals, not CPU
+wall time, display latency, per-pass cost or GPU utilization. `softwareRasterizer` identifies a
+software device; software timestamps do not establish physical GPU performance.
+
+Vulkan allocates an optional two-timestamp query pool per fence-owned frame slot. It records TOP /
+BOTTOM_OF_PIPE around the native buffer, checks the selected queue's valid counter bits and native
+period, and reads value/availability pairs only after the existing fence or device drain completes.
+No query WAIT flag or additional GPU wait is added. Counter-width masking permits a single wrap;
+CPU completion elapsed time is only an upper-bound guard against ambiguous wrap windows or invalid
+native intervals, never a substitute measurement. Failed pool allocation, unavailable/error query
+results, invalid period/range or ambiguous reduced-width counters publish unavailable while rendering
+continues. Reuse resets only a completed slot; resize/teardown collect before destroying pools.
+Out-of-order drained slots cannot replace a newer result, and abandoned recordings create no completed
+submission.
+
+DX12 uses optional per-slot timestamp query pairs, a bounded shared readback buffer and the queue's
+observed frequency. It reads only fence-completed slots, rejects the device-removed fence sentinel,
+and collects before resize/drain releases resources. Every submitted command list is now fenced even
+when DXGI reports occlusion/presentation failure, so its query/readback and existing upload resources
+remain protected. Metal reads GPUStartTime / GPUEndTime only from completed command buffers during
+existing slot waits/drain, guarded by runtime API availability. Zero/unavailable native origins,
+errors and invalid intervals remain unavailable. Neither adapter adds a completion callback or wait.
+
+These extend rebuild-required C++ descriptors/diagnostics; the stable C/Gameplay ABI and module
+relationships are unchanged. Linux virtual-display/query failure/lifetime tests provide cloud evidence;
+Windows/macOS hosted compilation and physical GPU timing calibration are separate gates.

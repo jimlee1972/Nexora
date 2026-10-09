@@ -2,6 +2,7 @@
 
 #include "Nexora/Editor/Api.h"
 
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -81,6 +82,49 @@ struct ProcessMemoryObservation final {
   std::uint64_t successful_samples{};
 };
 
+struct ProcessMemorySample final {
+  std::uint64_t sequence{};
+  double elapsed_ms{};
+  std::optional<std::uint64_t> resident_bytes;
+};
+
+struct ProcessMemoryCapture final {
+  std::vector<ProcessMemorySample> samples;
+  std::uint64_t older_samples_dropped{};
+};
+
+// Shared by persistence and GUI publication; no mutation or allocation.
+[[nodiscard]] NEXORA_EDITOR_API bool
+ValidateProcessMemorySamples(std::span<const ProcessMemorySample> samples) noexcept;
+
+enum class GpuProfileSource : std::uint8_t {
+  Unavailable,
+  VulkanTimestamps,
+  Dx12Timestamps,
+  MetalCommandBuffer
+};
+struct GpuProfileSample final {
+  std::uint64_t submission{};
+  std::optional<double> milliseconds;
+};
+struct GpuProfileObservation final {
+  GpuProfileSource source{GpuProfileSource::Unavailable};
+  bool software_rasterizer{};
+  std::uint64_t completed_submission{};
+  std::optional<double> milliseconds;
+  std::optional<double> observed_peak_ms;
+};
+struct GpuTimingCapture final {
+  GpuProfileSource source{GpuProfileSource::Unavailable};
+  bool software_rasterizer{};
+  std::vector<GpuProfileSample> samples;
+  std::uint64_t older_samples_dropped{};
+};
+// Shared admission for synchronous export and owning static GUI/import snapshots.
+[[nodiscard]] NEXORA_EDITOR_API bool
+ValidateGpuTimingSamples(GpuProfileSource source,
+                         std::span<const GpuProfileSample> samples) noexcept;
+
 class NEXORA_EDITOR_API ProfileSession final {
 public:
   explicit ProfileSession(std::size_t capacity = 600) : capacity_(capacity) {}
@@ -98,6 +142,22 @@ public:
   bool SampleProcessMemory(std::chrono::steady_clock::time_point now,
                            ProcessMemoryReader reader = nullptr) noexcept;
   [[nodiscard]] ProcessMemoryObservation ProcessMemory() const noexcept { return memory_; }
+  static constexpr std::size_t kMaximumMemorySamples = 600;
+  [[nodiscard]] std::span<const ProcessMemorySample> MemorySamples() const noexcept {
+    return {memory_samples_.data(), memory_sample_count_};
+  }
+  [[nodiscard]] std::uint64_t MemoryDroppedCount() const noexcept { return memory_dropped_; }
+
+  // Consume copied completed native results on the owner thread, never native handles.
+  // Domain changes clear GPU history; paused ingestion still advances its completion watermark.
+  bool ObserveGpuFrame(std::uint64_t domain, GpuProfileSource source, bool software_rasterizer,
+                       GpuProfileSample sample) noexcept;
+  static constexpr std::size_t kMaximumGpuSamples = 600;
+  [[nodiscard]] GpuProfileObservation GpuTiming() const noexcept { return gpu_; }
+  [[nodiscard]] std::span<const GpuProfileSample> GpuSamples() const noexcept {
+    return {gpu_samples_.data(), gpu_sample_count_};
+  }
+  [[nodiscard]] std::uint64_t GpuDroppedCount() const noexcept { return gpu_dropped_; }
 
 private:
   std::size_t capacity_{};
@@ -105,6 +165,17 @@ private:
   bool capturing_{true};
   std::vector<FrameSample> samples_;
   ProcessMemoryObservation memory_;
+  std::array<ProcessMemorySample, kMaximumMemorySamples> memory_samples_{};
+  std::size_t memory_sample_count_{};
+  std::uint64_t memory_dropped_{};
+  std::optional<std::chrono::steady_clock::time_point> memory_origin_;
+
+  GpuProfileObservation gpu_;
+  std::uint64_t gpu_domain_{};
+  std::uint64_t gpu_watermark_{};
+  std::array<GpuProfileSample, kMaximumGpuSamples> gpu_samples_{};
+  std::size_t gpu_sample_count_{};
+  std::uint64_t gpu_dropped_{};
   std::optional<std::chrono::steady_clock::time_point> next_memory_sample_;
   std::optional<std::chrono::steady_clock::time_point> last_memory_sample_;
 };

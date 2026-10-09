@@ -4,6 +4,7 @@
 #include "Nexora/Renderer/SceneFrame.h"
 #include "SceneMeshPreview.h"
 #include <unordered_map>
+#include <unordered_set>
 
 namespace nexora::editor::preview {
 
@@ -11,6 +12,7 @@ struct MaterialPalette final {
   std::vector<Nexora::Presentation::SceneMaterial> materials{1};
   std::unordered_map<runtime::Id, std::uint32_t> entities;
   std::size_t unavailable{};
+  std::unordered_set<runtime::Id> unavailable_entities;
   bool authored{};
 };
 
@@ -27,8 +29,10 @@ struct MaterialPalette final {
     const auto reference = key ? ReadMaterialAssetReference(scene, *key) : std::nullopt;
     const auto resolved = reference ? catalog.ResolveAsset(*reference, generation) : std::nullopt;
     if (!resolved) {
-      if (reference)
+      if (reference) {
         ++result.unavailable;
+        result.unavailable_entities.insert(entity);
+      }
       result.entities.emplace(entity, 0);
       continue;
     }
@@ -39,6 +43,7 @@ struct MaterialPalette final {
     }
     if (result.materials.size() == 64) {
       ++result.unavailable;
+      result.unavailable_entities.insert(entity);
       result.entities.emplace(entity, 0);
       continue;
     }

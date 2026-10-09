@@ -674,6 +674,11 @@ std::vector<RuntimeLogRecord> RuntimeConsole::Snapshot() const {
   return records_;
 }
 
+void RuntimeConsole::ReportDropped(std::uint64_t count) {
+  std::lock_guard lock{mutex_};
+  dropped_ = count > UINT64_MAX - dropped_ ? UINT64_MAX : dropped_ + count;
+}
+
 std::uint64_t RuntimeConsole::DroppedCount() const {
   std::scoped_lock lock(mutex_);
   return dropped_;

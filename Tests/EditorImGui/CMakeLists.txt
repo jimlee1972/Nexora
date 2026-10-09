@@ -6,7 +6,7 @@ nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
 
 add_executable(NexoraConsoleDisplayTests ConsoleDisplayTests.cpp)
-target_include_directories(NexoraConsoleDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_include_directories(NexoraConsoleDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraConsoleDisplayTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraConsoleDisplayTests)
 add_test(NAME editor.console_display COMMAND NexoraConsoleDisplayTests)
@@ -83,11 +83,23 @@ target_link_libraries(NexoraGameViewPreviewTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraGameViewPreviewTests)
 add_test(NAME editor.game_view_preview COMMAND NexoraGameViewPreviewTests)
 
+add_executable(NexoraGameMaterialPreviewTests GameMaterialPreviewTests.cpp)
+target_include_directories(NexoraGameMaterialPreviewTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraGameMaterialPreviewTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraGameMaterialPreviewTests)
+add_test(NAME editor.game_material_preview COMMAND NexoraGameMaterialPreviewTests)
+
 add_executable(NexoraPlayGameplayModuleTests PlayGameplayModuleTests.cpp)
 target_include_directories(NexoraPlayGameplayModuleTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraPlayGameplayModuleTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPlayGameplayModuleTests)
 add_test(NAME editor.play_gameplay_module COMMAND NexoraPlayGameplayModuleTests)
+
+add_executable(NexoraCoreConsoleIngressTests CoreConsoleIngressTests.cpp)
+target_include_directories(NexoraCoreConsoleIngressTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraCoreConsoleIngressTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraCoreConsoleIngressTests)
+add_test(NAME editor.core_console_ingress COMMAND NexoraCoreConsoleIngressTests)
 
 add_library(NexoraPlayGameplayFixture MODULE PlayGameplayFixture.cpp)
 target_link_libraries(NexoraPlayGameplayFixture PRIVATE Nexora::Foundation)
@@ -128,7 +140,8 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --editor "$<TARGET_FILE:NexoraEditor>"
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
-  set_tests_properties(editor.linux_scene_files PROPERTIES TIMEOUT 60)
+  # This workflow includes several native launches; individual waits still fail after 10 seconds.
+  set_tests_properties(editor.linux_scene_files PROPERTIES TIMEOUT 120)
   add_test(
     NAME editor.linux_display_acceptance
     COMMAND "${Python3_EXECUTABLE}"
@@ -176,6 +189,15 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_game_view PROPERTIES TIMEOUT 45)
+  add_test(
+    NAME editor.linux_native_game_materials
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
+            --materials
+            --editor "$<TARGET_FILE:NexoraEditor>"
+            --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+            --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_game_materials PROPERTIES TIMEOUT 60)
   add_test(
     NAME editor.linux_native_gameplay_module
     COMMAND "${Python3_EXECUTABLE}"
@@ -367,3 +389,14 @@ target_include_directories(NexoraMaterialInspectorTests PRIVATE "${PROJECT_SOURC
 target_link_libraries(NexoraMaterialInspectorTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraMaterialInspectorTests)
 add_test(NAME editor.material_inspector COMMAND NexoraMaterialInspectorTests)
+
+add_executable(NexoraGpuProfileDisplayTests GpuProfileDisplayTests.cpp)
+target_include_directories(NexoraGpuProfileDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraGpuProfileDisplayTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraGpuProfileDisplayTests)
+add_test(NAME editor.gpu_profile_display COMMAND NexoraGpuProfileDisplayTests)
+add_executable(NexoraGpuCaptureDisplayTests GpuCaptureDisplayTests.cpp)
+target_link_libraries(NexoraGpuCaptureDisplayTests PRIVATE Nexora::EditorImGui)
+target_include_directories(NexoraGpuCaptureDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+nexora_apply_defaults(NexoraGpuCaptureDisplayTests)
+add_test(NAME editor.gpu_capture_display COMMAND NexoraGpuCaptureDisplayTests)

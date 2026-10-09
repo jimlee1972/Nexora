@@ -63,6 +63,8 @@ public:
   static constexpr std::size_t kMaximumEditorLayoutBytes = 1024 * 1024;
   static constexpr std::size_t kMaximumFrameProcessingCsvBytes = 128 * 1024;
   static constexpr std::size_t kMaximumFrameProcessingJsonBytes = 128 * 1024;
+  static constexpr std::size_t kMaximumProcessMemoryJsonBytes = 128 * 1024;
+  static constexpr std::size_t kMaximumGpuTimingJsonBytes = 128 * 1024;
   static constexpr std::size_t kMaximumPlayInputSettingsBytes = 1024;
   ProjectWorkspace();
   ~ProjectWorkspace();
@@ -101,6 +103,18 @@ public:
   // Schema-1 JSON import also validates metric/scope, unavailable measurements and project UUID.
   [[nodiscard]] std::optional<FrameProcessingCapture>
   ImportEditorFrameProcessingJson(std::string *error = nullptr) const;
+  // Separate schema-1 process-wide RSS trace, including unavailable sample attempts.
+  bool ExportProcessMemoryJson(std::span<const ProcessMemorySample> samples,
+                               std::uint64_t dropped_samples, std::string *error = nullptr);
+  [[nodiscard]] std::optional<ProcessMemoryCapture>
+  ImportProcessMemoryJson(std::string *error = nullptr) const;
+  // Separate native completed command-buffer intervals; unavailable samples remain JSON null.
+  // Destination project UUID is provenance, not ownership of the process-wide surface history.
+  bool ExportGpuTimingJson(GpuProfileSource source, bool software_rasterizer,
+                           std::span<const GpuProfileSample> samples, std::uint64_t dropped_samples,
+                           std::string *error = nullptr);
+  [[nodiscard]] std::optional<GpuTimingCapture>
+  ImportGpuTimingJson(std::string *error = nullptr) const;
   bool SaveEditorLayout(std::string_view layout, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadEditorLayout(std::string *error = nullptr) const;
   [[nodiscard]] bool HasRecoveryJournal() const;

@@ -262,9 +262,13 @@ if(BUILD_TESTING)
     add_test(NAME showcase.linux_vulkan_interaction
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxShowcaseInteraction.py"
         "$<TARGET_FILE:NexoraShowcase>" ${NEXORA_SHOWCASE_PLUGIN_TEST_ARGS})
-    # Nine-room software rendering and retained pixel captures can exceed 45s on hosted runners.
+    # Retain per-picture 5s/15s deadlines; nine-room software rendering may exceed 90s in aggregate.
     set_tests_properties(showcase.linux_vulkan_interaction PROPERTIES
-      LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 90)
+      LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_test(NAME showcase.linux_animation_handshake
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/Tests/Showcase/AnimationHandshakeTests.py")
+    add_test(NAME showcase.linux_animation_handshake_optimized
+      COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_SOURCE_DIR}/Tests/Showcase/AnimationHandshakeTests.py")
     add_test(
       NAME showcase.linux_vulkan_evidence_policy
       COMMAND "${Python3_EXECUTABLE}"

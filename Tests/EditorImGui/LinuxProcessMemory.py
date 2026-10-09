@@ -2,6 +2,7 @@
 """Verify bounded real Editor frames observe native process RSS through the app owner."""
 
 import argparse
+import math
 import os
 from pathlib import Path
 import re
@@ -44,13 +45,28 @@ def main():
             attempts, successful, latest, peak = map(int, memory.groups())
             if not (1 <= successful <= attempts <= 24 and 0 < latest <= peak):
                 raise RuntimeError("invalid native observation count, resident bytes or observed peak")
+            gpu = re.search(
+                r"GPU timing evidence: scope=native_command_buffer_interval unit=milliseconds "
+                r"source=(\d+) software=(\d+) completed=(\d+) retained=(\d+) dropped=(\d+) latest=(\S+)", evidence)
+            if not gpu:
+                raise RuntimeError("native owner did not publish GPU timing availability/source")
+            source, software, completed_gpu, retained, dropped = map(int, gpu.groups()[:5])
+            latest = gpu.group(6)
+            if source == 1:
+                if not (software in (0, 1) and 1 <= retained <= completed_gpu <= 24 and dropped == 0 and
+                        latest != "unavailable" and math.isfinite(float(latest)) and float(latest) >= 0):
+                    raise RuntimeError("real Vulkan timestamp result is unavailable or invalid")
+            elif source != 0 or retained != 0 or latest != "unavailable":
+                raise RuntimeError("unsupported native source advertised GPU timing")
             render = re.search(r"graphical evidence: acquired=(\d+) presented=(\d+) ui_draws=(\d+)",
                                evidence)
             if not render or any(value <= 0 for value in map(int, render.groups())):
                 raise RuntimeError("real process did not present graphical Editor frames")
             if (root / ".nexora/frame-processing.json").exists() or \
-                    (root / ".nexora/frame-processing.csv").exists():
-                raise RuntimeError("memory observation implicitly wrote a capture")
+                    (root / ".nexora/frame-processing.csv").exists() or \
+                    (root / ".nexora/process-memory.json").exists() or \
+                    (root / ".nexora/gpu-timing.json").exists():
+                raise RuntimeError("live profiling implicitly wrote a capture")
     finally:
         if server.poll() is None:
             server.terminate()

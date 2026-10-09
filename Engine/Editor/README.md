@@ -260,7 +260,12 @@ into renderer or platform internals.
   dry-runs never mutate source text; autosave writers and readers share a 64 MiB payload limit.
   Oversized writes are rejected before filesystem mutation, occupied temporary paths are preserved, and failed
   writes/replacements clean only this attempt's temporary file while retaining the destination.
-  The schema-1 header uses the classic locale regardless of the process locale. Calls are
+  The schema-1 writer uses the classic locale regardless of the process locale. Recovery reads
+  at most 127 header bytes and requires the writer's `NEXORA_AUTOSAVE 1 <revision> <size>\n`
+  syntax with unsigned decimal fields. It rejects non-regular files and file symlinks, checks the
+  total file budget and exact declared payload length before allocation, and still verifies EOF
+  after reading. Failures preserve source bytes and the caller's revision; success clears a prior
+  error. This is a serialized-file preflight, not protection against concurrent file substitution. Calls are
   serialized by the authoring host; concurrent writers are not supported. Bounded autosave
   recovery rejects corruption without changing the caller's revision; stable-path three-way
   records retain unresolved base/local/remote values without coupling conflicts to a source-control provider.
@@ -281,7 +286,7 @@ into renderer or platform internals.
 - `ProfileSession` retains a bounded, monotonic frame history. Invalid or out-of-order samples are
   rejected; capacity evictions increment a dropped count. Capture can be paused and cleared without
   changing project files. The graphical host currently supplies Editor frame processing wall time
-  after BeginFrame and before Present; GPU timing remains uninstrumented.
+  after BeginFrame and before Present; completed native GPU timing is ingested separately.
   `SampleProcessMemory` is a separate application-thread observation, throttled to one real Core
   OS read per 250 ms using a monotonic clock. `ProcessMemory()` returns a copied optional current
   process RSS / working-set byte count, observed peak since Clear, and attempt/success counters.
@@ -516,7 +521,10 @@ diagnostics, asset UUID, autosave, camera, and project/workspace/layout/recent-p
 fixed seeds. It
 requires every parser to return normally on corrupted input; under the ASan/UBSan presets memory and
 undefined-behavior errors fail it too. Set `NEXORA_PARSER_ROBUSTNESS_ITERATIONS` for a longer local soak.
-It is a robustness check, not a proof that no malformed input can fail.
+Workspace mutations restore valid descriptor/workspace/layout metadata for each input; recovery uses
+a real schema-1 journal and writable owner, checking failed recovery preserves committed bytes,
+current documents and the journal. Autosave mutations also check source and caller-revision
+preservation. It is a robustness check, not a proof that no malformed input can fail.
 
 ### Mesh reimport publication
 
@@ -545,7 +553,8 @@ cells because this wall-time format excludes live RSS observations. Export requi
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import, GPU timing and saved memory traces remain open.
+file itself. Arbitrary capture import remains open; native GPU and process-memory traces use
+separate schemas.
 
 Profiler Export JSON writes the companion `.nexora/frame-processing.json` under the same writer,
 sample-validation, recovery and atomic-replacement rules. Schema 1 records source `NexoraEditor`,
@@ -556,7 +565,11 @@ full double precision; availability flags are false and each GPU/memory value is
 when a caller's FrameSample contains those fields. Export borrows samples only for the synchronous
 call and leaves CSV unchanged. `gpu_timing_available` and `memory_measurement_available` are false;
 each `samples` entry has `frame`, `frame_processing_wall_ms`, `gpu_ms` and `memory_bytes`.
-Arbitrary capture import, measured GPU data and saved process-memory traces remain open.
+Measured completed native GPU intervals and process RSS use independent bounded histories and
+schema-1 JSON export/import; they are not fields in this wall-time format. See
+[native GPU capture evidence](../../Tools/Build/evidence/EditorEDM6-GpuTimingCapture-Linux-2026-10-09.md)
+and the contracts below. Physical GPU calibration, per-pass attribution and arbitrary capture
+adapters remain open.
 
 Game Apply Changes is an explicit transform-only review. Opening it emits Pause when needed and
 releases Game input. The modal owns original/Editor/Play transforms and session/document/entity
@@ -807,5 +820,106 @@ unchanged legacy shader ID; missing resources and unsupported component versions
 Per-frame reference inspection copies only bounded opaque metadata prefixes and requires exact
 17-byte length/version, including when unrelated plugins retain large payloads. Unsupported
 versions/type-name collisions reject assignment. Scene container and stable C/Zig
-schemas stay unchanged. Multi-selection, reference removal, textures, shader graphs, Game View
-materials and the shipped-game/cook consumer remain separate work.
+schemas stay unchanged. Application-owned Game material snapshots freeze converted values and
+mesh-entity assignments before Play; reimport/deletion/reassignment cannot alter that session.
+Material catalogs do not borrow Runtime Worlds or contain native resources. Multi-selection,
+reference removal, textures, shader graphs and the shipped-game/cook consumer remain separate work.
+
+## Process-memory capture persistence
+
+`ProfileSession::MemorySamples` borrows an authoring-thread-only bounded history of real process
+RSS / working-set observations. Capacity is `min(frame_capacity, 600)`; capacity zero disables
+history while retaining latest/peak observations. Fixed storage keeps the noexcept OS sampler free
+of allocations. Each attempt records its increasing sequence, elapsed milliseconds from the first
+observation since Clear, and optional resident bytes. Failed reads record unavailable, zero remains
+a valid byte count, and pause gaps remain in elapsed time. Evictions increment a saturating separate
+memory dropped count. Clear resets both histories and origins without resuming Capture. Process
+history survives project switches and detachment. UI drawing consumes spans immediately and holds
+no borrow between calls.
+
+`ExportProcessMemoryJson` atomically writes `.nexora/process-memory.json` under the project writer
+lease. Its independent schema 1 identifies source `NexoraEditor`, metric `process_resident_memory`,
+scope `current_process_including_shared_resident_pages`, byte units, millisecond time units and
+`first_observation_since_clear` origin. `export_project_uuid` identifies the destination project,
+not ownership of process allocations or where each observation was taken. Sample count is numeric;
+sequence, resident byte and dropped counts use lossless decimal strings. Unavailable resident values
+are JSON null. No OS absolute timestamp, path, GPU data or allocator ownership is persisted.
+
+Export requires 1–600 ordered nonzero sequence IDs and strictly increasing finite nonnegative
+elapsed times. Empty/invalid histories, closed/read-only/recovery projects, unsafe metadata or
+nonregular/aliased destinations reject before publication. Occupied staging and failed replacement
+preserve the previous file and unrelated staging. `ImportProcessMemoryJson` synchronously reads
+at most 128 KiB into a separate owning `ProcessMemoryCapture`; read-only observers may import.
+The bounded nonrecursive reader requires this exact schema, metadata, current export-project UUID,
+count and sample order. Unknown/duplicate/missing fields, corruption, overflow and trailing data
+reject without changing source files, a live session or the caller's previous capture. Equivalent
+ASCII JSON escapes and reordered fields are accepted. Filesystem checks follow the serialized
+host-thread model; concurrent filesystem substitution is outside this contract.
+
+The optional GUI supplies independent Export memory / Import memory / Clear memory import controls.
+The application performs all IO and transfers validated owning data. Imported process history stays
+separate from live memory and wall-time imports; failed publication preserves it, live Clear does
+not erase it, and root/UUID changes or detachment clear it and pending requests. The plot uses elapsed
+time horizontally, breaks lines at unavailable attempts and shows MiB as 1,048,576 bytes. Graphical
+controls follow project access and modal/recovery/close gates. Existing schema-1 wall-time CSV/JSON
+readers/writers are unchanged; Arbitrary captures and physical-host acceptance remain open; GPU traces use a separate schema.
+
+## Completed native GPU profile history
+
+`ProfileSession::ObserveGpuFrame` consumes copied native completion values on the application thread:
+a process-local surface domain, explicit Vulkan/DX12/Metal source, software-device flag, increasing
+submission ID and optional milliseconds. Domains are neither persisted nor native handles. New
+surface/source/software domains clear GPU history rather than merging different streams. Invalid
+domains/sources/nonfinite/negative values and duplicate/backward IDs reject. Unsupported sources
+remain unavailable. A missing result records unavailable instead of reusing an old success, while
+preserving the observed peak. The fixed history retains `min(frame_capacity, 600)` records and
+saturates its independent eviction count; zero capacity keeps latest/peak only.
+
+Capture pauses GPU ingestion while native backend instrumentation continues. The owner still
+advances the paused completion watermark, so Resume cannot replay that completion. Clear resets
+GPU history/latest/peak/drop counts but retains the watermark and pause state, requiring a newly
+completed ID before a value returns. The application consumes results after successful Acquire and
+before drawing Clear/Capture. GPU history is surface/process-wide across project changes; it is
+separate from wall-time frames and process RSS, and the GUI retains only copied scalar observations.
+The plot's horizontal axis is native submission ID and missing timings break its line. Native
+sources, software status, delayed completion, milliseconds and observed peak are explicit. Existing
+CSV/JSON wall-time captures remain schema-compatible and still contain no native GPU values.
+GPU trace persistence/import uses its own schema; per-pass tools and physical timing calibration
+remain open.
+
+## Native GPU capture interchange
+
+`GpuTimingCapture` owns one ordered native surface stream with its Vulkan timestamp, DX12 timestamp
+or Metal command-buffer source, software-device flag, up to 600 copied samples and independent
+dropped count. `ValidateGpuTimingSamples` is shared by export, the reader and static GUI publication.
+It rejects unavailable/unknown sources, empty/oversized histories, zero/nonincreasing submission
+IDs and negative/nonfinite durations. A known source may contain only unavailable results; measured
+zero is distinct from null. Source/domain changes start new live histories, so files do not mix
+devices. Native surface domain IDs and platform handles are never serialized.
+
+`ExportGpuTimingJson` explicitly writes `.nexora/gpu-timing.json` under the project writer lease
+and resolved recovery. Schema 1 identifies `NexoraEditor`, `completed_gpu_timing`, native
+command-buffer scope, milliseconds, source/software status and the native completed-submission
+axis. `export_project_uuid` identifies only the export destination: the retained process-surface
+history may include observations from other projects. Submission/drop IDs use lossless decimal
+strings; optional timings are finite JSON numbers or null. No CPU time, RSS, absolute timestamp,
+path, display latency or per-pass attribution is inferred. Locale-independent double precision is
+preserved. Invalid input, occupied staging, unsafe metadata/destinations and replacement failures
+preserve the previous file and unrelated staging.
+
+`ImportGpuTimingJson` synchronously reads at most 128 KiB into an owning capture; read-only observers
+may import, while closed/recovery projects and nonregular/aliased paths reject. The shared bounded
+ASCII schema-token reader has no recursion, DOM or unknown-value skipping. All three profiler JSON
+schemas retain their distinct field contracts; reordered fields and equivalent ASCII escapes are
+accepted, but unknown/duplicate/missing fields, wrong source/scope/unit/project, invalid samples and
+trailing data reject without mutating files or caller state. IO remains externally serialized on the
+host thread, with concurrent filesystem substitution outside the contract.
+
+The GUI's GPU actions are independent one-shot requests consumed by the application owner. Static
+import success/failure and Clear GPU import leave live GPU/CPU/RSS and other static imports intact;
+live Clear leaves static captures intact. Project root/UUID changes or detachment clear static GPU
+state and pending requests. Plots use native submission IDs, break at unavailable samples and label
+source/software, scope, units and retained peak. Read-only/modal/recovery/close gates match existing
+profiler actions. No capture is saved implicitly. These additive rebuild-required C++ APIs change
+no module dependencies or stable C/Gameplay ABI. Physical GPU calibration, per-pass analysis and
+third-party capture adapters remain open.

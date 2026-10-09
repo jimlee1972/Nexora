@@ -1,6 +1,7 @@
 #include "Nexora/Editor/SceneAuthoring.h"
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cmath>
 #include <fstream>
@@ -493,25 +494,60 @@ bool AutosaveJournal::Write(const std::filesystem::path &path, std::uint64_t rev
 }
 std::optional<std::string> AutosaveJournal::Recover(const std::filesystem::path &path,
                                                     std::uint64_t *revision, std::string *error) {
+  std::error_code ec;
+  const auto status = std::filesystem::symlink_status(path, ec);
+  if (ec || !std::filesystem::is_regular_file(status)) {
+    Error(error, "autosave journal is unavailable or not a regular file");
+    return std::nullopt;
+  }
+  constexpr std::size_t MaxHeaderBytes = 127;
+  const auto file_size = std::filesystem::file_size(path, ec);
+  if (ec || file_size > MaxAutosavePayloadBytes + MaxHeaderBytes + 1) {
+    Error(error, "autosave journal is unavailable or too large");
+    return std::nullopt;
+  }
   std::ifstream input(path, std::ios::binary);
-  input.imbue(std::locale::classic());
-  std::string magic;
-  unsigned version{};
-  std::uint64_t found_revision{}, size{};
-  if (!(input >> magic >> version >> found_revision >> size) || magic != "NEXORA_AUTOSAVE" ||
-      version != 1 || input.get() != '\n' || size > MaxAutosavePayloadBytes) {
+  std::array<char, MaxHeaderBytes + 1> buffer{};
+  input.getline(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+  if (!input || input.eof()) {
     Error(error, "corrupt autosave header");
+    return std::nullopt;
+  }
+  const auto header_bytes = static_cast<std::uint64_t>(input.gcount());
+  std::string_view header(buffer.data(), static_cast<std::size_t>(header_bytes - 1));
+  constexpr std::string_view prefix = "NEXORA_AUTOSAVE 1 ";
+  const auto parse_unsigned = [](std::string_view token, std::uint64_t &value) {
+    const auto result = std::from_chars(token.data(), token.data() + token.size(), value);
+    return !token.empty() && result.ec == std::errc{} && result.ptr == token.data() + token.size();
+  };
+  if (!header.starts_with(prefix)) {
+    Error(error, "corrupt autosave header");
+    return std::nullopt;
+  }
+  header.remove_prefix(prefix.size());
+  const auto separator = header.find(' ');
+  std::uint64_t found_revision{}, size{};
+  if (separator == std::string_view::npos ||
+      !parse_unsigned(header.substr(0, separator), found_revision) ||
+      !parse_unsigned(header.substr(separator + 1), size) || size > MaxAutosavePayloadBytes) {
+    Error(error, "corrupt autosave header");
+    return std::nullopt;
+  }
+  if (header_bytes > file_size || size != file_size - header_bytes) {
+    Error(error, "corrupt autosave payload");
     return std::nullopt;
   }
   std::string payload(size, '\0');
   input.read(payload.data(), static_cast<std::streamsize>(size));
-  if (static_cast<std::uint64_t>(input.gcount()) != size ||
+  if (input.bad() || static_cast<std::uint64_t>(input.gcount()) != size ||
       input.peek() != std::char_traits<char>::eof()) {
     Error(error, "corrupt autosave payload");
     return std::nullopt;
   }
   if (revision)
     *revision = found_revision;
+  if (error)
+    error->clear();
   return payload;
 }
 std::vector<MergeRecord> ThreeWayMerge(std::span<const MergeRecord> records) {

@@ -27,10 +27,10 @@ shader feature（[證據](../../Tools/Build/evidence/EditorEDM0-VulkanValidation
 | ED-M0 shell foundation | Standalone process、optional ImGui host、stable panel、initial docking、input/DPI/IME forwarding、live Hierarchy、recovery modal、retained native GPU rendering、project layout persistence 與 recovery failure contract 已存在。Linux 虛擬顯示 recovery 現會以 durable seeded journal 驗證 SIGKILL、已提交 workspace 不變、重新取得 writer lease，以及 keyboard-only Recover／Discard；實體顯示器 Linux 與 Windows DPI／IME host evidence 仍待完成；已記錄 bounded Windows/DX12 開發機 shell smoke。 | [ ] |
 | ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態、提供圖形化 create/open/recent selector、將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation，執行具 bounded progress 與 structured diagnostic 的 cancellable background import/reimport、顯示 dependency cycle，並提供阻塞式 reload／keep／compare conflict UX；實體顯示／Windows workflow 驗收仍待完成。 | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware expandable tree、filter、以 generation 為 key 的 expansion／selection、可見列裁切提交、可復原 rename、兄弟排序與 cycle-safe reparent，且會拒絕 stale entity／document generation。Docked Inspector 已提供 generation-safe 的 position、Euler 度數（quaternion storage）與 scale 單選／mixed-value 多選編輯，並具 atomic Runtime validation 與單步 undo。Scalar opaque PBR 材質資產現已支援 import／reimport、單物件 Inspector 指派、persistent UUID 參照、Undo／save／reopen 與真實原生 Scene View palette。完整的 authored-mesh Scene View、reflected Inspector、完整 material／shader workflow、camera authoring 與 missing-plugin 還原仍待完成；有界唯讀 opaque component Inspector 與 persistence 已實作；原生代理預覽已提供 Move／Rotate／Scale 把手。 | [ ] |
-| ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。圖形化 Console 會顯示有界紀錄與 Editor 診斷；docked Game panel 可控制隔離 clone 並顯示複製的檢視資料。有界原生 camera／OBJ Game View 已實作；完整材質／多個 canvas、完整 gameplay 服務／擴充 input、完整 log 路由與 native debugger integration 仍待完成。 | [ ] |
+| ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。圖形化 Console 會顯示有界紀錄與 Editor 診斷；docked Game panel 可控制隔離 clone 並顯示複製的檢視資料。有界原生 camera／OBJ Game View 與凍結 scalar PBR 材質已實作；完整材質／多個 canvas、完整 gameplay 服務／擴充 input、完整 log 路由與 native debugger integration 仍待完成。 | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
 | ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
-| ED-M6 build/profile/extensions | Portable build manifest/checksum 與有界的 monotonic profile capture 已存在。Docked Profiler 可繪出即時 Editor frame processing 時間，具暫停／清除與丟棄數，並顯示真實目前 process resident bytes 與 observed peak。CSV 與 schema-1 wall-time JSON export／import 已提供。Build/deploy/log、GPU profiling、儲存 memory trace、任意 capture import 與 plugin manager workflow 仍待完成。 | [ ] |
+| ED-M6 build/profile/extensions | Portable build manifest/checksum 與有界的 monotonic profile capture 已存在。Docked Profiler 可繪出即時 Editor frame processing 時間，具暫停／清除與丟棄數，並顯示真實目前 process resident bytes 與 observed peak。CSV 與 schema-1 wall-time JSON export／import 已提供，另有獨立且有界的 process-memory JSON trace。另有獨立且有界的 native Vulkan／DX12／Metal command-buffer GPU interval live history 與 schema-1 JSON capture，明示 unavailable／software 狀態。Build/deploy/log、實體 GPU 計時校準、任意 capture import 與 plugin manager workflow 仍待完成。 | [ ] |
 | ED-M7 hardening | Portable virtual hierarchy、trust/signature policy 與 telemetry opt-in test 已存在。Graphical scale/soak、migration/corruption、keyboard 與 screen-reader audit 仍待完成。 | [ ] |
 
 Focused [Dear ImGui 計畫](Editor_ImGui_Integration_Plan.md) 已列出細部打勾的 ED-M0 foundation。只有
@@ -118,6 +118,18 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 [Immutable hosted 證據](../../Tools/Build/evidence/EditorEDM0-NativeImages-2026-10-06.md)
 包含全部 18 個 selected CI job。實體顯示器、已安裝 IME 與 visual-legibility／glyph coverage
 仍待驗收，ED-M0 至 ED-M7 維持未打勾。
+
+- ✅ Scene-file 驗收 fixture 現於 atomic overwrite 前釋放已讀完的 destination reader，
+  保留全部 SaveAs／New continuation 斷言。多次原生啟動的 Linux workflow 整體預算調為
+  120 秒，每一步的 10 秒期限維持原樣。最終 graphical Linux gate 通過 178/178；更新後的
+  hosted Windows 驗證仍待完成，實體主機驗收保持 open。
+  [證據](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md)。
+
+- ✅ 共用 Linux native Showcase gate 現先確認動畫 frame 已呈現才送出 Pause，再要求
+  穩定且已改變的畫面與 exact replay。延遲 input／presentation regression 涵蓋原本的雙次
+  toggle race、缺少 motion 與 pause cleanup。既有 5 秒 comparison 與 15 秒 settling 期限
+  保持有界；九個 room 的整體預算為 180 秒。此 cloud gate 補強不接受實體 Editor 里程碑。
+  [證據](../../Tools/Build/evidence/EditorEDM0-LinuxAnimationHandshake-2026-10-09.md)。
 
 ### ED-M1 — Project 與 Asset workspace
 
@@ -230,7 +242,7 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   並保留 legacy shader ID。測試涵蓋有界參照檢視、取消、stale／read-only／missing／unsupported
   guard 與真實 1x／2x dropdown 點擊。Scene View 使用 Renderer 切線提交去重的原生 PBR palette；
   Vulkan pixels 驗證獨立材質、reimport 變色、非法版本與 Undo／reopen。Texture／shader 編輯、
-  Game View 材質、persistent GPU cache 與完整 ED-M2 驗收仍未完成。
+  persistent GPU cache 與完整 ED-M2 驗收仍未完成；凍結 scalar Game 材質另列於 ED-M3 supporting slice。
   Contract：[ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md)。證據：
   [Linux 驗收](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md)。
   [Main 整合 gate](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/integration.md)。
@@ -612,6 +624,13 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   Resume 顯示較新的 retained log，暫停時仍可 filter。1x／2x DPI 滑鼠事件驅動測試涵蓋
   background producer 淘汰、source／null 重新綁定及 32 次控制循環。
   更完整的 Runtime／build log routing 與 ED-M3 target 驗收仍保持 open。
+- ✅ 圖形 Console 現從真正有界的 Core async producer 接收 owning、sequenced observation，
+  涵蓋 Editor 與 V3 Play log。Pending／ring／text budget、UTF-8／raw-wire 拒絕、跨 restart
+  單調 cursor 與 upstream loss 單次計數，讓 worker traffic 不受 UI Pause／filter／Clear
+  影響。四個 producer、teardown、byte／sequence 邊界與真正 1x／2x 控制項測試涵蓋此路徑；
+  原生 Game fixture 驗證關閉時保有 Core／gameplay records。完整 Runtime／build producer
+  與 debugger／IDE 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-CoreConsole-Linux-2026-10-09.md)。
 - ✅ Docked Console 現顯示有界 Runtime 紀錄，提供文字／嚴重度篩選、來源、時間戳與丟棄數；
   Editor 會記錄啟動及場景開啟／儲存診斷。
 - ✅ Docked Game panel 現可操作隔離的 PlaySession：Play／Stop、Pause／Resume 與單一步進；
@@ -650,6 +669,13 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   與 entity generation，以及 original／Editor／Play 值，再用單次 atomic SceneDocument transaction
   套用並停止、捨棄 clone。衝突／重新掛接／其他場景會拒絕整批；Undo 會還原所有套用值。
   元件／建立／刪除不會複製；modal 會阻擋 authoring／Play 快捷鍵，預設 Stop 仍捨棄變更。
+- ✅ 原生 Game View 現在 Play 前凍結已驗證 scalar PBR 值與 mesh entity UUID 指派。
+  Native palette 使用去重、有界 slot、neutral missing／budget fallback、Renderer tangent
+  與複製的 post-tick camera／affine 資料。真正 catalog reimport／delete／重新指派仍保留 Play
+  值；Pause／Step／Stop 維持 Editor 隔離，prepared frame 在 Stop 後仍擁有資料。Xvfb／
+  lavapipe 已驗證紅色 Game pixels，以及唯讀重新開啟後使用新綠色來源且 scene／source bytes
+  不變。Texture／shader graph 與動態參照仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-GameMaterials-Linux-2026-10-09.md)。
 - 待辦：完整 Game View 材質／多個原生 canvas、完整 gameplay 服務與擴充輸入路由、完整 Runtime／build log
   路由，以及 native debugger/IDE 整合。
 
@@ -717,6 +743,30 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   涵蓋 Development、Monolithic Shipping 與實際 CLI consumption。Editor export、原生 player
   rendering、gameplay compilation 與 Build／deploy／log workflow 仍待完成。
 
+- ✅ Editor 現明確啟用真實 completed native GPU timing：Vulkan／DX12 timestamp query
+  與 Metal command-buffer timing 在既有 completion point 發布 copied source／submission／
+  optional milliseconds。Profiler 提供獨立且有界的 live history，明示 software device、來源與
+  範圍，拒絕 stale／nonfinite input，並於 unavailable record 中斷曲線。測試涵蓋 Capture、
+  Clear、domain 切換與 1x／2x 控制；真實 Linux query allocation／read failure、fencing、resize、
+  abandoned recording、teardown 與 default opt-out 保留渲染及 lifetime。實體校準與
+  per-pass profiling 仍待完成；GPU capture 使用下方獨立 schema。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-NativeGpuTiming-Linux-2026-10-09.md)。
+
+- ✅ Native GPU timing 現有獨立 schema-1 JSON capture，明示 backend／software、command-buffer
+  scope、milliseconds、無損 completed submission／drop ID 與 unavailable。同步 writer-gated
+  export 與有界 read-only import 保留 last-good file 與 owning static snapshot。獨立 1x／2x
+  Export GPU／Import GPU／Clear GPU import 控制保留 live CPU／GPU／RSS 與其他 import；project
+  切換只清除 static state。共用 nonrecursive JSON grammar 亦保留既有 wall／RSS capture contract。
+  實體計時校準、per-pass tool 與第三方 capture format 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-GpuTimingCapture-Linux-2026-10-09.md)。
+- ✅ Profiler process-memory trace 現保留最多 600 筆真實 RSS／working-set attempt，包含
+  elapsed time、unavailable read 與獨立丟棄數。獨立 schema-1 project JSON export／import
+  保留 uint64 精度、source／scope／unit 與暫停時間空隙；匯入為 owning static snapshot，
+  讀取或 publication 失敗保留舊狀態。Linux 通過有界 corruption／limit／access 測試與
+  1x／2x 獨立 modal／recovery／read-only UI 控制。GPU／allocator profiling 與實體主機
+  驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-ProcessMemoryCapture-Linux-2026-10-09.md)。
+
 - ✅ Profiler Import JSON 現讀取 exported schema-1 wall-time capture 至 owning static trace，
   驗證 project UUID、source／scope／unit、有序且無損的 frame／drop 值及 unavailable GPU／memory。
   有界且非遞迴的 reader 拒絕 duplicate／unknown／missing field、損壞、尾端資料、unsafe path
@@ -740,14 +790,14 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 - ✅ Portable build frontend 會驗證並 atomic 寫入 target/configuration/command 與帶 checksum
   的 artifact manifest；有界的 monotonic CPU/GPU/memory frame capture 已實作。
 - ✅ 圖形化 Profiler 現顯示即時且有界的 Editor frame processing wall-time 曲線，支援暫停／
-  清除、最新／平均／峰值與丟棄數。GPU 時間仍明示為不可用。
+  清除、最新／平均／峰值與丟棄數。Native GPU interval 現採獨立 history。
 - ✅ Application 現最多每 250 ms 量測一次真實目前 process RSS／working-set bytes，Profiler
   讀取 copied optional latest／observed-peak 值。Capture 暫停 OS observation，Clear 重設
   peak／timer 且不解除暫停；讀取失敗顯示 unavailable，保留 observed peak。Process-wide
   scope 包含 shared resident pages，跨 project 切換保留，並非 GPU 或 allocator usage。
   Linux 測試涵蓋真實 allocation／touch、實際 24-frame graphical process、owner throttle／
   failure，以及 1x／2x pointer／ownership／reset。Schema-1 wall-time capture 保持分開；
-  儲存 memory trace 與 Windows／macOS host 驗證仍待完成。
+  Windows／macOS host 驗證仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM6-LiveProcessMemory-Linux-2026-10-08.md)。
 - ✅ Profiler Export JSON 現寫入 schema-1 companion，包含 source／scope／unit／project metadata、
   sample count、完整 double 精度及無損 decimal-string uint64 frame／drop 值。
@@ -757,10 +807,18 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 - ✅ Profiler 現可把保留的 Editor frame-processing wall time 匯出為專案 CSV，保留 double
   精度與丟棄 frame 數，GPU／memory 欄保持空白。同步 writer 驗證 1-600 筆有序且有限的 sample，
   拒絕唯讀／recovery 寫入，驗證失敗會保留舊檔；實際 UI 點擊會送出一次性 request。
-- 待辦：圖形化 build frontend、remote deployment/log、GPU profiling、儲存 memory trace、任意 capture import
+- 待辦：圖形化 build frontend、remote deployment/log、實體 GPU 計時校準、任意 capture import
   與 plugin manager。
 
 ### ED-M7 — Production hardening
+
+- ✅ Autosave recovery 現會先限制 schema-1 header，再解析 token；拒絕帶正負號／溢位
+  欄位與非 regular／alias file，並在配置 payload 前驗證精確的檔案／payload 長度。
+  空值／binary／64 MiB／最大 revision round trip、逐 byte 截斷與拒絕後保留均有測試。
+  Mutation fixture 現以真實 workspace recovery journal 為 seed，每筆輸入重設有效 project
+  metadata，並實際執行 writable recovery；拒絕 journal 時保留 committed bytes、live documents
+  與來源資料。完整 migration／crash／target-host 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md)。
 
 - ✅ Portable telemetry consent 現於 opt-out 釋放所有 retained event，記憶體 queue 上限為
   1,024 筆、每筆 1,024 UTF-8 bytes。Invalid／oversized／overflow event 保留已接受的紀錄；

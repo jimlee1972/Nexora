@@ -3,6 +3,7 @@
 #include <array>
 #include <chrono>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 
@@ -78,9 +79,11 @@ void Run(float dpi) {
   Require(EditorImGuiTestAccess::ProfileMemory(host).resident_bytes == reading &&
               EditorImGuiTestAccess::ProfileMemory(host).observed_peak_bytes == reading,
           "next frame did not publish copied observation");
-  const auto click = [&](bool clear) {
-    const auto point = clear ? EditorImGuiTestAccess::ProfileClearPosition(host)
-                             : EditorImGuiTestAccess::ProfileCapturePosition(host);
+  const auto click = [&](int control) {
+    const auto point = control >= 2 ? EditorImGuiTestAccess::MemoryControlPosition(
+                                          host, static_cast<std::size_t>(control - 2))
+                       : control == 1 ? EditorImGuiTestAccess::ProfileClearPosition(host)
+                                      : EditorImGuiTestAccess::ProfileCapturePosition(host);
     Require(point.has_value(), "Profiler memory control was not visible");
     WindowEvent pointer;
     pointer.type = WindowEventType::Pointer;
@@ -124,6 +127,93 @@ void Run(float dpi) {
   Require(!EditorImGuiTestAccess::ProfileMemory(host).resident_bytes &&
               EditorImGuiTestAccess::ProfileMemory(host).observed_peak_bytes == 10,
           "unavailable observation was displayed as latest historical success");
+  active_project = &first;
+  draw();
+  click(2);
+  Require(host.TakeMemoryExportRequest() && !host.TakeMemoryExportRequest() &&
+              !host.TakeProfileJsonExportRequest() && !host.TakeProfileExportRequest(),
+          "memory export was not independent/one-shot");
+  Require(
+      first.ExportProcessMemoryJson(profile.MemorySamples(), profile.MemoryDroppedCount(), &error),
+      "memory save failed");
+  click(3);
+  Require(host.TakeMemoryImportRequest() && !host.TakeMemoryImportRequest() &&
+              !host.TakeProfileJsonImportRequest(),
+          "memory import was not independent/one-shot");
+  auto capture = first.ImportProcessMemoryJson(&error);
+  Require(capture && host.SetImportedMemoryCapture(*capture) &&
+              EditorImGuiTestAccess::ImportedMemoryCapture(host)->samples.size() == 2,
+          "owning memory publication failed");
+  Require(!host.SetImportedMemoryCapture({{{0, 0, 1}}, 0}) &&
+              EditorImGuiTestAccess::ImportedMemoryCapture(host)->samples.size() == 2,
+          "failed publication erased imported memory");
+  profile.Clear();
+  draw();
+  Require(EditorImGuiTestAccess::ImportedMemoryCapture(host)->samples.size() == 2 &&
+              profile.MemorySamples().empty(),
+          "live clear mutated static memory capture");
+  click(2);
+  Require(!host.TakeMemoryExportRequest(), "empty memory history exported");
+  click(3);
+  Require(host.TakeMemoryImportRequest(), "empty live history blocked saved import");
+  click(4);
+  Require(!EditorImGuiTestAccess::ImportedMemoryCapture(host), "clear memory import failed");
+  Require(host.SetImportedMemoryCapture(*capture), "static memory republish failed");
+  host.RequestCloseConfirmation();
+  draw();
+  click(2);
+  click(3);
+  Require(!host.TakeMemoryExportRequest() && !host.TakeMemoryImportRequest(),
+          "close modal emitted memory request");
+  WindowEvent escape;
+  escape.type = WindowEventType::Key;
+  escape.value0 = static_cast<int>(Nexora::Window::Key::Escape);
+  escape.value1 = 1;
+  host.ProcessEvents(std::array{escape});
+  draw();
+  escape.value1 = 0;
+  host.ProcessEvents(std::array{escape});
+  draw();
+  Require(host.TakeCloseChoice() == imgui::CloseChoice::Cancel, "close modal did not cancel");
+  EditorImGuiTestAccess::FocusProfiler(host);
+  draw();
+  draw();
+  reading = 20;
+  Require(profile.SampleProcessMemory(start + 2s, Read), "resample failed");
+  ProjectWorkspace observer;
+  Require(observer.Open(first.Root(), ProjectAccess::ReadOnly, &error), "observer open failed");
+  active_project = &observer;
+  draw();
+  click(2);
+  Require(!host.TakeMemoryExportRequest(), "read-only memory export enabled");
+  click(3);
+  Require(host.TakeMemoryImportRequest() && observer.ImportProcessMemoryJson(&error),
+          "read-only memory import disabled");
+  active_project = &first;
+  draw();
+  std::ofstream(first.Root() / ".nexora/workspace.recovery") << "schema=1\n";
+  draw();
+  click(2);
+  click(3);
+  Require(!host.TakeMemoryExportRequest() && !host.TakeMemoryImportRequest(),
+          "recovery modal emitted memory requests");
+  Require(first.DiscardRecovery(&error), "recovery fixture discard failed");
+  draw();
+  EditorImGuiTestAccess::FocusProfiler(host);
+  draw();
+  draw();
+  active_project = &second;
+  draw();
+  Require(!EditorImGuiTestAccess::ImportedMemoryCapture(host) &&
+              profile.MemorySamples().size() == 1,
+          "project change retained static import or cleared process history");
+  active_project = nullptr;
+  draw();
+  click(2);
+  click(3);
+  Require(!host.TakeMemoryExportRequest() && !host.TakeMemoryImportRequest() &&
+              !host.SetImportedMemoryCapture(*capture),
+          "detached memory request/publication enabled");
   active_profile = nullptr;
   draw();
   Require(!EditorImGuiTestAccess::ProfileMemory(host).observed_peak_bytes &&

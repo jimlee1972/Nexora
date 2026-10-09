@@ -284,12 +284,16 @@ int Run() {
   {
     const auto path = root / "autosave";
     editor::AutosaveJournal::Write(path, 9, "recoverable scene payload", &error);
-    targets.push_back({"autosave", {ReadFile(path), {}}, [path](const Bytes &b) {
-                         WriteFile(path, b);
-                         std::uint64_t revision{};
-                         static_cast<void>(
-                             editor::AutosaveJournal::Recover(path, &revision, nullptr));
-                       }});
+    targets.push_back(
+        {"autosave", {ReadFile(path), {}}, [path](const Bytes &b) {
+           WriteFile(path, b);
+           constexpr std::uint64_t sentinel = 0x4E455830;
+           std::uint64_t revision = sentinel;
+           std::string message;
+           const auto recovered = editor::AutosaveJournal::Recover(path, &revision, &message);
+           if (ReadFile(path) != b || (!recovered && (revision != sentinel || message.empty())))
+             throw std::runtime_error("autosave rejection changed source/revision");
+         }});
   }
   {
     const auto path = root / "editor-scene";
@@ -345,19 +349,42 @@ int Run() {
            std::string message;
            static_cast<void>(opened.Open(recent_path, &message));
          }});
+    const auto descriptor = ReadFile(project / "project.nexora");
+    const auto committed = ReadFile(project / ".nexora/workspace");
+    const auto layout = ReadFile(project / ".nexora/editor-layout.ini");
+    // SaveWorkspace removes its successful journal; seed recovery with actual schema-1 bytes.
+    WriteFile(project / ".nexora/workspace.recovery", committed);
     const auto file_target = [&](const char *name, fs::path relative, bool recover) {
       const auto file = project / relative;
-      targets.push_back({name, {ReadFile(file), {}}, [project, file, recover](const Bytes &b) {
-                           WriteFile(file, b);
-                           editor::ProjectWorkspace opened;
-                           std::string message;
-                           static_cast<void>(
-                               opened.Open(project, editor::ProjectAccess::ReadOnly, &message));
-                           static_cast<void>(opened.HasExternalChange());
-                           if (recover)
-                             static_cast<void>(opened.RecoverWorkspace(&message));
-                           static_cast<void>(opened.LoadEditorLayout(&message));
-                         }});
+      targets.push_back(
+          {name,
+           {ReadFile(file), {}},
+           [project, file, recover, descriptor, committed, layout](const Bytes &b) {
+             // Each mutation reaches its intended reader, regardless of the last
+             // descriptor/workspace mutation performed by another target.
+             WriteFile(project / "project.nexora", descriptor);
+             WriteFile(project / ".nexora/workspace", committed);
+             WriteFile(project / ".nexora/editor-layout.ini", layout);
+             WriteFile(project / ".nexora/workspace.recovery", committed);
+             WriteFile(file, b);
+             editor::ProjectWorkspace opened;
+             std::string message;
+             const auto access =
+                 recover ? editor::ProjectAccess::ReadWrite : editor::ProjectAccess::ReadOnly;
+             const auto ok = opened.Open(project, access, &message);
+             static_cast<void>(opened.HasExternalChange());
+             if (recover) {
+               if (!ok)
+                 throw std::runtime_error("valid recovery project failed to open");
+               const std::vector<std::string> before(opened.OpenDocuments().begin(),
+                                                     opened.OpenDocuments().end());
+               if (!opened.RecoverWorkspace(&message) &&
+                   (message.empty() || !std::ranges::equal(opened.OpenDocuments(), before) ||
+                    ReadFile(project / ".nexora/workspace") != committed || ReadFile(file) != b))
+                 throw std::runtime_error("recovery rejection changed last-good data");
+             }
+             static_cast<void>(opened.LoadEditorLayout(&message));
+           }});
     };
     file_target("project_descriptor", "project.nexora", false);
     file_target("workspace_file", ".nexora/workspace", false);

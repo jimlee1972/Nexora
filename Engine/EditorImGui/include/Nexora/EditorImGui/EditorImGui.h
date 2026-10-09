@@ -153,6 +153,12 @@ public:
   // Transfers a bounded owning wall-time snapshot; rejection preserves the previous import.
   // Bind to the last drawn project; project changes clear it. Live ProfileSession is untouched.
   bool SetImportedProfileCapture(FrameProcessingCapture capture);
+  [[nodiscard]] bool TakeMemoryExportRequest() noexcept;
+  [[nodiscard]] bool TakeMemoryImportRequest() noexcept;
+  bool SetImportedMemoryCapture(ProcessMemoryCapture capture);
+  [[nodiscard]] bool TakeGpuExportRequest() noexcept;
+  [[nodiscard]] bool TakeGpuImportRequest() noexcept;
+  bool SetImportedGpuCapture(GpuTimingCapture capture);
   void SetProfileExportStatus(std::string message);
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);

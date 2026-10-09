@@ -206,6 +206,8 @@ public:
   bool Push(RuntimeLogRecord record);
   [[nodiscard]] std::vector<RuntimeLogRecord> Snapshot() const;
   [[nodiscard]] std::uint64_t DroppedCount() const;
+  // Account upstream rejected/unread records without inventing Console records or sequences.
+  void ReportDropped(std::uint64_t count);
 
 private:
   const std::size_t capacity_;

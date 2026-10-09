@@ -887,3 +887,14 @@ the recorded runtime/movie production freeze remains unchanged.
 ✅ Dielectric/native interaction integration: Linux configure/build and full 97/97 tests passed (111.31 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 4933fbc passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
 
 ✅ Coping/native interaction integration: Linux configure/build and full 97/97 tests passed (110.58 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 1989904 passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Courtyard-Coping-Linux-2026-10-06/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
+
+### Linux animation acceptance sequencing
+
+The native interaction fixture acknowledges a changed animated frame before sending Pause,
+then requires repeated stable changed frames and exact reset/replay. This prevents two queued
+Space toggles from being consumed before slow software rendering presents motion. Capture
+failure still queues Pause. Five-second picture comparisons and 15-second settling retain their
+bounds; the nine-room aggregate allows 180 seconds. Deterministic normal/optimized regressions
+replay delayed presentation, the old batching race, never-presented motion and capture failure.
+This changes test sequencing only; production rendering/animation and physical acceptance are
+unchanged. Evidence: [Linux handshake](../../Tools/Build/evidence/EditorEDM0-LinuxAnimationHandshake-2026-10-09.md).

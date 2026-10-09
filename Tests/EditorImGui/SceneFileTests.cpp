@@ -438,6 +438,7 @@ void RunUnsavedReplacement(float dpi) {
   const auto original_file = f.root / "Content/Original.scene";
   std::ifstream input(original_file, std::ios::binary);
   const std::string original(std::istreambuf_iterator<char>(input), {});
+  input.close(); // Windows replacement requires releasing the fixture's destination reader.
   f.Shortcut(Key::N);
   f.Click(7);
   f.Path("Content/Original.scene");

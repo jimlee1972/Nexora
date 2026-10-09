@@ -1,3 +1,4 @@
+#include "CoreConsoleIngress.h"
 #include "EditorImGuiTestAccess.h"
 
 #include <array>
@@ -16,11 +17,16 @@ void Run(float dpi) {
   using Nexora::Window::WindowEvent;
   using Nexora::Window::WindowEventType;
   runtime::RuntimeConsole ingress{2};
-  Require(
-      ingress.Push({0, runtime::RuntimeLogSeverity::Trace, "test", 1, "source", "trace event"}) &&
-          ingress.Push(
-              {0, runtime::RuntimeLogSeverity::Warning, "test", 2, "source", "warning event"}),
-      "initial logs rejected");
+  core::AsyncLogService producer{2};
+  producer.Start();
+  editor::preview::CoreConsoleIngress bridge{producer, ingress, "source"};
+  const auto write = [&](core::LogLevel level, std::string category, std::string message) {
+    producer.Write(level, std::move(category), std::move(message));
+    producer.Flush(); // Test synchronization only; the graphical owner never flushes per frame.
+    bridge.Poll();
+  };
+  write(core::LogLevel::Trace, "test", "trace event");
+  write(core::LogLevel::Warning, "test", "warning event");
   editor::imgui::EditorImGuiHost host;
   host.SetDisplay(1280 * dpi, 900 * dpi, dpi);
   EditorImGuiTestAccess::ConfigureSyntheticInput(host);
@@ -31,6 +37,7 @@ void Run(float dpi) {
   editor::ProductShell shell;
   runtime::RuntimeConsole *active = &ingress;
   const auto draw = [&] {
+    bridge.Poll();
     host.BeginFrame();
     host.DrawProductShell(shell, nullptr, nullptr, nullptr, nullptr, nullptr, active);
     static_cast<void>(host.EndFrame());
@@ -65,37 +72,37 @@ void Run(float dpi) {
   };
   expect(2, 1);
   click(0); // Pause display; ingress remains live.
-  std::thread producer([&] {
+  std::thread writer([&] {
     for (int index = 0; index < 50; ++index)
-      ingress.Push({0, runtime::RuntimeLogSeverity::Info, "producer", 3, "background", "new log"});
+      producer.Write(core::LogLevel::Info, "producer", "new log");
   });
-  producer.join();
+  writer.join();
+  producer.Flush();
   draw();
   expect(2, 1);
-  Require(ingress.Snapshot().front().sequence == 51 && ingress.DroppedCount() == 50,
+  Require(ingress.Snapshot().front().sequence == 3 && ingress.DroppedCount() == 50,
           "pausing display changed producer admission or eviction");
   EditorImGuiTestAccess::SetConsoleFilter(host, "warning", 2);
   draw();
   expect(1, 2); // Filters continue to operate on the frozen owning records.
   click(1);     // Clear also hides live records received while the display was paused.
   expect(0, 0);
-  Require(ingress.Snapshot().size() == 2 && ingress.Snapshot().back().sequence == 52 &&
+  Require(ingress.Snapshot().size() == 2 && ingress.Snapshot().back().sequence == 4 &&
               ingress.DroppedCount() == 50,
           "Clear view changed the original records or drop counter");
-  Require(ingress.Push({0, runtime::RuntimeLogSeverity::Fatal, "new", 4, "source", "after clear"}),
-          "post-clear log rejected");
+  write(core::LogLevel::Fatal, "new", "after clear");
   EditorImGuiTestAccess::SetConsoleFilter(host, "", 0);
   draw();
   expect(0, 0);
   click(0); // Resume includes only records newer than the clear watermark.
-  expect(1, 53);
+  expect(1, 5);
   click(1);
   expect(0, 0);
   draw();
   expect(0, 0);
-  ingress.Push({0, runtime::RuntimeLogSeverity::Info, "new", 5, "source", "visible again"});
+  write(core::LogLevel::Info, "new", "visible again");
   draw();
-  expect(1, 54);
+  expect(1, 6);
 
   runtime::RuntimeConsole replacement{1};
   replacement.Push({0, runtime::RuntimeLogSeverity::Error, "other", 1, "source", "replacement"});
@@ -110,19 +117,21 @@ void Run(float dpi) {
           "unavailable Console retained a clickable control");
   active = &ingress;
   draw();
-  expect(2, 53);
+  expect(2, 5);
   Require(ingress.DroppedCount() == 52, "display controls reset cumulative drops");
   click(1);
   for (std::uint64_t index = 0; index < 32; ++index) {
     click(0);
-    ingress.Push({0, runtime::RuntimeLogSeverity::Info, "soak", 6, "source", "next record"});
+    write(core::LogLevel::Info, "soak", "next record");
     draw();
     expect(0, 0);
     click(0);
-    expect(1, 55 + index);
+    expect(1, 7 + index);
     click(1);
     expect(0, 0);
   }
+  producer.Stop();
+  bridge.Poll();
   Require(ingress.Snapshot().size() == 2 && ingress.DroppedCount() == 84,
           "repeated pause/resume/clear changed bounded ingress behavior");
 }

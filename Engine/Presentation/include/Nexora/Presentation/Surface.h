@@ -27,6 +27,8 @@ struct SurfaceDescriptor final {
   PresentMode presentMode = PresentMode::VSync;
   ColorSpace colorSpace = ColorSpace::Srgb;
   SurfaceBackend backend = SurfaceBackend::Automatic;
+  // Optional native profiling; default consumers allocate/record no timestamp queries.
+  bool enableGpuTiming = false;
 };
 
 enum class DriverVersionFormat : std::uint8_t { Unavailable, VulkanRaw, DxgiUmd };
@@ -42,7 +44,23 @@ struct SurfaceDeviceInfo final {
   DriverVersionFormat driverVersionFormat = DriverVersionFormat::Unavailable;
 };
 
+enum class GpuTimingSource : std::uint8_t {
+  Unavailable,
+  VulkanTimestamps,
+  Dx12Timestamps,
+  MetalCommandBuffer
+};
+
+// Latest completed native command-buffer interval, not CPU wall time or display latency.
+// Read on the existing render thread. A missing value explicitly denotes unavailable timing.
+struct SurfaceGpuTiming final {
+  GpuTimingSource source{GpuTimingSource::Unavailable};
+  std::uint64_t completedSubmission{};
+  std::optional<double> milliseconds;
+};
+
 struct SurfaceDiagnostics final {
+  SurfaceGpuTiming gpuTiming;
   std::uint64_t acquiredFrames = 0;
   std::uint64_t presentedFrames = 0;
   std::uint64_t resizeGenerations = 0;

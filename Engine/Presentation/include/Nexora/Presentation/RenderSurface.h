@@ -19,6 +19,7 @@ struct RenderSurfaceDescriptor final {
   SurfaceBackend backend = SurfaceBackend::Automatic;
   PresentMode presentMode = PresentMode::VSync;
   ColorSpace colorSpace = ColorSpace::Srgb;
+  bool enableGpuTiming = false;
 };
 
 struct SurfaceInputSnapshot final {

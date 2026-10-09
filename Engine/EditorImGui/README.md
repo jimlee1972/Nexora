@@ -112,6 +112,9 @@ production retains ImGui's native platform defaults.
   applied/required upgrade state, and the bounded recent-project list. It never acquires a lock,
   upgrades a descriptor, or writes recent state; the application completes those operations before
   drawing.
+- The application polls the real bounded Core async producer into RuntimeConsole before drawing.
+  Core rejection and unread-eviction counts join the visible Console drop counter once; workers
+  never call UI and Pause/filter/Clear do not stop producer traffic or change its cursor.
 - `RuntimeConsole` is borrowed for the frame. The Console panel takes an owning, bounded snapshot,
   filters severity and text, clips visible rows, and reports the producer's dropped-record count.
   It does not retain record references after drawing. The application owns ingress and timestamps.
@@ -134,7 +137,8 @@ production retains ImGui's native platform defaults.
   framebuffer pixels for a camera-driven native OBJ draw owned by the application. Start focuses
   the Game tab. The application builds owning geometry/instance/matrix data after Play commands and
   fixed ticks, using the preview camera choice (Automatic selects Runtime's first valid active camera)
-  and a CPU mesh catalog frozen at Start; editor reimport/deletion cannot change Play assets. Stop releases that catalog and discards the
+  and CPU mesh/material snapshots frozen at Start; editor reimport/deletion/reassignment cannot
+  change Play assets. Stop releases those snapshots and discards the
   clone. No World borrow survives frame preparation. Missing cameras/geometry show an actionable
   status. Unsupported backends retain the X/Z map. One native 3D draw is available per window/frame:
   a simultaneously visible native Scene canvas takes precedence and Game falls back to its map.
@@ -159,8 +163,11 @@ production retains ImGui's native platform defaults.
   The application forwards release/focus events into the owning gameplay snapshot even when
   rendering is deferred or the client extent is zero; these batches do not tick Play or need an
   ImGui frame. Gamepad, pointer motion/look, device-specific rebinding and multiple input users remain open.
-  Game uses the existing bounded Lambertian preview and composed TRS, without editor proxies or
-  gizmos; material shader execution, exact hierarchy shear, and simultaneous 3D views remain open.
+  Game uses bounded native scalar PBR slots when authored materials resolve, Renderer tangents and
+  exact affine world matrices, without editor proxies or gizmos. Missing/budget-rejected materials
+  use neutral slots; no resolved authored material retains Lambert shading. The application owns
+  this preparation and publishes fallback status; the UI does not edit Play material values.
+  Texture/shader graphs, dynamic material references and simultaneous 3D views remain open.
 - The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes
   it after drawing, checks project write access and scene load state, and calls `SceneDocument::Save`.
   The host retains result text and emits owning file requests; it never writes scene files.
@@ -178,7 +185,7 @@ production retains ImGui's native platform defaults.
   observed peak; widgets perform no OS reads. Capture pauses observations, Clear resets the peak
   and sample window, and a failed latest read displays unavailable while retaining the prior peak.
   Memory scope is process-wide RSS / working set including shared resident pages, across project
-  changes; it is not GPU/allocator accounting. GPU time remains explicitly unavailable. Schema-1
+  changes; it is not GPU/allocator accounting. Native GPU intervals are shown separately. Schema-1
   wall-time exports/imports do not include the live memory observation.
 - Profiler Import CSV emits an independent one-shot request; the application reads the current
   project's `.nexora/frame-processing.csv` on the authoring thread and transfers a validated owning
@@ -448,7 +455,7 @@ cells because this wall-time format excludes live RSS observations. Export requi
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import, GPU timing and saved process-memory traces remain open.
+file itself. Arbitrary capture import remains open; native GPU and process-memory traces use separate schemas.
 
 Export JSON emits an independent one-shot request consumed through `TakeProfileJsonExportRequest`;
 the CSV request API retains its behavior. Both buttons share empty-sample, write-access and modal
@@ -881,3 +888,35 @@ drafts; reopening a gate cannot revive an abandoned request. Inspector reads own
 metadata instead of copying unrelated plugin payloads. Valid Editor-owned schema-1 references are excluded from missing-plugin
 inspection, while unknown payloads remain inspectable. Legacy shader IDs stay unchanged. Texture,
 graph, multi-selection and Game View material editing remain open.
+
+Profiler Export memory and Import memory emit independent one-shot requests consumed by the
+application through `TakeMemoryExportRequest` / `TakeMemoryImportRequest`. Widgets perform no IO or
+OS sampling. `SetImportedMemoryCapture` validates an owning 1–600 sample snapshot; rejection preserves
+the previous import. The imported process trace and wall-time import are separate, and live Clear
+preserves both. Clear memory import touches only the static process trace. Project root/UUID changes
+and detachment clear imported memory and pending requests while live process history remains.
+Writable/resolved projects with a nonempty memory history may export; read-only projects may import;
+no-project, modal, recovery and close gates block the corresponding requests. Resident-memory plots
+use elapsed milliseconds horizontally and MiB vertically, including pause gaps and breaking lines
+at failed reads. Import denotes the export destination project, not per-project allocation ownership.
+The host consumes live spans during drawing and retains only owning imported vectors between frames.
+
+The Profiler consumes copied `GpuProfileObservation` values from the application-owned session and
+plots the bounded native completion history without native queries/handles, IO or retained live
+borrows. It names Vulkan timestamp queries, DX12 timestamp queries or Metal command-buffer timing,
+marks software rasterization, and labels native command-buffer scope and delayed completion. Missing
+results are unavailable; valid zero remains measured. Capture/Clear share the live-history controls,
+with pause and Clear semantics enforced by the owner. Source/domain changes clear only the GPU
+stream; project changes/detachment retain its process-surface history. Detaching the profile owner
+clears copied display values. CPU plotting remains ahead of the separate GPU/memory sections, and
+wall-time file imports retain their explicit unavailable GPU fields. The GUI never polls the device.
+
+Export GPU / Import GPU / Clear GPU import act on a separate owning `GpuTimingCapture`. The first
+two emit independent one-shot requests and perform no IO in widgets. Publication validates the
+source and 1–600 ordered copied optional timings, retaining the prior static capture on rejection.
+Static plots label backend/software status, command-buffer scope, milliseconds, native submission
+axis, retained peak and dropped samples. Null breaks the plot and an all-null capture displays
+unavailable; zero remains measured. Static clear and live Clear are independent, as are wall/RSS
+imports. Project root/UUID changes and detachment clear static state and pending requests while
+live surface history remains. Export requires a writable/resolved project and nonempty live GPU
+history; read-only import is permitted. Modal/recovery/close/no-project gates suppress requests.

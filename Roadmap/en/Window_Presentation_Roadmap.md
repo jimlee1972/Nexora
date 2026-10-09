@@ -1,6 +1,6 @@
 # Nexora Window and Native Presentation Roadmap
 
-✅ Native device provenance delivery: Vulkan/DX12 reports retain the selected device name, vendor/device IDs and observed raw driver version; Metal retains its selected device name with unavailable IDs/driver. Decimal strings preserve DXGI 64-bit precision. Quality benchmarks retain identity in JSON/Markdown and reject differing observed devices/drivers; historical reports remain explicitly unidentified. Seven policy tests pass in normal and optimized Python. Build 1778 (source `46eac3a50f83`) passes all 18 jobs, Linux 145/145, Windows 128/128 and macOS 127/127, native Shipping gates and three quality measurements with actual llvmpipe/driver observations. GPU timestamps and display refresh remain unavailable; VIS stays 5/7 with physical GPU budgets and final art acceptance open. [Acceptance evidence](../../Apps/Showcase/evidence/VIS-M6-Native-Device-Provenance-CI-2026-10-07/acceptance.md).
+✅ Native device provenance delivery: Vulkan/DX12 reports retain the selected device name, vendor/device IDs and observed raw driver version; Metal retains its selected device name with unavailable IDs/driver. Decimal strings preserve DXGI 64-bit precision. Quality benchmarks retain identity in JSON/Markdown and reject differing observed devices/drivers; historical reports remain explicitly unidentified. Seven policy tests pass in normal and optimized Python. Build 1778 (source `46eac3a50f83`) passes all 18 jobs, Linux 145/145, Windows 128/128 and macOS 127/127, native Shipping gates and three quality measurements with actual llvmpipe/driver observations. Quality-benchmark GPU timestamps and display refresh remain unavailable; VIS stays 5/7 with physical GPU budgets and final art acceptance open. [Acceptance evidence](../../Apps/Showcase/evidence/VIS-M6-Native-Device-Provenance-CI-2026-10-07/acceptance.md).
 
 > Version: v1.0 | Status: planning baseline | Updated: 2026-10-02
 
@@ -15,6 +15,12 @@ swapchain and converts window changes into backend-neutral surface events. Zig g
 receives a native window, device, queue, or swapchain pointer.
 
 ## 2. Current baseline
+
+- ✅ Optional native GPU timing now publishes copied completed submission IDs and optional
+  milliseconds from Vulkan/DX12 timestamp queries and completed Metal command buffers. Editor
+  opts in; other surfaces keep the no-query default. Linux real query/failure/fence/resize/drain
+  and default opt-out contracts pass; physical calibration and Showcase benchmark ingestion remain
+  separate. [Editor evidence](../../Tools/Build/evidence/EditorEDM6-NativeGpuTiming-Linux-2026-10-09.md).
 
 - ✅ Native UI replacement descriptors are now fence-recycled on DX12; Vulkan's bounded UI pool
   supports 64 mutable Editor images and in-flight generations. The Editor native lifetime gate
