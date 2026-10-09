@@ -114,6 +114,24 @@ void Run() {
           "Replaced document accepted stale publication");
   Require(files.Open(files.Token(), "Content/Primary.scene", true).Applied(),
           "Reader baseline refresh failed");
+  Require(document.Rename(*document.Key(entity), "Baseline advanced"), "Baseline fixture failed");
+  const auto saved_local = Bytes(document);
+  blocked([&] {
+    Require(job.Start(files) && files.Save(files.Token()).Applied(),
+            "Baseline advancement fixture failed");
+  });
+  Drain(job, files);
+  Require(job.Snapshot().phase == Phase::Stale && !job.Snapshot().result &&
+              Bytes(document) == saved_local && Read(path) == saved_local,
+          "Unchanged content with an advanced saved baseline accepted an old comparison");
+  editor::SceneFileSession replacement_files(workspace, document);
+  Require(replacement_files.BindCurrent("Content/Primary.scene"),
+          "Replacement session fixture failed");
+  blocked([&] { Require(job.Start(files), "Replacement session comparison did not start"); });
+  Drain(job, replacement_files);
+  Require(job.Snapshot().phase == Phase::Stale && !job.Snapshot().result &&
+              Bytes(document) == saved_local && Read(path) == saved_local,
+          "A different same-token/path file session accepted old output");
   Write(path, "corrupt");
   Require(job.Start(files), "Corrupt disk intake failed");
   Drain(job, files);
