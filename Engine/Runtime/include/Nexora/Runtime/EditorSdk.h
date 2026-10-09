@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Nexora/Foundation/PluginAbi.h"
 #include "Nexora/Runtime/Api.h"
 #include "Nexora/Runtime/Runtime.h"
 
@@ -53,10 +54,26 @@ public:
   bool Register(std::string name, void *service);
   bool Unregister(std::string_view name);
   [[nodiscard]] void *Find(std::string_view name) const;
-  [[nodiscard]] std::size_t Size() const noexcept { return services_.size(); }
+  [[nodiscard]] std::size_t Size() const noexcept;
 
 private:
-  std::unordered_map<std::string, void *> services_;
+  friend class PluginHost;
+  struct Provider final {
+    bool active{}, publishing{}, failed{};
+    std::size_t attempts{}, registrations{};
+    ServiceRegistry *registering_registry{}; // Borrowed only during the registration call.
+    std::weak_ptr<Provider> self;
+    std::shared_ptr<Provider> restart_pin; // Intentional bounded pin when native unload is unsafe.
+  };
+  struct Entry final {
+    void *service{};
+    std::weak_ptr<Provider> provider;
+    bool owned{};
+  };
+  [[nodiscard]] static bool Visible(const Entry &) noexcept;
+  void PruneRevoked();
+  bool RegisterOwned(std::string name, void *service, const std::weak_ptr<Provider> &);
+  std::unordered_map<std::string, Entry> services_;
 };
 
 // ---- Plugin host: stable C ABI, real dynamic loading ----
@@ -75,13 +92,47 @@ private:
 // into the ServiceRegistry passed to Load(). Passing no ServiceRegistry (the
 // default) skips registration entirely, e.g. for a Load() call that only
 // wants to verify ABI compatibility.
+//
+// Calls and service access are serialized on one owner thread, without reentrancy. Native entry
+// points must not activate work before registration or throw across the C ABI. Consumers release
+// every borrowed service pointer/call before RequestUnload. Optional lifecycle schema one revokes
+// service visibility before requesting shutdown and closes only after proven quiescence. Legacy,
+// failed or still-pending libraries remain mapped until process restart, even after host
+// destruction. Snapshot owns its diagnostics; LoadedCount includes pending/restart-required native
+// mappings. Budgets cover lifetime admissions and attempted registrations, not only successful live
+// entries.
 
-enum class PluginLoadError { None, OpenFailed, MissingAbiSymbol, AbiMismatch };
+enum class PluginLoadError {
+  None,
+  OpenFailed,
+  MissingAbiSymbol,
+  AbiMismatch,
+  InvalidLifecycle,
+  RegistrationRejected,
+  BudgetExceeded,
+  InvalidPath,
+  InspectionFailed
+};
+enum class PluginState { Loaded, ShutdownPending, RestartRequired, Unloaded, Missing };
+enum class PluginLifecycleError { None, LegacyNeedsRestart, RequestFailed, QuiescenceFailed };
+struct PluginSnapshot final {
+  std::uint64_t id{};
+  std::string library_path;
+  PluginState state{PluginState::Loaded};
+  PluginLoadError load_error{PluginLoadError::None};
+  PluginLifecycleError lifecycle_error{PluginLifecycleError::None};
+  std::int32_t lifecycle_result{};
+  std::uint32_t reported_abi{};
+  std::size_t registered_services{};
+  bool cooperative{};
+};
 struct PluginLoadResult final {
   bool loaded{};
   PluginLoadError error{PluginLoadError::None};
   std::uint32_t reported_abi{};
   bool registered{};
+  std::uint64_t id{};
+  bool cooperative{};
 };
 
 class NEXORA_RUNTIME_API PluginHost final {
@@ -94,11 +145,24 @@ public:
   [[nodiscard]] PluginLoadResult Load(const std::string &library_path,
                                       ServiceRegistry *services = nullptr);
   void UnloadAll() noexcept;
-  [[nodiscard]] std::size_t LoadedCount() const noexcept { return handles_.size(); }
+  [[nodiscard]] PluginState RequestUnload(std::uint64_t id) noexcept;
+  void PollShutdown() noexcept;
+  [[nodiscard]] std::vector<PluginSnapshot> Snapshot() const;
+  [[nodiscard]] std::size_t LoadedCount() const noexcept;
+  static constexpr std::size_t kMaximumPlugins = 128, kMaximumPathBytes = 32768;
+  static constexpr std::size_t kMaximumServices = 64, kMaximumServiceNameBytes = 256;
 
 private:
+  struct Entry final {
+    PluginSnapshot observation;
+    void *handle{};
+    NexoraPluginLifecycleV1 lifecycle{};
+    std::shared_ptr<ServiceRegistry::Provider> provider;
+  };
+  static void Poll(Entry &) noexcept;
   std::uint32_t engine_abi_;
-  std::vector<void *> handles_;
+  std::uint64_t next_id_{1};
+  std::vector<Entry> entries_;
 };
 
 // ---- Scene editor: Create / Modify / Undo over World ----

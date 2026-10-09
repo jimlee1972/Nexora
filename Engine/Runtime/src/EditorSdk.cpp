@@ -1,6 +1,7 @@
 #include "Nexora/Runtime/EditorSdk.h"
 
 #include "Nexora/Foundation/PluginAbi.h"
+#include "Nexora/Foundation/Types.h"
 
 #include "RuntimeConsoleAdmission.h"
 
@@ -8,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <cstring>
+#include <filesystem>
 #include <limits>
 #include <unordered_set>
 
@@ -45,7 +47,13 @@ std::unordered_set<Id> SelectedSubtrees(const Scene &scene, const std::unordered
 
 #if defined(_WIN32)
 void *OpenLibrary(const std::string &path) {
-  return FunctionCast<void *>(LoadLibraryA(path.c_str()));
+  try {
+    const auto native =
+        std::filesystem::absolute(std::filesystem::path{std::u8string(path.begin(), path.end())});
+    return FunctionCast<void *>(LoadLibraryW(native.c_str()));
+  } catch (...) {
+    return nullptr;
+  }
 }
 void CloseLibrary(void *handle) { FreeLibrary(FunctionCast<HMODULE>(handle)); }
 void *ResolveSymbol(void *handle, const char *name) {
@@ -56,10 +64,6 @@ void *OpenLibrary(const std::string &path) { return dlopen(path.c_str(), RTLD_NO
 void CloseLibrary(void *handle) { dlclose(handle); }
 void *ResolveSymbol(void *handle, const char *name) { return dlsym(handle, name); }
 #endif
-
-void RegisterServiceTrampoline(void *context, const char *name, void *service) {
-  static_cast<ServiceRegistry *>(context)->Register(name, service);
-}
 
 template <typename Node> Node *FindNodeImpl(Node &node, std::string_view path) {
   if (path.empty())
@@ -104,50 +108,240 @@ const TypeDescriptor *ReflectionRegistry::FindById(TypeId id) const {
   return found == by_id_.end() ? nullptr : &found->second;
 }
 
-PluginHost::~PluginHost() { UnloadAll(); }
+PluginHost::~PluginHost() {
+  UnloadAll();
+  PollShutdown();
+  // Never force-unload legacy or non-quiescent native code. Pin its bounded callback context too;
+  // it retains no registry/World borrow. OS process restart reclaims the native mapping.
+  for (auto &entry : entries_)
+    if (entry.handle) {
+      entry.provider->active = entry.provider->publishing = false;
+      entry.provider->registering_registry = nullptr;
+      entry.provider->restart_pin = entry.provider;
+    }
+}
 
 PluginLoadResult PluginHost::Load(const std::string &library_path, ServiceRegistry *services) {
+  if (library_path.empty() || library_path.size() > kMaximumPathBytes ||
+      library_path.find('\0') != std::string::npos)
+    return {false, PluginLoadError::InvalidPath};
+  if (entries_.size() == kMaximumPlugins || next_id_ == std::numeric_limits<std::uint64_t>::max())
+    return {false, PluginLoadError::BudgetExceeded};
+  Entry candidate;
+  candidate.observation.library_path = library_path;
+  candidate.observation.id = next_id_;
+  candidate.provider = std::make_shared<ServiceRegistry::Provider>();
+  candidate.provider->self = candidate.provider;
   void *handle = OpenLibrary(library_path);
   if (!handle)
     return {false, PluginLoadError::OpenFailed, 0, false};
+  struct Guard final {
+    void *handle;
+    ~Guard() {
+      if (handle)
+        CloseLibrary(handle);
+    }
+  } guard{handle};
   void *abi_symbol = ResolveSymbol(handle, "NexoraPluginAbiVersion");
-  if (!abi_symbol) {
-    CloseLibrary(handle);
+  if (!abi_symbol)
     return {false, PluginLoadError::MissingAbiSymbol, 0, false};
-  }
   using AbiVersionFn = std::uint32_t (*)();
-  const auto reported = FunctionCast<AbiVersionFn>(abi_symbol)();
-  if (reported != engine_abi_) {
-    CloseLibrary(handle);
-    return {false, PluginLoadError::AbiMismatch, reported, false};
+  std::uint32_t reported{};
+  try {
+    reported = FunctionCast<AbiVersionFn>(abi_symbol)();
+  } catch (...) {
+    return {false, PluginLoadError::InspectionFailed};
   }
+  if (reported != engine_abi_)
+    return {false, PluginLoadError::AbiMismatch, reported, false};
+  candidate.observation.reported_abi = reported;
+  if (void *symbol = ResolveSymbol(handle, "NexoraPluginGetLifecycleV1")) {
+    auto &lifecycle = candidate.lifecycle;
+    lifecycle.struct_size = sizeof(lifecycle);
+    try {
+      if (FunctionCast<NexoraPluginGetLifecycleV1Fn>(symbol)(NEXORA_PLUGIN_LIFECYCLE_SCHEMA_V1,
+                                                             &lifecycle) != 0 ||
+          lifecycle.struct_size < sizeof(lifecycle) ||
+          lifecycle.schema_version != NEXORA_PLUGIN_LIFECYCLE_SCHEMA_V1 ||
+          !lifecycle.request_shutdown || !lifecycle.poll_quiescence)
+        return {false, PluginLoadError::InvalidLifecycle, reported, false};
+    } catch (...) {
+      return {false, PluginLoadError::InspectionFailed, reported, false};
+    }
+    candidate.observation.cooperative = true;
+  }
+  candidate.handle = handle;
+  entries_.push_back(std::move(candidate)); // Allocation precedes any activation/registration.
+  guard.handle = nullptr;
+  ++next_id_;
+  auto &entry = entries_.back();
+  auto &provider = *entry.provider;
   bool registered = false;
   if (services != nullptr) {
     if (void *register_symbol = ResolveSymbol(handle, "NexoraPluginRegister")) {
-      FunctionCast<NexoraPluginRegisterFn>(register_symbol)(services, &RegisterServiceTrampoline);
+      provider.publishing = true;
+      provider.registering_registry = services;
+      try {
+        FunctionCast<NexoraPluginRegisterFn>(register_symbol)(
+            &provider, [](void *context, const char *name, void *service) {
+              auto &owner = *static_cast<ServiceRegistry::Provider *>(context);
+              if (!owner.publishing || !owner.registering_registry)
+                return;
+              if (owner.attempts == kMaximumServices) {
+                owner.failed = true;
+                return;
+              }
+              ++owner.attempts;
+              if (!name || !service) {
+                owner.failed = true;
+                return;
+              }
+              std::size_t length{};
+              while (length <= kMaximumServiceNameBytes && name[length] != '\0')
+                ++length;
+              if (!length || length > kMaximumServiceNameBytes ||
+                  !foundation::IsValidUtf8(std::string_view{name, length})) {
+                owner.failed = true;
+                return;
+              }
+              try {
+                if (owner.registering_registry->RegisterOwned(std::string(name, length), service,
+                                                              owner.self))
+                  ++owner.registrations;
+                else
+                  owner.failed = true;
+              } catch (...) {
+                owner.failed = true;
+              }
+            });
+      } catch (...) {
+        provider.failed = true;
+      }
+      provider.publishing = false;
+      provider.registering_registry = nullptr;
       registered = true;
     }
   }
-  handles_.push_back(handle);
-  return {true, PluginLoadError::None, reported, registered};
+  entry.observation.registered_services = provider.registrations;
+  if (provider.failed) {
+    entry.observation.load_error = PluginLoadError::RegistrationRejected;
+    static_cast<void>(RequestUnload(entry.observation.id));
+    return {false,
+            PluginLoadError::RegistrationRejected,
+            reported,
+            false,
+            entry.observation.id,
+            entry.observation.cooperative};
+  }
+  provider.active = true; // Publish all registered services only after registration completes.
+  return {true,       PluginLoadError::None, reported,
+          registered, entry.observation.id,  entry.observation.cooperative};
 }
 void PluginHost::UnloadAll() noexcept {
-  for (auto *handle : handles_)
-    CloseLibrary(handle);
-  handles_.clear();
+  for (auto &entry : entries_)
+    static_cast<void>(RequestUnload(entry.observation.id));
+}
+PluginState PluginHost::RequestUnload(std::uint64_t id) noexcept {
+  const auto found =
+      std::ranges::find(entries_, id, [](const Entry &entry) { return entry.observation.id; });
+  if (found == entries_.end())
+    return PluginState::Missing;
+  auto &entry = *found;
+  if (entry.observation.state != PluginState::Loaded)
+    return entry.observation.state;
+  entry.provider->active = false; // Revoke visibility before invoking native shutdown.
+  if (!entry.observation.cooperative) {
+    entry.observation.state = PluginState::RestartRequired;
+    entry.observation.lifecycle_error = PluginLifecycleError::LegacyNeedsRestart;
+    return entry.observation.state;
+  }
+  try {
+    entry.observation.lifecycle_result = entry.lifecycle.request_shutdown(entry.lifecycle.context);
+  } catch (...) {
+    entry.observation.lifecycle_result = -1;
+  }
+  if (entry.observation.lifecycle_result != 0) {
+    entry.observation.state = PluginState::RestartRequired;
+    entry.observation.lifecycle_error = PluginLifecycleError::RequestFailed;
+  } else {
+    entry.observation.state = PluginState::ShutdownPending;
+    Poll(entry);
+  }
+  return entry.observation.state;
+}
+void PluginHost::Poll(Entry &entry) noexcept {
+  if (entry.observation.state != PluginState::ShutdownPending)
+    return;
+  try {
+    entry.observation.lifecycle_result = entry.lifecycle.poll_quiescence(entry.lifecycle.context);
+  } catch (...) {
+    entry.observation.lifecycle_result = -1;
+  }
+  if (entry.observation.lifecycle_result == 1) {
+    CloseLibrary(entry.handle);
+    entry.handle = nullptr;
+    entry.lifecycle = {};
+    entry.observation.state = PluginState::Unloaded;
+  } else if (entry.observation.lifecycle_result != 0) {
+    entry.observation.state = PluginState::RestartRequired;
+    entry.observation.lifecycle_error = PluginLifecycleError::QuiescenceFailed;
+  }
+}
+void PluginHost::PollShutdown() noexcept {
+  for (auto &entry : entries_)
+    Poll(entry);
+}
+std::vector<PluginSnapshot> PluginHost::Snapshot() const {
+  std::vector<PluginSnapshot> result;
+  result.reserve(entries_.size());
+  for (const auto &entry : entries_) {
+    result.push_back(entry.observation);
+    if (!entry.provider->active)
+      result.back().registered_services = 0;
+  }
+  return result;
+}
+std::size_t PluginHost::LoadedCount() const noexcept {
+  return static_cast<std::size_t>(
+      std::ranges::count_if(entries_, [](const Entry &entry) { return entry.handle != nullptr; }));
+}
+
+bool ServiceRegistry::Visible(const Entry &entry) noexcept {
+  if (!entry.owned)
+    return true;
+  const auto owner = entry.provider.lock();
+  return owner && owner->active;
+}
+void ServiceRegistry::PruneRevoked() {
+  std::erase_if(services_, [](const auto &item) {
+    if (!item.second.owned)
+      return false;
+    const auto owner = item.second.provider.lock();
+    return !owner || (!owner->active && !owner->publishing);
+  });
+}
+bool ServiceRegistry::RegisterOwned(std::string name, void *service,
+                                    const std::weak_ptr<Provider> &provider) {
+  PruneRevoked();
+  return services_.emplace(std::move(name), Entry{service, provider, true}).second;
 }
 
 bool ServiceRegistry::Register(std::string name, void *service) {
   if (name.empty() || service == nullptr)
     return false;
-  return services_.emplace(std::move(name), service).second;
+  PruneRevoked();
+  return services_.emplace(std::move(name), Entry{service, {}, false}).second;
 }
 bool ServiceRegistry::Unregister(std::string_view name) {
   return services_.erase(std::string(name)) != 0;
 }
 void *ServiceRegistry::Find(std::string_view name) const {
   const auto found = services_.find(std::string(name));
-  return found == services_.end() ? nullptr : found->second;
+  return found == services_.end() || !Visible(found->second) ? nullptr : found->second.service;
+}
+std::size_t ServiceRegistry::Size() const noexcept {
+  return static_cast<std::size_t>(
+      std::ranges::count_if(services_, [](const auto &item) { return Visible(item.second); }));
 }
 
 Id SceneEditor::CreateEntity(Id scene, Id parent) {
