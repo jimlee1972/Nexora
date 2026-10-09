@@ -296,6 +296,11 @@ public static class NexoraAcceptanceWindow {
     Press-Key 121
     Capture-Compared 'courtyard-anti-aliasing-restored.png' 'courtyard-activated.png' $true
     $acceptance.courtyard_anti_aliasing_comparison = $true
+    Press-Key 122 # F11 compares depth-based screen-space contact occlusion.
+    Capture-Compared 'courtyard-contact-occlusion-off.png' 'courtyard-activated.png' $false
+    Press-Key 122
+    Capture-Compared 'courtyard-contact-occlusion-restored.png' 'courtyard-activated.png' $true
+    $acceptance.courtyard_contact_occlusion_comparison = $true
     Start-Sleep -Milliseconds 300
     Capture-Compared 'courtyard-paused.png' 'courtyard-activated.png' $true
     Press-Key 32
