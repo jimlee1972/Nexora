@@ -64,3 +64,19 @@ passed **206/206**, zero skips, **404.03s**. The actual registered native export
 Minimal Shipping configure/build passed again. Hosted Linux display acceptance enables the Player
 and requires all three export tests to be registered. Physical GPU and full deploy/log acceptance
 remain separate Roadmap work.
+
+Accepted Native Player main integration passed **208/208**, zero skips, **407.89s**, with
+NEXORA_ENABLE_PROJECT_PLAYER_NATIVE enabled; Minimal Shipping passed. Hosted Linux Showcase
+Shipping then exposed native window creation failure while short-lived xdotool clients probe
+startup. Both shared Xvfb helpers allowed default last-client display reset. An actual native
+root-property negative control proves that reset; -noreset preserves server state until owning
+test cleanup. Both retained-display helpers pass that real regression without startup retry,
+assertion removal or increased existing deadlines.
+
+The first 209-test rerun retained a scene-file failure: Open acknowledged its new path, but the
+following create shortcut did not reach the live document. The UI deliberately blocks it during
+text input. Explicitly restoring Scene focus after path-dialog completion retains the original
+live edit/save/Undo proof. Focused Showcase interaction, display lifetime and scene-file acceptance
+passed **3/3 in 101.10s**. Final full graphical/native gate passed **209/209**, zero skips,
+**413.40s**, and Minimal Shipping passed again. The registered native export still passes with
+source and package identity preservation. Fresh hosted CI remains required before merge.
