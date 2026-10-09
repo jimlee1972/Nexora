@@ -1,6 +1,6 @@
 # Nexora Window 與 Native Presentation Roadmap
 
-✅ 已交付原生裝置來源記錄：Vulkan／DX12 報告保留實際選中的裝置名稱、vendor／device ID 與觀測到的原始驅動版本；Metal 保留所選裝置名稱，ID／驅動明確維持不可用。十進位字串避免 DXGI 64-bit 精度遺失。品質 benchmark 在 JSON／Markdown 保留識別並拒絕不同的觀測裝置／驅動；舊報告明確維持未識別。7 個證據政策測試於一般與最佳化 Python 通過。Build 1778（來源 `46eac3a50f83`）18 個工作全過，Linux 145/145、Windows 128/128、macOS 127/127，並通過原生 Shipping gate 與三品質量測，保留實際 llvmpipe／驅動觀測。GPU timestamp 與螢幕更新率仍不可用；VIS 維持 5/7，實體 GPU 預算與最終美術驗收保持開放。 [驗證證據](../../Apps/Showcase/evidence/VIS-M6-Native-Device-Provenance-CI-2026-10-07/acceptance.md).
+✅ 已交付原生裝置來源記錄：Vulkan／DX12 報告保留實際選中的裝置名稱、vendor／device ID 與觀測到的原始驅動版本；Metal 保留所選裝置名稱，ID／驅動明確維持不可用。十進位字串避免 DXGI 64-bit 精度遺失。品質 benchmark 在 JSON／Markdown 保留識別並拒絕不同的觀測裝置／驅動；舊報告明確維持未識別。7 個證據政策測試於一般與最佳化 Python 通過。Build 1778（來源 `46eac3a50f83`）18 個工作全過，Linux 145/145、Windows 128/128、macOS 127/127，並通過原生 Shipping gate 與三品質量測，保留實際 llvmpipe／驅動觀測。品質 benchmark 的 GPU timestamp 與螢幕更新率仍不可用；VIS 維持 5/7，實體 GPU 預算與最終美術驗收保持開放。 [驗證證據](../../Apps/Showcase/evidence/VIS-M6-Native-Device-Provenance-CI-2026-10-07/acceptance.md).
 
 > 版本：v1.0｜狀態：規劃基線｜更新：2026-10-02
 
@@ -14,6 +14,12 @@ module 擁有 native handle/event；presentation adapter 擁有 swapchain，並�
 backend-neutral surface event。Zig gameplay 不得取得 native window、device、queue 或 swapchain pointer。
 
 ## 2. 現有基線
+
+- ✅ Optional native GPU timing 現由 Vulkan／DX12 timestamp query 與已完成 Metal
+  command buffer 發布 copied completed submission ID／optional milliseconds。Editor 明確啟用，
+  其他 surface 維持不配置 query 的預設。Linux 真實 query／failure／fence／resize／drain 與
+  default opt-out contract 通過；實體校準與 Showcase benchmark ingestion 仍為獨立工作。
+  [Editor 證據](../../Tools/Build/evidence/EditorEDM6-NativeGpuTiming-Linux-2026-10-09.md)。
 
 - ✅ Native UI 替換 descriptor 在 DX12 現依 fence 回收；Vulkan bounded UI pool 支援
   64 個可替換 Editor image 與 in-flight generation。Editor native lifetime gate 執行

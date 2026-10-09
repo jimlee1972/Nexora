@@ -178,7 +178,7 @@ production retains ImGui's native platform defaults.
   observed peak; widgets perform no OS reads. Capture pauses observations, Clear resets the peak
   and sample window, and a failed latest read displays unavailable while retaining the prior peak.
   Memory scope is process-wide RSS / working set including shared resident pages, across project
-  changes; it is not GPU/allocator accounting. GPU time remains explicitly unavailable. Schema-1
+  changes; it is not GPU/allocator accounting. Native GPU intervals are shown separately. Schema-1
   wall-time exports/imports do not include the live memory observation.
 - Profiler Import CSV emits an independent one-shot request; the application reads the current
   project's `.nexora/frame-processing.csv` on the authoring thread and transfers a validated owning
@@ -448,7 +448,7 @@ cells because this wall-time format excludes live RSS observations. Export requi
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import and GPU timing remain open; process-memory traces use a separate schema.
+file itself. Arbitrary capture import and GPU trace persistence remain open; process-memory traces use a separate schema.
 
 Export JSON emits an independent one-shot request consumed through `TakeProfileJsonExportRequest`;
 the CSV request API retains its behavior. Both buttons share empty-sample, write-access and modal
@@ -893,3 +893,13 @@ no-project, modal, recovery and close gates block the corresponding requests. Re
 use elapsed milliseconds horizontally and MiB vertically, including pause gaps and breaking lines
 at failed reads. Import denotes the export destination project, not per-project allocation ownership.
 The host consumes live spans during drawing and retains only owning imported vectors between frames.
+
+The Profiler consumes copied `GpuProfileObservation` values from the application-owned session and
+plots the bounded native completion history without native queries/handles, IO or retained live
+borrows. It names Vulkan timestamp queries, DX12 timestamp queries or Metal command-buffer timing,
+marks software rasterization, and labels native command-buffer scope and delayed completion. Missing
+results are unavailable; valid zero remains measured. Capture/Clear share the live-history controls,
+with pause and Clear semantics enforced by the owner. Source/domain changes clear only the GPU
+stream; project changes/detachment retain its process-surface history. Detaching the profile owner
+clears copied display values. CPU plotting remains ahead of the separate GPU/memory sections, and
+wall-time file imports retain their explicit unavailable GPU fields. The GUI never polls the device.

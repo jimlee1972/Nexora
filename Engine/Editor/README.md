@@ -286,7 +286,7 @@ into renderer or platform internals.
 - `ProfileSession` retains a bounded, monotonic frame history. Invalid or out-of-order samples are
   rejected; capacity evictions increment a dropped count. Capture can be paused and cleared without
   changing project files. The graphical host currently supplies Editor frame processing wall time
-  after BeginFrame and before Present; GPU timing remains uninstrumented.
+  after BeginFrame and before Present; completed native GPU timing is ingested separately.
   `SampleProcessMemory` is a separate application-thread observation, throttled to one real Core
   OS read per 250 ms using a monotonic clock. `ProcessMemory()` returns a copied optional current
   process RSS / working-set byte count, observed peak since Clear, and attempt/success counters.
@@ -553,7 +553,7 @@ cells because this wall-time format excludes live RSS observations. Export requi
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import and GPU timing remain open. Process-memory traces use their own schema.
+file itself. Arbitrary capture import and GPU trace persistence remain open. Process-memory traces use their own schema.
 
 Profiler Export JSON writes the companion `.nexora/frame-processing.json` under the same writer,
 sample-validation, recovery and atomic-replacement rules. Schema 1 records source `NexoraEditor`,
@@ -855,4 +855,26 @@ separate from live memory and wall-time imports; failed publication preserves it
 not erase it, and root/UUID changes or detachment clear it and pending requests. The plot uses elapsed
 time horizontally, breaks lines at unavailable attempts and shows MiB as 1,048,576 bytes. Graphical
 controls follow project access and modal/recovery/close gates. Existing schema-1 wall-time CSV/JSON
-readers/writers are unchanged; GPU timing, arbitrary captures and physical-host acceptance remain open.
+readers/writers are unchanged; GPU trace persistence, arbitrary captures and physical-host acceptance remain open.
+
+## Completed native GPU profile history
+
+`ProfileSession::ObserveGpuFrame` consumes copied native completion values on the application thread:
+a process-local surface domain, explicit Vulkan/DX12/Metal source, software-device flag, increasing
+submission ID and optional milliseconds. Domains are neither persisted nor native handles. New
+surface/source/software domains clear GPU history rather than merging different streams. Invalid
+domains/sources/nonfinite/negative values and duplicate/backward IDs reject. Unsupported sources
+remain unavailable. A missing result records unavailable instead of reusing an old success, while
+preserving the observed peak. The fixed history retains `min(frame_capacity, 600)` records and
+saturates its independent eviction count; zero capacity keeps latest/peak only.
+
+Capture pauses GPU ingestion while native backend instrumentation continues. The owner still
+advances the paused completion watermark, so Resume cannot replay that completion. Clear resets
+GPU history/latest/peak/drop counts but retains the watermark and pause state, requiring a newly
+completed ID before a value returns. The application consumes results after successful Acquire and
+before drawing Clear/Capture. GPU history is surface/process-wide across project changes; it is
+separate from wall-time frames and process RSS, and the GUI retains only copied scalar observations.
+The plot's horizontal axis is native submission ID and missing timings break its line. Native
+sources, software status, delayed completion, milliseconds and observed peak are explicit. Existing
+CSV/JSON wall-time captures remain schema-compatible and still contain no native GPU values. GPU
+trace persistence/import, per-pass tools and physical timing calibration remain open.

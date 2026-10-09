@@ -171,6 +171,13 @@ void ProfileSession::Clear() noexcept {
   memory_sample_count_ = 0;
   memory_dropped_ = 0;
   memory_origin_.reset();
+
+  gpu_.milliseconds.reset();
+  gpu_.observed_peak_ms.reset();
+  gpu_.completed_submission = 0;
+  gpu_sample_count_ = 0;
+  gpu_dropped_ = 0;
+  // Keep the native completion watermark so Clear cannot re-admit an old completed result.
   next_memory_sample_.reset();
   last_memory_sample_.reset();
 }
@@ -212,6 +219,43 @@ bool ProfileSession::SampleProcessMemory(std::chrono::steady_clock::time_point n
         ++memory_dropped_;
     }
     memory_samples_[memory_sample_count_++] = {memory_.attempts, elapsed, memory_.resident_bytes};
+  }
+  return true;
+}
+
+bool ProfileSession::ObserveGpuFrame(std::uint64_t domain, GpuProfileSource source,
+                                     bool software_rasterizer, GpuProfileSample sample) noexcept {
+  if (!domain || source > GpuProfileSource::MetalCommandBuffer ||
+      (sample.milliseconds && (!std::isfinite(*sample.milliseconds) || *sample.milliseconds < 0)))
+    return false;
+  if (gpu_domain_ != domain || gpu_.source != source ||
+      gpu_.software_rasterizer != software_rasterizer) {
+    gpu_domain_ = domain;
+    gpu_ = {source, software_rasterizer, 0, std::nullopt, std::nullopt};
+    gpu_watermark_ = 0;
+    gpu_sample_count_ = 0;
+    gpu_dropped_ = 0;
+  }
+  if (source == GpuProfileSource::Unavailable || !sample.submission ||
+      sample.submission <= gpu_watermark_)
+    return false;
+  gpu_watermark_ = sample.submission;
+  if (!capturing_)
+    return false;
+  gpu_.completed_submission = sample.submission;
+  gpu_.milliseconds = sample.milliseconds;
+  if (sample.milliseconds)
+    gpu_.observed_peak_ms = std::max(gpu_.observed_peak_ms.value_or(0), *sample.milliseconds);
+  const auto capacity = std::min(capacity_, kMaximumGpuSamples);
+  if (capacity) {
+    if (gpu_sample_count_ == capacity) {
+      std::move(gpu_samples_.begin() + 1, gpu_samples_.begin() + gpu_sample_count_,
+                gpu_samples_.begin());
+      --gpu_sample_count_;
+      if (gpu_dropped_ != UINT64_MAX)
+        ++gpu_dropped_;
+    }
+    gpu_samples_[gpu_sample_count_++] = sample;
   }
   return true;
 }

@@ -2,6 +2,7 @@
 #error "VulkanSurface.cpp requires a desktop Vulkan host"
 #endif
 
+#include "GpuTiming.h"
 #include "Nexora/Presentation/Surface.h"
 #include "PbrMaterialUpload.h"
 #include "SceneInstanceUpload.h"
@@ -49,7 +50,8 @@ class VulkanSurface final : public ISurface {
 public:
   VulkanSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows)
       : thread_(std::this_thread::get_id()), width_(descriptor.width), height_(descriptor.height),
-        requestedColorSpace_(descriptor.colorSpace), requestedPresentMode_(descriptor.presentMode) {
+        requestedColorSpace_(descriptor.colorSpace), requestedPresentMode_(descriptor.presentMode),
+        gpuTimingEnabled_(descriptor.enableGpuTiming) {
     if (!descriptor.window.IsValid() || descriptor.framesInFlight < 2 ||
         descriptor.framesInFlight > kMaxFrames)
       return;
@@ -108,6 +110,7 @@ public:
         if ((queues[index].queueFlags & VK_QUEUE_GRAPHICS_BIT) && present) {
           physical_ = device;
           queueFamily_ = index;
+          timestampBits_ = queues[index].timestampValidBits;
           break;
         }
       }
@@ -122,6 +125,10 @@ public:
     VkPhysicalDeviceProperties deviceProperties{};
     vkGetPhysicalDeviceProperties(physical_, &deviceProperties);
     diagnostics_.softwareRasterizer = deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
+    timestampPeriodNs_ = deviceProperties.limits.timestampPeriod;
+    if (gpuTimingEnabled_ && timestampBits_ && timestampBits_ <= 64 &&
+        std::isfinite(timestampPeriodNs_) && timestampPeriodNs_ > 0)
+      diagnostics_.gpuTiming.source = GpuTimingSource::VulkanTimestamps;
     auto &identity = diagnostics_.device;
     std::memcpy(identity.name.data(), deviceProperties.deviceName,
                 sizeof(deviceProperties.deviceName));
@@ -190,6 +197,7 @@ public:
     auto &frame = frames_[frame_];
     if (vkWaitForFences(device_, 1, &frame.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
+    CollectGpuTiming(frame);
     DestroyFrameRetirements(frame);
     ++diagnostics_.fenceWaits;
     const auto result = vkAcquireNextImageKHR(device_, swapchain_, UINT64_MAX, frame.available,
@@ -210,6 +218,10 @@ public:
     VkCommandBufferBeginInfo begin{};
     begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     vkBeginCommandBuffer(frame.commands, &begin);
+    if (frame.timestamps) {
+      vkCmdResetQueryPool(frame.commands, frame.timestamps, 0, 2);
+      vkCmdWriteTimestamp(frame.commands, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, frame.timestamps, 0);
+    }
     VkImageMemoryBarrier toRender{};
     toRender.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     toRender.srcAccessMask = 0;
@@ -971,6 +983,9 @@ public:
                                     (sceneComposited_ ? VK_PIPELINE_STAGE_TRANSFER_BIT : 0));
     vkCmdPipelineBarrier(frame.commands, sourceStage, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0,
                          nullptr, 0, nullptr, 1, &toPresent);
+    if (frame.timestamps)
+      vkCmdWriteTimestamp(frame.commands, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, frame.timestamps,
+                          1);
     vkEndCommandBuffer(frame.commands);
     constexpr VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
     VkSubmitInfo submit{};
@@ -982,8 +997,12 @@ public:
     submit.pCommandBuffers = &frame.commands;
     submit.signalSemaphoreCount = 1;
     submit.pSignalSemaphores = &frame.finished;
+    if (gpuTimingEnabled_)
+      frame.submittedAt = std::chrono::steady_clock::now();
     if (vkQueueSubmit(queue_, 1, &submit, frame.fence) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
+    frame.timingSequence =
+        !gpuTimingEnabled_ || timingSequence_ == UINT64_MAX ? 0 : ++timingSequence_;
     VkPresentInfoKHR present{};
     present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present.waitSemaphoreCount = 1;
@@ -1041,6 +1060,9 @@ private:
     VkSemaphore available{};
     VkSemaphore finished{};
     VkFence fence{};
+    VkQueryPool timestamps{};
+    std::uint64_t timingSequence{};
+    std::chrono::steady_clock::time_point submittedAt{};
     VkBuffer upload{};
     VkDeviceMemory uploadMemory{};
     VkBuffer uiUpload{};
@@ -1097,6 +1119,25 @@ private:
           (properties.memoryTypes[index].propertyFlags & required) == required)
         return index;
     return std::numeric_limits<std::uint32_t>::max();
+  }
+  void CollectGpuTiming(Frame &frame) noexcept {
+    if (!frame.timingSequence)
+      return;
+    std::optional<double> measured;
+    if (frame.timestamps) {
+      // Interleaved value/availability pairs; no WAIT flag or extra GPU synchronization.
+      std::array<std::uint64_t, 4> values{};
+      const auto result = vkGetQueryPoolResults(
+          device_, frame.timestamps, 0, 2, sizeof(values), values.data(), 2 * sizeof(std::uint64_t),
+          VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT);
+      if (result == VK_SUCCESS && values[1] && values[3])
+        measured =
+            detail::TimestampMilliseconds(values[0], values[2], timestampBits_, timestampPeriodNs_,
+                                          detail::CompletionWallMilliseconds(frame.submittedAt));
+    }
+    detail::PublishGpuTiming(diagnostics_.gpuTiming, diagnostics_.gpuTiming.source,
+                             frame.timingSequence, measured);
+    frame.timingSequence = 0;
   }
   void DestroySceneTargets(Frame &frame) {
     if (frame.shadowFramebuffer)
@@ -2311,6 +2352,9 @@ private:
   }
   void DestroySwapchain(bool preserve_textures = false) {
     for (auto &frame : frames_) {
+      CollectGpuTiming(frame); // Caller already drained the device, including resize/teardown.
+      if (frame.timestamps)
+        vkDestroyQueryPool(device_, frame.timestamps, nullptr);
       DestroySceneFrame(frame);
       DestroyUpload(frame);
       if (frame.commands)
@@ -2484,6 +2528,15 @@ private:
     fence.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     for (std::size_t index = 0; index < frames_.size(); ++index) {
       frames_[index].commands = commands[index];
+      if (diagnostics_.gpuTiming.source == GpuTimingSource::VulkanTimestamps) {
+        VkQueryPoolCreateInfo query{};
+        query.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+        query.queryType = VK_QUERY_TYPE_TIMESTAMP;
+        query.queryCount = 2;
+        // Optional profiling allocation never makes otherwise valid rendering unavailable.
+        if (vkCreateQueryPool(device_, &query, nullptr, &frames_[index].timestamps) != VK_SUCCESS)
+          frames_[index].timestamps = VK_NULL_HANDLE;
+      }
       if (vkCreateSemaphore(device_, &semaphore, nullptr, &frames_[index].available) !=
               VK_SUCCESS ||
           vkCreateSemaphore(device_, &semaphore, nullptr, &frames_[index].finished) != VK_SUCCESS ||
@@ -2496,6 +2549,7 @@ private:
   std::uint32_t width_{}, height_{}, queueFamily_{}, imageIndex_{}, frame_{};
   ColorSpace requestedColorSpace_{};
   PresentMode requestedPresentMode_{};
+  bool gpuTimingEnabled_{};
   bool valid_{}, destroyed_{}, acquired_{};
   std::atomic<std::uint32_t> pendingWidth_{}, pendingHeight_{};
   std::atomic_bool dirty_{};
@@ -2509,6 +2563,9 @@ private:
   VkPhysicalDevice physical_{};
   VkDevice device_{};
   VkQueue queue_{};
+  unsigned timestampBits_{};
+  double timestampPeriodNs_{};
+  std::uint64_t timingSequence_{};
   VkSurfaceKHR surface_{};
   VkSwapchainKHR swapchain_{};
   VkCommandPool commandPool_{};

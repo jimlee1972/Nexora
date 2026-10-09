@@ -32,7 +32,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. The graphical Console shows bounded records and Editor diagnostics; a docked Game panel controls an isolated clone and copied inspection snapshot. Bounded native camera/OBJ Game View is implemented; complete materials/multiple canvases, complete gameplay services/expanded input, complete log routing, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
 | ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
-| ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts, and shows real current process resident bytes plus observed peak. CSV and schema-1 wall-time JSON export/import are available, alongside separate bounded process-memory JSON traces. Build/deploy/log, GPU profiling, arbitrary capture import, and plugin-manager workflows remain open. | [ ] |
+| ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts, and shows real current process resident bytes plus observed peak. CSV and schema-1 wall-time JSON export/import are available, alongside separate bounded process-memory JSON traces. Native Vulkan/DX12/Metal command-buffer GPU intervals have a separate bounded live history with honest unavailable/software status. Build/deploy/log, GPU trace persistence/calibration, arbitrary capture import, and plugin-manager workflows remain open. | [ ] |
 | ED-M7 hardening | Portable virtual hierarchy, trust/signature policy, and telemetry opt-in tests exist. Graphical scale/soak, migration/corruption, keyboard, and screen-reader audits remain open. | [ ] |
 
 The focused [Dear ImGui plan](Editor_ImGui_Integration_Plan.md) contains the granular checked ED-M0
@@ -751,6 +751,14 @@ creates property widgets; unknown components retain raw data instead of being si
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-CookedStaticProject-Linux-2026-10-08.md)
     covers Development, Monolithic Shipping and real CLI consumption. Editor export, native player
     rendering, gameplay compilation and Build/deploy/log workflows remain open.
+  - ✅ The Editor now opts into real completed native GPU timing: Vulkan/DX12 timestamp queries
+    and Metal command-buffer timings publish copied source/submission/optional milliseconds through
+    existing completion points. A separate bounded live Profiler history identifies software devices,
+    source and scope, rejects stale/nonfinite input and breaks plots at unavailable records. Capture,
+    Clear, domain changes and 1x/2x controls are covered; real Linux query allocation/read failure,
+    fencing, resize, abandoned recording, teardown and default opt-out preserve rendering/lifetime.
+    GPU trace persistence, physical calibration and per-pass profiling remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-NativeGpuTiming-Linux-2026-10-09.md).
   - ✅ Profiler process-memory traces now retain at most 600 real RSS/working-set attempts with
     elapsed time, unavailable reads and independent eviction counts. Separate schema-1 project JSON
     export/import preserves uint64 precision, source/scope/units and pause gaps; import is owning and
@@ -780,7 +788,7 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ Portable build frontend validates and atomically writes target/configuration/command and
     checksummed artifact manifests; bounded monotonic CPU/GPU/memory frame capture is implemented.
   - ✅ The graphical Profiler shows a live, bounded Editor frame processing wall-time trace with
-    pause/clear, latest/average/peak, and evicted-frame count. GPU time remains labelled unavailable.
+    pause/clear, latest/average/peak, and evicted-frame count. Native GPU intervals now use a separate history.
   - ✅ The application now samples real current process RSS / working-set bytes at most once per
     250 ms, and the Profiler reads copied optional latest/observed-peak values. Capture pauses OS
     observations, Clear resets peak/timer without resuming pause, and failed reads show unavailable
@@ -798,7 +806,7 @@ creates property widgets; unknown components retain raw data instead of being si
     full double precision and an evicted-frame count. GPU/memory cells stay empty. The synchronous
     writer validates 1-600 ordered finite samples, rejects read-only/recovery writes, and atomically
     preserves the previous file on validation failure; real UI clicks emit one-shot requests.
-  - Open: graphical build frontend, remote deployment/logs, GPU profiling, arbitrary capture import,
+  - Open: graphical build frontend, remote deployment/logs, GPU trace persistence/calibration, arbitrary capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
   - ✅ Autosave recovery now bounds schema-1 headers before token parsing, rejects signed/overflow
