@@ -32,9 +32,9 @@
 #include <atomic>
 #include <cmath>
 #include <cstdio>
-#include <optional>
 #include <cstring>
 #include <limits>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -728,18 +728,25 @@ public:
           return SurfaceStatus::DeviceLost;
       }
     }
-    // Previous contents are discarded only after the protecting slot's fence completes.
-    // The same full clear and copy operations initialize this submission's images.
+    // Discarding contents does not remove the previous device accesses. A reused color image
+    // may have been sampled, copied or left as an attachment if CompositeScene was omitted.
     if (data.offscreen) {
       VkImageMemoryBarrier color{};
       color.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+      color.srcAccessMask = reuseTargets ? VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_TRANSFER_READ_BIT |
+                                               VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+                                         : 0;
       color.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
       color.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
       color.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
       color.srcQueueFamilyIndex = color.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
       color.image = frame.sceneColor;
       color.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-      vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+      const auto previousStages = reuseTargets ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                                                     VK_PIPELINE_STAGE_TRANSFER_BIT |
+                                                     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+                                               : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+      vkCmdPipelineBarrier(frame.commands, previousStages,
                            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr,
                            1, &color);
     }
@@ -762,7 +769,7 @@ public:
     begin.clearValueCount = 2;
     begin.pClearValues = clears.data();
     if (data.shadow)
-      RecordShadow(frame, data, instances, instanceOffset, vertexBytes.size());
+      RecordShadow(frame, data, instances, instanceOffset, vertexBytes.size(), reuseTargets);
     vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       data.hdr ? sceneHdrPipeline_
@@ -1823,16 +1830,21 @@ private:
   }
   void RecordShadow(Frame &frame, const SceneDrawData &data,
                     std::span<const SceneInstance> instances, VkDeviceSize instanceOffset,
-                    VkDeviceSize indexOffset) {
+                    VkDeviceSize indexOffset, bool reuseTargets) {
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.srcAccessMask =
+        reuseTargets ? VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT : 0;
     barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = frame.shadowColor;
     barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+    const auto previousStages = reuseTargets ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+                                             : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    vkCmdPipelineBarrier(frame.commands, previousStages,
                          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr,
                          1, &barrier);
     std::array<VkClearValue, 2> clears{};
@@ -1895,6 +1907,11 @@ private:
     auto &target = reflection ? frame.reflectionColor : frame.refractionColor;
     auto &memory = reflection ? frame.reflectionMemory : frame.refractionMemory;
     auto &targetView = reflection ? frame.reflectionView : frame.refractionView;
+    const bool reused = target != VK_NULL_HANDLE;
+    // CaptureRefraction returns the snapshot to this layout and synchronizes its next copy.
+    // Keep it intact until that copy instead of issuing another discard transition.
+    if (reused && !reflection)
+      return true;
     if (!target) {
       VkImageCreateInfo image{};
       image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1931,6 +1948,9 @@ private:
     }
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.srcAccessMask = reused ? VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_TRANSFER_READ_BIT |
+                                         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+                                   : 0;
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     barrier.newLayout = reflection ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
                                    : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -1939,7 +1959,11 @@ private:
     barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = target;
     barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+    const auto previousStages = reused ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                                             VK_PIPELINE_STAGE_TRANSFER_BIT |
+                                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+                                       : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    vkCmdPipelineBarrier(frame.commands, previousStages,
                          reflection ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
                                     : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                          0, 0, nullptr, 0, nullptr, 1, &barrier);
@@ -2126,10 +2150,13 @@ private:
     const VkSubpassDependency dependency{
         VK_SUBPASS_EXTERNAL,
         0,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
         0};
     VkRenderPassCreateInfo pass{};
     pass.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;

@@ -1,0 +1,15 @@
+{
+  "integrated_base": "19ee80df805fc7e04e163e1a93e8d8a036558948",
+  "remote_main": "bac7247be152c9a85e7eb757fbc0dee602417f90",
+  "scope": "Synchronization repair source patch over integrated main; Windows native backend gate, not Linux or final art acceptance",
+  "source_sha256": {
+    "Engine/Presentation/src/VulkanSurface.cpp": "ecd1a49938550d0edd8006a8f3b918b4854c3b7dfc8f4af9be3d21e1baf8575f",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "3d1e26a10d034e0d1597966a98cb604adb578db20c4c1b1ff86b9cabc6e216e1",
+    "Tests/WindowPresentation/CMakeLists.txt": "e89102cb87f4db14bfa81bfd32f49fd55fae4899a04321b36b5e64d2809ff736"
+  },
+  "ctest_workers": 2,
+  "tests_passed": 125,
+  "tests_failed": 0,
+  "ctest_wall_seconds": 482.59,
+  "linux_sync_validation": "pending_repaired_exact_source_hosted_ci"
+}

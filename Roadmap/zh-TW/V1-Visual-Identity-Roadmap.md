@@ -1,6 +1,10 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
-✅ 相容 Vulkan offscreen 目標重用候選版通過 Windows configure／build／CTest 123/123（213.17 秒），包含雙後端原生 PBR 像素測試，Shipping／隔離 headless 亦通過。GTX 960 全部 18 次品質報告驗證通過：Vulkan Standard 125.99–126.19 FPS（p99 8.96–10.17 ms），DX12 Standard 59.87–60.56 FPS（p99 17.96–19.96 ms）。Vulkan 長跑啟用診斷時 GPU 平均 7.88 ms、process CPU 平均 6.28 ms。重用目標同版 CI、最終概念圖一致性與整體硬體預算仍未完成。[證據](../../Apps/Showcase/evidence/Windows-Vulkan-Target-Reuse-Local-2026-10-10/acceptance.md)。
+✅ 整合最新 main 的 Vulkan 同步修正通過完整 Windows configure／build／CTest 125/125（482.59 秒），包含兩套門檻不變的原生 PBR 像素測試。以兩個 CTest worker 重跑先前逾時項目，未改變任何時間限制。修正版精確來源的 Linux 同步 CI、新版 Shipping／垂直同步／動畫效能仍待驗證；最終美術與硬體驗收維持未完成。
+
+目標重用來源 `0fd292cc` 未通過 hosted Linux Xvfb 同步驗證（run [37968144564](https://github.com/jimlee1972/Nexora/actions/runs/37968144564)）：取樣色彩影像 `WRITE_AFTER_READ`、重用深度 `WRITE_AFTER_WRITE`。Windows 像素／實體顯示／效能結果仍是該候選版的局部觀測；修正重用屏障與 early／late 深度相依性期間，來源驗收與合併維持未完成，VIS 維持 5/7。
+
+✅ 相容 Vulkan offscreen 目標重用候選版通過 Windows configure／build／CTest 123/123（213.17 秒），包含雙後端原生 PBR 像素測試，Shipping／隔離 headless 亦通過。GTX 960 全部 18 次品質報告驗證通過：Vulkan Standard 125.99–126.19 FPS（p99 8.96–10.17 ms），DX12 Standard 59.87–60.56 FPS（p99 17.96–19.96 ms）。Vulkan 長跑啟用診斷時 GPU 平均 7.88 ms、process CPU 平均 6.28 ms。已提交 0fd292cc 的重建 Vulkan 實體 gate 通過 74 張截圖／51 項雜湊與實際 210.028 秒導覽；同執行檔 1200 幀動畫／UI 長跑平均 123.92 FPS（p99 12.14 ms）。重用目標同版 CI、最終概念圖一致性與整體硬體預算仍未完成。[證據](../../Apps/Showcase/evidence/Windows-Vulkan-Target-Reuse-Local-2026-10-10/acceptance.md)。
 
 具識別版本 `bb0c96f0` 的 GTX 960 矩陣保留全部 18 次量測：DX12 Standard 60.20–60.73 FPS（p99 18.89–20.48 ms），Vulkan Standard 37.51–40.11 FPS （p99 35.15–37.66 ms）。穩定 16.7 ms 預算與最終概念圖一致性仍未驗收。可選的已完成 GPU 計時候選版通過 Windows 122/122（234.54 秒）、Shipping 與原生／預設／headless 對照：Vulkan GPU 平均 9.24 ms，wall 平均 26.85 ms；DX12 仍保留 272.02 ms wall p99 停頓。診斷版本 5f59f934 通過 Build 2074 全部 18 項託管 CI；預設品質矩陣計時政策維持原值。
 

@@ -791,3 +791,17 @@ changing materials, offscreen/direct frames, HDR, shadow, refraction/reflection 
 原有三個槽，不跨 in-flight 槽共用、不新增等待；每幀仍清除內容、提交所有 pass／batch 並複製
 新鮮 opaque 色彩。材質 descriptor 與 tone 綁定每幀重建，維持目前 uniform offset、紋理與
 acquired swapchain image 的對應。Windows 啟用 Vulkan 時也執行共用 PBR 原生像素測試。
+
+Reused-image discard transitions still synchronize previous fragment sampling, transfer reads and
+attachment writes before the next color write. Reused refraction snapshots retain shader-readable
+layout until `CaptureRefraction` synchronizes the copy. The external scene/HDR/shadow render-pass
+dependency includes both early and late depth attachment writes/reads before an implicit depth
+layout transition or clear. Fence completion protects CPU resource lifetime; these device execution
+and memory dependencies protect repeated image accesses even when contents are discarded.
+[The Vulkan synchronization examples](https://docs.vulkan.org/guide/latest/synchronization_examples.html)
+describe this separate dependency for discarded depth attachments.
+
+重用影像即使丟棄舊內容，也必須同步先前的 fragment 取樣、transfer 讀取與 attachment 寫入，
+再開始新的色彩寫入。折射快照維持 shader-readable layout，到 `CaptureRefraction` 才同步複製。
+場景／HDR／陰影的 external render-pass 相依性涵蓋 early 與 late 深度附件讀寫，保護隱式
+layout transition 與 clear；fence 保護 CPU 資源生命週期，device 相依性保護重複影像存取。

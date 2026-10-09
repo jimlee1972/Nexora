@@ -78,3 +78,63 @@ can exceed wall time. Their windows are independent, so they cannot be summed as
 components. This longer DX12 comparison does not reproduce the earlier 272.02 ms p99 outlier;
 the earlier result remains retained and is not invalidated. Final same-version physical acceptance,
 visual movies, concept parity and overall hardware budget remain open.
+
+
+## Live animation with normal interface
+
+The same 8e8c artifact also renders 1,200 frames per backend with normal UI and unpaused animation:
+wind, particles, device/crystal light, shadows, bloom, mirror, refraction and all Standard effects
+remain enabled. Both reports validate 1,200 native draws/overlay frames, 1,140 wall samples, GTX 960
+and no software/fallback. Vulkan averages **126.18 FPS**, p99 **9.36 ms**; DX12 **59.09 FPS**, p99
+**19.98 ms**. Courtyard vertex/index/batch/material/foliage budgets remain 62,557 / 142,488 / 395 /
+48 / 4,041. These live-use reports are retained separately from the fixed paused quality matrix;
+neither a 10 FPS recording nor a concept-image render substitutes for these native observations.
+
+
+## Identified committed Vulkan artifact
+
+The rebuilt committed `0fd292cca441` Shipping executable has SHA-256
+`a1fec0adcbb55b0bb3835fe29dee0277852a31d10e6e1feca22a1ffa8aa1f483`. Its physical GTX 960 gate
+passes all 74 captures and 51 manifest entries, including all effect/quality changes, camera/input,
+resize and an observed 210.028-second engineering tour, enabled/paused at step 6. Native Vulkan
+has no fallback/software renderer; physical display is operator-attested, clean-host acceptance
+remains false. Original acceptance/launch/progress JSON and selected captures are retained.
+This is engineering display acceptance, not final concept-art approval.
+
+A separate isolated copy verifies all 51 checksums and runs 1,200 real frames of unpaused Standard
+animation with normal UI, active wind/particles and all Standard effects. The committed artifact
+averages **123.92 FPS**, p99 **12.14 ms**, with 1,200 native draws/overlay frames and no GPU timing
+resources. Its original report is retained as `committed-vulkan-live.json`. This corroborates the
+source-patch matrix and is not a new three-repeat committed quality matrix or DX12 physical gate.
+A runnable isolated copy is available locally at
+`build/v1-windows-local-2026-10-10/native-demo-vulkan-0fd292cc/bin/NexoraShowcase.exe`; the sibling
+`run-vulkan-demo-0fd292cc.cmd` opens Vulkan Standard with VSync for normal interactive use.
+
+## Synchronization regression found by exact-head hosted CI
+
+Actions run [37968144564](https://github.com/jimlee1972/Nexora/actions/runs/37968144564),
+source `0fd292cca44166caa8773fe12ade0578daa4ec43`, fails the Linux Xvfb native Vulkan
+synchronization gate despite passing the pixel checks. The layer reports sampled-image
+`WRITE_AFTER_READ` at discard transitions and reused-depth `WRITE_AFTER_WRITE` at render-pass
+initial transitions. Windows pixel/physical/FPS results above remain observations of that candidate;
+they do not accept its device synchronization or authorize merging it.
+
+The repair adds previous fragment-sample/transfer/attachment access scopes to reused color and
+reflection/shadow discard barriers, leaves reused refraction in its existing shader-readable layout
+until the already synchronized copy, and includes early/late depth writes and reads in the external
+render-pass dependency shared by scene/HDR/shadow passes. No extra wait, scene reduction, disabled
+validation or relaxed pixel threshold is introduced. Corrected-source local/hosted results follow
+when available. Final concept parity and hardware budgets remain open.
+
+The first repaired-source Windows full gate passes both unchanged native PBR fixtures (DX12
+6.32 seconds; Vulkan 3.54 seconds), with parser robustness passing in 270.91 seconds. Overall it
+fails 2/123 because the two unrelated Editor memory JSON wrappers exceed their unchanged 30-second
+child timeout; the complete 274.51-second failure log is retained under `synchronization-repair/`.
+An observed high host CPU load is diagnostic context, not proof of root cause. The complete gate
+will be repeated with two CTest workers, without omitting tests or changing timeout limits.
+
+The complete initialized integrated-main rerun passes **125/125, 482.59 seconds**,
+with two CTest workers and unchanged test/child timeouts. Configure and the full Development build
+also pass. Main `bac7247be152` is integrated at `19ee80df805f` before the synchronization patch.
+The complete logs and patch source hashes are retained in `synchronization-repair/`; these Windows
+results do not certify the still-pending repaired exact-source Linux synchronization gate.
