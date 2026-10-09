@@ -565,7 +565,11 @@ full double precision; availability flags are false and each GPU/memory value is
 when a caller's FrameSample contains those fields. Export borrows samples only for the synchronous
 call and leaves CSV unchanged. `gpu_timing_available` and `memory_measurement_available` are false;
 each `samples` entry has `frame`, `frame_processing_wall_ms`, `gpu_ms` and `memory_bytes`.
-Arbitrary capture import and measured GPU data remain open. Process-memory traces use their own schema.
+Measured completed native GPU intervals and process RSS use independent bounded histories and
+schema-1 JSON export/import; they are not fields in this wall-time format. See
+[native GPU capture evidence](../../Tools/Build/evidence/EditorEDM6-GpuTimingCapture-Linux-2026-10-09.md)
+and the contracts below. Physical GPU calibration, per-pass attribution and arbitrary capture
+adapters remain open.
 
 Game Apply Changes is an explicit transform-only review. Opening it emits Pause when needed and
 releases Game input. The modal owns original/Editor/Play transforms and session/document/entity
