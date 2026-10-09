@@ -39,6 +39,11 @@ into renderer or platform internals.
 
 ## Ownership and lifetime
 
+Save All recovery retires a strictly empty ordinary journal without replacing any source or
+inferring a publication phase. If final directory removal fails, cleanup best-effort restores its
+bounded phase manifest for retry; occupied/invalid journals retain their entries. Initial metadata
+write failure leaves original scene files and dirty baselines unchanged.
+
 - `ProjectWorkspace` owns its descriptor, stable project UUID, open-document list, and (for
   read-write access) one OS-held writer lease on `.nexora/editor.lock`. A second writer fails with
   the owning process ID while any number of explicit read-only observers may coexist. The lock file

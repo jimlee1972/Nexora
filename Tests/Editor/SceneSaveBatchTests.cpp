@@ -448,6 +448,51 @@ void CleanupRetry(const std::filesystem::path &root) {
               Read(root / f.second_path) == published[1],
           "Completed cleanup required already removed copies or changed committed source bytes");
 }
+void InitialMetadataFailure(const std::filesystem::path &root) {
+  ProjectFixture f(root);
+  Batch batch(f.workspace);
+  Require(batch.Prepare(f.files), "Initial metadata failure preparation failed");
+  editor::SceneSaveBatchTestAccess::FailInitialManifestWrite(batch, true);
+  Require(batch.Publish().status == Status::Rejected && !f.workspace.HasRecoveryJournal() &&
+              f.first->Dirty() && f.second->Dirty() &&
+              Read(root / f.first_path) == f.originals[0] &&
+              Read(root / f.second_path) == f.originals[1],
+          "Failed initial metadata write locked authoring or changed sources/baselines");
+  editor::SceneSaveBatchTestAccess::FailInitialManifestWrite(batch, false);
+  Require(batch.Prepare(f.files) && batch.Publish().Published(),
+          "Initial metadata write failure prevented a later complete save");
+}
+void FinalDirectoryFailure(const std::filesystem::path &root) {
+  ProjectFixture f(root);
+  Batch batch(f.workspace);
+  Require(batch.Prepare(f.files), "Final directory failure preparation failed");
+  editor::SceneSaveBatchTestAccess::BeforeDirectoryRemove(batch, [&] {
+    Require(!std::filesystem::exists(f.Journal() / "manifest"),
+            "Final cleanup seam ran before metadata retirement");
+    Write(f.Journal() / "late-entry", "preserve this new entry");
+  });
+  Require(batch.Publish().status == Status::PublishedRecoveryRequired &&
+              std::filesystem::exists(f.Journal() / "manifest") && !f.first->Dirty() &&
+              !f.second->Dirty() && !f.workspace.RecoverWorkspace() &&
+              Read(f.Journal() / "late-entry") == "preserve this new entry",
+          "Blocked final removal lost its phase or erased an unknown entry");
+  const auto published = std::array{Read(root / f.first_path), Read(root / f.second_path)};
+  std::filesystem::remove(f.Journal() / "late-entry");
+  Require(f.workspace.DiscardRecovery() && !f.workspace.HasRecoveryJournal() &&
+              Read(root / f.first_path) == published[0] &&
+              Read(root / f.second_path) == published[1],
+          "Final directory removal could not resume without rolling back acknowledged sources");
+  // The only manifest-less state that recovery retires has no retained entries at all.
+  std::filesystem::create_directory(f.Journal());
+  Write(f.Journal() / "unknown", "do not erase");
+  Require(!f.workspace.RecoverWorkspace() && Read(f.Journal() / "unknown") == "do not erase",
+          "Manifest-less recovery erased an occupied journal");
+  std::filesystem::remove(f.Journal() / "unknown");
+  Require(f.workspace.RecoverWorkspace() && !f.workspace.HasRecoveryJournal() &&
+              Read(root / f.first_path) == published[0] &&
+              Read(root / f.second_path) == published[1],
+          "Empty terminal recovery directory changed sources or remained permanently blocked");
+}
 } // namespace
 int main() {
   const auto root = std::filesystem::temp_directory_path() /
@@ -470,6 +515,8 @@ int main() {
     CommittedCleanup(root / "committed");
     RestartRecovery(root / "restart");
     CleanupRetry(root / "cleanup-retry");
+    InitialMetadataFailure(root / "initial-metadata-failure");
+    FinalDirectoryFailure(root / "final-directory-failure");
     std::filesystem::remove_all(root);
     return 0;
   } catch (const std::exception &error) {

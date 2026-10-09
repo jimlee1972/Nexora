@@ -34,6 +34,15 @@ new-destination rollback; missing stage and late authoring edits; foreign/corrup
 inputs; restarted writer/read-only observers; and committed cleanup retry with missing earlier copies.
 The private owner-thread interruption seam invokes no production plugin callbacks.
 
+Review feedback identified two permanent-gate risks at initial metadata failure and final directory
+retirement. Recovery now retires a strictly empty ordinary journal without inferring a phase or
+writing any canonical source. Failed final directory removal best-effort restores the bounded phase
+manifest; occupied or invalid journals still preserve every entry. Real failed ostream metadata
+writing leaves both original files and dirty baselines intact and permits a subsequent full save.
+A late entry injected after manifest removal blocks the real directory removal, retains the
+committed phase and unknown entry, and then resumes cleanup without rolling back acknowledged
+outputs. A manifest-less occupied directory rejects; an empty terminal directory only retires itself.
+
 Initial focused target built 72 steps and passed **1/1 in 10.97s**. Related batch/prepared/workspace/
 scene-file/external-save regression passed **5/5 in 12.03s**. The first full graphical/native build
 passed 390 steps and **213/213 in 477.03s**, zero skips; minimal Shipping passed 74 steps.
@@ -43,6 +52,11 @@ After integration onto accepted tool-capability main
 passed. The complete gate passed **214/214 in 467.50s**, zero skips; minimal Shipping passed its
 five-step incremental build. This integration retains the already accepted native Save observation
 helper and metadata acceptance. No helper/assertion/deadline changes belong to this batch patch.
+
+After those review fixes and integration onto accepted overview main
+**8e9b153966c1b3c94aefae4ae197b59fb08b6387**, the focused target built 30 steps and passed
+**1/1 in 10.20s**. The full graphical/native build passed 279 incremental steps and
+**216/216 in 505.12s**, zero skips; minimal Shipping passed 14 incremental steps.
 
 ~~~sh
 cmake --preset linux-development -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON \

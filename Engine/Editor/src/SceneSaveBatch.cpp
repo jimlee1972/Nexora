@@ -294,7 +294,8 @@ bool KnownJournalEntries(const std::filesystem::path &journal, std::size_t count
       return false;
   return !error;
 }
-bool Cleanup(const ProjectWorkspace &workspace, const Manifest &manifest) {
+bool Cleanup(const ProjectWorkspace &workspace, const Manifest &manifest,
+             const std::function<void()> &before_directory_remove = {}) {
   const auto journal = Journal(workspace);
   if (!KnownJournalEntries(journal, manifest.records.size()))
     return false;
@@ -313,7 +314,23 @@ bool Cleanup(const ProjectWorkspace &workspace, const Manifest &manifest) {
         !RemoveCopy(CopyPath(journal, i, false), record.after_size, record.after_hash, preparing))
       return false;
   }
-  return RemoveFile(journal / "manifest") && RemoveFile(journal);
+  if (!RemoveFile(journal / "manifest"))
+    return false;
+  if (before_directory_remove) {
+    try {
+      before_directory_remove();
+    } catch (...) {
+      // The phase record below must also survive an interrupted final directory removal.
+    }
+  }
+  if (RemoveFile(journal))
+    return true;
+  // No retained copies remain. Preserve the completed phase when a transient removal error or
+  // a newly occupied entry blocks retirement. An empty directory is independently retryable
+  // without authorizing any canonical source write, even if this best-effort rewrite fails.
+  if (Absent(journal / "manifest"))
+    detail::AtomicWrite(journal / "manifest", Encode(manifest), nullptr);
+  return false;
 }
 } // namespace
 
@@ -331,6 +348,8 @@ struct SceneSaveBatch::State final {
   foundation::Uuid project;
   std::vector<Entry> entries;
   std::function<void(std::size_t)> before_publish;
+  std::function<void()> before_directory_remove;
+  bool fail_initial_manifest_write{};
   explicit State(const ProjectWorkspace &owner)
       : workspace(owner), root(owner.Root()), project(owner.Project().id) {}
 };
@@ -408,6 +427,16 @@ bool SceneSaveBatch::Recover(const ProjectWorkspace &workspace, std::string *err
       !PlainDirectory(journal.parent_path()) || !PlainDirectory(journal) ||
       !Absent(workspace.Root() / ".nexora/workspace.recovery"))
     return fail("Save All recovery needs the original writer project and an ordinary journal.");
+  std::error_code empty_error;
+  if (std::filesystem::is_empty(journal, empty_error) && !empty_error) {
+    // An uninitialized journal, or the last directory left after completed cleanup, owns no
+    // recovery payload. Retire only the empty directory; never infer a phase or replace sources.
+    if (!RemoveFile(journal))
+      return fail("Empty Save All recovery directory cleanup is blocked. Retry recovery.");
+    if (error)
+      error->clear();
+    return true;
+  }
   const auto encoded = ReadDisk(journal / "manifest", kManifestLimit);
   const auto manifest =
       encoded && encoded->exists ? Decode(workspace, encoded->bytes) : std::nullopt;
@@ -539,7 +568,15 @@ SceneSaveBatchResult SceneSaveBatch::Publish() {
                                       recovery_error};
     return SceneSaveBatchResult{SceneSaveBatchStatus::Rejected, std::move(message)};
   };
-  if (!detail::AtomicWrite(journal / "manifest", Encode(manifest), nullptr))
+  const auto initial_bytes = Encode(manifest);
+  if (!detail::AtomicWriteWith(
+          journal / "manifest",
+          [&](std::ostream &output) {
+            output << initial_bytes;
+            if (state.fail_initial_manifest_write)
+              output.setstate(std::ios::badbit);
+          },
+          nullptr))
     return failed("Could not write Save All recovery metadata.");
   for (std::size_t i = 0; i < state.entries.size(); ++i) {
     const auto &entry = state.entries[i];
@@ -591,7 +628,7 @@ SceneSaveBatchResult SceneSaveBatch::Publish() {
     entry.session->disk_baseline_ = std::move(entry.next_baseline);
     entry.session->pending_overwrite_.reset();
   }
-  const bool cleaned = Cleanup(state.workspace, manifest);
+  const bool cleaned = Cleanup(state.workspace, manifest, state.before_directory_remove);
   Cancel();
   return {cleaned ? SceneSaveBatchStatus::Published
                   : SceneSaveBatchStatus::PublishedRecoveryRequired,
@@ -602,5 +639,12 @@ SceneSaveBatchResult SceneSaveBatch::Publish() {
 void SceneSaveBatchTestAccess::BeforePublish(SceneSaveBatch &batch,
                                              std::function<void(std::size_t)> hook) {
   batch.state_->before_publish = std::move(hook);
+}
+void SceneSaveBatchTestAccess::FailInitialManifestWrite(SceneSaveBatch &batch, bool fail) {
+  batch.state_->fail_initial_manifest_write = fail;
+}
+void SceneSaveBatchTestAccess::BeforeDirectoryRemove(SceneSaveBatch &batch,
+                                                     std::function<void()> hook) {
+  batch.state_->before_directory_remove = std::move(hook);
 }
 } // namespace nexora::editor

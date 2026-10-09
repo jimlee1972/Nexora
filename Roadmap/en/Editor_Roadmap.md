@@ -743,7 +743,8 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ The authoring SDK now stages/revalidates a bounded immutable Save All batch, publishes all
     named scene files and acknowledges baselines only after complete verification. Interrupted
     publication restores exact originals or retains gated recovery data; foreign/corrupt inputs
-    are preserved. Real multi-document/16-document, rollback, restart and cleanup retry tests pass.
+    are preserved. Real multi-document/16-document, rollback, restart, initial metadata write
+    failure and final directory cleanup retry tests pass.
     Graphical additive ownership/tabs, persisted composition and full ED-M4 remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-SceneSaveBatch-Linux-2026-10-09.md).
   - ✅ Scene saves now prepare an owning immutable byte/content/generation snapshot without IO,
