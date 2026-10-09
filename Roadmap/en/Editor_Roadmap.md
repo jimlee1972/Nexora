@@ -780,8 +780,18 @@ creates property widgets; unknown components retain raw data instead of being si
     corruption, unsupported schemas, unresolved dependencies and resource collisions reject.
     [ADR-0006](ADR-0006-Cooked-Static-Projects.md) records the compatibility/ownership decision.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-CookedStaticProject-Linux-2026-10-08.md)
-    covers Development, Monolithic Shipping and real CLI consumption. Editor export, native player
+    covers Development, Monolithic Shipping and real CLI consumption. Graphical Editor export, native player
     rendering, gameplay compilation and Build/deploy/log workflows remain open.
+  - ✅ The pure Editor `CookStaticProject` producer now consumes an owning Runtime scene capture
+    and explicitly supplied owning imported OBJ/scalar PBR values. It cooks the exact full-UUID
+    dependency closure through shared Runtime codecs/AssetCooker/package validation, preserves
+    snapshot/legacy shader/opaque bytes and rejects resource collisions or unsupported reserved
+    bindings. Owning lifetime, deterministic independent captures, real 100k entities, exact
+    geometry/opaque bounds and standalone ProjectPlayer consumption are covered.
+    [Producer contract](../../Engine/Editor/StaticProjectExport.md) and
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-StaticProjectExport-Linux-2026-10-09.md).
+    Current-state/recovery/cancellation authorization, atomic publication, graphical export,
+    native player rendering and full Build/deploy/log acceptance remain open.
   - ✅ The Editor now opts into real completed native GPU timing: Vulkan/DX12 timestamp queries
     and Metal command-buffer timings publish copied source/submission/optional milliseconds through
     existing completion points. A separate bounded live Profiler history identifies software devices,

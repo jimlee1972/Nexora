@@ -748,8 +748,18 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   未知 schema、未解析 dependency 與 resource collision。
   [ADR-0006](ADR-0006-Cooked-Static-Projects.md) 記錄 compatibility／ownership 決策；
   [Linux 證據](../../Tools/Build/evidence/EditorEDM6-CookedStaticProject-Linux-2026-10-08.md)
-  涵蓋 Development、Monolithic Shipping 與實際 CLI consumption。Editor export、原生 player
+  涵蓋 Development、Monolithic Shipping 與實際 CLI consumption。圖形化 Editor export、原生 player
   rendering、gameplay compilation 與 Build／deploy／log workflow 仍待完成。
+
+- ✅ 純 Editor `CookStaticProject` producer 現消費 owning Runtime scene capture 與明確提供的
+  owning imported OBJ／scalar PBR values，透過共用 Runtime codec／AssetCooker／package
+  validation cook exact full-UUID dependency closure。保留 snapshot／legacy shader／opaque
+  bytes，拒絕 resource collision 或未知 reserved binding。測試涵蓋 owning lifetime、獨立
+  capture 的 deterministic bytes、真實 10 萬 entities、精確 geometry／opaque 上限與
+  standalone ProjectPlayer consumption；詳見 [producer contract](../../Engine/Editor/StaticProjectExport.md)
+  與 [Linux 證據](../../Tools/Build/evidence/EditorEDM6-StaticProjectExport-Linux-2026-10-09.md)。
+  Current-state／recovery／cancellation 授權、atomic publication、圖形化 export、原生
+  player rendering 與完整 Build／deploy／log 驗收仍待完成。
 
 - ✅ Editor 現明確啟用真實 completed native GPU timing：Vulkan／DX12 timestamp query
   與 Metal command-buffer timing 在既有 completion point 發布 copied source／submission／

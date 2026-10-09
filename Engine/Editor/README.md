@@ -348,6 +348,12 @@ into renderer or platform internals.
 
 ## Owning Runtime scene capture
 
+The owning capture is consumed by the pure `CookStaticProject` producer, which resolves explicitly
+supplied owning OBJ/scalar-PBR inputs into an exact Runtime StaticView dependency closure and
+returns deterministic package bytes. [Producer contract](StaticProjectExport.md) specifies identity,
+bounds, reserved references, lifetime/threading and the separate publication boundary. GUI export,
+current-state authorization, atomic publication and complete Build/deploy workflows remain open.
+
 `SceneDocument::CaptureRuntimeScene` synchronously returns an owning `RuntimeSceneCapture` from a
 live, non-unloading Editor World scene. `runtime_snapshot` contains every Runtime entity and its
 components, including entities without an Editor node, and preserves the exact bytes from
