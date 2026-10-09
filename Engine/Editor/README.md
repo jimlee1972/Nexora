@@ -815,8 +815,10 @@ unchanged legacy shader ID; missing resources and unsupported component versions
 Per-frame reference inspection copies only bounded opaque metadata prefixes and requires exact
 17-byte length/version, including when unrelated plugins retain large payloads. Unsupported
 versions/type-name collisions reject assignment. Scene container and stable C/Zig
-schemas stay unchanged. Multi-selection, reference removal, textures, shader graphs, Game View
-materials and the shipped-game/cook consumer remain separate work.
+schemas stay unchanged. Application-owned Game material snapshots freeze converted values and
+mesh-entity assignments before Play; reimport/deletion/reassignment cannot alter that session.
+Material catalogs do not borrow Runtime Worlds or contain native resources. Multi-selection,
+reference removal, textures, shader graphs and the shipped-game/cook consumer remain separate work.
 
 ## Process-memory capture persistence
 

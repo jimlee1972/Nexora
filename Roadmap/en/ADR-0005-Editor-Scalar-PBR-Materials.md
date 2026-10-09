@@ -60,5 +60,16 @@ stable degenerate-UV fallback, and exact affine instance matrices.
 
 Editor declares its direct Renderer dependency in the module graph and CMake. Consumers rebuild
 for the added C++ payload/catalog/UI boundary. This slice does not establish persistent per-asset
-GPU geometry residency, texture/shader authoring, Game View materials, shipping material assets,
+GPU geometry residency, texture/shader authoring, shipping material assets,
 physical-GPU output or complete ED-M2 multi-DPI authoring acceptance.
+
+## Play snapshot extension
+
+Game View freezes converted scalar values and mesh-entity UUID assignments before cloning Play.
+The owning palette has the same 64-slot bound and neutral fallback; catalog generation mismatch
+rejects Start before mutation. Reimport/delete/reassignment cannot alter the current Play palette.
+Game frames copy that palette, post-tick affine geometry and selected camera world position;
+Renderer tangent failure falls back to Lambert shading without discarding Play geometry. Stop
+releases the snapshot; a fresh Start observes current authoring. Runtime-created entities receive
+neutral slots. Texture/shader authoring, dynamic material-reference mutation, multiple native
+canvases and physical acceptance remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameMaterials-Linux-2026-10-09.md).

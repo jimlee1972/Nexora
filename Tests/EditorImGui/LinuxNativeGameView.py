@@ -19,7 +19,10 @@ def main():
     parser.add_argument('--module')
     parser.add_argument('--input-routing', action='store_true')
     parser.add_argument('--project-bindings', action='store_true')
+    parser.add_argument('--materials', action='store_true')
     args = parser.parse_args()
+    if args.materials and (args.module or args.input_routing or args.project_bindings):
+        parser.error('--materials is an independent scalar material acceptance case')
     root = Path(tempfile.mkdtemp(prefix='nexora-game-view-'))
     state = Path(tempfile.mkdtemp(prefix='nexora-game-state-'))
     (root / 'Content').mkdir()
@@ -38,7 +41,24 @@ def main():
     (root / 'Content/Triangle.obj.meta').write_text(
         'schema=1\nuuid=12345678-9abc-def0-fedc-ba9876543210\ntype=.obj\n')
     scene = root / '.nexora/scenes/Main.scene'
-    scene.write_text('NEXORA_EDITOR_SCENE 2\nnode 10 0 Camera\nnode 20 0 Triangle\nworld\n'
+    material_reference = ''
+    material_path = root / 'Content/Paint.nmaterial'
+
+    def material_source(channel):
+        color = ' '.join(str(int(index == channel)) for index in range(3))
+        return (f'NEXORA_MATERIAL 1\nbase_color {color}\nmetallic 0\n'
+                f'roughness 0.5\nocclusion 1\nemission {color}\n')
+
+    if args.materials:
+        material_path.write_text(material_source(0))
+        (root / 'Content/Paint.nmaterial.meta').write_text(
+            'schema=1\nuuid=00000000-0000-0001-0000-000000000002\ntype=.nmaterial\n')
+        reference = bytes([1]) + (1).to_bytes(8, 'little') + (2).to_bytes(8, 'little')
+        material_reference = (f'opaque 20 {0x45444d41544c0001} "editor.material.asset" '
+                              f'{reference.hex()}\n')
+    scene_header = 'NEXORA_EDITOR_SCENE 3' if args.materials else 'NEXORA_EDITOR_SCENE 2'
+    scene.write_text(scene_header + '\nnode 10 0 Camera\nnode 20 0 Triangle\n' +
+        material_reference + 'world\n' +
         'NEXORA_SCENE 3 "Game scene" 0 2\n'
         '10 0 0 0 5 0 0 0 1 1 1 1 1 0 0 60 0.1 1000 1 0 0\n'
         '20 0 0 0 0 0 0 0 1 1 1 1 0 0 1 60 0.1 1000 1 12751791000609863510 0\n')
@@ -85,7 +105,8 @@ def main():
         while time.monotonic() < deadline:
             pixels = scene_region_pixels(display, window, viewport)
             # Bright warm Lambertian geometry, surrounded by the dark Game canvas.
-            bright = sum(r > 100 and g > 90 and b > 75 and r > b + 10
+            bright = sum((r > 150 and r > 2 * g and r > 2 * b) if args.materials else
+                         (r > 100 and g > 90 and b > 75 and r > b + 10)
                          for r, g, b in zip(pixels[::3], pixels[1::3], pixels[2::3]))
             if bright > 20:
                 break
@@ -131,6 +152,10 @@ def main():
         send('key', '--delay', '80', 'F6')
         time.sleep(0.3)
         paused = scene_region_pixels(display, window, viewport)
+        if args.materials:
+            # Disk changes are not assumed to imply a watcher publication; portable tests
+            # separately exercise actual catalog reimport, deletion and reassignment.
+            material_path.write_text(material_source(1))
         time.sleep(0.2)
         if scene_region_pixels(display, window, viewport) != paused:
             raise RuntimeError('Paused Game View was not stable')
@@ -146,6 +171,35 @@ def main():
         if editor.returncode != 0 or b'pie_steps=1' not in captured:
             raise RuntimeError(f'Game View shutdown/step failed: {captured!r}')
         editor = None
+        if args.materials:
+            retained_source = material_path.read_bytes()
+            captured = b''
+            editor = subprocess.Popen([args.editor, f'--project={root}', '--graphical',
+                '--read-only', '--native-scene-preview', '--frames=10000',
+                f'--recent-projects={state / "recent"}'], env=env,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            window = int(wait_for_window(args.xdotool, env))
+            wait_view(b'native scene viewport')
+            send('windowfocus', window)
+            send('key', '--delay', '80', 'F5')
+            viewport = wait_view(b'native game viewport')
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                pixels = scene_region_pixels(display, window, viewport)
+                green = sum(g > 150 and g > 2 * r and g > 2 * b
+                            for r, g, b in zip(pixels[::3], pixels[1::3], pixels[2::3]))
+                if green > 20:
+                    break
+                time.sleep(0.1)
+            else:
+                raise RuntimeError('Fresh read-only Play did not render current green material')
+            send('key', '--delay', '80', 'F5')
+            request_window_close(str(window), env)
+            _, stderr = editor.communicate(timeout=15)
+            if editor.returncode != 0 or scene.read_bytes() != baseline or \
+                    material_path.read_bytes() != retained_source:
+                raise RuntimeError('Read-only material Play changed authored bytes or failed')
+            editor = None
         if args.project_bindings:
             bindings_file = root / '.nexora/play-input.ini'
             retained = bindings_file.read_bytes()

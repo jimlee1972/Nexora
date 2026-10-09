@@ -1925,8 +1925,10 @@ Do not impose a fixed global 256-variant hard limit.
 
 ✅ Editor Scene View now consumes imported opaque PBR scalar materials through the shared
 Presentation pipeline and Renderer-generated tangents. Inspector UUID assignment, Undo/save/reopen
-and independent Vulkan reimport pixels are covered; texture/shader editing, Game View materials and
-full ED-M2 acceptance remain open.
+and independent Vulkan reimport pixels are covered. ✅ Game View also freezes scalar PBR values
+and assignments at Play Start, with isolated reimport/delete/reassignment and native read-only reopen
+pixels. Texture/shader editing, dynamic material references, multiple canvases and full ED-M2/ED-M3
+acceptance remain open. [Game evidence](../../Tools/Build/evidence/EditorEDM3-GameMaterials-Linux-2026-10-09.md).
 [Contract](ADR-0005-Editor-Scalar-PBR-Materials.md) ·
 [Linux evidence](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md).
 

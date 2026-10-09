@@ -53,5 +53,15 @@ Renderer 產生的切線（包含穩定 degenerate-UV fallback）與精確 affin
 
 Editor 在 module graph 與 CMake 宣告直接 Renderer 相依。新增 C++ payload／catalog／UI boundary
 需要重建 consumer。本切片不代表 persistent per-asset GPU geometry residency、texture／shader
-編輯、Game View 材質、shipping material asset、physical-GPU 輸出或完整 ED-M2 多 DPI authoring
+編輯、shipping material asset、physical-GPU 輸出或完整 ED-M2 多 DPI authoring
 驗收已完成。
+
+## Play snapshot 擴充
+
+Game View 在 clone Play 前凍結 scalar 值與 mesh entity 的 UUID 指派。Owning palette 沿用
+64-slot 上限與 neutral fallback；catalog generation 不符會在 mutation 前拒絕 Start。
+Reimport／delete／重新指派不會改變目前 Play palette。Game frame 複製 palette、post-tick
+精確 affine geometry 與選定 camera 的世界位置；Renderer tangent 失敗會保留 geometry 並
+退回 Lambert shading。Stop 釋放 snapshot，新 Start 才讀取目前 authoring。Runtime 新建立的
+entity 使用 neutral slot。Texture／shader 編輯、動態 material-reference mutation、多個原生
+canvas 與 physical 驗收仍未完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM3-GameMaterials-Linux-2026-10-09.md)。
