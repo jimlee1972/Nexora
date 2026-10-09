@@ -448,7 +448,7 @@ cells because this wall-time format excludes live RSS observations. Export requi
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import, GPU timing and saved process-memory traces remain open.
+file itself. Arbitrary capture import and GPU timing remain open; process-memory traces use a separate schema.
 
 Export JSON emits an independent one-shot request consumed through `TakeProfileJsonExportRequest`;
 the CSV request API retains its behavior. Both buttons share empty-sample, write-access and modal
@@ -881,3 +881,15 @@ drafts; reopening a gate cannot revive an abandoned request. Inspector reads own
 metadata instead of copying unrelated plugin payloads. Valid Editor-owned schema-1 references are excluded from missing-plugin
 inspection, while unknown payloads remain inspectable. Legacy shader IDs stay unchanged. Texture,
 graph, multi-selection and Game View material editing remain open.
+
+Profiler Export memory and Import memory emit independent one-shot requests consumed by the
+application through `TakeMemoryExportRequest` / `TakeMemoryImportRequest`. Widgets perform no IO or
+OS sampling. `SetImportedMemoryCapture` validates an owning 1–600 sample snapshot; rejection preserves
+the previous import. The imported process trace and wall-time import are separate, and live Clear
+preserves both. Clear memory import touches only the static process trace. Project root/UUID changes
+and detachment clear imported memory and pending requests while live process history remains.
+Writable/resolved projects with a nonempty memory history may export; read-only projects may import;
+no-project, modal, recovery and close gates block the corresponding requests. Resident-memory plots
+use elapsed milliseconds horizontally and MiB vertically, including pause gaps and breaking lines
+at failed reads. Import denotes the export destination project, not per-project allocation ownership.
+The host consumes live spans during drawing and retains only owning imported vectors between frames.

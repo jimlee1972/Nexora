@@ -2,6 +2,7 @@
 
 #include "Nexora/Editor/Api.h"
 
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -81,6 +82,21 @@ struct ProcessMemoryObservation final {
   std::uint64_t successful_samples{};
 };
 
+struct ProcessMemorySample final {
+  std::uint64_t sequence{};
+  double elapsed_ms{};
+  std::optional<std::uint64_t> resident_bytes;
+};
+
+struct ProcessMemoryCapture final {
+  std::vector<ProcessMemorySample> samples;
+  std::uint64_t older_samples_dropped{};
+};
+
+// Shared by persistence and GUI publication; no mutation or allocation.
+[[nodiscard]] NEXORA_EDITOR_API bool
+ValidateProcessMemorySamples(std::span<const ProcessMemorySample> samples) noexcept;
+
 class NEXORA_EDITOR_API ProfileSession final {
 public:
   explicit ProfileSession(std::size_t capacity = 600) : capacity_(capacity) {}
@@ -98,6 +114,11 @@ public:
   bool SampleProcessMemory(std::chrono::steady_clock::time_point now,
                            ProcessMemoryReader reader = nullptr) noexcept;
   [[nodiscard]] ProcessMemoryObservation ProcessMemory() const noexcept { return memory_; }
+  static constexpr std::size_t kMaximumMemorySamples = 600;
+  [[nodiscard]] std::span<const ProcessMemorySample> MemorySamples() const noexcept {
+    return {memory_samples_.data(), memory_sample_count_};
+  }
+  [[nodiscard]] std::uint64_t MemoryDroppedCount() const noexcept { return memory_dropped_; }
 
 private:
   std::size_t capacity_{};
@@ -105,6 +126,10 @@ private:
   bool capturing_{true};
   std::vector<FrameSample> samples_;
   ProcessMemoryObservation memory_;
+  std::array<ProcessMemorySample, kMaximumMemorySamples> memory_samples_{};
+  std::size_t memory_sample_count_{};
+  std::uint64_t memory_dropped_{};
+  std::optional<std::chrono::steady_clock::time_point> memory_origin_;
   std::optional<std::chrono::steady_clock::time_point> next_memory_sample_;
   std::optional<std::chrono::steady_clock::time_point> last_memory_sample_;
 };

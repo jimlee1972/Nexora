@@ -1156,6 +1156,26 @@ int RunGraphical(std::optional<ProjectState> project,
                   : nexora::runtime::RuntimeLogSeverity::Error,
             "Input", saved ? "Project input bindings saved." : error);
       }
+      if (ui.TakeMemoryExportRequest()) {
+        std::string error;
+        const bool saved = project->workspace.ExportProcessMemoryJson(
+            profile.MemorySamples(), profile.MemoryDroppedCount(), &error);
+        ui.SetProfileExportStatus(saved ? "Saved .nexora/process-memory.json" : error);
+        log(saved ? nexora::runtime::RuntimeLogSeverity::Info
+                  : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", saved ? "Process memory trace exported." : error);
+      }
+      if (ui.TakeMemoryImportRequest()) {
+        std::string error;
+        auto capture = project->workspace.ImportProcessMemoryJson(&error);
+        const bool loaded = capture && ui.SetImportedMemoryCapture(std::move(*capture));
+        if (!loaded && error.empty())
+          error = "Imported process memory snapshot was rejected.";
+        ui.SetProfileExportStatus(loaded ? "Loaded .nexora/process-memory.json (static)" : error);
+        log(loaded ? nexora::runtime::RuntimeLogSeverity::Info
+                   : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", loaded ? "Process memory trace imported; live capture unchanged." : error);
+      }
       if (ui.TakeProfileCsvImportRequest()) {
         std::string error;
         auto imported = project->workspace.ImportEditorFrameProcessingCsv(&error);
