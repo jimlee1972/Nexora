@@ -1937,7 +1937,10 @@ Budget
 
 ✅ Editor Scene View 現以共享 Presentation pipeline 與 Renderer 產生的切線，
 使用匯入的 opaque PBR scalar 材質。測試涵蓋 Inspector UUID 指派、Undo／save／reopen
-與獨立 Vulkan reimport pixels；texture／shader 編輯、Game View 材質與完整 ED-M2 驗收仍待完成。
+與獨立 Vulkan reimport pixels。✅ Game View 亦會在 Play Start 凍結 scalar PBR 值及指派，
+已驗證 reimport／delete／重新指派隔離與原生唯讀重開 pixels。Texture／shader 編輯、動態材質
+參照、多個 canvas 及完整 ED-M2／ED-M3 驗收仍待完成。
+[Game 證據](../../Tools/Build/evidence/EditorEDM3-GameMaterials-Linux-2026-10-09.md)。
 [Contract](ADR-0005-Editor-Scalar-PBR-Materials.md) ·
 [Linux 證據](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md)。
 

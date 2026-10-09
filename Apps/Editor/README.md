@@ -654,8 +654,33 @@ with no usable UVs, while the submitted world matrix retains shear/mirroring.
 Every draw owns its temporary palette and converted geometry until `DrawScene` returns; native
 Presentation fences retain submitted storage. Geometry is still converted/uploaded per frame:
 persistent per-asset GPU caching is open. This is scalar opaque Scene material assignment, not
-texture/shader-graph editing, Game View materials, shipping asset cooking or full physical/multi-DPI
+texture/shader-graph editing, shipping asset cooking or full physical/multi-DPI
 Scene View acceptance. See [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md).
+
+### Frozen scalar PBR Game materials
+
+Before cloning Play, the application freezes validated scalar material values and the current
+SceneDocument's mesh-entity UUID assignments into an owning palette. Catalog generation mismatch
+rejects Start before clone creation. The palette reserves neutral slot zero and at most 63 distinct
+resolved UUIDs; missing/budget-rejected assignments retain their source bytes and report fallback
+shading for visible admitted meshes. Unsupported opaque versions remain unresolved. New entities
+created by gameplay receive neutral shading; runtime material-reference authoring is separate work.
+
+Game frame preparation reads the post-tick isolated World, copies the selected camera's world
+position, generates Renderer tangents (including degenerate UV fallback), and owns its native PBR
+palette, geometry and exact affine instances until DrawScene returns. A tangent conversion failure
+preserves the geometry through the legacy Lambert path. Frames with no resolved authored material
+also retain Lambert shading. Reimport, deletion and authoring reassignment cannot change the frozen
+Play palette; Stop/apply-and-stop releases it and the next Start captures current values. Prepared
+frames remain valid after Stop or project/catalog destruction. No material assignment or value is
+applied back to the Editor World.
+
+Portable tests exercise actual reimport/deletion/reassignment, dedup/budget/missing fallbacks,
+legacy full-width shader IDs, camera/tangent values and Pause/Step/Stop isolation. Linux Xvfb tests
+acknowledge red native Vulkan Game pixels, preserve them through a paused source edit, then reopen
+read-only and acknowledge fresh green pixels with unchanged authored bytes. This does not accept
+texture/shader graphs, simultaneous native Scene/Game canvases, dynamic material references or
+physical-host output. See [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameMaterials-Linux-2026-10-09.md).
 
 The Profiler memory controls save/load a separate `.nexora/process-memory.json` trace through the
 current ProjectWorkspace on the application thread. Both requests are consumed independently of

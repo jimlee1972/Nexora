@@ -83,6 +83,12 @@ target_link_libraries(NexoraGameViewPreviewTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraGameViewPreviewTests)
 add_test(NAME editor.game_view_preview COMMAND NexoraGameViewPreviewTests)
 
+add_executable(NexoraGameMaterialPreviewTests GameMaterialPreviewTests.cpp)
+target_include_directories(NexoraGameMaterialPreviewTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraGameMaterialPreviewTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraGameMaterialPreviewTests)
+add_test(NAME editor.game_material_preview COMMAND NexoraGameMaterialPreviewTests)
+
 add_executable(NexoraPlayGameplayModuleTests PlayGameplayModuleTests.cpp)
 target_include_directories(NexoraPlayGameplayModuleTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraPlayGameplayModuleTests PRIVATE Nexora::EditorImGui)
@@ -177,6 +183,15 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_game_view PROPERTIES TIMEOUT 45)
+  add_test(
+    NAME editor.linux_native_game_materials
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
+            --materials
+            --editor "$<TARGET_FILE:NexoraEditor>"
+            --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+            --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_game_materials PROPERTIES TIMEOUT 60)
   add_test(
     NAME editor.linux_native_gameplay_module
     COMMAND "${Python3_EXECUTABLE}"

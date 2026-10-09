@@ -781,6 +781,7 @@ int RunGraphical(std::optional<ProjectState> project,
   std::optional<Nexora::Presentation::SceneViewport> native_scene_viewport_reported;
   std::optional<NativeSceneMeshes> native_scene_meshes;
   std::optional<nexora::editor::MeshAssetCatalog> play_meshes;
+  std::optional<nexora::editor::preview::MaterialPalette> play_materials;
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport_reported;
   std::size_t unavailable_meshes = 0;
   std::optional<std::array<std::size_t, 3>> native_mesh_geometry_reported;
@@ -1268,6 +1269,7 @@ int RunGraphical(std::optional<ProjectState> project,
           gameplay.Unload();
           static_cast<void>(play.Stop());
           play_meshes.reset();
+          play_materials.reset();
           native_game_viewport_reported.reset();
           ui.SetNativeGameStatus({});
           play_accumulator = 0;
@@ -1282,7 +1284,15 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
       switch (ui.TakePlayCommand()) {
-      case nexora::editor::imgui::PlayCommand::Start:
+      case nexora::editor::imgui::PlayCommand::Start: {
+        auto frozen_materials = nexora::editor::preview::FreezeGameMaterials(
+            scene, materials, content.Browser().ProjectGeneration());
+        if (!frozen_materials) {
+          ui.SetGameplayStatus(
+              "Play material snapshot is unavailable; refresh the project assets.");
+          log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", "Play material snapshot failed.");
+          break;
+        }
         if (play.Start(1.0 / 60.0, [&](nexora::runtime::World &, double seconds) {
               return gameplay.FixedUpdate(seconds);
             })) {
@@ -1299,11 +1309,13 @@ int RunGraphical(std::optional<ProjectState> project,
                                    ? "Gameplay module running."
                                    : "Inspection only: no gameplay library selected.");
           play_meshes = meshes;
+          play_materials = std::move(frozen_materials);
           play_accumulator = 0.0;
           last_play_frame = std::chrono::steady_clock::now();
           log(nexora::runtime::RuntimeLogSeverity::Info, "PIE", "Isolated Play World started.");
         }
         break;
+      }
       case nexora::editor::imgui::PlayCommand::Pause:
         static_cast<void>(play.Pause());
         break;
@@ -1320,6 +1332,7 @@ int RunGraphical(std::optional<ProjectState> project,
         static_cast<void>(play.Stop());
         ui.SetGameplayStatus("Play stopped.");
         play_meshes.reset();
+        play_materials.reset();
         native_game_viewport_reported.reset();
         ui.SetNativeGameStatus({});
         play_accumulator = 0.0;
@@ -1684,11 +1697,13 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
     }
-    if (const auto viewport = ui.NativeGameViewport();
-        viewport && play.PlayWorld() && play_meshes && !ui.NativeScenePreviewViewport()) {
+    if (const auto viewport = ui.NativeGameViewport(); viewport && play.PlayWorld() &&
+                                                       play_meshes && play_materials &&
+                                                       !ui.NativeScenePreviewViewport()) {
       const auto game = nexora::editor::preview::BuildGameFrame(
           *play.PlayWorld(), play.Inspect(), *play_meshes,
-          static_cast<float>(viewport->width) / viewport->height, ui.GameCameraSelection());
+          static_cast<float>(viewport->width) / viewport->height, ui.GameCameraSelection(),
+          &*play_materials);
       if (!game.camera || game.instances.empty()) {
         ui.SetNativeGameStatus(!game.camera
                                    ? "Add an active camera to the scene before Play."
@@ -1696,10 +1711,13 @@ int RunGraphical(std::optional<ProjectState> project,
       } else {
         const auto status = created.surface->DrawScene(game.DrawData(*viewport));
         ui.SetNativeGameStatus(
-            game.unavailable
-                ? std::to_string(game.unavailable) +
-                      " mesh renderers could not be displayed (asset, budget, or transform)."
-                : "",
+            (game.unavailable
+                 ? std::to_string(game.unavailable) +
+                       " mesh renderers could not be displayed (asset, budget, or transform). "
+                 : "") +
+                (game.unavailable_materials ? std::to_string(game.unavailable_materials) +
+                                                  " materials use fallback shading."
+                                            : ""),
             status != Nexora::Presentation::SurfaceStatus::Unsupported);
         if (status == Nexora::Presentation::SurfaceStatus::Ready &&
             (!native_game_viewport_reported || native_game_viewport_reported->x != viewport->x ||

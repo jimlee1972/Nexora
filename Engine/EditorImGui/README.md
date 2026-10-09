@@ -134,7 +134,8 @@ production retains ImGui's native platform defaults.
   framebuffer pixels for a camera-driven native OBJ draw owned by the application. Start focuses
   the Game tab. The application builds owning geometry/instance/matrix data after Play commands and
   fixed ticks, using the preview camera choice (Automatic selects Runtime's first valid active camera)
-  and a CPU mesh catalog frozen at Start; editor reimport/deletion cannot change Play assets. Stop releases that catalog and discards the
+  and CPU mesh/material snapshots frozen at Start; editor reimport/deletion/reassignment cannot
+  change Play assets. Stop releases those snapshots and discards the
   clone. No World borrow survives frame preparation. Missing cameras/geometry show an actionable
   status. Unsupported backends retain the X/Z map. One native 3D draw is available per window/frame:
   a simultaneously visible native Scene canvas takes precedence and Game falls back to its map.
@@ -159,8 +160,11 @@ production retains ImGui's native platform defaults.
   The application forwards release/focus events into the owning gameplay snapshot even when
   rendering is deferred or the client extent is zero; these batches do not tick Play or need an
   ImGui frame. Gamepad, pointer motion/look, device-specific rebinding and multiple input users remain open.
-  Game uses the existing bounded Lambertian preview and composed TRS, without editor proxies or
-  gizmos; material shader execution, exact hierarchy shear, and simultaneous 3D views remain open.
+  Game uses bounded native scalar PBR slots when authored materials resolve, Renderer tangents and
+  exact affine world matrices, without editor proxies or gizmos. Missing/budget-rejected materials
+  use neutral slots; no resolved authored material retains Lambert shading. The application owns
+  this preparation and publishes fallback status; the UI does not edit Play material values.
+  Texture/shader graphs, dynamic material references and simultaneous 3D views remain open.
 - The Scene panel emits a one-shot save request from its button or Ctrl+S. The application consumes
   it after drawing, checks project write access and scene load state, and calls `SceneDocument::Save`.
   The host retains result text and emits owning file requests; it never writes scene files.
