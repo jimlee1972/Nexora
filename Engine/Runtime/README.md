@@ -66,6 +66,16 @@ remain synchronous on the World owner thread, and normal successful insertion st
 borrows. `runtime.world_identity_exhaustion` covers the last allocation, repeated failed creation,
 import/replacement and owning clone behavior without changing serialized schemas or stable C ABI.
 
+## Editor scene owner teardown
+
+`World::RemoveEditorScene` releases an Editor scene record after the host has destroyed its
+document/history owners and stopped/drained all readers. It accepts persistent Editor authoring
+scenes as well as inactive/active/unloaded records, removes their entities, and leaves monotonic
+object allocation unchanged. All World vector borrows expire. Missing IDs reject without mutation.
+Play Worlds reject this owner teardown API and retain deferred unload/persistence semantics. The
+API invokes no lifecycle callbacks and performs no source IO; it is an owner-thread teardown
+contract, not permission for live readers to retain pointers across removal.
+
 ## V1-M12 shipping, packaging, and hardening
 
 `Shipping.h` is the platform-neutral delivery contract. `Packager` creates an owning,

@@ -129,6 +129,10 @@ public:
   bool Activate(Id scene);
   bool RequestUnload(Id scene);
   void EndFrame();
+  // Editor-owner teardown only. The host destroys document/history owners and drains readers
+  // before this call. Removes the record without recycling IDs; all World vector borrows expire.
+  // Play Worlds retain deferred lifecycle semantics and reject this operation.
+  bool RemoveEditorScene(Id scene) noexcept;
   Entity &CreateEntity(Id scene);
   [[nodiscard]] const Scene *FindScene(Id scene) const;
   [[nodiscard]] const Entity *FindEntity(Id entity) const;

@@ -377,6 +377,16 @@ void World::EndFrame() {
     }
 }
 
+bool World::RemoveEditorScene(Id id) noexcept {
+  if (kind_ != WorldKind::Editor)
+    return false;
+  const auto found = std::ranges::find(scenes_, id, &Scene::id);
+  if (found == scenes_.end())
+    return false;
+  scenes_.erase(found);
+  return true;
+}
+
 Entity &World::CreateEntity(Id id) {
   auto *scene = const_cast<Scene *>(FindScene(id));
   if (scene == nullptr || scene->state == SceneState::Unloaded ||
