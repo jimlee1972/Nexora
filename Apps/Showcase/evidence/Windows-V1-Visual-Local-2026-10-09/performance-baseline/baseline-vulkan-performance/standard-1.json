@@ -1,0 +1,166 @@
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "interactive",
+  "scene": "courtyard",
+  "backend": "vulkan",
+  "validate_v1": false,
+  "startup_arguments": ["--scene=courtyard","--backend=vulkan","--vsync=off","--clean-view","--frames=360","--no-reload","--gameplay-module=static","--report=G:\\proj\\Nexora\\build\\v1-windows-local-2026-10-09\\baseline-vulkan-performance\\standard-1.json","--quality=standard","--pause-animation","--activate-device"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "e3eb383b4df7",
+    "abi_version": 1,
+    "configuration": "Shipping",
+    "link_mode": "Monolithic"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "AVAILABLE",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "IMPLEMENTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "courtyard",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ray/AABB diagnostics"},
+      {"id": "scene", "title": "Scene Lab", "status": "IMPLEMENTED", "fallback": "public scene/entity/component callbacks"},
+      {"id": "gameplay", "title": "Gameplay Lab", "status": "IMPLEMENTED", "fallback": "deterministic physics raycast"},
+      {"id": "presentation", "title": "Presentation Lab", "status": "IMPLEMENTED", "fallback": "portable animation, audio, VFX, and media simulation"},
+      {"id": "streaming", "title": "Streaming Lab", "status": "IMPLEMENTED", "fallback": "cell residency, budgets, and HLOD fallback"}
+    ]
+  },
+  "lifecycle": {
+    "engine_initialized": true,
+    "module_callbacks": true,
+    "module_unloaded_before_engine_shutdown": true,
+    "frames": 360,
+    "start_count": 1,
+    "fixed_update_count": 360,
+    "update_count": 360,
+    "elapsed_seconds": 6
+  },
+  "scene_evidence": {
+    "scene_id": 1,
+    "entity_count": 5,
+    "primary_entity": 4,
+    "primary_transform": {
+      "x": 5.999999999999984,
+      "y": 0,
+      "z": 0
+    },
+    "zig_read_callbacks": 360,
+    "zig_write_callbacks": 360,
+    "zig_log_received": true,
+    "high_level_debug_lines": 360,
+    "public_api_errors": 0
+  },
+  "interaction_overlay": {
+    "camera_controls": "WASD",
+    "camera_moves": 0,
+    "camera_position": [0, 2, 6],
+    "raycasts": 360,
+    "selected_entity": 4
+  },
+  "render_settings": {"width":1280,"height":720,"vsync_requested":"off","present_mode":"immediate","quality":"standard","refresh_rate_hz":null},
+  "performance": {"schema":"nexora.showcase.performance.v1","scope":"native acquired frame; includes acquire/present and pacing","warmup_frames":60,"observed_frames":360,"sample_count":300,"sample_capacity":18000,"sample_window":"latest frames after warmup","gpu_timing_ms":null,"gpu_timing_status":"UNAVAILABLE: no GPU timestamps","cpu_scope":"process-wide user+kernel CPU time; includes all threads","peak_resident_bytes":91160576,"status":"MEASURED","average_fps":8.25450626,"average_frame_ms":121.14595,"p95_frame_ms":240.882,"p99_frame_ms":719.6721,"average_process_cpu_ms":77.2395833},
+  "headless_evidence": {
+    "executed": false,
+    "backend": "Validation",
+    "visible_meshes": 3,
+    "passes": 5,
+    "barriers": 6,
+    "submitted_command_lists": 5,
+    "draw_calls": 3,
+    "presents": 1,
+    "validation_errors": 0
+  },
+  "windowed_evidence": {
+    "executed": true,
+    "backend": "vulkan",
+    "backend_fallback": false,
+    "fallback_reason": "",
+    "recovery_action": "render",
+    "surface_acquires": 360,
+    "surface_presents": 360,
+    "surface_recoverable_presents": 0,
+    "resize_requests": 0,
+    "resize_generations": 1,
+    "composed_frames": 0,
+    "scene_draws": 360,
+    "native_scene_draws": 360,
+    "native_scene_instances": 392400,
+    "native_scene_texture_uploads": 17,
+    "native_offscreen_draws": 360,
+    "native_shadow_passes": 360,
+    "native_shadow_instances": 443880,
+    "native_scene_composites": 360,
+    "software_rasterizer": false,
+    "device_identity": {"name":"NVIDIA GeForce GTX 960","vendor_id":4318,"device_id":5121,"driver_version":"2438201344","driver_version_format":"vulkan.raw"},
+    "native_graph_frames": 360,
+    "native_graph_passes": 4,
+    "native_graph_resource_transitions": 3,
+    "native_graph_order": ["Offscreen","Main","UI","Present"],
+    "native_ui_draws": 0,
+    "overlay_frames": 0,
+    "rendering_mode": "gpu_scene",
+    "clear_color": true,
+    "triangle": false,
+    "diagnostics_overlay": false
+  },
+  "runtime_rooms": {"schema":"nexora.showcase.rooms.v1","selected":"courtyard","ticks":360,"reloads":0,"probe_runs":13,"healthy":true,"tour":{"enabled":false,"paused":false,"kind":"engineering","duration_seconds":210,"seconds":0,"step":0},"visited":["courtyard"],"visualized":["courtyard"],"sample_source":"public Runtime APIs","native_media":"CONTRACT_ONLY","native_webview":"UNAVAILABLE","visual_acceptance":"pending target-host evidence","lines":["Public Runtime state sampled at tick 360","Ruins courtyard","B cycles wide / material / motion framing; F4 hides UI","P compares Lambert; O toggles environment lighting","Material / light / wind comparisons available","Last action: Entered courtyard"],"courtyard":{"stage":"living_scene_in_progress","shot":0,"shading":"shared_pbr_ibl","scene_color_format":"RGBA16F","exposure":1,"camera_mode":"orbit","comparison_menu":false,"animation_paused":true,"animation_seconds":0,"wind_enabled":true,"transmission_enabled":true,"atmosphere_enabled":true,"anti_aliasing_enabled":true,"screen_space_occlusion_enabled":true,"crystal_light_enabled":true,"refraction_enabled":true,"transparency_enabled":true,"device_active":true,"geometry_vertex_count":62557,"geometry_index_count":142488,"geometry_batch_count":395,"geometry_material_count":48,"particle_budget":48,"particle_count":48,"foliage_quad_count":4041,"quality":"standard","skybox_face_count":6,"skybox_camera_centered":true,"background_environment":true,"water_surface_count":2,"waterfall_count":2,"crystal_animation":true,"shadow_resolution":2048,"depth_of_field_enabled":true,"planar_reflection_enabled":true,"bloom_enabled":true,"shadows_enabled":true,"stylized_enabled":true,"shadow_bias":0.0008,"screenshot_mode":true,"representative_asset_loaded":true,"asset_hash":"ba85a5f7c46a16fe","hero_asset_loaded":true,"hero_detail_map_count":6,"hero_mask_count":3,"hero_sky_map_count":1,"hero_hashes":["942490089b396c4b","3df23b6365fb5372","0e768e318b0fb703","104dc5668f2f7f55","baf5cf9b51873c01","8dcfe08d1dff6680","604591ba80ce176c","55d58a88d21411f3","c38abc605ced37e3","8e34e8bcf57199a8","5ffefe6d8fbb9a6a"],"adopted_mesh_count":3,"adopted_texture_count":1,"adopted_hashes":["1f970f1257fe146d","d4fd878b4ca15a59","0971946f233ebffb","5c2880081a07b4f2"],"environment_loaded":true,"environment_enabled":true,"environment_metadata_hash":"26b3a944ce1e4fa5","environment_hashes":["8560d765aadadf3c","569b425faa18e6bb","9824b87fc91a5954"]},"integration_probes":{
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "0"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "1"}, {"name": "input.error_case", "value": "0"}, {"name": "fixed_ticks", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "2"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Native counters are reported separately in windowed_evidence", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "3"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "false"}, {"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "4"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "5"}, {"name": "input.error_case", "value": "0"}, {"name": "hash", "value": "ba85a5f7c46a16fe"}, {"name": "resident_bytes", "value": "253"}, {"name": "generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "6"}, {"name": "input.error_case", "value": "0"}, {"name": "editor_sdk", "value": "available"}, {"name": "graphical_editor", "value": "separate application"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "7"}, {"name": "input.error_case", "value": "0"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "8"}, {"name": "input.error_case", "value": "0"}, {"name": "adapter", "value": "portable CPU / no third-party physics SDK"}, {"name": "character_x", "value": "-2.00"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "9"}, {"name": "input.error_case", "value": "0"}, {"name": "native_audio_video", "value": "adapter unavailable / contract only"}, {"name": "particles", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "10"}, {"name": "input.error_case", "value": "0"}, {"name": "full_cells", "value": "3"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "11"}, {"name": "input.error_case", "value": "0"}, {"name": "webview", "value": "adapter unavailable"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "PASS", "summary": "Live public Runtime integration; contract/visual acceptance tracked separately", "metrics": [{"name": "scope", "value": "runtime_integration"}, {"name": "contract_gate", "value": "NOT_RUN"}, {"name": "sample_tick", "value": "1"}, {"name": "input.milestone", "value": "12"}, {"name": "input.error_case", "value": "0"}, {"name": "rollback_generation", "value": "1"}, {"name": "output.accepted", "value": "true"}, {"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+  ]
+}
+},
+  "validation_lab": {
+  "schema": "nexora.showcase.validation.v1",
+  "probes": [
+    {"id": "v1.M0", "milestone": "M0", "status": "NOT_RUN", "summary": "Mapped to CTest contract build.module_graph", "metrics": [{"name": "contract_test", "value": "build.module_graph"}], "issues": []},
+    {"id": "v1.M1", "milestone": "M1", "status": "NOT_RUN", "summary": "Mapped to CTest contract core.runtime", "metrics": [{"name": "contract_test", "value": "core.runtime"}], "issues": []},
+    {"id": "v1.M2", "milestone": "M2", "status": "NOT_RUN", "summary": "Mapped to CTest contract renderer.contracts", "metrics": [{"name": "contract_test", "value": "renderer.contracts"}], "issues": []},
+    {"id": "v1.M3", "milestone": "M3", "status": "UNSUPPORTED", "summary": "Mapped to CTest contract renderer.native_backend", "metrics": [{"name": "contract_test", "value": "renderer.native_backend"}], "issues": []},
+    {"id": "v1.M4", "milestone": "M4", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m4_vertical_slice", "metrics": [{"name": "contract_test", "value": "runtime.v1_m4_vertical_slice"}], "issues": []},
+    {"id": "v1.M5", "milestone": "M5", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m5_asset_pipeline", "metrics": [{"name": "contract_test", "value": "runtime.v1_m5_asset_pipeline"}], "issues": []},
+    {"id": "v1.M6", "milestone": "M6", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m6_editor_sdk", "metrics": [{"name": "contract_test", "value": "runtime.v1_m6_editor_sdk"}], "issues": []},
+    {"id": "v1.M7", "milestone": "M7", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m7_input_ui_localization", "metrics": [{"name": "contract_test", "value": "runtime.v1_m7_input_ui_localization"}], "issues": []},
+    {"id": "v1.M8", "milestone": "M8", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m8_gameplay_simulation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m8_gameplay_simulation"}], "issues": []},
+    {"id": "v1.M9", "milestone": "M9", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m9_presentation", "metrics": [{"name": "contract_test", "value": "runtime.v1_m9_presentation"}], "issues": []},
+    {"id": "v1.M10", "milestone": "M10", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m10_large_world", "metrics": [{"name": "contract_test", "value": "runtime.v1_m10_large_world"}], "issues": []},
+    {"id": "v1.M11", "milestone": "M11", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m11_platform", "metrics": [{"name": "contract_test", "value": "runtime.v1_m11_platform"}], "issues": []},
+    {"id": "v1.M12", "milestone": "M12", "status": "NOT_RUN", "summary": "Mapped to CTest contract runtime.v1_m12_shipping", "metrics": [{"name": "contract_test", "value": "runtime.v1_m12_shipping"}], "issues": []}
+  ],
+  "rooms": [
+    {"id": "input-ui-localization", "status": "NOT_RUN", "headless_evidence": "headless input routing, UI model, and locale fallback", "visual_complete": false},
+    {"id": "gameplay", "status": "NOT_RUN", "headless_evidence": "headless character, physics, navigation, and AI counters", "visual_complete": false},
+    {"id": "presentation", "status": "NOT_RUN", "headless_evidence": "headless animation, particle, audio, and video capability counters", "visual_complete": false},
+    {"id": "world", "status": "NOT_RUN", "headless_evidence": "headless cell, HLOD, procedural terrain, and vegetation state", "visual_complete": false}
+  ]
+},
+  "validation_lab_presentation": {"cards": [{"id": "v1.M0", "status": "NOT_RUN", "contract_test": "build.module_graph", "room": "hub", "world_object": 1314390016}, {"id": "v1.M1", "status": "NOT_RUN", "contract_test": "core.runtime", "room": "hub", "world_object": 1314390017}, {"id": "v1.M2", "status": "NOT_RUN", "contract_test": "renderer.contracts", "room": "hub", "world_object": 1314390018}, {"id": "v1.M3", "status": "UNSUPPORTED", "contract_test": "renderer.native_backend", "room": "hub", "world_object": 1314390019}, {"id": "v1.M4", "status": "NOT_RUN", "contract_test": "runtime.v1_m4_vertical_slice", "room": "scene", "world_object": 1314390020}, {"id": "v1.M5", "status": "NOT_RUN", "contract_test": "runtime.v1_m5_asset_pipeline", "room": "scene", "world_object": 1314390021}, {"id": "v1.M6", "status": "NOT_RUN", "contract_test": "runtime.v1_m6_editor_sdk", "room": "scene", "world_object": 1314390022}, {"id": "v1.M7", "status": "NOT_RUN", "contract_test": "runtime.v1_m7_input_ui_localization", "room": "input-ui-localization", "world_object": 1314390023}, {"id": "v1.M8", "status": "NOT_RUN", "contract_test": "runtime.v1_m8_gameplay_simulation", "room": "gameplay", "world_object": 1314390024}, {"id": "v1.M9", "status": "NOT_RUN", "contract_test": "runtime.v1_m9_presentation", "room": "presentation", "world_object": 1314390025}, {"id": "v1.M10", "status": "NOT_RUN", "contract_test": "runtime.v1_m10_large_world", "room": "world", "world_object": 1314390026}, {"id": "v1.M11", "status": "NOT_RUN", "contract_test": "runtime.v1_m11_platform", "room": "shipping", "world_object": 1314390027}, {"id": "v1.M12", "status": "NOT_RUN", "contract_test": "runtime.v1_m12_shipping", "room": "shipping", "world_object": 1314390028}], "status_legend": ["PASS", "FAIL", "UNSUPPORTED", "NOT_RUN", "BLOCKED"], "failure_states": [{"code": "invalid_asset", "label": "Invalid asset", "milestone": "M5", "status": "NOT_RUN"}, {"code": "dependency_cycle", "label": "Dependency cycle", "milestone": "M0", "status": "NOT_RUN"}, {"code": "plugin_abi_mismatch", "label": "Plugin ABI mismatch", "milestone": "M6", "status": "NOT_RUN"}, {"code": "rollback", "label": "Rollback", "milestone": "M12", "status": "NOT_RUN"}]},
+  "reload": {
+    "requested": false,
+    "successful_reloads": 0,
+    "migrated_bytes": 0
+  }
+}

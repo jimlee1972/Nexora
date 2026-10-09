@@ -701,3 +701,18 @@ per-material ambient-only occlusion or ray tracing. Hidden/offscreen geometry ca
 Transparent surfaces retain the existing nearest-geometry distance approximation. UI follows the
 composite. Shared native fixtures verify contact darkening, planar stability, preserved HDR pixels,
 and exact absent/zero-strength restoration; descriptor tests reject invalid scalar combinations.
+
+## PBR validation cost
+
+The shared PBR validator classifies vertex components by their binary32 exponent bits. This
+retains finite signed zero/subnormal values and rejects every infinity and NaN payload without
+performing arithmetic on those values. Geometry bounds, tangent handedness/orthogonality and
+material/range checks are retained. DX12 and Vulkan use that complete scan for PBR submissions;
+their Lambert paths retain the existing independent finite checks. This removes duplicate vertex
+scans while keeping descriptor rejection before native recording. No caller may bypass validation
+or declare unverified geometry resident merely to improve a benchmark.
+
+PBR 頂點以 binary32 exponent 位元分類有限值，保留正負零與 subnormal，拒絕所有 Infinity／
+NaN payload；不以浮點運算改變待驗值。幾何界限、切線方向／正交性及材質／範圍驗證皆保留。
+DX12／Vulkan 的 PBR 提交共用完整掃描，Lambert 維持原有獨立檢查；消除重複掃描後仍在原生
+命令錄製前拒絕無效描述資料。驗證成本改善不代表最終目標主機效能已驗收。

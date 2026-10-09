@@ -331,14 +331,16 @@ public:
     for (const auto index : data.indices)
       if (index >= data.vertices.size())
         return SurfaceStatus::InvalidDescriptor;
-    for (const auto &vertex : data.vertices) {
-      for (const auto value : vertex.position)
-        if (!std::isfinite(value))
-          return SurfaceStatus::InvalidDescriptor;
-      for (const auto value : vertex.normal)
-        if (!std::isfinite(value))
-          return SurfaceStatus::InvalidDescriptor;
-    }
+    // PBR validation below checks positions, normals, UVs and tangents together.
+    if (!data.pbr)
+      for (const auto &vertex : data.vertices) {
+        for (const auto value : vertex.position)
+          if (!std::isfinite(value))
+            return SurfaceStatus::InvalidDescriptor;
+        for (const auto value : vertex.normal)
+          if (!std::isfinite(value))
+            return SurfaceStatus::InvalidDescriptor;
+      }
     for (const auto value : data.model_view_projection)
       if (!std::isfinite(value))
         return SurfaceStatus::InvalidDescriptor;
@@ -421,10 +423,12 @@ public:
         data.pbr || textureId == UINT64_MAX ||
         std::any_of(data.materials.begin(), data.materials.end(),
                     [](const auto &material) { return material.textureId == 0; });
-    for (const auto &vertex : data.vertices)
-      for (const auto value : vertex.uv)
-        if (!std::isfinite(value))
-          return SurfaceStatus::InvalidDescriptor;
+    // PBR validation already checks every UV component.
+    if (!data.pbr)
+      for (const auto &vertex : data.vertices)
+        for (const auto value : vertex.uv)
+          if (!std::isfinite(value))
+            return SurfaceStatus::InvalidDescriptor;
     const SceneInstance identity{};
     const auto instances =
         data.instances.empty() ? std::span<const SceneInstance>(&identity, 1) : data.instances;

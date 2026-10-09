@@ -1,5 +1,7 @@
 # Nexora V1 Visual Showcase Demo Long-Term Plan
 
+Windows target-host continuation (2026-10-09): GTX 960 native DX12/Vulkan quality matrices now expose insufficient and variable frame rates. Shipping compiler optimization and exact finite-value validation are under regression validation; the operator requests all courtyard art aspects approach the approved concept. Final visual/performance acceptance remains open. [Measured baseline](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/performance-baseline/acceptance.md).
+
 > **Progress: Linux, Windows CI and local developer-GPU visual slices verified; complete V1 acceptance remains open.**
 > The previous percentage had no reproducible weighting ledger and is superseded by the acceptance evidence below.
 

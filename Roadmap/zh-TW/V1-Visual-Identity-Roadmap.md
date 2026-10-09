@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 有限值驗證候選通過完整 Windows Development configure／build 與 113/113 CTest（211.00 秒），包含 binary32 分類／拒絕案例與原生 DX12 PBR。最終 Linux CI、實體美術及效能驗收仍未完成。
+
+Windows GTX 960 效能調查（2026-10-09）：相同場景的 DX12／Vulkan、三品質各三次矩陣，保留明確 Shipping 編譯最佳化前後的資料。原生 MSVC 建置與共 36 次收集皆成功，但最佳化候選仍未達暫定 60 FPS 目標。操作者要求整體美術接近已核准概念圖；最終美術、效能預算及同版交付仍未驗收（VIS 5/7）。 [Performance evidence](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/performance-baseline/acceptance.md).
+
 ✅ Windows 最新主線整合後 Development configure/build 與完整 113/113 CTest 通過（296.04 秒），涵蓋原生 DX12 PBR、prepared／外部 scene save 及 owning Runtime capture。整合修復恢復既有 API，並如實回報 DX12 呈現模式。Linux CI 與同版 Windows Shipping、實體美術、品質預算及影片驗收仍待完成；VIS 維持 5/7。[整合證據](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/integration/acceptance.md)。
 
 Windows 本機續作（2026-10-09）：已修正生成的 Slang→HLSL 儲存觸發 MSVC C2026，shader

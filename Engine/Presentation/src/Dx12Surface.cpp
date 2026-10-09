@@ -398,10 +398,12 @@ public:
         drawData.pbr || textureId == UINT64_MAX ||
         std::any_of(drawData.materials.begin(), drawData.materials.end(),
                     [](const auto &material) { return material.textureId == 0; });
-    for (const auto &vertex : drawData.vertices)
-      for (const auto value : vertex.uv)
-        if (!std::isfinite(value))
-          return SurfaceStatus::InvalidDescriptor;
+    // PBR validation already checks every UV component.
+    if (!drawData.pbr)
+      for (const auto &vertex : drawData.vertices)
+        for (const auto value : vertex.uv)
+          if (!std::isfinite(value))
+            return SurfaceStatus::InvalidDescriptor;
     const SceneInstance identity{};
     const auto instances = drawData.instances.empty() ? std::span<const SceneInstance>(&identity, 1)
                                                       : drawData.instances;

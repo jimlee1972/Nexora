@@ -1,5 +1,7 @@
 # Nexora V1 可視化展示 Demo 長期規劃
 
+Windows 目標主機續作（2026-10-09）：GTX 960 的原生 DX12／Vulkan 品質矩陣顯示幀率不足且有明顯波動。Shipping 編譯最佳化與精確有限值驗證正進行回歸驗證；操作者要求庭院各項美術整體接近核准概念圖。最終視覺／效能仍未驗收。[實測基線](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/performance-baseline/acceptance.md)。
+
 > **進度：Linux、Windows CI 與本地開發機 GPU 可視化切片已驗證；完整 V1 驗收仍待完成。**
 > 原百分比缺少可重現的加權清單，改以以下驗收證據追蹤。
 

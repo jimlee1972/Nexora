@@ -1,5 +1,9 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
+✅ The finite-validation candidate passes full Windows Development configure/build and 113/113 CTest (211.00 s), including binary32 classification/rejection coverage and native DX12 PBR. Final Linux CI and physical art/performance acceptance remain open.
+
+Windows GTX 960 performance investigation (2026-10-09): unchanged-scene DX12/Vulkan three-tier, three-repeat matrices are retained before and after explicit Shipping compiler optimization. The native MSVC build and all 36 collection runs succeed, but the optimized candidate still misses the provisional 60 FPS target. The operator requests a full art revision toward the approved concept; final art, performance budget and same-version delivery remain open (VIS 5/7). [Performance evidence](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/performance-baseline/acceptance.md).
+
 ✅ Windows current-main Development configure/build and full 113/113 CTest pass (296.04 s), including native DX12 PBR, prepared/external scene save and owning Runtime capture. Integrated source restores admitted APIs and accurately reports DX12 presentation mode. Linux CI and final same-version Windows Shipping, physical art, quality budgets and video remain pending; VIS stays 5/7. [Integration evidence](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/integration/acceptance.md).
 
 Windows local continuation (2026-10-09): MSVC C2026 in generated Slang-to-HLSL storage is repaired
