@@ -1,5 +1,9 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
+The identified `bb0c96f0` GTX 960 matrix retains all 18 runs: DX12 Standard 60.20–60.73 FPS (p99 18.89–20.48 ms), Vulkan Standard 37.51–40.11 FPS (p99 35.15–37.66 ms). A stable 16.7 ms budget and final concept parity remain unaccepted. The opt-in completed-GPU diagnostic candidate passes local Windows 122/122 (234.54 s), Shipping and native/default/headless comparisons: Vulkan GPU mean 9.24 ms versus wall mean 26.85 ms; DX12 retains a 272.02 ms wall p99 outlier. Exact-head diagnostic CI is pending; default benchmark timing policy remains unchanged.
+
+The committed `bb0c96f0` candidate passes both physical GTX 960 interaction/full-tour gates (74 captures and 51 checksums each) and all 18 exact-head hosted Build 2069 jobs. Final art, stable frame-time budget and corrected-candidate visual movies remain open.
+
 ✅ The comprehensive Windows courtyard candidate passes local Development configure/build/CTest 122/122 (249.24 s), with the same geometry budgets and verified native DX12/Vulkan fixed views. Composition, weathering, bronze, crystal, foliage and sunset balance are revised; final concept parity and stable hardware frame-time acceptance remain open. Evidence: `Apps/Showcase/evidence/Windows-V1-Concept-Revision-Local-2026-10-10/`.
 
 Windows target continuation: native Shipping optimization, finite validation and adjacent material binding reuse improve measured throughput, but retained Standard outliers reach 149.83 ms DX12 and 419.94 ms Vulkan p99. Stable 60 FPS is not accepted. The integrated `ab7b4f32` base passes all 18 hosted CI jobs and local Windows 122/122; the comprehensive concept-art revision and its final native measurements/review remain pending. Evidence: `Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/performance-baseline/`. VIS stays 5/7.
