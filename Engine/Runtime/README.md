@@ -556,7 +556,7 @@ duplicate type name or ID; it is deliberately independent of any specific reflec
 than hand-annotating `World`'s existing structs.
 
 `PluginHost` is a real cross-platform dynamic loader (`dlopen`/`dlsym` on Linux and macOS,
-`LoadLibrary`/`GetProcAddress` on Windows), not an in-process descriptor comparison. The required
+`LoadLibraryW`/`GetProcAddress` on Windows), not an in-process descriptor comparison. The required
 plugin contract is the single exported C symbol `NexoraPluginAbiVersion()` (see
 `Plugins/Example/ExamplePlugin.cpp`, which only includes the public `Nexora/Foundation/BuildInfo.h`
 and `Nexora/Foundation/PluginAbi.h` headers). `Load()` resolves that symbol and closes the library
@@ -579,6 +579,52 @@ legitimate plugin on its own. This `ServiceRegistry`/`PluginHost` pair is the re
 extension mechanism; the pre-existing in-process `ExtensionRegistry` (`Runtime.h`, from the earlier
 M4-M11 contract sweep, exercised by `runtime.v1_m4_m11_contracts`) is a lighter descriptor/ABI-number
 bookkeeping structure that predates this milestone and does not itself load anything.
+
+### Cooperative plugin lifecycle
+
+The optional `NexoraPluginGetLifecycleV1` C export adds schema-one shutdown/quiescence callbacks
+without changing the required engine ABI or registration signature. The header also compiles as C.
+The host checks the required ABI first, then getter return/size/schema/callbacks before registration.
+The getter and native initialization must not start work; activation belongs in registration. The
+host supplies writable struct capacity; a plugin writes only that capacity and reports its prefix
+size. Callbacks/context remain borrowed until native unload. Public C++ SDK consumers rebuild.
+
+All host/registry calls and service access are serialized on one owner thread without reentrancy.
+Registration callback/context exist only during the synchronous registration call. The host retains
+no registry pointer afterward, so a registry may die before its host. Per admission, at most 64
+attempted service callbacks may supply nonempty, valid UTF-8 names of at most 256 bytes and nonnull
+service pointers. Duplicate, invalid, oversized, throwing or excess registration rejects the whole
+admission; staged services are never visible until registration succeeds. Manual caller services
+are preserved. Registry copies share weak owner visibility: disabling the owner hides its services
+in every copy, and a later registration may reclaim revoked names.
+
+Consumers must stop their own calls/jobs and release every borrowed service pointer before
+`RequestUnload(id)`. The host revokes visibility before calling shutdown; this does not invalidate
+an already borrowed pointer safely or replace consumer draining. Shutdown return zero accepts the
+request. Quiescence returns one only after all plugin work/calls have ended; zero remains pending.
+`PollShutdown()` advances pending entries without waiting, and native unload occurs only after one.
+Nonzero shutdown, other quiescence results, or unexpected callback exceptions produce copied
+`RestartRequired` diagnostics. Legacy plugins still load, but require restart when disabled. Methods
+are idempotent, unknown IDs report `Missing`, and `UnloadAll()` requests shutdown once per entry.
+
+The host destructor requests/polls once and deliberately leaves legacy, failed and still-pending
+native mappings resident until process restart. Registration callbacks/contexts are valid only
+during their registration call; revoked providers release normally instead of forming unreachable
+self-owned cycles. The Runtime providing host code must also survive until restart. There is
+no forced unload, in-flight service tracking, permission sandbox, signature verification or arbitrary
+native crash isolation. Native plugins must obey the no-throw C boundary and truthful quiescence
+contract; containing a C++ exception does not make untrusted in-process code safe.
+
+Each host admits at most 128 lifetime plugin rows, including failed registrations and unloaded
+rows; reload does not recycle the quota. Paths are nonempty, NUL-free and at most 32 KiB of bytes.
+Windows converts UTF-8 paths to native wide absolute paths; POSIX preserves native path bytes.
+`Snapshot()` owns paths, IDs, lifecycle state, observed ABI, callback results and visible service
+counts without exposing native handles. `LoadedCount()` counts resident mappings, including pending
+and restart-required ones. The cooperative ExamplePlugin and fourteen real compiled fixtures prove
+registration, worker quiescence, native destructor events, revocation/copies, Unicode paths, ABI/
+schema rejection, errors, rollback and exact budgets; `runtime.plugin_lifecycle_c_abi` uses the public
+header from a real C translation unit. [ADR-0007](../../Roadmap/en/ADR-0007-Cooperative-Plugin-Lifecycle.md)
+records the decision. The graphical PluginManager and trust/install/recovery policy remain open.
 
 `SceneEditor` composes `World`, `WorldCommandBuffer`, and `UndoStack` (from the M4 vertical slice)
 into Create/Modify/Undo operations. `SetTransforms` validates a non-empty unique-ID batch, applies

@@ -753,6 +753,15 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   Gameplay、build／deploy／publication UI、實體 display 及其他平台 native pixel 驗收仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM6-NativeProjectPlayer-Linux-2026-10-09.md)。
 
+- ✅ 真實 plugin host 現支援可選 schema-one 合作式 shutdown／quiescence、有界原子 service
+  registration，以及 native unload 前撤銷 registry copy 的查詢可見性。Owning row 保留真實
+  ABI／lifecycle diagnostic；legacy、拒絕停止與 pending 工作需 restart，不強制卸載。
+  Windows 將 UTF-8 path 轉成原生 wide path 載入。ExamplePlugin、十四個真實 compiled module
+  與 C header consumer 驗證 worker lifetime、Unicode path、拒絕／rollback 與精確上限。
+  Consumer 須先排空 borrowed call；圖形化 PluginManager、install／trust policy 與 native crash
+  isolation 仍待完成。[ADR-0007](ADR-0007-Cooperative-Plugin-Lifecycle.md) 與
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-PluginLifecycle-Linux-2026-10-09.md)。
+
 - ✅ Build export 前置現提供有界 owning Runtime scene capture。共用 schema-3 writer
   在 append 前限制輸出；Editor 複製完整 Runtime 實體、tracked NodeKey 與完整未知 metadata，
   不做 IO 或改變 history。測試涵蓋 entity／output 與 opaque name／payload budgets、exact

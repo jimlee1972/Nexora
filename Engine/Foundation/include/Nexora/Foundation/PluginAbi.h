@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 // Every Nexora target builds with hidden symbol visibility by default
 // (nexora_apply_defaults), including plugin modules such as
 // Plugins/Example. A plugin's ABI entry point must still be resolvable by
@@ -9,10 +11,15 @@
 // third-party plugin needs; everything else about the ABI contract is just
 // the exported function's own signature.
 
-#if defined(_WIN32)
-#define NEXORA_PLUGIN_ABI_EXPORT extern "C" __declspec(dllexport)
+#ifdef __cplusplus
+#define NEXORA_PLUGIN_C_LINKAGE extern "C"
 #else
-#define NEXORA_PLUGIN_ABI_EXPORT extern "C" __attribute__((visibility("default")))
+#define NEXORA_PLUGIN_C_LINKAGE extern
+#endif
+#if defined(_WIN32)
+#define NEXORA_PLUGIN_ABI_EXPORT NEXORA_PLUGIN_C_LINKAGE __declspec(dllexport)
+#else
+#define NEXORA_PLUGIN_ABI_EXPORT NEXORA_PLUGIN_C_LINKAGE __attribute__((visibility("default")))
 #endif
 
 // A plugin that wants to expose something to the engine (not just prove ABI
@@ -34,6 +41,25 @@ extern "C" {
 typedef void (*NexoraServiceRegisterCallback)(void *context, const char *name, void *service);
 typedef void (*NexoraPluginRegisterFn)(void *context,
                                        NexoraServiceRegisterCallback register_service);
+
+// Optional export NexoraPluginGetLifecycleV1(requested_schema, lifecycle). Host initializes
+// struct_size to its writable capacity; plugins must never write beyond that capacity. Getter
+// returns zero on success and must not activate work. Schema one requires the complete prefix
+// below; unknown future suffixes are ignored. Callbacks/context are borrowed until native unload.
+// Registration callback/context are valid only during synchronous NexoraPluginRegister.
+#define NEXORA_PLUGIN_LIFECYCLE_SCHEMA_V1 1U
+typedef struct NexoraPluginLifecycleV1 {
+  uint32_t struct_size;
+  uint32_t schema_version;
+  void *context;
+  // Zero accepts shutdown; any other result requires restart. Must not throw across this ABI.
+  int32_t (*request_shutdown)(void *context);
+  // One proves all plugin work/calls quiescent, zero is pending, any other result requires restart.
+  // Host consumers release borrowed service pointers before requesting shutdown.
+  int32_t (*poll_quiescence)(void *context);
+} NexoraPluginLifecycleV1;
+typedef int32_t (*NexoraPluginGetLifecycleV1Fn)(uint32_t requested_schema,
+                                                NexoraPluginLifecycleV1 *lifecycle);
 
 #ifdef __cplusplus
 }

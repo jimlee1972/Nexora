@@ -784,6 +784,15 @@ creates property widgets; unknown components retain raw data instead of being si
     Verification-only/feature-off builds remain supported. Gameplay, build/deploy/publication UI,
     physical display and other-platform native pixel acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-NativeProjectPlayer-Linux-2026-10-09.md).
+  - ✅ The real plugin host now supports optional schema-one cooperative shutdown/quiescence,
+    atomic bounded service registration and revocation in registry copies before native unload.
+    Owning rows retain actual ABI/lifecycle diagnostics; legacy, rejected and pending work require
+    restart instead of forced unload. Windows loads UTF-8 paths through native wide paths. The
+    ExamplePlugin, fourteen real compiled modules and a C header consumer verify worker lifetime,
+    Unicode paths, rejection/rollback and exact budgets. Consumers drain borrowed calls first;
+    graphical PluginManager, installation/trust policy and native crash isolation remain open.
+    [ADR-0007](ADR-0007-Cooperative-Plugin-Lifecycle.md) and
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-PluginLifecycle-Linux-2026-10-09.md).
   - ✅ Build export prerequisites now provide a bounded owning Runtime scene capture. The shared
     schema-3 writer caps output before appending; the Editor captures all Runtime entities plus
     tracked NodeKeys and full unknown metadata without IO or history changes. Entity/output and
